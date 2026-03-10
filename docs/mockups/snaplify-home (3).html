@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Snaplify — Build Interactive Explainers</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Raleway:wght@400;700;800;900&family=DM+Sans:ital,wght@0,400;0,500;1,400&family=DM+Mono:wght@400;500&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+:root {
+  /* ── DEEPWOOD BIOME palette ──
+     The logic: every surface has green in it.
+     Dark surfaces = forest floor. Light surfaces = moonlight through canopy.
+     The lime accent grows out of the environment, not onto it.
+  */
+  --grove:       #0b1a0d;   /* darkest — forest floor */
+  --canopy:      #131f14;   /* base background */
+  --understory:  #1c2e1c;   /* card surface */
+  --fern:        #243824;   /* elevated card / hover */
+  --thicket:     #2e4a2e;   /* border — dark panels */
+  --lichen:      #3d6338;   /* border highlight / secondary accent */
+  --moss:        #5a8a52;   /* ghost text on dark */
+  --sage:        #8ab87e;   /* secondary text on dark */
+  --dew:         #c4e0b4;   /* primary text on dark */
+  --spore:       #b8f542;   /* THE lime — unchanged */
+  --spore-dim:   #8fc43a;   /* lime mid */
+  --spore-deep:  #4a7010;   /* lime deep */
+  --spore-glow:  rgba(184,245,66,0.12);
+
+  /* ── MOONLIGHT surfaces (light panels) ──
+     These are where readable body text lives.
+     Not paper — green-tinted light, like sunlight through leaves.
+  */
+  --moonlight:   #eef5e4;   /* light panel background */
+  --daybreak:    #f5fbec;   /* lightest surface */
+  --leaf-border: #c8ddb8;   /* border on light panels */
+  --leaf-mid:    #a8c898;   /* stronger border on light */
+  --bark-light:  #6a9060;   /* text dim on light panels */
+  --grove-text:  #1a2a12;   /* primary text on light panels */
+
+  /* Semantic */
+  --bg:           var(--canopy);
+  --surface:      var(--understory);
+  --border:       var(--thicket);
+  --text:         var(--dew);
+  --text-dim:     var(--sage);
+  --text-ghost:   var(--moss);
+
+  --font-display: 'Raleway', sans-serif;
+  --font-body:    'DM Sans', sans-serif;
+  --font-ui:      'DM Mono', monospace;
+  --font-code:    'JetBrains Mono', monospace;
+
+  --ease-snap: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--canopy);
+  color: var(--dew);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+/* Forest grain overlay */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ── UTILITIES ── */
+.label { font-family: var(--font-ui); font-size: 10px; text-transform: uppercase; letter-spacing: 0.16em; color: var(--moss); }
+
+/* ── STATUS BAR ── */
+.status-bar {
+  background: var(--grove);
+  border-bottom: 1px solid var(--thicket);
+  height: 30px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 24px;
+}
+.s-l, .s-r { display: flex; align-items: center; gap: 16px; }
+.s-dot { width: 6px; height: 6px; background: var(--spore); animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+.s-txt { font-family: var(--font-ui); font-size: 10px; color: var(--moss); text-transform: uppercase; letter-spacing: 0.12em; }
+.s-badge { font-family: var(--font-ui); font-size: 9px; text-transform: uppercase; letter-spacing: 0.12em; padding: 2px 7px; border: 1px solid var(--thicket); color: var(--moss); }
+.s-badge-accent { border-color: var(--spore-deep); color: var(--spore); }
+
+/* ── NAV ── */
+nav {
+  background: var(--understory);
+  border-bottom: 1px solid var(--thicket);
+  height: 58px;
+  display: flex; align-items: center;
+  padding: 0 48px;
+  justify-content: space-between;
+  position: sticky; top: 30px; z-index: 500;
+}
+.nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+.wordmark { font-family: var(--font-display); font-weight: 900; font-size: 20px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--dew); }
+.wordmark em { color: var(--spore); font-style: normal; }
+.nav-links { display: flex; align-items: center; gap: 32px; list-style: none; }
+.nav-links a { font-family: var(--font-ui); font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--moss); text-decoration: none; transition: color 0.15s; }
+.nav-links a:hover { color: var(--dew); }
+.nav-act { display: flex; gap: 8px; align-items: center; }
+
+.btn {
+  font-family: var(--font-ui); font-size: 10px; text-transform: uppercase;
+  letter-spacing: 0.14em; padding: 8px 18px; border: 1.5px solid var(--thicket);
+  background: transparent; color: var(--sage); cursor: pointer;
+  text-decoration: none; display: inline-flex; align-items: center; gap: 7px;
+  transition: all 0.15s var(--ease-snap);
+}
+.btn:hover { border-color: var(--lichen); color: var(--dew); transform: translateY(-1px); }
+.btn-primary { background: var(--spore); border-color: var(--spore); color: var(--grove); font-weight: 700; }
+.btn-primary:hover { background: #ccff44; border-color: #ccff44; color: var(--grove); box-shadow: 4px 4px 0 var(--spore-deep); }
+
+/* ── HERO — split panel: dark left, moonlight right ── */
+.hero {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 560px;
+}
+
+.hero-left {
+  background: var(--canopy);
+  padding: 80px 64px 80px 80px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border-right: 1px solid var(--thicket);
+}
+
+/* Moonlight panel — where the content preview lives */
+.hero-right {
+  background: var(--moonlight);
+  padding: 48px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Subtle leaf-vein pattern on moonlight panel */
+.hero-right::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: 0.04;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+
+.hero-eyebrow {
+  display: inline-flex; align-items: center; gap: 8px;
+  margin-bottom: 20px; padding: 4px 12px 4px 8px;
+  border: 1px solid var(--thicket); background: var(--understory);
+}
+.eyebrow-dot { width: 7px; height: 7px; background: var(--spore); }
+.eyebrow-txt { font-family: var(--font-ui); font-size: 10px; color: var(--spore); text-transform: uppercase; letter-spacing: 0.14em; }
+
+.hero-title {
+  font-family: var(--font-display); font-weight: 900;
+  font-size: clamp(44px, 4.5vw, 72px);
+  line-height: 0.92; letter-spacing: -0.02em;
+  text-transform: uppercase; color: var(--dew); margin-bottom: 24px;
+}
+.hero-title em { color: var(--spore); font-style: normal; }
+
+.hero-sub { font-size: 16px; color: var(--sage); line-height: 1.75; max-width: 420px; margin-bottom: 32px; }
+.hero-ctas { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
+.hero-note { font-family: var(--font-ui); font-size: 10px; color: var(--moss); letter-spacing: 0.08em; text-transform: uppercase; }
+
+/* ── PREVIEW WINDOW (on moonlight) ── */
+.preview-window {
+  background: var(--daybreak);
+  border: 2px solid var(--leaf-border);
+  box-shadow: 8px 8px 0 var(--leaf-border);
+  position: relative;
+  z-index: 1;
+}
+
+.preview-chrome {
+  background: var(--moonlight);
+  border-bottom: 1.5px solid var(--leaf-border);
+  padding: 10px 14px;
+  display: flex; align-items: center; gap: 10px;
+}
+.chrome-dots { display: flex; gap: 5px; }
+.chrome-dot { width: 9px; height: 9px; background: var(--leaf-border); }
+.chrome-dot:first-child { background: var(--spore-glow); border: 1.5px solid var(--spore-dim); }
+.chrome-label { font-family: var(--font-ui); font-size: 10px; color: var(--bark-light); text-transform: uppercase; letter-spacing: 0.1em; }
+
+.preview-body { padding: 20px 22px; }
+
+.preview-progress { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.p-prog-bar { flex: 1; height: 3px; background: var(--leaf-border); }
+.p-prog-fill { height: 100%; width: 42%; background: var(--spore); }
+.p-prog-txt { font-family: var(--font-ui); font-size: 9px; color: var(--bark-light); text-transform: uppercase; letter-spacing: 0.1em; }
+
+.preview-tag { font-family: var(--font-ui); font-size: 10px; color: var(--spore-dim); text-transform: uppercase; letter-spacing: 0.15em; margin-bottom: 8px; }
+.preview-h { font-family: var(--font-display); font-weight: 800; font-size: 20px; color: var(--grove-text); text-transform: uppercase; line-height: 1.05; margin-bottom: 10px; }
+.preview-txt { font-size: 12px; color: var(--bark-light); line-height: 1.6; margin-bottom: 14px; }
+
+/* Interactive module in preview */
+.p-module {
+  background: var(--grove);
+  border: 1.5px solid var(--thicket);
+  border-left: 3px solid var(--spore);
+  padding: 14px 16px;
+  position: relative;
+}
+.p-mod-tag { position: absolute; top: -10px; right: 12px; background: var(--spore); color: var(--grove); font-family: var(--font-ui); font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; padding: 2px 8px; }
+
+.p-slider-label { display: flex; justify-content: space-between; font-family: var(--font-ui); font-size: 10px; color: var(--sage); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; }
+.p-slider-val { color: var(--spore); font-weight: 500; }
+.p-track { height: 4px; background: var(--thicket); position: relative; cursor: pointer; margin-bottom: 12px; }
+.p-fill { position: absolute; left:0; top:0; height:100%; background: var(--spore); transition: width 0.1s; }
+.p-thumb { position: absolute; top: -8px; width: 20px; height: 20px; background: var(--spore); transform: translateX(-50%); cursor: grab; transition: left 0.1s; }
+.p-output { font-family: var(--font-ui); font-size: 10px; color: var(--sage); background: var(--understory); border: 1px solid var(--thicket); padding: 6px 10px; }
+.p-ok { color: var(--spore); }
+
+.preview-nav { display: flex; align-items: center; justify-content: space-between; padding-top: 12px; margin-top: 14px; border-top: 1px solid var(--leaf-border); }
+.p-dots { display: flex; gap: 5px; }
+.p-dot { width: 7px; height: 7px; background: var(--leaf-border); cursor: pointer; }
+.p-dot.active { background: var(--spore); }
+.p-next { font-family: var(--font-ui); font-size: 9px; color: var(--spore-dim); text-transform: uppercase; letter-spacing: 0.1em; border: none; background: none; cursor: pointer; display: flex; align-items: center; gap: 5px; }
+
+/* ── FEATURE STRIP ── */
+.feat-strip {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  border-top: 1px solid var(--thicket); border-bottom: 1px solid var(--thicket);
+  background: var(--understory);
+}
+.feat-item { padding: 22px 20px; border-right: 1px solid var(--thicket); display: flex; align-items: flex-start; gap: 12px; }
+.feat-item:last-child { border-right: none; }
+.feat-icon { width: 34px; height: 34px; background: var(--spore-glow); border: 1px solid var(--spore-deep); display: flex; align-items: center; justify-content: center; color: var(--spore); font-size: 13px; flex-shrink: 0; }
+.feat-title { font-family: var(--font-display); font-weight: 800; font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--dew); margin-bottom: 3px; }
+.feat-desc { font-size: 12px; color: var(--sage); line-height: 1.5; }
+
+/* ── PROOF ── */
+.proof-strip { background: var(--fern); border-bottom: 1px solid var(--thicket); padding: 11px 48px; display: flex; align-items: center; gap: 20px; }
+.proof-label { font-family: var(--font-ui); font-size: 9px; color: var(--moss); text-transform: uppercase; letter-spacing: 0.16em; flex-shrink: 0; }
+.proof-sep { width: 1px; height: 18px; background: var(--thicket); flex-shrink: 0; }
+.proof-item { font-family: var(--font-ui); font-size: 10px; color: var(--lichen); text-transform: uppercase; letter-spacing: 0.1em; white-space: nowrap; }
+
+/* ── SECTIONS — alternate dark/light panels ── */
+
+/* Dark section */
+.section-dark { background: var(--canopy); border-bottom: 1px solid var(--thicket); }
+/* Light section */
+.section-light { background: var(--moonlight); border-bottom: 1px solid var(--leaf-border); }
+
+.section-inner { max-width: 1240px; margin: 0 auto; padding: 80px 48px; }
+
+.section-head { margin-bottom: 48px; padding-bottom: 20px; display: flex; align-items: flex-end; justify-content: space-between; }
+.section-head.dark-head { border-bottom: 1px solid var(--thicket); }
+.section-head.light-head { border-bottom: 1px solid var(--leaf-border); }
+
+.section-tag-dark { font-family: var(--font-ui); font-size: 10px; color: var(--spore); text-transform: uppercase; letter-spacing: 0.14em; margin-bottom: 8px; }
+.section-tag-light { font-family: var(--font-ui); font-size: 10px; color: var(--spore-dim); text-transform: uppercase; letter-spacing: 0.14em; margin-bottom: 8px; }
+
+.section-title-dark { font-family: var(--font-display); font-weight: 900; font-size: clamp(28px, 3vw, 46px); text-transform: uppercase; letter-spacing: -0.01em; color: var(--dew); line-height: 0.95; }
+.section-title-dark em { color: var(--spore); font-style: normal; }
+
+.section-title-light { font-family: var(--font-display); font-weight: 900; font-size: clamp(28px, 3vw, 46px); text-transform: uppercase; letter-spacing: -0.01em; color: var(--grove-text); line-height: 0.95; }
+.section-title-light em { color: var(--spore-dim); font-style: normal; }
+
+.section-aside-dark { font-family: var(--font-ui); font-size: 10px; color: var(--moss); text-transform: uppercase; letter-spacing: 0.1em; text-align: right; }
+.section-aside-light { font-family: var(--font-ui); font-size: 10px; color: var(--bark-light); text-transform: uppercase; letter-spacing: 0.1em; text-align: right; }
+
+/* ── HOW IT WORKS (dark section) ── */
+.steps-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  border: 1.5px solid var(--thicket);
+  box-shadow: 6px 6px 0 var(--thicket);
+}
+.step-card { padding: 32px; border-right: 1px solid var(--thicket); background: var(--understory); position: relative; transition: background 0.2s; }
+.step-card:last-child { border-right: none; }
+.step-card:hover { background: var(--fern); }
+.step-n { font-family: var(--font-display); font-weight: 900; font-size: 72px; color: var(--thicket); line-height: 1; margin-bottom: 12px; user-select: none; }
+.step-tag { font-family: var(--font-ui); font-size: 10px; color: var(--spore); text-transform: uppercase; letter-spacing: 0.14em; margin-bottom: 8px; }
+.step-title { font-family: var(--font-display); font-weight: 800; font-size: 16px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--dew); margin-bottom: 12px; }
+.step-desc { font-size: 13px; color: var(--sage); line-height: 1.65; }
+.step-arrow { position: absolute; right: -16px; top: 50%; transform: translateY(-50%); width: 32px; height: 32px; background: var(--spore); display: flex; align-items: center; justify-content: center; color: var(--grove); font-size: 11px; z-index: 2; }
+
+/* ── MODULES (light section) ── */
+.module-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+
+.module-card {
+  background: var(--daybreak);
+  border: 2px solid var(--leaf-border);
+  position: relative;
+  transition: border-color 0.2s, transform 0.2s var(--ease-snap), box-shadow 0.2s;
+}
+.module-card:hover { border-color: var(--spore-dim); transform: translateY(-3px); box-shadow: 4px 4px 0 rgba(143,196,58,0.2); }
+.module-card::before { content: attr(data-type); position: absolute; top: -1px; left: -1px; background: var(--spore); color: var(--grove); font-family: var(--font-ui); font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; padding: 2px 9px; }
+.mc-body { padding: 32px 16px 16px; }
+.mc-title { font-family: var(--font-display); font-weight: 800; font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--grove-text); margin-bottom: 8px; }
+.mc-desc { font-size: 12px; color: var(--bark-light); line-height: 1.5; margin-bottom: 16px; }
+
+/* demo widgets on light background */
+.demo-box { background: var(--moonlight); border: 1.5px solid var(--leaf-border); padding: 12px 14px; }
+.demo-row { display: flex; justify-content: space-between; margin-bottom: 8px; }
+.demo-lbl { font-family: var(--font-ui); font-size: 10px; color: var(--bark-light); text-transform: uppercase; letter-spacing: 0.08em; }
+.demo-val { font-family: var(--font-ui); font-size: 10px; color: var(--spore-dim); }
+.demo-track { height: 3px; background: var(--leaf-border); position: relative; cursor: pointer; margin-bottom: 8px; }
+.demo-fill { position: absolute; left:0; top:0; height:100%; background: var(--spore-dim); }
+.demo-thumb { position: absolute; top: -6px; width: 15px; height: 15px; background: var(--spore-dim); transform: translateX(-50%); }
+.demo-result { font-family: var(--font-ui); font-size: 10px; color: var(--spore-dim); }
+
+.demo-toggles { display: flex; gap: 8px; margin-bottom: 8px; }
+.demo-tog { flex: 1; padding: 8px 10px; border: 1.5px solid var(--leaf-border); background: var(--moonlight); font-family: var(--font-ui); font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--bark-light); text-align: center; cursor: pointer; transition: all 0.15s; }
+.demo-tog.active { background: var(--grove); border-color: var(--spore-deep); color: var(--spore); }
+
+.demo-rev-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.demo-rc { background: var(--moonlight); border: 1.5px solid var(--leaf-border); padding: 12px; cursor: pointer; transition: border-color 0.15s; display: flex; flex-direction: column; gap: 8px; }
+.demo-rc:hover { border-color: var(--spore-dim); }
+.demo-rc-icon { width: 22px; height: 22px; background: var(--daybreak); border: 1px solid var(--leaf-border); display: flex; align-items: center; justify-content: center; font-size: 9px; color: var(--bark-light); }
+.demo-rc-txt { font-size: 10px; color: var(--bark-light); line-height: 1.4; }
+.demo-rc.revealed { background: var(--grove); border-color: var(--spore-deep); }
+.demo-rc.revealed .demo-rc-icon { background: var(--spore-glow); border-color: var(--spore-deep); color: var(--spore); }
+.demo-rc.revealed .demo-rc-txt { color: var(--spore); }
+
+.demo-canvas-area { background: var(--moonlight); height: 90px; border: 1.5px solid var(--leaf-border); position: relative; overflow: hidden; cursor: crosshair; }
+.demo-grid-bg { position: absolute; inset: 0; background-image: repeating-linear-gradient(0deg,transparent,transparent 18px,var(--leaf-border) 18px,var(--leaf-border) 18.5px),repeating-linear-gradient(90deg,transparent,transparent 18px,var(--leaf-border) 18px,var(--leaf-border) 18.5px); }
+
+.demo-calc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+.calc-inp-lbl { font-family: var(--font-ui); font-size: 9px; color: var(--bark-light); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 3px; }
+.calc-inp-val { background: var(--moonlight); border: 1.5px solid var(--leaf-border); padding: 4px 8px; font-family: var(--font-code); font-size: 11px; color: var(--spore-dim); }
+.calc-result { display: flex; justify-content: space-between; align-items: center; background: var(--grove); border: 1px solid var(--thicket); padding: 5px 8px; }
+
+/* ── THEMES (dark section) ── */
+.theme-strip { display: grid; grid-template-columns: repeat(5, 1fr); border-top: 1px solid var(--thicket); }
+.theme-card { border-right: 1px solid var(--thicket); overflow: hidden; cursor: pointer; transition: transform 0.2s var(--ease-snap); }
+.theme-card:last-child { border-right: none; }
+.theme-card:hover { transform: scaleY(1.02); z-index: 2; }
+.theme-preview { height: 160px; padding: 16px; display: flex; flex-direction: column; gap: 7px; }
+.th-bar { height: 3px; width: 40%; }
+.th-h { height: 14px; margin-top: 4px; }
+.th-p { height: 8px; }
+.th-p2 { height: 8px; width: 70%; }
+.th-w { height: 38px; border-radius: 0; margin-top: 4px; border-width: 1.5px; border-style: solid; }
+.theme-meta { background: var(--fern); border-top: 1px solid var(--thicket); padding: 8px 14px; display: flex; align-items: center; justify-content: space-between; }
+.theme-name-dark { font-family: var(--font-display); font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--dew); }
+.theme-name-light { font-family: var(--font-display); font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--grove-text); }
+.theme-swatch { width: 14px; height: 14px; border: 1px solid rgba(255,255,255,0.15); }
+
+/* ── TOKEN IMPORT (light section) ── */
+.token-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center; }
+.token-copy h3 { font-family: var(--font-display); font-weight: 900; font-size: clamp(26px, 2.5vw, 38px); text-transform: uppercase; letter-spacing: -0.01em; color: var(--grove-text); line-height: 1; margin-bottom: 16px; }
+.token-copy h3 em { color: var(--spore-dim); font-style: normal; }
+.token-copy p { font-size: 15px; color: var(--bark-light); line-height: 1.7; margin-bottom: 20px; }
+.fmt-tags { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+.fmt-tag { font-family: var(--font-ui); font-size: 9px; text-transform: uppercase; letter-spacing: 0.12em; padding: 4px 10px; border: 1.5px solid var(--leaf-border); color: var(--bark-light); background: var(--daybreak); }
+
+.code-block { background: var(--grove); border: 2px solid var(--thicket); box-shadow: 8px 8px 0 var(--leaf-border); }
+.code-chrome { background: var(--understory); border-bottom: 1px solid var(--thicket); padding: 8px 14px; display: flex; align-items: center; justify-content: space-between; }
+.code-fname { font-family: var(--font-ui); font-size: 10px; color: var(--moss); text-transform: uppercase; letter-spacing: 0.1em; }
+.code-copy-btn { font-family: var(--font-ui); font-size: 9px; color: var(--spore); background: none; border: none; cursor: pointer; text-transform: uppercase; letter-spacing: 0.1em; }
+.code-body { padding: 16px 20px; font-family: var(--font-code); font-size: 12px; line-height: 1.9; overflow-x: auto; }
+.ck { color: #7dd3fc; }
+.cv { color: var(--spore); }
+.cc { color: var(--moss); }
+
+/* ── CTA (dark with spore fill) ── */
+.cta-section { background: var(--spore); padding: 80px 48px; position: relative; overflow: hidden; }
+.cta-section::before { content: ''; position: absolute; inset: 0; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); opacity: 0.06; pointer-events: none; }
+.cta-inner { max-width: 1240px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 32px; position: relative; }
+.cta-title { font-family: var(--font-display); font-weight: 900; font-size: clamp(30px, 3.5vw, 54px); text-transform: uppercase; letter-spacing: -0.02em; color: var(--grove); line-height: 0.95; }
+.cta-actions { display: flex; gap: 12px; align-items: center; flex-shrink: 0; }
+.btn-void { background: var(--grove); border-color: var(--grove); color: var(--spore); font-weight: 700; }
+.btn-void:hover { background: var(--canopy); border-color: var(--canopy); color: var(--spore); box-shadow: 4px 4px 0 rgba(0,0,0,0.3); transform: translateY(-1px); }
+.btn-ghost-dark { border-color: rgba(11,26,13,0.35); color: var(--grove); }
+.btn-ghost-dark:hover { border-color: var(--grove); transform: translateY(-1px); }
+
+/* ── FOOTER ── */
+footer { background: var(--grove); border-top: 1px solid var(--thicket); padding: 48px 48px 24px; }
+.footer-inner { max-width: 1240px; margin: 0 auto; }
+.footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 48px; margin-bottom: 48px; }
+.footer-brand-name { font-family: var(--font-display); font-weight: 900; font-size: 16px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--dew); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+.footer-brand-desc { font-size: 12px; color: var(--moss); line-height: 1.6; max-width: 260px; margin-bottom: 16px; }
+.footer-col-title { font-family: var(--font-ui); font-size: 9px; text-transform: uppercase; letter-spacing: 0.16em; color: var(--moss); margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--thicket); }
+.footer-links { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.footer-links a { font-size: 12px; color: var(--moss); text-decoration: none; transition: color 0.15s; }
+.footer-links a:hover { color: var(--dew); }
+.footer-bottom { display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--thicket); padding-top: 16px; }
+.footer-copy { font-family: var(--font-ui); font-size: 9px; color: var(--moss); text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.6; }
+.footer-badges { display: flex; gap: 8px; }
+.f-badge { font-family: var(--font-ui); font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; padding: 2px 7px; border: 1px solid var(--thicket); color: var(--moss); }
+.f-badge-accent { border-color: var(--spore-deep); color: var(--spore); }
+</style>
+</head>
+<body>
+
+<!-- STATUS BAR -->
+<div class="status-bar">
+  <div class="s-l">
+    <div class="s-dot"></div>
+    <span class="s-txt">Snaplify v0.9 — Public Beta</span>
+  </div>
+  <div class="s-r">
+    <span class="s-badge s-badge-accent">Open Beta</span>
+    <span class="s-badge">MIT License</span>
+    <span class="s-txt">snaplify.io</span>
+  </div>
+</div>
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="nav-logo">
+    <svg width="30" height="30" viewBox="0 0 32 32">
+      <defs><filter id="r"><feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="3" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="1.2"/></filter></defs>
+      <g filter="url(#r)">
+        <rect x="1" y="4" width="12" height="24" stroke="#b8f542" stroke-width="1.5" fill="none"/>
+        <rect x="13" y="11" width="6" height="10" fill="#b8f542"/>
+        <path d="M19,4 L31,4 L31,28 L19,28 L19,21 L15,21 L15,11 L19,11 Z" stroke="#b8f542" stroke-width="1.5" fill="rgba(184,245,66,0.1)"/>
+        <rect x="3" y="6" width="3" height="3" fill="#b8f542" opacity="0.5"/>
+        <rect x="26" y="23" width="3" height="3" fill="#b8f542" opacity="0.5"/>
+      </g>
+    </svg>
+    <span class="wordmark">Snap<em>lify</em></span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="#">Modules</a></li>
+    <li><a href="#">Themes</a></li>
+    <li><a href="#">Docs</a></li>
+    <li><a href="#">Showcase</a></li>
+    <li><a href="#">Pricing</a></li>
+  </ul>
+  <div class="nav-act">
+    <a href="#" class="btn">Log In</a>
+    <a href="snaplify-editor.html" class="btn btn-primary"><i class="fa fa-bolt"></i>Open Editor</a>
+  </div>
+</nav>
+
+<!-- HERO — split panel -->
+<div class="hero">
+  <div class="hero-left">
+    <div class="hero-eyebrow">
+      <div class="eyebrow-dot"></div>
+      <span class="eyebrow-txt">Interactive explainer builder</span>
+    </div>
+    <h1 class="hero-title">Build<br><em>Explainers</em><br>That Teach</h1>
+    <p class="hero-sub">Snap prebuilt interactive modules into explorable explanations. Use a built-in theme or import your own design tokens. Export a single HTML file. Ship anywhere.</p>
+    <div class="hero-ctas">
+      <a href="snaplify-editor.html" class="btn btn-primary" style="padding:12px 28px;font-size:11px"><i class="fa fa-bolt"></i>Start Building Free</a>
+      <a href="#" class="btn" style="padding:12px 22px;font-size:11px"><i class="fa fa-play"></i>See Examples</a>
+    </div>
+    <p class="hero-note"><i class="fa fa-lock" style="margin-right:5px"></i>No account to start &nbsp;·&nbsp; Single-file output &nbsp;·&nbsp; Host anywhere</p>
+  </div>
+
+  <div class="hero-right">
+    <div class="preview-window">
+      <div class="preview-chrome">
+        <div class="chrome-dots"><div class="chrome-dot"></div><div class="chrome-dot"></div><div class="chrome-dot"></div></div>
+        <span class="chrome-label">How Neural Networks Learn — Preview</span>
+      </div>
+      <div class="preview-body">
+        <div class="preview-progress">
+          <div class="p-prog-bar"><div class="p-prog-fill"></div></div>
+          <span class="p-prog-txt">Sec 3 of 7 · 42%</span>
+        </div>
+        <div class="preview-tag">§ 03 — Gradient Descent</div>
+        <div class="preview-h">The Learning<br>Rate Problem</div>
+        <p class="preview-txt">Drag the slider to see how learning rate affects convergence. Too high — overshoots. Too low — barely moves.</p>
+        <div class="p-module">
+          <div class="p-mod-tag">Slider Module</div>
+          <div class="p-slider-label"><span>Learning Rate (η)</span><span class="p-slider-val" id="heroVal">0.010</span></div>
+          <div class="p-track" id="heroTrack">
+            <div class="p-fill" id="heroFill" style="width:35%"></div>
+            <div class="p-thumb" id="heroThumb" style="left:35%"></div>
+          </div>
+          <div class="p-output"><span class="p-ok" id="heroOut"><i class="fa fa-check" style="margin-right:5px;font-size:9px"></i>Converging steadily. Loss decreasing.</span></div>
+        </div>
+        <div class="preview-nav">
+          <div class="p-dots"><div class="p-dot"></div><div class="p-dot"></div><div class="p-dot active"></div><div class="p-dot"></div><div class="p-dot"></div><div class="p-dot"></div><div class="p-dot"></div></div>
+          <button class="p-next">Next section <i class="fa fa-arrow-right" style="font-size:9px"></i></button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FEATURE STRIP -->
+<div class="feat-strip">
+  <div class="feat-item"><div class="feat-icon"><i class="fa fa-puzzle-piece"></i></div><div><div class="feat-title">15+ Module Types</div><div class="feat-desc">Sliders, toggles, sims, canvases, calculators, and more.</div></div></div>
+  <div class="feat-item"><div class="feat-icon"><i class="fa fa-palette"></i></div><div><div class="feat-title">Design Token Import</div><div class="feat-desc">CSS properties, Figma tokens, Style Dictionary JSON.</div></div></div>
+  <div class="feat-item"><div class="feat-icon"><i class="fa fa-file-code"></i></div><div><div class="feat-title">Single-File Output</div><div class="feat-desc">Self-contained HTML file. No runtime, no server needed.</div></div></div>
+  <div class="feat-item"><div class="feat-icon"><i class="fa fa-share-nodes"></i></div><div><div class="feat-title">Publish Anywhere</div><div class="feat-desc">GitHub Pages, Notion, docs sites, or share as a file.</div></div></div>
+</div>
+
+<!-- PROOF -->
+<div class="proof-strip">
+  <span class="proof-label">Used by</span>
+  <div class="proof-sep"></div>
+  <div style="display:flex;gap:20px;flex-wrap:wrap">
+    <span class="proof-item">Dev Relations Engineers</span><span class="proof-item" style="color:var(--thicket)">·</span>
+    <span class="proof-item">Technical Writers</span><span class="proof-item" style="color:var(--thicket)">·</span>
+    <span class="proof-item">Educators</span><span class="proof-item" style="color:var(--thicket)">·</span>
+    <span class="proof-item">Open Source Maintainers</span><span class="proof-item" style="color:var(--thicket)">·</span>
+    <span class="proof-item">Science Communicators</span>
+  </div>
+</div>
+
+<!-- HOW IT WORKS — dark -->
+<div class="section-dark">
+  <div class="section-inner">
+    <div class="section-head dark-head">
+      <div><div class="section-tag-dark">01 — How It Works</div><h2 class="section-title-dark">Three Steps to<br><em>Something Real</em></h2></div>
+      <div class="section-aside-dark">No config. No framework.<br>Just write and snap.</div>
+    </div>
+    <div class="steps-grid">
+      <div class="step-card">
+        <div class="step-n">01</div>
+        <div class="step-tag">Write Your Content</div>
+        <div class="step-title">Draft Your Sections</div>
+        <p class="step-desc">Write text for each section. Each gets a question, an interaction, an insight, and a bridge to next. The editor walks you through the structure.</p>
+        <div class="step-arrow"><i class="fa fa-arrow-right" style="font-size:10px"></i></div>
+      </div>
+      <div class="step-card">
+        <div class="step-n">02</div>
+        <div class="step-tag">Snap In Modules</div>
+        <div class="step-title">Add Interactive Elements</div>
+        <p class="step-desc">Choose from 15+ prebuilt interactive module types. Configure, bind, wire up logic — no code required. Or drop into code mode when you need it.</p>
+        <div class="step-arrow"><i class="fa fa-arrow-right" style="font-size:10px"></i></div>
+      </div>
+      <div class="step-card">
+        <div class="step-n">03</div>
+        <div class="step-tag">Theme and Ship</div>
+        <div class="step-title">Pick a Theme &amp; Publish</div>
+        <p class="step-desc">Pick a built-in theme or import your CSS tokens. Export a single standalone HTML file and host it anywhere — or share your Snaplify link.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODULES — light -->
+<div class="section-light">
+  <div class="section-inner">
+    <div class="section-head light-head">
+      <div><div class="section-tag-light">02 — Module Library</div><h2 class="section-title-light">Every Interaction<br><em>You Need</em></h2></div>
+      <div class="section-aside-light"><a href="#" class="btn btn-primary" style="padding:8px 16px;color:var(--grove)">View All 15</a></div>
+    </div>
+    <div class="module-grid">
+      <div class="module-card" data-type="Slider">
+        <div class="mc-body">
+          <div class="mc-title">Range Slider</div>
+          <p class="mc-desc">Continuous variable exploration. Bind to output text, canvas renders, or computed values.</p>
+          <div class="demo-box">
+            <div class="demo-row"><span class="demo-lbl">Friction Coefficient</span><span class="demo-val" id="mSliderVal">0.62</span></div>
+            <div class="demo-track" id="mSliderTrack"><div class="demo-fill" id="mSliderFill" style="width:62%"></div><div class="demo-thumb" id="mSliderThumb" style="left:62%"></div></div>
+            <div class="demo-result" id="mSliderResult">Stable — productivity: <strong>74%</strong></div>
+          </div>
+        </div>
+      </div>
+      <div class="module-card" data-type="Toggle">
+        <div class="mc-body">
+          <div class="mc-title">Comparison Toggle</div>
+          <p class="mc-desc">Flip between two states — with/without, before/after, A/B — to compare outcomes directly.</p>
+          <div class="demo-toggles">
+            <div class="demo-tog active" id="togA" onclick="flipToggle()">Without DevRel</div>
+            <div class="demo-tog" id="togB" onclick="flipToggle()">With DevRel</div>
+          </div>
+          <div class="demo-box">
+            <div class="demo-row"><span class="demo-lbl">API Adoption</span><span class="demo-val" id="togVal">12%</span></div>
+            <div class="demo-track"><div class="demo-fill" id="togBar" style="width:12%;transition:width 0.5s"></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="module-card" data-type="Simulation">
+        <div class="mc-body">
+          <div class="mc-title">Tick Simulation</div>
+          <p class="mc-desc">Agent-based sims — network effects, infection spread, community dynamics, emergent behavior.</p>
+          <div class="demo-canvas-area"><canvas id="simCanvas" width="280" height="90" style="width:100%;height:100%"></canvas></div>
+          <div style="display:flex;justify-content:space-between;margin-top:8px"><span class="demo-lbl">Nodes: <span style="color:var(--spore-dim)">24</span></span><span class="demo-lbl">Edges: <span style="color:var(--spore-dim)">18</span></span><span class="demo-lbl">Clusters: <span style="color:var(--spore-dim)">3</span></span></div>
+        </div>
+      </div>
+      <div class="module-card" data-type="Card Grid">
+        <div class="mc-body">
+          <div class="mc-title">Reveal Grid</div>
+          <p class="mc-desc">Clickable cards that reveal hidden info. Use for taxonomy, categorization, or layered concepts.</p>
+          <div class="demo-rev-grid">
+            <div class="demo-rc" onclick="this.classList.toggle('revealed')"><div class="demo-rc-icon"><i class="fa fa-eye"></i></div><div class="demo-rc-txt">Click to reveal</div></div>
+            <div class="demo-rc revealed"><div class="demo-rc-icon"></div><div class="demo-rc-txt">Insight unlocked</div></div>
+            <div class="demo-rc" onclick="this.classList.toggle('revealed')"><div class="demo-rc-icon"><i class="fa fa-lock"></i></div><div class="demo-rc-txt">Click to reveal</div></div>
+            <div class="demo-rc" onclick="this.classList.toggle('revealed')"><div class="demo-rc-icon"><i class="fa fa-question"></i></div><div class="demo-rc-txt">Click to reveal</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="module-card" data-type="Calculator">
+        <div class="mc-body">
+          <div class="mc-title">Live Calculator</div>
+          <p class="mc-desc">Bind multiple inputs to a formula. Compute ROI, pricing, physics constants in real time.</p>
+          <div class="demo-box">
+            <div class="demo-calc-grid">
+              <div><div class="calc-inp-lbl">Audience</div><div class="calc-inp-val">1,200</div></div>
+              <div><div class="calc-inp-lbl">Conv. %</div><div class="calc-inp-val">3.4</div></div>
+            </div>
+            <div class="calc-result"><span class="demo-lbl" style="color:var(--sage)">Result</span><span style="font-family:var(--font-code);font-size:16px;color:var(--spore);font-weight:700">40.8</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="module-card" data-type="Canvas">
+        <div class="mc-body">
+          <div class="mc-title">Draw Canvas</div>
+          <p class="mc-desc">Freehand canvas for boundary-drawing, spatial reasoning, masking, and markup exercises.</p>
+          <div class="demo-canvas-area" style="cursor:crosshair">
+            <div class="demo-grid-bg"></div>
+            <svg style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none" viewBox="0 0 280 90"><path d="M 20 65 Q 60 25 100 48 T 180 42 T 260 58" stroke="#8fc43a" stroke-width="2.5" fill="none" opacity="0.8" stroke-linecap="round"/></svg>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="text-align:center;padding:16px 0"><span class="label" style="color:var(--bark-light)">Also: Venn Diagrams · Network Graphs · Animated Flow · Do/Don't · Sandbox Sims · Quiz</span></div>
+  </div>
+</div>
+
+<!-- THEMES — dark -->
+<div class="section-dark">
+  <div class="section-inner" style="padding-bottom:0">
+    <div class="section-head dark-head">
+      <div><div class="section-tag-dark">03 — Themes</div><h2 class="section-title-dark">Your Brand.<br><em>Their Learning.</em></h2></div>
+      <div class="section-aside-dark">5 built-in themes<br>or import your tokens</div>
+    </div>
+  </div>
+  <div class="theme-strip">
+    <!-- Deepwood (default) -->
+    <div class="theme-card"><div class="theme-preview" style="background:#0b1a0d"><div class="th-bar" style="background:#b8f542"></div><div class="th-h" style="background:#c4e0b4"></div><div class="th-p" style="width:90%;background:#243824"></div><div class="th-p2" style="background:#243824"></div><div class="th-w" style="border-color:#4a7010;background:rgba(184,245,66,0.08)"></div></div><div class="theme-meta"><span class="theme-name-dark">Deepwood</span><div class="theme-swatch" style="background:#b8f542"></div></div></div>
+    <!-- Paper/Teal -->
+    <div class="theme-card"><div class="theme-preview" style="background:#f5f0e6"><div class="th-bar" style="background:#0d9488"></div><div class="th-h" style="background:#2a2a2a"></div><div class="th-p" style="width:90%;background:#c8c0b0"></div><div class="th-p2" style="background:#c8c0b0"></div><div class="th-w" style="border-color:#9dd5cf;background:rgba(13,148,136,0.08)"></div></div><div class="theme-meta" style="background:var(--fern)"><span class="theme-name-dark">Paper / Teal</span><div class="theme-swatch" style="background:#0d9488"></div></div></div>
+    <!-- Foundry -->
+    <div class="theme-card"><div class="theme-preview" style="background:#0a0e17"><div class="th-bar" style="background:#3b7dd8"></div><div class="th-h" style="background:#c8d8ee"></div><div class="th-p" style="width:90%;background:#1e2a3a"></div><div class="th-p2" style="background:#1e2a3a"></div><div class="th-w" style="border-color:#2a4a7a;background:rgba(59,125,216,0.1)"></div></div><div class="theme-meta"><span class="theme-name-dark">Foundry</span><div class="theme-swatch" style="background:#3b7dd8"></div></div></div>
+    <!-- Warm Ember -->
+    <div class="theme-card"><div class="theme-preview" style="background:#f6f1e9"><div class="th-bar" style="background:#e84f36"></div><div class="th-h" style="background:#1c1714"></div><div class="th-p" style="width:90%;background:#c4b9a8"></div><div class="th-p2" style="background:#c4b9a8"></div><div class="th-w" style="border-color:#e84f36;background:rgba(232,79,54,0.08)"></div></div><div class="theme-meta" style="background:var(--fern)"><span class="theme-name-dark">Warm Ember</span><div class="theme-swatch" style="background:#e84f36"></div></div></div>
+    <!-- Zine -->
+    <div class="theme-card"><div class="theme-preview" style="background:#f5f2eb"><div class="th-bar" style="background:#ff2d7b"></div><div class="th-h" style="background:#1a1a1a"></div><div class="th-p" style="width:90%;background:#c8c0b0"></div><div class="th-p2" style="background:#c8c0b0"></div><div class="th-w" style="border-color:#ffb0cc;background:rgba(255,45,123,0.06)"></div></div><div class="theme-meta"><span class="theme-name-dark">Zine</span><div class="theme-swatch" style="background:#ff2d7b"></div></div></div>
+  </div>
+</div>
+
+<!-- TOKEN IMPORT — light -->
+<div class="section-light">
+  <div class="section-inner">
+    <div class="section-head light-head">
+      <div><div class="section-tag-light">04 — Design Tokens</div><h2 class="section-title-light">Bring Your<br><em>Design System</em></h2></div>
+    </div>
+    <div class="token-wrap">
+      <div class="token-copy">
+        <h3>Your Brand.<br><em>Zero Rework.</em></h3>
+        <p>Paste your CSS custom properties, Style Dictionary JSON, or Figma Tokens export. Snaplify maps your tokens to the explainer theme system automatically.</p>
+        <div class="fmt-tags">
+          <span class="fmt-tag">CSS Custom Properties</span>
+          <span class="fmt-tag">Style Dictionary JSON</span>
+          <span class="fmt-tag">Figma Tokens</span>
+          <span class="fmt-tag">W3C Design Tokens</span>
+          <span class="fmt-tag">Raw Hex</span>
+        </div>
+        <a href="#" class="btn btn-primary" style="padding:12px 24px;font-size:11px;color:var(--grove)"><i class="fa fa-upload"></i>Import Your Tokens</a>
+      </div>
+      <div class="code-block">
+        <div class="code-chrome">
+          <span class="code-fname">tokens.css — paste or import</span>
+          <button class="code-copy-btn"><i class="fa fa-copy"></i> Copy</button>
+        </div>
+        <div class="code-body">
+<span class="cc">/* Snaplify maps your tokens automatically */</span><br>
+<span class="ck">:root</span> {<br>
+&nbsp;&nbsp;<span class="ck">--color-background</span>: <span class="cv">#0b1a0d</span>;<br>
+&nbsp;&nbsp;<span class="ck">--color-surface</span>: <span class="cv">#1c2e1c</span>;<br>
+&nbsp;&nbsp;<span class="ck">--color-accent</span>: <span class="cv">#b8f542</span>;<br>
+&nbsp;&nbsp;<span class="ck">--color-text-primary</span>: <span class="cv">#c4e0b4</span>;<br>
+&nbsp;&nbsp;<span class="ck">--color-text-secondary</span>: <span class="cv">#8ab87e</span>;<br>
+&nbsp;&nbsp;<span class="ck">--color-border</span>: <span class="cv">#2e4a2e</span>;<br>
+&nbsp;&nbsp;<span class="ck">--font-display</span>: <span class="cv">'Raleway'</span>;<br>
+&nbsp;&nbsp;<span class="ck">--font-body</span>: <span class="cv">'DM Sans'</span>;<br>
+&nbsp;&nbsp;<span class="ck">--font-ui</span>: <span class="cv">'DM Mono'</span>;<br>
+}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CTA -->
+<div class="cta-section">
+  <div class="cta-inner">
+    <div class="cta-title">Ready to Build<br>Something That Teaches?</div>
+    <div class="cta-actions">
+      <a href="snaplify-editor.html" class="btn btn-void" style="padding:14px 28px;font-size:11px"><i class="fa fa-bolt"></i>Open Editor</a>
+      <a href="#" class="btn btn-ghost-dark" style="padding:14px 22px;font-size:11px">See Showcase</a>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-grid">
+      <div>
+        <div class="footer-brand-name">
+          <svg width="18" height="18" viewBox="0 0 32 32"><rect x="1" y="4" width="12" height="24" stroke="#b8f542" stroke-width="1.5" fill="none"/><rect x="13" y="11" width="6" height="10" fill="#b8f542"/><path d="M19,4 L31,4 L31,28 L19,28 L19,21 L15,21 L15,11 L19,11 Z" stroke="#b8f542" stroke-width="1.5" fill="rgba(184,245,66,0.1)"/></svg>
+          Snaplify
+        </div>
+        <p class="footer-brand-desc">Build interactive explorable explanations. Snap modules together, apply a theme, ship. No framework, no runtime — just HTML.</p>
+        <div style="display:flex;gap:12px">
+          <a href="#" style="color:var(--moss);font-size:14px;transition:color 0.15s" onmouseover="this.style.color='#b8f542'" onmouseout="this.style.color='var(--moss)'"><i class="fa-brands fa-github"></i></a>
+          <a href="#" style="color:var(--moss);font-size:14px;transition:color 0.15s" onmouseover="this.style.color='#b8f542'" onmouseout="this.style.color='var(--moss)'"><i class="fa-brands fa-twitter"></i></a>
+          <a href="#" style="color:var(--moss);font-size:14px;transition:color 0.15s" onmouseover="this.style.color='#b8f542'" onmouseout="this.style.color='var(--moss)'"><i class="fa-brands fa-discord"></i></a>
+        </div>
+      </div>
+      <div><div class="footer-col-title">Product</div><ul class="footer-links"><li><a href="#">Module Library</a></li><li><a href="#">Theme Gallery</a></li><li><a href="#">Token Import</a></li><li><a href="#">Showcase</a></li><li><a href="#">Changelog</a></li></ul></div>
+      <div><div class="footer-col-title">Developers</div><ul class="footer-links"><li><a href="#">Documentation</a></li><li><a href="#">API Reference</a></li><li><a href="#">Custom Modules</a></li><li><a href="#">Theme SDK</a></li><li><a href="#">GitHub</a></li></ul></div>
+      <div><div class="footer-col-title">Company</div><ul class="footer-links"><li><a href="#">About</a></li><li><a href="#">Pricing</a></li><li><a href="#">Blog</a></li><li><a href="#">Twitter</a></li><li><a href="#">Contact</a></li></ul></div>
+    </div>
+    <div class="footer-bottom">
+      <span class="footer-copy">© 2025 Snaplify · snaplify.io · v0.9.0-beta</span>
+      <div class="footer-badges"><span class="f-badge">MIT License</span><span class="f-badge">HTML Forever</span><span class="f-badge f-badge-accent">Built With Spite</span></div>
+    </div>
+  </div>
+</footer>
+
+<script>
+// Hero slider
+const heroTrack = document.getElementById('heroTrack');
+let hd = false;
+function updateHero(pct) {
+  pct = Math.max(0,Math.min(100,pct));
+  document.getElementById('heroFill').style.width = pct+'%';
+  document.getElementById('heroThumb').style.left = pct+'%';
+  document.getElementById('heroVal').textContent = (0.001+pct/100*0.999).toFixed(3);
+  const o = document.getElementById('heroOut');
+  if (pct<6) o.innerHTML='<i class="fa fa-hourglass" style="margin-right:5px;font-size:9px;color:var(--moss)"></i>Too slow — barely converging.';
+  else if (pct>70) o.innerHTML='<i class="fa fa-triangle-exclamation" style="margin-right:5px;font-size:9px;color:#f0a040"></i>Too high — loss exploding!';
+  else o.innerHTML='<i class="fa fa-check" style="margin-right:5px;font-size:9px"></i>Converging steadily. Loss decreasing.';
+  o.className = (pct>6 && pct<=70) ? 'p-ok' : '';
+}
+heroTrack.addEventListener('mousedown',e=>{hd=true;const r=heroTrack.getBoundingClientRect();updateHero(((e.clientX-r.left)/r.width)*100);});
+document.addEventListener('mousemove',e=>{if(!hd)return;const r=heroTrack.getBoundingClientRect();updateHero(((e.clientX-r.left)/r.width)*100);});
+document.addEventListener('mouseup',()=>hd=false);
+heroTrack.addEventListener('touchstart',e=>{e.preventDefault();hd=true;const r=heroTrack.getBoundingClientRect();updateHero(((e.touches[0].clientX-r.left)/r.width)*100);});
+document.addEventListener('touchmove',e=>{if(!hd)return;const r=heroTrack.getBoundingClientRect();updateHero(((e.touches[0].clientX-r.left)/r.width)*100);});
+document.addEventListener('touchend',()=>hd=false);
+
+// Module slider
+const mTrack = document.getElementById('mSliderTrack');
+let md=false;
+function updateMod(pct){pct=Math.max(0,Math.min(100,pct));document.getElementById('mSliderFill').style.width=pct+'%';document.getElementById('mSliderThumb').style.left=pct+'%';document.getElementById('mSliderVal').textContent=(pct/100).toFixed(2);document.getElementById('mSliderResult').innerHTML=`Stable — productivity: <strong>${Math.round(40+pct*0.6)}%</strong>`;}
+mTrack.addEventListener('mousedown',e=>{md=true;const r=mTrack.getBoundingClientRect();updateMod(((e.clientX-r.left)/r.width)*100);});
+document.addEventListener('mousemove',e=>{if(!md)return;const r=mTrack.getBoundingClientRect();updateMod(((e.clientX-r.left)/r.width)*100);});
+document.addEventListener('mouseup',()=>md=false);
+
+// Toggle
+let ts=false;
+function flipToggle(){ts=!ts;document.getElementById('togA').classList.toggle('active',!ts);document.getElementById('togB').classList.toggle('active',ts);document.getElementById('togBar').style.width=ts?'78%':'12%';document.getElementById('togVal').textContent=ts?'78%':'12%';}
+
+// Sim — on moonlight background
+const sc=document.getElementById('simCanvas');
+const ctx=sc.getContext('2d');
+const nodes=[];
+for(let i=0;i<16;i++) nodes.push({x:20+Math.random()*240,y:10+Math.random()*70,vx:(Math.random()-.5)*.4,vy:(Math.random()-.5)*.4,cluster:Math.floor(Math.random()*3)});
+const centers=[{x:60,y:45},{x:140,y:45},{x:220,y:45}];
+const nodeColors=['#8fc43a','#6a9030','#b8f542'];
+function drawSim(){
+  ctx.clearRect(0,0,sc.width,sc.height);
+  ctx.fillStyle='#eef5e4'; ctx.fillRect(0,0,sc.width,sc.height);
+  for(let i=0;i<nodes.length;i++) for(let j=i+1;j<nodes.length;j++){
+    if(nodes[i].cluster===nodes[j].cluster){
+      const d=Math.hypot(nodes[i].x-nodes[j].x,nodes[i].y-nodes[j].y);
+      if(d<65){ctx.beginPath();ctx.moveTo(nodes[i].x,nodes[i].y);ctx.lineTo(nodes[j].x,nodes[j].y);ctx.strokeStyle='rgba(100,160,60,0.25)';ctx.lineWidth=1;ctx.stroke();}
+    }
+  }
+  nodes.forEach(n=>{ctx.fillStyle=nodeColors[n.cluster];ctx.fillRect(n.x-3,n.y-3,6,6);const c=centers[n.cluster];n.vx+=(c.x-n.x)*.002;n.vy+=(c.y-n.y)*.002;n.vx*=.98;n.vy*=.98;n.x+=n.vx;n.y+=n.vy;});
+  requestAnimationFrame(drawSim);
+}
+drawSim();
+</script>
+</body>
+</html>

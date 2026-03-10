@@ -1,0 +1,132 @@
+import { pgEnum } from 'drizzle-orm/pg-core';
+
+// --- Auth & Users ---
+export const userRoleEnum = pgEnum('user_role', ['member', 'pro', 'verified', 'staff', 'admin']);
+export const userStatusEnum = pgEnum('user_status', ['active', 'suspended', 'deleted']);
+export const profileVisibilityEnum = pgEnum('profile_visibility', [
+  'public',
+  'members',
+  'private',
+]);
+
+// --- Content ---
+export const contentStatusEnum = pgEnum('content_status', ['draft', 'published', 'archived']);
+export const contentTypeEnum = pgEnum('content_type', [
+  'project',
+  'article',
+  'guide',
+  'blog',
+  'explainer',
+]);
+export const difficultyEnum = pgEnum('difficulty', ['beginner', 'intermediate', 'advanced']);
+export const contentVisibilityEnum = pgEnum('content_visibility', [
+  'public',
+  'members',
+  'private',
+]);
+
+// --- Social ---
+export const likeTargetTypeEnum = pgEnum('like_target_type', [
+  'project',
+  'article',
+  'blog',
+  'comment',
+  'post',
+]);
+export const commentTargetTypeEnum = pgEnum('comment_target_type', [
+  'project',
+  'article',
+  'blog',
+  'post',
+  'lesson',
+]);
+export const bookmarkTargetTypeEnum = pgEnum('bookmark_target_type', [
+  'project',
+  'article',
+  'blog',
+  'explainer',
+  'learning_path',
+]);
+export const reportTargetTypeEnum = pgEnum('report_target_type', [
+  'project',
+  'article',
+  'blog',
+  'post',
+  'comment',
+  'user',
+]);
+export const reportReasonEnum = pgEnum('report_reason', [
+  'spam',
+  'harassment',
+  'inappropriate',
+  'copyright',
+  'other',
+]);
+export const reportStatusEnum = pgEnum('report_status', [
+  'pending',
+  'reviewed',
+  'resolved',
+  'dismissed',
+]);
+export const notificationTypeEnum = pgEnum('notification_type', [
+  'like',
+  'comment',
+  'follow',
+  'mention',
+  'contest',
+  'certificate',
+  'community',
+  'system',
+]);
+
+// --- Community ---
+export const communityRoleEnum = pgEnum('community_role', [
+  'owner',
+  'admin',
+  'moderator',
+  'member',
+]);
+export const communityJoinPolicyEnum = pgEnum('community_join_policy', [
+  'open',
+  'approval',
+  'invite',
+]);
+export const postTypeEnum = pgEnum('post_type', ['text', 'link', 'share', 'poll']);
+
+// --- Learning ---
+export const lessonTypeEnum = pgEnum('lesson_type', [
+  'article',
+  'video',
+  'quiz',
+  'project',
+  'explainer',
+]);
+
+// --- Contest ---
+export const contestStatusEnum = pgEnum('contest_status', [
+  'upcoming',
+  'active',
+  'judging',
+  'completed',
+]);
+
+// --- Video ---
+export const videoPlatformEnum = pgEnum('video_platform', ['youtube', 'vimeo', 'other']);
+
+// --- Files ---
+export const filePurposeEnum = pgEnum('file_purpose', [
+  'cover',
+  'content',
+  'avatar',
+  'banner',
+  'attachment',
+]);
+
+// --- Tags ---
+export const tagCategoryEnum = pgEnum('tag_category', [
+  'platform',
+  'language',
+  'framework',
+  'topic',
+  'general',
+]);

@@ -1,0 +1,64 @@
+/* ===========================================
+   hack.build — Punk Zine Theme
+   Paper textures, ink tones, hard-edge shadows
+   Ported from hack-build/app/src/assets/styles/tokens.css
+   =========================================== */
+
+:root {
+  /* Surface (Paper tones) */
+  --color-surface: #f5f0e6;
+  --color-surface-alt: #e8e0d0;
+  --color-surface-raised: #faf8f3;
+  --color-surface-overlay: rgba(26, 26, 26, 0.95);
+
+  /* Text (Ink tones) */
+  --color-text: #1a1a1a;
+  --color-text-secondary: #444444;
+  --color-text-muted: #666666;
+  --color-text-inverse: #f5f0e6;
+
+  /* Brand */
+  --color-primary: #ff3366;
+  --color-primary-hover: #e62d5a;
+  --color-primary-text: #ffffff;
+
+  /* Accent */
+  --color-accent: #8b5cf6;
+  --color-accent-hover: #7c3aed;
+  --color-accent-text: #ffffff;
+
+  /* Semantic */
+  --color-success: #22c55e;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+  --color-info: #3b82f6;
+
+  /* Borders */
+  --color-border: rgba(26, 26, 26, 0.15);
+  --color-border-strong: rgba(26, 26, 26, 0.3);
+  --color-border-focus: var(--color-primary);
+
+  /* Interactive */
+  --color-link: var(--color-primary);
+  --color-link-hover: var(--color-primary-hover);
+
+  /* Typography */
+  --font-heading: 'Permanent Marker', cursive;
+  --font-body: 'DM Sans', system-ui, sans-serif;
+  --font-mono: 'Courier Prime', 'Special Elite', monospace;
+
+  /* Hard-edge block shadows (punk zine style) */
+  --shadow-sm: 2px 2px 0 var(--color-text);
+  --shadow-md: 4px 4px 0 var(--color-text);
+  --shadow-lg: 6px 6px 0 var(--color-text);
+  --shadow-xl: 8px 8px 0 var(--color-text);
+
+  /* Sharper borders */
+  --border-width-default: 2px;
+  --radius-none: 0;
+  --radius-sm: 0;
+  --radius-md: 2px;
+  --radius-lg: 4px;
+  --radius-xl: 4px;
+  --radius-2xl: 4px;
+}
