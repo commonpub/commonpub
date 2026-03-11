@@ -25,6 +25,7 @@ export const load: PageServerLoad = async (event) => {
 export const actions: Actions = {
   updateRole: async ({ request, locals, getClientAddress }) => {
     if (!locals.user) return fail(401, { error: 'Not authenticated' });
+    if (locals.user.role !== 'admin' && locals.user.role !== 'staff') return fail(403, { error: 'Forbidden' });
 
     const formData = await request.formData();
     const parsed = updateUserRoleSchema.safeParse({
@@ -47,6 +48,7 @@ export const actions: Actions = {
 
   updateStatus: async ({ request, locals, getClientAddress }) => {
     if (!locals.user) return fail(401, { error: 'Not authenticated' });
+    if (locals.user.role !== 'admin' && locals.user.role !== 'staff') return fail(403, { error: 'Forbidden' });
 
     const formData = await request.formData();
     const parsed = updateUserStatusSchema.safeParse({

@@ -43,8 +43,8 @@ describe('auth tables', () => {
     const cols = Object.keys(accounts);
     expect(cols).toContain('id');
     expect(cols).toContain('userId');
-    expect(cols).toContain('provider');
-    expect(cols).toContain('providerAccountId');
+    expect(cols).toContain('providerId');
+    expect(cols).toContain('accountId');
   });
 
   it('should export organizations table', () => {

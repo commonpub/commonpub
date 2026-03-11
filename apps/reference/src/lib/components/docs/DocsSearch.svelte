@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { sanitizeHtml } from '@snaplify/docs';
+
   let {
     siteSlug,
     versionId = '',
@@ -73,7 +75,7 @@
           <a href="/docs/{siteSlug}/{result.slug}" class="docs-search-result-link">
             <span class="docs-search-result-title">{result.title}</span>
             {#if result.snippet}
-              <span class="docs-search-result-snippet">{@html result.snippet}</span>
+              <span class="docs-search-result-snippet">{@html sanitizeHtml(result.snippet)}</span>
             {/if}
           </a>
         </li>

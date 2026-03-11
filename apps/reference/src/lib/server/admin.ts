@@ -1,6 +1,18 @@
 import { eq, and, desc, sql, ilike } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
-import { users, contentItems, communities, reports, instanceSettings } from '@snaplify/schema';
+import {
+  users,
+  contentItems,
+  communities,
+  communityMembers,
+  communityPosts,
+  comments,
+  likes,
+  enrollments,
+  learningPaths,
+  reports,
+  instanceSettings,
+} from '@snaplify/schema';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { createAuditEntry } from './audit';
 
@@ -374,6 +386,108 @@ export async function setInstanceSetting(
 }
 
 // --- Content Moderation ---
+
+export async function deleteUser(
+  db: DB,
+  userId: string,
+  adminId: string,
+  ip?: string,
+): Promise<void> {
+  const [user] = await db
+    .select({ id: users.id, username: users.username })
+    .from(users)
+    .where(eq(users.id, userId));
+  if (!user) throw new Error('User not found');
+
+  await db.transaction(async (tx) => {
+    // Count and decrement likes on content items
+    const userLikes = await tx
+      .select({ targetType: likes.targetType, targetId: likes.targetId })
+      .from(likes)
+      .where(eq(likes.userId, userId));
+
+    for (const like of userLikes) {
+      switch (like.targetType) {
+        case 'comment':
+          await tx
+            .update(comments)
+            .set({ likeCount: sql`GREATEST(${comments.likeCount} - 1, 0)` })
+            .where(eq(comments.id, like.targetId));
+          break;
+        case 'post':
+          await tx
+            .update(communityPosts)
+            .set({ likeCount: sql`GREATEST(${communityPosts.likeCount} - 1, 0)` })
+            .where(eq(communityPosts.id, like.targetId));
+          break;
+        default:
+          await tx
+            .update(contentItems)
+            .set({ likeCount: sql`GREATEST(${contentItems.likeCount} - 1, 0)` })
+            .where(eq(contentItems.id, like.targetId));
+          break;
+      }
+    }
+
+    // Count and decrement comment counts
+    const userComments = await tx
+      .select({ targetType: comments.targetType, targetId: comments.targetId })
+      .from(comments)
+      .where(eq(comments.authorId, userId));
+
+    for (const comment of userComments) {
+      if (comment.targetType === 'post') {
+        await tx
+          .update(communityPosts)
+          .set({ replyCount: sql`GREATEST(${communityPosts.replyCount} - 1, 0)` })
+          .where(eq(communityPosts.id, comment.targetId));
+      } else {
+        await tx
+          .update(contentItems)
+          .set({ commentCount: sql`GREATEST(${contentItems.commentCount} - 1, 0)` })
+          .where(eq(contentItems.id, comment.targetId));
+      }
+    }
+
+    // Decrement community member counts
+    const memberships = await tx
+      .select({ communityId: communityMembers.communityId })
+      .from(communityMembers)
+      .where(eq(communityMembers.userId, userId));
+
+    for (const m of memberships) {
+      await tx
+        .update(communities)
+        .set({ memberCount: sql`GREATEST(${communities.memberCount} - 1, 0)` })
+        .where(eq(communities.id, m.communityId));
+    }
+
+    // Decrement enrollment counts
+    const userEnrollments = await tx
+      .select({ pathId: enrollments.pathId })
+      .from(enrollments)
+      .where(eq(enrollments.userId, userId));
+
+    for (const e of userEnrollments) {
+      await tx
+        .update(learningPaths)
+        .set({ enrollmentCount: sql`GREATEST(${learningPaths.enrollmentCount} - 1, 0)` })
+        .where(eq(learningPaths.id, e.pathId));
+    }
+
+    // Delete user (CASCADE handles the actual row deletions)
+    await tx.delete(users).where(eq(users.id, userId));
+  });
+
+  await createAuditEntry(db, {
+    userId: adminId,
+    action: 'user.deleted',
+    targetType: 'user',
+    targetId: userId,
+    metadata: { username: user.username },
+    ipAddress: ip,
+  });
+}
 
 export async function removeContent(
   db: DB,

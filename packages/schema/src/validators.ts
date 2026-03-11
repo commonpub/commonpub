@@ -85,7 +85,7 @@ export const likeTargetTypeSchema = z.enum([
   'explainer',
   'guide',
 ]);
-export const commentTargetTypeSchema = z.enum(['project', 'article', 'blog', 'post', 'lesson']);
+export const commentTargetTypeSchema = z.enum(['project', 'article', 'blog', 'explainer', 'post', 'lesson']);
 
 export const createCommentSchema = z.object({
   targetType: commentTargetTypeSchema,
@@ -183,7 +183,7 @@ export const createDocsPageSchema = z.object({
 // --- Report validators ---
 
 export const createReportSchema = z.object({
-  targetType: z.enum(['project', 'article', 'blog', 'post', 'comment', 'user']),
+  targetType: z.enum(['project', 'article', 'blog', 'post', 'comment', 'user', 'explainer']),
   targetId: z.string().uuid(),
   reason: z.enum(['spam', 'harassment', 'inappropriate', 'copyright', 'other']),
   description: z.string().max(2000).optional(),

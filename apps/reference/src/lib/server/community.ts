@@ -271,18 +271,7 @@ export async function joinCommunity(
     return { joined: false, error: 'You are banned from this community' };
   }
 
-  // Check if already a member
-  const existing = await db
-    .select({ userId: communityMembers.userId })
-    .from(communityMembers)
-    .where(and(eq(communityMembers.communityId, communityId), eq(communityMembers.userId, userId)))
-    .limit(1);
-
-  if (existing.length > 0) {
-    return { joined: true };
-  }
-
-  // Check join policy
+  // Check join policy (outside transaction — read-only)
   const community = await db
     .select({ joinPolicy: communities.joinPolicy })
     .from(communities)
@@ -305,18 +294,26 @@ export async function joinCommunity(
     }
   }
 
-  await db.insert(communityMembers).values({
-    communityId,
-    userId,
-    role: 'member',
+  return db.transaction(async (tx) => {
+    // Use ON CONFLICT DO NOTHING to handle concurrent inserts
+    const inserted = await tx
+      .insert(communityMembers)
+      .values({ communityId, userId, role: 'member' })
+      .onConflictDoNothing()
+      .returning();
+
+    if (inserted.length === 0) {
+      // Already a member (concurrent insert or existing)
+      return { joined: true };
+    }
+
+    await tx
+      .update(communities)
+      .set({ memberCount: sql`${communities.memberCount} + 1` })
+      .where(eq(communities.id, communityId));
+
+    return { joined: true };
   });
-
-  await db
-    .update(communities)
-    .set({ memberCount: sql`${communities.memberCount} + 1` })
-    .where(eq(communities.id, communityId));
-
-  return { joined: true };
 }
 
 export async function leaveCommunity(
@@ -781,6 +778,10 @@ export async function createReply(
 
   if (member.length === 0) throw new Error('Must be a member to reply');
 
+  // Ban check
+  const ban = await checkBan(db, post[0]!.communityId, authorId);
+  if (ban) throw new Error('You are banned from this community');
+
   const [reply] = await db
     .insert(communityPostReplies)
     .values({
@@ -1140,33 +1141,22 @@ export async function validateAndUseInvite(
   db: DB,
   token: string,
 ): Promise<{ valid: boolean; communityId?: string }> {
-  const rows = await db
-    .select()
-    .from(communityInvites)
-    .where(eq(communityInvites.token, token))
-    .limit(1);
-
-  if (rows.length === 0) return { valid: false };
-
-  const invite = rows[0]!;
-
-  // Check expiry
-  if (invite.expiresAt && invite.expiresAt < new Date()) {
-    return { valid: false };
-  }
-
-  // Check max uses
-  if (invite.maxUses !== null && invite.useCount >= invite.maxUses) {
-    return { valid: false };
-  }
-
-  // Increment use count
-  await db
+  // Atomic UPDATE: increment use_count only if within limits and not expired
+  const updated = await db
     .update(communityInvites)
     .set({ useCount: sql`${communityInvites.useCount} + 1` })
-    .where(eq(communityInvites.id, invite.id));
+    .where(
+      and(
+        eq(communityInvites.token, token),
+        sql`(${communityInvites.expiresAt} IS NULL OR ${communityInvites.expiresAt} > NOW())`,
+        sql`(${communityInvites.maxUses} IS NULL OR ${communityInvites.useCount} < ${communityInvites.maxUses})`,
+      ),
+    )
+    .returning({ communityId: communityInvites.communityId });
 
-  return { valid: true, communityId: invite.communityId };
+  if (updated.length === 0) return { valid: false };
+
+  return { valid: true, communityId: updated[0]!.communityId };
 }
 
 export async function revokeInvite(

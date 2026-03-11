@@ -28,7 +28,7 @@ export {
 // Rendering
 export { parseFrontmatter } from './render/frontmatter';
 export { extractHeadings, generateHeadingId } from './render/headings';
-export { renderMarkdown } from './render/pipeline';
+export { renderMarkdown, sanitizeHtml } from './render/pipeline';
 
 // Navigation
 export {

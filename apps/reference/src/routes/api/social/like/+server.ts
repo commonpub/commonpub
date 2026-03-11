@@ -1,6 +1,13 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { toggleLike, onContentLiked } from '$lib/server/social';
+import { likeTargetTypeSchema } from '@snaplify/schema';
+import { z } from 'zod';
+
+const likeInputSchema = z.object({
+  targetType: likeTargetTypeSchema,
+  targetId: z.string().uuid(),
+});
 
 export const POST: RequestHandler = async ({ request, locals }) => {
   if (!locals.config.features.social) {
@@ -11,16 +18,19 @@ export const POST: RequestHandler = async ({ request, locals }) => {
     return json({ error: 'Not authenticated' }, { status: 401 });
   }
 
-  let targetType: string, targetId: string;
+  let body: unknown;
   try {
-    ({ targetType, targetId } = await request.json());
+    body = await request.json();
   } catch {
     return json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  if (!targetType || !targetId) {
-    return json({ error: 'targetType and targetId are required' }, { status: 400 });
+  const parsed = likeInputSchema.safeParse(body);
+  if (!parsed.success) {
+    return json({ error: 'Invalid input', details: parsed.error.flatten() }, { status: 400 });
   }
+
+  const { targetType, targetId } = parsed.data;
 
   const result = await toggleLike(locals.db, locals.user.id, targetType, targetId);
   if (result.liked) {

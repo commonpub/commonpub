@@ -23,6 +23,8 @@
     "@shikijs/rehype": "^4.0.2",
     "@snaplify/config": "workspace:*",
     "@snaplify/schema": "workspace:*",
+    "meilisearch": "^0.48.0",
+    "rehype-sanitize": "^6.0.0",
     "rehype-slug": "^6.0.0",
     "rehype-stringify": "^10.0.1",
     "remark-frontmatter": "^5.0.0",
@@ -32,8 +34,7 @@
     "shiki": "^4.0.2",
     "unified": "^11.0.5",
     "yaml": "^2.8.2",
-    "meilisearch": "^0.48.0",
-    "zod": "^4.3.6"
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "typescript": "^5.7.0",

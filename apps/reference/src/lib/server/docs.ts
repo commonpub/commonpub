@@ -259,11 +259,11 @@ export async function setDefaultVersion(
 
   const siteId = version[0]!.site.id;
 
-  // Unset all others
-  await db.update(docsVersions).set({ isDefault: 0 }).where(eq(docsVersions.siteId, siteId));
-
-  // Set this one
-  await db.update(docsVersions).set({ isDefault: 1 }).where(eq(docsVersions.id, versionId));
+  // Atomically unset all then set one
+  await db.transaction(async (tx) => {
+    await tx.update(docsVersions).set({ isDefault: 0 }).where(eq(docsVersions.siteId, siteId));
+    await tx.update(docsVersions).set({ isDefault: 1 }).where(eq(docsVersions.id, versionId));
+  });
 
   return true;
 }
@@ -453,12 +453,14 @@ export async function reorderDocsPages(
 
   if (version.length === 0) return false;
 
-  for (let i = 0; i < pageIds.length; i++) {
-    await db
-      .update(docsPages)
-      .set({ sortOrder: i })
-      .where(and(eq(docsPages.id, pageIds[i]!), eq(docsPages.versionId, versionId)));
-  }
+  await db.transaction(async (tx) => {
+    for (let i = 0; i < pageIds.length; i++) {
+      await tx
+        .update(docsPages)
+        .set({ sortOrder: i })
+        .where(and(eq(docsPages.id, pageIds[i]!), eq(docsPages.versionId, versionId)));
+    }
+  });
 
   return true;
 }

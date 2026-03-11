@@ -77,3 +77,15 @@ export async function ensureUniqueCommunitySlug(
 
   return `${slug}-${Date.now()}`;
 }
+
+/**
+ * Handle slug constraint violation errors by retrying with a timestamp suffix.
+ * Use this to wrap INSERT operations that may race on unique slug constraints.
+ */
+export function isUniqueViolation(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    'code' in error &&
+    (error as Error & { code: string }).code === '23505'
+  );
+}

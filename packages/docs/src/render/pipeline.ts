@@ -5,9 +5,22 @@ import remarkFrontmatter from 'remark-frontmatter';
 import remarkRehype from 'remark-rehype';
 import rehypeStringify from 'rehype-stringify';
 import rehypeSlug from 'rehype-slug';
+import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import type { RenderOptions, RenderResult } from '../types';
 import { parseFrontmatter } from './frontmatter';
 import { extractHeadings } from './headings';
+
+const sanitizeSchema = {
+  ...defaultSchema,
+  attributes: {
+    ...defaultSchema.attributes,
+    // Allow id for heading anchors (rehype-slug)
+    '*': [...(defaultSchema.attributes?.['*'] ?? []), 'id', 'className'],
+    code: [...(defaultSchema.attributes?.['code'] ?? []), 'className', 'style'],
+    span: [...(defaultSchema.attributes?.['span'] ?? []), 'className', 'style'],
+    pre: [...(defaultSchema.attributes?.['pre'] ?? []), 'className', 'style'],
+  },
+};
 
 /**
  * Render markdown to HTML with syntax highlighting, TOC extraction, and frontmatter parsing.
@@ -23,7 +36,7 @@ export async function renderMarkdown(
     remarkParse,
     remarkGfm,
     remarkFrontmatter,
-    [remarkRehype, { allowDangerousHtml: true }],
+    [remarkRehype, { allowDangerousHtml: false }],
     rehypeSlug,
   ];
 
@@ -35,7 +48,10 @@ export async function renderMarkdown(
     // shiki not available, skip highlighting
   }
 
-  plugins.push([rehypeStringify, { allowDangerousHtml: true }]);
+  // Sanitize HTML to prevent XSS — must come after shiki (which adds classes)
+  plugins.push([rehypeSanitize, sanitizeSchema]);
+
+  plugins.push([rehypeStringify, { allowDangerousHtml: false }]);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let processor = unified() as any;
@@ -54,4 +70,17 @@ export async function renderMarkdown(
     toc,
     frontmatter,
   };
+}
+
+/**
+ * Defense-in-depth HTML sanitizer for use with {@html} in Svelte templates.
+ * Strips script tags, event handlers, and dangerous URIs.
+ */
+export function sanitizeHtml(html: string): string {
+  return html
+    .replace(/<script[\s>][\s\S]*?<\/script>/gi, '')
+    .replace(/<\/script>/gi, '')
+    .replace(/\son\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '')
+    .replace(/javascript\s*:/gi, 'void:')
+    .replace(/data\s*:\s*text\/html/gi, 'void:');
 }

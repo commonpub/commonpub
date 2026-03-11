@@ -7,6 +7,7 @@ export const users = pgTable('users', {
   email: varchar('email', { length: 255 }).notNull().unique(),
   emailVerified: boolean('email_verified').default(false).notNull(),
   username: varchar('username', { length: 64 }).notNull().unique(),
+  displayUsername: varchar('display_username', { length: 64 }),
   displayName: varchar('display_name', { length: 128 }),
   bio: text('bio'),
   headline: varchar('headline', { length: 255 }),
@@ -42,6 +43,7 @@ export const sessions = pgTable('sessions', {
   ipAddress: varchar('ip_address', { length: 45 }),
   userAgent: text('user_agent'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
 export const accounts = pgTable('accounts', {
@@ -49,12 +51,14 @@ export const accounts = pgTable('accounts', {
   userId: uuid('user_id')
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
-  provider: varchar('provider', { length: 32 }).notNull(),
-  providerAccountId: varchar('provider_account_id', { length: 255 }).notNull(),
+  providerId: varchar('provider_id', { length: 32 }).notNull(),
+  accountId: varchar('account_id', { length: 255 }).notNull(),
   accessToken: text('access_token'),
   refreshToken: text('refresh_token'),
+  password: text('password'),
   expiresAt: timestamp('expires_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
 export const organizations = pgTable('organizations', {

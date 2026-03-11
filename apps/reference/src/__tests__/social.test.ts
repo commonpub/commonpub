@@ -9,12 +9,15 @@ import {
 } from '../lib/server/social';
 
 function createMockDb() {
-  const db = {
+  const db: Record<string, ReturnType<typeof vi.fn>> = {
     select: vi.fn(),
     insert: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
+    transaction: vi.fn(),
   };
+  // transaction passes the db itself as the tx argument
+  db.transaction.mockImplementation(async (fn: (tx: typeof db) => Promise<unknown>) => fn(db));
   return db;
 }
 
@@ -219,7 +222,7 @@ describe('Social Service', () => {
     it('should delete comment when owned by user', async () => {
       const db = createMockDb();
       // Check ownership
-      db.select.mockReturnValue(mockChain([{ id: 'c1', targetId: 'content-1' }]));
+      db.select.mockReturnValue(mockChain([{ id: 'c1', targetId: 'content-1', targetType: 'project' }]));
       // Delete
       db.delete.mockReturnValue({
         where: vi.fn().mockResolvedValue({ rowCount: 1 }),

@@ -4,18 +4,18 @@ An open ActivityPub federation protocol and package suite for self-hosted maker 
 
 ## What is Snaplify?
 
-Snaplify provides everything you need to run a maker community: a rich content system, learning paths, documentation sites, interactive explainers, moderated communities, and cross-instance federation via ActivityPub — all self-hosted and open source.
+Snaplify is everything you need to run a maker community: a rich content system, learning paths, documentation sites, interactive explainers, moderated communities, and cross-instance federation via ActivityPub. Self-hosted and open source.
 
 ## Features
 
-- **Content System** — Rich block editor with articles, tutorials, and project showcases
-- **Learning Paths** — Structured courses with modules, lessons, quizzes, and certificates
-- **Documentation** — Versioned docs with CodeMirror editor, Meilisearch-powered search
-- **Interactive Explainers** — Scroll-driven interactive explanations with HTML export
-- **Communities** — Moderated spaces with feeds, roles, and content sharing
-- **ActivityPub Federation** — Cross-instance content sharing and actor SSO
-- **Theming** — 4 built-in themes with CSS custom property switching
-- **Admin Panel** — User management, moderation, audit logs, instance settings
+- **Content System**: Rich block editor with articles, tutorials, and project showcases
+- **Learning Paths**: Structured courses with modules, lessons, quizzes, and certificates
+- **Documentation**: Versioned docs with CodeMirror editor, Meilisearch-powered search
+- **Interactive Explainers**: Scroll-driven interactive explanations with HTML export
+- **Communities**: Moderated spaces with feeds, roles, and content sharing
+- **ActivityPub Federation**: Cross-instance content sharing and actor SSO
+- **Theming**: 4 built-in themes with CSS custom property switching
+- **Admin Panel**: User management, moderation, audit logs, instance settings
 
 ## Quick Start
 
@@ -42,16 +42,16 @@ Visit `http://localhost:5173` to see your instance.
 ```
 snaplify/
   packages/
-    schema/        @snaplify/schema     — Drizzle tables + Zod validators
-    protocol/      @snaplify/snaplify   — Fedify wrapper + AP types
-    auth/          @snaplify/auth       — Better Auth wrapper + AP SSO
-    ui/            @snaplify/ui         — Headless Svelte 5 components + theme CSS
-    config/        @snaplify/config     — defineSnaplifyConfig() factory
-    docs/          @snaplify/docs       — Pluggable docs module
-    editor/        @snaplify/editor     — TipTap extensions + block types
-    explainer/     @snaplify/explainer  — Interactive module runtime
-    learning/      @snaplify/learning   — Learning path engine
-    test-utils/    @snaplify/test-utils — Shared test helpers
+    schema/        @snaplify/schema      Drizzle tables + Zod validators
+    protocol/      @snaplify/snaplify    Fedify wrapper + AP types
+    auth/          @snaplify/auth        Better Auth wrapper + AP SSO
+    ui/            @snaplify/ui          Headless Svelte 5 components + theme CSS
+    config/        @snaplify/config      defineSnaplifyConfig() factory
+    docs/          @snaplify/docs        Pluggable docs module
+    editor/        @snaplify/editor      TipTap extensions + block types
+    explainer/     @snaplify/explainer   Interactive module runtime
+    learning/      @snaplify/learning    Learning path engine
+    test-utils/    @snaplify/test-utils  Shared test helpers
   apps/
     reference/     Reference SvelteKit app
     landing/       Static marketing site
@@ -91,10 +91,10 @@ docker compose -f deploy/docker-compose.yml up -d
 
 ## Testing
 
-- **879+ unit tests** across 10 packages + reference app
+- **902 unit tests** across 13 packages + reference app
 - **17 Rust tests** for the CLI
 - **E2E tests** with Playwright (auth, content, theme, admin, a11y)
-- **Accessibility** — axe-core on all UI components, WCAG 2.1 AA
+- **Accessibility**: axe-core on all UI components, WCAG 2.1 AA
 
 ```bash
 pnpm test                    # Unit tests
@@ -116,14 +116,58 @@ docker compose -f deploy/docker-compose.prod.yml up -d
 
 Supports DigitalOcean App Platform, Droplet/VPS, and any Docker-compatible host.
 
-## Documentation
+## Package Documentation
 
-- [Master Plan](docs/plan.md) — Implementation phases
-- [Architecture Decision Records](docs/adr/) — 23 ADRs
-- [Deployment Guide](docs/deployment.md) — Production setup
-- [Launch Checklist](docs/launch-checklist.md) — v1 verification
-- [A11y Audit](docs/a11y-audit.md) — Accessibility compliance
-- [CHANGELOG](CHANGELOG.md) — Release history
+Each package has its own README with API docs, usage examples, and architecture details:
+
+| Package | Docs |
+| ------- | ---- |
+| `@snaplify/schema` | [packages/schema/README.md](packages/schema/README.md) |
+| `@snaplify/config` | [packages/config/README.md](packages/config/README.md) |
+| `@snaplify/auth` | [packages/auth/README.md](packages/auth/README.md) |
+| `@snaplify/snaplify` | [packages/protocol/README.md](packages/protocol/README.md) |
+| `@snaplify/ui` | [packages/ui/README.md](packages/ui/README.md) |
+| `@snaplify/editor` | [packages/editor/README.md](packages/editor/README.md) |
+| `@snaplify/explainer` | [packages/explainer/README.md](packages/explainer/README.md) |
+| `@snaplify/learning` | [packages/learning/README.md](packages/learning/README.md) |
+| `@snaplify/docs` | [packages/docs/README.md](packages/docs/README.md) |
+| `@snaplify/test-utils` | [packages/test-utils/README.md](packages/test-utils/README.md) |
+| Reference App | [apps/reference/README.md](apps/reference/README.md) |
+| Landing Page | [apps/landing/README.md](apps/landing/README.md) |
+| `create-snaplify` CLI | [tools/create-snaplify/README.md](tools/create-snaplify/README.md) |
+| AP Worker | [tools/worker/README.md](tools/worker/README.md) |
+| Deploy | [deploy/README.md](deploy/README.md) |
+
+## Project Documentation
+
+- [Master Plan](docs/plan.md): Implementation phases and architecture
+- [Architecture Decision Records](docs/adr/): 23 ADRs documenting key decisions
+- [Contributing Guide](docs/contributing.md): Development workflow and standards
+- [Coding Standards](docs/coding-standards.md): TypeScript, Svelte, CSS, testing conventions
+- [Deployment Guide](docs/deployment.md): Production setup and operations
+- [Launch Checklist](docs/launch-checklist.md): v1 verification status
+- [A11y Audit](docs/a11y-audit.md): Accessibility compliance report
+- [CHANGELOG](CHANGELOG.md): Release history
+
+## Requirements
+
+- Node.js >= 22
+- pnpm >= 10
+- Docker (for Postgres, Redis, Meilisearch)
+- Rust (optional, for `create-snaplify` CLI)
+
+## Contributing
+
+See [docs/contributing.md](docs/contributing.md) for the full guide.
+
+```bash
+git clone https://github.com/snaplify/snaplify.git
+cd snaplify
+pnpm install
+docker compose -f deploy/docker-compose.yml up -d
+cp .env.example .env
+pnpm build && pnpm test
+```
 
 ## License
 

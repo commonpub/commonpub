@@ -46,22 +46,31 @@ function createMockDb() {
     return chain;
   };
 
-  const db = {
+  const db: Record<string, ReturnType<typeof vi.fn>> = {
     select: vi.fn().mockReturnValue(chainable()),
     insert: vi.fn().mockReturnValue({
       values: vi.fn().mockReturnValue({
         returning: vi.fn().mockResolvedValue([]),
+        onConflictDoNothing: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([{ communityId: 'comm-1', userId: 'user-1', role: 'member' }]),
+        }),
       }),
     }),
     update: vi.fn().mockReturnValue({
       set: vi.fn().mockReturnValue({
-        where: vi.fn().mockResolvedValue({ rowCount: 1 }),
+        where: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([]),
+          then: vi.fn().mockImplementation((resolve: (v: unknown) => unknown) => resolve({ rowCount: 1 })),
+        }),
       }),
     }),
     delete: vi.fn().mockReturnValue({
       where: vi.fn().mockResolvedValue({ rowCount: 1 }),
     }),
+    transaction: vi.fn(),
   };
+  // transaction passes the db itself as the tx argument
+  db.transaction.mockImplementation(async (fn: (tx: typeof db) => Promise<unknown>) => fn(db));
 
   return db;
 }
@@ -370,34 +379,28 @@ describe('Community Service', () => {
         from: vi.fn().mockReturnThis(),
         where: vi.fn().mockReturnThis(),
         limit: vi.fn().mockReturnThis(),
-        then: vi.fn().mockImplementation((resolve) => resolve([])),
-      };
-      // Existing member check
-      const existingChain = {
-        from: vi.fn().mockReturnThis(),
-        where: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockReturnThis(),
-        then: vi.fn().mockImplementation((resolve) => resolve([])),
+        then: vi.fn().mockImplementation((resolve: (v: unknown) => unknown) => resolve([])),
       };
       // Community lookup
       const communityChain = {
         from: vi.fn().mockReturnThis(),
         where: vi.fn().mockReturnThis(),
         limit: vi.fn().mockReturnThis(),
-        then: vi.fn().mockImplementation((resolve) => resolve([{ joinPolicy: 'open' }])),
+        then: vi.fn().mockImplementation((resolve: (v: unknown) => unknown) => resolve([{ joinPolicy: 'open' }])),
       };
 
       let callCount = 0;
       db.select = vi.fn().mockImplementation(() => {
         callCount++;
         if (callCount === 1) return banChain;
-        if (callCount === 2) return existingChain;
         return communityChain;
       });
 
       db.insert = vi.fn().mockReturnValue({
         values: vi.fn().mockReturnValue({
-          returning: vi.fn().mockResolvedValue([]),
+          onConflictDoNothing: vi.fn().mockReturnValue({
+            returning: vi.fn().mockResolvedValue([{ communityId: 'comm-1', userId: 'user-1', role: 'member' }]),
+          }),
         }),
       });
 
@@ -435,28 +438,20 @@ describe('Community Service', () => {
         from: vi.fn().mockReturnThis(),
         where: vi.fn().mockReturnThis(),
         limit: vi.fn().mockReturnThis(),
-        then: vi.fn().mockImplementation((resolve) => resolve([])),
-      };
-      // Existing member check
-      const existingChain = {
-        from: vi.fn().mockReturnThis(),
-        where: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockReturnThis(),
-        then: vi.fn().mockImplementation((resolve) => resolve([])),
+        then: vi.fn().mockImplementation((resolve: (v: unknown) => unknown) => resolve([])),
       };
       // Community lookup
       const communityChain = {
         from: vi.fn().mockReturnThis(),
         where: vi.fn().mockReturnThis(),
         limit: vi.fn().mockReturnThis(),
-        then: vi.fn().mockImplementation((resolve) => resolve([{ joinPolicy: 'invite' }])),
+        then: vi.fn().mockImplementation((resolve: (v: unknown) => unknown) => resolve([{ joinPolicy: 'invite' }])),
       };
 
       let callCount = 0;
       db.select = vi.fn().mockImplementation(() => {
         callCount++;
         if (callCount === 1) return banChain;
-        if (callCount === 2) return existingChain;
         return communityChain;
       });
 
@@ -897,27 +892,14 @@ describe('Community Service', () => {
   describe('validateAndUseInvite', () => {
     it('should reject expired tokens', async () => {
       const db = createMockDb();
-      const expired = new Date(Date.now() - 86400000);
-      const chain = {
-        from: vi.fn().mockReturnThis(),
-        where: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockReturnThis(),
-        then: vi.fn().mockImplementation((resolve) =>
-          resolve([
-            {
-              id: 'inv-1',
-              communityId: 'comm-1',
-              token: 'abc',
-              maxUses: null,
-              useCount: 0,
-              expiresAt: expired,
-              createdAt: new Date(),
-              createdById: 'user-1',
-            },
-          ]),
-        ),
-      };
-      db.select = vi.fn().mockReturnValue(chain);
+      // Atomic UPDATE returns empty array (no matching rows — expired)
+      db.update = vi.fn().mockReturnValue({
+        set: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            returning: vi.fn().mockResolvedValue([]),
+          }),
+        }),
+      });
 
       const result = await validateAndUseInvite(db as unknown as AnyDB, 'abc');
       expect(result.valid).toBe(false);
@@ -925,26 +907,14 @@ describe('Community Service', () => {
 
     it('should reject maxed-out tokens', async () => {
       const db = createMockDb();
-      const chain = {
-        from: vi.fn().mockReturnThis(),
-        where: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockReturnThis(),
-        then: vi.fn().mockImplementation((resolve) =>
-          resolve([
-            {
-              id: 'inv-1',
-              communityId: 'comm-1',
-              token: 'abc',
-              maxUses: 5,
-              useCount: 5,
-              expiresAt: null,
-              createdAt: new Date(),
-              createdById: 'user-1',
-            },
-          ]),
-        ),
-      };
-      db.select = vi.fn().mockReturnValue(chain);
+      // Atomic UPDATE returns empty array (no matching rows — maxed out)
+      db.update = vi.fn().mockReturnValue({
+        set: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            returning: vi.fn().mockResolvedValue([]),
+          }),
+        }),
+      });
 
       const result = await validateAndUseInvite(db as unknown as AnyDB, 'abc');
       expect(result.valid).toBe(false);
@@ -952,26 +922,14 @@ describe('Community Service', () => {
 
     it('should accept valid token and increment use count', async () => {
       const db = createMockDb();
-      const chain = {
-        from: vi.fn().mockReturnThis(),
-        where: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockReturnThis(),
-        then: vi.fn().mockImplementation((resolve) =>
-          resolve([
-            {
-              id: 'inv-1',
-              communityId: 'comm-1',
-              token: 'abc',
-              maxUses: 10,
-              useCount: 3,
-              expiresAt: null,
-              createdAt: new Date(),
-              createdById: 'user-1',
-            },
-          ]),
-        ),
-      };
-      db.select = vi.fn().mockReturnValue(chain);
+      // Atomic UPDATE returns the row (valid invite)
+      db.update = vi.fn().mockReturnValue({
+        set: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            returning: vi.fn().mockResolvedValue([{ communityId: 'comm-1' }]),
+          }),
+        }),
+      });
 
       const result = await validateAndUseInvite(db as unknown as AnyDB, 'abc');
       expect(result.valid).toBe(true);

@@ -23,6 +23,12 @@ export const DELETE: RequestHandler = async ({ params, locals }) => {
     return json({ error: 'Follow relationship not found' }, { status: 404 });
   }
 
+  // Ownership check: only the follower can delete their own follow
+  const localActorUri = `https://${locals.config.instance.domain}/users/${locals.user.username}`;
+  if (relationship[0]!.followerActorUri !== localActorUri) {
+    return json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   await unfollowRemote(
     locals.db,
     locals.user.id,

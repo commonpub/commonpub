@@ -1,20 +1,29 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { listComments, createComment, deleteComment } from '$lib/server/social';
+import { createCommentSchema, commentTargetTypeSchema } from '@snaplify/schema';
+import { z } from 'zod';
+
+const commentQuerySchema = z.object({
+  targetType: commentTargetTypeSchema,
+  targetId: z.string().uuid(),
+});
 
 export const GET: RequestHandler = async ({ url, locals }) => {
   if (!locals.config.features.social) {
     return json({ error: 'Social features are not enabled' }, { status: 404 });
   }
 
-  const targetType = url.searchParams.get('targetType');
-  const targetId = url.searchParams.get('targetId');
+  const parsed = commentQuerySchema.safeParse({
+    targetType: url.searchParams.get('targetType'),
+    targetId: url.searchParams.get('targetId'),
+  });
 
-  if (!targetType || !targetId) {
-    return json({ error: 'targetType and targetId are required' }, { status: 400 });
+  if (!parsed.success) {
+    return json({ error: 'Invalid input', details: parsed.error.flatten() }, { status: 400 });
   }
 
-  const comments = await listComments(locals.db, targetType, targetId);
+  const comments = await listComments(locals.db, parsed.data.targetType, parsed.data.targetId);
   return json({ comments });
 };
 
@@ -27,26 +36,23 @@ export const POST: RequestHandler = async ({ request, locals }) => {
     return json({ error: 'Not authenticated' }, { status: 401 });
   }
 
-  let targetType: string, targetId: string, content: string, parentId: string | undefined;
+  let body: unknown;
   try {
-    ({ targetType, targetId, content, parentId } = await request.json());
+    body = await request.json();
   } catch {
     return json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  if (!targetType || !targetId || !content?.trim()) {
-    return json({ error: 'targetType, targetId, and content are required' }, { status: 400 });
-  }
-
-  if (content.length > 10000) {
-    return json({ error: 'Comment too long' }, { status: 400 });
+  const parsed = createCommentSchema.safeParse(body);
+  if (!parsed.success) {
+    return json({ error: 'Invalid input', details: parsed.error.flatten() }, { status: 400 });
   }
 
   const comment = await createComment(locals.db, locals.user.id, {
-    targetType,
-    targetId,
-    content: content.trim(),
-    parentId,
+    targetType: parsed.data.targetType,
+    targetId: parsed.data.targetId,
+    content: parsed.data.content.trim(),
+    parentId: parsed.data.parentId,
   });
 
   return json({ comment }, { status: 201 });

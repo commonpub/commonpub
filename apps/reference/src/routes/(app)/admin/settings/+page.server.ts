@@ -14,6 +14,7 @@ export const load: PageServerLoad = async (event) => {
 export const actions: Actions = {
   update: async ({ request, locals, getClientAddress }) => {
     if (!locals.user) return fail(401, { error: 'Not authenticated' });
+    if (locals.user.role !== 'admin' && locals.user.role !== 'staff') return fail(403, { error: 'Forbidden' });
 
     const formData = await request.formData();
     const parsed = updateInstanceSettingSchema.safeParse({

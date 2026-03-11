@@ -382,12 +382,14 @@ export async function reorderModules(
 
   if (path.length === 0) return false;
 
-  for (let i = 0; i < moduleIds.length; i++) {
-    await db
-      .update(learningModules)
-      .set({ sortOrder: i })
-      .where(and(eq(learningModules.id, moduleIds[i]!), eq(learningModules.pathId, pathId)));
-  }
+  await db.transaction(async (tx) => {
+    for (let i = 0; i < moduleIds.length; i++) {
+      await tx
+        .update(learningModules)
+        .set({ sortOrder: i })
+        .where(and(eq(learningModules.id, moduleIds[i]!), eq(learningModules.pathId, pathId)));
+    }
+  });
 
   return true;
 }
@@ -503,12 +505,14 @@ export async function reorderLessons(
 
   if (mod.length === 0) return false;
 
-  for (let i = 0; i < lessonIds.length; i++) {
-    await db
-      .update(learningLessons)
-      .set({ sortOrder: i })
-      .where(and(eq(learningLessons.id, lessonIds[i]!), eq(learningLessons.moduleId, moduleId)));
-  }
+  await db.transaction(async (tx) => {
+    for (let i = 0; i < lessonIds.length; i++) {
+      await tx
+        .update(learningLessons)
+        .set({ sortOrder: i })
+        .where(and(eq(learningLessons.id, lessonIds[i]!), eq(learningLessons.moduleId, moduleId)));
+    }
+  });
 
   return true;
 }
@@ -580,7 +584,7 @@ export async function markLessonComplete(
   quizScore?: number,
   quizPassed?: boolean,
 ): Promise<{ progress: number; certificateIssued: boolean }> {
-  // Find the lesson's path
+  // Find the lesson's path (read-only, outside transaction)
   const lessonRow = await db
     .select({ lesson: learningLessons, module: learningModules })
     .from(learningLessons)
@@ -592,104 +596,107 @@ export async function markLessonComplete(
 
   const pathId = lessonRow[0]!.module.pathId;
 
-  // Verify enrollment
-  const enrollmentRow = await db
-    .select()
-    .from(enrollments)
-    .where(and(eq(enrollments.userId, userId), eq(enrollments.pathId, pathId)))
-    .limit(1);
-
-  if (enrollmentRow.length === 0) throw new Error('Not enrolled');
-
-  // Upsert lesson progress
-  const existingProgress = await db
-    .select()
-    .from(lessonProgress)
-    .where(and(eq(lessonProgress.userId, userId), eq(lessonProgress.lessonId, lessonId)))
-    .limit(1);
-
-  if (existingProgress.length === 0) {
-    await db.insert(lessonProgress).values({
-      userId,
-      lessonId,
-      completed: true,
-      completedAt: new Date(),
-      quizScore: quizScore?.toString() ?? null,
-      quizPassed: quizPassed ?? null,
-    });
-  } else {
-    await db
-      .update(lessonProgress)
-      .set({
-        completed: true,
-        completedAt: new Date(),
-        quizScore: quizScore?.toString() ?? existingProgress[0]!.quizScore,
-        quizPassed: quizPassed ?? existingProgress[0]!.quizPassed,
-      })
-      .where(and(eq(lessonProgress.userId, userId), eq(lessonProgress.lessonId, lessonId)));
-  }
-
-  // Recalculate progress
-  const totalLessons = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(learningLessons)
-    .innerJoin(learningModules, eq(learningLessons.moduleId, learningModules.id))
-    .where(eq(learningModules.pathId, pathId));
-
-  const completedLessons = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(lessonProgress)
-    .innerJoin(learningLessons, eq(lessonProgress.lessonId, learningLessons.id))
-    .innerJoin(learningModules, eq(learningLessons.moduleId, learningModules.id))
-    .where(
-      and(
-        eq(lessonProgress.userId, userId),
-        eq(lessonProgress.completed, true),
-        eq(learningModules.pathId, pathId),
-      ),
-    );
-
-  const total = totalLessons[0]?.count ?? 0;
-  const completed = completedLessons[0]?.count ?? 0;
-  const progress = calculatePathProgress(total, completed);
-
-  // Update enrollment progress
-  const enrollmentUpdates: Record<string, unknown> = { progress: progress.toString() };
-  if (isPathComplete(progress)) {
-    enrollmentUpdates.completedAt = new Date();
-  }
-
-  await db
-    .update(enrollments)
-    .set(enrollmentUpdates)
-    .where(eq(enrollments.id, enrollmentRow[0]!.id));
-
-  // Auto-certificate at 100%
-  let certificateIssued = false;
-  if (isPathComplete(progress)) {
-    const existingCert = await db
+  return db.transaction(async (tx) => {
+    // Lock enrollment row to serialize concurrent completions
+    const enrollmentRow = await tx
       .select()
-      .from(certificates)
-      .where(and(eq(certificates.userId, userId), eq(certificates.pathId, pathId)))
+      .from(enrollments)
+      .where(and(eq(enrollments.userId, userId), eq(enrollments.pathId, pathId)))
+      .for('update')
       .limit(1);
 
-    if (existingCert.length === 0) {
-      await db.insert(certificates).values({
+    if (enrollmentRow.length === 0) throw new Error('Not enrolled');
+
+    // Upsert lesson progress
+    const existingProgress = await tx
+      .select()
+      .from(lessonProgress)
+      .where(and(eq(lessonProgress.userId, userId), eq(lessonProgress.lessonId, lessonId)))
+      .limit(1);
+
+    if (existingProgress.length === 0) {
+      await tx.insert(lessonProgress).values({
         userId,
-        pathId,
-        verificationCode: generateVerificationCode(),
+        lessonId,
+        completed: true,
+        completedAt: new Date(),
+        quizScore: quizScore?.toString() ?? null,
+        quizPassed: quizPassed ?? null,
       });
-      certificateIssued = true;
-
-      // Increment completion count
-      await db
-        .update(learningPaths)
-        .set({ completionCount: sql`${learningPaths.completionCount} + 1` })
-        .where(eq(learningPaths.id, pathId));
+    } else {
+      await tx
+        .update(lessonProgress)
+        .set({
+          completed: true,
+          completedAt: new Date(),
+          quizScore: quizScore?.toString() ?? existingProgress[0]!.quizScore,
+          quizPassed: quizPassed ?? existingProgress[0]!.quizPassed,
+        })
+        .where(and(eq(lessonProgress.userId, userId), eq(lessonProgress.lessonId, lessonId)));
     }
-  }
 
-  return { progress, certificateIssued };
+    // Recalculate progress
+    const totalLessons = await tx
+      .select({ count: sql<number>`count(*)::int` })
+      .from(learningLessons)
+      .innerJoin(learningModules, eq(learningLessons.moduleId, learningModules.id))
+      .where(eq(learningModules.pathId, pathId));
+
+    const completedLessons = await tx
+      .select({ count: sql<number>`count(*)::int` })
+      .from(lessonProgress)
+      .innerJoin(learningLessons, eq(lessonProgress.lessonId, learningLessons.id))
+      .innerJoin(learningModules, eq(learningLessons.moduleId, learningModules.id))
+      .where(
+        and(
+          eq(lessonProgress.userId, userId),
+          eq(lessonProgress.completed, true),
+          eq(learningModules.pathId, pathId),
+        ),
+      );
+
+    const total = totalLessons[0]?.count ?? 0;
+    const completed = completedLessons[0]?.count ?? 0;
+    const progress = calculatePathProgress(total, completed);
+
+    // Update enrollment progress
+    const enrollmentUpdates: Record<string, unknown> = { progress: progress.toString() };
+    if (isPathComplete(progress)) {
+      enrollmentUpdates.completedAt = new Date();
+    }
+
+    await tx
+      .update(enrollments)
+      .set(enrollmentUpdates)
+      .where(eq(enrollments.id, enrollmentRow[0]!.id));
+
+    // Auto-certificate at 100%
+    let certificateIssued = false;
+    if (isPathComplete(progress)) {
+      const existingCert = await tx
+        .select()
+        .from(certificates)
+        .where(and(eq(certificates.userId, userId), eq(certificates.pathId, pathId)))
+        .limit(1);
+
+      if (existingCert.length === 0) {
+        await tx.insert(certificates).values({
+          userId,
+          pathId,
+          verificationCode: generateVerificationCode(),
+        });
+        certificateIssued = true;
+
+        // Increment completion count
+        await tx
+          .update(learningPaths)
+          .set({ completionCount: sql`${learningPaths.completionCount} + 1` })
+          .where(eq(learningPaths.id, pathId));
+      }
+    }
+
+    return { progress, certificateIssued };
+  });
 }
 
 // --- Queries ---

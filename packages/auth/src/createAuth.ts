@@ -39,8 +39,8 @@ export function createAuth({ config, db, secret, baseURL }: CreateAuthOptions) {
     }),
     user: {
       fields: {
-        name: 'display_name',
-        image: 'avatar_url',
+        name: 'displayName',
+        image: 'avatarUrl',
       },
     },
     emailAndPassword: {
@@ -49,6 +49,11 @@ export function createAuth({ config, db, secret, baseURL }: CreateAuthOptions) {
     session: {
       expiresIn: 60 * 60 * 24 * 7,
       updateAge: 60 * 60 * 24,
+    },
+    advanced: {
+      database: {
+        generateId: 'uuid',
+      },
     },
     socialProviders,
     plugins,

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { sanitizeHtml } from '@snaplify/docs';
   import type { TocEntry, PageFrontmatter } from '@snaplify/docs';
 
   let {
@@ -35,7 +36,7 @@
   {/if}
 
   <div class="docs-viewer-content">
-    {@html html}
+    {@html sanitizeHtml(html)}
   </div>
 
   {#if toc.length > 0}

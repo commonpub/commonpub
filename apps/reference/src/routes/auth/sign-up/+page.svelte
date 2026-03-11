@@ -65,7 +65,7 @@
           required
           minlength="3"
           maxlength="64"
-          pattern="[a-zA-Z0-9_-]+"
+          pattern="[a-zA-Z0-9_\-]+"
           autocomplete="username"
         />
       </div>
