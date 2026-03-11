@@ -194,20 +194,20 @@
     top: 0;
     height: 100vh;
     overflow-y: auto;
-    border-right: 1px solid var(--color-border, #e5e5e5);
-    background: var(--color-surface, #ffffff);
+    border-right: 1px solid var(--color-border, #272725);
+    background: var(--color-surface, #0c0c0b);
   }
 
   .explainer-main {
     max-width: var(--layout-content-width, 768px);
     margin: 0 auto;
-    padding: var(--space-xl, 3rem);
+    padding: var(--space-12, 3rem);
   }
 
   .explainer-header h1 {
-    font-size: var(--font-size-3xl, 2.25rem);
-    color: var(--color-text, #1a1a1a);
-    margin-bottom: var(--space-xl, 3rem);
+    font-size: var(--text-3xl, 2.25rem);
+    color: var(--color-text, #d8d5cf);
+    margin-bottom: var(--space-12, 3rem);
   }
 
   @media (max-width: 768px) {

@@ -4,6 +4,23 @@ All notable changes to Snaplify are documented here.
 
 ## v1.0.0 — Launch
 
+### Token Debt, Admin Polish, Editor & Composer (2026-03-11)
+
+- Fixed 32 non-contract tokens in `packages/ui/src/` (25 font-size→text, 7 surface-elevated→surface-alt/raised)
+- Admin pages: replaced raw HTML inputs/buttons with `@snaplify/ui` Input, Textarea, Button components
+- Added `name` prop to Input and Textarea components for form submission
+- PostComposer: added share (content ID + comment) and poll (dynamic options, multi-select) post types
+- Added `votePoll` form action with JSON-in-content poll storage
+- Editor toolbar: added strikethrough, link editing (inline URL input), bullet/ordered lists
+- Editor slash menu: added bullet list, numbered list, divider commands
+- Serialization: added list, divider, strike support to BlockTuple ↔ ProseMirror round-trip
+
+### CSS Token Contract Alignment (2026-03-11)
+
+- Extended token contract with 8 new semantic tokens across all 5 themes (on-primary, on-accent, surface-hover, success/warning/error/info-bg, bg-subtle)
+- Renamed ~852 non-contract token references across 73 reference app files to match contract (spacing, font-size, surface, font-weight)
+- Zero remaining non-contract tokens in reference app; all themes at full parity
+
 ### QA Audit (2026-03-10)
 
 - Fixed 23 TypeScript errors across reference app (parent() in actions, null safety, type mismatches)

@@ -1,18 +1,20 @@
 <script lang="ts">
   import Nav from '$lib/components/Nav.svelte';
   import Footer from '$lib/components/Footer.svelte';
-  import { validateTokenOverrides } from '@snaplify/ui';
+  import { applyThemeToElement, validateTokenOverrides } from '@snaplify/ui';
+  import '@snaplify/ui/theme/base.css';
+  import '@snaplify/ui/theme/generics.css';
+  import '@snaplify/ui/theme/deepwood.css';
+  import '@snaplify/ui/theme/hackbuild.css';
+  import '@snaplify/ui/theme/deveco.css';
   import type { LayoutData } from './$types';
 
   let { data, children } = $props<{ data: LayoutData; children: import('svelte').Snippet }>();
 
   $effect(() => {
     const html = document.documentElement;
-    if (data.theme && data.theme !== 'base') {
-      html.setAttribute('data-theme', data.theme);
-    } else {
-      html.removeAttribute('data-theme');
-    }
+    const theme = data.theme ?? 'generics';
+    applyThemeToElement(html, theme);
 
     if (data.customTokens) {
       const { valid } = validateTokenOverrides(data.customTokens);
@@ -33,13 +35,32 @@
 
 <style>
   :global(html) {
-    font-family: var(--font-sans, system-ui, -apple-system, sans-serif);
-    color: var(--color-text, #1a1a1a);
-    background: var(--color-bg, #ffffff);
+    font-family: var(--font-body, system-ui, -apple-system, sans-serif);
+    color: var(--color-text, #d8d5cf);
+    background: var(--color-surface, #0c0c0b);
+    font-size: var(--text-base, 0.875rem);
+    line-height: var(--leading-normal, 1.6);
   }
 
   :global(body) {
     margin: 0;
+  }
+
+  :global(*, *::before, *::after) {
+    box-sizing: border-box;
+  }
+
+  :global(a) {
+    color: var(--color-link, var(--color-primary, #5b9cf6));
+  }
+
+  :global(a:hover) {
+    color: var(--color-link-hover, var(--color-primary-hover, #4a8be5));
+  }
+
+  :global(::selection) {
+    background: var(--color-primary, #5b9cf6);
+    color: var(--color-primary-text, #0c0c0b);
   }
 
   .app {
@@ -51,8 +72,8 @@
   .main {
     flex: 1;
     width: 100%;
-    max-width: var(--layout-max-width, 1200px);
+    max-width: var(--content-max-width, 75rem);
     margin: 0 auto;
-    padding: var(--space-md, 1rem);
+    padding: var(--space-6, 1.5rem) var(--space-4, 1rem);
   }
 </style>

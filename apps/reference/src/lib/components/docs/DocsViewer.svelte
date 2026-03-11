@@ -63,7 +63,7 @@
 
   .docs-viewer-title {
     font-size: var(--text-3xl, 1.875rem);
-    font-weight: var(--font-bold, 700);
+    font-weight: var(--font-weight-bold, 700);
     margin-bottom: var(--space-4, 1rem);
     color: var(--text-primary, inherit);
   }

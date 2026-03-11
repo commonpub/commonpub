@@ -32,13 +32,13 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: var(--space-sm, 0.5rem) var(--space-md, 1rem);
-    background: var(--color-surface, #ffffff);
+    padding: var(--space-2, 0.5rem) var(--space-4, 1rem);
+    background: var(--color-surface, #0c0c0b);
   }
 
   .member-info {
     display: flex;
-    gap: var(--space-sm, 0.5rem);
+    gap: var(--space-2, 0.5rem);
     align-items: center;
   }
 
@@ -59,7 +59,7 @@
     align-items: center;
     justify-content: center;
     font-weight: var(--font-weight-bold, 700);
-    font-size: var(--font-size-sm, 0.875rem);
+    font-size: var(--text-sm, 0.875rem);
   }
 
   .member-details {
@@ -69,23 +69,23 @@
 
   .member-name {
     font-weight: var(--font-weight-medium, 500);
-    color: var(--color-text, #1a1a1a);
-    font-size: var(--font-size-sm, 0.875rem);
+    color: var(--color-text, #d8d5cf);
+    font-size: var(--text-sm, 0.875rem);
   }
 
   .member-username {
-    font-size: var(--font-size-xs, 0.75rem);
-    color: var(--color-text-secondary, #666);
+    font-size: var(--text-xs, 0.75rem);
+    color: var(--color-text-secondary, #888884);
   }
 
   .member-meta {
     display: flex;
-    gap: var(--space-sm, 0.5rem);
+    gap: var(--space-2, 0.5rem);
     align-items: center;
   }
 
   .member-joined {
-    font-size: var(--font-size-xs, 0.75rem);
-    color: var(--color-text-secondary, #666);
+    font-size: var(--text-xs, 0.75rem);
+    color: var(--color-text-secondary, #888884);
   }
 </style>

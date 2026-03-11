@@ -41,25 +41,25 @@
 <style>
   .role-selector {
     display: flex;
-    gap: var(--space-xs, 0.25rem);
+    gap: var(--space-1, 0.25rem);
     align-items: center;
   }
 
   .role-select {
-    padding: var(--space-xs, 0.25rem) var(--space-sm, 0.5rem);
-    border: 1px solid var(--color-border, #e5e5e5);
+    padding: var(--space-1, 0.25rem) var(--space-2, 0.5rem);
+    border: 1px solid var(--color-border, #272725);
     border-radius: var(--radius-sm, 4px);
-    font-size: var(--font-size-xs, 0.75rem);
-    background: var(--color-surface, #ffffff);
-    color: var(--color-text, #1a1a1a);
+    font-size: var(--text-xs, 0.75rem);
+    background: var(--color-surface, #0c0c0b);
+    color: var(--color-text, #d8d5cf);
   }
 
   .btn-small {
-    padding: var(--space-xs, 0.25rem) var(--space-sm, 0.5rem);
-    font-size: var(--font-size-xs, 0.75rem);
-    background: var(--color-surface-secondary, #f5f5f5);
-    color: var(--color-text, #1a1a1a);
-    border: 1px solid var(--color-border, #e5e5e5);
+    padding: var(--space-1, 0.25rem) var(--space-2, 0.5rem);
+    font-size: var(--text-xs, 0.75rem);
+    background: var(--color-surface-alt, #1c1c1a);
+    color: var(--color-text, #d8d5cf);
+    border: 1px solid var(--color-border, #272725);
     border-radius: var(--radius-sm, 4px);
     cursor: pointer;
   }

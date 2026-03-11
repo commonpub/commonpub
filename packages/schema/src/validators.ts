@@ -108,6 +108,9 @@ export const createPostSchema = z.object({
   communityId: z.string().uuid(),
   type: z.enum(['text', 'link', 'share', 'poll']).default('text'),
   content: z.string().min(1).max(10000),
+  sharedContentId: z.string().uuid().optional(),
+  pollOptions: z.array(z.string().min(1).max(200)).min(2).max(10).optional(),
+  pollMultiSelect: z.boolean().optional(),
 });
 
 // --- Learning validators ---

@@ -73,8 +73,8 @@
 
 <style>
   .lesson-viewer :global(pre) {
-    background: var(--color-surface-secondary, #f5f5f5);
-    padding: var(--space-md, 1rem);
+    background: var(--color-surface-alt, #1c1c1a);
+    padding: var(--space-4, 1rem);
     border-radius: var(--radius-sm, 4px);
     overflow-x: auto;
   }
@@ -103,16 +103,16 @@
 
   .link-lesson {
     text-align: center;
-    padding: var(--space-xl, 3rem);
-    border: 1px solid var(--color-border, #e5e5e5);
+    padding: var(--space-12, 3rem);
+    border: 1px solid var(--color-border, #272725);
     border-radius: var(--radius-md, 6px);
-    background: var(--color-surface-secondary, #f5f5f5);
+    background: var(--color-surface-alt, #1c1c1a);
   }
 
   .lesson-cta {
     display: inline-block;
-    margin-top: var(--space-md, 1rem);
-    padding: var(--space-sm, 0.5rem) var(--space-lg, 2rem);
+    margin-top: var(--space-4, 1rem);
+    padding: var(--space-2, 0.5rem) var(--space-6, 2rem);
     background: var(--color-primary, #2563eb);
     color: var(--color-on-primary, #ffffff);
     border-radius: var(--radius-md, 6px);
@@ -121,7 +121,7 @@
   }
 
   .no-content {
-    color: var(--color-text-secondary, #666);
+    color: var(--color-text-secondary, #888884);
     font-style: italic;
   }
 </style>

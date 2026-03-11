@@ -62,7 +62,7 @@
     transform: translateX(-50%);
     padding: var(--space-1, 0.25rem) var(--space-2, 0.5rem);
     font-family: var(--font-body, sans-serif);
-    font-size: var(--font-size-sm, 0.875rem);
+    font-size: var(--text-sm);
     background: var(--color-text, #1a1a1a);
     color: var(--color-surface, #fff);
     border-radius: var(--radius-sm, 0.25rem);

@@ -19,7 +19,7 @@
     top: 0;
     z-index: 10;
     height: 4px;
-    background: var(--color-border, #e5e5e5);
+    background: var(--color-border, #272725);
   }
 
   .progress-bar__fill {

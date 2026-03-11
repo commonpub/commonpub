@@ -38,16 +38,16 @@
     display: flex;
     flex-direction: column;
     gap: 1px;
-    background: var(--color-border, #e5e5e5);
-    border: 1px solid var(--color-border, #e5e5e5);
+    background: var(--color-border, #272725);
+    border: 1px solid var(--color-border, #272725);
     border-radius: var(--radius-md, 6px);
     overflow: hidden;
   }
 
   .empty-state {
     text-align: center;
-    padding: var(--space-xl, 3rem);
-    color: var(--color-text-secondary, #666);
-    background: var(--color-surface, #ffffff);
+    padding: var(--space-12, 3rem);
+    color: var(--color-text-secondary, #888884);
+    background: var(--color-surface, #0c0c0b);
   }
 </style>

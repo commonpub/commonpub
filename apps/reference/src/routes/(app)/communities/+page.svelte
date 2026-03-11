@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { Button, Input } from '@snaplify/ui';
   import CommunityCard from '$lib/components/community/CommunityCard.svelte';
   import type { PageData } from './$types';
 
@@ -18,13 +19,14 @@
   </div>
 
   <form class="filters" method="GET" action="/communities">
-    <input
+    <Input
+      id="communities-search"
+      label=""
       type="search"
       name="search"
       placeholder="Search communities..."
       value={data.search ?? ''}
       class="search-input"
-      aria-label="Search communities"
     />
     <select name="joinPolicy" class="filter-select" aria-label="Filter by join policy">
       <option value="">All policies</option>
@@ -32,7 +34,7 @@
       <option value="approval" selected={data.joinPolicy === 'approval'}>Approval</option>
       <option value="invite" selected={data.joinPolicy === 'invite'}>Invite only</option>
     </select>
-    <button type="submit" class="btn btn-secondary">Filter</button>
+    <Button variant="secondary" type="submit">Filter</Button>
   </form>
 
   {#if data.communities.length === 0}
@@ -71,48 +73,39 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: var(--space-lg, 2rem);
+    margin-bottom: var(--space-6, 2rem);
   }
 
   .page-header h1 {
-    font-size: var(--font-size-2xl, 1.875rem);
-    color: var(--color-text, #1a1a1a);
+    font-size: var(--text-2xl, 1.875rem);
+    color: var(--color-text, #d8d5cf);
   }
 
   .filters {
     display: flex;
-    gap: var(--space-sm, 0.5rem);
-    margin-bottom: var(--space-lg, 2rem);
+    gap: var(--space-2, 0.5rem);
+    margin-bottom: var(--space-6, 2rem);
   }
 
-  .search-input {
-    flex: 1;
-    padding: var(--space-sm, 0.5rem) var(--space-md, 1rem);
-    border: 1px solid var(--color-border, #e5e5e5);
-    border-radius: var(--radius-md, 6px);
-    font-size: var(--font-size-md, 1rem);
-    background: var(--color-surface, #ffffff);
-    color: var(--color-text, #1a1a1a);
-  }
 
   .filter-select {
-    padding: var(--space-sm, 0.5rem) var(--space-md, 1rem);
-    border: 1px solid var(--color-border, #e5e5e5);
+    padding: var(--space-2, 0.5rem) var(--space-4, 1rem);
+    border: 1px solid var(--color-border, #272725);
     border-radius: var(--radius-md, 6px);
-    background: var(--color-surface, #ffffff);
-    color: var(--color-text, #1a1a1a);
+    background: var(--color-surface, #0c0c0b);
+    color: var(--color-text, #d8d5cf);
   }
 
   .community-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: var(--space-md, 1rem);
+    gap: var(--space-4, 1rem);
   }
 
   .empty-state {
     text-align: center;
-    padding: var(--space-xl, 3rem);
-    color: var(--color-text-secondary, #666);
+    padding: var(--space-12, 3rem);
+    color: var(--color-text-secondary, #888884);
   }
 
   .empty-state a {
@@ -123,20 +116,20 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: var(--space-md, 1rem);
-    margin-top: var(--space-lg, 2rem);
+    gap: var(--space-4, 1rem);
+    margin-top: var(--space-6, 2rem);
   }
 
   .page-info {
-    color: var(--color-text-secondary, #666);
-    font-size: var(--font-size-sm, 0.875rem);
+    color: var(--color-text-secondary, #888884);
+    font-size: var(--text-sm, 0.875rem);
   }
 
   .btn {
-    padding: var(--space-sm, 0.5rem) var(--space-md, 1rem);
+    padding: var(--space-2, 0.5rem) var(--space-4, 1rem);
     border: none;
     border-radius: var(--radius-md, 6px);
-    font-size: var(--font-size-md, 1rem);
+    font-size: var(--text-md, 1rem);
     cursor: pointer;
     text-decoration: none;
     display: inline-block;
@@ -147,17 +140,12 @@
     color: var(--color-on-primary, #ffffff);
   }
 
-  .btn-secondary {
-    background: var(--color-surface-secondary, #f5f5f5);
-    color: var(--color-text, #1a1a1a);
-    border: 1px solid var(--color-border, #e5e5e5);
-  }
 
   .btn-small {
-    padding: var(--space-xs, 0.25rem) var(--space-sm, 0.5rem);
-    font-size: var(--font-size-sm, 0.875rem);
-    background: var(--color-surface-secondary, #f5f5f5);
-    color: var(--color-text, #1a1a1a);
-    border: 1px solid var(--color-border, #e5e5e5);
+    padding: var(--space-1, 0.25rem) var(--space-2, 0.5rem);
+    font-size: var(--text-sm, 0.875rem);
+    background: var(--color-surface-alt, #1c1c1a);
+    color: var(--color-text, #d8d5cf);
+    border: 1px solid var(--color-border, #272725);
   }
 </style>

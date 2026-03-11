@@ -59,6 +59,27 @@ export async function listContent(
   if (filters.authorId) {
     conditions.push(eq(contentItems.authorId, filters.authorId));
   }
+  if (filters.featured) {
+    conditions.push(eq(contentItems.isFeatured, true));
+  }
+  if (filters.difficulty) {
+    conditions.push(eq(contentItems.difficulty, filters.difficulty as 'beginner' | 'intermediate' | 'advanced'));
+  }
+  if (filters.search) {
+    const searchPattern = `%${filters.search}%`;
+    conditions.push(
+      sql`(${contentItems.title} ILIKE ${searchPattern} OR ${contentItems.description} ILIKE ${searchPattern})`
+    );
+  }
+  if (filters.tag) {
+    conditions.push(
+      sql`${contentItems.id} IN (
+        SELECT ${contentTags.contentId} FROM ${contentTags}
+        INNER JOIN ${tags} ON ${tags.id} = ${contentTags.tagId}
+        WHERE ${tags.slug} = ${filters.tag}
+      )`
+    );
+  }
 
   const where = conditions.length > 0 ? and(...conditions) : undefined;
   const limit = Math.min(filters.limit ?? 20, 100);
@@ -78,7 +99,13 @@ export async function listContent(
       .from(contentItems)
       .innerJoin(users, eq(contentItems.authorId, users.id))
       .where(where)
-      .orderBy(desc(contentItems.publishedAt), desc(contentItems.createdAt))
+      .orderBy(
+        ...(filters.sort === 'popular'
+          ? [desc(contentItems.viewCount)]
+          : filters.sort === 'featured'
+            ? [desc(contentItems.isFeatured), desc(contentItems.createdAt)]
+            : [desc(contentItems.publishedAt), desc(contentItems.createdAt)])
+      )
       .limit(limit)
       .offset(offset),
     db

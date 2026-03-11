@@ -140,43 +140,43 @@
 
 <style>
   .comments {
-    margin-top: var(--space-lg, 2rem);
+    margin-top: var(--space-6, 2rem);
   }
 
   .comments h2 {
-    font-size: var(--font-size-lg, 1.25rem);
-    margin-bottom: var(--space-md, 1rem);
-    color: var(--color-text, #1a1a1a);
+    font-size: var(--text-lg, 1.25rem);
+    margin-bottom: var(--space-4, 1rem);
+    color: var(--color-text, #d8d5cf);
   }
 
   .comment-form {
-    margin-bottom: var(--space-lg, 2rem);
+    margin-bottom: var(--space-6, 2rem);
   }
 
   .comment-form textarea {
     width: 100%;
-    padding: var(--space-sm, 0.5rem);
-    border: 1px solid var(--color-border, #e5e5e5);
+    padding: var(--space-2, 0.5rem);
+    border: 1px solid var(--color-border, #272725);
     border-radius: var(--radius-sm, 4px);
-    font-size: var(--font-size-md, 1rem);
-    background: var(--color-surface, #ffffff);
-    color: var(--color-text, #1a1a1a);
+    font-size: var(--text-md, 1rem);
+    background: var(--color-surface, #0c0c0b);
+    color: var(--color-text, #d8d5cf);
     resize: vertical;
     box-sizing: border-box;
-    margin-bottom: var(--space-sm, 0.5rem);
+    margin-bottom: var(--space-2, 0.5rem);
   }
 
   .btn {
-    padding: var(--space-xs, 0.25rem) var(--space-md, 1rem);
+    padding: var(--space-1, 0.25rem) var(--space-4, 1rem);
     border: none;
     border-radius: var(--radius-md, 6px);
     cursor: pointer;
-    font-size: var(--font-size-sm, 0.875rem);
+    font-size: var(--text-sm, 0.875rem);
   }
 
   .btn-primary {
-    background: var(--color-primary, #2563eb);
-    color: var(--color-on-primary, #ffffff);
+    background: var(--color-primary, #5b9cf6);
+    color: var(--color-on-primary, #0c0c0b);
   }
 
   .btn-primary:disabled {
@@ -186,28 +186,28 @@
 
   .comments-loading,
   .comments-empty {
-    color: var(--color-text-secondary, #666);
-    font-size: var(--font-size-sm, 0.875rem);
+    color: var(--color-text-secondary, #888884);
+    font-size: var(--text-sm, 0.875rem);
   }
 
   .comments-list {
     display: flex;
     flex-direction: column;
-    gap: var(--space-md, 1rem);
+    gap: var(--space-4, 1rem);
   }
 
   .comment {
-    padding: var(--space-md, 1rem);
-    border: 1px solid var(--color-border, #e5e5e5);
+    padding: var(--space-4, 1rem);
+    border: 1px solid var(--color-border, #272725);
     border-radius: var(--radius-md, 6px);
-    background: var(--color-surface, #ffffff);
+    background: var(--color-surface, #0c0c0b);
   }
 
   .comment-header {
     display: flex;
     align-items: center;
-    gap: var(--space-sm, 0.5rem);
-    margin-bottom: var(--space-xs, 0.25rem);
+    gap: var(--space-2, 0.5rem);
+    margin-bottom: var(--space-1, 0.25rem);
   }
 
   .comment-avatar {
@@ -222,40 +222,40 @@
     width: 32px;
     height: 32px;
     border-radius: 50%;
-    background: var(--color-primary, #2563eb);
-    color: var(--color-on-primary, #ffffff);
+    background: var(--color-primary, #5b9cf6);
+    color: var(--color-on-primary, #0c0c0b);
     font-weight: var(--font-weight-bold, 700);
-    font-size: var(--font-size-sm, 0.875rem);
+    font-size: var(--text-sm, 0.875rem);
   }
 
   .comment-author {
     font-weight: var(--font-weight-medium, 500);
-    color: var(--color-text, #1a1a1a);
+    color: var(--color-text, #d8d5cf);
   }
 
   .comment-date {
-    font-size: var(--font-size-xs, 0.75rem);
-    color: var(--color-text-secondary, #666);
-    margin-left: var(--space-xs, 0.25rem);
+    font-size: var(--text-xs, 0.75rem);
+    color: var(--color-text-secondary, #888884);
+    margin-left: var(--space-1, 0.25rem);
   }
 
   .comment-content {
-    margin: var(--space-xs, 0.25rem) 0 0;
-    color: var(--color-text, #1a1a1a);
+    margin: var(--space-1, 0.25rem) 0 0;
+    color: var(--color-text, #d8d5cf);
     line-height: 1.5;
     white-space: pre-wrap;
   }
 
   .comment-replies {
-    margin-top: var(--space-sm, 0.5rem);
-    padding-left: var(--space-lg, 2rem);
+    margin-top: var(--space-2, 0.5rem);
+    padding-left: var(--space-6, 2rem);
     display: flex;
     flex-direction: column;
-    gap: var(--space-sm, 0.5rem);
+    gap: var(--space-2, 0.5rem);
   }
 
   .reply {
-    border-color: var(--color-border, #e5e5e5);
-    background: var(--color-surface-secondary, #f9f9f9);
+    border-color: var(--color-border, #272725);
+    background: var(--color-surface-alt, #141413);
   }
 </style>

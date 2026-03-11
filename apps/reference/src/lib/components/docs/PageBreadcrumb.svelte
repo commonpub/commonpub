@@ -62,6 +62,6 @@
 
   .page-breadcrumb-current {
     color: var(--text-primary, inherit);
-    font-weight: var(--font-medium, 500);
+    font-weight: var(--font-weight-medium, 500);
   }
 </style>

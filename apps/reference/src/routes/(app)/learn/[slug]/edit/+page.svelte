@@ -1,5 +1,6 @@
 <script lang="ts">
   import { enhance } from '$app/forms';
+  import { Button } from '@snaplify/ui';
   import PathEditor from '$lib/components/learning/PathEditor.svelte';
   import ModuleEditor from '$lib/components/learning/ModuleEditor.svelte';
   import type { PageData, ActionData } from './$types';
@@ -18,7 +19,7 @@
       <a href="/learn/{data.path.slug}" class="btn btn-secondary">View</a>
       {#if data.path.status !== 'published'}
         <form method="POST" action="?/publish" use:enhance class="inline-form">
-          <button type="submit" class="btn btn-primary">Publish</button>
+          <Button variant="primary" type="submit">Publish</Button>
         </form>
       {:else}
         <span class="status-badge status-published">Published</span>
@@ -51,17 +52,17 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: var(--space-lg, 2rem);
+    margin-bottom: var(--space-6, 2rem);
   }
 
   .edit-header h1 {
-    font-size: var(--font-size-2xl, 1.875rem);
-    color: var(--color-text, #1a1a1a);
+    font-size: var(--text-2xl, 1.875rem);
+    color: var(--color-text, #d8d5cf);
   }
 
   .header-actions {
     display: flex;
-    gap: var(--space-sm, 0.5rem);
+    gap: var(--space-2, 0.5rem);
     align-items: center;
   }
 
@@ -70,51 +71,46 @@
   }
 
   .form-error {
-    padding: var(--space-sm, 0.5rem);
-    margin-bottom: var(--space-md, 1rem);
+    padding: var(--space-2, 0.5rem);
+    margin-bottom: var(--space-4, 1rem);
     background: var(--color-error-bg, #fef2f2);
     color: var(--color-error, #dc2626);
     border-radius: var(--radius-sm, 4px);
   }
 
   .edit-section {
-    margin-bottom: var(--space-xl, 3rem);
-    padding: var(--space-lg, 2rem);
-    border: 1px solid var(--color-border, #e5e5e5);
+    margin-bottom: var(--space-12, 3rem);
+    padding: var(--space-6, 2rem);
+    border: 1px solid var(--color-border, #272725);
     border-radius: var(--radius-md, 6px);
-    background: var(--color-surface, #ffffff);
+    background: var(--color-surface, #0c0c0b);
   }
 
   .edit-section h2 {
-    font-size: var(--font-size-lg, 1.25rem);
-    margin-bottom: var(--space-md, 1rem);
-    color: var(--color-text, #1a1a1a);
+    font-size: var(--text-lg, 1.25rem);
+    margin-bottom: var(--space-4, 1rem);
+    color: var(--color-text, #d8d5cf);
   }
 
   .btn {
-    padding: var(--space-sm, 0.5rem) var(--space-md, 1rem);
+    padding: var(--space-2, 0.5rem) var(--space-4, 1rem);
     border: none;
     border-radius: var(--radius-md, 6px);
-    font-size: var(--font-size-sm, 0.875rem);
+    font-size: var(--text-sm, 0.875rem);
     cursor: pointer;
     text-decoration: none;
   }
 
-  .btn-primary {
-    background: var(--color-primary, #2563eb);
-    color: var(--color-on-primary, #ffffff);
-  }
-
   .btn-secondary {
-    background: var(--color-surface-secondary, #f5f5f5);
-    color: var(--color-text, #1a1a1a);
-    border: 1px solid var(--color-border, #e5e5e5);
+    background: var(--color-surface-alt, #1c1c1a);
+    color: var(--color-text, #d8d5cf);
+    border: 1px solid var(--color-border, #272725);
   }
 
   .status-badge {
-    padding: var(--space-xs, 0.25rem) var(--space-sm, 0.5rem);
+    padding: var(--space-1, 0.25rem) var(--space-2, 0.5rem);
     border-radius: var(--radius-sm, 4px);
-    font-size: var(--font-size-xs, 0.75rem);
+    font-size: var(--text-xs, 0.75rem);
     font-weight: var(--font-weight-medium, 500);
   }
 

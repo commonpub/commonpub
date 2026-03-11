@@ -12,84 +12,89 @@
   <meta name="description" content="Learning paths from the maker community." />
 </svelte:head>
 
-<section class="learn-page">
-  <h1 class="page-title">Learning Paths</h1>
-
-  <nav class="filters" aria-label="Difficulty filter">
-    {#each difficulties as d}
-      <a
-        href="/learn{d === 'all' ? '' : `?difficulty=${d}`}"
-        class="filter-link"
-        class:filter-active={d === 'all' ? !data.difficulty : data.difficulty === d}
-        aria-current={d === 'all'
-          ? !data.difficulty
-            ? 'page'
-            : undefined
-          : data.difficulty === d
-            ? 'page'
-            : undefined}
-      >
-        {d.charAt(0).toUpperCase() + d.slice(1)}
-      </a>
-    {/each}
-  </nav>
+<div class="listing-page">
+  <div class="listing-header">
+    <h1 class="listing-title">Learning Paths</h1>
+    <nav class="listing-sort" aria-label="Difficulty filter">
+      {#each difficulties as d}
+        <a
+          href="/learn{d === 'all' ? '' : `?difficulty=${d}`}"
+          class="sort-link"
+          class:sort-link-active={d === 'all' ? !data.difficulty : data.difficulty === d}
+          aria-current={d === 'all'
+            ? !data.difficulty
+              ? 'page'
+              : undefined
+            : data.difficulty === d
+              ? 'page'
+              : undefined}
+        >
+          {d.charAt(0).toUpperCase() + d.slice(1)}
+        </a>
+      {/each}
+    </nav>
+  </div>
 
   {#if data.items.length === 0}
     <div class="empty-state">
       <p>No learning paths published yet.</p>
     </div>
   {:else}
-    <div class="path-grid">
+    <div class="content-grid">
       {#each data.items as path (path.id)}
         <PathCard {path} />
       {/each}
     </div>
   {/if}
-</section>
+</div>
 
 <style>
-  .learn-page {
-    max-width: var(--layout-max-width, 1200px);
-    margin: 0 auto;
-    padding: var(--space-md, 1rem);
-  }
-
-  .page-title {
-    font-size: var(--font-size-2xl, 1.875rem);
-    margin-bottom: var(--space-md, 1rem);
-    color: var(--color-text, #1a1a1a);
-  }
-
-  .filters {
+  .listing-page {
     display: flex;
-    gap: var(--space-xs, 0.25rem);
-    margin-bottom: var(--space-lg, 2rem);
-    border-bottom: 1px solid var(--color-border, #e5e5e5);
+    flex-direction: column;
+    gap: var(--space-6, 1.5rem);
   }
 
-  .filter-link {
-    padding: var(--space-sm, 0.5rem) var(--space-md, 1rem);
+  .listing-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+
+  .listing-title {
+    font-size: var(--text-2xl, 1.5rem);
+    font-weight: var(--font-weight-bold, 700);
+    color: var(--color-text, #d8d5cf);
+    margin: 0;
+  }
+
+  .listing-sort {
+    display: flex;
+    gap: var(--space-1, 0.25rem);
+  }
+
+  .sort-link {
+    padding: var(--space-1, 0.25rem) var(--space-2, 0.5rem);
+    font-size: var(--text-xs, 0.6875rem);
+    font-family: var(--font-mono, monospace);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
     text-decoration: none;
-    color: var(--color-text-secondary, #666);
-    border-bottom: 2px solid transparent;
-    font-size: var(--font-size-sm, 0.875rem);
+    color: var(--color-text-muted, #444440);
   }
 
-  .filter-active {
-    color: var(--color-primary, #2563eb);
-    border-bottom-color: var(--color-primary, #2563eb);
-    font-weight: var(--font-weight-medium, 500);
-  }
+  .sort-link:hover { color: var(--color-text-secondary, #888884); }
+  .sort-link-active { color: var(--color-primary, #5b9cf6); }
 
-  .path-grid {
+  .content-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: var(--space-md, 1rem);
+    gap: var(--space-4, 1rem);
   }
 
   .empty-state {
     text-align: center;
-    padding: var(--space-xl, 3rem);
-    color: var(--color-text-secondary, #666);
+    padding: var(--space-12, 3rem);
+    color: var(--color-text-secondary, #888884);
   }
 </style>

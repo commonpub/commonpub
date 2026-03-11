@@ -5,6 +5,8 @@
 
   let visible = $state(false);
   let position = $state({ top: 0, left: 0 });
+  let linkInputVisible = $state(false);
+  let linkUrl = $state('');
 
   $effect(() => {
     if (!editor) return;
@@ -38,6 +40,39 @@
 
   function toggleHeading(level: 1 | 2 | 3) {
     editor?.chain().focus().toggleHeading({ level }).run();
+  }
+
+  function toggleStrike() {
+    editor?.chain().focus().toggleMark('strike').run();
+  }
+
+  // TipTap extension commands aren't typed on base ChainedCommands
+  function cmd(): Record<string, (...args: unknown[]) => { run: () => void }> {
+    return editor?.chain().focus() as unknown as Record<string, (...args: unknown[]) => { run: () => void }>;
+  }
+
+  function toggleLink() {
+    if (editor?.isActive('link')) {
+      cmd().unsetLink().run();
+    } else {
+      linkInputVisible = true;
+    }
+  }
+
+  function confirmLink() {
+    if (linkUrl) {
+      cmd().setLink({ href: linkUrl }).run();
+    }
+    linkInputVisible = false;
+    linkUrl = '';
+  }
+
+  function toggleBulletList() {
+    cmd().toggleBulletList().run();
+  }
+
+  function toggleOrderedList() {
+    cmd().toggleOrderedList().run();
   }
 </script>
 
@@ -75,6 +110,24 @@
     >
       <code>&lt;/&gt;</code>
     </button>
+    <button
+      class="toolbar-btn"
+      class:active={editor.isActive('strike')}
+      onclick={toggleStrike}
+      aria-label="Strikethrough"
+      aria-pressed={editor.isActive('strike')}
+    >
+      <s>S</s>
+    </button>
+    <button
+      class="toolbar-btn"
+      class:active={editor.isActive('link')}
+      onclick={toggleLink}
+      aria-label="Link"
+      aria-pressed={editor.isActive('link')}
+    >
+      <span style="font-size: 0.75rem;">Link</span>
+    </button>
     <span class="toolbar-separator" aria-hidden="true"></span>
     <button
       class="toolbar-btn"
@@ -94,6 +147,39 @@
     >
       H3
     </button>
+    <span class="toolbar-separator" aria-hidden="true"></span>
+    <button
+      class="toolbar-btn"
+      class:active={editor.isActive('bulletList')}
+      onclick={toggleBulletList}
+      aria-label="Bullet list"
+      aria-pressed={editor.isActive('bulletList')}
+    >
+      UL
+    </button>
+    <button
+      class="toolbar-btn"
+      class:active={editor.isActive('orderedList')}
+      onclick={toggleOrderedList}
+      aria-label="Ordered list"
+      aria-pressed={editor.isActive('orderedList')}
+    >
+      OL
+    </button>
+    {#if linkInputVisible}
+      <div class="link-input-wrapper">
+        <input
+          class="link-input"
+          type="url"
+          placeholder="Enter URL..."
+          bind:value={linkUrl}
+          onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); confirmLink(); } else if (e.key === 'Escape') { linkInputVisible = false; linkUrl = ''; } }}
+        />
+        <button class="toolbar-btn" onclick={confirmLink} aria-label="Confirm link">
+          OK
+        </button>
+      </div>
+    {/if}
   </div>
 {/if}
 
@@ -103,9 +189,9 @@
     display: flex;
     align-items: center;
     gap: 2px;
-    padding: var(--space-xs, 0.25rem);
-    background: var(--color-surface, #ffffff);
-    border: 1px solid var(--color-border, #e5e5e5);
+    padding: var(--space-1, 0.25rem);
+    background: var(--color-surface, #0c0c0b);
+    border: 1px solid var(--color-border, #272725);
     border-radius: var(--radius-md, 6px);
     box-shadow: var(--shadow-md, 0 4px 12px rgba(0, 0, 0, 0.1));
     transform: translateX(-50%);
@@ -121,13 +207,13 @@
     border: none;
     border-radius: var(--radius-sm, 4px);
     background: transparent;
-    color: var(--color-text, #1a1a1a);
+    color: var(--color-text, #d8d5cf);
     cursor: pointer;
-    font-size: var(--font-size-sm, 0.875rem);
+    font-size: var(--text-sm, 0.875rem);
   }
 
   .toolbar-btn:hover {
-    background: var(--color-surface-hover, #f5f5f5);
+    background: var(--color-surface-hover, #1c1c1a);
   }
 
   .toolbar-btn.active {
@@ -138,7 +224,25 @@
   .toolbar-separator {
     width: 1px;
     height: 20px;
-    background: var(--color-border, #e5e5e5);
+    background: var(--color-border, #272725);
     margin: 0 2px;
+  }
+
+  .link-input-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0 var(--space-1, 0.25rem);
+  }
+
+  .link-input {
+    width: 160px;
+    height: 28px;
+    padding: 0 var(--space-1, 0.25rem);
+    border: 1px solid var(--color-border, #272725);
+    border-radius: var(--radius-sm, 4px);
+    background: var(--color-surface, #0c0c0b);
+    color: var(--color-text, #d8d5cf);
+    font-size: var(--text-xs, 0.75rem);
   }
 </style>

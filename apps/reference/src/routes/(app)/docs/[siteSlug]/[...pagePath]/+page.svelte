@@ -49,7 +49,7 @@
 
   .docs-main {
     flex: 1;
-    padding: var(--space-md, 1rem) var(--space-lg, 2rem);
+    padding: var(--space-4, 1rem) var(--space-6, 2rem);
     min-width: 0;
   }
 </style>

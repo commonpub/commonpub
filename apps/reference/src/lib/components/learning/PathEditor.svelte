@@ -51,43 +51,43 @@
 
 <style>
   .form-field {
-    margin-bottom: var(--space-md, 1rem);
+    margin-bottom: var(--space-4, 1rem);
   }
 
   .form-field label {
     display: block;
-    margin-bottom: var(--space-xs, 0.25rem);
-    font-size: var(--font-size-sm, 0.875rem);
+    margin-bottom: var(--space-1, 0.25rem);
+    font-size: var(--text-sm, 0.875rem);
     font-weight: var(--font-weight-medium, 500);
-    color: var(--color-text, #1a1a1a);
+    color: var(--color-text, #d8d5cf);
   }
 
   .form-field input,
   .form-field textarea,
   .form-field select {
     width: 100%;
-    padding: var(--space-sm, 0.5rem);
-    border: 1px solid var(--color-border, #e5e5e5);
+    padding: var(--space-2, 0.5rem);
+    border: 1px solid var(--color-border, #272725);
     border-radius: var(--radius-sm, 4px);
-    font-size: var(--font-size-md, 1rem);
-    background: var(--color-surface, #ffffff);
-    color: var(--color-text, #1a1a1a);
+    font-size: var(--text-md, 1rem);
+    background: var(--color-surface, #0c0c0b);
+    color: var(--color-text, #d8d5cf);
     box-sizing: border-box;
   }
 
   .form-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: var(--space-md, 1rem);
+    gap: var(--space-4, 1rem);
   }
 
   .btn-save {
-    padding: var(--space-sm, 0.5rem) var(--space-md, 1rem);
+    padding: var(--space-2, 0.5rem) var(--space-4, 1rem);
     background: var(--color-primary, #2563eb);
     color: var(--color-on-primary, #ffffff);
     border: none;
     border-radius: var(--radius-md, 6px);
-    font-size: var(--font-size-sm, 0.875rem);
+    font-size: var(--text-sm, 0.875rem);
     cursor: pointer;
   }
 </style>

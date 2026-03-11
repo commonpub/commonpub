@@ -36,17 +36,17 @@
 <style>
   .path-card {
     display: block;
-    border: 1px solid var(--color-border, #e5e5e5);
+    border: 1px solid var(--color-border, #272725);
     border-radius: var(--radius-md, 6px);
     overflow: hidden;
     text-decoration: none;
     color: inherit;
     transition: box-shadow 0.15s;
-    background: var(--color-surface, #ffffff);
+    background: var(--color-surface, #0c0c0b);
   }
 
   .path-card:hover {
-    box-shadow: 0 2px 8px var(--color-shadow, rgba(0, 0, 0, 0.08));
+    box-shadow: 0 2px 8px var(--color-shadow, rgba(0, 0, 0, 0.4));
   }
 
   .card-cover {
@@ -58,24 +58,24 @@
   .card-cover-placeholder {
     width: 100%;
     aspect-ratio: 16 / 9;
-    background: var(--color-surface-secondary, #f5f5f5);
+    background: var(--color-surface-alt, #141413);
   }
 
   .card-body {
-    padding: var(--space-md, 1rem);
+    padding: var(--space-4, 1rem);
   }
 
   .card-title {
-    font-size: var(--font-size-md, 1rem);
+    font-size: var(--text-md, 1rem);
     font-weight: var(--font-weight-semibold, 600);
-    color: var(--color-text, #1a1a1a);
-    margin: 0 0 var(--space-xs, 0.25rem);
+    color: var(--color-text, #d8d5cf);
+    margin: 0 0 var(--space-1, 0.25rem);
   }
 
   .card-description {
-    font-size: var(--font-size-sm, 0.875rem);
-    color: var(--color-text-secondary, #666);
-    margin: 0 0 var(--space-sm, 0.5rem);
+    font-size: var(--text-sm, 0.875rem);
+    color: var(--color-text-secondary, #888884);
+    margin: 0 0 var(--space-2, 0.5rem);
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
@@ -84,37 +84,37 @@
 
   .card-meta {
     display: flex;
-    gap: var(--space-xs, 0.25rem);
-    font-size: var(--font-size-xs, 0.75rem);
-    margin-bottom: var(--space-sm, 0.5rem);
+    gap: var(--space-1, 0.25rem);
+    font-size: var(--text-xs, 0.75rem);
+    margin-bottom: var(--space-2, 0.5rem);
   }
 
   .badge {
-    padding: 0 var(--space-xs, 0.25rem);
+    padding: 0 var(--space-1, 0.25rem);
     border-radius: var(--radius-sm, 4px);
     font-weight: var(--font-weight-medium, 500);
     text-transform: capitalize;
   }
 
   .difficulty-beginner {
-    color: var(--color-success, #22c55e);
-    background: var(--color-success-bg, #f0fdf4);
+    color: var(--color-success, #4ade80);
+    background: var(--color-success-bg, rgba(74, 222, 128, 0.1));
   }
   .difficulty-intermediate {
-    color: var(--color-warning, #f59e0b);
-    background: var(--color-warning-bg, #fffbeb);
+    color: var(--color-warning, #fbbf24);
+    background: var(--color-warning-bg, rgba(251, 191, 36, 0.1));
   }
   .difficulty-advanced {
-    color: var(--color-error, #dc2626);
-    background: var(--color-error-bg, #fef2f2);
+    color: var(--color-error, #f87171);
+    background: var(--color-error-bg, rgba(248, 113, 113, 0.1));
   }
 
   .meta-text {
-    color: var(--color-text-secondary, #666);
+    color: var(--color-text-secondary, #888884);
   }
 
   .card-author {
-    font-size: var(--font-size-xs, 0.75rem);
-    color: var(--color-text-secondary, #666);
+    font-size: var(--text-xs, 0.75rem);
+    color: var(--color-text-secondary, #888884);
   }
 </style>

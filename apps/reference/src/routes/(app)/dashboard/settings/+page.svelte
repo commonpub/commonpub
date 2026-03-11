@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { Button } from '@snaplify/ui';
   import ThemePicker from '$lib/components/admin/ThemePicker.svelte';
   import type { PageData } from './$types';
 
@@ -32,9 +33,9 @@
 
   <form method="post" action="?/setTheme" class="settings-form">
     <input type="hidden" name="themeId" value={selectedTheme} />
-    <button type="submit" class="settings-btn" aria-label="Apply selected theme">
+    <Button variant="primary" size="md" type="submit">
       Apply Theme
-    </button>
+    </Button>
   </form>
 </section>
 
@@ -43,7 +44,7 @@
     font-family: var(--font-heading, sans-serif);
     font-size: var(--text-2xl, 1.5rem);
     font-weight: var(--font-weight-bold, 700);
-    color: var(--color-text, #1a1a1a);
+    color: var(--color-text, #d8d5cf);
     margin: 0 0 var(--space-6, 1.5rem);
   }
 
@@ -51,7 +52,7 @@
     font-family: var(--font-heading, sans-serif);
     font-size: var(--text-lg, 1.125rem);
     font-weight: var(--font-weight-semibold, 600);
-    color: var(--color-text, #1a1a1a);
+    color: var(--color-text, #d8d5cf);
     margin: 0 0 var(--space-2, 0.5rem);
   }
 
@@ -73,20 +74,4 @@
     margin-top: var(--space-4, 1rem);
   }
 
-  .settings-btn {
-    font-family: var(--font-body, sans-serif);
-    font-size: var(--text-sm, 0.75rem);
-    font-weight: var(--font-weight-medium, 500);
-    padding: var(--space-2, 0.5rem) var(--space-4, 1rem);
-    background: var(--color-primary, #3b82f6);
-    color: var(--color-primary-text, #fff);
-    border: none;
-    border-radius: var(--radius-md, 0.25rem);
-    cursor: pointer;
-  }
-
-  .settings-btn:focus {
-    outline: none;
-    box-shadow: var(--focus-ring);
-  }
 </style>

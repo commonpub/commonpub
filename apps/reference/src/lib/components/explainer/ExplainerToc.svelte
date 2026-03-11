@@ -45,16 +45,16 @@
 
 <style>
   .toc {
-    padding: var(--space-lg, 2rem);
+    padding: var(--space-6, 2rem);
   }
 
   .toc__title {
-    font-size: var(--font-size-sm, 0.875rem);
+    font-size: var(--text-sm, 0.875rem);
     font-weight: var(--font-weight-semibold, 600);
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: var(--color-text-secondary, #666);
-    margin-bottom: var(--space-md, 1rem);
+    color: var(--color-text-secondary, #888884);
+    margin-bottom: var(--space-4, 1rem);
   }
 
   .toc__list {
@@ -64,23 +64,23 @@
   }
 
   .toc__item {
-    margin-bottom: var(--space-xs, 0.25rem);
+    margin-bottom: var(--space-1, 0.25rem);
   }
 
   .toc__link {
     display: flex;
     align-items: center;
-    gap: var(--space-sm, 0.5rem);
-    padding: var(--space-xs, 0.25rem) var(--space-sm, 0.5rem);
+    gap: var(--space-2, 0.5rem);
+    padding: var(--space-1, 0.25rem) var(--space-2, 0.5rem);
     border-radius: var(--radius-sm, 4px);
-    color: var(--color-text, #1a1a1a);
+    color: var(--color-text, #d8d5cf);
     text-decoration: none;
-    font-size: var(--font-size-sm, 0.875rem);
+    font-size: var(--text-sm, 0.875rem);
     transition: background 0.15s;
   }
 
   .toc__link:hover {
-    background: var(--color-surface-secondary, #f5f5f5);
+    background: var(--color-surface-alt, #1c1c1a);
   }
 
   .toc__link--active {
@@ -99,10 +99,10 @@
 
   .toc__check {
     color: var(--color-success, #22c55e);
-    font-size: var(--font-size-sm, 0.875rem);
+    font-size: var(--text-sm, 0.875rem);
   }
 
   .toc__lock {
-    font-size: var(--font-size-xs, 0.75rem);
+    font-size: var(--text-xs, 0.75rem);
   }
 </style>

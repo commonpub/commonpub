@@ -35,18 +35,18 @@
   .snaplify-menu-item {
     padding: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
     font-family: var(--font-body, sans-serif);
-    font-size: var(--font-size-base, 1rem);
+    font-size: var(--text-base);
     color: var(--color-text, #1a1a1a);
     cursor: pointer;
     outline: none;
   }
 
   .snaplify-menu-item:focus-visible {
-    background: var(--color-surface-elevated, #f8f9fa);
+    background: var(--color-surface-raised);
   }
 
   .snaplify-menu-item:hover {
-    background: var(--color-surface-elevated, #f8f9fa);
+    background: var(--color-surface-raised);
   }
 
   .snaplify-menu-item[aria-disabled='true'] {

@@ -90,13 +90,13 @@
   .accordion {
     display: flex;
     flex-direction: column;
-    border: 1px solid var(--color-border, #e5e5e5);
+    border: 1px solid var(--color-border, #272725);
     border-radius: var(--radius-md, 6px);
     overflow: hidden;
   }
 
   .module {
-    border-bottom: 1px solid var(--color-border, #e5e5e5);
+    border-bottom: 1px solid var(--color-border, #272725);
   }
 
   .module:last-child {
@@ -106,26 +106,26 @@
   .module-header {
     display: flex;
     align-items: center;
-    gap: var(--space-sm, 0.5rem);
+    gap: var(--space-2, 0.5rem);
     width: 100%;
-    padding: var(--space-md, 1rem);
-    background: var(--color-surface, #ffffff);
+    padding: var(--space-4, 1rem);
+    background: var(--color-surface, #0c0c0b);
     border: none;
     cursor: pointer;
-    font-size: var(--font-size-md, 1rem);
+    font-size: var(--text-md, 1rem);
     text-align: left;
-    color: var(--color-text, #1a1a1a);
+    color: var(--color-text, #d8d5cf);
   }
 
   .module-header:hover {
-    background: var(--color-surface-hover, #f5f5f5);
+    background: var(--color-surface-hover, #1c1c1a);
   }
 
   .module-toggle {
     width: 20px;
     text-align: center;
     font-weight: var(--font-weight-bold, 700);
-    color: var(--color-text-secondary, #666);
+    color: var(--color-text-secondary, #888884);
   }
 
   .module-title {
@@ -134,30 +134,30 @@
   }
 
   .module-count {
-    font-size: var(--font-size-sm, 0.875rem);
-    color: var(--color-text-secondary, #666);
+    font-size: var(--text-sm, 0.875rem);
+    color: var(--color-text-secondary, #888884);
   }
 
   .lesson-list {
     list-style: none;
     margin: 0;
     padding: 0;
-    background: var(--color-surface-secondary, #f5f5f5);
+    background: var(--color-surface-alt, #1c1c1a);
   }
 
   .lesson-item {
-    border-top: 1px solid var(--color-border, #e5e5e5);
+    border-top: 1px solid var(--color-border, #272725);
   }
 
   .lesson-link {
     display: flex;
     align-items: center;
-    gap: var(--space-sm, 0.5rem);
-    padding: var(--space-sm, 0.5rem) var(--space-md, 1rem);
-    padding-left: calc(var(--space-md, 1rem) + 28px);
+    gap: var(--space-2, 0.5rem);
+    padding: var(--space-2, 0.5rem) var(--space-4, 1rem);
+    padding-left: calc(var(--space-4, 1rem) + 28px);
     text-decoration: none;
-    color: var(--color-text, #1a1a1a);
-    font-size: var(--font-size-sm, 0.875rem);
+    color: var(--color-text, #d8d5cf);
+    font-size: var(--text-sm, 0.875rem);
   }
 
   .lesson-link:hover {
@@ -173,7 +173,7 @@
     border-radius: var(--radius-sm, 4px);
     background: var(--color-primary, #2563eb);
     color: var(--color-on-primary, #ffffff);
-    font-size: var(--font-size-xs, 0.75rem);
+    font-size: var(--text-xs, 0.75rem);
     font-weight: var(--font-weight-bold, 700);
     flex-shrink: 0;
   }
@@ -183,21 +183,21 @@
   }
 
   .lesson-duration {
-    font-size: var(--font-size-xs, 0.75rem);
-    color: var(--color-text-secondary, #666);
+    font-size: var(--text-xs, 0.75rem);
+    color: var(--color-text-secondary, #888884);
   }
 
   .lesson-empty {
-    padding: var(--space-sm, 0.5rem) var(--space-md, 1rem);
-    padding-left: calc(var(--space-md, 1rem) + 28px);
-    color: var(--color-text-secondary, #666);
-    font-size: var(--font-size-sm, 0.875rem);
+    padding: var(--space-2, 0.5rem) var(--space-4, 1rem);
+    padding-left: calc(var(--space-4, 1rem) + 28px);
+    color: var(--color-text-secondary, #888884);
+    font-size: var(--text-sm, 0.875rem);
     font-style: italic;
   }
 
   .empty {
-    padding: var(--space-md, 1rem);
+    padding: var(--space-4, 1rem);
     text-align: center;
-    color: var(--color-text-secondary, #666);
+    color: var(--color-text-secondary, #888884);
   }
 </style>

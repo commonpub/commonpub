@@ -38,14 +38,14 @@
     border: 2px solid var(--color-primary, #2563eb);
     border-radius: var(--radius-md, 6px);
     overflow: hidden;
-    background: var(--color-surface, #ffffff);
+    background: var(--color-surface, #0c0c0b);
   }
 
   .certificate-header {
     background: var(--color-primary, #2563eb);
     color: var(--color-on-primary, #ffffff);
-    padding: var(--space-sm, 0.5rem) var(--space-md, 1rem);
-    font-size: var(--font-size-sm, 0.875rem);
+    padding: var(--space-2, 0.5rem) var(--space-4, 1rem);
+    font-size: var(--text-sm, 0.875rem);
     font-weight: var(--font-weight-semibold, 600);
     text-transform: uppercase;
     letter-spacing: 0.05em;
@@ -53,26 +53,26 @@
   }
 
   .certificate-body {
-    padding: var(--space-lg, 2rem) var(--space-md, 1rem);
+    padding: var(--space-6, 2rem) var(--space-4, 1rem);
     text-align: center;
   }
 
   .certificate-path {
-    font-size: var(--font-size-lg, 1.25rem);
+    font-size: var(--text-lg, 1.25rem);
     font-weight: var(--font-weight-bold, 700);
-    color: var(--color-text, #1a1a1a);
-    margin: 0 0 var(--space-sm, 0.5rem);
+    color: var(--color-text, #d8d5cf);
+    margin: 0 0 var(--space-2, 0.5rem);
   }
 
   .certificate-earner {
-    font-size: var(--font-size-md, 1rem);
-    color: var(--color-text-secondary, #666);
-    margin: 0 0 var(--space-xs, 0.25rem);
+    font-size: var(--text-md, 1rem);
+    color: var(--color-text-secondary, #888884);
+    margin: 0 0 var(--space-1, 0.25rem);
   }
 
   .certificate-date {
-    font-size: var(--font-size-sm, 0.875rem);
-    color: var(--color-text-secondary, #666);
+    font-size: var(--text-sm, 0.875rem);
+    color: var(--color-text-secondary, #888884);
     margin: 0;
   }
 
@@ -80,13 +80,13 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: var(--space-sm, 0.5rem) var(--space-md, 1rem);
-    border-top: 1px solid var(--color-border, #e5e5e5);
-    font-size: var(--font-size-xs, 0.75rem);
+    padding: var(--space-2, 0.5rem) var(--space-4, 1rem);
+    border-top: 1px solid var(--color-border, #272725);
+    font-size: var(--text-xs, 0.75rem);
   }
 
   .certificate-code {
-    color: var(--color-text-secondary, #666);
+    color: var(--color-text-secondary, #888884);
     font-family: monospace;
   }
 

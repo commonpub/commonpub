@@ -12,6 +12,8 @@
   --color-surface-alt: #f8f9fa;
   --color-surface-raised: #ffffff;
   --color-surface-overlay: rgba(0, 0, 0, 0.5);
+  --color-surface-hover: #f3f4f6;
+  --color-bg-subtle: #f8f9fa;
 
   /* Text */
   --color-text: #1a1a1a;
@@ -23,17 +25,25 @@
   --color-primary: #3b82f6;
   --color-primary-hover: #2563eb;
   --color-primary-text: #ffffff;
+  --color-on-primary: #ffffff;
 
   /* Accent */
   --color-accent: #8b5cf6;
   --color-accent-hover: #7c3aed;
   --color-accent-text: #ffffff;
+  --color-on-accent: #ffffff;
 
   /* Semantic */
   --color-success: #22c55e;
   --color-warning: #f59e0b;
   --color-error: #ef4444;
   --color-info: #3b82f6;
+
+  /* Semantic Backgrounds */
+  --color-success-bg: rgba(34, 197, 94, 0.1);
+  --color-warning-bg: rgba(245, 158, 11, 0.1);
+  --color-error-bg: rgba(239, 68, 68, 0.1);
+  --color-info-bg: rgba(59, 130, 246, 0.1);
 
   /* Borders */
   --color-border: #e5e7eb;

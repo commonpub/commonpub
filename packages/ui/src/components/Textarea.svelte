@@ -3,8 +3,10 @@
     id: string;
     label: string;
     value?: string;
+    name?: string;
     placeholder?: string;
     rows?: number;
+    maxlength?: number;
     error?: string;
     disabled?: boolean;
     required?: boolean;
@@ -16,8 +18,10 @@
     id,
     label,
     value = $bindable(''),
+    name,
     placeholder = '',
     rows = 4,
+    maxlength,
     error = '',
     disabled = false,
     required = false,
@@ -33,8 +37,10 @@
   <textarea
     class="snaplify-textarea"
     {id}
+    name={name ?? undefined}
     {placeholder}
     {rows}
+    maxlength={maxlength ?? undefined}
     {disabled}
     {required}
     bind:value
@@ -56,14 +62,14 @@
 
   .snaplify-textarea-label {
     font-family: var(--font-body, sans-serif);
-    font-size: var(--font-size-sm, 0.875rem);
+    font-size: var(--text-sm);
     font-weight: var(--font-weight-medium, 500);
     color: var(--color-text, #1a1a1a);
   }
 
   .snaplify-textarea {
     font-family: var(--font-body, sans-serif);
-    font-size: var(--font-size-base, 1rem);
+    font-size: var(--text-base);
     padding: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
     border: 1px solid var(--color-border, #e2e8f0);
     border-radius: var(--radius-md, 0.375rem);
@@ -89,7 +95,7 @@
 
   .snaplify-textarea-error {
     font-family: var(--font-body, sans-serif);
-    font-size: var(--font-size-sm, 0.875rem);
+    font-size: var(--text-sm);
     color: var(--color-error, #ef4444);
     margin: 0;
   }

@@ -92,84 +92,84 @@
   .invite-section {
     display: flex;
     flex-direction: column;
-    gap: var(--space-md, 1rem);
+    gap: var(--space-4, 1rem);
   }
 
   .invite-form {
-    margin-bottom: var(--space-sm, 0.5rem);
+    margin-bottom: var(--space-2, 0.5rem);
   }
 
   .form-row {
     display: flex;
-    gap: var(--space-sm, 0.5rem);
+    gap: var(--space-2, 0.5rem);
     align-items: flex-end;
   }
 
   .form-field {
     display: flex;
     flex-direction: column;
-    gap: var(--space-xs, 0.25rem);
+    gap: var(--space-1, 0.25rem);
     flex: 1;
   }
 
   .form-field label {
-    font-size: var(--font-size-sm, 0.875rem);
+    font-size: var(--text-sm, 0.875rem);
     font-weight: var(--font-weight-medium, 500);
-    color: var(--color-text, #1a1a1a);
+    color: var(--color-text, #d8d5cf);
   }
 
   .form-field input {
-    padding: var(--space-sm, 0.5rem);
-    border: 1px solid var(--color-border, #e5e5e5);
+    padding: var(--space-2, 0.5rem);
+    border: 1px solid var(--color-border, #272725);
     border-radius: var(--radius-sm, 4px);
-    font-size: var(--font-size-sm, 0.875rem);
-    background: var(--color-surface, #ffffff);
-    color: var(--color-text, #1a1a1a);
+    font-size: var(--text-sm, 0.875rem);
+    background: var(--color-surface, #0c0c0b);
+    color: var(--color-text, #d8d5cf);
   }
 
   .invites-list {
     display: flex;
     flex-direction: column;
-    gap: var(--space-sm, 0.5rem);
+    gap: var(--space-2, 0.5rem);
   }
 
   .invite-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: var(--space-sm, 0.5rem);
-    border: 1px solid var(--color-border, #e5e5e5);
+    padding: var(--space-2, 0.5rem);
+    border: 1px solid var(--color-border, #272725);
     border-radius: var(--radius-sm, 4px);
-    background: var(--color-surface, #ffffff);
+    background: var(--color-surface, #0c0c0b);
   }
 
   .invite-info {
     display: flex;
-    gap: var(--space-sm, 0.5rem);
+    gap: var(--space-2, 0.5rem);
     align-items: center;
   }
 
   .invite-token {
-    font-size: var(--font-size-sm, 0.875rem);
-    background: var(--color-surface-secondary, #f5f5f5);
-    padding: 0 var(--space-xs, 0.25rem);
+    font-size: var(--text-sm, 0.875rem);
+    background: var(--color-surface-alt, #1c1c1a);
+    padding: 0 var(--space-1, 0.25rem);
     border-radius: var(--radius-sm, 4px);
   }
 
   .invite-uses,
   .invite-expiry {
-    font-size: var(--font-size-xs, 0.75rem);
-    color: var(--color-text-secondary, #666);
+    font-size: var(--text-xs, 0.75rem);
+    color: var(--color-text-secondary, #888884);
   }
 
   .invite-actions {
     display: flex;
-    gap: var(--space-xs, 0.25rem);
+    gap: var(--space-1, 0.25rem);
   }
 
   .empty-text {
-    color: var(--color-text-secondary, #666);
-    font-size: var(--font-size-sm, 0.875rem);
+    color: var(--color-text-secondary, #888884);
+    font-size: var(--text-sm, 0.875rem);
   }
 
   .inline-form {
@@ -177,10 +177,10 @@
   }
 
   .btn {
-    padding: var(--space-sm, 0.5rem) var(--space-md, 1rem);
+    padding: var(--space-2, 0.5rem) var(--space-4, 1rem);
     border: none;
     border-radius: var(--radius-md, 6px);
-    font-size: var(--font-size-md, 1rem);
+    font-size: var(--text-md, 1rem);
     cursor: pointer;
   }
 
@@ -190,11 +190,11 @@
   }
 
   .btn-small {
-    padding: var(--space-xs, 0.25rem) var(--space-sm, 0.5rem);
-    font-size: var(--font-size-xs, 0.75rem);
-    background: var(--color-surface-secondary, #f5f5f5);
-    color: var(--color-text, #1a1a1a);
-    border: 1px solid var(--color-border, #e5e5e5);
+    padding: var(--space-1, 0.25rem) var(--space-2, 0.5rem);
+    font-size: var(--text-xs, 0.75rem);
+    background: var(--color-surface-alt, #1c1c1a);
+    color: var(--color-text, #d8d5cf);
+    border: 1px solid var(--color-border, #272725);
   }
 
   .btn-danger-outline {

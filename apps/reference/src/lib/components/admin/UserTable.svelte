@@ -103,7 +103,7 @@
 
   .admin-user-table__username {
     font-weight: var(--font-weight-medium, 500);
-    color: var(--color-text, #1a1a1a);
+    color: var(--color-text, #d8d5cf);
   }
 
   .admin-user-table__display-name {
@@ -119,7 +119,7 @@
     border: var(--border-width-thin, 1px) solid var(--color-border, #e5e7eb);
     border-radius: var(--radius-md, 0.25rem);
     background: var(--color-surface, #fff);
-    color: var(--color-text, #1a1a1a);
+    color: var(--color-text, #d8d5cf);
   }
 
   .admin-user-table select:focus {

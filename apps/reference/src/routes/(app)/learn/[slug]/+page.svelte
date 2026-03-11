@@ -67,41 +67,41 @@
   .path-cover {
     width: 100%;
     border-radius: var(--radius-md, 6px);
-    margin-bottom: var(--space-lg, 2rem);
+    margin-bottom: var(--space-6, 2rem);
     aspect-ratio: 16 / 9;
     object-fit: cover;
   }
 
   .path-header {
-    margin-bottom: var(--space-xl, 3rem);
+    margin-bottom: var(--space-12, 3rem);
   }
 
   .path-header h1 {
-    font-size: var(--font-size-3xl, 2.25rem);
+    font-size: var(--text-3xl, 2.25rem);
     line-height: 1.2;
-    color: var(--color-text, #1a1a1a);
-    margin: 0 0 var(--space-sm, 0.5rem);
+    color: var(--color-text, #d8d5cf);
+    margin: 0 0 var(--space-2, 0.5rem);
   }
 
   .path-description {
-    font-size: var(--font-size-lg, 1.25rem);
-    color: var(--color-text-secondary, #666);
-    margin: 0 0 var(--space-md, 1rem);
+    font-size: var(--text-lg, 1.25rem);
+    color: var(--color-text-secondary, #888884);
+    margin: 0 0 var(--space-4, 1rem);
     line-height: 1.6;
   }
 
   .path-meta {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--space-sm, 0.5rem);
-    font-size: var(--font-size-sm, 0.875rem);
-    color: var(--color-text-secondary, #666);
-    margin-bottom: var(--space-md, 1rem);
+    gap: var(--space-2, 0.5rem);
+    font-size: var(--text-sm, 0.875rem);
+    color: var(--color-text-secondary, #888884);
+    margin-bottom: var(--space-4, 1rem);
   }
 
   .meta-item {
-    padding: var(--space-xs, 0.25rem) var(--space-sm, 0.5rem);
-    background: var(--color-surface-secondary, #f5f5f5);
+    padding: var(--space-1, 0.25rem) var(--space-2, 0.5rem);
+    background: var(--color-surface-alt, #1c1c1a);
     border-radius: var(--radius-sm, 4px);
   }
 
@@ -121,8 +121,8 @@
   }
 
   .curriculum h2 {
-    font-size: var(--font-size-xl, 1.5rem);
-    margin-bottom: var(--space-md, 1rem);
-    color: var(--color-text, #1a1a1a);
+    font-size: var(--text-xl, 1.5rem);
+    margin-bottom: var(--space-4, 1rem);
+    color: var(--color-text, #d8d5cf);
   }
 </style>

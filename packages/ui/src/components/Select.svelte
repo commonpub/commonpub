@@ -211,7 +211,7 @@
 
   .snaplify-select-label {
     font-family: var(--font-body, sans-serif);
-    font-size: var(--font-size-sm, 0.875rem);
+    font-size: var(--text-sm);
     font-weight: var(--font-weight-medium, 500);
     color: var(--color-text, #1a1a1a);
   }
@@ -223,7 +223,7 @@
     gap: var(--space-2, 0.5rem);
     padding: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
     font-family: var(--font-body, sans-serif);
-    font-size: var(--font-size-base, 1rem);
+    font-size: var(--text-base);
     border: 1px solid var(--color-border, #e2e8f0);
     border-radius: var(--radius-md, 0.375rem);
     background: var(--color-surface, #fff);
@@ -266,13 +266,13 @@
   .snaplify-select-option {
     padding: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
     font-family: var(--font-body, sans-serif);
-    font-size: var(--font-size-base, 1rem);
+    font-size: var(--text-base);
     cursor: pointer;
     color: var(--color-text, #1a1a1a);
   }
 
   .snaplify-select-option--active {
-    background: var(--color-surface-elevated, #f8f9fa);
+    background: var(--color-surface-raised);
   }
 
   .snaplify-select-option--selected {
@@ -286,7 +286,7 @@
 
   .snaplify-select-error {
     font-family: var(--font-body, sans-serif);
-    font-size: var(--font-size-sm, 0.875rem);
+    font-size: var(--text-sm);
     color: var(--color-error, #ef4444);
     margin: 0;
   }

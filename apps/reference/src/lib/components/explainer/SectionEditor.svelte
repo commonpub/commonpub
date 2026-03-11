@@ -96,45 +96,45 @@
 
 <style>
   .section-editor {
-    padding: var(--space-md, 1rem);
+    padding: var(--space-4, 1rem);
   }
 
   .section-editor__header {
-    margin-bottom: var(--space-md, 1rem);
+    margin-bottom: var(--space-4, 1rem);
   }
 
   .section-editor__type-badge {
     display: inline-block;
-    padding: var(--space-xs, 0.25rem) var(--space-sm, 0.5rem);
+    padding: var(--space-1, 0.25rem) var(--space-2, 0.5rem);
     background: var(--color-primary-light, #eff6ff);
     color: var(--color-primary, #2563eb);
     border-radius: var(--radius-sm, 4px);
-    font-size: var(--font-size-xs, 0.75rem);
+    font-size: var(--text-xs, 0.75rem);
     font-weight: var(--font-weight-semibold, 600);
     text-transform: uppercase;
     letter-spacing: 0.05em;
   }
 
   .section-editor__field {
-    margin-bottom: var(--space-md, 1rem);
+    margin-bottom: var(--space-4, 1rem);
   }
 
   .section-editor__field label {
     display: block;
-    margin-bottom: var(--space-xs, 0.25rem);
-    font-size: var(--font-size-sm, 0.875rem);
+    margin-bottom: var(--space-1, 0.25rem);
+    font-size: var(--text-sm, 0.875rem);
     font-weight: var(--font-weight-medium, 500);
-    color: var(--color-text, #1a1a1a);
+    color: var(--color-text, #d8d5cf);
   }
 
   .section-editor__field input[type='text'] {
     width: 100%;
-    padding: var(--space-sm, 0.5rem);
-    border: 1px solid var(--color-border, #e5e5e5);
+    padding: var(--space-2, 0.5rem);
+    border: 1px solid var(--color-border, #272725);
     border-radius: var(--radius-sm, 4px);
-    font-size: var(--font-size-md, 1rem);
-    background: var(--color-surface, #ffffff);
-    color: var(--color-text, #1a1a1a);
+    font-size: var(--text-md, 1rem);
+    background: var(--color-surface, #0c0c0b);
+    color: var(--color-text, #d8d5cf);
     box-sizing: border-box;
   }
 </style>

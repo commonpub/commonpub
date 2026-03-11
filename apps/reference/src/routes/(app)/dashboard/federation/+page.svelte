@@ -60,7 +60,7 @@
 
   h1 {
     font-size: var(--text-2xl, 1.5rem);
-    font-weight: var(--font-bold, 700);
+    font-weight: var(--font-weight-bold, 700);
     margin-bottom: var(--space-4, 1rem);
   }
 
@@ -83,19 +83,19 @@
     align-items: center;
     padding: var(--space-4, 1rem);
     background: var(--color-bg-card, #f9f9f9);
-    border: 1px solid var(--color-border, #e5e5e5);
+    border: 1px solid var(--color-border, #272725);
     border-radius: var(--radius-lg, 0.5rem);
   }
 
   .stat-value {
     font-size: var(--text-2xl, 1.5rem);
-    font-weight: var(--font-bold, 700);
+    font-weight: var(--font-weight-bold, 700);
     color: var(--color-text, #111);
   }
 
   .stat-label {
     font-size: var(--text-sm, 0.875rem);
-    color: var(--color-text-secondary, #666);
+    color: var(--color-text-secondary, #888884);
   }
 
   section {

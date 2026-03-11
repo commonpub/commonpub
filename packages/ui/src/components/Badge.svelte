@@ -29,16 +29,16 @@
 
   .snaplify-badge--sm {
     padding: var(--space-0-5, 0.125rem) var(--space-1-5, 0.375rem);
-    font-size: var(--font-size-xs, 0.75rem);
+    font-size: var(--text-xs);
   }
 
   .snaplify-badge--md {
     padding: var(--space-1, 0.25rem) var(--space-2, 0.5rem);
-    font-size: var(--font-size-sm, 0.875rem);
+    font-size: var(--text-sm);
   }
 
   .snaplify-badge--default {
-    background: var(--color-surface-elevated, #f8f9fa);
+    background: var(--color-surface-alt);
     color: var(--color-text-secondary, #64748b);
   }
 

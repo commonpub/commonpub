@@ -4,6 +4,11 @@ import { Text } from '@tiptap/extension-text';
 import { Bold } from '@tiptap/extension-bold';
 import { Italic } from '@tiptap/extension-italic';
 import { Code } from '@tiptap/extension-code';
+import { Strike } from '@tiptap/extension-strike';
+import { BulletList } from '@tiptap/extension-bullet-list';
+import { OrderedList } from '@tiptap/extension-ordered-list';
+import { ListItem } from '@tiptap/extension-list-item';
+import { HorizontalRule } from '@tiptap/extension-horizontal-rule';
 import { Link } from '@tiptap/extension-link';
 import { History } from '@tiptap/extension-history';
 import { Placeholder } from '@tiptap/extension-placeholder';
@@ -59,6 +64,11 @@ export function createSnaplifyEditor(options: CreateSnaplifyEditorOptions = {}):
     Bold,
     Italic,
     Code,
+    Strike,
+    BulletList,
+    OrderedList,
+    ListItem,
+    HorizontalRule,
     Link.configure({ openOnClick: false }),
     History,
     Placeholder.configure({ placeholder }),

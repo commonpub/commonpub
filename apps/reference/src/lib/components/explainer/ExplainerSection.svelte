@@ -88,16 +88,16 @@
 
 <style>
   .explainer-section {
-    margin-bottom: var(--space-xl, 3rem);
-    padding-bottom: var(--space-xl, 3rem);
-    border-bottom: 1px solid var(--color-border, #e5e5e5);
-    scroll-margin-top: var(--space-lg, 2rem);
+    margin-bottom: var(--space-12, 3rem);
+    padding-bottom: var(--space-12, 3rem);
+    border-bottom: 1px solid var(--color-border, #272725);
+    scroll-margin-top: var(--space-6, 2rem);
   }
 
   .explainer-section__title {
-    font-size: var(--font-size-xl, 1.5rem);
-    color: var(--color-text, #1a1a1a);
-    margin-bottom: var(--space-md, 1rem);
+    font-size: var(--text-xl, 1.5rem);
+    color: var(--color-text, #d8d5cf);
+    margin-bottom: var(--space-4, 1rem);
   }
 
   .explainer-section--locked {
@@ -105,32 +105,32 @@
   }
 
   .explainer-section__locked {
-    padding: var(--space-lg, 2rem);
+    padding: var(--space-6, 2rem);
     text-align: center;
-    color: var(--color-text-secondary, #666);
-    border: 2px dashed var(--color-border, #e5e5e5);
+    color: var(--color-text-secondary, #888884);
+    border: 2px dashed var(--color-border, #272725);
     border-radius: var(--radius-md, 6px);
   }
 
   .explainer-section__content {
-    font-size: var(--font-size-md, 1rem);
+    font-size: var(--text-md, 1rem);
     line-height: 1.7;
-    color: var(--color-text, #1a1a1a);
+    color: var(--color-text, #d8d5cf);
   }
 
   .explainer-section__content :global(h2) {
-    margin-top: var(--space-xl, 3rem);
-    font-size: var(--font-size-xl, 1.5rem);
+    margin-top: var(--space-12, 3rem);
+    font-size: var(--text-xl, 1.5rem);
   }
 
   .explainer-section__content :global(h3) {
-    margin-top: var(--space-lg, 2rem);
-    font-size: var(--font-size-lg, 1.25rem);
+    margin-top: var(--space-6, 2rem);
+    font-size: var(--text-lg, 1.25rem);
   }
 
   .explainer-section__content :global(pre) {
-    background: var(--color-surface-secondary, #f5f5f5);
-    padding: var(--space-md, 1rem);
+    background: var(--color-surface-alt, #1c1c1a);
+    padding: var(--space-4, 1rem);
     border-radius: var(--radius-sm, 4px);
     overflow-x: auto;
   }
@@ -142,15 +142,15 @@
 
   .explainer-section__content :global(blockquote) {
     border-left: 3px solid var(--color-primary, #2563eb);
-    padding-left: var(--space-md, 1rem);
+    padding-left: var(--space-4, 1rem);
     margin-left: 0;
-    color: var(--color-text-secondary, #666);
+    color: var(--color-text-secondary, #888884);
   }
 
   .callout {
-    padding: var(--space-md, 1rem);
+    padding: var(--space-4, 1rem);
     border-radius: var(--radius-sm, 4px);
-    margin: var(--space-md, 1rem) 0;
+    margin: var(--space-4, 1rem) 0;
   }
 
   .callout-info {

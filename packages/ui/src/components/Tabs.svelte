@@ -104,7 +104,7 @@
   .snaplify-tab {
     padding: var(--space-2, 0.5rem) var(--space-4, 1rem);
     font-family: var(--font-body, sans-serif);
-    font-size: var(--font-size-base, 1rem);
+    font-size: var(--text-base);
     background: transparent;
     border: none;
     border-bottom: 2px solid transparent;

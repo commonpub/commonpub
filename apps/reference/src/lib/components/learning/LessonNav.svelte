@@ -32,17 +32,17 @@
   .lesson-nav {
     display: flex;
     justify-content: space-between;
-    gap: var(--space-md, 1rem);
-    padding: var(--space-lg, 2rem) 0;
-    border-top: 1px solid var(--color-border, #e5e5e5);
+    gap: var(--space-4, 1rem);
+    padding: var(--space-6, 2rem) 0;
+    border-top: 1px solid var(--color-border, #272725);
   }
 
   .nav-link {
     display: flex;
     flex-direction: column;
     text-decoration: none;
-    padding: var(--space-sm, 0.5rem) var(--space-md, 1rem);
-    border: 1px solid var(--color-border, #e5e5e5);
+    padding: var(--space-2, 0.5rem) var(--space-4, 1rem);
+    border: 1px solid var(--color-border, #272725);
     border-radius: var(--radius-md, 6px);
     max-width: 45%;
   }
@@ -61,14 +61,14 @@
   }
 
   .nav-direction {
-    font-size: var(--font-size-xs, 0.75rem);
-    color: var(--color-text-secondary, #666);
+    font-size: var(--text-xs, 0.75rem);
+    color: var(--color-text-secondary, #888884);
     text-transform: uppercase;
   }
 
   .nav-title {
     font-weight: var(--font-weight-medium, 500);
-    color: var(--color-text, #1a1a1a);
-    font-size: var(--font-size-sm, 0.875rem);
+    color: var(--color-text, #d8d5cf);
+    font-size: var(--text-sm, 0.875rem);
   }
 </style>

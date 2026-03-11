@@ -55,32 +55,32 @@
   .empty-explainer {
     max-width: var(--layout-content-width, 768px);
     margin: 0 auto;
-    padding: var(--space-xl, 3rem);
+    padding: var(--space-12, 3rem);
     text-align: center;
   }
 
   .empty-explainer h1 {
-    font-size: var(--font-size-3xl, 2.25rem);
-    color: var(--color-text, #1a1a1a);
-    margin-bottom: var(--space-md, 1rem);
+    font-size: var(--text-3xl, 2.25rem);
+    color: var(--color-text, #d8d5cf);
+    margin-bottom: var(--space-4, 1rem);
   }
 
   .empty-explainer p {
-    color: var(--color-text-secondary, #666);
+    color: var(--color-text-secondary, #888884);
   }
 
   .explainer-social {
     max-width: var(--layout-content-width, 768px);
     margin: 0 auto;
-    padding: 0 var(--space-xl, 3rem);
+    padding: 0 var(--space-12, 3rem);
   }
 
   .content-actions {
     display: flex;
-    gap: var(--space-md, 1rem);
-    padding: var(--space-md, 1rem) 0;
-    border-top: 1px solid var(--color-border, #e5e5e5);
-    border-bottom: 1px solid var(--color-border, #e5e5e5);
-    margin: var(--space-lg, 2rem) 0;
+    gap: var(--space-4, 1rem);
+    padding: var(--space-4, 1rem) 0;
+    border-top: 1px solid var(--color-border, #272725);
+    border-bottom: 1px solid var(--color-border, #272725);
+    margin: var(--space-6, 2rem) 0;
   }
 </style>

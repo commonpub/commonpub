@@ -1,5 +1,6 @@
 <script lang="ts">
   import UserTable from '$lib/components/admin/UserTable.svelte';
+  import { Input, Button } from '@snaplify/ui';
   import { invalidateAll } from '$app/navigation';
   import type { PageData } from './$types';
 
@@ -29,13 +30,13 @@
 <h1 class="admin-heading">Users</h1>
 
 <form method="get" class="admin-filters">
-  <input
+  <Input
+    id="user-search"
+    label="Search"
     type="search"
     name="search"
     value={data.search ?? ''}
     placeholder="Search users..."
-    aria-label="Search users"
-    class="admin-search"
   />
   <select name="role" aria-label="Filter by role" class="admin-select">
     <option value="">All roles</option>
@@ -51,7 +52,7 @@
     <option value="suspended" selected={data.status === 'suspended'}>suspended</option>
     <option value="deleted" selected={data.status === 'deleted'}>deleted</option>
   </select>
-  <button type="submit" class="admin-btn">Filter</button>
+  <Button type="submit" variant="primary" size="sm">Filter</Button>
 </form>
 
 <p class="admin-count">{data.total} user{data.total === 1 ? '' : 's'} found</p>
@@ -63,7 +64,7 @@
     font-family: var(--font-heading, sans-serif);
     font-size: var(--text-2xl, 1.5rem);
     font-weight: var(--font-weight-bold, 700);
-    color: var(--color-text, #1a1a1a);
+    color: var(--color-text, #d8d5cf);
     margin: 0 0 var(--space-4, 1rem);
   }
 
@@ -72,9 +73,9 @@
     gap: var(--space-2, 0.5rem);
     margin-bottom: var(--space-4, 1rem);
     flex-wrap: wrap;
+    align-items: flex-end;
   }
 
-  .admin-search,
   .admin-select {
     font-family: var(--font-body, sans-serif);
     font-size: var(--text-sm, 0.75rem);
@@ -82,28 +83,10 @@
     border: var(--border-width-thin, 1px) solid var(--color-border, #e5e7eb);
     border-radius: var(--radius-md, 0.25rem);
     background: var(--color-surface, #fff);
-    color: var(--color-text, #1a1a1a);
+    color: var(--color-text, #d8d5cf);
   }
 
-  .admin-search:focus,
   .admin-select:focus {
-    outline: none;
-    box-shadow: var(--focus-ring);
-  }
-
-  .admin-btn {
-    font-family: var(--font-body, sans-serif);
-    font-size: var(--text-sm, 0.75rem);
-    font-weight: var(--font-weight-medium, 500);
-    padding: var(--space-2, 0.5rem) var(--space-4, 1rem);
-    background: var(--color-primary, #3b82f6);
-    color: var(--color-primary-text, #fff);
-    border: none;
-    border-radius: var(--radius-md, 0.25rem);
-    cursor: pointer;
-  }
-
-  .admin-btn:focus {
     outline: none;
     box-shadow: var(--focus-ring);
   }

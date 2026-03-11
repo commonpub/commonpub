@@ -115,7 +115,7 @@
 
   .admin-token-editor__value {
     font-size: var(--text-sm, 0.75rem);
-    color: var(--color-text, #1a1a1a);
+    color: var(--color-text, #d8d5cf);
     flex: 1;
   }
 
@@ -148,7 +148,7 @@
     border: var(--border-width-thin, 1px) solid var(--color-border, #e5e7eb);
     border-radius: var(--radius-md, 0.25rem);
     background: var(--color-surface, #fff);
-    color: var(--color-text, #1a1a1a);
+    color: var(--color-text, #d8d5cf);
   }
 
   .admin-token-editor__select:focus,

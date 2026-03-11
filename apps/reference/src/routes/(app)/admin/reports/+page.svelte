@@ -1,5 +1,6 @@
 <script lang="ts">
   import ReportCard from '$lib/components/admin/ReportCard.svelte';
+  import { Textarea, Button } from '@snaplify/ui';
   import type { PageData } from './$types';
 
   let { data } = $props<{ data: PageData }>();
@@ -18,7 +19,7 @@
     <option value="resolved" selected={data.status === 'resolved'}>Resolved</option>
     <option value="dismissed" selected={data.status === 'dismissed'}>Dismissed</option>
   </select>
-  <button type="submit" class="admin-btn">Filter</button>
+  <Button type="submit" variant="primary" size="sm">Filter</Button>
 </form>
 
 <p class="admin-count">{data.total} report{data.total === 1 ? '' : 's'}</p>
@@ -30,26 +31,26 @@
       {#if report.status === 'pending'}
         <form method="post" action="?/resolve" class="admin-resolve-form">
           <input type="hidden" name="reportId" value={report.id} />
-          <textarea
+          <Textarea
+            id={`resolution-${report.id}`}
+            label="Resolution"
             name="resolution"
             required
             placeholder="Resolution notes..."
-            aria-label={`Resolution for report ${report.id}`}
-            class="admin-resolution"
-          ></textarea>
+          />
           <div class="admin-resolve-actions">
             <button
               type="submit"
               name="status"
               value="resolved"
-              class="admin-btn admin-btn--resolve">Resolve</button
-            >
+              class="resolve-btn resolve-btn--resolve"
+            >Resolve</button>
             <button
               type="submit"
               name="status"
               value="dismissed"
-              class="admin-btn admin-btn--dismiss">Dismiss</button
-            >
+              class="resolve-btn resolve-btn--dismiss"
+            >Dismiss</button>
           </div>
         </form>
       {/if}
@@ -65,7 +66,7 @@
     font-family: var(--font-heading, sans-serif);
     font-size: var(--text-2xl, 1.5rem);
     font-weight: var(--font-weight-bold, 700);
-    color: var(--color-text, #1a1a1a);
+    color: var(--color-text, #d8d5cf);
     margin: 0 0 var(--space-4, 1rem);
   }
 
@@ -82,40 +83,12 @@
     border: var(--border-width-thin, 1px) solid var(--color-border, #e5e7eb);
     border-radius: var(--radius-md, 0.25rem);
     background: var(--color-surface, #fff);
-    color: var(--color-text, #1a1a1a);
+    color: var(--color-text, #d8d5cf);
   }
 
   .admin-select:focus {
     outline: none;
     box-shadow: var(--focus-ring);
-  }
-
-  .admin-btn {
-    font-family: var(--font-body, sans-serif);
-    font-size: var(--text-sm, 0.75rem);
-    font-weight: var(--font-weight-medium, 500);
-    padding: var(--space-2, 0.5rem) var(--space-4, 1rem);
-    background: var(--color-primary, #3b82f6);
-    color: var(--color-primary-text, #fff);
-    border: none;
-    border-radius: var(--radius-md, 0.25rem);
-    cursor: pointer;
-  }
-
-  .admin-btn:focus {
-    outline: none;
-    box-shadow: var(--focus-ring);
-  }
-
-  .admin-btn--resolve {
-    background: var(--color-success, #22c55e);
-    color: var(--color-text-inverse, #fff);
-  }
-
-  .admin-btn--dismiss {
-    background: var(--color-surface-alt, #f8f9fa);
-    color: var(--color-text-secondary, #555);
-    border: var(--border-width-thin, 1px) solid var(--color-border, #e5e7eb);
   }
 
   .admin-count {
@@ -146,26 +119,31 @@
     border-radius: var(--radius-md, 0.25rem);
   }
 
-  .admin-resolution {
-    font-family: var(--font-body, sans-serif);
-    font-size: var(--text-sm, 0.75rem);
-    padding: var(--space-2, 0.5rem);
-    border: var(--border-width-thin, 1px) solid var(--color-border, #e5e7eb);
-    border-radius: var(--radius-md, 0.25rem);
-    background: var(--color-surface, #fff);
-    color: var(--color-text, #1a1a1a);
-    min-height: 4rem;
-    resize: vertical;
-  }
-
-  .admin-resolution:focus {
-    outline: none;
-    box-shadow: var(--focus-ring);
-  }
-
   .admin-resolve-actions {
     display: flex;
     gap: var(--space-2, 0.5rem);
+  }
+
+  .resolve-btn {
+    font-family: var(--font-body, sans-serif);
+    font-size: var(--text-sm, 0.75rem);
+    font-weight: var(--font-weight-medium, 500);
+    padding: var(--space-1, 0.25rem) var(--space-2, 0.5rem);
+    border: none;
+    border-radius: var(--radius-md, 0.25rem);
+    cursor: pointer;
+    line-height: 1;
+  }
+
+  .resolve-btn--resolve {
+    background: var(--color-success, #22c55e);
+    color: var(--color-text-inverse, #fff);
+  }
+
+  .resolve-btn--dismiss {
+    background: var(--color-surface-alt, #f8f9fa);
+    color: var(--color-text-secondary, #555);
+    border: var(--border-width-thin, 1px) solid var(--color-border, #e5e7eb);
   }
 
   .admin-empty {

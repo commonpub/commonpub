@@ -95,7 +95,7 @@
 
   .admin-report-card__reason {
     font-weight: var(--font-weight-semibold, 600);
-    color: var(--color-text, #1a1a1a);
+    color: var(--color-text, #d8d5cf);
     text-transform: capitalize;
   }
 
@@ -135,7 +135,7 @@
     border-radius: var(--radius-md, 0.25rem);
     cursor: pointer;
     background: var(--color-surface, #fff);
-    color: var(--color-text, #1a1a1a);
+    color: var(--color-text, #d8d5cf);
   }
 
   .admin-report-card__btn:focus {

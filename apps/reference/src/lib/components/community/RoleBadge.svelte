@@ -6,9 +6,9 @@
 
 <style>
   .role-badge {
-    padding: var(--space-xs, 0.25rem) var(--space-sm, 0.5rem);
+    padding: var(--space-1, 0.25rem) var(--space-2, 0.5rem);
     border-radius: var(--radius-sm, 4px);
-    font-size: var(--font-size-xs, 0.75rem);
+    font-size: var(--text-xs, 0.75rem);
     font-weight: var(--font-weight-medium, 500);
     text-transform: capitalize;
     display: inline-block;
@@ -30,7 +30,7 @@
   }
 
   .role-member {
-    background: var(--color-surface-secondary, #f5f5f5);
-    color: var(--color-text-secondary, #666);
+    background: var(--color-surface-alt, #1c1c1a);
+    color: var(--color-text-secondary, #888884);
   }
 </style>

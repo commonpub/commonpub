@@ -28,15 +28,15 @@
 
 <style>
   .enroll-actions {
-    margin: var(--space-md, 1rem) 0;
+    margin: var(--space-4, 1rem) 0;
   }
 
   .btn {
     display: inline-block;
-    padding: var(--space-sm, 0.5rem) var(--space-lg, 2rem);
+    padding: var(--space-2, 0.5rem) var(--space-6, 2rem);
     border: none;
     border-radius: var(--radius-md, 6px);
-    font-size: var(--font-size-md, 1rem);
+    font-size: var(--text-md, 1rem);
     cursor: pointer;
     text-decoration: none;
     font-weight: var(--font-weight-medium, 500);

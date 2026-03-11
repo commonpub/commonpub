@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { Input, Button } from '@snaplify/ui';
   import type { PageData } from './$types';
 
   let { data } = $props<{ data: PageData }>();
@@ -12,31 +13,27 @@
 
 <div class="admin-settings-grid">
   <form method="post" action="?/update" class="admin-setting-form">
-    <label class="admin-label" for="instance-name">Instance Name</label>
     <input type="hidden" name="key" value="instance.name" />
-    <input
-      type="text"
+    <Input
       id="instance-name"
+      label="Instance Name"
       name="value"
       value={data.settings['instance.name'] ?? ''}
-      class="admin-input"
       placeholder="My Snaplify Instance"
     />
-    <button type="submit" class="admin-btn">Save</button>
+    <Button type="submit" variant="primary" size="sm">Save</Button>
   </form>
 
   <form method="post" action="?/update" class="admin-setting-form">
-    <label class="admin-label" for="instance-desc">Instance Description</label>
     <input type="hidden" name="key" value="instance.description" />
-    <input
-      type="text"
+    <Input
       id="instance-desc"
+      label="Instance Description"
       name="value"
       value={data.settings['instance.description'] ?? ''}
-      class="admin-input"
       placeholder="A maker community"
     />
-    <button type="submit" class="admin-btn">Save</button>
+    <Button type="submit" variant="primary" size="sm">Save</Button>
   </form>
 
   <form method="post" action="?/update" class="admin-setting-form">
@@ -54,7 +51,7 @@
         >deveco.io</option
       >
     </select>
-    <button type="submit" class="admin-btn">Save</button>
+    <Button type="submit" variant="primary" size="sm">Save</Button>
   </form>
 </div>
 
@@ -63,7 +60,7 @@
     font-family: var(--font-heading, sans-serif);
     font-size: var(--text-2xl, 1.5rem);
     font-weight: var(--font-weight-bold, 700);
-    color: var(--color-text, #1a1a1a);
+    color: var(--color-text, #d8d5cf);
     margin: 0 0 var(--space-6, 1.5rem);
   }
 
@@ -87,10 +84,9 @@
     font-family: var(--font-body, sans-serif);
     font-size: var(--text-sm, 0.75rem);
     font-weight: var(--font-weight-semibold, 600);
-    color: var(--color-text, #1a1a1a);
+    color: var(--color-text, #d8d5cf);
   }
 
-  .admin-input,
   .admin-select {
     font-family: var(--font-body, sans-serif);
     font-size: var(--text-sm, 0.75rem);
@@ -98,29 +94,10 @@
     border: var(--border-width-thin, 1px) solid var(--color-border, #e5e7eb);
     border-radius: var(--radius-md, 0.25rem);
     background: var(--color-surface, #fff);
-    color: var(--color-text, #1a1a1a);
+    color: var(--color-text, #d8d5cf);
   }
 
-  .admin-input:focus,
   .admin-select:focus {
-    outline: none;
-    box-shadow: var(--focus-ring);
-  }
-
-  .admin-btn {
-    align-self: flex-start;
-    font-family: var(--font-body, sans-serif);
-    font-size: var(--text-sm, 0.75rem);
-    font-weight: var(--font-weight-medium, 500);
-    padding: var(--space-2, 0.5rem) var(--space-4, 1rem);
-    background: var(--color-primary, #3b82f6);
-    color: var(--color-primary-text, #fff);
-    border: none;
-    border-radius: var(--radius-md, 0.25rem);
-    cursor: pointer;
-  }
-
-  .admin-btn:focus {
     outline: none;
     box-shadow: var(--focus-ring);
   }

@@ -72,29 +72,29 @@
 
 <style>
   .section-list {
-    padding: var(--space-md, 1rem);
+    padding: var(--space-4, 1rem);
   }
 
   .section-list__title {
-    font-size: var(--font-size-sm, 0.875rem);
+    font-size: var(--text-sm, 0.875rem);
     font-weight: var(--font-weight-semibold, 600);
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: var(--color-text-secondary, #666);
-    margin-bottom: var(--space-md, 1rem);
+    color: var(--color-text-secondary, #888884);
+    margin-bottom: var(--space-4, 1rem);
   }
 
   .section-list__items {
     list-style: none;
     padding: 0;
-    margin: 0 0 var(--space-md, 1rem);
+    margin: 0 0 var(--space-4, 1rem);
   }
 
   .section-list__item {
     display: flex;
     align-items: center;
-    gap: var(--space-xs, 0.25rem);
-    margin-bottom: var(--space-xs, 0.25rem);
+    gap: var(--space-1, 0.25rem);
+    margin-bottom: var(--space-1, 0.25rem);
     border-radius: var(--radius-sm, 4px);
   }
 
@@ -107,23 +107,23 @@
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    padding: var(--space-xs, 0.25rem) var(--space-sm, 0.5rem);
+    padding: var(--space-1, 0.25rem) var(--space-2, 0.5rem);
     border: none;
     background: none;
     cursor: pointer;
     text-align: left;
-    color: var(--color-text, #1a1a1a);
+    color: var(--color-text, #d8d5cf);
   }
 
   .section-list__type {
-    font-size: var(--font-size-xs, 0.75rem);
-    color: var(--color-text-secondary, #666);
+    font-size: var(--text-xs, 0.75rem);
+    color: var(--color-text-secondary, #888884);
     text-transform: uppercase;
     letter-spacing: 0.05em;
   }
 
   .section-list__name {
-    font-size: var(--font-size-sm, 0.875rem);
+    font-size: var(--text-sm, 0.875rem);
   }
 
   .section-list__actions {
@@ -135,11 +135,11 @@
     width: 24px;
     height: 24px;
     border: none;
-    background: var(--color-surface-secondary, #f5f5f5);
+    background: var(--color-surface-alt, #1c1c1a);
     border-radius: var(--radius-sm, 4px);
     cursor: pointer;
-    font-size: var(--font-size-sm, 0.875rem);
-    color: var(--color-text, #1a1a1a);
+    font-size: var(--text-sm, 0.875rem);
+    color: var(--color-text, #d8d5cf);
   }
 
   .section-list__action:disabled {
@@ -153,26 +153,26 @@
 
   .section-list__add {
     display: flex;
-    gap: var(--space-xs, 0.25rem);
+    gap: var(--space-1, 0.25rem);
   }
 
   .section-list__add select {
     flex: 1;
-    padding: var(--space-xs, 0.25rem);
-    border: 1px solid var(--color-border, #e5e5e5);
+    padding: var(--space-1, 0.25rem);
+    border: 1px solid var(--color-border, #272725);
     border-radius: var(--radius-sm, 4px);
-    font-size: var(--font-size-sm, 0.875rem);
-    background: var(--color-surface, #ffffff);
-    color: var(--color-text, #1a1a1a);
+    font-size: var(--text-sm, 0.875rem);
+    background: var(--color-surface, #0c0c0b);
+    color: var(--color-text, #d8d5cf);
   }
 
   .section-list__add-btn {
-    padding: var(--space-xs, 0.25rem) var(--space-sm, 0.5rem);
+    padding: var(--space-1, 0.25rem) var(--space-2, 0.5rem);
     background: var(--color-primary, #2563eb);
     color: var(--color-on-primary, #ffffff);
     border: none;
     border-radius: var(--radius-sm, 4px);
-    font-size: var(--font-size-sm, 0.875rem);
+    font-size: var(--text-sm, 0.875rem);
     cursor: pointer;
     white-space: nowrap;
   }

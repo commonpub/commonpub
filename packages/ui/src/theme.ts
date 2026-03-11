@@ -6,6 +6,12 @@ export interface ThemeDefinition {
 }
 
 export const BUILT_IN_THEMES: ThemeDefinition[] = [
+  {
+    id: 'generics',
+    name: 'Generics',
+    description: 'Dark minimal theme with blue accent',
+    isDark: true,
+  },
   { id: 'base', name: 'Base', description: 'Clean default theme with blue accents', isDark: false },
   {
     id: 'deepwood',

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { Textarea, Button } from '@snaplify/ui';
   import type { PageData, ActionData } from './$types';
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -24,16 +25,7 @@
   {/if}
 
   <form method="POST" class="nav-form">
-    <div class="form-field">
-      <label for="structure" class="form-label">Navigation Structure (JSON)</label>
-      <textarea
-        id="structure"
-        name="structure"
-        rows="20"
-        class="form-textarea code"
-        bind:value={structureText}
-      ></textarea>
-    </div>
+    <Textarea id="structure" name="structure" label="Navigation Structure (JSON)" rows={20} bind:value={structureText} class="code" />
 
     <div class="page-reference">
       <h3 class="ref-title">Available Pages</h3>
@@ -44,7 +36,7 @@
       </ul>
     </div>
 
-    <button type="submit" class="form-submit">Save Navigation</button>
+    <Button variant="primary" size="md" type="submit">Save Navigation</Button>
   </form>
 </section>
 
@@ -52,27 +44,27 @@
   .nav-editor-page {
     max-width: var(--layout-narrow-width, 640px);
     margin: 0 auto;
-    padding: var(--space-md, 1rem);
+    padding: var(--space-4, 1rem);
   }
 
   .page-title {
-    font-size: var(--font-size-xl, 1.5rem);
-    margin-bottom: var(--space-xs, 0.25rem);
+    font-size: var(--text-xl, 1.5rem);
+    margin-bottom: var(--space-1, 0.25rem);
     color: var(--color-text, inherit);
   }
 
   .page-desc {
-    font-size: var(--font-size-sm, 0.875rem);
+    font-size: var(--text-sm, 0.875rem);
     color: var(--color-text-secondary, #6b7280);
-    margin-bottom: var(--space-lg, 2rem);
+    margin-bottom: var(--space-6, 2rem);
   }
 
   .error-message,
   .success-message {
-    padding: var(--space-sm, 0.5rem);
-    margin-bottom: var(--space-md, 1rem);
+    padding: var(--space-2, 0.5rem);
+    margin-bottom: var(--space-4, 1rem);
     border-radius: var(--radius-sm, 0.25rem);
-    font-size: var(--font-size-sm, 0.875rem);
+    font-size: var(--text-sm, 0.875rem);
   }
 
   .error-message {
@@ -88,62 +80,35 @@
   .nav-form {
     display: flex;
     flex-direction: column;
-    gap: var(--space-md, 1rem);
+    gap: var(--space-4, 1rem);
   }
 
-  .form-field {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-xs, 0.25rem);
-  }
-
-  .form-label {
-    font-size: var(--font-size-sm, 0.875rem);
-    font-weight: var(--font-weight-medium, 500);
-    color: var(--color-text, inherit);
-  }
-
-  .form-textarea.code {
+  .code :global(.snaplify-textarea) {
     font-family: var(--font-mono, monospace);
-    font-size: var(--font-size-sm, 0.875rem);
-    padding: var(--space-sm, 0.5rem);
-    border: 1px solid var(--color-border, #e5e7eb);
-    border-radius: var(--radius-sm, 0.25rem);
-    background: var(--color-bg-surface, #fff);
-    color: var(--color-text, inherit);
   }
 
   .page-reference {
-    padding: var(--space-sm, 0.5rem);
+    padding: var(--space-2, 0.5rem);
     background: var(--color-bg-muted, #f9fafb);
     border-radius: var(--radius-sm, 0.25rem);
   }
 
   .ref-title {
-    font-size: var(--font-size-sm, 0.875rem);
+    font-size: var(--text-sm, 0.875rem);
     font-weight: var(--font-weight-semibold, 600);
-    margin-bottom: var(--space-xs, 0.25rem);
+    margin-bottom: var(--space-1, 0.25rem);
   }
 
   .ref-list {
-    padding-left: var(--space-md, 1rem);
-    font-size: var(--font-size-xs, 0.75rem);
+    padding-left: var(--space-4, 1rem);
+    font-size: var(--text-xs, 0.75rem);
   }
 
   .ref-item code {
-    font-size: var(--font-size-xs, 0.75rem);
+    font-size: var(--text-xs, 0.75rem);
     background: var(--color-bg-code, #e5e7eb);
-    padding: 0 var(--space-xs, 0.25rem);
+    padding: 0 var(--space-1, 0.25rem);
     border-radius: var(--radius-xs, 0.125rem);
   }
 
-  .form-submit {
-    padding: var(--space-sm, 0.5rem) var(--space-md, 1rem);
-    background: var(--color-primary, #3b82f6);
-    color: var(--color-on-primary, #fff);
-    border: none;
-    border-radius: var(--radius-sm, 0.25rem);
-    cursor: pointer;
-    align-self: flex-start;
-  }
 </style>

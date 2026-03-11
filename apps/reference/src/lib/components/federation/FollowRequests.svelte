@@ -55,7 +55,7 @@
     justify-content: space-between;
     align-items: center;
     padding: var(--space-3, 0.75rem);
-    border: 1px solid var(--color-border, #e5e5e5);
+    border: 1px solid var(--color-border, #272725);
     border-radius: var(--radius-md, 0.375rem);
     margin-bottom: var(--space-2, 0.5rem);
   }
@@ -96,7 +96,7 @@
   }
 
   .empty {
-    color: var(--color-text-secondary, #666);
+    color: var(--color-text-secondary, #888884);
     font-style: italic;
   }
 </style>

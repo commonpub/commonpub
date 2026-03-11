@@ -43,12 +43,12 @@
 
   h1 {
     font-size: var(--text-xl, 1.25rem);
-    font-weight: var(--font-bold, 700);
+    font-weight: var(--font-weight-bold, 700);
     margin-bottom: var(--space-2, 0.5rem);
   }
 
   p {
-    color: var(--color-text-secondary, #666);
+    color: var(--color-text-secondary, #888884);
     margin-bottom: var(--space-4, 1rem);
   }
 
@@ -59,7 +59,7 @@
   }
 
   label {
-    font-weight: var(--font-medium, 500);
+    font-weight: var(--font-weight-medium, 500);
   }
 
   input {
@@ -77,7 +77,7 @@
   }
 
   small {
-    color: var(--color-text-tertiary, #999);
+    color: var(--color-text-tertiary, #444440);
   }
 
   .error {
@@ -91,7 +91,7 @@
     color: var(--color-text-on-primary, #fff);
     border: none;
     border-radius: var(--radius-md, 0.375rem);
-    font-weight: var(--font-medium, 500);
+    font-weight: var(--font-weight-medium, 500);
     cursor: pointer;
   }
 

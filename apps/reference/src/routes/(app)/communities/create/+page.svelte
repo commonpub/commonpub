@@ -1,5 +1,6 @@
 <script lang="ts">
   import { enhance } from '$app/forms';
+  import { Button, Input, Textarea } from '@snaplify/ui';
   import type { ActionData } from './$types';
 
   let { form }: { form: ActionData } = $props();
@@ -18,37 +19,34 @@
 
   <form method="POST" use:enhance class="create-form">
     <div class="form-field">
-      <label for="name">Name</label>
-      <input
-        type="text"
+      <Input
         id="name"
+        label="Name"
         name="name"
+        type="text"
         required
-        maxlength="128"
         placeholder="My Awesome Community"
       />
     </div>
 
     <div class="form-field">
-      <label for="description">Description</label>
-      <textarea
+      <Textarea
         id="description"
+        label="Description"
         name="description"
-        maxlength="2000"
-        rows="3"
+        rows={3}
         placeholder="What is this community about?"
-      ></textarea>
+      />
     </div>
 
     <div class="form-field">
-      <label for="rules">Rules</label>
-      <textarea
+      <Textarea
         id="rules"
+        label="Rules"
         name="rules"
-        maxlength="10000"
-        rows="5"
+        rows={5}
         placeholder="Community guidelines and rules..."
-      ></textarea>
+      />
     </div>
 
     <div class="form-field">
@@ -60,7 +58,7 @@
       </select>
     </div>
 
-    <button type="submit" class="btn btn-primary">Create Community</button>
+    <Button variant="primary" type="submit">Create Community</Button>
   </form>
 </div>
 
@@ -71,58 +69,44 @@
   }
 
   h1 {
-    font-size: var(--font-size-2xl, 1.875rem);
-    color: var(--color-text, #1a1a1a);
-    margin-bottom: var(--space-lg, 2rem);
+    font-size: var(--text-2xl, 1.875rem);
+    color: var(--color-text, #d8d5cf);
+    margin-bottom: var(--space-6, 2rem);
   }
 
   .create-form {
     display: flex;
     flex-direction: column;
-    gap: var(--space-md, 1rem);
+    gap: var(--space-4, 1rem);
   }
 
   .form-field {
     display: flex;
     flex-direction: column;
-    gap: var(--space-xs, 0.25rem);
+    gap: var(--space-1, 0.25rem);
   }
 
   .form-field label {
     font-weight: var(--font-weight-medium, 500);
-    color: var(--color-text, #1a1a1a);
-    font-size: var(--font-size-sm, 0.875rem);
+    color: var(--color-text, #d8d5cf);
+    font-size: var(--text-sm, 0.875rem);
   }
 
-  .form-field input,
-  .form-field textarea,
   .form-field select {
-    padding: var(--space-sm, 0.5rem) var(--space-md, 1rem);
-    border: 1px solid var(--color-border, #e5e5e5);
+    padding: var(--space-2, 0.5rem) var(--space-4, 1rem);
+    border: 1px solid var(--color-border, #272725);
     border-radius: var(--radius-md, 6px);
-    font-size: var(--font-size-md, 1rem);
-    background: var(--color-surface, #ffffff);
-    color: var(--color-text, #1a1a1a);
+    font-size: var(--text-md, 1rem);
+    background: var(--color-surface, #0c0c0b);
+    color: var(--color-text, #d8d5cf);
   }
 
   .error-banner {
-    padding: var(--space-sm, 0.5rem) var(--space-md, 1rem);
+    padding: var(--space-2, 0.5rem) var(--space-4, 1rem);
     background: var(--color-error-bg, #fef2f2);
     color: var(--color-error, #dc2626);
     border-radius: var(--radius-md, 6px);
-    margin-bottom: var(--space-md, 1rem);
+    margin-bottom: var(--space-4, 1rem);
   }
 
-  .btn {
-    padding: var(--space-sm, 0.5rem) var(--space-md, 1rem);
-    border: none;
-    border-radius: var(--radius-md, 6px);
-    font-size: var(--font-size-md, 1rem);
-    cursor: pointer;
-  }
-
-  .btn-primary {
-    background: var(--color-primary, #2563eb);
-    color: var(--color-on-primary, #ffffff);
-  }
 </style>

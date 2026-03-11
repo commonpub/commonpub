@@ -136,7 +136,7 @@
 
   .docs-search-result-title {
     display: block;
-    font-weight: var(--font-medium, 500);
+    font-weight: var(--font-weight-medium, 500);
     font-size: var(--text-sm, 0.875rem);
   }
 

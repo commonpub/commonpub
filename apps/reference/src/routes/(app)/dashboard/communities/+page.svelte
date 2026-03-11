@@ -67,18 +67,18 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: var(--space-lg, 2rem);
+    margin-bottom: var(--space-6, 2rem);
   }
 
   .page-header h1 {
-    font-size: var(--font-size-2xl, 1.875rem);
-    color: var(--color-text, #1a1a1a);
+    font-size: var(--text-2xl, 1.875rem);
+    color: var(--color-text, #d8d5cf);
   }
 
   .empty-state {
     text-align: center;
-    padding: var(--space-xl, 3rem);
-    color: var(--color-text-secondary, #666);
+    padding: var(--space-12, 3rem);
+    color: var(--color-text-secondary, #888884);
   }
 
   .empty-state a {
@@ -89,8 +89,8 @@
     display: flex;
     flex-direction: column;
     gap: 1px;
-    background: var(--color-border, #e5e5e5);
-    border: 1px solid var(--color-border, #e5e5e5);
+    background: var(--color-border, #272725);
+    border: 1px solid var(--color-border, #272725);
     border-radius: var(--radius-md, 6px);
     overflow: hidden;
   }
@@ -99,19 +99,19 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: var(--space-md, 1rem);
-    background: var(--color-surface, #ffffff);
+    padding: var(--space-4, 1rem);
+    background: var(--color-surface, #0c0c0b);
     text-decoration: none;
     color: inherit;
   }
 
   .membership-card:hover {
-    background: var(--color-surface-hover, #f5f5f5);
+    background: var(--color-surface-hover, #1c1c1a);
   }
 
   .membership-info {
     display: flex;
-    gap: var(--space-sm, 0.5rem);
+    gap: var(--space-2, 0.5rem);
     align-items: center;
   }
 
@@ -132,7 +132,7 @@
     align-items: center;
     justify-content: center;
     font-weight: var(--font-weight-bold, 700);
-    font-size: var(--font-size-md, 1rem);
+    font-size: var(--text-md, 1rem);
   }
 
   .community-details {
@@ -142,30 +142,30 @@
 
   .community-name {
     font-weight: var(--font-weight-medium, 500);
-    color: var(--color-text, #1a1a1a);
+    color: var(--color-text, #d8d5cf);
   }
 
   .community-stats {
-    font-size: var(--font-size-xs, 0.75rem);
-    color: var(--color-text-secondary, #666);
+    font-size: var(--text-xs, 0.75rem);
+    color: var(--color-text-secondary, #888884);
   }
 
   .membership-meta {
     display: flex;
-    gap: var(--space-sm, 0.5rem);
+    gap: var(--space-2, 0.5rem);
     align-items: center;
   }
 
   .joined-date {
-    font-size: var(--font-size-xs, 0.75rem);
-    color: var(--color-text-secondary, #666);
+    font-size: var(--text-xs, 0.75rem);
+    color: var(--color-text-secondary, #888884);
   }
 
   .btn {
-    padding: var(--space-sm, 0.5rem) var(--space-md, 1rem);
+    padding: var(--space-2, 0.5rem) var(--space-4, 1rem);
     border: none;
     border-radius: var(--radius-md, 6px);
-    font-size: var(--font-size-md, 1rem);
+    font-size: var(--text-md, 1rem);
     cursor: pointer;
     text-decoration: none;
   }

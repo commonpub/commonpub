@@ -27,12 +27,12 @@
   .content-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: var(--space-md, 1rem);
+    gap: var(--space-4, 1rem);
   }
 
   .content-empty {
     text-align: center;
-    padding: var(--space-xl, 3rem);
-    color: var(--color-text-secondary, #666);
+    padding: var(--space-12, 3rem);
+    color: var(--color-text-secondary, #888884);
   }
 </style>

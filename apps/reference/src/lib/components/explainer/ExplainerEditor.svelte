@@ -141,20 +141,20 @@
     display: grid;
     grid-template-columns: 280px 1fr;
     min-height: 500px;
-    border: 1px solid var(--color-border, #e5e5e5);
+    border: 1px solid var(--color-border, #272725);
     border-radius: var(--radius-md, 6px);
     overflow: hidden;
   }
 
   .explainer-editor__sidebar {
-    border-right: 1px solid var(--color-border, #e5e5e5);
-    background: var(--color-surface, #ffffff);
+    border-right: 1px solid var(--color-border, #272725);
+    background: var(--color-surface, #0c0c0b);
     overflow-y: auto;
   }
 
   .explainer-editor__main {
     overflow-y: auto;
-    background: var(--color-surface, #ffffff);
+    background: var(--color-surface, #0c0c0b);
   }
 
   .explainer-editor__empty {
@@ -162,6 +162,6 @@
     align-items: center;
     justify-content: center;
     height: 100%;
-    color: var(--color-text-secondary, #666);
+    color: var(--color-text-secondary, #888884);
   }
 </style>

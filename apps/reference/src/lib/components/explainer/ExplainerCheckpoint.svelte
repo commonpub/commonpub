@@ -38,19 +38,19 @@
 <style>
   .checkpoint {
     text-align: center;
-    padding: var(--space-xl, 3rem);
-    border: 2px dashed var(--color-border, #e5e5e5);
+    padding: var(--space-12, 3rem);
+    border: 2px dashed var(--color-border, #272725);
     border-radius: var(--radius-md, 6px);
-    margin-top: var(--space-md, 1rem);
+    margin-top: var(--space-4, 1rem);
   }
 
   .checkpoint__message {
-    margin-bottom: var(--space-md, 1rem);
-    color: var(--color-text, #1a1a1a);
+    margin-bottom: var(--space-4, 1rem);
+    color: var(--color-text, #d8d5cf);
   }
 
   .checkpoint__message--locked {
-    color: var(--color-text-secondary, #666);
+    color: var(--color-text-secondary, #888884);
   }
 
   .checkpoint__message--done {
@@ -62,9 +62,9 @@
     background: var(--color-primary, #2563eb);
     color: var(--color-on-primary, #ffffff);
     border: none;
-    padding: var(--space-sm, 0.5rem) var(--space-lg, 2rem);
+    padding: var(--space-2, 0.5rem) var(--space-6, 2rem);
     border-radius: var(--radius-md, 6px);
-    font-size: var(--font-size-md, 1rem);
+    font-size: var(--text-md, 1rem);
     cursor: pointer;
   }
 

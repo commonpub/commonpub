@@ -74,7 +74,7 @@
   .prev-next-label {
     font-size: var(--text-xs, 0.75rem);
     color: var(--text-muted, #9ca3af);
-    font-weight: var(--font-medium, 500);
+    font-weight: var(--font-weight-medium, 500);
   }
 
   .prev-next-title {

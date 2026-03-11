@@ -47,20 +47,20 @@
   .community-nav {
     display: flex;
     gap: 0;
-    border-bottom: 1px solid var(--color-border, #e5e5e5);
-    margin-bottom: var(--space-lg, 2rem);
+    border-bottom: 1px solid var(--color-border, #272725);
+    margin-bottom: var(--space-6, 2rem);
   }
 
   .nav-tab {
-    padding: var(--space-sm, 0.5rem) var(--space-md, 1rem);
+    padding: var(--space-2, 0.5rem) var(--space-4, 1rem);
     text-decoration: none;
-    color: var(--color-text-secondary, #666);
+    color: var(--color-text-secondary, #888884);
     border-bottom: 2px solid transparent;
-    font-size: var(--font-size-sm, 0.875rem);
+    font-size: var(--text-sm, 0.875rem);
   }
 
   .nav-tab:hover {
-    color: var(--color-text, #1a1a1a);
+    color: var(--color-text, #d8d5cf);
   }
 
   .nav-tab-active {

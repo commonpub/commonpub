@@ -56,6 +56,30 @@
           {post.sharedContent.title}
         </a>
       </div>
+    {:else if post.type === 'poll'}
+      {@const pollData = (() => { try { return JSON.parse(post.content); } catch { return null; } })()}
+      {#if pollData}
+        <div class="poll-container">
+          <p class="poll-question">{pollData.question}</p>
+          <div class="poll-options-list">
+            {#each pollData.options as option, i}
+              <form method="POST" action="/communities/{slug}?/votePoll" use:enhance class="poll-vote-form">
+                <input type="hidden" name="postId" value={post.id} />
+                <input type="hidden" name="optionIndex" value={i} />
+                <button type="submit" class="poll-option-btn">
+                  <span class="poll-option-text">{option.text}</span>
+                  <span class="poll-option-votes">{option.votes}</span>
+                </button>
+              </form>
+            {/each}
+          </div>
+          {#if pollData.multiSelect}
+            <span class="poll-multi-note">Multiple selections allowed</span>
+          {/if}
+        </div>
+      {:else}
+        <p>{post.content}</p>
+      {/if}
     {:else if post.type === 'link'}
       <a href={post.content} class="link-content" target="_blank" rel="noopener noreferrer">
         {post.content}
@@ -102,10 +126,10 @@
 
 <style>
   .post-card {
-    padding: var(--space-md, 1rem);
-    border: 1px solid var(--color-border, #e5e5e5);
+    padding: var(--space-4, 1rem);
+    border: 1px solid var(--color-border, #272725);
     border-radius: var(--radius-md, 6px);
-    background: var(--color-surface, #ffffff);
+    background: var(--color-surface, #0c0c0b);
   }
 
   .post-pinned {
@@ -121,12 +145,12 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: var(--space-sm, 0.5rem);
+    margin-bottom: var(--space-2, 0.5rem);
   }
 
   .post-author {
     display: flex;
-    gap: var(--space-sm, 0.5rem);
+    gap: var(--space-2, 0.5rem);
     align-items: center;
   }
 
@@ -147,7 +171,7 @@
     align-items: center;
     justify-content: center;
     font-weight: var(--font-weight-bold, 700);
-    font-size: var(--font-size-sm, 0.875rem);
+    font-size: var(--text-sm, 0.875rem);
   }
 
   .author-info {
@@ -157,24 +181,24 @@
 
   .author-name {
     font-weight: var(--font-weight-medium, 500);
-    color: var(--color-text, #1a1a1a);
-    font-size: var(--font-size-sm, 0.875rem);
+    color: var(--color-text, #d8d5cf);
+    font-size: var(--text-sm, 0.875rem);
   }
 
   .post-time {
-    font-size: var(--font-size-xs, 0.75rem);
-    color: var(--color-text-secondary, #666);
+    font-size: var(--text-xs, 0.75rem);
+    color: var(--color-text-secondary, #888884);
   }
 
   .post-badges {
     display: flex;
-    gap: var(--space-xs, 0.25rem);
+    gap: var(--space-1, 0.25rem);
   }
 
   .badge {
-    padding: 0 var(--space-xs, 0.25rem);
+    padding: 0 var(--space-1, 0.25rem);
     border-radius: var(--radius-sm, 4px);
-    font-size: var(--font-size-xs, 0.75rem);
+    font-size: var(--text-xs, 0.75rem);
     font-weight: var(--font-weight-medium, 500);
   }
 
@@ -184,8 +208,8 @@
   }
 
   .badge-locked {
-    background: var(--color-surface-secondary, #f5f5f5);
-    color: var(--color-text-secondary, #666);
+    background: var(--color-surface-alt, #1c1c1a);
+    color: var(--color-text-secondary, #888884);
   }
 
   .badge-type {
@@ -195,8 +219,8 @@
   }
 
   .post-content {
-    margin-bottom: var(--space-sm, 0.5rem);
-    color: var(--color-text, #1a1a1a);
+    margin-bottom: var(--space-2, 0.5rem);
+    color: var(--color-text, #d8d5cf);
   }
 
   .post-content p {
@@ -205,16 +229,16 @@
   }
 
   .shared-content {
-    padding: var(--space-sm, 0.5rem);
-    border: 1px solid var(--color-border, #e5e5e5);
+    padding: var(--space-2, 0.5rem);
+    border: 1px solid var(--color-border, #272725);
     border-radius: var(--radius-sm, 4px);
-    background: var(--color-surface-secondary, #f5f5f5);
+    background: var(--color-surface-alt, #1c1c1a);
   }
 
   .shared-label {
-    font-size: var(--font-size-xs, 0.75rem);
-    color: var(--color-text-secondary, #666);
-    margin-right: var(--space-xs, 0.25rem);
+    font-size: var(--text-xs, 0.75rem);
+    color: var(--color-text-secondary, #888884);
+    margin-right: var(--space-1, 0.25rem);
   }
 
   .shared-link {
@@ -229,22 +253,22 @@
 
   .post-actions {
     display: flex;
-    gap: var(--space-md, 1rem);
+    gap: var(--space-4, 1rem);
     align-items: center;
-    padding-top: var(--space-sm, 0.5rem);
-    border-top: 1px solid var(--color-border, #e5e5e5);
+    padding-top: var(--space-2, 0.5rem);
+    border-top: 1px solid var(--color-border, #272725);
   }
 
   .action-stat {
-    font-size: var(--font-size-sm, 0.875rem);
-    color: var(--color-text-secondary, #666);
+    font-size: var(--text-sm, 0.875rem);
+    color: var(--color-text-secondary, #888884);
   }
 
   .action-btn {
     background: none;
     border: none;
-    color: var(--color-text-secondary, #666);
-    font-size: var(--font-size-sm, 0.875rem);
+    color: var(--color-text-secondary, #888884);
+    font-size: var(--text-sm, 0.875rem);
     cursor: pointer;
     padding: 0;
   }
@@ -259,5 +283,55 @@
 
   .inline-form {
     display: inline;
+  }
+
+  .poll-container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2, 0.5rem);
+  }
+
+  .poll-question {
+    margin: 0;
+    font-weight: var(--font-weight-medium, 500);
+  }
+
+  .poll-options-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1, 0.25rem);
+  }
+
+  .poll-vote-form {
+    display: contents;
+  }
+
+  .poll-option-btn {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding: var(--space-2, 0.5rem);
+    border: 1px solid var(--color-border, #272725);
+    border-radius: var(--radius-sm, 4px);
+    background: var(--color-surface, #0c0c0b);
+    color: var(--color-text, #d8d5cf);
+    cursor: pointer;
+    font-size: var(--text-sm, 0.875rem);
+  }
+
+  .poll-option-btn:hover {
+    border-color: var(--color-primary, #2563eb);
+  }
+
+  .poll-option-votes {
+    font-size: var(--text-xs, 0.75rem);
+    color: var(--color-text-secondary, #888884);
+  }
+
+  .poll-multi-note {
+    font-size: var(--text-xs, 0.75rem);
+    color: var(--color-text-secondary, #888884);
+    font-style: italic;
   }
 </style>

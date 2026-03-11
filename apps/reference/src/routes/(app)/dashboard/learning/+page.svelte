@@ -72,24 +72,24 @@
   }
 
   .learning-dashboard h1 {
-    font-size: var(--font-size-2xl, 1.875rem);
-    margin-bottom: var(--space-lg, 2rem);
-    color: var(--color-text, #1a1a1a);
+    font-size: var(--text-2xl, 1.875rem);
+    margin-bottom: var(--space-6, 2rem);
+    color: var(--color-text, #d8d5cf);
   }
 
   .section {
-    margin-bottom: var(--space-xl, 3rem);
+    margin-bottom: var(--space-12, 3rem);
   }
 
   .section h2 {
-    font-size: var(--font-size-lg, 1.25rem);
-    margin-bottom: var(--space-md, 1rem);
-    color: var(--color-text, #1a1a1a);
+    font-size: var(--text-lg, 1.25rem);
+    margin-bottom: var(--space-4, 1rem);
+    color: var(--color-text, #d8d5cf);
   }
 
   .empty {
-    color: var(--color-text-secondary, #666);
-    padding: var(--space-lg, 2rem);
+    color: var(--color-text-secondary, #888884);
+    padding: var(--space-6, 2rem);
     text-align: center;
   }
 
@@ -100,23 +100,23 @@
   .enrollment-list {
     display: flex;
     flex-direction: column;
-    gap: var(--space-md, 1rem);
+    gap: var(--space-4, 1rem);
   }
 
   .enrollment-card {
-    padding: var(--space-md, 1rem);
-    border: 1px solid var(--color-border, #e5e5e5);
+    padding: var(--space-4, 1rem);
+    border: 1px solid var(--color-border, #272725);
     border-radius: var(--radius-md, 6px);
-    background: var(--color-surface, #ffffff);
+    background: var(--color-surface, #0c0c0b);
   }
 
   .enrollment-title {
     font-weight: var(--font-weight-medium, 500);
-    color: var(--color-text, #1a1a1a);
+    color: var(--color-text, #d8d5cf);
     text-decoration: none;
-    font-size: var(--font-size-md, 1rem);
+    font-size: var(--text-md, 1rem);
     display: block;
-    margin-bottom: var(--space-xs, 0.25rem);
+    margin-bottom: var(--space-1, 0.25rem);
   }
 
   .enrollment-title:hover {
@@ -125,11 +125,11 @@
 
   .difficulty {
     display: inline-block;
-    font-size: var(--font-size-xs, 0.75rem);
-    padding: 0 var(--space-xs, 0.25rem);
+    font-size: var(--text-xs, 0.75rem);
+    padding: 0 var(--space-1, 0.25rem);
     border-radius: var(--radius-sm, 4px);
     text-transform: capitalize;
-    margin-bottom: var(--space-sm, 0.5rem);
+    margin-bottom: var(--space-2, 0.5rem);
   }
 
   .difficulty-beginner {
@@ -147,10 +147,10 @@
 
   .enrollment-meta {
     display: flex;
-    gap: var(--space-sm, 0.5rem);
-    font-size: var(--font-size-xs, 0.75rem);
-    color: var(--color-text-secondary, #666);
-    margin-top: var(--space-sm, 0.5rem);
+    gap: var(--space-2, 0.5rem);
+    font-size: var(--text-xs, 0.75rem);
+    color: var(--color-text-secondary, #888884);
+    margin-top: var(--space-2, 0.5rem);
   }
 
   .completed-text {
@@ -161,6 +161,6 @@
   .certificate-list {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: var(--space-md, 1rem);
+    gap: var(--space-4, 1rem);
   }
 </style>

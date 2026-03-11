@@ -35,24 +35,24 @@
   .docs-list-page {
     max-width: var(--layout-max-width, 1200px);
     margin: 0 auto;
-    padding: var(--space-md, 1rem);
+    padding: var(--space-4, 1rem);
   }
 
   .page-title {
-    font-size: var(--font-size-2xl, 1.875rem);
-    margin-bottom: var(--space-lg, 2rem);
+    font-size: var(--text-2xl, 1.875rem);
+    margin-bottom: var(--space-6, 2rem);
     color: var(--color-text, inherit);
   }
 
   .docs-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: var(--space-md, 1rem);
+    gap: var(--space-4, 1rem);
   }
 
   .docs-card {
     display: block;
-    padding: var(--space-md, 1rem);
+    padding: var(--space-4, 1rem);
     border: 1px solid var(--color-border, #e5e7eb);
     border-radius: var(--radius-md, 0.375rem);
     text-decoration: none;
@@ -65,25 +65,25 @@
   }
 
   .docs-card-title {
-    font-size: var(--font-size-lg, 1.125rem);
+    font-size: var(--text-lg, 1.125rem);
     font-weight: var(--font-weight-semibold, 600);
-    margin-bottom: var(--space-xs, 0.25rem);
+    margin-bottom: var(--space-1, 0.25rem);
   }
 
   .docs-card-desc {
-    font-size: var(--font-size-sm, 0.875rem);
+    font-size: var(--text-sm, 0.875rem);
     color: var(--color-text-secondary, #6b7280);
-    margin-bottom: var(--space-sm, 0.5rem);
+    margin-bottom: var(--space-2, 0.5rem);
   }
 
   .docs-card-owner {
-    font-size: var(--font-size-xs, 0.75rem);
+    font-size: var(--text-xs, 0.75rem);
     color: var(--color-text-muted, #9ca3af);
   }
 
   .empty-state {
     text-align: center;
-    padding: var(--space-xl, 3rem);
+    padding: var(--space-12, 3rem);
     color: var(--color-text-secondary, #6b7280);
   }
 </style>

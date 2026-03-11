@@ -146,14 +146,14 @@
   .docs-sidebar-link.active {
     background: var(--bg-active, #e5e7eb);
     color: var(--text-primary, inherit);
-    font-weight: var(--font-medium, 500);
+    font-weight: var(--font-weight-medium, 500);
   }
 
   .docs-sidebar-group {
     display: block;
     padding: var(--space-2, 0.5rem) var(--space-2, 0.5rem);
     font-size: var(--text-xs, 0.75rem);
-    font-weight: var(--font-bold, 700);
+    font-weight: var(--font-weight-bold, 700);
     color: var(--text-muted, inherit);
     text-transform: uppercase;
     letter-spacing: 0.05em;

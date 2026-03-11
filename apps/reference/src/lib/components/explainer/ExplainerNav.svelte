@@ -30,19 +30,19 @@
   .explainer-nav {
     display: flex;
     justify-content: space-between;
-    padding: var(--space-lg, 2rem) 0;
-    margin-top: var(--space-xl, 3rem);
-    border-top: 1px solid var(--color-border, #e5e5e5);
+    padding: var(--space-6, 2rem) 0;
+    margin-top: var(--space-12, 3rem);
+    border-top: 1px solid var(--color-border, #272725);
   }
 
   .nav-btn {
-    padding: var(--space-sm, 0.5rem) var(--space-md, 1rem);
-    background: var(--color-surface-secondary, #f5f5f5);
-    border: 1px solid var(--color-border, #e5e5e5);
+    padding: var(--space-2, 0.5rem) var(--space-4, 1rem);
+    background: var(--color-surface-alt, #1c1c1a);
+    border: 1px solid var(--color-border, #272725);
     border-radius: var(--radius-sm, 4px);
     cursor: pointer;
-    color: var(--color-text, #1a1a1a);
-    font-size: var(--font-size-md, 1rem);
+    color: var(--color-text, #d8d5cf);
+    font-size: var(--text-md, 1rem);
   }
 
   .nav-btn:hover:not(:disabled) {

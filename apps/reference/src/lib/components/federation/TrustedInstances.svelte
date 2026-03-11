@@ -27,7 +27,7 @@
     justify-content: space-between;
     align-items: center;
     padding: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
-    border: 1px solid var(--color-border, #e5e5e5);
+    border: 1px solid var(--color-border, #272725);
     border-radius: var(--radius-md, 0.375rem);
     margin-bottom: var(--space-2, 0.5rem);
   }
@@ -43,11 +43,11 @@
     background: var(--color-bg-success, #dcfce7);
     color: var(--color-success, #22c55e);
     border-radius: var(--radius-full, 9999px);
-    font-weight: var(--font-medium, 500);
+    font-weight: var(--font-weight-medium, 500);
   }
 
   .empty {
-    color: var(--color-text-secondary, #666);
+    color: var(--color-text-secondary, #888884);
     font-style: italic;
   }
 </style>

@@ -60,11 +60,11 @@
   .bookmark-button {
     display: inline-flex;
     align-items: center;
-    padding: var(--space-xs, 0.25rem) var(--space-sm, 0.5rem);
-    border: 1px solid var(--color-border, #e5e5e5);
+    padding: var(--space-1, 0.25rem) var(--space-2, 0.5rem);
+    border: 1px solid var(--color-border, #272725);
     border-radius: var(--radius-sm, 4px);
-    background: var(--color-surface, #ffffff);
-    color: var(--color-text-secondary, #666);
+    background: var(--color-surface, #0c0c0b);
+    color: var(--color-text-secondary, #888884);
     cursor: pointer;
     transition:
       color 0.15s,
@@ -72,13 +72,13 @@
   }
 
   .bookmark-button:hover {
-    color: var(--color-primary, #2563eb);
-    border-color: var(--color-primary, #2563eb);
+    color: var(--color-primary, #5b9cf6);
+    border-color: var(--color-primary, #5b9cf6);
   }
 
   .bookmark-button.bookmarked {
-    color: var(--color-primary, #2563eb);
-    border-color: var(--color-primary, #2563eb);
+    color: var(--color-primary, #5b9cf6);
+    border-color: var(--color-primary, #5b9cf6);
   }
 
   .bookmark-button:disabled {

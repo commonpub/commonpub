@@ -1,16 +1,18 @@
 import type { PageServerLoad } from './$types';
 import { listContent } from '$lib/server/content';
 
-export const load: PageServerLoad = async ({ locals, url }) => {
-  const page = Number(url.searchParams.get('page') ?? '1');
-  const limit = 20;
-  const offset = (page - 1) * limit;
+export const load: PageServerLoad = async ({ locals }) => {
+  const [featured, recentProjects, recentArticles, recentBlog] = await Promise.all([
+    listContent(locals.db, { status: 'published', featured: true, limit: 1 }),
+    listContent(locals.db, { status: 'published', type: 'project', limit: 6 }),
+    listContent(locals.db, { status: 'published', type: 'article', limit: 4 }),
+    listContent(locals.db, { status: 'published', type: 'blog', limit: 4 }),
+  ]);
 
-  const { items, total } = await listContent(locals.db, {
-    status: 'published',
-    limit,
-    offset,
-  });
-
-  return { items, total, page };
+  return {
+    featured: featured.items[0] ?? null,
+    recentProjects: recentProjects.items,
+    recentArticles: recentArticles.items,
+    recentBlog: recentBlog.items,
+  };
 };

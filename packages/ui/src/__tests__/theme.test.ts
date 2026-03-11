@@ -9,19 +9,22 @@ import {
 } from '../theme';
 
 describe('BUILT_IN_THEMES', () => {
-  it('should contain 4 themes', () => {
-    expect(BUILT_IN_THEMES).toHaveLength(4);
+  it('should contain 5 themes', () => {
+    expect(BUILT_IN_THEMES).toHaveLength(5);
   });
 
-  it('should include base, deepwood, hackbuild, deveco', () => {
+  it('should include generics, base, deepwood, hackbuild, deveco', () => {
     const ids = BUILT_IN_THEMES.map((t) => t.id);
+    expect(ids).toContain('generics');
     expect(ids).toContain('base');
     expect(ids).toContain('deepwood');
     expect(ids).toContain('hackbuild');
     expect(ids).toContain('deveco');
   });
 
-  it('should mark deepwood as dark theme', () => {
+  it('should mark generics and deepwood as dark themes', () => {
+    const generics = BUILT_IN_THEMES.find((t) => t.id === 'generics');
+    expect(generics?.isDark).toBe(true);
     const deepwood = BUILT_IN_THEMES.find((t) => t.id === 'deepwood');
     expect(deepwood?.isDark).toBe(true);
   });

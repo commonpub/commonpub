@@ -105,7 +105,7 @@
 
 <style>
   .lesson-editor {
-    padding: var(--space-sm, 0.5rem) var(--space-md, 1rem);
+    padding: var(--space-2, 0.5rem) var(--space-4, 1rem);
   }
 
   .lesson-list {
@@ -115,8 +115,8 @@
   }
 
   .lesson-item {
-    padding: var(--space-xs, 0.25rem) 0;
-    border-bottom: 1px solid var(--color-border, #e5e5e5);
+    padding: var(--space-1, 0.25rem) 0;
+    border-bottom: 1px solid var(--color-border, #272725);
   }
 
   .lesson-item:last-child {
@@ -126,82 +126,82 @@
   .lesson-row {
     display: flex;
     align-items: center;
-    gap: var(--space-sm, 0.5rem);
+    gap: var(--space-2, 0.5rem);
   }
 
   .lesson-type-badge {
-    font-size: var(--font-size-xs, 0.75rem);
-    padding: 0 var(--space-xs, 0.25rem);
-    background: var(--color-surface-secondary, #f5f5f5);
+    font-size: var(--text-xs, 0.75rem);
+    padding: 0 var(--space-1, 0.25rem);
+    background: var(--color-surface-alt, #1c1c1a);
     border-radius: var(--radius-sm, 4px);
-    color: var(--color-text-secondary, #666);
+    color: var(--color-text-secondary, #888884);
     text-transform: capitalize;
   }
 
   .lesson-title {
     flex: 1;
-    font-size: var(--font-size-sm, 0.875rem);
-    color: var(--color-text, #1a1a1a);
+    font-size: var(--text-sm, 0.875rem);
+    color: var(--color-text, #d8d5cf);
   }
 
   .lesson-duration {
-    font-size: var(--font-size-xs, 0.75rem);
-    color: var(--color-text-secondary, #666);
+    font-size: var(--text-xs, 0.75rem);
+    color: var(--color-text-secondary, #888884);
   }
 
   .lesson-actions {
     display: flex;
-    gap: var(--space-xs, 0.25rem);
+    gap: var(--space-1, 0.25rem);
   }
 
   .lesson-edit-form {
     display: flex;
-    gap: var(--space-xs, 0.25rem);
+    gap: var(--space-1, 0.25rem);
     align-items: center;
   }
 
   .lesson-input {
     flex: 1;
-    padding: var(--space-xs, 0.25rem) var(--space-sm, 0.5rem);
-    border: 1px solid var(--color-border, #e5e5e5);
+    padding: var(--space-1, 0.25rem) var(--space-2, 0.5rem);
+    border: 1px solid var(--color-border, #272725);
     border-radius: var(--radius-sm, 4px);
-    font-size: var(--font-size-sm, 0.875rem);
-    background: var(--color-surface, #ffffff);
-    color: var(--color-text, #1a1a1a);
+    font-size: var(--text-sm, 0.875rem);
+    background: var(--color-surface, #0c0c0b);
+    color: var(--color-text, #d8d5cf);
   }
 
   .lesson-select {
-    padding: var(--space-xs, 0.25rem);
-    border: 1px solid var(--color-border, #e5e5e5);
+    padding: var(--space-1, 0.25rem);
+    border: 1px solid var(--color-border, #272725);
     border-radius: var(--radius-sm, 4px);
-    font-size: var(--font-size-xs, 0.75rem);
-    background: var(--color-surface, #ffffff);
-    color: var(--color-text, #1a1a1a);
+    font-size: var(--text-xs, 0.75rem);
+    background: var(--color-surface, #0c0c0b);
+    color: var(--color-text, #d8d5cf);
   }
 
   .add-lesson-form {
     display: flex;
-    gap: var(--space-xs, 0.25rem);
-    margin-top: var(--space-sm, 0.5rem);
+    gap: var(--space-1, 0.25rem);
+    margin-top: var(--space-2, 0.5rem);
   }
 
   .inline-form {
     display: flex;
-    gap: var(--space-xs, 0.25rem);
+    gap: var(--space-1, 0.25rem);
   }
 
   .btn {
-    padding: var(--space-xs, 0.25rem) var(--space-sm, 0.5rem);
-    border: 1px solid var(--color-border, #e5e5e5);
+    padding: var(--space-1, 0.25rem) var(--space-2, 0.5rem);
+    border: 1px solid var(--color-border, #272725);
     border-radius: var(--radius-sm, 4px);
-    font-size: var(--font-size-xs, 0.75rem);
+    font-size: var(--text-xs, 0.75rem);
     cursor: pointer;
-    background: var(--color-surface-secondary, #f5f5f5);
-    color: var(--color-text, #1a1a1a);
+    background: var(--color-surface-alt, #1c1c1a);
+    color: var(--color-text, #d8d5cf);
   }
 
   .btn-small {
-    padding: var(--space-xs, 0.25rem) var(--space-sm, 0.5rem);
+    padding: var(--space-1, 0.25rem) var(--space-2, 0.5rem);
   }
 
   .btn-add {

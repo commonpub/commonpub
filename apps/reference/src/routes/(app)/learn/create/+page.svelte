@@ -1,5 +1,6 @@
 <script lang="ts">
   import { enhance } from '$app/forms';
+  import { Input, Textarea, Button } from '@snaplify/ui';
   import type { ActionData } from './$types';
 
   let { form }: { form: ActionData & Record<string, unknown> } = $props();
@@ -17,24 +18,9 @@
   {/if}
 
   <form method="POST" use:enhance>
-    <div class="form-field">
-      <label for="title">Title</label>
-      <input
-        id="title"
-        name="title"
-        type="text"
-        value={form?.title ?? ''}
-        required
-        maxlength="255"
-      />
-    </div>
+    <Input id="title" label="Title" name="title" value={String(form?.title ?? '')} required />
 
-    <div class="form-field">
-      <label for="description">Description <span class="optional">(optional)</span></label>
-      <textarea id="description" name="description" maxlength="2000" rows="3"
-        >{form?.description ?? ''}</textarea
-      >
-    </div>
+    <Textarea id="description" label="Description" name="description" rows={3} value={String(form?.description ?? '')} />
 
     <div class="form-row">
       <div class="form-field">
@@ -49,14 +35,11 @@
         </select>
       </div>
 
-      <div class="form-field">
-        <label for="estimatedHours">Estimated Hours <span class="optional">(optional)</span></label>
-        <input id="estimatedHours" name="estimatedHours" type="number" min="0.5" step="0.5" />
-      </div>
+      <Input id="estimatedHours" label="Estimated Hours" name="estimatedHours" type="number" />
     </div>
 
     <div class="form-actions">
-      <button type="submit" class="btn btn-primary">Create & Edit</button>
+      <Button variant="primary" type="submit">Create & Edit</Button>
     </div>
   </form>
 </div>
@@ -68,69 +51,50 @@
   }
 
   .create-page h1 {
-    font-size: var(--font-size-2xl, 1.875rem);
-    margin-bottom: var(--space-lg, 2rem);
-    color: var(--color-text, #1a1a1a);
+    font-size: var(--text-2xl, 1.875rem);
+    margin-bottom: var(--space-6, 2rem);
+    color: var(--color-text, #d8d5cf);
   }
 
   .form-error {
-    padding: var(--space-sm, 0.5rem);
-    margin-bottom: var(--space-md, 1rem);
+    padding: var(--space-2, 0.5rem);
+    margin-bottom: var(--space-4, 1rem);
     background: var(--color-error-bg, #fef2f2);
     color: var(--color-error, #dc2626);
     border-radius: var(--radius-sm, 4px);
   }
 
   .form-field {
-    margin-bottom: var(--space-md, 1rem);
+    margin-bottom: var(--space-4, 1rem);
   }
 
   .form-field label {
     display: block;
-    margin-bottom: var(--space-xs, 0.25rem);
-    font-size: var(--font-size-sm, 0.875rem);
+    margin-bottom: var(--space-1, 0.25rem);
+    font-size: var(--text-sm, 0.875rem);
     font-weight: var(--font-weight-medium, 500);
-    color: var(--color-text, #1a1a1a);
+    color: var(--color-text, #d8d5cf);
   }
 
-  .optional {
-    font-weight: var(--font-weight-normal, 400);
-    color: var(--color-text-secondary, #666);
-  }
-
-  .form-field input,
-  .form-field textarea,
   .form-field select {
     width: 100%;
-    padding: var(--space-sm, 0.5rem);
-    border: 1px solid var(--color-border, #e5e5e5);
+    padding: var(--space-2, 0.5rem);
+    border: 1px solid var(--color-border, #272725);
     border-radius: var(--radius-sm, 4px);
-    font-size: var(--font-size-md, 1rem);
-    background: var(--color-surface, #ffffff);
-    color: var(--color-text, #1a1a1a);
+    font-size: var(--text-md, 1rem);
+    background: var(--color-surface, #0c0c0b);
+    color: var(--color-text, #d8d5cf);
     box-sizing: border-box;
   }
 
   .form-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: var(--space-md, 1rem);
+    gap: var(--space-4, 1rem);
   }
 
   .form-actions {
-    margin-top: var(--space-lg, 2rem);
+    margin-top: var(--space-6, 2rem);
   }
 
-  .btn {
-    padding: var(--space-sm, 0.5rem) var(--space-lg, 2rem);
-    border: none;
-    border-radius: var(--radius-md, 6px);
-    font-size: var(--font-size-md, 1rem);
-    cursor: pointer;
-  }
-
-  .btn-primary {
-    background: var(--color-primary, #2563eb);
-    color: var(--color-on-primary, #ffffff);
-  }
 </style>

@@ -52,23 +52,23 @@
   .docs-dashboard {
     max-width: var(--layout-max-width, 1200px);
     margin: 0 auto;
-    padding: var(--space-md, 1rem);
+    padding: var(--space-4, 1rem);
   }
 
   .dashboard-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: var(--space-lg, 2rem);
+    margin-bottom: var(--space-6, 2rem);
   }
 
   .page-title {
-    font-size: var(--font-size-xl, 1.5rem);
+    font-size: var(--text-xl, 1.5rem);
     color: var(--color-text, inherit);
   }
   .create-link {
-    font-size: var(--font-size-sm, 0.875rem);
-    padding: var(--space-sm, 0.5rem) var(--space-md, 1rem);
+    font-size: var(--text-sm, 0.875rem);
+    padding: var(--space-2, 0.5rem) var(--space-4, 1rem);
     background: var(--color-primary, #3b82f6);
     color: var(--color-on-primary, #fff);
     border-radius: var(--radius-sm, 0.25rem);
@@ -76,20 +76,20 @@
   }
   .empty-state {
     text-align: center;
-    padding: var(--space-xl, 3rem);
+    padding: var(--space-12, 3rem);
     color: var(--color-text-secondary, #6b7280);
   }
 
   .sites-list {
     display: flex;
     flex-direction: column;
-    gap: var(--space-sm, 0.5rem);
+    gap: var(--space-2, 0.5rem);
   }
   .site-card {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: var(--space-md, 1rem);
+    padding: var(--space-4, 1rem);
     border: 1px solid var(--color-border, #e5e7eb);
     border-radius: var(--radius-md, 0.375rem);
   }
@@ -99,29 +99,29 @@
     text-decoration: none;
   }
   .site-desc {
-    font-size: var(--font-size-sm, 0.875rem);
+    font-size: var(--text-sm, 0.875rem);
     color: var(--color-text-secondary, #6b7280);
-    margin-top: var(--space-xs, 0.25rem);
+    margin-top: var(--space-1, 0.25rem);
   }
   .site-actions {
     display: flex;
-    gap: var(--space-xs, 0.25rem);
+    gap: var(--space-1, 0.25rem);
   }
   .btn-edit {
-    padding: var(--space-xs, 0.25rem) var(--space-sm, 0.5rem);
+    padding: var(--space-1, 0.25rem) var(--space-2, 0.5rem);
     border: 1px solid var(--color-border, #e5e7eb);
     border-radius: var(--radius-sm, 0.25rem);
     text-decoration: none;
-    font-size: var(--font-size-sm, 0.875rem);
+    font-size: var(--text-sm, 0.875rem);
     color: var(--color-text, inherit);
   }
   .btn-delete {
-    padding: var(--space-xs, 0.25rem) var(--space-sm, 0.5rem);
+    padding: var(--space-1, 0.25rem) var(--space-2, 0.5rem);
     border: 1px solid var(--color-danger, #ef4444);
     border-radius: var(--radius-sm, 0.25rem);
     background: transparent;
     color: var(--color-danger, #ef4444);
-    font-size: var(--font-size-sm, 0.875rem);
+    font-size: var(--text-sm, 0.875rem);
     cursor: pointer;
   }
   .inline-form {

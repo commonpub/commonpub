@@ -114,6 +114,10 @@ export function buildEditorSchema(): Schema {
       parseDOM: [{ tag: 'div.callout' }],
       toDOM: (node: any) => ['div', { class: `callout callout-${node.attrs.variant}` }, 0],
     },
+    bullet_list: { group: 'block', content: 'list_item+', parseDOM: [{ tag: 'ul' }], toDOM: () => ['ul', 0] },
+    ordered_list: { group: 'block', content: 'list_item+', attrs: { start: { default: 1 } }, parseDOM: [{ tag: 'ol' }], toDOM: () => ['ol', 0] },
+    list_item: { content: 'paragraph block*', parseDOM: [{ tag: 'li' }], toDOM: () => ['li', 0] },
+    horizontal_rule: { group: 'block', parseDOM: [{ tag: 'hr' }], toDOM: () => ['hr'] },
   };
 
   const marks: Record<string, any> = {
@@ -128,6 +132,10 @@ export function buildEditorSchema(): Schema {
     code: {
       parseDOM: [{ tag: 'code' }],
       toDOM: () => ['code', 0],
+    },
+    strike: {
+      parseDOM: [{ tag: 's' }, { tag: 'del' }, { tag: 'strike' }],
+      toDOM: () => ['s', 0],
     },
     link: {
       attrs: { href: { default: '' } },
@@ -214,6 +222,25 @@ export function blockTuplesToDoc(blocks: BlockTuple[], schema?: Schema): ProseMi
         pmNodes.push(s.nodes.callout!.create({ variant: c.variant }, children));
         break;
       }
+      case 'list': {
+        const c = content as { ordered: boolean; items: string[] };
+        const listType = c.ordered ? 'ordered_list' : 'bullet_list';
+        const listItems = c.items.map((itemHtml: string) => {
+          const div = createDomElement(itemHtml || '<p></p>');
+          const parsed = DOMParser.fromSchema(s).parse(div);
+          const children: ProseMirrorNode[] = [];
+          for (let i = 0; i < parsed.childCount; i++) {
+            children.push(parsed.child(i));
+          }
+          return s.nodes.list_item!.create(null, children);
+        });
+        pmNodes.push(s.nodes[listType]!.create(c.ordered ? { start: 1 } : null, listItems));
+        break;
+      }
+      case 'divider': {
+        pmNodes.push(s.nodes.horizontal_rule!.create());
+        break;
+      }
     }
   }
 
@@ -280,6 +307,23 @@ export function docToBlockTuples(doc: ProseMirrorNode): BlockTuple[] {
         wrapper.appendChild(fragment);
         const html = wrapper.innerHTML;
         blocks.push(['callout', { html, variant: node.attrs.variant }]);
+        break;
+      }
+      case 'bullet_list':
+      case 'ordered_list': {
+        const items: string[] = [];
+        node.forEach((child) => {
+          const serializer = DOMSerializer.fromSchema(node.type.schema);
+          const fragment = serializer.serializeFragment(child.content);
+          const wrapper = createDomElement('');
+          wrapper.appendChild(fragment);
+          items.push(wrapper.innerHTML);
+        });
+        blocks.push(['list', { ordered: node.type.name === 'ordered_list', items }]);
+        break;
+      }
+      case 'horizontal_rule': {
+        blocks.push(['divider', {}]);
         break;
       }
     }

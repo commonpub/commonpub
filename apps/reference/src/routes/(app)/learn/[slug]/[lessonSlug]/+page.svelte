@@ -68,10 +68,10 @@
 
   .lesson-breadcrumb {
     display: flex;
-    gap: var(--space-xs, 0.25rem);
-    font-size: var(--font-size-sm, 0.875rem);
-    color: var(--color-text-secondary, #666);
-    margin-bottom: var(--space-md, 1rem);
+    gap: var(--space-1, 0.25rem);
+    font-size: var(--text-sm, 0.875rem);
+    color: var(--color-text-secondary, #888884);
+    margin-bottom: var(--space-4, 1rem);
   }
 
   .lesson-breadcrumb a {
@@ -80,41 +80,41 @@
   }
 
   .lesson-header {
-    margin-bottom: var(--space-lg, 2rem);
+    margin-bottom: var(--space-6, 2rem);
   }
 
   .lesson-type {
     display: inline-block;
-    padding: var(--space-xs, 0.25rem) var(--space-sm, 0.5rem);
-    background: var(--color-surface-secondary, #f5f5f5);
+    padding: var(--space-1, 0.25rem) var(--space-2, 0.5rem);
+    background: var(--color-surface-alt, #1c1c1a);
     border-radius: var(--radius-sm, 4px);
-    font-size: var(--font-size-xs, 0.75rem);
+    font-size: var(--text-xs, 0.75rem);
     text-transform: uppercase;
-    color: var(--color-text-secondary, #666);
-    margin-bottom: var(--space-sm, 0.5rem);
+    color: var(--color-text-secondary, #888884);
+    margin-bottom: var(--space-2, 0.5rem);
   }
 
   .lesson-header h1 {
-    font-size: var(--font-size-2xl, 1.875rem);
-    color: var(--color-text, #1a1a1a);
+    font-size: var(--text-2xl, 1.875rem);
+    color: var(--color-text, #d8d5cf);
     margin: 0;
   }
 
   .lesson-content {
-    margin-bottom: var(--space-xl, 3rem);
+    margin-bottom: var(--space-12, 3rem);
     line-height: 1.7;
-    color: var(--color-text, #1a1a1a);
+    color: var(--color-text, #d8d5cf);
   }
 
   .complete-form {
-    margin-bottom: var(--space-lg, 2rem);
+    margin-bottom: var(--space-6, 2rem);
   }
 
   .btn {
-    padding: var(--space-sm, 0.5rem) var(--space-lg, 2rem);
+    padding: var(--space-2, 0.5rem) var(--space-6, 2rem);
     border: none;
     border-radius: var(--radius-md, 6px);
-    font-size: var(--font-size-md, 1rem);
+    font-size: var(--text-md, 1rem);
     cursor: pointer;
   }
 
@@ -125,20 +125,20 @@
 
   .completed-badge {
     display: inline-block;
-    padding: var(--space-sm, 0.5rem) var(--space-md, 1rem);
+    padding: var(--space-2, 0.5rem) var(--space-4, 1rem);
     background: var(--color-success-bg, #f0fdf4);
     color: var(--color-success, #22c55e);
     border-radius: var(--radius-md, 6px);
     font-weight: var(--font-weight-medium, 500);
-    margin-bottom: var(--space-lg, 2rem);
+    margin-bottom: var(--space-6, 2rem);
   }
 
   .certificate-notice {
-    padding: var(--space-md, 1rem);
+    padding: var(--space-4, 1rem);
     background: var(--color-success-bg, #f0fdf4);
     color: var(--color-success, #22c55e);
     border-radius: var(--radius-md, 6px);
-    margin-bottom: var(--space-lg, 2rem);
+    margin-bottom: var(--space-6, 2rem);
   }
 
   .certificate-notice a {

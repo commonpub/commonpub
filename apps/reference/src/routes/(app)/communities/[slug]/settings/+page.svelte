@@ -1,5 +1,6 @@
 <script lang="ts">
   import { enhance } from '$app/forms';
+  import { Input, Textarea, Button } from '@snaplify/ui';
   import CommunityHeader from '$lib/components/community/CommunityHeader.svelte';
   import CommunityNav from '$lib/components/community/CommunityNav.svelte';
   import MemberCard from '$lib/components/community/MemberCard.svelte';
@@ -33,22 +34,9 @@
   <section class="settings-section">
     <h2>Community Settings</h2>
     <form method="POST" action="?/update" use:enhance class="settings-form">
-      <div class="form-field">
-        <label for="name">Name</label>
-        <input type="text" id="name" name="name" value={data.community.name} maxlength="128" />
-      </div>
-      <div class="form-field">
-        <label for="description">Description</label>
-        <textarea id="description" name="description" rows="3" maxlength="2000"
-          >{data.community.description ?? ''}</textarea
-        >
-      </div>
-      <div class="form-field">
-        <label for="rules">Rules</label>
-        <textarea id="rules" name="rules" rows="5" maxlength="10000"
-          >{data.community.rules ?? ''}</textarea
-        >
-      </div>
+      <Input id="name" label="Name" name="name" value={data.community.name} />
+      <Textarea id="description" label="Description" name="description" rows={3} value={data.community.description ?? ''} />
+      <Textarea id="rules" label="Rules" name="rules" rows={5} value={data.community.rules ?? ''} />
       <div class="form-field">
         <label for="joinPolicy">Join Policy</label>
         <select id="joinPolicy" name="joinPolicy">
@@ -61,7 +49,7 @@
           >
         </select>
       </div>
-      <button type="submit" class="btn btn-primary">Save Changes</button>
+      <Button variant="primary" type="submit">Save Changes</Button>
     </form>
   </section>
 
@@ -138,7 +126,7 @@
             </div>
             <form method="POST" action="?/unban" use:enhance class="inline-form">
               <input type="hidden" name="userId" value={ban.user.id} />
-              <button type="submit" class="btn btn-small">Unban</button>
+              <Button variant="secondary" size="sm" type="submit">Unban</Button>
             </form>
           </div>
         {/each}
@@ -153,16 +141,14 @@
         <form method="POST" action="?/delete" use:enhance>
           <p>This will permanently delete the community and all its data. This cannot be undone.</p>
           <div class="danger-actions">
-            <button type="submit" class="btn btn-danger">Delete Community</button>
-            <button type="button" class="btn btn-secondary" onclick={() => (deleteConfirm = false)}
-              >Cancel</button
-            >
+            <Button variant="danger" type="submit">Delete Community</Button>
+            <Button variant="secondary" type="button" onclick={() => (deleteConfirm = false)}>Cancel</Button>
           </div>
         </form>
       {:else}
-        <button class="btn btn-danger-outline" onclick={() => (deleteConfirm = true)}>
+        <Button variant="danger" onclick={() => (deleteConfirm = true)}>
           Delete Community
-        </button>
+        </Button>
       {/if}
     </section>
   {/if}
@@ -175,74 +161,72 @@
   }
 
   .settings-section {
-    margin-bottom: var(--space-xl, 3rem);
-    padding: var(--space-lg, 2rem);
-    border: 1px solid var(--color-border, #e5e5e5);
+    margin-bottom: var(--space-12, 3rem);
+    padding: var(--space-6, 2rem);
+    border: 1px solid var(--color-border, #272725);
     border-radius: var(--radius-md, 6px);
-    background: var(--color-surface, #ffffff);
+    background: var(--color-surface, #0c0c0b);
   }
 
   .settings-section h2 {
-    font-size: var(--font-size-lg, 1.25rem);
-    color: var(--color-text, #1a1a1a);
-    margin-bottom: var(--space-md, 1rem);
+    font-size: var(--text-lg, 1.25rem);
+    color: var(--color-text, #d8d5cf);
+    margin-bottom: var(--space-4, 1rem);
   }
 
   .settings-form {
     display: flex;
     flex-direction: column;
-    gap: var(--space-md, 1rem);
+    gap: var(--space-4, 1rem);
   }
 
   .form-field {
     display: flex;
     flex-direction: column;
-    gap: var(--space-xs, 0.25rem);
+    gap: var(--space-1, 0.25rem);
   }
 
   .form-field label {
     font-weight: var(--font-weight-medium, 500);
-    color: var(--color-text, #1a1a1a);
-    font-size: var(--font-size-sm, 0.875rem);
+    color: var(--color-text, #d8d5cf);
+    font-size: var(--text-sm, 0.875rem);
   }
 
-  .form-field input,
-  .form-field textarea,
   .form-field select {
-    padding: var(--space-sm, 0.5rem) var(--space-md, 1rem);
-    border: 1px solid var(--color-border, #e5e5e5);
+    padding: var(--space-2, 0.5rem) var(--space-4, 1rem);
+    border: 1px solid var(--color-border, #272725);
     border-radius: var(--radius-md, 6px);
-    font-size: var(--font-size-md, 1rem);
-    background: var(--color-surface, #ffffff);
-    color: var(--color-text, #1a1a1a);
+    font-size: var(--text-md, 1rem);
+    background: var(--color-surface, #0c0c0b);
+    color: var(--color-text, #d8d5cf);
   }
 
   .error-banner {
-    padding: var(--space-sm, 0.5rem) var(--space-md, 1rem);
+    padding: var(--space-2, 0.5rem) var(--space-4, 1rem);
     background: var(--color-error-bg, #fef2f2);
     color: var(--color-error, #dc2626);
     border-radius: var(--radius-md, 6px);
-    margin-bottom: var(--space-md, 1rem);
+    margin-bottom: var(--space-4, 1rem);
   }
 
   .members-list,
   .bans-list {
     display: flex;
     flex-direction: column;
-    gap: var(--space-sm, 0.5rem);
+    gap: var(--space-2, 0.5rem);
   }
 
   .member-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: var(--space-sm, 0.5rem);
-    border-bottom: 1px solid var(--color-border, #e5e5e5);
+    padding: var(--space-2, 0.5rem);
+    border-bottom: 1px solid var(--color-border, #272725);
   }
 
   .member-actions {
     display: flex;
-    gap: var(--space-xs, 0.25rem);
+    gap: var(--space-1, 0.25rem);
     align-items: center;
   }
 
@@ -250,25 +234,25 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: var(--space-sm, 0.5rem);
-    border-bottom: 1px solid var(--color-border, #e5e5e5);
+    padding: var(--space-2, 0.5rem);
+    border-bottom: 1px solid var(--color-border, #272725);
   }
 
   .ban-info {
     display: flex;
-    gap: var(--space-sm, 0.5rem);
+    gap: var(--space-2, 0.5rem);
     align-items: center;
-    color: var(--color-text, #1a1a1a);
+    color: var(--color-text, #d8d5cf);
   }
 
   .ban-reason,
   .ban-expiry {
-    color: var(--color-text-secondary, #666);
-    font-size: var(--font-size-sm, 0.875rem);
+    color: var(--color-text-secondary, #888884);
+    font-size: var(--text-sm, 0.875rem);
   }
 
   .empty-text {
-    color: var(--color-text-secondary, #666);
+    color: var(--color-text-secondary, #888884);
   }
 
   .inline-form {
@@ -285,41 +269,25 @@
 
   .danger-actions {
     display: flex;
-    gap: var(--space-sm, 0.5rem);
-    margin-top: var(--space-md, 1rem);
+    gap: var(--space-2, 0.5rem);
+    margin-top: var(--space-4, 1rem);
   }
 
   .btn {
-    padding: var(--space-sm, 0.5rem) var(--space-md, 1rem);
+    padding: var(--space-2, 0.5rem) var(--space-4, 1rem);
     border: none;
     border-radius: var(--radius-md, 6px);
-    font-size: var(--font-size-md, 1rem);
+    font-size: var(--text-md, 1rem);
     cursor: pointer;
     text-decoration: none;
   }
 
-  .btn-primary {
-    background: var(--color-primary, #2563eb);
-    color: var(--color-on-primary, #ffffff);
-  }
-
-  .btn-secondary {
-    background: var(--color-surface-secondary, #f5f5f5);
-    color: var(--color-text, #1a1a1a);
-    border: 1px solid var(--color-border, #e5e5e5);
-  }
-
   .btn-small {
-    padding: var(--space-xs, 0.25rem) var(--space-sm, 0.5rem);
-    font-size: var(--font-size-xs, 0.75rem);
-    background: var(--color-surface-secondary, #f5f5f5);
-    color: var(--color-text, #1a1a1a);
-    border: 1px solid var(--color-border, #e5e5e5);
-  }
-
-  .btn-danger {
-    background: var(--color-error, #dc2626);
-    color: var(--color-on-primary, #ffffff);
+    padding: var(--space-1, 0.25rem) var(--space-2, 0.5rem);
+    font-size: var(--text-xs, 0.75rem);
+    background: var(--color-surface-alt, #1c1c1a);
+    color: var(--color-text, #d8d5cf);
+    border: 1px solid var(--color-border, #272725);
   }
 
   .btn-danger-outline {

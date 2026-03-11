@@ -35,13 +35,13 @@
 <style>
   .community-card {
     display: flex;
-    gap: var(--space-md, 1rem);
-    padding: var(--space-md, 1rem);
-    border: 1px solid var(--color-border, #e5e5e5);
+    gap: var(--space-4, 1rem);
+    padding: var(--space-4, 1rem);
+    border: 1px solid var(--color-border, #272725);
     border-radius: var(--radius-md, 6px);
     text-decoration: none;
     color: inherit;
-    background: var(--color-surface, #ffffff);
+    background: var(--color-surface, #0c0c0b);
     transition: border-color 0.15s;
   }
 
@@ -67,7 +67,7 @@
     align-items: center;
     justify-content: center;
     font-weight: var(--font-weight-bold, 700);
-    font-size: var(--font-size-lg, 1.25rem);
+    font-size: var(--text-lg, 1.25rem);
     flex-shrink: 0;
   }
 
@@ -77,16 +77,16 @@
   }
 
   .card-name {
-    font-size: var(--font-size-md, 1rem);
+    font-size: var(--text-md, 1rem);
     font-weight: var(--font-weight-medium, 500);
-    color: var(--color-text, #1a1a1a);
+    color: var(--color-text, #d8d5cf);
     margin: 0;
   }
 
   .card-description {
-    font-size: var(--font-size-sm, 0.875rem);
-    color: var(--color-text-secondary, #666);
-    margin: var(--space-xs, 0.25rem) 0 0;
+    font-size: var(--text-sm, 0.875rem);
+    color: var(--color-text-secondary, #888884);
+    margin: var(--space-1, 0.25rem) 0 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -94,20 +94,20 @@
 
   .card-meta {
     display: flex;
-    gap: var(--space-sm, 0.5rem);
-    font-size: var(--font-size-xs, 0.75rem);
-    color: var(--color-text-secondary, #666);
-    margin-top: var(--space-xs, 0.25rem);
+    gap: var(--space-2, 0.5rem);
+    font-size: var(--text-xs, 0.75rem);
+    color: var(--color-text-secondary, #888884);
+    margin-top: var(--space-1, 0.25rem);
   }
 
   .card-policy {
-    padding: 0 var(--space-xs, 0.25rem);
-    background: var(--color-surface-secondary, #f5f5f5);
+    padding: 0 var(--space-1, 0.25rem);
+    background: var(--color-surface-alt, #1c1c1a);
     border-radius: var(--radius-sm, 4px);
   }
 
   .card-official {
-    padding: 0 var(--space-xs, 0.25rem);
+    padding: 0 var(--space-1, 0.25rem);
     background: var(--color-success-bg, #f0fdf4);
     color: var(--color-success, #22c55e);
     border-radius: var(--radius-sm, 4px);

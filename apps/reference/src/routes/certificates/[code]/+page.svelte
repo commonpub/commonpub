@@ -26,17 +26,17 @@
     max-width: var(--layout-content-width, 640px);
     margin: 0 auto;
     text-align: center;
-    padding: var(--space-xl, 3rem) var(--space-md, 1rem);
+    padding: var(--space-12, 3rem) var(--space-4, 1rem);
   }
 
   .verify-page h1 {
-    font-size: var(--font-size-2xl, 1.875rem);
-    margin-bottom: var(--space-lg, 2rem);
-    color: var(--color-text, #1a1a1a);
+    font-size: var(--text-2xl, 1.875rem);
+    margin-bottom: var(--space-6, 2rem);
+    color: var(--color-text, #d8d5cf);
   }
 
   .verify-note {
-    margin-top: var(--space-md, 1rem);
+    margin-top: var(--space-4, 1rem);
     color: var(--color-success, #22c55e);
     font-weight: var(--font-weight-medium, 500);
   }

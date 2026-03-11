@@ -78,7 +78,7 @@
 
   .admin-theme-picker__name {
     font-weight: var(--font-weight-semibold, 600);
-    color: var(--color-text, #1a1a1a);
+    color: var(--color-text, #d8d5cf);
     font-size: var(--text-base, 0.875rem);
   }
 

@@ -76,6 +76,10 @@ export interface ContentFilters {
   type?: string;
   authorId?: string;
   tag?: string;
+  search?: string;
+  sort?: 'recent' | 'popular' | 'featured';
+  featured?: boolean;
+  difficulty?: string;
   limit?: number;
   offset?: number;
 }
@@ -293,6 +297,25 @@ export interface CommunityBanItem {
     username: string;
     displayName: string | null;
     avatarUrl: string | null;
+  };
+}
+
+// --- User profile types ---
+
+export interface UserProfile {
+  id: string;
+  username: string;
+  displayName: string | null;
+  avatarUrl: string | null;
+  bio: string | null;
+  createdAt: Date;
+  stats: {
+    projects: number;
+    guides: number;
+    explainers: number;
+    articles: number;
+    followers: number;
+    following: number;
   };
 }
 

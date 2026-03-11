@@ -47,7 +47,7 @@
 
 <style>
   .activity-log {
-    border: 1px solid var(--color-border, #e5e5e5);
+    border: 1px solid var(--color-border, #272725);
     border-radius: var(--radius-md, 0.375rem);
     overflow: hidden;
   }
@@ -57,7 +57,7 @@
     grid-template-columns: 3rem 5rem 1fr 5rem 10rem;
     gap: var(--space-2, 0.5rem);
     padding: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
-    background: var(--color-bg-subtle, #f5f5f5);
+    background: var(--color-bg-subtle, #1c1c1a);
     font-weight: var(--font-semibold, 600);
     font-size: var(--text-sm, 0.875rem);
   }
@@ -67,7 +67,7 @@
     grid-template-columns: 3rem 5rem 1fr 5rem 10rem;
     gap: var(--space-2, 0.5rem);
     padding: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
-    border-top: 1px solid var(--color-border, #e5e5e5);
+    border-top: 1px solid var(--color-border, #272725);
     font-size: var(--text-sm, 0.875rem);
   }
 
@@ -95,7 +95,7 @@
   }
 
   .empty {
-    color: var(--color-text-secondary, #666);
+    color: var(--color-text-secondary, #888884);
     font-style: italic;
   }
 </style>

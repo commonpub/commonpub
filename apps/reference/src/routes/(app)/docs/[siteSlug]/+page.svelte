@@ -76,35 +76,35 @@
 
   .docs-main {
     flex: 1;
-    padding: var(--space-md, 1rem) var(--space-lg, 2rem);
+    padding: var(--space-4, 1rem) var(--space-6, 2rem);
     min-width: 0;
   }
 
   .docs-overview-title {
-    font-size: var(--font-size-2xl, 1.875rem);
+    font-size: var(--text-2xl, 1.875rem);
     font-weight: var(--font-weight-bold, 700);
-    margin-bottom: var(--space-sm, 0.5rem);
+    margin-bottom: var(--space-2, 0.5rem);
     color: var(--color-text, inherit);
   }
 
   .docs-overview-desc {
-    font-size: var(--font-size-lg, 1.125rem);
+    font-size: var(--text-lg, 1.125rem);
     color: var(--color-text-secondary, #6b7280);
-    margin-bottom: var(--space-lg, 2rem);
+    margin-bottom: var(--space-6, 2rem);
   }
 
   .docs-owner-actions {
     display: flex;
-    gap: var(--space-sm, 0.5rem);
-    margin-bottom: var(--space-lg, 2rem);
+    gap: var(--space-2, 0.5rem);
+    margin-bottom: var(--space-6, 2rem);
   }
 
   .docs-owner-link {
-    padding: var(--space-xs, 0.25rem) var(--space-sm, 0.5rem);
+    padding: var(--space-1, 0.25rem) var(--space-2, 0.5rem);
     border: 1px solid var(--color-border, #e5e7eb);
     border-radius: var(--radius-sm, 0.25rem);
     text-decoration: none;
-    font-size: var(--font-size-sm, 0.875rem);
+    font-size: var(--text-sm, 0.875rem);
     color: var(--color-text, inherit);
   }
 
@@ -113,14 +113,14 @@
   }
 
   .docs-overview-section {
-    font-size: var(--font-size-lg, 1.125rem);
+    font-size: var(--text-lg, 1.125rem);
     font-weight: var(--font-weight-semibold, 600);
-    margin-bottom: var(--space-sm, 0.5rem);
+    margin-bottom: var(--space-2, 0.5rem);
     color: var(--color-text, inherit);
   }
 
   .docs-page-list {
-    padding-left: var(--space-md, 1rem);
+    padding-left: var(--space-4, 1rem);
   }
 
   .docs-page-list a {
@@ -134,6 +134,6 @@
 
   .docs-empty {
     color: var(--color-text-secondary, #6b7280);
-    padding: var(--space-lg, 2rem) 0;
+    padding: var(--space-6, 2rem) 0;
   }
 </style>

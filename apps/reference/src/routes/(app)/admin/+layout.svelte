@@ -34,7 +34,7 @@
     font-family: var(--font-heading, sans-serif);
     font-size: var(--text-lg, 1.125rem);
     font-weight: var(--font-weight-bold, 700);
-    color: var(--color-text, #1a1a1a);
+    color: var(--color-text, #d8d5cf);
     margin: 0 0 var(--space-4, 1rem);
     padding: 0 var(--space-3, 0.75rem);
   }

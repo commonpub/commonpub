@@ -45,7 +45,7 @@
     justify-content: center;
     border-radius: var(--radius-full, 9999px);
     overflow: hidden;
-    background: var(--color-surface-elevated, #f8f9fa);
+    background: var(--color-surface-alt);
     color: var(--color-text-secondary, #64748b);
     font-family: var(--font-body, sans-serif);
     font-weight: var(--font-weight-semibold, 600);
@@ -55,25 +55,25 @@
   .snaplify-avatar--sm {
     width: var(--space-8, 2rem);
     height: var(--space-8, 2rem);
-    font-size: var(--font-size-xs, 0.75rem);
+    font-size: var(--text-xs);
   }
 
   .snaplify-avatar--md {
     width: var(--space-10, 2.5rem);
     height: var(--space-10, 2.5rem);
-    font-size: var(--font-size-sm, 0.875rem);
+    font-size: var(--text-sm);
   }
 
   .snaplify-avatar--lg {
     width: var(--space-12, 3rem);
     height: var(--space-12, 3rem);
-    font-size: var(--font-size-base, 1rem);
+    font-size: var(--text-base);
   }
 
   .snaplify-avatar--xl {
     width: var(--space-16, 4rem);
     height: var(--space-16, 4rem);
-    font-size: var(--font-size-lg, 1.125rem);
+    font-size: var(--text-lg);
   }
 
   .snaplify-avatar-img {

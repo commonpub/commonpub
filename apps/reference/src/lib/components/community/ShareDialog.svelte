@@ -96,9 +96,9 @@
   }
 
   .dialog-content {
-    background: var(--color-surface, #ffffff);
+    background: var(--color-surface, #0c0c0b);
     border-radius: var(--radius-md, 6px);
-    padding: var(--space-lg, 2rem);
+    padding: var(--space-6, 2rem);
     max-width: 480px;
     width: 100%;
     max-height: 80vh;
@@ -109,34 +109,34 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: var(--space-md, 1rem);
+    margin-bottom: var(--space-4, 1rem);
   }
 
   .dialog-header h3 {
-    font-size: var(--font-size-lg, 1.25rem);
-    color: var(--color-text, #1a1a1a);
+    font-size: var(--text-lg, 1.25rem);
+    color: var(--color-text, #d8d5cf);
     margin: 0;
   }
 
   .close-btn {
     background: none;
     border: none;
-    font-size: var(--font-size-lg, 1.25rem);
+    font-size: var(--text-lg, 1.25rem);
     cursor: pointer;
-    color: var(--color-text-secondary, #666);
-    padding: var(--space-xs, 0.25rem);
+    color: var(--color-text-secondary, #888884);
+    padding: var(--space-1, 0.25rem);
   }
 
   .error-banner {
-    padding: var(--space-sm, 0.5rem);
+    padding: var(--space-2, 0.5rem);
     background: var(--color-error-bg, #fef2f2);
     color: var(--color-error, #dc2626);
     border-radius: var(--radius-sm, 4px);
-    margin-bottom: var(--space-sm, 0.5rem);
+    margin-bottom: var(--space-2, 0.5rem);
   }
 
   .success-banner {
-    padding: var(--space-sm, 0.5rem);
+    padding: var(--space-2, 0.5rem);
     background: var(--color-success-bg, #f0fdf4);
     color: var(--color-success, #22c55e);
     border-radius: var(--radius-sm, 4px);
@@ -146,17 +146,17 @@
   .community-list {
     display: flex;
     flex-direction: column;
-    gap: var(--space-xs, 0.25rem);
+    gap: var(--space-1, 0.25rem);
   }
 
   .community-option {
     display: flex;
     align-items: center;
-    gap: var(--space-sm, 0.5rem);
-    padding: var(--space-sm, 0.5rem);
-    border: 1px solid var(--color-border, #e5e5e5);
+    gap: var(--space-2, 0.5rem);
+    padding: var(--space-2, 0.5rem);
+    border: 1px solid var(--color-border, #272725);
     border-radius: var(--radius-sm, 4px);
-    background: var(--color-surface, #ffffff);
+    background: var(--color-surface, #0c0c0b);
     cursor: pointer;
     text-align: left;
     width: 100%;
@@ -193,11 +193,11 @@
   .option-name {
     flex: 1;
     font-weight: var(--font-weight-medium, 500);
-    color: var(--color-text, #1a1a1a);
+    color: var(--color-text, #d8d5cf);
   }
 
   .option-members {
-    font-size: var(--font-size-xs, 0.75rem);
-    color: var(--color-text-secondary, #666);
+    font-size: var(--text-xs, 0.75rem);
+    color: var(--color-text-secondary, #888884);
   }
 </style>

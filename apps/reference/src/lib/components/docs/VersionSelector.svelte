@@ -42,7 +42,7 @@
 
   .version-selector-label {
     font-size: var(--text-sm, 0.875rem);
-    font-weight: var(--font-medium, 500);
+    font-weight: var(--font-weight-medium, 500);
     color: var(--text-secondary, inherit);
   }
 

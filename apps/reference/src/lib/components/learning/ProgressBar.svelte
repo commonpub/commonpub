@@ -26,10 +26,10 @@
   .progress-bar {
     position: relative;
     height: 24px;
-    background: var(--color-surface-secondary, #f5f5f5);
+    background: var(--color-surface-alt, #1c1c1a);
     border-radius: var(--radius-sm, 4px);
     overflow: hidden;
-    margin: var(--space-sm, 0.5rem) 0;
+    margin: var(--space-2, 0.5rem) 0;
   }
 
   .progress-fill {
@@ -44,8 +44,8 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    font-size: var(--font-size-xs, 0.75rem);
+    font-size: var(--text-xs, 0.75rem);
     font-weight: var(--font-weight-medium, 500);
-    color: var(--color-text, #1a1a1a);
+    color: var(--color-text, #d8d5cf);
   }
 </style>

@@ -41,13 +41,13 @@
 
 <style>
   .content-meta {
-    margin: var(--space-md, 1rem) 0;
+    margin: var(--space-4, 1rem) 0;
   }
 
   .meta-author {
     display: flex;
     align-items: center;
-    gap: var(--space-sm, 0.5rem);
+    gap: var(--space-2, 0.5rem);
   }
 
   .meta-avatar {
@@ -69,20 +69,20 @@
 
   .meta-author-name {
     font-weight: var(--font-weight-medium, 500);
-    color: var(--color-text, #1a1a1a);
+    color: var(--color-text, #d8d5cf);
   }
 
   .meta-details {
     display: flex;
-    gap: var(--space-sm, 0.5rem);
-    font-size: var(--font-size-sm, 0.875rem);
-    color: var(--color-text-secondary, #666);
+    gap: var(--space-2, 0.5rem);
+    font-size: var(--text-sm, 0.875rem);
+    color: var(--color-text-secondary, #888884);
   }
 
   .meta-details span::before,
   .meta-details time + span::before {
     content: '·';
-    margin-right: var(--space-xs, 0.25rem);
+    margin-right: var(--space-1, 0.25rem);
   }
 
   .meta-difficulty {

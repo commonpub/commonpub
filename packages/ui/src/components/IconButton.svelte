@@ -66,19 +66,19 @@
   .snaplify-icon-btn--sm {
     width: var(--space-8, 2rem);
     height: var(--space-8, 2rem);
-    font-size: var(--font-size-sm, 0.875rem);
+    font-size: var(--text-sm);
   }
 
   .snaplify-icon-btn--md {
     width: var(--space-10, 2.5rem);
     height: var(--space-10, 2.5rem);
-    font-size: var(--font-size-base, 1rem);
+    font-size: var(--text-base);
   }
 
   .snaplify-icon-btn--lg {
     width: var(--space-12, 3rem);
     height: var(--space-12, 3rem);
-    font-size: var(--font-size-lg, 1.125rem);
+    font-size: var(--text-lg);
   }
 
   .snaplify-icon-btn--primary {
@@ -88,7 +88,7 @@
   }
 
   .snaplify-icon-btn--secondary {
-    background: var(--color-surface-elevated, #f8f9fa);
+    background: var(--color-surface-alt);
     border-color: var(--color-border, #e2e8f0);
   }
 

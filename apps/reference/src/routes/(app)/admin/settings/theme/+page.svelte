@@ -52,7 +52,7 @@
     font-family: var(--font-heading, sans-serif);
     font-size: var(--text-2xl, 1.5rem);
     font-weight: var(--font-weight-bold, 700);
-    color: var(--color-text, #1a1a1a);
+    color: var(--color-text, #d8d5cf);
     margin: 0 0 var(--space-6, 1.5rem);
   }
 
@@ -60,7 +60,7 @@
     font-family: var(--font-heading, sans-serif);
     font-size: var(--text-lg, 1.125rem);
     font-weight: var(--font-weight-semibold, 600);
-    color: var(--color-text, #1a1a1a);
+    color: var(--color-text, #d8d5cf);
     margin: 0 0 var(--space-2, 0.5rem);
   }
 

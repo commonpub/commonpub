@@ -71,7 +71,7 @@
 
   .admin-nav__link:hover {
     background: var(--color-surface-alt, #f8f9fa);
-    color: var(--color-text, #1a1a1a);
+    color: var(--color-text, #d8d5cf);
   }
 
   .admin-nav__link:focus {
