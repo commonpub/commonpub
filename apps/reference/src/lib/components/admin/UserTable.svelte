@@ -79,26 +79,34 @@
 <style>
   .admin-user-table-wrapper {
     overflow-x: auto;
+    border: 1px solid var(--color-border, #272725);
+    border-radius: var(--radius-sm, 4px);
   }
 
   .admin-user-table {
     width: 100%;
     border-collapse: collapse;
-    font-family: var(--font-body, sans-serif);
-    font-size: var(--text-sm, 0.75rem);
+    font-size: var(--text-xs, 0.75rem);
   }
 
   .admin-user-table th,
   .admin-user-table td {
     padding: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
     text-align: left;
-    border-bottom: var(--border-width-thin, 1px) solid var(--color-border, #e5e7eb);
+    border-bottom: 1px solid var(--color-border, #272725);
   }
 
   .admin-user-table th {
-    font-weight: var(--font-weight-semibold, 600);
-    color: var(--color-text-secondary, #555);
-    background: var(--color-surface-alt, #f8f9fa);
+    font-family: var(--font-mono, monospace);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-text-muted, #444440);
+    background: var(--color-surface-alt, #141413);
+  }
+
+  .admin-user-table td {
+    color: var(--color-text-secondary, #888884);
   }
 
   .admin-user-table__username {
@@ -108,22 +116,27 @@
 
   .admin-user-table__display-name {
     display: block;
-    font-size: var(--text-xs, 0.6875rem);
-    color: var(--color-text-muted, #888);
+    font-size: 10px;
+    color: var(--color-text-muted, #444440);
   }
 
   .admin-user-table select {
-    font-family: var(--font-body, sans-serif);
-    font-size: var(--text-sm, 0.75rem);
-    padding: var(--space-1, 0.25rem) var(--space-2, 0.5rem);
-    border: var(--border-width-thin, 1px) solid var(--color-border, #e5e7eb);
-    border-radius: var(--radius-md, 0.25rem);
-    background: var(--color-surface, #fff);
+    font-family: var(--font-mono, monospace);
+    font-size: 11px;
+    padding: 2px var(--space-2, 0.5rem);
+    border: 1px solid var(--color-border, #272725);
+    border-radius: var(--radius-sm, 4px);
+    background: var(--color-surface, #0c0c0b);
     color: var(--color-text, #d8d5cf);
+    cursor: pointer;
   }
 
   .admin-user-table select:focus {
     outline: none;
-    box-shadow: var(--focus-ring);
+    border-color: var(--color-accent, #5b9cf6);
+  }
+
+  .admin-user-table tbody tr:hover {
+    background: var(--color-surface-alt, #141413);
   }
 </style>

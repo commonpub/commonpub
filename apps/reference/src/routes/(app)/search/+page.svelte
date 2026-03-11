@@ -1,17 +1,12 @@
 <script lang="ts">
-  import ContentCard from '$lib/components/ContentCard.svelte';
+  import SearchResult from '$lib/components/SearchResult.svelte';
+  import Pagination from '$lib/components/Pagination.svelte';
+  import { typeToUrlSegment } from '$lib/utils/content-helpers';
   import type { PageData } from './$types';
 
   let { data }: { data: PageData } = $props();
 
-  const typeFilters = [
-    { value: 'all', label: 'All' },
-    { value: 'project', label: 'Projects' },
-    { value: 'guide', label: 'Guides' },
-    { value: 'explainer', label: 'Explainers' },
-    { value: 'article', label: 'Articles' },
-    { value: 'blog', label: 'Blog' },
-  ];
+  const typeFilters = ['all', 'project', 'guide', 'explainer', 'article', 'blog'];
 
   function buildUrl(params: Record<string, string>): string {
     const sp = new URLSearchParams();
@@ -28,13 +23,9 @@
   <title>{data.query ? `${data.query} — Search` : 'Search'} — Snaplify</title>
 </svelte:head>
 
-<div class="search-page">
-  <form action="/search" method="GET" class="search-form">
-    <div class="search-input-wrap">
-      <svg class="search-icon" width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-        <circle cx="7" cy="7" r="5.5" stroke="currentColor" stroke-width="1.5"/>
-        <path d="M11 11L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-      </svg>
+<div class="page">
+  <div class="search-bar">
+    <form action="/search" method="GET" style="width:100%;">
       <input
         type="search"
         name="q"
@@ -43,142 +34,99 @@
         class="search-input"
         autofocus
       />
-    </div>
-  </form>
-
-  {#if data.query}
-    <div class="search-filters">
-      {#each typeFilters as filter}
-        <a
-          href={buildUrl({ type: filter.value })}
-          class="filter-chip"
-          class:filter-chip-active={data.type === filter.value}
-        >
-          {filter.label}
-        </a>
-      {/each}
-    </div>
-
-    <div class="search-meta">
-      <span class="result-count">{data.total} result{data.total !== 1 ? 's' : ''}</span>
-    </div>
-
-    {#if data.items.length === 0}
-      <div class="empty-state">
-        <p>No results found for "{data.query}"</p>
-      </div>
-    {:else}
-      <div class="results-list">
-        {#each data.items as item (item.id)}
-          <ContentCard {item} />
+      {#if data.type && data.type !== 'all'}
+        <input type="hidden" name="type" value={data.type} />
+      {/if}
+    </form>
+    {#if data.query}
+      <div class="search-type-row">
+        <span class="type-label">type:</span>
+        {#each typeFilters as t}
+          <a
+            href={buildUrl({ type: t, page: '1' })}
+            class="fchip"
+            class:active={data.type === t}
+          >
+            {t}
+          </a>
         {/each}
+        <span class="result-count">{data.total} result{data.total !== 1 ? 's' : ''}</span>
       </div>
     {/if}
+  </div>
+
+  {#if data.query && data.items.length > 0}
+    {#each data.items as item (item.id)}
+      <SearchResult
+        type={item.type}
+        title={item.title}
+        excerpt={item.description ?? ''}
+        author={item.author.displayName ?? item.author.username ?? ''}
+        href={`/${typeToUrlSegment(item.type)}/${item.slug}`}
+      />
+    {/each}
+
+    <Pagination
+      page={data.page}
+      totalPages={data.totalPages}
+      buildUrl={(p) => buildUrl({ page: String(p) })}
+    />
+  {:else if data.query}
+    <div class="empty-state">No results found for "{data.query}"</div>
   {:else}
-    <div class="empty-state">
-      <p>Search for projects, guides, articles, and more.</p>
-    </div>
+    <div class="empty-state">Search for projects, guides, articles, and more.</div>
   {/if}
 </div>
 
 <style>
-  .search-page {
-    max-width: 800px;
-    margin: 0 auto;
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-6, 1.5rem);
-  }
-
-  .search-form {
-    margin-top: var(--space-4, 1rem);
-  }
-
-  .search-input-wrap {
-    position: relative;
-    display: flex;
-    align-items: center;
-  }
-
-  .search-icon {
-    position: absolute;
-    left: var(--space-4, 1rem);
-    color: var(--color-text-muted, #444440);
-    pointer-events: none;
+  .search-bar {
+    margin-bottom: 20px;
   }
 
   .search-input {
     width: 100%;
-    padding: var(--space-4, 1rem) var(--space-4, 1rem) var(--space-4, 1rem) var(--space-10, 2.5rem);
-    border: 1px solid var(--color-border, #272725);
-    border-radius: var(--radius-lg, 0.5rem);
-    font-size: var(--text-md, 1rem);
     background: var(--color-surface-alt, #141413);
-    color: var(--color-text, #d8d5cf);
+    border: 1px solid var(--color-border-strong, #333330);
+    border-radius: var(--radius-md, 0.25rem);
+    padding: 10px 16px;
+    font-size: 14px;
+    color: var(--color-text);
     outline: none;
-    transition: border-color var(--transition-fast, 0.1s ease);
+    font-family: inherit;
   }
 
   .search-input:focus {
-    border-color: var(--color-primary, #5b9cf6);
-    box-shadow: var(--focus-ring);
+    border-color: var(--color-accent, #5b9cf6);
   }
 
   .search-input::placeholder {
     color: var(--color-text-muted, #444440);
   }
 
-  .search-filters {
+  .search-type-row {
     display: flex;
-    gap: var(--space-1, 0.25rem);
+    gap: 8px;
+    margin-top: 10px;
+    align-items: center;
     flex-wrap: wrap;
   }
 
-  .filter-chip {
-    padding: var(--space-1, 0.25rem) var(--space-3, 0.75rem);
-    border: 1px solid var(--color-border, #272725);
-    border-radius: var(--radius-md, 0.25rem);
-    font-size: var(--text-sm, 0.75rem);
+  .type-label {
+    font-size: 11px;
     font-family: var(--font-mono, monospace);
-    text-decoration: none;
-    color: var(--color-text-secondary, #888884);
-    transition: all var(--transition-fast, 0.1s ease);
-  }
-
-  .filter-chip:hover {
-    border-color: var(--color-border-strong, #333330);
-    color: var(--color-text, #d8d5cf);
-  }
-
-  .filter-chip-active {
-    background: var(--color-surface-raised, #1c1c1a);
-    border-color: var(--color-border-strong, #333330);
-    color: var(--color-text, #d8d5cf);
-  }
-
-  .search-meta {
-    font-family: var(--font-mono, monospace);
-    font-size: var(--text-xs, 0.6875rem);
     color: var(--color-text-muted, #444440);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
   }
 
-  .results-list {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: var(--space-4, 1rem);
+  .result-count {
+    margin-left: auto;
+    font-size: 11px;
+    font-family: var(--font-mono, monospace);
+    color: var(--color-text-muted, #444440);
   }
 
   .empty-state {
     text-align: center;
     padding: var(--space-12, 3rem);
     color: var(--color-text-secondary, #888884);
-  }
-
-  @media (max-width: 640px) {
-    .results-list {
-      grid-template-columns: 1fr;
-    }
   }
 </style>

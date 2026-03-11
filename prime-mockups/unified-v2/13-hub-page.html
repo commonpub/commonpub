@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Edge AI Builders — Hub</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#fafaf9;--surface:#ffffff;--surface2:#f4f4f2;--surface3:#eaeae7;
+  --border:#1a1a1a;--border2:#d4d4d0;--text:#1a1a1a;--text-dim:#6b6b66;
+  --text-faint:#a3a39e;--accent:#5b9cf6;--accent-bg:rgba(91,156,246,0.08);
+  --accent-border:rgba(91,156,246,0.25);--green:#22c55e;--green-bg:rgba(34,197,94,0.08);
+  --yellow:#f59e0b;--yellow-bg:rgba(245,158,11,0.08);--red:#ef4444;
+  --red-bg:rgba(239,68,68,0.08);--purple:#8b5cf6;--purple-bg:rgba(139,92,246,0.08);
+  --teal:#14b8a6;--teal-bg:rgba(20,184,166,0.08);--pink:#ec4899;
+  --pink-bg:rgba(236,72,153,0.08);--radius:0px;--radius-lg:0px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.5;}
+
+/* TOPBAR */
+.topbar{background:var(--surface);border-bottom:2px solid var(--border);height:48px;display:flex;align-items:center;padding:0 24px;gap:16px;position:sticky;top:0;z-index:100;}
+.topbar-brand{font-size:13px;font-weight:700;color:var(--text);font-family:'JetBrains Mono',monospace;letter-spacing:-.02em;}
+.topbar-brand span{color:var(--accent);}
+.topbar-nav{display:flex;align-items:center;gap:4px;margin-left:16px;}
+.topbar-link{font-size:12px;color:var(--text-dim);padding:4px 10px;border-radius:var(--radius);cursor:pointer;border:none;background:none;text-decoration:none;font-family:'JetBrains Mono',monospace;}
+.topbar-link:hover{color:var(--text);background:var(--surface2);}
+.topbar-link.active{color:var(--text);background:var(--surface2);border:1px solid var(--border2);}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:8px;}
+.topbar-search{background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);padding:5px 10px;font-size:12px;display:flex;align-items:center;gap:8px;width:200px;}
+.topbar-search input{background:none;border:none;outline:none;color:var(--text);font-size:12px;width:100%;font-family:system-ui;}
+.topbar-search input::placeholder{color:var(--text-faint);}
+.topbar-search i{color:var(--text-faint);font-size:11px;}
+.topbar-icon-btn{width:30px;height:30px;border-radius:var(--radius);background:var(--surface);border:2px solid var(--border);color:var(--text-dim);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;}
+.topbar-icon-btn:hover{background:var(--surface2);color:var(--text);}
+.av{display:flex;align-items:center;justify-content:center;border-radius:50%;font-weight:600;font-family:'JetBrains Mono',monospace;flex-shrink:0;background:var(--surface3);border:2px solid var(--border);color:var(--text-dim);}
+.av-xs{width:20px;height:20px;font-size:8px;}
+.av-sm{width:24px;height:24px;font-size:9px;}
+.av-md{width:32px;height:32px;font-size:11px;}
+.av-lg{width:40px;height:40px;font-size:13px;}
+.btn{font-family:'JetBrains Mono',monospace;font-size:12px;padding:6px 14px;border-radius:var(--radius);border:2px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;display:inline-flex;align-items:center;gap:6px;text-decoration:none;white-space:nowrap;}
+.btn:hover{background:var(--surface2);}
+.btn-primary{background:var(--accent);border-color:var(--border);color:#fff;box-shadow:4px 4px 0 #1a1a1a;}
+.btn-primary:hover{background:#4a8de5;}
+.btn-sm{padding:4px 10px;font-size:11px;}
+.tag{display:inline-flex;align-items:center;font-size:10px;font-family:'JetBrains Mono',monospace;padding:2px 8px;border-radius:var(--radius);border:1px solid var(--border2);color:var(--text-dim);background:var(--surface2);}
+.tag-accent{border-color:var(--accent-border);color:var(--accent);background:var(--accent-bg);}
+.tag-green{border-color:rgba(34,197,94,.25);color:var(--green);background:var(--green-bg);}
+.tag-yellow{border-color:rgba(245,158,11,.25);color:var(--yellow);background:var(--yellow-bg);}
+.tag-red{border-color:rgba(239,68,68,.25);color:var(--red);background:var(--red-bg);}
+.tag-purple{border-color:rgba(139,92,246,.25);color:var(--purple);background:var(--purple-bg);}
+.tag-teal{border-color:rgba(20,184,166,.25);color:var(--teal);background:var(--teal-bg);}
+.tag-row{display:flex;gap:6px;flex-wrap:wrap;}
+.divider{border:none;border-top:2px solid var(--border);margin:20px 0;}
+.card{background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+
+/* HUB HERO */
+.hub-hero{position:relative;overflow:hidden;}
+.hub-banner{height:160px;background:#dbeafe;position:relative;overflow:hidden;border-bottom:2px solid var(--border);}
+.hub-banner-pattern{position:absolute;inset:0;background-image:linear-gradient(var(--border2) 1px,transparent 1px),linear-gradient(90deg,var(--border2) 1px,transparent 1px);background-size:32px 32px;opacity:.5;}
+.hub-banner-dots{position:absolute;inset:0;background-image:radial-gradient(var(--accent) 1px,transparent 1px);background-size:24px 24px;opacity:.08;}
+.hub-banner-glow{display:none;}
+.hub-meta-bar{background:var(--surface);border-bottom:2px solid var(--border);padding:16px 0;}
+.hub-meta-inner{max-width:1200px;margin:0 auto;padding:0 32px;display:flex;align-items:flex-start;gap:16px;}
+.hub-icon{width:64px;height:64px;border-radius:var(--radius);background:#dbeafe;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;margin-top:-32px;position:relative;z-index:1;box-shadow:4px 4px 0 #1a1a1a;color:var(--accent);}
+.hub-info{flex:1;min-width:0;}
+.hub-name{font-size:18px;font-weight:700;letter-spacing:-.02em;margin-bottom:4px;}
+.hub-desc{font-size:12px;color:var(--text-dim);line-height:1.5;max-width:600px;margin-bottom:10px;}
+.hub-stats{display:flex;align-items:center;gap:20px;font-size:11px;color:var(--text-dim);font-family:'JetBrains Mono',monospace;margin-bottom:12px;}
+.hub-stat{display:flex;align-items:center;gap:5px;}
+.hub-stat-val{color:var(--text);font-weight:600;}
+.hub-actions{display:flex;align-items:center;gap:8px;}
+.hub-tags{margin-top:10px;}
+
+/* HUB TABS */
+.hub-tabs{background:var(--surface);border-bottom:2px solid var(--border);position:sticky;top:48px;z-index:90;}
+.tabs-inner{max-width:1200px;margin:0 auto;padding:0 32px;display:flex;gap:2px;}
+.tab-btn{font-size:12px;color:var(--text-dim);padding:10px 14px;border:none;background:none;cursor:pointer;border-bottom:3px solid transparent;font-family:'JetBrains Mono',monospace;display:flex;align-items:center;gap:6px;position:relative;top:2px;}
+.tab-btn:hover{color:var(--text);}
+.tab-btn.active{color:var(--text);border-bottom-color:var(--accent);font-weight:600;}
+.tab-count{font-size:9px;font-family:'JetBrains Mono',monospace;background:var(--surface3);color:var(--text-faint);padding:1px 5px;border-radius:var(--radius);border:1px solid var(--border2);}
+
+/* LAYOUT */
+.hub-main{max-width:1200px;margin:0 auto;padding:24px 32px;}
+.hub-layout{display:grid;grid-template-columns:1fr 300px;gap:24px;align-items:start;}
+
+/* FEED ITEMS */
+.feed-card{background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);margin-bottom:12px;overflow:hidden;}
+.feed-card:hover{box-shadow:4px 4px 0 #1a1a1a;}
+.feed-header{padding:14px 16px 10px;display:flex;align-items:flex-start;gap:10px;}
+.feed-avatar-col{flex-shrink:0;}
+.feed-content{flex:1;min-width:0;}
+.feed-meta{display:flex;align-items:center;gap:6px;margin-bottom:4px;}
+.feed-author{font-size:12px;font-weight:600;}
+.feed-time{font-size:10px;color:var(--text-faint);font-family:'JetBrains Mono',monospace;}
+.feed-dot{width:2px;height:2px;border-radius:50%;background:var(--text-faint);}
+.feed-type-badge{font-size:9px;font-family:'JetBrains Mono',monospace;padding:1px 6px;border-radius:var(--radius);text-transform:uppercase;letter-spacing:.06em;font-weight:600;}
+.badge-question{background:var(--accent-bg);color:var(--accent);border:1px solid var(--accent-border);}
+.badge-discussion{background:var(--purple-bg);color:var(--purple);border:1px solid rgba(139,92,246,.25);}
+.badge-solved{background:var(--green-bg);color:var(--green);border:1px solid rgba(34,197,94,.25);}
+.badge-announcement{background:var(--yellow-bg);color:var(--yellow);border:1px solid rgba(245,158,11,.25);}
+.badge-showcase{background:var(--teal-bg);color:var(--teal);border:1px solid rgba(20,184,166,.25);}
+.feed-title{font-size:13px;font-weight:600;margin-bottom:4px;line-height:1.4;}
+.feed-body{font-size:12px;color:var(--text-dim);line-height:1.55;margin-bottom:10px;}
+.feed-project-embed{background:var(--surface2);border:2px solid var(--border);border-radius:var(--radius);padding:10px 12px;display:flex;align-items:center;gap:12px;margin-bottom:10px;cursor:pointer;}
+.feed-project-embed:hover{box-shadow:3px 3px 0 #1a1a1a;}
+.embed-thumb{width:48px;height:36px;border-radius:var(--radius);background:var(--surface3);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:16px;border:2px solid var(--border);}
+.embed-info{flex:1;}
+.embed-title{font-size:12px;font-weight:500;margin-bottom:2px;}
+.embed-meta{font-size:10px;color:var(--text-faint);font-family:'JetBrains Mono',monospace;}
+.feed-footer{padding:8px 16px;border-top:2px solid var(--border);display:flex;align-items:center;gap:12px;background:var(--surface2);}
+.feed-action{font-size:11px;color:var(--text-dim);display:flex;align-items:center;gap:4px;cursor:pointer;padding:3px 6px;border-radius:var(--radius);border:none;background:none;font-family:'JetBrains Mono',monospace;}
+.feed-action:hover{color:var(--text);background:var(--surface3);}
+.feed-action i{font-size:10px;}
+.feed-actions-right{margin-left:auto;display:flex;align-items:center;gap:6px;}
+.announce-band{background:var(--yellow-bg);border-left:4px solid var(--yellow);}
+
+/* SECTION HEADERS */
+.sec-head{display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:10px;border-bottom:2px solid var(--border);}
+.sec-head h2{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.09em;font-family:'JetBrains Mono',monospace;color:var(--text-dim);}
+.sec-sub{font-size:11px;color:var(--text-faint);margin-left:auto;font-family:'JetBrains Mono',monospace;}
+.view-all{font-size:11px;color:var(--accent);cursor:pointer;text-decoration:none;margin-left:auto;font-family:'JetBrains Mono',monospace;}
+.view-all:hover{text-decoration:underline;}
+
+/* FEATURED PROJECTS */
+.proj-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.project-card{background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);overflow:hidden;cursor:pointer;}
+.project-card:hover{box-shadow:4px 4px 0 #1a1a1a;}
+.project-thumb{height:120px;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;}
+.thumb-bg-1{background:#dbeafe;}
+.thumb-bg-2{background:#ede9fe;}
+.thumb-bg-3{background:#dcfce7;}
+.thumb-bg-4{background:#fce7f3;}
+.thumb-grid{position:absolute;inset:0;background-image:linear-gradient(var(--border2) 1px,transparent 1px),linear-gradient(90deg,var(--border2) 1px,transparent 1px);background-size:20px 20px;opacity:.35;}
+.thumb-icon{position:relative;z-index:1;font-size:24px;opacity:.65;}
+.thumb-badge{position:absolute;top:8px;left:8px;z-index:2;}
+.project-body{padding:10px 12px;}
+.project-title{font-size:12px;font-weight:600;margin-bottom:3px;line-height:1.35;}
+.project-desc{font-size:11px;color:var(--text-dim);line-height:1.45;margin-bottom:8px;}
+.project-footer{display:flex;align-items:center;gap:8px;font-size:10px;color:var(--text-faint);font-family:'JetBrains Mono',monospace;}
+
+/* DISCUSSIONS LIST */
+.disc-item{background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:8px;cursor:pointer;display:flex;gap:12px;align-items:flex-start;}
+.disc-item:hover{box-shadow:4px 4px 0 #1a1a1a;}
+.disc-votes{display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0;min-width:28px;}
+.disc-vote-count{font-size:13px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--text);}
+.disc-vote-label{font-size:8px;color:var(--text-faint);font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.08em;}
+.disc-info{flex:1;min-width:0;}
+.disc-title{font-size:12px;font-weight:600;margin-bottom:4px;line-height:1.35;}
+.disc-meta{font-size:10px;color:var(--text-faint);font-family:'JetBrains Mono',monospace;display:flex;align-items:center;gap:8px;}
+.disc-replies{display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0;min-width:28px;}
+.disc-reply-count{font-size:12px;font-weight:600;font-family:'JetBrains Mono',monospace;color:var(--text-dim);}
+.disc-reply-label{font-size:8px;color:var(--text-faint);font-family:'JetBrains Mono',monospace;}
+
+/* SIDEBAR */
+.sb-card{background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px;}
+.sb-title{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--text-faint);font-family:'JetBrains Mono',monospace;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border2);}
+.mod-item{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.mod-item:last-child{margin-bottom:0;}
+.mod-info{flex:1;}
+.mod-name{font-size:11px;font-weight:500;}
+.mod-role{font-size:10px;color:var(--text-faint);font-family:'JetBrains Mono',monospace;}
+.rule-item{display:flex;align-items:flex-start;gap:8px;margin-bottom:8px;font-size:11px;color:var(--text-dim);}
+.rule-num{font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--text-faint);width:16px;flex-shrink:0;margin-top:1px;}
+.related-hub{display:flex;align-items:center;gap:8px;margin-bottom:8px;cursor:pointer;}
+.related-hub:last-child{margin-bottom:0;}
+.hub-mini-icon{width:28px;height:28px;border-radius:var(--radius);background:var(--surface2);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:13px;}
+.hub-mini-info{flex:1;}
+.hub-mini-name{font-size:11px;font-weight:500;}
+.hub-mini-count{font-size:10px;color:var(--text-faint);font-family:'JetBrains Mono',monospace;}
+.resource-item{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:11px;color:var(--text-dim);cursor:pointer;}
+.resource-item:last-child{margin-bottom:0;}
+.resource-item i{font-size:10px;color:var(--text-faint);width:12px;}
+.resource-item a{color:var(--accent);text-decoration:none;}
+.resource-item a:hover{text-decoration:underline;}
+
+/* FOOTER */
+footer{background:var(--surface);border-top:2px solid var(--border);padding:20px 32px;margin-top:40px;}
+.footer-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;}
+.footer-brand{font-size:12px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--text-dim);}
+.footer-brand span{color:var(--accent);}
+.footer-links{display:flex;gap:16px;}
+.footer-link{font-size:11px;color:var(--text-faint);text-decoration:none;font-family:'JetBrains Mono',monospace;}
+.footer-link:hover{color:var(--text-dim);}
+.footer-copy{font-size:10px;color:var(--text-faint);font-family:'JetBrains Mono',monospace;}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<nav class="topbar">
+  <div class="topbar-brand"><span>snap</span>lify</div>
+  <div class="topbar-nav">
+    <a class="topbar-link" href="#">Explore</a>
+    <a class="topbar-link" href="#">Projects</a>
+    <a class="topbar-link" href="#">Learn</a>
+    <a class="topbar-link active" href="#">Hubs</a>
+    <a class="topbar-link" href="#">Contests</a>
+  </div>
+  <div class="topbar-right">
+    <div class="topbar-search">
+      <i class="fa fa-search"></i>
+      <input type="text" placeholder="Search hubs, posts...">
+    </div>
+    <button class="topbar-icon-btn"><i class="fa fa-bell"></i></button>
+    <button class="topbar-icon-btn"><i class="fa fa-plus"></i></button>
+    <div class="av av-sm" style="background:var(--accent-bg);color:var(--accent);">KA</div>
+  </div>
+</nav>
+
+<!-- HUB HERO -->
+<div class="hub-hero">
+  <div class="hub-banner">
+    <div class="hub-banner-pattern"></div>
+    <div class="hub-banner-dots"></div>
+    <!-- Floating chips in banner -->
+    <div style="position:absolute;top:24px;left:80px;opacity:.5;"><span class="tag tag-accent" style="font-size:9px;">TinyML</span></div>
+    <div style="position:absolute;top:40px;right:120px;opacity:.45;"><span class="tag tag-teal" style="font-size:9px;">FPGA</span></div>
+    <div style="position:absolute;bottom:28px;left:200px;opacity:.4;"><span class="tag tag-purple" style="font-size:9px;">Computer Vision</span></div>
+    <div style="position:absolute;bottom:20px;right:200px;opacity:.45;"><span class="tag tag-green" style="font-size:9px;">Edge Inference</span></div>
+    <div style="position:absolute;top:20px;left:50%;transform:translateX(-50%);opacity:.35;"><span class="tag" style="font-size:9px;">RISC-V · Cortex-M · Ethos-U</span></div>
+  </div>
+  <div class="hub-meta-bar">
+    <div class="hub-meta-inner">
+      <div class="hub-icon"><i class="fa-solid fa-wrench"></i></div>
+      <div class="hub-info">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;">
+          <div>
+            <div class="hub-name">Edge AI Builders</div>
+            <div class="hub-desc">A community for engineers deploying machine learning at the edge — from sub-milliwatt microcontrollers to custom silicon. Share projects, ask hard questions, and build with people who care about inference efficiency.</div>
+            <div class="hub-stats">
+              <span class="hub-stat"><i class="fa fa-users"></i> <span class="hub-stat-val">342</span> Members</span>
+              <span class="hub-stat"><i class="fa fa-folder-open"></i> <span class="hub-stat-val">89</span> Projects</span>
+              <span class="hub-stat"><i class="fa fa-comments"></i> <span class="hub-stat-val">156</span> Discussions</span>
+              <span class="hub-stat"><i class="fa fa-fire"></i> <span class="hub-stat-val">Active</span> this week</span>
+              <span class="hub-stat"><i class="fa fa-calendar"></i> Founded <span class="hub-stat-val">Jan 2024</span></span>
+            </div>
+            <div class="hub-actions">
+              <button class="btn btn-primary"><i class="fa fa-plus"></i> Join Hub</button>
+              <button class="btn"><i class="fa fa-bell"></i> Subscribe</button>
+              <button class="btn btn-sm"><i class="fa fa-share-nodes"></i></button>
+            </div>
+          </div>
+          <div style="flex-shrink:0;display:flex;align-items:center;gap:6px;margin-top:4px;">
+            <span class="tag tag-accent" style="font-size:9px;"><i class="fa fa-shield-halved" style="margin-right:3px;"></i>Verified Hub</span>
+            <span class="tag tag-green" style="font-size:9px;">Open to All</span>
+          </div>
+        </div>
+        <div class="hub-tags" style="margin-top:10px;">
+          <div class="tag-row">
+            <span class="tag">Edge AI</span>
+            <span class="tag">TinyML</span>
+            <span class="tag">FPGA</span>
+            <span class="tag">Embedded ML</span>
+            <span class="tag">Quantization</span>
+            <span class="tag">Neural Compilation</span>
+            <span class="tag">Cortex-M</span>
+            <span class="tag">Raspberry Pi</span>
+            <span class="tag">Jetson</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- HUB TABS -->
+<div class="hub-tabs">
+  <div class="tabs-inner">
+    <button class="tab-btn active"><i class="fa fa-rss" style="font-size:10px;"></i> Feed</button>
+    <button class="tab-btn"><i class="fa fa-folder-open" style="font-size:10px;"></i> Projects <span class="tab-count">89</span></button>
+    <button class="tab-btn"><i class="fa fa-comments" style="font-size:10px;"></i> Discussions <span class="tab-count">156</span></button>
+    <button class="tab-btn"><i class="fa fa-graduation-cap" style="font-size:10px;"></i> Learn</button>
+    <button class="tab-btn"><i class="fa fa-calendar" style="font-size:10px;"></i> Events <span class="tab-count">3</span></button>
+    <button class="tab-btn"><i class="fa fa-users" style="font-size:10px;"></i> Members <span class="tab-count">342</span></button>
+  </div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="hub-main">
+  <div class="hub-layout">
+
+    <!-- MAIN COLUMN -->
+    <div>
+      <!-- Compose bar -->
+      <div style="background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:16px;display:flex;gap:10px;align-items:center;">
+        <div class="av av-md" style="background:var(--accent-bg);color:var(--accent);">KA</div>
+        <div style="flex:1;background:var(--surface2);border:2px solid var(--border);border-radius:var(--radius);padding:8px 12px;font-size:12px;color:var(--text-faint);cursor:pointer;">Share a project, ask a question, or start a discussion...</div>
+        <button class="btn btn-sm"><i class="fa fa-image"></i></button>
+        <button class="btn btn-sm"><i class="fa fa-link"></i></button>
+        <button class="btn btn-sm btn-primary"><i class="fa fa-paper-plane"></i> Post</button>
+      </div>
+
+      <!-- Feed filter -->
+      <div class="tag-row" style="margin-bottom:14px;">
+        <span class="tag tag-accent">All Posts</span>
+        <span class="tag">Discussions</span>
+        <span class="tag">Questions</span>
+        <span class="tag">Showcases</span>
+        <span class="tag">Announcements</span>
+      </div>
+
+      <!-- ANNOUNCEMENT POST -->
+      <div class="feed-card announce-band">
+        <div class="feed-header">
+          <div class="feed-avatar-col">
+            <div class="av av-md" style="background:var(--yellow-bg);color:var(--yellow);">EA</div>
+          </div>
+          <div class="feed-content">
+            <div class="feed-meta">
+              <span class="feed-author">Edge AI Builders</span>
+              <div class="feed-dot"></div>
+              <span class="feed-time">2h ago</span>
+              <div class="feed-dot"></div>
+              <span class="feed-type-badge badge-announcement"><i class="fa fa-bullhorn" style="font-size:8px;margin-right:3px;"></i>Announcement</span>
+            </div>
+            <div class="feed-title">Monthly Meetup: Efficient Inference on Custom Silicon — March 18</div>
+            <div class="feed-body">Join us this Tuesday for a live session on deploying neural networks to custom NPUs. Kwabena Agyeman will be presenting his FPGA CNN accelerator work, followed by an open Q&A. Registration link below — spots are limited to 120 attendees.</div>
+            <div style="background:var(--surface2);border:2px solid var(--border);border-radius:var(--radius);padding:10px 12px;display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+              <div>
+                <div style="font-size:12px;font-weight:600;margin-bottom:2px;">Monthly Meetup · March 18, 2026</div>
+                <div style="font-size:11px;color:var(--text-dim);font-family:'JetBrains Mono',monospace;">18:00 UTC · Zoom · Free</div>
+              </div>
+              <button class="btn btn-sm btn-primary">Register</button>
+            </div>
+            <div class="tag-row"><span class="tag">Event</span><span class="tag tag-yellow">FPGA</span><span class="tag">Custom Silicon</span></div>
+          </div>
+        </div>
+        <div class="feed-footer">
+          <button class="feed-action"><i class="fa fa-thumbs-up"></i> 47</button>
+          <button class="feed-action"><i class="fa fa-comment"></i> 12</button>
+          <button class="feed-action"><i class="fa fa-share-nodes"></i> Share</button>
+          <div class="feed-actions-right">
+            <button class="feed-action"><i class="fa fa-bookmark"></i></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- PROJECT SHOWCASE POST -->
+      <div class="feed-card">
+        <div class="feed-header">
+          <div class="feed-avatar-col">
+            <div class="av av-md" style="background:var(--accent-bg);color:var(--accent);">KA</div>
+          </div>
+          <div class="feed-content">
+            <div class="feed-meta">
+              <span class="feed-author">Kwabena Agyeman</span>
+              <div class="feed-dot"></div>
+              <span class="feed-time">5h ago</span>
+              <div class="feed-dot"></div>
+              <span class="feed-type-badge badge-showcase"><i class="fa fa-star" style="font-size:8px;margin-right:3px;"></i>Showcase</span>
+            </div>
+            <div class="feed-title">Just shipped v2 of NeuralEdge — now with dynamic quantization and 60fps inference on RP2040!</div>
+            <div class="feed-body">Major update after feedback from this community. Added INT4 support, a new SRAM allocator that reduces peak memory by 34%, and a profiling dashboard. Full writeup in the project log. Happy to answer questions about the quantization approach.</div>
+            <div class="feed-project-embed">
+              <div class="embed-thumb" style="background:#dbeafe;"><i class="fa-solid fa-brain" style="color:var(--accent);"></i></div>
+              <div class="embed-info">
+                <div class="embed-title">NeuralEdge: ONNX Inference on RP2040 — v2.0</div>
+                <div class="embed-meta">TinyML · 2.4k views · 148 <i class="fa-solid fa-heart" style="color:var(--red);font-size:9px;"></i> · @kwabena</div>
+              </div>
+              <i class="fa fa-arrow-up-right-from-square" style="font-size:11px;color:var(--text-faint);"></i>
+            </div>
+            <div class="tag-row"><span class="tag tag-accent">TinyML</span><span class="tag tag-green">Open Source</span><span class="tag">RP2040</span></div>
+          </div>
+        </div>
+        <div class="feed-footer">
+          <button class="feed-action"><i class="fa fa-heart" style="color:var(--red);"></i> 94</button>
+          <button class="feed-action"><i class="fa fa-comment"></i> 28</button>
+          <button class="feed-action"><i class="fa fa-retweet"></i> 16</button>
+          <div class="feed-actions-right">
+            <button class="feed-action"><i class="fa fa-bookmark"></i></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- DISCUSSION POST -->
+      <div class="feed-card">
+        <div class="feed-header">
+          <div class="feed-avatar-col">
+            <div class="av av-md" style="background:var(--green-bg);color:var(--green);">SO</div>
+          </div>
+          <div class="feed-content">
+            <div class="feed-meta">
+              <span class="feed-author">Seun Okonkwo</span>
+              <div class="feed-dot"></div>
+              <span class="feed-time">8h ago</span>
+              <div class="feed-dot"></div>
+              <span class="feed-type-badge badge-discussion"><i class="fa fa-comments" style="font-size:8px;margin-right:3px;"></i>Discussion</span>
+            </div>
+            <div class="feed-title">Comparing Ethos-U55 vs Ethos-U65 for vision workloads — real numbers</div>
+            <div class="feed-body">Ran benchmarks on both targets with MobileNetV3-Small and EfficientDet-Lite2. The U65 is roughly 2× faster on depthwise convolutions but the additional MAC array complexity shows up in power on sustained workloads. Thread with full benchmark table below...</div>
+            <div class="tag-row"><span class="tag tag-teal">Ethos-U</span><span class="tag">Benchmarks</span><span class="tag">Computer Vision</span></div>
+          </div>
+        </div>
+        <div class="feed-footer">
+          <button class="feed-action"><i class="fa fa-thumbs-up"></i> 61</button>
+          <button class="feed-action"><i class="fa fa-comment"></i> 34</button>
+          <button class="feed-action"><i class="fa fa-share-nodes"></i> Share</button>
+          <div class="feed-actions-right">
+            <button class="feed-action" style="color:var(--accent);">Read Thread</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- QUESTION POST (SOLVED) -->
+      <div class="feed-card">
+        <div class="feed-header">
+          <div class="feed-avatar-col">
+            <div class="av av-md" style="background:var(--purple-bg);color:var(--purple);">MP</div>
+          </div>
+          <div class="feed-content">
+            <div class="feed-meta">
+              <span class="feed-author">Miriam Patel</span>
+              <div class="feed-dot"></div>
+              <span class="feed-time">1d ago</span>
+              <div class="feed-dot"></div>
+              <span class="feed-type-badge badge-solved"><i class="fa fa-circle-check" style="font-size:8px;margin-right:3px;"></i>Solved</span>
+            </div>
+            <div class="feed-title">How to handle ONNX opset 18 ops in TFLite Micro? Getting unsupported layer errors on Layernorm</div>
+            <div class="feed-body">Running into issues converting a transformer model — the LayerNorm op in opset 18 doesn't have a TFLite Micro kernel yet. Has anyone found a workaround without retraining with a custom norm layer? Solved by @kwabena below.</div>
+            <div style="background:var(--green-bg);border:2px solid var(--green);border-radius:var(--radius);padding:8px 12px;margin-bottom:10px;">
+              <div style="font-size:10px;color:var(--green);font-family:'JetBrains Mono',monospace;margin-bottom:4px;"><i class="fa fa-circle-check" style="margin-right:4px;"></i>Accepted Answer · @kwabena</div>
+              <div style="font-size:11px;color:var(--text-dim);">You can decompose LayerNorm into primitive ops (ReduceMean, Sub, Square, etc.) using the ONNX rewriting API before export. Here's the decompose_layernorm() helper I use...</div>
+            </div>
+            <div class="tag-row"><span class="tag tag-green">Solved</span><span class="tag">ONNX</span><span class="tag">TFLite Micro</span></div>
+          </div>
+        </div>
+        <div class="feed-footer">
+          <button class="feed-action"><i class="fa fa-thumbs-up"></i> 38</button>
+          <button class="feed-action"><i class="fa fa-comment"></i> 7</button>
+          <button class="feed-action"><i class="fa fa-share-nodes"></i> Share</button>
+          <div class="feed-actions-right">
+            <button class="feed-action"><i class="fa fa-bookmark"></i></button>
+          </div>
+        </div>
+      </div>
+
+      <hr class="divider">
+
+      <!-- FEATURED PROJECTS -->
+      <div style="margin-bottom:24px;">
+        <div class="sec-head">
+          <h2><i class="fa fa-star" style="color:var(--yellow);margin-right:6px;"></i>Featured Projects</h2>
+          <a class="view-all" href="#">View all 89 →</a>
+        </div>
+        <div class="proj-grid-2">
+          <div class="project-card">
+            <div class="project-thumb thumb-bg-1">
+              <div class="thumb-grid"></div>
+              <div class="thumb-icon" style="color:var(--accent);"><i class="fa-solid fa-brain"></i></div>
+              <div class="thumb-badge"><span class="tag tag-accent" style="font-size:9px;">Featured</span></div>
+            </div>
+            <div class="project-body">
+              <div class="project-title">NeuralEdge: ONNX Inference on RP2040</div>
+              <div class="project-desc">Real-time inference at 60fps on a $4 microcontroller with custom INT4 quantization.</div>
+              <div class="project-footer">
+                <div class="av av-xs" style="background:var(--accent-bg);color:var(--accent);">KA</div>
+                <span>@kwabena</span>
+                <span style="margin-left:auto;"><i class="fa fa-heart" style="color:var(--red);font-size:9px;"></i> 148</span>
+              </div>
+            </div>
+          </div>
+          <div class="project-card">
+            <div class="project-thumb thumb-bg-2">
+              <div class="thumb-grid"></div>
+              <div class="thumb-icon" style="color:var(--purple);"><i class="fa-solid fa-bolt"></i></div>
+              <div class="thumb-badge"><span class="tag tag-yellow" style="font-size:9px;"><i class="fa-solid fa-trophy" style="font-size:8px;margin-right:3px;"></i> Top Rated</span></div>
+            </div>
+            <div class="project-body">
+              <div class="project-title">FPGA CNN Accelerator (Artix-7)</div>
+              <div class="project-desc">4.2 TOPS/W systolic array for MobileNetV3 — open RTL and verification suite.</div>
+              <div class="project-footer">
+                <div class="av av-xs" style="background:var(--accent-bg);color:var(--accent);">KA</div>
+                <span>@kwabena</span>
+                <span style="margin-left:auto;"><i class="fa fa-heart" style="color:var(--red);font-size:9px;"></i> 203</span>
+              </div>
+            </div>
+          </div>
+          <div class="project-card">
+            <div class="project-thumb thumb-bg-3">
+              <div class="thumb-grid"></div>
+              <div class="thumb-icon" style="color:var(--green);"><i class="fa-solid fa-seedling"></i></div>
+            </div>
+            <div class="project-body">
+              <div class="project-title">Embedded Vision for Precision Agriculture</div>
+              <div class="project-desc">Offline crop disease detection on Jetson Nano — 40k image training set, 12 pathogens.</div>
+              <div class="project-footer">
+                <div class="av av-xs" style="background:var(--green-bg);color:var(--green);">SO</div>
+                <span>@seun</span>
+                <span style="margin-left:auto;"><i class="fa fa-heart" style="color:var(--red);font-size:9px;"></i> 97</span>
+              </div>
+            </div>
+          </div>
+          <div class="project-card">
+            <div class="project-thumb thumb-bg-4">
+              <div class="thumb-grid"></div>
+              <div class="thumb-icon" style="color:#ec4899;"><i class="fa-solid fa-volume-high"></i></div>
+            </div>
+            <div class="project-body">
+              <div class="project-title">8KB Wake Word Engine on Cortex-M4</div>
+              <div class="project-desc">Ultra-low-power keyword spotting — binary RNN, custom MFCC, always-on DMA capture.</div>
+              <div class="project-footer">
+                <div class="av av-xs" style="background:var(--purple-bg);color:var(--purple);">MP</div>
+                <span>@miriam</span>
+                <span style="margin-left:auto;"><i class="fa fa-heart" style="color:var(--red);font-size:9px;"></i> 81</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RECENT DISCUSSIONS -->
+      <div>
+        <div class="sec-head">
+          <h2><i class="fa fa-comments" style="color:var(--purple);margin-right:6px;"></i>Recent Discussions</h2>
+          <a class="view-all" href="#">View all 156 →</a>
+        </div>
+
+        <div class="disc-item">
+          <div class="disc-votes">
+            <div class="disc-vote-count" style="color:var(--accent);">24</div>
+            <div class="disc-vote-label">votes</div>
+          </div>
+          <div class="disc-info">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+              <span class="tag tag-accent" style="font-size:9px;">Question</span>
+              <span class="tag tag-accent" style="font-size:9px;background:var(--green-bg);color:var(--green);border-color:rgba(34,197,94,.25);">Solved</span>
+            </div>
+            <div class="disc-title">Best strategy for deploying YOLOv8n to Cortex-M85 with Helium?</div>
+            <div class="disc-meta">
+              <span>@aisha_k</span>
+              <span>·</span>
+              <span>3h ago</span>
+              <span>·</span>
+              <span class="tag" style="font-size:9px;padding:1px 5px;">YOLO</span>
+              <span class="tag" style="font-size:9px;padding:1px 5px;">Cortex-M</span>
+            </div>
+          </div>
+          <div class="disc-replies">
+            <div class="disc-reply-count">12</div>
+            <div class="disc-reply-label">replies</div>
+          </div>
+        </div>
+
+        <div class="disc-item">
+          <div class="disc-votes">
+            <div class="disc-vote-count">18</div>
+            <div class="disc-vote-label">votes</div>
+          </div>
+          <div class="disc-info">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+              <span class="tag" style="font-size:9px;background:var(--purple-bg);color:var(--purple);border-color:rgba(139,92,246,.25);">Discussion</span>
+            </div>
+            <div class="disc-title">Is mixed INT4/FP16 actually better than INT8 on Ethos-U? Sharing benchmark data</div>
+            <div class="disc-meta">
+              <span>@bayo_t</span>
+              <span>·</span>
+              <span>6h ago</span>
+              <span>·</span>
+              <span class="tag" style="font-size:9px;padding:1px 5px;">Quantization</span>
+              <span class="tag" style="font-size:9px;padding:1px 5px;">Ethos-U</span>
+            </div>
+          </div>
+          <div class="disc-replies">
+            <div class="disc-reply-count">29</div>
+            <div class="disc-reply-label">replies</div>
+          </div>
+        </div>
+
+        <div class="disc-item">
+          <div class="disc-votes">
+            <div class="disc-vote-count">41</div>
+            <div class="disc-vote-label">votes</div>
+          </div>
+          <div class="disc-info">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+              <span class="tag" style="font-size:9px;background:var(--teal-bg);color:var(--teal);border-color:rgba(20,184,166,.25);">Resource</span>
+            </div>
+            <div class="disc-title">Curated reading list: Neural network compilation for edge targets (MLIR, TVM, Glow)</div>
+            <div class="disc-meta">
+              <span>@lena_o</span>
+              <span>·</span>
+              <span>2d ago</span>
+              <span>·</span>
+              <span class="tag" style="font-size:9px;padding:1px 5px;">MLIR</span>
+              <span class="tag" style="font-size:9px;padding:1px 5px;">TVM</span>
+              <span class="tag" style="font-size:9px;padding:1px 5px;">Compilers</span>
+            </div>
+          </div>
+          <div class="disc-replies">
+            <div class="disc-reply-count">8</div>
+            <div class="disc-reply-label">replies</div>
+          </div>
+        </div>
+
+        <div class="disc-item">
+          <div class="disc-votes">
+            <div class="disc-vote-count">9</div>
+            <div class="disc-vote-label">votes</div>
+          </div>
+          <div class="disc-info">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+              <span class="tag tag-accent" style="font-size:9px;">Question</span>
+            </div>
+            <div class="disc-title">Custom memory allocator for ONNX Runtime on bare-metal — how to handle fragmentation?</div>
+            <div class="disc-meta">
+              <span>@obi_d</span>
+              <span>·</span>
+              <span>3d ago</span>
+              <span>·</span>
+              <span class="tag" style="font-size:9px;padding:1px 5px;">ONNX Runtime</span>
+              <span class="tag" style="font-size:9px;padding:1px 5px;">Memory</span>
+            </div>
+          </div>
+          <div class="disc-replies">
+            <div class="disc-reply-count">15</div>
+            <div class="disc-reply-label">replies</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- SIDEBAR -->
+    <div>
+      <!-- Moderators -->
+      <div class="sb-card">
+        <div class="sb-title">Moderators</div>
+        <div class="mod-item">
+          <div class="av av-md" style="background:var(--accent-bg);color:var(--accent);">KA</div>
+          <div class="mod-info">
+            <div class="mod-name">Kwabena Agyeman</div>
+            <div class="mod-role">Lead Moderator</div>
+          </div>
+          <button class="btn btn-sm" style="font-size:10px;padding:3px 8px;">Follow</button>
+        </div>
+        <div class="mod-item">
+          <div class="av av-md" style="background:var(--green-bg);color:var(--green);">AM</div>
+          <div class="mod-info">
+            <div class="mod-name">Amara Mensah</div>
+            <div class="mod-role">Moderator</div>
+          </div>
+          <button class="btn btn-sm" style="font-size:10px;padding:3px 8px;">Follow</button>
+        </div>
+        <div class="mod-item">
+          <div class="av av-md" style="background:var(--purple-bg);color:var(--purple);">LO</div>
+          <div class="mod-info">
+            <div class="mod-name">Lena Owusu</div>
+            <div class="mod-role">Moderator</div>
+          </div>
+          <button class="btn btn-sm" style="font-size:10px;padding:3px 8px;">Follow</button>
+        </div>
+      </div>
+
+      <!-- Hub Rules -->
+      <div class="sb-card">
+        <div class="sb-title">Hub Rules</div>
+        <div class="rule-item">
+          <span class="rule-num">1.</span>
+          <span>Share real work — projects must include build logs or documentation.</span>
+        </div>
+        <div class="rule-item">
+          <span class="rule-num">2.</span>
+          <span>Be specific in questions. Include chip target, toolchain version, and error messages.</span>
+        </div>
+        <div class="rule-item">
+          <span class="rule-num">3.</span>
+          <span>Mark questions as solved when resolved. Credit helpful answers.</span>
+        </div>
+        <div class="rule-item">
+          <span class="rule-num">4.</span>
+          <span>No vendor marketing or paid promotion without disclosure.</span>
+        </div>
+        <div class="rule-item">
+          <span class="rule-num">5.</span>
+          <span>Open source preferred. Closed-source projects must disclose licensing clearly.</span>
+        </div>
+      </div>
+
+      <!-- Related Hubs -->
+      <div class="sb-card">
+        <div class="sb-title">Related Hubs</div>
+        <div class="related-hub">
+          <div class="hub-mini-icon"><i class="fa-solid fa-bolt" style="color:var(--accent);font-size:12px;"></i></div>
+          <div class="hub-mini-info">
+            <div class="hub-mini-name">FPGA Enthusiasts</div>
+            <div class="hub-mini-count">218 members</div>
+          </div>
+          <button class="btn btn-sm" style="font-size:10px;padding:3px 8px;">Join</button>
+        </div>
+        <div class="related-hub">
+          <div class="hub-mini-icon"><i class="fa-solid fa-robot" style="color:var(--teal);font-size:12px;"></i></div>
+          <div class="hub-mini-info">
+            <div class="hub-mini-name">Robotics & Autonomy</div>
+            <div class="hub-mini-count">491 members</div>
+          </div>
+          <button class="btn btn-sm" style="font-size:10px;padding:3px 8px;">Join</button>
+        </div>
+        <div class="related-hub">
+          <div class="hub-mini-icon"><i class="fa-solid fa-seedling" style="color:var(--green);font-size:12px;"></i></div>
+          <div class="hub-mini-info">
+            <div class="hub-mini-name">AfricaTech Makers</div>
+            <div class="hub-mini-count">734 members</div>
+          </div>
+          <button class="btn btn-sm" style="font-size:10px;padding:3px 8px;">Join</button>
+        </div>
+        <div class="related-hub">
+          <div class="hub-mini-icon"><i class="fa-solid fa-microscope" style="color:var(--purple);font-size:12px;"></i></div>
+          <div class="hub-mini-info">
+            <div class="hub-mini-name">ML Compilers &amp; Runtimes</div>
+            <div class="hub-mini-count">163 members</div>
+          </div>
+          <button class="btn btn-sm" style="font-size:10px;padding:3px 8px;">Join</button>
+        </div>
+      </div>
+
+      <!-- Resources -->
+      <div class="sb-card">
+        <div class="sb-title">Hub Resources</div>
+        <div class="resource-item">
+          <i class="fa fa-book"></i>
+          <a href="#">Getting Started with Edge AI on Snaplify</a>
+        </div>
+        <div class="resource-item">
+          <i class="fa fa-file-code"></i>
+          <a href="#">Recommended toolchain setup guide</a>
+        </div>
+        <div class="resource-item">
+          <i class="fa-brands fa-github"></i>
+          <a href="#">Community GitHub organization</a>
+        </div>
+        <div class="resource-item">
+          <i class="fa-brands fa-discord"></i>
+          <a href="#">Discord server (off-hours chat)</a>
+        </div>
+        <div class="resource-item">
+          <i class="fa fa-graduation-cap"></i>
+          <a href="#">Curated learning path: TinyML basics</a>
+        </div>
+      </div>
+
+      <!-- Active Members -->
+      <div class="sb-card">
+        <div class="sb-title">Active This Week</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;">
+          <div class="av av-md" style="background:var(--accent-bg);color:var(--accent);" title="Kwabena Agyeman">KA</div>
+          <div class="av av-md" style="background:var(--green-bg);color:var(--green);" title="Seun Okonkwo">SO</div>
+          <div class="av av-md" style="background:var(--purple-bg);color:var(--purple);" title="Miriam Patel">MP</div>
+          <div class="av av-md" style="background:var(--yellow-bg);color:var(--yellow);" title="Bayo Tunde">BT</div>
+          <div class="av av-md" style="background:var(--pink-bg);color:#ec4899;" title="Aisha Kamara">AK</div>
+          <div class="av av-md" style="background:var(--teal-bg);color:var(--teal);" title="Obi Diallo">OD</div>
+          <div class="av av-md" style="background:var(--green-bg);color:var(--green);" title="Lena Owusu">LO</div>
+          <div class="av av-md" style="background:var(--red-bg);color:var(--red);" title="Rami Habib">RH</div>
+          <div style="width:32px;height:32px;border-radius:50%;background:var(--surface2);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--text-faint);font-family:'JetBrains Mono',monospace;">+24</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand"><span>snap</span>lify</div>
+    <div class="footer-links">
+      <a class="footer-link" href="#">About</a>
+      <a class="footer-link" href="#">Blog</a>
+      <a class="footer-link" href="#">Careers</a>
+      <a class="footer-link" href="#">Terms</a>
+      <a class="footer-link" href="#">Privacy</a>
+      <a class="footer-link" href="#">Help</a>
+    </div>
+    <div class="footer-copy">&copy; 2026 Snaplify, Inc.</div>
+  </div>
+</footer>
+
+</body>
+</html>

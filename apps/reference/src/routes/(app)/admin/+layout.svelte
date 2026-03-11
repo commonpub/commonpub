@@ -7,11 +7,14 @@
 </script>
 
 <div class="admin-layout">
-  <aside class="admin-layout__sidebar">
-    <h2 class="admin-layout__title">Admin</h2>
+  <aside class="admin-sidebar">
+    <div class="admin-sidebar-header">
+      <span class="admin-sidebar-label">admin</span>
+      <span class="admin-sidebar-ver">v1.0.0</span>
+    </div>
     <AdminNav currentPath={$page.url.pathname} />
   </aside>
-  <div class="admin-layout__content">
+  <div class="admin-content">
     {@render children()}
   </div>
 </div>
@@ -19,29 +22,45 @@
 <style>
   .admin-layout {
     display: flex;
-    gap: var(--space-6, 1.5rem);
-    min-height: calc(100vh - var(--nav-height, 4rem));
+    min-height: calc(100vh - 48px);
   }
 
-  .admin-layout__sidebar {
-    width: var(--sidebar-width, 17.5rem);
+  .admin-sidebar {
+    width: 200px;
     flex-shrink: 0;
-    padding: var(--space-4, 1rem);
-    border-right: var(--border-width-thin, 1px) solid var(--color-border, #e5e7eb);
+    padding: var(--space-4, 1rem) 0;
+    border-right: 1px solid var(--color-border, #272725);
+    background: var(--color-surface, #0c0c0b);
   }
 
-  .admin-layout__title {
-    font-family: var(--font-heading, sans-serif);
-    font-size: var(--text-lg, 1.125rem);
-    font-weight: var(--font-weight-bold, 700);
+  .admin-sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 var(--space-3, 0.75rem) var(--space-3, 0.75rem);
+    border-bottom: 1px solid var(--color-border, #272725);
+    margin-bottom: var(--space-3, 0.75rem);
+  }
+
+  .admin-sidebar-label {
+    font-family: var(--font-mono, monospace);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
     color: var(--color-text, #d8d5cf);
-    margin: 0 0 var(--space-4, 1rem);
-    padding: 0 var(--space-3, 0.75rem);
+    font-weight: 700;
   }
 
-  .admin-layout__content {
+  .admin-sidebar-ver {
+    font-family: var(--font-mono, monospace);
+    font-size: 9px;
+    color: var(--color-text-muted, #444440);
+  }
+
+  .admin-content {
     flex: 1;
-    padding: var(--space-4, 1rem);
+    padding: var(--space-6, 1.5rem) var(--space-8, 2rem);
     min-width: 0;
+    max-width: 960px;
   }
 </style>

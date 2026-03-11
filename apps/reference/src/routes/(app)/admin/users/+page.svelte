@@ -27,9 +27,12 @@
   <title>User Management — Admin</title>
 </svelte:head>
 
-<h1 class="admin-heading">Users</h1>
+<div class="adm-page-header">
+  <h1 class="adm-heading">Users</h1>
+  <span class="adm-heading-sub">management</span>
+</div>
 
-<form method="get" class="admin-filters">
+<form method="get" class="adm-filters">
   <Input
     id="user-search"
     label="Search"
@@ -38,7 +41,7 @@
     value={data.search ?? ''}
     placeholder="Search users..."
   />
-  <select name="role" aria-label="Filter by role" class="admin-select">
+  <select name="role" aria-label="Filter by role" class="adm-select">
     <option value="">All roles</option>
     <option value="member" selected={data.role === 'member'}>member</option>
     <option value="pro" selected={data.role === 'pro'}>pro</option>
@@ -46,7 +49,7 @@
     <option value="staff" selected={data.role === 'staff'}>staff</option>
     <option value="admin" selected={data.role === 'admin'}>admin</option>
   </select>
-  <select name="status" aria-label="Filter by status" class="admin-select">
+  <select name="status" aria-label="Filter by status" class="adm-select">
     <option value="">All statuses</option>
     <option value="active" selected={data.status === 'active'}>active</option>
     <option value="suspended" selected={data.status === 'suspended'}>suspended</option>
@@ -55,20 +58,36 @@
   <Button type="submit" variant="primary" size="sm">Filter</Button>
 </form>
 
-<p class="admin-count">{data.total} user{data.total === 1 ? '' : 's'} found</p>
+<p class="adm-count">{data.total} user{data.total === 1 ? '' : 's'} found</p>
 
 <UserTable users={data.users} onRoleChange={handleRoleChange} onStatusChange={handleStatusChange} />
 
 <style>
-  .admin-heading {
-    font-family: var(--font-heading, sans-serif);
-    font-size: var(--text-2xl, 1.5rem);
-    font-weight: var(--font-weight-bold, 700);
-    color: var(--color-text, #d8d5cf);
-    margin: 0 0 var(--space-4, 1rem);
+  .adm-page-header {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-3, 0.75rem);
+    margin-bottom: var(--space-4, 1rem);
+    padding-bottom: var(--space-3, 0.75rem);
+    border-bottom: 1px solid var(--color-border, #272725);
   }
 
-  .admin-filters {
+  .adm-heading {
+    font-size: var(--text-xl, 1.25rem);
+    font-weight: var(--font-weight-bold, 700);
+    color: var(--color-text, #d8d5cf);
+    margin: 0;
+  }
+
+  .adm-heading-sub {
+    font-family: var(--font-mono, monospace);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-text-muted, #444440);
+  }
+
+  .adm-filters {
     display: flex;
     gap: var(--space-2, 0.5rem);
     margin-bottom: var(--space-4, 1rem);
@@ -76,25 +95,28 @@
     align-items: flex-end;
   }
 
-  .admin-select {
-    font-family: var(--font-body, sans-serif);
-    font-size: var(--text-sm, 0.75rem);
-    padding: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
-    border: var(--border-width-thin, 1px) solid var(--color-border, #e5e7eb);
-    border-radius: var(--radius-md, 0.25rem);
-    background: var(--color-surface, #fff);
+  .adm-select {
+    font-family: var(--font-mono, monospace);
+    font-size: var(--text-xs, 0.75rem);
+    padding: 6px var(--space-2, 0.5rem);
+    border: 1px solid var(--color-border, #272725);
+    border-radius: var(--radius-sm, 4px);
+    background: var(--color-surface, #0c0c0b);
     color: var(--color-text, #d8d5cf);
+    cursor: pointer;
   }
 
-  .admin-select:focus {
+  .adm-select:focus {
     outline: none;
-    box-shadow: var(--focus-ring);
+    border-color: var(--color-accent, #5b9cf6);
   }
 
-  .admin-count {
-    font-family: var(--font-body, sans-serif);
-    font-size: var(--text-sm, 0.75rem);
-    color: var(--color-text-muted, #888);
+  .adm-count {
+    font-family: var(--font-mono, monospace);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-muted, #444440);
     margin-bottom: var(--space-3, 0.75rem);
   }
 </style>

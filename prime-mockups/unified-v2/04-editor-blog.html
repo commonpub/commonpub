@@ -1,0 +1,1847 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blog Post Editor — Snaplify</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+:root {
+  --bg: #fafaf9;
+  --surface: #ffffff;
+  --surface2: #f4f4f2;
+  --surface3: #eaeae7;
+  --border: #1a1a1a;
+  --border2: #d4d4d0;
+  --text: #1a1a1a;
+  --text-dim: #6b6b66;
+  --text-faint: #a3a39e;
+  --accent: #5b9cf6;
+  --accent-bg: rgba(91,156,246,0.08);
+  --accent-border: rgba(91,156,246,0.25);
+  --green: #22c55e;
+  --green-bg: rgba(34,197,94,0.08);
+  --yellow: #f59e0b;
+  --yellow-bg: rgba(245,158,11,0.08);
+  --red: #ef4444;
+  --red-bg: rgba(239,68,68,0.08);
+  --purple: #8b5cf6;
+  --teal: #14b8a6;
+  --teal-bg: rgba(20,184,166,0.07);
+  --pink: #ec4899;
+  --radius: 0px;
+  --radius-lg: 0px;
+  --topbar-h: 48px;
+  --panel-w: 320px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.5;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ─── SCROLLBARS ─────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 0; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-faint); }
+
+/* ─── TOP BAR ────────────────────────────────── */
+.topbar {
+  height: var(--topbar-h);
+  background: var(--surface);
+  border-bottom: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 0;
+  flex-shrink: 0;
+  z-index: 100;
+}
+
+.tb-brand {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: .04em;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.tb-brand .dot { color: var(--accent); }
+
+.tb-divider {
+  width: 2px;
+  height: 20px;
+  background: var(--border);
+  margin: 0 14px;
+  flex-shrink: 0;
+}
+
+.tb-back {
+  width: 30px; height: 30px;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-dim);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  flex-shrink: 0;
+  transition: all .15s;
+  box-shadow: 2px 2px 0 var(--border);
+}
+.tb-back:hover { color: var(--text); background: var(--surface2); }
+
+.tb-type {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--text-dim);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  background: var(--surface2);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  padding: 2px 10px;
+  flex-shrink: 0;
+  margin-left: 10px;
+}
+
+.tb-title {
+  font-size: 13px;
+  color: var(--text-dim);
+  margin-left: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 320px;
+  flex-shrink: 1;
+}
+
+.tb-unsaved {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--yellow);
+  margin-left: 8px;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+}
+
+.tb-spacer { flex: 1; }
+
+.btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  padding: 6px 14px;
+  border-radius: var(--radius);
+  border: 2px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all .15s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.btn:hover { background: var(--surface2); }
+.btn-ghost { background: transparent; border-color: var(--border); }
+.btn-ghost:hover { background: var(--surface2); }
+.btn-outline-accent {
+  background: transparent;
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.btn-outline-accent:hover { background: var(--accent-bg); }
+.btn-accent {
+  background: var(--accent);
+  border-color: var(--border);
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 4px 4px 0 var(--border);
+}
+.btn-accent:hover { background: #4a8ee8; }
+.btn-accent:active { box-shadow: 2px 2px 0 var(--border); transform: translate(2px, 2px); }
+
+.tb-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+/* ─── LAYOUT ─────────────────────────────────── */
+.layout {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ─── CENTER EDITOR ──────────────────────────── */
+.editor-wrap {
+  flex: 1;
+  overflow-y: auto;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.editor-inner {
+  width: 100%;
+  max-width: 720px;
+  padding: 36px 40px 80px;
+}
+
+/* ─── COVER IMAGE ────────────────────────────── */
+.cover-area {
+  width: 100%;
+  aspect-ratio: 16/7;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  position: relative;
+  margin-bottom: 32px;
+  cursor: pointer;
+  box-shadow: 4px 4px 0 var(--border);
+}
+
+.cover-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.cover-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: var(--surface);
+  background-image:
+    linear-gradient(var(--border2) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border2) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+.cover-placeholder-icon {
+  width: 48px; height: 48px;
+  background: var(--surface2);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-faint);
+  font-size: 18px;
+}
+
+.cover-placeholder-text {
+  font-size: 12px;
+  color: var(--text-faint);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.cover-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  opacity: 0;
+  transition: opacity .2s;
+}
+
+.cover-area:hover .cover-overlay { opacity: 1; }
+
+.cover-btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  padding: 6px 12px;
+  border-radius: var(--radius);
+  border: 2px solid rgba(255,255,255,.3);
+  background: rgba(255,255,255,.08);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: background .15s;
+}
+.cover-btn:hover { background: rgba(255,255,255,.18); }
+.cover-btn.primary { background: var(--accent); border-color: #fff; }
+.cover-btn.primary:hover { background: #4a8ee8; }
+
+/* ─── TITLE / SUBTITLE ───────────────────────── */
+.post-title {
+  width: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.25;
+  resize: none;
+  font-family: system-ui, -apple-system, sans-serif;
+  caret-color: var(--accent);
+  margin-bottom: 8px;
+}
+.post-title::placeholder { color: var(--text-faint); }
+
+.post-subtitle {
+  width: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text-dim);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.5;
+  resize: none;
+  font-family: system-ui, -apple-system, sans-serif;
+  caret-color: var(--accent);
+  margin-bottom: 20px;
+}
+.post-subtitle::placeholder { color: var(--text-faint); }
+
+/* ─── BYLINE ─────────────────────────────────── */
+.byline {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid var(--border);
+  margin-bottom: 28px;
+}
+
+.byline-av {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+  border: 2px solid var(--border);
+}
+
+.byline-info { display: flex; flex-direction: column; gap: 2px; }
+.byline-name { font-size: 13px; font-weight: 600; color: var(--text); }
+.byline-meta {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-family: 'JetBrains Mono', monospace;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.byline-meta .sep { color: var(--text-faint); }
+
+/* ─── FLOATING TOOLBAR ───────────────────────── */
+.float-toolbar {
+  position: fixed;
+  top: 200px;
+  left: 50%;
+  transform: translateX(calc(-50% - 160px));
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  z-index: 200;
+  box-shadow: 4px 4px 0 var(--border);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .15s, transform .15s;
+}
+.float-toolbar.visible {
+  opacity: 1;
+  pointer-events: all;
+  transform: translateX(calc(-50% - 160px)) translateY(-4px);
+}
+
+.ft-btn {
+  width: 30px; height: 30px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius);
+  color: var(--text-dim);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  transition: all .12s;
+  font-family: 'JetBrains Mono', monospace;
+}
+.ft-btn:hover { background: var(--surface2); color: var(--text); }
+.ft-btn.active { color: var(--accent); background: var(--accent-bg); }
+.ft-sep {
+  width: 2px;
+  height: 18px;
+  background: var(--border);
+  margin: 0 2px;
+}
+.ft-btn-text {
+  font-size: 10px;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: -.02em;
+}
+
+/* ─── CONTENT AREA ───────────────────────────── */
+.content-area {
+  position: relative;
+  outline: none;
+  min-height: 400px;
+}
+
+/* ─── CONTENT BLOCKS ─────────────────────────── */
+.block {
+  position: relative;
+  margin-bottom: 4px;
+}
+
+.block-insert {
+  height: 24px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  opacity: 0;
+  transition: opacity .15s;
+  cursor: pointer;
+  margin: 2px 0;
+}
+.block-insert:hover { opacity: 1 !important; }
+.block:hover + .block-insert,
+.block-insert:hover { opacity: 1; }
+
+.insert-line {
+  flex: 1;
+  height: 1px;
+  background: var(--border2);
+}
+.insert-btn {
+  width: 22px; height: 22px;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-faint);
+  font-size: 10px;
+  flex-shrink: 0;
+}
+.block-insert:hover .insert-btn {
+  background: var(--accent);
+  border-color: var(--border);
+  color: #fff;
+}
+
+.prose-p {
+  font-size: 16px;
+  line-height: 1.75;
+  color: var(--text);
+  padding: 4px 0;
+  outline: none;
+  min-height: 1.75em;
+}
+.prose-p::placeholder { color: var(--text-faint); }
+
+.prose-h2 {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  margin-top: 8px;
+  margin-bottom: 4px;
+  padding: 4px 0;
+  outline: none;
+  line-height: 1.3;
+}
+
+.prose-h3 {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text);
+  margin-top: 4px;
+  margin-bottom: 2px;
+  padding: 4px 0;
+  outline: none;
+  line-height: 1.35;
+}
+
+b, strong { color: var(--text); font-weight: 600; }
+
+.prose-code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  color: var(--green);
+  padding: 1px 5px;
+  border-radius: var(--radius);
+}
+
+/* ─── CODE BLOCK ─────────────────────────────── */
+.code-block {
+  background: #1e1e1e;
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin: 10px 0;
+  box-shadow: 4px 4px 0 var(--border);
+}
+
+.code-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: #2d2d2d;
+  border-bottom: 2px solid var(--border);
+}
+
+.code-lang {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--accent);
+  background: rgba(91,156,246,0.15);
+  border: 1px solid var(--accent-border);
+  padding: 2px 8px;
+  border-radius: var(--radius);
+}
+
+.code-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.code-copy-btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  padding: 3px 10px;
+  background: transparent;
+  border: 1px solid #555;
+  border-radius: var(--radius);
+  color: #aaa;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: all .12s;
+}
+.code-copy-btn:hover { color: #fff; border-color: #888; }
+
+.code-dots {
+  display: flex;
+  gap: 5px;
+}
+.code-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  border: 1px solid rgba(0,0,0,.2);
+}
+.code-dot.r { background: #f87171; }
+.code-dot.y { background: #fbbf24; }
+.code-dot.g { background: #4ade80; }
+
+.code-body {
+  padding: 18px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  line-height: 1.65;
+  color: #d4d4d4;
+  white-space: pre;
+  overflow-x: auto;
+}
+
+.code-body .tok-kw   { color: #c792ea; }
+.code-body .tok-str  { color: #c3e88d; }
+.code-body .tok-cmt  { color: #666; font-style: italic; }
+.code-body .tok-fn   { color: #82aaff; }
+.code-body .tok-num  { color: #f78c6c; }
+.code-body .tok-var  { color: #d4d4d4; }
+.code-body .tok-punc { color: #999; }
+
+/* ─── IMAGE BLOCK ────────────────────────────── */
+.image-block {
+  margin: 10px 0;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 2px solid var(--border);
+  box-shadow: 4px 4px 0 var(--border);
+}
+
+.image-placeholder {
+  aspect-ratio: 16/9;
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background-image:
+    linear-gradient(var(--border2) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border2) 1px, transparent 1px);
+  background-size: 24px 24px;
+  position: relative;
+  cursor: pointer;
+}
+
+.image-placeholder-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 32px;
+}
+.image-placeholder-inner i { font-size: 22px; color: var(--text-faint); }
+.image-placeholder-inner span { font-size: 12px; color: var(--text-faint); font-family: 'JetBrains Mono', monospace; }
+
+.image-caption {
+  padding: 10px 14px;
+  background: var(--surface);
+  border-top: 2px solid var(--border);
+  font-size: 12px;
+  color: var(--text-dim);
+  text-align: center;
+  font-style: italic;
+  outline: none;
+}
+.image-caption::placeholder { color: var(--text-faint); }
+
+/* ─── CALLOUT ────────────────────────────────── */
+.callout-block {
+  display: flex;
+  gap: 14px;
+  background: var(--surface);
+  border: 2px solid var(--teal);
+  border-left: 4px solid var(--teal);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  margin: 10px 0;
+  box-shadow: 2px 2px 0 var(--border);
+}
+
+.callout-icon {
+  font-size: 16px;
+  color: var(--teal);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.callout-content { flex: 1; }
+.callout-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--teal);
+  margin-bottom: 4px;
+}
+
+.callout-text {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text);
+}
+
+/* ─── BULLET LIST ────────────────────────────── */
+.prose-ul {
+  list-style: none;
+  padding: 4px 0;
+  margin: 0;
+}
+
+.prose-ul li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--text);
+  padding: 2px 0;
+}
+
+.prose-ul li::before {
+  content: '';
+  width: 6px; height: 6px;
+  background: var(--accent);
+  margin-top: 9px;
+  flex-shrink: 0;
+}
+
+/* ─── BLOCKQUOTE ─────────────────────────────── */
+.prose-bq {
+  border-left: 4px solid var(--border);
+  padding: 10px 22px;
+  margin: 10px 0;
+  color: var(--text-dim);
+  font-size: 16px;
+  font-style: italic;
+  line-height: 1.7;
+  background: var(--surface2);
+}
+
+.prose-bq cite {
+  display: block;
+  margin-top: 8px;
+  font-size: 12px;
+  font-style: normal;
+  color: var(--text-faint);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* ─── SLASH HINT ─────────────────────────────── */
+.slash-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 4px;
+  color: var(--text-faint);
+  font-size: 13px;
+  font-family: 'JetBrains Mono', monospace;
+  cursor: text;
+  margin-top: 8px;
+}
+
+.slash-hint kbd {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  padding: 1px 6px;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-dim);
+  box-shadow: 2px 2px 0 var(--border);
+}
+
+/* ─── RIGHT PANEL ────────────────────────────── */
+.right-panel {
+  width: var(--panel-w);
+  background: var(--surface);
+  border-left: 2px solid var(--border);
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+.rp-section {
+  border-bottom: 2px solid var(--border);
+}
+
+.rp-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  cursor: pointer;
+  user-select: none;
+  transition: background .12s;
+}
+.rp-header:hover { background: var(--surface2); }
+
+.rp-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  font-family: 'JetBrains Mono', monospace;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+.rp-header-icon {
+  width: 22px; height: 22px;
+  background: var(--surface2);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
+.rp-chevron {
+  font-size: 10px;
+  color: var(--text-faint);
+  transition: transform .15s;
+}
+.rp-section.open .rp-chevron { transform: rotate(180deg); }
+
+.rp-body {
+  display: none;
+  padding: 6px 16px 16px;
+}
+.rp-section.open .rp-body { display: block; }
+
+/* ─── PANEL FORM PRIMITIVES ──────────────────── */
+.field { margin-bottom: 14px; }
+.field:last-child { margin-bottom: 0; }
+
+.field-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin-bottom: 6px;
+  display: block;
+}
+
+.field-input {
+  width: 100%;
+  background: var(--surface);
+  border: 2px solid var(--border2);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 12px;
+  padding: 7px 10px;
+  outline: none;
+  font-family: system-ui, -apple-system, sans-serif;
+  transition: border-color .15s;
+}
+.field-input:focus { border-color: var(--accent); }
+.field-input::placeholder { color: var(--text-faint); }
+
+.field-input-mono {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+}
+
+select.field-input {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23a3a39e'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  padding-right: 26px;
+  cursor: pointer;
+}
+
+textarea.field-input {
+  resize: vertical;
+  min-height: 72px;
+  line-height: 1.5;
+}
+
+/* ─── TAGS / CHIPS ───────────────────────────── */
+.tags-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 6px;
+  background: var(--surface);
+  border: 2px solid var(--border2);
+  border-radius: var(--radius);
+  min-height: 36px;
+  align-items: center;
+  transition: border-color .15s;
+  cursor: text;
+}
+.tags-wrap:focus-within { border-color: var(--accent); }
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  padding: 3px 8px;
+  background: var(--surface2);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  box-shadow: 2px 2px 0 var(--border);
+}
+.chip-x {
+  font-size: 9px;
+  color: var(--text-faint);
+  cursor: pointer;
+  margin-left: 2px;
+}
+.chip-x:hover { color: var(--red); }
+
+.tag-input {
+  flex: 1;
+  min-width: 60px;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 11px;
+  color: var(--text);
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+/* ─── SEO PREVIEW ────────────────────────────── */
+.seo-card {
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  font-family: Arial, sans-serif;
+  box-shadow: 2px 2px 0 var(--border);
+}
+
+.seo-url {
+  font-size: 11px;
+  color: var(--green);
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.seo-favicon {
+  width: 14px; height: 14px;
+  background: var(--accent);
+  border-radius: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  color: #fff;
+  font-weight: 700;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+}
+
+.seo-title {
+  font-size: 15px;
+  color: var(--accent);
+  margin-bottom: 4px;
+  line-height: 1.3;
+  font-weight: 400;
+}
+
+.seo-desc {
+  font-size: 12px;
+  color: var(--text-dim);
+  line-height: 1.45;
+}
+
+/* ─── VISIBILITY TOGGLE ──────────────────────── */
+.vis-toggle {
+  display: flex;
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.vis-opt {
+  flex: 1;
+  padding: 6px 8px;
+  text-align: center;
+  font-size: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  cursor: pointer;
+  color: var(--text-dim);
+  background: transparent;
+  border: none;
+  transition: all .12s;
+}
+.vis-opt:not(:last-child) { border-right: 2px solid var(--border); }
+.vis-opt.active {
+  background: var(--border);
+  color: #fff;
+}
+.vis-opt:hover:not(.active) { color: var(--text); background: var(--surface2); }
+
+/* ─── AUTHOR ROW ─────────────────────────────── */
+.author-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 2px 2px 0 var(--border);
+}
+
+.author-av {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+  border: 2px solid var(--border);
+}
+
+.author-info { flex: 1; }
+.author-name { font-size: 12px; font-weight: 600; color: var(--text); }
+.author-role { font-size: 10px; color: var(--text-faint); font-family: 'JetBrains Mono', monospace; }
+
+.author-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  padding: 2px 6px;
+  background: var(--accent-bg);
+  border: 2px solid var(--accent);
+  color: var(--accent);
+  border-radius: var(--radius);
+}
+
+/* ─── OG IMAGE ───────────────────────────────── */
+.og-thumb {
+  width: 100%;
+  aspect-ratio: 1200/630;
+  background: var(--surface2);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  position: relative;
+  cursor: pointer;
+  background-image:
+    linear-gradient(var(--border2) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border2) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.og-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  background: rgba(250,250,249,.7);
+  opacity: 0;
+  transition: opacity .15s;
+}
+.og-thumb:hover .og-overlay { opacity: 1; }
+.og-overlay i { font-size: 18px; color: var(--text-dim); }
+.og-overlay span { font-size: 11px; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; }
+
+.og-preview-text {
+  margin-top: 8px;
+  background: var(--surface2);
+  border: 2px solid var(--border2);
+  border-radius: var(--radius);
+  padding: 10px;
+}
+
+.og-preview-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin-bottom: 4px;
+}
+
+.og-preview-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 2px;
+  line-height: 1.3;
+}
+
+.og-preview-desc {
+  font-size: 11px;
+  color: var(--text-dim);
+  line-height: 1.4;
+}
+
+/* ─── TWITTER CARD ───────────────────────────── */
+.tw-card {
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-top: 10px;
+  background: var(--surface);
+  box-shadow: 2px 2px 0 var(--border);
+}
+
+.tw-card-img {
+  width: 100%;
+  aspect-ratio: 2/1;
+  background: var(--surface2);
+  background-image:
+    linear-gradient(var(--border2) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border2) 1px, transparent 1px);
+  background-size: 20px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 2px solid var(--border);
+}
+.tw-card-img i { font-size: 24px; color: var(--text-faint); }
+
+.tw-card-body { padding: 10px 12px; }
+.tw-domain { font-size: 11px; color: var(--text-faint); margin-bottom: 2px; font-family: 'JetBrains Mono', monospace; }
+.tw-title { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 2px; line-height: 1.3; }
+.tw-desc { font-size: 12px; color: var(--text-dim); line-height: 1.4; }
+
+/* ─── SCHEDULE ───────────────────────────────── */
+.schedule-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.toggle-switch {
+  position: relative;
+  width: 30px; height: 16px;
+  flex-shrink: 0;
+}
+.toggle-switch input { display: none; }
+.toggle-track {
+  display: block;
+  width: 100%; height: 100%;
+  background: var(--surface3);
+  border: 2px solid var(--border);
+  border-radius: 0;
+  cursor: pointer;
+  transition: background .15s;
+  position: relative;
+}
+.toggle-track::after {
+  content: '';
+  position: absolute;
+  width: 8px; height: 8px;
+  border-radius: 0;
+  background: var(--text-faint);
+  top: 2px;
+  left: 2px;
+  transition: all .15s;
+}
+.toggle-switch input:checked + .toggle-track { background: var(--accent); border-color: var(--border); }
+.toggle-switch input:checked + .toggle-track::after { left: 16px; background: #fff; }
+
+.toggle-label { font-size: 12px; color: var(--text-dim); }
+
+/* ─── WORD COUNT BAR ─────────────────────────── */
+.wc-bar {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 10px 40px;
+  background: var(--surface);
+  border-top: 2px solid var(--border);
+  flex-shrink: 0;
+}
+
+.wc-stat {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--text-faint);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.wc-stat span { color: var(--text-dim); }
+.wc-bar-spacer { flex: 1; }
+.wc-autosave { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--green); display: flex; align-items: center; gap: 5px; }
+
+/* ─── MISC ───────────────────────────────────── */
+.hr-block {
+  border: none;
+  border-top: 2px solid var(--border);
+  margin: 14px 0;
+}
+
+.section-notice {
+  font-size: 11px;
+  color: var(--text-faint);
+  font-family: 'JetBrains Mono', monospace;
+  padding: 8px;
+  background: var(--surface2);
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.add-coauthor {
+  width: 100%;
+  margin-top: 10px;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px;
+  background: transparent;
+  border: 2px dashed var(--border2);
+  border-radius: var(--radius);
+  color: var(--text-faint);
+  cursor: pointer;
+  transition: all .15s;
+  font-family: 'JetBrains Mono', monospace;
+}
+.add-coauthor:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ─── FA icon styling override ─── */
+em, i:not(.fa-solid):not(.fa-regular):not(.fa-brands) { color: var(--text-dim); }
+</style>
+</head>
+<body>
+
+<!-- ─── TOP BAR ─── -->
+<div class="topbar">
+  <div class="tb-brand">
+    <i class="fa-solid fa-bolt" style="color:var(--accent);font-size:11px;"></i>
+    snap<span class="dot">.</span>lify
+  </div>
+  <div class="tb-divider"></div>
+  <button class="tb-back" title="Back to posts"><i class="fa-solid fa-arrow-left"></i></button>
+  <span class="tb-type">Blog Post</span>
+  <span class="tb-title">My Journey Building a Voice Assistant with Raspberry Pi</span>
+  <div class="tb-unsaved" title="Unsaved changes"></div>
+  <div class="tb-spacer"></div>
+  <div class="tb-actions">
+    <button class="btn btn-ghost" style="font-size:11px;">
+      <i class="fa-regular fa-eye" style="font-size:11px;"></i>
+      Preview
+    </button>
+    <button class="btn btn-outline-accent" style="font-size:11px;">
+      <i class="fa-regular fa-floppy-disk" style="font-size:11px;"></i>
+      Save Draft
+    </button>
+    <button class="btn btn-accent" style="font-size:11px;">
+      <i class="fa-solid fa-paper-plane" style="font-size:10px;"></i>
+      Publish
+    </button>
+  </div>
+</div>
+
+<!-- ─── FLOATING SELECTION TOOLBAR ─── -->
+<div class="float-toolbar visible" id="floatToolbar">
+  <button class="ft-btn active" title="Bold"><span class="ft-btn-text">B</span></button>
+  <button class="ft-btn" title="Italic"><span class="ft-btn-text" style="font-style:italic;">I</span></button>
+  <button class="ft-btn" title="Strikethrough"><span class="ft-btn-text" style="text-decoration:line-through;">S</span></button>
+  <button class="ft-btn" title="Inline Code"><i class="fa-solid fa-code" style="font-size:10px;"></i></button>
+  <button class="ft-btn" title="Link"><i class="fa-solid fa-link" style="font-size:10px;"></i></button>
+  <div class="ft-sep"></div>
+  <button class="ft-btn" title="Heading 2"><span class="ft-btn-text">H2</span></button>
+  <button class="ft-btn" title="Heading 3"><span class="ft-btn-text">H3</span></button>
+  <button class="ft-btn" title="Quote"><i class="fa-solid fa-quote-left" style="font-size:10px;"></i></button>
+  <div class="ft-sep"></div>
+  <button class="ft-btn" title="Bullet List"><i class="fa-solid fa-list-ul" style="font-size:10px;"></i></button>
+  <button class="ft-btn" title="Ordered List"><i class="fa-solid fa-list-ol" style="font-size:10px;"></i></button>
+  <button class="ft-btn" title="Divider"><i class="fa-solid fa-minus" style="font-size:10px;"></i></button>
+</div>
+
+<!-- ─── LAYOUT ─── -->
+<div class="layout">
+
+  <!-- ─── CENTER EDITOR ─── -->
+  <div class="editor-wrap">
+    <div class="editor-inner">
+
+      <!-- COVER IMAGE -->
+      <div class="cover-area">
+        <div class="cover-placeholder">
+          <div class="cover-placeholder-icon">
+            <i class="fa-regular fa-image"></i>
+          </div>
+          <span class="cover-placeholder-text">Cover image</span>
+        </div>
+        <div class="cover-overlay">
+          <button class="cover-btn primary"><i class="fa-solid fa-arrow-up-from-bracket"></i> Upload</button>
+          <button class="cover-btn"><i class="fa-solid fa-wand-magic-sparkles"></i> Generate</button>
+          <button class="cover-btn"><i class="fa-solid fa-link"></i> From URL</button>
+          <button class="cover-btn">
+            <svg width="10" height="10" viewBox="0 0 32 32" fill="currentColor" style="flex-shrink:0;">
+              <path d="M16 0C7.163 0 0 7.163 0 16s7.163 16 16 16 16-7.163 16-16S24.837 0 16 0zm0 6a10 10 0 110 20A10 10 0 0116 6zm-2.5 5a2.5 2.5 0 100 5 2.5 2.5 0 000-5zm5 0a2.5 2.5 0 100 5 2.5 2.5 0 000-5z"/>
+            </svg>
+            Unsplash
+          </button>
+        </div>
+      </div>
+
+      <!-- TITLE -->
+      <textarea class="post-title" rows="2" placeholder="Your post title...">My Journey Building a Voice Assistant with Raspberry Pi</textarea>
+
+      <!-- SUBTITLE -->
+      <textarea class="post-subtitle" rows="1" placeholder="Add a subtitle (optional)...">From zero to a working wake-word detector running entirely offline on a $35 board</textarea>
+
+      <!-- BYLINE -->
+      <div class="byline">
+        <div class="byline-av">MK</div>
+        <div class="byline-info">
+          <div class="byline-name">Marcus Kleinhans</div>
+          <div class="byline-meta">
+            <span>Mar 11, 2026</span>
+            <span class="sep">&middot;</span>
+            <span>5 min read</span>
+            <span class="sep">&middot;</span>
+            <span style="color:var(--accent);">Hardware &amp; Makers</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- CONTENT BLOCKS -->
+      <div class="content-area" id="contentArea">
+
+        <!-- ─ Opening paragraph ─ -->
+        <div class="block">
+          <p class="prose-p">I've been obsessed with local AI for the past year. Not the kind that phones home to a server farm in Virginia, but the kind that runs quietly in your closet, on your own hardware, answering your voice without sending a single packet to the cloud. Last month I finally got it working — a fully offline voice assistant running on a <strong>Raspberry Pi 4 (4GB)</strong> with a custom wake-word model trained on my own voice.</p>
+        </div>
+
+        <div class="block-insert">
+          <div class="insert-line"></div>
+          <div class="insert-btn"><i class="fa-solid fa-plus"></i></div>
+          <div class="insert-line"></div>
+        </div>
+
+        <!-- ─ H2 heading ─ -->
+        <div class="block">
+          <h2 class="prose-h2">Why Run It Locally?</h2>
+        </div>
+
+        <div class="block-insert">
+          <div class="insert-line"></div>
+          <div class="insert-btn"><i class="fa-solid fa-plus"></i></div>
+          <div class="insert-line"></div>
+        </div>
+
+        <!-- ─ Body paragraph ─ -->
+        <div class="block">
+          <p class="prose-p">The commercial offerings — Alexa, Google Home, Siri — are <em>convenient</em>. But every utterance you make travels to a data center, gets transcribed, analyzed, and filed. If you've ever read the fine print, you know they retain voice samples. My home lab runs <strong>Home Assistant</strong>, <strong>Jellyfin</strong>, and a <strong>self-hosted LLM</strong> via Ollama. Adding a cloud-dependent voice layer felt like a contradiction.</p>
+        </div>
+
+        <div class="block-insert">
+          <div class="insert-line"></div>
+          <div class="insert-btn"><i class="fa-solid fa-plus"></i></div>
+          <div class="insert-line"></div>
+        </div>
+
+        <!-- ─ H2 heading ─ -->
+        <div class="block">
+          <h2 class="prose-h2">The Hardware Stack</h2>
+        </div>
+
+        <div class="block-insert">
+          <div class="insert-line"></div>
+          <div class="insert-btn"><i class="fa-solid fa-plus"></i></div>
+          <div class="insert-line"></div>
+        </div>
+
+        <!-- ─ Bullet list ─ -->
+        <div class="block">
+          <ul class="prose-ul">
+            <li><strong>Raspberry Pi 4 (4GB)</strong> — enough headroom to run Whisper tiny comfortably</li>
+            <li><strong>ReSpeaker 4-Mic Array</strong> — far-field beamforming, way better than the Pi's onboard nothing</li>
+            <li><strong>32GB SanDisk Extreme A2 microSD</strong> — wear-leveled, faster random read for model loading</li>
+            <li><strong>PoE HAT</strong> — single cable to the Pi hidden behind the TV</li>
+            <li><strong>Pimoroni Speaker pHAT</strong> — small 3W speaker for TTS output</li>
+          </ul>
+        </div>
+
+        <div class="block-insert">
+          <div class="insert-line"></div>
+          <div class="insert-btn"><i class="fa-solid fa-plus"></i></div>
+          <div class="insert-line"></div>
+        </div>
+
+        <!-- ─ Image block ─ -->
+        <div class="block">
+          <div class="image-block">
+            <div class="image-placeholder">
+              <div class="image-placeholder-inner">
+                <i class="fa-regular fa-image"></i>
+                <span>Click to add image</span>
+              </div>
+            </div>
+            <div class="image-caption" contenteditable="true" placeholder="Add a caption...">The full hardware stack assembled on a half-size breadboard before I committed to permanent mounting</div>
+          </div>
+        </div>
+
+        <div class="block-insert">
+          <div class="insert-line"></div>
+          <div class="insert-btn"><i class="fa-solid fa-plus"></i></div>
+          <div class="insert-line"></div>
+        </div>
+
+        <!-- ─ Body paragraph ─ -->
+        <div class="block">
+          <p class="prose-p">The wake-word engine is <code class="prose-code">openWakeWord</code>, an open-source library that runs on CPU and produces surprisingly low false-positive rates once you train a custom model. The training pipeline requires about 500 positive samples of your chosen wake phrase. I went with <em>"hey atlas"</em> — short, distinct phonemes, nothing that appears naturally in conversation.</p>
+        </div>
+
+        <div class="block-insert">
+          <div class="insert-line"></div>
+          <div class="insert-btn"><i class="fa-solid fa-plus"></i></div>
+          <div class="insert-line"></div>
+        </div>
+
+        <!-- ─ Code block ─ -->
+        <div class="block">
+          <div class="code-block">
+            <div class="code-header">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <div class="code-dots">
+                  <div class="code-dot r"></div>
+                  <div class="code-dot y"></div>
+                  <div class="code-dot g"></div>
+                </div>
+                <span class="code-lang">python</span>
+              </div>
+              <div class="code-actions">
+                <button class="code-copy-btn"><i class="fa-regular fa-copy"></i> Copy</button>
+              </div>
+            </div>
+            <div class="code-body"><span class="tok-kw">import</span> <span class="tok-var">openwakeword</span>
+<span class="tok-kw">from</span> <span class="tok-var">openwakeword.model</span> <span class="tok-kw">import</span> <span class="tok-var">Model</span>
+<span class="tok-kw">import</span> <span class="tok-var">pyaudio</span>
+<span class="tok-kw">import</span> <span class="tok-var">numpy</span> <span class="tok-kw">as</span> <span class="tok-var">np</span>
+
+<span class="tok-cmt"># Load custom model trained on "hey atlas"</span>
+<span class="tok-var">oww_model</span> <span class="tok-punc">=</span> <span class="tok-fn">Model</span><span class="tok-punc">(</span>
+    <span class="tok-var">wakeword_models</span><span class="tok-punc">=[</span><span class="tok-str">"./models/hey_atlas.tflite"</span><span class="tok-punc">],</span>
+    <span class="tok-var">inference_framework</span><span class="tok-punc">=</span><span class="tok-str">"tflite"</span>
+<span class="tok-punc">)</span>
+
+<span class="tok-var">p</span> <span class="tok-punc">=</span> <span class="tok-var">pyaudio</span><span class="tok-punc">.</span><span class="tok-fn">PyAudio</span><span class="tok-punc">()</span>
+<span class="tok-var">stream</span> <span class="tok-punc">=</span> <span class="tok-var">p</span><span class="tok-punc">.</span><span class="tok-fn">open</span><span class="tok-punc">(</span><span class="tok-var">format</span><span class="tok-punc">=</span><span class="tok-var">pyaudio</span><span class="tok-punc">.</span><span class="tok-var">paInt16</span><span class="tok-punc">,</span>
+                  <span class="tok-var">channels</span><span class="tok-punc">=</span><span class="tok-num">1</span><span class="tok-punc">,</span>
+                  <span class="tok-var">rate</span><span class="tok-punc">=</span><span class="tok-num">16000</span><span class="tok-punc">,</span>
+                  <span class="tok-var">input</span><span class="tok-punc">=</span><span class="tok-var">True</span><span class="tok-punc">,</span>
+                  <span class="tok-var">frames_per_buffer</span><span class="tok-punc">=</span><span class="tok-num">1280</span><span class="tok-punc">)</span>
+
+<span class="tok-kw">while</span> <span class="tok-var">True</span><span class="tok-punc">:</span>
+    <span class="tok-var">audio</span> <span class="tok-punc">=</span> <span class="tok-var">np</span><span class="tok-punc">.</span><span class="tok-fn">frombuffer</span><span class="tok-punc">(</span><span class="tok-var">stream</span><span class="tok-punc">.</span><span class="tok-fn">read</span><span class="tok-punc">(</span><span class="tok-num">1280</span><span class="tok-punc">),</span> <span class="tok-var">dtype</span><span class="tok-punc">=</span><span class="tok-var">np</span><span class="tok-punc">.</span><span class="tok-var">int16</span><span class="tok-punc">)</span>
+    <span class="tok-var">prediction</span> <span class="tok-punc">=</span> <span class="tok-var">oww_model</span><span class="tok-punc">.</span><span class="tok-fn">predict</span><span class="tok-punc">(</span><span class="tok-var">audio</span><span class="tok-punc">)</span>
+    <span class="tok-kw">if</span> <span class="tok-var">prediction</span><span class="tok-punc">[</span><span class="tok-str">"hey_atlas"</span><span class="tok-punc">]</span> <span class="tok-punc">&gt;</span> <span class="tok-num">0.5</span><span class="tok-punc">:</span>
+        <span class="tok-fn">print</span><span class="tok-punc">(</span><span class="tok-str">"Wake word detected! Listening..."</span><span class="tok-punc">)</span>
+        <span class="tok-fn">transcribe_and_respond</span><span class="tok-punc">()</span></div>
+          </div>
+        </div>
+
+        <div class="block-insert">
+          <div class="insert-line"></div>
+          <div class="insert-btn"><i class="fa-solid fa-plus"></i></div>
+          <div class="insert-line"></div>
+        </div>
+
+        <!-- ─ Callout ─ -->
+        <div class="block">
+          <div class="callout-block">
+            <div class="callout-icon"><i class="fa-solid fa-lightbulb"></i></div>
+            <div class="callout-content">
+              <div class="callout-label">Tip</div>
+              <div class="callout-text">The <code class="prose-code" style="font-size:12px;">frames_per_buffer=1280</code> value is important — openWakeWord expects 80ms audio chunks at 16kHz. Mismatching this causes silent failures where the model runs but never triggers. Also make sure your ReSpeaker is set to mono output before the beamforming stage.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="block-insert">
+          <div class="insert-line"></div>
+          <div class="insert-btn"><i class="fa-solid fa-plus"></i></div>
+          <div class="insert-line"></div>
+        </div>
+
+        <!-- ─ H2 ─ -->
+        <div class="block">
+          <h2 class="prose-h2">STT: Whisper on the Edge</h2>
+        </div>
+
+        <div class="block-insert">
+          <div class="insert-line"></div>
+          <div class="insert-btn"><i class="fa-solid fa-plus"></i></div>
+          <div class="insert-line"></div>
+        </div>
+
+        <!-- ─ Body paragraph ─ -->
+        <div class="block">
+          <p class="prose-p">Once the wake word fires, I have about a 2-second window to start recording the command. The audio gets piped to <code class="prose-code">faster-whisper</code> running the <em>tiny.en</em> model — <strong>39M parameters</strong>, quantized to int8. On the Pi 4, a 5-second utterance transcribes in about 1.2 seconds. Not blazing fast, but acceptable for a home automation context where you're already used to a half-beat delay.</p>
+        </div>
+
+        <div class="block-insert">
+          <div class="insert-line"></div>
+          <div class="insert-btn"><i class="fa-solid fa-plus"></i></div>
+          <div class="insert-line"></div>
+        </div>
+
+        <!-- ─ Blockquote ─ -->
+        <div class="block">
+          <blockquote class="prose-bq">
+            "The goal isn't to beat cloud latency — it's to be good enough while keeping your data yours."
+            <cite>— inspiration from the local-LLM community on r/selfhosted</cite>
+          </blockquote>
+        </div>
+
+        <div class="block-insert">
+          <div class="insert-line"></div>
+          <div class="insert-btn"><i class="fa-solid fa-plus"></i></div>
+          <div class="insert-line"></div>
+        </div>
+
+        <!-- ─ HR ─ -->
+        <div class="block">
+          <hr class="hr-block">
+        </div>
+
+        <div class="block-insert">
+          <div class="insert-line"></div>
+          <div class="insert-btn"><i class="fa-solid fa-plus"></i></div>
+          <div class="insert-line"></div>
+        </div>
+
+        <!-- ─ Closing paragraph ─ -->
+        <div class="block">
+          <p class="prose-p">The full project — wiring diagrams, systemd service files, training scripts, and pre-trained weights for "hey atlas" — is published on my profile. If you build your own variant, drop a photo in the comments. I want to see what wake words people choose.</p>
+        </div>
+
+        <!-- SLASH HINT -->
+        <div class="slash-hint">
+          <kbd>/</kbd>
+          <span>Type / for commands, or start writing...</span>
+        </div>
+
+      </div><!-- /content-area -->
+
+    </div><!-- /editor-inner -->
+  </div><!-- /editor-wrap -->
+
+  <!-- ─── RIGHT SETTINGS PANEL ─── -->
+  <div class="right-panel">
+
+    <!-- META -->
+    <div class="rp-section open">
+      <div class="rp-header" onclick="toggleSection(this)">
+        <div class="rp-header-left">
+          <div class="rp-header-icon"><i class="fa-solid fa-tag"></i></div>
+          Meta
+        </div>
+        <i class="fa-solid fa-chevron-down rp-chevron"></i>
+      </div>
+      <div class="rp-body">
+        <div class="field">
+          <label class="field-label">Slug</label>
+          <input type="text" class="field-input field-input-mono" value="my-journey-building-voice-assistant-raspberry-pi">
+        </div>
+        <div class="field">
+          <label class="field-label">Category</label>
+          <select class="field-input">
+            <option>Hardware &amp; Makers</option>
+            <option>Software</option>
+            <option>AI &amp; ML</option>
+            <option>Home Lab</option>
+            <option>Tutorial</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="field-label">Tags</label>
+          <div class="tags-wrap">
+            <span class="chip">raspberry-pi <span class="chip-x">&times;</span></span>
+            <span class="chip">voice-ai <span class="chip-x">&times;</span></span>
+            <span class="chip">offline <span class="chip-x">&times;</span></span>
+            <span class="chip">whisper <span class="chip-x">&times;</span></span>
+            <input type="text" class="tag-input" placeholder="Add tag...">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- EXCERPT -->
+    <div class="rp-section open">
+      <div class="rp-header" onclick="toggleSection(this)">
+        <div class="rp-header-left">
+          <div class="rp-header-icon"><i class="fa-solid fa-align-left"></i></div>
+          Excerpt
+        </div>
+        <i class="fa-solid fa-chevron-down rp-chevron"></i>
+      </div>
+      <div class="rp-body">
+        <div class="field">
+          <label class="field-label">Custom Excerpt</label>
+          <textarea class="field-input" rows="3" placeholder="Short description shown in feed previews...">A step-by-step breakdown of building a fully offline voice assistant on a Raspberry Pi 4 using openWakeWord and faster-whisper — no cloud, no data leaks.</textarea>
+        </div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-faint);margin-top:4px;text-align:right;">156 / 300 chars</div>
+      </div>
+    </div>
+
+    <!-- SEO PREVIEW -->
+    <div class="rp-section open">
+      <div class="rp-header" onclick="toggleSection(this)">
+        <div class="rp-header-left">
+          <div class="rp-header-icon"><i class="fa-brands fa-google" style="font-size:9px;"></i></div>
+          SEO Preview
+        </div>
+        <i class="fa-solid fa-chevron-down rp-chevron"></i>
+      </div>
+      <div class="rp-body">
+        <div class="seo-card">
+          <div class="seo-url">
+            <span class="seo-favicon">S</span>
+            snaplify.io &rsaquo; @marcusk &rsaquo; blog
+          </div>
+          <div class="seo-title">My Journey Building a Voice Assistant with Raspberry Pi</div>
+          <div class="seo-desc">A step-by-step breakdown of building a fully offline voice assistant on a Raspberry Pi 4 using openWakeWord and faster-whisper — no cloud, no data leaks.</div>
+        </div>
+        <div class="field" style="margin-top:10px;">
+          <label class="field-label">SEO Title Override</label>
+          <input type="text" class="field-input" placeholder="Same as post title">
+        </div>
+      </div>
+    </div>
+
+    <!-- PUBLISHING -->
+    <div class="rp-section open">
+      <div class="rp-header" onclick="toggleSection(this)">
+        <div class="rp-header-left">
+          <div class="rp-header-icon"><i class="fa-solid fa-globe"></i></div>
+          Publishing
+        </div>
+        <i class="fa-solid fa-chevron-down rp-chevron"></i>
+      </div>
+      <div class="rp-body">
+        <div class="field">
+          <label class="field-label">Visibility</label>
+          <div class="vis-toggle">
+            <button class="vis-opt active">Public</button>
+            <button class="vis-opt">Unlisted</button>
+            <button class="vis-opt">Members</button>
+          </div>
+        </div>
+        <div class="field">
+          <div class="schedule-row">
+            <label class="toggle-switch">
+              <input type="checkbox" id="schedToggle">
+              <span class="toggle-track" onclick="document.getElementById('schedToggle').click()"></span>
+            </label>
+            <span class="toggle-label">Schedule for later</span>
+          </div>
+        </div>
+        <div class="field">
+          <label class="field-label">Publish Date</label>
+          <input type="datetime-local" class="field-input field-input-mono" value="2026-03-11T09:00">
+        </div>
+        <div class="field">
+          <label class="field-label">Series <span style="color:var(--text-faint);font-size:9px;font-weight:400;">(optional)</span></label>
+          <select class="field-input">
+            <option value="">— No series —</option>
+            <option selected>Home Lab Chronicles</option>
+            <option>Pi Projects</option>
+            <option>Self-Hosting Diaries</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- AUTHOR -->
+    <div class="rp-section open">
+      <div class="rp-header" onclick="toggleSection(this)">
+        <div class="rp-header-left">
+          <div class="rp-header-icon"><i class="fa-solid fa-user"></i></div>
+          Author
+        </div>
+        <i class="fa-solid fa-chevron-down rp-chevron"></i>
+      </div>
+      <div class="rp-body">
+        <div class="author-row">
+          <div class="author-av">MK</div>
+          <div class="author-info">
+            <div class="author-name">Marcus Kleinhans</div>
+            <div class="author-role">@marcusk</div>
+          </div>
+          <span class="author-badge">You</span>
+        </div>
+        <button class="add-coauthor">
+          <i class="fa-solid fa-user-plus" style="font-size:10px;"></i>
+          Add co-author
+        </button>
+      </div>
+    </div>
+
+    <!-- SOCIAL -->
+    <div class="rp-section open">
+      <div class="rp-header" onclick="toggleSection(this)">
+        <div class="rp-header-left">
+          <div class="rp-header-icon"><i class="fa-solid fa-share-nodes"></i></div>
+          Social
+        </div>
+        <i class="fa-solid fa-chevron-down rp-chevron"></i>
+      </div>
+      <div class="rp-body">
+        <div class="field">
+          <label class="field-label">Open Graph Image</label>
+          <div class="og-thumb">
+            <div class="og-overlay">
+              <i class="fa-solid fa-arrow-up-from-bracket"></i>
+              <span>Upload OG image</span>
+            </div>
+          </div>
+          <div class="og-preview-text" style="margin-top:8px;">
+            <div class="og-preview-label">og:title</div>
+            <div class="og-preview-title">My Journey Building a Voice Assistant with Raspberry Pi</div>
+            <div class="og-preview-desc">A step-by-step breakdown of building a fully offline voice assistant...</div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="field-label">Twitter / X Card Preview</label>
+          <div class="tw-card">
+            <div class="tw-card-img">
+              <i class="fa-regular fa-image"></i>
+            </div>
+            <div class="tw-card-body">
+              <div class="tw-domain">snaplify.io</div>
+              <div class="tw-title">My Journey Building a Voice Assistant with Raspberry Pi</div>
+              <div class="tw-desc">A step-by-step breakdown of building a fully offline voice assistant on a Raspberry Pi 4...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom padding -->
+    <div style="height:24px;"></div>
+
+  </div><!-- /right-panel -->
+
+</div><!-- /layout -->
+
+<!-- ─── WORD COUNT BAR ─── -->
+<div class="wc-bar">
+  <div class="wc-stat"><i class="fa-solid fa-font" style="font-size:9px;"></i> <span>847</span> words</div>
+  <div class="wc-stat"><i class="fa-regular fa-clock" style="font-size:9px;"></i> <span>5</span> min read</div>
+  <div class="wc-stat"><i class="fa-solid fa-paragraph" style="font-size:9px;"></i> <span>6</span> paragraphs</div>
+  <div class="wc-bar-spacer"></div>
+  <div class="wc-autosave"><i class="fa-solid fa-circle-check" style="font-size:9px;"></i> Saved 2 min ago</div>
+</div>
+
+<script>
+/* ─── SECTION TOGGLE ─── */
+function toggleSection(header) {
+  const section = header.closest('.rp-section');
+  section.classList.toggle('open');
+}
+
+/* ─── VISIBILITY TOGGLE ─── */
+document.querySelectorAll('.vis-opt').forEach(btn => {
+  btn.addEventListener('click', () => {
+    btn.closest('.vis-toggle').querySelectorAll('.vis-opt').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  });
+});
+
+/* ─── FLOATING TOOLBAR DEMO ─── */
+// Show toolbar when user makes a selection in the content area
+const contentArea = document.getElementById('contentArea');
+const floatToolbar = document.getElementById('floatToolbar');
+
+// Start visible for demo; hide after 4 seconds
+setTimeout(() => {
+  floatToolbar.classList.remove('visible');
+}, 4000);
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (sel && sel.toString().length > 0 && contentArea.contains(sel.anchorNode)) {
+    const range = sel.getRangeAt(0);
+    const rect = range.getBoundingClientRect();
+    // Position toolbar above selection
+    floatToolbar.style.top = (rect.top - 48 + window.scrollY) + 'px';
+    floatToolbar.style.left = (rect.left + rect.width / 2) + 'px';
+    floatToolbar.style.transform = 'translateX(-50%) translateY(-4px)';
+    floatToolbar.classList.add('visible');
+  } else {
+    floatToolbar.classList.remove('visible');
+  }
+});
+
+/* ─── TOOLBAR BUTTON ACTIVE STATES ─── */
+document.querySelectorAll('.ft-btn').forEach(btn => {
+  btn.addEventListener('mousedown', e => {
+    e.preventDefault();
+    btn.classList.toggle('active');
+  });
+});
+
+/* ─── INSERT BLOCK HOVER ─── */
+document.querySelectorAll('.block').forEach(block => {
+  block.addEventListener('mouseenter', () => {
+    const next = block.nextElementSibling;
+    if (next && next.classList.contains('block-insert')) {
+      next.style.opacity = '1';
+    }
+  });
+  block.addEventListener('mouseleave', e => {
+    const next = block.nextElementSibling;
+    if (next && next.classList.contains('block-insert') && !next.matches(':hover')) {
+      next.style.opacity = '';
+    }
+  });
+});
+
+/* ─── COPY CODE ─── */
+document.querySelectorAll('.code-copy-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const code = btn.closest('.code-block').querySelector('.code-body').innerText;
+    navigator.clipboard.writeText(code).catch(() => {});
+    const orig = btn.innerHTML;
+    btn.innerHTML = '<i class="fa-solid fa-check"></i> Copied';
+    btn.style.color = 'var(--green)';
+    setTimeout(() => { btn.innerHTML = orig; btn.style.color = ''; }, 1800);
+  });
+});
+
+/* ─── SCHEDULE TOGGLE ─── */
+const schedToggle = document.getElementById('schedToggle');
+schedToggle.addEventListener('change', () => {
+  const dateField = schedToggle.closest('.rp-body').querySelector('input[type="datetime-local"]').closest('.field');
+  dateField.style.opacity = schedToggle.checked ? '1' : '0.4';
+  dateField.style.pointerEvents = schedToggle.checked ? '' : 'none';
+});
+// init
+document.querySelector('input[type="datetime-local"]').closest('.field').style.opacity = '0.4';
+document.querySelector('input[type="datetime-local"]').closest('.field').style.pointerEvents = 'none';
+
+/* ─── AUTO-RESIZE TEXTAREAS ─── */
+document.querySelectorAll('textarea').forEach(ta => {
+  ta.style.height = ta.scrollHeight + 'px';
+  ta.style.overflow = 'hidden';
+  ta.addEventListener('input', () => {
+    ta.style.height = 'auto';
+    ta.style.height = ta.scrollHeight + 'px';
+  });
+});
+</script>
+</body>
+</html>

@@ -291,7 +291,7 @@
   .el-canvas {
     overflow-y: auto;
     overflow-x: hidden;
-    background: var(--color-surface, #0c0c0b);
+    background: var(--color-surface-raised, #1c1c1a);
   }
 
   .el-canvas-content {

@@ -9,9 +9,12 @@
   <title>Admin Dashboard</title>
 </svelte:head>
 
-<h1 class="admin-heading">Dashboard</h1>
+<div class="adm-page-header">
+  <h1 class="adm-heading">Dashboard</h1>
+  <span class="adm-heading-sub">system overview</span>
+</div>
 
-<div class="admin-stats-grid">
+<div class="adm-stats-grid">
   <StatCard label="Total Users" value={data.stats.users.total} />
   <StatCard label="Total Content" value={data.stats.content.total} />
   <StatCard label="Communities" value={data.stats.communities.total} />
@@ -22,10 +25,12 @@
   />
 </div>
 
-<div class="admin-breakdown">
+<div class="adm-breakdown">
   <section>
-    <h2 class="admin-subheading">Users by Role</h2>
-    <div class="admin-stats-grid">
+    <div class="adm-section-head">
+      <span class="adm-section-label">Users by Role</span>
+    </div>
+    <div class="adm-stats-grid">
       {#each Object.entries(data.stats.users.byRole) as [role, count]}
         <StatCard label={role} value={count as number} />
       {/each}
@@ -33,8 +38,10 @@
   </section>
 
   <section>
-    <h2 class="admin-subheading">Content by Type</h2>
-    <div class="admin-stats-grid">
+    <div class="adm-section-head">
+      <span class="adm-section-label">Content by Type</span>
+    </div>
+    <div class="adm-stats-grid">
       {#each Object.entries(data.stats.content.byType) as [type, count]}
         <StatCard label={type} value={count as number} />
       {/each}
@@ -43,29 +50,54 @@
 </div>
 
 <style>
-  .admin-heading {
-    font-family: var(--font-heading, sans-serif);
-    font-size: var(--text-2xl, 1.5rem);
+  .adm-page-header {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-3, 0.75rem);
+    margin-bottom: var(--space-6, 1.5rem);
+    padding-bottom: var(--space-3, 0.75rem);
+    border-bottom: 1px solid var(--color-border, #272725);
+  }
+
+  .adm-heading {
+    font-size: var(--text-xl, 1.25rem);
     font-weight: var(--font-weight-bold, 700);
     color: var(--color-text, #d8d5cf);
-    margin: 0 0 var(--space-6, 1.5rem);
+    margin: 0;
   }
 
-  .admin-subheading {
-    font-family: var(--font-heading, sans-serif);
-    font-size: var(--text-lg, 1.125rem);
-    font-weight: var(--font-weight-semibold, 600);
-    color: var(--color-text, #d8d5cf);
-    margin: var(--space-6, 1.5rem) 0 var(--space-3, 0.75rem);
+  .adm-heading-sub {
+    font-family: var(--font-mono, monospace);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-text-muted, #444440);
   }
 
-  .admin-stats-grid {
+  .adm-stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
     gap: var(--space-3, 0.75rem);
   }
 
-  .admin-breakdown {
-    margin-top: var(--space-4, 1rem);
+  .adm-breakdown {
+    margin-top: var(--space-6, 1.5rem);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4, 1rem);
+  }
+
+  .adm-section-head {
+    border-bottom: 1px solid var(--color-border, #272725);
+    padding-bottom: var(--space-2, 0.5rem);
+    margin-bottom: var(--space-3, 0.75rem);
+  }
+
+  .adm-section-label {
+    font-family: var(--font-mono, monospace);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--color-text-secondary, #888884);
   }
 </style>

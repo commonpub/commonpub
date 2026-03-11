@@ -1,0 +1,1147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Future of Edge AI in Consumer Electronics — [instance]</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #fafaf9;
+      --surface: #ffffff;
+      --surface2: #f4f4f2;
+      --surface3: #eaeae7;
+      --border: #1a1a1a;
+      --border2: #d4d4d0;
+      --text: #1a1a1a;
+      --text-dim: #6b6b66;
+      --text-faint: #a3a39e;
+      --accent: #5b9cf6;
+      --accent-bg: rgba(91,156,246,0.08);
+      --accent-border: rgba(91,156,246,0.25);
+      --green: #22c55e;
+      --green-bg: rgba(34,197,94,0.08);
+      --yellow: #f59e0b;
+      --yellow-bg: rgba(245,158,11,0.08);
+      --red: #ef4444;
+      --red-bg: rgba(239,68,68,0.08);
+      --purple: #8b5cf6;
+      --purple-bg: rgba(139,92,246,0.08);
+      --teal: #14b8a6;
+      --teal-bg: rgba(20,184,166,0.08);
+      --teal-border: rgba(20,184,166,0.25);
+      --pink: #ec4899;
+      --pink-bg: rgba(236,72,153,0.08);
+      --pink-border: rgba(236,72,153,0.25);
+      --radius: 0px;
+      --radius-lg: 0px;
+    }
+    html, body { height: 100%; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    /* ── TOP BAR ── */
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--surface);
+      border-bottom: 2px solid var(--border);
+      height: 48px;
+      display: flex;
+      align-items: center;
+      padding: 0 24px;
+      gap: 0;
+    }
+    .topbar-logo {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+      font-family: monospace;
+      letter-spacing: -.01em;
+      margin-right: 24px;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .topbar-logo .accent { color: var(--accent); }
+    .topbar-nav {
+      display: flex;
+      gap: 2px;
+    }
+    .topbar-nav a {
+      font-size: 12px;
+      color: var(--text-dim);
+      padding: 5px 12px;
+      border-radius: var(--radius);
+      cursor: pointer;
+      border: 1px solid transparent;
+      background: none;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .topbar-nav a:hover { color: var(--text); background: var(--surface2); }
+    .topbar-nav a.active { color: var(--text); background: var(--surface2); border-color: var(--border); }
+    .topbar-right {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .topbar-search {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--surface2);
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      padding: 4px 10px;
+      font-size: 11px;
+      color: var(--text-faint);
+      font-family: monospace;
+      cursor: pointer;
+      min-width: 180px;
+    }
+    .topbar-search i { font-size: 10px; }
+    .av {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: var(--surface3);
+      border: 2px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; font-weight: 600;
+      color: var(--text-dim);
+      font-family: monospace;
+      flex-shrink: 0;
+    }
+    .av-lg { width: 44px; height: 44px; font-size: 14px; }
+    .av-xl { width: 64px; height: 64px; font-size: 18px; }
+    .btn {
+      font-family: system-ui;
+      font-size: 12px;
+      padding: 6px 14px;
+      border-radius: var(--radius);
+      border: 2px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn:hover { background: var(--surface2); }
+    .btn-primary {
+      background: var(--accent);
+      border-color: var(--border);
+      color: #fff;
+      box-shadow: 4px 4px 0 #1a1a1a;
+    }
+    .btn-primary:hover { background: #4a8de8; }
+    .btn-sm { padding: 4px 10px; font-size: 11px; }
+    .btn-ghost { background: transparent; border-color: transparent; color: var(--text-dim); }
+    .btn-ghost:hover { background: var(--surface2); border-color: var(--border); color: var(--text); }
+    .tag {
+      display: inline-flex; align-items: center;
+      font-size: 10px; font-family: monospace;
+      padding: 2px 8px; border-radius: 0px;
+      border: 1px solid var(--border2);
+      color: var(--text-dim);
+      background: var(--surface2);
+    }
+    .tag-accent { border-color: var(--accent-border); color: var(--accent); background: var(--accent-bg); }
+    .tag-green { border-color: rgba(34,197,94,.25); color: var(--green); background: var(--green-bg); }
+    .tag-teal { border-color: var(--teal-border); color: var(--teal); background: var(--teal-bg); }
+    .tag-purple { border-color: rgba(139,92,246,.25); color: var(--purple); background: var(--purple-bg); }
+
+    /* ── COVER IMAGE ── */
+    .cover {
+      width: 100%;
+      height: 300px;
+      background: #e8eef6;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      border-bottom: 2px solid var(--border);
+    }
+    .cover::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: linear-gradient(var(--border2) 1px, transparent 1px), linear-gradient(90deg, var(--border2) 1px, transparent 1px);
+      background-size: 40px 40px;
+      opacity: .25;
+    }
+    .cover-label {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-faint);
+      font-size: 11px;
+      font-family: monospace;
+    }
+    .cover-label i { font-size: 40px; color: rgba(91,156,246,.4); }
+
+    /* ── ARTICLE CONTAINER ── */
+    .article-wrap {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 40px 24px 80px;
+    }
+
+    /* ── HEADER ── */
+    .content-type-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 10px;
+      font-family: monospace;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      border: 2px solid var(--border);
+      background: var(--accent-bg);
+      padding: 3px 10px;
+      border-radius: 0px;
+      margin-bottom: 16px;
+      box-shadow: 3px 3px 0 #1a1a1a;
+    }
+    .article-title {
+      font-size: 28px;
+      font-weight: 700;
+      line-height: 1.25;
+      color: var(--text);
+      margin-bottom: 14px;
+      letter-spacing: -.01em;
+    }
+    .article-lead {
+      font-size: 16px;
+      color: var(--text-dim);
+      line-height: 1.7;
+      margin-bottom: 24px;
+      font-weight: 400;
+    }
+
+    /* ── AUTHOR ROW ── */
+    .author-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .author-info { display: flex; flex-direction: column; gap: 2px; }
+    .author-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      text-decoration: none;
+    }
+    .author-name:hover { color: var(--accent); }
+    .author-meta {
+      font-size: 11px;
+      color: var(--text-faint);
+      font-family: monospace;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .author-meta .sep { color: var(--border2); }
+
+    /* ── ENGAGEMENT ROW ── */
+    .engagement-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 14px 0;
+      border-top: 2px solid var(--border);
+      border-bottom: 2px solid var(--border);
+      margin-bottom: 28px;
+    }
+    .eng-stat {
+      font-size: 11px;
+      font-family: monospace;
+      color: var(--text-faint);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 10px;
+    }
+    .eng-stat i { font-size: 12px; }
+    .eng-btn {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      font-family: monospace;
+      color: var(--text-dim);
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      padding: 5px 12px;
+      cursor: pointer;
+    }
+    .eng-btn:hover { background: var(--surface2); color: var(--text); }
+    .eng-btn.liked { color: var(--red); border-color: var(--border); background: var(--red-bg); }
+    .eng-btn.bookmarked { color: var(--yellow); border-color: var(--border); background: var(--yellow-bg); }
+    .eng-sep { width: 2px; height: 20px; background: var(--border); margin: 0 4px; }
+    .eng-spacer { margin-left: auto; }
+
+    /* ── PROSE ── */
+    .prose {
+      font-size: 15px;
+      line-height: 1.85;
+      color: var(--text-dim);
+    }
+    .prose h2 {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text);
+      margin: 40px 0 12px;
+      letter-spacing: -.01em;
+      padding-bottom: 8px;
+      border-bottom: 2px solid var(--border);
+    }
+    .prose h3 {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text);
+      margin: 28px 0 8px;
+    }
+    .prose p { margin-bottom: 18px; }
+    .prose strong { color: var(--text); font-weight: 600; }
+    .prose em { font-style: italic; color: var(--text-dim); }
+    .prose a { color: var(--accent); text-decoration: none; }
+    .prose a:hover { text-decoration: underline; }
+    .prose code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      color: var(--teal);
+      background: var(--surface2);
+      border: 2px solid var(--border);
+      padding: 1px 6px;
+      border-radius: 0px;
+    }
+    .prose ul, .prose ol {
+      margin: 0 0 18px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .prose li { color: var(--text-dim); }
+    .prose blockquote {
+      border-left: 4px solid var(--accent);
+      padding: 14px 20px;
+      margin: 28px 0;
+      background: var(--surface);
+      border-radius: 0px;
+    }
+    .prose blockquote p {
+      color: var(--text-dim);
+      font-style: italic;
+      margin: 0;
+      font-size: 15px;
+    }
+    .prose blockquote cite {
+      display: block;
+      margin-top: 8px;
+      font-size: 11px;
+      font-family: monospace;
+      color: var(--text-faint);
+      font-style: normal;
+    }
+    .prose hr {
+      border: none;
+      border-top: 2px solid var(--border);
+      margin: 36px 0;
+    }
+
+    /* ── FIGURE ── */
+    .prose figure {
+      margin: 28px 0;
+    }
+    .prose figure .fig-img {
+      width: 100%;
+      aspect-ratio: 16/9;
+      background: var(--surface2);
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 4px 4px 0 #1a1a1a;
+    }
+    .prose figure .fig-img::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: linear-gradient(var(--border2) 1px, transparent 1px), linear-gradient(90deg, var(--border2) 1px, transparent 1px);
+      background-size: 28px 28px;
+      opacity: .3;
+    }
+    .prose figure .fig-img span {
+      position: relative;
+      z-index: 1;
+      font-size: 11px;
+      font-family: monospace;
+      color: var(--text-faint);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+    .prose figure .fig-img span i { font-size: 28px; opacity: .4; }
+    .prose figcaption {
+      margin-top: 8px;
+      font-size: 12px;
+      font-family: monospace;
+      color: var(--text-faint);
+      text-align: center;
+      font-style: normal;
+    }
+
+    /* ── CODE BLOCK ── */
+    .code-block {
+      background: #1a1a1a;
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin: 24px 0;
+      box-shadow: 4px 4px 0 #1a1a1a;
+    }
+    .code-hdr {
+      background: #222220;
+      border-bottom: 2px solid #333;
+      padding: 7px 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .code-lang {
+      font-size: 10px;
+      font-family: monospace;
+      color: #888;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .code-fname {
+      font-size: 11px;
+      font-family: 'JetBrains Mono', monospace;
+      color: #aaa;
+    }
+    .code-copy {
+      margin-left: auto;
+      font-size: 10px;
+      font-family: monospace;
+      color: #888;
+      background: transparent;
+      border: 1px solid #444;
+      border-radius: 0px;
+      padding: 3px 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .code-copy:hover { color: #ccc; border-color: #666; }
+    .code-body {
+      padding: 16px 18px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12.5px;
+      line-height: 1.7;
+      color: #b0ada8;
+      overflow-x: auto;
+    }
+    .code-body .kw { color: var(--accent); }
+    .code-body .str { color: var(--green); }
+    .code-body .cmt { color: #666; font-style: italic; }
+    .code-body .fn { color: var(--yellow); }
+    .code-body .num { color: var(--purple); }
+    .code-body .type { color: var(--teal); }
+
+    /* ── CALLOUT ── */
+    .callout {
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      font-size: 13px;
+      line-height: 1.65;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      margin: 24px 0;
+    }
+    .callout-teal {
+      background: var(--teal-bg);
+      border: 2px solid var(--border);
+      border-left: 4px solid var(--teal);
+    }
+    .callout-yellow {
+      background: var(--yellow-bg);
+      border: 2px solid var(--border);
+      border-left: 4px solid var(--yellow);
+    }
+    .callout-icon {
+      font-size: 14px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .callout-teal .callout-icon { color: var(--teal); }
+    .callout-yellow .callout-icon { color: var(--yellow); }
+    .callout-title {
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 4px;
+      font-size: 13px;
+    }
+    .callout-body { color: var(--text-dim); }
+
+    /* ── TAGS FOOTER ── */
+    .tags-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin: 40px 0 32px;
+      padding-top: 24px;
+      border-top: 2px solid var(--border);
+    }
+    .tags-label {
+      font-size: 10px;
+      font-family: monospace;
+      color: var(--text-faint);
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      width: 100%;
+      margin-bottom: 4px;
+    }
+
+    /* ── AUTHOR CARD ── */
+    .author-card {
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      display: flex;
+      gap: 20px;
+      align-items: flex-start;
+      margin: 32px 0;
+      box-shadow: 4px 4px 0 #1a1a1a;
+    }
+    .author-card-info { flex: 1; min-width: 0; }
+    .author-card-label {
+      font-size: 9px;
+      font-family: monospace;
+      color: var(--text-faint);
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .author-card-name {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .author-card-handle {
+      font-size: 11px;
+      font-family: monospace;
+      color: var(--text-faint);
+      margin-bottom: 10px;
+    }
+    .author-card-bio {
+      font-size: 13px;
+      color: var(--text-dim);
+      line-height: 1.65;
+      margin-bottom: 14px;
+    }
+    .author-card-stats {
+      display: flex;
+      gap: 20px;
+    }
+    .author-card-stat {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+    .author-card-stat .n {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+      font-family: monospace;
+    }
+    .author-card-stat .l {
+      font-size: 10px;
+      color: var(--text-faint);
+      font-family: monospace;
+    }
+
+    /* ── RELATED ARTICLES ── */
+    .section-head {
+      font-size: 11px;
+      font-family: monospace;
+      color: var(--text-faint);
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid var(--border);
+    }
+    .related-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 48px;
+    }
+    .related-card {
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      cursor: pointer;
+      transition: box-shadow .15s;
+      box-shadow: 4px 4px 0 #1a1a1a;
+    }
+    .related-card:hover { box-shadow: 6px 6px 0 #1a1a1a; }
+    .related-card-thumb {
+      aspect-ratio: 16/9;
+      background: var(--surface2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+      border-bottom: 2px solid var(--border);
+    }
+    .related-card-thumb::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: linear-gradient(var(--border2) 1px, transparent 1px), linear-gradient(90deg, var(--border2) 1px, transparent 1px);
+      background-size: 20px 20px;
+      opacity: .3;
+    }
+    .related-card-thumb i {
+      font-size: 22px;
+      color: var(--text-faint);
+      position: relative;
+      z-index: 1;
+      opacity: .5;
+    }
+    .related-card-body { padding: 12px; }
+    .related-card-type {
+      font-size: 9px;
+      font-family: monospace;
+      color: var(--accent);
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .related-card-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.4;
+      margin-bottom: 6px;
+    }
+    .related-card-meta {
+      font-size: 10px;
+      font-family: monospace;
+      color: var(--text-faint);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* ── COMMENTS ── */
+    .comments-section { margin-top: 8px; }
+    .comments-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .comments-header h3 {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .comments-count {
+      font-size: 10px;
+      font-family: monospace;
+      color: var(--text-faint);
+      background: var(--surface2);
+      border: 2px solid var(--border);
+      padding: 2px 8px;
+      border-radius: 0px;
+    }
+    .comment-form {
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 28px;
+      box-shadow: 4px 4px 0 #1a1a1a;
+    }
+    .comment-form-top {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      margin-bottom: 10px;
+    }
+    .comment-textarea {
+      flex: 1;
+      background: var(--surface2);
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px 12px;
+      font-family: system-ui;
+      font-size: 13px;
+      color: var(--text);
+      resize: none;
+      min-height: 72px;
+      line-height: 1.5;
+    }
+    .comment-textarea::placeholder { color: var(--text-faint); }
+    .comment-textarea:focus { outline: none; border-color: var(--accent); }
+    .comment-form-bottom {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+    .comment {
+      display: flex;
+      gap: 12px;
+      padding: 16px 0;
+      border-bottom: 2px solid var(--border2);
+    }
+    .comment:last-child { border-bottom: none; }
+    .comment-body { flex: 1; min-width: 0; }
+    .comment-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+      flex-wrap: wrap;
+    }
+    .comment-author {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .comment-time {
+      font-size: 10px;
+      font-family: monospace;
+      color: var(--text-faint);
+    }
+    .comment-text {
+      font-size: 13px;
+      color: var(--text-dim);
+      line-height: 1.65;
+      margin-bottom: 10px;
+    }
+    .comment-actions {
+      display: flex;
+      gap: 4px;
+    }
+    .comment-action {
+      font-size: 10px;
+      font-family: monospace;
+      color: var(--text-faint);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 3px 8px;
+      border-radius: var(--radius);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .comment-action:hover { color: var(--text-dim); background: var(--surface2); }
+    .comment-action.liked-action { color: var(--red); }
+    .replies {
+      margin-top: 16px;
+      padding-left: 20px;
+      border-left: 2px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+    .reply { padding: 12px 0; border-bottom: 1px solid var(--border2); }
+    .reply:last-child { border-bottom: none; }
+    .reply-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 5px;
+    }
+    .reply-author { font-size: 12px; font-weight: 600; color: var(--text); }
+    .reply-time { font-size: 10px; font-family: monospace; color: var(--text-faint); }
+    .reply-text { font-size: 12px; color: var(--text-dim); line-height: 1.6; }
+    .av-sm { width: 20px; height: 20px; font-size: 8px; }
+    .verified { color: var(--accent); font-size: 10px; }
+  </style>
+</head>
+<body>
+
+  <!-- TOP BAR -->
+  <nav class="topbar">
+    <a href="#" class="topbar-logo">[instance]<small style="font-weight:400;color:var(--text-dim);font-size:11px;margin-left:2px;">powered by snaplify</small></a>
+    <div class="topbar-nav">
+      <a href="#"><i class="fa-solid fa-house"></i> Home</a>
+      <a href="#" class="active"><i class="fa-solid fa-newspaper"></i> Articles</a>
+      <a href="#"><i class="fa-solid fa-graduation-cap"></i> Learn</a>
+      <a href="#"><i class="fa-solid fa-users"></i> Hubs</a>
+    </div>
+    <div class="topbar-right">
+      <div class="topbar-search"><i class="fa-solid fa-magnifying-glass"></i> Search articles...</div>
+      <button class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> Write</button>
+      <div class="av">MZ</div>
+    </div>
+  </nav>
+
+  <!-- COVER IMAGE -->
+  <div class="cover">
+    <div class="cover-label">
+      <i class="fa-solid fa-microchip"></i>
+      cover image · 1280×720
+    </div>
+  </div>
+
+  <!-- ARTICLE CONTENT -->
+  <div class="article-wrap">
+
+    <!-- TYPE BADGE -->
+    <div class="content-type-badge"><i class="fa-solid fa-newspaper"></i> Article</div>
+
+    <!-- TITLE -->
+    <h1 class="article-title">The Future of Edge AI in Consumer Electronics</h1>
+
+    <!-- LEAD -->
+    <p class="article-lead">As inference engines shrink and silicon matures, the question is no longer whether your device can run a model — it's whether it should. We examine where edge AI is heading, what hardware is enabling it, and the constraints that still define the frontier.</p>
+
+    <!-- AUTHOR ROW -->
+    <div class="author-row">
+      <div class="av av-lg" style="background: #d0e0f4; color: var(--accent);">SK</div>
+      <div class="author-info">
+        <a href="#" class="author-name">Saoirse Kavanagh <i class="fa-solid fa-circle-check verified" title="Verified"></i></a>
+        <div class="author-meta">
+          <span>@saoirse_k</span>
+          <span class="sep">·</span>
+          <span>Mar 8, 2026</span>
+          <span class="sep">·</span>
+          <span><i class="fa-regular fa-clock"></i> 12 min read</span>
+          <span class="sep">·</span>
+          <span class="tag tag-teal">Edge AI</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ENGAGEMENT ROW -->
+    <div class="engagement-row">
+      <div class="eng-stat"><i class="fa-regular fa-eye"></i> 14,302 views</div>
+      <div class="eng-sep"></div>
+      <button class="eng-btn liked"><i class="fa-solid fa-heart"></i> 847</button>
+      <button class="eng-btn bookmarked"><i class="fa-solid fa-bookmark"></i> 312</button>
+      <div class="eng-spacer"></div>
+      <button class="eng-btn"><i class="fa-solid fa-share-nodes"></i> Share</button>
+      <button class="eng-btn"><i class="fa-solid fa-ellipsis"></i></button>
+    </div>
+
+    <!-- ARTICLE BODY -->
+    <div class="prose">
+
+      <p>It started with wake words. When Amazon shipped the first Echo in 2014, its microphone array sent audio to the cloud to parse intent — a straightforward arrangement that traded latency for computational simplicity. Less than a decade later, the same microphone can run a full small language model locally, disambiguate intent across six accents, and do it all at under 50 milliwatts. That shift is not incremental. It is structural.</p>
+
+      <p>Edge AI refers broadly to the execution of machine learning inference workloads on devices at the network's edge — meaning locally, without a round trip to a data centre. <strong>The critical distinction is inference, not training.</strong> Nobody is training a transformer on a microcontroller (yet). But inference — the act of running a pre-trained model on new inputs — has become viable on increasingly modest hardware, and consumer electronics is being redesigned around that possibility.</p>
+
+      <h2>The Hardware That Made This Possible</h2>
+
+      <p>Three independent shifts converged over roughly the same period. First, the rise of dedicated neural processing units, or NPUs, as first-class silicon components. Apple's Neural Engine debuted in the A11 Bionic in 2017; now every major SoC vendor — Qualcomm, MediaTek, Google, Samsung — ships an NPU as a standard die constituent. These units are architecturally different from CPUs and GPUs: they are designed for the specific algebra of matrix multiplication and activation functions, and they do it efficiently.</p>
+
+      <blockquote>
+        <p>"We used to size SoCs around the camera ISP. Now we size them around the NPU. The camera team has noticed."</p>
+        <cite>— anonymous engineer, major semiconductor company, 2025</cite>
+      </blockquote>
+
+      <p>Second, quantisation matured as a technique. A floating-point neural network model at FP32 is large and expensive to execute. <code>INT8</code> quantisation shrinks a model's parameter storage by 4× and typically runs 2–4× faster with a small accuracy penalty. <code>INT4</code> is now mainstream for language models. The practical effect is that a model that required a server GPU in 2020 fits comfortably into 512 KB of SRAM today — not a metaphor, but an actual number that engineers are shipping against.</p>
+
+      <p>Third, and least glamorously, the tooling improved. <strong>TensorFlow Lite</strong>, <strong>ONNX Runtime</strong>, and <strong>ExecuTorch</strong> provide standardised conversion pipelines that take a model from research checkpoint to deployable binary with a manageable amount of effort. The difference between "we have a model" and "we have a model running on this chip" used to be months of custom kernel work. That gap has closed substantially.</p>
+
+      <figure>
+        <div class="fig-img"><span><i class="fa-solid fa-chart-bar"></i>figure: NPU TOPS scaling by device class, 2017–2026</span></div>
+        <figcaption>Fig. 1 — Neural processing performance has grown roughly 10× every two years in the mobile segment, outpacing Moore's Law in raw inference throughput.</figcaption>
+      </figure>
+
+      <h2>What Is Actually Running at the Edge</h2>
+
+      <p>The most visible deployments are in three areas: vision, audio, and natural language. Each has different latency and accuracy requirements, and each has found a different hardware home.</p>
+
+      <p><strong>Vision models</strong> on-device handle tasks like face unlock, photo scene classification, real-time object detection, and most recently, video super-resolution. These workloads are well-matched to NPUs and run continuously in the background on modern flagship phones — in some cases at 240 fps for viewfinder augmentation.</p>
+
+      <p><strong>Audio and voice</strong> remain the oldest and most refined category. Wake-word detection runs on ultra-low-power microcontrollers with dedicated audio DSPs at milliwatt power budgets. What's new is the next layer: noise cancellation and speech enhancement models running locally on earbuds, hearing aids, and conferencing devices, with under 5 ms of latency that cloud processing structurally cannot match.</p>
+
+      <p>The emerging category is <strong>natural language</strong> on-device. Running a capable language model locally requires significantly more headroom than a keyword spotter, but the 1–7 billion parameter range has become tractable on 2025-class hardware. Apple Intelligence, Google's Gemini Nano, and Samsung's Galaxy AI all execute at least part of their inference pipeline on-device for specific task types — summarisation, reply suggestion, on-device search.</p>
+
+      <div class="callout callout-teal">
+        <div class="callout-icon"><i class="fa-solid fa-lightbulb"></i></div>
+        <div>
+          <div class="callout-title">Key Takeaway</div>
+          <div class="callout-body">For most consumer AI applications, the goal is not replacing cloud AI — it's establishing which tasks benefit from local execution (latency, privacy, offline operation) and routing them appropriately. Hybrid pipelines, not wholesale local compute, are the near-term architecture.</div>
+        </div>
+      </div>
+
+      <h2>A Practical Look: Running Inference on an MCU</h2>
+
+      <p>To make this concrete, here's what deploying a small keyword-spotter looks like on a Cortex-M55 microcontroller using TFLite Micro — the embedded runtime that strips the inference engine down to roughly 300 KB of flash:</p>
+
+      <div class="code-block">
+        <div class="code-hdr">
+          <span class="code-lang">C++</span>
+          <span class="code-fname">keyword_inference.cc</span>
+          <button class="code-copy"><i class="fa-regular fa-copy"></i> Copy</button>
+        </div>
+        <div class="code-body"><span class="cmt">// TFLite Micro keyword detection — Cortex-M55</span>
+<span class="cmt">// Model: DS-CNN quantised INT8, ~80KB flash</span>
+
+<span class="kw">#include</span> <span class="str">"tensorflow/lite/micro/micro_interpreter.h"</span>
+<span class="kw">#include</span> <span class="str">"tensorflow/lite/micro/all_ops_resolver.h"</span>
+<span class="kw">#include</span> <span class="str">"model_data.h"</span>  <span class="cmt">// embedded flatbuffer</span>
+
+<span class="kw">constexpr</span> <span class="type">int</span> <span class="fn">kTensorArenaSize</span> = <span class="num">24</span> * <span class="num">1024</span>;  <span class="cmt">// 24KB SRAM</span>
+<span class="type">uint8_t</span> tensor_arena[kTensorArenaSize];
+
+<span class="kw">void</span> <span class="fn">RunInference</span>(<span class="kw">const</span> <span class="type">float</span>* audio_buffer, <span class="type">size_t</span> length) {
+  <span class="kw">static</span> tflite::<span class="fn">AllOpsResolver</span> resolver;
+  <span class="kw">static</span> <span class="kw">const</span> tflite::<span class="type">Model</span>* model =
+      tflite::<span class="fn">GetModel</span>(g_model_data);
+
+  tflite::<span class="fn">MicroInterpreter</span> interpreter(
+      model, resolver, tensor_arena, kTensorArenaSize);
+  interpreter.<span class="fn">AllocateTensors</span>();
+
+  <span class="cmt">// Copy MFCC features into input tensor</span>
+  <span class="type">TfLiteTensor</span>* input = interpreter.<span class="fn">input</span>(<span class="num">0</span>);
+  <span class="fn">memcpy</span>(input->data.f, audio_buffer, length * <span class="kw">sizeof</span>(<span class="type">float</span>));
+
+  interpreter.<span class="fn">Invoke</span>();  <span class="cmt">// ~1.2ms @ 160MHz with Helium</span>
+
+  <span class="type">TfLiteTensor</span>* output = interpreter.<span class="fn">output</span>(<span class="num">0</span>);
+  <span class="type">uint8_t</span> keyword_id = <span class="fn">ArgMax</span>(output->data.uint8, <span class="num">10</span>);
+  <span class="fn">HandleKeyword</span>(keyword_id);
+}</div>
+      </div>
+
+      <p>The <code>AllocateTensors()</code> call is where memory layout is resolved — all tensor buffers are carved from the arena. The entire inference runs in <strong>~1.2 ms</strong> on a Cortex-M55 at 160 MHz with Helium vector extensions enabled. For a wake-word pipeline running on 10 ms audio frames, that's more than sufficient headroom.</p>
+
+      <h2>The Constraints That Still Bite</h2>
+
+      <p>Progress in this space tends to be communicated breathlessly. It's worth being precise about what remains hard.</p>
+
+      <ul>
+        <li><strong>Memory bandwidth</strong> is often the real bottleneck, not compute. A larger model that spills to flash storage will run 10–100× slower than one that fits in SRAM — latency degrades unpredictably and power consumption spikes.</li>
+        <li><strong>Thermal headroom</strong> in consumer devices is severely constrained. Sustained AI inference on mobile SoCs triggers thermal throttling within seconds to minutes. Peak TOPS numbers are marketing; sustained throughput over a 30-minute workload is the relevant figure.</li>
+        <li><strong>Model update logistics</strong> are underappreciated. A cloud model gets retrained weekly. An on-device model needs an OTA update path, rollback logic, A/B testing infrastructure, and careful staging — all for a binary that may be 200 MB on a device with 8 GB total storage.</li>
+        <li><strong>Accuracy gaps</strong> remain real for many use cases. The quantisation and pruning required to shrink a model for edge deployment costs accuracy points. How many points are acceptable depends entirely on the application; for medical or safety-critical uses, the answer is often "fewer than current techniques can deliver."</li>
+      </ul>
+
+      <h2>Where the Next Decade Goes</h2>
+
+      <p>The direction is clear even if the pace is not: more capable models, lower power, increasingly heterogeneous execution between local and cloud. The architectural question being actively fought over is where the boundary sits — which tasks are permanently local, which are permanently remote, and which are situationally routed based on connectivity, battery state, and latency requirements.</p>
+
+      <p>The devices being designed today for release in 2027 and 2028 are being sized around models that do not yet exist at inference-ready quality. That bet is becoming standard practice in the industry — which suggests the people making silicon roadmaps believe the trajectory will hold. That is, itself, a meaningful signal.</p>
+
+      <hr>
+
+      <p><em>This article was written for [instance]. Comments, corrections, and dissenting opinions are welcome in the thread below. The author has no financial relationship with any silicon vendor mentioned.</em></p>
+
+    </div><!-- /.prose -->
+
+    <!-- TAGS -->
+    <div class="tags-row">
+      <div class="tags-label">Filed under</div>
+      <span class="tag tag-accent">edge ai</span>
+      <span class="tag">machine learning</span>
+      <span class="tag">embedded systems</span>
+      <span class="tag">silicon</span>
+      <span class="tag">consumer electronics</span>
+      <span class="tag tag-teal">hardware</span>
+      <span class="tag">tflite</span>
+    </div>
+
+    <!-- AUTHOR CARD -->
+    <div class="author-card">
+      <div class="av av-xl" style="background: #d0e0f4; color: var(--accent);">SK</div>
+      <div class="author-card-info">
+        <div class="author-card-label">Written by</div>
+        <div class="author-card-name">
+          Saoirse Kavanagh
+          <i class="fa-solid fa-circle-check" style="color: var(--accent); font-size: 12px;" title="Verified author"></i>
+        </div>
+        <div class="author-card-handle">@saoirse_k · saoirse.dev</div>
+        <div class="author-card-bio">Staff writer covering embedded systems, edge computing, and the hardware that makes machine learning practical. Previously at Arm Research. Based in Dublin.</div>
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+          <div class="author-card-stats">
+            <div class="author-card-stat"><span class="n">48</span><span class="l">articles</span></div>
+            <div class="author-card-stat"><span class="n">12.4k</span><span class="l">followers</span></div>
+            <div class="author-card-stat"><span class="n">94k</span><span class="l">total views</span></div>
+          </div>
+          <div style="margin-left:auto;display:flex;gap:8px;">
+            <button class="btn btn-sm"><i class="fa-solid fa-rss"></i> Follow</button>
+            <button class="btn btn-sm btn-ghost"><i class="fa-brands fa-github"></i></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RELATED ARTICLES -->
+    <div class="section-head">Related Articles</div>
+    <div class="related-grid">
+      <div class="related-card">
+        <div class="related-card-thumb"><i class="fa-solid fa-brain"></i></div>
+        <div class="related-card-body">
+          <div class="related-card-type">Article</div>
+          <div class="related-card-title">Quantisation Without Tears: A Practical Guide to INT8</div>
+          <div class="related-card-meta"><span>8 min</span><span>·</span><span>3.1k views</span></div>
+        </div>
+      </div>
+      <div class="related-card">
+        <div class="related-card-thumb"><i class="fa-solid fa-microchip"></i></div>
+        <div class="related-card-body">
+          <div class="related-card-type">Guide</div>
+          <div class="related-card-title">Running TFLite Micro on the Raspberry Pi RP2350</div>
+          <div class="related-card-meta"><span>14 min</span><span>·</span><span>7.8k views</span></div>
+        </div>
+      </div>
+      <div class="related-card">
+        <div class="related-card-thumb"><i class="fa-solid fa-chart-line"></i></div>
+        <div class="related-card-body">
+          <div class="related-card-type">Article</div>
+          <div class="related-card-title">Why On-Device AI Privacy Claims Deserve More Scrutiny</div>
+          <div class="related-card-meta"><span>10 min</span><span>·</span><span>19k views</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COMMENTS -->
+    <div class="comments-section">
+      <div class="comments-header">
+        <h3>Discussion</h3>
+        <span class="comments-count">24 comments</span>
+      </div>
+
+      <!-- COMMENT FORM -->
+      <div class="comment-form">
+        <div class="comment-form-top">
+          <div class="av">MZ</div>
+          <textarea class="comment-textarea" placeholder="Share your thoughts, corrections, or experience with edge AI deployments..."></textarea>
+        </div>
+        <div class="comment-form-bottom">
+          <button class="btn btn-sm btn-ghost">Preview</button>
+          <button class="btn btn-sm btn-primary">Post Comment</button>
+        </div>
+      </div>
+
+      <!-- COMMENT LIST -->
+      <div>
+
+        <!-- Comment 1 -->
+        <div class="comment">
+          <div class="av" style="background: #d4eed4; color: var(--green);">JP</div>
+          <div class="comment-body">
+            <div class="comment-header">
+              <span class="comment-author">jphilip_embedded</span>
+              <span class="comment-time">2 hours ago</span>
+            </div>
+            <div class="comment-text">Great overview. The point about thermal headroom is something I wish more benchmarks addressed honestly. I've been running inference on an i.MX 93 and the sustained throughput numbers are very different from the burst figures in the datasheets. Would love a follow-up piece specifically on thermal characterisation methodology.</div>
+            <div class="comment-actions">
+              <button class="comment-action liked-action"><i class="fa-solid fa-heart"></i> 34</button>
+              <button class="comment-action"><i class="fa-regular fa-message"></i> Reply</button>
+              <button class="comment-action"><i class="fa-solid fa-flag"></i></button>
+            </div>
+            <div class="replies">
+              <div class="reply">
+                <div class="reply-header">
+                  <div class="av av-sm" style="background: #d0e0f4; color: var(--accent);">SK</div>
+                  <span class="reply-author">saoirse_k</span>
+                  <span class="reply-time">1 hour ago</span>
+                  <span class="tag tag-accent" style="font-size:8px;">Author</span>
+                </div>
+                <div class="reply-text">Thermal characterisation is genuinely underserved in the literature. That's a good suggestion — I'll pitch it as a companion piece. The i.MX 93 case is interesting because it's a heterogeneous cluster and the throttling behaviour differs per-core-type.</div>
+              </div>
+              <div class="reply">
+                <div class="reply-header">
+                  <div class="av av-sm" style="color:var(--purple);">NW</div>
+                  <span class="reply-author">nwatts_silicon</span>
+                  <span class="reply-time">45 min ago</span>
+                </div>
+                <div class="reply-text">MLCommons MLPerf Tiny has some thermal methodology guidance. Not perfect but better than nothing as a starting point.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Comment 2 -->
+        <div class="comment">
+          <div class="av" style="color: var(--yellow);">RD</div>
+          <div class="comment-body">
+            <div class="comment-header">
+              <span class="comment-author">rustdevex</span>
+              <span class="comment-time">5 hours ago</span>
+            </div>
+            <div class="comment-text">The memory bandwidth point deserves its own article. I've seen engineers optimise the heck out of their kernels only to get a 1.3× speedup because the bottleneck was always the memory bus. Especially painful on MCUs without a cache on the NPU path.</div>
+            <div class="comment-actions">
+              <button class="comment-action"><i class="fa-solid fa-heart"></i> 21</button>
+              <button class="comment-action"><i class="fa-regular fa-message"></i> Reply</button>
+              <button class="comment-action"><i class="fa-solid fa-flag"></i></button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Comment 3 -->
+        <div class="comment">
+          <div class="av" style="color: var(--teal);">LM</div>
+          <div class="comment-body">
+            <div class="comment-header">
+              <span class="comment-author">lena_m_iot</span>
+              <span class="comment-time">9 hours ago</span>
+            </div>
+            <div class="comment-text">I'd push back slightly on the framing that hybrid is "near-term architecture." For a lot of industrial and medical deployments, cloud connectivity is simply not available or not permitted. The regulatory environment around data residency is making fully-local inference a hard requirement in some verticals, not just a preference.</div>
+            <div class="comment-actions">
+              <button class="comment-action"><i class="fa-solid fa-heart"></i> 18</button>
+              <button class="comment-action"><i class="fa-regular fa-message"></i> Reply</button>
+              <button class="comment-action"><i class="fa-solid fa-flag"></i></button>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /.comment list -->
+
+      <div style="text-align:center;padding:24px 0;">
+        <button class="btn btn-sm btn-ghost"><i class="fa-solid fa-chevron-down"></i> Show 21 more comments</button>
+      </div>
+
+    </div><!-- /.comments-section -->
+
+  </div><!-- /.article-wrap -->
+
+</body>
+</html>

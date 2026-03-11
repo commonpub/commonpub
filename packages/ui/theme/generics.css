@@ -26,6 +26,8 @@
   --color-accent-hover: #4a8be5;
   --color-accent-text: #0c0c0b;
   --color-on-accent: #ffffff;
+  --color-accent-bg: rgba(91, 156, 246, 0.1);
+  --color-accent-border: rgba(91, 156, 246, 0.22);
 
   /* Semantic */
   --color-success: #4ade80;

@@ -129,8 +129,9 @@
 
 <style>
   .dashboard {
-    max-width: 960px;
+    max-width: 1080px;
     margin: 0 auto;
+    padding: 32px;
     display: flex;
     flex-direction: column;
     gap: var(--space-6, 1.5rem);

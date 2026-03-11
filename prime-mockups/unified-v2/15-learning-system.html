@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Learn — Snaplify</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#fafaf9;--surface:#ffffff;--surface2:#f4f4f2;--surface3:#eaeae7;
+  --border:#1a1a1a;--border2:#d4d4d0;--text:#1a1a1a;--text-dim:#6b6b66;
+  --text-faint:#a3a39e;--accent:#5b9cf6;--accent-bg:rgba(91,156,246,0.08);
+  --accent-border:rgba(91,156,246,0.25);--green:#22c55e;--green-bg:rgba(34,197,94,0.08);
+  --green-border:rgba(34,197,94,0.25);--yellow:#f59e0b;--yellow-bg:rgba(245,158,11,0.08);
+  --yellow-border:rgba(245,158,11,0.25);--red:#ef4444;--red-bg:rgba(239,68,68,0.08);
+  --red-border:rgba(239,68,68,0.25);--purple:#8b5cf6;--purple-bg:rgba(139,92,246,0.08);
+  --purple-border:rgba(139,92,246,0.25);--teal:#14b8a6;--teal-bg:rgba(20,184,166,0.08);
+  --teal-border:rgba(20,184,166,0.25);--radius:0px;--radius-lg:0px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;}
+body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.5;}
+a{color:inherit;text-decoration:none;}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:0;}
+
+/* TOPBAR */
+.topbar{background:var(--surface);border-bottom:2px solid var(--border);height:48px;display:flex;align-items:center;padding:0 20px;gap:0;position:sticky;top:0;z-index:100;flex-shrink:0;}
+.topbar-brand{font-size:13px;font-weight:700;color:var(--text);font-family:'JetBrains Mono',monospace;letter-spacing:-.02em;margin-right:8px;}
+.topbar-brand span{color:var(--accent);}
+.topbar-sep{width:2px;height:20px;background:var(--border);margin:0 16px;}
+.topbar-nav{display:flex;gap:2px;}
+.topbar-nav-item{font-size:12px;color:var(--text-dim);padding:5px 10px;border-radius:var(--radius);cursor:pointer;border:none;background:none;}
+.topbar-nav-item:hover{color:var(--text);background:var(--surface2);}
+.topbar-nav-item.active{color:var(--text);background:var(--surface2);border-bottom:2px solid var(--border);}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:8px;}
+.topbar-search{display:flex;align-items:center;gap:8px;background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);padding:5px 10px;font-size:12px;color:var(--text-faint);font-family:'JetBrains Mono',monospace;cursor:text;min-width:180px;}
+.topbar-search i{font-size:11px;}
+.topbar-btn{font-size:11px;font-family:'JetBrains Mono',monospace;padding:5px 12px;border-radius:var(--radius);border:2px solid var(--border);background:var(--surface);color:var(--text-dim);cursor:pointer;display:inline-flex;align-items:center;gap:6px;}
+.topbar-btn-primary{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:4px 4px 0 #1a1a1a;}
+.av{width:28px;height:28px;border-radius:50%;background:var(--surface3);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:var(--text-dim);flex-shrink:0;font-family:'JetBrains Mono',monospace;}
+
+/* LAYOUT */
+.shell{display:flex;min-height:calc(100vh - 48px);}
+.main-content{flex:1;overflow-y:auto;overflow-x:hidden;}
+.sidebar{width:240px;background:var(--surface);border-left:2px solid var(--border);flex-shrink:0;overflow-y:auto;padding:20px 0;}
+
+/* PAGE */
+.page{max-width:960px;margin:0 auto;padding:28px 32px;}
+
+/* PRIMITIVES */
+.tag{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-family:'JetBrains Mono',monospace;padding:2px 8px;border-radius:0;border:1px solid var(--border2);color:var(--text-dim);background:var(--surface2);}
+.tag-accent{border-color:var(--accent-border);color:var(--accent);background:var(--accent-bg);}
+.tag-green{border-color:var(--green-border);color:var(--green);background:var(--green-bg);}
+.tag-yellow{border-color:var(--yellow-border);color:var(--yellow);background:var(--yellow-bg);}
+.tag-red{border-color:var(--red-border);color:var(--red);background:var(--red-bg);}
+.tag-purple{border-color:var(--purple-border);color:var(--purple);background:var(--purple-bg);}
+.tag-teal{border-color:var(--teal-border);color:var(--teal);background:var(--teal-bg);}
+
+.btn{font-family:system-ui;font-size:12px;padding:7px 16px;border-radius:var(--radius);border:2px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;display:inline-flex;align-items:center;gap:6px;}
+.btn:hover{background:var(--surface2);}
+.btn-primary{background:var(--accent);border-color:var(--border);color:#fff;box-shadow:4px 4px 0 #1a1a1a;}
+.btn-primary:hover{opacity:.9;}
+.btn-sm{padding:5px 12px;font-size:11px;}
+.btn-xs{padding:3px 8px;font-size:10px;font-family:'JetBrains Mono',monospace;}
+
+.sec-head{display:flex;align-items:center;gap:10px;margin-bottom:16px;}
+.sec-head h2{font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;}
+.sec-head-right{margin-left:auto;display:flex;align-items:center;gap:8px;}
+.sec-sub{font-size:11px;color:var(--text-dim);font-family:'JetBrains Mono',monospace;}
+
+.card{background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:4px 4px 0 #1a1a1a;}
+.card:hover{border-color:var(--border);}
+
+.progress-track{height:4px;background:var(--surface3);border-radius:0;overflow:hidden;border:1px solid var(--border2);}
+.progress-fill{height:100%;border-radius:0;background:var(--accent);}
+.progress-fill-green{background:var(--green);}
+
+.divider{border:none;border-top:2px solid var(--border);margin:28px 0;}
+
+/* HERO */
+.learn-hero{background:var(--surface);border-bottom:2px solid var(--border);padding:36px 32px 28px;}
+.learn-hero-inner{max-width:960px;margin:0 auto;}
+.hero-eyebrow{font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--accent);letter-spacing:.12em;text-transform:uppercase;margin-bottom:10px;}
+.hero-title{font-size:28px;font-weight:700;line-height:1.15;margin-bottom:10px;letter-spacing:-.03em;}
+.hero-sub{font-size:14px;color:var(--text-dim);line-height:1.6;max-width:520px;margin-bottom:24px;}
+.hero-cats{display:flex;gap:8px;flex-wrap:wrap;}
+.hero-cat{font-size:11px;font-family:'JetBrains Mono',monospace;padding:6px 14px;border-radius:var(--radius);border:2px solid var(--border);background:var(--surface);color:var(--text-dim);cursor:pointer;display:inline-flex;align-items:center;gap:6px;}
+.hero-cat:hover{background:var(--surface2);color:var(--text);}
+.hero-cat.active{border-color:var(--accent);background:var(--accent-bg);color:var(--accent);box-shadow:3px 3px 0 #1a1a1a;}
+.hero-cat-icon{font-size:12px;}
+.hero-stats{display:flex;gap:24px;margin-top:24px;padding-top:20px;border-top:2px solid var(--border);}
+.hero-stat{display:flex;flex-direction:column;gap:2px;}
+.hero-stat-n{font-size:18px;font-weight:700;color:var(--text);}
+.hero-stat-l{font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--text-dim);}
+
+/* MY LEARNING */
+.in-progress-row{display:flex;gap:14px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none;}
+.in-progress-row::-webkit-scrollbar{display:none;}
+.ip-card{background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);overflow:hidden;min-width:220px;max-width:220px;flex-shrink:0;box-shadow:4px 4px 0 #1a1a1a;}
+.ip-card:hover{box-shadow:5px 5px 0 #1a1a1a;}
+.ip-thumb{height:100px;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;background:var(--surface2);}
+.ip-thumb-icon{font-size:24px;position:relative;z-index:1;color:var(--text-dim);}
+.ip-thumb-badge{position:absolute;top:8px;right:8px;z-index:2;}
+.ip-body{padding:14px;}
+.ip-title{font-size:12px;font-weight:600;margin-bottom:4px;line-height:1.35;}
+.ip-meta{font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--text-faint);margin-bottom:10px;}
+.ip-progress-label{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.ip-progress-text{font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--text-dim);}
+.ip-progress-pct{font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--accent);}
+.ip-continue{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:10px;padding:7px;border-top:2px solid var(--border);font-size:11px;color:var(--accent);font-family:'JetBrains Mono',monospace;cursor:pointer;}
+.ip-continue:hover{background:var(--accent-bg);}
+
+/* LEARNING PATHS */
+.path-card{background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);padding:20px;display:flex;gap:20px;align-items:flex-start;margin-bottom:12px;box-shadow:4px 4px 0 #1a1a1a;}
+.path-card:hover{box-shadow:5px 5px 0 #1a1a1a;}
+.path-icon-wrap{width:52px;height:52px;border-radius:var(--radius);border:2px solid var(--border);background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;color:var(--text-dim);}
+.path-body{flex:1;}
+.path-title{font-size:14px;font-weight:600;margin-bottom:4px;}
+.path-desc{font-size:12px;color:var(--text-dim);line-height:1.55;margin-bottom:12px;}
+.path-meta{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.path-meta-item{font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--text-faint);display:flex;align-items:center;gap:5px;}
+.path-courses-preview{display:flex;gap:6px;margin-top:12px;padding-top:12px;border-top:2px solid var(--border2);overflow-x:auto;}
+.path-course-pill{font-size:10px;font-family:'JetBrains Mono',monospace;padding:3px 10px;border-radius:0;border:1px solid var(--border);background:var(--surface2);color:var(--text-dim);white-space:nowrap;}
+.path-course-pill.done{border-color:var(--green-border);color:var(--green);background:var(--green-bg);}
+.path-aside{display:flex;flex-direction:column;align-items:flex-end;gap:10px;flex-shrink:0;}
+
+/* FEATURED COURSES */
+.course-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+.course-card{background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);overflow:hidden;display:flex;flex-direction:column;box-shadow:4px 4px 0 #1a1a1a;}
+.course-card:hover{box-shadow:5px 5px 0 #1a1a1a;}
+.course-cover{height:120px;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;background:var(--surface2);border-bottom:2px solid var(--border);}
+.course-cover-icon{font-size:28px;position:relative;z-index:1;color:var(--text-dim);}
+.course-cover-price{position:absolute;top:10px;right:10px;z-index:2;font-size:11px;font-family:'JetBrains Mono',monospace;padding:3px 8px;border-radius:0;background:var(--surface);border:2px solid var(--border);}
+.course-cover-price.free{color:var(--green);border-color:var(--green);}
+.course-cover-price.paid{color:var(--text);}
+.course-body{padding:14px;flex:1;display:flex;flex-direction:column;}
+.course-title{font-size:13px;font-weight:600;margin-bottom:6px;line-height:1.35;}
+.course-instructor{font-size:11px;color:var(--text-dim);margin-bottom:8px;display:flex;align-items:center;gap:6px;}
+.instructor-dot{width:16px;height:16px;border-radius:50%;background:var(--surface3);border:1px solid var(--border);font-size:8px;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;color:var(--text-faint);flex-shrink:0;}
+.course-stars{display:flex;align-items:center;gap:3px;margin-bottom:8px;}
+.star{color:var(--yellow);font-size:10px;}
+.star.empty{color:var(--border2);}
+.star-score{font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--yellow);margin-left:2px;}
+.star-count{font-size:10px;color:var(--text-faint);font-family:'JetBrains Mono',monospace;margin-left:2px;}
+.course-meta-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;}
+.course-meta-item{font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--text-faint);display:flex;align-items:center;gap:4px;}
+.course-footer{margin-top:auto;padding-top:10px;border-top:2px solid var(--border2);}
+.course-enrolled-progress{margin-bottom:8px;}
+.course-enrolled-label{font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--accent);margin-bottom:5px;}
+.course-actions{display:flex;align-items:center;justify-content:space-between;}
+
+/* EXPLAINERS */
+.explainer-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;}
+.explainer-card{background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);padding:18px;display:flex;gap:16px;align-items:flex-start;box-shadow:4px 4px 0 #1a1a1a;}
+.explainer-card:hover{box-shadow:5px 5px 0 #1a1a1a;}
+.explainer-icon{width:44px;height:44px;border-radius:var(--radius);border:2px solid var(--border);background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;color:var(--text-dim);}
+.explainer-body{flex:1;}
+.explainer-title{font-size:13px;font-weight:600;margin-bottom:4px;}
+.explainer-desc{font-size:12px;color:var(--text-dim);line-height:1.5;margin-bottom:10px;}
+.explainer-meta{display:flex;align-items:center;gap:10px;}
+.explainer-action{margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:8px;}
+
+/* TUTORIALS */
+.tutorial-list{display:flex;flex-direction:column;}
+.tutorial-row{display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:2px solid var(--border2);cursor:pointer;}
+.tutorial-row:last-child{border-bottom:none;}
+.tutorial-row:hover .tutorial-title{color:var(--accent);}
+.tutorial-icon{width:36px;height:36px;border-radius:var(--radius);background:var(--surface2);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;color:var(--text-dim);}
+.tutorial-body{flex:1;}
+.tutorial-title{font-size:12px;font-weight:600;margin-bottom:3px;transition:color .1s;}
+.tutorial-meta{font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--text-faint);display:flex;align-items:center;gap:8px;}
+.tutorial-aside{display:flex;align-items:center;gap:8px;margin-left:auto;flex-shrink:0;}
+
+/* SIDEBAR */
+.sb-section{padding:0 16px 20px;}
+.sb-section+.sb-section{border-top:2px solid var(--border);padding-top:20px;}
+.sb-title{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text-faint);font-family:'JetBrains Mono',monospace;margin-bottom:12px;}
+.sb-cat-item{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border2);cursor:pointer;}
+.sb-cat-item:last-child{border-bottom:none;}
+.sb-cat-item:hover .sb-cat-name{color:var(--text);}
+.sb-cat-icon{width:24px;height:24px;border-radius:var(--radius);background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;color:var(--text-dim);}
+.sb-cat-name{font-size:12px;color:var(--text-dim);}
+.sb-cat-count{margin-left:auto;font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--text-faint);}
+.sb-level-row{display:flex;flex-direction:column;gap:6px;}
+.sb-level-item{display:flex;align-items:center;gap:8px;cursor:pointer;}
+.sb-level-check{width:14px;height:14px;border-radius:0;border:2px solid var(--border);background:var(--surface);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:8px;}
+.sb-level-check.checked{background:var(--accent);border-color:var(--border);color:#fff;}
+.sb-level-name{font-size:12px;color:var(--text-dim);}
+.sb-level-n{margin-left:auto;font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--text-faint);}
+.sb-tag-cloud{display:flex;flex-wrap:wrap;gap:6px;}
+.sb-tag{font-size:10px;font-family:'JetBrains Mono',monospace;padding:3px 8px;border-radius:0;border:1px solid var(--border);background:var(--surface2);color:var(--text-faint);cursor:pointer;}
+.sb-tag:hover{border-color:var(--border);color:var(--text-dim);background:var(--surface3);}
+.cert-grid{display:flex;flex-direction:column;gap:8px;}
+.cert-item{background:var(--surface2);border:2px solid var(--border);border-radius:var(--radius);padding:10px 12px;display:flex;align-items:center;gap:10px;box-shadow:3px 3px 0 #1a1a1a;}
+.cert-badge{width:32px;height:32px;border-radius:50%;border:2px solid var(--yellow);background:var(--yellow-bg);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;color:var(--yellow);}
+.cert-info{flex:1;}
+.cert-name{font-size:11px;font-weight:600;color:var(--text);margin-bottom:2px;}
+.cert-date{font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--text-faint);}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-brand">snap<span>lify</span></div>
+  <div class="topbar-sep"></div>
+  <nav class="topbar-nav">
+    <div class="topbar-nav-item">Discover</div>
+    <div class="topbar-nav-item active">Learn</div>
+    <div class="topbar-nav-item">Build</div>
+    <div class="topbar-nav-item">Community</div>
+    <div class="topbar-nav-item">Competitions</div>
+  </nav>
+  <div class="topbar-right">
+    <div class="topbar-search"><i class="fa-solid fa-magnifying-glass"></i> Search courses...</div>
+    <button class="topbar-btn"><i class="fa-solid fa-bell"></i></button>
+    <div class="av">ML</div>
+  </div>
+</div>
+
+<!-- HERO -->
+<div class="learn-hero">
+  <div class="learn-hero-inner">
+    <div class="hero-eyebrow"><i class="fa-solid fa-graduation-cap"></i> &nbsp;Learning Hub</div>
+    <h1 class="hero-title">Learn Edge AI</h1>
+    <p class="hero-sub">Structured courses, interactive explainers, and hands-on tutorials — from beginner to production-ready.</p>
+    <div class="hero-cats">
+      <div class="hero-cat active"><span class="hero-cat-icon"><i class="fa-solid fa-brain"></i></span> TinyML</div>
+      <div class="hero-cat"><span class="hero-cat-icon"><i class="fa-solid fa-eye"></i></span> Computer Vision</div>
+      <div class="hero-cat"><span class="hero-cat-icon"><i class="fa-solid fa-microphone"></i></span> Audio &amp; Speech</div>
+      <div class="hero-cat"><span class="hero-cat-icon"><i class="fa-solid fa-robot"></i></span> Robotics</div>
+      <div class="hero-cat"><span class="hero-cat-icon"><i class="fa-solid fa-satellite-dish"></i></span> Sensor Fusion</div>
+      <div class="hero-cat"><span class="hero-cat-icon"><i class="fa-solid fa-bolt"></i></span> Model Optimization</div>
+      <div class="hero-cat"><span class="hero-cat-icon"><i class="fa-solid fa-flask"></i></span> Edge Inference</div>
+    </div>
+    <div class="hero-stats">
+      <div class="hero-stat">
+        <div class="hero-stat-n">148</div>
+        <div class="hero-stat-l">courses</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-n">2,340</div>
+        <div class="hero-stat-l">lessons</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-n">38k</div>
+        <div class="hero-stat-l">learners</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-n">24</div>
+        <div class="hero-stat-l">certificates</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SHELL -->
+<div class="shell">
+  <div class="main-content">
+    <div class="page">
+
+      <!-- MY LEARNING -->
+      <div class="sec-head">
+        <h2>My Learning</h2>
+        <span class="sec-sub">3 in progress</span>
+        <div class="sec-head-right">
+          <a href="#" style="font-size:11px;color:var(--accent);font-family:'JetBrains Mono',monospace;">View all <i class="fa-solid fa-arrow-right" style="font-size:10px;"></i></a>
+        </div>
+      </div>
+
+      <div class="in-progress-row">
+        <!-- Card 1 -->
+        <div class="ip-card">
+          <div class="ip-thumb" style="background:var(--surface3);">
+            <div class="ip-thumb-icon"><i class="fa-solid fa-brain"></i></div>
+            <div class="ip-thumb-badge"><span class="tag tag-accent">TinyML</span></div>
+          </div>
+          <div class="ip-body">
+            <div class="ip-title">Introduction to TinyML with Arduino</div>
+            <div class="ip-meta">by Shawn Hymel · 12 lessons</div>
+            <div class="ip-progress-label">
+              <span class="ip-progress-text">Lesson 7 of 12</span>
+              <span class="ip-progress-pct">58%</span>
+            </div>
+            <div class="progress-track"><div class="progress-fill" style="width:58%;"></div></div>
+            <div class="ip-continue"><i class="fa-solid fa-play" style="font-size:9px;"></i> Continue Learning</div>
+          </div>
+        </div>
+        <!-- Card 2 -->
+        <div class="ip-card">
+          <div class="ip-thumb" style="background:var(--surface3);">
+            <div class="ip-thumb-icon"><i class="fa-solid fa-eye"></i></div>
+            <div class="ip-thumb-badge"><span class="tag tag-green">Vision</span></div>
+          </div>
+          <div class="ip-body">
+            <div class="ip-title">Edge Impulse: Computer Vision Fundamentals</div>
+            <div class="ip-meta">by Jenny Plunkett · 9 lessons</div>
+            <div class="ip-progress-label">
+              <span class="ip-progress-text">Lesson 3 of 9</span>
+              <span class="ip-progress-pct">33%</span>
+            </div>
+            <div class="progress-track"><div class="progress-fill" style="width:33%;"></div></div>
+            <div class="ip-continue"><i class="fa-solid fa-play" style="font-size:9px;"></i> Continue Learning</div>
+          </div>
+        </div>
+        <!-- Card 3 -->
+        <div class="ip-card">
+          <div class="ip-thumb" style="background:var(--surface3);">
+            <div class="ip-thumb-icon"><i class="fa-solid fa-bolt"></i></div>
+            <div class="ip-thumb-badge"><span class="tag tag-purple">Advanced</span></div>
+          </div>
+          <div class="ip-body">
+            <div class="ip-title">Model Quantization &amp; Pruning for Deployment</div>
+            <div class="ip-meta">by Pete Warden · 15 lessons</div>
+            <div class="ip-progress-label">
+              <span class="ip-progress-text">Lesson 11 of 15</span>
+              <span class="ip-progress-pct">73%</span>
+            </div>
+            <div class="progress-track"><div class="progress-fill" style="width:73%;"></div></div>
+            <div class="ip-continue"><i class="fa-solid fa-play" style="font-size:9px;"></i> Continue Learning</div>
+          </div>
+        </div>
+        <!-- Card 4 -->
+        <div class="ip-card">
+          <div class="ip-thumb" style="background:var(--surface3);">
+            <div class="ip-thumb-icon"><i class="fa-solid fa-microphone"></i></div>
+            <div class="ip-thumb-badge"><span class="tag tag-teal">Audio</span></div>
+          </div>
+          <div class="ip-body">
+            <div class="ip-title">Keyword Spotting on Microcontrollers</div>
+            <div class="ip-meta">by Marcelo Rovai · 8 lessons</div>
+            <div class="ip-progress-label">
+              <span class="ip-progress-text">Lesson 2 of 8</span>
+              <span class="ip-progress-pct">25%</span>
+            </div>
+            <div class="progress-track"><div class="progress-fill" style="width:25%;"></div></div>
+            <div class="ip-continue"><i class="fa-solid fa-play" style="font-size:9px;"></i> Continue Learning</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- LEARNING PATHS -->
+      <div class="sec-head">
+        <h2>Learning Paths</h2>
+        <div class="sec-head-right">
+          <a href="#" style="font-size:11px;color:var(--accent);font-family:'JetBrains Mono',monospace;">Browse all paths <i class="fa-solid fa-arrow-right" style="font-size:10px;"></i></a>
+        </div>
+      </div>
+
+      <!-- Path 1 -->
+      <div class="path-card">
+        <div class="path-icon-wrap"><i class="fa-solid fa-shield-halved"></i></div>
+        <div class="path-body">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+            <div class="path-title" style="margin-bottom:0;">Getting Started with TinyML</div>
+            <span class="tag tag-green">Beginner</span>
+          </div>
+          <div class="path-desc">Go from zero to deploying your first neural network on a microcontroller. Covers hardware selection, data collection, model training, and on-device inference using Arduino and Raspberry Pi Pico.</div>
+          <div class="path-meta">
+            <div class="path-meta-item"><i class="fa-solid fa-book-open"></i> 4 courses</div>
+            <div class="path-meta-item"><i class="fa-solid fa-clock"></i> ~18 hours</div>
+            <div class="path-meta-item"><i class="fa-solid fa-users"></i> 4,821 enrolled</div>
+            <div class="path-meta-item"><i class="fa-solid fa-star" style="color:var(--yellow);"></i> 4.8</div>
+          </div>
+          <div class="path-courses-preview">
+            <div class="path-course-pill done"><i class="fa-solid fa-check" style="font-size:9px;"></i> Intro to Edge AI</div>
+            <div class="path-course-pill done"><i class="fa-solid fa-check" style="font-size:9px;"></i> Arduino Basics</div>
+            <div class="path-course-pill"><i class="fa-solid fa-play" style="font-size:9px;color:var(--accent);"></i> TinyML Foundations</div>
+            <div class="path-course-pill">Deploy Your First Model</div>
+          </div>
+        </div>
+        <div class="path-aside">
+          <button class="btn btn-sm" style="background:var(--accent-bg);border-color:var(--accent-border);color:var(--accent);">In Progress</button>
+          <div style="font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--text-faint);">50% complete</div>
+          <div class="progress-track" style="width:80px;"><div class="progress-fill" style="width:50%;"></div></div>
+        </div>
+      </div>
+
+      <!-- Path 2 -->
+      <div class="path-card">
+        <div class="path-icon-wrap"><i class="fa-solid fa-eye"></i></div>
+        <div class="path-body">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+            <div class="path-title" style="margin-bottom:0;">Computer Vision for Edge Devices</div>
+            <span class="tag tag-yellow">Intermediate</span>
+          </div>
+          <div class="path-desc">Master image classification, object detection, and anomaly detection pipelines optimized for resource-constrained hardware. Includes real-world projects with FOMO and MobileNet architectures.</div>
+          <div class="path-meta">
+            <div class="path-meta-item"><i class="fa-solid fa-book-open"></i> 6 courses</div>
+            <div class="path-meta-item"><i class="fa-solid fa-clock"></i> ~28 hours</div>
+            <div class="path-meta-item"><i class="fa-solid fa-users"></i> 2,940 enrolled</div>
+            <div class="path-meta-item"><i class="fa-solid fa-star" style="color:var(--yellow);"></i> 4.7</div>
+          </div>
+          <div class="path-courses-preview">
+            <div class="path-course-pill">Image Classification 101</div>
+            <div class="path-course-pill">Object Detection Basics</div>
+            <div class="path-course-pill">Edge Impulse Vision SDK</div>
+            <div class="path-course-pill">+3 more</div>
+          </div>
+        </div>
+        <div class="path-aside">
+          <button class="btn btn-sm btn-primary">Enroll Free</button>
+          <div style="font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--text-faint);">Not started</div>
+        </div>
+      </div>
+
+      <!-- Path 3 -->
+      <div class="path-card">
+        <div class="path-icon-wrap"><i class="fa-solid fa-rocket"></i></div>
+        <div class="path-body">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+            <div class="path-title" style="margin-bottom:0;">MLOps for Edge AI</div>
+            <span class="tag tag-red">Advanced</span>
+          </div>
+          <div class="path-desc">Production-ready workflows: continuous training pipelines, model versioning, A/B testing on-device, fleet deployment, and monitoring anomalies in real-time from edge endpoints.</div>
+          <div class="path-meta">
+            <div class="path-meta-item"><i class="fa-solid fa-book-open"></i> 5 courses</div>
+            <div class="path-meta-item"><i class="fa-solid fa-clock"></i> ~22 hours</div>
+            <div class="path-meta-item"><i class="fa-solid fa-users"></i> 987 enrolled</div>
+            <div class="path-meta-item"><i class="fa-solid fa-star" style="color:var(--yellow);"></i> 4.9</div>
+          </div>
+          <div class="path-courses-preview">
+            <div class="path-course-pill">CI/CD for ML</div>
+            <div class="path-course-pill">Model Versioning</div>
+            <div class="path-course-pill">Fleet Management</div>
+            <div class="path-course-pill">+2 more</div>
+          </div>
+        </div>
+        <div class="path-aside">
+          <button class="btn btn-sm" style="border:2px solid var(--border);background:var(--surface);">Enroll — $49</button>
+          <div style="font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--text-faint);">Certificate included</div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- FEATURED COURSES -->
+      <div class="sec-head">
+        <h2>Featured Courses</h2>
+        <div class="sec-head-right">
+          <button class="btn btn-sm btn-xs">Most Popular</button>
+          <button class="btn btn-sm btn-xs">Newest</button>
+          <a href="#" style="font-size:11px;color:var(--accent);font-family:'JetBrains Mono',monospace;">All courses <i class="fa-solid fa-arrow-right" style="font-size:10px;"></i></a>
+        </div>
+      </div>
+
+      <div class="course-grid">
+
+        <!-- Course 1 - Enrolled -->
+        <div class="course-card">
+          <div class="course-cover" style="background:var(--surface3);">
+            <div class="course-cover-icon"><i class="fa-solid fa-brain"></i></div>
+            <div class="course-cover-price free">FREE</div>
+          </div>
+          <div class="course-body">
+            <div class="course-title">TinyML Foundations: Running Neural Nets on Microcontrollers</div>
+            <div class="course-instructor">
+              <div class="instructor-dot">SH</div>
+              Shawn Hymel
+            </div>
+            <div class="course-stars">
+              <i class="fa-solid fa-star star"></i><i class="fa-solid fa-star star"></i><i class="fa-solid fa-star star"></i><i class="fa-solid fa-star star"></i><i class="fa-solid fa-star-half-stroke star"></i>
+              <span class="star-score">4.8</span>
+              <span class="star-count">(1,204)</span>
+            </div>
+            <div class="course-meta-row">
+              <div class="course-meta-item"><i class="fa-solid fa-clock"></i> 6h 30m</div>
+              <div class="course-meta-item"><i class="fa-solid fa-circle-play"></i> 12 lessons</div>
+              <div class="course-meta-item"><i class="fa-solid fa-users"></i> 8,421</div>
+              <span class="tag tag-green">Beginner</span>
+            </div>
+            <div class="course-footer">
+              <div class="course-enrolled-progress">
+                <div class="course-enrolled-label"><i class="fa-solid fa-circle-check" style="font-size:9px;"></i> Enrolled — 58% complete</div>
+                <div class="progress-track"><div class="progress-fill" style="width:58%;"></div></div>
+              </div>
+              <div class="course-actions">
+                <button class="btn btn-sm" style="background:var(--accent-bg);border-color:var(--accent-border);color:var(--accent);">Continue</button>
+                <span style="font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--text-faint);">Lesson 7/12</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Course 2 -->
+        <div class="course-card">
+          <div class="course-cover" style="background:var(--surface3);">
+            <div class="course-cover-icon"><i class="fa-solid fa-eye"></i></div>
+            <div class="course-cover-price paid">$29</div>
+          </div>
+          <div class="course-body">
+            <div class="course-title">FOMO &amp; MobileNet: Object Detection on Constrained Hardware</div>
+            <div class="course-instructor">
+              <div class="instructor-dot">JP</div>
+              Jenny Plunkett
+            </div>
+            <div class="course-stars">
+              <i class="fa-solid fa-star star"></i><i class="fa-solid fa-star star"></i><i class="fa-solid fa-star star"></i><i class="fa-solid fa-star star"></i><i class="fa-solid fa-star star"></i>
+              <span class="star-score">4.9</span>
+              <span class="star-count">(882)</span>
+            </div>
+            <div class="course-meta-row">
+              <div class="course-meta-item"><i class="fa-solid fa-clock"></i> 9h 15m</div>
+              <div class="course-meta-item"><i class="fa-solid fa-circle-play"></i> 18 lessons</div>
+              <div class="course-meta-item"><i class="fa-solid fa-users"></i> 3,100</div>
+              <span class="tag tag-yellow">Intermediate</span>
+            </div>
+            <div class="course-footer">
+              <div class="course-actions">
+                <button class="btn btn-sm btn-primary">Enroll — $29</button>
+                <button class="btn btn-sm"><i class="fa-solid fa-bookmark"></i></button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Course 3 -->
+        <div class="course-card">
+          <div class="course-cover" style="background:var(--surface3);">
+            <div class="course-cover-icon"><i class="fa-solid fa-microphone"></i></div>
+            <div class="course-cover-price free">FREE</div>
+          </div>
+          <div class="course-body">
+            <div class="course-title">Wake Word Detection: KWS with TensorFlow Lite Micro</div>
+            <div class="course-instructor">
+              <div class="instructor-dot">MR</div>
+              Marcelo Rovai
+            </div>
+            <div class="course-stars">
+              <i class="fa-solid fa-star star"></i><i class="fa-solid fa-star star"></i><i class="fa-solid fa-star star"></i><i class="fa-solid fa-star star"></i><i class="fa-solid fa-star-half-stroke star"></i>
+              <span class="star-score">4.6</span>
+              <span class="star-count">(547)</span>
+            </div>
+            <div class="course-meta-row">
+              <div class="course-meta-item"><i class="fa-solid fa-clock"></i> 5h 00m</div>
+              <div class="course-meta-item"><i class="fa-solid fa-circle-play"></i> 10 lessons</div>
+              <div class="course-meta-item"><i class="fa-solid fa-users"></i> 5,680</div>
+              <span class="tag tag-green">Beginner</span>
+            </div>
+            <div class="course-footer">
+              <div class="course-actions">
+                <button class="btn btn-sm btn-primary">Enroll Free</button>
+                <button class="btn btn-sm"><i class="fa-solid fa-bookmark"></i></button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Course 4 -->
+        <div class="course-card">
+          <div class="course-cover" style="background:var(--surface3);">
+            <div class="course-cover-icon"><i class="fa-solid fa-bolt"></i></div>
+            <div class="course-cover-price paid">$39</div>
+          </div>
+          <div class="course-body">
+            <div class="course-title">Quantization-Aware Training for Embedded Inference</div>
+            <div class="course-instructor">
+              <div class="instructor-dot">PW</div>
+              Pete Warden
+            </div>
+            <div class="course-stars">
+              <i class="fa-solid fa-star star"></i><i class="fa-solid fa-star star"></i><i class="fa-solid fa-star star"></i><i class="fa-solid fa-star star"></i><i class="fa-solid fa-star star"></i>
+              <span class="star-score">4.9</span>
+              <span class="star-count">(312)</span>
+            </div>
+            <div class="course-meta-row">
+              <div class="course-meta-item"><i class="fa-solid fa-clock"></i> 11h 20m</div>
+              <div class="course-meta-item"><i class="fa-solid fa-circle-play"></i> 22 lessons</div>
+              <div class="course-meta-item"><i class="fa-solid fa-users"></i> 1,448</div>
+              <span class="tag tag-red">Advanced</span>
+            </div>
+            <div class="course-footer">
+              <div class="course-enrolled-progress">
+                <div class="course-enrolled-label"><i class="fa-solid fa-circle-check" style="font-size:9px;"></i> Enrolled — 73% complete</div>
+                <div class="progress-track"><div class="progress-fill" style="width:73%;"></div></div>
+              </div>
+              <div class="course-actions">
+                <button class="btn btn-sm" style="background:var(--accent-bg);border-color:var(--accent-border);color:var(--accent);">Continue</button>
+                <span style="font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--text-faint);">Lesson 16/22</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Course 5 -->
+        <div class="course-card">
+          <div class="course-cover" style="background:var(--surface3);">
+            <div class="course-cover-icon"><i class="fa-solid fa-robot"></i></div>
+            <div class="course-cover-price paid">$29</div>
+          </div>
+          <div class="course-body">
+            <div class="course-title">Robotics Perception with Edge AI: SLAM &amp; Navigation</div>
+            <div class="course-instructor">
+              <div class="instructor-dot">DL</div>
+              Dmitri Lykov
+            </div>
+            <div class="course-stars">
+              <i class="fa-solid fa-star star"></i><i class="fa-solid fa-star star"></i><i class="fa-solid fa-star star"></i><i class="fa-solid fa-star star"></i><i class="fa-solid fa-star-half-stroke star"></i>
+              <span class="star-score">4.7</span>
+              <span class="star-count">(194)</span>
+            </div>
+            <div class="course-meta-row">
+              <div class="course-meta-item"><i class="fa-solid fa-clock"></i> 13h 00m</div>
+              <div class="course-meta-item"><i class="fa-solid fa-circle-play"></i> 24 lessons</div>
+              <div class="course-meta-item"><i class="fa-solid fa-users"></i> 890</div>
+              <span class="tag tag-yellow">Intermediate</span>
+            </div>
+            <div class="course-footer">
+              <div class="course-actions">
+                <button class="btn btn-sm btn-primary">Enroll — $29</button>
+                <button class="btn btn-sm"><i class="fa-solid fa-bookmark"></i></button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Course 6 -->
+        <div class="course-card">
+          <div class="course-cover" style="background:var(--surface3);">
+            <div class="course-cover-icon"><i class="fa-solid fa-satellite-dish"></i></div>
+            <div class="course-cover-price free">FREE</div>
+          </div>
+          <div class="course-body">
+            <div class="course-title">Sensor Fusion for IoT: Combining Accelerometer, Gyro &amp; Mag</div>
+            <div class="course-instructor">
+              <div class="instructor-dot">AK</div>
+              Alasdair Allan
+            </div>
+            <div class="course-stars">
+              <i class="fa-solid fa-star star"></i><i class="fa-solid fa-star star"></i><i class="fa-solid fa-star star"></i><i class="fa-solid fa-star star"></i><i class="fa-solid fa-star-half-stroke star"></i>
+              <span class="star-score">4.5</span>
+              <span class="star-count">(728)</span>
+            </div>
+            <div class="course-meta-row">
+              <div class="course-meta-item"><i class="fa-solid fa-clock"></i> 7h 45m</div>
+              <div class="course-meta-item"><i class="fa-solid fa-circle-play"></i> 15 lessons</div>
+              <div class="course-meta-item"><i class="fa-solid fa-users"></i> 6,230</div>
+              <span class="tag tag-green">Beginner</span>
+            </div>
+            <div class="course-footer">
+              <div class="course-actions">
+                <button class="btn btn-sm btn-primary">Enroll Free</button>
+                <button class="btn btn-sm"><i class="fa-solid fa-bookmark"></i></button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- INTERACTIVE EXPLAINERS -->
+      <div class="sec-head">
+        <h2>Interactive Explainers</h2>
+        <div class="sec-head-right">
+          <span class="sec-sub">Visual, interactive concepts</span>
+        </div>
+      </div>
+
+      <div class="explainer-grid">
+
+        <div class="explainer-card">
+          <div class="explainer-icon" style="background:var(--accent-bg);border-color:var(--accent);"><i class="fa-solid fa-water"></i></div>
+          <div class="explainer-body">
+            <div class="explainer-title">How Convolutional Neural Networks See</div>
+            <div class="explainer-desc">Visualize feature maps, filters, and activation layers step by step — with interactive sliders to tweak kernel sizes in real time.</div>
+            <div class="explainer-meta">
+              <span class="tag tag-accent">8 sections</span>
+              <span style="font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--text-faint);display:flex;align-items:center;gap:4px;"><i class="fa-solid fa-clock"></i> ~20 min</span>
+            </div>
+          </div>
+          <div class="explainer-action">
+            <span class="tag tag-green"><i class="fa-solid fa-check"></i> Completed</span>
+            <button class="btn btn-sm">Revisit</button>
+          </div>
+        </div>
+
+        <div class="explainer-card">
+          <div class="explainer-icon" style="background:var(--yellow-bg);border-color:var(--yellow);"><i class="fa-solid fa-scale-balanced"></i></div>
+          <div class="explainer-body">
+            <div class="explainer-title">Quantization Explained: INT8 vs FP32 Trade-offs</div>
+            <div class="explainer-desc">Interactive comparison of model accuracy vs memory footprint. Drag a slider to see how quantization affects inference results on benchmark datasets.</div>
+            <div class="explainer-meta">
+              <span class="tag">6 sections</span>
+              <span style="font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--text-faint);display:flex;align-items:center;gap:4px;"><i class="fa-solid fa-clock"></i> ~15 min</span>
+            </div>
+          </div>
+          <div class="explainer-action">
+            <button class="btn btn-sm btn-primary"><i class="fa-solid fa-play" style="font-size:9px;"></i> Start</button>
+          </div>
+        </div>
+
+        <div class="explainer-card">
+          <div class="explainer-icon" style="background:var(--teal-bg);border-color:var(--teal);"><i class="fa-solid fa-volume-high"></i></div>
+          <div class="explainer-body">
+            <div class="explainer-title">Mel Spectrograms: Audio to Image for ML</div>
+            <div class="explainer-desc">Transform raw audio into 2D spectrograms. Record a sound directly in the browser and watch the frequency map update live as a tensor.</div>
+            <div class="explainer-meta">
+              <span class="tag">5 sections</span>
+              <span style="font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--text-faint);display:flex;align-items:center;gap:4px;"><i class="fa-solid fa-clock"></i> ~12 min</span>
+            </div>
+          </div>
+          <div class="explainer-action">
+            <button class="btn btn-sm btn-primary"><i class="fa-solid fa-play" style="font-size:9px;"></i> Start</button>
+          </div>
+        </div>
+
+        <div class="explainer-card">
+          <div class="explainer-icon" style="background:var(--purple-bg);border-color:var(--purple);"><i class="fa-solid fa-puzzle-piece"></i></div>
+          <div class="explainer-body">
+            <div class="explainer-title">Attention Mechanisms on the Edge: Is It Feasible?</div>
+            <div class="explainer-desc">Explore transformer-lite architectures. Compare memory profiles of MHA, linear attention, and SSM models with live SRAM usage estimates per MCU target.</div>
+            <div class="explainer-meta">
+              <span class="tag">10 sections</span>
+              <span style="font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--text-faint);display:flex;align-items:center;gap:4px;"><i class="fa-solid fa-clock"></i> ~30 min</span>
+              <span class="tag tag-red">Advanced</span>
+            </div>
+          </div>
+          <div class="explainer-action">
+            <button class="btn btn-sm btn-primary"><i class="fa-solid fa-play" style="font-size:9px;"></i> Start</button>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- TUTORIALS -->
+      <div class="sec-head">
+        <h2>Tutorials</h2>
+        <div class="sec-head-right">
+          <span class="sec-sub">Step-by-step guides</span>
+          <a href="#" style="font-size:11px;color:var(--accent);font-family:'JetBrains Mono',monospace;">View all <i class="fa-solid fa-arrow-right" style="font-size:10px;"></i></a>
+        </div>
+      </div>
+
+      <div class="tutorial-list">
+
+        <div class="tutorial-row">
+          <div class="tutorial-icon"><i class="fa-solid fa-flask"></i></div>
+          <div class="tutorial-body">
+            <div class="tutorial-title">Deploy a gesture recognition model to Arduino Nano 33 BLE Sense</div>
+            <div class="tutorial-meta">
+              <span>by Shawn Hymel</span>
+              <span>&middot;</span>
+              <span><i class="fa-solid fa-clock"></i> 45 min</span>
+            </div>
+          </div>
+          <div class="tutorial-aside">
+            <span class="tag tag-green">Hands-on</span>
+            <span class="tag tag-green">Beginner</span>
+            <span style="font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--text-faint);">12 steps</span>
+          </div>
+        </div>
+
+        <div class="tutorial-row">
+          <div class="tutorial-icon"><i class="fa-solid fa-camera"></i></div>
+          <div class="tutorial-body">
+            <div class="tutorial-title">Fine-tune MobileNetV2 on a custom dataset with TensorFlow and Edge Impulse</div>
+            <div class="tutorial-meta">
+              <span>by Jenny Plunkett</span>
+              <span>&middot;</span>
+              <span><i class="fa-solid fa-clock"></i> 1h 20 min</span>
+            </div>
+          </div>
+          <div class="tutorial-aside">
+            <span class="tag tag-accent">Concept</span>
+            <span class="tag tag-yellow">Intermediate</span>
+            <span style="font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--text-faint);">18 steps</span>
+          </div>
+        </div>
+
+        <div class="tutorial-row">
+          <div class="tutorial-icon"><i class="fa-solid fa-bolt"></i></div>
+          <div class="tutorial-body">
+            <div class="tutorial-title">Optimize a TFLite model using post-training quantization and benchmark on RP2040</div>
+            <div class="tutorial-meta">
+              <span>by Pete Warden</span>
+              <span>&middot;</span>
+              <span><i class="fa-solid fa-clock"></i> 55 min</span>
+            </div>
+          </div>
+          <div class="tutorial-aside">
+            <span class="tag tag-green">Hands-on</span>
+            <span class="tag tag-red">Advanced</span>
+            <span style="font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--text-faint);">9 steps</span>
+          </div>
+        </div>
+
+        <div class="tutorial-row">
+          <div class="tutorial-icon"><i class="fa-solid fa-microphone"></i></div>
+          <div class="tutorial-body">
+            <div class="tutorial-title">Build a real-time keyword spotter with Edge Impulse + Raspberry Pi Zero 2W</div>
+            <div class="tutorial-meta">
+              <span>by Marcelo Rovai</span>
+              <span>&middot;</span>
+              <span><i class="fa-solid fa-clock"></i> 1h 05 min</span>
+            </div>
+          </div>
+          <div class="tutorial-aside">
+            <span class="tag tag-green">Hands-on</span>
+            <span class="tag tag-green">Beginner</span>
+            <span style="font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--text-faint);">14 steps</span>
+          </div>
+        </div>
+
+        <div class="tutorial-row">
+          <div class="tutorial-icon"><i class="fa-solid fa-robot"></i></div>
+          <div class="tutorial-body">
+            <div class="tutorial-title">Anomaly detection for predictive maintenance using IMU data on STM32</div>
+            <div class="tutorial-meta">
+              <span>by Alasdair Allan</span>
+              <span>&middot;</span>
+              <span><i class="fa-solid fa-clock"></i> 2h 10 min</span>
+            </div>
+          </div>
+          <div class="tutorial-aside">
+            <span class="tag tag-accent">Concept</span>
+            <span class="tag tag-yellow">Intermediate</span>
+            <span style="font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--text-faint);">22 steps</span>
+          </div>
+        </div>
+
+        <div class="tutorial-row">
+          <div class="tutorial-icon"><i class="fa-solid fa-satellite-dish"></i></div>
+          <div class="tutorial-body">
+            <div class="tutorial-title">Multi-sensor data pipeline: fusing GPS, IMU, and environmental sensors with TinyML</div>
+            <div class="tutorial-meta">
+              <span>by Dmitri Lykov</span>
+              <span>&middot;</span>
+              <span><i class="fa-solid fa-clock"></i> 1h 40 min</span>
+            </div>
+          </div>
+          <div class="tutorial-aside">
+            <span class="tag tag-green">Hands-on</span>
+            <span class="tag tag-red">Advanced</span>
+            <span style="font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--text-faint);">16 steps</span>
+          </div>
+        </div>
+
+      </div>
+
+    </div><!-- /page -->
+  </div><!-- /main-content -->
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+
+    <!-- Categories -->
+    <div class="sb-section">
+      <div class="sb-title">Categories</div>
+      <div class="sb-cat-item">
+        <div class="sb-cat-icon"><i class="fa-solid fa-brain"></i></div>
+        <div class="sb-cat-name">TinyML</div>
+        <div class="sb-cat-count">42</div>
+      </div>
+      <div class="sb-cat-item">
+        <div class="sb-cat-icon"><i class="fa-solid fa-eye"></i></div>
+        <div class="sb-cat-name">Computer Vision</div>
+        <div class="sb-cat-count">31</div>
+      </div>
+      <div class="sb-cat-item">
+        <div class="sb-cat-icon"><i class="fa-solid fa-microphone"></i></div>
+        <div class="sb-cat-name">Audio &amp; Speech</div>
+        <div class="sb-cat-count">18</div>
+      </div>
+      <div class="sb-cat-item">
+        <div class="sb-cat-icon"><i class="fa-solid fa-robot"></i></div>
+        <div class="sb-cat-name">Robotics</div>
+        <div class="sb-cat-count">22</div>
+      </div>
+      <div class="sb-cat-item">
+        <div class="sb-cat-icon"><i class="fa-solid fa-satellite-dish"></i></div>
+        <div class="sb-cat-name">Sensor Fusion</div>
+        <div class="sb-cat-count">14</div>
+      </div>
+      <div class="sb-cat-item">
+        <div class="sb-cat-icon"><i class="fa-solid fa-bolt"></i></div>
+        <div class="sb-cat-name">Model Optimization</div>
+        <div class="sb-cat-count">19</div>
+      </div>
+      <div class="sb-cat-item">
+        <div class="sb-cat-icon"><i class="fa-solid fa-flask"></i></div>
+        <div class="sb-cat-name">Edge Inference</div>
+        <div class="sb-cat-count">11</div>
+      </div>
+    </div>
+
+    <!-- Skill Levels -->
+    <div class="sb-section">
+      <div class="sb-title">Skill Level</div>
+      <div class="sb-level-row">
+        <div class="sb-level-item">
+          <div class="sb-level-check checked"><i class="fa-solid fa-check" style="font-size:7px;"></i></div>
+          <div class="sb-level-name">Beginner</div>
+          <div class="sb-level-n">54</div>
+        </div>
+        <div class="sb-level-item">
+          <div class="sb-level-check checked"><i class="fa-solid fa-check" style="font-size:7px;"></i></div>
+          <div class="sb-level-name">Intermediate</div>
+          <div class="sb-level-n">61</div>
+        </div>
+        <div class="sb-level-item">
+          <div class="sb-level-check"></div>
+          <div class="sb-level-name">Advanced</div>
+          <div class="sb-level-n">33</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Popular Tags -->
+    <div class="sb-section">
+      <div class="sb-title">Popular Tags</div>
+      <div class="sb-tag-cloud">
+        <div class="sb-tag">tensorflow-lite</div>
+        <div class="sb-tag">arduino</div>
+        <div class="sb-tag">edge-impulse</div>
+        <div class="sb-tag">raspberry-pi</div>
+        <div class="sb-tag">quantization</div>
+        <div class="sb-tag">yolo</div>
+        <div class="sb-tag">imu</div>
+        <div class="sb-tag">kws</div>
+        <div class="sb-tag">anomaly</div>
+        <div class="sb-tag">tflite-micro</div>
+        <div class="sb-tag">stm32</div>
+        <div class="sb-tag">rp2040</div>
+        <div class="sb-tag">transfer-learning</div>
+        <div class="sb-tag">pruning</div>
+        <div class="sb-tag">onnx</div>
+      </div>
+    </div>
+
+    <!-- Certificates -->
+    <div class="sb-section">
+      <div class="sb-title">Certificates Earned</div>
+      <div class="cert-grid">
+        <div class="cert-item">
+          <div class="cert-badge"><i class="fa-solid fa-medal"></i></div>
+          <div class="cert-info">
+            <div class="cert-name">Edge AI Fundamentals</div>
+            <div class="cert-date">Earned Feb 2026</div>
+          </div>
+        </div>
+        <div class="cert-item">
+          <div class="cert-badge"><i class="fa-solid fa-trophy"></i></div>
+          <div class="cert-info">
+            <div class="cert-name">TinyML Practitioner</div>
+            <div class="cert-date">Earned Dec 2025</div>
+          </div>
+        </div>
+        <div class="cert-item">
+          <div class="cert-badge"><i class="fa-solid fa-award"></i></div>
+          <div class="cert-info">
+            <div class="cert-name">Arduino for ML</div>
+            <div class="cert-date">Earned Oct 2025</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </aside>
+</div><!-- /shell -->
+
+</body>
+</html>

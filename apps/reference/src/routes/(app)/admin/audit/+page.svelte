@@ -10,9 +10,12 @@
   <title>Audit Log — Admin</title>
 </svelte:head>
 
-<h1 class="admin-heading">Audit Log</h1>
+<div class="adm-page-header">
+  <h1 class="adm-heading">Audit Log</h1>
+  <span class="adm-heading-sub">activity tracking</span>
+</div>
 
-<form method="get" class="admin-filters">
+<form method="get" class="adm-filters">
   <Input
     id="audit-action"
     label="Action"
@@ -30,20 +33,36 @@
   <Button type="submit" variant="primary" size="sm">Filter</Button>
 </form>
 
-<p class="admin-count">{data.total} log entr{data.total === 1 ? 'y' : 'ies'}</p>
+<p class="adm-count">{data.total} log entr{data.total === 1 ? 'y' : 'ies'}</p>
 
 <AuditLogTable logs={data.logs} />
 
 <style>
-  .admin-heading {
-    font-family: var(--font-heading, sans-serif);
-    font-size: var(--text-2xl, 1.5rem);
-    font-weight: var(--font-weight-bold, 700);
-    color: var(--color-text, #d8d5cf);
-    margin: 0 0 var(--space-4, 1rem);
+  .adm-page-header {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-3, 0.75rem);
+    margin-bottom: var(--space-4, 1rem);
+    padding-bottom: var(--space-3, 0.75rem);
+    border-bottom: 1px solid var(--color-border, #272725);
   }
 
-  .admin-filters {
+  .adm-heading {
+    font-size: var(--text-xl, 1.25rem);
+    font-weight: var(--font-weight-bold, 700);
+    color: var(--color-text, #d8d5cf);
+    margin: 0;
+  }
+
+  .adm-heading-sub {
+    font-family: var(--font-mono, monospace);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-text-muted, #444440);
+  }
+
+  .adm-filters {
     display: flex;
     gap: var(--space-2, 0.5rem);
     margin-bottom: var(--space-4, 1rem);
@@ -51,10 +70,12 @@
     align-items: flex-end;
   }
 
-  .admin-count {
-    font-family: var(--font-body, sans-serif);
-    font-size: var(--text-sm, 0.75rem);
-    color: var(--color-text-muted, #888);
+  .adm-count {
+    font-family: var(--font-mono, monospace);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-muted, #444440);
     margin-bottom: var(--space-3, 0.75rem);
   }
 </style>

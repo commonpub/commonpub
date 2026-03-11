@@ -1,0 +1,1570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Edit Profile — Snaplify</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #fafaf9;
+  --surface: #ffffff;
+  --surface2: #f4f4f2;
+  --surface3: #eaeae7;
+  --border: #1a1a1a;
+  --border2: #d4d4d0;
+  --text: #1a1a1a;
+  --text-dim: #6b6b66;
+  --text-faint: #a3a39e;
+  --accent: #5b9cf6;
+  --accent-bg: rgba(91,156,246,0.08);
+  --accent-border: rgba(91,156,246,0.25);
+  --green: #22c55e;
+  --green-bg: rgba(34,197,94,0.08);
+  --green-border: rgba(34,197,94,0.25);
+  --yellow: #f59e0b;
+  --yellow-bg: rgba(245,158,11,0.08);
+  --red: #ef4444;
+  --red-bg: rgba(239,68,68,0.08);
+  --red-border: rgba(239,68,68,0.25);
+  --purple: #8b5cf6;
+  --teal: #14b8a6;
+  --pink: #ec4899;
+  --radius: 0px;
+  --radius-lg: 0px;
+  --mono: 'JetBrains Mono', monospace;
+  --topbar-h: 48px;
+  --sidebar-w: 210px;
+  --shadow: 4px 4px 0 #1a1a1a;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* ── SCROLLBAR ─────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 0; }
+
+/* ── TOP BAR ───────────────────────────── */
+.topbar {
+  height: var(--topbar-h);
+  background: var(--surface);
+  border-bottom: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 0;
+  flex-shrink: 0;
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 100;
+}
+.topbar-logo {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-dim);
+  letter-spacing: .05em;
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+.topbar-logo .snap { color: var(--accent); }
+.topbar-sep { width: 2px; height: 22px; background: var(--border); margin: 0 14px; }
+.topbar-back {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 5px 10px;
+  border: 2px solid transparent;
+  background: none;
+  transition: color .15s, border-color .15s;
+}
+.topbar-back:hover { color: var(--text); border-color: var(--border2); }
+.topbar-back i { font-size: 11px; }
+.topbar-spacer { flex: 1; }
+.save-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--green);
+  margin-right: 14px;
+  letter-spacing: .02em;
+}
+.save-status i { font-size: 9px; }
+.save-status.saving { color: var(--yellow); }
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-family: system-ui, sans-serif;
+  border: 2px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background .15s, box-shadow .15s;
+}
+.btn:hover { background: var(--surface2); }
+.btn-accent {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  font-weight: 600;
+  box-shadow: var(--shadow);
+}
+.btn-accent:hover { background: #4a8de6; border-color: #4a8de6; }
+.btn-sm { padding: 4px 10px; font-size: 11px; }
+.topbar-btns { display: flex; align-items: center; gap: 8px; }
+
+/* ── LAYOUT ────────────────────────────── */
+.shell {
+  display: flex;
+  height: 100vh;
+  padding-top: var(--topbar-h);
+}
+
+/* ── SIDEBAR ───────────────────────────── */
+.sidebar {
+  width: var(--sidebar-w);
+  flex-shrink: 0;
+  background: var(--surface);
+  border-right: 2px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.sidebar-section { padding: 18px 0 4px; }
+.sidebar-section-label {
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  padding: 0 16px 8px;
+}
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  font-size: 12px;
+  color: var(--text-dim);
+  cursor: pointer;
+  border: none;
+  background: none;
+  text-align: left;
+  width: 100%;
+  border-left: 3px solid transparent;
+  transition: color .12s, background .12s;
+}
+.sidebar-item:hover { color: var(--text); background: var(--surface2); }
+.sidebar-item.active {
+  color: var(--text);
+  background: var(--surface2);
+  border-left-color: var(--accent);
+  font-weight: 600;
+}
+.sidebar-item i { width: 14px; text-align: center; font-size: 11px; color: var(--text-faint); }
+.sidebar-item.active i { color: var(--accent); }
+.sidebar-item .cnt {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--text-dim);
+  background: var(--surface3);
+  padding: 1px 6px;
+  border: 1px solid var(--border2);
+}
+
+/* ── MAIN AREA ─────────────────────────── */
+.main {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: var(--bg);
+}
+.main-inner {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 32px 36px 64px;
+}
+
+/* ── SECTION HEADER ────────────────────── */
+.section-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 24px;
+  padding-bottom: 14px;
+  border-bottom: 2px solid var(--border);
+}
+.section-head h1 {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -.01em;
+}
+.section-head .section-desc {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-family: var(--mono);
+}
+
+/* ── FORM ELEMENTS ─────────────────────── */
+.form-block { margin-bottom: 24px; }
+.form-label {
+  display: block;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+}
+.form-hint {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-faint);
+  margin-top: 4px;
+}
+.form-hint.ok { color: var(--green); }
+.form-hint.warn { color: var(--yellow); }
+.form-input {
+  width: 100%;
+  padding: 8px 12px;
+  font-family: system-ui, sans-serif;
+  font-size: 13px;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  color: var(--text);
+  outline: none;
+  transition: border-color .15s, box-shadow .15s;
+}
+.form-input:focus {
+  border-color: var(--accent);
+  box-shadow: 3px 3px 0 var(--accent-border);
+}
+.form-input::placeholder { color: var(--text-faint); }
+.input-prefix-wrap {
+  position: relative;
+}
+.input-prefix {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text-dim);
+  pointer-events: none;
+  user-select: none;
+}
+.input-prefix-wrap .form-input { padding-left: 26px; }
+.input-count-wrap { position: relative; }
+.input-count {
+  position: absolute;
+  right: 12px;
+  bottom: 10px;
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--text-faint);
+  pointer-events: none;
+}
+.form-textarea {
+  width: 100%;
+  padding: 10px 12px;
+  padding-bottom: 26px;
+  font-family: system-ui, sans-serif;
+  font-size: 13px;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  color: var(--text);
+  outline: none;
+  resize: vertical;
+  min-height: 90px;
+  line-height: 1.6;
+  transition: border-color .15s, box-shadow .15s;
+}
+.form-textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 3px 3px 0 var(--accent-border);
+}
+.form-textarea::placeholder { color: var(--text-faint); }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+/* ── BANNER + AVATAR UPLOAD ────────────── */
+.media-upload-area { margin-bottom: 24px; }
+.banner-upload {
+  width: 100%;
+  height: 130px;
+  background: var(--surface);
+  border: 2px dashed var(--border);
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.banner-img {
+  position: absolute;
+  inset: 0;
+  background: #d0dff0;
+  background-image:
+    repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 8px,
+      rgba(91,156,246,.08) 8px,
+      rgba(91,156,246,.08) 9px
+    );
+}
+.banner-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(26,26,26,.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  opacity: 0;
+  transition: opacity .2s;
+}
+.banner-upload:hover .banner-overlay { opacity: 1; }
+.upload-action {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #fff;
+  padding: 6px 12px;
+  background: rgba(255,255,255,.15);
+  border: 2px solid rgba(255,255,255,.3);
+  cursor: pointer;
+  font-family: var(--mono);
+}
+.upload-action.danger { color: var(--red); border-color: rgba(239,68,68,.4); background: rgba(239,68,68,.15); }
+
+.avatar-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  margin-top: -30px;
+  padding: 0 12px;
+  position: relative;
+  z-index: 2;
+}
+.avatar-upload {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: var(--surface3);
+  border: 3px solid var(--bg);
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  flex-shrink: 0;
+  box-shadow: 3px 3px 0 rgba(26,26,26,.2);
+}
+.avatar-img {
+  position: absolute;
+  inset: 0;
+  background: #b8d4f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+  font-size: 22px;
+  font-weight: 700;
+  color: #3a7bd5;
+}
+.avatar-img-text { user-select: none; }
+.avatar-upload-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(26,26,26,.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity .2s;
+}
+.avatar-upload:hover .avatar-upload-overlay { opacity: 1; }
+.avatar-upload-overlay i { color: #fff; font-size: 16px; }
+.avatar-meta { padding-bottom: 4px; }
+.avatar-meta .username { font-size: 12px; color: var(--text-dim); font-family: var(--mono); }
+
+/* ── SUB-SECTION BLOCK ─────────────────── */
+.sub-section {
+  background: var(--surface);
+  border: 2px solid var(--border);
+  overflow: hidden;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow);
+}
+.sub-section-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: var(--surface2);
+  border-bottom: 2px solid var(--border);
+}
+.sub-section-title {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.sub-section-body { padding: 16px; }
+.sub-section-add {
+  padding: 12px 16px;
+  border-top: 2px solid var(--border);
+}
+
+/* ── SOCIAL LINK ROWS ──────────────────── */
+.social-list { display: flex; flex-direction: column; gap: 0; }
+.social-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--surface);
+  border-bottom: 2px solid var(--border);
+}
+.social-row:last-child { border-bottom: none; }
+.social-platform-icon {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  flex-shrink: 0;
+  border: 2px solid var(--border);
+}
+.social-platform-icon.github  { background: #24292e; color: #fff; border-color: #24292e; }
+.social-platform-icon.twitter { background: #15202b; color: #1d9bf0; border-color: #15202b; }
+.social-platform-icon.linkedin { background: #0a66c2; color: #fff; border-color: #0a66c2; }
+.social-platform-icon.youtube { background: #ff0000; color: #fff; border-color: #ff0000; }
+.social-platform-icon.discord { background: #5865f2; color: #fff; border-color: #5865f2; }
+.social-row .form-input {
+  flex: 1;
+  border-color: transparent;
+  background: transparent;
+  padding: 4px 8px;
+  border-width: 2px;
+}
+.social-row .form-input:focus {
+  background: var(--surface2);
+  border-color: var(--accent);
+}
+.icon-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: 2px solid transparent;
+  color: var(--text-faint);
+  cursor: pointer;
+  font-size: 11px;
+  flex-shrink: 0;
+  transition: color .15s, border-color .15s, background .15s;
+}
+.icon-btn:hover { color: var(--red); border-color: var(--red); background: var(--red-bg); }
+.icon-btn.drag-handle { cursor: grab; }
+.icon-btn.drag-handle:hover { color: var(--text-dim); border-color: var(--border2); background: var(--surface3); }
+
+/* ── EXPERIENCE ENTRIES ────────────────── */
+.experience-list { display: flex; flex-direction: column; gap: 12px; }
+.exp-entry {
+  background: var(--surface);
+  border: 2px solid var(--border);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+.exp-entry-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 2px solid var(--border);
+  cursor: pointer;
+  background: var(--surface2);
+}
+.exp-company { font-size: 12px; font-weight: 700; flex: 1; }
+.exp-dates {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-faint);
+}
+.exp-entry-body { padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+.exp-entry-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.exp-entry-row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+
+/* ── VIDEO SECTION TABS ─────────────────── */
+.video-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 14px;
+  border: 2px solid var(--border);
+}
+.video-tab {
+  flex: 1;
+  padding: 7px;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--text-dim);
+  cursor: pointer;
+  border: none;
+  border-right: 2px solid var(--border);
+  background: var(--surface);
+  transition: background .15s, color .15s;
+}
+.video-tab:last-child { border-right: none; }
+.video-tab.active { background: var(--text); color: var(--surface); font-weight: 700; }
+.video-tab:hover:not(.active) { background: var(--surface2); color: var(--text); }
+
+.video-list { display: flex; flex-direction: column; gap: 10px; }
+.video-entry {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  box-shadow: 3px 3px 0 var(--border2);
+}
+.video-thumb {
+  width: 72px;
+  height: 42px;
+  background: var(--surface3);
+  border: 2px solid var(--border);
+  flex-shrink: 0;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.video-thumb-inner {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.video-thumb-bg {
+  position: absolute;
+  inset: 0;
+  opacity: .5;
+}
+.video-thumb .fa-play {
+  font-size: 12px;
+  color: rgba(26,26,26,.6);
+  position: relative;
+  z-index: 1;
+}
+.video-thumb-1 .video-thumb-bg { background: #b8d4f0; }
+.video-thumb-2 .video-thumb-bg { background: #d4b8f0; }
+.video-thumb-3 .video-thumb-bg { background: #b8f0d0; }
+.video-thumb-4 .video-thumb-bg { background: #f0d8b8; }
+.video-entry-info { flex: 1; min-width: 0; }
+.video-entry-title { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 3px; }
+.video-entry-url {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.video-entry-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+
+/* ── DIVIDER ───────────────────────────── */
+.divider { border: none; border-top: 2px solid var(--border); margin: 28px 0; }
+
+/* ── INLINE TAG ────────────────────────── */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--mono);
+  font-size: 9px;
+  padding: 2px 7px;
+  border: 2px solid var(--border2);
+  color: var(--text-dim);
+  background: var(--surface2);
+}
+.tag-accent { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
+.tag-green { border-color: var(--green); color: var(--green); background: var(--green-bg); }
+
+/* ── PANEL HEADING ─────────────────────── */
+.panel-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.panel-label::after {
+  content: '';
+  flex: 1;
+  height: 2px;
+  background: var(--border);
+}
+
+/* ── VALIDATION STATE ──────────────────── */
+.input-valid { border-color: var(--green) !important; }
+.input-valid:focus { box-shadow: 3px 3px 0 var(--green-bg) !important; }
+
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<header class="topbar">
+  <div class="topbar-logo">
+    <span class="snap">snap</span>lify
+  </div>
+  <div class="topbar-sep"></div>
+  <button class="topbar-back">
+    <i class="fa fa-arrow-left"></i>
+    Back to Profile
+  </button>
+  <div class="topbar-spacer"></div>
+  <div class="save-status">
+    <i class="fa fa-circle-check"></i>
+    All changes saved
+  </div>
+  <div class="topbar-btns">
+    <button class="btn btn-sm">
+      <i class="fa fa-eye" style="font-size:10px;"></i>
+      Preview
+    </button>
+    <button class="btn btn-accent btn-sm">
+      Done
+    </button>
+  </div>
+</header>
+
+<!-- SHELL -->
+<div class="shell">
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Profile</div>
+      <button class="sidebar-item active" onclick="showSection('basic-info', this)">
+        <i class="fa fa-user"></i>
+        Basic Info
+      </button>
+      <button class="sidebar-item" onclick="showSection('social-links', this)">
+        <i class="fa fa-link"></i>
+        Social Links
+      </button>
+      <button class="sidebar-item" onclick="showSection('gallery', this)">
+        <i class="fa fa-images"></i>
+        Gallery
+        <span class="cnt">6</span>
+      </button>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Portfolio</div>
+      <button class="sidebar-item" onclick="showSection('experience', this)">
+        <i class="fa fa-briefcase"></i>
+        Experience
+        <span class="cnt">3</span>
+      </button>
+      <button class="sidebar-item" onclick="showSection('awards', this)">
+        <i class="fa fa-trophy"></i>
+        Awards
+        <span class="cnt">2</span>
+      </button>
+      <button class="sidebar-item" onclick="showSection('publications', this)">
+        <i class="fa fa-file-lines"></i>
+        Publications
+        <span class="cnt">4</span>
+      </button>
+      <button class="sidebar-item" onclick="showSection('videos', this)">
+        <i class="fa fa-video"></i>
+        Videos
+        <span class="cnt">7</span>
+      </button>
+      <button class="sidebar-item" onclick="showSection('interactives', this)">
+        <i class="fa fa-cube"></i>
+        Interactives
+        <span class="cnt">1</span>
+      </button>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Settings</div>
+      <button class="sidebar-item" onclick="showSection('visibility', this)">
+        <i class="fa fa-lock"></i>
+        Visibility
+      </button>
+      <button class="sidebar-item" onclick="showSection('theme', this)">
+        <i class="fa fa-palette"></i>
+        Theme
+      </button>
+    </div>
+  </nav>
+
+  <!-- MAIN AREA -->
+  <main class="main">
+    <div class="main-inner">
+
+      <!-- ══ BASIC INFO ════════════════════════ -->
+      <section id="sec-basic-info" class="editor-section">
+        <div class="section-head">
+          <h1>Basic Info</h1>
+          <span class="section-desc">How you appear across Snaplify</span>
+        </div>
+
+        <!-- Banner + Avatar -->
+        <div class="media-upload-area">
+          <div class="banner-upload" title="Click to change banner">
+            <div class="banner-img"></div>
+            <div class="banner-overlay">
+              <span class="upload-action"><i class="fa fa-camera"></i> Change Banner</span>
+              <span class="upload-action danger"><i class="fa fa-trash"></i> Remove</span>
+            </div>
+          </div>
+          <div class="avatar-row">
+            <div class="avatar-upload" title="Click to change avatar">
+              <div class="avatar-img">
+                <span class="avatar-img-text">EK</span>
+              </div>
+              <div class="avatar-upload-overlay">
+                <i class="fa fa-camera"></i>
+              </div>
+            </div>
+            <div class="avatar-meta">
+              <div style="font-size:13px;font-weight:700;margin-bottom:1px;">Elara Kim</div>
+              <div class="username">@elara_kim</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Display Name -->
+        <div class="form-block">
+          <label class="form-label">Display Name</label>
+          <input class="form-input" type="text" value="Elara Kim" placeholder="Your display name">
+        </div>
+
+        <!-- Username -->
+        <div class="form-block">
+          <label class="form-label">Username</label>
+          <div class="input-prefix-wrap">
+            <span class="input-prefix">@</span>
+            <input class="form-input input-valid" type="text" value="elara_kim" placeholder="username">
+          </div>
+          <div class="form-hint ok"><i class="fa fa-circle-check" style="font-size:9px;"></i> elara_kim is available</div>
+        </div>
+
+        <!-- Headline -->
+        <div class="form-block">
+          <label class="form-label">Headline</label>
+          <input class="form-input" type="text" value="Edge AI Engineer &amp; Maker" placeholder="What you do in one line">
+          <div class="form-hint">Shown under your name on your profile page</div>
+        </div>
+
+        <!-- Bio -->
+        <div class="form-block">
+          <label class="form-label">Bio</label>
+          <div class="input-count-wrap" style="position:relative;">
+            <textarea class="form-textarea" rows="4" placeholder="Tell the community about yourself...">Building tiny intelligence at the edge. I prototype neural networks on microcontrollers, document the failures, and ship the ones that stick. Currently obsessed with tinyML, sensor fusion, and making machines actually useful in the real world.</textarea>
+            <span class="input-count">218 / 500</span>
+          </div>
+        </div>
+
+        <!-- Location + Website -->
+        <div class="form-row">
+          <div class="form-block">
+            <label class="form-label">Location</label>
+            <input class="form-input" type="text" value="Portland, OR" placeholder="City, Country">
+          </div>
+          <div class="form-block">
+            <label class="form-label">Website</label>
+            <input class="form-input" type="url" value="https://elarakim.io" placeholder="https://yoursite.com">
+          </div>
+        </div>
+
+        <hr class="divider">
+
+        <!-- ── SOCIAL LINKS (embedded) ─────── -->
+        <div class="panel-label">Social Links</div>
+        <div class="sub-section" style="margin-bottom:20px;">
+          <div class="sub-section-body" style="padding:0;">
+            <div class="social-list">
+              <div class="social-row">
+                <div class="social-platform-icon github"><i class="fab fa-github"></i></div>
+                <input class="form-input" type="url" value="https://github.com/elara-kim" placeholder="GitHub URL">
+                <button class="icon-btn drag-handle" title="Drag to reorder"><i class="fa fa-grip-vertical"></i></button>
+                <button class="icon-btn" title="Remove"><i class="fa fa-xmark"></i></button>
+              </div>
+              <div class="social-row">
+                <div class="social-platform-icon twitter"><i class="fab fa-x-twitter"></i></div>
+                <input class="form-input" type="url" value="https://x.com/elara_kim_ml" placeholder="X / Twitter URL">
+                <button class="icon-btn drag-handle" title="Drag to reorder"><i class="fa fa-grip-vertical"></i></button>
+                <button class="icon-btn" title="Remove"><i class="fa fa-xmark"></i></button>
+              </div>
+              <div class="social-row">
+                <div class="social-platform-icon linkedin"><i class="fab fa-linkedin-in"></i></div>
+                <input class="form-input" type="url" value="https://linkedin.com/in/elarakim" placeholder="LinkedIn URL">
+                <button class="icon-btn drag-handle" title="Drag to reorder"><i class="fa fa-grip-vertical"></i></button>
+                <button class="icon-btn" title="Remove"><i class="fa fa-xmark"></i></button>
+              </div>
+              <div class="social-row">
+                <div class="social-platform-icon youtube"><i class="fab fa-youtube"></i></div>
+                <input class="form-input" type="url" value="https://youtube.com/@elarakim" placeholder="YouTube URL">
+                <button class="icon-btn drag-handle" title="Drag to reorder"><i class="fa fa-grip-vertical"></i></button>
+                <button class="icon-btn" title="Remove"><i class="fa fa-xmark"></i></button>
+              </div>
+              <div class="social-row">
+                <div class="social-platform-icon discord"><i class="fab fa-discord"></i></div>
+                <input class="form-input" type="text" value="elara_kim#0042" placeholder="Discord username">
+                <button class="icon-btn drag-handle" title="Drag to reorder"><i class="fa fa-grip-vertical"></i></button>
+                <button class="icon-btn" title="Remove"><i class="fa fa-xmark"></i></button>
+              </div>
+            </div>
+          </div>
+          <div class="sub-section-add">
+            <button class="btn btn-sm">
+              <i class="fa fa-plus" style="font-size:9px;"></i>
+              Add Social Link
+            </button>
+          </div>
+        </div>
+
+        <hr class="divider">
+
+        <!-- ── EXPERIENCE ─────────────────── -->
+        <div class="panel-label">Experience</div>
+        <div class="experience-list">
+
+          <!-- Entry 1 -->
+          <div class="exp-entry">
+            <div class="exp-entry-head">
+              <button class="icon-btn drag-handle" style="width:20px;height:20px;font-size:10px;flex-shrink:0;" title="Drag to reorder"><i class="fa fa-grip-vertical"></i></button>
+              <div class="exp-company">Nervana Systems</div>
+              <div class="exp-dates">Jan 2022 — Present</div>
+              <button class="icon-btn" style="width:22px;height:22px;font-size:10px;" title="Remove entry"><i class="fa fa-trash"></i></button>
+            </div>
+            <div class="exp-entry-body">
+              <div class="exp-entry-row">
+                <div>
+                  <div class="form-label" style="font-size:9px;margin-bottom:4px;">Company</div>
+                  <input class="form-input" type="text" value="Nervana Systems">
+                </div>
+                <div>
+                  <div class="form-label" style="font-size:9px;margin-bottom:4px;">Title</div>
+                  <input class="form-input" type="text" value="Senior Edge ML Engineer">
+                </div>
+              </div>
+              <div class="exp-entry-row3">
+                <div>
+                  <div class="form-label" style="font-size:9px;margin-bottom:4px;">Start Date</div>
+                  <input class="form-input" type="text" value="Jan 2022">
+                </div>
+                <div>
+                  <div class="form-label" style="font-size:9px;margin-bottom:4px;">End Date</div>
+                  <input class="form-input" type="text" placeholder="Present" value="">
+                </div>
+                <div style="display:flex;align-items:flex-end;padding-bottom:1px;">
+                  <label style="display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10px;color:var(--text-dim);cursor:pointer;">
+                    <input type="checkbox" checked style="accent-color:var(--accent);"> Current role
+                  </label>
+                </div>
+              </div>
+              <div>
+                <div class="form-label" style="font-size:9px;margin-bottom:4px;">Description</div>
+                <textarea class="form-textarea" rows="2" style="min-height:60px;">Designing and deploying tinyML inference pipelines on STM32 and ESP32 platforms. Leading the sensor fusion research for always-on gesture recognition at &lt;5mW.</textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- Entry 2 -->
+          <div class="exp-entry">
+            <div class="exp-entry-head">
+              <button class="icon-btn drag-handle" style="width:20px;height:20px;font-size:10px;flex-shrink:0;" title="Drag to reorder"><i class="fa fa-grip-vertical"></i></button>
+              <div class="exp-company">NVIDIA Research</div>
+              <div class="exp-dates">Jun 2019 — Dec 2021</div>
+              <button class="icon-btn" style="width:22px;height:22px;font-size:10px;" title="Remove entry"><i class="fa fa-trash"></i></button>
+            </div>
+            <div class="exp-entry-body">
+              <div class="exp-entry-row">
+                <div>
+                  <div class="form-label" style="font-size:9px;margin-bottom:4px;">Company</div>
+                  <input class="form-input" type="text" value="NVIDIA Research">
+                </div>
+                <div>
+                  <div class="form-label" style="font-size:9px;margin-bottom:4px;">Title</div>
+                  <input class="form-input" type="text" value="Research Engineer, Inference Optimization">
+                </div>
+              </div>
+              <div class="exp-entry-row3">
+                <div>
+                  <div class="form-label" style="font-size:9px;margin-bottom:4px;">Start Date</div>
+                  <input class="form-input" type="text" value="Jun 2019">
+                </div>
+                <div>
+                  <div class="form-label" style="font-size:9px;margin-bottom:4px;">End Date</div>
+                  <input class="form-input" type="text" value="Dec 2021">
+                </div>
+                <div style="display:flex;align-items:flex-end;padding-bottom:1px;">
+                  <label style="display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10px;color:var(--text-dim);cursor:pointer;">
+                    <input type="checkbox" style="accent-color:var(--accent);"> Current role
+                  </label>
+                </div>
+              </div>
+              <div>
+                <div class="form-label" style="font-size:9px;margin-bottom:4px;">Description</div>
+                <textarea class="form-textarea" rows="2" style="min-height:60px;">Worked on INT8 quantization and pruning techniques for Jetson-class hardware. Co-authored 2 NeurIPS papers on structured sparsity for embedded vision models.</textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- Entry 3 -->
+          <div class="exp-entry">
+            <div class="exp-entry-head">
+              <button class="icon-btn drag-handle" style="width:20px;height:20px;font-size:10px;flex-shrink:0;" title="Drag to reorder"><i class="fa fa-grip-vertical"></i></button>
+              <div class="exp-company">Oregon State University</div>
+              <div class="exp-dates">Sep 2017 — May 2019</div>
+              <button class="icon-btn" style="width:22px;height:22px;font-size:10px;" title="Remove entry"><i class="fa fa-trash"></i></button>
+            </div>
+            <div class="exp-entry-body" style="display:none;" id="exp3-body">
+              <!-- collapsed for brevity; matches same pattern above -->
+            </div>
+          </div>
+
+        </div>
+
+        <div style="margin-top:12px;">
+          <button class="btn btn-sm">
+            <i class="fa fa-plus" style="font-size:9px;"></i>
+            Add Experience
+          </button>
+        </div>
+
+        <hr class="divider">
+
+        <!-- ── VIDEOS ─────────────────────── -->
+        <div class="panel-label">Videos</div>
+        <div class="video-tabs">
+          <button class="video-tab active" onclick="switchVideoTab(this, 'tutorials')">Tutorials</button>
+          <button class="video-tab" onclick="switchVideoTab(this, 'talks')">Talks</button>
+          <button class="video-tab" onclick="switchVideoTab(this, 'streams')">Streams</button>
+        </div>
+
+        <div id="video-panel-tutorials" class="video-panel">
+          <div class="video-list">
+            <div class="video-entry">
+              <div class="video-thumb video-thumb-1">
+                <div class="video-thumb-inner">
+                  <div class="video-thumb-bg"></div>
+                  <i class="fa fa-play"></i>
+                </div>
+              </div>
+              <div class="video-entry-info">
+                <div class="video-entry-title">TinyML on ESP32: Running MobileNet in 256KB RAM</div>
+                <div class="video-entry-url">youtube.com/watch?v=xK2mZ_9abc</div>
+              </div>
+              <div class="video-entry-actions">
+                <button class="icon-btn drag-handle" style="font-size:10px;" title="Drag to reorder"><i class="fa fa-grip-vertical"></i></button>
+                <button class="icon-btn" style="font-size:10px;" title="Edit"><i class="fa fa-pen"></i></button>
+                <button class="icon-btn" style="font-size:10px;" title="Remove"><i class="fa fa-xmark"></i></button>
+              </div>
+            </div>
+            <div class="video-entry">
+              <div class="video-thumb video-thumb-2">
+                <div class="video-thumb-inner">
+                  <div class="video-thumb-bg"></div>
+                  <i class="fa fa-play"></i>
+                </div>
+              </div>
+              <div class="video-entry-info">
+                <div class="video-entry-title">Quantization Deep Dive: INT4 vs INT8 on Cortex-M</div>
+                <div class="video-entry-url">youtube.com/watch?v=qQ3nLp_7xyz</div>
+              </div>
+              <div class="video-entry-actions">
+                <button class="icon-btn drag-handle" style="font-size:10px;" title="Drag to reorder"><i class="fa fa-grip-vertical"></i></button>
+                <button class="icon-btn" style="font-size:10px;" title="Edit"><i class="fa fa-pen"></i></button>
+                <button class="icon-btn" style="font-size:10px;" title="Remove"><i class="fa fa-xmark"></i></button>
+              </div>
+            </div>
+            <div class="video-entry">
+              <div class="video-thumb video-thumb-3">
+                <div class="video-thumb-inner">
+                  <div class="video-thumb-bg"></div>
+                  <i class="fa fa-play"></i>
+                </div>
+              </div>
+              <div class="video-entry-info">
+                <div class="video-entry-title">Sensor Fusion Basics: IMU + Microphone on nRF52840</div>
+                <div class="video-entry-url">youtube.com/watch?v=rR8mKj_2def</div>
+              </div>
+              <div class="video-entry-actions">
+                <button class="icon-btn drag-handle" style="font-size:10px;" title="Drag to reorder"><i class="fa fa-grip-vertical"></i></button>
+                <button class="icon-btn" style="font-size:10px;" title="Edit"><i class="fa fa-pen"></i></button>
+                <button class="icon-btn" style="font-size:10px;" title="Remove"><i class="fa fa-xmark"></i></button>
+              </div>
+            </div>
+          </div>
+          <div style="margin-top:10px;">
+            <button class="btn btn-sm">
+              <i class="fa fa-plus" style="font-size:9px;"></i>
+              Add Video
+            </button>
+          </div>
+        </div>
+
+        <div id="video-panel-talks" class="video-panel" style="display:none;">
+          <div class="video-list">
+            <div class="video-entry">
+              <div class="video-thumb video-thumb-4">
+                <div class="video-thumb-inner">
+                  <div class="video-thumb-bg"></div>
+                  <i class="fa fa-play"></i>
+                </div>
+              </div>
+              <div class="video-entry-info">
+                <div class="video-entry-title">NeurIPS 2024: Sparse Inference for Always-On IoT Devices</div>
+                <div class="video-entry-url">youtube.com/watch?v=nN4oPs_1ghi</div>
+              </div>
+              <div class="video-entry-actions">
+                <button class="icon-btn drag-handle" style="font-size:10px;" title="Drag to reorder"><i class="fa fa-grip-vertical"></i></button>
+                <button class="icon-btn" style="font-size:10px;" title="Edit"><i class="fa fa-pen"></i></button>
+                <button class="icon-btn" style="font-size:10px;" title="Remove"><i class="fa fa-xmark"></i></button>
+              </div>
+            </div>
+          </div>
+          <div style="margin-top:10px;">
+            <button class="btn btn-sm">
+              <i class="fa fa-plus" style="font-size:9px;"></i>
+              Add Video
+            </button>
+          </div>
+        </div>
+
+        <div id="video-panel-streams" class="video-panel" style="display:none;">
+          <div class="video-list">
+            <div class="video-entry">
+              <div class="video-thumb video-thumb-1">
+                <div class="video-thumb-inner">
+                  <div class="video-thumb-bg"></div>
+                  <i class="fa fa-play"></i>
+                </div>
+              </div>
+              <div class="video-entry-info">
+                <div class="video-entry-title">Live Build: Wake Word Engine on RP2040 from Scratch</div>
+                <div class="video-entry-url">youtube.com/watch?v=sS5tWq_3jkl</div>
+              </div>
+              <div class="video-entry-actions">
+                <button class="icon-btn drag-handle" style="font-size:10px;" title="Drag to reorder"><i class="fa fa-grip-vertical"></i></button>
+                <button class="icon-btn" style="font-size:10px;" title="Edit"><i class="fa fa-pen"></i></button>
+                <button class="icon-btn" style="font-size:10px;" title="Remove"><i class="fa fa-xmark"></i></button>
+              </div>
+            </div>
+            <div class="video-entry">
+              <div class="video-thumb video-thumb-3">
+                <div class="video-thumb-inner">
+                  <div class="video-thumb-bg"></div>
+                  <i class="fa fa-play"></i>
+                </div>
+              </div>
+              <div class="video-entry-info">
+                <div class="video-entry-title">VOD: Debugging Inference Latency on Cortex-M55 (4hr)</div>
+                <div class="video-entry-url">youtube.com/watch?v=vV6uXr_4mno</div>
+              </div>
+              <div class="video-entry-actions">
+                <button class="icon-btn drag-handle" style="font-size:10px;" title="Drag to reorder"><i class="fa fa-grip-vertical"></i></button>
+                <button class="icon-btn" style="font-size:10px;" title="Edit"><i class="fa fa-pen"></i></button>
+                <button class="icon-btn" style="font-size:10px;" title="Remove"><i class="fa fa-xmark"></i></button>
+              </div>
+            </div>
+          </div>
+          <div style="margin-top:10px;">
+            <button class="btn btn-sm">
+              <i class="fa fa-plus" style="font-size:9px;"></i>
+              Add Video
+            </button>
+          </div>
+        </div>
+
+      </section><!-- /basic-info -->
+
+
+      <!-- ══ SOCIAL LINKS (standalone) ════════ -->
+      <section id="sec-social-links" class="editor-section" style="display:none;">
+        <div class="section-head">
+          <h1>Social Links</h1>
+          <span class="section-desc">Connect your external profiles</span>
+        </div>
+        <div class="sub-section">
+          <div class="sub-section-body" style="padding:0;">
+            <div class="social-list">
+              <div class="social-row">
+                <div class="social-platform-icon github"><i class="fab fa-github"></i></div>
+                <input class="form-input" type="url" value="https://github.com/elara-kim" placeholder="GitHub URL">
+                <button class="icon-btn drag-handle" title="Drag to reorder"><i class="fa fa-grip-vertical"></i></button>
+                <button class="icon-btn" title="Remove"><i class="fa fa-xmark"></i></button>
+              </div>
+              <div class="social-row">
+                <div class="social-platform-icon twitter"><i class="fab fa-x-twitter"></i></div>
+                <input class="form-input" type="url" value="https://x.com/elara_kim_ml" placeholder="X / Twitter URL">
+                <button class="icon-btn drag-handle" title="Drag to reorder"><i class="fa fa-grip-vertical"></i></button>
+                <button class="icon-btn" title="Remove"><i class="fa fa-xmark"></i></button>
+              </div>
+              <div class="social-row">
+                <div class="social-platform-icon linkedin"><i class="fab fa-linkedin-in"></i></div>
+                <input class="form-input" type="url" value="https://linkedin.com/in/elarakim" placeholder="LinkedIn URL">
+                <button class="icon-btn drag-handle" title="Drag to reorder"><i class="fa fa-grip-vertical"></i></button>
+                <button class="icon-btn" title="Remove"><i class="fa fa-xmark"></i></button>
+              </div>
+              <div class="social-row">
+                <div class="social-platform-icon youtube"><i class="fab fa-youtube"></i></div>
+                <input class="form-input" type="url" value="https://youtube.com/@elarakim" placeholder="YouTube URL">
+                <button class="icon-btn drag-handle" title="Drag to reorder"><i class="fa fa-grip-vertical"></i></button>
+                <button class="icon-btn" title="Remove"><i class="fa fa-xmark"></i></button>
+              </div>
+              <div class="social-row">
+                <div class="social-platform-icon discord"><i class="fab fa-discord"></i></div>
+                <input class="form-input" type="text" value="elara_kim#0042" placeholder="Discord username">
+                <button class="icon-btn drag-handle" title="Drag to reorder"><i class="fa fa-grip-vertical"></i></button>
+                <button class="icon-btn" title="Remove"><i class="fa fa-xmark"></i></button>
+              </div>
+            </div>
+          </div>
+          <div class="sub-section-add">
+            <button class="btn btn-sm"><i class="fa fa-plus" style="font-size:9px;"></i> Add Social Link</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══ GALLERY ════════════════════════ -->
+      <section id="sec-gallery" class="editor-section" style="display:none;">
+        <div class="section-head">
+          <h1>Gallery</h1>
+          <span class="section-desc">Images showcasing your work</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px;">
+          <div style="aspect-ratio:4/3;background:var(--surface);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--text-faint);font-size:10px;font-family:var(--mono);position:relative;overflow:hidden;cursor:pointer;box-shadow:var(--shadow);">
+            <div style="position:absolute;inset:0;background:#c8ddf0;opacity:.7;"></div>
+            <i class="fa fa-microchip" style="font-size:24px;position:relative;z-index:1;color:rgba(91,156,246,.6);"></i>
+          </div>
+          <div style="aspect-ratio:4/3;background:var(--surface);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--text-faint);font-size:10px;font-family:var(--mono);position:relative;overflow:hidden;cursor:pointer;box-shadow:var(--shadow);">
+            <div style="position:absolute;inset:0;background:#c8f0d8;opacity:.7;"></div>
+            <i class="fa fa-wave-square" style="font-size:24px;position:relative;z-index:1;color:rgba(34,197,94,.6);"></i>
+          </div>
+          <div style="aspect-ratio:4/3;background:var(--surface);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--text-faint);font-size:10px;font-family:var(--mono);position:relative;overflow:hidden;cursor:pointer;box-shadow:var(--shadow);">
+            <div style="position:absolute;inset:0;background:#f0e8c8;opacity:.7;"></div>
+            <i class="fa fa-brain" style="font-size:24px;position:relative;z-index:1;color:rgba(245,158,11,.6);"></i>
+          </div>
+          <div style="aspect-ratio:4/3;background:var(--surface);border:2px dashed var(--border);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:var(--text-faint);font-size:10px;font-family:var(--mono);cursor:pointer;">
+            <i class="fa fa-plus" style="font-size:18px;"></i>
+            <span>Add Image</span>
+          </div>
+        </div>
+        <div class="form-hint">Drag to reorder. Max 12 images, 4MB each.</div>
+      </section>
+
+      <!-- ══ EXPERIENCE (standalone) ══════════ -->
+      <section id="sec-experience" class="editor-section" style="display:none;">
+        <div class="section-head">
+          <h1>Experience</h1>
+          <span class="section-desc">Work history and roles</span>
+        </div>
+        <div class="experience-list">
+          <div class="exp-entry">
+            <div class="exp-entry-head">
+              <button class="icon-btn drag-handle" style="width:20px;height:20px;font-size:10px;flex-shrink:0;"><i class="fa fa-grip-vertical"></i></button>
+              <div class="exp-company">Nervana Systems</div>
+              <div class="exp-dates">Jan 2022 — Present</div>
+              <span class="tag tag-green">Current</span>
+              <button class="icon-btn" style="width:22px;height:22px;font-size:10px;"><i class="fa fa-trash"></i></button>
+            </div>
+            <div class="exp-entry-body">
+              <div class="exp-entry-row">
+                <div>
+                  <div class="form-label" style="font-size:9px;margin-bottom:4px;">Company</div>
+                  <input class="form-input" type="text" value="Nervana Systems">
+                </div>
+                <div>
+                  <div class="form-label" style="font-size:9px;margin-bottom:4px;">Title</div>
+                  <input class="form-input" type="text" value="Senior Edge ML Engineer">
+                </div>
+              </div>
+              <div class="exp-entry-row3">
+                <div>
+                  <div class="form-label" style="font-size:9px;margin-bottom:4px;">Start</div>
+                  <input class="form-input" type="text" value="Jan 2022">
+                </div>
+                <div>
+                  <div class="form-label" style="font-size:9px;margin-bottom:4px;">End</div>
+                  <input class="form-input" type="text" placeholder="Present" value="">
+                </div>
+                <div style="display:flex;align-items:flex-end;padding-bottom:1px;">
+                  <label style="display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10px;color:var(--text-dim);cursor:pointer;">
+                    <input type="checkbox" checked style="accent-color:var(--accent);"> Current
+                  </label>
+                </div>
+              </div>
+              <div>
+                <div class="form-label" style="font-size:9px;margin-bottom:4px;">Description</div>
+                <textarea class="form-textarea" rows="2" style="min-height:60px;">Designing and deploying tinyML inference pipelines on STM32 and ESP32 platforms.</textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:12px;">
+          <button class="btn btn-sm"><i class="fa fa-plus" style="font-size:9px;"></i> Add Experience</button>
+        </div>
+      </section>
+
+      <!-- ══ AWARDS ════════════════════════ -->
+      <section id="sec-awards" class="editor-section" style="display:none;">
+        <div class="section-head">
+          <h1>Awards</h1>
+          <span class="section-desc">Recognition and achievements</span>
+        </div>
+        <div class="experience-list">
+          <div class="exp-entry">
+            <div class="exp-entry-head">
+              <button class="icon-btn drag-handle" style="width:20px;height:20px;font-size:10px;flex-shrink:0;"><i class="fa fa-grip-vertical"></i></button>
+              <div class="exp-company" style="display:flex;align-items:center;gap:8px;"><i class="fa fa-trophy" style="color:var(--yellow);font-size:11px;"></i> Snaplify Build Award 2024</div>
+              <div class="exp-dates">Dec 2024</div>
+              <button class="icon-btn" style="width:22px;height:22px;font-size:10px;"><i class="fa fa-trash"></i></button>
+            </div>
+            <div class="exp-entry-body">
+              <div class="exp-entry-row">
+                <div>
+                  <div class="form-label" style="font-size:9px;margin-bottom:4px;">Award Name</div>
+                  <input class="form-input" type="text" value="Snaplify Build Award 2024">
+                </div>
+                <div>
+                  <div class="form-label" style="font-size:9px;margin-bottom:4px;">Issuing Organization</div>
+                  <input class="form-input" type="text" value="Snaplify">
+                </div>
+              </div>
+              <div>
+                <div class="form-label" style="font-size:9px;margin-bottom:4px;">Description</div>
+                <textarea class="form-textarea" rows="2" style="min-height:56px;">Awarded for the Wake-Word-on-RP2040 project, recognized as the most technically complete open-source submission of 2024.</textarea>
+              </div>
+            </div>
+          </div>
+          <div class="exp-entry">
+            <div class="exp-entry-head">
+              <button class="icon-btn drag-handle" style="width:20px;height:20px;font-size:10px;flex-shrink:0;"><i class="fa fa-grip-vertical"></i></button>
+              <div class="exp-company" style="display:flex;align-items:center;gap:8px;"><i class="fa fa-medal" style="color:var(--text-dim);font-size:11px;"></i> MLSys Student Research Award</div>
+              <div class="exp-dates">Apr 2023</div>
+              <button class="icon-btn" style="width:22px;height:22px;font-size:10px;"><i class="fa fa-trash"></i></button>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:12px;">
+          <button class="btn btn-sm"><i class="fa fa-plus" style="font-size:9px;"></i> Add Award</button>
+        </div>
+      </section>
+
+      <!-- ══ PUBLICATIONS ══════════════════ -->
+      <section id="sec-publications" class="editor-section" style="display:none;">
+        <div class="section-head">
+          <h1>Publications</h1>
+          <span class="section-desc">Papers, articles, and technical writing</span>
+        </div>
+        <div class="experience-list">
+          <div class="exp-entry">
+            <div class="exp-entry-head">
+              <button class="icon-btn drag-handle" style="width:20px;height:20px;font-size:10px;flex-shrink:0;"><i class="fa fa-grip-vertical"></i></button>
+              <div class="exp-company">Structured Sparsity for Embedded Vision at NeurIPS 2024</div>
+              <span class="tag tag-accent">Conference</span>
+              <button class="icon-btn" style="width:22px;height:22px;font-size:10px;"><i class="fa fa-trash"></i></button>
+            </div>
+            <div class="exp-entry-body">
+              <div>
+                <div class="form-label" style="font-size:9px;margin-bottom:4px;">Title</div>
+                <input class="form-input" type="text" value="Structured Sparsity for Embedded Vision Models on Cortex-M Processors">
+              </div>
+              <div class="exp-entry-row">
+                <div>
+                  <div class="form-label" style="font-size:9px;margin-bottom:4px;">Venue / Journal</div>
+                  <input class="form-input" type="text" value="NeurIPS 2024">
+                </div>
+                <div>
+                  <div class="form-label" style="font-size:9px;margin-bottom:4px;">URL / DOI</div>
+                  <input class="form-input" type="url" value="https://arxiv.org/abs/2411.00123">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:12px;">
+          <button class="btn btn-sm"><i class="fa fa-plus" style="font-size:9px;"></i> Add Publication</button>
+        </div>
+      </section>
+
+      <!-- ══ VIDEOS (standalone) ══════════ -->
+      <section id="sec-videos" class="editor-section" style="display:none;">
+        <div class="section-head">
+          <h1>Videos</h1>
+          <span class="section-desc">Tutorials, talks, and live streams</span>
+        </div>
+        <div class="video-tabs">
+          <button class="video-tab active" onclick="switchVideoTab2(this, 'tut2')">Tutorials</button>
+          <button class="video-tab" onclick="switchVideoTab2(this, 'talks2')">Talks</button>
+          <button class="video-tab" onclick="switchVideoTab2(this, 'streams2')">Streams</button>
+        </div>
+        <div id="video-panel-tut2" class="video-panel">
+          <div class="video-list">
+            <div class="video-entry">
+              <div class="video-thumb video-thumb-1">
+                <div class="video-thumb-inner"><div class="video-thumb-bg"></div><i class="fa fa-play"></i></div>
+              </div>
+              <div class="video-entry-info">
+                <div class="video-entry-title">TinyML on ESP32: Running MobileNet in 256KB RAM</div>
+                <div class="video-entry-url">youtube.com/watch?v=xK2mZ_9abc</div>
+              </div>
+              <div class="video-entry-actions">
+                <button class="icon-btn drag-handle" style="font-size:10px;"><i class="fa fa-grip-vertical"></i></button>
+                <button class="icon-btn" style="font-size:10px;"><i class="fa fa-pen"></i></button>
+                <button class="icon-btn" style="font-size:10px;"><i class="fa fa-xmark"></i></button>
+              </div>
+            </div>
+          </div>
+          <div style="margin-top:10px;"><button class="btn btn-sm"><i class="fa fa-plus" style="font-size:9px;"></i> Add Video</button></div>
+        </div>
+        <div id="video-panel-talks2" class="video-panel" style="display:none;">
+          <div class="video-list">
+            <div class="video-entry">
+              <div class="video-thumb video-thumb-4">
+                <div class="video-thumb-inner"><div class="video-thumb-bg"></div><i class="fa fa-play"></i></div>
+              </div>
+              <div class="video-entry-info">
+                <div class="video-entry-title">NeurIPS 2024: Sparse Inference for Always-On IoT Devices</div>
+                <div class="video-entry-url">youtube.com/watch?v=nN4oPs_1ghi</div>
+              </div>
+              <div class="video-entry-actions">
+                <button class="icon-btn drag-handle" style="font-size:10px;"><i class="fa fa-grip-vertical"></i></button>
+                <button class="icon-btn" style="font-size:10px;"><i class="fa fa-pen"></i></button>
+                <button class="icon-btn" style="font-size:10px;"><i class="fa fa-xmark"></i></button>
+              </div>
+            </div>
+          </div>
+          <div style="margin-top:10px;"><button class="btn btn-sm"><i class="fa fa-plus" style="font-size:9px;"></i> Add Video</button></div>
+        </div>
+        <div id="video-panel-streams2" class="video-panel" style="display:none;">
+          <div class="video-list">
+            <div class="video-entry">
+              <div class="video-thumb video-thumb-2">
+                <div class="video-thumb-inner"><div class="video-thumb-bg"></div><i class="fa fa-play"></i></div>
+              </div>
+              <div class="video-entry-info">
+                <div class="video-entry-title">Live Build: Wake Word Engine on RP2040 from Scratch</div>
+                <div class="video-entry-url">youtube.com/watch?v=sS5tWq_3jkl</div>
+              </div>
+              <div class="video-entry-actions">
+                <button class="icon-btn drag-handle" style="font-size:10px;"><i class="fa fa-grip-vertical"></i></button>
+                <button class="icon-btn" style="font-size:10px;"><i class="fa fa-pen"></i></button>
+                <button class="icon-btn" style="font-size:10px;"><i class="fa fa-xmark"></i></button>
+              </div>
+            </div>
+          </div>
+          <div style="margin-top:10px;"><button class="btn btn-sm"><i class="fa fa-plus" style="font-size:9px;"></i> Add Video</button></div>
+        </div>
+      </section>
+
+      <!-- ══ INTERACTIVES ══════════════════ -->
+      <section id="sec-interactives" class="editor-section" style="display:none;">
+        <div class="section-head">
+          <h1>Interactives</h1>
+          <span class="section-desc">Embedded demos, notebooks, simulations</span>
+        </div>
+        <div class="experience-list">
+          <div class="exp-entry">
+            <div class="exp-entry-head">
+              <button class="icon-btn drag-handle" style="width:20px;height:20px;font-size:10px;flex-shrink:0;"><i class="fa fa-grip-vertical"></i></button>
+              <div class="exp-company" style="display:flex;align-items:center;gap:8px;"><i class="fa fa-cube" style="color:var(--accent);font-size:11px;"></i> Live Inference Latency Benchmark</div>
+              <span class="tag">Notebook</span>
+              <button class="icon-btn" style="width:22px;height:22px;font-size:10px;"><i class="fa fa-trash"></i></button>
+            </div>
+            <div class="exp-entry-body">
+              <div class="exp-entry-row">
+                <div>
+                  <div class="form-label" style="font-size:9px;margin-bottom:4px;">Title</div>
+                  <input class="form-input" type="text" value="Live Inference Latency Benchmark">
+                </div>
+                <div>
+                  <div class="form-label" style="font-size:9px;margin-bottom:4px;">Embed URL</div>
+                  <input class="form-input" type="url" value="https://colab.research.google.com/drive/1abc...">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:12px;">
+          <button class="btn btn-sm"><i class="fa fa-plus" style="font-size:9px;"></i> Add Interactive</button>
+        </div>
+      </section>
+
+      <!-- ══ VISIBILITY ════════════════════ -->
+      <section id="sec-visibility" class="editor-section" style="display:none;">
+        <div class="section-head">
+          <h1>Visibility</h1>
+          <span class="section-desc">Control what others can see</span>
+        </div>
+        <div class="sub-section">
+          <div class="sub-section-head">
+            <span class="sub-section-title">Profile Sections</span>
+          </div>
+          <div class="sub-section-body" style="padding:0;">
+            <div style="display:flex;flex-direction:column;gap:0;">
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--surface);border-bottom:2px solid var(--border);">
+                <div>
+                  <div style="font-size:12px;font-weight:600;margin-bottom:1px;">Profile Page</div>
+                  <div style="font-family:var(--mono);font-size:10px;color:var(--text-faint);">Your main profile is visible to everyone</div>
+                </div>
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                  <span style="font-family:var(--mono);font-size:10px;color:var(--green);">Public</span>
+                  <div style="width:36px;height:20px;background:var(--green);position:relative;border:2px solid var(--border);">
+                    <div style="width:12px;height:12px;background:#fff;position:absolute;top:2px;right:2px;"></div>
+                  </div>
+                </label>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--surface);border-bottom:2px solid var(--border);">
+                <div>
+                  <div style="font-size:12px;font-weight:600;margin-bottom:1px;">Email Address</div>
+                  <div style="font-family:var(--mono);font-size:10px;color:var(--text-faint);">elara@elarakim.io</div>
+                </div>
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                  <span style="font-family:var(--mono);font-size:10px;color:var(--text-dim);">Private</span>
+                  <div style="width:36px;height:20px;background:var(--surface3);border:2px solid var(--border);position:relative;">
+                    <div style="width:12px;height:12px;background:var(--text-faint);position:absolute;top:2px;left:2px;"></div>
+                  </div>
+                </label>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--surface);">
+                <div>
+                  <div style="font-size:12px;font-weight:600;margin-bottom:1px;">Experience &amp; Awards</div>
+                  <div style="font-family:var(--mono);font-size:10px;color:var(--text-faint);">Work history visible on your profile</div>
+                </div>
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                  <span style="font-family:var(--mono);font-size:10px;color:var(--green);">Public</span>
+                  <div style="width:36px;height:20px;background:var(--green);position:relative;border:2px solid var(--border);">
+                    <div style="width:12px;height:12px;background:#fff;position:absolute;top:2px;right:2px;"></div>
+                  </div>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══ THEME ═════════════════════════ -->
+      <section id="sec-theme" class="editor-section" style="display:none;">
+        <div class="section-head">
+          <h1>Theme</h1>
+          <span class="section-desc">Customize your profile appearance</span>
+        </div>
+        <div class="panel-label" style="margin-bottom:12px;">Accent Color</div>
+        <div style="display:flex;gap:10px;margin-bottom:24px;">
+          <div style="width:36px;height:36px;border-radius:50%;background:#5b9cf6;border:3px solid var(--border);cursor:pointer;box-shadow:3px 3px 0 var(--border2);" title="Blue (default)"></div>
+          <div style="width:36px;height:36px;border-radius:50%;background:#22c55e;border:3px solid transparent;cursor:pointer;" title="Green"></div>
+          <div style="width:36px;height:36px;border-radius:50%;background:#f59e0b;border:3px solid transparent;cursor:pointer;" title="Yellow"></div>
+          <div style="width:36px;height:36px;border-radius:50%;background:#ef4444;border:3px solid transparent;cursor:pointer;" title="Red"></div>
+          <div style="width:36px;height:36px;border-radius:50%;background:#8b5cf6;border:3px solid transparent;cursor:pointer;" title="Purple"></div>
+          <div style="width:36px;height:36px;border-radius:50%;background:#14b8a6;border:3px solid transparent;cursor:pointer;" title="Teal"></div>
+        </div>
+        <div class="panel-label" style="margin-bottom:12px;">Layout</div>
+        <div style="display:flex;gap:12px;margin-bottom:24px;">
+          <div style="padding:10px 18px;background:var(--surface);border:2px solid var(--accent);cursor:pointer;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text);font-weight:600;box-shadow:var(--shadow);">
+            <i class="fa fa-table-columns" style="font-size:11px;color:var(--accent);"></i> Compact
+          </div>
+          <div style="padding:10px 18px;background:var(--surface);border:2px solid var(--border2);cursor:pointer;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-dim);">
+            <i class="fa fa-square" style="font-size:11px;"></i> Wide
+          </div>
+        </div>
+      </section>
+
+    </div><!-- /main-inner -->
+  </main>
+
+</div><!-- /shell -->
+
+<script>
+  // ── Section navigation ───────────────────
+  function showSection(id, btn) {
+    document.querySelectorAll('.editor-section').forEach(s => s.style.display = 'none');
+    const target = document.getElementById('sec-' + id);
+    if (target) target.style.display = 'block';
+    document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+  }
+
+  // ── Video tabs (basic-info section) ──────
+  function switchVideoTab(btn, panel) {
+    btn.closest('.video-tabs').querySelectorAll('.video-tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('#sec-basic-info .video-panel').forEach(p => p.style.display = 'none');
+    const target = document.getElementById('video-panel-' + panel);
+    if (target) target.style.display = 'block';
+  }
+
+  // ── Video tabs (videos section) ──────────
+  function switchVideoTab2(btn, panel) {
+    btn.closest('.video-tabs').querySelectorAll('.video-tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('#sec-videos .video-panel').forEach(p => p.style.display = 'none');
+    const target = document.getElementById('video-panel-' + panel);
+    if (target) target.style.display = 'block';
+  }
+
+  // ── Save status simulation ────────────────
+  document.querySelectorAll('input, textarea').forEach(el => {
+    el.addEventListener('input', () => {
+      const status = document.querySelector('.save-status');
+      status.classList.add('saving');
+      status.innerHTML = '<i class="fa fa-circle-notch fa-spin"></i> Saving…';
+      clearTimeout(el._saveTimer);
+      el._saveTimer = setTimeout(() => {
+        status.classList.remove('saving');
+        status.innerHTML = '<i class="fa fa-circle-check"></i> All changes saved';
+      }, 900);
+    });
+  });
+</script>
+
+</body>
+</html>

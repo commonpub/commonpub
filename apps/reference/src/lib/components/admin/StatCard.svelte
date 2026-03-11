@@ -27,28 +27,28 @@
     flex-direction: column;
     gap: var(--space-1, 0.25rem);
     padding: var(--space-4, 1rem);
-    background: var(--color-surface-raised, #fff);
-    border: var(--border-width-thin, 1px) solid var(--color-border, #e5e7eb);
-    border-radius: var(--radius-lg, 0.5rem);
+    background: var(--color-surface-alt, #141413);
+    border: 1px solid var(--color-border, #272725);
+    border-radius: var(--radius-sm, 4px);
   }
 
   .admin-stat-card__label {
-    font-family: var(--font-body, sans-serif);
-    font-size: var(--text-sm, 0.75rem);
-    color: var(--color-text-muted, #888);
-    font-weight: var(--font-weight-medium, 500);
+    font-family: var(--font-mono, monospace);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-text-muted, #444440);
   }
 
   .admin-stat-card__value {
-    font-family: var(--font-heading, sans-serif);
     font-size: var(--text-2xl, 1.5rem);
     font-weight: var(--font-weight-bold, 700);
     color: var(--color-text, #d8d5cf);
   }
 
   .admin-stat-card__description {
-    font-family: var(--font-body, sans-serif);
-    font-size: var(--text-xs, 0.6875rem);
-    color: var(--color-text-muted, #888);
+    font-family: var(--font-mono, monospace);
+    font-size: 9px;
+    color: var(--color-text-muted, #444440);
   }
 </style>

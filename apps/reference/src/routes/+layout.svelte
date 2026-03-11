@@ -7,6 +7,7 @@
   import '@snaplify/ui/theme/deepwood.css';
   import '@snaplify/ui/theme/hackbuild.css';
   import '@snaplify/ui/theme/deveco.css';
+  import '$lib/styles/primitives.css';
   import type { LayoutData } from './$types';
 
   let { data, children } = $props<{ data: LayoutData; children: import('svelte').Snippet }>();
@@ -72,8 +73,5 @@
   .main {
     flex: 1;
     width: 100%;
-    max-width: var(--content-max-width, 75rem);
-    margin: 0 auto;
-    padding: var(--space-6, 1.5rem) var(--space-4, 1rem);
   }
 </style>

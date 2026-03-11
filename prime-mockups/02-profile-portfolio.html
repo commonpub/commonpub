@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Moheeb Zara (@virgilvox) — hack.build</title>
+  <link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Permanent+Marker&family=VT323&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --paper: #f5f0e6; --paper-dark: #e8e0d0; --paper-cream: #faf8f3;
+      --ink: #1a1a1a; --ink-light: #444; --ink-muted: #666;
+      --accent: #ff3366; --success: #22c55e; --info: #3b82f6;
+      --warning: #f59e0b; --purple: #8b5cf6; --teal: #14b8a6; --orange: #f97316;
+      --font-typewriter: 'Special Elite', monospace;
+      --font-marker: 'Permanent Marker', cursive;
+      --font-terminal: 'VT323', monospace;
+      --nav-height: 64px;
+    }
+    body { background: var(--paper); font-family: var(--font-typewriter); color: var(--ink); line-height: 1.6; }
+    
+    .nav { position: fixed; top: 0; left: 0; right: 0; z-index: 1000; background: var(--ink); border-bottom: 3px solid var(--accent); height: var(--nav-height); }
+    .nav-inner { max-width: 1400px; margin: 0 auto; padding: 0 24px; display: flex; align-items: center; height: 100%; gap: 24px; }
+    .nav-logo { font-family: var(--font-marker); font-size: 24px; color: var(--paper); text-decoration: none; display: flex; align-items: center; gap: 8px; }
+    .nav-logo i { color: var(--accent); }
+    .nav-logo .dot { color: var(--accent); }
+    
+    .main { padding-top: var(--nav-height); }
+    
+    /* Profile Header */
+    .profile-header { background: var(--ink); color: var(--paper); }
+    .profile-banner { height: 200px; background: linear-gradient(135deg, var(--accent) 0%, var(--purple) 50%, var(--teal) 100%); position: relative; }
+    .profile-banner::before { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(90deg, transparent, transparent 60px, rgba(0,0,0,0.08) 60px, rgba(0,0,0,0.08) 61px); }
+    
+    .profile-main { max-width: 1200px; margin: 0 auto; padding: 0 24px; display: flex; gap: 32px; margin-top: -60px; position: relative; flex-wrap: wrap; }
+    .profile-avatar { width: 160px; height: 160px; background: var(--accent); border: 6px solid var(--ink); display: flex; align-items: center; justify-content: center; font-family: var(--font-marker); font-size: 64px; color: var(--paper); position: relative; flex-shrink: 0; }
+    .verified-badge-lg { position: absolute; bottom: 8px; right: 8px; width: 36px; height: 36px; background: var(--accent); border: 3px solid var(--ink); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; color: var(--paper); }
+    
+    .profile-info { flex: 1; min-width: 300px; padding: 70px 0 24px; }
+    .profile-badges { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+    .profile-badge { font-family: var(--font-terminal); font-size: 12px; padding: 4px 12px; background: var(--accent); color: var(--paper); display: flex; align-items: center; gap: 4px; }
+    .profile-badge.official { background: var(--warning); color: var(--ink); }
+    .profile-badge.pro { background: var(--purple); }
+    .profile-name { font-family: var(--font-marker); font-size: 42px; line-height: 1.1; margin-bottom: 4px; }
+    .profile-handle { font-family: var(--font-terminal); font-size: 18px; color: rgba(255,255,255,0.6); margin-bottom: 12px; }
+    .profile-headline { font-size: 18px; color: rgba(255,255,255,0.9); margin-bottom: 16px; }
+    .profile-bio { font-size: 15px; color: rgba(255,255,255,0.75); max-width: 600px; margin-bottom: 20px; line-height: 1.7; }
+    .profile-meta { display: flex; flex-wrap: wrap; gap: 20px; font-family: var(--font-terminal); font-size: 14px; color: rgba(255,255,255,0.6); margin-bottom: 20px; }
+    .profile-meta span { display: flex; align-items: center; gap: 6px; }
+    .profile-meta a { color: var(--accent); text-decoration: none; }
+    .profile-socials { display: flex; gap: 10px; flex-wrap: wrap; }
+    .social-link { width: 40px; height: 40px; background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; color: var(--paper); text-decoration: none; font-size: 18px; }
+    .social-link:hover { background: var(--accent); border-color: var(--accent); }
+    
+    .profile-actions { display: flex; gap: 12px; padding: 70px 0 24px; }
+    .btn { font-family: var(--font-marker); font-size: 15px; padding: 12px 24px; border: 3px solid var(--paper); background: transparent; color: var(--paper); cursor: pointer; display: flex; align-items: center; gap: 8px; }
+    .btn:hover { background: var(--paper); color: var(--ink); }
+    .btn.primary { background: var(--accent); border-color: var(--accent); }
+    
+    /* Profile Navigation */
+    .profile-nav { background: var(--paper-dark); border-bottom: 3px solid var(--ink); position: sticky; top: var(--nav-height); z-index: 100; }
+    .profile-nav-inner { max-width: 1200px; margin: 0 auto; padding: 0 24px; display: flex; gap: 4px; overflow-x: auto; }
+    .profile-nav-item { font-family: var(--font-terminal); font-size: 16px; padding: 16px 20px; background: transparent; border: none; color: var(--ink-muted); cursor: pointer; display: flex; align-items: center; gap: 8px; border-bottom: 4px solid transparent; margin-bottom: -3px; white-space: nowrap; }
+    .profile-nav-item:hover { color: var(--ink); background: var(--paper); }
+    .profile-nav-item.active { color: var(--ink); border-bottom-color: var(--accent); font-weight: bold; }
+    .nav-count { font-size: 12px; padding: 2px 8px; background: var(--ink); color: var(--paper); }
+    
+    /* Content Sections */
+    .content-section { max-width: 1200px; margin: 0 auto; padding: 48px 24px; }
+    .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; flex-wrap: wrap; gap: 16px; }
+    .section-title { font-family: var(--font-marker); font-size: 32px; display: flex; align-items: center; gap: 12px; }
+    .section-title i { color: var(--accent); }
+    .section-subtitle { font-size: 16px; color: var(--ink-muted); margin-top: 8px; }
+    
+    /* Filter Tabs */
+    .filter-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 32px; }
+    .filter-tab { font-family: var(--font-terminal); font-size: 14px; padding: 10px 20px; background: transparent; border: 2px solid var(--ink); color: var(--ink); cursor: pointer; display: flex; align-items: center; gap: 6px; }
+    .filter-tab:hover { background: var(--paper-dark); }
+    .filter-tab.active { background: var(--accent); border-color: var(--accent); color: var(--paper); }
+    
+    /* Projects Grid */
+    .projects-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+    .project-card { background: var(--paper-cream); border: 3px solid var(--ink); overflow: hidden; transition: all 0.2s; }
+    .project-card:hover { transform: translateY(-4px); box-shadow: 6px 6px 0 var(--ink); }
+    .project-card .image { height: 160px; background: var(--ink); position: relative; border-bottom: 3px solid var(--ink); }
+    .project-card .image-placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 48px; color: var(--paper); opacity: 0.15; }
+    .project-card .badges { position: absolute; top: 10px; left: 10px; display: flex; gap: 6px; }
+    .project-card .badge { font-family: var(--font-terminal); font-size: 11px; padding: 4px 10px; background: var(--accent); color: var(--paper); display: flex; align-items: center; gap: 4px; }
+    .project-card .badge.official { background: var(--warning); color: var(--ink); }
+    .project-card .content { padding: 16px; }
+    .project-card .title { font-family: var(--font-marker); font-size: 17px; margin-bottom: 8px; line-height: 1.3; }
+    .project-card .title a { color: var(--ink); text-decoration: none; }
+    .project-card .desc { font-size: 13px; color: var(--ink-light); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 12px; }
+    .project-card .stats { display: flex; gap: 12px; font-family: var(--font-terminal); font-size: 13px; color: var(--ink-muted); }
+    .project-card .stats span { display: flex; align-items: center; gap: 4px; }
+    
+    /* Videos Section */
+    .videos-section { background: var(--ink); color: var(--paper); margin: 0; padding: 48px 24px; }
+    .videos-inner { max-width: 1200px; margin: 0 auto; }
+    .videos-section .section-title { color: var(--paper); }
+    .videos-section .section-subtitle { color: rgba(255,255,255,0.6); }
+    .videos-section .filter-tab { border-color: rgba(255,255,255,0.3); color: var(--paper); }
+    .videos-section .filter-tab:hover { background: rgba(255,255,255,0.1); }
+    .videos-section .filter-tab.active { background: var(--accent); border-color: var(--accent); }
+    
+    .video-layout { display: grid; grid-template-columns: 1fr 360px; gap: 32px; }
+    .video-player { background: #000; border: 4px solid var(--accent); aspect-ratio: 16/9; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 16px; }
+    .video-player i { font-size: 64px; color: var(--accent); }
+    .video-player span { font-family: var(--font-terminal); font-size: 16px; color: rgba(255,255,255,0.5); }
+    
+    .video-playlist { background: var(--paper-cream); border: 3px solid var(--ink); max-height: 500px; overflow-y: auto; }
+    .playlist-header { padding: 16px 20px; background: var(--paper-dark); border-bottom: 3px solid var(--ink); position: sticky; top: 0; }
+    .playlist-title { font-family: var(--font-marker); font-size: 18px; color: var(--ink); }
+    .playlist-item { display: flex; gap: 12px; padding: 12px 16px; border-bottom: 2px solid rgba(0,0,0,0.1); cursor: pointer; color: var(--ink); text-decoration: none; }
+    .playlist-item:hover { background: var(--paper-dark); }
+    .playlist-item.active { background: var(--paper-dark); border-left: 4px solid var(--accent); }
+    .playlist-num { font-family: var(--font-terminal); font-size: 18px; color: var(--ink-muted); width: 28px; text-align: center; }
+    .playlist-info { flex: 1; }
+    .playlist-info .title { font-family: var(--font-marker); font-size: 14px; color: var(--ink); margin-bottom: 2px; }
+    .playlist-info .duration { font-family: var(--font-terminal); font-size: 12px; color: var(--ink-muted); }
+    
+    /* Publications Section */
+    .publications-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }
+    .publication-card { background: var(--paper-cream); border: 3px solid var(--ink); padding: 24px; transition: all 0.15s; }
+    .publication-card:hover { box-shadow: 4px 4px 0 var(--ink); }
+    .publication-title { font-family: var(--font-marker); font-size: 18px; margin-bottom: 12px; line-height: 1.4; }
+    .publication-title a { color: var(--ink); text-decoration: none; }
+    .publication-title a:hover { color: var(--accent); }
+    .publication-desc { font-size: 14px; color: var(--ink-light); margin-bottom: 16px; line-height: 1.6; }
+    .publication-footer { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+    .publication-date { font-family: var(--font-terminal); font-size: 13px; color: var(--ink-muted); display: flex; align-items: center; gap: 6px; }
+    .publication-link { font-family: var(--font-terminal); font-size: 13px; padding: 8px 16px; background: transparent; border: 2px solid var(--ink); color: var(--ink); text-decoration: none; display: flex; align-items: center; gap: 6px; }
+    .publication-link:hover { background: var(--ink); color: var(--paper); }
+    
+    /* Experience Section */
+    .experience-section { background: var(--ink); color: var(--paper); margin: 0; padding: 48px 24px; }
+    .experience-inner { max-width: 1200px; margin: 0 auto; }
+    .experience-section .section-title { color: var(--paper); }
+    .experience-section .section-subtitle { color: rgba(255,255,255,0.6); }
+    
+    .experience-list { display: flex; flex-direction: column; gap: 0; }
+    .experience-item { padding: 32px; background: var(--paper-cream); border: 3px solid var(--ink); border-left: 6px solid var(--accent); color: var(--ink); position: relative; }
+    .experience-item + .experience-item { margin-top: -3px; }
+    .experience-dates { font-family: var(--font-terminal); font-size: 14px; color: var(--ink-muted); position: absolute; top: 32px; right: 32px; }
+    .experience-company { font-family: var(--font-marker); font-size: 24px; color: var(--accent); margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
+    .experience-company a { color: var(--accent); text-decoration: none; }
+    .experience-role { font-family: var(--font-terminal); font-size: 14px; text-transform: uppercase; color: var(--ink-muted); margin-bottom: 12px; }
+    .experience-desc { font-size: 15px; color: var(--ink-light); max-width: 700px; line-height: 1.7; margin-bottom: 16px; }
+    .experience-tags { display: flex; gap: 8px; flex-wrap: wrap; }
+    .exp-tag { font-family: var(--font-terminal); font-size: 12px; padding: 4px 12px; background: var(--accent); color: var(--paper); }
+    
+    /* Awards Section */
+    .awards-section { background: var(--ink); color: var(--paper); margin: 0; padding: 48px 24px; }
+    .awards-inner { max-width: 1200px; margin: 0 auto; }
+    .awards-section .section-title { color: var(--paper); }
+    
+    .awards-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }
+    .award-card { background: var(--paper-cream); border: 3px solid var(--ink); padding: 24px; color: var(--ink); position: relative; }
+    .award-card::before { content: ''; position: absolute; top: -8px; right: 20px; width: 16px; height: 16px; background: var(--accent); transform: rotate(45deg); }
+    .award-card::after { content: ''; position: absolute; top: -8px; left: 20px; width: 16px; height: 16px; background: var(--accent); transform: rotate(45deg); }
+    .award-icon { width: 48px; height: 48px; background: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 24px; color: var(--paper); margin-bottom: 16px; }
+    .award-title { font-family: var(--font-marker); font-size: 20px; margin-bottom: 8px; }
+    .award-year { font-family: var(--font-terminal); font-size: 14px; color: var(--accent); margin-bottom: 12px; }
+    .award-desc { font-size: 14px; color: var(--ink-light); line-height: 1.6; }
+    
+    /* Interactives Section */
+    .interactives-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+    .interactive-card { background: var(--paper-cream); border: 3px solid var(--ink); overflow: hidden; transition: all 0.2s; }
+    .interactive-card:hover { transform: translateY(-4px); box-shadow: 6px 6px 0 var(--ink); }
+    .interactive-cover { height: 180px; display: flex; align-items: center; justify-content: center; font-size: 64px; color: rgba(255,255,255,0.3); }
+    .interactive-content { padding: 20px; }
+    .interactive-badge { font-family: var(--font-terminal); font-size: 11px; padding: 4px 10px; background: var(--teal); color: var(--paper); display: inline-flex; align-items: center; gap: 4px; margin-bottom: 12px; }
+    .interactive-title { font-family: var(--font-marker); font-size: 20px; margin-bottom: 8px; }
+    .interactive-desc { font-size: 13px; color: var(--ink-light); margin-bottom: 16px; line-height: 1.6; }
+    .interactive-links { display: flex; gap: 12px; flex-wrap: wrap; }
+    .interactive-link { font-family: var(--font-terminal); font-size: 13px; color: var(--accent); text-decoration: none; display: flex; align-items: center; gap: 6px; }
+    .interactive-link:hover { text-decoration: underline; }
+    
+    @media (max-width: 1000px) {
+      .profile-main { flex-direction: column; align-items: center; text-align: center; margin-top: -80px; }
+      .profile-info { padding-top: 20px; }
+      .profile-badges, .profile-meta, .profile-socials { justify-content: center; }
+      .profile-actions { padding-top: 20px; justify-content: center; }
+      .projects-grid { grid-template-columns: repeat(2, 1fr); }
+      .video-layout { grid-template-columns: 1fr; }
+      .publications-grid { grid-template-columns: 1fr; }
+      .awards-grid { grid-template-columns: 1fr; }
+      .interactives-grid { grid-template-columns: repeat(2, 1fr); }
+      .experience-dates { position: static; margin-bottom: 8px; }
+    }
+    @media (max-width: 600px) {
+      .projects-grid, .interactives-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav"><div class="nav-inner"><a href="#" class="nav-logo"><i class="fa-solid fa-bolt"></i> hack<span class="dot">.</span>build</a></div></nav>
+
+  <main class="main">
+    <header class="profile-header">
+      <div class="profile-banner"></div>
+      <div class="profile-main">
+        <div class="profile-avatar">MZ<span class="verified-badge-lg"><i class="fa-solid fa-check"></i></span></div>
+        <div class="profile-info">
+          <div class="profile-badges">
+            <span class="profile-badge official"><i class="fa-solid fa-bolt"></i> VERIFIED MAKER</span>
+            <span class="profile-badge pro"><i class="fa-solid fa-crown"></i> PRO</span>
+          </div>
+          <h1 class="profile-name">Moheeb Zara</h1>
+          <p class="profile-handle">@virgilvox</p>
+          <p class="profile-headline">Hardware Hacker · New Media Artist · Developer Relations Consultant</p>
+          <p class="profile-bio">10+ years of dev rel, hardware hacking, and building things that shouldn't exist. Partner at devEco Consulting. Creator of LumenCanvas.</p>
+          <div class="profile-meta">
+            <span><i class="fa-solid fa-location-dot"></i> Mesa, AZ</span>
+            <span><i class="fa-solid fa-link"></i> <a href="#">deveco.io</a></span>
+            <span><i class="fa-solid fa-calendar"></i> Joined March 2023</span>
+          </div>
+          <div class="profile-socials">
+            <a href="#" class="social-link"><i class="fa-brands fa-github"></i></a>
+            <a href="#" class="social-link"><i class="fa-brands fa-twitter"></i></a>
+            <a href="#" class="social-link"><i class="fa-brands fa-youtube"></i></a>
+            <a href="#" class="social-link"><i class="fa-brands fa-linkedin"></i></a>
+            <a href="#" class="social-link"><i class="fa-brands fa-discord"></i></a>
+          </div>
+        </div>
+        <div class="profile-actions">
+          <button class="btn primary"><i class="fa-solid fa-user-plus"></i> Follow</button>
+          <button class="btn"><i class="fa-solid fa-envelope"></i> Message</button>
+        </div>
+      </div>
+    </header>
+    
+    <nav class="profile-nav">
+      <div class="profile-nav-inner">
+        <button class="profile-nav-item active"><i class="fa-solid fa-cube"></i> Projects <span class="nav-count">41</span></button>
+        <button class="profile-nav-item"><i class="fa-solid fa-play"></i> Videos <span class="nav-count">24</span></button>
+        <button class="profile-nav-item"><i class="fa-solid fa-newspaper"></i> Publications <span class="nav-count">18</span></button>
+        <button class="profile-nav-item"><i class="fa-solid fa-gamepad"></i> Interactives <span class="nav-count">3</span></button>
+        <button class="profile-nav-item"><i class="fa-solid fa-user"></i> About</button>
+      </div>
+    </nav>
+    
+    <!-- Projects Section -->
+    <section class="content-section">
+      <div class="section-header"><div><h2 class="section-title"><i class="fa-solid fa-cube"></i> Projects</h2><p class="section-subtitle">Hardware builds, tutorials, and open-source tools</p></div></div>
+      <div class="filter-tabs">
+        <button class="filter-tab active">All</button>
+        <button class="filter-tab"><i class="fa-solid fa-bolt"></i> Official</button>
+        <button class="filter-tab"><i class="fa-solid fa-star"></i> Featured</button>
+        <button class="filter-tab">ESP32</button>
+        <button class="filter-tab">Robotics</button>
+      </div>
+      <div class="projects-grid">
+        <article class="project-card"><div class="image"><div class="image-placeholder"><i class="fa-solid fa-robot"></i></div><div class="badges"><span class="badge official"><i class="fa-solid fa-bolt"></i> OFFICIAL</span></div></div><div class="content"><h3 class="title"><a href="#">Kiwi Jr: Open-Source Omni-Wheel Robot</a></h3><p class="desc">3D-printable omni-wheels, laser-cut chassis, and full ESP32 control.</p><div class="stats"><span><i class="fa-solid fa-heart"></i> 342</span><span><i class="fa-solid fa-eye"></i> 2.1k</span></div></div></article>
+        <article class="project-card"><div class="image"><div class="image-placeholder"><i class="fa-solid fa-display"></i></div><div class="badges"><span class="badge official"><i class="fa-solid fa-bolt"></i> OFFICIAL</span></div></div><div class="content"><h3 class="title"><a href="#">ESP32 LED Marquee using MQTT</a></h3><p class="desc">Build a scrolling text display using MQTT and neopixels.</p><div class="stats"><span><i class="fa-solid fa-heart"></i> 189</span><span><i class="fa-solid fa-eye"></i> 1.4k</span></div></div></article>
+        <article class="project-card"><div class="image"><div class="image-placeholder"><i class="fa-solid fa-tower-cell"></i></div></div><div class="content"><h3 class="title"><a href="#">Cellular Wardriving with Arduino MKR</a></h3><p class="desc">Using the MKR 1400 GSM for cellular tower mapping.</p><div class="stats"><span><i class="fa-solid fa-heart"></i> 156</span><span><i class="fa-solid fa-eye"></i> 980</span></div></div></article>
+      </div>
+    </section>
+    
+    <!-- Videos Section -->
+    <section class="videos-section">
+      <div class="videos-inner">
+        <div class="section-header"><div><h2 class="section-title"><i class="fa-solid fa-play"></i> Videos</h2><p class="section-subtitle">Talks, tutorials, and random things I've recorded</p></div></div>
+        <div class="filter-tabs">
+          <button class="filter-tab">EMQX & MQTT</button>
+          <button class="filter-tab active">Hardware & IoT</button>
+          <button class="filter-tab">HeatSync Labs</button>
+          <button class="filter-tab">Talks & Speaking</button>
+          <button class="filter-tab">Octoblu Platform</button>
+          <button class="filter-tab">AWS & Serverless</button>
+          <button class="filter-tab">SignalWire</button>
+          <button class="filter-tab">Interviews</button>
+        </div>
+        <div class="video-layout">
+          <div class="video-player"><i class="fa-solid fa-play"></i><span>Select a video to play</span></div>
+          <div class="video-playlist">
+            <div class="playlist-header"><div class="playlist-title">Hardware + IoT</div></div>
+            <a href="#" class="playlist-item"><span class="playlist-num">01</span><div class="playlist-info"><div class="title">Kiwi Jr - Open-Source OmniBot Platform</div><div class="duration">12:34</div></div></a>
+            <a href="#" class="playlist-item"><span class="playlist-num">02</span><div class="playlist-info"><div class="title">BluSpike - Build a Solar Powered BLE Sensor Array</div><div class="duration">18:22</div></div></a>
+            <a href="#" class="playlist-item"><span class="playlist-num">03</span><div class="playlist-info"><div class="title">Intel Curie BLE NodeJS</div><div class="duration">8:45</div></div></a>
+            <a href="#" class="playlist-item active"><span class="playlist-num">04</span><div class="playlist-info"><div class="title">OpenSkan Full Body 3D Scanner</div><div class="duration">24:10</div></div></a>
+            <a href="#" class="playlist-item"><span class="playlist-num">05</span><div class="playlist-info"><div class="title">OpenSkan Technical Demo</div><div class="duration">15:33</div></div></a>
+            <a href="#" class="playlist-item"><span class="playlist-num">06</span><div class="playlist-info"><div class="title">Steampunk PC Case Mod</div><div class="duration">9:18</div></div></a>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    <!-- Publications Section -->
+    <section class="content-section">
+      <div class="section-header"><div><h2 class="section-title"><i class="fa-solid fa-newspaper"></i> Publications</h2><p class="section-subtitle">Technical guides, tutorials, and developer advocacy content</p></div></div>
+      <div class="filter-tabs">
+        <button class="filter-tab active">SignalWire</button>
+        <button class="filter-tab">AWS</button>
+        <button class="filter-tab">HiveMQ</button>
+        <button class="filter-tab">3D Printing Industry</button>
+        <button class="filter-tab">Octoblu/Citrix</button>
+        <button class="filter-tab">Press & Mentions</button>
+      </div>
+      <div class="publications-grid">
+        <article class="publication-card"><h3 class="publication-title"><a href="#">Build a Call Notification Service in 5 minutes with NodeJS</a></h3><p class="publication-desc">Build an appointment reminder system using SignalWire RELAY API with text-to-speech calls and dial-pad confirmations.</p><div class="publication-footer"><span class="publication-date"><i class="fa-solid fa-calendar"></i> Jun 14, 2022</span><a href="#" class="publication-link">Read <i class="fa-solid fa-arrow-up-right-from-square"></i></a></div></article>
+        <article class="publication-card"><h3 class="publication-title"><a href="#">Starting Your SignalWire Journey</a></h3><p class="publication-desc">Introduction to SignalWire's voice, video, messaging and chat APIs with guides for building IVR, translation, and conferencing.</p><div class="publication-footer"><span class="publication-date"><i class="fa-solid fa-calendar"></i> Jun 27, 2022</span><a href="#" class="publication-link">Read <i class="fa-solid fa-arrow-up-right-from-square"></i></a></div></article>
+        <article class="publication-card"><h3 class="publication-title"><a href="#">Build a Full-Featured Interactive Voice Response App</a></h3><p class="publication-desc">Create IVR applications using the Realtime SDK with audio prompts, user input, and call routing.</p><div class="publication-footer"><span class="publication-date"><i class="fa-solid fa-calendar"></i> Aug 17, 2022</span><a href="#" class="publication-link">Read <i class="fa-solid fa-arrow-up-right-from-square"></i></a></div></article>
+        <article class="publication-card"><h3 class="publication-title"><a href="#">Call a Raspberry Pi Using SignalWire RELAY</a></h3><p class="publication-desc">Tutorial on calling a Wi-Fi-connected Raspberry Pi and playing messages through a speaker.</p><div class="publication-footer"><span class="publication-date"><i class="fa-solid fa-calendar"></i> Jul 18, 2022</span><a href="#" class="publication-link">Read <i class="fa-solid fa-arrow-up-right-from-square"></i></a></div></article>
+      </div>
+    </section>
+    
+    <!-- Experience Section -->
+    <section class="experience-section">
+      <div class="experience-inner">
+        <div class="section-header"><div><h2 class="section-title"><i class="fa-solid fa-briefcase"></i> Experience</h2><p class="section-subtitle">10+ years of dev rel, hardware hacking, and building things that shouldn't exist</p></div></div>
+        <div class="experience-list">
+          <div class="experience-item">
+            <span class="experience-dates">June 2025 - Present</span>
+            <h3 class="experience-company"><a href="#">devEco Consulting <i class="fa-solid fa-arrow-up-right-from-square"></i></a></h3>
+            <p class="experience-role">Partner</p>
+            <p class="experience-desc">Partner in devrel consultancy working on delivering developer focused hardware and software content across mediums.</p>
+            <div class="experience-tags"><span class="exp-tag">Developer Relations</span><span class="exp-tag">Content Creation</span><span class="exp-tag">Hardware</span></div>
+          </div>
+          <div class="experience-item">
+            <span class="experience-dates">May 2025 - Present</span>
+            <h3 class="experience-company">LumenCanvas</h3>
+            <p class="experience-role">Founder/Creator</p>
+            <p class="experience-desc">Creator of LumenCanvas.Studio - browser native projection mapping platform built for everyone. Transform any environment with creative coding tools.</p>
+            <div class="experience-tags"><span class="exp-tag">Vue.js</span><span class="exp-tag">Projection Mapping</span><span class="exp-tag">Creative Tools</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    <!-- Awards Section -->
+    <section class="awards-section">
+      <div class="awards-inner">
+        <div class="section-header"><div><h2 class="section-title"><i class="fa-solid fa-trophy"></i> Awards & Achievements</h2></div></div>
+        <div class="awards-grid">
+          <div class="award-card"><div class="award-icon"><i class="fa-solid fa-trophy"></i></div><h3 class="award-title">Top Intel Software Innovator</h3><p class="award-year">2015</p><p class="award-desc">Recognized by Intel for innovative software development and contributions to the developer community.</p></div>
+          <div class="award-card"><div class="award-icon"><i class="fa-solid fa-medal"></i></div><h3 class="award-title">China vs US Young Maker Competition</h3><p class="award-year">2017 · Beijing, China</p><p class="award-desc">Finalist - Selected as 1 of 10 teams in the US to travel to Beijing and compete against 60 Chinese teams in international maker competition.</p></div>
+        </div>
+      </div>
+    </section>
+    
+    <!-- Interactives Section -->
+    <section class="content-section">
+      <div class="section-header"><div><h2 class="section-title"><i class="fa-solid fa-gamepad"></i> Zines & Interactive</h2><p class="section-subtitle">Games, simulations, and interactive explainers</p></div></div>
+      <div class="interactives-grid">
+        <article class="interactive-card"><div class="interactive-cover" style="background: var(--accent);"><i class="fa-solid fa-book"></i></div><div class="interactive-content"><span class="interactive-badge"><i class="fa-solid fa-gamepad"></i> ZINE + INTERACTIVE</span><h3 class="interactive-title">The Hackerspace Game</h3><p class="interactive-desc">A DIY exploration of how communities work and why they break. Do-ocracy, trust dynamics, missing stairs, burnout.</p><div class="interactive-links"><a href="#" class="interactive-link"><i class="fa-solid fa-book-open"></i> Read Zine</a><a href="#" class="interactive-link"><i class="fa-solid fa-play"></i> Play Online</a></div></div></article>
+        <article class="interactive-card"><div class="interactive-cover" style="background: var(--teal);"><i class="fa-solid fa-users"></i></div><div class="interactive-content"><span class="interactive-badge"><i class="fa-solid fa-gamepad"></i> INTERACTIVE</span><h3 class="interactive-title">The DevRel Game</h3><p class="interactive-desc">Interactive explainer about developer relations. Learn the challenges, strategies, and realities of DevRel work.</p><div class="interactive-links"><a href="#" class="interactive-link"><i class="fa-solid fa-play"></i> Play Online</a></div></div></article>
+        <article class="interactive-card"><div class="interactive-cover" style="background: var(--ink);"><i class="fa-solid fa-globe"></i></div><div class="interactive-content"><span class="interactive-badge"><i class="fa-solid fa-gamepad"></i> INTERACTIVE</span><h3 class="interactive-title">The Hackerspace Atlas</h3><p class="interactive-desc">An interactive map of hackerspaces around the world. Find active spaces, discover closed ones, and explore the global maker network.</p><div class="interactive-links"><a href="#" class="interactive-link"><i class="fa-solid fa-map"></i> Explore Atlas</a></div></div></article>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

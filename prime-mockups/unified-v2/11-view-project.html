@@ -1,0 +1,1755 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Real-time Object Detection on ESP32-S3 — Snaplify</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #fafaf9;
+  --surface: #ffffff;
+  --surface2: #f4f4f2;
+  --surface3: #eaeae7;
+  --border: #1a1a1a;
+  --border2: #d4d4d0;
+  --text: #1a1a1a;
+  --text-dim: #6b6b66;
+  --text-faint: #a3a39e;
+  --accent: #5b9cf6;
+  --accent-bg: rgba(91,156,246,0.08);
+  --accent-border: rgba(91,156,246,0.25);
+  --green: #22c55e;
+  --green-bg: rgba(34,197,94,0.08);
+  --green-border: rgba(34,197,94,0.25);
+  --yellow: #f59e0b;
+  --yellow-bg: rgba(245,158,11,0.08);
+  --yellow-border: rgba(245,158,11,0.25);
+  --red: #ef4444;
+  --red-bg: rgba(239,68,68,0.08);
+  --red-border: rgba(239,68,68,0.25);
+  --purple: #8b5cf6;
+  --purple-bg: rgba(139,92,246,0.08);
+  --purple-border: rgba(139,92,246,0.25);
+  --teal: #14b8a6;
+  --teal-bg: rgba(20,184,166,0.08);
+  --teal-border: rgba(20,184,166,0.25);
+  --pink: #ec4899;
+  --radius: 0px;
+  --radius-lg: 0px;
+  --shadow: 4px 4px 0 #1a1a1a;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-x: hidden;
+}
+
+/* ── TOP BAR ── */
+.topbar {
+  background: var(--surface);
+  border-bottom: 2px solid var(--border);
+  height: 48px;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  gap: 0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.topbar-brand {
+  font-size: 13px;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--text);
+  letter-spacing: -.02em;
+  margin-right: 28px;
+  flex-shrink: 0;
+}
+.topbar-brand span { color: var(--accent); }
+.topbar-nav {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: 1;
+}
+.nav-link {
+  font-size: 12px;
+  color: var(--text-dim);
+  padding: 5px 10px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  border: 1px solid transparent;
+  background: none;
+  text-decoration: none;
+  transition: color .12s;
+}
+.nav-link:hover { color: var(--text); }
+.nav-link.active {
+  color: var(--text);
+  background: var(--surface2);
+  border-color: var(--border);
+}
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+.btn {
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 12px;
+  padding: 6px 14px;
+  border-radius: var(--radius);
+  border: 2px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+  line-height: 1;
+  white-space: nowrap;
+}
+.btn:hover { background: var(--surface2); }
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--border);
+  color: #fff;
+  box-shadow: var(--shadow);
+}
+.btn-primary:hover { background: #4a8de8; }
+.btn-green { background: var(--green-bg); border-color: var(--border); color: var(--green); }
+.btn-green:hover { background: rgba(34,197,94,.14); }
+.btn-sm { padding: 4px 10px; font-size: 11px; }
+.av {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--surface3);
+  border: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-dim);
+  flex-shrink: 0;
+  font-family: 'JetBrains Mono', monospace;
+}
+.av-sm { width: 22px; height: 22px; font-size: 8px; }
+.av-lg { width: 36px; height: 36px; font-size: 12px; }
+.av-xl { width: 48px; height: 48px; font-size: 14px; }
+
+/* ── HERO COVER ── */
+.hero-cover {
+  position: relative;
+  height: 280px;
+  background: var(--surface2);
+  overflow: hidden;
+  flex-shrink: 0;
+  border-bottom: 2px solid var(--border);
+}
+.hero-cover-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(91,156,246,.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(91,156,246,.1) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+.hero-cover-glow {
+  display: none;
+}
+.hero-cover-glow2 {
+  display: none;
+}
+.cover-label {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 60px 40px 20px;
+  background: none;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+.hero-circuit {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: .22;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--teal);
+  letter-spacing: .05em;
+  flex-direction: column;
+  gap: 6px;
+}
+.hero-circuit .chip {
+  border: 2px solid currentColor;
+  padding: 8px 16px;
+  border-radius: 0;
+  font-size: 10px;
+}
+.hero-badges {
+  position: absolute;
+  top: 16px;
+  left: 20px;
+  display: flex;
+  gap: 6px;
+}
+.badge {
+  font-size: 9px;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 0;
+}
+.badge-featured {
+  background: var(--yellow-bg);
+  border: 2px solid var(--border);
+  color: var(--yellow);
+  box-shadow: 2px 2px 0 #1a1a1a;
+}
+.badge-outline {
+  background: var(--surface);
+  border: 2px solid var(--border);
+  color: var(--text-dim);
+  box-shadow: 2px 2px 0 #1a1a1a;
+}
+
+/* ── PAGE LAYOUT ── */
+.page-outer {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 0 32px 64px;
+}
+
+/* ── BREADCRUMB ── */
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 0 10px;
+  font-size: 11px;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--text-faint);
+}
+.breadcrumb a { color: var(--text-dim); text-decoration: none; cursor: pointer; }
+.breadcrumb a:hover { color: var(--text); }
+.breadcrumb .sep { color: var(--text-faint); font-size: 10px; }
+.breadcrumb .current { color: var(--text-dim); }
+
+/* ── PROJECT META BELOW COVER ── */
+.project-meta {
+  padding: 24px 0 0;
+}
+.project-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.25;
+  margin-bottom: 8px;
+  letter-spacing: -.02em;
+}
+.project-subtitle {
+  font-size: 14px;
+  color: var(--text-dim);
+  line-height: 1.6;
+  margin-bottom: 18px;
+}
+.author-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.author-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+.author-org {
+  font-size: 11px;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--accent);
+  background: var(--accent-bg);
+  border: 2px solid var(--border);
+  padding: 2px 7px;
+  border-radius: 0;
+}
+.meta-sep {
+  color: var(--text-faint);
+  font-size: 11px;
+}
+.meta-date {
+  font-size: 11px;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--text-faint);
+}
+.fork-count {
+  font-size: 11px;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--text-dim);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.engagement-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 0;
+  flex-wrap: wrap;
+}
+.engage-btn {
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 12px;
+  padding: 6px 13px;
+  border-radius: var(--radius);
+  border: 2px solid var(--border);
+  background: var(--surface);
+  color: var(--text-dim);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.engage-btn:hover { color: var(--text); background: var(--surface2); }
+.engage-btn .count {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text-faint);
+}
+.engage-btn.liked { color: var(--red); border-color: var(--border); background: var(--red-bg); }
+.engage-sep { width: 2px; height: 24px; background: var(--border); }
+
+/* ── CONTENT TABS ── */
+.tabs-sticky {
+  position: sticky;
+  top: 48px;
+  z-index: 50;
+  background: var(--bg);
+  border-bottom: 2px solid var(--border);
+  margin-bottom: 28px;
+}
+.tabs-inner {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 0 32px;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.tabs-inner::-webkit-scrollbar { display: none; }
+.tab {
+  font-size: 12px;
+  color: var(--text-dim);
+  padding: 10px 14px;
+  cursor: pointer;
+  border: none;
+  background: none;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  white-space: nowrap;
+  font-family: system-ui, -apple-system, sans-serif;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.tab:hover { color: var(--text); }
+.tab.active {
+  color: var(--text);
+  font-weight: 600;
+  border-bottom-color: var(--border);
+}
+.tab .tab-badge {
+  font-size: 9px;
+  font-family: 'JetBrains Mono', monospace;
+  background: var(--surface3);
+  color: var(--text-faint);
+  padding: 1px 5px;
+  border-radius: 0;
+  border: 1px solid var(--border2);
+}
+
+/* ── MAIN LAYOUT ── */
+.content-grid {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 32px;
+  align-items: start;
+}
+
+/* ── PROSE CONTENT ── */
+.prose-section {
+  margin-bottom: 32px;
+}
+.section-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 12px;
+  letter-spacing: -.01em;
+}
+.prose-p {
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--text-dim);
+  margin-bottom: 12px;
+}
+.prose-p:last-child { margin-bottom: 0; }
+
+/* ── STEP HEADER ── */
+.step-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.step-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--accent-bg);
+  border: 2px solid var(--border);
+  font-size: 11px;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+.step-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -.01em;
+}
+
+/* ── PARTS TABLE ── */
+.parts-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+.parts-table th {
+  text-align: left;
+  font-size: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  padding: 10px 12px;
+  border-bottom: 2px solid var(--border);
+  background: var(--surface2);
+}
+.parts-table td {
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-dim);
+  vertical-align: middle;
+}
+.parts-table tr:last-child td { border-bottom: none; }
+.parts-table tr:hover td { background: var(--surface2); }
+.parts-table td:first-child { color: var(--text); font-weight: 500; }
+.parts-table td.qty {
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--accent);
+  font-weight: 700;
+  text-align: center;
+}
+.parts-table td.price {
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--green);
+}
+.table-wrap {
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 8px;
+  box-shadow: var(--shadow);
+}
+
+/* ── CODE BLOCK ── */
+.code-block {
+  background: #1a1a1a;
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin: 14px 0;
+  box-shadow: var(--shadow);
+}
+.code-hdr {
+  background: #222220;
+  border-bottom: 2px solid #333;
+  padding: 8px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.code-lang {
+  font-size: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  color: #888;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.code-fname {
+  font-size: 11px;
+  font-family: 'JetBrains Mono', monospace;
+  color: #aaa;
+}
+.code-copy {
+  margin-left: auto;
+  font-size: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  color: #666;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 0;
+  border: 1px solid transparent;
+  background: none;
+}
+.code-copy:hover { border-color: #555; color: #aaa; }
+.code-body {
+  padding: 16px 18px;
+  font-size: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  line-height: 1.7;
+  color: #ccc;
+  overflow-x: auto;
+  white-space: pre;
+}
+.kw { color: var(--accent); }
+.str { color: #4ade80; }
+.cmt { color: #666; font-style: italic; }
+.fn { color: #fbbf24; }
+.num { color: #a78bfa; }
+.op { color: #2dd4bf; }
+.term-prompt { color: #4ade80; user-select: none; }
+.term-cmd { color: #e8e8e4; }
+.term-out { color: #666; }
+
+/* ── IMAGE PLACEHOLDER ── */
+.img-placeholder {
+  background: var(--surface2);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  margin: 18px 0 8px;
+}
+.img-placeholder::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(var(--border2) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border2) 1px, transparent 1px);
+  background-size: 28px 28px;
+  opacity: .4;
+}
+.img-placeholder-inner {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  color: var(--text-faint);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+}
+.img-placeholder-inner i { font-size: 22px; margin-bottom: 6px; display: block; }
+.img-caption {
+  font-size: 11px;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--text-faint);
+  text-align: center;
+  padding: 6px 0 2px;
+  letter-spacing: .02em;
+}
+
+/* ── CALLOUT ── */
+.callout {
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  font-size: 12.5px;
+  line-height: 1.65;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin: 16px 0;
+  border: none;
+}
+.callout-tip {
+  background: var(--accent-bg);
+  border-left: 4px solid var(--accent);
+  color: var(--text-dim);
+}
+.callout-warn {
+  background: var(--yellow-bg);
+  border-left: 4px solid var(--yellow);
+  color: var(--text-dim);
+}
+.callout-danger {
+  background: var(--red-bg);
+  border-left: 4px solid var(--red);
+  color: var(--text-dim);
+}
+.callout-icon {
+  font-size: 14px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.callout-tip .callout-icon { color: var(--accent); }
+.callout-warn .callout-icon { color: var(--yellow); }
+.callout-danger .callout-icon { color: var(--red); }
+.callout strong { color: var(--text); }
+
+/* ── DOWNLOAD SECTION ── */
+.download-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.download-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-bottom: none;
+}
+.download-item:last-child { border-bottom: 2px solid var(--border); }
+.download-item:hover { background: var(--surface2); }
+.download-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius);
+  background: var(--surface2);
+  border: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: var(--text-faint);
+  flex-shrink: 0;
+}
+.download-info { flex: 1; }
+.download-name { font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+.download-meta { font-size: 10px; font-family: 'JetBrains Mono', monospace; color: var(--text-faint); }
+
+/* ── SIDEBAR ── */
+.sidebar {}
+
+.sb-card {
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px;
+  margin-bottom: 12px;
+  box-shadow: var(--shadow);
+}
+.sb-title {
+  font-size: 10px;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 14px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--border);
+}
+
+/* Stats grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 0;
+}
+.stat-cell {
+  background: var(--surface2);
+  padding: 14px;
+  text-align: center;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.stat-cell:nth-child(2n) { border-right: none; }
+.stat-cell:nth-child(n+3) { border-bottom: none; }
+.stat-val {
+  font-size: 18px;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--text);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.stat-label {
+  font-size: 9px;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: .1em;
+}
+
+/* Difficulty */
+.diff-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-bottom: 10px;
+}
+.diff-dots {
+  display: flex;
+  gap: 4px;
+}
+.diff-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--border2);
+}
+.diff-dot.on { background: var(--yellow); }
+
+/* Meta rows */
+.meta-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border2);
+  font-size: 12px;
+}
+.meta-row:last-child { border-bottom: none; }
+.meta-row-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius);
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: var(--text-faint);
+  flex-shrink: 0;
+}
+.meta-row-label { font-size: 10px; font-family: 'JetBrains Mono', monospace; color: var(--text-faint); margin-bottom: 2px; }
+.meta-row-val { font-size: 12px; color: var(--text); font-weight: 500; }
+
+/* Tags */
+.tag-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.tag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  padding: 4px 10px;
+  border-radius: 0;
+  border: 2px solid var(--border);
+  color: var(--text-dim);
+  background: var(--surface);
+  cursor: pointer;
+}
+.tag:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
+
+/* BOM summary */
+.bom-summary-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--border2);
+  font-size: 12px;
+}
+.bom-summary-row:last-child { border-bottom: none; }
+.bom-summary-row .label { color: var(--text-dim); }
+.bom-summary-row .val { font-family: 'JetBrains Mono', monospace; color: var(--text); font-weight: 600; }
+.bom-summary-row .val.green { color: var(--green); }
+.bom-link-row {
+  padding-top: 10px;
+  text-align: center;
+}
+.link-text {
+  font-size: 11px;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--accent);
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.link-text:hover { color: #4a8de8; }
+
+/* Related projects */
+.related-card {
+  display: flex;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border2);
+  cursor: pointer;
+}
+.related-card:last-child { border-bottom: none; }
+.related-thumb {
+  width: 48px;
+  height: 36px;
+  background: var(--surface2);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+}
+.related-thumb::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(var(--border2) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border2) 1px, transparent 1px);
+  background-size: 10px 10px;
+}
+.related-info { flex: 1; }
+.related-title { font-size: 11px; font-weight: 600; color: var(--text); margin-bottom: 3px; line-height: 1.3; }
+.related-meta { font-size: 10px; font-family: 'JetBrains Mono', monospace; color: var(--text-faint); display: flex; gap: 8px; }
+
+/* Hub card */
+.hub-card-inner {
+  text-align: center;
+  padding: 4px 0;
+}
+.hub-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius);
+  background: var(--purple-bg);
+  border: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: var(--purple);
+  margin: 0 auto 10px;
+}
+.hub-name { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+.hub-desc { font-size: 11px; color: var(--text-faint); margin-bottom: 12px; line-height: 1.5; }
+.hub-stats { display: flex; align-items: center; justify-content: center; gap: 16px; margin-bottom: 14px; }
+.hub-stat { font-size: 11px; font-family: 'JetBrains Mono', monospace; color: var(--text-dim); text-align: center; }
+.hub-stat .n { font-size: 14px; font-weight: 700; color: var(--text); display: block; }
+
+/* ── COMMENTS ── */
+.comments-section {
+  margin-top: 40px;
+  padding-top: 28px;
+  border-top: 2px solid var(--border);
+}
+.comments-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.comments-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}
+.comments-count {
+  font-size: 11px;
+  font-family: 'JetBrains Mono', monospace;
+  background: var(--surface3);
+  color: var(--text-faint);
+  padding: 2px 7px;
+  border-radius: 0;
+  border: 1px solid var(--border2);
+}
+.comment-compose {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 28px;
+  align-items: flex-start;
+}
+.comment-textarea {
+  flex: 1;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 13px;
+  color: var(--text);
+  resize: none;
+  height: 80px;
+  line-height: 1.5;
+  outline: none;
+}
+.comment-textarea::placeholder { color: var(--text-faint); }
+.comment-textarea:focus { border-color: var(--accent); }
+.comment-actions { display: flex; justify-content: flex-end; margin-top: 8px; }
+
+/* Comment threads */
+.comment {
+  display: flex;
+  gap: 12px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border2);
+}
+.comment:last-child { border-bottom: none; }
+.comment-body { flex: 1; }
+.comment-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+.comment-author { font-size: 12px; font-weight: 600; color: var(--text); }
+.comment-org {
+  font-size: 9px;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--accent);
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  padding: 1px 5px;
+  border-radius: 0;
+}
+.comment-time { font-size: 10px; font-family: 'JetBrains Mono', monospace; color: var(--text-faint); margin-left: auto; }
+.comment-text { font-size: 13px; color: var(--text-dim); line-height: 1.7; margin-bottom: 8px; }
+.comment-react {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.react-btn {
+  font-size: 11px;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--text-faint);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  padding: 0;
+}
+.react-btn:hover { color: var(--text-dim); }
+.react-btn.liked { color: var(--red); }
+
+/* Nested reply */
+.comment-reply {
+  margin-left: 40px;
+  padding-top: 14px;
+}
+.comment-reply .comment {
+  border-bottom: none;
+  padding: 12px 0;
+  border-top: 1px solid var(--border2);
+}
+
+/* ── UTILS ── */
+.divider { border: none; border-top: 2px solid var(--border); margin: 24px 0; }
+.text-faint { color: var(--text-faint); }
+.text-dim { color: var(--text-dim); }
+.mono { font-family: 'JetBrains Mono', monospace; }
+.gap-6 { gap: 6px; }
+a { text-decoration: none; }
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 0; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════ TOP BAR ═══════════════════════════════ -->
+<nav class="topbar">
+  <div class="topbar-brand">snap<span>lify</span></div>
+  <div class="topbar-nav">
+    <a class="nav-link" href="#">Explore</a>
+    <a class="nav-link active" href="#">Projects</a>
+    <a class="nav-link" href="#">Tutorials</a>
+    <a class="nav-link" href="#">Hubs</a>
+    <a class="nav-link" href="#">Contests</a>
+  </div>
+  <div class="topbar-right">
+    <button class="btn btn-sm"><i class="fa-solid fa-magnifying-glass"></i></button>
+    <button class="btn btn-sm"><i class="fa-regular fa-bell"></i></button>
+    <div class="av" style="background:var(--accent-bg);color:var(--accent);">MK</div>
+    <button class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> New Project</button>
+  </div>
+</nav>
+
+<!-- ═══════════════════════════════ HERO COVER ═══════════════════════════════ -->
+<div class="hero-cover">
+  <div class="hero-cover-grid"></div>
+  <div class="hero-cover-glow"></div>
+  <div class="hero-cover-glow2"></div>
+
+  <!-- Circuit decoration -->
+  <div class="hero-circuit">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div class="chip">ESP32-S3 WROOM</div>
+      <div style="width:40px;height:2px;background:currentColor;opacity:.5;"></div>
+      <div class="chip">OV2640 CAMERA</div>
+      <div style="width:40px;height:2px;background:currentColor;opacity:.5;"></div>
+      <div class="chip">TF LITE MODEL</div>
+    </div>
+    <div style="font-size:9px;letter-spacing:.2em;margin-top:4px;">REAL-TIME INFERENCE @ 10 FPS</div>
+  </div>
+
+  <!-- Badges -->
+  <div class="hero-badges">
+    <span class="badge badge-featured"><i class="fa-solid fa-star" style="font-size:8px;"></i> Featured</span>
+    <span class="badge badge-outline">Intermediate</span>
+  </div>
+
+  <!-- Cover label area (empty — info goes below) -->
+  <div class="cover-label"></div>
+</div>
+
+<!-- ═══════════════════════════════ PAGE CONTENT ═══════════════════════════════ -->
+<div class="page-outer">
+
+  <!-- BREADCRUMB -->
+  <div class="breadcrumb">
+    <a href="#">Explore</a>
+    <span class="sep"><i class="fa-solid fa-chevron-right" style="font-size:8px;"></i></span>
+    <a href="#">Projects</a>
+    <span class="sep"><i class="fa-solid fa-chevron-right" style="font-size:8px;"></i></span>
+    <a href="#">Hardware / Embedded</a>
+    <span class="sep"><i class="fa-solid fa-chevron-right" style="font-size:8px;"></i></span>
+    <span class="current">Real-time Object Detection on ESP32-S3</span>
+  </div>
+
+  <!-- PROJECT META -->
+  <div class="project-meta">
+    <div class="project-title">Real-time Object Detection on ESP32-S3</div>
+    <div class="project-subtitle">Deploy a custom TensorFlow Lite model for real-time object detection using the ESP32-S3's PSRAM and camera interface — no cloud required.</div>
+
+    <!-- Author row -->
+    <div class="author-row">
+      <div class="av av-lg" style="background:var(--accent-bg);color:var(--accent);">JH</div>
+      <div>
+        <div class="author-name">Jakob Huber</div>
+        <div style="display:flex;align-items:center;gap:6px;margin-top:2px;">
+          <span class="author-org">OpenMV</span>
+          <span class="meta-date">Published Feb 14, 2026</span>
+        </div>
+      </div>
+      <span class="meta-sep">&bull;</span>
+      <div class="fork-count">
+        <i class="fa-solid fa-code-branch" style="font-size:10px;color:var(--text-faint);"></i>
+        <span>48 forks</span>
+      </div>
+    </div>
+
+    <!-- Engagement row -->
+    <div class="engagement-row">
+      <button class="engage-btn liked">
+        <i class="fa-solid fa-heart" style="font-size:11px;"></i>
+        Like
+        <span class="count">312</span>
+      </button>
+      <button class="engage-btn">
+        <i class="fa-regular fa-bookmark" style="font-size:11px;"></i>
+        Bookmark
+      </button>
+      <button class="engage-btn">
+        <i class="fa-solid fa-share-nodes" style="font-size:11px;"></i>
+        Share
+      </button>
+      <div class="engage-sep"></div>
+      <button class="engage-btn">
+        <i class="fa-solid fa-code-branch" style="font-size:11px;"></i>
+        Fork
+        <span class="count">48</span>
+      </button>
+      <button class="engage-btn btn-green" style="border-color:var(--border);color:var(--green);background:var(--green-bg);">
+        <i class="fa-solid fa-hammer" style="font-size:11px;"></i>
+        I Built This
+        <span class="count" style="color:rgba(34,197,94,.5);">127</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════ STICKY TABS ═══════════════════════════════ -->
+<div class="tabs-sticky">
+  <div class="tabs-inner">
+    <button class="tab active">Overview</button>
+    <button class="tab">Code <span class="tab-badge">12</span></button>
+    <button class="tab">Schematics <span class="tab-badge">3</span></button>
+    <button class="tab">BOM <span class="tab-badge">14</span></button>
+    <button class="tab">Files <span class="tab-badge">8</span></button>
+    <button class="tab">Comments <span class="tab-badge">24</span></button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════ MAIN CONTENT ═══════════════════════════════ -->
+<div class="page-outer">
+  <div class="content-grid">
+
+    <!-- ─── LEFT: CONTENT COLUMN ─── -->
+    <div class="content-col">
+
+      <!-- INTRODUCTION -->
+      <div class="prose-section">
+        <div class="section-title">Introduction</div>
+        <p class="prose-p">The ESP32-S3 is a dual-core Xtensa LX7 microcontroller with 512KB of SRAM and support for up to 8MB of octal-PSRAM — more than enough headroom to run quantized TensorFlow Lite models at useful inference speeds. Combined with its built-in camera interface (DVP), the S3 makes an ideal candidate for edge computer vision projects where you want self-contained, battery-powered detection without relying on a cloud backend.</p>
+        <p class="prose-p">This project walks you through training a lightweight MobileNetV2-based object detection model using TensorFlow Model Maker, quantizing it to INT8, and deploying it on an ESP32-S3 DevKit board connected to an OV2640 camera module. The final system achieves approximately 10 FPS with bounding box overlay rendered on an attached SPI LCD.</p>
+        <p class="prose-p">By the end, you'll have a fully working detection pipeline that can recognize up to 10 object classes from a custom training dataset — entirely on-device, with a total BOM cost under $65.</p>
+      </div>
+
+      <hr class="divider">
+
+      <!-- WHAT YOU'LL NEED -->
+      <div class="prose-section">
+        <div class="section-title">What You'll Need</div>
+        <p class="prose-p" style="margin-bottom:14px;">Gather the following components before starting. Links to recommended suppliers are included in the full BOM tab.</p>
+
+        <div class="table-wrap">
+          <table class="parts-table">
+            <thead>
+              <tr>
+                <th>Component</th>
+                <th style="text-align:center;">Qty</th>
+                <th>Unit Price</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>ESP32-S3-DevKitC-1 (N16R8)</td>
+                <td class="qty">1</td>
+                <td class="price">$12.90</td>
+                <td class="text-dim">16MB flash, 8MB PSRAM</td>
+              </tr>
+              <tr>
+                <td>OV2640 Camera Module (24-pin FPC)</td>
+                <td class="qty">1</td>
+                <td class="price">$6.50</td>
+                <td class="text-dim">2MP, 1600×1200 max</td>
+              </tr>
+              <tr>
+                <td>ST7789 1.9" SPI LCD (240×320)</td>
+                <td class="qty">1</td>
+                <td class="price">$8.40</td>
+                <td class="text-dim">Optional — for bounding box overlay</td>
+              </tr>
+              <tr>
+                <td>LiPo Battery 3.7V 1800mAh</td>
+                <td class="qty">1</td>
+                <td class="price">$7.20</td>
+                <td class="text-dim">JST-PH 2.0mm connector</td>
+              </tr>
+              <tr>
+                <td>TP4056 USB-C Charge Board</td>
+                <td class="qty">1</td>
+                <td class="price">$1.20</td>
+                <td class="text-dim">With protection circuit</td>
+              </tr>
+              <tr>
+                <td>Tactile Push Buttons (6×6mm)</td>
+                <td class="qty">4</td>
+                <td class="price">$0.10</td>
+                <td class="text-dim">Mode / trigger / nav</td>
+              </tr>
+              <tr>
+                <td>PCB or Breadboard + wires</td>
+                <td class="qty">1</td>
+                <td class="price">$3.50</td>
+                <td class="text-dim">Half-size breadboard works</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="prose-p text-faint mono" style="font-size:11px;">Total estimated cost: $45–$65 depending on sourcing.</p>
+      </div>
+
+      <hr class="divider">
+
+      <!-- STEP 1 -->
+      <div class="prose-section">
+        <div class="step-header">
+          <div class="step-badge">1</div>
+          <div class="step-title">Setting Up the Development Environment</div>
+        </div>
+        <p class="prose-p">We'll use the ESP-IDF v5.2 framework with the <code style="font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--surface2);padding:2px 5px;border:1px solid var(--border2);border-radius:0;color:var(--accent);">esp-tflite-micro</code> component, which provides a pre-compiled TF Lite Micro runtime optimized for Xtensa LX7. Start by installing ESP-IDF and cloning the project template.</p>
+
+        <div class="code-block">
+          <div class="code-hdr">
+            <span class="code-lang">BASH</span>
+            <span class="code-fname">terminal</span>
+            <button class="code-copy"><i class="fa-regular fa-copy"></i> copy</button>
+          </div>
+          <div class="code-body"><span class="term-prompt">$ </span><span class="term-cmd">git clone --recursive https://github.com/espressif/esp-idf.git ~/esp/esp-idf</span>
+<span class="term-prompt">$ </span><span class="term-cmd">cd ~/esp/esp-idf && git checkout v5.2.1</span>
+<span class="term-prompt">$ </span><span class="term-cmd">./install.sh esp32s3</span>
+<span class="term-out">Installing tools for ESP32-S3...
+  xtensa-esp32s3-elf: downloaded</span>
+<span class="term-prompt">$ </span><span class="term-cmd">source export.sh</span>
+<span class="term-prompt">$ </span><span class="term-cmd">git clone https://github.com/snaplify-examples/esp32s3-tflite-detect</span>
+<span class="term-prompt">$ </span><span class="term-cmd">cd esp32s3-tflite-detect && idf.py set-target esp32s3</span></div>
+        </div>
+
+        <p class="prose-p">Next, install Python dependencies for the training pipeline and model conversion step. A virtual environment is strongly recommended to avoid version conflicts with other projects.</p>
+
+        <div class="code-block">
+          <div class="code-hdr">
+            <span class="code-lang">BASH</span>
+            <span class="code-fname">requirements.txt</span>
+            <button class="code-copy"><i class="fa-regular fa-copy"></i> copy</button>
+          </div>
+          <div class="code-body"><span class="term-prompt">$ </span><span class="term-cmd">python3 -m venv .venv && source .venv/bin/activate</span>
+<span class="term-prompt">$ </span><span class="term-cmd">pip install tflite-model-maker==0.4.2 tensorflow==2.12</span>
+<span class="term-prompt">$ </span><span class="term-cmd">pip install pillow numpy opencv-python-headless</span>
+<span class="term-out">Successfully installed tflite-model-maker-0.4.2</span></div>
+        </div>
+
+        <!-- Image placeholder -->
+        <div class="img-placeholder">
+          <div class="img-placeholder-inner">
+            <i class="fa-solid fa-terminal"></i>
+            IDE setup with ESP-IDF plugin — VS Code showing project structure
+          </div>
+        </div>
+        <div class="img-caption">Fig 1. VS Code with ESP-IDF extension showing the project directory after setup.</div>
+      </div>
+
+      <hr class="divider">
+
+      <!-- STEP 2 -->
+      <div class="prose-section">
+        <div class="step-header">
+          <div class="step-badge">2</div>
+          <div class="step-title">Flashing the Firmware</div>
+        </div>
+        <p class="prose-p">With the environment configured, build the firmware and flash it to the ESP32-S3 over USB. The board uses a USB-Serial-JTAG interface built into the SoC — no external USB-UART bridge needed.</p>
+
+        <div class="code-block">
+          <div class="code-hdr">
+            <span class="code-lang">BASH</span>
+            <button class="code-copy"><i class="fa-regular fa-copy"></i> copy</button>
+          </div>
+          <div class="code-body"><span class="term-prompt">$ </span><span class="term-cmd">idf.py build</span>
+<span class="term-out">Project build complete. Binary size: 1.42 MB
+  esp32s3-tflite-detect.bin</span>
+<span class="term-prompt">$ </span><span class="term-cmd">idf.py -p /dev/tty.usbmodem* flash monitor</span>
+<span class="term-out">Chip is ESP32-S3 (revision v0.2)
+  Features: WiFi, BLE, Embedded Flash 16MB, Embedded PSRAM 8MB
+  Flashing... (100%)
+  I (432) app_main: Camera init OK — 320x240 JPEG
+  I (488) tflite: Model loaded, 892 KB, INT8 quantized
+  I (489) tflite: Starting inference loop @ 10 FPS target</span></div>
+        </div>
+
+        <div class="callout callout-tip">
+          <span class="callout-icon"><i class="fa-solid fa-lightbulb"></i></span>
+          <div><strong>Tip:</strong> If the flash command fails with <code style="font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--surface2);padding:1px 4px;border:1px solid var(--border2);border-radius:0;">Permission denied</code>, add your user to the <code style="font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--surface2);padding:1px 4px;border:1px solid var(--border2);border-radius:0;">dialout</code> group on Linux (<code style="font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--surface2);padding:1px 4px;border:1px solid var(--border2);border-radius:0;">sudo usermod -aG dialout $USER</code>) or use <code style="font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--surface2);padding:1px 4px;border:1px solid var(--border2);border-radius:0;">sudo</code> on macOS. On Windows, install the CP210x driver if the device doesn't enumerate.</div>
+        </div>
+
+        <div class="callout callout-warn">
+          <span class="callout-icon"><i class="fa-solid fa-triangle-exclamation"></i></span>
+          <div><strong>Warning:</strong> Make sure to hold the BOOT button while pressing EN/RST to enter download mode on first flash if your board doesn't automatically enter DFU. Some DevKitC-1 batches have the auto-download circuit omitted.</div>
+        </div>
+      </div>
+
+      <hr class="divider">
+
+      <!-- STEP 3 -->
+      <div class="prose-section">
+        <div class="step-header">
+          <div class="step-badge">3</div>
+          <div class="step-title">Training the Custom Model</div>
+        </div>
+        <p class="prose-p">TensorFlow Model Maker makes it straightforward to fine-tune a pre-trained MobileNetV2 feature extractor on your own dataset. Prepare your images in Pascal VOC XML format or COCO JSON — Model Maker handles both. For this project, we trained a 10-class detector on ~800 annotated images per class.</p>
+
+        <div class="code-block">
+          <div class="code-hdr">
+            <span class="code-lang">PYTHON</span>
+            <span class="code-fname">train.py</span>
+            <button class="code-copy"><i class="fa-regular fa-copy"></i> copy</button>
+          </div>
+          <div class="code-body"><span class="kw">import</span> tflite_model_maker <span class="kw">as</span> mm
+<span class="kw">from</span> tflite_model_maker <span class="kw">import</span> object_detector
+<span class="kw">from</span> tflite_model_maker.config <span class="kw">import</span> ExportFormat
+
+<span class="cmt"># Load dataset — supports COCO and Pascal VOC format</span>
+train_data = object_detector.<span class="fn">DataLoader</span>.from_pascal_voc(
+    images_dir=<span class="str">'dataset/train/images'</span>,
+    annotations_dir=<span class="str">'dataset/train/annotations'</span>,
+    label_map={<span class="num">1</span>: <span class="str">'person'</span>, <span class="num">2</span>: <span class="str">'electronics'</span>, <span class="num">3</span>: <span class="str">'tools'</span>}
+)
+val_data = object_detector.<span class="fn">DataLoader</span>.from_pascal_voc(
+    images_dir=<span class="str">'dataset/val/images'</span>,
+    annotations_dir=<span class="str">'dataset/val/annotations'</span>,
+    label_map={<span class="num">1</span>: <span class="str">'person'</span>, <span class="num">2</span>: <span class="str">'electronics'</span>, <span class="num">3</span>: <span class="str">'tools'</span>}
+)
+
+<span class="cmt"># Use EfficientDet-Lite0 — optimized for microcontrollers</span>
+spec = object_detector.<span class="fn">EfficientDetLite0Spec</span>()
+
+model = object_detector.<span class="fn">create</span>(
+    train_data,
+    model_spec=spec,
+    validation_data=val_data,
+    epochs=<span class="num">50</span>,
+    batch_size=<span class="num">8</span>,
+    train_whole_model=<span class="kw">True</span>
+)
+
+<span class="cmt"># Export quantized INT8 TFLite model</span>
+model.<span class="fn">export</span>(
+    export_dir=<span class="str">'./output'</span>,
+    tflite_filename=<span class="str">'detect_int8.tflite'</span>,
+    export_format=[ExportFormat.TFLITE],
+    quantization_config=mm.config.<span class="fn">QuantizationConfig</span>.for_int8(representative_data=train_data)
+)
+
+<span class="fn">print</span>(<span class="str">f"Model size: {os.path.getsize('output/detect_int8.tflite') / 1024:.1f} KB"</span>)</div>
+        </div>
+
+        <p class="prose-p">Training on a GPU-equipped machine (NVIDIA RTX 3060 was used here) takes roughly 40–60 minutes for 50 epochs. The resulting INT8-quantized model file is approximately 890 KB — well within the 8MB PSRAM available for model storage and inference buffers.</p>
+      </div>
+
+      <hr class="divider">
+
+      <!-- RESULTS -->
+      <div class="prose-section">
+        <div class="section-title">Results &amp; Testing</div>
+        <p class="prose-p">After flashing, point the camera at objects in your training set. The LCD overlay renders bounding boxes at approximately 10 frames per second with the inference pipeline running on core 1 while core 0 handles camera capture and display refresh.</p>
+
+        <div class="img-placeholder" style="height:180px;">
+          <div class="img-placeholder-inner">
+            <i class="fa-solid fa-camera"></i>
+            Live detection demo — bounding box overlay on LCD
+          </div>
+        </div>
+        <div class="img-caption">Fig 2. Detection output on the 1.9" ST7789 LCD. Green boxes = high confidence (>0.7), yellow = medium (0.5–0.7).</div>
+
+        <p class="prose-p" style="margin-top:16px;">Benchmark results on the final hardware:</p>
+        <div class="table-wrap" style="margin-top:8px;">
+          <table class="parts-table">
+            <thead>
+              <tr>
+                <th>Metric</th>
+                <th>Value</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Inference time</td>
+                <td class="price">98 ms</td>
+                <td class="text-dim">Per frame, INT8, 320×240 input</td>
+              </tr>
+              <tr>
+                <td>Average FPS</td>
+                <td class="price">10.2</td>
+                <td class="text-dim">End-to-end including display refresh</td>
+              </tr>
+              <tr>
+                <td>mAP@0.5</td>
+                <td class="price">71.4%</td>
+                <td class="text-dim">Validation set, 3-class model</td>
+              </tr>
+              <tr>
+                <td>Power draw (idle)</td>
+                <td class="price">120 mA</td>
+                <td class="text-dim">240 MHz, camera + LCD active</td>
+              </tr>
+              <tr>
+                <td>Battery life</td>
+                <td class="price">~11 hrs</td>
+                <td class="text-dim">1800mAh LiPo at 3.7V</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <hr class="divider">
+
+      <!-- DOWNLOADS -->
+      <div class="prose-section">
+        <div class="section-title">Downloads</div>
+        <p class="prose-p" style="margin-bottom:16px;">All project files are available for download. Fork the project to get edit access and use your own model weights.</p>
+
+        <div class="download-grid">
+          <div class="download-item">
+            <div class="download-icon" style="color:var(--accent);">
+              <i class="fa-solid fa-microchip"></i>
+            </div>
+            <div class="download-info">
+              <div class="download-name">esp32s3_detect_v1.2.bin</div>
+              <div class="download-meta">Pre-compiled firmware &bull; 1.42 MB &bull; ESP-IDF v5.2.1</div>
+            </div>
+            <button class="btn btn-sm"><i class="fa-solid fa-download"></i> Download</button>
+          </div>
+
+          <div class="download-item">
+            <div class="download-icon" style="color:var(--purple);">
+              <i class="fa-solid fa-brain"></i>
+            </div>
+            <div class="download-info">
+              <div class="download-name">detect_int8.tflite</div>
+              <div class="download-meta">TF Lite model (INT8 quantized) &bull; 892 KB &bull; 3-class</div>
+            </div>
+            <button class="btn btn-sm"><i class="fa-solid fa-download"></i> Download</button>
+          </div>
+
+          <div class="download-item">
+            <div class="download-icon" style="color:var(--yellow);">
+              <i class="fa-regular fa-file-pdf"></i>
+            </div>
+            <div class="download-info">
+              <div class="download-name">schematic_v1.1.pdf</div>
+              <div class="download-meta">Full schematic PDF &bull; 840 KB &bull; KiCad 7.0 source included</div>
+            </div>
+            <button class="btn btn-sm"><i class="fa-solid fa-download"></i> Download</button>
+          </div>
+
+          <div class="download-item">
+            <div class="download-icon" style="color:var(--green);">
+              <i class="fa-solid fa-code"></i>
+            </div>
+            <div class="download-info">
+              <div class="download-name">Source Code (ZIP)</div>
+              <div class="download-meta">Full ESP-IDF project + Python training scripts &bull; 3.1 MB</div>
+            </div>
+            <button class="btn btn-sm"><i class="fa-solid fa-download"></i> Download</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── COMMENTS SECTION ─── -->
+      <div class="comments-section">
+        <div class="comments-header">
+          <div class="comments-title">Discussion</div>
+          <span class="comments-count">24 comments</span>
+        </div>
+
+        <!-- Compose -->
+        <div class="comment-compose">
+          <div class="av av-lg" style="background:var(--accent-bg);color:var(--accent);">MK</div>
+          <div style="flex:1;">
+            <textarea class="comment-textarea" placeholder="Share your build experience, ask a question, or leave feedback…"></textarea>
+            <div class="comment-actions">
+              <button class="btn btn-primary btn-sm"><i class="fa-solid fa-paper-plane"></i> Post Comment</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Comment 1 -->
+        <div class="comment">
+          <div class="av av-lg" style="background:var(--green-bg);color:var(--green);">SR</div>
+          <div class="comment-body">
+            <div class="comment-meta">
+              <span class="comment-author">Shreya Raman</span>
+              <span class="comment-org">OpenMV</span>
+              <span class="comment-time">3 days ago</span>
+            </div>
+            <div class="comment-text">Fantastic writeup Jakob. I replicated this with an OV5640 5MP module and the inference time went up to ~140ms since we're downscaling more aggressively in the pre-processing step. Worth noting for anyone wanting higher res input — you'll need to tune the JPEG buffer size in <code style="font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--surface2);padding:1px 4px;border:1px solid var(--border2);border-radius:0;">camera_init()</code>.</div>
+            <div class="comment-react">
+              <button class="react-btn liked"><i class="fa-solid fa-heart"></i> 18</button>
+              <button class="react-btn"><i class="fa-regular fa-comment"></i> Reply</button>
+              <button class="react-btn"><i class="fa-solid fa-link"></i> Link</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Reply to comment 1 -->
+        <div class="comment-reply">
+          <div class="comment">
+            <div class="av av-sm" style="background:var(--accent-bg);color:var(--accent);width:28px;height:28px;font-size:10px;">JH</div>
+            <div class="comment-body">
+              <div class="comment-meta">
+                <span class="comment-author">Jakob Huber</span>
+                <span class="comment-org">OpenMV</span>
+                <span class="comment-time">2 days ago</span>
+              </div>
+              <div class="comment-text">Good catch Shreya — I'll add a note to the camera init section. The OV5640 also needs different XCLK frequency settings. I'll add a config flag in v1.3 to handle both modules automatically.</div>
+              <div class="comment-react">
+                <button class="react-btn"><i class="fa-solid fa-heart"></i> 7</button>
+                <button class="react-btn"><i class="fa-regular fa-comment"></i> Reply</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Comment 2 -->
+        <div class="comment">
+          <div class="av av-lg" style="background:var(--purple-bg);color:var(--purple);">PW</div>
+          <div class="comment-body">
+            <div class="comment-meta">
+              <span class="comment-author">Paulo Wiesner</span>
+              <span class="comment-time">5 days ago</span>
+            </div>
+            <div class="comment-text">Has anyone gotten this working with the WROVER-IE module instead of the DevKitC? I'm getting linker errors with the PSRAM configuration — specifically around <code style="font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--surface2);padding:1px 4px;border:1px solid var(--border2);border-radius:0;">CONFIG_ESP32S3_SPIRAM_SUPPORT</code>. Guessing it's an sdkconfig issue but not sure where to start.</div>
+            <div class="comment-react">
+              <button class="react-btn"><i class="fa-solid fa-heart"></i> 4</button>
+              <button class="react-btn"><i class="fa-regular fa-comment"></i> Reply</button>
+              <button class="react-btn"><i class="fa-solid fa-link"></i> Link</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Comment 3 -->
+        <div class="comment">
+          <div class="av av-lg" style="background:var(--teal-bg);color:var(--teal);">AK</div>
+          <div class="comment-body">
+            <div class="comment-meta">
+              <span class="comment-author">Amara Kofi</span>
+              <span class="comment-time">1 week ago</span>
+            </div>
+            <div class="comment-text">Built this for a smart inventory system at my makerspace — works brilliantly for detecting tools left on the workbench. The 71% mAP in the README is conservative; after fine-tuning on our specific objects for 80 epochs I'm getting closer to 84% on our validation set. The INT8 quantization loss is minimal compared to FP32 baseline.</div>
+            <div class="comment-react">
+              <button class="react-btn liked"><i class="fa-solid fa-heart"></i> 31</button>
+              <button class="react-btn"><i class="fa-regular fa-comment"></i> Reply</button>
+              <button class="react-btn"><i class="fa-solid fa-link"></i> Link</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Load more -->
+        <div style="text-align:center;padding:20px 0 4px;">
+          <button class="btn btn-sm"><i class="fa-solid fa-chevron-down"></i> Load 20 more comments</button>
+        </div>
+      </div>
+
+    </div><!-- /content-col -->
+
+    <!-- ─── RIGHT: SIDEBAR ─── -->
+    <div class="sidebar">
+
+      <!-- Stats card -->
+      <div class="sb-card" style="padding:0;overflow:hidden;">
+        <div style="padding:14px 18px 10px;">
+          <div class="sb-title" style="margin-bottom:10px;">Project Stats</div>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-cell">
+            <div class="stat-val">2.4k</div>
+            <div class="stat-label">Views</div>
+          </div>
+          <div class="stat-cell">
+            <div class="stat-val" style="color:var(--red);">312</div>
+            <div class="stat-label">Likes</div>
+          </div>
+          <div class="stat-cell">
+            <div class="stat-val" style="color:var(--accent);">48</div>
+            <div class="stat-label">Forks</div>
+          </div>
+          <div class="stat-cell">
+            <div class="stat-val" style="color:var(--green);">127</div>
+            <div class="stat-label">Builds</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Project details card -->
+      <div class="sb-card">
+        <div class="sb-title">Project Details</div>
+
+        <!-- Difficulty -->
+        <div style="padding:8px 0;border-bottom:2px solid var(--border);">
+          <div style="font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--text-faint);margin-bottom:8px;">DIFFICULTY</div>
+          <div class="diff-row" style="margin-bottom:0;">
+            <div style="font-size:12px;color:var(--yellow);font-weight:600;">Intermediate</div>
+            <div class="diff-dots">
+              <div class="diff-dot on"></div>
+              <div class="diff-dot on"></div>
+              <div class="diff-dot"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="meta-row">
+          <div class="meta-row-icon"><i class="fa-regular fa-clock" style="font-size:12px;"></i></div>
+          <div>
+            <div class="meta-row-label">EST. TIME</div>
+            <div class="meta-row-val">~3 hours</div>
+          </div>
+        </div>
+
+        <div class="meta-row">
+          <div class="meta-row-icon"><i class="fa-solid fa-tag" style="font-size:11px;"></i></div>
+          <div>
+            <div class="meta-row-label">COST RANGE</div>
+            <div class="meta-row-val" style="color:var(--green);">$45 – $65</div>
+          </div>
+        </div>
+
+        <div class="meta-row">
+          <div class="meta-row-icon"><i class="fa-solid fa-calendar" style="font-size:11px;"></i></div>
+          <div>
+            <div class="meta-row-label">LAST UPDATED</div>
+            <div class="meta-row-val">Mar 8, 2026</div>
+          </div>
+        </div>
+
+        <div class="meta-row">
+          <div class="meta-row-icon"><i class="fa-solid fa-code-branch" style="font-size:11px;"></i></div>
+          <div>
+            <div class="meta-row-label">LICENSE</div>
+            <div class="meta-row-val">MIT</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tags -->
+      <div class="sb-card">
+        <div class="sb-title">Tags</div>
+        <div class="tag-cloud">
+          <span class="tag">TinyML</span>
+          <span class="tag">ESP32-S3</span>
+          <span class="tag">Vision</span>
+          <span class="tag">TensorFlow Lite</span>
+          <span class="tag">Computer Vision</span>
+          <span class="tag">Edge AI</span>
+          <span class="tag">Embedded</span>
+          <span class="tag">C/C++</span>
+          <span class="tag">Python</span>
+          <span class="tag">MobileNet</span>
+        </div>
+      </div>
+
+      <!-- BOM Summary -->
+      <div class="sb-card">
+        <div class="sb-title">Bill of Materials</div>
+
+        <div class="bom-summary-row">
+          <span class="label">Components</span>
+          <span class="val">14 parts</span>
+        </div>
+        <div class="bom-summary-row">
+          <span class="label">Estimated total</span>
+          <span class="val green">$45 – $65</span>
+        </div>
+        <div class="bom-summary-row">
+          <span class="label">Sourcing</span>
+          <span class="val" style="font-size:11px;">DigiKey · LCSC · AliExpress</span>
+        </div>
+        <div class="bom-summary-row">
+          <span class="label">PCB available</span>
+          <span class="val" style="color:var(--green);">Yes (OSHPark)</span>
+        </div>
+
+        <div class="bom-link-row">
+          <a class="link-text" href="#">
+            <i class="fa-solid fa-list"></i> View Full BOM
+          </a>
+        </div>
+      </div>
+
+      <!-- Related projects -->
+      <div class="sb-card">
+        <div class="sb-title">Related Projects</div>
+
+        <div class="related-card">
+          <div class="related-thumb" style="background:var(--surface2);"></div>
+          <div class="related-info">
+            <div class="related-title">TFLite Gesture Recognition on RP2040</div>
+            <div class="related-meta">
+              <span><i class="fa-solid fa-heart" style="color:var(--red);font-size:9px;"></i> 218</span>
+              <span><i class="fa-solid fa-hammer" style="color:var(--green);font-size:9px;"></i> 89</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="related-card">
+          <div class="related-thumb" style="background:var(--surface2);"></div>
+          <div class="related-info">
+            <div class="related-title">OpenMV Face Tracking Pan/Tilt Turret</div>
+            <div class="related-meta">
+              <span><i class="fa-solid fa-heart" style="color:var(--red);font-size:9px;"></i> 504</span>
+              <span><i class="fa-solid fa-hammer" style="color:var(--green);font-size:9px;"></i> 213</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="related-card">
+          <div class="related-thumb" style="background:var(--surface2);"></div>
+          <div class="related-info">
+            <div class="related-title">Anomaly Detection with Arduino Nicla Vision</div>
+            <div class="related-meta">
+              <span><i class="fa-solid fa-heart" style="color:var(--red);font-size:9px;"></i> 176</span>
+              <span><i class="fa-solid fa-hammer" style="color:var(--green);font-size:9px;"></i> 44</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Hub card -->
+      <div class="sb-card">
+        <div class="hub-card-inner">
+          <div class="hub-icon"><i class="fa-solid fa-microchip"></i></div>
+          <div class="hub-name">Edge AI Builders</div>
+          <div class="hub-desc">A community for makers deploying machine learning on microcontrollers and embedded systems.</div>
+          <div class="hub-stats">
+            <div class="hub-stat">
+              <span class="n">3.2k</span>
+              members
+            </div>
+            <div class="hub-stat">
+              <span class="n">148</span>
+              projects
+            </div>
+            <div class="hub-stat">
+              <span class="n">24</span>
+              active
+            </div>
+          </div>
+          <button class="btn btn-primary" style="width:100%;justify-content:center;">
+            <i class="fa-solid fa-plus"></i> Join Hub
+          </button>
+        </div>
+      </div>
+
+    </div><!-- /sidebar -->
+
+  </div><!-- /content-grid -->
+</div><!-- /page-outer -->
+
+</body>
+</html>

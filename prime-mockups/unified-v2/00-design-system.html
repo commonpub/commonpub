@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Design System — V2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+:root {
+  --bg:#fafaf9; --surface:#ffffff; --surface2:#f4f4f2; --surface3:#eaeae7;
+  --border:#1a1a1a; --border2:#d4d4d0; --text:#1a1a1a; --text-dim:#6b6b66;
+  --text-faint:#a3a39e; --accent:#5b9cf6; --accent-bg:rgba(91,156,246,0.08);
+  --accent-border:rgba(91,156,246,0.25); --green:#22c55e; --green-bg:rgba(34,197,94,0.08);
+  --yellow:#f59e0b; --yellow-bg:rgba(245,158,11,0.08); --red:#ef4444;
+  --red-bg:rgba(239,68,68,0.08); --purple:#8b5cf6; --teal:#14b8a6; --pink:#ec4899;
+  --radius:0px; --radius-sm:2px; --radius-full:50%;
+  --shadow-sm:2px 2px 0 var(--border); --shadow-md:4px 4px 0 var(--border);
+  --shadow-lg:6px 6px 0 var(--border); --shadow-accent:4px 4px 0 var(--accent);
+  --font-sans:system-ui,-apple-system,sans-serif; --font-mono:'JetBrains Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--font-sans);font-size:14px;line-height:1.5;display:flex;min-height:100vh}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:0}
+::-webkit-scrollbar-thumb:hover{background:var(--text-faint)}
+
+/* Sidebar */
+.sb{width:200px;flex-shrink:0;background:var(--surface);border-right:2px solid var(--border);position:fixed;top:0;left:0;height:100vh;overflow-y:auto;padding:16px 0}
+.sb-logo{padding:0 16px 16px;border-bottom:2px solid var(--border);margin-bottom:8px}
+.sb-logo span{font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--text-dim);letter-spacing:.05em;text-transform:uppercase}
+.sb a{display:block;padding:5px 16px;font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-faint);text-decoration:none;transition:color .15s}
+.sb a:hover{color:var(--accent)}
+.sb a.active{color:var(--accent);font-weight:600}
+
+/* Main */
+.main{margin-left:200px;flex:1;padding:48px;max-width:960px}
+.sec{margin-bottom:72px}
+.sec-title{font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:var(--text-faint);margin-bottom:24px;padding-bottom:8px;border-bottom:2px solid var(--border)}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+.col{display:flex;flex-direction:column;gap:8px}
+
+/* Colors */
+.swatch-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px}
+.swatch{border-radius:var(--radius);overflow:hidden;border:2px solid var(--border);box-shadow:var(--shadow-sm)}
+.swatch-color{height:48px}
+.swatch-info{background:var(--surface);padding:6px 8px}
+.swatch-name{font-family:var(--font-mono);font-size:9px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.05em}
+.swatch-hex{font-family:var(--font-mono);font-size:9px;color:var(--text-faint)}
+
+/* Typography */
+.type-scale{display:flex;flex-direction:column;gap:4px}
+.ts-row{display:flex;align-items:baseline;gap:12px}
+.ts-label{font-family:var(--font-mono);font-size:9px;color:var(--text-faint);width:32px;flex-shrink:0;text-align:right}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:6px;border-radius:var(--radius);border:2px solid transparent;cursor:pointer;font-family:var(--font-sans);font-weight:500;transition:all .15s;white-space:nowrap}
+.btn-sm{padding:4px 10px;font-size:12px}
+.btn-md{padding:7px 14px;font-size:13px}
+.btn-lg{padding:10px 20px;font-size:14px}
+.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent);box-shadow:var(--shadow-sm)}
+.btn-primary:hover{background:#4a8ee6;box-shadow:var(--shadow-md);transform:translate(-1px,-1px)}
+.btn-secondary{background:var(--surface);color:var(--text);border-color:var(--border)}
+.btn-secondary:hover{background:var(--surface2);box-shadow:var(--shadow-sm);transform:translate(-1px,-1px)}
+.btn-ghost{background:transparent;color:var(--text-dim);border-color:transparent}
+.btn-ghost:hover{background:var(--surface2);color:var(--text)}
+.btn-danger{background:var(--red-bg);color:var(--red);border-color:var(--red)}
+.btn-danger:hover{background:rgba(239,68,68,.15);box-shadow:2px 2px 0 var(--red)}
+.btn-icon{padding:7px;aspect-ratio:1}
+.btn-icon.btn-sm{padding:4px}
+.btn-icon.btn-lg{padding:10px}
+.btn-group{display:inline-flex}
+.btn-group .btn{border-radius:0}
+.btn-group .btn:not(:first-child){margin-left:-2px}
+.btn-loading{opacity:.7;pointer-events:none;position:relative}
+.spin{animation:spin .8s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Forms */
+.field{display:flex;flex-direction:column;gap:4px;margin-bottom:16px}
+.lbl{font-size:12px;color:var(--text-dim);font-weight:500;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.04em}
+.inp{background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:var(--font-sans);font-size:13px;padding:8px 12px;outline:none;width:100%;transition:border-color .15s,box-shadow .15s}
+.inp:focus{border-color:var(--accent);box-shadow:var(--shadow-accent)}
+.inp::placeholder{color:var(--text-faint)}
+textarea.inp{resize:vertical;min-height:72px}
+select.inp{cursor:pointer}
+.inp-wrap{position:relative}
+.inp-wrap .inp{padding-left:32px}
+.inp-wrap .inp-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-faint);font-size:12px}
+.check-row{display:flex;align-items:center;gap:8px;cursor:pointer}
+.check-row input[type=checkbox],.check-row input[type=radio]{accent-color:var(--accent);width:14px;height:14px;cursor:pointer}
+.check-row span{font-size:13px;color:var(--text-dim)}
+.toggle{position:relative;display:inline-block;width:36px;height:20px}
+.toggle input{opacity:0;width:0;height:0}
+.toggle-track{position:absolute;inset:0;background:var(--surface3);border-radius:10px;border:2px solid var(--border);transition:.2s;cursor:pointer}
+.toggle-track::after{content:'';position:absolute;left:2px;top:2px;width:12px;height:12px;background:var(--text-faint);border-radius:var(--radius-full);transition:.2s}
+.toggle input:checked+.toggle-track{background:var(--accent-bg);border-color:var(--accent)}
+.toggle input:checked+.toggle-track::after{transform:translateX(16px);background:var(--accent)}
+.tags-wrap{display:flex;flex-wrap:wrap;gap:4px;align-items:center;background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);padding:5px 8px;min-height:36px}
+.tag-chip{display:inline-flex;align-items:center;gap:4px;background:var(--accent-bg);border:1px solid var(--accent-border);color:var(--accent);border-radius:var(--radius);padding:2px 6px;font-size:11px;font-family:var(--font-mono)}
+.tag-chip i{cursor:pointer;opacity:.6;font-size:9px}
+.tags-wrap input{background:transparent;border:none;outline:none;color:var(--text);font-size:13px;min-width:60px;flex:1}
+input[type=range]{accent-color:var(--accent);width:100%;cursor:pointer}
+.drop-zone{border:2px dashed var(--border);border-radius:var(--radius);padding:32px;text-align:center;color:var(--text-faint);transition:border-color .15s,background .15s;cursor:pointer}
+.drop-zone:hover{border-color:var(--accent);background:var(--accent-bg)}
+.drop-zone i{font-size:20px;margin-bottom:8px;display:block;color:var(--text-faint)}
+.drop-zone p{font-size:12px}
+
+/* Badges */
+.badge{display:inline-flex;align-items:center;gap:4px;border-radius:var(--radius);padding:2px 7px;font-size:11px;font-weight:600;letter-spacing:.02em;font-family:var(--font-mono);border:1px solid}
+.badge-default{background:var(--surface2);color:var(--text-dim);border-color:var(--border2)}
+.badge-accent{background:var(--accent-bg);color:var(--accent);border-color:var(--accent-border)}
+.badge-green{background:var(--green-bg);color:var(--green);border-color:rgba(34,197,94,.25)}
+.badge-yellow{background:var(--yellow-bg);color:var(--yellow);border-color:rgba(245,158,11,.25)}
+.badge-red{background:var(--red-bg);color:var(--red);border-color:rgba(239,68,68,.25)}
+.badge-purple{background:rgba(139,92,246,.08);color:var(--purple);border-color:rgba(139,92,246,.25)}
+.badge-teal{background:rgba(20,184,166,.08);color:var(--teal);border-color:rgba(20,184,166,.25)}
+.badge-pink{background:rgba(236,72,153,.08);color:var(--pink);border-color:rgba(236,72,153,.25)}
+.badge-outline{background:transparent;border:1px solid}
+.badge-outline.badge-default{border-color:var(--border);color:var(--text-dim)}
+.badge-outline.badge-accent{border-color:var(--accent-border);color:var(--accent)}
+.badge-outline.badge-green{border-color:rgba(34,197,94,.3);color:var(--green)}
+.badge-outline.badge-yellow{border-color:rgba(245,158,11,.3);color:var(--yellow)}
+.badge-outline.badge-red{border-color:rgba(239,68,68,.3);color:var(--red)}
+.badge-outline.badge-purple{border-color:rgba(139,92,246,.3);color:var(--purple)}
+.badge-ct{font-family:var(--font-mono);font-size:9px;font-weight:600;letter-spacing:.1em;padding:2px 6px;border-radius:var(--radius);border:1px solid}
+.ct-article{background:var(--accent-bg);color:var(--accent);border-color:var(--accent-border)}
+.ct-blog{background:var(--green-bg);color:var(--green);border-color:rgba(34,197,94,.25)}
+.ct-project{background:rgba(139,92,246,.08);color:var(--purple);border-color:rgba(139,92,246,.25)}
+.ct-explainer{background:rgba(20,184,166,.08);color:var(--teal);border-color:rgba(20,184,166,.25)}
+.ct-video{background:var(--red-bg);color:var(--red);border-color:rgba(239,68,68,.25)}
+.ct-tutorial{background:var(--yellow-bg);color:var(--yellow);border-color:rgba(245,158,11,.25)}
+.status-dot{width:8px;height:8px;border-radius:var(--radius-full);display:inline-block}
+.dot-green{background:var(--green)}
+.dot-yellow{background:var(--yellow)}
+.dot-red{background:var(--red)}
+.dot-dim{background:var(--text-faint)}
+
+/* Cards */
+.card{background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow-md);transition:box-shadow .15s,transform .15s}
+.card:hover{box-shadow:var(--shadow-lg);transform:translate(-1px,-1px)}
+.card-body{padding:20px}
+.card-img{height:120px;background:var(--surface2);position:relative;display:flex;align-items:center;justify-content:center;color:var(--text-faint);border-bottom:2px solid var(--border)}
+.card-img i{font-size:28px}
+.card-title{font-size:15px;font-weight:600;color:var(--text);margin-bottom:4px;line-height:1.3}
+.card-excerpt{font-size:12px;color:var(--text-dim);line-height:1.5;margin-bottom:12px}
+.card-meta{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text-faint);font-family:var(--font-mono)}
+.card-meta i{font-size:10px}
+.card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}
+.stat-card{padding:20px}
+.stat-num{font-size:28px;font-weight:700;color:var(--text);font-family:var(--font-mono)}
+.stat-label{font-size:11px;color:var(--text-faint);margin-top:2px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.04em}
+.stat-delta{font-size:11px;color:var(--green);margin-top:4px;font-family:var(--font-mono)}
+.profile-card{display:flex;gap:12px;padding:20px;align-items:flex-start}
+.profile-name{font-size:14px;font-weight:600;color:var(--text)}
+.profile-handle{font-size:12px;color:var(--text-faint);font-family:var(--font-mono)}
+.profile-bio{font-size:12px;color:var(--text-dim);margin-top:6px;line-height:1.4}
+
+/* Avatars */
+.av{border-radius:var(--radius-full);background:var(--surface2);display:inline-flex;align-items:center;justify-content:center;font-weight:600;color:var(--text-dim);flex-shrink:0;overflow:hidden;border:2px solid var(--border)}
+.av-20{width:20px;height:20px;font-size:8px;border-width:1px}
+.av-28{width:28px;height:28px;font-size:10px}
+.av-36{width:36px;height:36px;font-size:12px}
+.av-48{width:48px;height:48px;font-size:16px}
+.av-72{width:72px;height:72px;font-size:22px}
+.av-wrap{position:relative;display:inline-block}
+.av-status{position:absolute;bottom:0;right:0;width:10px;height:10px;border-radius:var(--radius-full);border:2px solid var(--surface)}
+.av-group{display:flex}
+.av-group .av{border:2px solid var(--surface);margin-left:-8px}
+.av-group .av:first-child{margin-left:0}
+
+/* Nav */
+.topbar{background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);padding:0 16px;display:flex;align-items:center;gap:16px;height:48px;margin-bottom:16px;box-shadow:var(--shadow-sm)}
+.topbar-logo{font-family:var(--font-mono);font-size:13px;font-weight:600;color:var(--text);margin-right:8px}
+.topbar-links{display:flex;gap:4px;flex:1}
+.tl{padding:6px 10px;font-size:13px;color:var(--text-dim);border-radius:var(--radius);cursor:pointer;transition:all .15s}
+.tl:hover,.tl.active{background:var(--surface2);color:var(--text)}
+.topbar-right{display:flex;gap:8px;align-items:center}
+.tabs{display:flex;border-bottom:2px solid var(--border);margin-bottom:16px}
+.tab{padding:8px 14px;font-size:13px;color:var(--text-faint);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .15s;font-family:var(--font-mono);font-size:12px}
+.tab:hover{color:var(--text-dim)}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
+.pill-tabs{display:flex;gap:0;border:2px solid var(--border);width:fit-content;margin-bottom:16px}
+.pill-tab{padding:5px 14px;font-size:12px;color:var(--text-faint);cursor:pointer;transition:all .15s;font-family:var(--font-mono);border-right:2px solid var(--border)}
+.pill-tab:last-child{border-right:none}
+.pill-tab.active{background:var(--text);color:var(--surface);font-weight:600}
+.breadcrumb{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text-faint)}
+.breadcrumb a{color:var(--text-dim);text-decoration:none}
+.breadcrumb a:hover{color:var(--accent)}
+.breadcrumb i{font-size:9px}
+
+/* Lists & Data */
+.list{border:2px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:16px;box-shadow:var(--shadow-sm)}
+.list-item{padding:10px 14px;border-bottom:1px solid var(--border2);display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text-dim)}
+.list-item:last-child{border-bottom:none}
+.list-item i{color:var(--text-faint);width:14px;text-align:center;font-size:12px}
+.stats-row{display:flex;gap:24px;padding:14px 0;border-top:2px solid var(--border);border-bottom:2px solid var(--border);margin-bottom:16px}
+.stat-item{display:flex;flex-direction:column;gap:2px}
+.stat-val{font-family:var(--font-mono);font-size:18px;font-weight:600;color:var(--text)}
+.stat-lbl{font-size:10px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.05em;font-family:var(--font-mono)}
+.prog-row{margin-bottom:10px}
+.prog-header{display:flex;justify-content:space-between;font-size:11px;color:var(--text-dim);margin-bottom:4px;font-family:var(--font-mono)}
+.prog-bar{height:6px;background:var(--surface3);border-radius:var(--radius);overflow:hidden;border:1px solid var(--border2)}
+.prog-fill{height:100%;border-radius:var(--radius);transition:width .3s}
+.diff-dots{display:flex;gap:3px}
+.diff-dot{width:8px;height:8px;border-radius:var(--radius-full)}
+.diff-dot.filled{background:var(--accent)}
+.diff-dot.empty{background:var(--surface3);border:1px solid var(--border2)}
+.timeline{padding-left:16px;border-left:3px solid var(--border)}
+.tl-item{padding:0 0 16px 16px;position:relative;font-size:13px;color:var(--text-dim)}
+.tl-item::before{content:'';position:absolute;left:-6px;top:5px;width:9px;height:9px;border-radius:var(--radius-full);background:var(--surface);border:2px solid var(--border)}
+.tl-item:last-child{padding-bottom:0}
+.tl-item strong{color:var(--text);display:block;font-size:12px;margin-bottom:2px}
+.tl-item time{font-family:var(--font-mono);font-size:10px;color:var(--text-faint)}
+
+/* Callouts */
+.callout{display:flex;gap:10px;padding:14px 16px;border-radius:var(--radius);border-left:4px solid;margin-bottom:10px}
+.callout i{margin-top:1px;flex-shrink:0;font-size:13px}
+.callout-body p{font-size:13px;line-height:1.5}
+.callout-tip{background:rgba(20,184,166,.04);border-color:var(--teal);color:var(--teal)}
+.callout-tip .callout-body p{color:var(--text-dim)}
+.callout-warn{background:var(--yellow-bg);border-color:var(--yellow);color:var(--yellow)}
+.callout-warn .callout-body p{color:var(--text-dim)}
+.callout-danger{background:var(--red-bg);border-color:var(--red);color:var(--red)}
+.callout-danger .callout-body p{color:var(--text-dim)}
+.callout-info{background:var(--accent-bg);border-color:var(--accent);color:var(--accent)}
+.callout-info .callout-body p{color:var(--text-dim)}
+
+/* Code */
+code{font-family:var(--font-mono);font-size:12px;background:var(--surface2);border:1px solid var(--border2);padding:1px 5px;border-radius:var(--radius-sm);color:var(--text)}
+.code-block{background:#1a1a1a;border:2px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:16px;box-shadow:var(--shadow-sm)}
+.code-hdr{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-bottom:1px solid #333;background:#222}
+.code-hdr span{font-family:var(--font-mono);font-size:10px;color:#888}
+.code-hdr .btn{color:#888;border-color:#444}
+.code-hdr .btn:hover{color:#ccc;background:#333}
+.code-body{padding:16px;font-family:var(--font-mono);font-size:12px;line-height:1.7;overflow-x:auto;color:#d4d4d4}
+.kw{color:#5b9cf6}
+.str{color:#22c55e}
+.cmt{color:#666}
+.fn{color:#14b8a6}
+.num{color:#f59e0b}
+.punc{color:#888}
+
+/* Overlays */
+.modal-demo{background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);padding:0;overflow:hidden;max-width:400px;box-shadow:var(--shadow-lg)}
+.modal-hdr{padding:16px 20px;border-bottom:2px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.modal-title{font-size:15px;font-weight:600;color:var(--text)}
+.modal-close{color:var(--text-faint);cursor:pointer;font-size:12px}
+.modal-body{padding:20px;font-size:13px;color:var(--text-dim);line-height:1.6}
+.modal-footer{padding:12px 20px;border-top:2px solid var(--border);display:flex;justify-content:flex-end;gap:8px}
+.dropdown{background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);padding:4px;min-width:180px;box-shadow:var(--shadow-md)}
+.dd-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:var(--radius);font-size:13px;color:var(--text-dim);cursor:pointer;transition:all .15s}
+.dd-item:hover{background:var(--surface2);color:var(--text)}
+.dd-item i{width:14px;text-align:center;font-size:12px;color:var(--text-faint)}
+.dd-item.danger{color:var(--red)}
+.dd-item.danger:hover{background:var(--red-bg)}
+.dd-sep{height:1px;background:var(--border2);margin:3px 0}
+.toast{display:flex;align-items:center;gap:10px;background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);padding:10px 14px;box-shadow:var(--shadow-md);font-size:13px;color:var(--text-dim);min-width:260px}
+.toast-success{border-color:var(--green)}
+.toast-success i{color:var(--green)}
+.toast-error{border-color:var(--red)}
+.toast-error i{color:var(--red)}
+.toast-info i{color:var(--accent)}
+.toast-close{margin-left:auto;color:var(--text-faint);cursor:pointer;font-size:11px}
+
+/* Editor Components */
+.float-toolbar{display:inline-flex;align-items:center;gap:1px;background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);padding:3px;box-shadow:var(--shadow-md)}
+.ft-btn{width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:var(--radius);color:var(--text-dim);cursor:pointer;font-size:12px;transition:all .15s}
+.ft-btn:hover{background:var(--surface2);color:var(--text)}
+.ft-btn.active{background:var(--accent-bg);color:var(--accent);border:1px solid var(--accent-border)}
+.ft-sep{width:1px;height:20px;background:var(--border2);margin:0 2px}
+.block-handle{display:inline-flex;align-items:center;gap:6px;background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);padding:4px 8px;cursor:grab;font-size:11px;color:var(--text-faint);font-family:var(--font-mono);box-shadow:var(--shadow-sm)}
+.block-handle i{font-size:10px}
+.prop-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border2)}
+.prop-row:last-child{border-bottom:none}
+.prop-key{font-size:12px;color:var(--text-faint);font-family:var(--font-mono)}
+.prop-val{font-size:12px;color:var(--text-dim);font-family:var(--font-mono)}
+.canvas-tb{display:inline-flex;align-items:center;gap:2px;background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);padding:4px;box-shadow:var(--shadow-md)}
+.ct-btn{padding:5px 10px;border-radius:var(--radius);font-size:11px;color:var(--text-faint);cursor:pointer;display:flex;align-items:center;gap:5px;transition:all .15s;white-space:nowrap;font-family:var(--font-mono)}
+.ct-btn:hover{background:var(--surface2);color:var(--text)}
+.ct-btn.active{background:var(--text);color:var(--surface)}
+.ct-sep{width:1px;height:24px;background:var(--border2);margin:0 2px}
+</style>
+</head>
+<body>
+
+<nav class="sb">
+  <div class="sb-logo"><span><i class="fa-solid fa-cube" style="margin-right:4px"></i> Design System</span></div>
+  <a href="#colors"><i class="fa-solid fa-palette" style="width:14px;margin-right:4px"></i> Colors</a>
+  <a href="#typography"><i class="fa-solid fa-font" style="width:14px;margin-right:4px"></i> Typography</a>
+  <a href="#buttons"><i class="fa-solid fa-hand-pointer" style="width:14px;margin-right:4px"></i> Buttons</a>
+  <a href="#forms"><i class="fa-solid fa-sliders" style="width:14px;margin-right:4px"></i> Forms</a>
+  <a href="#badges"><i class="fa-solid fa-tag" style="width:14px;margin-right:4px"></i> Badges</a>
+  <a href="#cards"><i class="fa-solid fa-square" style="width:14px;margin-right:4px"></i> Cards</a>
+  <a href="#avatars"><i class="fa-solid fa-user-circle" style="width:14px;margin-right:4px"></i> Avatars</a>
+  <a href="#navigation"><i class="fa-solid fa-compass" style="width:14px;margin-right:4px"></i> Navigation</a>
+  <a href="#lists"><i class="fa-solid fa-list" style="width:14px;margin-right:4px"></i> Lists</a>
+  <a href="#callouts"><i class="fa-solid fa-circle-info" style="width:14px;margin-right:4px"></i> Callouts</a>
+  <a href="#code"><i class="fa-solid fa-code" style="width:14px;margin-right:4px"></i> Code</a>
+  <a href="#overlays"><i class="fa-solid fa-layer-group" style="width:14px;margin-right:4px"></i> Overlays</a>
+  <a href="#editor"><i class="fa-solid fa-pen-to-square" style="width:14px;margin-right:4px"></i> Editor</a>
+</nav>
+
+<main class="main">
+
+<!-- COLORS -->
+<section class="sec" id="colors">
+  <div class="sec-title"><i class="fa-solid fa-palette" style="margin-right:6px"></i> Colors</div>
+  <div class="swatch-grid">
+    <div class="swatch"><div class="swatch-color" style="background:#fafaf9"></div><div class="swatch-info"><div class="swatch-name">bg</div><div class="swatch-hex">#fafaf9</div></div></div>
+    <div class="swatch"><div class="swatch-color" style="background:#ffffff"></div><div class="swatch-info"><div class="swatch-name">surface</div><div class="swatch-hex">#ffffff</div></div></div>
+    <div class="swatch"><div class="swatch-color" style="background:#f4f4f2"></div><div class="swatch-info"><div class="swatch-name">surface2</div><div class="swatch-hex">#f4f4f2</div></div></div>
+    <div class="swatch"><div class="swatch-color" style="background:#eaeae7"></div><div class="swatch-info"><div class="swatch-name">surface3</div><div class="swatch-hex">#eaeae7</div></div></div>
+    <div class="swatch"><div class="swatch-color" style="background:#1a1a1a"></div><div class="swatch-info"><div class="swatch-name">border</div><div class="swatch-hex">#1a1a1a</div></div></div>
+    <div class="swatch"><div class="swatch-color" style="background:#d4d4d0"></div><div class="swatch-info"><div class="swatch-name">border2</div><div class="swatch-hex">#d4d4d0</div></div></div>
+    <div class="swatch"><div class="swatch-color" style="background:#1a1a1a"></div><div class="swatch-info"><div class="swatch-name">text</div><div class="swatch-hex">#1a1a1a</div></div></div>
+    <div class="swatch"><div class="swatch-color" style="background:#6b6b66"></div><div class="swatch-info"><div class="swatch-name">text-dim</div><div class="swatch-hex">#6b6b66</div></div></div>
+    <div class="swatch"><div class="swatch-color" style="background:#a3a39e"></div><div class="swatch-info"><div class="swatch-name">text-faint</div><div class="swatch-hex">#a3a39e</div></div></div>
+    <div class="swatch"><div class="swatch-color" style="background:#5b9cf6"></div><div class="swatch-info"><div class="swatch-name">accent</div><div class="swatch-hex">#5b9cf6</div></div></div>
+    <div class="swatch"><div class="swatch-color" style="background:#22c55e"></div><div class="swatch-info"><div class="swatch-name">green</div><div class="swatch-hex">#22c55e</div></div></div>
+    <div class="swatch"><div class="swatch-color" style="background:#f59e0b"></div><div class="swatch-info"><div class="swatch-name">yellow</div><div class="swatch-hex">#f59e0b</div></div></div>
+    <div class="swatch"><div class="swatch-color" style="background:#ef4444"></div><div class="swatch-info"><div class="swatch-name">red</div><div class="swatch-hex">#ef4444</div></div></div>
+    <div class="swatch"><div class="swatch-color" style="background:#8b5cf6"></div><div class="swatch-info"><div class="swatch-name">purple</div><div class="swatch-hex">#8b5cf6</div></div></div>
+    <div class="swatch"><div class="swatch-color" style="background:#14b8a6"></div><div class="swatch-info"><div class="swatch-name">teal</div><div class="swatch-hex">#14b8a6</div></div></div>
+    <div class="swatch"><div class="swatch-color" style="background:#ec4899"></div><div class="swatch-info"><div class="swatch-name">pink</div><div class="swatch-hex">#ec4899</div></div></div>
+  </div>
+</section>
+
+<!-- TYPOGRAPHY -->
+<section class="sec" id="typography">
+  <div class="sec-title"><i class="fa-solid fa-font" style="margin-right:6px"></i> Typography</div>
+  <div style="margin-bottom:20px">
+    <h1 style="font-size:48px;font-weight:700;color:var(--text);line-height:1.1;margin-bottom:8px">Heading One</h1>
+    <h2 style="font-size:36px;font-weight:600;color:var(--text);line-height:1.2;margin-bottom:8px">Heading Two</h2>
+    <h3 style="font-size:28px;font-weight:600;color:var(--text);line-height:1.2;margin-bottom:8px">Heading Three</h3>
+    <h4 style="font-size:22px;font-weight:600;color:var(--text);margin-bottom:8px">Heading Four</h4>
+    <h5 style="font-size:18px;font-weight:600;color:var(--text);margin-bottom:8px">Heading Five</h5>
+    <h6 style="font-size:16px;font-weight:600;color:var(--text);margin-bottom:12px">Heading Six</h6>
+    <p style="font-size:14px;color:var(--text);line-height:1.7;margin-bottom:8px">Body text -- The quick brown fox jumps over the lazy dog. Ossuary is a platform for knowledge workers who move fast and think deeply.</p>
+    <p style="font-size:12px;color:var(--text-dim);line-height:1.6;margin-bottom:8px">Small / caption -- Supporting text used for metadata, timestamps, and secondary info.</p>
+    <p style="font-family:var(--font-mono);font-size:12px;color:var(--teal)">Monospace -- const result = await fetchContent(id, { format: 'json' });</p>
+  </div>
+  <div class="type-scale">
+    <div class="ts-row"><span class="ts-label">48</span><span style="font-size:48px;line-height:1;color:var(--text-dim)">Aa</span></div>
+    <div class="ts-row"><span class="ts-label">36</span><span style="font-size:36px;line-height:1;color:var(--text-dim)">Aa</span></div>
+    <div class="ts-row"><span class="ts-label">28</span><span style="font-size:28px;line-height:1;color:var(--text-dim)">Aa</span></div>
+    <div class="ts-row"><span class="ts-label">22</span><span style="font-size:22px;line-height:1;color:var(--text-dim)">Aa</span></div>
+    <div class="ts-row"><span class="ts-label">18</span><span style="font-size:18px;line-height:1;color:var(--text-dim)">Aa</span></div>
+    <div class="ts-row"><span class="ts-label">16</span><span style="font-size:16px;line-height:1;color:var(--text-dim)">Aa</span></div>
+    <div class="ts-row"><span class="ts-label">14</span><span style="font-size:14px;line-height:1;color:var(--text-dim)">Aa</span></div>
+    <div class="ts-row"><span class="ts-label">13</span><span style="font-size:13px;line-height:1;color:var(--text-dim)">Aa</span></div>
+    <div class="ts-row"><span class="ts-label">12</span><span style="font-size:12px;line-height:1;color:var(--text-dim)">Aa</span></div>
+    <div class="ts-row"><span class="ts-label">10</span><span style="font-size:10px;line-height:1;color:var(--text-dim)">Aa</span></div>
+  </div>
+</section>
+
+<!-- BUTTONS -->
+<section class="sec" id="buttons">
+  <div class="sec-title"><i class="fa-solid fa-hand-pointer" style="margin-right:6px"></i> Buttons</div>
+  <div class="row" style="margin-bottom:16px">
+    <button class="btn btn-primary btn-sm">Primary sm</button>
+    <button class="btn btn-primary btn-md">Primary md</button>
+    <button class="btn btn-primary btn-lg">Primary lg</button>
+  </div>
+  <div class="row" style="margin-bottom:16px">
+    <button class="btn btn-secondary btn-sm">Secondary</button>
+    <button class="btn btn-secondary btn-md">Secondary</button>
+    <button class="btn btn-secondary btn-lg">Secondary</button>
+  </div>
+  <div class="row" style="margin-bottom:16px">
+    <button class="btn btn-ghost btn-sm">Ghost</button>
+    <button class="btn btn-ghost btn-md">Ghost</button>
+    <button class="btn btn-ghost btn-lg">Ghost</button>
+  </div>
+  <div class="row" style="margin-bottom:16px">
+    <button class="btn btn-danger btn-sm">Danger</button>
+    <button class="btn btn-danger btn-md">Danger</button>
+    <button class="btn btn-danger btn-lg">Danger</button>
+  </div>
+  <div class="row" style="margin-bottom:16px">
+    <button class="btn btn-primary btn-md"><i class="fa fa-plus"></i> New Post</button>
+    <button class="btn btn-secondary btn-md"><i class="fa fa-share-nodes"></i> Share</button>
+    <button class="btn btn-ghost btn-md"><i class="fa fa-bookmark"></i> Save</button>
+    <button class="btn btn-icon btn-secondary btn-sm"><i class="fa fa-ellipsis"></i></button>
+    <button class="btn btn-icon btn-secondary btn-md"><i class="fa fa-pen"></i></button>
+    <button class="btn btn-icon btn-secondary btn-lg"><i class="fa fa-trash"></i></button>
+  </div>
+  <div class="row" style="margin-bottom:16px">
+    <div class="btn-group">
+      <button class="btn btn-secondary btn-md">All</button>
+      <button class="btn btn-secondary btn-md">Articles</button>
+      <button class="btn btn-secondary btn-md">Videos</button>
+      <button class="btn btn-secondary btn-md">Projects</button>
+    </div>
+  </div>
+  <div class="row">
+    <button class="btn btn-primary btn-md btn-loading"><span class="spin"><i class="fa fa-circle-notch"></i></span> Loading...</button>
+    <button class="btn btn-secondary btn-md" disabled style="opacity:.4;cursor:not-allowed">Disabled</button>
+  </div>
+</section>
+
+<!-- FORMS -->
+<section class="sec" id="forms">
+  <div class="sec-title"><i class="fa-solid fa-sliders" style="margin-right:6px"></i> Forms</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:640px">
+    <div class="field">
+      <label class="lbl">Text input</label>
+      <input class="inp" type="text" placeholder="Enter value...">
+    </div>
+    <div class="field">
+      <label class="lbl">Search</label>
+      <div class="inp-wrap">
+        <i class="fa fa-search inp-icon"></i>
+        <input class="inp" type="text" placeholder="Search...">
+      </div>
+    </div>
+    <div class="field" style="grid-column:1/-1">
+      <label class="lbl">Textarea</label>
+      <textarea class="inp" placeholder="Write something..."></textarea>
+    </div>
+    <div class="field">
+      <label class="lbl">Select</label>
+      <select class="inp">
+        <option>Option A</option>
+        <option>Option B</option>
+        <option>Option C</option>
+      </select>
+    </div>
+    <div class="field">
+      <label class="lbl">Tag Input</label>
+      <div class="tags-wrap">
+        <span class="tag-chip">design <i class="fa fa-xmark"></i></span>
+        <span class="tag-chip">ux <i class="fa fa-xmark"></i></span>
+        <input placeholder="Add tag...">
+      </div>
+    </div>
+    <div class="field">
+      <label class="lbl">Checkboxes</label>
+      <div class="col" style="gap:6px">
+        <label class="check-row"><input type="checkbox" checked><span>Option one</span></label>
+        <label class="check-row"><input type="checkbox"><span>Option two</span></label>
+      </div>
+    </div>
+    <div class="field">
+      <label class="lbl">Radios</label>
+      <div class="col" style="gap:6px">
+        <label class="check-row"><input type="radio" name="r1" checked><span>Choice A</span></label>
+        <label class="check-row"><input type="radio" name="r1"><span>Choice B</span></label>
+      </div>
+    </div>
+    <div class="field">
+      <label class="lbl">Toggles</label>
+      <div class="col" style="gap:8px">
+        <div class="row" style="gap:10px;margin-bottom:0">
+          <label class="toggle"><input type="checkbox" checked><div class="toggle-track"></div></label>
+          <span style="font-size:13px;color:var(--text-dim)">Enabled</span>
+        </div>
+        <div class="row" style="gap:10px;margin-bottom:0">
+          <label class="toggle"><input type="checkbox"><div class="toggle-track"></div></label>
+          <span style="font-size:13px;color:var(--text-dim)">Disabled</span>
+        </div>
+      </div>
+    </div>
+    <div class="field" style="grid-column:1/-1">
+      <label class="lbl">Range <span style="color:var(--text-faint);font-family:var(--font-mono);font-size:11px">64</span></label>
+      <input type="range" value="64">
+    </div>
+    <div class="field" style="grid-column:1/-1">
+      <label class="lbl">File Upload</label>
+      <div class="drop-zone">
+        <i class="fa fa-cloud-arrow-up"></i>
+        <p>Drop files here or <span style="color:var(--accent)">browse</span></p>
+        <p style="margin-top:4px;font-size:11px">PNG, JPG, PDF up to 10MB</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- BADGES -->
+<section class="sec" id="badges">
+  <div class="sec-title"><i class="fa-solid fa-tag" style="margin-right:6px"></i> Badges &amp; Tags</div>
+  <div class="row" style="margin-bottom:12px">
+    <span class="badge badge-default">Default</span>
+    <span class="badge badge-accent">Accent</span>
+    <span class="badge badge-green">Green</span>
+    <span class="badge badge-yellow">Yellow</span>
+    <span class="badge badge-red">Red</span>
+    <span class="badge badge-purple">Purple</span>
+    <span class="badge badge-teal">Teal</span>
+    <span class="badge badge-pink">Pink</span>
+  </div>
+  <div class="row" style="margin-bottom:12px">
+    <span class="badge badge-outline badge-default">Default</span>
+    <span class="badge badge-outline badge-accent">Accent</span>
+    <span class="badge badge-outline badge-green">Green</span>
+    <span class="badge badge-outline badge-yellow">Yellow</span>
+    <span class="badge badge-outline badge-red">Red</span>
+    <span class="badge badge-outline badge-purple">Purple</span>
+  </div>
+  <div class="row" style="margin-bottom:12px">
+    <span class="badge-ct ct-article">ARTICLE</span>
+    <span class="badge-ct ct-blog">BLOG</span>
+    <span class="badge-ct ct-project">PROJECT</span>
+    <span class="badge-ct ct-explainer">EXPLAINER</span>
+    <span class="badge-ct ct-video">VIDEO</span>
+    <span class="badge-ct ct-tutorial">TUTORIAL</span>
+  </div>
+  <div class="row">
+    <span class="status-dot dot-green"></span><span style="font-size:12px;color:var(--text-dim);font-family:var(--font-mono)">Published</span>
+    <span class="status-dot dot-yellow" style="margin-left:8px"></span><span style="font-size:12px;color:var(--text-dim);font-family:var(--font-mono)">Draft</span>
+    <span class="status-dot dot-red" style="margin-left:8px"></span><span style="font-size:12px;color:var(--text-dim);font-family:var(--font-mono)">Archived</span>
+    <span class="status-dot dot-dim" style="margin-left:8px"></span><span style="font-size:12px;color:var(--text-dim);font-family:var(--font-mono)">Unlisted</span>
+  </div>
+</section>
+
+<!-- CARDS -->
+<section class="sec" id="cards">
+  <div class="sec-title"><i class="fa-solid fa-square" style="margin-right:6px"></i> Cards</div>
+  <div class="card-grid">
+    <!-- Project Card -->
+    <div class="card">
+      <div class="card-img"><i class="fa fa-cube"></i></div>
+      <div class="card-body">
+        <div class="row" style="margin-bottom:8px">
+          <span class="badge-ct ct-project">PROJECT</span>
+          <span class="badge badge-green" style="margin-left:auto"><span class="status-dot dot-green" style="width:6px;height:6px;margin-right:2px"></span> Live</span>
+        </div>
+        <div class="card-title">Ossuary Design System</div>
+        <div class="card-excerpt">A comprehensive set of reusable components and tokens for building consistent interfaces across the platform.</div>
+        <div class="card-meta">
+          <div class="av av-20">JS</div>
+          <span>Jordan S.</span>
+          <span style="margin-left:auto"><i class="fa fa-star"></i> 142</span>
+          <span><i class="fa fa-eye"></i> 2.4k</span>
+        </div>
+      </div>
+    </div>
+    <!-- Article Card -->
+    <div class="card">
+      <div class="card-body">
+        <div class="row" style="margin-bottom:8px">
+          <span class="badge-ct ct-article">ARTICLE</span>
+          <span style="margin-left:auto;font-family:var(--font-mono);font-size:10px;color:var(--text-faint)">Mar 11</span>
+        </div>
+        <div class="card-title">Building at the Speed of Thought</div>
+        <div class="card-excerpt">How modern tooling collapses the gap between intention and execution in software development workflows.</div>
+        <div class="card-meta">
+          <div class="av av-20" style="background:rgba(91,156,246,.15);color:var(--accent)">KL</div>
+          <span>Kai L.</span>
+          <span><i class="fa fa-clock"></i> 6 min</span>
+          <span style="margin-left:auto"><i class="fa fa-heart"></i> 89</span>
+        </div>
+      </div>
+    </div>
+    <!-- Profile Card -->
+    <div class="card">
+      <div class="profile-card">
+        <div class="av-wrap">
+          <div class="av av-48" style="background:rgba(139,92,246,.12);color:var(--purple);font-size:18px">MR</div>
+          <span class="av-status dot-green" style="width:12px;height:12px;border-width:2px"></span>
+        </div>
+        <div>
+          <div class="profile-name">Maya Redfield</div>
+          <div class="profile-handle">@mayar</div>
+          <div class="profile-bio">Systems designer & technical writer. Building tools for thought.</div>
+          <div class="row" style="margin-top:8px;gap:12px">
+            <span style="font-size:11px;color:var(--text-faint)"><strong style="color:var(--text-dim)">142</strong> posts</span>
+            <span style="font-size:11px;color:var(--text-faint)"><strong style="color:var(--text-dim)">2.1k</strong> followers</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Stat Card -->
+    <div class="card stat-card">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px">
+        <div style="background:var(--accent-bg);padding:8px;border:1px solid var(--accent-border)"><i class="fa fa-eye" style="color:var(--accent)"></i></div>
+        <span class="badge badge-green"><i class="fa fa-arrow-trend-up" style="font-size:9px"></i> +12%</span>
+      </div>
+      <div class="stat-num">24,891</div>
+      <div class="stat-label">Total Views</div>
+      <div class="stat-delta"><i class="fa fa-arrow-up" style="font-size:9px"></i> 2,340 this week</div>
+    </div>
+  </div>
+</section>
+
+<!-- AVATARS -->
+<section class="sec" id="avatars">
+  <div class="sec-title"><i class="fa-solid fa-user-circle" style="margin-right:6px"></i> Avatars</div>
+  <div class="row" style="align-items:flex-end;margin-bottom:16px">
+    <div class="av av-20">JD</div>
+    <div class="av av-28">JD</div>
+    <div class="av av-36">JD</div>
+    <div class="av av-48">JD</div>
+    <div class="av av-72">JD</div>
+  </div>
+  <div class="row" style="align-items:flex-end;margin-bottom:16px">
+    <div class="av-wrap">
+      <div class="av av-28" style="background:rgba(91,156,246,.12);color:var(--accent)">KL</div>
+      <span class="av-status dot-green"></span>
+    </div>
+    <div class="av-wrap">
+      <div class="av av-36" style="background:rgba(139,92,246,.12);color:var(--purple)">MR</div>
+      <span class="av-status dot-yellow" style="width:10px;height:10px"></span>
+    </div>
+    <div class="av-wrap">
+      <div class="av av-48" style="background:rgba(20,184,166,.12);color:var(--teal)">AS</div>
+      <span class="av-status dot-dim" style="width:12px;height:12px;border-width:2px"></span>
+    </div>
+  </div>
+  <div class="av-group">
+    <div class="av av-28" style="background:var(--accent-bg);color:var(--accent)">A</div>
+    <div class="av av-28" style="background:rgba(139,92,246,.12);color:var(--purple)">B</div>
+    <div class="av av-28" style="background:var(--green-bg);color:var(--green)">C</div>
+    <div class="av av-28" style="background:var(--yellow-bg);color:var(--yellow)">D</div>
+    <div class="av av-28" style="background:var(--surface3);color:var(--text-faint);font-size:10px">+5</div>
+  </div>
+</section>
+
+<!-- NAVIGATION -->
+<section class="sec" id="navigation">
+  <div class="sec-title"><i class="fa-solid fa-compass" style="margin-right:6px"></i> Navigation</div>
+  <div class="topbar">
+    <span class="topbar-logo">Ossuary</span>
+    <div class="topbar-links">
+      <div class="tl active">Feed</div>
+      <div class="tl">Explore</div>
+      <div class="tl">Projects</div>
+      <div class="tl">Learn</div>
+    </div>
+    <div class="topbar-right">
+      <button class="btn btn-ghost btn-sm"><i class="fa fa-search"></i></button>
+      <button class="btn btn-primary btn-sm"><i class="fa fa-plus"></i> Write</button>
+      <div class="av av-28" style="background:var(--accent-bg);color:var(--accent)">JD</div>
+    </div>
+  </div>
+  <div class="tabs">
+    <div class="tab active">Overview</div>
+    <div class="tab">Posts</div>
+    <div class="tab">Projects</div>
+    <div class="tab">Collections</div>
+    <div class="tab">Analytics</div>
+  </div>
+  <div class="pill-tabs">
+    <div class="pill-tab active">All</div>
+    <div class="pill-tab">Articles</div>
+    <div class="pill-tab">Blogs</div>
+    <div class="pill-tab">Videos</div>
+  </div>
+  <div class="breadcrumb">
+    <a href="#">Home</a>
+    <i class="fa fa-chevron-right"></i>
+    <a href="#">Projects</a>
+    <i class="fa fa-chevron-right"></i>
+    <a href="#">Design</a>
+    <i class="fa fa-chevron-right"></i>
+    <span style="color:var(--text)">Design System</span>
+  </div>
+</section>
+
+<!-- LISTS & DATA -->
+<section class="sec" id="lists">
+  <div class="sec-title"><i class="fa-solid fa-list" style="margin-right:6px"></i> Lists &amp; Data</div>
+  <div class="list">
+    <div class="list-item">Plain list item one</div>
+    <div class="list-item">Plain list item two</div>
+    <div class="list-item">Plain list item three</div>
+  </div>
+  <div class="list">
+    <div class="list-item"><i class="fa fa-file-lines"></i> Getting Started with Ossuary</div>
+    <div class="list-item"><i class="fa fa-video"></i> Introduction to the Editor</div>
+    <div class="list-item"><i class="fa fa-folder"></i> Project Templates</div>
+    <div class="list-item"><i class="fa fa-star"></i> Community Highlights</div>
+  </div>
+  <div class="stats-row">
+    <div class="stat-item"><div class="stat-val">2,841</div><div class="stat-lbl">Views</div></div>
+    <div class="stat-item"><div class="stat-val">142</div><div class="stat-lbl">Reads</div></div>
+    <div class="stat-item"><div class="stat-val">36</div><div class="stat-lbl">Likes</div></div>
+    <div class="stat-item"><div class="stat-val">12</div><div class="stat-lbl">Comments</div></div>
+    <div class="stat-item"><div class="stat-val">8</div><div class="stat-lbl">Shares</div></div>
+  </div>
+  <div style="max-width:320px;margin-bottom:16px">
+    <div class="prog-row">
+      <div class="prog-header"><span>Completion</span><span>78%</span></div>
+      <div class="prog-bar"><div class="prog-fill" style="width:78%;background:var(--accent)"></div></div>
+    </div>
+    <div class="prog-row">
+      <div class="prog-header"><span>Engagement</span><span>54%</span></div>
+      <div class="prog-bar"><div class="prog-fill" style="width:54%;background:var(--green)"></div></div>
+    </div>
+    <div class="prog-row">
+      <div class="prog-header"><span>Quality score</span><span>91%</span></div>
+      <div class="prog-bar"><div class="prog-fill" style="width:91%;background:var(--teal)"></div></div>
+    </div>
+  </div>
+  <div class="row" style="margin-bottom:16px">
+    <span style="font-size:12px;color:var(--text-faint);width:60px;font-family:var(--font-mono)">Easy</span>
+    <div class="diff-dots"><div class="diff-dot filled"></div><div class="diff-dot empty"></div><div class="diff-dot empty"></div><div class="diff-dot empty"></div><div class="diff-dot empty"></div></div>
+    <span style="font-size:12px;color:var(--text-faint);width:60px;margin-left:12px;font-family:var(--font-mono)">Medium</span>
+    <div class="diff-dots"><div class="diff-dot filled"></div><div class="diff-dot filled"></div><div class="diff-dot filled"></div><div class="diff-dot empty"></div><div class="diff-dot empty"></div></div>
+    <span style="font-size:12px;color:var(--text-faint);width:60px;margin-left:12px;font-family:var(--font-mono)">Hard</span>
+    <div class="diff-dots"><div class="diff-dot filled"></div><div class="diff-dot filled"></div><div class="diff-dot filled"></div><div class="diff-dot filled"></div><div class="diff-dot filled"></div></div>
+  </div>
+  <div class="timeline">
+    <div class="tl-item"><strong>Published v2.0</strong><time>Mar 11, 2026</time></div>
+    <div class="tl-item"><strong>Design review completed</strong><time>Mar 8, 2026</time></div>
+    <div class="tl-item"><strong>Beta testing started</strong><time>Mar 1, 2026</time></div>
+    <div class="tl-item"><strong>Project created</strong><time>Feb 20, 2026</time></div>
+  </div>
+</section>
+
+<!-- CALLOUTS -->
+<section class="sec" id="callouts">
+  <div class="sec-title"><i class="fa-solid fa-circle-info" style="margin-right:6px"></i> Callouts</div>
+  <div class="callout callout-tip">
+    <i class="fa fa-lightbulb"></i>
+    <div class="callout-body"><p><strong>Tip:</strong> Use keyboard shortcuts to navigate between blocks. Press <code>Tab</code> to move forward.</p></div>
+  </div>
+  <div class="callout callout-warn">
+    <i class="fa fa-triangle-exclamation"></i>
+    <div class="callout-body"><p><strong>Warning:</strong> Publishing this will make it visible to all users. This action cannot be undone without archiving.</p></div>
+  </div>
+  <div class="callout callout-danger">
+    <i class="fa fa-circle-exclamation"></i>
+    <div class="callout-body"><p><strong>Danger:</strong> Deleting this project will permanently remove all associated content and collaborator access.</p></div>
+  </div>
+  <div class="callout callout-info">
+    <i class="fa fa-circle-info"></i>
+    <div class="callout-body"><p><strong>Info:</strong> Your draft is auto-saved every 30 seconds. You can access version history from the editor menu.</p></div>
+  </div>
+</section>
+
+<!-- CODE -->
+<section class="sec" id="code">
+  <div class="sec-title"><i class="fa-solid fa-code" style="margin-right:6px"></i> Code</div>
+  <p style="font-size:13px;color:var(--text-dim);margin-bottom:16px">
+    Inline: Use <code>const</code> or <code>let</code> for variable declarations. Avoid <code>var</code>.
+  </p>
+  <div class="code-block">
+    <div class="code-hdr">
+      <span>typescript</span>
+      <button class="btn btn-ghost btn-sm" style="font-size:10px;color:#888;border:1px solid #444"><i class="fa fa-copy"></i> Copy</button>
+    </div>
+    <div class="code-body">
+<span class="cmt">// Fetch content from the Ossuary API</span>
+<span class="kw">async function</span> <span class="fn">fetchContent</span><span class="punc">(</span>id<span class="punc">:</span> <span class="kw">string</span><span class="punc">)</span><span class="punc">: Promise&lt;</span>Content<span class="punc">&gt; {</span>
+  <span class="kw">const</span> response <span class="punc">=</span> <span class="kw">await</span> <span class="fn">fetch</span><span class="punc">(`</span><span class="str">/api/content/${id}</span><span class="punc">`)</span>
+  <span class="kw">if</span> <span class="punc">(!</span>response<span class="punc">.</span>ok<span class="punc">) {</span>
+    <span class="kw">throw new</span> <span class="fn">Error</span><span class="punc">(</span><span class="str">"Failed to fetch content"</span><span class="punc">)</span>
+  <span class="punc">}</span>
+  <span class="kw">const</span> data <span class="punc">=</span> <span class="kw">await</span> response<span class="punc">.</span><span class="fn">json</span><span class="punc">()</span>
+  <span class="kw">return</span> <span class="punc">{</span>
+    id<span class="punc">:</span> data<span class="punc">.</span>id<span class="punc">,</span>
+    title<span class="punc">:</span> data<span class="punc">.</span>title<span class="punc">,</span>
+    views<span class="punc">:</span> <span class="num">0</span><span class="punc">,</span>
+    published<span class="punc">:</span> <span class="kw">true</span>
+  <span class="punc">}</span>
+<span class="punc">}</span>
+    </div>
+  </div>
+</section>
+
+<!-- OVERLAYS -->
+<section class="sec" id="overlays">
+  <div class="sec-title"><i class="fa-solid fa-layer-group" style="margin-right:6px"></i> Overlays</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start">
+    <div>
+      <div style="font-family:var(--font-mono);font-size:9px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Modal</div>
+      <div class="modal-demo">
+        <div class="modal-hdr">
+          <span class="modal-title">Delete Post?</span>
+          <span class="modal-close"><i class="fa fa-xmark"></i></span>
+        </div>
+        <div class="modal-body">
+          This will permanently delete <strong style="color:var(--text)">"Building at the Speed of Thought"</strong> and all associated data. This action cannot be undone.
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-ghost btn-sm">Cancel</button>
+          <button class="btn btn-danger btn-sm"><i class="fa fa-trash"></i> Delete</button>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div style="font-family:var(--font-mono);font-size:9px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Dropdown</div>
+      <div class="dropdown">
+        <div class="dd-item"><i class="fa fa-pen"></i> Edit</div>
+        <div class="dd-item"><i class="fa fa-copy"></i> Duplicate</div>
+        <div class="dd-item"><i class="fa fa-share-nodes"></i> Share</div>
+        <div class="dd-item"><i class="fa fa-link"></i> Copy link</div>
+        <div class="dd-sep"></div>
+        <div class="dd-item"><i class="fa fa-eye-slash"></i> Unpublish</div>
+        <div class="dd-sep"></div>
+        <div class="dd-item danger"><i class="fa fa-trash"></i> Delete</div>
+      </div>
+    </div>
+  </div>
+  <div style="margin-top:20px">
+    <div style="font-family:var(--font-mono);font-size:9px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Toasts</div>
+    <div class="col" style="gap:8px;max-width:320px">
+      <div class="toast toast-success"><i class="fa fa-circle-check"></i><span>Post published successfully.</span><span class="toast-close"><i class="fa fa-xmark"></i></span></div>
+      <div class="toast toast-error"><i class="fa fa-circle-exclamation"></i><span>Failed to save draft. Retrying...</span><span class="toast-close"><i class="fa fa-xmark"></i></span></div>
+      <div class="toast toast-info"><i class="fa fa-circle-info"></i><span>3 new comments on your post.</span><span class="toast-close"><i class="fa fa-xmark"></i></span></div>
+    </div>
+  </div>
+</section>
+
+<!-- EDITOR COMPONENTS -->
+<section class="sec" id="editor">
+  <div class="sec-title"><i class="fa-solid fa-pen-to-square" style="margin-right:6px"></i> Editor Components</div>
+  <div style="margin-bottom:20px">
+    <div style="font-family:var(--font-mono);font-size:9px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Floating Toolbar</div>
+    <div class="float-toolbar">
+      <div class="ft-btn active" title="Bold"><i class="fa fa-bold"></i></div>
+      <div class="ft-btn" title="Italic"><i class="fa fa-italic"></i></div>
+      <div class="ft-btn" title="Underline"><i class="fa fa-underline"></i></div>
+      <div class="ft-btn" title="Strikethrough"><i class="fa fa-strikethrough"></i></div>
+      <div class="ft-sep"></div>
+      <div class="ft-btn" title="Code"><i class="fa fa-code"></i></div>
+      <div class="ft-btn" title="Link"><i class="fa fa-link"></i></div>
+      <div class="ft-sep"></div>
+      <div class="ft-btn" title="Align left"><i class="fa fa-align-left"></i></div>
+      <div class="ft-btn" title="Align center"><i class="fa fa-align-center"></i></div>
+      <div class="ft-btn" title="Align right"><i class="fa fa-align-right"></i></div>
+      <div class="ft-sep"></div>
+      <div class="ft-btn" title="Comment"><i class="fa fa-comment"></i></div>
+      <div class="ft-btn" title="More"><i class="fa fa-ellipsis"></i></div>
+    </div>
+  </div>
+  <div style="margin-bottom:20px">
+    <div style="font-family:var(--font-mono);font-size:9px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Block Handle</div>
+    <div class="row">
+      <div class="block-handle"><i class="fa fa-grip-vertical"></i> <span>Paragraph</span> <i class="fa fa-chevron-down" style="margin-left:2px"></i></div>
+      <div class="block-handle"><i class="fa fa-grip-vertical"></i> <span>Code Block</span> <i class="fa fa-chevron-down" style="margin-left:2px"></i></div>
+      <div class="block-handle"><i class="fa fa-grip-vertical"></i> <span>Image</span> <i class="fa fa-chevron-down" style="margin-left:2px"></i></div>
+    </div>
+  </div>
+  <div style="margin-bottom:20px">
+    <div style="font-family:var(--font-mono);font-size:9px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Properties Panel</div>
+    <div style="background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);padding:0 14px;max-width:280px;box-shadow:var(--shadow-sm)">
+      <div class="prop-row"><span class="prop-key">Type</span><span class="prop-val">Article</span></div>
+      <div class="prop-row"><span class="prop-key">Status</span><span style="font-size:12px"><span class="status-dot dot-green" style="margin-right:4px"></span>Published</span></div>
+      <div class="prop-row"><span class="prop-key">Word count</span><span class="prop-val">1,842</span></div>
+      <div class="prop-row"><span class="prop-key">Read time</span><span class="prop-val">7 min</span></div>
+      <div class="prop-row"><span class="prop-key">Created</span><span class="prop-val">Mar 11</span></div>
+      <div class="prop-row"><span class="prop-key">Updated</span><span class="prop-val">2h ago</span></div>
+    </div>
+  </div>
+  <div>
+    <div style="font-family:var(--font-mono);font-size:9px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Canvas Toolbar</div>
+    <div class="canvas-tb">
+      <div class="ct-btn active"><i class="fa fa-arrow-pointer"></i> Select</div>
+      <div class="ct-btn"><i class="fa fa-hand"></i> Pan</div>
+      <div class="ct-sep"></div>
+      <div class="ct-btn"><i class="fa fa-square"></i> Frame</div>
+      <div class="ct-btn"><i class="fa fa-shapes"></i> Shape</div>
+      <div class="ct-btn"><i class="fa fa-font"></i> Text</div>
+      <div class="ct-btn"><i class="fa fa-image"></i> Image</div>
+      <div class="ct-sep"></div>
+      <div class="ct-btn"><i class="fa fa-magnifying-glass-plus"></i></div>
+      <div class="ct-btn"><i class="fa fa-magnifying-glass-minus"></i></div>
+      <div class="ct-btn" style="font-family:var(--font-mono);font-size:10px">100%</div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<script>
+// Sidebar active state on scroll
+const sections = document.querySelectorAll('.sec')
+const links = document.querySelectorAll('.sb a')
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      links.forEach(l => l.classList.remove('active'))
+      const active = document.querySelector(`.sb a[href="#${e.target.id}"]`)
+      if (active) active.classList.add('active')
+    }
+  })
+}, {threshold: .2})
+sections.forEach(s => obs.observe(s))
+</script>
+</body>
+</html>

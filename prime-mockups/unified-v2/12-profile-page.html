@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kwabena Agyeman — Profile</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#fafaf9;--surface:#ffffff;--surface2:#f4f4f2;--surface3:#eaeae7;
+  --border:#1a1a1a;--border2:#d4d4d0;--text:#1a1a1a;--text-dim:#6b6b66;
+  --text-faint:#a3a39e;--accent:#5b9cf6;--accent-bg:rgba(91,156,246,0.08);
+  --accent-border:rgba(91,156,246,0.25);--green:#22c55e;--green-bg:rgba(34,197,94,0.08);
+  --yellow:#f59e0b;--yellow-bg:rgba(245,158,11,0.08);--red:#ef4444;
+  --red-bg:rgba(239,68,68,0.08);--purple:#8b5cf6;--purple-bg:rgba(139,92,246,0.08);
+  --teal:#14b8a6;--teal-bg:rgba(20,184,166,0.08);--pink:#ec4899;
+  --pink-bg:rgba(236,72,153,0.08);--radius:0px;--radius-lg:0px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.5;}
+
+/* TOPBAR */
+.topbar{background:var(--surface);border-bottom:2px solid var(--border);height:44px;display:flex;align-items:center;padding:0 24px;gap:16px;position:sticky;top:0;z-index:100;}
+.topbar-brand{font-size:13px;font-weight:700;color:var(--text);font-family:'JetBrains Mono',monospace;letter-spacing:-.02em;}
+.topbar-brand span{color:var(--accent);}
+.topbar-nav{display:flex;align-items:center;gap:4px;margin-left:16px;}
+.topbar-link{font-size:12px;color:var(--text-dim);padding:4px 10px;border-radius:var(--radius);cursor:pointer;border:none;background:none;text-decoration:none;}
+.topbar-link:hover{color:var(--text);background:var(--surface2);}
+.topbar-link.active{color:var(--text);background:var(--surface2);}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:8px;}
+.topbar-search{background:var(--surface2);border:2px solid var(--border);border-radius:var(--radius);padding:5px 10px;font-size:12px;color:var(--text);width:200px;display:flex;align-items:center;gap:8px;}
+.topbar-search input{background:none;border:none;outline:none;color:var(--text);font-size:12px;width:100%;font-family:system-ui;}
+.topbar-search input::placeholder{color:var(--text-faint);}
+.topbar-search i{color:var(--text-faint);font-size:11px;}
+.topbar-icon-btn{width:30px;height:30px;border-radius:var(--radius);background:none;border:2px solid var(--border);color:var(--text-dim);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;}
+.topbar-icon-btn:hover{background:var(--surface2);color:var(--text);}
+.av{display:flex;align-items:center;justify-content:center;border-radius:50%;font-weight:600;font-family:'JetBrains Mono',monospace;flex-shrink:0;background:var(--surface3);border:2px solid var(--border);color:var(--text-dim);}
+.av-sm{width:24px;height:24px;font-size:9px;}
+.av-md{width:32px;height:32px;font-size:11px;}
+.av-lg{width:48px;height:48px;font-size:15px;}
+.av-xl{width:80px;height:80px;font-size:22px;border-width:2px;}
+.btn{font-family:system-ui,-apple-system,sans-serif;font-size:12px;padding:6px 14px;border-radius:var(--radius);border:2px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;display:inline-flex;align-items:center;gap:6px;text-decoration:none;white-space:nowrap;}
+.btn:hover{background:var(--surface2);}
+.btn-primary{background:var(--accent);border-color:var(--border);color:#fff;box-shadow:4px 4px 0 #1a1a1a;}
+.btn-primary:hover{background:#4a8de5;}
+.btn-sm{padding:4px 10px;font-size:11px;}
+.tag{display:inline-flex;align-items:center;font-size:10px;font-family:'JetBrains Mono',monospace;padding:2px 8px;border-radius:0px;border:1px solid var(--border2);color:var(--text-dim);background:var(--surface2);}
+.tag-accent{border-color:var(--accent-border);color:var(--accent);background:var(--accent-bg);}
+.tag-green{border-color:rgba(34,197,94,.25);color:var(--green);background:var(--green-bg);}
+.tag-purple{border-color:rgba(139,92,246,.25);color:var(--purple);background:var(--purple-bg);}
+.tag-teal{border-color:rgba(20,184,166,.25);color:var(--teal);background:var(--teal-bg);}
+.tag-yellow{border-color:rgba(245,158,11,.25);color:var(--yellow);background:var(--yellow-bg);}
+.tag-row{display:flex;gap:6px;flex-wrap:wrap;}
+.card{background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+.card-body{padding:14px;}
+.divider{border:none;border-top:2px solid var(--border);margin:20px 0;}
+
+/* PROFILE HERO */
+.profile-hero{background:var(--surface2);border-bottom:2px solid var(--border);padding:40px 0 0;}
+.hero-inner{max-width:1080px;margin:0 auto;padding:0 32px;}
+.hero-top{display:flex;align-items:flex-start;gap:24px;margin-bottom:24px;}
+.hero-avatar-wrap{position:relative;flex-shrink:0;}
+.hero-avatar{width:80px;height:80px;border-radius:50%;background:var(--surface);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:700;color:var(--accent);font-family:'JetBrains Mono',monospace;}
+.verified-badge{position:absolute;bottom:2px;right:2px;width:20px;height:20px;border-radius:50%;background:var(--accent);border:2px solid var(--bg);display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff;}
+.hero-info{flex:1;min-width:0;}
+.hero-name{font-size:22px;font-weight:700;letter-spacing:-.02em;margin-bottom:2px;display:flex;align-items:center;gap:8px;}
+.hero-handle{font-size:13px;color:var(--text-dim);font-family:'JetBrains Mono',monospace;margin-bottom:6px;}
+.hero-headline{font-size:14px;font-weight:500;color:var(--text);margin-bottom:10px;}
+.hero-bio{font-size:12px;color:var(--text-dim);line-height:1.6;max-width:560px;margin-bottom:12px;}
+.hero-meta{display:flex;align-items:center;gap:16px;font-size:11px;color:var(--text-dim);margin-bottom:12px;font-family:'JetBrains Mono',monospace;}
+.hero-meta-item{display:flex;align-items:center;gap:5px;}
+.hero-meta-item a{color:var(--accent);text-decoration:none;}
+.hero-meta-item a:hover{text-decoration:underline;}
+.hero-actions{display:flex;align-items:center;gap:8px;margin-bottom:20px;}
+.hero-social{display:flex;align-items:center;gap:6px;}
+.social-btn{width:28px;height:28px;border-radius:var(--radius);background:var(--surface);border:2px solid var(--border);color:var(--text-dim);display:flex;align-items:center;justify-content:center;font-size:12px;cursor:pointer;text-decoration:none;}
+.social-btn:hover{background:var(--surface2);color:var(--text);}
+.hero-stats{display:flex;gap:0;border-top:2px solid var(--border);margin-top:24px;}
+.hero-stat{flex:1;padding:14px 20px;border-right:2px solid var(--border);cursor:pointer;}
+.hero-stat:last-child{border-right:none;}
+.hero-stat:hover{background:rgba(0,0,0,.02);}
+.hero-stat-val{font-size:18px;font-weight:700;color:var(--text);font-family:'JetBrains Mono',monospace;margin-bottom:2px;}
+.hero-stat-label{font-size:10px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.1em;font-family:'JetBrains Mono',monospace;}
+
+/* STICKY TABS */
+.profile-tabs{background:var(--surface);border-bottom:2px solid var(--border);position:sticky;top:44px;z-index:90;}
+.tabs-inner{max-width:1080px;margin:0 auto;padding:0 32px;display:flex;gap:2px;}
+.tab-btn{font-size:12px;color:var(--text-dim);padding:10px 14px;border:none;background:none;cursor:pointer;border-bottom:3px solid transparent;font-family:system-ui;display:flex;align-items:center;gap:6px;position:relative;top:2px;}
+.tab-btn:hover{color:var(--text);}
+.tab-btn.active{color:var(--text);border-bottom-color:var(--accent);}
+.tab-count{font-size:9px;font-family:'JetBrains Mono',monospace;background:var(--surface3);color:var(--text-faint);padding:1px 5px;border-radius:0px;}
+
+/* MAIN CONTENT */
+.profile-main{max-width:1080px;margin:0 auto;padding:32px;}
+
+/* SECTION HEADERS */
+.sec-head{display:flex;align-items:center;gap:12px;margin-bottom:16px;padding-bottom:10px;border-bottom:2px solid var(--border);}
+.sec-head h2{font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;font-family:'JetBrains Mono',monospace;color:var(--text-dim);}
+.sec-sub{font-size:11px;color:var(--text-faint);margin-left:auto;font-family:'JetBrains Mono',monospace;}
+
+/* PROJECT CARDS */
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+.project-card{background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);overflow:hidden;cursor:pointer;box-shadow:4px 4px 0 #1a1a1a;transition:box-shadow .15s,transform .15s;}
+.project-card:hover{transform:translate(-1px,-1px);box-shadow:5px 5px 0 #1a1a1a;}
+.project-thumb{height:140px;background:var(--surface2);position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;}
+.project-thumb-gradient-1{background:var(--accent-bg);}
+.project-thumb-gradient-2{background:var(--green-bg);}
+.project-thumb-gradient-3{background:var(--purple-bg);}
+.project-thumb-gradient-4{background:var(--yellow-bg);}
+.project-thumb-gradient-5{background:var(--teal-bg);}
+.project-thumb-gradient-6{background:var(--pink-bg);}
+.thumb-grid{position:absolute;inset:0;background-image:linear-gradient(var(--border2) 1px,transparent 1px),linear-gradient(90deg,var(--border2) 1px,transparent 1px);background-size:20px 20px;opacity:.3;}
+.thumb-icon{position:relative;z-index:1;font-size:28px;opacity:.7;}
+.thumb-badge{position:absolute;top:8px;left:8px;z-index:2;}
+.thumb-views{position:absolute;top:8px;right:8px;font-size:9px;font-family:'JetBrains Mono',monospace;color:var(--text-dim);background:rgba(255,255,255,.85);padding:2px 6px;border-radius:0px;z-index:2;display:flex;align-items:center;gap:4px;border:1px solid var(--border2);}
+.project-body{padding:12px 14px;}
+.project-title{font-size:13px;font-weight:600;margin-bottom:4px;line-height:1.35;}
+.project-desc{font-size:11px;color:var(--text-dim);line-height:1.5;margin-bottom:10px;}
+.project-meta{display:flex;align-items:center;gap:8px;font-size:10px;color:var(--text-faint);font-family:'JetBrains Mono',monospace;}
+.project-meta-right{margin-left:auto;display:flex;align-items:center;gap:8px;}
+.project-stat{display:flex;align-items:center;gap:3px;}
+.project-stat i{font-size:9px;}
+
+/* ABOUT SECTION */
+.about-grid{display:grid;grid-template-columns:1fr 280px;gap:32px;align-items:start;}
+
+/* TIMELINE */
+.timeline{position:relative;padding-left:20px;}
+.timeline::before{content:'';position:absolute;left:6px;top:6px;bottom:6px;width:2px;background:var(--border2);}
+.tl-item{position:relative;margin-bottom:24px;}
+.tl-item:last-child{margin-bottom:0;}
+.tl-dot{position:absolute;left:-17px;top:4px;width:7px;height:7px;border-radius:0px;background:var(--border2);border:1px solid var(--border);}
+.tl-dot.active{background:var(--accent);border-color:var(--accent);}
+.tl-header{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:4px;}
+.tl-role{font-size:13px;font-weight:600;}
+.tl-period{font-size:10px;color:var(--text-faint);font-family:'JetBrains Mono',monospace;white-space:nowrap;margin-top:2px;}
+.tl-company{font-size:11px;color:var(--accent);font-family:'JetBrains Mono',monospace;margin-bottom:4px;}
+.tl-desc{font-size:11px;color:var(--text-dim);line-height:1.55;}
+
+/* AWARDS */
+.award-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:24px;}
+.award-card{background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);padding:12px;box-shadow:4px 4px 0 #1a1a1a;}
+.award-icon{font-size:18px;margin-bottom:6px;color:var(--accent);}
+.award-title{font-size:11px;font-weight:600;margin-bottom:2px;}
+.award-org{font-size:10px;color:var(--text-faint);font-family:'JetBrains Mono',monospace;}
+.award-year{font-size:9px;color:var(--text-faint);font-family:'JetBrains Mono',monospace;margin-top:4px;}
+
+/* SKILLS */
+.skills-section{margin-bottom:24px;}
+.skills-group{margin-bottom:16px;}
+.skills-group-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--text-faint);font-family:'JetBrains Mono',monospace;margin-bottom:8px;}
+.skill-bar-row{display:flex;align-items:center;gap:10px;margin-bottom:6px;}
+.skill-name{font-size:11px;color:var(--text-dim);width:130px;flex-shrink:0;font-family:'JetBrains Mono',monospace;}
+.skill-bar{flex:1;height:4px;background:var(--surface3);border-radius:0px;overflow:hidden;border:1px solid var(--border2);}
+.skill-fill{height:100%;border-radius:0px;background:var(--accent);}
+.skill-fill-green{background:var(--green);}
+.skill-fill-purple{background:var(--purple);}
+.skill-pct{font-size:9px;color:var(--text-faint);font-family:'JetBrains Mono',monospace;width:28px;text-align:right;}
+
+/* SIDEBAR */
+.sb-card{background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px;box-shadow:4px 4px 0 #1a1a1a;}
+.sb-title{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--text-faint);font-family:'JetBrains Mono',monospace;margin-bottom:12px;}
+.mini-project{display:flex;gap:10px;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border2);}
+.mini-project:last-child{margin-bottom:0;padding-bottom:0;border-bottom:none;}
+.mini-thumb{width:44px;height:36px;border-radius:var(--radius);background:var(--surface2);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px;border:2px solid var(--border);color:var(--accent);}
+.mini-title{font-size:11px;font-weight:500;margin-bottom:2px;line-height:1.3;}
+.mini-meta{font-size:10px;color:var(--text-faint);font-family:'JetBrains Mono',monospace;}
+.collab-item{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.collab-item:last-child{margin-bottom:0;}
+.collab-info{flex:1;min-width:0;}
+.collab-name{font-size:11px;font-weight:500;}
+.collab-role{font-size:10px;color:var(--text-dim);font-family:'JetBrains Mono',monospace;}
+
+/* FOOTER */
+footer{background:var(--surface);border-top:2px solid var(--border);padding:20px 32px;margin-top:40px;}
+.footer-inner{max-width:1080px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;}
+.footer-brand{font-size:12px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--text-dim);}
+.footer-brand span{color:var(--accent);}
+.footer-links{display:flex;gap:16px;}
+.footer-link{font-size:11px;color:var(--text-faint);text-decoration:none;}
+.footer-link:hover{color:var(--text-dim);}
+.footer-copy{font-size:10px;color:var(--text-faint);font-family:'JetBrains Mono',monospace;}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<nav class="topbar">
+  <div class="topbar-brand"><span>snap</span>lify</div>
+  <div class="topbar-nav">
+    <a class="topbar-link" href="#">Explore</a>
+    <a class="topbar-link" href="#">Projects</a>
+    <a class="topbar-link" href="#">Learn</a>
+    <a class="topbar-link" href="#">Hubs</a>
+    <a class="topbar-link" href="#">Contests</a>
+  </div>
+  <div class="topbar-right">
+    <div class="topbar-search">
+      <i class="fa fa-search"></i>
+      <input type="text" placeholder="Search projects, people...">
+    </div>
+    <button class="topbar-icon-btn"><i class="fa fa-bell"></i></button>
+    <button class="topbar-icon-btn"><i class="fa fa-plus"></i></button>
+    <div class="av av-sm" style="background:var(--accent-bg);color:var(--accent);">KA</div>
+  </div>
+</nav>
+
+<!-- PROFILE HERO -->
+<div class="profile-hero">
+  <div class="hero-inner">
+    <div class="hero-top">
+      <div class="hero-avatar-wrap">
+        <div class="hero-avatar">KA</div>
+        <div class="verified-badge"><i class="fa fa-check" style="font-size:7px;"></i></div>
+      </div>
+      <div class="hero-info">
+        <div class="hero-name">
+          Kwabena Agyeman
+          <span class="tag tag-accent" style="font-size:9px;padding:1px 6px;"><i class="fa-solid fa-bolt" style="font-size:8px;margin-right:3px;"></i>Top Creator</span>
+        </div>
+        <div class="hero-handle">@kwabena · joined Nov 2023</div>
+        <div class="hero-headline">Edge AI Engineer &amp; Hardware Maker</div>
+        <div class="hero-bio">
+          Building intelligent systems at the boundary of silicon and software. Passionate about deploying ML models on resource-constrained hardware—from TinyML microcontrollers to custom FPGA accelerators. Open source contributor and technical writer.
+        </div>
+        <div class="hero-meta">
+          <span class="hero-meta-item"><i class="fa fa-location-dot"></i> Accra, Ghana</span>
+          <span class="hero-meta-item"><i class="fa-solid fa-link"></i> <a href="#">kwabena.dev</a></span>
+          <span class="hero-meta-item"><i class="fa fa-briefcase"></i> Staff Engineer @ Arm Research</span>
+          <span class="hero-meta-item"><i class="fa fa-graduation-cap"></i> KNUST · MS Computer Engineering</span>
+        </div>
+        <div class="tag-row" style="margin-bottom:14px;">
+          <span class="tag tag-accent">Edge AI</span>
+          <span class="tag tag-green">TinyML</span>
+          <span class="tag tag-purple">FPGA Design</span>
+          <span class="tag tag-teal">Computer Vision</span>
+          <span class="tag tag-yellow">RISC-V</span>
+          <span class="tag">Embedded C</span>
+          <span class="tag">PyTorch</span>
+          <span class="tag">ONNX Runtime</span>
+          <span class="tag">Linux BSP</span>
+          <span class="tag">Hardware Security</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:16px;">
+          <div class="hero-actions">
+            <button class="btn btn-primary"><i class="fa fa-user-plus"></i> Follow</button>
+            <button class="btn"><i class="fa fa-envelope"></i> Message</button>
+            <button class="btn btn-sm"><i class="fa fa-share-nodes"></i></button>
+            <button class="btn btn-sm"><i class="fa fa-ellipsis"></i></button>
+          </div>
+          <div class="hero-social">
+            <a class="social-btn" href="#" title="GitHub"><i class="fa-brands fa-github"></i></a>
+            <a class="social-btn" href="#" title="Twitter/X"><i class="fa-brands fa-x-twitter"></i></a>
+            <a class="social-btn" href="#" title="LinkedIn"><i class="fa-brands fa-linkedin"></i></a>
+            <a class="social-btn" href="#" title="YouTube"><i class="fa-brands fa-youtube"></i></a>
+            <a class="social-btn" href="#" title="Mastodon"><i class="fa-brands fa-mastodon"></i></a>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="hero-stats">
+      <div class="hero-stat">
+        <div class="hero-stat-val">24</div>
+        <div class="hero-stat-label">Projects</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-val">1.2k</div>
+        <div class="hero-stat-label">Followers</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-val">48</div>
+        <div class="hero-stat-label">Following</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-val">17</div>
+        <div class="hero-stat-label">Articles</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-val">8.4k</div>
+        <div class="hero-stat-label">Total Views</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-val">312</div>
+        <div class="hero-stat-label">Likes</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- STICKY TABS -->
+<div class="profile-tabs">
+  <div class="tabs-inner">
+    <button class="tab-btn active"><i class="fa fa-folder-open" style="font-size:10px;"></i> Projects <span class="tab-count">24</span></button>
+    <button class="tab-btn"><i class="fa fa-newspaper" style="font-size:10px;"></i> Articles <span class="tab-count">17</span></button>
+    <button class="tab-btn"><i class="fa fa-book-open" style="font-size:10px;"></i> Explainers <span class="tab-count">6</span></button>
+    <button class="tab-btn"><i class="fa fa-play" style="font-size:10px;"></i> Videos <span class="tab-count">9</span></button>
+    <button class="tab-btn"><i class="fa fa-id-card" style="font-size:10px;"></i> About</button>
+  </div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="profile-main">
+
+  <!-- PROJECTS SECTION -->
+  <div style="margin-bottom:32px;">
+    <div class="sec-head">
+      <h2><i class="fa fa-folder-open" style="color:var(--accent);margin-right:6px;"></i>Projects</h2>
+      <div style="display:flex;gap:6px;margin-left:auto;">
+        <button class="btn btn-sm"><i class="fa fa-filter" style="font-size:10px;"></i> Filter</button>
+        <button class="btn btn-sm">Latest</button>
+        <button class="btn btn-sm btn-primary"><i class="fa fa-plus" style="font-size:10px;"></i> New Project</button>
+      </div>
+    </div>
+
+    <!-- Filter chips -->
+    <div class="tag-row" style="margin-bottom:18px;">
+      <span class="tag tag-accent">All (24)</span>
+      <span class="tag">Edge AI (9)</span>
+      <span class="tag">FPGA (5)</span>
+      <span class="tag">TinyML (6)</span>
+      <span class="tag">Open Source (14)</span>
+      <span class="tag">Award Winners (3)</span>
+    </div>
+
+    <div class="grid-3">
+
+      <!-- Project Card 1 -->
+      <div class="project-card">
+        <div class="project-thumb project-thumb-gradient-1">
+          <div class="thumb-grid"></div>
+          <div class="thumb-icon" style="color:var(--accent);"><i class="fa-solid fa-brain"></i></div>
+          <div class="thumb-badge"><span class="tag tag-accent" style="font-size:9px;">Featured</span></div>
+          <div class="thumb-views"><i class="fa fa-eye"></i> 2.4k</div>
+        </div>
+        <div class="project-body">
+          <div class="project-title">NeuralEdge: ONNX Inference on RP2040</div>
+          <div class="project-desc">Real-time neural network inference running at 50fps on a $4 microcontroller. Custom quantization pipeline and memory-mapped SRAM optimizer.</div>
+          <div class="tag-row" style="margin-bottom:8px;"><span class="tag">TinyML</span><span class="tag tag-green">Open Source</span></div>
+          <div class="project-meta">
+            <div class="project-stat"><i class="fa-solid fa-heart" style="color:var(--red);"></i> 148</div>
+            <div class="project-stat"><i class="fa-solid fa-comment"></i> 34</div>
+            <div class="project-meta-right">
+              <span style="font-size:9px;color:var(--text-faint);">2w ago</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Project Card 2 -->
+      <div class="project-card">
+        <div class="project-thumb project-thumb-gradient-3">
+          <div class="thumb-grid"></div>
+          <div class="thumb-icon" style="color:var(--purple);"><i class="fa-solid fa-bolt"></i></div>
+          <div class="thumb-badge"><span class="tag tag-yellow" style="font-size:9px;"><i class="fa-solid fa-trophy" style="font-size:8px;margin-right:3px;"></i> Winner</span></div>
+          <div class="thumb-views"><i class="fa fa-eye"></i> 1.8k</div>
+        </div>
+        <div class="project-body">
+          <div class="project-title">FPGA-Based CNN Accelerator (Artix-7)</div>
+          <div class="project-desc">Pipelined systolic array architecture achieving 4.2 TOPS/W on MobileNetV3. Fully open RTL, verification suite, and hardware profiler.</div>
+          <div class="tag-row" style="margin-bottom:8px;"><span class="tag tag-purple">FPGA</span><span class="tag">Verilog</span></div>
+          <div class="project-meta">
+            <div class="project-stat"><i class="fa-solid fa-heart" style="color:var(--red);"></i> 203</div>
+            <div class="project-stat"><i class="fa-solid fa-comment"></i> 51</div>
+            <div class="project-meta-right">
+              <span style="font-size:9px;color:var(--text-faint);">1mo ago</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Project Card 3 -->
+      <div class="project-card">
+        <div class="project-thumb project-thumb-gradient-2">
+          <div class="thumb-grid"></div>
+          <div class="thumb-icon" style="color:var(--green);"><i class="fa-solid fa-eye"></i></div>
+          <div class="thumb-views"><i class="fa fa-eye"></i> 967</div>
+        </div>
+        <div class="project-body">
+          <div class="project-title">Embedded Vision Pipeline for Precision Ag</div>
+          <div class="project-desc">Crop disease detection model deployed on Jetson Nano for offline field diagnostics. Trained on 40k annotated images across 12 common pathogens.</div>
+          <div class="tag-row" style="margin-bottom:8px;"><span class="tag tag-teal">CV</span><span class="tag tag-green">AgriTech</span></div>
+          <div class="project-meta">
+            <div class="project-stat"><i class="fa-solid fa-heart" style="color:var(--red);"></i> 97</div>
+            <div class="project-stat"><i class="fa-solid fa-comment"></i> 22</div>
+            <div class="project-meta-right">
+              <span style="font-size:9px;color:var(--text-faint);">2mo ago</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Project Card 4 -->
+      <div class="project-card">
+        <div class="project-thumb project-thumb-gradient-5">
+          <div class="thumb-grid"></div>
+          <div class="thumb-icon" style="color:var(--teal);"><i class="fa-solid fa-volume-high"></i></div>
+          <div class="thumb-views"><i class="fa fa-eye"></i> 734</div>
+        </div>
+        <div class="project-body">
+          <div class="project-title">Wake Word Engine on Cortex-M4 (8kB RAM)</div>
+          <div class="project-desc">Ultra-low-power keyword spotting in 8KB SRAM. Custom MFCC pipeline, binary quantized RNN, and always-on DMA audio capture.</div>
+          <div class="tag-row" style="margin-bottom:8px;"><span class="tag">TinyML</span><span class="tag">Audio DSP</span></div>
+          <div class="project-meta">
+            <div class="project-stat"><i class="fa-solid fa-heart" style="color:var(--red);"></i> 81</div>
+            <div class="project-stat"><i class="fa-solid fa-comment"></i> 18</div>
+            <div class="project-meta-right">
+              <span style="font-size:9px;color:var(--text-faint);">3mo ago</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Project Card 5 -->
+      <div class="project-card">
+        <div class="project-thumb project-thumb-gradient-4">
+          <div class="thumb-grid"></div>
+          <div class="thumb-icon" style="color:var(--yellow);"><i class="fa-solid fa-lock"></i></div>
+          <div class="thumb-badge"><span class="tag" style="font-size:9px;background:var(--red-bg);color:var(--red);border-color:rgba(239,68,68,.25);">Research</span></div>
+          <div class="thumb-views"><i class="fa fa-eye"></i> 1.1k</div>
+        </div>
+        <div class="project-body">
+          <div class="project-title">Side-Channel Attack Mitigation for ML Inference</div>
+          <div class="project-desc">Countermeasures against power analysis attacks on edge ML accelerators. Demonstrated 94% attack success reduction with &lt;3% overhead.</div>
+          <div class="tag-row" style="margin-bottom:8px;"><span class="tag tag-yellow">Security</span><span class="tag">Research</span></div>
+          <div class="project-meta">
+            <div class="project-stat"><i class="fa-solid fa-heart" style="color:var(--red);"></i> 116</div>
+            <div class="project-stat"><i class="fa-solid fa-comment"></i> 29</div>
+            <div class="project-meta-right">
+              <span style="font-size:9px;color:var(--text-faint);">4mo ago</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Project Card 6 -->
+      <div class="project-card">
+        <div class="project-thumb project-thumb-gradient-6">
+          <div class="thumb-grid"></div>
+          <div class="thumb-icon" style="color:var(--pink);"><i class="fa-solid fa-microchip"></i></div>
+          <div class="thumb-views"><i class="fa fa-eye"></i> 542</div>
+        </div>
+        <div class="project-body">
+          <div class="project-title">RISC-V Custom ISA Extensions for ML</div>
+          <div class="project-desc">Custom SIMD extensions for the PicoRV32 core targeting matrix multiply workloads. Achieved 6x speedup on MobileNet forward pass.</div>
+          <div class="tag-row" style="margin-bottom:8px;"><span class="tag tag-yellow">RISC-V</span><span class="tag">RTL</span></div>
+          <div class="project-meta">
+            <div class="project-stat"><i class="fa-solid fa-heart" style="color:var(--red);"></i> 74</div>
+            <div class="project-stat"><i class="fa-solid fa-comment"></i> 16</div>
+            <div class="project-meta-right">
+              <span style="font-size:9px;color:var(--text-faint);">5mo ago</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div style="text-align:center;margin-top:20px;">
+      <button class="btn"><i class="fa fa-arrow-down"></i> Load 18 more projects</button>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ABOUT SECTION -->
+  <div class="about-grid">
+    <div>
+      <!-- Experience -->
+      <div style="margin-bottom:32px;">
+        <div class="sec-head">
+          <h2><i class="fa fa-briefcase" style="color:var(--accent);margin-right:6px;"></i>Experience</h2>
+        </div>
+        <div class="timeline">
+          <div class="tl-item">
+            <div class="tl-dot active"></div>
+            <div class="tl-header">
+              <div>
+                <div class="tl-role">Staff Engineer, Edge AI Platform</div>
+                <div class="tl-company">Arm Research · Cambridge, UK (Remote)</div>
+              </div>
+              <div class="tl-period">Jan 2024 — Present</div>
+            </div>
+            <div class="tl-desc">Leading research into neural network compilation toolchains for Cortex-M and Ethos-U NPU targets. Core contributor to MLIR-based backend for Arm Compute Library. Published 3 papers at MICRO and ISCA.</div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot"></div>
+            <div class="tl-header">
+              <div>
+                <div class="tl-role">Senior Embedded AI Engineer</div>
+                <div class="tl-company">Cheetah Mobile · Shenzhen, CN</div>
+              </div>
+              <div class="tl-period">Mar 2022 — Dec 2023</div>
+            </div>
+            <div class="tl-desc">Shipped TinyML inference engine used across 12M IoT devices. Reduced model memory footprint by 68% via hybrid INT4/INT8 quantization and custom packing formats.</div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot"></div>
+            <div class="tl-header">
+              <div>
+                <div class="tl-role">ML Systems Engineer</div>
+                <div class="tl-company">Twiga Foods · Nairobi, KE</div>
+              </div>
+              <div class="tl-period">Jun 2020 — Feb 2022</div>
+            </div>
+            <div class="tl-desc">Built and deployed offline-capable ML pipelines on Raspberry Pi CM4 clusters for supply chain quality inspection across rural distribution hubs.</div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot"></div>
+            <div class="tl-header">
+              <div>
+                <div class="tl-role">Research Assistant, VLSI Lab</div>
+                <div class="tl-company">KNUST · Kumasi, GH</div>
+              </div>
+              <div class="tl-period">Sep 2018 — May 2020</div>
+            </div>
+            <div class="tl-desc">Masters research on low-power FPGA accelerators for biomedical signal processing. Designed 4-channel ECG anomaly detector with 18mW power envelope.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Awards -->
+      <div style="margin-bottom:32px;">
+        <div class="sec-head">
+          <h2><i class="fa-solid fa-trophy" style="color:var(--yellow);margin-right:6px;"></i>Awards &amp; Recognition</h2>
+        </div>
+        <div class="award-grid">
+          <div class="award-card">
+            <div class="award-icon"><i class="fa-solid fa-medal"></i></div>
+            <div class="award-title">Best Hardware Project</div>
+            <div class="award-org">Snaplify Edge AI Challenge 2025</div>
+            <div class="award-year">2025 · $5,000 prize</div>
+          </div>
+          <div class="award-card">
+            <div class="award-icon"><i class="fa-solid fa-award"></i></div>
+            <div class="award-title">Distinguished Paper Award</div>
+            <div class="award-org">ISCA 2024 · Computer Architecture</div>
+            <div class="award-year">2024</div>
+          </div>
+          <div class="award-card">
+            <div class="award-icon"><i class="fa-solid fa-globe"></i></div>
+            <div class="award-title">Africa AI Pioneer</div>
+            <div class="award-org">AMLD Africa · Kigali Summit</div>
+            <div class="award-year">2023</div>
+          </div>
+          <div class="award-card">
+            <div class="award-icon"><i class="fa-solid fa-star"></i></div>
+            <div class="award-title">Top 50 Emerging Engineers</div>
+            <div class="award-org">IEEE Young Professionals</div>
+            <div class="award-year">2022</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Skills -->
+      <div class="skills-section">
+        <div class="sec-head">
+          <h2><i class="fa fa-microchip" style="color:var(--teal);margin-right:6px;"></i>Skills</h2>
+        </div>
+        <div class="skills-group">
+          <div class="skills-group-label">ML / AI Frameworks</div>
+          <div class="skill-bar-row"><span class="skill-name">PyTorch</span><div class="skill-bar"><div class="skill-fill" style="width:92%;"></div></div><span class="skill-pct">92%</span></div>
+          <div class="skill-bar-row"><span class="skill-name">TensorFlow Lite</span><div class="skill-bar"><div class="skill-fill" style="width:88%;"></div></div><span class="skill-pct">88%</span></div>
+          <div class="skill-bar-row"><span class="skill-name">ONNX Runtime</span><div class="skill-bar"><div class="skill-fill" style="width:85%;"></div></div><span class="skill-pct">85%</span></div>
+          <div class="skill-bar-row"><span class="skill-name">MLIR / LLVM</span><div class="skill-bar"><div class="skill-fill" style="width:78%;"></div></div><span class="skill-pct">78%</span></div>
+        </div>
+        <div class="skills-group">
+          <div class="skills-group-label">Hardware / RTL</div>
+          <div class="skill-bar-row"><span class="skill-name">Verilog / SystemV</span><div class="skill-bar"><div class="skill-fill skill-fill-green" style="width:89%;"></div></div><span class="skill-pct">89%</span></div>
+          <div class="skill-bar-row"><span class="skill-name">Vivado / Quartus</span><div class="skill-bar"><div class="skill-fill skill-fill-green" style="width:84%;"></div></div><span class="skill-pct">84%</span></div>
+          <div class="skill-bar-row"><span class="skill-name">RISC-V ISA</span><div class="skill-bar"><div class="skill-fill skill-fill-green" style="width:76%;"></div></div><span class="skill-pct">76%</span></div>
+          <div class="skill-bar-row"><span class="skill-name">KiCad PCB Design</span><div class="skill-bar"><div class="skill-fill skill-fill-green" style="width:65%;"></div></div><span class="skill-pct">65%</span></div>
+        </div>
+        <div class="skills-group">
+          <div class="skills-group-label">Languages &amp; Systems</div>
+          <div class="skill-bar-row"><span class="skill-name">C / C++</span><div class="skill-bar"><div class="skill-fill skill-fill-purple" style="width:94%;"></div></div><span class="skill-pct">94%</span></div>
+          <div class="skill-bar-row"><span class="skill-name">Python</span><div class="skill-bar"><div class="skill-fill skill-fill-purple" style="width:91%;"></div></div><span class="skill-pct">91%</span></div>
+          <div class="skill-bar-row"><span class="skill-name">Rust</span><div class="skill-bar"><div class="skill-fill skill-fill-purple" style="width:62%;"></div></div><span class="skill-pct">62%</span></div>
+          <div class="skill-bar-row"><span class="skill-name">Linux Kernel</span><div class="skill-bar"><div class="skill-fill skill-fill-purple" style="width:73%;"></div></div><span class="skill-pct">73%</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SIDEBAR -->
+    <div>
+      <div class="sb-card">
+        <div class="sb-title">Featured Projects</div>
+        <div class="mini-project">
+          <div class="mini-thumb" style="background:var(--accent-bg);"><i class="fa-solid fa-brain"></i></div>
+          <div>
+            <div class="mini-title">NeuralEdge: ONNX on RP2040</div>
+            <div class="mini-meta">2.4k views · 148 <i class="fa-solid fa-heart" style="font-size:9px;color:var(--red);"></i></div>
+          </div>
+        </div>
+        <div class="mini-project">
+          <div class="mini-thumb" style="background:var(--purple-bg);"><i class="fa-solid fa-bolt"></i></div>
+          <div>
+            <div class="mini-title">FPGA CNN Accelerator (Artix-7)</div>
+            <div class="mini-meta">1.8k views · 203 <i class="fa-solid fa-heart" style="font-size:9px;color:var(--red);"></i></div>
+          </div>
+        </div>
+        <div class="mini-project">
+          <div class="mini-thumb" style="background:var(--yellow-bg);"><i class="fa-solid fa-lock"></i></div>
+          <div>
+            <div class="mini-title">Side-Channel Attack Mitigation</div>
+            <div class="mini-meta">1.1k views · 116 <i class="fa-solid fa-heart" style="font-size:9px;color:var(--red);"></i></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sb-card">
+        <div class="sb-title">Collaborators</div>
+        <div class="collab-item">
+          <div class="av av-sm" style="background:var(--green-bg);color:var(--green);">AM</div>
+          <div class="collab-info">
+            <div class="collab-name">Amara Mensah</div>
+            <div class="collab-role">co-author · 6 projects</div>
+          </div>
+          <button class="btn btn-sm" style="font-size:10px;padding:3px 8px;">Follow</button>
+        </div>
+        <div class="collab-item">
+          <div class="av av-sm" style="background:var(--purple-bg);color:var(--purple);">LO</div>
+          <div class="collab-info">
+            <div class="collab-name">Lena Owusu</div>
+            <div class="collab-role">co-author · 3 projects</div>
+          </div>
+          <button class="btn btn-sm" style="font-size:10px;padding:3px 8px;">Follow</button>
+        </div>
+        <div class="collab-item">
+          <div class="av av-sm" style="background:var(--yellow-bg);color:var(--yellow);">BT</div>
+          <div class="collab-info">
+            <div class="collab-name">Babatunde Rasheed</div>
+            <div class="collab-role">co-author · 2 projects</div>
+          </div>
+          <button class="btn btn-sm" style="font-size:10px;padding:3px 8px;">Follow</button>
+        </div>
+      </div>
+
+      <div class="sb-card">
+        <div class="sb-title">Active In</div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div style="width:24px;height:24px;border-radius:0px;background:var(--accent-bg);border:2px solid var(--accent-border);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--accent);"><i class="fa-solid fa-wrench"></i></div>
+              <span style="font-size:11px;">Edge AI Builders</span>
+            </div>
+            <span class="tag tag-accent" style="font-size:9px;">Moderator</span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div style="width:24px;height:24px;border-radius:0px;background:var(--purple-bg);border:2px solid rgba(139,92,246,.25);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--purple);"><i class="fa-solid fa-bolt"></i></div>
+              <span style="font-size:11px;">FPGA Enthusiasts</span>
+            </div>
+            <span class="tag" style="font-size:9px;">Member</span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div style="width:24px;height:24px;border-radius:0px;background:var(--green-bg);border:2px solid rgba(34,197,94,.25);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--green);"><i class="fa-solid fa-seedling"></i></div>
+              <span style="font-size:11px;">AfricaTech Makers</span>
+            </div>
+            <span class="tag" style="font-size:9px;">Member</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sb-card">
+        <div class="sb-title">Activity Heatmap</div>
+        <div style="font-size:10px;color:var(--text-faint);font-family:'JetBrains Mono',monospace;margin-bottom:8px;">Last 12 weeks · 38 contributions</div>
+        <div style="display:grid;grid-template-columns:repeat(12,1fr);gap:2px;">
+          <!-- Mini heatmap -->
+          <div style="display:contents;" id="heatmap">
+          </div>
+        </div>
+        <script>
+          const hm = document.getElementById('heatmap');
+          const vals = [2,0,3,1,4,2,0,3,2,4,1,3,0,2,3,4,1,0,2,3,1,4,2,0,3,2,4,1,3,0,2,3,4,2,0,3,1,4,2,1,3,2,0,4,1,3,2,4,0,3,1,2,3,4,2,1,0,3,2,4,1,2,3,0,4,2,1,3,2,4,0,3,1,2,4,3,0,2,1,4,3,2,0,4];
+          const colors = ['var(--surface3)','rgba(91,156,246,.2)','rgba(91,156,246,.4)','rgba(91,156,246,.65)','var(--accent)'];
+          vals.forEach(v => {
+            const d = document.createElement('div');
+            d.style.cssText = `width:100%;aspect-ratio:1;border-radius:0px;background:${colors[v]};`;
+            hm.appendChild(d);
+          });
+        </script>
+        <div style="display:flex;align-items:center;gap:4px;margin-top:6px;">
+          <span style="font-size:9px;color:var(--text-faint);font-family:'JetBrains Mono',monospace;">Less</span>
+          <div style="width:8px;height:8px;border-radius:0px;background:var(--surface3);"></div>
+          <div style="width:8px;height:8px;border-radius:0px;background:rgba(91,156,246,.3);"></div>
+          <div style="width:8px;height:8px;border-radius:0px;background:rgba(91,156,246,.6);"></div>
+          <div style="width:8px;height:8px;border-radius:0px;background:var(--accent);"></div>
+          <span style="font-size:9px;color:var(--text-faint);font-family:'JetBrains Mono',monospace;">More</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand"><span>snap</span>lify</div>
+    <div class="footer-links">
+      <a class="footer-link" href="#">About</a>
+      <a class="footer-link" href="#">Blog</a>
+      <a class="footer-link" href="#">Careers</a>
+      <a class="footer-link" href="#">Terms</a>
+      <a class="footer-link" href="#">Privacy</a>
+      <a class="footer-link" href="#">Help</a>
+    </div>
+    <div class="footer-copy">&copy; 2026 Snaplify, Inc.</div>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -68,22 +68,21 @@
 <style>
   .admin-report-card {
     padding: var(--space-4, 1rem);
-    border: var(--border-width-thin, 1px) solid var(--color-border, #e5e7eb);
-    border-radius: var(--radius-lg, 0.5rem);
-    background: var(--color-surface-raised, #fff);
-    font-family: var(--font-body, sans-serif);
+    border: 1px solid var(--color-border, #272725);
+    border-radius: var(--radius-sm, 4px);
+    background: var(--color-surface-alt, #141413);
   }
 
   .admin-report-card--pending {
-    border-left: 3px solid var(--color-warning, #f59e0b);
+    border-left: 3px solid var(--color-warning, #fbbf24);
   }
 
   .admin-report-card--resolved {
-    border-left: 3px solid var(--color-success, #22c55e);
+    border-left: 3px solid var(--color-success, #4ade80);
   }
 
   .admin-report-card--dismissed {
-    border-left: 3px solid var(--color-text-muted, #888);
+    border-left: 3px solid var(--color-text-muted, #444440);
   }
 
   .admin-report-card__header {
@@ -100,24 +99,27 @@
   }
 
   .admin-report-card__status {
-    font-size: var(--text-xs, 0.6875rem);
-    font-weight: var(--font-weight-medium, 500);
-    color: var(--color-text-secondary, #555);
+    font-family: var(--font-mono, monospace);
+    font-size: 9px;
     text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-text-secondary, #888884);
   }
 
   .admin-report-card__meta {
     display: flex;
     gap: var(--space-3, 0.75rem);
-    font-size: var(--text-xs, 0.6875rem);
-    color: var(--color-text-muted, #888);
+    font-family: var(--font-mono, monospace);
+    font-size: 10px;
+    color: var(--color-text-muted, #444440);
     margin-bottom: var(--space-2, 0.5rem);
   }
 
   .admin-report-card__description {
     font-size: var(--text-sm, 0.75rem);
-    color: var(--color-text-secondary, #555);
+    color: var(--color-text-secondary, #888884);
     margin: var(--space-2, 0.5rem) 0;
+    line-height: 1.5;
   }
 
   .admin-report-card__actions {
@@ -127,30 +129,33 @@
   }
 
   .admin-report-card__btn {
-    padding: var(--space-1, 0.25rem) var(--space-3, 0.75rem);
-    font-family: var(--font-body, sans-serif);
-    font-size: var(--text-sm, 0.75rem);
-    font-weight: var(--font-weight-medium, 500);
-    border: var(--border-width-thin, 1px) solid var(--color-border, #e5e7eb);
-    border-radius: var(--radius-md, 0.25rem);
+    font-family: var(--font-mono, monospace);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 4px 12px;
+    border: 1px solid var(--color-border, #272725);
+    border-radius: var(--radius-sm, 4px);
     cursor: pointer;
-    background: var(--color-surface, #fff);
-    color: var(--color-text, #d8d5cf);
   }
 
   .admin-report-card__btn:focus {
     outline: none;
-    box-shadow: var(--focus-ring);
+    border-color: var(--color-accent, #5b9cf6);
   }
 
   .admin-report-card__btn--resolve {
-    background: var(--color-success, #22c55e);
-    color: var(--color-text-inverse, #fff);
-    border-color: var(--color-success, #22c55e);
+    background: var(--color-success, #4ade80);
+    color: var(--color-bg, #0c0c0b);
+    border-color: var(--color-success, #4ade80);
   }
 
   .admin-report-card__btn--dismiss {
-    background: var(--color-surface-alt, #f8f9fa);
-    color: var(--color-text-secondary, #555);
+    background: transparent;
+    color: var(--color-text-secondary, #888884);
+  }
+
+  .admin-report-card__btn--dismiss:hover {
+    background: var(--color-surface-hover, #222220);
   }
 </style>

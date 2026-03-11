@@ -1,0 +1,2259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Explainer Editor — How Neural Networks Learn</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+:root {
+  --bg:         #fafaf9;
+  --surface:    #ffffff;
+  --surface2:   #f4f4f2;
+  --surface3:   #eaeae7;
+  --border:     #1a1a1a;
+  --border2:    #d4d4d0;
+  --text:       #1a1a1a;
+  --text-dim:   #6b6b66;
+  --text-faint: #a3a39e;
+  --accent:     #5b9cf6;
+  --accent-bg:  rgba(91,156,246,0.08);
+  --accent-border: rgba(91,156,246,0.25);
+  --green:      #22c55e;
+  --green-bg:   rgba(34,197,94,0.08);
+  --green-border: rgba(34,197,94,0.20);
+  --yellow:     #f59e0b;
+  --yellow-bg:  rgba(245,158,11,0.08);
+  --yellow-border: rgba(245,158,11,0.20);
+  --red:        #ef4444;
+  --red-bg:     rgba(239,68,68,0.08);
+  --red-border: rgba(239,68,68,0.20);
+  --purple:     #8b5cf6;
+  --teal:       #14b8a6;
+  --pink:       #ec4899;
+  --radius:     0px;
+  --radius-lg:  0px;
+  --mono: 'JetBrains Mono', monospace;
+}
+*,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.5;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  height: 100vh;
+}
+
+/* ── SCROLLBARS ── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 0px; }
+
+/* ══════════════════════════════════════
+   TOP BAR
+══════════════════════════════════════ */
+.topbar {
+  height: 40px;
+  background: var(--surface);
+  border-bottom: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  gap: 0;
+  flex-shrink: 0;
+  z-index: 100;
+}
+
+.tb-logo {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding-right: 14px;
+  margin-right: 4px;
+  cursor: pointer;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+.tb-wordmark {
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+.tb-wordmark span { color: var(--accent); }
+
+.tb-div {
+  width: 2px;
+  height: 18px;
+  background: var(--border);
+  margin: 0 10px;
+  flex-shrink: 0;
+}
+
+.tb-icon-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  border-radius: 0px;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 11px;
+  transition: background 0.12s, color 0.12s;
+  flex-shrink: 0;
+}
+.tb-icon-btn:hover { background: var(--surface3); color: var(--text); }
+.tb-icon-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+.tb-unsaved-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--yellow);
+  flex-shrink: 0;
+  animation: pulse-dot 2.5s ease-in-out infinite;
+}
+@keyframes pulse-dot {
+  0%,100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+.tb-title {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text);
+  background: none;
+  border: 2px solid transparent;
+  border-radius: 0px;
+  padding: 3px 7px;
+  outline: none;
+  cursor: text;
+  transition: border-color 0.15s, background 0.15s;
+  min-width: 120px;
+}
+.tb-title:hover { border-color: var(--border2); background: var(--surface2); }
+.tb-title:focus { border-color: var(--accent-border); background: var(--surface2); }
+
+.tb-mode-group {
+  display: flex;
+  background: var(--surface2);
+  border: 2px solid var(--border);
+  border-radius: 0px;
+  overflow: hidden;
+}
+.tb-mode-btn {
+  height: 26px;
+  padding: 0 12px;
+  background: none;
+  border: none;
+  border-right: 2px solid var(--border);
+  color: var(--text-dim);
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: background 0.12s, color 0.12s;
+}
+.tb-mode-btn:last-child { border-right: none; }
+.tb-mode-btn:hover { background: var(--surface3); color: var(--text); }
+.tb-mode-btn.active { background: var(--accent-bg); color: var(--accent); border-color: var(--border); }
+
+.tb-spacer { flex: 1; }
+
+.tb-theme-sel {
+  height: 26px;
+  padding: 0 8px;
+  background: var(--surface2);
+  border: 2px solid var(--border);
+  color: var(--text-dim);
+  font-family: var(--mono);
+  font-size: 10px;
+  border-radius: 0px;
+  cursor: pointer;
+  outline: none;
+}
+.tb-theme-sel:hover { border-color: var(--border); color: var(--text); }
+
+.tb-btn {
+  height: 26px;
+  padding: 0 12px;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: 0px;
+  color: var(--text-dim);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: background 0.12s, color 0.12s, border-color 0.12s, box-shadow 0.12s;
+  flex-shrink: 0;
+  box-shadow: 2px 2px 0 var(--border);
+}
+.tb-btn:hover { background: var(--surface3); color: var(--text); box-shadow: 3px 3px 0 var(--border); }
+.tb-btn-primary {
+  height: 26px;
+  padding: 0 14px;
+  background: var(--accent);
+  border: 2px solid var(--border);
+  border-radius: 0px;
+  color: #fff;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: box-shadow 0.12s;
+  flex-shrink: 0;
+  box-shadow: 2px 2px 0 var(--border);
+}
+.tb-btn-primary:hover { box-shadow: 4px 4px 0 var(--border); }
+
+/* ══════════════════════════════════════
+   APP SHELL
+══════════════════════════════════════ */
+.app-shell {
+  display: grid;
+  grid-template-columns: 240px 1fr 280px;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ══════════════════════════════════════
+   LEFT PANEL
+══════════════════════════════════════ */
+.left-panel {
+  background: var(--surface);
+  border-right: 2px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.panel-tabs {
+  display: flex;
+  border-bottom: 2px solid var(--border);
+  flex-shrink: 0;
+}
+.panel-tab {
+  flex: 1;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color 0.12s, border-color 0.12s, background 0.12s;
+}
+.panel-tab:hover { color: var(--text-dim); background: var(--surface2); }
+.panel-tab.active { color: var(--accent); border-bottom-color: var(--accent); background: var(--accent-bg); }
+
+.panel-body { display: none; flex-direction: column; flex: 1; overflow: hidden; }
+.panel-body.active { display: flex; }
+.panel-scroll { overflow-y: auto; flex: 1; padding-bottom: 8px; }
+
+.panel-search-wrap {
+  padding: 10px;
+  border-bottom: 1px solid var(--border2);
+  flex-shrink: 0;
+}
+.panel-search {
+  width: 100%;
+  height: 28px;
+  background: var(--surface2);
+  border: 2px solid var(--border);
+  border-radius: 0px;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 0 8px 0 28px;
+  outline: none;
+  transition: border-color 0.15s;
+  position: relative;
+}
+.panel-search:focus { border-color: var(--accent); }
+.panel-search::placeholder { color: var(--text-faint); }
+.search-icon-wrap {
+  position: relative;
+}
+.search-icon {
+  position: absolute;
+  left: 9px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 9px;
+  color: var(--text-faint);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.mod-group-label {
+  font-family: var(--mono);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  padding: 14px 12px 5px;
+}
+
+.mod-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 12px;
+  cursor: grab;
+  border-left: 3px solid transparent;
+  transition: background 0.1s, border-color 0.1s;
+  user-select: none;
+}
+.mod-item:hover {
+  background: var(--surface2);
+  border-left-color: var(--accent);
+}
+.mod-item:active { cursor: grabbing; }
+
+.mod-icon {
+  width: 28px;
+  height: 28px;
+  background: var(--surface2);
+  border: 2px solid var(--border2);
+  border-radius: 0px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+  transition: background 0.1s, color 0.1s;
+  box-shadow: 2px 2px 0 var(--border2);
+}
+.mod-item:hover .mod-icon {
+  background: var(--accent-bg);
+  border-color: var(--accent);
+  color: var(--accent);
+  box-shadow: 2px 2px 0 var(--accent);
+}
+.mod-info { flex: 1; min-width: 0; }
+.mod-name {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mod-item:hover .mod-name { color: var(--text); }
+.mod-desc {
+  font-size: 10px;
+  color: var(--text-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 1px;
+}
+
+/* Structure tab */
+.struct-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  border-left: 3px solid transparent;
+  transition: background 0.1s, border-color 0.1s;
+}
+.struct-item:hover { background: var(--surface2); }
+.struct-item.active {
+  background: var(--accent-bg);
+  border-left-color: var(--accent);
+}
+.struct-num {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--text-faint);
+  width: 18px;
+  flex-shrink: 0;
+}
+.struct-item.active .struct-num { color: var(--accent); }
+.struct-title {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-dim);
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.struct-item.active .struct-title { color: var(--text); }
+.struct-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--border2);
+  flex-shrink: 0;
+}
+.struct-item.done .struct-dot { background: var(--green); }
+.struct-item.active .struct-dot { background: var(--accent); }
+.struct-tag {
+  font-family: var(--mono);
+  font-size: 8px;
+  padding: 1px 5px;
+  background: var(--surface3);
+  border: 2px solid var(--border);
+  border-radius: 0px;
+  color: var(--text-dim);
+}
+
+/* Assets tab */
+.assets-dropzone {
+  margin: 12px;
+  border: 2px dashed var(--border);
+  border-radius: 0px;
+  padding: 28px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.assets-dropzone:hover {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+}
+.dz-icon { font-size: 20px; color: var(--text-faint); }
+.dz-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-faint);
+  text-align: center;
+}
+.dz-sub { font-size: 9px; color: var(--text-faint); opacity: 0.6; }
+
+/* ══════════════════════════════════════
+   CANVAS CENTER
+══════════════════════════════════════ */
+.canvas-area {
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.canvas-toolbar {
+  height: 36px;
+  background: var(--surface);
+  border-bottom: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  gap: 4px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+.ct-icon {
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  border-radius: 0px;
+  color: var(--text-faint);
+  cursor: pointer;
+  font-size: 10px;
+  transition: background 0.12s, color 0.12s;
+}
+.ct-icon:hover { background: var(--surface2); color: var(--text-dim); }
+.ct-div {
+  width: 2px;
+  height: 16px;
+  background: var(--border);
+  margin: 0 4px;
+  flex-shrink: 0;
+}
+.zoom-badge {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-dim);
+  background: var(--surface2);
+  border: 2px solid var(--border);
+  border-radius: 0px;
+  padding: 2px 8px;
+  cursor: pointer;
+  min-width: 48px;
+  text-align: center;
+}
+.ct-spacer { flex: 1; }
+.view-toggle {
+  display: flex;
+  background: var(--surface2);
+  border: 2px solid var(--border);
+  border-radius: 0px;
+  overflow: hidden;
+}
+.view-btn {
+  height: 22px;
+  padding: 0 9px;
+  background: none;
+  border: none;
+  border-right: 2px solid var(--border);
+  color: var(--text-faint);
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: background 0.1s, color 0.1s;
+}
+.view-btn:last-child { border-right: none; }
+.view-btn:hover { background: var(--surface3); color: var(--text-dim); }
+.view-btn.active { background: var(--accent-bg); color: var(--accent); }
+
+/* Progress strip */
+.progress-strip {
+  height: 32px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border2);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.prog-dots {
+  display: flex;
+  gap: 3px;
+  align-items: center;
+}
+.prog-dot {
+  width: 18px;
+  height: 3px;
+  border-radius: 0px;
+  background: var(--border2);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.prog-dot.done { background: var(--green); opacity: 0.6; }
+.prog-dot.active { background: var(--accent); width: 26px; }
+.prog-label {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--text-faint);
+  letter-spacing: 0.06em;
+}
+.prog-sep { color: var(--text-faint); opacity: 0.4; font-size: 10px; }
+.prog-section-name {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
+/* Canvas scroll area */
+.canvas-scroll {
+  overflow-y: auto;
+  flex: 1;
+  padding: 36px 0;
+}
+
+.canvas-inner {
+  max-width: 740px;
+  margin: 0 auto;
+  padding: 0 60px;
+  width: 100%;
+}
+
+/* Block system */
+.block-wrap {
+  position: relative;
+  border: 2px solid transparent;
+  border-radius: 0px;
+  margin-bottom: 2px;
+  cursor: pointer;
+  transition: border-color 0.12s;
+}
+.block-wrap:hover { border-color: var(--border2); }
+.block-wrap.selected { border-color: var(--accent); background: var(--accent-bg); box-shadow: 4px 4px 0 var(--border); }
+
+.block-handles {
+  position: absolute;
+  left: -38px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 10;
+}
+.block-wrap:hover .block-handles,
+.block-wrap.selected .block-handles { opacity: 1; }
+
+.handle-btn {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: 0px;
+  color: var(--text-faint);
+  cursor: pointer;
+  font-size: 9px;
+  transition: background 0.1s, color 0.1s, border-color 0.1s;
+  box-shadow: 2px 2px 0 var(--border);
+}
+.handle-btn:hover { background: var(--surface3); color: var(--text-dim); }
+.handle-btn.danger:hover { border-color: var(--red); color: var(--red); background: var(--red-bg); }
+
+/* Block type float badge */
+.block-type-badge {
+  position: absolute;
+  top: -11px;
+  right: 4px;
+  font-family: var(--mono);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 1px 7px;
+  background: var(--accent);
+  color: #fff;
+  border-radius: 0px;
+  display: none;
+  pointer-events: none;
+  border: 2px solid var(--border);
+}
+.block-wrap.selected .block-type-badge { display: block; }
+
+/* Insert zone */
+.insert-zone {
+  height: 20px;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  opacity: 0;
+  transition: opacity 0.2s;
+  margin: 1px 0;
+}
+.block-wrap:hover + .insert-zone,
+.insert-zone:hover { opacity: 1; }
+.insert-line { flex: 1; height: 2px; background: var(--border2); }
+.insert-btn {
+  height: 18px;
+  padding: 0 10px;
+  background: none;
+  border: 2px dashed var(--border2);
+  border-radius: 0px;
+  color: var(--text-faint);
+  font-family: var(--mono);
+  font-size: 9px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: border-color 0.1s, color 0.1s, background 0.1s;
+}
+.insert-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
+
+/* ── Block types ── */
+
+/* Section Header block */
+.block-section-header { padding: 28px 24px 24px; }
+.bsh-tag {
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.bsh-tag::before {
+  content: '';
+  width: 12px;
+  height: 2px;
+  background: var(--accent);
+}
+.bsh-heading {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--text);
+  line-height: 1.15;
+  margin-bottom: 10px;
+}
+.bsh-body {
+  font-size: 14px;
+  color: var(--text-dim);
+  line-height: 1.75;
+  max-width: 540px;
+}
+.bsh-body em { color: var(--text); font-style: normal; font-weight: 500; }
+
+/* Body text block */
+.block-body-text { padding: 18px 24px; }
+.block-body-text p {
+  font-size: 14px;
+  color: var(--text-dim);
+  line-height: 1.75;
+  max-width: 560px;
+}
+.block-body-text p em { color: var(--text); font-style: normal; }
+
+/* Interactive module block */
+.block-module {
+  margin: 4px 0;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 0px;
+  box-shadow: 4px 4px 0 var(--border);
+}
+.block-wrap.selected .block-module { border-left-color: var(--accent); border-color: var(--border); }
+
+.bm-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 18px 12px;
+  border-bottom: 2px solid var(--border);
+}
+.bm-icon {
+  width: 26px;
+  height: 26px;
+  background: var(--accent-bg);
+  border: 2px solid var(--accent);
+  border-radius: 0px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+.bm-name {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.bm-id {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--text-faint);
+  margin-left: auto;
+  letter-spacing: 0.04em;
+}
+
+.bm-body { padding: 16px 18px 18px; }
+
+/* Range slider styles */
+.slider-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 10px;
+}
+.slider-label {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  letter-spacing: 0.04em;
+}
+.slider-val-display {
+  font-family: var(--mono);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: -0.02em;
+}
+.slider-track-wrap {
+  position: relative;
+  padding: 8px 0;
+  margin-bottom: 4px;
+  cursor: pointer;
+}
+.slider-track {
+  width: 100%;
+  height: 6px;
+  background: var(--border2);
+  border-radius: 0px;
+  position: relative;
+  border: 1px solid var(--border2);
+}
+.slider-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  border-radius: 0px;
+  background: var(--accent);
+  pointer-events: none;
+}
+.slider-thumb {
+  position: absolute;
+  top: 50%;
+  width: 18px;
+  height: 18px;
+  background: var(--accent);
+  border: 2px solid var(--border);
+  border-radius: 0px;
+  transform: translate(-50%, -50%);
+  cursor: grab;
+  transition: box-shadow 0.12s;
+  box-shadow: 2px 2px 0 var(--border);
+}
+.slider-thumb:hover, .slider-thumb.dragging {
+  box-shadow: 3px 3px 0 var(--border);
+  cursor: grabbing;
+}
+.slider-range-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.slider-range-lbl {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--text-faint);
+  letter-spacing: 0.06em;
+}
+
+.slider-output {
+  padding: 10px 14px;
+  background: var(--surface2);
+  border: 2px solid var(--border);
+  border-left: 4px solid var(--text-faint);
+  border-radius: 0px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  transition: border-left-color 0.2s;
+}
+.slider-output.ok { border-left-color: var(--green); }
+.slider-output.ok .out-icon, .slider-output.ok .out-text { color: var(--green); }
+.slider-output.warn { border-left-color: var(--yellow); }
+.slider-output.warn .out-icon, .slider-output.warn .out-text { color: var(--yellow); }
+.slider-output.danger { border-left-color: var(--red); }
+.slider-output.danger .out-icon, .slider-output.danger .out-text { color: var(--red); }
+.out-icon { font-size: 11px; flex-shrink: 0; }
+.out-text { font-size: 11px; font-family: var(--mono); }
+
+/* Section Nav block */
+.block-section-nav {
+  padding: 20px 24px;
+  border-top: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+}
+.nav-progress-dots { display: flex; gap: 5px; align-items: center; }
+.nav-prog-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--border2);
+  cursor: pointer;
+  transition: background 0.15s, transform 0.15s;
+}
+.nav-prog-dot.done { background: var(--green); opacity: 0.6; }
+.nav-prog-dot.active { background: var(--accent); transform: scale(1.25); }
+.nav-next-btn {
+  height: 30px;
+  padding: 0 16px;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: 0px;
+  color: var(--text-dim);
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: background 0.12s, color 0.12s, box-shadow 0.12s;
+  box-shadow: 2px 2px 0 var(--border);
+}
+.nav-next-btn:hover { background: var(--accent-bg); color: var(--accent); box-shadow: 4px 4px 0 var(--border); }
+
+/* ══════════════════════════════════════
+   RIGHT PANEL
+══════════════════════════════════════ */
+.right-panel {
+  background: var(--surface);
+  border-left: 2px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.rp-header {
+  height: 36px;
+  border-bottom: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  gap: 8px;
+  flex-shrink: 0;
+  background: var(--surface2);
+}
+.rp-title {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+}
+.rp-type-badge {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  background: var(--accent-bg);
+  border: 2px solid var(--accent);
+  border-radius: 0px;
+  color: var(--accent);
+}
+
+.rp-scroll { overflow-y: auto; flex: 1; }
+
+.prop-section { border-bottom: 1px solid var(--border2); }
+.prop-sec-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px 6px;
+  cursor: pointer;
+}
+.prop-sec-title {
+  font-family: var(--mono);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.prop-sec-toggle {
+  font-size: 8px;
+  color: var(--text-faint);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color 0.1s;
+}
+.prop-sec-toggle:hover { color: var(--text-dim); }
+
+.prop-row {
+  display: flex;
+  align-items: center;
+  padding: 5px 12px;
+  gap: 8px;
+}
+.prop-lbl {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+  width: 68px;
+  flex-shrink: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.prop-input {
+  flex: 1;
+  height: 26px;
+  background: var(--surface2);
+  border: 2px solid var(--border);
+  border-radius: 0px;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 0 8px;
+  outline: none;
+  min-width: 0;
+  transition: border-color 0.12s;
+}
+.prop-input:focus { border-color: var(--accent); }
+.prop-input-sm {
+  width: 58px;
+  height: 26px;
+  background: var(--surface2);
+  border: 2px solid var(--border);
+  border-radius: 0px;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 0 6px;
+  outline: none;
+  flex-shrink: 0;
+  transition: border-color 0.12s;
+}
+.prop-input-sm:focus { border-color: var(--accent); }
+.prop-select {
+  flex: 1;
+  height: 26px;
+  background: var(--surface2);
+  border: 2px solid var(--border);
+  border-radius: 0px;
+  color: var(--text-dim);
+  font-family: var(--mono);
+  font-size: 9px;
+  padding: 0 6px;
+  outline: none;
+  cursor: pointer;
+  min-width: 0;
+}
+.prop-select:focus { border-color: var(--accent); }
+
+.prop-toggle-group {
+  display: flex;
+  flex: 1;
+  height: 26px;
+  background: var(--surface2);
+  border: 2px solid var(--border);
+  border-radius: 0px;
+  overflow: hidden;
+}
+.prop-toggle {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+  font-size: 8px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+  cursor: pointer;
+  border-right: 2px solid var(--border);
+  transition: background 0.1s, color 0.1s;
+  white-space: nowrap;
+  padding: 0 4px;
+}
+.prop-toggle:last-child { border-right: none; }
+.prop-toggle:hover { background: var(--surface3); color: var(--text-dim); }
+.prop-toggle.active { background: var(--accent-bg); color: var(--accent); }
+
+.prop-switch-row {
+  display: flex;
+  align-items: center;
+  padding: 6px 12px;
+  gap: 8px;
+}
+.prop-switch-lbl {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--text-faint);
+  flex: 1;
+}
+.switch {
+  width: 30px;
+  height: 16px;
+  background: var(--border2);
+  border-radius: 0px;
+  position: relative;
+  cursor: pointer;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+.switch.on { background: var(--accent); }
+.switch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: white;
+  transition: left 0.15s;
+}
+.switch.on::after { left: 16px; }
+
+/* Color swatch + hex input */
+.color-row {
+  display: flex;
+  align-items: center;
+  padding: 5px 12px;
+  gap: 8px;
+}
+.color-swatch {
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--border);
+  border-radius: 0px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.color-hex {
+  flex: 1;
+  height: 26px;
+  background: var(--surface2);
+  border: 2px solid var(--border);
+  border-radius: 0px;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 0 8px;
+  outline: none;
+  min-width: 0;
+  transition: border-color 0.12s;
+}
+.color-hex:focus { border-color: var(--accent); }
+
+/* Bindings */
+.binding-area { padding: 6px 12px; }
+.binding-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 5px;
+}
+.bind-var {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--accent);
+  background: var(--accent-bg);
+  border: 2px solid var(--accent);
+  border-radius: 0px;
+  padding: 2px 7px;
+}
+.bind-arrow { font-size: 9px; color: var(--text-faint); }
+.bind-target {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--text-dim);
+  background: var(--surface2);
+  border: 2px solid var(--border);
+  border-radius: 0px;
+  padding: 2px 7px;
+}
+.bind-add {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--accent);
+  background: none;
+  border: 2px dashed var(--accent);
+  border-radius: 0px;
+  padding: 3px 9px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: background 0.1s;
+  margin-top: 2px;
+}
+.bind-add:hover { background: var(--accent-bg); }
+
+.prop-textarea {
+  width: 100%;
+  background: #1a1a1a;
+  border: 2px solid var(--border);
+  border-radius: 0px;
+  color: #d8d5cf;
+  font-family: var(--mono);
+  font-size: 9px;
+  line-height: 1.6;
+  padding: 8px;
+  outline: none;
+  resize: vertical;
+  min-height: 72px;
+  display: block;
+  transition: border-color 0.12s;
+}
+.prop-textarea:focus { border-color: var(--accent); }
+.textarea-wrap { padding: 0 12px 8px; }
+
+/* Token chips */
+.tokens-section {
+  border-top: 1px solid var(--border2);
+  padding: 10px 12px;
+  flex-shrink: 0;
+}
+.tokens-label {
+  font-family: var(--mono);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin-bottom: 7px;
+}
+.token-chips { display: flex; gap: 5px; flex-wrap: wrap; }
+.token-chip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  background: var(--surface2);
+  border: 2px solid var(--border2);
+  border-radius: 0px;
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: border-color 0.1s, color 0.1s;
+}
+.token-chip:hover { border-color: var(--accent); color: var(--accent); }
+.token-swatch {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Delete block btn */
+.rp-bottom {
+  border-top: 2px solid var(--border);
+  padding: 10px 12px;
+  flex-shrink: 0;
+}
+.delete-block-btn {
+  width: 100%;
+  height: 30px;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: 0px;
+  color: var(--text-dim);
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: border-color 0.12s, color 0.12s, background 0.12s, box-shadow 0.12s;
+  box-shadow: 2px 2px 0 var(--border);
+}
+.delete-block-btn:hover {
+  border-color: var(--red);
+  color: var(--red);
+  background: var(--red-bg);
+  box-shadow: 2px 2px 0 var(--red);
+}
+
+/* ══════════════════════════════════════
+   STATUS BAR
+══════════════════════════════════════ */
+.statusbar {
+  height: 22px;
+  background: var(--surface);
+  border-top: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  gap: 16px;
+  flex-shrink: 0;
+}
+.sb-item {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.sb-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--green);
+}
+.sb-dot.warn { background: var(--yellow); }
+.sb-accent { color: var(--accent); }
+.sb-spacer { flex: 1; }
+.sb-theme {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--text-faint);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* Misc tag */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--mono);
+  font-size: 9px;
+  padding: 2px 7px;
+  border-radius: 0px;
+  border: 2px solid var(--border);
+  color: var(--text-dim);
+  background: var(--surface2);
+}
+.tag-accent { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
+
+/* Prop section padded spacing */
+.prop-section-pad { padding-bottom: 6px; }
+
+/* Grid 2 cols for sm inputs */
+.prop-row-grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  padding: 5px 12px;
+}
+.pg2-item { display: flex; flex-direction: column; gap: 3px; }
+.pg2-lbl {
+  font-family: var(--mono);
+  font-size: 8px;
+  letter-spacing: 0.08em;
+  color: var(--text-faint);
+}
+.pg2-input {
+  height: 26px;
+  background: var(--surface2);
+  border: 2px solid var(--border);
+  border-radius: 0px;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 0 7px;
+  outline: none;
+  width: 100%;
+  transition: border-color 0.12s;
+}
+.pg2-input:focus { border-color: var(--accent); }
+
+/* Block ID row */
+.block-id-row {
+  display: flex;
+  align-items: center;
+  padding: 7px 12px;
+  gap: 8px;
+  border-bottom: 1px solid var(--border2);
+}
+.bid-label {
+  font-family: var(--mono);
+  font-size: 8px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  width: 30px;
+  flex-shrink: 0;
+}
+.bid-input {
+  flex: 1;
+  height: 24px;
+  background: var(--surface2);
+  border: 2px solid var(--border);
+  border-radius: 0px;
+  color: var(--accent);
+  font-family: var(--mono);
+  font-size: 9px;
+  padding: 0 7px;
+  outline: none;
+  transition: border-color 0.12s;
+}
+.bid-input:focus { border-color: var(--accent); }
+
+/* Tooltip text on hover */
+[title] { cursor: default; }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════ TOP BAR ══════════════════════════════════════ -->
+<div class="topbar">
+  <!-- Logo -->
+  <div class="tb-logo">
+    <svg width="20" height="20" viewBox="0 0 32 32" fill="none">
+      <rect x="2" y="5" width="11" height="22" stroke="#5b9cf6" stroke-width="1.5"/>
+      <rect x="13" y="12" width="5" height="8" fill="#5b9cf6"/>
+      <path d="M18,5 L30,5 L30,27 L18,27 L18,20 L14,20 L14,12 L18,12 Z" stroke="#5b9cf6" stroke-width="1.5" fill="rgba(91,156,246,.12)"/>
+    </svg>
+    <span class="tb-wordmark">Snap<span>lify</span></span>
+  </div>
+
+  <!-- Undo / Redo -->
+  <button class="tb-icon-btn" title="Undo (Cmd+Z)"><i class="fa fa-rotate-left"></i></button>
+  <button class="tb-icon-btn" disabled title="Redo (Cmd+Shift+Z)"><i class="fa fa-rotate-right"></i></button>
+
+  <div class="tb-div"></div>
+
+  <!-- Unsaved indicator + title -->
+  <div style="display:flex;align-items:center;gap:7px;">
+    <div class="tb-unsaved-dot" title="Unsaved changes"></div>
+    <input class="tb-title" value="How Neural Networks Learn" title="Click to rename">
+    <button class="tb-icon-btn" title="Rename" style="width:22px;height:22px;font-size:9px;"><i class="fa fa-pen"></i></button>
+  </div>
+
+  <div class="tb-div"></div>
+
+  <!-- Mode tabs -->
+  <div class="tb-mode-group">
+    <button class="tb-mode-btn active" onclick="setMode(this,'edit')"><i class="fa fa-pen-to-square" style="font-size:9px;"></i> Edit</button>
+    <button class="tb-mode-btn" onclick="setMode(this,'code')"><i class="fa fa-code" style="font-size:9px;"></i> Code</button>
+    <button class="tb-mode-btn" onclick="setMode(this,'preview')"><i class="fa fa-eye" style="font-size:9px;"></i> Preview</button>
+  </div>
+
+  <div class="tb-spacer"></div>
+
+  <!-- Right actions -->
+  <div style="display:flex;align-items:center;gap:7px;">
+    <span style="font-family:var(--mono);font-size:9px;color:var(--text-faint);letter-spacing:0.06em;">Theme</span>
+    <select class="tb-theme-sel">
+      <option>Snaplify Dark</option>
+      <option>Warm Ember</option>
+      <option>Paper / Teal</option>
+      <option>Zine</option>
+      <option>Custom Tokens…</option>
+    </select>
+    <div class="tb-div"></div>
+    <button class="tb-btn"><i class="fa fa-share-from-square" style="font-size:9px;"></i> Share</button>
+    <button class="tb-btn"><i class="fa fa-download" style="font-size:9px;"></i> Export</button>
+    <button class="tb-btn-primary"><i class="fa fa-bolt" style="font-size:9px;"></i> Publish</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ APP SHELL ══════════════════════════════════════ -->
+<div class="app-shell" style="flex:1;overflow:hidden;">
+
+  <!-- ═══════ LEFT PANEL ═══════ -->
+  <div class="left-panel">
+    <div class="panel-tabs">
+      <div class="panel-tab active" onclick="switchTab('modules')">Modules</div>
+      <div class="panel-tab" onclick="switchTab('structure')">Structure</div>
+      <div class="panel-tab" onclick="switchTab('assets')">Assets</div>
+    </div>
+
+    <!-- Modules tab -->
+    <div id="tab-modules" class="panel-body active">
+      <div class="panel-search-wrap">
+        <div class="search-icon-wrap">
+          <i class="fa fa-magnifying-glass search-icon"></i>
+          <input type="text" class="panel-search" placeholder="Search modules…">
+        </div>
+      </div>
+      <div class="panel-scroll">
+        <div class="mod-group-label">Text Blocks</div>
+        <div class="mod-item" draggable="true">
+          <div class="mod-icon"><i class="fa fa-heading"></i></div>
+          <div class="mod-info">
+            <div class="mod-name">Section Header</div>
+            <div class="mod-desc">Title, subtitle, tag line</div>
+          </div>
+        </div>
+        <div class="mod-item" draggable="true">
+          <div class="mod-icon"><i class="fa fa-align-left"></i></div>
+          <div class="mod-info">
+            <div class="mod-name">Body Text</div>
+            <div class="mod-desc">Paragraph prose block</div>
+          </div>
+        </div>
+        <div class="mod-item" draggable="true">
+          <div class="mod-icon"><i class="fa fa-code"></i></div>
+          <div class="mod-info">
+            <div class="mod-name">Code Block</div>
+            <div class="mod-desc">Syntax-highlighted snippet</div>
+          </div>
+        </div>
+
+        <div class="mod-group-label">Interactive</div>
+        <div class="mod-item" draggable="true" style="border-left-color:var(--accent);background:var(--accent-bg);">
+          <div class="mod-icon" style="background:var(--accent-bg);border-color:var(--accent);color:var(--accent);"><i class="fa fa-sliders"></i></div>
+          <div class="mod-info">
+            <div class="mod-name" style="color:var(--accent);">Range Slider</div>
+            <div class="mod-desc">Continuous variable exploration</div>
+          </div>
+        </div>
+        <div class="mod-item" draggable="true">
+          <div class="mod-icon"><i class="fa fa-toggle-on"></i></div>
+          <div class="mod-info">
+            <div class="mod-name">Comparison Toggle</div>
+            <div class="mod-desc">A / B state compare</div>
+          </div>
+        </div>
+        <div class="mod-item" draggable="true">
+          <div class="mod-icon"><i class="fa fa-diagram-project"></i></div>
+          <div class="mod-info">
+            <div class="mod-name">Tick Simulation</div>
+            <div class="mod-desc">Agent-based emergent sim</div>
+          </div>
+        </div>
+        <div class="mod-item" draggable="true">
+          <div class="mod-icon"><i class="fa fa-table-cells-large"></i></div>
+          <div class="mod-info">
+            <div class="mod-name">Reveal Grid</div>
+            <div class="mod-desc">Click-to-reveal cards</div>
+          </div>
+        </div>
+        <div class="mod-item" draggable="true">
+          <div class="mod-icon"><i class="fa fa-calculator"></i></div>
+          <div class="mod-info">
+            <div class="mod-name">Live Calculator</div>
+            <div class="mod-desc">Formula-bound inputs</div>
+          </div>
+        </div>
+        <div class="mod-item" draggable="true">
+          <div class="mod-icon"><i class="fa fa-paintbrush"></i></div>
+          <div class="mod-info">
+            <div class="mod-name">Draw Canvas</div>
+            <div class="mod-desc">Freehand annotation layer</div>
+          </div>
+        </div>
+
+        <div class="mod-group-label">Data &amp; Viz</div>
+        <div class="mod-item" draggable="true">
+          <div class="mod-icon"><i class="fa fa-chart-bar"></i></div>
+          <div class="mod-info">
+            <div class="mod-name">Bar Chart</div>
+            <div class="mod-desc">Animated bar visualization</div>
+          </div>
+        </div>
+        <div class="mod-item" draggable="true">
+          <div class="mod-icon"><i class="fa fa-circle-nodes"></i></div>
+          <div class="mod-info">
+            <div class="mod-name">Network Graph</div>
+            <div class="mod-desc">Node-link diagram</div>
+          </div>
+        </div>
+        <div class="mod-item" draggable="true">
+          <div class="mod-icon"><i class="fa fa-left-right"></i></div>
+          <div class="mod-info">
+            <div class="mod-name">Do / Don't Compare</div>
+            <div class="mod-desc">Side-by-side contrast panel</div>
+          </div>
+        </div>
+
+        <div class="mod-group-label">Structure</div>
+        <div class="mod-item" draggable="true">
+          <div class="mod-icon"><i class="fa fa-minus"></i></div>
+          <div class="mod-info">
+            <div class="mod-name">Section Divider</div>
+            <div class="mod-desc">Visual break between parts</div>
+          </div>
+        </div>
+        <div class="mod-item" draggable="true">
+          <div class="mod-icon"><i class="fa fa-map-signs"></i></div>
+          <div class="mod-info">
+            <div class="mod-name">Section Nav</div>
+            <div class="mod-desc">Progress + next button</div>
+          </div>
+        </div>
+        <div class="mod-item" draggable="true">
+          <div class="mod-icon"><i class="fa fa-circle-question"></i></div>
+          <div class="mod-info">
+            <div class="mod-name">Quiz Block</div>
+            <div class="mod-desc">MCQ with feedback</div>
+          </div>
+        </div>
+        <div class="mod-item" draggable="true">
+          <div class="mod-icon"><i class="fa fa-flag-checkered"></i></div>
+          <div class="mod-info">
+            <div class="mod-name">Checkpoint</div>
+            <div class="mod-desc">Section completion gate</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Structure tab -->
+    <div id="tab-structure" class="panel-body">
+      <div class="panel-scroll" style="padding-top:8px;">
+        <div class="struct-item done" onclick="setSection(this)">
+          <span class="struct-num">01</span>
+          <span class="struct-title">Introduction</span>
+          <span class="struct-dot"></span>
+        </div>
+        <div class="struct-item done" onclick="setSection(this)">
+          <span class="struct-num">02</span>
+          <span class="struct-title">Neurons &amp; Signals</span>
+          <span class="struct-dot"></span>
+        </div>
+        <div class="struct-item active" onclick="setSection(this)">
+          <span class="struct-num">03</span>
+          <span class="struct-title">Gradient Descent</span>
+          <span class="struct-dot"></span>
+          <span class="struct-tag">Active</span>
+        </div>
+        <div class="struct-item" onclick="setSection(this)">
+          <span class="struct-num">04</span>
+          <span class="struct-title">Backpropagation</span>
+          <span class="struct-dot"></span>
+        </div>
+        <div class="struct-item" onclick="setSection(this)">
+          <span class="struct-num">05</span>
+          <span class="struct-title">Activation Functions</span>
+          <span class="struct-dot"></span>
+        </div>
+        <div class="struct-item" onclick="setSection(this)">
+          <span class="struct-num">06</span>
+          <span class="struct-title">Overfitting &amp; Dropout</span>
+          <span class="struct-dot"></span>
+        </div>
+        <div class="struct-item" onclick="setSection(this)">
+          <span class="struct-num">07</span>
+          <span class="struct-title">Putting It Together</span>
+          <span class="struct-dot"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Assets tab -->
+    <div id="tab-assets" class="panel-body">
+      <div class="panel-scroll" style="padding:8px;">
+        <div class="assets-dropzone">
+          <div class="dz-icon"><i class="fa fa-cloud-arrow-up"></i></div>
+          <div class="dz-label">Drop assets here<br>or click to browse</div>
+          <div class="dz-sub">PNG · SVG · WebP · MP4 · JSON</div>
+        </div>
+      </div>
+    </div>
+  </div><!-- /left-panel -->
+
+  <!-- ═══════ CANVAS ═══════ -->
+  <div class="canvas-area">
+
+    <!-- Canvas toolbar -->
+    <div class="canvas-toolbar">
+      <button class="ct-icon" title="Zoom out"><i class="fa fa-minus"></i></button>
+      <div class="zoom-badge">100%</div>
+      <button class="ct-icon" title="Zoom in"><i class="fa fa-plus"></i></button>
+      <div class="ct-div"></div>
+      <button class="ct-icon" title="Previous section"><i class="fa fa-chevron-left"></i></button>
+      <button class="ct-icon" title="Next section"><i class="fa fa-chevron-right"></i></button>
+      <div class="ct-div"></div>
+      <button class="ct-icon" title="Clone selected block"><i class="fa fa-copy"></i></button>
+      <div class="ct-spacer"></div>
+      <div class="view-toggle">
+        <button class="view-btn active"><i class="fa fa-desktop" style="font-size:9px;"></i> Desktop</button>
+        <button class="view-btn"><i class="fa fa-tablet-screen-button" style="font-size:9px;"></i> Tablet</button>
+        <button class="view-btn"><i class="fa fa-mobile-screen" style="font-size:9px;"></i> Mobile</button>
+      </div>
+    </div>
+
+    <!-- Progress strip -->
+    <div class="progress-strip">
+      <div class="prog-dots">
+        <div class="prog-dot done" title="01 Introduction"></div>
+        <div class="prog-dot done" title="02 Neurons & Signals"></div>
+        <div class="prog-dot active" title="03 Gradient Descent"></div>
+        <div class="prog-dot" title="04 Backpropagation"></div>
+        <div class="prog-dot" title="05 Activation Functions"></div>
+        <div class="prog-dot" title="06 Overfitting & Dropout"></div>
+        <div class="prog-dot" title="07 Putting It Together"></div>
+      </div>
+      <span class="prog-sep">|</span>
+      <span class="prog-label">Section</span>
+      <span class="prog-section-name"><span class="sb-accent">3</span> of 7</span>
+      <span class="prog-sep">—</span>
+      <span class="prog-section-name">Gradient Descent</span>
+    </div>
+
+    <!-- Canvas scroll -->
+    <div class="canvas-scroll">
+      <div class="canvas-inner">
+
+        <!-- ── Section Header Block ── -->
+        <div class="block-wrap" onclick="selectBlock(this, 'section-header')">
+          <div class="block-type-badge">Section Header</div>
+          <div class="block-handles">
+            <div class="handle-btn" title="Drag to reorder"><i class="fa fa-grip-vertical"></i></div>
+            <div class="handle-btn" title="Clone block"><i class="fa fa-copy"></i></div>
+            <div class="handle-btn danger" title="Delete block"><i class="fa fa-trash"></i></div>
+          </div>
+          <div class="block-section-header">
+            <div class="bsh-tag">§ 03 — Gradient Descent</div>
+            <div class="bsh-heading">The Learning Rate Problem</div>
+            <div class="bsh-body">
+              Every neural network learns by making small adjustments to its weights.
+              But <em>how large</em> should each adjustment be? Too small and training
+              takes forever. Too large and the network <em>overshoots</em> and never converges.
+            </div>
+          </div>
+        </div>
+
+        <div class="insert-zone">
+          <div class="insert-line"></div>
+          <button class="insert-btn"><i class="fa fa-plus"></i> Insert block</button>
+          <div class="insert-line"></div>
+        </div>
+
+        <!-- ── Body Text Block ── -->
+        <div class="block-wrap" onclick="selectBlock(this, 'body-text')">
+          <div class="block-type-badge">Body Text</div>
+          <div class="block-handles">
+            <div class="handle-btn"><i class="fa fa-grip-vertical"></i></div>
+            <div class="handle-btn"><i class="fa fa-copy"></i></div>
+            <div class="handle-btn danger"><i class="fa fa-trash"></i></div>
+          </div>
+          <div class="block-body-text">
+            <p>The <em>learning rate η</em> is the single most important hyperparameter to tune.
+            It controls the step size taken in the direction of the negative gradient.
+            Use the slider below to develop an intuition for its effects on the loss landscape.</p>
+          </div>
+        </div>
+
+        <div class="insert-zone">
+          <div class="insert-line"></div>
+          <button class="insert-btn"><i class="fa fa-plus"></i> Insert block</button>
+          <div class="insert-line"></div>
+        </div>
+
+        <!-- ── Range Slider Interactive Block (SELECTED) ── -->
+        <div class="block-wrap selected" id="slider-block" onclick="selectBlock(this, 'range-slider')">
+          <div class="block-type-badge">Range Slider</div>
+          <div class="block-handles">
+            <div class="handle-btn"><i class="fa fa-grip-vertical"></i></div>
+            <div class="handle-btn"><i class="fa fa-copy"></i></div>
+            <div class="handle-btn danger"><i class="fa fa-trash"></i></div>
+          </div>
+          <div class="block-module">
+            <div class="bm-header">
+              <div class="bm-icon"><i class="fa fa-sliders"></i></div>
+              <div class="bm-name">Range Slider</div>
+              <div class="bm-id">#slider-lr-01</div>
+            </div>
+            <div class="bm-body">
+              <div class="slider-label-row">
+                <span class="slider-label">Learning Rate (η)</span>
+                <span class="slider-val-display" id="slider-display">0.010</span>
+              </div>
+              <div class="slider-track-wrap" id="slider-track-wrap">
+                <div class="slider-track" id="slider-track">
+                  <div class="slider-fill" id="slider-fill" style="width:10%;"></div>
+                  <div class="slider-thumb" id="slider-thumb" style="left:10%;"></div>
+                </div>
+              </div>
+              <div class="slider-range-row">
+                <span class="slider-range-lbl">0.0001</span>
+                <span class="slider-range-lbl">0.1</span>
+              </div>
+              <div class="slider-output ok" id="slider-output">
+                <i class="fa fa-circle-check out-icon"></i>
+                <span class="out-text" id="slider-output-text">Converging steadily — good learning rate range</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="insert-zone" style="opacity:1;">
+          <div class="insert-line"></div>
+          <button class="insert-btn"><i class="fa fa-plus"></i> Insert block</button>
+          <div class="insert-line"></div>
+        </div>
+
+        <!-- ── Body Text Block 2 ── -->
+        <div class="block-wrap" onclick="selectBlock(this, 'body-text')">
+          <div class="block-type-badge">Body Text</div>
+          <div class="block-handles">
+            <div class="handle-btn"><i class="fa fa-grip-vertical"></i></div>
+            <div class="handle-btn"><i class="fa fa-copy"></i></div>
+            <div class="handle-btn danger"><i class="fa fa-trash"></i></div>
+          </div>
+          <div class="block-body-text">
+            <p>Notice how <em>very small rates</em> (η &lt; 0.001) train correctly but slowly —
+            the gradient steps barely move the weights. At <em>very high rates</em> (η &gt; 0.05)
+            the optimizer overshoots the minimum and the loss explodes, causing divergence.</p>
+          </div>
+        </div>
+
+        <div class="insert-zone">
+          <div class="insert-line"></div>
+          <button class="insert-btn"><i class="fa fa-plus"></i> Insert block</button>
+          <div class="insert-line"></div>
+        </div>
+
+        <!-- ── Section Nav Block ── -->
+        <div class="block-wrap" onclick="selectBlock(this, 'section-nav')">
+          <div class="block-type-badge">Section Nav</div>
+          <div class="block-handles">
+            <div class="handle-btn"><i class="fa fa-grip-vertical"></i></div>
+            <div class="handle-btn"><i class="fa fa-copy"></i></div>
+            <div class="handle-btn danger"><i class="fa fa-trash"></i></div>
+          </div>
+          <div class="block-section-nav">
+            <div class="nav-progress-dots">
+              <div class="nav-prog-dot done" title="Introduction"></div>
+              <div class="nav-prog-dot done" title="Neurons & Signals"></div>
+              <div class="nav-prog-dot active" title="Gradient Descent"></div>
+              <div class="nav-prog-dot" title="Backpropagation"></div>
+              <div class="nav-prog-dot" title="Activation Functions"></div>
+              <div class="nav-prog-dot" title="Overfitting & Dropout"></div>
+              <div class="nav-prog-dot" title="Putting It Together"></div>
+            </div>
+            <button class="nav-next-btn">Next: Backpropagation <i class="fa fa-arrow-right" style="font-size:9px;"></i></button>
+          </div>
+        </div>
+
+        <div class="insert-zone">
+          <div class="insert-line"></div>
+          <button class="insert-btn"><i class="fa fa-plus"></i> Insert block</button>
+          <div class="insert-line"></div>
+        </div>
+
+        <!-- Bottom padding -->
+        <div style="height:48px;"></div>
+
+      </div><!-- /canvas-inner -->
+    </div><!-- /canvas-scroll -->
+  </div><!-- /canvas-area -->
+
+  <!-- ═══════ RIGHT PANEL ═══════ -->
+  <div class="right-panel">
+    <div class="rp-header">
+      <span class="rp-title">Properties</span>
+      <span class="rp-type-badge">Range Slider</span>
+    </div>
+
+    <div class="rp-scroll">
+
+      <!-- Content section -->
+      <div class="prop-section prop-section-pad">
+        <div class="prop-sec-header">
+          <span class="prop-sec-title">Content</span>
+          <button class="prop-sec-toggle"><i class="fa fa-chevron-down"></i></button>
+        </div>
+        <div class="prop-row">
+          <span class="prop-lbl">Label</span>
+          <input class="prop-input" value="Learning Rate (η)">
+        </div>
+        <div class="prop-row-grid2">
+          <div class="pg2-item">
+            <span class="pg2-lbl">Min</span>
+            <input class="pg2-input" value="0.0001">
+          </div>
+          <div class="pg2-item">
+            <span class="pg2-lbl">Max</span>
+            <input class="pg2-input" value="0.1">
+          </div>
+          <div class="pg2-item">
+            <span class="pg2-lbl">Default</span>
+            <input class="pg2-input" value="0.010">
+          </div>
+          <div class="pg2-item">
+            <span class="pg2-lbl">Step</span>
+            <input class="pg2-input" value="0.001">
+          </div>
+        </div>
+        <div class="prop-row">
+          <span class="prop-lbl">Format</span>
+          <select class="prop-select">
+            <option selected>0.000 (3 decimal)</option>
+            <option>0.0000 (4 decimal)</option>
+            <option>Integer</option>
+            <option>Percentage</option>
+            <option>Scientific (1e-3)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Output Binding -->
+      <div class="prop-section prop-section-pad">
+        <div class="prop-sec-header">
+          <span class="prop-sec-title">Output Binding</span>
+          <button class="prop-sec-toggle"><i class="fa fa-chevron-down"></i></button>
+        </div>
+        <div class="binding-area">
+          <div class="binding-row">
+            <span class="bind-var">$value</span>
+            <span class="bind-arrow">→</span>
+            <span class="bind-target">result-text</span>
+          </div>
+          <div class="binding-row">
+            <span class="bind-var">$pct</span>
+            <span class="bind-arrow">→</span>
+            <span class="bind-target">fill-width</span>
+          </div>
+          <button class="bind-add"><i class="fa fa-plus" style="font-size:8px;"></i> Add binding</button>
+        </div>
+        <div style="padding:0 12px 4px;">
+          <div style="font-family:var(--mono);font-size:8px;letter-spacing:.1em;color:var(--text-faint);margin-bottom:5px;">OUTPUT TEMPLATE</div>
+          <textarea class="prop-textarea">{{#if (lt $value 0.001)}}
+  <i class="fa-solid fa-triangle-exclamation"></i> Too slow — vanishing gradient
+{{else if (lt $value 0.05)}}
+  <i class="fa-solid fa-circle-check"></i> Converging steadily — good range
+{{else}}
+  <i class="fa-solid fa-circle-xmark"></i> Too high — loss exploding!
+{{/if}}</textarea>
+        </div>
+      </div>
+
+      <!-- Appearance -->
+      <div class="prop-section prop-section-pad">
+        <div class="prop-sec-header">
+          <span class="prop-sec-title">Appearance</span>
+          <button class="prop-sec-toggle"><i class="fa fa-chevron-down"></i></button>
+        </div>
+        <div class="prop-row">
+          <span class="prop-lbl">Style</span>
+          <div class="prop-toggle-group">
+            <div class="prop-toggle active">Default</div>
+            <div class="prop-toggle">Minimal</div>
+            <div class="prop-toggle">Large</div>
+          </div>
+        </div>
+        <div class="color-row">
+          <span class="prop-lbl">Track</span>
+          <div class="color-swatch" style="background:#5b9cf6;"></div>
+          <input class="color-hex" value="#5b9cf6">
+        </div>
+        <div class="prop-switch-row">
+          <span class="prop-switch-lbl">Show value display</span>
+          <div class="switch on" onclick="toggleSwitch(this)"></div>
+        </div>
+        <div class="prop-switch-row">
+          <span class="prop-switch-lbl">Show output panel</span>
+          <div class="switch on" onclick="toggleSwitch(this)"></div>
+        </div>
+      </div>
+
+      <!-- Layout -->
+      <div class="prop-section prop-section-pad">
+        <div class="prop-sec-header">
+          <span class="prop-sec-title">Layout</span>
+          <button class="prop-sec-toggle"><i class="fa fa-chevron-down"></i></button>
+        </div>
+        <div class="prop-row">
+          <span class="prop-lbl">Width</span>
+          <div class="prop-toggle-group">
+            <div class="prop-toggle active">Full</div>
+            <div class="prop-toggle">3/4</div>
+            <div class="prop-toggle">Half</div>
+          </div>
+        </div>
+        <div class="prop-row">
+          <span class="prop-lbl">Spacing</span>
+          <select class="prop-select">
+            <option>Normal (16px)</option>
+            <option selected>Compact (8px)</option>
+            <option>Loose (24px)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Block ID -->
+      <div class="block-id-row">
+        <span class="bid-label">ID</span>
+        <input class="bid-input" value="slider-lr-01">
+      </div>
+
+      <!-- Theme tokens -->
+      <div class="tokens-section">
+        <div class="tokens-label">Active Theme Tokens</div>
+        <div class="token-chips">
+          <div class="token-chip">
+            <div class="token-swatch" style="background:#5b9cf6;"></div>
+            --accent
+          </div>
+          <div class="token-chip">
+            <div class="token-swatch" style="background:#22c55e;"></div>
+            --green
+          </div>
+          <div class="token-chip">
+            <div class="token-swatch" style="background:#f59e0b;"></div>
+            --yellow
+          </div>
+          <div class="token-chip">
+            <div class="token-swatch" style="background:#ef4444;"></div>
+            --red
+          </div>
+          <div class="token-chip">
+            <div class="token-swatch" style="background:#f4f4f2;border:1px solid #d4d4d0;"></div>
+            --surface2
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /rp-scroll -->
+
+    <div class="rp-bottom">
+      <button class="delete-block-btn">
+        <i class="fa fa-trash"></i> Delete Block
+      </button>
+    </div>
+  </div><!-- /right-panel -->
+
+</div><!-- /app-shell -->
+
+<!-- STATUS BAR -->
+<div class="statusbar">
+  <div class="sb-item">
+    <div class="sb-dot"></div>
+    Saved 2m ago
+  </div>
+  <div class="sb-item">
+    <i class="fa fa-layer-group" style="font-size:8px;opacity:.5;"></i>
+    7 sections · 18 blocks
+  </div>
+  <div class="sb-item">
+    <i class="fa fa-bolt" style="font-size:8px;opacity:.5;color:var(--accent);"></i>
+    <span class="sb-accent">6 interactive modules</span>
+  </div>
+  <div class="sb-spacer"></div>
+  <div class="sb-theme">
+    <i class="fa fa-palette" style="font-size:8px;opacity:.5;"></i>
+    Snaplify Dark
+  </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════
+   INTERACTIVE SLIDER
+══════════════════════════════════════════════ */
+(function() {
+  const MIN_LOG   = Math.log10(0.0001);
+  const MAX_LOG   = Math.log10(0.1);
+  const DEFAULT   = 0.010;
+
+  const trackWrap  = document.getElementById('slider-track-wrap');
+  const track      = document.getElementById('slider-track');
+  const fill       = document.getElementById('slider-fill');
+  const thumb      = document.getElementById('slider-thumb');
+  const display    = document.getElementById('slider-display');
+  const output     = document.getElementById('slider-output');
+  const outputText = document.getElementById('slider-output-text');
+
+  let isDragging = false;
+  let currentValue = DEFAULT;
+
+  function valueToPct(v) {
+    // logarithmic scale
+    return (Math.log10(v) - MIN_LOG) / (MAX_LOG - MIN_LOG);
+  }
+
+  function pctToValue(p) {
+    return Math.pow(10, MIN_LOG + p * (MAX_LOG - MIN_LOG));
+  }
+
+  function updateSlider(v) {
+    currentValue = Math.max(0.0001, Math.min(0.1, v));
+    const pct = valueToPct(currentValue);
+    const pctStr = (pct * 100).toFixed(2) + '%';
+
+    fill.style.width = pctStr;
+    thumb.style.left = pctStr;
+
+    // Format display: 4 decimals
+    display.textContent = currentValue.toFixed(4);
+
+    // Conditional output
+    output.className = 'slider-output';
+    const icon = output.querySelector('.out-icon');
+    if (currentValue < 0.001) {
+      output.classList.add('warn');
+      icon.className = 'fa fa-triangle-exclamation out-icon';
+      outputText.textContent = 'Too slow — vanishing gradient, training stalls';
+    } else if (currentValue <= 0.05) {
+      output.classList.add('ok');
+      icon.className = 'fa fa-circle-check out-icon';
+      outputText.textContent = 'Converging steadily — good learning rate range';
+    } else {
+      output.classList.add('danger');
+      icon.className = 'fa fa-circle-xmark out-icon';
+      outputText.textContent = 'Too high — loss exploding! Reduce η immediately';
+    }
+  }
+
+  function getValueFromEvent(e) {
+    const rect = track.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    let p = (clientX - rect.left) / rect.width;
+    p = Math.max(0, Math.min(1, p));
+    return pctToValue(p);
+  }
+
+  // Mouse down on thumb
+  thumb.addEventListener('mousedown', function(e) {
+    e.preventDefault();
+    isDragging = true;
+    thumb.classList.add('dragging');
+  });
+
+  // Click on track
+  track.addEventListener('mousedown', function(e) {
+    if (e.target === thumb) return;
+    e.preventDefault();
+    const v = getValueFromEvent(e);
+    updateSlider(v);
+    isDragging = true;
+    thumb.classList.add('dragging');
+  });
+
+  // Mouse move
+  document.addEventListener('mousemove', function(e) {
+    if (!isDragging) return;
+    const v = getValueFromEvent(e);
+    updateSlider(v);
+  });
+
+  // Mouse up
+  document.addEventListener('mouseup', function() {
+    if (isDragging) {
+      isDragging = false;
+      thumb.classList.remove('dragging');
+    }
+  });
+
+  // Touch support
+  thumb.addEventListener('touchstart', function(e) {
+    e.preventDefault();
+    isDragging = true;
+    thumb.classList.add('dragging');
+  }, { passive: false });
+
+  document.addEventListener('touchmove', function(e) {
+    if (!isDragging) return;
+    e.preventDefault();
+    const v = getValueFromEvent(e);
+    updateSlider(v);
+  }, { passive: false });
+
+  document.addEventListener('touchend', function() {
+    isDragging = false;
+    thumb.classList.remove('dragging');
+  });
+
+  // Init
+  updateSlider(DEFAULT);
+})();
+
+/* ══════════════════════════════════════════════
+   TOP BAR MODE TABS
+══════════════════════════════════════════════ */
+function setMode(btn) {
+  document.querySelectorAll('.tb-mode-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+/* ══════════════════════════════════════════════
+   LEFT PANEL TABS
+══════════════════════════════════════════════ */
+function switchTab(name) {
+  // Tabs
+  const tabs = document.querySelectorAll('.panel-tab');
+  const bodies = document.querySelectorAll('.panel-body');
+  const names = ['modules', 'structure', 'assets'];
+
+  tabs.forEach((t, i) => {
+    t.classList.toggle('active', names[i] === name);
+  });
+  bodies.forEach(b => {
+    const id = b.id; // e.g. "tab-modules"
+    b.classList.toggle('active', id === 'tab-' + name);
+  });
+}
+
+/* ══════════════════════════════════════════════
+   BLOCK SELECTION
+══════════════════════════════════════════════ */
+function selectBlock(el, type) {
+  document.querySelectorAll('.block-wrap').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+
+  // Update right panel type badge
+  const badge = document.querySelector('.rp-type-badge');
+  const titleMap = {
+    'range-slider': 'Range Slider',
+    'section-header': 'Section Header',
+    'body-text': 'Body Text',
+    'section-nav': 'Section Nav',
+  };
+  if (badge && titleMap[type]) badge.textContent = titleMap[type];
+}
+
+/* ══════════════════════════════════════════════
+   STRUCTURE NAV
+══════════════════════════════════════════════ */
+function setSection(el) {
+  document.querySelectorAll('.struct-item').forEach(s => {
+    s.classList.remove('active');
+    // remove active tag
+    const tag = s.querySelector('.struct-tag');
+    if (tag) tag.remove();
+  });
+  el.classList.add('active');
+  // Add active tag
+  const tag = document.createElement('span');
+  tag.className = 'struct-tag';
+  tag.textContent = 'Active';
+  el.appendChild(tag);
+}
+
+/* ══════════════════════════════════════════════
+   SWITCHES
+══════════════════════════════════════════════ */
+function toggleSwitch(el) {
+  el.classList.toggle('on');
+}
+
+/* ══════════════════════════════════════════════
+   VIEW TOGGLE BUTTONS
+══════════════════════════════════════════════ */
+document.querySelectorAll('.view-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    btn.closest('.view-toggle').querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  });
+});
+
+/* Prop toggle groups */
+document.querySelectorAll('.prop-toggle-group').forEach(group => {
+  group.querySelectorAll('.prop-toggle').forEach(tog => {
+    tog.addEventListener('click', () => {
+      group.querySelectorAll('.prop-toggle').forEach(t => t.classList.remove('active'));
+      tog.classList.add('active');
+    });
+  });
+});
+</script>
+</body>
+</html>

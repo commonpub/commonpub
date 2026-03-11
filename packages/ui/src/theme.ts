@@ -45,6 +45,8 @@ export const TOKEN_NAMES: string[] = [
   'color-surface-alt',
   'color-surface-raised',
   'color-surface-overlay',
+  'color-surface-hover',
+  'color-bg-subtle',
   // Text
   'color-text',
   'color-text-secondary',
@@ -54,15 +56,23 @@ export const TOKEN_NAMES: string[] = [
   'color-primary',
   'color-primary-hover',
   'color-primary-text',
+  'color-on-primary',
   // Accent
   'color-accent',
   'color-accent-hover',
   'color-accent-text',
+  'color-on-accent',
+  'color-accent-bg',
+  'color-accent-border',
   // Semantic
   'color-success',
   'color-warning',
   'color-error',
   'color-info',
+  'color-success-bg',
+  'color-warning-bg',
+  'color-error-bg',
+  'color-info-bg',
   // Borders
   'color-border',
   'color-border-strong',

@@ -45,47 +45,45 @@
 </nav>
 
 <style>
-  .admin-nav {
-    font-family: var(--font-body, sans-serif);
-  }
-
   .admin-nav__list {
     list-style: none;
     padding: 0;
     margin: 0;
     display: flex;
     flex-direction: column;
-    gap: var(--space-1, 0.25rem);
+    gap: 1px;
   }
 
   .admin-nav__link {
     display: block;
     padding: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
-    color: var(--color-text-secondary, #555);
+    color: var(--color-text-secondary, #888884);
     text-decoration: none;
-    font-size: var(--text-sm, 0.75rem);
-    font-weight: var(--font-weight-medium, 500);
-    border-radius: var(--radius-md, 0.25rem);
-    transition: background var(--transition-fast, 0.1s ease);
+    font-family: var(--font-mono, monospace);
+    font-size: 11px;
+    letter-spacing: 0.02em;
+    border-radius: var(--radius-sm, 4px);
   }
 
   .admin-nav__link:hover {
-    background: var(--color-surface-alt, #f8f9fa);
+    background: var(--color-surface-alt, #141413);
     color: var(--color-text, #d8d5cf);
   }
 
   .admin-nav__link:focus {
     outline: none;
-    box-shadow: var(--focus-ring);
+    border-color: var(--color-accent, #5b9cf6);
   }
 
   .admin-nav__link--active {
-    background: var(--color-primary, #3b82f6);
-    color: var(--color-primary-text, #fff);
+    background: var(--color-surface-alt, #141413);
+    color: var(--color-accent, #5b9cf6);
+    border-left: 2px solid var(--color-accent, #5b9cf6);
+    border-radius: 0;
   }
 
   .admin-nav__link--active:hover {
-    background: var(--color-primary-hover, #2563eb);
-    color: var(--color-primary-text, #fff);
+    background: var(--color-surface-alt, #141413);
+    color: var(--color-accent, #5b9cf6);
   }
 </style>

@@ -1,0 +1,2001 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Project Editor — Snaplify</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+:root {
+  --bg:#fafaf9;
+  --surface:#ffffff;
+  --surface2:#f4f4f2;
+  --surface3:#eaeae7;
+  --border:#1a1a1a;
+  --border2:#d4d4d0;
+  --text:#1a1a1a;
+  --text-dim:#6b6b66;
+  --text-faint:#a3a39e;
+  --accent:#5b9cf6;
+  --accent-bg:rgba(91,156,246,0.08);
+  --accent-border:rgba(91,156,246,0.25);
+  --green:#22c55e;
+  --green-bg:rgba(34,197,94,0.08);
+  --green-border:rgba(34,197,94,0.25);
+  --yellow:#f59e0b;
+  --yellow-bg:rgba(245,158,11,0.08);
+  --yellow-border:rgba(245,158,11,0.25);
+  --red:#ef4444;
+  --red-bg:rgba(239,68,68,0.08);
+  --red-border:rgba(239,68,68,0.25);
+  --purple:#8b5cf6;
+  --teal:#14b8a6;
+  --pink:#ec4899;
+  --radius:0px;
+  --radius-lg:0px;
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;}
+body{
+  font-family:system-ui,-apple-system,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  font-size:13px;
+  line-height:1.5;
+  display:flex;
+  flex-direction:column;
+}
+
+/* ─── SCROLLBARS ─── */
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:0px;}
+::-webkit-scrollbar-thumb:hover{background:var(--text-faint);}
+
+/* ─── TOP BAR ─── */
+.topbar{
+  height:44px;
+  background:var(--surface);
+  border-bottom:2px solid var(--border);
+  display:flex;
+  align-items:center;
+  padding:0 14px;
+  gap:10px;
+  flex-shrink:0;
+  z-index:100;
+}
+.topbar-logo{
+  font-family:'JetBrains Mono',monospace;
+  font-size:12px;
+  font-weight:600;
+  color:var(--text-dim);
+  letter-spacing:.04em;
+  white-space:nowrap;
+}
+.topbar-logo span{color:var(--accent);}
+.topbar-sep{width:2px;height:20px;background:var(--border);flex-shrink:0;}
+.topbar-back{
+  width:28px;height:28px;
+  border-radius:0px;
+  border:2px solid var(--border);
+  background:var(--surface);
+  color:var(--text-dim);
+  cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;
+  flex-shrink:0;
+}
+.topbar-back:hover{background:var(--surface2);color:var(--text);}
+.topbar-title{
+  font-size:13px;
+  font-weight:500;
+  color:var(--text);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  max-width:320px;
+}
+.draft-badge{
+  font-family:'JetBrains Mono',monospace;
+  font-size:9px;
+  font-weight:600;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  padding:2px 7px;
+  border-radius:0px;
+  background:var(--yellow-bg);
+  border:2px solid var(--yellow);
+  color:var(--yellow);
+  flex-shrink:0;
+}
+.topbar-tabs{display:flex;gap:2px;margin-left:8px;}
+.topbar-tab{
+  font-size:12px;
+  padding:5px 12px;
+  border-radius:0px;
+  border:2px solid transparent;
+  background:transparent;
+  color:var(--text-dim);
+  cursor:pointer;
+  display:flex;align-items:center;gap:6px;
+  white-space:nowrap;
+}
+.topbar-tab:hover{color:var(--text);background:var(--surface2);}
+.topbar-tab.active{color:var(--text);background:var(--surface2);border-color:var(--border);}
+.topbar-tab i{font-size:10px;}
+.spacer{flex:1;}
+.topbar-actions{display:flex;align-items:center;gap:6px;}
+.btn{
+  font-family:system-ui,-apple-system,sans-serif;
+  font-size:12px;
+  padding:5px 12px;
+  border-radius:0px;
+  border:2px solid var(--border);
+  background:var(--surface);
+  color:var(--text);
+  cursor:pointer;
+  display:inline-flex;align-items:center;gap:6px;
+  white-space:nowrap;
+}
+.btn:hover{background:var(--surface2);border-color:var(--text-dim);}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:4px 4px 0 #1a1a1a;}
+.btn-primary:hover{background:#4a8ce8;border-color:#4a8ce8;}
+.btn-ghost{background:transparent;border-color:transparent;color:var(--text-dim);}
+.btn-ghost:hover{background:var(--surface2);color:var(--text);border-color:var(--border);}
+.btn-sm{padding:4px 10px;font-size:11px;}
+.btn-xs{padding:2px 7px;font-size:10px;}
+.btn-publish{background:var(--green-bg);border-color:var(--green);color:var(--green);}
+.btn-publish:hover{background:rgba(34,197,94,.14);}
+
+/* ─── SHELL ─── */
+.shell{
+  display:flex;
+  flex:1;
+  overflow:hidden;
+}
+
+/* ─── LEFT: BLOCK LIBRARY ─── */
+.library{
+  width:220px;
+  flex-shrink:0;
+  background:var(--surface);
+  border-right:2px solid var(--border);
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+.library-header{
+  padding:10px 12px;
+  border-bottom:2px solid var(--border);
+  flex-shrink:0;
+}
+.library-search{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  background:var(--surface2);
+  border:2px solid var(--border);
+  border-radius:0px;
+  padding:5px 9px;
+  color:var(--text-dim);
+}
+.library-search i{font-size:10px;flex-shrink:0;}
+.library-search input{
+  background:transparent;
+  border:none;
+  outline:none;
+  font-size:12px;
+  color:var(--text);
+  width:100%;
+}
+.library-search input::placeholder{color:var(--text-faint);}
+.library-body{flex:1;overflow-y:auto;padding-bottom:12px;}
+.lib-group{padding:12px 0 4px;}
+.lib-group-label{
+  font-family:'JetBrains Mono',monospace;
+  font-size:9px;
+  font-weight:600;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color:var(--text-faint);
+  padding:0 12px 6px;
+}
+.lib-blocks{display:flex;flex-direction:column;gap:1px;}
+.lib-block{
+  display:flex;
+  align-items:center;
+  gap:9px;
+  padding:6px 12px;
+  cursor:grab;
+  border:2px solid transparent;
+  border-radius:0;
+  background:transparent;
+  color:var(--text-dim);
+  font-size:12px;
+  user-select:none;
+  transition:background .1s;
+}
+.lib-block:hover{
+  background:var(--surface2);
+  color:var(--text);
+  border-color:transparent;
+}
+.lib-block:active{cursor:grabbing;}
+.lib-block-icon{
+  width:22px;height:22px;
+  border-radius:0px;
+  background:var(--surface3);
+  border:2px solid var(--border2);
+  display:flex;align-items:center;justify-content:center;
+  font-size:9px;
+  color:var(--text-faint);
+  flex-shrink:0;
+  transition:background .1s, color .1s;
+}
+.lib-block:hover .lib-block-icon{background:var(--accent-bg);border-color:var(--accent-border);color:var(--accent);}
+.lib-block-label{font-size:11px;flex:1;}
+.lib-block-drag{font-size:9px;color:var(--text-faint);opacity:0;transition:opacity .1s;}
+.lib-block:hover .lib-block-drag{opacity:1;}
+
+/* Icon color variants */
+.lib-block.proj .lib-block-icon{color:var(--yellow);}
+.lib-block.proj:hover .lib-block-icon{background:var(--yellow-bg);border-color:var(--yellow-border);color:var(--yellow);}
+.lib-block.tip .lib-block-icon{color:var(--green);}
+.lib-block.tip:hover .lib-block-icon{background:var(--green-bg);border-color:var(--green-border);color:var(--green);}
+.lib-block.inter .lib-block-icon{color:var(--accent);}
+.lib-block.inter:hover .lib-block-icon{background:var(--accent-bg);border-color:var(--accent-border);color:var(--accent);}
+
+/* ─── CENTER: EDITOR CANVAS ─── */
+.canvas-wrap{
+  flex:1;
+  overflow-y:auto;
+  background:var(--bg);
+  position:relative;
+}
+.canvas{
+  max-width:820px;
+  margin:0 auto;
+  padding:28px 32px 80px;
+}
+
+/* Cover area */
+.cover-upload{
+  width:100%;
+  aspect-ratio:21/7;
+  border-radius:0px;
+  border:2px dashed var(--border);
+  background:var(--surface);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  cursor:pointer;
+  margin-bottom:24px;
+  position:relative;
+  overflow:hidden;
+  transition:border-color .15s, background .15s;
+}
+.cover-upload:hover{border-color:var(--accent);background:var(--surface2);}
+.cover-gradient{
+  position:absolute;
+  inset:0;
+  background:var(--surface2);
+}
+.cover-grid{
+  position:absolute;
+  inset:0;
+  background-image:linear-gradient(var(--border2) 1px,transparent 1px),
+    linear-gradient(90deg,var(--border2) 1px,transparent 1px);
+  background-size:32px 32px;
+  opacity:.3;
+}
+.cover-upload-inner{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:6px;}
+.cover-upload-icon{
+  width:36px;height:36px;
+  border-radius:0px;
+  background:var(--surface);
+  border:2px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;
+  color:var(--text-dim);
+}
+.cover-upload-label{font-size:12px;color:var(--text-dim);}
+.cover-upload-hint{font-size:10px;color:var(--text-faint);font-family:'JetBrains Mono',monospace;}
+
+/* Title/Subtitle inputs */
+.field-title{
+  width:100%;
+  background:transparent;
+  border:none;
+  outline:none;
+  font-size:26px;
+  font-weight:700;
+  color:var(--text);
+  line-height:1.25;
+  margin-bottom:8px;
+  border-bottom:2px solid transparent;
+  transition:border-color .15s;
+  padding-bottom:2px;
+}
+.field-title:focus{border-bottom-color:var(--border);}
+.field-title::placeholder{color:var(--text-faint);}
+.field-subtitle{
+  width:100%;
+  background:transparent;
+  border:none;
+  outline:none;
+  font-size:14px;
+  color:var(--text-dim);
+  line-height:1.5;
+  margin-bottom:16px;
+  border-bottom:2px solid transparent;
+  transition:border-color .15s;
+  padding-bottom:2px;
+}
+.field-subtitle:focus{border-bottom-color:var(--border2);}
+.field-subtitle::placeholder{color:var(--text-faint);}
+
+/* Metadata row */
+.meta-row{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+  padding:10px 0;
+  border-top:2px solid var(--border);
+  border-bottom:2px solid var(--border);
+  margin-bottom:12px;
+}
+.meta-badge{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:3px 9px;
+  border-radius:0px;
+  font-size:11px;
+  font-family:'JetBrains Mono',monospace;
+  font-weight:500;
+  border:2px solid;
+}
+.meta-badge.difficulty{
+  background:var(--yellow-bg);
+  border-color:var(--yellow);
+  color:var(--yellow);
+}
+.meta-badge.time{
+  background:var(--accent-bg);
+  border-color:var(--accent);
+  color:var(--accent);
+}
+.meta-badge.cost{
+  background:var(--green-bg);
+  border-color:var(--green);
+  color:var(--green);
+}
+.meta-sep{width:2px;height:14px;background:var(--border);}
+
+/* Tags row */
+.tags-row{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  flex-wrap:wrap;
+  margin-bottom:24px;
+  padding-bottom:14px;
+  border-bottom:2px solid var(--border);
+}
+.tag-chip{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:2px 8px;
+  border-radius:0px;
+  font-size:10px;
+  font-family:'JetBrains Mono',monospace;
+  background:var(--surface);
+  border:2px solid var(--border2);
+  color:var(--text-dim);
+  cursor:pointer;
+}
+.tag-chip:hover{border-color:var(--accent);color:var(--accent);}
+.tag-chip .remove{font-size:9px;color:var(--text-faint);margin-left:2px;}
+.tag-chip .remove:hover{color:var(--red);}
+.tag-add-btn{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:2px 8px;
+  border-radius:0px;
+  font-size:10px;
+  font-family:'JetBrains Mono',monospace;
+  background:transparent;
+  border:2px dashed var(--border2);
+  color:var(--text-faint);
+  cursor:pointer;
+}
+.tag-add-btn:hover{border-color:var(--accent);color:var(--accent);}
+
+/* ─── CONTENT BLOCKS ─── */
+.block-wrap{
+  position:relative;
+  margin-bottom:4px;
+}
+.block-insert-zone{
+  height:16px;
+  margin:2px 0;
+  border-radius:0px;
+  border:2px dashed transparent;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;
+  transition:all .15s;
+  opacity:0;
+}
+.block-wrap:hover + .block-insert-zone,
+.block-insert-zone:hover{
+  opacity:1;
+  border-color:var(--accent);
+  background:var(--accent-bg);
+}
+.block-insert-zone-label{
+  font-size:9px;
+  font-family:'JetBrains Mono',monospace;
+  color:var(--accent);
+  letter-spacing:.1em;
+  display:flex;align-items:center;gap:5px;
+}
+
+/* Block handles */
+.block{
+  border-radius:0px;
+  border:2px solid transparent;
+  position:relative;
+  transition:border-color .15s;
+}
+.block:hover{border-color:var(--border2);}
+.block-handle{
+  position:absolute;
+  left:-28px;
+  top:12px;
+  display:flex;flex-direction:column;gap:2px;align-items:center;
+  opacity:0;
+  transition:opacity .15s;
+}
+.block:hover .block-handle{opacity:1;}
+.handle-btn{
+  width:20px;height:20px;
+  border-radius:0px;
+  border:2px solid var(--border);
+  background:var(--surface);
+  color:var(--text-dim);
+  font-size:9px;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;
+}
+.handle-btn:hover{background:var(--surface2);color:var(--text);border-color:var(--border);}
+.handle-btn.drag{cursor:grab;}
+.handle-btn.drag:active{cursor:grabbing;}
+
+/* Block types */
+.block-text{padding:8px 10px;}
+.block-text p{
+  font-size:13px;
+  color:var(--text);
+  line-height:1.7;
+  margin-bottom:8px;
+}
+.block-text p:last-child{margin-bottom:0;}
+
+.block-heading{padding:16px 10px 8px;}
+.block-heading h2{
+  font-size:18px;
+  font-weight:700;
+  color:var(--text);
+  padding-bottom:8px;
+  border-bottom:2px solid var(--border);
+  display:flex;align-items:center;gap:10px;
+}
+.block-heading h2 .heading-icon{
+  width:6px;height:20px;
+  background:var(--accent);
+  border-radius:0px;
+  flex-shrink:0;
+}
+
+/* Parts List block */
+.block-parts{
+  background:var(--surface);
+  border:2px solid var(--border);
+  border-radius:0px;
+  overflow:hidden;
+  margin:4px 0;
+  box-shadow:4px 4px 0 #1a1a1a;
+}
+.block-parts-header{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 14px;
+  border-bottom:2px solid var(--border);
+  background:var(--surface2);
+}
+.block-parts-icon{
+  width:24px;height:24px;
+  border-radius:0px;
+  background:var(--yellow-bg);
+  border:2px solid var(--yellow);
+  display:flex;align-items:center;justify-content:center;
+  font-size:10px;
+  color:var(--yellow);
+  flex-shrink:0;
+}
+.block-parts-title{font-size:12px;font-weight:600;color:var(--text);}
+.block-parts-count{font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--text-faint);margin-left:auto;}
+.parts-table{width:100%;border-collapse:collapse;}
+.parts-table th{
+  font-size:10px;
+  font-family:'JetBrains Mono',monospace;
+  font-weight:500;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:var(--text-faint);
+  padding:7px 14px;
+  text-align:left;
+  border-bottom:2px solid var(--border);
+  background:var(--surface);
+  white-space:nowrap;
+}
+.parts-table td{
+  font-size:12px;
+  color:var(--text);
+  padding:8px 14px;
+  border-bottom:1px solid var(--border2);
+  vertical-align:middle;
+}
+.parts-table tr:last-child td{border-bottom:none;}
+.parts-table tr:hover td{background:var(--surface2);}
+.parts-table .part-qty{
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;
+  color:var(--text-dim);
+  text-align:center;
+  width:40px;
+}
+.parts-table .part-price{
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;
+  color:var(--green);
+  white-space:nowrap;
+}
+.parts-table .part-link{
+  color:var(--accent);
+  font-size:10px;
+  font-family:'JetBrains Mono',monospace;
+  text-decoration:none;
+  display:flex;align-items:center;gap:4px;
+}
+.parts-table .part-link:hover{text-decoration:underline;}
+.parts-table .part-note{font-size:11px;color:var(--text-dim);}
+.parts-table tr.total-row td{
+  background:var(--surface2);
+  border-top:2px solid var(--border);
+  font-weight:600;
+}
+.parts-table tr.total-row .part-price{color:var(--yellow);font-size:12px;}
+.block-parts-footer{
+  padding:8px 14px;
+  border-top:2px solid var(--border);
+  background:var(--surface);
+  display:flex;align-items:center;gap:8px;
+}
+
+/* Tool List block */
+.block-tools{
+  background:var(--surface);
+  border:2px solid var(--border);
+  border-radius:0px;
+  overflow:hidden;
+  margin:4px 0;
+  box-shadow:4px 4px 0 #1a1a1a;
+}
+.block-tools-header{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 14px;
+  border-bottom:2px solid var(--border);
+  background:var(--surface2);
+}
+.block-tools-icon{
+  width:24px;height:24px;
+  border-radius:0px;
+  background:var(--yellow-bg);
+  border:2px solid var(--yellow);
+  display:flex;align-items:center;justify-content:center;
+  font-size:10px;
+  color:var(--yellow);
+  flex-shrink:0;
+}
+.block-tools-title{font-size:12px;font-weight:600;color:var(--text);}
+.tools-list{padding:10px 14px;display:flex;flex-direction:column;gap:6px;}
+.tool-item{
+  display:flex;align-items:center;gap:10px;
+  padding:7px 10px;
+  border-radius:0px;
+  border:2px solid var(--border);
+  background:var(--surface);
+}
+.tool-item-icon{font-size:12px;color:var(--text-dim);width:16px;text-align:center;}
+.tool-item-label{font-size:12px;color:var(--text);}
+.tool-item-note{font-size:11px;color:var(--text-dim);margin-left:auto;font-family:'JetBrains Mono',monospace;}
+
+/* Build Step block */
+.block-step{
+  background:var(--surface);
+  border:2px solid var(--border);
+  border-radius:0px;
+  overflow:hidden;
+  margin:4px 0;
+  box-shadow:4px 4px 0 #1a1a1a;
+}
+.step-header{
+  display:flex;align-items:center;gap:12px;
+  padding:12px 14px;
+  border-bottom:2px solid var(--border);
+}
+.step-num{
+  width:28px;height:28px;
+  border-radius:0px;
+  border:2px solid var(--border);
+  background:var(--accent);
+  color:#fff;
+  font-size:12px;
+  font-weight:700;
+  font-family:'JetBrains Mono',monospace;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+.step-title{font-size:14px;font-weight:600;color:var(--text);}
+.step-body{padding:14px;}
+.step-instruction{
+  font-size:13px;
+  color:var(--text);
+  line-height:1.7;
+  margin-bottom:14px;
+}
+
+/* Code block */
+.block-code{
+  background:var(--surface);
+  border:2px solid var(--border);
+  border-radius:0px;
+  overflow:hidden;
+  margin:4px 0;
+  box-shadow:4px 4px 0 #1a1a1a;
+}
+.code-header{
+  display:flex;align-items:center;
+  padding:7px 14px;
+  border-bottom:2px solid var(--border);
+  background:var(--surface2);
+  gap:8px;
+}
+.code-lang{
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;
+  font-weight:600;
+  letter-spacing:.06em;
+  color:var(--accent);
+  text-transform:uppercase;
+}
+.code-filename{
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;
+  color:var(--text-dim);
+}
+.code-actions{margin-left:auto;display:flex;gap:4px;}
+.code-body{
+  padding:14px;
+  font-family:'JetBrains Mono',monospace;
+  font-size:12px;
+  line-height:1.7;
+  color:#d8d5cf;
+  overflow-x:auto;
+  background:#0c0c0b;
+}
+.code-line{display:flex;gap:16px;}
+.code-line .ln{color:#444440;user-select:none;min-width:20px;text-align:right;flex-shrink:0;}
+.kw{color:#c792ea;}
+.fn{color:#82aaff;}
+.str{color:#c3e88d;}
+.cm{color:#555;font-style:italic;}
+.num{color:#f78c6c;}
+.op{color:#888;}
+.type{color:#ffcb6b;}
+.var{color:#d8d5cf;}
+
+/* Tip callout */
+.callout{
+  border-radius:0px;
+  padding:10px 12px;
+  display:flex;gap:10px;
+  border:2px solid;
+  margin:10px 0;
+}
+.callout-tip{background:var(--green-bg);border-color:var(--green);}
+.callout-warn{background:var(--yellow-bg);border-color:var(--yellow);}
+.callout-note{background:var(--accent-bg);border-color:var(--accent);}
+.callout-icon{font-size:12px;flex-shrink:0;margin-top:1px;}
+.callout-tip .callout-icon{color:var(--green);}
+.callout-warn .callout-icon{color:var(--yellow);}
+.callout-note .callout-icon{color:var(--accent);}
+.callout-body{flex:1;}
+.callout-label{
+  font-size:10px;
+  font-family:'JetBrains Mono',monospace;
+  font-weight:600;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  margin-bottom:3px;
+}
+.callout-tip .callout-label{color:var(--green);}
+.callout-warn .callout-label{color:var(--yellow);}
+.callout-note .callout-label{color:var(--accent);}
+.callout-text{font-size:12px;color:var(--text);line-height:1.6;}
+
+/* Image block */
+.block-image{
+  border-radius:0px;
+  border:2px solid var(--border);
+  overflow:hidden;
+  margin:4px 0;
+  box-shadow:4px 4px 0 #1a1a1a;
+}
+.image-placeholder{
+  aspect-ratio:16/9;
+  background:var(--surface);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:8px;
+  cursor:pointer;
+  position:relative;
+  overflow:hidden;
+}
+.image-placeholder-grid{
+  position:absolute;inset:0;
+  background-image:linear-gradient(var(--border2) 1px,transparent 1px),
+    linear-gradient(90deg,var(--border2) 1px,transparent 1px);
+  background-size:28px 28px;
+  opacity:.25;
+}
+.image-placeholder-inner{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:6px;}
+.image-placeholder-icon{
+  width:40px;height:40px;
+  border-radius:0px;
+  background:var(--surface2);
+  border:2px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;
+  color:var(--text-dim);
+}
+.image-caption-input{
+  width:100%;
+  background:var(--surface2);
+  border:none;
+  border-top:2px solid var(--border);
+  outline:none;
+  font-size:11px;
+  color:var(--text-dim);
+  font-family:'JetBrains Mono',monospace;
+  padding:7px 12px;
+  text-align:center;
+}
+.image-caption-input::placeholder{color:var(--text-faint);}
+
+/* Wiring Diagram block */
+.block-wiring{
+  border-radius:0px;
+  border:2px solid var(--border);
+  overflow:hidden;
+  margin:4px 0;
+  box-shadow:4px 4px 0 #1a1a1a;
+}
+.wiring-header{
+  display:flex;align-items:center;gap:8px;
+  padding:9px 14px;
+  border-bottom:2px solid var(--border);
+  background:var(--surface2);
+}
+.wiring-icon{
+  width:22px;height:22px;
+  border-radius:0px;
+  background:var(--accent-bg);
+  border:2px solid var(--accent);
+  display:flex;align-items:center;justify-content:center;
+  font-size:9px;
+  color:var(--accent);
+}
+.wiring-title{font-size:12px;font-weight:600;color:var(--text);}
+.wiring-area{
+  aspect-ratio:16/6;
+  background:var(--surface);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:8px;
+  position:relative;
+  overflow:hidden;
+  cursor:pointer;
+}
+.wiring-grid{
+  position:absolute;inset:0;
+  background-image:
+    radial-gradient(circle,var(--border2) 1px, transparent 1px);
+  background-size:20px 20px;
+  opacity:.4;
+}
+.wiring-inner{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:8px;}
+.wiring-circuit-icon{
+  font-size:32px;
+  color:var(--text-faint);
+}
+.wiring-upload-label{font-size:12px;color:var(--text-dim);}
+.wiring-hint{font-size:10px;color:var(--text-faint);font-family:'JetBrains Mono',monospace;}
+
+/* Terminal code in step */
+.terminal-block{
+  background:#0c0c0b;
+  border:2px solid var(--border);
+  border-radius:0px;
+  overflow:hidden;
+  margin:10px 0;
+}
+.terminal-header{
+  display:flex;align-items:center;
+  padding:6px 12px;
+  border-bottom:2px solid var(--border);
+  background:#1c1c1a;
+  gap:6px;
+}
+.terminal-dot{width:8px;height:8px;border-radius:50%;}
+.terminal-dot.r{background:#ef4444;}
+.terminal-dot.y{background:#f59e0b;}
+.terminal-dot.g{background:#22c55e;}
+.terminal-body{
+  padding:12px;
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;
+  line-height:1.7;
+  color:#d8d5cf;
+}
+.terminal-prompt{color:var(--green);}
+.terminal-cmd{color:#d8d5cf;}
+.terminal-out{color:#888884;}
+
+/* Python code block in canvas */
+.canvas-code-block{
+  background:var(--surface);
+  border:2px solid var(--border);
+  border-radius:0px;
+  overflow:hidden;
+  margin:4px 0;
+  box-shadow:4px 4px 0 #1a1a1a;
+}
+.canvas-code-header{
+  display:flex;align-items:center;
+  padding:7px 14px;
+  border-bottom:2px solid var(--border);
+  background:var(--surface2);
+  gap:8px;
+}
+.canvas-code-lang-tabs{display:flex;gap:2px;}
+.canvas-code-lang-tab{
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;
+  padding:2px 8px;
+  border-radius:0px;
+  border:2px solid var(--border2);
+  background:transparent;
+  color:var(--text-faint);
+  cursor:pointer;
+}
+.canvas-code-lang-tab.active{background:var(--accent-bg);border-color:var(--accent);color:var(--accent);}
+.canvas-code-body{
+  padding:16px;
+  font-family:'JetBrains Mono',monospace;
+  font-size:12px;
+  line-height:1.8;
+  color:#d8d5cf;
+  background:#0c0c0b;
+  overflow-x:auto;
+}
+
+/* ─── RIGHT SETTINGS PANEL ─── */
+.settings{
+  width:280px;
+  flex-shrink:0;
+  background:var(--surface);
+  border-left:2px solid var(--border);
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+.settings-body{flex:1;overflow-y:auto;}
+.settings-section{
+  border-bottom:2px solid var(--border);
+  padding:0;
+}
+.settings-section-header{
+  display:flex;align-items:center;
+  padding:10px 14px;
+  cursor:pointer;
+  gap:8px;
+  user-select:none;
+}
+.settings-section-header:hover{background:var(--surface2);}
+.settings-section-label{
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;
+  font-weight:600;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  color:var(--text-dim);
+  flex:1;
+}
+.settings-section-arrow{font-size:9px;color:var(--text-faint);}
+.settings-section-body{padding:12px 14px;display:flex;flex-direction:column;gap:10px;}
+.settings-section.collapsed .settings-section-body{display:none;}
+.settings-section.collapsed .settings-section-arrow{transform:rotate(-90deg);}
+
+/* Form controls */
+.form-row{display:flex;flex-direction:column;gap:4px;}
+.form-label{
+  font-family:'JetBrains Mono',monospace;
+  font-size:9px;
+  font-weight:600;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  color:var(--text-faint);
+}
+.form-input{
+  background:var(--surface);
+  border:2px solid var(--border);
+  border-radius:0px;
+  padding:5px 9px;
+  font-size:12px;
+  color:var(--text);
+  outline:none;
+  font-family:system-ui,-apple-system,sans-serif;
+  width:100%;
+  transition:border-color .15s;
+}
+.form-input:focus{border-color:var(--accent);}
+.form-input::placeholder{color:var(--text-faint);}
+.form-select{
+  background:var(--surface);
+  border:2px solid var(--border);
+  border-radius:0px;
+  padding:5px 9px;
+  font-size:12px;
+  color:var(--text);
+  outline:none;
+  font-family:system-ui,-apple-system,sans-serif;
+  width:100%;
+  cursor:pointer;
+  appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%231a1a1a'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;
+  background-position:right 9px center;
+  padding-right:26px;
+}
+.form-select:focus{border-color:var(--accent);}
+option{background:var(--surface);}
+
+/* Toggle group */
+.toggle-group{display:flex;border:2px solid var(--border);border-radius:0px;overflow:hidden;}
+.toggle-opt{
+  flex:1;
+  padding:5px 4px;
+  text-align:center;
+  font-size:10px;
+  font-family:'JetBrains Mono',monospace;
+  cursor:pointer;
+  color:var(--text-faint);
+  background:transparent;
+  border:none;
+  border-right:2px solid var(--border);
+  transition:all .12s;
+}
+.toggle-opt:last-child{border-right:none;}
+.toggle-opt:hover{background:var(--surface2);color:var(--text-dim);}
+.toggle-opt.active{background:var(--accent-bg);color:var(--accent);}
+
+/* Row 2-col */
+.form-row-2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+
+/* Tags chip input */
+.chip-input-wrap{
+  display:flex;flex-wrap:wrap;gap:4px;align-items:center;
+  background:var(--surface);
+  border:2px solid var(--border);
+  border-radius:0px;
+  padding:4px 8px;
+  min-height:32px;
+  cursor:text;
+}
+.chip-input-wrap:focus-within{border-color:var(--accent);}
+.chip{
+  display:inline-flex;align-items:center;gap:3px;
+  padding:1px 6px;
+  border-radius:0px;
+  font-size:10px;
+  font-family:'JetBrains Mono',monospace;
+  background:var(--surface2);
+  border:2px solid var(--border2);
+  color:var(--text-dim);
+}
+.chip .chip-remove{font-size:9px;color:var(--text-faint);cursor:pointer;}
+.chip .chip-remove:hover{color:var(--red);}
+.chip-input{
+  background:transparent;
+  border:none;
+  outline:none;
+  font-size:11px;
+  color:var(--text);
+  font-family:'JetBrains Mono',monospace;
+  min-width:60px;
+  flex:1;
+}
+.chip-input::placeholder{color:var(--text-faint);}
+
+/* Visibility toggle */
+.vis-group{display:flex;flex-direction:column;gap:4px;}
+.vis-opt{
+  display:flex;align-items:center;gap:9px;
+  padding:7px 10px;
+  border-radius:0px;
+  border:2px solid var(--border2);
+  cursor:pointer;
+  transition:all .12s;
+}
+.vis-opt:hover{background:var(--surface2);}
+.vis-opt.selected{border-color:var(--accent);background:var(--accent-bg);}
+.vis-radio{
+  width:13px;height:13px;
+  border-radius:50%;
+  border:2px solid var(--border2);
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+.vis-opt.selected .vis-radio{border-color:var(--accent);}
+.vis-radio-dot{width:7px;height:7px;border-radius:50%;background:var(--accent);display:none;}
+.vis-opt.selected .vis-radio-dot{display:block;}
+.vis-opt-info{flex:1;}
+.vis-opt-label{font-size:12px;color:var(--text);}
+.vis-opt-desc{font-size:10px;color:var(--text-dim);font-family:'JetBrains Mono',monospace;}
+.vis-opt-icon{font-size:11px;color:var(--text-faint);}
+.vis-opt.selected .vis-opt-icon{color:var(--accent);}
+
+/* Cover upload small */
+.cover-upload-sm{
+  border:2px dashed var(--border);
+  border-radius:0px;
+  padding:14px;
+  display:flex;flex-direction:column;align-items:center;gap:6px;
+  cursor:pointer;
+  background:var(--surface2);
+  transition:all .15s;
+}
+.cover-upload-sm:hover{border-color:var(--accent);background:var(--surface3);}
+.cover-upload-sm-icon{font-size:18px;color:var(--text-faint);}
+.cover-upload-sm-label{font-size:11px;color:var(--text-dim);}
+.cover-upload-sm-hint{font-size:10px;color:var(--text-faint);font-family:'JetBrains Mono',monospace;}
+
+/* Files list */
+.file-item{
+  display:flex;align-items:center;gap:8px;
+  padding:6px 8px;
+  border-radius:0px;
+  border:2px solid var(--border);
+  background:var(--surface);
+}
+.file-icon{font-size:12px;color:var(--text-dim);}
+.file-name{font-size:11px;color:var(--text);flex:1;font-family:'JetBrains Mono',monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.file-size{font-size:10px;color:var(--text-faint);font-family:'JetBrains Mono',monospace;white-space:nowrap;}
+.file-del{font-size:10px;color:var(--text-faint);cursor:pointer;}
+.file-del:hover{color:var(--red);}
+
+/* Publishing checklist */
+.checklist{display:flex;flex-direction:column;gap:5px;}
+.check-item{
+  display:flex;align-items:center;gap:8px;
+  font-size:11px;
+  color:var(--text-dim);
+}
+.check-icon.pass{color:var(--green);}
+.check-icon.fail{color:var(--text-faint);}
+.check-item.pass{color:var(--text);}
+.check-item.fail{color:var(--text-faint);}
+/* Square checkboxes for checklist */
+.check-icon.fa-circle-check,.check-icon.fa-circle-xmark{font-size:12px;}
+.check-item .check-icon{width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;}
+
+/* Publish btn full width */
+.publish-full{
+  margin:12px 14px;
+}
+
+/* Inline code terminal in step */
+.inline-code{
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;
+  background:var(--surface2);
+  border:2px solid var(--border2);
+  border-radius:0px;
+  padding:1px 5px;
+  color:var(--accent);
+}
+
+/* Block controls overlay */
+.block-controls{
+  position:absolute;
+  top:6px;
+  right:8px;
+  display:flex;gap:3px;
+  opacity:0;
+  transition:opacity .15s;
+  z-index:10;
+}
+.block:hover .block-controls{opacity:1;}
+.block-ctrl-btn{
+  width:22px;height:22px;
+  border-radius:0px;
+  border:2px solid var(--border);
+  background:var(--surface);
+  color:var(--text-faint);
+  font-size:9px;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;
+}
+.block-ctrl-btn:hover{background:var(--surface2);color:var(--text);border-color:var(--border);}
+.block-ctrl-btn.danger:hover{background:var(--red-bg);border-color:var(--red);color:var(--red);}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════ TOP BAR ═══════════════════════════════ -->
+<div class="topbar">
+  <div class="topbar-logo"><span>snap</span>lify</div>
+  <div class="topbar-sep"></div>
+  <button class="topbar-back"><i class="fa fa-arrow-left"></i></button>
+  <span class="topbar-title">Real-time Object Detection on ESP32-S3</span>
+  <span class="draft-badge">Draft</span>
+  <div class="topbar-tabs">
+    <button class="topbar-tab active"><i class="fa fa-pencil"></i> Edit</button>
+    <button class="topbar-tab"><i class="fa fa-microchip"></i> Parts &amp; Tools</button>
+    <button class="topbar-tab"><i class="fa fa-folder"></i> Files</button>
+    <button class="topbar-tab"><i class="fa fa-sliders"></i> Settings</button>
+  </div>
+  <div class="spacer"></div>
+  <div class="topbar-actions">
+    <span style="font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--green);display:flex;align-items:center;gap:5px;">
+      <i class="fa fa-circle" style="font-size:7px;"></i> Saved
+    </span>
+    <button class="btn btn-ghost btn-sm"><i class="fa fa-eye"></i> Preview</button>
+    <button class="btn btn-sm"><i class="fa fa-floppy-disk"></i> Save</button>
+    <button class="btn btn-publish btn-sm"><i class="fa fa-bolt"></i> Publish</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════ SHELL ═══════════════════════════════ -->
+<div class="shell">
+
+  <!-- ═══════════ LEFT: BLOCK LIBRARY ═══════════ -->
+  <div class="library">
+    <div class="library-header">
+      <div class="library-search">
+        <i class="fa fa-search"></i>
+        <input type="text" placeholder="Search blocks...">
+      </div>
+    </div>
+    <div class="library-body">
+
+      <!-- Basic -->
+      <div class="lib-group">
+        <div class="lib-group-label">Basic</div>
+        <div class="lib-blocks">
+          <div class="lib-block">
+            <div class="lib-block-icon"><i class="fa fa-align-left"></i></div>
+            <span class="lib-block-label">Text</span>
+            <i class="fa fa-grip-vertical lib-block-drag"></i>
+          </div>
+          <div class="lib-block">
+            <div class="lib-block-icon"><i class="fa fa-heading"></i></div>
+            <span class="lib-block-label">Heading</span>
+            <i class="fa fa-grip-vertical lib-block-drag"></i>
+          </div>
+          <div class="lib-block">
+            <div class="lib-block-icon"><i class="fa fa-image"></i></div>
+            <span class="lib-block-label">Image</span>
+            <i class="fa fa-grip-vertical lib-block-drag"></i>
+          </div>
+          <div class="lib-block">
+            <div class="lib-block-icon"><i class="fa fa-images"></i></div>
+            <span class="lib-block-label">Gallery</span>
+            <i class="fa fa-grip-vertical lib-block-drag"></i>
+          </div>
+          <div class="lib-block">
+            <div class="lib-block-icon"><i class="fa fa-code"></i></div>
+            <span class="lib-block-label">Code Block</span>
+            <i class="fa fa-grip-vertical lib-block-drag"></i>
+          </div>
+          <div class="lib-block">
+            <div class="lib-block-icon"><i class="fa fa-film"></i></div>
+            <span class="lib-block-label">Video Embed</span>
+            <i class="fa fa-grip-vertical lib-block-drag"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- Project -->
+      <div class="lib-group">
+        <div class="lib-group-label">Project</div>
+        <div class="lib-blocks">
+          <div class="lib-block proj">
+            <div class="lib-block-icon"><i class="fa fa-list-check"></i></div>
+            <span class="lib-block-label">Parts List</span>
+            <i class="fa fa-grip-vertical lib-block-drag"></i>
+          </div>
+          <div class="lib-block proj">
+            <div class="lib-block-icon"><i class="fa fa-hammer"></i></div>
+            <span class="lib-block-label">Build Step</span>
+            <i class="fa fa-grip-vertical lib-block-drag"></i>
+          </div>
+          <div class="lib-block proj">
+            <div class="lib-block-icon"><i class="fa fa-wrench"></i></div>
+            <span class="lib-block-label">Tool List</span>
+            <i class="fa fa-grip-vertical lib-block-drag"></i>
+          </div>
+          <div class="lib-block proj">
+            <div class="lib-block-icon"><i class="fa fa-download"></i></div>
+            <span class="lib-block-label">Downloads</span>
+            <i class="fa fa-grip-vertical lib-block-drag"></i>
+          </div>
+          <div class="lib-block proj">
+            <div class="lib-block-icon"><i class="fa fa-diagram-project"></i></div>
+            <span class="lib-block-label">Wiring Diagram</span>
+            <i class="fa fa-grip-vertical lib-block-drag"></i>
+          </div>
+          <div class="lib-block proj">
+            <div class="lib-block-icon"><i class="fa fa-wave-square"></i></div>
+            <span class="lib-block-label">Schematic</span>
+            <i class="fa fa-grip-vertical lib-block-drag"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tips -->
+      <div class="lib-group">
+        <div class="lib-group-label">Tips</div>
+        <div class="lib-blocks">
+          <div class="lib-block tip">
+            <div class="lib-block-icon"><i class="fa fa-lightbulb"></i></div>
+            <span class="lib-block-label">Tip</span>
+            <i class="fa fa-grip-vertical lib-block-drag"></i>
+          </div>
+          <div class="lib-block tip" style="--text-faint:#ef4444;">
+            <div class="lib-block-icon" style="color:var(--yellow);"><i class="fa fa-triangle-exclamation"></i></div>
+            <span class="lib-block-label">Warning</span>
+            <i class="fa fa-grip-vertical lib-block-drag"></i>
+          </div>
+          <div class="lib-block tip">
+            <div class="lib-block-icon" style="color:var(--accent);"><i class="fa fa-circle-info"></i></div>
+            <span class="lib-block-label">Note</span>
+            <i class="fa fa-grip-vertical lib-block-drag"></i>
+          </div>
+          <div class="lib-block tip">
+            <div class="lib-block-icon" style="color:#c792ea;"><i class="fa fa-bullhorn"></i></div>
+            <span class="lib-block-label">Callout</span>
+            <i class="fa fa-grip-vertical lib-block-drag"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- Interactive -->
+      <div class="lib-group">
+        <div class="lib-group-label">Interactive</div>
+        <div class="lib-blocks">
+          <div class="lib-block inter">
+            <div class="lib-block-icon"><i class="fa fa-book-open"></i></div>
+            <span class="lib-block-label">Explainer Section</span>
+            <i class="fa fa-grip-vertical lib-block-drag"></i>
+          </div>
+          <div class="lib-block inter">
+            <div class="lib-block-icon"><i class="fa fa-terminal"></i></div>
+            <span class="lib-block-label">Code Playground</span>
+            <i class="fa fa-grip-vertical lib-block-drag"></i>
+          </div>
+          <div class="lib-block inter">
+            <div class="lib-block-icon"><i class="fa fa-circle-question"></i></div>
+            <span class="lib-block-label">Quiz</span>
+            <i class="fa fa-grip-vertical lib-block-drag"></i>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /library-body -->
+  </div><!-- /library -->
+
+  <!-- ═══════════ CENTER: EDITOR CANVAS ═══════════ -->
+  <div class="canvas-wrap">
+    <div class="canvas">
+
+      <!-- Cover Upload -->
+      <div class="cover-upload" onclick="">
+        <div class="cover-gradient"></div>
+        <div class="cover-grid"></div>
+        <div class="cover-upload-inner">
+          <div class="cover-upload-icon"><i class="fa fa-image"></i></div>
+          <div class="cover-upload-label">Click to upload cover image</div>
+          <div class="cover-upload-hint">16:5 ratio recommended · JPG, PNG, WebP · max 8 MB</div>
+        </div>
+      </div>
+
+      <!-- Title -->
+      <input
+        class="field-title"
+        type="text"
+        value="Real-time Object Detection on ESP32-S3"
+        placeholder="Project title..."
+      >
+
+      <!-- Subtitle -->
+      <input
+        class="field-subtitle"
+        type="text"
+        value="Run a quantized MobileNet V2 model on-device to detect common objects using the ESP32-S3's camera interface and PSRAM — no cloud required."
+        placeholder="Short description or subtitle..."
+      >
+
+      <!-- Metadata row -->
+      <div class="meta-row">
+        <span class="meta-badge difficulty"><i class="fa fa-gauge-high"></i> Intermediate</span>
+        <div class="meta-sep"></div>
+        <span class="meta-badge time"><i class="fa fa-clock"></i> ~3 hours</span>
+        <div class="meta-sep"></div>
+        <span class="meta-badge cost"><i class="fa fa-tag"></i> $45–65</span>
+        <div style="margin-left:auto;">
+          <button class="btn btn-xs btn-ghost"><i class="fa fa-pencil"></i> Edit metadata</button>
+        </div>
+      </div>
+
+      <!-- Tags row -->
+      <div class="tags-row">
+        <span style="font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--text-faint);">Tags:</span>
+        <span class="tag-chip">TinyML <span class="remove">&times;</span></span>
+        <span class="tag-chip">ESP32-S3 <span class="remove">&times;</span></span>
+        <span class="tag-chip">Vision <span class="remove">&times;</span></span>
+        <span class="tag-chip">TensorFlow Lite <span class="remove">&times;</span></span>
+        <span class="tag-chip">Edge AI <span class="remove">&times;</span></span>
+        <button class="tag-add-btn"><i class="fa fa-plus"></i> Add tag</button>
+      </div>
+
+      <!-- ── BLOCK: INTRODUCTION HEADING ── -->
+      <div class="block-wrap">
+        <div class="block block-heading">
+          <div class="block-handle">
+            <button class="handle-btn drag" title="Drag"><i class="fa fa-grip-vertical"></i></button>
+            <button class="handle-btn" title="Options"><i class="fa fa-ellipsis"></i></button>
+          </div>
+          <div class="block-controls">
+            <button class="block-ctrl-btn"><i class="fa fa-arrows-up-down"></i></button>
+            <button class="block-ctrl-btn"><i class="fa fa-copy"></i></button>
+            <button class="block-ctrl-btn danger"><i class="fa fa-trash"></i></button>
+          </div>
+          <h2><div class="heading-icon"></div>Introduction</h2>
+        </div>
+      </div>
+      <div class="block-insert-zone">
+        <span class="block-insert-zone-label"><i class="fa fa-plus"></i> Insert block</span>
+      </div>
+
+      <!-- ── BLOCK: TEXT ── -->
+      <div class="block-wrap">
+        <div class="block block-text">
+          <div class="block-handle">
+            <button class="handle-btn drag"><i class="fa fa-grip-vertical"></i></button>
+            <button class="handle-btn"><i class="fa fa-ellipsis"></i></button>
+          </div>
+          <div class="block-controls">
+            <button class="block-ctrl-btn"><i class="fa fa-arrows-up-down"></i></button>
+            <button class="block-ctrl-btn"><i class="fa fa-copy"></i></button>
+            <button class="block-ctrl-btn danger"><i class="fa fa-trash"></i></button>
+          </div>
+          <p>The ESP32-S3 is Espressif's flagship microcontroller for AI and multimedia workloads. With dual Xtensa LX7 cores running at 240 MHz, 512 KB of SRAM, and hardware vector instructions for neural network inference, it's an ideal target for running quantized computer-vision models directly on the edge.</p>
+          <p>In this project we'll set up the camera pipeline using the ESP-IDF camera driver, load a <span class="inline-code">int8</span> quantized MobileNet V2 SSD model from flash into PSRAM, and run inference at roughly 4–6 fps on a live video stream — classifying objects with over 80 COCO labels while staying entirely offline.</p>
+        </div>
+      </div>
+      <div class="block-insert-zone">
+        <span class="block-insert-zone-label"><i class="fa fa-plus"></i> Insert block</span>
+      </div>
+
+      <!-- ── BLOCK: PARTS LIST ── -->
+      <div class="block-wrap">
+        <div class="block">
+          <div class="block-handle">
+            <button class="handle-btn drag"><i class="fa fa-grip-vertical"></i></button>
+            <button class="handle-btn"><i class="fa fa-ellipsis"></i></button>
+          </div>
+          <div class="block-controls">
+            <button class="block-ctrl-btn"><i class="fa fa-arrows-up-down"></i></button>
+            <button class="block-ctrl-btn"><i class="fa fa-copy"></i></button>
+            <button class="block-ctrl-btn danger"><i class="fa fa-trash"></i></button>
+          </div>
+          <div class="block-parts">
+            <div class="block-parts-header">
+              <div class="block-parts-icon"><i class="fa fa-list-check"></i></div>
+              <span class="block-parts-title">Parts List</span>
+              <span class="block-parts-count">5 items · $35 est.</span>
+              <button class="btn btn-xs btn-ghost" style="margin-left:8px;"><i class="fa fa-plus"></i> Add part</button>
+            </div>
+            <table class="parts-table">
+              <thead>
+                <tr>
+                  <th>Part</th>
+                  <th class="part-qty">Qty</th>
+                  <th>Notes</th>
+                  <th>Price</th>
+                  <th>Link</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>ESP32-S3 DevKit-C1</strong></td>
+                  <td class="part-qty">1</td>
+                  <td class="part-note">N16R8 variant — 16 MB flash, 8 MB PSRAM</td>
+                  <td class="part-price">$15.00</td>
+                  <td><a href="#" class="part-link"><i class="fa fa-arrow-up-right-from-square"></i> Mouser</a></td>
+                </tr>
+                <tr>
+                  <td><strong>OV2640 Camera Module</strong></td>
+                  <td class="part-qty">1</td>
+                  <td class="part-note">2 MP, 24-pin FPC, 75° FOV</td>
+                  <td class="part-price">$8.00</td>
+                  <td><a href="#" class="part-link"><i class="fa fa-arrow-up-right-from-square"></i> AliExpress</a></td>
+                </tr>
+                <tr>
+                  <td><strong>Breadboard (830 pt)</strong></td>
+                  <td class="part-qty">1</td>
+                  <td class="part-note">Half-size works fine for prototyping</td>
+                  <td class="part-price">$5.00</td>
+                  <td><a href="#" class="part-link"><i class="fa fa-arrow-up-right-from-square"></i> Adafruit</a></td>
+                </tr>
+                <tr>
+                  <td><strong>Jumper Wires (M-F set)</strong></td>
+                  <td class="part-qty">20</td>
+                  <td class="part-note">Female end for DevKit pins</td>
+                  <td class="part-price">$3.00</td>
+                  <td><a href="#" class="part-link"><i class="fa fa-arrow-up-right-from-square"></i> Amazon</a></td>
+                </tr>
+                <tr>
+                  <td><strong>USB-C Cable (data)</strong></td>
+                  <td class="part-qty">1</td>
+                  <td class="part-note">Must support data transfer, not charge-only</td>
+                  <td class="part-price">$4.00</td>
+                  <td><a href="#" class="part-link"><i class="fa fa-arrow-up-right-from-square"></i> Amazon</a></td>
+                </tr>
+                <tr class="total-row">
+                  <td colspan="3"><strong>Total estimate</strong></td>
+                  <td class="part-price">$35.00</td>
+                  <td></td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="block-parts-footer">
+              <span style="font-size:10px;color:var(--text-faint);font-family:'JetBrains Mono',monospace;">Prices are estimates and vary by supplier</span>
+              <button class="btn btn-xs btn-ghost" style="margin-left:auto;"><i class="fa fa-table"></i> Edit table</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="block-insert-zone">
+        <span class="block-insert-zone-label"><i class="fa fa-plus"></i> Insert block</span>
+      </div>
+
+      <!-- ── BLOCK: TOOL LIST ── -->
+      <div class="block-wrap">
+        <div class="block">
+          <div class="block-handle">
+            <button class="handle-btn drag"><i class="fa fa-grip-vertical"></i></button>
+            <button class="handle-btn"><i class="fa fa-ellipsis"></i></button>
+          </div>
+          <div class="block-controls">
+            <button class="block-ctrl-btn"><i class="fa fa-arrows-up-down"></i></button>
+            <button class="block-ctrl-btn"><i class="fa fa-copy"></i></button>
+            <button class="block-ctrl-btn danger"><i class="fa fa-trash"></i></button>
+          </div>
+          <div class="block-tools">
+            <div class="block-tools-header">
+              <div class="block-tools-icon"><i class="fa fa-wrench"></i></div>
+              <span class="block-tools-title">Tools Required</span>
+              <button class="btn btn-xs btn-ghost" style="margin-left:auto;"><i class="fa fa-plus"></i> Add tool</button>
+            </div>
+            <div class="tools-list">
+              <div class="tool-item">
+                <i class="tool-item-icon fa fa-fire"></i>
+                <span class="tool-item-label">Soldering iron + solder</span>
+                <span class="tool-item-note">Optional — if adding headers</span>
+              </div>
+              <div class="tool-item">
+                <i class="tool-item-icon fa fa-scissors"></i>
+                <span class="tool-item-label">Wire strippers</span>
+                <span class="tool-item-note">22–26 AWG</span>
+              </div>
+              <div class="tool-item">
+                <i class="tool-item-icon fa fa-bolt"></i>
+                <span class="tool-item-label">Multimeter</span>
+                <span class="tool-item-note">For continuity checks</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="block-insert-zone">
+        <span class="block-insert-zone-label"><i class="fa fa-plus"></i> Insert block</span>
+      </div>
+
+      <!-- ── BLOCK: WIRING DIAGRAM ── -->
+      <div class="block-wrap">
+        <div class="block">
+          <div class="block-handle">
+            <button class="handle-btn drag"><i class="fa fa-grip-vertical"></i></button>
+            <button class="handle-btn"><i class="fa fa-ellipsis"></i></button>
+          </div>
+          <div class="block-controls">
+            <button class="block-ctrl-btn"><i class="fa fa-arrows-up-down"></i></button>
+            <button class="block-ctrl-btn"><i class="fa fa-copy"></i></button>
+            <button class="block-ctrl-btn danger"><i class="fa fa-trash"></i></button>
+          </div>
+          <div class="block-wiring">
+            <div class="wiring-header">
+              <div class="wiring-icon"><i class="fa fa-diagram-project"></i></div>
+              <span class="wiring-title">Wiring Diagram</span>
+              <button class="btn btn-xs btn-ghost" style="margin-left:auto;"><i class="fa fa-upload"></i> Upload SVG</button>
+            </div>
+            <div class="wiring-area" onclick="">
+              <div class="wiring-grid"></div>
+              <div class="wiring-inner">
+                <div class="wiring-circuit-icon"><i class="fa fa-microchip"></i></div>
+                <div class="wiring-upload-label">Click to upload wiring diagram</div>
+                <div class="wiring-hint">SVG, PNG · Fritzing .fzz accepted</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="block-insert-zone">
+        <span class="block-insert-zone-label"><i class="fa fa-plus"></i> Insert block</span>
+      </div>
+
+      <!-- ── BLOCK: BUILD STEP ── -->
+      <div class="block-wrap">
+        <div class="block">
+          <div class="block-handle">
+            <button class="handle-btn drag"><i class="fa fa-grip-vertical"></i></button>
+            <button class="handle-btn"><i class="fa fa-ellipsis"></i></button>
+          </div>
+          <div class="block-controls">
+            <button class="block-ctrl-btn"><i class="fa fa-arrows-up-down"></i></button>
+            <button class="block-ctrl-btn"><i class="fa fa-copy"></i></button>
+            <button class="block-ctrl-btn danger"><i class="fa fa-trash"></i></button>
+          </div>
+          <div class="block-step">
+            <div class="step-header">
+              <div class="step-num">1</div>
+              <span class="step-title">Flash the Firmware</span>
+              <button class="btn btn-xs btn-ghost" style="margin-left:auto;"><i class="fa fa-pencil"></i></button>
+            </div>
+            <div class="step-body">
+              <div class="step-instruction">
+                Clone the repository and set up the ESP-IDF environment. Make sure you have ESP-IDF v5.1 or newer installed and activated in your shell. Connect the ESP32-S3 via USB-C and put it in download mode by holding the <span class="inline-code">BOOT</span> button while pressing <span class="inline-code">RESET</span>.
+              </div>
+
+              <div class="terminal-block">
+                <div class="terminal-header">
+                  <div class="terminal-dot r"></div>
+                  <div class="terminal-dot y"></div>
+                  <div class="terminal-dot g"></div>
+                  <span style="font-size:10px;font-family:'JetBrains Mono',monospace;color:#888884;margin-left:6px;">Terminal</span>
+                  <button class="btn btn-xs btn-ghost" style="margin-left:auto;padding:1px 6px;font-size:9px;color:#888884;border-color:transparent;"><i class="fa fa-copy"></i> Copy</button>
+                </div>
+                <div class="terminal-body">
+                  <div><span class="terminal-prompt">$</span> <span class="terminal-cmd">git clone https://github.com/example/esp32s3-tinyml-vision</span></div>
+                  <div><span class="terminal-prompt">$</span> <span class="terminal-cmd">cd esp32s3-tinyml-vision</span></div>
+                  <div><span class="terminal-prompt">$</span> <span class="terminal-cmd">. $IDF_PATH/export.sh</span></div>
+                  <div style="color:#555;font-size:10px;margin-top:4px;"># Configure target and build</div>
+                  <div><span class="terminal-prompt">$</span> <span class="terminal-cmd">idf.py set-target esp32s3</span></div>
+                  <div><span class="terminal-prompt">$</span> <span class="terminal-cmd">idf.py menuconfig  <span style="color:#555"># Enable SPIRAM, set camera pins</span></span></div>
+                  <div><span class="terminal-prompt">$</span> <span class="terminal-cmd">idf.py build flash monitor</span></div>
+                  <div style="margin-top:6px;"><span class="terminal-out">I (532) camera: Camera init OK</span></div>
+                  <div><span class="terminal-out">I (614) tflite: Model loaded from flash — 3.2 MB</span></div>
+                  <div><span class="terminal-out">I (618) tflite: Allocating tensor arena: 1024 KB in PSRAM</span></div>
+                </div>
+              </div>
+
+              <div class="callout callout-tip">
+                <i class="callout-icon fa fa-lightbulb"></i>
+                <div class="callout-body">
+                  <div class="callout-label">Tip</div>
+                  <div class="callout-text">If the build fails at the PSRAM allocation stage, open <span class="inline-code">menuconfig → Component config → ESP PSRAM</span> and ensure "Support for external, SPI-connected RAM" is enabled and the mode is set to <span class="inline-code">Octal Mode PSRAM</span> for the N16R8 variant.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="block-insert-zone">
+        <span class="block-insert-zone-label"><i class="fa fa-plus"></i> Insert block</span>
+      </div>
+
+      <!-- ── BLOCK: CODE BLOCK (C++) ── -->
+      <div class="block-wrap">
+        <div class="block">
+          <div class="block-handle">
+            <button class="handle-btn drag"><i class="fa fa-grip-vertical"></i></button>
+            <button class="handle-btn"><i class="fa fa-ellipsis"></i></button>
+          </div>
+          <div class="block-controls">
+            <button class="block-ctrl-btn"><i class="fa fa-arrows-up-down"></i></button>
+            <button class="block-ctrl-btn"><i class="fa fa-copy"></i></button>
+            <button class="block-ctrl-btn danger"><i class="fa fa-trash"></i></button>
+          </div>
+          <div class="canvas-code-block">
+            <div class="canvas-code-header">
+              <div class="canvas-code-lang-tabs">
+                <button class="canvas-code-lang-tab active">C++</button>
+                <button class="canvas-code-lang-tab">Python</button>
+              </div>
+              <span style="font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--text-faint);margin-left:4px;">main/inference.cpp</span>
+              <button class="btn btn-xs btn-ghost" style="margin-left:auto;"><i class="fa fa-copy"></i> Copy</button>
+            </div>
+            <div class="canvas-code-body">
+<div><span class="cm">// Initialize TFLite micro interpreter with PSRAM arena</span></div>
+<div><span class="kw">static</span> <span class="type">uint8_t</span> <span class="var">tensor_arena</span><span class="op">[</span><span class="num">1024</span> <span class="op">*</span> <span class="num">1024</span><span class="op">]</span> <span class="kw">__attribute__</span><span class="op">((</span><span class="fn">aligned</span><span class="op">(</span><span class="num">16</span><span class="op">)))</span><span class="op">;</span></div>
+<div>&nbsp;</div>
+<div><span class="type">void</span> <span class="fn">run_inference</span><span class="op">(</span><span class="type">camera_fb_t</span> <span class="op">*</span><span class="var">fb</span><span class="op">)</span> <span class="op">{</span></div>
+<div>&nbsp;&nbsp;<span class="cm">// Resize frame to model input: 300×300×3</span></div>
+<div>&nbsp;&nbsp;<span class="fn">image_resize_linear</span><span class="op">(</span><span class="var">input_data</span><span class="op">,</span> <span class="var">fb</span><span class="op">-&gt;</span><span class="var">buf</span><span class="op">,</span></div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="num">300</span><span class="op">,</span> <span class="num">300</span><span class="op">,</span> <span class="num">3</span><span class="op">,</span> <span class="var">fb</span><span class="op">-&gt;</span><span class="var">width</span><span class="op">,</span> <span class="var">fb</span><span class="op">-&gt;</span><span class="var">height</span><span class="op">);</span></div>
+<div>&nbsp;</div>
+<div>&nbsp;&nbsp;<span class="cm">// Quantize float pixels → int8</span></div>
+<div>&nbsp;&nbsp;<span class="kw">for</span> <span class="op">(</span><span class="type">int</span> <span class="var">i</span> <span class="op">=</span> <span class="num">0</span><span class="op">;</span> <span class="var">i</span> <span class="op">&lt;</span> <span class="num">300</span><span class="op">*</span><span class="num">300</span><span class="op">*</span><span class="num">3</span><span class="op">;</span> <span class="var">i</span><span class="op">++)</span> <span class="op">{</span></div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="var">input</span><span class="op">-&gt;</span><span class="var">data</span><span class="op">.</span><span class="var">int8</span><span class="op">[</span><span class="var">i</span><span class="op">]</span> <span class="op">=</span> <span class="op">(</span><span class="type">int8_t</span><span class="op">)(</span><span class="var">input_data</span><span class="op">[</span><span class="var">i</span><span class="op">]</span> <span class="op">-</span> <span class="num">128</span><span class="op">);</span></div>
+<div>&nbsp;&nbsp;<span class="op">}</span></div>
+<div>&nbsp;</div>
+<div>&nbsp;&nbsp;<span class="type">TfLiteStatus</span> <span class="var">status</span> <span class="op">=</span> <span class="var">interpreter</span><span class="op">-&gt;</span><span class="fn">Invoke</span><span class="op">();</span></div>
+<div>&nbsp;&nbsp;<span class="kw">if</span> <span class="op">(</span><span class="var">status</span> <span class="op">!=</span> <span class="var">kTfLiteOk</span><span class="op">)</span> <span class="op">{</span></div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="fn">ESP_LOGE</span><span class="op">(</span><span class="str">"TFLITE"</span><span class="op">,</span> <span class="str">"Invoke failed: %d"</span><span class="op">,</span> <span class="var">status</span><span class="op">);</span></div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">return</span><span class="op">;</span></div>
+<div>&nbsp;&nbsp;<span class="op">}</span></div>
+<div>&nbsp;</div>
+<div>&nbsp;&nbsp;<span class="cm">// Parse detection outputs (boxes, classes, scores, count)</span></div>
+<div>&nbsp;&nbsp;<span class="type">float</span> <span class="op">*</span><span class="var">scores</span> <span class="op">=</span> <span class="var">interpreter</span><span class="op">-&gt;</span><span class="fn">output</span><span class="op">(</span><span class="num">2</span><span class="op">)-&gt;</span><span class="var">data</span><span class="op">.</span><span class="var">f</span><span class="op">;</span></div>
+<div>&nbsp;&nbsp;<span class="type">int</span> <span class="var">num_detections</span> <span class="op">=</span> <span class="op">(</span><span class="type">int</span><span class="op">)</span><span class="var">interpreter</span><span class="op">-&gt;</span><span class="fn">output</span><span class="op">(</span><span class="num">3</span><span class="op">)-&gt;</span><span class="var">data</span><span class="op">.</span><span class="var">f</span><span class="op">[</span><span class="num">0</span><span class="op">];</span></div>
+<div>&nbsp;</div>
+<div>&nbsp;&nbsp;<span class="fn">log_detections</span><span class="op">(</span><span class="var">scores</span><span class="op">,</span> <span class="var">num_detections</span><span class="op">,</span> <span class="num">0.5f</span><span class="op">);</span></div>
+<div><span class="op">}</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="block-insert-zone">
+        <span class="block-insert-zone-label"><i class="fa fa-plus"></i> Insert block</span>
+      </div>
+
+      <!-- ── BLOCK: IMAGE ── -->
+      <div class="block-wrap">
+        <div class="block">
+          <div class="block-handle">
+            <button class="handle-btn drag"><i class="fa fa-grip-vertical"></i></button>
+            <button class="handle-btn"><i class="fa fa-ellipsis"></i></button>
+          </div>
+          <div class="block-controls">
+            <button class="block-ctrl-btn"><i class="fa fa-arrows-up-down"></i></button>
+            <button class="block-ctrl-btn"><i class="fa fa-copy"></i></button>
+            <button class="block-ctrl-btn danger"><i class="fa fa-trash"></i></button>
+          </div>
+          <div class="block-image">
+            <div class="image-placeholder" onclick="">
+              <div class="image-placeholder-grid"></div>
+              <div class="image-placeholder-inner">
+                <div class="image-placeholder-icon"><i class="fa fa-camera"></i></div>
+                <div style="font-size:12px;color:var(--text-dim);">Click to upload image</div>
+                <div style="font-size:10px;color:var(--text-faint);font-family:'JetBrains Mono',monospace;">JPG, PNG, WebP · max 5 MB</div>
+              </div>
+            </div>
+            <input class="image-caption-input" type="text" placeholder="Add a caption (optional)...">
+          </div>
+        </div>
+      </div>
+      <div class="block-insert-zone" style="opacity:1;">
+        <span class="block-insert-zone-label"><i class="fa fa-plus"></i> Insert block</span>
+      </div>
+
+    </div><!-- /canvas -->
+  </div><!-- /canvas-wrap -->
+
+  <!-- ═══════════ RIGHT: SETTINGS PANEL ═══════════ -->
+  <div class="settings">
+    <div class="settings-body">
+
+      <!-- Project Meta -->
+      <div class="settings-section">
+        <div class="settings-section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+          <i class="fa fa-sliders" style="font-size:10px;color:var(--text-faint);"></i>
+          <span class="settings-section-label">Project Meta</span>
+          <i class="fa fa-chevron-down settings-section-arrow"></i>
+        </div>
+        <div class="settings-section-body">
+          <div class="form-row">
+            <label class="form-label">Slug</label>
+            <input class="form-input" type="text" value="esp32s3-realtime-object-detection" placeholder="project-url-slug">
+          </div>
+          <div class="form-row">
+            <label class="form-label">Category</label>
+            <select class="form-select">
+              <option>Hardware</option>
+              <option>Software</option>
+              <option>Mixed</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label class="form-label">Difficulty</label>
+            <div class="toggle-group">
+              <button class="toggle-opt">Beginner</button>
+              <button class="toggle-opt active">Intermediate</button>
+              <button class="toggle-opt">Advanced</button>
+            </div>
+          </div>
+          <div class="form-row">
+            <label class="form-label">Build Time</label>
+            <input class="form-input" type="text" value="~3 hours" placeholder="e.g. 2–4 hours">
+          </div>
+          <div class="form-row">
+            <label class="form-label">Cost Range</label>
+            <div class="form-row-2">
+              <input class="form-input" type="text" value="$45" placeholder="Min">
+              <input class="form-input" type="text" value="$65" placeholder="Max">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tags -->
+      <div class="settings-section">
+        <div class="settings-section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+          <i class="fa fa-tag" style="font-size:10px;color:var(--text-faint);"></i>
+          <span class="settings-section-label">Tags</span>
+          <i class="fa fa-chevron-down settings-section-arrow"></i>
+        </div>
+        <div class="settings-section-body">
+          <div class="chip-input-wrap">
+            <span class="chip">TinyML <span class="chip-remove">&times;</span></span>
+            <span class="chip">ESP32-S3 <span class="chip-remove">&times;</span></span>
+            <span class="chip">Vision <span class="chip-remove">&times;</span></span>
+            <span class="chip">TensorFlow Lite <span class="chip-remove">&times;</span></span>
+            <span class="chip">Edge AI <span class="chip-remove">&times;</span></span>
+            <input class="chip-input" type="text" placeholder="Add tag...">
+          </div>
+          <div style="font-size:10px;color:var(--text-faint);font-family:'JetBrains Mono',monospace;">Press Enter or comma to add</div>
+        </div>
+      </div>
+
+      <!-- Hub -->
+      <div class="settings-section">
+        <div class="settings-section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+          <i class="fa fa-layer-group" style="font-size:10px;color:var(--text-faint);"></i>
+          <span class="settings-section-label">Hub</span>
+          <i class="fa fa-chevron-down settings-section-arrow"></i>
+        </div>
+        <div class="settings-section-body">
+          <div class="form-row">
+            <label class="form-label">Associate with Hub</label>
+            <select class="form-select">
+              <option value="">— None —</option>
+              <option selected>ESP32 Makers Collective</option>
+              <option>TinyML Community</option>
+              <option>Edge AI Enthusiasts</option>
+              <option>Embedded Systems Lab</option>
+            </select>
+          </div>
+          <div style="font-size:10px;color:var(--text-dim);">Project will appear in the hub's project gallery and be discoverable by hub members.</div>
+        </div>
+      </div>
+
+      <!-- Visibility -->
+      <div class="settings-section">
+        <div class="settings-section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+          <i class="fa fa-eye" style="font-size:10px;color:var(--text-faint);"></i>
+          <span class="settings-section-label">Visibility</span>
+          <i class="fa fa-chevron-down settings-section-arrow"></i>
+        </div>
+        <div class="settings-section-body">
+          <div class="vis-group">
+            <div class="vis-opt selected" onclick="setVis(this)">
+              <div class="vis-radio"><div class="vis-radio-dot"></div></div>
+              <div class="vis-opt-info">
+                <div class="vis-opt-label">Public</div>
+                <div class="vis-opt-desc">Visible to everyone</div>
+              </div>
+              <i class="vis-opt-icon fa fa-globe"></i>
+            </div>
+            <div class="vis-opt" onclick="setVis(this)">
+              <div class="vis-radio"><div class="vis-radio-dot"></div></div>
+              <div class="vis-opt-info">
+                <div class="vis-opt-label">Unlisted</div>
+                <div class="vis-opt-desc">Anyone with link can view</div>
+              </div>
+              <i class="vis-opt-icon fa fa-link"></i>
+            </div>
+            <div class="vis-opt" onclick="setVis(this)">
+              <div class="vis-radio"><div class="vis-radio-dot"></div></div>
+              <div class="vis-opt-info">
+                <div class="vis-opt-label">Private</div>
+                <div class="vis-opt-desc">Only you can see this</div>
+              </div>
+              <i class="vis-opt-icon fa fa-lock"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cover -->
+      <div class="settings-section">
+        <div class="settings-section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+          <i class="fa fa-image" style="font-size:10px;color:var(--text-faint);"></i>
+          <span class="settings-section-label">Cover Image</span>
+          <i class="fa fa-chevron-down settings-section-arrow"></i>
+        </div>
+        <div class="settings-section-body">
+          <div class="cover-upload-sm" onclick="">
+            <i class="cover-upload-sm-icon fa fa-upload"></i>
+            <div class="cover-upload-sm-label">Upload cover image</div>
+            <div class="cover-upload-sm-hint">16:5 · JPG, PNG, WebP · 8 MB max</div>
+          </div>
+          <div class="form-row" style="margin-top:6px;">
+            <label class="form-label">Or paste image URL</label>
+            <input class="form-input" type="url" placeholder="https://...">
+          </div>
+        </div>
+      </div>
+
+      <!-- Files -->
+      <div class="settings-section">
+        <div class="settings-section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+          <i class="fa fa-paperclip" style="font-size:10px;color:var(--text-faint);"></i>
+          <span class="settings-section-label">Attached Files</span>
+          <i class="fa fa-chevron-down settings-section-arrow"></i>
+        </div>
+        <div class="settings-section-body">
+          <div style="display:flex;flex-direction:column;gap:5px;">
+            <div class="file-item">
+              <i class="file-icon fa fa-file-zipper"></i>
+              <span class="file-name">esp32s3-tinyml-firmware.zip</span>
+              <span class="file-size">2.4 MB</span>
+              <i class="file-del fa fa-xmark"></i>
+            </div>
+            <div class="file-item">
+              <i class="file-icon fa fa-file-code"></i>
+              <span class="file-name">mobilenet_v2_ssd_int8.tflite</span>
+              <span class="file-size">3.2 MB</span>
+              <i class="file-del fa fa-xmark"></i>
+            </div>
+            <div class="file-item">
+              <i class="file-icon fa fa-file-image"></i>
+              <span class="file-name">wiring-diagram.fzz</span>
+              <span class="file-size">84 KB</span>
+              <i class="file-del fa fa-xmark"></i>
+            </div>
+          </div>
+          <button class="btn btn-sm" style="width:100%;justify-content:center;margin-top:4px;">
+            <i class="fa fa-upload"></i> Upload file
+          </button>
+        </div>
+      </div>
+
+      <!-- Publishing Checklist -->
+      <div class="settings-section">
+        <div class="settings-section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+          <i class="fa fa-circle-check" style="font-size:10px;color:var(--text-faint);"></i>
+          <span class="settings-section-label">Publishing Checklist</span>
+          <i class="fa fa-chevron-down settings-section-arrow"></i>
+        </div>
+        <div class="settings-section-body">
+          <div class="checklist">
+            <div class="check-item pass">
+              <i class="check-icon fa-regular fa-square-check pass"></i>
+              <span>Has cover image</span>
+            </div>
+            <div class="check-item pass">
+              <i class="check-icon fa-regular fa-square-check pass"></i>
+              <span>Has description</span>
+            </div>
+            <div class="check-item pass">
+              <i class="check-icon fa-regular fa-square-check pass"></i>
+              <span>Has parts list</span>
+            </div>
+            <div class="check-item pass">
+              <i class="check-icon fa-regular fa-square-check pass"></i>
+              <span>At least 3 sections</span>
+            </div>
+            <div class="check-item fail">
+              <i class="check-icon fa-regular fa-square fail"></i>
+              <span>Wiring diagram uploaded</span>
+            </div>
+            <div class="check-item fail">
+              <i class="check-icon fa-regular fa-square fail"></i>
+              <span>At least 1 build step</span>
+            </div>
+          </div>
+          <div style="margin-top:10px;padding:8px 10px;border-radius:0px;background:var(--green-bg);border:2px solid var(--green);">
+            <div style="font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--green);font-weight:600;margin-bottom:2px;">4/6 items complete</div>
+            <div style="font-size:10px;color:var(--text-dim);">Complete remaining items to maximize discoverability.</div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /settings-body -->
+
+    <div class="publish-full">
+      <button class="btn btn-publish" style="width:100%;justify-content:center;font-size:13px;padding:8px;">
+        <i class="fa fa-bolt"></i> Publish Project
+      </button>
+    </div>
+  </div><!-- /settings -->
+
+</div><!-- /shell -->
+
+<script>
+// Visibility toggle
+function setVis(el) {
+  document.querySelectorAll('.vis-opt').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+// Block insert zones: show on canvas hover
+document.querySelectorAll('.block-wrap').forEach(wrap => {
+  wrap.addEventListener('mouseenter', () => {
+    const zone = wrap.nextElementSibling;
+    if (zone && zone.classList.contains('block-insert-zone')) {
+      zone.style.opacity = '1';
+    }
+  });
+  wrap.addEventListener('mouseleave', (e) => {
+    const zone = wrap.nextElementSibling;
+    if (zone && zone.classList.contains('block-insert-zone') && !zone.matches(':hover')) {
+      zone.style.opacity = '';
+    }
+  });
+});
+
+// Tab switching (top bar)
+document.querySelectorAll('.topbar-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.topbar-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+  });
+});
+
+// Settings section headers already use inline toggle via classList
+// Difficulty toggle
+document.querySelectorAll('.toggle-opt').forEach(opt => {
+  opt.addEventListener('click', () => {
+    const group = opt.closest('.toggle-group');
+    group.querySelectorAll('.toggle-opt').forEach(o => o.classList.remove('active'));
+    opt.classList.add('active');
+  });
+});
+
+// Code lang tab switching
+document.querySelectorAll('.canvas-code-lang-tabs').forEach(tabGroup => {
+  tabGroup.querySelectorAll('.canvas-code-lang-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabGroup.querySelectorAll('.canvas-code-lang-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+    });
+  });
+});
+</script>
+</body>
+</html>
