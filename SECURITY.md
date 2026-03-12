@@ -8,11 +8,11 @@
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability in Snaplify, report it responsibly.
+If you discover a security vulnerability in CommonPub, report it responsibly.
 
 **Do not open a public GitHub issue for security vulnerabilities.**
 
-Email security concerns to the instance operator's contact email (configured in `snaplify.config.ts`).
+Email security concerns to the instance operator's contact email (configured in `commonpub.config.ts`).
 
 Include:
 - Description of the vulnerability

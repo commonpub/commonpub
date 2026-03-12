@@ -12,7 +12,7 @@ declare module '@tiptap/core' {
   }
 }
 
-export const SnaplifyImage = Node.create<ImageOptions>({
+export const CommonPubImage = Node.create<ImageOptions>({
   name: 'image',
   group: 'block',
   atom: true,

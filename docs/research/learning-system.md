@@ -61,7 +61,7 @@
 ## Key Design Decisions
 
 - Lesson content is a discriminated union in JSONB (not separate tables per type)
-- Quiz-type lessons reuse `@snaplify/explainer` quiz engine (no duplication)
+- Quiz-type lessons reuse `@commonpub/explainer` quiz engine (no duplication)
 - Auto-certificate at 100% progress (no manual issuance)
 - Single-page editor with accordion (matches hack-build reference pattern)
 - Soft delete for paths, hard delete for modules/lessons (cascade)

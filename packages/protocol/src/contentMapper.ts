@@ -1,4 +1,4 @@
-import { AP_CONTEXT, AP_PUBLIC, type APArticle, type APNote, type APTag } from './activityTypes';
+import { AP_CONTEXT, AP_PUBLIC, type APArticle, type APNote, type APTag } from './activityTypes.js';
 
 export interface ContentItemInput {
   id: string;
@@ -25,7 +25,7 @@ export interface CommentInput {
   createdAt?: Date | null;
 }
 
-/** Map a Snaplify content item to an AP Article */
+/** Map a CommonPub content item to an AP Article */
 export function contentToArticle(
   item: ContentItemInput,
   author: AuthorInput,
@@ -68,7 +68,7 @@ export function contentToArticle(
   return article;
 }
 
-/** Map a Snaplify comment to an AP Note */
+/** Map a CommonPub comment to an AP Note */
 export function contentToNote(
   comment: CommentInput,
   author: AuthorInput,

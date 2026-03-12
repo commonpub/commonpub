@@ -6,7 +6,7 @@ Use `<svelte:head>` in page components or a reusable `SeoHead.svelte`:
 
 ```svelte
 <svelte:head>
-  <title>{title} — Snaplify</title>
+  <title>{title} — CommonPub</title>
   <meta name="description" content={description} />
   <meta property="og:title" content={title} />
   <meta property="og:description" content={description} />

@@ -1,5 +1,5 @@
-import type { BlockTuple } from '@snaplify/editor';
-import type { QuizQuestion } from '@snaplify/explainer';
+import type { BlockTuple } from '@commonpub/editor';
+import type { QuizQuestion } from '@commonpub/explainer';
 
 // --- Enums ---
 

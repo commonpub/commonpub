@@ -6,7 +6,7 @@ Accepted
 
 ## Context
 
-Phase 9 delivers `@snaplify/docs` — a docs site module with CodeMirror editor, markdown rendering, versioning, and search. The schema tables (`docsSites`, `docsVersions`, `docsPages`, `docsNav`) already exist. This ADR defines the architecture for the pure TS package and reference app integration.
+Phase 9 delivers `@commonpub/docs` — a docs site module with CodeMirror editor, markdown rendering, versioning, and search. The schema tables (`docsSites`, `docsVersions`, `docsPages`, `docsNav`) already exist. This ADR defines the architecture for the pure TS package and reference app integration.
 
 ## Decisions
 
@@ -38,7 +38,7 @@ Postgres full-text search in v1 using `to_tsvector`/`to_tsquery` on `docsPages.c
 
 ### 6. Editor
 
-CodeMirror 6 lives in reference app components only. The `@snaplify/docs` package stays pure TypeScript — no Svelte or browser dependencies.
+CodeMirror 6 lives in reference app components only. The `@commonpub/docs` package stays pure TypeScript — no Svelte or browser dependencies.
 
 ### 7. Frontmatter
 

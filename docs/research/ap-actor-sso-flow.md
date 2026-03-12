@@ -48,7 +48,7 @@ Instance B redirects user to Instance A's authorization endpoint:
 ```
 GET https://instance-a.example/api/auth/oauth2/authorize
   ?client_id=instance-b-client-id
-  &redirect_uri=https://instance-b.example/api/auth/callback/snaplify-sso
+  &redirect_uri=https://instance-b.example/api/auth/callback/cpub-sso
   &response_type=code
   &scope=openid profile
   &state=random-state
@@ -63,7 +63,7 @@ User logs in (or is already logged in) on Instance A. Instance A shows consent s
 Instance A redirects back to Instance B with authorization code:
 
 ```
-GET https://instance-b.example/api/auth/callback/snaplify-sso
+GET https://instance-b.example/api/auth/callback/cpub-sso
   ?code=authorization-code
   &state=random-state
 ```
@@ -80,7 +80,7 @@ grant_type=authorization_code
 &code=authorization-code
 &client_id=instance-b-client-id
 &client_secret=instance-b-client-secret
-&redirect_uri=https://instance-b.example/api/auth/callback/snaplify-sso
+&redirect_uri=https://instance-b.example/api/auth/callback/cpub-sso
 ```
 
 Response:

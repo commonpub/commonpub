@@ -1,8 +1,8 @@
-# @snaplify/learning
+# @commonpub/learning
 
 > Learning path engine: progress calculation, certificate generation, and curriculum utilities.
 
-**npm**: `@snaplify/learning`
+**npm**: `@commonpub/learning`
 **Source**: `packages/learning/src/`
 **Entry**: `packages/learning/src/index.ts`
 
@@ -194,7 +194,7 @@ interface VideoLessonContent {
 }
 
 interface QuizLessonContent {
-  questions: QuizQuestion[];   // From @snaplify/explainer
+  questions: QuizQuestion[];   // From @commonpub/explainer
   passingScore: number;
 }
 

@@ -46,7 +46,7 @@ Type-specific extensions add `questions`, `controls`, `visualConfig`, `passingSc
 
 ### Content Reuse
 
-Each section's rich text uses `BlockTuple[]` from `@snaplify/editor`, keeping content representation consistent across the platform. The same `ContentEditor.svelte` TipTap wrapper is used for editing section text content.
+Each section's rich text uses `BlockTuple[]` from `@commonpub/editor`, keeping content representation consistent across the platform. The same `ContentEditor.svelte` TipTap wrapper is used for editing section text content.
 
 ## Consequences
 

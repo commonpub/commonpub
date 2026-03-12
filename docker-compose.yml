@@ -1,0 +1,55 @@
+# Local development stack for CommonPub
+# Usage: docker compose up -d
+name: commonpub
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    ports:
+      - '${POSTGRES_PORT:-5433}:5432'
+    environment:
+      POSTGRES_USER: commonpub
+      POSTGRES_PASSWORD: commonpub_dev
+      POSTGRES_DB: commonpub
+    volumes:
+      - cpub_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U commonpub']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - '${REDIS_PORT:-6380}:6379'
+    volumes:
+      - cpub_redis:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.12
+    restart: unless-stopped
+    ports:
+      - '${MEILI_PORT:-7701}:7700'
+    environment:
+      MEILI_ENV: development
+      MEILI_MASTER_KEY: commonpub_dev_key
+    volumes:
+      - cpub_meili:/meili_data
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:7700/health']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  cpub_postgres:
+  cpub_redis:
+  cpub_meili:

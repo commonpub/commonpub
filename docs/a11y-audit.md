@@ -1,4 +1,4 @@
-# Accessibility Audit — Snaplify v1
+# Accessibility Audit — CommonPub v1
 
 ## Standard
 
@@ -8,7 +8,7 @@ WCAG 2.1 AA (Standing Rule 8)
 
 ### Unit Tests
 
-- All `@snaplify/ui` components tested with `axe-core` via `expectNoA11yViolations()`
+- All `@commonpub/ui` components tested with `axe-core` via `expectNoA11yViolations()`
 - 116 component tests include keyboard navigation and ARIA attribute assertions
 
 ### E2E Tests (`apps/reference/e2e/a11y.spec.ts`)

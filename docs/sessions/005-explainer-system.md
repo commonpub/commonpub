@@ -13,11 +13,11 @@
 - `docs/adr/015-explainer-data-model.md` — Sections as structured JSON, not TipTap nodes
 - `docs/adr/016-explainer-architecture.md` — Three-layer architecture (pure TS → Svelte components → GSAP runtime)
 
-### @snaplify/explainer Package (127 tests)
+### @commonpub/explainer Package (127 tests)
 
 1. **Types** (`types.ts`) — 4 section types (text, interactive, quiz, checkpoint), controls, quiz questions, progress state, TOC items, export options
 2. **Zod Schemas** (`schemas.ts`) — Discriminated union validators for all section types, explainer metadata
-3. **Section Registry** (`sections/registry.ts`) — Register/lookup/validate/list pattern mirroring @snaplify/editor block registry
+3. **Section Registry** (`sections/registry.ts`) — Register/lookup/validate/list pattern mirroring @commonpub/editor block registry
 4. **Quiz Engine** (`quiz/engine.ts`) — checkAnswer, scoreQuiz, isQuizPassed, validateQuizAnswers, shuffleOptions (deterministic seeded PRNG)
 5. **Progress Tracker** (`progress/tracker.ts`) — Pure state machine: create/mark/canAccess/percentage/nextIncomplete/isComplete
 6. **TOC Generator** (`render/tocGenerator.ts`) — Sections + progress → TOC data with completion/active/locked flags
@@ -78,15 +78,15 @@
 
 | Package              | Tests   |
 | -------------------- | ------- |
-| @snaplify/explainer  | 127     |
-| @snaplify/ui         | 116     |
-| @snaplify/editor     | 69      |
-| @snaplify/schema     | 43      |
-| @snaplify/auth       | 42      |
-| @snaplify/snaplify   | 42      |
-| @snaplify/reference  | 35      |
-| @snaplify/config     | 21      |
-| @snaplify/test-utils | 14      |
+| @commonpub/explainer  | 127     |
+| @commonpub/ui         | 116     |
+| @commonpub/editor     | 69      |
+| @commonpub/schema     | 43      |
+| @commonpub/auth       | 42      |
+| @commonpub/protocol   | 42      |
+| @commonpub/reference  | 35      |
+| @commonpub/config     | 21      |
+| @commonpub/test-utils | 14      |
 | Others               | 3       |
 | **Total**            | **512** |
 

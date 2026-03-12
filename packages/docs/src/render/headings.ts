@@ -1,4 +1,4 @@
-import type { TocEntry } from '../types';
+import type { TocEntry } from '../types.js';
 
 const HEADING_REGEX = /^(#{2,6})\s+(.+)$/gm;
 

@@ -40,8 +40,8 @@ export interface NodeInfoResponse {
   metadata: Record<string, unknown>;
 }
 
-/** Snaplify AP Actor — extends ActivityPub Person */
-export interface SnaplifyActor {
+/** CommonPub AP Actor — extends ActivityPub Person */
+export interface CommonPubActor {
   '@context': string[];
   id: string;
   type: 'Person';

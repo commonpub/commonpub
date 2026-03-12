@@ -1,5 +1,5 @@
 {
-  "name": "@snaplify/learning",
+  "name": "@commonpub/learning",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -20,10 +20,10 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@snaplify/schema": "workspace:*",
-    "@snaplify/config": "workspace:*",
-    "@snaplify/explainer": "workspace:*",
-    "@snaplify/editor": "workspace:*",
+    "@commonpub/schema": "workspace:*",
+    "@commonpub/config": "workspace:*",
+    "@commonpub/explainer": "workspace:*",
+    "@commonpub/editor": "workspace:*",
     "zod": "^4.3.6"
   },
   "devDependencies": {

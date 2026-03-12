@@ -24,6 +24,6 @@ All styling via CSS custom properties (var(--\*)). No hardcoded colors or fonts 
 
 - `packages/ui/theme/base.css` defines the complete token contract
 - Three initial themes: deepwood.css, hackbuild.css, deveco.css
-- All @snaplify/ui components use only var(--\*) for visual properties
+- All @commonpub/ui components use only var(--\*) for visual properties
 - Instance admins can customize via token overrides
 - Per-docs-site themes possible via DB-stored token values

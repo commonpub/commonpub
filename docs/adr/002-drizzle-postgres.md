@@ -10,7 +10,7 @@ Need a database and ORM for the schema package. Previous implementations used Co
 
 ## Decision
 
-PostgreSQL 16 with Drizzle ORM. Schema defined in `@snaplify/schema` as the single source of truth.
+PostgreSQL 16 with Drizzle ORM. Schema defined in `@commonpub/schema` as the single source of truth.
 
 ## Rationale
 
@@ -23,7 +23,7 @@ PostgreSQL 16 with Drizzle ORM. Schema defined in `@snaplify/schema` as the sing
 
 ## Consequences
 
-- All tables defined as Drizzle pgTable in @snaplify/schema
+- All tables defined as Drizzle pgTable in @commonpub/schema
 - Zod validators generated alongside schema for runtime validation
 - Migrations managed by Drizzle Kit
 - Self-hosters must run PostgreSQL (acceptable — it's the standard)

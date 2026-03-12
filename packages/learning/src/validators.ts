@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { createLearningPathSchema, createLessonSchema } from '@snaplify/schema';
+import { createLearningPathSchema, createLessonSchema } from '@commonpub/schema';
 
 // --- Path validators ---
 

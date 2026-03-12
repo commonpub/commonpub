@@ -35,7 +35,7 @@ user: {
 }
 ```
 
-A `verifications` table was added to `@snaplify/schema` auth tables to support Better Auth's email verification and magic link tokens.
+A `verifications` table was added to `@commonpub/schema` auth tables to support Better Auth's email verification and magic link tokens.
 
 ## Consequences
 

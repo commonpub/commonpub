@@ -1,4 +1,4 @@
-import type { APActivity } from './activityTypes';
+import type { APActivity } from './activityTypes.js';
 
 export interface InboxResult {
   success: boolean;

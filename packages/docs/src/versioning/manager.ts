@@ -1,4 +1,4 @@
-import type { VersionInfo, DocsPage } from '../types';
+import type { VersionInfo, DocsPage } from '../types.js';
 
 const SEMVER_REGEX = /^v?(\d+)(?:\.(\d+))?(?:\.(\d+))?(?:-(.+))?$/;
 const NAMED_VERSIONS = ['latest', 'main', 'next', 'stable', 'canary'];

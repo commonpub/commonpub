@@ -1,8 +1,8 @@
-# @snaplify/ui
+# @commonpub/ui
 
 > 15 headless Svelte 5 components and theme utilities with 4 built-in themes and 142 CSS tokens.
 
-**npm**: `@snaplify/ui`
+**npm**: `@commonpub/ui`
 **Source**: `packages/ui/src/`
 **Entry**: `packages/ui/src/index.ts`
 

@@ -48,7 +48,7 @@ Deep audit of the entire codebase (41 tables, 68 routes, 24 enums) identified 20
 - `apps/reference/src/__tests__/community.test.ts` — mock updates
 
 ## Dependencies added
-- `rehype-sanitize@^6.0.0` to `@snaplify/docs`
+- `rehype-sanitize@^6.0.0` to `@commonpub/docs`
 - `zod@^3.24.0` to `apps/reference` (was transitive, now explicit)
 
 ## Verification

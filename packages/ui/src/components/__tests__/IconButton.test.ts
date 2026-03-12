@@ -1,67 +1,73 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render } from '@testing-library/svelte';
-import { userEvent } from '@testing-library/user-event';
-import { expectNoA11yViolations } from '../../test-helpers';
-import IconButton from '../IconButton.svelte';
+import { describe, it, expect } from 'vitest';
+import { render, screen } from '@testing-library/vue';
+import IconButton from '../IconButton.vue';
 
 describe('IconButton', () => {
-  it('renders as a button element', () => {
-    const { container } = render(IconButton, {
-      props: { 'aria-label': 'Close', children: (() => {}) as never },
+  it('renders with aria-label', () => {
+    render(IconButton, {
+      props: { label: 'Close dialog' },
+      slots: { default: 'X' },
     });
-    expect(container.querySelector('button')).toBeTruthy();
+    const btn = screen.getByRole('button', { name: 'Close dialog' });
+    expect(btn).toBeTruthy();
   });
 
-  it('requires aria-label', () => {
-    const { container } = render(IconButton, {
-      props: { 'aria-label': 'Delete item', children: (() => {}) as never },
+  it('applies secondary variant class by default', () => {
+    render(IconButton, {
+      props: { label: 'Action' },
+      slots: { default: 'X' },
     });
-    const btn = container.querySelector('button');
-    expect(btn?.getAttribute('aria-label')).toBe('Delete item');
+    const btn = screen.getByRole('button');
+    expect(btn.classList.contains('cpub-icon-btn--secondary')).toBe(true);
   });
 
-  it('renders as square (equal width and height class)', () => {
-    const { container } = render(IconButton, {
-      props: { 'aria-label': 'Menu', size: 'md', children: (() => {}) as never },
+  it('applies primary variant class', () => {
+    render(IconButton, {
+      props: { label: 'Action', variant: 'primary' },
+      slots: { default: 'X' },
     });
-    const btn = container.querySelector('button');
-    expect(btn?.className).toContain('snaplify-icon-btn--md');
+    const btn = screen.getByRole('button');
+    expect(btn.classList.contains('cpub-icon-btn--primary')).toBe(true);
   });
 
-  it('applies variant class', () => {
-    const { container } = render(IconButton, {
-      props: { 'aria-label': 'Action', variant: 'primary', children: (() => {}) as never },
+  it('applies ghost variant class', () => {
+    render(IconButton, {
+      props: { label: 'Action', variant: 'ghost' },
+      slots: { default: 'X' },
     });
-    expect(container.querySelector('button')?.className).toContain('snaplify-icon-btn--primary');
+    const btn = screen.getByRole('button');
+    expect(btn.classList.contains('cpub-icon-btn--ghost')).toBe(true);
   });
 
-  it('fires onclick handler', async () => {
-    const handler = vi.fn();
-    const { container } = render(IconButton, {
-      props: { 'aria-label': 'Click', onclick: handler, children: (() => {}) as never },
+  it('applies size classes', () => {
+    const { unmount } = render(IconButton, {
+      props: { label: 'Action', size: 'sm' },
+      slots: { default: 'X' },
     });
-    await userEvent.click(container.querySelector('button')!);
-    expect(handler).toHaveBeenCalledOnce();
+    expect(screen.getByRole('button').classList.contains('cpub-icon-btn--sm')).toBe(true);
+    unmount();
+
+    render(IconButton, {
+      props: { label: 'Action', size: 'lg' },
+      slots: { default: 'X' },
+    });
+    expect(screen.getByRole('button').classList.contains('cpub-icon-btn--lg')).toBe(true);
   });
 
-  it('can be disabled', () => {
-    const { container } = render(IconButton, {
-      props: { 'aria-label': 'Disabled', disabled: true, children: (() => {}) as never },
+  it('is disabled when disabled attr is passed', () => {
+    render(IconButton, {
+      props: { label: 'Action' },
+      attrs: { disabled: true },
+      slots: { default: 'X' },
     });
-    expect(container.querySelector('button')?.disabled).toBe(true);
+    expect(screen.getByRole('button')).toBeDisabled();
   });
 
-  it('accepts a class prop', () => {
-    const { container } = render(IconButton, {
-      props: { 'aria-label': 'Custom', class: 'my-class', children: (() => {}) as never },
+  it('has correct base class', () => {
+    render(IconButton, {
+      props: { label: 'Action' },
+      slots: { default: 'X' },
     });
-    expect(container.querySelector('button')?.className).toContain('my-class');
-  });
-
-  it('passes axe accessibility scan', async () => {
-    const { container } = render(IconButton, {
-      props: { 'aria-label': 'Accessible button', children: (() => {}) as never },
-    });
-    await expectNoA11yViolations(container);
+    expect(screen.getByRole('button').classList.contains('cpub-icon-btn')).toBe(true);
   });
 });

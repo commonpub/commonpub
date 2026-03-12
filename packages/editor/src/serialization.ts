@@ -1,8 +1,8 @@
 import { z } from 'zod';
 import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
 import { Schema, DOMParser, DOMSerializer } from '@tiptap/pm/model';
-import type { BlockTuple } from './blocks/types';
-import { lookupBlock, listBlocks } from './blocks/registry';
+import type { BlockTuple } from './blocks/types.js';
+import { lookupBlock, listBlocks } from './blocks/registry.js';
 
 /** Zod schema for validating raw block tuples */
 const blockTupleSchema = z.tuple([z.string(), z.record(z.string(), z.unknown())]);

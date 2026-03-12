@@ -15,7 +15,7 @@ declare module '@tiptap/core' {
   }
 }
 
-export const SnaplifyCallout = Node.create<CalloutOptions>({
+export const CommonPubCallout = Node.create<CalloutOptions>({
   name: 'callout',
   group: 'block',
   content: 'block+',

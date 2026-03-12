@@ -1,7 +1,7 @@
-import type { SnaplifyConfig } from '@snaplify/config';
-import { parseWebFingerResource, buildWebFingerResponse } from './webfinger';
-import { buildNodeInfoResponse, buildNodeInfoWellKnown } from './nodeinfo';
-import type { WebFingerResponse, NodeInfoResponse } from './types';
+import type { CommonPubConfig } from '@commonpub/config';
+import { parseWebFingerResource, buildWebFingerResponse } from './webfinger.js';
+import { buildNodeInfoResponse, buildNodeInfoWellKnown } from './nodeinfo.js';
+import type { WebFingerResponse, NodeInfoResponse } from './types.js';
 
 export interface FederationHandlers {
   handleWebFinger: (resource: string) => Promise<WebFingerResponse | null>;
@@ -10,7 +10,7 @@ export interface FederationHandlers {
 }
 
 export interface CreateFederationOptions {
-  config: SnaplifyConfig;
+  config: CommonPubConfig;
   version: string;
   lookupUser: (
     username: string,

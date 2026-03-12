@@ -1,24 +1,24 @@
 import { describe, it, expect } from 'vitest';
-import { defineSnaplifyConfig } from '../config';
+import { defineCommonPubConfig } from '../config';
 
 const validInstance = {
-  domain: 'test.snaplify.dev',
+  domain: 'test.commonpub.dev',
   name: 'Test Instance',
-  description: 'A test Snaplify instance',
+  description: 'A test CommonPub instance',
 };
 
-describe('defineSnaplifyConfig', () => {
+describe('defineCommonPubConfig', () => {
   it('should accept minimal valid config', () => {
-    const { config, warnings } = defineSnaplifyConfig({ instance: validInstance });
+    const { config, warnings } = defineCommonPubConfig({ instance: validInstance });
 
-    expect(config.instance.domain).toBe('test.snaplify.dev');
+    expect(config.instance.domain).toBe('test.commonpub.dev');
     expect(config.instance.name).toBe('Test Instance');
     expect(config.instance.maxUploadSize).toBe(10 * 1024 * 1024);
     expect(warnings).toHaveLength(0);
   });
 
   it('should apply default feature flags', () => {
-    const { config } = defineSnaplifyConfig({ instance: validInstance });
+    const { config } = defineCommonPubConfig({ instance: validInstance });
 
     expect(config.features.content).toBe(true);
     expect(config.features.social).toBe(true);
@@ -33,7 +33,7 @@ describe('defineSnaplifyConfig', () => {
   });
 
   it('should allow disabling content feature flag', () => {
-    const { config } = defineSnaplifyConfig({
+    const { config } = defineCommonPubConfig({
       instance: validInstance,
       features: { content: false },
     });
@@ -42,7 +42,7 @@ describe('defineSnaplifyConfig', () => {
   });
 
   it('should allow disabling social feature flag', () => {
-    const { config } = defineSnaplifyConfig({
+    const { config } = defineCommonPubConfig({
       instance: validInstance,
       features: { social: false },
     });
@@ -51,14 +51,14 @@ describe('defineSnaplifyConfig', () => {
   });
 
   it('should default content and social to true', () => {
-    const { config } = defineSnaplifyConfig({ instance: validInstance });
+    const { config } = defineCommonPubConfig({ instance: validInstance });
 
     expect(config.features.content).toBe(true);
     expect(config.features.social).toBe(true);
   });
 
   it('should allow enabling content while disabling social', () => {
-    const { config } = defineSnaplifyConfig({
+    const { config } = defineCommonPubConfig({
       instance: validInstance,
       features: { content: true, social: false },
     });
@@ -68,7 +68,7 @@ describe('defineSnaplifyConfig', () => {
   });
 
   it('should apply default auth config', () => {
-    const { config } = defineSnaplifyConfig({ instance: validInstance });
+    const { config } = defineCommonPubConfig({ instance: validInstance });
 
     expect(config.auth.emailPassword).toBe(true);
     expect(config.auth.magicLink).toBe(false);
@@ -78,7 +78,7 @@ describe('defineSnaplifyConfig', () => {
   });
 
   it('should allow overriding feature flags', () => {
-    const { config } = defineSnaplifyConfig({
+    const { config } = defineCommonPubConfig({
       instance: validInstance,
       features: { contests: true, federation: true },
     });
@@ -89,12 +89,12 @@ describe('defineSnaplifyConfig', () => {
   });
 
   it('should default admin flag to false', () => {
-    const { config } = defineSnaplifyConfig({ instance: validInstance });
+    const { config } = defineCommonPubConfig({ instance: validInstance });
     expect(config.features.admin).toBe(false);
   });
 
   it('should allow enabling admin flag', () => {
-    const { config } = defineSnaplifyConfig({
+    const { config } = defineCommonPubConfig({
       instance: validInstance,
       features: { admin: true },
     });
@@ -102,7 +102,7 @@ describe('defineSnaplifyConfig', () => {
   });
 
   it('should accept OAuth provider config', () => {
-    const { config } = defineSnaplifyConfig({
+    const { config } = defineCommonPubConfig({
       instance: validInstance,
       auth: {
         github: { clientId: 'gh-id', clientSecret: 'gh-secret' },
@@ -115,13 +115,13 @@ describe('defineSnaplifyConfig', () => {
   });
 
   it('should apply default content types', () => {
-    const { config } = defineSnaplifyConfig({ instance: validInstance });
+    const { config } = defineCommonPubConfig({ instance: validInstance });
 
     expect(config.instance.contentTypes).toEqual(['project', 'article', 'guide', 'blog']);
   });
 
   it('should allow custom content types', () => {
-    const { config } = defineSnaplifyConfig({
+    const { config } = defineCommonPubConfig({
       instance: { ...validInstance, contentTypes: ['project', 'blog'] },
     });
 
@@ -131,7 +131,7 @@ describe('defineSnaplifyConfig', () => {
   describe('validation errors', () => {
     it('should reject empty domain', () => {
       expect(() =>
-        defineSnaplifyConfig({
+        defineCommonPubConfig({
           instance: { ...validInstance, domain: '' },
         }),
       ).toThrow();
@@ -139,7 +139,7 @@ describe('defineSnaplifyConfig', () => {
 
     it('should reject empty name', () => {
       expect(() =>
-        defineSnaplifyConfig({
+        defineCommonPubConfig({
           instance: { ...validInstance, name: '' },
         }),
       ).toThrow();
@@ -147,7 +147,7 @@ describe('defineSnaplifyConfig', () => {
 
     it('should reject name exceeding 128 chars', () => {
       expect(() =>
-        defineSnaplifyConfig({
+        defineCommonPubConfig({
           instance: { ...validInstance, name: 'x'.repeat(129) },
         }),
       ).toThrow();
@@ -155,7 +155,7 @@ describe('defineSnaplifyConfig', () => {
 
     it('should reject invalid contact email', () => {
       expect(() =>
-        defineSnaplifyConfig({
+        defineCommonPubConfig({
           instance: { ...validInstance, contactEmail: 'not-an-email' },
         }),
       ).toThrow();
@@ -163,7 +163,7 @@ describe('defineSnaplifyConfig', () => {
 
     it('should reject negative upload size', () => {
       expect(() =>
-        defineSnaplifyConfig({
+        defineCommonPubConfig({
           instance: { ...validInstance, maxUploadSize: -1 },
         }),
       ).toThrow();
@@ -171,7 +171,7 @@ describe('defineSnaplifyConfig', () => {
 
     it('should reject invalid content types', () => {
       expect(() =>
-        defineSnaplifyConfig({
+        defineCommonPubConfig({
           instance: { ...validInstance, contentTypes: ['invalid' as 'project'] },
         }),
       ).toThrow();
@@ -180,7 +180,7 @@ describe('defineSnaplifyConfig', () => {
 
   describe('warnings', () => {
     it('should warn when sharedAuthDb is set', () => {
-      const { warnings } = defineSnaplifyConfig({
+      const { warnings } = defineCommonPubConfig({
         instance: validInstance,
         auth: { sharedAuthDb: 'postgresql://shared:5432/auth' },
       });
@@ -191,7 +191,7 @@ describe('defineSnaplifyConfig', () => {
     });
 
     it('should warn when federation enabled without trusted instances', () => {
-      const { warnings } = defineSnaplifyConfig({
+      const { warnings } = defineCommonPubConfig({
         instance: validInstance,
         features: { federation: true },
       });
@@ -200,7 +200,7 @@ describe('defineSnaplifyConfig', () => {
     });
 
     it('should warn when learning enabled but explainers disabled', () => {
-      const { warnings } = defineSnaplifyConfig({
+      const { warnings } = defineCommonPubConfig({
         instance: validInstance,
         features: { learning: true, explainers: false },
       });
@@ -209,10 +209,10 @@ describe('defineSnaplifyConfig', () => {
     });
 
     it('should not warn when federation has trusted instances', () => {
-      const { warnings } = defineSnaplifyConfig({
+      const { warnings } = defineCommonPubConfig({
         instance: validInstance,
         features: { federation: true },
-        auth: { trustedInstances: ['other.snaplify.dev'] },
+        auth: { trustedInstances: ['other.commonpub.dev'] },
       });
 
       expect(warnings.some((w) => w.field === 'features.federation')).toBe(false);

@@ -1,4 +1,4 @@
-# Snaplify Full Codebase Map
+# CommonPub Full Codebase Map
 
 Generated: 2026-03-10
 
@@ -839,7 +839,7 @@ Instance B user → WebFinger lookup on Instance A
 
 ## 4. Types, Validators & Data Flow
 
-### Zod Validators (from `@snaplify/schema`)
+### Zod Validators (from `@commonpub/schema`)
 
 | Validator | Shape |
 |-----------|-------|
@@ -857,15 +857,15 @@ Instance B user → WebFinger lookup on Instance A
 
 ### Key Package Types
 
-#### `@snaplify/config`
+#### `@commonpub/config`
 ```
-SnaplifyConfig { instance: InstanceConfig, features: FeatureFlags, auth: AuthConfig }
+CommonPubConfig { instance: InstanceConfig, features: FeatureFlags, auth: AuthConfig }
 FeatureFlags { content, social, communities, docs, video, contests, learning, explainers, federation, admin }
 AuthConfig { emailPassword, magicLink, passkeys, github?, google?, sharedAuthDb?, trustedInstances? }
 InstanceConfig { domain, name, description, contactEmail?, maxUploadSize?, contentTypes? }
 ```
 
-#### `@snaplify/auth`
+#### `@commonpub/auth`
 ```
 AuthUser { id, email, emailVerified, username, displayName, avatarUrl, role, status, createdAt, updatedAt }
 AuthSession { id, userId, token, expiresAt, ipAddress, userAgent, createdAt }
@@ -873,23 +873,23 @@ SessionResult { user: AuthUser, session: AuthSession }
 UserRole = 'member' | 'pro' | 'verified' | 'staff' | 'admin'
 ```
 
-#### `@snaplify/editor`
+#### `@commonpub/editor`
 ```
 BlockTuple = [type: string, content: unknown]
 Block types: text, heading, code, image, quote, callout
 ```
 
-#### `@snaplify/explainer`
+#### `@commonpub/explainer`
 ```
 ExplainerSection = TextSection | InteractiveSection | QuizSection | CheckpointSection
 ```
 
-#### `@snaplify/learning`
+#### `@commonpub/learning`
 ```
 LearningPath, LearningModule, Lesson, Enrollment, Certificate
 ```
 
-#### `@snaplify/docs`
+#### `@commonpub/docs`
 ```
 DocsPage, DocsSite, NavItem, RenderResult { html, toc, frontmatter }, SearchDocument
 ```

@@ -1,5 +1,5 @@
 {
-  "name": "@snaplify/schema",
+  "name": "@commonpub/schema",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -18,13 +18,19 @@
     "test:watch": "vitest",
     "lint": "eslint src/",
     "typecheck": "tsc --noEmit",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "db:push": "drizzle-kit push",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
     "drizzle-orm": "^0.41.0",
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "drizzle-kit": "^0.30.0",
+    "pg": "^8.13.0",
     "typescript": "^5.7.0",
     "vitest": "^3.0.0"
   }

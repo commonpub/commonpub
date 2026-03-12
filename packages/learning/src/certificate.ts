@@ -1,4 +1,4 @@
-import type { CertificateData } from './types';
+import type { CertificateData } from './types.js';
 
 /** Generate a unique verification code */
 export function generateVerificationCode(prefix = 'SNAP'): string {

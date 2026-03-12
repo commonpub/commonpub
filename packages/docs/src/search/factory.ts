@@ -1,7 +1,7 @@
-import type { SearchAdapter, SearchAdapterConfig } from './types';
-import { PostgresSearchAdapter } from './postgresAdapter';
-import type { SqlTagFn } from './postgresAdapter';
-import { MeilisearchSearchAdapter } from './meilisearchAdapter';
+import type { SearchAdapter, SearchAdapterConfig } from './types.js';
+import { PostgresSearchAdapter } from './postgresAdapter.js';
+import type { SqlTagFn } from './postgresAdapter.js';
+import { MeilisearchSearchAdapter } from './meilisearchAdapter.js';
 
 /**
  * Create a search adapter based on the provided configuration.

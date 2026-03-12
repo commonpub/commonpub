@@ -1,5 +1,5 @@
-import { configSchema } from './schema';
-import type { SnaplifyConfig } from './types';
+import { configSchema } from './schema.js';
+import type { CommonPubConfig } from './types.js';
 
 export interface ConfigWarning {
   field: string;
@@ -7,29 +7,29 @@ export interface ConfigWarning {
 }
 
 export interface ConfigResult {
-  config: SnaplifyConfig;
+  config: CommonPubConfig;
   warnings: ConfigWarning[];
 }
 
 /**
- * Define and validate a Snaplify instance configuration.
+ * Define and validate a CommonPub instance configuration.
  * Returns the validated config with defaults applied and any warnings.
  *
  * @throws {ZodError} if the config is invalid
  */
-export function defineSnaplifyConfig(input: {
+export function defineCommonPubConfig(input: {
   instance: {
     domain: string;
     name: string;
     description: string;
     contactEmail?: string;
     maxUploadSize?: number;
-    contentTypes?: Array<'project' | 'article' | 'guide' | 'blog'>;
+    contentTypes?: Array<'project' | 'article' | 'guide' | 'blog' | 'explainer'>;
   };
-  features?: Partial<SnaplifyConfig['features']>;
-  auth?: Partial<SnaplifyConfig['auth']>;
+  features?: Partial<CommonPubConfig['features']>;
+  auth?: Partial<CommonPubConfig['auth']>;
 }): ConfigResult {
-  const config = configSchema.parse(input) as SnaplifyConfig;
+  const config = configSchema.parse(input) as CommonPubConfig;
   const warnings: ConfigWarning[] = [];
 
   if (config.auth.sharedAuthDb) {

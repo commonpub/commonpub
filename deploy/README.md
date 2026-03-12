@@ -1,6 +1,6 @@
 # Deploy
 
-Docker Compose configurations, infrastructure scripts, and deployment specs for Snaplify.
+Docker Compose configurations, infrastructure scripts, and deployment specs for CommonPub.
 
 ## Files
 
@@ -28,9 +28,9 @@ Services:
 
 | Service      | Port  | Credentials                    |
 | ------------ | ----- | ------------------------------ |
-| PostgreSQL   | 5432  | `snaplify:snaplify_dev`        |
+| PostgreSQL   | 5432  | `commonpub:commonpub_dev`        |
 | Redis        | 6379  | No auth                        |
-| Meilisearch  | 7700  | Key: `snaplify_dev_key`        |
+| Meilisearch  | 7700  | Key: `commonpub_dev_key`        |
 
 ## Production
 

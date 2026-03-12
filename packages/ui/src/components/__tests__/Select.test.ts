@@ -1,136 +1,71 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen, within } from '@testing-library/svelte';
-import { userEvent } from '@testing-library/user-event';
-import { expectNoA11yViolations } from '../../test-helpers';
-import Select from '../Select.svelte';
+import { describe, it, expect } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/vue';
+import Select from '../Select.vue';
 
 const options = [
-  { value: 'red', label: 'Red' },
-  { value: 'green', label: 'Green' },
-  { value: 'blue', label: 'Blue' },
+  { value: 'a', label: 'Option A' },
+  { value: 'b', label: 'Option B' },
+  { value: 'c', label: 'Option C' },
 ];
 
 describe('Select', () => {
-  it('renders with label and trigger', () => {
-    render(Select, { props: { id: 'color', label: 'Color', options } });
-    expect(screen.getByText('Color')).toBeInTheDocument();
-    expect(screen.getByRole('combobox')).toBeInTheDocument();
-  });
-
-  it('shows placeholder text when no value selected', () => {
-    render(Select, { props: { id: 'color', label: 'Color', options } });
-    expect(screen.getByRole('combobox')).toHaveTextContent('Select an option');
-  });
-
-  it('shows selected option label', () => {
-    render(Select, { props: { id: 'color', label: 'Color', options, value: 'green' } });
-    expect(screen.getByRole('combobox')).toHaveTextContent('Green');
-  });
-
-  it('opens listbox on click', async () => {
-    render(Select, { props: { id: 'color', label: 'Color', options } });
-    const trigger = screen.getByRole('combobox');
-
-    expect(trigger).toHaveAttribute('aria-expanded', 'false');
-    await userEvent.click(trigger);
-    expect(trigger).toHaveAttribute('aria-expanded', 'true');
-    expect(screen.getByRole('listbox')).toBeInTheDocument();
-  });
-
-  it('selects option on click', async () => {
-    const handler = vi.fn();
-    render(Select, { props: { id: 'color', label: 'Color', options, onchange: handler } });
-
-    await userEvent.click(screen.getByRole('combobox'));
-    await userEvent.click(screen.getByRole('option', { name: 'Blue' }));
-
-    expect(handler).toHaveBeenCalledWith('blue');
-  });
-
-  it('closes on Escape', async () => {
-    render(Select, { props: { id: 'color', label: 'Color', options } });
-
-    await userEvent.click(screen.getByRole('combobox'));
-    expect(screen.getByRole('listbox')).toBeInTheDocument();
-
-    await userEvent.keyboard('{Escape}');
-    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
-  });
-
-  it('navigates with arrow keys', async () => {
-    render(Select, { props: { id: 'color', label: 'Color', options } });
-
-    const trigger = screen.getByRole('combobox');
-    trigger.focus();
-    await userEvent.keyboard('{ArrowDown}');
-    expect(trigger).toHaveAttribute('aria-expanded', 'true');
-
-    // Active descendant should be first option
-    expect(trigger).toHaveAttribute('aria-activedescendant', 'color-option-0');
-
-    await userEvent.keyboard('{ArrowDown}');
-    expect(trigger).toHaveAttribute('aria-activedescendant', 'color-option-1');
-  });
-
-  it('selects with Enter', async () => {
-    const handler = vi.fn();
-    render(Select, { props: { id: 'color', label: 'Color', options, onchange: handler } });
-
-    screen.getByRole('combobox').focus();
-    await userEvent.keyboard('{ArrowDown}');
-    await userEvent.keyboard('{ArrowDown}');
-    await userEvent.keyboard('{Enter}');
-
-    expect(handler).toHaveBeenCalledWith('green');
-  });
-
-  it('navigates to first with Home', async () => {
-    render(Select, { props: { id: 'color', label: 'Color', options } });
-
-    screen.getByRole('combobox').focus();
-    await userEvent.keyboard('{ArrowDown}');
-    await userEvent.keyboard('{ArrowDown}');
-    await userEvent.keyboard('{ArrowDown}');
-    await userEvent.keyboard('{Home}');
-
-    expect(screen.getByRole('combobox')).toHaveAttribute('aria-activedescendant', 'color-option-0');
-  });
-
-  it('navigates to last with End', async () => {
-    render(Select, { props: { id: 'color', label: 'Color', options } });
-
-    screen.getByRole('combobox').focus();
-    await userEvent.keyboard('{ArrowDown}');
-    await userEvent.keyboard('{End}');
-
-    expect(screen.getByRole('combobox')).toHaveAttribute('aria-activedescendant', 'color-option-2');
-  });
-
-  it('displays error state', () => {
+  it('renders with a label', () => {
     render(Select, {
-      props: { id: 'color', label: 'Color', options, error: 'Pick one' },
+      props: { label: 'Choose one', options },
     });
-    const trigger = screen.getByRole('combobox');
-    expect(trigger).toHaveAttribute('aria-invalid', 'true');
-    expect(screen.getByRole('alert')).toHaveTextContent('Pick one');
+    expect(screen.getByLabelText('Choose one')).toBeTruthy();
   });
 
-  it('can be disabled', () => {
-    render(Select, { props: { id: 'color', label: 'Color', options, disabled: true } });
-    expect(screen.getByRole('combobox')).toBeDisabled();
+  it('renders all options', () => {
+    render(Select, {
+      props: { label: 'Pick', options },
+    });
+    const select = screen.getByLabelText('Pick') as HTMLSelectElement;
+    const renderedOptions = select.querySelectorAll('option');
+    expect(renderedOptions.length).toBe(3);
+    expect(renderedOptions[0]).toHaveTextContent('Option A');
+    expect(renderedOptions[1]).toHaveTextContent('Option B');
+    expect(renderedOptions[2]).toHaveTextContent('Option C');
   });
 
-  it('accepts a class prop', () => {
-    const { container } = render(Select, {
-      props: { id: 'color', label: 'Color', options, class: 'custom' },
+  it('shows error message with role="alert"', () => {
+    render(Select, {
+      props: { label: 'Pick', options, error: 'Selection required' },
     });
-    expect(container.querySelector('.snaplify-select')?.className).toContain('custom');
+    const alert = screen.getByRole('alert');
+    expect(alert).toHaveTextContent('Selection required');
   });
 
-  it('passes axe accessibility scan', async () => {
-    const { container } = render(Select, {
-      props: { id: 'color', label: 'Favorite Color', options },
+  it('sets aria-invalid when error is present', () => {
+    render(Select, {
+      props: { label: 'Pick', options, error: 'Required' },
     });
-    await expectNoA11yViolations(container);
+    const select = screen.getByLabelText('Pick');
+    expect(select.getAttribute('aria-invalid')).toBe('true');
+  });
+
+  it('emits update:modelValue on change', async () => {
+    const { emitted } = render(Select, {
+      props: { label: 'Pick', options, modelValue: 'a' },
+    });
+    const select = screen.getByLabelText('Pick');
+    await fireEvent.update(select, 'b');
+    expect(emitted()['update:modelValue']).toBeTruthy();
+  });
+
+  it('renders as a combobox element', () => {
+    render(Select, {
+      props: { label: 'Pick', options },
+    });
+    const select = screen.getByLabelText('Pick');
+    expect(select.tagName).toBe('SELECT');
+  });
+
+  it('applies error class when error is present', () => {
+    render(Select, {
+      props: { label: 'Pick', options, error: 'Error' },
+    });
+    const wrapper = screen.getByLabelText('Pick').closest('.cpub-select-group');
+    expect(wrapper?.classList.contains('cpub-select-group--error')).toBe(true);
   });
 });

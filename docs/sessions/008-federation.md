@@ -91,7 +91,7 @@
 ## Decisions Made
 
 1. **Fedify's built-in queue** over separate BullMQ — simplifies architecture
-2. **Pure TS protocol package** — no Fedify dependency in @snaplify/snaplify; Fedify integration at app layer
+2. **Pure TS protocol package** — no Fedify dependency in @commonpub/protocol; Fedify integration at app layer
 3. **jose library** for RSA keypair generation (Web Crypto compatible)
 4. **Auto-accept follows** in v1 — manual approval deferred
 5. **Content federation hooks** as standalone functions called by routes (not embedded in CRUD)
@@ -101,9 +101,9 @@
 
 | Package            | Before | After | New     |
 | ------------------ | ------ | ----- | ------- |
-| @snaplify/schema   | 43     | 58    | +15     |
-| @snaplify/snaplify | 42     | 116   | +74     |
-| @snaplify/worker   | 1      | 10    | +9      |
+| @commonpub/schema   | 43     | 58    | +15     |
+| @commonpub/protocol | 42     | 116   | +74     |
+| @commonpub/worker   | 1      | 10    | +9      |
 | **Phase 8 total**  |        |       | **+98** |
 | **All packages**   | 700    | 734   |         |
 

@@ -18,9 +18,9 @@ jobs:
       postgres:
         image: ${{ matrix.os == 'ubuntu-latest' && 'postgres:16-alpine' || '' }}
         env:
-          POSTGRES_USER: snaplify
-          POSTGRES_PASSWORD: snaplify_test
-          POSTGRES_DB: snaplify_test
+          POSTGRES_USER: commonpub
+          POSTGRES_PASSWORD: commonpub_test
+          POSTGRES_DB: commonpub_test
         ports:
           - 5432:5432
         options: >-
@@ -56,7 +56,7 @@ jobs:
       - name: Test
         run: pnpm test
         env:
-          DATABASE_URL: postgresql://snaplify:snaplify_test@localhost:5432/snaplify_test
+          DATABASE_URL: postgresql://commonpub:commonpub_test@localhost:5432/commonpub_test
 
       - name: Build
         run: pnpm build
@@ -65,7 +65,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: tools/create-snaplify
+        working-directory: tools/create-commonpub
     steps:
       - uses: actions/checkout@v4
 
@@ -86,9 +86,9 @@ jobs:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_USER: snaplify
-          POSTGRES_PASSWORD: snaplify_test
-          POSTGRES_DB: snaplify_test
+          POSTGRES_USER: commonpub
+          POSTGRES_PASSWORD: commonpub_test
+          POSTGRES_DB: commonpub_test
         ports:
           - 5432:5432
         options: >-
@@ -120,4 +120,4 @@ jobs:
       - name: Run E2E Tests
         run: pnpm exec playwright test --project=chromium
         env:
-          DATABASE_URL: postgresql://snaplify:snaplify_test@localhost:5432/snaplify_test
+          DATABASE_URL: postgresql://commonpub:commonpub_test@localhost:5432/commonpub_test

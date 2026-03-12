@@ -1,7 +1,7 @@
 import { pgTable, uuid, varchar, text, timestamp, integer, jsonb } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
-import { users } from './auth';
-import { activityDirectionEnum, activityStatusEnum, followRelationshipStatusEnum } from './enums';
+import { users } from './auth.js';
+import { activityDirectionEnum, activityStatusEnum, followRelationshipStatusEnum } from './enums.js';
 
 /** Cache of resolved remote ActivityPub actors */
 export const remoteActors = pgTable('remote_actors', {

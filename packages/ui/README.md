@@ -1,4 +1,4 @@
-# @snaplify/ui
+# @commonpub/ui
 
 Headless Svelte 5 component library with CSS custom property theming.
 
@@ -11,7 +11,7 @@ Includes 4 built-in theme CSS files and a theming API for runtime theme switchin
 ## Installation
 
 ```bash
-pnpm add @snaplify/ui
+pnpm add @commonpub/ui
 ```
 
 ## Components
@@ -39,7 +39,7 @@ pnpm add @snaplify/ui
 
 ```svelte
 <script>
-  import { Button, Input, Dialog, Tabs } from '@snaplify/ui';
+  import { Button, Input, Dialog, Tabs } from '@commonpub/ui';
 </script>
 
 <Button onclick={handleClick} variant="primary">
@@ -78,14 +78,14 @@ All components accept a `class` prop for external styling:
 
 ```ts
 // Import a specific theme
-import '@snaplify/ui/theme/base.css';
-import '@snaplify/ui/theme/deepwood.css';
+import '@commonpub/ui/theme/base.css';
+import '@commonpub/ui/theme/deepwood.css';
 ```
 
 ### Runtime Theme Switching
 
 ```ts
-import { applyThemeToElement, getThemeFromElement, isValidThemeId } from '@snaplify/ui';
+import { applyThemeToElement, getThemeFromElement, isValidThemeId } from '@commonpub/ui';
 
 // Apply theme via data-theme attribute
 applyThemeToElement(document.documentElement, 'deepwood');
@@ -118,7 +118,7 @@ The full token surface is defined in `theme/base.css`. All tokens are CSS custom
 ### Validating Token Overrides
 
 ```ts
-import { validateTokenOverrides, TOKEN_NAMES } from '@snaplify/ui';
+import { validateTokenOverrides, TOKEN_NAMES } from '@commonpub/ui';
 
 const { valid, invalid } = validateTokenOverrides({
   'color-primary': '#ff0000',   // valid

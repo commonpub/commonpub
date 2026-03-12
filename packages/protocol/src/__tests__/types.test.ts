@@ -3,7 +3,7 @@ import type {
   WebFingerResponse,
   WebFingerLink,
   NodeInfoResponse,
-  SnaplifyActor,
+  CommonPubActor,
   ParsedResource,
 } from '../types';
 
@@ -30,18 +30,18 @@ describe('protocol types', () => {
   it('should allow constructing a valid NodeInfoResponse', () => {
     const nodeinfo: NodeInfoResponse = {
       version: '2.1',
-      software: { name: 'snaplify', version: '0.0.1' },
+      software: { name: 'commonpub', version: '0.0.1' },
       protocols: ['activitypub'],
       usage: { users: { total: 10, activeMonth: 5 }, localPosts: 100 },
       openRegistrations: true,
       metadata: {},
     };
     expect(nodeinfo.version).toBe('2.1');
-    expect(nodeinfo.software.name).toBe('snaplify');
+    expect(nodeinfo.software.name).toBe('commonpub');
   });
 
-  it('should allow constructing a valid SnaplifyActor', () => {
-    const actor: SnaplifyActor = {
+  it('should allow constructing a valid CommonPubActor', () => {
+    const actor: CommonPubActor = {
       '@context': ['https://www.w3.org/ns/activitystreams'],
       id: 'https://example.com/users/alice',
       type: 'Person',

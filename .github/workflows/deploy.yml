@@ -19,7 +19,7 @@ jobs:
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           script: |
-            cd /opt/snaplify
+            cd /opt/commonpub
             docker compose -f docker-compose.prod.yml pull app
             docker compose -f docker-compose.prod.yml up -d app
             docker image prune -f
@@ -28,5 +28,5 @@ jobs:
         if: vars.DEPLOY_METHOD == 'doctl'
         uses: digitalocean/app_action@v2
         with:
-          app_name: snaplify
+          app_name: commonpub
           token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}

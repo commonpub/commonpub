@@ -1,7 +1,7 @@
-import type { SnaplifyConfig } from '@snaplify/config';
+import type { CommonPubConfig } from '@commonpub/config';
 
 export interface CreateAuthOptions {
-  config: SnaplifyConfig;
+  config: CommonPubConfig;
   db: DrizzleDB;
   secret: string;
   baseURL?: string;

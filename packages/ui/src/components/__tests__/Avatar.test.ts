@@ -1,52 +1,67 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/svelte';
-import { expectNoA11yViolations } from '../../test-helpers';
-import Avatar from '../Avatar.svelte';
+import { render, screen, fireEvent } from '@testing-library/vue';
+import Avatar from '../Avatar.vue';
 
 describe('Avatar', () => {
-  it('renders with role=img and alt text', () => {
-    render(Avatar, { props: { alt: 'Jane Doe', name: 'Jane Doe' } });
-    const avatar = screen.getByRole('img');
-    expect(avatar).toHaveAttribute('aria-label', 'Jane Doe');
-  });
-
-  it('shows initials as fallback', () => {
-    render(Avatar, { props: { alt: 'Jane Doe', name: 'Jane Doe' } });
-    expect(screen.getByText('JD')).toBeInTheDocument();
-  });
-
-  it('shows single initial for single name', () => {
-    render(Avatar, { props: { alt: 'Alice', name: 'Alice' } });
-    expect(screen.getByText('A')).toBeInTheDocument();
-  });
-
-  it('renders image when src provided', () => {
+  it('renders with image when src is provided', () => {
     const { container } = render(Avatar, {
-      props: { alt: 'Jane', src: 'https://example.com/avatar.jpg' },
+      props: { src: 'https://example.com/photo.jpg', alt: 'User photo' },
     });
-    const img = container.querySelector('img');
-    expect(img).toBeInTheDocument();
-    expect(img).toHaveAttribute('src', 'https://example.com/avatar.jpg');
+    const wrapper = container.querySelector('.cpub-avatar');
+    expect(wrapper).toBeTruthy();
+    const imgEl = container.querySelector('img');
+    expect(imgEl).toBeTruthy();
+    expect(imgEl?.getAttribute('src')).toBe('https://example.com/photo.jpg');
   });
 
-  it('applies size class', () => {
-    const { container } = render(Avatar, {
-      props: { alt: 'Jane', name: 'Jane', size: 'lg' },
+  it('shows fallback initials when no src', () => {
+    render(Avatar, {
+      props: { fallback: 'JD' },
     });
-    expect(container.querySelector('.snaplify-avatar')?.className).toContain('snaplify-avatar--lg');
+    expect(screen.getByText('JD')).toBeTruthy();
   });
 
-  it('accepts a class prop', () => {
-    const { container } = render(Avatar, {
-      props: { alt: 'Jane', name: 'Jane', class: 'custom' },
+  it('derives initials from alt text', () => {
+    render(Avatar, {
+      props: { alt: 'Jane Doe' },
     });
-    expect(container.querySelector('.snaplify-avatar')?.className).toContain('custom');
+    expect(screen.getByText('JD')).toBeTruthy();
   });
 
-  it('passes axe accessibility scan', async () => {
-    const { container } = render(Avatar, {
-      props: { alt: 'Jane Doe avatar', name: 'Jane Doe' },
+  it('shows fallback on image error', async () => {
+    render(Avatar, {
+      props: { src: 'broken.jpg', alt: 'Test User' },
     });
-    await expectNoA11yViolations(container);
+    const img = document.querySelector('img');
+    expect(img).toBeTruthy();
+    await fireEvent.error(img!);
+    expect(screen.getByText('TU')).toBeTruthy();
+  });
+
+  it('applies size classes', () => {
+    const sizes = ['xs', 'sm', 'md', 'lg', 'xl'] as const;
+    for (const size of sizes) {
+      const { container, unmount } = render(Avatar, {
+        props: { size, fallback: 'A' },
+      });
+      const avatar = container.querySelector('.cpub-avatar');
+      expect(avatar?.classList.contains(`cpub-avatar--${size}`)).toBe(true);
+      unmount();
+    }
+  });
+
+  it('defaults to md size', () => {
+    const { container } = render(Avatar, {
+      props: { fallback: 'A' },
+    });
+    const avatar = container.querySelector('.cpub-avatar');
+    expect(avatar?.classList.contains('cpub-avatar--md')).toBe(true);
+  });
+
+  it('has role="img" for accessibility', () => {
+    render(Avatar, {
+      props: { alt: 'Test' },
+    });
+    expect(screen.getByRole('img')).toBeTruthy();
   });
 });

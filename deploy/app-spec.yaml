@@ -1,4 +1,4 @@
-name: snaplify
+name: commonpub
 region: nyc
 services:
   - name: app

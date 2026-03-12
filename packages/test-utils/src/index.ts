@@ -4,6 +4,6 @@ export {
   createTestFederatedAccount,
   createTestOAuthClient,
   resetFactoryCounter,
-} from './factories';
-export type { TestUser, TestSession, TestFederatedAccount, TestOAuthClient } from './factories';
-export { createTestConfig } from './mockConfig';
+} from './factories.js';
+export type { TestUser, TestSession, TestFederatedAccount, TestOAuthClient } from './factories.js';
+export { createTestConfig } from './mockConfig.js';

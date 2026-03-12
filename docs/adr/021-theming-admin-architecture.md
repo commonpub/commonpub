@@ -39,7 +39,7 @@ user preference → instance default → 'base'
 
 ### 3. SSR Flash Prevention
 
-Cookie-based. Server reads `snaplify-theme` cookie in hooks, resolves theme, passes to layout. Layout sets `data-theme` on `<html>` via `$effect`. For authenticated users, theme comes from `users.theme`; cookie is secondary for anonymous visitors.
+Cookie-based. Server reads `commonpub-theme` cookie in hooks, resolves theme, passes to layout. Layout sets `data-theme` on `<html>` via `$effect`. For authenticated users, theme comes from `users.theme`; cookie is secondary for anonymous visitors.
 
 ### 4. Instance Settings: Key-Value Table
 

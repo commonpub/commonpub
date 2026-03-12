@@ -26,7 +26,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'pnpm --filter @snaplify/reference dev',
+    command: 'pnpm --filter @commonpub/reference dev',
     url: 'http://localhost:5173',
     reuseExistingServer: !process.env.CI,
   },

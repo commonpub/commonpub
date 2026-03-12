@@ -83,7 +83,7 @@ These are all post-v1.0.0 features requiring significant protocol work:
 
 ### Object Types
 
-| AP Type | Snaplify Type | Builder |
+| AP Type | CommonPub Type | Builder |
 |---------|--------------|---------|
 | Article | project, article, guide, blog | `contentToArticle(item, author, domain)` |
 | Note | comment, short post | `contentToNote(comment, author, domain, parentUri)` |
@@ -217,7 +217,7 @@ sequenceDiagram
 | `followRelationships` | Federation-level follow state (pending/accepted/rejected) |
 | `actorKeypairs` | RSA-2048 keypairs per user for HTTP Signatures |
 | `federatedAccounts` | Links local users to remote AP actor identities |
-| `oauthClients` | Registered OAuth2 clients (other Snaplify instances) |
+| `oauthClients` | Registered OAuth2 clients (other CommonPub instances) |
 
 ---
 
@@ -395,7 +395,7 @@ The following phases describe what needs to be built to achieve full federation.
 
 ### F6 — Cross-Publishing API
 
-**What it enables:** Authors can publish content to multiple Snaplify instances simultaneously.
+**What it enables:** Authors can publish content to multiple CommonPub instances simultaneously.
 
 **Schema changes:**
 - Add `contentOrigins` table: `contentId`, `instanceDomain`, `remoteId`, `syncStatus`

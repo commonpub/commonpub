@@ -44,7 +44,7 @@ if (!locals.config.features.comments) {
 const comments = await listComments(locals.db, 'content', contentId);
 ```
 
-Feature flags are defined via `defineSnaplifyConfig()` in `@snaplify/config` and made available on `locals.config` by the auth hook.
+Feature flags are defined via `defineCommonPubConfig()` in `@commonpub/config` and made available on `locals.config` by the auth hook.
 
 ---
 

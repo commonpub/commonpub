@@ -2,7 +2,7 @@
 
 > All 10 feature flags, what each controls, default values, and dependencies.
 
-Snaplify uses feature flags (defined in `@snaplify/config`) to gate entire subsystems. Every server module, route, and API endpoint checks the relevant flag via `locals.config.features.*` before executing.
+CommonPub uses feature flags (defined in `@commonpub/config`) to gate entire subsystems. Every server module, route, and API endpoint checks the relevant flag via `locals.config.features.*` before executing.
 
 ---
 
@@ -190,7 +190,7 @@ Snaplify uses feature flags (defined in `@snaplify/config`) to gate entire subsy
 |------|---------|-----------|
 | `content` | `true` | Core feature, required by most other systems |
 | `social` | `true` | Expected baseline for community sites |
-| `communities` | `true` | Primary use case for Snaplify |
+| `communities` | `true` | Primary use case for CommonPub |
 | `docs` | `true` | Documentation is a core maker need |
 | `video` | `true` | Low overhead, commonly needed |
 | `contests` | `false` | Niche feature, opt-in |

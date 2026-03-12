@@ -47,7 +47,7 @@
 
 ## Decisions Made
 
-1. **Keep native `<select>` for admin filter forms** — `@snaplify/ui` Select is a custom combobox that doesn't support native form serialization for GET forms
+1. **Keep native `<select>` for admin filter forms** — `@commonpub/ui` Select is a custom combobox that doesn't support native form serialization for GET forms
 2. **Resolve/Dismiss buttons stay native** — need `name`/`value` attributes on submit buttons for form action routing
 3. **No new TipTap package deps needed initially** (starter-kit bundles them) — but pnpm strict resolution required explicit deps in package.json
 4. **Poll data stored as JSON in content column** — simplest approach, v1 doesn't need structured poll tables

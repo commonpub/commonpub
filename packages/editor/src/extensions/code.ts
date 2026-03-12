@@ -13,7 +13,7 @@ declare module '@tiptap/core' {
   }
 }
 
-export const SnaplifyCodeBlock = Node.create<CodeBlockOptions>({
+export const CommonPubCodeBlock = Node.create<CodeBlockOptions>({
   name: 'code_block',
   group: 'block',
   content: 'text*',

@@ -1,13 +1,13 @@
-# Snaplify Deployment Guide
+# CommonPub Deployment Guide
 
 ## Quick Start (Docker Compose)
 
-The fastest way to run Snaplify in production:
+The fastest way to run CommonPub in production:
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/snaplify.git
-cd snaplify
+git clone https://github.com/your-org/commonpub.git
+cd commonpub
 
 # Copy and configure environment
 cp deploy/.env.prod.example deploy/.env
@@ -29,19 +29,19 @@ Best for: single-server deployments, small-to-medium communities.
 1. **Provision a server** (Ubuntu 22.04+ recommended, 2GB+ RAM)
 2. **Run the setup script**:
    ```bash
-   curl -sSL https://raw.githubusercontent.com/your-org/snaplify/main/deploy/droplet-setup.sh | sudo bash
+   curl -sSL https://raw.githubusercontent.com/your-org/commonpub/main/deploy/droplet-setup.sh | sudo bash
    ```
 3. **Deploy the application**:
    ```bash
-   cd /opt/snaplify
+   cd /opt/commonpub
    # Copy your docker-compose.prod.yml and .env
-   sudo systemctl start snaplify
+   sudo systemctl start commonpub
    ```
 4. **Configure SSL**:
    ```bash
-   sudo cp deploy/nginx.conf /etc/nginx/sites-available/snaplify
-   sudo ln -s /etc/nginx/sites-available/snaplify /etc/nginx/sites-enabled/
-   # Edit /etc/nginx/sites-available/snaplify — replace YOUR_DOMAIN
+   sudo cp deploy/nginx.conf /etc/nginx/sites-available/commonpub
+   sudo ln -s /etc/nginx/sites-available/commonpub /etc/nginx/sites-enabled/
+   # Edit /etc/nginx/sites-available/commonpub — replace YOUR_DOMAIN
    sudo certbot --nginx -d your-domain.com
    sudo systemctl reload nginx
    ```
@@ -65,7 +65,7 @@ doctl apps create --spec deploy/app-spec.yaml
 ### Option 3: Pre-built Docker Image
 
 ```bash
-docker pull ghcr.io/your-org/snaplify:latest
+docker pull ghcr.io/your-org/commonpub:latest
 
 docker run -d \
   -p 3000:3000 \
@@ -73,7 +73,7 @@ docker run -d \
   -e REDIS_URL=redis://... \
   -e AUTH_SECRET=your-secret \
   -e ORIGIN=https://your-domain.com \
-  ghcr.io/your-org/snaplify:latest
+  ghcr.io/your-org/commonpub:latest
 ```
 
 ## Environment Variables Reference
@@ -149,17 +149,17 @@ Edit `deploy/nginx.conf` and update the `ssl_certificate` and `ssl_certificate_k
 
 ```bash
 # Manual backup
-docker exec snaplify-postgres-1 pg_dump -U snaplify snaplify > backup-$(date +%Y%m%d).sql
+docker exec cpub-postgres-1 pg_dump -U commonpub commonpub > backup-$(date +%Y%m%d).sql
 
 # Restore
-docker exec -i snaplify-postgres-1 psql -U snaplify snaplify < backup-20240101.sql
+docker exec -i cpub-postgres-1 psql -U commonpub commonpub < backup-20240101.sql
 ```
 
 ### Automated backups (cron)
 
 ```bash
 # Add to crontab (daily at 2 AM)
-0 2 * * * docker exec snaplify-postgres-1 pg_dump -U snaplify snaplify | gzip > /backups/snaplify-$(date +\%Y\%m\%d).sql.gz
+0 2 * * * docker exec cpub-postgres-1 pg_dump -U commonpub commonpub | gzip > /backups/cpub-$(date +\%Y\%m\%d).sql.gz
 ```
 
 ### Volumes
@@ -167,14 +167,14 @@ docker exec -i snaplify-postgres-1 psql -U snaplify snaplify < backup-20240101.s
 Back up Docker volumes for Redis and Meilisearch data:
 
 ```bash
-docker run --rm -v snaplify_postgres_data:/data -v /backups:/backups alpine tar czf /backups/postgres-data.tar.gz /data
-docker run --rm -v snaplify_redis_data:/data -v /backups:/backups alpine tar czf /backups/redis-data.tar.gz /data
+docker run --rm -v commonpub_postgres_data:/data -v /backups:/backups alpine tar czf /backups/postgres-data.tar.gz /data
+docker run --rm -v commonpub_redis_data:/data -v /backups:/backups alpine tar czf /backups/redis-data.tar.gz /data
 ```
 
 ## Upgrading
 
 ```bash
-cd /opt/snaplify
+cd /opt/commonpub
 
 # Pull latest image
 docker compose -f docker-compose.prod.yml pull app
@@ -188,17 +188,17 @@ curl http://localhost:3000
 
 ## Scaffolding a New Instance
 
-Use the `create-snaplify` CLI:
+Use the `create-commonpub` CLI:
 
 ```bash
 # Install
-cargo install create-snaplify
+cargo install create-commonpub
 
 # Interactive setup
-create-snaplify new my-community
+create-commonpub new my-community
 
 # With defaults
-create-snaplify new my-community --defaults
+create-commonpub new my-community --defaults
 ```
 
-This generates a ready-to-deploy project with `.env`, `snaplify.config.ts`, `docker-compose.yml`, and `package.json`.
+This generates a ready-to-deploy project with `.env`, `commonpub.config.ts`, `docker-compose.yml`, and `package.json`.

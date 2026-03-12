@@ -5,7 +5,7 @@ import type { OAuthClient } from '../oauth';
 const validClient: OAuthClient = {
   clientId: 'client-1',
   clientSecret: 'secret-1',
-  redirectUris: ['https://instance-b.example.com/api/auth/callback/snaplify-sso'],
+  redirectUris: ['https://instance-b.example.com/api/auth/callback/cpub-sso'],
   instanceDomain: 'instance-b.example.com',
 };
 
@@ -14,7 +14,7 @@ describe('validateAuthorizeRequest', () => {
     const result = validateAuthorizeRequest(
       {
         clientId: 'client-1',
-        redirectUri: 'https://instance-b.example.com/api/auth/callback/snaplify-sso',
+        redirectUri: 'https://instance-b.example.com/api/auth/callback/cpub-sso',
         responseType: 'code',
         scope: 'openid profile',
         state: 'random',
@@ -40,7 +40,7 @@ describe('validateAuthorizeRequest', () => {
     const result = validateAuthorizeRequest(
       {
         clientId: 'wrong-id',
-        redirectUri: 'https://instance-b.example.com/api/auth/callback/snaplify-sso',
+        redirectUri: 'https://instance-b.example.com/api/auth/callback/cpub-sso',
         responseType: 'code',
       },
       validClient,
@@ -52,7 +52,7 @@ describe('validateAuthorizeRequest', () => {
     const result = validateAuthorizeRequest(
       {
         clientId: 'client-1',
-        redirectUri: 'https://instance-b.example.com/api/auth/callback/snaplify-sso',
+        redirectUri: 'https://instance-b.example.com/api/auth/callback/cpub-sso',
         responseType: 'token',
       },
       validClient,
@@ -81,7 +81,7 @@ describe('validateTokenRequest', () => {
         code: 'auth-code-123',
         clientId: 'client-1',
         clientSecret: 'secret-1',
-        redirectUri: 'https://instance-b.example.com/api/auth/callback/snaplify-sso',
+        redirectUri: 'https://instance-b.example.com/api/auth/callback/cpub-sso',
       },
       validClient,
     );
@@ -109,7 +109,7 @@ describe('validateTokenRequest', () => {
         code: 'auth-code-123',
         clientId: 'client-1',
         clientSecret: 'wrong-secret',
-        redirectUri: 'https://instance-b.example.com/api/auth/callback/snaplify-sso',
+        redirectUri: 'https://instance-b.example.com/api/auth/callback/cpub-sso',
       },
       validClient,
     );
@@ -123,7 +123,7 @@ describe('validateTokenRequest', () => {
         code: 'auth-code-123',
         clientId: 'client-1',
         clientSecret: 'secret-1',
-        redirectUri: 'https://instance-b.example.com/api/auth/callback/snaplify-sso',
+        redirectUri: 'https://instance-b.example.com/api/auth/callback/cpub-sso',
       },
       validClient,
     );
@@ -137,7 +137,7 @@ describe('validateTokenRequest', () => {
         code: '',
         clientId: 'client-1',
         clientSecret: 'secret-1',
-        redirectUri: 'https://instance-b.example.com/api/auth/callback/snaplify-sso',
+        redirectUri: 'https://instance-b.example.com/api/auth/callback/cpub-sso',
       },
       validClient,
     );

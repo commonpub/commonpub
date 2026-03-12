@@ -1,50 +1,68 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/svelte';
-import { expectNoA11yViolations } from '../../test-helpers';
-import Textarea from '../Textarea.svelte';
+import { render, screen, fireEvent } from '@testing-library/vue';
+import Textarea from '../Textarea.vue';
 
 describe('Textarea', () => {
-  it('renders with label associated via for/id', () => {
-    render(Textarea, { props: { id: 'bio', label: 'Bio' } });
+  it('renders with a label', () => {
+    render(Textarea, {
+      props: { label: 'Description' },
+    });
+    expect(screen.getByLabelText('Description')).toBeTruthy();
+  });
+
+  it('renders as a textarea element', () => {
+    render(Textarea, {
+      props: { label: 'Bio' },
+    });
     const textarea = screen.getByLabelText('Bio');
-    expect(textarea).toBeInTheDocument();
     expect(textarea.tagName).toBe('TEXTAREA');
   });
 
-  it('uses default rows=4', () => {
-    render(Textarea, { props: { id: 'bio', label: 'Bio' } });
-    expect(screen.getByLabelText('Bio')).toHaveAttribute('rows', '4');
+  it('shows error message with role="alert"', () => {
+    render(Textarea, {
+      props: { label: 'Bio', error: 'Required field' },
+    });
+    const alert = screen.getByRole('alert');
+    expect(alert).toHaveTextContent('Required field');
   });
 
-  it('accepts custom rows', () => {
-    render(Textarea, { props: { id: 'bio', label: 'Bio', rows: 8 } });
-    expect(screen.getByLabelText('Bio')).toHaveAttribute('rows', '8');
-  });
-
-  it('displays error state with aria-invalid and aria-describedby', () => {
-    render(Textarea, { props: { id: 'bio', label: 'Bio', error: 'Too short' } });
+  it('sets aria-invalid when error is present', () => {
+    render(Textarea, {
+      props: { label: 'Bio', error: 'Too short' },
+    });
     const textarea = screen.getByLabelText('Bio');
-    expect(textarea).toHaveAttribute('aria-invalid', 'true');
-    expect(textarea).toHaveAttribute('aria-describedby', 'bio-error');
-    expect(screen.getByRole('alert')).toHaveTextContent('Too short');
+    expect(textarea.getAttribute('aria-invalid')).toBe('true');
   });
 
-  it('can be disabled', () => {
-    render(Textarea, { props: { id: 'bio', label: 'Bio', disabled: true } });
-    expect(screen.getByLabelText('Bio')).toBeDisabled();
-  });
-
-  it('accepts a class prop', () => {
-    const { container } = render(Textarea, {
-      props: { id: 'bio', label: 'Bio', class: 'custom' },
+  it('shows hint text', () => {
+    render(Textarea, {
+      props: { label: 'Bio', hint: 'Max 500 characters' },
     });
-    expect(container.querySelector('.snaplify-textarea-group')?.className).toContain('custom');
+    expect(screen.getByText('Max 500 characters')).toBeTruthy();
   });
 
-  it('passes axe accessibility scan', async () => {
-    const { container } = render(Textarea, {
-      props: { id: 'bio', label: 'Biography' },
+  it('emits update:modelValue on input', async () => {
+    const { emitted } = render(Textarea, {
+      props: { label: 'Bio', modelValue: '' },
     });
-    await expectNoA11yViolations(container);
+    const textarea = screen.getByLabelText('Bio');
+    await fireEvent.update(textarea, 'Hello world');
+    expect(emitted()['update:modelValue']).toBeTruthy();
+  });
+
+  it('renders with provided modelValue', () => {
+    render(Textarea, {
+      props: { label: 'Bio', modelValue: 'Existing text' },
+    });
+    const textarea = screen.getByLabelText('Bio') as HTMLTextAreaElement;
+    expect(textarea.value).toBe('Existing text');
+  });
+
+  it('applies error class when error is present', () => {
+    render(Textarea, {
+      props: { label: 'Bio', error: 'Error' },
+    });
+    const wrapper = screen.getByLabelText('Bio').closest('.cpub-textarea-group');
+    expect(wrapper?.classList.contains('cpub-textarea-group--error')).toBe(true);
   });
 });

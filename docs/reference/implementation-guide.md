@@ -1,6 +1,6 @@
 # Implementation Guide
 
-> Step-by-step guide to building and running a Snaplify-powered site.
+> Step-by-step guide to building and running a CommonPub-powered site.
 
 ---
 
@@ -19,8 +19,8 @@
 ## 2. Clone & Install
 
 ```bash
-git clone https://github.com/your-org/snaplify.git
-cd snaplify
+git clone https://github.com/your-org/commonpub.git
+cd commonpub
 pnpm install
 pnpm build
 ```
@@ -41,12 +41,12 @@ This starts PostgreSQL, Redis, and Meilisearch for local development.
 
 ## 4. Configuration
 
-Create `snaplify.config.ts` in your app root:
+Create `commonpub.config.ts` in your app root:
 
 ```typescript
-import { defineSnaplifyConfig } from '@snaplify/config';
+import { defineCommonPubConfig } from '@commonpub/config';
 
-export const { config, warnings } = defineSnaplifyConfig({
+export const { config, warnings } = defineCommonPubConfig({
   instance: {
     domain: 'hack.build',           // Your public domain
     name: 'hack.build',             // Human-readable name
@@ -88,7 +88,7 @@ export const { config, warnings } = defineSnaplifyConfig({
 
 ```bash
 # Required
-DATABASE_URL=postgresql://user:pass@localhost:5432/snaplify
+DATABASE_URL=postgresql://user:pass@localhost:5432/commonpub
 AUTH_SECRET=your-random-secret-at-least-32-chars
 
 # Optional
@@ -114,9 +114,9 @@ NODE_ENV=production
 Run Drizzle migrations:
 
 ```bash
-pnpm --filter @snaplify/schema db:push    # Apply schema to database
+pnpm --filter @commonpub/schema db:push    # Apply schema to database
 # or
-pnpm --filter @snaplify/schema db:migrate  # Run migration files
+pnpm --filter @commonpub/schema db:migrate  # Run migration files
 ```
 
 The schema creates all 41 tables and 24 enums.
@@ -283,7 +283,7 @@ See [Federation Guide](./guides/federation.md) for full details.
 Override any of the 142 CSS tokens via the admin panel or programmatically:
 
 ```typescript
-import { applyThemeToElement, validateTokenOverrides } from '@snaplify/ui';
+import { applyThemeToElement, validateTokenOverrides } from '@commonpub/ui';
 
 applyThemeToElement(document.documentElement, 'base', {
   'color-primary': '#ff6600',
@@ -316,7 +316,7 @@ All admin actions create audit log entries with actor, action, target, and metad
 ### Docker
 
 ```bash
-docker build -f deploy/Dockerfile -t snaplify .
+docker build -f deploy/Dockerfile -t commonpub .
 docker compose -f deploy/docker-compose.yml up -d
 ```
 
@@ -336,10 +336,10 @@ Use the Docker image with environment variables configured in the App Platform d
 ### Scaffolding New Instances
 
 ```bash
-npx create-snaplify my-community
+npx create-commonpub my-community
 ```
 
-The Rust CLI scaffolds a new Snaplify instance with config file, Docker compose, and deployment templates.
+The Rust CLI scaffolds a new CommonPub instance with config file, Docker compose, and deployment templates.
 
 See [Deployment Guide](../deployment.md) for full production setup.
 

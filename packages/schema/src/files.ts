@@ -1,7 +1,7 @@
 import { pgTable, uuid, varchar, text, timestamp, integer } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
-import { users } from './auth';
-import { filePurposeEnum } from './enums';
+import { users } from './auth.js';
+import { filePurposeEnum } from './enums.js';
 
 export const files = pgTable('files', {
   id: uuid('id').defaultRandom().primaryKey(),

@@ -13,7 +13,7 @@ Phases 0–10 are complete (869 tests, all builds green). Phase 11 delivers the 
 - `playwright.config.ts` — configured for `apps/reference/e2e/` — no tests exist
 - `apps/reference/svelte.config.js` — adapter-node configured
 - `tools/worker/` — AP delivery monitoring utilities (complete)
-- `tools/create-snaplify/` — **empty directory** (deferred from earlier phases)
+- `tools/create-commonpub/` — **empty directory** (deferred from earlier phases)
 - `.env.example` — env var template
 
 **What's missing:**
@@ -23,7 +23,7 @@ Phases 0–10 are complete (869 tests, all builds green). Phase 11 delivers the 
 - No `app-spec.yaml` — no DigitalOcean App Platform spec
 - No `droplet-setup.sh` — no server provisioning script
 - No E2E tests — Playwright configured but `apps/reference/e2e/` is empty
-- No `create-snaplify` CLI — Rust CLI not started
+- No `create-commonpub` CLI — Rust CLI not started
 - CI/CD has no build step, no Docker image push, no deploy trigger
 - `.env.example` missing `FEATURE_ADMIN` flag added in Phase 10
 
@@ -39,7 +39,7 @@ Create `docs/research/cli-deployment.md` — Prior art from `create-svelte`, `cr
 
 Create `docs/adr/022-cli-deployment-architecture.md` covering:
 
-1. **CLI**: Rust binary via `clap` — interactive prompts, template from reference app, generates `snaplify.config.ts` + `.env` + Docker files
+1. **CLI**: Rust binary via `clap` — interactive prompts, template from reference app, generates `commonpub.config.ts` + `.env` + Docker files
 2. **Docker**: Multi-stage Node build — install → build → runtime (node:22-alpine); single `Dockerfile` at repo root
 3. **Production compose**: App + Postgres + Redis + Meilisearch; optional Plausible sidecar
 4. **DO App Platform**: `app-spec.yaml` for managed deployment (app + managed DB + Redis)
@@ -67,7 +67,7 @@ Create `docs/adr/022-cli-deployment-architecture.md` covering:
 - `postgres`: postgres:16-alpine with named volume, health check
 - `redis`: redis:7-alpine with named volume, health check
 - `meilisearch`: getmeili/meilisearch:v1.12 with API key
-- Network: `snaplify-net` (internal)
+- Network: `commonpub-net` (internal)
 - Optional `plausible` service (commented out)
 
 **Create** `deploy/.env.prod.example`:
@@ -98,7 +98,7 @@ Create `docs/adr/022-cli-deployment-architecture.md` covering:
 
 - Install Docker + Docker Compose
 - Install Certbot for Let's Encrypt SSL
-- Create `snaplify` system user
+- Create `commonpub` system user
 - Clone repo, copy env template
 - Set up systemd service for `docker compose up`
 - Configure Nginx reverse proxy with SSL
@@ -143,27 +143,27 @@ Create `docs/adr/022-cli-deployment-architecture.md` covering:
 - docker.yml exists with correct triggers
 - deploy.yml exists with release trigger
 
-### Step 5: `create-snaplify` Rust CLI (~18 tests)
+### Step 5: `create-commonpub` Rust CLI (~18 tests)
 
-**Create** `tools/create-snaplify/Cargo.toml`:
+**Create** `tools/create-commonpub/Cargo.toml`:
 
 - Dependencies: `clap` (CLI args), `dialoguer` (interactive prompts), `console` (colors), `indicatif` (progress bars), `toml` (config gen), `include_dir` (template embedding)
 
-**Create** `tools/create-snaplify/src/main.rs`:
+**Create** `tools/create-commonpub/src/main.rs`:
 
 - Subcommands: `new`, `init`
 - `new <name>`: Create new project directory with full scaffold
 - `init`: Initialize in current directory
 
-**Create** `tools/create-snaplify/src/scaffold.rs`:
+**Create** `tools/create-commonpub/src/scaffold.rs`:
 
 - Copy template files from embedded reference app
-- Generate `snaplify.config.ts` from user answers
+- Generate `commonpub.config.ts` from user answers
 - Generate `.env` from user answers
 - Generate `docker-compose.yml` (customized)
 - Set up `package.json` with project name
 
-**Create** `tools/create-snaplify/src/prompts.rs`:
+**Create** `tools/create-commonpub/src/prompts.rs`:
 
 - Instance name (required)
 - Instance domain (required)
@@ -173,20 +173,20 @@ Create `docs/adr/022-cli-deployment-architecture.md` covering:
 - Auth providers: email/password (default), GitHub OAuth, Google OAuth
 - Theme: base, deepwood, hackbuild, deveco (select)
 
-**Create** `tools/create-snaplify/src/template.rs`:
+**Create** `tools/create-commonpub/src/template.rs`:
 
 - Template file processing (variable substitution)
 - File tree generation from embedded assets
 
-**Create** `tools/create-snaplify/templates/`:
+**Create** `tools/create-commonpub/templates/`:
 
 - Stripped-down reference app template files
-- `snaplify.config.ts.tmpl` — config template with placeholders
+- `commonpub.config.ts.tmpl` — config template with placeholders
 - `.env.tmpl` — env template with placeholders
 - `docker-compose.yml.tmpl` — compose template
 - `package.json.tmpl` — package.json with project name
 
-**Tests** `tools/create-snaplify/tests/`:
+**Tests** `tools/create-commonpub/tests/`:
 
 - `scaffold.rs`: Template variable substitution works
 - `prompts.rs`: Default values are correct
@@ -273,12 +273,12 @@ Steps 1-6 can all parallelize. Step 7 is final cleanup.
 | `.github/workflows/ci.yml`              | Modify | Add build step            |
 | `.github/workflows/docker.yml`          | Create | Docker image build + push |
 | `.github/workflows/deploy.yml`          | Create | Release deployment        |
-| `tools/create-snaplify/Cargo.toml`      | Create | Rust CLI project          |
-| `tools/create-snaplify/src/main.rs`     | Create | CLI entry point           |
-| `tools/create-snaplify/src/scaffold.rs` | Create | Project scaffolding       |
-| `tools/create-snaplify/src/prompts.rs`  | Create | Interactive prompts       |
-| `tools/create-snaplify/src/template.rs` | Create | Template processing       |
-| `tools/create-snaplify/templates/`      | Create | Scaffold templates        |
+| `tools/create-commonpub/Cargo.toml`      | Create | Rust CLI project          |
+| `tools/create-commonpub/src/main.rs`     | Create | CLI entry point           |
+| `tools/create-commonpub/src/scaffold.rs` | Create | Project scaffolding       |
+| `tools/create-commonpub/src/prompts.rs`  | Create | Interactive prompts       |
+| `tools/create-commonpub/src/template.rs` | Create | Template processing       |
+| `tools/create-commonpub/templates/`      | Create | Scaffold templates        |
 | `apps/reference/e2e/*.spec.ts`          | Create | E2E test suites           |
 | `.env.example`                          | Modify | Add missing feature flags |
 | `docs/deployment.md`                    | Create | Deployment guide          |
@@ -321,11 +321,11 @@ Note: Rust tests run via `cargo test`, separate from `pnpm test`. E2E tests run 
 
 1. `pnpm build` — all packages compile
 2. `pnpm test` — ~908 unit tests green
-3. `docker build -t snaplify .` — image builds successfully
+3. `docker build -t commonpub .` — image builds successfully
 4. `docker compose -f deploy/docker-compose.prod.yml up` — all services healthy
-5. `cargo test` in `tools/create-snaplify/` — 18 Rust tests green
-6. `cargo build --release` in `tools/create-snaplify/` — binary compiles
-7. `./create-snaplify new test-instance` — generates valid project scaffold
+5. `cargo test` in `tools/create-commonpub/` — 18 Rust tests green
+6. `cargo build --release` in `tools/create-commonpub/` — binary compiles
+7. `./create-commonpub new test-instance` — generates valid project scaffold
 8. Generated project: `pnpm install && pnpm build` passes
 9. `pnpm test:e2e` — 12 Playwright tests pass (auth, content, theme, admin)
 10. CI workflow includes build step

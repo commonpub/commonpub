@@ -2,18 +2,18 @@ import { describe, it, expect } from 'vitest';
 import { Editor } from '@tiptap/core';
 import { Document } from '@tiptap/extension-document';
 import { Text } from '@tiptap/extension-text';
-import { SnaplifyText } from '../../extensions/text';
-import { SnaplifyImage } from '../../extensions/image';
+import { CommonPubText } from '../../extensions/text';
+import { CommonPubImage } from '../../extensions/image';
 
 function createEditor(content?: string): Editor {
   return new Editor({
-    extensions: [Document, Text, SnaplifyText, SnaplifyImage],
+    extensions: [Document, Text, CommonPubText, CommonPubImage],
     content: content ?? '<p>Text</p>',
     element: document.createElement('div'),
   });
 }
 
-describe('SnaplifyImage Extension', () => {
+describe('CommonPubImage Extension', () => {
   it('parses image HTML', () => {
     const editor = createEditor('<img src="https://example.com/img.png" alt="Test" />');
     const json = editor.getJSON();

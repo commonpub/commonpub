@@ -1,4 +1,4 @@
-import type { BlockDefinition, BlockTuple } from './types';
+import type { BlockDefinition, BlockTuple } from './types.js';
 import {
   textContentSchema,
   headingContentSchema,
@@ -6,7 +6,7 @@ import {
   imageContentSchema,
   quoteContentSchema,
   calloutContentSchema,
-} from './schemas';
+} from './schemas.js';
 
 const registry = new Map<string, BlockDefinition>();
 

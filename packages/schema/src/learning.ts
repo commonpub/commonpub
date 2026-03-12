@@ -10,8 +10,8 @@ import {
   numeric,
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
-import { users } from './auth';
-import { contentStatusEnum, difficultyEnum, lessonTypeEnum } from './enums';
+import { users } from './auth.js';
+import { contentStatusEnum, difficultyEnum, lessonTypeEnum } from './enums.js';
 
 export const learningPaths = pgTable('learning_paths', {
   id: uuid('id').defaultRandom().primaryKey(),

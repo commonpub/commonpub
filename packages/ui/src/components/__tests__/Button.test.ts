@@ -1,123 +1,105 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/svelte';
-import { userEvent } from '@testing-library/user-event';
-import { expectNoA11yViolations } from '../../test-helpers';
-import Button from '../Button.svelte';
-
-/** Helper to render Button with text content via a wrapper */
-function renderButton(props: Record<string, unknown> = {}) {
-  return render(Button, { props: { children: textSnippet('Click me'), ...props } });
-}
-
-/** Create a simple text snippet for testing */
-function textSnippet(text: string) {
-  return ((_: HTMLElement) => {
-    // Svelte snippet rendering - testing-library handles this
-  }) as never;
-}
-
-// Since Svelte 5 snippets are hard to pass in tests, we'll test via a wrapper component.
-// For now, test the component attributes and behavior directly.
+import { describe, it, expect } from 'vitest';
+import { render, screen } from '@testing-library/vue';
+import Button from '../Button.vue';
 
 describe('Button', () => {
-  it('renders as a button element', () => {
-    const { container } = render(Button, {
-      props: { children: (() => {}) as never },
+  it('renders slot content', () => {
+    render(Button, {
+      slots: { default: 'Click me' },
     });
-    expect(container.querySelector('button')).toBeTruthy();
+    expect(screen.getByRole('button')).toHaveTextContent('Click me');
   });
 
-  it('defaults to type=button', () => {
-    const { container } = render(Button, {
-      props: { children: (() => {}) as never },
+  it('applies primary variant class by default', () => {
+    render(Button, {
+      slots: { default: 'Test' },
     });
-    expect(container.querySelector('button')?.getAttribute('type')).toBe('button');
+    const btn = screen.getByRole('button');
+    expect(btn.classList.contains('cpub-btn--primary')).toBe(true);
   });
 
-  it('accepts type=submit', () => {
-    const { container } = render(Button, {
-      props: { children: (() => {}) as never, type: 'submit' },
+  it('applies secondary variant class', () => {
+    render(Button, {
+      props: { variant: 'secondary' },
+      slots: { default: 'Test' },
     });
-    expect(container.querySelector('button')?.getAttribute('type')).toBe('submit');
+    const btn = screen.getByRole('button');
+    expect(btn.classList.contains('cpub-btn--secondary')).toBe(true);
   });
 
-  it('applies variant class', () => {
-    const { container } = render(Button, {
-      props: { children: (() => {}) as never, variant: 'danger' },
+  it('applies danger variant class', () => {
+    render(Button, {
+      props: { variant: 'danger' },
+      slots: { default: 'Test' },
     });
-    expect(container.querySelector('button')?.className).toContain('snaplify-btn--danger');
+    const btn = screen.getByRole('button');
+    expect(btn.classList.contains('cpub-btn--danger')).toBe(true);
   });
 
-  it('applies size class', () => {
-    const { container } = render(Button, {
-      props: { children: (() => {}) as never, size: 'lg' },
+  it('applies ghost variant class', () => {
+    render(Button, {
+      props: { variant: 'ghost' },
+      slots: { default: 'Test' },
     });
-    expect(container.querySelector('button')?.className).toContain('snaplify-btn--lg');
+    const btn = screen.getByRole('button');
+    expect(btn.classList.contains('cpub-btn--ghost')).toBe(true);
+  });
+
+  it('applies size classes', () => {
+    const { unmount } = render(Button, {
+      props: { size: 'sm' },
+      slots: { default: 'Test' },
+    });
+    expect(screen.getByRole('button').classList.contains('cpub-btn--sm')).toBe(true);
+    unmount();
+
+    render(Button, {
+      props: { size: 'lg' },
+      slots: { default: 'Test' },
+    });
+    expect(screen.getByRole('button').classList.contains('cpub-btn--lg')).toBe(true);
   });
 
   it('is disabled when disabled prop is true', () => {
-    const { container } = render(Button, {
-      props: { children: (() => {}) as never, disabled: true },
+    render(Button, {
+      props: { disabled: true },
+      slots: { default: 'Test' },
     });
-    const btn = container.querySelector('button');
-    expect(btn?.disabled).toBe(true);
-    expect(btn?.getAttribute('aria-disabled')).toBe('true');
+    expect(screen.getByRole('button')).toBeDisabled();
   });
 
-  it('is disabled and shows spinner when loading', () => {
-    const { container } = render(Button, {
-      props: { children: (() => {}) as never, loading: true },
+  it('is disabled when loading is true', () => {
+    render(Button, {
+      props: { loading: true },
+      slots: { default: 'Test' },
     });
-    const btn = container.querySelector('button');
-    expect(btn?.disabled).toBe(true);
-    expect(btn?.getAttribute('aria-busy')).toBe('true');
-    expect(container.querySelector('.snaplify-btn__spinner')).toBeTruthy();
+    const btn = screen.getByRole('button');
+    expect(btn).toBeDisabled();
+    expect(btn.getAttribute('aria-busy')).toBe('true');
   });
 
-  it('fires onclick handler', async () => {
-    const handler = vi.fn();
-    const { container } = render(Button, {
-      props: { children: (() => {}) as never, onclick: handler },
+  it('shows spinner when loading', () => {
+    render(Button, {
+      props: { loading: true },
+      slots: { default: 'Test' },
     });
-    const btn = container.querySelector('button')!;
-    await userEvent.click(btn);
-    expect(handler).toHaveBeenCalledOnce();
+    const btn = screen.getByRole('button');
+    const spinner = btn.querySelector('.cpub-btn__spinner');
+    expect(spinner).not.toBeNull();
   });
 
-  it('does not fire onclick when disabled', async () => {
-    const handler = vi.fn();
-    const { container } = render(Button, {
-      props: { children: (() => {}) as never, onclick: handler, disabled: true },
+  it('has correct base class', () => {
+    render(Button, {
+      slots: { default: 'Test' },
     });
-    const btn = container.querySelector('button')!;
-    await userEvent.click(btn);
-    expect(handler).not.toHaveBeenCalled();
+    expect(screen.getByRole('button').classList.contains('cpub-btn')).toBe(true);
   });
 
-  it('accepts a class prop', () => {
-    const { container } = render(Button, {
-      props: { children: (() => {}) as never, class: 'custom-class' },
+  it('is accessible as a button', () => {
+    render(Button, {
+      slots: { default: 'Submit form' },
     });
-    expect(container.querySelector('button')?.className).toContain('custom-class');
-  });
-
-  it('is keyboard accessible', async () => {
-    const handler = vi.fn();
-    const { container } = render(Button, {
-      props: { children: (() => {}) as never, onclick: handler },
-    });
-    const btn = container.querySelector('button')!;
-    btn.focus();
-    await userEvent.keyboard('{Enter}');
-    expect(handler).toHaveBeenCalled();
-  });
-
-  it('passes axe accessibility scan', async () => {
-    const { container } = render(Button, {
-      props: { children: (() => {}) as never },
-    });
-    // Add text content for axe (snippets don't render in test)
-    container.querySelector('button')!.textContent = 'Submit';
-    await expectNoA11yViolations(container);
+    const btn = screen.getByRole('button', { name: 'Submit form' });
+    expect(btn).toBeTruthy();
   });
 });

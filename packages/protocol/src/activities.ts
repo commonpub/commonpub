@@ -13,7 +13,7 @@ import {
   type APArticle,
   type APNote,
   type APTombstone,
-} from './activityTypes';
+} from './activityTypes.js';
 
 function activityId(domain: string): string {
   return `https://${domain}/activities/${crypto.randomUUID()}`;

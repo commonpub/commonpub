@@ -1,10 +1,10 @@
-# Launch Checklist — Snaplify v1
+# Launch Checklist — CommonPub v1
 
 ## Build & Tests
 
 - [x] `pnpm build` — all 13 packages + apps compile
 - [x] `pnpm test` — 902 unit tests green (13 packages)
-- [ ] `cargo test` in `tools/create-snaplify/` — 17 tests green
+- [ ] `cargo test` in `tools/create-commonpub/` — 17 tests green
 - [ ] `pnpm exec playwright test` — E2E tests pass (requires running services)
 - [ ] `pnpm audit --audit-level=high` — 2 high vulnerabilities in transitive deps (hono via prisma/drizzle — not directly used)
 

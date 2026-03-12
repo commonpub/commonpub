@@ -4,7 +4,7 @@
 
 ## Question
 
-How do modern Svelte 5 component libraries (Melt UI, Bits UI, Skeleton) build and distribute headless components? What tooling and patterns should @snaplify/ui adopt?
+How do modern Svelte 5 component libraries (Melt UI, Bits UI, Skeleton) build and distribute headless components? What tooling and patterns should @commonpub/ui adopt?
 
 ## Findings
 
@@ -47,7 +47,7 @@ const { trigger, content, open } = createPopover();
 </Popover.Root>
 ```
 
-### Decision for @snaplify/ui
+### Decision for @commonpub/ui
 
 **Component-based approach** (Bits UI style) because:
 

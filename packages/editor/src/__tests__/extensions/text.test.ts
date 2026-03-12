@@ -2,17 +2,17 @@ import { describe, it, expect } from 'vitest';
 import { Editor } from '@tiptap/core';
 import { Document } from '@tiptap/extension-document';
 import { Text } from '@tiptap/extension-text';
-import { SnaplifyText } from '../../extensions/text';
+import { CommonPubText } from '../../extensions/text';
 
 function createEditor(content?: string): Editor {
   return new Editor({
-    extensions: [Document, Text, SnaplifyText],
+    extensions: [Document, Text, CommonPubText],
     content: content ?? '<p>Hello</p>',
     element: document.createElement('div'),
   });
 }
 
-describe('SnaplifyText Extension', () => {
+describe('CommonPubText Extension', () => {
   it('creates a paragraph node', () => {
     const editor = createEditor();
     expect(editor.getHTML()).toContain('<p>Hello</p>');

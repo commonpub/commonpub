@@ -1,8 +1,8 @@
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { username } from 'better-auth/plugins';
-import * as schema from '@snaplify/schema';
-import type { CreateAuthOptions } from './types';
+import * as schema from '@commonpub/schema';
+import type { CreateAuthOptions } from './types.js';
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export function createAuth({ config, db, secret, baseURL }: CreateAuthOptions) {

@@ -1,5 +1,5 @@
 {
-  "name": "@snaplify/auth",
+  "name": "@commonpub/auth",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -20,22 +20,13 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@snaplify/schema": "workspace:*",
-    "@snaplify/config": "workspace:*",
-    "@snaplify/snaplify": "workspace:*",
+    "@commonpub/schema": "workspace:*",
+    "@commonpub/config": "workspace:*",
+    "@commonpub/protocol": "workspace:*",
     "better-auth": "^1.2.0",
     "drizzle-orm": "^0.41.0"
   },
-  "peerDependencies": {
-    "@sveltejs/kit": "^2.0.0"
-  },
-  "peerDependenciesMeta": {
-    "@sveltejs/kit": {
-      "optional": true
-    }
-  },
   "devDependencies": {
-    "@sveltejs/kit": "^2.0.0",
     "typescript": "^5.7.0",
     "vitest": "^3.0.0"
   }

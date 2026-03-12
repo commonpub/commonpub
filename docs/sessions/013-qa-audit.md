@@ -4,7 +4,7 @@
 
 ## What Was Done
 
-Full quality audit of the snaplify monorepo before v1.0.0 release. Verified build, tests, types, lint, formatting, and security across all 13 packages.
+Full quality audit of the commonpub monorepo before v1.0.0 release. Verified build, tests, types, lint, formatting, and security across all 13 packages.
 
 ### Bugs Fixed
 

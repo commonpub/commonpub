@@ -5,7 +5,7 @@
 - **GSAP 3.x** is free for most use cases under the standard license
 - **ScrollTrigger** is a free GSAP plugin (not a Club plugin)
 - **GSAP "No Charge" license** allows use in open-source projects that are not tools/templates competing with GSAP
-- Snaplify qualifies: it's a community platform, not an animation tool
+- CommonPub qualifies: it's a community platform, not an animation tool
 - **Club GreenSock plugins** (MorphSVG, SplitText, DrawSVG) require paid license — avoid these
 - GSAP 3.12+ is ~50KB gzipped (core + ScrollTrigger)
 

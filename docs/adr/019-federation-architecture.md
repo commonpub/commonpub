@@ -30,7 +30,7 @@ Defer: Move, Add, Remove, Block.
 
 ### 4. Content Mapping
 
-| Snaplify                   | AP Type  | Notes                |
+| CommonPub                   | AP Type  | Notes                |
 | -------------------------- | -------- | -------------------- |
 | article/blog/guide/project | Article  | Body as HTML         |
 | comment                    | Note     | With inReplyTo       |

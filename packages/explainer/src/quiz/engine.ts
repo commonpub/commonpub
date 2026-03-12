@@ -1,4 +1,4 @@
-import type { QuizQuestion, AnswerResult, QuizResult } from '../types';
+import type { QuizQuestion, AnswerResult, QuizResult } from '../types.js';
 
 /** Check a single answer against a question */
 export function checkAnswer(question: QuizQuestion, selectedOptionId: string): AnswerResult {

@@ -1,5 +1,5 @@
-import type { SearchAdapter, SearchResult, MeiliSearchClient } from './types';
-import type { SearchDocument } from '../types';
+import type { SearchAdapter, SearchResult, MeiliSearchClient } from './types.js';
+import type { SearchDocument } from '../types.js';
 
 /**
  * Meilisearch search adapter.

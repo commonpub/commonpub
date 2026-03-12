@@ -1,12 +1,12 @@
-# Contributing to Snaplify
+# Contributing to CommonPub
 
 Thank you for your interest in contributing! See the full guide at [docs/contributing.md](docs/contributing.md).
 
 ## Quick Start
 
 ```bash
-git clone https://github.com/snaplify/snaplify.git
-cd snaplify
+git clone https://github.com/commonpub/commonpub.git
+cd commonpub
 pnpm install
 docker compose -f deploy/docker-compose.yml up -d
 cp .env.example .env

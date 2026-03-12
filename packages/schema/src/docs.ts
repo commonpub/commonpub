@@ -1,6 +1,6 @@
 import { pgTable, uuid, varchar, text, timestamp, integer, jsonb } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
-import { users } from './auth';
+import { users } from './auth.js';
 
 export const docsSites = pgTable('docs_sites', {
   id: uuid('id').defaultRandom().primaryKey(),

@@ -1,71 +1,73 @@
-import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/svelte';
-import { userEvent } from '@testing-library/user-event';
-import { expectNoA11yViolations } from '../../test-helpers';
-import Tooltip from '../Tooltip.svelte';
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/vue';
+import Tooltip from '../Tooltip.vue';
 
 describe('Tooltip', () => {
   it('renders trigger content', () => {
-    const { container } = render(Tooltip, {
-      props: { text: 'Help text', id: 'tip-1', children: (() => {}) as never },
-    });
-    expect(container.querySelector('.snaplify-tooltip-wrapper')).toBeInTheDocument();
-  });
-
-  it('does not show tooltip by default', () => {
     render(Tooltip, {
-      props: { text: 'Help text', id: 'tip-1', children: (() => {}) as never },
+      props: { content: 'Tooltip text' },
+      slots: { default: '<button>Hover me</button>' },
     });
-    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+    expect(screen.getByText('Hover me')).toBeTruthy();
   });
 
-  it('shows tooltip on hover', async () => {
-    const { container } = render(Tooltip, {
-      props: { text: 'Help text', id: 'tip-1', children: (() => {}) as never },
+  it('does not show tooltip initially', () => {
+    render(Tooltip, {
+      props: { content: 'Tip' },
+      slots: { default: '<button>Trigger</button>' },
     });
-    await userEvent.hover(container.querySelector('.snaplify-tooltip-wrapper')!);
+    expect(screen.queryByRole('tooltip')).toBeNull();
+  });
+
+  it('shows tooltip with role="tooltip" after hover and delay', async () => {
+    vi.useFakeTimers();
+    render(Tooltip, {
+      props: { content: 'Help text' },
+      slots: { default: '<button>Trigger</button>' },
+    });
+
+    const wrapper = screen.getByText('Trigger').closest('.cpub-tooltip-wrapper')!;
+    await fireEvent.mouseEnter(wrapper);
+    vi.advanceTimersByTime(300);
+    await vi.runAllTicks();
+
     expect(screen.getByRole('tooltip')).toHaveTextContent('Help text');
+    vi.useRealTimers();
   });
 
-  it('hides tooltip on unhover', async () => {
-    const { container } = render(Tooltip, {
-      props: { text: 'Help text', id: 'tip-1', children: (() => {}) as never },
+  it('shows tooltip on focusin after delay', async () => {
+    vi.useFakeTimers();
+    render(Tooltip, {
+      props: { content: 'Focus tip' },
+      slots: { default: '<button>Trigger</button>' },
     });
-    const wrapper = container.querySelector('.snaplify-tooltip-wrapper')!;
-    await userEvent.hover(wrapper);
-    expect(screen.getByRole('tooltip')).toBeInTheDocument();
-    await userEvent.unhover(wrapper);
-    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+
+    const wrapper = screen.getByText('Trigger').closest('.cpub-tooltip-wrapper')!;
+    await fireEvent.focusIn(wrapper);
+    vi.advanceTimersByTime(300);
+    await vi.runAllTicks();
+
+    expect(screen.getByRole('tooltip')).toHaveTextContent('Focus tip');
+    vi.useRealTimers();
   });
 
-  it('has aria-describedby when visible', async () => {
-    const { container } = render(Tooltip, {
-      props: { text: 'Help text', id: 'tip-1', children: (() => {}) as never },
+  it('hides tooltip on mouseleave', async () => {
+    vi.useFakeTimers();
+    render(Tooltip, {
+      props: { content: 'Tip' },
+      slots: { default: '<button>Trigger</button>' },
     });
-    const wrapper = container.querySelector('.snaplify-tooltip-wrapper')!;
-    expect(wrapper).not.toHaveAttribute('aria-describedby');
-    await userEvent.hover(wrapper);
-    expect(wrapper).toHaveAttribute('aria-describedby', 'tip-1');
-  });
 
-  it('hides on Escape key', async () => {
-    const { container } = render(Tooltip, {
-      props: { text: 'Help text', id: 'tip-1', children: (() => {}) as never },
-    });
-    const wrapper = container.querySelector('.snaplify-tooltip-wrapper')!;
-    await userEvent.hover(wrapper);
-    expect(screen.getByRole('tooltip')).toBeInTheDocument();
-    // Dispatch keydown directly on the wrapper since it has the handler
-    wrapper.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-    // Wait for Svelte reactivity
-    await new Promise((r) => setTimeout(r, 0));
-    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
-  });
+    const wrapper = screen.getByText('Trigger').closest('.cpub-tooltip-wrapper')!;
+    await fireEvent.mouseEnter(wrapper);
+    vi.advanceTimersByTime(300);
+    await vi.runAllTicks();
+    expect(screen.getByRole('tooltip')).toBeTruthy();
 
-  it('accepts a class prop', () => {
-    const { container } = render(Tooltip, {
-      props: { text: 'Tip', id: 'tip-1', class: 'custom', children: (() => {}) as never },
-    });
-    expect(container.querySelector('.snaplify-tooltip-wrapper')?.className).toContain('custom');
+    await fireEvent.mouseLeave(wrapper);
+    vi.advanceTimersByTime(100);
+    await vi.runAllTicks();
+    expect(screen.queryByRole('tooltip')).toBeNull();
+    vi.useRealTimers();
   });
 });

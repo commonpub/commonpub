@@ -1,6 +1,6 @@
 import { Node } from '@tiptap/core';
 
-export const SnaplifyText = Node.create({
+export const CommonPubText = Node.create({
   name: 'paragraph',
   group: 'block',
   content: 'inline*',

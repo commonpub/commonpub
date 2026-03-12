@@ -38,7 +38,7 @@
 - **Write tests first** (TDD)
 - **One assertion per test** when practical
 - **Descriptive test names**: "should reject invalid email format"
-- **Use test factories** from `@snaplify/test-utils`
+- **Use test factories** from `@commonpub/test-utils`
 - **Accessibility tests** on all interactive components
 
 ## Git

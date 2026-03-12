@@ -5,13 +5,13 @@ services:
     ports:
       - '5432:5432'
     environment:
-      POSTGRES_USER: snaplify
-      POSTGRES_PASSWORD: snaplify_dev
-      POSTGRES_DB: snaplify
+      POSTGRES_USER: commonpub
+      POSTGRES_PASSWORD: commonpub_dev
+      POSTGRES_DB: commonpub
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U snaplify']
+      test: ['CMD-SHELL', 'pg_isready -U commonpub']
       interval: 5s
       timeout: 5s
       retries: 5
@@ -36,7 +36,7 @@ services:
       - '7700:7700'
     environment:
       MEILI_ENV: development
-      MEILI_MASTER_KEY: snaplify_dev_key
+      MEILI_MASTER_KEY: commonpub_dev_key
     volumes:
       - meili_data:/meili_data
     healthcheck:

@@ -1,8 +1,8 @@
-# @snaplify/schema
+# @commonpub/schema
 
-> Drizzle ORM tables, PostgreSQL enums, and Zod validators for the entire Snaplify data model.
+> Drizzle ORM tables, PostgreSQL enums, and Zod validators for the entire CommonPub data model.
 
-**npm**: `@snaplify/schema`
+**npm**: `@commonpub/schema`
 **Source**: `packages/schema/src/`
 **Entry**: `packages/schema/src/index.ts` (re-exports all sub-modules)
 
@@ -10,7 +10,7 @@
 
 ## Overview
 
-The schema package is the foundation of Snaplify — every other package and app depends on it. It defines:
+The schema package is the foundation of CommonPub — every other package and app depends on it. It defines:
 
 - **41 database tables** across 13 sub-modules
 - **24 PostgreSQL enums** for type-safe domain values
@@ -223,7 +223,7 @@ Links local users to remote AP actor identities (for SSO).
 
 #### `oauthClients`
 
-Registered OAuth2 clients (other Snaplify instances).
+Registered OAuth2 clients (other CommonPub instances).
 
 | Column | Type | Constraints |
 |--------|------|-------------|

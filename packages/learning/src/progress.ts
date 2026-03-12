@@ -1,4 +1,4 @@
-import type { LearningModule, Lesson, LessonStatus } from './types';
+import type { LearningModule, Lesson, LessonStatus } from './types.js';
 
 /** Calculate path progress as a percentage (0-100, 2 decimal places) */
 export function calculatePathProgress(totalLessons: number, completedCount: number): number {

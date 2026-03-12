@@ -1,24 +1,24 @@
-# @snaplify/config
+# @commonpub/config
 
-Configuration factory and validation for Snaplify instances.
+Configuration factory and validation for CommonPub instances.
 
 ## Overview
 
-Every Snaplify instance has a `snaplify.config.ts` file that defines its identity, feature flags, and auth settings. `defineSnaplifyConfig()` validates configuration at startup, applies defaults, and surfaces warnings about risky combinations.
+Every CommonPub instance has a `commonpub.config.ts` file that defines its identity, feature flags, and auth settings. `defineCommonPubConfig()` validates configuration at startup, applies defaults, and surfaces warnings about risky combinations.
 
 ## Installation
 
 ```bash
-pnpm add @snaplify/config
+pnpm add @commonpub/config
 ```
 
 ## Usage
 
 ```ts
-// snaplify.config.ts
-import { defineSnaplifyConfig } from '@snaplify/config';
+// commonpub.config.ts
+import { defineCommonPubConfig } from '@commonpub/config';
 
-const { config, warnings } = defineSnaplifyConfig({
+const { config, warnings } = defineCommonPubConfig({
   instance: {
     domain: 'hack.build',
     name: 'hack.build',
@@ -80,7 +80,7 @@ All features are gated behind flags. No feature code runs unless its flag is `tr
 
 ## Warnings
 
-`defineSnaplifyConfig()` returns warnings for risky configurations:
+`defineCommonPubConfig()` returns warnings for risky configurations:
 
 - **Shared auth DB**: warns about database-level coupling between instances
 - **Federation without trusted instances**: AP Actor SSO requires at least one
@@ -90,10 +90,10 @@ All features are gated behind flags. No feature code runs unless its flag is `tr
 
 ```ts
 // Factory
-export { defineSnaplifyConfig } from './config';
+export { defineCommonPubConfig } from './config';
 
 // Types
-export type { SnaplifyConfig, FeatureFlags, AuthConfig, InstanceConfig } from './types';
+export type { CommonPubConfig, FeatureFlags, AuthConfig, InstanceConfig } from './types';
 
 // Zod schemas (for custom validation)
 export { configSchema, featureFlagsSchema, authConfigSchema, instanceConfigSchema } from './schema';

@@ -1,51 +1,65 @@
-import type { AuthInstance } from './createAuth';
-import type { AuthUser, AuthSession } from './types';
+import type { AuthInstance } from './createAuth.js';
+import type { AuthUser, AuthSession } from './types.js';
 
 export interface AuthLocals {
   user: AuthUser | null;
   session: AuthSession | null;
 }
 
-export interface CreateAuthHookOptions {
+export interface CreateAuthMiddlewareOptions {
   auth: AuthInstance;
   authPathPrefix?: string;
 }
 
+export interface AuthMiddleware {
+  /**
+   * Handle auth API routes. Returns a Response if the path matches
+   * the auth prefix, or null if the path is not an auth route.
+   */
+  handleAuthRoute(request: Request, pathname: string): Promise<Response | null>;
+
+  /**
+   * Resolve the current session from request headers.
+   * Returns the user and session, or nulls if not authenticated.
+   */
+  resolveSession(headers: Headers): Promise<AuthLocals>;
+}
+
 /**
- * Creates a SvelteKit-compatible handle hook that resolves sessions
- * and delegates auth API routes to Better Auth's handler.
+ * Creates a framework-agnostic auth middleware.
+ * Works with any server framework (Nuxt/Nitro, Express, Hono, etc.)
  */
-export function createAuthHook({
+export function createAuthMiddleware({
   auth,
   authPathPrefix = '/api/auth',
-}: CreateAuthHookOptions): (input: {
-  event: { request: Request; url: URL; locals: Record<string, unknown> };
-  resolve: (event: unknown) => Promise<Response>;
-}) => Promise<Response> {
-  return async ({ event, resolve }) => {
-    // Delegate auth API routes to Better Auth's handler
-    if (event.url.pathname.startsWith(authPathPrefix)) {
-      return auth.handler(event.request);
-    }
-
-    // Resolve session for all other routes
-    try {
-      const session = await auth.api.getSession({
-        headers: event.request.headers,
-      });
-
-      if (session) {
-        event.locals.user = session.user as unknown as AuthUser;
-        event.locals.session = session.session as unknown as AuthSession;
-      } else {
-        event.locals.user = null;
-        event.locals.session = null;
+}: CreateAuthMiddlewareOptions): AuthMiddleware {
+  return {
+    async handleAuthRoute(request: Request, pathname: string): Promise<Response | null> {
+      if (pathname.startsWith(authPathPrefix)) {
+        return auth.handler(request);
       }
-    } catch {
-      event.locals.user = null;
-      event.locals.session = null;
-    }
+      return null;
+    },
 
-    return resolve(event);
+    async resolveSession(headers: Headers): Promise<AuthLocals> {
+      try {
+        const session = await auth.api.getSession({ headers });
+
+        if (session) {
+          return {
+            user: session.user as unknown as AuthUser,
+            session: session.session as unknown as AuthSession,
+          };
+        }
+      } catch {
+        // Session resolution failed — treat as unauthenticated
+      }
+
+      return { user: null, session: null };
+    },
   };
 }
+
+// Keep backward compatibility export
+/** @deprecated Use createAuthMiddleware instead */
+export const createAuthHook = createAuthMiddleware;

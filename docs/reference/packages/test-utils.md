@@ -1,8 +1,8 @@
-# @snaplify/test-utils
+# @commonpub/test-utils
 
 > Shared test helpers: factories for test data and mock configuration.
 
-**npm**: `@snaplify/test-utils`
+**npm**: `@commonpub/test-utils`
 **Source**: `packages/test-utils/src/`
 **Entry**: `packages/test-utils/src/index.ts`
 
@@ -17,7 +17,7 @@
 | `createTestFederatedAccount` | Function | Factory for test federated account objects |
 | `createTestOAuthClient` | Function | Factory for test OAuth client objects |
 | `resetFactoryCounter` | Function | Reset auto-incrementing factory counters |
-| `createTestConfig` | Function | Create a test SnaplifyConfig with all features enabled |
+| `createTestConfig` | Function | Create a test CommonPubConfig with all features enabled |
 | `TestUser` | Type | Shape returned by `createTestUser` |
 | `TestSession` | Type | Shape returned by `createTestSession` |
 | `TestFederatedAccount` | Type | Shape returned by `createTestFederatedAccount` |
@@ -106,7 +106,7 @@ interface TestOAuthClient {
 
 Resets the auto-incrementing counter used by factories. Call in `beforeEach` or `afterEach` to get predictable IDs in tests.
 
-### `createTestConfig(overrides?: Partial<SnaplifyConfig>): SnaplifyConfig`
+### `createTestConfig(overrides?: Partial<CommonPubConfig>): CommonPubConfig`
 
 Creates a fully populated test configuration with all features enabled.
 
@@ -146,7 +146,7 @@ Creates a fully populated test configuration with all features enabled.
 
 ```typescript
 import { describe, it, expect, beforeEach } from 'vitest';
-import { createTestUser, createTestConfig, resetFactoryCounter } from '@snaplify/test-utils';
+import { createTestUser, createTestConfig, resetFactoryCounter } from '@commonpub/test-utils';
 
 describe('myModule', () => {
   beforeEach(() => {

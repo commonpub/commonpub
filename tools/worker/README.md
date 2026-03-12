@@ -1,4 +1,4 @@
-# @snaplify/worker
+# @commonpub/worker
 
 ActivityPub queue worker monitoring and utilities.
 
@@ -23,7 +23,7 @@ import {
   shouldRetry,
   getRetryDelay,
   formatActivityLog,
-} from '@snaplify/worker';
+} from '@commonpub/worker';
 
 // Aggregate delivery statistics
 const stats = calculateDeliveryStats(activities);
@@ -52,5 +52,5 @@ pnpm typecheck    # Type-check without emitting
 
 ## Dependencies
 
-- `@snaplify/schema`: Table definitions
-- `@snaplify/config`: Configuration types
+- `@commonpub/schema`: Table definitions
+- `@commonpub/config`: Configuration types

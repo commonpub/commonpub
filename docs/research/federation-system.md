@@ -110,7 +110,7 @@ const federation = createFederation<AppContext>({
 5. **Signed headers**: Must include `(request-target)`, `host`, `date`, `digest` (for POST)
 6. **Key ID format**: `https://domain/users/username#main-key` is conventional
 
-## ActivityPub Content Mapping for Snaplify
+## ActivityPub Content Mapping for CommonPub
 
 ### Article (project, article, blog, guide)
 

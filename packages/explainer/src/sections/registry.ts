@@ -1,10 +1,10 @@
-import type { ExplainerSection, ExplainerSectionType, SectionDefinition } from '../types';
+import type { ExplainerSection, ExplainerSectionType, SectionDefinition } from '../types.js';
 import {
   textSectionSchema,
   interactiveSectionSchema,
   quizSectionSchema,
   checkpointSectionSchema,
-} from '../schemas';
+} from '../schemas.js';
 
 const registry = new Map<string, SectionDefinition>();
 

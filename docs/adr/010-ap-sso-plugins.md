@@ -6,7 +6,7 @@ Accepted
 
 ## Context
 
-Snaplify instances need to authenticate users across instances (Model B: AP Actor SSO) without sharing a database. The standard approach is OAuth2 with WebFinger discovery.
+CommonPub instances need to authenticate users across instances (Model B: AP Actor SSO) without sharing a database. The standard approach is OAuth2 with WebFinger discovery.
 
 ## Decision
 

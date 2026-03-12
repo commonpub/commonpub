@@ -2,18 +2,18 @@ import { describe, it, expect } from 'vitest';
 import { Editor } from '@tiptap/core';
 import { Document } from '@tiptap/extension-document';
 import { Text } from '@tiptap/extension-text';
-import { SnaplifyText } from '../../extensions/text';
-import { SnaplifyQuote } from '../../extensions/quote';
+import { CommonPubText } from '../../extensions/text';
+import { CommonPubQuote } from '../../extensions/quote';
 
 function createEditor(content?: string): Editor {
   return new Editor({
-    extensions: [Document, Text, SnaplifyText, SnaplifyQuote],
+    extensions: [Document, Text, CommonPubText, CommonPubQuote],
     content: content ?? '<blockquote><p>Quoted text</p></blockquote>',
     element: document.createElement('div'),
   });
 }
 
-describe('SnaplifyQuote Extension', () => {
+describe('CommonPubQuote Extension', () => {
   it('parses blockquote HTML', () => {
     const editor = createEditor();
     expect(editor.getHTML()).toContain('<blockquote>');

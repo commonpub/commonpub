@@ -11,7 +11,7 @@
 - `docs/research/learning-system.md` — Prior art survey (Udemy, Coursera, freeCodeCamp, Khan Academy), enrollment UX patterns, progress calculation strategies, certificate verification approaches
 - `docs/adr/017-learning-architecture.md` — Lesson content discriminated union, quiz engine reuse, auto-certificate flow, single-page accordion editor, flat count progress, soft/hard delete strategy
 
-### @snaplify/learning Package (75 tests)
+### @commonpub/learning Package (75 tests)
 
 - **types.ts** — All learning types: LearningPath, LearningModule, Lesson, Enrollment, LessonProgressRecord, Certificate, input types, LessonContent discriminated union (article/video/quiz/project/explainer), CurriculumNode, CertificateData
 - **validators.ts** — Zod validators: updateLearningPathSchema, createModuleSchema, updateModuleSchema, updateLessonSchema, lessonContentSchema (discriminated union on type)
@@ -19,7 +19,7 @@
 - **certificate.ts** — Pure functions: generateVerificationCode (SNAP-{base36}-{hex8}), formatCertificateData, buildVerificationUrl
 - **curriculum.ts** — Pure functions: flattenLessons, countLessons, calculateEstimatedDuration, formatDuration, buildCurriculumTree, reorderItems
 - **index.ts** — Full exports of all modules
-- **package.json** — Added @snaplify/explainer, @snaplify/editor, zod deps
+- **package.json** — Added @commonpub/explainer, @commonpub/editor, zod deps
 - **tsconfig.json** — Excluded **tests** from build
 
 ### Reference App Types
@@ -67,7 +67,7 @@
 
 ## Test Results
 
-- @snaplify/learning: 75 tests (validators: 24, progress: 21, certificate: 8, curriculum: 22)
+- @commonpub/learning: 75 tests (validators: 24, progress: 21, certificate: 8, curriculum: 22)
 - All packages: build passes (12/12)
 - All packages: tests pass (586 total across all packages)
 - Typecheck: 11 pre-existing errors (zero new), 57 warnings

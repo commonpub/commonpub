@@ -42,7 +42,7 @@
 - Fixed 3 zod v4 breaking changes:
   - `z.record(z.unknown())` → `z.record(z.string(), z.unknown())` (4 files)
   - `.default({})` on object schemas → `.default(() => schema.parse({}))` (config/schema.ts)
-- **Reference app builds successfully** — `pnpm --filter @snaplify/reference build` completes
+- **Reference app builds successfully** — `pnpm --filter @commonpub/reference build` completes
 - All 27 turbo tasks pass, 0 type errors
 
 ### Part 3: OAuth Codes → Database
@@ -134,7 +134,7 @@
   - Docs site CodeMirror editor
   - Real dashboard with meaningful data
   - Proper content rendering (BlockTuples → HTML)
-  - Theme switcher using @snaplify/ui theming
+  - Theme switcher using @commonpub/ui theming
 - Docker compose verification
 - Lighthouse audit
 - Tag v1.0.0

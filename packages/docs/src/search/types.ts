@@ -1,4 +1,4 @@
-import type { SearchDocument } from '../types';
+import type { SearchDocument } from '../types.js';
 
 /** Search result returned by any adapter */
 export interface SearchResult {

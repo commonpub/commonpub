@@ -7,29 +7,22 @@ export interface ThemeDefinition {
 
 export const BUILT_IN_THEMES: ThemeDefinition[] = [
   {
+    id: 'base',
+    name: 'Light',
+    description: 'Sharp corners, offset shadows, blue accent — the CommonPub signature',
+    isDark: false,
+  },
+  {
+    id: 'dark',
+    name: 'Dark',
+    description: 'Dark surfaces with the same offset shadow aesthetic',
+    isDark: true,
+  },
+  {
     id: 'generics',
     name: 'Generics',
     description: 'Dark minimal theme with blue accent',
     isDark: true,
-  },
-  { id: 'base', name: 'Base', description: 'Clean default theme with blue accents', isDark: false },
-  {
-    id: 'deepwood',
-    name: 'Deepwood',
-    description: 'Forest greens, lime accent, nature-inspired',
-    isDark: true,
-  },
-  {
-    id: 'hackbuild',
-    name: 'hack.build',
-    description: 'Punk zine theme, paper textures, hard-edge shadows',
-    isDark: false,
-  },
-  {
-    id: 'deveco',
-    name: 'deveco.io',
-    description: 'Clean tech, teal/pink/yellow accents',
-    isDark: false,
   },
 ];
 
@@ -40,7 +33,12 @@ export function isValidThemeId(id: string): boolean {
 }
 
 export const TOKEN_NAMES: string[] = [
-  // Surface
+  // Surfaces
+  'bg',
+  'surface',
+  'surface2',
+  'surface3',
+  // Surface aliases
   'color-surface',
   'color-surface-alt',
   'color-surface-raised',
@@ -48,23 +46,52 @@ export const TOKEN_NAMES: string[] = [
   'color-surface-hover',
   'color-bg-subtle',
   // Text
+  'text',
+  'text-dim',
+  'text-faint',
   'color-text',
   'color-text-secondary',
   'color-text-muted',
   'color-text-inverse',
-  // Brand
+  // Borders
+  'border',
+  'border2',
+  'color-border',
+  'color-border-strong',
+  'color-border-focus',
+  // Accent
+  'accent',
+  'accent-bg',
+  'accent-border',
   'color-primary',
   'color-primary-hover',
   'color-primary-text',
   'color-on-primary',
-  // Accent
   'color-accent',
   'color-accent-hover',
   'color-accent-text',
   'color-on-accent',
   'color-accent-bg',
   'color-accent-border',
-  // Semantic
+  // Semantic colors
+  'green',
+  'green-bg',
+  'green-border',
+  'yellow',
+  'yellow-bg',
+  'yellow-border',
+  'red',
+  'red-bg',
+  'red-border',
+  'purple',
+  'purple-bg',
+  'purple-border',
+  'teal',
+  'teal-bg',
+  'teal-border',
+  'pink',
+  'pink-bg',
+  'pink-border',
   'color-success',
   'color-warning',
   'color-error',
@@ -73,17 +100,14 @@ export const TOKEN_NAMES: string[] = [
   'color-warning-bg',
   'color-error-bg',
   'color-info-bg',
-  // Borders
-  'color-border',
-  'color-border-strong',
-  'color-border-focus',
   // Interactive
   'color-link',
   'color-link-hover',
   // Typography
+  'font-sans',
+  'font-mono',
   'font-heading',
   'font-body',
-  'font-mono',
   // Font sizes
   'text-xs',
   'text-sm',
@@ -96,6 +120,7 @@ export const TOKEN_NAMES: string[] = [
   'text-4xl',
   'text-5xl',
   'text-6xl',
+  'text-label',
   // Font weights
   'font-weight-normal',
   'font-weight-medium',
@@ -106,6 +131,12 @@ export const TOKEN_NAMES: string[] = [
   'leading-snug',
   'leading-normal',
   'leading-relaxed',
+  // Letter spacing
+  'tracking-tight',
+  'tracking-normal',
+  'tracking-wide',
+  'tracking-wider',
+  'tracking-widest',
   // Spacing
   'space-1',
   'space-2',
@@ -119,10 +150,8 @@ export const TOKEN_NAMES: string[] = [
   'space-16',
   'space-20',
   'space-24',
-  // Borders
-  'border-width-thin',
-  'border-width-default',
-  'border-width-thick',
+  // Shape
+  'radius',
   'radius-none',
   'radius-sm',
   'radius-md',
@@ -130,11 +159,15 @@ export const TOKEN_NAMES: string[] = [
   'radius-xl',
   'radius-2xl',
   'radius-full',
+  'border-width-thin',
+  'border-width-default',
+  'border-width-thick',
   // Shadows
   'shadow-sm',
   'shadow-md',
   'shadow-lg',
   'shadow-xl',
+  'shadow-accent',
   // Transitions
   'transition-fast',
   'transition-default',

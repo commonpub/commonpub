@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>CommonPub — Logo Pack A</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #080808;
+    font-family: 'Space Mono', monospace;
+    padding: 60px 40px;
+    color: #b8b8b8;
+  }
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.035;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  .header { margin-bottom: 56px; }
+  .header .eyebrow { font-size: 9px; letter-spacing: 3px; text-transform: uppercase; color: #333; margin-bottom: 10px; }
+  .header h1 { font-size: 16px; color: #e8e8e8; font-weight: 700; letter-spacing: 2px; }
+  .header p { font-size: 10px; color: #444; margin-top: 6px; line-height: 1.8; }
+
+  .section-label {
+    font-size: 9px; letter-spacing: 3px; text-transform: uppercase; color: #333;
+    margin-bottom: 24px; padding-bottom: 12px; border-bottom: 1px dashed #181818;
+  }
+  .row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 48px;
+  }
+  .card {
+    background: #0f0f0f;
+    border: 1px dashed #1e1e1e;
+    padding: 40px 32px 28px;
+    position: relative;
+  }
+  .card::before {
+    content: attr(data-label);
+    position: absolute;
+    top: -8px; left: 20px;
+    background: #080808;
+    padding: 0 10px;
+    font-size: 8px; text-transform: uppercase; letter-spacing: 2px; color: #333;
+    font-family: 'Space Mono', monospace;
+  }
+  .card-center {
+    display: flex; align-items: center; justify-content: center;
+    padding: 32px 0 24px;
+  }
+  .sizes {
+    display: flex; gap: 20px; align-items: flex-end;
+    padding-top: 20px; border-top: 1px dashed #181818;
+  }
+  .size-item { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .size-label { font-size: 8px; color: #333; letter-spacing: 1px; }
+
+  /* Light bg section */
+  .light-row {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 60px;
+  }
+  .light-card {
+    background: #f5f2eb;
+    border: 1px dashed #ccc;
+    padding: 40px 32px 28px;
+    position: relative;
+  }
+  .light-card::before {
+    content: attr(data-label);
+    position: absolute; top: -8px; left: 20px;
+    background: #f5f2eb; padding: 0 10px;
+    font-size: 8px; text-transform: uppercase; letter-spacing: 2px; color: #bbb;
+  }
+  .light-card .card-center { display: flex; align-items: center; justify-content: center; padding: 28px 0; }
+
+  hr { border: none; border-top: 1px dashed #181818; margin: 48px 0; }
+  .footer { font-size: 8px; color: #2a2a2a; letter-spacing: 2px; text-transform: uppercase; text-align: center; padding-top: 24px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="eyebrow">Brand Forge — CommonPub Logo Pack A</div>
+  <h1>SNAP CONNECTORS — LIME</h1>
+  <p>Option A &nbsp;·&nbsp; Electric lime #a8ff3e &nbsp;·&nbsp; With lines / Without lines &nbsp;·&nbsp; Mark + Wordmark</p>
+</div>
+
+<!-- ────────────────────────────────────────────────────── -->
+<div class="section-label">Mark Only — Dark</div>
+<div class="row">
+
+  <!-- MARK WITH LINES -->
+  <div class="card" data-label="Mark — With Lines">
+    <div class="card-center">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="160" height="160">
+        <defs>
+          <filter id="r1" x="-5%" y="-5%" width="110%" height="110%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="4" result="noise"/>
+            <feDisplacementMap in="SourceGraphic" in2="noise" scale="2"/>
+          </filter>
+        </defs>
+        <g filter="url(#r1)">
+          <!-- Left block -->
+          <rect x="18" y="62" width="70" height="76" fill="none" stroke="#e8e8e8" stroke-width="6" stroke-linejoin="round"/>
+          <!-- Snap tab (male) -->
+          <rect x="82" y="84" width="20" height="32" fill="none" stroke="#e8e8e8" stroke-width="6" stroke-linejoin="round"/>
+          <rect x="86" y="88" width="12" height="24" fill="#a8ff3e"/>
+          <!-- Right block -->
+          <rect x="112" y="62" width="70" height="76" fill="none" stroke="#e8e8e8" stroke-width="6" stroke-linejoin="round"/>
+          <!-- Snap slot (female — cut) -->
+          <rect x="98" y="84" width="20" height="32" fill="#080808" stroke="#e8e8e8" stroke-width="6" stroke-linejoin="round"/>
+          <!-- Connection node at joint -->
+          <circle cx="100" cy="100" r="6" fill="#a8ff3e"/>
+          <circle cx="100" cy="100" r="2.5" fill="#080808"/>
+          <!-- Lines inside left block -->
+          <line x1="30" y1="86" x2="72" y2="86" stroke="#a8ff3e" stroke-width="3.5" stroke-linecap="round"/>
+          <line x1="30" y1="100" x2="72" y2="100" stroke="#e8e8e8" stroke-width="2" stroke-linecap="round" opacity="0.35"/>
+          <line x1="30" y1="114" x2="72" y2="114" stroke="#a8ff3e" stroke-width="3.5" stroke-linecap="round" opacity="0.5"/>
+          <!-- Lines inside right block -->
+          <line x1="128" y1="86" x2="170" y2="86" stroke="#e8e8e8" stroke-width="2" stroke-linecap="round" opacity="0.35"/>
+          <line x1="128" y1="100" x2="170" y2="100" stroke="#a8ff3e" stroke-width="3.5" stroke-linecap="round"/>
+          <line x1="128" y1="114" x2="170" y2="114" stroke="#e8e8e8" stroke-width="2" stroke-linecap="round" opacity="0.35"/>
+        </g>
+      </svg>
+    </div>
+    <div class="sizes">
+      <div class="size-item">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="48" height="48">
+          <rect x="18" y="62" width="70" height="76" fill="none" stroke="#e8e8e8" stroke-width="9"/>
+          <rect x="82" y="84" width="20" height="32" fill="none" stroke="#e8e8e8" stroke-width="9"/>
+          <rect x="86" y="88" width="12" height="24" fill="#a8ff3e"/>
+          <rect x="112" y="62" width="70" height="76" fill="none" stroke="#e8e8e8" stroke-width="9"/>
+          <rect x="98" y="84" width="20" height="32" fill="#080808" stroke="#e8e8e8" stroke-width="9"/>
+          <circle cx="100" cy="100" r="8" fill="#a8ff3e"/>
+          <line x1="30" y1="86" x2="72" y2="86" stroke="#a8ff3e" stroke-width="5"/>
+          <line x1="30" y1="100" x2="72" y2="100" stroke="#e8e8e8" stroke-width="3" opacity="0.35"/>
+          <line x1="128" y1="100" x2="170" y2="100" stroke="#a8ff3e" stroke-width="5"/>
+        </svg>
+        <span class="size-label">48px</span>
+      </div>
+      <div class="size-item">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="24" height="24">
+          <rect x="18" y="62" width="70" height="76" fill="none" stroke="#e8e8e8" stroke-width="12"/>
+          <rect x="82" y="84" width="20" height="32" fill="none" stroke="#e8e8e8" stroke-width="12"/>
+          <rect x="86" y="88" width="12" height="24" fill="#a8ff3e"/>
+          <rect x="112" y="62" width="70" height="76" fill="none" stroke="#e8e8e8" stroke-width="12"/>
+          <rect x="98" y="84" width="20" height="32" fill="#080808" stroke="#e8e8e8" stroke-width="12"/>
+          <circle cx="100" cy="100" r="10" fill="#a8ff3e"/>
+        </svg>
+        <span class="size-label">24px</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- MARK WITHOUT LINES -->
+  <div class="card" data-label="Mark — Clean (No Lines)">
+    <div class="card-center">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="160" height="160">
+        <defs>
+          <filter id="r2" x="-5%" y="-5%" width="110%" height="110%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="4" result="noise"/>
+            <feDisplacementMap in="SourceGraphic" in2="noise" scale="2"/>
+          </filter>
+        </defs>
+        <g filter="url(#r2)">
+          <!-- Left block -->
+          <rect x="18" y="62" width="70" height="76" fill="none" stroke="#e8e8e8" stroke-width="6" stroke-linejoin="round"/>
+          <!-- Snap tab (male) -->
+          <rect x="82" y="84" width="20" height="32" fill="none" stroke="#e8e8e8" stroke-width="6" stroke-linejoin="round"/>
+          <rect x="86" y="88" width="12" height="24" fill="#a8ff3e"/>
+          <!-- Right block -->
+          <rect x="112" y="62" width="70" height="76" fill="none" stroke="#e8e8e8" stroke-width="6" stroke-linejoin="round"/>
+          <!-- Snap slot (female) -->
+          <rect x="98" y="84" width="20" height="32" fill="#080808" stroke="#e8e8e8" stroke-width="6" stroke-linejoin="round"/>
+          <!-- Connection node -->
+          <circle cx="100" cy="100" r="6" fill="#a8ff3e"/>
+          <circle cx="100" cy="100" r="2.5" fill="#080808"/>
+        </g>
+      </svg>
+    </div>
+    <div class="sizes">
+      <div class="size-item">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="48" height="48">
+          <rect x="18" y="62" width="70" height="76" fill="none" stroke="#e8e8e8" stroke-width="9"/>
+          <rect x="82" y="84" width="20" height="32" fill="none" stroke="#e8e8e8" stroke-width="9"/>
+          <rect x="86" y="88" width="12" height="24" fill="#a8ff3e"/>
+          <rect x="112" y="62" width="70" height="76" fill="none" stroke="#e8e8e8" stroke-width="9"/>
+          <rect x="98" y="84" width="20" height="32" fill="#080808" stroke="#e8e8e8" stroke-width="9"/>
+          <circle cx="100" cy="100" r="8" fill="#a8ff3e"/>
+          <circle cx="100" cy="100" r="3.5" fill="#080808"/>
+        </svg>
+        <span class="size-label">48px</span>
+      </div>
+      <div class="size-item">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="24" height="24">
+          <rect x="18" y="62" width="70" height="76" fill="none" stroke="#e8e8e8" stroke-width="12"/>
+          <rect x="82" y="84" width="20" height="32" fill="none" stroke="#e8e8e8" stroke-width="12"/>
+          <rect x="86" y="88" width="12" height="24" fill="#a8ff3e"/>
+          <rect x="112" y="62" width="70" height="76" fill="none" stroke="#e8e8e8" stroke-width="12"/>
+          <rect x="98" y="84" width="20" height="32" fill="#080808" stroke="#e8e8e8" stroke-width="12"/>
+          <circle cx="100" cy="100" r="10" fill="#a8ff3e"/>
+        </svg>
+        <span class="size-label">24px</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ────────────────────────────────────────────────────── -->
+<div class="section-label">Wordmark Horizontal — Dark</div>
+<div class="row">
+
+  <!-- WORDMARK WITH LINES -->
+  <div class="card" data-label="Wordmark — With Lines">
+    <div class="card-center">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 110" width="400" height="92">
+        <defs>
+          <filter id="r3" x="-5%" y="-5%" width="110%" height="110%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="4" result="noise"/>
+            <feDisplacementMap in="SourceGraphic" in2="noise" scale="2"/>
+          </filter>
+          <style>@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@700');</style>
+        </defs>
+        <!-- Mark at left, scaled down -->
+        <g transform="translate(0, 4) scale(0.5)" filter="url(#r3)">
+          <rect x="18" y="62" width="70" height="76" fill="none" stroke="#e8e8e8" stroke-width="6" stroke-linejoin="round"/>
+          <rect x="82" y="84" width="20" height="32" fill="none" stroke="#e8e8e8" stroke-width="6" stroke-linejoin="round"/>
+          <rect x="86" y="88" width="12" height="24" fill="#a8ff3e"/>
+          <rect x="112" y="62" width="70" height="76" fill="none" stroke="#e8e8e8" stroke-width="6" stroke-linejoin="round"/>
+          <rect x="98" y="84" width="20" height="32" fill="#080808" stroke="#e8e8e8" stroke-width="6" stroke-linejoin="round"/>
+          <circle cx="100" cy="100" r="6" fill="#a8ff3e"/>
+          <circle cx="100" cy="100" r="2.5" fill="#080808"/>
+          <line x1="30" y1="86" x2="72" y2="86" stroke="#a8ff3e" stroke-width="3.5" stroke-linecap="round"/>
+          <line x1="30" y1="100" x2="72" y2="100" stroke="#e8e8e8" stroke-width="2" stroke-linecap="round" opacity="0.35"/>
+          <line x1="30" y1="114" x2="72" y2="114" stroke="#a8ff3e" stroke-width="3.5" stroke-linecap="round" opacity="0.5"/>
+          <line x1="128" y1="86" x2="170" y2="86" stroke="#e8e8e8" stroke-width="2" stroke-linecap="round" opacity="0.35"/>
+          <line x1="128" y1="100" x2="170" y2="100" stroke="#a8ff3e" stroke-width="3.5" stroke-linecap="round"/>
+          <line x1="128" y1="114" x2="170" y2="114" stroke="#e8e8e8" stroke-width="2" stroke-linecap="round" opacity="0.35"/>
+        </g>
+        <!-- Wordmark -->
+        <text x="108" y="74" font-family="'Oswald','Arial Narrow',sans-serif" font-size="58" font-weight="700" letter-spacing="4">
+          <tspan fill="#e8e8e8">SNAP</tspan><tspan fill="#a8ff3e">LIFY</tspan>
+        </text>
+        <text x="110" y="92" font-family="'Space Mono',monospace" font-size="8.5" fill="#333" letter-spacing="2.5">BUILD · SNAP · SHIP</text>
+      </svg>
+    </div>
+  </div>
+
+  <!-- WORDMARK WITHOUT LINES -->
+  <div class="card" data-label="Wordmark — Clean (No Lines)">
+    <div class="card-center">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 110" width="400" height="92">
+        <defs>
+          <filter id="r4" x="-5%" y="-5%" width="110%" height="110%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="4" result="noise"/>
+            <feDisplacementMap in="SourceGraphic" in2="noise" scale="2"/>
+          </filter>
+          <style>@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@700');</style>
+        </defs>
+        <g transform="translate(0, 4) scale(0.5)" filter="url(#r4)">
+          <rect x="18" y="62" width="70" height="76" fill="none" stroke="#e8e8e8" stroke-width="6" stroke-linejoin="round"/>
+          <rect x="82" y="84" width="20" height="32" fill="none" stroke="#e8e8e8" stroke-width="6" stroke-linejoin="round"/>
+          <rect x="86" y="88" width="12" height="24" fill="#a8ff3e"/>
+          <rect x="112" y="62" width="70" height="76" fill="none" stroke="#e8e8e8" stroke-width="6" stroke-linejoin="round"/>
+          <rect x="98" y="84" width="20" height="32" fill="#080808" stroke="#e8e8e8" stroke-width="6" stroke-linejoin="round"/>
+          <circle cx="100" cy="100" r="6" fill="#a8ff3e"/>
+          <circle cx="100" cy="100" r="2.5" fill="#080808"/>
+        </g>
+        <text x="108" y="74" font-family="'Oswald','Arial Narrow',sans-serif" font-size="58" font-weight="700" letter-spacing="4">
+          <tspan fill="#e8e8e8">SNAP</tspan><tspan fill="#a8ff3e">LIFY</tspan>
+        </text>
+        <text x="110" y="92" font-family="'Space Mono',monospace" font-size="8.5" fill="#333" letter-spacing="2.5">BUILD · SNAP · SHIP</text>
+      </svg>
+    </div>
+  </div>
+</div>
+
+<hr>
+
+<!-- ────────────────────────────────────────────────────── -->
+<div class="section-label">Mark Only — Light Background</div>
+<div class="light-row">
+
+  <div class="light-card" data-label="Mark — With Lines — Light">
+    <div class="card-center">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="140" height="140">
+        <rect x="18" y="62" width="70" height="76" fill="none" stroke="#2a2a2a" stroke-width="6" stroke-linejoin="round"/>
+        <rect x="82" y="84" width="20" height="32" fill="none" stroke="#2a2a2a" stroke-width="6" stroke-linejoin="round"/>
+        <rect x="86" y="88" width="12" height="24" fill="#a8ff3e"/>
+        <rect x="112" y="62" width="70" height="76" fill="none" stroke="#2a2a2a" stroke-width="6" stroke-linejoin="round"/>
+        <rect x="98" y="84" width="20" height="32" fill="#f5f2eb" stroke="#2a2a2a" stroke-width="6" stroke-linejoin="round"/>
+        <circle cx="100" cy="100" r="6" fill="#a8ff3e"/>
+        <circle cx="100" cy="100" r="2.5" fill="#2a2a2a"/>
+        <line x1="30" y1="86" x2="72" y2="86" stroke="#a8ff3e" stroke-width="3.5" stroke-linecap="round"/>
+        <line x1="30" y1="100" x2="72" y2="100" stroke="#2a2a2a" stroke-width="2" stroke-linecap="round" opacity="0.3"/>
+        <line x1="30" y1="114" x2="72" y2="114" stroke="#a8ff3e" stroke-width="3.5" stroke-linecap="round" opacity="0.5"/>
+        <line x1="128" y1="86" x2="170" y2="86" stroke="#2a2a2a" stroke-width="2" stroke-linecap="round" opacity="0.3"/>
+        <line x1="128" y1="100" x2="170" y2="100" stroke="#a8ff3e" stroke-width="3.5" stroke-linecap="round"/>
+        <line x1="128" y1="114" x2="170" y2="114" stroke="#2a2a2a" stroke-width="2" stroke-linecap="round" opacity="0.3"/>
+      </svg>
+    </div>
+  </div>
+
+  <div class="light-card" data-label="Mark — Clean — Light">
+    <div class="card-center">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="140" height="140">
+        <rect x="18" y="62" width="70" height="76" fill="none" stroke="#2a2a2a" stroke-width="6" stroke-linejoin="round"/>
+        <rect x="82" y="84" width="20" height="32" fill="none" stroke="#2a2a2a" stroke-width="6" stroke-linejoin="round"/>
+        <rect x="86" y="88" width="12" height="24" fill="#a8ff3e"/>
+        <rect x="112" y="62" width="70" height="76" fill="none" stroke="#2a2a2a" stroke-width="6" stroke-linejoin="round"/>
+        <rect x="98" y="84" width="20" height="32" fill="#f5f2eb" stroke="#2a2a2a" stroke-width="6" stroke-linejoin="round"/>
+        <circle cx="100" cy="100" r="6" fill="#a8ff3e"/>
+        <circle cx="100" cy="100" r="2.5" fill="#2a2a2a"/>
+      </svg>
+    </div>
+  </div>
+</div>
+
+<!-- ────────────────────────────────────────────────────── -->
+<div class="section-label">Wordmark — Light Background</div>
+<div class="light-row">
+
+  <div class="light-card" data-label="Wordmark — With Lines — Light">
+    <div class="card-center">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 110" width="380" height="87">
+        <defs><style>@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@700');</style></defs>
+        <g transform="translate(0, 4) scale(0.5)">
+          <rect x="18" y="62" width="70" height="76" fill="none" stroke="#2a2a2a" stroke-width="6" stroke-linejoin="round"/>
+          <rect x="82" y="84" width="20" height="32" fill="none" stroke="#2a2a2a" stroke-width="6" stroke-linejoin="round"/>
+          <rect x="86" y="88" width="12" height="24" fill="#a8ff3e"/>
+          <rect x="112" y="62" width="70" height="76" fill="none" stroke="#2a2a2a" stroke-width="6" stroke-linejoin="round"/>
+          <rect x="98" y="84" width="20" height="32" fill="#f5f2eb" stroke="#2a2a2a" stroke-width="6" stroke-linejoin="round"/>
+          <circle cx="100" cy="100" r="6" fill="#a8ff3e"/>
+          <circle cx="100" cy="100" r="2.5" fill="#2a2a2a"/>
+          <line x1="30" y1="86" x2="72" y2="86" stroke="#a8ff3e" stroke-width="3.5" stroke-linecap="round"/>
+          <line x1="30" y1="100" x2="72" y2="100" stroke="#2a2a2a" stroke-width="2" stroke-linecap="round" opacity="0.3"/>
+          <line x1="30" y1="114" x2="72" y2="114" stroke="#a8ff3e" stroke-width="3.5" stroke-linecap="round" opacity="0.5"/>
+          <line x1="128" y1="86" x2="170" y2="86" stroke="#2a2a2a" stroke-width="2" stroke-linecap="round" opacity="0.3"/>
+          <line x1="128" y1="100" x2="170" y2="100" stroke="#a8ff3e" stroke-width="3.5" stroke-linecap="round"/>
+          <line x1="128" y1="114" x2="170" y2="114" stroke="#2a2a2a" stroke-width="2" stroke-linecap="round" opacity="0.3"/>
+        </g>
+        <text x="108" y="74" font-family="'Oswald','Arial Narrow',sans-serif" font-size="58" font-weight="700" letter-spacing="4">
+          <tspan fill="#2a2a2a">SNAP</tspan><tspan fill="#5a9a00">LIFY</tspan>
+        </text>
+        <text x="110" y="92" font-family="'Space Mono',monospace" font-size="8.5" fill="#aaa" letter-spacing="2.5">BUILD · SNAP · SHIP</text>
+      </svg>
+    </div>
+  </div>
+
+  <div class="light-card" data-label="Wordmark — Clean — Light">
+    <div class="card-center">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 110" width="380" height="87">
+        <defs><style>@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@700');</style></defs>
+        <g transform="translate(0, 4) scale(0.5)">
+          <rect x="18" y="62" width="70" height="76" fill="none" stroke="#2a2a2a" stroke-width="6" stroke-linejoin="round"/>
+          <rect x="82" y="84" width="20" height="32" fill="none" stroke="#2a2a2a" stroke-width="6" stroke-linejoin="round"/>
+          <rect x="86" y="88" width="12" height="24" fill="#a8ff3e"/>
+          <rect x="112" y="62" width="70" height="76" fill="none" stroke="#2a2a2a" stroke-width="6" stroke-linejoin="round"/>
+          <rect x="98" y="84" width="20" height="32" fill="#f5f2eb" stroke="#2a2a2a" stroke-width="6" stroke-linejoin="round"/>
+          <circle cx="100" cy="100" r="6" fill="#a8ff3e"/>
+          <circle cx="100" cy="100" r="2.5" fill="#2a2a2a"/>
+        </g>
+        <text x="108" y="74" font-family="'Oswald','Arial Narrow',sans-serif" font-size="58" font-weight="700" letter-spacing="4">
+          <tspan fill="#2a2a2a">SNAP</tspan><tspan fill="#5a9a00">LIFY</tspan>
+        </text>
+        <text x="110" y="92" font-family="'Space Mono',monospace" font-size="8.5" fill="#aaa" letter-spacing="2.5">BUILD · SNAP · SHIP</text>
+      </svg>
+    </div>
+  </div>
+</div>
+
+<div class="footer">CommonPub Logo Pack A &nbsp;·&nbsp; brand-forge &nbsp;·&nbsp; hack.build</div>
+
+</body>
+</html>

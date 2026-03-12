@@ -1,8 +1,8 @@
-# @snaplify/snaplify (Protocol)
+# @commonpub/protocol (Protocol)
 
 > ActivityPub types, activity builders, WebFinger, NodeInfo, OAuth2, HTTP signatures, inbox processing, and content mapping.
 
-**npm**: `@snaplify/snaplify`
+**npm**: `@commonpub/protocol`
 **Source**: `packages/protocol/src/`
 **Entry**: `packages/protocol/src/index.ts`
 
@@ -12,7 +12,7 @@
 
 | Category | Exports |
 |----------|---------|
-| Types | `WebFingerResponse`, `WebFingerLink`, `NodeInfoResponse`, `NodeInfoSoftware`, `NodeInfoUsage`, `SnaplifyActor`, `ParsedResource` |
+| Types | `WebFingerResponse`, `WebFingerLink`, `NodeInfoResponse`, `NodeInfoSoftware`, `NodeInfoUsage`, `CommonPubActor`, `ParsedResource` |
 | WebFinger | `parseWebFingerResource`, `buildWebFingerResponse` |
 | NodeInfo | `buildNodeInfoResponse`, `buildNodeInfoWellKnown` |
 | Federation | `createFederation` |
@@ -92,7 +92,7 @@ Creates the Fedify federation handler bundle.
 interface CreateFederationOptions {
   domain: string;
   db: DrizzleDB;
-  config: SnaplifyConfig;
+  config: CommonPubConfig;
 }
 
 interface FederationHandlers {
@@ -229,7 +229,7 @@ Creates an Announce (boost) activity.
 
 #### `contentToArticle(item: ContentItemInput, author: AuthorInput, domain: string): APArticle`
 
-Maps a Snaplify content item to an AP Article.
+Maps a CommonPub content item to an AP Article.
 
 ```typescript
 interface ContentItemInput {

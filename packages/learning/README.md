@@ -1,15 +1,15 @@
-# @snaplify/learning
+# @commonpub/learning
 
-Learning path engine for Snaplify.
+Learning path engine for CommonPub.
 
 ## Overview
 
-Structured learning paths with modules, lessons, enrollment, progress tracking, and certificate generation. Lesson types include articles, videos, quizzes, projects, and interactive explainers (via `@snaplify/explainer`).
+Structured learning paths with modules, lessons, enrollment, progress tracking, and certificate generation. Lesson types include articles, videos, quizzes, projects, and interactive explainers (via `@commonpub/explainer`).
 
 ## Installation
 
 ```bash
-pnpm add @snaplify/learning
+pnpm add @commonpub/learning
 ```
 
 ## Core Concepts
@@ -36,7 +36,7 @@ import {
   getNextLesson,
   getLessonStatus,
   getCompletionPercentageByModule,
-} from '@snaplify/learning';
+} from '@commonpub/learning';
 
 // Calculate overall path progress
 const progress = calculatePathProgress(path, completedLessonIds);
@@ -66,7 +66,7 @@ import {
   generateVerificationCode,
   formatCertificateData,
   buildVerificationUrl,
-} from '@snaplify/learning';
+} from '@commonpub/learning';
 
 // Generate a verification code
 const code = generateVerificationCode();
@@ -95,7 +95,7 @@ import {
   formatDuration,
   buildCurriculumTree,
   reorderItems,
-} from '@snaplify/learning';
+} from '@commonpub/learning';
 
 // Flatten all lessons across modules
 const allLessons = flattenLessons(path);
@@ -123,7 +123,7 @@ import {
   updateModuleSchema,
   updateLessonSchema,
   lessonContentSchema,
-} from '@snaplify/learning';
+} from '@commonpub/learning';
 ```
 
 ## Lesson Content Types
@@ -148,7 +148,7 @@ pnpm typecheck    # Type-check without emitting
 ## Dependencies
 
 - `zod`: Input validation
-- `@snaplify/schema`: Table definitions
-- `@snaplify/config`: Feature flags
-- `@snaplify/explainer`: Explainer lesson type integration
-- `@snaplify/editor`: BlockTuple types for article content
+- `@commonpub/schema`: Table definitions
+- `@commonpub/config`: Feature flags
+- `@commonpub/explainer`: Explainer lesson type integration
+- `@commonpub/editor`: BlockTuple types for article content

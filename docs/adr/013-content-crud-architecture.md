@@ -36,7 +36,7 @@ Phase 4 builds the reference app's content system. We need to decide how mutatio
 ### Content Body Storage
 
 - Stored as `BlockTuple[]` in `content` JSONB column (editor state)
-- `BlockTuple` = `[type, attrs]` from `@snaplify/editor`
+- `BlockTuple` = `[type, attrs]` from `@commonpub/editor`
 - Rendered to HTML at read time using editor serialization utilities
 - No separate HTML column — single source of truth
 

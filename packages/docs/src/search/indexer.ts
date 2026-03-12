@@ -1,5 +1,5 @@
-import type { DocsPage, DocsSite, SearchDocument } from '../types';
-import { extractHeadings } from '../render/headings';
+import type { DocsPage, DocsSite, SearchDocument } from '../types.js';
+import { extractHeadings } from '../render/headings.js';
 
 /**
  * Strip markdown syntax markers to produce plain text for search indexing.

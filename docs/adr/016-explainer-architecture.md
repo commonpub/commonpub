@@ -12,7 +12,7 @@ The explainer system needs a clear separation between the pure logic (types, val
 
 Three-layer architecture:
 
-### Layer 1: `@snaplify/explainer` — Pure TypeScript Package
+### Layer 1: `@commonpub/explainer` — Pure TypeScript Package
 
 Contains zero UI code. All functions are pure (state in → state out), serializable, and testable without a DOM.
 
@@ -20,7 +20,7 @@ Contains zero UI code. All functions are pure (state in → state out), serializ
 
 - `types.ts` — All TypeScript interfaces and type aliases
 - `schemas.ts` — Zod validators for all section types (discriminated union)
-- `sections/registry.ts` — Section type registry (mirrors `@snaplify/editor` block registry)
+- `sections/registry.ts` — Section type registry (mirrors `@commonpub/editor` block registry)
 - `quiz/engine.ts` — Pure quiz scoring, answer checking, option shuffling
 - `progress/tracker.ts` — Pure state machine for section completion and gating
 - `render/tocGenerator.ts` — Sections + progress → TOC data
@@ -29,7 +29,7 @@ Contains zero UI code. All functions are pure (state in → state out), serializ
 - `export/templates.ts` — HTML template literals
 - `export/inlineAssets.ts` — CSS/JS inlining utilities
 
-**Dependencies:** `@snaplify/editor` (for BlockTuple type), `zod`
+**Dependencies:** `@commonpub/editor` (for BlockTuple type), `zod`
 
 ### Layer 2: Reference App Svelte Components
 

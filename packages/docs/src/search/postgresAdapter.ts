@@ -1,6 +1,6 @@
-import { buildSearchQuery } from './indexer';
-import type { SearchAdapter, SearchResult } from './types';
-import type { SearchDocument } from '../types';
+import { buildSearchQuery } from './indexer.js';
+import type { SearchAdapter, SearchResult } from './types.js';
+import type { SearchDocument } from '../types.js';
 
 /**
  * Drizzle DB instance — typed as an object with an `execute` method

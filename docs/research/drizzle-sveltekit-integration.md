@@ -7,7 +7,7 @@ Create `pg.Pool` once at module level in `hooks.server.ts`. SvelteKit reuses the
 ```typescript
 import pg from 'pg';
 import { drizzle } from 'drizzle-orm/node-postgres';
-import * as schema from '@snaplify/schema';
+import * as schema from '@commonpub/schema';
 
 const pool = new pg.Pool({ connectionString: env.DATABASE_URL });
 const db = drizzle(pool, { schema });

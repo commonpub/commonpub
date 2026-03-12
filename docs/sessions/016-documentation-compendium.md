@@ -4,7 +4,7 @@
 
 ## What Was Done
 
-Created a complete reference documentation suite in `docs/reference/` — 30 files, ~7,800 lines covering every API, function, type, schema, route, and architecture diagram in the Snaplify codebase.
+Created a complete reference documentation suite in `docs/reference/` — 30 files, ~7,800 lines covering every API, function, type, schema, route, and architecture diagram in the CommonPub codebase.
 
 ### Deliverables (30 files)
 
@@ -16,16 +16,16 @@ Created a complete reference documentation suite in `docs/reference/` — 30 fil
 #### Package API Reference (10 files in `packages/`)
 | File | Package | Key Contents |
 |------|---------|-------------|
-| `schema.md` | @snaplify/schema | 41 tables (every column), 24 enums, 35+ validators |
-| `config.md` | @snaplify/config | defineSnaplifyConfig, 4 Zod schemas, all types |
-| `protocol.md` | @snaplify/snaplify | ~40 exports: WebFinger, NodeInfo, OAuth, 9 activity builders, content mapper, actor resolver, keypairs, inbox, outbox |
-| `auth.md` | @snaplify/auth | createAuth, hooks, 3 guards, SSO, role hierarchy |
-| `ui.md` | @snaplify/ui | 15 components with prop APIs, theme utilities |
-| `editor.md` | @snaplify/editor | BlockTuple system, 6 block types, registry, serialization, editor factory |
-| `docs-package.md` | @snaplify/docs | Rendering, navigation, versioning, 2 search adapters |
-| `explainer.md` | @snaplify/explainer | Section registry, quiz engine, progress tracker, HTML export |
-| `learning.md` | @snaplify/learning | Progress calculation, certificates, curriculum utilities |
-| `test-utils.md` | @snaplify/test-utils | 4 factories, mock config |
+| `schema.md` | @commonpub/schema | 41 tables (every column), 24 enums, 35+ validators |
+| `config.md` | @commonpub/config | defineCommonPubConfig, 4 Zod schemas, all types |
+| `protocol.md` | @commonpub/protocol | ~40 exports: WebFinger, NodeInfo, OAuth, 9 activity builders, content mapper, actor resolver, keypairs, inbox, outbox |
+| `auth.md` | @commonpub/auth | createAuth, hooks, 3 guards, SSO, role hierarchy |
+| `ui.md` | @commonpub/ui | 15 components with prop APIs, theme utilities |
+| `editor.md` | @commonpub/editor | BlockTuple system, 6 block types, registry, serialization, editor factory |
+| `docs-package.md` | @commonpub/docs | Rendering, navigation, versioning, 2 search adapters |
+| `explainer.md` | @commonpub/explainer | Section registry, quiz engine, progress tracker, HTML export |
+| `learning.md` | @commonpub/learning | Progress calculation, certificates, curriculum utilities |
+| `test-utils.md` | @commonpub/test-utils | 4 factories, mock config |
 
 #### Server Module Reference (12 files in `server/`)
 | File | Functions Documented |

@@ -1,17 +1,17 @@
-# @snaplify/explainer
+# @commonpub/explainer
 
-Interactive explainer module runtime for Snaplify.
+Interactive explainer module runtime for CommonPub.
 
 ## Overview
 
 Explainers are scroll-driven, interactive educational modules. This package has three layers: a section type system with Zod schemas, a quiz engine, a progress tracker (pure state machine), a TOC generator, section rendering, and a self-contained HTML exporter.
 
-Explainers can be used standalone or embedded as a lesson type in `@snaplify/learning`.
+Explainers can be used standalone or embedded as a lesson type in `@commonpub/learning`.
 
 ## Installation
 
 ```bash
-pnpm add @snaplify/explainer
+pnpm add @commonpub/explainer
 ```
 
 ## Section Types
@@ -26,7 +26,7 @@ pnpm add @snaplify/explainer
 ### Section Registry
 
 ```ts
-import { registerCoreSectionTypes, registerSectionType, lookupSectionType } from '@snaplify/explainer';
+import { registerCoreSectionTypes, registerSectionType, lookupSectionType } from '@commonpub/explainer';
 
 // Register all 4 core section types
 registerCoreSectionTypes();
@@ -44,7 +44,7 @@ registerSectionType({
 Deterministic quiz with seeded PRNG for reproducible option shuffling:
 
 ```ts
-import { checkAnswer, scoreQuiz, isQuizPassed, shuffleOptions } from '@snaplify/explainer';
+import { checkAnswer, scoreQuiz, isQuizPassed, shuffleOptions } from '@commonpub/explainer';
 
 // Check a single answer
 const result = checkAnswer(question, selectedOptionId);
@@ -73,7 +73,7 @@ import {
   getCompletionPercentage,
   getNextIncompleteSection,
   isExplainerComplete,
-} from '@snaplify/explainer';
+} from '@commonpub/explainer';
 
 // Initialize progress state
 let state = createProgressState(sections);
@@ -99,7 +99,7 @@ const done = isExplainerComplete(state); // false
 ### Section Rendering
 
 ```ts
-import { renderSection, renderBlockTuples, renderQuizHtml } from '@snaplify/explainer';
+import { renderSection, renderBlockTuples, renderQuizHtml } from '@commonpub/explainer';
 
 // Render a single section to HTML
 const html = renderSection(section);
@@ -114,7 +114,7 @@ const quizHtml = renderQuizHtml(quizSection);
 ### TOC Generation
 
 ```ts
-import { generateToc } from '@snaplify/explainer';
+import { generateToc } from '@commonpub/explainer';
 
 const toc = generateToc(sections);
 // [{ id: 'intro', title: 'Introduction', anchor: '#intro' }, ...]
@@ -125,7 +125,7 @@ const toc = generateToc(sections);
 Generates a self-contained HTML file with inlined CSS and vanilla JS:
 
 ```ts
-import { generateExplainerHtml } from '@snaplify/explainer';
+import { generateExplainerHtml } from '@commonpub/explainer';
 
 const html = generateExplainerHtml({
   title: 'How LEDs Work',
@@ -149,7 +149,7 @@ import {
   checkpointSectionSchema,
   explainerSectionSchema,   // union of all types
   explainerMetaSchema,       // title, difficulty, estimated time
-} from '@snaplify/explainer';
+} from '@commonpub/explainer';
 ```
 
 ## Development
@@ -163,6 +163,6 @@ pnpm typecheck    # Type-check without emitting
 ## Dependencies
 
 - `zod`: Schema validation
-- `@snaplify/editor`: BlockTuple rendering
-- `@snaplify/schema`: Content type definitions
-- `@snaplify/config`: Feature flags
+- `@commonpub/editor`: BlockTuple rendering
+- `@commonpub/schema`: Content type definitions
+- `@commonpub/config`: Feature flags

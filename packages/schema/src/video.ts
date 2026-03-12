@@ -1,7 +1,7 @@
 import { pgTable, uuid, varchar, text, timestamp, integer } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
-import { users } from './auth';
-import { videoPlatformEnum } from './enums';
+import { users } from './auth.js';
+import { videoPlatformEnum } from './enums.js';
 
 export const videos = pgTable('videos', {
   id: uuid('id').defaultRandom().primaryKey(),

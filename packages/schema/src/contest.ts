@@ -1,8 +1,8 @@
 import { pgTable, uuid, varchar, text, timestamp, integer, jsonb } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
-import { users } from './auth';
-import { contentItems } from './content';
-import { contestStatusEnum } from './enums';
+import { users } from './auth.js';
+import { contentItems } from './content.js';
+import { contestStatusEnum } from './enums.js';
 
 /** @v2 — Contest system. Tables defined but not yet referenced in application code. */
 export const contests = pgTable('contests', {

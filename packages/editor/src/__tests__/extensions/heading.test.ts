@@ -2,18 +2,18 @@ import { describe, it, expect } from 'vitest';
 import { Editor } from '@tiptap/core';
 import { Document } from '@tiptap/extension-document';
 import { Text } from '@tiptap/extension-text';
-import { SnaplifyText } from '../../extensions/text';
-import { SnaplifyHeading } from '../../extensions/heading';
+import { CommonPubText } from '../../extensions/text';
+import { CommonPubHeading } from '../../extensions/heading';
 
 function createEditor(content?: string): Editor {
   return new Editor({
-    extensions: [Document, Text, SnaplifyText, SnaplifyHeading],
+    extensions: [Document, Text, CommonPubText, CommonPubHeading],
     content: content ?? '<h2>Title</h2><p>Body</p>',
     element: document.createElement('div'),
   });
 }
 
-describe('SnaplifyHeading Extension', () => {
+describe('CommonPubHeading Extension', () => {
   it('parses heading HTML', () => {
     const editor = createEditor('<h1>Big Title</h1>');
     expect(editor.getHTML()).toContain('<h1>Big Title</h1>');

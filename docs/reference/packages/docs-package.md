@@ -1,8 +1,8 @@
-# @snaplify/docs
+# @commonpub/docs
 
 > Markdown rendering pipeline, navigation trees, versioning, and search adapters for documentation sites.
 
-**npm**: `@snaplify/docs`
+**npm**: `@commonpub/docs`
 **Source**: `packages/docs/src/`
 **Entry**: `packages/docs/src/index.ts`
 

@@ -1,15 +1,15 @@
-# @snaplify/snaplify
+# @commonpub/protocol
 
-ActivityPub federation protocol implementation for Snaplify.
+ActivityPub federation protocol implementation for CommonPub.
 
 ## Overview
 
-Implements the ActivityPub protocol layer: WebFinger discovery, NodeInfo, activity building and processing, content mapping, actor resolution, keypair management, and inbox/outbox handling. Wraps the [Fedify](https://fedify.dev/) framework with Snaplify-specific types.
+Implements the ActivityPub protocol layer: WebFinger discovery, NodeInfo, activity building and processing, content mapping, actor resolution, keypair management, and inbox/outbox handling. Wraps the [Fedify](https://fedify.dev/) framework with CommonPub-specific types.
 
 ## Installation
 
 ```bash
-pnpm add @snaplify/snaplify
+pnpm add @commonpub/protocol
 ```
 
 ## Usage
@@ -17,7 +17,7 @@ pnpm add @snaplify/snaplify
 ### WebFinger Discovery
 
 ```ts
-import { parseWebFingerResource, buildWebFingerResponse } from '@snaplify/snaplify';
+import { parseWebFingerResource, buildWebFingerResponse } from '@commonpub/protocol';
 
 // Parse an acct: URI
 const parsed = parseWebFingerResource('acct:alice@hack.build');
@@ -34,7 +34,7 @@ const response = buildWebFingerResponse({
 ### NodeInfo
 
 ```ts
-import { buildNodeInfoResponse, buildNodeInfoWellKnown } from '@snaplify/snaplify';
+import { buildNodeInfoResponse, buildNodeInfoWellKnown } from '@commonpub/protocol';
 
 const nodeInfo = buildNodeInfoResponse({
   domain: 'hack.build',
@@ -54,7 +54,7 @@ import {
   buildFollowActivity,
   buildLikeActivity,
   buildAnnounceActivity,
-} from '@snaplify/snaplify';
+} from '@commonpub/protocol';
 
 // Create a new article
 const create = buildCreateActivity({
@@ -71,22 +71,22 @@ const follow = buildFollowActivity({
 
 ### Content Mapping
 
-Bidirectional mapping between Snaplify content and AP objects:
+Bidirectional mapping between CommonPub content and AP objects:
 
 ```ts
-import { contentToArticle, articleToContent, contentToNote, noteToComment } from '@snaplify/snaplify';
+import { contentToArticle, articleToContent, contentToNote, noteToComment } from '@commonpub/protocol';
 
-// Snaplify content -> AP Article
+// CommonPub content -> AP Article
 const article = contentToArticle(contentItem, author);
 
-// AP Article -> Snaplify content
+// AP Article -> CommonPub content
 const content = articleToContent(apArticle);
 ```
 
 ### Actor Resolution
 
 ```ts
-import { resolveActor, resolveActorViaWebFinger } from '@snaplify/snaplify';
+import { resolveActor, resolveActorViaWebFinger } from '@commonpub/protocol';
 
 // Resolve by actor URL
 const actor = await resolveActor('https://deveco.io/users/bob');
@@ -100,7 +100,7 @@ const actor = await resolveActorViaWebFinger('bob@deveco.io');
 RSA 2048 keypairs for HTTP signatures:
 
 ```ts
-import { generateKeypair, exportPublicKeyPem, buildKeyId } from '@snaplify/snaplify';
+import { generateKeypair, exportPublicKeyPem, buildKeyId } from '@commonpub/protocol';
 
 const keypair = await generateKeypair();
 const publicPem = await exportPublicKeyPem(keypair.publicKey);
@@ -110,7 +110,7 @@ const keyId = buildKeyId('https://hack.build/users/alice');
 ### Inbox Processing
 
 ```ts
-import { processInboxActivity } from '@snaplify/snaplify';
+import { processInboxActivity } from '@commonpub/protocol';
 
 const result = await processInboxActivity(activity, {
   onFollow: async (follower, target) => { /* ... */ },
@@ -145,7 +145,7 @@ const result = await processInboxActivity(activity, {
 OAuth2 authorization and token validation for cross-instance SSO:
 
 ```ts
-import { validateAuthorizeRequest, validateTokenRequest } from '@snaplify/snaplify';
+import { validateAuthorizeRequest, validateTokenRequest } from '@commonpub/protocol';
 ```
 
 ## Development
@@ -160,5 +160,5 @@ pnpm typecheck    # Type-check without emitting
 
 - `jose`: JWT and JWK operations
 - `zod`: Input validation
-- `@snaplify/config`: Feature flags
-- `@snaplify/schema`: Table definitions for federation state
+- `@commonpub/config`: Feature flags
+- `@commonpub/schema`: Table definitions for federation state

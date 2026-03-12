@@ -1,44 +1,57 @@
 import { describe, it, expect } from 'vitest';
-import { render } from '@testing-library/svelte';
-import Stack from '../Stack.svelte';
+import { render, screen } from '@testing-library/vue';
+import Stack from '../Stack.vue';
 
 describe('Stack', () => {
-  it('renders as a flex container', () => {
-    const { container } = render(Stack, {
-      props: { children: (() => {}) as never },
+  it('renders children via slot', () => {
+    render(Stack, {
+      slots: { default: '<span>Child 1</span><span>Child 2</span>' },
     });
-    const el = container.querySelector('.snaplify-stack');
-    expect(el).toBeInTheDocument();
+    expect(screen.getByText('Child 1')).toBeTruthy();
+    expect(screen.getByText('Child 2')).toBeTruthy();
   });
 
-  it('defaults to vertical direction', () => {
-    const { container } = render(Stack, {
-      props: { children: (() => {}) as never },
+  it('has the cpub-stack class', () => {
+    render(Stack, {
+      slots: { default: '<span>Item</span>' },
     });
-    const el = container.querySelector('.snaplify-stack') as HTMLElement;
-    expect(el.style.flexDirection).toBe('column');
+    const el = screen.getByText('Item').parentElement;
+    expect(el?.classList.contains('cpub-stack')).toBe(true);
   });
 
-  it('supports horizontal direction', () => {
-    const { container } = render(Stack, {
-      props: { direction: 'horizontal', children: (() => {}) as never },
+  it('defaults to column direction', () => {
+    render(Stack, {
+      slots: { default: '<span>Item</span>' },
     });
-    const el = container.querySelector('.snaplify-stack') as HTMLElement;
-    expect(el.style.flexDirection).toBe('row');
+    const el = screen.getByText('Item').parentElement;
+    expect(el?.style.flexDirection).toBe('column');
+  });
+
+  it('applies row direction when specified', () => {
+    render(Stack, {
+      props: { direction: 'row' },
+      slots: { default: '<span>Item</span>' },
+    });
+    const el = screen.getByText('Item').parentElement;
+    expect(el?.style.flexDirection).toBe('row');
   });
 
   it('applies custom gap', () => {
-    const { container } = render(Stack, {
-      props: { gap: 'var(--space-8, 2rem)', children: (() => {}) as never },
+    render(Stack, {
+      props: { gap: '2rem' },
+      slots: { default: '<span>Item</span>' },
     });
-    const el = container.querySelector('.snaplify-stack') as HTMLElement;
-    expect(el.style.gap).toBe('var(--space-8, 2rem)');
+    const el = screen.getByText('Item').parentElement;
+    expect(el?.style.gap).toBe('2rem');
   });
 
-  it('accepts a class prop', () => {
-    const { container } = render(Stack, {
-      props: { class: 'custom', children: (() => {}) as never },
+  it('applies align and justify styles', () => {
+    render(Stack, {
+      props: { align: 'center', justify: 'space-between' },
+      slots: { default: '<span>Item</span>' },
     });
-    expect(container.querySelector('.snaplify-stack')?.className).toContain('custom');
+    const el = screen.getByText('Item').parentElement;
+    expect(el?.style.alignItems).toBe('center');
+    expect(el?.style.justifyContent).toBe('space-between');
   });
 });

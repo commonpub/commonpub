@@ -24,9 +24,9 @@ Lesson content is stored in a single `content` JSONB column with a `type` discri
 
 **Why**: Single table, single column, no joins. The `type` enum on the lesson row already discriminates — the content shape follows.
 
-### 2. Quiz Engine Reuse from @snaplify/explainer
+### 2. Quiz Engine Reuse from @commonpub/explainer
 
-Quiz-type lessons reuse `scoreQuiz`, `isQuizPassed`, `checkAnswer` from `@snaplify/explainer`. The `QuizQuestion` type is imported directly.
+Quiz-type lessons reuse `scoreQuiz`, `isQuizPassed`, `checkAnswer` from `@commonpub/explainer`. The `QuizQuestion` type is imported directly.
 
 **Why**: Identical quiz semantics. No reason to duplicate scoring logic. The explainer package is pure TypeScript with no UI dependencies.
 
@@ -73,7 +73,7 @@ progress = (completedLessons / totalLessons) * 100
 
 ## Consequences
 
-- `@snaplify/learning` depends on `@snaplify/explainer` for QuizQuestion type and quiz engine
+- `@commonpub/learning` depends on `@commonpub/explainer` for QuizQuestion type and quiz engine
 - Lesson content validation uses Zod discriminated union matching the `type` field
 - Certificate verification is a public route, exempt from feature flag
 - Progress is always recalculated (not cached), ensuring consistency

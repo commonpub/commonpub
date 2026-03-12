@@ -201,7 +201,7 @@ function onContentLiked(
   db: NodePgDatabase,
   userId: string,
   contentUri: string,
-  config: SnaplifyConfig
+  config: CommonPubConfig
 ): Promise<void>
 ```
 
@@ -214,4 +214,4 @@ Called by route handlers after a successful like on federated content. Checks `c
 | `db` | `NodePgDatabase` | Database connection |
 | `userId` | `string` | UUID of the local user who liked |
 | `contentUri` | `string` | ActivityPub URI of the liked content |
-| `config` | `SnaplifyConfig` | App config (checked for `features.federation`) |
+| `config` | `CommonPubConfig` | App config (checked for `features.federation`) |

@@ -1,0 +1,76 @@
+/* ===========================================
+   CommonPub Dark Theme
+   Inverted surfaces with the same offset shadow
+   aesthetic. Shadows use a lighter border color.
+   =========================================== */
+
+[data-theme="dark"] {
+  /* Surfaces */
+  --bg: #111111;
+  --surface: #1a1a1a;
+  --surface2: #222222;
+  --surface3: #2a2a2a;
+
+  --color-surface: var(--surface);
+  --color-surface-alt: var(--surface2);
+  --color-surface-raised: var(--surface2);
+  --color-surface-overlay: rgba(0, 0, 0, 0.7);
+  --color-surface-hover: var(--surface3);
+  --color-bg-subtle: var(--bg);
+
+  /* Text */
+  --text: #e5e5e3;
+  --text-dim: #a3a39e;
+  --text-faint: #6b6b66;
+
+  --color-text: var(--text);
+  --color-text-secondary: var(--text-dim);
+  --color-text-muted: var(--text-faint);
+  --color-text-inverse: #1a1a1a;
+
+  /* Borders */
+  --border: #444440;
+  --border2: #333330;
+
+  --color-border: var(--border2);
+  --color-border-strong: var(--border);
+
+  /* Shadows — lighter in dark mode */
+  --shadow-sm: 2px 2px 0 rgba(0, 0, 0, 0.4);
+  --shadow-md: 4px 4px 0 rgba(0, 0, 0, 0.4);
+  --shadow-lg: 6px 6px 0 rgba(0, 0, 0, 0.4);
+  --shadow-xl: 8px 8px 0 rgba(0, 0, 0, 0.4);
+
+  /* Accent stays the same */
+  --accent: #5b9cf6;
+  --accent-bg: rgba(91, 156, 246, 0.12);
+  --accent-border: rgba(91, 156, 246, 0.3);
+  --shadow-accent: 4px 4px 0 var(--accent);
+
+  /* Semantic colors slightly brighter for dark bg */
+  --green: #34d399;
+  --green-bg: rgba(52, 211, 153, 0.12);
+  --green-border: rgba(52, 211, 153, 0.3);
+
+  --yellow: #fbbf24;
+  --yellow-bg: rgba(251, 191, 36, 0.12);
+  --yellow-border: rgba(251, 191, 36, 0.3);
+
+  --red: #f87171;
+  --red-bg: rgba(248, 113, 113, 0.12);
+  --red-border: rgba(248, 113, 113, 0.3);
+
+  --purple: #a78bfa;
+  --purple-bg: rgba(167, 139, 250, 0.12);
+  --purple-border: rgba(167, 139, 250, 0.3);
+
+  --teal: #2dd4bf;
+  --teal-bg: rgba(45, 212, 191, 0.12);
+  --teal-border: rgba(45, 212, 191, 0.3);
+
+  --pink: #f472b6;
+  --pink-bg: rgba(244, 114, 182, 0.12);
+  --pink-border: rgba(244, 114, 182, 0.3);
+
+  color-scheme: dark;
+}

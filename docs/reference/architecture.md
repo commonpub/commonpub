@@ -10,16 +10,16 @@ graph TD
     end
 
     subgraph Packages
-        SCHEMA["@snaplify/schema<br/>Drizzle tables + Zod validators"]
-        CONFIG["@snaplify/config<br/>defineSnaplifyConfig()"]
-        PROTO["@snaplify/snaplify<br/>Fedify + AP types"]
-        AUTH["@snaplify/auth<br/>Better Auth wrapper"]
-        UI["@snaplify/ui<br/>Svelte 5 components + theme"]
-        EDITOR["@snaplify/editor<br/>TipTap extensions"]
-        DOCS["@snaplify/docs<br/>Docs module"]
-        EXPLAINER["@snaplify/explainer<br/>Interactive modules"]
-        LEARNING["@snaplify/learning<br/>Learning paths"]
-        TESTUTILS["@snaplify/test-utils<br/>Test helpers"]
+        SCHEMA["@commonpub/schema<br/>Drizzle tables + Zod validators"]
+        CONFIG["@commonpub/config<br/>defineCommonPubConfig()"]
+        PROTO["@commonpub/protocol<br/>Fedify + AP types"]
+        AUTH["@commonpub/auth<br/>Better Auth wrapper"]
+        UI["@commonpub/ui<br/>Svelte 5 components + theme"]
+        EDITOR["@commonpub/editor<br/>TipTap extensions"]
+        DOCS["@commonpub/docs<br/>Docs module"]
+        EXPLAINER["@commonpub/explainer<br/>Interactive modules"]
+        LEARNING["@commonpub/learning<br/>Learning paths"]
+        TESTUTILS["@commonpub/test-utils<br/>Test helpers"]
     end
 
     subgraph External

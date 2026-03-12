@@ -1,0 +1,28 @@
+import { d as defineEventHandler, u as useDB, f as getInstanceSettings } from '../../../nitro/nitro.mjs';
+import { r as requireAdmin } from '../../../_/auth.mjs';
+import 'drizzle-orm';
+import 'drizzle-orm/pg-core';
+import 'jose';
+import 'node:http';
+import 'node:https';
+import 'node:events';
+import 'node:buffer';
+import 'node:fs';
+import 'node:path';
+import 'node:crypto';
+import 'node:url';
+import 'zod';
+import 'drizzle-orm/node-postgres';
+import 'pg';
+import 'better-auth';
+import 'better-auth/adapters/drizzle';
+import 'better-auth/plugins';
+
+const settings_get = defineEventHandler(async (event) => {
+  requireAdmin(event);
+  const db = useDB();
+  return getInstanceSettings(db);
+});
+
+export { settings_get as default };
+//# sourceMappingURL=settings.get.mjs.map

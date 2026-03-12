@@ -19,8 +19,8 @@
 
 - Updated `app.d.ts` with typed `App.Locals` (user, session, db)
 - Created `hooks.server.ts` with pg.Pool, Drizzle, auth hook composition via `sequence()`
-- Created `drizzle.config.ts` pointing at `@snaplify/schema`
-- Added dependencies: `@snaplify/editor`, `drizzle-orm`, `pg`, `@types/pg`, `drizzle-kit`, `@testing-library/svelte`, `axe-core`
+- Created `drizzle.config.ts` pointing at `@commonpub/schema`
+- Added dependencies: `@commonpub/editor`, `drizzle-orm`, `pg`, `@types/pg`, `drizzle-kit`, `@testing-library/svelte`, `axe-core`
 - Created `slug.ts` utility with `generateSlug()` and `ensureUniqueSlug()` — 8 tests
 
 ### Content Service (Step 4)
@@ -59,7 +59,7 @@
 
 ### Content Editor (Step 9)
 
-- `ContentEditor.svelte` wrapping `createSnaplifyEditor()` from `@snaplify/editor`
+- `ContentEditor.svelte` wrapping `createCommonPubEditor()` from `@commonpub/editor`
 - Create page at `/create` with form action, title/type/description/content/tags
 - Edit page at `[type]/[slug]/edit` with ownership check, pre-populated form
 - Both use `use:enhance` for progressive enhancement

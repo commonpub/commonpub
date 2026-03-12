@@ -9,7 +9,7 @@ import {
   unique,
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
-import { users } from './auth';
+import { users } from './auth.js';
 import {
   likeTargetTypeEnum,
   commentTargetTypeEnum,
@@ -18,7 +18,7 @@ import {
   reportTargetTypeEnum,
   reportReasonEnum,
   reportStatusEnum,
-} from './enums';
+} from './enums.js';
 
 export const likes = pgTable(
   'likes',

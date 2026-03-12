@@ -9,40 +9,35 @@ import {
 } from '../theme';
 
 describe('BUILT_IN_THEMES', () => {
-  it('should contain 5 themes', () => {
-    expect(BUILT_IN_THEMES).toHaveLength(5);
+  it('should contain 3 themes', () => {
+    expect(BUILT_IN_THEMES).toHaveLength(3);
   });
 
-  it('should include generics, base, deepwood, hackbuild, deveco', () => {
+  it('should include base, dark, generics', () => {
     const ids = BUILT_IN_THEMES.map((t) => t.id);
-    expect(ids).toContain('generics');
     expect(ids).toContain('base');
-    expect(ids).toContain('deepwood');
-    expect(ids).toContain('hackbuild');
-    expect(ids).toContain('deveco');
+    expect(ids).toContain('dark');
+    expect(ids).toContain('generics');
   });
 
-  it('should mark generics and deepwood as dark themes', () => {
+  it('should mark dark and generics as dark themes', () => {
+    const dark = BUILT_IN_THEMES.find((t) => t.id === 'dark');
+    expect(dark?.isDark).toBe(true);
     const generics = BUILT_IN_THEMES.find((t) => t.id === 'generics');
     expect(generics?.isDark).toBe(true);
-    const deepwood = BUILT_IN_THEMES.find((t) => t.id === 'deepwood');
-    expect(deepwood?.isDark).toBe(true);
   });
 
-  it('should mark base, hackbuild, deveco as light themes', () => {
-    for (const id of ['base', 'hackbuild', 'deveco']) {
-      const theme = BUILT_IN_THEMES.find((t) => t.id === id);
-      expect(theme?.isDark).toBe(false);
-    }
+  it('should mark base as light theme', () => {
+    const base = BUILT_IN_THEMES.find((t) => t.id === 'base');
+    expect(base?.isDark).toBe(false);
   });
 });
 
 describe('isValidThemeId', () => {
   it('should return true for built-in theme IDs', () => {
     expect(isValidThemeId('base')).toBe(true);
-    expect(isValidThemeId('deepwood')).toBe(true);
-    expect(isValidThemeId('hackbuild')).toBe(true);
-    expect(isValidThemeId('deveco')).toBe(true);
+    expect(isValidThemeId('dark')).toBe(true);
+    expect(isValidThemeId('generics')).toBe(true);
   });
 
   it('should return false for unknown theme IDs', () => {
@@ -53,27 +48,63 @@ describe('isValidThemeId', () => {
 });
 
 describe('TOKEN_NAMES', () => {
-  it('should contain all expected token categories', () => {
+  it('should contain core unified-v2 tokens', () => {
+    expect(TOKEN_NAMES).toContain('bg');
+    expect(TOKEN_NAMES).toContain('surface');
+    expect(TOKEN_NAMES).toContain('surface2');
+    expect(TOKEN_NAMES).toContain('surface3');
+    expect(TOKEN_NAMES).toContain('text');
+    expect(TOKEN_NAMES).toContain('text-dim');
+    expect(TOKEN_NAMES).toContain('text-faint');
+    expect(TOKEN_NAMES).toContain('border');
+    expect(TOKEN_NAMES).toContain('border2');
+    expect(TOKEN_NAMES).toContain('accent');
+    expect(TOKEN_NAMES).toContain('accent-bg');
+    expect(TOKEN_NAMES).toContain('accent-border');
+  });
+
+  it('should contain semantic color tokens', () => {
+    expect(TOKEN_NAMES).toContain('green');
+    expect(TOKEN_NAMES).toContain('yellow');
+    expect(TOKEN_NAMES).toContain('red');
+    expect(TOKEN_NAMES).toContain('purple');
+    expect(TOKEN_NAMES).toContain('teal');
+    expect(TOKEN_NAMES).toContain('pink');
+  });
+
+  it('should contain shadow tokens including accent shadow', () => {
+    expect(TOKEN_NAMES).toContain('shadow-sm');
+    expect(TOKEN_NAMES).toContain('shadow-md');
+    expect(TOKEN_NAMES).toContain('shadow-lg');
+    expect(TOKEN_NAMES).toContain('shadow-accent');
+  });
+
+  it('should contain backward-compatible aliases', () => {
     expect(TOKEN_NAMES).toContain('color-primary');
     expect(TOKEN_NAMES).toContain('font-heading');
     expect(TOKEN_NAMES).toContain('space-4');
     expect(TOKEN_NAMES).toContain('radius-md');
-    expect(TOKEN_NAMES).toContain('shadow-lg');
     expect(TOKEN_NAMES).toContain('z-modal');
     expect(TOKEN_NAMES).toContain('nav-height');
+  });
+
+  it('should contain typography tokens including label size', () => {
+    expect(TOKEN_NAMES).toContain('text-label');
+    expect(TOKEN_NAMES).toContain('font-sans');
+    expect(TOKEN_NAMES).toContain('font-mono');
   });
 });
 
 describe('validateTokenOverrides', () => {
   it('should accept valid token names', () => {
-    const result = validateTokenOverrides({ 'color-primary': '#ff0000', 'font-heading': 'Arial' });
-    expect(result.valid).toEqual({ 'color-primary': '#ff0000', 'font-heading': 'Arial' });
+    const result = validateTokenOverrides({ 'accent': '#ff0000', 'font-sans': 'Arial' });
+    expect(result.valid).toEqual({ 'accent': '#ff0000', 'font-sans': 'Arial' });
     expect(result.invalid).toHaveLength(0);
   });
 
   it('should reject invalid token names', () => {
-    const result = validateTokenOverrides({ 'color-primary': '#ff0000', 'not-a-token': 'value' });
-    expect(result.valid).toEqual({ 'color-primary': '#ff0000' });
+    const result = validateTokenOverrides({ 'accent': '#ff0000', 'not-a-token': 'value' });
+    expect(result.valid).toEqual({ 'accent': '#ff0000' });
     expect(result.invalid).toEqual(['not-a-token']);
   });
 
@@ -92,25 +123,25 @@ describe('applyThemeToElement', () => {
   });
 
   it('should set data-theme attribute for non-base themes', () => {
-    applyThemeToElement(el, 'deepwood');
-    expect(el.getAttribute('data-theme')).toBe('deepwood');
+    applyThemeToElement(el, 'dark');
+    expect(el.getAttribute('data-theme')).toBe('dark');
   });
 
   it('should remove data-theme attribute for base theme', () => {
-    el.setAttribute('data-theme', 'deepwood');
+    el.setAttribute('data-theme', 'dark');
     applyThemeToElement(el, 'base');
     expect(el.hasAttribute('data-theme')).toBe(false);
   });
 
   it('should apply token overrides as inline styles', () => {
-    applyThemeToElement(el, 'deepwood', { 'color-primary': '#ff0000' });
-    expect(el.style.getPropertyValue('--color-primary')).toBe('#ff0000');
+    applyThemeToElement(el, 'dark', { 'accent': '#ff0000' });
+    expect(el.style.getPropertyValue('--accent')).toBe('#ff0000');
   });
 
   it('should clear previous overrides when switching themes', () => {
-    applyThemeToElement(el, 'deepwood', { 'color-primary': '#ff0000' });
-    applyThemeToElement(el, 'hackbuild');
-    expect(el.style.getPropertyValue('--color-primary')).toBe('');
+    applyThemeToElement(el, 'dark', { 'accent': '#ff0000' });
+    applyThemeToElement(el, 'generics');
+    expect(el.style.getPropertyValue('--accent')).toBe('');
   });
 });
 
@@ -128,16 +159,16 @@ describe('getThemeFromElement', () => {
   });
 
   it('should return the data-theme value', () => {
-    el.setAttribute('data-theme', 'hackbuild');
+    el.setAttribute('data-theme', 'dark');
     const result = getThemeFromElement(el);
-    expect(result.themeId).toBe('hackbuild');
+    expect(result.themeId).toBe('dark');
   });
 
   it('should return inline token overrides', () => {
-    el.setAttribute('data-theme', 'deveco');
-    el.style.setProperty('--color-primary', '#custom');
+    el.setAttribute('data-theme', 'generics');
+    el.style.setProperty('--accent', '#custom');
     const result = getThemeFromElement(el);
-    expect(result.themeId).toBe('deveco');
-    expect(result.overrides['color-primary']).toBe('#custom');
+    expect(result.themeId).toBe('generics');
+    expect(result.overrides['accent']).toBe('#custom');
   });
 });

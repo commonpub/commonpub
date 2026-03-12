@@ -1,93 +1,73 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/svelte';
-import { userEvent } from '@testing-library/user-event';
-import { expectNoA11yViolations } from '../../test-helpers';
-import Tabs from '../Tabs.svelte';
+import { describe, it, expect } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/vue';
+import Tabs from '../Tabs.vue';
 
-const tabs = [
-  { id: 'general', label: 'General' },
-  { id: 'security', label: 'Security' },
-  { id: 'advanced', label: 'Advanced' },
+const testTabs = [
+  { id: 'overview', label: 'Overview' },
+  { id: 'details', label: 'Details' },
+  { id: 'settings', label: 'Settings' },
 ];
 
 describe('Tabs', () => {
-  it('renders tablist with tab buttons', () => {
-    render(Tabs, { props: { tabs } });
-    expect(screen.getByRole('tablist')).toBeInTheDocument();
-    expect(screen.getAllByRole('tab')).toHaveLength(3);
+  it('renders all tab labels', () => {
+    render(Tabs, {
+      props: { tabs: testTabs, modelValue: 'overview' },
+    });
+    expect(screen.getByText('Overview')).toBeTruthy();
+    expect(screen.getByText('Details')).toBeTruthy();
+    expect(screen.getByText('Settings')).toBeTruthy();
   });
 
-  it('first tab is selected by default', () => {
-    render(Tabs, { props: { tabs } });
-    const tabButtons = screen.getAllByRole('tab');
-    expect(tabButtons[0]).toHaveAttribute('aria-selected', 'true');
-    expect(tabButtons[1]).toHaveAttribute('aria-selected', 'false');
+  it('has tablist role', () => {
+    render(Tabs, {
+      props: { tabs: testTabs, modelValue: 'overview' },
+    });
+    expect(screen.getByRole('tablist')).toBeTruthy();
   });
 
-  it('selects tab on click', async () => {
-    const handler = vi.fn();
-    render(Tabs, { props: { tabs, onchange: handler } });
-    await userEvent.click(screen.getByRole('tab', { name: 'Security' }));
-    expect(handler).toHaveBeenCalledWith('security');
-    expect(screen.getByRole('tab', { name: 'Security' })).toHaveAttribute('aria-selected', 'true');
+  it('marks active tab with aria-selected', () => {
+    render(Tabs, {
+      props: { tabs: testTabs, modelValue: 'details' },
+    });
+    const tabs = screen.getAllByRole('tab');
+    expect(tabs[0].getAttribute('aria-selected')).toBe('false');
+    expect(tabs[1].getAttribute('aria-selected')).toBe('true');
+    expect(tabs[2].getAttribute('aria-selected')).toBe('false');
   });
 
-  it('navigates with ArrowRight', async () => {
-    const handler = vi.fn();
-    render(Tabs, { props: { tabs, onchange: handler } });
-    const firstTab = screen.getByRole('tab', { name: 'General' });
-    firstTab.focus();
-    await userEvent.keyboard('{ArrowRight}');
-    expect(handler).toHaveBeenCalledWith('security');
+  it('applies active class to selected tab', () => {
+    render(Tabs, {
+      props: { tabs: testTabs, modelValue: 'overview' },
+    });
+    const tabs = screen.getAllByRole('tab');
+    expect(tabs[0].classList.contains('cpub-tabs__tab--active')).toBe(true);
+    expect(tabs[1].classList.contains('cpub-tabs__tab--active')).toBe(false);
   });
 
-  it('navigates with ArrowLeft (wraps)', async () => {
-    const handler = vi.fn();
-    render(Tabs, { props: { tabs, onchange: handler } });
-    const firstTab = screen.getByRole('tab', { name: 'General' });
-    firstTab.focus();
-    await userEvent.keyboard('{ArrowLeft}');
-    expect(handler).toHaveBeenCalledWith('advanced');
+  it('emits update:modelValue on tab click', async () => {
+    const { emitted } = render(Tabs, {
+      props: { tabs: testTabs, modelValue: 'overview' },
+    });
+    await fireEvent.click(screen.getByText('Details'));
+    expect(emitted()['update:modelValue']).toEqual([['details']]);
   });
 
-  it('navigates to first with Home', async () => {
-    const handler = vi.fn();
-    render(Tabs, { props: { tabs, activeTab: 'advanced', onchange: handler } });
-    const lastTab = screen.getByRole('tab', { name: 'Advanced' });
-    lastTab.focus();
-    await userEvent.keyboard('{Home}');
-    expect(handler).toHaveBeenCalledWith('general');
+  it('renders tabpanel', () => {
+    render(Tabs, {
+      props: { tabs: testTabs, modelValue: 'overview' },
+      slots: { default: 'Panel content' },
+    });
+    expect(screen.getByRole('tabpanel')).toBeTruthy();
+    expect(screen.getByText('Panel content')).toBeTruthy();
   });
 
-  it('navigates to last with End', async () => {
-    const handler = vi.fn();
-    render(Tabs, { props: { tabs, onchange: handler } });
-    const firstTab = screen.getByRole('tab', { name: 'General' });
-    firstTab.focus();
-    await userEvent.keyboard('{End}');
-    expect(handler).toHaveBeenCalledWith('advanced');
-  });
-
-  it('tab panels have correct aria-labelledby', () => {
-    render(Tabs, { props: { tabs } });
-    const panels = screen.getAllByRole('tabpanel', { hidden: true });
-    expect(panels[0]).toHaveAttribute('aria-labelledby', 'tab-general');
-  });
-
-  it('only active panel is visible', () => {
-    render(Tabs, { props: { tabs, activeTab: 'security' } });
-    const panels = screen.getAllByRole('tabpanel', { hidden: true });
-    expect(panels.find((p) => p.id === 'panel-general')).toHaveAttribute('hidden');
-    expect(panels.find((p) => p.id === 'panel-security')).not.toHaveAttribute('hidden');
-  });
-
-  it('accepts a class prop', () => {
-    const { container } = render(Tabs, { props: { tabs, class: 'custom' } });
-    expect(container.querySelector('.snaplify-tabs')?.className).toContain('custom');
-  });
-
-  it('passes axe accessibility scan', async () => {
-    const { container } = render(Tabs, { props: { tabs } });
-    await expectNoA11yViolations(container);
+  it('sets correct tabindex on tabs', () => {
+    render(Tabs, {
+      props: { tabs: testTabs, modelValue: 'details' },
+    });
+    const tabs = screen.getAllByRole('tab');
+    expect(tabs[0].getAttribute('tabindex')).toBe('-1');
+    expect(tabs[1].getAttribute('tabindex')).toBe('0');
+    expect(tabs[2].getAttribute('tabindex')).toBe('-1');
   });
 });

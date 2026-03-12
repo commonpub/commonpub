@@ -1,5 +1,5 @@
 {
-  "name": "@snaplify/editor",
+  "name": "@commonpub/editor",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -20,8 +20,8 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@snaplify/config": "workspace:*",
-    "@snaplify/schema": "workspace:*",
+    "@commonpub/config": "workspace:*",
+    "@commonpub/schema": "workspace:*",
     "@tiptap/core": "^2.11.0",
     "@tiptap/extension-bold": "^2.11.0",
     "@tiptap/extension-code": "^2.11.0",

@@ -135,7 +135,7 @@ export function createTestOAuthClient(overrides?: Partial<TestOAuthClient>): Tes
     id: generateId(),
     clientId: `client-id-${n}`,
     clientSecret: `client-secret-${n}`,
-    redirectUris: [`https://${domain}/api/auth/callback/snaplify-sso`],
+    redirectUris: [`https://${domain}/api/auth/callback/cpub-sso`],
     instanceDomain: domain,
     createdAt: new Date(),
     ...overrides,

@@ -1,6 +1,6 @@
-# @snaplify/editor
+# @commonpub/editor
 
-TipTap block editor extensions and serialization for Snaplify.
+TipTap block editor extensions and serialization for CommonPub.
 
 ## Overview
 
@@ -9,7 +9,7 @@ Block-based content editor built on [TipTap](https://tiptap.dev/). Content is st
 ## Installation
 
 ```bash
-pnpm add @snaplify/editor
+pnpm add @commonpub/editor
 ```
 
 ## Usage
@@ -17,9 +17,9 @@ pnpm add @snaplify/editor
 ### Creating an Editor
 
 ```ts
-import { createSnaplifyEditor } from '@snaplify/editor';
+import { createCommonPubEditor } from '@commonpub/editor';
 
-const editor = createSnaplifyEditor({
+const editor = createCommonPubEditor({
   content: existingBlockTuples, // optional
   onUpdate: (tuples) => {
     // Save block tuples
@@ -31,12 +31,12 @@ const editor = createSnaplifyEditor({
 
 | Type       | Extension           | Description                         |
 | ---------- | ------------------- | ----------------------------------- |
-| `text`     | `SnaplifyText`      | Rich text paragraph                 |
-| `heading`  | `SnaplifyHeading`   | Heading (h1-h6)                     |
-| `code`     | `SnaplifyCodeBlock` | Syntax-highlighted code block       |
-| `image`    | `SnaplifyImage`     | Image with alt text and caption     |
-| `quote`    | `SnaplifyQuote`     | Block quote with attribution        |
-| `callout`  | `SnaplifyCallout`   | Callout box (info, warning, tip)    |
+| `text`     | `CommonPubText`      | Rich text paragraph                 |
+| `heading`  | `CommonPubHeading`   | Heading (h1-h6)                     |
+| `code`     | `CommonPubCodeBlock` | Syntax-highlighted code block       |
+| `image`    | `CommonPubImage`     | Image with alt text and caption     |
+| `quote`    | `CommonPubQuote`     | Block quote with attribution        |
+| `callout`  | `CommonPubCallout`   | Callout box (info, warning, tip)    |
 
 ### BlockTuple Format
 
@@ -57,7 +57,7 @@ const blocks: BlockTuple[] = [
 ### Serialization
 
 ```ts
-import { blockTuplesToDoc, docToBlockTuples, validateBlockTuples } from '@snaplify/editor';
+import { blockTuplesToDoc, docToBlockTuples, validateBlockTuples } from '@commonpub/editor';
 
 // BlockTuples -> ProseMirror document (for TipTap)
 const doc = blockTuplesToDoc(tuples, schema);
@@ -74,7 +74,7 @@ const errors = validateBlockTuples(tuples);
 Register custom block types or use the built-in ones:
 
 ```ts
-import { registerBlock, lookupBlock, listBlocks, registerCoreBlocks } from '@snaplify/editor';
+import { registerBlock, lookupBlock, listBlocks, registerCoreBlocks } from '@commonpub/editor';
 
 // Register all 6 core block types
 registerCoreBlocks();
@@ -83,7 +83,7 @@ registerCoreBlocks();
 registerBlock({
   type: 'embed',
   schema: embedContentSchema,
-  extension: SnaplifyEmbed,
+  extension: CommonPubEmbed,
 });
 
 // Look up a registered block
@@ -98,7 +98,7 @@ const types = listBlocks(); // ['text', 'heading', 'code', ...]
 Use extensions directly for custom editor setups:
 
 ```ts
-import { SnaplifyText, SnaplifyHeading, SnaplifyCodeBlock } from '@snaplify/editor';
+import { CommonPubText, CommonPubHeading, CommonPubCodeBlock } from '@commonpub/editor';
 ```
 
 ### Content Schemas
@@ -113,13 +113,13 @@ import {
   imageContentSchema,
   quoteContentSchema,
   calloutContentSchema,
-} from '@snaplify/editor';
+} from '@commonpub/editor';
 ```
 
 ## Architecture
 
 ```
-Editor Factory (createSnaplifyEditor)
+Editor Factory (createCommonPubEditor)
   -> TipTap Core
        -> Extensions (one per block type)
        -> ProseMirror Schema
@@ -141,5 +141,5 @@ pnpm typecheck    # Type-check without emitting
 - `@tiptap/pm`: ProseMirror bindings
 - `lowlight`: Syntax highlighting for code blocks
 - `zod`: Block content validation
-- `@snaplify/config`: Feature flags
-- `@snaplify/schema`: Content type definitions
+- `@commonpub/config`: Feature flags
+- `@commonpub/schema`: Content type definitions

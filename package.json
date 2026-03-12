@@ -1,5 +1,5 @@
 {
-  "name": "snaplify",
+  "name": "commonpub",
   "private": true,
   "description": "Open ActivityPub federation protocol and package suite for self-hosted maker communities",
   "packageManager": "pnpm@10.10.0",
@@ -26,7 +26,6 @@
     "@typescript-eslint/parser": "^8.0.0",
     "eslint": "^9.0.0",
     "prettier": "^3.4.0",
-    "prettier-plugin-svelte": "^3.3.0",
     "turbo": "^2.4.0",
     "typescript": "^5.7.0",
     "vitest": "^3.0.0"

@@ -12,7 +12,7 @@ export type {
   VersionInfo,
   DocsPage,
   DocsSite,
-} from './types';
+} from './types.js';
 
 // Validators
 export {
@@ -23,12 +23,12 @@ export {
   updateDocsPageSchema,
   docsNavStructureSchema,
   updateDocsNavSchema,
-} from './validators';
+} from './validators.js';
 
 // Rendering
-export { parseFrontmatter } from './render/frontmatter';
-export { extractHeadings, generateHeadingId } from './render/headings';
-export { renderMarkdown, sanitizeHtml } from './render/pipeline';
+export { parseFrontmatter } from './render/frontmatter.js';
+export { extractHeadings, generateHeadingId } from './render/headings.js';
+export { renderMarkdown, sanitizeHtml } from './render/pipeline.js';
 
 // Navigation
 export {
@@ -37,7 +37,7 @@ export {
   buildPagePath,
   flattenNav,
   getPrevNextLinks,
-} from './navigation/tree';
+} from './navigation/tree.js';
 
 // Versioning
 export {
@@ -45,10 +45,10 @@ export {
   compareVersions,
   selectDefaultVersion,
   prepareVersionCopy,
-} from './versioning/manager';
+} from './versioning/manager.js';
 
 // Search
-export { stripMarkdown, buildSearchDocument, buildSearchQuery } from './search/indexer';
+export { stripMarkdown, buildSearchDocument, buildSearchQuery } from './search/indexer.js';
 
 // Search adapters
 export type {
@@ -57,8 +57,8 @@ export type {
   SearchAdapterConfig,
   MeiliSearchClient,
   MeiliIndex,
-} from './search/types';
-export { PostgresSearchAdapter } from './search/postgresAdapter';
-export type { SqlTagFn } from './search/postgresAdapter';
-export { MeilisearchSearchAdapter } from './search/meilisearchAdapter';
-export { createSearchAdapter } from './search/factory';
+} from './search/types.js';
+export { PostgresSearchAdapter } from './search/postgresAdapter.js';
+export type { SqlTagFn } from './search/postgresAdapter.js';
+export { MeilisearchSearchAdapter } from './search/meilisearchAdapter.js';
+export { createSearchAdapter } from './search/factory.js';

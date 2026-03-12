@@ -1,8 +1,8 @@
-# @snaplify/auth
+# @commonpub/auth
 
 > Better Auth wrapper with session management, route guards, role hierarchy, and AP actor SSO.
 
-**npm**: `@snaplify/auth`
+**npm**: `@commonpub/auth`
 **Source**: `packages/auth/src/`
 **Entry**: `packages/auth/src/index.ts`
 
@@ -12,7 +12,7 @@
 
 | Export | Kind | Description |
 |--------|------|-------------|
-| `createAuth` | Function | Creates a Better Auth instance configured for Snaplify |
+| `createAuth` | Function | Creates a Better Auth instance configured for CommonPub |
 | `createAuthHook` | Function | Creates a SvelteKit hook for session resolution |
 | `authGuard` | Function | Requires authenticated user |
 | `adminGuard` | Function | Requires admin/staff role |
@@ -41,12 +41,12 @@
 
 ### `createAuth(options: CreateAuthOptions): AuthInstance`
 
-Creates and configures a Better Auth instance for Snaplify. Maps Better Auth's schema to the Snaplify `users`, `sessions`, and `accounts` tables.
+Creates and configures a Better Auth instance for CommonPub. Maps Better Auth's schema to the CommonPub `users`, `sessions`, and `accounts` tables.
 
 ```typescript
 interface CreateAuthOptions {
   db: DrizzleDB;
-  config: SnaplifyConfig;
+  config: CommonPubConfig;
   secret: string;            // Auth secret for session signing
   baseUrl?: string;           // Base URL for auth endpoints
 }
@@ -65,7 +65,7 @@ Creates a SvelteKit `handle` hook that resolves sessions and populates `event.lo
 interface CreateAuthHookOptions {
   auth: AuthInstance;
   db: DrizzleDB;
-  config: SnaplifyConfig;
+  config: CommonPubConfig;
 }
 ```
 
@@ -73,7 +73,7 @@ interface CreateAuthHookOptions {
 - `user: AuthUser | null`
 - `session: AuthSession | null`
 - `db: DrizzleDB`
-- `config: SnaplifyConfig`
+- `config: CommonPubConfig`
 
 ---
 
@@ -108,7 +108,7 @@ Requires the user's role to be at or above `minRole` in the hierarchy.
 
 #### `createSSOProviderConfig(domain: string): SSOProviderConfig`
 
-Creates an OAuth2 provider configuration for federated SSO with a remote Snaplify instance.
+Creates an OAuth2 provider configuration for federated SSO with a remote CommonPub instance.
 
 ```typescript
 interface SSOProviderConfig {

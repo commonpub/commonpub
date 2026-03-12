@@ -1,17 +1,17 @@
-# @snaplify/docs
+# @commonpub/docs
 
-Pluggable documentation site module for Snaplify.
+Pluggable documentation site module for CommonPub.
 
 ## Overview
 
-Everything needed to run versioned documentation sites within a Snaplify instance: markdown rendering (unified + remark + rehype + shiki), hierarchical navigation, version management, and search with pluggable adapters (Meilisearch primary, Postgres FTS fallback).
+Everything needed to run versioned documentation sites within a CommonPub instance: markdown rendering (unified + remark + rehype + shiki), hierarchical navigation, version management, and search with pluggable adapters (Meilisearch primary, Postgres FTS fallback).
 
 Docs are stored as raw markdown, never TipTap JSON.
 
 ## Installation
 
 ```bash
-pnpm add @snaplify/docs
+pnpm add @commonpub/docs
 ```
 
 ## Usage
@@ -19,7 +19,7 @@ pnpm add @snaplify/docs
 ### Markdown Rendering
 
 ```ts
-import { renderMarkdown } from '@snaplify/docs';
+import { renderMarkdown } from '@commonpub/docs';
 
 const result = await renderMarkdown('# Hello\n\nSome **bold** text.', {
   highlightCode: true,
@@ -31,7 +31,7 @@ const result = await renderMarkdown('# Hello\n\nSome **bold** text.', {
 ### Frontmatter Parsing
 
 ```ts
-import { parseFrontmatter } from '@snaplify/docs';
+import { parseFrontmatter } from '@commonpub/docs';
 
 const { data, content } = parseFrontmatter(`---
 title: Getting Started
@@ -46,7 +46,7 @@ Content here...`);
 ### Heading Extraction
 
 ```ts
-import { extractHeadings, generateHeadingId } from '@snaplify/docs';
+import { extractHeadings, generateHeadingId } from '@commonpub/docs';
 
 const headings = extractHeadings(markdownContent);
 // [{ level: 2, text: 'Installation', id: 'installation' }, ...]
@@ -60,7 +60,7 @@ import {
   buildBreadcrumbs,
   flattenNav,
   getPrevNextLinks,
-} from '@snaplify/docs';
+} from '@commonpub/docs';
 
 // Build a tree from flat page list + nav structure
 const tree = buildPageTree(pages, navStructure);
@@ -80,7 +80,7 @@ import {
   compareVersions,
   selectDefaultVersion,
   prepareVersionCopy,
-} from '@snaplify/docs';
+} from '@commonpub/docs';
 
 // Validate semver-like version strings
 validateVersionString('1.2.0'); // true
@@ -100,8 +100,8 @@ const newVersion = prepareVersionCopy(existingVersion, '2.0.0');
 #### Search Adapter Interface
 
 ```ts
-import { createSearchAdapter } from '@snaplify/docs';
-import type { SearchAdapter, SearchResult } from '@snaplify/docs';
+import { createSearchAdapter } from '@commonpub/docs';
+import type { SearchAdapter, SearchResult } from '@commonpub/docs';
 
 // Auto-select adapter based on environment
 const search = createSearchAdapter({
@@ -128,7 +128,7 @@ Fallback when Meilisearch is not available. Uses PostgreSQL's built-in `tsvector
 #### Building Search Documents
 
 ```ts
-import { stripMarkdown, buildSearchDocument, buildSearchQuery } from '@snaplify/docs';
+import { stripMarkdown, buildSearchDocument, buildSearchQuery } from '@commonpub/docs';
 
 // Strip markdown to plain text for indexing
 const text = stripMarkdown(markdownContent);
@@ -148,7 +148,7 @@ import {
   updateDocsPageSchema,
   docsNavStructureSchema,
   updateDocsNavSchema,
-} from '@snaplify/docs';
+} from '@commonpub/docs';
 ```
 
 ## Development
@@ -168,5 +168,5 @@ pnpm typecheck    # Type-check without emitting
 - `meilisearch`: Meilisearch client
 - `yaml`: Frontmatter parsing
 - `zod`: Validation
-- `@snaplify/config`: Feature flags
-- `@snaplify/schema`: Docs table definitions
+- `@commonpub/config`: Feature flags
+- `@commonpub/schema`: Docs table definitions

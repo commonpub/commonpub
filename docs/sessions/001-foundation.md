@@ -19,16 +19,16 @@
 
 ### Phase 1: Schema + Config + Tokens (In Progress)
 
-#### @snaplify/config (Complete)
+#### @commonpub/config (Complete)
 
-- `defineSnaplifyConfig()` factory with Zod validation
+- `defineCommonPubConfig()` factory with Zod validation
 - Feature flags: communities, docs, video, contests, learning, explainers, federation
 - Auth config: emailPassword, magicLink, passkeys, OAuth, sharedAuthDb, trustedInstances
 - Instance config: domain, name, description, contentTypes, maxUploadSize
 - Warnings: sharedAuthDb Model C, federation without trusted instances, learning without explainers
 - **17 tests passing**
 
-#### @snaplify/schema (Complete)
+#### @commonpub/schema (Complete)
 
 - Drizzle tables ported from hack-build (25 tables) + deveco-io patterns:
   - **Auth**: users, sessions, accounts, organizations, members, federatedAccounts, oauthClients
@@ -48,7 +48,7 @@
 #### CSS Token Surface (Complete)
 
 - `packages/ui/theme/base.css` — complete token contract (colors, typography, spacing, shadows, borders, radii, transitions, z-index, layout, focus ring)
-- `packages/ui/theme/deepwood.css` — Snaplify brand (forest greens, lime #b8f542, Raleway/DM Sans/DM Mono)
+- `packages/ui/theme/deepwood.css` — CommonPub brand (forest greens, lime #b8f542, Raleway/DM Sans/DM Mono)
 - `packages/ui/theme/hackbuild.css` — punk zine (paper #f5f0e6, ink #1a1a1a, accent #ff3366, hard-edge shadows, Permanent Marker)
 - `packages/ui/theme/deveco.css` — clean tech (white, teal/pink, Poppins/Nunito, rounded corners)
 
@@ -73,6 +73,6 @@
 
 ## Next Steps
 
-1. Phase 2: `@snaplify/auth` — Better Auth wrapper with createAuth() factory
-2. Phase 2: `@snaplify/snaplify` — Fedify integration, WebFinger, NodeInfo
+1. Phase 2: `@commonpub/auth` — Better Auth wrapper with createAuth() factory
+2. Phase 2: `@commonpub/protocol` — Fedify integration, WebFinger, NodeInfo
 3. Research: Fedify SvelteKit integration, Better Auth org plugin, AP Actor SSO

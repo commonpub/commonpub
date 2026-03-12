@@ -1,5 +1,5 @@
 {
-  "name": "@snaplify/worker",
+  "name": "@commonpub/worker",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -13,8 +13,8 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@snaplify/schema": "workspace:*",
-    "@snaplify/config": "workspace:*"
+    "@commonpub/schema": "workspace:*",
+    "@commonpub/config": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.7.0",

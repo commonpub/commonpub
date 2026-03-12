@@ -1,7 +1,0 @@
-import { getPlatformStats } from '$lib/server/admin';
-import type { PageServerLoad } from './$types';
-
-export const load: PageServerLoad = async (event) => {
-  const stats = await getPlatformStats(event.locals.db);
-  return { stats };
-};

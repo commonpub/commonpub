@@ -18,7 +18,7 @@
 - Created `MeilisearchSearchAdapter` with per-site indexes, version filtering, highlighted snippets
 - Created `createSearchAdapter()` factory — selects by `meiliClient` presence
 - Exported all adapter types and classes from `packages/docs/src/index.ts`
-- Added `meilisearch` ^0.48.0 to `@snaplify/docs` dependencies
+- Added `meilisearch` ^0.48.0 to `@commonpub/docs` dependencies
 - 21 new tests (7 Postgres, 9 Meilisearch, 5 factory)
 
 ### Step 2: Landing Page

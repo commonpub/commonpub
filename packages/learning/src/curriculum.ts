@@ -1,6 +1,6 @@
-import type { LearningModule, Lesson, CurriculumNode } from './types';
-import { calculatePathProgress } from './progress';
-import { getLessonStatus } from './progress';
+import type { LearningModule, Lesson, CurriculumNode } from './types.js';
+import { calculatePathProgress } from './progress.js';
+import { getLessonStatus } from './progress.js';
 
 /** Flatten all lessons across modules in curriculum order */
 export function flattenLessons(modules: LearningModule[], lessons: Lesson[]): Lesson[] {

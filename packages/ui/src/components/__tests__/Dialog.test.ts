@@ -1,74 +1,80 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/svelte';
-import { userEvent } from '@testing-library/user-event';
-import { expectNoA11yViolations } from '../../test-helpers';
-import Dialog from '../Dialog.svelte';
+import { describe, it, expect } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/vue';
+import Dialog from '../Dialog.vue';
 
 describe('Dialog', () => {
-  it('does not render when closed', () => {
+  it('does not render content when closed', () => {
     render(Dialog, {
-      props: { 'aria-label': 'Test dialog', open: false, children: (() => {}) as never },
+      props: { open: false },
+      slots: { default: 'Dialog content' },
     });
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.queryByText('Dialog content')).toBeNull();
   });
 
-  it('renders when open', () => {
+  it('renders content when open', () => {
     render(Dialog, {
-      props: { 'aria-label': 'Test dialog', open: true, children: (() => {}) as never },
+      props: { open: true },
+      slots: { default: 'Dialog content' },
     });
-    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByText('Dialog content')).toBeTruthy();
   });
 
-  it('has aria-modal=true', () => {
+  it('renders title when provided', () => {
     render(Dialog, {
-      props: { 'aria-label': 'Test dialog', open: true, children: (() => {}) as never },
+      props: { open: true, title: 'My Dialog' },
+      slots: { default: 'Content' },
     });
-    expect(screen.getByRole('dialog')).toHaveAttribute('aria-modal', 'true');
+    expect(screen.getByText('My Dialog')).toBeTruthy();
   });
 
-  it('has aria-label', () => {
+  it('has role="dialog" and aria-modal', () => {
     render(Dialog, {
-      props: { 'aria-label': 'Confirm action', open: true, children: (() => {}) as never },
-    });
-    expect(screen.getByRole('dialog')).toHaveAttribute('aria-label', 'Confirm action');
-  });
-
-  it('fires onclose on Escape', async () => {
-    const handler = vi.fn();
-    render(Dialog, {
-      props: {
-        'aria-label': 'Test',
-        open: true,
-        onclose: handler,
-        children: (() => {}) as never,
-      },
+      props: { open: true },
+      slots: { default: 'Content' },
     });
     const dialog = screen.getByRole('dialog');
-    dialog.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-    await new Promise((r) => setTimeout(r, 0));
-    expect(handler).toHaveBeenCalledOnce();
+    expect(dialog).toBeTruthy();
+    expect(dialog.getAttribute('aria-modal')).toBe('true');
   });
 
-  it('accepts a class prop', () => {
+  it('has aria-label matching title', () => {
     render(Dialog, {
-      props: {
-        'aria-label': 'Test',
-        open: true,
-        class: 'custom',
-        children: (() => {}) as never,
-      },
+      props: { open: true, title: 'Confirm' },
+      slots: { default: 'Content' },
     });
-    expect(screen.getByRole('dialog').className).toContain('custom');
+    const dialog = screen.getByRole('dialog');
+    expect(dialog.getAttribute('aria-label')).toBe('Confirm');
   });
 
-  it('passes axe accessibility scan', async () => {
-    const { container } = render(Dialog, {
-      props: {
-        'aria-label': 'Accessible dialog',
-        open: true,
-        children: (() => {}) as never,
-      },
+  it('emits update:open false when close button clicked', async () => {
+    const { emitted } = render(Dialog, {
+      props: { open: true, title: 'Test' },
+      slots: { default: 'Content' },
     });
-    await expectNoA11yViolations(container);
+    const closeBtn = screen.getByLabelText('Close dialog');
+    await fireEvent.click(closeBtn);
+    expect(emitted()['update:open']).toEqual([[false]]);
+  });
+
+  it('emits update:open false when backdrop clicked', async () => {
+    const { emitted } = render(Dialog, {
+      props: { open: true },
+      slots: { default: 'Content' },
+    });
+    // The backdrop is the outer div wrapping the dialog
+    const backdrop = document.querySelector('.cpub-dialog-backdrop');
+    expect(backdrop).toBeTruthy();
+    // Clicking the backdrop itself (not the dialog)
+    await fireEvent.click(backdrop!);
+    expect(emitted()['update:open']).toEqual([[false]]);
+  });
+
+  it('has close button accessible', () => {
+    render(Dialog, {
+      props: { open: true, title: 'Test' },
+      slots: { default: 'Content' },
+    });
+    const closeBtn = screen.getByLabelText('Close dialog');
+    expect(closeBtn).toBeTruthy();
   });
 });

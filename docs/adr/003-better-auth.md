@@ -10,7 +10,7 @@ Need authentication that supports email/password, OAuth, magic links, passkeys, 
 
 ## Decision
 
-Better Auth as a library (not a service), wrapped in `@snaplify/auth`.
+Better Auth as a library (not a service), wrapped in `@commonpub/auth`.
 
 ## Rationale
 
@@ -22,7 +22,7 @@ Better Auth as a library (not a service), wrapped in `@snaplify/auth`.
 
 ## Consequences
 
-- Auth tables co-located in @snaplify/schema
-- @snaplify/auth wraps Better Auth with `createAuth()` factory
+- Auth tables co-located in @commonpub/schema
+- @commonpub/auth wraps Better Auth with `createAuth()` factory
 - Social providers degrade gracefully when credentials not configured
 - AP SSO implemented as custom Better Auth provider

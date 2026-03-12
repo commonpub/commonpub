@@ -1,13 +1,13 @@
 # Changelog
 
-All notable changes to Snaplify are documented here.
+All notable changes to CommonPub are documented here.
 
 ## v1.0.0 — Launch
 
 ### Token Debt, Admin Polish, Editor & Composer (2026-03-11)
 
 - Fixed 32 non-contract tokens in `packages/ui/src/` (25 font-size→text, 7 surface-elevated→surface-alt/raised)
-- Admin pages: replaced raw HTML inputs/buttons with `@snaplify/ui` Input, Textarea, Button components
+- Admin pages: replaced raw HTML inputs/buttons with `@commonpub/ui` Input, Textarea, Button components
 - Added `name` prop to Input and Textarea components for form submission
 - PostComposer: added share (content ID + comment) and poll (dynamic options, multi-select) post types
 - Added `votePoll` form action with JSON-in-content poll storage
@@ -45,7 +45,7 @@ All notable changes to Snaplify are documented here.
 
 ### Phase 11: CLI & Deployment
 
-- `create-snaplify` Rust CLI with `new` and `init` subcommands
+- `create-commonpub` Rust CLI with `new` and `init` subcommands
 - Multi-stage Dockerfile (node:22-alpine, non-root user)
 - Production docker-compose with health checks
 - DigitalOcean App Platform spec and droplet setup script
@@ -65,7 +65,7 @@ All notable changes to Snaplify are documented here.
 
 ### Phase 9: Docs Module
 
-- `@snaplify/docs` package with markdown rendering pipeline
+- `@commonpub/docs` package with markdown rendering pipeline
 - CodeMirror 6 editor integration
 - Versioned documentation with copy-on-create snapshots
 - Hierarchical navigation (JSONB structure + fallback)
@@ -94,7 +94,7 @@ All notable changes to Snaplify are documented here.
 
 ### Phase 6: Learning System
 
-- `@snaplify/learning` package with learning path engine
+- `@commonpub/learning` package with learning path engine
 - Normalized modules and lessons (not nested JSON)
 - Lesson content types: article, video, quiz, project, explainer
 - Enrollment, progress tracking, auto-certificate at 100%
@@ -103,7 +103,7 @@ All notable changes to Snaplify are documented here.
 
 ### Phase 5: Explainer System
 
-- `@snaplify/explainer` package with three-layer architecture
+- `@commonpub/explainer` package with three-layer architecture
 - Section types: text, code, quiz, comparison, timeline, checklist
 - Quiz engine with deterministic shuffle (mulberry32 seeded PRNG)
 - Progress tracker as pure state machine
@@ -122,24 +122,24 @@ All notable changes to Snaplify are documented here.
 
 ### Phase 3: Core UI Kit & Block Editor
 
-- `@snaplify/ui` — 15 headless Svelte 5 components
-- `@snaplify/editor` — TipTap extensions with BlockTuple serialization
+- `@commonpub/ui` — 15 headless Svelte 5 components
+- `@commonpub/editor` — TipTap extensions with BlockTuple serialization
 - 4 theme CSS files with CSS custom properties
 - axe-core a11y testing on all components
 - 116 UI tests, 69 editor tests
 
 ### Phase 2: Auth & Protocol
 
-- `@snaplify/auth` — Better Auth wrapper with guards and hooks
-- `@snaplify/snaplify` — Fedify wrapper with AP types
-- `@snaplify/test-utils` — Shared test helpers
+- `@commonpub/auth` — Better Auth wrapper with guards and hooks
+- `@commonpub/protocol` — Fedify wrapper with AP types
+- `@commonpub/test-utils` — Shared test helpers
 - AP Actor SSO (Model B) design
 - 42 auth tests, 42 protocol tests, 14 test-utils tests
 
 ### Phase 1: Schema & Config
 
-- `@snaplify/schema` — 43 tests, Drizzle tables + Zod validators
-- `@snaplify/config` — 17 tests, `defineSnaplifyConfig()` factory
+- `@commonpub/schema` — 43 tests, Drizzle tables + Zod validators
+- `@commonpub/config` — 17 tests, `defineCommonPubConfig()` factory
 - CSS token surface — 4 themes (base, deepwood, hackbuild, deveco)
 - UUID PKs, timestamps with timezone, Drizzle relations
 

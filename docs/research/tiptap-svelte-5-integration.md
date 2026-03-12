@@ -4,7 +4,7 @@
 
 ## Question
 
-TipTap has no official Svelte adapter. How should @snaplify/editor integrate TipTap with Svelte 5?
+TipTap has no official Svelte adapter. How should @commonpub/editor integrate TipTap with Svelte 5?
 
 ## Findings
 
@@ -34,9 +34,9 @@ The framework adapters (`@tiptap/react`, `@tiptap/vue-3`) are thin (~200 LOC) an
 
 ### Options for Svelte 5
 
-**Option A: Pure TS extensions in @snaplify/editor + vanilla mount in app**
+**Option A: Pure TS extensions in @commonpub/editor + vanilla mount in app**
 
-- @snaplify/editor exports: extensions, block schemas, serialization, `createSnaplifyEditor()` factory
+- @commonpub/editor exports: extensions, block schemas, serialization, `createCommonPubEditor()` factory
 - Consumer (Phase 4 app) mounts editor to DOM element using `editor.mount()`
 - Svelte 5 `$effect` handles lifecycle
 - NodeViews use vanilla DOM (or Svelte component rendering in Phase 4)
@@ -49,15 +49,15 @@ The framework adapters (`@tiptap/react`, `@tiptap/vue-3`) are thin (~200 LOC) an
 
 ### Decision
 
-**Option A** — Keep @snaplify/editor as pure TypeScript:
+**Option A** — Keep @commonpub/editor as pure TypeScript:
 
 - Extensions are pure TS (no framework dependency)
 - Block schemas use Zod (framework-agnostic)
 - Serialization is pure TS (BlockTuple[] ↔ ProseMirror Doc)
-- `createSnaplifyEditor()` returns a TipTap `Editor` instance
+- `createCommonPubEditor()` returns a TipTap `Editor` instance
 - Svelte rendering is the consumer's concern (Phase 4)
 
-This aligns with the plan's architecture: @snaplify/editor has no Svelte dependency.
+This aligns with the plan's architecture: @commonpub/editor has no Svelte dependency.
 
 ### Serialization: BlockTuple Format
 

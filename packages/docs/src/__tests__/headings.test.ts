@@ -25,7 +25,7 @@ describe('generateHeadingId', () => {
   });
 
   it('should strip special characters', () => {
-    expect(generateHeadingId('What is @snaplify/docs?')).toBe('what-is-snaplify-docs');
+    expect(generateHeadingId('What is @commonpub/docs?')).toBe('what-is-commonpub-docs');
   });
 });
 

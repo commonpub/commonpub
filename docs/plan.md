@@ -1,8 +1,8 @@
-# Snaplify: Master Implementation Plan
+# CommonPub: Master Implementation Plan
 
 ## Context
 
-Snaplify is an open ActivityPub federation protocol and package suite for self-hosted maker communities. Two existing apps (hack-build in Vue 3/Convex, deveco-io in Nuxt 3/tRPC/Drizzle) serve as **reference implementations** — their value is in schemas, business logic, editors, styling patterns, and UX, not in framework code. Everything gets rebuilt in SvelteKit as the plan specifies, but we extract and port the best of both.
+CommonPub is an open ActivityPub federation protocol and package suite for self-hosted maker communities. Two existing apps (hack-build in Vue 3/Convex, deveco-io in Nuxt 3/tRPC/Drizzle) serve as **reference implementations** — their value is in schemas, business logic, editors, styling patterns, and UX, not in framework code. Everything gets rebuilt in SvelteKit as the plan specifies, but we extract and port the best of both.
 
 The user wants this done with extreme care: test-driven, well-documented, accessible, secure, SEO-strong, deployable at any scale, easy to maintain and contribute to. No technical debt. No rushing.
 
@@ -11,8 +11,8 @@ The user wants this done with extreme care: test-driven, well-documented, access
 ## Standing Rules (from plan v4.5 + user instructions)
 
 1. **The schema is the work** — everything else follows from it
-2. **No feature without a flag** in `snaplify.config.ts`
-3. **No hardcoded color or font** in any `@snaplify/ui` or `@snaplify/docs` component — always `var(--*)`
+2. **No feature without a flag** in `commonpub.config.ts`
+3. **No hardcoded color or font** in any `@commonpub/ui` or `@commonpub/docs` component — always `var(--*)`
 4. **Docs stored as raw markdown** — never TipTap JSON
 5. **Communities local-only in v1** — AP Group only after real moderation experience
 6. **"Hub" is retired** — the concept is Community
@@ -31,8 +31,8 @@ The user wants this done with extreme care: test-driven, well-documented, access
 
 | Layer          | Technology                                                         |
 | -------------- | ------------------------------------------------------------------ |
-| Framework      | SvelteKit (adapter-node for apps, adapter-static for snaplify.com) |
-| Auth           | Better Auth via `@snaplify/auth`                                   |
+| Framework      | SvelteKit (adapter-node for apps, adapter-static for commonpub.com) |
+| Auth           | Better Auth via `@commonpub/auth`                                   |
 | Federation     | Fedify (`@fedify/sveltekit`, `@fedify/postgres`, `@fedify/redis`)  |
 | Database       | PostgreSQL 16 + Drizzle ORM                                        |
 | Editor         | TipTap (content blocks), CodeMirror 6 (docs)                       |
@@ -43,7 +43,7 @@ The user wants this done with extreme care: test-driven, well-documented, access
 | Analytics      | Plausible (self-hosted)                                            |
 | Storage        | DO Spaces (S3-compatible)                                          |
 | Queue          | Redis/Valkey                                                       |
-| CLI            | Rust (`create-snaplify`)                                           |
+| CLI            | Rust (`create-commonpub`)                                           |
 | Worker         | TypeScript v1, Rust v2                                             |
 | Monorepo       | Turborepo + pnpm                                                   |
 
@@ -52,20 +52,20 @@ The user wants this done with extreme care: test-driven, well-documented, access
 ## Monorepo Structure
 
 ```
-snaplify/
+commonpub/
   packages/
-    schema/                         @snaplify/schema — Drizzle tables + Zod validators
-    protocol/                       @snaplify/snaplify — Fedify wrapper + AP types
-    auth/                           @snaplify/auth — Better Auth wrapper + AP SSO
-    ui/                             @snaplify/ui — headless Svelte 5 components + theme CSS
-    config/                         @snaplify/config — defineSnaplifyConfig() factory
-    docs/                           @snaplify/docs — pluggable docs site module
-    editor/                         @snaplify/editor — TipTap extensions + block types
-    explainer/                      @snaplify/explainer — interactive module runtime
-    learning/                       @snaplify/learning — learning path engine
-    test-utils/                     @snaplify/test-utils — shared test helpers
+    schema/                         @commonpub/schema — Drizzle tables + Zod validators
+    protocol/                       @commonpub/protocol — Fedify wrapper + AP types
+    auth/                           @commonpub/auth — Better Auth wrapper + AP SSO
+    ui/                             @commonpub/ui — headless Svelte 5 components + theme CSS
+    config/                         @commonpub/config — defineCommonPubConfig() factory
+    docs/                           @commonpub/docs — pluggable docs site module
+    editor/                         @commonpub/editor — TipTap extensions + block types
+    explainer/                      @commonpub/explainer — interactive module runtime
+    learning/                       @commonpub/learning — learning path engine
+    test-utils/                     @commonpub/test-utils — shared test helpers
   tools/
-    create-snaplify/                Rust CLI
+    create-commonpub/                Rust CLI
     worker/                         AP queue worker (TS v1)
   apps/
     reference/                      Reference SvelteKit app (becomes template for CLI)
@@ -99,15 +99,15 @@ snaplify/
 
 ### Phase 1: Schema + Config + Token Surface (Weeks 2-3)
 
-**Goal**: `@snaplify/schema`, `@snaplify/config`, and CSS token surface are locked and tested.
+**Goal**: `@commonpub/schema`, `@commonpub/config`, and CSS token surface are locked and tested.
 
 ### Phase 2: Auth + Protocol (Weeks 4-5)
 
-**Goal**: `@snaplify/auth` and `@snaplify/snaplify` functional. Two local instances exchange AP Actor SSO logins.
+**Goal**: `@commonpub/auth` and `@commonpub/protocol` functional. Two local instances exchange AP Actor SSO logins.
 
 ### Phase 3: Core UI Kit + Block Editor (Weeks 6-8)
 
-**Goal**: `@snaplify/ui` component library + `@snaplify/editor` with all block types.
+**Goal**: `@commonpub/ui` component library + `@commonpub/editor` with all block types.
 
 ### Phase 4: Reference App + Content System (Weeks 9-11)
 
@@ -131,7 +131,7 @@ snaplify/
 
 ### Phase 9: Docs Module (Weeks 25-26)
 
-**Goal**: `@snaplify/docs` with CodeMirror editor, markdown rendering, versioning, search.
+**Goal**: `@commonpub/docs` with CodeMirror editor, markdown rendering, versioning, search.
 
 ### Phase 10: Theming Engine + Admin (Weeks 27-28)
 
@@ -158,11 +158,11 @@ snaplify/
 
 | Source                             | Extract                                                                                                                                                 | Target                                       |
 | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
-| `convex/schema.ts`                 | Full data model: users, projects, posts, comments, likes, follows, hubs, contests, learning paths, enrollments, certificates, explainers, blogs, videos | `@snaplify/schema` Drizzle tables            |
-| `app/src/assets/styles/tokens.css` | Design token surface: paper/ink palette, fonts, spacing, shadows, z-index                                                                               | `@snaplify/ui/theme/base.css` token contract |
-| `app/src/components/editor/`       | 13 block types + editor infrastructure                                                                                                                  | `@snaplify/editor` TipTap extensions         |
-| `convex/learn.ts`                  | Learning path CRUD, enrollment, progress tracking, certificate generation                                                                               | `@snaplify/learning` business logic          |
-| `app/src/stores/editor.store.ts`   | Block CRUD operations, selection, dirty tracking                                                                                                        | `@snaplify/editor` state management          |
+| `convex/schema.ts`                 | Full data model: users, projects, posts, comments, likes, follows, hubs, contests, learning paths, enrollments, certificates, explainers, blogs, videos | `@commonpub/schema` Drizzle tables            |
+| `app/src/assets/styles/tokens.css` | Design token surface: paper/ink palette, fonts, spacing, shadows, z-index                                                                               | `@commonpub/ui/theme/base.css` token contract |
+| `app/src/components/editor/`       | 13 block types + editor infrastructure                                                                                                                  | `@commonpub/editor` TipTap extensions         |
+| `convex/learn.ts`                  | Learning path CRUD, enrollment, progress tracking, certificate generation                                                                               | `@commonpub/learning` business logic          |
+| `app/src/stores/editor.store.ts`   | Block CRUD operations, selection, dirty tracking                                                                                                        | `@commonpub/editor` state management          |
 | `convex/__tests__/`                | Test patterns and coverage map                                                                                                                          | Test strategy reference                      |
 | `app/src/composables/`             | `useUpload`, `useDragReorder`, `useMediaQuery`, `useClipboard`, `useDebounce`, `useInfiniteScroll`                                                      | Svelte equivalents                           |
 
@@ -170,10 +170,10 @@ snaplify/
 
 | Source                               | Extract                                                   | Target                                     |
 | ------------------------------------ | --------------------------------------------------------- | ------------------------------------------ |
-| `packages/db/src/schema/`            | Drizzle ORM syntax and patterns                           | `@snaplify/schema` implementation patterns |
-| `packages/auth/src/config.ts`        | Better Auth config with graceful social provider handling | `@snaplify/auth`                           |
+| `packages/db/src/schema/`            | Drizzle ORM syntax and patterns                           | `@commonpub/schema` implementation patterns |
+| `packages/auth/src/config.ts`        | Better Auth config with graceful social provider handling | `@commonpub/auth`                           |
 | `turbo.json` + `pnpm-workspace.yaml` | Turborepo pipeline config                                 | Monorepo setup                             |
-| `apps/web/assets/css/main.css`       | Color palette, typography, dark/light mode tokens         | `@snaplify/ui/theme/deveco.css`            |
+| `apps/web/assets/css/main.css`       | Color palette, typography, dark/light mode tokens         | `@commonpub/ui/theme/deveco.css`            |
 
 ---
 
@@ -182,7 +182,7 @@ snaplify/
 | Level       | Tool                               | Scope                                                                      |
 | ----------- | ---------------------------------- | -------------------------------------------------------------------------- |
 | Unit        | Vitest                             | Zod validators, config validation, auth flows, AP handlers, business logic |
-| Component   | @testing-library/svelte + axe-core | All `@snaplify/ui` components                                              |
+| Component   | @testing-library/svelte + axe-core | All `@commonpub/ui` components                                              |
 | Integration | Vitest + test Postgres             | API routes, content lifecycle, auth flows                                  |
 | E2E         | Playwright                         | Critical user journeys, cross-instance federation                          |
 
@@ -215,4 +215,4 @@ snaplify/
 - **Build order**: Reference app first (generic), then configure for deveco.io and hack.build
 - **Rust CLI**: Deferred to Phase 11
 - **Explainers as lesson type**: Yes — tight integration between learning and explainer systems
-- **Repo location**: `/Users/obsidian/Projects/ossuary-projects/snaplify`
+- **Repo location**: `/Users/obsidian/Projects/ossuary-projects/commonpub`

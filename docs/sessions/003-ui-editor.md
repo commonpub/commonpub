@@ -11,10 +11,10 @@
   - `docs/research/tiptap-svelte-5-integration.md` — Pure TS editor strategy, no Svelte adapter needed
   - `docs/research/svelte-component-testing.md` — @testing-library/svelte v5 + axe-core testing stack
 - Created 2 ADRs:
-  - `docs/adr/011-svelte-build-system.md` — svelte-package replaces tsc for @snaplify/ui
+  - `docs/adr/011-svelte-build-system.md` — svelte-package replaces tsc for @commonpub/ui
   - `docs/adr/012-tiptap-architecture.md` — Pure TypeScript editor with BlockTuple serialization
 
-### @snaplify/ui — 15 Headless Components (116 tests)
+### @commonpub/ui — 15 Headless Components (116 tests)
 
 - **Build infrastructure**: svelte-package, svelte-check, @sveltejs/vite-plugin-svelte in vitest, jsdom with browser resolve conditions
 - **Components** (all accept `class` prop, all use `var(--*)` tokens):
@@ -35,16 +35,16 @@
   15. Stack — Flex layout with direction, gap, align, justify props
   16. Separator — role=separator, horizontal/vertical orientation
 
-### @snaplify/editor — Block Type System + Extensions (69 tests)
+### @commonpub/editor — Block Type System + Extensions (69 tests)
 
 - **Block type system**: BlockTuple type, BlockDefinition interface, Zod content schemas
 - **6 core block types** with schemas: text, heading, code, image, quote, callout
 - **Block registry**: register, lookup, list, validate, clearRegistry, registerCoreBlocks
 - **Serialization**: blockTuplesToDoc, docToBlockTuples, validateBlockTuples, buildEditorSchema
-- **6 TipTap extensions**: SnaplifyText, SnaplifyHeading, SnaplifyCodeBlock, SnaplifyImage, SnaplifyQuote, SnaplifyCallout
+- **6 TipTap extensions**: CommonPubText, CommonPubHeading, CommonPubCodeBlock, CommonPubImage, CommonPubQuote, CommonPubCallout
   - Input rules: `# ` for headings, ` ``` ` for code, `> ` for quotes, `:::variant` for callouts
   - Keyboard shortcuts: Mod-Alt-1..4 for headings, Mod-Alt-c for code, Mod-Shift-b for quote
-- **Editor factory**: createSnaplifyEditor() with content loading, onUpdate callback, extensibility
+- **Editor factory**: createCommonPubEditor() with content loading, onUpdate callback, extensibility
 - **Type-safe commands**: Proper TypeScript module augmentation for all custom commands
 
 ## Decisions Made
@@ -59,13 +59,13 @@
 
 | Package                         | Tests   | Files  |
 | ------------------------------- | ------- | ------ |
-| @snaplify/schema                | 43      | 2      |
-| @snaplify/config                | 17      | 1      |
-| @snaplify/auth                  | 42      | 6      |
-| @snaplify/snaplify              | 42      | 6      |
-| @snaplify/test-utils            | 14      | 2      |
-| @snaplify/ui                    | 116     | 16     |
-| @snaplify/editor                | 69      | 11     |
+| @commonpub/schema                | 43      | 2      |
+| @commonpub/config                | 17      | 1      |
+| @commonpub/auth                  | 42      | 6      |
+| @commonpub/protocol              | 42      | 6      |
+| @commonpub/test-utils            | 14      | 2      |
+| @commonpub/ui                    | 116     | 16     |
+| @commonpub/editor                | 69      | 11     |
 | Stubs (docs/explainer/learning) | 3       | 3      |
 | **Total**                       | **346** | **47** |
 

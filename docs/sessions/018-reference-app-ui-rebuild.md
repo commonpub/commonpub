@@ -6,11 +6,11 @@
 ## What Was Done
 
 ### Part 1: Theme + Layout + Nav (Foundation)
-- **Added `generics` theme** to `@snaplify/ui` — dark minimal palette (#0c0c0b bg, #5b9cf6 blue accent, #d8d5cf text) with monospace UI labels
+- **Added `generics` theme** to `@commonpub/ui` — dark minimal palette (#0c0c0b bg, #5b9cf6 blue accent, #d8d5cf text) with monospace UI labels
 - Created `packages/ui/theme/generics.css` with full token contract
 - Added `generics` as first theme in `BUILT_IN_THEMES` (new default)
 - **Rebuilt root layout** (`+layout.svelte`) — imports all theme CSS, applies `generics` as default, global dark styles
-- **Rebuilt Nav** — sticky nav with monospace labels, search icon, `Button` + `Avatar` from `@snaplify/ui`, active link highlighting
+- **Rebuilt Nav** — sticky nav with monospace labels, search icon, `Button` + `Avatar` from `@commonpub/ui`, active link highlighting
 - **Rebuilt Footer** — 4-column grid (brand, product, community, developers), monospace headings
 
 ### Part 2: Browse & Discovery Pages
@@ -34,7 +34,7 @@
 - **Community page** rebuilt — feed filter pills (all/discussion/links/shared), member sidebar with avatars + role badges, about card with meta
 
 ### Part 5: Editor
-- **Create page** rebuilt — clean editor layout with inline title input, description textarea, editor with toolbar label, monospace tag input, Save Draft / Publish buttons using `@snaplify/ui` Button
+- **Create page** rebuilt — clean editor layout with inline title input, description textarea, editor with toolbar label, monospace tag input, Save Draft / Publish buttons using `@commonpub/ui` Button
 
 ### Part 6: Dashboard + Components
 - **Dashboard** rebuilt — stats row (4 cards: total/published/views/communities), monospace tab navigation, content table with Badge for status, Dialog for delete confirmation
@@ -79,8 +79,8 @@
 - `apps/reference/src/lib/server/content.ts` (sort/featured/difficulty)
 
 ## Verification Results
-- `pnpm --filter @snaplify/ui build` — passes
-- `pnpm --filter @snaplify/reference build` — passes
+- `pnpm --filter @commonpub/ui build` — passes
+- `pnpm --filter @commonpub/reference build` — passes
 - `pnpm typecheck` — 0 errors, 82 warnings (benign Svelte state refs)
 - `pnpm test` — all 27 tasks pass, all tests pass
 - `pnpm lint` — 0 errors, 29 warnings (pre-existing)
@@ -93,7 +93,7 @@
 5. **Magazine home** — featured hero (split card) + section grids with "View all" links, replacing flat content list
 
 ## What Remains
-- Admin pages (admin, users, reports) — need @snaplify/ui component integration
+- Admin pages (admin, users, reports) — need @commonpub/ui component integration
 - Dashboard settings — theme picker with live preview
 - Editor improvements — block insertion toolbar buttons
 - Community settings — shared content management UI

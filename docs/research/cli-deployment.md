@@ -103,7 +103,7 @@ CMD ["node", "build"]
 
 ```yaml
 # .do/app.yaml
-name: snaplify
+name: commonpub
 services:
   - name: app
     dockerfile_path: deploy/Dockerfile
@@ -188,11 +188,11 @@ jobs:
 
 ### Existing CI Considerations
 
-- Snaplify already has Turborepo — `turbo run build test lint typecheck` in CI
+- CommonPub already has Turborepo — `turbo run build test lint typecheck` in CI
 - Docker build should reuse Turborepo cache where possible
 - Matrix strategy unnecessary — single SvelteKit app target
 
-## Decisions for Snaplify
+## Decisions for CommonPub
 
 1. **Rust CLI via clap** — single binary, `dialoguer` for prompts, `include_dir` for templates
 2. **Three-stage Docker build** — deps → build → runtime on node:22-alpine

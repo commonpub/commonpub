@@ -13,7 +13,7 @@ declare module '@tiptap/core' {
   }
 }
 
-export const SnaplifyHeading = Node.create<HeadingOptions>({
+export const CommonPubHeading = Node.create<HeadingOptions>({
   name: 'heading',
   group: 'block',
   content: 'inline*',

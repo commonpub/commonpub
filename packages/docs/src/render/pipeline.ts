@@ -6,9 +6,9 @@ import remarkRehype from 'remark-rehype';
 import rehypeStringify from 'rehype-stringify';
 import rehypeSlug from 'rehype-slug';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
-import type { RenderOptions, RenderResult } from '../types';
-import { parseFrontmatter } from './frontmatter';
-import { extractHeadings } from './headings';
+import type { RenderOptions, RenderResult } from '../types.js';
+import { parseFrontmatter } from './frontmatter.js';
+import { extractHeadings } from './headings.js';
 
 const sanitizeSchema = {
   ...defaultSchema,
@@ -73,7 +73,7 @@ export async function renderMarkdown(
 }
 
 /**
- * Defense-in-depth HTML sanitizer for use with {@html} in Svelte templates.
+ * Defense-in-depth HTML sanitizer for use with v-html in Vue templates.
  * Strips script tags, event handlers, and dangerous URIs.
  */
 export function sanitizeHtml(html: string): string {

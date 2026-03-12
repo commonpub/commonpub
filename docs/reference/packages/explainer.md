@@ -1,8 +1,8 @@
-# @snaplify/explainer
+# @commonpub/explainer
 
 > Interactive explainer module runtime: section registry, quiz engine, progress tracking, rendering, and HTML export.
 
-**npm**: `@snaplify/explainer`
+**npm**: `@commonpub/explainer`
 **Source**: `packages/explainer/src/`
 **Entry**: `packages/explainer/src/index.ts`
 

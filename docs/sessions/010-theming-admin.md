@@ -21,10 +21,10 @@
 ### Step 2: Config — Feature Flag
 
 - Added `admin: boolean` (default `false`) to `FeatureFlags` interface and Zod schema
-- Updated `@snaplify/test-utils` mockConfig to include `admin: false`
+- Updated `@commonpub/test-utils` mockConfig to include `admin: false`
 - 2 new config tests (admin flag default, admin flag enable)
 
-### Step 3: Theme Utilities — `@snaplify/ui`
+### Step 3: Theme Utilities — `@commonpub/ui`
 
 - Created `packages/ui/src/theme.ts` with `BUILT_IN_THEMES`, `isValidThemeId`, `validateTokenOverrides`, `applyThemeToElement`, `getThemeFromElement`, `TOKEN_NAMES`
 - Changed CSS selectors: `deepwood.css`, `hackbuild.css`, `deveco.css` from `:root` to `[data-theme="themeName"]`; `base.css` stays as `:root`
@@ -73,9 +73,9 @@
 
 | Package          | Before | After | Delta   |
 | ---------------- | ------ | ----- | ------- |
-| @snaplify/schema | 58     | 74    | +16     |
-| @snaplify/config | 21     | 23    | +2      |
-| @snaplify/ui     | 116    | 133   | +17     |
+| @commonpub/schema | 58     | 74    | +16     |
+| @commonpub/config | 21     | 23    | +2      |
+| @commonpub/ui     | 116    | 133   | +17     |
 | **Total**        | 834    | 869   | **+35** |
 
 Note: Admin server functions (Steps 4-5) and routes (Steps 7-8) don't have standalone unit tests — they're integration-tested against a real DB (covered in Phase 4 pattern). Component tests (Step 6) would require Svelte component testing setup in the reference app, which follows the pattern from Phase 3.

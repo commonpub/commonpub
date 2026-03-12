@@ -1,4 +1,4 @@
-import type { WebFingerResponse, ParsedResource } from './types';
+import type { WebFingerResponse, ParsedResource } from './types.js';
 
 export function parseWebFingerResource(resource: string): ParsedResource | null {
   const acctPrefix = 'acct:';

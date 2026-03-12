@@ -1,13 +1,13 @@
 import { describe, it, expect, vi } from 'vitest';
 import { createSSOProviderConfig, discoverOAuthEndpoint, isTrustedInstance } from '../../sso';
-import { buildWebFingerResponse } from '@snaplify/snaplify';
-import { validateAuthorizeRequest, validateTokenRequest } from '@snaplify/snaplify';
-import type { OAuthClient } from '@snaplify/snaplify';
+import { buildWebFingerResponse } from '@commonpub/protocol';
+import { validateAuthorizeRequest, validateTokenRequest } from '@commonpub/protocol';
+import type { OAuthClient } from '@commonpub/protocol';
 
 /**
  * Integration test: AP Actor SSO flow (Model B)
  *
- * Simulates two Snaplify instances exchanging OAuth SSO logins.
+ * Simulates two CommonPub instances exchanging OAuth SSO logins.
  * All network calls are mocked at the fetch level.
  */
 
@@ -53,7 +53,7 @@ const instanceBConfig = {
 const registeredClient: OAuthClient = {
   clientId: 'instance-b-client-id',
   clientSecret: 'instance-b-client-secret',
-  redirectUris: ['https://instance-b.example.com/api/auth/callback/snaplify-sso'],
+  redirectUris: ['https://instance-b.example.com/api/auth/callback/cpub-sso'],
   instanceDomain: 'instance-b.example.com',
 };
 
@@ -104,7 +104,7 @@ describe('AP Actor SSO Flow (Model B)', () => {
     const error = validateAuthorizeRequest(
       {
         clientId: 'instance-b-client-id',
-        redirectUri: 'https://instance-b.example.com/api/auth/callback/snaplify-sso',
+        redirectUri: 'https://instance-b.example.com/api/auth/callback/cpub-sso',
         responseType: 'code',
         scope: 'openid profile',
         state: 'random-state-123',
@@ -136,7 +136,7 @@ describe('AP Actor SSO Flow (Model B)', () => {
         code: 'auth-code-abc123',
         clientId: 'instance-b-client-id',
         clientSecret: 'instance-b-client-secret',
-        redirectUri: 'https://instance-b.example.com/api/auth/callback/snaplify-sso',
+        redirectUri: 'https://instance-b.example.com/api/auth/callback/cpub-sso',
       },
       registeredClient,
     );
@@ -151,7 +151,7 @@ describe('AP Actor SSO Flow (Model B)', () => {
         code: 'auth-code-abc123',
         clientId: 'instance-b-client-id',
         clientSecret: 'wrong-secret',
-        redirectUri: 'https://instance-b.example.com/api/auth/callback/snaplify-sso',
+        redirectUri: 'https://instance-b.example.com/api/auth/callback/cpub-sso',
       },
       registeredClient,
     );

@@ -1,11 +1,11 @@
-# Contributing to Snaplify
+# Contributing to CommonPub
 
 ## Getting Started
 
 ```bash
 # Clone the repo
-git clone https://github.com/snaplify/snaplify.git
-cd snaplify
+git clone https://github.com/commonpub/commonpub.git
+cd commonpub
 
 # Install dependencies
 pnpm install

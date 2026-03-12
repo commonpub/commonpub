@@ -1,79 +1,117 @@
 /* ===========================================
-   Snaplify Token Contract — base.css
-   All @snaplify/ui components reference these
-   tokens exclusively. Themes override values.
+   CommonPub Token Contract — base.css
+   Design: unified-v2 aesthetic + hack.build readability
+   Sharp corners, 2px borders, offset shadows,
+   JetBrains Mono labels, blue accent.
    =========================================== */
 
 :root {
-  /* === COLOR PALETTE === */
+  /* === SURFACES === */
+  --bg: #fafaf9;
+  --surface: #ffffff;
+  --surface2: #f4f4f2;
+  --surface3: #eaeae7;
 
-  /* Surface (Backgrounds) */
-  --color-surface: #ffffff;
-  --color-surface-alt: #f8f9fa;
-  --color-surface-raised: #ffffff;
+  /* Aliases for backwards compat */
+  --color-surface: var(--surface);
+  --color-surface-alt: var(--surface2);
+  --color-surface-raised: var(--surface);
   --color-surface-overlay: rgba(0, 0, 0, 0.5);
-  --color-surface-hover: #f3f4f6;
-  --color-bg-subtle: #f8f9fa;
+  --color-surface-hover: var(--surface2);
+  --color-bg-subtle: var(--bg);
 
-  /* Text */
-  --color-text: #1a1a1a;
-  --color-text-secondary: #555555;
-  --color-text-muted: #888888;
+  /* === TEXT === */
+  --text: #1a1a1a;
+  --text-dim: #6b6b66;
+  --text-faint: #a3a39e;
+
+  --color-text: var(--text);
+  --color-text-secondary: var(--text-dim);
+  --color-text-muted: var(--text-faint);
   --color-text-inverse: #ffffff;
 
-  /* Brand */
-  --color-primary: #3b82f6;
-  --color-primary-hover: #2563eb;
+  /* === BORDERS === */
+  --border: #1a1a1a;
+  --border2: #d4d4d0;
+
+  --color-border: var(--border2);
+  --color-border-strong: var(--border);
+  --color-border-focus: var(--accent);
+
+  /* === ACCENT (blue) === */
+  --accent: #5b9cf6;
+  --accent-bg: rgba(91, 156, 246, 0.08);
+  --accent-border: rgba(91, 156, 246, 0.25);
+
+  --color-primary: var(--accent);
+  --color-primary-hover: #4a8be5;
   --color-primary-text: #ffffff;
   --color-on-primary: #ffffff;
-
-  /* Accent */
-  --color-accent: #8b5cf6;
-  --color-accent-hover: #7c3aed;
+  --color-accent: var(--accent);
+  --color-accent-hover: #4a8be5;
   --color-accent-text: #ffffff;
   --color-on-accent: #ffffff;
-  --color-accent-bg: rgba(139, 92, 246, 0.1);
-  --color-accent-border: rgba(139, 92, 246, 0.22);
+  --color-accent-bg: var(--accent-bg);
+  --color-accent-border: var(--accent-border);
 
-  /* Semantic */
-  --color-success: #22c55e;
-  --color-warning: #f59e0b;
-  --color-error: #ef4444;
-  --color-info: #3b82f6;
+  /* === SEMANTIC COLORS === */
+  --green: #22c55e;
+  --green-bg: rgba(34, 197, 94, 0.08);
+  --green-border: rgba(34, 197, 94, 0.25);
 
-  /* Semantic Backgrounds */
-  --color-success-bg: rgba(34, 197, 94, 0.1);
-  --color-warning-bg: rgba(245, 158, 11, 0.1);
-  --color-error-bg: rgba(239, 68, 68, 0.1);
-  --color-info-bg: rgba(59, 130, 246, 0.1);
+  --yellow: #f59e0b;
+  --yellow-bg: rgba(245, 158, 11, 0.08);
+  --yellow-border: rgba(245, 158, 11, 0.25);
 
-  /* Borders */
-  --color-border: #e5e7eb;
-  --color-border-strong: #d1d5db;
-  --color-border-focus: var(--color-primary);
+  --red: #ef4444;
+  --red-bg: rgba(239, 68, 68, 0.08);
+  --red-border: rgba(239, 68, 68, 0.25);
 
-  /* Interactive */
-  --color-link: var(--color-primary);
-  --color-link-hover: var(--color-primary-hover);
+  --purple: #8b5cf6;
+  --purple-bg: rgba(139, 92, 246, 0.08);
+  --purple-border: rgba(139, 92, 246, 0.25);
+
+  --teal: #14b8a6;
+  --teal-bg: rgba(20, 184, 166, 0.08);
+  --teal-border: rgba(20, 184, 166, 0.25);
+
+  --pink: #ec4899;
+  --pink-bg: rgba(236, 72, 153, 0.08);
+  --pink-border: rgba(236, 72, 153, 0.25);
+
+  --color-success: var(--green);
+  --color-warning: var(--yellow);
+  --color-error: var(--red);
+  --color-info: var(--accent);
+  --color-success-bg: var(--green-bg);
+  --color-warning-bg: var(--yellow-bg);
+  --color-error-bg: var(--red-bg);
+  --color-info-bg: var(--accent-bg);
+
+  /* === INTERACTIVE === */
+  --color-link: var(--accent);
+  --color-link-hover: #4a8be5;
 
   /* === TYPOGRAPHY === */
+  --font-sans: system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 
-  --font-heading: system-ui, -apple-system, sans-serif;
-  --font-body: system-ui, -apple-system, sans-serif;
-  --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  --font-heading: var(--font-sans);
+  --font-body: var(--font-sans);
 
-  /* Font Sizes (modular scale ~1.25) */
-  --text-xs: 0.6875rem;
-  --text-sm: 0.75rem;
-  --text-base: 0.875rem;
-  --text-md: 1rem;
-  --text-lg: 1.125rem;
-  --text-xl: 1.25rem;
-  --text-2xl: 1.5rem;
-  --text-3xl: 1.75rem;
-  --text-4xl: 2.25rem;
-  --text-5xl: 3rem;
-  --text-6xl: 4rem;
+  /* Font Sizes — bumped +2px from unified-v2 mockup for readability */
+  --text-xs: 0.75rem;     /* 12px (was 10px) */
+  --text-sm: 0.875rem;    /* 14px (was 12px) */
+  --text-base: 1rem;      /* 16px (was 14px) */
+  --text-md: 1.125rem;    /* 18px */
+  --text-lg: 1.25rem;     /* 20px */
+  --text-xl: 1.375rem;    /* 22px */
+  --text-2xl: 1.75rem;    /* 28px */
+  --text-3xl: 2.25rem;    /* 36px */
+  --text-4xl: 3rem;       /* 48px */
+  --text-5xl: 3.75rem;    /* 60px */
+  --text-6xl: 4.5rem;     /* 72px */
+  --text-label: 0.6875rem; /* 11px — monospace UI labels */
 
   /* Font Weights */
   --font-weight-normal: 400;
@@ -81,17 +119,18 @@
   --font-weight-semibold: 600;
   --font-weight-bold: 700;
 
-  /* Line Heights */
-  --leading-tight: 1.1;
-  --leading-snug: 1.3;
-  --leading-normal: 1.6;
-  --leading-relaxed: 1.8;
+  /* Line Heights — increased for readability */
+  --leading-tight: 1.2;
+  --leading-snug: 1.4;
+  --leading-normal: 1.7;  /* was 1.5, bumped for hack.build readability */
+  --leading-relaxed: 1.9;
 
   /* Letter Spacing */
   --tracking-tight: -0.02em;
   --tracking-normal: 0;
-  --tracking-wide: 0.05em;
-  --tracking-wider: 0.1em;
+  --tracking-wide: 0.04em;
+  --tracking-wider: 0.08em;
+  --tracking-widest: 0.12em;  /* for uppercase mono labels */
 
   /* === SPACING (4px base) === */
   --space-1: 0.25rem;
@@ -99,32 +138,34 @@
   --space-3: 0.75rem;
   --space-4: 1rem;
   --space-5: 1.25rem;
-  --space-6: 1.5rem;
+  --space-6: 1.5rem;     /* 24px — card body padding (increased from 20px) */
   --space-8: 2rem;
   --space-10: 2.5rem;
-  --space-12: 3rem;
+  --space-12: 3rem;       /* 48px section padding */
   --space-16: 4rem;
   --space-20: 5rem;
-  --space-24: 6rem;
+  --space-24: 6rem;       /* 72px section spacing */
 
-  /* === BORDERS === */
+  /* === SHAPE === */
+  --radius: 0px;           /* sharp corners — the commonpub signature */
+  --radius-none: 0;
+  --radius-sm: 2px;
+  --radius-md: 0;          /* override: sharp corners */
+  --radius-lg: 0;
+  --radius-xl: 0;
+  --radius-2xl: 0;
+  --radius-full: 50%;      /* avatars only */
+
   --border-width-thin: 1px;
-  --border-width-default: 2px;
+  --border-width-default: 2px;  /* strong 2px borders — the commonpub signature */
   --border-width-thick: 3px;
 
-  --radius-none: 0;
-  --radius-sm: 0.125rem;
-  --radius-md: 0.25rem;
-  --radius-lg: 0.5rem;
-  --radius-xl: 0.75rem;
-  --radius-2xl: 1rem;
-  --radius-full: 50%;
-
-  /* === SHADOWS === */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
-  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
-  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.1);
+  /* === SHADOWS (offset, no blur — the commonpub signature) === */
+  --shadow-sm: 2px 2px 0 var(--border);
+  --shadow-md: 4px 4px 0 var(--border);
+  --shadow-lg: 6px 6px 0 var(--border);
+  --shadow-xl: 8px 8px 0 var(--border);
+  --shadow-accent: 4px 4px 0 var(--accent);
 
   /* === TRANSITIONS === */
   --transition-fast: 0.1s ease;
@@ -141,12 +182,38 @@
   --z-tooltip: 1100;
 
   /* === LAYOUT === */
-  --nav-height: 4rem;
-  --subnav-height: 3rem;
-  --sidebar-width: 17.5rem;
-  --content-max-width: 75rem;
-  --content-wide-max-width: 90rem;
+  --nav-height: 3rem;       /* 48px topbar */
+  --subnav-height: 2.75rem;
+  --sidebar-width: 12.5rem; /* 200px fixed sidebar */
+  --content-max-width: 60rem; /* 960px */
+  --content-wide-max-width: 75rem;
 
   /* === FOCUS === */
-  --focus-ring: 0 0 0 2px var(--color-surface), 0 0 0 4px var(--color-border-focus);
+  --focus-ring: var(--shadow-accent);
 }
+
+/* === BASE STYLES === */
+body {
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  color: var(--text);
+  background-color: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  border-radius: var(--radius);
+}
+
+/* === CONTENT TYPE BADGE COLORS === */
+[data-content-type="article"] { --badge-color: var(--accent); --badge-bg: var(--accent-bg); }
+[data-content-type="blog"] { --badge-color: var(--green); --badge-bg: var(--green-bg); }
+[data-content-type="project"] { --badge-color: var(--purple); --badge-bg: var(--purple-bg); }
+[data-content-type="explainer"] { --badge-color: var(--teal); --badge-bg: var(--teal-bg); }
+[data-content-type="video"] { --badge-color: var(--red); --badge-bg: var(--red-bg); }
+[data-content-type="tutorial"] { --badge-color: var(--yellow); --badge-bg: var(--yellow-bg); }

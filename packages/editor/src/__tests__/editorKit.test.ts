@@ -1,17 +1,17 @@
 import { describe, it, expect, vi } from 'vitest';
-import { createSnaplifyEditor } from '../editorKit';
+import { createCommonPubEditor } from '../editorKit';
 import type { BlockTuple } from '../blocks/types';
 
-describe('createSnaplifyEditor', () => {
+describe('createCommonPubEditor', () => {
   it('creates an editor instance', () => {
-    const editor = createSnaplifyEditor();
+    const editor = createCommonPubEditor();
     expect(editor).toBeDefined();
     expect(editor.isEditable).toBe(true);
     editor.destroy();
   });
 
   it('creates a read-only editor when editable=false', () => {
-    const editor = createSnaplifyEditor({ editable: false });
+    const editor = createCommonPubEditor({ editable: false });
     expect(editor.isEditable).toBe(false);
     editor.destroy();
   });
@@ -21,7 +21,7 @@ describe('createSnaplifyEditor', () => {
       ['heading', { text: 'Hello', level: 1 }],
       ['text', { html: '<p>World</p>' }],
     ];
-    const editor = createSnaplifyEditor({ content });
+    const editor = createCommonPubEditor({ content });
     const text = editor.getText();
     expect(text).toContain('Hello');
     expect(text).toContain('World');
@@ -30,7 +30,7 @@ describe('createSnaplifyEditor', () => {
 
   it('fires onUpdate callback with BlockTuples', async () => {
     const handler = vi.fn();
-    const editor = createSnaplifyEditor({ onUpdate: handler });
+    const editor = createCommonPubEditor({ onUpdate: handler });
 
     // Insert some text
     editor.commands.insertContent('<p>New content</p>');
@@ -48,7 +48,7 @@ describe('createSnaplifyEditor', () => {
   });
 
   it('includes core extensions for all 6 block types', () => {
-    const editor = createSnaplifyEditor();
+    const editor = createCommonPubEditor();
     const nodeTypes = Object.keys(editor.schema.nodes);
     expect(nodeTypes).toContain('paragraph');
     expect(nodeTypes).toContain('heading');
@@ -60,7 +60,7 @@ describe('createSnaplifyEditor', () => {
   });
 
   it('includes mark extensions', () => {
-    const editor = createSnaplifyEditor();
+    const editor = createCommonPubEditor();
     const markTypes = Object.keys(editor.schema.marks);
     expect(markTypes).toContain('bold');
     expect(markTypes).toContain('italic');
@@ -71,7 +71,7 @@ describe('createSnaplifyEditor', () => {
 
   it('accepts additional extensions', () => {
     // Just verify it doesn't throw with extra extensions
-    const editor = createSnaplifyEditor({ extensions: [] });
+    const editor = createCommonPubEditor({ extensions: [] });
     expect(editor).toBeDefined();
     editor.destroy();
   });

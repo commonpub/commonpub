@@ -75,7 +75,7 @@ describe('createTestOAuthClient', () => {
     expect(client.clientId).toBeDefined();
     expect(client.clientSecret).toBeDefined();
     expect(client.redirectUris).toHaveLength(1);
-    expect(client.redirectUris[0]).toContain('/api/auth/callback/snaplify-sso');
+    expect(client.redirectUris[0]).toContain('/api/auth/callback/cpub-sso');
   });
 
   it('should use provided instanceDomain in redirectUri', () => {

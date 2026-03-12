@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { parseWebFingerResource } from './webfinger';
+import { parseWebFingerResource } from './webfinger.js';
 
 /** Minimal AP actor shape for validation */
 const apActorSchema = z.object({

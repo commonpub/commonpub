@@ -1,4 +1,4 @@
-// @snaplify/ui — Headless Svelte 5 component library
+// @commonpub/ui — Vue 3 component library
 
 // Theme utilities
 export {
@@ -8,23 +8,33 @@ export {
   validateTokenOverrides,
   applyThemeToElement,
   getThemeFromElement,
-} from './theme';
-export type { ThemeDefinition } from './theme';
+} from './theme.js';
+export type { ThemeDefinition } from './theme.js';
 
-// Components
-export { default as VisuallyHidden } from './components/VisuallyHidden.svelte';
-export { default as Button } from './components/Button.svelte';
-export { default as IconButton } from './components/IconButton.svelte';
-export { default as Input } from './components/Input.svelte';
-export { default as Textarea } from './components/Textarea.svelte';
-export { default as Select } from './components/Select.svelte';
-export { default as Tooltip } from './components/Tooltip.svelte';
-export { default as Popover } from './components/Popover.svelte';
-export { default as Menu } from './components/Menu.svelte';
-export { default as MenuItem } from './components/MenuItem.svelte';
-export { default as Dialog } from './components/Dialog.svelte';
-export { default as Tabs } from './components/Tabs.svelte';
-export { default as Badge } from './components/Badge.svelte';
-export { default as Avatar } from './components/Avatar.svelte';
-export { default as Stack } from './components/Stack.svelte';
-export { default as Separator } from './components/Separator.svelte';
+// Foundation components
+export { default as VisuallyHidden } from './components/VisuallyHidden.vue';
+export { default as Button } from './components/Button.vue';
+export { default as IconButton } from './components/IconButton.vue';
+export { default as Input } from './components/Input.vue';
+export { default as Textarea } from './components/Textarea.vue';
+export { default as Select } from './components/Select.vue';
+export { default as Badge } from './components/Badge.vue';
+export { default as Avatar } from './components/Avatar.vue';
+export { default as Separator } from './components/Separator.vue';
+export { default as Stack } from './components/Stack.vue';
+
+// Compound components
+export { default as Tooltip } from './components/Tooltip.vue';
+export { default as Popover } from './components/Popover.vue';
+export { default as Menu } from './components/Menu.vue';
+export { default as MenuItem } from './components/MenuItem.vue';
+export { default as Dialog } from './components/Dialog.vue';
+export { default as Tabs } from './components/Tabs.vue';
+
+// New components
+export { default as Card } from './components/Card.vue';
+export { default as Toggle } from './components/Toggle.vue';
+export { default as TagInput } from './components/TagInput.vue';
+export { default as ProgressBar } from './components/ProgressBar.vue';
+export { default as Alert } from './components/Alert.vue';
+export { default as Toolbar } from './components/Toolbar.vue';

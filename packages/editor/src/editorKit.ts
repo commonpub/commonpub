@@ -13,16 +13,16 @@ import { Link } from '@tiptap/extension-link';
 import { History } from '@tiptap/extension-history';
 import { Placeholder } from '@tiptap/extension-placeholder';
 import { DOMSerializer } from '@tiptap/pm/model';
-import { SnaplifyText } from './extensions/text';
-import { SnaplifyHeading } from './extensions/heading';
-import { SnaplifyCodeBlock } from './extensions/code';
-import { SnaplifyImage } from './extensions/image';
-import { SnaplifyQuote } from './extensions/quote';
-import { SnaplifyCallout } from './extensions/callout';
-import { blockTuplesToDoc, docToBlockTuples, buildEditorSchema } from './serialization';
-import type { BlockTuple } from './blocks/types';
+import { CommonPubText } from './extensions/text.js';
+import { CommonPubHeading } from './extensions/heading.js';
+import { CommonPubCodeBlock } from './extensions/code.js';
+import { CommonPubImage } from './extensions/image.js';
+import { CommonPubQuote } from './extensions/quote.js';
+import { CommonPubCallout } from './extensions/callout.js';
+import { blockTuplesToDoc, docToBlockTuples, buildEditorSchema } from './serialization.js';
+import type { BlockTuple } from './blocks/types.js';
 
-export interface CreateSnaplifyEditorOptions {
+export interface CreateCommonPubEditorOptions {
   content?: BlockTuple[];
   editable?: boolean;
   placeholder?: string;
@@ -31,7 +31,7 @@ export interface CreateSnaplifyEditorOptions {
   element?: HTMLElement;
 }
 
-export function createSnaplifyEditor(options: CreateSnaplifyEditorOptions = {}): Editor {
+export function createCommonPubEditor(options: CreateCommonPubEditorOptions = {}): Editor {
   const {
     content,
     editable = true,
@@ -55,12 +55,12 @@ export function createSnaplifyEditor(options: CreateSnaplifyEditorOptions = {}):
   const coreExtensions: AnyExtension[] = [
     Document,
     Text,
-    SnaplifyText,
-    SnaplifyHeading,
-    SnaplifyCodeBlock,
-    SnaplifyImage,
-    SnaplifyQuote,
-    SnaplifyCallout,
+    CommonPubText,
+    CommonPubHeading,
+    CommonPubCodeBlock,
+    CommonPubImage,
+    CommonPubQuote,
+    CommonPubCallout,
     Bold,
     Italic,
     Code,

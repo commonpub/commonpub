@@ -1,11 +1,11 @@
-export { createAuth } from './createAuth';
-export type { AuthInstance } from './createAuth';
-export { createAuthHook } from './hooks';
-export type { CreateAuthHookOptions } from './hooks';
-export { authGuard, adminGuard, roleGuard } from './guards';
-export type { GuardEvent, GuardResult } from './guards';
-export { createSSOProviderConfig, discoverOAuthEndpoint, isTrustedInstance } from './sso';
-export type { OAuthEndpointDiscovery, SSOProviderConfig } from './sso';
+export { createAuth } from './createAuth.js';
+export type { AuthInstance } from './createAuth.js';
+export { createAuthMiddleware, createAuthHook } from './hooks.js';
+export type { CreateAuthMiddlewareOptions, AuthMiddleware, AuthLocals } from './hooks.js';
+export { authGuard, adminGuard, roleGuard } from './guards.js';
+export type { GuardEvent, GuardResult } from './guards.js';
+export { createSSOProviderConfig, discoverOAuthEndpoint, isTrustedInstance } from './sso.js';
+export type { OAuthEndpointDiscovery, SSOProviderConfig } from './sso.js';
 export type {
   CreateAuthOptions,
   DrizzleDB,
@@ -13,5 +13,5 @@ export type {
   AuthSession,
   SessionResult,
   UserRole,
-} from './types';
-export { ROLE_HIERARCHY, getRoleLevel } from './types';
+} from './types.js';
+export { ROLE_HIERARCHY, getRoleLevel } from './types.js';

@@ -1,4 +1,4 @@
-# Federation development setup — Two Snaplify instances
+# Federation development setup — Two CommonPub instances
 # Usage: docker compose -f deploy/docker-compose.federation.yml up -d
 #
 # Instance A: http://localhost:3001 (a.localhost)
@@ -12,13 +12,13 @@ services:
     ports:
       - '5433:5432'
     environment:
-      POSTGRES_USER: snaplify
-      POSTGRES_PASSWORD: snaplify_dev
-      POSTGRES_DB: snaplify_a
+      POSTGRES_USER: commonpub
+      POSTGRES_PASSWORD: commonpub_dev
+      POSTGRES_DB: commonpub_a
     volumes:
       - postgres_a_data:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U snaplify']
+      test: ['CMD-SHELL', 'pg_isready -U commonpub']
       interval: 5s
       timeout: 5s
       retries: 5
@@ -29,13 +29,13 @@ services:
     ports:
       - '5434:5432'
     environment:
-      POSTGRES_USER: snaplify
-      POSTGRES_PASSWORD: snaplify_dev
-      POSTGRES_DB: snaplify_b
+      POSTGRES_USER: commonpub
+      POSTGRES_PASSWORD: commonpub_dev
+      POSTGRES_DB: commonpub_b
     volumes:
       - postgres_b_data:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U snaplify']
+      test: ['CMD-SHELL', 'pg_isready -U commonpub']
       interval: 5s
       timeout: 5s
       retries: 5

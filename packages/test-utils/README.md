@@ -1,15 +1,15 @@
-# @snaplify/test-utils
+# @commonpub/test-utils
 
-Shared test helpers and factories for the Snaplify test suite.
+Shared test helpers and factories for the CommonPub test suite.
 
 ## Overview
 
-Test factories for creating realistic test data across all Snaplify packages. Factories generate properly typed objects with auto-incrementing unique IDs, consistent timestamps, and sensible defaults.
+Test factories for creating realistic test data across all CommonPub packages. Factories generate properly typed objects with auto-incrementing unique IDs, consistent timestamps, and sensible defaults.
 
 ## Installation
 
 ```bash
-pnpm add -D @snaplify/test-utils
+pnpm add -D @commonpub/test-utils
 ```
 
 ## Usage
@@ -17,7 +17,7 @@ pnpm add -D @snaplify/test-utils
 ### User Factory
 
 ```ts
-import { createTestUser, resetFactoryCounter } from '@snaplify/test-utils';
+import { createTestUser, resetFactoryCounter } from '@commonpub/test-utils';
 
 const user = createTestUser();
 // {
@@ -39,7 +39,7 @@ resetFactoryCounter();
 ### Session Factory
 
 ```ts
-import { createTestSession } from '@snaplify/test-utils';
+import { createTestSession } from '@commonpub/test-utils';
 
 const session = createTestSession({ userId: user.id });
 // { id: 'test-session-1', userId: '...', token: '...', expiresAt: ... }
@@ -48,7 +48,7 @@ const session = createTestSession({ userId: user.id });
 ### Federated Account Factory
 
 ```ts
-import { createTestFederatedAccount } from '@snaplify/test-utils';
+import { createTestFederatedAccount } from '@commonpub/test-utils';
 
 const fedAccount = createTestFederatedAccount({
   userId: user.id,
@@ -59,7 +59,7 @@ const fedAccount = createTestFederatedAccount({
 ### OAuth Client Factory
 
 ```ts
-import { createTestOAuthClient } from '@snaplify/test-utils';
+import { createTestOAuthClient } from '@commonpub/test-utils';
 
 const client = createTestOAuthClient({
   instanceDomain: 'hack.build',
@@ -69,10 +69,10 @@ const client = createTestOAuthClient({
 ### Test Config
 
 ```ts
-import { createTestConfig } from '@snaplify/test-utils';
+import { createTestConfig } from '@commonpub/test-utils';
 
 const config = createTestConfig();
-// Returns a valid SnaplifyConfig with all features enabled
+// Returns a valid CommonPubConfig with all features enabled
 
 const minConfig = createTestConfig({
   features: { federation: false, admin: false },
@@ -89,5 +89,5 @@ pnpm typecheck    # Type-check without emitting
 
 ## Dependencies
 
-- `@snaplify/schema`: Type definitions
-- `@snaplify/config`: Config types
+- `@commonpub/schema`: Type definitions
+- `@commonpub/config`: Config types

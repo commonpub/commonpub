@@ -1,3 +1,3 @@
-export { defineSnaplifyConfig } from './config';
-export type { SnaplifyConfig, FeatureFlags, AuthConfig, InstanceConfig } from './types';
-export { configSchema, featureFlagsSchema, authConfigSchema, instanceConfigSchema } from './schema';
+export { defineCommonPubConfig } from './config.js';
+export type { CommonPubConfig, FeatureFlags, AuthConfig, InstanceConfig } from './types.js';
+export { configSchema, featureFlagsSchema, authConfigSchema, instanceConfigSchema } from './schema.js';

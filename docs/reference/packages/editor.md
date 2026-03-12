@@ -1,8 +1,8 @@
-# @snaplify/editor
+# @commonpub/editor
 
 > TipTap extensions, BlockTuple serialization, block registry, and editor factory.
 
-**npm**: `@snaplify/editor`
+**npm**: `@commonpub/editor`
 **Source**: `packages/editor/src/`
 **Entry**: `packages/editor/src/index.ts`
 
@@ -53,19 +53,19 @@
 
 | Export | Kind | Description |
 |--------|------|-------------|
-| `SnaplifyText` | TipTap Extension | Rich text with marks |
-| `SnaplifyHeading` | TipTap Extension | Headings (h1–h6) |
-| `SnaplifyCodeBlock` | TipTap Extension | Code blocks with language |
-| `SnaplifyImage` | TipTap Extension | Images with alt text, caption |
-| `SnaplifyQuote` | TipTap Extension | Blockquotes |
-| `SnaplifyCallout` | TipTap Extension | Callout boxes (info, warning, error, success) |
+| `CommonPubText` | TipTap Extension | Rich text with marks |
+| `CommonPubHeading` | TipTap Extension | Headings (h1–h6) |
+| `CommonPubCodeBlock` | TipTap Extension | Code blocks with language |
+| `CommonPubImage` | TipTap Extension | Images with alt text, caption |
+| `CommonPubQuote` | TipTap Extension | Blockquotes |
+| `CommonPubCallout` | TipTap Extension | Callout boxes (info, warning, error, success) |
 
 ### Editor Factory
 
 | Export | Kind | Description |
 |--------|------|-------------|
-| `createSnaplifyEditor` | Function | Create a configured TipTap editor instance |
-| `CreateSnaplifyEditorOptions` | Type | Editor factory options |
+| `createCommonPubEditor` | Function | Create a configured TipTap editor instance |
+| `CreateCommonPubEditorOptions` | Type | Editor factory options |
 
 ---
 
@@ -75,7 +75,7 @@
 
 #### `BlockTuple`
 
-The fundamental content representation in Snaplify. Content is stored as `BlockTuple[]` in the `contentItems.content` jsonb column.
+The fundamental content representation in CommonPub. Content is stored as `BlockTuple[]` in the `contentItems.content` jsonb column.
 
 ```typescript
 type BlockTuple = [type: string, content: unknown];
@@ -160,12 +160,12 @@ Builds a ProseMirror schema from all currently registered block types.
 
 ### Editor Factory
 
-#### `createSnaplifyEditor(options: CreateSnaplifyEditorOptions): Editor`
+#### `createCommonPubEditor(options: CreateCommonPubEditorOptions): Editor`
 
-Creates a fully configured TipTap editor instance with all Snaplify extensions.
+Creates a fully configured TipTap editor instance with all CommonPub extensions.
 
 ```typescript
-interface CreateSnaplifyEditorOptions {
+interface CreateCommonPubEditorOptions {
   element?: HTMLElement;     // DOM element to mount editor
   content?: BlockTuple[];    // Initial content
   editable?: boolean;        // Default: true
@@ -206,12 +206,12 @@ packages/editor/src/
 │   ├── schemas.ts        → 6 content Zod schemas + types
 │   └── registry.ts       → registerBlock, lookupBlock, listBlocks, validateBlock, clearRegistry, registerCoreBlocks
 ├── serialization.ts      → blockTuplesToDoc, docToBlockTuples, validateBlockTuples, buildEditorSchema
-├── editorKit.ts          → createSnaplifyEditor factory
+├── editorKit.ts          → createCommonPubEditor factory
 └── extensions/
-    ├── text.ts           → SnaplifyText
-    ├── heading.ts        → SnaplifyHeading
-    ├── code.ts           → SnaplifyCodeBlock
-    ├── image.ts          → SnaplifyImage
-    ├── quote.ts          → SnaplifyQuote
-    └── callout.ts        → SnaplifyCallout
+    ├── text.ts           → CommonPubText
+    ├── heading.ts        → CommonPubHeading
+    ├── code.ts           → CommonPubCodeBlock
+    ├── image.ts          → CommonPubImage
+    ├── quote.ts          → CommonPubQuote
+    └── callout.ts        → CommonPubCallout
 ```

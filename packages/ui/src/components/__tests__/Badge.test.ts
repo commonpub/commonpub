@@ -1,30 +1,73 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/svelte';
-import Badge from '../Badge.svelte';
+import { render, screen } from '@testing-library/vue';
+import Badge from '../Badge.vue';
 
 describe('Badge', () => {
-  it('renders text', () => {
-    render(Badge, { props: { text: 'New' } });
-    expect(screen.getByText('New')).toBeInTheDocument();
+  it('renders slot content', () => {
+    render(Badge, {
+      slots: { default: 'New' },
+    });
+    expect(screen.getByText('New')).toBeTruthy();
   });
 
-  it('applies default variant', () => {
-    render(Badge, { props: { text: 'Tag' } });
-    expect(screen.getByText('Tag').className).toContain('snaplify-badge--default');
+  it('applies default variant class', () => {
+    const { container } = render(Badge, {
+      slots: { default: 'Tag' },
+    });
+    const badge = container.querySelector('.cpub-badge');
+    expect(badge?.classList.contains('cpub-badge--default')).toBe(true);
   });
 
-  it('applies variant class', () => {
-    render(Badge, { props: { text: 'Error', variant: 'danger' } });
-    expect(screen.getByText('Error').className).toContain('snaplify-badge--danger');
+  it('applies accent variant class', () => {
+    const { container } = render(Badge, {
+      props: { variant: 'accent' },
+      slots: { default: 'Tag' },
+    });
+    const badge = container.querySelector('.cpub-badge');
+    expect(badge?.classList.contains('cpub-badge--accent')).toBe(true);
   });
 
-  it('applies size class', () => {
-    render(Badge, { props: { text: 'Small', size: 'sm' } });
-    expect(screen.getByText('Small').className).toContain('snaplify-badge--sm');
+  it('applies green variant class', () => {
+    const { container } = render(Badge, {
+      props: { variant: 'green' },
+      slots: { default: 'Tag' },
+    });
+    const badge = container.querySelector('.cpub-badge');
+    expect(badge?.classList.contains('cpub-badge--green')).toBe(true);
   });
 
-  it('accepts a class prop', () => {
-    render(Badge, { props: { text: 'Custom', class: 'my-badge' } });
-    expect(screen.getByText('Custom').className).toContain('my-badge');
+  it('applies red variant class', () => {
+    const { container } = render(Badge, {
+      props: { variant: 'red' },
+      slots: { default: 'Tag' },
+    });
+    const badge = container.querySelector('.cpub-badge');
+    expect(badge?.classList.contains('cpub-badge--red')).toBe(true);
+  });
+
+  it('applies outline variant class', () => {
+    const { container } = render(Badge, {
+      props: { variant: 'outline' },
+      slots: { default: 'Tag' },
+    });
+    const badge = container.querySelector('.cpub-badge');
+    expect(badge?.classList.contains('cpub-badge--outline')).toBe(true);
+  });
+
+  it('applies sm size class by default', () => {
+    const { container } = render(Badge, {
+      slots: { default: 'Tag' },
+    });
+    const badge = container.querySelector('.cpub-badge');
+    expect(badge?.classList.contains('cpub-badge--sm')).toBe(true);
+  });
+
+  it('applies md size class', () => {
+    const { container } = render(Badge, {
+      props: { size: 'md' },
+      slots: { default: 'Tag' },
+    });
+    const badge = container.querySelector('.cpub-badge');
+    expect(badge?.classList.contains('cpub-badge--md')).toBe(true);
   });
 });

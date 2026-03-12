@@ -1,6 +1,6 @@
-# Snaplify Reference Documentation
+# CommonPub Reference Documentation
 
-> Complete API reference, architecture guides, and implementation walkthroughs for the Snaplify federation protocol and package suite.
+> Complete API reference, architecture guides, and implementation walkthroughs for the CommonPub federation protocol and package suite.
 
 ---
 
@@ -9,22 +9,22 @@
 | Document | Description |
 |----------|-------------|
 | [Architecture & State Diagrams](./architecture.md) | Package dependency graph, request lifecycle, content data flow, and state machine diagrams |
-| [Implementation Guide](./implementation-guide.md) | Step-by-step guide to building a Snaplify-powered site from scratch |
+| [Implementation Guide](./implementation-guide.md) | Step-by-step guide to building a CommonPub-powered site from scratch |
 
 ## Package API Reference
 
 | Document | Package | Description |
 |----------|---------|-------------|
-| [Schema](./packages/schema.md) | `@snaplify/schema` | 41 Drizzle tables, 24 enums, 35+ Zod validators |
-| [Config](./packages/config.md) | `@snaplify/config` | `defineSnaplifyConfig()` factory, 10 feature flags, validation schemas |
-| [Protocol](./packages/protocol.md) | `@snaplify/snaplify` | ActivityPub types, activity builders, WebFinger, NodeInfo, OAuth2, HTTP signatures |
-| [Auth](./packages/auth.md) | `@snaplify/auth` | Better Auth wrapper, session management, guards, AP actor SSO |
-| [UI](./packages/ui.md) | `@snaplify/ui` | 15 headless Svelte 5 components, 4 themes, 142 CSS tokens |
-| [Editor](./packages/editor.md) | `@snaplify/editor` | TipTap extensions, BlockTuple serialization, block registry |
-| [Docs](./packages/docs-package.md) | `@snaplify/docs` | Markdown rendering, navigation trees, versioning, search adapters |
-| [Explainer](./packages/explainer.md) | `@snaplify/explainer` | Interactive sections, quiz engine, progress tracking, HTML export |
-| [Learning](./packages/learning.md) | `@snaplify/learning` | Learning path engine, progress calculation, certificates |
-| [Test Utils](./packages/test-utils.md) | `@snaplify/test-utils` | 5 factories, mock config, shared test helpers |
+| [Schema](./packages/schema.md) | `@commonpub/schema` | 41 Drizzle tables, 24 enums, 35+ Zod validators |
+| [Config](./packages/config.md) | `@commonpub/config` | `defineCommonPubConfig()` factory, 10 feature flags, validation schemas |
+| [Protocol](./packages/protocol.md) | `@commonpub/protocol` | ActivityPub types, activity builders, WebFinger, NodeInfo, OAuth2, HTTP signatures |
+| [Auth](./packages/auth.md) | `@commonpub/auth` | Better Auth wrapper, session management, guards, AP actor SSO |
+| [UI](./packages/ui.md) | `@commonpub/ui` | 15 headless Svelte 5 components, 4 themes, 142 CSS tokens |
+| [Editor](./packages/editor.md) | `@commonpub/editor` | TipTap extensions, BlockTuple serialization, block registry |
+| [Docs](./packages/docs-package.md) | `@commonpub/docs` | Markdown rendering, navigation trees, versioning, search adapters |
+| [Explainer](./packages/explainer.md) | `@commonpub/explainer` | Interactive sections, quiz engine, progress tracking, HTML export |
+| [Learning](./packages/learning.md) | `@commonpub/learning` | Learning path engine, progress calculation, certificates |
+| [Test Utils](./packages/test-utils.md) | `@commonpub/test-utils` | 5 factories, mock config, shared test helpers |
 
 ## Server Module Reference
 

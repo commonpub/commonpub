@@ -23,7 +23,7 @@ export type {
   ExportOptions,
   AnswerResult,
   QuizResult,
-} from './types';
+} from './types.js';
 
 // Schemas
 export {
@@ -34,7 +34,7 @@ export {
   explainerSectionSchema,
   explainerSectionsSchema,
   explainerMetaSchema,
-} from './schemas';
+} from './schemas.js';
 
 // Section registry
 export {
@@ -44,7 +44,7 @@ export {
   validateSection,
   clearRegistry,
   registerCoreSectionTypes,
-} from './sections/registry';
+} from './sections/registry.js';
 
 // Quiz engine
 export {
@@ -53,7 +53,7 @@ export {
   isQuizPassed,
   validateQuizAnswers,
   shuffleOptions,
-} from './quiz/engine';
+} from './quiz/engine.js';
 
 // Progress tracker
 export {
@@ -63,10 +63,10 @@ export {
   getCompletionPercentage,
   getNextIncompleteSection,
   isExplainerComplete,
-} from './progress/tracker';
+} from './progress/tracker.js';
 
 // TOC generator
-export { generateToc } from './render/tocGenerator';
+export { generateToc } from './render/tocGenerator.js';
 
 // Section renderer
 export {
@@ -75,7 +75,7 @@ export {
   renderControlsHtml,
   renderCheckpointHtml,
   renderSection,
-} from './render/sectionRenderer';
+} from './render/sectionRenderer.js';
 
 // HTML exporter
-export { generateExplainerHtml } from './export/htmlExporter';
+export { generateExplainerHtml } from './export/htmlExporter.js';

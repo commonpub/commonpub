@@ -90,7 +90,7 @@ export async function verifyHttpSignature(
     const data = encoder.encode(signingString);
 
     // Verify using Web Crypto API
-    return crypto.subtle.verify(
+    return await crypto.subtle.verify(
       { name: 'RSASSA-PKCS1-v1_5' },
       publicKey as CryptoKey,
       sigBytes,

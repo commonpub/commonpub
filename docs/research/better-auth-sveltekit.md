@@ -56,7 +56,7 @@ Better Auth requires a `verification` table for:
 
 Schema: `id` (uuid PK), `identifier` (varchar 255), `value` (text), `expiresAt`, `createdAt`, `updatedAt`
 
-This must be added to `@snaplify/schema` auth tables.
+This must be added to `@commonpub/schema` auth tables.
 
 ## Username Plugin
 

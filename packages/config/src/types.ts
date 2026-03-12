@@ -57,7 +57,7 @@ export interface InstanceConfig {
   contentTypes?: Array<'project' | 'article' | 'guide' | 'blog' | 'explainer'>;
 }
 
-export interface SnaplifyConfig {
+export interface CommonPubConfig {
   instance: InstanceConfig;
   features: FeatureFlags;
   auth: AuthConfig;

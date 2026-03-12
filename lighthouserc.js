@@ -2,7 +2,7 @@ module.exports = {
   ci: {
     collect: {
       url: ['http://localhost:5173/', 'http://localhost:5173/auth/signin'],
-      startServerCommand: 'pnpm --filter @snaplify/reference preview',
+      startServerCommand: 'pnpm --filter @commonpub/reference preview',
       startServerReadyPattern: 'localhost',
       numberOfRuns: 3,
     },

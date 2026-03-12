@@ -12,7 +12,7 @@ Phase 12 delivers polish and hardening for v1 launch. We need Meilisearch integr
 
 ### 1. Meilisearch Search Adapter
 
-**Decision**: `SearchAdapter` interface in `@snaplify/docs` with factory-selected implementation.
+**Decision**: `SearchAdapter` interface in `@commonpub/docs` with factory-selected implementation.
 
 - `SearchAdapter` interface: `index()`, `search()`, `delete()` methods
 - `PostgresAdapter`: wraps existing `to_tsvector`/`to_tsquery` logic extracted from reference app
@@ -24,12 +24,12 @@ Phase 12 delivers polish and hardening for v1 launch. We need Meilisearch integr
 
 ### 2. Landing Page
 
-**Decision**: `apps/landing/` with `@sveltejs/adapter-static`, sharing `@snaplify/ui` theme CSS.
+**Decision**: `apps/landing/` with `@sveltejs/adapter-static`, sharing `@commonpub/ui` theme CSS.
 
 - Separate SvelteKit app with static adapter (fully prerendered)
 - 3 routes: `/`, `/features`, `/getting-started`
 - 5 components: Hero, FeatureCard, CodeBlock, Footer, Nav
-- Imports `@snaplify/ui/theme/base.css` for consistent theming
+- Imports `@commonpub/ui/theme/base.css` for consistent theming
 - No feature flags needed — separate app, not a feature toggle
 
 **Rationale**: Static site is simpler to deploy (CDN, GitHub Pages), has better performance than SSR, and keeps the landing page decoupled from the reference app.
@@ -57,7 +57,7 @@ Phase 12 delivers polish and hardening for v1 launch. We need Meilisearch integr
 
 ## Consequences
 
-- `@snaplify/docs` gains `meilisearch` dependency (optional peer dep pattern)
+- `@commonpub/docs` gains `meilisearch` dependency (optional peer dep pattern)
 - `apps/landing/` added to workspace and turbo pipeline
 - `hooks.server.ts` gains two new hooks in the sequence chain
 - CI pipeline expands with audit step and matrix testing

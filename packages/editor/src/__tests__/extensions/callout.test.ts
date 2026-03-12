@@ -2,18 +2,18 @@ import { describe, it, expect } from 'vitest';
 import { Editor } from '@tiptap/core';
 import { Document } from '@tiptap/extension-document';
 import { Text } from '@tiptap/extension-text';
-import { SnaplifyText } from '../../extensions/text';
-import { SnaplifyCallout } from '../../extensions/callout';
+import { CommonPubText } from '../../extensions/text';
+import { CommonPubCallout } from '../../extensions/callout';
 
 function createEditor(content?: string): Editor {
   return new Editor({
-    extensions: [Document, Text, SnaplifyText, SnaplifyCallout],
+    extensions: [Document, Text, CommonPubText, CommonPubCallout],
     content: content ?? '<div class="callout callout-info"><p>Note</p></div>',
     element: document.createElement('div'),
   });
 }
 
-describe('SnaplifyCallout Extension', () => {
+describe('CommonPubCallout Extension', () => {
   it('parses callout HTML', () => {
     const editor = createEditor();
     const json = editor.getJSON();

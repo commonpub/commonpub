@@ -1,5 +1,5 @@
-import type { ExplainerSection, ExplainerProgressState, TocItem } from '../types';
-import { canAccessSection } from '../progress/tracker';
+import type { ExplainerSection, ExplainerProgressState, TocItem } from '../types.js';
+import { canAccessSection } from '../progress/tracker.js';
 
 /** Generate table of contents data from sections and progress state */
 export function generateToc(

@@ -16,7 +16,7 @@
 - Created `.dockerignore`
 - Created `deploy/docker-compose.prod.yml` (app + postgres + redis + meilisearch, health checks, named network)
 - Created `deploy/.env.prod.example` with all production env vars
-- Created `deploy/package.json` for deploy tests (@snaplify/deploy workspace)
+- Created `deploy/package.json` for deploy tests (@commonpub/deploy workspace)
 - 4 tests in `deploy/__tests__/docker.test.ts`
 
 ### Step 2: DigitalOcean App Platform Spec
@@ -36,11 +36,11 @@
 - Created `.github/workflows/deploy.yml` — deploy on release (SSH or DO App Platform)
 - 3 tests in `deploy/__tests__/ci.test.ts`
 
-### Step 5: `create-snaplify` Rust CLI
+### Step 5: `create-commonpub` Rust CLI
 
-- Created `tools/create-snaplify/` — full Rust CLI with clap, dialoguer, templates
+- Created `tools/create-commonpub/` — full Rust CLI with clap, dialoguer, templates
 - Subcommands: `new <name>` and `init`, with `--defaults` flag
-- Template rendering: .env, snaplify.config.ts, package.json, docker-compose.yml
+- Template rendering: .env, commonpub.config.ts, package.json, docker-compose.yml
 - Interactive prompts: name, domain, description, theme, Docker, feature flags
 - 11 unit tests in template.rs, 6 integration tests in tests/cli.rs
 - Release binary compiles and generates valid scaffold
@@ -72,7 +72,7 @@
 
 - Rust CLI uses `_at` variants for path-safe scaffolding (avoids set_current_dir in tests)
 - Deploy workspace added to pnpm-workspace.yaml
-- Docker Compose prod uses `snaplify-net` network for service isolation
+- Docker Compose prod uses `commonpub-net` network for service isolation
 - CI/CD deploy supports both SSH (droplet) and doctl (App Platform) via `vars.DEPLOY_METHOD`
 - E2E tests use defensive assertions (graceful skips when features disabled)
 
@@ -81,7 +81,7 @@
 - [x] `pnpm test` — 25 turbo tasks, all green
 - [x] `cargo test` — 17 Rust tests pass
 - [x] `cargo build --release` — CLI binary compiles
-- [x] `./create-snaplify new test-instance --defaults` — generates valid scaffold
+- [x] `./create-commonpub new test-instance --defaults` — generates valid scaffold
 - [x] `docker compose -f deploy/docker-compose.prod.yml config` — valid
 - [x] `.env.example` includes all feature flags
 
@@ -102,7 +102,7 @@
 - `deploy/nginx.conf`
 - `.github/workflows/docker.yml`
 - `.github/workflows/deploy.yml`
-- `tools/create-snaplify/Cargo.toml` + `src/{main,lib,prompts,scaffold,template}.rs` + `tests/cli.rs`
+- `tools/create-commonpub/Cargo.toml` + `src/{main,lib,prompts,scaffold,template}.rs` + `tests/cli.rs`
 - `apps/reference/e2e/{auth,content,theme,admin}.spec.ts`
 - `apps/reference/e2e/fixtures/{setup,cleanup}.ts`
 - `docs/deployment.md`
@@ -124,7 +124,7 @@
 - **nginx.conf**: added proxy timeouts (connect/send/read 60s)
 - **Rust CLI prompts.rs**: replaced 13 `.unwrap()` with `?` error propagation, added `sanitize_value()` for input injection prevention
 - **Rust CLI Cargo.toml**: removed unused `include_dir` dependency
-- **ADR 022**: fixed user name (sveltekit → snaplify), updated to 4-stage Dockerfile, removed include_dir reference
+- **ADR 022**: fixed user name (sveltekit → commonpub), updated to 4-stage Dockerfile, removed include_dir reference
 - **deploy tests**: added test for app health check and meilisearch depends_on (now 10 tests)
 
 ## Open Questions

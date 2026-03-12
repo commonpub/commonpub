@@ -9,8 +9,8 @@ import {
   jsonb,
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
-import { users } from './auth';
-import { contentStatusEnum, contentTypeEnum, difficultyEnum, contentVisibilityEnum } from './enums';
+import { users } from './auth.js';
+import { contentStatusEnum, contentTypeEnum, difficultyEnum, contentVisibilityEnum } from './enums.js';
 
 export const contentItems = pgTable('content_items', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -47,7 +47,7 @@ export const contentItems = pgTable('content_items', {
       required: boolean;
     }>
   >(),
-  // Explainer sections — validated at runtime via @snaplify/explainer schemas
+  // Explainer sections — validated at runtime via @commonpub/explainer schemas
   sections: jsonb('sections').$type<
     Array<{
       id: string;

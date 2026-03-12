@@ -21,7 +21,7 @@ Prompts:
 - Features to enable (docs, federation, admin, learning, communities)
 - Theme (base, deepwood, hackbuild, deveco)
 
-Output: project directory with `snaplify.config.ts`, `.env`, `docker-compose.yml`, and Nginx config. Supports `--yes` flag to accept all defaults.
+Output: project directory with `commonpub.config.ts`, `.env`, `docker-compose.yml`, and Nginx config. Supports `--yes` flag to accept all defaults.
 
 **Why Rust**: Single binary distribution, no runtime deps, fast startup. Matches precedent of `create-turbo` (Go) and Biome (Rust) shipping as standalone binaries.
 
@@ -36,7 +36,7 @@ Stage 3 (prod-deps): Prune dev dependencies (pnpm prune --prod)
 Stage 4 (runtime):   Copy build output + prod-only node_modules, non-root user
 ```
 
-- Non-root `snaplify` user
+- Non-root `commonpub` user
 - Health check on `/health` endpoint
 - `ORIGIN`, `PORT`, `DATABASE_URL` as runtime env vars
 
@@ -48,7 +48,7 @@ Stage 4 (runtime):   Copy build output + prod-only node_modules, non-root user
 
 | Service       | Image                              | Purpose                      |
 | ------------- | ---------------------------------- | ---------------------------- |
-| `app`         | `ghcr.io/snaplify/snaplify:latest` | SvelteKit app (adapter-node) |
+| `app`         | `ghcr.io/commonpub/commonpub:latest` | SvelteKit app (adapter-node) |
 | `postgres`    | `postgres:16-alpine`               | Primary database             |
 | `redis`       | `redis:7-alpine`                   | Queue + session cache        |
 | `meilisearch` | `getmeili/meilisearch:v1`          | Full-text search             |
@@ -93,7 +93,7 @@ GitHub Actions workflow triggered on version tags (`v*`):
 
 1. **Test** — `turbo run test lint typecheck` (existing CI)
 2. **Build** — Docker multi-stage build with GHA layer cache (`type=gha`)
-3. **Push** — Push to `ghcr.io/snaplify/snaplify:{tag}` and `:latest`
+3. **Push** — Push to `ghcr.io/commonpub/commonpub:{tag}` and `:latest`
 4. **Deploy** — Optional: SSH to droplet and run `deploy.sh`, or trigger DO App Platform redeploy
 
 Tag format: `v{major}.{minor}.{patch}` (semver). Only tagged commits produce Docker images.

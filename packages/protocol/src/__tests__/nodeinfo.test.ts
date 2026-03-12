@@ -36,7 +36,7 @@ describe('buildNodeInfoResponse', () => {
     });
 
     expect(result.version).toBe('2.1');
-    expect(result.software.name).toBe('snaplify');
+    expect(result.software.name).toBe('commonpub');
     expect(result.software.version).toBe('0.1.0');
     expect(result.usage.users.total).toBe(42);
     expect(result.usage.users.activeMonth).toBe(10);

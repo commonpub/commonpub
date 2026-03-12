@@ -1,4 +1,4 @@
-# Session 009: Docs Module (@snaplify/docs)
+# Session 009: Docs Module (@commonpub/docs)
 
 ## Date: 2026-03-10
 
@@ -20,7 +20,7 @@
 - Created `docs/research/docs-systems.md` — Prior art from Docusaurus, VitePress, Mintlify, Nextra, GitBook
 - Created `docs/adr/020-docs-architecture.md` — 10 architectural decisions
 
-### @snaplify/docs Package (Steps 1-9)
+### @commonpub/docs Package (Steps 1-9)
 
 - **Types** (`types.ts`): 12 interfaces — NavItem, PageTreeNode, BreadcrumbItem, PrevNextLinks, TocEntry, RenderOptions, RenderResult, PageFrontmatter, SearchDocument, VersionInfo, DocsPage, DocsSite
 - **Validators** (`validators.ts`): 7 Zod schemas with recursive nav validation via `z.lazy()`
@@ -30,7 +30,7 @@
 - **Navigation** (`navigation/tree.ts`): Page tree, breadcrumbs, page paths, prev/next, nav flattening
 - **Versioning** (`versioning/manager.ts`): Semver validation/comparison, default selection, version copy
 - **Search** (`search/indexer.ts`): Markdown stripping, search document building, tsquery building
-- **Barrel** (`index.ts`): All exports following @snaplify/learning pattern
+- **Barrel** (`index.ts`): All exports following @commonpub/learning pattern
 - **Tests**: 101 tests across 8 test files
 
 ### Schema Package Updates
@@ -40,7 +40,7 @@
 ### Reference App Integration (Steps 10-13)
 
 - **Feature flag**: `docs: env.FEATURE_DOCS !== 'false'` in hooks.server.ts
-- **Dependencies**: Added @snaplify/docs, @codemirror/\* packages
+- **Dependencies**: Added @commonpub/docs, @codemirror/\* packages
 - **Server functions** (`lib/server/docs.ts`): 17 CRUD functions for sites, versions, pages, nav, search
 - **Components** (7 Svelte 5 components):
   - DocsViewer, DocsSidebar, DocsSearch, CodeMirrorEditor, VersionSelector, PageBreadcrumb, PrevNextNav
@@ -62,7 +62,7 @@
 
 | Package           | Tests   |
 | ----------------- | ------- |
-| @snaplify/docs    | 101     |
+| @commonpub/docs    | 101     |
 | Previous packages | 733     |
 | **Total**         | **834** |
 

@@ -1,22 +1,22 @@
-# @snaplify/schema
+# @commonpub/schema
 
-Drizzle ORM table definitions and Zod validators for the Snaplify data model.
+Drizzle ORM table definitions and Zod validators for the CommonPub data model.
 
 ## Overview
 
-This package is the single source of truth for Snaplify's database schema. Every table, enum, relation, and validator lives here. All other packages depend on `@snaplify/schema`.
+This package is the single source of truth for CommonPub's database schema. Every table, enum, relation, and validator lives here. All other packages depend on `@commonpub/schema`.
 
 ## Installation
 
 ```bash
-pnpm add @snaplify/schema
+pnpm add @commonpub/schema
 ```
 
 ## Usage
 
 ```ts
-import { users, contentItems, contentTypeEnum } from '@snaplify/schema';
-import { createContentItemSchema, updateUserProfileSchema } from '@snaplify/schema';
+import { users, contentItems, contentTypeEnum } from '@commonpub/schema';
+import { createContentItemSchema, updateUserProfileSchema } from '@commonpub/schema';
 ```
 
 ## Schema Modules
@@ -64,7 +64,7 @@ All enums are defined as PostgreSQL enum types via Drizzle's `pgEnum`:
 Zod schemas for validating user input at API boundaries:
 
 ```ts
-import { createContentItemSchema, updateUserProfileSchema } from '@snaplify/schema';
+import { createContentItemSchema, updateUserProfileSchema } from '@commonpub/schema';
 
 const result = createContentItemSchema.safeParse(userInput);
 if (!result.success) {

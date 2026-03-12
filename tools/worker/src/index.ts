@@ -1,4 +1,4 @@
-// @snaplify/worker — Activity delivery monitoring and queue utilities
+// @commonpub/worker — Activity delivery monitoring and queue utilities
 //
 // Fedify handles actual activity delivery via its built-in message queue.
 // This package provides monitoring, retry management, and admin utilities.

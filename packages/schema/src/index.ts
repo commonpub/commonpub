@@ -1,38 +1,38 @@
 // Enums
-export * from './enums';
+export * from './enums.js';
 
 // Auth & Users
-export * from './auth';
+export * from './auth.js';
 
 // Content
-export * from './content';
+export * from './content.js';
 
 // Social
-export * from './social';
+export * from './social.js';
 
 // Community
-export * from './community';
+export * from './community.js';
 
 // Learning
-export * from './learning';
+export * from './learning.js';
 
 // Docs
-export * from './docs';
+export * from './docs.js';
 
 // Video
-export * from './video';
+export * from './video.js';
 
 // Contest
-export * from './contest';
+export * from './contest.js';
 
 // Files
-export * from './files';
+export * from './files.js';
 
 // Federation
-export * from './federation';
+export * from './federation.js';
 
 // Admin
-export * from './admin';
+export * from './admin.js';
 
 // Validators
-export * from './validators';
+export * from './validators.js';

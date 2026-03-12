@@ -1,11 +1,11 @@
-import type { SnaplifyConfig } from '@snaplify/config';
+import type { CommonPubConfig } from '@commonpub/config';
 
-export function createTestConfig(overrides?: Partial<SnaplifyConfig>): SnaplifyConfig {
+export function createTestConfig(overrides?: Partial<CommonPubConfig>): CommonPubConfig {
   return {
     instance: {
       domain: 'test.example.com',
       name: 'Test Instance',
-      description: 'A test Snaplify instance',
+      description: 'A test CommonPub instance',
       contactEmail: 'admin@test.example.com',
       maxUploadSize: 10 * 1024 * 1024,
       contentTypes: ['project', 'article', 'guide', 'blog'],

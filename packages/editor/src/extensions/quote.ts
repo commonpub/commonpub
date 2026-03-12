@@ -9,7 +9,7 @@ declare module '@tiptap/core' {
   }
 }
 
-export const SnaplifyQuote = Node.create({
+export const CommonPubQuote = Node.create({
   name: 'blockquote',
   group: 'block',
   content: 'block+',

@@ -5,33 +5,33 @@ export type {
   NodeInfoResponse,
   NodeInfoSoftware,
   NodeInfoUsage,
-  SnaplifyActor,
+  CommonPubActor,
   ParsedResource,
-} from './types';
+} from './types.js';
 
 // WebFinger
-export { parseWebFingerResource, buildWebFingerResponse } from './webfinger';
-export type { BuildWebFingerOptions } from './webfinger';
+export { parseWebFingerResource, buildWebFingerResponse } from './webfinger.js';
+export type { BuildWebFingerOptions } from './webfinger.js';
 
 // NodeInfo
-export { buildNodeInfoResponse, buildNodeInfoWellKnown } from './nodeinfo';
-export type { BuildNodeInfoOptions } from './nodeinfo';
+export { buildNodeInfoResponse, buildNodeInfoWellKnown } from './nodeinfo.js';
+export type { BuildNodeInfoOptions } from './nodeinfo.js';
 
 // Federation
-export { createFederation } from './federation';
-export type { FederationHandlers, CreateFederationOptions } from './federation';
+export { createFederation } from './federation.js';
+export type { FederationHandlers, CreateFederationOptions } from './federation.js';
 
 // OAuth
-export { validateAuthorizeRequest, validateTokenRequest } from './oauth';
+export { validateAuthorizeRequest, validateTokenRequest } from './oauth.js';
 export type {
   OAuthAuthorizeRequest,
   OAuthTokenRequest,
   OAuthClient,
   OAuthValidationError,
-} from './oauth';
+} from './oauth.js';
 
 // Activity Types
-export { AP_CONTEXT, AP_PUBLIC } from './activityTypes';
+export { AP_CONTEXT, AP_PUBLIC } from './activityTypes.js';
 export type {
   APArticle,
   APNote,
@@ -51,7 +51,7 @@ export type {
   APTag,
   APOrderedCollection,
   APOrderedCollectionPage,
-} from './activityTypes';
+} from './activityTypes.js';
 
 // Activity Builders
 export {
@@ -64,11 +64,11 @@ export {
   buildUndoActivity,
   buildLikeActivity,
   buildAnnounceActivity,
-} from './activities';
+} from './activities.js';
 
 // Content Mapper
-export { contentToArticle, contentToNote, articleToContent, noteToComment } from './contentMapper';
-export type { ContentItemInput, AuthorInput, CommentInput } from './contentMapper';
+export { contentToArticle, contentToNote, articleToContent, noteToComment } from './contentMapper.js';
+export type { ContentItemInput, AuthorInput, CommentInput } from './contentMapper.js';
 
 // Actor Resolution
 export {
@@ -77,16 +77,16 @@ export {
   extractSharedInbox,
   resolveActor,
   resolveActorViaWebFinger,
-} from './actorResolver';
-export type { ResolvedActor, FetchFn } from './actorResolver';
+} from './actorResolver.js';
+export type { ResolvedActor, FetchFn } from './actorResolver.js';
 
 // Keypair Management
-export { generateKeypair, exportPublicKeyPem, exportPrivateKeyPem, buildKeyId, verifyHttpSignature } from './keypairs';
-export type { ActorKeypair } from './keypairs';
+export { generateKeypair, exportPublicKeyPem, exportPrivateKeyPem, buildKeyId, verifyHttpSignature } from './keypairs.js';
+export type { ActorKeypair } from './keypairs.js';
 
 // Inbox Processing
-export { processInboxActivity } from './inbox';
-export type { InboxCallbacks, InboxResult } from './inbox';
+export { processInboxActivity } from './inbox.js';
+export type { InboxCallbacks, InboxResult } from './inbox.js';
 
 // Outbox Generation
-export { generateOutboxCollection, generateOutboxPage } from './outbox';
+export { generateOutboxCollection, generateOutboxPage } from './outbox.js';

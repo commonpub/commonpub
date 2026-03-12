@@ -1,17 +1,17 @@
-# @snaplify/auth
+# @commonpub/auth
 
-Better Auth wrapper with route guards, hooks, and ActivityPub Actor SSO for Snaplify.
+Better Auth wrapper with route guards, hooks, and ActivityPub Actor SSO for CommonPub.
 
 ## Overview
 
-Wraps [Better Auth](https://www.better-auth.com/) to handle authentication for Snaplify instances. Covers email/password auth, social OAuth providers (GitHub, Google), session management, route protection, and cross-instance SSO via ActivityPub.
+Wraps [Better Auth](https://www.better-auth.com/) to handle authentication for CommonPub instances. Covers email/password auth, social OAuth providers (GitHub, Google), session management, route protection, and cross-instance SSO via ActivityPub.
 
 Better Auth runs as a library, not a separate service.
 
 ## Installation
 
 ```bash
-pnpm add @snaplify/auth
+pnpm add @commonpub/auth
 ```
 
 ## Usage
@@ -19,11 +19,11 @@ pnpm add @snaplify/auth
 ### Creating an Auth Instance
 
 ```ts
-import { createAuth } from '@snaplify/auth';
-import { defineSnaplifyConfig } from '@snaplify/config';
+import { createAuth } from '@commonpub/auth';
+import { defineCommonPubConfig } from '@commonpub/config';
 import { drizzle } from 'drizzle-orm/node-postgres';
 
-const { config } = defineSnaplifyConfig({ /* ... */ });
+const { config } = defineCommonPubConfig({ /* ... */ });
 const db = drizzle(pool);
 
 const auth = createAuth({
@@ -39,7 +39,7 @@ const auth = createAuth({
 Protect SvelteKit routes with guards in `+page.server.ts` or hooks:
 
 ```ts
-import { authGuard, adminGuard, roleGuard } from '@snaplify/auth';
+import { authGuard, adminGuard, roleGuard } from '@commonpub/auth';
 
 // Require authentication (redirects to /auth/sign-in)
 const result = authGuard(event);
@@ -56,7 +56,7 @@ const result = modGuard(event);
 ### SvelteKit Auth Hook
 
 ```ts
-import { createAuthHook } from '@snaplify/auth';
+import { createAuthHook } from '@commonpub/auth';
 
 const authHook = createAuthHook({ auth });
 
@@ -69,7 +69,7 @@ export const handle = authHook;
 Cross-instance single sign-on via ActivityPub actor discovery:
 
 ```ts
-import { createSSOProviderConfig, discoverOAuthEndpoint, isTrustedInstance } from '@snaplify/auth';
+import { createSSOProviderConfig, discoverOAuthEndpoint, isTrustedInstance } from '@commonpub/auth';
 
 // Check if an instance is in the trusted list
 const trusted = isTrustedInstance('deveco.io', config.auth.trustedInstances);
@@ -92,7 +92,7 @@ Roles have numeric levels for comparison:
 | `admin`     | 3     | Full instance management |
 
 ```ts
-import { ROLE_HIERARCHY, getRoleLevel } from '@snaplify/auth';
+import { ROLE_HIERARCHY, getRoleLevel } from '@commonpub/auth';
 
 getRoleLevel('admin');     // 3
 getRoleLevel('moderator'); // 2
@@ -101,7 +101,7 @@ getRoleLevel('member');    // 1
 
 ## Auth Configuration
 
-Auth behavior is driven by `@snaplify/config`. Social providers degrade gracefully: if credentials aren't set, the sign-in buttons don't appear.
+Auth behavior is driven by `@commonpub/config`. Social providers degrade gracefully: if credentials aren't set, the sign-in buttons don't appear.
 
 ## Exports
 
@@ -125,6 +125,6 @@ pnpm typecheck    # Type-check without emitting
 
 - `better-auth`: Auth library
 - `drizzle-orm`: Database adapter
-- `@snaplify/schema`: Table definitions
-- `@snaplify/config`: Feature flags and auth config
-- `@snaplify/snaplify`: AP protocol types for SSO
+- `@commonpub/schema`: Table definitions
+- `@commonpub/config`: Feature flags and auth config
+- `@commonpub/protocol`: AP protocol types for SSO

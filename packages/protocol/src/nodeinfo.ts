@@ -1,8 +1,8 @@
-import type { NodeInfoResponse } from './types';
-import type { SnaplifyConfig } from '@snaplify/config';
+import type { NodeInfoResponse } from './types.js';
+import type { CommonPubConfig } from '@commonpub/config';
 
 export interface BuildNodeInfoOptions {
-  config: SnaplifyConfig;
+  config: CommonPubConfig;
   version: string;
   userCount: number;
   activeMonthCount: number;
@@ -20,9 +20,9 @@ export function buildNodeInfoResponse(options: BuildNodeInfoOptions): NodeInfoRe
   return {
     version: '2.1',
     software: {
-      name: 'snaplify',
+      name: 'commonpub',
       version,
-      repository: 'https://github.com/snaplify/snaplify',
+      repository: 'https://github.com/commonpub/commonpub',
       homepage: `https://${config.instance.domain}`,
     },
     protocols,

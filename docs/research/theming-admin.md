@@ -106,7 +106,7 @@ instanceSettings: { key: string, value: jsonb }
 - JSONB `value` allows any type (string, number, boolean, object)
 - Keys namespaced with dots for organization
 
-## Decisions for Snaplify
+## Decisions for CommonPub
 
 1. **`data-theme` on `<html>`** — matches existing CSS architecture, zero framework overhead
 2. **Cookie-based theme** — server reads cookie in hooks, sets `data-theme` in SSR, prevents flash

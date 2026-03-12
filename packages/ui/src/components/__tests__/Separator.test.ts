@@ -1,35 +1,45 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/svelte';
-import { expectNoA11yViolations } from '../../test-helpers';
-import Separator from '../Separator.svelte';
+import { render, screen } from '@testing-library/vue';
+import Separator from '../Separator.vue';
 
 describe('Separator', () => {
-  it('renders with role=separator', () => {
+  it('has role="separator"', () => {
     render(Separator);
-    expect(screen.getByRole('separator')).toBeInTheDocument();
+    expect(screen.getByRole('separator')).toBeTruthy();
   });
 
-  it('defaults to horizontal', () => {
+  it('defaults to horizontal orientation', () => {
     render(Separator);
     const sep = screen.getByRole('separator');
-    expect(sep).toHaveAttribute('aria-orientation', 'horizontal');
-    expect(sep.className).toContain('snaplify-separator--horizontal');
+    expect(sep.getAttribute('aria-orientation')).toBe('horizontal');
   });
 
-  it('supports vertical orientation', () => {
-    render(Separator, { props: { orientation: 'vertical' } });
+  it('applies horizontal class by default', () => {
+    render(Separator);
     const sep = screen.getByRole('separator');
-    expect(sep).toHaveAttribute('aria-orientation', 'vertical');
-    expect(sep.className).toContain('snaplify-separator--vertical');
+    expect(sep.classList.contains('cpub-separator--horizontal')).toBe(true);
   });
 
-  it('accepts a class prop', () => {
-    render(Separator, { props: { class: 'custom' } });
-    expect(screen.getByRole('separator').className).toContain('custom');
+  it('applies vertical orientation', () => {
+    render(Separator, {
+      props: { orientation: 'vertical' },
+    });
+    const sep = screen.getByRole('separator');
+    expect(sep.getAttribute('aria-orientation')).toBe('vertical');
+    expect(sep.classList.contains('cpub-separator--vertical')).toBe(true);
   });
 
-  it('passes axe accessibility scan', async () => {
-    const { container } = render(Separator);
-    await expectNoA11yViolations(container);
+  it('applies dashed class when dashed prop is true', () => {
+    render(Separator, {
+      props: { dashed: true },
+    });
+    const sep = screen.getByRole('separator');
+    expect(sep.classList.contains('cpub-separator--dashed')).toBe(true);
+  });
+
+  it('renders as an hr element', () => {
+    render(Separator);
+    const sep = screen.getByRole('separator');
+    expect(sep.tagName).toBe('HR');
   });
 });

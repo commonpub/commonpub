@@ -1,8 +1,8 @@
-# @snaplify/config
+# @commonpub/config
 
-> Configuration factory and validation for Snaplify instances.
+> Configuration factory and validation for CommonPub instances.
 
-**npm**: `@snaplify/config`
+**npm**: `@commonpub/config`
 **Source**: `packages/config/src/`
 **Entry**: `packages/config/src/index.ts`
 
@@ -12,12 +12,12 @@
 
 | Export | Kind | Description |
 |--------|------|-------------|
-| `defineSnaplifyConfig` | Function | Main factory — validates and returns config with defaults |
+| `defineCommonPubConfig` | Function | Main factory — validates and returns config with defaults |
 | `configSchema` | Zod Schema | Top-level config validator |
 | `featureFlagsSchema` | Zod Schema | Feature flags validator with defaults |
 | `authConfigSchema` | Zod Schema | Auth configuration validator |
 | `instanceConfigSchema` | Zod Schema | Instance metadata validator |
-| `SnaplifyConfig` | Type | Full config shape |
+| `CommonPubConfig` | Type | Full config shape |
 | `FeatureFlags` | Type | 10 boolean feature flags |
 | `AuthConfig` | Type | Authentication providers and SSO |
 | `InstanceConfig` | Type | Domain, name, limits |
@@ -26,9 +26,9 @@
 
 ## API Reference
 
-### `defineSnaplifyConfig(input): ConfigResult`
+### `defineCommonPubConfig(input): ConfigResult`
 
-Define and validate a Snaplify instance configuration. Returns the validated config with defaults applied and any warnings.
+Define and validate a CommonPub instance configuration. Returns the validated config with defaults applied and any warnings.
 
 **Throws**: `ZodError` if the config is invalid.
 
@@ -54,7 +54,7 @@ input: {
 
 ```typescript
 interface ConfigResult {
-  config: SnaplifyConfig;      // Fully resolved config with all defaults
+  config: CommonPubConfig;      // Fully resolved config with all defaults
   warnings: ConfigWarning[];   // Non-fatal warnings about the configuration
 }
 
@@ -75,9 +75,9 @@ interface ConfigWarning {
 **Example**:
 
 ```typescript
-import { defineSnaplifyConfig } from '@snaplify/config';
+import { defineCommonPubConfig } from '@commonpub/config';
 
-const { config, warnings } = defineSnaplifyConfig({
+const { config, warnings } = defineCommonPubConfig({
   instance: {
     domain: 'hack.build',
     name: 'hack.build',
@@ -119,10 +119,10 @@ if (warnings.length > 0) {
 
 ## Types
 
-### `SnaplifyConfig`
+### `CommonPubConfig`
 
 ```typescript
-interface SnaplifyConfig {
+interface CommonPubConfig {
   instance: InstanceConfig;
   features: FeatureFlags;
   auth: AuthConfig;
@@ -253,9 +253,9 @@ const authConfigSchema = z.object({
 
 ```
 packages/config/src/
-├── index.ts    → Re-exports: defineSnaplifyConfig, types, schemas
-├── config.ts   → defineSnaplifyConfig() implementation + ConfigWarning/ConfigResult
-├── types.ts    → FeatureFlags, AuthConfig, InstanceConfig, SnaplifyConfig interfaces
+├── index.ts    → Re-exports: defineCommonPubConfig, types, schemas
+├── config.ts   → defineCommonPubConfig() implementation + ConfigWarning/ConfigResult
+├── types.ts    → FeatureFlags, AuthConfig, InstanceConfig, CommonPubConfig interfaces
 └── schema.ts   → Zod schemas: configSchema, featureFlagsSchema, authConfigSchema, instanceConfigSchema
 ```
 

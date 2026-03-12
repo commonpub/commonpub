@@ -7,7 +7,7 @@ services:
     ports:
       - '${PORT:-3000}:3000'
     environment:
-      DATABASE_URL: postgresql://snaplify:${POSTGRES_PASSWORD}@postgres:5432/snaplify
+      DATABASE_URL: postgresql://commonpub:${POSTGRES_PASSWORD}@postgres:5432/commonpub
       REDIS_URL: redis://redis:6379
       AUTH_SECRET: ${AUTH_SECRET}
       ORIGIN: ${ORIGIN}
@@ -37,24 +37,24 @@ services:
       retries: 3
       start_period: 15s
     networks:
-      - snaplify-net
+      - commonpub-net
 
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: snaplify
+      POSTGRES_USER: commonpub
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: snaplify
+      POSTGRES_DB: commonpub
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U snaplify']
+      test: ['CMD-SHELL', 'pg_isready -U commonpub']
       interval: 10s
       timeout: 5s
       retries: 5
     networks:
-      - snaplify-net
+      - commonpub-net
 
   redis:
     image: redis:7-alpine
@@ -67,7 +67,7 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - snaplify-net
+      - commonpub-net
 
   meilisearch:
     image: getmeili/meilisearch:v1.12
@@ -83,10 +83,10 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - snaplify-net
+      - commonpub-net
 
 networks:
-  snaplify-net:
+  commonpub-net:
 
 volumes:
   postgres_data:

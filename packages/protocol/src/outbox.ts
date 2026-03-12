@@ -1,5 +1,5 @@
-import { AP_CONTEXT } from './activityTypes';
-import type { APOrderedCollection, APOrderedCollectionPage, APActivity } from './activityTypes';
+import { AP_CONTEXT } from './activityTypes.js';
+import type { APOrderedCollection, APOrderedCollectionPage, APActivity } from './activityTypes.js';
 
 /** Generate an OrderedCollection for an actor's outbox */
 export function generateOutboxCollection(

@@ -1,7 +1,7 @@
-// @snaplify/editor — TipTap block editor extensions + serialization
+// @commonpub/editor — TipTap block editor extensions + serialization
 
 // Block type system
-export type { BlockTuple, BlockDefinition } from './blocks/types';
+export type { BlockTuple, BlockDefinition } from './blocks/types.js';
 export {
   textContentSchema,
   headingContentSchema,
@@ -9,7 +9,7 @@ export {
   imageContentSchema,
   quoteContentSchema,
   calloutContentSchema,
-} from './blocks/schemas';
+} from './blocks/schemas.js';
 export type {
   TextContent,
   HeadingContent,
@@ -17,7 +17,7 @@ export type {
   ImageContent,
   QuoteContent,
   CalloutContent,
-} from './blocks/schemas';
+} from './blocks/schemas.js';
 export {
   registerBlock,
   lookupBlock,
@@ -25,7 +25,7 @@ export {
   validateBlock,
   clearRegistry,
   registerCoreBlocks,
-} from './blocks/registry';
+} from './blocks/registry.js';
 
 // Serialization
 export {
@@ -33,16 +33,16 @@ export {
   docToBlockTuples,
   validateBlockTuples,
   buildEditorSchema,
-} from './serialization';
+} from './serialization.js';
 
 // TipTap extensions
-export { SnaplifyText } from './extensions/text';
-export { SnaplifyHeading } from './extensions/heading';
-export { SnaplifyCodeBlock } from './extensions/code';
-export { SnaplifyImage } from './extensions/image';
-export { SnaplifyQuote } from './extensions/quote';
-export { SnaplifyCallout } from './extensions/callout';
+export { CommonPubText } from './extensions/text.js';
+export { CommonPubHeading } from './extensions/heading.js';
+export { CommonPubCodeBlock } from './extensions/code.js';
+export { CommonPubImage } from './extensions/image.js';
+export { CommonPubQuote } from './extensions/quote.js';
+export { CommonPubCallout } from './extensions/callout.js';
 
 // Editor factory
-export { createSnaplifyEditor } from './editorKit';
-export type { CreateSnaplifyEditorOptions } from './editorKit';
+export { createCommonPubEditor } from './editorKit.js';
+export type { CreateCommonPubEditorOptions } from './editorKit.js';

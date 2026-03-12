@@ -57,7 +57,7 @@ describe('buildSearchDocument', () => {
     title: 'Getting Started',
     slug: 'getting-started',
     content:
-      '## Introduction\n\nWelcome to **Snaplify**.\n\n## Setup\n\nInstall with `npm install`.',
+      '## Introduction\n\nWelcome to **CommonPub**.\n\n## Setup\n\nInstall with `npm install`.',
     sortOrder: 0,
     parentId: null,
     createdAt: now,
@@ -82,7 +82,7 @@ describe('buildSearchDocument', () => {
     expect(doc.title).toBe('Getting Started');
     expect(doc.path).toBe('getting-started');
     expect(doc.headings).toEqual(['Introduction', 'Setup']);
-    expect(doc.content).toContain('Welcome to Snaplify');
+    expect(doc.content).toContain('Welcome to CommonPub');
   });
 });
 
@@ -96,7 +96,7 @@ describe('buildSearchQuery', () => {
   });
 
   it('should strip special characters', () => {
-    expect(buildSearchQuery('@snaplify/docs')).toBe('snaplify:* & docs:*');
+    expect(buildSearchQuery('@commonpub/docs')).toBe('commonpub:* & docs:*');
   });
 
   it('should return empty string for empty input', () => {

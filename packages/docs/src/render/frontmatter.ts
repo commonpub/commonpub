@@ -1,5 +1,5 @@
 import { parse as parseYaml } from 'yaml';
-import type { PageFrontmatter } from '../types';
+import type { PageFrontmatter } from '../types.js';
 
 const FRONTMATTER_REGEX = /^---\r?\n([\s\S]*?)---\r?\n?/;
 

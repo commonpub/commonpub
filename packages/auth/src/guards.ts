@@ -1,4 +1,4 @@
-import { type UserRole, getRoleLevel } from './types';
+import { type UserRole, getRoleLevel } from './types.js';
 
 export interface GuardEvent {
   locals: {

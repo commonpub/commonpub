@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CommonPub Editor — How Neural Networks Learn</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Raleway:wght@400;700;800;900&family=DM+Sans:wght@400;500&family=DM+Mono:wght@400;500&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+:root {
+  --bar:        #1a3d1a;
+  --bar-mid:    #243824;
+  --bar-border: #2e4a2e;
+  --spore:      #b8f542;
+  --spore-dim:  #8fc43a;
+  --spore-deep: #4a7010;
+  --spore-soft: #f0fad8;
+  --spore-tint: #e3f5b8;
+  --white:      #ffffff;
+  --snow:       #f8faf5;
+  --mist:       #f0f4ea;
+  --haze:       #e4ecca;
+  --smoke:      #d0dbb8;
+  --ash:        #b0bf90;
+  --ink:        #1a2a12;
+  --stone:      #3d5230;
+  --pebble:     #6a7d52;
+  --chalk:      #98a87a;
+  --danger:     #c0392b;
+  --warn:       #b45309;
+  --font-display: 'Raleway', sans-serif;
+  --font-body:    'DM Sans', sans-serif;
+  --font-ui:      'DM Mono', monospace;
+  --font-code:    'JetBrains Mono', monospace;
+  --ease-snap: cubic-bezier(0.16,1,0.3,1);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--snow);color:var(--ink);font-family:var(--font-body);font-size:14px;height:100vh;overflow:hidden;display:flex;flex-direction:column}
+
+/* TOP BAR */
+.topbar{height:44px;background:var(--bar);display:flex;align-items:center;padding:0 10px;gap:0;flex-shrink:0;z-index:100}
+.tb-logo{display:flex;align-items:center;gap:8px;padding:0 14px 0 4px;border-right:1px solid var(--bar-border);margin-right:8px;text-decoration:none}
+.tb-wordmark{font-family:var(--font-display);font-weight:900;font-size:15px;text-transform:uppercase;letter-spacing:0.04em;color:var(--spore)}
+.tb-wordmark span{color:rgba(255,255,255,0.65)}
+.tb-div{width:1px;height:20px;background:var(--bar-border);margin:0 8px;flex-shrink:0}
+.tb-btn{height:28px;padding:0 10px;border:none;background:transparent;color:rgba(255,255,255,0.5);cursor:pointer;display:flex;align-items:center;gap:5px;font-family:var(--font-ui);font-size:10px;text-transform:uppercase;letter-spacing:0.1em;transition:all 0.12s;white-space:nowrap}
+.tb-btn:hover{background:var(--bar-mid);color:white}
+.tb-btn.active{background:var(--spore);color:var(--bar);font-weight:700}
+.tb-icon{height:28px;width:28px;border:none;background:transparent;color:rgba(255,255,255,0.4);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;transition:all 0.12s;flex-shrink:0}
+.tb-icon:hover{background:var(--bar-mid);color:white}
+.tb-icon:disabled{opacity:0.2;cursor:not-allowed}
+.file-dot{width:6px;height:6px;background:var(--spore);animation:blink 3s infinite;flex-shrink:0}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+.file-name{font-family:var(--font-ui);font-size:11px;color:rgba(255,255,255,0.75);padding:3px 8px;border:1px solid transparent;cursor:text;transition:border-color 0.15s}
+.file-name:hover{border-color:var(--bar-border)}
+.tb-spacer{flex:1}
+.theme-sel{height:26px;padding:0 8px;background:var(--bar-mid);border:1px solid var(--bar-border);color:rgba(255,255,255,0.65);font-family:var(--font-ui);font-size:10px;text-transform:uppercase;letter-spacing:0.08em;cursor:pointer;border-radius:0}
+.btn-bar-outline{height:28px;padding:0 14px;border:1px solid var(--bar-border);background:transparent;color:rgba(255,255,255,0.55);cursor:pointer;font-family:var(--font-ui);font-size:10px;text-transform:uppercase;letter-spacing:0.12em;transition:all 0.15s;display:flex;align-items:center;gap:6px}
+.btn-bar-outline:hover{border-color:rgba(255,255,255,0.3);color:white}
+.btn-bar-primary{height:28px;padding:0 16px;background:var(--spore);border:1px solid var(--spore);color:var(--bar);font-weight:700;cursor:pointer;font-family:var(--font-ui);font-size:10px;text-transform:uppercase;letter-spacing:0.12em;transition:all 0.15s;display:flex;align-items:center;gap:6px}
+.btn-bar-primary:hover{background:#ccff44;border-color:#ccff44}
+.topbar-line{height:2px;background:linear-gradient(90deg,var(--spore) 0%,var(--spore-dim) 35%,transparent 100%);flex-shrink:0}
+
+/* APP BODY */
+.app-body{display:grid;grid-template-columns:256px 1fr 268px;flex:1;overflow:hidden}
+
+/* LEFT PANEL */
+.left-panel{background:var(--white);border-right:1px solid var(--haze);display:flex;flex-direction:column;overflow:hidden}
+.panel-tabs{display:flex;border-bottom:1px solid var(--haze);flex-shrink:0}
+.panel-tab{flex:1;padding:8px 0;text-align:center;font-family:var(--font-ui);font-size:9px;text-transform:uppercase;letter-spacing:0.12em;color:var(--chalk);cursor:pointer;border-bottom:2px solid transparent;transition:all 0.15s}
+.panel-tab:hover{color:var(--stone);background:var(--snow)}
+.panel-tab.active{color:var(--spore-deep);border-bottom-color:var(--spore-dim);background:var(--spore-soft)}
+.panel-search{padding:8px;border-bottom:1px solid var(--haze);flex-shrink:0}
+.search-wrap{position:relative}
+.search-icon{position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:10px;color:var(--ash);pointer-events:none}
+.search-input{width:100%;background:var(--snow);border:1px solid var(--haze);color:var(--ink);font-family:var(--font-ui);font-size:10px;padding:6px 8px 6px 26px;outline:none;border-radius:0;transition:border-color 0.15s}
+.search-input:focus{border-color:var(--spore-dim)}
+.search-input::placeholder{color:var(--ash)}
+.panel-scroll{overflow-y:auto;flex:1;padding-bottom:8px}
+.panel-scroll::-webkit-scrollbar{width:3px}
+.panel-scroll::-webkit-scrollbar-thumb{background:var(--haze)}
+.module-group-lbl{font-family:var(--font-ui);font-size:8px;text-transform:uppercase;letter-spacing:0.18em;color:var(--ash);padding:10px 10px 4px}
+.module-item{display:flex;align-items:center;gap:8px;padding:6px 10px;cursor:grab;transition:background 0.12s;border-left:2px solid transparent;user-select:none}
+.module-item:hover{background:var(--spore-soft);border-left-color:var(--spore-dim)}
+.mi-icon{width:28px;height:28px;background:var(--mist);border:1px solid var(--haze);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--pebble);flex-shrink:0;transition:all 0.12s}
+.module-item:hover .mi-icon{background:var(--spore-tint);border-color:var(--smoke);color:var(--spore-deep)}
+.mi-info{flex:1;min-width:0}
+.mi-name{font-family:var(--font-ui);font-size:10px;color:var(--stone);text-transform:uppercase;letter-spacing:0.08em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mi-desc{font-size:10px;color:var(--chalk);line-height:1.3;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.struct-item{display:flex;align-items:center;gap:8px;padding:7px 10px;cursor:pointer;transition:background 0.12s;border-left:2px solid transparent}
+.struct-item:hover{background:var(--snow)}
+.struct-item.active{background:var(--spore-soft);border-left-color:var(--spore-dim)}
+.struct-num{font-family:var(--font-ui);font-size:9px;color:var(--spore-dim);width:16px;text-align:right;flex-shrink:0}
+.struct-title{font-family:var(--font-ui);font-size:10px;color:var(--pebble);text-transform:uppercase;letter-spacing:0.08em;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.struct-item.active .struct-title{color:var(--stone)}
+.struct-tag{font-family:var(--font-ui);font-size:8px;text-transform:uppercase;letter-spacing:0.08em;padding:1px 5px;background:var(--spore-tint);color:var(--spore-deep);border:1px solid var(--smoke);white-space:nowrap}
+
+/* CANVAS */
+.canvas-area{background:var(--snow);overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column}
+.canvas-area::-webkit-scrollbar{width:6px}
+.canvas-area::-webkit-scrollbar-thumb{background:var(--haze)}
+.canvas-toolbar{height:36px;background:var(--white);border-bottom:1px solid var(--haze);display:flex;align-items:center;padding:0 14px;gap:6px;flex-shrink:0;position:sticky;top:0;z-index:10}
+.zoom-display{font-family:var(--font-ui);font-size:10px;color:var(--pebble);padding:3px 8px;background:var(--snow);border:1px solid var(--haze);cursor:pointer;min-width:50px;text-align:center}
+.ct-icon{height:24px;width:24px;border:none;background:transparent;color:var(--chalk);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:10px;transition:all 0.12s}
+.ct-icon:hover{background:var(--mist);color:var(--stone)}
+.view-toggle{display:flex;border:1px solid var(--haze)}
+.view-btn{height:24px;padding:0 10px;background:transparent;border:none;color:var(--chalk);font-family:var(--font-ui);font-size:9px;text-transform:uppercase;letter-spacing:0.1em;cursor:pointer;border-right:1px solid var(--haze);transition:all 0.12s}
+.view-btn:last-child{border-right:none}
+.view-btn:hover{background:var(--snow);color:var(--stone)}
+.view-btn.active{background:var(--bar);color:var(--spore);font-weight:600}
+.explainer-progress{height:34px;background:var(--white);border-bottom:1px solid var(--haze);display:flex;align-items:center;padding:0 16px;gap:10px;flex-shrink:0;position:sticky;top:36px;z-index:9}
+.prog-secs{display:flex;gap:4px}
+.prog-sec{width:22px;height:4px;background:var(--haze);cursor:pointer;transition:background 0.2s}
+.prog-sec.done{background:var(--spore-tint)}
+.prog-sec.active{background:var(--spore-dim)}
+.prog-lbl{font-family:var(--font-ui);font-size:10px;color:var(--chalk);text-transform:uppercase;letter-spacing:0.1em}
+.saved-badge{font-family:var(--font-ui);font-size:10px;color:var(--spore-deep);display:flex;align-items:center;gap:5px}
+
+/* CANVAS CONTENT */
+.canvas-content{padding:40px 64px;max-width:860px;margin:0 auto;width:100%}
+.block-wrap{margin-bottom:4px;border:1.5px solid transparent;position:relative;transition:border-color 0.15s;cursor:pointer}
+.block-wrap:hover{border-color:var(--haze)}
+.block-wrap.selected{border-color:var(--spore-dim);background:rgba(184,245,66,0.03)}
+.block-handle{position:absolute;left:-40px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:3px;opacity:0;transition:opacity 0.15s;z-index:5}
+.block-wrap:hover .block-handle,.block-wrap.selected .block-handle{opacity:1}
+.handle-btn{width:26px;height:26px;background:var(--white);border:1px solid var(--haze);display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--chalk);cursor:pointer;transition:all 0.12s}
+.handle-btn:hover{background:var(--snow);color:var(--stone);border-color:var(--smoke)}
+.handle-btn.danger:hover{border-color:var(--danger);color:var(--danger)}
+.block-type-badge{position:absolute;top:-10px;right:0;background:var(--spore);color:var(--bar);font-family:var(--font-ui);font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;padding:1px 7px;display:none}
+.block-wrap.selected .block-type-badge{display:block}
+.block-text{padding:18px 2px}
+.block-sec-tag{font-family:var(--font-ui);font-size:10px;color:var(--spore-deep);text-transform:uppercase;letter-spacing:0.15em;margin-bottom:10px}
+.block-h2{font-family:var(--font-display);font-weight:800;font-size:28px;color:var(--ink);text-transform:uppercase;letter-spacing:-0.01em;line-height:1;margin-bottom:14px}
+.block-body{font-size:15px;color:var(--stone);line-height:1.75;max-width:580px}
+.block-body em{color:var(--ink);font-style:normal;font-weight:500}
+.block-module{background:var(--bar);border:1.5px solid var(--bar-border);border-left:3px solid var(--spore);padding:20px 24px}
+.block-wrap.selected .block-module{border-left-width:4px}
+.bm-header{display:flex;align-items:center;gap:8px;margin-bottom:16px}
+.bm-icon{width:28px;height:28px;background:var(--bar-mid);border:1px solid var(--bar-border);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--spore)}
+.bm-name{font-family:var(--font-ui);font-size:10px;color:var(--spore);text-transform:uppercase;letter-spacing:0.12em}
+.bm-id{font-family:var(--font-ui);font-size:9px;color:rgba(255,255,255,0.2);text-transform:uppercase;letter-spacing:0.08em;margin-left:auto}
+.csl-label-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.csl-label{font-family:var(--font-ui);font-size:11px;color:rgba(255,255,255,0.55);text-transform:uppercase;letter-spacing:0.1em}
+.csl-val{font-family:var(--font-code);font-size:16px;color:var(--spore)}
+.csl-track{height:4px;background:var(--bar-border);position:relative;cursor:pointer;margin-bottom:6px}
+.csl-fill{position:absolute;left:0;top:0;height:100%;background:var(--spore);transition:width 0.1s}
+.csl-thumb{position:absolute;top:-8px;width:20px;height:20px;background:var(--spore);transform:translateX(-50%);cursor:grab;transition:left 0.1s}
+.csl-range{display:flex;justify-content:space-between;margin-bottom:10px}
+.csl-range span{font-family:var(--font-ui);font-size:9px;color:rgba(255,255,255,0.28);text-transform:uppercase;letter-spacing:0.08em}
+.csl-output{font-family:var(--font-ui);font-size:11px;padding:9px 14px;background:var(--bar-mid);border:1px solid var(--bar-border);border-left:2px solid var(--spore);color:rgba(255,255,255,0.45)}
+.csl-output .ok{color:var(--spore)}
+.csl-output .warn{color:#fbbf24}
+.csl-output .danger{color:#f87171}
+.block-nav{display:flex;align-items:center;justify-content:space-between;padding:16px 0;border-top:1px solid var(--haze)}
+.nav-dots{display:flex;gap:6px}
+.nav-dot{width:7px;height:7px;background:var(--haze);cursor:pointer}
+.nav-dot.done{background:var(--spore-tint)}
+.nav-dot.active{background:var(--spore-dim)}
+.nav-next{font-family:var(--font-ui);font-size:10px;color:var(--spore-deep);text-transform:uppercase;letter-spacing:0.12em;background:none;border:1px solid var(--smoke);padding:5px 14px;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all 0.15s}
+.nav-next:hover{background:var(--bar);border-color:var(--bar);color:var(--spore)}
+.add-zone{display:flex;align-items:center;gap:12px;padding:8px 0;opacity:0;transition:opacity 0.2s}
+.block-wrap:hover+.add-zone,.add-zone:hover{opacity:1}
+.add-line{flex:1;height:1px;background:var(--haze)}
+.add-btn{height:24px;padding:0 12px;background:transparent;border:1px dashed var(--smoke);color:var(--chalk);font-family:var(--font-ui);font-size:9px;text-transform:uppercase;letter-spacing:0.12em;cursor:pointer;display:flex;align-items:center;gap:5px;transition:all 0.15s}
+.add-btn:hover{border-color:var(--spore-dim);color:var(--spore-deep);background:var(--spore-soft)}
+
+/* RIGHT PANEL */
+.right-panel{background:var(--white);border-left:1px solid var(--haze);display:flex;flex-direction:column;overflow:hidden}
+.rp-header{height:36px;border-bottom:1px solid var(--haze);display:flex;align-items:center;padding:0 12px;gap:8px;flex-shrink:0;background:var(--snow)}
+.rp-title{font-family:var(--font-ui);font-size:10px;text-transform:uppercase;letter-spacing:0.12em;color:var(--chalk)}
+.rp-type{margin-left:auto;background:var(--spore);color:var(--bar);font-family:var(--font-ui);font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;padding:2px 7px}
+.rp-scroll{overflow-y:auto;flex:1}
+.rp-scroll::-webkit-scrollbar{width:3px}
+.rp-scroll::-webkit-scrollbar-thumb{background:var(--haze)}
+.prop-sec{border-bottom:1px solid var(--haze)}
+.prop-sec-title{font-family:var(--font-ui);font-size:9px;text-transform:uppercase;letter-spacing:0.15em;color:var(--chalk);padding:8px 12px 4px;display:flex;align-items:center;justify-content:space-between}
+.prop-collapse{font-size:8px;color:var(--ash);cursor:pointer}
+.prop-row{display:flex;align-items:center;padding:5px 12px;gap:8px}
+.prop-lbl{font-family:var(--font-ui);font-size:9px;text-transform:uppercase;letter-spacing:0.1em;color:var(--chalk);width:80px;flex-shrink:0}
+.prop-input{flex:1;height:24px;background:var(--snow);border:1px solid var(--haze);color:var(--ink);font-family:var(--font-code);font-size:10px;padding:0 7px;outline:none;transition:border-color 0.15s;border-radius:0;min-width:0}
+.prop-input:focus{border-color:var(--spore-dim)}
+.prop-input-sm{width:60px;height:24px;background:var(--snow);border:1px solid var(--haze);color:var(--ink);font-family:var(--font-code);font-size:10px;padding:0 6px;outline:none;border-radius:0;flex-shrink:0}
+.prop-input-sm:focus{border-color:var(--spore-dim)}
+.prop-select{flex:1;height:24px;background:var(--snow);border:1px solid var(--haze);color:var(--stone);font-family:var(--font-ui);font-size:9px;text-transform:uppercase;letter-spacing:0.08em;padding:0 6px;outline:none;border-radius:0;cursor:pointer}
+.prop-select:focus{border-color:var(--spore-dim)}
+.prop-togs{display:flex;border:1px solid var(--haze);flex:1;height:24px}
+.prop-tog{flex:1;display:flex;align-items:center;justify-content:center;font-family:var(--font-ui);font-size:8px;text-transform:uppercase;letter-spacing:0.08em;color:var(--chalk);cursor:pointer;border-right:1px solid var(--haze);transition:all 0.12s}
+.prop-tog:last-child{border-right:none}
+.prop-tog:hover{background:var(--snow);color:var(--stone)}
+.prop-tog.active{background:var(--bar);color:var(--spore);font-weight:600}
+.color-swatch{width:24px;height:24px;border:1px solid var(--haze);cursor:pointer;flex-shrink:0}
+.prop-textarea{width:100%;background:var(--snow);border:1px solid var(--haze);color:var(--stone);font-family:var(--font-code);font-size:10px;padding:8px;outline:none;resize:vertical;min-height:80px;line-height:1.6;border-radius:0}
+.prop-textarea:focus{border-color:var(--spore-dim)}
+.binding-row{display:flex;align-items:center;gap:6px;padding:4px 12px}
+.binding-var{font-family:var(--font-code);font-size:9px;color:var(--spore-deep);background:var(--spore-tint);border:1px solid var(--smoke);padding:2px 7px}
+.binding-arrow{font-size:9px;color:var(--ash)}
+.binding-target{font-family:var(--font-code);font-size:9px;color:var(--pebble);background:var(--snow);border:1px solid var(--haze);padding:2px 7px}
+.binding-add{font-family:var(--font-ui);font-size:9px;color:var(--spore-deep);background:none;border:1px dashed var(--smoke);padding:2px 8px;cursor:pointer;text-transform:uppercase;letter-spacing:0.08em;transition:all 0.12s}
+.binding-add:hover{background:var(--spore-soft);border-color:var(--spore-dim)}
+.rp-tokens{border-top:1px solid var(--haze);padding:10px 12px;flex-shrink:0}
+.rp-token-title{font-family:var(--font-ui);font-size:9px;text-transform:uppercase;letter-spacing:0.15em;color:var(--chalk);margin-bottom:6px}
+.token-chips{display:flex;gap:5px;flex-wrap:wrap}
+.token-chip{display:flex;align-items:center;gap:5px;padding:3px 8px;border:1px solid var(--haze);background:var(--snow);font-family:var(--font-ui);font-size:9px;text-transform:uppercase;letter-spacing:0.08em;color:var(--pebble);cursor:pointer;transition:all 0.12s}
+.token-chip:hover{border-color:var(--spore-dim);color:var(--spore-deep);background:var(--spore-soft)}
+.token-chip-dot{width:8px;height:8px;flex-shrink:0;border:1px solid var(--haze)}
+.rp-bottom{border-top:1px solid var(--haze);padding:10px 12px;flex-shrink:0}
+.delete-btn{width:100%;height:28px;background:transparent;border:1px solid var(--haze);color:var(--chalk);font-family:var(--font-ui);font-size:9px;text-transform:uppercase;letter-spacing:0.12em;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all 0.15s}
+.delete-btn:hover{border-color:var(--danger);color:var(--danger);background:rgba(192,57,43,0.04)}
+.status-bottom{height:22px;background:var(--white);border-top:1px solid var(--haze);display:flex;align-items:center;padding:0 12px;gap:16px;flex-shrink:0}
+.sb-item{font-family:var(--font-ui);font-size:9px;text-transform:uppercase;letter-spacing:0.1em;color:var(--ash);display:flex;align-items:center;gap:5px}
+.sb-item.accent{color:var(--spore-deep)}
+.sb-spacer{flex:1}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a href="commonpub-home.html" class="tb-logo">
+    <svg width="22" height="22" viewBox="0 0 32 32">
+      <rect x="1" y="4" width="12" height="24" stroke="#b8f542" stroke-width="1.5" fill="none"/>
+      <rect x="13" y="11" width="6" height="10" fill="#b8f542"/>
+      <path d="M19,4 L31,4 L31,28 L19,28 L19,21 L15,21 L15,11 L19,11 Z" stroke="#b8f542" stroke-width="1.5" fill="rgba(184,245,66,0.12)"/>
+    </svg>
+    <span class="tb-wordmark">Snap<span>lify</span></span>
+  </a>
+  <div style="display:flex;gap:2px">
+    <button class="tb-icon"><i class="fa fa-rotate-left"></i></button>
+    <button class="tb-icon" disabled><i class="fa fa-rotate-right"></i></button>
+  </div>
+  <div class="tb-div"></div>
+  <div style="display:flex;align-items:center;gap:6px">
+    <div class="file-dot"></div>
+    <div class="file-name">How Neural Networks Learn</div>
+    <button class="tb-icon"><i class="fa fa-pen" style="font-size:9px"></i></button>
+  </div>
+  <div class="tb-div"></div>
+  <div style="display:flex;gap:1px">
+    <button class="tb-btn active" onclick="setMode(this)"><i class="fa fa-pen-to-square"></i>Edit</button>
+    <button class="tb-btn" onclick="setMode(this)"><i class="fa fa-code"></i>Code</button>
+    <button class="tb-btn" onclick="setMode(this)"><i class="fa fa-eye"></i>Preview</button>
+  </div>
+  <div class="tb-spacer"></div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <span style="font-family:var(--font-ui);font-size:9px;color:rgba(255,255,255,0.3);text-transform:uppercase;letter-spacing:0.12em">Theme:</span>
+    <select class="theme-sel">
+      <option>Deepwood</option><option>Paper / Teal</option><option>Foundry</option><option>Warm Ember</option><option>Zine</option><option>Custom Tokens...</option>
+    </select>
+    <div class="tb-div"></div>
+    <button class="btn-bar-outline"><i class="fa fa-share-from-square" style="font-size:9px"></i>Share</button>
+    <button class="btn-bar-outline"><i class="fa fa-download" style="font-size:9px"></i>Export</button>
+    <button class="btn-bar-primary"><i class="fa fa-bolt" style="font-size:9px"></i>Publish</button>
+  </div>
+</div>
+<div class="topbar-line"></div>
+
+<div class="app-body" style="flex:1;overflow:hidden">
+
+  <!-- LEFT -->
+  <div class="left-panel">
+    <div class="panel-tabs">
+      <div class="panel-tab active" onclick="switchTab('M')">Modules</div>
+      <div class="panel-tab" onclick="switchTab('S')">Structure</div>
+      <div class="panel-tab" onclick="switchTab('A')">Assets</div>
+    </div>
+    <div id="panelM" style="display:flex;flex-direction:column;flex:1;overflow:hidden">
+      <div class="panel-search"><div class="search-wrap"><i class="fa fa-search search-icon"></i><input type="text" class="search-input" placeholder="Search modules..."></div></div>
+      <div class="panel-scroll">
+        <div class="module-group-lbl">Text Blocks</div>
+        <div class="module-item" draggable="true"><div class="mi-icon"><i class="fa fa-heading"></i></div><div class="mi-info"><div class="mi-name">Section Header</div><div class="mi-desc">Title, subtitle, tag</div></div></div>
+        <div class="module-item" draggable="true"><div class="mi-icon"><i class="fa fa-align-left"></i></div><div class="mi-info"><div class="mi-name">Body Text</div><div class="mi-desc">Paragraph prose block</div></div></div>
+        <div class="module-item" draggable="true"><div class="mi-icon"><i class="fa fa-code"></i></div><div class="mi-info"><div class="mi-name">Code Block</div><div class="mi-desc">Syntax-highlighted snippet</div></div></div>
+        <div class="module-group-lbl">Interactive</div>
+        <div class="module-item" draggable="true"><div class="mi-icon"><i class="fa fa-sliders"></i></div><div class="mi-info"><div class="mi-name">Range Slider</div><div class="mi-desc">Continuous var exploration</div></div></div>
+        <div class="module-item" draggable="true"><div class="mi-icon"><i class="fa fa-toggle-on"></i></div><div class="mi-info"><div class="mi-name">Comparison Toggle</div><div class="mi-desc">A/B state compare</div></div></div>
+        <div class="module-item" draggable="true"><div class="mi-icon"><i class="fa fa-diagram-project"></i></div><div class="mi-info"><div class="mi-name">Tick Simulation</div><div class="mi-desc">Agent-based emergent sim</div></div></div>
+        <div class="module-item" draggable="true"><div class="mi-icon"><i class="fa fa-th-large"></i></div><div class="mi-info"><div class="mi-name">Reveal Grid</div><div class="mi-desc">Click-to-reveal cards</div></div></div>
+        <div class="module-item" draggable="true"><div class="mi-icon"><i class="fa fa-calculator"></i></div><div class="mi-info"><div class="mi-name">Live Calculator</div><div class="mi-desc">Formula-bound inputs</div></div></div>
+        <div class="module-item" draggable="true"><div class="mi-icon"><i class="fa fa-paint-brush"></i></div><div class="mi-info"><div class="mi-name">Draw Canvas</div><div class="mi-desc">Freehand annotation</div></div></div>
+        <div class="module-group-lbl">Data &amp; Viz</div>
+        <div class="module-item" draggable="true"><div class="mi-icon"><i class="fa fa-chart-bar"></i></div><div class="mi-info"><div class="mi-name">Bar Chart</div><div class="mi-desc">Animated bars</div></div></div>
+        <div class="module-item" draggable="true"><div class="mi-icon"><i class="fa fa-circle-nodes"></i></div><div class="mi-info"><div class="mi-name">Network Graph</div><div class="mi-desc">Force-directed sim</div></div></div>
+        <div class="module-item" draggable="true"><div class="mi-icon"><i class="fa fa-arrows-left-right-to-line"></i></div><div class="mi-info"><div class="mi-name">Do / Don't</div><div class="mi-desc">Side-by-side compare</div></div></div>
+        <div class="module-group-lbl">Structure</div>
+        <div class="module-item" draggable="true"><div class="mi-icon"><i class="fa fa-minus"></i></div><div class="mi-info"><div class="mi-name">Section Divider</div><div class="mi-desc">Visual break</div></div></div>
+        <div class="module-item" draggable="true"><div class="mi-icon"><i class="fa fa-arrow-right"></i></div><div class="mi-info"><div class="mi-name">Section Nav</div><div class="mi-desc">Prev/next + progress</div></div></div>
+        <div class="module-item" draggable="true"><div class="mi-icon"><i class="fa fa-circle-question"></i></div><div class="mi-info"><div class="mi-name">Quiz Block</div><div class="mi-desc">Multiple choice</div></div></div>
+      </div>
+    </div>
+    <div id="panelS" style="display:none;flex-direction:column;flex:1;overflow:hidden">
+      <div style="padding:8px;border-bottom:1px solid var(--haze);flex-shrink:0;display:flex;gap:4px">
+        <button style="flex:1;height:26px;font-size:9px;font-family:var(--font-ui);text-transform:uppercase;letter-spacing:0.1em;border:1px solid var(--haze);background:var(--snow);color:var(--pebble);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px"><i class="fa fa-plus" style="font-size:8px"></i>New Section</button>
+        <button class="ct-icon"><i class="fa fa-bars"></i></button>
+      </div>
+      <div class="panel-scroll">
+        <div class="struct-item active" onclick="selStruct(this)"><div class="struct-num">01</div><div class="struct-title">Introduction</div><span class="struct-tag">2 blocks</span></div>
+        <div class="struct-item" onclick="selStruct(this)"><div class="struct-num">02</div><div class="struct-title">Neurons &amp; Signals</div><span class="struct-tag">3 blocks</span></div>
+        <div class="struct-item" onclick="selStruct(this)"><div class="struct-num">03</div><div class="struct-title">Gradient Descent</div><span class="struct-tag">Slider</span></div>
+        <div class="struct-item" onclick="selStruct(this)"><div class="struct-num">04</div><div class="struct-title">Backpropagation</div><span class="struct-tag">Sim</span></div>
+        <div class="struct-item" onclick="selStruct(this)"><div class="struct-num">05</div><div class="struct-title">Overfitting</div><span class="struct-tag">Toggle</span></div>
+        <div class="struct-item" onclick="selStruct(this)"><div class="struct-num">06</div><div class="struct-title">Architectures</div><span class="struct-tag">Reveal Grid</span></div>
+        <div class="struct-item" onclick="selStruct(this)"><div class="struct-num">07</div><div class="struct-title">Real World</div><span class="struct-tag">2 blocks</span></div>
+      </div>
+    </div>
+    <div id="panelA" style="display:none;flex:1;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center">
+      <div style="font-size:28px;color:var(--haze);margin-bottom:10px"><i class="fa fa-image"></i></div>
+      <div style="font-family:var(--font-ui);font-size:10px;text-transform:uppercase;letter-spacing:0.12em;color:var(--ash)">Drop images or files here</div>
+    </div>
+  </div>
+
+  <!-- CANVAS -->
+  <div class="canvas-area">
+    <div class="canvas-toolbar">
+      <div style="display:flex;align-items:center;gap:2px">
+        <button class="ct-icon"><i class="fa fa-minus" style="font-size:9px"></i></button>
+        <div class="zoom-display">100%</div>
+        <button class="ct-icon"><i class="fa fa-plus" style="font-size:9px"></i></button>
+        <button class="ct-icon"><i class="fa fa-expand-arrows-alt" style="font-size:9px"></i></button>
+      </div>
+      <div style="width:1px;height:18px;background:var(--haze);margin:0 4px"></div>
+      <div style="display:flex;gap:2px">
+        <button class="ct-icon"><i class="fa fa-chevron-up" style="font-size:9px"></i></button>
+        <button class="ct-icon"><i class="fa fa-chevron-down" style="font-size:9px"></i></button>
+        <button class="ct-icon"><i class="fa fa-clone" style="font-size:9px"></i></button>
+      </div>
+      <div style="flex:1"></div>
+      <div class="view-toggle">
+        <button class="view-btn active" onclick="setView(this,'860px','40px 64px')">Desktop</button>
+        <button class="view-btn" onclick="setView(this,'768px','30px 40px')">Tablet</button>
+        <button class="view-btn" onclick="setView(this,'390px','20px 20px')">Mobile</button>
+      </div>
+    </div>
+    <div class="explainer-progress">
+      <span class="prog-lbl" style="flex-shrink:0">Sections:</span>
+      <div class="prog-secs">
+        <div class="prog-sec done"></div><div class="prog-sec done"></div>
+        <div class="prog-sec active"></div><div class="prog-sec"></div>
+        <div class="prog-sec"></div><div class="prog-sec"></div><div class="prog-sec"></div>
+      </div>
+      <span class="prog-lbl">Section 3 of 7 — Gradient Descent</span>
+      <div style="flex:1"></div>
+      <span class="saved-badge"><i class="fa fa-circle-check" style="font-size:10px"></i>Saved 2m ago</span>
+    </div>
+    <div class="canvas-content" id="canvasContent">
+
+      <div class="block-wrap" id="b1" onclick="selectBlock('b1','Section Header')">
+        <div class="block-handle">
+          <button class="handle-btn"><i class="fa fa-grip-vertical"></i></button>
+          <button class="handle-btn"><i class="fa fa-clone"></i></button>
+        </div>
+        <div class="block-type-badge">Section Header</div>
+        <div class="block-text">
+          <div class="block-sec-tag">§ 03 — Gradient Descent</div>
+          <h2 class="block-h2">The Learning<br>Rate Problem</h2>
+          <p class="block-body">Every neural network needs to find the bottom of a bowl — the lowest point of a loss function. It does this by shuffling weights in the direction that reduces error. But <em>how big each shuffle is</em> determines whether it finds the bottom or keeps bouncing around.</p>
+        </div>
+      </div>
+
+      <div class="add-zone"><div class="add-line"></div><button class="add-btn"><i class="fa fa-plus"></i>Insert block</button><div class="add-line"></div></div>
+
+      <div class="block-wrap" id="b2" onclick="selectBlock('b2','Body Text')">
+        <div class="block-handle">
+          <button class="handle-btn"><i class="fa fa-grip-vertical"></i></button>
+          <button class="handle-btn"><i class="fa fa-clone"></i></button>
+        </div>
+        <div class="block-type-badge">Body Text</div>
+        <div class="block-text" style="padding-top:0">
+          <p class="block-body">This value — the <em>learning rate</em> — is one of the most consequential decisions in training. Set it too high, weights overshoot the minimum on every update. Set it too low, training barely moves.</p>
+          <p class="block-body" style="margin-top:14px">Use the slider below to see how different learning rates affect a training run.</p>
+        </div>
+      </div>
+
+      <div class="add-zone"><div class="add-line"></div><button class="add-btn"><i class="fa fa-plus"></i>Insert block</button><div class="add-line"></div></div>
+
+      <div class="block-wrap selected" id="b3" onclick="selectBlock('b3','Range Slider')">
+        <div class="block-handle">
+          <button class="handle-btn"><i class="fa fa-grip-vertical"></i></button>
+          <button class="handle-btn"><i class="fa fa-clone"></i></button>
+          <button class="handle-btn danger"><i class="fa fa-trash"></i></button>
+        </div>
+        <div class="block-type-badge">Range Slider</div>
+        <div class="block-module">
+          <div class="bm-header">
+            <div class="bm-icon"><i class="fa fa-sliders"></i></div>
+            <span class="bm-name">Range Slider</span>
+            <span class="bm-id">#mod-04 · slider</span>
+          </div>
+          <div class="csl-label-row">
+            <span class="csl-label">Learning Rate (η)</span>
+            <span class="csl-val" id="cslVal">0.010</span>
+          </div>
+          <div class="csl-track" id="cslTrack">
+            <div class="csl-fill" id="cslFill" style="width:35%"></div>
+            <div class="csl-thumb" id="cslThumb" style="left:35%"></div>
+          </div>
+          <div class="csl-range"><span>0.001 — very slow</span><span>1.0 — too high</span></div>
+          <div class="csl-output" id="cslOutput"><span class="ok"><i class="fa fa-check" style="margin-right:7px;font-size:9px"></i>Converging steadily. Loss decreasing each epoch.</span></div>
+        </div>
+      </div>
+
+      <div class="add-zone" style="opacity:1"><div class="add-line"></div><button class="add-btn"><i class="fa fa-plus"></i>Insert block</button><div class="add-line"></div></div>
+
+      <div class="block-wrap" id="b4" onclick="selectBlock('b4','Body Text')">
+        <div class="block-handle">
+          <button class="handle-btn"><i class="fa fa-grip-vertical"></i></button>
+          <button class="handle-btn"><i class="fa fa-clone"></i></button>
+        </div>
+        <div class="block-type-badge">Body Text</div>
+        <div class="block-text" style="padding-top:0">
+          <p class="block-body">Notice the sweet spot around <em>0.01–0.1</em>? That's where the model makes meaningful progress without overshooting. In practice, researchers use adaptive optimizers like Adam that adjust the learning rate dynamically per parameter.</p>
+        </div>
+      </div>
+
+      <div class="add-zone"><div class="add-line"></div><button class="add-btn"><i class="fa fa-plus"></i>Insert block</button><div class="add-line"></div></div>
+
+      <div class="block-wrap" id="b5" onclick="selectBlock('b5','Section Nav')">
+        <div class="block-handle">
+          <button class="handle-btn"><i class="fa fa-grip-vertical"></i></button>
+          <button class="handle-btn"><i class="fa fa-clone"></i></button>
+        </div>
+        <div class="block-type-badge">Section Nav</div>
+        <div class="block-nav">
+          <div class="nav-dots">
+            <div class="nav-dot done"></div><div class="nav-dot done"></div>
+            <div class="nav-dot active"></div><div class="nav-dot"></div>
+            <div class="nav-dot"></div><div class="nav-dot"></div><div class="nav-dot"></div>
+          </div>
+          <button class="nav-next">Next: Backpropagation <i class="fa fa-arrow-right" style="font-size:9px"></i></button>
+        </div>
+      </div>
+
+      <div style="height:80px"></div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="right-panel">
+    <div class="rp-header">
+      <span class="rp-title">Properties</span>
+      <span class="rp-type" id="rpType">Range Slider</span>
+    </div>
+    <div class="rp-scroll">
+      <div class="prop-sec">
+        <div class="prop-sec-title">Content <i class="fa fa-chevron-up prop-collapse"></i></div>
+        <div class="prop-row"><span class="prop-lbl">Label</span><input class="prop-input" value="Learning Rate (η)" type="text"></div>
+        <div class="prop-row"><span class="prop-lbl">Min</span><input class="prop-input-sm" value="0.001"><span class="prop-lbl" style="width:auto">Max</span><input class="prop-input-sm" value="1.0"></div>
+        <div class="prop-row"><span class="prop-lbl">Default</span><input class="prop-input-sm" value="0.01"><span class="prop-lbl" style="width:auto">Step</span><input class="prop-input-sm" value="0.001"></div>
+        <div class="prop-row"><span class="prop-lbl">Format</span><select class="prop-select"><option>Decimal</option><option>Percentage</option><option>Integer</option></select></div>
+      </div>
+      <div class="prop-sec">
+        <div class="prop-sec-title">Output Binding <i class="fa fa-chevron-up prop-collapse"></i></div>
+        <div style="padding:6px 12px 4px">
+          <div class="binding-row"><span class="binding-var">$value</span><span class="binding-arrow">→</span><span class="binding-target">result-text</span></div>
+          <div class="binding-row"><span class="binding-var">$value</span><span class="binding-arrow">→</span><span class="binding-target">epoch-count</span></div>
+          <div class="binding-row"><button class="binding-add"><i class="fa fa-plus" style="font-size:8px;margin-right:4px"></i>Bind output</button></div>
+        </div>
+        <div class="prop-row"><span class="prop-lbl" style="width:100%">Output Template</span></div>
+        <div style="padding:0 12px 8px"><textarea class="prop-textarea">{{#if value < 0.005}}
+Too slow — barely converging
+{{else if value > 0.3}}
+Too high — loss exploding!
+{{else}}
+Converging steadily. Loss decreasing.
+{{/if}}</textarea></div>
+      </div>
+      <div class="prop-sec">
+        <div class="prop-sec-title">Appearance <i class="fa fa-chevron-up prop-collapse"></i></div>
+        <div class="prop-row"><span class="prop-lbl">Style</span><div class="prop-togs"><div class="prop-tog active" onclick="togSel(this)">Default</div><div class="prop-tog" onclick="togSel(this)">Minimal</div><div class="prop-tog" onclick="togSel(this)">Large</div></div></div>
+        <div class="prop-row"><span class="prop-lbl">Track Color</span><div style="display:flex;align-items:center;gap:6px;flex:1"><div class="color-swatch" style="background:#b8f542"></div><input class="prop-input" value="#b8f542" type="text"></div></div>
+        <div class="prop-row"><span class="prop-lbl">Show Value</span><div class="prop-togs"><div class="prop-tog active" onclick="togSel(this)">On</div><div class="prop-tog" onclick="togSel(this)">Off</div></div></div>
+        <div class="prop-row"><span class="prop-lbl">Show Output</span><div class="prop-togs"><div class="prop-tog active" onclick="togSel(this)">On</div><div class="prop-tog" onclick="togSel(this)">Off</div></div></div>
+      </div>
+      <div class="prop-sec">
+        <div class="prop-sec-title">Layout <i class="fa fa-chevron-up prop-collapse"></i></div>
+        <div class="prop-row"><span class="prop-lbl">Width</span><div class="prop-togs"><div class="prop-tog active" onclick="togSel(this)">Full</div><div class="prop-tog" onclick="togSel(this)">3/4</div><div class="prop-tog" onclick="togSel(this)">Half</div></div></div>
+        <div class="prop-row"><span class="prop-lbl">Spacing</span><select class="prop-select"><option>Normal</option><option>Compact</option><option>Loose</option></select></div>
+      </div>
+      <div class="prop-sec">
+        <div class="prop-sec-title">Block ID</div>
+        <div class="prop-row"><input class="prop-input" value="mod-04" type="text" style="font-family:var(--font-code)"></div>
+      </div>
+    </div>
+    <div class="rp-tokens">
+      <div class="rp-token-title">Active Theme Tokens</div>
+      <div class="token-chips">
+        <div class="token-chip"><div class="token-chip-dot" style="background:#1a3d1a;border-color:#1a3d1a"></div>--bar</div>
+        <div class="token-chip"><div class="token-chip-dot" style="background:#b8f542;border-color:var(--smoke)"></div>--spore</div>
+        <div class="token-chip"><div class="token-chip-dot" style="background:#f0fad8"></div>--spore-soft</div>
+        <div class="token-chip" style="border-style:dashed"><i class="fa fa-upload" style="font-size:8px;color:var(--spore-deep)"></i>Import...</div>
+      </div>
+    </div>
+    <div class="rp-bottom">
+      <button class="delete-btn"><i class="fa fa-trash"></i>Delete Block</button>
+    </div>
+  </div>
+</div>
+
+<div class="status-bottom">
+  <div class="sb-item accent"><i class="fa fa-circle" style="font-size:7px"></i>Saved</div>
+  <div class="sb-item"><i class="fa fa-layer-group"></i>7 sections · 14 blocks</div>
+  <div class="sb-item"><i class="fa fa-puzzle-piece"></i>3 interactive modules</div>
+  <div class="sb-item"><i class="fa fa-palette"></i>Deepwood</div>
+  <div class="sb-spacer"></div>
+  <div class="sb-item"><i class="fa fa-file-code"></i>~42kb est.</div>
+  <div class="sb-item"><i class="fa fa-code-branch"></i>v0.9.1</div>
+</div>
+
+<script>
+let sel='b3';
+function selectBlock(id,type){document.getElementById(sel).classList.remove('selected');sel=id;document.getElementById(id).classList.add('selected');document.getElementById('rpType').textContent=type;}
+function setMode(btn){document.querySelectorAll('.tb-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');}
+function switchTab(t){['M','S','A'].forEach((k,i)=>{const p=document.getElementById('panel'+k);const tabs=document.querySelectorAll('.panel-tab');const show=k===t;p.style.display=show?'flex':'none';if(show)p.style.flexDirection='column';tabs[i].classList.toggle('active',show);});}
+function setView(btn,maxW,pad){document.querySelectorAll('.view-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');const cc=document.getElementById('canvasContent');cc.style.maxWidth=maxW;cc.style.padding=pad;}
+function togSel(el){const row=el.closest('.prop-togs');row.querySelectorAll('.prop-tog').forEach(t=>t.classList.remove('active'));el.classList.add('active');}
+function selStruct(el){document.querySelectorAll('.struct-item').forEach(i=>i.classList.remove('active'));el.classList.add('active');}
+const cslTrack=document.getElementById('cslTrack');
+let cslDrag=false;
+function updateCsl(pct){pct=Math.max(0,Math.min(100,pct));document.getElementById('cslFill').style.width=pct+'%';document.getElementById('cslThumb').style.left=pct+'%';document.getElementById('cslVal').textContent=(0.001+pct/100*0.999).toFixed(3);const o=document.getElementById('cslOutput');if(pct<5)o.innerHTML='<span class="warn"><i class="fa fa-hourglass" style="margin-right:7px;font-size:9px"></i>Too slow — barely converging.</span>';else if(pct>65)o.innerHTML='<span class="danger"><i class="fa fa-triangle-exclamation" style="margin-right:7px;font-size:9px"></i>Too high — loss exploding!</span>';else o.innerHTML='<span class="ok"><i class="fa fa-check" style="margin-right:7px;font-size:9px"></i>Converging steadily. Loss decreasing each epoch.</span>';}
+cslTrack.addEventListener('mousedown',e=>{cslDrag=true;selectBlock('b3','Range Slider');const r=cslTrack.getBoundingClientRect();updateCsl(((e.clientX-r.left)/r.width)*100);e.stopPropagation();});
+document.addEventListener('mousemove',e=>{if(!cslDrag)return;const r=cslTrack.getBoundingClientRect();updateCsl(((e.clientX-r.left)/r.width)*100);});
+document.addEventListener('mouseup',()=>cslDrag=false);
+cslTrack.addEventListener('touchstart',e=>{e.preventDefault();cslDrag=true;const r=cslTrack.getBoundingClientRect();updateCsl(((e.touches[0].clientX-r.left)/r.width)*100);});
+document.addEventListener('touchmove',e=>{if(!cslDrag)return;const r=cslTrack.getBoundingClientRect();updateCsl(((e.touches[0].clientX-r.left)/r.width)*100);});
+document.addEventListener('touchend',()=>cslDrag=false);
+</script>
+</body>
+</html>

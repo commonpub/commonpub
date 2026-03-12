@@ -1,4 +1,4 @@
-import type { BlockTuple } from '@snaplify/editor';
+import type { BlockTuple } from '@commonpub/editor';
 import type { ZodType } from 'zod';
 
 /** Section types supported by the explainer system */

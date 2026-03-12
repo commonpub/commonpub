@@ -89,7 +89,7 @@
 - Code snippet for quick start (syntax highlighted)
 - Footer with links, copyright, social
 - Responsive: mobile-first, CSS Grid/Flexbox
-- Share theme CSS via `@snaplify/ui/theme/*.css` imports
+- Share theme CSS via `@commonpub/ui/theme/*.css` imports
 
 ## 5. Lighthouse Performance Budgets
 

@@ -2,18 +2,18 @@ import { describe, it, expect } from 'vitest';
 import { Editor } from '@tiptap/core';
 import { Document } from '@tiptap/extension-document';
 import { Text } from '@tiptap/extension-text';
-import { SnaplifyText } from '../../extensions/text';
-import { SnaplifyCodeBlock } from '../../extensions/code';
+import { CommonPubText } from '../../extensions/text';
+import { CommonPubCodeBlock } from '../../extensions/code';
 
 function createEditor(content?: string): Editor {
   return new Editor({
-    extensions: [Document, Text, SnaplifyText, SnaplifyCodeBlock],
+    extensions: [Document, Text, CommonPubText, CommonPubCodeBlock],
     content: content ?? '<pre><code>const x = 1;</code></pre>',
     element: document.createElement('div'),
   });
 }
 
-describe('SnaplifyCodeBlock Extension', () => {
+describe('CommonPubCodeBlock Extension', () => {
   it('parses code block HTML', () => {
     const editor = createEditor();
     expect(editor.getText()).toContain('const x = 1;');

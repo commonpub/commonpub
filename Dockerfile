@@ -19,7 +19,7 @@ RUN pnpm prune --prod
 
 # Stage 4: runtime
 FROM node:22-alpine AS runtime
-RUN addgroup -S snaplify && adduser -S snaplify -G snaplify
+RUN addgroup -S commonpub && adduser -S commonpub -G commonpub
 WORKDIR /app
 COPY --from=build /app/apps/reference/build ./build
 COPY --from=build /app/apps/reference/package.json ./package.json
@@ -27,5 +27,5 @@ COPY --from=prod-deps /app/node_modules ./node_modules
 ENV NODE_ENV=production
 ENV PORT=3000
 EXPOSE 3000
-USER snaplify
+USER commonpub
 CMD ["node", "build/index.js"]

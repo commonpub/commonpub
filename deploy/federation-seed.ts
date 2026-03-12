@@ -14,17 +14,17 @@
 
 import pg from 'pg';
 import { drizzle } from 'drizzle-orm/node-postgres';
-import * as schema from '@snaplify/schema';
+import * as schema from '@commonpub/schema';
 import { randomUUID } from 'node:crypto';
 
 const INSTANCE_A = {
   domain: 'a.localhost:3001',
-  dbUrl: 'postgresql://snaplify:snaplify_dev@localhost:5433/snaplify_a',
+  dbUrl: 'postgresql://commonpub:commonpub_dev@localhost:5433/commonpub_a',
 };
 
 const INSTANCE_B = {
   domain: 'b.localhost:3002',
-  dbUrl: 'postgresql://snaplify:snaplify_dev@localhost:5434/snaplify_b',
+  dbUrl: 'postgresql://commonpub:commonpub_dev@localhost:5434/commonpub_b',
 };
 
 async function seed(instanceConfig: typeof INSTANCE_A, peerConfig: typeof INSTANCE_B) {
@@ -93,10 +93,10 @@ async function main() {
 
   console.log('\nDone! Start instances with:');
   console.log(
-    '  Instance A: PUBLIC_DOMAIN=a.localhost:3001 DATABASE_URL=postgresql://snaplify:snaplify_dev@localhost:5433/snaplify_a FEATURE_FEDERATION=true pnpm --filter reference dev -- --port 3001',
+    '  Instance A: PUBLIC_DOMAIN=a.localhost:3001 DATABASE_URL=postgresql://commonpub:commonpub_dev@localhost:5433/commonpub_a FEATURE_FEDERATION=true pnpm --filter reference dev -- --port 3001',
   );
   console.log(
-    '  Instance B: PUBLIC_DOMAIN=b.localhost:3002 DATABASE_URL=postgresql://snaplify:snaplify_dev@localhost:5434/snaplify_b FEATURE_FEDERATION=true pnpm --filter reference dev -- --port 3002',
+    '  Instance B: PUBLIC_DOMAIN=b.localhost:3002 DATABASE_URL=postgresql://commonpub:commonpub_dev@localhost:5434/commonpub_b FEATURE_FEDERATION=true pnpm --filter reference dev -- --port 3002',
   );
 }
 

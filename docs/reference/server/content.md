@@ -213,7 +213,7 @@ These functions are called by route handlers after successful write operations, 
 function onContentPublished(
   db: NodePgDatabase,
   contentId: string,
-  config: SnaplifyConfig
+  config: CommonPubConfig
 ): Promise<void>
 ```
 
@@ -225,7 +225,7 @@ Checks `config.features.federation`. If enabled, calls `federateContent(db, cont
 function onContentUpdated(
   db: NodePgDatabase,
   contentId: string,
-  config: SnaplifyConfig
+  config: CommonPubConfig
 ): Promise<void>
 ```
 
@@ -238,7 +238,7 @@ function onContentDeleted(
   db: NodePgDatabase,
   contentId: string,
   authorUsername: string,
-  config: SnaplifyConfig
+  config: CommonPubConfig
 ): Promise<void>
 ```
 

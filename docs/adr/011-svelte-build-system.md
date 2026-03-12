@@ -6,11 +6,11 @@ Accepted
 
 ## Context
 
-@snaplify/ui needs a build system that compiles Svelte 5 components with TypeScript for distribution as a package within the monorepo. The current `tsc` build step cannot process `.svelte` files.
+@commonpub/ui needs a build system that compiles Svelte 5 components with TypeScript for distribution as a package within the monorepo. The current `tsc` build step cannot process `.svelte` files.
 
 ## Decision
 
-Use `svelte-package` from `@sveltejs/package` as the build tool for @snaplify/ui.
+Use `svelte-package` from `@sveltejs/package` as the build tool for @commonpub/ui.
 
 - **Build**: `svelte-package` replaces `tsc`. Processes `.svelte` files, generates `.d.ts` declarations, copies `.ts` and `.css` files to output.
 - **Typecheck**: `svelte-check` replaces `tsc --noEmit`. Understands `.svelte` file types and runes syntax.
@@ -41,7 +41,7 @@ Use `svelte-package` from `@sveltejs/package` as the build tool for @snaplify/ui
 
 ## Consequences
 
-- @snaplify/ui's `build` and `typecheck` scripts differ from other packages (svelte-package/svelte-check vs tsc)
+- @commonpub/ui's `build` and `typecheck` scripts differ from other packages (svelte-package/svelte-check vs tsc)
 - `svelte ^5.0.0` is a peer dependency — consumers provide their own Svelte
 - Theme CSS files exported directly (no processing needed)
 - `.svelte` files in `dist/` are pre-processed but not compiled to JS — consumers' bundlers handle final compilation

@@ -24,7 +24,7 @@ export type {
   LessonStatus,
   CurriculumNode,
   CertificateData,
-} from './types';
+} from './types.js';
 
 // Validators
 export {
@@ -33,7 +33,7 @@ export {
   updateModuleSchema,
   updateLessonSchema,
   lessonContentSchema,
-} from './validators';
+} from './validators.js';
 
 // Progress
 export {
@@ -42,14 +42,14 @@ export {
   getNextLesson,
   getLessonStatus,
   getCompletionPercentageByModule,
-} from './progress';
+} from './progress.js';
 
 // Certificate
 export {
   generateVerificationCode,
   formatCertificateData,
   buildVerificationUrl,
-} from './certificate';
+} from './certificate.js';
 
 // Curriculum
 export {
@@ -59,4 +59,4 @@ export {
   formatDuration,
   buildCurriculumTree,
   reorderItems,
-} from './curriculum';
+} from './curriculum.js';

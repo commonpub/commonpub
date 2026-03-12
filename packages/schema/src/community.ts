@@ -9,9 +9,9 @@ import {
   primaryKey,
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
-import { users } from './auth';
-import { contentItems } from './content';
-import { communityRoleEnum, communityJoinPolicyEnum, postTypeEnum } from './enums';
+import { users } from './auth.js';
+import { contentItems } from './content.js';
+import { communityRoleEnum, communityJoinPolicyEnum, postTypeEnum } from './enums.js';
 
 export const communities = pgTable('communities', {
   id: uuid('id').defaultRandom().primaryKey(),

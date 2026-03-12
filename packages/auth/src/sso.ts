@@ -1,4 +1,4 @@
-import type { SnaplifyConfig } from '@snaplify/config';
+import type { CommonPubConfig } from '@commonpub/config';
 
 export interface OAuthEndpointDiscovery {
   authorizationEndpoint: string;
@@ -12,7 +12,7 @@ export interface SSOProviderConfig {
   tokenEndpoint: string;
 }
 
-export function createSSOProviderConfig(config: SnaplifyConfig): SSOProviderConfig | null {
+export function createSSOProviderConfig(config: CommonPubConfig): SSOProviderConfig | null {
   if (!config.features.federation) {
     return null;
   }
@@ -65,7 +65,7 @@ export async function discoverOAuthEndpoint(
   }
 }
 
-export function isTrustedInstance(config: SnaplifyConfig, domain: string): boolean {
+export function isTrustedInstance(config: CommonPubConfig, domain: string): boolean {
   if (!config.features.federation) return false;
   if (!config.auth.trustedInstances) return false;
   return config.auth.trustedInstances.includes(domain);

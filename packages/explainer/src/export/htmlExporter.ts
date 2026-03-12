@@ -1,7 +1,7 @@
-import type { ExplainerSection, ExportOptions } from '../types';
-import { renderSection } from '../render/sectionRenderer';
-import { generateCss, generateJs } from './templates';
-import { minifyCss, minifyJs, wrapStyle, wrapScript } from './inlineAssets';
+import type { ExplainerSection, ExportOptions } from '../types.js';
+import { renderSection } from '../render/sectionRenderer.js';
+import { generateCss, generateJs } from './templates.js';
+import { minifyCss, minifyJs, wrapStyle, wrapScript } from './inlineAssets.js';
 
 /** Generate a self-contained HTML document from explainer sections */
 export function generateExplainerHtml(

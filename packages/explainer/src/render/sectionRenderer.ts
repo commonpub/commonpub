@@ -1,5 +1,5 @@
-import type { BlockTuple } from '@snaplify/editor';
-import type { ExplainerSection, QuizQuestion, InteractiveControl } from '../types';
+import type { BlockTuple } from '@commonpub/editor';
+import type { ExplainerSection, QuizQuestion, InteractiveControl } from '../types.js';
 
 /** Escape HTML special characters */
 function escapeHtml(text: string): string {

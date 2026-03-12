@@ -45,7 +45,7 @@
 
 ## Key Takeaways
 
-1. **DB-backed vs file-system routing**: GitBook uses DB-backed content, others use files. For Snaplify, DB-backed is the right choice since we already have `docsPages` table with raw markdown (Standing Rule 4).
+1. **DB-backed vs file-system routing**: GitBook uses DB-backed content, others use files. For CommonPub, DB-backed is the right choice since we already have `docsPages` table with raw markdown (Standing Rule 4).
 
 2. **Versioning by snapshot**: Docusaurus copies entire directory; we copy all pages when creating a new version. This is simpler than branch-based versioning and matches our `docsVersions` table design.
 

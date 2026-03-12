@@ -1,4 +1,4 @@
-import type { DocsPage, PageTreeNode, BreadcrumbItem, PrevNextLinks, NavItem } from '../types';
+import type { DocsPage, PageTreeNode, BreadcrumbItem, PrevNextLinks, NavItem } from '../types.js';
 
 /**
  * Build a tree of pages from a flat list, grouped by parentId and sorted by sortOrder.
