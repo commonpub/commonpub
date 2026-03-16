@@ -4,7 +4,11 @@ export default defineNuxtPlugin(async () => {
   const session = useState<Record<string, unknown> | null>('auth-session', () => null);
 
   if (import.meta.server) {
-    // On SSR, session is resolved by the auth middleware
+    const event = useRequestEvent();
+    if (event?.context?.auth) {
+      user.value = event.context.auth.user ?? null;
+      session.value = event.context.auth.session ?? null;
+    }
     return;
   }
 

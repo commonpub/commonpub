@@ -210,6 +210,59 @@ body {
   border-radius: var(--radius);
 }
 
+/* === ACCESSIBILITY === */
+
+/* Skip-to-content link */
+.cpub-skip-link {
+  position: absolute;
+  top: -100%;
+  left: var(--space-4);
+  z-index: var(--z-tooltip);
+  padding: var(--space-2) var(--space-4);
+  background: var(--accent);
+  color: #ffffff;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-bold);
+  text-decoration: none;
+  border: var(--border-width-default) solid var(--border);
+}
+
+.cpub-skip-link:focus {
+  top: var(--space-2);
+}
+
+/* Focus-visible ring for all interactive elements */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Screen reader only utility */
+.cpub-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
 /* === CONTENT TYPE BADGE COLORS === */
 [data-content-type="article"] { --badge-color: var(--accent); --badge-bg: var(--accent-bg); }
 [data-content-type="blog"] { --badge-color: var(--green); --badge-bg: var(--green-bg); }

@@ -1,190 +1,265 @@
 <script setup lang="ts">
-const { user, isAuthenticated, isAdmin, signOut } = useAuth();
+const { user, isAuthenticated, signOut } = useAuth();
+
+const userMenuOpen = ref(false);
+
+// Notification count polling
+const { data: notifData } = useFetch<{ count: number }>('/api/notifications/count', {
+  default: () => ({ count: 0 }),
+  server: false,
+});
+
+let notifInterval: ReturnType<typeof setInterval> | undefined;
+onMounted(() => {
+  notifInterval = setInterval(async () => {
+    try {
+      const res = await $fetch<{ count: number }>('/api/notifications/count');
+      if (res && typeof res.count === 'number') {
+        notifData.value = res;
+      }
+    } catch {
+      // silently ignore polling errors
+    }
+  }, 30_000);
+});
+onUnmounted(() => {
+  if (notifInterval) clearInterval(notifInterval);
+});
+
+const unreadCount = computed(() => notifData.value?.count ?? 0);
+
+// Cmd+K / Ctrl+K shortcut → navigate to search
+function handleGlobalKeydown(e: KeyboardEvent): void {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+    e.preventDefault();
+    navigateTo('/search');
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('keydown', handleGlobalKeydown);
+});
+onUnmounted(() => {
+  document.removeEventListener('keydown', handleGlobalKeydown);
+});
+
+// Close user menu on click outside
+function handleClickOutside(e: MouseEvent): void {
+  const target = e.target as HTMLElement;
+  if (!target.closest('.cpub-user-menu-wrapper')) {
+    userMenuOpen.value = false;
+  }
+}
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside);
+});
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside);
+});
+
+function handleSignOut(): void {
+  userMenuOpen.value = false;
+  signOut();
+}
+
+const userInitial = computed(() => {
+  const u = user.value as Record<string, string> | null;
+  return (u?.displayName || u?.username || 'U').charAt(0).toUpperCase();
+});
+
+const userUsername = computed(() => {
+  const u = user.value as Record<string, string> | null;
+  return u?.username ?? '';
+});
 </script>
 
 <template>
-  <div class="app-layout">
-    <header class="topbar">
-      <div class="topbar-inner">
-        <NuxtLink to="/" class="topbar-brand">
-          <span class="topbar-logo">CommonPub</span>
+  <div class="cpub-layout">
+    <!-- Topbar — matches mockup 01 exactly -->
+    <header class="cpub-topbar">
+      <NuxtLink to="/" class="cpub-topbar-logo">
+        <span class="cpub-logo-bracket">[</span>C<span class="cpub-logo-bracket">]</span>
+        <span class="cpub-logo-name">CommonPub</span>
+      </NuxtLink>
+
+      <nav class="cpub-topbar-nav" aria-label="Main navigation">
+        <NuxtLink to="/" class="cpub-nav-link">Explore</NuxtLink>
+        <NuxtLink to="/learn" class="cpub-nav-link">Learn</NuxtLink>
+        <NuxtLink to="/create" class="cpub-nav-link">Create</NuxtLink>
+        <NuxtLink to="/communities" class="cpub-nav-link">Community</NuxtLink>
+      </nav>
+
+      <div class="cpub-topbar-spacer" />
+
+      <div class="cpub-topbar-actions">
+        <NuxtLink to="/search" class="cpub-search-btn">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <span class="cpub-search-text">Search content&hellip;</span>
+          <span class="cpub-kbd">&lceil;K</span>
         </NuxtLink>
-        <nav class="topbar-nav" aria-label="Main navigation">
-          <NuxtLink to="/dashboard" class="tl">Dashboard</NuxtLink>
-          <NuxtLink to="/communities" class="tl">Communities</NuxtLink>
-          <NuxtLink to="/learn" class="tl">Learn</NuxtLink>
-          <NuxtLink to="/docs" class="tl">Docs</NuxtLink>
-          <NuxtLink v-if="isAdmin" to="/admin" class="tl">Admin</NuxtLink>
-        </nav>
-        <div class="topbar-search">
-          <NuxtLink to="/search" class="search-btn" aria-label="Search">
-            <i class="fa-solid fa-magnifying-glass"></i>
-            <span class="search-label">Search</span>
-            <span class="kbd">&#8984;K</span>
+
+        <template v-if="isAuthenticated">
+          <NuxtLink to="/notifications" class="cpub-icon-btn" title="Notifications" aria-label="Notifications">
+            <i class="fa-solid fa-bell"></i>
+            <span v-if="unreadCount > 0" class="cpub-notif-dot" />
           </NuxtLink>
-        </div>
-        <div class="topbar-right">
-          <template v-if="isAuthenticated">
-            <NuxtLink to="/create" class="btn btn-primary btn-sm">
-              <i class="fa-solid fa-plus"></i> Create
-            </NuxtLink>
-            <NuxtLink to="/notifications" class="icon-btn" aria-label="Notifications" title="Notifications">
-              <i class="fa-solid fa-bell"></i>
-            </NuxtLink>
-            <NuxtLink to="/messages" class="icon-btn" aria-label="Messages" title="Messages">
-              <i class="fa-solid fa-envelope"></i>
-            </NuxtLink>
-            <NuxtLink :to="`/u/${(user as any)?.username}`" class="topbar-user">
-              <span class="topbar-avatar">{{ ((user as any)?.displayName || (user as any)?.username || 'U').charAt(0).toUpperCase() }}</span>
-            </NuxtLink>
-            <button class="btn btn-ghost btn-sm" @click="signOut">Sign out</button>
-          </template>
-          <NuxtLink v-else to="/auth/login" class="btn btn-primary btn-sm">Log in</NuxtLink>
-        </div>
+
+          <NuxtLink to="/create" class="cpub-btn-new">
+            <i class="fa-solid fa-plus"></i> New
+          </NuxtLink>
+
+          <div class="cpub-user-menu-wrapper">
+            <button
+              class="cpub-avatar-btn"
+              aria-label="User menu"
+              :aria-expanded="userMenuOpen"
+              @click.stop="userMenuOpen = !userMenuOpen"
+            >
+              <span class="cpub-user-avatar">{{ userInitial }}</span>
+            </button>
+            <div v-if="userMenuOpen" class="cpub-user-dropdown" role="menu">
+              <NuxtLink :to="`/u/${userUsername}`" class="cpub-dropdown-item" role="menuitem" @click="userMenuOpen = false">
+                <i class="fa-solid fa-user"></i> Profile
+              </NuxtLink>
+              <NuxtLink to="/settings" class="cpub-dropdown-item" role="menuitem" @click="userMenuOpen = false">
+                <i class="fa-solid fa-gear"></i> Settings
+              </NuxtLink>
+              <button class="cpub-dropdown-item" role="menuitem" @click="handleSignOut">
+                <i class="fa-solid fa-right-from-bracket"></i> Sign out
+              </button>
+            </div>
+          </div>
+        </template>
+        <NuxtLink v-else to="/auth/login" class="cpub-btn-new">Log in</NuxtLink>
       </div>
     </header>
 
-    <div class="app-body">
-      <aside class="sidebar" aria-label="Sidebar">
-        <nav class="sidebar-nav">
-          <NuxtLink to="/">
-            <i class="fa-solid fa-house" style="width:14px;margin-right:4px"></i> Home
-          </NuxtLink>
-          <NuxtLink to="/feed">
-            <i class="fa-solid fa-rss" style="width:14px;margin-right:4px"></i> Feed
-          </NuxtLink>
-          <NuxtLink to="/project">
-            <i class="fa-solid fa-microchip" style="width:14px;margin-right:4px"></i> Projects
-          </NuxtLink>
-          <NuxtLink to="/article">
-            <i class="fa-solid fa-file-lines" style="width:14px;margin-right:4px"></i> Articles
-          </NuxtLink>
-          <NuxtLink to="/guide">
-            <i class="fa-solid fa-book" style="width:14px;margin-right:4px"></i> Guides
-          </NuxtLink>
-          <NuxtLink to="/blog">
-            <i class="fa-solid fa-pen-nib" style="width:14px;margin-right:4px"></i> Blog
-          </NuxtLink>
-          <NuxtLink to="/explainer">
-            <i class="fa-solid fa-lightbulb" style="width:14px;margin-right:4px"></i> Explainers
-          </NuxtLink>
-          <NuxtLink to="/search">
-            <i class="fa-solid fa-magnifying-glass" style="width:14px;margin-right:4px"></i> Search
-          </NuxtLink>
-        </nav>
-      </aside>
-
-      <main class="main-content">
-        <slot />
-      </main>
-    </div>
+    <!-- Main content — no sidebar, full width -->
+    <main id="main-content">
+      <slot />
+    </main>
   </div>
 </template>
 
 <style scoped>
-.app-layout {
+.cpub-layout {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: var(--bg);
-  color: var(--text);
-  font-family: var(--font-sans);
 }
 
-/* -- Topbar -- */
-.topbar {
+/* ─── TOPBAR ─── */
+.cpub-topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 48px;
   background: var(--surface);
   border-bottom: 2px solid var(--border);
   display: flex;
   align-items: center;
-  padding: 0 var(--space-4);
-  height: 48px;
-  box-shadow: var(--shadow-sm);
-  position: sticky;
-  top: 0;
-  z-index: var(--z-sticky);
+  padding: 0 20px;
+  gap: 0;
+  z-index: 100;
 }
 
-.topbar-inner {
+.cpub-topbar-logo {
   display: flex;
   align-items: center;
-  width: 100%;
-  max-width: var(--content-wide-max-width);
-  margin: 0 auto;
-  gap: var(--space-4);
-}
-
-.topbar-brand {
-  text-decoration: none;
-  margin-right: var(--space-2);
-}
-
-.topbar-logo {
-  font-family: var(--font-mono);
+  gap: 2px;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
+  font-family: var(--font-mono);
   color: var(--text);
+  white-space: nowrap;
+  flex-shrink: 0;
+  text-decoration: none;
 }
 
-.topbar-nav {
+.cpub-logo-bracket {
+  color: var(--accent);
+  font-size: 15px;
+}
+
+.cpub-logo-name {
+  margin-left: 2px;
+}
+
+.cpub-topbar-nav {
   display: flex;
-  gap: var(--space-1);
+  align-items: center;
+  gap: 2px;
+  margin-left: 24px;
+}
+
+.cpub-nav-link {
+  font-size: 12px;
+  color: var(--text-dim);
+  padding: 5px 12px;
+  border: 2px solid transparent;
+  background: none;
+  text-decoration: none;
+  transition: color 0.15s, background 0.15s;
+}
+
+.cpub-nav-link:hover {
+  color: var(--text);
+  background: var(--surface2);
+}
+
+.cpub-nav-link.router-link-active {
+  color: var(--text);
+  background: var(--surface2);
+  border-color: var(--border);
+}
+
+.cpub-topbar-spacer {
   flex: 1;
 }
 
-.tl {
-  padding: 6px 10px;
-  font-size: 13px;
-  color: var(--text-dim);
-  border-radius: var(--radius);
-  text-decoration: none;
-  transition: all 0.15s;
-}
-
-.tl:hover,
-.tl.router-link-active {
-  background: var(--surface2);
-  color: var(--text);
-}
-
-/* -- Search -- */
-.search-btn {
+.cpub-topbar-actions {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  padding: 5px 12px;
+  gap: 6px;
+}
+
+/* ─── SEARCH BUTTON ─── */
+.cpub-search-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
   background: var(--surface2);
   border: 2px solid var(--border2);
   color: var(--text-dim);
-  text-decoration: none;
   font-size: 12px;
-  min-width: 160px;
-  transition: all 0.15s;
+  min-width: 180px;
+  text-decoration: none;
+  transition: border-color 0.15s, color 0.15s;
 }
 
-.search-btn:hover {
-  border-color: var(--border);
+.cpub-search-btn:hover {
+  border-color: var(--accent-border);
   color: var(--text);
 }
 
-.search-label { flex: 1; }
-.kbd {
-  font-family: var(--font-mono);
+.cpub-search-btn i {
+  font-size: 11px;
+}
+
+.cpub-kbd {
+  margin-left: auto;
   font-size: 10px;
+  font-family: var(--font-mono);
+  padding: 2px 6px;
+  background: var(--surface3);
+  border: 2px solid var(--border2);
   color: var(--text-faint);
-  background: var(--surface);
-  padding: 1px 4px;
-  border: 1px solid var(--border2);
 }
 
-.topbar-right {
-  display: flex;
-  gap: var(--space-2);
-  align-items: center;
-}
-
-/* -- Icon Buttons -- */
-.icon-btn {
+/* ─── ICON BUTTON ─── */
+.cpub-icon-btn {
   width: 32px;
   height: 32px;
   display: flex;
@@ -194,144 +269,141 @@ const { user, isAuthenticated, isAdmin, signOut } = useAuth();
   border: 2px solid transparent;
   color: var(--text-dim);
   font-size: 13px;
-  text-decoration: none;
-  transition: all 0.15s;
   position: relative;
+  transition: all 0.15s;
+  text-decoration: none;
 }
 
-.icon-btn:hover {
+.cpub-icon-btn:hover {
   background: var(--surface2);
   border-color: var(--border);
   color: var(--text);
 }
 
-.icon-btn:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
+.cpub-notif-dot {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 1.5px solid var(--surface);
 }
 
-/* -- Avatar -- */
-.topbar-avatar {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: var(--surface3);
-  border: 2px solid var(--border);
+/* ─── NEW BUTTON ─── */
+.cpub-btn-new {
   display: flex;
   align-items: center;
-  justify-content: center;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-dim);
-}
-
-.topbar-user {
-  text-decoration: none;
-}
-
-.topbar-user:hover .topbar-avatar {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-/* -- Buttons -- */
-.btn {
-  display: inline-flex;
-  align-items: center;
   gap: 6px;
-  border-radius: var(--radius);
-  border: 2px solid transparent;
-  cursor: pointer;
-  font-family: var(--font-sans);
-  font-weight: 500;
-  transition: all 0.15s;
-  white-space: nowrap;
-  text-decoration: none;
-}
-
-.btn-sm {
-  padding: 4px 10px;
-  font-size: 12px;
-}
-
-.btn-primary {
+  padding: 6px 14px;
   background: var(--accent);
-  color: #fff;
-  border-color: var(--accent);
-  box-shadow: var(--shadow-sm);
+  border: 2px solid var(--border);
+  color: var(--color-text-inverse);
+  font-size: 12px;
+  font-weight: 600;
+  transition: all 0.15s;
+  box-shadow: 2px 2px 0 var(--border);
+  text-decoration: none;
+  cursor: pointer;
 }
 
-.btn-primary:hover {
-  box-shadow: var(--shadow-md);
+.cpub-btn-new:hover {
+  box-shadow: 4px 4px 0 var(--border);
   transform: translate(-1px, -1px);
 }
 
-.btn-ghost {
-  background: transparent;
-  color: var(--text-dim);
-  border-color: transparent;
+/* ─── USER AVATAR ─── */
+.cpub-avatar-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
 }
 
-.btn-ghost:hover {
+.cpub-user-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--purple-bg);
+  border: 2px solid var(--purple);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--purple);
+  font-family: var(--font-mono);
+}
+
+.cpub-user-menu-wrapper {
+  position: relative;
+}
+
+.cpub-user-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 180px;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  box-shadow: 4px 4px 0 var(--border);
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  padding: 4px 0;
+}
+
+.cpub-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  font-size: 12px;
+  color: var(--text-dim);
+  text-decoration: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  width: 100%;
+  text-align: left;
+  transition: all 0.15s;
+}
+
+.cpub-dropdown-item:hover {
   background: var(--surface2);
   color: var(--text);
 }
 
-/* -- Sidebar -- */
-.app-body {
-  display: flex;
-  flex: 1;
-}
-
-.sidebar {
-  width: 200px;
-  flex-shrink: 0;
-  background: var(--surface);
-  border-right: 2px solid var(--border);
-  padding: var(--space-4) 0;
-}
-
-.sidebar-nav {
-  display: flex;
-  flex-direction: column;
-}
-
-.sidebar-nav a {
-  display: flex;
-  align-items: center;
-  padding: 6px var(--space-4);
-  font-family: var(--font-mono);
+.cpub-dropdown-item i {
+  width: 14px;
+  text-align: center;
   font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--text-faint);
-  text-decoration: none;
-  transition: color 0.15s;
 }
 
-.sidebar-nav a:hover {
-  color: var(--accent);
-  background: var(--surface2);
+/* ─── MAIN ─── */
+#main-content {
+  margin-top: 48px;
 }
 
-.sidebar-nav a.router-link-active {
-  color: var(--accent);
-  font-weight: 600;
-}
+/* ─── RESPONSIVE ─── */
+@media (max-width: 768px) {
+  .cpub-topbar-nav {
+    display: none;
+  }
 
-/* -- Main -- */
-.main-content {
-  flex: 1;
-  max-width: var(--content-max-width);
-  padding: var(--space-8);
-}
+  .cpub-search-btn {
+    min-width: auto;
+    padding: 6px 8px;
+  }
 
-/* -- Focus -- */
-.tl:focus-visible,
-.sidebar-nav a:focus-visible,
-.btn:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
+  .cpub-search-text {
+    display: none;
+  }
+
+  .cpub-kbd {
+    display: none;
+  }
 }
 </style>

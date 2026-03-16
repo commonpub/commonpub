@@ -79,7 +79,7 @@ const { data } = await useFetch('/api/content', {
 .cpub-listing-create {
   padding: var(--space-2) var(--space-3);
   background: var(--accent);
-  color: #fff;
+  color: var(--color-text-inverse);
   border: var(--border-width-default) solid var(--border);
   font-size: var(--text-xs);
   text-decoration: none;

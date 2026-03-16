@@ -39,27 +39,27 @@ const iconMap: Record<string, string> = {
 }
 
 [data-content-type="project"] {
-  background: rgba(91, 156, 246, 0.08);
+  background: var(--accent-bg);
   color: var(--accent);
 }
 
 [data-content-type="article"] {
-  background: rgba(20, 184, 166, 0.08);
+  background: var(--teal-bg);
   color: var(--teal);
 }
 
 [data-content-type="guide"] {
-  background: rgba(139, 92, 246, 0.08);
+  background: var(--purple-bg);
   color: var(--purple);
 }
 
 [data-content-type="blog"] {
-  background: rgba(236, 72, 153, 0.08);
+  background: var(--pink-bg);
   color: var(--pink);
 }
 
 [data-content-type="explainer"] {
-  background: rgba(245, 158, 11, 0.08);
+  background: var(--yellow-bg);
   color: var(--yellow);
 }
 </style>

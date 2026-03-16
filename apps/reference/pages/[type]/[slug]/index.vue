@@ -21,11 +21,34 @@ const readTime = computed(() => {
   const blocks = content.value.content as BlockTuple[];
   let words = 0;
   for (const [type, data] of blocks) {
-    if (type === 'text' && typeof data.html === 'string') words += data.html.split(/\s+/).length;
-    if (type === 'heading' && typeof data.text === 'string') words += data.text.split(/\s+/).length;
+    // Extract text from any string field in the block data
+    for (const val of Object.values(data)) {
+      if (typeof val === 'string' && val.trim()) {
+        // Strip HTML tags before counting
+        const text = val.replace(/<[^>]*>/g, '').trim();
+        if (text) words += text.split(/\s+/).length;
+      }
+    }
   }
   const minutes = Math.max(1, Math.round(words / 200));
   return `${minutes} min read`;
+});
+
+// Enrich content with computed readTime
+const enrichedContent = computed(() => {
+  if (!content.value) return null;
+  return { ...content.value, readTime: readTime.value };
+});
+
+// Map content types to specialized view components
+const viewComponent = computed(() => {
+  switch (contentType.value) {
+    case 'article': return resolveComponent('ViewsArticleView');
+    case 'blog': return resolveComponent('ViewsBlogView');
+    case 'explainer': return resolveComponent('ViewsExplainerView');
+    case 'project': return resolveComponent('ViewsProjectView');
+    default: return null;
+  }
 });
 
 // Related content
@@ -42,73 +65,81 @@ onMounted(() => {
 </script>
 
 <template>
-  <article class="cpub-view" v-if="content">
-    <!-- Cover image -->
-    <div class="cpub-cover" v-if="content.coverImage">
-      <img :src="content.coverImage" :alt="content.title" />
-    </div>
-    <div class="cpub-cover cpub-cover-placeholder" v-else>
-      <span class="cpub-cover-label">{{ contentType }}</span>
+  <div v-if="enrichedContent">
+    <!-- Edit button overlay -->
+    <div v-if="isOwner" class="cpub-view-edit-bar">
+      <NuxtLink :to="`/${enrichedContent.type}/${enrichedContent.slug}/edit`" class="cpub-edit-btn" aria-label="Edit">
+        <i class="fa-solid fa-pen"></i> Edit
+      </NuxtLink>
     </div>
 
-    <div class="cpub-view-container">
-      <!-- Header -->
-      <header class="cpub-view-header">
-        <ContentTypeBadge :type="content.type" />
-        <h1 class="cpub-view-title">{{ content.title }}</h1>
-        <p class="cpub-view-subtitle" v-if="content.subtitle || content.description">
-          {{ content.subtitle || content.description }}
-        </p>
+    <!-- Specialized view -->
+    <component
+      v-if="viewComponent && typeof viewComponent !== 'string'"
+      :is="viewComponent"
+      :content="enrichedContent"
+    />
 
-        <div class="cpub-view-author-row">
+    <!-- Fallback: generic view for unknown types -->
+    <article v-else class="cpub-view">
+      <div class="cpub-cover" v-if="enrichedContent.coverImage">
+        <img :src="enrichedContent.coverImage" :alt="enrichedContent.title" />
+      </div>
+      <div class="cpub-cover cpub-cover-placeholder" v-else>
+        <span class="cpub-cover-label">{{ contentType }}</span>
+      </div>
+
+      <div class="cpub-view-container">
+        <header class="cpub-view-header">
+          <ContentTypeBadge :type="enrichedContent.type" />
+          <h1 class="cpub-view-title">{{ enrichedContent.title }}</h1>
+          <p class="cpub-view-subtitle" v-if="enrichedContent.subtitle || enrichedContent.description">
+            {{ enrichedContent.subtitle || enrichedContent.description }}
+          </p>
           <AuthorRow
-            :author="content.author"
-            :date="content.publishedAt || content.createdAt"
+            :author="enrichedContent.author"
+            :date="enrichedContent.publishedAt || enrichedContent.createdAt"
             :read-time="readTime"
           />
-          <NuxtLink v-if="isOwner" :to="`/${content.type}/${content.slug}/edit`" class="cpub-edit-btn" aria-label="Edit">
-            <i class="fa-solid fa-pen"></i> Edit
-          </NuxtLink>
+          <EngagementBar
+            :content-id="enrichedContent.id"
+            :like-count="enrichedContent.likeCount ?? 0"
+            :comment-count="enrichedContent.commentCount ?? 0"
+          />
+        </header>
+
+        <div class="cpub-view-body">
+          <template v-if="enrichedContent.content && Array.isArray(enrichedContent.content) && enrichedContent.content.length > 0">
+            <ClientOnly>
+              <CpubEditor :model-value="enrichedContent.content as BlockTuple[]" :editable="false" />
+            </ClientOnly>
+          </template>
+          <p v-else class="cpub-view-empty">No content body yet.</p>
         </div>
 
-        <EngagementBar
-          :content-id="content.id"
-          :like-count="content.likeCount ?? 0"
-          :comment-count="content.commentCount ?? 0"
-        />
-      </header>
+        <div class="cpub-view-tags" v-if="enrichedContent.tags?.length">
+          <span class="cpub-view-tag" v-for="tag in enrichedContent.tags" :key="tag.id || tag.name">{{ tag.name || tag }}</span>
+        </div>
 
-      <!-- Content body -->
-      <div class="cpub-view-body">
-        <template v-if="content.content && Array.isArray(content.content) && content.content.length > 0">
-          <ClientOnly>
-            <CpubEditor :model-value="content.content as BlockTuple[]" :editable="false" />
-          </ClientOnly>
-        </template>
-        <p v-else class="cpub-view-empty">No content body yet.</p>
+        <AuthorCard :author="enrichedContent.author" />
+        <CommentSection :content-id="enrichedContent.id" />
       </div>
+    </article>
 
-      <!-- Tags -->
-      <div class="cpub-view-tags" v-if="content.tags?.length">
-        <span class="cpub-view-tag" v-for="tag in content.tags" :key="tag.id || tag.name">{{ tag.name || tag }}</span>
-      </div>
-
-      <!-- Author card -->
-      <AuthorCard :author="content.author" />
-
-      <!-- Related content -->
-      <section class="cpub-view-related" v-if="related?.items?.length">
+    <!-- Related content (shown for all types) -->
+    <section class="cpub-view-related" v-if="related?.items?.length">
+      <div class="cpub-view-related-inner">
         <h2 class="cpub-view-related-title">Related {{ contentType }}s</h2>
         <div class="cpub-view-related-grid">
           <ContentCard
-            v-for="item in related.items.filter((i: any) => i.id !== content.id).slice(0, 3)"
+            v-for="item in related.items.filter((i: any) => i.id !== enrichedContent.id).slice(0, 3)"
             :key="item.id"
             :item="item"
           />
         </div>
-      </section>
-    </div>
-  </article>
+      </div>
+    </section>
+  </div>
   <div v-else class="cpub-not-found">
     <h1>Content not found</h1>
     <p>The requested content could not be found.</p>
@@ -116,6 +147,25 @@ onMounted(() => {
 </template>
 
 <style scoped>
+.cpub-view-edit-bar {
+  display: flex;
+  justify-content: flex-end;
+  padding: var(--space-2) var(--space-6);
+  border-bottom: 1px solid var(--border2);
+}
+
+.cpub-edit-btn {
+  padding: var(--space-1) var(--space-3);
+  border: var(--border-width-default) solid var(--border);
+  font-size: var(--text-xs);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.cpub-edit-btn:hover {
+  background: var(--surface2);
+}
+
 .cpub-view {
   max-width: 100%;
 }
@@ -181,25 +231,6 @@ onMounted(() => {
   line-height: var(--leading-relaxed);
 }
 
-.cpub-view-author-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: var(--space-4);
-}
-
-.cpub-edit-btn {
-  padding: var(--space-1) var(--space-3);
-  border: var(--border-width-default) solid var(--border);
-  font-size: var(--text-xs);
-  color: var(--text);
-  text-decoration: none;
-}
-
-.cpub-edit-btn:hover {
-  background: var(--surface2);
-}
-
 .cpub-view-body {
   margin-bottom: var(--space-8);
 }
@@ -229,9 +260,13 @@ onMounted(() => {
 }
 
 .cpub-view-related {
-  margin-top: var(--space-10);
-  padding-top: var(--space-8);
   border-top: var(--border-width-default) solid var(--border2);
+}
+
+.cpub-view-related-inner {
+  max-width: var(--content-max-width);
+  margin: 0 auto;
+  padding: var(--space-8) var(--space-6);
 }
 
 .cpub-view-related-title {

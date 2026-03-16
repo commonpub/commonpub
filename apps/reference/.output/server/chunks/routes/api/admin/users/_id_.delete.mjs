@@ -1,0 +1,29 @@
+import { d as defineEventHandler, u as useDB, a as getRouterParam, j as deleteUser } from '../../../../nitro/nitro.mjs';
+import { r as requireAdmin } from '../../../../_/auth.mjs';
+import 'drizzle-orm';
+import 'drizzle-orm/pg-core';
+import 'jose';
+import 'node:http';
+import 'node:https';
+import 'node:events';
+import 'node:buffer';
+import 'node:fs';
+import 'node:path';
+import 'node:crypto';
+import 'node:url';
+import 'zod';
+import 'drizzle-orm/node-postgres';
+import 'pg';
+import 'better-auth';
+import 'better-auth/adapters/drizzle';
+import 'better-auth/plugins';
+
+const _id__delete = defineEventHandler(async (event) => {
+  requireAdmin(event);
+  const db = useDB();
+  const id = getRouterParam(event, "id");
+  return deleteUser(db, id);
+});
+
+export { _id__delete as default };
+//# sourceMappingURL=_id_.delete.mjs.map

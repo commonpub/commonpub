@@ -87,6 +87,10 @@ export interface CreateContentInput {
   coverImageUrl?: string;
   category?: string;
   difficulty?: string;
+  buildTime?: string;
+  estimatedCost?: string;
+  visibility?: string;
+  seoDescription?: string;
   sections?: unknown;
   tags?: string[];
 }
@@ -101,6 +105,9 @@ export interface UpdateContentInput {
   difficulty?: string;
   seoDescription?: string;
   sections?: unknown;
+  buildTime?: string;
+  estimatedCost?: string;
+  visibility?: string;
   status?: string;
   tags?: string[];
 }

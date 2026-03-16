@@ -154,7 +154,7 @@ async function handleSubmit(): Promise<void> {
 .submit-btn {
   padding: 7px 14px;
   background: var(--accent);
-  color: #fff;
+  color: var(--color-text-inverse);
   border: 2px solid var(--accent);
   border-radius: var(--radius);
   font-size: 13px;

@@ -1,23 +1,41 @@
 <script setup lang="ts">
 useSeoMeta({ title: 'Contests — CommonPub' });
+
+const { data: contests } = await useFetch('/api/contests');
 </script>
 
 <template>
-  <div class="cpub-contests">
-    <h1 class="cpub-page-title">Contests</h1>
-    <div class="cpub-coming-soon">
-      <i class="fa-solid fa-trophy cpub-coming-icon"></i>
-      <h2 class="cpub-coming-heading">Coming Soon</h2>
-      <p class="cpub-coming-text">Contests and challenges are being built. Check back later for community competitions, prizes, and leaderboards.</p>
+  <div class="cpub-contests-page">
+    <SectionHeader title="Contests" large />
+    <div v-if="contests?.items?.length" class="cpub-grid-3">
+      <div v-for="contest in contests.items" :key="contest.id" class="cpub-card">
+        <div class="cpub-card-body">
+          <span class="cpub-badge" :class="{
+            'cpub-badge-green': contest.status === 'active',
+            'cpub-badge-yellow': contest.status === 'upcoming',
+            'cpub-badge-red': contest.status === 'ended',
+          }">{{ contest.status }}</span>
+          <h3 style="font-size: 15px; font-weight: 600; margin: 8px 0">
+            <NuxtLink :to="`/contests/${contest.slug}`" style="color: var(--text); text-decoration: none">
+              {{ contest.title }}
+            </NuxtLink>
+          </h3>
+          <p v-if="contest.description" style="font-size: 12px; color: var(--text-dim); margin-bottom: 12px">
+            {{ contest.description }}
+          </p>
+          <div v-if="contest.endDate" style="margin-top: 8px">
+            <CountdownTimer :target-date="contest.endDate" />
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 11px; color: var(--text-faint); font-family: var(--font-mono)">
+            <span><i class="fa-solid fa-users"></i> {{ contest.entryCount }} entries</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div v-else class="cpub-empty-state">
+      <div class="cpub-empty-state-icon"><i class="fa-solid fa-trophy"></i></div>
+      <p class="cpub-empty-state-title">No contests yet</p>
+      <p class="cpub-empty-state-desc">Check back soon for upcoming contests.</p>
     </div>
   </div>
 </template>
-
-<style scoped>
-.cpub-contests { max-width: var(--content-max-width); }
-.cpub-page-title { font-size: var(--text-xl); font-weight: var(--font-weight-bold); margin-bottom: var(--space-6); }
-.cpub-coming-soon { text-align: center; padding: var(--space-12) 0; border: 2px solid var(--border2); background: var(--surface); }
-.cpub-coming-icon { font-size: 40px; color: var(--text-faint); margin-bottom: var(--space-4); }
-.cpub-coming-heading { font-size: var(--text-lg); font-weight: var(--font-weight-bold); margin-bottom: var(--space-2); color: var(--text-dim); }
-.cpub-coming-text { font-size: var(--text-sm); color: var(--text-faint); max-width: 400px; margin: 0 auto; line-height: var(--leading-relaxed); }
-</style>

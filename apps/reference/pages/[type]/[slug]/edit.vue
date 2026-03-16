@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { BlockTuple } from '@commonpub/editor';
+import type { Component } from 'vue';
 
 definePageMeta({ layout: false, middleware: 'auth' });
 
@@ -30,30 +31,57 @@ const isDirty = ref(false);
 const mode = ref<'write' | 'preview' | 'code'>('write');
 
 const editorRef = ref<InstanceType<typeof CpubEditor> | null>(null);
+const contentId = ref<string | null>(null);
+
+// Specialized editor component map — Nuxt prefixes with directory name
+const editorMap: Record<string, Component> = {
+  article: resolveComponent('EditorsArticleEditor') as Component,
+  blog: resolveComponent('EditorsBlogEditor') as Component,
+  explainer: resolveComponent('EditorsExplainerEditor') as Component,
+  project: resolveComponent('EditorsProjectEditor') as Component,
+};
+
+const editorComponent = computed<Component | null>(() => {
+  return editorMap[contentType.value] ?? null;
+});
+
+const hasSpecializedEditor = computed(() => editorComponent.value !== null);
 
 // Load existing content for editing
 if (!isNew.value) {
   const { data } = await useFetch(() => `/api/content/${slug.value}`);
   if (data.value) {
     const d = data.value as Record<string, unknown>;
+    contentId.value = d.id as string;
     title.value = d.title as string;
-    metadata.value.description = d.description || '';
-    metadata.value.slug = d.slug || '';
     if (Array.isArray(d.content)) {
       blocks.value = d.content as BlockTuple[];
     }
-    if (d.tags) metadata.value.tags = (d.tags as { name: string }[]).map((t) => t.name);
-    if (d.coverImage) metadata.value.coverImage = d.coverImage;
-    if (d.visibility) metadata.value.visibility = d.visibility;
-    if (d.seoDescription) metadata.value.seoDescription = d.seoDescription;
-    if (d.difficulty) metadata.value.difficulty = d.difficulty;
-    if (d.buildTime) metadata.value.buildTime = d.buildTime;
-    if (d.estimatedCost) metadata.value.estimatedCost = d.estimatedCost;
+    // Load all metadata fields from server response
+    metadata.value = {
+      description: (d.description as string) || '',
+      slug: (d.slug as string) || '',
+      tags: d.tags ? (d.tags as { name: string }[]).map((t) => t.name) : [],
+      visibility: (d.visibility as string) || 'public',
+      coverImage: (d.coverImageUrl as string) || '',
+      coverImageUrl: (d.coverImageUrl as string) || '',
+      seoDescription: (d.seoDescription as string) || '',
+      difficulty: (d.difficulty as string) || '',
+      buildTime: (d.buildTime as string) || '',
+      estimatedCost: (d.estimatedCost as string) || '',
+      category: (d.category as string) || '',
+      subtitle: (d.subtitle as string) || '',
+    };
   }
 }
 
 function handleBlocksUpdate(newBlocks: BlockTuple[]): void {
   blocks.value = newBlocks;
+  isDirty.value = true;
+}
+
+function handleMetadataUpdate(newMetadata: Record<string, unknown>): void {
+  metadata.value = newMetadata;
   isDirty.value = true;
 }
 
@@ -66,35 +94,27 @@ async function handleSave(): Promise<void> {
   error.value = '';
 
   try {
+    // Spread all metadata so type-specific fields (slug, costMin, costMax,
+    // series, excerpt, ogImage, estimatedMinutes, learningObjectives, etc.)
+    // are never silently dropped by the save.
     const body: Record<string, unknown> = {
       type: contentType.value,
       title: title.value,
-      description: metadata.value.description,
       content: blocks.value,
-      coverImage: metadata.value.coverImage,
-      visibility: metadata.value.visibility,
-      seoDescription: metadata.value.seoDescription,
-      tags: metadata.value.tags,
+      ...metadata.value,
+      // Map coverImage → coverImageUrl to match the server field name
+      coverImageUrl: metadata.value.coverImage || metadata.value.coverImageUrl,
     };
-
-    if (contentType.value === 'project') {
-      body.difficulty = metadata.value.difficulty;
-      body.buildTime = metadata.value.buildTime;
-      body.estimatedCost = metadata.value.estimatedCost;
-    }
-    if (contentType.value === 'explainer') {
-      body.difficulty = metadata.value.difficulty;
-      body.estimatedMinutes = metadata.value.estimatedMinutes;
-      body.learningObjectives = metadata.value.learningObjectives;
-    }
+    // Remove the client-only coverImage alias to avoid confusion
+    delete body.coverImage;
 
     if (isNew.value) {
-      const result = await $fetch('/api/content', { method: 'POST', body });
+      const result = await $fetch<{ id: string; slug: string }>('/api/content', { method: 'POST', body });
+      contentId.value = result.id;
       isDirty.value = false;
-      await navigateTo(`/${contentType.value}/${(result as { slug: string }).slug}`);
+      await navigateTo(`/${contentType.value}/${result.slug}`);
     } else {
-      const existing = await $fetch(`/api/content/${slug.value}`);
-      await $fetch(`/api/content/${(existing as { id: string }).id}`, { method: 'PUT', body });
+      await $fetch(`/api/content/${contentId.value}`, { method: 'PUT', body });
       isDirty.value = false;
       await navigateTo(`/${contentType.value}/${slug.value}`);
     }
@@ -107,10 +127,9 @@ async function handleSave(): Promise<void> {
 
 async function handlePublish(): Promise<void> {
   await handleSave();
-  if (!error.value && !isNew.value) {
+  if (!error.value && contentId.value) {
     try {
-      const existing = await $fetch(`/api/content/${slug.value}`);
-      await $fetch(`/api/content/${(existing as { id: string }).id}/publish`, { method: 'POST' });
+      await $fetch(`/api/content/${contentId.value}/publish`, { method: 'POST' });
     } catch (err: unknown) {
       error.value = (err as { data?: { message?: string } })?.data?.message || 'Failed to publish.';
     }
@@ -155,48 +174,67 @@ async function handlePublish(): Promise<void> {
 
     <div v-if="error" class="cpub-editor-error" role="alert">{{ error }}</div>
 
-    <!-- Editor shell -->
-    <div class="cpub-editor-shell">
-      <!-- Write mode: 3-pane -->
-      <template v-if="mode === 'write'">
-        <EditorBlockLibrary :content-type="contentType" :editor="(editorRef as any)?.editor" />
-        <div class="cpub-editor-canvas">
-          <EditorToolbar :editor="(editorRef as any)?.editor" />
-          <ClientOnly>
-            <CpubEditor
-              ref="editorRef"
-              :model-value="blocks"
-              :editable="true"
-              @update:model-value="handleBlocksUpdate"
-              @selection-change="handleSelectionChange"
-            />
-          </ClientOnly>
-        </div>
-        <EditorPropertiesPanel
-          :content-type="contentType"
-          :metadata="metadata"
-          :selected-block="selectedBlock"
-          @update:metadata="metadata = $event"
-        />
-      </template>
+    <!-- Specialized editor via dynamic component -->
+    <template v-if="mode === 'write' && hasSpecializedEditor">
+      <component
+        :is="editorComponent"
+        :blocks="blocks"
+        :metadata="metadata"
+        :editor-ref="editorRef"
+        @update:blocks="handleBlocksUpdate"
+        @update:metadata="handleMetadataUpdate"
+      >
+        <ClientOnly>
+          <CpubEditor
+            ref="editorRef"
+            :model-value="blocks"
+            :editable="true"
+            @update:model-value="handleBlocksUpdate"
+            @selection-change="handleSelectionChange"
+          />
+        </ClientOnly>
+      </component>
+    </template>
 
-      <!-- Preview mode -->
-      <template v-else-if="mode === 'preview'">
-        <div class="cpub-preview-canvas">
-          <h1 class="cpub-preview-title">{{ title || 'Untitled' }}</h1>
-          <p v-if="metadata.description" class="cpub-preview-desc">{{ metadata.description }}</p>
-          <ClientOnly>
-            <CpubEditor :model-value="blocks" :editable="false" />
-          </ClientOnly>
-        </div>
-      </template>
+    <!-- Fallback: generic inline editor for unknown content types -->
+    <div v-else-if="mode === 'write'" class="cpub-editor-shell">
+      <EditorBlockLibrary :content-type="contentType" :editor="(editorRef as any)?.editor" />
+      <div class="cpub-editor-canvas">
+        <EditorToolbar :editor="(editorRef as any)?.editor" />
+        <ClientOnly>
+          <CpubEditor
+            ref="editorRef"
+            :model-value="blocks"
+            :editable="true"
+            @update:model-value="handleBlocksUpdate"
+            @selection-change="handleSelectionChange"
+          />
+        </ClientOnly>
+      </div>
+      <EditorPropertiesPanel
+        :content-type="contentType"
+        :metadata="metadata"
+        :selected-block="selectedBlock"
+        @update:metadata="handleMetadataUpdate"
+      />
+    </div>
 
-      <!-- Code mode -->
-      <template v-else>
-        <div class="cpub-code-canvas">
-          <pre class="cpub-code-view">{{ JSON.stringify(blocks, null, 2) }}</pre>
-        </div>
-      </template>
+    <!-- Preview mode -->
+    <div v-else-if="mode === 'preview'" class="cpub-editor-shell">
+      <div class="cpub-preview-canvas">
+        <h1 class="cpub-preview-title">{{ title || 'Untitled' }}</h1>
+        <p v-if="metadata.description" class="cpub-preview-desc">{{ metadata.description }}</p>
+        <ClientOnly>
+          <CpubEditor :model-value="blocks" :editable="false" />
+        </ClientOnly>
+      </div>
+    </div>
+
+    <!-- Code mode -->
+    <div v-else class="cpub-editor-shell">
+      <div class="cpub-code-canvas">
+        <pre class="cpub-code-view">{{ JSON.stringify(blocks, null, 2) }}</pre>
+      </div>
     </div>
   </div>
 </template>
@@ -339,7 +377,7 @@ async function handlePublish(): Promise<void> {
 .cpub-topbar-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .cpub-topbar-btn-primary {
   background: var(--accent);
-  color: #fff;
+  color: var(--color-text-inverse);
   box-shadow: var(--shadow-md);
 }
 .cpub-topbar-btn-primary:hover { background: var(--color-primary-hover); }
@@ -387,11 +425,11 @@ async function handlePublish(): Promise<void> {
 .cpub-code-canvas {
   flex: 1;
   overflow: auto;
-  background: #1a1a1a;
+  background: var(--text);
   padding: var(--space-4);
 }
 .cpub-code-view {
-  color: #e0e0e0;
+  color: var(--border2);
   font-family: var(--font-mono);
   font-size: var(--text-sm);
   white-space: pre-wrap;

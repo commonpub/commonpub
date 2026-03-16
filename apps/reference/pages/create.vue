@@ -1,103 +1,67 @@
 <script setup lang="ts">
+useSeoMeta({ title: 'Create — CommonPub' });
 definePageMeta({ middleware: 'auth' });
 
-useSeoMeta({
-  title: 'Create — CommonPub',
-  description: 'Create new content on CommonPub.',
-});
-
-const contentTypes = [
-  { type: 'article', label: 'Article', description: 'Write an article or tutorial', icon: 'fa-solid fa-file-lines', color: 'teal' },
-  { type: 'blog', label: 'Blog Post', description: 'Share your thoughts and updates', icon: 'fa-solid fa-pen-nib', color: 'pink' },
-  { type: 'project', label: 'Project', description: 'Showcase a maker project with parts and build steps', icon: 'fa-solid fa-microchip', color: 'accent' },
-  { type: 'explainer', label: 'Explainer', description: 'Create an interactive explainer with quizzes and sliders', icon: 'fa-solid fa-lightbulb', color: 'yellow' },
-  { type: 'guide', label: 'Guide', description: 'Write a step-by-step how-to guide', icon: 'fa-solid fa-book', color: 'purple' },
-] as const;
+const types = [
+  { type: 'article', icon: 'fa-solid fa-file-lines', color: 'var(--teal)', name: 'Article', desc: 'Write a long-form article with rich formatting.' },
+  { type: 'blog', icon: 'fa-solid fa-pen-nib', color: 'var(--pink)', name: 'Blog Post', desc: 'Share a blog post with code blocks and images.' },
+  { type: 'project', icon: 'fa-solid fa-microchip', color: 'var(--accent)', name: 'Project', desc: 'Document a build with parts list and steps.' },
+  { type: 'explainer', icon: 'fa-solid fa-lightbulb', color: 'var(--yellow)', name: 'Explainer', desc: 'Create an interactive explainer with quizzes.' },
+];
 </script>
 
 <template>
-  <div class="create-page">
-    <h1 class="create-title">Create New Content</h1>
-    <div class="type-grid">
-      <button
-        v-for="ct in contentTypes"
-        :key="ct.type"
-        class="type-card"
-        :data-color="ct.color"
-        @click="navigateTo(`/${ct.type}/new/edit`)"
-        :aria-label="`Create new ${ct.label}`"
+  <div class="cpub-create-page">
+    <h1 class="cpub-section-title-lg">Create New Content</h1>
+    <p style="font-size: 13px; color: var(--text-dim); margin-bottom: 24px">Choose what type of content you'd like to create.</p>
+
+    <div class="cpub-create-grid">
+      <NuxtLink
+        v-for="t in types"
+        :key="t.type"
+        :to="`/${t.type}/new/edit`"
+        class="cpub-create-card cpub-card"
       >
-        <i :class="[ct.icon, 'type-card-icon']"></i>
-        <h2 class="type-card-title">{{ ct.label }}</h2>
-        <p class="type-card-desc">{{ ct.description }}</p>
-      </button>
+        <div class="cpub-create-icon" :style="{ color: t.color }">
+          <i :class="t.icon"></i>
+        </div>
+        <div class="cpub-card-body">
+          <h3 style="font-size: 15px; font-weight: 600; margin-bottom: 4px">{{ t.name }}</h3>
+          <p style="font-size: 12px; color: var(--text-dim)">{{ t.desc }}</p>
+        </div>
+      </NuxtLink>
     </div>
   </div>
 </template>
 
 <style scoped>
-.create-page {
-  max-width: var(--content-max-width);
+.cpub-create-page {
+  max-width: 720px;
 }
 
-.create-title {
-  font-size: var(--text-xl);
-  font-weight: var(--font-weight-bold);
-  margin-bottom: var(--space-6);
-}
-
-.type-grid {
+.cpub-create-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: var(--space-4);
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
 }
 
-.type-card {
+.cpub-create-card {
+  text-decoration: none;
+}
+
+.cpub-create-icon {
+  height: 80px;
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  padding: var(--space-5);
-  background: var(--surface);
-  border: 2px solid var(--border);
-  cursor: pointer;
-  text-align: left;
-  font-family: var(--font-sans);
-  transition: all 0.15s;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  background: var(--surface2);
+  border-bottom: 2px solid var(--border);
 }
 
-.type-card:hover {
-  border-color: var(--accent);
-  transform: translate(-2px, -2px);
-  box-shadow: 4px 4px 0 var(--border);
-}
-
-.type-card:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
-.type-card-icon {
-  font-size: var(--text-xl);
-  margin-bottom: var(--space-3);
-  color: var(--text-dim);
-}
-
-[data-color="accent"] .type-card-icon { color: var(--accent); }
-[data-color="teal"] .type-card-icon { color: var(--teal); }
-[data-color="purple"] .type-card-icon { color: var(--purple); }
-[data-color="pink"] .type-card-icon { color: var(--pink); }
-[data-color="yellow"] .type-card-icon { color: var(--yellow); }
-
-.type-card-title {
-  font-size: var(--text-md);
-  font-weight: var(--font-weight-semibold);
-  color: var(--text);
-  margin-bottom: var(--space-2);
-}
-
-.type-card-desc {
-  font-size: var(--text-sm);
-  color: var(--text-dim);
-  line-height: var(--leading-relaxed);
+@media (max-width: 640px) {
+  .cpub-create-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

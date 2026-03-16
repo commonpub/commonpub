@@ -1,23 +1,375 @@
 <script setup lang="ts">
-useSeoMeta({ title: 'Videos — CommonPub' });
+useSeoMeta({ title: 'Video Hub — CommonPub' });
+
+interface VideoItem {
+  id: string;
+  title: string;
+  url: string;
+  thumbnailUrl: string | null;
+  duration: number | null;
+  viewCount: number;
+  categoryId: string | null;
+  authorId: string;
+  createdAt: string;
+}
+
+interface CategoryItem {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+const activeFilter = ref('');
+const sortOption = ref('recent');
+
+const { data: categories } = await useFetch<CategoryItem[]>('/api/videos/categories');
+const { data: videosData, pending: loadingVideos } = useFetch<{ items: VideoItem[]; total: number }>('/api/videos', {
+  query: computed(() => ({
+    categoryId: activeFilter.value || undefined,
+    limit: 20,
+  })),
+  watch: [activeFilter],
+});
+
+const videos = computed(() => videosData.value?.items ?? []);
+const totalVideos = computed(() => videosData.value?.total ?? 0);
+
+const filterOptions = computed(() => {
+  const cats = categories.value ?? [];
+  return [{ id: '', name: 'All' }, ...cats];
+});
+
+function formatDuration(seconds: number | null): string {
+  if (!seconds) return '0:00';
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
+function formatDate(dateStr: string): string {
+  return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
 </script>
 
 <template>
   <div class="cpub-videos">
-    <h1 class="cpub-page-title">Video Hub</h1>
-    <div class="cpub-coming-soon">
-      <i class="fa-solid fa-video cpub-coming-icon"></i>
-      <h2 class="cpub-coming-heading">Coming Soon</h2>
-      <p class="cpub-coming-text">The video hub is being built. Soon you'll be able to browse tutorials, livestreams, and talks from the community.</p>
+
+    <!-- HERO -->
+    <div class="cpub-video-hero">
+      <div class="cpub-video-hero-inner">
+        <div class="cpub-hero-eyebrow"><i class="fa fa-play-circle"></i> &nbsp;Video Hub</div>
+        <div class="cpub-hero-row">
+          <h1 class="cpub-hero-title">Video Hub</h1>
+          <span class="cpub-tag cpub-tag-live"><i class="fa-solid fa-circle" style="font-size:8px;"></i> 3 Live Now</span>
+        </div>
+        <p class="cpub-hero-sub">Tutorials, conference talks, project demos, and live build streams from the edge AI community.</p>
+        <div class="cpub-hero-actions">
+          <button class="cpub-btn cpub-btn-primary"><i class="fa fa-upload"></i> Upload Video</button>
+          <button class="cpub-btn"><i class="fa-solid fa-video"></i> Go Live</button>
+          <button class="cpub-btn"><i class="fa fa-list-ul"></i> My Playlists</button>
+        </div>
+      </div>
     </div>
+
+    <!-- FILTER BAR -->
+    <div class="cpub-filter-bar">
+      <button
+        v-for="f in filterOptions"
+        :key="f.id"
+        class="cpub-fchip"
+        :class="{ active: activeFilter === f.id }"
+        @click="activeFilter = f.id"
+      >{{ f.name }}</button>
+      <div class="cpub-filter-right">
+        <select v-model="sortOption" class="cpub-sort-select">
+          <option value="recent">Sort: Most Recent</option>
+          <option value="viewed">Sort: Most Viewed</option>
+          <option value="rated">Sort: Top Rated</option>
+          <option value="shortest">Sort: Shortest First</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- MAIN -->
+    <div class="cpub-page-wrap">
+      <div class="cpub-main-grid">
+
+        <!-- LEFT COLUMN -->
+        <div>
+          <!-- FEATURED VIDEO -->
+          <div class="cpub-featured-section">
+            <div class="cpub-sec-head">
+              <h2>Featured</h2>
+              <span class="cpub-tag cpub-tag-accent"><i class="fa-solid fa-fire"></i> Trending</span>
+            </div>
+            <div class="cpub-featured-player">
+              <div class="cpub-featured-player-bg">
+                <div class="cpub-featured-bg-gradient"></div>
+                <div class="cpub-featured-bg-grid"></div>
+                <div class="cpub-featured-player-icon"><i class="fa-solid fa-laptop-code"></i></div>
+              </div>
+              <div class="cpub-play-overlay">
+                <div class="cpub-play-circle"><i class="fa fa-play"></i></div>
+              </div>
+              <div class="cpub-featured-duration">42:18</div>
+              <div class="cpub-featured-quality"><span class="cpub-tag" style="background:var(--surface);border:2px solid var(--border);">4K</span></div>
+            </div>
+            <div class="cpub-featured-info">
+              <div class="cpub-featured-title">From Training to Deployment: Building a Complete TinyML Pipeline on Arduino Nano 33 BLE Sense</div>
+              <div class="cpub-featured-meta-row">
+                <div class="cpub-featured-author">
+                  <div class="cpub-featured-author-av">SH</div>
+                  <span class="cpub-featured-author-name">Shawn Hymel</span>
+                </div>
+                <span class="cpub-tag cpub-tag-green">Tutorial</span>
+                <span class="cpub-tag">Beginner</span>
+              </div>
+              <div class="cpub-featured-stats">
+                <span><i class="fa-solid fa-eye"></i> 48,210 views</span>
+                <span>·</span>
+                <span>Feb 28, 2026</span>
+                <span>·</span>
+                <span><i class="fa-solid fa-thumbs-up"></i> 2,140</span>
+                <span>·</span>
+                <span><i class="fa-solid fa-comment"></i> 184</span>
+              </div>
+              <div style="margin-top:10px;">
+                <p class="cpub-featured-desc">A complete end-to-end walkthrough — from dataset collection using Edge Impulse to deploying a gesture recognition model with less than 256KB of flash. Covers model architecture selection, training hyperparameters, quantization, and live inference demo with serial plotter output.</p>
+              </div>
+            </div>
+          </div>
+
+          <hr class="cpub-divider" style="margin:20px 0;" />
+
+          <!-- VIDEO GRID -->
+          <div class="cpub-sec-head">
+            <h2>Recent Videos</h2>
+            <span class="cpub-sec-sub">{{ totalVideos }} videos</span>
+          </div>
+
+          <!-- Loading skeleton -->
+          <div v-if="loadingVideos" class="cpub-video-grid">
+            <div v-for="i in 4" :key="i" class="cpub-vcard">
+              <div class="cpub-vcard-thumb" style="background: var(--surface2)">
+                <div class="cpub-vcard-thumb-overlay"></div>
+              </div>
+              <div class="cpub-vcard-body">
+                <div class="cpub-vcard-title" style="background: var(--surface2); height: 14px; width: 80%;"></div>
+                <div class="cpub-vcard-stats" style="background: var(--surface2); height: 10px; width: 50%; margin-top: 8px;"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Real data -->
+          <div v-else-if="videos.length" class="cpub-video-grid">
+            <div v-for="v in videos" :key="v.id" class="cpub-vcard">
+              <div class="cpub-vcard-thumb" style="background: var(--surface2)">
+                <div class="cpub-vcard-thumb-overlay"></div>
+                <div class="cpub-vcard-thumb-icon"><i class="fa-solid fa-play"></i></div>
+                <div class="cpub-vcard-play"><div class="cpub-vcard-play-btn"><i class="fa fa-play"></i></div></div>
+                <div class="cpub-vcard-duration">{{ formatDuration(v.duration) }}</div>
+              </div>
+              <div class="cpub-vcard-body">
+                <div class="cpub-vcard-title">{{ v.title }}</div>
+                <div class="cpub-vcard-stats">
+                  <span><i class="fa-solid fa-eye"></i> {{ v.viewCount.toLocaleString() }}</span>
+                  <span>·</span>
+                  <span>{{ formatDate(v.createdAt) }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Empty state -->
+          <div v-else class="cpub-empty-state">
+            <div class="cpub-empty-icon"><i class="fa-solid fa-film"></i></div>
+            <p class="cpub-empty-title">No videos yet</p>
+            <p class="cpub-empty-sub">Be the first to upload a video to the community.</p>
+          </div>
+        </div>
+
+        <!-- SIDEBAR -->
+        <aside class="cpub-sidebar">
+
+          <!-- CATEGORIES -->
+          <div class="cpub-sb-block">
+            <div class="cpub-sb-block-head">
+              <div class="cpub-sb-block-title">Categories</div>
+            </div>
+            <template v-if="categories?.length">
+              <div v-for="cat in categories" :key="cat.id" class="cpub-playlist-item" style="cursor: pointer;" @click="activeFilter = cat.id">
+                <div class="cpub-playlist-info">
+                  <div class="cpub-playlist-title">{{ cat.name }}</div>
+                </div>
+              </div>
+            </template>
+            <div v-else style="padding: 14px 16px; font-size: 11px; color: var(--text-faint); font-family: var(--font-mono);">
+              No categories yet
+            </div>
+          </div>
+
+          <!-- STATS -->
+          <div class="cpub-sb-block">
+            <div class="cpub-sb-block-head">
+              <div class="cpub-sb-block-title">Video Stats</div>
+            </div>
+            <div style="padding: 14px 16px; font-size: 11px; color: var(--text-dim); font-family: var(--font-mono);">
+              {{ totalVideos }} total videos
+            </div>
+          </div>
+
+        </aside>
+
+      </div>
+    </div>
+
   </div>
 </template>
 
 <style scoped>
-.cpub-videos { max-width: var(--content-max-width); }
-.cpub-page-title { font-size: var(--text-xl); font-weight: var(--font-weight-bold); margin-bottom: var(--space-6); }
-.cpub-coming-soon { text-align: center; padding: var(--space-12) 0; border: 2px solid var(--border2); background: var(--surface); }
-.cpub-coming-icon { font-size: 40px; color: var(--text-faint); margin-bottom: var(--space-4); }
-.cpub-coming-heading { font-size: var(--text-lg); font-weight: var(--font-weight-bold); margin-bottom: var(--space-2); color: var(--text-dim); }
-.cpub-coming-text { font-size: var(--text-sm); color: var(--text-faint); max-width: 400px; margin: 0 auto; line-height: var(--leading-relaxed); }
+/* HERO */
+.cpub-video-hero { background: var(--surface); border-bottom: 2px solid var(--border); padding: 32px 32px 28px; }
+.cpub-video-hero-inner { max-width: 1200px; margin: 0 auto; }
+.cpub-hero-eyebrow { font-size: 10px; font-family: var(--font-mono); color: var(--accent); letter-spacing: .12em; text-transform: uppercase; margin-bottom: 10px; }
+.cpub-hero-row { display: flex; align-items: center; gap: 16px; margin-bottom: 4px; }
+.cpub-hero-title { font-size: 28px; font-weight: 700; letter-spacing: -.03em; font-family: var(--font-mono); }
+.cpub-hero-sub { font-size: 13px; color: var(--text-dim); margin-bottom: 18px; }
+.cpub-hero-actions { display: flex; align-items: center; gap: 10px; }
+
+/* BUTTONS */
+.cpub-btn { font-family: var(--font-mono); font-size: 12px; padding: 8px 16px; border-radius: var(--radius); border: 2px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.cpub-btn:hover { background: var(--surface2); }
+.cpub-btn-primary { background: var(--accent); border-color: var(--border); color: var(--color-text-inverse); box-shadow: 4px 4px 0 var(--border); }
+.cpub-btn-primary:hover { opacity: .9; }
+
+/* TAGS */
+.cpub-tag { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-family: var(--font-mono); padding: 2px 8px; border-radius: var(--radius); border: 2px solid var(--border2); color: var(--text-dim); background: var(--surface2); }
+.cpub-tag-accent { border-color: var(--accent-border); color: var(--accent); background: var(--accent-bg); }
+.cpub-tag-green { border-color: var(--green-border); color: var(--green); background: var(--green-bg); }
+.cpub-tag-purple { border-color: var(--purple-border); color: var(--purple); background: var(--purple-bg); }
+.cpub-tag-teal { border-color: var(--teal-border); color: var(--teal); background: var(--teal-bg); }
+.cpub-tag-yellow { border-color: var(--yellow-border); color: var(--yellow); background: var(--yellow-bg); }
+.cpub-tag-red { border-color: var(--red-border); color: var(--red); background: var(--red-bg); }
+.cpub-tag-live { background: var(--red); border-color: var(--red); color: var(--color-text-inverse); font-family: var(--font-mono); animation: cpub-livepulse 2s infinite; }
+@keyframes cpub-livepulse { 0%,100% { opacity: 1; } 50% { opacity: .75; } }
+
+/* FILTER BAR */
+.cpub-filter-bar { background: var(--surface); border-bottom: 2px solid var(--border); padding: 0 32px; display: flex; align-items: center; gap: 6px; position: sticky; top: 48px; z-index: 50; overflow-x: auto; scrollbar-width: none; }
+.cpub-filter-bar::-webkit-scrollbar { display: none; }
+.cpub-fchip { font-size: 11px; font-family: var(--font-mono); padding: 12px 14px; border-bottom: 3px solid transparent; color: var(--text-dim); cursor: pointer; white-space: nowrap; background: none; border-top: none; border-left: none; border-right: none; }
+.cpub-fchip:hover { color: var(--text); }
+.cpub-fchip.active { color: var(--accent); border-bottom-color: var(--accent); }
+.cpub-filter-right { margin-left: auto; display: flex; align-items: center; gap: 8px; padding: 8px 0; }
+.cpub-sort-select { font-size: 11px; font-family: var(--font-mono); padding: 5px 12px; border-radius: var(--radius); border: 2px solid var(--border); background: var(--surface); color: var(--text-dim); cursor: pointer; outline: none; }
+
+/* LAYOUT */
+.cpub-page-wrap { max-width: 1200px; margin: 0 auto; padding: 28px 32px; }
+.cpub-main-grid { display: grid; grid-template-columns: 1fr 300px; gap: 28px; align-items: start; }
+.cpub-divider { border: none; border-top: 2px solid var(--border); }
+
+/* SECTION HEAD */
+.cpub-sec-head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.cpub-sec-head h2 { font-size: 14px; font-weight: 700; font-family: var(--font-mono); }
+.cpub-sec-sub { font-size: 11px; color: var(--text-dim); font-family: var(--font-mono); }
+.cpub-sec-head-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.cpub-view-all-link { font-size: 11px; color: var(--accent); font-family: var(--font-mono); text-decoration: none; }
+.cpub-view-all-link:hover { text-decoration: underline; }
+
+/* FEATURED VIDEO */
+.cpub-featured-section { margin-bottom: 24px; }
+.cpub-featured-player { background: var(--surface3); border: 2px solid var(--border); border-radius: var(--radius); aspect-ratio: 16/9; position: relative; overflow: hidden; cursor: pointer; box-shadow: 4px 4px 0 var(--border); }
+.cpub-featured-player-bg { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+.cpub-featured-bg-grid { position: absolute; inset: 0; background-image: repeating-linear-gradient(0deg, var(--border2) 0, var(--border2) 1px, transparent 1px, transparent 32px), repeating-linear-gradient(90deg, var(--border2) 0, var(--border2) 1px, transparent 1px, transparent 32px); opacity: .3; }
+.cpub-featured-bg-gradient { position: absolute; inset: 0; background: var(--surface3); }
+.cpub-featured-player-icon { font-size: 48px; position: relative; z-index: 2; opacity: .25; color: var(--text-dim); }
+.cpub-play-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 3; }
+.cpub-play-circle { width: 68px; height: 68px; border-radius: 0; background: var(--surface); border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; box-shadow: 4px 4px 0 var(--border); transition: background .15s; }
+.cpub-featured-player:hover .cpub-play-circle { background: var(--accent-bg); border-color: var(--accent); }
+.cpub-play-circle i { font-size: 22px; color: var(--text); margin-left: 3px; }
+.cpub-featured-duration { position: absolute; bottom: 12px; right: 12px; font-size: 11px; font-family: var(--font-mono); background: var(--surface); color: var(--text); padding: 3px 8px; border: 2px solid var(--border); z-index: 4; }
+.cpub-featured-quality { position: absolute; bottom: 12px; left: 12px; z-index: 4; }
+.cpub-featured-info { margin-top: 16px; }
+.cpub-featured-title { font-size: 16px; font-weight: 700; margin-bottom: 8px; line-height: 1.3; }
+.cpub-featured-meta-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+.cpub-featured-author { display: flex; align-items: center; gap: 8px; }
+.cpub-featured-author-av { width: 24px; height: 24px; border-radius: 50%; background: var(--surface2); border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 9px; font-family: var(--font-mono); color: var(--text-dim); flex-shrink: 0; }
+.cpub-featured-author-name { font-size: 12px; color: var(--text-dim); font-family: var(--font-mono); }
+.cpub-featured-stats { display: flex; align-items: center; gap: 10px; font-size: 11px; font-family: var(--font-mono); color: var(--text-faint); }
+.cpub-featured-desc { font-size: 12px; color: var(--text-dim); line-height: 1.6; max-width: 640px; }
+
+/* VIDEO GRID */
+.cpub-video-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.cpub-vcard { background: var(--surface); border: 2px solid var(--border); border-radius: var(--radius); overflow: hidden; cursor: pointer; transition: border-color .15s; box-shadow: 4px 4px 0 var(--border); }
+.cpub-vcard:hover { border-color: var(--accent); }
+.cpub-vcard:hover .cpub-vcard-title { color: var(--accent); }
+.cpub-vcard-thumb { aspect-ratio: 16/9; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; border-bottom: 2px solid var(--border); }
+.cpub-vcard-thumb-overlay { position: absolute; inset: 0; background: var(--surface3); opacity: .5; }
+.cpub-vcard-thumb-icon { font-size: 24px; position: relative; z-index: 1; opacity: .3; color: var(--text-dim); }
+.cpub-vcard-play { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 2; opacity: 0; transition: opacity .15s; }
+.cpub-vcard:hover .cpub-vcard-play { opacity: 1; }
+.cpub-vcard-play-btn { width: 38px; height: 38px; border-radius: 0; background: var(--surface); border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; box-shadow: 4px 4px 0 var(--border); }
+.cpub-vcard-play-btn i { font-size: 13px; color: var(--text); margin-left: 2px; }
+.cpub-vcard-duration { position: absolute; bottom: 8px; right: 8px; font-size: 10px; font-family: var(--font-mono); background: var(--surface); color: var(--text); padding: 2px 7px; border: 2px solid var(--border); z-index: 3; }
+.cpub-vcard-type { position: absolute; top: 8px; left: 8px; z-index: 3; }
+.cpub-vcard-body { padding: 12px 14px; }
+.cpub-vcard-title { font-size: 12px; font-weight: 600; line-height: 1.35; margin-bottom: 7px; transition: color .1s; }
+.cpub-vcard-author-row { display: flex; align-items: center; gap: 7px; margin-bottom: 5px; }
+.cpub-vcard-av { width: 18px; height: 18px; border-radius: 50%; background: var(--surface2); border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 7px; font-family: var(--font-mono); color: var(--text-faint); flex-shrink: 0; }
+.cpub-vcard-author { font-size: 11px; color: var(--text-dim); font-family: var(--font-mono); }
+.cpub-vcard-stats { font-size: 10px; font-family: var(--font-mono); color: var(--text-faint); display: flex; align-items: center; gap: 8px; }
+
+/* SIDEBAR */
+.cpub-sidebar { display: flex; flex-direction: column; gap: 0; }
+.cpub-sb-block { background: var(--surface); border: 2px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 16px; box-shadow: 4px 4px 0 var(--border); }
+.cpub-sb-block-head { padding: 14px 16px; border-bottom: 2px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: var(--surface2); }
+.cpub-sb-block-title { font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--text); font-family: var(--font-mono); display: flex; align-items: center; gap: 6px; }
+.cpub-sb-block-link { font-size: 10px; font-family: var(--font-mono); color: var(--accent); text-decoration: none; }
+.cpub-sb-block-link:hover { text-decoration: underline; }
+
+/* LIVE NOW */
+.cpub-live-item { padding: 12px 16px; border-bottom: 2px solid var(--border2); cursor: pointer; }
+.cpub-live-item:last-child { border-bottom: none; }
+.cpub-live-item:hover .cpub-live-title { color: var(--accent); }
+.cpub-live-item-top { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 6px; }
+.cpub-live-thumb { width: 56px; height: 38px; border-radius: var(--radius); border: 2px solid var(--border); background: var(--red-bg); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; position: relative; overflow: hidden; }
+.cpub-live-thumb-bg { position: absolute; inset: 0; background: var(--red-bg); }
+.cpub-live-thumb-icon { position: relative; z-index: 1; color: var(--red); }
+.cpub-live-title { font-size: 12px; font-weight: 600; line-height: 1.3; transition: color .1s; }
+.cpub-live-meta { display: flex; align-items: center; gap: 8px; font-size: 10px; font-family: var(--font-mono); color: var(--text-faint); }
+.cpub-live-viewers { display: flex; align-items: center; gap: 4px; color: var(--red); }
+.cpub-live-viewers::before { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--red); animation: cpub-livepulse 1.5s infinite; }
+
+/* PLAYLISTS */
+.cpub-playlist-item { display: flex; gap: 10px; padding: 12px 16px; border-bottom: 2px solid var(--border2); cursor: pointer; align-items: center; }
+.cpub-playlist-item:last-child { border-bottom: none; }
+.cpub-playlist-item:hover .cpub-playlist-title { color: var(--accent); }
+.cpub-playlist-thumb-stack { width: 52px; height: 38px; position: relative; flex-shrink: 0; }
+.cpub-pls-layer { position: absolute; border-radius: var(--radius); border: 2px solid var(--border); background: var(--surface2); display: flex; align-items: center; justify-content: center; font-size: 11px; }
+.cpub-pls-layer-1 { width: 100%; height: 100%; left: 0; top: 0; background: var(--surface3); }
+.cpub-pls-layer-2 { width: 92%; height: 88%; left: 4%; top: -4px; background: var(--surface2); z-index: 1; }
+.cpub-pls-layer-3 { width: 86%; height: 76%; left: 7%; top: -7px; background: var(--border2); z-index: 0; }
+.cpub-pls-icon { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 2; font-size: 14px; color: var(--text-dim); }
+.cpub-playlist-info { flex: 1; }
+.cpub-playlist-title { font-size: 12px; font-weight: 600; margin-bottom: 2px; transition: color .1s; }
+.cpub-playlist-count { font-size: 10px; font-family: var(--font-mono); color: var(--text-faint); }
+
+/* CREATORS */
+.cpub-creator-item { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 2px solid var(--border2); }
+.cpub-creator-item:last-child { border-bottom: none; }
+.cpub-creator-av { width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--border); background: var(--surface2); display: flex; align-items: center; justify-content: center; font-size: 11px; font-family: var(--font-mono); font-weight: 600; color: var(--text-dim); flex-shrink: 0; }
+.cpub-creator-info { flex: 1; }
+.cpub-creator-name { font-size: 12px; font-weight: 600; }
+.cpub-creator-subs { font-size: 10px; font-family: var(--font-mono); color: var(--text-faint); }
+.cpub-creator-sub-btn { font-size: 10px; font-family: var(--font-mono); padding: 5px 12px; border-radius: var(--radius); border: 2px solid var(--border); background: var(--surface); color: var(--text-dim); cursor: pointer; white-space: nowrap; }
+.cpub-creator-sub-btn:hover { background: var(--surface2); }
+.cpub-subbed { border-color: var(--green); color: var(--green); background: var(--green-bg); }
+
+/* EMPTY STATE */
+.cpub-empty-state { text-align: center; padding: 48px 16px; }
+.cpub-empty-icon { font-size: 32px; color: var(--text-faint); margin-bottom: 12px; }
+.cpub-empty-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+.cpub-empty-sub { font-size: 12px; color: var(--text-dim); }
 </style>

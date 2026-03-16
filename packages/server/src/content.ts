@@ -199,6 +199,10 @@ export async function createContent(
       coverImageUrl: input.coverImageUrl ?? null,
       category: input.category ?? null,
       difficulty: (input.difficulty as 'beginner' | 'intermediate' | 'advanced') ?? null,
+      buildTime: input.buildTime ?? null,
+      estimatedCost: input.estimatedCost ?? null,
+      visibility: (input.visibility as 'public' | 'members' | 'private') ?? 'public',
+      seoDescription: input.seoDescription ?? null,
       sections: (input.sections as typeof contentItems.$inferInsert.sections) ?? null,
       status: 'draft',
       previewToken,
@@ -246,6 +250,9 @@ export async function updateContent(
   if (input.difficulty !== undefined) updates.difficulty = input.difficulty;
   if (input.seoDescription !== undefined) updates.seoDescription = input.seoDescription;
   if (input.sections !== undefined) updates.sections = input.sections;
+  if (input.buildTime !== undefined) updates.buildTime = input.buildTime;
+  if (input.estimatedCost !== undefined) updates.estimatedCost = input.estimatedCost;
+  if (input.visibility !== undefined) updates.visibility = input.visibility;
 
   if (input.status !== undefined) {
     updates.status = input.status;

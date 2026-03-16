@@ -1,3 +1,9 @@
+import { fileURLToPath } from 'node:url';
+import { resolve, dirname } from 'node:path';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const uiTheme = (file: string) => resolve(__dirname, '../../packages/ui/theme', file);
+
 export default defineNuxtConfig({
   compatibilityDate: '2024-11-01',
   devtools: { enabled: true },
@@ -13,9 +19,12 @@ export default defineNuxtConfig({
     },
   },
   css: [
-    '@commonpub/ui/theme/base.css',
-    '@commonpub/ui/theme/dark.css',
-    '@commonpub/ui/theme/prose.css',
+    uiTheme('base.css'),
+    uiTheme('dark.css'),
+    uiTheme('prose.css'),
+    uiTheme('layouts.css'),
+    uiTheme('forms.css'),
+    uiTheme('editor-panels.css'),
   ],
   modules: [],
   runtimeConfig: {
@@ -33,5 +42,12 @@ export default defineNuxtConfig({
   },
   nitro: {
     preset: 'node-server',
+  },
+  vite: {
+    server: {
+      fs: {
+        allow: ['../..'],
+      },
+    },
   },
 });

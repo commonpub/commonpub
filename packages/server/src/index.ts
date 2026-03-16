@@ -202,3 +202,57 @@ export {
 
 // OAuth Codes
 export { storeAuthCode, consumeAuthCode, cleanupExpiredCodes } from './oauthCodes.js';
+
+// Contest
+export {
+  listContests,
+  getContestBySlug,
+  createContest,
+  updateContest,
+  listContestEntries,
+  submitContestEntry,
+  judgeContestEntry,
+} from './contest.js';
+export type {
+  ContestListItem,
+  ContestDetail,
+  ContestFilters,
+  CreateContestInput,
+  ContestEntryItem,
+} from './contest.js';
+
+// Notification
+export {
+  listNotifications,
+  getUnreadCount,
+  markNotificationRead,
+  markAllNotificationsRead,
+  deleteNotification,
+  createNotification,
+} from './notification.js';
+export type { NotificationItem, NotificationFilters } from './notification.js';
+
+// Messaging
+export {
+  listConversations,
+  getConversationMessages,
+  createConversation,
+  sendMessage,
+  markMessagesRead,
+} from './messaging.js';
+export type { ConversationItem, MessageItem } from './messaging.js';
+
+// Video
+export {
+  listVideos,
+  getVideoById,
+  createVideo,
+  listVideoCategories,
+  incrementVideoViewCount,
+} from './video.js';
+export type {
+  VideoListItem,
+  VideoDetail,
+  VideoFilters,
+  VideoCategoryItem,
+} from './video.js';

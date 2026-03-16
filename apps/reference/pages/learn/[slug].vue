@@ -130,7 +130,7 @@ function toggleModule(id: string): void {
 .cpub-course-title { font-size: var(--text-2xl); font-weight: var(--font-weight-bold); margin: var(--space-3) 0 var(--space-2); line-height: var(--leading-tight); }
 .cpub-course-desc { font-size: var(--text-sm); color: var(--text-dim); line-height: var(--leading-relaxed); margin-bottom: var(--space-4); }
 .cpub-course-actions { display: flex; gap: var(--space-3); margin-top: var(--space-4); align-items: center; }
-.cpub-enroll-btn { padding: var(--space-2) var(--space-5); background: var(--accent); color: #fff; border: var(--border-width-default) solid var(--border); font-size: var(--text-sm); cursor: pointer; font-family: var(--font-sans); box-shadow: var(--shadow-md); }
+.cpub-enroll-btn { padding: var(--space-2) var(--space-5); background: var(--accent); color: var(--color-text-inverse); border: var(--border-width-default) solid var(--border); font-size: var(--text-sm); cursor: pointer; font-family: var(--font-sans); box-shadow: var(--shadow-md); }
 .cpub-enroll-btn:hover { background: var(--color-primary-hover); }
 .cpub-enroll-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .cpub-enrolled-badge { font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; color: var(--green); background: var(--green-bg); padding: var(--space-1) var(--space-3); border: 1px solid var(--green-border); }
