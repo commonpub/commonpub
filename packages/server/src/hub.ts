@@ -173,6 +173,10 @@ export async function getHubBySlug(
     updatedAt: row.hub.updatedAt,
     currentUserRole,
     isBanned,
+    hubType: row.hub.hubType,
+    privacy: row.hub.privacy,
+    website: row.hub.website,
+    categories: row.hub.categories,
   };
 }
 

@@ -23,7 +23,7 @@
         "../../../node_modules/.pnpm/nuxt@3.21.1_@parcel+watcher@2.5.6_@vue+compiler-sfc@3.5.30_cac@6.7.14_db0@0.3.4_drizzle_e8e72a41c8f7c29d2b6fa04784db8f7b/node_modules/nuxt"
       ],
       "vite/client": [
-        "../../../node_modules/.pnpm/vite@6.4.1_jiti@2.6.1_terser@5.46.0_yaml@2.8.2/node_modules/vite/client"
+        "../../../node_modules/.pnpm/vite@6.4.1_@types+node@25.5.0_jiti@2.6.1_terser@5.46.0_tsx@4.21.0_yaml@2.8.2/node_modules/vite/client"
       ],
       "nitropack/types": [
         "../../../node_modules/.pnpm/nitropack@2.13.1_drizzle-orm@0.38.4_kysely@0.28.11_pg@8.20.0_/node_modules/nitropack/types"

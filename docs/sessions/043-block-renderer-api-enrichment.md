@@ -88,14 +88,44 @@ Removed `<ClientOnly>` wrappers since BlockContentRenderer is pure Vue with no b
 - `apps/reference/components/blocks/BlockContentRenderer.vue`
 - `apps/reference/components/blocks/Block{Text,Heading,Code,Image,Quote,Callout,Divider,Video,Embed,PartsList,BuildStep,ToolList,Downloads,Quiz,Slider,Checkpoint,Math,Gallery}View.vue`
 
-**Modified (7 files):**
+**Modified (10 files):**
 - `apps/reference/components/views/ExplainerView.vue` — section derivation + renderer swap
 - `apps/reference/components/views/ArticleView.vue` — renderer swap
 - `apps/reference/components/views/BlogView.vue` — renderer swap
 - `apps/reference/components/views/ProjectView.vue` — renderer swap
 - `apps/reference/pages/[type]/[slug]/index.vue` — renderer swap
+- `apps/reference/pages/hubs/[slug].vue` — complete data shape fix (interfaces, members, posts, rules, sidebar)
+- `apps/reference/pages/hubs/create.vue` — cpub- prefix classes, hub type + join policy fields
 - `packages/server/src/content.ts` — enriched `getContentBySlug` with author stats + related content
-- `packages/server/src/types.ts` — `ContentDetailAuthor`, `ContentRelatedItem`, expanded `ContentDetail`
+- `packages/server/src/hub.ts` — `getHubBySlug` returns `hubType`, `privacy`, `website`, `categories`
+- `packages/server/src/types.ts` — `ContentDetailAuthor`, `ContentRelatedItem`, expanded `ContentDetail` + `HubDetail`
+
+### Hub Page Fixes
+
+**Problem:** Hub page had pervasive data shape mismatches between frontend interfaces and server API responses, making the page non-functional with real data.
+
+**Server fixes (`packages/server/src/hub.ts` + `types.ts`):**
+- `getHubBySlug` now returns `hubType`, `privacy`, `website`, `categories` from the hubs table
+- `HubDetail` type extended with these 4 fields
+
+**Hub page fixes (`pages/hubs/[slug].vue`):**
+- Rewrote `HubData` interface to match actual `HubDetail` API response (added `id`, `postCount`, `isOfficial`, `hubType`, `joinPolicy`, `privacy`, `website`, `categories`, `createdAt`, `createdBy`; removed phantom `projectCount`, `discussionCount`, `verified`, `tags`, `relatedCommunities`)
+- Rewrote `HubPost` interface to match `HubPostItem` (uses `content` not `title`/`body`, includes `isPinned`/`isLocked`)
+- Rewrote `HubMember` interface to match `HubMemberItem` (nested `user` object instead of flat)
+- Fixed members tab: `member.user.username` instead of `member.username`
+- Fixed moderators sidebar: same nested user fix
+- Fixed feed items: derive title from `content.slice(0, 80)`, use `likeCount` instead of `voteCount`
+- Fixed rules sidebar: parse `rules` string (JSON array or newline-delimited) into array via computed
+- Fixed stats row: use `postCount` + gallery total instead of phantom `projectCount`/`discussionCount`
+- Fixed badges: `isOfficial` instead of `verified`, `joinPolicy`-based join policy badge
+- Fixed tags: use `categories` array instead of phantom `tags`
+- Fixed overview tab: consolidated product/company branches, use `hub.website`
+- Added website link in sidebar
+
+**Create hub page (`pages/hubs/create.vue`):**
+- Rewrote with cpub- prefix classes (was using old generic var-based tokens)
+- Added hub type selector (community/product/company) and join policy selector
+- Sends `hubType` and `joinPolicy` in create request
 
 ## Open Questions
 
@@ -108,4 +138,4 @@ Removed `<ClientOnly>` wrappers since BlockContentRenderer is pure Vue with no b
 - Editor consolidation: config-driven EditorShell to remove ~400 lines of duplication
 - Cover image upload in canvas for article editor
 - Migrations SQL (needs running Postgres)
-- Further page decomposition (hub, profile)
+- Profile page fix (likely same data shape mismatches as hubs)

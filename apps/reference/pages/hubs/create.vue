@@ -10,6 +10,8 @@ const toast = useToast();
 const { extract: extractError } = useApiError();
 const name = ref('');
 const description = ref('');
+const hubType = ref<'community' | 'product' | 'company'>('community');
+const joinPolicy = ref<'open' | 'approval' | 'invite'>('open');
 const saving = ref(false);
 
 async function handleCreate(): Promise<void> {
@@ -17,7 +19,12 @@ async function handleCreate(): Promise<void> {
   try {
     const result = await $fetch('/api/hubs', {
       method: 'POST',
-      body: { name: name.value, description: description.value },
+      body: {
+        name: name.value,
+        description: description.value || undefined,
+        hubType: hubType.value,
+        joinPolicy: joinPolicy.value,
+      },
     });
     await navigateTo(`/hubs/${(result as { slug: string }).slug}`);
   } catch (err: unknown) {
@@ -29,75 +36,153 @@ async function handleCreate(): Promise<void> {
 </script>
 
 <template>
-  <div class="create-community-page">
-    <h1 class="page-title">Create Hub</h1>
+  <div class="cpub-create-hub">
+    <div class="cpub-create-header">
+      <NuxtLink to="/explore" class="cpub-back-link">
+        <i class="fa-solid fa-arrow-left"></i> Back
+      </NuxtLink>
+      <h1 class="cpub-create-title">Create Hub</h1>
+      <p class="cpub-create-subtitle">Start a new maker community, product page, or company hub.</p>
+    </div>
 
-    <form class="community-form" @submit.prevent="handleCreate" aria-label="Create community form">
-      <div class="form-field">
-        <label for="community-name" class="form-label">Name</label>
-        <input id="community-name" v-model="name" type="text" class="form-input" required placeholder="Hub name" />
+    <form class="cpub-create-form" @submit.prevent="handleCreate" aria-label="Create hub form">
+      <div class="cpub-field">
+        <label for="hub-name" class="cpub-field-label">Name</label>
+        <input id="hub-name" v-model="name" type="text" class="cpub-field-input" required placeholder="Hub name" />
       </div>
 
-      <div class="form-field">
-        <label for="community-desc" class="form-label">Description</label>
-        <textarea id="community-desc" v-model="description" class="form-textarea" rows="3" placeholder="What is this community about?" />
+      <div class="cpub-field">
+        <label for="hub-desc" class="cpub-field-label">Description</label>
+        <textarea id="hub-desc" v-model="description" class="cpub-field-input cpub-field-textarea" rows="3" placeholder="What is this hub about?" />
       </div>
 
-      <button type="submit" class="cpub-btn cpub-btn-primary" :disabled="saving || !name">
-        {{ saving ? 'Creating...' : 'Create Hub' }}
-      </button>
+      <div class="cpub-field-row">
+        <div class="cpub-field">
+          <label for="hub-type" class="cpub-field-label">Hub Type</label>
+          <select id="hub-type" v-model="hubType" class="cpub-field-input">
+            <option value="community">Community — maker group / topic space</option>
+            <option value="product">Product — product or platform page</option>
+            <option value="company">Company — organization page</option>
+          </select>
+        </div>
+
+        <div class="cpub-field">
+          <label for="hub-join" class="cpub-field-label">Join Policy</label>
+          <select id="hub-join" v-model="joinPolicy" class="cpub-field-input">
+            <option value="open">Open — anyone can join</option>
+            <option value="approval">Approval — requests must be approved</option>
+            <option value="invite">Invite Only</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="cpub-form-actions">
+        <button type="submit" class="cpub-btn cpub-btn-primary" :disabled="saving || !name">
+          {{ saving ? 'Creating...' : 'Create Hub' }}
+        </button>
+        <NuxtLink to="/explore" class="cpub-btn">Cancel</NuxtLink>
+      </div>
     </form>
   </div>
 </template>
 
 <style scoped>
-.create-community-page {
-  max-width: 600px;
+.cpub-create-hub {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 32px;
 }
 
-.page-title {
-  font-size: var(--text-xl);
-  font-weight: var(--font-weight-bold);
-  margin-bottom: var(--space-6);
+.cpub-create-header {
+  margin-bottom: 32px;
 }
 
-.community-form {
+.cpub-back-link {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text-dim);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.cpub-back-link:hover { color: var(--text); }
+
+.cpub-create-title {
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.cpub-create-subtitle {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.cpub-create-form {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: 20px;
 }
 
-.form-field {
+.cpub-field {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: 6px;
 }
 
-.form-label {
-  font-size: var(--text-sm);
-  font-weight: var(--font-weight-medium);
+.cpub-field-label {
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
 }
 
-.form-input,
-.form-textarea {
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--border);
+.cpub-field-input {
+  padding: 8px 12px;
+  border: 2px solid var(--border);
   background: var(--surface);
   color: var(--text);
-  font-size: var(--text-base);
+  font-size: 13px;
   font-family: var(--font-sans);
-}
-
-.form-input:focus,
-.form-textarea:focus {
   outline: none;
+  transition: border-color 0.15s;
+}
+
+.cpub-field-input:focus {
   border-color: var(--accent);
-  box-shadow: var(--focus-ring);
 }
 
-.form-textarea {
+.cpub-field-input::placeholder {
+  color: var(--text-faint);
+}
+
+.cpub-field-textarea {
   resize: vertical;
+  min-height: 60px;
+  line-height: 1.5;
 }
 
-/* cpub-btn, cpub-btn-primary → global components.css */
+.cpub-field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.cpub-form-actions {
+  display: flex;
+  gap: 10px;
+  padding-top: 8px;
+}
+
+select.cpub-field-input { cursor: pointer; }
+
+@media (max-width: 640px) {
+  .cpub-create-hub { padding: 16px; }
+  .cpub-field-row { grid-template-columns: 1fr; }
+}
 </style>

@@ -152,6 +152,10 @@ export interface HubDetail extends HubListItem {
   updatedAt: Date;
   currentUserRole: string | null;
   isBanned: boolean;
+  hubType: string;
+  privacy: string;
+  website: string | null;
+  categories: string[] | null;
 }
 
 export interface HubFilters {

@@ -3,52 +3,47 @@ const route = useRoute();
 const slug = computed(() => route.params.slug as string);
 
 interface HubData {
+  id: string;
   name: string;
   slug: string;
   description: string | null;
   memberCount: number;
-  projectCount: number;
-  discussionCount: number;
+  postCount: number;
   currentUserRole: string | null;
-  verified: boolean;
-  tags: string[];
-  rules: string[];
-  relatedCommunities: Array<{ slug: string; name: string; memberCount: number }>;
+  isOfficial: boolean;
+  hubType: string;
+  joinPolicy: string;
+  privacy: string;
+  website: string | null;
+  categories: string[] | null;
+  rules: string | null;
+  createdAt: string;
+  createdBy: { id: string; username: string; displayName: string | null };
 }
 
 interface HubPost {
   id: string;
+  hubId: string;
   type: string;
-  title: string | null;
-  body: string | null;
-  content: string | null;
-  createdAt: string;
-  lastReplyAt: string | null;
-  voteCount: number;
+  content: string;
+  isPinned: boolean;
+  isLocked: boolean;
   likeCount: number;
   replyCount: number;
-  author: { displayName: string | null; username: string } | null;
+  createdAt: string;
+  updatedAt: string;
+  author: { id: string; username: string; displayName: string | null; avatarUrl: string | null };
 }
 
 interface HubMember {
-  id: string;
-  username: string;
-  displayName: string | null;
+  hubId: string;
+  userId: string;
   role: string;
-  joinedAt: string | null;
+  joinedAt: string;
+  user: { id: string; username: string; displayName: string | null; avatarUrl: string | null };
 }
 
-interface Discussion {
-  id: string;
-  title: string;
-  createdAt: string;
-  voteCount: number;
-  replyCount: number;
-  solved: boolean;
-  author: { displayName: string | null; username: string } | null;
-}
-
-const { data: hub } = await useFetch<HubData & { hubType?: string }>(() => `/api/hubs/${slug.value}`);
+const { data: hub } = await useFetch<HubData>(() => `/api/hubs/${slug.value}`);
 const { data: posts } = await useFetch<{ items: HubPost[] }>(() => `/api/hubs/${slug.value}/posts`, { default: () => ({ items: [] }) });
 const { data: members } = await useFetch<HubMember[]>(() => `/api/hubs/${slug.value}/members`);
 interface GalleryItem {
@@ -72,11 +67,24 @@ interface ProductItem {
 
 const { data: gallery } = await useFetch<{ items: GalleryItem[]; total: number }>(() => `/api/hubs/${slug.value}/gallery`, { default: () => ({ items: [], total: 0 }) });
 
-// Product hub: fetch products
+// Hub type
 const hubType = computed(() => hub.value?.hubType ?? 'community');
 const isProductHub = computed(() => hubType.value === 'product');
 const isCompanyHub = computed(() => hubType.value === 'company');
 const isCommunityHub = computed(() => hubType.value === 'community');
+
+// Parse rules from string into array
+const hubRules = computed<string[]>(() => {
+  const raw = hub.value?.rules;
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed as string[];
+  } catch {
+    // Not JSON — split by newlines
+  }
+  return raw.split('\n').map((r: string) => r.trim()).filter(Boolean);
+});
 
 const { data: products } = await useFetch<{ items: ProductItem[]; total: number }>(
   () => `/api/hubs/${slug.value}/products`,
@@ -89,7 +97,8 @@ useSeoMeta({
 });
 
 const { isAuthenticated } = useAuth();
-const activeTab = ref(isCommunityHub.value ? 'feed' : 'overview');
+const initialTab = hub.value?.hubType === 'community' || !hub.value?.hubType ? 'feed' : 'overview';
+const activeTab = ref(initialTab);
 const newPostContent = ref('');
 const posting = ref(false);
 const postError = ref('');
@@ -134,7 +143,7 @@ const feedFilters = [
 const moderators = computed(() => {
   if (!members.value) return [];
   return members.value.filter(
-    (m) => m.role === 'owner' || m.role === 'moderator'
+    (m: HubMember) => m.role === 'owner' || m.role === 'moderator'
   );
 });
 
@@ -243,9 +252,9 @@ function handleLinkInsert(): void {
                 <p v-if="c.description" class="cpub-hub-desc">{{ c.description }}</p>
                 <div class="cpub-hub-stats">
                   <span class="cpub-hub-stat"><i class="fa-solid fa-users"></i> <span class="cpub-hub-stat-val">{{ c.memberCount ?? 0 }}</span> Members</span>
-                  <span class="cpub-hub-stat"><i class="fa-solid fa-folder-open"></i> <span class="cpub-hub-stat-val">{{ c.projectCount ?? 0 }}</span> Projects</span>
-                  <span class="cpub-hub-stat"><i class="fa-solid fa-comments"></i> <span class="cpub-hub-stat-val">{{ c.discussionCount ?? 0 }}</span> Discussions</span>
-                  <span class="cpub-hub-stat"><i class="fa-solid fa-fire"></i> <span class="cpub-hub-stat-val">Active</span> this week</span>
+                  <span class="cpub-hub-stat"><i class="fa-solid fa-message"></i> <span class="cpub-hub-stat-val">{{ c.postCount ?? 0 }}</span> Posts</span>
+                  <span v-if="gallery?.total" class="cpub-hub-stat"><i class="fa-solid fa-folder-open"></i> <span class="cpub-hub-stat-val">{{ gallery.total }}</span> Projects</span>
+                  <span class="cpub-hub-stat"><i class="fa-solid fa-calendar"></i> Founded <span class="cpub-hub-stat-val">{{ new Date(c.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) }}</span></span>
                 </div>
                 <div class="cpub-hub-actions">
                   <button v-if="isAuthenticated && !c.currentUserRole" class="cpub-btn cpub-btn-primary" @click="handleJoin">
@@ -259,13 +268,15 @@ function handleLinkInsert(): void {
                 </div>
               </div>
               <div class="cpub-hub-badges">
-                <span v-if="c.verified" class="cpub-tag cpub-tag-accent"><i class="fa-solid fa-shield-halved" style="margin-right: 3px"></i>Verified</span>
-                <span class="cpub-tag cpub-tag-green">Open to All</span>
+                <span v-if="c.isOfficial" class="cpub-tag cpub-tag-accent"><i class="fa-solid fa-shield-halved" style="margin-right: 3px"></i>Verified</span>
+                <span v-if="c.joinPolicy === 'open'" class="cpub-tag cpub-tag-green">Open to All</span>
+                <span v-else-if="c.joinPolicy === 'approval'" class="cpub-tag cpub-tag-yellow">Approval Required</span>
+                <span v-else class="cpub-tag">Invite Only</span>
               </div>
             </div>
-            <div v-if="c.tags?.length" class="cpub-hub-tags">
+            <div v-if="c.categories?.length" class="cpub-hub-tags">
               <div class="cpub-tag-row">
-                <span v-for="tag in c.tags" :key="tag" class="cpub-tag">{{ tag }}</span>
+                <span v-for="cat in c.categories" :key="cat" class="cpub-tag">{{ cat }}</span>
               </div>
             </div>
           </div>
@@ -331,12 +342,14 @@ function handleLinkInsert(): void {
                 v-for="post in filteredPosts"
                 :key="post.id"
                 :type="(post.type as 'discussion' | 'question' | 'showcase' | 'announcement') || 'discussion'"
-                :title="post.title || ''"
+                :title="post.content?.slice(0, 80) || ''"
                 :author="post.author?.displayName || post.author?.username || 'Unknown'"
-                :body="post.body || post.content || ''"
+                :body="post.content || ''"
                 :created-at="new Date(post.createdAt)"
                 :reply-count="post.replyCount ?? 0"
-                :vote-count="post.voteCount ?? post.likeCount ?? 0"
+                :vote-count="post.likeCount ?? 0"
+                :pinned="post.isPinned"
+                :locked="post.isLocked"
               />
             </div>
             <div v-else class="cpub-empty-state">
@@ -356,7 +369,6 @@ function handleLinkInsert(): void {
                 :author="post.author?.displayName || post.author?.username || 'Unknown'"
                 :reply-count="post.replyCount ?? 0"
                 :vote-count="post.likeCount ?? 0"
-                :last-reply-at="post.lastReplyAt ? new Date(post.lastReplyAt) : undefined"
               />
             </div>
             <div v-else class="cpub-empty-state">
@@ -371,11 +383,11 @@ function handleLinkInsert(): void {
             <div v-if="members?.length" class="cpub-members-grid">
               <MemberCard
                 v-for="member in members"
-                :key="member.id"
-                :username="member.username"
-                :display-name="member.displayName || member.username"
+                :key="member.userId"
+                :username="member.user.username"
+                :display-name="member.user.displayName || member.user.username"
                 :role="(member.role as 'owner' | 'moderator' | 'member') || 'member'"
-                :joined-at="member.joinedAt ? new Date(member.joinedAt) : new Date()"
+                :joined-at="new Date(member.joinedAt)"
               />
             </div>
             <div v-else class="cpub-empty-state">
@@ -386,24 +398,14 @@ function handleLinkInsert(): void {
 
           <!-- Overview tab (product/company hubs) -->
           <template v-else-if="activeTab === 'overview'">
-            <div v-if="isProductHub" class="cpub-product-overview">
+            <div class="cpub-product-overview">
               <div class="cpub-section-head">
-                <h3 class="cpub-section-title">About This Product</h3>
+                <h3 class="cpub-section-title">{{ isProductHub ? 'About This Product' : 'About' }}</h3>
               </div>
               <p class="cpub-prose-p">{{ c?.description || 'No description available.' }}</p>
-              <div v-if="c?.website" class="cpub-meta-link">
+              <div v-if="hub?.website" class="cpub-meta-link">
                 <i class="fa-solid fa-link"></i>
-                <a :href="c.website" target="_blank" rel="noopener">{{ c.website }}</a>
-              </div>
-            </div>
-            <div v-else-if="isCompanyHub" class="cpub-company-overview">
-              <div class="cpub-section-head">
-                <h3 class="cpub-section-title">About</h3>
-              </div>
-              <p class="cpub-prose-p">{{ c?.description || 'No description available.' }}</p>
-              <div v-if="c?.website" class="cpub-meta-link">
-                <i class="fa-solid fa-link"></i>
-                <a :href="c.website" target="_blank" rel="noopener">{{ c.website }}</a>
+                <a :href="hub.website" target="_blank" rel="noopener">{{ hub.website }}</a>
               </div>
             </div>
           </template>
@@ -470,10 +472,10 @@ function handleLinkInsert(): void {
           <!-- Moderators -->
           <div class="cpub-sb-card">
             <div class="cpub-sb-title">Moderators</div>
-            <div v-for="mod in moderators" :key="mod.id" class="cpub-mod-item">
-              <div class="cpub-mod-avatar">{{ (mod.displayName || mod.username || 'U').charAt(0).toUpperCase() }}</div>
+            <div v-for="mod in moderators" :key="mod.userId" class="cpub-mod-item">
+              <div class="cpub-mod-avatar">{{ (mod.user.displayName || mod.user.username || 'U').charAt(0).toUpperCase() }}</div>
               <div class="cpub-mod-info">
-                <div class="cpub-mod-name">{{ mod.displayName || mod.username }}</div>
+                <NuxtLink :to="`/u/${mod.user.username}`" class="cpub-mod-name">{{ mod.user.displayName || mod.user.username }}</NuxtLink>
                 <div class="cpub-mod-role">{{ mod.role }}</div>
               </div>
             </div>
@@ -481,23 +483,20 @@ function handleLinkInsert(): void {
           </div>
 
           <!-- Rules -->
-          <div v-if="c.rules?.length" class="cpub-sb-card">
+          <div v-if="hubRules.length" class="cpub-sb-card">
             <div class="cpub-sb-title">Hub Rules</div>
-            <div v-for="(rule, i) in c.rules" :key="i" class="cpub-rule-item">
+            <div v-for="(rule, i) in hubRules" :key="i" class="cpub-rule-item">
               <span class="cpub-rule-num">{{ i + 1 }}</span>
               <span>{{ rule }}</span>
             </div>
           </div>
 
-          <!-- Related Communities -->
-          <div v-if="c.relatedCommunities?.length" class="cpub-sb-card">
-            <div class="cpub-sb-title">Related Communities</div>
-            <div v-for="rel in c.relatedCommunities" :key="rel.slug" class="cpub-related-hub">
-              <div class="cpub-hub-mini-icon"><i class="fa-solid fa-users"></i></div>
-              <div class="cpub-hub-mini-info">
-                <NuxtLink :to="`/hubs/${rel.slug}`" class="cpub-hub-mini-name">{{ rel.name }}</NuxtLink>
-                <div class="cpub-hub-mini-count">{{ rel.memberCount ?? 0 }} members</div>
-              </div>
+          <!-- Website -->
+          <div v-if="hub?.website" class="cpub-sb-card">
+            <div class="cpub-sb-title">Links</div>
+            <div class="cpub-resource-item">
+              <i class="fa-solid fa-link"></i>
+              <a :href="hub.website" target="_blank" rel="noopener">{{ hub.website }}</a>
             </div>
           </div>
         </aside>
@@ -954,6 +953,17 @@ function handleLinkInsert(): void {
 .cpub-hub-mini-count { font-size: 10px; color: var(--text-faint); font-family: var(--font-mono); }
 
 .cpub-sidebar-empty { font-size: 11px; color: var(--text-faint); }
+
+.cpub-resource-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+.cpub-resource-item i { font-size: 10px; color: var(--text-faint); width: 12px; }
+.cpub-resource-item a { color: var(--accent); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cpub-resource-item a:hover { text-decoration: underline; }
 
 /* ─── POST ERROR ─── */
 .cpub-post-error { font-size: 11px; color: var(--red); background: var(--red-bg); border: 1px solid var(--red-border); padding: 8px 12px; margin-bottom: 12px; font-family: var(--font-mono); }
