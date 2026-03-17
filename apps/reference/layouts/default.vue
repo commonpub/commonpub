@@ -78,6 +78,8 @@ const userUsername = computed(() => user.value?.username ?? '');
         <NuxtLink to="/" class="cpub-nav-link"><i class="fa-solid fa-house"></i> Home</NuxtLink>
         <NuxtLink to="/hubs" class="cpub-nav-link"><i class="fa-solid fa-users"></i> Hubs</NuxtLink>
         <NuxtLink to="/learn" class="cpub-nav-link"><i class="fa-solid fa-graduation-cap"></i> Learn</NuxtLink>
+        <NuxtLink to="/videos" class="cpub-nav-link"><i class="fa-solid fa-video"></i> Videos</NuxtLink>
+        <NuxtLink to="/docs" class="cpub-nav-link"><i class="fa-solid fa-book"></i> Docs</NuxtLink>
         <NuxtLink to="/contests" class="cpub-nav-link"><i class="fa-solid fa-trophy"></i> Contests</NuxtLink>
       </nav>
 
@@ -125,6 +127,8 @@ const userUsername = computed(() => user.value?.username ?? '');
         <NuxtLink to="/" class="cpub-mobile-link" @click="mobileMenuOpen = false"><i class="fa-solid fa-house"></i> Home</NuxtLink>
         <NuxtLink to="/hubs" class="cpub-mobile-link" @click="mobileMenuOpen = false"><i class="fa-solid fa-users"></i> Hubs</NuxtLink>
         <NuxtLink to="/learn" class="cpub-mobile-link" @click="mobileMenuOpen = false"><i class="fa-solid fa-graduation-cap"></i> Learn</NuxtLink>
+        <NuxtLink to="/videos" class="cpub-mobile-link" @click="mobileMenuOpen = false"><i class="fa-solid fa-video"></i> Videos</NuxtLink>
+        <NuxtLink to="/docs" class="cpub-mobile-link" @click="mobileMenuOpen = false"><i class="fa-solid fa-book"></i> Docs</NuxtLink>
         <NuxtLink to="/contests" class="cpub-mobile-link" @click="mobileMenuOpen = false"><i class="fa-solid fa-trophy"></i> Contests</NuxtLink>
         <NuxtLink to="/search" class="cpub-mobile-link" @click="mobileMenuOpen = false"><i class="fa-solid fa-magnifying-glass"></i> Search</NuxtLink>
         <template v-if="isAuthenticated">
@@ -168,6 +172,7 @@ const userUsername = computed(() => user.value?.username ?? '');
           <NuxtLink to="/hubs" class="cpub-footer-link">Hubs</NuxtLink>
           <NuxtLink to="/contests" class="cpub-footer-link">Contests</NuxtLink>
           <NuxtLink to="/learn" class="cpub-footer-link">Learning Paths</NuxtLink>
+          <NuxtLink to="/videos" class="cpub-footer-link">Videos</NuxtLink>
           <NuxtLink to="/search" class="cpub-footer-link">Explore</NuxtLink>
         </nav>
         <nav class="cpub-footer-col" aria-label="Platform links">

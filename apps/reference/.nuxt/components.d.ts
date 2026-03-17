@@ -76,6 +76,7 @@ export const EditorsExplainerEditor: typeof import("../components/editors/Explai
 export const EditorsProjectEditor: typeof import("../components/editors/ProjectEditor.vue")['default']
 export const EditorsBlocksBuildStepBlock: typeof import("../components/editors/blocks/BuildStepBlock.vue")['default']
 export const EditorsBlocksCalloutBlock: typeof import("../components/editors/blocks/CalloutBlock.vue")['default']
+export const EditorsBlocksCheckpointBlock: typeof import("../components/editors/blocks/CheckpointBlock.vue")['default']
 export const EditorsBlocksCodeBlock: typeof import("../components/editors/blocks/CodeBlock.vue")['default']
 export const EditorsBlocksDividerBlock: typeof import("../components/editors/blocks/DividerBlock.vue")['default']
 export const EditorsBlocksDownloadsBlock: typeof import("../components/editors/blocks/DownloadsBlock.vue")['default']
@@ -83,9 +84,11 @@ export const EditorsBlocksEmbedBlock: typeof import("../components/editors/block
 export const EditorsBlocksGalleryBlock: typeof import("../components/editors/blocks/GalleryBlock.vue")['default']
 export const EditorsBlocksHeadingBlock: typeof import("../components/editors/blocks/HeadingBlock.vue")['default']
 export const EditorsBlocksImageBlock: typeof import("../components/editors/blocks/ImageBlock.vue")['default']
+export const EditorsBlocksMathBlock: typeof import("../components/editors/blocks/MathBlock.vue")['default']
 export const EditorsBlocksPartsListBlock: typeof import("../components/editors/blocks/PartsListBlock.vue")['default']
 export const EditorsBlocksQuizBlock: typeof import("../components/editors/blocks/QuizBlock.vue")['default']
 export const EditorsBlocksQuoteBlock: typeof import("../components/editors/blocks/QuoteBlock.vue")['default']
+export const EditorsBlocksSliderBlock: typeof import("../components/editors/blocks/SliderBlock.vue")['default']
 export const EditorsBlocksTextBlock: typeof import("../components/editors/blocks/TextBlock.vue")['default']
 export const EditorsBlocksToolListBlock: typeof import("../components/editors/blocks/ToolListBlock.vue")['default']
 export const EditorsBlocksVideoBlock: typeof import("../components/editors/blocks/VideoBlock.vue")['default']
@@ -178,6 +181,7 @@ export const LazyEditorsExplainerEditor: LazyComponent<typeof import("../compone
 export const LazyEditorsProjectEditor: LazyComponent<typeof import("../components/editors/ProjectEditor.vue")['default']>
 export const LazyEditorsBlocksBuildStepBlock: LazyComponent<typeof import("../components/editors/blocks/BuildStepBlock.vue")['default']>
 export const LazyEditorsBlocksCalloutBlock: LazyComponent<typeof import("../components/editors/blocks/CalloutBlock.vue")['default']>
+export const LazyEditorsBlocksCheckpointBlock: LazyComponent<typeof import("../components/editors/blocks/CheckpointBlock.vue")['default']>
 export const LazyEditorsBlocksCodeBlock: LazyComponent<typeof import("../components/editors/blocks/CodeBlock.vue")['default']>
 export const LazyEditorsBlocksDividerBlock: LazyComponent<typeof import("../components/editors/blocks/DividerBlock.vue")['default']>
 export const LazyEditorsBlocksDownloadsBlock: LazyComponent<typeof import("../components/editors/blocks/DownloadsBlock.vue")['default']>
@@ -185,9 +189,11 @@ export const LazyEditorsBlocksEmbedBlock: LazyComponent<typeof import("../compon
 export const LazyEditorsBlocksGalleryBlock: LazyComponent<typeof import("../components/editors/blocks/GalleryBlock.vue")['default']>
 export const LazyEditorsBlocksHeadingBlock: LazyComponent<typeof import("../components/editors/blocks/HeadingBlock.vue")['default']>
 export const LazyEditorsBlocksImageBlock: LazyComponent<typeof import("../components/editors/blocks/ImageBlock.vue")['default']>
+export const LazyEditorsBlocksMathBlock: LazyComponent<typeof import("../components/editors/blocks/MathBlock.vue")['default']>
 export const LazyEditorsBlocksPartsListBlock: LazyComponent<typeof import("../components/editors/blocks/PartsListBlock.vue")['default']>
 export const LazyEditorsBlocksQuizBlock: LazyComponent<typeof import("../components/editors/blocks/QuizBlock.vue")['default']>
 export const LazyEditorsBlocksQuoteBlock: LazyComponent<typeof import("../components/editors/blocks/QuoteBlock.vue")['default']>
+export const LazyEditorsBlocksSliderBlock: LazyComponent<typeof import("../components/editors/blocks/SliderBlock.vue")['default']>
 export const LazyEditorsBlocksTextBlock: LazyComponent<typeof import("../components/editors/blocks/TextBlock.vue")['default']>
 export const LazyEditorsBlocksToolListBlock: LazyComponent<typeof import("../components/editors/blocks/ToolListBlock.vue")['default']>
 export const LazyEditorsBlocksVideoBlock: LazyComponent<typeof import("../components/editors/blocks/VideoBlock.vue")['default']>

@@ -43,6 +43,22 @@ const { data: contests } = await useFetch('/api/contests', {
 
 const heroDismissed = ref(false);
 
+// Active contest for hero banner
+interface ContestItem {
+  id: string;
+  title: string;
+  slug: string;
+  description: string | null;
+  status: string;
+  entryCount: number;
+  endDate: string | null;
+  prizePool: string | null;
+}
+const activeContest = computed(() => {
+  const items = (contests.value as { items?: ContestItem[] })?.items;
+  return items?.find((c) => c.status === 'active') ?? null;
+});
+
 const { isAuthenticated } = useAuth();
 const toast = useToast();
 
@@ -95,7 +111,7 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
 
 <template>
   <div>
-    <!-- ═══ HERO BANNER — contest promo ═══ -->
+    <!-- ═══ HERO BANNER ═══ -->
     <section v-if="!heroDismissed" class="cpub-hero-banner">
       <div class="cpub-hero-grid-bg" />
       <div class="cpub-hero-gradient" />
@@ -104,29 +120,43 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
       </button>
       <div class="cpub-hero-inner">
         <div class="cpub-hero-content">
-          <div class="cpub-hero-eyebrow">
-            <span class="cpub-hero-badge cpub-hero-badge-live"><span class="cpub-live-dot" /> Live Contest</span>
-            <span class="cpub-hero-badge">$12,500 Prize Pool</span>
-          </div>
-          <h1 class="cpub-hero-title">
-            Edge AI Deployment Challenge<br>
-            <span>Spring 2026</span>
-          </h1>
-          <p class="cpub-hero-excerpt">
-            Build, deploy, and document an inference pipeline on constrained edge hardware — Raspberry Pi 5, Jetson Orin Nano, or ESP32-S3. Fastest ONNX inference on-device wins. All skill levels welcome.
-          </p>
-          <div class="cpub-hero-actions">
-            <NuxtLink to="/contests" class="cpub-btn cpub-btn-primary"><i class="fa-solid fa-trophy"></i> Enter Contest</NuxtLink>
-            <NuxtLink to="/contests" class="cpub-btn"><i class="fa-solid fa-circle-info"></i> View Rules</NuxtLink>
-          </div>
-          <div class="cpub-hero-meta">
-            <span class="cpub-hero-stat"><i class="fa-solid fa-users"></i> <strong>1,284</strong> entrants</span>
-            <span class="cpub-hero-stat"><i class="fa-solid fa-file-code"></i> <strong>347</strong> submissions</span>
-            <span class="cpub-hero-stat"><i class="fa-solid fa-calendar"></i> Ends <strong>Apr 15, 2026</strong></span>
-          </div>
+          <!-- Active contest hero -->
+          <template v-if="activeContest">
+            <div class="cpub-hero-eyebrow">
+              <span class="cpub-hero-badge cpub-hero-badge-live"><span class="cpub-live-dot" /> Live Contest</span>
+              <span v-if="activeContest.prizePool" class="cpub-hero-badge">{{ activeContest.prizePool }}</span>
+            </div>
+            <h1 class="cpub-hero-title">{{ activeContest.title }}</h1>
+            <p v-if="activeContest.description" class="cpub-hero-excerpt">{{ activeContest.description }}</p>
+            <div class="cpub-hero-actions">
+              <NuxtLink :to="`/contests/${activeContest.slug}`" class="cpub-btn cpub-btn-primary"><i class="fa-solid fa-trophy"></i> Enter Contest</NuxtLink>
+              <NuxtLink :to="`/contests/${activeContest.slug}`" class="cpub-btn"><i class="fa-solid fa-circle-info"></i> View Details</NuxtLink>
+            </div>
+            <div class="cpub-hero-meta">
+              <span class="cpub-hero-stat"><i class="fa-solid fa-users"></i> <strong>{{ activeContest.entryCount ?? 0 }}</strong> entries</span>
+              <span v-if="activeContest.endDate" class="cpub-hero-stat"><i class="fa-solid fa-calendar"></i> Ends <strong>{{ new Date(activeContest.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) }}</strong></span>
+            </div>
+          </template>
+          <!-- Generic welcome hero (no active contest) -->
+          <template v-else>
+            <div class="cpub-hero-eyebrow">
+              <span class="cpub-hero-badge cpub-hero-badge-live"><span class="cpub-live-dot" /> Open Source</span>
+            </div>
+            <h1 class="cpub-hero-title">
+              Build. Document.<br>
+              <span>Share.</span>
+            </h1>
+            <p class="cpub-hero-excerpt">
+              CommonPub is an open platform for maker communities. Document your builds with rich editors, join hubs, learn with structured paths, and share with the world.
+            </p>
+            <div class="cpub-hero-actions">
+              <NuxtLink to="/create" class="cpub-btn cpub-btn-primary"><i class="fa-solid fa-plus"></i> Start Building</NuxtLink>
+              <NuxtLink to="/explore" class="cpub-btn"><i class="fa-solid fa-compass"></i> Explore</NuxtLink>
+            </div>
+          </template>
         </div>
-        <div class="cpub-hero-aside">
-          <CountdownTimer target-date="2026-04-15T00:00:00Z" />
+        <div v-if="activeContest?.endDate" class="cpub-hero-aside">
+          <CountdownTimer :target-date="activeContest.endDate" />
         </div>
       </div>
     </section>
@@ -254,13 +284,17 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
           </div>
         </div>
 
-        <!-- Trending Tags -->
+        <!-- Quick Links -->
         <div class="cpub-sb-card">
-          <div class="cpub-sb-head">Trending Tags</div>
+          <div class="cpub-sb-head">Explore</div>
           <div class="cpub-tag-cloud">
-            <NuxtLink v-for="tag in ['edge-ai', 'esp32', 'tinyml', 'robotics', 'iot', '3d-printing', 'fpga', 'rpi', 'arduino', 'mqtt']" :key="tag" :to="`/search?q=${tag}`" class="cpub-trending-tag">
-              #{{ tag }}
-            </NuxtLink>
+            <NuxtLink to="/project" class="cpub-trending-tag">Projects</NuxtLink>
+            <NuxtLink to="/article" class="cpub-trending-tag">Articles</NuxtLink>
+            <NuxtLink to="/blog" class="cpub-trending-tag">Blogs</NuxtLink>
+            <NuxtLink to="/explainer" class="cpub-trending-tag">Explainers</NuxtLink>
+            <NuxtLink to="/learn" class="cpub-trending-tag">Learn</NuxtLink>
+            <NuxtLink to="/videos" class="cpub-trending-tag">Videos</NuxtLink>
+            <NuxtLink to="/docs" class="cpub-trending-tag">Docs</NuxtLink>
           </div>
         </div>
 

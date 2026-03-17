@@ -164,7 +164,7 @@ async function handlePost(): Promise<void> {
   try {
     await $fetch(`/api/hubs/${slug.value}/posts`, {
       method: 'POST',
-      body: { content: newPostContent.value, type: 'discussion' },
+      body: { content: newPostContent.value, type: 'text' },
     });
     newPostContent.value = '';
     postError.value = '';
@@ -308,6 +308,17 @@ function handleLinkInsert(): void {
         <main>
           <!-- Feed tab -->
           <template v-if="activeTab === 'feed'">
+            <!-- Pinned announcements -->
+            <AnnouncementBand
+              v-for="post in filteredPosts.filter(p => p.isPinned && p.type === 'announcement')"
+              :key="`ann-${post.id}`"
+              :title="post.content?.slice(0, 80) || 'Announcement'"
+              :body="post.content || ''"
+              :author="post.author?.displayName || post.author?.username || 'Unknown'"
+              :created-at="new Date(post.createdAt)"
+              :pinned="true"
+              style="margin-bottom: 12px"
+            />
             <!-- Compose bar -->
             <div v-if="isAuthenticated" class="cpub-compose-bar">
               <input

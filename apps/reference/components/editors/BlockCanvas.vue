@@ -29,17 +29,24 @@ import BuildStepBlock from './blocks/BuildStepBlock.vue';
 import ToolListBlock from './blocks/ToolListBlock.vue';
 import DownloadsBlock from './blocks/DownloadsBlock.vue';
 import QuizBlock from './blocks/QuizBlock.vue';
+import SliderBlock from './blocks/SliderBlock.vue';
+import CheckpointBlock from './blocks/CheckpointBlock.vue';
+import MathBlock from './blocks/MathBlock.vue';
 
 const BLOCK_COMPONENTS: Record<string, Component> = {
   paragraph: TextBlock,
+  text: TextBlock,
   heading: HeadingBlock,
   code_block: CodeBlock,
   codeBlock: CodeBlock,
   image: ImageBlock,
   gallery: GalleryBlock,
+  quote: QuoteBlock,
   blockquote: QuoteBlock,
   callout: CalloutBlock,
+  divider: DividerBlock,
   horizontal_rule: DividerBlock,
+  horizontalRule: DividerBlock,
   video: VideoBlock,
   embed: EmbedBlock,
   partsList: PartsListBlock,
@@ -47,6 +54,11 @@ const BLOCK_COMPONENTS: Record<string, Component> = {
   toolList: ToolListBlock,
   downloads: DownloadsBlock,
   quiz: QuizBlock,
+  interactiveSlider: SliderBlock,
+  slider: SliderBlock,
+  checkpoint: CheckpointBlock,
+  mathNotation: MathBlock,
+  math: MathBlock,
   bulletList: TextBlock,
   orderedList: TextBlock,
 };

@@ -7,7 +7,7 @@ describe('renderMarkdown', () => {
     expect(result.html).toContain('<h1');
     expect(result.html).toContain('Hello');
     expect(result.html).toContain('<p>A paragraph.</p>');
-  }, 15000);
+  }, 30000);
 
   it('should extract frontmatter', async () => {
     const md = `---

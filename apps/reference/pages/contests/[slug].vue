@@ -72,62 +72,25 @@ async function toggleVote(entryId: string): Promise<void> {
   }
 }
 
-// Display entries — API returns sparse ContestEntryItem, so use static display data
-// with API overlay when available
-const displayEntries = [
-  { id: '1', title: 'RP2040 Wake-Word Engine in 64KB', author: 'marcela_v', initials: 'MV', avBg: 'var(--accent-bg)', avColor: 'var(--accent)', tag: 'TinyML', tagClass: 'cpub-tag-accent', iconClass: 'fa-solid fa-microchip', iconColor: 'var(--accent)', rank: 1, votes: 342, comments: 87, views: '2.1k' },
-  { id: '2', title: 'FarmSense: FPGA Crop Disease Detector', author: 'hw_hacker', initials: 'HH', avBg: 'var(--green-bg)', avColor: 'var(--green)', tag: 'FPGA', tagClass: 'cpub-tag-purple', iconClass: 'fa-solid fa-leaf', iconColor: 'var(--green)', rank: 2, votes: 298, comments: 64, views: '1.8k' },
-  { id: '3', title: 'Ultra-Low-Power Sign Language on nRF52', author: 'accessibility_ai', initials: 'AA', avBg: 'var(--purple-bg)', avColor: 'var(--purple)', tag: 'TinyML', tagClass: 'cpub-tag-accent', iconClass: 'fa-solid fa-hand', iconColor: 'var(--purple)', rank: 3, votes: 276, comments: 52, views: '1.5k' },
-  { id: '4', title: 'Thermal Anomaly Mesh for Wildfire', author: 'pyro_detect', initials: 'PD', avBg: 'var(--red-bg)', avColor: 'var(--red)', tag: 'Vision', tagClass: 'cpub-tag-yellow', iconClass: 'fa-solid fa-fire', iconColor: 'var(--red)', rank: undefined, votes: 189, comments: 41, views: '1.2k' },
-  { id: '5', title: 'ESP32 Audio Scene Classifier', author: 'sound_ml', initials: 'SM', avBg: 'var(--teal-bg)', avColor: 'var(--teal)', tag: 'Audio', tagClass: 'cpub-tag-teal', iconClass: 'fa-solid fa-music', iconColor: 'var(--teal)', rank: undefined, votes: 156, comments: 33, views: '980' },
-  { id: '6', title: 'Jetson Nano Real-Time Pothole Mapper', author: 'road_ai', initials: 'RA', avBg: 'var(--yellow-bg)', avColor: 'var(--yellow)', tag: 'Vision', tagClass: 'cpub-tag-yellow', iconClass: 'fa-solid fa-road', iconColor: 'var(--yellow)', rank: undefined, votes: 134, comments: 28, views: '870' },
-];
+interface ContestEntry {
+  id: string;
+  title?: string;
+  contentTitle?: string;
+  contentSlug?: string;
+  contentType?: string;
+  author?: { username: string; displayName: string | null };
+  likeCount?: number;
+  commentCount?: number;
+  viewCount?: number;
+  rank?: number;
+}
 
 const entries = computed(() => {
-  const apiItems = apiEntries.value as Array<{ id: string }> | null;
-  if (apiItems && apiItems.length > 0) return apiItems;
-  return displayEntries;
+  return (apiEntries.value as ContestEntry[] | null) ?? [];
 });
 
-const judges = [
-  { initials: 'PE', name: 'Dr. Priya Elango', title: 'Principal Researcher, Machine Learning Systems', org: 'Arm Research', bg: 'var(--accent-bg)', color: 'var(--accent)' },
-  { initials: 'JM', name: 'James Moreau', title: 'Staff Engineer, TensorFlow Lite Micro', org: 'Google', bg: 'var(--green-bg)', color: 'var(--green)' },
-  { initials: 'NW', name: 'Ngozi Williams', title: 'Co-founder, CTO', org: 'Zindi Africa', bg: 'var(--yellow-bg)', color: 'var(--yellow)' },
-  { initials: 'TK', name: 'Prof. Takuya Kishida', title: 'Director, Embedded AI Lab', org: 'Waseda University', bg: 'var(--purple-bg)', color: 'var(--purple)' },
-  { initials: 'SR', name: 'Sara Raza', title: 'FPGA Architect', org: 'Xilinx / AMD', bg: 'var(--teal-bg)', color: 'var(--teal)' },
-  { initials: 'FB', name: 'Florian Beck', title: 'Senior Engineer, Edge Runtime', org: 'Hackster.io', bg: 'var(--red-bg)', color: 'var(--red)' },
-];
-
-const timeline = [
-  { icon: 'fa fa-check', status: 'done', name: 'Submissions Open', date: 'Jan 15 — Mar 15, 2026', badge: 'Done' },
-  { icon: 'fa fa-circle-dot', status: 'active', name: 'Review Period', date: 'Mar 15 — Mar 20, 2026', badge: 'Active' },
-  { icon: 'fa fa-clock', status: 'upcoming', name: 'Expert Judging', date: 'Mar 20 — Apr 1, 2026', badge: '' },
-  { icon: 'fa fa-trophy', status: 'upcoming', name: 'Winners Announced', date: 'April 3, 2026 · 18:00 UTC', badge: '' },
-  { icon: 'fa fa-video', status: 'upcoming', name: 'Live Ceremony Stream', date: 'April 3, 2026 · 19:00 UTC', badge: '' },
-];
-
-const sponsors = [
-  { name: 'Arm', tier: 'Diamond', icon: 'fa-solid fa-gem', color: 'var(--accent)' },
-  { name: 'Hackster.io', tier: 'Gold', icon: 'fa-solid fa-star', color: 'var(--yellow)' },
-  { name: 'Arduino', tier: 'Silver', icon: 'fa-solid fa-medal', color: 'var(--silver)' },
-  { name: 'Digilent', tier: 'Silver', icon: 'fa-solid fa-medal', color: 'var(--silver)' },
-  { name: 'SEGGER', tier: 'Bronze', icon: 'fa-solid fa-award', color: 'var(--bronze)' },
-  { name: 'IAR Systems', tier: 'Bronze', icon: 'fa-solid fa-award', color: 'var(--bronze)' },
-  { name: 'Edge Impulse', tier: 'Community', icon: 'fa-solid fa-heart', color: 'var(--pink)' },
-  { name: 'Zindi', tier: 'Community', icon: 'fa-solid fa-heart', color: 'var(--pink)' },
-];
-
-const faqs = [
-  { q: 'Can I enter as a team?', a: 'Yes. Teams of up to 4 people are allowed. All members must have CommonPub accounts. The team lead submits the entry and is responsible for prize distribution.' },
-  { q: 'What hardware is eligible?', a: 'Any embedded hardware: MCUs (RP2040, STM32, nRF52, ESP32, etc.), FPGAs (Artix-7, Cyclone V, ECP5, etc.), SBCs (Raspberry Pi, Jetson Nano, OrangePi), or custom silicon. Cloud or laptop inference is not eligible.' },
-  { q: 'Does the project need to be new?', a: 'Projects must have been created or substantially updated after January 1, 2026. Older projects are allowed if at least 50% of the work was done within the contest window, which you must document.' },
-  { q: 'How are winners selected?', a: 'Community votes determine the shortlist (top 20 entries). Judges then score each shortlisted entry on Technical Innovation (30%), Real-World Impact (25%), Documentation (25%), and Hardware Efficiency (20%). The People\'s Choice Award is decided purely by community vote.' },
-  { q: 'How are prizes paid?', a: 'Cash prizes are transferred via Wise within 14 days of winner confirmation. If Wise is unavailable in your country, we\'ll arrange an alternative (bank wire or hardware equivalent). Tax obligations are the winner\'s responsibility.' },
-  { q: 'Can I submit to multiple categories?', a: 'Each team may submit one entry total. Category tags (TinyML, FPGA, Vision, Audio, etc.) are for filtering only — your entry is automatically considered for all relevant special prizes.' },
-];
-
-const entryFilter = ref('All');
-const filters = ['All (134)', 'Top Voted', 'Newest', 'FPGA', 'TinyML', 'Computer Vision'];
+const entryFilter = ref('all');
+const filters = ['all', 'newest'];
 </script>
 
 <template>
@@ -147,8 +110,6 @@ const filters = ['All (134)', 'Top Voted', 'Newest', 'FPGA', 'TinyML', 'Computer
             Hosted by
             <span class="cpub-av cpub-av-sm" style="background:var(--accent-bg);border-color:var(--accent);color:var(--accent);">CP</span>
             <strong style="color:var(--hero-text);">CommonPub</strong>
-            <span style="color:var(--hero-border);">·</span>
-            In partnership with <strong style="color:var(--hero-text);">Arm Research &amp; Hackster.io</strong>
           </span>
         </div>
 
@@ -158,13 +119,9 @@ const filters = ['All (134)', 'Top Voted', 'Newest', 'FPGA', 'TinyML', 'Computer
         </div>
 
         <div class="cpub-hero-meta">
-          <span class="cpub-hero-meta-item"><i class="fa fa-calendar"></i> Jan 15 — Mar 31, 2026</span>
-          <span class="cpub-hero-meta-sep">|</span>
-          <span class="cpub-hero-meta-item"><i class="fa fa-users"></i> 847 participants</span>
-          <span class="cpub-hero-meta-sep">|</span>
-          <span class="cpub-hero-meta-item"><i class="fa fa-folder-open"></i> {{ c?.entryCount || entries.length }} entries</span>
-          <span class="cpub-hero-meta-sep">|</span>
-          <span class="cpub-hero-meta-item" style="color:var(--yellow);"><i class="fa fa-trophy"></i> $8,500 total prizes</span>
+          <span v-if="c?.startDate || c?.endDate" class="cpub-hero-meta-item"><i class="fa fa-calendar"></i> {{ c?.startDate ? new Date(c.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '' }}{{ c?.startDate && c?.endDate ? ' — ' : '' }}{{ c?.endDate ? new Date(c.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '' }}</span>
+          <span v-if="c?.startDate || c?.endDate" class="cpub-hero-meta-sep">|</span>
+          <span class="cpub-hero-meta-item"><i class="fa fa-folder-open"></i> {{ c?.entryCount ?? 0 }} entries</span>
         </div>
 
         <!-- COUNTDOWN -->
@@ -197,29 +154,16 @@ const filters = ['All (134)', 'Top Voted', 'Newest', 'FPGA', 'TinyML', 'Computer
           <button class="cpub-btn cpub-btn-primary cpub-btn-lg"><i class="fa fa-upload"></i> Submit Entry</button>
           <button class="cpub-btn cpub-btn-lg cpub-btn-dark"><i class="fa fa-file-lines"></i> View Rules</button>
           <button class="cpub-btn cpub-btn-sm cpub-btn-dark" style="margin-left:4px;"><i class="fa fa-bell"></i> Notify Me</button>
-          <div class="cpub-total-prize"><strong>$8,500</strong> in prizes</div>
         </div>
 
         <div class="cpub-hero-stats">
           <div class="cpub-hero-stat">
-            <div class="cpub-hero-stat-val">847</div>
-            <div class="cpub-hero-stat-label">Participants</div>
-          </div>
-          <div class="cpub-hero-stat">
-            <div class="cpub-hero-stat-val">134</div>
+            <div class="cpub-hero-stat-val">{{ c?.entryCount ?? 0 }}</div>
             <div class="cpub-hero-stat-label">Entries</div>
           </div>
           <div class="cpub-hero-stat">
-            <div class="cpub-hero-stat-val">6</div>
-            <div class="cpub-hero-stat-label">Judges</div>
-          </div>
-          <div class="cpub-hero-stat">
-            <div class="cpub-hero-stat-val">8</div>
-            <div class="cpub-hero-stat-label">Sponsors</div>
-          </div>
-          <div class="cpub-hero-stat">
-            <div class="cpub-hero-stat-val" style="color:var(--yellow);">$8.5k</div>
-            <div class="cpub-hero-stat-label">Prize Pool</div>
+            <div class="cpub-hero-stat-val">{{ c?.status ?? 'draft' }}</div>
+            <div class="cpub-hero-stat-label">Status</div>
           </div>
         </div>
       </div>
@@ -239,122 +183,18 @@ const filters = ['All (134)', 'Top Voted', 'Newest', 'FPGA', 'TinyML', 'Computer
             </div>
             <div class="cpub-about-card">
               <div class="cpub-about-body">
-                <p>The Edge AI Challenge 2026 is CommonPub's flagship hardware competition — a showcase for builders, researchers, and tinkerers who believe that powerful AI doesn't need to live in the cloud. This year's theme is <strong style="color:var(--text);">Real-World Deployability</strong>: we want to see projects that run on physical hardware, solve a problem someone actually has, and could plausibly be shipped as a product.</p>
-                <p>Entries are judged across four dimensions: <strong style="color:var(--text);">Technical Innovation</strong> (how clever or novel is the approach?), <strong style="color:var(--text);">Real-World Impact</strong> (does it solve a genuine problem?), <strong style="color:var(--text);">Documentation Quality</strong> (could someone reproduce it?), and <strong style="color:var(--text);">Hardware Efficiency</strong> (does it make good use of the target platform's constraints?).</p>
-                <div class="cpub-highlight-box">
-                  <strong>Submission deadline has passed.</strong> The contest is now in the <strong>Review Period</strong> — all 134 entries are under community review and public voting. Judging begins March 20. Winners announced April 3, 2026.
-                </div>
-                <p>Eligible hardware includes any microcontroller, FPGA, custom ASIC, embedded SoC, or edge accelerator. Software inference on a laptop or cloud instance is not eligible. Projects must include hardware build instructions, source code, and a working demonstration video.</p>
-              </div>
-            </div>
-          </div>
-
-          <!-- PRIZES -->
-          <div style="margin-bottom:20px;">
-            <div class="cpub-sec-head">
-              <h2><i class="fa fa-trophy" style="color:var(--yellow);margin-right:6px;"></i>Prizes</h2>
-              <span class="cpub-sec-sub">Total pool: $8,500</span>
-            </div>
-            <div class="cpub-prize-grid">
-              <!-- 1st -->
-              <div class="cpub-prize-card cpub-prize-gold">
-                <div class="cpub-prize-rank cpub-prize-rank-gold">1st Place</div>
-                <div class="cpub-prize-icon cpub-prize-icon-gold"><i class="fa-solid fa-trophy"></i></div>
-                <div class="cpub-prize-amount cpub-prize-amount-gold">$5,000</div>
-                <div class="cpub-prize-label">Cash Prize</div>
-                <div class="cpub-prize-perks">
-                  <div class="cpub-prize-perk"><i class="fa fa-check"></i> $5,000 USD wire transfer</div>
-                  <div class="cpub-prize-perk"><i class="fa fa-check"></i> Arm DevBoard kit ($800 value)</div>
-                  <div class="cpub-prize-perk"><i class="fa fa-check"></i> Feature on CommonPub homepage</div>
-                  <div class="cpub-prize-perk"><i class="fa fa-check"></i> Arm Research internship interview</div>
-                  <div class="cpub-prize-perk"><i class="fa fa-check"></i> 1-year CommonPub Pro</div>
-                </div>
-              </div>
-              <!-- 2nd -->
-              <div class="cpub-prize-card cpub-prize-silver">
-                <div class="cpub-prize-rank cpub-prize-rank-silver">2nd Place</div>
-                <div class="cpub-prize-icon cpub-prize-icon-silver"><i class="fa-solid fa-medal"></i></div>
-                <div class="cpub-prize-amount cpub-prize-amount-silver">$2,500</div>
-                <div class="cpub-prize-label">Cash Prize</div>
-                <div class="cpub-prize-perks">
-                  <div class="cpub-prize-perk"><i class="fa fa-check"></i> $2,500 USD wire transfer</div>
-                  <div class="cpub-prize-perk"><i class="fa fa-check"></i> Raspberry Pi CM4 dev kit</div>
-                  <div class="cpub-prize-perk"><i class="fa fa-check"></i> Profile featured in newsletter</div>
-                  <div class="cpub-prize-perk"><i class="fa fa-check"></i> 1-year CommonPub Pro</div>
-                </div>
-              </div>
-              <!-- 3rd -->
-              <div class="cpub-prize-card cpub-prize-bronze">
-                <div class="cpub-prize-rank cpub-prize-rank-bronze">3rd Place</div>
-                <div class="cpub-prize-icon cpub-prize-icon-bronze"><i class="fa-solid fa-award"></i></div>
-                <div class="cpub-prize-amount cpub-prize-amount-bronze">$1,000</div>
-                <div class="cpub-prize-label">Cash Prize</div>
-                <div class="cpub-prize-perks">
-                  <div class="cpub-prize-perk"><i class="fa fa-check"></i> $1,000 USD wire transfer</div>
-                  <div class="cpub-prize-perk"><i class="fa fa-check"></i> Arduino Pro hardware bundle</div>
-                  <div class="cpub-prize-perk"><i class="fa fa-check"></i> 6-month CommonPub Pro</div>
-                </div>
-              </div>
-            </div>
-            <!-- Additional prizes -->
-            <div class="cpub-prize-additional">
-              <div class="cpub-prize-extra">
-                <div class="cpub-prize-extra-title"><i class="fa-solid fa-square-poll-vertical" style="margin-right:4px;color:var(--teal);"></i>People's Choice</div>
-                <div class="cpub-prize-extra-val">$500</div>
-                <div class="cpub-prize-extra-label">Highest community votes</div>
-              </div>
-              <div class="cpub-prize-extra">
-                <div class="cpub-prize-extra-title"><i class="fa-solid fa-sparkles" style="margin-right:4px;color:var(--accent);"></i>Best First Entry</div>
-                <div class="cpub-prize-extra-val">$300</div>
-                <div class="cpub-prize-extra-label">First-time participant</div>
-              </div>
-              <div class="cpub-prize-extra">
-                <div class="cpub-prize-extra-title"><i class="fa-solid fa-globe" style="margin-right:4px;color:var(--green);"></i>Africa Region</div>
-                <div class="cpub-prize-extra-val">$200</div>
-                <div class="cpub-prize-extra-label">Top Africa entry</div>
-              </div>
-              <div class="cpub-prize-extra">
-                <div class="cpub-prize-extra-title"><i class="fa-solid fa-graduation-cap" style="margin-right:4px;color:var(--purple);"></i>Student Category</div>
-                <div class="cpub-prize-extra-val">$200</div>
-                <div class="cpub-prize-extra-label">Top student submission</div>
+                <p>{{ c?.description || 'No description available for this contest.' }}</p>
               </div>
             </div>
           </div>
 
           <!-- RULES -->
-          <div style="margin-bottom:20px;">
+          <div v-if="c?.rules" style="margin-bottom:20px;">
             <div class="cpub-sec-head">
-              <h2><i class="fa fa-file-lines" style="color:var(--purple);margin-right:6px;"></i>Rules &amp; Eligibility</h2>
+              <h2><i class="fa fa-file-lines" style="color:var(--purple);margin-right:6px;"></i>Rules</h2>
             </div>
             <div class="cpub-rules-card">
-              <div class="cpub-rule-item">
-                <i class="cpub-rule-icon fa fa-microchip"></i>
-                <span><strong style="color:var(--text);">Hardware required.</strong> All inference must run on physical edge hardware. CPU or GPU inference on a laptop, desktop, or cloud VM is not eligible. FPGA simulation counts if a physical FPGA is also demonstrated.</span>
-              </div>
-              <div class="cpub-rule-item">
-                <i class="cpub-rule-icon fa fa-user"></i>
-                <span><strong style="color:var(--text);">Open to individuals and teams.</strong> Teams of up to 4 people are allowed. All team members must have CommonPub accounts. Prize money is distributed to the team lead and split at their discretion.</span>
-              </div>
-              <div class="cpub-rule-item">
-                <i class="cpub-rule-icon fa fa-code-branch"></i>
-                <span><strong style="color:var(--text);">Open source preferred.</strong> Entries with a public GitHub repository or equivalent receive a 5-point scoring bonus. Entries with proprietary code must submit a binary demo and a complete methodology writeup.</span>
-              </div>
-              <div class="cpub-rule-item">
-                <i class="cpub-rule-icon fa fa-video"></i>
-                <span><strong style="color:var(--text);">Demo video required.</strong> Entries must include a 2–5 minute video showing the hardware running in real time. Videos must be publicly accessible on YouTube, Vimeo, or similar. Screen recordings are not accepted.</span>
-              </div>
-              <div class="cpub-rule-item">
-                <i class="cpub-rule-icon fa fa-calendar-xmark"></i>
-                <span><strong style="color:var(--text);">Submission deadline was March 15, 2026 at 23:59 UTC.</strong> Late submissions are not accepted. Projects must have been created or substantially updated after January 1, 2026.</span>
-              </div>
-              <div class="cpub-rule-item">
-                <i class="cpub-rule-icon fa fa-globe"></i>
-                <span><strong style="color:var(--text);">Global eligibility.</strong> Open to participants worldwide. Cash prizes are delivered via wire transfer or Wise. Participants in sanctioned jurisdictions may receive equivalent hardware prizes instead.</span>
-              </div>
-              <div class="cpub-rule-item">
-                <i class="cpub-rule-icon fa fa-award"></i>
-                <span><strong style="color:var(--text);">One entry per team.</strong> Teams may not submit multiple entries. Judges' decisions are final. Winners will be contacted by email within 72 hours of announcement.</span>
-              </div>
+              <div class="cpub-about-body" style="white-space: pre-line;">{{ c.rules }}</div>
             </div>
           </div>
 
@@ -362,67 +202,40 @@ const filters = ['All (134)', 'Top Voted', 'Newest', 'FPGA', 'TinyML', 'Computer
           <div style="margin-bottom:20px;">
             <div class="cpub-sec-head">
               <h2><i class="fa fa-box-open" style="color:var(--teal);margin-right:6px;"></i>Submitted Entries</h2>
-              <span class="cpub-sec-sub">{{ c?.entryCount || entries.length }} entries · Voting open</span>
+              <span class="cpub-sec-sub">{{ c?.entryCount ?? entries.length }} entries</span>
             </div>
-            <div class="cpub-entries-filter">
-              <span
-                v-for="f in filters"
-                :key="f"
-                class="cpub-tag"
-                :class="{ 'cpub-tag-accent': f === filters[0] }"
-              >{{ f }}</span>
-            </div>
-            <div class="cpub-entry-grid">
-              <div
+            <div v-if="entries.length" class="cpub-entry-grid">
+              <NuxtLink
                 v-for="(entry, i) in entries"
                 :key="entry.id"
+                :to="entry.contentSlug ? `/${entry.contentType}/${entry.contentSlug}` : '#'"
                 class="cpub-entry-card"
+                style="text-decoration: none; color: inherit;"
               >
                 <div class="cpub-entry-thumb" :class="i % 2 === 0 ? 'cpub-entry-bg-light' : 'cpub-entry-bg-dark'">
                   <div class="cpub-entry-grid-pat"></div>
-                  <div v-if="entry.iconColor" class="cpub-entry-icon" :style="{ color: entry.iconColor }"><i :class="entry.iconClass"></i></div>
-                  <div
-                    v-if="entry.rank"
-                    class="cpub-entry-rank"
-                    :class="`cpub-rank-${entry.rank}`"
-                  >#{{ entry.rank }} VOTED</div>
+                  <div class="cpub-entry-icon" style="color: var(--accent)"><i class="fa-solid fa-microchip"></i></div>
                 </div>
                 <div class="cpub-entry-body">
-                  <div class="cpub-entry-title">{{ entry.title || 'Untitled Entry' }}</div>
+                  <div class="cpub-entry-title">{{ entry.contentTitle || entry.title || 'Untitled Entry' }}</div>
                   <div class="cpub-entry-author">
-                    <span v-if="entry.initials" class="cpub-av cpub-av-sm" :style="{ background: entry.avBg, color: entry.avColor }">{{ entry.initials }}</span>
-                    {{ entry.author || 'Anonymous' }} · <span v-if="entry.tag" class="cpub-tag" :class="entry.tagClass" style="font-size:9px;">{{ entry.tag }}</span>
+                    {{ entry.author?.displayName || entry.author?.username || 'Anonymous' }}
                   </div>
                   <div class="cpub-entry-footer">
                     <button
                       class="cpub-vote-btn"
                       :class="{ 'cpub-voted': votedEntries.has(entry.id) }"
-                      @click="toggleVote(entry.id)"
-                    ><i class="fa fa-arrow-up"></i> {{ (entry.votes || 0) + (votedEntries.has(entry.id) ? 1 : 0) }}</button>
-                    <button class="cpub-vote-btn"><i class="fa fa-comment"></i> {{ entry.comments || 0 }}</button>
-                    <span class="cpub-entry-views"><i class="fa fa-eye"></i> {{ entry.views || 0 }}</span>
+                      @click.prevent="toggleVote(entry.id)"
+                    ><i class="fa fa-arrow-up"></i> {{ (entry.likeCount || 0) + (votedEntries.has(entry.id) ? 1 : 0) }}</button>
+                    <span class="cpub-entry-views"><i class="fa fa-eye"></i> {{ entry.viewCount || 0 }}</span>
                   </div>
                 </div>
-              </div>
+              </NuxtLink>
             </div>
-            <div style="text-align:center;">
-              <button class="cpub-btn"><i class="fa fa-arrow-down"></i> Load 128 more entries</button>
-            </div>
-          </div>
-
-          <!-- JUDGES -->
-          <div>
-            <div class="cpub-sec-head">
-              <h2><i class="fa fa-gavel" style="color:var(--purple);margin-right:6px;"></i>Judges</h2>
-              <span class="cpub-sec-sub">6 expert judges</span>
-            </div>
-            <div class="cpub-judges-grid">
-              <div v-for="j in judges" :key="j.initials" class="cpub-judge-card">
-                <div class="cpub-judge-av" :style="{ background: j.bg, color: j.color, borderColor: j.color }">{{ j.initials }}</div>
-                <div class="cpub-judge-name">{{ j.name }}</div>
-                <div class="cpub-judge-title">{{ j.title }}</div>
-                <div class="cpub-judge-org">{{ j.org }}</div>
-              </div>
+            <div v-else class="cpub-empty-state" style="padding: 32px 0;">
+              <div class="cpub-empty-state-icon"><i class="fa-solid fa-box-open"></i></div>
+              <p class="cpub-empty-state-title">No entries yet</p>
+              <p class="cpub-empty-state-desc">Be the first to submit an entry!</p>
             </div>
           </div>
 
@@ -431,54 +244,14 @@ const filters = ['All (134)', 'Top Voted', 'Newest', 'FPGA', 'TinyML', 'Computer
         <!-- SIDEBAR -->
         <div>
 
-          <!-- TIMELINE -->
+          <!-- STATUS -->
           <div class="cpub-sb-card">
-            <div class="cpub-sb-title"><i class="fa-solid fa-calendar-days" style="margin-right:5px;"></i>Contest Timeline</div>
-            <div
-              v-for="(t, i) in timeline"
-              :key="i"
-              class="cpub-tl-item"
-              :class="{ 'cpub-tl-last': i === timeline.length - 1 }"
-            >
-              <div class="cpub-tl-icon" :class="`cpub-tl-${t.status}`"><i :class="t.icon"></i></div>
-              <div class="cpub-tl-info">
-                <div class="cpub-tl-name" :class="`cpub-tl-name-${t.status}`">
-                  {{ t.name }}
-                  <span v-if="t.badge" class="cpub-tl-status" :class="`cpub-status-${t.status}`">{{ t.badge }}</span>
-                </div>
-                <div class="cpub-tl-date">{{ t.date }}</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- SPONSORS -->
-          <div class="cpub-sb-card">
-            <div class="cpub-sb-title"><i class="fa-solid fa-handshake" style="margin-right:5px;"></i>Sponsors</div>
-            <div class="cpub-sponsor-grid">
-              <div v-for="s in sponsors" :key="s.name" class="cpub-sponsor-card">
-                <div class="cpub-sponsor-icon"><i :class="s.icon" :style="{ color: s.color }"></i></div>
-                <div class="cpub-sponsor-name">{{ s.name }}</div>
-                <div class="cpub-sponsor-tier">{{ s.tier }}</div>
-              </div>
-            </div>
-            <div style="margin-top:10px;text-align:center;">
-              <a href="#" class="cpub-sponsor-link">Become a sponsor <i class="fa fa-arrow-right" style="font-size:9px;"></i></a>
-            </div>
-          </div>
-
-          <!-- FAQ -->
-          <div class="cpub-sb-card cpub-faq-wrap">
-            <div class="cpub-sb-title" style="padding:16px 12px 8px;border-bottom:none;margin-bottom:0;"><i class="fa-solid fa-circle-question" style="margin-right:5px;"></i>FAQ</div>
-            <div
-              v-for="(f, i) in faqs"
-              :key="i"
-              class="cpub-faq-item"
-              :class="{ 'cpub-faq-open': openFaq === i }"
-            >
-              <div class="cpub-faq-q" @click="toggleFaq(i)">
-                {{ f.q }} <i class="fa fa-chevron-down"></i>
-              </div>
-              <div class="cpub-faq-a">{{ f.a }}</div>
+            <div class="cpub-sb-title"><i class="fa-solid fa-circle-info" style="margin-right:5px;"></i>Status</div>
+            <div style="font-size: 12px; color: var(--text-dim); display: flex; flex-direction: column; gap: 8px;">
+              <div><strong>Status:</strong> {{ c?.status ?? 'unknown' }}</div>
+              <div v-if="c?.startDate"><strong>Starts:</strong> {{ new Date(c.startDate).toLocaleDateString() }}</div>
+              <div v-if="c?.endDate"><strong>Ends:</strong> {{ new Date(c.endDate).toLocaleDateString() }}</div>
+              <div><strong>Entries:</strong> {{ c?.entryCount ?? 0 }}</div>
             </div>
           </div>
 
@@ -486,12 +259,11 @@ const filters = ['All (134)', 'Top Voted', 'Newest', 'FPGA', 'TinyML', 'Computer
           <div class="cpub-sb-card">
             <div class="cpub-sb-title"><i class="fa-solid fa-share-nodes" style="margin-right:5px;"></i>Share This Contest</div>
             <div style="display:flex;gap:6px;flex-wrap:wrap;">
-              <button class="cpub-btn cpub-btn-sm" style="flex:1;justify-content:center;"><i class="fa-brands fa-x-twitter"></i> Twitter</button>
-              <button class="cpub-btn cpub-btn-sm" style="flex:1;justify-content:center;"><i class="fa-brands fa-linkedin"></i> LinkedIn</button>
-              <button class="cpub-btn cpub-btn-sm" style="flex:1;justify-content:center;"><i class="fa fa-link"></i> Copy Link</button>
+              <button class="cpub-btn cpub-btn-sm" style="flex:1;justify-content:center;" @click="navigator.clipboard.writeText(window.location.href)"><i class="fa fa-link"></i> Copy Link</button>
             </div>
           </div>
 
+          <NuxtLink to="/contests" class="cpub-btn" style="width: 100%; text-align: center; display: block; margin-top: 12px;"><i class="fa fa-arrow-left"></i> All Contests</NuxtLink>
         </div>
 
       </div>

@@ -51,12 +51,12 @@ my-community/
   docker-compose.yml      # Local Postgres + Redis + Meilisearch
   package.json            # Dependencies and scripts
   tsconfig.json           # TypeScript config
-  svelte.config.js        # SvelteKit config
-  vite.config.ts          # Vite config
-  src/
-    routes/               # SvelteKit routes
-    hooks.server.ts       # Auth + security hooks
-    app.html              # HTML template
+  nuxt.config.ts          # Nuxt 3 config
+  pages/                  # File-based routing
+  server/
+    api/                  # Nitro API routes
+    middleware/            # Auth + security middleware
+  app.vue                 # Root component
 ```
 
 ## Development

@@ -1,112 +1,176 @@
 <script setup lang="ts">
 useSeoMeta({
-  title: 'Communities — CommonPub',
+  title: 'Hubs — CommonPub',
   description: 'Browse and join maker communities.',
 });
 
-const { data } = await useFetch('/api/hubs');
+interface HubItem {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  hubType: string;
+  memberCount: number;
+  postCount: number;
+}
+
+const { data } = await useFetch<{ items: HubItem[]; total: number }>('/api/hubs');
 const { isAuthenticated } = useAuth();
+
+const hubs = computed(() => data.value?.items ?? []);
 </script>
 
 <template>
-  <div class="communities-page">
-    <div class="communities-header">
-      <h1 class="communities-title">Communities</h1>
-      <NuxtLink v-if="isAuthenticated" to="/hubs/create" class="cpub-btn-primary">Create Hub</NuxtLink>
+  <div class="cpub-hubs-page">
+    <div class="cpub-hubs-header">
+      <div>
+        <h1 class="cpub-hubs-title">Hubs</h1>
+        <p class="cpub-hubs-desc">Communities, products, and companies on CommonPub</p>
+      </div>
+      <NuxtLink v-if="isAuthenticated" to="/hubs/create" class="cpub-btn cpub-btn-primary">
+        <i class="fa-solid fa-plus"></i> Create Hub
+      </NuxtLink>
     </div>
 
-    <div class="communities-grid" v-if="data?.length">
-      <div class="community-card" v-for="c in data" :key="c.id">
-        <NuxtLink :to="`/hubs/${c.slug}`" class="community-card-link">
-          <h2 class="community-card-name">{{ c.name }}</h2>
-          <p class="community-card-desc" v-if="c.description">{{ c.description }}</p>
-          <div class="community-card-stats">
-            <span>{{ c.memberCount }} members</span>
-            <span>{{ c.postCount }} posts</span>
+    <div v-if="hubs.length" class="cpub-hubs-grid">
+      <NuxtLink
+        v-for="hub in hubs"
+        :key="hub.id"
+        :to="`/hubs/${hub.slug}`"
+        class="cpub-hub-card"
+      >
+        <div class="cpub-hub-card-icon">
+          <i :class="hub.hubType === 'company' ? 'fa-solid fa-building' : hub.hubType === 'product' ? 'fa-solid fa-microchip' : 'fa-solid fa-users'"></i>
+        </div>
+        <div class="cpub-hub-card-body">
+          <h2 class="cpub-hub-card-name">{{ hub.name }}</h2>
+          <p v-if="hub.description" class="cpub-hub-card-desc">{{ hub.description }}</p>
+          <div class="cpub-hub-card-meta">
+            <span class="cpub-hub-card-stat"><i class="fa-solid fa-users"></i> {{ hub.memberCount ?? 0 }}</span>
+            <span class="cpub-hub-card-stat"><i class="fa-solid fa-message"></i> {{ hub.postCount ?? 0 }}</span>
+            <span class="cpub-hub-card-type">{{ hub.hubType ?? 'community' }}</span>
           </div>
-        </NuxtLink>
-      </div>
+        </div>
+      </NuxtLink>
     </div>
-    <p class="communities-empty" v-else>No communities yet. Be the first to create one!</p>
+    <div v-else class="cpub-empty-state">
+      <div class="cpub-empty-state-icon"><i class="fa-solid fa-users"></i></div>
+      <p class="cpub-empty-state-title">No hubs yet</p>
+      <p class="cpub-empty-state-desc">Be the first to create a community!</p>
+      <NuxtLink v-if="isAuthenticated" to="/hubs/create" class="cpub-btn cpub-btn-primary" style="margin-top: 16px">
+        <i class="fa-solid fa-plus"></i> Create Hub
+      </NuxtLink>
+    </div>
   </div>
 </template>
 
 <style scoped>
-.communities-page {
-  max-width: var(--content-max-width);
+.cpub-hubs-page { max-width: 960px; }
+
+.cpub-hubs-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  gap: 16px;
 }
 
-.communities-header {
+.cpub-hubs-title {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.cpub-hubs-desc {
+  font-size: 13px;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+
+.cpub-hubs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 14px;
+}
+
+.cpub-hub-card {
+  display: flex;
+  gap: 14px;
+  padding: 18px;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  text-decoration: none;
+  color: inherit;
+  transition: box-shadow 0.15s;
+  box-shadow: 4px 4px 0 var(--border);
+}
+
+.cpub-hub-card:hover {
+  box-shadow: 6px 6px 0 var(--border);
+  transform: translate(-1px, -1px);
+}
+
+.cpub-hub-card-icon {
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: var(--space-6);
-}
-
-.communities-title {
-  font-size: var(--text-xl);
-  font-weight: var(--font-weight-bold);
-}
-
-.cpub-btn-primary {
-  padding: var(--space-2) var(--space-4);
-  background: var(--accent);
-  color: var(--color-on-primary);
-  border: 1px solid var(--border);
-  text-decoration: none;
-  font-size: var(--text-sm);
-  font-weight: var(--font-weight-medium);
-}
-
-.cpub-btn-primary:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
-.communities-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: var(--space-4);
-}
-
-.community-card {
-  border: 1px solid var(--border);
-  background: var(--surface);
-  padding: var(--space-4);
-}
-
-.community-card-link {
-  color: var(--text);
-  text-decoration: none;
-}
-
-.community-card-name {
-  font-size: var(--text-md);
-  font-weight: var(--font-weight-semibold);
-  margin-bottom: var(--space-2);
-}
-
-.community-card-link:hover .community-card-name {
+  justify-content: center;
+  background: var(--accent-bg);
+  border: 2px solid var(--accent-border);
   color: var(--accent);
+  font-size: 18px;
+  flex-shrink: 0;
 }
 
-.community-card-desc {
-  font-size: var(--text-sm);
+.cpub-hub-card-body { flex: 1; min-width: 0; }
+
+.cpub-hub-card-name {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.cpub-hub-card-desc {
+  font-size: 12px;
   color: var(--text-dim);
-  line-height: var(--leading-relaxed);
-  margin-bottom: var(--space-3);
+  line-height: 1.5;
+  margin-bottom: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
-.community-card-stats {
+.cpub-hub-card-meta {
   display: flex;
-  gap: var(--space-3);
-  font-size: var(--text-xs);
-  color: var(--text-faint);
+  align-items: center;
+  gap: 12px;
 }
 
-.communities-empty {
+.cpub-hub-card-stat {
+  font-size: 11px;
+  font-family: var(--font-mono);
   color: var(--text-faint);
-  text-align: center;
-  padding: var(--space-10) 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cpub-hub-card-stat i { font-size: 10px; }
+
+.cpub-hub-card-type {
+  font-size: 9px;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  padding: 2px 6px;
+}
+
+@media (max-width: 640px) {
+  .cpub-hubs-grid { grid-template-columns: 1fr; }
 }
 </style>

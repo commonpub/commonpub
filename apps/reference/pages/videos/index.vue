@@ -71,7 +71,7 @@ function formatDate(dateStr: string): string {
         <div class="cpub-hero-eyebrow"><i class="fa-solid fa-play-circle"></i> &nbsp;Video Hub</div>
         <div class="cpub-hero-row">
           <h1 class="cpub-hero-title">Video Hub</h1>
-          <span class="cpub-tag cpub-tag-live"><i class="fa-solid fa-circle" style="font-size:8px;"></i> 3 Live Now</span>
+          <span class="cpub-tag cpub-tag-live"><i class="fa-solid fa-circle" style="font-size:8px;"></i> Beta</span>
         </div>
         <p class="cpub-hero-sub">Tutorials, conference talks, project demos, and live build streams from the edge AI community.</p>
         <div class="cpub-hero-actions">
@@ -107,50 +107,33 @@ function formatDate(dateStr: string): string {
 
         <!-- LEFT COLUMN -->
         <div>
-          <!-- FEATURED VIDEO -->
-          <div class="cpub-featured-section">
+          <!-- FEATURED VIDEO (most viewed) -->
+          <div v-if="videos.length" class="cpub-featured-section">
             <div class="cpub-sec-head">
               <h2>Featured</h2>
-              <span class="cpub-tag cpub-tag-accent"><i class="fa-solid fa-fire"></i> Trending</span>
             </div>
-            <div class="cpub-featured-player">
+            <NuxtLink :to="`/videos/${videos[0].id}`" class="cpub-featured-player" style="text-decoration: none; display: block;">
               <div class="cpub-featured-player-bg">
                 <div class="cpub-featured-bg-gradient"></div>
                 <div class="cpub-featured-bg-grid"></div>
-                <div class="cpub-featured-player-icon"><i class="fa-solid fa-laptop-code"></i></div>
+                <div class="cpub-featured-player-icon"><i class="fa-solid fa-video"></i></div>
               </div>
               <div class="cpub-play-overlay">
                 <div class="cpub-play-circle"><i class="fa fa-play"></i></div>
               </div>
-              <div class="cpub-featured-duration">42:18</div>
-              <div class="cpub-featured-quality"><span class="cpub-tag" style="background:var(--surface);border:2px solid var(--border);">4K</span></div>
-            </div>
+              <div v-if="videos[0].duration" class="cpub-featured-duration">{{ formatDuration(videos[0].duration) }}</div>
+            </NuxtLink>
             <div class="cpub-featured-info">
-              <div class="cpub-featured-title">From Training to Deployment: Building a Complete TinyML Pipeline on Arduino Nano 33 BLE Sense</div>
-              <div class="cpub-featured-meta-row">
-                <div class="cpub-featured-author">
-                  <div class="cpub-featured-author-av">SH</div>
-                  <span class="cpub-featured-author-name">Shawn Hymel</span>
-                </div>
-                <span class="cpub-tag cpub-tag-green">Tutorial</span>
-                <span class="cpub-tag">Beginner</span>
-              </div>
+              <NuxtLink :to="`/videos/${videos[0].id}`" class="cpub-featured-title" style="text-decoration: none; color: inherit;">{{ videos[0].title }}</NuxtLink>
               <div class="cpub-featured-stats">
-                <span><i class="fa-solid fa-eye"></i> 48,210 views</span>
+                <span><i class="fa-solid fa-eye"></i> {{ videos[0].viewCount.toLocaleString() }} views</span>
                 <span>·</span>
-                <span>Feb 28, 2026</span>
-                <span>·</span>
-                <span><i class="fa-solid fa-thumbs-up"></i> 2,140</span>
-                <span>·</span>
-                <span><i class="fa-solid fa-comment"></i> 184</span>
-              </div>
-              <div style="margin-top:10px;">
-                <p class="cpub-featured-desc">A complete end-to-end walkthrough — from dataset collection using Edge Impulse to deploying a gesture recognition model with less than 256KB of flash. Covers model architecture selection, training hyperparameters, quantization, and live inference demo with serial plotter output.</p>
+                <span>{{ formatDate(videos[0].createdAt) }}</span>
               </div>
             </div>
           </div>
 
-          <hr class="cpub-divider" style="margin:20px 0;" />
+          <hr v-if="videos.length" class="cpub-divider" style="margin:20px 0;" />
 
           <!-- VIDEO GRID -->
           <div class="cpub-sec-head">
