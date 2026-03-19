@@ -1,4 +1,4 @@
-import { d as defineEventHandler, u as useDB, a as getRouterParam, g as getQuery, a4 as getDocsSiteBySlug, f as createError, a9 as listDocsPages } from '../../../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, a as getRouterParam, g as getQuery, a4 as getDocsSiteBySlug, f as createError, a8 as listDocsPages } from '../../../../nitro/nitro.mjs';
 import { z } from 'zod';
 import 'drizzle-orm';
 import 'drizzle-orm/pg-core';

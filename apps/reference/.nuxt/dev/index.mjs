@@ -5,10 +5,11 @@ import { resolve, dirname, join } from 'node:path';
 import nodeCrypto from 'node:crypto';
 import { parentPort, threadId } from 'node:worker_threads';
 import { escapeHtml } from 'file:///Users/obsidian/Projects/ossuary-projects/snaplify/node_modules/.pnpm/@vue+shared@3.5.30/node_modules/@vue/shared/dist/shared.cjs.js';
-import { ConsoleEmailAdapter, emailTemplates, shouldSkipRateLimit, checkRateLimit, RateLimitStore, generateNonce, getSecurityHeaders, listAuditLogs, removeContent, listReports, resolveReport, getInstanceSettings, setInstanceSetting, getPlatformStats, listUsers, deleteUser, updateUserRole, updateUserStatus, toggleBuildMark, forkContent, deleteContent, getContentBySlug, updateContent, syncContentProducts, listContentProducts, addContentProduct, removeContentProduct, publishContent, onContentPublished, createReport, listContentVersions, incrementViewCount, listContent, createContent, getContestBySlug, listContestEntries, submitContestEntry, deleteContest, updateContest, judgeContestEntry, transitionContestStatus, listContests, createContest, getDocsSiteBySlug, deleteDocsSite, updateDocsSite, getDocsNav, listDocsPages, createDocsPage, updateDocsPage, searchDocsPages, createDocsVersion, listDocsSites, createDocsSite, createStorageFromEnv, validateUpload, isProcessableImage, processImage, generateStorageKey, getHubBySlug, listBans, banUser, unbanUser, listHubGallery, deleteHub, updateHub, listInvites, createInvite, joinHub, leaveHub, listMembers, kickMember, changeRole, deletePost, listReplies, createReply, listPosts, createPost, listHubProducts, createProduct, shareContent, listHubs, createHub, getLessonBySlug, markLessonComplete, getPathBySlug, enroll, deletePath, updatePath, createLesson, deleteLesson, createModule, deleteModule, updateModule, publishPath, unenroll, getUserCertificates, getUserEnrollments, listPaths, createPath, getConversationMessages, markMessagesRead, sendMessage, listConversations, createConversation, deleteNotification, getUnreadCount, listNotifications, markNotificationRead, markAllNotificationsRead, deleteProduct, updateProduct, getProductBySlug, listProductContent, searchProducts, getUserByUsername, updateUserProfile, toggleBookmark, listUserBookmarks, listComments, createComment, deleteComment, isLiked, toggleLike, getUserContent, unfollowUser, followUser, listFollowers, listFollowing, getVideoById, incrementVideoViewCount, listVideoCategories, createVideoCategory, deleteVideoCategory, updateVideoCategory, listVideos, createVideo, getOrCreateActorKeypair, getFollowers, getFollowing } from 'file:///Users/obsidian/Projects/ossuary-projects/snaplify/packages/server/dist/index.js';
+import { ConsoleEmailAdapter, emailTemplates, shouldSkipRateLimit, checkRateLimit, RateLimitStore, generateNonce, getSecurityHeaders, listAuditLogs, removeContent, listReports, resolveReport, getInstanceSettings, setInstanceSetting, getPlatformStats, listUsers, deleteUser, updateUserRole, updateUserStatus, getCertificateByCode, toggleBuildMark, forkContent, deleteContent, getContentBySlug, updateContent, syncContentProducts, listContentProducts, addContentProduct, removeContentProduct, publishContent, onContentPublished, createReport, listContentVersions, incrementViewCount, listContent, createContent, getContestBySlug, listContestEntries, submitContestEntry, deleteContest, updateContest, judgeContestEntry, transitionContestStatus, listContests, createContest, getDocsSiteBySlug, deleteDocsSite, updateDocsSite, listDocsPages, createDocsPage, deleteDocsPage, updateDocsPage, reorderDocsPages, searchDocsPages, createDocsVersion, listDocsSites, createDocsSite, createStorageFromEnv, validateUpload, isProcessableImage, processImage, generateStorageKey, getHubBySlug, listBans, banUser, unbanUser, listHubGallery, deleteHub, updateHub, listInvites, createInvite, joinHub, leaveHub, listMembers, kickMember, changeRole, deletePost, listReplies, createReply, listPosts, createPost, listHubProducts, createProduct, shareContent, listHubs, createHub, getLessonBySlug, markLessonComplete, getPathBySlug, enroll, deletePath, updatePath, createLesson, deleteLesson, updateLesson, createModule, deleteModule, updateModule, publishPath, unenroll, getUserCertificates, getUserEnrollments, listPaths, createPath, getConversationMessages, markMessagesRead, sendMessage, listConversations, createConversation, deleteNotification, getUnreadCount, listNotifications, markNotificationRead, markAllNotificationsRead, deleteProduct, updateProduct, getProductBySlug, listProductContent, searchProducts, getUserByUsername, updateUserProfile, toggleBookmark, listUserBookmarks, listComments, createComment, deleteComment, isLiked, toggleLike, getUserContent, unfollowUser, followUser, listFollowers, listFollowing, getVideoById, incrementVideoViewCount, listVideoCategories, createVideoCategory, deleteVideoCategory, updateVideoCategory, listVideos, createVideo, getOrCreateActorKeypair, getFollowers, getFollowing } from 'file:///Users/obsidian/Projects/ossuary-projects/snaplify/packages/server/dist/index.js';
 import { z } from 'file:///Users/obsidian/Projects/ossuary-projects/snaplify/node_modules/.pnpm/zod@4.3.6/node_modules/zod/index.js';
 import * as schema from 'file:///Users/obsidian/Projects/ossuary-projects/snaplify/packages/schema/dist/index.js';
-import { resolveReportSchema, adminSettingSchema, adminUpdateRoleSchema, adminUpdateStatusSchema, updateContentSchema, addContentProductSchema, createReportSchema, contentFiltersSchema, createContentSchema, updateContestSchema, judgeEntrySchema, contestTransitionSchema, contestFiltersSchema, createContestSchema, updateDocsSiteSchema, createDocsPageSchema, updateDocsPageSchema, createDocsVersionSchema, createDocsSiteSchema, files, banUserSchema, updateHubSchema, createInviteSchema, changeRoleSchema, createReplySchema, hubPostFiltersSchema, createPostSchema, productStatusSchema, productCategorySchema, createProductSchema, hubFiltersSchema, createHubSchema, updateLearningPathSchema, createLessonSchema, createModuleSchema, updateModuleSchema, learningPathFiltersSchema, createLearningPathSchema, sendMessageSchema, createConversationSchema, generateOpenAPISpec, updateProductSchema, updateProfileSchema, contentItems, commentTargetTypeSchema, createCommentSchema, likeTargetTypeSchema, contentTypeSchema, users, follows, createVideoCategorySchema, videoFiltersSchema, createVideoSchema } from 'file:///Users/obsidian/Projects/ossuary-projects/snaplify/packages/schema/dist/index.js';
+import { resolveReportSchema, adminSettingSchema, adminUpdateRoleSchema, adminUpdateStatusSchema, updateContentSchema, addContentProductSchema, createReportSchema, contentFiltersSchema, createContentSchema, updateContestSchema, judgeEntrySchema, contestTransitionSchema, contestFiltersSchema, createContestSchema, updateDocsSiteSchema, createDocsPageSchema, updateDocsPageSchema, createDocsVersionSchema, createDocsSiteSchema, files, banUserSchema, updateHubSchema, createInviteSchema, changeRoleSchema, createReplySchema, hubPostFiltersSchema, createPostSchema, productStatusSchema, productCategorySchema, createProductSchema, hubFiltersSchema, createHubSchema, updateLearningPathSchema, createLessonSchema, createModuleSchema, updateModuleSchema, learningPathFiltersSchema, createLearningPathSchema, sendMessageSchema, conversations, createConversationSchema, generateOpenAPISpec, updateProductSchema, updateProfileSchema, contentItems, commentTargetTypeSchema, createCommentSchema, likeTargetTypeSchema, contentTypeSchema, users, follows, createVideoCategorySchema, videoFiltersSchema, createVideoSchema } from 'file:///Users/obsidian/Projects/ossuary-projects/snaplify/packages/schema/dist/index.js';
+import { renderMarkdown } from 'file:///Users/obsidian/Projects/ossuary-projects/snaplify/packages/docs/dist/index.js';
 import { and, eq, desc, sql, or, ilike } from 'file:///Users/obsidian/Projects/ossuary-projects/snaplify/node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.16_gel@2.2.0_kysely@0.28.11_pg@8.20.0/node_modules/drizzle-orm/index.js';
 import { parseWebFingerResource, buildWebFingerResponse, processInboxActivity, buildNodeInfoResponse, generateOutboxCollection } from 'file:///Users/obsidian/Projects/ossuary-projects/snaplify/packages/protocol/dist/index.js';
 import { createRenderer, getRequestDependencies, getPreloadLinks, getPrefetchLinks } from 'file:///Users/obsidian/Projects/ossuary-projects/snaplify/node_modules/.pnpm/vue-bundle-renderer@2.2.0/node_modules/vue-bundle-renderer/dist/runtime.mjs';
@@ -2178,7 +2179,22 @@ const plugins = [
 _zhVm5qprtYX102Z_f_cXuU2baFGsHZqzOLnWUI6gQ9U
 ];
 
-const assets = {};
+const assets = {
+  "/index.mjs": {
+    "type": "text/javascript; charset=utf-8",
+    "etag": "\"40918-YrOaogCoI/8XzUl76wPqXddsqA4\"",
+    "mtime": "2026-03-19T07:28:01.325Z",
+    "size": 264472,
+    "path": "index.mjs"
+  },
+  "/index.mjs.map": {
+    "type": "application/json",
+    "etag": "\"cb0fc-vqA0f3mRdX3jrLpGBmTKY7EjwWM\"",
+    "mtime": "2026-03-19T07:28:01.326Z",
+    "size": 831740,
+    "path": "index.mjs.map"
+  }
+};
 
 function readAsset (id) {
   const serverDir = dirname$1(fileURLToPath(globalThis._importMeta_.url));
@@ -2773,6 +2789,7 @@ const _lazy_Wew5oZ = () => Promise.resolve().then(function () { return users_get
 const _lazy_AncTe6 = () => Promise.resolve().then(function () { return _id__delete$b; });
 const _lazy_rnRD3x = () => Promise.resolve().then(function () { return role_put$1; });
 const _lazy_mSN0U6 = () => Promise.resolve().then(function () { return status_put$1; });
+const _lazy__LLe3t = () => Promise.resolve().then(function () { return _code__get$1; });
 const _lazy_TKf7yE = () => Promise.resolve().then(function () { return build_post$1; });
 const _lazy_IMfpVg = () => Promise.resolve().then(function () { return fork_post$1; });
 const _lazy_INWkw9 = () => Promise.resolve().then(function () { return index_delete$9; });
@@ -2803,7 +2820,10 @@ const _lazy_N18wUp = () => Promise.resolve().then(function () { return index_put
 const _lazy_Lm1t5u = () => Promise.resolve().then(function () { return nav_get$1; });
 const _lazy_TB2PWK = () => Promise.resolve().then(function () { return pages_get$1; });
 const _lazy_t6h8n4 = () => Promise.resolve().then(function () { return pages_post$1; });
+const _lazy_yebZZY = () => Promise.resolve().then(function () { return _pageId__delete$1; });
 const _lazy_uvwSIz = () => Promise.resolve().then(function () { return _pageId__put$1; });
+const _lazy_JbSN2c = () => Promise.resolve().then(function () { return _pageSlug__get$1; });
+const _lazy_onRcNH = () => Promise.resolve().then(function () { return reorder_post$1; });
 const _lazy_kwKJ8K = () => Promise.resolve().then(function () { return search_get$1; });
 const _lazy_9ZpYPh = () => Promise.resolve().then(function () { return versions_post$1; });
 const _lazy_qgBaDe = () => Promise.resolve().then(function () { return index_get$n; });
@@ -2845,6 +2865,7 @@ const _lazy_1vnyR0 = () => Promise.resolve().then(function () { return index_get
 const _lazy_TrJryK = () => Promise.resolve().then(function () { return index_put$1; });
 const _lazy_Rwf2_Q = () => Promise.resolve().then(function () { return lessons_post$1; });
 const _lazy_X3v9gU = () => Promise.resolve().then(function () { return _lessonId__delete$1; });
+const _lazy_HcbV0j = () => Promise.resolve().then(function () { return _lessonId__put$1; });
 const _lazy_JWIgCr = () => Promise.resolve().then(function () { return modules_post$1; });
 const _lazy_iZMtYH = () => Promise.resolve().then(function () { return _moduleId__delete$1; });
 const _lazy_Lmvao6 = () => Promise.resolve().then(function () { return _moduleId__put$1; });
@@ -2856,6 +2877,7 @@ const _lazy_y83Zc3 = () => Promise.resolve().then(function () { return index_get
 const _lazy_QJK2we = () => Promise.resolve().then(function () { return index_post$5; });
 const _lazy_MJWCL7 = () => Promise.resolve().then(function () { return _conversationId__get$1; });
 const _lazy_bdtAxU = () => Promise.resolve().then(function () { return _conversationId__post$1; });
+const _lazy_j747yK = () => Promise.resolve().then(function () { return info_get$1; });
 const _lazy_VTyKDL = () => Promise.resolve().then(function () { return stream_get$3; });
 const _lazy_hB4OMw = () => Promise.resolve().then(function () { return index_get$b; });
 const _lazy_FyqIjH = () => Promise.resolve().then(function () { return index_post$3; });
@@ -2889,6 +2911,7 @@ const _lazy_0U6x7e = () => Promise.resolve().then(function () { return follow_de
 const _lazy_a9Dse6 = () => Promise.resolve().then(function () { return follow_post$1; });
 const _lazy_v_BuVH = () => Promise.resolve().then(function () { return followers_get$1; });
 const _lazy_E79g5r = () => Promise.resolve().then(function () { return following_get$1; });
+const _lazy_f6FdTq = () => Promise.resolve().then(function () { return learning_get$1; });
 const _lazy_nKJeMq = () => Promise.resolve().then(function () { return index_get$3; });
 const _lazy_41m87_ = () => Promise.resolve().then(function () { return _id__get$1; });
 const _lazy_TNPVVm = () => Promise.resolve().then(function () { return categories_get$1; });
@@ -2926,6 +2949,7 @@ const handlers = [
   { route: '/api/admin/users/:id', handler: _lazy_AncTe6, lazy: true, middleware: false, method: "delete" },
   { route: '/api/admin/users/:id/role', handler: _lazy_rnRD3x, lazy: true, middleware: false, method: "put" },
   { route: '/api/admin/users/:id/status', handler: _lazy_mSN0U6, lazy: true, middleware: false, method: "put" },
+  { route: '/api/cert/:code', handler: _lazy__LLe3t, lazy: true, middleware: false, method: "get" },
   { route: '/api/content/:id/build', handler: _lazy_TKf7yE, lazy: true, middleware: false, method: "post" },
   { route: '/api/content/:id/fork', handler: _lazy_IMfpVg, lazy: true, middleware: false, method: "post" },
   { route: '/api/content/:id', handler: _lazy_INWkw9, lazy: true, middleware: false, method: "delete" },
@@ -2956,7 +2980,10 @@ const handlers = [
   { route: '/api/docs/:siteSlug/nav', handler: _lazy_Lm1t5u, lazy: true, middleware: false, method: "get" },
   { route: '/api/docs/:siteSlug/pages', handler: _lazy_TB2PWK, lazy: true, middleware: false, method: "get" },
   { route: '/api/docs/:siteSlug/pages', handler: _lazy_t6h8n4, lazy: true, middleware: false, method: "post" },
+  { route: '/api/docs/:siteSlug/pages/:pageId', handler: _lazy_yebZZY, lazy: true, middleware: false, method: "delete" },
   { route: '/api/docs/:siteSlug/pages/:pageId', handler: _lazy_uvwSIz, lazy: true, middleware: false, method: "put" },
+  { route: '/api/docs/:siteSlug/pages/:pageSlug', handler: _lazy_JbSN2c, lazy: true, middleware: false, method: "get" },
+  { route: '/api/docs/:siteSlug/pages/reorder', handler: _lazy_onRcNH, lazy: true, middleware: false, method: "post" },
   { route: '/api/docs/:siteSlug/search', handler: _lazy_kwKJ8K, lazy: true, middleware: false, method: "get" },
   { route: '/api/docs/:siteSlug/versions', handler: _lazy_9ZpYPh, lazy: true, middleware: false, method: "post" },
   { route: '/api/docs', handler: _lazy_qgBaDe, lazy: true, middleware: false, method: "get" },
@@ -2998,6 +3025,7 @@ const handlers = [
   { route: '/api/learn/:slug', handler: _lazy_TrJryK, lazy: true, middleware: false, method: "put" },
   { route: '/api/learn/:slug/lessons', handler: _lazy_Rwf2_Q, lazy: true, middleware: false, method: "post" },
   { route: '/api/learn/:slug/lessons/:lessonId', handler: _lazy_X3v9gU, lazy: true, middleware: false, method: "delete" },
+  { route: '/api/learn/:slug/lessons/:lessonId', handler: _lazy_HcbV0j, lazy: true, middleware: false, method: "put" },
   { route: '/api/learn/:slug/modules', handler: _lazy_JWIgCr, lazy: true, middleware: false, method: "post" },
   { route: '/api/learn/:slug/modules/:moduleId', handler: _lazy_iZMtYH, lazy: true, middleware: false, method: "delete" },
   { route: '/api/learn/:slug/modules/:moduleId', handler: _lazy_Lmvao6, lazy: true, middleware: false, method: "put" },
@@ -3009,6 +3037,7 @@ const handlers = [
   { route: '/api/learn', handler: _lazy_QJK2we, lazy: true, middleware: false, method: "post" },
   { route: '/api/messages/:conversationId', handler: _lazy_MJWCL7, lazy: true, middleware: false, method: "get" },
   { route: '/api/messages/:conversationId', handler: _lazy_bdtAxU, lazy: true, middleware: false, method: "post" },
+  { route: '/api/messages/:conversationId/info', handler: _lazy_j747yK, lazy: true, middleware: false, method: "get" },
   { route: '/api/messages/:conversationId/stream', handler: _lazy_VTyKDL, lazy: true, middleware: false, method: "get" },
   { route: '/api/messages', handler: _lazy_hB4OMw, lazy: true, middleware: false, method: "get" },
   { route: '/api/messages', handler: _lazy_FyqIjH, lazy: true, middleware: false, method: "post" },
@@ -3042,6 +3071,7 @@ const handlers = [
   { route: '/api/users/:username/follow', handler: _lazy_a9Dse6, lazy: true, middleware: false, method: "post" },
   { route: '/api/users/:username/followers', handler: _lazy_v_BuVH, lazy: true, middleware: false, method: "get" },
   { route: '/api/users/:username/following', handler: _lazy_E79g5r, lazy: true, middleware: false, method: "get" },
+  { route: '/api/users/:username/learning', handler: _lazy_f6FdTq, lazy: true, middleware: false, method: "get" },
   { route: '/api/users', handler: _lazy_nKJeMq, lazy: true, middleware: false, method: "get" },
   { route: '/api/videos/:id', handler: _lazy_41m87_, lazy: true, middleware: false, method: "get" },
   { route: '/api/videos/categories', handler: _lazy_TNPVVm, lazy: true, middleware: false, method: "get" },
@@ -3608,6 +3638,21 @@ const status_put$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProper
   default: status_put
 }, Symbol.toStringTag, { value: 'Module' }));
 
+const _code__get = defineEventHandler(async (event) => {
+  const db = useDB();
+  const code = getRouterParam(event, "code");
+  const result = await getCertificateByCode(db, code);
+  if (!result) {
+    throw createError({ statusCode: 404, statusMessage: "Certificate not found" });
+  }
+  return result;
+});
+
+const _code__get$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
+  __proto__: null,
+  default: _code__get
+}, Symbol.toStringTag, { value: 'Module' }));
+
 const build_post = defineEventHandler(async (event) => {
   const user = requireAuth(event);
   const db = useDB();
@@ -4072,11 +4117,14 @@ const index_delete$5 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProp
 const index_get$o = defineEventHandler(async (event) => {
   const db = useDB();
   const siteSlug = getRouterParam(event, "siteSlug");
-  const site = await getDocsSiteBySlug(db, siteSlug);
-  if (!site) {
+  const result = await getDocsSiteBySlug(db, siteSlug);
+  if (!result) {
     throw createError({ statusCode: 404, statusMessage: "Docs site not found" });
   }
-  return site;
+  return {
+    ...result.site,
+    versions: result.versions
+  };
 });
 
 const index_get$p = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
@@ -4113,10 +4161,16 @@ const navQuerySchema = z.object({
   version: z.string().max(32).optional()
 });
 const nav_get = defineEventHandler(async (event) => {
+  var _a, _b, _c, _d;
   const db = useDB();
   const siteSlug = getRouterParam(event, "siteSlug");
   const query = navQuerySchema.parse(getQuery$1(event));
-  return getDocsNav(db, siteSlug, query.version);
+  const site = await getDocsSiteBySlug(db, siteSlug);
+  if (!site) throw createError({ statusCode: 404, statusMessage: "Docs site not found" });
+  const version = query.version ? (_a = site.versions) == null ? void 0 : _a.find((v) => v.version === query.version) : (_d = (_b = site.versions) == null ? void 0 : _b.find((v) => v.isDefault)) != null ? _d : (_c = site.versions) == null ? void 0 : _c[0];
+  if (!version) return [];
+  const pages = await listDocsPages(db, version.id);
+  return pages.map((p) => ({ id: p.id, title: p.title, slug: p.slug, sortOrder: p.sortOrder }));
 });
 
 const nav_get$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
@@ -4185,6 +4239,22 @@ const pages_post$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProper
   default: pages_post
 }, Symbol.toStringTag, { value: 'Module' }));
 
+const _pageId__delete = defineEventHandler(async (event) => {
+  const user = requireAuth(event);
+  const db = useDB();
+  const pageId = getRouterParam(event, "pageId");
+  const result = await deleteDocsPage(db, pageId, user.id);
+  if (!result) {
+    throw createError({ statusCode: 404, statusMessage: "Page not found or not authorized" });
+  }
+  return { success: true };
+});
+
+const _pageId__delete$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
+  __proto__: null,
+  default: _pageId__delete
+}, Symbol.toStringTag, { value: 'Module' }));
+
 const _pageId__put = defineEventHandler(async (event) => {
   const user = requireAuth(event);
   const db = useDB();
@@ -4206,15 +4276,71 @@ const _pageId__put$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProp
   default: _pageId__put
 }, Symbol.toStringTag, { value: 'Module' }));
 
+const _pageSlug__get = defineEventHandler(async (event) => {
+  var _a, _b;
+  const db = useDB();
+  const siteSlug = getRouterParam(event, "siteSlug");
+  const pageSlug = getRouterParam(event, "pageSlug");
+  const query = getQuery$1(event);
+  const result = await getDocsSiteBySlug(db, siteSlug);
+  if (!result) throw createError({ statusCode: 404, statusMessage: "Docs site not found" });
+  const version = query.version ? result.versions.find((v) => v.version === query.version) : (_a = result.versions.find((v) => v.isDefault)) != null ? _a : result.versions[0];
+  if (!version) throw createError({ statusCode: 404, statusMessage: "No version found" });
+  const pages = await listDocsPages(db, version.id);
+  const page = pages.find((p) => p.slug === pageSlug);
+  if (!page) throw createError({ statusCode: 404, statusMessage: "Page not found" });
+  const rendered = await renderMarkdown((_b = page.content) != null ? _b : "");
+  return {
+    ...page,
+    html: rendered.html,
+    toc: rendered.toc,
+    frontmatter: rendered.frontmatter
+  };
+});
+
+const _pageSlug__get$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
+  __proto__: null,
+  default: _pageSlug__get
+}, Symbol.toStringTag, { value: 'Module' }));
+
+const reorderSchema = z.object({
+  pageIds: z.array(z.string().uuid())
+});
+const reorder_post = defineEventHandler(async (event) => {
+  var _a;
+  const user = requireAuth(event);
+  const db = useDB();
+  const siteSlug = getRouterParam(event, "siteSlug");
+  const body = reorderSchema.parse(await readBody(event));
+  const site = await getDocsSiteBySlug(db, siteSlug);
+  if (!site) throw createError({ statusCode: 404, statusMessage: "Docs site not found" });
+  const version = (_a = site.versions.find((v) => v.isDefault)) != null ? _a : site.versions[0];
+  if (!version) throw createError({ statusCode: 404, statusMessage: "No version found" });
+  const result = await reorderDocsPages(db, version.id, user.id, body.pageIds);
+  if (!result) {
+    throw createError({ statusCode: 403, statusMessage: "Not authorized" });
+  }
+  return { success: true };
+});
+
+const reorder_post$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
+  __proto__: null,
+  default: reorder_post
+}, Symbol.toStringTag, { value: 'Module' }));
+
 const searchQuerySchema$1 = z.object({
   q: z.string().max(200).optional()
 });
 const search_get = defineEventHandler(async (event) => {
-  var _a;
+  var _a, _b, _c, _d;
   const db = useDB();
   const siteSlug = getRouterParam(event, "siteSlug");
   const query = searchQuerySchema$1.parse(getQuery$1(event));
-  return searchDocsPages(db, siteSlug, (_a = query.q) != null ? _a : "");
+  const site = await getDocsSiteBySlug(db, siteSlug);
+  if (!site) throw createError({ statusCode: 404, statusMessage: "Docs site not found" });
+  const version = (_c = (_a = site.versions) == null ? void 0 : _a.find((v) => v.isDefault)) != null ? _c : (_b = site.versions) == null ? void 0 : _b[0];
+  if (!version) return [];
+  return searchDocsPages(db, site.id, version.id, (_d = query.q) != null ? _d : "");
 });
 
 const search_get$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
@@ -4957,11 +5083,20 @@ const _lessonSlug__get = defineEventHandler(async (event) => {
   const db = useDB();
   const slug = getRouterParam(event, "slug");
   const lessonSlug = getRouterParam(event, "lessonSlug");
-  const lesson = await getLessonBySlug(db, slug, lessonSlug);
-  if (!lesson) {
+  const result = await getLessonBySlug(db, slug, lessonSlug);
+  if (!result) {
     throw createError({ statusCode: 404, statusMessage: "Lesson not found" });
   }
-  return lesson;
+  const content = result.lesson.content;
+  let renderedHtml = "";
+  if (content) {
+    const md = typeof content.markdown === "string" ? content.markdown : typeof content.notes === "string" ? content.notes : "";
+    if (md) {
+      const rendered = await renderMarkdown(md);
+      renderedHtml = rendered.html;
+    }
+  }
+  return { ...result, renderedHtml };
 });
 
 const _lessonSlug__get$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
@@ -5088,6 +5223,29 @@ const _lessonId__delete$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defin
   default: _lessonId__delete
 }, Symbol.toStringTag, { value: 'Module' }));
 
+const updateLessonSchema = z.object({
+  title: z.string().min(1).max(255).optional(),
+  type: z.enum(["article", "video", "quiz", "project", "explainer"]).optional(),
+  content: z.unknown().optional(),
+  durationMinutes: z.number().int().min(0).max(9999).optional()
+});
+const _lessonId__put = defineEventHandler(async (event) => {
+  const db = useDB();
+  const user = requireAuth(event);
+  const lessonId = getRouterParam(event, "lessonId");
+  const body = updateLessonSchema.parse(await readBody(event));
+  const result = await updateLesson(db, lessonId, user.id, body);
+  if (!result) {
+    throw createError({ statusCode: 404, statusMessage: "Lesson not found or not authorized" });
+  }
+  return result;
+});
+
+const _lessonId__put$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
+  __proto__: null,
+  default: _lessonId__put
+}, Symbol.toStringTag, { value: 'Module' }));
+
 const modules_post = defineEventHandler(async (event) => {
   const user = requireAuth(event);
   const db = useDB();
@@ -5201,10 +5359,12 @@ const enrollments_get$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineP
 const index_get$c = defineEventHandler(async (event) => {
   var _a;
   const db = useDB();
+  const user = getOptionalUser(event);
   const filters = learningPathFiltersSchema.parse(getQuery$1(event));
+  const isOwnContent = filters.authorId && (user == null ? void 0 : user.id) === filters.authorId;
   return listPaths(db, {
     ...filters,
-    status: (_a = filters.status) != null ? _a : "published"
+    status: isOwnContent ? filters.status : (_a = filters.status) != null ? _a : "published"
   });
 });
 
@@ -5266,6 +5426,30 @@ const _conversationId__post = defineEventHandler(async (event) => {
 const _conversationId__post$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
   __proto__: null,
   default: _conversationId__post
+}, Symbol.toStringTag, { value: 'Module' }));
+
+const info_get = defineEventHandler(async (event) => {
+  const db = useDB();
+  const user = requireAuth(event);
+  const conversationId = getRouterParam(event, "conversationId");
+  const rows = await db.select().from(conversations).where(
+    and(
+      eq(conversations.id, conversationId),
+      sql`${conversations.participants} @> ${JSON.stringify([user.id])}::jsonb`
+    )
+  ).limit(1);
+  if (!rows.length) {
+    throw createError({ statusCode: 404, statusMessage: "Conversation not found" });
+  }
+  return {
+    id: rows[0].id,
+    participants: rows[0].participants
+  };
+});
+
+const info_get$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
+  __proto__: null,
+  default: info_get
 }, Symbol.toStringTag, { value: 'Module' }));
 
 const stream_get$2 = defineEventHandler(async (event) => {
@@ -6013,6 +6197,25 @@ const following_get$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.definePro
   default: following_get
 }, Symbol.toStringTag, { value: 'Module' }));
 
+const learning_get = defineEventHandler(async (event) => {
+  const db = useDB();
+  const username = getRouterParam(event, "username");
+  const profile = await getUserByUsername(db, username);
+  if (!profile) {
+    throw createError({ statusCode: 404, statusMessage: "User not found" });
+  }
+  const [enrollments, certificates] = await Promise.all([
+    getUserEnrollments(db, profile.id),
+    getUserCertificates(db, profile.id)
+  ]);
+  return { enrollments, certificates };
+});
+
+const learning_get$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
+  __proto__: null,
+  default: learning_get
+}, Symbol.toStringTag, { value: 'Module' }));
+
 const usersQuerySchema = z.object({
   q: z.string().max(200).optional(),
   search: z.string().max(200).optional(),
@@ -6020,7 +6223,7 @@ const usersQuerySchema = z.object({
   offset: z.coerce.number().int().min(0).optional()
 });
 const index_get$2 = defineEventHandler(async (event) => {
-  var _a, _b;
+  var _a, _b, _c;
   const db = useDB();
   const query = usersQuerySchema.parse(getQuery$1(event));
   const limit = (_a = query.limit) != null ? _a : 20;
@@ -6062,7 +6265,8 @@ const index_get$2 = defineEventHandler(async (event) => {
       followerCount: (_a2 = followerCounts[r.id]) != null ? _a2 : 0
     };
   });
-  return { items };
+  const [countResult] = await db.select({ count: sql`count(*)::int` }).from(users).where(where);
+  return { items, total: (_c = countResult == null ? void 0 : countResult.count) != null ? _c : items.length };
 });
 
 const index_get$3 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({

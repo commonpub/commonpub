@@ -175,9 +175,9 @@ const totalLikes = computed(() =>
     <!-- Learning tab -->
     <div v-if="activeTab === 'learning'" class="cpub-dash-panel">
       <div class="cpub-dash-list">
-        <div v-for="enrollment in enrollments ?? []" :key="enrollment.pathId" class="cpub-dash-row">
-          <NuxtLink :to="`/learn/${enrollment.pathSlug}`" class="cpub-dash-row-title">
-            {{ enrollment.pathTitle }}
+        <div v-for="enrollment in enrollments ?? []" :key="enrollment.path?.id ?? enrollment.id" class="cpub-dash-row">
+          <NuxtLink :to="`/learn/${enrollment.path?.slug}`" class="cpub-dash-row-title">
+            {{ enrollment.path?.title ?? 'Learning Path' }}
           </NuxtLink>
           <span class="cpub-dash-row-meta">
             <span v-if="enrollment.completedAt" class="cpub-dash-badge cpub-dash-badge--green">

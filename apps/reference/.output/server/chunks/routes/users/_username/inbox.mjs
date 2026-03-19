@@ -1,4 +1,4 @@
-import { d as defineEventHandler, cf as getMethod, f as createError, c as readBody, cg as processInboxActivity } from '../../../nitro/nitro.mjs';
+import { d as defineEventHandler, ce as getMethod, f as createError, c as readBody, cf as processInboxActivity } from '../../../nitro/nitro.mjs';
 import 'drizzle-orm';
 import 'drizzle-orm/pg-core';
 import 'jose';

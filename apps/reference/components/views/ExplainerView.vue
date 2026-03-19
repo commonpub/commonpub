@@ -181,8 +181,8 @@ watch(activeSection, () => {
                 :blocks="blocks"
                 :start-index="sectionRanges[activeSection]!.start"
                 :end-index="sectionRanges[activeSection]!.end"
-                @quiz-answered="(idx, correct) => { if (correct) { completedSections.add(activeSection); checkpointVisible = true; } }"
-                @checkpoint-reached="() => { completedSections.add(activeSection); checkpointVisible = true; }"
+                @quiz-answered="(idx: number, correct: boolean) => { if (correct) { completedSections.value.add(activeSection); checkpointVisible = true; } }"
+                @checkpoint-reached="() => { completedSections.value.add(activeSection); checkpointVisible = true; }"
               />
             </template>
             <template v-else>

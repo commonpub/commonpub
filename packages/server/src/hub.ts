@@ -101,6 +101,7 @@ export async function listHubs(
     name: row.hub.name,
     slug: row.hub.slug,
     description: row.hub.description,
+    hubType: row.hub.hubType,
     iconUrl: row.hub.iconUrl,
     bannerUrl: row.hub.bannerUrl,
     joinPolicy: row.hub.joinPolicy,

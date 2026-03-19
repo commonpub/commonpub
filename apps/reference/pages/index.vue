@@ -15,10 +15,13 @@ const tabs = [
   { value: 'explainer', label: 'Explainers', icon: 'fa-solid fa-lightbulb' },
 ];
 
+const { user } = useAuth();
+
 const contentQuery = computed(() => ({
   status: 'published',
   type: ['foryou', 'latest', 'following'].includes(activeTab.value) ? undefined : activeTab.value,
-  sort: activeTab.value === 'latest' ? 'recent' : 'popular',
+  sort: activeTab.value === 'latest' ? 'recent' : activeTab.value === 'following' ? 'recent' : 'popular',
+  ...(activeTab.value === 'following' && user.value?.id ? { followedBy: user.value.id } : {}),
   limit: 12,
 }));
 
@@ -49,7 +52,7 @@ const activeContest = computed(() => {
   return items?.find((c) => c.status === 'active') ?? null;
 });
 
-const { isAuthenticated } = useAuth();
+const isAuthenticated = computed(() => !!user.value);
 const toast = useToast();
 
 // Load more state
@@ -206,9 +209,21 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
           <ContentCard v-for="item in feed.items" :key="item.id" :item="item" />
         </div>
         <div v-else class="cpub-empty-state">
-          <div class="cpub-empty-state-icon"><i class="fa-solid fa-inbox"></i></div>
-          <p class="cpub-empty-state-title">No content yet</p>
-          <p class="cpub-empty-state-desc">Be the first to create something!</p>
+          <div class="cpub-empty-state-icon"><i :class="activeTab === 'following' ? 'fa-solid fa-user-group' : 'fa-solid fa-inbox'"></i></div>
+          <template v-if="activeTab === 'following' && !isAuthenticated">
+            <p class="cpub-empty-state-title">Sign in to see your feed</p>
+            <p class="cpub-empty-state-desc">Follow creators to see their content here.</p>
+            <NuxtLink to="/auth/login" class="cpub-btn cpub-btn-primary" style="margin-top: 12px;">Sign In</NuxtLink>
+          </template>
+          <template v-else-if="activeTab === 'following'">
+            <p class="cpub-empty-state-title">No posts from people you follow</p>
+            <p class="cpub-empty-state-desc">Follow some creators to fill up your feed!</p>
+            <NuxtLink to="/explore" class="cpub-btn" style="margin-top: 12px;"><i class="fa-solid fa-compass"></i> Explore</NuxtLink>
+          </template>
+          <template v-else>
+            <p class="cpub-empty-state-title">No content yet</p>
+            <p class="cpub-empty-state-desc">Be the first to create something!</p>
+          </template>
         </div>
 
         <div v-if="!allLoaded && feed?.items?.length" class="cpub-load-more-row">
@@ -226,19 +241,19 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
           <div class="cpub-sb-head">Platform Stats</div>
           <div class="cpub-stats-grid">
             <div class="cpub-stat-block">
-              <span class="cpub-stat-num">{{ stats?.contentCount ?? 0 }}</span>
+              <span class="cpub-stat-num">{{ stats?.content?.total ?? 0 }}</span>
               <span class="cpub-stat-lbl">Projects</span>
             </div>
             <div class="cpub-stat-block">
-              <span class="cpub-stat-num">{{ stats?.articleCount ?? 0 }}</span>
+              <span class="cpub-stat-num">{{ stats?.content?.byType?.article ?? 0 }}</span>
               <span class="cpub-stat-lbl">Articles</span>
             </div>
             <div class="cpub-stat-block">
-              <span class="cpub-stat-num">{{ stats?.userCount ?? 0 }}</span>
+              <span class="cpub-stat-num">{{ stats?.users?.total ?? 0 }}</span>
               <span class="cpub-stat-lbl">Members</span>
             </div>
             <div class="cpub-stat-block">
-              <span class="cpub-stat-num">{{ stats?.communityCount ?? 0 }}</span>
+              <span class="cpub-stat-num">{{ stats?.hubs?.total ?? 0 }}</span>
               <span class="cpub-stat-lbl">Hubs</span>
             </div>
           </div>

@@ -24,6 +24,7 @@ const props = defineProps<{
     viewCount?: number;
     likeCount?: number;
     commentCount?: number;
+    buildCount?: number;
   };
 }>();
 

@@ -15,7 +15,7 @@ const contentQuery = computed(() => ({
   limit: 20,
 }));
 
-const { data: content } = await useFetch('/api/content', {
+const { data: content, pending: contentPending, error: contentError, refresh: refreshContent } = await useFetch('/api/content', {
   query: contentQuery,
   watch: [contentQuery],
 });
@@ -65,15 +65,15 @@ const sortOptions = [
     <!-- Stats summary -->
     <div v-if="statsData" class="cpub-explore-stats">
       <div class="cpub-explore-stat">
-        <span class="cpub-explore-stat-n">{{ statsData?.contentCount ?? 0 }}</span>
+        <span class="cpub-explore-stat-n">{{ statsData?.content?.total ?? 0 }}</span>
         <span class="cpub-explore-stat-l">Projects & Articles</span>
       </div>
       <div class="cpub-explore-stat">
-        <span class="cpub-explore-stat-n">{{ statsData?.hubCount ?? 0 }}</span>
+        <span class="cpub-explore-stat-n">{{ statsData?.hubs?.total ?? 0 }}</span>
         <span class="cpub-explore-stat-l">Hubs</span>
       </div>
       <div class="cpub-explore-stat">
-        <span class="cpub-explore-stat-n">{{ statsData?.userCount ?? 0 }}</span>
+        <span class="cpub-explore-stat-n">{{ statsData?.users?.total ?? 0 }}</span>
         <span class="cpub-explore-stat-l">Makers</span>
       </div>
     </div>
@@ -112,7 +112,12 @@ const sortOptions = [
         </select>
       </div>
 
-      <div v-if="content?.items?.length" class="cpub-explore-grid">
+      <div v-if="contentPending" class="cpub-loading">Loading content...</div>
+      <div v-else-if="contentError" class="cpub-fetch-error">
+        <div class="cpub-fetch-error-msg">Failed to load content.</div>
+        <button class="cpub-btn cpub-btn-sm" @click="refreshContent()">Retry</button>
+      </div>
+      <div v-else-if="content?.items?.length" class="cpub-explore-grid">
         <ContentCard v-for="item in content.items" :key="item.id" :item="item" />
       </div>
       <div v-else class="cpub-empty-state">

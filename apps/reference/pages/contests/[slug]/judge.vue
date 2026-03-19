@@ -11,16 +11,16 @@ const { data: entries, refresh: refreshEntries } = await useFetch<Serialized<Con
 
 useSeoMeta({ title: () => `Judge: ${contest.value?.title || 'Contest'} — CommonPub` });
 
-const entryList = computed<ContestEntry[]>(() => {
+const entryList = computed(() => {
   if (!entries.value) return [];
-  const items = Array.isArray(entries.value) ? entries.value : (entries.value as { items: ContestEntry[] }).items;
-  return (items || []).map((entry) => ({
+  const items = Array.isArray(entries.value) ? entries.value : [];
+  return items.map((entry) => ({
     id: entry.id,
     contentId: entry.contentId,
-    contentSlug: entry.contentSlug || entry.contentId,
-    contentType: entry.contentType || 'project',
-    contentTitle: entry.contentTitle || entry.title || 'Untitled',
-    authorName: entry.authorName || 'Unknown',
+    contentSlug: entry.contentSlug,
+    contentType: entry.contentType,
+    contentTitle: entry.contentTitle,
+    authorName: entry.authorName,
     score: entry.score ?? null,
     rank: entry.rank ?? null,
   }));

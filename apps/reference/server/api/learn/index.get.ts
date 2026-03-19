@@ -4,10 +4,14 @@ import { learningPathFiltersSchema } from '@commonpub/schema';
 
 export default defineEventHandler(async (event): Promise<PaginatedResponse<LearningPathListItem>> => {
   const db = useDB();
+  const user = getOptionalUser(event);
   const filters = learningPathFiltersSchema.parse(getQuery(event));
+
+  // Allow author to see their own drafts (same pattern as content API)
+  const isOwnContent = filters.authorId && user?.id === filters.authorId;
 
   return listPaths(db, {
     ...filters,
-    status: filters.status ?? 'published',
+    status: isOwnContent ? filters.status : (filters.status ?? 'published'),
   });
 });

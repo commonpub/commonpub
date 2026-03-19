@@ -1,4 +1,5 @@
-import { d as defineEventHandler, u as useDB, bk as learningPathFiltersSchema, g as getQuery, bl as listPaths } from '../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, bj as learningPathFiltersSchema, g as getQuery, bk as listPaths } from '../../nitro/nitro.mjs';
+import { g as getOptionalUser } from '../../_/auth.mjs';
 import 'drizzle-orm';
 import 'drizzle-orm/pg-core';
 import 'jose';
@@ -22,10 +23,12 @@ import 'better-auth/plugins';
 const index_get = defineEventHandler(async (event) => {
   var _a;
   const db = useDB();
+  const user = getOptionalUser(event);
   const filters = learningPathFiltersSchema.parse(getQuery(event));
+  const isOwnContent = filters.authorId && (user == null ? void 0 : user.id) === filters.authorId;
   return listPaths(db, {
     ...filters,
-    status: (_a = filters.status) != null ? _a : "published"
+    status: isOwnContent ? filters.status : (_a = filters.status) != null ? _a : "published"
   });
 });
 

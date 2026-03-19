@@ -12,6 +12,17 @@ const prefs = ref({
   emailDigest: false,
 });
 
+// Load current preferences from profile
+const { data: profile } = await useFetch('/api/profile');
+if (profile.value?.notificationPrefs) {
+  const saved = profile.value.notificationPrefs as Record<string, boolean>;
+  for (const key of Object.keys(prefs.value)) {
+    if (key in saved) {
+      (prefs.value as Record<string, boolean>)[key] = saved[key];
+    }
+  }
+}
+
 const labels: Record<string, string> = {
   emailLikes: 'Email when someone likes your content',
   emailComments: 'Email when someone comments on your content',

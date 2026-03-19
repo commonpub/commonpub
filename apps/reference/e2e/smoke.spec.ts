@@ -79,10 +79,47 @@ test.describe('Public pages render', () => {
       await expect(page.locator('body')).toBeVisible();
     }
   });
+
+  test('docs listing page loads', async ({ page }) => {
+    await page.goto('/docs');
+    await expect(page).toHaveTitle(/Documentation/);
+    await expect(page.locator('body')).toBeVisible();
+  });
+
+  test('products listing page loads', async ({ page }) => {
+    await page.goto('/products');
+    await expect(page).toHaveTitle(/Products/);
+    await expect(page.locator('body')).toBeVisible();
+  });
+
+  test('tags listing page loads', async ({ page }) => {
+    await page.goto('/tags');
+    await expect(page).toHaveTitle(/Tags/);
+    await expect(page.locator('body')).toBeVisible();
+  });
+
+  test('feed page loads', async ({ page }) => {
+    await page.goto('/feed');
+    await expect(page).toHaveTitle(/Feed/);
+    await expect(page.locator('body')).toBeVisible();
+  });
+
+  test('about page loads', async ({ page }) => {
+    await page.goto('/about');
+    await expect(page).toHaveTitle(/About/);
+    await expect(page.locator('body')).toBeVisible();
+  });
+
+  test('certificate verification shows not-found for invalid code', async ({ page }) => {
+    await page.goto('/cert/invalid-code-123');
+    await expect(page.locator('body')).toBeVisible();
+    // Should show not-found state
+    await expect(page.locator('text=Certificate Not Found')).toBeVisible();
+  });
 });
 
 test.describe('No console errors on key pages', () => {
-  const pages = ['/', '/search', '/auth/login', '/auth/register', '/hubs', '/contests', '/learn', '/videos'];
+  const pages = ['/', '/search', '/auth/login', '/auth/register', '/hubs', '/contests', '/learn', '/videos', '/docs', '/products', '/tags', '/feed', '/about'];
 
   for (const path of pages) {
     test(`no fatal console errors on ${path}`, async ({ page }) => {

@@ -4,7 +4,8 @@ defineProps<{
     id: string;
     type: string;
     message: string;
-    actorName?: string;
+    actorName?: string | null;
+    link?: string | null;
     targetUrl?: string;
     read: boolean;
     createdAt: string;
@@ -34,7 +35,7 @@ const iconMap: Record<string, string> = {
         {{ new Date(notification.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) }}
       </time>
     </div>
-    <NuxtLink v-if="notification.targetUrl" :to="notification.targetUrl" class="cpub-notif-link" aria-label="View">
+    <NuxtLink v-if="notification.link || notification.targetUrl" :to="notification.link || notification.targetUrl || '#'" class="cpub-notif-link" aria-label="View">
       <i class="fa-solid fa-arrow-right"></i>
     </NuxtLink>
   </div>

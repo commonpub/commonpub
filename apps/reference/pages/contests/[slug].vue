@@ -64,6 +64,34 @@ const entries = computed(() => {
 
 const entryFilter = ref('all');
 const filters = ['all', 'newest'];
+
+// Entry submission
+const { isAuthenticated } = useAuth();
+const showSubmitDialog = ref(false);
+const submitContentId = ref('');
+const submitting = ref(false);
+const { data: userContent } = useFetch('/api/content', {
+  query: { status: 'published', limit: 50 },
+  immediate: isAuthenticated.value,
+});
+
+async function submitEntry(): Promise<void> {
+  if (!submitContentId.value) return;
+  submitting.value = true;
+  try {
+    await $fetch(`/api/contests/${slug}/entries`, {
+      method: 'POST',
+      body: { contentId: submitContentId.value },
+    });
+    showSubmitDialog.value = false;
+    submitContentId.value = '';
+    refreshNuxtData();
+  } catch {
+    // silent
+  } finally {
+    submitting.value = false;
+  }
+}
 </script>
 
 <template>
@@ -124,7 +152,7 @@ const filters = ['all', 'newest'];
         </div>
 
         <div class="cpub-hero-cta">
-          <button class="cpub-btn cpub-btn-primary cpub-btn-lg"><i class="fa fa-upload"></i> Submit Entry</button>
+          <button v-if="isAuthenticated" class="cpub-btn cpub-btn-primary cpub-btn-lg" @click="showSubmitDialog = true"><i class="fa fa-upload"></i> Submit Entry</button>
           <button class="cpub-btn cpub-btn-lg cpub-btn-dark"><i class="fa fa-file-lines"></i> View Rules</button>
           <button class="cpub-btn cpub-btn-sm cpub-btn-dark" style="margin-left:4px;"><i class="fa fa-bell"></i> Notify Me</button>
         </div>
@@ -138,6 +166,31 @@ const filters = ['all', 'newest'];
             <div class="cpub-hero-stat-val">{{ c?.status ?? 'draft' }}</div>
             <div class="cpub-hero-stat-label">Status</div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SUBMIT ENTRY DIALOG -->
+    <div v-if="showSubmitDialog" class="cpub-submit-overlay" @click.self="showSubmitDialog = false">
+      <div class="cpub-submit-dialog" role="dialog" aria-label="Submit entry">
+        <div class="cpub-submit-header">
+          <h2 style="font-size: 14px; font-weight: 700;">Submit Entry</h2>
+          <button style="background:none;border:none;color:var(--text-faint);cursor:pointer;font-size:14px;" @click="showSubmitDialog = false"><i class="fa-solid fa-times"></i></button>
+        </div>
+        <div class="cpub-submit-body">
+          <p style="font-size: 12px; color: var(--text-dim); margin-bottom: 12px;">Select one of your published projects to submit as an entry.</p>
+          <select v-model="submitContentId" class="cpub-submit-select">
+            <option value="">Select a project...</option>
+            <option v-for="item in (userContent?.items ?? [])" :key="item.id" :value="item.id">
+              {{ item.title }} ({{ item.type }})
+            </option>
+          </select>
+        </div>
+        <div class="cpub-submit-footer">
+          <button class="cpub-btn cpub-btn-sm" @click="showSubmitDialog = false">Cancel</button>
+          <button class="cpub-btn cpub-btn-sm cpub-btn-primary" :disabled="!submitContentId || submitting" @click="submitEntry">
+            {{ submitting ? 'Submitting...' : 'Submit' }}
+          </button>
         </div>
       </div>
     </div>
@@ -178,32 +231,32 @@ const filters = ['all', 'newest'];
               <span class="cpub-sec-sub">{{ c?.entryCount ?? entries.length }} entries</span>
             </div>
             <div v-if="entries.length" class="cpub-entry-grid">
-              <NuxtLink
+              <div
                 v-for="(entry, i) in entries"
                 :key="entry.id"
-                :to="entry.contentSlug ? `/${entry.contentType}/${entry.contentSlug}` : '#'"
                 class="cpub-entry-card"
-                style="text-decoration: none; color: inherit;"
               >
                 <div class="cpub-entry-thumb" :class="i % 2 === 0 ? 'cpub-entry-bg-light' : 'cpub-entry-bg-dark'">
                   <div class="cpub-entry-grid-pat"></div>
                   <div class="cpub-entry-icon" style="color: var(--accent)"><i class="fa-solid fa-microchip"></i></div>
+                  <span v-if="entry.rank" class="cpub-entry-rank" :class="`cpub-rank-${entry.rank}`">#{{ entry.rank }}</span>
                 </div>
                 <div class="cpub-entry-body">
-                  <div class="cpub-entry-title">{{ entry.contentTitle || entry.title || 'Untitled Entry' }}</div>
+                  <NuxtLink :to="`/${entry.contentType}/${entry.contentSlug}`" class="cpub-entry-title">{{ entry.contentTitle || `Entry #${i + 1}` }}</NuxtLink>
                   <div class="cpub-entry-author">
-                    {{ entry.author?.displayName || entry.author?.username || 'Anonymous' }}
+                    <NuxtLink v-if="entry.authorUsername" :to="`/u/${entry.authorUsername}`" style="color: var(--text-dim); text-decoration: none;">{{ entry.authorName }}</NuxtLink>
+                    <span class="cpub-entry-meta">{{ new Date(entry.submittedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) }}</span>
                   </div>
                   <div class="cpub-entry-footer">
                     <button
                       class="cpub-vote-btn"
                       :class="{ 'cpub-voted': votedEntries.has(entry.id) }"
                       @click.prevent="toggleVote(entry.id)"
-                    ><i class="fa fa-arrow-up"></i> {{ (entry.likeCount || 0) + (votedEntries.has(entry.id) ? 1 : 0) }}</button>
-                    <span class="cpub-entry-views"><i class="fa fa-eye"></i> {{ entry.viewCount || 0 }}</span>
+                    ><i class="fa fa-arrow-up"></i> Vote</button>
+                    <span v-if="entry.score != null" class="cpub-entry-views">Score: {{ entry.score }}</span>
                   </div>
                 </div>
-              </NuxtLink>
+              </div>
             </div>
             <div v-else class="cpub-empty-state" style="padding: 32px 0;">
               <div class="cpub-empty-state-icon"><i class="fa-solid fa-box-open"></i></div>
@@ -260,6 +313,15 @@ const filters = ['all', 'newest'];
   --silver: var(--text-faint);
   --bronze: #a0724a;
 }
+
+/* SUBMIT DIALOG */
+.cpub-submit-overlay { position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; }
+.cpub-submit-dialog { background: var(--surface); border: 2px solid var(--border); box-shadow: 8px 8px 0 var(--border); width: 420px; max-width: 90vw; }
+.cpub-submit-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 2px solid var(--border); }
+.cpub-submit-body { padding: 16px; }
+.cpub-submit-select { width: 100%; padding: 8px 10px; border: 2px solid var(--border); background: var(--surface); color: var(--text); font-size: 13px; }
+.cpub-submit-select:focus { border-color: var(--accent); outline: none; }
+.cpub-submit-footer { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 16px; border-top: 2px solid var(--border); }
 
 /* HERO */
 .cpub-hero { position: relative; overflow: hidden; background: var(--hero-bg); padding: 56px 0 48px; }

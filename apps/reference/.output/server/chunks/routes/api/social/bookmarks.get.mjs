@@ -1,4 +1,4 @@
-import { d as defineEventHandler, u as useDB, g as getQuery, bM as listUserBookmarks } from '../../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, g as getQuery, bL as listUserBookmarks } from '../../../nitro/nitro.mjs';
 import { a as requireAuth } from '../../../_/auth.mjs';
 import { z } from 'zod';
 import 'drizzle-orm';

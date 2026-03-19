@@ -1,4 +1,4 @@
-import { d as defineEventHandler, u as useDB, g as getQuery, bS as isLiked, bT as likeTargetTypeSchema } from '../../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, g as getQuery, bR as isLiked, bS as likeTargetTypeSchema } from '../../../nitro/nitro.mjs';
 import { a as requireAuth } from '../../../_/auth.mjs';
 import { z } from 'zod';
 import 'drizzle-orm';

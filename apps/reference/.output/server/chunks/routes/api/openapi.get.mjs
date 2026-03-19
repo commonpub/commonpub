@@ -1,4 +1,4 @@
-import { d as defineEventHandler, bA as generateOpenAPISpec } from '../../nitro/nitro.mjs';
+import { d as defineEventHandler, bz as generateOpenAPISpec } from '../../nitro/nitro.mjs';
 import 'drizzle-orm';
 import 'drizzle-orm/pg-core';
 import 'jose';

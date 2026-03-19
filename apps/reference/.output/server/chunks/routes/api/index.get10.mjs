@@ -1,4 +1,4 @@
-import { d as defineEventHandler, u as useDB, g as getQuery, b$ as users, c0 as follows } from '../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, g as getQuery, b_ as users, b$ as follows } from '../../nitro/nitro.mjs';
 import { or, ilike, desc, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import 'drizzle-orm/pg-core';
@@ -26,7 +26,7 @@ const usersQuerySchema = z.object({
   offset: z.coerce.number().int().min(0).optional()
 });
 const index_get = defineEventHandler(async (event) => {
-  var _a, _b;
+  var _a, _b, _c;
   const db = useDB();
   const query = usersQuerySchema.parse(getQuery(event));
   const limit = (_a = query.limit) != null ? _a : 20;
@@ -68,7 +68,8 @@ const index_get = defineEventHandler(async (event) => {
       followerCount: (_a2 = followerCounts[r.id]) != null ? _a2 : 0
     };
   });
-  return { items };
+  const [countResult] = await db.select({ count: sql`count(*)::int` }).from(users).where(where);
+  return { items, total: (_c = countResult == null ? void 0 : countResult.count) != null ? _c : items.length };
 });
 
 export { index_get as default };

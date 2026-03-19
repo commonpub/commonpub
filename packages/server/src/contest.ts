@@ -54,6 +54,14 @@ export interface ContestEntryItem {
   score: number | null;
   rank: number | null;
   submittedAt: Date;
+  // Enriched fields from joins
+  contentTitle: string;
+  contentSlug: string;
+  contentType: string;
+  contentCoverImageUrl: string | null;
+  authorName: string;
+  authorUsername: string;
+  authorAvatarUrl: string | null;
 }
 
 export async function listContests(
@@ -211,19 +219,41 @@ export async function listContestEntries(
   contestId: string,
 ): Promise<ContestEntryItem[]> {
   const rows = await db
-    .select()
+    .select({
+      entry: contestEntries,
+      content: {
+        title: contentItems.title,
+        slug: contentItems.slug,
+        type: contentItems.type,
+        coverImageUrl: contentItems.coverImageUrl,
+      },
+      author: {
+        displayName: users.displayName,
+        username: users.username,
+        avatarUrl: users.avatarUrl,
+      },
+    })
     .from(contestEntries)
+    .innerJoin(contentItems, eq(contestEntries.contentId, contentItems.id))
+    .innerJoin(users, eq(contestEntries.userId, users.id))
     .where(eq(contestEntries.contestId, contestId))
     .orderBy(desc(contestEntries.submittedAt));
 
   return rows.map((row) => ({
-    id: row.id,
-    contestId: row.contestId,
-    contentId: row.contentId,
-    userId: row.userId,
-    score: row.score,
-    rank: row.rank,
-    submittedAt: row.submittedAt,
+    id: row.entry.id,
+    contestId: row.entry.contestId,
+    contentId: row.entry.contentId,
+    userId: row.entry.userId,
+    score: row.entry.score,
+    rank: row.entry.rank,
+    submittedAt: row.entry.submittedAt,
+    contentTitle: row.content.title,
+    contentSlug: row.content.slug,
+    contentType: row.content.type,
+    contentCoverImageUrl: row.content.coverImageUrl,
+    authorName: row.author.displayName ?? row.author.username,
+    authorUsername: row.author.username,
+    authorAvatarUrl: row.author.avatarUrl,
   }));
 }
 
@@ -267,6 +297,28 @@ export async function submitContestEntry(
     .set({ entryCount: sql`${contests.entryCount} + 1` })
     .where(eq(contests.id, contestId));
 
+  // Fetch enriched content + author info
+  const enriched = await db
+    .select({
+      content: {
+        title: contentItems.title,
+        slug: contentItems.slug,
+        type: contentItems.type,
+        coverImageUrl: contentItems.coverImageUrl,
+      },
+      author: {
+        displayName: users.displayName,
+        username: users.username,
+        avatarUrl: users.avatarUrl,
+      },
+    })
+    .from(contentItems)
+    .innerJoin(users, eq(contentItems.authorId, users.id))
+    .where(eq(contentItems.id, contentId))
+    .limit(1);
+
+  const info = enriched[0];
+
   return {
     id: row.id,
     contestId: row.contestId,
@@ -275,6 +327,13 @@ export async function submitContestEntry(
     score: row.score,
     rank: row.rank,
     submittedAt: row.submittedAt,
+    contentTitle: info?.content.title ?? 'Untitled',
+    contentSlug: info?.content.slug ?? '',
+    contentType: info?.content.type ?? 'project',
+    contentCoverImageUrl: info?.content.coverImageUrl ?? null,
+    authorName: info?.author.displayName ?? info?.author.username ?? 'Unknown',
+    authorUsername: info?.author.username ?? '',
+    authorAvatarUrl: info?.author.avatarUrl ?? null,
   };
 }
 

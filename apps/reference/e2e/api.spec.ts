@@ -141,6 +141,62 @@ test.describe('Protected endpoints require auth', () => {
   });
 });
 
+test.describe('Products listing', () => {
+  test('GET /api/products returns items', async ({ request }) => {
+    const response = await request.get('/api/products?limit=5');
+    expect(response.status()).toBe(200);
+
+    const body = await response.json();
+    // Products may return { items, total } or array
+    if (body.items) {
+      expect(Array.isArray(body.items)).toBe(true);
+    } else {
+      expect(Array.isArray(body)).toBe(true);
+    }
+  });
+});
+
+test.describe('Docs listing', () => {
+  test('GET /api/docs returns items', async ({ request }) => {
+    const response = await request.get('/api/docs');
+    expect(response.status()).toBe(200);
+
+    const body = await response.json();
+    expect(body).toHaveProperty('items');
+    expect(Array.isArray(body.items)).toBe(true);
+  });
+});
+
+test.describe('Certificate verification', () => {
+  test('GET /api/cert/invalid-code returns 404', async ({ request }) => {
+    const response = await request.get('/api/cert/invalid-code-123');
+    expect(response.status()).toBe(404);
+  });
+});
+
+test.describe('User learning data', () => {
+  test('GET /api/users/nonexistent/learning returns 404', async ({ request }) => {
+    const response = await request.get('/api/users/nonexistent-user-xyz/learning');
+    expect(response.status()).toBe(404);
+  });
+});
+
+test.describe('New protected endpoints require auth', () => {
+  test('PUT /api/learn/test/lessons/test returns 401', async ({ request }) => {
+    const response = await request.put('/api/learn/test/lessons/test', {
+      data: { title: 'Test' },
+    });
+    expect(response.status()).toBe(401);
+  });
+
+  test('POST /api/docs/test/pages/reorder returns 401', async ({ request }) => {
+    const response = await request.post('/api/docs/test/pages/reorder', {
+      data: { pageIds: [] },
+    });
+    expect(response.status()).toBe(401);
+  });
+});
+
 test.describe('Federation endpoints', () => {
   test('GET /.well-known/webfinger returns 400 without resource param', async ({ request }) => {
     const response = await request.get('/.well-known/webfinger');

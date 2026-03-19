@@ -181,8 +181,8 @@ const forking = ref(false);
 async function handleFork(): Promise<void> {
   forking.value = true;
   try {
-    const result = await $fetch<{ slug: string }>(`/api/content/${props.content.id}/fork`, { method: 'POST' });
-    await navigateTo(`/content/${result.slug}/edit`);
+    const result = await $fetch<{ slug: string; type: string }>(`/api/content/${props.content.id}/fork`, { method: 'POST' });
+    await navigateTo(`/${result.type}/${result.slug}/edit`);
   } catch {
     // fork failed silently
   } finally {
@@ -226,8 +226,8 @@ async function handleBuild(): Promise<void> {
         </div>
       </template>
       <div class="cpub-hero-badges">
-        <span v-if="content.featured" class="cpub-badge cpub-badge-featured"><i class="fa-solid fa-star"></i> Featured</span>
-        <span class="cpub-badge cpub-badge-outline">{{ content.difficultyLabel || 'Intermediate' }}</span>
+        <span v-if="content.isFeatured" class="cpub-badge cpub-badge-featured"><i class="fa-solid fa-star"></i> Featured</span>
+        <span class="cpub-badge cpub-badge-outline">{{ content.difficulty || 'Intermediate' }}</span>
       </div>
     </div>
 
@@ -267,7 +267,7 @@ async function handleBuild(): Promise<void> {
         <!-- Engagement Row -->
         <div class="cpub-engagement-row">
           <button class="cpub-engage-btn" :class="{ liked }" @click="toggleLike">
-            <i class="fa-solid fa-heart"></i> Like <span class="cpub-count">{{ content.likeCount ?? 0 }}</span>
+            <i class="fa-solid fa-heart"></i> Like <span class="cpub-count">{{ likeCount }}</span>
           </button>
           <button class="cpub-engage-btn" :class="{ bookmarked }" @click="toggleBookmark"><i class="fa-regular fa-bookmark"></i> Bookmark</button>
           <button class="cpub-engage-btn" @click="share"><i class="fa-solid fa-share-nodes"></i> Share</button>

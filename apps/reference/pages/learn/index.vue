@@ -1,9 +1,16 @@
 <script setup lang="ts">
 useSeoMeta({ title: 'Learn — CommonPub' });
 
-const { isAuthenticated } = useAuth();
+const { isAuthenticated, user } = useAuth();
 
 const { data: pathsData, pending: loadingPaths } = useFetch('/api/learn');
+
+// Fetch author's own paths (including drafts) when authenticated
+const { data: myPathsData } = useFetch(() => `/api/learn?authorId=${user.value?.id}`, {
+  immediate: isAuthenticated.value,
+  watch: [user],
+});
+const myPaths = computed(() => myPathsData.value?.items ?? []);
 const { data: enrollments } = useFetch('/api/learn/enrollments', {
   immediate: isAuthenticated.value,
 });
@@ -11,9 +18,13 @@ const { data: certificates } = useFetch('/api/learn/certificates', {
   immediate: isAuthenticated.value,
 });
 
-const paths = computed(() => pathsData.value?.items ?? []);
+const allPaths = computed(() => pathsData.value?.items ?? []);
+const paths = computed(() => {
+  if (!activeDifficultyFilter.value) return allPaths.value;
+  return allPaths.value.filter((p: { difficulty: string | null }) => p.difficulty === activeDifficultyFilter.value);
+});
 const totalPaths = computed(() => pathsData.value?.total ?? 0);
-const inProgress = computed(() => enrollments.value?.filter(e => e.progress > 0 && e.progress < 100) ?? []);
+const inProgress = computed(() => enrollments.value?.filter(e => parseFloat(e.progress) > 0 && parseFloat(e.progress) < 100) ?? []);
 
 function getDifficultyClass(difficulty: string | null): string {
   switch (difficulty) {
@@ -25,13 +36,13 @@ function getDifficultyClass(difficulty: string | null): string {
 }
 
 const heroCategories = [
-  { name: 'All', icon: 'fa-solid fa-layer-group' },
-  { name: 'TinyML', icon: 'fa-solid fa-microchip' },
-  { name: 'Computer Vision', icon: 'fa-solid fa-eye' },
-  { name: 'FPGA', icon: 'fa-solid fa-diagram-project' },
-  { name: 'Audio', icon: 'fa-solid fa-waveform' },
+  { name: 'All', icon: 'fa-solid fa-layer-group', filter: '' },
+  { name: 'Beginner', icon: 'fa-solid fa-seedling', filter: 'beginner' },
+  { name: 'Intermediate', icon: 'fa-solid fa-bolt', filter: 'intermediate' },
+  { name: 'Advanced', icon: 'fa-solid fa-fire', filter: 'advanced' },
 ];
 const activeHeroCat = ref('All');
+const activeDifficultyFilter = ref('');
 </script>
 
 <template>
@@ -49,7 +60,7 @@ const activeHeroCat = ref('All');
             :key="c.name"
             class="cpub-hero-cat"
             :class="{ active: activeHeroCat === c.name }"
-            @click="activeHeroCat = c.name"
+            @click="activeHeroCat = c.name; activeDifficultyFilter = c.filter"
           >
             <span class="cpub-hero-cat-icon"><i :class="c.icon"></i></span> {{ c.name }}
           </div>
@@ -74,23 +85,45 @@ const activeHeroCat = ref('All');
             </div>
 
             <div class="cpub-ip-row">
-              <div v-for="ip in inProgress" :key="ip.pathId" class="cpub-ip-card">
+              <div v-for="ip in inProgress" :key="ip.path.id" class="cpub-ip-card">
                 <div class="cpub-ip-thumb">
                   <div class="cpub-ip-thumb-icon"><i class="fa-solid fa-graduation-cap"></i></div>
                 </div>
                 <div class="cpub-ip-body">
-                  <div class="cpub-ip-title">{{ ip.pathTitle }}</div>
-                  <div class="cpub-ip-meta">{{ ip.currentModule || 'In progress' }}</div>
+                  <div class="cpub-ip-title">{{ ip.path.title }}</div>
+                  <div class="cpub-ip-meta">In progress</div>
                   <div class="cpub-ip-progress-label">
-                    <span class="cpub-ip-progress-text">{{ ip.progress }}% complete</span>
-                    <span class="cpub-ip-progress-pct">{{ ip.progress }}%</span>
+                    <span class="cpub-ip-progress-text">{{ Math.round(parseFloat(ip.progress)) }}% complete</span>
+                    <span class="cpub-ip-progress-pct">{{ Math.round(parseFloat(ip.progress)) }}%</span>
                   </div>
                   <div class="cpub-progress-track"><div class="cpub-progress-fill" :style="{ width: ip.progress + '%' }"></div></div>
-                  <NuxtLink :to="`/learn/${ip.pathId}`" class="cpub-ip-continue"><i class="fa-solid fa-play" style="font-size:9px;"></i> Continue Learning</NuxtLink>
+                  <NuxtLink :to="`/learn/${ip.path.slug}`" class="cpub-ip-continue"><i class="fa-solid fa-play" style="font-size:9px;"></i> Continue Learning</NuxtLink>
                 </div>
               </div>
             </div>
 
+            <hr class="cpub-divider" />
+          </template>
+
+          <!-- MY PATHS (author's own, including drafts) -->
+          <template v-if="isAuthenticated && myPaths.length">
+            <div class="cpub-sec-head">
+              <h2>My Paths</h2>
+              <span class="cpub-sec-sub">{{ myPaths.length }} paths</span>
+            </div>
+
+            <div class="cpub-my-paths">
+              <div v-for="p in myPaths" :key="p.id" class="cpub-my-path-row">
+                <div class="cpub-my-path-info">
+                  <NuxtLink :to="`/learn/${p.slug}`" class="cpub-my-path-title">{{ p.title }}</NuxtLink>
+                  <span class="cpub-my-path-status" :class="{ draft: p.status === 'draft' }">{{ p.status }}</span>
+                </div>
+                <div class="cpub-my-path-meta">
+                  <span>{{ p.moduleCount }} modules</span>
+                  <span>{{ p.enrollmentCount }} enrolled</span>
+                </div>
+              </div>
+            </div>
             <hr class="cpub-divider" />
           </template>
 
@@ -151,11 +184,11 @@ const activeHeroCat = ref('All');
           <div class="cpub-sb-section">
             <div class="cpub-sb-title">Certificates Earned</div>
             <div class="cpub-cert-grid">
-              <div v-for="c in certificates" :key="c.name" class="cpub-cert-item">
+              <div v-for="c in certificates" :key="c.id" class="cpub-cert-item">
                 <div class="cpub-cert-badge"><i class="fa-solid fa-medal"></i></div>
                 <div class="cpub-cert-info">
-                  <div class="cpub-cert-name">{{ c.name }}</div>
-                  <div class="cpub-cert-date">{{ c.earnedAt }}</div>
+                  <div class="cpub-cert-name">{{ c.path.title }}</div>
+                  <div class="cpub-cert-date">{{ new Date(c.issuedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) }}</div>
                 </div>
               </div>
             </div>
@@ -307,6 +340,16 @@ const activeHeroCat = ref('All');
 .cpub-cert-info { flex: 1; }
 .cpub-cert-name { font-size: 11px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
 .cpub-cert-date { font-size: 10px; font-family: var(--font-mono); color: var(--text-faint); }
+
+/* MY PATHS */
+.cpub-my-paths { display: flex; flex-direction: column; gap: 2px; margin-bottom: 16px; }
+.cpub-my-path-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border: 2px solid var(--border); background: var(--surface); }
+.cpub-my-path-info { display: flex; align-items: center; gap: 10px; }
+.cpub-my-path-title { font-size: 13px; font-weight: 600; color: var(--text); text-decoration: none; }
+.cpub-my-path-title:hover { color: var(--accent); }
+.cpub-my-path-status { font-size: 10px; font-family: var(--font-mono); padding: 2px 8px; border: 1px solid var(--border); color: var(--text-dim); }
+.cpub-my-path-status.draft { color: var(--yellow); border-color: var(--yellow-border); background: var(--yellow-bg); }
+.cpub-my-path-meta { display: flex; gap: 12px; font-size: 11px; font-family: var(--font-mono); color: var(--text-faint); }
 
 /* EMPTY STATE (page-specific) */
 .cpub-empty-icon { font-size: 32px; color: var(--text-faint); margin-bottom: 12px; }

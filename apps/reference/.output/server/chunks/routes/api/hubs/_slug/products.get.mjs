@@ -1,4 +1,4 @@
-import { d as defineEventHandler, u as useDB, a as getRouterParam, g as getQuery, f as createError, ar as getHubBySlug, aT as listHubProducts, aU as productStatusSchema, aV as productCategorySchema } from '../../../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, a as getRouterParam, g as getQuery, f as createError, aq as getHubBySlug, aS as listHubProducts, aT as productStatusSchema, aU as productCategorySchema } from '../../../../nitro/nitro.mjs';
 import { z } from 'zod';
 import 'drizzle-orm';
 import 'drizzle-orm/pg-core';

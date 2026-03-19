@@ -34,6 +34,9 @@ declare module "nitropack/types" {
     '/api/admin/users/:id/status': {
       'put': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/admin/users/[id]/status.put').default>>>>
     }
+    '/api/cert/:code': {
+      'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/cert/[code].get').default>>>>
+    }
     '/api/content/:id/build': {
       'post': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/content/[id]/build.post').default>>>>
     }
@@ -103,7 +106,14 @@ declare module "nitropack/types" {
       'post': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/docs/[siteSlug]/pages.post').default>>>>
     }
     '/api/docs/:siteSlug/pages/:pageId': {
+      'delete': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/docs/[siteSlug]/pages/[pageId].delete').default>>>>
       'put': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/docs/[siteSlug]/pages/[pageId].put').default>>>>
+    }
+    '/api/docs/:siteSlug/pages/:pageSlug': {
+      'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/docs/[siteSlug]/pages/[pageSlug].get').default>>>>
+    }
+    '/api/docs/:siteSlug/pages/reorder': {
+      'post': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/docs/[siteSlug]/pages/reorder.post').default>>>>
     }
     '/api/docs/:siteSlug/search': {
       'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/docs/[siteSlug]/search.get').default>>>>
@@ -203,6 +213,7 @@ declare module "nitropack/types" {
     }
     '/api/learn/:slug/lessons/:lessonId': {
       'delete': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/learn/[slug]/lessons/[lessonId].delete').default>>>>
+      'put': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/learn/[slug]/lessons/[lessonId].put').default>>>>
     }
     '/api/learn/:slug/modules': {
       'post': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/learn/[slug]/modules.post').default>>>>
@@ -230,6 +241,9 @@ declare module "nitropack/types" {
     '/api/messages/:conversationId': {
       'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/messages/[conversationId].get').default>>>>
       'post': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/messages/[conversationId].post').default>>>>
+    }
+    '/api/messages/:conversationId/info': {
+      'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/messages/[conversationId]/info.get').default>>>>
     }
     '/api/messages/:conversationId/stream': {
       'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/messages/[conversationId]/stream.get').default>>>>
@@ -317,6 +331,9 @@ declare module "nitropack/types" {
     }
     '/api/users/:username/following': {
       'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/users/[username]/following.get').default>>>>
+    }
+    '/api/users/:username/learning': {
+      'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/users/[username]/learning.get').default>>>>
     }
     '/api/users': {
       'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/users/index.get').default>>>>

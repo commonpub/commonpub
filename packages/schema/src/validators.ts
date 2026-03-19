@@ -399,7 +399,8 @@ export type UpdateDocsSiteInput = z.infer<typeof updateDocsSiteSchema>;
 export const createDocsPageSchema = z.object({
   versionId: z.string().uuid().optional(),
   title: z.string().min(1).max(255),
-  content: z.string(),
+  slug: z.string().max(255).optional(),
+  content: z.string().default(''),
   sortOrder: z.number().int().min(0).optional(),
   parentId: z.string().uuid().optional(),
 });
@@ -495,6 +496,7 @@ export const contentFiltersSchema = z.object({
   status: contentStatusSchema.optional(),
   type: contentTypeSchema.optional(),
   authorId: z.string().uuid().optional(),
+  followedBy: z.string().uuid().optional(),
   featured: z.coerce.boolean().optional(),
   difficulty: difficultySchema.optional(),
   search: z.string().max(200).optional(),

@@ -8,8 +8,9 @@ useSeoMeta({
 
 import type { Serialized, UserProfile } from '@commonpub/server';
 
-const { data: profile } = await useFetch<Serialized<UserProfile>>(`/api/users/${username}`);
+const { data: profile, pending: profilePending, error: profileError, refresh: refreshProfile } = await useFetch<Serialized<UserProfile>>(`/api/users/${username}`);
 const { data: content } = await useFetch(`/api/users/${username}/content`);
+const { data: learningData } = await useFetch(`/api/users/${username}/learning`);
 
 const activeTab = ref('projects');
 
@@ -17,7 +18,7 @@ const tabDefs = [
   { value: 'projects', label: 'Projects', icon: 'fa-solid fa-folder-open' },
   { value: 'articles', label: 'Articles', icon: 'fa-solid fa-newspaper' },
   { value: 'explainers', label: 'Explainers', icon: 'fa-solid fa-book-open' },
-  { value: 'videos', label: 'Videos', icon: 'fa-solid fa-play' },
+  { value: 'learning', label: 'Learning', icon: 'fa-solid fa-graduation-cap' },
   { value: 'about', label: 'About', icon: 'fa-solid fa-id-card' },
 ];
 
@@ -99,7 +100,13 @@ function toggleMenu(): void {
 </script>
 
 <template>
-  <div v-if="p" class="cpub-profile">
+  <div v-if="profilePending" class="cpub-loading">Loading profile...</div>
+  <div v-else-if="profileError" class="cpub-fetch-error">
+    <div class="cpub-fetch-error-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+    <div class="cpub-fetch-error-msg">Failed to load user profile.</div>
+    <button class="cpub-btn cpub-btn-sm" @click="refreshProfile()">Retry</button>
+  </div>
+  <div v-else-if="p" class="cpub-profile">
     <!-- Hero -->
     <section class="cpub-profile-hero">
       <!-- Banner -->
@@ -194,7 +201,7 @@ function toggleMenu(): void {
     <!-- Content -->
     <div class="cpub-profile-main">
       <!-- Projects / Articles / Explainers / Videos tabs -->
-      <template v-if="['projects', 'articles', 'explainers', 'videos'].includes(activeTab)">
+      <template v-if="['projects', 'articles', 'explainers'].includes(activeTab)">
         <!-- Section header -->
         <div class="cpub-sec-head">
           <h2>
@@ -208,6 +215,63 @@ function toggleMenu(): void {
         </div>
         <div v-else class="cpub-empty-state">
           <p class="cpub-empty-state-title">No {{ activeTab }} yet</p>
+        </div>
+      </template>
+
+      <!-- Learning tab — Certificates + In-progress paths -->
+      <template v-if="activeTab === 'learning'">
+        <!-- Certificates -->
+        <template v-if="learningData?.certificates?.length">
+          <div class="cpub-sec-head">
+            <h2><i class="fa-solid fa-medal" style="color: var(--yellow); margin-right: 6px"></i>Certificates</h2>
+          </div>
+          <div class="cpub-cert-list">
+            <NuxtLink
+              v-for="cert in learningData.certificates"
+              :key="cert.id"
+              :to="`/cert/${cert.verificationCode}`"
+              class="cpub-cert-card-profile"
+            >
+              <div class="cpub-cert-card-badge"><i class="fa-solid fa-award"></i></div>
+              <div class="cpub-cert-card-info">
+                <div class="cpub-cert-card-path">{{ cert.path.title }}</div>
+                <div class="cpub-cert-card-date">Completed {{ new Date(cert.issuedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) }}</div>
+              </div>
+              <div class="cpub-cert-card-code">{{ cert.verificationCode }}</div>
+            </NuxtLink>
+          </div>
+        </template>
+
+        <!-- In-progress enrollments -->
+        <template v-if="learningData?.enrollments?.length">
+          <div class="cpub-sec-head" style="margin-top: 24px">
+            <h2><i class="fa-solid fa-graduation-cap" style="color: var(--accent); margin-right: 6px"></i>In Progress</h2>
+          </div>
+          <div class="cpub-enrollment-list">
+            <NuxtLink
+              v-for="enr in learningData.enrollments"
+              :key="enr.id"
+              :to="`/learn/${enr.path.slug}`"
+              class="cpub-enrollment-card"
+            >
+              <div class="cpub-enrollment-icon"><i class="fa-solid fa-route"></i></div>
+              <div class="cpub-enrollment-info">
+                <div class="cpub-enrollment-title">{{ enr.path.title }}</div>
+                <div class="cpub-enrollment-progress-row">
+                  <div class="cpub-enrollment-bar">
+                    <div class="cpub-enrollment-fill" :style="{ width: enr.progress + '%' }"></div>
+                  </div>
+                  <span class="cpub-enrollment-pct">{{ Math.round(parseFloat(enr.progress)) }}%</span>
+                </div>
+              </div>
+            </NuxtLink>
+          </div>
+        </template>
+
+        <div v-if="!learningData?.certificates?.length && !learningData?.enrollments?.length" class="cpub-learning-empty">
+          <div class="cpub-empty-icon"><i class="fa-solid fa-graduation-cap"></i></div>
+          <p class="cpub-empty-state-title">No learning activity yet</p>
+          <p class="cpub-empty-state-sub">Enroll in learning paths to start tracking progress.</p>
         </div>
       </template>
 
@@ -733,6 +797,32 @@ function toggleMenu(): void {
   border: 2px solid var(--border);
   color: var(--accent);
 }
+
+.cpub-learning-empty { text-align: center; padding: 48px 0; }
+.cpub-empty-icon { font-size: 32px; color: var(--text-faint); margin-bottom: 12px; }
+.cpub-empty-state-sub { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
+
+/* Certificates list */
+.cpub-cert-list { display: flex; flex-direction: column; gap: 8px; }
+.cpub-cert-card-profile { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border: 2px solid var(--border); background: var(--surface); text-decoration: none; color: var(--text); box-shadow: 4px 4px 0 var(--border); transition: box-shadow 0.15s, transform 0.15s; }
+.cpub-cert-card-profile:hover { box-shadow: 2px 2px 0 var(--border); transform: translate(1px, 1px); }
+.cpub-cert-card-badge { width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--yellow); background: var(--yellow-bg); display: flex; align-items: center; justify-content: center; font-size: 18px; color: var(--yellow); flex-shrink: 0; }
+.cpub-cert-card-info { flex: 1; }
+.cpub-cert-card-path { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+.cpub-cert-card-date { font-size: 11px; font-family: var(--font-mono); color: var(--text-faint); }
+.cpub-cert-card-code { font-size: 10px; font-family: var(--font-mono); color: var(--accent); background: var(--accent-bg); padding: 2px 8px; border: 1px solid var(--accent-border); flex-shrink: 0; }
+
+/* Enrollment list */
+.cpub-enrollment-list { display: flex; flex-direction: column; gap: 8px; }
+.cpub-enrollment-card { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border: 2px solid var(--border); background: var(--surface); text-decoration: none; color: var(--text); box-shadow: 4px 4px 0 var(--border); transition: box-shadow 0.15s, transform 0.15s; }
+.cpub-enrollment-card:hover { box-shadow: 2px 2px 0 var(--border); transform: translate(1px, 1px); }
+.cpub-enrollment-icon { width: 40px; height: 40px; border: 2px solid var(--border); background: var(--surface2); display: flex; align-items: center; justify-content: center; font-size: 16px; color: var(--accent); flex-shrink: 0; }
+.cpub-enrollment-info { flex: 1; }
+.cpub-enrollment-title { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+.cpub-enrollment-progress-row { display: flex; align-items: center; gap: 8px; }
+.cpub-enrollment-bar { flex: 1; height: 4px; background: var(--surface3); border: 1px solid var(--border2); }
+.cpub-enrollment-fill { height: 100%; background: var(--accent); }
+.cpub-enrollment-pct { font-size: 11px; font-family: var(--font-mono); color: var(--accent); flex-shrink: 0; }
 
 .cpub-mini-title { font-size: 11px; font-weight: 500; margin-bottom: 2px; line-height: 1.3; }
 .cpub-mini-meta { font-size: 10px; color: var(--text-faint); font-family: var(--font-mono); }

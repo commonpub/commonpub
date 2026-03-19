@@ -3,14 +3,31 @@ definePageMeta({ layout: 'admin' });
 
 useSeoMeta({ title: 'Audit Log — Admin — CommonPub' });
 
-const { data: logs } = await useFetch('/api/admin/audit');
+const { data: logsData } = await useFetch('/api/admin/audit');
+
+interface AuditEntry {
+  id: string;
+  action: string;
+  actorId: string;
+  targetId: string | null;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
+}
+
+const logs = computed<AuditEntry[]>(() => {
+  if (!logsData.value) return [];
+  // Handle both { items, total } and array responses
+  if (Array.isArray(logsData.value)) return logsData.value as AuditEntry[];
+  const data = logsData.value as { items?: AuditEntry[] };
+  return data.items ?? [];
+});
 </script>
 
 <template>
   <div class="admin-audit">
     <h1 class="admin-page-title">Audit Log</h1>
 
-    <table class="admin-table" v-if="logs?.length">
+    <table class="admin-table" v-if="logs.length">
       <thead>
         <tr>
           <th>Action</th>
@@ -22,8 +39,8 @@ const { data: logs } = await useFetch('/api/admin/audit');
       <tbody>
         <tr v-for="log in logs" :key="log.id">
           <td class="audit-action">{{ log.action }}</td>
-          <td>{{ log.actorId }}</td>
-          <td>{{ log.targetId || '—' }}</td>
+          <td class="audit-id">{{ log.actorId }}</td>
+          <td class="audit-id">{{ log.targetId || '—' }}</td>
           <td>{{ new Date(log.createdAt).toLocaleString() }}</td>
         </tr>
       </tbody>
@@ -33,41 +50,11 @@ const { data: logs } = await useFetch('/api/admin/audit');
 </template>
 
 <style scoped>
-.admin-page-title {
-  font-size: var(--text-xl);
-  font-weight: var(--font-weight-bold);
-  margin-bottom: var(--space-6);
-}
-
-.admin-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--text-sm);
-}
-
-.admin-table th {
-  text-align: left;
-  padding: var(--space-2) var(--space-3);
-  border-bottom: 2px solid var(--border);
-  font-weight: var(--font-weight-semibold);
-  color: var(--text-dim);
-  font-size: var(--text-xs);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-wide);
-}
-
-.admin-table td {
-  padding: var(--space-2) var(--space-3);
-  border-bottom: 1px solid var(--border);
-}
-
-.audit-action {
-  font-weight: var(--font-weight-medium);
-}
-
-.admin-empty {
-  color: var(--text-faint);
-  text-align: center;
-  padding: var(--space-8) 0;
-}
+.admin-page-title { font-size: var(--text-xl); font-weight: var(--font-weight-bold); margin-bottom: var(--space-6); }
+.admin-table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); }
+.admin-table th { text-align: left; padding: var(--space-2) var(--space-3); border-bottom: 2px solid var(--border); font-weight: var(--font-weight-semibold); color: var(--text-dim); font-size: var(--text-xs); text-transform: uppercase; letter-spacing: var(--tracking-wide); }
+.admin-table td { padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--border); }
+.audit-action { font-weight: var(--font-weight-medium); }
+.audit-id { font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); }
+.admin-empty { color: var(--text-faint); text-align: center; padding: var(--space-8) 0; }
 </style>

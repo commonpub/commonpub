@@ -36,6 +36,7 @@
 .cpub-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .cpub-btn-sm { padding: 4px 10px; font-size: 11px; }
+.cpub-btn-lg { padding: 12px 24px; font-size: 14px; font-weight: 600; }
 
 .cpub-btn-ghost {
   background: transparent;
@@ -261,6 +262,59 @@
 
 .cpub-textarea:focus { border-color: var(--accent); }
 .cpub-textarea::placeholder { color: var(--text-faint); }
+
+/* ─── LOADING STATE ─── */
+.cpub-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 64px 16px;
+  color: var(--text-faint);
+  font-size: 13px;
+  font-family: var(--font-mono);
+}
+
+.cpub-loading::before {
+  content: '';
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  animation: cpub-spin 0.6s linear infinite;
+}
+
+@keyframes cpub-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ─── ERROR STATE ─── */
+.cpub-fetch-error {
+  text-align: center;
+  padding: 48px 16px;
+  color: var(--red);
+  font-size: 13px;
+  font-family: var(--font-mono);
+}
+
+.cpub-fetch-error-icon {
+  font-size: 24px;
+  margin-bottom: 12px;
+}
+
+.cpub-fetch-error-msg {
+  margin-bottom: 12px;
+  color: var(--text-dim);
+}
+
+.cpub-fetch-error .cpub-btn {
+  margin-top: 8px;
+}
+
+/* ─── DELETE BUTTON ─── */
+.cpub-delete-btn { background: none; border: none; color: var(--text-faint); cursor: pointer; padding: 4px 6px; font-size: 12px; }
+.cpub-delete-btn:hover { color: var(--red); }
+.cpub-delete-btn-sm { font-size: 10px; padding: 2px 4px; }
 
 /* ─── DIVIDERS ─── */
 .cpub-divider { border: none; border-top: 2px solid var(--border); }

@@ -4,9 +4,14 @@ export default defineEventHandler(async (event) => {
   const db = useDB();
   const siteSlug = getRouterParam(event, 'siteSlug')!;
 
-  const site = await getDocsSiteBySlug(db, siteSlug);
-  if (!site) {
+  const result = await getDocsSiteBySlug(db, siteSlug);
+  if (!result) {
     throw createError({ statusCode: 404, statusMessage: 'Docs site not found' });
   }
-  return site;
+
+  // Flatten the nested { site, versions } shape so frontend can use site.name directly
+  return {
+    ...result.site,
+    versions: result.versions,
+  };
 });

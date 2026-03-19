@@ -1,4 +1,4 @@
-import { d as defineEventHandler, c as readBody, c4 as createVideoCategorySchema, f as createError, u as useDB, c5 as createVideoCategory } from '../../../nitro/nitro.mjs';
+import { d as defineEventHandler, c as readBody, c3 as createVideoCategorySchema, f as createError, u as useDB, c4 as createVideoCategory } from '../../../nitro/nitro.mjs';
 import { r as requireAdmin } from '../../../_/auth.mjs';
 import 'drizzle-orm';
 import 'drizzle-orm/pg-core';

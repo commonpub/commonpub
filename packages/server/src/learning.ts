@@ -49,6 +49,15 @@ export async function listPaths(
   const limit = Math.min(filters.limit ?? 20, 100);
   const offset = filters.offset ?? 0;
 
+  const moduleCountSubquery = db
+    .select({
+      pathId: learningModules.pathId,
+      moduleCount: sql<number>`count(*)::int`.as('module_count'),
+    })
+    .from(learningModules)
+    .groupBy(learningModules.pathId)
+    .as('mc');
+
   const [rows, countResult] = await Promise.all([
     db
       .select({
@@ -59,9 +68,11 @@ export async function listPaths(
           displayName: users.displayName,
           avatarUrl: users.avatarUrl,
         },
+        moduleCount: sql<number>`coalesce(${moduleCountSubquery.moduleCount}, 0)`.mapWith(Number),
       })
       .from(learningPaths)
       .innerJoin(users, eq(learningPaths.authorId, users.id))
+      .leftJoin(moduleCountSubquery, eq(learningPaths.id, moduleCountSubquery.pathId))
       .where(where)
       .orderBy(desc(learningPaths.createdAt))
       .limit(limit)
@@ -83,6 +94,7 @@ export async function listPaths(
     enrollmentCount: row.path.enrollmentCount,
     completionCount: row.path.completionCount,
     averageRating: row.path.averageRating,
+    moduleCount: row.moduleCount,
     status: row.path.status,
     createdAt: row.path.createdAt,
     author: row.author,
@@ -184,6 +196,7 @@ export async function getPathBySlug(
     enrollmentCount: path.enrollmentCount,
     completionCount: path.completionCount,
     averageRating: path.averageRating,
+    moduleCount: modulesWithLessons.length,
     reviewCount: path.reviewCount,
     status: path.status,
     createdAt: path.createdAt,

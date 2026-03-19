@@ -68,5 +68,10 @@ export default defineEventHandler(async (event) => {
     followerCount: followerCounts[r.id] ?? 0,
   }));
 
-  return { items };
+  const [countResult] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(users)
+    .where(where);
+
+  return { items, total: countResult?.count ?? items.length };
 });

@@ -1,4 +1,4 @@
-import { eq, and, desc, sql } from 'drizzle-orm';
+import { eq, and, desc, sql, inArray } from 'drizzle-orm';
 import { contentItems, contentVersions, contentForks, contentBuilds, tags, contentTags, users, follows } from '@commonpub/schema';
 import type { CommonPubConfig } from '@commonpub/config';
 import type { ContentItemRow } from '@commonpub/schema';
@@ -95,6 +95,16 @@ export async function listContent(
     const searchPattern = `%${filters.search}%`;
     conditions.push(
       sql`(${contentItems.title} ILIKE ${searchPattern} OR ${contentItems.description} ILIKE ${searchPattern})`,
+    );
+  }
+  if (filters.followedBy) {
+    conditions.push(
+      inArray(
+        contentItems.authorId,
+        db.select({ id: follows.followingId })
+          .from(follows)
+          .where(eq(follows.followerId, filters.followedBy)),
+      ),
     );
   }
   if (filters.tag) {

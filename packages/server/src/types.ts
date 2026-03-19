@@ -162,6 +162,7 @@ export interface HubListItem {
   name: string;
   slug: string;
   description: string | null;
+  hubType: 'community' | 'product' | 'company';
   iconUrl: string | null;
   bannerUrl: string | null;
   joinPolicy: JoinPolicy;
@@ -263,6 +264,7 @@ export interface LearningPathListItem {
   enrollmentCount: number;
   completionCount: number;
   averageRating: string | null;
+  moduleCount: number;
   status: ContentStatus;
   createdAt: Date;
   author: UserRef;

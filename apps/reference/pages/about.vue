@@ -56,7 +56,7 @@ useSeoMeta({
         <div class="cpub-about-cta-actions">
           <NuxtLink to="/auth/register" class="cpub-btn cpub-btn-primary"><i class="fa-solid fa-user-plus"></i> Create Account</NuxtLink>
           <NuxtLink to="/docs" class="cpub-btn"><i class="fa-solid fa-book"></i> Documentation</NuxtLink>
-          <a href="https://github.com" target="_blank" rel="noopener" class="cpub-btn"><i class="fa-brands fa-github"></i> GitHub</a>
+          <a href="https://github.com/commonpub" target="_blank" rel="noopener" class="cpub-btn"><i class="fa-brands fa-github"></i> GitHub</a>
         </div>
       </div>
     </div>

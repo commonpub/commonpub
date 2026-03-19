@@ -1,4 +1,4 @@
-import { d as defineEventHandler, G as useConfig, u as useDB, k as getPlatformStats, ch as buildNodeInfoResponse } from '../../nitro/nitro.mjs';
+import { d as defineEventHandler, G as useConfig, u as useDB, k as getPlatformStats, cg as buildNodeInfoResponse } from '../../nitro/nitro.mjs';
 import 'drizzle-orm';
 import 'drizzle-orm/pg-core';
 import 'jose';

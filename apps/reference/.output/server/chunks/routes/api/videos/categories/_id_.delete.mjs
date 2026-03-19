@@ -1,4 +1,4 @@
-import { d as defineEventHandler, a as getRouterParam, f as createError, u as useDB, c6 as deleteVideoCategory } from '../../../../nitro/nitro.mjs';
+import { d as defineEventHandler, a as getRouterParam, f as createError, u as useDB, c5 as deleteVideoCategory } from '../../../../nitro/nitro.mjs';
 import { r as requireAdmin } from '../../../../_/auth.mjs';
 import 'drizzle-orm';
 import 'drizzle-orm/pg-core';

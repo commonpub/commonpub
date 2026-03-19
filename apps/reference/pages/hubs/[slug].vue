@@ -4,7 +4,7 @@ const slug = computed(() => route.params.slug as string);
 
 import type { Serialized, HubDetail, HubPostItem, HubMemberItem, PaginatedResponse } from '@commonpub/server';
 
-const { data: hub } = await useFetch<Serialized<HubDetail>>(() => `/api/hubs/${slug.value}`);
+const { data: hub, pending: hubPending, error: hubError, refresh: refreshHub } = await useFetch<Serialized<HubDetail>>(() => `/api/hubs/${slug.value}`);
 const { data: posts } = await useFetch<Serialized<PaginatedResponse<HubPostItem>>>(() => `/api/hubs/${slug.value}/posts`, { default: () => ({ items: [], total: 0 }) });
 const { data: members } = await useFetch<Serialized<HubMemberItem>[]>(() => `/api/hubs/${slug.value}/members`);
 
@@ -175,7 +175,13 @@ function handleLinkInsert(): void {
 </script>
 
 <template>
-  <div v-if="c" class="cpub-hub-page">
+  <div v-if="hubPending" class="cpub-loading">Loading hub...</div>
+  <div v-else-if="hubError" class="cpub-fetch-error">
+    <div class="cpub-fetch-error-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+    <div class="cpub-fetch-error-msg">Failed to load hub.</div>
+    <button class="cpub-btn cpub-btn-sm" @click="refreshHub()">Retry</button>
+  </div>
+  <div v-else-if="c" class="cpub-hub-page">
     <!-- ═══ HUB HERO ═══ -->
     <div class="cpub-hub-hero">
       <div class="cpub-hub-banner">
@@ -207,6 +213,7 @@ function handleLinkInsert(): void {
                   </span>
                   <button class="cpub-btn" @click="handleJoin"><i class="fa-solid fa-bell"></i> Subscribe</button>
                   <button class="cpub-btn cpub-btn-sm" aria-label="Share hub" @click="handleShare"><i class="fa-solid fa-share-nodes"></i></button>
+                  <NuxtLink v-if="c.currentUserRole === 'owner'" :to="`/hubs/${slug}/settings`" class="cpub-btn cpub-btn-sm" aria-label="Hub settings"><i class="fa-solid fa-gear"></i> Settings</NuxtLink>
                 </div>
               </div>
               <div class="cpub-hub-badges">
@@ -369,7 +376,7 @@ function handleLinkInsert(): void {
               <ContentCard
                 v-for="item in gallery.items"
                 :key="item.id"
-                :item="{ type: item.type, slug: item.slug, title: item.title, coverImageUrl: item.coverImageUrl ?? undefined, author: item.authorName ? { username: item.authorName, displayName: item.authorName } : undefined, createdAt: new Date().toISOString() }"
+                :item="{ type: item.type, slug: item.slug, title: item.title, coverImageUrl: item.coverImageUrl ?? undefined, author: item.author ? { username: item.author.username, displayName: item.author.displayName } : undefined, createdAt: item.publishedAt ?? new Date().toISOString() }"
               />
             </div>
             <div v-else class="cpub-empty-state">

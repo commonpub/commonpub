@@ -1,4 +1,4 @@
-import { d as defineEventHandler, u as useDB, g as getQuery, bN as listComments, bO as commentTargetTypeSchema } from '../../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, g as getQuery, bM as listComments, bN as commentTargetTypeSchema } from '../../../nitro/nitro.mjs';
 import { z } from 'zod';
 import 'drizzle-orm';
 import 'drizzle-orm/pg-core';

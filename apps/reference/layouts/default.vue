@@ -33,22 +33,50 @@ function handleClickOutside(e: MouseEvent): void {
   if (!target.closest('.cpub-user-menu-wrapper')) userMenuOpen.value = false;
 }
 
+let notifEventSource: EventSource | null = null;
+
 onMounted(() => {
-  // Notification polling
-  notifInterval.value = setInterval(async () => {
+  // Try SSE for real-time notifications, fall back to polling
+  if (isAuthenticated.value) {
     try {
-      const res = await $fetch<{ count: number }>('/api/notifications/count');
-      if (res && typeof res.count === 'number') notifData.value = res;
-    } catch { /* ignore */ }
-  }, 30_000);
+      notifEventSource = new EventSource('/api/notifications/stream');
+      notifEventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (typeof data.count === 'number') {
+            notifData.value = { count: data.count };
+          }
+        } catch { /* ignore parse errors */ }
+      };
+      notifEventSource.onerror = () => {
+        // SSE failed, fall back to polling
+        notifEventSource?.close();
+        notifEventSource = null;
+        startPolling();
+      };
+    } catch {
+      startPolling();
+    }
+  }
 
   // Global listeners
   document.addEventListener('keydown', handleGlobalKeydown);
   document.addEventListener('click', handleClickOutside);
 });
 
+function startPolling(): void {
+  notifInterval.value = setInterval(async () => {
+    try {
+      const res = await $fetch<{ count: number }>('/api/notifications/count');
+      if (res && typeof res.count === 'number') notifData.value = res;
+    } catch { /* ignore */ }
+  }, 30_000);
+}
+
 onUnmounted(() => {
   if (notifInterval.value) clearInterval(notifInterval.value);
+  notifEventSource?.close();
+  notifEventSource = null;
   document.removeEventListener('keydown', handleGlobalKeydown);
   document.removeEventListener('click', handleClickOutside);
 });
@@ -155,8 +183,8 @@ const userUsername = computed(() => user.value?.username ?? '');
           <span class="cpub-footer-logo"><span class="cpub-logo-bracket">[</span>C<span class="cpub-logo-bracket">]</span> CommonPub</span>
           <p class="cpub-footer-tagline">Built by makers, for makers.</p>
           <div class="cpub-footer-social">
-            <a href="https://github.com" target="_blank" rel="noopener" class="cpub-footer-social-link" aria-label="GitHub"><i class="fa-brands fa-github"></i></a>
-            <a href="https://discord.gg" target="_blank" rel="noopener" class="cpub-footer-social-link" aria-label="Discord"><i class="fa-brands fa-discord"></i></a>
+            <a href="https://github.com/commonpub" target="_blank" rel="noopener" class="cpub-footer-social-link" aria-label="GitHub"><i class="fa-brands fa-github"></i></a>
+            <a href="https://discord.gg/commonpub" target="_blank" rel="noopener" class="cpub-footer-social-link" aria-label="Discord"><i class="fa-brands fa-discord"></i></a>
             <a href="/feed.xml" class="cpub-footer-social-link" aria-label="RSS"><i class="fa-solid fa-rss"></i></a>
           </div>
         </div>

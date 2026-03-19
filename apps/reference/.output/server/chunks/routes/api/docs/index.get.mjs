@@ -22,11 +22,14 @@ import 'better-auth/plugins';
 const index_get = defineEventHandler(async (event) => {
   const db = useDB();
   const siteSlug = getRouterParam(event, "siteSlug");
-  const site = await getDocsSiteBySlug(db, siteSlug);
-  if (!site) {
+  const result = await getDocsSiteBySlug(db, siteSlug);
+  if (!result) {
     throw createError({ statusCode: 404, statusMessage: "Docs site not found" });
   }
-  return site;
+  return {
+    ...result.site,
+    versions: result.versions
+  };
 });
 
 export { index_get as default };

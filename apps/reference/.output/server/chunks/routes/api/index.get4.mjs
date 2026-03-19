@@ -1,4 +1,4 @@
-import { d as defineEventHandler, u as useDB, aZ as hubFiltersSchema, g as getQuery, a_ as listHubs } from '../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, aY as hubFiltersSchema, g as getQuery, aZ as listHubs } from '../../nitro/nitro.mjs';
 import 'drizzle-orm';
 import 'drizzle-orm/pg-core';
 import 'jose';

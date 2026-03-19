@@ -11,10 +11,10 @@ const { data: stats } = await useFetch('/api/admin/stats');
 
     <div class="cpub-stats-grid" v-if="stats">
       <div class="cpub-stat-card" v-for="stat in [
-        { label: 'Users', value: stats.userCount ?? 0, icon: 'fa-solid fa-users' },
-        { label: 'Content', value: stats.contentCount ?? 0, icon: 'fa-solid fa-file-lines' },
-        { label: 'Communities', value: stats.communityCount ?? 0, icon: 'fa-solid fa-people-group' },
-        { label: 'Comments', value: stats.commentCount ?? 0, icon: 'fa-solid fa-comments' },
+        { label: 'Users', value: stats.users?.total ?? 0, icon: 'fa-solid fa-users' },
+        { label: 'Content', value: stats.content?.total ?? 0, icon: 'fa-solid fa-file-lines' },
+        { label: 'Communities', value: stats.hubs?.total ?? 0, icon: 'fa-solid fa-people-group' },
+        { label: 'Reports', value: stats.reports?.pending ?? 0, icon: 'fa-solid fa-flag' },
       ]" :key="stat.label">
         <i :class="[stat.icon, 'cpub-stat-icon']"></i>
         <span class="cpub-stat-value">{{ stat.value }}</span>
