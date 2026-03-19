@@ -1,6 +1,16 @@
-import { d as defineEventHandler, u as useDB, a as getRouterParam, f as createError, F as removeContentProduct } from '../../../../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, z as contentItems, p as createError, F as removeContentProduct } from '../../../../../nitro/nitro.mjs';
 import { a as requireAuth } from '../../../../../_/auth.mjs';
-import 'drizzle-orm';
+import { a as parseParams } from '../../../../../_/validate.mjs';
+import { and, eq } from 'drizzle-orm';
+import 'unified';
+import 'remark-parse';
+import 'remark-gfm';
+import 'remark-frontmatter';
+import 'remark-rehype';
+import 'rehype-stringify';
+import 'rehype-slug';
+import 'rehype-sanitize';
+import 'yaml';
 import 'drizzle-orm/pg-core';
 import 'jose';
 import 'node:fs';
@@ -22,11 +32,11 @@ import 'better-auth/plugins';
 
 const _productId__delete = defineEventHandler(async (event) => {
   const db = useDB();
-  requireAuth(event);
-  const id = getRouterParam(event, "id");
-  const productId = getRouterParam(event, "productId");
-  if (!id || !productId) {
-    throw createError({ statusCode: 400, statusMessage: "Content ID and Product ID are required" });
+  const user = requireAuth(event);
+  const { id, productId } = parseParams(event, { id: "uuid", productId: "uuid" });
+  const [content] = await db.select({ authorId: contentItems.authorId }).from(contentItems).where(and(eq(contentItems.id, id), eq(contentItems.authorId, user.id))).limit(1);
+  if (!content) {
+    throw createError({ statusCode: 403, statusMessage: "Not authorized to modify this content" });
   }
   const removed = await removeContentProduct(db, id, productId);
   if (!removed) {

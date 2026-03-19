@@ -8,7 +8,7 @@ const searchQuerySchema = z.object({
 export default defineEventHandler(async (event) => {
   const db = useDB();
   const { siteSlug } = parseParams(event, { siteSlug: 'string' });
-  const query = searchQuerySchema.parse(getQuery(event));
+  const query = parseQueryParams(event, searchQuerySchema);
 
   const result = await getDocsSiteBySlug(db, siteSlug);
   if (!result) throw createError({ statusCode: 404, statusMessage: 'Docs site not found' });

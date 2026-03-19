@@ -8,6 +8,7 @@ import {
   boolean,
   jsonb,
   unique,
+  index,
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { users } from './auth.js';
@@ -77,7 +78,12 @@ export const contentItems = pgTable('content_items', {
   publishedAt: timestamp('published_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-});
+}, (t) => [
+  index('idx_content_items_author_id').on(t.authorId),
+  index('idx_content_items_status').on(t.status),
+  index('idx_content_items_type').on(t.type),
+  index('idx_content_items_published_at').on(t.publishedAt),
+]);
 
 export const contentVersions = pgTable('content_versions', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -92,7 +98,9 @@ export const contentVersions = pgTable('content_versions', {
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-});
+}, (t) => [
+  index('idx_content_versions_content_id').on(t.contentId),
+]);
 
 export const contentForks = pgTable('content_forks', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -103,7 +111,10 @@ export const contentForks = pgTable('content_forks', {
     .notNull()
     .references(() => contentItems.id, { onDelete: 'cascade' }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-});
+}, (t) => [
+  index('idx_content_forks_source_id').on(t.sourceId),
+  index('idx_content_forks_fork_id').on(t.forkId),
+]);
 
 export const contentBuilds = pgTable(
   'content_builds',
@@ -117,7 +128,10 @@ export const contentBuilds = pgTable(
       .references(() => users.id, { onDelete: 'cascade' }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   },
-  (t) => [unique('content_builds_user_content').on(t.userId, t.contentId)],
+  (t) => [
+    unique('content_builds_user_content').on(t.userId, t.contentId),
+    index('idx_content_builds_content_id').on(t.contentId),
+  ],
 );
 
 export const tags = pgTable('tags', {
@@ -136,7 +150,10 @@ export const contentTags = pgTable('content_tags', {
   tagId: uuid('tag_id')
     .notNull()
     .references(() => tags.id, { onDelete: 'cascade' }),
-});
+}, (t) => [
+  index('idx_content_tags_content_id').on(t.contentId),
+  index('idx_content_tags_tag_id').on(t.tagId),
+]);
 
 // --- Relations ---
 

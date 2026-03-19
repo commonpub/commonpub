@@ -1,5 +1,15 @@
-import { d as defineEventHandler, u as useDB, a as getRouterParam, f as createError, L as listContentVersions } from '../../../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, L as listContentVersions } from '../../../../nitro/nitro.mjs';
+import { a as parseParams } from '../../../../_/validate.mjs';
 import 'drizzle-orm';
+import 'unified';
+import 'remark-parse';
+import 'remark-gfm';
+import 'remark-frontmatter';
+import 'remark-rehype';
+import 'rehype-stringify';
+import 'rehype-slug';
+import 'rehype-sanitize';
+import 'yaml';
 import 'drizzle-orm/pg-core';
 import 'jose';
 import 'node:fs';
@@ -21,10 +31,7 @@ import 'better-auth/plugins';
 
 const versions_get = defineEventHandler(async (event) => {
   const db = useDB();
-  const id = getRouterParam(event, "id");
-  if (!id) {
-    throw createError({ statusCode: 400, statusMessage: "Content ID is required" });
-  }
+  const { id } = parseParams(event, { id: "uuid" });
   return listContentVersions(db, id);
 });
 

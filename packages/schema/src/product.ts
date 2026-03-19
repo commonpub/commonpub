@@ -8,6 +8,7 @@ import {
   boolean,
   jsonb,
   uniqueIndex,
+  index,
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { users } from './auth.js';
@@ -41,7 +42,10 @@ export const products = pgTable('products', {
     .references(() => users.id, { onDelete: 'cascade' }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-});
+}, (t) => [
+  index('idx_products_hub_id').on(t.hubId),
+  index('idx_products_created_by_id').on(t.createdById),
+]);
 
 export const contentProducts = pgTable(
   'content_products',
@@ -60,7 +64,10 @@ export const contentProducts = pgTable(
     sortOrder: integer('sort_order').default(0).notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   },
-  (t) => [uniqueIndex('idx_content_product_unique').on(t.contentId, t.productId)],
+  (t) => [
+    uniqueIndex('idx_content_product_unique').on(t.contentId, t.productId),
+    index('idx_content_products_product_id').on(t.productId),
+  ],
 );
 
 // --- Relations ---

@@ -1,7 +1,9 @@
 <script setup lang="ts">
+import { sanitizeBlockHtml } from '~/composables/useSanitize';
+
 const props = defineProps<{ content: Record<string, unknown> }>();
 
-const html = computed(() => (props.content.html as string) || (props.content.text as string) || '');
+const html = computed(() => sanitizeBlockHtml((props.content.html as string) || (props.content.text as string) || ''));
 const attribution = computed(() => (props.content.attribution as string) || '');
 </script>
 

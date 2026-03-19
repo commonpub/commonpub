@@ -1,6 +1,16 @@
-import { d as defineEventHandler, u as useDB, c as readBody, j as adminSettingSchema, f as createError, s as setInstanceSetting } from '../../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, s as setInstanceSetting, e as adminSettingSchema } from '../../../nitro/nitro.mjs';
 import { r as requireAdmin } from '../../../_/auth.mjs';
+import { b as parseBody } from '../../../_/validate.mjs';
 import 'drizzle-orm';
+import 'unified';
+import 'remark-parse';
+import 'remark-gfm';
+import 'remark-frontmatter';
+import 'remark-rehype';
+import 'rehype-stringify';
+import 'rehype-slug';
+import 'rehype-sanitize';
+import 'yaml';
 import 'drizzle-orm/pg-core';
 import 'jose';
 import 'node:fs';
@@ -23,16 +33,8 @@ import 'better-auth/plugins';
 const settings_put = defineEventHandler(async (event) => {
   const admin = requireAdmin(event);
   const db = useDB();
-  const body = await readBody(event);
-  const parsed = adminSettingSchema.safeParse(body);
-  if (!parsed.success) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: "Validation failed",
-      data: { errors: parsed.error.flatten().fieldErrors }
-    });
-  }
-  return setInstanceSetting(db, parsed.data.key, parsed.data.value, admin.id);
+  const input = await parseBody(event, adminSettingSchema);
+  return setInstanceSetting(db, input.key, input.value, admin.id);
 });
 
 export { settings_put as default };

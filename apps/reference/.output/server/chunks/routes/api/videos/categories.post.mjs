@@ -1,6 +1,16 @@
-import { d as defineEventHandler, c as readBody, c3 as createVideoCategorySchema, f as createError, u as useDB, c4 as createVideoCategory } from '../../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, ca as createVideoCategory, cb as createVideoCategorySchema } from '../../../nitro/nitro.mjs';
 import { r as requireAdmin } from '../../../_/auth.mjs';
+import { b as parseBody } from '../../../_/validate.mjs';
 import 'drizzle-orm';
+import 'unified';
+import 'remark-parse';
+import 'remark-gfm';
+import 'remark-frontmatter';
+import 'remark-rehype';
+import 'rehype-stringify';
+import 'rehype-slug';
+import 'rehype-sanitize';
+import 'yaml';
 import 'drizzle-orm/pg-core';
 import 'jose';
 import 'node:fs';
@@ -21,15 +31,10 @@ import 'better-auth/adapters/drizzle';
 import 'better-auth/plugins';
 
 const categories_post = defineEventHandler(async (event) => {
-  var _a, _b;
   requireAdmin(event);
-  const body = await readBody(event);
-  const parsed = createVideoCategorySchema.safeParse(body);
-  if (!parsed.success) {
-    throw createError({ statusCode: 400, statusMessage: (_b = (_a = parsed.error.issues[0]) == null ? void 0 : _a.message) != null ? _b : "Invalid input" });
-  }
   const db = useDB();
-  return createVideoCategory(db, parsed.data);
+  const input = await parseBody(event, createVideoCategorySchema);
+  return createVideoCategory(db, input);
 });
 
 export { categories_post as default };

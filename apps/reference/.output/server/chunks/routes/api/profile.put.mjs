@@ -1,6 +1,16 @@
-import { d as defineEventHandler, u as useDB, c as readBody, bH as updateProfileSchema, f as createError, bI as updateUserProfile } from '../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, bO as updateUserProfile, p as createError, bP as updateProfileSchema } from '../../nitro/nitro.mjs';
 import { a as requireAuth } from '../../_/auth.mjs';
+import { b as parseBody } from '../../_/validate.mjs';
 import 'drizzle-orm';
+import 'unified';
+import 'remark-parse';
+import 'remark-gfm';
+import 'remark-frontmatter';
+import 'remark-rehype';
+import 'rehype-stringify';
+import 'rehype-slug';
+import 'rehype-sanitize';
+import 'yaml';
 import 'drizzle-orm/pg-core';
 import 'jose';
 import 'node:fs';
@@ -23,12 +33,8 @@ import 'better-auth/plugins';
 const profile_put = defineEventHandler(async (event) => {
   const db = useDB();
   const user = requireAuth(event);
-  const body = await readBody(event);
-  const parsed = updateProfileSchema.safeParse(body);
-  if (!parsed.success) {
-    throw createError({ statusCode: 400, statusMessage: "Invalid input", data: parsed.error.flatten() });
-  }
-  const profile = await updateUserProfile(db, user.id, parsed.data);
+  const input = await parseBody(event, updateProfileSchema);
+  const profile = await updateUserProfile(db, user.id, input);
   if (!profile) {
     throw createError({ statusCode: 404, statusMessage: "Profile not found" });
   }

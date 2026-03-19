@@ -1,6 +1,16 @@
-import { d as defineEventHandler, u as useDB, a as getRouterParam, f as createError, c as readBody, z as updateContentSchema, A as updateContent } from '../../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, x as updateContent, p as createError, y as updateContentSchema } from '../../../nitro/nitro.mjs';
 import { a as requireAuth } from '../../../_/auth.mjs';
+import { a as parseParams, b as parseBody } from '../../../_/validate.mjs';
 import 'drizzle-orm';
+import 'unified';
+import 'remark-parse';
+import 'remark-gfm';
+import 'remark-frontmatter';
+import 'remark-rehype';
+import 'rehype-stringify';
+import 'rehype-slug';
+import 'rehype-sanitize';
+import 'yaml';
 import 'drizzle-orm/pg-core';
 import 'jose';
 import 'node:fs';
@@ -23,21 +33,9 @@ import 'better-auth/plugins';
 const index_put = defineEventHandler(async (event) => {
   const user = requireAuth(event);
   const db = useDB();
-  const id = getRouterParam(event, "id");
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  if (!id || !uuidRegex.test(id)) {
-    throw createError({ statusCode: 400, statusMessage: "Invalid content ID" });
-  }
-  const body = await readBody(event);
-  const parsed = updateContentSchema.safeParse(body);
-  if (!parsed.success) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: "Validation failed",
-      data: { errors: parsed.error.flatten().fieldErrors }
-    });
-  }
-  const content = await updateContent(db, id, user.id, parsed.data);
+  const { id } = parseParams(event, { id: "uuid" });
+  const input = await parseBody(event, updateContentSchema);
+  const content = await updateContent(db, id, user.id, input);
   if (!content) {
     throw createError({ statusCode: 404, statusMessage: "Content not found or not owned by you" });
   }

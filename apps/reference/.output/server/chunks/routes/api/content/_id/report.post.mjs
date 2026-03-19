@@ -1,6 +1,16 @@
-import { d as defineEventHandler, u as useDB, a as getRouterParam, f as createError, c as readBody, J as createReportSchema, K as createReport } from '../../../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, A as readBody, J as createReportSchema, p as createError, K as createReport } from '../../../../nitro/nitro.mjs';
 import { a as requireAuth } from '../../../../_/auth.mjs';
+import { a as parseParams } from '../../../../_/validate.mjs';
 import 'drizzle-orm';
+import 'unified';
+import 'remark-parse';
+import 'remark-gfm';
+import 'remark-frontmatter';
+import 'remark-rehype';
+import 'rehype-stringify';
+import 'rehype-slug';
+import 'rehype-sanitize';
+import 'yaml';
 import 'drizzle-orm/pg-core';
 import 'jose';
 import 'node:fs';
@@ -23,10 +33,7 @@ import 'better-auth/plugins';
 const report_post = defineEventHandler(async (event) => {
   const db = useDB();
   const user = requireAuth(event);
-  const id = getRouterParam(event, "id");
-  if (!id) {
-    throw createError({ statusCode: 400, statusMessage: "Content ID is required" });
-  }
+  const { id } = parseParams(event, { id: "uuid" });
   const body = await readBody(event);
   const parsed = createReportSchema.safeParse({ ...body, targetId: id });
   if (!parsed.success) {

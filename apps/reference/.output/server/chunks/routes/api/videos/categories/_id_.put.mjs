@@ -1,6 +1,16 @@
-import { d as defineEventHandler, a as getRouterParam, f as createError, c as readBody, c3 as createVideoCategorySchema, u as useDB, c6 as updateVideoCategory } from '../../../../nitro/nitro.mjs';
+import { d as defineEventHandler, cb as createVideoCategorySchema, u as useDB, cd as updateVideoCategory, p as createError } from '../../../../nitro/nitro.mjs';
 import { r as requireAdmin } from '../../../../_/auth.mjs';
+import { a as parseParams, b as parseBody } from '../../../../_/validate.mjs';
 import 'drizzle-orm';
+import 'unified';
+import 'remark-parse';
+import 'remark-gfm';
+import 'remark-frontmatter';
+import 'remark-rehype';
+import 'rehype-stringify';
+import 'rehype-slug';
+import 'rehype-sanitize';
+import 'yaml';
 import 'drizzle-orm/pg-core';
 import 'jose';
 import 'node:fs';
@@ -21,19 +31,11 @@ import 'better-auth/adapters/drizzle';
 import 'better-auth/plugins';
 
 const _id__put = defineEventHandler(async (event) => {
-  var _a, _b;
   requireAdmin(event);
-  const id = getRouterParam(event, "id");
-  if (!id) {
-    throw createError({ statusCode: 400, statusMessage: "Category ID required" });
-  }
-  const body = await readBody(event);
-  const parsed = createVideoCategorySchema.partial().safeParse(body);
-  if (!parsed.success) {
-    throw createError({ statusCode: 400, statusMessage: (_b = (_a = parsed.error.issues[0]) == null ? void 0 : _a.message) != null ? _b : "Invalid input" });
-  }
+  const { id } = parseParams(event, { id: "uuid" });
+  const input = await parseBody(event, createVideoCategorySchema.partial());
   const db = useDB();
-  const result = await updateVideoCategory(db, id, parsed.data);
+  const result = await updateVideoCategory(db, id, input);
   if (!result) {
     throw createError({ statusCode: 404, statusMessage: "Category not found" });
   }

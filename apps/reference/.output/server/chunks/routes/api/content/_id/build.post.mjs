@@ -1,6 +1,16 @@
-import { d as defineEventHandler, u as useDB, a as getRouterParam, v as toggleBuildMark } from '../../../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, t as toggleBuildMark } from '../../../../nitro/nitro.mjs';
 import { a as requireAuth } from '../../../../_/auth.mjs';
+import { a as parseParams } from '../../../../_/validate.mjs';
 import 'drizzle-orm';
+import 'unified';
+import 'remark-parse';
+import 'remark-gfm';
+import 'remark-frontmatter';
+import 'remark-rehype';
+import 'rehype-stringify';
+import 'rehype-slug';
+import 'rehype-sanitize';
+import 'yaml';
 import 'drizzle-orm/pg-core';
 import 'jose';
 import 'node:fs';
@@ -23,7 +33,7 @@ import 'better-auth/plugins';
 const build_post = defineEventHandler(async (event) => {
   const user = requireAuth(event);
   const db = useDB();
-  const id = getRouterParam(event, "id");
+  const { id } = parseParams(event, { id: "uuid" });
   return toggleBuildMark(db, id, user.id);
 });
 

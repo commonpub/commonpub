@@ -1,6 +1,16 @@
-import { d as defineEventHandler, u as useDB, a as getRouterParam, aq as getHubBySlug, f as createError } from '../../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, av as getHubBySlug, p as createError } from '../../../nitro/nitro.mjs';
+import { a as parseParams } from '../../../_/validate.mjs';
 import { g as getOptionalUser } from '../../../_/auth.mjs';
 import 'drizzle-orm';
+import 'unified';
+import 'remark-parse';
+import 'remark-gfm';
+import 'remark-frontmatter';
+import 'remark-rehype';
+import 'rehype-stringify';
+import 'rehype-slug';
+import 'rehype-sanitize';
+import 'yaml';
 import 'drizzle-orm/pg-core';
 import 'jose';
 import 'node:fs';
@@ -22,7 +32,7 @@ import 'better-auth/plugins';
 
 const index_get = defineEventHandler(async (event) => {
   const db = useDB();
-  const slug = getRouterParam(event, "slug");
+  const { slug } = parseParams(event, { slug: "string" });
   const user = getOptionalUser(event);
   const community = await getHubBySlug(db, slug, user == null ? void 0 : user.id);
   if (!community) {

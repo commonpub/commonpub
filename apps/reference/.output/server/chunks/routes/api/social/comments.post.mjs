@@ -1,6 +1,16 @@
-import { d as defineEventHandler, u as useDB, c as readBody, bO as createCommentSchema, f as createError, bP as createComment } from '../../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, bU as createComment, bV as createCommentSchema } from '../../../nitro/nitro.mjs';
 import { a as requireAuth } from '../../../_/auth.mjs';
+import { b as parseBody } from '../../../_/validate.mjs';
 import 'drizzle-orm';
+import 'unified';
+import 'remark-parse';
+import 'remark-gfm';
+import 'remark-frontmatter';
+import 'remark-rehype';
+import 'rehype-stringify';
+import 'rehype-slug';
+import 'rehype-sanitize';
+import 'yaml';
 import 'drizzle-orm/pg-core';
 import 'jose';
 import 'node:fs';
@@ -23,16 +33,8 @@ import 'better-auth/plugins';
 const comments_post = defineEventHandler(async (event) => {
   const user = requireAuth(event);
   const db = useDB();
-  const body = await readBody(event);
-  const parsed = createCommentSchema.safeParse(body);
-  if (!parsed.success) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: "Validation failed",
-      data: { errors: parsed.error.flatten().fieldErrors }
-    });
-  }
-  return createComment(db, user.id, parsed.data);
+  const input = await parseBody(event, createCommentSchema);
+  return createComment(db, user.id, input);
 });
 
 export { comments_post as default };

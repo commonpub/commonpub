@@ -1,5 +1,15 @@
-import { d as defineEventHandler, u as useDB, a as getRouterParam, f as createError, bG as getUserByUsername, O as listContent, aw as setResponseHeader, ax as useRuntimeConfig } from '../../../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, bN as getUserByUsername, p as createError, N as listContent, aB as setResponseHeader, aC as useRuntimeConfig } from '../../../../nitro/nitro.mjs';
+import { a as parseParams } from '../../../../_/validate.mjs';
 import 'drizzle-orm';
+import 'unified';
+import 'remark-parse';
+import 'remark-gfm';
+import 'remark-frontmatter';
+import 'remark-rehype';
+import 'rehype-stringify';
+import 'rehype-slug';
+import 'rehype-sanitize';
+import 'yaml';
 import 'drizzle-orm/pg-core';
 import 'jose';
 import 'node:fs';
@@ -27,10 +37,7 @@ const feed_xml_get = defineEventHandler(async (event) => {
   const db = useDB();
   const config = useRuntimeConfig();
   const siteUrl = config.public.siteUrl;
-  const username = getRouterParam(event, "username");
-  if (!username) {
-    throw createError({ statusCode: 400, statusMessage: "Username required" });
-  }
+  const { username } = parseParams(event, { username: "string" });
   const user = await getUserByUsername(db, username);
   if (!user) {
     throw createError({ statusCode: 404, statusMessage: "User not found" });

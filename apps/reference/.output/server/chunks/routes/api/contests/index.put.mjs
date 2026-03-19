@@ -1,6 +1,16 @@
-import { d as defineEventHandler, u as useDB, a as getRouterParam, f as createError, c as readBody, V as updateContestSchema, W as updateContest } from '../../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, Y as updateContest, p as createError, Z as updateContestSchema } from '../../../nitro/nitro.mjs';
 import { a as requireAuth } from '../../../_/auth.mjs';
+import { a as parseParams, b as parseBody } from '../../../_/validate.mjs';
 import 'drizzle-orm';
+import 'unified';
+import 'remark-parse';
+import 'remark-gfm';
+import 'remark-frontmatter';
+import 'remark-rehype';
+import 'rehype-stringify';
+import 'rehype-slug';
+import 'rehype-sanitize';
+import 'yaml';
 import 'drizzle-orm/pg-core';
 import 'jose';
 import 'node:fs';
@@ -23,18 +33,9 @@ import 'better-auth/plugins';
 const index_put = defineEventHandler(async (event) => {
   const user = requireAuth(event);
   const db = useDB();
-  const slug = getRouterParam(event, "slug");
-  if (!slug) throw createError({ statusCode: 400, statusMessage: "Slug required" });
-  const body = await readBody(event);
-  const parsed = updateContestSchema.safeParse(body);
-  if (!parsed.success) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: "Validation failed",
-      data: { errors: parsed.error.flatten().fieldErrors }
-    });
-  }
-  const result = await updateContest(db, slug, user.id, parsed.data);
+  const { slug } = parseParams(event, { slug: "string" });
+  const input = await parseBody(event, updateContestSchema);
+  const result = await updateContest(db, slug, user.id, input);
   if (!result) throw createError({ statusCode: 403, statusMessage: "Not authorized or contest not found" });
   return result;
 });

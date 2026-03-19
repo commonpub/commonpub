@@ -10,7 +10,7 @@ const userContentQuerySchema = z.object({
 export default defineEventHandler(async (event): Promise<PaginatedResponse<ContentListItem>> => {
   const db = useDB();
   const { username } = parseParams(event, { username: 'string' });
-  const query = userContentQuerySchema.parse(getQuery(event));
+  const query = parseQueryParams(event, userContentQuerySchema);
 
   const user = await getUserByUsername(db, username);
   if (!user) {

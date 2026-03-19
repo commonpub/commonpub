@@ -74,13 +74,10 @@ export async function renderMarkdown(
 
 /**
  * Defense-in-depth HTML sanitizer for use with v-html in Vue templates.
- * Strips script tags, event handlers, and dangerous URIs.
+ * Uses DOMPurify for robust sanitization (replaces previous regex approach).
  */
+import DOMPurify from 'isomorphic-dompurify';
+
 export function sanitizeHtml(html: string): string {
-  return html
-    .replace(/<script[\s>][\s\S]*?<\/script>/gi, '')
-    .replace(/<\/script>/gi, '')
-    .replace(/\son\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '')
-    .replace(/javascript\s*:/gi, 'void:')
-    .replace(/data\s*:\s*text\/html/gi, 'void:');
+  return DOMPurify.sanitize(html) as string;
 }

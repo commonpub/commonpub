@@ -1,5 +1,15 @@
-import { d as defineEventHandler, u as useDB, a as getRouterParam, f as createError, bD as getProductBySlug } from '../../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, bK as getProductBySlug, p as createError } from '../../../nitro/nitro.mjs';
+import { a as parseParams } from '../../../_/validate.mjs';
 import 'drizzle-orm';
+import 'unified';
+import 'remark-parse';
+import 'remark-gfm';
+import 'remark-frontmatter';
+import 'remark-rehype';
+import 'rehype-stringify';
+import 'rehype-slug';
+import 'rehype-sanitize';
+import 'yaml';
 import 'drizzle-orm/pg-core';
 import 'jose';
 import 'node:fs';
@@ -21,10 +31,7 @@ import 'better-auth/plugins';
 
 const _slug__get = defineEventHandler(async (event) => {
   const db = useDB();
-  const slug = getRouterParam(event, "slug");
-  if (!slug) {
-    throw createError({ statusCode: 400, statusMessage: "Slug is required" });
-  }
+  const { slug } = parseParams(event, { slug: "string" });
   const product = await getProductBySlug(db, slug);
   if (!product) {
     throw createError({ statusCode: 404, statusMessage: "Product not found" });

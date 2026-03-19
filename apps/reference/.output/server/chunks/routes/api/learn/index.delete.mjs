@@ -1,6 +1,16 @@
-import { d as defineEventHandler, u as useDB, a as getRouterParam, b2 as getPathBySlug, f as createError, b4 as deletePath } from '../../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, b7 as getPathBySlug, p as createError, b9 as deletePath } from '../../../nitro/nitro.mjs';
 import { a as requireAuth } from '../../../_/auth.mjs';
+import { a as parseParams } from '../../../_/validate.mjs';
 import 'drizzle-orm';
+import 'unified';
+import 'remark-parse';
+import 'remark-gfm';
+import 'remark-frontmatter';
+import 'remark-rehype';
+import 'rehype-stringify';
+import 'rehype-slug';
+import 'rehype-sanitize';
+import 'yaml';
 import 'drizzle-orm/pg-core';
 import 'jose';
 import 'node:fs';
@@ -23,8 +33,8 @@ import 'better-auth/plugins';
 const index_delete = defineEventHandler(async (event) => {
   const user = requireAuth(event);
   const db = useDB();
-  const slug = getRouterParam(event, "slug");
-  const path = await getPathBySlug(db, slug);
+  const { slug } = parseParams(event, { slug: "string" });
+  const path = await getPathBySlug(db, slug, user.id);
   if (!path) throw createError({ statusCode: 404, statusMessage: "Path not found" });
   return deletePath(db, path.id, user.id);
 });

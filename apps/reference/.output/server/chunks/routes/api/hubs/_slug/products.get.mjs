@@ -1,6 +1,16 @@
-import { d as defineEventHandler, u as useDB, a as getRouterParam, g as getQuery, f as createError, aq as getHubBySlug, aS as listHubProducts, aT as productStatusSchema, aU as productCategorySchema } from '../../../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, av as getHubBySlug, p as createError, aX as listHubProducts, aY as productStatusSchema, aZ as productCategorySchema } from '../../../../nitro/nitro.mjs';
+import { a as parseParams, p as parseQueryParams } from '../../../../_/validate.mjs';
 import { z } from 'zod';
 import 'drizzle-orm';
+import 'unified';
+import 'remark-parse';
+import 'remark-gfm';
+import 'remark-frontmatter';
+import 'remark-rehype';
+import 'rehype-stringify';
+import 'rehype-slug';
+import 'rehype-sanitize';
+import 'yaml';
 import 'drizzle-orm/pg-core';
 import 'jose';
 import 'node:fs';
@@ -28,11 +38,8 @@ const productQuerySchema = z.object({
 });
 const products_get = defineEventHandler(async (event) => {
   const db = useDB();
-  const slug = getRouterParam(event, "slug");
-  const filters = productQuerySchema.parse(getQuery(event));
-  if (!slug) {
-    throw createError({ statusCode: 400, statusMessage: "Hub slug is required" });
-  }
+  const { slug } = parseParams(event, { slug: "string" });
+  const filters = parseQueryParams(event, productQuerySchema);
   const hub = await getHubBySlug(db, slug);
   if (!hub) {
     throw createError({ statusCode: 404, statusMessage: "Hub not found" });

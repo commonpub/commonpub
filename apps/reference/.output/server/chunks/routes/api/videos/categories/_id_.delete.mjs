@@ -1,6 +1,16 @@
-import { d as defineEventHandler, a as getRouterParam, f as createError, u as useDB, c5 as deleteVideoCategory } from '../../../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, cc as deleteVideoCategory, p as createError } from '../../../../nitro/nitro.mjs';
 import { r as requireAdmin } from '../../../../_/auth.mjs';
+import { a as parseParams } from '../../../../_/validate.mjs';
 import 'drizzle-orm';
+import 'unified';
+import 'remark-parse';
+import 'remark-gfm';
+import 'remark-frontmatter';
+import 'remark-rehype';
+import 'rehype-stringify';
+import 'rehype-slug';
+import 'rehype-sanitize';
+import 'yaml';
 import 'drizzle-orm/pg-core';
 import 'jose';
 import 'node:fs';
@@ -22,10 +32,7 @@ import 'better-auth/plugins';
 
 const _id__delete = defineEventHandler(async (event) => {
   requireAdmin(event);
-  const id = getRouterParam(event, "id");
-  if (!id) {
-    throw createError({ statusCode: 400, statusMessage: "Category ID required" });
-  }
+  const { id } = parseParams(event, { id: "uuid" });
   const db = useDB();
   const deleted = await deleteVideoCategory(db, id);
   if (!deleted) {

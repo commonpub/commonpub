@@ -1,5 +1,15 @@
-import { d as defineEventHandler, u as useDB, a as getRouterParam, aL as listReplies } from '../../../../../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, aQ as listReplies } from '../../../../../../nitro/nitro.mjs';
+import { a as parseParams } from '../../../../../../_/validate.mjs';
 import 'drizzle-orm';
+import 'unified';
+import 'remark-parse';
+import 'remark-gfm';
+import 'remark-frontmatter';
+import 'remark-rehype';
+import 'rehype-stringify';
+import 'rehype-slug';
+import 'rehype-sanitize';
+import 'yaml';
 import 'drizzle-orm/pg-core';
 import 'jose';
 import 'node:fs';
@@ -21,7 +31,7 @@ import 'better-auth/plugins';
 
 const replies_get = defineEventHandler(async (event) => {
   const db = useDB();
-  const postId = getRouterParam(event, "postId");
+  const { postId } = parseParams(event, { postId: "uuid" });
   return listReplies(db, postId);
 });
 

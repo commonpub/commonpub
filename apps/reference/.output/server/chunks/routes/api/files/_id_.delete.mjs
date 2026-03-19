@@ -1,6 +1,16 @@
-import { d as defineEventHandler, u as useDB, a as getRouterParam, f as createError, aj as files, ak as createStorageFromEnv } from '../../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, ao as files, p as createError, ap as createStorageFromEnv } from '../../../nitro/nitro.mjs';
 import { a as requireAuth } from '../../../_/auth.mjs';
+import { a as parseParams } from '../../../_/validate.mjs';
 import { and, eq } from 'drizzle-orm';
+import 'unified';
+import 'remark-parse';
+import 'remark-gfm';
+import 'remark-frontmatter';
+import 'remark-rehype';
+import 'rehype-stringify';
+import 'rehype-slug';
+import 'rehype-sanitize';
+import 'yaml';
 import 'drizzle-orm/pg-core';
 import 'jose';
 import 'node:fs';
@@ -28,10 +38,7 @@ function getStorage() {
 const _id__delete = defineEventHandler(async (event) => {
   const db = useDB();
   const user = requireAuth(event);
-  const id = getRouterParam(event, "id");
-  if (!id) {
-    throw createError({ statusCode: 400, statusMessage: "File ID is required" });
-  }
+  const { id } = parseParams(event, { id: "uuid" });
   const result = await db.delete(files).where(and(eq(files.id, id), eq(files.uploaderId, user.id))).returning({ id: files.id, storageKey: files.storageKey });
   if (result.length === 0) {
     throw createError({ statusCode: 404, statusMessage: "File not found or not owned by you" });

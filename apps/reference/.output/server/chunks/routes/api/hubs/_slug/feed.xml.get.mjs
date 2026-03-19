@@ -1,5 +1,15 @@
-import { d as defineEventHandler, u as useDB, a as getRouterParam, f as createError, aq as getHubBySlug, av as listHubGallery, aw as setResponseHeader, ax as useRuntimeConfig } from '../../../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, av as getHubBySlug, p as createError, aA as listHubGallery, aB as setResponseHeader, aC as useRuntimeConfig } from '../../../../nitro/nitro.mjs';
+import { a as parseParams } from '../../../../_/validate.mjs';
 import 'drizzle-orm';
+import 'unified';
+import 'remark-parse';
+import 'remark-gfm';
+import 'remark-frontmatter';
+import 'remark-rehype';
+import 'rehype-stringify';
+import 'rehype-slug';
+import 'rehype-sanitize';
+import 'yaml';
 import 'drizzle-orm/pg-core';
 import 'jose';
 import 'node:fs';
@@ -27,10 +37,7 @@ const feed_xml_get = defineEventHandler(async (event) => {
   const db = useDB();
   const config = useRuntimeConfig();
   const siteUrl = config.public.siteUrl;
-  const slug = getRouterParam(event, "slug");
-  if (!slug) {
-    throw createError({ statusCode: 400, statusMessage: "Hub slug required" });
-  }
+  const { slug } = parseParams(event, { slug: "string" });
   const hub = await getHubBySlug(db, slug);
   if (!hub) {
     throw createError({ statusCode: 404, statusMessage: "Hub not found" });

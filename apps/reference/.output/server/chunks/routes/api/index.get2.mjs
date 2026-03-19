@@ -1,5 +1,15 @@
-import { d as defineEventHandler, u as useDB, a0 as contestFiltersSchema, g as getQuery, a1 as listContests } from '../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, a2 as listContests, a3 as contestFiltersSchema } from '../../nitro/nitro.mjs';
+import { p as parseQueryParams } from '../../_/validate.mjs';
 import 'drizzle-orm';
+import 'unified';
+import 'remark-parse';
+import 'remark-gfm';
+import 'remark-frontmatter';
+import 'remark-rehype';
+import 'rehype-stringify';
+import 'rehype-slug';
+import 'rehype-sanitize';
+import 'yaml';
 import 'drizzle-orm/pg-core';
 import 'jose';
 import 'node:fs';
@@ -21,7 +31,7 @@ import 'better-auth/plugins';
 
 const index_get = defineEventHandler(async (event) => {
   const db = useDB();
-  const filters = contestFiltersSchema.parse(getQuery(event));
+  const filters = parseQueryParams(event, contestFiltersSchema);
   return listContests(db, filters);
 });
 

@@ -10,7 +10,7 @@ const reportsQuerySchema = z.object({
 export default defineEventHandler(async (event): Promise<PaginatedResponse<ReportListItem>> => {
   requireAdmin(event);
   const db = useDB();
-  const filters = reportsQuerySchema.parse(getQuery(event));
+  const filters = parseQueryParams(event, reportsQuerySchema);
 
   return listReports(db, filters);
 });

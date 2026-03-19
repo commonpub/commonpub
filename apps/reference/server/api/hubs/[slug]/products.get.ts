@@ -14,7 +14,7 @@ const productQuerySchema = z.object({
 export default defineEventHandler(async (event): Promise<PaginatedResponse<ProductListItem>> => {
   const db = useDB();
   const { slug } = parseParams(event, { slug: 'string' });
-  const filters = productQuerySchema.parse(getQuery(event));
+  const filters = parseQueryParams(event, productQuerySchema);
 
 
   const hub = await getHubBySlug(db, slug);

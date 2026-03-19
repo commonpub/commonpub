@@ -8,6 +8,7 @@ import {
   boolean,
   unique,
   jsonb,
+  index,
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { users } from './auth.js';
@@ -32,7 +33,10 @@ export const likes = pgTable(
     targetId: uuid('target_id').notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   },
-  (t) => [unique('likes_user_target').on(t.userId, t.targetType, t.targetId)],
+  (t) => [
+    unique('likes_user_target').on(t.userId, t.targetType, t.targetId),
+    index('idx_likes_target').on(t.targetType, t.targetId),
+  ],
 );
 
 export const follows = pgTable(
@@ -47,7 +51,11 @@ export const follows = pgTable(
       .references(() => users.id, { onDelete: 'cascade' }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   },
-  (t) => [unique('follows_pair').on(t.followerId, t.followingId)],
+  (t) => [
+    unique('follows_pair').on(t.followerId, t.followingId),
+    index('idx_follows_follower_id').on(t.followerId),
+    index('idx_follows_following_id').on(t.followingId),
+  ],
 );
 
 export const comments = pgTable('comments', {
@@ -63,7 +71,11 @@ export const comments = pgTable('comments', {
   likeCount: integer('like_count').default(0).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-});
+}, (t) => [
+  index('idx_comments_author_id').on(t.authorId),
+  index('idx_comments_target').on(t.targetType, t.targetId),
+  index('idx_comments_parent_id').on(t.parentId),
+]);
 
 export const bookmarks = pgTable(
   'bookmarks',
@@ -76,7 +88,10 @@ export const bookmarks = pgTable(
     targetId: uuid('target_id').notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   },
-  (t) => [unique('bookmarks_user_target').on(t.userId, t.targetType, t.targetId)],
+  (t) => [
+    unique('bookmarks_user_target').on(t.userId, t.targetType, t.targetId),
+    index('idx_bookmarks_target').on(t.targetType, t.targetId),
+  ],
 );
 
 export const notifications = pgTable('notifications', {
@@ -91,7 +106,10 @@ export const notifications = pgTable('notifications', {
   actorId: uuid('actor_id').references(() => users.id, { onDelete: 'set null' }),
   read: boolean('read').default(false).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-});
+}, (t) => [
+  index('idx_notifications_user_id').on(t.userId),
+  index('idx_notifications_user_read').on(t.userId, t.read),
+]);
 
 export const reports = pgTable('reports', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -107,7 +125,10 @@ export const reports = pgTable('reports', {
   reviewedAt: timestamp('reviewed_at', { withTimezone: true }),
   resolution: text('resolution'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-});
+}, (t) => [
+  index('idx_reports_reporter_id').on(t.reporterId),
+  index('idx_reports_status').on(t.status),
+]);
 
 // --- Messaging ---
 
@@ -130,7 +151,10 @@ export const messages = pgTable('messages', {
   body: text('body').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   readAt: timestamp('read_at', { withTimezone: true }),
-});
+}, (t) => [
+  index('idx_messages_conversation_id').on(t.conversationId),
+  index('idx_messages_sender_id').on(t.senderId),
+]);
 
 // --- Relations ---
 

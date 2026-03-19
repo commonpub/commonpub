@@ -12,7 +12,7 @@ const notificationsQuerySchema = z.object({
 export default defineEventHandler(async (event): Promise<PaginatedResponse<NotificationItem>> => {
   const user = requireAuth(event);
   const db = useDB();
-  const query = notificationsQuerySchema.parse(getQuery(event));
+  const query = parseQueryParams(event, notificationsQuerySchema);
 
   return listNotifications(db, {
     userId: user.id,

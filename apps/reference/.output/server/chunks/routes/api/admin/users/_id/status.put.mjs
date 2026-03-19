@@ -1,6 +1,16 @@
-import { d as defineEventHandler, u as useDB, a as getRouterParam, c as readBody, q as adminUpdateStatusSchema, f as createError, t as updateUserStatus } from '../../../../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, m as updateUserStatus, n as adminUpdateStatusSchema } from '../../../../../nitro/nitro.mjs';
 import { r as requireAdmin } from '../../../../../_/auth.mjs';
+import { a as parseParams, b as parseBody } from '../../../../../_/validate.mjs';
 import 'drizzle-orm';
+import 'unified';
+import 'remark-parse';
+import 'remark-gfm';
+import 'remark-frontmatter';
+import 'remark-rehype';
+import 'rehype-stringify';
+import 'rehype-slug';
+import 'rehype-sanitize';
+import 'yaml';
 import 'drizzle-orm/pg-core';
 import 'jose';
 import 'node:fs';
@@ -23,17 +33,9 @@ import 'better-auth/plugins';
 const status_put = defineEventHandler(async (event) => {
   const admin = requireAdmin(event);
   const db = useDB();
-  const id = getRouterParam(event, "id");
-  const body = await readBody(event);
-  const parsed = adminUpdateStatusSchema.safeParse(body);
-  if (!parsed.success) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: "Validation failed",
-      data: { errors: parsed.error.flatten().fieldErrors }
-    });
-  }
-  return updateUserStatus(db, id, parsed.data.status, admin.id);
+  const { id } = parseParams(event, { id: "uuid" });
+  const input = await parseBody(event, adminUpdateStatusSchema);
+  return updateUserStatus(db, id, input.status, admin.id);
 });
 
 export { status_put as default };

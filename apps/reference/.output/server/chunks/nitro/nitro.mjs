@@ -1,5 +1,14 @@
-import process from 'node:process';globalThis._importMeta_=globalThis._importMeta_||{url:"file:///_entry.js",env:process.env};import { relations, eq, and, sql, desc, inArray, ilike, asc, isNull } from 'drizzle-orm';
-import { pgEnum, pgTable, timestamp, jsonb, varchar, text, boolean, uuid, integer, unique, primaryKey, uniqueIndex, numeric, alias } from 'drizzle-orm/pg-core';
+import process from 'node:process';globalThis._importMeta_=globalThis._importMeta_||{url:"file:///_entry.js",env:process.env};import { relations, sql, eq, ne, and, desc, inArray, ilike, asc, isNull } from 'drizzle-orm';
+import { unified } from 'unified';
+import remarkParse from 'remark-parse';
+import remarkGfm from 'remark-gfm';
+import remarkFrontmatter from 'remark-frontmatter';
+import remarkRehype from 'remark-rehype';
+import rehypeStringify from 'rehype-stringify';
+import rehypeSlug from 'rehype-slug';
+import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
+import { parse as parse$1 } from 'yaml';
+import { pgEnum, pgTable, timestamp, jsonb, varchar, text, boolean, uuid, integer, index, unique, primaryKey, uniqueIndex, numeric, alias } from 'drizzle-orm/pg-core';
 import { generateKeyPair, exportSPKI, exportPKCS8 } from 'jose';
 import { promises, existsSync, createWriteStream } from 'node:fs';
 import { mkdir, unlink as unlink$1 } from 'node:fs/promises';
@@ -4207,7 +4216,7 @@ function _expandFromEnv(value) {
 const _inlineRuntimeConfig = {
   "app": {
     "baseURL": "/",
-    "buildId": "d5d9db1f-82ec-4516-9698-d54135c20d8f",
+    "buildId": "4220b328-6e01-47d0-a7ba-fa6a4c3f9541",
     "buildAssetsDir": "/_nuxt/",
     "cdnURL": ""
   },
@@ -4700,1013 +4709,1181 @@ const plugins = [
 ];
 
 const assets = {
+  "/_nuxt/4er8rlgT.js": {
+    "type": "text/javascript; charset=utf-8",
+    "etag": "\"b79-loCIYjBErCj/dbJHNFcrp8ya844\"",
+    "mtime": "2026-03-19T20:26:57.768Z",
+    "size": 2937,
+    "path": "../public/_nuxt/4er8rlgT.js"
+  },
+  "/_nuxt/12aXSaFF.js": {
+    "type": "text/javascript; charset=utf-8",
+    "etag": "\"2f08-Ef/wrjklm+t1ibkN1xwmH07vfn0\"",
+    "mtime": "2026-03-19T20:26:57.768Z",
+    "size": 12040,
+    "path": "../public/_nuxt/12aXSaFF.js"
+  },
+  "/_nuxt/1zecQGoQ.js": {
+    "type": "text/javascript; charset=utf-8",
+    "etag": "\"5c7-StdJqOB0aGxhXQuWu7lknuUTm9c\"",
+    "mtime": "2026-03-19T20:26:57.768Z",
+    "size": 1479,
+    "path": "../public/_nuxt/1zecQGoQ.js"
+  },
+  "/_nuxt/8SKR_xas.js": {
+    "type": "text/javascript; charset=utf-8",
+    "etag": "\"b6b-H7ZPphDr/JAKSFcsOyKA9k7TAJo\"",
+    "mtime": "2026-03-19T20:26:57.768Z",
+    "size": 2923,
+    "path": "../public/_nuxt/8SKR_xas.js"
+  },
+  "/_nuxt/B3zpp6pb.js": {
+    "type": "text/javascript; charset=utf-8",
+    "etag": "\"444-mKa6CwHXdUc+TaIH9W0rAYPVGgY\"",
+    "mtime": "2026-03-19T20:26:57.768Z",
+    "size": 1092,
+    "path": "../public/_nuxt/B3zpp6pb.js"
+  },
   "/_nuxt/AuthorRow.DVy7lpqz.css": {
     "type": "text/css; charset=utf-8",
     "etag": "\"39f-+srd0KHDhfamSkh3N4EOSdmT1UE\"",
-    "mtime": "2026-03-19T01:48:23.063Z",
+    "mtime": "2026-03-19T20:26:57.768Z",
     "size": 927,
     "path": "../public/_nuxt/AuthorRow.DVy7lpqz.css"
   },
-  "/_nuxt/B4RViZsV.js": {
+  "/_nuxt/B6ouhPpK.js": {
     "type": "text/javascript; charset=utf-8",
-    "etag": "\"959-VxDcWE7bll59UvyKONhLEGlbCRc\"",
-    "mtime": "2026-03-19T01:48:23.063Z",
+    "etag": "\"23c-b3EcxBlqjmYX/phB/whbX04Rfys\"",
+    "mtime": "2026-03-19T20:26:57.768Z",
+    "size": 572,
+    "path": "../public/_nuxt/B6ouhPpK.js"
+  },
+  "/_nuxt/BTgj7tMr.js": {
+    "type": "text/javascript; charset=utf-8",
+    "etag": "\"959-/BTNH2TU5pHFukhKuaU8hZAz/So\"",
+    "mtime": "2026-03-19T20:26:57.769Z",
     "size": 2393,
-    "path": "../public/_nuxt/B4RViZsV.js"
+    "path": "../public/_nuxt/BTgj7tMr.js"
   },
-  "/_nuxt/B4IgvhEN.js": {
+  "/_nuxt/BF1Gdj3t.js": {
     "type": "text/javascript; charset=utf-8",
-    "etag": "\"dd2-DnNZ/ZN9Rjqwc+VLDza31I4JRgk\"",
-    "mtime": "2026-03-19T01:48:23.063Z",
-    "size": 3538,
-    "path": "../public/_nuxt/B4IgvhEN.js"
+    "etag": "\"24bb-ypjZtvVwpFVj6hcYdCsYLn2kKK0\"",
+    "mtime": "2026-03-19T20:26:57.769Z",
+    "size": 9403,
+    "path": "../public/_nuxt/BF1Gdj3t.js"
   },
-  "/_nuxt/B8ykP98q.js": {
+  "/_nuxt/BG8c3LJG.js": {
     "type": "text/javascript; charset=utf-8",
-    "etag": "\"444-tbwaXsr/E+bmzcKipSaKmz35kLU\"",
-    "mtime": "2026-03-19T01:48:23.064Z",
-    "size": 1092,
-    "path": "../public/_nuxt/B8ykP98q.js"
+    "etag": "\"2d1a-Pd/isJHV9PlKY3UFj18P27+zOQ4\"",
+    "mtime": "2026-03-19T20:26:57.769Z",
+    "size": 11546,
+    "path": "../public/_nuxt/BG8c3LJG.js"
   },
-  "/_nuxt/B8mUy6R2.js": {
+  "/_nuxt/BTl24G54.js": {
     "type": "text/javascript; charset=utf-8",
-    "etag": "\"b2b-e5Y0v6iPMzo2jTRQRm2PIaoC0uc\"",
-    "mtime": "2026-03-19T01:48:23.063Z",
-    "size": 2859,
-    "path": "../public/_nuxt/B8mUy6R2.js"
+    "etag": "\"b12-WmtU6rJLfzYIO8/hK4BuWJQQPXU\"",
+    "mtime": "2026-03-19T20:26:57.769Z",
+    "size": 2834,
+    "path": "../public/_nuxt/BTl24G54.js"
   },
-  "/_nuxt/BBZLYhNB.js": {
+  "/_nuxt/BU4WcE0U.js": {
     "type": "text/javascript; charset=utf-8",
-    "etag": "\"8c6-Fet6w2u1BYV8BcsVs7Pkix+BV2A\"",
-    "mtime": "2026-03-19T01:48:23.063Z",
-    "size": 2246,
-    "path": "../public/_nuxt/BBZLYhNB.js"
+    "etag": "\"1025-awvGOb6zqOq8ys5nVB3323BPpVY\"",
+    "mtime": "2026-03-19T20:26:57.769Z",
+    "size": 4133,
+    "path": "../public/_nuxt/BU4WcE0U.js"
   },
-  "/_nuxt/BIMf40es.js": {
+  "/_nuxt/BZNAGjCD.js": {
     "type": "text/javascript; charset=utf-8",
-    "etag": "\"6c1-Z7ctmhx09hK4zY505Are6xJ4BE8\"",
-    "mtime": "2026-03-19T01:48:23.064Z",
-    "size": 1729,
-    "path": "../public/_nuxt/BIMf40es.js"
+    "etag": "\"47c-qLqQkop/dY4mOrIs9abLV7fRHJQ\"",
+    "mtime": "2026-03-19T20:26:57.769Z",
+    "size": 1148,
+    "path": "../public/_nuxt/BZNAGjCD.js"
   },
-  "/_nuxt/BHyrZrJ8.js": {
+  "/_nuxt/BW8tNspC.js": {
     "type": "text/javascript; charset=utf-8",
-    "etag": "\"2430-+A3s5E170ihVGnj5ODvI0kXmGHo\"",
-    "mtime": "2026-03-19T01:48:23.063Z",
-    "size": 9264,
-    "path": "../public/_nuxt/BHyrZrJ8.js"
+    "etag": "\"2b63-wZsDNfgE0Bz3fRjNh2T/sEr217A\"",
+    "mtime": "2026-03-19T20:26:57.769Z",
+    "size": 11107,
+    "path": "../public/_nuxt/BW8tNspC.js"
   },
-  "/_nuxt/B0tj5l2u.js": {
+  "/_nuxt/BeBnmlEd.js": {
     "type": "text/javascript; charset=utf-8",
-    "etag": "\"502-OZAAgTWvbGhx2Mcv4MrBnWTKLfI\"",
-    "mtime": "2026-03-19T01:48:23.063Z",
-    "size": 1282,
-    "path": "../public/_nuxt/B0tj5l2u.js"
+    "etag": "\"254f-bYJ1XTUOqe5bEJJjElEZ9EId+pA\"",
+    "mtime": "2026-03-19T20:26:57.769Z",
+    "size": 9551,
+    "path": "../public/_nuxt/BeBnmlEd.js"
   },
-  "/_nuxt/BLt1_ed7.js": {
+  "/_nuxt/BfgyFA9G.js": {
     "type": "text/javascript; charset=utf-8",
-    "etag": "\"63d-JTP+g5E5gSlzQTGnlZlKJDCb4tU\"",
-    "mtime": "2026-03-19T01:48:23.064Z",
-    "size": 1597,
-    "path": "../public/_nuxt/BLt1_ed7.js"
-  },
-  "/_nuxt/BK0ZUlmu.js": {
-    "type": "text/javascript; charset=utf-8",
-    "etag": "\"15ad-u3jUMVufW2VpHYWXQ9Syddp9Pzo\"",
-    "mtime": "2026-03-19T01:48:23.064Z",
-    "size": 5549,
-    "path": "../public/_nuxt/BK0ZUlmu.js"
-  },
-  "/_nuxt/BF_lKaby.js": {
-    "type": "text/javascript; charset=utf-8",
-    "etag": "\"19b5-vb6iS+P2opEpFUOA4T3UeYQpQZ8\"",
-    "mtime": "2026-03-19T01:48:23.063Z",
-    "size": 6581,
-    "path": "../public/_nuxt/BF_lKaby.js"
-  },
-  "/_nuxt/BKji4Vz_.js": {
-    "type": "text/javascript; charset=utf-8",
-    "etag": "\"645-+XpKaZG3aVnvkGBmLthS2GrVA+g\"",
-    "mtime": "2026-03-19T01:48:23.064Z",
-    "size": 1605,
-    "path": "../public/_nuxt/BKji4Vz_.js"
-  },
-  "/_nuxt/Bg6nLIJV.js": {
-    "type": "text/javascript; charset=utf-8",
-    "etag": "\"9a6-PiUZb7x6bhYfFUnxCMZt2VPbGvA\"",
-    "mtime": "2026-03-19T01:48:23.064Z",
-    "size": 2470,
-    "path": "../public/_nuxt/Bg6nLIJV.js"
-  },
-  "/_nuxt/BREkqAVD.js": {
-    "type": "text/javascript; charset=utf-8",
-    "etag": "\"c02f-cNQNkH6d6yPMcrwIRLLlV6BfZ0c\"",
-    "mtime": "2026-03-19T01:48:23.064Z",
-    "size": 49199,
-    "path": "../public/_nuxt/BREkqAVD.js"
-  },
-  "/_nuxt/BenmGT_D.js": {
-    "type": "text/javascript; charset=utf-8",
-    "etag": "\"2a31-Ld72Dno4TMELfDKW7PO12u0I0sU\"",
-    "mtime": "2026-03-19T01:48:23.064Z",
-    "size": 10801,
-    "path": "../public/_nuxt/BenmGT_D.js"
-  },
-  "/_nuxt/Bk0hnoP-.js": {
-    "type": "text/javascript; charset=utf-8",
-    "etag": "\"60c-vkhOhIAmZVAzSBMlf0rL6pfCztA\"",
-    "mtime": "2026-03-19T01:48:23.064Z",
-    "size": 1548,
-    "path": "../public/_nuxt/Bk0hnoP-.js"
-  },
-  "/_nuxt/BokmPhJ4.js": {
-    "type": "text/javascript; charset=utf-8",
-    "etag": "\"8d1-au0mWiZKqm0OVilrYgZelMwFlFU\"",
-    "mtime": "2026-03-19T01:48:23.064Z",
+    "etag": "\"8d1-/par2hS5ESiyGGdvXm3najPsESU\"",
+    "mtime": "2026-03-19T20:26:57.769Z",
     "size": 2257,
-    "path": "../public/_nuxt/BokmPhJ4.js"
+    "path": "../public/_nuxt/BfgyFA9G.js"
   },
-  "/_nuxt/BvkcG60z.js": {
+  "/_nuxt/BfWZgC-Y.js": {
     "type": "text/javascript; charset=utf-8",
-    "etag": "\"5d4-n2VBC/uo9XlQraM+uX9xU07H3o0\"",
-    "mtime": "2026-03-19T01:48:23.064Z",
-    "size": 1492,
-    "path": "../public/_nuxt/BvkcG60z.js"
+    "etag": "\"16ebb-lRSnWmxK3s+vDC3yDPosdMTXfwc\"",
+    "mtime": "2026-03-19T20:26:57.770Z",
+    "size": 93883,
+    "path": "../public/_nuxt/BfWZgC-Y.js"
   },
-  "/_nuxt/BuIzdk9h.js": {
+  "/_nuxt/BhPGSUFs.js": {
     "type": "text/javascript; charset=utf-8",
-    "etag": "\"1f9-4TlKTpGbvPNrxI3Pum5IcyQIGn0\"",
-    "mtime": "2026-03-19T01:48:23.065Z",
-    "size": 505,
-    "path": "../public/_nuxt/BuIzdk9h.js"
+    "etag": "\"590a-2aE/H5qc9nR4KL8MF9MyrdFlvRc\"",
+    "mtime": "2026-03-19T20:26:57.769Z",
+    "size": 22794,
+    "path": "../public/_nuxt/BhPGSUFs.js"
   },
-  "/_nuxt/Bme_MFhL.js": {
+  "/_nuxt/Bk9BtoPv.js": {
     "type": "text/javascript; charset=utf-8",
-    "etag": "\"99d-rcIQJ16fT+v2qU9C3qR1q0vppPo\"",
-    "mtime": "2026-03-19T01:48:23.064Z",
-    "size": 2461,
-    "path": "../public/_nuxt/Bme_MFhL.js"
+    "etag": "\"d4c-TTQaWkWNlItecyn2ikEemm36M1o\"",
+    "mtime": "2026-03-19T20:26:57.769Z",
+    "size": 3404,
+    "path": "../public/_nuxt/Bk9BtoPv.js"
   },
-  "/_nuxt/C7Dv2ekC.js": {
+  "/_nuxt/BpcY-y0l.js": {
     "type": "text/javascript; charset=utf-8",
-    "etag": "\"eba-Vj0ErVmFpfmqZ1nM09GiSWlDkWg\"",
-    "mtime": "2026-03-19T01:48:23.064Z",
-    "size": 3770,
-    "path": "../public/_nuxt/C7Dv2ekC.js"
+    "etag": "\"7e9-cVrbcX9qbHsPxHs4XnAfWEi0e1k\"",
+    "mtime": "2026-03-19T20:26:57.770Z",
+    "size": 2025,
+    "path": "../public/_nuxt/BpcY-y0l.js"
   },
-  "/_nuxt/C22xqauR.js": {
+  "/_nuxt/Bn9YV9Yb.js": {
     "type": "text/javascript; charset=utf-8",
-    "etag": "\"5660-UCbtqIacYSo4QAZ6DJrAKaLlhQg\"",
-    "mtime": "2026-03-19T01:48:23.065Z",
-    "size": 22112,
-    "path": "../public/_nuxt/C22xqauR.js"
+    "etag": "\"830-bJPNf6hHoT1zRIypC1y00PZ625w\"",
+    "mtime": "2026-03-19T20:26:57.770Z",
+    "size": 2096,
+    "path": "../public/_nuxt/Bn9YV9Yb.js"
+  },
+  "/_nuxt/BvmV0-eH.js": {
+    "type": "text/javascript; charset=utf-8",
+    "etag": "\"2d62-WOQBYfY5iLDaY9cxI8stXpPLUvI\"",
+    "mtime": "2026-03-19T20:26:57.770Z",
+    "size": 11618,
+    "path": "../public/_nuxt/BvmV0-eH.js"
+  },
+  "/_nuxt/Bt4I6CiX.js": {
+    "type": "text/javascript; charset=utf-8",
+    "etag": "\"39ed-DtG7863wq6c46ShuX2BJ6YV5neE\"",
+    "mtime": "2026-03-19T20:26:57.770Z",
+    "size": 14829,
+    "path": "../public/_nuxt/Bt4I6CiX.js"
+  },
+  "/_nuxt/Bv_W7u-5.js": {
+    "type": "text/javascript; charset=utf-8",
+    "etag": "\"b62-ze7TfuT23xtF4AucDv9P/1a+EmU\"",
+    "mtime": "2026-03-19T20:26:57.770Z",
+    "size": 2914,
+    "path": "../public/_nuxt/Bv_W7u-5.js"
+  },
+  "/_nuxt/BxIjRvrs.js": {
+    "type": "text/javascript; charset=utf-8",
+    "etag": "\"1bf6-WL5AaRj6FTT44U9U4qJbuv7eNWU\"",
+    "mtime": "2026-03-19T20:26:57.770Z",
+    "size": 7158,
+    "path": "../public/_nuxt/BxIjRvrs.js"
+  },
+  "/_nuxt/C4KrMw6t.js": {
+    "type": "text/javascript; charset=utf-8",
+    "etag": "\"8dc-9MypHX0p4w4bLQ06PR0wTXJWXqw\"",
+    "mtime": "2026-03-19T20:26:57.770Z",
+    "size": 2268,
+    "path": "../public/_nuxt/C4KrMw6t.js"
   },
   "/_nuxt/BzMZE2-y.js": {
     "type": "text/javascript; charset=utf-8",
     "etag": "\"22c-+c1/6jEM1WMcUKc6XAWyTIvzmgk\"",
-    "mtime": "2026-03-19T01:48:23.064Z",
+    "mtime": "2026-03-19T20:26:57.770Z",
     "size": 556,
     "path": "../public/_nuxt/BzMZE2-y.js"
   },
-  "/_nuxt/BUklYz3d.js": {
+  "/_nuxt/C7CmKcUi.js": {
     "type": "text/javascript; charset=utf-8",
-    "etag": "\"5f1a5-02PN7+vyZs7FZ49KRO9U7hRkqtM\"",
-    "mtime": "2026-03-19T01:48:23.065Z",
-    "size": 389541,
-    "path": "../public/_nuxt/BUklYz3d.js"
+    "etag": "\"660-CNglxIWXmeFbMR0vqgsHldS3Wck\"",
+    "mtime": "2026-03-19T20:26:57.770Z",
+    "size": 1632,
+    "path": "../public/_nuxt/C7CmKcUi.js"
   },
-  "/_nuxt/CBblumUM.js": {
+  "/_nuxt/BxfnjMcI.js": {
     "type": "text/javascript; charset=utf-8",
-    "etag": "\"5c5-XlR+EN0R6AAITz+LyTju0/OQglU\"",
-    "mtime": "2026-03-19T01:48:23.065Z",
-    "size": 1477,
-    "path": "../public/_nuxt/CBblumUM.js"
+    "etag": "\"c4da-AbPenNPpwlMog6z+ovCHtHId/Eo\"",
+    "mtime": "2026-03-19T20:26:57.771Z",
+    "size": 50394,
+    "path": "../public/_nuxt/BxfnjMcI.js"
   },
-  "/_nuxt/CKFpTKlH.js": {
+  "/_nuxt/C7os_Gm1.js": {
     "type": "text/javascript; charset=utf-8",
-    "etag": "\"e13-YjAJaf83zaYmFMmG+rQb0xiCpGE\"",
-    "mtime": "2026-03-19T01:48:23.065Z",
-    "size": 3603,
-    "path": "../public/_nuxt/CKFpTKlH.js"
+    "etag": "\"1d21-JcUXFQ4PlddHN04d5WSfIthqmoY\"",
+    "mtime": "2026-03-19T20:26:57.771Z",
+    "size": 7457,
+    "path": "../public/_nuxt/C7os_Gm1.js"
   },
-  "/_nuxt/COMTuVm6.js": {
+  "/_nuxt/CD5mPEmm.js": {
     "type": "text/javascript; charset=utf-8",
-    "etag": "\"3f2-xXcGQWL7UZBgLg4ShNiV+wwAgEY\"",
-    "mtime": "2026-03-19T01:48:23.065Z",
-    "size": 1010,
-    "path": "../public/_nuxt/COMTuVm6.js"
+    "etag": "\"ace-T3gLaSrTICFvQr5gaxE7ZTn37QY\"",
+    "mtime": "2026-03-19T20:26:57.770Z",
+    "size": 2766,
+    "path": "../public/_nuxt/CD5mPEmm.js"
   },
-  "/_nuxt/COQbJ2nH.js": {
+  "/_nuxt/CEkxnP39.js": {
     "type": "text/javascript; charset=utf-8",
-    "etag": "\"2c23-h4DsTqLDZMsU8GVjkay7Wqhan8U\"",
-    "mtime": "2026-03-19T01:48:23.065Z",
-    "size": 11299,
-    "path": "../public/_nuxt/COQbJ2nH.js"
-  },
-  "/_nuxt/CU8v9H0f.js": {
-    "type": "text/javascript; charset=utf-8",
-    "etag": "\"c0b-LFg9GmRd+hxlFG4xbzA9le458tw\"",
-    "mtime": "2026-03-19T01:48:23.065Z",
-    "size": 3083,
-    "path": "../public/_nuxt/CU8v9H0f.js"
-  },
-  "/_nuxt/C_J5cZod.js": {
-    "type": "text/javascript; charset=utf-8",
-    "etag": "\"645-ivaW+NOUQHBGB9KAjKUax4VG89g\"",
-    "mtime": "2026-03-19T01:48:23.065Z",
-    "size": 1605,
-    "path": "../public/_nuxt/C_J5cZod.js"
-  },
-  "/_nuxt/CWs6CXn8.js": {
-    "type": "text/javascript; charset=utf-8",
-    "etag": "\"312-4ZLzX5ZvEkTd2iNftydTnqBrpEg\"",
-    "mtime": "2026-03-19T01:48:23.065Z",
+    "etag": "\"312-6vFnWw2kvicH/fkHjr7Br2mjSrw\"",
+    "mtime": "2026-03-19T20:26:57.770Z",
     "size": 786,
-    "path": "../public/_nuxt/CWs6CXn8.js"
+    "path": "../public/_nuxt/CEkxnP39.js"
   },
-  "/_nuxt/CbqXuR1A.js": {
+  "/_nuxt/CGimpDfv.js": {
     "type": "text/javascript; charset=utf-8",
-    "etag": "\"385-/evwPWnckOTOKZYRo6ODAXQZomo\"",
-    "mtime": "2026-03-19T01:48:23.066Z",
-    "size": 901,
-    "path": "../public/_nuxt/CbqXuR1A.js"
+    "etag": "\"c0a-Xa7BgnBxntGQ3zRRGtejNpuKy+w\"",
+    "mtime": "2026-03-19T20:26:57.771Z",
+    "size": 3082,
+    "path": "../public/_nuxt/CGimpDfv.js"
   },
-  "/_nuxt/Caf3RUEt.js": {
+  "/_nuxt/CK0PdnNr.js": {
     "type": "text/javascript; charset=utf-8",
-    "etag": "\"179-SkrdKgrOAB2TxysIdZjGlHDYqlE\"",
-    "mtime": "2026-03-19T01:48:23.065Z",
-    "size": 377,
-    "path": "../public/_nuxt/Caf3RUEt.js"
+    "etag": "\"3e23-qzXMjToE6SpeUKptO60uSBbdAso\"",
+    "mtime": "2026-03-19T20:26:57.771Z",
+    "size": 15907,
+    "path": "../public/_nuxt/CK0PdnNr.js"
   },
-  "/_nuxt/CepXx3uk.js": {
+  "/_nuxt/CMH88hVu.js": {
     "type": "text/javascript; charset=utf-8",
-    "etag": "\"2c36-yrWUD7nmFdjpT56y2wfLSwIfby8\"",
-    "mtime": "2026-03-19T01:48:23.066Z",
-    "size": 11318,
-    "path": "../public/_nuxt/CepXx3uk.js"
+    "etag": "\"18d4-Ix9LQgFDltJsPOdPTYaP21cAs/Y\"",
+    "mtime": "2026-03-19T20:26:57.771Z",
+    "size": 6356,
+    "path": "../public/_nuxt/CMH88hVu.js"
   },
-  "/_nuxt/CgtokZ7r.js": {
+  "/_nuxt/CNf7kPNf.js": {
     "type": "text/javascript; charset=utf-8",
-    "etag": "\"1f5e-ppIZRCXBMCP2vTbKMy0P3af7qNk\"",
-    "mtime": "2026-03-19T01:48:23.065Z",
-    "size": 8030,
-    "path": "../public/_nuxt/CgtokZ7r.js"
+    "etag": "\"d53-va864PuBUhlLeJqzhtwQ9qWm1sk\"",
+    "mtime": "2026-03-19T20:26:57.771Z",
+    "size": 3411,
+    "path": "../public/_nuxt/CNf7kPNf.js"
   },
-  "/_nuxt/ChRohRhS.js": {
+  "/_nuxt/CaTdz1yS.js": {
     "type": "text/javascript; charset=utf-8",
-    "etag": "\"39d7-QUVeXf5BiUIg2OM3y7O6FYqf0xg\"",
-    "mtime": "2026-03-19T01:48:23.066Z",
-    "size": 14807,
-    "path": "../public/_nuxt/ChRohRhS.js"
+    "etag": "\"8ee-/g+fH4XEBfXTeC39H7HF2GQt0/M\"",
+    "mtime": "2026-03-19T20:26:57.771Z",
+    "size": 2286,
+    "path": "../public/_nuxt/CaTdz1yS.js"
+  },
+  "/_nuxt/CiUc425V.js": {
+    "type": "text/javascript; charset=utf-8",
+    "etag": "\"64a-/BNP+hOwcy6cVOC6uXMpihSCrtQ\"",
+    "mtime": "2026-03-19T20:26:57.772Z",
+    "size": 1610,
+    "path": "../public/_nuxt/CiUc425V.js"
+  },
+  "/_nuxt/CgJNPWjq.js": {
+    "type": "text/javascript; charset=utf-8",
+    "etag": "\"253-EuqC6taOHZ8BNfQExsVWYSBLvY4\"",
+    "mtime": "2026-03-19T20:26:57.772Z",
+    "size": 595,
+    "path": "../public/_nuxt/CgJNPWjq.js"
+  },
+  "/_nuxt/Clrh_K-L.js": {
+    "type": "text/javascript; charset=utf-8",
+    "etag": "\"1248-5x13pZ1p7qpPkZTHoSQWmAHeCaU\"",
+    "mtime": "2026-03-19T20:26:57.771Z",
+    "size": 4680,
+    "path": "../public/_nuxt/Clrh_K-L.js"
+  },
+  "/_nuxt/Cnv8JecW.js": {
+    "type": "text/javascript; charset=utf-8",
+    "etag": "\"b28-Oc2q5rYBq0Ld00Gq63ocVk4VGns\"",
+    "mtime": "2026-03-19T20:26:57.772Z",
+    "size": 2856,
+    "path": "../public/_nuxt/Cnv8JecW.js"
+  },
+  "/_nuxt/Cnlp3N1E.js": {
+    "type": "text/javascript; charset=utf-8",
+    "etag": "\"166b-DxtSzM/Hyl8zOLqZkXjwx4zd8CQ\"",
+    "mtime": "2026-03-19T20:26:57.771Z",
+    "size": 5739,
+    "path": "../public/_nuxt/Cnlp3N1E.js"
+  },
+  "/_nuxt/Ct8OZQUc.js": {
+    "type": "text/javascript; charset=utf-8",
+    "etag": "\"2199-vqI37aCuzge82+gYH8qrGd+jAZw\"",
+    "mtime": "2026-03-19T20:26:57.773Z",
+    "size": 8601,
+    "path": "../public/_nuxt/Ct8OZQUc.js"
   },
   "/_nuxt/ContentCard.B-Wxaax8.css": {
     "type": "text/css; charset=utf-8",
     "etag": "\"c56-756v3SQmDQURTI02DU90DgfwoIk\"",
-    "mtime": "2026-03-19T01:48:23.066Z",
+    "mtime": "2026-03-19T20:26:57.772Z",
     "size": 3158,
     "path": "../public/_nuxt/ContentCard.B-Wxaax8.css"
-  },
-  "/_nuxt/Clyi247b.js": {
-    "type": "text/javascript; charset=utf-8",
-    "etag": "\"a16-QHOONGY7wkyybzIeIhSQkHAG8uw\"",
-    "mtime": "2026-03-19T01:48:23.066Z",
-    "size": 2582,
-    "path": "../public/_nuxt/Clyi247b.js"
-  },
-  "/_nuxt/CxGXCteV.js": {
-    "type": "text/javascript; charset=utf-8",
-    "etag": "\"b1e-IhOy6hTOJFK+SM9X3c63RHWoCRA\"",
-    "mtime": "2026-03-19T01:48:23.066Z",
-    "size": 2846,
-    "path": "../public/_nuxt/CxGXCteV.js"
-  },
-  "/_nuxt/ContentTypeBadge.Dnr759Nm.css": {
-    "type": "text/css; charset=utf-8",
-    "etag": "\"31d-HajBbyIPLIzvGA1c1JGWdtfKYss\"",
-    "mtime": "2026-03-19T01:48:23.066Z",
-    "size": 797,
-    "path": "../public/_nuxt/ContentTypeBadge.Dnr759Nm.css"
   },
   "/_nuxt/CountdownTimer.BJmhrNPV.css": {
     "type": "text/css; charset=utf-8",
     "etag": "\"243-RHyp3Ssm+/Ha/l6J7xP790U4ZCU\"",
-    "mtime": "2026-03-19T01:48:23.066Z",
+    "mtime": "2026-03-19T20:26:57.772Z",
     "size": 579,
     "path": "../public/_nuxt/CountdownTimer.BJmhrNPV.css"
   },
-  "/_nuxt/Cynbtj07.js": {
-    "type": "text/javascript; charset=utf-8",
-    "etag": "\"7c3-ivilgCucO62f4bJDQkx8dvN7o4g\"",
-    "mtime": "2026-03-19T01:48:23.066Z",
-    "size": 1987,
-    "path": "../public/_nuxt/Cynbtj07.js"
+  "/_nuxt/ContentTypeBadge.Dnr759Nm.css": {
+    "type": "text/css; charset=utf-8",
+    "etag": "\"31d-HajBbyIPLIzvGA1c1JGWdtfKYss\"",
+    "mtime": "2026-03-19T20:26:57.772Z",
+    "size": 797,
+    "path": "../public/_nuxt/ContentTypeBadge.Dnr759Nm.css"
   },
-  "/_nuxt/CynCVcoL.js": {
+  "/_nuxt/CvDDPuPS.js": {
     "type": "text/javascript; charset=utf-8",
-    "etag": "\"b50-k8XeBT363RNWbBgniGCuP0pStyk\"",
-    "mtime": "2026-03-19T01:48:23.066Z",
-    "size": 2896,
-    "path": "../public/_nuxt/CynCVcoL.js"
+    "etag": "\"d4a-pbLLZsLCHXvglQeKvEnw/pBS84g\"",
+    "mtime": "2026-03-19T20:26:57.773Z",
+    "size": 3402,
+    "path": "../public/_nuxt/CvDDPuPS.js"
   },
-  "/_nuxt/DCUr_KWp.js": {
+  "/_nuxt/Cu5ZOvrP.js": {
     "type": "text/javascript; charset=utf-8",
-    "etag": "\"ddf-rYzA03lOhO+zBzbJfYhgSfTvqQY\"",
-    "mtime": "2026-03-19T01:48:23.066Z",
-    "size": 3551,
-    "path": "../public/_nuxt/DCUr_KWp.js"
+    "etag": "\"10b0-JXH0GP9IOFPKP3yOUlSrH2GOTqo\"",
+    "mtime": "2026-03-19T20:26:57.773Z",
+    "size": 4272,
+    "path": "../public/_nuxt/Cu5ZOvrP.js"
   },
-  "/_nuxt/DG_Rhy1H.js": {
+  "/_nuxt/CxPO3Wy7.js": {
     "type": "text/javascript; charset=utf-8",
-    "etag": "\"830-nNPYa+WcTIz723r9o1uvhSySkkU\"",
-    "mtime": "2026-03-19T01:48:23.066Z",
-    "size": 2096,
-    "path": "../public/_nuxt/DG_Rhy1H.js"
+    "etag": "\"385-oU5xLyEXHeLGnSSHiJC50JZA3vc\"",
+    "mtime": "2026-03-19T20:26:57.773Z",
+    "size": 901,
+    "path": "../public/_nuxt/CxPO3Wy7.js"
   },
-  "/_nuxt/DL0UOUoz.js": {
+  "/_nuxt/CzvLRwEW.js": {
     "type": "text/javascript; charset=utf-8",
-    "etag": "\"23c-2YtfY7jKfTsoeq2pHTA2bDG8Ou8\"",
-    "mtime": "2026-03-19T01:48:23.066Z",
-    "size": 572,
-    "path": "../public/_nuxt/DL0UOUoz.js"
+    "etag": "\"e29-XNIEngygVMPcMOMhDsbuzVlIfUk\"",
+    "mtime": "2026-03-19T20:26:57.773Z",
+    "size": 3625,
+    "path": "../public/_nuxt/CzvLRwEW.js"
   },
-  "/_nuxt/DM63CotQ.js": {
+  "/_nuxt/D1tZSYnt.js": {
     "type": "text/javascript; charset=utf-8",
-    "etag": "\"1782-Ql9pR6g6SkNH9uRY4xQ98bFYelc\"",
-    "mtime": "2026-03-19T01:48:23.066Z",
-    "size": 6018,
-    "path": "../public/_nuxt/DM63CotQ.js"
+    "etag": "\"632-d7uNqqUrDnuqoYaN1JnYdDaKx58\"",
+    "mtime": "2026-03-19T20:26:57.773Z",
+    "size": 1586,
+    "path": "../public/_nuxt/D1tZSYnt.js"
   },
-  "/_nuxt/DMmzs4yl.js": {
+  "/_nuxt/D1Y61VP7.js": {
     "type": "text/javascript; charset=utf-8",
-    "etag": "\"40-F0aEU92d31Eq1AJ4Qu65DpDPgDI\"",
-    "mtime": "2026-03-19T01:48:23.066Z",
+    "etag": "\"5ea-P6vM+ZQpLCH9vee0ULzkO62+Nj4\"",
+    "mtime": "2026-03-19T20:26:57.773Z",
+    "size": 1514,
+    "path": "../public/_nuxt/D1Y61VP7.js"
+  },
+  "/_nuxt/D3eduOt6.js": {
+    "type": "text/javascript; charset=utf-8",
+    "etag": "\"1e71-0sfQfuXtfci2vSOKGvLV+0zH+14\"",
+    "mtime": "2026-03-19T20:26:57.773Z",
+    "size": 7793,
+    "path": "../public/_nuxt/D3eduOt6.js"
+  },
+  "/_nuxt/D40CsV4Y.js": {
+    "type": "text/javascript; charset=utf-8",
+    "etag": "\"ec4-d6X8F39rJwXyO6keVGxVOr6fceA\"",
+    "mtime": "2026-03-19T20:26:57.774Z",
+    "size": 3780,
+    "path": "../public/_nuxt/D40CsV4Y.js"
+  },
+  "/_nuxt/D6N8Sz9Y.js": {
+    "type": "text/javascript; charset=utf-8",
+    "etag": "\"40-hScjRnRePOYMfotgq3C9WyjmOqs\"",
+    "mtime": "2026-03-19T20:26:57.773Z",
     "size": 64,
-    "path": "../public/_nuxt/DMmzs4yl.js"
+    "path": "../public/_nuxt/D6N8Sz9Y.js"
   },
-  "/_nuxt/D3Efxlfu.js": {
+  "/_nuxt/DDRIMMbW.js": {
     "type": "text/javascript; charset=utf-8",
-    "etag": "\"31a52-NjpE2vOOxGaZ2O7ogtbcweGuYXw\"",
-    "mtime": "2026-03-19T01:48:23.067Z",
-    "size": 203346,
-    "path": "../public/_nuxt/D3Efxlfu.js"
-  },
-  "/_nuxt/DU-u-v_N.js": {
-    "type": "text/javascript; charset=utf-8",
-    "etag": "\"79e-Vf0eE/FIwBMZTre3N6Ds04gAKr4\"",
-    "mtime": "2026-03-19T01:48:23.066Z",
-    "size": 1950,
-    "path": "../public/_nuxt/DU-u-v_N.js"
-  },
-  "/_nuxt/DOsql7hv.js": {
-    "type": "text/javascript; charset=utf-8",
-    "etag": "\"1a8d-vmQklUj81xbVQ3h/joC25uB9rJI\"",
-    "mtime": "2026-03-19T01:48:23.066Z",
-    "size": 6797,
-    "path": "../public/_nuxt/DOsql7hv.js"
-  },
-  "/_nuxt/DVKX11he.js": {
-    "type": "text/javascript; charset=utf-8",
-    "etag": "\"393a-FMPGD8pwkCghb5wAmBxInC8C5Bo\"",
-    "mtime": "2026-03-19T01:48:23.067Z",
-    "size": 14650,
-    "path": "../public/_nuxt/DVKX11he.js"
-  },
-  "/_nuxt/DfCwBx6g.js": {
-    "type": "text/javascript; charset=utf-8",
-    "etag": "\"c3d-oIinieyqQhBhIlNJwNJYhHAizVA\"",
-    "mtime": "2026-03-19T01:48:23.067Z",
+    "etag": "\"c3d-oHB99fPh3q9S+6ZS0hRZeonGmZQ\"",
+    "mtime": "2026-03-19T20:26:57.773Z",
     "size": 3133,
-    "path": "../public/_nuxt/DfCwBx6g.js"
+    "path": "../public/_nuxt/DDRIMMbW.js"
   },
-  "/_nuxt/DdsO0yGW.js": {
+  "/_nuxt/D8h08jap.js": {
     "type": "text/javascript; charset=utf-8",
-    "etag": "\"511-aGSKMLZdDW0e+tuliGUpcS/WC5Y\"",
-    "mtime": "2026-03-19T01:48:23.067Z",
-    "size": 1297,
-    "path": "../public/_nuxt/DdsO0yGW.js"
+    "etag": "\"87b-fc0tGQeUN+eh8LswOwjO3pApOiQ\"",
+    "mtime": "2026-03-19T20:26:57.773Z",
+    "size": 2171,
+    "path": "../public/_nuxt/D8h08jap.js"
   },
-  "/_nuxt/DfwubAn_.js": {
+  "/_nuxt/DDVORIXg.js": {
     "type": "text/javascript; charset=utf-8",
-    "etag": "\"59b-6KHZFcafe7UmTg2o9Dj1ZW2u0k8\"",
-    "mtime": "2026-03-19T01:48:23.067Z",
-    "size": 1435,
-    "path": "../public/_nuxt/DfwubAn_.js"
+    "etag": "\"179-VO8WS0ESuxg1ZFGuUIGdenKkNcM\"",
+    "mtime": "2026-03-19T20:26:57.774Z",
+    "size": 377,
+    "path": "../public/_nuxt/DDVORIXg.js"
   },
-  "/_nuxt/DodnqiFv.js": {
+  "/_nuxt/DEfS9-7D.js": {
     "type": "text/javascript; charset=utf-8",
-    "etag": "\"10ce-dO3wIIvODS5uode9GBDtIn7hsGE\"",
-    "mtime": "2026-03-19T01:48:23.067Z",
-    "size": 4302,
-    "path": "../public/_nuxt/DodnqiFv.js"
+    "etag": "\"c22-knlN6K0EmeXAgMB5MA+jgsHalbM\"",
+    "mtime": "2026-03-19T20:26:57.774Z",
+    "size": 3106,
+    "path": "../public/_nuxt/DEfS9-7D.js"
   },
-  "/_nuxt/DkDxjnth.js": {
+  "/_nuxt/DPktP0bR.js": {
     "type": "text/javascript; charset=utf-8",
-    "etag": "\"ace-99PK4M5zcCx2ZTCigwov1fqYl/Q\"",
-    "mtime": "2026-03-19T01:48:23.067Z",
-    "size": 2766,
-    "path": "../public/_nuxt/DkDxjnth.js"
+    "etag": "\"f29-XwUJ9C5qsJn5TsluZHACW6rycoY\"",
+    "mtime": "2026-03-19T20:26:57.774Z",
+    "size": 3881,
+    "path": "../public/_nuxt/DPktP0bR.js"
   },
-  "/_nuxt/Hc4ur1EQ.js": {
+  "/_nuxt/DaMrAt-C.js": {
     "type": "text/javascript; charset=utf-8",
-    "etag": "\"67a-aPSRYWfY9TXjAT30wKx7YkvrzBw\"",
-    "mtime": "2026-03-19T01:48:23.067Z",
-    "size": 1658,
-    "path": "../public/_nuxt/Hc4ur1EQ.js"
+    "etag": "\"678-2HnzyKdqWYKF5VkeIunjCPl0RRM\"",
+    "mtime": "2026-03-19T20:26:57.774Z",
+    "size": 1656,
+    "path": "../public/_nuxt/DaMrAt-C.js"
   },
-  "/_nuxt/YL_h1Crv.js": {
+  "/_nuxt/DkjUoHIx.js": {
     "type": "text/javascript; charset=utf-8",
-    "etag": "\"38f-xqCf1MQ7viJxj0aERzX0ah1ZQBk\"",
-    "mtime": "2026-03-19T01:48:23.067Z",
-    "size": 911,
-    "path": "../public/_nuxt/YL_h1Crv.js"
+    "etag": "\"487-rKz+5wdqQa2nTDVq/Kph/TNB3Es\"",
+    "mtime": "2026-03-19T20:26:57.774Z",
+    "size": 1159,
+    "path": "../public/_nuxt/DkjUoHIx.js"
   },
-  "/_nuxt/_...BZernwya.css": {
+  "/_nuxt/DnaAkur7.js": {
+    "type": "text/javascript; charset=utf-8",
+    "etag": "\"831-oiyzt92a1AVCBqKVotDLf2/hVEs\"",
+    "mtime": "2026-03-19T20:26:57.774Z",
+    "size": 2097,
+    "path": "../public/_nuxt/DnaAkur7.js"
+  },
+  "/_nuxt/DiqdUuKN.js": {
+    "type": "text/javascript; charset=utf-8",
+    "etag": "\"2171-052u47gzMeL1mVZDQfp4NhmQLXY\"",
+    "mtime": "2026-03-19T20:26:57.774Z",
+    "size": 8561,
+    "path": "../public/_nuxt/DiqdUuKN.js"
+  },
+  "/_nuxt/Dq4kg88k.js": {
+    "type": "text/javascript; charset=utf-8",
+    "etag": "\"56b-tEX2oV4km3zBjKJpbNY/Yx63Buo\"",
+    "mtime": "2026-03-19T20:26:57.775Z",
+    "size": 1387,
+    "path": "../public/_nuxt/Dq4kg88k.js"
+  },
+  "/_nuxt/GRLnYMq3.js": {
+    "type": "text/javascript; charset=utf-8",
+    "etag": "\"9c4-nkFLzu5dAF2TY3fusKQGT6f0qsU\"",
+    "mtime": "2026-03-19T20:26:57.775Z",
+    "size": 2500,
+    "path": "../public/_nuxt/GRLnYMq3.js"
+  },
+  "/_nuxt/Hz5XXIaK.js": {
+    "type": "text/javascript; charset=utf-8",
+    "etag": "\"dd-U6Mf1uqkjW3VdjkB+xzs+bo2Iag\"",
+    "mtime": "2026-03-19T20:26:57.774Z",
+    "size": 221,
+    "path": "../public/_nuxt/Hz5XXIaK.js"
+  },
+  "/_nuxt/DucRaouA.js": {
+    "type": "text/javascript; charset=utf-8",
+    "etag": "\"319e-S8vm5qeA8HOUvGAYVVxlyfIyotE\"",
+    "mtime": "2026-03-19T20:26:57.774Z",
+    "size": 12702,
+    "path": "../public/_nuxt/DucRaouA.js"
+  },
+  "/_nuxt/ObF1Y5nr.js": {
+    "type": "text/javascript; charset=utf-8",
+    "etag": "\"300c-4C8rIg4FWY06d9gXPDOiFY3kSLQ\"",
+    "mtime": "2026-03-19T20:26:57.775Z",
+    "size": 12300,
+    "path": "../public/_nuxt/ObF1Y5nr.js"
+  },
+  "/_nuxt/RhDItHgc.js": {
+    "type": "text/javascript; charset=utf-8",
+    "etag": "\"63d-tvfehK8A64agoRb3h9wdhdRiubA\"",
+    "mtime": "2026-03-19T20:26:57.775Z",
+    "size": 1597,
+    "path": "../public/_nuxt/RhDItHgc.js"
+  },
+  "/_nuxt/RiVm3Iqe.js": {
+    "type": "text/javascript; charset=utf-8",
+    "etag": "\"1a17-05QB1lTRk4odNXZhdyrshwikKzI\"",
+    "mtime": "2026-03-19T20:26:57.775Z",
+    "size": 6679,
+    "path": "../public/_nuxt/RiVm3Iqe.js"
+  },
+  "/_nuxt/TJxFWwsO.js": {
+    "type": "text/javascript; charset=utf-8",
+    "etag": "\"770-Bd4DOQvqbe5pszosniSHnn/xRGU\"",
+    "mtime": "2026-03-19T20:26:57.775Z",
+    "size": 1904,
+    "path": "../public/_nuxt/TJxFWwsO.js"
+  },
+  "/_nuxt/ZYLWyq9r.js": {
+    "type": "text/javascript; charset=utf-8",
+    "etag": "\"a76-m4YKfTvVlkXq4XHvOZgeZsQC0iU\"",
+    "mtime": "2026-03-19T20:26:57.775Z",
+    "size": 2678,
+    "path": "../public/_nuxt/ZYLWyq9r.js"
+  },
+  "/_nuxt/D-gCp78O.js": {
+    "type": "text/javascript; charset=utf-8",
+    "etag": "\"5f398-sNFdZflLUOBBLtMp3dmpbxAOIIg\"",
+    "mtime": "2026-03-19T20:26:57.774Z",
+    "size": 390040,
+    "path": "../public/_nuxt/D-gCp78O.js"
+  },
+  "/_nuxt/_...BZiavFx7.css": {
     "type": "text/css; charset=utf-8",
-    "etag": "\"4d2-MhOggRBo5YjGSjEhvhKsWsv89NU\"",
-    "mtime": "2026-03-19T01:48:23.067Z",
-    "size": 1234,
-    "path": "../public/_nuxt/_...BZernwya.css"
+    "etag": "\"24c8-VQxqHxgj68+vdAgeb3T0nvNR8Ns\"",
+    "mtime": "2026-03-19T20:26:57.775Z",
+    "size": 9416,
+    "path": "../public/_nuxt/_...BZiavFx7.css"
   },
-  "/_nuxt/Il0zzqEa.js": {
-    "type": "text/javascript; charset=utf-8",
-    "etag": "\"1285-gRsGTKHpwIByVXwQKTaBy/sKNf0\"",
-    "mtime": "2026-03-19T01:48:23.067Z",
-    "size": 4741,
-    "path": "../public/_nuxt/Il0zzqEa.js"
-  },
-  "/_nuxt/_conversationId_.1i0UC71T.css": {
+  "/_nuxt/_code_.B4C1AYOc.css": {
     "type": "text/css; charset=utf-8",
-    "etag": "\"4ee-YbGzs/HGx9zN0hJoOCGd2WOToQI\"",
-    "mtime": "2026-03-19T01:48:23.067Z",
+    "etag": "\"a1d-82uq+22K3JL6KYwc1Ac0GLLyT2w\"",
+    "mtime": "2026-03-19T20:26:57.775Z",
+    "size": 2589,
+    "path": "../public/_nuxt/_code_.B4C1AYOc.css"
+  },
+  "/_nuxt/_conversationId_.CAYLO5dW.css": {
+    "type": "text/css; charset=utf-8",
+    "etag": "\"4ee-0p9+8noA/6FsL0KRrt8zclWzlqY\"",
+    "mtime": "2026-03-19T20:26:57.775Z",
     "size": 1262,
-    "path": "../public/_nuxt/_conversationId_.1i0UC71T.css"
+    "path": "../public/_nuxt/_conversationId_.CAYLO5dW.css"
   },
-  "/_nuxt/_id_.CrkT1dCY.css": {
+  "/_nuxt/_C_Uflxl.js": {
+    "type": "text/javascript; charset=utf-8",
+    "etag": "\"e8f-SSyl+4Hh9s7Kqb5cppEpOgHcgcY\"",
+    "mtime": "2026-03-19T20:26:57.775Z",
+    "size": 3727,
+    "path": "../public/_nuxt/_C_Uflxl.js"
+  },
+  "/_nuxt/_id_.n-usihns.css": {
     "type": "text/css; charset=utf-8",
-    "etag": "\"723-3l4szc/IyTGzRlDRFpPI3EUn4ys\"",
-    "mtime": "2026-03-19T01:48:23.067Z",
+    "etag": "\"723-4NpG9Pt6QWAWvr1TDkN6mh91JR0\"",
+    "mtime": "2026-03-19T20:26:57.775Z",
     "size": 1827,
-    "path": "../public/_nuxt/_id_.CrkT1dCY.css"
+    "path": "../public/_nuxt/_id_.n-usihns.css"
   },
-  "/_nuxt/_lessonSlug_.B03Ibq4R.css": {
+  "/_nuxt/_slug_.sxtVXyZe.css": {
     "type": "text/css; charset=utf-8",
-    "etag": "\"7e3-YTUN/MSZXAp/fzIAYQYrQsqtJpM\"",
-    "mtime": "2026-03-19T01:48:23.067Z",
-    "size": 2019,
-    "path": "../public/_nuxt/_lessonSlug_.B03Ibq4R.css"
-  },
-  "/_nuxt/_siteSlug_.hmVuIPor.css": {
-    "type": "text/css; charset=utf-8",
-    "etag": "\"5e0-Yl3tgTUHYGJDtyKq8sXZ4JOug/w\"",
-    "mtime": "2026-03-19T01:48:23.067Z",
-    "size": 1504,
-    "path": "../public/_nuxt/_siteSlug_.hmVuIPor.css"
-  },
-  "/_nuxt/_slug_.BTm7ZvMm.css": {
-    "type": "text/css; charset=utf-8",
-    "etag": "\"13ff-w9/95fmZ/ziVBB5HpwDevz/uqE0\"",
-    "mtime": "2026-03-19T01:48:23.068Z",
-    "size": 5119,
-    "path": "../public/_nuxt/_slug_.BTm7ZvMm.css"
+    "etag": "\"cdc-08AqZWcSuknSWxI3XfLYx3ZHljU\"",
+    "mtime": "2026-03-19T20:26:57.775Z",
+    "size": 3292,
+    "path": "../public/_nuxt/_slug_.sxtVXyZe.css"
   },
   "/_nuxt/_slug_.DbMYSWC0.css": {
     "type": "text/css; charset=utf-8",
     "etag": "\"312-yhHXTSirCswfVOV4CbNo6toq42Y\"",
-    "mtime": "2026-03-19T01:48:23.067Z",
+    "mtime": "2026-03-19T20:26:57.775Z",
     "size": 786,
     "path": "../public/_nuxt/_slug_.DbMYSWC0.css"
   },
-  "/_nuxt/_slug_.D6MU3Ul7.css": {
+  "/_nuxt/about.DklTaeoC.css": {
     "type": "text/css; charset=utf-8",
-    "etag": "\"58d2-2ldqfajX6eBKdwRbBN8S3WsZJdg\"",
-    "mtime": "2026-03-19T01:48:23.068Z",
-    "size": 22738,
-    "path": "../public/_nuxt/_slug_.D6MU3Ul7.css"
-  },
-  "/_nuxt/_slug_.NG1gLoYZ.css": {
-    "type": "text/css; charset=utf-8",
-    "etag": "\"3bd5-2MrG6xjyWJ3qckUBy89rKzqJlms\"",
-    "mtime": "2026-03-19T01:48:23.068Z",
-    "size": 15317,
-    "path": "../public/_nuxt/_slug_.NG1gLoYZ.css"
-  },
-  "/_nuxt/admin.CuEkSsjd.css": {
-    "type": "text/css; charset=utf-8",
-    "etag": "\"6c7-JyCbDSjbRN+h1Po/NXTXZWFI54I\"",
-    "mtime": "2026-03-19T01:48:23.068Z",
-    "size": 1735,
-    "path": "../public/_nuxt/admin.CuEkSsjd.css"
-  },
-  "/_nuxt/_username_.DFzS2U4O.css": {
-    "type": "text/css; charset=utf-8",
-    "etag": "\"2b37-69LktV5xO6FYduQZUSNgj479nZU\"",
-    "mtime": "2026-03-19T01:48:23.068Z",
-    "size": 11063,
-    "path": "../public/_nuxt/_username_.DFzS2U4O.css"
-  },
-  "/_nuxt/about.C26goEvi.css": {
-    "type": "text/css; charset=utf-8",
-    "etag": "\"81f-m3ZMz/W5VYVQgxOrIJebV6nWCVg\"",
-    "mtime": "2026-03-19T01:48:23.068Z",
+    "etag": "\"81f-WGrxTOPlZ57yXw93mp4xTm5E/Hs\"",
+    "mtime": "2026-03-19T20:26:57.776Z",
     "size": 2079,
-    "path": "../public/_nuxt/about.C26goEvi.css"
+    "path": "../public/_nuxt/about.DklTaeoC.css"
+  },
+  "/_nuxt/a9zTdsKT.js": {
+    "type": "text/javascript; charset=utf-8",
+    "etag": "\"a16-6FJRSMsvZIwLYd0mcDM9oH2aAgY\"",
+    "mtime": "2026-03-19T20:26:57.775Z",
+    "size": 2582,
+    "path": "../public/_nuxt/a9zTdsKT.js"
   },
   "/_nuxt/appearance.C7Vo_EPg.css": {
     "type": "text/css; charset=utf-8",
     "etag": "\"2a0-mLKp9Gohe8A0nkPiEaMcbZeLcNI\"",
-    "mtime": "2026-03-19T01:48:23.068Z",
+    "mtime": "2026-03-19T20:26:57.776Z",
     "size": 672,
     "path": "../public/_nuxt/appearance.C7Vo_EPg.css"
   },
-  "/_nuxt/audit.Bk7zyCmM.css": {
-    "type": "text/css; charset=utf-8",
-    "etag": "\"319-kkLOhkmeCDxnBw+cnMtXneq9QEo\"",
-    "mtime": "2026-03-19T01:48:23.068Z",
-    "size": 793,
-    "path": "../public/_nuxt/audit.Bk7zyCmM.css"
-  },
-  "/_nuxt/auth.guVz6xFX.css": {
-    "type": "text/css; charset=utf-8",
-    "etag": "\"291-gcFo/HmDY2sL+eUQt+ZQLaNOB4I\"",
-    "mtime": "2026-03-19T01:48:23.068Z",
-    "size": 657,
-    "path": "../public/_nuxt/auth.guVz6xFX.css"
-  },
-  "/_nuxt/cIS-kDBn.js": {
+  "/_nuxt/cbslpyGE.js": {
     "type": "text/javascript; charset=utf-8",
-    "etag": "\"562-ekEiDeYTTkU447jGqkTXP4NXceY\"",
-    "mtime": "2026-03-19T01:48:23.068Z",
-    "size": 1378,
-    "path": "../public/_nuxt/cIS-kDBn.js"
+    "etag": "\"7ca-M0SvQGNzIcAyqgc8zee8wRod1ng\"",
+    "mtime": "2026-03-19T20:26:57.776Z",
+    "size": 1994,
+    "path": "../public/_nuxt/cbslpyGE.js"
   },
-  "/_nuxt/create.CiBS_mfc.css": {
+  "/_nuxt/admin.CuEkSsjd.css": {
     "type": "text/css; charset=utf-8",
-    "etag": "\"366-0qCilFRA3qMKL2sNnFVRqXhvHcI\"",
-    "mtime": "2026-03-19T01:48:23.068Z",
-    "size": 870,
-    "path": "../public/_nuxt/create.CiBS_mfc.css"
+    "etag": "\"6c7-JyCbDSjbRN+h1Po/NXTXZWFI54I\"",
+    "mtime": "2026-03-19T20:26:57.776Z",
+    "size": 1735,
+    "path": "../public/_nuxt/admin.CuEkSsjd.css"
   },
-  "/_nuxt/cexVyCF6.js": {
-    "type": "text/javascript; charset=utf-8",
-    "etag": "\"3545-8p5hZgafOmN/6iTXFIE227mJC80\"",
-    "mtime": "2026-03-19T01:48:23.068Z",
-    "size": 13637,
-    "path": "../public/_nuxt/cexVyCF6.js"
-  },
-  "/_nuxt/content.Beth3trZ.css": {
+  "/_nuxt/content.CSIbBkXB.css": {
     "type": "text/css; charset=utf-8",
-    "etag": "\"53f-TjawyIhQP/+4Sdz1SYf7PaQZCdQ\"",
-    "mtime": "2026-03-19T01:48:23.068Z",
-    "size": 1343,
-    "path": "../public/_nuxt/content.Beth3trZ.css"
+    "etag": "\"647-SQG1EetbXPwYPFrg8UTDlM9wttw\"",
+    "mtime": "2026-03-19T20:26:57.776Z",
+    "size": 1607,
+    "path": "../public/_nuxt/content.CSIbBkXB.css"
+  },
+  "/_nuxt/audit.CS-cTV1C.css": {
+    "type": "text/css; charset=utf-8",
+    "etag": "\"376-DsFI4Lp0WNz3d2xzhyQJUBmuNNM\"",
+    "mtime": "2026-03-19T20:26:57.776Z",
+    "size": 886,
+    "path": "../public/_nuxt/audit.CS-cTV1C.css"
+  },
+  "/_nuxt/account.KPzbs-j0.css": {
+    "type": "text/css; charset=utf-8",
+    "etag": "\"300-TZkKmsn6vmdxaNJP1dqn8v6gwCs\"",
+    "mtime": "2026-03-19T20:26:57.776Z",
+    "size": 768,
+    "path": "../public/_nuxt/account.KPzbs-j0.css"
   },
   "/_nuxt/create.Cl_cQ-qD.css": {
     "type": "text/css; charset=utf-8",
     "etag": "\"6cf-1pXTrGiVmuMR7yj6tXjWYH5H+wY\"",
-    "mtime": "2026-03-19T01:48:23.068Z",
+    "mtime": "2026-03-19T20:26:57.776Z",
     "size": 1743,
     "path": "../public/_nuxt/create.Cl_cQ-qD.css"
+  },
+  "/_nuxt/create.BYssfLYx.css": {
+    "type": "text/css; charset=utf-8",
+    "etag": "\"366-J8ySHWa9hc8BGL+88XAEg62Momk\"",
+    "mtime": "2026-03-19T20:26:57.776Z",
+    "size": 870,
+    "path": "../public/_nuxt/create.BYssfLYx.css"
+  },
+  "/_nuxt/create.Dovj27ro.css": {
+    "type": "text/css; charset=utf-8",
+    "etag": "\"813-tCNeQJqMSNz9XtrNmskrT6U5mbw\"",
+    "mtime": "2026-03-19T20:26:57.776Z",
+    "size": 2067,
+    "path": "../public/_nuxt/create.Dovj27ro.css"
+  },
+  "/_nuxt/create.DsfsadPh.css": {
+    "type": "text/css; charset=utf-8",
+    "etag": "\"3a8-jIvu/YzravsGR7P2zWGo28F+ums\"",
+    "mtime": "2026-03-19T20:26:57.776Z",
+    "size": 936,
+    "path": "../public/_nuxt/create.DsfsadPh.css"
   },
   "/_nuxt/create.DKW_DWhv.css": {
     "type": "text/css; charset=utf-8",
     "etag": "\"1d5-iwQnFoDNcc52H9jqhPNxL/yAwcc\"",
-    "mtime": "2026-03-19T01:48:23.068Z",
+    "mtime": "2026-03-19T20:26:57.776Z",
     "size": 469,
     "path": "../public/_nuxt/create.DKW_DWhv.css"
   },
-  "/_nuxt/create.lBnWQNRT.css": {
+  "/_nuxt/dashboard.B-GgcKEV.css": {
     "type": "text/css; charset=utf-8",
-    "etag": "\"3a8-JVt4CgUAl7mCbVwyKBUaDBu+DFg\"",
-    "mtime": "2026-03-19T01:48:23.068Z",
-    "size": 936,
-    "path": "../public/_nuxt/create.lBnWQNRT.css"
+    "etag": "\"ec6-ofX5fLl0+SY0xV9pcTBpISMKAUw\"",
+    "mtime": "2026-03-19T20:26:57.776Z",
+    "size": 3782,
+    "path": "../public/_nuxt/dashboard.B-GgcKEV.css"
   },
-  "/_nuxt/dashboard.C50OrSmR.css": {
+  "/_nuxt/default.CgoeyAD8.css": {
     "type": "text/css; charset=utf-8",
-    "etag": "\"e79-yt34+ZFoY6zrEW5RGTTM8r3Z1bI\"",
-    "mtime": "2026-03-19T01:48:23.068Z",
-    "size": 3705,
-    "path": "../public/_nuxt/dashboard.C50OrSmR.css"
-  },
-  "/_nuxt/default.RCEMAXAO.css": {
-    "type": "text/css; charset=utf-8",
-    "etag": "\"20e0-O3TfISrYAzeiw6DFJ4AbGy1FFuo\"",
-    "mtime": "2026-03-19T01:48:23.068Z",
+    "etag": "\"20e0-cWeOTTwHegibRthPo8cCdOHtUsQ\"",
+    "mtime": "2026-03-19T20:26:57.776Z",
     "size": 8416,
-    "path": "../public/_nuxt/default.RCEMAXAO.css"
+    "path": "../public/_nuxt/default.CgoeyAD8.css"
   },
-  "/_nuxt/edit.BNxQqtP6.css": {
+  "/_nuxt/auth.CGrlX6lU.css": {
     "type": "text/css; charset=utf-8",
-    "etag": "\"a2a-GhEA70ffd3pkWnGjnxhVVh/lgyE\"",
-    "mtime": "2026-03-19T01:48:23.068Z",
-    "size": 2602,
-    "path": "../public/_nuxt/edit.BNxQqtP6.css"
+    "etag": "\"2fb-sBGTrldmuACh82QCIcgIYdbwjo4\"",
+    "mtime": "2026-03-19T20:26:57.776Z",
+    "size": 763,
+    "path": "../public/_nuxt/auth.CGrlX6lU.css"
   },
-  "/_nuxt/edit.Br7Sbe3v.css": {
+  "/_nuxt/edit.BIILVcI3.css": {
     "type": "text/css; charset=utf-8",
-    "etag": "\"1108-CAdADsMnvDBx8yxQkpc+JZaatEM\"",
-    "mtime": "2026-03-19T01:48:23.068Z",
-    "size": 4360,
-    "path": "../public/_nuxt/edit.Br7Sbe3v.css"
+    "etag": "\"1454-ymc+okd6ai1RUjxxl2TqXcC4d48\"",
+    "mtime": "2026-03-19T20:26:57.776Z",
+    "size": 5204,
+    "path": "../public/_nuxt/edit.BIILVcI3.css"
   },
-  "/_nuxt/entry.Bz2xTzR-.css": {
+  "/_nuxt/edit.CrSvFUNv.css": {
     "type": "text/css; charset=utf-8",
-    "etag": "\"67f-l9VQNGhq9Eebrt1ZLWSnvDryD7M\"",
-    "mtime": "2026-03-19T01:48:23.069Z",
-    "size": 1663,
-    "path": "../public/_nuxt/entry.Bz2xTzR-.css"
+    "etag": "\"8e9-/UOgGCzv9DbkWWJkI+R+cLAqPO8\"",
+    "mtime": "2026-03-19T20:26:57.777Z",
+    "size": 2281,
+    "path": "../public/_nuxt/edit.CrSvFUNv.css"
   },
-  "/_nuxt/edit.53Kp_hey.css": {
+  "/_nuxt/edit.DJCWNWJr.css": {
     "type": "text/css; charset=utf-8",
-    "etag": "\"faa6-+6hulZxzVXsnEDeWjOofnPLidF0\"",
-    "mtime": "2026-03-19T01:48:23.068Z",
-    "size": 64166,
-    "path": "../public/_nuxt/edit.53Kp_hey.css"
+    "etag": "\"1075-y0jrByxOm8bEIFfJTUG8DvsJV10\"",
+    "mtime": "2026-03-19T20:26:57.777Z",
+    "size": 4213,
+    "path": "../public/_nuxt/edit.DJCWNWJr.css"
   },
   "/_nuxt/editor.CqYnHnxn.css": {
     "type": "text/css; charset=utf-8",
     "etag": "\"631-DpoInIT6/lQDDA2XEzLeuXKx+8c\"",
-    "mtime": "2026-03-19T01:48:23.069Z",
+    "mtime": "2026-03-19T20:26:57.777Z",
     "size": 1585,
     "path": "../public/_nuxt/editor.CqYnHnxn.css"
   },
-  "/_nuxt/explore.CriFXitM.css": {
+  "/_nuxt/edit.gFE7ArRi.css": {
     "type": "text/css; charset=utf-8",
-    "etag": "\"116b-0XTlYrMN65aT4Rl5kJG9xyc23/E\"",
-    "mtime": "2026-03-19T01:48:23.069Z",
-    "size": 4459,
-    "path": "../public/_nuxt/explore.CriFXitM.css"
+    "etag": "\"213e-nlNiFQtcGAWm0H0dz1p+B3LAw3Y\"",
+    "mtime": "2026-03-19T20:26:57.777Z",
+    "size": 8510,
+    "path": "../public/_nuxt/edit.gFE7ArRi.css"
   },
-  "/_nuxt/feed.An90og1t.css": {
+  "/_nuxt/edit.Dq5WwzAr.css": {
     "type": "text/css; charset=utf-8",
-    "etag": "\"6a6-MNRGOQEgf9eOLe6dCOqULAdyBQU\"",
-    "mtime": "2026-03-19T01:48:23.069Z",
-    "size": 1702,
-    "path": "../public/_nuxt/feed.An90og1t.css"
+    "etag": "\"faa6-Ydpk/nPCeMx9Qz1anmvjIKhoxm8\"",
+    "mtime": "2026-03-19T20:26:57.777Z",
+    "size": 64166,
+    "path": "../public/_nuxt/edit.Dq5WwzAr.css"
+  },
+  "/_nuxt/explore.By4g317l.css": {
+    "type": "text/css; charset=utf-8",
+    "etag": "\"11b7-e41CzWOEMsDgUiRkFvB7SakXWlg\"",
+    "mtime": "2026-03-19T20:26:57.777Z",
+    "size": 4535,
+    "path": "../public/_nuxt/explore.By4g317l.css"
+  },
+  "/_nuxt/entry.Bz2xTzR-.css": {
+    "type": "text/css; charset=utf-8",
+    "etag": "\"67f-l9VQNGhq9Eebrt1ZLWSnvDryD7M\"",
+    "mtime": "2026-03-19T20:26:57.777Z",
+    "size": 1663,
+    "path": "../public/_nuxt/entry.Bz2xTzR-.css"
+  },
+  "/_nuxt/feed.BusKX9ua.css": {
+    "type": "text/css; charset=utf-8",
+    "etag": "\"572-KWyNTMOEJXnhbJftclsf1rhxWjk\"",
+    "mtime": "2026-03-19T20:26:57.777Z",
+    "size": 1394,
+    "path": "../public/_nuxt/feed.BusKX9ua.css"
+  },
+  "/_nuxt/fgQ4-u1Q.js": {
+    "type": "text/javascript; charset=utf-8",
+    "etag": "\"1d54-iq7xsP1VVlwRbsTzlKYmgl2my/E\"",
+    "mtime": "2026-03-19T20:26:57.777Z",
+    "size": 7508,
+    "path": "../public/_nuxt/fgQ4-u1Q.js"
+  },
+  "/_nuxt/followers.qDaBP57w.css": {
+    "type": "text/css; charset=utf-8",
+    "etag": "\"57d-Ex3aXz+hMtjjwUUheRkuv6kINDY\"",
+    "mtime": "2026-03-19T20:26:57.777Z",
+    "size": 1405,
+    "path": "../public/_nuxt/followers.qDaBP57w.css"
+  },
+  "/_nuxt/following._h_0bREx.css": {
+    "type": "text/css; charset=utf-8",
+    "etag": "\"57d-7Yxt70qF/VQyIL/EjlTek5iKvRo\"",
+    "mtime": "2026-03-19T20:26:57.777Z",
+    "size": 1405,
+    "path": "../public/_nuxt/following._h_0bREx.css"
   },
   "/_nuxt/forgot-password.DSLObLdT.css": {
     "type": "text/css; charset=utf-8",
     "etag": "\"8cf-M0pokWmx/xZCKjCraH+XZU33NuU\"",
-    "mtime": "2026-03-19T01:48:23.069Z",
+    "mtime": "2026-03-19T20:26:57.777Z",
     "size": 2255,
     "path": "../public/_nuxt/forgot-password.DSLObLdT.css"
   },
-  "/_nuxt/index.BdLxqqnY.css": {
+  "/_nuxt/index.B0Ub1w7N.css": {
     "type": "text/css; charset=utf-8",
-    "etag": "\"3ab5-Nmzr1erRdySIB2KXPDm6F6x7sIY\"",
-    "mtime": "2026-03-19T01:48:23.069Z",
+    "etag": "\"3ab5-zdLyneiTlYlJX0HN0UwPaoehR1o\"",
+    "mtime": "2026-03-19T20:26:57.777Z",
     "size": 15029,
-    "path": "../public/_nuxt/index.BdLxqqnY.css"
+    "path": "../public/_nuxt/index.B0Ub1w7N.css"
   },
-  "/_nuxt/index.BnqqPS_V.css": {
+  "/_nuxt/index.BWiQdL8I.css": {
     "type": "text/css; charset=utf-8",
-    "etag": "\"3dc-NsHVGwBd2A88SMIPhR8QJVUS/Ok\"",
-    "mtime": "2026-03-19T01:48:23.069Z",
-    "size": 988,
-    "path": "../public/_nuxt/index.BnqqPS_V.css"
+    "etag": "\"16c6-24/Tjgn+kIkQYi889f1vWxgm38s\"",
+    "mtime": "2026-03-19T20:26:57.777Z",
+    "size": 5830,
+    "path": "../public/_nuxt/index.BWiQdL8I.css"
   },
   "/_nuxt/index.BvmqA84i.css": {
     "type": "text/css; charset=utf-8",
     "etag": "\"506-0NcjayD6M9lfS49feUz6YgSRfM8\"",
-    "mtime": "2026-03-19T01:48:23.069Z",
+    "mtime": "2026-03-19T20:26:57.778Z",
     "size": 1286,
     "path": "../public/_nuxt/index.BvmqA84i.css"
   },
-  "/_nuxt/index.C4PHbvUk.css": {
+  "/_nuxt/index.Bth37xzy.css": {
     "type": "text/css; charset=utf-8",
-    "etag": "\"b22-8WTmIFFg+Tmb2E87ZUBlqNrJqw8\"",
-    "mtime": "2026-03-19T01:48:23.069Z",
-    "size": 2850,
-    "path": "../public/_nuxt/index.C4PHbvUk.css"
+    "etag": "\"b88-AOpCW8q2DPfcyybVENdrQfI1+iY\"",
+    "mtime": "2026-03-19T20:26:57.778Z",
+    "size": 2952,
+    "path": "../public/_nuxt/index.Bth37xzy.css"
   },
-  "/_nuxt/index.CC-_NqDc.css": {
+  "/_nuxt/index.CItVzstQ.css": {
     "type": "text/css; charset=utf-8",
-    "etag": "\"295b-zP0Fyo1YTaBU+RMuBBX8LrQcUQw\"",
-    "mtime": "2026-03-19T01:48:23.069Z",
-    "size": 10587,
-    "path": "../public/_nuxt/index.CC-_NqDc.css"
-  },
-  "/_nuxt/index.CWUSyiXb.css": {
-    "type": "text/css; charset=utf-8",
-    "etag": "\"706-unX9gXR4445yomb9xbH1NuREDbg\"",
-    "mtime": "2026-03-19T01:48:23.069Z",
-    "size": 1798,
-    "path": "../public/_nuxt/index.CWUSyiXb.css"
-  },
-  "/_nuxt/index.CkwGbhqe.css": {
-    "type": "text/css; charset=utf-8",
-    "etag": "\"33dc-emf62283UQ0YJEO97/sxK4YtK6A\"",
-    "mtime": "2026-03-19T01:48:23.069Z",
-    "size": 13276,
-    "path": "../public/_nuxt/index.CkwGbhqe.css"
-  },
-  "/_nuxt/index.DdHirfDW.css": {
-    "type": "text/css; charset=utf-8",
-    "etag": "\"2a2-RrRp87p823c1Zkfu6uBO4gdSd/s\"",
-    "mtime": "2026-03-19T01:48:23.069Z",
+    "etag": "\"2a2-ZpZ0XlRTKgUQVgBDyST6OJmcZ0I\"",
+    "mtime": "2026-03-19T20:26:57.778Z",
     "size": 674,
-    "path": "../public/_nuxt/index.DdHirfDW.css"
+    "path": "../public/_nuxt/index.CItVzstQ.css"
   },
-  "/_nuxt/index.DqXg2mgt.css": {
+  "/_nuxt/index.C2e1jyFd.css": {
     "type": "text/css; charset=utf-8",
-    "etag": "\"e2f7-Q+8FLry2ZMjxwcYR4kd+SgNIpAM\"",
-    "mtime": "2026-03-19T01:48:23.069Z",
-    "size": 58103,
-    "path": "../public/_nuxt/index.DqXg2mgt.css"
+    "etag": "\"1e2c-iBAQDtGMRrBHIlT9JRxzjsS5SKM\"",
+    "mtime": "2026-03-19T20:26:57.778Z",
+    "size": 7724,
+    "path": "../public/_nuxt/index.C2e1jyFd.css"
+  },
+  "/_nuxt/index.CfR808xV.css": {
+    "type": "text/css; charset=utf-8",
+    "etag": "\"295b-FuIuQndSJ7phEme0chObvc2Cs3w\"",
+    "mtime": "2026-03-19T20:26:57.778Z",
+    "size": 10587,
+    "path": "../public/_nuxt/index.CfR808xV.css"
+  },
+  "/_nuxt/index.DEpFsJqN.css": {
+    "type": "text/css; charset=utf-8",
+    "etag": "\"e228-1CIV8JUtC62cj4HrT+sXmngUZyM\"",
+    "mtime": "2026-03-19T20:26:57.778Z",
+    "size": 57896,
+    "path": "../public/_nuxt/index.DEpFsJqN.css"
+  },
+  "/_nuxt/index.DFYPTYdo.css": {
+    "type": "text/css; charset=utf-8",
+    "etag": "\"85e-rYwQCzveyxPienIHUAoJBGF0SMI\"",
+    "mtime": "2026-03-19T20:26:57.778Z",
+    "size": 2142,
+    "path": "../public/_nuxt/index.DFYPTYdo.css"
+  },
+  "/_nuxt/index.DIgCkXGu.css": {
+    "type": "text/css; charset=utf-8",
+    "etag": "\"706-kA/vngw0fFHB+Je/d7AHFk4aSCw\"",
+    "mtime": "2026-03-19T20:26:57.778Z",
+    "size": 1798,
+    "path": "../public/_nuxt/index.DIgCkXGu.css"
+  },
+  "/_nuxt/index.DJlQMEBm.css": {
+    "type": "text/css; charset=utf-8",
+    "etag": "\"b6f-V1KkRX5LiNvVg4A7r6VZKDD52EE\"",
+    "mtime": "2026-03-19T20:26:57.778Z",
+    "size": 2927,
+    "path": "../public/_nuxt/index.DJlQMEBm.css"
+  },
+  "/_nuxt/index.Dac7jaCt.css": {
+    "type": "text/css; charset=utf-8",
+    "etag": "\"3361-oKQAXfKpur13KQXoX2marBOYjK4\"",
+    "mtime": "2026-03-19T20:26:57.778Z",
+    "size": 13153,
+    "path": "../public/_nuxt/index.Dac7jaCt.css"
+  },
+  "/_nuxt/index.DOLKbg1i.css": {
+    "type": "text/css; charset=utf-8",
+    "etag": "\"58d2-qcyYUbTtwUT5zJkkJuxV+gTt544\"",
+    "mtime": "2026-03-19T20:26:57.778Z",
+    "size": 22738,
+    "path": "../public/_nuxt/index.DOLKbg1i.css"
+  },
+  "/_nuxt/index.DdRQ_3EP.css": {
+    "type": "text/css; charset=utf-8",
+    "etag": "\"47d-fnmetQKrVnIiYlynY/RQtdDSg6M\"",
+    "mtime": "2026-03-19T20:26:57.778Z",
+    "size": 1149,
+    "path": "../public/_nuxt/index.DdRQ_3EP.css"
+  },
+  "/_nuxt/index.a2CPSbdx.css": {
+    "type": "text/css; charset=utf-8",
+    "etag": "\"33dc-HgRogn0iglpx7989GhT11wNOC0s\"",
+    "mtime": "2026-03-19T20:26:57.778Z",
+    "size": 13276,
+    "path": "../public/_nuxt/index.a2CPSbdx.css"
   },
   "/_nuxt/index.x7k1_5WZ.css": {
     "type": "text/css; charset=utf-8",
     "etag": "\"798-WBiq8SB15KYQkrSCSNGCZrdEjMk\"",
-    "mtime": "2026-03-19T01:48:23.069Z",
+    "mtime": "2026-03-19T20:26:57.780Z",
     "size": 1944,
     "path": "../public/_nuxt/index.x7k1_5WZ.css"
   },
-  "/_nuxt/judge.DUjJqUkJ.css": {
+  "/_nuxt/jhtFpIFW.js": {
+    "type": "text/javascript; charset=utf-8",
+    "etag": "\"db9-4PDLQwxIcKAkSsExc2gr1Uh2awY\"",
+    "mtime": "2026-03-19T20:26:57.779Z",
+    "size": 3513,
+    "path": "../public/_nuxt/jhtFpIFW.js"
+  },
+  "/_nuxt/judge.DbnsmwbT.css": {
     "type": "text/css; charset=utf-8",
-    "etag": "\"bbd-ybQMQrCAUG+78NB68EZQ7ocSz5g\"",
-    "mtime": "2026-03-19T01:48:23.069Z",
+    "etag": "\"bbd-RH0Ka8Ev0YJpgTM44aA/ARSk8VQ\"",
+    "mtime": "2026-03-19T20:26:57.779Z",
     "size": 3005,
-    "path": "../public/_nuxt/judge.DUjJqUkJ.css"
+    "path": "../public/_nuxt/judge.DbnsmwbT.css"
+  },
+  "/_nuxt/lFoWRyY8.js": {
+    "type": "text/javascript; charset=utf-8",
+    "etag": "\"5795-ciY5wXzjs8q6sRnAxbQDrS2fT+A\"",
+    "mtime": "2026-03-19T20:26:57.779Z",
+    "size": 22421,
+    "path": "../public/_nuxt/lFoWRyY8.js"
+  },
+  "/_nuxt/index.tcrmnQxf.css": {
+    "type": "text/css; charset=utf-8",
+    "etag": "\"26b8-y/k0GJqFzg5FUWj9uqgsZZ74bV8\"",
+    "mtime": "2026-03-19T20:26:57.779Z",
+    "size": 9912,
+    "path": "../public/_nuxt/index.tcrmnQxf.css"
+  },
+  "/_nuxt/index.fkyCKNjJ.css": {
+    "type": "text/css; charset=utf-8",
+    "etag": "\"3f43-jhWX6VBC5xXhVe1xiw8HybDDk0A\"",
+    "mtime": "2026-03-19T20:26:57.778Z",
+    "size": 16195,
+    "path": "../public/_nuxt/index.fkyCKNjJ.css"
   },
   "/_nuxt/login.CUUQ76s-.css": {
     "type": "text/css; charset=utf-8",
     "etag": "\"842-OYAltsLJzG+KE7CGV4WMJgVvmTU\"",
-    "mtime": "2026-03-19T01:48:23.070Z",
+    "mtime": "2026-03-19T20:26:57.779Z",
     "size": 2114,
     "path": "../public/_nuxt/login.CUUQ76s-.css"
   },
-  "/_nuxt/mYyGZsRK.js": {
+  "/_nuxt/members.DLD_br4h.css": {
+    "type": "text/css; charset=utf-8",
+    "etag": "\"987-ctN0bJbJEThlu2enX+6fPWo3Mqs\"",
+    "mtime": "2026-03-19T20:26:57.779Z",
+    "size": 2439,
+    "path": "../public/_nuxt/members.DLD_br4h.css"
+  },
+  "/_nuxt/notifications.DPrG148p.css": {
+    "type": "text/css; charset=utf-8",
+    "etag": "\"52f-rRKLv3VRAku5tfUEVU2jbQF3sFQ\"",
+    "mtime": "2026-03-19T20:26:57.779Z",
+    "size": 1327,
+    "path": "../public/_nuxt/notifications.DPrG148p.css"
+  },
+  "/_nuxt/profile.CO5SRBjb.css": {
+    "type": "text/css; charset=utf-8",
+    "etag": "\"16bb-YXVXDSUj9KhpCjrfXTI2f7r/fUc\"",
+    "mtime": "2026-03-19T20:26:57.779Z",
+    "size": 5819,
+    "path": "../public/_nuxt/profile.CO5SRBjb.css"
+  },
+  "/_nuxt/qoPLoz2B.js": {
     "type": "text/javascript; charset=utf-8",
-    "etag": "\"4df-5D/Y34Y5JGNaBvtl52OYQCqUNEI\"",
-    "mtime": "2026-03-19T01:48:23.069Z",
-    "size": 1247,
-    "path": "../public/_nuxt/mYyGZsRK.js"
+    "etag": "\"1d1a-byyoYyQDb0+h/Fn2ImaM8ZgvyF8\"",
+    "mtime": "2026-03-19T20:26:57.779Z",
+    "size": 7450,
+    "path": "../public/_nuxt/qoPLoz2B.js"
   },
-  "/_nuxt/members.CCXckPZV.css": {
+  "/_nuxt/reports.Dd-6Ubhw.css": {
     "type": "text/css; charset=utf-8",
-    "etag": "\"45f-jC0KiAlRAbWdIWxUZg7l3I1zQWY\"",
-    "mtime": "2026-03-19T01:48:23.069Z",
-    "size": 1119,
-    "path": "../public/_nuxt/members.CCXckPZV.css"
+    "etag": "\"70e-Cuacm30s0TM1175Ta+S/qjqWla0\"",
+    "mtime": "2026-03-19T20:26:57.779Z",
+    "size": 1806,
+    "path": "../public/_nuxt/reports.Dd-6Ubhw.css"
   },
-  "/_nuxt/notifications.C1jB8uR1.css": {
+  "/_nuxt/register.BIf2l6sv.css": {
     "type": "text/css; charset=utf-8",
-    "etag": "\"4e2-cK5XtnqeZIjfbD+MgWS99yCFMM0\"",
-    "mtime": "2026-03-19T01:48:23.069Z",
-    "size": 1250,
-    "path": "../public/_nuxt/notifications.C1jB8uR1.css"
-  },
-  "/_nuxt/rTX6jFtZ.js": {
-    "type": "text/javascript; charset=utf-8",
-    "etag": "\"1cb4-P/C6nrqToONPROcLS4Pbc1ZYhVM\"",
-    "mtime": "2026-03-19T01:48:23.070Z",
-    "size": 7348,
-    "path": "../public/_nuxt/rTX6jFtZ.js"
-  },
-  "/_nuxt/register.DTF7Do7k.css": {
-    "type": "text/css; charset=utf-8",
-    "etag": "\"8d4-vtOa0j5ryyucNXIO7CAIjB9ZEzE\"",
-    "mtime": "2026-03-19T01:48:23.070Z",
+    "etag": "\"8d4-r+4bzBB4QN3lS7Lflw3JjH9avbU\"",
+    "mtime": "2026-03-19T20:26:57.779Z",
     "size": 2260,
-    "path": "../public/_nuxt/register.DTF7Do7k.css"
-  },
-  "/_nuxt/qHzpO5vr.js": {
-    "type": "text/javascript; charset=utf-8",
-    "etag": "\"9a9-t+Dp9p/NuH9iWusR54FJdd+qXFc\"",
-    "mtime": "2026-03-19T01:48:23.070Z",
-    "size": 2473,
-    "path": "../public/_nuxt/qHzpO5vr.js"
+    "path": "../public/_nuxt/register.BIf2l6sv.css"
   },
   "/_nuxt/reset-password.BYp2gaQR.css": {
     "type": "text/css; charset=utf-8",
     "etag": "\"7cb-KX+SI/aM15slB5p3EoTWE4OtQKs\"",
-    "mtime": "2026-03-19T01:48:23.070Z",
+    "mtime": "2026-03-19T20:26:57.779Z",
     "size": 1995,
     "path": "../public/_nuxt/reset-password.BYp2gaQR.css"
-  },
-  "/_nuxt/reports.7qO4ZVq3.css": {
-    "type": "text/css; charset=utf-8",
-    "etag": "\"408-go50jMdB94fb6dGVUKambxFaVA0\"",
-    "mtime": "2026-03-19T01:48:23.070Z",
-    "size": 1032,
-    "path": "../public/_nuxt/reports.7qO4ZVq3.css"
-  },
-  "/_nuxt/settings.DEQAOaYs.css": {
-    "type": "text/css; charset=utf-8",
-    "etag": "\"5ea-yima7Ztj0y2n3KB6yJ/rGDfV7T8\"",
-    "mtime": "2026-03-19T01:48:23.070Z",
-    "size": 1514,
-    "path": "../public/_nuxt/settings.DEQAOaYs.css"
   },
   "/_nuxt/search.Cup0agm2.css": {
     "type": "text/css; charset=utf-8",
     "etag": "\"2e55-mPK3XUnHJFX17WUY+mjhLd+qQuY\"",
-    "mtime": "2026-03-19T01:48:23.070Z",
+    "mtime": "2026-03-19T20:26:57.779Z",
     "size": 11861,
     "path": "../public/_nuxt/search.Cup0agm2.css"
   },
-  "/_nuxt/users.BRqV5crv.css": {
+  "/_nuxt/settings.BzB5OV_U.css": {
     "type": "text/css; charset=utf-8",
-    "etag": "\"4df-LIllyk7qxvgV1oJNgri3zW4lvBs\"",
-    "mtime": "2026-03-19T01:48:23.070Z",
-    "size": 1247,
-    "path": "../public/_nuxt/users.BRqV5crv.css"
+    "etag": "\"5ea-AqxZt5wYrk3kuCDtbQ7y0gNx/TE\"",
+    "mtime": "2026-03-19T20:26:57.779Z",
+    "size": 1514,
+    "path": "../public/_nuxt/settings.BzB5OV_U.css"
+  },
+  "/_nuxt/settings.CbiJXFty.css": {
+    "type": "text/css; charset=utf-8",
+    "etag": "\"6a6-SrxVMWrnT+cjkrF2upxeGy7fZk0\"",
+    "mtime": "2026-03-19T20:26:57.780Z",
+    "size": 1702,
+    "path": "../public/_nuxt/settings.CbiJXFty.css"
+  },
+  "/_nuxt/u0P4_RPZ.js": {
+    "type": "text/javascript; charset=utf-8",
+    "etag": "\"b5c-Fj5+Dl+Mx1C3cHQ2roweCn3/K7I\"",
+    "mtime": "2026-03-19T20:26:57.780Z",
+    "size": 2908,
+    "path": "../public/_nuxt/u0P4_RPZ.js"
+  },
+  "/_nuxt/uOa77k_q.js": {
+    "type": "text/javascript; charset=utf-8",
+    "etag": "\"32fb9-63qfJD7EnPYmGJXxchySOPEOWuU\"",
+    "mtime": "2026-03-19T20:26:57.781Z",
+    "size": 208825,
+    "path": "../public/_nuxt/uOa77k_q.js"
+  },
+  "/_nuxt/users.D7VAnrae.css": {
+    "type": "text/css; charset=utf-8",
+    "etag": "\"882-NLZTSnqQNiLOSIUJ4f1cucVWjj4\"",
+    "mtime": "2026-03-19T20:26:57.780Z",
+    "size": 2178,
+    "path": "../public/_nuxt/users.D7VAnrae.css"
   },
   "/_nuxt/verify-email.DtJYGrd_.css": {
     "type": "text/css; charset=utf-8",
     "etag": "\"23f-+ScI65B6EoRwPsLxMSE1M6oEKZs\"",
-    "mtime": "2026-03-19T01:48:23.070Z",
+    "mtime": "2026-03-19T20:26:57.780Z",
     "size": 575,
     "path": "../public/_nuxt/verify-email.DtJYGrd_.css"
   },
-  "/_nuxt/settings.DFb_BqkX.css": {
+  "/_nuxt/submit.C9DcTXxB.css": {
     "type": "text/css; charset=utf-8",
-    "etag": "\"6a6-+QjK05BJz41cjywKAg1+B2k1dvg\"",
-    "mtime": "2026-03-19T01:48:23.070Z",
-    "size": 1702,
-    "path": "../public/_nuxt/settings.DFb_BqkX.css"
-  },
-  "/_nuxt/tI8ekxG2.js": {
-    "type": "text/javascript; charset=utf-8",
-    "etag": "\"487-zl3rnSa5eYToHC+daGgXLHrMnPE\"",
-    "mtime": "2026-03-19T01:48:23.070Z",
-    "size": 1159,
-    "path": "../public/_nuxt/tI8ekxG2.js"
-  },
-  "/_nuxt/w44O5rjW.js": {
-    "type": "text/javascript; charset=utf-8",
-    "etag": "\"b7-4mrGeCX3XlG7dB4TqV/sj25A7ro\"",
-    "mtime": "2026-03-19T01:48:23.070Z",
-    "size": 183,
-    "path": "../public/_nuxt/w44O5rjW.js"
-  },
-  "/_nuxt/profile.DexjR0Iz.css": {
-    "type": "text/css; charset=utf-8",
-    "etag": "\"16bb-F6WXySp/HL0ywljESNPPcaINdPw\"",
-    "mtime": "2026-03-19T01:48:23.069Z",
-    "size": 5819,
-    "path": "../public/_nuxt/profile.DexjR0Iz.css"
-  },
-  "/_nuxt/yTZ__98E.js": {
-    "type": "text/javascript; charset=utf-8",
-    "etag": "\"bef-8osACZ3TODP+93cTJ26hPGacLgI\"",
-    "mtime": "2026-03-19T01:48:23.070Z",
-    "size": 3055,
-    "path": "../public/_nuxt/yTZ__98E.js"
-  },
-  "/_nuxt/x-Kp3Cpw.js": {
-    "type": "text/javascript; charset=utf-8",
-    "etag": "\"f13-sjS0w+UGNeRRQohC73pHUGsUi1A\"",
-    "mtime": "2026-03-19T01:48:23.070Z",
-    "size": 3859,
-    "path": "../public/_nuxt/x-Kp3Cpw.js"
+    "etag": "\"632-LplDxMKrL+7y6UBrJ05eGIB+eBM\"",
+    "mtime": "2026-03-19T20:26:57.780Z",
+    "size": 1586,
+    "path": "../public/_nuxt/submit.C9DcTXxB.css"
   },
   "/uploads/content/1dd04a10-f12d-4060-b8fd-e710cfb3b6d6.png": {
     "type": "image/png",
     "etag": "\"957b-Sa5FkC26jBXpyeqyQ7epHXCfrm0\"",
-    "mtime": "2026-03-19T01:48:23.044Z",
+    "mtime": "2026-03-19T20:26:57.746Z",
     "size": 38267,
     "path": "../public/uploads/content/1dd04a10-f12d-4060-b8fd-e710cfb3b6d6.png"
   },
   "/uploads/content/20cfbf98-6942-4c18-9267-81f45d2d9c97.png": {
     "type": "image/png",
     "etag": "\"db5f-nntplnFKGBDrAJvyMhaQ15dLcPg\"",
-    "mtime": "2026-03-19T01:48:23.043Z",
+    "mtime": "2026-03-19T20:26:57.747Z",
     "size": 56159,
     "path": "../public/uploads/content/20cfbf98-6942-4c18-9267-81f45d2d9c97.png"
   },
   "/uploads/content/7c519b80-8912-4466-9caa-effe38d82f07.png": {
     "type": "image/png",
     "etag": "\"957b-Sa5FkC26jBXpyeqyQ7epHXCfrm0\"",
-    "mtime": "2026-03-19T01:48:23.043Z",
+    "mtime": "2026-03-19T20:26:57.746Z",
     "size": 38267,
     "path": "../public/uploads/content/7c519b80-8912-4466-9caa-effe38d82f07.png"
   },
   "/uploads/content/daa9fc81-6d27-45e7-8015-9d59f943d976.png": {
     "type": "image/png",
     "etag": "\"957b-Sa5FkC26jBXpyeqyQ7epHXCfrm0\"",
-    "mtime": "2026-03-19T01:48:23.043Z",
+    "mtime": "2026-03-19T20:26:57.747Z",
     "size": 38267,
     "path": "../public/uploads/content/daa9fc81-6d27-45e7-8015-9d59f943d976.png"
   },
+  "/uploads/content/efbbfc35-45cc-4e90-af24-70d61961389e.png": {
+    "type": "image/png",
+    "etag": "\"29c08-s1rxj8lFl0AmICI5FY+D62sgRIs\"",
+    "mtime": "2026-03-19T20:26:57.747Z",
+    "size": 171016,
+    "path": "../public/uploads/content/efbbfc35-45cc-4e90-af24-70d61961389e.png"
+  },
   "/_nuxt/builds/latest.json": {
     "type": "application/json",
-    "etag": "\"47-hPkMYeLYdJDCJLPXHzWsb/JqV2o\"",
-    "mtime": "2026-03-19T01:48:23.040Z",
+    "etag": "\"47-q0TgV8ioslbDYzh7lrlCTvSlD9Y\"",
+    "mtime": "2026-03-19T20:26:57.743Z",
     "size": 71,
     "path": "../public/_nuxt/builds/latest.json"
+  },
+  "/uploads/content/variants/26dbc58f-d3bf-424c-a605-b7cac3f29d68.webp": {
+    "type": "image/webp",
+    "etag": "\"568-CVvXVBgWuDZDHS/QPObssvEkT3Y\"",
+    "mtime": "2026-03-19T20:26:57.748Z",
+    "size": 1384,
+    "path": "../public/uploads/content/variants/26dbc58f-d3bf-424c-a605-b7cac3f29d68.webp"
+  },
+  "/uploads/content/variants/5946d305-b5be-4002-aa64-4e75374d9100.webp": {
+    "type": "image/webp",
+    "etag": "\"916-k+XQhAJ+t9We9jLBsO4y8Y5aGFU\"",
+    "mtime": "2026-03-19T20:26:57.747Z",
+    "size": 2326,
+    "path": "../public/uploads/content/variants/5946d305-b5be-4002-aa64-4e75374d9100.webp"
   },
   "/uploads/content/variants/21105036-8465-4fff-909f-68173c7cab21.webp": {
     "type": "image/webp",
     "etag": "\"1960-1lVwyZKzUtHMFn1AIbmyhiqMBqQ\"",
-    "mtime": "2026-03-19T01:48:23.044Z",
+    "mtime": "2026-03-19T20:26:57.747Z",
     "size": 6496,
     "path": "../public/uploads/content/variants/21105036-8465-4fff-909f-68173c7cab21.webp"
   },
   "/uploads/content/variants/3256cd97-ba50-4e1c-98c3-7cbb98fdd659.webp": {
     "type": "image/webp",
     "etag": "\"916-k+XQhAJ+t9We9jLBsO4y8Y5aGFU\"",
-    "mtime": "2026-03-19T01:48:23.044Z",
+    "mtime": "2026-03-19T20:26:57.748Z",
     "size": 2326,
     "path": "../public/uploads/content/variants/3256cd97-ba50-4e1c-98c3-7cbb98fdd659.webp"
-  },
-  "/uploads/content/variants/5946d305-b5be-4002-aa64-4e75374d9100.webp": {
-    "type": "image/webp",
-    "etag": "\"916-k+XQhAJ+t9We9jLBsO4y8Y5aGFU\"",
-    "mtime": "2026-03-19T01:48:23.044Z",
-    "size": 2326,
-    "path": "../public/uploads/content/variants/5946d305-b5be-4002-aa64-4e75374d9100.webp"
-  },
-  "/uploads/content/variants/26dbc58f-d3bf-424c-a605-b7cac3f29d68.webp": {
-    "type": "image/webp",
-    "etag": "\"568-CVvXVBgWuDZDHS/QPObssvEkT3Y\"",
-    "mtime": "2026-03-19T01:48:23.044Z",
-    "size": 1384,
-    "path": "../public/uploads/content/variants/26dbc58f-d3bf-424c-a605-b7cac3f29d68.webp"
   },
   "/uploads/content/variants/5967f57b-77f7-46cc-a790-e4737c2009bb.webp": {
     "type": "image/webp",
     "etag": "\"2850-rs98I+OHZnsC57HKp+C0TGLehqA\"",
-    "mtime": "2026-03-19T01:48:23.044Z",
+    "mtime": "2026-03-19T20:26:57.746Z",
     "size": 10320,
     "path": "../public/uploads/content/variants/5967f57b-77f7-46cc-a790-e4737c2009bb.webp"
-  },
-  "/uploads/content/variants/735f8d88-89f8-438d-b6f6-2d2ea07a5a4e.webp": {
-    "type": "image/webp",
-    "etag": "\"12ec-57QRNisOlmm5IQtlonQICjkWNF0\"",
-    "mtime": "2026-03-19T01:48:23.044Z",
-    "size": 4844,
-    "path": "../public/uploads/content/variants/735f8d88-89f8-438d-b6f6-2d2ea07a5a4e.webp"
   },
   "/uploads/content/variants/6c3881ff-9fc9-4203-a6d8-85acd690e1ab.webp": {
     "type": "image/webp",
     "etag": "\"ba4-wKUd2Q4z6sW6MHCxWt2NEbA6s1Y\"",
-    "mtime": "2026-03-19T01:48:23.044Z",
+    "mtime": "2026-03-19T20:26:57.747Z",
     "size": 2980,
     "path": "../public/uploads/content/variants/6c3881ff-9fc9-4203-a6d8-85acd690e1ab.webp"
-  },
-  "/uploads/content/variants/9d362228-3797-4b61-9123-7829fea96219.webp": {
-    "type": "image/webp",
-    "etag": "\"12ec-57QRNisOlmm5IQtlonQICjkWNF0\"",
-    "mtime": "2026-03-19T01:48:23.044Z",
-    "size": 4844,
-    "path": "../public/uploads/content/variants/9d362228-3797-4b61-9123-7829fea96219.webp"
   },
   "/uploads/content/variants/8f8f51bf-49b1-4a98-8f4d-7b88e563a70e.webp": {
     "type": "image/webp",
     "etag": "\"5072-9ACF0XkaGH8BoTZjiq4baKYuKy0\"",
-    "mtime": "2026-03-19T01:48:23.044Z",
+    "mtime": "2026-03-19T20:26:57.747Z",
     "size": 20594,
     "path": "../public/uploads/content/variants/8f8f51bf-49b1-4a98-8f4d-7b88e563a70e.webp"
   },
   "/uploads/content/variants/9a31accc-c7e5-4301-badc-582d77da8b88.webp": {
     "type": "image/webp",
     "etag": "\"12ec-57QRNisOlmm5IQtlonQICjkWNF0\"",
-    "mtime": "2026-03-19T01:48:23.044Z",
+    "mtime": "2026-03-19T20:26:57.748Z",
     "size": 4844,
     "path": "../public/uploads/content/variants/9a31accc-c7e5-4301-badc-582d77da8b88.webp"
+  },
+  "/uploads/content/variants/735f8d88-89f8-438d-b6f6-2d2ea07a5a4e.webp": {
+    "type": "image/webp",
+    "etag": "\"12ec-57QRNisOlmm5IQtlonQICjkWNF0\"",
+    "mtime": "2026-03-19T20:26:57.747Z",
+    "size": 4844,
+    "path": "../public/uploads/content/variants/735f8d88-89f8-438d-b6f6-2d2ea07a5a4e.webp"
+  },
+  "/uploads/content/variants/9d362228-3797-4b61-9123-7829fea96219.webp": {
+    "type": "image/webp",
+    "etag": "\"12ec-57QRNisOlmm5IQtlonQICjkWNF0\"",
+    "mtime": "2026-03-19T20:26:57.747Z",
+    "size": 4844,
+    "path": "../public/uploads/content/variants/9d362228-3797-4b61-9123-7829fea96219.webp"
   },
   "/uploads/content/variants/9d38dee7-bc6d-4348-853a-07731d61912c.webp": {
     "type": "image/webp",
     "etag": "\"6c16-BgKnWRN+x3jBRPEO7MaAUSDVOYM\"",
-    "mtime": "2026-03-19T01:48:23.044Z",
+    "mtime": "2026-03-19T20:26:57.747Z",
     "size": 27670,
     "path": "../public/uploads/content/variants/9d38dee7-bc6d-4348-853a-07731d61912c.webp"
-  },
-  "/_nuxt/builds/meta/dev.json": {
-    "type": "application/json",
-    "etag": "\"37-kANlqQGpp9RV4FBD4vVbSUstEW0\"",
-    "mtime": "2026-03-19T01:48:23.038Z",
-    "size": 55,
-    "path": "../public/_nuxt/builds/meta/dev.json"
-  },
-  "/uploads/content/variants/f0f426f7-a91e-4846-84d0-c6160983d173.webp": {
-    "type": "image/webp",
-    "etag": "\"36ce-g0/hCWYSncI3vUBfG12TCxizLXg\"",
-    "mtime": "2026-03-19T01:48:23.044Z",
-    "size": 14030,
-    "path": "../public/uploads/content/variants/f0f426f7-a91e-4846-84d0-c6160983d173.webp"
-  },
-  "/_nuxt/builds/meta/d5d9db1f-82ec-4516-9698-d54135c20d8f.json": {
-    "type": "application/json",
-    "etag": "\"58-5C3nnoJY2KrEJkOe2KsnzGiGCOI\"",
-    "mtime": "2026-03-19T01:48:23.038Z",
-    "size": 88,
-    "path": "../public/_nuxt/builds/meta/d5d9db1f-82ec-4516-9698-d54135c20d8f.json"
   },
   "/uploads/content/variants/c6249783-7a95-4f11-b313-266563abfcd1.webp": {
     "type": "image/webp",
     "etag": "\"916-k+XQhAJ+t9We9jLBsO4y8Y5aGFU\"",
-    "mtime": "2026-03-19T01:48:23.044Z",
+    "mtime": "2026-03-19T20:26:57.747Z",
     "size": 2326,
     "path": "../public/uploads/content/variants/c6249783-7a95-4f11-b313-266563abfcd1.webp"
   },
-  "/uploads/content/efbbfc35-45cc-4e90-af24-70d61961389e.png": {
-    "type": "image/png",
-    "etag": "\"29c08-s1rxj8lFl0AmICI5FY+D62sgRIs\"",
-    "mtime": "2026-03-19T01:48:23.044Z",
-    "size": 171016,
-    "path": "../public/uploads/content/efbbfc35-45cc-4e90-af24-70d61961389e.png"
+  "/uploads/content/variants/f0f426f7-a91e-4846-84d0-c6160983d173.webp": {
+    "type": "image/webp",
+    "etag": "\"36ce-g0/hCWYSncI3vUBfG12TCxizLXg\"",
+    "mtime": "2026-03-19T20:26:57.747Z",
+    "size": 14030,
+    "path": "../public/uploads/content/variants/f0f426f7-a91e-4846-84d0-c6160983d173.webp"
+  },
+  "/_nuxt/builds/meta/4220b328-6e01-47d0-a7ba-fa6a4c3f9541.json": {
+    "type": "application/json",
+    "etag": "\"58-LaC/23SB40ScY3YWoTVI9weCJ6o\"",
+    "mtime": "2026-03-19T20:26:57.741Z",
+    "size": 88,
+    "path": "../public/_nuxt/builds/meta/4220b328-6e01-47d0-a7ba-fa6a4c3f9541.json"
+  },
+  "/_nuxt/builds/meta/dev.json": {
+    "type": "application/json",
+    "etag": "\"37-LyuVim+OvedabL43imi5djD/6FA\"",
+    "mtime": "2026-03-19T20:26:57.741Z",
+    "size": 55,
+    "path": "../public/_nuxt/builds/meta/dev.json"
   }
 };
 
@@ -6283,7 +6460,12 @@ const contentItems = pgTable("content_items", {
   publishedAt: timestamp("published_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
-});
+}, (t) => [
+  index("idx_content_items_author_id").on(t.authorId),
+  index("idx_content_items_status").on(t.status),
+  index("idx_content_items_type").on(t.type),
+  index("idx_content_items_published_at").on(t.publishedAt)
+]);
 const contentVersions = pgTable("content_versions", {
   id: uuid("id").defaultRandom().primaryKey(),
   contentId: uuid("content_id").notNull().references(() => contentItems.id, { onDelete: "cascade" }),
@@ -6293,19 +6475,27 @@ const contentVersions = pgTable("content_versions", {
   metadata: jsonb("metadata"),
   createdById: uuid("created_by_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull()
-});
+}, (t) => [
+  index("idx_content_versions_content_id").on(t.contentId)
+]);
 const contentForks = pgTable("content_forks", {
   id: uuid("id").defaultRandom().primaryKey(),
   sourceId: uuid("source_id").notNull().references(() => contentItems.id, { onDelete: "cascade" }),
   forkId: uuid("fork_id").notNull().references(() => contentItems.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull()
-});
+}, (t) => [
+  index("idx_content_forks_source_id").on(t.sourceId),
+  index("idx_content_forks_fork_id").on(t.forkId)
+]);
 const contentBuilds = pgTable("content_builds", {
   id: uuid("id").defaultRandom().primaryKey(),
   contentId: uuid("content_id").notNull().references(() => contentItems.id, { onDelete: "cascade" }),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull()
-}, (t) => [unique("content_builds_user_content").on(t.userId, t.contentId)]);
+}, (t) => [
+  unique("content_builds_user_content").on(t.userId, t.contentId),
+  index("idx_content_builds_content_id").on(t.contentId)
+]);
 const tags = pgTable("tags", {
   id: uuid("id").defaultRandom().primaryKey(),
   name: varchar("name", { length: 64 }).notNull().unique(),
@@ -6317,7 +6507,10 @@ const contentTags = pgTable("content_tags", {
   id: uuid("id").defaultRandom().primaryKey(),
   contentId: uuid("content_id").notNull().references(() => contentItems.id, { onDelete: "cascade" }),
   tagId: uuid("tag_id").notNull().references(() => tags.id, { onDelete: "cascade" })
-});
+}, (t) => [
+  index("idx_content_tags_content_id").on(t.contentId),
+  index("idx_content_tags_tag_id").on(t.tagId)
+]);
 const contentItemsRelations = relations(contentItems, ({ one, many }) => ({
   author: one(users, { fields: [contentItems.authorId], references: [users.id] }),
   tags: many(contentTags),
@@ -6361,13 +6554,20 @@ const likes = pgTable("likes", {
   targetType: likeTargetTypeEnum("target_type").notNull(),
   targetId: uuid("target_id").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull()
-}, (t) => [unique("likes_user_target").on(t.userId, t.targetType, t.targetId)]);
+}, (t) => [
+  unique("likes_user_target").on(t.userId, t.targetType, t.targetId),
+  index("idx_likes_target").on(t.targetType, t.targetId)
+]);
 const follows = pgTable("follows", {
   id: uuid("id").defaultRandom().primaryKey(),
   followerId: uuid("follower_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   followingId: uuid("following_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull()
-}, (t) => [unique("follows_pair").on(t.followerId, t.followingId)]);
+}, (t) => [
+  unique("follows_pair").on(t.followerId, t.followingId),
+  index("idx_follows_follower_id").on(t.followerId),
+  index("idx_follows_following_id").on(t.followingId)
+]);
 const comments = pgTable("comments", {
   id: uuid("id").defaultRandom().primaryKey(),
   authorId: uuid("author_id").notNull().references(() => users.id, { onDelete: "cascade" }),
@@ -6379,14 +6579,21 @@ const comments = pgTable("comments", {
   likeCount: integer("like_count").default(0).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
-});
+}, (t) => [
+  index("idx_comments_author_id").on(t.authorId),
+  index("idx_comments_target").on(t.targetType, t.targetId),
+  index("idx_comments_parent_id").on(t.parentId)
+]);
 const bookmarks = pgTable("bookmarks", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   targetType: bookmarkTargetTypeEnum("target_type").notNull(),
   targetId: uuid("target_id").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull()
-}, (t) => [unique("bookmarks_user_target").on(t.userId, t.targetType, t.targetId)]);
+}, (t) => [
+  unique("bookmarks_user_target").on(t.userId, t.targetType, t.targetId),
+  index("idx_bookmarks_target").on(t.targetType, t.targetId)
+]);
 const notifications = pgTable("notifications", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
@@ -6397,7 +6604,10 @@ const notifications = pgTable("notifications", {
   actorId: uuid("actor_id").references(() => users.id, { onDelete: "set null" }),
   read: boolean("read").default(false).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull()
-});
+}, (t) => [
+  index("idx_notifications_user_id").on(t.userId),
+  index("idx_notifications_user_read").on(t.userId, t.read)
+]);
 const reports = pgTable("reports", {
   id: uuid("id").defaultRandom().primaryKey(),
   reporterId: uuid("reporter_id").notNull().references(() => users.id, { onDelete: "cascade" }),
@@ -6410,7 +6620,10 @@ const reports = pgTable("reports", {
   reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
   resolution: text("resolution"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull()
-});
+}, (t) => [
+  index("idx_reports_reporter_id").on(t.reporterId),
+  index("idx_reports_status").on(t.status)
+]);
 const conversations = pgTable("conversations", {
   id: uuid("id").defaultRandom().primaryKey(),
   participants: jsonb("participants").$type().notNull(),
@@ -6425,7 +6638,10 @@ const messages = pgTable("messages", {
   body: text("body").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   readAt: timestamp("read_at", { withTimezone: true })
-});
+}, (t) => [
+  index("idx_messages_conversation_id").on(t.conversationId),
+  index("idx_messages_sender_id").on(t.senderId)
+]);
 const likesRelations = relations(likes, ({ one }) => ({
   user: one(users, { fields: [likes.userId], references: [users.id] })
 }));
@@ -6494,7 +6710,10 @@ const hubs = pgTable("hubs", {
   deletedAt: timestamp("deleted_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
-});
+}, (t) => [
+  index("idx_hubs_created_by_id").on(t.createdById),
+  index("idx_hubs_hub_type").on(t.hubType)
+]);
 const hubMembers = pgTable("hub_members", {
   hubId: uuid("hub_id").notNull().references(() => hubs.id, { onDelete: "cascade" }),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
@@ -6515,7 +6734,10 @@ const hubPosts = pgTable("hub_posts", {
   lastEditedAt: timestamp("last_edited_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
-});
+}, (t) => [
+  index("idx_hub_posts_hub_id").on(t.hubId),
+  index("idx_hub_posts_author_id").on(t.authorId)
+]);
 const hubPostReplies = pgTable("hub_post_replies", {
   id: uuid("id").defaultRandom().primaryKey(),
   postId: uuid("post_id").notNull().references(() => hubPosts.id, { onDelete: "cascade" }),
@@ -6526,7 +6748,10 @@ const hubPostReplies = pgTable("hub_post_replies", {
   likeCount: integer("like_count").default(0).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
-});
+}, (t) => [
+  index("idx_hub_post_replies_post_id").on(t.postId),
+  index("idx_hub_post_replies_author_id").on(t.authorId)
+]);
 const hubBans = pgTable("hub_bans", {
   id: uuid("id").defaultRandom().primaryKey(),
   hubId: uuid("hub_id").notNull().references(() => hubs.id, { onDelete: "cascade" }),
@@ -6535,7 +6760,10 @@ const hubBans = pgTable("hub_bans", {
   reason: text("reason"),
   expiresAt: timestamp("expires_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull()
-});
+}, (t) => [
+  index("idx_hub_bans_hub_id").on(t.hubId),
+  index("idx_hub_bans_user_id").on(t.userId)
+]);
 const hubInvites = pgTable("hub_invites", {
   id: uuid("id").defaultRandom().primaryKey(),
   hubId: uuid("hub_id").notNull().references(() => hubs.id, { onDelete: "cascade" }),
@@ -6545,14 +6773,19 @@ const hubInvites = pgTable("hub_invites", {
   useCount: integer("use_count").default(0).notNull(),
   expiresAt: timestamp("expires_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull()
-});
+}, (t) => [
+  index("idx_hub_invites_hub_id").on(t.hubId)
+]);
 const hubShares = pgTable("hub_shares", {
   id: uuid("id").defaultRandom().primaryKey(),
   hubId: uuid("hub_id").notNull().references(() => hubs.id, { onDelete: "cascade" }),
   contentId: uuid("content_id").notNull().references(() => contentItems.id, { onDelete: "cascade" }),
   sharedById: uuid("shared_by_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull()
-});
+}, (t) => [
+  index("idx_hub_shares_hub_id").on(t.hubId),
+  index("idx_hub_shares_content_id").on(t.contentId)
+]);
 const hubsRelations = relations(hubs, ({ one, many }) => ({
   createdBy: one(users, { fields: [hubs.createdById], references: [users.id] }),
   parentHub: one(hubs, {
@@ -6639,7 +6872,10 @@ const products = pgTable("products", {
   createdById: uuid("created_by_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
-});
+}, (t) => [
+  index("idx_products_hub_id").on(t.hubId),
+  index("idx_products_created_by_id").on(t.createdById)
+]);
 const contentProducts = pgTable("content_products", {
   id: uuid("id").defaultRandom().primaryKey(),
   contentId: uuid("content_id").notNull().references(() => contentItems.id, { onDelete: "cascade" }),
@@ -6650,7 +6886,10 @@ const contentProducts = pgTable("content_products", {
   required: boolean("required").default(true).notNull(),
   sortOrder: integer("sort_order").default(0).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull()
-}, (t) => [uniqueIndex("idx_content_product_unique").on(t.contentId, t.productId)]);
+}, (t) => [
+  uniqueIndex("idx_content_product_unique").on(t.contentId, t.productId),
+  index("idx_content_products_product_id").on(t.productId)
+]);
 const productsRelations = relations(products, ({ one, many }) => ({
   hub: one(hubs, { fields: [products.hubId], references: [hubs.id] }),
   createdBy: one(users, { fields: [products.createdById], references: [users.id] }),
@@ -6683,7 +6922,10 @@ const learningPaths = pgTable("learning_paths", {
   reviewCount: integer("review_count").default(0).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
-});
+}, (t) => [
+  index("idx_learning_paths_author_id").on(t.authorId),
+  index("idx_learning_paths_status").on(t.status)
+]);
 const learningModules = pgTable("learning_modules", {
   id: uuid("id").defaultRandom().primaryKey(),
   pathId: uuid("path_id").notNull().references(() => learningPaths.id, { onDelete: "cascade" }),
@@ -6691,7 +6933,9 @@ const learningModules = pgTable("learning_modules", {
   description: text("description"),
   sortOrder: integer("sort_order").default(0).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull()
-});
+}, (t) => [
+  index("idx_learning_modules_path_id").on(t.pathId)
+]);
 const learningLessons = pgTable("learning_lessons", {
   id: uuid("id").defaultRandom().primaryKey(),
   moduleId: uuid("module_id").notNull().references(() => learningModules.id, { onDelete: "cascade" }),
@@ -6699,11 +6943,15 @@ const learningLessons = pgTable("learning_lessons", {
   slug: varchar("slug", { length: 255 }).notNull(),
   type: lessonTypeEnum("type").notNull(),
   content: jsonb("content"),
+  contentItemId: uuid("content_item_id").references(() => contentItems.id, { onDelete: "set null" }),
   duration: integer("duration_minutes"),
   sortOrder: integer("sort_order").default(0).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
-}, (t) => [unique("learning_lessons_module_slug").on(t.moduleId, t.slug)]);
+}, (t) => [
+  unique("learning_lessons_module_slug").on(t.moduleId, t.slug),
+  index("idx_learning_lessons_module_id").on(t.moduleId)
+]);
 const enrollments = pgTable("enrollments", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
@@ -6711,7 +6959,11 @@ const enrollments = pgTable("enrollments", {
   progress: numeric("progress", { precision: 5, scale: 2 }).default("0").notNull(),
   startedAt: timestamp("started_at", { withTimezone: true }).defaultNow().notNull(),
   completedAt: timestamp("completed_at", { withTimezone: true })
-}, (t) => [unique("enrollments_user_path").on(t.userId, t.pathId)]);
+}, (t) => [
+  unique("enrollments_user_path").on(t.userId, t.pathId),
+  index("idx_enrollments_user_id").on(t.userId),
+  index("idx_enrollments_path_id").on(t.pathId)
+]);
 const lessonProgress = pgTable("lesson_progress", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
@@ -6720,7 +6972,10 @@ const lessonProgress = pgTable("lesson_progress", {
   completedAt: timestamp("completed_at", { withTimezone: true }),
   quizScore: numeric("quiz_score", { precision: 5, scale: 2 }),
   quizPassed: boolean("quiz_passed")
-}, (t) => [unique("lesson_progress_user_lesson").on(t.userId, t.lessonId)]);
+}, (t) => [
+  unique("lesson_progress_user_lesson").on(t.userId, t.lessonId),
+  index("idx_lesson_progress_lesson_id").on(t.lessonId)
+]);
 const certificates = pgTable("certificates", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
@@ -6728,7 +6983,10 @@ const certificates = pgTable("certificates", {
   verificationCode: varchar("verification_code", { length: 64 }).notNull().unique(),
   certificateUrl: text("certificate_url"),
   issuedAt: timestamp("issued_at", { withTimezone: true }).defaultNow().notNull()
-});
+}, (t) => [
+  unique("certificates_user_path").on(t.userId, t.pathId),
+  index("idx_certificates_path_id").on(t.pathId)
+]);
 const learningPathsRelations = relations(learningPaths, ({ one, many }) => ({
   author: one(users, { fields: [learningPaths.authorId], references: [users.id] }),
   modules: many(learningModules),
@@ -6743,6 +7001,10 @@ const learningLessonsRelations = relations(learningLessons, ({ one }) => ({
   module: one(learningModules, {
     fields: [learningLessons.moduleId],
     references: [learningModules.id]
+  }),
+  contentItem: one(contentItems, {
+    fields: [learningLessons.contentItemId],
+    references: [contentItems.id]
   })
 }));
 const enrollmentsRelations = relations(enrollments, ({ one }) => ({
@@ -6770,14 +7032,19 @@ const docsSites = pgTable("docs_sites", {
   themeTokens: jsonb("theme_tokens").$type(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
-});
+}, (t) => [
+  index("idx_docs_sites_owner_id").on(t.ownerId)
+]);
 const docsVersions = pgTable("docs_versions", {
   id: uuid("id").defaultRandom().primaryKey(),
   siteId: uuid("site_id").notNull().references(() => docsSites.id, { onDelete: "cascade" }),
   version: varchar("version", { length: 32 }).notNull(),
   isDefault: boolean("is_default").default(false).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull()
-}, (t) => [unique("docs_versions_site_version").on(t.siteId, t.version)]);
+}, (t) => [
+  unique("docs_versions_site_version").on(t.siteId, t.version),
+  index("idx_docs_versions_site_id").on(t.siteId)
+]);
 const docsPages = pgTable("docs_pages", {
   id: uuid("id").defaultRandom().primaryKey(),
   versionId: uuid("version_id").notNull().references(() => docsVersions.id, { onDelete: "cascade" }),
@@ -6790,7 +7057,10 @@ const docsPages = pgTable("docs_pages", {
   parentId: uuid("parent_id"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
-});
+}, (t) => [
+  index("idx_docs_pages_version_id").on(t.versionId),
+  index("idx_docs_pages_parent_id").on(t.parentId)
+]);
 const docsNav = pgTable("docs_nav", {
   id: uuid("id").defaultRandom().primaryKey(),
   versionId: uuid("version_id").notNull().references(() => docsVersions.id, { onDelete: "cascade" }),
@@ -6835,7 +7105,9 @@ const videos = pgTable("videos", {
   commentCount: integer("comment_count").default(0).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
-});
+}, (t) => [
+  index("idx_videos_author_id").on(t.authorId)
+]);
 const videoCategories = pgTable("video_categories", {
   id: uuid("id").defaultRandom().primaryKey(),
   name: varchar("name", { length: 64 }).notNull().unique(),
@@ -6864,7 +7136,10 @@ const contests = pgTable("contests", {
   entryCount: integer("entry_count").default(0).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
-});
+}, (t) => [
+  index("idx_contests_created_by_id").on(t.createdById),
+  index("idx_contests_status").on(t.status)
+]);
 const contestEntries = pgTable("contest_entries", {
   id: uuid("id").defaultRandom().primaryKey(),
   contestId: uuid("contest_id").notNull().references(() => contests.id, { onDelete: "cascade" }),
@@ -6874,7 +7149,11 @@ const contestEntries = pgTable("contest_entries", {
   rank: integer("rank"),
   judgeScores: jsonb("judge_scores").$type(),
   submittedAt: timestamp("submitted_at", { withTimezone: true }).defaultNow().notNull()
-});
+}, (t) => [
+  unique("contest_entries_user_content").on(t.contestId, t.userId, t.contentId),
+  index("idx_contest_entries_contest_id").on(t.contestId),
+  index("idx_contest_entries_user_id").on(t.userId)
+]);
 const contestsRelations = relations(contests, ({ one, many }) => ({
   createdBy: one(users, { fields: [contests.createdById], references: [users.id] }),
   entries: many(contestEntries)
@@ -6903,7 +7182,10 @@ const files = pgTable("files", {
   width: integer("width"),
   height: integer("height"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull()
-});
+}, (t) => [
+  index("idx_files_uploader_id").on(t.uploaderId),
+  index("idx_files_content_id").on(t.contentId)
+]);
 const filesRelations = relations(files, ({ one }) => ({
   uploader: one(users, { fields: [files.uploaderId], references: [users.id] }),
   content: one(contentItems, { fields: [files.contentId], references: [contentItems.id] }),
@@ -6935,7 +7217,11 @@ const activities = pgTable("activities", {
   error: text("error"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
-});
+}, (t) => [
+  index("idx_activities_direction_status").on(t.direction, t.status),
+  index("idx_activities_actor_uri").on(t.actorUri),
+  index("idx_activities_created_at").on(t.createdAt)
+]);
 const followRelationships = pgTable("follow_relationships", {
   id: uuid("id").defaultRandom().primaryKey(),
   followerActorUri: text("follower_actor_uri").notNull(),
@@ -6971,7 +7257,10 @@ const auditLogs = pgTable("audit_logs", {
   metadata: jsonb("metadata"),
   ipAddress: varchar("ip_address", { length: 45 }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull()
-});
+}, (t) => [
+  index("idx_audit_logs_user_id").on(t.userId),
+  index("idx_audit_logs_created_at").on(t.createdAt)
+]);
 const instanceSettingsRelations = relations(instanceSettings, ({ one }) => ({
   updater: one(users, { fields: [instanceSettings.updatedBy], references: [users.id] })
 }));
@@ -7130,8 +7419,8 @@ const createProductSchema = z.object({
   purchaseUrl: optionalUrl(),
   datasheetUrl: optionalUrl(),
   pricing: z.object({
-    min: z.number().optional(),
-    max: z.number().optional(),
+    min: z.number().min(0).optional(),
+    max: z.number().min(0).optional(),
     currency: z.string().max(3).optional()
   }).optional(),
   status: z.enum(["active", "discontinued", "preview"]).default("active")
@@ -7218,9 +7507,12 @@ const createLessonSchema = z.object({
   title: z.string().min(1).max(255),
   type: lessonTypeSchema,
   content: z.unknown().optional(),
+  contentItemId: z.string().uuid().optional(),
   duration: z.number().int().positive().max(9999).optional()
 });
-const updateLessonSchema = createLessonSchema.partial().omit({ moduleId: true });
+const updateLessonSchema = createLessonSchema.partial().omit({ moduleId: true }).extend({
+  contentItemId: z.string().uuid().nullable().optional()
+});
 const createConversationSchema = z.object({
   participants: z.array(z.string().uuid()).min(1).max(50)
 });
@@ -7235,7 +7527,8 @@ const updateDocsSiteSchema = createDocsSiteSchema.partial();
 const createDocsPageSchema = z.object({
   versionId: z.string().uuid().optional(),
   title: z.string().min(1).max(255),
-  content: z.string(),
+  slug: z.string().max(255).optional(),
+  content: z.string().default(""),
   sortOrder: z.number().int().min(0).optional(),
   parentId: z.string().uuid().optional()
 });
@@ -7294,6 +7587,7 @@ const contentFiltersSchema = z.object({
   status: contentStatusSchema.optional(),
   type: contentTypeSchema.optional(),
   authorId: z.string().uuid().optional(),
+  followedBy: z.string().uuid().optional(),
   featured: z.coerce.boolean().optional(),
   difficulty: difficultySchema.optional(),
   search: z.string().max(200).optional(),
@@ -7333,7 +7627,7 @@ const hubPostFiltersSchema = z.object({
   offset: z.coerce.number().int().min(0).optional()
 });
 
-var _a;
+var _a$1;
 function zodToOpenAPI(schema) {
   var _a2, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m, _n, _o, _p, _q, _r, _s, _t, _u;
   if (schema instanceof z.ZodString) {
@@ -7637,7 +7931,7 @@ function generateOpenAPISpec() {
     }
   };
 }
-if (typeof process !== "undefined" && ((_a = process.argv[1]) == null ? void 0 : _a.endsWith("openapi.ts"))) {
+if (typeof process !== "undefined" && ((_a$1 = process.argv[1]) == null ? void 0 : _a$1.endsWith("openapi.ts"))) {
   const spec = generateOpenAPISpec();
   console.log(JSON.stringify(spec, null, 2));
 }
@@ -7948,20 +8242,6 @@ function createAuthMiddleware({ auth, authPathPrefix = "/api/auth" }) {
 function generateSlug(text) {
   return text.toLowerCase().trim().replace(/[^\w\s-]/g, "").replace(/[\s_]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 100);
 }
-async function ensureUniqueSlug(db, slug, excludeId) {
-  if (!slug) {
-    slug = `untitled-${Date.now()}`;
-  }
-  const conditions = [eq(contentItems.slug, slug)];
-  if (excludeId) {
-    const { ne } = await import('drizzle-orm');
-    conditions.push(ne(contentItems.id, excludeId));
-  }
-  const existing = await db.select({ id: contentItems.id }).from(contentItems).where(and(...conditions)).limit(1);
-  if (existing.length === 0)
-    return slug;
-  return `${slug}-${Date.now()}`;
-}
 const ROLE_HIERARCHY = {
   owner: 4,
   admin: 3,
@@ -7995,6 +8275,46 @@ function canManageRole(actorRole, targetRole) {
   const actorLevel = (_a = ROLE_HIERARCHY[actorRole]) != null ? _a : 0;
   const targetLevel = (_b = ROLE_HIERARCHY[targetRole]) != null ? _b : 0;
   return actorLevel > targetLevel;
+}
+
+const USER_REF_SELECT = {
+  id: users.id,
+  username: users.username,
+  displayName: users.displayName,
+  avatarUrl: users.avatarUrl
+};
+const USER_REF_WITH_BIO_SELECT = {
+  ...USER_REF_SELECT,
+  bio: users.bio
+};
+const USER_REF_WITH_HEADLINE_SELECT = {
+  ...USER_REF_SELECT,
+  bio: users.bio,
+  headline: users.headline
+};
+async function ensureUniqueSlugFor(db, table, slugCol, idCol, slug, fallbackPrefix, excludeId) {
+  if (!slug)
+    slug = `${fallbackPrefix}-${Date.now()}`;
+  const conditions = [eq(slugCol, slug)];
+  if (excludeId) {
+    conditions.push(ne(idCol, excludeId));
+  }
+  const existing = await db.select({ id: idCol }).from(table).where(and(...conditions)).limit(1);
+  if (existing.length === 0)
+    return slug;
+  return `${slug}-${Date.now()}`;
+}
+function normalizePagination(opts) {
+  var _a, _b;
+  return {
+    limit: Math.min((_a = opts.limit) != null ? _a : 20, 100),
+    offset: (_b = opts.offset) != null ? _b : 0
+  };
+}
+async function countRows(db, table, where) {
+  var _a, _b;
+  const result = await db.select({ count: sql`count(*)::int` }).from(table).where(where);
+  return (_b = (_a = result[0]) == null ? void 0 : _a.count) != null ? _b : 0;
 }
 
 function parseWebFingerResource(resource) {
@@ -8311,8 +8631,15 @@ async function sanitizeBlockContent(content) {
       ALLOWED_TAGS: ["p", "br", "strong", "em", "b", "i", "u", "s", "code", "a", "ul", "ol", "li", "blockquote", "h1", "h2", "h3", "h4", "h5", "h6", "pre", "span", "sub", "sup"],
       ALLOWED_ATTR: ["href", "target", "rel", "class"]
     });
-  } catch {
-    return content;
+  } catch (err) {
+    console.error("[sanitize] DOMPurify unavailable, stripping HTML tags:", err instanceof Error ? err.message : err);
+    return blocks.map(([type, data]) => {
+      const cleaned = { ...data };
+      if (typeof cleaned.html === "string" && cleaned.html) {
+        cleaned.html = cleaned.html.replace(/<[^>]*>/g, "");
+      }
+      return [type, cleaned];
+    });
   }
   return blocks.map(([type, data]) => {
     const sanitized = { ...data };
@@ -8342,7 +8669,6 @@ function mapToListItem(item, author) {
   };
 }
 async function listContent(db, filters = {}) {
-  var _a, _b, _c, _d;
   const conditions = [];
   if (filters.status) {
     conditions.push(eq(contentItems.status, filters.status));
@@ -8363,6 +8689,9 @@ async function listContent(db, filters = {}) {
     const searchPattern = `%${filters.search}%`;
     conditions.push(sql`(${contentItems.title} ILIKE ${searchPattern} OR ${contentItems.description} ILIKE ${searchPattern})`);
   }
+  if (filters.followedBy) {
+    conditions.push(inArray(contentItems.authorId, db.select({ id: follows.followingId }).from(follows).where(eq(follows.followerId, filters.followedBy))));
+  }
   if (filters.tag) {
     conditions.push(sql`${contentItems.id} IN (
         SELECT ${contentTags.contentId} FROM ${contentTags}
@@ -8371,36 +8700,22 @@ async function listContent(db, filters = {}) {
       )`);
   }
   const where = conditions.length > 0 ? and(...conditions) : void 0;
-  const limit = Math.min((_a = filters.limit) != null ? _a : 20, 100);
-  const offset = (_b = filters.offset) != null ? _b : 0;
-  const [rows, countResult] = await Promise.all([
+  const { limit, offset } = normalizePagination(filters);
+  const [rows, total] = await Promise.all([
     db.select({
       content: contentItems,
-      author: {
-        id: users.id,
-        username: users.username,
-        displayName: users.displayName,
-        avatarUrl: users.avatarUrl
-      }
+      author: USER_REF_SELECT
     }).from(contentItems).innerJoin(users, eq(contentItems.authorId, users.id)).where(where).orderBy(...filters.sort === "popular" ? [desc(contentItems.viewCount)] : filters.sort === "featured" ? [desc(contentItems.isFeatured), desc(contentItems.createdAt)] : [desc(contentItems.publishedAt), desc(contentItems.createdAt)]).limit(limit).offset(offset),
-    db.select({ count: sql`count(*)::int` }).from(contentItems).where(where)
+    countRows(db, contentItems, where)
   ]);
   const items = rows.map((row) => mapToListItem(row.content, row.author));
-  const total = (_d = (_c = countResult[0]) == null ? void 0 : _c.count) != null ? _d : 0;
   return { items, total };
 }
 async function getContentBySlug(db, slug, requesterId) {
   var _a, _b, _c, _d, _e, _f;
   const rows = await db.select({
     content: contentItems,
-    author: {
-      id: users.id,
-      username: users.username,
-      displayName: users.displayName,
-      avatarUrl: users.avatarUrl,
-      bio: users.bio,
-      headline: users.headline
-    }
+    author: USER_REF_WITH_HEADLINE_SELECT
   }).from(contentItems).innerJoin(users, eq(contentItems.authorId, users.id)).where(eq(contentItems.slug, slug)).limit(1);
   if (rows.length === 0)
     return null;
@@ -8451,7 +8766,7 @@ async function getContentBySlug(db, slug, requesterId) {
 }
 async function createContent(db, authorId, input) {
   var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l;
-  const slug = await ensureUniqueSlug(db, generateSlug(input.title));
+  const slug = await ensureUniqueSlugFor(db, contentItems, contentItems.slug, contentItems.id, generateSlug(input.title), "untitled");
   const previewToken = crypto.randomUUID().replace(/-/g, "");
   const [item] = await db.insert(contentItems).values({
     authorId,
@@ -8489,7 +8804,7 @@ async function updateContent(db, contentId, authorId, input) {
   if (input.title !== void 0) {
     updates.title = input.title;
     if (input.title !== current.title) {
-      updates.slug = await ensureUniqueSlug(db, generateSlug(input.title), contentId);
+      updates.slug = await ensureUniqueSlugFor(db, contentItems, contentItems.slug, contentItems.id, generateSlug(input.title), "untitled", contentId);
     }
   }
   if (input.subtitle !== void 0)
@@ -8606,18 +8921,18 @@ async function syncTags(db, contentId, tagNames) {
   }
 }
 async function toggleBuildMark(db, contentId, userId) {
-  var _a, _b;
-  const existing = await db.select().from(contentBuilds).where(and(eq(contentBuilds.contentId, contentId), eq(contentBuilds.userId, userId))).limit(1);
-  if (existing.length > 0) {
-    await db.delete(contentBuilds).where(and(eq(contentBuilds.contentId, contentId), eq(contentBuilds.userId, userId)));
-    await db.update(contentItems).set({ buildCount: sql`GREATEST(${contentItems.buildCount} - 1, 0)` }).where(eq(contentItems.id, contentId));
-    const [updated2] = await db.select({ buildCount: contentItems.buildCount }).from(contentItems).where(eq(contentItems.id, contentId));
-    return { marked: false, count: (_a = updated2 == null ? void 0 : updated2.buildCount) != null ? _a : 0 };
-  }
-  await db.insert(contentBuilds).values({ contentId, userId });
-  await db.update(contentItems).set({ buildCount: sql`${contentItems.buildCount} + 1` }).where(eq(contentItems.id, contentId));
-  const [updated] = await db.select({ buildCount: contentItems.buildCount }).from(contentItems).where(eq(contentItems.id, contentId));
-  return { marked: true, count: (_b = updated == null ? void 0 : updated.buildCount) != null ? _b : 0 };
+  return db.transaction(async (tx) => {
+    var _a, _b;
+    const existing = await tx.select().from(contentBuilds).where(and(eq(contentBuilds.contentId, contentId), eq(contentBuilds.userId, userId))).limit(1);
+    if (existing.length > 0) {
+      await tx.delete(contentBuilds).where(and(eq(contentBuilds.contentId, contentId), eq(contentBuilds.userId, userId)));
+      const [updated2] = await tx.update(contentItems).set({ buildCount: sql`GREATEST(${contentItems.buildCount} - 1, 0)` }).where(eq(contentItems.id, contentId)).returning({ buildCount: contentItems.buildCount });
+      return { marked: false, count: (_a = updated2 == null ? void 0 : updated2.buildCount) != null ? _a : 0 };
+    }
+    await tx.insert(contentBuilds).values({ contentId, userId });
+    const [updated] = await tx.update(contentItems).set({ buildCount: sql`${contentItems.buildCount} + 1` }).where(eq(contentItems.id, contentId)).returning({ buildCount: contentItems.buildCount });
+    return { marked: true, count: (_b = updated == null ? void 0 : updated.buildCount) != null ? _b : 0 };
+  });
 }
 async function forkContent(db, sourceId, userId) {
   const source = await db.select().from(contentItems).where(eq(contentItems.id, sourceId)).limit(1);
@@ -8625,7 +8940,7 @@ async function forkContent(db, sourceId, userId) {
     throw new Error("Source content not found");
   }
   const item = source[0];
-  const slug = await ensureUniqueSlug(db, `${item.slug}-fork-${Date.now()}`);
+  const slug = await ensureUniqueSlugFor(db, contentItems, contentItems.slug, contentItems.id, `${item.slug}-fork-${Date.now()}`, "fork");
   const previewToken = crypto.randomUUID().replace(/-/g, "");
   const [forked] = await db.insert(contentItems).values({
     authorId: userId,
@@ -8662,21 +8977,7 @@ async function onContentPublished(db, contentId, config) {
   });
 }
 
-async function ensureUniqueHubSlug(db, slug, excludeId) {
-  if (!slug)
-    slug = `hub-${Date.now()}`;
-  const conditions = [eq(hubs.slug, slug)];
-  if (excludeId) {
-    const { ne } = await import('drizzle-orm');
-    conditions.push(ne(hubs.id, excludeId));
-  }
-  const existing = await db.select({ id: hubs.id }).from(hubs).where(and(...conditions)).limit(1);
-  if (existing.length === 0)
-    return slug;
-  return `${slug}-${Date.now()}`;
-}
 async function listHubs(db, filters = {}) {
-  var _a, _b, _c, _d;
   const conditions = [];
   if (filters.search) {
     conditions.push(ilike(hubs.name, `%${filters.search}%`));
@@ -8685,25 +8986,20 @@ async function listHubs(db, filters = {}) {
     conditions.push(eq(hubs.joinPolicy, filters.joinPolicy));
   }
   const where = conditions.length > 0 ? and(...conditions) : void 0;
-  const limit = Math.min((_a = filters.limit) != null ? _a : 20, 100);
-  const offset = (_b = filters.offset) != null ? _b : 0;
-  const [rows, countResult] = await Promise.all([
+  const { limit, offset } = normalizePagination(filters);
+  const [rows, total] = await Promise.all([
     db.select({
       hub: hubs,
-      createdBy: {
-        id: users.id,
-        username: users.username,
-        displayName: users.displayName,
-        avatarUrl: users.avatarUrl
-      }
+      createdBy: USER_REF_SELECT
     }).from(hubs).innerJoin(users, eq(hubs.createdById, users.id)).where(where).orderBy(desc(hubs.createdAt)).limit(limit).offset(offset),
-    db.select({ count: sql`count(*)::int` }).from(hubs).where(where)
+    countRows(db, hubs, where)
   ]);
   const items = rows.map((row) => ({
     id: row.hub.id,
     name: row.hub.name,
     slug: row.hub.slug,
     description: row.hub.description,
+    hubType: row.hub.hubType,
     iconUrl: row.hub.iconUrl,
     bannerUrl: row.hub.bannerUrl,
     joinPolicy: row.hub.joinPolicy,
@@ -8713,7 +9009,7 @@ async function listHubs(db, filters = {}) {
     createdAt: row.hub.createdAt,
     createdBy: row.createdBy
   }));
-  return { items, total: (_d = (_c = countResult[0]) == null ? void 0 : _c.count) != null ? _d : 0 };
+  return { items, total };
 }
 async function getHubBySlug(db, slug, requesterId) {
   var _a, _b;
@@ -8764,7 +9060,7 @@ async function getHubBySlug(db, slug, requesterId) {
 }
 async function createHub(db, userId, input) {
   var _a, _b, _c;
-  const slug = await ensureUniqueHubSlug(db, generateSlug(input.name));
+  const slug = await ensureUniqueSlugFor(db, hubs, hubs.slug, hubs.id, generateSlug(input.name), "hub");
   const [inserted] = await db.insert(hubs).values({
     name: input.name,
     slug,
@@ -8790,7 +9086,7 @@ async function updateHub(db, hubId, userId, input) {
   const updates = { updatedAt: /* @__PURE__ */ new Date() };
   if (input.name !== void 0) {
     updates.name = input.name;
-    updates.slug = await ensureUniqueHubSlug(db, generateSlug(input.name), hubId);
+    updates.slug = await ensureUniqueSlugFor(db, hubs, hubs.slug, hubs.id, generateSlug(input.name), "hub", hubId);
   }
   if (input.description !== void 0)
     updates.description = input.description;
@@ -8829,8 +9125,12 @@ async function joinHub(db, userId, hubId, inviteToken) {
   }
   const policy = hubRow[0].joinPolicy;
   if (policy !== "open") {
-    {
+    if (!inviteToken) {
       return { joined: false, error: "Invite token required" };
+    }
+    const tokenResult = await validateAndUseInvite(db, inviteToken);
+    if (!tokenResult.valid) {
+      return { joined: false, error: "Invalid or expired invite token" };
     }
   }
   return db.transaction(async (tx) => {
@@ -8857,12 +9157,7 @@ async function leaveHub(db, userId, hubId) {
 async function listMembers(db, hubId) {
   const rows = await db.select({
     member: hubMembers,
-    user: {
-      id: users.id,
-      username: users.username,
-      displayName: users.displayName,
-      avatarUrl: users.avatarUrl
-    }
+    user: USER_REF_SELECT
   }).from(hubMembers).innerJoin(users, eq(hubMembers.userId, users.id)).where(eq(hubMembers.hubId, hubId)).orderBy(desc(hubMembers.joinedAt));
   return rows.map((row) => ({
     hubId: row.member.hubId,
@@ -8917,58 +9212,48 @@ async function kickMember(db, actorId, hubId, targetUserId) {
   return { kicked: true };
 }
 async function createPost(db, authorId, input) {
-  var _a;
   const member = await db.select({ role: hubMembers.role }).from(hubMembers).where(and(eq(hubMembers.hubId, input.hubId), eq(hubMembers.userId, authorId))).limit(1);
   if (member.length === 0) {
     throw new Error("Must be a member to post");
   }
-  const [post] = await db.insert(hubPosts).values({
-    hubId: input.hubId,
-    authorId,
-    type: (_a = input.type) != null ? _a : "text",
-    content: input.content
-  }).returning();
-  await db.update(hubs).set({ postCount: sql`${hubs.postCount} + 1` }).where(eq(hubs.id, input.hubId));
-  const author = await db.select({
-    id: users.id,
-    username: users.username,
-    displayName: users.displayName,
-    avatarUrl: users.avatarUrl
-  }).from(users).where(eq(users.id, authorId)).limit(1);
-  return {
-    id: post.id,
-    hubId: post.hubId,
-    type: post.type,
-    content: post.content,
-    isPinned: post.isPinned,
-    isLocked: post.isLocked,
-    likeCount: 0,
-    replyCount: 0,
-    createdAt: post.createdAt,
-    updatedAt: post.updatedAt,
-    author: author[0]
-  };
+  return db.transaction(async (tx) => {
+    var _a, _b;
+    const [post] = await tx.insert(hubPosts).values({
+      hubId: input.hubId,
+      authorId,
+      type: (_a = input.type) != null ? _a : "text",
+      content: input.content
+    }).returning();
+    await tx.update(hubs).set({ postCount: sql`${hubs.postCount} + 1` }).where(eq(hubs.id, input.hubId));
+    const author = await tx.select(USER_REF_SELECT).from(users).where(eq(users.id, authorId)).limit(1);
+    return {
+      id: post.id,
+      hubId: post.hubId,
+      type: post.type,
+      content: post.content,
+      isPinned: post.isPinned,
+      isLocked: post.isLocked,
+      likeCount: 0,
+      replyCount: 0,
+      createdAt: post.createdAt,
+      updatedAt: post.updatedAt,
+      author: (_b = author[0]) != null ? _b : { id: authorId, username: "unknown", displayName: null, avatarUrl: null }
+    };
+  });
 }
 async function listPosts(db, hubId, filters = {}) {
-  var _a, _b, _c, _d;
   const conditions = [eq(hubPosts.hubId, hubId)];
   if (filters.type) {
     conditions.push(eq(hubPosts.type, filters.type));
   }
   const where = and(...conditions);
-  const limit = Math.min((_a = filters.limit) != null ? _a : 20, 100);
-  const offset = (_b = filters.offset) != null ? _b : 0;
-  const [rows, countResult] = await Promise.all([
+  const { limit, offset } = normalizePagination(filters);
+  const [rows, total] = await Promise.all([
     db.select({
       post: hubPosts,
-      author: {
-        id: users.id,
-        username: users.username,
-        displayName: users.displayName,
-        avatarUrl: users.avatarUrl
-      }
+      author: USER_REF_SELECT
     }).from(hubPosts).innerJoin(users, eq(hubPosts.authorId, users.id)).where(where).orderBy(desc(hubPosts.isPinned), desc(hubPosts.createdAt)).limit(limit).offset(offset),
-    db.select({ count: sql`count(*)::int` }).from(hubPosts).where(where)
+    countRows(db, hubPosts, where)
   ]);
   const items = rows.map((row) => {
     const item = {
@@ -8992,7 +9277,7 @@ async function listPosts(db, hubId, filters = {}) {
     }
     return item;
   });
-  return { items, total: (_d = (_c = countResult[0]) == null ? void 0 : _c.count) != null ? _d : 0 };
+  return { items, total };
 }
 async function deletePost(db, postId, userId, hubId) {
   const post = await db.select({ authorId: hubPosts.authorId }).from(hubPosts).where(eq(hubPosts.id, postId)).limit(1);
@@ -9028,12 +9313,7 @@ async function createReply(db, authorId, input) {
     parentId: (_a = input.parentId) != null ? _a : null
   }).returning();
   await db.update(hubPosts).set({ replyCount: sql`${hubPosts.replyCount} + 1` }).where(eq(hubPosts.id, input.postId));
-  const author = await db.select({
-    id: users.id,
-    username: users.username,
-    displayName: users.displayName,
-    avatarUrl: users.avatarUrl
-  }).from(users).where(eq(users.id, authorId)).limit(1);
+  const author = await db.select(USER_REF_SELECT).from(users).where(eq(users.id, authorId)).limit(1);
   return {
     id: reply.id,
     postId: reply.postId,
@@ -9133,23 +9413,13 @@ async function checkBan(db, hubId, userId) {
 async function listBans(db, hubId) {
   const rows = await db.select({
     ban: hubBans,
-    user: {
-      id: users.id,
-      username: users.username,
-      displayName: users.displayName,
-      avatarUrl: users.avatarUrl
-    }
+    user: USER_REF_SELECT
   }).from(hubBans).innerJoin(users, eq(hubBans.userId, users.id)).where(eq(hubBans.hubId, hubId)).orderBy(desc(hubBans.createdAt));
   const banIds = rows.map((r) => r.ban.bannedById);
   const uniqueBannerIds = [...new Set(banIds)];
   const banners = /* @__PURE__ */ new Map();
   if (uniqueBannerIds.length > 0) {
-    const bannerRows = await db.select({
-      id: users.id,
-      username: users.username,
-      displayName: users.displayName,
-      avatarUrl: users.avatarUrl
-    }).from(users).where(inArray(users.id, uniqueBannerIds));
+    const bannerRows = await db.select(USER_REF_SELECT).from(users).where(inArray(users.id, uniqueBannerIds));
     for (const row of bannerRows) {
       banners.set(row.id, row);
     }
@@ -9184,12 +9454,7 @@ async function createInvite(db, userId, hubId, maxUses, expiresAt) {
     maxUses: maxUses != null ? maxUses : null,
     expiresAt: expiresAt != null ? expiresAt : null
   }).returning();
-  const author = await db.select({
-    id: users.id,
-    username: users.username,
-    displayName: users.displayName,
-    avatarUrl: users.avatarUrl
-  }).from(users).where(eq(users.id, userId)).limit(1);
+  const author = await db.select(USER_REF_SELECT).from(users).where(eq(users.id, userId)).limit(1);
   return {
     id: invite.id,
     token: invite.token,
@@ -9199,6 +9464,12 @@ async function createInvite(db, userId, hubId, maxUses, expiresAt) {
     createdAt: invite.createdAt,
     createdBy: author[0]
   };
+}
+async function validateAndUseInvite(db, token) {
+  const updated = await db.update(hubInvites).set({ useCount: sql`${hubInvites.useCount} + 1` }).where(and(eq(hubInvites.token, token), sql`(${hubInvites.expiresAt} IS NULL OR ${hubInvites.expiresAt} > NOW())`, sql`(${hubInvites.maxUses} IS NULL OR ${hubInvites.useCount} < ${hubInvites.maxUses})`)).returning({ hubId: hubInvites.hubId });
+  if (updated.length === 0)
+    return { valid: false };
+  return { valid: true, hubId: updated[0].hubId };
 }
 async function listInvites(db, hubId) {
   const rows = await db.select({
@@ -9250,22 +9521,9 @@ async function shareContent(db, userId, hubId, contentId) {
   });
 }
 
-async function ensureUniqueProductSlug(db, slug, excludeId) {
-  if (!slug)
-    slug = `product-${Date.now()}`;
-  const conditions = [eq(products.slug, slug)];
-  if (excludeId) {
-    const { ne } = await import('drizzle-orm');
-    conditions.push(ne(products.id, excludeId));
-  }
-  const existing = await db.select({ id: products.id }).from(products).where(and(...conditions)).limit(1);
-  if (existing.length === 0)
-    return slug;
-  return `${slug}-${Date.now()}`;
-}
 async function createProduct(db, userId, hubId, input) {
   var _a, _b, _c, _d, _e, _f, _g;
-  const slug = await ensureUniqueProductSlug(db, generateSlug(input.name));
+  const slug = await ensureUniqueSlugFor(db, products, products.slug, products.id, generateSlug(input.name), "product");
   const [product] = await db.insert(products).values({
     name: input.name,
     slug,
@@ -9286,10 +9544,12 @@ async function updateProduct(db, productId, userId, input) {
   const existing = await db.select({ id: products.id, createdById: products.createdById }).from(products).where(eq(products.id, productId)).limit(1);
   if (existing.length === 0)
     return null;
+  if (existing[0].createdById !== userId)
+    return null;
   const updates = { updatedAt: /* @__PURE__ */ new Date() };
   if (input.name !== void 0) {
     updates.name = input.name;
-    updates.slug = await ensureUniqueProductSlug(db, generateSlug(input.name), productId);
+    updates.slug = await ensureUniqueSlugFor(db, products, products.slug, products.id, generateSlug(input.name), "product", productId);
   }
   if (input.description !== void 0)
     updates.description = input.description;
@@ -9311,19 +9571,14 @@ async function updateProduct(db, productId, userId, input) {
   const updated = await db.select({ slug: products.slug }).from(products).where(eq(products.id, productId)).limit(1);
   return getProductBySlug(db, updated[0].slug);
 }
-async function deleteProduct(db, productId) {
+async function deleteProduct(db, productId, userId) {
   const result = await db.delete(products).where(eq(products.id, productId)).returning({ id: products.id });
   return result.length > 0;
 }
 async function getProductBySlug(db, slug) {
   const rows = await db.select({
     product: products,
-    createdBy: {
-      id: users.id,
-      username: users.username,
-      displayName: users.displayName,
-      avatarUrl: users.avatarUrl
-    },
+    createdBy: USER_REF_SELECT,
     hub: {
       id: hubs.id,
       name: hubs.name,
@@ -9355,7 +9610,6 @@ async function getProductBySlug(db, slug) {
   };
 }
 async function listHubProducts(db, hubId, filters = {}) {
-  var _a, _b, _c, _d;
   const conditions = [eq(products.hubId, hubId)];
   if (filters.search) {
     conditions.push(ilike(products.name, `%${filters.search}%`));
@@ -9367,11 +9621,10 @@ async function listHubProducts(db, hubId, filters = {}) {
     conditions.push(eq(products.status, filters.status));
   }
   const where = and(...conditions);
-  const limit = Math.min((_a = filters.limit) != null ? _a : 20, 100);
-  const offset = (_b = filters.offset) != null ? _b : 0;
-  const [rows, countResult] = await Promise.all([
+  const { limit, offset } = normalizePagination(filters);
+  const [rows, total] = await Promise.all([
     db.select().from(products).where(where).orderBy(desc(products.createdAt)).limit(limit).offset(offset),
-    db.select({ count: sql`count(*)::int` }).from(products).where(where)
+    countRows(db, products, where)
   ]);
   const items = rows.map((p) => ({
     id: p.id,
@@ -9385,10 +9638,9 @@ async function listHubProducts(db, hubId, filters = {}) {
     hubId: p.hubId,
     createdAt: p.createdAt
   }));
-  return { items, total: (_d = (_c = countResult[0]) == null ? void 0 : _c.count) != null ? _d : 0 };
+  return { items, total };
 }
 async function searchProducts(db, filters = {}) {
-  var _a, _b, _c, _d;
   const conditions = [];
   if (filters.search) {
     conditions.push(ilike(products.name, `%${filters.search}%`));
@@ -9403,11 +9655,10 @@ async function searchProducts(db, filters = {}) {
     conditions.push(eq(products.hubId, filters.hubId));
   }
   const where = conditions.length > 0 ? and(...conditions) : void 0;
-  const limit = Math.min((_a = filters.limit) != null ? _a : 20, 100);
-  const offset = (_b = filters.offset) != null ? _b : 0;
-  const [rows, countResult] = await Promise.all([
+  const { limit, offset } = normalizePagination(filters);
+  const [rows, total] = await Promise.all([
     db.select().from(products).where(where).orderBy(desc(products.createdAt)).limit(limit).offset(offset),
-    db.select({ count: sql`count(*)::int` }).from(products).where(where)
+    countRows(db, products, where)
   ]);
   const items = rows.map((p) => ({
     id: p.id,
@@ -9421,7 +9672,7 @@ async function searchProducts(db, filters = {}) {
     hubId: p.hubId,
     createdAt: p.createdAt
   }));
-  return { items, total: (_d = (_c = countResult[0]) == null ? void 0 : _c.count) != null ? _d : 0 };
+  return { items, total };
 }
 async function addContentProduct(db, contentId, input) {
   var _a, _b, _c, _d, _e;
@@ -9520,9 +9771,8 @@ async function syncContentProducts(db, contentId, items) {
   });
 }
 async function listProductContent(db, productId, opts = {}) {
-  var _a, _b, _c, _d;
-  const limit = Math.min((_a = opts.limit) != null ? _a : 20, 100);
-  const offset = (_b = opts.offset) != null ? _b : 0;
+  var _a, _b;
+  const { limit, offset } = normalizePagination(opts);
   const where = and(eq(contentProducts.productId, productId), eq(contentItems.status, "published"));
   const [rows, countResult] = await Promise.all([
     db.select({
@@ -9534,12 +9784,7 @@ async function listProductContent(db, productId, opts = {}) {
         coverImageUrl: contentItems.coverImageUrl,
         publishedAt: contentItems.publishedAt
       },
-      author: {
-        id: users.id,
-        username: users.username,
-        displayName: users.displayName,
-        avatarUrl: users.avatarUrl
-      }
+      author: USER_REF_SELECT
     }).from(contentProducts).innerJoin(contentItems, eq(contentProducts.contentId, contentItems.id)).innerJoin(users, eq(contentItems.authorId, users.id)).where(where).orderBy(desc(contentItems.publishedAt)).limit(limit).offset(offset),
     db.select({ count: sql`count(*)::int` }).from(contentProducts).innerJoin(contentItems, eq(contentProducts.contentId, contentItems.id)).where(where)
   ]);
@@ -9548,13 +9793,12 @@ async function listProductContent(db, productId, opts = {}) {
       ...row.content,
       author: row.author
     })),
-    total: (_d = (_c = countResult[0]) == null ? void 0 : _c.count) != null ? _d : 0
+    total: (_b = (_a = countResult[0]) == null ? void 0 : _a.count) != null ? _b : 0
   };
 }
 async function listHubGallery(db, hubId, opts = {}) {
-  var _a, _b, _c, _d, _e, _f, _g, _h;
-  const limit = Math.min((_a = opts.limit) != null ? _a : 20, 100);
-  const offset = (_b = opts.offset) != null ? _b : 0;
+  var _a, _b, _c, _d, _e, _f;
+  const { limit, offset } = normalizePagination(opts);
   const hub = await db.select({ id: hubs.id, hubType: hubs.hubType }).from(hubs).where(eq(hubs.id, hubId)).limit(1);
   if (hub.length === 0)
     return { items: [], total: 0 };
@@ -9586,7 +9830,7 @@ async function listHubGallery(db, hubId, opts = {}) {
     ]);
     return {
       items: rows2.map((row) => ({ ...row.content, author: row.author })),
-      total: (_d = (_c = countResult2[0]) == null ? void 0 : _c.count) != null ? _d : 0
+      total: (_b = (_a = countResult2[0]) == null ? void 0 : _a.count) != null ? _b : 0
     };
   }
   if (hubType === "company") {
@@ -9618,7 +9862,7 @@ async function listHubGallery(db, hubId, opts = {}) {
     ]);
     return {
       items: rows2.map((row) => ({ ...row.content, author: row.author })),
-      total: (_f = (_e = countResult2[0]) == null ? void 0 : _e.count) != null ? _f : 0
+      total: (_d = (_c = countResult2[0]) == null ? void 0 : _c.count) != null ? _d : 0
     };
   }
   const { hubShares } = await Promise.resolve().then(function () { return schema; });
@@ -9633,18 +9877,13 @@ async function listHubGallery(db, hubId, opts = {}) {
         coverImageUrl: contentItems.coverImageUrl,
         publishedAt: contentItems.publishedAt
       },
-      author: {
-        id: users.id,
-        username: users.username,
-        displayName: users.displayName,
-        avatarUrl: users.avatarUrl
-      }
+      author: USER_REF_SELECT
     }).from(hubShares).innerJoin(contentItems, eq(hubShares.contentId, contentItems.id)).innerJoin(users, eq(contentItems.authorId, users.id)).where(where).orderBy(desc(hubShares.createdAt)).limit(limit).offset(offset),
     db.select({ count: sql`count(*)::int` }).from(hubShares).innerJoin(contentItems, eq(hubShares.contentId, contentItems.id)).where(where)
   ]);
   return {
     items: rows.map((row) => ({ ...row.content, author: row.author })),
-    total: (_h = (_g = countResult[0]) == null ? void 0 : _g.count) != null ? _h : 0
+    total: (_f = (_e = countResult[0]) == null ? void 0 : _e.count) != null ? _f : 0
   };
 }
 
@@ -9687,12 +9926,7 @@ async function isLiked(db, userId, targetType, targetId) {
 async function listComments(db, targetType, targetId) {
   const rows = await db.select({
     comment: comments,
-    author: {
-      id: users.id,
-      username: users.username,
-      displayName: users.displayName,
-      avatarUrl: users.avatarUrl
-    }
+    author: USER_REF_SELECT
   }).from(comments).innerJoin(users, eq(comments.authorId, users.id)).where(and(eq(comments.targetType, targetType), eq(comments.targetId, targetId))).orderBy(desc(comments.createdAt));
   const commentMap = /* @__PURE__ */ new Map();
   const rootComments = [];
@@ -9732,12 +9966,7 @@ async function createComment(db, authorId, input) {
   } else {
     await db.update(contentItems).set({ commentCount: sql`${contentItems.commentCount} + 1` }).where(eq(contentItems.id, input.targetId));
   }
-  const author = await db.select({
-    id: users.id,
-    username: users.username,
-    displayName: users.displayName,
-    avatarUrl: users.avatarUrl
-  }).from(users).where(eq(users.id, authorId)).limit(1);
+  const author = await db.select(USER_REF_SELECT).from(users).where(eq(users.id, authorId)).limit(1);
   return {
     id: row.id,
     content: row.content,
@@ -9749,14 +9978,18 @@ async function createComment(db, authorId, input) {
   };
 }
 async function deleteComment(db, commentId, authorId) {
+  var _a, _b;
   const existing = await db.select({ id: comments.id, targetId: comments.targetId, targetType: comments.targetType }).from(comments).where(and(eq(comments.id, commentId), eq(comments.authorId, authorId))).limit(1);
   if (existing.length === 0)
     return false;
+  const childCount = await db.select({ count: sql`count(*)::int` }).from(comments).where(eq(comments.parentId, commentId));
+  const totalDeleted = 1 + ((_b = (_a = childCount[0]) == null ? void 0 : _a.count) != null ? _b : 0);
+  await db.delete(comments).where(eq(comments.parentId, commentId));
   await db.delete(comments).where(eq(comments.id, commentId));
   if (existing[0].targetType === "post") {
-    await db.update(hubPosts).set({ replyCount: sql`GREATEST(${hubPosts.replyCount} - 1, 0)` }).where(eq(hubPosts.id, existing[0].targetId));
+    await db.update(hubPosts).set({ replyCount: sql`GREATEST(${hubPosts.replyCount} - ${totalDeleted}, 0)` }).where(eq(hubPosts.id, existing[0].targetId));
   } else {
-    await db.update(contentItems).set({ commentCount: sql`GREATEST(${contentItems.commentCount} - 1, 0)` }).where(eq(contentItems.id, existing[0].targetId));
+    await db.update(contentItems).set({ commentCount: sql`GREATEST(${contentItems.commentCount} - ${totalDeleted}, 0)` }).where(eq(contentItems.id, existing[0].targetId));
   }
   return true;
 }
@@ -9772,11 +10005,9 @@ async function toggleBookmark(db, userId, targetType, targetId) {
   });
 }
 async function listUserBookmarks(db, userId, opts = {}) {
-  var _a, _b, _c, _d;
-  const limit = Math.min((_a = opts.limit) != null ? _a : 20, 100);
-  const offset = (_b = opts.offset) != null ? _b : 0;
+  const { limit, offset } = normalizePagination(opts);
   const where = eq(bookmarks.userId, userId);
-  const [rows, countResult] = await Promise.all([
+  const [rows, total] = await Promise.all([
     db.select({
       bookmark: bookmarks,
       content: {
@@ -9793,26 +10024,26 @@ async function listUserBookmarks(db, userId, opts = {}) {
         avatarUrl: users.avatarUrl
       }
     }).from(bookmarks).leftJoin(contentItems, eq(bookmarks.targetId, contentItems.id)).leftJoin(users, eq(contentItems.authorId, users.id)).where(where).orderBy(desc(bookmarks.createdAt)).limit(limit).offset(offset),
-    db.select({ count: sql`count(*)::int` }).from(bookmarks).where(where)
+    countRows(db, bookmarks, where)
   ]);
   const items = rows.map((row) => {
-    var _a2, _b2;
+    var _a, _b;
     return {
       id: row.bookmark.id,
       targetType: row.bookmark.targetType,
       targetId: row.bookmark.targetId,
       createdAt: row.bookmark.createdAt,
-      content: ((_a2 = row.content) == null ? void 0 : _a2.id) ? {
+      content: ((_a = row.content) == null ? void 0 : _a.id) ? {
         id: row.content.id,
         title: row.content.title,
         slug: row.content.slug,
         type: row.content.type,
         coverImageUrl: row.content.coverImageUrl,
-        author: (_b2 = row.author) != null ? _b2 : { id: "", username: "", displayName: null, avatarUrl: null }
+        author: (_b = row.author) != null ? _b : { id: "deleted", username: "deleted", displayName: "[Deleted User]", avatarUrl: null }
       } : null
     };
   });
-  return { items, total: (_d = (_c = countResult[0]) == null ? void 0 : _c.count) != null ? _d : 0 };
+  return { items, total };
 }
 async function followUser(db, followerId, followingId) {
   if (followerId === followingId)
@@ -9824,64 +10055,52 @@ async function unfollowUser(db, followerId, followingId) {
   const result = await db.delete(follows).where(and(eq(follows.followerId, followerId), eq(follows.followingId, followingId))).returning({ id: follows.id });
   return { unfollowed: result.length > 0 };
 }
+async function isFollowing(db, followerId, followingId) {
+  const rows = await db.select({ id: follows.id }).from(follows).where(and(eq(follows.followerId, followerId), eq(follows.followingId, followingId))).limit(1);
+  return rows.length > 0;
+}
 async function listFollowers(db, userId, opts = {}) {
-  var _a, _b, _c, _d;
-  const limit = Math.min((_a = opts.limit) != null ? _a : 20, 100);
-  const offset = (_b = opts.offset) != null ? _b : 0;
+  const { limit, offset } = normalizePagination(opts);
   const where = eq(follows.followingId, userId);
-  const [rows, countResult] = await Promise.all([
+  const [rows, total] = await Promise.all([
     db.select({
-      user: {
-        id: users.id,
-        username: users.username,
-        displayName: users.displayName,
-        avatarUrl: users.avatarUrl,
-        bio: users.bio
-      },
+      user: USER_REF_WITH_BIO_SELECT,
       followedAt: follows.createdAt
     }).from(follows).innerJoin(users, eq(follows.followerId, users.id)).where(where).orderBy(desc(follows.createdAt)).limit(limit).offset(offset),
-    db.select({ count: sql`count(*)::int` }).from(follows).where(where)
+    countRows(db, follows, where)
   ]);
   return {
     items: rows.map((row) => {
-      var _a2;
+      var _a;
       return {
         ...row.user,
-        bio: (_a2 = row.user.bio) != null ? _a2 : null,
+        bio: (_a = row.user.bio) != null ? _a : null,
         followedAt: row.followedAt
       };
     }),
-    total: (_d = (_c = countResult[0]) == null ? void 0 : _c.count) != null ? _d : 0
+    total
   };
 }
 async function listFollowing(db, userId, opts = {}) {
-  var _a, _b, _c, _d;
-  const limit = Math.min((_a = opts.limit) != null ? _a : 20, 100);
-  const offset = (_b = opts.offset) != null ? _b : 0;
+  const { limit, offset } = normalizePagination(opts);
   const where = eq(follows.followerId, userId);
-  const [rows, countResult] = await Promise.all([
+  const [rows, total] = await Promise.all([
     db.select({
-      user: {
-        id: users.id,
-        username: users.username,
-        displayName: users.displayName,
-        avatarUrl: users.avatarUrl,
-        bio: users.bio
-      },
+      user: USER_REF_WITH_BIO_SELECT,
       followedAt: follows.createdAt
     }).from(follows).innerJoin(users, eq(follows.followingId, users.id)).where(where).orderBy(desc(follows.createdAt)).limit(limit).offset(offset),
-    db.select({ count: sql`count(*)::int` }).from(follows).where(where)
+    countRows(db, follows, where)
   ]);
   return {
     items: rows.map((row) => {
-      var _a2;
+      var _a;
       return {
         ...row.user,
-        bio: (_a2 = row.user.bio) != null ? _a2 : null,
+        bio: (_a = row.user.bio) != null ? _a : null,
         followedAt: row.followedAt
       };
     }),
-    total: (_d = (_c = countResult[0]) == null ? void 0 : _c.count) != null ? _d : 0
+    total
   };
 }
 async function createReport(db, reporterId, input) {
@@ -9920,7 +10139,6 @@ function randomHex(length) {
 }
 
 async function listPaths(db, filters = {}) {
-  var _a, _b, _c, _d;
   const conditions = [];
   if (filters.status) {
     conditions.push(eq(learningPaths.status, filters.status));
@@ -9932,13 +10150,12 @@ async function listPaths(db, filters = {}) {
     conditions.push(eq(learningPaths.authorId, filters.authorId));
   }
   const where = conditions.length > 0 ? and(...conditions) : void 0;
-  const limit = Math.min((_a = filters.limit) != null ? _a : 20, 100);
-  const offset = (_b = filters.offset) != null ? _b : 0;
+  const { limit, offset } = normalizePagination(filters);
   const moduleCountSubquery = db.select({
     pathId: learningModules.pathId,
     moduleCount: sql`count(*)::int`.as("module_count")
   }).from(learningModules).groupBy(learningModules.pathId).as("mc");
-  const [rows, countResult] = await Promise.all([
+  const [rows, total] = await Promise.all([
     db.select({
       path: learningPaths,
       author: {
@@ -9949,7 +10166,7 @@ async function listPaths(db, filters = {}) {
       },
       moduleCount: sql`coalesce(${moduleCountSubquery.moduleCount}, 0)`.mapWith(Number)
     }).from(learningPaths).innerJoin(users, eq(learningPaths.authorId, users.id)).leftJoin(moduleCountSubquery, eq(learningPaths.id, moduleCountSubquery.pathId)).where(where).orderBy(desc(learningPaths.createdAt)).limit(limit).offset(offset),
-    db.select({ count: sql`count(*)::int` }).from(learningPaths).where(where)
+    countRows(db, learningPaths, where)
   ]);
   const items = rows.map((row) => ({
     id: row.path.id,
@@ -9967,17 +10184,12 @@ async function listPaths(db, filters = {}) {
     createdAt: row.path.createdAt,
     author: row.author
   }));
-  return { items, total: (_d = (_c = countResult[0]) == null ? void 0 : _c.count) != null ? _d : 0 };
+  return { items, total };
 }
 async function getPathBySlug(db, slug, requesterId) {
   const rows = await db.select({
     path: learningPaths,
-    author: {
-      id: users.id,
-      username: users.username,
-      displayName: users.displayName,
-      avatarUrl: users.avatarUrl
-    }
+    author: USER_REF_SELECT
   }).from(learningPaths).innerJoin(users, eq(learningPaths.authorId, users.id)).where(eq(learningPaths.slug, slug)).limit(1);
   if (rows.length === 0)
     return null;
@@ -9990,7 +10202,7 @@ async function getPathBySlug(db, slug, requesterId) {
   const moduleIds = modules.map((m) => m.id);
   let lessons = [];
   if (moduleIds.length > 0) {
-    lessons = await db.select().from(learningLessons).where(sql`${learningLessons.moduleId} = ANY(${moduleIds})`).orderBy(asc(learningLessons.sortOrder));
+    lessons = await db.select().from(learningLessons).where(inArray(learningLessons.moduleId, moduleIds)).orderBy(asc(learningLessons.sortOrder));
   }
   let enrollment = null;
   let isEnrolled = false;
@@ -10012,14 +10224,18 @@ async function getPathBySlug(db, slug, requesterId) {
     title: mod.title,
     description: mod.description,
     sortOrder: mod.sortOrder,
-    lessons: lessons.filter((l) => l.moduleId === mod.id).map((l) => ({
-      id: l.id,
-      title: l.title,
-      slug: l.slug,
-      type: l.type,
-      duration: l.duration,
-      sortOrder: l.sortOrder
-    }))
+    lessons: lessons.filter((l) => l.moduleId === mod.id).map((l) => {
+      var _a;
+      return {
+        id: l.id,
+        title: l.title,
+        slug: l.slug,
+        type: l.type,
+        duration: l.duration,
+        sortOrder: l.sortOrder,
+        contentItemId: (_a = l.contentItemId) != null ? _a : null
+      };
+    })
   }));
   return {
     id: path.id,
@@ -10045,7 +10261,7 @@ async function getPathBySlug(db, slug, requesterId) {
 }
 async function createPath(db, authorId, input) {
   var _a, _b, _c, _d;
-  const slug = await ensureUniquePathSlug(db, generateSlug(input.title));
+  const slug = await ensureUniqueSlugFor(db, learningPaths, learningPaths.slug, learningPaths.id, generateSlug(input.title), "untitled");
   const [path] = await db.insert(learningPaths).values({
     authorId,
     title: input.title,
@@ -10067,7 +10283,7 @@ async function updatePath(db, pathId, authorId, input) {
   if (input.title !== void 0) {
     updates.title = input.title;
     if (input.title !== current.title) {
-      updates.slug = await ensureUniquePathSlug(db, generateSlug(input.title), pathId);
+      updates.slug = await ensureUniqueSlugFor(db, learningPaths, learningPaths.slug, learningPaths.id, generateSlug(input.title), "untitled", pathId);
     }
   }
   if (input.description !== void 0)
@@ -10134,22 +10350,62 @@ async function deleteModule(db, moduleId, authorId) {
   return true;
 }
 async function createLesson(db, authorId, input) {
-  var _a, _b, _c, _d;
+  var _a, _b, _c, _d, _e;
   const mod = await db.select({ module: learningModules, path: learningPaths }).from(learningModules).innerJoin(learningPaths, eq(learningModules.pathId, learningPaths.id)).where(and(eq(learningModules.id, input.moduleId), eq(learningPaths.authorId, authorId))).limit(1);
   if (mod.length === 0)
     throw new Error("Not authorized");
+  let resolvedType = input.type;
+  if (input.contentItemId) {
+    const item = await db.select({ id: contentItems.id, type: contentItems.type, authorId: contentItems.authorId }).from(contentItems).where(eq(contentItems.id, input.contentItemId)).limit(1);
+    if (item.length === 0)
+      throw new Error("Content item not found");
+    if (item[0].authorId !== authorId)
+      throw new Error("You can only link your own content");
+    resolvedType = item[0].type;
+  }
   const slug = generateSlug(input.title) || `lesson-${Date.now()}`;
   const maxSort = await db.select({ max: sql`coalesce(max(${learningLessons.sortOrder}), -1)` }).from(learningLessons).where(eq(learningLessons.moduleId, input.moduleId));
   const [lesson] = await db.insert(learningLessons).values({
     moduleId: input.moduleId,
     title: input.title,
     slug,
-    type: input.type,
-    content: (_a = input.content) != null ? _a : null,
-    duration: (_b = input.durationMinutes) != null ? _b : null,
-    sortOrder: ((_d = (_c = maxSort[0]) == null ? void 0 : _c.max) != null ? _d : -1) + 1
+    type: resolvedType,
+    content: input.contentItemId ? null : (_a = input.content) != null ? _a : null,
+    contentItemId: (_b = input.contentItemId) != null ? _b : null,
+    duration: (_c = input.durationMinutes) != null ? _c : null,
+    sortOrder: ((_e = (_d = maxSort[0]) == null ? void 0 : _d.max) != null ? _e : -1) + 1
   }).returning();
   return lesson;
+}
+async function updateLesson(db, lessonId, authorId, input) {
+  const lesson = await db.select({ lesson: learningLessons, module: learningModules, path: learningPaths }).from(learningLessons).innerJoin(learningModules, eq(learningLessons.moduleId, learningModules.id)).innerJoin(learningPaths, eq(learningModules.pathId, learningPaths.id)).where(and(eq(learningLessons.id, lessonId), eq(learningPaths.authorId, authorId))).limit(1);
+  if (lesson.length === 0)
+    return null;
+  const updates = { updatedAt: /* @__PURE__ */ new Date() };
+  if (input.title !== void 0) {
+    updates.title = input.title;
+    updates.slug = generateSlug(input.title) || lesson[0].lesson.slug;
+  }
+  if (input.type !== void 0)
+    updates.type = input.type;
+  if (input.content !== void 0)
+    updates.content = input.content;
+  if (input.contentItemId !== void 0) {
+    updates.contentItemId = input.contentItemId;
+    if (input.contentItemId === null) ; else {
+      const item = await db.select({ id: contentItems.id, type: contentItems.type, authorId: contentItems.authorId }).from(contentItems).where(eq(contentItems.id, input.contentItemId)).limit(1);
+      if (item.length === 0)
+        throw new Error("Content item not found");
+      if (item[0].authorId !== authorId)
+        throw new Error("You can only link your own content");
+      updates.type = item[0].type;
+      updates.content = null;
+    }
+  }
+  if (input.durationMinutes !== void 0)
+    updates.duration = input.durationMinutes;
+  const [updated] = await db.update(learningLessons).set(updates).where(eq(learningLessons.id, lessonId)).returning();
+  return updated;
 }
 async function deleteLesson(db, lessonId, authorId) {
   const lesson = await db.select({ lesson: learningLessons, module: learningModules, path: learningPaths }).from(learningLessons).innerJoin(learningModules, eq(learningLessons.moduleId, learningModules.id)).innerJoin(learningPaths, eq(learningModules.pathId, learningPaths.id)).where(and(eq(learningLessons.id, lessonId), eq(learningPaths.authorId, authorId))).limit(1);
@@ -10266,6 +10522,21 @@ async function getUserCertificates(db, userId) {
     path: row.path
   }));
 }
+async function getCertificateByCode(db, code) {
+  var _a;
+  const rows = await db.select({
+    certificate: certificates,
+    path: {
+      title: learningPaths.title,
+      slug: learningPaths.slug
+    },
+    user: {
+      displayName: users.displayName,
+      username: users.username
+    }
+  }).from(certificates).innerJoin(learningPaths, eq(certificates.pathId, learningPaths.id)).innerJoin(users, eq(certificates.userId, users.id)).where(eq(certificates.verificationCode, code)).limit(1);
+  return (_a = rows[0]) != null ? _a : null;
+}
 async function getLessonBySlug(db, pathSlug, lessonSlug) {
   const path = await db.select().from(learningPaths).where(eq(learningPaths.slug, pathSlug)).limit(1);
   if (path.length === 0)
@@ -10273,37 +10544,140 @@ async function getLessonBySlug(db, pathSlug, lessonSlug) {
   const rows = await db.select({ lesson: learningLessons, module: learningModules }).from(learningLessons).innerJoin(learningModules, eq(learningLessons.moduleId, learningModules.id)).where(and(eq(learningLessons.slug, lessonSlug), eq(learningModules.pathId, path[0].id))).limit(1);
   if (rows.length === 0)
     return null;
-  return {
+  const result = {
     lesson: rows[0].lesson,
     module: rows[0].module,
     pathId: path[0].id
   };
+  if (rows[0].lesson.contentItemId) {
+    const items = await db.select({
+      id: contentItems.id,
+      title: contentItems.title,
+      slug: contentItems.slug,
+      type: contentItems.type,
+      content: contentItems.content
+    }).from(contentItems).where(eq(contentItems.id, rows[0].lesson.contentItemId)).limit(1);
+    if (items.length > 0) {
+      result.linkedContent = items[0];
+    }
+  }
+  return result;
 }
-async function ensureUniquePathSlug(db, slug, excludeId) {
-  if (!slug) {
-    slug = `untitled-${Date.now()}`;
+
+const FRONTMATTER_REGEX = /^---\r?\n([\s\S]*?)---\r?\n?/;
+function parseFrontmatter(markdown) {
+  const match = markdown.match(FRONTMATTER_REGEX);
+  if (!match) {
+    return { frontmatter: {}, content: markdown };
   }
-  const conditions = [eq(learningPaths.slug, slug)];
-  if (excludeId) {
-    const { ne } = await import('drizzle-orm');
-    conditions.push(ne(learningPaths.id, excludeId));
+  const yamlString = match[1];
+  const content = markdown.slice(match[0].length).replace(/^\r?\n+/, "");
+  let parsed;
+  try {
+    parsed = parse$1(yamlString);
+  } catch {
+    return { frontmatter: {}, content: markdown };
   }
-  const existing = await db.select({ id: learningPaths.id }).from(learningPaths).where(and(...conditions)).limit(1);
-  if (existing.length === 0)
-    return slug;
-  return `${slug}-${Date.now()}`;
+  if (!parsed || typeof parsed !== "object") {
+    return { frontmatter: {}, content };
+  }
+  const frontmatter = {};
+  if (typeof parsed.title === "string") {
+    frontmatter.title = parsed.title;
+  }
+  if (typeof parsed.description === "string") {
+    frontmatter.description = parsed.description;
+  }
+  if (typeof parsed.sidebar_label === "string") {
+    frontmatter.sidebarLabel = parsed.sidebar_label;
+  }
+  if (typeof parsed.sidebar_position === "number") {
+    frontmatter.sidebarPosition = parsed.sidebar_position;
+  }
+  return { frontmatter, content };
+}
+
+const HEADING_REGEX = /^(#{2,6})\s+(.+)$/gm;
+function generateHeadingId(text, existing = /* @__PURE__ */ new Set()) {
+  const base = text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").replace(/-{2,}/g, "-");
+  if (!base)
+    return "heading";
+  let id = base;
+  let counter = 1;
+  while (existing.has(id)) {
+    id = `${base}-${counter}`;
+    counter++;
+  }
+  return id;
+}
+function extractHeadings(markdown) {
+  const entries = [];
+  const usedIds = /* @__PURE__ */ new Set();
+  let match;
+  while ((match = HEADING_REGEX.exec(markdown)) !== null) {
+    const level = match[1].length;
+    const text = match[2].trim();
+    const id = generateHeadingId(text, usedIds);
+    usedIds.add(id);
+    entries.push({ id, text, level });
+  }
+  return entries;
+}
+
+var _a, _b, _c, _d, _e, _f, _g, _h;
+const sanitizeSchema = {
+  ...defaultSchema,
+  attributes: {
+    ...defaultSchema.attributes,
+    // Allow id for heading anchors (rehype-slug)
+    "*": [...(_b = (_a = defaultSchema.attributes) == null ? void 0 : _a["*"]) != null ? _b : [], "id", "className"],
+    code: [...(_d = (_c = defaultSchema.attributes) == null ? void 0 : _c["code"]) != null ? _d : [], "className", "style"],
+    span: [...(_f = (_e = defaultSchema.attributes) == null ? void 0 : _e["span"]) != null ? _f : [], "className", "style"],
+    pre: [...(_h = (_g = defaultSchema.attributes) == null ? void 0 : _g["pre"]) != null ? _h : [], "className", "style"]
+  }
+};
+async function renderMarkdown(markdown, options = {}) {
+  var _a2;
+  const { frontmatter, content } = parseFrontmatter(markdown);
+  const toc = extractHeadings(content);
+  const plugins = [
+    remarkParse,
+    remarkGfm,
+    remarkFrontmatter,
+    [remarkRehype, { allowDangerousHtml: false }],
+    rehypeSlug
+  ];
+  try {
+    const { default: rehypeShiki } = await import('@shikijs/rehype');
+    plugins.push([rehypeShiki, { theme: (_a2 = options.highlightTheme) != null ? _a2 : "github-dark" }]);
+  } catch {
+  }
+  plugins.push([rehypeSanitize, sanitizeSchema]);
+  plugins.push([rehypeStringify, { allowDangerousHtml: false }]);
+  let processor = unified();
+  for (const plugin of plugins) {
+    if (Array.isArray(plugin)) {
+      processor = processor.use(plugin[0], ...plugin.slice(1));
+    } else {
+      processor = processor.use(plugin);
+    }
+  }
+  const result = await processor.process(content);
+  return {
+    html: String(result),
+    toc,
+    frontmatter
+  };
 }
 
 async function listDocsSites(db, filters = {}) {
-  var _a, _b, _c, _d;
   const conditions = [];
   if (filters.ownerId) {
     conditions.push(eq(docsSites.ownerId, filters.ownerId));
   }
   const where = conditions.length > 0 ? and(...conditions) : void 0;
-  const limit = Math.min((_a = filters.limit) != null ? _a : 20, 100);
-  const offset = (_b = filters.offset) != null ? _b : 0;
-  const [rows, countResult] = await Promise.all([
+  const { limit, offset } = normalizePagination(filters);
+  const [rows, total] = await Promise.all([
     db.select({
       site: docsSites,
       owner: {
@@ -10312,13 +10686,13 @@ async function listDocsSites(db, filters = {}) {
         displayName: users.displayName
       }
     }).from(docsSites).innerJoin(users, eq(docsSites.ownerId, users.id)).where(where).orderBy(desc(docsSites.createdAt)).limit(limit).offset(offset),
-    db.select({ count: sql`count(*)::int` }).from(docsSites).where(where)
+    countRows(db, docsSites, where)
   ]);
   const items = rows.map((row) => ({
     ...row.site,
     owner: row.owner
   }));
-  return { items, total: (_d = (_c = countResult[0]) == null ? void 0 : _c.count) != null ? _d : 0 };
+  return { items, total };
 }
 async function getDocsSiteBySlug(db, slug) {
   const rows = await db.select({
@@ -10340,7 +10714,7 @@ async function getDocsSiteBySlug(db, slug) {
 }
 async function createDocsSite(db, ownerId, input) {
   var _a;
-  const slug = await ensureUniqueDocsSiteSlug(db, input.slug || generateSlug(input.name));
+  const slug = await ensureUniqueSlugFor(db, docsSites, docsSites.slug, docsSites.id, input.slug || generateSlug(input.name), "docs");
   const [site] = await db.insert(docsSites).values({
     name: input.name,
     slug,
@@ -10362,7 +10736,7 @@ async function updateDocsSite(db, siteId, ownerId, input) {
   if (input.name !== void 0) {
     updates.name = input.name;
     if (input.name !== existing[0].name) {
-      updates.slug = await ensureUniqueDocsSiteSlug(db, generateSlug(input.name), siteId);
+      updates.slug = await ensureUniqueSlugFor(db, docsSites, docsSites.slug, docsSites.id, generateSlug(input.name), "docs", siteId);
     }
   }
   if (input.description !== void 0)
@@ -10450,6 +10824,9 @@ async function updateDocsPage(db, pageId, ownerId, input) {
   const page = await db.select({ page: docsPages, version: docsVersions, site: docsSites }).from(docsPages).innerJoin(docsVersions, eq(docsPages.versionId, docsVersions.id)).innerJoin(docsSites, eq(docsVersions.siteId, docsSites.id)).where(and(eq(docsPages.id, pageId), eq(docsSites.ownerId, ownerId))).limit(1);
   if (page.length === 0)
     return null;
+  if (input.parentId !== void 0 && input.parentId === pageId) {
+    throw new Error("A page cannot be its own parent");
+  }
   const updates = { updatedAt: /* @__PURE__ */ new Date() };
   if (input.title !== void 0)
     updates.title = input.title;
@@ -10463,6 +10840,24 @@ async function updateDocsPage(db, pageId, ownerId, input) {
     updates.parentId = input.parentId;
   const [updated] = await db.update(docsPages).set(updates).where(eq(docsPages.id, pageId)).returning();
   return updated;
+}
+async function deleteDocsPage(db, pageId, ownerId) {
+  const page = await db.select({ page: docsPages, version: docsVersions, site: docsSites }).from(docsPages).innerJoin(docsVersions, eq(docsPages.versionId, docsVersions.id)).innerJoin(docsSites, eq(docsVersions.siteId, docsSites.id)).where(and(eq(docsPages.id, pageId), eq(docsSites.ownerId, ownerId))).limit(1);
+  if (page.length === 0)
+    return false;
+  await db.delete(docsPages).where(eq(docsPages.id, pageId));
+  return true;
+}
+async function reorderDocsPages(db, versionId, ownerId, pageIds) {
+  const version = await db.select({ version: docsVersions, site: docsSites }).from(docsVersions).innerJoin(docsSites, eq(docsVersions.siteId, docsSites.id)).where(and(eq(docsVersions.id, versionId), eq(docsSites.ownerId, ownerId))).limit(1);
+  if (version.length === 0)
+    return false;
+  await db.transaction(async (tx) => {
+    for (let i = 0; i < pageIds.length; i++) {
+      await tx.update(docsPages).set({ sortOrder: i }).where(and(eq(docsPages.id, pageIds[i]), eq(docsPages.versionId, versionId)));
+    }
+  });
+  return true;
 }
 async function searchDocsPages(db, siteId, versionId, query) {
   if (!query.trim())
@@ -10478,19 +10873,6 @@ async function searchDocsPages(db, siteId, versionId, query) {
   }).from(docsPages).innerJoin(docsVersions, eq(docsPages.versionId, docsVersions.id)).where(and(eq(docsPages.versionId, versionId), eq(docsVersions.siteId, siteId), sql`to_tsvector('english', ${docsPages.title} || ' ' || ${docsPages.content}) @@ to_tsquery('english', ${tsQuery})`)).limit(20);
   return results;
 }
-async function ensureUniqueDocsSiteSlug(db, slug, excludeId) {
-  if (!slug)
-    slug = `docs-${Date.now()}`;
-  const conditions = [eq(docsSites.slug, slug)];
-  if (excludeId) {
-    const { ne } = await import('drizzle-orm');
-    conditions.push(ne(docsSites.id, excludeId));
-  }
-  const existing = await db.select({ id: docsSites.id }).from(docsSites).where(and(...conditions)).limit(1);
-  if (existing.length === 0)
-    return slug;
-  return `${slug}-${Date.now()}`;
-}
 
 async function createAuditEntry(db, entry) {
   var _a, _b;
@@ -10504,7 +10886,7 @@ async function createAuditEntry(db, entry) {
   });
 }
 async function listAuditLogs(db, filters = {}) {
-  var _a, _b, _c, _d;
+  var _a, _b;
   const conditions = [];
   if (filters.action) {
     conditions.push(eq(auditLogs.action, filters.action));
@@ -10518,7 +10900,7 @@ async function listAuditLogs(db, filters = {}) {
   const where = conditions.length > 0 ? and(...conditions) : void 0;
   const limit = Math.min((_a = filters.limit) != null ? _a : 50, 100);
   const offset = (_b = filters.offset) != null ? _b : 0;
-  const [rows, countResult] = await Promise.all([
+  const [rows, total] = await Promise.all([
     db.select({
       log: auditLogs,
       user: {
@@ -10527,7 +10909,7 @@ async function listAuditLogs(db, filters = {}) {
         displayName: users.displayName
       }
     }).from(auditLogs).innerJoin(users, eq(auditLogs.userId, users.id)).where(where).orderBy(desc(auditLogs.createdAt)).limit(limit).offset(offset),
-    db.select({ count: sql`count(*)::int` }).from(auditLogs).where(where)
+    countRows(db, auditLogs, where)
   ]);
   const items = rows.map((row) => ({
     id: row.log.id,
@@ -10543,7 +10925,7 @@ async function listAuditLogs(db, filters = {}) {
       displayName: row.user.displayName
     }
   }));
-  return { items, total: (_d = (_c = countResult[0]) == null ? void 0 : _c.count) != null ? _d : 0 };
+  return { items, total };
 }
 async function getPlatformStats(db) {
   var _a, _b, _c, _d, _e, _f;
@@ -10587,7 +10969,6 @@ async function getPlatformStats(db) {
   };
 }
 async function listUsers(db, filters = {}) {
-  var _a, _b, _c, _d;
   const conditions = [];
   if (filters.search) {
     const term = `%${filters.search}%`;
@@ -10600,9 +10981,8 @@ async function listUsers(db, filters = {}) {
     conditions.push(eq(users.status, filters.status));
   }
   const where = conditions.length > 0 ? and(...conditions) : void 0;
-  const limit = Math.min((_a = filters.limit) != null ? _a : 20, 100);
-  const offset = (_b = filters.offset) != null ? _b : 0;
-  const [rows, countResult] = await Promise.all([
+  const { limit, offset } = normalizePagination(filters);
+  const [rows, total] = await Promise.all([
     db.select({
       id: users.id,
       email: users.email,
@@ -10613,11 +10993,11 @@ async function listUsers(db, filters = {}) {
       status: users.status,
       createdAt: users.createdAt
     }).from(users).where(where).orderBy(desc(users.createdAt)).limit(limit).offset(offset),
-    db.select({ count: sql`count(*)::int` }).from(users).where(where)
+    countRows(db, users, where)
   ]);
   return {
     items: rows,
-    total: (_d = (_c = countResult[0]) == null ? void 0 : _c.count) != null ? _d : 0
+    total
   };
 }
 async function updateUserRole(db, userId, newRole, adminId, ip) {
@@ -10652,16 +11032,14 @@ async function updateUserStatus(db, userId, newStatus, adminId, ip) {
   });
 }
 async function listReports(db, filters = {}) {
-  var _a, _b, _c, _d;
   const conditions = [];
   if (filters.status) {
     conditions.push(eq(reports.status, filters.status));
   }
   const where = conditions.length > 0 ? and(...conditions) : void 0;
-  const limit = Math.min((_a = filters.limit) != null ? _a : 20, 100);
-  const offset = (_b = filters.offset) != null ? _b : 0;
+  const { limit, offset } = normalizePagination(filters);
   const reviewerAlias = alias(users, "reviewer");
-  const [rows, countResult] = await Promise.all([
+  const [rows, total] = await Promise.all([
     db.select({
       report: reports,
       reporter: {
@@ -10673,10 +11051,10 @@ async function listReports(db, filters = {}) {
         username: reviewerAlias.username
       }
     }).from(reports).innerJoin(users, eq(reports.reporterId, users.id)).leftJoin(reviewerAlias, eq(reports.reviewedById, reviewerAlias.id)).where(where).orderBy(desc(reports.createdAt)).limit(limit).offset(offset),
-    db.select({ count: sql`count(*)::int` }).from(reports).where(where)
+    countRows(db, reports, where)
   ]);
   const items = rows.map((row) => {
-    var _a2;
+    var _a;
     return {
       id: row.report.id,
       targetType: row.report.targetType,
@@ -10687,10 +11065,10 @@ async function listReports(db, filters = {}) {
       resolution: row.report.resolution,
       createdAt: row.report.createdAt,
       reporter: { id: row.reporter.id, username: row.reporter.username },
-      reviewer: ((_a2 = row.reviewer) == null ? void 0 : _a2.id) ? { id: row.reviewer.id, username: row.reviewer.username } : null
+      reviewer: ((_a = row.reviewer) == null ? void 0 : _a.id) ? { id: row.reviewer.id, username: row.reviewer.username } : null
     };
   });
-  return { items, total: (_d = (_c = countResult[0]) == null ? void 0 : _c.count) != null ? _d : 0 };
+  return { items, total };
 }
 async function resolveReport(db, reportId, resolution, status, adminId, ip) {
   const [report] = await db.select().from(reports).where(eq(reports.id, reportId));
@@ -10810,34 +11188,54 @@ async function removeContent(db, contentId, adminId, ip) {
 }
 
 async function getUserByUsername(db, username) {
-  var _a, _b, _c, _d, _e, _f;
+  var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m, _n, _o, _p, _q, _r, _s;
   const rows = await db.select().from(users).where(eq(users.username, username)).limit(1);
   if (rows.length === 0)
     return null;
   const user = rows[0];
-  const contentCounts = await db.select({
-    type: contentItems.type,
-    count: sql`count(*)::int`
-  }).from(contentItems).where(and(eq(contentItems.authorId, user.id), eq(contentItems.status, "published"))).groupBy(contentItems.type);
+  const [contentCounts, viewLikeResult, followerResult, followingResult] = await Promise.all([
+    db.select({
+      type: contentItems.type,
+      count: sql`count(*)::int`
+    }).from(contentItems).where(and(eq(contentItems.authorId, user.id), eq(contentItems.status, "published"))).groupBy(contentItems.type),
+    db.select({
+      totalViews: sql`coalesce(sum(${contentItems.viewCount}), 0)::int`,
+      totalLikes: sql`coalesce(sum(${contentItems.likeCount}), 0)::int`
+    }).from(contentItems).where(and(eq(contentItems.authorId, user.id), eq(contentItems.status, "published"))),
+    db.select({ count: sql`count(*)::int` }).from(follows).where(eq(follows.followingId, user.id)),
+    db.select({ count: sql`count(*)::int` }).from(follows).where(eq(follows.followerId, user.id))
+  ]);
   const countMap = {};
   for (const row of contentCounts) {
     countMap[row.type] = row.count;
   }
-  const [followerResult] = await db.select({ count: sql`count(*)::int` }).from(follows).where(eq(follows.followingId, user.id));
-  const [followingResult] = await db.select({ count: sql`count(*)::int` }).from(follows).where(eq(follows.followerId, user.id));
+  const followerCount = (_b = (_a = followerResult[0]) == null ? void 0 : _a.count) != null ? _b : 0;
+  const followingCount = (_d = (_c = followingResult[0]) == null ? void 0 : _c.count) != null ? _d : 0;
+  const socialLinks = (_e = user.socialLinks) != null ? _e : null;
   return {
     id: user.id,
     username: user.username,
     displayName: user.displayName,
     avatarUrl: user.avatarUrl,
-    bio: (_a = user.bio) != null ? _a : null,
+    bio: (_f = user.bio) != null ? _f : null,
+    headline: (_g = user.headline) != null ? _g : null,
+    location: (_h = user.location) != null ? _h : null,
+    website: (_i = user.website) != null ? _i : null,
+    bannerUrl: (_j = user.bannerUrl) != null ? _j : null,
+    socialLinks,
+    skills: (_k = user.skills) != null ? _k : null,
+    pronouns: (_l = user.pronouns) != null ? _l : null,
     createdAt: user.createdAt,
+    followerCount,
+    followingCount,
+    viewCount: (_n = (_m = viewLikeResult[0]) == null ? void 0 : _m.totalViews) != null ? _n : 0,
+    likeCount: (_p = (_o = viewLikeResult[0]) == null ? void 0 : _o.totalLikes) != null ? _p : 0,
     stats: {
-      projects: (_b = countMap["project"]) != null ? _b : 0,
-      explainers: (_c = countMap["explainer"]) != null ? _c : 0,
-      articles: (_d = countMap["article"]) != null ? _d : 0,
-      followers: (_e = followerResult == null ? void 0 : followerResult.count) != null ? _e : 0,
-      following: (_f = followingResult == null ? void 0 : followingResult.count) != null ? _f : 0
+      projects: (_q = countMap["project"]) != null ? _q : 0,
+      explainers: (_r = countMap["explainer"]) != null ? _r : 0,
+      articles: (_s = countMap["article"]) != null ? _s : 0,
+      followers: followerCount,
+      following: followingCount
     }
   };
 }
@@ -10886,6 +11284,25 @@ async function getUserContent(db, userId, type) {
 var __defProp$1 = Object.defineProperty;
 var __defNormalProp$1 = (obj, key, value) => key in obj ? __defProp$1(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
 var __publicField$1 = (obj, key, value) => __defNormalProp$1(obj, typeof key !== "symbol" ? key + "" : key, value);
+function buildCspDirectives(nonce) {
+  const scriptSrc = "'self'";
+  const styleSrc = "'self' 'unsafe-inline'";
+  return {
+    "default-src": "'self'",
+    "script-src": scriptSrc,
+    "style-src": styleSrc,
+    "img-src": "'self' data: https:",
+    "font-src": "'self'",
+    "connect-src": "'self'",
+    "frame-ancestors": "'none'",
+    "base-uri": "'self'",
+    "form-action": "'self'"
+  };
+}
+function buildCspHeader(directives) {
+  const dirs = directives != null ? directives : buildCspDirectives();
+  return Object.entries(dirs).map(([key, value]) => `${key} ${value}`).join("; ");
+}
 function getSecurityHeaders(isDev) {
   const headers = {
     "X-Content-Type-Options": "nosniff",
@@ -10893,13 +11310,10 @@ function getSecurityHeaders(isDev) {
     "Referrer-Policy": "strict-origin-when-cross-origin",
     "Permissions-Policy": "camera=(), microphone=(), geolocation=()"
   };
-  if (!isDev) {
+  {
     headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains";
   }
   return headers;
-}
-function generateNonce() {
-  return crypto.randomUUID().replace(/-/g, "");
 }
 class RateLimitStore {
   constructor() {
@@ -10981,17 +11395,15 @@ function checkRateLimit(store, ip, pathname) {
 }
 
 async function listContests(db, filters = {}) {
-  var _a, _b, _c, _d;
   const conditions = [];
   if (filters.status) {
     conditions.push(eq(contests.status, filters.status));
   }
   const where = conditions.length > 0 ? and(...conditions) : void 0;
-  const limit = Math.min((_a = filters.limit) != null ? _a : 20, 100);
-  const offset = (_b = filters.offset) != null ? _b : 0;
-  const [rows, countResult] = await Promise.all([
+  const { limit, offset } = normalizePagination(filters);
+  const [rows, total] = await Promise.all([
     db.select().from(contests).where(where).orderBy(desc(contests.startDate)).limit(limit).offset(offset),
-    db.select({ count: sql`count(*)::int` }).from(contests).where(where)
+    countRows(db, contests, where)
   ]);
   const items = rows.map((row) => ({
     id: row.id,
@@ -11005,7 +11417,7 @@ async function listContests(db, filters = {}) {
     entryCount: row.entryCount,
     createdAt: row.createdAt
   }));
-  return { items, total: (_d = (_c = countResult[0]) == null ? void 0 : _c.count) != null ? _d : 0 };
+  return { items, total };
 }
 async function getContestBySlug(db, slug) {
   var _a, _b;
@@ -11094,18 +11506,42 @@ async function updateContest(db, slug, userId, data) {
   return getContestBySlug(db, (_a = data.slug) != null ? _a : slug);
 }
 async function listContestEntries(db, contestId) {
-  const rows = await db.select().from(contestEntries).where(eq(contestEntries.contestId, contestId)).orderBy(desc(contestEntries.submittedAt));
-  return rows.map((row) => ({
-    id: row.id,
-    contestId: row.contestId,
-    contentId: row.contentId,
-    userId: row.userId,
-    score: row.score,
-    rank: row.rank,
-    submittedAt: row.submittedAt
-  }));
+  const rows = await db.select({
+    entry: contestEntries,
+    content: {
+      title: contentItems.title,
+      slug: contentItems.slug,
+      type: contentItems.type,
+      coverImageUrl: contentItems.coverImageUrl
+    },
+    author: {
+      displayName: users.displayName,
+      username: users.username,
+      avatarUrl: users.avatarUrl
+    }
+  }).from(contestEntries).innerJoin(contentItems, eq(contestEntries.contentId, contentItems.id)).innerJoin(users, eq(contestEntries.userId, users.id)).where(eq(contestEntries.contestId, contestId)).orderBy(desc(contestEntries.submittedAt));
+  return rows.map((row) => {
+    var _a;
+    return {
+      id: row.entry.id,
+      contestId: row.entry.contestId,
+      contentId: row.entry.contentId,
+      userId: row.entry.userId,
+      score: row.entry.score,
+      rank: row.entry.rank,
+      submittedAt: row.entry.submittedAt,
+      contentTitle: row.content.title,
+      contentSlug: row.content.slug,
+      contentType: row.content.type,
+      contentCoverImageUrl: row.content.coverImageUrl,
+      authorName: (_a = row.author.displayName) != null ? _a : row.author.username,
+      authorUsername: row.author.username,
+      authorAvatarUrl: row.author.avatarUrl
+    };
+  });
 }
 async function submitContestEntry(db, contestId, contentId, userId) {
+  var _a, _b, _c, _d, _e, _f, _g, _h;
   const contest = await db.select({ id: contests.id, status: contests.status }).from(contests).where(eq(contests.id, contestId)).limit(1);
   if (contest.length === 0)
     return null;
@@ -11122,6 +11558,20 @@ async function submitContestEntry(db, contestId, contentId, userId) {
   if (!row)
     return null;
   await db.update(contests).set({ entryCount: sql`${contests.entryCount} + 1` }).where(eq(contests.id, contestId));
+  const enriched = await db.select({
+    content: {
+      title: contentItems.title,
+      slug: contentItems.slug,
+      type: contentItems.type,
+      coverImageUrl: contentItems.coverImageUrl
+    },
+    author: {
+      displayName: users.displayName,
+      username: users.username,
+      avatarUrl: users.avatarUrl
+    }
+  }).from(contentItems).innerJoin(users, eq(contentItems.authorId, users.id)).where(eq(contentItems.id, contentId)).limit(1);
+  const info = enriched[0];
   return {
     id: row.id,
     contestId: row.contestId,
@@ -11129,7 +11579,14 @@ async function submitContestEntry(db, contestId, contentId, userId) {
     userId: row.userId,
     score: row.score,
     rank: row.rank,
-    submittedAt: row.submittedAt
+    submittedAt: row.submittedAt,
+    contentTitle: (_a = info == null ? void 0 : info.content.title) != null ? _a : "Untitled",
+    contentSlug: (_b = info == null ? void 0 : info.content.slug) != null ? _b : "",
+    contentType: (_c = info == null ? void 0 : info.content.type) != null ? _c : "project",
+    contentCoverImageUrl: (_d = info == null ? void 0 : info.content.coverImageUrl) != null ? _d : null,
+    authorName: (_f = (_e = info == null ? void 0 : info.author.displayName) != null ? _e : info == null ? void 0 : info.author.username) != null ? _f : "Unknown",
+    authorUsername: (_g = info == null ? void 0 : info.author.username) != null ? _g : "",
+    authorAvatarUrl: (_h = info == null ? void 0 : info.author.avatarUrl) != null ? _h : null
   };
 }
 async function judgeContestEntry(db, entryId, score, judgeId, feedback) {
@@ -11196,7 +11653,6 @@ async function transitionContestStatus(db, contestId, userId, newStatus) {
 }
 
 async function listNotifications(db, filters) {
-  var _a, _b, _c, _d;
   const conditions = [eq(notifications.userId, filters.userId)];
   if (filters.type) {
     conditions.push(eq(notifications.type, filters.type));
@@ -11205,28 +11661,31 @@ async function listNotifications(db, filters) {
     conditions.push(eq(notifications.read, filters.read));
   }
   const where = and(...conditions);
-  const limit = Math.min((_a = filters.limit) != null ? _a : 20, 100);
-  const offset = (_b = filters.offset) != null ? _b : 0;
-  const [rows, countResult] = await Promise.all([
+  const { limit, offset } = normalizePagination(filters);
+  const [rows, total] = await Promise.all([
     db.select({
       notification: notifications,
-      actorName: users.displayName
+      actorDisplayName: users.displayName,
+      actorUsername: users.username
     }).from(notifications).leftJoin(users, eq(notifications.actorId, users.id)).where(where).orderBy(desc(notifications.createdAt)).limit(limit).offset(offset),
-    db.select({ count: sql`count(*)::int` }).from(notifications).where(where)
+    countRows(db, notifications, where)
   ]);
-  const items = rows.map((row) => ({
-    id: row.notification.id,
-    userId: row.notification.userId,
-    type: row.notification.type,
-    title: row.notification.title,
-    message: row.notification.message,
-    link: row.notification.link,
-    actorId: row.notification.actorId,
-    actorName: row.actorName,
-    read: row.notification.read,
-    createdAt: row.notification.createdAt
-  }));
-  return { items, total: (_d = (_c = countResult[0]) == null ? void 0 : _c.count) != null ? _d : 0 };
+  const items = rows.map((row) => {
+    var _a, _b;
+    return {
+      id: row.notification.id,
+      userId: row.notification.userId,
+      type: row.notification.type,
+      title: row.notification.title,
+      message: row.notification.message,
+      link: row.notification.link,
+      actorId: row.notification.actorId,
+      actorName: (_b = (_a = row.actorDisplayName) != null ? _a : row.actorUsername) != null ? _b : "Someone",
+      read: row.notification.read,
+      createdAt: row.notification.createdAt
+    };
+  });
+  return { items, total };
 }
 async function getUnreadCount(db, userId) {
   var _a, _b;
@@ -11303,21 +11762,19 @@ async function markMessagesRead(db, conversationId, userId) {
 }
 
 async function listVideos(db, filters = {}) {
-  var _a, _b, _c, _d;
   const conditions = [];
   if (filters.authorId) {
     conditions.push(eq(videos.authorId, filters.authorId));
   }
-  const where = conditions.length > 0 ? sql`${sql.join(conditions, sql` AND `)}` : void 0;
-  const limit = Math.min((_a = filters.limit) != null ? _a : 20, 100);
-  const offset = (_b = filters.offset) != null ? _b : 0;
-  const [rows, countResult] = await Promise.all([
+  const where = conditions.length > 0 ? and(...conditions) : void 0;
+  const { limit, offset } = normalizePagination(filters);
+  const [rows, total] = await Promise.all([
     db.select({
       video: videos,
       authorName: users.displayName,
       authorUsername: users.username
     }).from(videos).innerJoin(users, eq(videos.authorId, users.id)).where(where).orderBy(desc(videos.createdAt)).limit(limit).offset(offset),
-    db.select({ count: sql`count(*)::int` }).from(videos).where(where)
+    countRows(db, videos, where)
   ]);
   const items = rows.map((row) => ({
     id: row.video.id,
@@ -11335,7 +11792,7 @@ async function listVideos(db, filters = {}) {
     authorUsername: row.authorUsername,
     createdAt: row.video.createdAt
   }));
-  return { items, total: (_d = (_c = countResult[0]) == null ? void 0 : _c.count) != null ? _d : 0 };
+  return { items, total };
 }
 async function getVideoById(db, id) {
   const rows = await db.select({
@@ -11737,7 +12194,13 @@ function getAuthMiddleware() {
   const auth = createAuth({
     config,
     db,
-    secret: runtimeConfig.authSecret || "dev-secret-change-me",
+    secret: (() => {
+      const s = runtimeConfig.authSecret;
+      if (!s && true) {
+        throw new Error("AUTH_SECRET must be set in production");
+      }
+      return s || "dev-secret-change-me";
+    })(),
     baseURL: siteUrl,
     emailSender: {
       async sendResetPasswordEmail(email, url, _token) {
@@ -11813,21 +12276,26 @@ const _8L1GON = defineEventHandler((event) => {
   const url = getRequestURL(event);
   const pathname = url.pathname;
   if (shouldSkipRateLimit(pathname)) return;
-  const ip = ((_b = (_a = getRequestHeader(event, "x-forwarded-for")) == null ? void 0 : _a.split(",")[0]) == null ? void 0 : _b.trim()) || getRequestHeader(event, "x-real-ip") || "unknown";
-  const { result, headers: rlHeaders } = checkRateLimit(store, ip, pathname);
-  for (const [key, value] of Object.entries(rlHeaders)) {
-    setResponseHeader(event, key, value);
+  {
+    const ip = ((_b = (_a = getRequestHeader(event, "x-forwarded-for")) == null ? void 0 : _a.split(",")[0]) == null ? void 0 : _b.trim()) || getRequestHeader(event, "x-real-ip") || "unknown";
+    const { result, headers: rlHeaders } = checkRateLimit(store, ip, pathname);
+    for (const [key, value] of Object.entries(rlHeaders)) {
+      setResponseHeader(event, key, value);
+    }
+    if (!result.allowed) {
+      throw createError$1({
+        statusCode: 429,
+        statusMessage: "Too Many Requests"
+      });
+    }
   }
-  if (!result.allowed) {
-    throw createError$1({
-      statusCode: 429,
-      statusMessage: "Too Many Requests"
-    });
-  }
-  const nonce = generateNonce();
-  const headers = getSecurityHeaders(nonce);
+  const headers = getSecurityHeaders();
   for (const [key, value] of Object.entries(headers)) {
     setResponseHeader(event, key, value);
+  }
+  if (!pathname.startsWith("/api/")) {
+    const cspDirectives = buildCspDirectives();
+    setResponseHeader(event, "Content-Security-Policy", buildCspHeader(cspDirectives));
   }
 });
 
@@ -11844,6 +12312,7 @@ const _lazy_Wew5oZ = () => import('../routes/api/admin/users.get.mjs');
 const _lazy_AncTe6 = () => import('../routes/api/admin/users/_id_.delete.mjs');
 const _lazy_rnRD3x = () => import('../routes/api/admin/users/_id/role.put.mjs');
 const _lazy_mSN0U6 = () => import('../routes/api/admin/users/_id/status.put.mjs');
+const _lazy__LLe3t = () => import('../routes/api/cert/_code_.get.mjs');
 const _lazy_TKf7yE = () => import('../routes/api/content/_id/build.post.mjs');
 const _lazy_IMfpVg = () => import('../routes/api/content/_id/fork.post.mjs');
 const _lazy_INWkw9 = () => import('../routes/api/content/index.delete.mjs');
@@ -11872,9 +12341,12 @@ const _lazy_P7zJOr = () => import('../routes/api/docs/index.delete.mjs');
 const _lazy_ckimER = () => import('../routes/api/docs/index.get.mjs');
 const _lazy_N18wUp = () => import('../routes/api/docs/index.put.mjs');
 const _lazy_Lm1t5u = () => import('../routes/api/docs/_siteSlug/nav.get.mjs');
-const _lazy_TB2PWK = () => import('../routes/api/docs/_siteSlug/pages.get.mjs');
-const _lazy_t6h8n4 = () => import('../routes/api/docs/_siteSlug/pages.post.mjs');
+const _lazy_yebZZY = () => import('../routes/api/docs/_siteSlug/pages/_pageId_.delete.mjs');
+const _lazy_smEu3A = () => import('../routes/api/docs/_siteSlug/pages/_pageId_.get.mjs');
 const _lazy_uvwSIz = () => import('../routes/api/docs/_siteSlug/pages/_pageId_.put.mjs');
+const _lazy_qY0m62 = () => import('../routes/api/docs/_siteSlug/index.get.mjs');
+const _lazy_aAg05p = () => import('../routes/api/docs/_siteSlug/index.post.mjs');
+const _lazy_onRcNH = () => import('../routes/api/docs/_siteSlug/pages/reorder.post.mjs');
 const _lazy_kwKJ8K = () => import('../routes/api/docs/_siteSlug/search.get.mjs');
 const _lazy_9ZpYPh = () => import('../routes/api/docs/_siteSlug/versions.post.mjs');
 const _lazy_qgBaDe = () => import('../routes/api/index.get3.mjs');
@@ -11908,14 +12380,15 @@ const _lazy_RWRJ2C = () => import('../routes/api/hubs/_slug/products.post.mjs');
 const _lazy_7kuZa4 = () => import('../routes/api/hubs/_slug/share.post.mjs');
 const _lazy_CTfFMz = () => import('../routes/api/index.get4.mjs');
 const _lazy_ScB6nf = () => import('../routes/api/index.post4.mjs');
-const _lazy_1zJXwa = () => import('../routes/api/learn/_slug/_lessonSlug_.get.mjs');
 const _lazy_OyZPOn = () => import('../routes/api/learn/_slug/_lessonSlug/complete.post.mjs');
+const _lazy_IgP9s8 = () => import('../routes/api/learn/_slug/index.get.mjs');
 const _lazy_DQT6YB = () => import('../routes/api/learn/_slug/enroll.post.mjs');
 const _lazy_fMDPwz = () => import('../routes/api/learn/index.delete.mjs');
 const _lazy_1vnyR0 = () => import('../routes/api/learn/index.get.mjs');
 const _lazy_TrJryK = () => import('../routes/api/learn/index.put.mjs');
 const _lazy_Rwf2_Q = () => import('../routes/api/learn/_slug/lessons.post.mjs');
 const _lazy_X3v9gU = () => import('../routes/api/learn/_slug/lessons/_lessonId_.delete.mjs');
+const _lazy_HcbV0j = () => import('../routes/api/learn/_slug/lessons/_lessonId_.put.mjs');
 const _lazy_JWIgCr = () => import('../routes/api/learn/_slug/modules.post.mjs');
 const _lazy_iZMtYH = () => import('../routes/api/learn/_slug/modules/_moduleId_.delete.mjs');
 const _lazy_Lmvao6 = () => import('../routes/api/learn/_slug/modules/_moduleId_.put.mjs');
@@ -11927,6 +12400,7 @@ const _lazy_y83Zc3 = () => import('../routes/api/index.get5.mjs');
 const _lazy_QJK2we = () => import('../routes/api/index.post5.mjs');
 const _lazy_MJWCL7 = () => import('../routes/api/messages/_conversationId_.get.mjs');
 const _lazy_bdtAxU = () => import('../routes/api/messages/_conversationId_.post.mjs');
+const _lazy_j747yK = () => import('../routes/api/messages/_conversationId/info.get.mjs');
 const _lazy_VTyKDL = () => import('../routes/api/messages/_conversationId/stream.get.mjs');
 const _lazy_hB4OMw = () => import('../routes/api/index.get6.mjs');
 const _lazy_FyqIjH = () => import('../routes/api/index.post6.mjs');
@@ -11960,6 +12434,7 @@ const _lazy_0U6x7e = () => import('../routes/api/users/_username/follow.delete.m
 const _lazy_a9Dse6 = () => import('../routes/api/users/_username/follow.post.mjs');
 const _lazy_v_BuVH = () => import('../routes/api/users/_username/followers.get.mjs');
 const _lazy_E79g5r = () => import('../routes/api/users/_username/following.get.mjs');
+const _lazy_f6FdTq = () => import('../routes/api/users/_username/learning.get.mjs');
 const _lazy_nKJeMq = () => import('../routes/api/index.get10.mjs');
 const _lazy_41m87_ = () => import('../routes/api/videos/_id_.get.mjs');
 const _lazy_TNPVVm = () => import('../routes/api/videos/categories.get.mjs');
@@ -11997,6 +12472,7 @@ const handlers = [
   { route: '/api/admin/users/:id', handler: _lazy_AncTe6, lazy: true, middleware: false, method: "delete" },
   { route: '/api/admin/users/:id/role', handler: _lazy_rnRD3x, lazy: true, middleware: false, method: "put" },
   { route: '/api/admin/users/:id/status', handler: _lazy_mSN0U6, lazy: true, middleware: false, method: "put" },
+  { route: '/api/cert/:code', handler: _lazy__LLe3t, lazy: true, middleware: false, method: "get" },
   { route: '/api/content/:id/build', handler: _lazy_TKf7yE, lazy: true, middleware: false, method: "post" },
   { route: '/api/content/:id/fork', handler: _lazy_IMfpVg, lazy: true, middleware: false, method: "post" },
   { route: '/api/content/:id', handler: _lazy_INWkw9, lazy: true, middleware: false, method: "delete" },
@@ -12025,9 +12501,12 @@ const handlers = [
   { route: '/api/docs/:siteSlug', handler: _lazy_ckimER, lazy: true, middleware: false, method: "get" },
   { route: '/api/docs/:siteSlug', handler: _lazy_N18wUp, lazy: true, middleware: false, method: "put" },
   { route: '/api/docs/:siteSlug/nav', handler: _lazy_Lm1t5u, lazy: true, middleware: false, method: "get" },
-  { route: '/api/docs/:siteSlug/pages', handler: _lazy_TB2PWK, lazy: true, middleware: false, method: "get" },
-  { route: '/api/docs/:siteSlug/pages', handler: _lazy_t6h8n4, lazy: true, middleware: false, method: "post" },
+  { route: '/api/docs/:siteSlug/pages/:pageId', handler: _lazy_yebZZY, lazy: true, middleware: false, method: "delete" },
+  { route: '/api/docs/:siteSlug/pages/:pageId', handler: _lazy_smEu3A, lazy: true, middleware: false, method: "get" },
   { route: '/api/docs/:siteSlug/pages/:pageId', handler: _lazy_uvwSIz, lazy: true, middleware: false, method: "put" },
+  { route: '/api/docs/:siteSlug/pages', handler: _lazy_qY0m62, lazy: true, middleware: false, method: "get" },
+  { route: '/api/docs/:siteSlug/pages', handler: _lazy_aAg05p, lazy: true, middleware: false, method: "post" },
+  { route: '/api/docs/:siteSlug/pages/reorder', handler: _lazy_onRcNH, lazy: true, middleware: false, method: "post" },
   { route: '/api/docs/:siteSlug/search', handler: _lazy_kwKJ8K, lazy: true, middleware: false, method: "get" },
   { route: '/api/docs/:siteSlug/versions', handler: _lazy_9ZpYPh, lazy: true, middleware: false, method: "post" },
   { route: '/api/docs', handler: _lazy_qgBaDe, lazy: true, middleware: false, method: "get" },
@@ -12061,14 +12540,15 @@ const handlers = [
   { route: '/api/hubs/:slug/share', handler: _lazy_7kuZa4, lazy: true, middleware: false, method: "post" },
   { route: '/api/hubs', handler: _lazy_CTfFMz, lazy: true, middleware: false, method: "get" },
   { route: '/api/hubs', handler: _lazy_ScB6nf, lazy: true, middleware: false, method: "post" },
-  { route: '/api/learn/:slug/:lessonSlug', handler: _lazy_1zJXwa, lazy: true, middleware: false, method: "get" },
   { route: '/api/learn/:slug/:lessonSlug/complete', handler: _lazy_OyZPOn, lazy: true, middleware: false, method: "post" },
+  { route: '/api/learn/:slug/:lessonSlug', handler: _lazy_IgP9s8, lazy: true, middleware: false, method: "get" },
   { route: '/api/learn/:slug/enroll', handler: _lazy_DQT6YB, lazy: true, middleware: false, method: "post" },
   { route: '/api/learn/:slug', handler: _lazy_fMDPwz, lazy: true, middleware: false, method: "delete" },
   { route: '/api/learn/:slug', handler: _lazy_1vnyR0, lazy: true, middleware: false, method: "get" },
   { route: '/api/learn/:slug', handler: _lazy_TrJryK, lazy: true, middleware: false, method: "put" },
   { route: '/api/learn/:slug/lessons', handler: _lazy_Rwf2_Q, lazy: true, middleware: false, method: "post" },
   { route: '/api/learn/:slug/lessons/:lessonId', handler: _lazy_X3v9gU, lazy: true, middleware: false, method: "delete" },
+  { route: '/api/learn/:slug/lessons/:lessonId', handler: _lazy_HcbV0j, lazy: true, middleware: false, method: "put" },
   { route: '/api/learn/:slug/modules', handler: _lazy_JWIgCr, lazy: true, middleware: false, method: "post" },
   { route: '/api/learn/:slug/modules/:moduleId', handler: _lazy_iZMtYH, lazy: true, middleware: false, method: "delete" },
   { route: '/api/learn/:slug/modules/:moduleId', handler: _lazy_Lmvao6, lazy: true, middleware: false, method: "put" },
@@ -12080,6 +12560,7 @@ const handlers = [
   { route: '/api/learn', handler: _lazy_QJK2we, lazy: true, middleware: false, method: "post" },
   { route: '/api/messages/:conversationId', handler: _lazy_MJWCL7, lazy: true, middleware: false, method: "get" },
   { route: '/api/messages/:conversationId', handler: _lazy_bdtAxU, lazy: true, middleware: false, method: "post" },
+  { route: '/api/messages/:conversationId/info', handler: _lazy_j747yK, lazy: true, middleware: false, method: "get" },
   { route: '/api/messages/:conversationId/stream', handler: _lazy_VTyKDL, lazy: true, middleware: false, method: "get" },
   { route: '/api/messages', handler: _lazy_hB4OMw, lazy: true, middleware: false, method: "get" },
   { route: '/api/messages', handler: _lazy_FyqIjH, lazy: true, middleware: false, method: "post" },
@@ -12113,6 +12594,7 @@ const handlers = [
   { route: '/api/users/:username/follow', handler: _lazy_a9Dse6, lazy: true, middleware: false, method: "post" },
   { route: '/api/users/:username/followers', handler: _lazy_v_BuVH, lazy: true, middleware: false, method: "get" },
   { route: '/api/users/:username/following', handler: _lazy_E79g5r, lazy: true, middleware: false, method: "get" },
+  { route: '/api/users/:username/learning', handler: _lazy_f6FdTq, lazy: true, middleware: false, method: "get" },
   { route: '/api/users', handler: _lazy_nKJeMq, lazy: true, middleware: false, method: "get" },
   { route: '/api/videos/:id', handler: _lazy_41m87_, lazy: true, middleware: false, method: "get" },
   { route: '/api/videos/categories', handler: _lazy_TNPVVm, lazy: true, middleware: false, method: "get" },
@@ -12590,5 +13072,5 @@ trapUnhandledNodeErrors();
 setupGracefulShutdown(listener, nitroApp);
 const nodeServer = {};
 
-export { transitionContestStatus as $, updateContent as A, syncContentProducts as B, listContentProducts as C, addContentProductSchema as D, addContentProduct as E, removeContentProduct as F, useConfig as G, publishContent as H, onContentPublished as I, createReportSchema as J, createReport as K, listContentVersions as L, incrementViewCount as M, contentFiltersSchema as N, listContent as O, createContentSchema as P, createContent as Q, getContestBySlug as R, listContestEntries as S, submitContestEntry as T, deleteContest as U, updateContestSchema as V, updateContest as W, getRequestHeader as X, judgeEntrySchema as Y, judgeContestEntry as Z, contestTransitionSchema as _, getRouterParam as a, createHub as a$, contestFiltersSchema as a0, listContests as a1, createContestSchema as a2, createContest as a3, getDocsSiteBySlug as a4, deleteDocsSite as a5, updateDocsSiteSchema as a6, updateDocsSite as a7, listDocsPages as a8, createDocsPageSchema as a9, updateHub as aA, listInvites as aB, createInviteSchema as aC, createInvite as aD, joinHub as aE, leaveHub as aF, listMembers as aG, kickMember as aH, changeRoleSchema as aI, changeRole as aJ, deletePost as aK, listReplies as aL, createReplySchema as aM, createReply as aN, hubPostFiltersSchema as aO, listPosts as aP, createPostSchema as aQ, createPost as aR, listHubProducts as aS, productStatusSchema as aT, productCategorySchema as aU, createProductSchema as aV, createProduct as aW, shareContent as aX, hubFiltersSchema as aY, listHubs as aZ, createHubSchema as a_, createDocsPage as aa, updateDocsPageSchema as ab, updateDocsPage as ac, searchDocsPages as ad, createDocsVersionSchema as ae, createDocsVersion as af, listDocsSites as ag, createDocsSiteSchema as ah, createDocsSite as ai, files as aj, createStorageFromEnv as ak, readMultipartFormData as al, validateUpload as am, isProcessableImage as an, processImage as ao, generateStorageKey as ap, getHubBySlug as aq, listBans as ar, banUserSchema as as, banUser as at, unbanUser as au, listHubGallery as av, setResponseHeader as aw, useRuntimeConfig as ax, deleteHub as ay, updateHubSchema as az, listReports as b, follows as b$, getLessonBySlug as b0, markLessonComplete as b1, getPathBySlug as b2, enroll as b3, deletePath as b4, updateLearningPathSchema as b5, updatePath as b6, createLessonSchema as b7, createLesson as b8, deleteLesson as b9, deleteProduct as bA, updateProductSchema as bB, updateProduct as bC, getProductBySlug as bD, listProductContent as bE, searchProducts as bF, getUserByUsername as bG, updateProfileSchema as bH, updateUserProfile as bI, contentItems as bJ, toggleBookmark as bK, listUserBookmarks as bL, listComments as bM, commentTargetTypeSchema as bN, createCommentSchema as bO, createComment as bP, deleteComment as bQ, isLiked as bR, likeTargetTypeSchema as bS, toggleLike as bT, getUserContent as bU, contentTypeSchema as bV, unfollowUser as bW, followUser as bX, listFollowers as bY, listFollowing as bZ, users as b_, createModuleSchema as ba, createModule as bb, deleteModule as bc, updateModuleSchema as bd, updateModule as be, publishPath as bf, unenroll as bg, getUserCertificates as bh, getUserEnrollments as bi, learningPathFiltersSchema as bj, listPaths as bk, createLearningPathSchema as bl, createPath as bm, getConversationMessages as bn, markMessagesRead as bo, sendMessageSchema as bp, sendMessage as bq, listConversations as br, createConversationSchema as bs, createConversation as bt, deleteNotification as bu, getUnreadCount as bv, listNotifications as bw, markNotificationRead as bx, markAllNotificationsRead as by, generateOpenAPISpec as bz, readBody as c, getVideoById as c0, incrementVideoViewCount as c1, listVideoCategories as c2, createVideoCategorySchema as c3, createVideoCategory as c4, deleteVideoCategory as c5, updateVideoCategory as c6, videoFiltersSchema as c7, listVideos as c8, createVideoSchema as c9, encodePath as cA, decodePath as cB, getContext as cC, withTrailingSlash as cD, withoutTrailingSlash as cE, $fetch as cF, createHooks as cG, defu as cH, executeAsync as cI, hash$1 as cJ, nodeServer as cK, createVideo as ca, getRequestURL as cb, parseWebFingerResource as cc, buildWebFingerResponse as cd, getMethod as ce, processInboxActivity as cf, buildNodeInfoResponse as cg, sendRedirect as ch, getOrCreateActorKeypair as ci, getFollowers as cj, getFollowing as ck, generateOutboxCollection as cl, joinRelativeURL as cm, getResponseStatusText as cn, getResponseStatus as co, defineRenderHandler as cp, getRouteRules as cq, joinURL as cr, useNitroApp as cs, getRequestHeaders as ct, hasProtocol as cu, isScriptProtocol as cv, parseQuery as cw, withQuery as cx, sanitizeStatusCode as cy, parseURL as cz, defineEventHandler as d, resolveReportSchema as e, createError$1 as f, getQuery as g, resolveReport as h, getInstanceSettings as i, adminSettingSchema as j, getPlatformStats as k, listAuditLogs as l, listUsers as m, deleteUser as n, adminUpdateRoleSchema as o, updateUserRole as p, adminUpdateStatusSchema as q, removeContent as r, setInstanceSetting as s, updateUserStatus as t, useDB as u, toggleBuildMark as v, forkContent as w, deleteContent as x, getContentBySlug as y, updateContentSchema as z };
+export { judgeEntrySchema as $, readBody as A, syncContentProducts as B, listContentProducts as C, addContentProduct as D, addContentProductSchema as E, removeContentProduct as F, useConfig as G, publishContent as H, onContentPublished as I, createReportSchema as J, createReport as K, listContentVersions as L, incrementViewCount as M, listContent as N, contentFiltersSchema as O, createContent as P, createContentSchema as Q, getContestBySlug as R, listContestEntries as S, submitContestEntry as T, deleteContest as U, getRequestHeader as V, getQuery as W, getRouterParam as X, updateContest as Y, updateContestSchema as Z, judgeContestEntry as _, listReports as a, createProductSchema as a$, transitionContestStatus as a0, contestTransitionSchema as a1, listContests as a2, contestFiltersSchema as a3, createContest as a4, createContestSchema as a5, getDocsSiteBySlug as a6, deleteDocsSite as a7, updateDocsSite as a8, updateDocsSiteSchema as a9, listHubGallery as aA, setResponseHeader as aB, useRuntimeConfig as aC, deleteHub as aD, updateHub as aE, updateHubSchema as aF, listInvites as aG, createInvite as aH, createInviteSchema as aI, joinHub as aJ, leaveHub as aK, listMembers as aL, kickMember as aM, changeRole as aN, changeRoleSchema as aO, deletePost as aP, listReplies as aQ, createReplySchema as aR, createReply as aS, listPosts as aT, hubPostFiltersSchema as aU, createPost as aV, createPostSchema as aW, listHubProducts as aX, productStatusSchema as aY, productCategorySchema as aZ, createProduct as a_, listDocsPages as aa, deleteDocsPage as ab, renderMarkdown as ac, updateDocsPage as ad, updateDocsPageSchema as ae, createDocsPage as af, createDocsPageSchema as ag, reorderDocsPages as ah, searchDocsPages as ai, createDocsVersion as aj, createDocsVersionSchema as ak, listDocsSites as al, createDocsSite as am, createDocsSiteSchema as an, files as ao, createStorageFromEnv as ap, readMultipartFormData as aq, validateUpload as ar, isProcessableImage as as, processImage as at, generateStorageKey as au, getHubBySlug as av, listBans as aw, banUser as ax, banUserSchema as ay, unbanUser as az, resolveReport as b, getUserContent as b$, shareContent as b0, listHubs as b1, hubFiltersSchema as b2, createHub as b3, createHubSchema as b4, getLessonBySlug as b5, markLessonComplete as b6, getPathBySlug as b7, enroll as b8, deletePath as b9, createConversationSchema as bA, deleteNotification as bB, getUnreadCount as bC, listNotifications as bD, markNotificationRead as bE, markAllNotificationsRead as bF, generateOpenAPISpec as bG, deleteProduct as bH, updateProduct as bI, updateProductSchema as bJ, getProductBySlug as bK, listProductContent as bL, searchProducts as bM, getUserByUsername as bN, updateUserProfile as bO, updateProfileSchema as bP, toggleBookmark as bQ, listUserBookmarks as bR, listComments as bS, commentTargetTypeSchema as bT, createComment as bU, createCommentSchema as bV, deleteComment as bW, isLiked as bX, likeTargetTypeSchema as bY, toggleLike as bZ, isFollowing as b_, updatePath as ba, updateLearningPathSchema as bb, createLesson as bc, createLessonSchema as bd, deleteLesson as be, updateLesson as bf, createModule as bg, createModuleSchema as bh, deleteModule as bi, updateModule as bj, updateModuleSchema as bk, publishPath as bl, unenroll as bm, getUserCertificates as bn, getUserEnrollments as bo, listPaths as bp, learningPathFiltersSchema as bq, createPath as br, createLearningPathSchema as bs, getConversationMessages as bt, markMessagesRead as bu, sendMessage as bv, sendMessageSchema as bw, conversations as bx, listConversations as by, createConversation as bz, resolveReportSchema as c, contentTypeSchema as c0, unfollowUser as c1, followUser as c2, listFollowers as c3, listFollowing as c4, users as c5, follows as c6, getVideoById as c7, incrementVideoViewCount as c8, listVideoCategories as c9, getRequestHeaders as cA, hasProtocol as cB, isScriptProtocol as cC, parseQuery as cD, withQuery as cE, sanitizeStatusCode as cF, parseURL as cG, encodePath as cH, decodePath as cI, getContext as cJ, withTrailingSlash as cK, withoutTrailingSlash as cL, $fetch as cM, createHooks as cN, defu as cO, executeAsync as cP, hash$1 as cQ, nodeServer as cR, createVideoCategory as ca, createVideoCategorySchema as cb, deleteVideoCategory as cc, updateVideoCategory as cd, listVideos as ce, videoFiltersSchema as cf, createVideo as cg, createVideoSchema as ch, getRequestURL as ci, parseWebFingerResource as cj, buildWebFingerResponse as ck, getMethod as cl, processInboxActivity as cm, buildNodeInfoResponse as cn, sendRedirect as co, getOrCreateActorKeypair as cp, getFollowers as cq, getFollowing as cr, generateOutboxCollection as cs, joinRelativeURL as ct, getResponseStatusText as cu, getResponseStatus as cv, defineRenderHandler as cw, getRouteRules as cx, joinURL as cy, useNitroApp as cz, defineEventHandler as d, adminSettingSchema as e, getPlatformStats as f, getInstanceSettings as g, listUsers as h, deleteUser as i, updateUserRole as j, adminUpdateRoleSchema as k, listAuditLogs as l, updateUserStatus as m, adminUpdateStatusSchema as n, getCertificateByCode as o, createError$1 as p, forkContent as q, removeContent as r, setInstanceSetting as s, toggleBuildMark as t, useDB as u, deleteContent as v, getContentBySlug as w, updateContent as x, updateContentSchema as y, contentItems as z };
 //# sourceMappingURL=nitro.mjs.map

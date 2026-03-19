@@ -1,6 +1,16 @@
-import { d as defineEventHandler, u as useDB, a as getRouterParam, f as createError, c as readBody, D as addContentProductSchema, E as addContentProduct } from '../../../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, z as contentItems, p as createError, D as addContentProduct, E as addContentProductSchema } from '../../../../nitro/nitro.mjs';
 import { a as requireAuth } from '../../../../_/auth.mjs';
-import 'drizzle-orm';
+import { a as parseParams, b as parseBody } from '../../../../_/validate.mjs';
+import { and, eq } from 'drizzle-orm';
+import 'unified';
+import 'remark-parse';
+import 'remark-gfm';
+import 'remark-frontmatter';
+import 'remark-rehype';
+import 'rehype-stringify';
+import 'rehype-slug';
+import 'rehype-sanitize';
+import 'yaml';
 import 'drizzle-orm/pg-core';
 import 'jose';
 import 'node:fs';
@@ -22,17 +32,14 @@ import 'better-auth/plugins';
 
 const products_post = defineEventHandler(async (event) => {
   const db = useDB();
-  requireAuth(event);
-  const id = getRouterParam(event, "id");
-  if (!id) {
-    throw createError({ statusCode: 400, statusMessage: "Content ID is required" });
+  const user = requireAuth(event);
+  const { id } = parseParams(event, { id: "uuid" });
+  const input = await parseBody(event, addContentProductSchema);
+  const [content] = await db.select({ authorId: contentItems.authorId }).from(contentItems).where(and(eq(contentItems.id, id), eq(contentItems.authorId, user.id))).limit(1);
+  if (!content) {
+    throw createError({ statusCode: 403, statusMessage: "Not authorized to modify this content" });
   }
-  const body = await readBody(event);
-  const parsed = addContentProductSchema.safeParse(body);
-  if (!parsed.success) {
-    throw createError({ statusCode: 400, statusMessage: "Invalid input", data: parsed.error.flatten() });
-  }
-  const result = await addContentProduct(db, id, parsed.data);
+  const result = await addContentProduct(db, id, input);
   if (!result) {
     throw createError({ statusCode: 404, statusMessage: "Product not found or already linked" });
   }

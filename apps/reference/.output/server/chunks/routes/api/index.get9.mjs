@@ -1,6 +1,16 @@
-import { d as defineEventHandler, u as useDB, g as getQuery, O as listContent, N as contentFiltersSchema } from '../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, N as listContent, O as contentFiltersSchema } from '../../nitro/nitro.mjs';
+import { p as parseQueryParams } from '../../_/validate.mjs';
 import { z } from 'zod';
 import 'drizzle-orm';
+import 'unified';
+import 'remark-parse';
+import 'remark-gfm';
+import 'remark-frontmatter';
+import 'remark-rehype';
+import 'rehype-stringify';
+import 'rehype-slug';
+import 'rehype-sanitize';
+import 'yaml';
 import 'drizzle-orm/pg-core';
 import 'jose';
 import 'node:fs';
@@ -24,7 +34,7 @@ const searchQuerySchema = contentFiltersSchema.extend({
 });
 const index_get = defineEventHandler(async (event) => {
   const db = useDB();
-  const filters = searchQuerySchema.parse(getQuery(event));
+  const filters = parseQueryParams(event, searchQuerySchema);
   const q = filters.q || filters.search;
   if (!q) {
     return { items: [], total: 0 };

@@ -4,6 +4,6 @@ import { contestFiltersSchema } from '@commonpub/schema';
 
 export default defineEventHandler(async (event): Promise<PaginatedResponse<ContestListItem>> => {
   const db = useDB();
-  const filters = contestFiltersSchema.parse(getQuery(event));
+  const filters = parseQueryParams(event, contestFiltersSchema);
   return listContests(db, filters);
 });

@@ -15,7 +15,7 @@ const productSearchSchema = z.object({
 
 export default defineEventHandler(async (event): Promise<PaginatedResponse<ProductListItem>> => {
   const db = useDB();
-  const query = productSearchSchema.parse(getQuery(event));
+  const query = parseQueryParams(event, productSearchSchema);
 
   return searchProducts(db, {
     search: query.q ?? query.search,

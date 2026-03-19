@@ -8,6 +8,7 @@ import {
   boolean,
   jsonb,
   primaryKey,
+  index,
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { users } from './auth.js';
@@ -48,7 +49,10 @@ export const hubs = pgTable('hubs', {
   deletedAt: timestamp('deleted_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-});
+}, (t) => [
+  index('idx_hubs_created_by_id').on(t.createdById),
+  index('idx_hubs_hub_type').on(t.hubType),
+]);
 
 export const hubMembers = pgTable(
   'hub_members',
@@ -83,7 +87,10 @@ export const hubPosts = pgTable('hub_posts', {
   lastEditedAt: timestamp('last_edited_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-});
+}, (t) => [
+  index('idx_hub_posts_hub_id').on(t.hubId),
+  index('idx_hub_posts_author_id').on(t.authorId),
+]);
 
 export const hubPostReplies = pgTable('hub_post_replies', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -99,7 +106,10 @@ export const hubPostReplies = pgTable('hub_post_replies', {
   likeCount: integer('like_count').default(0).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-});
+}, (t) => [
+  index('idx_hub_post_replies_post_id').on(t.postId),
+  index('idx_hub_post_replies_author_id').on(t.authorId),
+]);
 
 export const hubBans = pgTable('hub_bans', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -115,7 +125,10 @@ export const hubBans = pgTable('hub_bans', {
   reason: text('reason'),
   expiresAt: timestamp('expires_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-});
+}, (t) => [
+  index('idx_hub_bans_hub_id').on(t.hubId),
+  index('idx_hub_bans_user_id').on(t.userId),
+]);
 
 export const hubInvites = pgTable('hub_invites', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -130,7 +143,9 @@ export const hubInvites = pgTable('hub_invites', {
   useCount: integer('use_count').default(0).notNull(),
   expiresAt: timestamp('expires_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-});
+}, (t) => [
+  index('idx_hub_invites_hub_id').on(t.hubId),
+]);
 
 export const hubShares = pgTable('hub_shares', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -144,7 +159,10 @@ export const hubShares = pgTable('hub_shares', {
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-});
+}, (t) => [
+  index('idx_hub_shares_hub_id').on(t.hubId),
+  index('idx_hub_shares_content_id').on(t.contentId),
+]);
 
 // --- Relations ---
 

@@ -1,0 +1,1 @@
+import{G as c,H as f}from"./uOa77k_q.js";let l=0;function m(){const t=c("toasts",()=>[]);function e(s,o="info",u=3e3){const i=l++;t.value.push({id:i,message:s,type:o}),u>0&&setTimeout(()=>n(i),u)}function r(s){e(s,"success")}function a(s){e(s,"error",5e3)}function n(s){t.value=t.value.filter(o=>o.id!==s)}return{toasts:f(t),show:e,success:r,error:a,dismiss:n}}export{m as u};

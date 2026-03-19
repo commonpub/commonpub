@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Component } from 'vue';
+import { sanitizeBlockHtml } from '~/composables/useSanitize';
 
 definePageMeta({ layout: false, middleware: 'auth' });
 
@@ -368,7 +369,7 @@ async function handlePublish(): Promise<void> {
         <div class="cpub-preview-blocks">
           <div v-for="block in blockEditor.blocks.value" :key="block.id" class="cpub-preview-block">
             <template v-if="block.type === 'paragraph' || block.type === 'bulletList' || block.type === 'orderedList'">
-              <div v-html="(block.content.html as string) || ''" />
+              <div v-html="sanitizeBlockHtml((block.content.html as string) || '')" />
             </template>
             <template v-else-if="block.type === 'heading'">
               <component :is="`h${block.content.level ?? 2}`">{{ block.content.text }}</component>
@@ -384,13 +385,13 @@ async function handlePublish(): Promise<void> {
             </template>
             <template v-else-if="block.type === 'blockquote'">
               <blockquote style="border-left:4px solid var(--accent);padding-left:16px;font-style:italic;">
-                <div v-html="(block.content.html as string) || ''" />
+                <div v-html="sanitizeBlockHtml((block.content.html as string) || '')" />
                 <cite v-if="block.content.attribution" style="display:block;margin-top:8px;font-size:12px;color:var(--text-dim);">— {{ block.content.attribution }}</cite>
               </blockquote>
             </template>
             <template v-else-if="block.type === 'callout'">
               <div style="padding:12px 16px;border-left:4px solid var(--accent);background:var(--accent-bg);">
-                <div v-html="(block.content.html as string) || ''" />
+                <div v-html="sanitizeBlockHtml((block.content.html as string) || '')" />
               </div>
             </template>
             <template v-else-if="block.type === 'horizontal_rule'">

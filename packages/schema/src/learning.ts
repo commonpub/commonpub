@@ -9,6 +9,7 @@ import {
   jsonb,
   numeric,
   unique,
+  index,
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { users } from './auth.js';
@@ -33,7 +34,10 @@ export const learningPaths = pgTable('learning_paths', {
   reviewCount: integer('review_count').default(0).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-});
+}, (t) => [
+  index('idx_learning_paths_author_id').on(t.authorId),
+  index('idx_learning_paths_status').on(t.status),
+]);
 
 export const learningModules = pgTable('learning_modules', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -44,7 +48,9 @@ export const learningModules = pgTable('learning_modules', {
   description: text('description'),
   sortOrder: integer('sort_order').default(0).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-});
+}, (t) => [
+  index('idx_learning_modules_path_id').on(t.pathId),
+]);
 
 export const learningLessons = pgTable(
   'learning_lessons',
@@ -64,7 +70,10 @@ export const learningLessons = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   },
-  (t) => [unique('learning_lessons_module_slug').on(t.moduleId, t.slug)],
+  (t) => [
+    unique('learning_lessons_module_slug').on(t.moduleId, t.slug),
+    index('idx_learning_lessons_module_id').on(t.moduleId),
+  ],
 );
 
 export const enrollments = pgTable(
@@ -81,7 +90,11 @@ export const enrollments = pgTable(
     startedAt: timestamp('started_at', { withTimezone: true }).defaultNow().notNull(),
     completedAt: timestamp('completed_at', { withTimezone: true }),
   },
-  (t) => [unique('enrollments_user_path').on(t.userId, t.pathId)],
+  (t) => [
+    unique('enrollments_user_path').on(t.userId, t.pathId),
+    index('idx_enrollments_user_id').on(t.userId),
+    index('idx_enrollments_path_id').on(t.pathId),
+  ],
 );
 
 export const lessonProgress = pgTable(
@@ -99,7 +112,10 @@ export const lessonProgress = pgTable(
     quizScore: numeric('quiz_score', { precision: 5, scale: 2 }),
     quizPassed: boolean('quiz_passed'),
   },
-  (t) => [unique('lesson_progress_user_lesson').on(t.userId, t.lessonId)],
+  (t) => [
+    unique('lesson_progress_user_lesson').on(t.userId, t.lessonId),
+    index('idx_lesson_progress_lesson_id').on(t.lessonId),
+  ],
 );
 
 export const certificates = pgTable('certificates', {
@@ -115,6 +131,7 @@ export const certificates = pgTable('certificates', {
   issuedAt: timestamp('issued_at', { withTimezone: true }).defaultNow().notNull(),
 }, (t) => [
   unique('certificates_user_path').on(t.userId, t.pathId),
+  index('idx_certificates_path_id').on(t.pathId),
 ]);
 
 // --- Relations ---

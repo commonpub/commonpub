@@ -11,7 +11,7 @@ const usersQuerySchema = z.object({
 
 export default defineEventHandler(async (event) => {
   const db = useDB();
-  const query = usersQuerySchema.parse(getQuery(event));
+  const query = parseQueryParams(event, usersQuerySchema);
 
   const limit = query.limit ?? 20;
   const offset = query.offset ?? 0;

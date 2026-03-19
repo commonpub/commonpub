@@ -9,7 +9,7 @@ const galleryQuerySchema = z.object({
 export default defineEventHandler(async (event) => {
   const db = useDB();
   const { slug } = parseParams(event, { slug: 'string' });
-  const query = galleryQuerySchema.parse(getQuery(event));
+  const query = parseQueryParams(event, galleryQuerySchema);
 
 
   const hub = await getHubBySlug(db, slug);

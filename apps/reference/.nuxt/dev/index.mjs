@@ -5,7 +5,7 @@ import { resolve, dirname, join } from 'node:path';
 import nodeCrypto from 'node:crypto';
 import { parentPort, threadId } from 'node:worker_threads';
 import { escapeHtml } from 'file:///Users/obsidian/Projects/ossuary-projects/snaplify/node_modules/.pnpm/@vue+shared@3.5.30/node_modules/@vue/shared/dist/shared.cjs.js';
-import { ConsoleEmailAdapter, emailTemplates, shouldSkipRateLimit, getSecurityHeaders, RateLimitStore, listAuditLogs, removeContent, listReports, resolveReport, getInstanceSettings, setInstanceSetting, getPlatformStats, listUsers, deleteUser, updateUserRole, updateUserStatus, getCertificateByCode, toggleBuildMark, forkContent, deleteContent, getContentBySlug, updateContent, syncContentProducts, listContentProducts, addContentProduct, removeContentProduct, publishContent, onContentPublished, createReport, listContentVersions, incrementViewCount, listContent, createContent, getContestBySlug, listContestEntries, submitContestEntry, deleteContest, updateContest, judgeContestEntry, transitionContestStatus, listContests, createContest, getDocsSiteBySlug, deleteDocsSite, updateDocsSite, listDocsPages, deleteDocsPage, updateDocsPage, createDocsPage, reorderDocsPages, searchDocsPages, createDocsVersion, listDocsSites, createDocsSite, createStorageFromEnv, validateUpload, isProcessableImage, processImage, generateStorageKey, getHubBySlug, listBans, banUser, unbanUser, listHubGallery, deleteHub, updateHub, listInvites, createInvite, joinHub, leaveHub, listMembers, kickMember, changeRole, deletePost, listReplies, createReply, listPosts, createPost, listHubProducts, createProduct, shareContent, listHubs, createHub, getLessonBySlug, markLessonComplete, getPathBySlug, enroll, deletePath, updatePath, createLesson, deleteLesson, updateLesson, createModule, deleteModule, updateModule, publishPath, unenroll, getUserCertificates, getUserEnrollments, listPaths, createPath, getConversationMessages, markMessagesRead, sendMessage, listConversations, createConversation, deleteNotification, getUnreadCount, listNotifications, markNotificationRead, markAllNotificationsRead, deleteProduct, updateProduct, getProductBySlug, listProductContent, searchProducts, getUserByUsername, updateUserProfile, toggleBookmark, listUserBookmarks, listComments, createComment, deleteComment, isLiked, toggleLike, isFollowing, getUserContent, unfollowUser, followUser, listFollowers, listFollowing, getVideoById, incrementVideoViewCount, listVideoCategories, createVideoCategory, deleteVideoCategory, updateVideoCategory, listVideos, createVideo, getOrCreateActorKeypair, getFollowers, getFollowing } from 'file:///Users/obsidian/Projects/ossuary-projects/snaplify/packages/server/dist/index.js';
+import { ConsoleEmailAdapter, emailTemplates, shouldSkipRateLimit, getSecurityHeaders, buildCspDirectives, buildCspHeader, RateLimitStore, listAuditLogs, removeContent, listReports, resolveReport, getInstanceSettings, setInstanceSetting, getPlatformStats, listUsers, deleteUser, updateUserRole, updateUserStatus, getCertificateByCode, toggleBuildMark, forkContent, deleteContent, getContentBySlug, updateContent, syncContentProducts, listContentProducts, addContentProduct, removeContentProduct, publishContent, onContentPublished, createReport, listContentVersions, incrementViewCount, listContent, createContent, getContestBySlug, listContestEntries, submitContestEntry, deleteContest, updateContest, judgeContestEntry, transitionContestStatus, listContests, createContest, getDocsSiteBySlug, deleteDocsSite, updateDocsSite, listDocsPages, deleteDocsPage, updateDocsPage, createDocsPage, reorderDocsPages, searchDocsPages, createDocsVersion, listDocsSites, createDocsSite, createStorageFromEnv, validateUpload, isProcessableImage, processImage, generateStorageKey, getHubBySlug, listBans, banUser, unbanUser, listHubGallery, deleteHub, updateHub, listInvites, createInvite, joinHub, leaveHub, listMembers, kickMember, changeRole, deletePost, listReplies, createReply, listPosts, createPost, listHubProducts, createProduct, shareContent, listHubs, createHub, getLessonBySlug, markLessonComplete, getPathBySlug, enroll, deletePath, updatePath, createLesson, deleteLesson, updateLesson, createModule, deleteModule, updateModule, publishPath, unenroll, getUserCertificates, getUserEnrollments, listPaths, createPath, getConversationMessages, markMessagesRead, sendMessage, listConversations, createConversation, deleteNotification, getUnreadCount, listNotifications, markNotificationRead, markAllNotificationsRead, deleteProduct, updateProduct, getProductBySlug, listProductContent, searchProducts, getUserByUsername, updateUserProfile, toggleBookmark, listUserBookmarks, listComments, createComment, deleteComment, isLiked, toggleLike, isFollowing, getUserContent, unfollowUser, followUser, listFollowers, listFollowing, getVideoById, incrementVideoViewCount, listVideoCategories, createVideoCategory, deleteVideoCategory, updateVideoCategory, listVideos, createVideo, getOrCreateActorKeypair, getFollowers, getFollowing } from 'file:///Users/obsidian/Projects/ossuary-projects/snaplify/packages/server/dist/index.js';
 import { z } from 'file:///Users/obsidian/Projects/ossuary-projects/snaplify/node_modules/.pnpm/zod@4.3.6/node_modules/zod/index.js';
 import * as schema from 'file:///Users/obsidian/Projects/ossuary-projects/snaplify/packages/schema/dist/index.js';
 import { resolveReportSchema, adminSettingSchema, adminUpdateRoleSchema, adminUpdateStatusSchema, updateContentSchema, contentItems, addContentProductSchema, createReportSchema, contentFiltersSchema, createContentSchema, updateContestSchema, judgeEntrySchema, contestTransitionSchema, contestFiltersSchema, createContestSchema, updateDocsSiteSchema, updateDocsPageSchema, createDocsPageSchema, createDocsVersionSchema, createDocsSiteSchema, files, banUserSchema, updateHubSchema, createInviteSchema, changeRoleSchema, createReplySchema, hubPostFiltersSchema, createPostSchema, productStatusSchema, productCategorySchema, createProductSchema, hubFiltersSchema, createHubSchema, updateLearningPathSchema, createLessonSchema, createModuleSchema, updateModuleSchema, learningPathFiltersSchema, createLearningPathSchema, sendMessageSchema, conversations, createConversationSchema, generateOpenAPISpec, updateProductSchema, updateProfileSchema, commentTargetTypeSchema, createCommentSchema, likeTargetTypeSchema, contentTypeSchema, users, follows, createVideoCategorySchema, videoFiltersSchema, createVideoSchema } from 'file:///Users/obsidian/Projects/ossuary-projects/snaplify/packages/schema/dist/index.js';
@@ -2392,6 +2392,15 @@ const _8L1GON = defineEventHandler((event) => {
   for (const [key, value] of Object.entries(headers)) {
     setResponseHeader(event, key, value);
   }
+  if (!pathname.startsWith("/api/")) {
+    const cspDirectives = buildCspDirectives();
+    {
+      cspDirectives["script-src"] = "'self' 'unsafe-inline' 'unsafe-eval'";
+      cspDirectives["style-src"] = "'self' 'unsafe-inline'";
+      cspDirectives["connect-src"] = "'self' ws: wss:";
+    }
+    setResponseHeader(event, "Content-Security-Policy", buildCspHeader(cspDirectives));
+  }
 });
 
 const VueResolver = (_, value) => {
@@ -3435,22 +3444,6 @@ function getOptionalUser(event) {
   return (_a = auth == null ? void 0 : auth.user) != null ? _a : null;
 }
 
-const auditQuerySchema = z.object({
-  limit: z.coerce.number().int().positive().max(100).optional(),
-  offset: z.coerce.number().int().min(0).optional()
-});
-const audit_get = defineEventHandler(async (event) => {
-  requireAdmin(event);
-  const db = useDB();
-  const filters = auditQuerySchema.parse(getQuery$1(event));
-  return listAuditLogs(db, filters);
-});
-
-const audit_get$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
-  __proto__: null,
-  default: audit_get
-}, Symbol.toStringTag, { value: 'Module' }));
-
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const SLUG_REGEX = /^[a-z0-9][a-z0-9-]*$/;
 async function parseBody(event, schema) {
@@ -3495,6 +3488,22 @@ function parseParams(event, spec) {
   return result;
 }
 
+const auditQuerySchema = z.object({
+  limit: z.coerce.number().int().positive().max(100).optional(),
+  offset: z.coerce.number().int().min(0).optional()
+});
+const audit_get = defineEventHandler(async (event) => {
+  requireAdmin(event);
+  const db = useDB();
+  const filters = parseQueryParams(event, auditQuerySchema);
+  return listAuditLogs(db, filters);
+});
+
+const audit_get$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
+  __proto__: null,
+  default: audit_get
+}, Symbol.toStringTag, { value: 'Module' }));
+
 const _id__delete$c = defineEventHandler(async (event) => {
   const admin = requireAdmin(event);
   const db = useDB();
@@ -3514,7 +3523,7 @@ const reportsQuerySchema = z.object({
 const reports_get = defineEventHandler(async (event) => {
   requireAdmin(event);
   const db = useDB();
-  const filters = reportsQuerySchema.parse(getQuery$1(event));
+  const filters = parseQueryParams(event, reportsQuerySchema);
   return listReports(db, filters);
 });
 
@@ -3579,7 +3588,7 @@ const adminUsersQuerySchema = z.object({
 const users_get = defineEventHandler(async (event) => {
   requireAdmin(event);
   const db = useDB();
-  const filters = adminUsersQuerySchema.parse(getQuery$1(event));
+  const filters = parseQueryParams(event, adminUsersQuerySchema);
   return listUsers(db, filters);
 });
 
@@ -3848,7 +3857,7 @@ const index_get$y = defineEventHandler(async (event) => {
   var _a;
   const db = useDB();
   const user = getOptionalUser(event);
-  const filters = contentFiltersSchema.parse(getQuery$1(event));
+  const filters = parseQueryParams(event, contentFiltersSchema);
   const isOwnContent = filters.authorId && (user == null ? void 0 : user.id) === filters.authorId;
   return listContent(db, {
     ...filters,
@@ -3988,7 +3997,7 @@ const transition_post$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineP
 
 const index_get$u = defineEventHandler(async (event) => {
   const db = useDB();
-  const filters = contestFiltersSchema.parse(getQuery$1(event));
+  const filters = parseQueryParams(event, contestFiltersSchema);
   return listContests(db, filters);
 });
 
@@ -4067,7 +4076,7 @@ const nav_get = defineEventHandler(async (event) => {
   var _a, _b, _c, _d;
   const db = useDB();
   const { siteSlug } = parseParams(event, { siteSlug: "string" });
-  const query = navQuerySchema.parse(getQuery$1(event));
+  const query = parseQueryParams(event, navQuerySchema);
   const result = await getDocsSiteBySlug(db, siteSlug);
   if (!result) throw createError({ statusCode: 404, statusMessage: "Docs site not found" });
   const version = query.version ? (_a = result.versions) == null ? void 0 : _a.find((v) => v.version === query.version) : (_d = (_b = result.versions) == null ? void 0 : _b.find((v) => v.isDefault)) != null ? _d : (_c = result.versions) == null ? void 0 : _c[0];
@@ -4142,7 +4151,7 @@ const pagesQuerySchema = z.object({
 const index_get$q = defineEventHandler(async (event) => {
   const db = useDB();
   const { siteSlug } = parseParams(event, { siteSlug: "string" });
-  const query = pagesQuerySchema.parse(getQuery$1(event));
+  const query = parseQueryParams(event, pagesQuerySchema);
   const result = await getDocsSiteBySlug(db, siteSlug);
   if (!result) {
     throw createError({ statusCode: 404, statusMessage: "Docs site not found" });
@@ -4221,7 +4230,7 @@ const search_get = defineEventHandler(async (event) => {
   var _a, _b, _c, _d;
   const db = useDB();
   const { siteSlug } = parseParams(event, { siteSlug: "string" });
-  const query = searchQuerySchema$1.parse(getQuery$1(event));
+  const query = parseQueryParams(event, searchQuerySchema$1);
   const result = await getDocsSiteBySlug(db, siteSlug);
   if (!result) throw createError({ statusCode: 404, statusMessage: "Docs site not found" });
   const version = (_c = (_a = result.versions) == null ? void 0 : _a.find((v) => v.isDefault)) != null ? _c : (_b = result.versions) == null ? void 0 : _b[0];
@@ -4303,7 +4312,7 @@ const mine_get = defineEventHandler(async (event) => {
   var _a;
   const db = useDB();
   const user = requireAuth(event);
-  const query = querySchema$1.parse(getQuery$1(event));
+  const query = parseQueryParams(event, querySchema$1);
   const rows = await db.select().from(files).where(eq(files.uploaderId, user.id)).orderBy(desc(files.createdAt)).limit((_a = query.limit) != null ? _a : 50);
   return rows.map((f) => ({
     id: f.id,
@@ -4521,7 +4530,7 @@ const galleryQuerySchema = z.object({
 const gallery_get = defineEventHandler(async (event) => {
   const db = useDB();
   const { slug } = parseParams(event, { slug: "string" });
-  const query = galleryQuerySchema.parse(getQuery$1(event));
+  const query = parseQueryParams(event, galleryQuerySchema);
   const hub = await getHubBySlug(db, slug);
   if (!hub) {
     throw createError({ statusCode: 404, statusMessage: "Hub not found" });
@@ -4763,7 +4772,7 @@ const replies_post$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProp
 const index_get$k = defineEventHandler(async (event) => {
   const db = useDB();
   const { slug } = parseParams(event, { slug: "string" });
-  const filters = hubPostFiltersSchema.parse(getQuery$1(event));
+  const filters = parseQueryParams(event, hubPostFiltersSchema);
   const hub = await getHubBySlug(db, slug);
   if (!hub) {
     throw createError({ statusCode: 404, statusMessage: "Hub not found" });
@@ -4803,7 +4812,7 @@ const productQuerySchema = z.object({
 const products_get = defineEventHandler(async (event) => {
   const db = useDB();
   const { slug } = parseParams(event, { slug: "string" });
-  const filters = productQuerySchema.parse(getQuery$1(event));
+  const filters = parseQueryParams(event, productQuerySchema);
   const hub = await getHubBySlug(db, slug);
   if (!hub) {
     throw createError({ statusCode: 404, statusMessage: "Hub not found" });
@@ -4855,7 +4864,7 @@ const share_post$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProper
 
 const index_get$i = defineEventHandler(async (event) => {
   const db = useDB();
-  const filters = hubFiltersSchema.parse(getQuery$1(event));
+  const filters = parseQueryParams(event, hubFiltersSchema);
   return listHubs(db, filters);
 });
 
@@ -5163,7 +5172,7 @@ const index_get$c = defineEventHandler(async (event) => {
   var _a;
   const db = useDB();
   const user = getOptionalUser(event);
-  const filters = learningPathFiltersSchema.parse(getQuery$1(event));
+  const filters = parseQueryParams(event, learningPathFiltersSchema);
   const isOwnContent = filters.authorId && (user == null ? void 0 : user.id) === filters.authorId;
   return listPaths(db, {
     ...filters,
@@ -5373,7 +5382,7 @@ const notificationsQuerySchema = z.object({
 const index_get$8 = defineEventHandler(async (event) => {
   const user = requireAuth(event);
   const db = useDB();
-  const query = notificationsQuerySchema.parse(getQuery$1(event));
+  const query = parseQueryParams(event, notificationsQuerySchema);
   return listNotifications(db, {
     userId: user.id,
     type: query.type,
@@ -5527,7 +5536,7 @@ const content_get$2 = defineEventHandler(async (event) => {
   if (!product) {
     throw createError({ statusCode: 404, statusMessage: "Product not found" });
   }
-  const query = querySchema.parse(getQuery$1(event));
+  const query = parseQueryParams(event, querySchema);
   return listProductContent(db, product.id, query);
 });
 
@@ -5548,7 +5557,7 @@ const productSearchSchema = z.object({
 const index_get$6 = defineEventHandler(async (event) => {
   var _a;
   const db = useDB();
-  const query = productSearchSchema.parse(getQuery$1(event));
+  const query = parseQueryParams(event, productSearchSchema);
   return searchProducts(db, {
     search: (_a = query.q) != null ? _a : query.search,
     category: query.category,
@@ -5600,7 +5609,7 @@ const searchQuerySchema = contentFiltersSchema.extend({
 });
 const index_get$4 = defineEventHandler(async (event) => {
   const db = useDB();
-  const filters = searchQuerySchema.parse(getQuery$1(event));
+  const filters = parseQueryParams(event, searchQuerySchema);
   const q = filters.q || filters.search;
   if (!q) {
     return { items: [], total: 0 };
@@ -5657,7 +5666,7 @@ const bookmarksQuerySchema = z.object({
 const bookmarks_get = defineEventHandler(async (event) => {
   const user = requireAuth(event);
   const db = useDB();
-  const query = bookmarksQuerySchema.parse(getQuery$1(event));
+  const query = parseQueryParams(event, bookmarksQuerySchema);
   return listUserBookmarks(db, user.id, query);
 });
 
@@ -5672,7 +5681,7 @@ const commentsQuerySchema = z.object({
 });
 const comments_get = defineEventHandler(async (event) => {
   const db = useDB();
-  const query = commentsQuerySchema.parse(getQuery$1(event));
+  const query = parseQueryParams(event, commentsQuerySchema);
   return listComments(db, query.targetType, query.targetId);
 });
 
@@ -5783,7 +5792,7 @@ const userContentQuerySchema = z.object({
 const content_get = defineEventHandler(async (event) => {
   const db = useDB();
   const { username } = parseParams(event, { username: "string" });
-  const query = userContentQuerySchema.parse(getQuery$1(event));
+  const query = parseQueryParams(event, userContentQuerySchema);
   const user = await getUserByUsername(db, username);
   if (!user) {
     throw createError({ statusCode: 404, statusMessage: "User not found" });
@@ -5891,7 +5900,7 @@ const paginationSchema$1 = z.object({
 const followers_get = defineEventHandler(async (event) => {
   const db = useDB();
   const { username } = parseParams(event, { username: "string" });
-  const query = paginationSchema$1.parse(getQuery$1(event));
+  const query = parseQueryParams(event, paginationSchema$1);
   const target = await getUserByUsername(db, username);
   if (!target) {
     throw createError({ statusCode: 404, statusMessage: "User not found" });
@@ -5911,7 +5920,7 @@ const paginationSchema = z.object({
 const following_get = defineEventHandler(async (event) => {
   const db = useDB();
   const { username } = parseParams(event, { username: "string" });
-  const query = paginationSchema.parse(getQuery$1(event));
+  const query = parseQueryParams(event, paginationSchema);
   const target = await getUserByUsername(db, username);
   if (!target) {
     throw createError({ statusCode: 404, statusMessage: "User not found" });
@@ -5952,7 +5961,7 @@ const usersQuerySchema = z.object({
 const index_get$2 = defineEventHandler(async (event) => {
   var _a, _b, _c;
   const db = useDB();
-  const query = usersQuerySchema.parse(getQuery$1(event));
+  const query = parseQueryParams(event, usersQuerySchema);
   const limit = (_a = query.limit) != null ? _a : 20;
   const offset = (_b = query.offset) != null ? _b : 0;
   const search = query.q || query.search;
@@ -6072,7 +6081,7 @@ const _id__put$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty
 
 const index_get = defineEventHandler(async (event) => {
   const db = useDB();
-  const filters = videoFiltersSchema.parse(getQuery$1(event));
+  const filters = parseQueryParams(event, videoFiltersSchema);
   return listVideos(db, filters);
 });
 
@@ -6208,16 +6217,50 @@ const feed_xml$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty
   default: feed_xml
 }, Symbol.toStringTag, { value: 'Module' }));
 
+const inboxCallbacks$1 = {
+  async onFollow(actorUri, targetActorUri, activityId) {
+    console.log("[inbox] Follow:", actorUri, "\u2192", targetActorUri, activityId);
+  },
+  async onAccept(actorUri, objectId) {
+    console.log("[inbox] Accept:", actorUri, objectId);
+  },
+  async onReject(actorUri, objectId) {
+    console.log("[inbox] Reject:", actorUri, objectId);
+  },
+  async onUndo(actorUri, objectType, objectId) {
+    console.log("[inbox] Undo:", actorUri, objectType, objectId);
+  },
+  async onCreate(actorUri, object) {
+    console.log("[inbox] Create:", actorUri, object.type);
+  },
+  async onUpdate(actorUri, object) {
+    console.log("[inbox] Update:", actorUri, object.type);
+  },
+  async onDelete(actorUri, objectId) {
+    console.log("[inbox] Delete:", actorUri, objectId);
+  },
+  async onLike(actorUri, objectUri) {
+    console.log("[inbox] Like:", actorUri, objectUri);
+  },
+  async onAnnounce(actorUri, objectUri) {
+    console.log("[inbox] Announce:", actorUri, objectUri);
+  }
+};
 const inbox$2 = defineEventHandler(async (event) => {
+  var _a;
   const method = getMethod(event);
   if (method !== "POST") {
     throw createError({ statusCode: 405, statusMessage: "Method Not Allowed" });
   }
   const body = await readBody(event);
   try {
-    await processInboxActivity(body);
+    const result = await processInboxActivity(body, inboxCallbacks$1);
+    if (!result.success) {
+      throw createError({ statusCode: 400, statusMessage: (_a = result.error) != null ? _a : "Invalid activity" });
+    }
     return { status: "accepted" };
   } catch (err) {
+    if (err.statusCode) throw err;
     console.error("[shared-inbox]", err);
     throw createError({ statusCode: 400, statusMessage: "Invalid activity" });
   }
@@ -6462,17 +6505,51 @@ const following$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.definePropert
   default: following
 }, Symbol.toStringTag, { value: 'Module' }));
 
+const inboxCallbacks = {
+  async onFollow(actorUri, targetActorUri, activityId) {
+    console.log("[user-inbox] Follow:", actorUri, "\u2192", targetActorUri, activityId);
+  },
+  async onAccept(actorUri, objectId) {
+    console.log("[user-inbox] Accept:", actorUri, objectId);
+  },
+  async onReject(actorUri, objectId) {
+    console.log("[user-inbox] Reject:", actorUri, objectId);
+  },
+  async onUndo(actorUri, objectType, objectId) {
+    console.log("[user-inbox] Undo:", actorUri, objectType, objectId);
+  },
+  async onCreate(actorUri, object) {
+    console.log("[user-inbox] Create:", actorUri, object.type);
+  },
+  async onUpdate(actorUri, object) {
+    console.log("[user-inbox] Update:", actorUri, object.type);
+  },
+  async onDelete(actorUri, objectId) {
+    console.log("[user-inbox] Delete:", actorUri, objectId);
+  },
+  async onLike(actorUri, objectUri) {
+    console.log("[user-inbox] Like:", actorUri, objectUri);
+  },
+  async onAnnounce(actorUri, objectUri) {
+    console.log("[user-inbox] Announce:", actorUri, objectUri);
+  }
+};
 const inbox = defineEventHandler(async (event) => {
+  var _a;
   const method = getMethod(event);
   if (method !== "POST") {
     throw createError({ statusCode: 405, statusMessage: "Method Not Allowed" });
   }
   const body = await readBody(event);
   try {
-    await processInboxActivity(body);
+    const result = await processInboxActivity(body, inboxCallbacks);
+    if (!result.success) {
+      throw createError({ statusCode: 400, statusMessage: (_a = result.error) != null ? _a : "Invalid activity" });
+    }
     return { status: "accepted" };
   } catch (err) {
-    console.error("[inbox]", err);
+    if (err.statusCode) throw err;
+    console.error("[user-inbox]", err);
     throw createError({ statusCode: 400, statusMessage: "Invalid activity" });
   }
 });

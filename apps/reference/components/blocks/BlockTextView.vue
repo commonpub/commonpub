@@ -1,9 +1,12 @@
 <script setup lang="ts">
-defineProps<{ content: Record<string, unknown> }>();
+import { sanitizeBlockHtml } from '~/composables/useSanitize';
+
+const props = defineProps<{ content: Record<string, unknown> }>();
+const html = computed(() => sanitizeBlockHtml((props.content.html as string) || ''));
 </script>
 
 <template>
-  <div class="cpub-block-text" v-html="(content.html as string) || ''" />
+  <div class="cpub-block-text" v-html="html" />
 </template>
 
 <style scoped>

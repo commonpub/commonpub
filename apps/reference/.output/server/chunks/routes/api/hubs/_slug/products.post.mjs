@@ -1,6 +1,16 @@
-import { d as defineEventHandler, u as useDB, a as getRouterParam, f as createError, aq as getHubBySlug, c as readBody, aV as createProductSchema, aW as createProduct } from '../../../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, av as getHubBySlug, p as createError, a_ as createProduct, a$ as createProductSchema } from '../../../../nitro/nitro.mjs';
 import { a as requireAuth } from '../../../../_/auth.mjs';
+import { a as parseParams, b as parseBody } from '../../../../_/validate.mjs';
 import 'drizzle-orm';
+import 'unified';
+import 'remark-parse';
+import 'remark-gfm';
+import 'remark-frontmatter';
+import 'remark-rehype';
+import 'rehype-stringify';
+import 'rehype-slug';
+import 'rehype-sanitize';
+import 'yaml';
 import 'drizzle-orm/pg-core';
 import 'jose';
 import 'node:fs';
@@ -23,20 +33,13 @@ import 'better-auth/plugins';
 const products_post = defineEventHandler(async (event) => {
   const db = useDB();
   const user = requireAuth(event);
-  const slug = getRouterParam(event, "slug");
-  if (!slug) {
-    throw createError({ statusCode: 400, statusMessage: "Hub slug is required" });
-  }
+  const { slug } = parseParams(event, { slug: "string" });
   const hub = await getHubBySlug(db, slug, user.id);
   if (!hub) {
     throw createError({ statusCode: 404, statusMessage: "Hub not found" });
   }
-  const body = await readBody(event);
-  const parsed = createProductSchema.safeParse(body);
-  if (!parsed.success) {
-    throw createError({ statusCode: 400, statusMessage: "Invalid input", data: parsed.error.flatten() });
-  }
-  return createProduct(db, user.id, hub.id, parsed.data);
+  const input = await parseBody(event, createProductSchema);
+  return createProduct(db, user.id, hub.id, input);
 });
 
 export { products_post as default };

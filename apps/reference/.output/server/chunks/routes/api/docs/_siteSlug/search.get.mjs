@@ -1,6 +1,16 @@
-import { d as defineEventHandler, u as useDB, a as getRouterParam, g as getQuery, a4 as getDocsSiteBySlug, f as createError, ad as searchDocsPages } from '../../../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, a6 as getDocsSiteBySlug, p as createError, ai as searchDocsPages } from '../../../../nitro/nitro.mjs';
+import { a as parseParams, p as parseQueryParams } from '../../../../_/validate.mjs';
 import { z } from 'zod';
 import 'drizzle-orm';
+import 'unified';
+import 'remark-parse';
+import 'remark-gfm';
+import 'remark-frontmatter';
+import 'remark-rehype';
+import 'rehype-stringify';
+import 'rehype-slug';
+import 'rehype-sanitize';
+import 'yaml';
 import 'drizzle-orm/pg-core';
 import 'jose';
 import 'node:fs';
@@ -25,13 +35,13 @@ const searchQuerySchema = z.object({
 const search_get = defineEventHandler(async (event) => {
   var _a, _b, _c, _d;
   const db = useDB();
-  const siteSlug = getRouterParam(event, "siteSlug");
-  const query = searchQuerySchema.parse(getQuery(event));
-  const site = await getDocsSiteBySlug(db, siteSlug);
-  if (!site) throw createError({ statusCode: 404, statusMessage: "Docs site not found" });
-  const version = (_c = (_a = site.versions) == null ? void 0 : _a.find((v) => v.isDefault)) != null ? _c : (_b = site.versions) == null ? void 0 : _b[0];
+  const { siteSlug } = parseParams(event, { siteSlug: "string" });
+  const query = parseQueryParams(event, searchQuerySchema);
+  const result = await getDocsSiteBySlug(db, siteSlug);
+  if (!result) throw createError({ statusCode: 404, statusMessage: "Docs site not found" });
+  const version = (_c = (_a = result.versions) == null ? void 0 : _a.find((v) => v.isDefault)) != null ? _c : (_b = result.versions) == null ? void 0 : _b[0];
   if (!version) return [];
-  return searchDocsPages(db, site.id, version.id, (_d = query.q) != null ? _d : "");
+  return searchDocsPages(db, result.site.id, version.id, (_d = query.q) != null ? _d : "");
 });
 
 export { search_get as default };

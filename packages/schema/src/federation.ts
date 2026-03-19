@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, timestamp, integer, jsonb } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, timestamp, integer, jsonb, index } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { users } from './auth.js';
 import { activityDirectionEnum, activityStatusEnum, followRelationshipStatusEnum } from './enums.js';
@@ -31,7 +31,11 @@ export const activities = pgTable('activities', {
   error: text('error'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-});
+}, (t) => [
+  index('idx_activities_direction_status').on(t.direction, t.status),
+  index('idx_activities_actor_uri').on(t.actorUri),
+  index('idx_activities_created_at').on(t.createdAt),
+]);
 
 /** Federation-aware follow relationships (separate from local follows) */
 export const followRelationships = pgTable('follow_relationships', {

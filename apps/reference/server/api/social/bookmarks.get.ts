@@ -10,7 +10,7 @@ const bookmarksQuerySchema = z.object({
 export default defineEventHandler(async (event): Promise<PaginatedResponse<BookmarkItem>> => {
   const user = requireAuth(event);
   const db = useDB();
-  const query = bookmarksQuerySchema.parse(getQuery(event));
+  const query = parseQueryParams(event, bookmarksQuerySchema);
 
   return listUserBookmarks(db, user.id, query);
 });

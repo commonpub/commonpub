@@ -1,6 +1,16 @@
-import { d as defineEventHandler, u as useDB, a as getRouterParam, bn as getConversationMessages, bo as markMessagesRead } from '../../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, bt as getConversationMessages, bu as markMessagesRead } from '../../../nitro/nitro.mjs';
 import { a as requireAuth } from '../../../_/auth.mjs';
+import { a as parseParams } from '../../../_/validate.mjs';
 import 'drizzle-orm';
+import 'unified';
+import 'remark-parse';
+import 'remark-gfm';
+import 'remark-frontmatter';
+import 'remark-rehype';
+import 'rehype-stringify';
+import 'rehype-slug';
+import 'rehype-sanitize';
+import 'yaml';
 import 'drizzle-orm/pg-core';
 import 'jose';
 import 'node:fs';
@@ -23,7 +33,7 @@ import 'better-auth/plugins';
 const _conversationId__get = defineEventHandler(async (event) => {
   const db = useDB();
   const user = await requireAuth(event);
-  const conversationId = getRouterParam(event, "conversationId");
+  const { conversationId } = parseParams(event, { conversationId: "uuid" });
   const messages = await getConversationMessages(db, conversationId, user.id);
   await markMessagesRead(db, conversationId, user.id);
   return messages;

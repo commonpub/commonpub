@@ -36,5 +36,7 @@ export { useBlockEditor, EditorBlock, BlockEditor } from '../composables/useBloc
 export { useEngagement, ContentViewData } from '../composables/useEngagement';
 export { useJsonLd } from '../composables/useJsonLd';
 export { useNotifications } from '../composables/useNotifications';
+export { sanitizeBlockHtml, useSanitize } from '../composables/useSanitize';
 export { useTheme } from '../composables/useTheme';
 export { useToast, Toast } from '../composables/useToast';
+export { useNuxtDevTools } from '../../../node_modules/.pnpm/@nuxt+devtools@3.2.3_vite@7.3.1_@types+node@25.5.0_jiti@2.6.1_terser@5.46.0_tsx@4.21.0__9b147f09235d82eac66b2768d8674c94/node_modules/@nuxt/devtools/dist/runtime/use-nuxt-devtools';

@@ -1,5 +1,5 @@
-// Security middleware — rate limiting + security headers
-import { RateLimitStore, checkRateLimit, shouldSkipRateLimit, getSecurityHeaders, generateNonce } from '@commonpub/server';
+// Security middleware — rate limiting + security headers + CSP
+import { RateLimitStore, checkRateLimit, shouldSkipRateLimit, getSecurityHeaders, generateNonce, buildCspHeader, buildCspDirectives } from '@commonpub/server';
 
 const store = new RateLimitStore();
 const isDev = process.env.NODE_ENV !== 'production';
@@ -35,5 +35,17 @@ export default defineEventHandler((event) => {
   const headers = getSecurityHeaders(isDev);
   for (const [key, value] of Object.entries(headers)) {
     setResponseHeader(event, key, value);
+  }
+
+  // Content Security Policy — skip for API responses (JSON doesn't need CSP)
+  if (!pathname.startsWith('/api/')) {
+    const cspDirectives = buildCspDirectives();
+    // In dev, allow unsafe-eval for HMR and inline styles for Nuxt
+    if (isDev) {
+      cspDirectives['script-src'] = "'self' 'unsafe-inline' 'unsafe-eval'";
+      cspDirectives['style-src'] = "'self' 'unsafe-inline'";
+      cspDirectives['connect-src'] = "'self' ws: wss:";
+    }
+    setResponseHeader(event, 'Content-Security-Policy', buildCspHeader(cspDirectives));
   }
 });

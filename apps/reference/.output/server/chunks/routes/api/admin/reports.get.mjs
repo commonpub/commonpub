@@ -1,7 +1,17 @@
-import { d as defineEventHandler, u as useDB, g as getQuery, b as listReports } from '../../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, a as listReports } from '../../../nitro/nitro.mjs';
 import { r as requireAdmin } from '../../../_/auth.mjs';
+import { p as parseQueryParams } from '../../../_/validate.mjs';
 import { z } from 'zod';
 import 'drizzle-orm';
+import 'unified';
+import 'remark-parse';
+import 'remark-gfm';
+import 'remark-frontmatter';
+import 'remark-rehype';
+import 'rehype-stringify';
+import 'rehype-slug';
+import 'rehype-sanitize';
+import 'yaml';
 import 'drizzle-orm/pg-core';
 import 'jose';
 import 'node:fs';
@@ -27,7 +37,7 @@ const reportsQuerySchema = z.object({
 const reports_get = defineEventHandler(async (event) => {
   requireAdmin(event);
   const db = useDB();
-  const filters = reportsQuerySchema.parse(getQuery(event));
+  const filters = parseQueryParams(event, reportsQuerySchema);
   return listReports(db, filters);
 });
 

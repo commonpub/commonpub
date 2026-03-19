@@ -1,4 +1,4 @@
-import { f as createError, X as getRequestHeader } from '../nitro/nitro.mjs';
+import { p as createError, V as getRequestHeader } from '../nitro/nitro.mjs';
 
 function requireAuth(event) {
   const auth = event.context.auth;

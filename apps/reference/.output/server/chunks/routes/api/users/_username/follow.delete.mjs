@@ -1,6 +1,16 @@
-import { d as defineEventHandler, u as useDB, a as getRouterParam, f as createError, bG as getUserByUsername, bW as unfollowUser } from '../../../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, bN as getUserByUsername, p as createError, c1 as unfollowUser } from '../../../../nitro/nitro.mjs';
 import { a as requireAuth } from '../../../../_/auth.mjs';
+import { a as parseParams } from '../../../../_/validate.mjs';
 import 'drizzle-orm';
+import 'unified';
+import 'remark-parse';
+import 'remark-gfm';
+import 'remark-frontmatter';
+import 'remark-rehype';
+import 'rehype-stringify';
+import 'rehype-slug';
+import 'rehype-sanitize';
+import 'yaml';
 import 'drizzle-orm/pg-core';
 import 'jose';
 import 'node:fs';
@@ -23,10 +33,7 @@ import 'better-auth/plugins';
 const follow_delete = defineEventHandler(async (event) => {
   const db = useDB();
   const user = requireAuth(event);
-  const username = getRouterParam(event, "username");
-  if (!username) {
-    throw createError({ statusCode: 400, statusMessage: "Username is required" });
-  }
+  const { username } = parseParams(event, { username: "string" });
   const target = await getUserByUsername(db, username);
   if (!target) {
     throw createError({ statusCode: 404, statusMessage: "User not found" });

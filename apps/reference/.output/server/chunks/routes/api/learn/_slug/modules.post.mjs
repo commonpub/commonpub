@@ -1,6 +1,16 @@
-import { d as defineEventHandler, u as useDB, a as getRouterParam, c as readBody, ba as createModuleSchema, f as createError, b2 as getPathBySlug, bb as createModule } from '../../../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, b7 as getPathBySlug, p as createError, bg as createModule, bh as createModuleSchema } from '../../../../nitro/nitro.mjs';
 import { a as requireAuth } from '../../../../_/auth.mjs';
+import { a as parseParams, b as parseBody } from '../../../../_/validate.mjs';
 import 'drizzle-orm';
+import 'unified';
+import 'remark-parse';
+import 'remark-gfm';
+import 'remark-frontmatter';
+import 'remark-rehype';
+import 'rehype-stringify';
+import 'rehype-slug';
+import 'rehype-sanitize';
+import 'yaml';
 import 'drizzle-orm/pg-core';
 import 'jose';
 import 'node:fs';
@@ -23,19 +33,11 @@ import 'better-auth/plugins';
 const modules_post = defineEventHandler(async (event) => {
   const user = requireAuth(event);
   const db = useDB();
-  const slug = getRouterParam(event, "slug");
-  const body = await readBody(event);
-  const parsed = createModuleSchema.safeParse(body);
-  if (!parsed.success) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: "Validation failed",
-      data: { errors: parsed.error.flatten().fieldErrors }
-    });
-  }
-  const path = await getPathBySlug(db, slug);
+  const { slug } = parseParams(event, { slug: "string" });
+  const input = await parseBody(event, createModuleSchema);
+  const path = await getPathBySlug(db, slug, user.id);
   if (!path) throw createError({ statusCode: 404, statusMessage: "Path not found" });
-  return createModule(db, user.id, { ...parsed.data, pathId: path.id });
+  return createModule(db, user.id, { ...input, pathId: path.id });
 });
 
 export { modules_post as default };

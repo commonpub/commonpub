@@ -16,6 +16,6 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'Product not found' });
   }
 
-  const query = querySchema.parse(getQuery(event));
+  const query = parseQueryParams(event, querySchema);
   return listProductContent(db, product.id, query);
 });

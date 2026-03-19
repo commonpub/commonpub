@@ -1,6 +1,16 @@
-import { d as defineEventHandler, u as useDB, bj as learningPathFiltersSchema, g as getQuery, bk as listPaths } from '../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, bp as listPaths, bq as learningPathFiltersSchema } from '../../nitro/nitro.mjs';
 import { g as getOptionalUser } from '../../_/auth.mjs';
+import { p as parseQueryParams } from '../../_/validate.mjs';
 import 'drizzle-orm';
+import 'unified';
+import 'remark-parse';
+import 'remark-gfm';
+import 'remark-frontmatter';
+import 'remark-rehype';
+import 'rehype-stringify';
+import 'rehype-slug';
+import 'rehype-sanitize';
+import 'yaml';
 import 'drizzle-orm/pg-core';
 import 'jose';
 import 'node:fs';
@@ -24,7 +34,7 @@ const index_get = defineEventHandler(async (event) => {
   var _a;
   const db = useDB();
   const user = getOptionalUser(event);
-  const filters = learningPathFiltersSchema.parse(getQuery(event));
+  const filters = parseQueryParams(event, learningPathFiltersSchema);
   const isOwnContent = filters.authorId && (user == null ? void 0 : user.id) === filters.authorId;
   return listPaths(db, {
     ...filters,

@@ -1,6 +1,16 @@
-import { d as defineEventHandler, u as useDB, a as getRouterParam, g as getQuery, bG as getUserByUsername, f as createError, bU as getUserContent, bV as contentTypeSchema } from '../../../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, bN as getUserByUsername, p as createError, b$ as getUserContent, c0 as contentTypeSchema } from '../../../../nitro/nitro.mjs';
+import { a as parseParams, p as parseQueryParams } from '../../../../_/validate.mjs';
 import { z } from 'zod';
 import 'drizzle-orm';
+import 'unified';
+import 'remark-parse';
+import 'remark-gfm';
+import 'remark-frontmatter';
+import 'remark-rehype';
+import 'rehype-stringify';
+import 'rehype-slug';
+import 'rehype-sanitize';
+import 'yaml';
 import 'drizzle-orm/pg-core';
 import 'jose';
 import 'node:fs';
@@ -24,8 +34,8 @@ const userContentQuerySchema = z.object({
 });
 const content_get = defineEventHandler(async (event) => {
   const db = useDB();
-  const username = getRouterParam(event, "username");
-  const query = userContentQuerySchema.parse(getQuery(event));
+  const { username } = parseParams(event, { username: "string" });
+  const query = parseQueryParams(event, userContentQuerySchema);
   const user = await getUserByUsername(db, username);
   if (!user) {
     throw createError({ statusCode: 404, statusMessage: "User not found" });

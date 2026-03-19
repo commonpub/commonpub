@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, timestamp, integer, boolean, jsonb, unique } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, timestamp, integer, boolean, jsonb, unique, index } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { users } from './auth.js';
 
@@ -13,7 +13,9 @@ export const docsSites = pgTable('docs_sites', {
   themeTokens: jsonb('theme_tokens').$type<Record<string, string>>(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-});
+}, (t) => [
+  index('idx_docs_sites_owner_id').on(t.ownerId),
+]);
 
 export const docsVersions = pgTable(
   'docs_versions',
@@ -26,7 +28,10 @@ export const docsVersions = pgTable(
     isDefault: boolean('is_default').default(false).notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   },
-  (t) => [unique('docs_versions_site_version').on(t.siteId, t.version)],
+  (t) => [
+    unique('docs_versions_site_version').on(t.siteId, t.version),
+    index('idx_docs_versions_site_id').on(t.siteId),
+  ],
 );
 
 export const docsPages = pgTable('docs_pages', {
@@ -42,7 +47,10 @@ export const docsPages = pgTable('docs_pages', {
   parentId: uuid('parent_id'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-});
+}, (t) => [
+  index('idx_docs_pages_version_id').on(t.versionId),
+  index('idx_docs_pages_parent_id').on(t.parentId),
+]);
 
 export const docsNav = pgTable('docs_nav', {
   id: uuid('id').defaultRandom().primaryKey(),

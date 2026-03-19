@@ -1,6 +1,16 @@
-import { d as defineEventHandler, u as useDB, a as getRouterParam, c as readBody, b0 as getLessonBySlug, f as createError, b1 as markLessonComplete } from '../../../../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, A as readBody, b5 as getLessonBySlug, p as createError, b6 as markLessonComplete } from '../../../../../nitro/nitro.mjs';
 import { a as requireAuth } from '../../../../../_/auth.mjs';
+import { a as parseParams } from '../../../../../_/validate.mjs';
 import 'drizzle-orm';
+import 'unified';
+import 'remark-parse';
+import 'remark-gfm';
+import 'remark-frontmatter';
+import 'remark-rehype';
+import 'rehype-stringify';
+import 'rehype-slug';
+import 'rehype-sanitize';
+import 'yaml';
 import 'drizzle-orm/pg-core';
 import 'jose';
 import 'node:fs';
@@ -23,12 +33,11 @@ import 'better-auth/plugins';
 const complete_post = defineEventHandler(async (event) => {
   const user = requireAuth(event);
   const db = useDB();
-  const slug = getRouterParam(event, "slug");
-  const lessonSlug = getRouterParam(event, "lessonSlug");
+  const { slug, lessonSlug } = parseParams(event, { slug: "string", lessonSlug: "string" });
   const body = await readBody(event).catch(() => ({}));
-  const lesson = await getLessonBySlug(db, slug, lessonSlug);
-  if (!lesson) throw createError({ statusCode: 404, statusMessage: "Lesson not found" });
-  return markLessonComplete(db, user.id, lesson.id, body == null ? void 0 : body.quizScore, body == null ? void 0 : body.quizPassed);
+  const result = await getLessonBySlug(db, slug, lessonSlug);
+  if (!result) throw createError({ statusCode: 404, statusMessage: "Lesson not found" });
+  return markLessonComplete(db, user.id, result.lesson.id, body == null ? void 0 : body.quizScore, body == null ? void 0 : body.quizPassed);
 });
 
 export { complete_post as default };

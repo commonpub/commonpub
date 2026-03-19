@@ -1,6 +1,16 @@
-import { d as defineEventHandler, u as useDB, a as getRouterParam, c as readBody, aI as changeRoleSchema, f as createError, aq as getHubBySlug, aJ as changeRole } from '../../../../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, av as getHubBySlug, p as createError, aN as changeRole, aO as changeRoleSchema } from '../../../../../nitro/nitro.mjs';
 import { a as requireAuth } from '../../../../../_/auth.mjs';
+import { a as parseParams, b as parseBody } from '../../../../../_/validate.mjs';
 import 'drizzle-orm';
+import 'unified';
+import 'remark-parse';
+import 'remark-gfm';
+import 'remark-frontmatter';
+import 'remark-rehype';
+import 'rehype-stringify';
+import 'rehype-slug';
+import 'rehype-sanitize';
+import 'yaml';
 import 'drizzle-orm/pg-core';
 import 'jose';
 import 'node:fs';
@@ -23,22 +33,13 @@ import 'better-auth/plugins';
 const _userId__put = defineEventHandler(async (event) => {
   const user = requireAuth(event);
   const db = useDB();
-  const slug = getRouterParam(event, "slug");
-  const userId = getRouterParam(event, "userId");
-  const body = await readBody(event);
-  const parsed = changeRoleSchema.safeParse(body);
-  if (!parsed.success) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: "Validation failed",
-      data: { errors: parsed.error.flatten().fieldErrors }
-    });
-  }
+  const { slug, userId } = parseParams(event, { slug: "string", userId: "uuid" });
+  const input = await parseBody(event, changeRoleSchema);
   const hub = await getHubBySlug(db, slug);
   if (!hub) {
     throw createError({ statusCode: 404, statusMessage: "Hub not found" });
   }
-  return changeRole(db, user.id, hub.id, userId, parsed.data.role);
+  return changeRole(db, user.id, hub.id, userId, input.role);
 });
 
 export { _userId__put as default };

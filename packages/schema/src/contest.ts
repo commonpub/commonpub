@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, timestamp, integer, jsonb, unique } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, timestamp, integer, jsonb, unique, index } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { users } from './auth.js';
 import { contentItems } from './content.js';
@@ -31,7 +31,10 @@ export const contests = pgTable('contests', {
   entryCount: integer('entry_count').default(0).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-});
+}, (t) => [
+  index('idx_contests_created_by_id').on(t.createdById),
+  index('idx_contests_status').on(t.status),
+]);
 
 /** @v2 — Contest entries. Tables defined but not yet referenced in application code. */
 export const contestEntries = pgTable('contest_entries', {
@@ -57,6 +60,8 @@ export const contestEntries = pgTable('contest_entries', {
   submittedAt: timestamp('submitted_at', { withTimezone: true }).defaultNow().notNull(),
 }, (t) => [
   unique('contest_entries_user_content').on(t.contestId, t.userId, t.contentId),
+  index('idx_contest_entries_contest_id').on(t.contestId),
+  index('idx_contest_entries_user_id').on(t.userId),
 ]);
 
 // --- Relations ---

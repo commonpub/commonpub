@@ -1,5 +1,14 @@
-import { d as defineEventHandler, u as useDB, bJ as contentItems, b_ as users, aZ as listHubs, bk as listPaths, aw as setResponseHeader, ax as useRuntimeConfig } from '../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, z as contentItems, c5 as users, b1 as listHubs, bp as listPaths, aB as setResponseHeader, aC as useRuntimeConfig } from '../nitro/nitro.mjs';
 import { eq } from 'drizzle-orm';
+import 'unified';
+import 'remark-parse';
+import 'remark-gfm';
+import 'remark-frontmatter';
+import 'remark-rehype';
+import 'rehype-stringify';
+import 'rehype-slug';
+import 'rehype-sanitize';
+import 'yaml';
 import 'drizzle-orm/pg-core';
 import 'jose';
 import 'node:fs';
@@ -50,7 +59,7 @@ const sitemap_xml = defineEventHandler(async (event) => {
   }
   for (const user of publicUsers) {
     urls.push({
-      loc: `${siteUrl}/profile/${user.username}`,
+      loc: `${siteUrl}/u/${user.username}`,
       lastmod: new Date(user.updatedAt).toISOString(),
       priority: "0.6",
       changefreq: "weekly"

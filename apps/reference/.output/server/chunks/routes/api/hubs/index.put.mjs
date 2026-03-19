@@ -1,6 +1,16 @@
-import { d as defineEventHandler, u as useDB, a as getRouterParam, c as readBody, aq as getHubBySlug, f as createError, az as updateHubSchema, aA as updateHub } from '../../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, av as getHubBySlug, p as createError, aE as updateHub, aF as updateHubSchema } from '../../../nitro/nitro.mjs';
 import { a as requireAuth } from '../../../_/auth.mjs';
+import { a as parseParams, b as parseBody } from '../../../_/validate.mjs';
 import 'drizzle-orm';
+import 'unified';
+import 'remark-parse';
+import 'remark-gfm';
+import 'remark-frontmatter';
+import 'remark-rehype';
+import 'rehype-stringify';
+import 'rehype-slug';
+import 'rehype-sanitize';
+import 'yaml';
 import 'drizzle-orm/pg-core';
 import 'jose';
 import 'node:fs';
@@ -23,21 +33,13 @@ import 'better-auth/plugins';
 const index_put = defineEventHandler(async (event) => {
   const user = requireAuth(event);
   const db = useDB();
-  const slug = getRouterParam(event, "slug");
-  const body = await readBody(event);
+  const { slug } = parseParams(event, { slug: "string" });
   const hub = await getHubBySlug(db, slug, user.id);
   if (!hub) {
     throw createError({ statusCode: 404, statusMessage: "Hub not found" });
   }
-  const parsed = updateHubSchema.safeParse(body);
-  if (!parsed.success) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: "Validation failed",
-      data: { errors: parsed.error.flatten().fieldErrors }
-    });
-  }
-  const updated = await updateHub(db, hub.id, user.id, parsed.data);
+  const input = await parseBody(event, updateHubSchema);
+  const updated = await updateHub(db, hub.id, user.id, input);
   if (!updated) {
     throw createError({ statusCode: 403, statusMessage: "Not authorized to update this hub" });
   }

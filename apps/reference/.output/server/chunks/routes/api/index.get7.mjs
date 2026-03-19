@@ -1,7 +1,17 @@
-import { d as defineEventHandler, u as useDB, g as getQuery, bw as listNotifications } from '../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, bD as listNotifications } from '../../nitro/nitro.mjs';
 import { a as requireAuth } from '../../_/auth.mjs';
+import { p as parseQueryParams } from '../../_/validate.mjs';
 import { z } from 'zod';
 import 'drizzle-orm';
+import 'unified';
+import 'remark-parse';
+import 'remark-gfm';
+import 'remark-frontmatter';
+import 'remark-rehype';
+import 'rehype-stringify';
+import 'rehype-slug';
+import 'rehype-sanitize';
+import 'yaml';
 import 'drizzle-orm/pg-core';
 import 'jose';
 import 'node:fs';
@@ -29,7 +39,7 @@ const notificationsQuerySchema = z.object({
 const index_get = defineEventHandler(async (event) => {
   const user = requireAuth(event);
   const db = useDB();
-  const query = notificationsQuerySchema.parse(getQuery(event));
+  const query = parseQueryParams(event, notificationsQuerySchema);
   return listNotifications(db, {
     userId: user.id,
     type: query.type,

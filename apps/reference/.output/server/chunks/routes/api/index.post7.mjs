@@ -1,6 +1,16 @@
-import { d as defineEventHandler, u as useDB, c as readBody, c9 as createVideoSchema, f as createError, ca as createVideo } from '../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, cg as createVideo, ch as createVideoSchema } from '../../nitro/nitro.mjs';
 import { a as requireAuth } from '../../_/auth.mjs';
+import { b as parseBody } from '../../_/validate.mjs';
 import 'drizzle-orm';
+import 'unified';
+import 'remark-parse';
+import 'remark-gfm';
+import 'remark-frontmatter';
+import 'remark-rehype';
+import 'rehype-stringify';
+import 'rehype-slug';
+import 'rehype-sanitize';
+import 'yaml';
 import 'drizzle-orm/pg-core';
 import 'jose';
 import 'node:fs';
@@ -23,16 +33,8 @@ import 'better-auth/plugins';
 const index_post = defineEventHandler(async (event) => {
   const user = requireAuth(event);
   const db = useDB();
-  const body = await readBody(event);
-  const parsed = createVideoSchema.safeParse(body);
-  if (!parsed.success) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: "Validation failed",
-      data: { errors: parsed.error.flatten().fieldErrors }
-    });
-  }
-  return createVideo(db, { ...parsed.data, authorId: user.id });
+  const input = await parseBody(event, createVideoSchema);
+  return createVideo(db, { ...input, authorId: user.id });
 });
 
 export { index_post as default };

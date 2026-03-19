@@ -1,7 +1,17 @@
-import { d as defineEventHandler, u as useDB, c as readBody, f as createError, bK as toggleBookmark } from '../../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, bQ as toggleBookmark } from '../../../nitro/nitro.mjs';
 import { a as requireAuth } from '../../../_/auth.mjs';
+import { b as parseBody } from '../../../_/validate.mjs';
 import { z } from 'zod';
 import 'drizzle-orm';
+import 'unified';
+import 'remark-parse';
+import 'remark-gfm';
+import 'remark-frontmatter';
+import 'remark-rehype';
+import 'rehype-stringify';
+import 'rehype-slug';
+import 'rehype-sanitize';
+import 'yaml';
 import 'drizzle-orm/pg-core';
 import 'jose';
 import 'node:fs';
@@ -27,16 +37,8 @@ const toggleBookmarkSchema = z.object({
 const bookmark_post = defineEventHandler(async (event) => {
   const user = requireAuth(event);
   const db = useDB();
-  const body = await readBody(event);
-  const parsed = toggleBookmarkSchema.safeParse(body);
-  if (!parsed.success) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: "Validation failed",
-      data: { errors: parsed.error.flatten().fieldErrors }
-    });
-  }
-  return toggleBookmark(db, user.id, parsed.data.targetType, parsed.data.targetId);
+  const input = await parseBody(event, toggleBookmarkSchema);
+  return toggleBookmark(db, user.id, input.targetType, input.targetId);
 });
 
 export { bookmark_post as default };

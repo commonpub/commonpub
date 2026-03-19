@@ -8,7 +8,7 @@ const pagesQuerySchema = z.object({
 export default defineEventHandler(async (event) => {
   const db = useDB();
   const { siteSlug } = parseParams(event, { siteSlug: 'string' });
-  const query = pagesQuerySchema.parse(getQuery(event));
+  const query = parseQueryParams(event, pagesQuerySchema);
 
   const result = await getDocsSiteBySlug(db, siteSlug);
   if (!result) {

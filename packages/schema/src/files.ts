@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, timestamp, integer } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, timestamp, integer, index } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { users } from './auth.js';
 import { contentItems } from './content.js';
@@ -22,7 +22,10 @@ export const files = pgTable('files', {
   width: integer('width'),
   height: integer('height'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-});
+}, (t) => [
+  index('idx_files_uploader_id').on(t.uploaderId),
+  index('idx_files_content_id').on(t.contentId),
+]);
 
 export const filesRelations = relations(files, ({ one }) => ({
   uploader: one(users, { fields: [files.uploaderId], references: [users.id] }),

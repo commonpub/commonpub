@@ -27,6 +27,7 @@
     "drizzle-orm": "^0.45.1",
     "nuxt": "^3.16.0",
     "pg": "^8.13.0",
+    "isomorphic-dompurify": "^3.3.0",
     "vue": "^3.4.0",
     "vue-router": "^4.3.0"
   },

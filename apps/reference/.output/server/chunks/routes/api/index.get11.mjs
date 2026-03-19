@@ -1,5 +1,15 @@
-import { d as defineEventHandler, u as useDB, c7 as videoFiltersSchema, g as getQuery, c8 as listVideos } from '../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, ce as listVideos, cf as videoFiltersSchema } from '../../nitro/nitro.mjs';
+import { p as parseQueryParams } from '../../_/validate.mjs';
 import 'drizzle-orm';
+import 'unified';
+import 'remark-parse';
+import 'remark-gfm';
+import 'remark-frontmatter';
+import 'remark-rehype';
+import 'rehype-stringify';
+import 'rehype-slug';
+import 'rehype-sanitize';
+import 'yaml';
 import 'drizzle-orm/pg-core';
 import 'jose';
 import 'node:fs';
@@ -21,7 +31,7 @@ import 'better-auth/plugins';
 
 const index_get = defineEventHandler(async (event) => {
   const db = useDB();
-  const filters = videoFiltersSchema.parse(getQuery(event));
+  const filters = parseQueryParams(event, videoFiltersSchema);
   return listVideos(db, filters);
 });
 

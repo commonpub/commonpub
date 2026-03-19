@@ -1,6 +1,16 @@
-import { d as defineEventHandler, a as getRouterParam, f as createError, u as useDB, aw as setResponseHeader, bn as getConversationMessages } from '../../../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, aB as setResponseHeader, bt as getConversationMessages } from '../../../../nitro/nitro.mjs';
 import { a as requireAuth } from '../../../../_/auth.mjs';
+import { a as parseParams } from '../../../../_/validate.mjs';
 import 'drizzle-orm';
+import 'unified';
+import 'remark-parse';
+import 'remark-gfm';
+import 'remark-frontmatter';
+import 'remark-rehype';
+import 'rehype-stringify';
+import 'rehype-slug';
+import 'rehype-sanitize';
+import 'yaml';
 import 'drizzle-orm/pg-core';
 import 'jose';
 import 'node:fs';
@@ -23,10 +33,7 @@ import 'better-auth/plugins';
 const stream_get = defineEventHandler(async (event) => {
   const user = requireAuth(event);
   const userId = user.id;
-  const conversationId = getRouterParam(event, "conversationId");
-  if (!conversationId) {
-    throw createError({ statusCode: 400, statusMessage: "Conversation ID required" });
-  }
+  const { conversationId } = parseParams(event, { conversationId: "uuid" });
   const db = useDB();
   setResponseHeader(event, "Content-Type", "text/event-stream");
   setResponseHeader(event, "Cache-Control", "no-cache");

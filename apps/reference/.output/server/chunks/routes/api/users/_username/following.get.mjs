@@ -1,6 +1,16 @@
-import { d as defineEventHandler, u as useDB, a as getRouterParam, g as getQuery, f as createError, bG as getUserByUsername, bZ as listFollowing } from '../../../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, bN as getUserByUsername, p as createError, c4 as listFollowing } from '../../../../nitro/nitro.mjs';
+import { a as parseParams, p as parseQueryParams } from '../../../../_/validate.mjs';
 import { z } from 'zod';
 import 'drizzle-orm';
+import 'unified';
+import 'remark-parse';
+import 'remark-gfm';
+import 'remark-frontmatter';
+import 'remark-rehype';
+import 'rehype-stringify';
+import 'rehype-slug';
+import 'rehype-sanitize';
+import 'yaml';
 import 'drizzle-orm/pg-core';
 import 'jose';
 import 'node:fs';
@@ -25,11 +35,8 @@ const paginationSchema = z.object({
 });
 const following_get = defineEventHandler(async (event) => {
   const db = useDB();
-  const username = getRouterParam(event, "username");
-  const query = paginationSchema.parse(getQuery(event));
-  if (!username) {
-    throw createError({ statusCode: 400, statusMessage: "Username is required" });
-  }
+  const { username } = parseParams(event, { username: "string" });
+  const query = parseQueryParams(event, paginationSchema);
   const target = await getUserByUsername(db, username);
   if (!target) {
     throw createError({ statusCode: 404, statusMessage: "User not found" });

@@ -1,0 +1,1 @@
+import{a9 as a,s as o}from"./uOa77k_q.js";import{u}from"./CEkxnP39.js";const s=a((t,r)=>{const{isAuthenticated:e}=u();if(!e.value)return o(`/auth/login?redirect=${encodeURIComponent(t.fullPath)}`)});export{s as default};

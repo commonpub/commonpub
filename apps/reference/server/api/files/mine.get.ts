@@ -9,7 +9,7 @@ const querySchema = z.object({
 export default defineEventHandler(async (event) => {
   const db = useDB();
   const user = requireAuth(event);
-  const query = querySchema.parse(getQuery(event));
+  const query = parseQueryParams(event, querySchema);
 
   const rows = await db
     .select()

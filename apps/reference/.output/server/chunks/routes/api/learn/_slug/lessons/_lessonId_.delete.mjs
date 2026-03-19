@@ -1,6 +1,16 @@
-import { d as defineEventHandler, u as useDB, a as getRouterParam, b9 as deleteLesson, f as createError } from '../../../../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, be as deleteLesson, p as createError } from '../../../../../nitro/nitro.mjs';
 import { a as requireAuth } from '../../../../../_/auth.mjs';
+import { a as parseParams } from '../../../../../_/validate.mjs';
 import 'drizzle-orm';
+import 'unified';
+import 'remark-parse';
+import 'remark-gfm';
+import 'remark-frontmatter';
+import 'remark-rehype';
+import 'rehype-stringify';
+import 'rehype-slug';
+import 'rehype-sanitize';
+import 'yaml';
 import 'drizzle-orm/pg-core';
 import 'jose';
 import 'node:fs';
@@ -23,7 +33,7 @@ import 'better-auth/plugins';
 const _lessonId__delete = defineEventHandler(async (event) => {
   const user = requireAuth(event);
   const db = useDB();
-  const lessonId = getRouterParam(event, "lessonId");
+  const { lessonId } = parseParams(event, { lessonId: "uuid" });
   const deleted = await deleteLesson(db, lessonId, user.id);
   if (!deleted) {
     throw createError({ statusCode: 404, statusMessage: "Lesson not found or not authorized" });

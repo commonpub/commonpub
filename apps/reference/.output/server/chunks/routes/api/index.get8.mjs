@@ -1,6 +1,16 @@
-import { d as defineEventHandler, u as useDB, g as getQuery, bF as searchProducts, aT as productStatusSchema, aU as productCategorySchema } from '../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, bM as searchProducts, aY as productStatusSchema, aZ as productCategorySchema } from '../../nitro/nitro.mjs';
+import { p as parseQueryParams } from '../../_/validate.mjs';
 import { z } from 'zod';
 import 'drizzle-orm';
+import 'unified';
+import 'remark-parse';
+import 'remark-gfm';
+import 'remark-frontmatter';
+import 'remark-rehype';
+import 'rehype-stringify';
+import 'rehype-slug';
+import 'rehype-sanitize';
+import 'yaml';
 import 'drizzle-orm/pg-core';
 import 'jose';
 import 'node:fs';
@@ -31,7 +41,7 @@ const productSearchSchema = z.object({
 const index_get = defineEventHandler(async (event) => {
   var _a;
   const db = useDB();
-  const query = productSearchSchema.parse(getQuery(event));
+  const query = parseQueryParams(event, productSearchSchema);
   return searchProducts(db, {
     search: (_a = query.q) != null ? _a : query.search,
     category: query.category,

@@ -1,5 +1,15 @@
-import { d as defineEventHandler, u as useDB, aY as hubFiltersSchema, g as getQuery, aZ as listHubs } from '../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, b1 as listHubs, b2 as hubFiltersSchema } from '../../nitro/nitro.mjs';
+import { p as parseQueryParams } from '../../_/validate.mjs';
 import 'drizzle-orm';
+import 'unified';
+import 'remark-parse';
+import 'remark-gfm';
+import 'remark-frontmatter';
+import 'remark-rehype';
+import 'rehype-stringify';
+import 'rehype-slug';
+import 'rehype-sanitize';
+import 'yaml';
 import 'drizzle-orm/pg-core';
 import 'jose';
 import 'node:fs';
@@ -21,7 +31,7 @@ import 'better-auth/plugins';
 
 const index_get = defineEventHandler(async (event) => {
   const db = useDB();
-  const filters = hubFiltersSchema.parse(getQuery(event));
+  const filters = parseQueryParams(event, hubFiltersSchema);
   return listHubs(db, filters);
 });
 

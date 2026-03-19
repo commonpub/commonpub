@@ -68,6 +68,9 @@ importers:
       drizzle-orm:
         specifier: ^0.45.1
         version: 0.45.1(@electric-sql/pglite@0.3.16)(gel@2.2.0)(kysely@0.28.11)(pg@8.20.0)
+      isomorphic-dompurify:
+        specifier: ^3.3.0
+        version: 3.3.0(@noble/hashes@2.0.1)
       nuxt:
         specifier: ^3.16.0
         version: 3.21.1(@electric-sql/pglite@0.3.16)(@parcel/watcher@2.5.6)(@types/node@25.5.0)(@vue/compiler-sfc@3.5.30)(cac@6.7.14)(db0@0.3.4(@electric-sql/pglite@0.3.16)(drizzle-orm@0.45.1(@electric-sql/pglite@0.3.16)(gel@2.2.0)(kysely@0.28.11)(pg@8.20.0)))(drizzle-orm@0.45.1(@electric-sql/pglite@0.3.16)(gel@2.2.0)(kysely@0.28.11)(pg@8.20.0))(eslint@9.39.4(jiti@2.6.1))(ioredis@5.10.0)(magicast@0.5.2)(optionator@0.9.4)(rollup@4.59.0)(terser@5.46.0)(tsx@4.21.0)(typescript@5.9.3)(vite@7.3.1(@types/node@25.5.0)(jiti@2.6.1)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))(vue-tsc@2.2.12(typescript@5.9.3))(yaml@2.8.2)
@@ -149,6 +152,9 @@ importers:
       '@shikijs/rehype':
         specifier: ^4.0.2
         version: 4.0.2
+      isomorphic-dompurify:
+        specifier: ^3.3.0
+        version: 3.3.0(@noble/hashes@2.0.1)
       meilisearch:
         specifier: ^0.48.0
         version: 0.48.2

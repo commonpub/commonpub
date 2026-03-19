@@ -1,6 +1,16 @@
-import { d as defineEventHandler, u as useDB, a as getRouterParam, f as createError, c as readBody, bB as updateProductSchema, bC as updateProduct } from '../../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, bI as updateProduct, p as createError, bJ as updateProductSchema } from '../../../nitro/nitro.mjs';
 import { a as requireAuth } from '../../../_/auth.mjs';
+import { a as parseParams, b as parseBody } from '../../../_/validate.mjs';
 import 'drizzle-orm';
+import 'unified';
+import 'remark-parse';
+import 'remark-gfm';
+import 'remark-frontmatter';
+import 'remark-rehype';
+import 'rehype-stringify';
+import 'rehype-slug';
+import 'rehype-sanitize';
+import 'yaml';
 import 'drizzle-orm/pg-core';
 import 'jose';
 import 'node:fs';
@@ -23,16 +33,9 @@ import 'better-auth/plugins';
 const _id__put = defineEventHandler(async (event) => {
   const db = useDB();
   const user = requireAuth(event);
-  const id = getRouterParam(event, "id");
-  if (!id) {
-    throw createError({ statusCode: 400, statusMessage: "Product ID is required" });
-  }
-  const body = await readBody(event);
-  const parsed = updateProductSchema.safeParse(body);
-  if (!parsed.success) {
-    throw createError({ statusCode: 400, statusMessage: "Invalid input", data: parsed.error.flatten() });
-  }
-  const product = await updateProduct(db, id, user.id, parsed.data);
+  const { id } = parseParams(event, { id: "uuid" });
+  const input = await parseBody(event, updateProductSchema);
+  const product = await updateProduct(db, id, user.id, input);
   if (!product) {
     throw createError({ statusCode: 404, statusMessage: "Product not found" });
   }

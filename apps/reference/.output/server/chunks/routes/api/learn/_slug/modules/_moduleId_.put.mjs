@@ -1,6 +1,16 @@
-import { d as defineEventHandler, u as useDB, a as getRouterParam, c as readBody, bd as updateModuleSchema, f as createError, be as updateModule } from '../../../../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, bj as updateModule, bk as updateModuleSchema } from '../../../../../nitro/nitro.mjs';
 import { a as requireAuth } from '../../../../../_/auth.mjs';
+import { a as parseParams, b as parseBody } from '../../../../../_/validate.mjs';
 import 'drizzle-orm';
+import 'unified';
+import 'remark-parse';
+import 'remark-gfm';
+import 'remark-frontmatter';
+import 'remark-rehype';
+import 'rehype-stringify';
+import 'rehype-slug';
+import 'rehype-sanitize';
+import 'yaml';
 import 'drizzle-orm/pg-core';
 import 'jose';
 import 'node:fs';
@@ -23,17 +33,9 @@ import 'better-auth/plugins';
 const _moduleId__put = defineEventHandler(async (event) => {
   const user = requireAuth(event);
   const db = useDB();
-  const moduleId = getRouterParam(event, "moduleId");
-  const body = await readBody(event);
-  const parsed = updateModuleSchema.safeParse(body);
-  if (!parsed.success) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: "Validation failed",
-      data: { errors: parsed.error.flatten().fieldErrors }
-    });
-  }
-  return updateModule(db, moduleId, user.id, parsed.data);
+  const { moduleId } = parseParams(event, { moduleId: "uuid" });
+  const input = await parseBody(event, updateModuleSchema);
+  return updateModule(db, moduleId, user.id, input);
 });
 
 export { _moduleId__put as default };

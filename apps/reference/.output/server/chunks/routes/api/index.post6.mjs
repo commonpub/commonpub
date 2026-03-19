@@ -1,6 +1,16 @@
-import { d as defineEventHandler, u as useDB, c as readBody, bs as createConversationSchema, f as createError, bt as createConversation } from '../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, bz as createConversation, bA as createConversationSchema } from '../../nitro/nitro.mjs';
 import { a as requireAuth } from '../../_/auth.mjs';
+import { b as parseBody } from '../../_/validate.mjs';
 import 'drizzle-orm';
+import 'unified';
+import 'remark-parse';
+import 'remark-gfm';
+import 'remark-frontmatter';
+import 'remark-rehype';
+import 'rehype-stringify';
+import 'rehype-slug';
+import 'rehype-sanitize';
+import 'yaml';
 import 'drizzle-orm/pg-core';
 import 'jose';
 import 'node:fs';
@@ -23,16 +33,8 @@ import 'better-auth/plugins';
 const index_post = defineEventHandler(async (event) => {
   const db = useDB();
   const user = requireAuth(event);
-  const body = await readBody(event);
-  const parsed = createConversationSchema.safeParse(body);
-  if (!parsed.success) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: "Validation failed",
-      data: { errors: parsed.error.flatten().fieldErrors }
-    });
-  }
-  const participants = parsed.data.participants;
+  const input = await parseBody(event, createConversationSchema);
+  const participants = input.participants;
   if (!participants.includes(user.id)) {
     participants.push(user.id);
   }

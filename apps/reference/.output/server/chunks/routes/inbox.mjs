@@ -1,5 +1,14 @@
-import { d as defineEventHandler, ce as getMethod, f as createError, c as readBody, cf as processInboxActivity } from '../nitro/nitro.mjs';
+import { d as defineEventHandler, cl as getMethod, p as createError, A as readBody, cm as processInboxActivity } from '../nitro/nitro.mjs';
 import 'drizzle-orm';
+import 'unified';
+import 'remark-parse';
+import 'remark-gfm';
+import 'remark-frontmatter';
+import 'remark-rehype';
+import 'rehype-stringify';
+import 'rehype-slug';
+import 'rehype-sanitize';
+import 'yaml';
 import 'drizzle-orm/pg-core';
 import 'jose';
 import 'node:fs';
@@ -19,16 +28,50 @@ import 'better-auth';
 import 'better-auth/adapters/drizzle';
 import 'better-auth/plugins';
 
+const inboxCallbacks = {
+  async onFollow(actorUri, targetActorUri, activityId) {
+    console.log("[inbox] Follow:", actorUri, "\u2192", targetActorUri, activityId);
+  },
+  async onAccept(actorUri, objectId) {
+    console.log("[inbox] Accept:", actorUri, objectId);
+  },
+  async onReject(actorUri, objectId) {
+    console.log("[inbox] Reject:", actorUri, objectId);
+  },
+  async onUndo(actorUri, objectType, objectId) {
+    console.log("[inbox] Undo:", actorUri, objectType, objectId);
+  },
+  async onCreate(actorUri, object) {
+    console.log("[inbox] Create:", actorUri, object.type);
+  },
+  async onUpdate(actorUri, object) {
+    console.log("[inbox] Update:", actorUri, object.type);
+  },
+  async onDelete(actorUri, objectId) {
+    console.log("[inbox] Delete:", actorUri, objectId);
+  },
+  async onLike(actorUri, objectUri) {
+    console.log("[inbox] Like:", actorUri, objectUri);
+  },
+  async onAnnounce(actorUri, objectUri) {
+    console.log("[inbox] Announce:", actorUri, objectUri);
+  }
+};
 const inbox = defineEventHandler(async (event) => {
+  var _a;
   const method = getMethod(event);
   if (method !== "POST") {
     throw createError({ statusCode: 405, statusMessage: "Method Not Allowed" });
   }
   const body = await readBody(event);
   try {
-    await processInboxActivity(body);
+    const result = await processInboxActivity(body, inboxCallbacks);
+    if (!result.success) {
+      throw createError({ statusCode: 400, statusMessage: (_a = result.error) != null ? _a : "Invalid activity" });
+    }
     return { status: "accepted" };
   } catch (err) {
+    if (err.statusCode) throw err;
     console.error("[shared-inbox]", err);
     throw createError({ statusCode: 400, statusMessage: "Invalid activity" });
   }

@@ -1,6 +1,16 @@
-import { d as defineEventHandler, u as useDB, a as getRouterParam, f as createError, c as readBody, _ as contestTransitionSchema, R as getContestBySlug, $ as transitionContestStatus } from '../../../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, R as getContestBySlug, p as createError, a0 as transitionContestStatus, a1 as contestTransitionSchema } from '../../../../nitro/nitro.mjs';
 import { a as requireAuth } from '../../../../_/auth.mjs';
+import { a as parseParams, b as parseBody } from '../../../../_/validate.mjs';
 import 'drizzle-orm';
+import 'unified';
+import 'remark-parse';
+import 'remark-gfm';
+import 'remark-frontmatter';
+import 'remark-rehype';
+import 'rehype-stringify';
+import 'rehype-slug';
+import 'rehype-sanitize';
+import 'yaml';
 import 'drizzle-orm/pg-core';
 import 'jose';
 import 'node:fs';
@@ -23,24 +33,17 @@ import 'better-auth/plugins';
 const transition_post = defineEventHandler(async (event) => {
   const db = useDB();
   const user = requireAuth(event);
-  const slug = getRouterParam(event, "slug");
-  if (!slug) {
-    throw createError({ statusCode: 400, statusMessage: "Contest slug is required" });
-  }
-  const body = await readBody(event);
-  const parsed = contestTransitionSchema.safeParse(body);
-  if (!parsed.success) {
-    throw createError({ statusCode: 400, statusMessage: "Invalid input", data: parsed.error.flatten() });
-  }
+  const { slug } = parseParams(event, { slug: "string" });
+  const input = await parseBody(event, contestTransitionSchema);
   const contest = await getContestBySlug(db, slug);
   if (!contest) {
     throw createError({ statusCode: 404, statusMessage: "Contest not found" });
   }
-  const result = await transitionContestStatus(db, contest.id, user.id, parsed.data.status);
+  const result = await transitionContestStatus(db, contest.id, user.id, input.status);
   if (!result.transitioned) {
     throw createError({ statusCode: 400, statusMessage: result.error || "Transition failed" });
   }
-  return { transitioned: true, newStatus: parsed.data.status };
+  return { transitioned: true, newStatus: input.status };
 });
 
 export { transition_post as default };

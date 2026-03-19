@@ -9,7 +9,7 @@ const searchQuerySchema = contentFiltersSchema.extend({
 
 export default defineEventHandler(async (event): Promise<PaginatedResponse<ContentListItem>> => {
   const db = useDB();
-  const filters = searchQuerySchema.parse(getQuery(event));
+  const filters = parseQueryParams(event, searchQuerySchema);
   const q = filters.q || filters.search;
 
   if (!q) {

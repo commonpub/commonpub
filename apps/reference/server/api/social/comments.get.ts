@@ -10,7 +10,7 @@ const commentsQuerySchema = z.object({
 
 export default defineEventHandler(async (event): Promise<CommentItem[]> => {
   const db = useDB();
-  const query = commentsQuerySchema.parse(getQuery(event));
+  const query = parseQueryParams(event, commentsQuerySchema);
 
   return listComments(db, query.targetType, query.targetId);
 });

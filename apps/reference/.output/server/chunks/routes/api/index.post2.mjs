@@ -1,6 +1,16 @@
-import { d as defineEventHandler, u as useDB, c as readBody, a2 as createContestSchema, f as createError, a3 as createContest } from '../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, a4 as createContest, a5 as createContestSchema } from '../../nitro/nitro.mjs';
 import { a as requireAuth } from '../../_/auth.mjs';
+import { b as parseBody } from '../../_/validate.mjs';
 import 'drizzle-orm';
+import 'unified';
+import 'remark-parse';
+import 'remark-gfm';
+import 'remark-frontmatter';
+import 'remark-rehype';
+import 'rehype-stringify';
+import 'rehype-slug';
+import 'rehype-sanitize';
+import 'yaml';
 import 'drizzle-orm/pg-core';
 import 'jose';
 import 'node:fs';
@@ -23,16 +33,8 @@ import 'better-auth/plugins';
 const index_post = defineEventHandler(async (event) => {
   const user = requireAuth(event);
   const db = useDB();
-  const body = await readBody(event);
-  const parsed = createContestSchema.safeParse(body);
-  if (!parsed.success) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: "Validation failed",
-      data: { errors: parsed.error.flatten().fieldErrors }
-    });
-  }
-  return createContest(db, { ...parsed.data, createdBy: user.id });
+  const input = await parseBody(event, createContestSchema);
+  return createContest(db, { ...input, createdBy: user.id });
 });
 
 export { index_post as default };

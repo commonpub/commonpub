@@ -5,7 +5,7 @@ import { contentFiltersSchema } from '@commonpub/schema';
 export default defineEventHandler(async (event): Promise<PaginatedResponse<ContentListItem>> => {
   const db = useDB();
   const user = getOptionalUser(event);
-  const filters = contentFiltersSchema.parse(getQuery(event));
+  const filters = parseQueryParams(event, contentFiltersSchema);
 
   const isOwnContent = filters.authorId && user?.id === filters.authorId;
 

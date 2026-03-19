@@ -1,6 +1,16 @@
-import { d as defineEventHandler, u as useDB, g as getQuery, b_ as users, b$ as follows } from '../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, c5 as users, c6 as follows } from '../../nitro/nitro.mjs';
+import { p as parseQueryParams } from '../../_/validate.mjs';
 import { or, ilike, desc, sql } from 'drizzle-orm';
 import { z } from 'zod';
+import 'unified';
+import 'remark-parse';
+import 'remark-gfm';
+import 'remark-frontmatter';
+import 'remark-rehype';
+import 'rehype-stringify';
+import 'rehype-slug';
+import 'rehype-sanitize';
+import 'yaml';
 import 'drizzle-orm/pg-core';
 import 'jose';
 import 'node:fs';
@@ -28,7 +38,7 @@ const usersQuerySchema = z.object({
 const index_get = defineEventHandler(async (event) => {
   var _a, _b, _c;
   const db = useDB();
-  const query = usersQuerySchema.parse(getQuery(event));
+  const query = parseQueryParams(event, usersQuerySchema);
   const limit = (_a = query.limit) != null ? _a : 20;
   const offset = (_b = query.offset) != null ? _b : 0;
   const search = query.q || query.search;

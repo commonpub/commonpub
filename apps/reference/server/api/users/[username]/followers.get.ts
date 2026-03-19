@@ -10,7 +10,7 @@ const paginationSchema = z.object({
 export default defineEventHandler(async (event): Promise<PaginatedResponse<FollowUserItem>> => {
   const db = useDB();
   const { username } = parseParams(event, { username: 'string' });
-  const query = paginationSchema.parse(getQuery(event));
+  const query = parseQueryParams(event, paginationSchema);
 
 
   const target = await getUserByUsername(db, username);

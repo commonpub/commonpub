@@ -1,7 +1,9 @@
 <script setup lang="ts">
+import { sanitizeBlockHtml } from '~/composables/useSanitize';
+
 const props = defineProps<{ content: Record<string, unknown> }>();
 
-const html = computed(() => (props.content.html as string) || '');
+const html = computed(() => sanitizeBlockHtml((props.content.html as string) || ''));
 const variant = computed(() => (props.content.variant as string) || 'info');
 
 const variantConfig: Record<string, { icon: string; label: string }> = {

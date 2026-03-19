@@ -1,6 +1,16 @@
-import { d as defineEventHandler, u as useDB, c as readBody, Y as judgeEntrySchema, f as createError, Z as judgeContestEntry } from '../../../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, _ as judgeContestEntry, $ as judgeEntrySchema } from '../../../../nitro/nitro.mjs';
 import { a as requireAuth } from '../../../../_/auth.mjs';
+import { b as parseBody } from '../../../../_/validate.mjs';
 import 'drizzle-orm';
+import 'unified';
+import 'remark-parse';
+import 'remark-gfm';
+import 'remark-frontmatter';
+import 'remark-rehype';
+import 'rehype-stringify';
+import 'rehype-slug';
+import 'rehype-sanitize';
+import 'yaml';
 import 'drizzle-orm/pg-core';
 import 'jose';
 import 'node:fs';
@@ -23,16 +33,8 @@ import 'better-auth/plugins';
 const judge_post = defineEventHandler(async (event) => {
   const user = requireAuth(event);
   const db = useDB();
-  const body = await readBody(event);
-  const parsed = judgeEntrySchema.safeParse(body);
-  if (!parsed.success) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: "Validation failed",
-      data: { errors: parsed.error.flatten().fieldErrors }
-    });
-  }
-  await judgeContestEntry(db, parsed.data.entryId, parsed.data.score, user.id);
+  const input = await parseBody(event, judgeEntrySchema);
+  await judgeContestEntry(db, input.entryId, input.score, user.id);
   return { success: true };
 });
 

@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, timestamp, integer } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, timestamp, integer, index } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { users } from './auth.js';
 import { videoPlatformEnum } from './enums.js';
@@ -20,7 +20,9 @@ export const videos = pgTable('videos', {
   commentCount: integer('comment_count').default(0).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-});
+}, (t) => [
+  index('idx_videos_author_id').on(t.authorId),
+]);
 
 export const videoCategories = pgTable('video_categories', {
   id: uuid('id').defaultRandom().primaryKey(),

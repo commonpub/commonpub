@@ -1,6 +1,16 @@
-import { d as defineEventHandler, u as useDB, a as getRouterParam, f as createError, bA as deleteProduct } from '../../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, bH as deleteProduct, p as createError } from '../../../nitro/nitro.mjs';
 import { r as requireAdmin } from '../../../_/auth.mjs';
+import { a as parseParams } from '../../../_/validate.mjs';
 import 'drizzle-orm';
+import 'unified';
+import 'remark-parse';
+import 'remark-gfm';
+import 'remark-frontmatter';
+import 'remark-rehype';
+import 'rehype-stringify';
+import 'rehype-slug';
+import 'rehype-sanitize';
+import 'yaml';
 import 'drizzle-orm/pg-core';
 import 'jose';
 import 'node:fs';
@@ -23,10 +33,7 @@ import 'better-auth/plugins';
 const _id__delete = defineEventHandler(async (event) => {
   const db = useDB();
   requireAdmin(event);
-  const id = getRouterParam(event, "id");
-  if (!id) {
-    throw createError({ statusCode: 400, statusMessage: "Product ID is required" });
-  }
+  const { id } = parseParams(event, { id: "uuid" });
   const deleted = await deleteProduct(db, id);
   if (!deleted) {
     throw createError({ statusCode: 404, statusMessage: "Product not found" });
