@@ -1,6 +1,6 @@
 import { deletePath, getPathBySlug } from '@commonpub/server';
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async (event): Promise<boolean> => {
   const user = requireAuth(event);
   const db = useDB();
   const slug = getRouterParam(event, 'slug')!;

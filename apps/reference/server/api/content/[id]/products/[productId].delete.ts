@@ -1,6 +1,6 @@
 import { removeContentProduct } from '@commonpub/server';
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async (event): Promise<{ removed: boolean }> => {
   const db = useDB();
   requireAuth(event);
   const id = getRouterParam(event, 'id');

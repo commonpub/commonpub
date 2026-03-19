@@ -8,7 +8,7 @@ function getStorage(): ReturnType<typeof createStorageFromEnv> {
   return storage;
 }
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async (event): Promise<{ deleted: boolean }> => {
   const db = useDB();
   const user = requireAuth(event);
   const id = getRouterParam(event, 'id');

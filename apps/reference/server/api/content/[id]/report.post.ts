@@ -1,7 +1,7 @@
 import { createReport } from '@commonpub/server';
 import { createReportSchema } from '@commonpub/schema';
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async (event): Promise<{ id: string }> => {
   const db = useDB();
   const user = requireAuth(event);
   const id = getRouterParam(event, 'id');

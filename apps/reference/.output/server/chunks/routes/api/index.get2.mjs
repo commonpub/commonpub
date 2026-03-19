@@ -1,4 +1,4 @@
-import { d as defineEventHandler, u as useDB, g as getQuery, Z as listContests } from '../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, a0 as contestFiltersSchema, g as getQuery, a1 as listContests } from '../../nitro/nitro.mjs';
 import 'drizzle-orm';
 import 'drizzle-orm/pg-core';
 import 'jose';
@@ -21,12 +21,8 @@ import 'better-auth/plugins';
 
 const index_get = defineEventHandler(async (event) => {
   const db = useDB();
-  const query = getQuery(event);
-  return listContests(db, {
-    status: query.status,
-    limit: query.limit ? Number(query.limit) : 20,
-    offset: query.offset ? Number(query.offset) : 0
-  });
+  const filters = contestFiltersSchema.parse(getQuery(event));
+  return listContests(db, filters);
 });
 
 export { index_get as default };

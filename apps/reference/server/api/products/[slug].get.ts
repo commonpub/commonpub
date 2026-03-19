@@ -1,6 +1,7 @@
 import { getProductBySlug } from '@commonpub/server';
+import type { ProductDetail } from '@commonpub/server';
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async (event): Promise<ProductDetail> => {
   const db = useDB();
   const slug = getRouterParam(event, 'slug');
 

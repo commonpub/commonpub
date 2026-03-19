@@ -1,4 +1,4 @@
-import { d as defineEventHandler, u as useDB, g as getQuery, ba as listPaths } from '../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, bk as learningPathFiltersSchema, g as getQuery, bl as listPaths } from '../../nitro/nitro.mjs';
 import 'drizzle-orm';
 import 'drizzle-orm/pg-core';
 import 'jose';
@@ -22,12 +22,10 @@ import 'better-auth/plugins';
 const index_get = defineEventHandler(async (event) => {
   var _a;
   const db = useDB();
-  const query = getQuery(event);
+  const filters = learningPathFiltersSchema.parse(getQuery(event));
   return listPaths(db, {
-    status: (_a = query.status) != null ? _a : "published",
-    difficulty: query.difficulty,
-    limit: query.limit ? Number(query.limit) : void 0,
-    offset: query.offset ? Number(query.offset) : void 0
+    ...filters,
+    status: (_a = filters.status) != null ? _a : "published"
   });
 });
 

@@ -25,7 +25,7 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 404, statusMessage: 'Docs site not found' });
     }
 
-    const defaultVersion = result.versions.find((v) => v.isDefault === 1) ?? result.versions[0];
+    const defaultVersion = result.versions.find((v) => v.isDefault === true) ?? result.versions[0];
     if (!defaultVersion) {
       throw createError({ statusCode: 404, statusMessage: 'No version found for docs site' });
     }

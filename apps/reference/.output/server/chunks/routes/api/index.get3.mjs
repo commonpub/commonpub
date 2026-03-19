@@ -1,4 +1,4 @@
-import { d as defineEventHandler, u as useDB, ad as listDocsSites } from '../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, ah as listDocsSites } from '../../nitro/nitro.mjs';
 import 'drizzle-orm';
 import 'drizzle-orm/pg-core';
 import 'jose';

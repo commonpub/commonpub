@@ -1,8 +1,8 @@
 import { setInstanceSetting } from '@commonpub/server';
 import { adminSettingSchema } from '@commonpub/schema';
 
-export default defineEventHandler(async (event) => {
-  requireAdmin(event);
+export default defineEventHandler(async (event): Promise<void> => {
+  const admin = requireAdmin(event);
   const db = useDB();
   const body = await readBody(event);
 
@@ -15,5 +15,5 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  return setInstanceSetting(db, parsed.data.key, parsed.data.value);
+  return setInstanceSetting(db, parsed.data.key, parsed.data.value, admin.id);
 });

@@ -1,6 +1,7 @@
 import { publishContent, onContentPublished } from '@commonpub/server';
+import type { ContentDetail } from '@commonpub/server';
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async (event): Promise<ContentDetail> => {
   const user = requireAuth(event);
   const db = useDB();
   const config = useConfig();

@@ -1,9 +1,16 @@
 import { getUserByUsername, listFollowing } from '@commonpub/server';
+import type { PaginatedResponse, FollowUserItem } from '@commonpub/server';
+import { z } from 'zod';
 
-export default defineEventHandler(async (event) => {
+const paginationSchema = z.object({
+  limit: z.coerce.number().int().positive().max(100).optional(),
+  offset: z.coerce.number().int().min(0).optional(),
+});
+
+export default defineEventHandler(async (event): Promise<PaginatedResponse<FollowUserItem>> => {
   const db = useDB();
   const username = getRouterParam(event, 'username');
-  const query = getQuery(event);
+  const query = paginationSchema.parse(getQuery(event));
 
   if (!username) {
     throw createError({ statusCode: 400, statusMessage: 'Username is required' });
@@ -14,8 +21,5 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'User not found' });
   }
 
-  return listFollowing(db, target.id, {
-    limit: query.limit ? Number(query.limit) : undefined,
-    offset: query.offset ? Number(query.offset) : undefined,
-  });
+  return listFollowing(db, target.id, query);
 });

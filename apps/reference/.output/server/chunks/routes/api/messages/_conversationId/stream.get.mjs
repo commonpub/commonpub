@@ -1,4 +1,5 @@
-import { d as defineEventHandler, f as createError, a as getRouterParam, u as useDB, at as setResponseHeader, bd as getConversationMessages } from '../../../../nitro/nitro.mjs';
+import { d as defineEventHandler, a as getRouterParam, f as createError, u as useDB, ax as setResponseHeader, bo as getConversationMessages } from '../../../../nitro/nitro.mjs';
+import { a as requireAuth } from '../../../../_/auth.mjs';
 import 'drizzle-orm';
 import 'drizzle-orm/pg-core';
 import 'jose';
@@ -20,11 +21,8 @@ import 'better-auth/adapters/drizzle';
 import 'better-auth/plugins';
 
 const stream_get = defineEventHandler(async (event) => {
-  const auth = event.context.auth;
-  if (!(auth == null ? void 0 : auth.user)) {
-    throw createError({ statusCode: 401, statusMessage: "Authentication required" });
-  }
-  const userId = auth.user.id;
+  const user = requireAuth(event);
+  const userId = user.id;
   const conversationId = getRouterParam(event, "conversationId");
   if (!conversationId) {
     throw createError({ statusCode: 400, statusMessage: "Conversation ID required" });

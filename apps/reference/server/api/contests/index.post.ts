@@ -1,7 +1,8 @@
 import { createContest } from '@commonpub/server';
+import type { ContestDetail } from '@commonpub/server';
 import { createContestSchema } from '@commonpub/schema';
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async (event): Promise<ContestDetail> => {
   const user = requireAuth(event);
   const db = useDB();
   const body = await readBody(event);

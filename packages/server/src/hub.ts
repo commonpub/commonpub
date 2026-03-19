@@ -21,6 +21,9 @@ import type {
   HubFilters,
   HubInviteItem,
   HubBanItem,
+  HubRole,
+  JoinPolicy,
+  PostType,
 } from './types.js';
 import { generateSlug, hasPermission, canManageRole } from './utils.js';
 
@@ -62,7 +65,7 @@ export async function listHubs(
   }
   if (filters.joinPolicy) {
     conditions.push(
-      eq(hubs.joinPolicy, filters.joinPolicy as 'open' | 'approval' | 'invite'),
+      eq(hubs.joinPolicy, filters.joinPolicy),
     );
   }
 
@@ -134,7 +137,7 @@ export async function getHubBySlug(
   if (rows.length === 0) return null;
 
   const row = rows[0]!;
-  let currentUserRole: string | null = null;
+  let currentUserRole: HubRole | null = null;
   let isBanned = false;
 
   if (requesterId) {
@@ -183,7 +186,7 @@ export async function getHubBySlug(
 export async function createHub(
   db: DB,
   userId: string,
-  input: { name: string; description?: string; rules?: string; joinPolicy?: string },
+  input: { name: string; description?: string; rules?: string; joinPolicy?: JoinPolicy },
 ): Promise<HubDetail> {
   const slug = await ensureUniqueHubSlug(db, generateSlug(input.name));
 
@@ -194,7 +197,7 @@ export async function createHub(
       slug,
       description: input.description ?? null,
       rules: input.rules ?? null,
-      joinPolicy: (input.joinPolicy as 'open' | 'approval' | 'invite') ?? 'open',
+      joinPolicy: input.joinPolicy ?? 'open',
       createdById: userId,
       memberCount: 1,
     })
@@ -433,7 +436,7 @@ export async function changeRole(
   actorId: string,
   hubId: string,
   targetUserId: string,
-  newRole: string,
+  newRole: HubRole,
 ): Promise<{ changed: boolean; error?: string }> {
   const [actorMember, targetMember] = await Promise.all([
     db
@@ -475,7 +478,7 @@ export async function changeRole(
 
   await db
     .update(hubMembers)
-    .set({ role: newRole as 'admin' | 'moderator' | 'member' })
+    .set({ role: newRole })
     .where(
       and(eq(hubMembers.hubId, hubId), eq(hubMembers.userId, targetUserId)),
     );
@@ -541,7 +544,7 @@ export async function kickMember(
 export async function createPost(
   db: DB,
   authorId: string,
-  input: { hubId: string; type?: string; content: string },
+  input: { hubId: string; type?: PostType; content: string },
 ): Promise<HubPostItem> {
   const member = await db
     .select({ role: hubMembers.role })
@@ -563,7 +566,7 @@ export async function createPost(
     .values({
       hubId: input.hubId,
       authorId,
-      type: (input.type as 'text' | 'link' | 'share' | 'poll') ?? 'text',
+      type: input.type ?? 'text',
       content: input.content,
     })
     .returning();
@@ -607,7 +610,7 @@ export async function listPosts(
   const conditions = [eq(hubPosts.hubId, hubId)];
 
   if (filters.type) {
-    conditions.push(eq(hubPosts.type, filters.type as 'text' | 'link' | 'share' | 'poll'));
+    conditions.push(eq(hubPosts.type, filters.type));
   }
 
   const where = and(...conditions);

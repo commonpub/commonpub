@@ -1,4 +1,4 @@
-import { d as defineEventHandler, u as useDB, g as getQuery, L as listContent } from '../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, N as contentFiltersSchema, g as getQuery, O as listContent } from '../../nitro/nitro.mjs';
 import { g as getOptionalUser } from '../../_/auth.mjs';
 import 'drizzle-orm';
 import 'drizzle-orm/pg-core';
@@ -23,21 +23,12 @@ import 'better-auth/plugins';
 const index_get = defineEventHandler(async (event) => {
   var _a;
   const db = useDB();
-  const query = getQuery(event);
   const user = getOptionalUser(event);
-  const authorId = query.authorId;
-  const isOwnContent = authorId && (user == null ? void 0 : user.id) === authorId;
+  const filters = contentFiltersSchema.parse(getQuery(event));
+  const isOwnContent = filters.authorId && (user == null ? void 0 : user.id) === filters.authorId;
   return listContent(db, {
-    status: isOwnContent ? query.status : (_a = query.status) != null ? _a : "published",
-    type: query.type,
-    authorId,
-    featured: query.featured === "true" ? true : void 0,
-    difficulty: query.difficulty,
-    search: query.search,
-    tag: query.tag,
-    sort: query.sort,
-    limit: query.limit ? Number(query.limit) : void 0,
-    offset: query.offset ? Number(query.offset) : void 0
+    ...filters,
+    status: isOwnContent ? filters.status : (_a = filters.status) != null ? _a : "published"
   });
 });
 

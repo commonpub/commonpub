@@ -175,6 +175,37 @@ const downloadFiles = computed<FileItem[]>(() => {
   }
   return files;
 });
+
+// Fork
+const forking = ref(false);
+async function handleFork(): Promise<void> {
+  forking.value = true;
+  try {
+    const result = await $fetch<{ slug: string }>(`/api/content/${props.content.id}/fork`, { method: 'POST' });
+    await navigateTo(`/content/${result.slug}/edit`);
+  } catch {
+    // fork failed silently
+  } finally {
+    forking.value = false;
+  }
+}
+
+// I Built This
+const buildMarked = ref(false);
+const localBuildCount = ref(props.content?.buildCount ?? 0);
+const buildToggling = ref(false);
+async function handleBuild(): Promise<void> {
+  buildToggling.value = true;
+  try {
+    const result = await $fetch<{ marked: boolean; count: number }>(`/api/content/${props.content.id}/build`, { method: 'POST' });
+    buildMarked.value = result.marked;
+    localBuildCount.value = result.count;
+  } catch {
+    // toggle failed silently
+  } finally {
+    buildToggling.value = false;
+  }
+}
 </script>
 
 <template>
@@ -241,8 +272,8 @@ const downloadFiles = computed<FileItem[]>(() => {
           <button class="cpub-engage-btn" :class="{ bookmarked }" @click="toggleBookmark"><i class="fa-regular fa-bookmark"></i> Bookmark</button>
           <button class="cpub-engage-btn" @click="share"><i class="fa-solid fa-share-nodes"></i> Share</button>
           <div class="cpub-engage-sep"></div>
-          <button class="cpub-engage-btn"><i class="fa-solid fa-code-branch"></i> Fork <span class="cpub-count">{{ content.forkCount ?? 0 }}</span></button>
-          <button class="cpub-engage-btn cpub-engage-btn-green"><i class="fa-solid fa-hammer"></i> I Built This <span class="cpub-count">{{ content.buildCount ?? 0 }}</span></button>
+          <button class="cpub-engage-btn" :disabled="forking" @click="handleFork"><i class="fa-solid fa-code-branch"></i> {{ forking ? 'Forking...' : 'Fork' }} <span class="cpub-count">{{ content.forkCount ?? 0 }}</span></button>
+          <button class="cpub-engage-btn cpub-engage-btn-green" :class="{ 'cpub-engage-active': buildMarked }" :disabled="buildToggling" @click="handleBuild"><i class="fa-solid fa-hammer"></i> I Built This <span class="cpub-count">{{ localBuildCount }}</span></button>
         </div>
       </div>
     </div>
@@ -486,7 +517,7 @@ const downloadFiles = computed<FileItem[]>(() => {
               <div class="cpub-hub-icon"><i class="fa-solid fa-users"></i></div>
               <div class="cpub-hub-name">{{ content.community.name }}</div>
               <div class="cpub-hub-desc">{{ content.community.description }}</div>
-              <button class="cpub-btn cpub-btn-sm">Join Community</button>
+              <button class="cpub-btn cpub-btn-sm" @click="navigateTo(`/hubs/${content.community?.slug}`)">Join Community</button>
             </div>
           </div>
         </aside>

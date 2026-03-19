@@ -5,18 +5,9 @@ const route = useRoute();
 const slug = computed(() => route.params.slug as string);
 const toast = useToast();
 
-interface HubData {
-  name: string;
-  slug: string;
-  description: string | null;
-  rules: string[];
-  joinPolicy: string;
-  privacy: string;
-  hubType: string;
-  website: string | null;
-}
+import type { Serialized, HubDetail } from '@commonpub/server';
 
-const { data: hub } = await useFetch<HubData>(() => `/api/hubs/${slug.value}`);
+const { data: hub } = await useFetch<Serialized<HubDetail>>(() => `/api/hubs/${slug.value}`);
 
 useSeoMeta({
   title: () => `Settings — ${hub.value?.name ?? 'Hub'} — CommonPub`,

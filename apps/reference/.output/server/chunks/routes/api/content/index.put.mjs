@@ -1,4 +1,4 @@
-import { d as defineEventHandler, u as useDB, a as getRouterParam, f as createError, c as readBody, x as updateContentSchema, y as updateContent } from '../../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, a as getRouterParam, f as createError, c as readBody, z as updateContentSchema, A as updateContent } from '../../../nitro/nitro.mjs';
 import { a as requireAuth } from '../../../_/auth.mjs';
 import 'drizzle-orm';
 import 'drizzle-orm/pg-core';

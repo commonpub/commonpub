@@ -1,11 +1,9 @@
 import { listVideos } from '@commonpub/server';
+import type { PaginatedResponse, VideoListItem } from '@commonpub/server';
+import { videoFiltersSchema } from '@commonpub/schema';
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async (event): Promise<PaginatedResponse<VideoListItem>> => {
   const db = useDB();
-  const query = getQuery(event);
-  return listVideos(db, {
-    categoryId: query.categoryId as string | undefined,
-    limit: query.limit ? Number(query.limit) : 20,
-    offset: query.offset ? Number(query.offset) : 0,
-  });
+  const filters = videoFiltersSchema.parse(getQuery(event));
+  return listVideos(db, filters);
 });

@@ -404,7 +404,7 @@ export async function listFederationActivity(
   db: DB,
   filters: {
     direction?: 'inbound' | 'outbound';
-    status?: string;
+    status?: 'pending' | 'delivered' | 'failed' | 'processed';
     type?: string;
     limit?: number;
     offset?: number;
@@ -430,7 +430,7 @@ export async function listFederationActivity(
   }
   if (filters.status) {
     conditions.push(
-      eq(activities.status, filters.status as 'pending' | 'delivered' | 'failed' | 'processed'),
+      eq(activities.status, filters.status),
     );
   }
   if (filters.type) {

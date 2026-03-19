@@ -4,17 +4,7 @@ useSeoMeta({
   description: 'Browse and join maker communities.',
 });
 
-interface HubItem {
-  id: string;
-  name: string;
-  slug: string;
-  description: string | null;
-  hubType: string;
-  memberCount: number;
-  postCount: number;
-}
-
-const { data } = await useFetch<{ items: HubItem[]; total: number }>('/api/hubs');
+const { data } = await useFetch('/api/hubs');
 const { isAuthenticated } = useAuth();
 
 const hubs = computed(() => data.value?.items ?? []);

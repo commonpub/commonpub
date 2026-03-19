@@ -1,8 +1,8 @@
 import { updateUserStatus } from '@commonpub/server';
 import { adminUpdateStatusSchema } from '@commonpub/schema';
 
-export default defineEventHandler(async (event) => {
-  requireAdmin(event);
+export default defineEventHandler(async (event): Promise<void> => {
+  const admin = requireAdmin(event);
   const db = useDB();
   const id = getRouterParam(event, 'id')!;
   const body = await readBody(event);
@@ -16,5 +16,5 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  return updateUserStatus(db, id, parsed.data.status);
+  return updateUserStatus(db, id, parsed.data.status, admin.id);
 });

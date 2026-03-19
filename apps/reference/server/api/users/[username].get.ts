@@ -1,6 +1,7 @@
 import { getUserByUsername } from '@commonpub/server';
+import type { UserProfile } from '@commonpub/server';
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async (event): Promise<UserProfile> => {
   const db = useDB();
   const username = getRouterParam(event, 'username')!;
 

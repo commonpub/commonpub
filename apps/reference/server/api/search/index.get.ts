@@ -1,19 +1,24 @@
 import { listContent } from '@commonpub/server';
+import type { PaginatedResponse, ContentListItem } from '@commonpub/server';
+import { contentFiltersSchema } from '@commonpub/schema';
+import { z } from 'zod';
 
-export default defineEventHandler(async (event) => {
+const searchQuerySchema = contentFiltersSchema.extend({
+  q: z.string().max(200).optional(),
+});
+
+export default defineEventHandler(async (event): Promise<PaginatedResponse<ContentListItem>> => {
   const db = useDB();
-  const query = getQuery(event);
+  const filters = searchQuerySchema.parse(getQuery(event));
+  const q = filters.q || filters.search;
 
-  const q = query.q as string | undefined;
   if (!q) {
     return { items: [], total: 0 };
   }
 
   return listContent(db, {
+    ...filters,
     status: 'published',
     search: q,
-    type: query.type as string | undefined,
-    limit: query.limit ? Number(query.limit) : 20,
-    offset: query.offset ? Number(query.offset) : 0,
   });
 });

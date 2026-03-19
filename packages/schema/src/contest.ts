@@ -72,3 +72,9 @@ export const contestEntriesRelations = relations(contestEntries, ({ one }) => ({
   }),
   user: one(users, { fields: [contestEntries.userId], references: [users.id] }),
 }));
+
+// --- Inferred Types ---
+export type ContestRow = typeof contests.$inferSelect;
+export type NewContestRow = typeof contests.$inferInsert;
+export type ContestEntryRow = typeof contestEntries.$inferSelect;
+export type NewContestEntryRow = typeof contestEntries.$inferInsert;

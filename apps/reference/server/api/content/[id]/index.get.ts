@@ -1,6 +1,7 @@
 import { getContentBySlug } from '@commonpub/server';
+import type { ContentDetail } from '@commonpub/server';
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async (event): Promise<ContentDetail> => {
   const db = useDB();
   // Param is named 'id' (directory name) but the value is a slug for GET requests
   const slugOrId = getRouterParam(event, 'id')!;

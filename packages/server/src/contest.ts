@@ -2,13 +2,15 @@ import { eq, and, desc, sql } from 'drizzle-orm';
 import { contests, contestEntries, users, contentItems } from '@commonpub/schema';
 import type { DB } from './types.js';
 
+import type { ContestStatus } from '@commonpub/schema';
+
 export interface ContestListItem {
   id: string;
   title: string;
   slug: string;
   description: string | null;
   bannerUrl: string | null;
-  status: string;
+  status: ContestStatus;
   startDate: Date;
   endDate: Date;
   entryCount: number;
@@ -25,7 +27,7 @@ export interface ContestDetail extends ContestListItem {
 }
 
 export interface ContestFilters {
-  status?: string;
+  status?: ContestStatus;
   limit?: number;
   offset?: number;
 }
@@ -62,7 +64,7 @@ export async function listContests(
 
   if (filters.status) {
     conditions.push(
-      eq(contests.status, filters.status as 'upcoming' | 'active' | 'judging' | 'completed'),
+      eq(contests.status, filters.status),
     );
   }
 
@@ -360,7 +362,7 @@ export async function transitionContestStatus(
   db: DB,
   contestId: string,
   userId: string,
-  newStatus: string,
+  newStatus: ContestStatus,
 ): Promise<{ transitioned: boolean; error?: string }> {
   const contest = await db
     .select({ createdById: contests.createdById, status: contests.status })
@@ -381,7 +383,7 @@ export async function transitionContestStatus(
   await db
     .update(contests)
     .set({
-      status: newStatus as 'upcoming' | 'active' | 'judging' | 'completed',
+      status: newStatus,
       updatedAt: new Date(),
     })
     .where(eq(contests.id, contestId));

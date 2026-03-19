@@ -2,14 +2,13 @@
  * Block editor composable — manages an array of content blocks with full CRUD operations.
  * Blocks are stored as { id, type, content } and serialized to/from BlockTuple format for persistence.
  */
+import type { BlockTuple } from '@commonpub/editor';
 
 export interface EditorBlock {
   id: string;
   type: string;
   content: Record<string, unknown>;
 }
-
-type BlockTuple = [string, Record<string, unknown>];
 
 /** Default content values when creating a new block of each type */
 const BLOCK_DEFAULTS: Record<string, () => Record<string, unknown>> = {

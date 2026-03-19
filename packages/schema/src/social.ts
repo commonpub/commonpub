@@ -57,6 +57,7 @@ export const comments = pgTable('comments', {
     .references(() => users.id, { onDelete: 'cascade' }),
   targetType: commentTargetTypeEnum('target_type').notNull(),
   targetId: uuid('target_id').notNull(),
+  // Self-referencing FK handled via relations; DB-level constraint added via migration
   parentId: uuid('parent_id'),
   content: text('content').notNull(),
   likeCount: integer('like_count').default(0).notNull(),
@@ -185,3 +186,21 @@ export const messagesRelations = relations(messages, ({ one }) => ({
   }),
   sender: one(users, { fields: [messages.senderId], references: [users.id] }),
 }));
+
+// --- Inferred Types ---
+export type LikeRow = typeof likes.$inferSelect;
+export type NewLikeRow = typeof likes.$inferInsert;
+export type FollowRow = typeof follows.$inferSelect;
+export type NewFollowRow = typeof follows.$inferInsert;
+export type CommentRow = typeof comments.$inferSelect;
+export type NewCommentRow = typeof comments.$inferInsert;
+export type BookmarkRow = typeof bookmarks.$inferSelect;
+export type NewBookmarkRow = typeof bookmarks.$inferInsert;
+export type NotificationRow = typeof notifications.$inferSelect;
+export type NewNotificationRow = typeof notifications.$inferInsert;
+export type ReportRow = typeof reports.$inferSelect;
+export type NewReportRow = typeof reports.$inferInsert;
+export type ConversationRow = typeof conversations.$inferSelect;
+export type NewConversationRow = typeof conversations.$inferInsert;
+export type MessageRow = typeof messages.$inferSelect;
+export type NewMessageRow = typeof messages.$inferInsert;

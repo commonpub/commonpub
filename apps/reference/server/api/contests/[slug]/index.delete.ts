@@ -1,6 +1,6 @@
 import { getContestBySlug, deleteContest } from '@commonpub/server';
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async (event): Promise<{ deleted: boolean }> => {
   const db = useDB();
   const user = requireAuth(event);
   const slug = getRouterParam(event, 'slug');

@@ -9,6 +9,14 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./validators": {
+      "types": "./dist/validators.d.ts",
+      "import": "./dist/validators.js"
+    },
+    "./enums": {
+      "types": "./dist/enums.d.ts",
+      "import": "./dist/enums.js"
     }
   },
   "scripts": {
@@ -30,7 +38,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "drizzle-kit": "^0.30.0",
+    "drizzle-kit": "^0.31.10",
     "pg": "^8.13.0",
     "typescript": "^5.7.0",
     "vitest": "^3.0.0"

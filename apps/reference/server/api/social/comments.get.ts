@@ -1,8 +1,16 @@
 import { listComments } from '@commonpub/server';
+import type { CommentItem } from '@commonpub/server';
+import { commentTargetTypeSchema } from '@commonpub/schema';
+import { z } from 'zod';
 
-export default defineEventHandler(async (event) => {
+const commentsQuerySchema = z.object({
+  targetType: commentTargetTypeSchema,
+  targetId: z.string().uuid(),
+});
+
+export default defineEventHandler(async (event): Promise<CommentItem[]> => {
   const db = useDB();
-  const query = getQuery(event);
+  const query = commentsQuerySchema.parse(getQuery(event));
 
-  return listComments(db, query.targetType as string, query.targetId as string);
+  return listComments(db, query.targetType, query.targetId);
 });

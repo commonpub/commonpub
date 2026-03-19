@@ -1,9 +1,14 @@
 import { getDocsSiteBySlug, listDocsPages } from '@commonpub/server';
+import { z } from 'zod';
+
+const pagesQuerySchema = z.object({
+  version: z.string().max(32).optional(),
+});
 
 export default defineEventHandler(async (event) => {
   const db = useDB();
   const siteSlug = getRouterParam(event, 'siteSlug')!;
-  const query = getQuery(event);
+  const query = pagesQuerySchema.parse(getQuery(event));
 
   const result = await getDocsSiteBySlug(db, siteSlug);
   if (!result) {
@@ -11,10 +16,10 @@ export default defineEventHandler(async (event) => {
   }
 
   // Find the requested version or fall back to the default version
-  const requestedVersion = query.version as string | undefined;
+  const requestedVersion = query.version;
   let version = requestedVersion
     ? result.versions.find((v) => v.version === requestedVersion)
-    : result.versions.find((v) => v.isDefault === 1);
+    : result.versions.find((v) => v.isDefault === true);
 
   // Fall back to first version if no default found
   if (!version && result.versions.length > 0) {

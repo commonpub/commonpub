@@ -51,7 +51,7 @@ export interface ProductFilters {
   search?: string;
   category?: string;
   hubId?: string;
-  status?: string;
+  status?: 'active' | 'discontinued' | 'preview';
   limit?: number;
   offset?: number;
 }
@@ -96,7 +96,7 @@ export async function createProduct(
     purchaseUrl?: string;
     datasheetUrl?: string;
     pricing?: { min?: number; max?: number; currency?: string };
-    status?: string;
+    status?: 'active' | 'discontinued' | 'preview';
   },
 ): Promise<ProductDetail> {
   const slug = await ensureUniqueProductSlug(db, generateSlug(input.name));
@@ -114,7 +114,7 @@ export async function createProduct(
       purchaseUrl: input.purchaseUrl ?? null,
       datasheetUrl: input.datasheetUrl ?? null,
       pricing: input.pricing ?? null,
-      status: (input.status as 'active' | 'discontinued' | 'preview') ?? 'active',
+      status: input.status ?? 'active',
       createdById: userId,
     })
     .returning();
@@ -244,7 +244,7 @@ export async function listHubProducts(
     conditions.push(eq(products.category, filters.category as typeof products.category.enumValues[number]));
   }
   if (filters.status) {
-    conditions.push(eq(products.status, filters.status as 'active' | 'discontinued' | 'preview'));
+    conditions.push(eq(products.status, filters.status));
   }
 
   const where = and(...conditions);
@@ -294,7 +294,7 @@ export async function searchProducts(
     conditions.push(eq(products.category, filters.category as typeof products.category.enumValues[number]));
   }
   if (filters.status) {
-    conditions.push(eq(products.status, filters.status as 'active' | 'discontinued' | 'preview'));
+    conditions.push(eq(products.status, filters.status));
   }
   if (filters.hubId) {
     conditions.push(eq(products.hubId, filters.hubId));

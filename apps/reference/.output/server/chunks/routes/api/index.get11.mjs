@@ -1,4 +1,4 @@
-import { d as defineEventHandler, u as useDB, g as getQuery, bX as listVideos } from '../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, c8 as videoFiltersSchema, g as getQuery, c9 as listVideos } from '../../nitro/nitro.mjs';
 import 'drizzle-orm';
 import 'drizzle-orm/pg-core';
 import 'jose';
@@ -21,12 +21,8 @@ import 'better-auth/plugins';
 
 const index_get = defineEventHandler(async (event) => {
   const db = useDB();
-  const query = getQuery(event);
-  return listVideos(db, {
-    categoryId: query.categoryId,
-    limit: query.limit ? Number(query.limit) : 20,
-    offset: query.offset ? Number(query.offset) : 0
-  });
+  const filters = videoFiltersSchema.parse(getQuery(event));
+  return listVideos(db, filters);
 });
 
 export { index_get as default };

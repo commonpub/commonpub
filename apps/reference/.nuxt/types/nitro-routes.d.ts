@@ -34,6 +34,12 @@ declare module "nitropack/types" {
     '/api/admin/users/:id/status': {
       'put': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/admin/users/[id]/status.put').default>>>>
     }
+    '/api/content/:id/build': {
+      'post': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/content/[id]/build.post').default>>>>
+    }
+    '/api/content/:id/fork': {
+      'post': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/content/[id]/fork.post').default>>>>
+    }
     '/api/content/:id': {
       'delete': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/content/[id]/index.delete').default>>>>
       'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/content/[id]/index.get').default>>>>
@@ -195,10 +201,14 @@ declare module "nitropack/types" {
     '/api/learn/:slug/lessons': {
       'post': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/learn/[slug]/lessons.post').default>>>>
     }
+    '/api/learn/:slug/lessons/:lessonId': {
+      'delete': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/learn/[slug]/lessons/[lessonId].delete').default>>>>
+    }
     '/api/learn/:slug/modules': {
       'post': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/learn/[slug]/modules.post').default>>>>
     }
     '/api/learn/:slug/modules/:moduleId': {
+      'delete': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/learn/[slug]/modules/[moduleId].delete').default>>>>
       'put': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/learn/[slug]/modules/[moduleId].put').default>>>>
     }
     '/api/learn/:slug/publish': {
@@ -363,7 +373,7 @@ declare module "nitropack/types" {
       'default': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/routes/users/[username]/outbox').default>>>>
     }
     '/__nuxt_error': {
-      'default': Simplify<Serialize<Awaited<ReturnType<typeof import('../../../../node_modules/.pnpm/@nuxt+nitro-server@3.21.1_db0@0.3.4_drizzle-orm@0.38.4_kysely@0.28.11_pg@8.20.0___drizz_07dfe389c2ad4c703151522bdf7a8e92/node_modules/@nuxt/nitro-server/dist/runtime/handlers/renderer').default>>>>
+      'default': Simplify<Serialize<Awaited<ReturnType<typeof import('../../../../node_modules/.pnpm/@nuxt+nitro-server@3.21.1_@electric-sql+pglite@0.3.16_db0@0.3.4_@electric-sql+pglite@0._2a71c61896dcdb0142d54cde5c1800db/node_modules/@nuxt/nitro-server/dist/runtime/handlers/renderer').default>>>>
     }
     '/__nuxt_island/**': {
       'default': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/#internal/nuxt/island-renderer').default>>>>

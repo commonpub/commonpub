@@ -2,12 +2,14 @@ import { eq, desc, sql } from 'drizzle-orm';
 import { videos, videoCategories, users } from '@commonpub/schema';
 import type { DB } from './types.js';
 
+import type { VideoPlatform } from '@commonpub/schema';
+
 export interface VideoListItem {
   id: string;
   title: string;
   url: string;
   embedUrl: string | null;
-  platform: string;
+  platform: VideoPlatform;
   thumbnailUrl: string | null;
   duration: string | null;
   viewCount: number;
@@ -133,7 +135,7 @@ export async function createVideo(
     url: string;
     description?: string;
     embedUrl?: string;
-    platform?: string;
+    platform?: 'youtube' | 'vimeo' | 'other';
     thumbnailUrl?: string;
     duration?: string;
     authorId: string;
@@ -146,7 +148,7 @@ export async function createVideo(
       url: input.url,
       description: input.description ?? null,
       embedUrl: input.embedUrl ?? null,
-      platform: (input.platform ?? 'youtube') as 'youtube' | 'vimeo' | 'other',
+      platform: input.platform ?? 'youtube',
       thumbnailUrl: input.thumbnailUrl ?? null,
       duration: input.duration ?? null,
       authorId: input.authorId,

@@ -1,6 +1,6 @@
 import { kickMember, getHubBySlug } from '@commonpub/server';
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async (event): Promise<{ kicked: boolean; error?: string }> => {
   const user = requireAuth(event);
   const db = useDB();
   const slug = getRouterParam(event, 'slug') as string;

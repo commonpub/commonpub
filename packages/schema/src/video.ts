@@ -35,3 +35,9 @@ export const videoCategories = pgTable('video_categories', {
 export const videosRelations = relations(videos, ({ one }) => ({
   author: one(users, { fields: [videos.authorId], references: [users.id] }),
 }));
+
+// --- Inferred Types ---
+export type VideoRow = typeof videos.$inferSelect;
+export type NewVideoRow = typeof videos.$inferInsert;
+export type VideoCategoryRow = typeof videoCategories.$inferSelect;
+export type NewVideoCategoryRow = typeof videoCategories.$inferInsert;

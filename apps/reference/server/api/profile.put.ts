@@ -1,7 +1,8 @@
 import { updateUserProfile } from '@commonpub/server';
+import type { UserProfile } from '@commonpub/server';
 import { updateProfileSchema } from '@commonpub/schema';
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async (event): Promise<UserProfile> => {
   const db = useDB();
   const user = requireAuth(event);
 

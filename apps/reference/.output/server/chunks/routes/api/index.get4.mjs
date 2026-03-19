@@ -1,4 +1,4 @@
-import { d as defineEventHandler, u as useDB, g as getQuery, aS as listHubs } from '../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, aZ as hubFiltersSchema, g as getQuery, a_ as listHubs } from '../../nitro/nitro.mjs';
 import 'drizzle-orm';
 import 'drizzle-orm/pg-core';
 import 'jose';
@@ -21,13 +21,8 @@ import 'better-auth/plugins';
 
 const index_get = defineEventHandler(async (event) => {
   const db = useDB();
-  const query = getQuery(event);
-  return listHubs(db, {
-    search: query.search,
-    joinPolicy: query.joinPolicy,
-    limit: query.limit ? Number(query.limit) : void 0,
-    offset: query.offset ? Number(query.offset) : void 0
-  });
+  const filters = hubFiltersSchema.parse(getQuery(event));
+  return listHubs(db, filters);
 });
 
 export { index_get as default };

@@ -1,4 +1,4 @@
-import { d as defineEventHandler, u as useDB, a as getRouterParam, f as createError, O as getContestBySlug, c as readBody, Q as submitContestEntry } from '../../../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, a as getRouterParam, f as createError, R as getContestBySlug, c as readBody, T as submitContestEntry } from '../../../../nitro/nitro.mjs';
 import { a as requireAuth } from '../../../../_/auth.mjs';
 import { z } from 'zod';
 import 'drizzle-orm';

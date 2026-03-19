@@ -24,7 +24,7 @@
     "@commonpub/config": "workspace:*",
     "@commonpub/protocol": "workspace:*",
     "better-auth": "^1.2.0",
-    "drizzle-orm": "^0.41.0"
+    "drizzle-orm": "^0.45.1"
   },
   "devDependencies": {
     "typescript": "^5.7.0",

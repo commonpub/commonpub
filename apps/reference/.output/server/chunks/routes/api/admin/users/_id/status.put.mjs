@@ -21,7 +21,7 @@ import 'better-auth/adapters/drizzle';
 import 'better-auth/plugins';
 
 const status_put = defineEventHandler(async (event) => {
-  requireAdmin(event);
+  const admin = requireAdmin(event);
   const db = useDB();
   const id = getRouterParam(event, "id");
   const body = await readBody(event);
@@ -33,7 +33,7 @@ const status_put = defineEventHandler(async (event) => {
       data: { errors: parsed.error.flatten().fieldErrors }
     });
   }
-  return updateUserStatus(db, id, parsed.data.status);
+  return updateUserStatus(db, id, parsed.data.status, admin.id);
 });
 
 export { status_put as default };

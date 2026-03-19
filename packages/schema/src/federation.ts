@@ -60,3 +60,13 @@ export const actorKeypairs = pgTable('actor_keypairs', {
 export const actorKeypairsRelations = relations(actorKeypairs, ({ one }) => ({
   user: one(users, { fields: [actorKeypairs.userId], references: [users.id] }),
 }));
+
+// --- Inferred Types ---
+export type RemoteActorRow = typeof remoteActors.$inferSelect;
+export type NewRemoteActorRow = typeof remoteActors.$inferInsert;
+export type ActivityRow = typeof activities.$inferSelect;
+export type NewActivityRow = typeof activities.$inferInsert;
+export type FollowRelationshipRow = typeof followRelationships.$inferSelect;
+export type NewFollowRelationshipRow = typeof followRelationships.$inferInsert;
+export type ActorKeypairRow = typeof actorKeypairs.$inferSelect;
+export type NewActorKeypairRow = typeof actorKeypairs.$inferInsert;

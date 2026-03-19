@@ -1,5 +1,6 @@
-import { d as defineEventHandler, u as useDB, g as getQuery, bO as users, bP as follows } from '../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, g as getQuery, b$ as users, c0 as follows } from '../../nitro/nitro.mjs';
 import { or, ilike, desc, sql } from 'drizzle-orm';
+import { z } from 'zod';
 import 'drizzle-orm/pg-core';
 import 'jose';
 import 'node:fs';
@@ -12,18 +13,24 @@ import 'node:https';
 import 'node:events';
 import 'node:buffer';
 import 'node:url';
-import 'zod';
 import 'drizzle-orm/node-postgres';
 import 'pg';
 import 'better-auth';
 import 'better-auth/adapters/drizzle';
 import 'better-auth/plugins';
 
+const usersQuerySchema = z.object({
+  q: z.string().max(200).optional(),
+  search: z.string().max(200).optional(),
+  limit: z.coerce.number().int().positive().max(50).optional(),
+  offset: z.coerce.number().int().min(0).optional()
+});
 const index_get = defineEventHandler(async (event) => {
+  var _a, _b;
   const db = useDB();
-  const query = getQuery(event);
-  const limit = Math.min(Number(query.limit) || 20, 50);
-  const offset = Number(query.offset) || 0;
+  const query = usersQuerySchema.parse(getQuery(event));
+  const limit = (_a = query.limit) != null ? _a : 20;
+  const offset = (_b = query.offset) != null ? _b : 0;
   const search = query.q || query.search;
   const conditions = [];
   if (search) {
@@ -51,14 +58,14 @@ const index_get = defineEventHandler(async (event) => {
     }
   }
   const items = rows.map((r) => {
-    var _a;
+    var _a2;
     return {
       id: r.id,
       username: r.username,
       displayName: r.displayName,
       headline: r.headline,
       avatarUrl: r.avatarUrl,
-      followerCount: (_a = followerCounts[r.id]) != null ? _a : 0
+      followerCount: (_a2 = followerCounts[r.id]) != null ? _a2 : 0
     };
   });
   return { items };

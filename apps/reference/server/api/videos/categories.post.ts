@@ -1,16 +1,9 @@
 import { createVideoCategory } from '@commonpub/server';
+import type { VideoCategoryItem } from '@commonpub/server';
 import { createVideoCategorySchema } from '@commonpub/schema';
 
-export default defineEventHandler(async (event) => {
-  const auth = event.context.auth;
-  if (!auth?.user) {
-    throw createError({ statusCode: 401, statusMessage: 'Authentication required' });
-  }
-
-  const user = auth.user as { id: string; role?: string };
-  if (user.role !== 'admin' && user.role !== 'staff') {
-    throw createError({ statusCode: 403, statusMessage: 'Admin access required' });
-  }
+export default defineEventHandler(async (event): Promise<VideoCategoryItem> => {
+  requireAdmin(event);
 
   const body = await readBody(event);
   const parsed = createVideoCategorySchema.safeParse(body);

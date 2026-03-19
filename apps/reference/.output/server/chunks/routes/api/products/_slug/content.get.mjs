@@ -1,4 +1,4 @@
-import { d as defineEventHandler, u as useDB, a as getRouterParam, g as getQuery, f as createError, bt as getProductBySlug, bu as listProductContent } from '../../../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, a as getRouterParam, g as getQuery, f as createError, bE as getProductBySlug, bF as listProductContent } from '../../../../nitro/nitro.mjs';
 import 'drizzle-orm';
 import 'drizzle-orm/pg-core';
 import 'jose';

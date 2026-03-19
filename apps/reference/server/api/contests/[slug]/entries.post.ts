@@ -1,11 +1,12 @@
 import { submitContestEntry, getContestBySlug } from '@commonpub/server';
+import type { ContestEntryItem } from '@commonpub/server';
 import { z } from 'zod';
 
 const submitEntrySchema = z.object({
   contentId: z.string().uuid(),
 });
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async (event): Promise<ContestEntryItem> => {
   const user = requireAuth(event);
   const db = useDB();
   const slug = getRouterParam(event, 'slug');

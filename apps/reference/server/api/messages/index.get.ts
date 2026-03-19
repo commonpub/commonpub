@@ -1,6 +1,7 @@
 import { listConversations } from '@commonpub/server';
+import type { ConversationItem } from '@commonpub/server';
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async (event): Promise<ConversationItem[]> => {
   const db = useDB();
   const user = await requireAuth(event);
 

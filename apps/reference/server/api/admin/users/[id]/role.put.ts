@@ -1,8 +1,8 @@
 import { updateUserRole } from '@commonpub/server';
 import { adminUpdateRoleSchema } from '@commonpub/schema';
 
-export default defineEventHandler(async (event) => {
-  requireAdmin(event);
+export default defineEventHandler(async (event): Promise<void> => {
+  const admin = requireAdmin(event);
   const db = useDB();
   const id = getRouterParam(event, 'id')!;
   const body = await readBody(event);
@@ -16,5 +16,5 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  return updateUserRole(db, id, parsed.data.role);
+  return updateUserRole(db, id, parsed.data.role, admin.id);
 });

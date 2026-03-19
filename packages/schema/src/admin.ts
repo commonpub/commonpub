@@ -14,7 +14,7 @@ export const auditLogs = pgTable('audit_logs', {
   id: uuid('id').defaultRandom().primaryKey(),
   userId: uuid('user_id')
     .notNull()
-    .references(() => users.id),
+    .references(() => users.id, { onDelete: 'cascade' }),
   action: varchar('action', { length: 64 }).notNull(),
   targetType: varchar('target_type', { length: 64 }).notNull(),
   targetId: varchar('target_id', { length: 255 }),
@@ -32,3 +32,9 @@ export const instanceSettingsRelations = relations(instanceSettings, ({ one }) =
 export const auditLogsRelations = relations(auditLogs, ({ one }) => ({
   user: one(users, { fields: [auditLogs.userId], references: [users.id] }),
 }));
+
+// --- Inferred Types ---
+export type InstanceSettingRow = typeof instanceSettings.$inferSelect;
+export type NewInstanceSettingRow = typeof instanceSettings.$inferInsert;
+export type AuditLogRow = typeof auditLogs.$inferSelect;
+export type NewAuditLogRow = typeof auditLogs.$inferInsert;

@@ -1,4 +1,4 @@
-import { d as defineEventHandler, u as useDB, a as getRouterParam, c as readBody, a6 as createDocsPageSchema, f as createError, a0 as getDocsSiteBySlug, a7 as createDocsPage } from '../../../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, a as getRouterParam, c as readBody, aa as createDocsPageSchema, f as createError, a4 as getDocsSiteBySlug, ab as createDocsPage } from '../../../../nitro/nitro.mjs';
 import { a as requireAuth } from '../../../../_/auth.mjs';
 import 'drizzle-orm';
 import 'drizzle-orm/pg-core';
@@ -40,7 +40,7 @@ const pages_post = defineEventHandler(async (event) => {
     if (!result) {
       throw createError({ statusCode: 404, statusMessage: "Docs site not found" });
     }
-    const defaultVersion = (_a = result.versions.find((v) => v.isDefault === 1)) != null ? _a : result.versions[0];
+    const defaultVersion = (_a = result.versions.find((v) => v.isDefault === true)) != null ? _a : result.versions[0];
     if (!defaultVersion) {
       throw createError({ statusCode: 404, statusMessage: "No version found for docs site" });
     }

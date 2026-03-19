@@ -24,7 +24,7 @@
     "@commonpub/schema": "workspace:*",
     "@commonpub/server": "workspace:*",
     "@commonpub/ui": "workspace:*",
-    "drizzle-orm": "^0.38.0",
+    "drizzle-orm": "^0.45.1",
     "nuxt": "^3.16.0",
     "pg": "^8.13.0",
     "vue": "^3.4.0",

@@ -1,4 +1,5 @@
-import { d as defineEventHandler, u as useDB, a as getRouterParam, g as getQuery, a0 as getDocsSiteBySlug, f as createError, a5 as listDocsPages } from '../../../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, a as getRouterParam, g as getQuery, a4 as getDocsSiteBySlug, f as createError, a9 as listDocsPages } from '../../../../nitro/nitro.mjs';
+import { z } from 'zod';
 import 'drizzle-orm';
 import 'drizzle-orm/pg-core';
 import 'jose';
@@ -12,23 +13,25 @@ import 'node:https';
 import 'node:events';
 import 'node:buffer';
 import 'node:url';
-import 'zod';
 import 'drizzle-orm/node-postgres';
 import 'pg';
 import 'better-auth';
 import 'better-auth/adapters/drizzle';
 import 'better-auth/plugins';
 
+const pagesQuerySchema = z.object({
+  version: z.string().max(32).optional()
+});
 const pages_get = defineEventHandler(async (event) => {
   const db = useDB();
   const siteSlug = getRouterParam(event, "siteSlug");
-  const query = getQuery(event);
+  const query = pagesQuerySchema.parse(getQuery(event));
   const result = await getDocsSiteBySlug(db, siteSlug);
   if (!result) {
     throw createError({ statusCode: 404, statusMessage: "Docs site not found" });
   }
   const requestedVersion = query.version;
-  let version = requestedVersion ? result.versions.find((v) => v.version === requestedVersion) : result.versions.find((v) => v.isDefault === 1);
+  let version = requestedVersion ? result.versions.find((v) => v.version === requestedVersion) : result.versions.find((v) => v.isDefault === true);
   if (!version && result.versions.length > 0) {
     version = result.versions[0];
   }

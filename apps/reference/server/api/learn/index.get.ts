@@ -1,13 +1,13 @@
 import { listPaths } from '@commonpub/server';
+import type { PaginatedResponse, LearningPathListItem } from '@commonpub/server';
+import { learningPathFiltersSchema } from '@commonpub/schema';
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async (event): Promise<PaginatedResponse<LearningPathListItem>> => {
   const db = useDB();
-  const query = getQuery(event);
+  const filters = learningPathFiltersSchema.parse(getQuery(event));
 
   return listPaths(db, {
-    status: query.status as string | undefined ?? 'published',
-    difficulty: query.difficulty as string | undefined,
-    limit: query.limit ? Number(query.limit) : undefined,
-    offset: query.offset ? Number(query.offset) : undefined,
+    ...filters,
+    status: filters.status ?? 'published',
   });
 });

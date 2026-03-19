@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, timestamp, integer, jsonb } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, timestamp, integer, boolean, jsonb, unique } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { users } from './auth.js';
 
@@ -15,15 +15,19 @@ export const docsSites = pgTable('docs_sites', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
-export const docsVersions = pgTable('docs_versions', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  siteId: uuid('site_id')
-    .notNull()
-    .references(() => docsSites.id, { onDelete: 'cascade' }),
-  version: varchar('version', { length: 32 }).notNull(),
-  isDefault: integer('is_default').default(0).notNull(),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-});
+export const docsVersions = pgTable(
+  'docs_versions',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    siteId: uuid('site_id')
+      .notNull()
+      .references(() => docsSites.id, { onDelete: 'cascade' }),
+    version: varchar('version', { length: 32 }).notNull(),
+    isDefault: boolean('is_default').default(false).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [unique('docs_versions_site_version').on(t.siteId, t.version)],
+);
 
 export const docsPages = pgTable('docs_pages', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -34,6 +38,7 @@ export const docsPages = pgTable('docs_pages', {
   slug: varchar('slug', { length: 255 }).notNull(),
   content: text('content').notNull(), // Raw markdown (Standing Rule #4)
   sortOrder: integer('sort_order').default(0).notNull(),
+  // Self-referencing FK handled via relations; DB-level constraint added via migration
   parentId: uuid('parent_id'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
@@ -82,3 +87,13 @@ export const docsPagesRelations = relations(docsPages, ({ one, many }) => ({
 export const docsNavRelations = relations(docsNav, ({ one }) => ({
   version: one(docsVersions, { fields: [docsNav.versionId], references: [docsVersions.id] }),
 }));
+
+// --- Inferred Types ---
+export type DocsSiteRow = typeof docsSites.$inferSelect;
+export type NewDocsSiteRow = typeof docsSites.$inferInsert;
+export type DocsVersionRow = typeof docsVersions.$inferSelect;
+export type NewDocsVersionRow = typeof docsVersions.$inferInsert;
+export type DocsPageRow = typeof docsPages.$inferSelect;
+export type NewDocsPageRow = typeof docsPages.$inferInsert;
+export type DocsNavRow = typeof docsNav.$inferSelect;
+export type NewDocsNavRow = typeof docsNav.$inferInsert;

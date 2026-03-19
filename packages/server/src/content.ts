@@ -1,14 +1,15 @@
 import { eq, and, desc, sql } from 'drizzle-orm';
-import { contentItems, contentVersions, tags, contentTags, users, follows } from '@commonpub/schema';
+import { contentItems, contentVersions, contentForks, contentBuilds, tags, contentTags, users, follows } from '@commonpub/schema';
 import type { CommonPubConfig } from '@commonpub/config';
+import type { ContentItemRow } from '@commonpub/schema';
 import type {
   DB,
   ContentListItem,
   ContentDetail,
-  CreateContentInput,
-  UpdateContentInput,
   ContentFilters,
+  UserRef,
 } from './types.js';
+import type { CreateContentInput, UpdateContentInput } from '@commonpub/schema';
 import { generateSlug, ensureUniqueSlug } from './utils.js';
 import { federateContent, federateUpdate, federateDelete } from './federation.js';
 
@@ -45,30 +46,25 @@ async function sanitizeBlockContent(content: unknown): Promise<unknown> {
 }
 
 function mapToListItem(
-  row: Record<string, unknown>,
-  author: Record<string, unknown>,
+  item: ContentItemRow,
+  author: UserRef,
 ): ContentListItem {
-  const item = row as Record<string, unknown>;
   return {
-    id: item.id as string,
-    type: item.type as string,
-    title: item.title as string,
-    slug: item.slug as string,
-    description: item.description as string | null,
-    coverImageUrl: item.coverImageUrl as string | null,
-    status: item.status as string,
-    difficulty: item.difficulty as string | null,
-    viewCount: item.viewCount as number,
-    likeCount: item.likeCount as number,
-    commentCount: item.commentCount as number,
-    publishedAt: item.publishedAt as Date | null,
-    createdAt: item.createdAt as Date,
-    author: {
-      id: author.id as string,
-      username: author.username as string,
-      displayName: author.displayName as string | null,
-      avatarUrl: author.avatarUrl as string | null,
-    },
+    id: item.id,
+    type: item.type,
+    title: item.title,
+    slug: item.slug,
+    description: item.description,
+    coverImageUrl: item.coverImageUrl,
+    status: item.status,
+    difficulty: item.difficulty,
+    viewCount: item.viewCount,
+    likeCount: item.likeCount,
+    commentCount: item.commentCount,
+    buildCount: item.buildCount,
+    publishedAt: item.publishedAt,
+    createdAt: item.createdAt,
+    author,
   };
 }
 
@@ -79,11 +75,11 @@ export async function listContent(
   const conditions = [];
 
   if (filters.status) {
-    conditions.push(eq(contentItems.status, filters.status as 'draft' | 'published' | 'archived'));
+    conditions.push(eq(contentItems.status, filters.status));
   }
   if (filters.type) {
     conditions.push(
-      eq(contentItems.type, filters.type as 'project' | 'article' | 'blog' | 'explainer'),
+      eq(contentItems.type, filters.type),
     );
   }
   if (filters.authorId) {
@@ -93,7 +89,7 @@ export async function listContent(
     conditions.push(eq(contentItems.isFeatured, true));
   }
   if (filters.difficulty) {
-    conditions.push(eq(contentItems.difficulty, filters.difficulty as 'beginner' | 'intermediate' | 'advanced'));
+    conditions.push(eq(contentItems.difficulty, filters.difficulty));
   }
   if (filters.search) {
     const searchPattern = `%${filters.search}%`;
@@ -262,7 +258,7 @@ export async function createContent(
     .insert(contentItems)
     .values({
       authorId,
-      type: input.type as 'project' | 'article' | 'blog' | 'explainer',
+      type: input.type,
       title: input.title,
       slug,
       subtitle: input.subtitle ?? null,
@@ -270,12 +266,12 @@ export async function createContent(
       content: (await sanitizeBlockContent(input.content)) ?? null,
       coverImageUrl: input.coverImageUrl ?? null,
       category: input.category ?? null,
-      difficulty: (input.difficulty as 'beginner' | 'intermediate' | 'advanced') ?? null,
+      difficulty: input.difficulty ?? null,
       buildTime: input.buildTime ?? null,
       estimatedCost: input.estimatedCost ?? null,
-      visibility: (input.visibility as 'public' | 'members' | 'private') ?? 'public',
+      visibility: input.visibility ?? 'public',
       seoDescription: input.seoDescription ?? null,
-      sections: (input.sections as typeof contentItems.$inferInsert.sections) ?? null,
+      sections: input.sections as typeof contentItems.$inferInsert.sections ?? null,
       status: 'draft',
       previewToken,
     })
@@ -482,6 +478,117 @@ async function syncTags(db: DB, contentId: string, tagNames: string[]): Promise<
   if (tagRows.length > 0) {
     await db.insert(contentTags).values(tagRows.map((tag) => ({ contentId, tagId: tag.id })));
   }
+}
+
+// --- Build Mark ---
+
+export async function toggleBuildMark(
+  db: DB,
+  contentId: string,
+  userId: string,
+): Promise<{ marked: boolean; count: number }> {
+  const existing = await db
+    .select()
+    .from(contentBuilds)
+    .where(and(eq(contentBuilds.contentId, contentId), eq(contentBuilds.userId, userId)))
+    .limit(1);
+
+  if (existing.length > 0) {
+    await db
+      .delete(contentBuilds)
+      .where(and(eq(contentBuilds.contentId, contentId), eq(contentBuilds.userId, userId)));
+    await db
+      .update(contentItems)
+      .set({ buildCount: sql`GREATEST(${contentItems.buildCount} - 1, 0)` })
+      .where(eq(contentItems.id, contentId));
+    const [updated] = await db
+      .select({ buildCount: contentItems.buildCount })
+      .from(contentItems)
+      .where(eq(contentItems.id, contentId));
+    return { marked: false, count: updated?.buildCount ?? 0 };
+  }
+
+  await db.insert(contentBuilds).values({ contentId, userId });
+  await db
+    .update(contentItems)
+    .set({ buildCount: sql`${contentItems.buildCount} + 1` })
+    .where(eq(contentItems.id, contentId));
+  const [updated] = await db
+    .select({ buildCount: contentItems.buildCount })
+    .from(contentItems)
+    .where(eq(contentItems.id, contentId));
+  return { marked: true, count: updated?.buildCount ?? 0 };
+}
+
+export async function isBuildMarked(
+  db: DB,
+  contentId: string,
+  userId: string,
+): Promise<boolean> {
+  const existing = await db
+    .select()
+    .from(contentBuilds)
+    .where(and(eq(contentBuilds.contentId, contentId), eq(contentBuilds.userId, userId)))
+    .limit(1);
+  return existing.length > 0;
+}
+
+// --- Fork ---
+
+export async function forkContent(
+  db: DB,
+  sourceId: string,
+  userId: string,
+): Promise<ContentDetail> {
+  const source = await db
+    .select()
+    .from(contentItems)
+    .where(eq(contentItems.id, sourceId))
+    .limit(1);
+
+  if (source.length === 0) {
+    throw new Error('Source content not found');
+  }
+
+  const item = source[0]!;
+  const slug = await ensureUniqueSlug(db, `${item.slug}-fork-${Date.now()}`);
+  const previewToken = crypto.randomUUID().replace(/-/g, '');
+
+  const [forked] = await db
+    .insert(contentItems)
+    .values({
+      authorId: userId,
+      type: item.type,
+      title: `${item.title} (Fork)`,
+      slug,
+      subtitle: item.subtitle,
+      description: item.description,
+      content: item.content,
+      coverImageUrl: item.coverImageUrl,
+      category: item.category,
+      difficulty: item.difficulty,
+      buildTime: item.buildTime,
+      estimatedCost: item.estimatedCost,
+      visibility: 'public',
+      seoDescription: item.seoDescription,
+      sections: item.sections,
+      parts: item.parts,
+      status: 'draft',
+      previewToken,
+    })
+    .returning();
+
+  await db.insert(contentForks).values({
+    sourceId,
+    forkId: forked!.id,
+  });
+
+  await db
+    .update(contentItems)
+    .set({ forkCount: sql`${contentItems.forkCount} + 1` })
+    .where(eq(contentItems.id, sourceId));
+
+  return (await getContentBySlug(db, forked!.slug, userId))!;
 }
 
 // --- Federation Hooks ---

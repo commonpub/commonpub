@@ -7,7 +7,7 @@ const toggleLikeSchema = z.object({
   targetId: z.string().uuid(),
 });
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async (event): Promise<{ liked: boolean }> => {
   const user = requireAuth(event);
   const db = useDB();
   const body = await readBody(event);

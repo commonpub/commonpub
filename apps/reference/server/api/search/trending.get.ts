@@ -1,7 +1,7 @@
 import { sql } from 'drizzle-orm';
 import { contentItems } from '@commonpub/schema';
 
-export default defineEventHandler(async () => {
+export default defineEventHandler(async (): Promise<Array<{ query: string; trend: number }>> => {
   const db = useDB();
 
   // Return the most-viewed content titles as "trending searches"

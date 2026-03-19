@@ -1,13 +1,10 @@
 import { listHubs } from '@commonpub/server';
+import type { PaginatedResponse, HubListItem } from '@commonpub/server';
+import { hubFiltersSchema } from '@commonpub/schema';
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async (event): Promise<PaginatedResponse<HubListItem>> => {
   const db = useDB();
-  const query = getQuery(event);
+  const filters = hubFiltersSchema.parse(getQuery(event));
 
-  return listHubs(db, {
-    search: query.search as string | undefined,
-    joinPolicy: query.joinPolicy as string | undefined,
-    limit: query.limit ? Number(query.limit) : undefined,
-    offset: query.offset ? Number(query.offset) : undefined,
-  });
+  return listHubs(db, filters);
 });

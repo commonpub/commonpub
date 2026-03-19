@@ -1,11 +1,9 @@
 import { listContests } from '@commonpub/server';
+import type { PaginatedResponse, ContestListItem } from '@commonpub/server';
+import { contestFiltersSchema } from '@commonpub/schema';
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async (event): Promise<PaginatedResponse<ContestListItem>> => {
   const db = useDB();
-  const query = getQuery(event);
-  return listContests(db, {
-    status: query.status as string | undefined,
-    limit: query.limit ? Number(query.limit) : 20,
-    offset: query.offset ? Number(query.offset) : 0,
-  });
+  const filters = contestFiltersSchema.parse(getQuery(event));
+  return listContests(db, filters);
 });

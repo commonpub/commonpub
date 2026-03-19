@@ -21,7 +21,7 @@ import 'better-auth/adapters/drizzle';
 import 'better-auth/plugins';
 
 const settings_put = defineEventHandler(async (event) => {
-  requireAdmin(event);
+  const admin = requireAdmin(event);
   const db = useDB();
   const body = await readBody(event);
   const parsed = adminSettingSchema.safeParse(body);
@@ -32,7 +32,7 @@ const settings_put = defineEventHandler(async (event) => {
       data: { errors: parsed.error.flatten().fieldErrors }
     });
   }
-  return setInstanceSetting(db, parsed.data.key, parsed.data.value);
+  return setInstanceSetting(db, parsed.data.key, parsed.data.value, admin.id);
 });
 
 export { settings_put as default };

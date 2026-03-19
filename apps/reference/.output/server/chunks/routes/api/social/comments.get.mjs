@@ -1,4 +1,5 @@
-import { d as defineEventHandler, u as useDB, g as getQuery, bC as listComments } from '../../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, g as getQuery, bN as listComments, bO as commentTargetTypeSchema } from '../../../nitro/nitro.mjs';
+import { z } from 'zod';
 import 'drizzle-orm';
 import 'drizzle-orm/pg-core';
 import 'jose';
@@ -12,16 +13,19 @@ import 'node:https';
 import 'node:events';
 import 'node:buffer';
 import 'node:url';
-import 'zod';
 import 'drizzle-orm/node-postgres';
 import 'pg';
 import 'better-auth';
 import 'better-auth/adapters/drizzle';
 import 'better-auth/plugins';
 
+const commentsQuerySchema = z.object({
+  targetType: commentTargetTypeSchema,
+  targetId: z.string().uuid()
+});
 const comments_get = defineEventHandler(async (event) => {
   const db = useDB();
-  const query = getQuery(event);
+  const query = commentsQuerySchema.parse(getQuery(event));
   return listComments(db, query.targetType, query.targetId);
 });
 

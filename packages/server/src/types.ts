@@ -1,7 +1,78 @@
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import type * as schema from '@commonpub/schema';
+import type {
+  ContentType,
+  ContentStatus,
+  Difficulty,
+  HubType,
+  JoinPolicy,
+  HubPrivacy,
+  HubRole,
+  PostType,
+  LessonType,
+  ContentFilters as SchemaContentFilters,
+  HubFilters as SchemaHubFilters,
+  LearningPathFilters as SchemaLearningPathFilters,
+  HubPostFilters as SchemaHubPostFilters,
+} from '@commonpub/schema';
 
 /** Framework-agnostic database type for Drizzle ORM with node-postgres */
-export type DB = NodePgDatabase;
+export type DB = NodePgDatabase<typeof schema>;
+
+// --- Utility Types ---
+
+/** JSON serialization converts Date → string. Use on API response types for frontend. */
+export type Serialized<T> = {
+  [K in keyof T]: T[K] extends Date ? string
+    : T[K] extends Date | null ? string | null
+    : T[K] extends Date | undefined ? string | undefined
+    : T[K] extends Array<infer U> ? Array<Serialized<U>>
+    : T[K] extends Record<string, unknown> ? Serialized<T[K]>
+    : T[K];
+};
+
+/** Paginated response wrapper */
+export interface PaginatedResponse<T> {
+  items: T[];
+  total: number;
+}
+
+// --- Re-export literal union types from schema ---
+export type { ContentType, ContentStatus, Difficulty, HubType, JoinPolicy, HubPrivacy, HubRole, PostType, LessonType } from '@commonpub/schema';
+
+// --- Re-export filter types from schema (now typed with literal unions) ---
+export type ContentFilters = SchemaContentFilters;
+export type HubFilters = SchemaHubFilters;
+export type LearningPathFilters = SchemaLearningPathFilters;
+export type HubPostFilters = SchemaHubPostFilters;
+
+// --- Re-export input types from schema (no longer duplicated here) ---
+export type {
+  CreateContentInput,
+  UpdateContentInput,
+  CreateHubInput,
+  UpdateHubInput,
+  CreatePostInput,
+  CreateReplyInput,
+  CreateLearningPathInput,
+  UpdateLearningPathInput,
+  CreateModuleInput,
+  CreateLessonInput,
+  CreateDocsSiteInput,
+  CreateDocsPageInput,
+  CreateDocsVersionInput,
+  CreateVideoInput,
+  CreateProductInput,
+  UpdateProductInput,
+  CreateCommentInput,
+  CreateReportInput,
+  SendMessageInput,
+  CreateConversationInput,
+  BanUserInput,
+  ChangeRoleInput,
+  CreateInviteInput,
+  AdminSettingInput,
+} from '@commonpub/schema';
 
 // --- User Types ---
 
@@ -32,16 +103,17 @@ export interface UserProfile {
 
 export interface ContentListItem {
   id: string;
-  type: string;
+  type: ContentType;
   title: string;
   slug: string;
   description: string | null;
   coverImageUrl: string | null;
-  status: string;
-  difficulty: string | null;
+  status: ContentStatus;
+  difficulty: Difficulty | null;
   viewCount: number;
   likeCount: number;
   commentCount: number;
+  buildCount: number;
   publishedAt: Date | null;
   createdAt: Date;
   author: UserRef;
@@ -57,7 +129,7 @@ export interface ContentDetailAuthor extends UserRef {
 
 export interface ContentRelatedItem {
   id: string;
-  type: string;
+  type: ContentType;
   slug: string;
   title: string;
   viewCount: number;
@@ -70,7 +142,7 @@ export interface ContentDetail extends ContentListItem {
   category: string | null;
   buildTime: string | null;
   estimatedCost: string | null;
-  visibility: string;
+  visibility: 'public' | 'members' | 'private';
   isFeatured: boolean;
   seoDescription: string | null;
   previewToken: string | null;
@@ -83,53 +155,6 @@ export interface ContentDetail extends ContentListItem {
   related?: ContentRelatedItem[];
 }
 
-export interface ContentFilters {
-  status?: string;
-  type?: string;
-  authorId?: string;
-  featured?: boolean;
-  difficulty?: string;
-  search?: string;
-  tag?: string;
-  sort?: 'recent' | 'popular' | 'featured';
-  limit?: number;
-  offset?: number;
-}
-
-export interface CreateContentInput {
-  type: string;
-  title: string;
-  subtitle?: string;
-  description?: string;
-  content?: unknown;
-  coverImageUrl?: string;
-  category?: string;
-  difficulty?: string;
-  buildTime?: string;
-  estimatedCost?: string;
-  visibility?: string;
-  seoDescription?: string;
-  sections?: unknown;
-  tags?: string[];
-}
-
-export interface UpdateContentInput {
-  title?: string;
-  subtitle?: string;
-  description?: string;
-  content?: unknown;
-  coverImageUrl?: string;
-  category?: string;
-  difficulty?: string;
-  seoDescription?: string;
-  sections?: unknown;
-  buildTime?: string;
-  estimatedCost?: string;
-  visibility?: string;
-  status?: string;
-  tags?: string[];
-}
-
 // --- Hub Types ---
 
 export interface HubListItem {
@@ -139,7 +164,7 @@ export interface HubListItem {
   description: string | null;
   iconUrl: string | null;
   bannerUrl: string | null;
-  joinPolicy: string;
+  joinPolicy: JoinPolicy;
   isOfficial: boolean;
   memberCount: number;
   postCount: number;
@@ -150,25 +175,18 @@ export interface HubListItem {
 export interface HubDetail extends HubListItem {
   rules: string | null;
   updatedAt: Date;
-  currentUserRole: string | null;
+  currentUserRole: HubRole | null;
   isBanned: boolean;
-  hubType: string;
-  privacy: string;
+  hubType: HubType;
+  privacy: HubPrivacy;
   website: string | null;
   categories: string[] | null;
-}
-
-export interface HubFilters {
-  search?: string;
-  joinPolicy?: string;
-  limit?: number;
-  offset?: number;
 }
 
 export interface HubMemberItem {
   hubId: string;
   userId: string;
-  role: string;
+  role: HubRole;
   joinedAt: Date;
   user: UserRef;
 }
@@ -176,7 +194,7 @@ export interface HubMemberItem {
 export interface HubPostItem {
   id: string;
   hubId: string;
-  type: string;
+  type: PostType;
   content: string;
   isPinned: boolean;
   isLocked: boolean;
@@ -186,13 +204,6 @@ export interface HubPostItem {
   updatedAt: Date;
   author: UserRef;
   sharedContent?: unknown;
-}
-
-export interface HubPostFilters {
-  hubId?: string;
-  type?: string;
-  limit?: number;
-  offset?: number;
 }
 
 export interface HubReplyItem {
@@ -247,12 +258,12 @@ export interface LearningPathListItem {
   slug: string;
   description: string | null;
   coverImageUrl: string | null;
-  difficulty: string | null;
+  difficulty: Difficulty | null;
   estimatedHours: string | null;
   enrollmentCount: number;
   completionCount: number;
   averageRating: string | null;
-  status: string;
+  status: ContentStatus;
   createdAt: Date;
   author: UserRef;
 }
@@ -269,7 +280,7 @@ export interface LearningPathDetail extends LearningPathListItem {
       id: string;
       title: string;
       slug: string;
-      type: string;
+      type: LessonType;
       duration: number | null;
       sortOrder: number;
     }>;
@@ -283,14 +294,6 @@ export interface LearningPathDetail extends LearningPathListItem {
   } | null;
 }
 
-export interface LearningPathFilters {
-  status?: string;
-  difficulty?: string;
-  authorId?: string;
-  limit?: number;
-  offset?: number;
-}
-
 export interface EnrollmentItem {
   id: string;
   progress: string;
@@ -301,7 +304,7 @@ export interface EnrollmentItem {
     title: string;
     slug: string;
     coverImageUrl: string | null;
-    difficulty: string | null;
+    difficulty: Difficulty | null;
   };
 }
 

@@ -1,7 +1,7 @@
 import { banUser, getHubBySlug } from '@commonpub/server';
 import { banUserSchema } from '@commonpub/schema';
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async (event): Promise<{ banned: boolean; error?: string }> => {
   const user = requireAuth(event);
   const db = useDB();
   const slug = getRouterParam(event, 'slug') as string;

@@ -1,4 +1,4 @@
-import { d as defineEventHandler, u as useDB, a as getRouterParam, f as createError, c as readBody, W as contestTransitionSchema, O as getContestBySlug, X as transitionContestStatus } from '../../../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, a as getRouterParam, f as createError, c as readBody, _ as contestTransitionSchema, R as getContestBySlug, $ as transitionContestStatus } from '../../../../nitro/nitro.mjs';
 import { a as requireAuth } from '../../../../_/auth.mjs';
 import 'drizzle-orm';
 import 'drizzle-orm/pg-core';

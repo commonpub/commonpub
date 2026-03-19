@@ -1,13 +1,17 @@
 import { listUsers } from '@commonpub/server';
+import type { PaginatedResponse, UserListItem } from '@commonpub/server';
+import { z } from 'zod';
 
-export default defineEventHandler(async (event) => {
+const adminUsersQuerySchema = z.object({
+  search: z.string().max(200).optional(),
+  limit: z.coerce.number().int().positive().max(100).optional(),
+  offset: z.coerce.number().int().min(0).optional(),
+});
+
+export default defineEventHandler(async (event): Promise<PaginatedResponse<UserListItem>> => {
   requireAdmin(event);
   const db = useDB();
-  const query = getQuery(event);
+  const filters = adminUsersQuerySchema.parse(getQuery(event));
 
-  return listUsers(db, {
-    search: query.search as string | undefined,
-    limit: query.limit ? Number(query.limit) : undefined,
-    offset: query.offset ? Number(query.offset) : undefined,
-  });
+  return listUsers(db, filters);
 });

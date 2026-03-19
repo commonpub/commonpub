@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import type { ContentViewData } from '~/composables/useEngagement';
+import type { BlockTuple } from '@commonpub/editor';
 
 const props = defineProps<{
   content: ContentViewData;
 }>();
-
-type BlockTuple = [string, Record<string, unknown>];
 
 const blocks = computed<BlockTuple[]>(() => {
   const raw = props.content?.content;

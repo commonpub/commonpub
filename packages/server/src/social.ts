@@ -10,6 +10,7 @@ import {
 } from '@commonpub/schema';
 import type { CommonPubConfig } from '@commonpub/config';
 import type { DB, CommentItem } from './types.js';
+import type { LikeTargetType, CommentTargetType } from '@commonpub/schema';
 import { federateLike } from './federation.js';
 
 export type { CommentItem };
@@ -17,17 +18,9 @@ export type { CommentItem };
 export async function toggleLike(
   db: DB,
   userId: string,
-  targetType: string,
+  targetType: LikeTargetType,
   targetId: string,
 ): Promise<{ liked: boolean }> {
-  const typedTargetType = targetType as
-    | 'project'
-    | 'article'
-    | 'blog'
-    | 'explainer'
-    | 'comment'
-    | 'post';
-
   return db.transaction(async (tx) => {
     const existing = await tx
       .select({ id: likes.id })
@@ -35,7 +28,7 @@ export async function toggleLike(
       .where(
         and(
           eq(likes.userId, userId),
-          eq(likes.targetType, typedTargetType),
+          eq(likes.targetType, targetType),
           eq(likes.targetId, targetId),
         ),
       )
@@ -47,7 +40,7 @@ export async function toggleLike(
       return { liked: false };
     }
 
-    await tx.insert(likes).values({ userId, targetType: typedTargetType, targetId });
+    await tx.insert(likes).values({ userId, targetType, targetId });
     await updateLikeCount(tx, targetType, targetId, 1);
     return { liked: true };
   });
@@ -99,7 +92,7 @@ async function updateLikeCount(
 export async function isLiked(
   db: DB,
   userId: string,
-  targetType: string,
+  targetType: LikeTargetType,
   targetId: string,
 ): Promise<boolean> {
   const result = await db
@@ -108,10 +101,7 @@ export async function isLiked(
     .where(
       and(
         eq(likes.userId, userId),
-        eq(
-          likes.targetType,
-          targetType as 'project' | 'article' | 'blog' | 'explainer' | 'comment' | 'post',
-        ),
+        eq(likes.targetType, targetType),
         eq(likes.targetId, targetId),
       ),
     )
@@ -122,7 +112,7 @@ export async function isLiked(
 
 export async function listComments(
   db: DB,
-  targetType: string,
+  targetType: CommentTargetType,
   targetId: string,
 ): Promise<CommentItem[]> {
   const rows = await db
@@ -139,10 +129,7 @@ export async function listComments(
     .innerJoin(users, eq(comments.authorId, users.id))
     .where(
       and(
-        eq(
-          comments.targetType,
-          targetType as 'project' | 'article' | 'blog' | 'explainer' | 'post' | 'lesson',
-        ),
+        eq(comments.targetType, targetType),
         eq(comments.targetId, targetId),
       ),
     )
@@ -181,7 +168,7 @@ export async function createComment(
   db: DB,
   authorId: string,
   input: {
-    targetType: string;
+    targetType: CommentTargetType;
     targetId: string;
     content: string;
     parentId?: string;
@@ -191,13 +178,7 @@ export async function createComment(
     .insert(comments)
     .values({
       authorId,
-      targetType: input.targetType as
-        | 'project'
-        | 'article'
-        | 'blog'
-        | 'explainer'
-        | 'post'
-        | 'lesson',
+      targetType: input.targetType,
       targetId: input.targetId,
       content: input.content,
       parentId: input.parentId ?? null,
@@ -273,16 +254,9 @@ export async function deleteComment(
 export async function toggleBookmark(
   db: DB,
   userId: string,
-  targetType: string,
+  targetType: 'project' | 'article' | 'blog' | 'explainer' | 'learning_path',
   targetId: string,
 ): Promise<{ bookmarked: boolean }> {
-  const typedTargetType = targetType as
-    | 'project'
-    | 'article'
-    | 'blog'
-    | 'explainer'
-    | 'learning_path';
-
   return db.transaction(async (tx) => {
     const existing = await tx
       .select({ id: bookmarks.id })
@@ -290,7 +264,7 @@ export async function toggleBookmark(
       .where(
         and(
           eq(bookmarks.userId, userId),
-          eq(bookmarks.targetType, typedTargetType),
+          eq(bookmarks.targetType, targetType),
           eq(bookmarks.targetId, targetId),
         ),
       )
@@ -301,7 +275,7 @@ export async function toggleBookmark(
       return { bookmarked: false };
     }
 
-    await tx.insert(bookmarks).values({ userId, targetType: typedTargetType, targetId });
+    await tx.insert(bookmarks).values({ userId, targetType, targetId });
     return { bookmarked: true };
   });
 }
@@ -544,9 +518,9 @@ export async function createReport(
   db: DB,
   reporterId: string,
   input: {
-    targetType: string;
+    targetType: 'project' | 'article' | 'blog' | 'post' | 'comment' | 'user' | 'explainer';
     targetId: string;
-    reason: string;
+    reason: 'spam' | 'harassment' | 'inappropriate' | 'copyright' | 'other';
     description?: string;
   },
 ): Promise<{ id: string }> {
@@ -556,9 +530,9 @@ export async function createReport(
     .insert(reports)
     .values({
       reporterId,
-      targetType: input.targetType as 'project' | 'article' | 'blog' | 'post' | 'comment' | 'user' | 'explainer',
+      targetType: input.targetType,
       targetId: input.targetId,
-      reason: input.reason as 'spam' | 'harassment' | 'inappropriate' | 'copyright' | 'other',
+      reason: input.reason,
       description: input.description ?? null,
     })
     .returning({ id: reports.id });

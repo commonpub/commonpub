@@ -93,6 +93,7 @@ export const hubPostReplies = pgTable('hub_post_replies', {
   authorId: uuid('author_id')
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
+  // Self-referencing FK handled via relations; DB-level constraint added via migration
   parentId: uuid('parent_id'),
   content: text('content').notNull(),
   likeCount: integer('like_count').default(0).notNull(),
@@ -221,3 +222,19 @@ export const hubSharesRelations = relations(hubShares, ({ one }) => ({
   }),
   sharedBy: one(users, { fields: [hubShares.sharedById], references: [users.id] }),
 }));
+
+// --- Inferred Types ---
+export type HubRow = typeof hubs.$inferSelect;
+export type NewHubRow = typeof hubs.$inferInsert;
+export type HubMemberRow = typeof hubMembers.$inferSelect;
+export type NewHubMemberRow = typeof hubMembers.$inferInsert;
+export type HubPostRow = typeof hubPosts.$inferSelect;
+export type NewHubPostRow = typeof hubPosts.$inferInsert;
+export type HubPostReplyRow = typeof hubPostReplies.$inferSelect;
+export type NewHubPostReplyRow = typeof hubPostReplies.$inferInsert;
+export type HubBanRow = typeof hubBans.$inferSelect;
+export type NewHubBanRow = typeof hubBans.$inferInsert;
+export type HubInviteRow = typeof hubInvites.$inferSelect;
+export type NewHubInviteRow = typeof hubInvites.$inferInsert;
+export type HubShareRow = typeof hubShares.$inferSelect;
+export type NewHubShareRow = typeof hubShares.$inferInsert;

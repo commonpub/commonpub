@@ -1,7 +1,8 @@
 import { getContestBySlug, transitionContestStatus } from '@commonpub/server';
+import type { ContestStatus } from '@commonpub/server';
 import { contestTransitionSchema } from '@commonpub/schema';
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async (event): Promise<{ transitioned: boolean; newStatus: ContestStatus }> => {
   const db = useDB();
   const user = requireAuth(event);
   const slug = getRouterParam(event, 'slug');

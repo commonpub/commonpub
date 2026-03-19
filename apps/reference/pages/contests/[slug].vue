@@ -9,21 +9,7 @@ useSeoMeta({ title: () => `${contest.value?.title || 'Contest'} — CommonPub` }
 // Fetch entries from API
 const { data: apiEntries } = await useFetch(`/api/contests/${slug}/entries`);
 
-interface ContestData {
-  id: string;
-  title: string;
-  slug: string;
-  description: string | null;
-  status: string;
-  startDate: string | null;
-  endDate: string | null;
-  entryCount: number;
-  rules: string | null;
-  prizes: unknown | null;
-  judgingCriteria: unknown | null;
-}
-
-const c = computed(() => contest.value as ContestData | null);
+const c = computed(() => contest.value);
 
 // Countdown timer
 const countdown = ref({ days: '00', hours: '00', mins: '00', secs: '00' });
@@ -72,21 +58,8 @@ async function toggleVote(entryId: string): Promise<void> {
   }
 }
 
-interface ContestEntry {
-  id: string;
-  title?: string;
-  contentTitle?: string;
-  contentSlug?: string;
-  contentType?: string;
-  author?: { username: string; displayName: string | null };
-  likeCount?: number;
-  commentCount?: number;
-  viewCount?: number;
-  rank?: number;
-}
-
 const entries = computed(() => {
-  return (apiEntries.value as ContestEntry[] | null) ?? [];
+  return apiEntries.value ?? [];
 });
 
 const entryFilter = ref('all');

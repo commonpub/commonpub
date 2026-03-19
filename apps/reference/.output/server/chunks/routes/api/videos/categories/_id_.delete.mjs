@@ -1,4 +1,5 @@
-import { d as defineEventHandler, f as createError, a as getRouterParam, u as useDB, bV as deleteVideoCategory } from '../../../../nitro/nitro.mjs';
+import { d as defineEventHandler, a as getRouterParam, f as createError, u as useDB, c6 as deleteVideoCategory } from '../../../../nitro/nitro.mjs';
+import { r as requireAdmin } from '../../../../_/auth.mjs';
 import 'drizzle-orm';
 import 'drizzle-orm/pg-core';
 import 'jose';
@@ -20,14 +21,7 @@ import 'better-auth/adapters/drizzle';
 import 'better-auth/plugins';
 
 const _id__delete = defineEventHandler(async (event) => {
-  const auth = event.context.auth;
-  if (!(auth == null ? void 0 : auth.user)) {
-    throw createError({ statusCode: 401, statusMessage: "Authentication required" });
-  }
-  const user = auth.user;
-  if (user.role !== "admin" && user.role !== "staff") {
-    throw createError({ statusCode: 403, statusMessage: "Admin access required" });
-  }
+  requireAdmin(event);
   const id = getRouterParam(event, "id");
   if (!id) {
     throw createError({ statusCode: 400, statusMessage: "Category ID required" });

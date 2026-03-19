@@ -30,14 +30,14 @@ export async function listPaths(
 
   if (filters.status) {
     conditions.push(
-      eq(learningPaths.status, filters.status as 'draft' | 'published' | 'archived'),
+      eq(learningPaths.status, filters.status),
     );
   }
   if (filters.difficulty) {
     conditions.push(
       eq(
         learningPaths.difficulty,
-        filters.difficulty as 'beginner' | 'intermediate' | 'advanced',
+        filters.difficulty,
       ),
     );
   }
@@ -201,7 +201,7 @@ export async function createPath(
   input: {
     title: string;
     description?: string;
-    difficulty?: string;
+    difficulty?: 'beginner' | 'intermediate' | 'advanced';
     estimatedHours?: number;
   },
 ): Promise<LearningPathDetail> {
@@ -214,7 +214,7 @@ export async function createPath(
       title: input.title,
       slug,
       description: input.description ?? null,
-      difficulty: (input.difficulty as 'beginner' | 'intermediate' | 'advanced') ?? null,
+      difficulty: input.difficulty ?? null,
       estimatedHours: input.estimatedHours?.toString() ?? null,
       status: 'draft',
     })
@@ -408,7 +408,7 @@ export async function createLesson(
   input: {
     moduleId: string;
     title: string;
-    type: string;
+    type: 'article' | 'video' | 'quiz' | 'project' | 'explainer';
     content?: unknown;
     durationMinutes?: number;
   },
@@ -435,7 +435,7 @@ export async function createLesson(
       moduleId: input.moduleId,
       title: input.title,
       slug,
-      type: input.type as 'article' | 'video' | 'quiz' | 'project' | 'explainer',
+      type: input.type,
       content: input.content ?? null,
       duration: input.durationMinutes ?? null,
       sortOrder: (maxSort[0]?.max ?? -1) + 1,

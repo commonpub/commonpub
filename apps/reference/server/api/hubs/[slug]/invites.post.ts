@@ -1,7 +1,8 @@
 import { createInvite, getHubBySlug } from '@commonpub/server';
+import type { HubInviteItem } from '@commonpub/server';
 import { createInviteSchema } from '@commonpub/schema';
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async (event): Promise<HubInviteItem> => {
   const user = requireAuth(event);
   const db = useDB();
   const slug = getRouterParam(event, 'slug') as string;

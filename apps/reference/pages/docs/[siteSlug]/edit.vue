@@ -74,7 +74,7 @@ async function createVersion(): Promise<void> {
       method: 'POST',
       body: {
         version: newVersion.value,
-        isDefault: newVersionDefault.value ? 1 : 0,
+        isDefault: newVersionDefault.value,
       },
     });
     toast('Version created', 'success');
@@ -89,9 +89,7 @@ async function createVersion(): Promise<void> {
   }
 }
 
-interface DocsPage { id: string; title: string; slug: string; content: string; sortOrder: number }
-
-function startEditPage(page: DocsPage): void {
+function startEditPage(page: { id: string; title: string; slug: string; content: string; sortOrder: number }): void {
   editingPageId.value = page.id;
   editPageTitle.value = page.title;
   editPageContent.value = page.content ?? '';

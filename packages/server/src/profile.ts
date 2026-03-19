@@ -1,5 +1,6 @@
 import { eq, and, sql } from 'drizzle-orm';
 import { contentItems, users, follows } from '@commonpub/schema';
+import type { ContentType } from '@commonpub/schema';
 import type { DB, ContentListItem, UserProfile } from './types.js';
 import { listContent } from './content.js';
 
@@ -119,7 +120,7 @@ export async function updateUserProfile(
 export async function getUserContent(
   db: DB,
   userId: string,
-  type?: string,
+  type?: ContentType,
 ): Promise<{ items: ContentListItem[]; total: number }> {
   return listContent(db, {
     authorId: userId,

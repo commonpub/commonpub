@@ -44,18 +44,8 @@ const { data: contests } = await useFetch('/api/contests', {
 const heroDismissed = ref(false);
 
 // Active contest for hero banner
-interface ContestItem {
-  id: string;
-  title: string;
-  slug: string;
-  description: string | null;
-  status: string;
-  entryCount: number;
-  endDate: string | null;
-  prizePool: string | null;
-}
 const activeContest = computed(() => {
-  const items = (contests.value as { items?: ContestItem[] })?.items;
+  const items = contests.value?.items;
   return items?.find((c) => c.status === 'active') ?? null;
 });
 

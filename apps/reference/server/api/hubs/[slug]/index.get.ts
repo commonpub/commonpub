@@ -1,6 +1,7 @@
 import { getHubBySlug } from '@commonpub/server';
+import type { HubDetail } from '@commonpub/server';
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async (event): Promise<HubDetail> => {
   const db = useDB();
   const slug = getRouterParam(event, 'slug')!;
   const user = getOptionalUser(event);

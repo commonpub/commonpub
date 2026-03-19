@@ -1,4 +1,5 @@
-import { d as defineEventHandler, f as createError, u as useDB, at as setResponseHeader, bl as getUnreadCount } from '../../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, ax as setResponseHeader, bw as getUnreadCount } from '../../../nitro/nitro.mjs';
+import { a as requireAuth } from '../../../_/auth.mjs';
 import 'drizzle-orm';
 import 'drizzle-orm/pg-core';
 import 'jose';
@@ -20,11 +21,8 @@ import 'better-auth/adapters/drizzle';
 import 'better-auth/plugins';
 
 const stream_get = defineEventHandler(async (event) => {
-  const auth = event.context.auth;
-  if (!(auth == null ? void 0 : auth.user)) {
-    throw createError({ statusCode: 401, statusMessage: "Authentication required" });
-  }
-  const userId = auth.user.id;
+  const user = requireAuth(event);
+  const userId = user.id;
   const db = useDB();
   setResponseHeader(event, "Content-Type", "text/event-stream");
   setResponseHeader(event, "Cache-Control", "no-cache");

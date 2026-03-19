@@ -1,11 +1,12 @@
 import { shareContent, getHubBySlug } from '@commonpub/server';
+import type { HubPostItem } from '@commonpub/server';
 import { z } from 'zod';
 
 const shareContentSchema = z.object({
   contentId: z.string().uuid(),
 });
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async (event): Promise<HubPostItem> => {
   const user = requireAuth(event);
   const db = useDB();
   const slug = getRouterParam(event, 'slug') as string;

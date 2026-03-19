@@ -7,6 +7,7 @@ import {
   integer,
   boolean,
   jsonb,
+  unique,
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { users } from './auth.js';
@@ -72,6 +73,7 @@ export const contentItems = pgTable('content_items', {
   likeCount: integer('like_count').default(0).notNull(),
   commentCount: integer('comment_count').default(0).notNull(),
   forkCount: integer('fork_count').default(0).notNull(),
+  buildCount: integer('build_count').default(0).notNull(),
   publishedAt: timestamp('published_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
@@ -102,6 +104,21 @@ export const contentForks = pgTable('content_forks', {
     .references(() => contentItems.id, { onDelete: 'cascade' }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
+
+export const contentBuilds = pgTable(
+  'content_builds',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    contentId: uuid('content_id')
+      .notNull()
+      .references(() => contentItems.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [unique('content_builds_user_content').on(t.userId, t.contentId)],
+);
 
 export const tags = pgTable('tags', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -163,3 +180,17 @@ export const contentTagsRelations = relations(contentTags, ({ one }) => ({
   content: one(contentItems, { fields: [contentTags.contentId], references: [contentItems.id] }),
   tag: one(tags, { fields: [contentTags.tagId], references: [tags.id] }),
 }));
+
+// --- Inferred Types ---
+export type ContentItemRow = typeof contentItems.$inferSelect;
+export type NewContentItemRow = typeof contentItems.$inferInsert;
+export type ContentVersionRow = typeof contentVersions.$inferSelect;
+export type NewContentVersionRow = typeof contentVersions.$inferInsert;
+export type ContentForkRow = typeof contentForks.$inferSelect;
+export type NewContentForkRow = typeof contentForks.$inferInsert;
+export type TagRow = typeof tags.$inferSelect;
+export type NewTagRow = typeof tags.$inferInsert;
+export type ContentTagRow = typeof contentTags.$inferSelect;
+export type NewContentTagRow = typeof contentTags.$inferInsert;
+export type ContentBuildRow = typeof contentBuilds.$inferSelect;
+export type NewContentBuildRow = typeof contentBuilds.$inferInsert;

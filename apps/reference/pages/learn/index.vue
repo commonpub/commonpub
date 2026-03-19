@@ -1,33 +1,13 @@
 <script setup lang="ts">
 useSeoMeta({ title: 'Learn — CommonPub' });
 
-interface PathItem {
-  id: string;
-  title: string;
-  slug: string;
-  description: string | null;
-  difficulty: string | null;
-  status: string;
-  moduleCount: number;
-  enrollmentCount: number;
-  createdAt: string;
-}
-
-interface EnrollmentItem {
-  pathId: string;
-  pathTitle: string;
-  progress: number;
-  currentModule: string | null;
-  enrolledAt: string;
-}
-
 const { isAuthenticated } = useAuth();
 
-const { data: pathsData, pending: loadingPaths } = useFetch<{ items: PathItem[]; total: number }>('/api/learn');
-const { data: enrollments } = useFetch<EnrollmentItem[]>('/api/learn/enrollments', {
+const { data: pathsData, pending: loadingPaths } = useFetch('/api/learn');
+const { data: enrollments } = useFetch('/api/learn/enrollments', {
   immediate: isAuthenticated.value,
 });
-const { data: certificates } = useFetch<Array<{ name: string; earnedAt: string }>>('/api/learn/certificates', {
+const { data: certificates } = useFetch('/api/learn/certificates', {
   immediate: isAuthenticated.value,
 });
 
@@ -118,6 +98,7 @@ const activeHeroCat = ref('All');
           <div class="cpub-sec-head">
             <h2>Learning Paths</h2>
             <span class="cpub-sec-sub">{{ totalPaths }} paths</span>
+            <NuxtLink v-if="isAuthenticated" to="/learn/create" class="cpub-btn cpub-btn-primary" style="margin-left: auto;">Create Path</NuxtLink>
           </div>
 
           <!-- Loading -->

@@ -1,7 +1,7 @@
 // @commonpub/editor — TipTap block editor extensions + serialization
 
 // Block type system
-export type { BlockTuple, BlockDefinition } from './blocks/types.js';
+export type { BlockTuple, TypedBlockTuple, BlockDefinition } from './blocks/types.js';
 export {
   textContentSchema,
   headingContentSchema,

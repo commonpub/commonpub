@@ -116,7 +116,7 @@ export async function createDocsSite(
   await db.insert(docsVersions).values({
     siteId: site!.id,
     version: 'v1',
-    isDefault: 1,
+    isDefault: true,
   });
 
   return site!;
@@ -188,7 +188,7 @@ export async function createDocsVersion(
     .values({
       siteId,
       version: input.version,
-      isDefault: input.isDefault ? 1 : 0,
+      isDefault: input.isDefault ?? false,
     })
     .returning();
 
@@ -231,7 +231,7 @@ export async function createDocsVersion(
   if (input.isDefault) {
     await db
       .update(docsVersions)
-      .set({ isDefault: 0 })
+      .set({ isDefault: false })
       .where(
         and(eq(docsVersions.siteId, siteId), sql`${docsVersions.id} != ${version!.id}`),
       );
@@ -257,8 +257,8 @@ export async function setDefaultVersion(
   const siteId = version[0]!.site.id;
 
   await db.transaction(async (tx) => {
-    await tx.update(docsVersions).set({ isDefault: 0 }).where(eq(docsVersions.siteId, siteId));
-    await tx.update(docsVersions).set({ isDefault: 1 }).where(eq(docsVersions.id, versionId));
+    await tx.update(docsVersions).set({ isDefault: false }).where(eq(docsVersions.siteId, siteId));
+    await tx.update(docsVersions).set({ isDefault: true }).where(eq(docsVersions.id, versionId));
   });
 
   return true;

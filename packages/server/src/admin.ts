@@ -15,6 +15,7 @@ import {
   auditLogs,
 } from '@commonpub/schema';
 import type { DB } from './types.js';
+import type { AdminUpdateRoleInput, AdminUpdateStatusInput } from '@commonpub/schema';
 
 // --- Audit Types ---
 
@@ -72,8 +73,8 @@ export interface UserListItem {
 
 export interface UserFilters {
   search?: string;
-  role?: string;
-  status?: string;
+  role?: AdminUpdateRoleInput['role'];
+  status?: AdminUpdateStatusInput['status'];
   limit?: number;
   offset?: number;
 }
@@ -92,7 +93,7 @@ export interface ReportListItem {
 }
 
 export interface ReportFilters {
-  status?: string;
+  status?: 'pending' | 'reviewed' | 'resolved' | 'dismissed';
   limit?: number;
   offset?: number;
 }
@@ -255,11 +256,11 @@ export async function listUsers(
   }
   if (filters.role) {
     conditions.push(
-      eq(users.role, filters.role as 'member' | 'pro' | 'verified' | 'staff' | 'admin'),
+      eq(users.role, filters.role),
     );
   }
   if (filters.status) {
-    conditions.push(eq(users.status, filters.status as 'active' | 'suspended' | 'deleted'));
+    conditions.push(eq(users.status, filters.status));
   }
 
   const where = conditions.length > 0 ? and(...conditions) : undefined;
@@ -298,7 +299,7 @@ export async function listUsers(
 export async function updateUserRole(
   db: DB,
   userId: string,
-  newRole: string,
+  newRole: AdminUpdateRoleInput['role'],
   adminId: string,
   ip?: string,
 ): Promise<void> {
@@ -308,7 +309,7 @@ export async function updateUserRole(
   await db
     .update(users)
     .set({
-      role: newRole as 'member' | 'pro' | 'verified' | 'staff' | 'admin',
+      role: newRole,
       updatedAt: new Date(),
     })
     .where(eq(users.id, userId));
@@ -326,7 +327,7 @@ export async function updateUserRole(
 export async function updateUserStatus(
   db: DB,
   userId: string,
-  newStatus: string,
+  newStatus: AdminUpdateStatusInput['status'],
   adminId: string,
   ip?: string,
 ): Promise<void> {
@@ -338,7 +339,7 @@ export async function updateUserStatus(
 
   await db
     .update(users)
-    .set({ status: newStatus as 'active' | 'suspended' | 'deleted', updatedAt: new Date() })
+    .set({ status: newStatus, updatedAt: new Date() })
     .where(eq(users.id, userId));
 
   await createAuditEntry(db, {
@@ -361,7 +362,7 @@ export async function listReports(
 
   if (filters.status) {
     conditions.push(
-      eq(reports.status, filters.status as 'pending' | 'reviewed' | 'resolved' | 'dismissed'),
+      eq(reports.status, filters.status),
     );
   }
 

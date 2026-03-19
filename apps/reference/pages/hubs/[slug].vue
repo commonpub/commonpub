@@ -2,70 +2,13 @@
 const route = useRoute();
 const slug = computed(() => route.params.slug as string);
 
-interface HubData {
-  id: string;
-  name: string;
-  slug: string;
-  description: string | null;
-  memberCount: number;
-  postCount: number;
-  currentUserRole: string | null;
-  isOfficial: boolean;
-  hubType: string;
-  joinPolicy: string;
-  privacy: string;
-  website: string | null;
-  categories: string[] | null;
-  rules: string | null;
-  createdAt: string;
-  createdBy: { id: string; username: string; displayName: string | null };
-}
+import type { Serialized, HubDetail, HubPostItem, HubMemberItem, PaginatedResponse } from '@commonpub/server';
 
-interface HubPost {
-  id: string;
-  hubId: string;
-  type: string;
-  content: string;
-  isPinned: boolean;
-  isLocked: boolean;
-  likeCount: number;
-  replyCount: number;
-  createdAt: string;
-  updatedAt: string;
-  author: { id: string; username: string; displayName: string | null; avatarUrl: string | null };
-}
+const { data: hub } = await useFetch<Serialized<HubDetail>>(() => `/api/hubs/${slug.value}`);
+const { data: posts } = await useFetch<Serialized<PaginatedResponse<HubPostItem>>>(() => `/api/hubs/${slug.value}/posts`, { default: () => ({ items: [], total: 0 }) });
+const { data: members } = await useFetch<Serialized<HubMemberItem>[]>(() => `/api/hubs/${slug.value}/members`);
 
-interface HubMember {
-  hubId: string;
-  userId: string;
-  role: string;
-  joinedAt: string;
-  user: { id: string; username: string; displayName: string | null; avatarUrl: string | null };
-}
-
-const { data: hub } = await useFetch<HubData>(() => `/api/hubs/${slug.value}`);
-const { data: posts } = await useFetch<{ items: HubPost[] }>(() => `/api/hubs/${slug.value}/posts`, { default: () => ({ items: [] }) });
-const { data: members } = await useFetch<HubMember[]>(() => `/api/hubs/${slug.value}/members`);
-interface GalleryItem {
-  id: string;
-  type: string;
-  title: string;
-  slug: string;
-  coverImageUrl: string | null;
-  authorName: string | null;
-}
-
-interface ProductItem {
-  id: string;
-  name: string;
-  slug: string;
-  description: string | null;
-  imageUrl: string | null;
-  category: string | null;
-  status: string | null;
-}
-
-const { data: gallery } = await useFetch<{ items: GalleryItem[]; total: number }>(() => `/api/hubs/${slug.value}/gallery`, { default: () => ({ items: [], total: 0 }) });
+const { data: gallery } = await useFetch(() => `/api/hubs/${slug.value}/gallery`, { default: () => ({ items: [], total: 0 }) });
 
 // Hub type
 const hubType = computed(() => hub.value?.hubType ?? 'community');
@@ -86,7 +29,7 @@ const hubRules = computed<string[]>(() => {
   return raw.split('\n').map((r: string) => r.trim()).filter(Boolean);
 });
 
-const { data: products } = await useFetch<{ items: ProductItem[]; total: number }>(
+const { data: products } = await useFetch<{ items: Array<{ id: string; name: string; description: string | null; imageUrl: string | null; category: string | null; status: string }>; total: number }>(
   () => `/api/hubs/${slug.value}/products`,
   { default: () => ({ items: [], total: 0 }), immediate: isCompanyHub.value },
 );
@@ -127,7 +70,6 @@ const tabDefs = computed(() => {
     { value: 'feed', label: 'Feed', icon: 'fa-solid fa-rss', count: hub.value?.postCount },
     { value: 'projects', label: 'Projects', icon: 'fa-solid fa-folder-open', count: gallery.value?.total },
     { value: 'discussions', label: 'Discussions', icon: 'fa-solid fa-comments' },
-    { value: 'learn', label: 'Learn', icon: 'fa-solid fa-graduation-cap' },
     { value: 'members', label: 'Members', icon: 'fa-solid fa-users', count: hub.value?.memberCount },
   ];
 });
@@ -143,7 +85,7 @@ const feedFilters = [
 const moderators = computed(() => {
   if (!members.value) return [];
   return members.value.filter(
-    (m: HubMember) => m.role === 'owner' || m.role === 'moderator'
+    (m: Serialized<HubMemberItem>) => m.role === 'owner' || m.role === 'moderator'
   );
 });
 
@@ -458,14 +400,6 @@ function handleLinkInsert(): void {
             <div v-else class="cpub-empty-state">
               <div class="cpub-empty-state-icon"><i class="fa-solid fa-microchip"></i></div>
               <p class="cpub-empty-state-title">No products listed yet</p>
-            </div>
-          </template>
-
-          <!-- Learn tab -->
-          <template v-else-if="activeTab === 'learn'">
-            <div class="cpub-empty-state">
-              <div class="cpub-empty-state-icon"><i class="fa-solid fa-graduation-cap"></i></div>
-              <p class="cpub-empty-state-title">Learning paths coming soon</p>
             </div>
           </template>
 

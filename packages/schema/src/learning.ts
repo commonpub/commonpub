@@ -8,6 +8,7 @@ import {
   boolean,
   jsonb,
   numeric,
+  unique,
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { users } from './auth.js';
@@ -44,47 +45,59 @@ export const learningModules = pgTable('learning_modules', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
-export const learningLessons = pgTable('learning_lessons', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  moduleId: uuid('module_id')
-    .notNull()
-    .references(() => learningModules.id, { onDelete: 'cascade' }),
-  title: varchar('title', { length: 255 }).notNull(),
-  slug: varchar('slug', { length: 255 }).notNull(),
-  type: lessonTypeEnum('type').notNull(),
-  content: jsonb('content'),
-  duration: integer('duration_minutes'),
-  sortOrder: integer('sort_order').default(0).notNull(),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-});
+export const learningLessons = pgTable(
+  'learning_lessons',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    moduleId: uuid('module_id')
+      .notNull()
+      .references(() => learningModules.id, { onDelete: 'cascade' }),
+    title: varchar('title', { length: 255 }).notNull(),
+    slug: varchar('slug', { length: 255 }).notNull(),
+    type: lessonTypeEnum('type').notNull(),
+    content: jsonb('content'),
+    duration: integer('duration_minutes'),
+    sortOrder: integer('sort_order').default(0).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [unique('learning_lessons_module_slug').on(t.moduleId, t.slug)],
+);
 
-export const enrollments = pgTable('enrollments', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id')
-    .notNull()
-    .references(() => users.id, { onDelete: 'cascade' }),
-  pathId: uuid('path_id')
-    .notNull()
-    .references(() => learningPaths.id, { onDelete: 'cascade' }),
-  progress: numeric('progress', { precision: 5, scale: 2 }).default('0').notNull(),
-  startedAt: timestamp('started_at', { withTimezone: true }).defaultNow().notNull(),
-  completedAt: timestamp('completed_at', { withTimezone: true }),
-});
+export const enrollments = pgTable(
+  'enrollments',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    pathId: uuid('path_id')
+      .notNull()
+      .references(() => learningPaths.id, { onDelete: 'cascade' }),
+    progress: numeric('progress', { precision: 5, scale: 2 }).default('0').notNull(),
+    startedAt: timestamp('started_at', { withTimezone: true }).defaultNow().notNull(),
+    completedAt: timestamp('completed_at', { withTimezone: true }),
+  },
+  (t) => [unique('enrollments_user_path').on(t.userId, t.pathId)],
+);
 
-export const lessonProgress = pgTable('lesson_progress', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id')
-    .notNull()
-    .references(() => users.id, { onDelete: 'cascade' }),
-  lessonId: uuid('lesson_id')
-    .notNull()
-    .references(() => learningLessons.id, { onDelete: 'cascade' }),
-  completed: boolean('completed').default(false).notNull(),
-  completedAt: timestamp('completed_at', { withTimezone: true }),
-  quizScore: numeric('quiz_score', { precision: 5, scale: 2 }),
-  quizPassed: boolean('quiz_passed'),
-});
+export const lessonProgress = pgTable(
+  'lesson_progress',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    lessonId: uuid('lesson_id')
+      .notNull()
+      .references(() => learningLessons.id, { onDelete: 'cascade' }),
+    completed: boolean('completed').default(false).notNull(),
+    completedAt: timestamp('completed_at', { withTimezone: true }),
+    quizScore: numeric('quiz_score', { precision: 5, scale: 2 }),
+    quizPassed: boolean('quiz_passed'),
+  },
+  (t) => [unique('lesson_progress_user_lesson').on(t.userId, t.lessonId)],
+);
 
 export const certificates = pgTable('certificates', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -137,3 +150,17 @@ export const certificatesRelations = relations(certificates, ({ one }) => ({
   user: one(users, { fields: [certificates.userId], references: [users.id] }),
   path: one(learningPaths, { fields: [certificates.pathId], references: [learningPaths.id] }),
 }));
+
+// --- Inferred Types ---
+export type LearningPathRow = typeof learningPaths.$inferSelect;
+export type NewLearningPathRow = typeof learningPaths.$inferInsert;
+export type LearningModuleRow = typeof learningModules.$inferSelect;
+export type NewLearningModuleRow = typeof learningModules.$inferInsert;
+export type LearningLessonRow = typeof learningLessons.$inferSelect;
+export type NewLearningLessonRow = typeof learningLessons.$inferInsert;
+export type EnrollmentRow = typeof enrollments.$inferSelect;
+export type NewEnrollmentRow = typeof enrollments.$inferInsert;
+export type LessonProgressRow = typeof lessonProgress.$inferSelect;
+export type NewLessonProgressRow = typeof lessonProgress.$inferInsert;
+export type CertificateRow = typeof certificates.$inferSelect;
+export type NewCertificateRow = typeof certificates.$inferInsert;

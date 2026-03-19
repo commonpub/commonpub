@@ -2,27 +2,6 @@
 definePageMeta({ middleware: 'auth' });
 useSeoMeta({ title: 'Edit Profile — CommonPub' });
 
-interface Skill {
-  name: string;
-  proficiency: number;
-}
-
-interface SocialLinks {
-  github: string;
-  twitter: string;
-  linkedin: string;
-  website: string;
-}
-
-interface ExperienceEntry {
-  id: string;
-  title: string;
-  company: string;
-  startDate: string;
-  endDate: string;
-  description: string;
-}
-
 const { user } = useAuth();
 const toast = useToast();
 const { extract: extractError } = useApiError();
@@ -39,14 +18,14 @@ const form = ref({
   bannerUrl: '',
 });
 
-const skills = ref<Skill[]>([]);
-const socialLinks = ref<SocialLinks>({
+const skills = ref<Array<{ name: string; proficiency: number }>>([]);
+const socialLinks = ref({
   github: '',
   twitter: '',
   linkedin: '',
   website: '',
 });
-const experience = ref<ExperienceEntry[]>([]);
+const experience = ref<Array<{ id: string; title: string; company: string; startDate: string; endDate: string; description: string }>>([]);
 
 const avatarInput = ref<HTMLInputElement | null>(null);
 const bannerInput = ref<HTMLInputElement | null>(null);
@@ -54,22 +33,8 @@ const bannerInput = ref<HTMLInputElement | null>(null);
 // Load current profile
 const { data: profile } = await useFetch('/api/profile');
 
-interface UserProfile {
-  displayName: string | null;
-  username: string;
-  bio: string | null;
-  location: string | null;
-  website: string | null;
-  headline: string | null;
-  avatarUrl: string | null;
-  bannerUrl: string | null;
-  skills: Skill[];
-  socialLinks: Partial<SocialLinks> | null;
-  experience: ExperienceEntry[];
-}
-
 if (profile.value) {
-  const p = profile.value as UserProfile;
+  const p = profile.value;
   form.value.displayName = p.displayName || '';
   form.value.username = p.username || '';
   form.value.bio = p.bio || '';

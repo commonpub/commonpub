@@ -1,7 +1,8 @@
 import { createPath } from '@commonpub/server';
+import type { LearningPathDetail } from '@commonpub/server';
 import { createLearningPathSchema } from '@commonpub/schema';
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async (event): Promise<LearningPathDetail> => {
   const user = requireAuth(event);
   const db = useDB();
   const body = await readBody(event);

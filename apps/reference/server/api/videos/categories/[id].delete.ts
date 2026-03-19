@@ -1,15 +1,7 @@
 import { deleteVideoCategory } from '@commonpub/server';
 
-export default defineEventHandler(async (event) => {
-  const auth = event.context.auth;
-  if (!auth?.user) {
-    throw createError({ statusCode: 401, statusMessage: 'Authentication required' });
-  }
-
-  const user = auth.user as { id: string; role?: string };
-  if (user.role !== 'admin' && user.role !== 'staff') {
-    throw createError({ statusCode: 403, statusMessage: 'Admin access required' });
-  }
+export default defineEventHandler(async (event): Promise<{ success: boolean }> => {
+  requireAdmin(event);
 
   const id = getRouterParam(event, 'id');
   if (!id) {

@@ -4,12 +4,6 @@ useSeoMeta({
   description: 'Discover projects, articles, hubs, and learning paths on CommonPub.',
 });
 
-interface PlatformStats {
-  contentCount: number;
-  hubCount: number;
-  userCount: number;
-}
-
 const activeTab = ref<'content' | 'hubs' | 'learn' | 'people'>('content');
 const contentType = ref('');
 const sort = ref('recent');
@@ -26,48 +20,21 @@ const { data: content } = await useFetch('/api/content', {
   watch: [contentQuery],
 });
 
-interface HubListItem {
-  id: string;
-  name: string;
-  slug: string;
-  description: string | null;
-  hubType: string;
-  memberCount: number;
-}
-
-interface PathListItem {
-  id: string;
-  title: string;
-  slug: string;
-  description: string | null;
-  moduleCount: number;
-  enrollmentCount: number;
-  difficulty: string | null;
-}
-
-const { data: hubsData } = await useFetch<{ items: HubListItem[] }>('/api/hubs', {
+const { data: hubsData } = await useFetch('/api/hubs', {
   query: { limit: 12 },
   lazy: true,
 });
 
-const { data: pathsData } = await useFetch<{ items: PathListItem[] }>('/api/learn', {
+const { data: pathsData } = await useFetch('/api/learn', {
   query: { status: 'published', limit: 12 },
   lazy: true,
 });
 
-const { data: statsData } = await useFetch<PlatformStats>('/api/stats', {
+const { data: statsData } = await useFetch('/api/stats', {
   lazy: true,
 });
 
-// People data for People tab
-interface UserListItem {
-  id: string;
-  username: string;
-  displayName: string | null;
-  headline: string | null;
-  followerCount: number;
-}
-const { data: peopleData } = await useFetch<{ items: UserListItem[] }>('/api/users', {
+const { data: peopleData } = await useFetch('/api/users', {
   query: { limit: 20 },
   lazy: true,
   default: () => ({ items: [] }),

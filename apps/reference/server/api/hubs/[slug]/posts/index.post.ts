@@ -1,7 +1,8 @@
 import { createPost, getHubBySlug } from '@commonpub/server';
+import type { HubPostItem } from '@commonpub/server';
 import { createPostSchema } from '@commonpub/schema';
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async (event): Promise<HubPostItem> => {
   const user = requireAuth(event);
   const db = useDB();
   const slug = getRouterParam(event, 'slug') as string;

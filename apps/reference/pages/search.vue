@@ -105,8 +105,7 @@ const categories = [
 ];
 
 // Trending searches for sidebar
-interface TrendingSearch { query: string; trend: number }
-const { data: trendingSearches } = await useFetch<TrendingSearch[]>('/api/search/trending', {
+const { data: trendingSearches } = await useFetch('/api/search/trending', {
   default: () => [],
   server: false,
 });
@@ -137,8 +136,7 @@ function setCategory(label: string): void {
   page.value = 1;
 }
 
-interface CommunityListItem { id: string; name: string; slug: string; memberCount: number }
-const { data: relatedCommunities } = await useFetch<{ items: CommunityListItem[] }>('/api/hubs', {
+const { data: relatedCommunities } = await useFetch('/api/hubs', {
   query: { limit: 3 },
   default: () => ({ items: [] }),
 });

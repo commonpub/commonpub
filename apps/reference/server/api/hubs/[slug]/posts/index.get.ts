@@ -1,18 +1,16 @@
 import { listPosts, getHubBySlug } from '@commonpub/server';
+import type { PaginatedResponse, HubPostItem } from '@commonpub/server';
+import { hubPostFiltersSchema } from '@commonpub/schema';
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async (event): Promise<PaginatedResponse<HubPostItem>> => {
   const db = useDB();
   const slug = getRouterParam(event, 'slug')!;
-  const query = getQuery(event);
+  const filters = hubPostFiltersSchema.parse(getQuery(event));
 
   const hub = await getHubBySlug(db, slug);
   if (!hub) {
     throw createError({ statusCode: 404, statusMessage: 'Hub not found' });
   }
 
-  return listPosts(db, hub.id, {
-    type: query.type as string | undefined,
-    limit: query.limit ? Number(query.limit) : undefined,
-    offset: query.offset ? Number(query.offset) : undefined,
-  });
+  return listPosts(db, hub.id, filters);
 });

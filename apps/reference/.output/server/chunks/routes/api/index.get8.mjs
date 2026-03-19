@@ -1,4 +1,5 @@
-import { d as defineEventHandler, u as useDB, g as getQuery, bv as searchProducts } from '../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, g as getQuery, bG as searchProducts, aU as productStatusSchema, aV as productCategorySchema } from '../../nitro/nitro.mjs';
+import { z } from 'zod';
 import 'drizzle-orm';
 import 'drizzle-orm/pg-core';
 import 'jose';
@@ -12,24 +13,32 @@ import 'node:https';
 import 'node:events';
 import 'node:buffer';
 import 'node:url';
-import 'zod';
 import 'drizzle-orm/node-postgres';
 import 'pg';
 import 'better-auth';
 import 'better-auth/adapters/drizzle';
 import 'better-auth/plugins';
 
+const productSearchSchema = z.object({
+  q: z.string().max(200).optional(),
+  search: z.string().max(200).optional(),
+  category: productCategorySchema.optional(),
+  status: productStatusSchema.optional(),
+  hubId: z.string().uuid().optional(),
+  limit: z.coerce.number().int().positive().max(100).optional(),
+  offset: z.coerce.number().int().min(0).optional()
+});
 const index_get = defineEventHandler(async (event) => {
   var _a;
   const db = useDB();
-  const query = getQuery(event);
+  const query = productSearchSchema.parse(getQuery(event));
   return searchProducts(db, {
     search: (_a = query.q) != null ? _a : query.search,
     category: query.category,
     status: query.status,
     hubId: query.hubId,
-    limit: query.limit ? Number(query.limit) : void 0,
-    offset: query.offset ? Number(query.offset) : void 0
+    limit: query.limit,
+    offset: query.offset
   });
 });
 

@@ -1,12 +1,16 @@
 import { listUserBookmarks } from '@commonpub/server';
+import type { PaginatedResponse, BookmarkItem } from '@commonpub/server';
+import { z } from 'zod';
 
-export default defineEventHandler(async (event) => {
+const bookmarksQuerySchema = z.object({
+  limit: z.coerce.number().int().positive().max(100).optional(),
+  offset: z.coerce.number().int().min(0).optional(),
+});
+
+export default defineEventHandler(async (event): Promise<PaginatedResponse<BookmarkItem>> => {
   const user = requireAuth(event);
   const db = useDB();
-  const query = getQuery(event);
+  const query = bookmarksQuerySchema.parse(getQuery(event));
 
-  return listUserBookmarks(db, user.id, {
-    limit: query.limit ? Number(query.limit) : undefined,
-    offset: query.offset ? Number(query.offset) : undefined,
-  });
+  return listUserBookmarks(db, user.id, query);
 });

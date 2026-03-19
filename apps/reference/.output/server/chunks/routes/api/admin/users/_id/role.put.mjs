@@ -21,7 +21,7 @@ import 'better-auth/adapters/drizzle';
 import 'better-auth/plugins';
 
 const role_put = defineEventHandler(async (event) => {
-  requireAdmin(event);
+  const admin = requireAdmin(event);
   const db = useDB();
   const id = getRouterParam(event, "id");
   const body = await readBody(event);
@@ -33,7 +33,7 @@ const role_put = defineEventHandler(async (event) => {
       data: { errors: parsed.error.flatten().fieldErrors }
     });
   }
-  return updateUserRole(db, id, parsed.data.role);
+  return updateUserRole(db, id, parsed.data.role, admin.id);
 });
 
 export { role_put as default };

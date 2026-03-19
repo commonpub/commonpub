@@ -6,57 +6,28 @@ useSeoMeta({
   description: 'Your personal CommonPub dashboard.',
 });
 
-interface DashContentItem {
-  id: string;
-  type: string;
-  title: string;
-  slug: string;
-  status: string;
-  createdAt: string;
-  viewCount: number;
-  likeCount: number;
-}
-
-interface BookmarkItem {
-  id: string;
-  content: {
-    type: string;
-    title: string;
-    slug: string;
-    author?: { username: string; displayName: string | null };
-  } | null;
-}
-
-interface Enrollment {
-  pathId: string;
-  pathSlug: string;
-  pathTitle: string;
-  progress: number;
-  completedAt: string | null;
-}
-
 const { user } = useAuth();
 
 const activeTab = ref<'content' | 'bookmarks' | 'learning'>('content');
 
 // My content (all statuses)
-const { data: myContent, status: contentStatus } = await useFetch<{ items: DashContentItem[] }>('/api/content', {
+const { data: myContent, status: contentStatus } = await useFetch('/api/content', {
   query: { authorId: user.value?.id },
 });
 
 // Bookmarks
-const { data: bookmarkData } = await useFetch<{ items: BookmarkItem[] }>('/api/social/bookmarks', {
+const { data: bookmarkData } = await useFetch('/api/social/bookmarks', {
   query: { limit: 10 },
   lazy: true,
 });
 
 // Learning enrollments
-const { data: enrollments } = await useFetch<Enrollment[]>('/api/learn/enrollments', {
+const { data: enrollments } = await useFetch('/api/learn/enrollments', {
   lazy: true,
 });
 
 // Notification count
-const { data: notifCount } = await useFetch<{ count: number }>('/api/notifications/count', {
+const { data: notifCount } = await useFetch('/api/notifications/count', {
   lazy: true,
 });
 

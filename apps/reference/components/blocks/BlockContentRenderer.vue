@@ -22,8 +22,7 @@ import BlockSliderView from './BlockSliderView.vue';
 import BlockCheckpointView from './BlockCheckpointView.vue';
 import BlockMathView from './BlockMathView.vue';
 import BlockGalleryView from './BlockGalleryView.vue';
-
-type BlockTuple = [string, Record<string, unknown>];
+import type { BlockTuple } from '@commonpub/editor';
 
 const props = defineProps<{
   blocks: BlockTuple[];

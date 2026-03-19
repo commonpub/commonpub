@@ -5,11 +5,11 @@ import { resolve, dirname, join } from 'node:path';
 import nodeCrypto from 'node:crypto';
 import { parentPort, threadId } from 'node:worker_threads';
 import { escapeHtml } from 'file:///Users/obsidian/Projects/ossuary-projects/snaplify/node_modules/.pnpm/@vue+shared@3.5.30/node_modules/@vue/shared/dist/shared.cjs.js';
-import { ConsoleEmailAdapter, emailTemplates, shouldSkipRateLimit, checkRateLimit, RateLimitStore, generateNonce, getSecurityHeaders, listAuditLogs, removeContent, listReports, resolveReport, getInstanceSettings, setInstanceSetting, getPlatformStats, listUsers, deleteUser, updateUserRole, updateUserStatus, deleteContent, getContentBySlug, updateContent, syncContentProducts, listContentProducts, addContentProduct, removeContentProduct, publishContent, onContentPublished, createReport, listContentVersions, incrementViewCount, listContent, createContent, getContestBySlug, listContestEntries, submitContestEntry, deleteContest, updateContest, judgeContestEntry, transitionContestStatus, listContests, createContest, getDocsSiteBySlug, deleteDocsSite, updateDocsSite, getDocsNav, listDocsPages, createDocsPage, updateDocsPage, searchDocsPages, createDocsVersion, listDocsSites, createDocsSite, createStorageFromEnv, validateUpload, isProcessableImage, processImage, generateStorageKey, getHubBySlug, listBans, banUser, unbanUser, listHubGallery, deleteHub, updateHub, listInvites, createInvite, joinHub, leaveHub, listMembers, kickMember, changeRole, deletePost, listReplies, createReply, listPosts, createPost, listHubProducts, createProduct, shareContent, listHubs, createHub, getLessonBySlug, markLessonComplete, getPathBySlug, enroll, deletePath, updatePath, createLesson, createModule, updateModule, publishPath, unenroll, getUserCertificates, getUserEnrollments, listPaths, createPath, getConversationMessages, markMessagesRead, sendMessage, listConversations, createConversation, deleteNotification, getUnreadCount, listNotifications, markNotificationRead, markAllNotificationsRead, deleteProduct, updateProduct, getProductBySlug, listProductContent, searchProducts, getUserByUsername, updateUserProfile, toggleBookmark, listUserBookmarks, listComments, createComment, deleteComment, isLiked, toggleLike, getUserContent, unfollowUser, followUser, listFollowers, listFollowing, getVideoById, incrementVideoViewCount, listVideoCategories, createVideoCategory, deleteVideoCategory, updateVideoCategory, listVideos, createVideo, getOrCreateActorKeypair, getFollowers, getFollowing } from 'file:///Users/obsidian/Projects/ossuary-projects/snaplify/packages/server/dist/index.js';
-import * as schema from 'file:///Users/obsidian/Projects/ossuary-projects/snaplify/packages/schema/dist/index.js';
-import { resolveReportSchema, adminSettingSchema, adminUpdateRoleSchema, adminUpdateStatusSchema, updateContentSchema, addContentProductSchema, createReportSchema, createContentSchema, updateContestSchema, judgeEntrySchema, contestTransitionSchema, createContestSchema, updateDocsSiteSchema, createDocsPageSchema, updateDocsPageSchema, createDocsVersionSchema, createDocsSiteSchema, files, banUserSchema, updateHubSchema, createInviteSchema, changeRoleSchema, createReplySchema, createPostSchema, createProductSchema, createHubSchema, updateLearningPathSchema, createLessonSchema, createModuleSchema, updateModuleSchema, createLearningPathSchema, sendMessageSchema, createConversationSchema, generateOpenAPISpec, updateProductSchema, updateProfileSchema, contentItems, createCommentSchema, likeTargetTypeSchema, users, follows, createVideoCategorySchema, createVideoSchema } from 'file:///Users/obsidian/Projects/ossuary-projects/snaplify/packages/schema/dist/index.js';
+import { ConsoleEmailAdapter, emailTemplates, shouldSkipRateLimit, checkRateLimit, RateLimitStore, generateNonce, getSecurityHeaders, listAuditLogs, removeContent, listReports, resolveReport, getInstanceSettings, setInstanceSetting, getPlatformStats, listUsers, deleteUser, updateUserRole, updateUserStatus, toggleBuildMark, forkContent, deleteContent, getContentBySlug, updateContent, syncContentProducts, listContentProducts, addContentProduct, removeContentProduct, publishContent, onContentPublished, createReport, listContentVersions, incrementViewCount, listContent, createContent, getContestBySlug, listContestEntries, submitContestEntry, deleteContest, updateContest, judgeContestEntry, transitionContestStatus, listContests, createContest, getDocsSiteBySlug, deleteDocsSite, updateDocsSite, getDocsNav, listDocsPages, createDocsPage, updateDocsPage, searchDocsPages, createDocsVersion, listDocsSites, createDocsSite, createStorageFromEnv, validateUpload, isProcessableImage, processImage, generateStorageKey, getHubBySlug, listBans, banUser, unbanUser, listHubGallery, deleteHub, updateHub, listInvites, createInvite, joinHub, leaveHub, listMembers, kickMember, changeRole, deletePost, listReplies, createReply, listPosts, createPost, listHubProducts, createProduct, shareContent, listHubs, createHub, getLessonBySlug, markLessonComplete, getPathBySlug, enroll, deletePath, updatePath, createLesson, deleteLesson, createModule, deleteModule, updateModule, publishPath, unenroll, getUserCertificates, getUserEnrollments, listPaths, createPath, getConversationMessages, markMessagesRead, sendMessage, listConversations, createConversation, deleteNotification, getUnreadCount, listNotifications, markNotificationRead, markAllNotificationsRead, deleteProduct, updateProduct, getProductBySlug, listProductContent, searchProducts, getUserByUsername, updateUserProfile, toggleBookmark, listUserBookmarks, listComments, createComment, deleteComment, isLiked, toggleLike, getUserContent, unfollowUser, followUser, listFollowers, listFollowing, getVideoById, incrementVideoViewCount, listVideoCategories, createVideoCategory, deleteVideoCategory, updateVideoCategory, listVideos, createVideo, getOrCreateActorKeypair, getFollowers, getFollowing } from 'file:///Users/obsidian/Projects/ossuary-projects/snaplify/packages/server/dist/index.js';
 import { z } from 'file:///Users/obsidian/Projects/ossuary-projects/snaplify/node_modules/.pnpm/zod@4.3.6/node_modules/zod/index.js';
-import { and, eq, desc, sql, or, ilike } from 'file:///Users/obsidian/Projects/ossuary-projects/snaplify/node_modules/.pnpm/drizzle-orm@0.38.4_kysely@0.28.11_pg@8.20.0/node_modules/drizzle-orm/index.js';
+import * as schema from 'file:///Users/obsidian/Projects/ossuary-projects/snaplify/packages/schema/dist/index.js';
+import { resolveReportSchema, adminSettingSchema, adminUpdateRoleSchema, adminUpdateStatusSchema, updateContentSchema, addContentProductSchema, createReportSchema, contentFiltersSchema, createContentSchema, updateContestSchema, judgeEntrySchema, contestTransitionSchema, contestFiltersSchema, createContestSchema, updateDocsSiteSchema, createDocsPageSchema, updateDocsPageSchema, createDocsVersionSchema, createDocsSiteSchema, files, banUserSchema, updateHubSchema, createInviteSchema, changeRoleSchema, createReplySchema, hubPostFiltersSchema, createPostSchema, productStatusSchema, productCategorySchema, createProductSchema, hubFiltersSchema, createHubSchema, updateLearningPathSchema, createLessonSchema, createModuleSchema, updateModuleSchema, learningPathFiltersSchema, createLearningPathSchema, sendMessageSchema, createConversationSchema, generateOpenAPISpec, updateProductSchema, updateProfileSchema, contentItems, commentTargetTypeSchema, createCommentSchema, likeTargetTypeSchema, contentTypeSchema, users, follows, createVideoCategorySchema, videoFiltersSchema, createVideoSchema } from 'file:///Users/obsidian/Projects/ossuary-projects/snaplify/packages/schema/dist/index.js';
+import { and, eq, desc, sql, or, ilike } from 'file:///Users/obsidian/Projects/ossuary-projects/snaplify/node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.16_gel@2.2.0_kysely@0.28.11_pg@8.20.0/node_modules/drizzle-orm/index.js';
 import { parseWebFingerResource, buildWebFingerResponse, processInboxActivity, buildNodeInfoResponse, generateOutboxCollection } from 'file:///Users/obsidian/Projects/ossuary-projects/snaplify/packages/protocol/dist/index.js';
 import { createRenderer, getRequestDependencies, getPreloadLinks, getPrefetchLinks } from 'file:///Users/obsidian/Projects/ossuary-projects/snaplify/node_modules/.pnpm/vue-bundle-renderer@2.2.0/node_modules/vue-bundle-renderer/dist/runtime.mjs';
 import { parseURL, withoutBase, joinURL, getQuery, withQuery, withTrailingSlash, decodePath, withLeadingSlash, withoutTrailingSlash, joinRelativeURL } from 'file:///Users/obsidian/Projects/ossuary-projects/snaplify/node_modules/.pnpm/ufo@1.6.3/node_modules/ufo/dist/index.mjs';
@@ -18,8 +18,8 @@ import destr, { destr as destr$1 } from 'file:///Users/obsidian/Projects/ossuary
 import { createHooks } from 'file:///Users/obsidian/Projects/ossuary-projects/snaplify/node_modules/.pnpm/hookable@5.5.3/node_modules/hookable/dist/index.mjs';
 import { createFetch, Headers as Headers$1 } from 'file:///Users/obsidian/Projects/ossuary-projects/snaplify/node_modules/.pnpm/ofetch@1.5.1/node_modules/ofetch/dist/node.mjs';
 import { fetchNodeRequestHandler, callNodeRequestHandler } from 'file:///Users/obsidian/Projects/ossuary-projects/snaplify/node_modules/.pnpm/node-mock-http@1.0.4/node_modules/node-mock-http/dist/index.mjs';
-import { createStorage, prefixStorage } from 'file:///Users/obsidian/Projects/ossuary-projects/snaplify/node_modules/.pnpm/unstorage@1.17.4_db0@0.3.4_drizzle-orm@0.38.4_kysely@0.28.11_pg@8.20.0___ioredis@5.10.0/node_modules/unstorage/dist/index.mjs';
-import unstorage_47drivers_47fs from 'file:///Users/obsidian/Projects/ossuary-projects/snaplify/node_modules/.pnpm/unstorage@1.17.4_db0@0.3.4_drizzle-orm@0.38.4_kysely@0.28.11_pg@8.20.0___ioredis@5.10.0/node_modules/unstorage/drivers/fs.mjs';
+import { createStorage, prefixStorage } from 'file:///Users/obsidian/Projects/ossuary-projects/snaplify/node_modules/.pnpm/unstorage@1.17.4_db0@0.3.4_@electric-sql+pglite@0.3.16_drizzle-orm@0.45.1_@electric-sql_6cb075aec0620e2b524a33784b1bab62/node_modules/unstorage/dist/index.mjs';
+import unstorage_47drivers_47fs from 'file:///Users/obsidian/Projects/ossuary-projects/snaplify/node_modules/.pnpm/unstorage@1.17.4_db0@0.3.4_@electric-sql+pglite@0.3.16_drizzle-orm@0.45.1_@electric-sql_6cb075aec0620e2b524a33784b1bab62/node_modules/unstorage/drivers/fs.mjs';
 import { digest } from 'file:///Users/obsidian/Projects/ossuary-projects/snaplify/node_modules/.pnpm/ohash@2.0.11/node_modules/ohash/dist/index.mjs';
 import { klona } from 'file:///Users/obsidian/Projects/ossuary-projects/snaplify/node_modules/.pnpm/klona@2.0.6/node_modules/klona/dist/index.mjs';
 import defu, { defuFn } from 'file:///Users/obsidian/Projects/ossuary-projects/snaplify/node_modules/.pnpm/defu@6.1.4/node_modules/defu/dist/defu.mjs';
@@ -39,7 +39,7 @@ import { promises } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname as dirname$1, resolve as resolve$1 } from 'file:///Users/obsidian/Projects/ossuary-projects/snaplify/node_modules/.pnpm/pathe@2.0.3/node_modules/pathe/dist/index.mjs';
 import { defineCommonPubConfig } from 'file:///Users/obsidian/Projects/ossuary-projects/snaplify/packages/config/dist/index.js';
-import { drizzle } from 'file:///Users/obsidian/Projects/ossuary-projects/snaplify/node_modules/.pnpm/drizzle-orm@0.38.4_kysely@0.28.11_pg@8.20.0/node_modules/drizzle-orm/node-postgres/index.js';
+import { drizzle } from 'file:///Users/obsidian/Projects/ossuary-projects/snaplify/node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.16_gel@2.2.0_kysely@0.28.11_pg@8.20.0/node_modules/drizzle-orm/node-postgres/index.js';
 import pg from 'file:///Users/obsidian/Projects/ossuary-projects/snaplify/node_modules/.pnpm/pg@8.20.0/node_modules/pg/esm/index.mjs';
 import { createAuth, createAuthMiddleware } from 'file:///Users/obsidian/Projects/ossuary-projects/snaplify/packages/auth/dist/index.js';
 import { createHead as createHead$1, propsToString, renderSSRHead } from 'file:///Users/obsidian/Projects/ossuary-projects/snaplify/node_modules/.pnpm/unhead@2.1.12/node_modules/unhead/dist/server.mjs';
@@ -2069,7 +2069,7 @@ if (!window.__NUXT_DEVTOOLS_TIME_METRIC__) {
 window.__NUXT_DEVTOOLS_TIME_METRIC__.appInit = Date.now()
 `;
 
-const _nIM2ZPTdIC3OYgBEIG9npK6swPk5YcsbEuMQOPPjAxg = (function(nitro) {
+const _nl6bQT7yIe_qsvWsHXdxxleKnKhmiwRlnv4mAtiSmw = (function(nitro) {
   nitro.hooks.hook("render:html", (htmlContext) => {
     htmlContext.head.push(`<script>${script}<\/script>`);
   });
@@ -2100,7 +2100,7 @@ const asyncContext = getContext("nuxt-dev", {
 	asyncContext: true,
 	AsyncLocalStorage
 });
-const _z8kTwy5D8nWeZsb9oR6oxjttOPXEROGrBGSrlgcx6y0 = (nitroApp) => {
+const _zhVm5qprtYX102Z_f_cXuU2baFGsHZqzOLnWUI6gQ9U = (nitroApp) => {
 	const handler = nitroApp.h3App.handler;
 	nitroApp.h3App.handler = (event) => {
 		return asyncContext.callAsync({
@@ -2174,8 +2174,8 @@ function onConsoleLog(callback) {
 }
 
 const plugins = [
-  _nIM2ZPTdIC3OYgBEIG9npK6swPk5YcsbEuMQOPPjAxg,
-_z8kTwy5D8nWeZsb9oR6oxjttOPXEROGrBGSrlgcx6y0
+  _nl6bQT7yIe_qsvWsHXdxxleKnKhmiwRlnv4mAtiSmw,
+_zhVm5qprtYX102Z_f_cXuU2baFGsHZqzOLnWUI6gQ9U
 ];
 
 const assets = {};
@@ -2203,7 +2203,7 @@ function getAsset (id) {
 
 const METHODS = /* @__PURE__ */ new Set(["HEAD", "GET"]);
 const EncodingMap = { gzip: ".gz", br: ".br" };
-const _M7d2_t = eventHandler((event) => {
+const _1oFHXm = eventHandler((event) => {
   if (event.method && !METHODS.has(event.method)) {
     return;
   }
@@ -2773,6 +2773,8 @@ const _lazy_Wew5oZ = () => Promise.resolve().then(function () { return users_get
 const _lazy_AncTe6 = () => Promise.resolve().then(function () { return _id__delete$b; });
 const _lazy_rnRD3x = () => Promise.resolve().then(function () { return role_put$1; });
 const _lazy_mSN0U6 = () => Promise.resolve().then(function () { return status_put$1; });
+const _lazy_TKf7yE = () => Promise.resolve().then(function () { return build_post$1; });
+const _lazy_IMfpVg = () => Promise.resolve().then(function () { return fork_post$1; });
 const _lazy_INWkw9 = () => Promise.resolve().then(function () { return index_delete$9; });
 const _lazy_IwW464 = () => Promise.resolve().then(function () { return index_get$x; });
 const _lazy_JVK3iP = () => Promise.resolve().then(function () { return index_put$9; });
@@ -2842,7 +2844,9 @@ const _lazy_fMDPwz = () => Promise.resolve().then(function () { return index_del
 const _lazy_1vnyR0 = () => Promise.resolve().then(function () { return index_get$f; });
 const _lazy_TrJryK = () => Promise.resolve().then(function () { return index_put$1; });
 const _lazy_Rwf2_Q = () => Promise.resolve().then(function () { return lessons_post$1; });
+const _lazy_X3v9gU = () => Promise.resolve().then(function () { return _lessonId__delete$1; });
 const _lazy_JWIgCr = () => Promise.resolve().then(function () { return modules_post$1; });
+const _lazy_iZMtYH = () => Promise.resolve().then(function () { return _moduleId__delete$1; });
 const _lazy_Lmvao6 = () => Promise.resolve().then(function () { return _moduleId__put$1; });
 const _lazy_d1qV60 = () => Promise.resolve().then(function () { return publish_post$1; });
 const _lazy_QicDxD = () => Promise.resolve().then(function () { return unenroll_post$1; });
@@ -2905,10 +2909,10 @@ const _lazy_iUTKuI = () => Promise.resolve().then(function () { return followers
 const _lazy_8IfJxf = () => Promise.resolve().then(function () { return following$1; });
 const _lazy_joGsUR = () => Promise.resolve().then(function () { return inbox$1; });
 const _lazy_pgkIhY = () => Promise.resolve().then(function () { return outbox$1; });
-const _lazy_Ax7YdN = () => Promise.resolve().then(function () { return renderer$1; });
+const _lazy_oHgnvy = () => Promise.resolve().then(function () { return renderer$1; });
 
 const handlers = [
-  { route: '', handler: _M7d2_t, lazy: false, middleware: true, method: undefined },
+  { route: '', handler: _1oFHXm, lazy: false, middleware: true, method: undefined },
   { route: '', handler: _KEWnTz, lazy: false, middleware: true, method: undefined },
   { route: '', handler: _8L1GON, lazy: false, middleware: true, method: undefined },
   { route: '/api/admin/audit', handler: _lazy_FHTzZS, lazy: true, middleware: false, method: "get" },
@@ -2922,6 +2926,8 @@ const handlers = [
   { route: '/api/admin/users/:id', handler: _lazy_AncTe6, lazy: true, middleware: false, method: "delete" },
   { route: '/api/admin/users/:id/role', handler: _lazy_rnRD3x, lazy: true, middleware: false, method: "put" },
   { route: '/api/admin/users/:id/status', handler: _lazy_mSN0U6, lazy: true, middleware: false, method: "put" },
+  { route: '/api/content/:id/build', handler: _lazy_TKf7yE, lazy: true, middleware: false, method: "post" },
+  { route: '/api/content/:id/fork', handler: _lazy_IMfpVg, lazy: true, middleware: false, method: "post" },
   { route: '/api/content/:id', handler: _lazy_INWkw9, lazy: true, middleware: false, method: "delete" },
   { route: '/api/content/:id', handler: _lazy_IwW464, lazy: true, middleware: false, method: "get" },
   { route: '/api/content/:id', handler: _lazy_JVK3iP, lazy: true, middleware: false, method: "put" },
@@ -2991,7 +2997,9 @@ const handlers = [
   { route: '/api/learn/:slug', handler: _lazy_1vnyR0, lazy: true, middleware: false, method: "get" },
   { route: '/api/learn/:slug', handler: _lazy_TrJryK, lazy: true, middleware: false, method: "put" },
   { route: '/api/learn/:slug/lessons', handler: _lazy_Rwf2_Q, lazy: true, middleware: false, method: "post" },
+  { route: '/api/learn/:slug/lessons/:lessonId', handler: _lazy_X3v9gU, lazy: true, middleware: false, method: "delete" },
   { route: '/api/learn/:slug/modules', handler: _lazy_JWIgCr, lazy: true, middleware: false, method: "post" },
+  { route: '/api/learn/:slug/modules/:moduleId', handler: _lazy_iZMtYH, lazy: true, middleware: false, method: "delete" },
   { route: '/api/learn/:slug/modules/:moduleId', handler: _lazy_Lmvao6, lazy: true, middleware: false, method: "put" },
   { route: '/api/learn/:slug/publish', handler: _lazy_d1qV60, lazy: true, middleware: false, method: "post" },
   { route: '/api/learn/:slug/unenroll', handler: _lazy_QicDxD, lazy: true, middleware: false, method: "post" },
@@ -3054,9 +3062,9 @@ const handlers = [
   { route: '/users/:username/following', handler: _lazy_8IfJxf, lazy: true, middleware: false, method: undefined },
   { route: '/users/:username/inbox', handler: _lazy_joGsUR, lazy: true, middleware: false, method: undefined },
   { route: '/users/:username/outbox', handler: _lazy_pgkIhY, lazy: true, middleware: false, method: undefined },
-  { route: '/__nuxt_error', handler: _lazy_Ax7YdN, lazy: true, middleware: false, method: undefined },
+  { route: '/__nuxt_error', handler: _lazy_oHgnvy, lazy: true, middleware: false, method: undefined },
   { route: '/__nuxt_island/**', handler: _SxA8c9, lazy: false, middleware: false, method: undefined },
-  { route: '/**', handler: _lazy_Ax7YdN, lazy: true, middleware: false, method: undefined }
+  { route: '/**', handler: _lazy_oHgnvy, lazy: true, middleware: false, method: undefined }
 ];
 
 function createNitroApp() {
@@ -3421,14 +3429,15 @@ function getOptionalUser(event) {
   return (_a = auth == null ? void 0 : auth.user) != null ? _a : null;
 }
 
+const auditQuerySchema = z.object({
+  limit: z.coerce.number().int().positive().max(100).optional(),
+  offset: z.coerce.number().int().min(0).optional()
+});
 const audit_get = defineEventHandler(async (event) => {
   requireAdmin(event);
   const db = useDB();
-  const query = getQuery$1(event);
-  return listAuditLogs(db, {
-    limit: query.limit ? Number(query.limit) : void 0,
-    offset: query.offset ? Number(query.offset) : void 0
-  });
+  const filters = auditQuerySchema.parse(getQuery$1(event));
+  return listAuditLogs(db, filters);
 });
 
 const audit_get$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
@@ -3437,10 +3446,10 @@ const audit_get$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.definePropert
 }, Symbol.toStringTag, { value: 'Module' }));
 
 const _id__delete$c = defineEventHandler(async (event) => {
-  requireAdmin(event);
+  const admin = requireAdmin(event);
   const db = useDB();
   const id = getRouterParam(event, "id");
-  return removeContent(db, id);
+  return removeContent(db, id, admin.id);
 });
 
 const _id__delete$d = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
@@ -3448,14 +3457,15 @@ const _id__delete$d = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.definePrope
   default: _id__delete$c
 }, Symbol.toStringTag, { value: 'Module' }));
 
+const reportsQuerySchema = z.object({
+  limit: z.coerce.number().int().positive().max(100).optional(),
+  offset: z.coerce.number().int().min(0).optional()
+});
 const reports_get = defineEventHandler(async (event) => {
   requireAdmin(event);
   const db = useDB();
-  const query = getQuery$1(event);
-  return listReports(db, {
-    limit: query.limit ? Number(query.limit) : void 0,
-    offset: query.offset ? Number(query.offset) : void 0
-  });
+  const filters = reportsQuerySchema.parse(getQuery$1(event));
+  return listReports(db, filters);
 });
 
 const reports_get$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
@@ -3464,6 +3474,7 @@ const reports_get$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.definePrope
 }, Symbol.toStringTag, { value: 'Module' }));
 
 const resolve_post = defineEventHandler(async (event) => {
+  var _a;
   const admin = requireAdmin(event);
   const db = useDB();
   const id = getRouterParam(event, "id");
@@ -3476,7 +3487,7 @@ const resolve_post = defineEventHandler(async (event) => {
       data: { errors: parsed.error.flatten().fieldErrors }
     });
   }
-  return resolveReport(db, id, admin.id, parsed.data.resolution);
+  return resolveReport(db, id, parsed.data.resolution, (_a = parsed.data.status) != null ? _a : "resolved", admin.id);
 });
 
 const resolve_post$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
@@ -3496,7 +3507,7 @@ const settings_get$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProp
 }, Symbol.toStringTag, { value: 'Module' }));
 
 const settings_put = defineEventHandler(async (event) => {
-  requireAdmin(event);
+  const admin = requireAdmin(event);
   const db = useDB();
   const body = await readBody(event);
   const parsed = adminSettingSchema.safeParse(body);
@@ -3507,7 +3518,7 @@ const settings_put = defineEventHandler(async (event) => {
       data: { errors: parsed.error.flatten().fieldErrors }
     });
   }
-  return setInstanceSetting(db, parsed.data.key, parsed.data.value);
+  return setInstanceSetting(db, parsed.data.key, parsed.data.value, admin.id);
 });
 
 const settings_put$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
@@ -3526,15 +3537,16 @@ const stats_get$3 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.definePropert
   default: stats_get$2
 }, Symbol.toStringTag, { value: 'Module' }));
 
+const adminUsersQuerySchema = z.object({
+  search: z.string().max(200).optional(),
+  limit: z.coerce.number().int().positive().max(100).optional(),
+  offset: z.coerce.number().int().min(0).optional()
+});
 const users_get = defineEventHandler(async (event) => {
   requireAdmin(event);
   const db = useDB();
-  const query = getQuery$1(event);
-  return listUsers(db, {
-    search: query.search,
-    limit: query.limit ? Number(query.limit) : void 0,
-    offset: query.offset ? Number(query.offset) : void 0
-  });
+  const filters = adminUsersQuerySchema.parse(getQuery$1(event));
+  return listUsers(db, filters);
 });
 
 const users_get$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
@@ -3543,10 +3555,10 @@ const users_get$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.definePropert
 }, Symbol.toStringTag, { value: 'Module' }));
 
 const _id__delete$a = defineEventHandler(async (event) => {
-  requireAdmin(event);
+  const admin = requireAdmin(event);
   const db = useDB();
   const id = getRouterParam(event, "id");
-  return deleteUser(db, id);
+  return deleteUser(db, id, admin.id);
 });
 
 const _id__delete$b = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
@@ -3555,7 +3567,7 @@ const _id__delete$b = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.definePrope
 }, Symbol.toStringTag, { value: 'Module' }));
 
 const role_put = defineEventHandler(async (event) => {
-  requireAdmin(event);
+  const admin = requireAdmin(event);
   const db = useDB();
   const id = getRouterParam(event, "id");
   const body = await readBody(event);
@@ -3567,7 +3579,7 @@ const role_put = defineEventHandler(async (event) => {
       data: { errors: parsed.error.flatten().fieldErrors }
     });
   }
-  return updateUserRole(db, id, parsed.data.role);
+  return updateUserRole(db, id, parsed.data.role, admin.id);
 });
 
 const role_put$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
@@ -3576,7 +3588,7 @@ const role_put$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty
 }, Symbol.toStringTag, { value: 'Module' }));
 
 const status_put = defineEventHandler(async (event) => {
-  requireAdmin(event);
+  const admin = requireAdmin(event);
   const db = useDB();
   const id = getRouterParam(event, "id");
   const body = await readBody(event);
@@ -3588,12 +3600,36 @@ const status_put = defineEventHandler(async (event) => {
       data: { errors: parsed.error.flatten().fieldErrors }
     });
   }
-  return updateUserStatus(db, id, parsed.data.status);
+  return updateUserStatus(db, id, parsed.data.status, admin.id);
 });
 
 const status_put$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
   __proto__: null,
   default: status_put
+}, Symbol.toStringTag, { value: 'Module' }));
+
+const build_post = defineEventHandler(async (event) => {
+  const user = requireAuth(event);
+  const db = useDB();
+  const id = getRouterParam(event, "id");
+  return toggleBuildMark(db, id, user.id);
+});
+
+const build_post$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
+  __proto__: null,
+  default: build_post
+}, Symbol.toStringTag, { value: 'Module' }));
+
+const fork_post = defineEventHandler(async (event) => {
+  const user = requireAuth(event);
+  const db = useDB();
+  const id = getRouterParam(event, "id");
+  return forkContent(db, id, user.id);
+});
+
+const fork_post$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
+  __proto__: null,
+  default: fork_post
 }, Symbol.toStringTag, { value: 'Module' }));
 
 const index_delete$8 = defineEventHandler(async (event) => {
@@ -3801,21 +3837,12 @@ const view_post$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.definePropert
 const index_get$u = defineEventHandler(async (event) => {
   var _a;
   const db = useDB();
-  const query = getQuery$1(event);
   const user = getOptionalUser(event);
-  const authorId = query.authorId;
-  const isOwnContent = authorId && (user == null ? void 0 : user.id) === authorId;
+  const filters = contentFiltersSchema.parse(getQuery$1(event));
+  const isOwnContent = filters.authorId && (user == null ? void 0 : user.id) === filters.authorId;
   return listContent(db, {
-    status: isOwnContent ? query.status : (_a = query.status) != null ? _a : "published",
-    type: query.type,
-    authorId,
-    featured: query.featured === "true" ? true : void 0,
-    difficulty: query.difficulty,
-    search: query.search,
-    tag: query.tag,
-    sort: query.sort,
-    limit: query.limit ? Number(query.limit) : void 0,
-    offset: query.offset ? Number(query.offset) : void 0
+    ...filters,
+    status: isOwnContent ? filters.status : (_a = filters.status) != null ? _a : "published"
   });
 });
 
@@ -3997,12 +4024,8 @@ const transition_post$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineP
 
 const index_get$q = defineEventHandler(async (event) => {
   const db = useDB();
-  const query = getQuery$1(event);
-  return listContests(db, {
-    status: query.status,
-    limit: query.limit ? Number(query.limit) : 20,
-    offset: query.offset ? Number(query.offset) : 0
-  });
+  const filters = contestFiltersSchema.parse(getQuery$1(event));
+  return listContests(db, filters);
 });
 
 const index_get$r = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
@@ -4086,10 +4109,13 @@ const index_put$5 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.definePropert
   default: index_put$4
 }, Symbol.toStringTag, { value: 'Module' }));
 
+const navQuerySchema = z.object({
+  version: z.string().max(32).optional()
+});
 const nav_get = defineEventHandler(async (event) => {
   const db = useDB();
   const siteSlug = getRouterParam(event, "siteSlug");
-  const query = getQuery$1(event);
+  const query = navQuerySchema.parse(getQuery$1(event));
   return getDocsNav(db, siteSlug, query.version);
 });
 
@@ -4098,16 +4124,19 @@ const nav_get$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty(
   default: nav_get
 }, Symbol.toStringTag, { value: 'Module' }));
 
+const pagesQuerySchema = z.object({
+  version: z.string().max(32).optional()
+});
 const pages_get = defineEventHandler(async (event) => {
   const db = useDB();
   const siteSlug = getRouterParam(event, "siteSlug");
-  const query = getQuery$1(event);
+  const query = pagesQuerySchema.parse(getQuery$1(event));
   const result = await getDocsSiteBySlug(db, siteSlug);
   if (!result) {
     throw createError({ statusCode: 404, statusMessage: "Docs site not found" });
   }
   const requestedVersion = query.version;
-  let version = requestedVersion ? result.versions.find((v) => v.version === requestedVersion) : result.versions.find((v) => v.isDefault === 1);
+  let version = requestedVersion ? result.versions.find((v) => v.version === requestedVersion) : result.versions.find((v) => v.isDefault === true);
   if (!version && result.versions.length > 0) {
     version = result.versions[0];
   }
@@ -4142,7 +4171,7 @@ const pages_post = defineEventHandler(async (event) => {
     if (!result) {
       throw createError({ statusCode: 404, statusMessage: "Docs site not found" });
     }
-    const defaultVersion = (_a = result.versions.find((v) => v.isDefault === 1)) != null ? _a : result.versions[0];
+    const defaultVersion = (_a = result.versions.find((v) => v.isDefault === true)) != null ? _a : result.versions[0];
     if (!defaultVersion) {
       throw createError({ statusCode: 404, statusMessage: "No version found for docs site" });
     }
@@ -4177,11 +4206,14 @@ const _pageId__put$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProp
   default: _pageId__put
 }, Symbol.toStringTag, { value: 'Module' }));
 
+const searchQuerySchema$1 = z.object({
+  q: z.string().max(200).optional()
+});
 const search_get = defineEventHandler(async (event) => {
   var _a;
   const db = useDB();
   const siteSlug = getRouterParam(event, "siteSlug");
-  const query = getQuery$1(event);
+  const query = searchQuerySchema$1.parse(getQuery$1(event));
   return searchDocsPages(db, siteSlug, (_a = query.q) != null ? _a : "");
 });
 
@@ -4497,10 +4529,14 @@ const feed_xml_get$3 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProp
   default: feed_xml_get$2
 }, Symbol.toStringTag, { value: 'Module' }));
 
+const galleryQuerySchema = z.object({
+  limit: z.coerce.number().int().positive().max(100).optional(),
+  offset: z.coerce.number().int().min(0).optional()
+});
 const gallery_get = defineEventHandler(async (event) => {
   const db = useDB();
   const slug = getRouterParam(event, "slug");
-  const query = getQuery$1(event);
+  const query = galleryQuerySchema.parse(getQuery$1(event));
   if (!slug) {
     throw createError({ statusCode: 400, statusMessage: "Hub slug is required" });
   }
@@ -4508,10 +4544,7 @@ const gallery_get = defineEventHandler(async (event) => {
   if (!hub) {
     throw createError({ statusCode: 404, statusMessage: "Hub not found" });
   }
-  return listHubGallery(db, hub.id, {
-    limit: query.limit ? Number(query.limit) : void 0,
-    offset: query.offset ? Number(query.offset) : void 0
-  });
+  return listHubGallery(db, hub.id, query);
 });
 
 const gallery_get$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
@@ -4773,16 +4806,12 @@ const replies_post$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProp
 const index_get$i = defineEventHandler(async (event) => {
   const db = useDB();
   const slug = getRouterParam(event, "slug");
-  const query = getQuery$1(event);
+  const filters = hubPostFiltersSchema.parse(getQuery$1(event));
   const hub = await getHubBySlug(db, slug);
   if (!hub) {
     throw createError({ statusCode: 404, statusMessage: "Hub not found" });
   }
-  return listPosts(db, hub.id, {
-    type: query.type,
-    limit: query.limit ? Number(query.limit) : void 0,
-    offset: query.offset ? Number(query.offset) : void 0
-  });
+  return listPosts(db, hub.id, filters);
 });
 
 const index_get$j = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
@@ -4815,10 +4844,17 @@ const index_post$9 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProper
   default: index_post$8
 }, Symbol.toStringTag, { value: 'Module' }));
 
+const productQuerySchema = z.object({
+  search: z.string().max(200).optional(),
+  category: productCategorySchema.optional(),
+  status: productStatusSchema.optional(),
+  limit: z.coerce.number().int().positive().max(100).optional(),
+  offset: z.coerce.number().int().min(0).optional()
+});
 const products_get = defineEventHandler(async (event) => {
   const db = useDB();
   const slug = getRouterParam(event, "slug");
-  const query = getQuery$1(event);
+  const filters = productQuerySchema.parse(getQuery$1(event));
   if (!slug) {
     throw createError({ statusCode: 400, statusMessage: "Hub slug is required" });
   }
@@ -4826,13 +4862,7 @@ const products_get = defineEventHandler(async (event) => {
   if (!hub) {
     throw createError({ statusCode: 404, statusMessage: "Hub not found" });
   }
-  return listHubProducts(db, hub.id, {
-    search: query.search,
-    category: query.category,
-    status: query.status,
-    limit: query.limit ? Number(query.limit) : void 0,
-    offset: query.offset ? Number(query.offset) : void 0
-  });
+  return listHubProducts(db, hub.id, filters);
 });
 
 const products_get$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
@@ -4894,13 +4924,8 @@ const share_post$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProper
 
 const index_get$g = defineEventHandler(async (event) => {
   const db = useDB();
-  const query = getQuery$1(event);
-  return listHubs(db, {
-    search: query.search,
-    joinPolicy: query.joinPolicy,
-    limit: query.limit ? Number(query.limit) : void 0,
-    offset: query.offset ? Number(query.offset) : void 0
-  });
+  const filters = hubFiltersSchema.parse(getQuery$1(event));
+  return listHubs(db, filters);
 });
 
 const index_get$h = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
@@ -5047,6 +5072,22 @@ const lessons_post$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProp
   default: lessons_post
 }, Symbol.toStringTag, { value: 'Module' }));
 
+const _lessonId__delete = defineEventHandler(async (event) => {
+  const user = requireAuth(event);
+  const db = useDB();
+  const lessonId = getRouterParam(event, "lessonId");
+  const deleted = await deleteLesson(db, lessonId, user.id);
+  if (!deleted) {
+    throw createError({ statusCode: 404, statusMessage: "Lesson not found or not authorized" });
+  }
+  return { success: true };
+});
+
+const _lessonId__delete$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
+  __proto__: null,
+  default: _lessonId__delete
+}, Symbol.toStringTag, { value: 'Module' }));
+
 const modules_post = defineEventHandler(async (event) => {
   const user = requireAuth(event);
   const db = useDB();
@@ -5068,6 +5109,22 @@ const modules_post = defineEventHandler(async (event) => {
 const modules_post$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
   __proto__: null,
   default: modules_post
+}, Symbol.toStringTag, { value: 'Module' }));
+
+const _moduleId__delete = defineEventHandler(async (event) => {
+  const user = requireAuth(event);
+  const db = useDB();
+  const moduleId = getRouterParam(event, "moduleId");
+  const deleted = await deleteModule(db, moduleId, user.id);
+  if (!deleted) {
+    throw createError({ statusCode: 404, statusMessage: "Module not found or not authorized" });
+  }
+  return { success: true };
+});
+
+const _moduleId__delete$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
+  __proto__: null,
+  default: _moduleId__delete
 }, Symbol.toStringTag, { value: 'Module' }));
 
 const _moduleId__put = defineEventHandler(async (event) => {
@@ -5144,12 +5201,10 @@ const enrollments_get$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineP
 const index_get$c = defineEventHandler(async (event) => {
   var _a;
   const db = useDB();
-  const query = getQuery$1(event);
+  const filters = learningPathFiltersSchema.parse(getQuery$1(event));
   return listPaths(db, {
-    status: (_a = query.status) != null ? _a : "published",
-    difficulty: query.difficulty,
-    limit: query.limit ? Number(query.limit) : void 0,
-    offset: query.offset ? Number(query.offset) : void 0
+    ...filters,
+    status: (_a = filters.status) != null ? _a : "published"
   });
 });
 
@@ -5214,11 +5269,8 @@ const _conversationId__post$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.d
 }, Symbol.toStringTag, { value: 'Module' }));
 
 const stream_get$2 = defineEventHandler(async (event) => {
-  const auth = event.context.auth;
-  if (!(auth == null ? void 0 : auth.user)) {
-    throw createError({ statusCode: 401, statusMessage: "Authentication required" });
-  }
-  const userId = auth.user.id;
+  const user = requireAuth(event);
+  const userId = user.id;
   const conversationId = getRouterParam(event, "conversationId");
   if (!conversationId) {
     throw createError({ statusCode: 400, statusMessage: "Conversation ID required" });
@@ -5352,16 +5404,22 @@ const count_get$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.definePropert
   default: count_get
 }, Symbol.toStringTag, { value: 'Module' }));
 
+const notificationsQuerySchema = z.object({
+  type: z.string().max(64).optional(),
+  read: z.enum(["true", "false"]).optional(),
+  limit: z.coerce.number().int().positive().max(100).optional(),
+  offset: z.coerce.number().int().min(0).optional()
+});
 const index_get$8 = defineEventHandler(async (event) => {
   const user = requireAuth(event);
   const db = useDB();
-  const query = getQuery$1(event);
+  const query = notificationsQuerySchema.parse(getQuery$1(event));
   return listNotifications(db, {
     userId: user.id,
     type: query.type,
     read: query.read !== void 0 ? query.read === "true" : void 0,
-    limit: query.limit ? Number(query.limit) : void 0,
-    offset: query.offset ? Number(query.offset) : void 0
+    limit: query.limit,
+    offset: query.offset
   });
 });
 
@@ -5388,11 +5446,8 @@ const read_post$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.definePropert
 }, Symbol.toStringTag, { value: 'Module' }));
 
 const stream_get = defineEventHandler(async (event) => {
-  const auth = event.context.auth;
-  if (!(auth == null ? void 0 : auth.user)) {
-    throw createError({ statusCode: 401, statusMessage: "Authentication required" });
-  }
-  const userId = auth.user.id;
+  const user = requireAuth(event);
+  const userId = user.id;
   const db = useDB();
   setResponseHeader(event, "Content-Type", "text/event-stream");
   setResponseHeader(event, "Cache-Control", "no-cache");
@@ -5536,17 +5591,26 @@ const content_get$3 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.definePrope
   default: content_get$2
 }, Symbol.toStringTag, { value: 'Module' }));
 
+const productSearchSchema = z.object({
+  q: z.string().max(200).optional(),
+  search: z.string().max(200).optional(),
+  category: productCategorySchema.optional(),
+  status: productStatusSchema.optional(),
+  hubId: z.string().uuid().optional(),
+  limit: z.coerce.number().int().positive().max(100).optional(),
+  offset: z.coerce.number().int().min(0).optional()
+});
 const index_get$6 = defineEventHandler(async (event) => {
   var _a;
   const db = useDB();
-  const query = getQuery$1(event);
+  const query = productSearchSchema.parse(getQuery$1(event));
   return searchProducts(db, {
     search: (_a = query.q) != null ? _a : query.search,
     category: query.category,
     status: query.status,
     hubId: query.hubId,
-    limit: query.limit ? Number(query.limit) : void 0,
-    offset: query.offset ? Number(query.offset) : void 0
+    limit: query.limit,
+    offset: query.offset
   });
 });
 
@@ -5590,19 +5654,20 @@ const profile_put$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.definePrope
   default: profile_put
 }, Symbol.toStringTag, { value: 'Module' }));
 
+const searchQuerySchema = contentFiltersSchema.extend({
+  q: z.string().max(200).optional()
+});
 const index_get$4 = defineEventHandler(async (event) => {
   const db = useDB();
-  const query = getQuery$1(event);
-  const q = query.q;
+  const filters = searchQuerySchema.parse(getQuery$1(event));
+  const q = filters.q || filters.search;
   if (!q) {
     return { items: [], total: 0 };
   }
   return listContent(db, {
+    ...filters,
     status: "published",
-    search: q,
-    type: query.type,
-    limit: query.limit ? Number(query.limit) : 20,
-    offset: query.offset ? Number(query.offset) : 0
+    search: q
   });
 });
 
@@ -5652,14 +5717,15 @@ const bookmark_post$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.definePro
   default: bookmark_post
 }, Symbol.toStringTag, { value: 'Module' }));
 
+const bookmarksQuerySchema = z.object({
+  limit: z.coerce.number().int().positive().max(100).optional(),
+  offset: z.coerce.number().int().min(0).optional()
+});
 const bookmarks_get = defineEventHandler(async (event) => {
   const user = requireAuth(event);
   const db = useDB();
-  const query = getQuery$1(event);
-  return listUserBookmarks(db, user.id, {
-    limit: query.limit ? Number(query.limit) : void 0,
-    offset: query.offset ? Number(query.offset) : void 0
-  });
+  const query = bookmarksQuerySchema.parse(getQuery$1(event));
+  return listUserBookmarks(db, user.id, query);
 });
 
 const bookmarks_get$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
@@ -5667,9 +5733,13 @@ const bookmarks_get$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.definePro
   default: bookmarks_get
 }, Symbol.toStringTag, { value: 'Module' }));
 
+const commentsQuerySchema = z.object({
+  targetType: commentTargetTypeSchema,
+  targetId: z.string().uuid()
+});
 const comments_get = defineEventHandler(async (event) => {
   const db = useDB();
-  const query = getQuery$1(event);
+  const query = commentsQuerySchema.parse(getQuery$1(event));
   return listComments(db, query.targetType, query.targetId);
 });
 
@@ -5714,10 +5784,14 @@ const _id__delete$3 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.definePrope
   default: _id__delete$2
 }, Symbol.toStringTag, { value: 'Module' }));
 
+const likeQuerySchema = z.object({
+  targetType: likeTargetTypeSchema,
+  targetId: z.string().uuid()
+});
 const like_get = defineEventHandler(async (event) => {
   const user = requireAuth(event);
   const db = useDB();
-  const query = getQuery$1(event);
+  const query = likeQuerySchema.parse(getQuery$1(event));
   const liked = await isLiked(db, user.id, query.targetType, query.targetId);
   return { liked };
 });
@@ -5777,10 +5851,13 @@ const _username__get$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.definePr
   default: _username__get
 }, Symbol.toStringTag, { value: 'Module' }));
 
+const userContentQuerySchema = z.object({
+  type: contentTypeSchema.optional()
+});
 const content_get = defineEventHandler(async (event) => {
   const db = useDB();
   const username = getRouterParam(event, "username");
-  const query = getQuery$1(event);
+  const query = userContentQuerySchema.parse(getQuery$1(event));
   const user = await getUserByUsername(db, username);
   if (!user) {
     throw createError({ statusCode: 404, statusMessage: "User not found" });
@@ -5890,10 +5967,14 @@ const follow_post$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.definePrope
   default: follow_post
 }, Symbol.toStringTag, { value: 'Module' }));
 
+const paginationSchema$1 = z.object({
+  limit: z.coerce.number().int().positive().max(100).optional(),
+  offset: z.coerce.number().int().min(0).optional()
+});
 const followers_get = defineEventHandler(async (event) => {
   const db = useDB();
   const username = getRouterParam(event, "username");
-  const query = getQuery$1(event);
+  const query = paginationSchema$1.parse(getQuery$1(event));
   if (!username) {
     throw createError({ statusCode: 400, statusMessage: "Username is required" });
   }
@@ -5901,10 +5982,7 @@ const followers_get = defineEventHandler(async (event) => {
   if (!target) {
     throw createError({ statusCode: 404, statusMessage: "User not found" });
   }
-  return listFollowers(db, target.id, {
-    limit: query.limit ? Number(query.limit) : void 0,
-    offset: query.offset ? Number(query.offset) : void 0
-  });
+  return listFollowers(db, target.id, query);
 });
 
 const followers_get$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
@@ -5912,10 +5990,14 @@ const followers_get$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.definePro
   default: followers_get
 }, Symbol.toStringTag, { value: 'Module' }));
 
+const paginationSchema = z.object({
+  limit: z.coerce.number().int().positive().max(100).optional(),
+  offset: z.coerce.number().int().min(0).optional()
+});
 const following_get = defineEventHandler(async (event) => {
   const db = useDB();
   const username = getRouterParam(event, "username");
-  const query = getQuery$1(event);
+  const query = paginationSchema.parse(getQuery$1(event));
   if (!username) {
     throw createError({ statusCode: 400, statusMessage: "Username is required" });
   }
@@ -5923,10 +6005,7 @@ const following_get = defineEventHandler(async (event) => {
   if (!target) {
     throw createError({ statusCode: 404, statusMessage: "User not found" });
   }
-  return listFollowing(db, target.id, {
-    limit: query.limit ? Number(query.limit) : void 0,
-    offset: query.offset ? Number(query.offset) : void 0
-  });
+  return listFollowing(db, target.id, query);
 });
 
 const following_get$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
@@ -5934,11 +6013,18 @@ const following_get$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.definePro
   default: following_get
 }, Symbol.toStringTag, { value: 'Module' }));
 
+const usersQuerySchema = z.object({
+  q: z.string().max(200).optional(),
+  search: z.string().max(200).optional(),
+  limit: z.coerce.number().int().positive().max(50).optional(),
+  offset: z.coerce.number().int().min(0).optional()
+});
 const index_get$2 = defineEventHandler(async (event) => {
+  var _a, _b;
   const db = useDB();
-  const query = getQuery$1(event);
-  const limit = Math.min(Number(query.limit) || 20, 50);
-  const offset = Number(query.offset) || 0;
+  const query = usersQuerySchema.parse(getQuery$1(event));
+  const limit = (_a = query.limit) != null ? _a : 20;
+  const offset = (_b = query.offset) != null ? _b : 0;
   const search = query.q || query.search;
   const conditions = [];
   if (search) {
@@ -5966,14 +6052,14 @@ const index_get$2 = defineEventHandler(async (event) => {
     }
   }
   const items = rows.map((r) => {
-    var _a;
+    var _a2;
     return {
       id: r.id,
       username: r.username,
       displayName: r.displayName,
       headline: r.headline,
       avatarUrl: r.avatarUrl,
-      followerCount: (_a = followerCounts[r.id]) != null ? _a : 0
+      followerCount: (_a2 = followerCounts[r.id]) != null ? _a2 : 0
     };
   });
   return { items };
@@ -6011,14 +6097,7 @@ const categories_get$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.definePr
 
 const categories_post = defineEventHandler(async (event) => {
   var _a, _b;
-  const auth = event.context.auth;
-  if (!(auth == null ? void 0 : auth.user)) {
-    throw createError({ statusCode: 401, statusMessage: "Authentication required" });
-  }
-  const user = auth.user;
-  if (user.role !== "admin" && user.role !== "staff") {
-    throw createError({ statusCode: 403, statusMessage: "Admin access required" });
-  }
+  requireAdmin(event);
   const body = await readBody(event);
   const parsed = createVideoCategorySchema.safeParse(body);
   if (!parsed.success) {
@@ -6034,14 +6113,7 @@ const categories_post$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineP
 }, Symbol.toStringTag, { value: 'Module' }));
 
 const _id__delete = defineEventHandler(async (event) => {
-  const auth = event.context.auth;
-  if (!(auth == null ? void 0 : auth.user)) {
-    throw createError({ statusCode: 401, statusMessage: "Authentication required" });
-  }
-  const user = auth.user;
-  if (user.role !== "admin" && user.role !== "staff") {
-    throw createError({ statusCode: 403, statusMessage: "Admin access required" });
-  }
+  requireAdmin(event);
   const id = getRouterParam(event, "id");
   if (!id) {
     throw createError({ statusCode: 400, statusMessage: "Category ID required" });
@@ -6061,14 +6133,7 @@ const _id__delete$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.definePrope
 
 const _id__put = defineEventHandler(async (event) => {
   var _a, _b;
-  const auth = event.context.auth;
-  if (!(auth == null ? void 0 : auth.user)) {
-    throw createError({ statusCode: 401, statusMessage: "Authentication required" });
-  }
-  const user = auth.user;
-  if (user.role !== "admin" && user.role !== "staff") {
-    throw createError({ statusCode: 403, statusMessage: "Admin access required" });
-  }
+  requireAdmin(event);
   const id = getRouterParam(event, "id");
   if (!id) {
     throw createError({ statusCode: 400, statusMessage: "Category ID required" });
@@ -6093,12 +6158,8 @@ const _id__put$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty
 
 const index_get = defineEventHandler(async (event) => {
   const db = useDB();
-  const query = getQuery$1(event);
-  return listVideos(db, {
-    categoryId: query.categoryId,
-    limit: query.limit ? Number(query.limit) : 20,
-    offset: query.offset ? Number(query.offset) : 0
-  });
+  const filters = videoFiltersSchema.parse(getQuery$1(event));
+  return listVideos(db, filters);
 });
 
 const index_get$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({

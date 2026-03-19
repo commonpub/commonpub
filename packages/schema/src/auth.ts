@@ -167,3 +167,23 @@ export const membersRelations = relations(members, ({ one }) => ({
 export const federatedAccountsRelations = relations(federatedAccounts, ({ one }) => ({
   user: one(users, { fields: [federatedAccounts.userId], references: [users.id] }),
 }));
+
+// --- Inferred Types ---
+export type UserRow = typeof users.$inferSelect;
+export type NewUserRow = typeof users.$inferInsert;
+export type SessionRow = typeof sessions.$inferSelect;
+export type NewSessionRow = typeof sessions.$inferInsert;
+export type AccountRow = typeof accounts.$inferSelect;
+export type NewAccountRow = typeof accounts.$inferInsert;
+export type OrganizationRow = typeof organizations.$inferSelect;
+export type NewOrganizationRow = typeof organizations.$inferInsert;
+export type MemberRow = typeof members.$inferSelect;
+export type NewMemberRow = typeof members.$inferInsert;
+export type FederatedAccountRow = typeof federatedAccounts.$inferSelect;
+export type NewFederatedAccountRow = typeof federatedAccounts.$inferInsert;
+export type OauthClientRow = typeof oauthClients.$inferSelect;
+export type NewOauthClientRow = typeof oauthClients.$inferInsert;
+export type OauthCodeRow = typeof oauthCodes.$inferSelect;
+export type NewOauthCodeRow = typeof oauthCodes.$inferInsert;
+export type VerificationRow = typeof verifications.$inferSelect;
+export type NewVerificationRow = typeof verifications.$inferInsert;

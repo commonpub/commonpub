@@ -1,4 +1,4 @@
-import { d as defineEventHandler, u as useDB, bz as contentItems } from '../../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, bK as contentItems } from '../../../nitro/nitro.mjs';
 import { sql } from 'drizzle-orm';
 import 'drizzle-orm/pg-core';
 import 'jose';

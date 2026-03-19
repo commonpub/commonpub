@@ -1,13 +1,13 @@
 // Types
-export type { DB } from './types.js';
+export type { DB, Serialized, PaginatedResponse } from './types.js';
 export type {
   UserRef,
   UserProfile,
   ContentListItem,
   ContentDetail,
+  ContentDetailAuthor,
+  ContentRelatedItem,
   ContentFilters,
-  CreateContentInput,
-  UpdateContentInput,
   HubListItem,
   HubDetail,
   HubFilters,
@@ -24,6 +24,45 @@ export type {
   EnrollmentItem,
   CertificateItem,
 } from './types.js';
+
+// Re-export input types from schema (single source of truth)
+export type {
+  CreateContentInput,
+  UpdateContentInput,
+  CreateHubInput,
+  UpdateHubInput,
+  CreatePostInput,
+  CreateReplyInput,
+  CreateLearningPathInput,
+  UpdateLearningPathInput,
+  CreateModuleInput,
+  CreateLessonInput,
+  CreateDocsSiteInput,
+  CreateDocsPageInput,
+  CreateDocsVersionInput,
+  CreateVideoInput,
+  CreateProductInput,
+  UpdateProductInput,
+  CreateCommentInput,
+  CreateReportInput,
+  SendMessageInput,
+  CreateConversationInput,
+  BanUserInput,
+  ChangeRoleInput,
+  CreateInviteInput,
+  AdminSettingInput,
+  ContentType,
+  ContentStatus,
+  Difficulty,
+  HubType,
+  JoinPolicy,
+  HubPrivacy,
+  HubRole,
+  PostType,
+  LessonType,
+  VideoPlatform,
+  ContestStatus,
+} from '@commonpub/schema';
 
 // Utilities
 export { generateSlug, ensureUniqueSlug, hasPermission, canManageRole } from './utils.js';
@@ -42,6 +81,9 @@ export {
   onContentDeleted,
   createContentVersion,
   listContentVersions,
+  forkContent,
+  toggleBuildMark,
+  isBuildMarked,
 } from './content.js';
 export type { ContentVersionItem } from './content.js';
 

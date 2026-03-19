@@ -21,6 +21,7 @@ import 'better-auth/adapters/drizzle';
 import 'better-auth/plugins';
 
 const resolve_post = defineEventHandler(async (event) => {
+  var _a;
   const admin = requireAdmin(event);
   const db = useDB();
   const id = getRouterParam(event, "id");
@@ -33,7 +34,7 @@ const resolve_post = defineEventHandler(async (event) => {
       data: { errors: parsed.error.flatten().fieldErrors }
     });
   }
-  return resolveReport(db, id, admin.id, parsed.data.resolution);
+  return resolveReport(db, id, parsed.data.resolution, (_a = parsed.data.status) != null ? _a : "resolved", admin.id);
 });
 
 export { resolve_post as default };

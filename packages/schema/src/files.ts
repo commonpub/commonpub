@@ -29,3 +29,7 @@ export const filesRelations = relations(files, ({ one }) => ({
   content: one(contentItems, { fields: [files.contentId], references: [contentItems.id] }),
   hub: one(hubs, { fields: [files.hubId], references: [hubs.id] }),
 }));
+
+// --- Inferred Types ---
+export type FileRow = typeof files.$inferSelect;
+export type NewFileRow = typeof files.$inferInsert;

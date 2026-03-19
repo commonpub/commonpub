@@ -7,28 +7,17 @@ definePageMeta({ middleware: 'auth' });
 
 const { user } = useAuth();
 
-interface ConversationInfo {
-  id: string;
-  participants: string[];
-}
+import type { Serialized, MessageItem } from '@commonpub/server';
 
-const { data: convInfo } = await useFetch<ConversationInfo>(`/api/messages/${conversationId}/info`, {
-  default: () => ({ id: conversationId, participants: [] }),
+const { data: convInfo } = await useFetch(`/api/messages/${conversationId}/info`, {
+  default: () => ({ id: conversationId, participants: [] as string[] }),
 });
 
-interface MessageData {
-  id: string;
-  senderId: string;
-  body: string;
-  createdAt: string;
-  readAt: string | null;
-}
-
-const { data: initialMessages, refresh } = await useFetch<MessageData[]>(`/api/messages/${conversationId}`, {
+const { data: initialMessages, refresh } = await useFetch<Serialized<MessageItem>[]>(`/api/messages/${conversationId}`, {
   default: () => [],
 });
 
-const messages = ref<MessageData[]>([...(initialMessages.value ?? [])]);
+const messages = ref([...(initialMessages.value ?? [])]);
 
 // SSE real-time stream
 let eventSource: EventSource | null = null;

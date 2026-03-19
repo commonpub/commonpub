@@ -1,35 +1,10 @@
 <script setup lang="ts">
-interface VideoAuthor {
-  username: string;
-  displayName: string | null;
-  avatarUrl: string | null;
-}
-
-interface VideoCategory {
-  id: string;
-  name: string;
-}
-
-interface VideoDetail {
-  id: string;
-  title: string;
-  description: string | null;
-  url: string;
-  embedUrl: string | null;
-  platform: string;
-  thumbnailUrl: string | null;
-  duration: string | null;
-  viewCount: number;
-  category: VideoCategory | string | null;
-  author: VideoAuthor | null;
-  createdBy: string | null;
-  createdAt: string;
-}
+import type { Serialized, VideoDetail } from '@commonpub/server';
 
 const route = useRoute();
 const videoId = computed(() => route.params.id as string);
 
-const { data: video } = await useFetch<VideoDetail>(() => `/api/videos/${videoId.value}`);
+const { data: video } = await useFetch<Serialized<VideoDetail>>(() => `/api/videos/${videoId.value}`);
 
 useSeoMeta({
   title: () => video.value?.title ? `${video.value.title} — CommonPub` : 'Video — CommonPub',

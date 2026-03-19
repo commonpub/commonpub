@@ -1,4 +1,4 @@
-import { d as defineEventHandler, u as useDB, b9 as getUserEnrollments } from '../../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, bj as getUserEnrollments } from '../../../nitro/nitro.mjs';
 import { a as requireAuth } from '../../../_/auth.mjs';
 import 'drizzle-orm';
 import 'drizzle-orm/pg-core';

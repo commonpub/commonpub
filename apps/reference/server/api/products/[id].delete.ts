@@ -1,6 +1,6 @@
 import { deleteProduct } from '@commonpub/server';
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async (event): Promise<{ deleted: boolean }> => {
   const db = useDB();
   requireAdmin(event);
   const id = getRouterParam(event, 'id');

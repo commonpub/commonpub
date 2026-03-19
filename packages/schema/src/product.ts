@@ -81,3 +81,9 @@ export const contentProductsRelations = relations(contentProducts, ({ one }) => 
     references: [products.id],
   }),
 }));
+
+// --- Inferred Types ---
+export type ProductRow = typeof products.$inferSelect;
+export type NewProductRow = typeof products.$inferInsert;
+export type ContentProductRow = typeof contentProducts.$inferSelect;
+export type NewContentProductRow = typeof contentProducts.$inferInsert;

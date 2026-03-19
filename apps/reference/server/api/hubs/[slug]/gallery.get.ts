@@ -1,9 +1,15 @@
 import { getHubBySlug, listHubGallery } from '@commonpub/server';
+import { z } from 'zod';
+
+const galleryQuerySchema = z.object({
+  limit: z.coerce.number().int().positive().max(100).optional(),
+  offset: z.coerce.number().int().min(0).optional(),
+});
 
 export default defineEventHandler(async (event) => {
   const db = useDB();
   const slug = getRouterParam(event, 'slug');
-  const query = getQuery(event);
+  const query = galleryQuerySchema.parse(getQuery(event));
 
   if (!slug) {
     throw createError({ statusCode: 400, statusMessage: 'Hub slug is required' });
@@ -14,8 +20,5 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'Hub not found' });
   }
 
-  return listHubGallery(db, hub.id, {
-    limit: query.limit ? Number(query.limit) : undefined,
-    offset: query.offset ? Number(query.offset) : undefined,
-  });
+  return listHubGallery(db, hub.id, query);
 });

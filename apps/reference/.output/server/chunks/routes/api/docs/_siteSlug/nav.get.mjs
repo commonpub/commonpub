@@ -1,4 +1,5 @@
-import { d as defineEventHandler, u as useDB, a as getRouterParam, g as getQuery, a4 as getDocsNav } from '../../../../nitro/nitro.mjs';
+import { d as defineEventHandler, u as useDB, a as getRouterParam, g as getQuery, a8 as getDocsNav } from '../../../../nitro/nitro.mjs';
+import { z } from 'zod';
 import 'drizzle-orm';
 import 'drizzle-orm/pg-core';
 import 'jose';
@@ -12,17 +13,19 @@ import 'node:https';
 import 'node:events';
 import 'node:buffer';
 import 'node:url';
-import 'zod';
 import 'drizzle-orm/node-postgres';
 import 'pg';
 import 'better-auth';
 import 'better-auth/adapters/drizzle';
 import 'better-auth/plugins';
 
+const navQuerySchema = z.object({
+  version: z.string().max(32).optional()
+});
 const nav_get = defineEventHandler(async (event) => {
   const db = useDB();
   const siteSlug = getRouterParam(event, "siteSlug");
-  const query = getQuery(event);
+  const query = navQuerySchema.parse(getQuery(event));
   return getDocsNav(db, siteSlug, query.version);
 });
 

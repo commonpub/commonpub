@@ -43,6 +43,7 @@ export const createUserSchema = z.object({
   username: usernameSchema,
   displayName: displayNameSchema.optional(),
 });
+export type CreateUserInput = z.infer<typeof createUserSchema>;
 
 export const updateProfileSchema = z.object({
   displayName: displayNameSchema.optional(),
@@ -64,6 +65,7 @@ export const updateProfileSchema = z.object({
     })
     .optional(),
 });
+export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
 
 // --- Content validators ---
 
@@ -74,10 +76,13 @@ export const slugSchema = z
   .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Slug must be lowercase alphanumeric with hyphens');
 
 export const contentTypeSchema = z.enum(['project', 'article', 'blog', 'explainer']);
+export type ContentType = z.infer<typeof contentTypeSchema>;
 
 export const contentStatusSchema = z.enum(['draft', 'published', 'archived']);
+export type ContentStatus = z.infer<typeof contentStatusSchema>;
 
 export const difficultySchema = z.enum(['beginner', 'intermediate', 'advanced']);
+export type Difficulty = z.infer<typeof difficultySchema>;
 
 export const createContentSchema = z.object({
   type: contentTypeSchema,
@@ -104,8 +109,12 @@ export const createContentSchema = z.object({
   sections: z.unknown().optional(),
   tags: z.array(z.string().max(64)).max(20).optional(),
 });
+export type CreateContentInput = z.infer<typeof createContentSchema>;
 
-export const updateContentSchema = createContentSchema.partial().omit({ type: true });
+export const updateContentSchema = createContentSchema.partial().omit({ type: true }).extend({
+  status: contentStatusSchema.optional(),
+});
+export type UpdateContentInput = z.infer<typeof updateContentSchema>;
 
 // --- Social validators ---
 
@@ -117,6 +126,8 @@ export const likeTargetTypeSchema = z.enum([
   'post',
   'explainer',
 ]);
+export type LikeTargetType = z.infer<typeof likeTargetTypeSchema>;
+
 export const commentTargetTypeSchema = z.enum([
   'project',
   'article',
@@ -125,6 +136,7 @@ export const commentTargetTypeSchema = z.enum([
   'post',
   'lesson',
 ]);
+export type CommentTargetType = z.infer<typeof commentTargetTypeSchema>;
 
 export const createCommentSchema = z.object({
   targetType: commentTargetTypeSchema,
@@ -132,10 +144,12 @@ export const createCommentSchema = z.object({
   parentId: z.string().uuid().optional(),
   content: z.string().min(1).max(10000),
 });
+export type CreateCommentInput = z.infer<typeof createCommentSchema>;
 
 // --- Hub validators ---
 
 export const hubTypeSchema = z.enum(['community', 'product', 'company']);
+export type HubType = z.infer<typeof hubTypeSchema>;
 
 export const createHubSchema = z.object({
   name: z.string().min(1).max(128),
@@ -148,8 +162,10 @@ export const createHubSchema = z.object({
   categories: z.array(z.string().max(64)).max(20).optional(),
   parentHubId: z.string().uuid().optional(),
 });
+export type CreateHubInput = z.infer<typeof createHubSchema>;
 
 export const updateHubSchema = createHubSchema.partial();
+export type UpdateHubInput = z.infer<typeof updateHubSchema>;
 
 export const createPostSchema = z.object({
   hubId: z.string().uuid(),
@@ -159,27 +175,44 @@ export const createPostSchema = z.object({
   pollOptions: z.array(z.string().min(1).max(200)).min(2).max(10).optional(),
   pollMultiSelect: z.boolean().optional(),
 });
+export type CreatePostInput = z.infer<typeof createPostSchema>;
 
 export const createReplySchema = z.object({
   postId: z.string().uuid(),
   content: z.string().min(1).max(10000),
   parentId: z.string().uuid().optional(),
 });
+export type CreateReplyInput = z.infer<typeof createReplySchema>;
 
 export const createInviteSchema = z.object({
   maxUses: z.number().int().positive().optional(),
   expiresAt: z.string().datetime().optional(),
 });
+export type CreateInviteInput = z.infer<typeof createInviteSchema>;
 
 export const banUserSchema = z.object({
   userId: z.string().uuid(),
   reason: z.string().max(2000).optional(),
   expiresAt: z.string().datetime().optional(),
 });
+export type BanUserInput = z.infer<typeof banUserSchema>;
 
 export const changeRoleSchema = z.object({
   role: z.enum(['admin', 'moderator', 'member']),
 });
+export type ChangeRoleInput = z.infer<typeof changeRoleSchema>;
+
+export const postTypeSchema = z.enum(['text', 'link', 'share', 'poll']);
+export type PostType = z.infer<typeof postTypeSchema>;
+
+export const joinPolicySchema = z.enum(['open', 'approval', 'invite']);
+export type JoinPolicy = z.infer<typeof joinPolicySchema>;
+
+export const hubPrivacySchema = z.enum(['public', 'unlisted', 'private']);
+export type HubPrivacy = z.infer<typeof hubPrivacySchema>;
+
+export const hubRoleSchema = z.enum(['owner', 'admin', 'moderator', 'member']);
+export type HubRole = z.infer<typeof hubRoleSchema>;
 
 // --- Product validators ---
 
@@ -214,8 +247,10 @@ export const createProductSchema = z.object({
     .optional(),
   status: z.enum(['active', 'discontinued', 'preview']).default('active'),
 });
+export type CreateProductInput = z.infer<typeof createProductSchema>;
 
 export const updateProductSchema = createProductSchema.partial();
+export type UpdateProductInput = z.infer<typeof updateProductSchema>;
 
 export const addContentProductSchema = z.object({
   productId: z.string().uuid(),
@@ -224,6 +259,16 @@ export const addContentProductSchema = z.object({
   notes: z.string().max(500).optional(),
   required: z.boolean().default(true),
 });
+export type AddContentProductInput = z.infer<typeof addContentProductSchema>;
+
+export const productStatusSchema = z.enum(['active', 'discontinued', 'preview']);
+export type ProductStatus = z.infer<typeof productStatusSchema>;
+
+export const productCategorySchema = z.enum([
+  'microcontroller', 'sbc', 'sensor', 'actuator', 'display',
+  'communication', 'power', 'mechanical', 'software', 'tool', 'other',
+]);
+export type ProductCategory = z.infer<typeof productCategorySchema>;
 
 // --- Contest validators ---
 
@@ -247,18 +292,25 @@ export const createContestSchema = z.object({
     .optional(),
   judges: z.array(z.string().uuid()).optional(),
 });
+export type CreateContestInput = z.infer<typeof createContestSchema>;
 
 export const updateContestSchema = createContestSchema.partial();
+export type UpdateContestInput = z.infer<typeof updateContestSchema>;
 
 export const judgeEntrySchema = z.object({
   entryId: z.string().uuid(),
   score: z.number().int().min(0).max(100),
   feedback: z.string().max(2000).optional(),
 });
+export type JudgeEntryInput = z.infer<typeof judgeEntrySchema>;
 
 export const contestTransitionSchema = z.object({
   status: z.enum(['upcoming', 'active', 'judging', 'completed']),
 });
+export type ContestTransitionInput = z.infer<typeof contestTransitionSchema>;
+
+export const contestStatusSchema = z.enum(['upcoming', 'active', 'judging', 'completed']);
+export type ContestStatus = z.infer<typeof contestStatusSchema>;
 
 // --- Video validators ---
 
@@ -271,12 +323,17 @@ export const createVideoSchema = z.object({
   thumbnailUrl: optionalUrl(),
   duration: z.string().max(16).optional(),
 });
+export type CreateVideoInput = z.infer<typeof createVideoSchema>;
+
+export const videoPlatformSchema = z.enum(['youtube', 'vimeo', 'other']);
+export type VideoPlatform = z.infer<typeof videoPlatformSchema>;
 
 export const createVideoCategorySchema = z.object({
   name: z.string().min(1).max(64),
   description: z.string().max(500).optional(),
   sortOrder: z.number().int().min(0).optional(),
 });
+export type CreateVideoCategoryInput = z.infer<typeof createVideoCategorySchema>;
 
 // --- Learning validators ---
 
@@ -287,17 +344,22 @@ export const createLearningPathSchema = z.object({
   estimatedHours: z.number().positive().max(9999).optional(),
   coverImageUrl: optionalUrl(),
 });
+export type CreateLearningPathInput = z.infer<typeof createLearningPathSchema>;
 
 export const updateLearningPathSchema = createLearningPathSchema.partial();
+export type UpdateLearningPathInput = z.infer<typeof updateLearningPathSchema>;
 
 export const createModuleSchema = z.object({
   title: z.string().min(1).max(255),
   description: z.string().max(2000).optional(),
 });
+export type CreateModuleInput = z.infer<typeof createModuleSchema>;
 
 export const updateModuleSchema = createModuleSchema.partial();
+export type UpdateModuleInput = z.infer<typeof updateModuleSchema>;
 
 export const lessonTypeSchema = z.enum(['article', 'video', 'quiz', 'project', 'explainer']);
+export type LessonType = z.infer<typeof lessonTypeSchema>;
 
 export const createLessonSchema = z.object({
   moduleId: z.string().uuid(),
@@ -306,18 +368,22 @@ export const createLessonSchema = z.object({
   content: z.unknown().optional(),
   duration: z.number().int().positive().max(9999).optional(),
 });
+export type CreateLessonInput = z.infer<typeof createLessonSchema>;
 
 export const updateLessonSchema = createLessonSchema.partial().omit({ moduleId: true });
+export type UpdateLessonInput = z.infer<typeof updateLessonSchema>;
 
 // --- Messaging validators ---
 
 export const createConversationSchema = z.object({
   participants: z.array(z.string().uuid()).min(1).max(50),
 });
+export type CreateConversationInput = z.infer<typeof createConversationSchema>;
 
 export const sendMessageSchema = z.object({
   body: z.string().min(1).max(10000),
 });
+export type SendMessageInput = z.infer<typeof sendMessageSchema>;
 
 // --- Docs validators ---
 
@@ -325,8 +391,10 @@ export const createDocsSiteSchema = z.object({
   name: z.string().min(1).max(128),
   description: z.string().max(2000).optional(),
 });
+export type CreateDocsSiteInput = z.infer<typeof createDocsSiteSchema>;
 
 export const updateDocsSiteSchema = createDocsSiteSchema.partial();
+export type UpdateDocsSiteInput = z.infer<typeof updateDocsSiteSchema>;
 
 export const createDocsPageSchema = z.object({
   versionId: z.string().uuid().optional(),
@@ -335,14 +403,17 @@ export const createDocsPageSchema = z.object({
   sortOrder: z.number().int().min(0).optional(),
   parentId: z.string().uuid().optional(),
 });
+export type CreateDocsPageInput = z.infer<typeof createDocsPageSchema>;
 
 export const updateDocsPageSchema = createDocsPageSchema.partial();
+export type UpdateDocsPageInput = z.infer<typeof updateDocsPageSchema>;
 
 export const createDocsVersionSchema = z.object({
   version: z.string().min(1).max(32),
   isDefault: z.boolean().optional(),
   copyFromVersionId: z.string().uuid().optional(),
 });
+export type CreateDocsVersionInput = z.infer<typeof createDocsVersionSchema>;
 
 // --- Report validators ---
 
@@ -352,6 +423,7 @@ export const createReportSchema = z.object({
   reason: z.enum(['spam', 'harassment', 'inappropriate', 'copyright', 'other']),
   description: z.string().max(2000).optional(),
 });
+export type CreateReportInput = z.infer<typeof createReportSchema>;
 
 // --- Admin validators ---
 
@@ -359,27 +431,36 @@ export const adminSettingSchema = z.object({
   key: z.string().min(1).max(128),
   value: z.unknown(),
 });
+export type AdminSettingInput = z.infer<typeof adminSettingSchema>;
 
 export const adminUpdateRoleSchema = z.object({
   role: z.enum(['member', 'pro', 'verified', 'staff', 'admin']),
 });
+export type AdminUpdateRoleInput = z.infer<typeof adminUpdateRoleSchema>;
 
 export const adminUpdateStatusSchema = z.object({
   status: z.enum(['active', 'suspended', 'deleted']),
 });
+export type AdminUpdateStatusInput = z.infer<typeof adminUpdateStatusSchema>;
 
 export const resolveReportSchema = z.object({
   status: z.enum(['resolved', 'dismissed']),
   resolution: z.string().min(1).max(2000),
 });
+export type ResolveReportInput = z.infer<typeof resolveReportSchema>;
 
 // --- Federation validators ---
 
 export const actorUriSchema = z.string().url().max(2048);
 
 export const activityDirectionSchema = z.enum(['inbound', 'outbound']);
+export type ActivityDirection = z.infer<typeof activityDirectionSchema>;
+
 export const activityStatusSchema = z.enum(['pending', 'delivered', 'failed', 'processed']);
+export type ActivityStatus = z.infer<typeof activityStatusSchema>;
+
 export const followRelationshipStatusSchema = z.enum(['pending', 'accepted', 'rejected']);
+export type FollowRelationshipStatus = z.infer<typeof followRelationshipStatusSchema>;
 
 export const createRemoteActorSchema = z.object({
   actorUri: actorUriSchema,
@@ -391,6 +472,7 @@ export const createRemoteActorSchema = z.object({
   avatarUrl: optionalUrl(),
   instanceDomain: z.string().min(1).max(255),
 });
+export type CreateRemoteActorInput = z.infer<typeof createRemoteActorSchema>;
 
 export const createActivitySchema = z.object({
   type: z.string().min(1).max(64),
@@ -399,8 +481,66 @@ export const createActivitySchema = z.object({
   payload: z.record(z.string(), z.unknown()),
   direction: activityDirectionSchema,
 });
+export type CreateActivityInput = z.infer<typeof createActivitySchema>;
 
 export const createFollowRelationshipSchema = z.object({
   followerActorUri: actorUriSchema,
   followingActorUri: actorUriSchema,
 });
+export type CreateFollowRelationshipInput = z.infer<typeof createFollowRelationshipSchema>;
+
+// --- Filter schemas ---
+
+export const contentFiltersSchema = z.object({
+  status: contentStatusSchema.optional(),
+  type: contentTypeSchema.optional(),
+  authorId: z.string().uuid().optional(),
+  featured: z.coerce.boolean().optional(),
+  difficulty: difficultySchema.optional(),
+  search: z.string().max(200).optional(),
+  tag: z.string().max(64).optional(),
+  sort: z.enum(['recent', 'popular', 'featured']).optional(),
+  limit: z.coerce.number().int().positive().max(100).optional(),
+  offset: z.coerce.number().int().min(0).optional(),
+});
+export type ContentFilters = z.infer<typeof contentFiltersSchema>;
+
+export const hubFiltersSchema = z.object({
+  search: z.string().max(200).optional(),
+  joinPolicy: joinPolicySchema.optional(),
+  limit: z.coerce.number().int().positive().max(100).optional(),
+  offset: z.coerce.number().int().min(0).optional(),
+});
+export type HubFilters = z.infer<typeof hubFiltersSchema>;
+
+export const learningPathFiltersSchema = z.object({
+  status: contentStatusSchema.optional(),
+  difficulty: difficultySchema.optional(),
+  authorId: z.string().uuid().optional(),
+  limit: z.coerce.number().int().positive().max(100).optional(),
+  offset: z.coerce.number().int().min(0).optional(),
+});
+export type LearningPathFilters = z.infer<typeof learningPathFiltersSchema>;
+
+export const videoFiltersSchema = z.object({
+  categoryId: z.string().uuid().optional(),
+  authorId: z.string().uuid().optional(),
+  limit: z.coerce.number().int().positive().max(100).optional(),
+  offset: z.coerce.number().int().min(0).optional(),
+});
+export type VideoFilters = z.infer<typeof videoFiltersSchema>;
+
+export const contestFiltersSchema = z.object({
+  status: contestStatusSchema.optional(),
+  limit: z.coerce.number().int().positive().max(100).optional(),
+  offset: z.coerce.number().int().min(0).optional(),
+});
+export type ContestFilters = z.infer<typeof contestFiltersSchema>;
+
+export const hubPostFiltersSchema = z.object({
+  hubId: z.string().uuid().optional(),
+  type: postTypeSchema.optional(),
+  limit: z.coerce.number().int().positive().max(100).optional(),
+  offset: z.coerce.number().int().min(0).optional(),
+});
+export type HubPostFilters = z.infer<typeof hubPostFiltersSchema>;

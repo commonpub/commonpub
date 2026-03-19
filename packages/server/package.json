@@ -9,6 +9,34 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./types": {
+      "types": "./dist/types.d.ts",
+      "import": "./dist/types.js"
+    },
+    "./content": {
+      "types": "./dist/content.d.ts",
+      "import": "./dist/content.js"
+    },
+    "./hub": {
+      "types": "./dist/hub.d.ts",
+      "import": "./dist/hub.js"
+    },
+    "./social": {
+      "types": "./dist/social.d.ts",
+      "import": "./dist/social.js"
+    },
+    "./learning": {
+      "types": "./dist/learning.d.ts",
+      "import": "./dist/learning.js"
+    },
+    "./admin": {
+      "types": "./dist/admin.d.ts",
+      "import": "./dist/admin.js"
+    },
+    "./docs": {
+      "types": "./dist/docs.d.ts",
+      "import": "./dist/docs.js"
     }
   },
   "scripts": {

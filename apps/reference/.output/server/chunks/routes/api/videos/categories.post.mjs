@@ -1,4 +1,5 @@
-import { d as defineEventHandler, f as createError, c as readBody, bT as createVideoCategorySchema, u as useDB, bU as createVideoCategory } from '../../../nitro/nitro.mjs';
+import { d as defineEventHandler, c as readBody, c4 as createVideoCategorySchema, f as createError, u as useDB, c5 as createVideoCategory } from '../../../nitro/nitro.mjs';
+import { r as requireAdmin } from '../../../_/auth.mjs';
 import 'drizzle-orm';
 import 'drizzle-orm/pg-core';
 import 'jose';
@@ -21,14 +22,7 @@ import 'better-auth/plugins';
 
 const categories_post = defineEventHandler(async (event) => {
   var _a, _b;
-  const auth = event.context.auth;
-  if (!(auth == null ? void 0 : auth.user)) {
-    throw createError({ statusCode: 401, statusMessage: "Authentication required" });
-  }
-  const user = auth.user;
-  if (user.role !== "admin" && user.role !== "staff") {
-    throw createError({ statusCode: 403, statusMessage: "Admin access required" });
-  }
+  requireAdmin(event);
   const body = await readBody(event);
   const parsed = createVideoCategorySchema.safeParse(body);
   if (!parsed.success) {

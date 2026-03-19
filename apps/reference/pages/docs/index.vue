@@ -12,6 +12,7 @@ const { isAuthenticated } = useAuth();
   <div class="docs-index">
     <div class="docs-header">
       <h1 class="docs-title">Documentation</h1>
+      <NuxtLink v-if="isAuthenticated" to="/docs/create" class="cpub-btn cpub-btn-primary">Create Docs Site</NuxtLink>
     </div>
 
     <div class="docs-grid" v-if="sites?.length">

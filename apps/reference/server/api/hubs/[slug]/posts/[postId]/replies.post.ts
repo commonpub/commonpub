@@ -1,7 +1,8 @@
 import { createReply } from '@commonpub/server';
+import type { HubReplyItem } from '@commonpub/server';
 import { createReplySchema } from '@commonpub/schema';
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async (event): Promise<HubReplyItem> => {
   const user = requireAuth(event);
   const db = useDB();
   const postId = getRouterParam(event, 'postId')!;

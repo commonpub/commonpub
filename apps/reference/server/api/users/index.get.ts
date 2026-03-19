@@ -1,13 +1,21 @@
 import { users, follows } from '@commonpub/schema';
 import { sql, desc, ilike, or } from 'drizzle-orm';
+import { z } from 'zod';
+
+const usersQuerySchema = z.object({
+  q: z.string().max(200).optional(),
+  search: z.string().max(200).optional(),
+  limit: z.coerce.number().int().positive().max(50).optional(),
+  offset: z.coerce.number().int().min(0).optional(),
+});
 
 export default defineEventHandler(async (event) => {
   const db = useDB();
-  const query = getQuery(event);
+  const query = usersQuerySchema.parse(getQuery(event));
 
-  const limit = Math.min(Number(query.limit) || 20, 50);
-  const offset = Number(query.offset) || 0;
-  const search = (query.q || query.search) as string | undefined;
+  const limit = query.limit ?? 20;
+  const offset = query.offset ?? 0;
+  const search = query.q || query.search;
 
   const conditions = [];
   if (search) {

@@ -15,9 +15,11 @@ export interface NotificationItem {
   createdAt: Date;
 }
 
+export type NotificationType = 'like' | 'comment' | 'follow' | 'mention' | 'contest' | 'certificate' | 'hub' | 'system';
+
 export interface NotificationFilters {
   userId: string;
-  type?: string;
+  type?: NotificationType;
   read?: boolean;
   limit?: number;
   offset?: number;
@@ -31,10 +33,7 @@ export async function listNotifications(
 
   if (filters.type) {
     conditions.push(
-      eq(
-        notifications.type,
-        filters.type as 'like' | 'comment' | 'follow' | 'mention' | 'contest' | 'certificate' | 'hub' | 'system',
-      ),
+      eq(notifications.type, filters.type),
     );
   }
   if (filters.read !== undefined) {
@@ -123,7 +122,7 @@ export async function createNotification(
   db: DB,
   input: {
     userId: string;
-    type: string;
+    type: NotificationType;
     title: string;
     message: string;
     link?: string;
@@ -134,7 +133,7 @@ export async function createNotification(
     .insert(notifications)
     .values({
       userId: input.userId,
-      type: input.type as 'like' | 'comment' | 'follow' | 'mention' | 'contest' | 'certificate' | 'hub' | 'system',
+      type: input.type,
       title: input.title,
       message: input.message,
       link: input.link ?? null,

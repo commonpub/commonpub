@@ -6,39 +6,10 @@ useSeoMeta({
   title: `${username} — CommonPub`,
 });
 
-interface UserProfile {
-  username: string;
-  displayName: string | null;
-  headline: string | null;
-  bio: string | null;
-  location: string | null;
-  website: string | null;
-  createdAt: string;
-  verified: boolean;
-  tags: string[];
-  github: string | null;
-  twitter: string | null;
-  linkedin: string | null;
-  youtube: string | null;
-  mastodon: string | null;
-  followerCount: number;
-  followingCount: number;
-  viewCount: number;
-  likeCount: number;
-  experience: Array<{ role: string; company: string; period: string; description: string }>;
-  awards: Array<{ title: string; organization: string; year: string }>;
-  skillGroups: Array<{ label: string; skills: Array<{ name: string; percentage: number; color?: string }> }>;
-}
+import type { Serialized, UserProfile } from '@commonpub/server';
 
-interface ContentItem {
-  id: string;
-  type: string;
-  title: string;
-  viewCount?: number;
-}
-
-const { data: profile } = await useFetch<UserProfile>(`/api/users/${username}`);
-const { data: content } = await useFetch<{ items: ContentItem[] }>(`/api/users/${username}/content`);
+const { data: profile } = await useFetch<Serialized<UserProfile>>(`/api/users/${username}`);
+const { data: content } = await useFetch(`/api/users/${username}/content`);
 
 const activeTab = ref('projects');
 

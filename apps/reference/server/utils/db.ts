@@ -17,7 +17,7 @@ export function useDB(): DB {
   }
 
   const pool = new pg.Pool({ connectionString: databaseUrl });
-  db = drizzle(pool, { schema }) as unknown as DB;
+  db = drizzle(pool, { schema });
 
   return db;
 }

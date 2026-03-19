@@ -1,9 +1,20 @@
 import { getHubBySlug, listHubProducts } from '@commonpub/server';
+import type { PaginatedResponse, ProductListItem } from '@commonpub/server';
+import { z } from 'zod';
+import { productStatusSchema, productCategorySchema } from '@commonpub/schema';
 
-export default defineEventHandler(async (event) => {
+const productQuerySchema = z.object({
+  search: z.string().max(200).optional(),
+  category: productCategorySchema.optional(),
+  status: productStatusSchema.optional(),
+  limit: z.coerce.number().int().positive().max(100).optional(),
+  offset: z.coerce.number().int().min(0).optional(),
+});
+
+export default defineEventHandler(async (event): Promise<PaginatedResponse<ProductListItem>> => {
   const db = useDB();
   const slug = getRouterParam(event, 'slug');
-  const query = getQuery(event);
+  const filters = productQuerySchema.parse(getQuery(event));
 
   if (!slug) {
     throw createError({ statusCode: 400, statusMessage: 'Hub slug is required' });
@@ -14,11 +25,5 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'Hub not found' });
   }
 
-  return listHubProducts(db, hub.id, {
-    search: query.search as string | undefined,
-    category: query.category as string | undefined,
-    status: query.status as string | undefined,
-    limit: query.limit ? Number(query.limit) : undefined,
-    offset: query.offset ? Number(query.offset) : undefined,
-  });
+  return listHubProducts(db, hub.id, filters);
 });

@@ -1,7 +1,7 @@
 import { changeRole, getHubBySlug } from '@commonpub/server';
 import { changeRoleSchema } from '@commonpub/schema';
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async (event): Promise<{ changed: boolean; error?: string }> => {
   const user = requireAuth(event);
   const db = useDB();
   const slug = getRouterParam(event, 'slug') as string;

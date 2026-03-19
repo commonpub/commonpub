@@ -1,12 +1,8 @@
 import { getUnreadCount } from '@commonpub/server';
 
 export default defineEventHandler(async (event) => {
-  const auth = event.context.auth;
-  if (!auth?.user) {
-    throw createError({ statusCode: 401, statusMessage: 'Authentication required' });
-  }
-
-  const userId = (auth.user as { id: string }).id;
+  const user = requireAuth(event);
+  const userId = user.id;
   const db = useDB();
 
   setResponseHeader(event, 'Content-Type', 'text/event-stream');

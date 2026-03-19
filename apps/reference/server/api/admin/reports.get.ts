@@ -1,12 +1,16 @@
 import { listReports } from '@commonpub/server';
+import type { PaginatedResponse, ReportListItem } from '@commonpub/server';
+import { z } from 'zod';
 
-export default defineEventHandler(async (event) => {
+const reportsQuerySchema = z.object({
+  limit: z.coerce.number().int().positive().max(100).optional(),
+  offset: z.coerce.number().int().min(0).optional(),
+});
+
+export default defineEventHandler(async (event): Promise<PaginatedResponse<ReportListItem>> => {
   requireAdmin(event);
   const db = useDB();
-  const query = getQuery(event);
+  const filters = reportsQuerySchema.parse(getQuery(event));
 
-  return listReports(db, {
-    limit: query.limit ? Number(query.limit) : undefined,
-    offset: query.offset ? Number(query.offset) : undefined,
-  });
+  return listReports(db, filters);
 });

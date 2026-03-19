@@ -4,27 +4,10 @@ definePageMeta({ middleware: 'auth' });
 const route = useRoute();
 const slug = route.params.slug as string;
 
-interface ContestSummary {
-  id: string;
-  title: string;
-  slug: string;
-  status: string;
-}
+import type { Serialized, ContestDetail, ContestEntryItem } from '@commonpub/server';
 
-interface ContestEntry {
-  id: string;
-  contentId: string;
-  contentSlug: string;
-  contentType: string;
-  contentTitle: string;
-  title?: string;
-  authorName: string;
-  score: number | null;
-  rank: number | null;
-}
-
-const { data: contest } = await useFetch<ContestSummary>(`/api/contests/${slug}`);
-const { data: entries, refresh: refreshEntries } = await useFetch<{ items: ContestEntry[] } | ContestEntry[]>(`/api/contests/${slug}/entries`);
+const { data: contest } = await useFetch<Serialized<ContestDetail>>(`/api/contests/${slug}`);
+const { data: entries, refresh: refreshEntries } = await useFetch<Serialized<ContestEntryItem>[]>(`/api/contests/${slug}/entries`);
 
 useSeoMeta({ title: () => `Judge: ${contest.value?.title || 'Contest'} — CommonPub` });
 
