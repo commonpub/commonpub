@@ -10,17 +10,17 @@ export default defineEventHandler(async (event) => {
   const siteSlug = getRouterParam(event, 'siteSlug')!;
   const query = navQuerySchema.parse(getQuery(event));
 
-  const site = await getDocsSiteBySlug(db, siteSlug);
-  if (!site) throw createError({ statusCode: 404, statusMessage: 'Docs site not found' });
+  const result = await getDocsSiteBySlug(db, siteSlug);
+  if (!result) throw createError({ statusCode: 404, statusMessage: 'Docs site not found' });
 
   // Find the requested or default version
   const version = query.version
-    ? site.versions?.find((v: { version: string }) => v.version === query.version)
-    : site.versions?.find((v: { isDefault: boolean }) => v.isDefault) ?? site.versions?.[0];
+    ? result.versions?.find((v) => v.version === query.version)
+    : result.versions?.find((v) => v.isDefault) ?? result.versions?.[0];
 
   if (!version) return [];
 
-  // Return pages directly as nav items (docsNav table structure field is never populated)
+  // Return pages directly as nav items
   const pages = await listDocsPages(db, version.id);
-  return pages.map(p => ({ id: p.id, title: p.title, slug: p.slug, sortOrder: p.sortOrder }));
+  return pages.map(p => ({ id: p.id, title: p.title, slug: p.slug, sortOrder: p.sortOrder, parentId: p.parentId }));
 });

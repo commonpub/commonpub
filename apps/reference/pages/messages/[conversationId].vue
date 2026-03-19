@@ -9,11 +9,11 @@ const { user } = useAuth();
 
 import type { Serialized, MessageItem } from '@commonpub/server';
 
-const { data: convInfo } = await useFetch(`/api/messages/${conversationId}/info`, {
+const { data: convInfo } = useLazyFetch(`/api/messages/${conversationId}/info`, {
   default: () => ({ id: conversationId, participants: [] as string[] }),
 });
 
-const { data: initialMessages, refresh } = await useFetch<Serialized<MessageItem>[]>(`/api/messages/${conversationId}`, {
+const { data: initialMessages, refresh } = useLazyFetch<Serialized<MessageItem>[]>(`/api/messages/${conversationId}`, {
   default: () => [],
 });
 

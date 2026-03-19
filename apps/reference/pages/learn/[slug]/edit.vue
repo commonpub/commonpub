@@ -9,7 +9,7 @@ import type { Serialized, LearningPathDetail } from '@commonpub/server';
 
 type PathModule = NonNullable<Serialized<LearningPathDetail>['modules']>[number];
 
-const { data: path, refresh } = await useFetch<Serialized<LearningPathDetail>>(() => `/api/learn/${slug.value}`);
+const { data: path, pending: pathPending, error: pathError, refresh } = useLazyFetch<Serialized<LearningPathDetail>>(() => `/api/learn/${slug.value}`);
 
 useSeoMeta({ title: () => `Edit ${path.value?.title ?? 'Path'} — CommonPub` });
 
@@ -56,6 +56,38 @@ async function saveMetadata(): Promise<void> {
 }
 
 const lessonTypes = ['article', 'video', 'quiz', 'project', 'explainer'] as const;
+
+// Content linking
+const showContentPicker = ref(false);
+const linkingModuleId = ref<string | null>(null);
+
+function openPicker(moduleId: string): void {
+  linkingModuleId.value = moduleId;
+  showContentPicker.value = true;
+}
+
+async function linkContent(item: { id: string; title: string; slug: string; type: string }): Promise<void> {
+  if (!linkingModuleId.value) return;
+  saving.value = true;
+  try {
+    await $fetch(`/api/learn/${slug.value}/lessons`, {
+      method: 'POST',
+      body: {
+        moduleId: linkingModuleId.value,
+        title: item.title,
+        type: item.type,
+        contentItemId: item.id,
+      },
+    });
+    toast.success('Content linked as lesson');
+    await refresh();
+  } catch {
+    toast.error('Failed to link content');
+  } finally {
+    saving.value = false;
+    linkingModuleId.value = null;
+  }
+}
 
 async function addModule(): Promise<void> {
   if (!newModuleTitle.value.trim()) return;
@@ -157,7 +189,13 @@ async function handlePublish(): Promise<void> {
 </script>
 
 <template>
-  <div v-if="path" class="cpub-path-edit">
+  <div v-if="pathPending" class="cpub-loading">Loading path editor...</div>
+  <div v-else-if="pathError" class="cpub-fetch-error">
+    <div class="cpub-fetch-error-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+    <div class="cpub-fetch-error-msg">{{ pathError.statusMessage || 'Failed to load learning path.' }}</div>
+    <button class="cpub-btn cpub-btn-sm" @click="refresh()">Retry</button>
+  </div>
+  <div v-else-if="path" class="cpub-path-edit">
     <div class="cpub-edit-header">
       <NuxtLink :to="`/learn/${slug}`" class="cpub-back-link">
         <i class="fa-solid fa-arrow-left"></i> Back to path
@@ -240,8 +278,9 @@ async function handlePublish(): Promise<void> {
           <div v-for="lesson in (mod.lessons ?? [])" :key="lesson.id" class="cpub-lesson-row">
             <i class="fa-solid fa-grip-vertical cpub-lesson-grip"></i>
             <span class="cpub-lesson-type-badge">{{ lesson.type }}</span>
+            <span v-if="lesson.contentItemId" class="cpub-lesson-linked-badge" title="Linked to content"><i class="fa-solid fa-link"></i></span>
             <span class="cpub-lesson-title">{{ lesson.title }}</span>
-            <span v-if="!lesson.content" class="cpub-lesson-empty-badge">empty</span>
+            <span v-if="!lesson.content && !lesson.contentItemId" class="cpub-lesson-empty-badge">empty</span>
             <NuxtLink :to="`/learn/${slug}/${lesson.slug}/edit`" class="cpub-lesson-edit-btn" aria-label="Edit lesson content">
               <i class="fa-solid fa-pen"></i>
             </NuxtLink>
@@ -263,8 +302,11 @@ async function handlePublish(): Promise<void> {
               placeholder="New lesson title..."
               @keyup.enter="addLesson(mod.id)"
             />
-            <button class="cpub-add-btn" :disabled="saving" @click="addLesson(mod.id)">
+            <button class="cpub-add-btn" :disabled="saving" @click="addLesson(mod.id)" aria-label="Add inline lesson">
               <i class="fa-solid fa-plus"></i>
+            </button>
+            <button class="cpub-link-btn" :disabled="saving" @click="openPicker(mod.id)" aria-label="Link existing content">
+              <i class="fa-solid fa-link"></i> Link Content
             </button>
           </div>
         </div>
@@ -292,6 +334,13 @@ async function handlePublish(): Promise<void> {
   <div v-else class="cpub-empty-state" style="padding: 64px 24px; text-align: center;">
     <p>Learning path not found</p>
   </div>
+
+  <ContentPicker
+    :open="showContentPicker"
+    :types="['article', 'project', 'explainer', 'blog']"
+    @update:open="showContentPicker = $event"
+    @select="linkContent"
+  />
 </template>
 
 <style scoped>
@@ -344,6 +393,10 @@ async function handlePublish(): Promise<void> {
 .cpub-add-input::placeholder { color: var(--text-faint); }
 .cpub-add-btn { padding: 6px 10px; background: var(--accent); color: var(--color-text-inverse); border: 2px solid var(--accent); border-left: none; font-size: 11px; cursor: pointer; }
 .cpub-add-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.cpub-link-btn { padding: 6px 10px; background: var(--surface2); color: var(--text-dim); border: 2px solid var(--border); font-size: 10px; font-family: var(--font-mono); cursor: pointer; display: flex; align-items: center; gap: 5px; margin-left: 4px; }
+.cpub-link-btn:hover { border-color: var(--accent); color: var(--accent); }
+.cpub-link-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.cpub-lesson-linked-badge { font-size: 9px; color: var(--teal); display: flex; align-items: center; flex-shrink: 0; }
 
 .cpub-empty-modules { text-align: center; padding: 32px; color: var(--text-faint); font-size: 13px; }
 

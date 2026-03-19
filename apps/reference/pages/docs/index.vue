@@ -4,7 +4,7 @@ useSeoMeta({
   description: 'Browse documentation sites.',
 });
 
-const { data: sites, pending, error, refresh } = await useFetch('/api/docs');
+const { data: sites, pending, error, refresh } = useLazyFetch('/api/docs');
 const { isAuthenticated, user } = useAuth();
 
 const mySites = computed(() => {

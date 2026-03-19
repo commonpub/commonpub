@@ -366,11 +366,14 @@ export const createLessonSchema = z.object({
   title: z.string().min(1).max(255),
   type: lessonTypeSchema,
   content: z.unknown().optional(),
+  contentItemId: z.string().uuid().optional(),
   duration: z.number().int().positive().max(9999).optional(),
 });
 export type CreateLessonInput = z.infer<typeof createLessonSchema>;
 
-export const updateLessonSchema = createLessonSchema.partial().omit({ moduleId: true });
+export const updateLessonSchema = createLessonSchema.partial().omit({ moduleId: true }).extend({
+  contentItemId: z.string().uuid().nullable().optional(),
+});
 export type UpdateLessonInput = z.infer<typeof updateLessonSchema>;
 
 // --- Messaging validators ---

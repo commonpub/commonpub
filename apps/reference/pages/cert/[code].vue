@@ -2,7 +2,7 @@
 const route = useRoute();
 const code = route.params.code as string;
 
-const { data: certData } = await useFetch(`/api/cert/${code}`);
+const { data: certData } = useLazyFetch(`/api/cert/${code}`);
 
 useSeoMeta({
   title: () => certData.value ? `Certificate — ${certData.value.path.title} — CommonPub` : 'Certificate — CommonPub',

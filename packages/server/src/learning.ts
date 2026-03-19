@@ -1,4 +1,4 @@
-import { eq, and, desc, sql, asc } from 'drizzle-orm';
+import { eq, and, desc, sql, asc, inArray } from 'drizzle-orm';
 import {
   learningPaths,
   learningModules,
@@ -7,6 +7,7 @@ import {
   lessonProgress,
   certificates,
   users,
+  contentItems,
 } from '@commonpub/schema';
 import { calculatePathProgress, isPathComplete } from '@commonpub/learning';
 import { generateVerificationCode } from '@commonpub/learning';
@@ -144,7 +145,7 @@ export async function getPathBySlug(
     lessons = await db
       .select()
       .from(learningLessons)
-      .where(sql`${learningLessons.moduleId} = ANY(${moduleIds})`)
+      .where(inArray(learningLessons.moduleId, moduleIds))
       .orderBy(asc(learningLessons.sortOrder));
   }
 
@@ -182,6 +183,7 @@ export async function getPathBySlug(
         type: l.type,
         duration: l.duration,
         sortOrder: l.sortOrder,
+        contentItemId: l.contentItemId ?? null,
       })),
   }));
 
@@ -423,6 +425,7 @@ export async function createLesson(
     title: string;
     type: 'article' | 'video' | 'quiz' | 'project' | 'explainer';
     content?: unknown;
+    contentItemId?: string;
     durationMinutes?: number;
   },
 ): Promise<typeof learningLessons.$inferSelect> {
@@ -434,6 +437,19 @@ export async function createLesson(
     .limit(1);
 
   if (mod.length === 0) throw new Error('Not authorized');
+
+  // If linking to existing content, validate it
+  let resolvedType = input.type;
+  if (input.contentItemId) {
+    const item = await db
+      .select({ id: contentItems.id, type: contentItems.type, authorId: contentItems.authorId })
+      .from(contentItems)
+      .where(eq(contentItems.id, input.contentItemId))
+      .limit(1);
+    if (item.length === 0) throw new Error('Content item not found');
+    if (item[0]!.authorId !== authorId) throw new Error('You can only link your own content');
+    resolvedType = item[0]!.type as typeof resolvedType;
+  }
 
   const slug = generateSlug(input.title) || `lesson-${Date.now()}`;
 
@@ -448,8 +464,9 @@ export async function createLesson(
       moduleId: input.moduleId,
       title: input.title,
       slug,
-      type: input.type,
-      content: input.content ?? null,
+      type: resolvedType,
+      content: input.contentItemId ? null : (input.content ?? null),
+      contentItemId: input.contentItemId ?? null,
       duration: input.durationMinutes ?? null,
       sortOrder: (maxSort[0]?.max ?? -1) + 1,
     })
@@ -462,7 +479,7 @@ export async function updateLesson(
   db: DB,
   lessonId: string,
   authorId: string,
-  input: { title?: string; type?: string; content?: unknown; durationMinutes?: number },
+  input: { title?: string; type?: string; content?: unknown; contentItemId?: string | null; durationMinutes?: number },
 ): Promise<typeof learningLessons.$inferSelect | null> {
   const lesson = await db
     .select({ lesson: learningLessons, module: learningModules, path: learningPaths })
@@ -481,6 +498,23 @@ export async function updateLesson(
   }
   if (input.type !== undefined) updates.type = input.type;
   if (input.content !== undefined) updates.content = input.content;
+  if (input.contentItemId !== undefined) {
+    updates.contentItemId = input.contentItemId;
+    if (input.contentItemId === null) {
+      // Unlinking — clear the reference
+    } else {
+      // Linking — validate content item belongs to author
+      const item = await db
+        .select({ id: contentItems.id, type: contentItems.type, authorId: contentItems.authorId })
+        .from(contentItems)
+        .where(eq(contentItems.id, input.contentItemId))
+        .limit(1);
+      if (item.length === 0) throw new Error('Content item not found');
+      if (item[0]!.authorId !== authorId) throw new Error('You can only link your own content');
+      updates.type = item[0]!.type;
+      updates.content = null;
+    }
+  }
   if (input.durationMinutes !== undefined) updates.duration = input.durationMinutes;
 
   const [updated] = await db
@@ -811,6 +845,7 @@ export async function getLessonBySlug(
   lesson: typeof learningLessons.$inferSelect;
   module: typeof learningModules.$inferSelect;
   pathId: string;
+  linkedContent?: { id: string; title: string; slug: string; type: string; content: unknown };
 } | null> {
   const path = await db
     .select()
@@ -829,11 +864,36 @@ export async function getLessonBySlug(
 
   if (rows.length === 0) return null;
 
-  return {
+  const result: {
+    lesson: typeof learningLessons.$inferSelect;
+    module: typeof learningModules.$inferSelect;
+    pathId: string;
+    linkedContent?: { id: string; title: string; slug: string; type: string; content: unknown };
+  } = {
     lesson: rows[0]!.lesson,
     module: rows[0]!.module,
     pathId: path[0]!.id,
   };
+
+  // Resolve linked content item if present
+  if (rows[0]!.lesson.contentItemId) {
+    const items = await db
+      .select({
+        id: contentItems.id,
+        title: contentItems.title,
+        slug: contentItems.slug,
+        type: contentItems.type,
+        content: contentItems.content,
+      })
+      .from(contentItems)
+      .where(eq(contentItems.id, rows[0]!.lesson.contentItemId))
+      .limit(1);
+    if (items.length > 0) {
+      result.linkedContent = items[0]!;
+    }
+  }
+
+  return result;
 }
 
 export async function getCompletedLessonIds(

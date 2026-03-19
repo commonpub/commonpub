@@ -60,7 +60,7 @@ export default defineEventHandler(async (event) => {
   // User profiles
   for (const user of publicUsers) {
     urls.push({
-      loc: `${siteUrl}/profile/${user.username}`,
+      loc: `${siteUrl}/u/${user.username}`,
       lastmod: new Date(user.updatedAt).toISOString(),
       priority: '0.6',
       changefreq: 'weekly',

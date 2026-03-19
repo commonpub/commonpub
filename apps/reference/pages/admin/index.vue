@@ -1,5 +1,5 @@
 <script setup lang="ts">
-definePageMeta({ layout: 'admin' });
+definePageMeta({ layout: 'admin', middleware: 'auth' });
 useSeoMeta({ title: 'Admin Dashboard — CommonPub' });
 
 const { data: stats } = await useFetch('/api/admin/stats');

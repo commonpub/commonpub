@@ -4,7 +4,7 @@ const username = route.params.username as string;
 
 useSeoMeta({ title: `Following — @${username} — CommonPub` });
 
-const { data: following } = await useFetch(`/api/users/${username}/following`);
+const { data: following } = useLazyFetch(`/api/users/${username}/following`);
 const { isAuthenticated, user } = useAuth();
 const toast = useToast();
 

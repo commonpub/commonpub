@@ -56,8 +56,8 @@ const sectionRanges = computed(() => {
   return ranges;
 });
 
-const activeSection = ref(2); // 0-indexed, default to section 3
-const completedSections = ref<Set<number>>(new Set([0, 1]));
+const activeSection = ref(0);
+const completedSections = ref<Set<number>>(new Set());
 const contentId = computed(() => props.content?.id);
 const contentType = computed(() => props.content?.type ?? 'explainer');
 const { bookmarked, toggleBookmark, share } = useEngagement(contentId, contentType);
@@ -181,8 +181,8 @@ watch(activeSection, () => {
                 :blocks="blocks"
                 :start-index="sectionRanges[activeSection]!.start"
                 :end-index="sectionRanges[activeSection]!.end"
-                @quiz-answered="(idx: number, correct: boolean) => { if (correct) { completedSections.value.add(activeSection); checkpointVisible = true; } }"
-                @checkpoint-reached="() => { completedSections.value.add(activeSection); checkpointVisible = true; }"
+                @quiz-answered="(idx: number, correct: boolean) => { if (correct) { completedSections.value.add(activeSection); checkpointVisible.value = true; } }"
+                @checkpoint-reached="() => { completedSections.value.add(activeSection); checkpointVisible.value = true; }"
               />
             </template>
             <template v-else>

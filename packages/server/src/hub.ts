@@ -562,45 +562,47 @@ export async function createPost(
     throw new Error('Must be a member to post');
   }
 
-  const [post] = await db
-    .insert(hubPosts)
-    .values({
-      hubId: input.hubId,
-      authorId,
-      type: input.type ?? 'text',
-      content: input.content,
-    })
-    .returning();
+  return db.transaction(async (tx) => {
+    const [post] = await tx
+      .insert(hubPosts)
+      .values({
+        hubId: input.hubId,
+        authorId,
+        type: input.type ?? 'text',
+        content: input.content,
+      })
+      .returning();
 
-  await db
-    .update(hubs)
-    .set({ postCount: sql`${hubs.postCount} + 1` })
-    .where(eq(hubs.id, input.hubId));
+    await tx
+      .update(hubs)
+      .set({ postCount: sql`${hubs.postCount} + 1` })
+      .where(eq(hubs.id, input.hubId));
 
-  const author = await db
-    .select({
-      id: users.id,
-      username: users.username,
-      displayName: users.displayName,
-      avatarUrl: users.avatarUrl,
-    })
-    .from(users)
-    .where(eq(users.id, authorId))
-    .limit(1);
+    const author = await tx
+      .select({
+        id: users.id,
+        username: users.username,
+        displayName: users.displayName,
+        avatarUrl: users.avatarUrl,
+      })
+      .from(users)
+      .where(eq(users.id, authorId))
+      .limit(1);
 
-  return {
-    id: post!.id,
-    hubId: post!.hubId,
-    type: post!.type,
-    content: post!.content,
-    isPinned: post!.isPinned,
-    isLocked: post!.isLocked,
-    likeCount: 0,
-    replyCount: 0,
-    createdAt: post!.createdAt,
-    updatedAt: post!.updatedAt,
-    author: author[0]!,
-  };
+    return {
+      id: post!.id,
+      hubId: post!.hubId,
+      type: post!.type,
+      content: post!.content,
+      isPinned: post!.isPinned,
+      isLocked: post!.isLocked,
+      likeCount: 0,
+      replyCount: 0,
+      createdAt: post!.createdAt,
+      updatedAt: post!.updatedAt,
+      author: author[0] ?? { id: authorId, username: 'unknown', displayName: null, avatarUrl: null },
+    };
+  });
 }
 
 export async function listPosts(

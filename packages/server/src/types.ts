@@ -89,7 +89,26 @@ export interface UserProfile {
   displayName: string | null;
   avatarUrl: string | null;
   bio: string | null;
+  headline: string | null;
+  location: string | null;
+  website: string | null;
+  bannerUrl: string | null;
+  socialLinks: {
+    github?: string;
+    twitter?: string;
+    linkedin?: string;
+    youtube?: string;
+    instagram?: string;
+    mastodon?: string;
+    discord?: string;
+  } | null;
+  skills: string[] | null;
+  pronouns: string | null;
   createdAt: Date;
+  followerCount: number;
+  followingCount: number;
+  viewCount: number;
+  likeCount: number;
   stats: {
     projects: number;
     explainers: number;

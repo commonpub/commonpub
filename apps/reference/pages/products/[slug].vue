@@ -2,8 +2,8 @@
 const route = useRoute();
 const slug = route.params.slug as string;
 
-const { data: product } = await useFetch(`/api/products/${slug}`);
-const { data: projectsUsing } = await useFetch(`/api/products/${slug}/content`);
+const { data: product } = useLazyFetch(`/api/products/${slug}`);
+const { data: projectsUsing } = useLazyFetch(`/api/products/${slug}/content`);
 
 useSeoMeta({
   title: () => product.value ? `${product.value.name} — CommonPub` : 'Product — CommonPub',

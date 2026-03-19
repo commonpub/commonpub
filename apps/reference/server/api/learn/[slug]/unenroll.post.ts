@@ -5,7 +5,7 @@ export default defineEventHandler(async (event): Promise<boolean> => {
   const db = useDB();
   const slug = getRouterParam(event, 'slug')!;
 
-  const path = await getPathBySlug(db, slug);
+  const path = await getPathBySlug(db, slug, user.id);
   if (!path) throw createError({ statusCode: 404, statusMessage: 'Path not found' });
 
   return unenroll(db, user.id, path.id);

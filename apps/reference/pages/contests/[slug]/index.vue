@@ -2,12 +2,12 @@
 const route = useRoute();
 const slug = route.params.slug as string;
 
-const { data: contest } = await useFetch(`/api/contests/${slug}`);
+const { data: contest } = useLazyFetch(`/api/contests/${slug}`);
 
 useSeoMeta({ title: () => `${contest.value?.title || 'Contest'} — CommonPub` });
 
 // Fetch entries from API
-const { data: apiEntries } = await useFetch(`/api/contests/${slug}/entries`);
+const { data: apiEntries } = useLazyFetch(`/api/contests/${slug}/entries`);
 
 const c = computed(() => contest.value);
 

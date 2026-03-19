@@ -31,8 +31,8 @@ async function sanitizeBlockContent(content: unknown): Promise<unknown> {
       ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'b', 'i', 'u', 's', 'code', 'a', 'ul', 'ol', 'li', 'blockquote', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'pre', 'span', 'sub', 'sup'],
       ALLOWED_ATTR: ['href', 'target', 'rel', 'class'],
     });
-  } catch {
-    // DOMPurify not available — pass through
+  } catch (err) {
+    console.warn('[sanitize] DOMPurify unavailable, HTML passed through unsanitized:', err instanceof Error ? err.message : err);
     return content;
   }
 

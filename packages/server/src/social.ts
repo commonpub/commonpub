@@ -350,7 +350,7 @@ export async function listUserBookmarks(
           slug: row.content.slug,
           type: row.content.type,
           coverImageUrl: row.content.coverImageUrl,
-          author: row.author ?? { id: '', username: '', displayName: null, avatarUrl: null },
+          author: row.author ?? { id: 'deleted', username: 'deleted', displayName: '[Deleted User]', avatarUrl: null },
         }
       : null,
   }));

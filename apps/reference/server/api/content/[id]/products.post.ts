@@ -4,7 +4,7 @@ import { addContentProductSchema } from '@commonpub/schema';
 
 export default defineEventHandler(async (event): Promise<ContentProductItem> => {
   const db = useDB();
-  requireAuth(event);
+  const user = requireAuth(event);
   const id = getRouterParam(event, 'id');
 
   if (!id) {

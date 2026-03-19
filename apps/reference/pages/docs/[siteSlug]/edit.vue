@@ -4,8 +4,8 @@ definePageMeta({ middleware: 'auth' });
 const route = useRoute();
 const siteSlug = computed(() => route.params.siteSlug as string);
 
-const { data: site, refresh: refreshSite } = await useFetch(() => `/api/docs/${siteSlug.value}`);
-const { data: pages, refresh: refreshPages } = await useFetch(() => `/api/docs/${siteSlug.value}/pages`);
+const { data: site, refresh: refreshSite } = useLazyFetch(() => `/api/docs/${siteSlug.value}`);
+const { data: pages, refresh: refreshPages } = useLazyFetch(() => `/api/docs/${siteSlug.value}/pages`);
 
 useSeoMeta({ title: () => `Edit ${site.value?.name ?? 'Docs'} — CommonPub` });
 

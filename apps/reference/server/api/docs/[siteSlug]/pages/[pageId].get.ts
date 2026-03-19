@@ -4,7 +4,7 @@ import { renderMarkdown } from '@commonpub/docs';
 export default defineEventHandler(async (event) => {
   const db = useDB();
   const siteSlug = getRouterParam(event, 'siteSlug')!;
-  const pageSlug = getRouterParam(event, 'pageSlug')!;
+  const pageSlug = getRouterParam(event, 'pageId')!;
   const query = getQuery(event) as { version?: string };
 
   const result = await getDocsSiteBySlug(db, siteSlug);

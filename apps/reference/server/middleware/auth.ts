@@ -20,7 +20,13 @@ function getAuthMiddleware(): ReturnType<typeof createAuthMiddleware> {
   const auth = createAuth({
     config,
     db: db as Parameters<typeof createAuth>[0]['db'],
-    secret: runtimeConfig.authSecret as string || 'dev-secret-change-me',
+    secret: (() => {
+      const s = runtimeConfig.authSecret as string;
+      if (!s && process.env.NODE_ENV === 'production') {
+        throw new Error('AUTH_SECRET must be set in production');
+      }
+      return s || 'dev-secret-change-me';
+    })(),
     baseURL: siteUrl,
     emailSender: {
       async sendResetPasswordEmail(email: string, url: string, _token: string): Promise<void> {

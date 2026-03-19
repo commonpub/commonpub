@@ -6,7 +6,7 @@ const slug = route.params.slug as string;
 const toast = useToast();
 const { extract: extractError } = useApiError();
 
-const { data: contest, refresh } = await useFetch(`/api/contests/${slug}`);
+const { data: contest, refresh } = useLazyFetch(`/api/contests/${slug}`);
 useSeoMeta({ title: () => `Edit: ${contest.value?.title ?? 'Contest'} — CommonPub` });
 
 const saving = ref(false);

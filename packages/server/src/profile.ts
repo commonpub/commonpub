@@ -15,31 +15,42 @@ export async function getUserByUsername(db: DB, username: string): Promise<UserP
 
   const user = rows[0]!;
 
-  // Get content counts by type
-  const contentCounts = await db
-    .select({
-      type: contentItems.type,
-      count: sql<number>`count(*)::int`,
-    })
-    .from(contentItems)
-    .where(and(eq(contentItems.authorId, user.id), eq(contentItems.status, 'published')))
-    .groupBy(contentItems.type);
+  // Get content counts by type + aggregated view/like counts
+  const [contentCounts, viewLikeResult, followerResult, followingResult] = await Promise.all([
+    db
+      .select({
+        type: contentItems.type,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(contentItems)
+      .where(and(eq(contentItems.authorId, user.id), eq(contentItems.status, 'published')))
+      .groupBy(contentItems.type),
+    db
+      .select({
+        totalViews: sql<number>`coalesce(sum(${contentItems.viewCount}), 0)::int`,
+        totalLikes: sql<number>`coalesce(sum(${contentItems.likeCount}), 0)::int`,
+      })
+      .from(contentItems)
+      .where(and(eq(contentItems.authorId, user.id), eq(contentItems.status, 'published'))),
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(follows)
+      .where(eq(follows.followingId, user.id)),
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(follows)
+      .where(eq(follows.followerId, user.id)),
+  ]);
 
   const countMap: Record<string, number> = {};
   for (const row of contentCounts) {
     countMap[row.type] = row.count;
   }
 
-  // Get follower/following counts
-  const [followerResult] = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(follows)
-    .where(eq(follows.followingId, user.id));
+  const followerCount = followerResult[0]?.count ?? 0;
+  const followingCount = followingResult[0]?.count ?? 0;
 
-  const [followingResult] = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(follows)
-    .where(eq(follows.followerId, user.id));
+  const socialLinks = (user.socialLinks as UserProfile['socialLinks']) ?? null;
 
   return {
     id: user.id,
@@ -47,14 +58,24 @@ export async function getUserByUsername(db: DB, username: string): Promise<UserP
     displayName: user.displayName,
     avatarUrl: user.avatarUrl,
     bio: user.bio ?? null,
+    headline: user.headline ?? null,
+    location: user.location ?? null,
+    website: user.website ?? null,
+    bannerUrl: user.bannerUrl ?? null,
+    socialLinks,
+    skills: (user.skills as string[]) ?? null,
+    pronouns: user.pronouns ?? null,
     createdAt: user.createdAt,
+    followerCount,
+    followingCount,
+    viewCount: viewLikeResult[0]?.totalViews ?? 0,
+    likeCount: viewLikeResult[0]?.totalLikes ?? 0,
     stats: {
       projects: countMap['project'] ?? 0,
-      
       explainers: countMap['explainer'] ?? 0,
       articles: countMap['article'] ?? 0,
-      followers: followerResult?.count ?? 0,
-      following: followingResult?.count ?? 0,
+      followers: followerCount,
+      following: followingCount,
     },
   };
 }

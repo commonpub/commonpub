@@ -20,6 +20,7 @@ export const AuthorCard: typeof import("../components/AuthorCard.vue")['default'
 export const AuthorRow: typeof import("../components/AuthorRow.vue")['default']
 export const CommentSection: typeof import("../components/CommentSection.vue")['default']
 export const ContentCard: typeof import("../components/ContentCard.vue")['default']
+export const ContentPicker: typeof import("../components/ContentPicker.vue")['default']
 export const ContentTypeBadge: typeof import("../components/ContentTypeBadge.vue")['default']
 export const CountdownTimer: typeof import("../components/CountdownTimer.vue")['default']
 export const CpubEditor: typeof import("../components/CpubEditor.vue")['default']
@@ -125,6 +126,7 @@ export const LazyAuthorCard: LazyComponent<typeof import("../components/AuthorCa
 export const LazyAuthorRow: LazyComponent<typeof import("../components/AuthorRow.vue")['default']>
 export const LazyCommentSection: LazyComponent<typeof import("../components/CommentSection.vue")['default']>
 export const LazyContentCard: LazyComponent<typeof import("../components/ContentCard.vue")['default']>
+export const LazyContentPicker: LazyComponent<typeof import("../components/ContentPicker.vue")['default']>
 export const LazyContentTypeBadge: LazyComponent<typeof import("../components/ContentTypeBadge.vue")['default']>
 export const LazyCountdownTimer: LazyComponent<typeof import("../components/CountdownTimer.vue")['default']>
 export const LazyCpubEditor: LazyComponent<typeof import("../components/CpubEditor.vue")['default']>

@@ -7,7 +7,7 @@ const toast = useToast();
 
 import type { Serialized, HubDetail } from '@commonpub/server';
 
-const { data: hub } = await useFetch<Serialized<HubDetail>>(() => `/api/hubs/${slug.value}`);
+const { data: hub } = useLazyFetch<Serialized<HubDetail>>(() => `/api/hubs/${slug.value}`);
 
 useSeoMeta({
   title: () => `Settings — ${hub.value?.name ?? 'Hub'} — CommonPub`,

@@ -2,7 +2,7 @@
 const route = useRoute();
 const slug = computed(() => route.params.slug as string);
 
-const { data: path, pending: pathPending, error: pathError, refresh } = await useFetch(() => `/api/learn/${slug.value}`);
+const { data: path, pending: pathPending, error: pathError, refresh } = useLazyFetch(() => `/api/learn/${slug.value}`);
 
 useSeoMeta({
   title: () => path.value ? `${path.value.title} — Learn — CommonPub` : 'Learn — CommonPub',

@@ -12,6 +12,7 @@ import {
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { users } from './auth.js';
+import { contentItems } from './content.js';
 import { contentStatusEnum, difficultyEnum, lessonTypeEnum } from './enums.js';
 
 export const learningPaths = pgTable('learning_paths', {
@@ -56,6 +57,8 @@ export const learningLessons = pgTable(
     slug: varchar('slug', { length: 255 }).notNull(),
     type: lessonTypeEnum('type').notNull(),
     content: jsonb('content'),
+    contentItemId: uuid('content_item_id')
+      .references(() => contentItems.id, { onDelete: 'set null' }),
     duration: integer('duration_minutes'),
     sortOrder: integer('sort_order').default(0).notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
@@ -130,6 +133,10 @@ export const learningLessonsRelations = relations(learningLessons, ({ one }) => 
   module: one(learningModules, {
     fields: [learningLessons.moduleId],
     references: [learningModules.id],
+  }),
+  contentItem: one(contentItems, {
+    fields: [learningLessons.contentItemId],
+    references: [contentItems.id],
   }),
 }));
 

@@ -101,16 +101,14 @@ declare module "nitropack/types" {
     '/api/docs/:siteSlug/nav': {
       'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/docs/[siteSlug]/nav.get').default>>>>
     }
-    '/api/docs/:siteSlug/pages': {
-      'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/docs/[siteSlug]/pages.get').default>>>>
-      'post': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/docs/[siteSlug]/pages.post').default>>>>
-    }
     '/api/docs/:siteSlug/pages/:pageId': {
       'delete': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/docs/[siteSlug]/pages/[pageId].delete').default>>>>
+      'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/docs/[siteSlug]/pages/[pageId].get').default>>>>
       'put': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/docs/[siteSlug]/pages/[pageId].put').default>>>>
     }
-    '/api/docs/:siteSlug/pages/:pageSlug': {
-      'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/docs/[siteSlug]/pages/[pageSlug].get').default>>>>
+    '/api/docs/:siteSlug/pages': {
+      'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/docs/[siteSlug]/pages/index.get').default>>>>
+      'post': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/docs/[siteSlug]/pages/index.post').default>>>>
     }
     '/api/docs/:siteSlug/pages/reorder': {
       'post': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/docs/[siteSlug]/pages/reorder.post').default>>>>
@@ -194,11 +192,11 @@ declare module "nitropack/types" {
       'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/hubs/index.get').default>>>>
       'post': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/hubs/index.post').default>>>>
     }
-    '/api/learn/:slug/:lessonSlug': {
-      'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/learn/[slug]/[lessonSlug].get').default>>>>
-    }
     '/api/learn/:slug/:lessonSlug/complete': {
       'post': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/learn/[slug]/[lessonSlug]/complete.post').default>>>>
+    }
+    '/api/learn/:slug/:lessonSlug': {
+      'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/learn/[slug]/[lessonSlug]/index.get').default>>>>
     }
     '/api/learn/:slug/enroll': {
       'post': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/learn/[slug]/enroll.post').default>>>>

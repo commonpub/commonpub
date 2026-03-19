@@ -6,9 +6,11 @@ const { isAuthenticated, user } = useAuth();
 const { data: pathsData, pending: loadingPaths } = useFetch('/api/learn');
 
 // Fetch author's own paths (including drafts) when authenticated
-const { data: myPathsData } = useFetch(() => `/api/learn?authorId=${user.value?.id}`, {
+const myPathsQuery = computed(() => user.value?.id ? { authorId: user.value.id } : {});
+const { data: myPathsData } = useFetch('/api/learn', {
+  query: myPathsQuery,
   immediate: isAuthenticated.value,
-  watch: [user],
+  watch: [myPathsQuery],
 });
 const myPaths = computed(() => myPathsData.value?.items ?? []);
 const { data: enrollments } = useFetch('/api/learn/enrollments', {

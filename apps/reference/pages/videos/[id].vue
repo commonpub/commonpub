@@ -4,7 +4,7 @@ import type { Serialized, VideoDetail } from '@commonpub/server';
 const route = useRoute();
 const videoId = computed(() => route.params.id as string);
 
-const { data: video } = await useFetch<Serialized<VideoDetail>>(() => `/api/videos/${videoId.value}`);
+const { data: video } = useLazyFetch<Serialized<VideoDetail>>(() => `/api/videos/${videoId.value}`);
 
 useSeoMeta({
   title: () => video.value?.title ? `${video.value.title} — CommonPub` : 'Video — CommonPub',

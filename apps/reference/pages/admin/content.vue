@@ -1,5 +1,5 @@
 <script setup lang="ts">
-definePageMeta({ layout: 'admin' });
+definePageMeta({ layout: 'admin', middleware: 'auth' });
 useSeoMeta({ title: 'Content Management — Admin — CommonPub' });
 
 const toast = useToast();

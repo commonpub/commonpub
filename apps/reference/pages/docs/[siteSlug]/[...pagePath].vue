@@ -9,9 +9,9 @@ const pagePath = computed(() => {
   return Array.isArray(p) ? p[p.length - 1] : p;
 });
 
-const { data: site } = await useFetch(() => `/api/docs/${siteSlug.value}`);
-const { data: nav } = await useFetch(() => `/api/docs/${siteSlug.value}/nav`);
-const { data: pages } = await useFetch(() => `/api/docs/${siteSlug.value}/pages`);
+const { data: site } = useLazyFetch(() => `/api/docs/${siteSlug.value}`);
+const { data: nav } = useLazyFetch(() => `/api/docs/${siteSlug.value}/nav`);
+const { data: pages } = useLazyFetch(() => `/api/docs/${siteSlug.value}/pages`);
 
 // Fetch the rendered page (server-side markdown rendering)
 interface RenderedPage {
@@ -26,7 +26,7 @@ interface RenderedPage {
   frontmatter: { title?: string; description?: string };
 }
 
-const { data: renderedPage, pending: pagePending, error: pageError, refresh: refreshPage } = await useFetch<RenderedPage>(
+const { data: renderedPage, pending: pagePending, error: pageError, refresh: refreshPage } = useLazyFetch<RenderedPage>(
   () => `/api/docs/${siteSlug.value}/pages/${pagePath.value}`,
   { key: `doc-page-${siteSlug.value}-${pagePath.value}` },
 );

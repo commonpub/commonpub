@@ -8,12 +8,13 @@ const toast = useToast();
 
 // Fetch lesson data
 interface LessonResponse {
-  lesson: { id: string; title: string; slug: string; type: string; content: unknown; duration: number | null; moduleId: string };
+  lesson: { id: string; title: string; slug: string; type: string; content: unknown; contentItemId: string | null; duration: number | null; moduleId: string };
   module: { id: string; title: string };
   pathId: string;
+  linkedContent?: { id: string; title: string; slug: string; type: string };
 }
 
-const { data: lessonData, refresh } = await useFetch<LessonResponse>(
+const { data: lessonData, pending: lessonPending, error: lessonError, refresh } = useLazyFetch<LessonResponse>(
   () => `/api/learn/${slug.value}/${lessonSlug.value}`,
 );
 
@@ -112,6 +113,25 @@ async function handleSave(): Promise<void> {
   }
 }
 
+// Unlink content item
+async function unlinkContent(): Promise<void> {
+  if (!lesson.value) return;
+  if (!confirm('Unlink this content? The lesson will switch to inline editing.')) return;
+  saving.value = true;
+  try {
+    await $fetch(`/api/learn/${slug.value}/lessons/${lesson.value.id}`, {
+      method: 'PUT',
+      body: { contentItemId: null },
+    });
+    toast.success('Content unlinked');
+    await refresh();
+  } catch {
+    toast.error('Failed to unlink');
+  } finally {
+    saving.value = false;
+  }
+}
+
 // Quiz helpers
 function addQuestion(): void {
   editQuiz.value.push({
@@ -193,8 +213,28 @@ const videoEmbedUrl = computed(() => {
 
     <!-- Content Editor — varies by type -->
 
-    <!-- ARTICLE / EXPLAINER / PROJECT: Markdown editor -->
-    <section v-if="editType === 'article' || editType === 'explainer' || editType === 'project'" class="lesson-section">
+    <!-- LINKED CONTENT -->
+    <section v-if="lesson.contentItemId" class="lesson-section">
+      <h2 class="lesson-section-title"><i class="fa-solid fa-link" style="color: var(--teal); margin-right: 6px;"></i>Linked Content</h2>
+      <div class="linked-content-info">
+        <div class="linked-content-card">
+          <span class="cpub-lesson-type-badge" style="margin-right: 8px;">{{ lesson.type }}</span>
+          <span class="linked-content-title">{{ lesson.title }}</span>
+        </div>
+        <div class="linked-content-actions">
+          <NuxtLink :to="`/${lesson.type}/${lessonData?.linkedContent?.slug || ''}/edit`" class="cpub-btn cpub-btn-sm">
+            <i class="fa-solid fa-pen"></i> Edit Content
+          </NuxtLink>
+          <button class="cpub-btn cpub-btn-sm" style="color: var(--red); border-color: var(--red-border);" @click="unlinkContent">
+            <i class="fa-solid fa-link-slash"></i> Unlink
+          </button>
+        </div>
+        <p class="linked-content-hint">This lesson's content comes from a linked content item. Edit it in the content editor, or unlink to write inline.</p>
+      </div>
+    </section>
+
+    <!-- ARTICLE / EXPLAINER / PROJECT: Markdown editor (only when NOT linked) -->
+    <section v-else-if="editType === 'article' || editType === 'explainer' || editType === 'project'" class="lesson-section">
       <h2 class="lesson-section-title">Content</h2>
       <p class="lesson-section-hint">Write your lesson content in Markdown.</p>
       <textarea
@@ -362,4 +402,12 @@ const videoEmbedUrl = computed(() => {
   .lesson-form-grid { grid-template-columns: 1fr; }
   .lesson-edit { padding: 16px; }
 }
+
+/* Linked content */
+.linked-content-info { display: flex; flex-direction: column; gap: 12px; }
+.linked-content-card { display: flex; align-items: center; padding: 12px 14px; background: var(--surface2); border: 2px solid var(--border); }
+.linked-content-title { font-size: 14px; font-weight: 600; }
+.linked-content-actions { display: flex; gap: 8px; }
+.linked-content-hint { font-size: 11px; color: var(--text-faint); line-height: 1.5; }
+.cpub-lesson-type-badge { font-size: 9px; font-family: var(--font-mono); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; padding: 2px 7px; border: 2px solid var(--accent-border); background: var(--accent-bg); color: var(--accent); flex-shrink: 0; }
 </style>

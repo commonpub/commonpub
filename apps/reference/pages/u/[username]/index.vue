@@ -8,9 +8,9 @@ useSeoMeta({
 
 import type { Serialized, UserProfile } from '@commonpub/server';
 
-const { data: profile, pending: profilePending, error: profileError, refresh: refreshProfile } = await useFetch<Serialized<UserProfile>>(`/api/users/${username}`);
-const { data: content } = await useFetch(`/api/users/${username}/content`);
-const { data: learningData } = await useFetch(`/api/users/${username}/learning`);
+const { data: profile, pending: profilePending, error: profileError, refresh: refreshProfile } = useLazyFetch<Serialized<UserProfile>>(`/api/users/${username}`);
+const { data: content } = useLazyFetch(`/api/users/${username}/content`);
+const { data: learningData } = useLazyFetch(`/api/users/${username}/learning`);
 
 const activeTab = ref('projects');
 
@@ -24,13 +24,14 @@ const tabDefs = [
 
 const profileStats = computed(() => {
   if (!profile.value) return [];
+  const p = profile.value;
   return [
-    { value: content.value?.items?.filter((i) => i.type === 'project').length ?? 0, label: 'Projects' },
-    { value: profile.value.followerCount ?? 0, label: 'Followers' },
-    { value: profile.value.followingCount ?? 0, label: 'Following' },
-    { value: content.value?.items?.filter((i) => i.type === 'article').length ?? 0, label: 'Articles' },
-    { value: profile.value.viewCount ?? 0, label: 'Total Views' },
-    { value: profile.value.likeCount ?? 0, label: 'Likes' },
+    { value: p.stats?.projects ?? 0, label: 'Projects' },
+    { value: p.followerCount ?? p.stats?.followers ?? 0, label: 'Followers' },
+    { value: p.followingCount ?? p.stats?.following ?? 0, label: 'Following' },
+    { value: p.stats?.articles ?? 0, label: 'Articles' },
+    { value: p.viewCount ?? 0, label: 'Total Views' },
+    { value: p.likeCount ?? 0, label: 'Likes' },
   ];
 });
 
@@ -55,6 +56,13 @@ const toast = useToast();
 const isOwnProfile = computed(() => user.value?.username === username);
 const following = ref(false);
 const followLoading = ref(false);
+
+// Initialize follow state from API response
+watch(() => profile.value, (p) => {
+  if (p && 'isFollowing' in p) {
+    following.value = (p as Record<string, unknown>).isFollowing as boolean;
+  }
+}, { immediate: true });
 
 async function toggleFollow(): Promise<void> {
   if (!isAuthenticated.value) {
@@ -141,8 +149,8 @@ function toggleMenu(): void {
                 <i class="fa-solid fa-calendar"></i> Joined {{ new Date(p.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) }}
               </span>
             </div>
-            <div v-if="p.tags?.length" class="cpub-tag-row" style="margin-bottom: 14px">
-              <span v-for="tag in p.tags" :key="tag" class="cpub-tag">{{ tag }}</span>
+            <div v-if="p.skills?.length" class="cpub-tag-row" style="margin-bottom: 14px">
+              <span v-for="skill in p.skills" :key="skill" class="cpub-tag">{{ skill }}</span>
             </div>
             <div style="display: flex; align-items: center; gap: 16px">
               <div v-if="!isOwnProfile" class="cpub-profile-actions">
@@ -167,12 +175,12 @@ function toggleMenu(): void {
               <div v-else class="cpub-profile-actions">
                 <NuxtLink to="/settings/profile" class="cpub-btn"><i class="fa-solid fa-pen"></i> Edit Profile</NuxtLink>
               </div>
-              <div class="cpub-profile-social">
-                <a v-if="p.github" :href="`https://github.com/${p.github}`" class="cpub-social-btn" target="_blank" rel="noopener" aria-label="GitHub"><i class="fa-brands fa-github"></i></a>
-                <a v-if="p.twitter" :href="`https://twitter.com/${p.twitter}`" class="cpub-social-btn" target="_blank" rel="noopener" aria-label="Twitter"><i class="fa-brands fa-x-twitter"></i></a>
-                <a v-if="p.linkedin" :href="`https://linkedin.com/in/${p.linkedin}`" class="cpub-social-btn" target="_blank" rel="noopener" aria-label="LinkedIn"><i class="fa-brands fa-linkedin-in"></i></a>
-                <a v-if="p.youtube" :href="`https://youtube.com/${p.youtube}`" class="cpub-social-btn" target="_blank" rel="noopener" aria-label="YouTube"><i class="fa-brands fa-youtube"></i></a>
-                <a v-if="p.mastodon" :href="p.mastodon" class="cpub-social-btn" target="_blank" rel="noopener" aria-label="Mastodon"><i class="fa-brands fa-mastodon"></i></a>
+              <div v-if="p.socialLinks" class="cpub-profile-social">
+                <a v-if="p.socialLinks.github" :href="p.socialLinks.github" class="cpub-social-btn" target="_blank" rel="noopener" aria-label="GitHub"><i class="fa-brands fa-github"></i></a>
+                <a v-if="p.socialLinks.twitter" :href="p.socialLinks.twitter" class="cpub-social-btn" target="_blank" rel="noopener" aria-label="Twitter"><i class="fa-brands fa-x-twitter"></i></a>
+                <a v-if="p.socialLinks.linkedin" :href="p.socialLinks.linkedin" class="cpub-social-btn" target="_blank" rel="noopener" aria-label="LinkedIn"><i class="fa-brands fa-linkedin-in"></i></a>
+                <a v-if="p.socialLinks.youtube" :href="p.socialLinks.youtube" class="cpub-social-btn" target="_blank" rel="noopener" aria-label="YouTube"><i class="fa-brands fa-youtube"></i></a>
+                <a v-if="p.socialLinks.mastodon" :href="p.socialLinks.mastodon" class="cpub-social-btn" target="_blank" rel="noopener" aria-label="Mastodon"><i class="fa-brands fa-mastodon"></i></a>
               </div>
             </div>
           </div>
@@ -259,7 +267,7 @@ function toggleMenu(): void {
                 <div class="cpub-enrollment-title">{{ enr.path.title }}</div>
                 <div class="cpub-enrollment-progress-row">
                   <div class="cpub-enrollment-bar">
-                    <div class="cpub-enrollment-fill" :style="{ width: enr.progress + '%' }"></div>
+                    <div class="cpub-enrollment-fill" :style="{ width: (enr.progress ?? 0) + '%' }"></div>
                   </div>
                   <span class="cpub-enrollment-pct">{{ Math.round(parseFloat(enr.progress)) }}%</span>
                 </div>
@@ -323,17 +331,10 @@ function toggleMenu(): void {
               <div class="cpub-sec-head">
                 <h2><i class="fa-solid fa-microchip" style="color: var(--teal); margin-right: 6px"></i>Skills</h2>
               </div>
-              <div v-for="(group, i) in (p.skillGroups || [])" :key="i" class="cpub-skills-group">
-                <div class="cpub-skills-group-label">{{ group.label }}</div>
-                <SkillBar
-                  v-for="skill in group.skills"
-                  :key="skill.name"
-                  :name="skill.name"
-                  :percentage="skill.percentage"
-                  :color="skill.color ? `var(--${skill.color})` : undefined"
-                />
+              <div v-if="p.skills?.length" class="cpub-tag-row" style="flex-wrap: wrap; gap: 6px;">
+                <span v-for="skill in p.skills" :key="skill" class="cpub-tag">{{ skill }}</span>
               </div>
-              <div v-if="!p.skillGroups?.length" class="cpub-empty-state">
+              <div v-else class="cpub-empty-state">
                 <p class="cpub-empty-state-title">No skills listed yet</p>
               </div>
             </div>

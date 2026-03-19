@@ -1,9 +1,14 @@
 import { getProductBySlug, listProductContent } from '@commonpub/server';
+import { z } from 'zod';
+
+const querySchema = z.object({
+  limit: z.coerce.number().int().positive().max(100).optional(),
+  offset: z.coerce.number().int().min(0).optional(),
+});
 
 export default defineEventHandler(async (event) => {
   const db = useDB();
   const slug = getRouterParam(event, 'slug');
-  const query = getQuery(event);
 
   if (!slug) {
     throw createError({ statusCode: 400, statusMessage: 'Slug is required' });
@@ -14,8 +19,6 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'Product not found' });
   }
 
-  return listProductContent(db, product.id, {
-    limit: query.limit ? Number(query.limit) : undefined,
-    offset: query.offset ? Number(query.offset) : undefined,
-  });
+  const query = querySchema.parse(getQuery(event));
+  return listProductContent(db, product.id, query);
 });

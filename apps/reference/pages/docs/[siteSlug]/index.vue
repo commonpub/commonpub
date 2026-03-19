@@ -2,9 +2,9 @@
 const route = useRoute();
 const siteSlug = computed(() => route.params.siteSlug as string);
 
-const { data: site, pending: sitePending, error: siteError, refresh: refreshSite } = await useFetch(() => `/api/docs/${siteSlug.value}`);
-const { data: nav } = await useFetch(() => `/api/docs/${siteSlug.value}/nav`);
-const { data: pages } = await useFetch(() => `/api/docs/${siteSlug.value}/pages`);
+const { data: site, pending: sitePending, error: siteError, refresh: refreshSite } = useLazyFetch(() => `/api/docs/${siteSlug.value}`);
+const { data: nav } = useLazyFetch(() => `/api/docs/${siteSlug.value}/nav`);
+const { data: pages } = useLazyFetch(() => `/api/docs/${siteSlug.value}/pages`);
 
 const { user } = useAuth();
 const isOwner = computed(() => site.value && user.value && site.value.ownerId === user.value.id);

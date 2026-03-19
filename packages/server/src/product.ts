@@ -145,6 +145,7 @@ export async function updateProduct(
     .limit(1);
 
   if (existing.length === 0) return null;
+  if (existing[0]!.createdById !== userId) return null;
 
   const updates: Record<string, unknown> = { updatedAt: new Date() };
 
@@ -175,7 +176,16 @@ export async function updateProduct(
 export async function deleteProduct(
   db: DB,
   productId: string,
+  userId?: string,
 ): Promise<boolean> {
+  if (userId) {
+    const existing = await db
+      .select({ createdById: products.createdById })
+      .from(products)
+      .where(eq(products.id, productId))
+      .limit(1);
+    if (existing.length === 0 || existing[0]!.createdById !== userId) return false;
+  }
   const result = await db.delete(products).where(eq(products.id, productId)).returning({ id: products.id });
   return result.length > 0;
 }

@@ -3,8 +3,8 @@ const route = useRoute();
 const slug = computed(() => route.params.slug as string);
 const toast = useToast();
 
-const { data: hub } = await useFetch(() => `/api/hubs/${slug.value}`);
-const { data: members, refresh } = await useFetch(() => `/api/hubs/${slug.value}/members`);
+const { data: hub } = useLazyFetch(() => `/api/hubs/${slug.value}`);
+const { data: members, refresh } = useLazyFetch(() => `/api/hubs/${slug.value}/members`);
 
 const { user } = useAuth();
 const currentUserRole = computed(() => hub.value?.currentUserRole ?? null);

@@ -4,11 +4,11 @@ const slug = computed(() => route.params.slug as string);
 
 import type { Serialized, HubDetail, HubPostItem, HubMemberItem, PaginatedResponse } from '@commonpub/server';
 
-const { data: hub, pending: hubPending, error: hubError, refresh: refreshHub } = await useFetch<Serialized<HubDetail>>(() => `/api/hubs/${slug.value}`);
-const { data: posts } = await useFetch<Serialized<PaginatedResponse<HubPostItem>>>(() => `/api/hubs/${slug.value}/posts`, { default: () => ({ items: [], total: 0 }) });
-const { data: members } = await useFetch<Serialized<HubMemberItem>[]>(() => `/api/hubs/${slug.value}/members`);
+const { data: hub, pending: hubPending, error: hubError, refresh: refreshHub } = useLazyFetch<Serialized<HubDetail>>(() => `/api/hubs/${slug.value}`);
+const { data: posts } = useLazyFetch<Serialized<PaginatedResponse<HubPostItem>>>(() => `/api/hubs/${slug.value}/posts`, { default: () => ({ items: [], total: 0 }) });
+const { data: members } = useLazyFetch<Serialized<HubMemberItem>[]>(() => `/api/hubs/${slug.value}/members`);
 
-const { data: gallery } = await useFetch(() => `/api/hubs/${slug.value}/gallery`, { default: () => ({ items: [], total: 0 }) });
+const { data: gallery } = useLazyFetch(() => `/api/hubs/${slug.value}/gallery`, { default: () => ({ items: [], total: 0 }) });
 
 // Hub type
 const hubType = computed(() => hub.value?.hubType ?? 'community');
@@ -29,7 +29,7 @@ const hubRules = computed<string[]>(() => {
   return raw.split('\n').map((r: string) => r.trim()).filter(Boolean);
 });
 
-const { data: products } = await useFetch<{ items: Array<{ id: string; name: string; description: string | null; imageUrl: string | null; category: string | null; status: string }>; total: number }>(
+const { data: products } = useLazyFetch<{ items: Array<{ id: string; name: string; description: string | null; imageUrl: string | null; category: string | null; status: string }>; total: number }>(
   () => `/api/hubs/${slug.value}/products`,
   { default: () => ({ items: [], total: 0 }), immediate: isCompanyHub.value },
 );
@@ -110,7 +110,7 @@ async function handlePost(): Promise<void> {
     });
     newPostContent.value = '';
     postError.value = '';
-    refreshNuxtData();
+    await refreshHub();
   } catch (e) {
     const fetchErr = e as { data?: { statusMessage?: string }; message?: string };
     postError.value = fetchErr?.data?.statusMessage || fetchErr?.message || 'Failed to create post';
@@ -129,7 +129,7 @@ async function handleJoin(): Promise<void> {
   try {
     await $fetch(`/api/hubs/${slug.value}/join`, { method: 'POST' });
     toast.success('Joined hub!');
-    refreshNuxtData();
+    await refreshHub();
   } catch {
     toast.error('Failed to join hub');
   }

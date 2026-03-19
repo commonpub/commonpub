@@ -5,6 +5,7 @@ const updateLessonSchema = z.object({
   title: z.string().min(1).max(255).optional(),
   type: z.enum(['article', 'video', 'quiz', 'project', 'explainer']).optional(),
   content: z.unknown().optional(),
+  contentItemId: z.string().uuid().nullable().optional(),
   durationMinutes: z.number().int().min(0).max(9999).optional(),
 });
 

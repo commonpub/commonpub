@@ -48,7 +48,8 @@ export async function listNotifications(
     db
       .select({
         notification: notifications,
-        actorName: users.displayName,
+        actorDisplayName: users.displayName,
+        actorUsername: users.username,
       })
       .from(notifications)
       .leftJoin(users, eq(notifications.actorId, users.id))
@@ -70,7 +71,7 @@ export async function listNotifications(
     message: row.notification.message,
     link: row.notification.link,
     actorId: row.notification.actorId,
-    actorName: row.actorName,
+    actorName: row.actorDisplayName ?? row.actorUsername ?? 'Someone',
     read: row.notification.read,
     createdAt: row.notification.createdAt,
   }));

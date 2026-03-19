@@ -16,7 +16,7 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  const path = await getPathBySlug(db, slug);
+  const path = await getPathBySlug(db, slug, user.id);
   if (!path) throw createError({ statusCode: 404, statusMessage: 'Path not found' });
 
   return createModule(db, user.id, { ...parsed.data, pathId: path.id });

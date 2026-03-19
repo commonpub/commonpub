@@ -20,6 +20,7 @@ interface _GlobalComponents {
   AuthorRow: typeof import("../../components/AuthorRow.vue")['default']
   CommentSection: typeof import("../../components/CommentSection.vue")['default']
   ContentCard: typeof import("../../components/ContentCard.vue")['default']
+  ContentPicker: typeof import("../../components/ContentPicker.vue")['default']
   ContentTypeBadge: typeof import("../../components/ContentTypeBadge.vue")['default']
   CountdownTimer: typeof import("../../components/CountdownTimer.vue")['default']
   CpubEditor: typeof import("../../components/CpubEditor.vue")['default']
@@ -125,6 +126,7 @@ interface _GlobalComponents {
   LazyAuthorRow: LazyComponent<typeof import("../../components/AuthorRow.vue")['default']>
   LazyCommentSection: LazyComponent<typeof import("../../components/CommentSection.vue")['default']>
   LazyContentCard: LazyComponent<typeof import("../../components/ContentCard.vue")['default']>
+  LazyContentPicker: LazyComponent<typeof import("../../components/ContentPicker.vue")['default']>
   LazyContentTypeBadge: LazyComponent<typeof import("../../components/ContentTypeBadge.vue")['default']>
   LazyCountdownTimer: LazyComponent<typeof import("../../components/CountdownTimer.vue")['default']>
   LazyCpubEditor: LazyComponent<typeof import("../../components/CpubEditor.vue")['default']>

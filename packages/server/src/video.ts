@@ -1,4 +1,4 @@
-import { eq, desc, sql } from 'drizzle-orm';
+import { eq, and, desc, sql } from 'drizzle-orm';
 import { videos, videoCategories, users } from '@commonpub/schema';
 import type { DB } from './types.js';
 
@@ -48,7 +48,7 @@ export async function listVideos(
     conditions.push(eq(videos.authorId, filters.authorId));
   }
 
-  const where = conditions.length > 0 ? sql`${sql.join(conditions, sql` AND `)}` : undefined;
+  const where = conditions.length > 0 ? and(...conditions) : undefined;
   const limit = Math.min(filters.limit ?? 20, 100);
   const offset = filters.offset ?? 0;
 

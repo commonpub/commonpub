@@ -7,27 +7,32 @@ useSeoMeta({
 });
 
 const { user } = useAuth();
+const reqHeaders = import.meta.server ? useRequestHeaders(['cookie']) : {};
 
 const activeTab = ref<'content' | 'bookmarks' | 'learning'>('content');
 
 // My content (all statuses)
 const { data: myContent, status: contentStatus } = await useFetch('/api/content', {
   query: { authorId: user.value?.id },
+  headers: reqHeaders,
 });
 
 // Bookmarks
 const { data: bookmarkData } = await useFetch('/api/social/bookmarks', {
   query: { limit: 10 },
+  headers: reqHeaders,
   lazy: true,
 });
 
 // Learning enrollments
 const { data: enrollments } = await useFetch('/api/learn/enrollments', {
+  headers: reqHeaders,
   lazy: true,
 });
 
 // Notification count
 const { data: notifCount } = await useFetch('/api/notifications/count', {
+  headers: reqHeaders,
   lazy: true,
 });
 

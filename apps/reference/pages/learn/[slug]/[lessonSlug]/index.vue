@@ -5,9 +5,9 @@ const route = useRoute();
 const slug = computed(() => route.params.slug as string);
 const lessonSlug = computed(() => route.params.lessonSlug as string);
 
-// Fetch lesson + path data
-const { data: lessonData, pending: lessonPending, error: lessonError, refresh: refreshLesson } = await useFetch(() => `/api/learn/${slug.value}/${lessonSlug.value}`);
-const { data: path } = await useFetch(() => `/api/learn/${slug.value}`);
+// Fetch lesson + path data (forward cookies for SSR so draft paths are visible to authors)
+const { data: lessonData, pending: lessonPending, error: lessonError, refresh: refreshLesson } = useLazyFetch(() => `/api/learn/${slug.value}/${lessonSlug.value}`);
+const { data: path } = useLazyFetch(() => `/api/learn/${slug.value}`);
 
 const lesson = computed(() => lessonData.value?.lesson);
 const lessonModule = computed(() => lessonData.value?.module);
@@ -209,6 +209,13 @@ const isOwner = computed(() => user.value?.id === path.value?.author?.id);
         <!-- ARTICLE / TEXT content -->
         <div v-if="renderedHtml" class="lesson-content cpub-prose" v-html="sanitizeHtml(renderedHtml)" />
 
+        <!-- View original link for linked content -->
+        <div v-if="lessonData?.linkedContent" class="lesson-linked-source">
+          <NuxtLink :to="`/${lessonData.linkedContent.type}/${lessonData.linkedContent.slug}`" class="lesson-linked-source-link">
+            <i class="fa-solid fa-arrow-up-right-from-square"></i> View original {{ lessonData.linkedContent.type }}
+          </NuxtLink>
+        </div>
+
         <!-- QUIZ lesson -->
         <div v-if="lesson.type === 'quiz' && quizQuestions.length" class="lesson-quiz">
           <div v-for="(q, qi) in quizQuestions" :key="qi" class="quiz-card">
@@ -408,4 +415,8 @@ const isOwner = computed(() => user.value?.id === path.value?.author?.id);
   .lesson-mobile-toggle { display: flex; align-items: center; gap: 6px; }
   .lesson-main { padding: 20px 16px 64px; }
 }
+
+.lesson-linked-source { margin-top: 24px; padding-top: 16px; border-top: 2px solid var(--border); }
+.lesson-linked-source-link { font-size: 11px; font-family: var(--font-mono); color: var(--accent); text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+.lesson-linked-source-link:hover { text-decoration: underline; }
 </style>

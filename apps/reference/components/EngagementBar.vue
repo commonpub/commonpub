@@ -19,6 +19,10 @@ const liked = ref(props.isLiked ?? false);
 const bookmarked = ref(props.isBookmarked ?? false);
 const likes = ref(props.likeCount);
 
+watch(() => props.isLiked, (v) => { liked.value = v ?? false; });
+watch(() => props.isBookmarked, (v) => { bookmarked.value = v ?? false; });
+watch(() => props.likeCount, (v) => { likes.value = v; });
+
 async function toggleLike(): Promise<void> {
   const prev = liked.value;
   const prevCount = likes.value;

@@ -17,6 +17,7 @@ async function handleCreate(): Promise<void> {
       method: 'POST',
       body: { title: title.value, description: description.value, difficulty: difficulty.value },
     });
+    clearNuxtData();
     await navigateTo(`/learn/${(result as { slug: string }).slug}/edit`);
   } catch (err: unknown) {
     toast.error(extractError(err));

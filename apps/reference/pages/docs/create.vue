@@ -16,6 +16,7 @@ async function handleCreate(): Promise<void> {
       method: 'POST',
       body: { name: name.value, description: description.value },
     });
+    clearNuxtData();
     await navigateTo(`/docs/${(result as { slug: string }).slug}`);
   } catch (err: unknown) {
     toast.error(extractError(err));
