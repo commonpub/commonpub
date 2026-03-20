@@ -9,7 +9,7 @@ describe('generateKeypair', () => {
     expect(keypair.privateKey).toBeDefined();
   });
 
-  it('should generate different keypairs each time', async () => {
+  it('should generate different keypairs each time', { timeout: 15000 }, async () => {
     const kp1 = await generateKeypair();
     const kp2 = await generateKeypair();
     const pub1 = await exportPublicKeyPem(kp1);

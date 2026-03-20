@@ -90,3 +90,9 @@ export type { InboxCallbacks, InboxResult } from './inbox.js';
 
 // Outbox Generation
 export { generateOutboxCollection, generateOutboxPage } from './outbox.js';
+
+// HTTP Signature Signing (outbound)
+export { signRequest } from './sign.js';
+
+// HTML Sanitization
+export { sanitizeHtml } from './sanitize.js';

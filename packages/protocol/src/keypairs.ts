@@ -32,10 +32,16 @@ export function buildKeyId(domain: string, username: string): string {
 /** Verify an HTTP Signature on an incoming ActivityPub request.
  *  Returns true if the signature is valid, false otherwise.
  *  Returns false if no Signature header is present.
+ *
+ *  When verifyDigest is true (default for POST/PUT/PATCH), also verifies
+ *  that the Digest header matches the actual request body. This prevents
+ *  body tampering attacks where the signature is valid but the body has
+ *  been replaced.
  */
 export async function verifyHttpSignature(
   request: Request,
   publicKeyPem: string,
+  options?: { verifyDigest?: boolean },
 ): Promise<boolean> {
   const signatureHeader = request.headers.get('signature');
   if (!signatureHeader) return false;
@@ -57,6 +63,26 @@ export async function verifyHttpSignature(
     if (!signature) return false;
 
     const url = new URL(request.url);
+
+    // Verify Digest header matches body (prevents body tampering)
+    const method = request.method.toUpperCase();
+    const shouldVerifyDigest = options?.verifyDigest ??
+      (method === 'POST' || method === 'PUT' || method === 'PATCH');
+
+    if (shouldVerifyDigest && headers.includes('digest')) {
+      const digestHeader = request.headers.get('digest');
+      if (digestHeader) {
+        const body = await request.clone().text();
+        const bodyBytes = new TextEncoder().encode(body);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', bodyBytes);
+        const hashBase64 = btoa(String.fromCharCode(...new Uint8Array(hashBuffer)));
+        const expectedDigest = `SHA-256=${hashBase64}`;
+
+        if (digestHeader !== expectedDigest) {
+          return false; // Body was tampered
+        }
+      }
+    }
 
     // Build the signing string
     const signingLines: string[] = [];

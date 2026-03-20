@@ -1,5 +1,12 @@
 # CommonPub
 
+[![Tests](https://github.com/commonpub/commonpub/actions/workflows/test.yml/badge.svg)](https://github.com/commonpub/commonpub/actions/workflows/test.yml)
+[![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue.svg)](https://www.typescriptlang.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![ActivityPub](https://img.shields.io/badge/protocol-ActivityPub-purple.svg)](https://www.w3.org/TR/activitypub/)
+[![Packages](https://img.shields.io/badge/packages-12-green.svg)](#architecture)
+[![Tests](https://img.shields.io/badge/tests-1269-brightgreen.svg)](#testing)
+
 An open ActivityPub federation protocol and package suite for self-hosted maker communities.
 
 ## What is CommonPub?

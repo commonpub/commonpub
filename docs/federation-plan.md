@@ -1019,7 +1019,9 @@ The following standing rules need revision for full federation:
 ## Files Created By This Plan
 
 - `docs/federation-plan.md` — This file (master plan)
+- `docs/federation-testing-plan.md` — 7-layer testing strategy with every test case specified
 - `docs/federation-notes.md` — Research notes, decisions log, open questions
+- `docs/federation.md` — Public-facing federation guide with diagrams
 - `docs/reference/fedify-research.md` — Fedify 2.0 technical reference (created by research agent)
 - `docs/research/federation-content-mirroring.md` — Content mirroring research (created by research agent)
 - `docs/research/federation-system.md` — Updated AP federation research (updated by research agent)
