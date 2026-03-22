@@ -133,7 +133,7 @@ Documentation sites were planned to support Mermaid diagram rendering during the
 | Unit + integration tests | 1,433 | All passing |
 | Component tests (a11y) | 214 | All passing (axe-core WCAG 2.1 AA) |
 | Federation interop tests | 388 | All passing (Mastodon, Lemmy, GoToSocial, Misskey) |
-| Build tasks | 15 | All passing (12 packages + reference app + worker + deploy) |
+| Build tasks | 14 | All passing (12 packages + reference app + worker) |
 | E2E (Playwright) | 6 specs | Infrastructure in place, coverage expanding |
 
 ---
