@@ -25,11 +25,19 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "publish:check": "pnpm build && pnpm typecheck && pnpm test",
-    "publish:all": "pnpm -r --filter './packages/*' publish --no-git-checks"
+    "publish:all": "pnpm -r --filter './packages/*' publish --no-git-checks",
+    "stryker": "stryker run",
+    "stryker:infra": "pnpm --filter @commonpub/infra exec stryker run",
+    "stryker:schema": "pnpm --filter @commonpub/schema exec stryker run",
+    "stryker:protocol": "pnpm --filter @commonpub/protocol exec stryker run",
+    "stryker:editor": "pnpm --filter @commonpub/editor exec stryker run",
+    "stryker:server": "pnpm --filter @commonpub/server exec stryker run"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.50.0",
+    "@stryker-mutator/core": "^9.6.0",
+    "@stryker-mutator/vitest-runner": "^9.6.0",
     "@typescript-eslint/eslint-plugin": "^8.0.0",
     "@typescript-eslint/parser": "^8.0.0",
     "eslint": "^9.0.0",

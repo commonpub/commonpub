@@ -39,6 +39,10 @@ uploads/
 # Rust
 target/
 
+# Stryker
+reports/
+.stryker-tmp/
+
 # Misc
 *.log
 *.tsbuildinfo

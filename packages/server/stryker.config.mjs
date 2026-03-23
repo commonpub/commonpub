@@ -1,0 +1,22 @@
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const rootDir = join(dirname(fileURLToPath(import.meta.url)), '../..');
+
+/** @type {import('@stryker-mutator/api/core').PartialStrykerOptions} */
+export default {
+  testRunner: 'vitest',
+  appendPlugins: [
+    join(rootDir, 'node_modules/@stryker-mutator/vitest-runner/dist/src/index.js'),
+  ],
+  reporters: ['html', 'clear-text', 'progress'],
+  htmlReporter: { fileName: 'reports/mutation/index.html' },
+  concurrency: 2,
+  timeoutMS: 60000,
+  mutate: [
+    'src/**/*.ts',
+    '!src/**/__tests__/**',
+    '!src/types.ts',
+    '!src/index.ts',
+  ],
+};
