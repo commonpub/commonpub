@@ -3,6 +3,7 @@ import type { DB } from '../types.js';
 import { createTestDB, createTestUser, closeTestDB } from './helpers/testdb.js';
 import {
   createContest,
+  canCreateContest,
   listContests,
   getContestBySlug,
   updateContest,
@@ -180,5 +181,59 @@ describe('contest integration', () => {
 
     const deleted = await deleteContest(db, created.id, organizerId);
     expect(deleted).toBe(true);
+  });
+
+  describe('contest creation permissions', () => {
+    it('canCreateContest allows anyone when policy is open', () => {
+      expect(canCreateContest('member', 'open')).toBe(true);
+      expect(canCreateContest('pro', 'open')).toBe(true);
+      expect(canCreateContest('verified', 'open')).toBe(true);
+      expect(canCreateContest('staff', 'open')).toBe(true);
+      expect(canCreateContest('admin', 'open')).toBe(true);
+    });
+
+    it('canCreateContest restricts to staff+ when policy is staff', () => {
+      expect(canCreateContest('member', 'staff')).toBe(false);
+      expect(canCreateContest('pro', 'staff')).toBe(false);
+      expect(canCreateContest('verified', 'staff')).toBe(false);
+      expect(canCreateContest('staff', 'staff')).toBe(true);
+      expect(canCreateContest('admin', 'staff')).toBe(true);
+    });
+
+    it('canCreateContest restricts to admin only when policy is admin', () => {
+      expect(canCreateContest('member', 'admin')).toBe(false);
+      expect(canCreateContest('pro', 'admin')).toBe(false);
+      expect(canCreateContest('verified', 'admin')).toBe(false);
+      expect(canCreateContest('staff', 'admin')).toBe(false);
+      expect(canCreateContest('admin', 'admin')).toBe(true);
+    });
+
+    it('defaults to admin policy when not specified', () => {
+      expect(canCreateContest('admin')).toBe(true);
+      expect(canCreateContest('staff')).toBe(false);
+      expect(canCreateContest('member')).toBe(false);
+    });
+
+    it('createContest throws when user lacks permission', async () => {
+      await expect(
+        createContest(db, makeContestInput({ slug: `perm-test-${Date.now()}` }), {
+          userRole: 'member',
+          contestCreationPolicy: 'admin',
+        }),
+      ).rejects.toThrow('Insufficient permissions');
+    });
+
+    it('createContest succeeds when user has permission', async () => {
+      const contest = await createContest(db, makeContestInput({ slug: `perm-ok-${Date.now()}` }), {
+        userRole: 'admin',
+        contestCreationPolicy: 'admin',
+      });
+      expect(contest.id).toBeDefined();
+    });
+
+    it('createContest works without options (backward compatible)', async () => {
+      const contest = await createContest(db, makeContestInput({ slug: `compat-${Date.now()}` }));
+      expect(contest.id).toBeDefined();
+    });
   });
 });

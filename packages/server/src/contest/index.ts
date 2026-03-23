@@ -2,6 +2,7 @@ export {
   listContests,
   getContestBySlug,
   createContest,
+  canCreateContest,
   updateContest,
   listContestEntries,
   submitContestEntry,

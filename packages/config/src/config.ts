@@ -25,6 +25,7 @@ export function defineCommonPubConfig(input: {
     contactEmail?: string;
     maxUploadSize?: number;
     contentTypes?: Array<'project' | 'article' | 'blog' | 'explainer'>;
+    contestCreation?: 'open' | 'staff' | 'admin';
   };
   features?: Partial<CommonPubConfig['features']>;
   auth?: Partial<CommonPubConfig['auth']>;

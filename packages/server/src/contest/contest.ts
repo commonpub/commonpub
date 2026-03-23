@@ -140,10 +140,33 @@ export async function getContestBySlug(
   };
 }
 
+/**
+ * Check if a user role is allowed to create contests based on the instance policy.
+ *
+ * @param userRole - The user's role (member, pro, verified, staff, admin)
+ * @param policy - The contest creation policy ('open' | 'staff' | 'admin')
+ * @returns true if the user can create contests
+ */
+export function canCreateContest(
+  userRole: string,
+  policy: 'open' | 'staff' | 'admin' = 'admin',
+): boolean {
+  if (policy === 'open') return true;
+  if (policy === 'staff') return userRole === 'staff' || userRole === 'admin';
+  return userRole === 'admin';
+}
+
 export async function createContest(
   db: DB,
   input: CreateContestInput,
+  options?: { userRole?: string; contestCreationPolicy?: 'open' | 'staff' | 'admin' },
 ): Promise<ContestDetail> {
+  if (options?.userRole) {
+    const policy = options.contestCreationPolicy ?? 'admin';
+    if (!canCreateContest(options.userRole, policy)) {
+      throw new Error(`Insufficient permissions: contest creation requires ${policy} role`);
+    }
+  }
   const [row] = await db
     .insert(contests)
     .values({

@@ -55,6 +55,13 @@ export interface InstanceConfig {
   maxUploadSize?: number;
   /** Supported content types */
   contentTypes?: Array<'project' | 'article' | 'blog' | 'explainer'>;
+  /**
+   * Who can create contests.
+   * - 'open': any authenticated user
+   * - 'staff': staff and admin roles only
+   * - 'admin': admin role only (default)
+   */
+  contestCreation?: 'open' | 'staff' | 'admin';
 }
 
 export interface CommonPubConfig {

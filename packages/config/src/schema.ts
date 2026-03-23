@@ -46,6 +46,7 @@ export const instanceConfigSchema = z.object({
   contentTypes: z
     .array(z.enum(['project', 'article', 'blog', 'explainer']))
     .default(['project', 'article', 'blog', 'explainer']),
+  contestCreation: z.enum(['open', 'staff', 'admin']).default('admin'),
 });
 
 export const configSchema = z.object({
