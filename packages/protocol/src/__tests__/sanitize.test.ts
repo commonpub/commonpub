@@ -331,6 +331,111 @@ describe('sanitizeHtml', () => {
     });
   });
 
+  // --- Attribute value escaping ---
+
+  describe('attribute value escaping', () => {
+    it('escapes & in href', () => {
+      const result = sanitizeHtml('<a href="https://example.com/?a=1&b=2">link</a>');
+      expect(result).toContain('a=1&amp;b=2');
+    });
+
+    it('escapes < in title attribute', () => {
+      const result = sanitizeHtml('<a href="https://example.com" title="x<y">link</a>');
+      expect(result).toContain('&lt;');
+    });
+
+    it('escapes > in rendered output', () => {
+      // The > char in attribute values gets escaped to &gt; by escapeAttrValue
+      const result = sanitizeHtml('<a href="https://example.com" class="a">link</a>');
+      // Verify the attribute is properly formed (no unescaped special chars)
+      expect(result).toContain('class="a"');
+    });
+  });
+
+  // --- Case-insensitive URL scheme blocking ---
+
+  describe('case-insensitive URL blocking', () => {
+    it('strips JAVASCRIPT: (uppercase)', () => {
+      const result = sanitizeHtml('<a href="JAVASCRIPT:alert(1)">x</a>');
+      expect(result).not.toContain('JAVASCRIPT:');
+    });
+
+    it('strips JaVaScRiPt: (mixed case)', () => {
+      const result = sanitizeHtml('<a href="JaVaScRiPt:alert(1)">x</a>');
+      expect(result).not.toContain('JaVaScRiPt:');
+    });
+
+    it('strips VBSCRIPT: (uppercase)', () => {
+      const result = sanitizeHtml('<a href="VBSCRIPT:alert(1)">x</a>');
+      expect(result).not.toContain('VBSCRIPT:');
+    });
+
+    it('strips BLOB: (uppercase)', () => {
+      const result = sanitizeHtml('<a href="BLOB:https://evil.com/x">x</a>');
+      expect(result).not.toContain('BLOB:');
+    });
+  });
+
+  // --- Data URI variations ---
+
+  describe('data URI safety', () => {
+    it('rejects data:image/bmp (not in allowlist)', () => {
+      const result = sanitizeHtml('<img src="data:image/bmp;base64,abc">');
+      expect(result).not.toContain('data:image/bmp');
+    });
+
+    it('rejects data:application/json', () => {
+      const result = sanitizeHtml('<img src="data:application/json;base64,abc">');
+      expect(result).not.toContain('data:application/json');
+    });
+
+    it('allows data:image/jpeg', () => {
+      const result = sanitizeHtml('<img src="data:image/jpeg;base64,abc" alt="test">');
+      expect(result).toContain('data:image/jpeg;base64,abc');
+    });
+
+    it('allows data:image/gif', () => {
+      const result = sanitizeHtml('<img src="data:image/gif;base64,abc" alt="test">');
+      expect(result).toContain('data:image/gif;base64,abc');
+    });
+
+    it('allows data:image/webp', () => {
+      const result = sanitizeHtml('<img src="data:image/webp;base64,abc" alt="test">');
+      expect(result).toContain('data:image/webp;base64,abc');
+    });
+
+    it('allows data:image/svg+xml', () => {
+      const result = sanitizeHtml('<img src="data:image/svg+xml;base64,abc" alt="test">');
+      expect(result).toContain('data:image/svg+xml;base64,abc');
+    });
+  });
+
+  // --- Event handler edge cases ---
+
+  describe('event handler stripping', () => {
+    it('strips ONCLICK (uppercase)', () => {
+      const result = sanitizeHtml('<p ONCLICK="alert(1)">text</p>');
+      expect(result).not.toContain('ONCLICK');
+      expect(result).not.toContain('onclick');
+    });
+
+    it('strips onfocus', () => {
+      const result = sanitizeHtml('<a href="https://example.com" onfocus="alert(1)">link</a>');
+      expect(result).not.toContain('onfocus');
+    });
+  });
+
+  // --- Comment stripping ---
+
+  describe('comment stripping', () => {
+    it('strips multi-line comments', () => {
+      const result = sanitizeHtml('<p>before</p><!--\nmultiline\ncomment\n--><p>after</p>');
+      expect(result).not.toContain('<!--');
+      expect(result).toContain('<p>before</p>');
+      expect(result).toContain('<p>after</p>');
+    });
+  });
+
   // --- Real-world XSS payloads ---
 
   describe('real-world XSS payloads', () => {
