@@ -34,14 +34,12 @@
   "dependencies": {
     "@commonpub/config": "workspace:*",
     "@commonpub/schema": "workspace:*",
-    "lowlight": "^3.2.0",
     "zod": "^4.3.6"
   },
   "peerDependencies": {
     "@tiptap/core": "^2.11.0",
     "@tiptap/extension-bold": "^2.11.0",
     "@tiptap/extension-code": "^2.11.0",
-    "@tiptap/extension-code-block-lowlight": "^2.11.0",
     "@tiptap/extension-document": "^2.11.0",
     "@tiptap/extension-history": "^2.11.0",
     "@tiptap/extension-italic": "^2.11.0",
@@ -53,8 +51,7 @@
     "@tiptap/extension-list-item": "^2.11.0",
     "@tiptap/extension-horizontal-rule": "^2.11.0",
     "@tiptap/extension-text": "^2.11.0",
-    "@tiptap/pm": "^2.11.0",
-    "@tiptap/starter-kit": "^2.11.0"
+    "@tiptap/pm": "^2.11.0"
   },
   "devDependencies": {
     "jsdom": "^25.0.0",
