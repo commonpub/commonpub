@@ -155,10 +155,31 @@ describe('SSRF protection in resolveActor', () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
-  // Note: IPv6 SSRF protection is limited because Node's URL parser
-  // returns hostname with brackets (e.g., "[::1]") which doesn't match
-  // the current regex patterns. This is a known limitation.
-  // TODO: Fix IPv6 SSRF patterns to handle bracketed hostnames.
+  // --- IPv6 private ranges ---
+
+  it('rejects IPv6 loopback [::1]', async () => {
+    const fetch = mockFetch();
+    expect(await resolveActor('https://[::1]/users/alice', fetch)).toBeNull();
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('rejects IPv6 unique local fc00::', async () => {
+    const fetch = mockFetch();
+    expect(await resolveActor('https://[fc00::1]/users/alice', fetch)).toBeNull();
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('rejects IPv6 unique local fd::', async () => {
+    const fetch = mockFetch();
+    expect(await resolveActor('https://[fd12::1]/users/alice', fetch)).toBeNull();
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('rejects IPv6 link-local fe80::', async () => {
+    const fetch = mockFetch();
+    expect(await resolveActor('https://[fe80::1]/users/alice', fetch)).toBeNull();
+    expect(fetch).not.toHaveBeenCalled();
+  });
 
   it('allows 11.x.x.x (outside RFC 1918)', async () => {
     const fetch = mockFetch();

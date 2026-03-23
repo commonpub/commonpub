@@ -90,6 +90,10 @@ Inbound federated content is now sanitized via `sanitizeHtml()` in `@commonpub/p
 
 388 new federation tests added covering HTTP signatures, content sanitization, activity types, and real-payload interoperability with Mastodon, Lemmy, GoToSocial, and Misskey. SSRF prevention tests also included.
 
+### IPv6 SSRF Protection (Resolved — Session 070)
+
+Node's URL parser returns IPv6 hostnames with brackets (`[::1]`), which prevented regex-based private IP detection from matching IPv6 addresses. Fixed by stripping brackets before pattern matching. All IPv6 private ranges (loopback `::1`, unique local `fc00::/fd::`, link-local `fe80::`) are now blocked.
+
 ---
 
 ## Deferred Features

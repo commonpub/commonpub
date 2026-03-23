@@ -45,12 +45,14 @@ function isPrivateUrl(urlString: string): boolean {
   }
 
   const hostname = parsed.hostname.toLowerCase();
+  // Strip IPv6 brackets for regex matching (Node URL parser keeps them: [::1])
+  const hostnameForCheck = hostname.replace(/^\[|\]$/g, '');
 
-  if (BLOCKED_HOSTNAMES.has(hostname)) return true;
+  if (BLOCKED_HOSTNAMES.has(hostnameForCheck)) return true;
 
   // Check IP patterns (if hostname is an IP address)
   for (const pattern of PRIVATE_IP_PATTERNS) {
-    if (pattern.test(hostname)) return true;
+    if (pattern.test(hostnameForCheck)) return true;
   }
 
   return false;

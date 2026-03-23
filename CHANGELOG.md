@@ -2,6 +2,42 @@
 
 All notable changes to CommonPub are documented here.
 
+## v0.2.0 — Audit Repairs & Test Hardening (2026-03-23)
+
+### Added
+- Contest creation permissions: `contestCreation` config option ('open' | 'staff' | 'admin')
+- `canCreateContest()` permission helper in `@commonpub/server`
+- Admin & permissions documentation (`docs/reference/guides/admin-and-permissions.md`)
+- Stryker mutation testing infrastructure with per-package configs
+- 506 new tests (1,433 → 1,939) from mutation analysis
+- Building with CommonPub guide (`docs/building-with-commonpub.md`)
+- LLM contributor guide (`docs/llm-contributor-guide.md`)
+- SSRF protection for all RFC private IP ranges, CGN, benchmarking, TEST-NET
+
+### Fixed
+- IPv6 SSRF protection: bracketed hostnames now correctly detected
+- Test timeout stability across server, protocol, docs packages
+- 37 TypeScript errors in UI test files
+- 158 pre-existing type errors in reference app
+- Unused editor dependencies removed (lowlight, code-block-lowlight, starter-kit)
+
+### Security
+- HTML sanitizer mutation score improved to 72% (58 surviving mutants remaining)
+- SSRF boundary tests cover all private IP ranges + CGN + TEST-NET + IPv6
+
+---
+
+## v0.1.0 — Initial npm Release (2026-03-23)
+
+### Added
+- All 12 `@commonpub` packages published to npm under AGPL-3.0-or-later
+- Full test suite: 1,433 tests across 12 packages
+- 0 TypeScript errors, 0 lint errors across all packages
+- Reference Nuxt 3 app with vue-tsc type checking
+- `@tiptap/*` and `zod` dependencies declared in reference app
+
+---
+
 ## v1.0.0 — Launch
 
 ### Reference App UI Full Build (2026-03-11)
