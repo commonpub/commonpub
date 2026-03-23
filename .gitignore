@@ -36,6 +36,9 @@ playwright-report/
 # Local uploads
 uploads/
 
+# Rust
+target/
+
 # Misc
 *.log
 *.tsbuildinfo
