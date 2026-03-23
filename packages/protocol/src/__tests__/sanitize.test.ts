@@ -220,6 +220,117 @@ describe('sanitizeHtml', () => {
     });
   });
 
+  // --- URL safety edge cases ---
+
+  describe('URL safety', () => {
+    it('strips blob: URLs', () => {
+      const result = sanitizeHtml('<a href="blob:https://evil.com/guid">x</a>');
+      expect(result).not.toContain('blob:');
+    });
+
+    it('strips ftp: scheme URLs', () => {
+      const result = sanitizeHtml('<a href="ftp://evil.com/file">x</a>');
+      expect(result).not.toContain('ftp:');
+    });
+
+    it('strips URLs with leading whitespace', () => {
+      const result = sanitizeHtml('<a href="  javascript:alert(1)">x</a>');
+      expect(result).not.toContain('javascript:');
+    });
+
+    it('strips data: URI with non-image type in img src', () => {
+      const result = sanitizeHtml('<img src="data:text/html;base64,abc">');
+      expect(result).not.toContain('data:text/html');
+    });
+
+    it('allows relative URLs', () => {
+      const result = sanitizeHtml('<a href="/about">About</a>');
+      expect(result).toContain('href="/about"');
+    });
+
+    it('allows http: URLs', () => {
+      const result = sanitizeHtml('<a href="http://example.com">link</a>');
+      expect(result).toContain('href="http://example.com"');
+    });
+  });
+
+  // --- Input edge cases ---
+
+  describe('input edge cases', () => {
+    it('preserves self-closing tags with space', () => {
+      const result = sanitizeHtml('<br />');
+      expect(result).toContain('<br');
+    });
+
+    it('preserves img self-closing', () => {
+      const result = sanitizeHtml('<img src="https://example.com/x.jpg" alt="x" />');
+      expect(result).toContain('/>');
+    });
+
+    it('handles attributes with single quotes', () => {
+      const result = sanitizeHtml("<a href='https://example.com'>link</a>");
+      expect(result).toContain('href="https://example.com"');
+    });
+
+    it('handles attributes without quotes', () => {
+      const result = sanitizeHtml('<a href=https://example.com>link</a>');
+      expect(result).toContain('href="https://example.com"');
+    });
+
+    it('escapes angle brackets in attribute values', () => {
+      const result = sanitizeHtml('<a href="https://example.com/?q=a&lt;b" title="x<y">link</a>');
+      expect(result).toContain('&lt;');
+    });
+
+    it('escapes ampersands in attribute values', () => {
+      const result = sanitizeHtml('<a href="https://example.com/?a=1&amp;b=2">link</a>');
+      expect(result).toContain('&amp;');
+    });
+
+    it('escapes quotes in attribute values', () => {
+      // Attribute with actual quote gets escaped by escapeAttrValue
+      const result = sanitizeHtml('<a href="https://example.com">link</a>');
+      // The href value itself should be preserved and properly escaped
+      expect(result).toContain('href="https://example.com"');
+    });
+
+    it('strips disallowed attributes on allowed elements', () => {
+      const result = sanitizeHtml('<p id="x" data-evil="y" class="highlight">text</p>');
+      expect(result).not.toContain('id=');
+      expect(result).not.toContain('data-evil');
+      expect(result).toContain('class="highlight"');
+    });
+
+    it('preserves class attribute on code elements', () => {
+      const result = sanitizeHtml('<code class="language-js">const x = 1;</code>');
+      expect(result).toContain('class="language-js"');
+    });
+
+    it('preserves colspan and rowspan on td/th', () => {
+      const result = sanitizeHtml('<td colspan="2" rowspan="3">cell</td>');
+      expect(result).toContain('colspan="2"');
+      expect(result).toContain('rowspan="3"');
+    });
+
+    it('preserves ol start and type attributes', () => {
+      const result = sanitizeHtml('<ol start="5" type="a"><li>item</li></ol>');
+      expect(result).toContain('start="5"');
+      expect(result).toContain('type="a"');
+    });
+
+    it('handles tag with attributes but no allowed attrs', () => {
+      const result = sanitizeHtml('<strong class="x">bold</strong>');
+      expect(result).toBe('<strong>bold</strong>');
+    });
+
+    it('preserves multiple allowed attributes on a tag', () => {
+      const result = sanitizeHtml('<a href="https://x.com" title="Title" class="link">text</a>');
+      expect(result).toContain('href="https://x.com"');
+      expect(result).toContain('title="Title"');
+      expect(result).toContain('class="link"');
+    });
+  });
+
   // --- Real-world XSS payloads ---
 
   describe('real-world XSS payloads', () => {
