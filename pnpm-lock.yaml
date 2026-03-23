@@ -346,20 +346,19 @@ importers:
         version: 3.2.4(@types/debug@4.1.12)(@types/node@25.5.0)(jiti@2.6.1)(jsdom@28.1.0(@noble/hashes@2.0.1))(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2)
 
   packages/infra:
-    dependencies:
+    devDependencies:
       '@aws-sdk/client-s3':
         specifier: ^3.1010.0
         version: 3.1010.0
-      sharp:
-        specifier: ^0.34.5
-        version: 0.34.5
-    devDependencies:
       '@types/node':
         specifier: ^25.5.0
         version: 25.5.0
       '@types/sharp':
         specifier: ^0.32.0
         version: 0.32.0
+      sharp:
+        specifier: ^0.34.5
+        version: 0.34.5
       typescript:
         specifier: ^5.7.0
         version: 5.9.3
@@ -416,9 +415,6 @@ importers:
 
   packages/schema:
     dependencies:
-      drizzle-orm:
-        specifier: ^0.45.1
-        version: 0.45.1(@electric-sql/pglite@0.3.16)(gel@2.2.0)(kysely@0.28.11)(pg@8.20.0)
       zod:
         specifier: ^4.3.6
         version: 4.3.6
@@ -426,6 +422,9 @@ importers:
       drizzle-kit:
         specifier: ^0.31.10
         version: 0.31.10
+      drizzle-orm:
+        specifier: ^0.45.1
+        version: 0.45.1(@electric-sql/pglite@0.3.16)(gel@2.2.0)(kysely@0.28.11)(pg@8.20.0)
       pg:
         specifier: ^8.13.0
         version: 8.20.0

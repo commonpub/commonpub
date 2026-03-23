@@ -1,8 +1,22 @@
 {
   "name": "@commonpub/config",
-  "version": "0.0.1",
-  "private": true,
+  "version": "0.1.0",
   "type": "module",
+  "description": "CommonPub configuration factory and feature flags",
+  "license": "AGPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/commonpub/commonpub",
+    "directory": "packages/config"
+  },
+  "keywords": ["commonpub", "activitypub", "federation", "typescript", "config", "feature-flags"],
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "sideEffects": false,
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -11,8 +25,10 @@
       "import": "./dist/index.js"
     }
   },
+  "files": ["dist/", "!dist/__tests__/", "README.md", "LICENSE"],
   "scripts": {
     "build": "tsc",
+    "prepublishOnly": "pnpm run build",
     "dev": "tsc --watch",
     "test": "vitest run",
     "lint": "eslint src/",

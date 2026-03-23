@@ -1,8 +1,18 @@
 {
   "name": "@commonpub/protocol",
-  "version": "0.0.1",
-  "private": true,
+  "version": "0.1.0",
   "type": "module",
+  "description": "ActivityPub federation protocol — HTTP signatures, WebFinger, NodeInfo",
+  "license": "AGPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/commonpub/commonpub",
+    "directory": "packages/protocol"
+  },
+  "keywords": ["commonpub", "activitypub", "federation", "typescript", "protocol", "http-signatures", "webfinger"],
+  "publishConfig": { "access": "public" },
+  "engines": { "node": ">=22" },
+  "sideEffects": false,
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -11,13 +21,15 @@
       "import": "./dist/index.js"
     }
   },
+  "files": ["dist/", "!dist/__tests__/", "README.md", "LICENSE"],
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
     "test": "vitest run",
     "lint": "eslint src/",
     "typecheck": "tsc --noEmit",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "prepublishOnly": "pnpm run build"
   },
   "dependencies": {
     "@commonpub/config": "workspace:*",

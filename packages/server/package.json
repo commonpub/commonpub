@@ -1,8 +1,18 @@
 {
   "name": "@commonpub/server",
-  "version": "0.0.1",
-  "private": true,
+  "version": "0.1.0",
   "type": "module",
+  "description": "Framework-agnostic business logic for CommonPub instances",
+  "license": "AGPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/commonpub/commonpub",
+    "directory": "packages/server"
+  },
+  "keywords": ["commonpub", "activitypub", "federation", "typescript", "server", "business-logic"],
+  "publishConfig": { "access": "public" },
+  "engines": { "node": ">=22" },
+  "sideEffects": false,
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -23,13 +33,15 @@
     "./profile": { "types": "./dist/profile/index.d.ts", "import": "./dist/profile/index.js" },
     "./federation": { "types": "./dist/federation/index.d.ts", "import": "./dist/federation/index.js" }
   },
+  "files": ["dist/", "!dist/__tests__/", "README.md", "LICENSE"],
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
     "test": "vitest run",
     "lint": "eslint src/",
     "typecheck": "tsc --noEmit",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "prepublishOnly": "pnpm run build"
   },
   "dependencies": {
     "@commonpub/auth": "workspace:*",
@@ -39,8 +51,10 @@
     "@commonpub/learning": "workspace:*",
     "@commonpub/protocol": "workspace:*",
     "@commonpub/schema": "workspace:*",
-    "drizzle-orm": "^0.45.1",
     "isomorphic-dompurify": "^3.3.0"
+  },
+  "peerDependencies": {
+    "drizzle-orm": "^0.45.1"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.3.16",

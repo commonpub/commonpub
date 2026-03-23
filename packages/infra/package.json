@@ -1,8 +1,22 @@
 {
   "name": "@commonpub/infra",
-  "version": "0.0.1",
-  "private": true,
+  "version": "0.1.0",
   "type": "module",
+  "description": "Storage adapters, image processing, email, and security utilities for CommonPub",
+  "license": "AGPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/commonpub/commonpub",
+    "directory": "packages/infra"
+  },
+  "keywords": ["commonpub", "activitypub", "federation", "typescript", "storage", "s3", "email", "security"],
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "sideEffects": false,
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -27,20 +41,32 @@
       "import": "./dist/security.js"
     }
   },
+  "files": ["dist/", "!dist/__tests__/", "README.md", "LICENSE"],
   "scripts": {
     "build": "tsc",
+    "prepublishOnly": "pnpm run build",
     "dev": "tsc --watch",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist",
     "test": "vitest run"
   },
-  "dependencies": {
+  "peerDependencies": {
     "@aws-sdk/client-s3": "^3.1010.0",
     "sharp": "^0.34.5"
   },
+  "peerDependenciesMeta": {
+    "@aws-sdk/client-s3": {
+      "optional": true
+    },
+    "sharp": {
+      "optional": true
+    }
+  },
   "devDependencies": {
+    "@aws-sdk/client-s3": "^3.1010.0",
     "@types/node": "^25.5.0",
     "@types/sharp": "^0.32.0",
+    "sharp": "^0.34.5",
     "typescript": "^5.7.0",
     "vitest": "^3.0.0"
   }

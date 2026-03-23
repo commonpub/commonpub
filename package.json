@@ -23,7 +23,9 @@
     "typecheck": "turbo run typecheck",
     "clean": "turbo run clean",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "publish:check": "pnpm build && pnpm typecheck && pnpm test",
+    "publish:all": "pnpm -r --filter './packages/*' publish --no-git-checks"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
