@@ -70,6 +70,17 @@ describe('validateUpload', () => {
     expect(result.valid).toBe(true);
   });
 
+  it('accepts file at exactly the size limit', () => {
+    const result = validateUpload('image/png', 2 * 1024 * 1024, 'avatar'); // exactly 2MB
+    expect(result.valid).toBe(true);
+  });
+
+  it('rejects file at 1 byte over the limit', () => {
+    const result = validateUpload('image/png', 2 * 1024 * 1024 + 1, 'avatar');
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain('2MB');
+  });
+
   it('falls back to attachment limit for unknown purpose', () => {
     const result = validateUpload('application/pdf', 50 * 1024 * 1024, 'unknown-purpose');
     expect(result.valid).toBe(true);
@@ -110,9 +121,23 @@ describe('ALLOWED_MIME_TYPES', () => {
     expect(ALLOWED_MIME_TYPES.has('text/plain')).toBe(true);
     expect(ALLOWED_MIME_TYPES.has('text/markdown')).toBe(true);
   });
+
+  it('includes svg, zip, gzip', () => {
+    expect(ALLOWED_MIME_TYPES.has('image/svg+xml')).toBe(true);
+    expect(ALLOWED_MIME_TYPES.has('application/zip')).toBe(true);
+    expect(ALLOWED_MIME_TYPES.has('application/gzip')).toBe(true);
+  });
 });
 
 describe('MAX_UPLOAD_SIZES', () => {
+  it('has correct exact sizes in bytes', () => {
+    expect(MAX_UPLOAD_SIZES['avatar']).toBe(2 * 1024 * 1024);
+    expect(MAX_UPLOAD_SIZES['banner']).toBe(5 * 1024 * 1024);
+    expect(MAX_UPLOAD_SIZES['cover']).toBe(10 * 1024 * 1024);
+    expect(MAX_UPLOAD_SIZES['content']).toBe(10 * 1024 * 1024);
+    expect(MAX_UPLOAD_SIZES['attachment']).toBe(100 * 1024 * 1024);
+  });
+
   it('avatar is smallest', () => {
     expect(MAX_UPLOAD_SIZES['avatar']).toBeLessThan(MAX_UPLOAD_SIZES['content']!);
   });
@@ -201,7 +226,31 @@ describe('createStorageFromEnv', () => {
     process.env.S3_ACCESS_KEY = 'key';
     process.env.S3_SECRET_KEY = 'secret';
     const adapter = createStorageFromEnv();
-    // S3StorageAdapter - verify it has the right getUrl
     expect(adapter.getUrl('test.jpg')).toContain('test-bucket');
+  });
+
+  it('uses UPLOAD_DIR and SITE_URL env vars for local storage', () => {
+    delete process.env.S3_BUCKET;
+    process.env.UPLOAD_DIR = '/custom/uploads';
+    process.env.SITE_URL = 'https://example.com';
+    const adapter = createStorageFromEnv();
+    expect(adapter.getUrl('file.txt')).toContain('https://example.com');
+  });
+
+  it('falls back to defaults when no env vars set', () => {
+    delete process.env.S3_BUCKET;
+    delete process.env.UPLOAD_DIR;
+    delete process.env.SITE_URL;
+    delete process.env.NUXT_PUBLIC_SITE_URL;
+    const adapter = createStorageFromEnv();
+    expect(adapter.getUrl('file.txt')).toContain('localhost:3000');
+  });
+
+  it('respects S3_FORCE_PATH_STYLE env var', () => {
+    process.env.S3_BUCKET = 'bucket';
+    process.env.S3_FORCE_PATH_STYLE = 'true';
+    const adapter = createStorageFromEnv();
+    // Just verify it creates without error
+    expect(adapter).toBeDefined();
   });
 });

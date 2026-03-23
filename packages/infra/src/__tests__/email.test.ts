@@ -49,6 +49,14 @@ describe('emailTemplates.verification', () => {
     expect(result.html).not.toContain('<script>');
     expect(result.html).toContain('&lt;script&gt;');
   });
+
+  it('escapes all 5 HTML entities correctly', () => {
+    const result = emailTemplates.verification('A&B<C>D"E\'F', 'https://example.com');
+    expect(result.html).toContain('A&amp;B');
+    expect(result.html).toContain('&lt;C&gt;');
+    expect(result.html).toContain('D&quot;E');
+    expect(result.html).toContain('E&#x27;F');
+  });
 });
 
 describe('emailTemplates.passwordReset', () => {
@@ -88,6 +96,14 @@ describe('emailTemplates.notificationDigest', () => {
     ]);
     expect(result.html).not.toContain('<img onerror');
     expect(result.html).toContain('&lt;img');
+  });
+
+  it('formats text version with newlines between items', () => {
+    const result = emailTemplates.notificationDigest('TestSite', 'alice', [
+      { text: 'First', url: 'https://a.com' },
+      { text: 'Second', url: 'https://b.com' },
+    ]);
+    expect(result.text).toContain('- First: https://a.com\n- Second: https://b.com');
   });
 });
 

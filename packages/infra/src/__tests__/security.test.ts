@@ -34,6 +34,14 @@ describe('buildCspDirectives', () => {
     expect(dirs['frame-src']).toContain('youtube');
     expect(dirs['frame-src']).toContain('vimeo');
   });
+
+  it('sets font-src, connect-src, base-uri, form-action to self', () => {
+    const dirs = buildCspDirectives();
+    expect(dirs['font-src']).toContain("'self'");
+    expect(dirs['connect-src']).toBe("'self'");
+    expect(dirs['base-uri']).toBe("'self'");
+    expect(dirs['form-action']).toBe("'self'");
+  });
 });
 
 describe('buildCspHeader', () => {
@@ -159,10 +167,24 @@ describe('RateLimitStore', () => {
     store = new RateLimitStore();
     const tier = { limit: 2, windowMs: 60_000 };
     store.check('key1', tier);
-    store.check('key1', tier);
+    const r2 = store.check('key1', tier);
+    expect(r2.allowed).toBe(true);
+    expect(r2.remaining).toBe(0);
     const r3 = store.check('key1', tier);
     expect(r3.allowed).toBe(false);
     expect(r3.remaining).toBe(0);
+  });
+
+  it('blocks exactly at limit+1 (not at limit)', () => {
+    store = new RateLimitStore();
+    const tier = { limit: 3, windowMs: 60_000 };
+    store.check('x', tier); // 1
+    store.check('x', tier); // 2
+    const atLimit = store.check('x', tier); // 3 = limit
+    expect(atLimit.allowed).toBe(true);
+    expect(atLimit.remaining).toBe(0);
+    const overLimit = store.check('x', tier); // 4 > limit
+    expect(overLimit.allowed).toBe(false);
   });
 
   it('tracks different keys independently', () => {
