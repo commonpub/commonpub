@@ -177,8 +177,10 @@ Each package has its own README with API docs, usage examples, and architecture 
 - [Architecture Decision Records](docs/adr/): 25 ADRs documenting key decisions
 - [Contributing Guide](docs/contributing.md): Development workflow and standards
 - [Coding Standards](docs/coding-standards.md): TypeScript, Vue 3, CSS, testing conventions
+- [Building with CommonPub](docs/building-with-commonpub.md): Guide for building a site using published packages
 - [Deployment Guide](docs/deployment.md): Production setup and operations
-- [Quickstart](docs/quickstart.md): Local development setup
+- [Quickstart](docs/quickstart.md): Local development setup (monorepo)
+- [LLM Contributor Guide](docs/llm-contributor-guide.md): Best practices for AI-assisted development
 - [A11y Audit](docs/a11y-audit.md): Accessibility compliance report
 - [CHANGELOG](CHANGELOG.md): Release history
 
@@ -203,4 +205,4 @@ pnpm build && pnpm test
 
 ## License
 
-MIT
+AGPL-3.0-or-later
