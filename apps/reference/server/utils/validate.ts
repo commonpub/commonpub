@@ -39,6 +39,15 @@ export function parseQueryParams<T>(event: H3Event, schema: ZodType<T>): T {
   return parsed.data;
 }
 
+/** Require a feature flag to be enabled. Throws 404 if disabled. */
+export function requireFeature(feature: string): void {
+  const config = useConfig();
+  const flags = config.features as unknown as Record<string, boolean>;
+  if (!flags[feature]) {
+    throw createError({ statusCode: 404, statusMessage: 'Not Found' });
+  }
+}
+
 /**
  * Extract and validate route parameters.
  *

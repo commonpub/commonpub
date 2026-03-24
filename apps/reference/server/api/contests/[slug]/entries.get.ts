@@ -8,6 +8,7 @@ const entriesQuerySchema = z.object({
 });
 
 export default defineEventHandler(async (event): Promise<{ items: ContestEntryItem[]; total: number }> => {
+  requireFeature('contests');
   const db = useDB();
   const { slug } = parseParams(event, { slug: 'string' });
   const query = parseQueryParams(event, entriesQuerySchema);

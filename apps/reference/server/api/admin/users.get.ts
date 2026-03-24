@@ -9,6 +9,7 @@ const adminUsersQuerySchema = z.object({
 });
 
 export default defineEventHandler(async (event): Promise<PaginatedResponse<UserListItem>> => {
+  requireFeature('admin');
   requireAdmin(event);
   const db = useDB();
   const filters = parseQueryParams(event, adminUsersQuerySchema);

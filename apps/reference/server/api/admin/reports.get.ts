@@ -8,6 +8,7 @@ const reportsQuerySchema = z.object({
 });
 
 export default defineEventHandler(async (event): Promise<PaginatedResponse<ReportListItem>> => {
+  requireFeature('admin');
   requireAdmin(event);
   const db = useDB();
   const filters = parseQueryParams(event, reportsQuerySchema);

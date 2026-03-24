@@ -3,6 +3,7 @@ import type { ContestStatus } from '@commonpub/server';
 import { contestTransitionSchema } from '@commonpub/schema';
 
 export default defineEventHandler(async (event): Promise<{ transitioned: boolean; newStatus: ContestStatus }> => {
+  requireFeature('contests');
   const db = useDB();
   const user = requireAuth(event);
   const { slug } = parseParams(event, { slug: 'string' });

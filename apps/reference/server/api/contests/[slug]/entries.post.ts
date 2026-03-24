@@ -7,6 +7,7 @@ const submitEntrySchema = z.object({
 });
 
 export default defineEventHandler(async (event): Promise<ContestEntryItem> => {
+  requireFeature('contests');
   const user = requireAuth(event);
   const db = useDB();
   const { slug } = parseParams(event, { slug: 'string' });

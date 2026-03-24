@@ -3,6 +3,7 @@ import type { ContestDetail } from '@commonpub/server';
 import { updateContestSchema } from '@commonpub/schema';
 
 export default defineEventHandler(async (event): Promise<ContestDetail> => {
+  requireFeature('contests');
   const user = requireAuth(event);
   const db = useDB();
   const { slug } = parseParams(event, { slug: 'string' });
