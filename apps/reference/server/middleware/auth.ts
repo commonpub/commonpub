@@ -1,9 +1,44 @@
 // Nitro middleware for authentication using @commonpub/auth
 import { createAuthMiddleware, type AuthLocals } from '@commonpub/auth';
 import { createAuth } from '@commonpub/auth';
-import { ConsoleEmailAdapter, emailTemplates } from '@commonpub/server';
+import { ConsoleEmailAdapter, SmtpEmailAdapter, ResendEmailAdapter, emailTemplates } from '@commonpub/server';
+import type { EmailAdapter } from '@commonpub/server';
 
 let authMiddleware: ReturnType<typeof createAuthMiddleware> | null = null;
+
+function createEmailAdapter(): EmailAdapter {
+  const runtimeConfig = useRuntimeConfig();
+  const adapter = (runtimeConfig.emailAdapter as string) || 'console';
+
+  if (adapter === 'smtp') {
+    const host = runtimeConfig.smtpHost as string;
+    const port = parseInt(runtimeConfig.smtpPort as string, 10) || 587;
+    const user = runtimeConfig.smtpUser as string;
+    const pass = runtimeConfig.smtpPass as string;
+    const from = runtimeConfig.smtpFrom as string;
+
+    if (!host || !user || !pass || !from) {
+      console.warn('[email] SMTP configured but missing credentials — falling back to console');
+      return new ConsoleEmailAdapter();
+    }
+
+    return new SmtpEmailAdapter({ host, port, user, pass, from });
+  }
+
+  if (adapter === 'resend') {
+    const apiKey = runtimeConfig.resendApiKey as string;
+    const from = runtimeConfig.resendFrom as string;
+
+    if (!apiKey || !from) {
+      console.warn('[email] Resend configured but missing API key or from address — falling back to console');
+      return new ConsoleEmailAdapter();
+    }
+
+    return new ResendEmailAdapter({ apiKey, from });
+  }
+
+  return new ConsoleEmailAdapter();
+}
 
 function getAuthMiddleware(): ReturnType<typeof createAuthMiddleware> {
   if (authMiddleware) return authMiddleware;
@@ -14,8 +49,7 @@ function getAuthMiddleware(): ReturnType<typeof createAuthMiddleware> {
   const siteUrl = (runtimeConfig.public?.siteUrl as string) || `https://${config.instance.domain}`;
   const siteName = config.instance.name || 'CommonPub';
 
-  // Email adapter — uses SMTP in production, console logger in dev
-  const emailAdapter = new ConsoleEmailAdapter();
+  const emailAdapter = createEmailAdapter();
 
   const auth = createAuth({
     config,

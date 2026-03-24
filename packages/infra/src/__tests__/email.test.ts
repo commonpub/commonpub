@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { ConsoleEmailAdapter, emailTemplates } from '../email.js';
+import { ConsoleEmailAdapter, ResendEmailAdapter, emailTemplates } from '../email.js';
 
 describe('ConsoleEmailAdapter', () => {
   it('logs email to console', async () => {
@@ -30,6 +30,100 @@ describe('ConsoleEmailAdapter', () => {
 
     expect(spy).toHaveBeenCalledWith(expect.stringContaining('HTML content'));
     spy.mockRestore();
+  });
+});
+
+describe('ResendEmailAdapter', () => {
+  it('sends email via Resend API', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      text: () => Promise.resolve('{"id":"re_123"}'),
+    });
+    vi.stubGlobal('fetch', mockFetch);
+
+    const adapter = new ResendEmailAdapter({
+      apiKey: 're_test_key',
+      from: 'noreply@example.com',
+    });
+
+    await adapter.send({
+      to: 'user@example.com',
+      subject: 'Test',
+      html: '<p>Hello</p>',
+      text: 'Hello',
+    });
+
+    expect(mockFetch).toHaveBeenCalledWith('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer re_test_key',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: 'noreply@example.com',
+        to: ['user@example.com'],
+        subject: 'Test',
+        html: '<p>Hello</p>',
+        text: 'Hello',
+      }),
+    });
+
+    vi.unstubAllGlobals();
+  });
+
+  it('throws on API error with status and body', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 422,
+      text: () => Promise.resolve('{"message":"Invalid email"}'),
+    });
+    vi.stubGlobal('fetch', mockFetch);
+
+    const adapter = new ResendEmailAdapter({
+      apiKey: 're_test_key',
+      from: 'noreply@example.com',
+    });
+
+    await expect(
+      adapter.send({ to: 'bad', subject: 'Test', html: '<p>Hi</p>' }),
+    ).rejects.toThrow('Resend API error (422)');
+
+    vi.unstubAllGlobals();
+  });
+
+  it('sends to array with single recipient', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      text: () => Promise.resolve('{}'),
+    });
+    vi.stubGlobal('fetch', mockFetch);
+
+    const adapter = new ResendEmailAdapter({
+      apiKey: 'key',
+      from: 'from@test.com',
+    });
+    await adapter.send({ to: 'a@b.com', subject: 'S', html: '<p>X</p>' });
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.to).toEqual(['a@b.com']);
+
+    vi.unstubAllGlobals();
+  });
+
+  it('propagates network errors from fetch', async () => {
+    const mockFetch = vi.fn().mockRejectedValue(new Error('fetch failed'));
+    vi.stubGlobal('fetch', mockFetch);
+
+    const adapter = new ResendEmailAdapter({
+      apiKey: 're_test_key',
+      from: 'noreply@example.com',
+    });
+
+    await expect(
+      adapter.send({ to: 'user@example.com', subject: 'Test', html: '<p>Hi</p>' }),
+    ).rejects.toThrow('fetch failed');
+
+    vi.unstubAllGlobals();
   });
 });
 

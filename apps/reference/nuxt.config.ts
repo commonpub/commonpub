@@ -31,6 +31,15 @@ export default defineNuxtConfig({
   runtimeConfig: {
     databaseUrl: '',
     authSecret: 'dev-secret-change-me',
+    // Email — "console" (dev), "smtp" (nodemailer), or "resend" (Resend API)
+    emailAdapter: 'console',
+    smtpHost: '',
+    smtpPort: '587',
+    smtpUser: '',
+    smtpPass: '',
+    smtpFrom: '',
+    resendApiKey: '',
+    resendFrom: '',
     // Storage — set S3_BUCKET to enable S3/DO Spaces/MinIO, otherwise local filesystem
     s3Bucket: '',
     s3Region: 'us-east-1',

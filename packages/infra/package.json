@@ -1,6 +1,6 @@
 {
   "name": "@commonpub/infra",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "type": "module",
   "description": "Storage adapters, image processing, email, and security utilities for CommonPub",
   "license": "AGPL-3.0-or-later",

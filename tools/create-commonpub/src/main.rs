@@ -50,8 +50,12 @@ fn main() {
                     println!("\n✅ Created CommonPub instance '{}' at {}", name, path.display());
                     println!("\nNext steps:");
                     println!("  cd {}", name);
-                    println!("  docker compose up -d");
-                    println!("  pnpm install && pnpm dev");
+                    if config.use_docker {
+                        println!("  docker compose up -d    # Postgres, Redis, Meilisearch");
+                    }
+                    println!("  pnpm install");
+                    println!("  pnpm db:push             # Push schema to database");
+                    println!("  pnpm dev                 # Start Nuxt dev server");
                 }
                 Err(e) => {
                     eprintln!("Error creating instance: {}", e);
@@ -79,8 +83,12 @@ fn main() {
                 Ok(_) => {
                     println!("\n✅ Initialized CommonPub instance in current directory");
                     println!("\nNext steps:");
-                    println!("  docker compose up -d");
-                    println!("  pnpm install && pnpm dev");
+                    if config.use_docker {
+                        println!("  docker compose up -d    # Postgres, Redis, Meilisearch");
+                    }
+                    println!("  pnpm install");
+                    println!("  pnpm db:push             # Push schema to database");
+                    println!("  pnpm dev                 # Start Nuxt dev server");
                 }
                 Err(e) => {
                     eprintln!("Error initializing instance: {}", e);

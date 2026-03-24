@@ -24,6 +24,7 @@ describe('@commonpub/infra', () => {
     const mod = await import('../index.js');
     expect(mod.ConsoleEmailAdapter).toBeDefined();
     expect(mod.SmtpEmailAdapter).toBeDefined();
+    expect(mod.ResendEmailAdapter).toBeDefined();
     expect(mod.emailTemplates).toBeDefined();
   });
 

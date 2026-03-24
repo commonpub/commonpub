@@ -30,6 +30,7 @@ export type { ProcessedImage, ImageVariant, ImageVariantName } from './image.js'
 // Email
 export {
   SmtpEmailAdapter,
+  ResendEmailAdapter,
   ConsoleEmailAdapter,
   emailTemplates,
 } from './email.js';
