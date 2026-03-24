@@ -391,7 +391,7 @@ async function handlePublish(): Promise<void> {
         <h1 class="cpub-preview-title">{{ title || 'Untitled' }}</h1>
         <p v-if="metadata.description" class="cpub-preview-desc">{{ metadata.description }}</p>
         <div class="cpub-preview-blocks">
-          <BlockContentRenderer :blocks="blockEditor.toBlockTuples()" />
+          <BlocksBlockContentRenderer :blocks="blockEditor.toBlockTuples()" />
         </div>
       </div>
     </div>

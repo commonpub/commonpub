@@ -161,6 +161,42 @@ const blockCount = computed(() => props.blockEditor.blocks.value.length);
 
       <div class="cpub-pe-canvas">
         <div class="cpub-pe-canvas-inner" :style="{ maxWidth: canvasMaxWidth }">
+          <!-- Cover image area (inline, like blog editor) -->
+          <div class="cpub-pe-cover-inline" :class="{ 'has-image': !!coverImageUrl }">
+            <template v-if="coverImageUrl">
+              <img :src="coverImageUrl" alt="Cover image" class="cpub-pe-cover-inline-img" />
+              <div class="cpub-pe-cover-inline-actions">
+                <button class="cpub-pe-cover-btn" @click="removeCover"><i class="fa-solid fa-trash"></i> Remove</button>
+                <label class="cpub-pe-cover-btn">
+                  <i class="fa-solid fa-arrow-up-from-bracket"></i> Replace
+                  <input type="file" accept="image/*" class="cpub-sr-only" @change="onCoverUpload">
+                </label>
+              </div>
+            </template>
+            <template v-else>
+              <div class="cpub-pe-cover-inline-placeholder">
+                <div class="cpub-pe-cover-inline-icon"><i class="fa-regular fa-image"></i></div>
+                <span class="cpub-pe-cover-inline-text">Cover image</span>
+              </div>
+              <div class="cpub-pe-cover-inline-overlay">
+                <label class="cpub-pe-cover-btn primary">
+                  <i class="fa-solid fa-arrow-up-from-bracket"></i> Upload
+                  <input type="file" accept="image/*" class="cpub-sr-only" @change="onCoverUpload">
+                </label>
+                <button class="cpub-pe-cover-btn" @click="onCoverUrl"><i class="fa-solid fa-link"></i> From URL</button>
+              </div>
+            </template>
+          </div>
+
+          <!-- Title -->
+          <textarea
+            class="cpub-pe-title-inline"
+            rows="2"
+            placeholder="Project title..."
+            :value="(metadata.title as string) || ''"
+            @input="updateMeta('title', ($event.target as HTMLTextAreaElement).value)"
+          />
+
           <EditorsBlockCanvas :block-editor="blockEditor" :block-types="blockTypes" />
         </div>
       </div>
@@ -265,6 +301,33 @@ const blockCount = computed(() => props.blockEditor.blocks.value.length);
 .cpub-pe-center { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
 .cpub-pe-canvas { flex: 1; overflow-y: auto; background: var(--bg); }
 .cpub-pe-canvas-inner { margin: 0 auto; transition: max-width 0.2s; }
+
+/* Inline cover image (in canvas body) */
+.cpub-pe-cover-inline {
+  position: relative; width: 100%; aspect-ratio: 16/7; background: var(--surface2);
+  border-bottom: 2px solid var(--border); display: flex; align-items: center; justify-content: center; overflow: hidden;
+}
+.cpub-pe-cover-inline-img { width: 100%; height: 100%; object-fit: cover; }
+.cpub-pe-cover-inline-placeholder { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.cpub-pe-cover-inline-icon { font-size: 28px; color: var(--text-faint); }
+.cpub-pe-cover-inline-text { font-size: 11px; color: var(--text-faint); font-family: var(--font-mono); }
+.cpub-pe-cover-inline-overlay, .cpub-pe-cover-inline-actions {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 8px;
+  background: rgba(250,250,249,0.7); opacity: 0; transition: opacity 0.15s;
+}
+.cpub-pe-cover-inline:hover .cpub-pe-cover-inline-overlay,
+.cpub-pe-cover-inline:hover .cpub-pe-cover-inline-actions,
+.cpub-pe-cover-inline:focus-within .cpub-pe-cover-inline-overlay,
+.cpub-pe-cover-inline:focus-within .cpub-pe-cover-inline-actions { opacity: 1; }
+@media (hover: none) { .cpub-pe-cover-inline-overlay, .cpub-pe-cover-inline-actions { opacity: 1; } }
+
+/* Inline title (in canvas body) */
+.cpub-pe-title-inline {
+  width: 100%; border: none; outline: none; resize: none; background: transparent;
+  font-size: 28px; font-weight: 700; line-height: 1.25; color: var(--text);
+  padding: 24px 48px 8px; font-family: var(--font-sans, system-ui);
+}
+.cpub-pe-title-inline::placeholder { color: var(--text-faint); }
 
 /* Canvas toolbar */
 .cpub-pe-canvas-toolbar {

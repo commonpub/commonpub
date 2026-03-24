@@ -9,14 +9,13 @@ useSeoMeta({
 const { signIn } = useAuth();
 const route = useRoute();
 
-const email = ref('');
+const identity = ref('');
 const password = ref('');
 const error = ref('');
 const loading = ref(false);
 
 const redirectTo = computed(() => {
   const raw = (route.query.redirect as string) || '/';
-  // Prevent open redirect — only allow relative paths
   if (raw.startsWith('/') && !raw.startsWith('//')) return raw;
   return '/';
 });
@@ -26,14 +25,24 @@ async function handleSubmit(): Promise<void> {
   loading.value = true;
 
   try {
-    await signIn(email.value, password.value);
+    // Server resolves username→email if needed
+    const result = await $fetch<{ user: unknown; session: unknown }>('/api/auth/login', {
+      method: 'POST',
+      body: { identity: identity.value, password: password.value },
+      credentials: 'include',
+    });
+    // Update auth state
+    const user = useState('auth-user');
+    const session = useState('auth-session');
+    user.value = (result as Record<string, unknown>)?.user ?? null;
+    session.value = (result as Record<string, unknown>)?.session ?? null;
     await navigateTo(redirectTo.value);
   } catch (err: unknown) {
     const fetchErr = err as { statusCode?: number; data?: { message?: string; statusMessage?: string } };
     if (fetchErr?.statusCode === 503) {
       error.value = 'Database unavailable. Make sure PostgreSQL is running.';
     } else {
-      error.value = fetchErr?.data?.statusMessage || fetchErr?.data?.message || 'Invalid email or password.';
+      error.value = fetchErr?.data?.statusMessage || fetchErr?.data?.message || 'Invalid credentials.';
     }
   } finally {
     loading.value = false;
@@ -49,15 +58,15 @@ async function handleSubmit(): Promise<void> {
       <div v-if="error" class="form-error" role="alert">{{ error }}</div>
 
       <div class="field">
-        <label for="email" class="field-label">Email</label>
+        <label for="identity" class="field-label">Username or Email</label>
         <input
-          id="email"
-          v-model="email"
-          type="email"
+          id="identity"
+          v-model="identity"
+          type="text"
           class="field-input"
-          autocomplete="email"
+          autocomplete="username"
           required
-          placeholder="you@example.com"
+          placeholder="username or email"
         />
       </div>
 

@@ -9,7 +9,7 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   components: {
     dirs: [
-      { path: '~/components', pathPrefix: false },
+      { path: '~/components' },
     ],
   },
   app: {

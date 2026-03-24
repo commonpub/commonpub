@@ -142,7 +142,7 @@ useJsonLd({
       <!-- ARTICLE BODY (PROSE) -->
       <div class="cpub-prose">
         <template v-if="content.content && Array.isArray(content.content) && (content.content as unknown[]).length > 0">
-          <BlockContentRenderer :blocks="(content.content as [string, Record<string, unknown>][])" />
+          <BlocksBlockContentRenderer :blocks="(content.content as [string, Record<string, unknown>][])" />
         </template>
         <template v-else>
           <p>No content body yet.</p>

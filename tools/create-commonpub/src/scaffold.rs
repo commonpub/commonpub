@@ -181,8 +181,6 @@ fn patch_nuxt_config(dir: &Path, config: &InstanceConfig) -> Result<(), Box<dyn 
         .replace("uiTheme('layouts.css')", "'@commonpub/ui/theme/layouts.css'")
         .replace("uiTheme('forms.css')", "'@commonpub/ui/theme/forms.css'")
         .replace("uiTheme('editor-panels.css')", "'@commonpub/ui/theme/editor-panels.css'")
-        // Remove pathPrefix: false (standalone needs default prefix behavior for nested components)
-        .replace("  components: {\n    dirs: [\n      { path: '~/components', pathPrefix: false },\n    ],\n  },\n", "")
         // Replace monorepo vite fs.allow
         .replace("allow: ['../..']", "allow: ['..']")
         // Update default site URL/domain/name

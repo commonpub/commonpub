@@ -305,7 +305,7 @@ async function handleBuild(): Promise<void> {
           <template v-if="activeTab === 'overview'">
             <div class="cpub-prose">
               <template v-if="content.content && Array.isArray(content.content) && (content.content as unknown[]).length > 0">
-                <BlockContentRenderer :blocks="(content.content as [string, Record<string, unknown>][])" />
+                <BlocksBlockContentRenderer :blocks="(content.content as [string, Record<string, unknown>][])" />
               </template>
               <template v-else>
                 <div class="cpub-prose-section">

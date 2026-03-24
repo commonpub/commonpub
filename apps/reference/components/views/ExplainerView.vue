@@ -245,7 +245,7 @@ onUnmounted(() => { document.removeEventListener('keydown', onKeydown); });
             <!-- Section body blocks -->
             <div class="cpub-body-text">
               <template v-if="currentRange && currentRange.start < currentRange.end">
-                <BlockContentRenderer
+                <BlocksBlockContentRenderer
                   :blocks="blocks"
                   :start-index="currentRange.start"
                   :end-index="currentRange.end"

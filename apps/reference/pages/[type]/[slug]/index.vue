@@ -129,7 +129,7 @@ onMounted(() => {
 
         <div class="cpub-view-body">
           <template v-if="enrichedContent.content && Array.isArray(enrichedContent.content) && (enrichedContent.content as unknown[]).length > 0">
-            <BlockContentRenderer :blocks="(enrichedContent.content as [string, Record<string, unknown>][])" />
+            <BlocksBlockContentRenderer :blocks="(enrichedContent.content as [string, Record<string, unknown>][])" />
           </template>
           <p v-else class="cpub-view-empty">No content body yet.</p>
         </div>
