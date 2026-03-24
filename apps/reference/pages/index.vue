@@ -5,16 +5,16 @@ useSeoMeta({
 });
 
 const { user: authUser } = useAuth();
+const { hubs: hubsEnabled, contests: contestsEnabled, learning: learningEnabled, video: videoEnabled, docs: docsEnabled } = useFeatures();
+const { enabledTypeMeta } = useContentTypes();
+
 const activeTab = ref(authUser.value ? 'foryou' : 'latest');
-const tabs = [
+const tabs = computed(() => [
   { value: 'foryou', label: 'For You', icon: 'fa-solid fa-sparkles' },
   { value: 'latest', label: 'Latest', icon: 'fa-solid fa-clock' },
   { value: 'following', label: 'Following', icon: 'fa-solid fa-user-group' },
-  { value: 'project', label: 'Projects', icon: 'fa-solid fa-microchip' },
-  { value: 'article', label: 'Articles', icon: 'fa-solid fa-file-lines' },
-  { value: 'blog', label: 'Blog', icon: 'fa-solid fa-pen-nib' },
-  { value: 'explainer', label: 'Explainers', icon: 'fa-solid fa-lightbulb' },
-];
+  ...enabledTypeMeta.value.map(ct => ({ value: ct.type, label: ct.plural, icon: ct.icon })),
+]);
 
 const user = authUser;
 
@@ -117,7 +117,7 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
       <div class="cpub-hero-inner">
         <div class="cpub-hero-content">
           <!-- Active contest hero -->
-          <template v-if="activeContest">
+          <template v-if="contestsEnabled && activeContest">
             <div class="cpub-hero-eyebrow">
               <span class="cpub-hero-badge cpub-hero-badge-live"><span class="cpub-live-dot" /> Live Contest</span>
               <span class="cpub-hero-badge">{{ activeContest.entryCount ?? 0 }} entries</span>
@@ -255,7 +255,7 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
               <span class="cpub-stat-num">{{ stats?.users?.total ?? 0 }}</span>
               <span class="cpub-stat-lbl">Members</span>
             </div>
-            <div class="cpub-stat-block">
+            <div v-if="hubsEnabled" class="cpub-stat-block">
               <span class="cpub-stat-num">{{ stats?.hubs?.total ?? 0 }}</span>
               <span class="cpub-stat-lbl">Hubs</span>
             </div>
@@ -263,7 +263,7 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
         </div>
 
         <!-- Active Contests -->
-        <div v-if="contests?.items?.length" class="cpub-sb-card">
+        <div v-if="contestsEnabled && contests?.items?.length" class="cpub-sb-card">
           <div class="cpub-sb-head">Active Contests <NuxtLink to="/contests">View all</NuxtLink></div>
           <div v-for="c in contests.items" :key="c.id" class="cpub-contest-item">
             <NuxtLink :to="`/contests/${c.slug}`" class="cpub-contest-name">{{ c.title }}</NuxtLink>
@@ -278,7 +278,7 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
         </div>
 
         <!-- Trending Hubs -->
-        <div v-if="communities?.items?.length" class="cpub-sb-card">
+        <div v-if="hubsEnabled && communities?.items?.length" class="cpub-sb-card">
           <div class="cpub-sb-head">Trending Hubs <NuxtLink to="/hubs">Browse</NuxtLink></div>
           <div v-for="hub in communities.items" :key="hub.id" class="cpub-hub-item">
             <div class="cpub-hub-icon">
@@ -297,13 +297,10 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
         <div class="cpub-sb-card">
           <div class="cpub-sb-head">Explore</div>
           <div class="cpub-tag-cloud">
-            <NuxtLink to="/project" class="cpub-trending-tag">Projects</NuxtLink>
-            <NuxtLink to="/article" class="cpub-trending-tag">Articles</NuxtLink>
-            <NuxtLink to="/blog" class="cpub-trending-tag">Blogs</NuxtLink>
-            <NuxtLink to="/explainer" class="cpub-trending-tag">Explainers</NuxtLink>
-            <NuxtLink to="/learn" class="cpub-trending-tag">Learn</NuxtLink>
-            <NuxtLink to="/videos" class="cpub-trending-tag">Videos</NuxtLink>
-            <NuxtLink to="/docs" class="cpub-trending-tag">Docs</NuxtLink>
+            <NuxtLink v-for="ct in enabledTypeMeta" :key="ct.type" :to="ct.route" class="cpub-trending-tag">{{ ct.plural }}</NuxtLink>
+            <NuxtLink v-if="learningEnabled" to="/learn" class="cpub-trending-tag">Learn</NuxtLink>
+            <NuxtLink v-if="videoEnabled" to="/videos" class="cpub-trending-tag">Videos</NuxtLink>
+            <NuxtLink v-if="docsEnabled" to="/docs" class="cpub-trending-tag">Docs</NuxtLink>
           </div>
         </div>
 

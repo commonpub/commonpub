@@ -2,7 +2,9 @@
 useSeoMeta({ title: 'Create — CommonPub' });
 definePageMeta({ middleware: 'auth' });
 
-const types = [
+const { isTypeEnabled } = useContentTypes();
+
+const allTypes = [
   {
     type: 'project',
     icon: 'fa-solid fa-microchip',
@@ -41,6 +43,8 @@ const types = [
     desc: 'Share thoughts, tutorials, or updates with a clean writing experience and inline media.',
   },
 ];
+
+const types = computed(() => allTypes.filter(t => isTypeEnabled(t.type as any)));
 </script>
 
 <template>

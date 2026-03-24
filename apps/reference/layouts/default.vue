@@ -1,6 +1,8 @@
 <script setup lang="ts">
-const { user, isAuthenticated, signOut, refreshSession } = useAuth();
+const { user, isAuthenticated, isAdmin, signOut, refreshSession } = useAuth();
 const { count: unreadCount, connect: connectNotifications, disconnect: disconnectNotifications } = useNotifications();
+const { hubs, learning, video, docs, contests, admin } = useFeatures();
+const { enabledTypeMeta } = useContentTypes();
 
 useHead({
   link: [
@@ -64,11 +66,12 @@ const userUsername = computed(() => user.value?.username ?? '');
 
       <nav class="cpub-topbar-nav" aria-label="Main navigation">
         <NuxtLink to="/" class="cpub-nav-link"><i class="fa-solid fa-house"></i> Home</NuxtLink>
-        <NuxtLink to="/hubs" class="cpub-nav-link"><i class="fa-solid fa-users"></i> Hubs</NuxtLink>
-        <NuxtLink to="/learn" class="cpub-nav-link"><i class="fa-solid fa-graduation-cap"></i> Learn</NuxtLink>
-        <NuxtLink to="/videos" class="cpub-nav-link"><i class="fa-solid fa-video"></i> Videos</NuxtLink>
-        <NuxtLink to="/docs" class="cpub-nav-link"><i class="fa-solid fa-book"></i> Docs</NuxtLink>
-        <NuxtLink to="/contests" class="cpub-nav-link"><i class="fa-solid fa-trophy"></i> Contests</NuxtLink>
+        <NuxtLink v-if="hubs" to="/hubs" class="cpub-nav-link"><i class="fa-solid fa-users"></i> Hubs</NuxtLink>
+        <NuxtLink v-if="learning" to="/learn" class="cpub-nav-link"><i class="fa-solid fa-graduation-cap"></i> Learn</NuxtLink>
+        <NuxtLink v-if="video" to="/videos" class="cpub-nav-link"><i class="fa-solid fa-video"></i> Videos</NuxtLink>
+        <NuxtLink v-if="docs" to="/docs" class="cpub-nav-link"><i class="fa-solid fa-book"></i> Docs</NuxtLink>
+        <NuxtLink v-if="contests" to="/contests" class="cpub-nav-link"><i class="fa-solid fa-trophy"></i> Contests</NuxtLink>
+        <NuxtLink v-if="isAdmin && admin" to="/admin" class="cpub-nav-link"><i class="fa-solid fa-shield-halved"></i> Admin</NuxtLink>
       </nav>
 
       <div class="cpub-topbar-spacer" />
@@ -113,11 +116,12 @@ const userUsername = computed(() => user.value?.username ?? '');
     <div v-if="mobileMenuOpen" class="cpub-mobile-menu" @click.self="mobileMenuOpen = false">
       <nav class="cpub-mobile-nav" aria-label="Mobile navigation">
         <NuxtLink to="/" class="cpub-mobile-link" @click="mobileMenuOpen = false"><i class="fa-solid fa-house"></i> Home</NuxtLink>
-        <NuxtLink to="/hubs" class="cpub-mobile-link" @click="mobileMenuOpen = false"><i class="fa-solid fa-users"></i> Hubs</NuxtLink>
-        <NuxtLink to="/learn" class="cpub-mobile-link" @click="mobileMenuOpen = false"><i class="fa-solid fa-graduation-cap"></i> Learn</NuxtLink>
-        <NuxtLink to="/videos" class="cpub-mobile-link" @click="mobileMenuOpen = false"><i class="fa-solid fa-video"></i> Videos</NuxtLink>
-        <NuxtLink to="/docs" class="cpub-mobile-link" @click="mobileMenuOpen = false"><i class="fa-solid fa-book"></i> Docs</NuxtLink>
-        <NuxtLink to="/contests" class="cpub-mobile-link" @click="mobileMenuOpen = false"><i class="fa-solid fa-trophy"></i> Contests</NuxtLink>
+        <NuxtLink v-if="hubs" to="/hubs" class="cpub-mobile-link" @click="mobileMenuOpen = false"><i class="fa-solid fa-users"></i> Hubs</NuxtLink>
+        <NuxtLink v-if="learning" to="/learn" class="cpub-mobile-link" @click="mobileMenuOpen = false"><i class="fa-solid fa-graduation-cap"></i> Learn</NuxtLink>
+        <NuxtLink v-if="video" to="/videos" class="cpub-mobile-link" @click="mobileMenuOpen = false"><i class="fa-solid fa-video"></i> Videos</NuxtLink>
+        <NuxtLink v-if="docs" to="/docs" class="cpub-mobile-link" @click="mobileMenuOpen = false"><i class="fa-solid fa-book"></i> Docs</NuxtLink>
+        <NuxtLink v-if="contests" to="/contests" class="cpub-mobile-link" @click="mobileMenuOpen = false"><i class="fa-solid fa-trophy"></i> Contests</NuxtLink>
+        <NuxtLink v-if="isAdmin && admin" to="/admin" class="cpub-mobile-link" @click="mobileMenuOpen = false"><i class="fa-solid fa-shield-halved"></i> Admin</NuxtLink>
         <NuxtLink to="/search" class="cpub-mobile-link" @click="mobileMenuOpen = false"><i class="fa-solid fa-magnifying-glass"></i> Search</NuxtLink>
         <template v-if="isAuthenticated">
           <div class="cpub-mobile-divider" />
@@ -150,23 +154,20 @@ const userUsername = computed(() => user.value?.username ?? '');
         </div>
         <nav class="cpub-footer-col" aria-label="Content links">
           <h4 class="cpub-footer-col-title">Content</h4>
-          <NuxtLink to="/project" class="cpub-footer-link">Projects</NuxtLink>
-          <NuxtLink to="/article" class="cpub-footer-link">Articles</NuxtLink>
-          <NuxtLink to="/blog" class="cpub-footer-link">Blog</NuxtLink>
-          <NuxtLink to="/explainer" class="cpub-footer-link">Explainers</NuxtLink>
+          <NuxtLink v-for="ct in enabledTypeMeta" :key="ct.type" :to="ct.route" class="cpub-footer-link">{{ ct.plural }}</NuxtLink>
         </nav>
         <nav class="cpub-footer-col" aria-label="Community links">
           <h4 class="cpub-footer-col-title">Community</h4>
-          <NuxtLink to="/hubs" class="cpub-footer-link">Hubs</NuxtLink>
-          <NuxtLink to="/contests" class="cpub-footer-link">Contests</NuxtLink>
-          <NuxtLink to="/learn" class="cpub-footer-link">Learning Paths</NuxtLink>
-          <NuxtLink to="/videos" class="cpub-footer-link">Videos</NuxtLink>
+          <NuxtLink v-if="hubs" to="/hubs" class="cpub-footer-link">Hubs</NuxtLink>
+          <NuxtLink v-if="contests" to="/contests" class="cpub-footer-link">Contests</NuxtLink>
+          <NuxtLink v-if="learning" to="/learn" class="cpub-footer-link">Learning Paths</NuxtLink>
+          <NuxtLink v-if="video" to="/videos" class="cpub-footer-link">Videos</NuxtLink>
           <NuxtLink to="/search" class="cpub-footer-link">Explore</NuxtLink>
         </nav>
         <nav class="cpub-footer-col" aria-label="Platform links">
           <h4 class="cpub-footer-col-title">Platform</h4>
           <NuxtLink to="/about" class="cpub-footer-link">About</NuxtLink>
-          <NuxtLink to="/docs" class="cpub-footer-link">Docs</NuxtLink>
+          <NuxtLink v-if="docs" to="/docs" class="cpub-footer-link">Docs</NuxtLink>
           <a href="/feed.xml" class="cpub-footer-link">RSS Feed</a>
           <a href="/sitemap.xml" class="cpub-footer-link">Sitemap</a>
         </nav>
