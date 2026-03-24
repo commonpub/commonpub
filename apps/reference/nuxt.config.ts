@@ -7,6 +7,11 @@ const uiTheme = (file: string) => resolve(__dirname, '../../packages/ui/theme', 
 export default defineNuxtConfig({
   compatibilityDate: '2024-11-01',
   devtools: { enabled: true },
+  components: {
+    dirs: [
+      { path: '~/components', pathPrefix: false },
+    ],
+  },
   app: {
     head: {
       link: [
