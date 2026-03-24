@@ -181,13 +181,26 @@ fn patch_nuxt_config(dir: &Path, config: &InstanceConfig) -> Result<(), Box<dyn 
         .replace("uiTheme('layouts.css')", "'@commonpub/ui/theme/layouts.css'")
         .replace("uiTheme('forms.css')", "'@commonpub/ui/theme/forms.css'")
         .replace("uiTheme('editor-panels.css')", "'@commonpub/ui/theme/editor-panels.css'")
+        // Remove pathPrefix: false (standalone needs default prefix behavior for nested components)
+        .replace("  components: {\n    dirs: [\n      { path: '~/components', pathPrefix: false },\n    ],\n  },\n", "")
         // Replace monorepo vite fs.allow
         .replace("allow: ['../..']", "allow: ['..']")
         // Update default site URL/domain/name
         .replace("siteUrl: 'http://localhost:3000'", &format!("siteUrl: 'http://{}'", config.domain))
         .replace("domain: 'localhost:3000'", &format!("domain: '{}'", config.domain))
         .replace("siteName: 'CommonPub'", &format!("siteName: '{}'", config.name))
-        .replace("siteDescription: 'A CommonPub instance'", &format!("siteDescription: '{}'", config.description));
+        .replace("siteDescription: 'A CommonPub instance'", &format!("siteDescription: '{}'", config.description))
+        // Patch feature flag defaults in runtimeConfig.public.features
+        .replace("content: true,\n        social: true,\n        hubs: true,\n        docs: true,\n        video: true,\n        contests: false,\n        learning: true,\n        explainers: true,\n        federation: false,\n        admin: false,",
+            &format!("content: {},\n        social: {},\n        hubs: {},\n        docs: {},\n        video: {},\n        contests: {},\n        learning: {},\n        explainers: {},\n        federation: {},\n        admin: {},",
+                config.feature_content, config.feature_social, config.feature_hubs,
+                config.feature_docs, config.feature_video, config.feature_contests,
+                config.feature_learning, config.feature_explainers, config.feature_federation,
+                config.feature_admin))
+        // Patch content types
+        .replace("contentTypes: 'project,article,blog,explainer'", &format!("contentTypes: '{}'", config.content_types.join(",")))
+        // Patch contest creation
+        .replace("contestCreation: 'admin'", &format!("contestCreation: '{}'", config.contest_creation));
 
     fs::write(&config_path, patched)?;
     Ok(())
