@@ -8,7 +8,7 @@ use crate::template;
 
 /// The entire reference app, embedded at compile time.
 /// Excludes node_modules, .nuxt, .output, uploads, .env via .gitignore + include_dir filtering.
-static REFERENCE_APP: Dir = include_dir!("$CARGO_MANIFEST_DIR/../../apps/reference");
+static REFERENCE_APP: Dir = include_dir!("$CARGO_MANIFEST_DIR/reference-app");
 
 /// Files and directories to skip when copying the reference app
 const SKIP_NAMES: &[&str] = &[

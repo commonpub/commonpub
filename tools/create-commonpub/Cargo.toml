@@ -10,6 +10,8 @@ readme = "README.md"
 keywords = ["commonpub", "activitypub", "federation", "scaffold", "nuxt"]
 categories = ["command-line-utilities", "web-programming"]
 
+include = ["src/**/*", "tests/**/*", "Cargo.toml", "README.md", "reference-app/**/*"]
+
 [lib]
 name = "create_commonpub"
 path = "src/lib.rs"
