@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import type { ContentViewData } from '~/composables/useEngagement';
 
+const { hubs: hubsEnabled } = useFeatures();
+
 const props = defineProps<{
   content: ContentViewData;
 }>();
@@ -512,7 +514,7 @@ async function handleBuild(): Promise<void> {
           </div>
 
           <!-- Community Hub -->
-          <div v-if="content.community" class="cpub-sb-card">
+          <div v-if="hubsEnabled && content.community" class="cpub-sb-card">
             <div class="cpub-hub-card-inner">
               <div class="cpub-hub-icon"><i class="fa-solid fa-users"></i></div>
               <div class="cpub-hub-name">{{ content.community.name }}</div>

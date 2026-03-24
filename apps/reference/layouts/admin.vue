@@ -1,9 +1,14 @@
 <script setup lang="ts">
 const { isAdmin } = useAuth();
+const { admin: adminEnabled } = useFeatures();
 </script>
 
 <template>
-  <div class="admin-layout">
+  <div v-if="!adminEnabled" class="admin-denied">
+    <h1>Not Available</h1>
+    <p>The admin panel is not enabled on this instance.</p>
+  </div>
+  <div v-else class="admin-layout">
     <header class="admin-topbar">
       <div class="admin-topbar-inner">
         <NuxtLink to="/" class="admin-brand">CommonPub</NuxtLink>

@@ -7,6 +7,7 @@ useSeoMeta({
 });
 
 const { user } = useAuth();
+const { learning: learningEnabled } = useFeatures();
 const reqHeaders = import.meta.server ? useRequestHeaders(['cookie']) : {};
 
 const activeTab = ref<'content' | 'bookmarks' | 'learning'>('content');
@@ -28,6 +29,7 @@ const { data: bookmarkData } = await useFetch('/api/social/bookmarks', {
 const { data: enrollments } = await useFetch('/api/learn/enrollments', {
   headers: reqHeaders,
   lazy: true,
+  immediate: learningEnabled.value,
 });
 
 // Notification count
@@ -98,6 +100,7 @@ const totalLikes = computed(() =>
         Bookmarks
       </button>
       <button
+        v-if="learningEnabled"
         :class="['cpub-dash-tab', { active: activeTab === 'learning' }]"
         @click="activeTab = 'learning'"
       >
@@ -178,7 +181,7 @@ const totalLikes = computed(() =>
     </div>
 
     <!-- Learning tab -->
-    <div v-if="activeTab === 'learning'" class="cpub-dash-panel">
+    <div v-if="learningEnabled && activeTab === 'learning'" class="cpub-dash-panel">
       <div class="cpub-dash-list">
         <div v-for="enrollment in enrollments ?? []" :key="enrollment.path?.id ?? enrollment.id" class="cpub-dash-row">
           <NuxtLink :to="`/learn/${enrollment.path?.slug}`" class="cpub-dash-row-title">

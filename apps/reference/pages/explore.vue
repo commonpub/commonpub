@@ -4,6 +4,9 @@ useSeoMeta({
   description: 'Discover projects, articles, hubs, and learning paths on CommonPub.',
 });
 
+const { hubs: hubsEnabled, learning: learningEnabled } = useFeatures();
+const { enabledTypeMeta } = useContentTypes();
+
 const activeTab = ref<'content' | 'hubs' | 'learn' | 'people'>('content');
 const contentType = ref('');
 const sort = ref('recent');
@@ -40,13 +43,10 @@ const { data: peopleData } = await useFetch('/api/users', {
   default: () => ({ items: [] }),
 });
 
-const contentTypes = [
+const contentTypes = computed(() => [
   { value: '', label: 'All' },
-  { value: 'project', label: 'Projects' },
-  { value: 'article', label: 'Articles' },
-  { value: 'blog', label: 'Blogs' },
-  { value: 'explainer', label: 'Explainers' },
-];
+  ...enabledTypeMeta.value.map(m => ({ value: m.type, label: m.plural })),
+]);
 
 const sortOptions = [
   { value: 'recent', label: 'Recent' },
@@ -68,7 +68,7 @@ const sortOptions = [
         <span class="cpub-explore-stat-n">{{ statsData?.content?.total ?? 0 }}</span>
         <span class="cpub-explore-stat-l">Projects & Articles</span>
       </div>
-      <div class="cpub-explore-stat">
+      <div v-if="hubsEnabled" class="cpub-explore-stat">
         <span class="cpub-explore-stat-n">{{ statsData?.hubs?.total ?? 0 }}</span>
         <span class="cpub-explore-stat-l">Hubs</span>
       </div>
@@ -83,10 +83,10 @@ const sortOptions = [
       <button :class="['cpub-explore-tab', { active: activeTab === 'content' }]" @click="activeTab = 'content'">
         <i class="fa-solid fa-newspaper"></i> Content
       </button>
-      <button :class="['cpub-explore-tab', { active: activeTab === 'hubs' }]" @click="activeTab = 'hubs'">
+      <button v-if="hubsEnabled" :class="['cpub-explore-tab', { active: activeTab === 'hubs' }]" @click="activeTab = 'hubs'">
         <i class="fa-solid fa-layer-group"></i> Hubs
       </button>
-      <button :class="['cpub-explore-tab', { active: activeTab === 'learn' }]" @click="activeTab = 'learn'">
+      <button v-if="learningEnabled" :class="['cpub-explore-tab', { active: activeTab === 'learn' }]" @click="activeTab = 'learn'">
         <i class="fa-solid fa-graduation-cap"></i> Learn
       </button>
       <button :class="['cpub-explore-tab', { active: activeTab === 'people' }]" @click="activeTab = 'people'">
@@ -126,7 +126,7 @@ const sortOptions = [
     </div>
 
     <!-- Hubs tab -->
-    <div v-if="activeTab === 'hubs'" class="cpub-explore-panel">
+    <div v-if="hubsEnabled && activeTab === 'hubs'" class="cpub-explore-panel">
       <div v-if="hubsData?.items?.length" class="cpub-explore-hub-grid">
         <NuxtLink
           v-for="hub in hubsData.items"
@@ -153,7 +153,7 @@ const sortOptions = [
     </div>
 
     <!-- Learn tab -->
-    <div v-if="activeTab === 'learn'" class="cpub-explore-panel">
+    <div v-if="learningEnabled && activeTab === 'learn'" class="cpub-explore-panel">
       <div v-if="pathsData?.items?.length" class="cpub-explore-grid">
         <NuxtLink
           v-for="path in pathsData.items"

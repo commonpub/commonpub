@@ -8,21 +8,32 @@ useSeoMeta({
   ogImage: '/og-default.png',
 });
 
+const { explainers: explainersEnabled, learning: learningEnabled } = useFeatures();
+
 import type { Serialized, UserProfile } from '@commonpub/server';
 
 const { data: profile, pending: profilePending, error: profileError, refresh: refreshProfile } = useLazyFetch<Serialized<UserProfile>>(`/api/users/${username}`);
 const { data: content } = useLazyFetch(`/api/users/${username}/content`);
-const { data: learningData } = useLazyFetch(`/api/users/${username}/learning`);
+const { data: learningData } = useLazyFetch(`/api/users/${username}/learning`, {
+  immediate: learningEnabled.value,
+});
 
 const activeTab = ref('projects');
 
-const tabDefs = [
-  { value: 'projects', label: 'Projects', icon: 'fa-solid fa-folder-open' },
-  { value: 'articles', label: 'Articles', icon: 'fa-solid fa-newspaper' },
-  { value: 'explainers', label: 'Explainers', icon: 'fa-solid fa-book-open' },
-  { value: 'learning', label: 'Learning', icon: 'fa-solid fa-graduation-cap' },
-  { value: 'about', label: 'About', icon: 'fa-solid fa-id-card' },
-];
+const tabDefs = computed(() => {
+  const tabs = [
+    { value: 'projects', label: 'Projects', icon: 'fa-solid fa-folder-open' },
+    { value: 'articles', label: 'Articles', icon: 'fa-solid fa-newspaper' },
+  ];
+  if (explainersEnabled.value) {
+    tabs.push({ value: 'explainers', label: 'Explainers', icon: 'fa-solid fa-book-open' });
+  }
+  if (learningEnabled.value) {
+    tabs.push({ value: 'learning', label: 'Learning', icon: 'fa-solid fa-graduation-cap' });
+  }
+  tabs.push({ value: 'about', label: 'About', icon: 'fa-solid fa-id-card' });
+  return tabs;
+});
 
 const profileStats = computed(() => {
   if (!profile.value) return [];
@@ -256,7 +267,7 @@ async function handleReport(): Promise<void> {
       </template>
 
       <!-- Learning tab — Certificates + In-progress paths -->
-      <template v-if="activeTab === 'learning'">
+      <template v-if="learningEnabled && activeTab === 'learning'">
         <!-- Certificates -->
         <template v-if="learningData?.certificates?.length">
           <div class="cpub-sec-head">

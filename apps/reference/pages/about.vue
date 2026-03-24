@@ -3,6 +3,8 @@ useSeoMeta({
   title: 'About — CommonPub',
   description: 'CommonPub is an open-source, federated platform for maker communities.',
 });
+
+const { hubs: hubsEnabled, learning: learningEnabled, contests: contestsEnabled, federation: federationEnabled, docs: docsEnabled } = useFeatures();
 </script>
 
 <template>
@@ -23,22 +25,22 @@ useSeoMeta({
           <h3>For Makers</h3>
           <p>Document your builds with rich block editors. Parts lists, wiring diagrams, build steps, and code blocks — everything you need to share how you built it.</p>
         </div>
-        <div class="cpub-about-card">
+        <div v-if="hubsEnabled" class="cpub-about-card">
           <div class="cpub-about-card-icon"><i class="fa-solid fa-users"></i></div>
           <h3>Community Hubs</h3>
           <p>Create spaces for your community, product, or company. Discussions, content galleries, learning paths, and contests — all in one place.</p>
         </div>
-        <div class="cpub-about-card">
+        <div v-if="federationEnabled" class="cpub-about-card">
           <div class="cpub-about-card-icon"><i class="fa-solid fa-globe"></i></div>
           <h3>Federated</h3>
           <p>Built on ActivityPub. Your instance, your data. Follow makers across instances. No single point of failure, no platform lock-in.</p>
         </div>
-        <div class="cpub-about-card">
+        <div v-if="learningEnabled" class="cpub-about-card">
           <div class="cpub-about-card-icon"><i class="fa-solid fa-graduation-cap"></i></div>
           <h3>Learning Paths</h3>
           <p>Structured learning with modules, lessons, quizzes, and certificates. Track your progress and earn credentials.</p>
         </div>
-        <div class="cpub-about-card">
+        <div v-if="contestsEnabled" class="cpub-about-card">
           <div class="cpub-about-card-icon"><i class="fa-solid fa-trophy"></i></div>
           <h3>Contests</h3>
           <p>Run build contests with prizes, judges, and community voting. From small jams to sponsored competitions.</p>
@@ -55,7 +57,7 @@ useSeoMeta({
         <p>CommonPub is free and open source. Set up your own instance or join an existing one.</p>
         <div class="cpub-about-cta-actions">
           <NuxtLink to="/auth/register" class="cpub-btn cpub-btn-primary"><i class="fa-solid fa-user-plus"></i> Create Account</NuxtLink>
-          <NuxtLink to="/docs" class="cpub-btn"><i class="fa-solid fa-book"></i> Documentation</NuxtLink>
+          <NuxtLink v-if="docsEnabled" to="/docs" class="cpub-btn"><i class="fa-solid fa-book"></i> Documentation</NuxtLink>
           <a href="https://github.com/commonpub" target="_blank" rel="noopener" class="cpub-btn"><i class="fa-brands fa-github"></i> GitHub</a>
         </div>
       </div>

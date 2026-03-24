@@ -12,6 +12,8 @@ const emit = defineEmits<{
   'toggle-tag': [tag: string];
   'set-category': [label: string];
 }>();
+
+const { hubs: hubsEnabled } = useFeatures();
 </script>
 
 <template>
@@ -65,7 +67,7 @@ const emit = defineEmits<{
     </div>
 
     <!-- Related Communities -->
-    <div v-if="relatedHubs.length" class="cpub-sb-block">
+    <div v-if="hubsEnabled && relatedHubs.length" class="cpub-sb-block">
       <div class="cpub-sb-heading">Related Communities</div>
       <div class="cpub-related-hubs">
         <div v-for="hub in relatedHubs" :key="hub.id" class="cpub-related-hub-item">

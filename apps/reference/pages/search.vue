@@ -4,6 +4,9 @@ useSeoMeta({
   description: 'Search for projects, articles, people, and communities.',
 });
 
+const { hubs: hubsEnabled, video: videoEnabled } = useFeatures();
+const { enabledTypeMeta } = useContentTypes();
+
 const route = useRoute();
 const query = ref((route.query.q as string) || '');
 const activeType = ref('all');
@@ -19,16 +22,20 @@ const dateTo = ref('');
 const authorFilter = ref('');
 const communityFilter = ref('');
 
-const typePills = [
-  { value: 'all', label: 'All', icon: '' },
-  { value: 'project', label: 'Projects', icon: 'fa-solid fa-wrench' },
-  { value: 'article', label: 'Articles', icon: 'fa-solid fa-newspaper' },
-  { value: 'blog', label: 'Blogs', icon: 'fa-solid fa-pen-nib' },
-  { value: 'explainer', label: 'Explainers', icon: 'fa-solid fa-book-open' },
-  { value: 'video', label: 'Videos', icon: 'fa-solid fa-video' },
-  { value: 'community', label: 'Communities', icon: 'fa-solid fa-people-group' },
-  { value: 'people', label: 'People', icon: 'fa-solid fa-user' },
-];
+const typePills = computed(() => {
+  const pills: Array<{ value: string; label: string; icon: string }> = [
+    { value: 'all', label: 'All', icon: '' },
+    ...enabledTypeMeta.value.map(m => ({ value: m.type, label: m.plural, icon: m.icon })),
+  ];
+  if (videoEnabled.value) {
+    pills.push({ value: 'video', label: 'Videos', icon: 'fa-solid fa-video' });
+  }
+  if (hubsEnabled.value) {
+    pills.push({ value: 'community', label: 'Communities', icon: 'fa-solid fa-people-group' });
+  }
+  pills.push({ value: 'people', label: 'People', icon: 'fa-solid fa-user' });
+  return pills;
+});
 
 const page = ref(1);
 const pageSize = 24;
@@ -139,6 +146,7 @@ function setCategory(label: string): void {
 const { data: relatedCommunities } = await useFetch('/api/hubs', {
   query: { limit: 3 },
   default: () => ({ items: [] }),
+  immediate: hubsEnabled.value,
 });
 </script>
 
@@ -313,7 +321,7 @@ const { data: relatedCommunities } = await useFetch('/api/hubs', {
         :suggested-tags="suggestedTags"
         :categories="categories"
         :trending-searches="trendingSearches"
-        :related-hubs="relatedCommunities?.items ?? []"
+        :related-hubs="hubsEnabled ? (relatedCommunities?.items ?? []) : []"
         @search="(q) => query = q"
         @toggle-tag="toggleSidebarTag"
         @set-category="setCategory"

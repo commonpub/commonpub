@@ -5,6 +5,7 @@ useSeoMeta({
 });
 
 const { isAuthenticated } = useAuth();
+const { enabledTypeMeta } = useContentTypes();
 const activeFilter = ref('all');
 const loadingMore = ref(false);
 const allLoaded = ref(false);
@@ -47,13 +48,10 @@ async function loadMore(): Promise<void> {
 
 watch(activeFilter, () => { allLoaded.value = false; });
 
-const filters = [
+const filters = computed(() => [
   { value: 'all', label: 'All', icon: 'fa-solid fa-layer-group' },
-  { value: 'project', label: 'Projects', icon: 'fa-solid fa-microchip' },
-  { value: 'article', label: 'Articles', icon: 'fa-solid fa-file-lines' },
-  { value: 'blog', label: 'Blog', icon: 'fa-solid fa-pen-nib' },
-  { value: 'explainer', label: 'Explainers', icon: 'fa-solid fa-lightbulb' },
-];
+  ...enabledTypeMeta.value.map(m => ({ value: m.type, label: m.plural, icon: m.icon })),
+]);
 </script>
 
 <template>
