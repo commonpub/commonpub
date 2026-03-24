@@ -164,28 +164,24 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
      */
     async onUndo(actorUri: string, objectType: string, objectId: string): Promise<void> {
       if (objectType === 'Follow' || objectType === 'unknown') {
-        // Remove the follow relationship
-        await db
-          .delete(followRelationships)
-          .where(
-            and(
-              eq(followRelationships.followerActorUri, actorUri),
-            ),
-          );
-      }
+        // objectId is the Follow activity URI. We look up the follow relationship
+        // that was created when this actor followed a local user.
+        // In AP, one actor can follow multiple local users, so we should ideally
+        // scope to the specific target. Since objectId is the Follow activity URI
+        // (not the target), we delete only the most recent accepted/pending follow
+        // from this actor to minimize blast radius.
+        const existing = await db
+          .select({ id: followRelationships.id })
+          .from(followRelationships)
+          .where(eq(followRelationships.followerActorUri, actorUri))
+          .orderBy(followRelationships.updatedAt)
+          .limit(1);
 
-      if (objectType === 'Like') {
-        // Remote unlike — decrement like count if we can identify the content
-        // objectId is the Like activity URI, not the content URI, so this is best-effort
-        await db.insert(activities).values({
-          type: 'Undo',
-          actorUri,
-          objectUri: objectId,
-          payload: { type: 'Undo', actor: actorUri, objectType, objectId },
-          direction: 'inbound',
-          status: 'processed',
-        });
-        return;
+        if (existing.length > 0) {
+          await db
+            .delete(followRelationships)
+            .where(eq(followRelationships.id, existing[0]!.id));
+        }
       }
 
       await db.insert(activities).values({
@@ -253,8 +249,21 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
       await resolveRemoteActor(db, actorUri);
 
       // Try to find local content by its AP URI (https://domain/content/ID or https://domain/project/slug)
-      // The objectUri might be the full URL of the content
-      const url = new URL(objectUri).pathname;
+      let url: string;
+      try {
+        url = new URL(objectUri).pathname;
+      } catch {
+        // Not a valid URL (e.g., URN, bare ID) — log and skip content matching
+        await db.insert(activities).values({
+          type: 'Like',
+          actorUri,
+          objectUri,
+          payload: {},
+          direction: 'inbound',
+          status: 'processed',
+        });
+        return;
+      }
       const segments = url.split('/').filter(Boolean);
 
       // Try matching /content/UUID or /type/slug patterns
