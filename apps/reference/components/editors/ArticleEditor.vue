@@ -103,6 +103,31 @@ function onAssetUpload(event: Event): void {
     .catch(() => { /* silent */ });
 }
 
+// --- Cover image ---
+const coverImageUrl = computed(() => (props.metadata.coverImageUrl as string) || '');
+
+function onCoverUpload(event: Event): void {
+  const input = event.target as HTMLInputElement;
+  if (!input.files?.length) return;
+  const file = input.files[0];
+  if (!file) return;
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('purpose', 'cover');
+  $fetch<{ url: string }>('/api/files/upload', { method: 'POST', body: formData })
+    .then((res) => { updateMeta('coverImageUrl', res.url); })
+    .catch(() => { /* silent fallback */ });
+}
+
+function onCoverUrl(): void {
+  const url = window.prompt('Enter image URL:');
+  if (url) updateMeta('coverImageUrl', url);
+}
+
+function removeCover(): void {
+  updateMeta('coverImageUrl', '');
+}
+
 // --- Right panel ---
 const openSections = ref<Record<string, boolean>>({
   content: true, seo: false, publishing: true, cover: false,
@@ -257,9 +282,30 @@ const canvasMaxWidth = computed(() => {
             <label class="cpub-ep-flabel">Description</label>
             <textarea class="cpub-ep-textarea" rows="3" :value="metadata.description as string" placeholder="Brief description..." @input="updateMeta('description', ($event.target as HTMLTextAreaElement).value)" />
           </div>
-          <div class="cpub-ep-field">
-            <label class="cpub-ep-flabel">Cover Image</label>
-            <input class="cpub-ep-input" type="url" :value="metadata.coverImageUrl" placeholder="https://..." @input="updateMeta('coverImageUrl', ($event.target as HTMLInputElement).value)">
+          <div class="cpub-ae-cover" :class="{ 'has-image': !!coverImageUrl }">
+            <template v-if="coverImageUrl">
+              <img :src="coverImageUrl" alt="Cover image" class="cpub-ae-cover-img" />
+              <div class="cpub-ae-cover-actions">
+                <button class="cpub-ae-cover-btn" @click="removeCover"><i class="fa-solid fa-trash"></i> Remove</button>
+                <label class="cpub-ae-cover-btn">
+                  <i class="fa-solid fa-arrow-up-from-bracket"></i> Replace
+                  <input type="file" accept="image/*" class="cpub-sr-only" @change="onCoverUpload">
+                </label>
+              </div>
+            </template>
+            <template v-else>
+              <div class="cpub-ae-cover-placeholder">
+                <div class="cpub-ae-cover-icon"><i class="fa-regular fa-image"></i></div>
+                <span class="cpub-ae-cover-text">Cover image</span>
+              </div>
+              <div class="cpub-ae-cover-overlay">
+                <label class="cpub-ae-cover-btn primary">
+                  <i class="fa-solid fa-arrow-up-from-bracket"></i> Upload
+                  <input type="file" accept="image/*" class="cpub-sr-only" @change="onCoverUpload">
+                </label>
+                <button class="cpub-ae-cover-btn" @click="onCoverUrl"><i class="fa-solid fa-link"></i> From URL</button>
+              </div>
+            </template>
           </div>
         </EditorsEditorSection>
 
@@ -404,6 +450,30 @@ const canvasMaxWidth = computed(() => {
 .cpub-ae-right-body { flex: 1; overflow-y: auto; }
 
 .cpub-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
+
+/* Cover image */
+.cpub-ae-cover {
+  position: relative; width: 100%; aspect-ratio: 16/9; background: var(--surface2);
+  border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; overflow: hidden;
+}
+.cpub-ae-cover-img { width: 100%; height: 100%; object-fit: cover; }
+.cpub-ae-cover-placeholder { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.cpub-ae-cover-icon { font-size: 24px; color: var(--text-faint); }
+.cpub-ae-cover-text { font-size: 10px; color: var(--text-faint); font-family: var(--font-mono); }
+.cpub-ae-cover-overlay, .cpub-ae-cover-actions {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 6px;
+  background: rgba(250,250,249,0.75); opacity: 0; transition: opacity 0.15s;
+}
+.cpub-ae-cover:hover .cpub-ae-cover-overlay,
+.cpub-ae-cover:hover .cpub-ae-cover-actions { opacity: 1; }
+.cpub-ae-cover-btn {
+  font-size: 10px; padding: 5px 10px; background: var(--surface); border: 2px solid var(--border);
+  color: var(--text-dim); cursor: pointer; display: inline-flex; align-items: center; gap: 4px;
+  font-family: var(--font-mono); box-shadow: 2px 2px 0 var(--border);
+}
+.cpub-ae-cover-btn.primary { background: var(--accent); color: var(--color-text-inverse); border-color: var(--accent); }
+.cpub-ae-cover-btn:hover { background: var(--surface2); }
+.cpub-ae-cover-btn.primary:hover { opacity: 0.9; background: var(--accent); }
 
 @media (max-width: 1200px) { .cpub-ae-left { display: none; } }
 @media (max-width: 1024px) { .cpub-ae-right { display: none; } }

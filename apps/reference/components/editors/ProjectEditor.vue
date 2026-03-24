@@ -53,6 +53,32 @@ function toggleSection(key: string): void {
 }
 
 const difficulties = ['beginner', 'intermediate', 'advanced'] as const;
+
+// --- Cover image ---
+const coverImageUrl = computed(() => (props.metadata.coverImageUrl as string) || '');
+
+function onCoverUpload(event: Event): void {
+  const input = event.target as HTMLInputElement;
+  if (!input.files?.length) return;
+  const file = input.files[0];
+  if (!file) return;
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('purpose', 'cover');
+  $fetch<{ url: string }>('/api/files/upload', { method: 'POST', body: formData })
+    .then((res) => { updateMeta('coverImageUrl', res.url); })
+    .catch(() => { /* silent fallback */ });
+}
+
+function onCoverUrl(): void {
+  const url = window.prompt('Enter image URL:');
+  if (url) updateMeta('coverImageUrl', url);
+}
+
+function removeCover(): void {
+  updateMeta('coverImageUrl', '');
+}
+
 const tags = computed(() => (props.metadata.tags as string[]) || []);
 function onTagsUpdate(newTags: string[]): void { updateMeta('tags', newTags); }
 const visibility = computed(() => (props.metadata.visibility as string) || 'public');
@@ -167,8 +193,30 @@ const blockCount = computed(() => props.blockEditor.blocks.value.length);
         </EditorsEditorSection>
 
         <EditorsEditorSection title="Cover Image" icon="fa-image" :open="openSections.cover" @toggle="toggleSection('cover')">
-          <div class="cpub-ep-field">
-            <input class="cpub-ep-input" type="url" :value="metadata.coverImageUrl" placeholder="https://..." @input="updateMeta('coverImageUrl', ($event.target as HTMLInputElement).value)">
+          <div class="cpub-pe-cover" :class="{ 'has-image': !!coverImageUrl }">
+            <template v-if="coverImageUrl">
+              <img :src="coverImageUrl" alt="Cover image" class="cpub-pe-cover-img" />
+              <div class="cpub-pe-cover-actions">
+                <button class="cpub-pe-cover-btn" @click="removeCover"><i class="fa-solid fa-trash"></i> Remove</button>
+                <label class="cpub-pe-cover-btn">
+                  <i class="fa-solid fa-arrow-up-from-bracket"></i> Replace
+                  <input type="file" accept="image/*" class="cpub-sr-only" @change="onCoverUpload">
+                </label>
+              </div>
+            </template>
+            <template v-else>
+              <div class="cpub-pe-cover-placeholder">
+                <div class="cpub-pe-cover-icon"><i class="fa-regular fa-image"></i></div>
+                <span class="cpub-pe-cover-text">Cover image</span>
+              </div>
+              <div class="cpub-pe-cover-overlay">
+                <label class="cpub-pe-cover-btn primary">
+                  <i class="fa-solid fa-arrow-up-from-bracket"></i> Upload
+                  <input type="file" accept="image/*" class="cpub-sr-only" @change="onCoverUpload">
+                </label>
+                <button class="cpub-pe-cover-btn" @click="onCoverUrl"><i class="fa-solid fa-link"></i> From URL</button>
+              </div>
+            </template>
           </div>
         </EditorsEditorSection>
 
@@ -235,6 +283,31 @@ const blockCount = computed(() => props.blockEditor.blocks.value.length);
 .cpub-pe-check-item { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--text-faint); }
 .cpub-pe-check-item.pass { color: var(--text); }
 .cpub-pe-checklist-summary { margin-top: 8px; font-family: var(--font-mono); font-size: 10px; color: var(--green); }
+
+/* Cover image */
+.cpub-pe-cover {
+  position: relative; width: 100%; aspect-ratio: 16/9; background: var(--surface2);
+  border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; overflow: hidden;
+}
+.cpub-pe-cover-img { width: 100%; height: 100%; object-fit: cover; }
+.cpub-pe-cover-placeholder { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.cpub-pe-cover-icon { font-size: 24px; color: var(--text-faint); }
+.cpub-pe-cover-text { font-size: 10px; color: var(--text-faint); font-family: var(--font-mono); }
+.cpub-pe-cover-overlay, .cpub-pe-cover-actions {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 6px;
+  background: rgba(250,250,249,0.75); opacity: 0; transition: opacity 0.15s;
+}
+.cpub-pe-cover:hover .cpub-pe-cover-overlay,
+.cpub-pe-cover:hover .cpub-pe-cover-actions { opacity: 1; }
+.cpub-pe-cover-btn {
+  font-size: 10px; padding: 5px 10px; background: var(--surface); border: 2px solid var(--border);
+  color: var(--text-dim); cursor: pointer; display: inline-flex; align-items: center; gap: 4px;
+  font-family: var(--font-mono); box-shadow: 2px 2px 0 var(--border);
+}
+.cpub-pe-cover-btn.primary { background: var(--accent); color: var(--color-text-inverse); border-color: var(--accent); }
+.cpub-pe-cover-btn:hover { background: var(--surface2); }
+.cpub-pe-cover-btn.primary:hover { opacity: 0.9; background: var(--accent); }
+.cpub-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
 
 @media (max-width: 1200px) { .cpub-pe-library { display: none; } }
 @media (max-width: 1024px) { .cpub-pe-settings { display: none; } }
