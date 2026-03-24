@@ -138,8 +138,6 @@ export function useContentSave(opts: ContentSaveOptions): ContentSaveReturn {
 
     try {
       const body = buildSaveBody();
-      const slug = computed(() => useRoute().params.slug as string);
-
       if (opts.isNew.value) {
         const result = await createDraft(body);
         opts.contentId.value = result.id;
@@ -148,10 +146,11 @@ export function useContentSave(opts: ContentSaveOptions): ContentSaveReturn {
         if (opts.onAfterSave) await opts.onAfterSave(result.id);
         await navigateTo(`/${opts.contentType.value}/${result.slug}`);
       } else {
-        await $fetch(`/api/content/${opts.contentId.value}`, { method: 'PUT', body });
+        const updated = await $fetch<{ slug?: string }>(`/api/content/${opts.contentId.value}`, { method: 'PUT', body });
         opts.isDirty.value = false;
         if (opts.onAfterSave) await opts.onAfterSave(opts.contentId.value!);
-        await navigateTo(`/${opts.contentType.value}/${slug.value}`);
+        const currentSlug = updated?.slug || useRoute().params.slug as string;
+        await navigateTo(`/${opts.contentType.value}/${currentSlug}`);
       }
     } catch (err: unknown) {
       error.value = opts.extractError(err);
@@ -172,8 +171,7 @@ export function useContentSave(opts: ContentSaveOptions): ContentSaveReturn {
 
     try {
       const body = buildSaveBody();
-      const slug = computed(() => useRoute().params.slug as string);
-      let resultSlug = slug.value;
+      let resultSlug = useRoute().params.slug as string;
 
       if (opts.isNew.value || !opts.contentId.value) {
         const result = await createDraft(body);
