@@ -286,6 +286,10 @@ export {
   getFollowers,
   getFollowing,
   listFederationActivity,
+  createInboxHandlers,
+  deliverPendingActivities,
+  type InboxHandlerOptions,
+  type DeliveryResult,
 } from './federation/index.js';
 
 // OAuth Codes
