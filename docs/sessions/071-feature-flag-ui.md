@@ -134,18 +134,26 @@
 - [ ] npm version of CLI (`create-commonpub` npm package)
 - [ ] Consider folding @commonpub/docs into @commonpub/server
 - [ ] Consider folding @commonpub/explainer into @commonpub/learning
-- [ ] @commonpub/ui missing .d.ts in published package (scaffolded site has 1 typecheck warning)
-
 ### CLI Rearchitecture (Phase 3 — DONE)
-- Rewrote scaffold.rs to use `include_dir` crate — embeds entire `apps/reference/` at compile time
+- Rewrote scaffold.rs to use `include_dir` crate — embeds entire `apps/reference/` at compile time via `build.rs`
 - Copies all 340+ files: 61 pages, 130 API routes, 85 components, 11 composables, layouts, middleware
-- Patches after copy: package.json (workspace:* → ^0.3.0, rename, add @types/node + drizzle-kit), nuxt.config.ts (monorepo paths → npm package paths), .env, commonpub.config.ts, drizzle.config.ts
+- Patches after copy:
+  - package.json: workspace:* → ^0.3.1, rename, add @types/node + drizzle-kit
+  - nuxt.config.ts: monorepo paths → npm package paths, feature flag defaults from config, content types, contest creation, domain/name/description, removes pathPrefix:false
+  - .env: NUXT_DATABASE_URL, NUXT_PUBLIC_SITE_URL, feature flags, auth, storage
+  - commonpub.config.ts: from user's feature/auth/content config
+  - drizzle.config.ts: standalone schema path
 - Excludes: node_modules, .nuxt, .output, uploads, .env, __tests__, e2e, scripts
-- .env uses NUXT_DATABASE_URL (matches Nuxt runtimeConfig.databaseUrl mapping)
-- Sign-up request body includes `username` field (mirrors reference app fix)
-- All package versions updated to ^0.3.0
-- 57 Rust tests pass (46 unit + 11 integration)
+- Published to crates.io as `create-commonpub@0.3.0`
+- All 57 Rust tests pass (46 unit + 11 integration)
 - Tested end-to-end: `pnpm install` → `docker compose up` → `drizzle-kit push` → `nuxt dev` → all routes 200
+
+### Reference App Fixes (Post-CLI)
+- **Project editor**: cover image + title inline in canvas body (matches blog editor), uses v-model on local ref to prevent textarea input clobbering
+- **Login**: accepts username OR email — server-side `/api/resolve-identity` endpoint resolves username→email, then client calls Better Auth directly (cookies set properly)
+- **Component resolution**: removed `pathPrefix: false` from nuxt.config (code uses prefixed names like `EditorsArticleEditor`, `BlocksBlockContentRenderer`), updated 6 files to use `BlocksBlockContentRenderer`
+- **File uploads**: added `sharp` as direct dependency (was optional peer dep, caused 500 on image upload), added `NUXT_PUBLIC_SITE_URL` to scaffolded .env so upload URLs match actual domain
+- **@commonpub/ui .d.ts**: fixed build order (vite → vue-tsc) so declaration files ship in published package
 
 ### Lint Cleanup (190 → 0 warnings)
 - Removed unused imports across 15+ files (schema, server, protocol, ui, explainer, reference)
@@ -193,10 +201,11 @@
 | Feature flags | 10 flags wired end-to-end, all enforced in routes |
 | CSS hardcoded colors | 0 (all converted to var(--*)) |
 | Integration test coverage | All 13 server modules have integration tests |
-| CLI scaffolding | Copies full reference app, all routes 200 |
-| All packages | Published to npm at v0.3.0 |
-| Auth | Sign-up/sign-in working |
-| Editor | Working (with @tiptap/pm fix) |
+| CLI scaffolding | Copies full reference app, patches config, all routes 200 |
+| All packages | Published to npm at v0.3.1, CLI at crates.io v0.3.0 |
+| Auth | Sign-up/sign-in with username or email |
+| Editor | Project has inline cover+title, blog has inline cover+title+byline |
+| File uploads | sharp installed, local + S3 adapters, image variants generated |
 | Federation | Inbox routes gated + HTTP sig verified |
 | Mobile editors | Touch targets, slide-out sidebars, viewport clamping |
 | Repo cleanliness | No tracked binaries, secrets, or stale cruft |
