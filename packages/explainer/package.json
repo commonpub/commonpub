@@ -1,6 +1,6 @@
 {
   "name": "@commonpub/explainer",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "type": "module",
   "description": "Interactive scroll-driven module runtime with quizzes for CommonPub",
   "license": "AGPL-3.0-or-later",

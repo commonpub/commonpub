@@ -137,7 +137,7 @@ fn patch_package_json(dir: &Path, config: &InstanceConfig) -> Result<(), Box<dyn
 
     let patched = content
         // Replace workspace references with published versions
-        .replace("\"workspace:*\"", "\"^0.3.0\"")
+        .replace("\"workspace:*\"", "\"^0.3.1\"")
         // Rename package
         .replace("\"@commonpub/reference\"", &format!("\"{}\"", config.name))
         // Remove monorepo-only scripts

@@ -1,9 +1,14 @@
 [package]
 name = "create-commonpub"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 description = "CLI tool for scaffolding new CommonPub instances"
 license = "MIT"
+repository = "https://github.com/commonpub/commonpub"
+homepage = "https://commonpub.dev"
+readme = "README.md"
+keywords = ["commonpub", "activitypub", "federation", "scaffold", "nuxt"]
+categories = ["command-line-utilities", "web-programming"]
 
 [lib]
 name = "create_commonpub"

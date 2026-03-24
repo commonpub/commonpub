@@ -166,7 +166,7 @@ fn package_json_patched_correctly() {
 
     // workspace:* replaced with npm versions
     assert!(!pkg.contains("workspace:*"));
-    assert!(pkg.contains("\"^0.3.0\""));
+    assert!(pkg.contains("\"^0.3.1\""));
 
     // Package renamed
     assert!(pkg.contains("\"patch-test\""));
@@ -347,5 +347,5 @@ fn cli_binary_with_feature_flags() {
     // Package.json patched
     let pkg = fs::read_to_string(dir.join("package.json")).unwrap();
     assert!(!pkg.contains("workspace:*"));
-    assert!(pkg.contains("^0.3.0"));
+    assert!(pkg.contains("^0.3.1"));
 }
