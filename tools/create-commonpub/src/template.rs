@@ -202,6 +202,20 @@ pub fn render_nuxt_config(config: &InstanceConfig) -> String {
       domain: '{domain}',
       siteName: '{name}',
       siteDescription: '{description}',
+      features: {{
+        content: {content},
+        social: {social},
+        hubs: {hubs},
+        docs: {docs},
+        video: {video},
+        contests: {contests},
+        learning: {learning},
+        explainers: {explainers},
+        federation: {federation},
+        admin: {admin},
+      }},
+      contentTypes: '{content_types}',
+      contestCreation: '{contest_creation}',
     }},
   }},
   nitro: {{
@@ -226,33 +240,45 @@ pub fn render_nuxt_config(config: &InstanceConfig) -> String {
         domain = config.domain,
         name = config.name,
         description = config.description,
+        content = config.feature_content,
+        social = config.feature_social,
+        hubs = config.feature_hubs,
+        docs = config.feature_docs,
+        video = config.feature_video,
+        contests = config.feature_contests,
+        learning = config.feature_learning,
+        explainers = config.feature_explainers,
+        federation = config.feature_federation,
+        admin = config.feature_admin,
+        content_types = config.content_types.join(","),
+        contest_creation = config.contest_creation,
     )
 }
 
 pub fn render_package_json(config: &InstanceConfig) -> String {
     let mut deps = vec![
-        r#"    "@commonpub/config": "^0.2.0""#.to_string(),
-        r#"    "@commonpub/schema": "^0.2.0""#.to_string(),
-        r#"    "@commonpub/auth": "^0.2.0""#.to_string(),
-        r#"    "@commonpub/ui": "^0.2.0""#.to_string(),
-        r#"    "@commonpub/server": "^0.2.0""#.to_string(),
-        r#"    "@commonpub/infra": "^0.2.0""#.to_string(),
+        r#"    "@commonpub/config": "^0.3.0""#.to_string(),
+        r#"    "@commonpub/schema": "^0.3.0""#.to_string(),
+        r#"    "@commonpub/auth": "^0.3.0""#.to_string(),
+        r#"    "@commonpub/ui": "^0.3.0""#.to_string(),
+        r#"    "@commonpub/server": "^0.3.0""#.to_string(),
+        r#"    "@commonpub/infra": "^0.3.0""#.to_string(),
     ];
 
     if config.feature_content {
-        deps.push(r#"    "@commonpub/editor": "^0.2.0""#.to_string());
+        deps.push(r#"    "@commonpub/editor": "^0.3.0""#.to_string());
     }
     if config.feature_docs {
-        deps.push(r#"    "@commonpub/docs": "^0.2.0""#.to_string());
+        deps.push(r#"    "@commonpub/docs": "^0.3.0""#.to_string());
     }
     if config.feature_learning {
-        deps.push(r#"    "@commonpub/learning": "^0.2.0""#.to_string());
+        deps.push(r#"    "@commonpub/learning": "^0.3.0""#.to_string());
     }
     if config.feature_explainers {
-        deps.push(r#"    "@commonpub/explainer": "^0.2.0""#.to_string());
+        deps.push(r#"    "@commonpub/explainer": "^0.3.0""#.to_string());
     }
     if config.feature_federation {
-        deps.push(r#"    "@commonpub/protocol": "^0.2.0""#.to_string());
+        deps.push(r#"    "@commonpub/protocol": "^0.3.0""#.to_string());
     }
 
     let deps_str = deps.join(",\n");
@@ -280,6 +306,7 @@ pub fn render_package_json(config: &InstanceConfig) -> String {
     "zod": "^4.3.6"
   }},
   "devDependencies": {{
+    "@types/node": "^22.0.0",
     "drizzle-kit": "^0.31.0",
     "typescript": "^5.7.0"
   }}
@@ -821,7 +848,7 @@ export function useAuth() {
   async function signUp(email: string, password: string, username: string): Promise<void> {
     const data = await $fetch<{ user: ClientAuthUser | null; session: ClientAuthSession | null }>('/api/auth/sign-up/email', {
       method: 'POST',
-      body: { email, password, name: username },
+      body: { email, password, name: username, username },
       credentials: 'include',
     });
     user.value = data?.user ?? null;
