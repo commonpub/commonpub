@@ -22,6 +22,7 @@ function createTestConfig(federation = false) {
       magicLink: false,
       passkeys: false,
     },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any;
 }
 
@@ -77,6 +78,7 @@ describe('buildNodeInfoResponse', () => {
       localPostCount: 0,
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const features = (result.metadata as any).features;
     expect(features.communities).toBe(true);
     expect(features.contests).toBe(false);
@@ -92,6 +94,7 @@ describe('buildNodeInfoResponse', () => {
       localPostCount: 0,
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect((result.metadata as any).nodeName).toBe('Test Instance');
   });
 });

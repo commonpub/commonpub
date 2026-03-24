@@ -419,9 +419,6 @@ describe('slugSchema — boundary tests', () => {
   });
 
   it('accepts slug of exactly 255 chars', () => {
-    // Build a valid slug of 255 chars: alternating segments
-    const slug = ('a'.repeat(4) + '-').repeat(51).slice(0, 255);
-    // Ensure it ends with alphanumeric
     const validSlug = 'a'.repeat(255);
     expect(slugSchema.parse(validSlug)).toHaveLength(255);
   });

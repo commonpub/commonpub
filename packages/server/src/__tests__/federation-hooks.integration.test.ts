@@ -9,8 +9,6 @@ import { createTestDB, createTestUser, closeTestDB } from './helpers/testdb.js';
 import {
   createContent,
   publishContent,
-  updateContent,
-  deleteContent,
   onContentPublished,
   onContentUpdated,
   onContentDeleted,

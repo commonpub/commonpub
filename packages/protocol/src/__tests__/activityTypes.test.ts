@@ -1,18 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import type {
   APCreate,
-  APUpdate,
-  APDelete,
   APFollow,
   APAccept,
-  APReject,
-  APUndo,
   APLike,
   APAnnounce,
   APArticle,
   APNote,
   APTombstone,
-  APActivity,
   APObject,
   APOrderedCollection,
   APOrderedCollectionPage,

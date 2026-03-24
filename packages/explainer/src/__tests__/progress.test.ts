@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import {
   createProgressState,
   markSectionCompleted,
@@ -7,7 +7,7 @@ import {
   getNextIncompleteSection,
   isExplainerComplete,
 } from '../progress/tracker';
-import type { ExplainerSection, ExplainerProgressState } from '../types';
+import type { ExplainerSection } from '../types';
 
 const textSection = (id: string): ExplainerSection => ({
   id,

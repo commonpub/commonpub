@@ -1,5 +1,3 @@
-import type { APActivity } from './activityTypes.js';
-
 export interface InboxResult {
   success: boolean;
   error?: string;

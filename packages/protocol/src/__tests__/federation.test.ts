@@ -26,6 +26,7 @@ function createTestConfig(federation = false) {
       magicLink: false,
       passkeys: false,
     },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any;
 }
 

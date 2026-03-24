@@ -353,6 +353,5 @@ export function generateOpenAPISpec(): Record<string, unknown> {
 // CLI entry point — run with: npx tsx packages/schema/src/openapi.ts
 if (typeof process !== 'undefined' && process.argv[1]?.endsWith('openapi.ts')) {
   const spec = generateOpenAPISpec();
-  // eslint-disable-next-line no-console
   console.log(JSON.stringify(spec, null, 2));
 }

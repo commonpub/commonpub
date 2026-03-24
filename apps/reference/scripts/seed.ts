@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Seed script — populates the database with realistic demo data.
  *
@@ -7,7 +8,7 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
 // @ts-expect-error no types for pg
 import pg from 'pg';
-import { sql } from 'drizzle-orm';
+
 import {
   users,
   hubs,

@@ -10,7 +10,6 @@ export interface AuthEmailSender {
   sendResetPasswordEmail?: (email: string, url: string, token: string) => Promise<void>;
 }
 
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export function createAuth({ config, db, secret, baseURL, emailSender }: CreateAuthOptions & { emailSender?: AuthEmailSender }) {
   const plugins = [username()];
 

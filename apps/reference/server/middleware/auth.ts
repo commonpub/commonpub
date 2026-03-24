@@ -104,7 +104,7 @@ export default defineEventHandler(async (event) => {
   let middleware: ReturnType<typeof getAuthMiddleware>;
   try {
     middleware = getAuthMiddleware();
-  } catch (err: unknown) {
+  } catch {
     // DB not connected — fail with a clear message
     if (pathname.startsWith('/api/auth') || pathname.startsWith('/api/')) {
       throw createError({

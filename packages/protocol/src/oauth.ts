@@ -7,10 +7,11 @@ function timingSafeCompare(a: string, b: string): boolean {
   if (bufA.length !== bufB.length) {
     // Compare against self to burn constant time, then return false
     const dummy = new Uint8Array(bufA.length);
-    let result = 0;
+    let check = 0;
     for (let i = 0; i < bufA.length; i++) {
-      result |= bufA[i]! ^ dummy[i]!;
+      check |= bufA[i]! ^ dummy[i]!;
     }
+    void check;
     return false;
   }
   let result = 0;

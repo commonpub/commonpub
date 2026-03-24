@@ -3,7 +3,6 @@ import { render, screen, fireEvent } from '@testing-library/vue';
 import Tabs from '../Tabs.vue';
 import Dialog from '../Dialog.vue';
 import Menu from '../Menu.vue';
-import MenuItem from '../MenuItem.vue';
 import Toggle from '../Toggle.vue';
 
 const testTabs = [

@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { parseWebFingerResource } from './webfinger.js';
 
 // --- SSRF Protection ---
 

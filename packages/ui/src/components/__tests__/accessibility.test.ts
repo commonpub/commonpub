@@ -12,7 +12,6 @@ import Badge from '../Badge.vue';
 import Avatar from '../Avatar.vue';
 import Separator from '../Separator.vue';
 import Stack from '../Stack.vue';
-import Tooltip from '../Tooltip.vue';
 import Card from '../Card.vue';
 import Toggle from '../Toggle.vue';
 import TagInput from '../TagInput.vue';

@@ -7,6 +7,7 @@ export default defineNuxtPlugin(async () => {
 
   if (import.meta.server) {
     const event = useRequestEvent();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const authCtx = (event?.context as any)?.auth as { user?: ClientAuthUser; session?: ClientAuthSession } | undefined;
     if (authCtx) {
       user.value = (authCtx.user as ClientAuthUser) ?? null;

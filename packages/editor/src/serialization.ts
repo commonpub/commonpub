@@ -1,8 +1,8 @@
 import { z } from 'zod';
-import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
+import type { Node as ProseMirrorNode, NodeSpec, MarkSpec } from '@tiptap/pm/model';
 import { Schema, DOMParser, DOMSerializer } from '@tiptap/pm/model';
 import type { BlockTuple } from './blocks/types.js';
-import { lookupBlock, listBlocks } from './blocks/registry.js';
+import { lookupBlock } from './blocks/registry.js';
 
 /** Zod schema for validating raw block tuples */
 const blockTupleSchema = z.tuple([z.string(), z.record(z.string(), z.unknown())]);
@@ -45,7 +45,7 @@ export function validateBlockTuples(raw: unknown): {
 
 /** Build a ProseMirror Schema from registered block definitions */
 export function buildEditorSchema(): Schema {
-  const nodes: Record<string, any> = {
+  const nodes: Record<string, NodeSpec> = {
     doc: { content: 'block+' },
     // Text node type (ProseMirror's inline text)
     text: { group: 'inline', inline: true },
@@ -67,7 +67,7 @@ export function buildEditorSchema(): Schema {
         { tag: 'h3', attrs: { level: 3 } },
         { tag: 'h4', attrs: { level: 4 } },
       ],
-      toDOM: (node: any) => [`h${node.attrs.level}`, 0],
+      toDOM: (node) => [`h${node.attrs.level}`, 0],
     },
     // Code block
     code_block: {
@@ -90,13 +90,13 @@ export function buildEditorSchema(): Schema {
       parseDOM: [
         {
           tag: 'img[src]',
-          getAttrs: (dom: any) => ({
-            src: dom.getAttribute('src'),
-            alt: dom.getAttribute('alt') || '',
+          getAttrs: (dom) => ({
+            src: (dom as HTMLElement).getAttribute('src'),
+            alt: (dom as HTMLElement).getAttribute('alt') || '',
           }),
         },
       ],
-      toDOM: (node: any) => ['img', { src: node.attrs.src, alt: node.attrs.alt }],
+      toDOM: (node) => ['img', { src: node.attrs.src, alt: node.attrs.alt }],
     },
     // Gallery block
     gallery: {
@@ -196,7 +196,7 @@ export function buildEditorSchema(): Schema {
       content: 'block+',
       attrs: { variant: { default: 'info' } },
       parseDOM: [{ tag: 'div.callout' }],
-      toDOM: (node: any) => ['div', { class: `callout callout-${node.attrs.variant}` }, 0],
+      toDOM: (node) => ['div', { class: `callout callout-${node.attrs.variant}` }, 0],
     },
     bullet_list: { group: 'block', content: 'list_item+', parseDOM: [{ tag: 'ul' }], toDOM: () => ['ul', 0] },
     ordered_list: { group: 'block', content: 'list_item+', attrs: { start: { default: 1 } }, parseDOM: [{ tag: 'ol' }], toDOM: () => ['ol', 0] },
@@ -204,7 +204,7 @@ export function buildEditorSchema(): Schema {
     horizontal_rule: { group: 'block', parseDOM: [{ tag: 'hr' }], toDOM: () => ['hr'] },
   };
 
-  const marks: Record<string, any> = {
+  const marks: Record<string, MarkSpec> = {
     bold: {
       parseDOM: [{ tag: 'strong' }, { tag: 'b' }],
       toDOM: () => ['strong', 0],
@@ -226,10 +226,10 @@ export function buildEditorSchema(): Schema {
       parseDOM: [
         {
           tag: 'a[href]',
-          getAttrs: (dom: any) => ({ href: dom.getAttribute('href') }),
+          getAttrs: (dom) => ({ href: (dom as HTMLElement).getAttribute('href') }),
         },
       ],
-      toDOM: (node: any) => ['a', { href: node.attrs.href }, 0],
+      toDOM: (node) => ['a', { href: node.attrs.href }, 0],
     },
   };
 

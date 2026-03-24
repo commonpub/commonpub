@@ -1,4 +1,4 @@
-import type { ExplainerSection, ExplainerSectionType, SectionDefinition } from '../types.js';
+import type { ExplainerSection, SectionDefinition } from '../types.js';
 import {
   textSectionSchema,
   interactiveSectionSchema,

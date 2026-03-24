@@ -1,4 +1,4 @@
-import type { z, ZodType } from 'zod';
+import type { ZodType } from 'zod';
 import type {
   TextContent,
   HeadingContent,

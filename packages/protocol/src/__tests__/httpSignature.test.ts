@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { verifyHttpSignature, generateKeypair, exportPublicKeyPem } from '../index';
-import { createSign } from 'node:crypto';
 
 describe('verifyHttpSignature', () => {
   it('returns false when no Signature header is present', async () => {

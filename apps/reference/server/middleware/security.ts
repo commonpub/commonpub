@@ -1,5 +1,5 @@
 // Security middleware — rate limiting + security headers + CSP
-import { RateLimitStore, checkRateLimit, shouldSkipRateLimit, getSecurityHeaders, generateNonce, buildCspHeader, buildCspDirectives } from '@commonpub/server';
+import { RateLimitStore, checkRateLimit, shouldSkipRateLimit, getSecurityHeaders, buildCspHeader, buildCspDirectives } from '@commonpub/server';
 
 const store = new RateLimitStore();
 const isDev = process.env.NODE_ENV !== 'production';

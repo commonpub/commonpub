@@ -11,8 +11,6 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'Actor not found' });
   }
 
-  const actorUri = `https://${config.instance.domain}/users/${username}`;
-
   setResponseHeader(event, 'content-type', 'application/activity+json');
 
   return generateOutboxCollection(0, config.instance.domain, username);

@@ -111,8 +111,7 @@ describe('messaging integration', () => {
   });
 
   it('findOrCreateConversation creates new', async () => {
-    const existing = await listConversations(db, charlie);
-    const existingIds = new Set(existing.map((c) => c.id));
+    await listConversations(db, charlie);
 
     const conv = await findOrCreateConversation(db, [alice, charlie]);
 

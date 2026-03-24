@@ -14,6 +14,6 @@ export default defineEventHandler(async (event): Promise<HubPostItem> => {
 
   const input = await parseBody(event, createPostSchema);
 
-  const { hubId: _hubId, ...rest } = input;
+  const { hubId: _hubId, ...rest } = input; // eslint-disable-line @typescript-eslint/no-unused-vars
   return createPost(db, user.id, { hubId: community.id, ...rest });
 });

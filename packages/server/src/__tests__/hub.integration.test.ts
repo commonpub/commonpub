@@ -11,7 +11,6 @@ import {
   listMembers,
   createPost,
   listPosts,
-  deletePost,
   banUser,
   checkBan,
   unbanUser,
