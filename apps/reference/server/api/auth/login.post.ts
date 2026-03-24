@@ -2,42 +2,33 @@ import { eq, and, isNull } from 'drizzle-orm';
 import { users } from '@commonpub/schema';
 
 /**
- * Login endpoint that accepts username OR email.
- * Resolves username to email server-side, then delegates to Better Auth.
+ * Resolve identity (username or email) to an email address.
+ * The client then uses the resolved email to call Better Auth's sign-in directly.
  */
 export default defineEventHandler(async (event) => {
   const body = await readBody(event);
-  const { identity, password } = body as { identity: string; password: string };
+  const { identity } = body as { identity: string };
 
-  if (!identity || !password) {
-    throw createError({ statusCode: 400, statusMessage: 'Username/email and password required' });
+  if (!identity) {
+    throw createError({ statusCode: 400, statusMessage: 'Username or email required' });
   }
 
-  let email = identity;
-
-  // If no @ sign, treat as username and resolve to email
-  if (!identity.includes('@')) {
-    const db = useDB();
-    const [user] = await db
-      .select({ email: users.email })
-      .from(users)
-      .where(and(eq(users.username, identity), isNull(users.deletedAt)))
-      .limit(1);
-
-    if (!user) {
-      throw createError({ statusCode: 401, statusMessage: 'Invalid credentials' });
-    }
-    email = user.email;
+  // If it looks like an email, return it directly
+  if (identity.includes('@')) {
+    return { email: identity };
   }
 
-  // Forward to Better Auth's email sign-in
-  const response = await $fetch('/api/auth/sign-in/email', {
-    method: 'POST',
-    body: { email, password },
-    headers: Object.fromEntries(
-      Object.entries(getRequestHeaders(event)).filter(([, v]) => v !== undefined) as [string, string][],
-    ),
-  });
+  // Otherwise resolve username to email
+  const db = useDB();
+  const [user] = await db
+    .select({ email: users.email })
+    .from(users)
+    .where(and(eq(users.username, identity), isNull(users.deletedAt)))
+    .limit(1);
 
-  return response;
+  if (!user) {
+    throw createError({ statusCode: 401, statusMessage: 'Invalid credentials' });
+  }
+
+  return { email: user.email };
 });

@@ -25,17 +25,14 @@ async function handleSubmit(): Promise<void> {
   loading.value = true;
 
   try {
-    // Server resolves username→email if needed
-    const result = await $fetch<{ user: unknown; session: unknown }>('/api/auth/login', {
+    // Step 1: Resolve username to email if needed (server-side)
+    const { email } = await $fetch<{ email: string }>('/api/auth/login', {
       method: 'POST',
-      body: { identity: identity.value, password: password.value },
-      credentials: 'include',
+      body: { identity: identity.value },
     });
-    // Update auth state
-    const user = useState('auth-user');
-    const session = useState('auth-session');
-    user.value = (result as Record<string, unknown>)?.user ?? null;
-    session.value = (result as Record<string, unknown>)?.session ?? null;
+
+    // Step 2: Sign in with Better Auth (sets cookies directly)
+    await signIn(email, password.value);
     await navigateTo(redirectTo.value);
   } catch (err: unknown) {
     const fetchErr = err as { statusCode?: number; data?: { message?: string; statusMessage?: string } };
