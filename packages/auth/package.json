@@ -1,6 +1,6 @@
 {
   "name": "@commonpub/auth",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "type": "module",
   "description": "Better Auth wrapper with AP actor SSO and role guards for CommonPub",
   "license": "AGPL-3.0-or-later",
