@@ -40,7 +40,7 @@ export function useAuth() {
   async function signUp(email: string, password: string, username: string): Promise<void> {
     const data = await $fetch<{ user: ClientAuthUser | null; session: ClientAuthSession | null }>('/api/auth/sign-up/email', {
       method: 'POST',
-      body: { email, password, name: username },
+      body: { email, password, username, name: username },
       credentials: 'include',
     });
     user.value = data?.user ?? null;
