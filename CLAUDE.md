@@ -68,7 +68,7 @@ The implementation plan is at `docs/plan-v2.md`. Reference documentation is at `
 - JetBrains Mono for UI labels (uppercase, letter-spaced)
 - Blue accent (`#5b9cf6`), cool neutral palette
 - Base font 16px, line-height 1.7
-- Design source of truth: `prime-mockups/unified-v2/00-design-system.html`
+- Design source of truth: `packages/ui/theme/` (base.css, dark.css, components.css)
 
 ## Architecture
 
@@ -127,13 +127,6 @@ docker compose up -d
 - **Integration tests**: Vitest + test Postgres
 - **E2E tests**: Playwright
 - Test DB: Docker Postgres per suite, migrations run, torn down after
-
-## Reference Implementations
-
-Two existing apps serve as reference only (schemas, logic, UX — not framework code):
-
-- `hack-build/` — Vue 3 + Convex (25-table schema, block editor, learning system)
-- `deveco-io/` — Nuxt 3 + Drizzle + tRPC (Drizzle patterns, Better Auth config, monorepo structure)
 
 ## Session Logging
 

@@ -4,11 +4,11 @@
 Accepted (2026-03-11). Supersedes ADR 006 (CSS tokens).
 
 ## Context
-Two mockup sets exist in `prime-mockups/`:
-- **unified-v2**: 17 HTML files defining a sharp, technical aesthetic
-- **hack.build root**: 6 HTML files with expressive, readable layouts
+Two design explorations informed this direction:
+- **unified-v2**: Sharp, technical aesthetic (strong borders, offset shadows, monospace labels)
+- **hack.build**: Expressive, readable layouts (generous spacing, content-first)
 
-Neither alone is right. Unified-v2 has the right visual identity but cramped sizing. Hack.build has the right readability but too decorative.
+Neither alone was right. Unified-v2 had the right visual identity but cramped sizing. Hack.build had the right readability but was too decorative.
 
 ## Decision
 Merge both: **unified-v2 aesthetic + hack.build readability**.
@@ -47,4 +47,4 @@ New tokens in `packages/ui/theme/base.css`:
 - Old themes (hackbuild.css, deepwood.css, deveco.css) removed
 - New themes: base (light) + dark + generics
 - All components reference tokens exclusively — zero hardcoded values
-- Design source of truth: `prime-mockups/unified-v2/00-design-system.html`
+- Design source of truth: `packages/ui/theme/` (base.css, dark.css, components.css)
