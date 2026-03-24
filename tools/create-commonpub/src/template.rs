@@ -4,8 +4,8 @@ pub fn render_env(config: &InstanceConfig) -> String {
     let mut env = format!(
         r#"# CommonPub Instance: {name}
 
-# Database
-DATABASE_URL={database_url}
+# Database (Nuxt reads NUXT_DATABASE_URL for runtimeConfig.databaseUrl)
+NUXT_DATABASE_URL={database_url}
 
 # Redis
 REDIS_URL={redis_url}
@@ -1027,7 +1027,7 @@ export default defineConfig({{
   out: './migrations',
   dialect: 'postgresql',
   dbCredentials: {{
-    url: process.env.DATABASE_URL || '{database_url}',
+    url: process.env.NUXT_DATABASE_URL || process.env.DATABASE_URL || '{database_url}',
   }},
 }});
 "#,
