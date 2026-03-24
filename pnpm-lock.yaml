@@ -125,6 +125,9 @@ importers:
       pg:
         specifier: ^8.13.0
         version: 8.20.0
+      sharp:
+        specifier: ^0.34.5
+        version: 0.34.5
       vue:
         specifier: ^3.4.0
         version: 3.5.30(typescript@5.9.3)

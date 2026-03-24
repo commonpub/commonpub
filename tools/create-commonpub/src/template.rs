@@ -14,6 +14,9 @@ REDIS_URL={redis_url}
 AUTH_SECRET=change-me-in-production-min-32-chars
 NUXT_AUTH_ORIGIN=http://{domain}
 
+# Site URL (used for upload URLs and SEO)
+NUXT_PUBLIC_SITE_URL=http://{domain}
+
 # Instance
 INSTANCE_DOMAIN={domain}
 INSTANCE_NAME={name}
