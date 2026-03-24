@@ -869,6 +869,20 @@ export function useAuth() {
 // ── Pages & layouts ───────────────────────────────────────
 
 pub fn render_default_layout(config: &InstanceConfig) -> String {
+    let mut nav_links = vec![("/", "Home")];
+    if config.feature_content { nav_links.push(("/explore", "Explore")); }
+    if config.feature_hubs { nav_links.push(("/hubs", "Hubs")); }
+    if config.feature_contests { nav_links.push(("/contests", "Contests")); }
+    if config.feature_docs { nav_links.push(("/docs", "Docs")); }
+    if config.feature_learning { nav_links.push(("/learn", "Learn")); }
+    if config.feature_admin { nav_links.push(("/admin", "Admin")); }
+
+    let links_html: String = nav_links
+        .iter()
+        .map(|(path, label)| format!("          <NuxtLink to=\"{}\">{}</NuxtLink>", path, label))
+        .collect::<Vec<_>>()
+        .join("\n");
+
     format!(
         r#"<template>
   <div class="cpub-layout">
@@ -876,7 +890,7 @@ pub fn render_default_layout(config: &InstanceConfig) -> String {
       <nav class="cpub-nav">
         <NuxtLink to="/" class="cpub-nav-brand">{name}</NuxtLink>
         <div class="cpub-nav-links">
-          <NuxtLink to="/">Home</NuxtLink>
+{links}
         </div>
       </nav>
     </header>
@@ -890,10 +904,25 @@ pub fn render_default_layout(config: &InstanceConfig) -> String {
 </template>
 "#,
         name = config.name,
+        links = links_html,
     )
 }
 
 pub fn render_index_page(config: &InstanceConfig) -> String {
+    // Build a description of enabled features for the index page
+    let mut enabled: Vec<&str> = Vec::new();
+    if config.feature_content { enabled.push("content"); }
+    if config.feature_hubs { enabled.push("hubs"); }
+    if config.feature_contests { enabled.push("contests"); }
+    if config.feature_docs { enabled.push("docs"); }
+    if config.feature_learning { enabled.push("learning"); }
+
+    let features_text = if enabled.is_empty() {
+        config.description.clone()
+    } else {
+        config.description.clone()
+    };
+
     format!(
         r#"<template>
   <div class="cpub-page-index">
@@ -909,8 +938,55 @@ useHead({{
 </script>
 "#,
         name = config.name,
-        description = config.description,
+        description = features_text,
     )
+}
+
+// ── Feature page stubs ────────────────────────────────────
+
+fn render_page_stub(class: &str, title: &str, description: &str) -> String {
+    format!(
+        r#"<template>
+  <div class="cpub-page-{class}">
+    <h1>{title}</h1>
+    <p>{description}</p>
+  </div>
+</template>
+
+<script setup lang="ts">
+useHead({{
+  title: '{title}',
+}});
+</script>
+"#,
+        class = class,
+        title = title,
+        description = description,
+    )
+}
+
+pub fn render_explore_page() -> String {
+    render_page_stub("explore", "Explore", "Discover projects and posts from the community.")
+}
+
+pub fn render_hubs_page() -> String {
+    render_page_stub("hubs", "Hubs", "Browse and join community hubs.")
+}
+
+pub fn render_contests_page() -> String {
+    render_page_stub("contests", "Contests", "View active and upcoming contests.")
+}
+
+pub fn render_docs_page() -> String {
+    render_page_stub("docs", "Docs", "Browse documentation sites.")
+}
+
+pub fn render_learning_page() -> String {
+    render_page_stub("learn", "Learn", "Explore learning paths and courses.")
+}
+
+pub fn render_admin_page() -> String {
+    render_page_stub("admin", "Admin", "Instance administration.")
 }
 
 // ── Infra files ───────────────────────────────────────────
@@ -1411,6 +1487,60 @@ mod tests {
         assert!(layout.contains("cpub-layout"));
         assert!(layout.contains("main-content"));
         assert!(layout.contains("commonpub.dev"));
+    }
+
+    #[test]
+    fn default_layout_nav_reflects_features() {
+        // Default config has: content, social, hubs, docs, video, learning, explainers ON
+        let layout = render_default_layout(&test_config());
+        assert!(layout.contains("Explore")); // content
+        assert!(layout.contains("Hubs"));
+        assert!(layout.contains("Docs"));
+        assert!(layout.contains("Learn"));
+        assert!(!layout.contains("Contests")); // contests off by default
+        assert!(!layout.contains("Admin")); // admin off by default
+    }
+
+    #[test]
+    fn minimal_layout_nav_only_has_home() {
+        let mut config = test_config();
+        config.feature_content = false;
+        config.feature_social = false;
+        config.feature_hubs = false;
+        config.feature_docs = false;
+        config.feature_video = false;
+        config.feature_learning = false;
+        config.feature_explainers = false;
+        let layout = render_default_layout(&config);
+        assert!(layout.contains("Home"));
+        assert!(!layout.contains("Explore"));
+        assert!(!layout.contains("Hubs"));
+        assert!(!layout.contains("Docs"));
+    }
+
+    #[test]
+    fn contests_layout_nav_shows_contests() {
+        let mut config = test_config();
+        config.feature_contests = true;
+        config.feature_admin = true;
+        let layout = render_default_layout(&config);
+        assert!(layout.contains("Contests"));
+        assert!(layout.contains("Admin"));
+    }
+
+    #[test]
+    fn page_stubs_have_correct_structure() {
+        let hubs = render_hubs_page();
+        assert!(hubs.contains("cpub-page-hubs"));
+        assert!(hubs.contains("useHead"));
+        assert!(hubs.contains("Hubs"));
+
+        let contests = render_contests_page();
+        assert!(contests.contains("cpub-page-contests"));
+        assert!(contests.contains("Contests"));
+
+        let admin = render_admin_page();
+        assert!(admin.contains("cpub-page-admin"));
     }
 
     #[test]

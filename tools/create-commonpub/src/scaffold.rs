@@ -92,8 +92,26 @@ fn write_files(dir: &Path, config: &InstanceConfig) -> Result<(), Box<dyn std::e
     // Default layout
     fs::write(dir.join("layouts/default.vue"), template::render_default_layout(config))?;
 
-    // Index page
+    // Pages — index + feature-specific stubs
     fs::write(dir.join("pages/index.vue"), template::render_index_page(config))?;
+    if config.feature_content {
+        fs::write(dir.join("pages/explore.vue"), template::render_explore_page())?;
+    }
+    if config.feature_hubs {
+        fs::write(dir.join("pages/hubs.vue"), template::render_hubs_page())?;
+    }
+    if config.feature_contests {
+        fs::write(dir.join("pages/contests.vue"), template::render_contests_page())?;
+    }
+    if config.feature_docs {
+        fs::write(dir.join("pages/docs.vue"), template::render_docs_page())?;
+    }
+    if config.feature_learning {
+        fs::write(dir.join("pages/learn.vue"), template::render_learning_page())?;
+    }
+    if config.feature_admin {
+        fs::write(dir.join("pages/admin.vue"), template::render_admin_page())?;
+    }
 
     // .gitignore
     fs::write(dir.join(".gitignore"), template::render_gitignore())?;
