@@ -43,6 +43,9 @@ target/
 reports/
 .stryker-tmp/
 
+# Local test site
+test-site/
+
 # Misc
 *.log
 *.tsbuildinfo
