@@ -53,6 +53,23 @@ export default defineNuxtConfig({
       domain: 'localhost:3000',
       siteName: 'CommonPub',
       siteDescription: 'A CommonPub instance',
+      // Feature flags — override with NUXT_PUBLIC_FEATURES_HUBS=false etc.
+      features: {
+        content: true,
+        social: true,
+        hubs: true,
+        docs: true,
+        video: true,
+        contests: false,
+        learning: true,
+        explainers: true,
+        federation: false,
+        admin: false,
+      },
+      // Enabled content types (comma-separated) — override with NUXT_PUBLIC_CONTENT_TYPES=project,blog
+      contentTypes: 'project,article,blog,explainer',
+      // Who can create contests — override with NUXT_PUBLIC_CONTEST_CREATION=staff
+      contestCreation: 'admin',
     },
   },
   routeRules: {
