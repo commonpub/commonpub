@@ -331,7 +331,7 @@
 .cpub-filter-chip.active,
 .cpub-filter-chip[aria-pressed="true"] {
   background: var(--accent);
-  color: #fff;
+  color: var(--color-on-accent);
   border-color: var(--accent);
 }
 
@@ -364,7 +364,7 @@
 
 .cpub-btn-primary {
   background: var(--accent);
-  color: #fff;
+  color: var(--color-on-accent);
   border-color: var(--border);
   box-shadow: var(--shadow-sm);
 }

@@ -220,7 +220,7 @@ body {
   z-index: var(--z-tooltip);
   padding: var(--space-2) var(--space-4);
   background: var(--accent);
-  color: #ffffff;
+  color: var(--color-on-accent);
   font-family: var(--font-mono);
   font-size: var(--text-sm);
   font-weight: var(--font-weight-bold);

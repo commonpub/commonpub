@@ -150,7 +150,7 @@
   top: 0px;
   width: 5px;
   height: 9px;
-  border: solid #fff;
+  border: solid var(--color-text-inverse);
   border-width: 0 2px 2px 0;
   transform: rotate(45deg);
 }

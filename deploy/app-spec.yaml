@@ -29,6 +29,32 @@ services:
         scope: RUN_TIME
       - key: INSTANCE_DESCRIPTION
         scope: RUN_TIME
+      - key: NUXT_PUBLIC_SITE_URL
+        scope: RUN_TIME
+      - key: FEATURE_CONTENT
+        scope: RUN_TIME
+        value: 'true'
+      - key: FEATURE_SOCIAL
+        scope: RUN_TIME
+        value: 'true'
+      - key: FEATURE_HUBS
+        scope: RUN_TIME
+        value: 'true'
+      - key: FEATURE_DOCS
+        scope: RUN_TIME
+        value: 'true'
+      - key: FEATURE_VIDEO
+        scope: RUN_TIME
+        value: 'true'
+      - key: FEATURE_LEARNING
+        scope: RUN_TIME
+        value: 'true'
+      - key: FEATURE_EXPLAINERS
+        scope: RUN_TIME
+        value: 'true'
+      - key: FEATURE_CONTESTS
+        scope: RUN_TIME
+        value: 'false'
       - key: FEATURE_ADMIN
         scope: RUN_TIME
         value: 'true'
@@ -38,6 +64,8 @@ services:
       - key: NODE_ENV
         scope: RUN_TIME
         value: production
+      # Meilisearch not included — search falls back to Postgres full-text search.
+      # To add Meilisearch, deploy separately and set MEILI_URL + MEILI_MASTER_KEY.
 
 databases:
   - engine: PG

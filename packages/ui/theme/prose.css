@@ -72,8 +72,8 @@
 
 /* Code blocks */
 .cpub-prose pre {
-  background: #1a1a1a;
-  color: #e0e0e0;
+  background: var(--text);
+  color: var(--surface3);
   padding: var(--space-4);
   margin: var(--space-5) 0;
   border: var(--border-width-default) solid var(--border);
