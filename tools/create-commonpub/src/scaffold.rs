@@ -52,6 +52,9 @@ fn write_files(dir: &Path, config: &InstanceConfig) -> Result<(), Box<dyn std::e
     let tsconfig = template::render_tsconfig();
     fs::write(dir.join("tsconfig.json"), tsconfig)?;
 
+    let drizzle_config = template::render_drizzle_config(config);
+    fs::write(dir.join("drizzle.config.ts"), drizzle_config)?;
+
     let app_vue = template::render_app_vue(config);
     fs::write(dir.join("app.vue"), app_vue)?;
 

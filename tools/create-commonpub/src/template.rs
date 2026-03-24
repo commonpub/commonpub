@@ -280,7 +280,7 @@ pub fn render_package_json(config: &InstanceConfig) -> String {
     "zod": "^3.24.0"
   }},
   "devDependencies": {{
-    "drizzle-kit": "^0.30.0",
+    "drizzle-kit": "^0.31.0",
     "typescript": "^5.7.0"
   }}
 }}
@@ -990,6 +990,23 @@ pub fn render_admin_page() -> String {
 }
 
 // ── Infra files ───────────────────────────────────────────
+
+pub fn render_drizzle_config(config: &InstanceConfig) -> String {
+    format!(
+        r#"import {{ defineConfig }} from 'drizzle-kit';
+
+export default defineConfig({{
+  schema: './node_modules/@commonpub/schema/dist/*.js',
+  out: './migrations',
+  dialect: 'postgresql',
+  dbCredentials: {{
+    url: process.env.DATABASE_URL || '{database_url}',
+  }},
+}});
+"#,
+        database_url = config.database_url,
+    )
+}
 
 pub fn render_gitignore() -> String {
     r#"# Dependencies
