@@ -13,9 +13,11 @@ const prefs = ref({
 });
 
 // Load current preferences from profile
-const { data: profile } = await useFetch('/api/profile');
-if ((profile.value as any)?.notificationPrefs) {
-  const saved = (profile.value as any).notificationPrefs as Record<string, boolean>;
+import type { Serialized, UserProfile } from '@commonpub/server';
+
+const { data: profile } = await useFetch<Serialized<UserProfile> & { notificationPrefs?: Record<string, boolean> }>('/api/profile');
+if (profile.value?.notificationPrefs) {
+  const saved = profile.value.notificationPrefs;
   for (const key of Object.keys(prefs.value)) {
     if (key in saved) {
       (prefs.value as Record<string, boolean>)[key] = saved[key];

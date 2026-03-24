@@ -4,6 +4,7 @@
  * Replaces CpubEditor in read-only mode so interactive blocks (quiz, slider)
  * render fully instead of as TipTap placeholders.
  */
+import type { Component } from 'vue';
 import { sanitizeBlockHtml } from '~/composables/useSanitize';
 import BlockTextView from './BlockTextView.vue';
 import BlockHeadingView from './BlockHeadingView.vue';
@@ -107,7 +108,7 @@ function onCheckpointReached(blockIndex: number): void {
   <div class="cpub-block-renderer">
     <template v-for="block in visibleBlocks" :key="block.index">
       <component
-        :is="resolveComponent(block.type) as any"
+        :is="(resolveComponent(block.type) as Component)"
         v-if="resolveComponent(block.type)"
         :content="block.data"
         :step-number="block.type === 'buildStep' ? stepCounters[block.index] : undefined"

@@ -1,14 +1,29 @@
 <script setup lang="ts">
 import { sanitizeHtml } from '@commonpub/docs';
+import type { Serialized, LearningPathDetail } from '@commonpub/server';
+
+interface LessonResponse {
+  lesson: {
+    id: string;
+    slug: string;
+    title: string;
+    type: string;
+    content: unknown;
+    duration: number | null;
+    contentItemId: string | null;
+  };
+  module: { id: string; title: string };
+  pathId: string;
+  linkedContent?: { id: string; title: string; slug: string; type: string; content: unknown };
+  renderedHtml: string;
+}
 
 const route = useRoute();
 const slug = computed(() => route.params.slug as string);
 const lessonSlug = computed(() => route.params.lessonSlug as string);
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- useFetch union types can't be narrowed; runtime types are correct
-const { data: lessonData, pending: lessonPending, error: lessonError, refresh: refreshLesson } = useLazyFetch(() => `/api/learn/${slug.value}/${lessonSlug.value}`) as any;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const { data: path } = useLazyFetch(() => `/api/learn/${slug.value}`) as any;
+const { data: lessonData, pending: lessonPending, error: lessonError, refresh: refreshLesson } = useLazyFetch<LessonResponse>(() => `/api/learn/${slug.value}/${lessonSlug.value}`);
+const { data: path } = useLazyFetch<Serialized<LearningPathDetail>>(() => `/api/learn/${slug.value}`);
 
 const lesson = computed(() => lessonData.value?.lesson);
 const lessonModule = computed(() => lessonData.value?.module);

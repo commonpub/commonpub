@@ -2,15 +2,17 @@
 useSeoMeta({ title: 'Messages — CommonPub' });
 definePageMeta({ middleware: 'auth' });
 
-const { data: conversations, refresh } = await useFetch('/api/messages', {
-  default: () => [] as Array<{
-    id: string;
-    participants: string[];
-    lastMessage: string | null;
-    lastMessageAt: string;
-    createdAt: string;
-    unread?: boolean;
-  }>,
+interface ConversationItem {
+  id: string;
+  participants: string[];
+  lastMessage: string | null;
+  lastMessageAt: string;
+  createdAt: string;
+  unread?: boolean;
+}
+
+const { data: conversations, refresh } = await useFetch<ConversationItem[]>('/api/messages', {
+  default: () => [] as ConversationItem[],
 });
 
 const showNewDialog = ref(false);
@@ -91,7 +93,7 @@ async function startConversation(): Promise<void> {
         :key="conv.id"
         :to="`/messages/${conv.id}`"
         class="cpub-conversation-item"
-        :class="{ unread: (conv as any).unread }"
+        :class="{ unread: conv.unread }"
       >
         <div class="cpub-conv-avatar">{{ (conv.participants?.[0] ?? '?').charAt(0).toUpperCase() }}</div>
         <div class="cpub-conv-info">

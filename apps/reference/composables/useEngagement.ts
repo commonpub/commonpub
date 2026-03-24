@@ -73,7 +73,7 @@ export interface ContentViewData {
   hardwarePrimary?: string;
   hardwareSecondary?: string;
   hardwareTertiary?: string;
-  community?: { name: string; description: string | null };
+  community?: { name: string; slug: string; description: string | null };
   related?: Array<{ id: string; type: string; slug: string; title: string; readTime?: string; viewCount?: number }>;
   seriesPart?: number;
   seriesTitle?: string;

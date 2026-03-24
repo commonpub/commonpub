@@ -7,10 +7,15 @@ const toast = useToast();
 
 import type { Serialized, LearningPathDetail } from '@commonpub/server';
 
-type PathModule = NonNullable<Serialized<LearningPathDetail>['modules']>[number];
+type PathLesson = NonNullable<Serialized<LearningPathDetail>['modules']>[number]['lessons'][number] & {
+  contentItemId?: string | null;
+  content?: unknown;
+};
+type PathModule = Omit<NonNullable<Serialized<LearningPathDetail>['modules']>[number], 'lessons'> & {
+  lessons: PathLesson[];
+};
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Serialized type is too narrow for lesson fields (contentItemId, content)
-const { data: path, pending: pathPending, error: pathError, refresh } = useLazyFetch(() => `/api/learn/${slug.value}`) as any;
+const { data: path, pending: pathPending, error: pathError, refresh } = useLazyFetch<Serialized<LearningPathDetail>>(() => `/api/learn/${slug.value}`);
 
 useSeoMeta({ title: () => `Edit ${path.value?.title ?? 'Path'} — CommonPub` });
 
@@ -276,7 +281,7 @@ async function handlePublish(): Promise<void> {
 
         <!-- Lessons in this module -->
         <div class="cpub-lessons-list">
-          <div v-for="lesson in (mod.lessons ?? [])" :key="lesson.id" class="cpub-lesson-row">
+          <div v-for="lesson in ((mod.lessons ?? []) as PathLesson[])" :key="lesson.id" class="cpub-lesson-row">
             <i class="fa-solid fa-grip-vertical cpub-lesson-grip"></i>
             <span class="cpub-lesson-type-badge">{{ lesson.type }}</span>
             <span v-if="lesson.contentItemId" class="cpub-lesson-linked-badge" title="Linked to content"><i class="fa-solid fa-link"></i></span>

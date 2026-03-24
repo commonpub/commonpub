@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { Serialized, ContentListItem, PaginatedResponse } from '@commonpub/server';
+
 useSeoMeta({
   title: 'Feed — CommonPub',
   description: 'Recent published content from the community.',
@@ -17,7 +19,7 @@ const contentQuery = computed(() => ({
   limit: 12,
 }));
 
-const { data, status } = await useFetch('/api/content', {
+const { data, status } = await useFetch<PaginatedResponse<Serialized<ContentListItem>>>('/api/content', {
   query: contentQuery,
   watch: [contentQuery],
 });
@@ -78,7 +80,7 @@ const filters = computed(() => [
 
     <!-- Content Grid -->
     <div v-if="items.length" class="feed-grid">
-      <ContentCard v-for="item in items" :key="item.id" :item="(item as any)" />
+      <ContentCard v-for="item in items" :key="item.id" :item="item" />
     </div>
 
     <div v-else-if="status === 'pending'" class="feed-loading">Loading...</div>

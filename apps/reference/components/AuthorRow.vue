@@ -1,6 +1,8 @@
 <script setup lang="ts">
+import type { UserRef } from '@commonpub/server';
+
 defineProps<{
-  author: { username: string; displayName?: string; avatarUrl?: string | null };
+  author: UserRef;
   date: string;
   readTime?: string;
 }>();

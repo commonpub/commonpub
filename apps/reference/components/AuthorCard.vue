@@ -1,13 +1,8 @@
 <script setup lang="ts">
+import type { ContentDetailAuthor } from '@commonpub/server';
+
 defineProps<{
-  author: {
-    username: string;
-    displayName?: string;
-    avatarUrl?: string | null;
-    bio?: string;
-    followerCount?: number;
-    contentCount?: number;
-  };
+  author: ContentDetailAuthor & { contentCount?: number };
 }>();
 </script>
 

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { Serialized, ContentListItem, PaginatedResponse } from '@commonpub/server';
+
 useSeoMeta({
   title: 'Explore — CommonPub',
   description: 'Discover projects, articles, hubs, and learning paths on CommonPub.',
@@ -18,7 +20,7 @@ const contentQuery = computed(() => ({
   limit: 20,
 }));
 
-const { data: content, pending: contentPending, error: contentError, refresh: refreshContent } = await useFetch('/api/content', {
+const { data: content, pending: contentPending, error: contentError, refresh: refreshContent } = await useFetch<PaginatedResponse<Serialized<ContentListItem>>>('/api/content', {
   query: contentQuery,
   watch: [contentQuery],
 });
@@ -118,7 +120,7 @@ const sortOptions = [
         <button class="cpub-btn cpub-btn-sm" @click="refreshContent()">Retry</button>
       </div>
       <div v-else-if="content?.items?.length" class="cpub-explore-grid">
-        <ContentCard v-for="item in content.items" :key="item.id" :item="(item as any)" />
+        <ContentCard v-for="item in content.items" :key="item.id" :item="item" />
       </div>
       <div v-else class="cpub-empty-state">
         <p class="cpub-empty-state-title">No content found</p>

@@ -2,8 +2,9 @@
 const route = useRoute();
 const slug = computed(() => route.params.slug as string);
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- useFetch union type can't be narrowed; runtime types are correct
-const { data: path, pending: pathPending, error: pathError, refresh } = useLazyFetch(() => `/api/learn/${slug.value}`) as any;
+import type { Serialized, LearningPathDetail } from '@commonpub/server';
+
+const { data: path, pending: pathPending, error: pathError, refresh } = useLazyFetch<Serialized<LearningPathDetail>>(() => `/api/learn/${slug.value}`);
 
 useSeoMeta({
   title: () => path.value ? `${path.value.title} — Learn — CommonPub` : 'Learn — CommonPub',

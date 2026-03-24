@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { Serialized, ContentListItem, PaginatedResponse } from '@commonpub/server';
+
 const route = useRoute();
 const contentType = computed(() => route.params.type as string);
 
@@ -10,7 +12,7 @@ useSeoMeta({
 const sortBy = ref('recent');
 const sortOptions = ['recent', 'popular'] as const;
 
-const { data } = await useFetch('/api/content', {
+const { data } = await useFetch<PaginatedResponse<Serialized<ContentListItem>>>('/api/content', {
   query: computed(() => ({
     status: 'published',
     type: contentType.value,
@@ -35,7 +37,7 @@ const { data } = await useFetch('/api/content', {
     </div>
 
     <div class="cpub-listing-grid" v-if="data?.items?.length">
-      <ContentCard v-for="item in data.items" :key="item.id" :item="(item as any)" />
+      <ContentCard v-for="item in data.items" :key="item.id" :item="item" />
     </div>
     <p class="cpub-listing-empty" v-else>No {{ contentType }}s published yet.</p>
   </div>

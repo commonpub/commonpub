@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { ContentType } from '@commonpub/server';
+
 useSeoMeta({ title: 'Create — CommonPub' });
 definePageMeta({ middleware: 'auth' });
 
@@ -44,7 +46,7 @@ const allTypes = [
   },
 ];
 
-const types = computed(() => allTypes.filter(t => isTypeEnabled(t.type as any)));
+const types = computed(() => allTypes.filter(t => isTypeEnabled(t.type as ContentType)));
 </script>
 
 <template>

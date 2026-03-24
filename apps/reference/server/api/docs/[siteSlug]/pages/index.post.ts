@@ -24,5 +24,5 @@ export default defineEventHandler(async (event) => {
     data.versionId = defaultVersion.id;
   }
 
-  return createDocsPage(db, user.id, data as any);
+  return createDocsPage(db, user.id, data as typeof data & { versionId: string });
 });

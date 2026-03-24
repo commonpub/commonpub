@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { Serialized, ContentListItem, PaginatedResponse } from '@commonpub/server';
+
 useSeoMeta({
   title: 'CommonPub — Edge AI & Maker Platform',
   description: 'Build, deploy, and document edge AI projects. Share with a community of makers.',
@@ -26,12 +28,12 @@ const contentQuery = computed(() => ({
   limit: 12,
 }));
 
-const { data: feed } = await useFetch('/api/content', {
+const { data: feed } = await useFetch<PaginatedResponse<Serialized<ContentListItem>>>('/api/content', {
   query: contentQuery,
   watch: [contentQuery],
 });
 
-const { data: featured } = await useFetch('/api/content', {
+const { data: featured } = await useFetch<PaginatedResponse<Serialized<ContentListItem>>>('/api/content', {
   query: { status: 'published', sort: 'popular', limit: 1 },
 });
 
@@ -198,7 +200,7 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
               {{ featured.items[0].description }}
             </p>
             <div class="cpub-card-author-row">
-              <AuthorRow :author="(featured.items[0].author as any)" :date="featured.items[0].publishedAt || featured.items[0].createdAt" />
+              <AuthorRow :author="featured.items[0].author" :date="featured.items[0].publishedAt || featured.items[0].createdAt" />
               <div class="cpub-card-stats">
                 <span class="cpub-stat-item"><i class="fa-solid fa-heart"></i> {{ featured.items[0].likeCount ?? 0 }}</span>
                 <span class="cpub-stat-item"><i class="fa-solid fa-comment"></i> {{ featured.items[0].commentCount ?? 0 }}</span>
@@ -209,7 +211,7 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
 
         <!-- Content grid (2-col) -->
         <div v-if="feed?.items?.length" class="cpub-content-grid">
-          <ContentCard v-for="item in feed.items" :key="item.id" :item="(item as any)" />
+          <ContentCard v-for="item in feed.items" :key="item.id" :item="item" />
         </div>
         <div v-else class="cpub-empty-state">
           <div class="cpub-empty-state-icon"><i :class="activeTab === 'following' ? 'fa-solid fa-user-group' : 'fa-solid fa-inbox'"></i></div>

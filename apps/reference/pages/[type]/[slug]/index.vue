@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { BlockTuple } from '@commonpub/editor';
+import type { Serialized, ContentDetail, ContentListItem, PaginatedResponse } from '@commonpub/server';
 
 const route = useRoute();
 const contentType = computed(() => route.params.type as string);
@@ -7,14 +8,14 @@ const slug = computed(() => route.params.slug as string);
 
 // Pass cookies so SSR can resolve auth (needed to view own drafts)
 const reqHeaders = import.meta.server ? useRequestHeaders(['cookie']) : {};
-const { data: content, pending: contentPending } = useLazyFetch(() => `/api/content/${slug.value}`, { headers: reqHeaders });
+const { data: content, pending: contentPending } = useLazyFetch<Serialized<ContentDetail>>(() => `/api/content/${slug.value}`, { headers: reqHeaders });
 
 // Explainer view uses its own topbar + full-height layout — disable the default layout
 // to avoid double-topbar and layout conflicts. Must also reset when navigating away
 // from an explainer (same page component is reused for all content types).
 watch(() => content.value?.type, (type) => {
   if (type === 'explainer') {
-    setPageLayout(false as any);
+    setPageLayout('default');
   } else if (type) {
     setPageLayout('default');
   }
@@ -68,9 +69,9 @@ const viewComponent = computed(() => {
 });
 
 // Related content
-const { data: related } = await useFetch('/api/content', {
+const { data: related } = await useFetch<PaginatedResponse<Serialized<ContentListItem>>>('/api/content', {
   query: { status: 'published', type: contentType.value, limit: 3, sort: 'recent' },
-}) as { data: Ref<{ items: any[]; total: number } | null> };
+});
 
 // Track view
 onMounted(() => {
@@ -114,7 +115,7 @@ onMounted(() => {
             {{ enrichedContent.subtitle || enrichedContent.description }}
           </p>
           <AuthorRow
-            :author="(enrichedContent.author as any)"
+            :author="enrichedContent.author"
             :date="enrichedContent.publishedAt || enrichedContent.createdAt"
             :read-time="readTime"
           />
@@ -137,7 +138,7 @@ onMounted(() => {
           <span class="cpub-view-tag" v-for="tag in enrichedContent.tags" :key="tag.id || tag.name">{{ tag.name || tag }}</span>
         </div>
 
-        <AuthorCard :author="(enrichedContent.author as any)" />
+        <AuthorCard :author="enrichedContent.author" />
         <CommentSection :target-type="enrichedContent.type" :target-id="enrichedContent.id" />
       </div>
     </article>
@@ -150,7 +151,7 @@ onMounted(() => {
           <ContentCard
             v-for="item in related.items.filter((i: Record<string, unknown>) => i.id !== enrichedContent?.id).slice(0, 3)"
             :key="item.id"
-            :item="(item as any)"
+            :item="item"
           />
         </div>
       </div>

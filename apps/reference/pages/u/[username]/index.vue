@@ -10,10 +10,10 @@ useSeoMeta({
 
 const { explainers: explainersEnabled, learning: learningEnabled } = useFeatures();
 
-import type { Serialized, UserProfile } from '@commonpub/server';
+import type { Serialized, UserProfile, ContentListItem, PaginatedResponse } from '@commonpub/server';
 
 const { data: profile, pending: profilePending, error: profileError, refresh: refreshProfile } = useLazyFetch<Serialized<UserProfile>>(`/api/users/${username}`);
-const { data: content } = useLazyFetch(`/api/users/${username}/content`);
+const { data: content } = useLazyFetch<PaginatedResponse<Serialized<ContentListItem>>>(`/api/users/${username}/content`);
 const { data: learningData } = useLazyFetch(`/api/users/${username}/learning`, {
   immediate: learningEnabled.value,
 });
@@ -259,7 +259,7 @@ async function handleReport(): Promise<void> {
         </div>
 
         <div v-if="filteredContent.length" class="cpub-grid-3">
-          <ContentCard v-for="item in filteredContent" :key="item.id" :item="(item as any)" />
+          <ContentCard v-for="item in filteredContent" :key="item.id" :item="item" />
         </div>
         <div v-else class="cpub-empty-state">
           <p class="cpub-empty-state-title">No {{ activeTab }} yet</p>

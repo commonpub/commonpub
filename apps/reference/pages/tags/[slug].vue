@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { Serialized, ContentListItem, PaginatedResponse } from '@commonpub/server';
+
 const route = useRoute();
 const tagSlug = computed(() => route.params.slug as string);
 
@@ -8,7 +10,7 @@ useSeoMeta({
 });
 
 const page = ref(0);
-const { data: results, refresh } = await useFetch('/api/content', {
+const { data: results, refresh } = await useFetch<PaginatedResponse<Serialized<ContentListItem>>>('/api/content', {
   query: computed(() => ({
     tag: tagSlug.value,
     status: 'published',
@@ -41,7 +43,7 @@ async function loadMore(): Promise<void> {
       <ContentCard
         v-for="item in items"
         :key="item.id"
-        :item="(item as any)"
+        :item="item"
       />
     </div>
 

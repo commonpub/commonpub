@@ -2,14 +2,14 @@
 const route = useRoute();
 const slug = computed(() => route.params.slug as string);
 
-import type { Serialized, HubDetail, HubPostItem, HubMemberItem, PaginatedResponse } from '@commonpub/server';
+import type { Serialized, HubDetail, HubPostItem, HubMemberItem, PaginatedResponse, ContentListItem } from '@commonpub/server';
 
 const { data: hub, pending: hubPending, error: hubError, refresh: refreshHub } = useLazyFetch<Serialized<HubDetail>>(() => `/api/hubs/${slug.value}`);
 const { data: posts } = useLazyFetch<Serialized<PaginatedResponse<HubPostItem>>>(() => `/api/hubs/${slug.value}/posts`, { default: () => ({ items: [], total: 0 }) });
 const { data: membersData } = useLazyFetch<{ items: Serialized<HubMemberItem>[]; total: number }>(() => `/api/hubs/${slug.value}/members`);
 const members = computed(() => membersData.value?.items ?? []);
 
-const { data: gallery } = useLazyFetch(() => `/api/hubs/${slug.value}/gallery`, { default: () => ({ items: [], total: 0 }) });
+const { data: gallery } = useLazyFetch<PaginatedResponse<Serialized<ContentListItem>>>(() => `/api/hubs/${slug.value}/gallery`, { default: () => ({ items: [], total: 0 }) });
 
 // Hub type
 const hubType = computed(() => hub.value?.hubType ?? 'community');
@@ -379,7 +379,7 @@ function handleLinkInsert(): void {
               <ContentCard
                 v-for="item in gallery.items"
                 :key="item.id"
-                :item="{ type: item.type, slug: item.slug, title: item.title, coverImageUrl: item.coverImageUrl ?? undefined, author: item.author ? { username: item.author.username, displayName: item.author.displayName } : undefined, createdAt: item.publishedAt ?? new Date().toISOString() }"
+                :item="item"
               />
             </div>
             <div v-else class="cpub-empty-state">

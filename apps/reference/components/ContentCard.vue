@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { Serialized, ContentListItem } from '@commonpub/server';
+
 /**
  * ContentCard — the primary card used across homepage, search, profile, hubs.
  * Matches the project card from mockup 01-homepage:
@@ -10,22 +12,7 @@
  * - Stats: hearts, views, comments
  */
 const props = defineProps<{
-  item: {
-    type: string;
-    slug: string;
-    title: string;
-    description?: string;
-    coverImageUrl?: string;
-    difficulty?: string;
-    isFeatured?: boolean;
-    author?: { username: string; displayName?: string | null; avatarUrl?: string | null };
-    publishedAt?: string;
-    createdAt: string;
-    viewCount?: number;
-    likeCount?: number;
-    commentCount?: number;
-    buildCount?: number;
-  };
+  item: Serialized<ContentListItem> & { isFeatured?: boolean };
 }>();
 
 const cover = computed(() => props.item.coverImageUrl);

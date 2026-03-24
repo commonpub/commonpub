@@ -321,7 +321,7 @@ export {
   deleteNotification,
   createNotification,
 } from './notification/index.js';
-export type { NotificationItem, NotificationFilters } from './notification/index.js';
+export type { NotificationItem, NotificationFilters, NotificationType } from './notification/index.js';
 
 // Messaging
 export {

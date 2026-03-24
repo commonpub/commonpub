@@ -43,10 +43,12 @@ const avatarInput = ref<HTMLInputElement | null>(null);
 const bannerInput = ref<HTMLInputElement | null>(null);
 
 // Load current profile
-const { data: profile } = await useFetch('/api/profile');
+import type { Serialized, UserProfile } from '@commonpub/server';
+
+const { data: profile } = await useFetch<Serialized<UserProfile>>('/api/profile');
 
 if (profile.value) {
-  const p = profile.value as any;
+  const p = profile.value;
   form.value.displayName = p.displayName || '';
   form.value.username = p.username || '';
   form.value.bio = p.bio || '';
@@ -57,16 +59,19 @@ if (profile.value) {
   form.value.bannerUrl = p.bannerUrl || '';
 
   if (Array.isArray(p.skills)) {
-    skills.value = [...p.skills];
+    skills.value = p.skills.map((s) =>
+      typeof s === 'string' ? { name: s, proficiency: 3 } : s,
+    );
   }
   if (p.socialLinks) {
     socialLinks.value.github = p.socialLinks.github || '';
     socialLinks.value.twitter = p.socialLinks.twitter || '';
     socialLinks.value.linkedin = p.socialLinks.linkedin || '';
-    socialLinks.value.website = p.socialLinks.website || '';
+    socialLinks.value.website = (p.socialLinks as Record<string, string | undefined>).website || '';
   }
-  if (Array.isArray(p.experience)) {
-    experience.value = p.experience.map((e: Record<string, unknown>) => ({ ...e }));
+  const profileRecord = p as Record<string, unknown>;
+  if (Array.isArray(profileRecord.experience)) {
+    experience.value = (profileRecord.experience as Array<Record<string, unknown>>).map((e) => ({ ...e }) as typeof experience.value[number]);
   }
 }
 

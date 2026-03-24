@@ -1,5 +1,5 @@
 import { listNotifications } from '@commonpub/server';
-import type { PaginatedResponse, NotificationItem } from '@commonpub/server';
+import type { PaginatedResponse, NotificationItem, NotificationType } from '@commonpub/server';
 import { z } from 'zod';
 
 const notificationsQuerySchema = z.object({
@@ -16,7 +16,7 @@ export default defineEventHandler(async (event): Promise<PaginatedResponse<Notif
 
   return listNotifications(db, {
     userId: user.id,
-    type: query.type as any,
+    type: query.type as NotificationType | undefined,
     read: query.read !== undefined ? query.read === 'true' : undefined,
     limit: query.limit,
     offset: query.offset,

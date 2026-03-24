@@ -481,7 +481,7 @@ async function handleBuild(): Promise<void> {
           <div v-if="content.tags?.length" class="cpub-sb-card">
             <div class="cpub-sb-title">Tags</div>
             <div class="cpub-tag-cloud">
-              <span v-for="tag in content.tags" :key="(tag as any).id || (tag as any).name || String(tag)" class="cpub-tag">{{ (tag as any).name || tag }}</span>
+              <span v-for="tag in content.tags" :key="tag.id || tag.name || String(tag)" class="cpub-tag">{{ tag.name || tag }}</span>
             </div>
           </div>
 
@@ -519,7 +519,7 @@ async function handleBuild(): Promise<void> {
               <div class="cpub-hub-icon"><i class="fa-solid fa-users"></i></div>
               <div class="cpub-hub-name">{{ content.community.name }}</div>
               <div class="cpub-hub-desc">{{ content.community.description }}</div>
-              <button class="cpub-btn cpub-btn-sm" @click="navigateTo(`/hubs/${(content.community as any)?.slug}`)">Join Community</button>
+              <button class="cpub-btn cpub-btn-sm" @click="navigateTo(`/hubs/${content.community?.slug}`)">Join Community</button>
             </div>
           </div>
         </aside>

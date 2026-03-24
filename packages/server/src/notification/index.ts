@@ -6,4 +6,4 @@ export {
   deleteNotification,
   createNotification,
 } from './notification.js';
-export type { NotificationItem, NotificationFilters } from './notification.js';
+export type { NotificationItem, NotificationFilters, NotificationType } from './notification.js';

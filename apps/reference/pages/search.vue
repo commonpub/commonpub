@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { Serialized, ContentListItem, PaginatedResponse } from '@commonpub/server';
+
 useSeoMeta({
   title: 'Search — CommonPub',
   description: 'Search for projects, articles, people, and communities.',
@@ -57,7 +59,7 @@ const searchQuery = computed(() => ({
   community: communityFilter.value || undefined,
 }));
 
-const { data: results, status } = await useFetch('/api/search', {
+const { data: results, status } = await useFetch<PaginatedResponse<Serialized<ContentListItem>>>('/api/search', {
   query: searchQuery,
   watch: [searchQuery],
   lazy: true,
@@ -267,7 +269,7 @@ const { data: relatedCommunities } = await useFetch('/api/hubs', {
             class="cpub-results-grid"
             :class="{ 'list-view': viewMode === 'list' }"
           >
-            <ContentCard v-for="item in results.items" :key="item.id" :item="(item as any)" />
+            <ContentCard v-for="item in results.items" :key="item.id" :item="item" />
           </div>
 
           <!-- PAGINATION -->
