@@ -110,6 +110,11 @@ function closeMobileSidebars(): void {
   mobileRightOpen.value = false;
 }
 
+// --- Inline title (local ref avoids textarea re-render clobbering) ---
+const titleRef = ref((props.metadata.title as string) || '');
+watch(() => props.metadata.title, (v) => { if (v !== titleRef.value) titleRef.value = (v as string) || ''; });
+watch(titleRef, (v) => updateMeta('title', v));
+
 // --- Canvas toolbar ---
 const viewportMode = ref<'desktop' | 'tablet' | 'mobile'>('desktop');
 const canvasMaxWidth = computed(() => {
@@ -190,11 +195,10 @@ const blockCount = computed(() => props.blockEditor.blocks.value.length);
 
           <!-- Title -->
           <textarea
+            v-model="titleRef"
             class="cpub-pe-title-inline"
             rows="2"
             placeholder="Project title..."
-            :value="(metadata.title as string) || ''"
-            @input="updateMeta('title', ($event.target as HTMLTextAreaElement).value)"
           />
 
           <EditorsBlockCanvas :block-editor="blockEditor" :block-types="blockTypes" />
