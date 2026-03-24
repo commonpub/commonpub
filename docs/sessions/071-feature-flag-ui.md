@@ -135,7 +135,31 @@
 - [ ] npm version of CLI (`create-commonpub` npm package)
 - [ ] Consider folding @commonpub/docs into @commonpub/server
 - [ ] Consider folding @commonpub/explainer into @commonpub/learning
-- [ ] 4 minor hardcoded colors in forms.css/prose.css (code block bg, checkbox fill)
+
+### Test Coverage + Final Fixes
+
+#### Integration Tests (42 new tests across 4 files)
+- messaging.integration.test.ts: 10 tests (conversations, messages, read receipts, auth checks; 1 skipped for PGlite JSONB `@>`)
+- notification.integration.test.ts: 10 tests (CRUD, type/read filtering, unread count, user isolation)
+- profile.integration.test.ts: 10 tests (stats aggregation, profile field updates, content queries by type)
+- theme-oauth.integration.test.ts: 12 tests (theme resolution fallback chain, OAuth single-use code atomicity)
+
+#### CSS Token Compliance (0 hardcoded colors remaining)
+- layouts.css: `#fff` → `var(--color-on-accent)` in filter chips + primary buttons
+- forms.css: `#fff` → `var(--color-text-inverse)` in checkbox checkmark
+- prose.css: `#1a1a1a`/`#e0e0e0` → `var(--text)`/`var(--surface3)` in code blocks
+- base.css: `#ffffff` → `var(--color-on-accent)` in skip-to-content link
+
+#### Feature Flag Route Guards
+- All 9 contest API routes gated on `features.contests` flag
+- All 11 admin API routes gated on `features.admin` flag
+- New `requireFeature()` helper in server/utils/validate.ts
+
+#### Infrastructure
+- deploy/app-spec.yaml: all feature flag env vars + Meilisearch fallback note
+- .github/workflows/ci.yml: conditional DATABASE_URL for macOS runners
+- .nvmrc created (Node 22)
+- .prettierrc: removed stale Svelte plugin
 
 ---
 
@@ -145,11 +169,12 @@
 |-------|--------|
 | `pnpm typecheck` | 25/25 pass |
 | `pnpm build` | 14/14 pass |
-| `pnpm test` | 29/29 suites, 0 skipped |
-| `pnpm lint` | 0 errors, 15 warnings (pre-existing) |
+| `pnpm test` | 29/29 suites, 312 passed, 1 skipped (PGlite JSONB) |
+| `pnpm lint` | 0 errors |
 | Production `as any` | 4 remaining (3 seed script, 1 Nitro limitation) |
-| Feature flags | 10 flags wired end-to-end |
-| UI flag-aware | 12+ files updated |
+| Feature flags | 10 flags wired end-to-end, all enforced in routes |
+| CSS hardcoded colors | 0 (all converted to var(--*)) |
+| Integration test coverage | All 13 server modules have integration tests |
 | Auth | Sign-up/sign-in working |
 | Editor | Working (with @tiptap/pm fix) |
 | Federation | Inbox routes gated + HTTP sig verified |
