@@ -143,7 +143,7 @@ function insertBlock(block: BlockDef): void {
   display: flex;
   align-items: center;
   gap: 9px;
-  padding: 6px 10px;
+  padding: 10px 10px;
   cursor: pointer;
   border: 2px solid transparent;
   background: transparent;
@@ -203,5 +203,10 @@ function insertBlock(block: BlockDef): void {
   color: var(--text-faint);
   padding: 12px;
   text-align: center;
+}
+
+/* Touch devices: always show drag grip since there's no hover */
+@media (hover: none) {
+  .cpub-bl-block-drag { opacity: 1; }
 }
 </style>

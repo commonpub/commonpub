@@ -78,7 +78,9 @@ export default defineNuxtConfig({
     },
   },
   routeRules: {
-    '/docs/**': { prerender: true },
+    ...(process.env.NUXT_PUBLIC_FEATURES_DOCS !== 'false' && {
+      '/docs/**': { prerender: true },
+    }),
   },
   nitro: {
     preset: 'node-server',

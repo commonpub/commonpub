@@ -1,4 +1,4 @@
-import { eq, and, desc, sql, asc, inArray } from 'drizzle-orm';
+import { eq, and, desc, sql, asc, or, type SQL } from 'drizzle-orm';
 import {
   learningPaths,
   learningModules,
@@ -134,10 +134,14 @@ export async function getPathBySlug(
   const moduleIds = modules.map((m) => m.id);
   let lessons: Array<typeof learningLessons.$inferSelect> = [];
   if (moduleIds.length > 0) {
+    // Use or(eq(...), eq(...)) instead of inArray for PGlite compatibility
+    const moduleCondition = moduleIds.length === 1
+      ? eq(learningLessons.moduleId, moduleIds[0]!)
+      : or(...moduleIds.map((id) => eq(learningLessons.moduleId, id))) as SQL;
     lessons = await db
       .select()
       .from(learningLessons)
-      .where(inArray(learningLessons.moduleId, moduleIds))
+      .where(moduleCondition)
       .orderBy(asc(learningLessons.sortOrder));
   }
 
@@ -274,9 +278,10 @@ export async function deletePath(db: DB, pathId: string, authorId: string): Prom
   const result = await db
     .update(learningPaths)
     .set({ status: 'archived', updatedAt: new Date() })
-    .where(and(eq(learningPaths.id, pathId), eq(learningPaths.authorId, authorId)));
+    .where(and(eq(learningPaths.id, pathId), eq(learningPaths.authorId, authorId)))
+    .returning({ id: learningPaths.id });
 
-  return (result.rowCount ?? 0) > 0;
+  return result.length > 0;
 }
 
 export async function publishPath(

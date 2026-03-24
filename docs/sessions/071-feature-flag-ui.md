@@ -48,11 +48,34 @@
 
 ---
 
+### Production Readiness Sweep (Post-Session)
+
+#### Security + API Correctness
+- Federation inbox guards: both inbox routes now return 404 when `federation` flag is off
+- HTTP Signature verification wired in both inbox routes using `verifyHttpSignature()` + `resolveActor()` from protocol package
+- Conditional docs prerendering: `/docs/**` route rule skipped when `NUXT_PUBLIC_FEATURES_DOCS=false`
+- CLI scaffolder Zod version fixed: `^3.24.0` → `^4.3.6` to match monorepo
+
+#### Mobile Editor UX
+- Touch-friendly cover image overlays: `@media (hover: none)` + `:focus-within` on ProjectEditor, ArticleEditor, BlogEditor
+- Block library touch targets: padding increased from `6px 10px` → `10px 10px` for 44px WCAG minimum
+- Floating toolbar viewport clamping: `Math.max`/`Math.min` prevents overflow on small screens
+- Block wrapper controls: drag handle + control buttons always visible on touch devices
+- Mobile slide-out sidebars: all 4 editors (Project, Article, Blog, Explainer) now have fixed sidebar slide-outs with toggle buttons + overlay instead of `display: none`
+
+#### Documentation + Code Quality
+- CLI README rewritten: all flags documented, Nuxt 3 generation, Phase 3 note
+- Deployment docs: "Deploying a Scaffolded Site" section covering Docker, npm, S3, email
+- ADR-014 fix: removed stale "guide" content type + "svelte:head" reference
+- 5 skipped learning tests fixed: replaced `inArray` with `or(eq(...))` for PGlite compatibility, `deletePath` uses `.returning()` instead of `rowCount`
+- `.stryker-tmp/` confirmed gitignored and untracked
+- Search API empty query confirmed working (false positive)
+
+---
+
 ## Open Items
 
 - [ ] Phase 3: CLI rearchitecture (copy + patch approach)
-- [ ] Cover photo upload UI for all content types
-- [ ] Search API validation (empty `q` param returns 500)
 - [ ] Email: works via ConsoleEmailAdapter (logs to server), no SMTP/Resend configured
 - [ ] npm version of CLI (`create-commonpub` npm package)
 

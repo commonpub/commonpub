@@ -156,6 +156,22 @@ const wordCount = computed(() => {
 const readTime = computed(() => Math.max(1, Math.round(wordCount.value / 200)));
 const blockCount = computed(() => props.blockEditor.blocks.value.length);
 
+// --- Mobile sidebar toggles ---
+const mobileLeftOpen = ref(false);
+const mobileRightOpen = ref(false);
+function toggleMobileLeft(): void {
+  mobileLeftOpen.value = !mobileLeftOpen.value;
+  if (mobileLeftOpen.value) mobileRightOpen.value = false;
+}
+function toggleMobileRight(): void {
+  mobileRightOpen.value = !mobileRightOpen.value;
+  if (mobileRightOpen.value) mobileLeftOpen.value = false;
+}
+function closeMobileSidebars(): void {
+  mobileLeftOpen.value = false;
+  mobileRightOpen.value = false;
+}
+
 // --- Canvas toolbar ---
 const viewportMode = ref<'desktop' | 'tablet' | 'mobile'>('desktop');
 const canvasMaxWidth = computed(() => {
@@ -167,8 +183,15 @@ const canvasMaxWidth = computed(() => {
 
 <template>
   <div class="cpub-ae-shell">
+    <!-- Mobile sidebar toggles -->
+    <div class="cpub-ae-mobile-toggles">
+      <button class="cpub-ae-mobile-btn" aria-label="Toggle modules panel" @click="toggleMobileLeft"><i class="fa-solid fa-layer-group"></i></button>
+      <button class="cpub-ae-mobile-btn" aria-label="Toggle properties panel" @click="toggleMobileRight"><i class="fa-solid fa-sliders"></i></button>
+    </div>
+    <div v-if="mobileLeftOpen || mobileRightOpen" class="cpub-ae-mobile-overlay" @click="closeMobileSidebars" />
+
     <!-- LEFT: Tabbed panel (Modules / Structure / Assets) -->
-    <aside class="cpub-ae-left" aria-label="Editor sidebar">
+    <aside class="cpub-ae-left" :class="{ 'cpub-ae-sidebar-open': mobileLeftOpen }" aria-label="Editor sidebar">
       <div class="cpub-ae-left-tabs">
         <button class="cpub-ae-left-tab" :class="{ active: activeLeftTab === 'modules' }" @click="activeLeftTab = 'modules'">Modules</button>
         <button class="cpub-ae-left-tab" :class="{ active: activeLeftTab === 'structure' }" @click="activeLeftTab = 'structure'">Structure</button>
@@ -267,7 +290,7 @@ const canvasMaxWidth = computed(() => {
     </div>
 
     <!-- RIGHT: Properties -->
-    <aside class="cpub-ae-right" aria-label="Document properties">
+    <aside class="cpub-ae-right" :class="{ 'cpub-ae-sidebar-open': mobileRightOpen }" aria-label="Document properties">
       <div class="cpub-ae-right-header">
         <span class="cpub-ae-right-title">Properties</span>
       </div>
@@ -465,7 +488,9 @@ const canvasMaxWidth = computed(() => {
   background: rgba(250,250,249,0.75); opacity: 0; transition: opacity 0.15s;
 }
 .cpub-ae-cover:hover .cpub-ae-cover-overlay,
-.cpub-ae-cover:hover .cpub-ae-cover-actions { opacity: 1; }
+.cpub-ae-cover:hover .cpub-ae-cover-actions,
+.cpub-ae-cover:focus-within .cpub-ae-cover-overlay,
+.cpub-ae-cover:focus-within .cpub-ae-cover-actions { opacity: 1; }
 .cpub-ae-cover-btn {
   font-size: 10px; padding: 5px 10px; background: var(--surface); border: 2px solid var(--border);
   color: var(--text-dim); cursor: pointer; display: inline-flex; align-items: center; gap: 4px;
@@ -475,6 +500,45 @@ const canvasMaxWidth = computed(() => {
 .cpub-ae-cover-btn:hover { background: var(--surface2); }
 .cpub-ae-cover-btn.primary:hover { opacity: 0.9; background: var(--accent); }
 
-@media (max-width: 1200px) { .cpub-ae-left { display: none; } }
-@media (max-width: 1024px) { .cpub-ae-right { display: none; } }
+/* Mobile sidebar toggles */
+.cpub-ae-mobile-toggles { display: none; }
+.cpub-ae-mobile-overlay { display: none; }
+
+@media (max-width: 1200px) {
+  .cpub-ae-left {
+    position: fixed; top: 0; bottom: 0; left: 0; z-index: 200;
+    transform: translateX(-100%); transition: transform 0.2s ease;
+  }
+  .cpub-ae-left.cpub-ae-sidebar-open { transform: translateX(0); }
+}
+
+@media (max-width: 1024px) {
+  .cpub-ae-right {
+    position: fixed; top: 0; bottom: 0; right: 0; z-index: 200;
+    transform: translateX(100%); transition: transform 0.2s ease;
+  }
+  .cpub-ae-right.cpub-ae-sidebar-open { transform: translateX(0); }
+
+  .cpub-ae-mobile-toggles {
+    display: flex; position: fixed; bottom: 16px; right: 16px;
+    gap: 8px; z-index: 100;
+  }
+  .cpub-ae-mobile-btn {
+    width: 44px; height: 44px; border: 2px solid var(--border); background: var(--surface);
+    color: var(--text-dim); font-size: 16px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 4px 4px 0 var(--border);
+  }
+  .cpub-ae-mobile-btn:hover { background: var(--surface2); color: var(--text); }
+  .cpub-ae-mobile-overlay {
+    display: block; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.4); z-index: 199;
+  }
+}
+
+/* Touch devices: always show cover overlays */
+@media (hover: none) {
+  .cpub-ae-cover-overlay,
+  .cpub-ae-cover-actions { opacity: 1; }
+}
 </style>

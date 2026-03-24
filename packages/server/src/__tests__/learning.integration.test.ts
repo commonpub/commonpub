@@ -69,8 +69,7 @@ describe('learning integration', () => {
     expect(updated!.title).toBe('New Path Title');
   });
 
-  // PGlite doesn't return rowCount from updates, so deletePath returns false
-  it.skip('deletes a learning path', async () => {
+  it('deletes a learning path', async () => {
     const created = await createPath(db, authorId, {
       title: 'To Delete Path',
     });
@@ -122,9 +121,7 @@ describe('learning integration', () => {
     expect(updated!.title).toBe('Updated Module');
   });
 
-  // NOTE: publishPath calls getPathBySlug which uses inArray — broken with PGlite driver.
-  // These tests pass with real Postgres. See: drizzle-orm + PGlite inArray serialization issue.
-  it.skip('publishes a path', async () => {
+  it('publishes a path', async () => {
     const path = await createPath(db, authorId, {
       title: 'Publishable Path',
     });
@@ -146,7 +143,7 @@ describe('learning integration', () => {
     expect(published!.status).toBe('published');
   });
 
-  it.skip('enrolls and unenrolls a user', async () => {
+  it('enrolls and unenrolls a user', async () => {
     // Create and publish a path first (enroll requires published)
     const path = await createPath(db, authorId, {
       title: 'Enrollment Test Path',
@@ -181,7 +178,7 @@ describe('learning integration', () => {
     expect(after).toBeNull();
   });
 
-  it.skip('tracks lesson completion', async () => {
+  it('tracks lesson completion', async () => {
     // Create and publish a path
     const path = await createPath(db, authorId, {
       title: 'Completion Test Path',
@@ -205,7 +202,7 @@ describe('learning integration', () => {
     expect(result.progress).toBeGreaterThan(0);
   });
 
-  it.skip('lists user enrollments', async () => {
+  it('lists user enrollments', async () => {
     // The learner enrolled in the completion test path above
     const enrollmentsList = await getUserEnrollments(db, learnerId);
     expect(enrollmentsList.length).toBeGreaterThanOrEqual(1);

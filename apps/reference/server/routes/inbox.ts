@@ -1,4 +1,4 @@
-import { processInboxActivity, type InboxCallbacks } from '@commonpub/protocol';
+import { processInboxActivity, verifyHttpSignature, resolveActor, type InboxCallbacks } from '@commonpub/protocol';
 
 // Stub callbacks — federation inbound processing is not yet wired to DB operations.
 // Each callback logs the activity for debugging; real implementations will
@@ -33,17 +33,47 @@ const inboxCallbacks: InboxCallbacks = {
   },
 };
 
+/** Extract keyId from the Signature header to resolve the sender's public key */
+function extractKeyId(signatureHeader: string): string | null {
+  const match = signatureHeader.match(/keyId="([^"]+)"/);
+  return match ? match[1] : null;
+}
+
 export default defineEventHandler(async (event) => {
+  // Gate on federation feature flag
+  const config = useConfig();
+  if (!config.features.federation) {
+    throw createError({ statusCode: 404, statusMessage: 'Not Found' });
+  }
+
   const method = getMethod(event);
   if (method !== 'POST') {
     throw createError({ statusCode: 405, statusMessage: 'Method Not Allowed' });
   }
 
-  // TODO: Verify HTTP Signature before processing (P0 security issue)
-  // const signatureValid = await verifyHttpSignature(event);
-  // if (!signatureValid) {
-  //   throw createError({ statusCode: 401, statusMessage: 'Invalid HTTP Signature' });
-  // }
+  // Verify HTTP Signature
+  const signatureHeader = getHeader(event, 'signature');
+  if (!signatureHeader) {
+    throw createError({ statusCode: 401, statusMessage: 'Missing HTTP Signature' });
+  }
+
+  const keyId = extractKeyId(signatureHeader);
+  if (!keyId) {
+    throw createError({ statusCode: 401, statusMessage: 'Invalid Signature header: missing keyId' });
+  }
+
+  // keyId is typically "https://remote.example/users/alice#main-key" — strip the fragment to get the actor URI
+  const actorUri = keyId.replace(/#.*$/, '');
+  const actor = await resolveActor(actorUri, fetch);
+  if (!actor?.publicKey?.publicKeyPem) {
+    throw createError({ statusCode: 401, statusMessage: 'Could not resolve actor public key' });
+  }
+
+  const request = toWebRequest(event);
+  const signatureValid = await verifyHttpSignature(request, actor.publicKey.publicKeyPem);
+  if (!signatureValid) {
+    throw createError({ statusCode: 401, statusMessage: 'Invalid HTTP Signature' });
+  }
 
   const body = await readBody(event);
 

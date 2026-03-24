@@ -182,4 +182,10 @@ function onDragEnd(event: DragEvent): void {
 .cpub-block-inner {
   min-height: 20px;
 }
+
+/* Touch devices: always show controls since there's no hover */
+@media (hover: none) {
+  .cpub-block-handle { opacity: 1; }
+  .cpub-block-controls { opacity: 1; }
+}
 </style>

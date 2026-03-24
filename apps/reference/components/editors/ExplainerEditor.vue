@@ -144,6 +144,22 @@ function onTagsUpdate(newTags: string[]): void { updateMeta('tags', newTags); }
 const visibility = computed(() => (props.metadata.visibility as string) || 'public');
 function onVisibilityUpdate(val: string): void { updateMeta('visibility', val); }
 
+// --- Mobile sidebar toggles ---
+const mobileLeftOpen = ref(false);
+const mobileRightOpen = ref(false);
+function toggleMobileLeft(): void {
+  mobileLeftOpen.value = !mobileLeftOpen.value;
+  if (mobileLeftOpen.value) mobileRightOpen.value = false;
+}
+function toggleMobileRight(): void {
+  mobileRightOpen.value = !mobileRightOpen.value;
+  if (mobileRightOpen.value) mobileLeftOpen.value = false;
+}
+function closeMobileSidebars(): void {
+  mobileLeftOpen.value = false;
+  mobileRightOpen.value = false;
+}
+
 // --- Canvas toolbar ---
 const viewportMode = ref<'desktop' | 'tablet' | 'mobile'>('desktop');
 const canvasMaxWidth = computed(() => {
@@ -170,8 +186,15 @@ const blockCount = computed(() => props.blockEditor.blocks.value.length);
 
 <template>
   <div class="cpub-ee-shell">
+    <!-- Mobile sidebar toggles -->
+    <div class="cpub-ee-mobile-toggles">
+      <button class="cpub-ee-mobile-btn" aria-label="Toggle modules panel" @click="toggleMobileLeft"><i class="fa-solid fa-layer-group"></i></button>
+      <button class="cpub-ee-mobile-btn" aria-label="Toggle properties panel" @click="toggleMobileRight"><i class="fa-solid fa-sliders"></i></button>
+    </div>
+    <div v-if="mobileLeftOpen || mobileRightOpen" class="cpub-ee-mobile-overlay" @click="closeMobileSidebars" />
+
     <!-- LEFT: Modules/Structure/Assets -->
-    <aside class="cpub-ee-left" aria-label="Editor sidebar">
+    <aside class="cpub-ee-left" :class="{ 'cpub-ee-sidebar-open': mobileLeftOpen }" aria-label="Editor sidebar">
       <div class="cpub-ee-left-tabs">
         <button class="cpub-ee-left-tab" :class="{ active: activeLeftTab === 'modules' }" @click="activeLeftTab = 'modules'">Modules</button>
         <button class="cpub-ee-left-tab" :class="{ active: activeLeftTab === 'structure' }" @click="activeLeftTab = 'structure'">Structure</button>
@@ -292,7 +315,7 @@ const blockCount = computed(() => props.blockEditor.blocks.value.length);
     </div>
 
     <!-- RIGHT: Properties -->
-    <aside class="cpub-ee-right" aria-label="Explainer properties">
+    <aside class="cpub-ee-right" :class="{ 'cpub-ee-sidebar-open': mobileRightOpen }" aria-label="Explainer properties">
       <div class="cpub-ee-right-body">
         <EditorsEditorSection title="Content" icon="fa-sliders" :open="openSections.section" @toggle="toggleSection('section')">
           <div class="cpub-ep-field">
@@ -443,5 +466,37 @@ const blockCount = computed(() => props.blockEditor.blocks.value.length);
 
 .cpub-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
 
-@media (max-width: 1024px) { .cpub-ee-left, .cpub-ee-right { display: none; } }
+/* Mobile sidebar toggles */
+.cpub-ee-mobile-toggles { display: none; }
+.cpub-ee-mobile-overlay { display: none; }
+
+@media (max-width: 1024px) {
+  .cpub-ee-left {
+    position: fixed; top: 0; bottom: 0; left: 0; z-index: 200;
+    transform: translateX(-100%); transition: transform 0.2s ease;
+  }
+  .cpub-ee-left.cpub-ee-sidebar-open { transform: translateX(0); }
+
+  .cpub-ee-right {
+    position: fixed; top: 0; bottom: 0; right: 0; z-index: 200;
+    transform: translateX(100%); transition: transform 0.2s ease;
+  }
+  .cpub-ee-right.cpub-ee-sidebar-open { transform: translateX(0); }
+
+  .cpub-ee-mobile-toggles {
+    display: flex; position: fixed; bottom: 16px; right: 16px;
+    gap: 8px; z-index: 100;
+  }
+  .cpub-ee-mobile-btn {
+    width: 44px; height: 44px; border: 2px solid var(--border); background: var(--surface);
+    color: var(--text-dim); font-size: 16px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 4px 4px 0 var(--border);
+  }
+  .cpub-ee-mobile-btn:hover { background: var(--surface2); color: var(--text); }
+  .cpub-ee-mobile-overlay {
+    display: block; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.4); z-index: 199;
+  }
+}
 </style>

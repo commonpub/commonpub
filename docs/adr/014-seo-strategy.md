@@ -18,9 +18,9 @@ Published content needs proper SEO for discoverability — Open Graph, Twitter C
 
 ### JSON-LD Types
 
-- **Article**: for blog, article, and guide content types
+- **Article**: for blog, article, and explainer content types
 - **HowTo**: for project content type (includes estimated cost, build time)
-- Embedded as `<script type="application/ld+json">` in `<svelte:head>`
+- Embedded as `<script type="application/ld+json">` in `<head>` via `useHead()`
 
 ### Canonical URLs
 

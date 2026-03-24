@@ -116,10 +116,14 @@ const floatingToolbar = ref<{
 
 function onSelectionChange(block: EditorBlock, hasSelection: boolean, rect: DOMRect | null): void {
   if (hasSelection && rect) {
+    const toolbarWidth = 180; // approximate toolbar width
+    const toolbarHeight = 44;
+    const rawTop = rect.top - toolbarHeight;
+    const rawLeft = rect.left + rect.width / 2;
     floatingToolbar.value = {
       visible: true,
-      top: rect.top - 44,
-      left: rect.left + rect.width / 2,
+      top: Math.max(4, rawTop),
+      left: Math.max(toolbarWidth / 2 + 4, Math.min(rawLeft, window.innerWidth - toolbarWidth / 2 - 4)),
       blockId: block.id,
     };
   } else {

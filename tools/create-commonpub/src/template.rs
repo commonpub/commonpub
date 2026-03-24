@@ -277,7 +277,7 @@ pub fn render_package_json(config: &InstanceConfig) -> String {
     "drizzle-orm": "^0.45.0",
     "better-auth": "^1.2.0",
     "pg": "^8.13.0",
-    "zod": "^3.24.0"
+    "zod": "^4.3.6"
   }},
   "devDependencies": {{
     "drizzle-kit": "^0.31.0",

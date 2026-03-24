@@ -94,6 +94,22 @@ const checklist = computed(() => [
 ]);
 const checklistDone = computed(() => checklist.value.filter((c) => c.pass).length);
 
+// --- Mobile sidebar toggles ---
+const mobileLeftOpen = ref(false);
+const mobileRightOpen = ref(false);
+function toggleMobileLeft(): void {
+  mobileLeftOpen.value = !mobileLeftOpen.value;
+  if (mobileLeftOpen.value) mobileRightOpen.value = false;
+}
+function toggleMobileRight(): void {
+  mobileRightOpen.value = !mobileRightOpen.value;
+  if (mobileRightOpen.value) mobileLeftOpen.value = false;
+}
+function closeMobileSidebars(): void {
+  mobileLeftOpen.value = false;
+  mobileRightOpen.value = false;
+}
+
 // --- Canvas toolbar ---
 const viewportMode = ref<'desktop' | 'tablet' | 'mobile'>('desktop');
 const canvasMaxWidth = computed(() => {
@@ -120,8 +136,15 @@ const blockCount = computed(() => props.blockEditor.blocks.value.length);
 
 <template>
   <div class="cpub-pe-shell">
+    <!-- Mobile sidebar toggles -->
+    <div class="cpub-pe-mobile-toggles">
+      <button class="cpub-pe-mobile-btn" aria-label="Toggle blocks panel" @click="toggleMobileLeft"><i class="fa-solid fa-layer-group"></i></button>
+      <button class="cpub-pe-mobile-btn" aria-label="Toggle settings panel" @click="toggleMobileRight"><i class="fa-solid fa-sliders"></i></button>
+    </div>
+    <div v-if="mobileLeftOpen || mobileRightOpen" class="cpub-pe-mobile-overlay" @click="closeMobileSidebars" />
+
     <!-- LEFT: Block Library -->
-    <aside class="cpub-pe-library" aria-label="Block library">
+    <aside class="cpub-pe-library" :class="{ 'cpub-pe-sidebar-open': mobileLeftOpen }" aria-label="Block library">
       <EditorsEditorBlocks :groups="blockTypes" :block-editor="blockEditor" />
     </aside>
 
@@ -151,7 +174,7 @@ const blockCount = computed(() => props.blockEditor.blocks.value.length);
     </div>
 
     <!-- RIGHT: Settings Panel -->
-    <aside class="cpub-pe-settings" aria-label="Project settings">
+    <aside class="cpub-pe-settings" :class="{ 'cpub-pe-sidebar-open': mobileRightOpen }" aria-label="Project settings">
       <div class="cpub-pe-settings-body">
         <EditorsEditorSection title="Project Meta" icon="fa-sliders" :open="openSections.meta" @toggle="toggleSection('meta')">
           <div class="cpub-ep-field">
@@ -298,7 +321,9 @@ const blockCount = computed(() => props.blockEditor.blocks.value.length);
   background: rgba(250,250,249,0.75); opacity: 0; transition: opacity 0.15s;
 }
 .cpub-pe-cover:hover .cpub-pe-cover-overlay,
-.cpub-pe-cover:hover .cpub-pe-cover-actions { opacity: 1; }
+.cpub-pe-cover:hover .cpub-pe-cover-actions,
+.cpub-pe-cover:focus-within .cpub-pe-cover-overlay,
+.cpub-pe-cover:focus-within .cpub-pe-cover-actions { opacity: 1; }
 .cpub-pe-cover-btn {
   font-size: 10px; padding: 5px 10px; background: var(--surface); border: 2px solid var(--border);
   color: var(--text-dim); cursor: pointer; display: inline-flex; align-items: center; gap: 4px;
@@ -309,6 +334,45 @@ const blockCount = computed(() => props.blockEditor.blocks.value.length);
 .cpub-pe-cover-btn.primary:hover { opacity: 0.9; background: var(--accent); }
 .cpub-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
 
-@media (max-width: 1200px) { .cpub-pe-library { display: none; } }
-@media (max-width: 1024px) { .cpub-pe-settings { display: none; } }
+/* Mobile sidebar toggles */
+.cpub-pe-mobile-toggles { display: none; }
+.cpub-pe-mobile-overlay { display: none; }
+
+@media (max-width: 1200px) {
+  .cpub-pe-library {
+    position: fixed; top: 0; bottom: 0; left: 0; z-index: 200;
+    transform: translateX(-100%); transition: transform 0.2s ease;
+  }
+  .cpub-pe-library.cpub-pe-sidebar-open { transform: translateX(0); }
+}
+
+@media (max-width: 1024px) {
+  .cpub-pe-settings {
+    position: fixed; top: 0; bottom: 0; right: 0; z-index: 200;
+    transform: translateX(100%); transition: transform 0.2s ease;
+  }
+  .cpub-pe-settings.cpub-pe-sidebar-open { transform: translateX(0); }
+
+  .cpub-pe-mobile-toggles {
+    display: flex; position: fixed; bottom: 16px; right: 16px;
+    gap: 8px; z-index: 100;
+  }
+  .cpub-pe-mobile-btn {
+    width: 44px; height: 44px; border: 2px solid var(--border); background: var(--surface);
+    color: var(--text-dim); font-size: 16px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 4px 4px 0 var(--border);
+  }
+  .cpub-pe-mobile-btn:hover { background: var(--surface2); color: var(--text); }
+  .cpub-pe-mobile-overlay {
+    display: block; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.4); z-index: 199;
+  }
+}
+
+/* Touch devices: always show cover overlays */
+@media (hover: none) {
+  .cpub-pe-cover-overlay,
+  .cpub-pe-cover-actions { opacity: 1; }
+}
 </style>
