@@ -14,7 +14,7 @@ None. The better-auth/zod v4 blocker was resolved in Session 017 by upgrading al
 
 ### Outbound Activity Delivery (Not Implemented)
 
-Activities are logged to the `activities` table with status `'pending'` but are **never actually delivered** to remote inboxes. The HTTP POST to remote inbox endpoints with signed requests is not implemented. See [Federation Roadmap](./federation.md#federation-roadmap-post-v1) phase F2.
+Activities are logged to the `activities` table with status `'pending'` but are **never actually delivered** to remote inboxes. The HTTP POST to remote inbox endpoints with signed requests is not implemented. See [Federation Plan](../../federation-plan.md) phase F2.
 
 ### Inbound Content Processing (Stubs Only)
 
@@ -24,7 +24,7 @@ Inbound Create, Update, Delete, Like, and Announce activities are handled by stu
 - Remote likes are not counted on local content
 - Remote shares/boosts have no effect
 
-See [Federation Roadmap](./federation.md#federation-roadmap-post-v1) phase F3.
+See [Federation Plan](../../federation-plan.md) phase F3.
 
 ### ~~HTTP Signature Signing~~ (Resolved — Session 065)
 
@@ -32,11 +32,11 @@ Moved to [Resolved Limitations](#resolved-limitations).
 
 ### Hubs Are Local-Only
 
-No AP Group support. Hubs exist only on the instance that creates them. Users on other instances cannot discover, join, or interact with remote hubs. See [Federation Roadmap](./federation.md#federation-roadmap-post-v1) phase F5.
+No AP Group support. Hubs exist only on the instance that creates them. Users on other instances cannot discover, join, or interact with remote hubs. See [Federation Plan](../../federation-plan.md) phase F5.
 
 ### No Remote Content Persistence
 
-The `remoteActors` table caches actor profiles (24h TTL), but there is no equivalent for remote content. Received articles, notes, and likes are logged as activities but not stored as first-class content. See [Federation Roadmap](./federation.md#federation-roadmap-post-v1) phase F3.
+The `remoteActors` table caches actor profiles (24h TTL), but there is no equivalent for remote content. Received articles, notes, and likes are logged as activities but not stored as first-class content. See [Federation Plan](../../federation-plan.md) phase F3.
 
 ---
 
