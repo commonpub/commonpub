@@ -201,8 +201,8 @@
 | Feature flags | 10 flags wired end-to-end, all enforced in routes |
 | CSS hardcoded colors | 0 (all converted to var(--*)) |
 | Integration test coverage | All 13 server modules have integration tests |
-| CLI scaffolding | Copies full reference app, patches config, all routes 200 |
-| All packages | Published to npm at v0.3.1, CLI at crates.io v0.3.0 |
+| CLI scaffolding | Copies full reference app, patches config, disabled features 404 |
+| All packages | Published to npm at v0.4.0, CLI at crates.io v0.4.0 |
 | Auth | Sign-up/sign-in with username or email |
 | Editor | Project has inline cover+title, blog has inline cover+title+byline |
 | File uploads | sharp installed, local + S3 adapters, image variants generated |
