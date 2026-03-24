@@ -1,6 +1,6 @@
 {
   "name": "@commonpub/learning",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "type": "module",
   "description": "Learning path engine — curriculum, progress, and certificates for CommonPub",
   "license": "AGPL-3.0-or-later",
