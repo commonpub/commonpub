@@ -26,7 +26,7 @@ async function handleSubmit(): Promise<void> {
 
   try {
     // Step 1: Resolve username to email if needed (server-side)
-    const { email } = await $fetch<{ email: string }>('/api/auth/login', {
+    const { email } = await $fetch<{ email: string }>('/api/resolve-identity', {
       method: 'POST',
       body: { identity: identity.value },
     });
