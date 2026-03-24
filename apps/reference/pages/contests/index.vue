@@ -2,14 +2,23 @@
 useSeoMeta({ title: 'Contests — CommonPub' });
 
 const { data: contests } = await useFetch('/api/contests');
-const { isAuthenticated } = useAuth();
+const { isAuthenticated, isAdmin, user } = useAuth();
+
+const config = useRuntimeConfig();
+const contestCreation = config.public.contestCreation as string || 'admin';
+const canCreateContest = computed(() => {
+  if (!isAuthenticated.value) return false;
+  if (contestCreation === 'open') return true;
+  if (contestCreation === 'staff') return user.value?.role === 'admin' || user.value?.role === 'staff';
+  return isAdmin.value; // 'admin' default
+});
 </script>
 
 <template>
   <div class="cpub-contests-page">
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
       <SectionHeader title="Contests" large />
-      <NuxtLink v-if="isAuthenticated" to="/contests/create" class="cpub-btn cpub-btn-primary" style="font-size: 12px; padding: 6px 14px; background: var(--accent); color: var(--color-text-inverse); border: 2px solid var(--border); text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+      <NuxtLink v-if="canCreateContest" to="/contests/create" class="cpub-btn cpub-btn-primary" style="font-size: 12px; padding: 6px 14px; background: var(--accent); color: var(--color-text-inverse); border: 2px solid var(--border); text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
         <i class="fa-solid fa-plus"></i> Create Contest
       </NuxtLink>
     </div>
