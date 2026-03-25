@@ -1,7 +1,10 @@
-// Auth plugin — fetches session on app init
+// Auth plugin — hydrates session state from SSR context.
+// On the server, reads from event.context.auth (enriched by middleware).
+// On the client, trusts the SSR-hydrated useState values — refreshSession()
+// in the layout's onMounted handles lazy revalidation.
 import type { ClientAuthUser, ClientAuthSession } from '~/composables/useAuth';
 
-export default defineNuxtPlugin(async () => {
+export default defineNuxtPlugin(() => {
   const user = useState<ClientAuthUser | null>('auth-user', () => null);
   const session = useState<ClientAuthSession | null>('auth-session', () => null);
 
@@ -13,18 +16,8 @@ export default defineNuxtPlugin(async () => {
       user.value = (authCtx.user as ClientAuthUser) ?? null;
       session.value = (authCtx.session as ClientAuthSession) ?? null;
     }
-    return;
   }
 
-  // On client, fetch session from the auth API
-  try {
-    const data = await $fetch<{ user: ClientAuthUser | null; session: ClientAuthSession | null }>('/api/auth/get-session', {
-      credentials: 'include',
-    });
-    user.value = data?.user ?? null;
-    session.value = data?.session ?? null;
-  } catch {
-    user.value = null;
-    session.value = null;
-  }
+  // Client: useState already hydrated from SSR payload — no fetch needed here.
+  // refreshSession() in the default layout's onMounted() handles revalidation.
 });

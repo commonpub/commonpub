@@ -12,6 +12,13 @@ const { enabledTypeMeta } = useContentTypes();
 const route = useRoute();
 const query = ref((route.query.q as string) || '');
 const activeType = ref('all');
+
+// Sync query ref when navigating to /search?q=... from header
+watch(() => route.query.q, (newQ) => {
+  if (typeof newQ === 'string' && newQ !== query.value) {
+    query.value = newQ;
+  }
+});
 const sortBy = ref('relevance');
 const advOpen = ref(false);
 const viewMode = ref<'grid' | 'list'>('grid');

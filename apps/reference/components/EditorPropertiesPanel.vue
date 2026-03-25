@@ -14,6 +14,13 @@ function updateField(key: string, value: unknown): void {
 }
 
 const visibilityOptions = ['public', 'members', 'private'];
+
+// Fetch user's hubs for the hub assignment dropdown
+const { isAuthenticated } = useAuth();
+const { data: userHubs } = useLazyFetch<{ items: Array<{ id: string; name: string; slug: string; role: string }> }>('/api/user/hubs', {
+  immediate: isAuthenticated.value,
+  default: () => ({ items: [] }),
+});
 const difficultyOptions = [
   { value: 1, label: 'Beginner' },
   { value: 2, label: 'Intermediate' },
@@ -90,6 +97,19 @@ const difficultyOptions = [
             placeholder="URL or upload..."
             @input="updateField('coverImage', ($event.target as HTMLInputElement).value)"
           />
+        </div>
+
+        <div v-if="userHubs?.items?.length" class="cpub-prop-field">
+          <label for="prop-hub" class="cpub-prop-label">Community</label>
+          <select
+            id="prop-hub"
+            class="cpub-prop-select"
+            :value="metadata.hubSlug || ''"
+            @change="updateField('hubSlug', ($event.target as HTMLSelectElement).value || undefined)"
+          >
+            <option value="">None</option>
+            <option v-for="hub in userHubs.items" :key="hub.id" :value="hub.slug">{{ hub.name }}</option>
+          </select>
         </div>
       </section>
 

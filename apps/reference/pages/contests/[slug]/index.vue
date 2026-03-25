@@ -74,8 +74,27 @@ const entries = computed(() => {
 const entryFilter = ref('all');
 const filters = ['all', 'newest'];
 
+// Admin contest management
+const { isAuthenticated, isAdmin } = useAuth();
+const transitioning = ref(false);
+
+async function transitionStatus(newStatus: string): Promise<void> {
+  transitioning.value = true;
+  try {
+    await $fetch(`/api/contests/${slug}/transition`, {
+      method: 'POST',
+      body: { status: newStatus },
+    });
+    toast.success(`Contest ${newStatus}`);
+    refreshNuxtData();
+  } catch {
+    toast.error(`Failed to transition to ${newStatus}`);
+  } finally {
+    transitioning.value = false;
+  }
+}
+
 // Entry submission
-const { isAuthenticated } = useAuth();
 const showSubmitDialog = ref(false);
 const submitContentId = ref('');
 const submitting = ref(false);
@@ -168,9 +187,18 @@ async function submitEntry(): Promise<void> {
         </div>
 
         <div class="cpub-hero-cta">
-          <button v-if="isAuthenticated" class="cpub-btn cpub-btn-primary cpub-btn-lg" @click="showSubmitDialog = true"><i class="fa fa-upload"></i> Submit Entry</button>
+          <button v-if="isAuthenticated && c?.status === 'active'" class="cpub-btn cpub-btn-primary cpub-btn-lg" @click="showSubmitDialog = true"><i class="fa fa-upload"></i> Submit Entry</button>
           <button class="cpub-btn cpub-btn-lg cpub-btn-dark"><i class="fa fa-file-lines"></i> View Rules</button>
           <button class="cpub-btn cpub-btn-sm cpub-btn-dark" style="margin-left:4px;"><i class="fa fa-bell"></i> Notify Me</button>
+        </div>
+
+        <!-- Admin controls -->
+        <div v-if="isAdmin && c" class="cpub-admin-controls">
+          <span class="cpub-admin-controls-label">Admin</span>
+          <button v-if="c.status === 'upcoming'" class="cpub-btn cpub-btn-sm" :disabled="transitioning" @click="transitionStatus('active')">Activate</button>
+          <button v-if="c.status === 'active'" class="cpub-btn cpub-btn-sm" :disabled="transitioning" @click="transitionStatus('judging')">Start Judging</button>
+          <button v-if="c.status === 'judging'" class="cpub-btn cpub-btn-sm" :disabled="transitioning" @click="transitionStatus('completed')">Complete</button>
+          <span class="cpub-admin-status">Status: <strong>{{ c.status }}</strong></span>
         </div>
 
         <div class="cpub-hero-stats">
@@ -501,4 +529,18 @@ async function submitEntry(): Promise<void> {
 .cpub-faq-open .cpub-faq-q { background: var(--surface2); border-bottom: 1px solid var(--border2); }
 .cpub-faq-a { font-size: 11px; color: var(--text-dim); line-height: 1.55; padding: 10px 12px; display: none; background: var(--surface); }
 .cpub-faq-open .cpub-faq-a { display: block; }
+
+/* Admin controls */
+.cpub-admin-controls {
+  display: flex; align-items: center; gap: 8px; margin-top: 16px;
+  padding: 10px 14px; background: var(--accent-bg); border: 2px solid var(--accent-border);
+}
+.cpub-admin-controls-label {
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--accent); margin-right: 4px; font-family: var(--font-mono);
+}
+.cpub-admin-status {
+  font-size: 11px; color: var(--text-dim); margin-left: auto; font-family: var(--font-mono);
+}
+.cpub-admin-status strong { color: var(--accent); text-transform: capitalize; }
 </style>

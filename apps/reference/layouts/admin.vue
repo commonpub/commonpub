@@ -24,6 +24,7 @@ const { admin: adminEnabled } = useFeatures();
           <NuxtLink to="/admin/users" class="admin-nav-link">Users</NuxtLink>
           <NuxtLink to="/admin/reports" class="admin-nav-link">Reports</NuxtLink>
           <NuxtLink to="/admin/audit" class="admin-nav-link">Audit Log</NuxtLink>
+          <NuxtLink to="/admin/federation" class="admin-nav-link">Federation</NuxtLink>
           <NuxtLink to="/admin/settings" class="admin-nav-link">Settings</NuxtLink>
         </nav>
       </aside>

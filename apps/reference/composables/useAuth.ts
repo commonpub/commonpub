@@ -48,7 +48,7 @@ export function useAuth() {
   }
 
   async function signOut(): Promise<void> {
-    await $fetch('/api/auth/sign-out', { method: 'POST', credentials: 'include' });
+    await $fetch('/api/auth/sign-out', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: {} });
     user.value = null;
     session.value = null;
     await navigateTo('/');
@@ -62,7 +62,7 @@ export function useAuth() {
     if (import.meta.server) return;
     try {
       const data = await $fetch<{ user: ClientAuthUser | null; session: ClientAuthSession | null }>(
-        '/api/auth/get-session',
+        '/api/me',
         { credentials: 'include' },
       );
       user.value = data?.user ?? null;

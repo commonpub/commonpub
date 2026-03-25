@@ -32,8 +32,13 @@ export default defineEventHandler(async (event) => {
   const filename = file.filename || `upload-${Date.now()}`;
   const mimeType = file.type || 'application/octet-stream';
   const sizeBytes = file.data.length;
-  const purpose = (formData.find((f) => f.name === 'purpose')?.data.toString() || 'content') as
-    | 'cover' | 'content' | 'avatar' | 'banner' | 'attachment';
+  const validPurposes = ['cover', 'content', 'avatar', 'banner', 'attachment'] as const;
+  type Purpose = typeof validPurposes[number];
+  const purposeRaw = formData.find((f) => f.name === 'purpose')?.data.toString() || 'content';
+  if (!validPurposes.includes(purposeRaw as Purpose)) {
+    throw createError({ statusCode: 400, statusMessage: 'Invalid upload purpose' });
+  }
+  const purpose = purposeRaw as Purpose;
 
   // Validate
   const validation = validateUpload(mimeType, sizeBytes, purpose);

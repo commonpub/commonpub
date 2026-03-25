@@ -71,7 +71,7 @@ export default defineEventHandler(async (event) => {
   for (const hub of hubs) {
     urls.push({
       loc: `${siteUrl}/hubs/${hub.slug}`,
-      lastmod: new Date(hub.createdAt).toISOString(),
+      lastmod: new Date(hub.updatedAt ?? hub.createdAt ?? new Date()).toISOString(),
       priority: '0.7',
       changefreq: 'weekly',
     });
@@ -81,7 +81,7 @@ export default defineEventHandler(async (event) => {
   for (const path of paths) {
     urls.push({
       loc: `${siteUrl}/learn/${path.slug}`,
-      lastmod: new Date(path.createdAt).toISOString(),
+      lastmod: new Date(path.updatedAt ?? path.createdAt ?? new Date()).toISOString(),
       priority: '0.7',
       changefreq: 'monthly',
     });

@@ -35,7 +35,7 @@ export default defineEventHandler(async (event) => {
       <link>${escapeXml(link)}</link>
       <guid isPermaLink="true">${escapeXml(link)}</guid>
       <pubDate>${pubDate}</pubDate>
-      <description>${escapeXml(item.title)}</description>
+      <description>${escapeXml(item.description ?? item.title)}</description>
       <author>${escapeXml(item.author.displayName ?? item.author.username)}</author>
       <category>${escapeXml(item.type)}</category>
     </item>`;

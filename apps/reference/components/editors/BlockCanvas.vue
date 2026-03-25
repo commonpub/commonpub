@@ -259,6 +259,19 @@ function getBlockComponent(type: string): Component {
   return BLOCK_COMPONENTS[type] ?? TextBlock;
 }
 
+/** Compute auto-numbered content for buildStep blocks */
+function getBlockContent(block: EditorBlock, index: number): Record<string, unknown> {
+  if (block.type === 'buildStep') {
+    // Count how many buildStep blocks precede this one
+    let stepNum = 1;
+    for (let i = 0; i < index; i++) {
+      if (props.blockEditor.blocks.value[i].type === 'buildStep') stepNum++;
+    }
+    return { ...block.content, stepNumber: stepNum };
+  }
+  return block.content;
+}
+
 /** Check if a block type uses the TextBlock component (supports slash commands) */
 function isTextBlock(type: string): boolean {
   return type === 'paragraph' || type === 'bulletList' || type === 'orderedList';
@@ -300,7 +313,7 @@ function isTextBlock(type: string): boolean {
         <component
           :is="getBlockComponent(block.type)"
           :ref="(el: unknown) => isTextBlock(block.type) && setBlockRef(block.id, el)"
-          :content="block.content"
+          :content="getBlockContent(block, index)"
           @update="(c: Record<string, unknown>) => onBlockUpdate(block, c)"
           @slash-command="openSlashPicker(block)"
           @selection-change="(has: boolean, rect: DOMRect | null) => onSelectionChange(block, has, rect)"

@@ -51,6 +51,8 @@ export const updateProfileSchema = z.object({
   headline: z.string().max(255).optional(),
   location: z.string().max(128).optional(),
   website: optionalUrl(512),
+  avatarUrl: optionalUrl(2048),
+  bannerUrl: optionalUrl(2048),
   socialLinks: socialLinksSchema,
   skills: z.array(z.string().max(64)).max(50).optional(),
   pronouns: z.string().max(32).optional(),

@@ -84,6 +84,28 @@ declare module 'h3' {
   }
 }
 
+/**
+ * Enrich the session user with custom DB columns (role, username, status)
+ * that Better Auth doesn't include by default.
+ */
+async function enrichUser(auth: AuthLocals): Promise<void> {
+  if (!auth.user?.id) return;
+  try {
+    const db = useDB();
+    const { users } = await import('@commonpub/schema');
+    const { eq } = await import('drizzle-orm');
+    const [row] = await db.select({ role: users.role, username: users.username, status: users.status })
+      .from(users).where(eq(users.id, auth.user.id)).limit(1);
+    if (row) {
+      (auth.user as Record<string, unknown>).role = row.role;
+      (auth.user as Record<string, unknown>).username = row.username;
+      (auth.user as Record<string, unknown>).status = row.status;
+    }
+  } catch {
+    // Non-fatal — user just won't have role/username
+  }
+}
+
 export default defineEventHandler(async (event) => {
   const pathname = getRequestURL(event).pathname;
 
@@ -95,6 +117,7 @@ export default defineEventHandler(async (event) => {
       const headers = getRequestHeaders(event);
       const webHeaders = new Headers(headers as Record<string, string>);
       event.context.auth = await middleware.resolveSession(webHeaders);
+      await enrichUser(event.context.auth);
     } catch {
       event.context.auth = { user: null, session: null };
     }
@@ -140,6 +163,7 @@ export default defineEventHandler(async (event) => {
     const headers = getRequestHeaders(event);
     const webHeaders = new Headers(headers as Record<string, string>);
     event.context.auth = await middleware.resolveSession(webHeaders);
+    await enrichUser(event.context.auth);
   } catch (err: unknown) {
     // DB error during session resolution — don't silently eat it for API routes
     if (pathname.startsWith('/api/')) {

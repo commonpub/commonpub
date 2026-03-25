@@ -5,7 +5,14 @@ import { updateProfileSchema } from '@commonpub/schema';
 export default defineEventHandler(async (event): Promise<UserProfile> => {
   const db = useDB();
   const user = requireAuth(event);
-  const input = await parseBody(event, updateProfileSchema);
+  const raw = await parseBody(event, updateProfileSchema);
+  // Convert empty strings to undefined for URL fields (avoids <img src="">)
+  const input = {
+    ...raw,
+    avatarUrl: raw.avatarUrl || undefined,
+    bannerUrl: raw.bannerUrl || undefined,
+    website: raw.website || undefined,
+  };
 
   const profile = await updateUserProfile(db, user.id, input);
 
