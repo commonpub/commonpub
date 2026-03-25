@@ -2,12 +2,24 @@
 
 **Date:** 2026-03-25
 **Scope:** Backport bug fixes, logic improvements, and features from deveco-io to commonpub reference app
+**Status:** Complete — all changes pushed to origin
 
 ## Context
 
-deveco-io was generated from the commonpub reference app (commit `f1d896c`). Over subsequent sessions, 36 commits of fixes and features were applied directly to deveco-io. This session audits all 36 commits and backports generic improvements to commonpub.
+deveco-io was generated from the commonpub reference app (commit `f1d896c`). Over subsequent sessions, 39 commits of fixes and features were applied directly to deveco-io (36 at start of session, 3 mobile-responsive commits arrived during session from a parallel session). This session audits all commits and backports generic improvements to commonpub.
 
 **Note:** Mobile responsive changes were skipped — another session is handling those in deveco-io.
+
+## Commits
+
+```
+aa979cb docs(sessions): update 072 handoff with publishing plan
+48213c3 fix(reference): additional backports — CSP, hub share, fedi addr, admin content link
+a6a0888 fix(reference): backport 17 bug fixes + 12 features from deveco-io
+b1c23d3 chore: bump all packages to v0.4.2, add hub icon/banner URL validators
+```
+
+(Commits `d2f65f1` and `76772b9` were pre-existing unpushed work before this session.)
 
 ## Changes Applied
 
@@ -29,6 +41,8 @@ deveco-io was generated from the commonpub reference app (commit `f1d896c`). Ove
 | Inbox: extractDomain helper — handles empty hostname, bare domains, ports | `server/routes/inbox.ts`, `users/[username]/inbox.ts` |
 | BuildStep auto-numbering — compute from block position not static content | `components/editors/BlockCanvas.vue` |
 | Contest submit only when active — was showing submit for all statuses | `pages/contests/[slug]/index.vue` |
+| CSP: allow unsafe-inline for scripts in prod (Nuxt SSR requires it) | `server/middleware/security.ts` |
+| CSP: allow Google Fonts + Font Awesome CDN in all environments | `server/middleware/security.ts` |
 
 ### New Features
 
@@ -41,11 +55,13 @@ deveco-io was generated from the commonpub reference app (commit `f1d896c`). Ove
 | Federation admin page — stats + activity log | NEW: `pages/admin/federation.vue` |
 | Federation stats API — in/out/pending/failed/followers/following | NEW: `server/api/admin/federation/stats.get.ts` |
 | Federation activity API — with param validation and clamping | NEW: `server/api/admin/federation/activity.get.ts` |
-| Admin sidebar federation link | `layouts/admin.vue` |
+| Admin sidebar: federation + content links | `layouts/admin.vue` |
 | User hubs API — GET /api/user/hubs | NEW: `server/api/user/hubs.get.ts` |
 | Hub selector in editor properties panel | `components/EditorPropertiesPanel.vue` |
+| Hub share on publish — after publishing, share to selected hub | `pages/[type]/[slug]/edit.vue` |
 | Contest admin status transitions (activate/judging/complete) | `pages/contests/[slug]/index.vue` |
 | Contest slug auto-generation — slugify from title | `server/api/contests/index.post.ts` |
+| Fediverse address on profile — @user@domain when federation enabled | `pages/u/[username]/index.vue` |
 
 ### Schema Changes (Package-level)
 
@@ -65,15 +81,13 @@ deveco-io was generated from the commonpub reference app (commit `f1d896c`). Ove
 | `inbox-keyid.test.ts` | 6 | Signature header parsing, fragment stripping |
 | `auth-state.test.ts` | 5 | Role checks, null handling, /api/me contract |
 
-### Additional Fixes (Found in Deep Audit)
+## Verification
 
-| Fix | Files Changed |
-|-----|---------------|
-| CSP: allow unsafe-inline for scripts in prod (Nuxt SSR requires it) | `server/middleware/security.ts` |
-| CSP: allow Google Fonts + Font Awesome CDN in all environments | `server/middleware/security.ts` |
-| Hub share on publish: after publishing, share content to selected hub | `pages/[type]/[slug]/edit.vue` |
-| Fediverse address on profile: @user@domain when federation enabled | `pages/u/[username]/index.vue` |
-| Admin sidebar: add missing Content link | `layouts/admin.vue` |
+All changes verified in a second deep audit pass:
+- **Build**: reference app builds successfully (client + server)
+- **Tests**: 47/47 passing in reference app, 319/319 in schema package
+- **Turbo**: 29/29 tasks successful across full monorepo
+- **Compatibility**: External changes from parallel session (new block types in BlockCanvas, markdown import in edit.vue) landed cleanly alongside backported changes — no conflicts
 
 ## Changes NOT Backported (Intentionally Skipped)
 
@@ -97,15 +111,7 @@ These items should eventually move to `@commonpub/server` or `@commonpub/schema`
 1. **`slugify()` utility** — currently duplicated in contest creation. Should live in `@commonpub/server` and be shared.
 2. **`extractDomain()` utility** — duplicated in both inbox routes. Should live in `@commonpub/protocol` or `@commonpub/server`.
 3. **`extractKeyId()` utility** — duplicated in both inbox routes. Should move to `@commonpub/protocol`.
-4. **Share-to-hub on publish** — the `useContentSave` composable in deveco-io has this logic; the reference app should get a similar composable.
-5. **ImageUpload component** — should be a `@commonpub/ui` component (drag-to-upload, preview, purpose-aware aspect ratios).
-
-## Test Results
-
-```
-Schema: 319 tests passing (8 files)
-Reference app: 47 tests passing (7 files)
-```
+4. **ImageUpload component** — should be a `@commonpub/ui` component (drag-to-upload, preview, purpose-aware aspect ratios).
 
 ## Publishing Plan
 
@@ -126,6 +132,11 @@ After publishing, deveco-io needs:
 - The CSP fix was already in deveco-io
 - Federation wiring was already in deveco-io
 - The commonpub changes are *catching up* to deveco-io, not the other way around
+
+## Pre-existing State
+
+- `packages/editor/package.json` has uncommitted changes from a prior session (rehype/remark deps, JSON formatting) — not part of this session's work
+- `pnpm-lock.yaml` at repo root has minor build-side-effect changes — not committed
 
 ## Open Questions
 
