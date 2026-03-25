@@ -1,6 +1,6 @@
 {
   "name": "@commonpub/editor",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "type": "module",
   "description": "TipTap block editor with 18+ maker-focused extensions for CommonPub",
   "license": "AGPL-3.0-or-later",
@@ -9,9 +9,21 @@
     "url": "https://github.com/commonpub/commonpub",
     "directory": "packages/editor"
   },
-  "keywords": ["commonpub", "activitypub", "federation", "typescript", "tiptap", "block-editor", "rich-text"],
-  "publishConfig": { "access": "public" },
-  "engines": { "node": ">=22" },
+  "keywords": [
+    "commonpub",
+    "activitypub",
+    "federation",
+    "typescript",
+    "tiptap",
+    "block-editor",
+    "rich-text"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=22"
+  },
   "sideEffects": false,
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -21,7 +33,12 @@
       "import": "./dist/index.js"
     }
   },
-  "files": ["dist/", "!dist/__tests__/", "README.md", "LICENSE"],
+  "files": [
+    "dist/",
+    "!dist/__tests__/",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
@@ -34,26 +51,32 @@
   "dependencies": {
     "@commonpub/config": "workspace:*",
     "@commonpub/schema": "workspace:*",
+    "rehype-stringify": "^10.0.1",
+    "remark-gfm": "^4.0.1",
+    "remark-parse": "^11.0.0",
+    "remark-rehype": "^11.1.2",
+    "unified": "^11.0.5",
     "zod": "^4.3.6"
   },
   "peerDependencies": {
     "@tiptap/core": "^2.11.0",
     "@tiptap/extension-bold": "^2.11.0",
+    "@tiptap/extension-bullet-list": "^2.11.0",
     "@tiptap/extension-code": "^2.11.0",
     "@tiptap/extension-document": "^2.11.0",
     "@tiptap/extension-history": "^2.11.0",
+    "@tiptap/extension-horizontal-rule": "^2.11.0",
     "@tiptap/extension-italic": "^2.11.0",
     "@tiptap/extension-link": "^2.11.0",
+    "@tiptap/extension-list-item": "^2.11.0",
+    "@tiptap/extension-ordered-list": "^2.11.0",
     "@tiptap/extension-placeholder": "^2.11.0",
     "@tiptap/extension-strike": "^2.11.0",
-    "@tiptap/extension-bullet-list": "^2.11.0",
-    "@tiptap/extension-ordered-list": "^2.11.0",
-    "@tiptap/extension-list-item": "^2.11.0",
-    "@tiptap/extension-horizontal-rule": "^2.11.0",
     "@tiptap/extension-text": "^2.11.0",
     "@tiptap/pm": "^2.11.0"
   },
   "devDependencies": {
+    "@types/mdast": "^4.0.4",
     "jsdom": "^25.0.0",
     "typescript": "^5.7.0",
     "vitest": "^3.0.0"

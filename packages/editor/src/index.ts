@@ -86,3 +86,6 @@ export { CommonPubMathNotation } from './extensions/mathNotation.js';
 // Editor factory
 export { createCommonPubEditor } from './editorKit.js';
 export type { CreateCommonPubEditorOptions } from './editorKit.js';
+
+// Markdown conversion
+export { markdownToBlockTuples, blockTuplesToMarkdown, type MarkdownParseOptions } from './markdown/index.js';
