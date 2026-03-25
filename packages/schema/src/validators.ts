@@ -159,6 +159,8 @@ export const createHubSchema = z.object({
   joinPolicy: z.enum(['open', 'approval', 'invite']).default('open'),
   privacy: z.enum(['public', 'unlisted', 'private']).default('public'),
   website: optionalUrl(512),
+  iconUrl: optionalUrl(2048),
+  bannerUrl: optionalUrl(2048),
   categories: z.array(z.string().max(64)).max(20).optional(),
   parentHubId: z.string().uuid().optional(),
 });

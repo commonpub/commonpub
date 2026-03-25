@@ -44,6 +44,9 @@ importers:
 
   apps/reference:
     dependencies:
+      '@aws-sdk/client-s3':
+        specifier: ^3.1010.0
+        version: 3.1010.0
       '@commonpub/auth':
         specifier: workspace:*
         version: link:../../packages/auth
