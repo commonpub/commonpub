@@ -8,7 +8,15 @@ useSeoMeta({
   ogImage: '/og-default.png',
 });
 
-const { explainers: explainersEnabled, learning: learningEnabled } = useFeatures();
+const { explainers: explainersEnabled, learning: learningEnabled, federation: federationEnabled } = useFeatures();
+const runtimeConfig = useRuntimeConfig();
+const instanceDomain = computed(() => {
+  const siteUrl = runtimeConfig.public?.siteUrl as string | undefined;
+  if (siteUrl) {
+    try { return new URL(siteUrl).hostname; } catch { /* fall through */ }
+  }
+  return '';
+});
 
 import type { Serialized, UserProfile, ContentListItem, PaginatedResponse } from '@commonpub/server';
 
@@ -175,7 +183,7 @@ async function handleReport(): Promise<void> {
           </div>
           <div class="cpub-profile-hero-info">
             <h1 class="cpub-profile-name">{{ p.displayName || p.username }}</h1>
-            <div class="cpub-profile-handle">@{{ p.username }}</div>
+            <div class="cpub-profile-handle">@{{ p.username }}<span v-if="federationEnabled && instanceDomain" class="cpub-fedi-addr" title="Fediverse address">@{{ instanceDomain }}</span></div>
             <p v-if="p.headline" class="cpub-profile-headline">{{ p.headline }}</p>
             <p v-if="p.bio" class="cpub-profile-bio">{{ p.bio }}</p>
             <div class="cpub-profile-meta">
@@ -474,6 +482,11 @@ async function handleReport(): Promise<void> {
   color: var(--text-dim);
   font-family: var(--font-mono);
   margin-bottom: 6px;
+}
+
+.cpub-fedi-addr {
+  color: var(--text-faint);
+  font-size: 0.75rem;
 }
 
 .cpub-profile-headline {

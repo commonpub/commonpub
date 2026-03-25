@@ -308,6 +308,21 @@ async function handlePublish(): Promise<void> {
 
     // Now publish — content is saved, we have a valid contentId
     await $fetch(`/api/content/${contentId.value}/publish`, { method: 'POST' });
+
+    // Share to hub if one is selected in metadata
+    const hubSlug = metadata.value?.hubSlug as string | undefined;
+    if (hubSlug && contentId.value) {
+      try {
+        await $fetch(`/api/hubs/${hubSlug}/share`, {
+          method: 'POST',
+          body: { contentId: contentId.value },
+        });
+      } catch {
+        // Non-fatal: content is published even if hub share fails
+        console.warn(`[publish] Failed to share to hub ${hubSlug}`);
+      }
+    }
+
     isDirty.value = false;
 
     // Navigate to the published content view

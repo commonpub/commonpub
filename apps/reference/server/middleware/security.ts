@@ -41,11 +41,13 @@ export default defineEventHandler((event) => {
   // Content Security Policy — skip for API responses (JSON doesn't need CSP)
   if (!pathname.startsWith('/api/')) {
     const cspDirectives = buildCspDirectives();
-    // In dev, allow unsafe-eval for HMR and inline styles for Nuxt
+    // Nuxt SSR emits inline scripts for payload hydration — unsafe-inline is required
+    cspDirectives['script-src'] = "'self' 'unsafe-inline'" + (isDev ? " 'unsafe-eval' blob:" : '');
+    cspDirectives['style-src'] = "'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com";
+    cspDirectives['font-src'] = "'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com";
     if (isDev) {
-      cspDirectives['script-src'] = "'self' 'unsafe-inline' 'unsafe-eval'";
-      cspDirectives['style-src'] = "'self' 'unsafe-inline' https://cdnjs.cloudflare.com";
       cspDirectives['connect-src'] = "'self' ws: wss:";
+      cspDirectives['worker-src'] = "'self' blob:";
     }
     setResponseHeader(event, 'Content-Security-Policy', buildCspHeader(cspDirectives));
   }
