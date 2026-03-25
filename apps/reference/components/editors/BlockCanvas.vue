@@ -33,6 +33,7 @@ import SliderBlock from './blocks/SliderBlock.vue';
 import CheckpointBlock from './blocks/CheckpointBlock.vue';
 import MathBlock from './blocks/MathBlock.vue';
 import SectionHeaderBlock from './blocks/SectionHeaderBlock.vue';
+import MarkdownBlock from './blocks/MarkdownBlock.vue';
 
 const BLOCK_COMPONENTS: Record<string, Component> = {
   paragraph: TextBlock,
@@ -63,6 +64,7 @@ const BLOCK_COMPONENTS: Record<string, Component> = {
   bulletList: TextBlock,
   orderedList: TextBlock,
   sectionHeader: SectionHeaderBlock,
+  markdown: MarkdownBlock,
 };
 
 const props = defineProps<{

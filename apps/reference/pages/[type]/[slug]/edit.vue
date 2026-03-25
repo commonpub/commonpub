@@ -283,6 +283,15 @@ if (import.meta.client) {
   onUnmounted(() => { window.removeEventListener('beforeunload', onBeforeUnload); });
 }
 
+// --- Markdown import ---
+const showImportDialog = ref(false);
+const { importing, importMarkdown } = useMarkdownImport(blockEditor);
+
+async function handleMarkdownImport(md: string, importMode: 'append' | 'replace'): Promise<void> {
+  await importMarkdown(md, importMode);
+  isDirty.value = true;
+}
+
 async function handlePublish(): Promise<void> {
   if (saving.value || !title.value) return;
   // Cancel any pending auto-save to prevent overlap
@@ -337,6 +346,7 @@ async function handlePublish(): Promise<void> {
 
 <template>
   <div class="cpub-editor-layout">
+    <MarkdownImportDialog :show="showImportDialog" @close="showImportDialog = false" @import="handleMarkdownImport" />
     <!-- Top bar -->
     <header class="cpub-editor-topbar">
       <NuxtLink to="/" class="cpub-editor-logo" aria-label="Home">
@@ -372,6 +382,9 @@ async function handlePublish(): Promise<void> {
       </div>
       <div class="cpub-topbar-spacer" />
       <div class="cpub-topbar-actions">
+        <button class="cpub-topbar-btn" :disabled="importing" @click="showImportDialog = true" title="Import Markdown">
+          <i class="fa-brands fa-markdown"></i>
+        </button>
         <button class="cpub-topbar-btn" :disabled="saving || !title" @click="silentSave">
           {{ saving ? 'Saving...' : 'Save Draft' }}
         </button>
