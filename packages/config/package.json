@@ -1,6 +1,6 @@
 {
   "name": "@commonpub/config",
-  "version": "0.4.2",
+  "version": "0.5.0",
   "type": "module",
   "description": "CommonPub configuration factory and feature flags",
   "license": "AGPL-3.0-or-later",
