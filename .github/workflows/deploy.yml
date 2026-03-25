@@ -1,32 +1,47 @@
-name: Deploy
+name: Deploy Production
 
 on:
-  release:
-    types: [published]
+  push:
+    branches: [main]
 
 jobs:
   deploy:
+    name: Build & Deploy
     runs-on: ubuntu-latest
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: true
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Deploy to server via SSH
-        if: vars.DEPLOY_METHOD == 'ssh'
+      - name: Build Docker image
+        run: docker build -t commonpub-app:latest .
+
+      - name: Save image tarball
+        run: docker save commonpub-app:latest | gzip > commonpub-app.tar.gz
+
+      - name: Copy image to droplet
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: root
+          key: ${{ secrets.PROD_SSH_KEY }}
+          source: commonpub-app.tar.gz
+          target: /opt/commonpub/
+
+      - name: Load image and restart
         uses: appleboy/ssh-action@v1
         with:
-          host: ${{ secrets.DEPLOY_HOST }}
-          username: ${{ secrets.DEPLOY_USER }}
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          host: ${{ secrets.PROD_HOST }}
+          username: root
+          key: ${{ secrets.PROD_SSH_KEY }}
+          command_timeout: 5m
           script: |
+            set -e
             cd /opt/commonpub
-            docker compose -f docker-compose.prod.yml pull app
-            docker compose -f docker-compose.prod.yml up -d app
+            docker load < commonpub-app.tar.gz
+            rm -f commonpub-app.tar.gz
+            docker compose -f docker-compose.prod.yml up -d --force-recreate --remove-orphans
             docker image prune -f
-
-      - name: Deploy to DigitalOcean App Platform
-        if: vars.DEPLOY_METHOD == 'doctl'
-        uses: digitalocean/app_action@v2
-        with:
-          app_name: commonpub
-          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+            echo "Deployed ${{ github.sha }}"

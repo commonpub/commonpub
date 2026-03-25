@@ -1,28 +1,34 @@
 services:
-  app:
-    build:
-      context: ..
-      dockerfile: Dockerfile
+  caddy:
+    image: caddy:2-alpine
     restart: unless-stopped
     ports:
-      - '${PORT:-3000}:3000'
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      app:
+        condition: service_started
+    networks:
+      - commonpub-net
+
+  app:
+    image: commonpub-app:latest
+    restart: unless-stopped
+    expose:
+      - "3000"
+    env_file:
+      - .env
     environment:
-      DATABASE_URL: postgresql://commonpub:${POSTGRES_PASSWORD}@postgres:5432/commonpub
-      REDIS_URL: redis://redis:6379
-      AUTH_SECRET: ${AUTH_SECRET}
-      ORIGIN: ${ORIGIN}
-      PORT: '3000'
-      MEILI_URL: http://meilisearch:7700
-      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY}
-      INSTANCE_DOMAIN: ${INSTANCE_DOMAIN}
-      INSTANCE_NAME: ${INSTANCE_NAME}
-      INSTANCE_DESCRIPTION: ${INSTANCE_DESCRIPTION}
-      FEATURE_ADMIN: ${FEATURE_ADMIN:-false}
-      FEATURE_FEDERATION: ${FEATURE_FEDERATION:-false}
-      FEATURE_COMMUNITIES: ${FEATURE_COMMUNITIES:-true}
-      FEATURE_DOCS: ${FEATURE_DOCS:-true}
-      FEATURE_LEARNING: ${FEATURE_LEARNING:-true}
-      FEATURE_EXPLAINERS: ${FEATURE_EXPLAINERS:-true}
+      - NODE_ENV=production
+      - NUXT_HOST=0.0.0.0
+      - NUXT_PORT=3000
+    volumes:
+      - uploads_data:/app/uploads
     depends_on:
       postgres:
         condition: service_healthy
@@ -47,7 +53,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: commonpub
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - /mnt/commonpub_data/postgres:/var/lib/postgresql/data
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U commonpub']
       interval: 10s
@@ -59,8 +65,11 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    expose:
+      - "6379"
     volumes:
-      - redis_data:/data
+      - /mnt/commonpub_data/redis:/data
     healthcheck:
       test: ['CMD', 'redis-cli', 'ping']
       interval: 10s
@@ -72,11 +81,14 @@ services:
   meilisearch:
     image: getmeili/meilisearch:v1.12
     restart: unless-stopped
+    expose:
+      - "7700"
     environment:
-      MEILI_ENV: production
-      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY}
+      - MEILI_ENV=production
+      - MEILI_MASTER_KEY=${MEILI_MASTER_KEY}
+      - MEILI_NO_ANALYTICS=true
     volumes:
-      - meili_data:/meili_data
+      - /mnt/commonpub_data/meilisearch:/meili_data
     healthcheck:
       test: ['CMD', 'curl', '-f', 'http://localhost:7700/health']
       interval: 10s
@@ -89,6 +101,6 @@ networks:
   commonpub-net:
 
 volumes:
-  postgres_data:
-  redis_data:
-  meili_data:
+  caddy_data:
+  caddy_config:
+  uploads_data:
