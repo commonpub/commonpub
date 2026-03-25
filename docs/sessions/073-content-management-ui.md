@@ -124,6 +124,23 @@ Deployed commonpub.io to a DigitalOcean droplet with full CI/CD pipeline.
 - **Block storage for all data** — Postgres, Redis, Meilisearch all on `/mnt/commonpub_data` (10GB DO volume)
 - **SCP deploy over registry** — simpler, no container registry needed, proven in deveco-io
 
+### 6. Package Publish — All 12 Packages to v0.5.0
+
+Bumped all packages from 0.4.x to 0.5.0 and published to npm in dependency order.
+
+**Publish order (by tier):**
+1. config, schema, ui, infra (no internal deps)
+2. protocol, editor, docs, test-utils
+3. auth, explainer
+4. learning
+5. server
+
+**Also updated:**
+- `apps/reference` bumped to 0.5.0
+- **deveco-io** bumped all `@commonpub/*` deps to `^0.5.0`, built, tested (46/46), pushed
+
+**All tests green:** 1516 package tests + 47 reference + 46 deveco-io
+
 ## Open Questions
 
 - Should there be an "undo" / "restore from archive" UI? Currently archived content is invisible to users.
