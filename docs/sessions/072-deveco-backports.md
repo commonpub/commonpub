@@ -65,6 +65,16 @@ deveco-io was generated from the commonpub reference app (commit `f1d896c`). Ove
 | `inbox-keyid.test.ts` | 6 | Signature header parsing, fragment stripping |
 | `auth-state.test.ts` | 5 | Role checks, null handling, /api/me contract |
 
+### Additional Fixes (Found in Deep Audit)
+
+| Fix | Files Changed |
+|-----|---------------|
+| CSP: allow unsafe-inline for scripts in prod (Nuxt SSR requires it) | `server/middleware/security.ts` |
+| CSP: allow Google Fonts + Font Awesome CDN in all environments | `server/middleware/security.ts` |
+| Hub share on publish: after publishing, share content to selected hub | `pages/[type]/[slug]/edit.vue` |
+| Fediverse address on profile: @user@domain when federation enabled | `pages/u/[username]/index.vue` |
+| Admin sidebar: add missing Content link | `layouts/admin.vue` |
+
 ## Changes NOT Backported (Intentionally Skipped)
 
 | Category | Reason |
@@ -97,8 +107,29 @@ Schema: 319 tests passing (8 files)
 Reference app: 47 tests passing (7 files)
 ```
 
+## Publishing Plan
+
+### Step 1: Bump @commonpub/schema
+`@commonpub/schema` has a new feature (avatarUrl/bannerUrl on updateProfileSchema + createHubSchema). Should bump to **0.4.3**.
+
+### Step 2: Publish all packages
+Run `pnpm -r publish` to publish all @commonpub/* packages to npm. Packages that only had the version bump to 0.4.2 are already published. Only schema (now 0.4.3) needs re-publishing.
+
+### Step 3: Update deveco-io
+After publishing, deveco-io needs:
+1. `pnpm update @commonpub/schema` — picks up new updateProfileSchema with avatarUrl/bannerUrl
+2. **Simplify `server/api/profile.put.ts`** — remove the `extendedProfileSchema` workaround since upstream now includes the fields
+3. **No other package updates needed** — @commonpub/server is already at 0.4.4, all other changes were reference-app-level
+
+### What deveco-io does NOT need from this session
+- All reference app fixes were already discovered and fixed IN deveco-io first
+- The CSP fix was already in deveco-io
+- Federation wiring was already in deveco-io
+- The commonpub changes are *catching up* to deveco-io, not the other way around
+
 ## Open Questions
 
 - Should the inline search bar pattern (Cmd+K focuses input in header) be adopted in the reference app?
 - Should the dark mode toggle be wired up in the default layout?
 - Should `useContentSave` and `usePublishValidation` be extracted as reference-app composables?
+- Should `slugify()` and `extractDomain()` be moved to `@commonpub/server` now or in a future session?
