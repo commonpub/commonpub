@@ -346,7 +346,7 @@ async function handlePublish(): Promise<void> {
 
 <template>
   <div class="cpub-editor-layout">
-    <MarkdownImportDialog :show="showImportDialog" @close="showImportDialog = false" @import="handleMarkdownImport" />
+    <EditorsMarkdownImportDialog :show="showImportDialog" @close="showImportDialog = false" @import="handleMarkdownImport" />
     <!-- Top bar -->
     <header class="cpub-editor-topbar">
       <NuxtLink to="/" class="cpub-editor-logo" aria-label="Home">
