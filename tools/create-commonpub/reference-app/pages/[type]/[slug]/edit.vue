@@ -5,9 +5,8 @@ definePageMeta({ layout: false, middleware: 'auth' });
 const route = useRoute();
 const contentType = computed(() => route.params.type as string);
 const slug = computed(() => route.params.slug as string);
+/** Track whether this is a new content creation (starts true for /new, becomes false after first save) */
 const isNew = ref(slug.value === 'new');
-const showStarterForm = ref(isNew.value);
-const starterSaving = ref(false);
 
 useSeoMeta({
   title: () => isNew.value ? `New ${contentType.value} — CommonPub` : `Edit — CommonPub`,
@@ -21,55 +20,28 @@ const metadata = ref<Record<string, unknown>>({
   visibility: 'public',
   coverImageUrl: '',
 });
+const saving = ref(false);
+const error = ref('');
 const isDirty = ref(false);
 const { extract: extractError } = useApiError();
 const mode = ref<'write' | 'preview' | 'code'>('write');
 const contentId = ref<string | null>(null);
 
-// --- Block editor ---
+// --- Block editor composable ---
 const blockEditor = useBlockEditor();
 
-// --- Content save composable ---
-const {
-  saving,
-  error,
-  autoSaveStatus,
-  silentSave,
-  handlePublish: doPublish,
-  buildSaveBody,
-  cancelAutoSave,
-  initAutoSave,
-  cleanup,
-} = useContentSave({
-  contentType,
-  title,
-  metadata,
-  isNew,
-  contentId,
-  isDirty,
-  getBlockTuples: () => blockEditor.toBlockTuples(),
-  extractError,
-  onAfterSave: syncBOM,
-});
-
-// --- Publish validation ---
-const { errors: publishErrors, showErrors: showPublishErrors, validate, dismiss: dismissPublishErrors } = usePublishValidation({
-  title,
-  metadata,
-  getBlockTuples: () => blockEditor.toBlockTuples(),
-});
-
-// --- Specialized editor component map ---
+// Specialized editor component map
 const editorMap: Record<string, Component> = {
   article: resolveComponent('EditorsArticleEditor') as Component,
   blog: resolveComponent('EditorsBlogEditor') as Component,
   explainer: resolveComponent('EditorsExplainerEditor') as Component,
   project: resolveComponent('EditorsProjectEditor') as Component,
 };
+
 const editorComponent = computed<Component | null>(() => editorMap[contentType.value] ?? null);
 const hasSpecializedEditor = computed(() => editorComponent.value !== null);
 
-// --- Load existing content ---
+// Load existing content for editing — pass cookies so SSR can auth the user (drafts are author-only)
 const requestHeaders = import.meta.server ? useRequestHeaders(['cookie']) : {};
 if (!isNew.value) {
   const { data } = await useFetch(() => `/api/content/${slug.value}`, { headers: requestHeaders });
@@ -99,22 +71,13 @@ if (!isNew.value) {
   }
 }
 
-// --- Auto-generate slug from title ---
-const slugManuallyEdited = ref(false);
-function slugify(text: string): string {
-  return text.toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').slice(0, 128);
-}
-watch(title, (newTitle) => {
-  if (!slugManuallyEdited.value && isNew.value) {
-    metadata.value = { ...metadata.value, slug: slugify(newTitle) };
-  }
-});
-
-// --- Dirty tracking + autosave ---
-watch(() => blockEditor.blocks.value, () => { isDirty.value = true; }, { deep: true });
-initAutoSave([() => blockEditor.blocks.value, title, metadata]);
+// Track dirty state from block changes
+watch(() => blockEditor.blocks.value, () => {
+  isDirty.value = true;
+}, { deep: true });
 
 function handleMetadataUpdate(newMetadata: Record<string, unknown>): void {
+  // Blog editor manages title in canvas — sync it back to topbar
   if (newMetadata.title !== undefined && typeof newMetadata.title === 'string') {
     title.value = newMetadata.title;
     delete newMetadata.title;
@@ -123,103 +86,267 @@ function handleMetadataUpdate(newMetadata: Record<string, unknown>): void {
   isDirty.value = true;
 }
 
-// --- BOM sync ---
+// --- BOM sync (content-products join table) ---
+/** Extract productIds from block data and sync with the content-products table */
 async function syncBOM(id: string): Promise<void> {
   const blocks = blockEditor.toBlockTuples();
   const productItems: Array<{ productId: string; quantity: number; notes?: string }> = [];
+
   for (const [type, content] of blocks) {
     if (type === 'partsList' && Array.isArray(content.parts)) {
       for (const part of content.parts as Array<{ productId?: string; qty?: number; notes?: string }>) {
         if (part.productId) {
-          productItems.push({ productId: part.productId, quantity: part.qty ?? 1, notes: part.notes });
+          productItems.push({
+            productId: part.productId,
+            quantity: part.qty ?? 1,
+            notes: part.notes,
+          });
         }
       }
     }
   }
+
+  // Only sync if there are product links (avoid clearing on non-project types)
   if (productItems.length > 0 || contentType.value === 'project') {
-    await $fetch(`/api/content/${id}/products-sync`, { method: 'POST', body: { items: productItems } }).catch(() => {});
+    await $fetch(`/api/content/${id}/products-sync`, {
+      method: 'POST',
+      body: { items: productItems },
+    }).catch(() => {
+      // Non-critical — don't fail the save
+    });
   }
 }
 
-// --- Starter form submit ---
-async function handleStarterSubmit(): Promise<void> {
-  if (!title.value.trim()) { error.value = 'Title is required'; return; }
-  starterSaving.value = true;
+// --- Auto-save ---
+const autoSaveStatus = ref<'idle' | 'saving' | 'saved' | 'error'>('idle');
+let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
+const AUTO_SAVE_DELAY = 30_000; // 30 seconds
+
+function scheduleAutoSave(): void {
+  if (autoSaveTimer) clearTimeout(autoSaveTimer);
+  autoSaveTimer = setTimeout(async () => {
+    if (!isDirty.value || saving.value || isNew.value || !contentId.value || !title.value) return;
+    await silentSave();
+  }, AUTO_SAVE_DELAY);
+}
+
+// Watch for changes and schedule auto-save
+watch([() => blockEditor.blocks.value, title, metadata], () => {
+  if (!isNew.value && contentId.value) {
+    scheduleAutoSave();
+  }
+}, { deep: true });
+
+/** Build a clean save body from editor state, stripping empty strings and unknown fields */
+function buildSaveBody(): Record<string, unknown> {
+  const body: Record<string, unknown> = {
+    type: contentType.value,
+    title: title.value,
+    content: blockEditor.toBlockTuples(),
+    ...metadata.value,
+  };
+
+  // Remove client-only keys that don't belong in the API payload
+  delete body.slug;
+
+  // Strip empty strings — Zod URL validators reject ''
+  for (const key of Object.keys(body)) {
+    if (body[key] === '') body[key] = undefined;
+  }
+
+  return body;
+}
+
+/** Save without navigating away — used by Save Draft button, auto-save, and Ctrl+S */
+async function silentSave(): Promise<void> {
+  if (saving.value) return;
+  if (!title.value) {
+    error.value = 'Please enter a title before saving.';
+    return;
+  }
+  // Guard: if not new but no contentId, we can't PUT — treat as new creation
+  if (!isNew.value && !contentId.value) {
+    isNew.value = true;
+  }
+  saving.value = true;
+  autoSaveStatus.value = 'saving';
   error.value = '';
+
   try {
     const body = buildSaveBody();
-    const result = await $fetch<{ id: string; slug: string }>('/api/content', { method: 'POST', body });
-    contentId.value = result.id;
-    isNew.value = false;
-    isDirty.value = false;
-    showStarterForm.value = false;
-    history.replaceState({}, '', `/${contentType.value}/${result.slug}/edit`);
+
+    if (isNew.value) {
+      const result = await $fetch<{ id: string; slug: string }>('/api/content', { method: 'POST', body });
+      contentId.value = result.id;
+      isNew.value = false; // Now subsequent saves will PUT instead of POST
+      isDirty.value = false;
+      autoSaveStatus.value = 'saved';
+      await syncBOM(result.id);
+      // Update the URL without full navigation so we can keep editing
+      history.replaceState({}, '', `/${contentType.value}/${result.slug}/edit`);
+    } else {
+      const updated = await $fetch<{ slug: string }>(`/api/content/${contentId.value}`, { method: 'PUT', body });
+      isDirty.value = false;
+      autoSaveStatus.value = 'saved';
+      await syncBOM(contentId.value!);
+      // Update URL if slug changed (title change triggers slug regeneration)
+      if (updated?.slug) {
+        history.replaceState({}, '', `/${contentType.value}/${updated.slug}/edit`);
+      }
+    }
+
+    // Reset status after a few seconds
+    setTimeout(() => {
+      if (autoSaveStatus.value === 'saved') autoSaveStatus.value = 'idle';
+    }, 3000);
+  } catch (err: unknown) {
+    error.value = extractError(err);
+    autoSaveStatus.value = 'error';
+  } finally {
+    saving.value = false;
+  }
+}
+
+async function handleSave(): Promise<void> {
+  if (saving.value || !title.value) return;
+  // Cancel any pending auto-save to prevent overlap
+  if (autoSaveTimer) { clearTimeout(autoSaveTimer); autoSaveTimer = null; }
+  // Guard: if not new but no contentId, treat as new creation
+  if (!isNew.value && !contentId.value) {
+    isNew.value = true;
+  }
+  saving.value = true;
+  error.value = '';
+
+  try {
+    const body = buildSaveBody();
+
+    if (isNew.value) {
+      const result = await $fetch<{ id: string; slug: string }>('/api/content', { method: 'POST', body });
+      contentId.value = result.id;
+      isNew.value = false;
+      isDirty.value = false;
+      await syncBOM(result.id);
+      await navigateTo(`/${contentType.value}/${result.slug}`);
+    } else {
+      await $fetch(`/api/content/${contentId.value}`, { method: 'PUT', body });
+      isDirty.value = false;
+      await syncBOM(contentId.value!);
+      await navigateTo(`/${contentType.value}/${slug.value}`);
+    }
   } catch (err: unknown) {
     error.value = extractError(err);
   } finally {
-    starterSaving.value = false;
+    saving.value = false;
   }
 }
 
-// --- Publish with validation ---
-async function handlePublish(): Promise<void> {
-  const errs = await doPublish(validate);
-  // doPublish navigates on success; errors are shown via publishErrors
-}
-
-// --- Preview mode ---
+// --- Enter preview (save in background, show immediately) ---
 function enterPreview(): void {
   mode.value = 'preview';
+  // Fire-and-forget save so the draft is persisted as a checkpoint
   if (isDirty.value && title.value && !saving.value && !isNew.value && contentId.value) {
-    cancelAutoSave();
+    if (autoSaveTimer) { clearTimeout(autoSaveTimer); autoSaveTimer = null; }
     silentSave();
   }
 }
 
-// --- Keyboard shortcuts ---
+// --- Ctrl+S keyboard shortcut ---
 function onKeydown(event: KeyboardEvent): void {
   if ((event.metaKey || event.ctrlKey) && event.key === 's') {
     event.preventDefault();
-    cancelAutoSave();
+    // Cancel pending auto-save so Ctrl+S doesn't race with it
+    if (autoSaveTimer) { clearTimeout(autoSaveTimer); autoSaveTimer = null; }
     silentSave();
   }
+  // Escape closes explainer preview overlay
   if (event.key === 'Escape' && mode.value === 'preview' && contentType.value === 'explainer') {
     mode.value = 'write';
   }
 }
 
 onMounted(() => { document.addEventListener('keydown', onKeydown); });
-onUnmounted(() => { document.removeEventListener('keydown', onKeydown); cleanup(); });
+onUnmounted(() => {
+  document.removeEventListener('keydown', onKeydown);
+  if (autoSaveTimer) clearTimeout(autoSaveTimer);
+});
 
-// --- Warn before unload ---
+// --- Warn before unload if dirty ---
 function onBeforeUnload(event: BeforeUnloadEvent): void {
-  if (isDirty.value) event.preventDefault();
+  if (isDirty.value) {
+    event.preventDefault();
+  }
 }
+
 if (import.meta.client) {
   onMounted(() => { window.addEventListener('beforeunload', onBeforeUnload); });
   onUnmounted(() => { window.removeEventListener('beforeunload', onBeforeUnload); });
 }
+
+// --- Markdown import ---
+const showImportDialog = ref(false);
+const { importing, importMarkdown } = useMarkdownImport(blockEditor);
+
+async function handleMarkdownImport(md: string, importMode: 'append' | 'replace'): Promise<void> {
+  await importMarkdown(md, importMode);
+  isDirty.value = true;
+}
+
+async function handlePublish(): Promise<void> {
+  if (saving.value || !title.value) return;
+  // Cancel any pending auto-save to prevent overlap
+  if (autoSaveTimer) { clearTimeout(autoSaveTimer); autoSaveTimer = null; }
+  saving.value = true;
+  error.value = '';
+
+  try {
+    const body = buildSaveBody();
+    let resultSlug = slug.value;
+
+    if (isNew.value || !contentId.value) {
+      const result = await $fetch<{ id: string; slug: string }>('/api/content', { method: 'POST', body });
+      contentId.value = result.id;
+      isNew.value = false;
+      resultSlug = result.slug;
+      await syncBOM(result.id);
+    } else {
+      const updated = await $fetch<{ slug: string }>(`/api/content/${contentId.value}`, { method: 'PUT', body });
+      if (updated?.slug) resultSlug = updated.slug;
+      await syncBOM(contentId.value);
+    }
+
+    // Now publish — content is saved, we have a valid contentId
+    await $fetch(`/api/content/${contentId.value}/publish`, { method: 'POST' });
+
+    // Share to hub if one is selected in metadata
+    const hubSlug = metadata.value?.hubSlug as string | undefined;
+    if (hubSlug && contentId.value) {
+      try {
+        await $fetch(`/api/hubs/${hubSlug}/share`, {
+          method: 'POST',
+          body: { contentId: contentId.value },
+        });
+      } catch {
+        // Non-fatal: content is published even if hub share fails
+        console.warn(`[publish] Failed to share to hub ${hubSlug}`);
+      }
+    }
+
+    isDirty.value = false;
+
+    // Navigate to the published content view
+    await navigateTo(`/${contentType.value}/${resultSlug}`);
+  } catch (err: unknown) {
+    error.value = extractError(err);
+  } finally {
+    saving.value = false;
+  }
+}
 </script>
 
 <template>
-  <!-- Starter form for new content -->
-  <ContentStarterForm
-    v-if="showStarterForm"
-    :content-type="contentType"
-    :title="title"
-    :metadata="metadata"
-    :saving="starterSaving"
-    :error="error"
-    @update:title="title = $event"
-    @update:metadata="metadata = $event"
-    @submit="handleStarterSubmit"
-  />
-
-  <!-- Main editor -->
-  <div v-else class="cpub-editor-layout">
-    <!-- Publish validation errors -->
-    <PublishErrorsModal :errors="publishErrors" :show="showPublishErrors" @dismiss="dismissPublishErrors" />
-
+  <div class="cpub-editor-layout">
+    <EditorsMarkdownImportDialog :show="showImportDialog" @close="showImportDialog = false" @import="handleMarkdownImport" />
     <!-- Top bar -->
     <header class="cpub-editor-topbar">
       <NuxtLink to="/" class="cpub-editor-logo" aria-label="Home">
@@ -255,6 +382,9 @@ if (import.meta.client) {
       </div>
       <div class="cpub-topbar-spacer" />
       <div class="cpub-topbar-actions">
+        <button class="cpub-topbar-btn" :disabled="importing" @click="showImportDialog = true" title="Import Markdown">
+          <i class="fa-brands fa-markdown"></i>
+        </button>
         <button class="cpub-topbar-btn" :disabled="saving || !title" @click="silentSave">
           {{ saving ? 'Saving...' : 'Save Draft' }}
         </button>
@@ -283,7 +413,7 @@ if (import.meta.client) {
       </div>
     </div>
 
-    <!-- Preview mode -->
+    <!-- Preview mode: Generic (explainer also matches here as a hidden placeholder; actual preview is in the Teleport overlay below) -->
     <div v-else-if="mode === 'preview'" class="cpub-editor-shell" :class="{ 'cpub-hidden': contentType === 'explainer' }">
       <div class="cpub-preview-canvas">
         <h1 class="cpub-preview-title">{{ title || 'Untitled' }}</h1>
@@ -301,7 +431,7 @@ if (import.meta.client) {
       </div>
     </div>
 
-    <!-- Explainer preview overlay -->
+    <!-- Explainer preview: full-screen overlay (outside v-if chain, uses Teleport) -->
     <Teleport to="body">
       <div v-if="mode === 'preview' && contentType === 'explainer'" class="cpub-explainer-preview-overlay">
         <button class="cpub-preview-close-btn" @click="mode = 'write'" aria-label="Close preview">
@@ -395,68 +525,239 @@ if (import.meta.client) {
 }
 .cpub-editor-back:hover { background: var(--surface2); border-color: var(--border2); color: var(--text); }
 
-.cpub-topbar-divider { width: 2px; height: 22px; background: var(--border); margin: 0 12px; flex-shrink: 0; }
+.cpub-topbar-divider {
+  width: 2px; height: 22px;
+  background: var(--border);
+  margin: 0 12px;
+  flex-shrink: 0;
+}
 
-.cpub-topbar-title-wrap { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
+.cpub-topbar-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
 
 .cpub-topbar-title-input {
-  font-size: 13px; font-weight: 500; color: var(--text);
-  background: none; border: 2px solid transparent;
-  padding: 4px 8px; cursor: text;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  max-width: 380px; outline: none;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  background: none;
+  border: 2px solid transparent;
+  padding: 4px 8px;
+  cursor: text;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 380px;
+  outline: none;
   font-family: var(--font-sans, system-ui);
 }
 .cpub-topbar-title-input:hover { border-color: var(--border2); background: var(--surface2); }
 .cpub-topbar-title-input:focus { border-color: var(--accent); background: var(--surface2); }
 
-.cpub-unsaved-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--yellow); flex-shrink: 0; }
+.cpub-unsaved-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--yellow);
+  flex-shrink: 0;
+}
 
-.cpub-autosave-status { font-family: var(--font-mono); font-size: 10px; color: var(--text-faint); display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
-.cpub-autosave-status--saved { color: var(--green); }
-.cpub-autosave-status--error { color: var(--red); }
+.cpub-autosave-status {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-faint);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
 
-.cpub-mode-tabs { display: flex; background: var(--surface2); border: 2px solid var(--border); padding: 2px; flex-shrink: 0; margin: 0 10px; }
-.cpub-mode-tab { font-family: var(--font-mono); font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; padding: 5px 14px; border: none; background: none; color: var(--text-dim); cursor: pointer; }
-.cpub-mode-tab.active { background: var(--surface); color: var(--text); box-shadow: 2px 2px 0 var(--border); }
+.cpub-autosave-status--saved {
+  color: var(--green);
+}
+
+.cpub-autosave-status--error {
+  color: var(--red);
+}
+
+.cpub-mode-tabs {
+  display: flex;
+  background: var(--surface2);
+  border: 2px solid var(--border);
+  padding: 2px;
+  flex-shrink: 0;
+  margin: 0 10px;
+}
+.cpub-mode-tab {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 5px 14px;
+  border: none;
+  background: none;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+.cpub-mode-tab.active {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 2px 2px 0 var(--border);
+}
 .cpub-mode-tab:hover:not(.active) { color: var(--text); }
 
 .cpub-topbar-spacer { flex: 1; }
-.cpub-topbar-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 
-.cpub-topbar-btn { font-family: var(--font-sans, system-ui); font-size: 12px; padding: 6px 14px; border: 2px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; }
+.cpub-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.cpub-topbar-btn {
+  font-family: var(--font-sans, system-ui);
+  font-size: 12px;
+  padding: 6px 14px;
+  border: 2px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
 .cpub-topbar-btn:hover { background: var(--surface2); }
 .cpub-topbar-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.cpub-topbar-btn-primary { background: var(--accent); color: var(--color-text-inverse); font-weight: 600; box-shadow: 4px 4px 0 var(--border); }
+.cpub-topbar-btn-primary {
+  background: var(--accent);
+  color: var(--color-text-inverse);
+  font-weight: 600;
+  box-shadow: 4px 4px 0 var(--border);
+}
 .cpub-topbar-btn-primary:hover { box-shadow: 2px 2px 0 var(--border); }
 
-.cpub-editor-error { padding: 10px 16px; background: var(--red-bg); color: var(--red); border-bottom: 2px solid var(--red); font-size: 12px; font-family: var(--font-mono); display: flex; align-items: center; gap: 8px; z-index: 99; }
+.cpub-editor-error {
+  padding: 10px 16px;
+  background: var(--red-bg);
+  color: var(--red);
+  border-bottom: 2px solid var(--red);
+  font-size: 12px;
+  font-family: var(--font-mono);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 99;
+}
 
-.cpub-editor-shell { display: flex; flex: 1; overflow: hidden; }
-.cpub-editor-canvas { flex: 1; overflow-y: auto; padding: 24px; background: var(--bg); }
+.cpub-editor-shell {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
 
-.cpub-preview-canvas { flex: 1; overflow-y: auto; padding: 48px; max-width: 740px; margin: 0 auto; }
-.cpub-preview-title { font-size: 28px; font-weight: 700; margin-bottom: 12px; line-height: 1.25; }
-.cpub-preview-desc { font-size: 15px; color: var(--text-dim); margin-bottom: 32px; }
-.cpub-preview-blocks { display: flex; flex-direction: column; gap: 16px; }
+.cpub-editor-canvas {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  background: var(--bg);
+}
 
-.cpub-code-canvas { flex: 1; overflow: auto; background: var(--text); padding: 16px; }
-.cpub-code-view { color: var(--border2); font-family: var(--font-mono); font-size: 12px; white-space: pre-wrap; margin: 0; }
+.cpub-preview-canvas {
+  flex: 1;
+  overflow-y: auto;
+  padding: 48px;
+  max-width: 740px;
+  margin: 0 auto;
+}
+.cpub-preview-title {
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 12px;
+  line-height: 1.25;
+}
+.cpub-preview-desc {
+  font-size: 15px;
+  color: var(--text-dim);
+  margin-bottom: 32px;
+}
+.cpub-preview-blocks {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.cpub-preview-block {
+  font-size: 15px;
+  line-height: 1.75;
+}
+.cpub-preview-code {
+  background: var(--text);
+  color: var(--surface);
+  padding: 16px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  overflow-x: auto;
+  margin: 0;
+}
 
-.cpub-hidden { display: none; }
+.cpub-code-canvas {
+  flex: 1;
+  overflow: auto;
+  background: var(--text);
+  padding: 16px;
+}
+.cpub-code-view {
+  color: var(--border2);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  white-space: pre-wrap;
+  margin: 0;
+}
+
+.cpub-hidden {
+  display: none;
+}
 </style>
 
 <style>
 /* Unscoped so Teleport overlay works */
-.cpub-explainer-preview-overlay { position: fixed; inset: 0; z-index: 9999; background: var(--bg); overflow: hidden; }
+.cpub-explainer-preview-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: var(--bg);
+  overflow: hidden;
+}
 
 .cpub-preview-close-btn {
-  position: fixed; top: 10px; right: 16px; z-index: 10001;
-  display: flex; align-items: center; gap: 6px; padding: 6px 14px;
-  background: var(--surface); border: 2px solid var(--border); color: var(--text);
-  font-family: var(--font-mono); font-size: 11px; font-weight: 600; letter-spacing: 0.04em;
-  cursor: pointer; box-shadow: 4px 4px 0 var(--border); transition: box-shadow 0.1s, transform 0.1s;
+  position: fixed;
+  top: 10px;
+  right: 16px;
+  z-index: 10001;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  box-shadow: 4px 4px 0 var(--border);
+  transition: box-shadow 0.1s, transform 0.1s;
 }
-.cpub-preview-close-btn:hover { box-shadow: 2px 2px 0 var(--border); transform: translate(1px, 1px); background: var(--surface2); }
-.cpub-preview-close-btn i { font-size: 12px; }
+
+.cpub-preview-close-btn:hover {
+  box-shadow: 2px 2px 0 var(--border);
+  transform: translate(1px, 1px);
+  background: var(--surface2);
+}
+
+.cpub-preview-close-btn i {
+  font-size: 12px;
+}
 </style>
