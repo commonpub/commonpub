@@ -13,7 +13,7 @@ function slugify(text: string): string {
 
 describe('contest slug generation', () => {
   it('generates slug from normal title', () => {
-    expect(slugify('Edge AI Challenge 2026')).toBe('edge-ai-challenge-2026');
+    expect(slugify('Maker Challenge 2026')).toBe('maker-challenge-2026');
   });
 
   it('handles special characters', () => {

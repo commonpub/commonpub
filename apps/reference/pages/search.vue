@@ -103,20 +103,20 @@ function clearAll(): void {
 
 // Suggested tags for sidebar
 const suggestedTags = [
-  'edge-ai', 'tflite', 'tinyml', 'onnx', 'inference', 'quantization',
-  'jetson', 'rpi', 'npu', 'embedded-ml', 'microcontroller', 'vision-ai',
-  'llm-edge', 'tensorrt', 'arduino',
+  'hardware', 'software', 'robotics', 'electronics', '3d-printing',
+  'woodworking', 'metalwork', 'cnc', 'iot', 'open-source',
+  'diy', 'automation', 'prototyping',
 ];
 
 // Categories for sidebar
 const categories = [
-  { icon: 'fa-solid fa-robot', label: 'Machine Learning' },
-  { icon: 'fa-solid fa-bolt', label: 'Embedded Systems' },
-  { icon: 'fa-solid fa-satellite-dish', label: 'IoT & Wireless' },
-  { icon: 'fa-solid fa-eye', label: 'Computer Vision' },
-  { icon: 'fa-solid fa-volume-high', label: 'Audio & Speech' },
-  { icon: 'fa-solid fa-battery-three-quarters', label: 'Power Systems' },
+  { icon: 'fa-solid fa-microchip', label: 'Electronics' },
+  { icon: 'fa-solid fa-cube', label: '3D Printing' },
   { icon: 'fa-solid fa-gears', label: 'Robotics' },
+  { icon: 'fa-solid fa-satellite-dish', label: 'IoT & Wireless' },
+  { icon: 'fa-solid fa-hammer', label: 'Woodworking' },
+  { icon: 'fa-solid fa-code', label: 'Software' },
+  { icon: 'fa-solid fa-bolt', label: 'Automation' },
   { icon: 'fa-solid fa-microscope', label: 'Research & Papers' },
 ];
 

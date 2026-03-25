@@ -5,6 +5,7 @@ export interface CreateAuthOptions {
   db: DrizzleDB;
   secret: string;
   baseURL?: string;
+  trustedOrigins?: string[];
 }
 
 /** Minimal Drizzle DB interface — avoids importing full drizzle-orm types */

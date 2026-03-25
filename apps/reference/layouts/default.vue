@@ -148,7 +148,7 @@ const userUsername = computed(() => user.value?.username ?? '');
           <p class="cpub-footer-tagline">Built by makers, for makers.</p>
           <div class="cpub-footer-social">
             <a href="https://github.com/commonpub" target="_blank" rel="noopener" class="cpub-footer-social-link" aria-label="GitHub"><i class="fa-brands fa-github"></i></a>
-            <a href="https://discord.gg/commonpub" target="_blank" rel="noopener" class="cpub-footer-social-link" aria-label="Discord"><i class="fa-brands fa-discord"></i></a>
+            <a href="https://discord.gg/uncPaJ5SwV" target="_blank" rel="noopener" class="cpub-footer-social-link" aria-label="Discord"><i class="fa-brands fa-discord"></i></a>
             <a href="/feed.xml" class="cpub-footer-social-link" aria-label="RSS"><i class="fa-solid fa-rss"></i></a>
           </div>
         </div>

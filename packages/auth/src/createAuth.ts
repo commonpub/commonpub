@@ -10,7 +10,7 @@ export interface AuthEmailSender {
   sendResetPasswordEmail?: (email: string, url: string, token: string) => Promise<void>;
 }
 
-export function createAuth({ config, db, secret, baseURL, emailSender }: CreateAuthOptions & { emailSender?: AuthEmailSender }) {
+export function createAuth({ config, db, secret, baseURL, trustedOrigins, emailSender }: CreateAuthOptions & { emailSender?: AuthEmailSender }) {
   const plugins = [username()];
 
   const socialProviders: Record<string, { clientId: string; clientSecret: string }> = {};
@@ -33,6 +33,7 @@ export function createAuth({ config, db, secret, baseURL, emailSender }: CreateA
     secret,
     baseURL: baseURL ?? `https://${config.instance.domain}`,
     basePath: '/api/auth',
+    trustedOrigins: trustedOrigins ?? [baseURL ?? `https://${config.instance.domain}`],
     database: drizzleAdapter(db, {
       provider: 'pg',
       schema: {

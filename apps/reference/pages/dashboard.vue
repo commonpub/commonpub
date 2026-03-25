@@ -38,6 +38,8 @@ const { data: notifCount } = await useFetch('/api/notifications/count', {
   lazy: true,
 });
 
+const toast = useToast();
+
 const drafts = computed(() =>
   (myContent.value?.items ?? []).filter((i) => i.status === 'draft'),
 );
@@ -50,6 +52,37 @@ const totalViews = computed(() =>
 const totalLikes = computed(() =>
   published.value.reduce((sum, item) => sum + (item.likeCount ?? 0), 0),
 );
+
+// Content actions
+const actionLoading = ref<string | null>(null);
+
+async function unpublishItem(id: string): Promise<void> {
+  if (!confirm('Unpublish this content? It will revert to draft.')) return;
+  actionLoading.value = id;
+  try {
+    await $fetch(`/api/content/${id}`, { method: 'PUT', body: { status: 'draft' } });
+    toast.success('Content unpublished');
+    await refreshNuxtData();
+  } catch {
+    toast.error('Failed to unpublish');
+  } finally {
+    actionLoading.value = null;
+  }
+}
+
+async function deleteItem(id: string, title: string): Promise<void> {
+  if (!confirm(`Delete "${title}"? This cannot be undone.`)) return;
+  actionLoading.value = id;
+  try {
+    await $fetch(`/api/content/${id}`, { method: 'DELETE' });
+    toast.success('Content deleted');
+    await refreshNuxtData();
+  } catch {
+    toast.error('Failed to delete');
+  } finally {
+    actionLoading.value = null;
+  }
+}
 </script>
 
 <template>
@@ -128,9 +161,14 @@ const totalLikes = computed(() =>
               <ContentTypeBadge :type="item.type" />
               <time>{{ new Date(item.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) }}</time>
             </span>
-            <NuxtLink :to="`/${item.type}/${item.slug}/edit`" class="cpub-dash-row-action" aria-label="Edit">
-              <i class="fa-solid fa-pen"></i>
-            </NuxtLink>
+            <div class="cpub-dash-row-actions">
+              <NuxtLink :to="`/${item.type}/${item.slug}/edit`" class="cpub-dash-row-action" aria-label="Edit" title="Edit">
+                <i class="fa-solid fa-pen"></i>
+              </NuxtLink>
+              <button class="cpub-dash-row-action cpub-dash-row-action--danger" aria-label="Delete" title="Delete" :disabled="actionLoading === item.id" @click="deleteItem(item.id, item.title)">
+                <i :class="actionLoading === item.id ? 'fa-solid fa-circle-notch fa-spin' : 'fa-solid fa-trash'"></i>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -148,9 +186,17 @@ const totalLikes = computed(() =>
               <span><i class="fa-regular fa-eye"></i> {{ (item.viewCount ?? 0).toLocaleString() }}</span>
               <span><i class="fa-regular fa-heart"></i> {{ item.likeCount ?? 0 }}</span>
             </span>
-            <NuxtLink :to="`/${item.type}/${item.slug}/edit`" class="cpub-dash-row-action" aria-label="Edit">
-              <i class="fa-solid fa-pen"></i>
-            </NuxtLink>
+            <div class="cpub-dash-row-actions">
+              <NuxtLink :to="`/${item.type}/${item.slug}/edit`" class="cpub-dash-row-action" aria-label="Edit" title="Edit">
+                <i class="fa-solid fa-pen"></i>
+              </NuxtLink>
+              <button class="cpub-dash-row-action cpub-dash-row-action--warn" aria-label="Unpublish" title="Unpublish" :disabled="actionLoading === item.id" @click="unpublishItem(item.id)">
+                <i :class="actionLoading === item.id ? 'fa-solid fa-circle-notch fa-spin' : 'fa-solid fa-eye-slash'"></i>
+              </button>
+              <button class="cpub-dash-row-action cpub-dash-row-action--danger" aria-label="Delete" title="Delete" :disabled="actionLoading === item.id" @click="deleteItem(item.id, item.title)">
+                <i :class="actionLoading === item.id ? 'fa-solid fa-circle-notch fa-spin' : 'fa-solid fa-trash'"></i>
+              </button>
+            </div>
           </div>
           <p v-if="!published.length" class="cpub-dash-empty">No published content yet.</p>
         </div>
@@ -385,6 +431,13 @@ const totalLikes = computed(() =>
   flex-shrink: 0;
 }
 
+.cpub-dash-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
 .cpub-dash-row-action {
   width: 24px;
   height: 24px;
@@ -395,10 +448,28 @@ const totalLikes = computed(() =>
   text-decoration: none;
   font-size: 10px;
   flex-shrink: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.1s;
 }
 
 .cpub-dash-row-action:hover {
   color: var(--accent);
+}
+
+.cpub-dash-row-action--warn:hover {
+  color: var(--yellow);
+}
+
+.cpub-dash-row-action--danger:hover {
+  color: var(--red);
+}
+
+.cpub-dash-row-action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .cpub-dash-badge {

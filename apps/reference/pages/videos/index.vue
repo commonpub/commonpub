@@ -55,7 +55,7 @@ function formatDate(dateStr: string): string {
           <h1 class="cpub-hero-title">Video Hub</h1>
           <span class="cpub-tag cpub-tag-live"><i class="fa-solid fa-circle" style="font-size:8px;"></i> Beta</span>
         </div>
-        <p class="cpub-hero-sub">Tutorials, conference talks, project demos, and live build streams from the edge AI community.</p>
+        <p class="cpub-hero-sub">Tutorials, conference talks, project demos, and live build streams from the community.</p>
         <div class="cpub-hero-actions">
           <NuxtLink to="/videos/submit" class="cpub-btn cpub-btn-primary" style="text-decoration:none;"><i class="fa-solid fa-upload"></i> Submit Video</NuxtLink>
         </div>

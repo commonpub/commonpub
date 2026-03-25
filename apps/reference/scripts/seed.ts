@@ -55,16 +55,16 @@ async function seed(): Promise<void> {
   console.log('Creating users...');
   const userIds = Array.from({ length: 10 }, () => uuid());
   const userDefs = [
-    { id: userIds[0]!, username: 'kwabena', displayName: 'Kwabena Agyeman', email: 'kwabena@example.com', headline: 'Edge AI Engineer & Hardware Maker', bio: 'Building intelligent systems at the boundary of silicon and software.', location: 'Accra, Ghana', role: 'verified' as const },
-    { id: userIds[1]!, username: 'jenny', displayName: 'Jenny Plunkett', email: 'jenny@example.com', headline: 'Embedded Vision Engineer', bio: 'Making cameras see and understand the world on tiny processors.', location: 'Austin, TX', role: 'verified' as const },
-    { id: userIds[2]!, username: 'marcelo', displayName: 'Marcelo Rovai', email: 'marcelo@example.com', headline: 'TinyML Educator & Maker', bio: 'Teaching the world about machine learning on microcontrollers.', location: 'São Paulo, Brazil', role: 'pro' as const },
-    { id: userIds[3]!, username: 'shawn', displayName: 'Shawn Hymel', email: 'shawn@example.com', headline: 'Embedded AI Developer Advocate', bio: 'Tutorials, talks, and tools for edge AI development.', location: 'Raleigh, NC', role: 'verified' as const },
-    { id: userIds[4]!, username: 'lena', displayName: 'Lena Owusu', email: 'lena@example.com', headline: 'FPGA Design Engineer', bio: 'Designing custom accelerators for neural network inference.', location: 'London, UK', role: 'member' as const },
-    { id: userIds[5]!, username: 'dmitri', displayName: 'Dmitri Lykov', email: 'dmitri@example.com', headline: 'Robotics Engineer', bio: 'Autonomous systems and computer vision on resource-constrained platforms.', location: 'Moscow, Russia', role: 'member' as const },
-    { id: userIds[6]!, username: 'amara', displayName: 'Amara Mensah', email: 'amara@example.com', headline: 'IoT Security Researcher', bio: 'Securing the next billion connected devices.', location: 'Nairobi, Kenya', role: 'member' as const },
-    { id: userIds[7]!, username: 'pete', displayName: 'Pete Warden', email: 'pete@example.com', headline: 'TinyML Pioneer', bio: 'Former TensorFlow Lite Micro team lead. Now independent researcher.', location: 'San Francisco, CA', role: 'staff' as const },
+    { id: userIds[0]!, username: 'kwabena', displayName: 'Kwabena Agyeman', email: 'kwabena@example.com', headline: 'Hardware Engineer & Maker', bio: 'Building things at the intersection of electronics and craft.', location: 'Accra, Ghana', role: 'verified' as const },
+    { id: userIds[1]!, username: 'jenny', displayName: 'Jenny Plunkett', email: 'jenny@example.com', headline: 'Robotics Engineer', bio: 'Making robots that see and interact with the real world.', location: 'Austin, TX', role: 'verified' as const },
+    { id: userIds[2]!, username: 'marcelo', displayName: 'Marcelo Rovai', email: 'marcelo@example.com', headline: 'Maker Educator', bio: 'Teaching the world about electronics and creative technology.', location: 'São Paulo, Brazil', role: 'pro' as const },
+    { id: userIds[3]!, username: 'shawn', displayName: 'Shawn Hymel', email: 'shawn@example.com', headline: 'Developer Advocate', bio: 'Tutorials, talks, and tools for makers and builders.', location: 'Raleigh, NC', role: 'verified' as const },
+    { id: userIds[4]!, username: 'lena', displayName: 'Lena Owusu', email: 'lena@example.com', headline: 'Electronics Designer', bio: 'Designing custom PCBs and prototyping new hardware.', location: 'London, UK', role: 'member' as const },
+    { id: userIds[5]!, username: 'dmitri', displayName: 'Dmitri Lykov', email: 'dmitri@example.com', headline: 'Robotics Engineer', bio: 'Building autonomous systems with open-source tools.', location: 'Moscow, Russia', role: 'member' as const },
+    { id: userIds[6]!, username: 'amara', displayName: 'Amara Mensah', email: 'amara@example.com', headline: 'IoT Developer', bio: 'Connecting devices and building smart systems.', location: 'Nairobi, Kenya', role: 'member' as const },
+    { id: userIds[7]!, username: 'pete', displayName: 'Pete Warden', email: 'pete@example.com', headline: 'Open Source Advocate', bio: 'Building tools and frameworks for the maker community.', location: 'San Francisco, CA', role: 'staff' as const },
     { id: userIds[8]!, username: 'admin', displayName: 'CommonPub Admin', email: 'admin@commonpub.dev', headline: 'Platform Administrator', bio: 'Keeping the lights on.', location: 'Everywhere', role: 'admin' as const },
-    { id: userIds[9]!, username: 'sara', displayName: 'Sara Chen', email: 'sara@example.com', headline: 'Maker & Technical Writer', bio: 'Documenting hardware projects so others can build them too.', location: 'Taipei, Taiwan', role: 'member' as const },
+    { id: userIds[9]!, username: 'sara', displayName: 'Sara Chen', email: 'sara@example.com', headline: 'Maker & Technical Writer', bio: 'Documenting projects so others can build them too.', location: 'Taipei, Taiwan', role: 'member' as const },
   ];
 
   for (const u of userDefs) {
@@ -78,7 +78,7 @@ async function seed(): Promise<void> {
       bio: u.bio,
       location: u.location,
       role: u.role,
-      skills: ['Edge AI', 'TinyML', 'Embedded Systems', 'Python', 'C/C++'].slice(0, 3 + Math.floor(Math.random() * 3)),
+      skills: ['Electronics', 'Prototyping', '3D Printing', 'Python', 'C/C++'].slice(0, 3 + Math.floor(Math.random() * 3)),
       socialLinks: { github: `https://github.com/${u.username}` },
     }).onConflictDoNothing();
   }
@@ -168,9 +168,9 @@ async function seed(): Promise<void> {
   console.log('Creating community hubs...');
   const communityHubIds = [uuid(), uuid(), uuid()];
   const communityDefs = [
-    { id: communityHubIds[0]!, name: 'Edge AI Builders', slug: 'edge-ai-builders', desc: 'A community for developers deploying ML models on resource-constrained hardware.' },
-    { id: communityHubIds[1]!, name: 'FPGA Enthusiasts', slug: 'fpga-enthusiasts', desc: 'RTL design, synthesis, and custom accelerators for the curious.' },
-    { id: communityHubIds[2]!, name: 'AfricaTech Makers', slug: 'africatech-makers', desc: 'Hardware makers across the African continent building the future.' },
+    { id: communityHubIds[0]!, name: 'Hardware Builders', slug: 'hardware-builders', desc: 'A community for makers building and sharing hardware projects.' },
+    { id: communityHubIds[1]!, name: 'Electronics Enthusiasts', slug: 'electronics-enthusiasts', desc: 'Circuit design, PCB layout, and hands-on electronics for the curious.' },
+    { id: communityHubIds[2]!, name: 'AfricaTech Makers', slug: 'africatech-makers', desc: 'Makers across the African continent building the future.' },
   ];
 
   for (const c of communityDefs) {
@@ -203,9 +203,9 @@ async function seed(): Promise<void> {
         authorId: userIds[i]!,
         type: 'text',
         content: [
-          'Just finished my first TinyML project! ESP32-S3 running object detection at 10fps.',
-          'Anyone tried the new Arduino Nicla Vision? Curious about real-world latency numbers.',
-          'Sharing my experience deploying ONNX models on RP2040 — surprisingly capable for $4!',
+          'Just finished my first automated planter build! Soil sensors working great with the web dashboard.',
+          'Anyone tried the new Raspberry Pi 5 for a home server? Curious about real-world performance.',
+          'Sharing my experience building a CNC from salvaged parts — surprisingly capable for under $50!',
         ][i]!,
       });
     }
@@ -215,7 +215,7 @@ async function seed(): Promise<void> {
   // TAGS
   // ═══════════════════════════════════════════════════
   console.log('Creating tags...');
-  const tagDefs = ['edge-ai', 'tinyml', 'esp32', 'arduino', 'raspberry-pi', 'computer-vision', 'fpga', 'iot', 'python', 'c-cpp', 'tensorflow', 'embedded', 'open-source', 'risc-v', 'hardware'];
+  const tagDefs = ['hardware', 'electronics', 'robotics', '3d-printing', 'woodworking', 'cnc', 'iot', 'python', 'c-cpp', 'open-source', 'diy', 'automation', 'prototyping', 'metalwork', 'software'];
   const tagIds: string[] = [];
   for (const t of tagDefs) {
     const id = uuid();
@@ -229,29 +229,29 @@ async function seed(): Promise<void> {
   console.log('Creating content...');
   const contentDefs = [
     // PROJECTS (8)
-    { type: 'project' as const, title: 'Real-time Object Detection on ESP32-S3', slug: 'esp32s3-object-detection', desc: 'Deploy a custom TensorFlow Lite model for real-time object detection using the ESP32-S3.', author: 0, difficulty: 'intermediate' as const, buildTime: '4 hours', cost: '$45–$65', productRefs: [0, 6, 7] },
-    { type: 'project' as const, title: 'FPGA-Based CNN Accelerator on Artix-7', slug: 'fpga-cnn-accelerator', desc: 'Pipelined systolic array architecture achieving 4.2 TOPS/W on MobileNetV3.', author: 4, difficulty: 'advanced' as const, buildTime: '20 hours', cost: '$150–$200', productRefs: [] },
-    { type: 'project' as const, title: 'Wake Word Engine on Cortex-M4', slug: 'wake-word-cortex-m4', desc: 'Ultra-low-power keyword spotting in 8KB SRAM with custom MFCC pipeline.', author: 3, difficulty: 'intermediate' as const, buildTime: '6 hours', cost: '$15–$25', productRefs: [2] },
-    { type: 'project' as const, title: 'Smart Plant Monitor with Arduino Nano BLE', slug: 'smart-plant-monitor', desc: 'BLE-connected soil moisture and light sensor with ML anomaly detection.', author: 9, difficulty: 'beginner' as const, buildTime: '2 hours', cost: '$40–$55', productRefs: [2] },
-    { type: 'project' as const, title: 'Edge Vision Pipeline for Agriculture', slug: 'edge-vision-agriculture', desc: 'Crop disease detection deployed on Jetson Nano for offline field diagnostics.', author: 0, difficulty: 'advanced' as const, buildTime: '12 hours', cost: '$80–$120', productRefs: [4, 5] },
-    { type: 'project' as const, title: 'Line-Following Robot with TFLite Micro', slug: 'line-following-robot', desc: 'Autonomous robot using camera-based line detection with a quantized CNN.', author: 5, difficulty: 'beginner' as const, buildTime: '3 hours', cost: '$35–$50', productRefs: [0, 6] },
-    { type: 'project' as const, title: 'Gesture Recognition Wearable', slug: 'gesture-recognition-wearable', desc: 'Real-time hand gesture recognition using IMU data on Arduino Nano 33 BLE Sense.', author: 2, difficulty: 'intermediate' as const, buildTime: '5 hours', cost: '$35–$45', productRefs: [2, 7] },
-    { type: 'project' as const, title: 'Anomaly Detection for Industrial Pumps', slug: 'industrial-pump-anomaly', desc: 'Predictive maintenance using vibration data and a lightweight autoencoder.', author: 1, difficulty: 'advanced' as const, buildTime: '8 hours', cost: '$60–$90', productRefs: [4] },
+    { type: 'project' as const, title: 'Automated Plant Watering System', slug: 'automated-plant-watering', desc: 'Build an IoT-connected watering system with soil moisture sensors and a web dashboard.', author: 0, difficulty: 'intermediate' as const, buildTime: '4 hours', cost: '$45–$65', productRefs: [0, 6, 7] },
+    { type: 'project' as const, title: 'CNC Engraver from Salvaged Parts', slug: 'cnc-engraver-salvaged', desc: 'A functional CNC engraver built from repurposed DVD drives and 3D-printed brackets.', author: 4, difficulty: 'advanced' as const, buildTime: '20 hours', cost: '$150–$200', productRefs: [] },
+    { type: 'project' as const, title: 'Custom Mechanical Keyboard Build', slug: 'custom-mech-keyboard', desc: 'Hand-wired split keyboard with custom PCB, hotswap sockets, and QMK firmware.', author: 3, difficulty: 'intermediate' as const, buildTime: '6 hours', cost: '$80–$120', productRefs: [2] },
+    { type: 'project' as const, title: 'Smart Plant Monitor with Sensors', slug: 'smart-plant-monitor', desc: 'Wireless soil moisture and light sensor with data logging and alerts.', author: 9, difficulty: 'beginner' as const, buildTime: '2 hours', cost: '$40–$55', productRefs: [2] },
+    { type: 'project' as const, title: 'Solar-Powered Weather Station', slug: 'solar-weather-station', desc: 'Off-grid weather station with solar charging and wireless data reporting.', author: 0, difficulty: 'advanced' as const, buildTime: '12 hours', cost: '$80–$120', productRefs: [4, 5] },
+    { type: 'project' as const, title: 'Line-Following Robot', slug: 'line-following-robot', desc: 'Autonomous robot using IR sensors and PID control for smooth line tracking.', author: 5, difficulty: 'beginner' as const, buildTime: '3 hours', cost: '$35–$50', productRefs: [0, 6] },
+    { type: 'project' as const, title: 'LED Matrix Display Controller', slug: 'led-matrix-controller', desc: 'Custom LED panel controller with animations, text scrolling, and a web interface.', author: 2, difficulty: 'intermediate' as const, buildTime: '5 hours', cost: '$35–$45', productRefs: [2, 7] },
+    { type: 'project' as const, title: 'Automated Greenhouse Controller', slug: 'greenhouse-controller', desc: 'Environmental monitoring and control system for temperature, humidity, and ventilation.', author: 1, difficulty: 'advanced' as const, buildTime: '8 hours', cost: '$60–$90', productRefs: [4] },
     // ARTICLES (5)
-    { type: 'article' as const, title: 'The Future of Edge AI in Consumer Electronics', slug: 'future-edge-ai-consumer', desc: 'How on-device ML is reshaping product design from smartphones to smart appliances.', author: 7, productRefs: [] },
-    { type: 'article' as const, title: 'Quantization Deep Dive: INT8 vs INT4 for MCUs', slug: 'quantization-deep-dive', desc: 'Practical comparison of quantization strategies for TensorFlow Lite Micro models.', author: 3, productRefs: [] },
-    { type: 'article' as const, title: 'Choosing the Right MCU for TinyML in 2026', slug: 'choosing-mcu-tinyml-2026', desc: 'A comprehensive comparison of ESP32-S3, nRF5340, STM32U5, and RP2040.', author: 7, productRefs: [] },
-    { type: 'article' as const, title: 'RISC-V for Machine Learning: A Practical Guide', slug: 'riscv-ml-practical-guide', desc: 'Custom ISA extensions and SIMD optimizations for neural network workloads.', author: 4, productRefs: [] },
-    { type: 'article' as const, title: 'Power Optimization for Always-On AI', slug: 'power-optimization-always-on-ai', desc: 'Techniques for sub-milliwatt inference in battery-powered edge devices.', author: 0, productRefs: [] },
+    { type: 'article' as const, title: 'The Future of Open Hardware', slug: 'future-open-hardware', desc: 'How open-source hardware is reshaping product design and manufacturing.', author: 7, productRefs: [] },
+    { type: 'article' as const, title: 'PCB Design for Beginners: From Schematic to Board', slug: 'pcb-design-beginners', desc: 'A practical guide to designing your first printed circuit board with KiCad.', author: 3, productRefs: [] },
+    { type: 'article' as const, title: 'Choosing the Right Microcontroller in 2026', slug: 'choosing-mcu-2026', desc: 'A comprehensive comparison of popular microcontrollers for maker projects.', author: 7, productRefs: [] },
+    { type: 'article' as const, title: 'Introduction to CNC Machining for Makers', slug: 'cnc-machining-intro', desc: 'G-code basics, toolpath strategies, and material selection for home CNC setups.', author: 4, productRefs: [] },
+    { type: 'article' as const, title: 'Power Management for Battery-Powered Projects', slug: 'power-management-battery', desc: 'Techniques for efficient power design in portable and solar-powered builds.', author: 0, productRefs: [] },
     // BLOGS (4)
-    { type: 'blog' as const, title: 'My Journey Building a Voice Assistant with Raspberry Pi', slug: 'voice-assistant-rpi-journey', desc: 'A personal account of building a fully offline voice assistant.', author: 2, productRefs: [] },
-    { type: 'blog' as const, title: 'Why I Switched from Arduino to ESP-IDF', slug: 'arduino-to-esp-idf', desc: 'The pros and cons of bare-metal development for production IoT devices.', author: 9, productRefs: [] },
-    { type: 'blog' as const, title: 'Lessons from Deploying TinyML in Rural Kenya', slug: 'tinyml-rural-kenya', desc: 'What I learned about edge AI in environments with no reliable connectivity.', author: 6, productRefs: [] },
+    { type: 'blog' as const, title: 'My Journey Building a Home Automation System', slug: 'home-automation-journey', desc: 'A personal account of automating my home with open-source tools.', author: 2, productRefs: [] },
+    { type: 'blog' as const, title: 'Why I Started Designing My Own PCBs', slug: 'designing-own-pcbs', desc: 'The pros and cons of going from breadboard prototypes to custom boards.', author: 9, productRefs: [] },
+    { type: 'blog' as const, title: 'Lessons from Running a Maker Space in Nairobi', slug: 'maker-space-nairobi', desc: 'What I learned about community building in environments with limited resources.', author: 6, productRefs: [] },
     { type: 'blog' as const, title: 'The Maker Community Needs Better Documentation', slug: 'maker-community-documentation', desc: 'A case for treating documentation as a first-class deliverable.', author: 9, productRefs: [] },
     // EXPLAINERS (3)
-    { type: 'explainer' as const, title: 'How Neural Networks Learn', slug: 'how-neural-networks-learn', desc: 'An interactive guide to gradient descent, backpropagation, and training dynamics.', author: 3, productRefs: [] },
-    { type: 'explainer' as const, title: 'Understanding Convolutions for Edge Vision', slug: 'understanding-convolutions-edge', desc: 'From first principles to real-time inference on microcontrollers.', author: 1, productRefs: [] },
-    { type: 'explainer' as const, title: 'The RISC-V ISA Explained', slug: 'riscv-isa-explained', desc: 'An interactive walkthrough of the RISC-V instruction set architecture.', author: 4, productRefs: [] },
+    { type: 'explainer' as const, title: 'How Electric Motors Work', slug: 'how-electric-motors-work', desc: 'An interactive guide to DC motors, stepper motors, and servos.', author: 3, productRefs: [] },
+    { type: 'explainer' as const, title: 'Understanding 3D Printing Technologies', slug: 'understanding-3d-printing', desc: 'From FDM to SLA — how each printing technology works and when to use it.', author: 1, productRefs: [] },
+    { type: 'explainer' as const, title: 'The Basics of Circuit Design', slug: 'basics-circuit-design', desc: 'An interactive walkthrough of voltage, current, resistance, and basic components.', author: 4, productRefs: [] },
   ];
 
   const contentIds: string[] = [];
@@ -333,11 +333,11 @@ async function seed(): Promise<void> {
       targetType: contentDefs[i]!.type as 'project' | 'article' | 'blog' | 'explainer',
       targetId: contentIds[i]!,
       content: [
-        'Great project! I replicated this with an ESP32-C3 and got similar results.',
-        'The quantization section was really helpful. Would love to see INT4 comparisons.',
-        'This inspired me to start my own edge vision project. Thanks for sharing!',
-        'Have you tested this with the newer OV5640 module? Curious about the resolution tradeoff.',
-        'Excellent write-up. The code examples are clear and well-commented.',
+        'Great project! I replicated this with different sensors and got similar results.',
+        'The wiring diagram was really helpful. Would love to see a weatherproof version.',
+        'This inspired me to start my own automation project. Thanks for sharing!',
+        'Have you tested this outdoors? Curious about how the enclosure holds up.',
+        'Excellent write-up. The build steps are clear and well-documented.',
       ][i]!,
     });
   }
@@ -367,14 +367,14 @@ async function seed(): Promise<void> {
   }
 
   const videoDefs = [
-    { title: 'TinyML Pipeline: Training to Deployment on Arduino Nano 33 BLE', author: 3, platform: 'youtube' as const, duration: '42:18', url: 'https://youtube.com/watch?v=example1' },
-    { title: 'FOMO Object Detection at 60fps on RP2040', author: 1, platform: 'youtube' as const, duration: '28:44', url: 'https://youtube.com/watch?v=example2' },
-    { title: 'Keynote: The State of Edge AI in 2026', author: 7, platform: 'youtube' as const, duration: '58:30', url: 'https://youtube.com/watch?v=example3' },
+    { title: 'Building a Custom Mechanical Keyboard from Scratch', author: 3, platform: 'youtube' as const, duration: '42:18', url: 'https://youtube.com/watch?v=example1' },
+    { title: 'CNC Basics: Your First Cuts in Aluminum', author: 1, platform: 'youtube' as const, duration: '28:44', url: 'https://youtube.com/watch?v=example2' },
+    { title: 'Keynote: The State of Open Hardware in 2026', author: 7, platform: 'youtube' as const, duration: '58:30', url: 'https://youtube.com/watch?v=example3' },
     { title: 'Autonomous Line-Following Robot Demo', author: 5, platform: 'youtube' as const, duration: '12:05', url: 'https://youtube.com/watch?v=example4' },
-    { title: 'Live Build: Sound Classifier in 90 Minutes', author: 2, platform: 'youtube' as const, duration: '1:42:20', url: 'https://youtube.com/watch?v=example5' },
-    { title: 'Arduino Nicla Vision vs OpenMV Cam H7', author: 7, platform: 'youtube' as const, duration: '35:12', url: 'https://youtube.com/watch?v=example6' },
-    { title: 'Keyword Spotting with MFCCs from Scratch', author: 3, platform: 'youtube' as const, duration: '22:56', url: 'https://youtube.com/watch?v=example7' },
-    { title: 'Predictive Maintenance Demo: Anomaly Detection on Pump IMU', author: 1, platform: 'youtube' as const, duration: '18:09', url: 'https://youtube.com/watch?v=example8' },
+    { title: 'Live Build: LED Matrix Display in 90 Minutes', author: 2, platform: 'youtube' as const, duration: '1:42:20', url: 'https://youtube.com/watch?v=example5' },
+    { title: 'Raspberry Pi 5 vs Orange Pi 5 for Home Server', author: 7, platform: 'youtube' as const, duration: '35:12', url: 'https://youtube.com/watch?v=example6' },
+    { title: 'Designing Your First PCB with KiCad', author: 3, platform: 'youtube' as const, duration: '22:56', url: 'https://youtube.com/watch?v=example7' },
+    { title: 'Automated Greenhouse Build: Full Walkthrough', author: 1, platform: 'youtube' as const, duration: '18:09', url: 'https://youtube.com/watch?v=example8' },
   ];
 
   for (const v of videoDefs) {
@@ -399,10 +399,10 @@ async function seed(): Promise<void> {
 
   await db.insert(contests).values({
     id: contestId1,
-    title: 'Edge AI Challenge 2026',
-    slug: 'edge-ai-challenge-2026',
-    description: 'Build the most creative edge AI project using any microcontroller. $15,000 in prizes.',
-    rules: 'Projects must run inference entirely on-device. No cloud APIs. Must be reproducible from the documentation.',
+    title: 'Maker Challenge 2026',
+    slug: 'maker-challenge-2026',
+    description: 'Build the most creative maker project. $15,000 in prizes.',
+    rules: 'Projects must be fully documented and reproducible. Open-source preferred.',
     status: 'active',
     startDate: new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000),
     endDate: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000),
@@ -427,9 +427,9 @@ async function seed(): Promise<void> {
 
   await db.insert(contests).values({
     id: contestId2,
-    title: 'TinyML Showcase 2025',
-    slug: 'tinyml-showcase-2025',
-    description: 'Show us what you built with TensorFlow Lite Micro. Community voted.',
+    title: 'Build Showcase 2025',
+    slug: 'build-showcase-2025',
+    description: 'Show us what you built this year. Community voted.',
     status: 'completed',
     startDate: new Date(now.getTime() - 120 * 24 * 60 * 60 * 1000),
     endDate: new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000),
@@ -450,9 +450,9 @@ async function seed(): Promise<void> {
 
   await db.insert(learningPaths).values({
     id: pathId1,
-    title: 'Getting Started with TinyML',
-    slug: 'getting-started-tinyml',
-    description: 'A complete beginner path from zero to deploying your first ML model on a microcontroller.',
+    title: 'Getting Started with Electronics',
+    slug: 'getting-started-electronics',
+    description: 'A complete beginner path from zero to building your first circuit and project.',
     difficulty: 'beginner',
     estimatedHours: '12',
     authorId: userIds[3]!,
@@ -464,23 +464,23 @@ async function seed(): Promise<void> {
   const mod1 = uuid();
   const mod2 = uuid();
   await db.insert(learningModules).values([
-    { id: mod1, pathId: pathId1, title: 'Foundations', description: 'What is TinyML and why does it matter?', sortOrder: 0 },
-    { id: mod2, pathId: pathId1, title: 'Your First Model', description: 'Train and deploy a gesture recognition model.', sortOrder: 1 },
+    { id: mod1, pathId: pathId1, title: 'Foundations', description: 'Basic concepts: voltage, current, and components.', sortOrder: 0 },
+    { id: mod2, pathId: pathId1, title: 'Your First Circuit', description: 'Build and test a simple LED circuit on a breadboard.', sortOrder: 1 },
   ]);
 
   await db.insert(learningLessons).values([
-    { moduleId: mod1, title: 'What is TinyML?', slug: 'what-is-tinyml', type: 'article', sortOrder: 0, duration: 10 },
-    { moduleId: mod1, title: 'Setting Up Your Environment', slug: 'setup-environment', type: 'article', sortOrder: 1, duration: 15 },
-    { moduleId: mod2, title: 'Collecting Training Data', slug: 'collecting-data', type: 'article', sortOrder: 0, duration: 20 },
-    { moduleId: mod2, title: 'Training with TF Model Maker', slug: 'training-model-maker', type: 'video', sortOrder: 1, duration: 30 },
-    { moduleId: mod2, title: 'Deploying to Arduino', slug: 'deploying-arduino', type: 'project', sortOrder: 2, duration: 45 },
+    { moduleId: mod1, title: 'What is Electronics?', slug: 'what-is-electronics', type: 'article', sortOrder: 0, duration: 10 },
+    { moduleId: mod1, title: 'Setting Up Your Workbench', slug: 'setup-workbench', type: 'article', sortOrder: 1, duration: 15 },
+    { moduleId: mod2, title: 'Reading Schematics', slug: 'reading-schematics', type: 'article', sortOrder: 0, duration: 20 },
+    { moduleId: mod2, title: 'Breadboarding Basics', slug: 'breadboarding-basics', type: 'video', sortOrder: 1, duration: 30 },
+    { moduleId: mod2, title: 'Your First Soldered Project', slug: 'first-soldered-project', type: 'project', sortOrder: 2, duration: 45 },
   ]);
 
   await db.insert(learningPaths).values({
     id: pathId2,
-    title: 'Advanced Edge Vision',
-    slug: 'advanced-edge-vision',
-    description: 'Deep dive into computer vision optimizations for embedded platforms.',
+    title: 'Advanced PCB Design',
+    slug: 'advanced-pcb-design',
+    description: 'Deep dive into multi-layer PCB design, signal integrity, and manufacturing.',
     difficulty: 'advanced',
     estimatedHours: '24',
     authorId: userIds[1]!,
@@ -494,10 +494,10 @@ async function seed(): Promise<void> {
   // ═══════════════════════════════════════════════════
   console.log('Creating notifications...');
   await db.insert(notifications).values([
-    { userId: userIds[0]!, type: 'like', title: 'New like', message: 'Jenny liked your project "Real-time Object Detection on ESP32-S3"', actorId: userIds[1]! },
+    { userId: userIds[0]!, type: 'like', title: 'New like', message: 'Jenny liked your project "Automated Plant Watering System"', actorId: userIds[1]! },
     { userId: userIds[0]!, type: 'comment', title: 'New comment', message: 'Marcelo commented on your project', actorId: userIds[2]! },
     { userId: userIds[0]!, type: 'follow', title: 'New follower', message: 'Sara started following you', actorId: userIds[9]! },
-    { userId: userIds[0]!, type: 'contest', title: 'Contest update', message: 'Edge AI Challenge 2026 is now accepting entries!' },
+    { userId: userIds[0]!, type: 'contest', title: 'Contest update', message: 'Maker Challenge 2026 is now accepting entries!' },
   ]);
 
   console.log('\nSeed complete!');

@@ -57,7 +57,7 @@ test.describe('Meta tags', () => {
   test('homepage has description meta tag', async ({ page }) => {
     await page.goto('/');
     const description = page.locator('meta[name="description"]');
-    await expect(description).toHaveAttribute('content', /edge AI|maker/i);
+    await expect(description).toHaveAttribute('content', /maker|community|projects/i);
   });
 
   test('search page has correct title', async ({ page }) => {

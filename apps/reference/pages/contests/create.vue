@@ -83,7 +83,7 @@ const placeColors = ['var(--yellow)', 'var(--text-faint)', '#a0724a', 'var(--acc
         <h2 class="form-section-title">Contest Details</h2>
         <div class="form-field">
           <label for="contest-title" class="form-label">Title</label>
-          <input id="contest-title" v-model="title" type="text" class="form-input" required placeholder="Edge AI Challenge 2026" />
+          <input id="contest-title" v-model="title" type="text" class="form-input" required placeholder="Maker Challenge 2026" />
         </div>
         <div class="form-field">
           <label for="contest-desc" class="form-label">Description</label>

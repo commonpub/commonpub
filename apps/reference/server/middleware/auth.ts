@@ -51,6 +51,11 @@ function getAuthMiddleware(): ReturnType<typeof createAuthMiddleware> {
 
   const emailAdapter = createEmailAdapter();
 
+  // In dev, trust any localhost origin so port changes don't break auth
+  const trustedOrigins = process.env.NODE_ENV !== 'production'
+    ? [siteUrl, 'http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:3003', 'http://localhost:3004', 'http://localhost:3005']
+    : [siteUrl];
+
   const auth = createAuth({
     config,
     db: db as unknown as Parameters<typeof createAuth>[0]['db'],
@@ -62,6 +67,7 @@ function getAuthMiddleware(): ReturnType<typeof createAuthMiddleware> {
       return s || 'dev-secret-change-me';
     })(),
     baseURL: siteUrl,
+    trustedOrigins,
     emailSender: {
       async sendResetPasswordEmail(email: string, url: string, _token: string): Promise<void> {
         const template = emailTemplates.passwordReset(siteName, url);

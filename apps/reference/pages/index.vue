@@ -2,8 +2,8 @@
 import type { Serialized, ContentListItem, PaginatedResponse } from '@commonpub/server';
 
 useSeoMeta({
-  title: 'CommonPub — Edge AI & Maker Platform',
-  description: 'Build, deploy, and document edge AI projects. Share with a community of makers.',
+  title: 'CommonPub — Open Maker Platform',
+  description: 'Build, document, and share your projects with a community of makers.',
 });
 
 const { user: authUser } = useAuth();
