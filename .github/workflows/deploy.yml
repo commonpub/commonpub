@@ -29,6 +29,7 @@ jobs:
           key: ${{ secrets.PROD_SSH_KEY }}
           source: commonpub-app.tar.gz
           target: /opt/commonpub/
+          timeout: 300s
 
       - name: Load image and restart
         uses: appleboy/ssh-action@v1
