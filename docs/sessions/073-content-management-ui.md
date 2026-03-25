@@ -1,8 +1,8 @@
-# Session 073 — Content Management UI, Auth Fix, Edge AI Removal
+# Session 073 — Content Management UI, Auth Fix, Edge AI Removal, Production Deploy
 
 **Date:** 2026-03-25
-**Scope:** Dashboard delete/unpublish UI, auth origin fix, edge AI removal, Discord link
-**Status:** Complete
+**Scope:** Dashboard delete/unpublish UI, auth origin fix, edge AI removal, Discord link, production deploy to DigitalOcean
+**Status:** Complete — site live at https://commonpub.io
 
 ## Changes
 
@@ -62,6 +62,51 @@ Updated footer Discord link from placeholder `discord.gg/commonpub` to `discord.
 
 **File:** `apps/reference/layouts/default.vue`
 
+### 5. Production Deploy to DigitalOcean
+
+Deployed commonpub.io to a DigitalOcean droplet with full CI/CD pipeline.
+
+**Infrastructure created:**
+- **Droplet:** `commonpub-prod` — s-2vcpu-2gb, nyc1, `161.35.6.228`
+- **Block storage:** `commonpub-data` — 10GB ext4 volume mounted at `/mnt/commonpub_data`
+- **DNS:** A records for `commonpub.io` and `www.commonpub.io` → droplet IP
+- **CAA record:** `letsencrypt.org` for auto cert issuance
+- **Firewall:** `commonpub-fw` — SSH, HTTP, HTTPS only
+- **SSH key:** `commonpub-deploy` (ed25519) for GitHub Actions → droplet
+- **DO project:** Resources assigned to existing `commonpub` project
+
+**Services running (all healthy):**
+- **Caddy** — auto-TLS (Let's Encrypt), HTTP/2 + HTTP/3, security headers, SSE streaming
+- **CommonPub app** — Nuxt SSR via Docker
+- **PostgreSQL 16** — data on block storage
+- **Redis 7** — 256MB max, LRU eviction, data on block storage
+- **Meilisearch v1.12** — production mode, data on block storage
+
+**Deploy pipeline (GitHub Actions):**
+1. Push to `main` triggers `.github/workflows/deploy.yml`
+2. Build Docker image on ubuntu runner (linux/amd64)
+3. Save as gzipped tarball
+4. SCP to droplet `/opt/commonpub/`
+5. SSH: load image, `docker compose up -d --force-recreate`, prune old images
+
+**Files changed:**
+- `deploy/docker-compose.prod.yml` — rewritten: Caddy, block storage mounts, env_file
+- `deploy/Caddyfile` — new: auto-TLS, security headers, SSE, www redirect
+- `deploy/droplet-setup.sh` — rewritten: block storage mount, simplified for Docker image
+- `.github/workflows/deploy.yml` — rewritten: SCP+SSH deploy pattern (from deveco-io)
+
+**GitHub secrets set:**
+- `PROD_HOST` — droplet IP
+- `PROD_SSH_KEY` — deploy SSH private key
+
+**Production .env on droplet** (`/opt/commonpub/.env`):
+- Database: local Postgres via Docker network
+- Email: Resend adapter configured
+- Features: content, social, hubs, docs, video, learning, explainers, admin enabled
+- Federation and contests disabled for now
+
+**Schema migration:** Ran `drizzle-kit push --force` via temporary Node container on droplet network. All tables created.
+
 ## Test Results
 
 - Reference app: 47/47 passed
@@ -75,8 +120,13 @@ Updated footer Discord link from placeholder `discord.gg/commonpub` to `discord.
 - **Confirmation required** — both unpublish and delete require `confirm()` dialog
 - **Per-item loading** — action buttons show spinner only for the item being acted on
 - **trustedOrigins in dev** — hardcoded port range 3000-3005 rather than wildcard, keeps security meaningful
+- **Caddy over nginx** — proven in deveco-io, simpler auto-TLS, HTTP/3 support
+- **Block storage for all data** — Postgres, Redis, Meilisearch all on `/mnt/commonpub_data` (10GB DO volume)
+- **SCP deploy over registry** — simpler, no container registry needed, proven in deveco-io
 
 ## Open Questions
 
 - Should there be an "undo" / "restore from archive" UI? Currently archived content is invisible to users.
 - Should the content detail page (view mode) also show unpublish/delete for the author?
+- When to enable federation and contests on commonpub.io?
+- DO Spaces for uploads instead of local volume?
