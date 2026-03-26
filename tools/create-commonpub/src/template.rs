@@ -947,11 +947,7 @@ pub fn render_index_page(config: &InstanceConfig) -> String {
     if config.feature_docs { enabled.push("docs"); }
     if config.feature_learning { enabled.push("learning"); }
 
-    let features_text = if enabled.is_empty() {
-        config.description.clone()
-    } else {
-        config.description.clone()
-    };
+    let features_text = config.description.clone();
 
     format!(
         r#"<template>

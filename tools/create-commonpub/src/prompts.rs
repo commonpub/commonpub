@@ -175,7 +175,7 @@ pub fn prompt_config(name: &str) -> Result<InstanceConfig, Box<dyn std::error::E
     let content_types = if feature_content {
         println!("\n  Content types — select what content can be created:");
 
-        let ct_items = vec![
+        let ct_items = [
             ("Projects", true),
             ("Articles", true),
             ("Blogs", true),
