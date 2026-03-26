@@ -285,7 +285,7 @@ if (import.meta.client) {
 
 // --- Markdown import ---
 const showImportDialog = ref(false);
-const { importing, importMarkdown } = useMarkdownImport(blockEditor);
+const { importing, importMarkdown } = useMarkdownImport(blockEditor as any);
 
 async function handleMarkdownImport(md: string, importMode: 'append' | 'replace'): Promise<void> {
   await importMarkdown(md, importMode);

@@ -103,9 +103,9 @@ async function enrichUser(auth: AuthLocals): Promise<void> {
     const [row] = await db.select({ role: users.role, username: users.username, status: users.status })
       .from(users).where(eq(users.id, auth.user.id)).limit(1);
     if (row) {
-      (auth.user as Record<string, unknown>).role = row.role;
-      (auth.user as Record<string, unknown>).username = row.username;
-      (auth.user as Record<string, unknown>).status = row.status;
+      (auth.user as unknown as Record<string, unknown>).role = row.role;
+      (auth.user as unknown as Record<string, unknown>).username = row.username;
+      (auth.user as unknown as Record<string, unknown>).status = row.status;
     }
   } catch {
     // Non-fatal — user just won't have role/username

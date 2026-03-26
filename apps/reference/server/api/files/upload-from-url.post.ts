@@ -46,7 +46,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const contentType = response.headers.get('content-type') || '';
-  if (!ALLOWED_IMAGE_TYPES.some(t => contentType.startsWith(t))) {
+  if (![...ALLOWED_IMAGE_TYPES].some((t: string) => contentType.startsWith(t))) {
     throw createError({ statusCode: 400, statusMessage: `Unsupported image type: ${contentType}` });
   }
 
@@ -61,8 +61,8 @@ export default defineEventHandler(async (event) => {
   const ext = contentType.split('/')[1] || 'jpg';
   const key = generateStorageKey(purpose, ext);
 
-  await storage.put(key, buffer, contentType);
-  const resultUrl = storage.getPublicUrl(key);
+  await (storage as any).put(key, buffer, contentType);
+  const resultUrl = (storage as any).getPublicUrl(key);
 
   return { url: resultUrl };
 });

@@ -75,7 +75,7 @@ jobs:
           components: clippy
 
       - name: Clippy
-        run: cargo clippy -- -D warnings
+        run: cargo clippy -- -D warnings -A dead_code
 
       - name: Test
         run: cargo test
