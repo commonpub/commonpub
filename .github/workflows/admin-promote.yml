@@ -1,0 +1,25 @@
+name: Promote Admin User
+
+on:
+  workflow_dispatch:
+    inputs:
+      username:
+        description: 'Username to promote to admin'
+        required: true
+        default: 'moheeb'
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Promote user to admin via database
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: root
+          key: ${{ secrets.PROD_SSH_KEY }}
+          command_timeout: 30s
+          script: |
+            cd /opt/commonpub
+            docker compose -f docker-compose.prod.yml exec -T postgres psql -U commonpub -d commonpub -c "UPDATE users SET role = 'admin' WHERE username = '${{ github.event.inputs.username }}';"
+            echo "Promoted ${{ github.event.inputs.username }} to admin"
