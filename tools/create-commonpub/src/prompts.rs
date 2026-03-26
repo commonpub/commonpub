@@ -102,7 +102,7 @@ pub fn prompt_config(name: &str) -> Result<InstanceConfig, Box<dyn std::error::E
 
     // ── Theme ──────────────────────────────────────────────
 
-    let themes = vec!["base", "deepwood", "hackbuild", "deveco"];
+    let themes = ["base", "deepwood", "hackbuild", "deveco"];
     let theme_idx = FuzzySelect::with_theme(&theme)
         .with_prompt("Theme")
         .items(&themes)
@@ -190,7 +190,7 @@ pub fn prompt_config(name: &str) -> Result<InstanceConfig, Box<dyn std::error::E
             .defaults(&ct_defaults)
             .interact()?;
 
-        let type_names = vec!["project", "article", "blog", "explainer"];
+        let type_names = ["project", "article", "blog", "explainer"];
         ct_selected.iter().map(|&i| type_names[i].to_string()).collect()
     } else {
         vec![]
@@ -199,7 +199,7 @@ pub fn prompt_config(name: &str) -> Result<InstanceConfig, Box<dyn std::error::E
     // ── Contest permissions ───────────────────────────────
 
     let contest_creation = if feature_contests {
-        let options = vec!["admin — only admins", "staff — staff and admins", "open — any user"];
+        let options = ["admin — only admins", "staff — staff and admins", "open — any user"];
         let idx = FuzzySelect::with_theme(&theme)
             .with_prompt("Who can create contests?")
             .items(&options)
@@ -218,7 +218,7 @@ pub fn prompt_config(name: &str) -> Result<InstanceConfig, Box<dyn std::error::E
 
     println!("\n  Authentication — select sign-in methods:");
 
-    let auth_items = vec![
+    let auth_items = [
         ("Email / password", true),
         ("Magic link (passwordless email)", false),
         ("Passkeys (WebAuthn)", false),
