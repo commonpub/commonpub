@@ -6,6 +6,7 @@ export {
   deleteComment,
   toggleBookmark,
   onContentLiked,
+  onContentUnliked,
   followUser,
   unfollowUser,
   isFollowing,

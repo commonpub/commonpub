@@ -11,7 +11,7 @@ import {
 import type { CommonPubConfig } from '@commonpub/config';
 import type { DB, CommentItem } from '../types.js';
 import type { LikeTargetType, CommentTargetType } from '@commonpub/schema';
-import { federateLike } from '../federation/federation.js';
+import { federateLike, federateUnlike } from '../federation/federation.js';
 import { USER_REF_SELECT, USER_REF_WITH_BIO_SELECT, normalizePagination, countRows } from '../query.js';
 
 export type { CommentItem };
@@ -398,6 +398,18 @@ export async function onContentLiked(
 ): Promise<void> {
   if (!config.features.federation) return;
   await federateLike(db, userId, contentUri, config.instance.domain).catch((err: unknown) => {
+    console.error('[federation]', err);
+  });
+}
+
+export async function onContentUnliked(
+  db: DB,
+  userId: string,
+  contentUri: string,
+  config: CommonPubConfig,
+): Promise<void> {
+  if (!config.features.federation) return;
+  await federateUnlike(db, userId, contentUri, config.instance.domain).catch((err: unknown) => {
     console.error('[federation]', err);
   });
 }

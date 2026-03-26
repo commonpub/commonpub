@@ -20,7 +20,9 @@ import {
   hubJoinPolicyEnum,
   hubMemberStatusEnum,
   postTypeEnum,
+  followRelationshipStatusEnum,
 } from './enums.js';
+import { unique } from 'drizzle-orm/pg-core';
 
 // Step B complete: pgTable names now match the renamed DB tables.
 // Run deploy/migrations/001-rename-communities-to-hubs.sql before deploying this code.
@@ -164,7 +166,44 @@ export const hubShares = pgTable('hub_shares', {
   index('idx_hub_shares_content_id').on(t.contentId),
 ]);
 
+/** RSA keypairs for hub Group actors (separate from user keypairs) */
+export const hubActorKeypairs = pgTable('hub_actor_keypairs', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  hubId: uuid('hub_id')
+    .notNull()
+    .references(() => hubs.id, { onDelete: 'cascade' })
+    .unique(),
+  publicKeyPem: text('public_key_pem').notNull(),
+  privateKeyPem: text('private_key_pem').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+/** Remote actors following a hub's Group actor */
+export const hubFollowers = pgTable('hub_followers_fed', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  hubId: uuid('hub_id')
+    .notNull()
+    .references(() => hubs.id, { onDelete: 'cascade' }),
+  followerActorUri: text('follower_actor_uri').notNull(),
+  /** Original Follow activity URI for Undo matching */
+  activityUri: text('activity_uri'),
+  status: followRelationshipStatusEnum('status').default('pending').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull().$onUpdateFn(() => new Date()),
+}, (t) => [
+  unique('hub_followers_fed_pair').on(t.hubId, t.followerActorUri),
+  index('idx_hub_followers_fed_hub').on(t.hubId),
+]);
+
 // --- Relations ---
+
+export const hubActorKeypairsRelations = relations(hubActorKeypairs, ({ one }) => ({
+  hub: one(hubs, { fields: [hubActorKeypairs.hubId], references: [hubs.id] }),
+}));
+
+export const hubFollowersRelations = relations(hubFollowers, ({ one }) => ({
+  hub: one(hubs, { fields: [hubFollowers.hubId], references: [hubs.id] }),
+}));
 
 export const hubsRelations = relations(hubs, ({ one, many }) => ({
   createdBy: one(users, { fields: [hubs.createdById], references: [users.id] }),
@@ -256,3 +295,7 @@ export type HubInviteRow = typeof hubInvites.$inferSelect;
 export type NewHubInviteRow = typeof hubInvites.$inferInsert;
 export type HubShareRow = typeof hubShares.$inferSelect;
 export type NewHubShareRow = typeof hubShares.$inferInsert;
+export type HubActorKeypairRow = typeof hubActorKeypairs.$inferSelect;
+export type NewHubActorKeypairRow = typeof hubActorKeypairs.$inferInsert;
+export type HubFollowerRow = typeof hubFollowers.$inferSelect;
+export type NewHubFollowerRow = typeof hubFollowers.$inferInsert;

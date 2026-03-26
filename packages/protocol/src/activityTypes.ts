@@ -53,6 +53,25 @@ export interface APTag {
   name: string;
 }
 
+/** FEP-1b12 Group actor for hub/community federation */
+export interface APGroup {
+  '@context': string | string[];
+  type: 'Group';
+  id: string;
+  preferredUsername: string;
+  name: string;
+  summary?: string;
+  inbox: string;
+  outbox: string;
+  followers: string;
+  url?: string;
+  icon?: { type: string; url: string };
+  image?: { type: string; url: string };
+  publicKey?: { id: string; owner: string; publicKeyPem: string };
+  /** FEP-1b12: lists hub admins/owners */
+  attributedTo?: string[];
+}
+
 export type APObject = APArticle | APNote | APTombstone;
 
 // --- AP Activity Types ---

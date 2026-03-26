@@ -22,12 +22,13 @@ export { createFederation } from './federation.js';
 export type { FederationHandlers, CreateFederationOptions } from './federation.js';
 
 // OAuth
-export { validateAuthorizeRequest, validateTokenRequest } from './oauth.js';
+export { validateAuthorizeRequest, validateTokenRequest, validateDynamicRegistration } from './oauth.js';
 export type {
   OAuthAuthorizeRequest,
   OAuthTokenRequest,
   OAuthClient,
   OAuthValidationError,
+  OAuthDynamicRegistrationRequest,
 } from './oauth.js';
 
 // Activity Types
@@ -36,6 +37,7 @@ export type {
   APArticle,
   APNote,
   APTombstone,
+  APGroup,
   APObject,
   APCreate,
   APUpdate,

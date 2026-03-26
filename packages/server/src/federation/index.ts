@@ -1,6 +1,10 @@
 export {
   getOrCreateActorKeypair,
+  getOrCreateInstanceKeypair,
+  buildInstanceActor,
   resolveRemoteActor,
+  searchRemoteActor,
+  getRemoteActorProfile,
   sendFollow,
   acceptFollow,
   rejectFollow,
@@ -9,10 +13,62 @@ export {
   federateUpdate,
   federateDelete,
   federateLike,
+  federateUnlike,
+  buildContentUri,
+  getContentSlugById,
   getFollowers,
   getFollowing,
   listFederationActivity,
+  type RemoteActorProfile,
 } from './federation.js';
 
 export { createInboxHandlers, type InboxHandlerOptions } from './inboxHandlers.js';
 export { deliverPendingActivities, type DeliveryResult } from './delivery.js';
+export {
+  listFederatedTimeline,
+  getFederatedContent,
+  likeRemoteContent,
+  boostRemoteContent,
+  federateReply,
+  listRemoteReplies,
+  searchFederatedContent,
+  type FederatedContentItem,
+  type FederatedTimelineOptions,
+} from './timeline.js';
+export {
+  createMirror,
+  activateMirror,
+  pauseMirror,
+  resumeMirror,
+  cancelMirror,
+  listMirrors,
+  getMirror,
+  matchMirrorForContent,
+  type MirrorConfig,
+} from './mirroring.js';
+export {
+  getHubActorUri,
+  getOrCreateHubKeypair,
+  buildHubGroupActor,
+  handleHubFollow,
+  handleHubUnfollow,
+  getHubFederatedFollowers,
+  federateHubPost,
+  federateHubShare,
+} from './hubFederation.js';
+export {
+  processAuthorize,
+  processTokenExchange,
+  registerOAuthClient,
+  linkFederatedAccount,
+  findUserByFederatedAccount,
+  listOAuthClients,
+  processDynamicRegistration,
+  storeOAuthState,
+  consumeOAuthState,
+  exchangeCodeForToken,
+  type AuthorizeResult,
+  type TokenResult,
+  type RegisteredClient,
+  type OAuthLoginState,
+} from './oauth.js';

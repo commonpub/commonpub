@@ -108,3 +108,44 @@ export function validateTokenRequest(
 
   return null;
 }
+
+// --- Dynamic Client Registration ---
+
+export interface OAuthDynamicRegistrationRequest {
+  clientName: string;
+  redirectUris: string[];
+  clientUri?: string;
+  instanceDomain: string;
+}
+
+/**
+ * Validate a dynamic OAuth client registration request.
+ */
+export function validateDynamicRegistration(
+  req: OAuthDynamicRegistrationRequest,
+): OAuthValidationError | null {
+  if (!req.clientName || req.clientName.length > 255) {
+    return { error: 'invalid_request', errorDescription: 'client_name is required (max 255 chars)' };
+  }
+
+  if (!req.redirectUris || req.redirectUris.length === 0) {
+    return { error: 'invalid_request', errorDescription: 'At least one redirect_uri is required' };
+  }
+
+  for (const uri of req.redirectUris) {
+    try {
+      const parsed = new URL(uri);
+      if (parsed.hostname !== 'localhost' && parsed.protocol !== 'https:') {
+        return { error: 'invalid_request', errorDescription: `Redirect URI must use HTTPS: ${uri}` };
+      }
+    } catch {
+      return { error: 'invalid_request', errorDescription: `Invalid redirect URI: ${uri}` };
+    }
+  }
+
+  if (!req.instanceDomain || req.instanceDomain.length < 3) {
+    return { error: 'invalid_request', errorDescription: 'instance_domain is required' };
+  }
+
+  return null;
+}

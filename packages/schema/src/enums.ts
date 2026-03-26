@@ -148,6 +148,13 @@ export const followRelationshipStatusEnum = pgEnum('follow_relationship_status',
   'accepted',
   'rejected',
 ]);
+export const mirrorStatusEnum = pgEnum('mirror_status', [
+  'pending',
+  'active',
+  'paused',
+  'failed',
+]);
+export const mirrorDirectionEnum = pgEnum('mirror_direction', ['pull', 'push']);
 
 // --- Tags ---
 export const tagCategoryEnum = pgEnum('tag_category', [

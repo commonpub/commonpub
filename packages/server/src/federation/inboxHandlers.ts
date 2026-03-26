@@ -2,18 +2,22 @@
  * Inbox callback implementations — wires AP activities to database operations.
  * Used by both shared inbox and per-user inbox routes.
  */
-import { eq, and, sql } from 'drizzle-orm';
+import { eq, and, sql, isNull } from 'drizzle-orm';
 import {
   activities,
   followRelationships,
   contentItems,
+  federatedContent,
+  remoteActors,
 } from '@commonpub/schema';
 import {
   buildAcceptActivity,
+  sanitizeHtml,
   type InboxCallbacks,
 } from '@commonpub/protocol';
 import type { DB } from '../types.js';
 import { resolveRemoteActor } from './federation.js';
+import { matchMirrorForContent } from './mirroring.js';
 
 export interface InboxHandlerOptions {
   db: DB;
@@ -55,7 +59,11 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
         relationshipId = existing[0]!.id;
         await db
           .update(followRelationships)
-          .set({ status: autoAcceptFollows ? 'accepted' : 'pending', updatedAt: new Date() })
+          .set({
+            status: autoAcceptFollows ? 'accepted' : 'pending',
+            activityUri: activityId,
+            updatedAt: new Date(),
+          })
           .where(eq(followRelationships.id, relationshipId));
       } else {
         const [row] = await db
@@ -63,6 +71,7 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
           .values({
             followerActorUri: actorUri,
             followingActorUri: targetActorUri,
+            activityUri: activityId,
             status: autoAcceptFollows ? 'accepted' : 'pending',
           })
           .returning();
@@ -160,27 +169,76 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
     },
 
     /**
-     * Remote undid an action (unfollow, unlike).
+     * Remote undid an action (unfollow, unlike, unboost).
      */
     async onUndo(actorUri: string, objectType: string, objectId: string): Promise<void> {
-      if (objectType === 'Follow' || objectType === 'unknown') {
-        // objectId is the Follow activity URI. We look up the follow relationship
-        // that was created when this actor followed a local user.
-        // In AP, one actor can follow multiple local users, so we should ideally
-        // scope to the specific target. Since objectId is the Follow activity URI
-        // (not the target), we delete only the most recent accepted/pending follow
-        // from this actor to minimize blast radius.
-        const existing = await db
-          .select({ id: followRelationships.id })
-          .from(followRelationships)
-          .where(eq(followRelationships.followerActorUri, actorUri))
-          .orderBy(followRelationships.updatedAt)
-          .limit(1);
+      if (objectType === 'Like' && objectId) {
+        // Undo(Like): decrement like count on local or federated content
+        try {
+          const url = new URL(objectId).pathname;
+          const segments = url.split('/').filter(Boolean);
+          if (segments.length >= 2) {
+            const idOrSlug = segments[segments.length - 1]!;
+            // Try local content by slug
+            const bySlug = await db
+              .select({ id: contentItems.id, likeCount: contentItems.likeCount })
+              .from(contentItems)
+              .where(eq(contentItems.slug, idOrSlug))
+              .limit(1);
+            if (bySlug.length > 0 && bySlug[0]!.likeCount > 0) {
+              await db
+                .update(contentItems)
+                .set({ likeCount: sql`GREATEST(${contentItems.likeCount} - 1, 0)` })
+                .where(eq(contentItems.id, bySlug[0]!.id));
+            } else {
+              // Try federated content by objectUri
+              await db
+                .update(federatedContent)
+                .set({ localLikeCount: sql`GREATEST(${federatedContent.localLikeCount} - 1, 0)` })
+                .where(eq(federatedContent.objectUri, objectId));
+            }
+          }
+        } catch {
+          // Invalid URL — skip decrement
+        }
+      } else if (objectType === 'Follow') {
+        // Try exact match on activityUri first (most accurate)
+        let deleted = false;
+        if (objectId) {
+          const byActivity = await db
+            .select({ id: followRelationships.id })
+            .from(followRelationships)
+            .where(
+              and(
+                eq(followRelationships.followerActorUri, actorUri),
+                eq(followRelationships.activityUri, objectId),
+              ),
+            )
+            .limit(1);
 
-        if (existing.length > 0) {
-          await db
-            .delete(followRelationships)
-            .where(eq(followRelationships.id, existing[0]!.id));
+          if (byActivity.length > 0) {
+            await db
+              .delete(followRelationships)
+              .where(eq(followRelationships.id, byActivity[0]!.id));
+            deleted = true;
+          }
+        }
+
+        // Fallback: delete most recent follow from this actor (for AP implementations
+        // that don't include the original activity URI in Undo)
+        if (!deleted) {
+          const existing = await db
+            .select({ id: followRelationships.id })
+            .from(followRelationships)
+            .where(eq(followRelationships.followerActorUri, actorUri))
+            .orderBy(sql`${followRelationships.updatedAt} DESC`)
+            .limit(1);
+
+          if (existing.length > 0) {
+            await db
+              .delete(followRelationships)
+              .where(eq(followRelationships.id, existing[0]!.id));
+          }
         }
       }
 
@@ -196,15 +254,149 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
 
     /**
      * Remote instance sent new content (Article/Note).
-     * For v1: log the activity. Full content mirroring is a future feature.
+     * Stores in federatedContent table with loop prevention.
      */
     async onCreate(actorUri: string, object: Record<string, unknown>): Promise<void> {
-      await resolveRemoteActor(db, actorUri);
+      const resolvedActor = await resolveRemoteActor(db, actorUri);
 
+      const objectUri = object.id as string | undefined;
+      const objectType = (object.type as string) ?? 'Article';
+
+      // Loop prevention: reject content originating from our own domain
+      if (objectUri) {
+        try {
+          const originHost = new URL(objectUri).hostname;
+          if (originHost === domain) {
+            // This is our own content echoed back — skip storage
+            await db.insert(activities).values({
+              type: 'Create',
+              actorUri,
+              objectUri,
+              payload: { type: 'Create', actor: actorUri, object },
+              direction: 'inbound',
+              status: 'processed',
+            });
+            return;
+          }
+        } catch {
+          // Invalid URL — continue with storage attempt
+        }
+      }
+
+      // Extract origin domain from the object URI or actor URI
+      let originDomain = '';
+      try {
+        originDomain = new URL(objectUri ?? actorUri).hostname;
+      } catch {
+        originDomain = 'unknown';
+      }
+
+      // Look up the remote actor's DB row for the FK
+      let remoteActorId: string | null = null;
+      if (resolvedActor) {
+        const rows = await db
+          .select({ id: remoteActors.id })
+          .from(remoteActors)
+          .where(eq(remoteActors.actorUri, actorUri))
+          .limit(1);
+        remoteActorId = rows[0]?.id ?? null;
+      }
+
+      // Parse and sanitize content
+      const rawContent = typeof object.content === 'string' ? object.content : '';
+      const sanitizedContent = sanitizeHtml(rawContent);
+
+      // Extract tags
+      const rawTags = Array.isArray(object.tag) ? object.tag : [];
+      const tags = rawTags
+        .filter((t): t is Record<string, string> => typeof t === 'object' && t !== null)
+        .map((t) => ({ type: String(t.type ?? 'Hashtag'), name: String(t.name ?? '') }));
+
+      // Extract attachments
+      const rawAttachments = Array.isArray(object.attachment) ? object.attachment : [];
+      const attachments = rawAttachments
+        .filter((a): a is Record<string, string> => typeof a === 'object' && a !== null)
+        .map((a) => ({ type: String(a.type ?? 'Document'), url: String(a.url ?? ''), name: a.name ? String(a.name) : undefined }));
+
+      // Extract cover image from attachments or icon
+      const coverImage = attachments.find((a) => a.type === 'Image')?.url
+        ?? (typeof object.image === 'object' && object.image !== null ? (object.image as Record<string, string>).url : undefined);
+
+      // Check for CommonPub extension
+      const cpubType = typeof object['cpub:type'] === 'string' ? object['cpub:type'] : null;
+      const cpubMetadata = object['cpub:metadata'] ?? null;
+
+      // Check if this content matches an active mirror config
+      const mirrorId = await matchMirrorForContent(db, originDomain, objectType, cpubType, tags);
+
+      // Upsert federated content (objectUri is unique — prevents duplicates)
+      if (objectUri) {
+        await db
+          .insert(federatedContent)
+          .values({
+            objectUri,
+            actorUri,
+            remoteActorId,
+            originDomain,
+            apType: objectType,
+            title: typeof object.name === 'string' ? object.name : null,
+            content: sanitizedContent || null,
+            summary: typeof object.summary === 'string' ? sanitizeHtml(object.summary) : null,
+            url: typeof object.url === 'string' ? object.url : null,
+            coverImageUrl: coverImage ?? null,
+            tags,
+            attachments,
+            inReplyTo: typeof object.inReplyTo === 'string' ? object.inReplyTo : null,
+            cpubType,
+            cpubMetadata,
+            mirrorId,
+            publishedAt: typeof object.published === 'string' ? new Date(object.published) : null,
+          })
+          .onConflictDoUpdate({
+            target: federatedContent.objectUri,
+            set: {
+              content: sanitizedContent || null,
+              title: typeof object.name === 'string' ? object.name : null,
+              summary: typeof object.summary === 'string' ? sanitizeHtml(object.summary) : null,
+              updatedAt: new Date(),
+            },
+          });
+      }
+
+      // If this is a reply (Note with inReplyTo), increment comment count on the parent
+      const inReplyTo = typeof object.inReplyTo === 'string' ? object.inReplyTo : null;
+      if (inReplyTo) {
+        // Check if parent is local content (by slug match)
+        try {
+          const parentUrl = new URL(inReplyTo);
+          const parentHost = parentUrl.hostname;
+
+          if (parentHost === domain) {
+            // Reply to local content — increment commentCount
+            const parentSlug = parentUrl.pathname.split('/').filter(Boolean).pop();
+            if (parentSlug) {
+              await db
+                .update(contentItems)
+                .set({ commentCount: sql`${contentItems.commentCount} + 1` })
+                .where(eq(contentItems.slug, parentSlug));
+            }
+          } else {
+            // Reply to federated content — increment localCommentCount
+            await db
+              .update(federatedContent)
+              .set({ localCommentCount: sql`${federatedContent.localCommentCount} + 1` })
+              .where(eq(federatedContent.objectUri, inReplyTo));
+          }
+        } catch {
+          // Invalid URL — skip comment counting
+        }
+      }
+
+      // Log inbound activity
       await db.insert(activities).values({
         type: 'Create',
         actorUri,
-        objectUri: (object.id as string) ?? null,
+        objectUri: objectUri ?? null,
         payload: { type: 'Create', actor: actorUri, object },
         direction: 'inbound',
         status: 'processed',
@@ -213,13 +405,31 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
 
     /**
      * Remote instance updated content.
-     * For v1: log the activity.
+     * Updates the corresponding federatedContent row if it exists.
      */
     async onUpdate(actorUri: string, object: Record<string, unknown>): Promise<void> {
+      const objectUri = object.id as string | undefined;
+
+      // Update stored federated content if we have it.
+      // Only update fields that are explicitly provided — omitted fields are preserved.
+      if (objectUri) {
+        const updates: Record<string, unknown> = { updatedAt: new Date() };
+
+        if (typeof object.name === 'string') updates.title = object.name;
+        if (typeof object.content === 'string') updates.content = sanitizeHtml(object.content);
+        if (typeof object.summary === 'string') updates.summary = sanitizeHtml(object.summary);
+        if (typeof object.url === 'string') updates.url = object.url;
+
+        await db
+          .update(federatedContent)
+          .set(updates)
+          .where(eq(federatedContent.objectUri, objectUri));
+      }
+
       await db.insert(activities).values({
         type: 'Update',
         actorUri,
-        objectUri: (object.id as string) ?? null,
+        objectUri: objectUri ?? null,
         payload: { type: 'Update', actor: actorUri, object },
         direction: 'inbound',
         status: 'processed',
@@ -228,9 +438,20 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
 
     /**
      * Remote instance deleted content.
-     * For v1: log the activity.
+     * Soft-deletes the corresponding federatedContent row.
      */
     async onDelete(actorUri: string, objectId: string): Promise<void> {
+      // Soft-delete federated content
+      await db
+        .update(federatedContent)
+        .set({ deletedAt: new Date() })
+        .where(
+          and(
+            eq(federatedContent.objectUri, objectId),
+            isNull(federatedContent.deletedAt),
+          ),
+        );
+
       await db.insert(activities).values({
         type: 'Delete',
         actorUri,
@@ -242,18 +463,17 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
     },
 
     /**
-     * Remote user liked local content.
-     * Increment like count on the local content item.
+     * Remote user liked content (local or federated).
+     * Increment like count on the matching content item.
      */
     async onLike(actorUri: string, objectUri: string): Promise<void> {
       await resolveRemoteActor(db, actorUri);
 
-      // Try to find local content by its AP URI (https://domain/content/ID or https://domain/project/slug)
+      // Try to find local content by its AP URI
       let url: string;
       try {
         url = new URL(objectUri).pathname;
       } catch {
-        // Not a valid URL (e.g., URN, bare ID) — log and skip content matching
         await db.insert(activities).values({
           type: 'Like',
           actorUri,
@@ -266,36 +486,52 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
       }
       const segments = url.split('/').filter(Boolean);
 
-      // Try matching /content/UUID or /type/slug patterns
+      let matched = false;
+
+      // Try matching local content by slug or UUID
       if (segments.length >= 2) {
-        const idOrSlug = segments[segments.length - 1];
-        // Try UUID match first
-        const byId = await db
+        const idOrSlug = segments[segments.length - 1]!;
+
+        // Slug match first (canonical URI format)
+        const bySlug = await db
           .select({ id: contentItems.id })
           .from(contentItems)
-          .where(eq(contentItems.id, idOrSlug!))
+          .where(eq(contentItems.slug, idOrSlug))
           .limit(1);
 
-        if (byId.length > 0) {
+        if (bySlug.length > 0) {
           await db
             .update(contentItems)
             .set({ likeCount: sql`${contentItems.likeCount} + 1` })
-            .where(eq(contentItems.id, byId[0]!.id));
+            .where(eq(contentItems.id, bySlug[0]!.id));
+          matched = true;
         } else {
-          // Try slug match
-          const bySlug = await db
-            .select({ id: contentItems.id })
-            .from(contentItems)
-            .where(eq(contentItems.slug, idOrSlug!))
-            .limit(1);
+          // UUID fallback
+          const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+          if (UUID_RE.test(idOrSlug)) {
+            const byId = await db
+              .select({ id: contentItems.id })
+              .from(contentItems)
+              .where(eq(contentItems.id, idOrSlug))
+              .limit(1);
 
-          if (bySlug.length > 0) {
-            await db
-              .update(contentItems)
-              .set({ likeCount: sql`${contentItems.likeCount} + 1` })
-              .where(eq(contentItems.id, bySlug[0]!.id));
+            if (byId.length > 0) {
+              await db
+                .update(contentItems)
+                .set({ likeCount: sql`${contentItems.likeCount} + 1` })
+                .where(eq(contentItems.id, byId[0]!.id));
+              matched = true;
+            }
           }
         }
+      }
+
+      // If not local content, try federated content
+      if (!matched) {
+        await db
+          .update(federatedContent)
+          .set({ localLikeCount: sql`${federatedContent.localLikeCount} + 1` })
+          .where(eq(federatedContent.objectUri, objectUri));
       }
 
       await db.insert(activities).values({

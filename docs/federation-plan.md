@@ -37,14 +37,30 @@ This is **content-type-aware federation** — not just forwarding JSON blobs, bu
 | Remote actor cache | ✅ | `remoteActors` table with 24h TTL |
 | OAuth2 SSO (provider) | ✅ | Model B — authorize + token endpoints |
 | HTTP Signature verification | ✅ | Inbound verification works |
-| HTTP Signature signing | ❌ | Outbound not signed |
-| Activity delivery | ❌ | Logged but never sent |
-| Inbound content persistence | ❌ | Stub handlers — log only |
-| Hub federation (Group) | ❌ | Hubs are local-only |
-| Content mirroring | ❌ | No mirroring mechanism |
-| Cross-instance interaction | ❌ | Can't like/comment on remote content |
-| CommonPub namespace | ❌ | No custom AP types for products/learning/docs |
-| Selective federation config | ❌ | Binary on/off flag only |
+| HTTP Signature signing | ✅ | Outbound signed (draft-cavage-12, `signRequest()`) |
+| Activity delivery | ✅ | Outbound hooks wired: publish, update, delete, like, unlike (sessions 074-080) |
+| Inbound content persistence | ✅ | `federatedContent` table, sanitized HTML, loop prevention (session 076) |
+| Hub federation (Group) | ❌ | Hubs are local-only (v2) |
+| Content mirroring | ✅ | Instance mirrors with type/tag filters (session 079) |
+| Cross-instance interaction | ✅ | Like, boost, reply on remote content (sessions 076-077) |
+| CommonPub namespace | ✅ | `cpub:type` and `cpub:metadata` extracted and stored (session 076) |
+| Selective federation config | ✅ | Mirror-level content type + tag filters (session 079) |
+| OAuth2 SSO (consumer) | ✅ | Authorize + token + federated login flow (session 078) |
+| Federated search | ✅ | ILIKE search on federatedContent (session 080) |
+| Federated timeline | ✅ | Paginated, filtered, with actor info (session 076) |
+
+### Known Limitations (v1 — to fix in v2)
+
+| # | Limitation | Status | Notes |
+|---|-----------|--------|-------|
+| L1 | Follow Undo ambiguity | ✅ FIXED (session 082) | `activityUri` column + exact match in onUndo |
+| L2 | OAuth callback | ✅ FIXED (session 082) | State storage + token exchange + account linking |
+| L3 | Federated search uses ILIKE | Deferred v2 | Needs Meilisearch adapter |
+| L4 | Concurrent delivery workers | ✅ DOCUMENTED | Single worker; FOR UPDATE SKIP LOCKED for scale |
+| L5 | Like count not decremented | ✅ FIXED (session 082) | GREATEST(count - 1, 0) on Undo(Like) |
+| L6 | Hub federation (Group) | ✅ FIXED (session 083) | FEP-1b12 Group actors, follow lifecycle, Announce |
+| L7 | Dynamic OAuth client registration | ✅ FIXED (session 083) | Public registration endpoint, validation, idempotent |
+| L8 | Instance actor route | ✅ FIXED (session 082) | GET /actor + WebFinger support |
 
 ---
 
