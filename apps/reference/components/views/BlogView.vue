@@ -46,7 +46,7 @@ const hasSeries = computed(() => !!seriesTitle.value && seriesTotalParts.value >
       <!-- AUTHOR ROW -->
       <div class="cpub-author-row">
         <NuxtLink v-if="content.author" :to="`/u/${content.author.username}`" style="text-decoration:none;">
-          <img v-if="content.author?.avatarUrl" :src="content.author.avatarUrl" :alt="content.author?.displayName" class="cpub-av cpub-av-lg" style="object-fit:cover;border:2px solid var(--border);" />
+          <img v-if="content.author?.avatarUrl" :src="content.author.avatarUrl" :alt="content.author?.displayName ?? content.author?.username ?? ''" class="cpub-av cpub-av-lg" style="object-fit:cover;border:2px solid var(--border);" />
           <div v-else class="cpub-av cpub-av-lg">{{ content.author?.displayName?.slice(0, 2).toUpperCase() || 'CP' }}</div>
         </NuxtLink>
         <div class="cpub-author-info">
