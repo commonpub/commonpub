@@ -1,0 +1,23 @@
+name: Run Server Command
+
+on:
+  workflow_dispatch:
+    inputs:
+      command:
+        description: 'Command to run on production server'
+        required: true
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Execute command
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: root
+          key: ${{ secrets.PROD_SSH_KEY }}
+          command_timeout: 30s
+          script: |
+            cd /opt/commonpub
+            ${{ github.event.inputs.command }}

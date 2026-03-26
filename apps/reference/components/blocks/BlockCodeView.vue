@@ -204,5 +204,9 @@ pre.hljs .hljs-title.class_ { color: #ffa657; }
 
 .cpub-code-body code {
   font-family: inherit;
+  background: none !important;
+  border: none !important;
+  padding: 0 !important;
+  color: inherit;
 }
 </style>
