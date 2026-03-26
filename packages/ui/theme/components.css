@@ -1,3 +1,4 @@
+@layer commonpub {
 /* ═══ CommonPub Shared Component Styles ═══
  * Canonical definitions for primitives used across all pages.
  * Imported globally via nuxt.config.ts — DO NOT duplicate in scoped styles.
@@ -318,3 +319,4 @@
 
 /* ─── DIVIDERS ─── */
 .cpub-divider { border: none; border-top: 2px solid var(--border); }
+}

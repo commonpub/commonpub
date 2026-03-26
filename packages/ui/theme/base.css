@@ -1,3 +1,4 @@
+@layer commonpub {
 /* ===========================================
    CommonPub Token Contract — base.css
    Design: unified-v2 aesthetic + hack.build readability
@@ -270,3 +271,4 @@ body {
 [data-content-type="explainer"] { --badge-color: var(--teal); --badge-bg: var(--teal-bg); }
 [data-content-type="video"] { --badge-color: var(--red); --badge-bg: var(--red-bg); }
 [data-content-type="tutorial"] { --badge-color: var(--yellow); --badge-bg: var(--yellow-bg); }
+}

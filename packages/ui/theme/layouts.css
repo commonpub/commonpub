@@ -1,3 +1,4 @@
+@layer commonpub {
 /* ===========================================
    CommonPub Layout Patterns — layouts.css
    Reusable layout classes used across all pages.
@@ -411,3 +412,4 @@
 ::-webkit-scrollbar-track { background: var(--bg); }
 ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 0; }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-faint); }
+}

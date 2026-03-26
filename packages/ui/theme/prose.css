@@ -1,3 +1,4 @@
+@layer commonpub {
 /* ===========================================
    CommonPub Prose — Content rendering styles
    Extracted from unified-v2 08-view-article.html
@@ -328,4 +329,5 @@
   font-weight: var(--font-weight-semibold);
   text-transform: uppercase;
   letter-spacing: var(--tracking-wide);
+}
 }
