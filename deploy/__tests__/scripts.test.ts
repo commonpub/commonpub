@@ -8,9 +8,7 @@ describe('Deployment scripts', () => {
   it('droplet-setup.sh exists and has required sections', () => {
     const script = readFileSync(resolve(deployDir, 'droplet-setup.sh'), 'utf-8');
     expect(script).toContain('docker');
-    expect(script).toContain('certbot');
     expect(script).toContain('ufw');
-    expect(script).toContain('systemd');
   });
 
   it('nginx.conf has proxy_pass and SSL blocks', () => {

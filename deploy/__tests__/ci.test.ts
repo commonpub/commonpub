@@ -19,9 +19,9 @@ describe('CI/CD workflows', () => {
     expect(content).toContain('ghcr.io');
   });
 
-  it('deploy.yml exists with release trigger', () => {
+  it('deploy.yml exists with push trigger', () => {
     const content = readFileSync(resolve(workflowsDir, 'deploy.yml'), 'utf-8');
-    expect(content).toContain('release:');
-    expect(content).toContain('published');
+    expect(content).toContain('push:');
+    expect(content).toContain('branches: [main]');
   });
 });
