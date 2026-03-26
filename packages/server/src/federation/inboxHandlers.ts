@@ -53,10 +53,8 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
         )
         .limit(1);
 
-      let relationshipId: string;
-
       if (existing.length > 0) {
-        relationshipId = existing[0]!.id;
+        const relationshipId = existing[0]!.id;
         await db
           .update(followRelationships)
           .set({
@@ -75,7 +73,6 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
             status: autoAcceptFollows ? 'accepted' : 'pending',
           })
           .returning();
-        relationshipId = row!.id;
       }
 
       // Log inbound activity
@@ -284,7 +281,7 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
       }
 
       // Extract origin domain from the object URI or actor URI
-      let originDomain = '';
+      let originDomain: string;
       try {
         originDomain = new URL(objectUri ?? actorUri).hostname;
       } catch {
