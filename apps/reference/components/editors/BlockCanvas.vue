@@ -39,6 +39,7 @@ const BLOCK_COMPONENTS: Record<string, Component> = {
   paragraph: TextBlock,
   text: TextBlock,
   heading: HeadingBlock,
+  code: CodeBlock,
   code_block: CodeBlock,
   codeBlock: CodeBlock,
   image: ImageBlock,

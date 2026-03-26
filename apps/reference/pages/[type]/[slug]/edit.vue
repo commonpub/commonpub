@@ -401,7 +401,7 @@ async function handlePublish(): Promise<void> {
       <component
         :is="editorComponent"
         :block-editor="blockEditor"
-        :metadata="contentType === 'blog' ? { ...metadata, title: title } : metadata"
+        :metadata="{ ...metadata, title: title }"
         @update:metadata="handleMetadataUpdate"
       />
     </template>

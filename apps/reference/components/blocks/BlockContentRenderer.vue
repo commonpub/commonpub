@@ -43,6 +43,7 @@ const componentMap: Record<string, unknown> = {
   text: BlockTextView,
   paragraph: BlockTextView,
   heading: BlockHeadingView,
+  code: BlockCodeView,
   code_block: BlockCodeView,
   codeBlock: BlockCodeView,
   image: BlockImageView,

@@ -187,14 +187,17 @@ function handleLinkInsert(): void {
   <div v-else-if="c" class="cpub-hub-page">
     <!-- ═══ HUB HERO ═══ -->
     <div class="cpub-hub-hero">
-      <div class="cpub-hub-banner">
-        <div class="cpub-hub-banner-pattern"></div>
-        <div class="cpub-hub-banner-dots"></div>
+      <div class="cpub-hub-banner" :style="c?.bannerUrl ? { backgroundImage: `url(${c.bannerUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}">
+        <template v-if="!c?.bannerUrl">
+          <div class="cpub-hub-banner-pattern"></div>
+          <div class="cpub-hub-banner-dots"></div>
+        </template>
       </div>
       <div class="cpub-hub-meta-bar">
         <div class="cpub-hub-meta-inner">
           <div class="cpub-hub-icon">
-            <i class="fa-solid fa-wrench"></i>
+            <img v-if="c?.iconUrl" :src="c.iconUrl" :alt="c?.name ?? ''" />
+            <i v-else :class="isCompanyHub ? 'fa-solid fa-building' : isProductHub ? 'fa-solid fa-microchip' : 'fa-solid fa-users'" />
           </div>
           <div class="cpub-hub-info">
             <div class="cpub-hub-top-row">
@@ -212,9 +215,8 @@ function handleLinkInsert(): void {
                     <i class="fa-solid fa-plus"></i> Join Hub
                   </button>
                   <span v-else-if="c.currentUserRole" class="cpub-member-badge">
-                    <i class="fa-solid fa-check"></i> Member
+                    <i class="fa-solid fa-check"></i> Joined
                   </span>
-                  <button class="cpub-btn" @click="handleJoin"><i class="fa-solid fa-bell"></i> Subscribe</button>
                   <button class="cpub-btn cpub-btn-sm" aria-label="Share hub" @click="handleShare"><i class="fa-solid fa-share-nodes"></i></button>
                   <NuxtLink v-if="c.currentUserRole === 'owner'" :to="`/hubs/${slug}/settings`" class="cpub-btn cpub-btn-sm" aria-label="Hub settings"><i class="fa-solid fa-gear"></i> Settings</NuxtLink>
                 </div>
@@ -523,7 +525,9 @@ function handleLinkInsert(): void {
   z-index: 1;
   box-shadow: 4px 4px 0 var(--border);
   color: var(--accent);
+  overflow: hidden;
 }
+.cpub-hub-icon img { width: 100%; height: 100%; object-fit: cover; }
 
 .cpub-hub-info { flex: 1; min-width: 0; }
 
@@ -1049,10 +1053,24 @@ function handleLinkInsert(): void {
 }
 
 @media (max-width: 640px) {
-  .cpub-hub-meta-inner { flex-direction: column; }
-  .cpub-hub-icon { margin-top: 0; }
+  .cpub-hub-banner { height: 100px; }
+  .cpub-hub-meta-inner { flex-direction: column; padding: 0 16px; }
+  .cpub-hub-icon { margin-top: -24px; width: 52px; height: 52px; font-size: 20px; }
+  .cpub-hub-name { font-size: 16px; }
+  .cpub-hub-stats { flex-wrap: wrap; gap: 8px 14px; }
+  .cpub-hub-actions { flex-wrap: wrap; }
+  .cpub-hub-badges { flex-wrap: wrap; }
   .cpub-hub-main { padding: 16px; }
-  .cpub-members-grid { grid-template-columns: 1fr; }
+  .cpub-tabs-inner { padding: 0 16px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .cpub-tab-btn { white-space: nowrap; flex-shrink: 0; }
+  .cpub-compose-bar { flex-wrap: wrap; }
+  .cpub-compose-input { min-width: 0; }
+  .cpub-members-grid { grid-template-columns: repeat(2, 1fr); }
   .cpub-gallery-grid { grid-template-columns: 1fr; }
+  .cpub-products-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 400px) {
+  .cpub-members-grid { grid-template-columns: 1fr; }
 }
 </style>
