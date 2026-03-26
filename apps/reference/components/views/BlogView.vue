@@ -45,7 +45,10 @@ const hasSeries = computed(() => !!seriesTitle.value && seriesTotalParts.value >
 
       <!-- AUTHOR ROW -->
       <div class="cpub-author-row">
-        <div class="cpub-av cpub-av-lg">{{ content.author?.displayName?.slice(0, 2).toUpperCase() || 'CP' }}</div>
+        <NuxtLink v-if="content.author" :to="`/u/${content.author.username}`" style="text-decoration:none;">
+          <img v-if="content.author?.avatarUrl" :src="content.author.avatarUrl" :alt="content.author?.displayName" class="cpub-av cpub-av-lg" style="object-fit:cover;border:2px solid var(--border);" />
+          <div v-else class="cpub-av cpub-av-lg">{{ content.author?.displayName?.slice(0, 2).toUpperCase() || 'CP' }}</div>
+        </NuxtLink>
         <div class="cpub-author-info">
           <NuxtLink v-if="content.author" :to="`/u/${content.author.username}`" class="cpub-author-name">
             {{ content.author.displayName || content.author.username }}
@@ -188,11 +191,11 @@ const hasSeries = computed(() => !!seriesTitle.value && seriesTotalParts.value >
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--green);
-  border: 2px solid var(--border);
+  border: 1px solid var(--border);
   background: var(--green-bg);
   padding: 3px 10px;
   margin-bottom: 16px;
-  box-shadow: 3px 3px 0 var(--border);
+  box-shadow: var(--shadow-sm);
 }
 
 /* ── TITLE ── */
@@ -211,7 +214,7 @@ const hasSeries = computed(() => !!seriesTitle.value && seriesTotalParts.value >
   height: 28px;
   border-radius: 50%;
   background: var(--surface3);
-  border: 2px solid var(--border);
+  border: 1px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -291,8 +294,8 @@ const hasSeries = computed(() => !!seriesTitle.value && seriesTotalParts.value >
   align-items: center;
   gap: 6px;
   padding: 14px 0;
-  border-top: 2px solid var(--border);
-  border-bottom: 2px solid var(--border);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
   margin-bottom: 36px;
 }
 
@@ -314,7 +317,7 @@ const hasSeries = computed(() => !!seriesTitle.value && seriesTotalParts.value >
   font-family: var(--font-mono);
   color: var(--text-dim);
   background: var(--surface);
-  border: 2px solid var(--border);
+  border: 1px solid var(--border);
   padding: 5px 12px;
   cursor: pointer;
   transition: background var(--transition-fast), color var(--transition-fast);
@@ -366,7 +369,7 @@ const hasSeries = computed(() => !!seriesTitle.value && seriesTotalParts.value >
   font-size: 12.5px;
   color: var(--teal);
   background: var(--surface2);
-  border: 2px solid var(--border2);
+  border: 1px solid var(--border2);
   padding: 1px 6px;
 }
 
@@ -405,17 +408,17 @@ const hasSeries = computed(() => !!seriesTitle.value && seriesTotalParts.value >
 
 .cpub-prose :deep(hr) {
   border: none;
-  border-top: 2px solid var(--border);
+  border-top: 1px solid var(--border);
   margin: 36px 0;
 }
 
 /* ── SERIES NAV ── */
 .cpub-series-nav {
   background: var(--surface);
-  border: 2px solid var(--border);
+  border: 1px solid var(--border);
   padding: 20px;
   margin: 40px 0;
-  box-shadow: 4px 4px 0 var(--border);
+  box-shadow: var(--shadow-sm);
 }
 
 .cpub-series-header {
@@ -485,7 +488,7 @@ const hasSeries = computed(() => !!seriesTitle.value && seriesTotalParts.value >
 
 .cpub-series-nav-btn {
   background: var(--surface);
-  border: 2px solid var(--border);
+  border: 1px solid var(--border);
   padding: 12px 14px;
   cursor: pointer;
   text-decoration: none;
@@ -533,7 +536,7 @@ const hasSeries = computed(() => !!seriesTitle.value && seriesTotalParts.value >
   gap: 6px;
   margin: 36px 0 28px;
   padding-top: 20px;
-  border-top: 2px solid var(--border);
+  border-top: 1px solid var(--border);
 }
 
 .cpub-tags-label {
@@ -549,13 +552,13 @@ const hasSeries = computed(() => !!seriesTitle.value && seriesTotalParts.value >
 /* ── AUTHOR CARD ── */
 .cpub-author-card {
   background: var(--surface);
-  border: 2px solid var(--border);
+  border: 1px solid var(--border);
   padding: 22px;
   display: flex;
   gap: 18px;
   align-items: flex-start;
   margin: 28px 0;
-  box-shadow: 4px 4px 0 var(--border);
+  box-shadow: var(--shadow-sm);
 }
 
 .cpub-author-card-info { flex: 1; min-width: 0; }
@@ -622,7 +625,7 @@ const hasSeries = computed(() => !!seriesTitle.value && seriesTotalParts.value >
   font-family: var(--font-sans);
   font-size: 12px;
   padding: 6px 14px;
-  border: 2px solid var(--border);
+  border: 1px solid var(--border);
   background: var(--surface);
   color: var(--text);
   cursor: pointer;

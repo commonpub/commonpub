@@ -7,13 +7,44 @@ const code = computed(() => (props.content.code as string) || '');
 
 const highlightedHtml = ref('');
 const copied = ref(false);
+const highlighterReady = ref(false);
+
+let highlighterInstance: any = null;
+
+async function getHighlighter() {
+  if (highlighterInstance) return highlighterInstance;
+  try {
+    const shiki = await import('shiki');
+    highlighterInstance = await shiki.createHighlighter({
+      themes: ['github-dark'],
+      langs: [
+        'javascript', 'typescript', 'python', 'rust', 'go', 'java', 'c', 'cpp',
+        'csharp', 'ruby', 'php', 'swift', 'kotlin', 'html', 'css', 'scss',
+        'json', 'yaml', 'toml', 'markdown', 'bash', 'shell', 'sql', 'graphql',
+        'dockerfile', 'vue', 'svelte', 'jsx', 'tsx', 'xml',
+      ],
+    });
+    highlighterReady.value = true;
+    return highlighterInstance;
+  } catch (e) {
+    console.warn('[BlockCodeView] Failed to load shiki:', e);
+    return null;
+  }
+}
 
 async function highlight(): Promise<void> {
   if (!code.value) { highlightedHtml.value = ''; return; }
+
+  const highlighter = await getHighlighter();
+  if (!highlighter) { highlightedHtml.value = ''; return; }
+
   try {
-    const { codeToHtml } = await import('shiki');
-    highlightedHtml.value = await codeToHtml(code.value, {
-      lang: language.value || 'text',
+    const lang = language.value || 'text';
+    const loadedLangs = highlighter.getLoadedLanguages();
+    const effectiveLang = loadedLangs.includes(lang) ? lang : 'text';
+
+    highlightedHtml.value = highlighter.codeToHtml(code.value, {
+      lang: effectiveLang,
       theme: 'github-dark',
     });
   } catch {
@@ -54,7 +85,6 @@ async function copyCode(): Promise<void> {
   border: 2px solid var(--border);
   overflow: hidden;
   margin: 20px 0;
-  box-shadow: 4px 4px 0 var(--border);
 }
 
 .cpub-code-header {
@@ -62,7 +92,7 @@ async function copyCode(): Promise<void> {
   align-items: center;
   gap: 8px;
   padding: 8px 14px;
-  background: var(--surface2);
+  background: var(--surface-2, var(--surface2, #161b22));
   border-bottom: 2px solid var(--border);
 }
 
@@ -78,14 +108,14 @@ async function copyCode(): Promise<void> {
 .cpub-code-filename {
   font-family: var(--font-mono);
   font-size: 10px;
-  color: var(--text-faint);
+  color: var(--text-2, var(--text-faint, #8b949e));
   flex: 1;
 }
 
 .cpub-code-copy {
   font-family: var(--font-mono);
   font-size: 10px;
-  color: var(--text-faint);
+  color: var(--text-2, var(--text-faint, #8b949e));
   background: transparent;
   border: 1px solid var(--border);
   padding: 3px 8px;
@@ -94,12 +124,12 @@ async function copyCode(): Promise<void> {
   align-items: center;
   gap: 4px;
   flex-shrink: 0;
-  transition: color 0.1s;
   margin-left: auto;
 }
 
 .cpub-code-copy:hover {
-  color: var(--text);
+  color: var(--text-1, var(--text, #e6edf3));
+  border-color: var(--text-2, var(--text-dim));
 }
 
 .cpub-code-body {
@@ -129,6 +159,11 @@ async function copyCode(): Promise<void> {
 }
 
 .cpub-code-highlighted :deep(code) {
+  font-family: var(--font-mono);
+}
+
+/* Ensure shiki's inline styles are not overridden */
+.cpub-code-highlighted :deep(span) {
   font-family: var(--font-mono);
 }
 </style>

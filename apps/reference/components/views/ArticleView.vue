@@ -97,7 +97,10 @@ useJsonLd({
 
       <!-- AUTHOR ROW -->
       <div class="cpub-author-row">
-        <div class="cpub-av cpub-av-lg">{{ content.author?.displayName?.slice(0, 2).toUpperCase() || 'CP' }}</div>
+        <NuxtLink v-if="content.author" :to="`/u/${content.author.username}`" style="text-decoration:none;">
+          <img v-if="content.author?.avatarUrl" :src="content.author.avatarUrl" :alt="content.author?.displayName" class="cpub-av cpub-av-lg" style="object-fit:cover;border:2px solid var(--border);" />
+          <div v-else class="cpub-av cpub-av-lg">{{ content.author?.displayName?.slice(0, 2).toUpperCase() || 'CP' }}</div>
+        </NuxtLink>
         <div class="cpub-author-info">
           <NuxtLink v-if="content.author" :to="`/u/${content.author.username}`" class="cpub-author-name">
             {{ content.author.displayName || content.author.username }}
@@ -252,7 +255,7 @@ useJsonLd({
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  border-bottom: 2px solid var(--border);
+  border-bottom: 1px solid var(--border);
 }
 
 .cpub-cover::after {
@@ -311,11 +314,11 @@ useJsonLd({
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--accent);
-  border: 2px solid var(--border);
+  border: 1px solid var(--border);
   background: var(--accent-bg);
   padding: 3px 10px;
   margin-bottom: 16px;
-  box-shadow: 3px 3px 0 var(--border);
+  box-shadow: var(--shadow-sm);
 }
 
 /* ── TITLE ── */
@@ -343,7 +346,7 @@ useJsonLd({
   height: 28px;
   border-radius: 50%;
   background: var(--surface3);
-  border: 2px solid var(--border);
+  border: 1px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -427,8 +430,8 @@ useJsonLd({
   align-items: center;
   gap: 6px;
   padding: 14px 0;
-  border-top: 2px solid var(--border);
-  border-bottom: 2px solid var(--border);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
   margin-bottom: 28px;
 }
 
@@ -452,7 +455,7 @@ useJsonLd({
   font-family: var(--font-mono);
   color: var(--text-dim);
   background: var(--surface);
-  border: 2px solid var(--border);
+  border: 1px solid var(--border);
   padding: 5px 12px;
   cursor: pointer;
   transition: background var(--transition-fast), color var(--transition-fast);
@@ -485,7 +488,7 @@ useJsonLd({
   margin: 40px 0 12px;
   letter-spacing: -0.01em;
   padding-bottom: 8px;
-  border-bottom: 2px solid var(--border);
+  border-bottom: 1px solid var(--border);
 }
 
 .cpub-prose :deep(h3) {
@@ -506,7 +509,7 @@ useJsonLd({
   font-size: 13px;
   color: var(--teal);
   background: var(--surface2);
-  border: 2px solid var(--border);
+  border: 1px solid var(--border);
   padding: 1px 6px;
 }
 
@@ -536,7 +539,7 @@ useJsonLd({
 
 .cpub-prose :deep(hr) {
   border: none;
-  border-top: 2px solid var(--border);
+  border-top: 1px solid var(--border);
   margin: 36px 0;
 }
 
@@ -547,7 +550,7 @@ useJsonLd({
   gap: 6px;
   margin: 40px 0 32px;
   padding-top: 24px;
-  border-top: 2px solid var(--border);
+  border-top: 1px solid var(--border);
 }
 
 .cpub-tags-label {
@@ -563,13 +566,13 @@ useJsonLd({
 /* ── AUTHOR CARD ── */
 .cpub-author-card {
   background: var(--surface);
-  border: 2px solid var(--border);
+  border: 1px solid var(--border);
   padding: 24px;
   display: flex;
   gap: 20px;
   align-items: flex-start;
   margin: 32px 0;
-  box-shadow: 4px 4px 0 var(--border);
+  box-shadow: var(--shadow-sm);
 }
 
 .cpub-author-card-info { flex: 1; min-width: 0; }
@@ -658,7 +661,7 @@ useJsonLd({
   text-transform: uppercase;
   margin-bottom: 16px;
   padding-bottom: 8px;
-  border-bottom: 2px solid var(--border);
+  border-bottom: 1px solid var(--border);
 }
 
 .cpub-related-grid {
@@ -670,16 +673,16 @@ useJsonLd({
 
 .cpub-related-card {
   background: var(--surface);
-  border: 2px solid var(--border);
+  border: 1px solid var(--border);
   overflow: hidden;
   cursor: pointer;
   transition: box-shadow var(--transition-fast);
-  box-shadow: 4px 4px 0 var(--border);
+  box-shadow: var(--shadow-sm);
   text-decoration: none;
   color: inherit;
 }
 
-.cpub-related-card:hover { box-shadow: 6px 6px 0 var(--border); }
+.cpub-related-card:hover { box-shadow: var(--shadow-md); }
 
 .cpub-related-card-thumb {
   aspect-ratio: 16/9;
@@ -689,7 +692,7 @@ useJsonLd({
   justify-content: center;
   position: relative;
   overflow: hidden;
-  border-bottom: 2px solid var(--border);
+  border-bottom: 1px solid var(--border);
 }
 
 .cpub-related-card-thumb::after {
