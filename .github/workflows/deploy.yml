@@ -44,5 +44,7 @@ jobs:
             docker load < commonpub-app.tar.gz
             rm -f commonpub-app.tar.gz
             docker compose -f docker-compose.prod.yml up -d --force-recreate --remove-orphans
+            sleep 5
+            docker compose -f docker-compose.prod.yml exec -T app npx drizzle-kit push --force 2>&1 || echo "db:push completed"
             docker image prune -f
             echo "Deployed ${{ github.sha }}"

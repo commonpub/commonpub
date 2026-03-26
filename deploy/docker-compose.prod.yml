@@ -27,6 +27,7 @@ services:
       - NODE_ENV=production
       - NUXT_HOST=0.0.0.0
       - NUXT_PORT=3000
+      - ADMIN_BOOTSTRAP_USER=moheeb
     volumes:
       - uploads_data:/app/uploads
     depends_on:
