@@ -8,8 +8,7 @@
   font-family: var(--font-mono);
   font-size: 12px;
   padding: 6px 14px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
+  border: 2px solid var(--border);
   background: var(--surface);
   color: var(--text);
   cursor: pointer;
@@ -27,11 +26,11 @@
 .cpub-btn-primary {
   background: var(--accent);
   color: var(--color-text-inverse);
-  box-shadow: none;
+  box-shadow: 4px 4px 0 var(--border);
 }
 
 .cpub-btn-primary:hover {
-  box-shadow: none;
+  box-shadow: 2px 2px 0 var(--border);
 }
 
 .cpub-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -55,7 +54,6 @@
   font-family: var(--font-mono);
   padding: 2px 8px;
   border: 1px solid var(--border2);
-  border-radius: 4px;
   color: var(--text-dim);
   background: var(--surface2);
 }
@@ -78,10 +76,10 @@
 /* ─── SIDEBAR CARDS ─── */
 .cpub-sb-card {
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  border: 2px solid var(--border);
   padding: 16px;
   margin-bottom: 12px;
+  box-shadow: 4px 4px 0 var(--border);
 }
 
 .cpub-sb-title {
@@ -104,7 +102,7 @@
   gap: 12px;
   margin-bottom: 16px;
   padding-bottom: 10px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 2px solid var(--border);
 }
 
 .cpub-section-head h2,
@@ -137,8 +135,7 @@
 .cpub-page-btn {
   min-width: 44px;
   min-height: 44px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
+  border: 2px solid var(--border);
   background: var(--surface);
   color: var(--text-dim);
   font-size: 12px;
@@ -157,7 +154,7 @@
   border-color: var(--accent);
   background: var(--accent-bg);
   color: var(--accent);
-  box-shadow: none;
+  box-shadow: 2px 2px 0 var(--border);
 }
 
 .cpub-page-ellipsis {
@@ -208,7 +205,7 @@
   padding: 10px 14px;
   background: var(--red-bg);
   color: var(--red);
-  border: 1px solid var(--red);
+  border: 2px solid var(--red);
   font-size: 12px;
   font-family: var(--font-mono);
 }
@@ -237,7 +234,7 @@
 
 .cpub-input {
   padding: 8px 12px;
-  border: 1px solid var(--border);
+  border: 2px solid var(--border);
   background: var(--surface);
   color: var(--text);
   font-size: 13px;
@@ -251,7 +248,7 @@
 
 .cpub-textarea {
   padding: 8px 12px;
-  border: 1px solid var(--border);
+  border: 2px solid var(--border);
   background: var(--surface);
   color: var(--text);
   font-size: 13px;
@@ -282,7 +279,7 @@
   content: '';
   width: 16px;
   height: 16px;
-  border: 1px solid var(--border);
+  border: 2px solid var(--border);
   border-top-color: var(--accent);
   animation: cpub-spin 0.6s linear infinite;
 }
@@ -320,4 +317,4 @@
 .cpub-delete-btn-sm { font-size: 10px; padding: 2px 4px; }
 
 /* ─── DIVIDERS ─── */
-.cpub-divider { border: none; border-top: 1px solid var(--border); }
+.cpub-divider { border: none; border-top: 2px solid var(--border); }

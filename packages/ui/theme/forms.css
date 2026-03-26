@@ -13,8 +13,7 @@
   font-family: var(--font-sans);
   color: var(--text);
   background: var(--surface);
-  border: 1px solid var(--border2);
-  border-radius: 6px;
+  border: 2px solid var(--border2);
   transition: border-color var(--transition-fast);
 }
 
@@ -41,7 +40,7 @@
   font-family: var(--font-sans);
   color: var(--text);
   background: var(--surface);
-  border: 1px solid var(--border2);
+  border: 2px solid var(--border2);
   resize: vertical;
   min-height: 100px;
   transition: border-color var(--transition-fast);
@@ -71,7 +70,7 @@
   font-family: var(--font-sans);
   color: var(--text);
   background: var(--surface);
-  border: 1px solid var(--border2);
+  border: 2px solid var(--border2);
   appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b6b66' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
@@ -131,7 +130,7 @@
 .cpub-checkbox input[type="checkbox"] {
   width: 16px;
   height: 16px;
-  border: 1px solid var(--border2);
+  border: 2px solid var(--border2);
   background: var(--surface);
   appearance: none;
   cursor: pointer;
@@ -174,7 +173,7 @@
 .cpub-radio input[type="radio"] {
   width: 16px;
   height: 16px;
-  border: 1px solid var(--border2);
+  border: 2px solid var(--border2);
   border-radius: 50%;
   background: var(--surface);
   appearance: none;
