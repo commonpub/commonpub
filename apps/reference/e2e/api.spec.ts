@@ -21,10 +21,10 @@ test.describe('Stats endpoint', () => {
     expect(response.status()).toBe(200);
 
     const body = await response.json();
-    expect(body).toHaveProperty('contentCount');
-    expect(body).toHaveProperty('userCount');
-    expect(typeof body.contentCount).toBe('number');
-    expect(typeof body.userCount).toBe('number');
+    expect(body).toHaveProperty('users');
+    expect(body).toHaveProperty('content');
+    expect(typeof body.users.total).toBe('number');
+    expect(typeof body.content.total).toBe('number');
   });
 });
 
