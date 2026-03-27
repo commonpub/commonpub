@@ -113,6 +113,11 @@ jobs:
       - name: Build
         run: pnpm build
 
+      - name: Apply database schema
+        run: pnpm --filter @commonpub/schema exec drizzle-kit push --force
+        env:
+          DATABASE_URL: postgresql://commonpub:commonpub_test@localhost:5432/commonpub_test
+
       - name: Install Playwright Browsers
         run: pnpm exec playwright install --with-deps chromium
 
@@ -120,3 +125,5 @@ jobs:
         run: pnpm exec playwright test --project=chromium
         env:
           DATABASE_URL: postgresql://commonpub:commonpub_test@localhost:5432/commonpub_test
+          NUXT_DATABASE_URL: postgresql://commonpub:commonpub_test@localhost:5432/commonpub_test
+          AUTH_SECRET: test-secret-for-ci-min-32-chars-long
