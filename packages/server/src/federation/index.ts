@@ -57,6 +57,11 @@ export {
   federateHubShare,
 } from './hubFederation.js';
 export {
+  resolveRemoteHandle,
+  federateDirectMessage,
+  isFederatedHandle,
+} from './messaging.js';
+export {
   processAuthorize,
   processTokenExchange,
   registerOAuthClient,

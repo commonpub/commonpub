@@ -259,6 +259,61 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
       const objectUri = object.id as string | undefined;
       const objectType = (object.type as string) ?? 'Article';
 
+      // Check for private/direct messages: Note with specific recipients, no #Public
+      const toField = (object.to ?? []) as string[];
+      const AP_PUBLIC = 'https://www.w3.org/ns/activitystreams#Public';
+      const isPrivateNote = objectType === 'Note' && toField.length > 0 && !toField.includes(AP_PUBLIC);
+
+      if (isPrivateNote) {
+        // Store as inbound DM. Find local recipients by matching their actor URIs.
+        const { findOrCreateConversation, sendMessage } = await import('../messaging/messaging.js');
+        const { users: usersTable } = await import('@commonpub/schema');
+
+        for (const recipientUri of toField) {
+          // Check if this is a local user
+          try {
+            const recipientUrl = new URL(recipientUri);
+            if (recipientUrl.hostname === domain) {
+              const recipientUsername = recipientUrl.pathname.split('/').filter(Boolean).pop();
+              if (recipientUsername) {
+                const [localUser] = await db
+                  .select({ id: usersTable.id })
+                  .from(usersTable)
+                  .where(eq(usersTable.username, recipientUsername))
+                  .limit(1);
+
+                if (localUser) {
+                  // Store the remote actor as a pseudo-participant using their URI
+                  // The conversation system will handle display via the info endpoint
+                  try {
+                    const conv = await findOrCreateConversation(db, [localUser.id]);
+                    const content = typeof object.content === 'string' ? sanitizeHtml(object.content) : '';
+                    if (content) {
+                      await sendMessage(db, conv.id, localUser.id, `[From ${actorUri}]: ${content}`);
+                    }
+                  } catch {
+                    // Conversation creation may fail — log and continue
+                  }
+                }
+              }
+            }
+          } catch {
+            // Invalid URL — skip
+          }
+        }
+
+        // Log the activity
+        await db.insert(activities).values({
+          type: 'Create',
+          actorUri,
+          objectUri: objectUri ?? null,
+          payload: { type: 'Create', actor: actorUri, object },
+          direction: 'inbound',
+          status: 'processed',
+        });
+        return;
+      }
+
       // Loop prevention: reject content originating from our own domain
       if (objectUri) {
         try {

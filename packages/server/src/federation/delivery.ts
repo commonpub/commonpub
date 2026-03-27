@@ -226,6 +226,26 @@ async function resolveTargetInboxes(
       }
     }
   } else if (type === 'Create' || type === 'Update' || type === 'Delete' || type === 'Like' || type === 'Announce') {
+    // Check for direct messages: Create with specific recipients, no #Public
+    const payload = activity.payload as Record<string, unknown> | null;
+    const toField = payload?.to as string[] | undefined;
+    const AP_PUBLIC = 'https://www.w3.org/ns/activitystreams#Public';
+    const isDM = type === 'Create' && toField && !toField.includes(AP_PUBLIC) && toField.length > 0;
+
+    if (isDM) {
+      // Direct message — deliver to each specific recipient's inbox
+      for (const recipientUri of toField!) {
+        if (recipientUri === activity.actorUri) continue; // Don't send to self
+        const actor = await db
+          .select({ inbox: remoteActors.inbox })
+          .from(remoteActors)
+          .where(eq(remoteActors.actorUri, recipientUri))
+          .limit(1);
+        if (actor[0]?.inbox) inboxes.push(actor[0].inbox);
+      }
+      return [...new Set(inboxes)];
+    }
+
     // Check if this is a hub actor (pattern: /hubs/{slug} in actor URI)
     const actorUrl = new URL(activity.actorUri);
     const actorSegments = actorUrl.pathname.split('/').filter(Boolean);
