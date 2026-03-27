@@ -58,11 +58,11 @@ describe('instance mirroring integration', () => {
     let mirrorId: string;
 
     it('creates a mirror in pending state', async () => {
-      const mirror = await createMirror(db, MIRROR_DOMAIN, MIRROR_ACTOR, 'pull', {
+      const mirror = await createMirror(db, MIRROR_DOMAIN, MIRROR_ACTOR, 'pull', DOMAIN, {
         contentTypes: ['article', 'project'],
       });
       mirrorId = mirror.id;
-      expect(mirror.status).toBe('pending');
+      expect(mirror.status).toBe('active');
       expect(mirror.remoteDomain).toBe(MIRROR_DOMAIN);
       expect(mirror.direction).toBe('pull');
       expect(mirror.filterContentTypes).toEqual(['article', 'project']);
@@ -96,7 +96,7 @@ describe('instance mirroring integration', () => {
 
     it('cancels a mirror', async () => {
       // Create a separate mirror to cancel
-      const temp = await createMirror(db, 'temp.example.com', 'https://temp.example.com/actor', 'pull');
+      const temp = await createMirror(db, 'temp.example.com', 'https://temp.example.com/actor', 'pull', DOMAIN);
       await cancelMirror(db, temp.id);
       const result = await getMirror(db, temp.id);
       expect(result).toBeNull();
@@ -165,7 +165,7 @@ describe('instance mirroring integration', () => {
 
     beforeAll(async () => {
       // Create a mirror with tag filter
-      const mirror = await createMirror(db, 'tagged.example.com', 'https://tagged.example.com/actor', 'pull', {
+      const mirror = await createMirror(db, 'tagged.example.com', 'https://tagged.example.com/actor', 'pull', DOMAIN, {
         tags: ['arduino', 'robotics'],
       });
       tagMirrorId = mirror.id;

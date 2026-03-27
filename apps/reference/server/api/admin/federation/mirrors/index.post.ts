@@ -15,11 +15,13 @@ export default defineEventHandler(async (event) => {
   const db = useDB();
   const input = await parseBody(event, createMirrorSchema);
 
+  const config = useConfig();
   return createMirror(
     db,
     input.remoteDomain,
     input.remoteActorUri,
     input.direction,
+    config.instance.domain,
     {
       contentTypes: input.filterContentTypes ?? undefined,
       tags: input.filterTags ?? undefined,

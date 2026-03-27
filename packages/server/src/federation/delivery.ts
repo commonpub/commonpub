@@ -273,6 +273,31 @@ async function resolveTargetInboxes(
         const targetInbox = actor[0]?.sharedInbox ?? actor[0]?.inbox;
         if (targetInbox) inboxes.push(targetInbox);
       }
+
+      // Also deliver to instance actor followers (for mirroring)
+      // Instance actor URI: https://{domain}/actor
+      const instanceActorUri = `https://${domain}/actor`;
+      if (activity.actorUri !== instanceActorUri) {
+        const instanceFollowers = await db
+          .select({ followerActorUri: followRelationships.followerActorUri })
+          .from(followRelationships)
+          .where(
+            and(
+              eq(followRelationships.followingActorUri, instanceActorUri),
+              eq(followRelationships.status, 'accepted'),
+            ),
+          );
+
+        for (const f of instanceFollowers) {
+          const actor = await db
+            .select({ inbox: remoteActors.inbox, sharedInbox: remoteActors.sharedInbox })
+            .from(remoteActors)
+            .where(eq(remoteActors.actorUri, f.followerActorUri))
+            .limit(1);
+          const targetInbox = actor[0]?.sharedInbox ?? actor[0]?.inbox;
+          if (targetInbox) inboxes.push(targetInbox);
+        }
+      }
     }
   }
 
@@ -284,11 +309,16 @@ async function getKeypairForActor(
   actorUri: string,
   domain: string,
 ): Promise<{ publicKeyPem: string; privateKeyPem: string } | null> {
-  // Extract username from actorUri: https://domain/users/username
   const url = new URL(actorUri);
   const segments = url.pathname.split('/').filter(Boolean);
   const username = segments[segments.length - 1];
   if (!username) return null;
+
+  // Check if this is the instance actor (pattern: /actor)
+  if (segments.length === 1 && segments[0] === 'actor') {
+    const { getOrCreateInstanceKeypair } = await import('./federation.js');
+    return getOrCreateInstanceKeypair(db);
+  }
 
   // Check if this is a hub actor URI (pattern: /hubs/{slug})
   if (segments.includes('hubs') && segments.length >= 2) {

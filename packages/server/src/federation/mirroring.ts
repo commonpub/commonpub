@@ -7,7 +7,10 @@ import { eq, and, sql } from 'drizzle-orm';
 import {
   instanceMirrors,
   federatedContent,
+  activities,
+  followRelationships,
 } from '@commonpub/schema';
+import { buildFollowActivity } from '@commonpub/protocol';
 import type { DB } from '../types.js';
 
 export interface MirrorConfig {
@@ -34,6 +37,7 @@ export async function createMirror(
   remoteDomain: string,
   remoteActorUri: string,
   direction: 'pull' | 'push',
+  localDomain: string,
   filters?: { contentTypes?: string[]; tags?: string[] },
 ): Promise<MirrorConfig> {
   const [row] = await db
@@ -42,11 +46,34 @@ export async function createMirror(
       remoteDomain,
       remoteActorUri,
       direction,
-      status: 'pending',
+      status: 'active', // Start as active immediately
       filterContentTypes: filters?.contentTypes ?? null,
       filterTags: filters?.tags ?? null,
     })
     .returning();
+
+  // For pull mirrors: Follow the remote instance actor so they deliver content to us
+  if (direction === 'pull') {
+    const localActorUri = `https://${localDomain}/actor`;
+    const followActivity = buildFollowActivity(localDomain, localActorUri, remoteActorUri);
+
+    // Store the follow relationship so the remote can find us
+    await db.insert(followRelationships).values({
+      followerActorUri: localActorUri,
+      followingActorUri: remoteActorUri,
+      status: 'pending',
+    }).onConflictDoNothing();
+
+    // Queue the Follow for delivery
+    await db.insert(activities).values({
+      type: 'Follow',
+      actorUri: localActorUri,
+      objectUri: remoteActorUri,
+      payload: followActivity,
+      direction: 'outbound',
+      status: 'pending',
+    });
+  }
 
   return mirrorRowToConfig(row!);
 }

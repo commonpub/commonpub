@@ -445,6 +445,7 @@ describe('production federation scenarios', () => {
         'combo.example.com',
         'https://combo.example.com/actor',
         'pull',
+        DOMAIN,
         { contentTypes: ['project', 'article'], tags: ['arduino', 'robotics'] },
       );
       mirrorId = mirror.id;
