@@ -9,6 +9,7 @@ import {
   contentItems,
   federatedContent,
   remoteActors,
+  users,
 } from '@commonpub/schema';
 import {
   buildAcceptActivity,
@@ -18,6 +19,22 @@ import {
 import type { DB } from '../types.js';
 import { resolveRemoteActor } from './federation.js';
 import { matchMirrorForContent } from './mirroring.js';
+import { createNotification } from '../notification/notification.js';
+
+/** Helper: create a notification for a local user from a remote actor interaction */
+async function notifyRemoteInteraction(
+  db: DB,
+  localUserId: string,
+  type: 'like' | 'follow' | 'comment' | 'mention',
+  actorUri: string,
+  title: string,
+  message: string,
+  link?: string,
+): Promise<void> {
+  try {
+    await createNotification(db, { userId: localUserId, type, title, message, link });
+  } catch { /* notification creation is non-critical */ }
+}
 
 export interface InboxHandlerOptions {
   db: DB;
@@ -97,6 +114,21 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
           status: 'pending',
         });
       }
+
+      // Notify the local user about the new follower
+      try {
+        const targetSegments = new URL(targetActorUri).pathname.split('/').filter(Boolean);
+        const targetUsername = targetSegments.pop();
+        if (targetUsername) {
+          const [localUser] = await db.select({ id: users.id }).from(users).where(eq(users.username, targetUsername)).limit(1);
+          if (localUser) {
+            const actorName = actorUri.split('/').pop() ?? actorUri;
+            await notifyRemoteInteraction(db, localUser.id, 'follow', actorUri,
+              'New follower', `${actorName} from the fediverse started following you`,
+              '/notifications');
+          }
+        }
+      } catch { /* non-critical */ }
     },
 
     /**
@@ -426,13 +458,23 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
           const parentHost = parentUrl.hostname;
 
           if (parentHost === domain) {
-            // Reply to local content — increment commentCount
+            // Reply to local content — increment commentCount + notify author
             const parentSlug = parentUrl.pathname.split('/').filter(Boolean).pop();
             if (parentSlug) {
               await db
                 .update(contentItems)
                 .set({ commentCount: sql`${contentItems.commentCount} + 1` })
                 .where(eq(contentItems.slug, parentSlug));
+
+              // Notify content author
+              const [parentContent] = await db.select({ authorId: contentItems.authorId, title: contentItems.title })
+                .from(contentItems).where(eq(contentItems.slug, parentSlug)).limit(1);
+              if (parentContent) {
+                const remoteUser = actorUri.split('/').pop() ?? 'Someone';
+                await notifyRemoteInteraction(db, parentContent.authorId, 'comment', actorUri,
+                  'New reply', `${remoteUser} from the fediverse replied to "${parentContent.title ?? 'your content'}"`,
+                  `/content/${parentSlug}`);
+              }
             }
           } else {
             // Reply to federated content — increment localCommentCount
@@ -559,6 +601,16 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
             .set({ likeCount: sql`${contentItems.likeCount} + 1` })
             .where(eq(contentItems.id, bySlug[0]!.id));
           matched = true;
+
+          // Notify content author about the remote like
+          const [likedContent] = await db.select({ authorId: contentItems.authorId, title: contentItems.title })
+            .from(contentItems).where(eq(contentItems.id, bySlug[0]!.id)).limit(1);
+          if (likedContent) {
+            const remoteUser = actorUri.split('/').pop() ?? 'Someone';
+            await notifyRemoteInteraction(db, likedContent.authorId, 'like', actorUri,
+              'New like', `${remoteUser} from the fediverse liked "${likedContent.title ?? 'your content'}"`,
+              `/content/${idOrSlug}`);
+          }
         } else {
           // UUID fallback
           const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

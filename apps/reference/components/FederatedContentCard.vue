@@ -59,7 +59,12 @@ function stripHtml(html: string): string {
       </div>
 
       <div class="cpub-fed-card__meta">
-        <span class="cpub-fed-card__author">{{ actorName }}</span>
+        <NuxtLink
+          v-if="content.actor"
+          :to="`/federation/users/${content.actor.preferredUsername}@${content.actor.instanceDomain}`"
+          class="cpub-fed-card__author cpub-fed-card__author-link"
+        >{{ actorName }}</NuxtLink>
+        <span v-else class="cpub-fed-card__author">{{ actorName }}</span>
         <span class="cpub-fed-card__handle">{{ actorHandle }}</span>
       </div>
 
@@ -160,6 +165,13 @@ function stripHtml(html: string): string {
 .cpub-fed-card__author {
   font-weight: 700;
   color: var(--text-1);
+}
+.cpub-fed-card__author-link {
+  text-decoration: none;
+  color: var(--text-1);
+}
+.cpub-fed-card__author-link:hover {
+  color: var(--accent);
 }
 
 .cpub-fed-card__handle {
