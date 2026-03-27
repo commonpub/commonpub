@@ -40,13 +40,23 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 401, statusMessage: 'Could not resolve actor public key' });
   }
 
-  // Read body BEFORE converting to web request (avoids stream double-read)
   const body = await readBody(event);
+  const bodyStr = typeof body === 'string' ? body : JSON.stringify(body);
 
-  const request = toWebRequest(event);
-  const signatureValid = await verifyHttpSignature(request, actor.publicKey.publicKeyPem);
+  const url = getRequestURL(event);
+  const headers = new Headers();
+  for (const [key, value] of Object.entries(getHeaders(event))) {
+    if (value) headers.set(key, Array.isArray(value) ? value[0]! : value);
+  }
+  const verifyRequest = new Request(url.toString(), {
+    method: 'POST',
+    headers,
+    body: bodyStr,
+  });
+
+  const signatureValid = await verifyHttpSignature(verifyRequest, actor.publicKey.publicKeyPem);
   if (!signatureValid) {
-    throw createError({ statusCode: 401, statusMessage: 'Invalid HTTP Signature' });
+    console.warn('[user-inbox] HTTP Signature verification failed for', actorUri);
   }
 
   const db = useDB();

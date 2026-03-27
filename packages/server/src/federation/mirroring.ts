@@ -54,6 +54,14 @@ export async function createMirror(
 
   // For pull mirrors: Follow the remote instance actor so they deliver content to us
   if (direction === 'pull') {
+    // CRITICAL: resolve and cache the remote actor FIRST so the delivery worker
+    // can find their inbox when delivering the Follow activity
+    const { resolveRemoteActor } = await import('./federation.js');
+    await resolveRemoteActor(db, remoteActorUri).catch(() => {
+      // If the remote actor can't be resolved (e.g., instance is down),
+      // we still create the mirror but the Follow will fail on delivery
+    });
+
     const localActorUri = `https://${localDomain}/actor`;
     const followActivity = buildFollowActivity(localDomain, localActorUri, remoteActorUri);
 

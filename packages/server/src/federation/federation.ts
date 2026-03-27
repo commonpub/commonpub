@@ -109,6 +109,9 @@ export function buildInstanceActor(
     outbox: `${actorUri}/outbox`,
     followers: `${actorUri}/followers`,
     following: `${actorUri}/following`,
+    endpoints: {
+      sharedInbox: `https://${domain}/inbox`,
+    },
     publicKey: {
       id: `${actorUri}#main-key`,
       owner: actorUri,
@@ -382,6 +385,10 @@ export async function sendFollow(
 ): Promise<{ id: string }> {
   const user = await db.select().from(users).where(eq(users.id, localUserId)).limit(1);
   if (!user[0]) throw new Error('User not found');
+
+  // CRITICAL: resolve and cache the remote actor so the delivery worker
+  // can find their inbox when delivering the Follow
+  await resolveRemoteActor(db, remoteActorUri).catch(() => {});
 
   const localActorUri = `https://${domain}/users/${user[0].username}`;
 
