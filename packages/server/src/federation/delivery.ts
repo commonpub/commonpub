@@ -229,8 +229,10 @@ async function resolveTargetInboxes(
     // Check for direct messages: Create with specific recipients, no #Public
     const payload = activity.payload as Record<string, unknown> | null;
     const toField = payload?.to as string[] | undefined;
+    const ccField = payload?.cc as string[] | undefined;
     const AP_PUBLIC = 'https://www.w3.org/ns/activitystreams#Public';
-    const isDM = type === 'Create' && toField && !toField.includes(AP_PUBLIC) && toField.length > 0;
+    const isPublic = toField?.includes(AP_PUBLIC) || ccField?.includes(AP_PUBLIC);
+    const isDM = type === 'Create' && toField && toField.length > 0 && !isPublic;
 
     if (isDM) {
       // Direct message — deliver to each specific recipient's inbox

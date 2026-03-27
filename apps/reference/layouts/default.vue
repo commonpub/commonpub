@@ -1,7 +1,7 @@
 <script setup lang="ts">
 const { user, isAuthenticated, isAdmin, signOut, refreshSession } = useAuth();
 const { count: unreadCount, connect: connectNotifications, disconnect: disconnectNotifications } = useNotifications();
-const { hubs, learning, video, docs, contests, admin } = useFeatures();
+const { hubs, learning, video, docs, contests, admin, federation } = useFeatures();
 const { enabledTypeMeta } = useContentTypes();
 
 useHead({
@@ -71,6 +71,7 @@ const userUsername = computed(() => user.value?.username ?? '');
         <NuxtLink v-if="video" to="/videos" class="cpub-nav-link"><i class="fa-solid fa-video"></i> Videos</NuxtLink>
         <NuxtLink v-if="docs" to="/docs" class="cpub-nav-link"><i class="fa-solid fa-book"></i> Docs</NuxtLink>
         <NuxtLink v-if="contests" to="/contests" class="cpub-nav-link"><i class="fa-solid fa-trophy"></i> Contests</NuxtLink>
+        <NuxtLink v-if="federation" to="/federation" class="cpub-nav-link"><i class="fa-solid fa-globe"></i> Fediverse</NuxtLink>
         <NuxtLink v-if="isAdmin && admin" to="/admin" class="cpub-nav-link"><i class="fa-solid fa-shield-halved"></i> Admin</NuxtLink>
       </nav>
 
@@ -124,6 +125,7 @@ const userUsername = computed(() => user.value?.username ?? '');
         <NuxtLink v-if="video" to="/videos" class="cpub-mobile-link" @click="mobileMenuOpen = false"><i class="fa-solid fa-video"></i> Videos</NuxtLink>
         <NuxtLink v-if="docs" to="/docs" class="cpub-mobile-link" @click="mobileMenuOpen = false"><i class="fa-solid fa-book"></i> Docs</NuxtLink>
         <NuxtLink v-if="contests" to="/contests" class="cpub-mobile-link" @click="mobileMenuOpen = false"><i class="fa-solid fa-trophy"></i> Contests</NuxtLink>
+        <NuxtLink v-if="federation" to="/federation" class="cpub-mobile-link" @click="mobileMenuOpen = false"><i class="fa-solid fa-globe"></i> Fediverse</NuxtLink>
         <NuxtLink v-if="isAdmin && admin" to="/admin" class="cpub-mobile-link" @click="mobileMenuOpen = false"><i class="fa-solid fa-shield-halved"></i> Admin</NuxtLink>
         <NuxtLink to="/search" class="cpub-mobile-link" @click="mobileMenuOpen = false"><i class="fa-solid fa-magnifying-glass"></i> Search</NuxtLink>
         <template v-if="isAuthenticated">

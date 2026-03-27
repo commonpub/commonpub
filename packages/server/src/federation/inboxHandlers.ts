@@ -261,8 +261,10 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
 
       // Check for private/direct messages: Note with specific recipients, no #Public
       const toField = (object.to ?? []) as string[];
+      const ccField = (object.cc ?? []) as string[];
       const AP_PUBLIC = 'https://www.w3.org/ns/activitystreams#Public';
-      const isPrivateNote = objectType === 'Note' && toField.length > 0 && !toField.includes(AP_PUBLIC);
+      const isPublic = toField.includes(AP_PUBLIC) || ccField.includes(AP_PUBLIC);
+      const isPrivateNote = objectType === 'Note' && toField.length > 0 && !isPublic;
 
       if (isPrivateNote) {
         // Store as inbound DM. Find local recipients by matching their actor URIs.
