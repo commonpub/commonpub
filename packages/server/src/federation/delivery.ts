@@ -356,12 +356,9 @@ async function getKeypairForActor(
         .where(eq(hubs.slug, hubSlug))
         .limit(1);
       if (hub) {
-        const [kp] = await db
-          .select()
-          .from(hubActorKeypairs)
-          .where(eq(hubActorKeypairs.hubId, hub.id))
-          .limit(1);
-        if (kp) return { publicKeyPem: kp.publicKeyPem, privateKeyPem: kp.privateKeyPem };
+        // Generate keypair on demand if hub doesn't have one yet
+        const { getOrCreateHubKeypair } = await import('./hubFederation.js');
+        return getOrCreateHubKeypair(db, hub.id);
       }
     }
     return null;

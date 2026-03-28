@@ -484,7 +484,7 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
       const objectUri = object.id as string | undefined;
 
       // Update stored federated content if we have it.
-      // Only update fields that are explicitly provided — omitted fields are preserved.
+      // Authorization: only the original author can update their content.
       if (objectUri) {
         const updates: Record<string, unknown> = { updatedAt: new Date() };
 
@@ -496,7 +496,12 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
         await db
           .update(federatedContent)
           .set(updates)
-          .where(eq(federatedContent.objectUri, objectUri));
+          .where(
+            and(
+              eq(federatedContent.objectUri, objectUri),
+              eq(federatedContent.actorUri, actorUri),
+            ),
+          );
       }
 
       await db.insert(activities).values({
@@ -562,74 +567,63 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
         return;
       }
 
-      // Try to find local content by its AP URI
-      let url: string;
-      try {
-        url = new URL(objectUri).pathname;
-      } catch {
-        await db.insert(activities).values({
-          type: 'Like',
-          actorUri,
-          objectUri,
-          payload: {},
-          direction: 'inbound',
-          status: 'processed',
-        });
-        return;
-      }
-      const segments = url.split('/').filter(Boolean);
-
+      // Determine if this Like targets local content or federated content.
+      // First check if the objectUri belongs to our domain (local content).
+      // Then try slug/UUID match. If neither, it's federated content.
       let matched = false;
+      let isLocalUri = false;
 
-      // Try matching local content by slug or UUID
-      if (segments.length >= 2) {
-        const idOrSlug = segments[segments.length - 1]!;
+      try {
+        const parsedUri = new URL(objectUri);
+        isLocalUri = parsedUri.hostname === domain;
+      } catch {
+        // Invalid URI — skip
+      }
 
-        // Slug match first (canonical URI format)
-        const bySlug = await db
-          .select({ id: contentItems.id })
-          .from(contentItems)
-          .where(eq(contentItems.slug, idOrSlug))
-          .limit(1);
+      if (isLocalUri) {
+        // Extract slug or UUID from the URI path
+        try {
+          const segments = new URL(objectUri).pathname.split('/').filter(Boolean);
+          const idOrSlug = segments[segments.length - 1];
 
-        if (bySlug.length > 0) {
-          await db
-            .update(contentItems)
-            .set({ likeCount: sql`${contentItems.likeCount} + 1` })
-            .where(eq(contentItems.id, bySlug[0]!.id));
-          matched = true;
+          if (idOrSlug) {
+            // Try UUID first (more specific)
+            const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+            if (UUID_RE.test(idOrSlug)) {
+              const byId = await db.select({ id: contentItems.id }).from(contentItems)
+                .where(eq(contentItems.id, idOrSlug)).limit(1);
+              if (byId.length > 0) {
+                await db.update(contentItems).set({ likeCount: sql`${contentItems.likeCount} + 1` })
+                  .where(eq(contentItems.id, byId[0]!.id));
+                matched = true;
+              }
+            }
 
-          // Notify content author about the remote like
-          const [likedContent] = await db.select({ authorId: contentItems.authorId, title: contentItems.title })
-            .from(contentItems).where(eq(contentItems.id, bySlug[0]!.id)).limit(1);
-          if (likedContent) {
-            const remoteUser = actorUri.split('/').pop() ?? 'Someone';
-            await notifyRemoteInteraction(db, likedContent.authorId, 'like', actorUri,
-              'New like', `${remoteUser} from the fediverse liked "${likedContent.title ?? 'your content'}"`,
-              `/content/${idOrSlug}`);
-          }
-        } else {
-          // UUID fallback
-          const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-          if (UUID_RE.test(idOrSlug)) {
-            const byId = await db
-              .select({ id: contentItems.id })
-              .from(contentItems)
-              .where(eq(contentItems.id, idOrSlug))
-              .limit(1);
+            // Slug fallback (only for local URIs to prevent cross-domain collision)
+            if (!matched) {
+              const bySlug = await db.select({ id: contentItems.id }).from(contentItems)
+                .where(eq(contentItems.slug, idOrSlug)).limit(1);
+              if (bySlug.length > 0) {
+                await db.update(contentItems).set({ likeCount: sql`${contentItems.likeCount} + 1` })
+                  .where(eq(contentItems.id, bySlug[0]!.id));
+                matched = true;
 
-            if (byId.length > 0) {
-              await db
-                .update(contentItems)
-                .set({ likeCount: sql`${contentItems.likeCount} + 1` })
-                .where(eq(contentItems.id, byId[0]!.id));
-              matched = true;
+                // Notify content author
+                const [likedContent] = await db.select({ authorId: contentItems.authorId, title: contentItems.title })
+                  .from(contentItems).where(eq(contentItems.id, bySlug[0]!.id)).limit(1);
+                if (likedContent) {
+                  const remoteUser = actorUri.split('/').pop() ?? 'Someone';
+                  await notifyRemoteInteraction(db, likedContent.authorId, 'like', actorUri,
+                    'New like', `${remoteUser} from the fediverse liked "${likedContent.title ?? 'your content'}"`,
+                    `/content/${idOrSlug}`);
+                }
+              }
             }
           }
-        }
+        } catch { /* invalid URL */ }
       }
 
-      // If not local content, try federated content
+      // If not local content, try federated content by exact objectUri
       if (!matched) {
         await db
           .update(federatedContent)

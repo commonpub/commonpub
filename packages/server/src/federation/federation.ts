@@ -579,8 +579,17 @@ export async function federateUpdate(db: DB, contentId: string, domain: string):
   if (rows[0].content.status !== 'published') return;
 
   const { content, author } = rows[0];
+
+  // Fetch content tags for hashtag export
+  const tagRows = await db
+    .select({ name: tags.name })
+    .from(contentTags)
+    .innerJoin(tags, eq(contentTags.tagId, tags.id))
+    .where(eq(contentTags.contentId, contentId));
+  const tagNames = tagRows.map((t) => t.name);
+
   const actorUri = `https://${domain}/users/${author.username}`;
-  const article = contentToArticle(content, author, domain);
+  const article = contentToArticle({ ...content, tags: tagNames }, author, domain);
   const activity = buildUpdateActivity(domain, actorUri, article);
 
   await db.insert(activities).values({

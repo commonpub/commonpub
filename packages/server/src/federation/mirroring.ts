@@ -57,10 +57,10 @@ export async function createMirror(
     // CRITICAL: resolve and cache the remote actor FIRST so the delivery worker
     // can find their inbox when delivering the Follow activity
     const { resolveRemoteActor } = await import('./federation.js');
-    await resolveRemoteActor(db, remoteActorUri).catch(() => {
-      // If the remote actor can't be resolved (e.g., instance is down),
-      // we still create the mirror but the Follow will fail on delivery
-    });
+    const resolved = await resolveRemoteActor(db, remoteActorUri).catch(() => null);
+    if (!resolved) {
+      console.warn(`[mirroring] Could not resolve remote actor ${remoteActorUri} — mirror created but Follow delivery may fail`);
+    }
 
     const localActorUri = `https://${localDomain}/actor`;
     const followActivity = buildFollowActivity(localDomain, localActorUri, remoteActorUri);
