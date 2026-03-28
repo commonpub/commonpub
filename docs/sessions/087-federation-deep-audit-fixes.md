@@ -365,9 +365,27 @@ Full ground-up audit of federation across commonpub monorepo, deveco-io referenc
 15. **Mirror detail page: /mirror/[id] with local rendering + like propagation**
 16. **Outbox backfill: historical content import via admin endpoint**
 
+## Phase F: Content Rendering Fix (Same Session)
+
+### Issues Found
+1. **Raw JSON on mirror pages** — `contentToArticle()` was calling `JSON.stringify()` on BlockTuple arrays, so federated content showed raw JSON like `[["paragraph",{"html":"..."}]]` instead of rendered HTML
+2. **Wrong content type** — Projects showed as "article" on receiving instances because `cpub:type` wasn't included in the AP object
+
+### Applied
+1. **BlockTuple HTML renderer** — `blockTuplesToHtml()` converts all block types (heading, paragraph, image, code, quote, divider, video, embed, callout, markdown, build_step, parts_list) to clean HTML for federation
+2. **`cpub:type` extension** — AP Article objects now include `cpub:type: "project"` (or article/blog/explainer) so receiving instances preserve the original content type
+3. **Legacy fallback on mirror page** — detects raw JSON BlockTuples in stored federated content and renders them client-side
+
+### Published
+- `@commonpub/protocol@0.8.0`
+- `@commonpub/server@1.0.2`
+
+---
+
 ### Remaining (Future Sessions)
 1. Content visibility (public/unlisted/followers-only) in contentToArticle
 2. Per-domain rate limiting on inboxes (requires Redis)
 3. Activity table cleanup (scheduled job)
 4. Parallel delivery worker safety (SELECT FOR UPDATE SKIP LOCKED)
 5. Fix 11 pre-existing E2E failures (contests, search pills, auth form — unrelated to federation)
+6. Re-federate existing content after HTML renderer fix (old activities have raw JSON)
