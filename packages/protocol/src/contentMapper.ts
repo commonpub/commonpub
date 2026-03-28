@@ -10,6 +10,8 @@ export interface ContentItemInput {
   coverImageUrl?: string | null;
   publishedAt?: Date | null;
   updatedAt?: Date | null;
+  /** Tag names to include as AP Hashtag objects */
+  tags?: string[];
 }
 
 export interface AuthorInput {
@@ -35,7 +37,11 @@ export function contentToArticle(
   const objectId = `https://${domain}/content/${item.slug}`;
   const followersUri = `${actorUri}/followers`;
 
-  const tags: APTag[] = [];
+  const tags: APTag[] = (item.tags ?? []).map((name) => ({
+    type: 'Hashtag' as const,
+    name: name.startsWith('#') ? name : `#${name}`,
+    href: `https://${domain}/search?tag=${encodeURIComponent(name.replace(/^#/, ''))}`,
+  }));
 
   const article: APArticle = {
     '@context': AP_CONTEXT,
