@@ -41,6 +41,7 @@ export function useConfig(): CommonPubConfig {
       learning: envBool('FEATURE_LEARNING') ?? envBool('NUXT_PUBLIC_FEATURES_LEARNING'),
       explainers: envBool('FEATURE_EXPLAINERS') ?? envBool('NUXT_PUBLIC_FEATURES_EXPLAINERS'),
       federation: envBool('FEATURE_FEDERATION') ?? envBool('NUXT_PUBLIC_FEATURES_FEDERATION'),
+      seamlessFederation: envBool('FEATURE_SEAMLESS_FEDERATION') ?? envBool('NUXT_PUBLIC_FEATURES_SEAMLESS_FEDERATION'),
       admin: envBool('FEATURE_ADMIN') ?? envBool('NUXT_PUBLIC_FEATURES_ADMIN'),
     } as Record<string, boolean | undefined>,
   });
