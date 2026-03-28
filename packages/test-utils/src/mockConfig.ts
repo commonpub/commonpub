@@ -21,6 +21,7 @@ export function createTestConfig(overrides?: Partial<CommonPubConfig>): CommonPu
       learning: true,
       explainers: true,
       federation: false,
+      seamlessFederation: false,
       admin: false,
       ...overrides?.features,
     },

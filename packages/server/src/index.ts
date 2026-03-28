@@ -340,6 +340,8 @@ export {
   type FederatedTimelineOptions,
   type InboxHandlerOptions,
   type DeliveryResult,
+  backfillFromOutbox,
+  type BackfillResult,
 } from './federation/index.js';
 
 // OAuth Codes
