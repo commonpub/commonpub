@@ -1,5 +1,5 @@
 import { eq, and, desc, sql, inArray, isNull } from 'drizzle-orm';
-import { contentItems, contentVersions, contentForks, contentBuilds, tags, contentTags, users, follows } from '@commonpub/schema';
+import { contentItems, contentVersions, contentForks, contentBuilds, tags, contentTags, users, follows, federatedContent, remoteActors } from '@commonpub/schema';
 import type { CommonPubConfig } from '@commonpub/config';
 import type { ContentItemRow } from '@commonpub/schema';
 import type {
@@ -75,9 +75,82 @@ function mapToListItem(
   };
 }
 
+/**
+ * Query federated_content and map to ContentListItem shape.
+ * Used by listContent when includeFederated is true.
+ */
+async function queryFederatedAsListItems(
+  db: DB,
+  filters: ContentFilters,
+): Promise<ContentListItem[]> {
+  const conditions = [isNull(federatedContent.deletedAt)];
+
+  // Map content type filter (federated uses cpubType or apType)
+  if (filters.type) {
+    conditions.push(
+      sql`(${federatedContent.cpubType} = ${filters.type} OR lower(${federatedContent.apType}) = ${filters.type})`,
+    );
+  }
+
+  // Search filter
+  if (filters.search) {
+    const searchPattern = `%${escapeLike(filters.search)}%`;
+    conditions.push(
+      sql`(${federatedContent.title} ILIKE ${searchPattern} OR ${federatedContent.summary} ILIKE ${searchPattern})`,
+    );
+  }
+
+  const where = conditions.length > 0 ? and(...conditions) : undefined;
+
+  const rows = await db
+    .select({
+      fed: federatedContent,
+      actor: {
+        actorUri: remoteActors.actorUri,
+        preferredUsername: remoteActors.preferredUsername,
+        displayName: remoteActors.displayName,
+        avatarUrl: remoteActors.avatarUrl,
+        instanceDomain: remoteActors.instanceDomain,
+      },
+    })
+    .from(federatedContent)
+    .leftJoin(remoteActors, eq(federatedContent.remoteActorId, remoteActors.id))
+    .where(where)
+    .orderBy(desc(federatedContent.publishedAt), desc(federatedContent.receivedAt))
+    .limit(100); // Reasonable cap for merge
+
+  return rows.map((row): ContentListItem => ({
+    id: row.fed.id,
+    type: (row.fed.cpubType ?? row.fed.apType?.toLowerCase() ?? 'article') as string,
+    title: row.fed.title ?? 'Untitled',
+    slug: `mirror-${row.fed.id.slice(0, 8)}`, // Placeholder slug for routing
+    description: row.fed.summary,
+    coverImageUrl: row.fed.coverImageUrl,
+    status: 'published',
+    difficulty: null,
+    viewCount: 0,
+    likeCount: row.fed.localLikeCount,
+    commentCount: row.fed.localCommentCount,
+    buildCount: 0,
+    publishedAt: row.fed.publishedAt,
+    createdAt: row.fed.receivedAt,
+    author: {
+      id: row.actor?.actorUri ?? row.fed.actorUri,
+      username: row.actor?.preferredUsername ?? row.fed.actorUri.split('/').pop() ?? 'unknown',
+      displayName: row.actor?.displayName ?? null,
+      avatarUrl: row.actor?.avatarUrl ?? null,
+    },
+    source: 'federated',
+    sourceDomain: row.fed.originDomain,
+    sourceUri: row.fed.objectUri,
+    federatedContentId: row.fed.id,
+  }));
+}
+
 export async function listContent(
   db: DB,
   filters: ContentFilters = {},
+  options?: { includeFederated?: boolean },
 ): Promise<{ items: ContentListItem[]; total: number }> {
   const conditions = [isNull(contentItems.deletedAt)];
 
@@ -151,9 +224,31 @@ export async function listContent(
     countRows(db, contentItems, where),
   ]);
 
-  const items = rows.map((row) => mapToListItem(row.content, row.author));
+  const localItems: ContentListItem[] = rows.map((row) => ({
+    ...mapToListItem(row.content, row.author),
+    source: 'local' as const,
+  }));
 
-  return { items, total };
+  // If seamless federation is off, return local-only results
+  if (!options?.includeFederated) {
+    return { items: localItems, total };
+  }
+
+  // Query federated content (from mirrored instances)
+  const fedItems = await queryFederatedAsListItems(db, filters);
+
+  // Merge and sort by publishedAt descending
+  const merged = [...localItems, ...fedItems].sort((a, b) => {
+    const aDate = a.publishedAt ? new Date(a.publishedAt).getTime() : 0;
+    const bDate = b.publishedAt ? new Date(b.publishedAt).getTime() : 0;
+    return bDate - aDate;
+  });
+
+  // Apply pagination to merged results
+  const paged = merged.slice(offset, offset + limit);
+  const mergedTotal = total + fedItems.length;
+
+  return { items: paged, total: mergedTotal };
 }
 
 export async function getContentBySlug(

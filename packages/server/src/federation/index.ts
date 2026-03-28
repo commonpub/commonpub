@@ -62,6 +62,10 @@ export {
   isFederatedHandle,
 } from './messaging.js';
 export {
+  backfillFromOutbox,
+  type BackfillResult,
+} from './backfill.js';
+export {
   processAuthorize,
   processTokenExchange,
   registerOAuthClient,

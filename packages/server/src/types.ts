@@ -122,7 +122,7 @@ export interface UserProfile {
 
 export interface ContentListItem {
   id: string;
-  type: ContentType;
+  type: ContentType | string;
   title: string;
   slug: string;
   description: string | null;
@@ -136,6 +136,14 @@ export interface ContentListItem {
   publishedAt: Date | null;
   createdAt: Date;
   author: UserRef;
+  /** Present when item is from a federated instance */
+  source?: 'local' | 'federated';
+  /** Origin instance domain (e.g., 'deveco.io') */
+  sourceDomain?: string;
+  /** AP object URI of the original content */
+  sourceUri?: string;
+  /** ID in federated_content table — used for federation API calls */
+  federatedContentId?: string;
 }
 
 export interface ContentDetailAuthor extends UserRef {

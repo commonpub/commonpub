@@ -17,6 +17,8 @@ export interface FeatureFlags {
   explainers: boolean;
   /** Enable ActivityPub federation */
   federation: boolean;
+  /** Display mirrored content alongside local content in browse/search/feed */
+  seamlessFederation: boolean;
   /** Enable admin panel (user management, reports, instance settings) */
   admin: boolean;
 }
