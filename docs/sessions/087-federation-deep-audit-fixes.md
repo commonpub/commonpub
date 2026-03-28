@@ -127,13 +127,41 @@ Full audit documented at `/Users/obsidian/Projects/ossuary-projects/federation-a
 - `08-FIXES-APPLIED.md` — what was fixed and verified
 - `09-DEEP-AUDIT.md` — full security + reliability audit
 
-## Next Steps (Phase A: Security Hardening)
+## Phase A: Security Hardening (Same Session)
 
-1. Enforce signature verification on all inboxes
-2. Validate actor domain matches keyId domain
-3. Authorize Delete activities (check actorUri matches author)
-4. Add body size limits (Caddy + route handlers)
-5. Rate limiting on inbox (sliding window per domain)
-6. Date header freshness check (±5 min)
-7. Redirect limit on actor resolution
-8. User-Agent header + fetch timeout on outbound requests
+### Applied
+1. **Enforce signature verification** on all inboxes — was warn-only on shared/user, now 401 (matching hub inbox)
+2. **Actor domain validation** — keyId domain must match resolved actor.id domain
+3. **Date header freshness** — reject signatures with Date header >5 min from server time
+4. **Body size limits** — 1 MB in Caddy config + route-level check
+5. **Authorize Delete** — only original author (actorUri matches) can soft-delete content
+6. **Shared verifyInboxRequest()** utility — DRYs all 3 inbox routes
+
+### Published
+- `@commonpub/server@0.7.7` — contains onDelete authorization fix
+- deveco-io updated to consume 0.7.7
+- Note: 0.7.6 was unpublished (had unresolved `workspace:*` deps — must use `pnpm publish`, not `npm publish`)
+
+### Commits
+- commonpub: `7045b1f` fix(federation): enforce signature verification, domain validation, body limits
+- commonpub: `6b32a1d` chore: publish @commonpub/server@0.7.7
+- deveco-io: `6459dc6` fix(federation): enforce signature verification, domain validation, body limits
+- deveco-io: `e7bbc48` chore: update @commonpub/server to 0.7.7
+
+### Verified Post-Deploy
+- Both delivery workers restarted and running
+- Actor endpoints responding correctly
+- Followers still visible (data intact)
+
+## Next Steps (Phase B: Reliability)
+
+1. Per-inbox delivery tracking (don't mark partial delivery as complete)
+2. Admin retry for failed activities
+3. Handle actor resolution failures in sendFollow
+4. Activity deduplication (check activity.id before processing)
+5. Fix onFollow race condition (onConflictDoUpdate)
+6. Fix onUndo(Follow) fallback
+7. Idempotent like tracking (per-actor-per-content)
+8. Eager keypair generation for all users
+9. Add User-Agent header + fetch timeout on outbound requests
+10. Redirect limit on actor resolution
