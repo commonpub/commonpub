@@ -221,8 +221,90 @@ deveco.io:    { enabled: true, pending: 0, delivered: 9, failed: 30, followers: 
 commonpub.io: { enabled: true, pending: 0, delivered: 6, failed: 2, followers: 3, mirrors: 1, federatedContent: 0 }
 ```
 
-## Remaining (Future Sessions)
+## Test Fixes (Between Phases B and C)
+
+8 unit tests broke due to Phase A/B changes. All fixed:
+- **actorResolver.test.ts**: Updated mock assertions for new `User-Agent`, `redirect: 'manual'`, `signal` params
+- **federation.integration.test.ts** (6 tests): Pre-seed remote actors in DB before `sendFollow` (which now validates resolution)
+- **federation-production.integration.test.ts** (1 test): Use matching `activityUri` in Undo(Follow) test (behavior changed to preserve relationship on mismatch)
+
+Published `@commonpub/protocol@0.7.2` and `@commonpub/server@0.8.1` with test fixes.
+
+All 771 tests passing (319 protocol + 452 server).
+
+---
+
+## Session 087 Total Summary
+
+### Scope
+Full ground-up audit of federation across commonpub monorepo, deveco-io reference app, and both production droplets (commonpub.io + deveco.io). Identified 28 issues across infrastructure, security, reliability, and completeness. Fixed all of them in four phases (A-D) within a single session.
+
+### By the Numbers
+| Metric | Count |
+|--------|-------|
+| Issues identified | 28 (5 critical, 8 high, 9 medium, 6 infrastructure) |
+| Issues fixed | 28/28 |
+| Commits | 17 across both repos |
+| NPM publishes | 10 (protocol 0.7.0→0.7.3, server 0.7.5→0.9.0) |
+| New routes/endpoints | 5 (actor collections, health, retry, refederate) |
+| New shared utilities | 2 (server/utils/inbox.ts on both repos) |
+| Unit tests passing | 771 (319 protocol + 452 server) |
+| Live production tests | 10/10 passing |
+| Production DB changes | 2 (deveco schema sync, activity reset on both) |
+
+### NPM Package History
+| Package | Start | End | Publishes |
+|---------|-------|-----|-----------|
+| @commonpub/protocol | 0.7.0 | 0.7.3 | 0.7.1, 0.7.2, 0.7.3 |
+| @commonpub/server | 0.7.5 | 0.9.0 | 0.7.7, 0.8.0, 0.8.1, 0.8.2, 0.9.0 |
+| @commonpub/schema | 0.7.0 | 0.7.0 | (no changes needed) |
+
+Note: 0.7.6 was unpublished (had unresolved `workspace:*` deps). Always use `pnpm publish`, never `npm publish`.
+
+### Key Files Changed
+**commonpub monorepo:**
+- `packages/protocol/src/actorResolver.ts` — redirect limit, timeout, User-Agent
+- `packages/protocol/src/contentMapper.ts` — hashtag export, tags interface
+- `packages/server/src/federation/delivery.ts` — partial retry, timeout, User-Agent, keypair-on-demand
+- `packages/server/src/federation/inboxHandlers.ts` — onDelete/onUpdate auth, onFollow upsert, onUndo safety, idempotent likes, slug collision fix
+- `packages/server/src/federation/federation.ts` — sendFollow error propagation, tag fetching in federateUpdate
+- `packages/server/src/federation/mirroring.ts` — resolution error logging
+- `apps/reference/server/utils/inbox.ts` — shared verification utility (NEW)
+- `apps/reference/server/routes/inbox.ts` — rewritten to use shared utility
+- `apps/reference/server/routes/users/[username]/inbox.ts` — rewritten
+- `apps/reference/server/routes/hubs/[slug]/inbox.ts` — rewritten
+- `apps/reference/server/routes/actor/{outbox,followers,following}.ts` — NEW
+- `apps/reference/server/api/admin/federation/{retry,refederate}.post.ts` — NEW
+- `apps/reference/server/api/federation/health.get.ts` — NEW
+- `deploy/Caddyfile` — inbox body size limits
+- `pnpm-lock.yaml` — drizzle-orm dedupe
+
+**deveco-io:** Mirror of all route/endpoint changes above, plus package version bumps.
+
+### Production Infrastructure
+- **doctl contexts**: `default` (commonpub.io, 161.35.6.228), `deveco-prod` (deveco.io, 104.236.69.120)
+- **SSH**: Works with `~/.ssh/id_ed25519` to both droplets as root
+- **Deploy**: Both repos auto-deploy on push to main via GitHub Actions
+- **CI**: Green on both repos (was broken — drizzle-orm dedupe fixed it)
+- **Health endpoints**: https://deveco.io/api/federation/health, https://commonpub.io/api/federation/health
+
+### What's Now Working End-to-End
+1. Instance actors resolve on both instances
+2. WebFinger with CORS + OAuth endpoint
+3. NodeInfo 2.1 with accurate stats
+4. Delivery worker runs every 30s, delivers signed activities
+5. Follow/Accept/Reject lifecycle complete
+6. Bidirectional mirrors active (commonpub ↔ deveco)
+7. User-to-user follows work
+8. All inboxes enforce HTTP Signature verification (401 on failure)
+9. Body size limited to 1 MB, Date header checked for freshness
+10. Actor domain validated against keyId
+11. Content tags exported as AP Hashtags
+12. Admin can retry failed activities and re-federate content
+13. Health endpoint provides operational monitoring
+
+### Remaining (Future Sessions)
 1. Content visibility (public/unlisted/followers-only) in contentToArticle
-2. Per-domain rate limiting on inboxes (requires Redis)
-3. Activity table cleanup (scheduled job)
+2. Per-domain rate limiting on inboxes (requires Redis integration)
+3. Activity table cleanup (scheduled job for old delivered activities)
 4. Parallel delivery worker safety (SELECT FOR UPDATE SKIP LOCKED)
