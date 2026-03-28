@@ -1,5 +1,9 @@
 import { getMirror, backfillFromOutbox } from '@commonpub/server';
-import { extractDomain } from '../../../../../utils/inbox';
+/** Extract clean domain from URL */
+function extractDomain(url: string): string {
+  try { return new URL(url).hostname; }
+  catch { return url.replace(/^https?:\/\//, '').replace(/[:/].*$/, ''); }
+}
 
 /**
  * POST /api/admin/federation/mirrors/[id]/backfill
