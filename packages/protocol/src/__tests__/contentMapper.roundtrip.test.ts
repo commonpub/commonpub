@@ -92,7 +92,7 @@ describe('content → Article → content round-trip', () => {
     expect(restored.content).toBe(htmlContent);
   });
 
-  it('handles JSON content by stringifying', () => {
+  it('renders BlockTuple content to HTML', () => {
     const jsonContent = [
       ['heading', { level: 2, text: 'Title' }],
       ['paragraph', { text: 'Hello' }],
@@ -108,15 +108,11 @@ describe('content → Article → content round-trip', () => {
 
     const article = contentToArticle(original, { username: 'alice' }, DOMAIN);
 
-    // JSON content is stringified in the Article
+    // BlockTuple content is rendered to HTML, not JSON-stringified
     expect(typeof article.content).toBe('string');
-
-    // Reverse gives us the stringified version (lossy for non-string content)
-    const restored = articleToContent(article);
-    expect(typeof restored.content).toBe('string');
-    // The JSON structure can be parsed back
-    const parsed = JSON.parse(restored.content);
-    expect(parsed).toEqual(jsonContent);
+    expect(article.content).toContain('<h2>Title</h2>');
+    expect(article.content).toContain('<p>Hello</p>');
+    expect(article.content).not.toContain('["heading"');
   });
 });
 

@@ -288,6 +288,65 @@ Note: 0.7.6 was unpublished (had unresolved `workspace:*` deps). Always use `pnp
 - **CI**: Green on both repos (was broken — drizzle-orm dedupe fixed it)
 - **Health endpoints**: https://deveco.io/api/federation/health, https://commonpub.io/api/federation/health
 
+## Phase E: Seamless Federation UX (Same Session)
+
+The biggest architectural change: mirrored content now appears alongside local content in browse/search/feed pages.
+
+### Research & Design
+- Investigated how Mastodon, Lemmy, PeerTube, Pixelfed, and BookWyrm handle federated content display
+- Every platform uses same-table storage, but CommonPub's constraints (Better Auth users table, 30+ domain columns, NOT NULL authorId FK) make table-merging dangerous
+- Chose UNION query approach: keep both tables, merge at query time via `listContent()`'s new `includeFederated` parameter
+- Controlled by `seamlessFederation` feature flag — off by default, opt-in per instance
+
+### Applied
+1. **`seamlessFederation` feature flag** — added to @commonpub/config FeatureFlags
+2. **UNION query in `listContent()`** — when flag is on, queries `federated_content` alongside `content_items`, maps to common `ContentListItem` shape with `source`/`sourceDomain`/`federatedContentId` fields
+3. **ContentCard origin badge** — shows "from deveco.io" badge on federated items
+4. **`/mirror/[id]` detail page** — renders federated content with sanitized HTML, origin banner, "View Original" link, like button with AP propagation, SEO canonical + noindex
+5. **Outbox backfill** — `backfillFromOutbox()` crawls remote actor's outbox for historical content (rate-limited, max 50 pages)
+6. **Admin backfill endpoint** — `POST /api/admin/federation/mirrors/[id]/backfill`
+7. **Env var support** — `FEATURE_SEAMLESS_FEDERATION` / `NUXT_PUBLIC_FEATURES_SEAMLESS_FEDERATION`
+8. **Content API wired** — both `/api/content` and `/api/search` pass `includeFederated` from config
+
+### Published
+- `@commonpub/config@0.6.0` — seamlessFederation flag
+- `@commonpub/server@1.0.0` → `1.0.1` — UNION query, backfill, exports
+
+### Verified Live
+```
+commonpub.io: 6 items (3 local + 3 federated from deveco.io)
+deveco.io:    4 items (3 local + 1 federated from commonpub.io)
+```
+
+Content flows bidirectionally and appears in the same feed, same card format, with subtle origin badges.
+
+---
+
+## Session 087 Final Summary
+
+### Scope
+Full ground-up audit of federation across commonpub monorepo, deveco-io reference app, and both production droplets (commonpub.io + deveco.io). Identified 28 infrastructure/security/reliability issues. Fixed ALL of them. Then designed and implemented seamless federation UX — mirrored content appears alongside local content in all feeds.
+
+### By the Numbers
+| Metric | Count |
+|--------|-------|
+| Issues identified & fixed | 28 (5 critical, 8 high, 9 medium, 6 infrastructure) |
+| Commits | ~22 across both repos |
+| NPM publishes | 14 (config 0.5.0→0.6.0, protocol 0.7.0→0.7.3, server 0.7.5→1.0.1) |
+| New routes/endpoints | 8 (actor collections, health, retry, refederate, backfill, mirror page) |
+| New shared utilities | 2 (server/utils/inbox.ts on both repos) |
+| New pages | 1 (/mirror/[id] on deveco-io) |
+| Unit tests passing | 771 (319 protocol + 452 server) |
+| Live production tests | 12/12 passing |
+| Production DB changes | Schema sync, activity reset, env var configuration |
+
+### NPM Package History
+| Package | Start | End |
+|---------|-------|-----|
+| @commonpub/config | 0.5.0 | 0.6.0 |
+| @commonpub/protocol | 0.7.0 | 0.7.3 |
+| @commonpub/server | 0.7.5 | 1.0.1 |
+
 ### What's Now Working End-to-End
 1. Instance actors resolve on both instances
 2. WebFinger with CORS + OAuth endpoint
@@ -302,9 +361,13 @@ Note: 0.7.6 was unpublished (had unresolved `workspace:*` deps). Always use `pnp
 11. Content tags exported as AP Hashtags
 12. Admin can retry failed activities and re-federate content
 13. Health endpoint provides operational monitoring
+14. **Seamless federation: mirrored content in main feeds with origin badges**
+15. **Mirror detail page: /mirror/[id] with local rendering + like propagation**
+16. **Outbox backfill: historical content import via admin endpoint**
 
 ### Remaining (Future Sessions)
 1. Content visibility (public/unlisted/followers-only) in contentToArticle
-2. Per-domain rate limiting on inboxes (requires Redis integration)
-3. Activity table cleanup (scheduled job for old delivered activities)
+2. Per-domain rate limiting on inboxes (requires Redis)
+3. Activity table cleanup (scheduled job)
 4. Parallel delivery worker safety (SELECT FOR UPDATE SKIP LOCKED)
+5. Fix 11 pre-existing E2E failures (contests, search pills, auth form — unrelated to federation)
