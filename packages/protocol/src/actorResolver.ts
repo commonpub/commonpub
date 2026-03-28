@@ -111,6 +111,12 @@ export function extractSharedInbox(actor: ResolvedActor): string {
   return actor.endpoints?.sharedInbox ?? actor.inbox;
 }
 
+/** Maximum redirects to follow when resolving actors */
+const MAX_REDIRECTS = 3;
+
+/** Fetch timeout for actor resolution (30 seconds) */
+const RESOLVE_TIMEOUT_MS = 30_000;
+
 /** Fetch and parse an AP actor by URI */
 export async function resolveActor(
   actorUri: string,
@@ -121,16 +127,43 @@ export async function resolveActor(
     return null;
   }
 
-  const response = await fetchFn(actorUri, {
-    headers: {
-      Accept: 'application/activity+json, application/ld+json',
-    },
-  });
+  // Follow redirects manually to enforce limit and validate each hop
+  let currentUri = actorUri;
+  for (let i = 0; i <= MAX_REDIRECTS; i++) {
+    if (isPrivateUrl(currentUri)) return null; // Check each redirect hop
 
-  if (!response.ok) return null;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), RESOLVE_TIMEOUT_MS);
+    try {
+      const response = await fetchFn(currentUri, {
+        headers: {
+          Accept: 'application/activity+json, application/ld+json',
+          'User-Agent': 'CommonPub/1.0 (ActivityPub)',
+        },
+        redirect: 'manual',
+        signal: controller.signal,
+      });
 
-  const json = await response.json();
-  return validateActorResponse(json);
+      // Handle redirects manually
+      if (response.status >= 300 && response.status < 400) {
+        const location = response.headers.get('location');
+        if (!location || i === MAX_REDIRECTS) return null;
+        currentUri = new URL(location, currentUri).toString();
+        continue;
+      }
+
+      if (!response.ok) return null;
+
+      const json = await response.json();
+      return validateActorResponse(json);
+    } catch {
+      return null; // Network error, timeout, abort
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  return null; // Exceeded max redirects
 }
 
 /** Resolve an actor via WebFinger discovery: username@domain → actor URI → actor JSON */
@@ -144,9 +177,20 @@ export async function resolveActorViaWebFinger(
   // SSRF protection
   if (isPrivateUrl(webFingerUrl)) return null;
 
-  const wfResponse = await fetchFn(webFingerUrl, {
-    headers: { Accept: 'application/jrd+json' },
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), RESOLVE_TIMEOUT_MS);
+  let wfResponse: Response;
+  try {
+    wfResponse = await fetchFn(webFingerUrl, {
+      headers: { Accept: 'application/jrd+json', 'User-Agent': 'CommonPub/1.0 (ActivityPub)' },
+      signal: controller.signal,
+    });
+  } catch {
+    clearTimeout(timeout);
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
 
   if (!wfResponse.ok) return null;
 

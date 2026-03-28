@@ -388,7 +388,10 @@ export async function sendFollow(
 
   // CRITICAL: resolve and cache the remote actor so the delivery worker
   // can find their inbox when delivering the Follow
-  await resolveRemoteActor(db, remoteActorUri).catch(() => {});
+  const resolved = await resolveRemoteActor(db, remoteActorUri).catch(() => null);
+  if (!resolved) {
+    throw new Error(`Cannot follow: remote actor at ${remoteActorUri} could not be resolved`);
+  }
 
   const localActorUri = `https://${domain}/users/${user[0].username}`;
 

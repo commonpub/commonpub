@@ -58,39 +58,23 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
       // Resolve the remote actor (caches their public key, inbox, etc.)
       await resolveRemoteActor(db, actorUri);
 
-      // Upsert follow relationship
-      const existing = await db
-        .select()
-        .from(followRelationships)
-        .where(
-          and(
-            eq(followRelationships.followerActorUri, actorUri),
-            eq(followRelationships.followingActorUri, targetActorUri),
-          ),
-        )
-        .limit(1);
-
-      if (existing.length > 0) {
-        const relationshipId = existing[0]!.id;
-        await db
-          .update(followRelationships)
-          .set({
+      // Upsert follow relationship (atomic — handles concurrent requests)
+      await db
+        .insert(followRelationships)
+        .values({
+          followerActorUri: actorUri,
+          followingActorUri: targetActorUri,
+          activityUri: activityId,
+          status: autoAcceptFollows ? 'accepted' : 'pending',
+        })
+        .onConflictDoUpdate({
+          target: [followRelationships.followerActorUri, followRelationships.followingActorUri],
+          set: {
             status: autoAcceptFollows ? 'accepted' : 'pending',
             activityUri: activityId,
             updatedAt: new Date(),
-          })
-          .where(eq(followRelationships.id, relationshipId));
-      } else {
-        const [row] = await db
-          .insert(followRelationships)
-          .values({
-            followerActorUri: actorUri,
-            followingActorUri: targetActorUri,
-            activityUri: activityId,
-            status: autoAcceptFollows ? 'accepted' : 'pending',
-          })
-          .returning();
-      }
+          },
+        });
 
       // Log inbound activity
       await db.insert(activities).values({
@@ -253,21 +237,14 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
           }
         }
 
-        // Fallback: delete most recent follow from this actor (for AP implementations
-        // that don't include the original activity URI in Undo)
+        // Fallback: try to extract target from the activity payload
         if (!deleted) {
-          const existing = await db
-            .select({ id: followRelationships.id })
-            .from(followRelationships)
-            .where(eq(followRelationships.followerActorUri, actorUri))
-            .orderBy(sql`${followRelationships.updatedAt} DESC`)
-            .limit(1);
-
-          if (existing.length > 0) {
-            await db
-              .delete(followRelationships)
-              .where(eq(followRelationships.id, existing[0]!.id));
-          }
+          // The Undo object should reference the original Follow, which contains
+          // the target actor. Try parsing objectId as the original Follow's object.
+          // If not possible, we cannot safely determine which follow to delete —
+          // deleting by most-recent-followerActorUri could remove the wrong one.
+          // Instead, log a warning and leave the relationship intact.
+          console.warn(`[inbox] Undo(Follow) from ${actorUri} has no matching activityUri (objectId=${objectId}). Cannot determine target — relationship preserved.`);
         }
       }
 
@@ -565,6 +542,25 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
      */
     async onLike(actorUri: string, objectUri: string): Promise<void> {
       await resolveRemoteActor(db, actorUri);
+
+      // Idempotency: check if we already processed a Like from this actor for this object
+      const existing = await db
+        .select({ id: activities.id })
+        .from(activities)
+        .where(
+          and(
+            eq(activities.type, 'Like'),
+            eq(activities.actorUri, actorUri),
+            eq(activities.objectUri, objectUri),
+            eq(activities.direction, 'inbound'),
+          ),
+        )
+        .limit(1);
+
+      if (existing.length > 0) {
+        // Already processed — skip increment, just log
+        return;
+      }
 
       // Try to find local content by its AP URI
       let url: string;

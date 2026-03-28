@@ -120,15 +120,21 @@ async function deliverActivity(
         headers: {
           'Content-Type': CONTENT_TYPE_AP,
           'Accept': CONTENT_TYPE_AP,
+          'User-Agent': `CommonPub/1.0 (+https://${domain})`,
         },
         body,
       });
 
       const signed = await signRequest(request, keypair.privateKeyPem, keyId);
-      const response = await fetch(signed);
-
-      if (!response.ok && response.status !== 202) {
-        errors.push(`${inbox}: ${response.status} ${response.statusText}`);
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 30_000);
+      try {
+        const response = await fetch(signed, { signal: controller.signal });
+        if (!response.ok && response.status !== 202) {
+          errors.push(`${inbox}: ${response.status} ${response.statusText}`);
+        }
+      } finally {
+        clearTimeout(timeout);
       }
     } catch (err) {
       errors.push(`${inbox}: ${err instanceof Error ? err.message : String(err)}`);
@@ -137,11 +143,9 @@ async function deliverActivity(
 
   if (errors.length === 0) {
     await markDelivered(db, activity.id);
-  } else if (errors.length < targetInboxes.length) {
-    // Partial delivery — still mark delivered but log errors
-    await markDelivered(db, activity.id, errors.join('; '));
   } else {
-    // All failed
+    // Any failures (partial or total) → retry the whole activity.
+    // AP servers handle duplicate deliveries idempotently (objectUri is unique).
     await incrementAttempts(db, activity.id, errors.join('; '));
   }
 }
@@ -372,18 +376,9 @@ async function getKeypairForActor(
 
   if (!user[0]) return null;
 
-  const keypair = await db
-    .select()
-    .from(actorKeypairs)
-    .where(eq(actorKeypairs.userId, user[0].id))
-    .limit(1);
-
-  if (!keypair[0]) return null;
-
-  return {
-    publicKeyPem: keypair[0].publicKeyPem,
-    privateKeyPem: keypair[0].privateKeyPem,
-  };
+  // Generate keypair on demand if user doesn't have one yet
+  const { getOrCreateActorKeypair } = await import('./federation.js');
+  return getOrCreateActorKeypair(db, user[0].id);
 }
 
 async function markDelivered(db: DB, activityId: string, error?: string): Promise<void> {
