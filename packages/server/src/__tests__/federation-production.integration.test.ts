@@ -323,16 +323,25 @@ describe('production federation scenarios', () => {
       expect(afterFollows.length).toBe(beforeFollows.length);
     });
 
-    it('Undo(Follow) DOES delete the follow relationship', async () => {
-      // Create a specific follow for this test
+    it('Undo(Follow) DOES delete the follow relationship when activityUri matches', async () => {
+      // Create a specific follow with a known activityUri
       const testRemoteActor = `https://${REMOTE_B}/users/carol`;
       const localActorUri = `https://${DOMAIN}/users/${username}`;
+      const followActivityUri = 'https://remote-b.test/activities/follow-carol-123';
 
+      // Ensure clean state — delete any existing follow first
+      await db.delete(followRelationships).where(
+        and(
+          eq(followRelationships.followerActorUri, testRemoteActor),
+          eq(followRelationships.followingActorUri, localActorUri),
+        ),
+      );
       await db.insert(followRelationships).values({
         followerActorUri: testRemoteActor,
         followingActorUri: localActorUri,
+        activityUri: followActivityUri,
         status: 'accepted',
-      }).onConflictDoNothing();
+      });
 
       const beforeFollows = await db
         .select()
@@ -345,8 +354,8 @@ describe('production federation scenarios', () => {
         );
       expect(beforeFollows.length).toBeGreaterThanOrEqual(1);
 
-      // Send Undo(Follow)
-      await handlers.onUndo(testRemoteActor, 'Follow', 'activity-id-123');
+      // Send Undo(Follow) with matching activityUri
+      await handlers.onUndo(testRemoteActor, 'Follow', followActivityUri);
 
       const afterFollows = await db
         .select()

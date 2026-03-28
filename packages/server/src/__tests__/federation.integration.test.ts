@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { eq } from 'drizzle-orm';
-import { followRelationships } from '@commonpub/schema';
+import { followRelationships, remoteActors } from '@commonpub/schema';
 import type { DB } from '../types.js';
 import { createTestDB, createTestUser, closeTestDB } from './helpers/testdb.js';
 import {
@@ -27,11 +27,28 @@ describe('federation integration', () => {
   let userId: string;
   let username: string;
 
+  /** Pre-seed a remote actor so sendFollow can find their inbox */
+  async function seedRemoteActor(actorUri: string) {
+    const domain = new URL(actorUri).hostname;
+    await db.insert(remoteActors).values({
+      actorUri,
+      inbox: `${actorUri}/inbox`,
+      instanceDomain: domain,
+    }).onConflictDoNothing();
+  }
+
   beforeAll(async () => {
     db = await createTestDB();
     const user = await createTestUser(db, { username: 'alice' });
     userId = user.id;
     username = user.username;
+
+    // Pre-seed remote actors used in follow tests so sendFollow can resolve them
+    await seedRemoteActor(REMOTE_ACTOR);
+    await seedRemoteActor('https://remote2.test/users/dave');
+    await seedRemoteActor('https://remote3.test/users/eve');
+    await seedRemoteActor('https://remote4.test/users/frank');
+    await seedRemoteActor('https://remote5.test/users/grace');
   });
 
   afterAll(async () => {

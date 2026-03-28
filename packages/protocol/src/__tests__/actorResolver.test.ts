@@ -93,13 +93,24 @@ describe('resolveActor', () => {
 
     expect(result).not.toBeNull();
     expect(result!.preferredUsername).toBe('bob');
-    expect(mockFetch).toHaveBeenCalledWith('https://remote.example.com/users/bob', {
-      headers: { Accept: 'application/activity+json, application/ld+json' },
-    });
+    expect(mockFetch).toHaveBeenCalledWith(
+      'https://remote.example.com/users/bob',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Accept: 'application/activity+json, application/ld+json',
+          'User-Agent': expect.any(String),
+        }),
+        redirect: 'manual',
+      }),
+    );
   });
 
   it('should return null for non-ok response', async () => {
-    const mockFetch = vi.fn().mockResolvedValue({ ok: false, status: 404 });
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 404,
+      headers: new Map(),
+    });
 
     const result = await resolveActor('https://remote.com/users/nobody', mockFetch);
     expect(result).toBeNull();
@@ -108,6 +119,8 @@ describe('resolveActor', () => {
   it('should return null for invalid actor JSON', async () => {
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
+      status: 200,
+      headers: new Map(),
       json: () => Promise.resolve({ nonsense: true }),
     });
 
