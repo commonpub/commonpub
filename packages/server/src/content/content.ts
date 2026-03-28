@@ -82,6 +82,7 @@ function mapToListItem(
 async function queryFederatedAsListItems(
   db: DB,
   filters: ContentFilters,
+  maxItems = 100,
 ): Promise<ContentListItem[]> {
   const conditions = [isNull(federatedContent.deletedAt)];
 
@@ -117,7 +118,7 @@ async function queryFederatedAsListItems(
     .leftJoin(remoteActors, eq(federatedContent.remoteActorId, remoteActors.id))
     .where(where)
     .orderBy(desc(federatedContent.publishedAt), desc(federatedContent.receivedAt))
-    .limit(100); // Reasonable cap for merge
+    .limit(maxItems);
 
   return rows.map((row): ContentListItem => ({
     id: row.fed.id,
@@ -235,20 +236,19 @@ export async function listContent(
   }
 
   // Query federated content (from mirrored instances)
-  const fedItems = await queryFederatedAsListItems(db, filters);
+  // Fetch enough to fill the requested page after merging with local results
+  const fedItems = await queryFederatedAsListItems(db, filters, offset + limit);
 
-  // Merge and sort by publishedAt descending
+  // Merge all items and sort by publishedAt descending
   const merged = [...localItems, ...fedItems].sort((a, b) => {
     const aDate = a.publishedAt ? new Date(a.publishedAt).getTime() : 0;
     const bDate = b.publishedAt ? new Date(b.publishedAt).getTime() : 0;
     return bDate - aDate;
   });
 
-  // Apply pagination to merged results
-  const paged = merged.slice(offset, offset + limit);
-  const mergedTotal = total + fedItems.length;
-
-  return { items: paged, total: mergedTotal };
+  // Return the first `limit` items (both sources were already filtered/sorted by DB)
+  // Note: this is approximate pagination — exact counts require a separate count query
+  return { items: merged.slice(0, limit), total: total + fedItems.length };
 }
 
 export async function getContentBySlug(

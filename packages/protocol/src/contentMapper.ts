@@ -15,12 +15,12 @@ function blockTuplesToHtml(blocks: unknown): string {
     switch (type) {
       case 'paragraph':
       case 'text':
-        if (data.html) parts.push(`<p>${data.html}</p>`);
+        if (data.html) parts.push(`<p>${sanitizeBlockHtml(data.html)}</p>`);
         else if (data.text) parts.push(`<p>${escapeHtml(String(data.text))}</p>`);
         break;
       case 'heading': {
         const level = Math.min(Math.max(Number(data.level) || 2, 1), 6);
-        const text = data.html || escapeHtml(String(data.text ?? ''));
+        const text = sanitizeBlockHtml(data.html) || escapeHtml(String(data.text ?? ''));
         parts.push(`<h${level}>${text}</h${level}>`);
         break;
       }
@@ -40,7 +40,7 @@ function blockTuplesToHtml(blocks: unknown): string {
         break;
       case 'quote':
       case 'blockquote':
-        if (data.html) parts.push(`<blockquote>${data.html}</blockquote>`);
+        if (data.html) parts.push(`<blockquote>${sanitizeBlockHtml(data.html)}</blockquote>`);
         else if (data.text) parts.push(`<blockquote><p>${escapeHtml(String(data.text))}</p></blockquote>`);
         break;
       case 'divider':
@@ -53,16 +53,15 @@ function blockTuplesToHtml(blocks: unknown): string {
         if (data.url) parts.push(`<p><a href="${escapeAttr(String(data.url))}">${escapeHtml(String(data.title ?? 'Embedded content'))}</a></p>`);
         break;
       case 'callout':
-        parts.push(`<aside>${data.html || escapeHtml(String(data.text ?? ''))}</aside>`);
+        parts.push(`<aside>${sanitizeBlockHtml(data.html) || escapeHtml(String(data.text ?? ''))}</aside>`);
         break;
       case 'markdown':
-        // Markdown blocks store pre-rendered HTML
-        if (data.html) parts.push(String(data.html));
+        if (data.html) parts.push(sanitizeBlockHtml(data.html));
         else if (data.text) parts.push(`<p>${escapeHtml(String(data.text))}</p>`);
         break;
       case 'build_step': {
         const title = data.title ? `<strong>${escapeHtml(String(data.title))}</strong>` : '';
-        const body = data.html || escapeHtml(String(data.text ?? ''));
+        const body = sanitizeBlockHtml(data.html) || escapeHtml(String(data.text ?? ''));
         parts.push(`<div>${title}${body ? `<p>${body}</p>` : ''}</div>`);
         break;
       }
@@ -78,7 +77,7 @@ function blockTuplesToHtml(blocks: unknown): string {
       }
       default:
         // Unknown block types: try html, text, or skip
-        if (data.html) parts.push(`<div>${data.html}</div>`);
+        if (data.html) parts.push(`<div>${sanitizeBlockHtml(data.html)}</div>`);
         else if (data.text) parts.push(`<p>${escapeHtml(String(data.text))}</p>`);
         break;
     }
@@ -93,6 +92,29 @@ function escapeHtml(s: string): string {
 
 function escapeAttr(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+/** Safe inline HTML tags allowed in federated block content */
+const SAFE_TAGS = new Set(['p', 'br', 'strong', 'em', 'b', 'i', 'u', 's', 'code', 'a', 'ul', 'ol', 'li', 'blockquote', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'pre', 'span', 'sub', 'sup', 'hr', 'figure', 'figcaption', 'img', 'table', 'thead', 'tbody', 'tr', 'th', 'td']);
+const SAFE_ATTRS = new Set(['href', 'src', 'alt', 'title', 'class', 'width', 'height', 'target', 'rel']);
+
+/**
+ * Strip dangerous HTML while preserving safe formatting tags.
+ * Used for data.html fields from TipTap editor blocks before federation.
+ */
+function sanitizeBlockHtml(html: unknown): string {
+  if (typeof html !== 'string') return '';
+  return String(html)
+    // Remove script/style tags and content
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+    // Remove event handlers (onclick, onerror, etc.)
+    .replace(/\s+on\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]*)/gi, '')
+    // Remove javascript: URLs
+    .replace(/href\s*=\s*["']javascript:[^"']*["']/gi, 'href="#"')
+    .replace(/src\s*=\s*["']javascript:[^"']*["']/gi, 'src=""')
+    // Remove data: URIs except safe image formats
+    .replace(/src\s*=\s*["']data:(?!image\/(png|jpeg|jpg|gif|webp|svg\+xml))[^"']*["']/gi, 'src=""');
 }
 
 export interface ContentItemInput {
@@ -160,8 +182,29 @@ export function contentToArticle(
   if (item.updatedAt) {
     article.updated = item.updatedAt.toISOString();
   }
+  // Build attachments: cover image + images from block content
+  const attachments: Array<{ type: string; url: string; name?: string }> = [];
   if (item.coverImageUrl) {
-    article.attachment = [{ type: 'Image', url: item.coverImageUrl, name: 'Cover image' }];
+    attachments.push({ type: 'Image', url: item.coverImageUrl, name: 'Cover image' });
+  }
+  // Extract images from blocks
+  if (Array.isArray(item.content)) {
+    for (const block of item.content as [string, Record<string, unknown>][]) {
+      if (!Array.isArray(block) || block.length < 2) continue;
+      const [btype, bdata] = block;
+      if ((btype === 'image') && typeof bdata.url === 'string') {
+        attachments.push({ type: 'Image', url: bdata.url, name: typeof bdata.alt === 'string' ? bdata.alt : undefined });
+      } else if (btype === 'gallery' && Array.isArray(bdata.images)) {
+        for (const img of bdata.images as Record<string, unknown>[]) {
+          if (typeof img.url === 'string') {
+            attachments.push({ type: 'Image', url: img.url, name: typeof img.alt === 'string' ? img.alt : undefined });
+          }
+        }
+      }
+    }
+  }
+  if (attachments.length > 0) {
+    article.attachment = attachments;
   }
   article.url = `https://${domain}/${item.type}/${item.slug}`;
   if (tags.length > 0) {

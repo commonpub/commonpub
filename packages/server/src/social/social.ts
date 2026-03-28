@@ -111,6 +111,27 @@ export async function isLiked(
   return result.length > 0;
 }
 
+export async function isBookmarked(
+  db: DB,
+  userId: string,
+  targetType: 'project' | 'article' | 'blog' | 'explainer' | 'learning_path',
+  targetId: string,
+): Promise<boolean> {
+  const result = await db
+    .select({ id: bookmarks.id })
+    .from(bookmarks)
+    .where(
+      and(
+        eq(bookmarks.userId, userId),
+        eq(bookmarks.targetType, targetType),
+        eq(bookmarks.targetId, targetId),
+      ),
+    )
+    .limit(1);
+
+  return result.length > 0;
+}
+
 export async function listComments(
   db: DB,
   targetType: CommentTargetType,

@@ -1,6 +1,7 @@
 export {
   toggleLike,
   isLiked,
+  isBookmarked,
   listComments,
   createComment,
   deleteComment,

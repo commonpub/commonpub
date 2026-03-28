@@ -160,6 +160,7 @@ export type {
 export {
   toggleLike,
   isLiked,
+isBookmarked,
   listComments,
   createComment,
   deleteComment,
