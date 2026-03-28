@@ -33,6 +33,9 @@ export default defineEventHandler(async (event) => {
 
   const config = useConfig();
 
+  // CORS — WebFinger must be accessible from browser-based AP clients
+  setResponseHeader(event, 'access-control-allow-origin', '*');
+
   // Instance actor lookup: acct:domain@domain → /actor Service
   if (parsed.username === instanceDomain || parsed.username === config.instance.domain) {
     const actorUri = `https://${instanceDomain}/actor`;
@@ -41,6 +44,7 @@ export default defineEventHandler(async (event) => {
       username: instanceDomain,
       domain: instanceDomain,
       actorUri,
+      oauthEndpoint: `https://${instanceDomain}/api/auth/oauth2/authorize`,
     });
   }
 
