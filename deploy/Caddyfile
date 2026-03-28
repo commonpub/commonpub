@@ -8,6 +8,38 @@ commonpub.io {
 		-Server
 	}
 
+	# Limit inbox request body size (1 MB) to prevent DoS
+	handle /inbox {
+		request_body {
+			max_size 1MB
+		}
+		reverse_proxy app:3000 {
+			header_up X-Real-IP {remote_host}
+			header_up X-Forwarded-For {remote_host}
+			header_up X-Forwarded-Proto {scheme}
+		}
+	}
+	handle /users/*/inbox {
+		request_body {
+			max_size 1MB
+		}
+		reverse_proxy app:3000 {
+			header_up X-Real-IP {remote_host}
+			header_up X-Forwarded-For {remote_host}
+			header_up X-Forwarded-Proto {scheme}
+		}
+	}
+	handle /hubs/*/inbox {
+		request_body {
+			max_size 1MB
+		}
+		reverse_proxy app:3000 {
+			header_up X-Real-IP {remote_host}
+			header_up X-Forwarded-For {remote_host}
+			header_up X-Forwarded-Proto {scheme}
+		}
+	}
+
 	# SSE notifications — disable buffering
 	handle /api/notifications* {
 		reverse_proxy app:3000 {

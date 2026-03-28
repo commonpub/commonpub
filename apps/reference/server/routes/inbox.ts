@@ -1,19 +1,6 @@
-import { processInboxActivity, verifyHttpSignature, resolveActor } from '@commonpub/protocol';
+import { processInboxActivity } from '@commonpub/protocol';
 import { createInboxHandlers } from '@commonpub/server';
-
-function extractKeyId(signatureHeader: string): string | null {
-  const match = signatureHeader.match(/keyId="([^"]+)"/);
-  return match ? match[1] : null;
-}
-
-/** Extract clean domain from a URL string (strips scheme, port, trailing slash) */
-function extractDomain(url: string): string {
-  try {
-    const parsed = new URL(url);
-    if (parsed.hostname) return parsed.hostname;
-  } catch { /* fall through */ }
-  return url.replace(/^https?:\/\//, '').replace(/[:/].*$/, '');
-}
+import { verifyInboxRequest, extractDomain } from '../utils/inbox';
 
 export default defineEventHandler(async (event) => {
   const config = useConfig();
@@ -25,43 +12,8 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 405, statusMessage: 'Method Not Allowed' });
   }
 
-  const signatureHeader = getHeader(event, 'signature');
-  if (!signatureHeader) {
-    throw createError({ statusCode: 401, statusMessage: 'Missing HTTP Signature' });
-  }
-
-  const keyId = extractKeyId(signatureHeader);
-  if (!keyId) {
-    throw createError({ statusCode: 401, statusMessage: 'Invalid Signature header: missing keyId' });
-  }
-
-  const actorUri = keyId.replace(/#.*$/, '');
-  const actor = await resolveActor(actorUri, fetch);
-  if (!actor?.publicKey?.publicKeyPem) {
-    throw createError({ statusCode: 401, statusMessage: 'Could not resolve actor public key' });
-  }
-
-  // Read body and reconstruct a fresh Request with the body for signature verification
-  const body = await readBody(event);
-  const bodyStr = typeof body === 'string' ? body : JSON.stringify(body);
-
-  // Build a fresh Request with the body intact for signature verification
-  const url = getRequestURL(event);
-  const headers = new Headers();
-  for (const [key, value] of Object.entries(getHeaders(event))) {
-    if (value) headers.set(key, Array.isArray(value) ? value[0]! : value);
-  }
-  const verifyRequest = new Request(url.toString(), {
-    method: 'POST',
-    headers,
-    body: bodyStr,
-  });
-
-  const signatureValid = await verifyHttpSignature(verifyRequest, actor.publicKey.publicKeyPem);
-  if (!signatureValid) {
-    // Log for debugging but don't block in v1 (signature implementation may have edge cases)
-    console.warn('[shared-inbox] HTTP Signature verification failed for', actorUri);
-  }
+  // Verify signature, domain, date freshness, body size
+  const { body } = await verifyInboxRequest(event, 'shared-inbox');
 
   const db = useDB();
   const runtimeConfig = useRuntimeConfig();

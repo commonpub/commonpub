@@ -537,13 +537,14 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
      * Soft-deletes the corresponding federatedContent row.
      */
     async onDelete(actorUri: string, objectId: string): Promise<void> {
-      // Soft-delete federated content
+      // Soft-delete federated content — only the original author can delete
       await db
         .update(federatedContent)
         .set({ deletedAt: new Date() })
         .where(
           and(
             eq(federatedContent.objectUri, objectId),
+            eq(federatedContent.actorUri, actorUri),
             isNull(federatedContent.deletedAt),
           ),
         );
