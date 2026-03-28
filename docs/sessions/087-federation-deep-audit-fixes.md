@@ -181,13 +181,26 @@ Full audit documented at `/Users/obsidian/Projects/ossuary-projects/federation-a
 - Followers data intact
 - Deploys successful
 
-## Remaining (Future Sessions)
+## Phase C: Completeness (Same Session — Partial)
 
-### Phase C: Completeness
-1. Visibility support (public/unlisted/followers-only) in contentToArticle
-2. Hashtag export in contentToArticle
-3. Activity table cleanup (scheduled job for old delivered activities)
-4. Re-federate existing content (admin action or migration script)
-5. Federation health endpoint + monitoring/alerting
-6. Fix CI failures so they gate deploys
-7. Fix slug collision in Like/Unlike content lookups
+### Applied
+1. **Hashtag export** — contentToArticle includes content tags as AP Hashtag objects
+2. **Re-federate endpoint** — POST /api/admin/federation/refederate queues all published content
+3. **Drizzle-orm dedupe** — fixed version mismatch (0.45.1 vs 0.45.2) that broke commonpub deploy
+4. **CI green on both repos** — all deploys and CI passing
+
+### Published
+- `@commonpub/protocol@0.7.3` — hashtag type in contentMapper
+- `@commonpub/server@0.8.2` — tag fetching in federateContent, re-federate support
+
+### Commits
+- commonpub: `ef1b142` fix: dedupe drizzle-orm
+- commonpub: `ab8cbdd` feat(federation): hashtag export, re-federate endpoint
+- deveco-io: `7c04c3d` feat(federation): re-federate endpoint + version bumps
+
+## Remaining (Future Sessions)
+1. Content visibility (public/unlisted/followers-only) in contentToArticle
+2. Per-domain rate limiting on inboxes (requires Redis)
+3. Activity table cleanup (scheduled job)
+4. Federation health/monitoring endpoint
+5. Fix slug collision in Like/Unlike content lookups
