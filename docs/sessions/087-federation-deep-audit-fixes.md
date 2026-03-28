@@ -153,15 +153,41 @@ Full audit documented at `/Users/obsidian/Projects/ossuary-projects/federation-a
 - Actor endpoints responding correctly
 - Followers still visible (data intact)
 
-## Next Steps (Phase B: Reliability)
+## Phase B: Reliability Hardening (Same Session)
 
-1. Per-inbox delivery tracking (don't mark partial delivery as complete)
-2. Admin retry for failed activities
-3. Handle actor resolution failures in sendFollow
-4. Activity deduplication (check activity.id before processing)
-5. Fix onFollow race condition (onConflictDoUpdate)
-6. Fix onUndo(Follow) fallback
-7. Idempotent like tracking (per-actor-per-content)
-8. Eager keypair generation for all users
-9. Add User-Agent header + fetch timeout on outbound requests
-10. Redirect limit on actor resolution
+### Applied
+1. **Partial delivery retries** — any failed inbox causes full retry (was marking partial as delivered)
+2. **Fetch timeout** — 30s AbortController on all delivery requests
+3. **User-Agent header** — `CommonPub/1.0 (+https://{domain})` on delivery, `CommonPub/1.0 (ActivityPub)` on resolution
+4. **Keypair on demand** — delivery worker generates keypairs for users who lack them (fixes "No keypair" errors)
+5. **sendFollow error propagation** — throws on actor resolution failure instead of silent catch
+6. **onFollow atomic upsert** — onConflictDoUpdate eliminates race condition
+7. **onUndo(Follow) safety** — no longer deletes wrong relationship on missing activityUri; logs warning instead
+8. **Idempotent likes** — checks activity log for existing Like from same actor+object before incrementing
+9. **Actor resolver redirect limit** — max 3 redirects, SSRF check on each hop
+10. **Actor/WebFinger resolver timeout** — 30s AbortController
+11. **Admin retry endpoint** — POST /api/admin/federation/retry (both repos)
+
+### Published
+- `@commonpub/protocol@0.7.1` — redirect limit, timeout, User-Agent
+- `@commonpub/server@0.8.0` — all reliability fixes
+
+### Commits
+- commonpub: `31cd195` fix(federation): reliability hardening
+- deveco-io: `3d0a8c7` fix(federation): reliability hardening + admin retry
+
+### Verified Post-Deploy
+- Both delivery workers running
+- Followers data intact
+- Deploys successful
+
+## Remaining (Future Sessions)
+
+### Phase C: Completeness
+1. Visibility support (public/unlisted/followers-only) in contentToArticle
+2. Hashtag export in contentToArticle
+3. Activity table cleanup (scheduled job for old delivered activities)
+4. Re-federate existing content (admin action or migration script)
+5. Federation health endpoint + monitoring/alerting
+6. Fix CI failures so they gate deploys
+7. Fix slug collision in Like/Unlike content lookups
