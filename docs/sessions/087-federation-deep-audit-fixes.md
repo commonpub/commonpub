@@ -198,9 +198,31 @@ Full audit documented at `/Users/obsidian/Projects/ossuary-projects/federation-a
 - commonpub: `ab8cbdd` feat(federation): hashtag export, re-federate endpoint
 - deveco-io: `7c04c3d` feat(federation): re-federate endpoint + version bumps
 
+## Phase D: Final Cleanup (Same Session)
+
+### Applied
+1. **onUpdate authorization** — CRITICAL: was missing auth check, any actor could edit any content
+2. **Slug collision fix** — onLike now checks domain before slug match (prevents cross-domain interaction misdirection)
+3. **Hub keypair on-demand** — delivery worker calls getOrCreateHubKeypair instead of returning null
+4. **Mirror resolution logging** — createMirror now warns on actor resolution failure
+5. **federateUpdate tags** — now fetches and includes content tags (was missing)
+6. **Federation health endpoint** — GET /api/federation/health (public, no auth) on both repos
+
+### Published
+- `@commonpub/server@0.9.0`
+
+### Commits
+- commonpub: `701a4bf` fix(federation): onUpdate auth, slug collision, hub keypair, mirror logging, health
+- deveco-io: `dc121d2` fix(federation): update server@0.9.0, add health endpoint
+
+### Health Endpoint Live Results
+```
+deveco.io:    { enabled: true, pending: 0, delivered: 9, failed: 30, followers: 3, mirrors: 1, federatedContent: 0 }
+commonpub.io: { enabled: true, pending: 0, delivered: 6, failed: 2, followers: 3, mirrors: 1, federatedContent: 0 }
+```
+
 ## Remaining (Future Sessions)
 1. Content visibility (public/unlisted/followers-only) in contentToArticle
 2. Per-domain rate limiting on inboxes (requires Redis)
 3. Activity table cleanup (scheduled job)
-4. Federation health/monitoring endpoint
-5. Fix slug collision in Like/Unlike content lookups
+4. Parallel delivery worker safety (SELECT FOR UPDATE SKIP LOCKED)
