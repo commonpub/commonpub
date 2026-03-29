@@ -5,9 +5,12 @@ import type { APOrderedCollection, APOrderedCollectionPage, APActivity } from '.
 export function generateOutboxCollection(
   totalItems: number,
   domain: string,
-  username: string,
+  /** Username for user actor, or null/undefined for instance actor */
+  username?: string | null,
 ): APOrderedCollection {
-  const baseUri = `https://${domain}/users/${username}/outbox`;
+  const baseUri = username
+    ? `https://${domain}/users/${username}/outbox`
+    : `https://${domain}/actor/outbox`;
   return {
     '@context': AP_CONTEXT,
     type: 'OrderedCollection',
@@ -22,12 +25,15 @@ export function generateOutboxCollection(
 export function generateOutboxPage(
   activities: APActivity[],
   domain: string,
-  username: string,
+  /** Username for user actor, or null/undefined for instance actor */
+  username: string | null | undefined,
   page: number,
   pageSize: number,
   totalItems: number,
 ): APOrderedCollectionPage {
-  const baseUri = `https://${domain}/users/${username}/outbox`;
+  const baseUri = username
+    ? `https://${domain}/users/${username}/outbox`
+    : `https://${domain}/actor/outbox`;
   const totalPages = Math.ceil(totalItems / pageSize);
 
   const result: APOrderedCollectionPage = {

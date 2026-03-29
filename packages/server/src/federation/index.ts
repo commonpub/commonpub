@@ -66,6 +66,12 @@ export {
   type BackfillResult,
 } from './backfill.js';
 export {
+  countOutboxItems,
+  countInstanceOutboxItems,
+  getOutboxPage,
+  getInstanceOutboxPage,
+} from './outboxQueries.js';
+export {
   processAuthorize,
   processTokenExchange,
   registerOAuthClient,

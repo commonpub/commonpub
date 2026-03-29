@@ -345,6 +345,10 @@ export {
   cleanupDeliveredActivities,
   backfillFromOutbox,
   type BackfillResult,
+  countOutboxItems,
+  countInstanceOutboxItems,
+  getOutboxPage,
+  getInstanceOutboxPage,
 } from './federation/index.js';
 
 // OAuth Codes
