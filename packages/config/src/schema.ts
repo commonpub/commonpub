@@ -50,8 +50,19 @@ export const instanceConfigSchema = z.object({
   contestCreation: z.enum(['open', 'staff', 'admin']).default('admin'),
 });
 
+export const federationConfigSchema = z.object({
+  activityRetentionDays: z.number().int().positive().default(90),
+  deliveryBatchSize: z.number().int().positive().max(100).default(20),
+  deliveryIntervalMs: z.number().int().positive().default(30_000),
+  maxDeliveryRetries: z.number().int().positive().max(20).default(6),
+  instanceFollowPolicy: z.enum(['auto-accept', 'manual']).default('auto-accept'),
+  backfillOnMirrorAccept: z.boolean().default(false),
+  mirrorMaxItems: z.number().int().positive().optional(),
+});
+
 export const configSchema = z.object({
   instance: instanceConfigSchema,
   features: featureFlagsSchema.default(() => featureFlagsSchema.parse({})),
   auth: authConfigSchema.default(() => authConfigSchema.parse({})),
+  federation: federationConfigSchema.optional(),
 });

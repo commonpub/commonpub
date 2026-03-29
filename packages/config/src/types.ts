@@ -66,8 +66,27 @@ export interface InstanceConfig {
   contestCreation?: 'open' | 'staff' | 'admin';
 }
 
+export interface FederationConfig {
+  /** Days to retain delivered activities before cleanup (default: 90) */
+  activityRetentionDays?: number;
+  /** Max activities per delivery worker run (default: 20) */
+  deliveryBatchSize?: number;
+  /** Delivery worker poll interval in ms (default: 30000) */
+  deliveryIntervalMs?: number;
+  /** Max delivery retries before dead-lettering (default: 6) */
+  maxDeliveryRetries?: number;
+  /** How to handle inbound Follow requests (default: 'auto-accept') */
+  instanceFollowPolicy?: 'auto-accept' | 'manual';
+  /** Auto-backfill when mirror Follow is accepted (default: false) */
+  backfillOnMirrorAccept?: boolean;
+  /** Max items per mirror to prevent DB bloat (default: unlimited) */
+  mirrorMaxItems?: number;
+}
+
 export interface CommonPubConfig {
   instance: InstanceConfig;
   features: FeatureFlags;
   auth: AuthConfig;
+  /** Federation-specific configuration (only used when features.federation is true) */
+  federation?: FederationConfig;
 }

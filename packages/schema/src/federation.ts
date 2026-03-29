@@ -36,6 +36,10 @@ export const activities = pgTable('activities', {
   status: activityStatusEnum('status').default('pending').notNull(),
   attempts: integer('attempts').default(0).notNull(),
   error: text('error'),
+  /** Advisory lock timestamp for multi-worker delivery safety */
+  lockedAt: timestamp('locked_at', { withTimezone: true }),
+  /** Set when activity permanently fails after max retries (dead letter) */
+  deadLetteredAt: timestamp('dead_lettered_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 }, (t) => [

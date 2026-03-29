@@ -2,12 +2,14 @@
  * Activity delivery — sends pending outbound AP activities to remote inboxes.
  * Signs requests with HTTP Signatures and updates delivery status.
  */
-import { eq, and, sql, lte } from 'drizzle-orm';
+import { eq, and, sql, lte, isNull, or } from 'drizzle-orm';
 import { activities, remoteActors, followRelationships, actorKeypairs, users, hubs, hubActorKeypairs, hubFollowers } from '@commonpub/schema';
 import { signRequest } from '@commonpub/protocol';
 import type { DB } from '../types.js';
 
-const MAX_ATTEMPTS = 6;
+const DEFAULT_MAX_ATTEMPTS = 6;
+/** Lock expiry: if a worker crashes, its locks expire after 5 minutes */
+const LOCK_EXPIRY_MS = 5 * 60 * 1000;
 const CONTENT_TYPE_AP = 'application/activity+json';
 
 /** Exponential backoff delays in milliseconds: 1m, 5m, 30m, 2h, 12h, 48h */
@@ -33,22 +35,32 @@ export interface DeliveryResult {
   errors: string[];
 }
 
+export interface DeliveryOptions {
+  batchSize?: number;
+  maxRetries?: number;
+}
+
 /**
  * Process and deliver pending outbound activities.
- * Call this from a background worker or cron job.
- *
- * @param db - Database connection
- * @param domain - The local instance domain
- * @param batchSize - Max activities to process per run (default 20)
+ * Uses claim-based locking for multi-worker safety:
+ * each worker claims activities by setting lockedAt, preventing duplicates.
  */
 export async function deliverPendingActivities(
   db: DB,
   domain: string,
-  batchSize = 20,
+  batchSizeOrOpts?: number | DeliveryOptions,
 ): Promise<DeliveryResult> {
-  const result: DeliveryResult = { delivered: 0, failed: 0, errors: [] };
+  const opts = typeof batchSizeOrOpts === 'number'
+    ? { batchSize: batchSizeOrOpts }
+    : batchSizeOrOpts ?? {};
+  const batchSize = opts.batchSize ?? 20;
+  const maxRetries = opts.maxRetries ?? DEFAULT_MAX_ATTEMPTS;
 
-  // Fetch pending outbound activities (with backoff check applied in-memory)
+  const result: DeliveryResult = { delivered: 0, failed: 0, errors: [] };
+  const now = new Date();
+  const lockExpiry = new Date(now.getTime() - LOCK_EXPIRY_MS);
+
+  // Fetch pending outbound activities — only unlocked (lockedAt IS NULL or lock expired)
   const candidates = await db
     .select()
     .from(activities)
@@ -56,16 +68,37 @@ export async function deliverPendingActivities(
       and(
         eq(activities.direction, 'outbound'),
         eq(activities.status, 'pending'),
-        lte(activities.attempts, MAX_ATTEMPTS),
+        lte(activities.attempts, maxRetries),
+        isNull(activities.deadLetteredAt),
+        or(
+          isNull(activities.lockedAt),
+          lte(activities.lockedAt, lockExpiry),
+        ),
       ),
     )
     .orderBy(activities.createdAt)
-    .limit(batchSize * 2); // Fetch extra to account for backoff filtering
+    .limit(batchSize * 2);
 
   // Apply exponential backoff filter in-memory
   const pending = candidates.filter((a) => isReadyForRetry(a.attempts, a.updatedAt)).slice(0, batchSize);
 
+  // Claim activities by setting lockedAt (prevents other workers from picking them up)
+  const claimedIds: string[] = [];
   for (const activity of pending) {
+    const claimed = await db.update(activities)
+      .set({ lockedAt: now })
+      .where(and(
+        eq(activities.id, activity.id),
+        or(isNull(activities.lockedAt), lte(activities.lockedAt, lockExpiry)),
+      ))
+      .returning({ id: activities.id });
+    if (claimed.length > 0) claimedIds.push(activity.id);
+  }
+
+  // Only process activities we successfully claimed
+  const toClaim = pending.filter((a) => claimedIds.includes(a.id));
+
+  for (const activity of toClaim) {
     try {
       await deliverActivity(db, activity, domain);
       result.delivered++;
@@ -75,10 +108,6 @@ export async function deliverPendingActivities(
       result.failed++;
     }
   }
-  // NOTE: For production with multiple delivery workers, add SELECT ... FOR UPDATE SKIP LOCKED
-  // to the pending activities query to prevent duplicate processing. PGlite (test DB) doesn't
-  // support this, so it's omitted from the query builder. The Nitro plugin should ensure
-  // only one worker runs at a time via setInterval (not parallel invocations).
 
   return result;
 }
@@ -385,6 +414,7 @@ async function markDelivered(db: DB, activityId: string, error?: string): Promis
       status: 'delivered',
       error: error ?? null,
       attempts: sql`${activities.attempts} + 1`,
+      lockedAt: null, // Release lock
     })
     .where(eq(activities.id, activityId));
 }
@@ -396,11 +426,13 @@ async function markFailed(db: DB, activityId: string, error: string): Promise<vo
       status: 'failed',
       error,
       attempts: sql`${activities.attempts} + 1`,
+      lockedAt: null,
+      deadLetteredAt: new Date(), // Mark as dead-lettered
     })
     .where(eq(activities.id, activityId));
 }
 
-async function incrementAttempts(db: DB, activityId: string, error: string): Promise<void> {
+async function incrementAttempts(db: DB, activityId: string, error: string, maxRetries = DEFAULT_MAX_ATTEMPTS): Promise<void> {
   const [row] = await db
     .select({ attempts: activities.attempts })
     .from(activities)
@@ -408,7 +440,8 @@ async function incrementAttempts(db: DB, activityId: string, error: string): Pro
     .limit(1);
 
   const newAttempts = (row?.attempts ?? 0) + 1;
-  const newStatus = newAttempts >= MAX_ATTEMPTS ? 'failed' : 'pending';
+  const isDead = newAttempts >= maxRetries;
+  const newStatus = isDead ? 'failed' : 'pending';
 
   await db
     .update(activities)
@@ -417,6 +450,31 @@ async function incrementAttempts(db: DB, activityId: string, error: string): Pro
       error,
       attempts: newAttempts,
       updatedAt: new Date(),
+      lockedAt: null, // Release lock
+      ...(isDead ? { deadLetteredAt: new Date() } : {}),
     })
     .where(eq(activities.id, activityId));
+}
+
+// --- Activity Cleanup ---
+
+/**
+ * Delete delivered activities older than the specified retention period.
+ * Call from a scheduled job (e.g., daily via the delivery worker plugin).
+ */
+export async function cleanupDeliveredActivities(
+  db: DB,
+  retentionDays: number,
+): Promise<number> {
+  const cutoff = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000);
+  const deleted = await db
+    .delete(activities)
+    .where(
+      and(
+        eq(activities.status, 'delivered'),
+        lte(activities.createdAt, cutoff),
+      ),
+    )
+    .returning({ id: activities.id });
+  return deleted.length;
 }

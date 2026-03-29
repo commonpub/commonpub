@@ -23,7 +23,7 @@ export {
 } from './federation.js';
 
 export { createInboxHandlers, type InboxHandlerOptions } from './inboxHandlers.js';
-export { deliverPendingActivities, type DeliveryResult } from './delivery.js';
+export { deliverPendingActivities, cleanupDeliveredActivities, type DeliveryResult, type DeliveryOptions } from './delivery.js';
 export {
   listFederatedTimeline,
   getFederatedContent,

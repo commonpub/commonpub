@@ -341,6 +341,8 @@ export {
   type FederatedTimelineOptions,
   type InboxHandlerOptions,
   type DeliveryResult,
+  type DeliveryOptions,
+  cleanupDeliveredActivities,
   backfillFromOutbox,
   type BackfillResult,
 } from './federation/index.js';
