@@ -83,11 +83,19 @@ async function queryFederatedAsListItems(
   db: DB,
   filters: ContentFilters,
   maxItems = 100,
+  allowedContentTypes?: string[],
 ): Promise<ContentListItem[]> {
   const conditions = [
     isNull(federatedContent.deletedAt),
     eq(federatedContent.isHidden, false),
   ];
+
+  // Filter by instance's enabled content types — prevent unsupported types from leaking into feeds
+  if (allowedContentTypes && allowedContentTypes.length > 0) {
+    conditions.push(
+      sql`(${federatedContent.cpubType} IN (${sql.join(allowedContentTypes.map(t => sql`${t}`), sql`, `)}) OR (${federatedContent.cpubType} IS NULL AND lower(${federatedContent.apType}) IN (${sql.join(allowedContentTypes.map(t => sql`${t}`), sql`, `)})))`,
+    );
+  }
 
   // Map content type filter (federated uses cpubType or apType)
   if (filters.type) {
@@ -154,7 +162,7 @@ async function queryFederatedAsListItems(
 export async function listContent(
   db: DB,
   filters: ContentFilters = {},
-  options?: { includeFederated?: boolean },
+  options?: { includeFederated?: boolean; allowedContentTypes?: string[] },
 ): Promise<{ items: ContentListItem[]; total: number }> {
   const conditions = [isNull(contentItems.deletedAt)];
 
@@ -241,7 +249,7 @@ export async function listContent(
 
   // Query federated content (from mirrored instances)
   // Fetch enough to fill the requested page after merging with local results
-  const fedItems = await queryFederatedAsListItems(db, filters, offset + limit);
+  const fedItems = await queryFederatedAsListItems(db, filters, offset + limit, options?.allowedContentTypes);
 
   // Merge all items and sort by publishedAt descending
   const merged = [...localItems, ...fedItems].sort((a, b) => {

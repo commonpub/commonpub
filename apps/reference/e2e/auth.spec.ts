@@ -4,25 +4,27 @@ import { test, expect } from '@playwright/test';
  * Auth flow tests — verify register, login, and logout form behavior.
  * These test the forms and client-side validation, not the full auth backend
  * (which requires a running Postgres with Better Auth tables).
+ *
+ * NOTE: The login form uses a combined "identity" field (username or email)
+ * with a two-step resolution flow, not a separate email field.
  */
 
 test.describe('Login form', () => {
   test('shows required validation on empty submit', async ({ page }) => {
     await page.goto('/auth/login');
 
-    // HTML5 required validation prevents submit
-    const emailInput = page.locator('#email');
+    const identityInput = page.locator('#identity');
     const passwordInput = page.locator('#password');
 
-    await expect(emailInput).toHaveAttribute('required', '');
+    await expect(identityInput).toHaveAttribute('required', '');
     await expect(passwordInput).toHaveAttribute('required', '');
   });
 
-  test('email field has correct type', async ({ page }) => {
+  test('identity field accepts text input', async ({ page }) => {
     await page.goto('/auth/login');
 
-    const emailInput = page.locator('#email');
-    await expect(emailInput).toHaveAttribute('type', 'email');
+    const identityInput = page.locator('#identity');
+    await expect(identityInput).toHaveAttribute('type', 'text');
   });
 
   test('password field has correct type', async ({ page }) => {
@@ -50,7 +52,7 @@ test.describe('Login form', () => {
   test('has correct autocomplete attributes', async ({ page }) => {
     await page.goto('/auth/login');
 
-    await expect(page.locator('#email')).toHaveAttribute('autocomplete', 'email');
+    await expect(page.locator('#identity')).toHaveAttribute('autocomplete', 'username');
     await expect(page.locator('#password')).toHaveAttribute('autocomplete', 'current-password');
   });
 });
@@ -120,10 +122,10 @@ test.describe('Auth page accessibility', () => {
   test('login form labels are associated with inputs', async ({ page }) => {
     await page.goto('/auth/login');
 
-    const emailLabel = page.locator('label[for="email"]');
+    const identityLabel = page.locator('label[for="identity"]');
     const passwordLabel = page.locator('label[for="password"]');
 
-    await expect(emailLabel).toBeVisible();
+    await expect(identityLabel).toBeVisible();
     await expect(passwordLabel).toBeVisible();
   });
 

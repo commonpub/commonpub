@@ -18,5 +18,6 @@ export default defineEventHandler(async (event): Promise<PaginatedResponse<Conte
     visibility: isOwnContent ? filters.visibility : 'public',
   }, {
     includeFederated: config.features.seamlessFederation,
+    allowedContentTypes: config.instance.contentTypes,
   });
 });
