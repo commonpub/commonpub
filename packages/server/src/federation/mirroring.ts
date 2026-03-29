@@ -98,29 +98,39 @@ export async function activateMirror(db: DB, mirrorId: string): Promise<void> {
 
 /**
  * Pause a mirror — stops content ingestion but keeps the follow active.
+ * Records pausedAt for gap-fill on resume.
  */
 export async function pauseMirror(db: DB, mirrorId: string): Promise<void> {
   await db
     .update(instanceMirrors)
-    .set({ status: 'paused', updatedAt: new Date() })
+    .set({ status: 'paused', pausedAt: new Date(), updatedAt: new Date() })
     .where(eq(instanceMirrors.id, mirrorId));
 }
 
 /**
- * Resume a paused mirror.
+ * Resume a paused mirror. Clears pausedAt.
+ * Caller should consider triggering backfill from pausedAt to fill the gap.
  */
 export async function resumeMirror(db: DB, mirrorId: string): Promise<void> {
   await db
     .update(instanceMirrors)
-    .set({ status: 'active', updatedAt: new Date() })
+    .set({ status: 'active', pausedAt: null, updatedAt: new Date() })
     .where(eq(instanceMirrors.id, mirrorId));
 }
 
 /**
- * Cancel a mirror — removes the subscription entirely.
- * Content already received is NOT deleted (can be cleaned up separately).
+ * Cancel a mirror — hides associated content and removes the subscription.
+ * Content is soft-hidden (isHidden=true) rather than deleted, preserving
+ * local engagement data (likes, comments, bookmarks).
  */
 export async function cancelMirror(db: DB, mirrorId: string): Promise<void> {
+  // Soft-hide all content from this mirror
+  await db
+    .update(federatedContent)
+    .set({ isHidden: true })
+    .where(eq(federatedContent.mirrorId, mirrorId));
+
+  // Delete the mirror config
   await db.delete(instanceMirrors).where(eq(instanceMirrors.id, mirrorId));
 }
 
@@ -159,9 +169,11 @@ export async function matchMirrorForContent(
   apType: string,
   cpubType: string | null,
   tags: Array<{ name: string }>,
+  /** Domain of the actor who sent the activity (may differ from originDomain for re-broadcasts) */
+  senderDomain?: string,
 ): Promise<string | null> {
   // Find active mirror for this origin domain
-  const [mirror] = await db
+  let [mirror] = await db
     .select()
     .from(instanceMirrors)
     .where(
@@ -172,6 +184,21 @@ export async function matchMirrorForContent(
       ),
     )
     .limit(1);
+
+  // Fallback: check by sender domain (handles content re-broadcast from mirrors)
+  if (!mirror && senderDomain && senderDomain !== originDomain) {
+    [mirror] = await db
+      .select()
+      .from(instanceMirrors)
+      .where(
+        and(
+          eq(instanceMirrors.remoteDomain, senderDomain),
+          eq(instanceMirrors.status, 'active'),
+          eq(instanceMirrors.direction, 'pull'),
+        ),
+      )
+      .limit(1);
+  }
 
   if (!mirror) return null;
 

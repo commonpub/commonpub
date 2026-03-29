@@ -143,6 +143,8 @@ export const instanceMirrors = pgTable('instance_mirrors', {
   errorCount: integer('error_count').default(0).notNull(),
   lastError: text('last_error'),
   lastSyncAt: timestamp('last_sync_at', { withTimezone: true }),
+  /** When the mirror was paused — used for gap-fill on resume */
+  pausedAt: timestamp('paused_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });

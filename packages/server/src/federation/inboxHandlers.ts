@@ -390,7 +390,10 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
       const cpubMetadata = object['cpub:metadata'] ?? null;
 
       // Check if this content matches an active mirror config
-      const mirrorId = await matchMirrorForContent(db, originDomain, objectType, cpubType, tags);
+      // Extract sender domain from actorUri for re-broadcast matching
+      let senderDomain: string | undefined;
+      try { senderDomain = new URL(actorUri).hostname; } catch { /* ignore */ }
+      const mirrorId = await matchMirrorForContent(db, originDomain, objectType, cpubType, tags, senderDomain);
 
       // Upsert federated content (objectUri is unique — prevents duplicates)
       if (objectUri) {
