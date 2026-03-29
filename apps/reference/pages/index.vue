@@ -33,9 +33,19 @@ const { data: feed } = await useFetch<PaginatedResponse<Serialized<ContentListIt
   watch: [contentQuery],
 });
 
-const { data: featured } = await useFetch<PaginatedResponse<Serialized<ContentListItem>>>('/api/content', {
+// Try actually featured content first, fall back to most popular
+const { data: featuredData } = await useFetch<PaginatedResponse<Serialized<ContentListItem>>>('/api/content', {
+  query: { status: 'published', featured: true, limit: 1 },
+});
+const { data: popularFallback } = await useFetch<PaginatedResponse<Serialized<ContentListItem>>>('/api/content', {
   query: { status: 'published', sort: 'popular', limit: 1 },
 });
+const featured = computed(() => {
+  const f = featuredData.value;
+  if (f?.items?.length) return f;
+  return popularFallback.value;
+});
+const isActuallyFeatured = computed(() => (featuredData.value?.items?.length ?? 0) > 0);
 
 const { data: stats } = await useFetch('/api/stats');
 
@@ -181,11 +191,12 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
 
         <!-- Featured card -->
         <article v-if="featured?.items?.length && activeTab === 'foryou'" class="cpub-featured-card">
-          <div class="cpub-featured-thumb">
-            <i class="cpub-thumb-icon fa-solid fa-microchip" />
+          <div class="cpub-featured-thumb" :style="featured.items[0].coverImageUrl ? { backgroundImage: `url(${featured.items[0].coverImageUrl.includes('://') && !featured.items[0].coverImageUrl.includes(useRuntimeConfig().public?.domain as string || 'localhost') ? `/api/image-proxy?url=${encodeURIComponent(featured.items[0].coverImageUrl)}&w=900` : featured.items[0].coverImageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}">
+            <i v-if="!featured.items[0].coverImageUrl" class="cpub-thumb-icon fa-solid fa-microchip" />
             <div class="cpub-thumb-overlay">
               <div class="cpub-thumb-badges">
-                <span class="cpub-badge cpub-badge-featured">Featured</span>
+                <span v-if="isActuallyFeatured" class="cpub-badge cpub-badge-featured">Featured</span>
+                <span v-else class="cpub-badge cpub-badge-featured" style="background: var(--accent)">Popular</span>
                 <ContentTypeBadge :type="featured.items[0].type" />
               </div>
             </div>

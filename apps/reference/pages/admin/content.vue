@@ -17,6 +17,19 @@ async function removeContent(id: string, title: string): Promise<void> {
     toast.error('Failed to remove content');
   }
 }
+
+async function toggleFeatured(id: string, current: boolean): Promise<void> {
+  try {
+    await $fetch(`/api/admin/content/${id}`, {
+      method: 'PATCH',
+      body: { isFeatured: !current },
+    });
+    toast.success(current ? 'Unfeatured' : 'Featured on homepage');
+    await refresh();
+  } catch {
+    toast.error('Failed to update featured status');
+  }
+}
 </script>
 
 <template>
@@ -48,8 +61,16 @@ async function removeContent(id: string, title: string): Promise<void> {
             </td>
             <td class="cpub-admin-num">{{ item.viewCount ?? 0 }}</td>
             <td class="cpub-admin-date">{{ new Date(item.createdAt).toLocaleDateString() }}</td>
-            <td>
-              <button class="cpub-admin-delete" title="Remove content" @click="removeContent(item.id, item.title)">
+            <td class="cpub-admin-actions">
+              <button
+                class="cpub-admin-action"
+                :class="{ 'cpub-admin-action--active': item.isFeatured }"
+                :title="item.isFeatured ? 'Remove from featured' : 'Feature on homepage'"
+                @click="toggleFeatured(item.id, !!item.isFeatured)"
+              >
+                <i class="fa-solid fa-star"></i>
+              </button>
+              <button class="cpub-admin-action cpub-admin-action--danger" title="Remove content" @click="removeContent(item.id, item.title)">
                 <i class="fa-solid fa-trash"></i>
               </button>
             </td>
@@ -75,7 +96,10 @@ async function removeContent(id: string, title: string): Promise<void> {
 .cpub-status-badge { font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; padding: 2px 8px; }
 .cpub-status-published { color: var(--green); background: var(--green-bg); border: 2px solid var(--green-border); }
 .cpub-status-draft { color: var(--text-dim); background: var(--surface2); border: 2px solid var(--border2); }
-.cpub-admin-delete { background: none; border: none; color: var(--text-faint); cursor: pointer; font-size: 12px; padding: 4px 6px; }
-.cpub-admin-delete:hover { color: var(--red); }
+.cpub-admin-actions { display: flex; gap: 6px; }
+.cpub-admin-action { background: none; border: none; color: var(--text-faint); cursor: pointer; font-size: 12px; padding: 4px 6px; }
+.cpub-admin-action:hover { color: var(--accent); }
+.cpub-admin-action--active { color: var(--yellow, #e6b800); }
+.cpub-admin-action--danger:hover { color: var(--red); }
 .cpub-empty { color: var(--text-faint); text-align: center; padding: var(--space-10) 0; }
 </style>
