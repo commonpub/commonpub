@@ -80,8 +80,32 @@ Session 087 established working federation between commonpub.io and deveco.io wi
 - Client-side filtering on activity list
 - deveco-io only commit: `35636aa`
 
-### Phase 10: Remaining Test Coverage — TODO
-### Phase 11: Two-Instance E2E — TODO
+### Phase 10: Remaining Test Coverage — DONE
+- 13 new tests for unified content listing + isBookmarked
+- listContent with/without federation: merge, sort, source metadata, type filter, search, pagination
+- isBookmarked: all target types, different users, true/false states
+- Commit: `6650ae4`
+
+### Phase 11: Two-Instance E2E — DEFERRED
+Requires Docker infrastructure to spin up two Nuxt instances with separate databases.
+Planned tests: Publish→receive, Like→propagate, Update→sync, Delete→tombstone, Follow cycle, Backfill, Blocklist.
+This is best done as a dedicated infrastructure task with docker-compose.test.yml.
+
+---
+
+## Final Test Count
+- Protocol: 367 tests (24 files)
+- Server: 473 tests (38 files) + 1 skipped
+- **Total: 841 tests, 0 failures**
+- Added this session: **69 new tests** (48 XSS + 8 outbox + 13 unified)
+
+## Final Package Versions
+| Package | Version |
+|---------|---------|
+| @commonpub/schema | 0.8.0 |
+| @commonpub/config | 0.7.0 |
+| @commonpub/protocol | 0.9.0 |
+| @commonpub/server | 2.0.0 |
 
 ## Test Status
 - Protocol: 367 tests (24 files)
