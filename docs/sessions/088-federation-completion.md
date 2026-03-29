@@ -65,8 +65,21 @@ Session 087 established working federation between commonpub.io and deveco.io wi
 - Now processes Update activities alongside Create
 - Commit: `ddb8f4f`
 
-### Phase 8: Circuit Breaker & Error Visibility — TODO
-### Phase 9: Admin UI — TODO
+### Phase 8: Circuit Breaker & Error Visibility — DONE
+- New `instanceHealth` table: domain, consecutiveFailures, totalDelivered/Failed, circuitOpenUntil
+- `isCircuitOpen/recordDeliverySuccess/Failure/getDeliveryHealth` functions
+- Delivery worker checks circuit before each inbox, records results after
+- Escalating cooldown: 5min → 15min → 1h → 6h → 24h after threshold
+- `onContentPublished/Updated` return `{ federated, error }` instead of void
+- Commit: `ec98c65`
+
+### Phase 9: Admin UI — DONE
+- Backfill button per mirror with loading state + result display
+- Retry Failed button with count badge
+- Activity filters: direction, status, type dropdowns
+- Client-side filtering on activity list
+- deveco-io only commit: `35636aa`
+
 ### Phase 10: Remaining Test Coverage — TODO
 ### Phase 11: Two-Instance E2E — TODO
 
