@@ -19,6 +19,8 @@ export interface FeatureFlags {
   federation: boolean;
   /** Display mirrored content alongside local content in browse/search/feed */
   seamlessFederation: boolean;
+  /** Enable hub/community federation via AP Group actors (default: false) */
+  federateHubs: boolean;
   /** Enable admin panel (user management, reports, instance settings) */
   admin: boolean;
 }

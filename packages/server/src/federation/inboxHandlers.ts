@@ -39,8 +39,13 @@ async function notifyRemoteInteraction(
 export interface InboxHandlerOptions {
   db: DB;
   domain: string;
-  /** Auto-accept follow requests (default: true) */
+  /** Auto-accept follow requests (default: true). Set to false for 'manual' policy. */
   autoAcceptFollows?: boolean;
+  /** Config for federation behavior */
+  federationConfig?: {
+    backfillOnMirrorAccept?: boolean;
+    mirrorMaxItems?: number;
+  };
 }
 
 /**
@@ -137,6 +142,22 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
           .update(followRelationships)
           .set({ status: 'accepted', updatedAt: new Date() })
           .where(eq(followRelationships.id, pending[0]!.id));
+
+        // Auto-backfill: if this Accept is for an instance mirror and config says to backfill
+        if (opts.federationConfig?.backfillOnMirrorAccept) {
+          try {
+            const { getMirror, listMirrors } = await import('./mirroring.js');
+            const mirrors = await listMirrors(db);
+            const mirror = mirrors.find((m) => m.remoteActorUri === actorUri && m.direction === 'pull');
+            if (mirror) {
+              const { backfillFromOutbox } = await import('./backfill.js');
+              // Fire and forget — don't block the Accept processing
+              backfillFromOutbox(db, actorUri, domain, opts.federationConfig?.mirrorMaxItems).catch(
+                (err: unknown) => console.error('[federation] auto-backfill failed:', err instanceof Error ? err.message : err),
+              );
+            }
+          } catch { /* non-critical */ }
+        }
       }
 
       await db.insert(activities).values({

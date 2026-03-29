@@ -22,6 +22,7 @@ export function createTestConfig(overrides?: Partial<CommonPubConfig>): CommonPu
       explainers: true,
       federation: false,
       seamlessFederation: false,
+      federateHubs: false,
       admin: false,
       ...overrides?.features,
     },

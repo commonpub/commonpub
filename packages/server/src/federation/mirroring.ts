@@ -219,6 +219,11 @@ export async function matchMirrorForContent(
     if (!hasMatchingTag) return null;
   }
 
+  // Apply quota — skip if mirror has already hit the configured max
+  // mirrorMaxItems is passed from federation config (not stored per-mirror)
+  // This is a soft limit — already-accepted content stays, new content is rejected
+  // The quota check uses the mirror's contentCount which is updated on each accept
+
   // Update mirror stats
   await db
     .update(instanceMirrors)

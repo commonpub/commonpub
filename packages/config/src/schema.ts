@@ -11,6 +11,7 @@ export const featureFlagsSchema = z.object({
   explainers: z.boolean().default(true),
   federation: z.boolean().default(false),
   seamlessFederation: z.boolean().default(false),
+  federateHubs: z.boolean().default(false),
   admin: z.boolean().default(false),
 });
 
