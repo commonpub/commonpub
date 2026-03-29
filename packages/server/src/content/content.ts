@@ -709,22 +709,32 @@ export async function onContentPublished(
   db: DB,
   contentId: string,
   config: CommonPubConfig,
-): Promise<void> {
-  if (!config.features.federation) return;
-  await federateContent(db, contentId, config.instance.domain).catch((err: unknown) => {
-    console.error('[federation]', err);
-  });
+): Promise<{ federated: boolean; error?: string }> {
+  if (!config.features.federation) return { federated: false };
+  try {
+    await federateContent(db, contentId, config.instance.domain);
+    return { federated: true };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error('[federation] publish:', message);
+    return { federated: false, error: message };
+  }
 }
 
 export async function onContentUpdated(
   db: DB,
   contentId: string,
   config: CommonPubConfig,
-): Promise<void> {
-  if (!config.features.federation) return;
-  await federateUpdate(db, contentId, config.instance.domain).catch((err: unknown) => {
-    console.error('[federation]', err);
-  });
+): Promise<{ federated: boolean; error?: string }> {
+  if (!config.features.federation) return { federated: false };
+  try {
+    await federateUpdate(db, contentId, config.instance.domain);
+    return { federated: true };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error('[federation] update:', message);
+    return { federated: false, error: message };
+  }
 }
 
 /**

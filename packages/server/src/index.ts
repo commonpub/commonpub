@@ -350,6 +350,10 @@ export {
   countInstanceOutboxItems,
   getOutboxPage,
   getInstanceOutboxPage,
+  isCircuitOpen,
+  recordDeliverySuccess,
+  recordDeliveryFailure,
+  getDeliveryHealth,
 } from './federation/index.js';
 
 // OAuth Codes

@@ -62,6 +62,12 @@ export {
   isFederatedHandle,
 } from './messaging.js';
 export {
+  isCircuitOpen,
+  recordDeliverySuccess,
+  recordDeliveryFailure,
+  getDeliveryHealth,
+} from './circuitBreaker.js';
+export {
   backfillFromOutbox,
   type BackfillResult,
   type BackfillOptions,

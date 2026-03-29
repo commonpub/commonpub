@@ -129,16 +129,17 @@ describe('federation hooks integration', () => {
       expect(afterCount).toBe(beforeCount);
     });
 
-    it('does not throw on federation error (catches silently)', async () => {
+    it('does not throw for non-existent content (returns success since no error)', async () => {
       const config = createTestConfig({
         features: { federation: true },
         instance: { domain: DOMAIN },
       });
 
-      // Use a non-existent content ID — the hook should catch the error
-      await expect(
-        onContentPublished(db, crypto.randomUUID(), config),
-      ).resolves.toBeUndefined();
+      // Non-existent content ID — federateContent returns early (no-op), no error thrown
+      const result = await onContentPublished(db, crypto.randomUUID(), config);
+      // No error = "federated" is true (the function completed without throwing)
+      expect(result.federated).toBe(true);
+      expect(result.error).toBeUndefined();
     });
 
     it('does not federate draft content even when federation is enabled', async () => {

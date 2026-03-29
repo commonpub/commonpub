@@ -168,6 +168,27 @@ export const federatedContentRelations = relations(federatedContent, ({ one }) =
   }),
 }));
 
+// --- Instance Health (Circuit Breaker) ---
+
+/** Tracks delivery health per remote instance for circuit breaker pattern */
+export const instanceHealth = pgTable('instance_health', {
+  /** Remote instance domain (e.g., 'deveco.io') */
+  domain: varchar('domain', { length: 255 }).primaryKey(),
+  /** Consecutive delivery failures to this instance */
+  consecutiveFailures: integer('consecutive_failures').default(0).notNull(),
+  /** Total successful deliveries (lifetime) */
+  totalDelivered: integer('total_delivered').default(0).notNull(),
+  /** Total failed deliveries (lifetime) */
+  totalFailed: integer('total_failed').default(0).notNull(),
+  /** When the circuit was opened (stop attempting delivery) — null = closed */
+  circuitOpenUntil: timestamp('circuit_open_until', { withTimezone: true }),
+  /** Last successful delivery */
+  lastSuccessAt: timestamp('last_success_at', { withTimezone: true }),
+  /** Last failed delivery */
+  lastFailureAt: timestamp('last_failure_at', { withTimezone: true }),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
 // --- Inferred Types ---
 export type RemoteActorRow = typeof remoteActors.$inferSelect;
 export type NewRemoteActorRow = typeof remoteActors.$inferInsert;

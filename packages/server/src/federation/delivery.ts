@@ -140,9 +140,24 @@ async function deliverActivity(
   const keyId = `${activity.actorUri}#main-key`;
   const body = JSON.stringify(payload);
 
-  // Deliver to each inbox
+  // Deliver to each inbox (with circuit breaker checks)
+  const { isCircuitOpen, recordDeliverySuccess, recordDeliveryFailure } = await import('./circuitBreaker.js');
   const errors: string[] = [];
+  let skippedCircuitOpen = 0;
+
   for (const inbox of targetInboxes) {
+    // Extract domain from inbox URL for circuit breaker
+    let inboxDomain: string;
+    try { inboxDomain = new URL(inbox).hostname; } catch { inboxDomain = inbox; }
+
+    // Check circuit breaker — skip if circuit is open for this domain
+    const circuitOpen = await isCircuitOpen(db, inboxDomain);
+    if (circuitOpen) {
+      skippedCircuitOpen++;
+      errors.push(`${inbox}: circuit open (skipped)`);
+      continue;
+    }
+
     try {
       const request = new Request(inbox, {
         method: 'POST',
@@ -161,20 +176,28 @@ async function deliverActivity(
         const response = await fetch(signed, { signal: controller.signal });
         if (!response.ok && response.status !== 202) {
           errors.push(`${inbox}: ${response.status} ${response.statusText}`);
+          await recordDeliveryFailure(db, inboxDomain).catch(() => {});
+        } else {
+          await recordDeliverySuccess(db, inboxDomain).catch(() => {});
         }
       } finally {
         clearTimeout(timeout);
       }
     } catch (err) {
       errors.push(`${inbox}: ${err instanceof Error ? err.message : String(err)}`);
+      await recordDeliveryFailure(db, inboxDomain).catch(() => {});
     }
+  }
+
+  // If all inboxes were skipped due to circuit breaker, don't count as attempt
+  if (skippedCircuitOpen === targetInboxes.length) {
+    // All skipped — leave as pending, don't increment attempts
+    return;
   }
 
   if (errors.length === 0) {
     await markDelivered(db, activity.id);
   } else {
-    // Any failures (partial or total) → retry the whole activity.
-    // AP servers handle duplicate deliveries idempotently (objectUri is unique).
     await incrementAttempts(db, activity.id, errors.join('; '));
   }
 }
