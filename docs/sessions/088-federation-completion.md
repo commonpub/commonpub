@@ -86,18 +86,28 @@ Session 087 established working federation between commonpub.io and deveco.io wi
 - isBookmarked: all target types, different users, true/false states
 - Commit: `6650ae4`
 
-### Phase 11: Two-Instance E2E — DEFERRED
-Requires Docker infrastructure to spin up two Nuxt instances with separate databases.
-Planned tests: Publish→receive, Like→propagate, Update→sync, Delete→tombstone, Follow cycle, Backfill, Blocklist.
-This is best done as a dedicated infrastructure task with docker-compose.test.yml.
+### Phase 11: Two-Instance E2E — DONE
+Vitest test with two PGlite databases simulating Instance A (a.test) and Instance B (b.test).
+7 tests covering the full federation round-trip:
+1. Follow → Accept lifecycle (both sides verified)
+2. Publish → Create → content appears on remote
+3. Like → count incremented on source
+4. Update → content synced on remote
+5. Delete → content soft-deleted on remote
+6. Duplicate Create idempotent (objectUri unique)
+7. Loop prevention: own-domain content rejected
+No Docker needed — direct function calls with processInboxActivity simulating delivery.
+Commit: `1fb484a`
 
 ---
 
+## ALL 11 PHASES COMPLETE
+
 ## Final Test Count
 - Protocol: 367 tests (24 files)
-- Server: 473 tests (38 files) + 1 skipped
-- **Total: 841 tests, 0 failures**
-- Added this session: **69 new tests** (48 XSS + 8 outbox + 13 unified)
+- Server: 480 tests (39 files) + 1 skipped
+- **Total: 848 tests, 0 failures**
+- Added this session: **76 new tests** (48 XSS + 8 outbox + 13 unified + 7 E2E)
 
 ## Final Package Versions
 | Package | Version |
