@@ -84,7 +84,10 @@ async function queryFederatedAsListItems(
   filters: ContentFilters,
   maxItems = 100,
 ): Promise<ContentListItem[]> {
-  const conditions = [isNull(federatedContent.deletedAt)];
+  const conditions = [
+    isNull(federatedContent.deletedAt),
+    eq(federatedContent.isHidden, false),
+  ];
 
   // Map content type filter (federated uses cpubType or apType)
   if (filters.type) {
@@ -230,8 +233,9 @@ export async function listContent(
     source: 'local' as const,
   }));
 
-  // If seamless federation is off, return local-only results
-  if (!options?.includeFederated) {
+  // If seamless federation is off or filtering by author, return local-only results.
+  // Federated content has no local authorId, so it must never appear in author-filtered views.
+  if (!options?.includeFederated || filters.authorId) {
     return { items: localItems, total };
   }
 

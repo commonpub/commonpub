@@ -12,6 +12,7 @@ export {
   setInstanceSetting,
   deleteUser,
   removeContent,
+  removeFederatedContent,
 } from './admin.js';
 export type {
   AuditEntry,

@@ -1,4 +1,4 @@
-import { removeContent } from '@commonpub/server';
+import { removeContent, removeFederatedContent } from '@commonpub/server';
 
 export default defineEventHandler(async (event): Promise<void> => {
   requireFeature('admin');
@@ -6,5 +6,10 @@ export default defineEventHandler(async (event): Promise<void> => {
   const db = useDB();
   const { id } = parseParams(event, { id: 'uuid' });
 
-  return removeContent(db, id, admin.id);
+  try {
+    return await removeContent(db, id, admin.id);
+  } catch {
+    // Content not found in local table — try federated content table
+    return await removeFederatedContent(db, id, admin.id);
+  }
 });

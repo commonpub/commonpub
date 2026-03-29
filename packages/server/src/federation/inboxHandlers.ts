@@ -445,6 +445,8 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
               content: sanitizedContent || null,
               title: typeof object.name === 'string' ? object.name : null,
               summary: typeof object.summary === 'string' ? sanitizeHtml(object.summary) : null,
+              // Preserve cpubType: use new value if present, otherwise keep existing
+              cpubType: cpubType ?? sql`${federatedContent.cpubType}`,
               updatedAt: new Date(),
             },
           });

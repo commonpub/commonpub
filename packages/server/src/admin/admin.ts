@@ -15,6 +15,7 @@ import {
   reports,
   instanceSettings,
   auditLogs,
+  federatedContent,
 } from '@commonpub/schema';
 import type { DB } from '../types.js';
 import type { AdminUpdateRoleInput, AdminUpdateStatusInput } from '@commonpub/schema';
@@ -626,6 +627,33 @@ export async function removeContent(
     targetType: 'content',
     targetId: contentId,
     metadata: { title: item.title, authorId: item.authorId },
+    ipAddress: ip,
+  });
+}
+
+export async function removeFederatedContent(
+  db: DB,
+  federatedContentId: string,
+  adminId: string,
+  ip?: string,
+): Promise<void> {
+  const [item] = await db
+    .select({ id: federatedContent.id, title: federatedContent.title })
+    .from(federatedContent)
+    .where(eq(federatedContent.id, federatedContentId));
+  if (!item) throw new Error('Federated content not found');
+
+  await db
+    .update(federatedContent)
+    .set({ deletedAt: new Date(), isHidden: true })
+    .where(eq(federatedContent.id, federatedContentId));
+
+  await createAuditEntry(db, {
+    userId: adminId,
+    action: 'content.removed',
+    targetType: 'federated_content',
+    targetId: federatedContentId,
+    metadata: { title: item.title },
     ipAddress: ip,
   });
 }

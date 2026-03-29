@@ -63,7 +63,7 @@ export async function listFederatedTimeline(
   const offset = opts.offset ?? 0;
 
   // Build where conditions
-  const conditions = [isNull(federatedContent.deletedAt)];
+  const conditions = [isNull(federatedContent.deletedAt), eq(federatedContent.isHidden, false)];
   if (opts.apType) conditions.push(eq(federatedContent.apType, opts.apType));
   if (opts.cpubType) conditions.push(eq(federatedContent.cpubType, opts.cpubType));
   if (opts.originDomain) conditions.push(eq(federatedContent.originDomain, opts.originDomain));
@@ -146,7 +146,7 @@ export async function getFederatedContent(
     })
     .from(federatedContent)
     .leftJoin(remoteActors, eq(federatedContent.remoteActorId, remoteActors.id))
-    .where(and(eq(federatedContent.id, id), isNull(federatedContent.deletedAt)))
+    .where(and(eq(federatedContent.id, id), isNull(federatedContent.deletedAt), eq(federatedContent.isHidden, false)))
     .limit(1);
 
   if (rows.length === 0) return null;
@@ -353,6 +353,7 @@ export async function listRemoteReplies(
       and(
         eq(federatedContent.inReplyTo, parentObjectUri),
         isNull(federatedContent.deletedAt),
+        eq(federatedContent.isHidden, false),
       ),
     )
     .orderBy(federatedContent.receivedAt);
@@ -401,6 +402,7 @@ export async function searchFederatedContent(
 
   const where = and(
     isNull(federatedContent.deletedAt),
+    eq(federatedContent.isHidden, false),
     or(
       ilike(federatedContent.title, searchPattern),
       ilike(federatedContent.content, searchPattern),
