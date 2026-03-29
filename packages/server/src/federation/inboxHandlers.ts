@@ -445,6 +445,8 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
               content: sanitizedContent || null,
               title: typeof object.name === 'string' ? object.name : null,
               summary: typeof object.summary === 'string' ? sanitizeHtml(object.summary) : null,
+              coverImageUrl: coverImage ?? sql`${federatedContent.coverImageUrl}`,
+              attachments: attachments.length > 0 ? attachments : sql`${federatedContent.attachments}`,
               // Preserve cpubType: use new value if present, otherwise keep existing
               cpubType: cpubType ?? sql`${federatedContent.cpubType}`,
               updatedAt: new Date(),
@@ -518,6 +520,19 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
         if (typeof object.content === 'string') updates.content = sanitizeHtml(object.content);
         if (typeof object.summary === 'string') updates.summary = sanitizeHtml(object.summary);
         if (typeof object.url === 'string') updates.url = object.url;
+
+        // Update attachments, cover image, and cpub:type if present
+        const rawAttachments = Array.isArray(object.attachment) ? object.attachment : [];
+        const updatedAttachments = rawAttachments
+          .filter((a): a is Record<string, string> => typeof a === 'object' && a !== null)
+          .map((a) => ({ type: String(a.type ?? 'Document'), url: String(a.url ?? ''), name: a.name ? String(a.name) : undefined }));
+        if (updatedAttachments.length > 0) {
+          updates.attachments = updatedAttachments;
+          const coverImg = updatedAttachments.find((a) => a.type === 'Image')?.url
+            ?? (typeof object.image === 'object' && object.image !== null ? (object.image as Record<string, string>).url : undefined);
+          if (coverImg) updates.coverImageUrl = coverImg;
+        }
+        if (typeof object['cpub:type'] === 'string') updates.cpubType = object['cpub:type'];
 
         const updateResult = await db
           .update(federatedContent)

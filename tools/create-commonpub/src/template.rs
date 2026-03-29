@@ -264,7 +264,7 @@ pub fn render_package_json(config: &InstanceConfig) -> String {
         r#"    "@commonpub/schema": "^0.8.1""#.to_string(),
         r#"    "@commonpub/auth": "^0.5.0""#.to_string(),
         r#"    "@commonpub/ui": "^0.7.0""#.to_string(),
-        r#"    "@commonpub/server": "^2.1.3""#.to_string(),
+        r#"    "@commonpub/server": "^2.1.4""#.to_string(),
         r#"    "@commonpub/infra": "^0.5.0""#.to_string(),
     ];
 

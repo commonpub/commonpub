@@ -138,7 +138,7 @@ fn patch_package_json(dir: &Path, config: &InstanceConfig) -> Result<(), Box<dyn
     let patched = content
         // Replace workspace references with published versions (per-package)
         .replace("\"@commonpub/schema\": \"workspace:*\"", "\"@commonpub/schema\": \"^0.8.1\"")
-        .replace("\"@commonpub/server\": \"workspace:*\"", "\"@commonpub/server\": \"^2.1.3\"")
+        .replace("\"@commonpub/server\": \"workspace:*\"", "\"@commonpub/server\": \"^2.1.4\"")
         .replace("\"@commonpub/protocol\": \"workspace:*\"", "\"@commonpub/protocol\": \"^0.9.0\"")
         .replace("\"@commonpub/config\": \"workspace:*\"", "\"@commonpub/config\": \"^0.7.0\"")
         .replace("\"@commonpub/ui\": \"workspace:*\"", "\"@commonpub/ui\": \"^0.7.0\"")
