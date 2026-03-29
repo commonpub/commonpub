@@ -185,7 +185,7 @@ defineExpose({ getEditor });
   font-size: 0.9em;
   padding: 1px 4px;
   background: var(--surface3);
-  border: 1px solid var(--border2);
+  border: 2px solid var(--border2);
 }
 
 .cpub-text-block :deep(.tiptap a) {

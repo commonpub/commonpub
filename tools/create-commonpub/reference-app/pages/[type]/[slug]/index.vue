@@ -168,7 +168,7 @@ onMounted(() => {
   display: flex;
   justify-content: flex-end;
   padding: var(--space-2) var(--space-6);
-  border-bottom: 1px solid var(--border2);
+  border-bottom: 2px solid var(--border2);
 }
 
 .cpub-edit-btn {

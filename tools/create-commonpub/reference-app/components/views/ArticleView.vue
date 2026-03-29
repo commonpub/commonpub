@@ -97,7 +97,10 @@ useJsonLd({
 
       <!-- AUTHOR ROW -->
       <div class="cpub-author-row">
-        <div class="cpub-av cpub-av-lg">{{ content.author?.displayName?.slice(0, 2).toUpperCase() || 'CP' }}</div>
+        <NuxtLink v-if="content.author" :to="`/u/${content.author.username}`" style="text-decoration:none;">
+          <img v-if="content.author?.avatarUrl" :src="content.author.avatarUrl" :alt="content.author?.displayName ?? content.author?.username ?? ''" class="cpub-av cpub-av-lg" style="object-fit:cover;border:2px solid var(--border);" />
+          <div v-else class="cpub-av cpub-av-lg">{{ content.author?.displayName?.slice(0, 2).toUpperCase() || 'CP' }}</div>
+        </NuxtLink>
         <div class="cpub-author-info">
           <NuxtLink v-if="content.author" :to="`/u/${content.author.username}`" class="cpub-author-name">
             {{ content.author.displayName || content.author.username }}
@@ -315,7 +318,7 @@ useJsonLd({
   background: var(--accent-bg);
   padding: 3px 10px;
   margin-bottom: 16px;
-  box-shadow: 3px 3px 0 var(--border);
+  box-shadow: var(--shadow-sm);
 }
 
 /* ── TITLE ── */
@@ -404,7 +407,7 @@ useJsonLd({
   font-size: 10px;
   font-family: var(--font-mono);
   padding: 2px 8px;
-  border: 1px solid var(--border2);
+  border: 2px solid var(--border2);
   color: var(--text-dim);
   background: var(--surface2);
 }
@@ -569,7 +572,7 @@ useJsonLd({
   gap: 20px;
   align-items: flex-start;
   margin: 32px 0;
-  box-shadow: 4px 4px 0 var(--border);
+  box-shadow: var(--shadow-sm);
 }
 
 .cpub-author-card-info { flex: 1; min-width: 0; }
@@ -674,12 +677,12 @@ useJsonLd({
   overflow: hidden;
   cursor: pointer;
   transition: box-shadow var(--transition-fast);
-  box-shadow: 4px 4px 0 var(--border);
+  box-shadow: var(--shadow-sm);
   text-decoration: none;
   color: inherit;
 }
 
-.cpub-related-card:hover { box-shadow: 6px 6px 0 var(--border); }
+.cpub-related-card:hover { box-shadow: var(--shadow-md); }
 
 .cpub-related-card-thumb {
   aspect-ratio: 16/9;

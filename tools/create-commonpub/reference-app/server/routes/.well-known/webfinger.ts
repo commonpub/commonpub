@@ -31,6 +31,23 @@ export default defineEventHandler(async (event) => {
     });
   }
 
+  const config = useConfig();
+
+  // CORS — WebFinger must be accessible from browser-based AP clients
+  setResponseHeader(event, 'access-control-allow-origin', '*');
+
+  // Instance actor lookup: acct:domain@domain → /actor Service
+  if (parsed.username === instanceDomain || parsed.username === config.instance.domain) {
+    const actorUri = `https://${instanceDomain}/actor`;
+    setResponseHeader(event, 'content-type', 'application/jrd+json');
+    return buildWebFingerResponse({
+      username: instanceDomain,
+      domain: instanceDomain,
+      actorUri,
+      oauthEndpoint: `https://${instanceDomain}/api/auth/oauth2/authorize`,
+    });
+  }
+
   // Look up user in database
   const db = useDB();
   const profile = await getUserByUsername(db, parsed.username);
@@ -49,5 +66,6 @@ export default defineEventHandler(async (event) => {
     username: parsed.username,
     domain: instanceDomain,
     actorUri,
+    oauthEndpoint: `https://${instanceDomain}/api/auth/oauth2/authorize`,
   });
 });

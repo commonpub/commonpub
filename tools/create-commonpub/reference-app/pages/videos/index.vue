@@ -55,7 +55,7 @@ function formatDate(dateStr: string): string {
           <h1 class="cpub-hero-title">Video Hub</h1>
           <span class="cpub-tag cpub-tag-live"><i class="fa-solid fa-circle" style="font-size:8px;"></i> Beta</span>
         </div>
-        <p class="cpub-hero-sub">Tutorials, conference talks, project demos, and live build streams from the edge AI community.</p>
+        <p class="cpub-hero-sub">Tutorials, conference talks, project demos, and live build streams from the community.</p>
         <div class="cpub-hero-actions">
           <NuxtLink to="/videos/submit" class="cpub-btn cpub-btn-primary" style="text-decoration:none;"><i class="fa-solid fa-upload"></i> Submit Video</NuxtLink>
         </div>
@@ -230,13 +230,13 @@ function formatDate(dateStr: string): string {
 
 /* FEATURED VIDEO */
 .cpub-featured-section { margin-bottom: 24px; }
-.cpub-featured-player { background: var(--surface3); border: 2px solid var(--border); border-radius: var(--radius); aspect-ratio: 16/9; position: relative; overflow: hidden; cursor: pointer; box-shadow: 4px 4px 0 var(--border); }
+.cpub-featured-player { background: var(--surface3); border: 2px solid var(--border); border-radius: var(--radius); aspect-ratio: 16/9; position: relative; overflow: hidden; cursor: pointer; box-shadow: var(--shadow-md); }
 .cpub-featured-player-bg { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
 .cpub-featured-bg-grid { position: absolute; inset: 0; background-image: repeating-linear-gradient(0deg, var(--border2) 0, var(--border2) 1px, transparent 1px, transparent 32px), repeating-linear-gradient(90deg, var(--border2) 0, var(--border2) 1px, transparent 1px, transparent 32px); opacity: .3; }
 .cpub-featured-bg-gradient { position: absolute; inset: 0; background: var(--surface3); }
 .cpub-featured-player-icon { font-size: 48px; position: relative; z-index: 2; opacity: .25; color: var(--text-dim); }
 .cpub-play-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 3; }
-.cpub-play-circle { width: 68px; height: 68px; border-radius: 0; background: var(--surface); border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; box-shadow: 4px 4px 0 var(--border); transition: background .15s; }
+.cpub-play-circle { width: 68px; height: 68px; border-radius: 0; background: var(--surface); border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-md); transition: background .15s; }
 .cpub-featured-player:hover .cpub-play-circle { background: var(--accent-bg); border-color: var(--accent); }
 .cpub-play-circle i { font-size: 22px; color: var(--text); margin-left: 3px; }
 .cpub-featured-duration { position: absolute; bottom: 12px; right: 12px; font-size: 11px; font-family: var(--font-mono); background: var(--surface); color: var(--text); padding: 3px 8px; border: 2px solid var(--border); z-index: 4; }
@@ -252,7 +252,7 @@ function formatDate(dateStr: string): string {
 
 /* VIDEO GRID */
 .cpub-video-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-.cpub-vcard { background: var(--surface); border: 2px solid var(--border); border-radius: var(--radius); overflow: hidden; cursor: pointer; transition: border-color .15s; box-shadow: 4px 4px 0 var(--border); }
+.cpub-vcard { background: var(--surface); border: 2px solid var(--border); border-radius: var(--radius); overflow: hidden; cursor: pointer; transition: border-color .15s; box-shadow: var(--shadow-md); }
 .cpub-vcard:hover { border-color: var(--accent); }
 .cpub-vcard:hover .cpub-vcard-title { color: var(--accent); }
 .cpub-vcard-thumb { aspect-ratio: 16/9; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; border-bottom: 2px solid var(--border); }
@@ -260,7 +260,7 @@ function formatDate(dateStr: string): string {
 .cpub-vcard-thumb-icon { font-size: 24px; position: relative; z-index: 1; opacity: .3; color: var(--text-dim); }
 .cpub-vcard-play { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 2; opacity: 0; transition: opacity .15s; }
 .cpub-vcard:hover .cpub-vcard-play { opacity: 1; }
-.cpub-vcard-play-btn { width: 38px; height: 38px; border-radius: 0; background: var(--surface); border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; box-shadow: 4px 4px 0 var(--border); }
+.cpub-vcard-play-btn { width: 38px; height: 38px; border-radius: 0; background: var(--surface); border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-md); }
 .cpub-vcard-play-btn i { font-size: 13px; color: var(--text); margin-left: 2px; }
 .cpub-vcard-duration { position: absolute; bottom: 8px; right: 8px; font-size: 10px; font-family: var(--font-mono); background: var(--surface); color: var(--text); padding: 2px 7px; border: 2px solid var(--border); z-index: 3; }
 .cpub-vcard-type { position: absolute; top: 8px; left: 8px; z-index: 3; }
@@ -273,7 +273,7 @@ function formatDate(dateStr: string): string {
 
 /* SIDEBAR */
 .cpub-sidebar { display: flex; flex-direction: column; gap: 0; }
-.cpub-sb-block { background: var(--surface); border: 2px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 16px; box-shadow: 4px 4px 0 var(--border); }
+.cpub-sb-block { background: var(--surface); border: 2px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 16px; box-shadow: var(--shadow-md); }
 .cpub-sb-block-head { padding: 14px 16px; border-bottom: 2px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: var(--surface2); }
 .cpub-sb-block-title { font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--text); font-family: var(--font-mono); display: flex; align-items: center; gap: 6px; }
 .cpub-sb-block-link { font-size: 10px; font-family: var(--font-mono); color: var(--accent); text-decoration: none; }

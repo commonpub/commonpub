@@ -51,6 +51,11 @@ function getAuthMiddleware(): ReturnType<typeof createAuthMiddleware> {
 
   const emailAdapter = createEmailAdapter();
 
+  // In dev, trust any localhost origin so port changes don't break auth
+  const trustedOrigins = process.env.NODE_ENV !== 'production'
+    ? [siteUrl, 'http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:3003', 'http://localhost:3004', 'http://localhost:3005']
+    : [siteUrl];
+
   const auth = createAuth({
     config,
     db: db as unknown as Parameters<typeof createAuth>[0]['db'],
@@ -62,6 +67,7 @@ function getAuthMiddleware(): ReturnType<typeof createAuthMiddleware> {
       return s || 'dev-secret-change-me';
     })(),
     baseURL: siteUrl,
+    trustedOrigins,
     emailSender: {
       async sendResetPasswordEmail(email: string, url: string, _token: string): Promise<void> {
         const template = emailTemplates.passwordReset(siteName, url);
@@ -97,9 +103,9 @@ async function enrichUser(auth: AuthLocals): Promise<void> {
     const [row] = await db.select({ role: users.role, username: users.username, status: users.status })
       .from(users).where(eq(users.id, auth.user.id)).limit(1);
     if (row) {
-      (auth.user as Record<string, unknown>).role = row.role;
-      (auth.user as Record<string, unknown>).username = row.username;
-      (auth.user as Record<string, unknown>).status = row.status;
+      (auth.user as unknown as Record<string, unknown>).role = row.role;
+      (auth.user as unknown as Record<string, unknown>).username = row.username;
+      (auth.user as unknown as Record<string, unknown>).status = row.status;
     }
   } catch {
     // Non-fatal — user just won't have role/username

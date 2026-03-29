@@ -90,7 +90,7 @@ const { hubs: hubsEnabled } = useFeatures();
 <style scoped>
 .cpub-sb-block {
   background: var(--surface); border: 2px solid var(--border); padding: 20px;
-  margin-bottom: 18px; box-shadow: 4px 4px 0 var(--border);
+  margin-bottom: 18px; box-shadow: var(--shadow-md);
 }
 
 .cpub-sb-heading {
@@ -103,7 +103,7 @@ const { hubs: hubsEnabled } = useFeatures();
 
 .cpub-pop-search-item {
   display: flex; align-items: center; gap: 8px; padding: 7px 0;
-  border-bottom: 1px solid var(--border2); cursor: pointer;
+  border-bottom: 2px solid var(--border2); cursor: pointer;
 }
 
 .cpub-pop-search-item:last-child { border-bottom: none; }
@@ -155,7 +155,7 @@ const { hubs: hubsEnabled } = useFeatures();
 
 .cpub-related-hub-item {
   display: flex; align-items: center; gap: 10px; padding: 8px 0;
-  border-bottom: 1px solid var(--border2); cursor: pointer;
+  border-bottom: 2px solid var(--border2); cursor: pointer;
 }
 
 .cpub-related-hub-item:last-child { border-bottom: none; }
@@ -174,8 +174,8 @@ const { hubs: hubsEnabled } = useFeatures();
   font-size: 10px; font-family: var(--font-mono); padding: 3px 8px;
   border: 2px solid var(--border); background: var(--green-bg); color: var(--green);
   cursor: pointer; flex-shrink: 0; display: inline-flex; align-items: center; gap: 4px;
-  box-shadow: 1px 1px 0 var(--border); transition: all 0.15s;
+  box-shadow: var(--shadow-sm); transition: all 0.15s;
 }
 
-.cpub-btn-join-sm:hover { box-shadow: 2px 2px 0 var(--border); }
+.cpub-btn-join-sm:hover { box-shadow: var(--shadow-sm); }
 </style>

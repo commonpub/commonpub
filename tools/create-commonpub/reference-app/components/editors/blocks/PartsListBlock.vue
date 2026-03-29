@@ -236,7 +236,7 @@ function onNameBlur(): void {
   text-align: left; padding: 6px 10px;
   background: var(--text); color: var(--surface);
 }
-.cpub-parts-table td { padding: 4px 6px; border-bottom: 1px solid var(--border2); }
+.cpub-parts-table td { padding: 4px 6px; border-bottom: 2px solid var(--border2); }
 .cpub-parts-qty { width: 50px; text-align: center; }
 .cpub-parts-price { width: 80px; }
 .cpub-parts-actions { width: 30px; text-align: center; }
@@ -259,7 +259,7 @@ function onNameBlur(): void {
 
 .cpub-parts-input {
   width: 100%; padding: 4px 6px; font-size: 12px;
-  background: transparent; border: 1px solid transparent;
+  background: transparent; border: 2px solid transparent;
   color: var(--text); outline: none;
 }
 .cpub-parts-input:focus { border-color: var(--accent); background: var(--accent-bg); }
@@ -288,7 +288,7 @@ function onNameBlur(): void {
   z-index: 50;
   background: var(--surface);
   border: 2px solid var(--border);
-  box-shadow: 4px 4px 0 var(--border);
+  box-shadow: var(--shadow-md);
   max-height: 200px;
   overflow-y: auto;
 }
@@ -315,7 +315,7 @@ function onNameBlur(): void {
   width: 24px;
   height: 24px;
   background: var(--surface2);
-  border: 1px solid var(--border2);
+  border: 2px solid var(--border2);
   display: flex;
   align-items: center;
   justify-content: center;

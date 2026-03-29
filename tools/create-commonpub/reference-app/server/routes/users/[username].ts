@@ -46,6 +46,9 @@ export default defineEventHandler(async (event) => {
     followers: `${actorUri}/followers`,
     following: `${actorUri}/following`,
     url: `https://${domain}/u/${username}`,
+    endpoints: {
+      sharedInbox: `https://${domain}/inbox`,
+    },
     ...(publicKeyPem
       ? {
           publicKey: {

@@ -677,10 +677,71 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
     },
 
     /**
-     * Remote user boosted/shared local content.
-     * For v1: log the activity.
+     * Remote user boosted/shared content (local or federated).
+     * Increments boost count on the matching content item.
      */
     async onAnnounce(actorUri: string, objectUri: string): Promise<void> {
+      await resolveRemoteActor(db, actorUri);
+
+      // Idempotency: check if we already processed an Announce from this actor for this object
+      const existing = await db
+        .select({ id: activities.id })
+        .from(activities)
+        .where(
+          and(
+            eq(activities.type, 'Announce'),
+            eq(activities.actorUri, actorUri),
+            eq(activities.objectUri, objectUri),
+            eq(activities.direction, 'inbound'),
+          ),
+        )
+        .limit(1);
+
+      if (existing.length > 0) return;
+
+      // Check if the boosted object is local content
+      let matched = false;
+      let isLocalUri = false;
+
+      try {
+        isLocalUri = new URL(objectUri).hostname === domain;
+      } catch { /* invalid URL */ }
+
+      if (isLocalUri) {
+        try {
+          const segments = new URL(objectUri).pathname.split('/').filter(Boolean);
+          const idOrSlug = segments[segments.length - 1];
+          if (idOrSlug) {
+            const bySlug = await db
+              .select({ id: contentItems.id, title: contentItems.title, authorId: contentItems.authorId })
+              .from(contentItems)
+              .where(eq(contentItems.slug, idOrSlug))
+              .limit(1);
+            if (bySlug.length > 0) {
+              await db
+                .update(contentItems)
+                .set({ boostCount: sql`${contentItems.boostCount} + 1` })
+                .where(eq(contentItems.id, bySlug[0]!.id));
+              matched = true;
+
+              // Notify content author
+              const remoteUser = actorUri.split('/').pop() ?? 'Someone';
+              await notifyRemoteInteraction(db, bySlug[0]!.authorId, 'mention', actorUri,
+                'Content boosted', `${remoteUser} from the fediverse boosted "${bySlug[0]!.title ?? 'your content'}"`,
+                `/content/${idOrSlug}`);
+            }
+          }
+        } catch { /* invalid URL */ }
+      }
+
+      // If not local, try federated content
+      if (!matched) {
+        await db
+          .update(federatedContent)
+          .set({ localBoostCount: sql`${federatedContent.localBoostCount} + 1` })
+          .where(eq(federatedContent.objectUri, objectUri));
+      }
+
       await db.insert(activities).values({
         type: 'Announce',
         actorUri,

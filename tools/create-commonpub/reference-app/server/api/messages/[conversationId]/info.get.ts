@@ -1,5 +1,5 @@
-import { conversations } from '@commonpub/schema';
-import { eq, and, sql } from 'drizzle-orm';
+import { conversations, users } from '@commonpub/schema';
+import { eq, and, sql, inArray } from 'drizzle-orm';
 
 export default defineEventHandler(async (event) => {
   const db = useDB();
@@ -21,8 +21,23 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'Conversation not found' });
   }
 
+  const participantIds = (rows[0]!.participants ?? []) as string[];
+
+  // Resolve participant IDs to display names
+  const participantUsers = participantIds.length > 0
+    ? await db
+        .select({ id: users.id, username: users.username, displayName: users.displayName, avatarUrl: users.avatarUrl })
+        .from(users)
+        .where(inArray(users.id, participantIds))
+    : [];
+
   return {
     id: rows[0]!.id,
-    participants: rows[0]!.participants,
+    participants: participantUsers.map((u) => ({
+      id: u.id,
+      username: u.username,
+      displayName: u.displayName ?? u.username,
+      avatarUrl: u.avatarUrl,
+    })),
   };
 });

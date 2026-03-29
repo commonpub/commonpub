@@ -36,7 +36,7 @@ const config = computed(() => variantConfig[variant.value] ?? variantConfig.info
   margin: 20px 0;
   border: 2px solid var(--border);
   border-left-width: 5px;
-  box-shadow: 4px 4px 0 var(--border);
+  box-shadow: var(--shadow-md);
 }
 
 .cpub-callout--info { border-left-color: var(--accent); background: var(--accent-bg); }

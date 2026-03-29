@@ -25,7 +25,7 @@ const url = computed(() => {
   margin: 24px 0;
   border: 2px solid var(--border);
   overflow: hidden;
-  box-shadow: 4px 4px 0 var(--border);
+  box-shadow: var(--shadow-md);
 }
 
 .cpub-embed-label {

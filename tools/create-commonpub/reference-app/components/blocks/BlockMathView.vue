@@ -19,7 +19,7 @@ const label = computed(() => (props.content.label as string) || '');
   border: 2px solid var(--border);
   padding: 16px 18px;
   margin: 16px 0;
-  box-shadow: 4px 4px 0 var(--border);
+  box-shadow: var(--shadow-md);
 }
 
 .cpub-math-label {

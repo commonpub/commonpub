@@ -70,19 +70,19 @@ async function resolveReport(id: string, resolution: 'resolved' | 'dismissed'): 
 
 <style scoped>
 .admin-page-title { font-size: var(--text-xl); font-weight: var(--font-weight-bold); margin-bottom: var(--space-6); }
-.report-card { padding: 16px; border: 2px solid var(--border); background: var(--surface); margin-bottom: 12px; box-shadow: 4px 4px 0 var(--border); }
+.report-card { padding: 16px; border: 2px solid var(--border); background: var(--surface); margin-bottom: 12px; box-shadow: var(--shadow-md); }
 .report-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
 .report-status { font-size: 10px; font-family: var(--font-mono); font-weight: 600; text-transform: uppercase; padding: 2px 8px; }
-.status-pending { background: var(--yellow-bg); color: var(--yellow); border: 1px solid var(--yellow-border); }
-.status-resolved { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
-.status-dismissed { background: var(--surface2); color: var(--text-faint); border: 1px solid var(--border2); }
-.report-type { font-size: 10px; font-family: var(--font-mono); color: var(--accent); background: var(--accent-bg); padding: 2px 6px; border: 1px solid var(--accent-border); }
+.status-pending { background: var(--yellow-bg); color: var(--yellow); border: 2px solid var(--yellow-border); }
+.status-resolved { background: var(--green-bg); color: var(--green); border: 2px solid var(--green-border); }
+.status-dismissed { background: var(--surface2); color: var(--text-faint); border: 2px solid var(--border2); }
+.report-type { font-size: 10px; font-family: var(--font-mono); color: var(--accent); background: var(--accent-bg); padding: 2px 6px; border: 2px solid var(--accent-border); }
 .report-date { font-size: 11px; color: var(--text-faint); margin-left: auto; font-family: var(--font-mono); }
 .report-reason { font-size: 13px; margin-bottom: 4px; }
 .report-desc { font-size: 12px; color: var(--text-dim); line-height: 1.5; margin-bottom: 8px; }
 .report-meta { display: flex; gap: 16px; margin-bottom: 10px; }
 .report-meta-item { font-size: 10px; font-family: var(--font-mono); color: var(--text-faint); }
 .report-meta-item code { background: var(--surface2); padding: 1px 4px; }
-.report-actions { display: flex; gap: 6px; padding-top: 8px; border-top: 1px solid var(--border2); }
+.report-actions { display: flex; gap: 6px; padding-top: 8px; border-top: 2px solid var(--border2); }
 .admin-empty { color: var(--text-faint); text-align: center; padding: var(--space-8) 0; }
 </style>

@@ -359,7 +359,7 @@ const sortOptions = [
   transition: box-shadow 0.15s;
 }
 
-.cpub-explore-hub-card:hover { box-shadow: 4px 4px 0 var(--border); }
+.cpub-explore-hub-card:hover { box-shadow: var(--shadow-md); }
 
 .cpub-explore-hub-icon {
   width: 40px;
@@ -389,7 +389,7 @@ const sortOptions = [
   transition: box-shadow 0.15s;
 }
 
-.cpub-explore-path-card:hover { box-shadow: 4px 4px 0 var(--border); }
+.cpub-explore-path-card:hover { box-shadow: var(--shadow-md); }
 
 .cpub-explore-path-badge {
   width: 32px;

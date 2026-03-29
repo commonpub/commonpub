@@ -41,7 +41,7 @@ const tools = computed<Tool[]>(() => {
   border: 2px solid var(--border);
   margin: 20px 0;
   overflow: hidden;
-  box-shadow: 4px 4px 0 var(--border);
+  box-shadow: var(--shadow-md);
 }
 
 .cpub-tools-header {
@@ -64,7 +64,7 @@ const tools = computed<Tool[]>(() => {
   align-items: center;
   gap: 8px;
   padding: 8px 0;
-  border-bottom: 1px solid var(--border2);
+  border-bottom: 2px solid var(--border2);
   font-size: 13px;
 }
 
@@ -80,7 +80,7 @@ const tools = computed<Tool[]>(() => {
   font-family: var(--font-mono);
   font-size: 9px;
   color: var(--text-faint);
-  border: 1px solid var(--border2);
+  border: 2px solid var(--border2);
   padding: 1px 5px;
   text-transform: uppercase;
 }

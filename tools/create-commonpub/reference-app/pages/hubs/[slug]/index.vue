@@ -187,14 +187,17 @@ function handleLinkInsert(): void {
   <div v-else-if="c" class="cpub-hub-page">
     <!-- ═══ HUB HERO ═══ -->
     <div class="cpub-hub-hero">
-      <div class="cpub-hub-banner">
-        <div class="cpub-hub-banner-pattern"></div>
-        <div class="cpub-hub-banner-dots"></div>
+      <div class="cpub-hub-banner" :style="c?.bannerUrl ? { backgroundImage: `url(${c.bannerUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}">
+        <template v-if="!c?.bannerUrl">
+          <div class="cpub-hub-banner-pattern"></div>
+          <div class="cpub-hub-banner-dots"></div>
+        </template>
       </div>
       <div class="cpub-hub-meta-bar">
         <div class="cpub-hub-meta-inner">
           <div class="cpub-hub-icon">
-            <i class="fa-solid fa-wrench"></i>
+            <img v-if="c?.iconUrl" :src="c.iconUrl" :alt="c?.name ?? ''" />
+            <i v-else :class="isCompanyHub ? 'fa-solid fa-building' : isProductHub ? 'fa-solid fa-microchip' : 'fa-solid fa-users'" />
           </div>
           <div class="cpub-hub-info">
             <div class="cpub-hub-top-row">
@@ -212,9 +215,8 @@ function handleLinkInsert(): void {
                     <i class="fa-solid fa-plus"></i> Join Hub
                   </button>
                   <span v-else-if="c.currentUserRole" class="cpub-member-badge">
-                    <i class="fa-solid fa-check"></i> Member
+                    <i class="fa-solid fa-check"></i> Joined
                   </span>
-                  <button class="cpub-btn" @click="handleJoin"><i class="fa-solid fa-bell"></i> Subscribe</button>
                   <button class="cpub-btn cpub-btn-sm" aria-label="Share hub" @click="handleShare"><i class="fa-solid fa-share-nodes"></i></button>
                   <NuxtLink v-if="c.currentUserRole === 'owner'" :to="`/hubs/${slug}/settings`" class="cpub-btn cpub-btn-sm" aria-label="Hub settings"><i class="fa-solid fa-gear"></i> Settings</NuxtLink>
                 </div>
@@ -521,9 +523,11 @@ function handleLinkInsert(): void {
   margin-top: -32px;
   position: relative;
   z-index: 1;
-  box-shadow: 4px 4px 0 var(--border);
+  box-shadow: var(--shadow-md);
   color: var(--accent);
+  overflow: hidden;
 }
+.cpub-hub-icon img { width: 100%; height: 100%; object-fit: cover; }
 
 .cpub-hub-info { flex: 1; min-width: 0; }
 
@@ -597,7 +601,7 @@ function handleLinkInsert(): void {
   color: var(--green);
   background: var(--green-bg);
   padding: 4px 12px;
-  border: 1px solid var(--green-border);
+  border: 2px solid var(--green-border);
 }
 
 /* ─── TABS ─── */
@@ -681,7 +685,7 @@ function handleLinkInsert(): void {
   transition: box-shadow 0.15s;
 }
 
-.cpub-feed-card:hover { box-shadow: 4px 4px 0 var(--border); }
+.cpub-feed-card:hover { box-shadow: var(--shadow-md); }
 
 .cpub-announce-band {
   background: var(--yellow-bg);
@@ -733,10 +737,10 @@ function handleLinkInsert(): void {
   font-weight: 600;
 }
 
-.cpub-badge-question { background: var(--accent-bg); color: var(--accent); border: 1px solid var(--accent-border); }
-.cpub-badge-discussion { background: var(--purple-bg); color: var(--purple); border: 1px solid var(--purple-border); }
-.cpub-badge-showcase { background: var(--teal-bg); color: var(--teal); border: 1px solid var(--teal-border); }
-.cpub-badge-announcement { background: var(--yellow-bg); color: var(--yellow); border: 1px solid var(--yellow-border); }
+.cpub-badge-question { background: var(--accent-bg); color: var(--accent); border: 2px solid var(--accent-border); }
+.cpub-badge-discussion { background: var(--purple-bg); color: var(--purple); border: 2px solid var(--purple-border); }
+.cpub-badge-showcase { background: var(--teal-bg); color: var(--teal); border: 2px solid var(--teal-border); }
+.cpub-badge-announcement { background: var(--yellow-bg); color: var(--yellow); border: 2px solid var(--yellow-border); }
 
 .cpub-feed-title { font-size: 13px; font-weight: 600; margin-bottom: 4px; line-height: 1.4; }
 .cpub-feed-body { font-size: 12px; color: var(--text-dim); line-height: 1.55; margin-bottom: 10px; }
@@ -787,7 +791,7 @@ function handleLinkInsert(): void {
   transition: box-shadow 0.15s;
 }
 
-.cpub-disc-item:hover { box-shadow: 4px 4px 0 var(--border); }
+.cpub-disc-item:hover { box-shadow: var(--shadow-md); }
 
 .cpub-disc-votes {
   display: flex;
@@ -921,7 +925,7 @@ function handleLinkInsert(): void {
 .cpub-resource-item a:hover { text-decoration: underline; }
 
 /* ─── POST ERROR ─── */
-.cpub-post-error { font-size: 11px; color: var(--red); background: var(--red-bg); border: 1px solid var(--red-border); padding: 8px 12px; margin-bottom: 12px; font-family: var(--font-mono); }
+.cpub-post-error { font-size: 11px; color: var(--red); background: var(--red-bg); border: 2px solid var(--red-border); padding: 8px 12px; margin-bottom: 12px; font-family: var(--font-mono); }
 
 /* ─── RESPONSIVE ─── */
 @media (max-width: 1024px) {
@@ -951,14 +955,14 @@ function handleLinkInsert(): void {
   display: flex;
   gap: 14px;
   align-items: flex-start;
-  box-shadow: 4px 4px 0 var(--border);
+  box-shadow: var(--shadow-md);
   cursor: pointer;
   transition: box-shadow var(--transition-fast), transform var(--transition-fast);
 }
 
 .cpub-product-card:hover {
   transform: translate(-1px, -1px);
-  box-shadow: 5px 5px 0 var(--border);
+  box-shadow: var(--shadow-md);
 }
 
 .cpub-product-card-icon {
@@ -1049,10 +1053,24 @@ function handleLinkInsert(): void {
 }
 
 @media (max-width: 640px) {
-  .cpub-hub-meta-inner { flex-direction: column; }
-  .cpub-hub-icon { margin-top: 0; }
+  .cpub-hub-banner { height: 100px; }
+  .cpub-hub-meta-inner { flex-direction: column; padding: 0 16px; }
+  .cpub-hub-icon { margin-top: -24px; width: 52px; height: 52px; font-size: 20px; }
+  .cpub-hub-name { font-size: 16px; }
+  .cpub-hub-stats { flex-wrap: wrap; gap: 8px 14px; }
+  .cpub-hub-actions { flex-wrap: wrap; }
+  .cpub-hub-badges { flex-wrap: wrap; }
   .cpub-hub-main { padding: 16px; }
-  .cpub-members-grid { grid-template-columns: 1fr; }
+  .cpub-tabs-inner { padding: 0 16px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .cpub-tab-btn { white-space: nowrap; flex-shrink: 0; }
+  .cpub-compose-bar { flex-wrap: wrap; }
+  .cpub-compose-input { min-width: 0; }
+  .cpub-members-grid { grid-template-columns: repeat(2, 1fr); }
   .cpub-gallery-grid { grid-template-columns: 1fr; }
+  .cpub-products-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 400px) {
+  .cpub-members-grid { grid-template-columns: 1fr; }
 }
 </style>

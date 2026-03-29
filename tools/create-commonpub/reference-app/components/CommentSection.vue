@@ -172,7 +172,7 @@ async function deleteComment(id: string): Promise<void> {
   color: var(--text-faint);
   background: var(--surface2);
   padding: 1px 6px;
-  border: 1px solid var(--border2);
+  border: 2px solid var(--border2);
 }
 
 .cpub-comment-form {

@@ -10,6 +10,8 @@ const toast = useToast();
 const { extract: extractError } = useApiError();
 const name = ref('');
 const description = ref('');
+const iconUrl = ref('');
+const bannerUrl = ref('');
 const hubType = ref<'community' | 'product' | 'company'>('community');
 const joinPolicy = ref<'open' | 'approval' | 'invite'>('open');
 const saving = ref(false);
@@ -22,6 +24,8 @@ async function handleCreate(): Promise<void> {
       body: {
         name: name.value,
         description: description.value || undefined,
+        iconUrl: iconUrl.value || undefined,
+        bannerUrl: bannerUrl.value || undefined,
         hubType: hubType.value,
         joinPolicy: joinPolicy.value,
       },
@@ -54,6 +58,15 @@ async function handleCreate(): Promise<void> {
       <div class="cpub-field">
         <label for="hub-desc" class="cpub-field-label">Description</label>
         <textarea id="hub-desc" v-model="description" class="cpub-field-input cpub-field-textarea" rows="3" placeholder="What is this hub about?" />
+      </div>
+
+      <div class="cpub-field-row cpub-field-row-images">
+        <div class="cpub-field">
+          <ImageUpload v-model="iconUrl" purpose="avatar" label="Icon / Avatar" hint="Square image, at least 256x256px" />
+        </div>
+        <div class="cpub-field">
+          <ImageUpload v-model="bannerUrl" purpose="banner" label="Banner Image" hint="Wide image, at least 1200x300px" />
+        </div>
       </div>
 
       <div class="cpub-field-row">

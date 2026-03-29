@@ -90,7 +90,7 @@ function optionClass(idx: number): string {
   background: var(--surface);
   border: 2px solid var(--border);
   margin: 28px 0;
-  box-shadow: 4px 4px 0 var(--border);
+  box-shadow: var(--shadow-md);
 }
 
 .cpub-quiz-header {
@@ -151,7 +151,7 @@ function optionClass(idx: number): string {
 
 .cpub-quiz-option:hover:not(.answered) {
   background: var(--surface2);
-  box-shadow: 2px 2px 0 var(--border);
+  box-shadow: var(--shadow-sm);
 }
 
 .cpub-quiz-option.selected-correct {

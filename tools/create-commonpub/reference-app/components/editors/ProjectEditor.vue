@@ -317,7 +317,7 @@ const blockCount = computed(() => props.blockEditor.blocks.value.length);
 .cpub-pe-cover-inline-text { font-size: 11px; color: var(--text-faint); font-family: var(--font-mono); }
 .cpub-pe-cover-inline-overlay, .cpub-pe-cover-inline-actions {
   position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 8px;
-  background: rgba(250,250,249,0.7); opacity: 0; transition: opacity 0.15s;
+  background: var(--color-surface-scrim); opacity: 0; transition: opacity 0.15s;
 }
 .cpub-pe-cover-inline:hover .cpub-pe-cover-inline-overlay,
 .cpub-pe-cover-inline:hover .cpub-pe-cover-inline-actions,
@@ -385,7 +385,7 @@ const blockCount = computed(() => props.blockEditor.blocks.value.length);
 .cpub-pe-cover-text { font-size: 10px; color: var(--text-faint); font-family: var(--font-mono); }
 .cpub-pe-cover-overlay, .cpub-pe-cover-actions {
   position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 6px;
-  background: rgba(250,250,249,0.75); opacity: 0; transition: opacity 0.15s;
+  background: var(--color-surface-scrim); opacity: 0; transition: opacity 0.15s;
 }
 .cpub-pe-cover:hover .cpub-pe-cover-overlay,
 .cpub-pe-cover:hover .cpub-pe-cover-actions,
@@ -394,7 +394,7 @@ const blockCount = computed(() => props.blockEditor.blocks.value.length);
 .cpub-pe-cover-btn {
   font-size: 10px; padding: 5px 10px; background: var(--surface); border: 2px solid var(--border);
   color: var(--text-dim); cursor: pointer; display: inline-flex; align-items: center; gap: 4px;
-  font-family: var(--font-mono); box-shadow: 2px 2px 0 var(--border);
+  font-family: var(--font-mono); box-shadow: var(--shadow-sm);
 }
 .cpub-pe-cover-btn.primary { background: var(--accent); color: var(--color-text-inverse); border-color: var(--accent); }
 .cpub-pe-cover-btn:hover { background: var(--surface2); }
@@ -428,12 +428,12 @@ const blockCount = computed(() => props.blockEditor.blocks.value.length);
     width: 44px; height: 44px; border: 2px solid var(--border); background: var(--surface);
     color: var(--text-dim); font-size: 16px; cursor: pointer;
     display: flex; align-items: center; justify-content: center;
-    box-shadow: 4px 4px 0 var(--border);
+    box-shadow: var(--shadow-md);
   }
   .cpub-pe-mobile-btn:hover { background: var(--surface2); color: var(--text); }
   .cpub-pe-mobile-overlay {
     display: block; position: fixed; inset: 0;
-    background: rgba(0,0,0,0.4); z-index: 199;
+    background: var(--color-surface-overlay-light); z-index: 199;
   }
 }
 

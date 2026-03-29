@@ -113,17 +113,17 @@ function handleBack(): void {
 }
 
 .cpub-error-btn:hover {
-  box-shadow: 2px 2px 0 var(--border, #1a1a1a);
+  box-shadow: var(--shadow-sm);
 }
 
 .cpub-error-btn-primary {
   background: var(--accent, #5b9cf6);
   color: #fff;
-  box-shadow: 4px 4px 0 var(--border, #1a1a1a);
+  box-shadow: var(--shadow-md);
 }
 
 .cpub-error-btn-primary:hover {
-  box-shadow: 6px 6px 0 var(--border, #1a1a1a);
+  box-shadow: var(--shadow-lg);
   transform: translate(-1px, -1px);
 }
 </style>

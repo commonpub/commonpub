@@ -60,11 +60,11 @@ const tags = computed(() => {
   color: var(--text);
   text-decoration: none;
   font-size: 13px;
-  box-shadow: 4px 4px 0 var(--border);
+  box-shadow: var(--shadow-md);
   transition: box-shadow 0.15s, transform 0.15s, border-color 0.15s;
 }
 
-.tag-chip:hover { box-shadow: 2px 2px 0 var(--border); transform: translate(1px, 1px); border-color: var(--accent); color: var(--accent); }
+.tag-chip:hover { box-shadow: var(--shadow-sm); transform: translate(1px, 1px); border-color: var(--accent); color: var(--accent); }
 .tag-hash { color: var(--accent); font-weight: 700; }
 .tag-count { font-size: 10px; font-family: var(--font-mono); color: var(--text-faint); background: var(--surface2); padding: 1px 6px; margin-left: 4px; }
 

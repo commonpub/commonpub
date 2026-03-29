@@ -30,7 +30,7 @@ const num = computed(() => props.stepNumber ?? (props.content.stepNumber as numb
   border: 2px solid var(--border);
   overflow: hidden;
   margin: 20px 0;
-  box-shadow: 4px 4px 0 var(--border);
+  box-shadow: var(--shadow-md);
 }
 
 .cpub-step-header {

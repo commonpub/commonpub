@@ -282,7 +282,7 @@ const difficultyOptions = [
 
 .cpub-properties-header {
   padding: var(--space-3) var(--space-4);
-  border-bottom: 1px solid var(--border2);
+  border-bottom: 2px solid var(--border2);
 }
 
 .cpub-properties-title {
@@ -301,7 +301,7 @@ const difficultyOptions = [
 .cpub-prop-section {
   margin-bottom: var(--space-4);
   padding-bottom: var(--space-4);
-  border-bottom: 1px solid var(--border2);
+  border-bottom: 2px solid var(--border2);
 }
 
 .cpub-prop-section:last-child {
@@ -337,7 +337,7 @@ const difficultyOptions = [
   width: 100%;
   padding: var(--space-1) var(--space-2);
   background: var(--surface2);
-  border: 1px solid var(--border2);
+  border: 2px solid var(--border2);
   color: var(--text);
   font-family: var(--font-sans);
   font-size: var(--text-sm);

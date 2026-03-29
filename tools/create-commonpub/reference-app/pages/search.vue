@@ -2,7 +2,7 @@
 import type { Serialized, ContentListItem, PaginatedResponse } from '@commonpub/server';
 
 useSeoMeta({
-  title: 'Search — CommonPub',
+  title: 'Search -- devEco.io',
   description: 'Search for projects, articles, people, and communities.',
 });
 
@@ -43,6 +43,7 @@ const typePills = computed(() => {
     pills.push({ value: 'community', label: 'Communities', icon: 'fa-solid fa-people-group' });
   }
   pills.push({ value: 'people', label: 'People', icon: 'fa-solid fa-user' });
+  pills.push({ value: 'fediverse', label: 'Fediverse', icon: 'fa-solid fa-globe' });
   return pills;
 });
 
@@ -73,6 +74,27 @@ const { data: results, status } = await useFetch<PaginatedResponse<Serialized<Co
 });
 
 const resultCount = computed(() => results.value?.total ?? results.value?.items?.length ?? 0);
+
+// Federated search
+const fedResults = ref<any[]>([]);
+const fedLoading = ref(false);
+watch([query, activeType], async () => {
+  if (activeType.value !== 'fediverse' || !query.value) { fedResults.value = []; return; }
+  fedLoading.value = true;
+  try {
+    const data = await $fetch<{ items: any[]; total: number }>('/api/federation/timeline', {
+      params: { limit: 20 },
+    });
+    // Client-side filter by query since the timeline endpoint doesn't have search
+    const q = query.value.toLowerCase();
+    fedResults.value = data.items.filter((item: any) =>
+      (item.title?.toLowerCase().includes(q)) ||
+      (item.content?.toLowerCase().includes(q)) ||
+      (item.summary?.toLowerCase().includes(q))
+    );
+  } catch { fedResults.value = []; }
+  fedLoading.value = false;
+}, { immediate: true });
 
 const activeFilterCount = computed(() => {
   let n = 0;
@@ -271,7 +293,23 @@ const { data: relatedCommunities } = await useFetch('/api/hubs', {
           <p class="cpub-empty-state-title">Searching&hellip;</p>
         </div>
 
-        <template v-else-if="results?.items?.length">
+        <!-- FEDIVERSE RESULTS -->
+        <template v-if="activeType === 'fediverse' && query">
+          <div v-if="fedLoading" class="cpub-empty-state"><p class="cpub-empty-state-title">Searching fediverse&hellip;</p></div>
+          <div v-else-if="fedResults.length === 0" class="cpub-empty-state">
+            <p class="cpub-empty-state-title">No federated results</p>
+            <p class="cpub-empty-state-desc">Try <NuxtLink to="/federation/search">searching for remote users</NuxtLink> to follow, then their content will appear here.</p>
+          </div>
+          <div v-else class="cpub-results-grid">
+            <FederatedContentCard
+              v-for="item in fedResults"
+              :key="item.id"
+              :content="item"
+            />
+          </div>
+        </template>
+
+        <template v-else-if="activeType !== 'fediverse' && results?.items?.length">
           <div
             class="cpub-results-grid"
             :class="{ 'list-view': viewMode === 'list' }"
@@ -358,12 +396,15 @@ const { data: relatedCommunities } = await useFetch('/api/hubs', {
 .cpub-search-hero {
   background: var(--surface);
   border: 2px solid var(--border);
+  border-radius: 0;
   padding: 32px 32px 0;
-  box-shadow: 4px 4px 0 var(--border);
+  box-shadow: var(--shadow-sm);
 }
 
 .cpub-search-hero.panel-open {
   border-bottom: 2px solid var(--border);
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
 }
 
 .cpub-hero-label {
@@ -404,6 +445,7 @@ const { data: relatedCommunities } = await useFetch('/api/hubs', {
   width: 100%;
   background: var(--surface2);
   border: 2px solid var(--border);
+  border-radius: 0;
   padding: 12px 48px 12px 46px;
   font-size: 15px;
   font-weight: 500;
@@ -415,7 +457,7 @@ const { data: relatedCommunities } = await useFetch('/api/hubs', {
 
 .cpub-search-input-main:focus {
   border-color: var(--accent);
-  box-shadow: 4px 4px 0 var(--accent-border);
+  box-shadow: var(--accent-focus-ring);
 }
 
 .cpub-search-input-main::placeholder { color: var(--text-faint); }
@@ -430,6 +472,7 @@ const { data: relatedCommunities } = await useFetch('/api/hubs', {
   color: var(--text-faint);
   background: var(--surface3);
   border: 2px solid var(--border);
+  border-radius: 0;
   padding: 2px 6px;
 }
 
@@ -504,6 +547,7 @@ const { data: relatedCommunities } = await useFetch('/api/hubs', {
 .cpub-sort-select {
   background: var(--surface2);
   border: 2px solid var(--border);
+  border-radius: 0;
   color: var(--text-dim);
   font-size: 11px;
   font-family: var(--font-mono);
@@ -523,6 +567,7 @@ const { data: relatedCommunities } = await useFetch('/api/hubs', {
   font-family: var(--font-mono);
   padding: 5px 12px;
   border: 2px solid var(--border);
+  border-radius: 0;
   background: var(--surface2);
   color: var(--text-dim);
   cursor: pointer;
@@ -582,6 +627,7 @@ const { data: relatedCommunities } = await useFetch('/api/hubs', {
   margin-left: auto;
   display: flex;
   border: 2px solid var(--border);
+  border-radius: 0;
   overflow: hidden;
 }
 
@@ -603,7 +649,7 @@ const { data: relatedCommunities } = await useFetch('/api/hubs', {
 /* ── RESULTS GRID ── */
 .cpub-results-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 20px;
   margin-bottom: 32px;
 }

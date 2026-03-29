@@ -812,7 +812,7 @@ async function handleSave(): Promise<void> {
 }
 
 .cpub-save-btn:hover {
-  background: var(--color-primary-hover);
+  opacity: 0.85;
 }
 
 .cpub-save-btn:disabled {

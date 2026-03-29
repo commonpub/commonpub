@@ -30,7 +30,8 @@ const hubs = computed(() => data.value?.items ?? []);
         class="cpub-hub-card"
       >
         <div class="cpub-hub-card-icon">
-          <i :class="hub.hubType === 'company' ? 'fa-solid fa-building' : hub.hubType === 'product' ? 'fa-solid fa-microchip' : 'fa-solid fa-users'"></i>
+          <img v-if="hub.iconUrl" :src="hub.iconUrl" :alt="hub.name" class="cpub-hub-card-avatar" />
+          <i v-else :class="hub.hubType === 'company' ? 'fa-solid fa-building' : hub.hubType === 'product' ? 'fa-solid fa-microchip' : 'fa-solid fa-users'"></i>
         </div>
         <div class="cpub-hub-card-body">
           <h2 class="cpub-hub-card-name">{{ hub.name }}</h2>
@@ -91,11 +92,11 @@ const hubs = computed(() => data.value?.items ?? []);
   text-decoration: none;
   color: inherit;
   transition: box-shadow 0.15s;
-  box-shadow: 4px 4px 0 var(--border);
+  box-shadow: var(--shadow-md);
 }
 
 .cpub-hub-card:hover {
-  box-shadow: 6px 6px 0 var(--border);
+  box-shadow: var(--shadow-lg);
   transform: translate(-1px, -1px);
 }
 
@@ -110,6 +111,13 @@ const hubs = computed(() => data.value?.items ?? []);
   color: var(--accent);
   font-size: 18px;
   flex-shrink: 0;
+  overflow: hidden;
+}
+
+.cpub-hub-card-avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .cpub-hub-card-body { flex: 1; min-width: 0; }
@@ -156,11 +164,12 @@ const hubs = computed(() => data.value?.items ?? []);
   letter-spacing: 0.08em;
   color: var(--accent);
   background: var(--accent-bg);
-  border: 1px solid var(--accent-border);
+  border: 2px solid var(--accent-border);
   padding: 2px 6px;
 }
 
 @media (max-width: 640px) {
   .cpub-hubs-grid { grid-template-columns: 1fr; }
+  .cpub-hubs-header { flex-direction: column; }
 }
 </style>

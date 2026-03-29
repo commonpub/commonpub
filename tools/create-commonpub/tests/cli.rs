@@ -65,11 +65,29 @@ fn scaffold_copies_full_reference_app() {
     assert!(dir.join("server/routes/inbox.ts").exists());
     assert!(dir.join("server/routes/users").exists());
 
+    // Federation pages and routes (copied)
+    assert!(dir.join("pages/federation/index.vue").exists());
+    assert!(dir.join("pages/federation/search.vue").exists());
+    assert!(dir.join("pages/mirror").exists());
+    assert!(dir.join("server/api/federation").exists());
+    assert!(dir.join("server/api/admin/federation").exists());
+
     // Composables (copied)
     assert!(dir.join("composables/useAuth.ts").exists());
     assert!(dir.join("composables/useFeatures.ts").exists());
     assert!(dir.join("composables/useContentTypes.ts").exists());
     assert!(dir.join("composables/useBlockEditor.ts").exists());
+    assert!(dir.join("composables/useContentSave.ts").exists());
+    assert!(dir.join("composables/useFederation.ts").exists());
+    assert!(dir.join("composables/usePublishValidation.ts").exists());
+
+    // New components (copied)
+    assert!(dir.join("components/ImageUpload.vue").exists());
+    assert!(dir.join("components/ContentStarterForm.vue").exists());
+    assert!(dir.join("components/FederatedContentCard.vue").exists());
+    assert!(dir.join("components/PublishErrorsModal.vue").exists());
+    assert!(dir.join("components/RemoteActorCard.vue").exists());
+    assert!(dir.join("components/RemoteUserSearch.vue").exists());
 
     // Layouts (copied)
     assert!(dir.join("layouts/default.vue").exists());
@@ -166,7 +184,8 @@ fn package_json_patched_correctly() {
 
     // workspace:* replaced with npm versions
     assert!(!pkg.contains("workspace:*"));
-    assert!(pkg.contains("\"^0.4.0\""));
+    assert!(pkg.contains("\"@commonpub/schema\": \"^0.8.1\""));
+    assert!(pkg.contains("\"@commonpub/server\": \"^2.1.3\""));
 
     // Package renamed
     assert!(pkg.contains("\"patch-test\""));
@@ -347,5 +366,6 @@ fn cli_binary_with_feature_flags() {
     // Package.json patched
     let pkg = fs::read_to_string(dir.join("package.json")).unwrap();
     assert!(!pkg.contains("workspace:*"));
-    assert!(pkg.contains("^0.4.0"));
+    assert!(pkg.contains("@commonpub/schema"));
+    assert!(pkg.contains("@commonpub/server"));
 }

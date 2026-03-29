@@ -9,10 +9,15 @@ export default defineEventHandler(async (event): Promise<PaginatedResponse<Conte
 
   const isOwnContent = filters.authorId && user?.id === filters.authorId;
 
+  const config = useConfig();
+
   return listContent(db, {
     ...filters,
     status: isOwnContent ? filters.status : (filters.status ?? 'published'),
     // Only show public content unless viewing own content
     visibility: isOwnContent ? filters.visibility : 'public',
+  }, {
+    includeFederated: config.features.seamlessFederation,
+    allowedContentTypes: config.instance.contentTypes,
   });
 });

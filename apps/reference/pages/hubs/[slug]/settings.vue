@@ -16,6 +16,8 @@ useSeoMeta({
 const form = reactive({
   name: hub.value?.name ?? '',
   description: hub.value?.description ?? '',
+  iconUrl: hub.value?.iconUrl ?? '',
+  bannerUrl: hub.value?.bannerUrl ?? '',
   rules: Array.isArray(hub.value?.rules) ? (hub.value!.rules as string[]).join('\n') : (hub.value?.rules ?? ''),
   joinPolicy: hub.value?.joinPolicy ?? 'open',
   privacy: hub.value?.privacy ?? 'public',
@@ -34,6 +36,8 @@ async function handleSave(): Promise<void> {
       body: {
         name: form.name,
         description: form.description || undefined,
+        iconUrl: form.iconUrl || undefined,
+        bannerUrl: form.bannerUrl || undefined,
         rules: form.rules || undefined,
         joinPolicy: form.joinPolicy,
         privacy: form.privacy,
@@ -81,6 +85,15 @@ async function handleSave(): Promise<void> {
           rows="3"
           placeholder="What is this hub about?"
         />
+      </div>
+
+      <div class="cpub-field-row">
+        <div class="cpub-field">
+          <ImageUpload v-model="form.iconUrl" purpose="avatar" label="Icon / Avatar" hint="Square image, at least 256x256px" />
+        </div>
+        <div class="cpub-field">
+          <ImageUpload v-model="form.bannerUrl" purpose="banner" label="Banner Image" hint="Wide image, at least 1200x300px" />
+        </div>
       </div>
 
       <div class="cpub-field">

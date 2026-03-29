@@ -328,7 +328,7 @@ const videoEmbedUrl = computed(() => {
   border: 2px solid var(--border);
   padding: 20px;
   margin-bottom: 20px;
-  box-shadow: 4px 4px 0 var(--border);
+  box-shadow: var(--shadow-md);
 }
 
 .lesson-section-title { font-size: 14px; font-weight: 700; margin-bottom: 12px; }
@@ -371,7 +371,7 @@ const videoEmbedUrl = computed(() => {
   margin-top: 12px;
   border: 2px solid var(--border);
   background: var(--surface2);
-  box-shadow: 4px 4px 0 var(--border);
+  box-shadow: var(--shadow-md);
 }
 
 .video-iframe { width: 100%; aspect-ratio: 16 / 9; display: block; }
@@ -385,7 +385,7 @@ const videoEmbedUrl = computed(() => {
 }
 
 .quiz-q-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-.quiz-q-number { font-size: 12px; font-family: var(--font-mono); font-weight: 700; color: var(--accent); background: var(--accent-bg); padding: 2px 8px; border: 1px solid var(--accent-border); }
+.quiz-q-number { font-size: 12px; font-family: var(--font-mono); font-weight: 700; color: var(--accent); background: var(--accent-bg); padding: 2px 8px; border: 2px solid var(--accent-border); }
 
 .quiz-options { display: flex; flex-direction: column; gap: 6px; margin: 8px 0; }
 

@@ -31,7 +31,7 @@ const iconMap: Record<string, string> = {
   letter-spacing: 0.06em;
   padding: 3px 10px;
   border: 2px solid var(--border);
-  box-shadow: 3px 3px 0 var(--border);
+  box-shadow: var(--shadow-sm);
 }
 
 .cpub-badge-icon {

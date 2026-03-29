@@ -136,8 +136,21 @@ fn patch_package_json(dir: &Path, config: &InstanceConfig) -> Result<(), Box<dyn
     let content = fs::read_to_string(&pkg_path)?;
 
     let patched = content
-        // Replace workspace references with published versions
-        .replace("\"workspace:*\"", "\"^0.4.0\"")
+        // Replace workspace references with published versions (per-package)
+        .replace("\"@commonpub/schema\": \"workspace:*\"", "\"@commonpub/schema\": \"^0.8.1\"")
+        .replace("\"@commonpub/server\": \"workspace:*\"", "\"@commonpub/server\": \"^2.1.3\"")
+        .replace("\"@commonpub/protocol\": \"workspace:*\"", "\"@commonpub/protocol\": \"^0.9.0\"")
+        .replace("\"@commonpub/config\": \"workspace:*\"", "\"@commonpub/config\": \"^0.7.0\"")
+        .replace("\"@commonpub/ui\": \"workspace:*\"", "\"@commonpub/ui\": \"^0.7.0\"")
+        .replace("\"@commonpub/auth\": \"workspace:*\"", "\"@commonpub/auth\": \"^0.5.0\"")
+        .replace("\"@commonpub/editor\": \"workspace:*\"", "\"@commonpub/editor\": \"^0.5.0\"")
+        .replace("\"@commonpub/docs\": \"workspace:*\"", "\"@commonpub/docs\": \"^0.5.0\"")
+        .replace("\"@commonpub/learning\": \"workspace:*\"", "\"@commonpub/learning\": \"^0.5.0\"")
+        .replace("\"@commonpub/explainer\": \"workspace:*\"", "\"@commonpub/explainer\": \"^0.5.0\"")
+        .replace("\"@commonpub/infra\": \"workspace:*\"", "\"@commonpub/infra\": \"^0.5.0\"")
+        .replace("\"@commonpub/test-utils\": \"workspace:*\"", "\"@commonpub/test-utils\": \"^0.5.0\"")
+        // Catch any remaining workspace refs (future packages)
+        .replace("\"workspace:*\"", "\"*\"")
         // Rename package
         .replace("\"@commonpub/reference\"", &format!("\"{}\"", config.name))
         // Remove monorepo-only scripts

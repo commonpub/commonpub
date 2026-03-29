@@ -411,7 +411,7 @@ const canvasMaxWidth = computed(() => {
 .cpub-ae-asset-item {
   display: flex; align-items: center; gap: 10px; padding: 8px 10px;
   background: var(--surface); border: 2px solid var(--border); cursor: pointer;
-  box-shadow: 2px 2px 0 var(--border); margin-bottom: 5px;
+  box-shadow: var(--shadow-sm); margin-bottom: 5px;
 }
 .cpub-ae-asset-icon {
   width: 34px; height: 34px; background: var(--surface2); display: flex;
@@ -485,7 +485,7 @@ const canvasMaxWidth = computed(() => {
 .cpub-ae-cover-text { font-size: 10px; color: var(--text-faint); font-family: var(--font-mono); }
 .cpub-ae-cover-overlay, .cpub-ae-cover-actions {
   position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 6px;
-  background: rgba(250,250,249,0.75); opacity: 0; transition: opacity 0.15s;
+  background: var(--color-surface-scrim); opacity: 0; transition: opacity 0.15s;
 }
 .cpub-ae-cover:hover .cpub-ae-cover-overlay,
 .cpub-ae-cover:hover .cpub-ae-cover-actions,
@@ -494,7 +494,7 @@ const canvasMaxWidth = computed(() => {
 .cpub-ae-cover-btn {
   font-size: 10px; padding: 5px 10px; background: var(--surface); border: 2px solid var(--border);
   color: var(--text-dim); cursor: pointer; display: inline-flex; align-items: center; gap: 4px;
-  font-family: var(--font-mono); box-shadow: 2px 2px 0 var(--border);
+  font-family: var(--font-mono); box-shadow: var(--shadow-sm);
 }
 .cpub-ae-cover-btn.primary { background: var(--accent); color: var(--color-text-inverse); border-color: var(--accent); }
 .cpub-ae-cover-btn:hover { background: var(--surface2); }
@@ -527,12 +527,12 @@ const canvasMaxWidth = computed(() => {
     width: 44px; height: 44px; border: 2px solid var(--border); background: var(--surface);
     color: var(--text-dim); font-size: 16px; cursor: pointer;
     display: flex; align-items: center; justify-content: center;
-    box-shadow: 4px 4px 0 var(--border);
+    box-shadow: var(--shadow-md);
   }
   .cpub-ae-mobile-btn:hover { background: var(--surface2); color: var(--text); }
   .cpub-ae-mobile-overlay {
     display: block; position: fixed; inset: 0;
-    background: rgba(0,0,0,0.4); z-index: 199;
+    background: var(--color-surface-overlay-light); z-index: 199;
   }
 }
 

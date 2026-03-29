@@ -59,7 +59,7 @@ const themes = [
 .cpub-theme-preview {
   height: 60px;
   background: var(--surface2);
-  border: 1px solid var(--border2);
+  border: 2px solid var(--border2);
   margin-bottom: 8px;
 }
 

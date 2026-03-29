@@ -93,7 +93,7 @@ const stateIcons: Record<string, string> = {
   border-left: 4px solid var(--accent);
   padding: 22px 24px;
   margin: 28px 0;
-  box-shadow: 4px 4px 0 var(--border);
+  box-shadow: var(--shadow-md);
 }
 
 .cpub-card-header {
@@ -175,7 +175,7 @@ const stateIcons: Record<string, string> = {
   background: var(--accent);
   border: 2px solid var(--border);
   cursor: pointer;
-  box-shadow: 2px 2px 0 var(--border);
+  box-shadow: var(--shadow-sm);
 }
 
 .cpub-slider-input::-moz-range-thumb {
@@ -184,7 +184,7 @@ const stateIcons: Record<string, string> = {
   background: var(--accent);
   border: 2px solid var(--border);
   cursor: pointer;
-  box-shadow: 2px 2px 0 var(--border);
+  box-shadow: var(--shadow-sm);
 }
 
 .cpub-slider-range-labels {

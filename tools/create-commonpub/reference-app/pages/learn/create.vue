@@ -64,7 +64,7 @@ async function handleCreate(): Promise<void> {
 .path-form { display: flex; flex-direction: column; gap: var(--space-4); }
 .form-field { display: flex; flex-direction: column; gap: var(--space-1); }
 .form-label { font-size: var(--text-sm); font-weight: var(--font-weight-medium); }
-.form-input, .form-textarea, .form-select { padding: var(--space-2) var(--space-3); border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: var(--text-base); font-family: var(--font-sans); }
+.form-input, .form-textarea, .form-select { padding: var(--space-2) var(--space-3); border: 2px solid var(--border); background: var(--surface); color: var(--text); font-size: var(--text-base); font-family: var(--font-sans); }
 .form-input:focus, .form-textarea:focus, .form-select:focus { outline: none; border-color: var(--accent); box-shadow: var(--focus-ring); }
 .form-textarea { resize: vertical; }
 /* cpub-btn, cpub-btn-primary → global components.css */

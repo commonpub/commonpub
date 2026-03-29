@@ -2,7 +2,7 @@
 const route = useRoute();
 const conversationId = route.params.conversationId as string;
 
-useSeoMeta({ title: 'Message — CommonPub' });
+useSeoMeta({ title: 'Message -- devEco.io' });
 definePageMeta({ middleware: 'auth' });
 
 const { user } = useAuth();
@@ -51,7 +51,10 @@ onUnmounted(() => {
 const participantLabel = computed(() => {
   const parts = convInfo.value?.participants ?? [];
   if (!parts.length) return 'Conversation';
-  return parts.join(', ');
+  const others = parts
+    .filter((p: any) => typeof p === 'object' ? p.id !== user.value?.id : p !== user.value?.id)
+    .map((p: any) => typeof p === 'object' ? (p.displayName || p.username) : p);
+  return others.length > 0 ? others.join(', ') : 'Conversation';
 });
 
 async function handleSend(text: string): Promise<void> {
@@ -100,5 +103,11 @@ async function handleSend(text: string): Promise<void> {
   gap: 12px;
   padding: 8px 12px;
   border-bottom: 2px solid var(--border);
+}
+
+@media (max-width: 768px) {
+  .msg-page { padding: 12px; }
+  .msg-scroll { height: calc(100vh - 160px); }
+  .msg-compose { padding: 8px; }
 }
 </style>

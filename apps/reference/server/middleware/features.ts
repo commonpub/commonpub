@@ -14,7 +14,7 @@ export default defineEventHandler((event) => {
   const pathname = getRequestURL(event).pathname;
 
   // Only gate page routes, not API/assets
-  if (pathname.startsWith('/api') || pathname.startsWith('/_nuxt') || pathname.startsWith('/__nuxt')) {
+  if (pathname.startsWith('/api') || pathname.startsWith('/_nuxt') || pathname.startsWith('/__nuxt') || pathname.endsWith('_payload.json')) {
     return;
   }
 

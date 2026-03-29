@@ -376,7 +376,7 @@ onUnmounted(() => { document.removeEventListener('keydown', onKeydown); });
   transition: background 0.1s, color 0.1s, box-shadow 0.1s;
   flex-shrink: 0;
 }
-.cpub-icon-btn:hover:not(:disabled) { background: var(--surface2); color: var(--text); box-shadow: 2px 2px 0 var(--border); }
+.cpub-icon-btn:hover:not(:disabled) { background: var(--surface2); color: var(--text); box-shadow: var(--shadow-sm); }
 .cpub-icon-btn:active:not(:disabled) { box-shadow: none; transform: translate(1px, 1px); }
 .cpub-icon-btn.active { background: var(--accent-bg); border-color: var(--accent); color: var(--accent); }
 .cpub-icon-btn:disabled { opacity: 0.3; cursor: not-allowed; }
@@ -653,10 +653,10 @@ onUnmounted(() => { document.removeEventListener('keydown', onKeydown); });
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 4px 4px 0 var(--border);
+  box-shadow: var(--shadow-md);
   transition: box-shadow 0.1s, transform 0.1s;
 }
-.cpub-next-btn:hover { box-shadow: 2px 2px 0 var(--border); transform: translate(1px, 1px); }
+.cpub-next-btn:hover { box-shadow: var(--shadow-sm); transform: translate(1px, 1px); }
 .cpub-next-btn i { font-size: 12px; }
 
 .cpub-prev-btn {
@@ -672,7 +672,7 @@ onUnmounted(() => { document.removeEventListener('keydown', onKeydown); });
   cursor: pointer;
   transition: box-shadow 0.1s;
 }
-.cpub-prev-btn:hover { box-shadow: 2px 2px 0 var(--border); }
+.cpub-prev-btn:hover { box-shadow: var(--shadow-sm); }
 .cpub-prev-btn i { font-size: 12px; }
 
 /* ── RESPONSIVE ── */

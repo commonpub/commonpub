@@ -1,6 +1,6 @@
 {
   "name": "@commonpub/reference",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -15,6 +15,7 @@
     "seed": "tsx scripts/seed.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1010.0",
     "@commonpub/auth": "workspace:*",
     "@commonpub/config": "workspace:*",
     "@commonpub/docs": "workspace:*",
@@ -39,13 +40,14 @@
     "@tiptap/extension-strike": "^2.11.0",
     "@tiptap/extension-text": "^2.11.0",
     "drizzle-orm": "^0.45.1",
+    "highlight.js": "^11.11.1",
     "isomorphic-dompurify": "^3.3.0",
     "nuxt": "^3.16.0",
     "pg": "^8.13.0",
+    "sharp": "^0.34.5",
+    "shiki": "^4.0.2",
     "vue": "^3.4.0",
     "vue-router": "^4.3.0",
-    "@aws-sdk/client-s3": "^3.1010.0",
-    "sharp": "^0.34.5",
     "zod": "^4.3.6"
   },
   "devDependencies": {

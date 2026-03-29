@@ -135,7 +135,7 @@ const joinedFormatted = computed((): string => {
   font-weight: var(--font-weight-semibold);
   text-transform: uppercase;
   letter-spacing: var(--tracking-wide);
-  border: 1px solid;
+  border: 2px solid;
 }
 
 .cpub-member-role-owner {

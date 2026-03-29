@@ -65,7 +65,7 @@ async function toggleFollow(targetUsername: string, isFollowing: boolean): Promi
 .follow-title { font-size: 22px; font-weight: 700; }
 
 .follow-list { display: flex; flex-direction: column; }
-.follow-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border2); }
+.follow-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 2px solid var(--border2); }
 .follow-item:last-child { border-bottom: none; }
 .follow-user { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--text); }
 .follow-user:hover .follow-name { color: var(--accent); }

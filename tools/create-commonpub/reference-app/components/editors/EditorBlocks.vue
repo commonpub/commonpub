@@ -36,7 +36,13 @@ const filteredGroups = computed(() => {
 });
 
 function insertBlock(block: BlockDef): void {
-  props.blockEditor.addBlock(block.type, block.attrs);
+  const selectedId = props.blockEditor.selectedBlockId.value;
+  if (selectedId) {
+    const idx = props.blockEditor.getBlockIndex(selectedId);
+    props.blockEditor.addBlock(block.type, block.attrs, idx + 1);
+  } else {
+    props.blockEditor.addBlock(block.type, block.attrs);
+  }
 }
 </script>
 

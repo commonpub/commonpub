@@ -260,28 +260,28 @@ pub fn render_nuxt_config(config: &InstanceConfig) -> String {
 
 pub fn render_package_json(config: &InstanceConfig) -> String {
     let mut deps = vec![
-        r#"    "@commonpub/config": "^0.4.0""#.to_string(),
-        r#"    "@commonpub/schema": "^0.4.0""#.to_string(),
-        r#"    "@commonpub/auth": "^0.4.0""#.to_string(),
-        r#"    "@commonpub/ui": "^0.4.0""#.to_string(),
-        r#"    "@commonpub/server": "^0.4.0""#.to_string(),
-        r#"    "@commonpub/infra": "^0.4.0""#.to_string(),
+        r#"    "@commonpub/config": "^0.7.0""#.to_string(),
+        r#"    "@commonpub/schema": "^0.8.1""#.to_string(),
+        r#"    "@commonpub/auth": "^0.5.0""#.to_string(),
+        r#"    "@commonpub/ui": "^0.7.0""#.to_string(),
+        r#"    "@commonpub/server": "^2.1.3""#.to_string(),
+        r#"    "@commonpub/infra": "^0.5.0""#.to_string(),
     ];
 
     if config.feature_content {
-        deps.push(r#"    "@commonpub/editor": "^0.4.0""#.to_string());
+        deps.push(r#"    "@commonpub/editor": "^0.5.0""#.to_string());
     }
     if config.feature_docs {
-        deps.push(r#"    "@commonpub/docs": "^0.4.0""#.to_string());
+        deps.push(r#"    "@commonpub/docs": "^0.5.0""#.to_string());
     }
     if config.feature_learning {
-        deps.push(r#"    "@commonpub/learning": "^0.4.0""#.to_string());
+        deps.push(r#"    "@commonpub/learning": "^0.5.0""#.to_string());
     }
     if config.feature_explainers {
-        deps.push(r#"    "@commonpub/explainer": "^0.4.0""#.to_string());
+        deps.push(r#"    "@commonpub/explainer": "^0.5.0""#.to_string());
     }
     if config.feature_federation {
-        deps.push(r#"    "@commonpub/protocol": "^0.4.0""#.to_string());
+        deps.push(r#"    "@commonpub/protocol": "^0.9.0""#.to_string());
     }
 
     let deps_str = deps.join(",\n");

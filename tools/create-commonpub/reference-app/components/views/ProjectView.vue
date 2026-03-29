@@ -251,9 +251,19 @@ async function handleBuild(): Promise<void> {
 
         <!-- Author Row -->
         <div class="cpub-author-row">
-          <div class="cpub-av cpub-av-lg">{{ content.author?.displayName?.slice(0, 2).toUpperCase() || 'CP' }}</div>
+          <NuxtLink :to="`/u/${content.author?.username}`" class="cpub-av-link">
+            <img
+              v-if="content.author?.avatarUrl"
+              :src="content.author.avatarUrl"
+              :alt="content.author?.displayName || content.author?.username"
+              class="cpub-av cpub-av-lg cpub-av-img"
+            />
+            <div v-else class="cpub-av cpub-av-lg">{{ content.author?.displayName?.slice(0, 2).toUpperCase() || 'CP' }}</div>
+          </NuxtLink>
           <div>
-            <div class="cpub-author-name">{{ content.author?.displayName || content.author?.username || 'Author' }}</div>
+            <NuxtLink :to="`/u/${content.author?.username}`" class="cpub-author-name cpub-author-link">
+              {{ content.author?.displayName || content.author?.username || 'Author' }}
+            </NuxtLink>
             <div class="cpub-author-meta-row">
               <span v-if="content.author?.org" class="cpub-author-org">{{ content.author.org }}</span>
               <span class="cpub-meta-date">Published {{ formattedDate }}</span>
@@ -601,14 +611,14 @@ async function handleBuild(): Promise<void> {
   background: var(--yellow-bg);
   border: 2px solid var(--border);
   color: var(--yellow);
-  box-shadow: 2px 2px 0 var(--border);
+  box-shadow: var(--shadow-sm);
 }
 
 .cpub-badge-outline {
   background: var(--surface);
   border: 2px solid var(--border);
   color: var(--text-dim);
-  box-shadow: 2px 2px 0 var(--border);
+  box-shadow: var(--shadow-sm);
 }
 
 /* ── PAGE OUTER ── */
@@ -684,6 +694,22 @@ async function handleBuild(): Promise<void> {
   font-size: 13px;
   font-weight: 600;
   color: var(--text);
+}
+.cpub-author-link {
+  text-decoration: none;
+  color: var(--text);
+}
+.cpub-author-link:hover {
+  color: var(--accent);
+}
+.cpub-av-link {
+  text-decoration: none;
+}
+.cpub-av-img {
+  width: 36px;
+  height: 36px;
+  object-fit: cover;
+  border: 2px solid var(--border);
 }
 
 .cpub-author-meta-row {
@@ -840,7 +866,7 @@ async function handleBuild(): Promise<void> {
   font-size: 11px;
   background: var(--surface2);
   padding: 2px 5px;
-  border: 1px solid var(--border2);
+  border: 2px solid var(--border2);
   color: var(--accent);
 }
 
@@ -861,7 +887,7 @@ async function handleBuild(): Promise<void> {
   background: var(--surface);
   border: 2px solid var(--border);
   padding: 18px;
-  box-shadow: 4px 4px 0 var(--border);
+  box-shadow: var(--shadow-sm);
 }
 
 .cpub-sb-title {
@@ -888,8 +914,8 @@ async function handleBuild(): Promise<void> {
   background: var(--surface2);
   padding: 14px;
   text-align: center;
-  border-right: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
+  border-right: 2px solid var(--border);
+  border-bottom: 2px solid var(--border);
 }
 
 .cpub-stat-cell:nth-child(2n) { border-right: none; }
@@ -942,7 +968,7 @@ async function handleBuild(): Promise<void> {
   align-items: center;
   gap: 10px;
   padding: 8px 0;
-  border-bottom: 1px solid var(--border2);
+  border-bottom: 2px solid var(--border2);
   font-size: 12px;
 }
 
@@ -952,7 +978,7 @@ async function handleBuild(): Promise<void> {
   width: 28px;
   height: 28px;
   background: var(--surface2);
-  border: 1px solid var(--border2);
+  border: 2px solid var(--border2);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1006,7 +1032,7 @@ async function handleBuild(): Promise<void> {
   align-items: center;
   justify-content: space-between;
   padding: 7px 0;
-  border-bottom: 1px solid var(--border2);
+  border-bottom: 2px solid var(--border2);
   font-size: 12px;
 }
 
@@ -1082,7 +1108,7 @@ async function handleBuild(): Promise<void> {
   background: var(--surface3);
   color: var(--text-faint);
   padding: 1px 5px;
-  border: 1px solid var(--border2);
+  border: 2px solid var(--border2);
 }
 
 /* BOM products in sidebar */
@@ -1095,7 +1121,7 @@ async function handleBuild(): Promise<void> {
   margin-top: 12px;
   margin-bottom: 8px;
   padding-top: 8px;
-  border-top: 1px solid var(--border2);
+  border-top: 2px solid var(--border2);
 }
 
 .cpub-bom-product-row {
@@ -1166,7 +1192,7 @@ async function handleBuild(): Promise<void> {
 
 .cpub-parts-table td {
   padding: 10px 12px;
-  border-bottom: 1px solid var(--border2);
+  border-bottom: 2px solid var(--border2);
   color: var(--text-dim);
 }
 
@@ -1182,7 +1208,7 @@ async function handleBuild(): Promise<void> {
   padding: 10px 14px;
   background: var(--surface);
   border: 2px solid var(--border);
-  box-shadow: 2px 2px 0 var(--border);
+  box-shadow: var(--shadow-sm);
 }
 
 .cpub-linked-product-icon {
@@ -1204,7 +1230,7 @@ async function handleBuild(): Promise<void> {
 .cpub-build-step {
   border: 2px solid var(--border);
   overflow: hidden;
-  box-shadow: 4px 4px 0 var(--border);
+  box-shadow: var(--shadow-sm);
 }
 
 .cpub-build-step-header {
@@ -1249,7 +1275,7 @@ async function handleBuild(): Promise<void> {
 .cpub-code-snippet {
   border: 2px solid var(--border);
   overflow: hidden;
-  box-shadow: 2px 2px 0 var(--border);
+  box-shadow: var(--shadow-sm);
 }
 
 .cpub-code-snippet-header {
@@ -1295,7 +1321,7 @@ async function handleBuild(): Promise<void> {
   padding: 12px 14px;
   background: var(--surface);
   border: 2px solid var(--border);
-  box-shadow: 2px 2px 0 var(--border);
+  box-shadow: var(--shadow-sm);
 }
 
 .cpub-file-icon {

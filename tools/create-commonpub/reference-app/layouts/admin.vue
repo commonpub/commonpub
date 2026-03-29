@@ -104,7 +104,7 @@ const { admin: adminEnabled } = useFeatures();
 
 .admin-sidebar {
   width: 200px;
-  border-right: 1px solid var(--border);
+  border-right: 2px solid var(--border);
   background: var(--surface);
   padding: var(--space-4);
 }

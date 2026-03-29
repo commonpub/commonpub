@@ -75,6 +75,7 @@ export const contentItems = pgTable('content_items', {
   commentCount: integer('comment_count').default(0).notNull(),
   forkCount: integer('fork_count').default(0).notNull(),
   buildCount: integer('build_count').default(0).notNull(),
+  boostCount: integer('boost_count').default(0).notNull(),
   publishedAt: timestamp('published_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull().$onUpdateFn(() => new Date()),

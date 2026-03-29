@@ -76,7 +76,7 @@ useSeoMeta({
   padding: 40px;
   text-align: center;
   position: relative;
-  box-shadow: 8px 8px 0 var(--border);
+  box-shadow: var(--shadow-xl);
 }
 
 .cert-badge-wrap { margin-bottom: 20px; }
@@ -121,7 +121,7 @@ useSeoMeta({
 .cert-detail { display: flex; flex-direction: column; gap: 4px; }
 .cert-detail-label { font-size: 10px; font-family: var(--font-mono); color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.08em; }
 .cert-detail-value { font-size: 13px; color: var(--text); }
-.cert-code { font-family: var(--font-mono); font-weight: 600; color: var(--accent); background: var(--accent-bg); padding: 2px 8px; border: 1px solid var(--accent-border); }
+.cert-code { font-family: var(--font-mono); font-weight: 600; color: var(--accent); background: var(--accent-bg); padding: 2px 8px; border: 2px solid var(--accent-border); }
 
 .cert-footer { margin-top: 8px; }
 .cert-path-link { font-size: 12px; color: var(--accent); text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }

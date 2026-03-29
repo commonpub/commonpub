@@ -139,7 +139,7 @@ async function startConversation(): Promise<void> {
   gap: 12px;
   padding: 12px 16px;
   text-decoration: none;
-  border-bottom: 1px solid var(--border2);
+  border-bottom: 2px solid var(--border2);
   transition: background 0.1s;
 }
 
@@ -199,7 +199,7 @@ async function startConversation(): Promise<void> {
   position: fixed;
   inset: 0;
   z-index: 200;
-  background: var(--overlay-bg, rgba(0, 0, 0, 0.4));
+  background: var(--overlay-bg, var(--color-surface-overlay-light));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -208,7 +208,7 @@ async function startConversation(): Promise<void> {
 .cpub-new-msg-dialog {
   background: var(--surface);
   border: 2px solid var(--border);
-  box-shadow: 8px 8px 0 var(--border);
+  box-shadow: var(--shadow-xl);
   width: 400px;
   max-width: 90vw;
 }
