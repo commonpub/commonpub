@@ -15,7 +15,20 @@ const props = defineProps<{
   item: Serialized<ContentListItem> & { isFeatured?: boolean };
 }>();
 
-const cover = computed(() => props.item.coverImageUrl);
+const cover = computed(() => {
+  const url = props.item.coverImageUrl;
+  if (!url) return null;
+  // Proxy remote images through our server for faster loading + caching
+  const config = useRuntimeConfig();
+  const siteDomain = (config.public?.domain as string) || '';
+  try {
+    const imgHost = new URL(url).hostname;
+    if (siteDomain && !url.includes(siteDomain)) {
+      return `/api/image-proxy?url=${encodeURIComponent(url)}&w=600`;
+    }
+  } catch { /* invalid URL, use as-is */ }
+  return url;
+});
 
 const thumbIcons: Record<string, { icon: string; color: string }> = {
   project: { icon: 'fa-solid fa-microchip', color: 'var(--accent)' },

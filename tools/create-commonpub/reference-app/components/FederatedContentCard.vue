@@ -10,6 +10,12 @@ const emit = defineEmits<{
   boost: [id: string];
 }>();
 
+const proxiedCover = computed(() => {
+  const url = props.content.coverImageUrl;
+  if (!url) return null;
+  return `/api/image-proxy?url=${encodeURIComponent(url)}&w=600`;
+});
+
 const actorHandle = computed(() => {
   if (!props.content.actor) return 'Unknown';
   const u = props.content.actor.preferredUsername ?? 'unknown';
@@ -77,7 +83,7 @@ function stripHtml(html: string): string {
     </div>
 
     <div v-if="content.coverImageUrl" class="cpub-fed-card__cover">
-      <img :src="content.coverImageUrl" :alt="content.title ?? 'Cover'" loading="lazy" />
+      <img :src="proxiedCover ?? content.coverImageUrl" :alt="content.title ?? 'Cover'" loading="lazy" />
     </div>
 
     <h3 v-if="content.title" class="cpub-fed-card__title">
