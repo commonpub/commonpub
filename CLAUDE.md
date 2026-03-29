@@ -106,6 +106,25 @@ The implementation plan is at `docs/plan-v2.md`. Reference documentation is at `
 - Queue: Redis/Valkey
 - Monorepo: Turborepo + pnpm
 
+### Federation Scope
+
+What federates via ActivityPub and what stays instance-local:
+
+| Feature | Federates | AP Type | Notes |
+|---------|-----------|---------|-------|
+| Projects | Yes | Article + `cpub:type=project` | Full content + cover image + attachments |
+| Articles | Yes | Article + `cpub:type=article` | Full content + cover image |
+| Blogs | Yes | Article + `cpub:type=blog` | Full content + cover image |
+| Explainers | Yes | Article + `cpub:type=explainer` | Full content + cover image |
+| Hubs | Partial | Group actor | Behind `features.federateHubs`; hub posts as Announce |
+| Docs | No | — | Instance-local; versioned site content |
+| Learning Paths | No | — | Instance-local; enrollment/progress tracking |
+| Contests | No | — | Instance-local; judging workflow |
+| Videos | No | — | Instance-local; category management |
+| Messages | No | — | Instance-local; DMs stay on-instance |
+
+Content type protection: federated feeds filter by `config.instance.contentTypes` so unsupported types don't leak into an instance's UI. The `cpub:type` extension preserves type identity across CommonPub instances. Non-CommonPub instances (Mastodon, Lemmy) see all content as generic Article.
+
 ## Development
 
 ```bash
