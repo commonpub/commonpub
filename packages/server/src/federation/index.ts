@@ -64,6 +64,7 @@ export {
 export {
   backfillFromOutbox,
   type BackfillResult,
+  type BackfillOptions,
 } from './backfill.js';
 export {
   countOutboxItems,

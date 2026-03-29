@@ -145,6 +145,8 @@ export const instanceMirrors = pgTable('instance_mirrors', {
   lastSyncAt: timestamp('last_sync_at', { withTimezone: true }),
   /** When the mirror was paused — used for gap-fill on resume */
   pausedAt: timestamp('paused_at', { withTimezone: true }),
+  /** Last processed outbox page URL for backfill resume */
+  backfillCursor: text('backfill_cursor'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
