@@ -92,6 +92,7 @@ export {
   onContentPublished,
   onContentUpdated,
   onContentDeleted,
+  onContentStatusChange,
   createContentVersion,
   listContentVersions,
   forkContent,

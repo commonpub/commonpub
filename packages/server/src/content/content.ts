@@ -429,6 +429,9 @@ export async function updateContent(
   if (input.series !== undefined) updates.series = input.series;
   if (input.visibility !== undefined) updates.visibility = input.visibility;
 
+  // Track status transition for federation
+  const wasPublished = current.status === 'published';
+
   if (input.status !== undefined) {
     updates.status = input.status;
     if (input.status === 'published' && !current.publishedAt) {
@@ -722,6 +725,27 @@ export async function onContentUpdated(
   await federateUpdate(db, contentId, config.instance.domain).catch((err: unknown) => {
     console.error('[federation]', err);
   });
+}
+
+/**
+ * Check if a content update represents an unpublish (published → draft/archived).
+ * If so, call onContentDeleted to send a Delete activity.
+ */
+export async function onContentStatusChange(
+  db: DB,
+  contentId: string,
+  previousStatus: string,
+  newStatus: string,
+  authorUsername: string,
+  config: CommonPubConfig,
+): Promise<void> {
+  if (!config.features.federation) return;
+  // Unpublish: was published, now isn't
+  if (previousStatus === 'published' && newStatus !== 'published') {
+    await federateDelete(db, contentId, config.instance.domain, authorUsername).catch(
+      (err: unknown) => { console.error('[federation] unpublish delete:', err); },
+    );
+  }
 }
 
 export async function onContentDeleted(

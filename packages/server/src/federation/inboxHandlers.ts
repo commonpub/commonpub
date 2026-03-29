@@ -49,7 +49,7 @@ export interface InboxHandlerOptions {
 export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
   const { db, domain, autoAcceptFollows = true } = opts;
 
-  return {
+  const handlers: InboxCallbacks = {
     /**
      * Remote user wants to follow a local user.
      * Creates a follow relationship and optionally auto-accepts.
@@ -493,7 +493,7 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
         if (typeof object.summary === 'string') updates.summary = sanitizeHtml(object.summary);
         if (typeof object.url === 'string') updates.url = object.url;
 
-        await db
+        const updateResult = await db
           .update(federatedContent)
           .set(updates)
           .where(
@@ -501,7 +501,16 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
               eq(federatedContent.objectUri, objectUri),
               eq(federatedContent.actorUri, actorUri),
             ),
-          );
+          )
+          .returning({ id: federatedContent.id });
+
+        // If no rows updated, content doesn't exist locally — treat as new content
+        // This handles the case where an Update arrives before a Create (e.g., missed during backfill)
+        if (updateResult.length === 0) {
+          // Delegate to onCreate to store the content
+          await handlers.onCreate(actorUri, object);
+          return;
+        }
       }
 
       await db.insert(activities).values({
@@ -656,4 +665,6 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
       });
     },
   };
+
+  return handlers;
 }
