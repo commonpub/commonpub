@@ -109,6 +109,29 @@ Commit: `1fb484a`
 - **Total: 848 tests, 0 failures**
 - Added this session: **76 new tests** (48 XSS + 8 outbox + 13 unified + 7 E2E)
 
+## Post-Completion Audit
+
+### Issue Found: Production databases missing new schema columns
+The delivery worker was broken on both production instances because the new
+columns (locked_at, dead_lettered_at, paused_at, backfill_cursor) and the
+instance_health table were not applied via drizzle-kit push.
+
+**Root cause**: Schema changes in @commonpub/schema@0.8.0 require migration
+on all instances. The deploy workflow runs drizzle-kit push but the interactive
+prompt for content_builds_user_content blocks it on deveco.io, and commonpub.io's
+deploy doesn't run push at all.
+
+**Fix applied**: Manually ran ALTER TABLE statements via SSH on both production
+databases. Columns and table now exist. Delivery worker verified working.
+
+**Lesson**: Schema changes must be accompanied by manual migration verification
+on production, or the drizzle-kit push blocking issue needs to be resolved.
+
+### Also Fixed
+- Delivery worker now reads FederationConfig (batch size, interval, max retries)
+- Daily cleanup of delivered activities (configured via activityRetentionDays)
+- Both repos updated with new delivery worker plugin
+
 ## Final Package Versions
 | Package | Version |
 |---------|---------|
@@ -116,12 +139,6 @@ Commit: `1fb484a`
 | @commonpub/config | 0.7.0 |
 | @commonpub/protocol | 0.9.0 |
 | @commonpub/server | 2.0.0 |
-
-## Test Status
-- Protocol: 367 tests (24 files)
-- Server: 460 tests (37 files) + 1 skipped
-- Total: **828 tests, 0 failures**
-- Typecheck: 25/25 tasks pass
 - Build: 14/14 tasks pass
 
 ## Package Versions (Source — Not Yet Published)
