@@ -18,6 +18,8 @@
   --color-surface-alt: var(--surface2);
   --color-surface-raised: var(--surface);
   --color-surface-overlay: rgba(0, 0, 0, 0.5);
+  --color-surface-overlay-light: rgba(0, 0, 0, 0.4);
+  --color-surface-scrim: rgba(250, 250, 249, 0.75);
   --color-surface-hover: var(--surface2);
   --color-bg-subtle: var(--bg);
 
@@ -42,7 +44,11 @@
   /* === ACCENT (blue) === */
   --accent: #5b9cf6;
   --accent-bg: rgba(91, 156, 246, 0.08);
+  --accent-bg-strong: rgba(91, 156, 246, 0.2);
+  --accent-bg-heavy: rgba(91, 156, 246, 0.4);
+  --accent-bg-solid: rgba(91, 156, 246, 0.6);
   --accent-border: rgba(91, 156, 246, 0.25);
+  --accent-focus-ring: 0 0 0 3px rgba(91, 156, 246, 0.12);
 
   --color-primary: var(--accent);
   --color-primary-hover: #4a8be5;

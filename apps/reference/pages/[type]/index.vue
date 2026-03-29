@@ -69,7 +69,7 @@ const { data } = await useFetch<PaginatedResponse<Serialized<ContentListItem>>>(
 
 .cpub-listing-sort {
   padding: var(--space-1) var(--space-2);
-  border: 1px solid var(--border2);
+  border: 2px solid var(--border2);
   background: var(--surface);
   font-family: var(--font-mono);
   font-size: 10px;
@@ -89,7 +89,7 @@ const { data } = await useFetch<PaginatedResponse<Serialized<ContentListItem>>>(
 }
 
 .cpub-listing-create:hover {
-  background: var(--color-primary-hover);
+  opacity: 0.85;
 }
 
 .cpub-listing-grid {

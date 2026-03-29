@@ -133,7 +133,7 @@ function toggleRight(): void {
     display: block;
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.4);
+    background: var(--color-surface-overlay-light);
     z-index: calc(var(--z-modal, 200) - 1);
   }
 
@@ -157,7 +157,7 @@ function toggleRight(): void {
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: var(--shadow-md, 4px 4px 0 var(--border));
+    box-shadow: var(--shadow-md, var(--shadow-md));
   }
 
   .cpub-editor-toggle-btn:hover {

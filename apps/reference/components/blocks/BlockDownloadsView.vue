@@ -42,7 +42,7 @@ const files = computed<FileItem[]>(() => {
   border: 2px solid var(--border);
   margin: 20px 0;
   overflow: hidden;
-  box-shadow: 4px 4px 0 var(--border);
+  box-shadow: var(--shadow-md);
 }
 
 .cpub-dl-header {
@@ -65,7 +65,7 @@ const files = computed<FileItem[]>(() => {
   align-items: center;
   gap: 12px;
   padding: 10px 14px;
-  border-bottom: 1px solid var(--border2);
+  border-bottom: 2px solid var(--border2);
 }
 
 .cpub-dl-item:last-child { border-bottom: none; }

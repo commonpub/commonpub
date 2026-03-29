@@ -136,37 +136,38 @@ async function readFile(file: File): Promise<void> {
 <style scoped>
 .md-import-overlay {
   position: fixed; inset: 0; z-index: 10000;
-  background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(4px);
+  background: var(--color-surface-overlay); backdrop-filter: blur(4px);
   display: flex; align-items: center; justify-content: center;
   padding: 16px;
 }
 
 .md-import-dialog {
   width: 100%; max-width: 640px;
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: 16px; box-shadow: var(--shadow-xl);
+  background: var(--surface); border: 2px solid var(--border);
+  box-shadow: var(--shadow-xl);
   display: flex; flex-direction: column;
   max-height: 80vh;
 }
 
 .md-import-header {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 16px 20px; border-bottom: 1px solid var(--border);
+  padding: 16px 20px; border-bottom: 2px solid var(--border);
 }
 
 .md-import-header h2 {
-  font-size: 1rem; font-weight: 700;
+  font-family: var(--font-mono); font-size: 1rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.04em;
   display: flex; align-items: center; gap: 8px;
 }
 
 .md-import-close {
-  width: 32px; height: 32px; border: none; border-radius: 8px;
+  width: 32px; height: 32px; border: 2px solid transparent;
   background: none; color: var(--text-dim); cursor: pointer; font-size: 14px;
 }
-.md-import-close:hover { background: var(--surface2); }
+.md-import-close:hover { background: var(--surface2); border-color: var(--border); }
 
 .md-import-tabs {
-  display: flex; gap: 0; border-bottom: 1px solid var(--border);
+  display: flex; gap: 0; border-bottom: 2px solid var(--border);
 }
 .md-import-tabs button {
   flex: 1; padding: 10px; border: none; background: none;
@@ -175,7 +176,7 @@ async function readFile(file: File): Promise<void> {
   border-bottom: 2px solid transparent;
 }
 .md-import-tabs button.active {
-  color: var(--deveco-dark-green); border-bottom-color: var(--deveco-dark-green);
+  color: var(--accent); border-bottom-color: var(--accent);
 }
 
 .md-import-body { flex: 1; overflow-y: auto; }
@@ -190,35 +191,35 @@ async function readFile(file: File): Promise<void> {
 .md-import-drop {
   padding: 40px 20px; text-align: center;
   border: 2px dashed var(--border); margin: 16px;
-  border-radius: 12px; transition: border-color 0.15s, background 0.15s;
+  transition: border-color 0.15s, background 0.15s;
 }
 .md-import-drop.dragging {
-  border-color: var(--accent); background: rgba(0, 231, 173, 0.05);
+  border-color: var(--accent); background: var(--accent-bg, rgba(91, 156, 246, 0.05));
 }
 .md-import-drop-content { display: flex; flex-direction: column; align-items: center; gap: 8px; color: var(--text-dim); }
 .md-import-drop-content i { font-size: 32px; color: var(--text-faint); }
 .md-import-drop-content span { font-size: 11px; color: var(--text-faint); }
 
 .md-import-file-btn {
-  padding: 6px 14px; background: var(--surface2); border: 1px solid var(--border);
-  border-radius: 8px; font-size: 12px; color: var(--text); cursor: pointer;
+  padding: 6px 14px; background: var(--surface2); border: 2px solid var(--border);
+  font-size: 12px; color: var(--text); cursor: pointer;
 }
 .md-import-file-btn:hover { background: var(--surface3); }
 
 .md-import-preview {
   display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-  padding: 10px 16px; border-top: 1px solid var(--border);
+  padding: 10px 16px; border-top: 2px solid var(--border);
   font-size: 11px;
 }
 .md-import-preview-label { color: var(--text-faint); font-weight: 600; }
 .md-import-preview-count { color: var(--accent); font-weight: 700; font-family: var(--font-mono); }
 .md-import-preview-tag {
-  padding: 2px 6px; background: var(--surface2); border-radius: 4px;
+  padding: 2px 6px; background: var(--surface2);
   font-family: var(--font-mono); font-size: 10px; color: var(--text-dim);
 }
 
 .md-import-footer {
-  padding: 12px 20px; border-top: 1px solid var(--border);
+  padding: 12px 20px; border-top: 2px solid var(--border);
   display: flex; align-items: center; justify-content: space-between;
 }
 
@@ -230,19 +231,19 @@ async function readFile(file: File): Promise<void> {
 
 .md-import-actions { display: flex; gap: 8px; }
 .md-import-cancel {
-  padding: 7px 14px; border: 1px solid var(--border); border-radius: 8px;
+  padding: 7px 14px; border: 2px solid var(--border);
   background: var(--surface); color: var(--text-dim); font-size: 12px; cursor: pointer;
 }
 .md-import-btn {
-  padding: 7px 16px; border: none; border-radius: 8px;
-  background: var(--deveco-dark-green); color: #fff; font-size: 12px;
+  padding: 7px 16px; border: 2px solid var(--accent);
+  background: var(--accent); color: var(--color-text-inverse); font-size: 12px;
   font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;
 }
 .md-import-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.md-import-btn:hover:not(:disabled) { background: var(--color-primary-hover); }
+.md-import-btn:hover:not(:disabled) { opacity: 0.85; }
 
 @media (max-width: 640px) {
-  .md-import-dialog { max-width: 100%; max-height: 90vh; border-radius: 12px; }
+  .md-import-dialog { max-width: 100%; max-height: 90vh; }
   .md-import-mode { flex-direction: column; gap: 6px; }
 }
 </style>

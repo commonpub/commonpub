@@ -3,15 +3,9 @@
  */
 import { markdownToBlockTuples } from '@commonpub/editor';
 import type { BlockTuple } from '@commonpub/editor';
+import type { BlockEditor } from './useBlockEditor';
 
-interface BlockEditor {
-  blocks: { id: string; type: string; content: Record<string, unknown> }[];
-  addBlock: (type: string, content: Record<string, unknown>, afterId?: string) => void;
-  updateBlock: (id: string, content: Record<string, unknown>) => void;
-  clearBlocks: () => void;
-}
-
-export function useMarkdownImport(blockEditor: Ref<BlockEditor> | BlockEditor) {
+export function useMarkdownImport(blockEditor: BlockEditor) {
   const importing = ref(false);
   const progress = ref({ total: 0, uploaded: 0 });
 
@@ -20,29 +14,22 @@ export function useMarkdownImport(blockEditor: Ref<BlockEditor> | BlockEditor) {
     progress.value = { total: 0, uploaded: 0 };
 
     try {
-      const blocks = markdownToBlockTuples(md);
-      if (!blocks.length) return;
+      const tuples = markdownToBlockTuples(md);
+      if (!tuples.length) return;
 
-      const editor = unref(blockEditor);
+      const editor = blockEditor;
 
       if (mode === 'replace') {
         editor.clearBlocks();
       }
 
-      // Insert blocks
-      let lastBlockId: string | undefined;
-      if (mode === 'append' && editor.blocks.length > 0) {
-        lastBlockId = editor.blocks[editor.blocks.length - 1]!.id;
-      }
-
-      for (const [type, content] of blocks) {
-        editor.addBlock(type, content as Record<string, unknown>, lastBlockId);
-        // Get the ID of the just-added block for sequential insertion
-        lastBlockId = editor.blocks[editor.blocks.length - 1]?.id;
+      // Insert blocks at the end (append) or beginning (replace, after clearBlocks)
+      for (const [type, content] of tuples) {
+        editor.addBlock(type, content as Record<string, unknown>);
       }
 
       // Find image blocks with remote URLs and upload them
-      const imageBlocks = editor.blocks.filter(
+      const imageBlocks = [...editor.blocks.value].filter(
         b => b.type === 'image' && b.content.src && isRemoteUrl(b.content.src as string),
       );
 

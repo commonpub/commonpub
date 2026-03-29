@@ -80,7 +80,7 @@ async function loadMore(): Promise<void> {
   justify-content: center;
   font-size: 20px;
   color: var(--accent);
-  box-shadow: 4px 4px 0 var(--border);
+  box-shadow: var(--shadow-md);
 }
 
 .cpub-tag-title {

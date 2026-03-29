@@ -59,7 +59,7 @@ const totalPrice = computed(() => {
   border: 2px solid var(--border);
   margin: 24px 0;
   overflow: hidden;
-  box-shadow: 4px 4px 0 var(--border);
+  box-shadow: var(--shadow-md);
 }
 
 .cpub-parts-header {
@@ -91,7 +91,7 @@ const totalPrice = computed(() => {
 
 .cpub-parts-table td {
   padding: 10px 12px;
-  border-bottom: 1px solid var(--border2);
+  border-bottom: 2px solid var(--border2);
   font-size: 13px;
   color: var(--text-dim);
 }

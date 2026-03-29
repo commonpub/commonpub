@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { markdownToBlockTuples } from '@commonpub/editor';
+import type { BlockTuple } from '@commonpub/editor';
 
 const props = defineProps<{
   content: { source: string };
@@ -8,6 +9,14 @@ const props = defineProps<{
 const emit = defineEmits<{
   update: [content: { source: string }];
 }>();
+
+/** Type-safe block content accessors — cast content to record for dynamic key access */
+function bStr(block: BlockTuple, key: string): string {
+  return String((block[1] as Record<string, unknown>)[key] ?? '');
+}
+function bNum(block: BlockTuple, key: string): number {
+  return Number((block[1] as Record<string, unknown>)[key]) || 0;
+}
 
 const viewMode = ref<'edit' | 'split' | 'preview'>('split');
 const source = ref(props.content.source || '');
@@ -74,28 +83,28 @@ onUnmounted(() => {
         <div v-else class="md-block-preview-blocks">
           <div v-for="(block, i) in previewBlocks" :key="i" class="md-preview-block">
             <template v-if="block[0] === 'heading'">
-              <component :is="`h${(block[1] as any).level}`" class="md-preview-heading">
-                {{ (block[1] as any).text }}
+              <component :is="`h${bNum(block, 'level')}`" class="md-preview-heading">
+                {{ bStr(block, 'text') }}
               </component>
             </template>
             <template v-else-if="block[0] === 'text'">
-              <div class="md-preview-text" v-html="(block[1] as any).html" />
+              <div class="md-preview-text" v-html="bStr(block, 'html')" />
             </template>
             <template v-else-if="block[0] === 'code'">
-              <pre class="md-preview-code"><code>{{ (block[1] as any).code }}</code></pre>
+              <pre class="md-preview-code"><code>{{ bStr(block, 'code') }}</code></pre>
             </template>
             <template v-else-if="block[0] === 'image'">
               <figure class="md-preview-figure">
-                <img :src="(block[1] as any).src" :alt="(block[1] as any).alt" />
+                <img :src="bStr(block, 'src')" :alt="bStr(block, 'alt')" />
               </figure>
             </template>
             <template v-else-if="block[0] === 'callout'">
-              <div :class="['md-preview-callout', `md-callout--${(block[1] as any).variant}`]">
-                <div v-html="(block[1] as any).html" />
+              <div :class="['md-preview-callout', `md-callout--${bStr(block, 'variant')}`]">
+                <div v-html="bStr(block, 'html')" />
               </div>
             </template>
             <template v-else-if="block[0] === 'quote'">
-              <blockquote class="md-preview-quote" v-html="(block[1] as any).html" />
+              <blockquote class="md-preview-quote" v-html="bStr(block, 'html')" />
             </template>
             <template v-else-if="block[0] === 'divider'">
               <hr class="md-preview-hr" />
@@ -112,8 +121,8 @@ onUnmounted(() => {
 
 <style scoped>
 .md-block {
-  border: 1px solid var(--border);
-  border-radius: 10px;
+  border: 2px solid var(--border);
+  border-radius: 0;
   background: var(--surface);
   overflow: hidden;
 }
@@ -124,7 +133,7 @@ onUnmounted(() => {
   justify-content: space-between;
   padding: 6px 12px;
   background: var(--surface2);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 2px solid var(--border);
 }
 
 .md-block-label {
@@ -140,14 +149,14 @@ onUnmounted(() => {
   display: flex;
   gap: 2px;
   background: var(--surface3);
-  border-radius: 6px;
+  border-radius: 0;
   padding: 2px;
 }
 
 .md-block-modes button {
   padding: 3px 8px;
   border: none;
-  border-radius: 4px;
+  border-radius: 0;
   background: none;
   color: var(--text-faint);
   cursor: pointer;
@@ -167,7 +176,7 @@ onUnmounted(() => {
 
 .md-block--edit .md-block-editor { flex: 1; }
 .md-block--preview .md-block-preview { flex: 1; }
-.md-block--split .md-block-editor { flex: 1; border-right: 1px solid var(--border); }
+.md-block--split .md-block-editor { flex: 1; border-right: 2px solid var(--border); }
 .md-block--split .md-block-preview { flex: 1; }
 
 .md-block-textarea {
@@ -210,18 +219,18 @@ onUnmounted(() => {
 .md-preview-text { margin-bottom: 8px; }
 .md-preview-code {
   background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: 6px;
+  border: 2px solid var(--border);
+  border-radius: 0;
   padding: 10px;
   font-family: var(--font-mono);
   font-size: 11px;
   overflow-x: auto;
   margin-bottom: 8px;
 }
-.md-preview-figure img { max-width: 100%; border-radius: 6px; }
+.md-preview-figure img { max-width: 100%; border-radius: 0; }
 .md-preview-callout {
   padding: 10px 12px;
-  border-radius: 6px;
+  border-radius: 0;
   border-left: 3px solid;
   margin-bottom: 8px;
   font-size: 12px;
@@ -237,11 +246,11 @@ onUnmounted(() => {
   font-style: italic;
   margin-bottom: 8px;
 }
-.md-preview-hr { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
+.md-preview-hr { border: none; border-top: 2px solid var(--border); margin: 12px 0; }
 .md-preview-unknown {
   padding: 6px 10px;
   background: var(--surface2);
-  border-radius: 4px;
+  border-radius: 0;
   font-size: 11px;
   color: var(--text-faint);
   margin-bottom: 8px;

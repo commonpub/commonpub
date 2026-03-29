@@ -136,6 +136,7 @@ function onDragEnd(event: DragEvent): void {
 
 /* Block controls — top-right, offset above the block */
 .cpub-block-controls {
+  --ctrl-surface: rgba(255, 255, 255, 0.15);
   position: absolute;
   top: -30px;
   right: 0;
@@ -169,7 +170,7 @@ function onDragEnd(event: DragEvent): void {
 }
 
 .cpub-block-ctrl:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--ctrl-surface);
   color: var(--surface);
 }
 

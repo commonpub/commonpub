@@ -5,8 +5,9 @@ definePageMeta({ layout: false, middleware: 'auth' });
 const route = useRoute();
 const contentType = computed(() => route.params.type as string);
 const slug = computed(() => route.params.slug as string);
-/** Track whether this is a new content creation (starts true for /new, becomes false after first save) */
 const isNew = ref(slug.value === 'new');
+const showStarterForm = ref(isNew.value);
+const starterSaving = ref(false);
 
 useSeoMeta({
   title: () => isNew.value ? `New ${contentType.value} — CommonPub` : `Edit — CommonPub`,
@@ -20,28 +21,55 @@ const metadata = ref<Record<string, unknown>>({
   visibility: 'public',
   coverImageUrl: '',
 });
-const saving = ref(false);
-const error = ref('');
 const isDirty = ref(false);
 const { extract: extractError } = useApiError();
 const mode = ref<'write' | 'preview' | 'code'>('write');
 const contentId = ref<string | null>(null);
 
-// --- Block editor composable ---
+// --- Block editor ---
 const blockEditor = useBlockEditor();
 
-// Specialized editor component map
+// --- Content save composable ---
+const {
+  saving,
+  error,
+  autoSaveStatus,
+  silentSave,
+  handlePublish: doPublish,
+  buildSaveBody,
+  cancelAutoSave,
+  initAutoSave,
+  cleanup,
+} = useContentSave({
+  contentType,
+  title,
+  metadata,
+  isNew,
+  contentId,
+  isDirty,
+  getBlockTuples: () => blockEditor.toBlockTuples(),
+  extractError,
+  onAfterSave: syncBOM,
+});
+
+// --- Publish validation ---
+const { errors: publishErrors, showErrors: showPublishErrors, validate, dismiss: dismissPublishErrors } = usePublishValidation({
+  title,
+  metadata,
+  getBlockTuples: () => blockEditor.toBlockTuples(),
+});
+
+// --- Specialized editor component map ---
 const editorMap: Record<string, Component> = {
   article: resolveComponent('EditorsArticleEditor') as Component,
   blog: resolveComponent('EditorsBlogEditor') as Component,
   explainer: resolveComponent('EditorsExplainerEditor') as Component,
   project: resolveComponent('EditorsProjectEditor') as Component,
 };
-
 const editorComponent = computed<Component | null>(() => editorMap[contentType.value] ?? null);
 const hasSpecializedEditor = computed(() => editorComponent.value !== null);
 
-// Load existing content for editing — pass cookies so SSR can auth the user (drafts are author-only)
+// --- Load existing content ---
 const requestHeaders = import.meta.server ? useRequestHeaders(['cookie']) : {};
 if (!isNew.value) {
   const { data } = await useFetch(() => `/api/content/${slug.value}`, { headers: requestHeaders });
@@ -71,13 +99,22 @@ if (!isNew.value) {
   }
 }
 
-// Track dirty state from block changes
-watch(() => blockEditor.blocks.value, () => {
-  isDirty.value = true;
-}, { deep: true });
+// --- Auto-generate slug from title ---
+const slugManuallyEdited = ref(false);
+function slugify(text: string): string {
+  return text.toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').slice(0, 128);
+}
+watch(title, (newTitle) => {
+  if (!slugManuallyEdited.value && isNew.value) {
+    metadata.value = { ...metadata.value, slug: slugify(newTitle) };
+  }
+});
+
+// --- Dirty tracking + autosave ---
+watch(() => blockEditor.blocks.value, () => { isDirty.value = true; }, { deep: true });
+initAutoSave([() => blockEditor.blocks.value, title, metadata]);
 
 function handleMetadataUpdate(newMetadata: Record<string, unknown>): void {
-  // Blog editor manages title in canvas — sync it back to topbar
   if (newMetadata.title !== undefined && typeof newMetadata.title === 'string') {
     title.value = newMetadata.title;
     delete newMetadata.title;
@@ -86,198 +123,77 @@ function handleMetadataUpdate(newMetadata: Record<string, unknown>): void {
   isDirty.value = true;
 }
 
-// --- BOM sync (content-products join table) ---
-/** Extract productIds from block data and sync with the content-products table */
+// --- BOM sync ---
 async function syncBOM(id: string): Promise<void> {
   const blocks = blockEditor.toBlockTuples();
   const productItems: Array<{ productId: string; quantity: number; notes?: string }> = [];
-
   for (const [type, content] of blocks) {
     if (type === 'partsList' && Array.isArray(content.parts)) {
       for (const part of content.parts as Array<{ productId?: string; qty?: number; notes?: string }>) {
         if (part.productId) {
-          productItems.push({
-            productId: part.productId,
-            quantity: part.qty ?? 1,
-            notes: part.notes,
-          });
+          productItems.push({ productId: part.productId, quantity: part.qty ?? 1, notes: part.notes });
         }
       }
     }
   }
-
-  // Only sync if there are product links (avoid clearing on non-project types)
   if (productItems.length > 0 || contentType.value === 'project') {
-    await $fetch(`/api/content/${id}/products-sync`, {
-      method: 'POST',
-      body: { items: productItems },
-    }).catch(() => {
-      // Non-critical — don't fail the save
-    });
+    await $fetch(`/api/content/${id}/products-sync`, { method: 'POST', body: { items: productItems } }).catch(() => {});
   }
 }
 
-// --- Auto-save ---
-const autoSaveStatus = ref<'idle' | 'saving' | 'saved' | 'error'>('idle');
-let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
-const AUTO_SAVE_DELAY = 30_000; // 30 seconds
-
-function scheduleAutoSave(): void {
-  if (autoSaveTimer) clearTimeout(autoSaveTimer);
-  autoSaveTimer = setTimeout(async () => {
-    if (!isDirty.value || saving.value || isNew.value || !contentId.value || !title.value) return;
-    await silentSave();
-  }, AUTO_SAVE_DELAY);
-}
-
-// Watch for changes and schedule auto-save
-watch([() => blockEditor.blocks.value, title, metadata], () => {
-  if (!isNew.value && contentId.value) {
-    scheduleAutoSave();
-  }
-}, { deep: true });
-
-/** Build a clean save body from editor state, stripping empty strings and unknown fields */
-function buildSaveBody(): Record<string, unknown> {
-  const body: Record<string, unknown> = {
-    type: contentType.value,
-    title: title.value,
-    content: blockEditor.toBlockTuples(),
-    ...metadata.value,
-  };
-
-  // Remove client-only keys that don't belong in the API payload
-  delete body.slug;
-
-  // Strip empty strings — Zod URL validators reject ''
-  for (const key of Object.keys(body)) {
-    if (body[key] === '') body[key] = undefined;
-  }
-
-  return body;
-}
-
-/** Save without navigating away — used by Save Draft button, auto-save, and Ctrl+S */
-async function silentSave(): Promise<void> {
-  if (saving.value) return;
-  if (!title.value) {
-    error.value = 'Please enter a title before saving.';
-    return;
-  }
-  // Guard: if not new but no contentId, we can't PUT — treat as new creation
-  if (!isNew.value && !contentId.value) {
-    isNew.value = true;
-  }
-  saving.value = true;
-  autoSaveStatus.value = 'saving';
+// --- Starter form submit ---
+async function handleStarterSubmit(): Promise<void> {
+  if (!title.value.trim()) { error.value = 'Title is required'; return; }
+  starterSaving.value = true;
   error.value = '';
-
   try {
     const body = buildSaveBody();
-
-    if (isNew.value) {
-      const result = await $fetch<{ id: string; slug: string }>('/api/content', { method: 'POST', body });
-      contentId.value = result.id;
-      isNew.value = false; // Now subsequent saves will PUT instead of POST
-      isDirty.value = false;
-      autoSaveStatus.value = 'saved';
-      await syncBOM(result.id);
-      // Update the URL without full navigation so we can keep editing
-      history.replaceState({}, '', `/${contentType.value}/${result.slug}/edit`);
-    } else {
-      const updated = await $fetch<{ slug: string }>(`/api/content/${contentId.value}`, { method: 'PUT', body });
-      isDirty.value = false;
-      autoSaveStatus.value = 'saved';
-      await syncBOM(contentId.value!);
-      // Update URL if slug changed (title change triggers slug regeneration)
-      if (updated?.slug) {
-        history.replaceState({}, '', `/${contentType.value}/${updated.slug}/edit`);
-      }
-    }
-
-    // Reset status after a few seconds
-    setTimeout(() => {
-      if (autoSaveStatus.value === 'saved') autoSaveStatus.value = 'idle';
-    }, 3000);
-  } catch (err: unknown) {
-    error.value = extractError(err);
-    autoSaveStatus.value = 'error';
-  } finally {
-    saving.value = false;
-  }
-}
-
-async function handleSave(): Promise<void> {
-  if (saving.value || !title.value) return;
-  // Cancel any pending auto-save to prevent overlap
-  if (autoSaveTimer) { clearTimeout(autoSaveTimer); autoSaveTimer = null; }
-  // Guard: if not new but no contentId, treat as new creation
-  if (!isNew.value && !contentId.value) {
-    isNew.value = true;
-  }
-  saving.value = true;
-  error.value = '';
-
-  try {
-    const body = buildSaveBody();
-
-    if (isNew.value) {
-      const result = await $fetch<{ id: string; slug: string }>('/api/content', { method: 'POST', body });
-      contentId.value = result.id;
-      isNew.value = false;
-      isDirty.value = false;
-      await syncBOM(result.id);
-      await navigateTo(`/${contentType.value}/${result.slug}`);
-    } else {
-      await $fetch(`/api/content/${contentId.value}`, { method: 'PUT', body });
-      isDirty.value = false;
-      await syncBOM(contentId.value!);
-      await navigateTo(`/${contentType.value}/${slug.value}`);
-    }
+    const result = await $fetch<{ id: string; slug: string }>('/api/content', { method: 'POST', body });
+    contentId.value = result.id;
+    isNew.value = false;
+    isDirty.value = false;
+    showStarterForm.value = false;
+    history.replaceState({}, '', `/${contentType.value}/${result.slug}/edit`);
   } catch (err: unknown) {
     error.value = extractError(err);
   } finally {
-    saving.value = false;
+    starterSaving.value = false;
   }
 }
 
-// --- Enter preview (save in background, show immediately) ---
+// --- Publish with validation ---
+async function handlePublish(): Promise<void> {
+  await doPublish(validate);
+}
+
+// --- Preview mode ---
 function enterPreview(): void {
   mode.value = 'preview';
-  // Fire-and-forget save so the draft is persisted as a checkpoint
   if (isDirty.value && title.value && !saving.value && !isNew.value && contentId.value) {
-    if (autoSaveTimer) { clearTimeout(autoSaveTimer); autoSaveTimer = null; }
+    cancelAutoSave();
     silentSave();
   }
 }
 
-// --- Ctrl+S keyboard shortcut ---
+// --- Keyboard shortcuts ---
 function onKeydown(event: KeyboardEvent): void {
   if ((event.metaKey || event.ctrlKey) && event.key === 's') {
     event.preventDefault();
-    // Cancel pending auto-save so Ctrl+S doesn't race with it
-    if (autoSaveTimer) { clearTimeout(autoSaveTimer); autoSaveTimer = null; }
+    cancelAutoSave();
     silentSave();
   }
-  // Escape closes explainer preview overlay
   if (event.key === 'Escape' && mode.value === 'preview' && contentType.value === 'explainer') {
     mode.value = 'write';
   }
 }
 
 onMounted(() => { document.addEventListener('keydown', onKeydown); });
-onUnmounted(() => {
-  document.removeEventListener('keydown', onKeydown);
-  if (autoSaveTimer) clearTimeout(autoSaveTimer);
-});
+onUnmounted(() => { document.removeEventListener('keydown', onKeydown); cleanup(); });
 
-// --- Warn before unload if dirty ---
+// --- Warn before unload ---
 function onBeforeUnload(event: BeforeUnloadEvent): void {
-  if (isDirty.value) {
-    event.preventDefault();
-  }
+  if (isDirty.value) event.preventDefault();
 }
-
 if (import.meta.client) {
   onMounted(() => { window.addEventListener('beforeunload', onBeforeUnload); });
   onUnmounted(() => { window.removeEventListener('beforeunload', onBeforeUnload); });
@@ -285,67 +201,31 @@ if (import.meta.client) {
 
 // --- Markdown import ---
 const showImportDialog = ref(false);
-const { importing, importMarkdown } = useMarkdownImport(blockEditor as any);
+const { importing, importMarkdown } = useMarkdownImport(blockEditor);
 
 async function handleMarkdownImport(md: string, importMode: 'append' | 'replace'): Promise<void> {
   await importMarkdown(md, importMode);
   isDirty.value = true;
 }
-
-async function handlePublish(): Promise<void> {
-  if (saving.value || !title.value) return;
-  // Cancel any pending auto-save to prevent overlap
-  if (autoSaveTimer) { clearTimeout(autoSaveTimer); autoSaveTimer = null; }
-  saving.value = true;
-  error.value = '';
-
-  try {
-    const body = buildSaveBody();
-    let resultSlug = slug.value;
-
-    if (isNew.value || !contentId.value) {
-      const result = await $fetch<{ id: string; slug: string }>('/api/content', { method: 'POST', body });
-      contentId.value = result.id;
-      isNew.value = false;
-      resultSlug = result.slug;
-      await syncBOM(result.id);
-    } else {
-      const updated = await $fetch<{ slug: string }>(`/api/content/${contentId.value}`, { method: 'PUT', body });
-      if (updated?.slug) resultSlug = updated.slug;
-      await syncBOM(contentId.value);
-    }
-
-    // Now publish — content is saved, we have a valid contentId
-    await $fetch(`/api/content/${contentId.value}/publish`, { method: 'POST' });
-
-    // Share to hub if one is selected in metadata
-    const hubSlug = metadata.value?.hubSlug as string | undefined;
-    if (hubSlug && contentId.value) {
-      try {
-        await $fetch(`/api/hubs/${hubSlug}/share`, {
-          method: 'POST',
-          body: { contentId: contentId.value },
-        });
-      } catch {
-        // Non-fatal: content is published even if hub share fails
-        console.warn(`[publish] Failed to share to hub ${hubSlug}`);
-      }
-    }
-
-    isDirty.value = false;
-
-    // Navigate to the published content view
-    await navigateTo(`/${contentType.value}/${resultSlug}`);
-  } catch (err: unknown) {
-    error.value = extractError(err);
-  } finally {
-    saving.value = false;
-  }
-}
 </script>
 
 <template>
-  <div class="cpub-editor-layout">
+  <!-- Starter form for new content -->
+  <ContentStarterForm
+    v-if="showStarterForm"
+    :content-type="contentType"
+    :title="title"
+    :metadata="metadata"
+    :saving="starterSaving"
+    :error="error"
+    @update:title="title = $event"
+    @update:metadata="metadata = $event"
+    @submit="handleStarterSubmit"
+  />
+
+  <!-- Main editor -->
+  <div v-else class="cpub-editor-layout">
+    <PublishErrorsModal :errors="publishErrors" :show="showPublishErrors" @dismiss="dismissPublishErrors" />
     <EditorsMarkdownImportDialog :show="showImportDialog" @close="showImportDialog = false" @import="handleMarkdownImport" />
     <!-- Top bar -->
     <header class="cpub-editor-topbar">
@@ -382,8 +262,8 @@ async function handlePublish(): Promise<void> {
       </div>
       <div class="cpub-topbar-spacer" />
       <div class="cpub-topbar-actions">
-        <button class="cpub-topbar-btn" :disabled="importing" @click="showImportDialog = true" title="Import Markdown">
-          <i class="fa-brands fa-markdown"></i>
+        <button class="cpub-topbar-btn cpub-topbar-btn-import" :disabled="importing" @click="showImportDialog = true" title="Import Markdown">
+          <i class="fa-brands fa-markdown"></i> <span class="cpub-import-label">Import</span>
         </button>
         <button class="cpub-topbar-btn" :disabled="saving || !title" @click="silentSave">
           {{ saving ? 'Saving...' : 'Save Draft' }}
@@ -492,7 +372,7 @@ async function handlePublish(): Promise<void> {
 .cpub-editor-topbar {
   height: 48px;
   background: var(--surface);
-  border-bottom: var(--border-width-default, 2px) solid var(--border);
+  border-bottom: 2px solid var(--border);
   display: flex;
   align-items: center;
   padding: 0 16px;
@@ -606,7 +486,7 @@ async function handlePublish(): Promise<void> {
 .cpub-mode-tab.active {
   background: var(--surface);
   color: var(--text);
-  box-shadow: 2px 2px 0 var(--border);
+  box-shadow: var(--shadow-sm);
 }
 .cpub-mode-tab:hover:not(.active) { color: var(--text); }
 
@@ -634,9 +514,11 @@ async function handlePublish(): Promise<void> {
   background: var(--accent);
   color: var(--color-text-inverse);
   font-weight: 600;
-  box-shadow: 4px 4px 0 var(--border);
+  box-shadow: var(--shadow-md);
 }
-.cpub-topbar-btn-primary:hover { box-shadow: 2px 2px 0 var(--border); }
+.cpub-topbar-btn-primary:hover { box-shadow: var(--shadow-sm); }
+.cpub-topbar-btn-import { border-color: var(--teal); color: var(--teal); }
+.cpub-topbar-btn-import:hover { background: var(--teal-bg, var(--surface2)); }
 
 .cpub-editor-error {
   padding: 10px 16px;
@@ -718,6 +600,35 @@ async function handlePublish(): Promise<void> {
 .cpub-hidden {
   display: none;
 }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 768px) {
+  .cpub-editor-topbar { padding: 0 10px; gap: 0; }
+  .cpub-editor-logo { display: none; }
+  .cpub-topbar-divider { display: none; }
+  .cpub-editor-back { margin-left: 0; }
+  .cpub-topbar-title-input { max-width: none; font-size: 12px; padding: 3px 6px; }
+  .cpub-autosave-status { display: none; }
+  .cpub-mode-tabs { margin: 0 6px; padding: 1px; }
+  .cpub-mode-tab { padding: 4px 10px; font-size: 10px; }
+  .cpub-topbar-spacer { display: none; }
+  .cpub-topbar-actions { gap: 4px; }
+  .cpub-topbar-btn { font-size: 11px; padding: 8px 10px; min-height: 36px; }
+  .cpub-import-label { display: none; }
+  .cpub-editor-canvas { padding: 12px; }
+  .cpub-preview-canvas { padding: 16px; }
+  .cpub-preview-title { font-size: 22px; }
+  .cpub-code-canvas { padding: 10px; }
+  .cpub-code-view { font-size: 11px; }
+}
+
+@media (max-width: 480px) {
+  .cpub-mode-tabs { margin: 0 4px; }
+  .cpub-mode-tab { padding: 4px 8px; font-size: 9px; }
+  .cpub-topbar-btn { padding: 6px 8px; font-size: 10px; min-height: 34px; }
+  .cpub-editor-back { width: 34px; height: 34px; }
+  .cpub-preview-title { font-size: 18px; }
+}
 </style>
 
 <style>
@@ -747,12 +658,12 @@ async function handlePublish(): Promise<void> {
   font-weight: 600;
   letter-spacing: 0.04em;
   cursor: pointer;
-  box-shadow: 4px 4px 0 var(--border);
+  box-shadow: var(--shadow-md);
   transition: box-shadow 0.1s, transform 0.1s;
 }
 
 .cpub-preview-close-btn:hover {
-  box-shadow: 2px 2px 0 var(--border);
+  box-shadow: var(--shadow-sm);
   transform: translate(1px, 1px);
   background: var(--surface2);
 }

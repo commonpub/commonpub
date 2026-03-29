@@ -66,13 +66,13 @@ function getDateStr(weekIdx: number, dayIdx: number): string {
 .cpub-heatmap-cell {
   width: 10px;
   height: 10px;
-  border: 1px solid var(--border2);
+  border: 2px solid var(--border2);
 }
 
 .cpub-heatmap-cell[data-level="0"] { background: var(--surface2); }
-.cpub-heatmap-cell[data-level="1"] { background: rgba(91, 156, 246, 0.2); border-color: rgba(91, 156, 246, 0.3); }
-.cpub-heatmap-cell[data-level="2"] { background: rgba(91, 156, 246, 0.4); border-color: rgba(91, 156, 246, 0.5); }
-.cpub-heatmap-cell[data-level="3"] { background: rgba(91, 156, 246, 0.6); border-color: rgba(91, 156, 246, 0.7); }
+.cpub-heatmap-cell[data-level="1"] { background: var(--accent-bg-strong); border-color: var(--accent-border); }
+.cpub-heatmap-cell[data-level="2"] { background: var(--accent-bg-heavy); border-color: var(--accent-border); }
+.cpub-heatmap-cell[data-level="3"] { background: var(--accent-bg-solid); border-color: var(--accent-bg-solid); }
 .cpub-heatmap-cell[data-level="4"] { background: var(--accent); border-color: var(--accent); }
 
 .cpub-heatmap-legend {

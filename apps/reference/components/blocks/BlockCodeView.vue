@@ -178,7 +178,7 @@ pre.hljs .hljs-title.class_ { color: #ffa657; }
   font-size: 10px;
   color: #8b949e;
   background: transparent;
-  border: 1px solid #30363d;
+  border: 2px solid #30363d;
   padding: 3px 8px;
   cursor: pointer;
   display: flex;

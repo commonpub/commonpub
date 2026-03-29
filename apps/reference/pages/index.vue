@@ -209,6 +209,15 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
           </div>
         </article>
 
+        <!-- Active Contest Banner (compact, below hero) -->
+        <NuxtLink v-if="contestsEnabled && activeContest" :to="`/contests/${activeContest.slug}`" class="cpub-contest-banner">
+          <div class="cpub-contest-banner-info">
+            <span class="cpub-contest-banner-label"><i class="fa-solid fa-trophy"></i> {{ activeContest.title }}</span>
+            <span class="cpub-contest-banner-meta">{{ activeContest.entryCount ?? 0 }} entries<template v-if="activeContest.endDate"> &middot; Ends {{ new Date(activeContest.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) }}</template></span>
+          </div>
+          <span class="cpub-contest-banner-btn">Enter Challenge <i class="fa-solid fa-arrow-right"></i></span>
+        </NuxtLink>
+
         <!-- Content grid (2-col) -->
         <div v-if="feed?.items?.length" class="cpub-content-grid">
           <ContentCard v-for="item in feed.items" :key="item.id" :item="item" />
@@ -516,7 +525,7 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
   border: 2px solid var(--border);
   overflow: hidden;
   margin-bottom: 24px;
-  box-shadow: 4px 4px 0 var(--border);
+  box-shadow: var(--shadow-md);
 }
 
 .cpub-featured-thumb {
@@ -622,6 +631,64 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
 
 .cpub-stat-item i { font-size: 10px; }
 
+/* ─── CONTEST BANNER ─── */
+.cpub-contest-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: var(--accent-bg);
+  border: 2px solid var(--accent);
+  padding: 14px 18px;
+  margin-bottom: 20px;
+  text-decoration: none;
+  color: var(--text);
+  transition: box-shadow 0.15s, transform 0.15s;
+}
+.cpub-contest-banner:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-md);
+}
+.cpub-contest-banner-info { flex: 1; min-width: 0; }
+.cpub-contest-banner-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--text);
+}
+.cpub-contest-banner-label i {
+  color: var(--accent);
+  margin-right: 4px;
+}
+.cpub-contest-banner-meta {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  color: var(--text-dim);
+  letter-spacing: 0.02em;
+}
+.cpub-contest-banner-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 8px 14px;
+  background: var(--accent);
+  color: var(--color-text-inverse);
+  border: 2px solid var(--accent);
+  white-space: nowrap;
+  flex-shrink: 0;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.15s, transform 0.15s;
+}
+.cpub-contest-banner:hover .cpub-contest-banner-btn {
+  box-shadow: none;
+  transform: translate(2px, 2px);
+}
+
 /* ─── CONTENT GRID ─── */
 .cpub-content-grid {
   display: grid;
@@ -648,14 +715,14 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
   align-items: center;
   gap: 8px;
   transition: all 0.15s;
-  box-shadow: 2px 2px 0 var(--border);
+  box-shadow: var(--shadow-sm);
   cursor: pointer;
 }
 
 .cpub-btn-load-more:hover {
   background: var(--surface2);
   color: var(--text);
-  box-shadow: 4px 4px 0 var(--border);
+  box-shadow: var(--shadow-md);
   transform: translate(-1px, -1px);
 }
 
@@ -723,7 +790,7 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
 /* Contest items */
 .cpub-contest-item {
   padding: 10px 0;
-  border-bottom: 1px solid var(--border2);
+  border-bottom: 2px solid var(--border2);
 }
 
 .cpub-contest-item:last-child { border-bottom: none; padding-bottom: 0; }
@@ -783,7 +850,7 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
   background: var(--accent);
   color: var(--color-text-inverse);
   border-color: var(--border);
-  box-shadow: 2px 2px 0 var(--border);
+  box-shadow: var(--shadow-sm);
 }
 
 /* Hub items */
@@ -792,7 +859,7 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
   align-items: center;
   gap: 10px;
   padding: 8px 0;
-  border-bottom: 1px solid var(--border2);
+  border-bottom: 2px solid var(--border2);
 }
 
 .cpub-hub-item:last-child { border-bottom: none; padding-bottom: 0; }
@@ -845,7 +912,7 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
 .cpub-btn-join:hover {
   border-color: var(--accent);
   color: var(--accent);
-  box-shadow: 2px 2px 0 var(--border);
+  box-shadow: var(--shadow-sm);
 }
 
 .cpub-btn-joined {

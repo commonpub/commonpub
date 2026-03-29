@@ -395,14 +395,14 @@ const { data: relatedCommunities } = await useFetch('/api/hubs', {
 /* ── SEARCH HERO ── */
 .cpub-search-hero {
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
+  border: 2px solid var(--border);
+  border-radius: 0;
   padding: 32px 32px 0;
   box-shadow: var(--shadow-sm);
 }
 
 .cpub-search-hero.panel-open {
-  border-bottom: 1px solid var(--border);
+  border-bottom: 2px solid var(--border);
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
 }
@@ -444,8 +444,8 @@ const { data: relatedCommunities } = await useFetch('/api/hubs', {
 .cpub-search-input-main {
   width: 100%;
   background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  border: 2px solid var(--border);
+  border-radius: 0;
   padding: 12px 48px 12px 46px;
   font-size: 15px;
   font-weight: 500;
@@ -457,7 +457,7 @@ const { data: relatedCommunities } = await useFetch('/api/hubs', {
 
 .cpub-search-input-main:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(0, 231, 173, 0.12);
+  box-shadow: var(--accent-focus-ring);
 }
 
 .cpub-search-input-main::placeholder { color: var(--text-faint); }
@@ -471,8 +471,8 @@ const { data: relatedCommunities } = await useFetch('/api/hubs', {
   font-size: 10px;
   color: var(--text-faint);
   background: var(--surface3);
-  border: 1px solid var(--border);
-  border-radius: 4px;
+  border: 2px solid var(--border);
+  border-radius: 0;
   padding: 2px 6px;
 }
 
@@ -500,7 +500,7 @@ const { data: relatedCommunities } = await useFetch('/api/hubs', {
   display: flex;
   align-items: center;
   gap: 0;
-  border-top: 1px solid var(--border);
+  border-top: 2px solid var(--border);
   margin-top: 14px;
   padding-top: 0;
   overflow-x: auto;
@@ -546,8 +546,8 @@ const { data: relatedCommunities } = await useFetch('/api/hubs', {
 
 .cpub-sort-select {
   background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: 6px;
+  border: 2px solid var(--border);
+  border-radius: 0;
   color: var(--text-dim);
   font-size: 11px;
   font-family: var(--font-mono);
@@ -566,8 +566,8 @@ const { data: relatedCommunities } = await useFetch('/api/hubs', {
   font-size: 11px;
   font-family: var(--font-mono);
   padding: 5px 12px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
+  border: 2px solid var(--border);
+  border-radius: 0;
   background: var(--surface2);
   color: var(--text-dim);
   cursor: pointer;
@@ -626,8 +626,8 @@ const { data: relatedCommunities } = await useFetch('/api/hubs', {
 .cpub-view-toggle {
   margin-left: auto;
   display: flex;
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  border: 2px solid var(--border);
+  border-radius: 0;
   overflow: hidden;
 }
 
@@ -638,7 +638,7 @@ const { data: relatedCommunities } = await useFetch('/api/hubs', {
   color: var(--text-faint);
   cursor: pointer;
   font-size: 12px;
-  border-right: 1px solid var(--border);
+  border-right: 2px solid var(--border);
   transition: color 0.15s, background 0.15s;
 }
 

@@ -75,7 +75,15 @@ async function copyCode(): Promise<void> {
 </template>
 
 <style scoped>
+/* Dark code editor context — scoped white-on-dark tokens */
 .cpub-code-block {
+  --code-fg-faint: rgba(255, 255, 255, 0.2);
+  --code-fg-dim: rgba(255, 255, 255, 0.5);
+  --code-fg: rgba(255, 255, 255, 0.8);
+  --code-border: rgba(255, 255, 255, 0.15);
+  --code-surface: rgba(255, 255, 255, 0.08);
+  --code-surface-dim: rgba(255, 255, 255, 0.04);
+
   background: var(--text);
   border: 2px solid var(--border);
   overflow: hidden;
@@ -86,8 +94,8 @@ async function copyCode(): Promise<void> {
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
-  background: rgba(255, 255, 255, 0.04);
-  border-bottom: 2px solid rgba(255, 255, 255, 0.08);
+  background: var(--code-surface-dim);
+  border-bottom: 2px solid var(--code-surface);
 }
 
 .cpub-code-lang {
@@ -123,15 +131,15 @@ async function copyCode(): Promise<void> {
 }
 
 .cpub-code-filename::placeholder {
-  color: rgba(255, 255, 255, 0.2);
+  color: var(--code-fg-faint);
 }
 
 .cpub-code-copy {
   font-family: var(--font-mono);
   font-size: 10px;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--code-fg-dim);
   background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 2px solid var(--code-border);
   padding: 3px 8px;
   cursor: pointer;
   display: flex;
@@ -142,8 +150,8 @@ async function copyCode(): Promise<void> {
 }
 
 .cpub-code-copy:hover {
-  color: rgba(255, 255, 255, 0.8);
-  background: rgba(255, 255, 255, 0.08);
+  color: var(--code-fg);
+  background: var(--code-surface);
 }
 
 .cpub-code-body {
@@ -164,6 +172,6 @@ async function copyCode(): Promise<void> {
 }
 
 .cpub-code-body::placeholder {
-  color: rgba(255, 255, 255, 0.2);
+  color: var(--code-fg-faint);
 }
 </style>

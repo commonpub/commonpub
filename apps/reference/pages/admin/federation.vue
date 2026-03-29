@@ -162,7 +162,7 @@ async function deleteMirror(id: string) {
 .cpub-fed-stat {
   padding: 16px; background: var(--surface); border: 2px solid var(--border);
   display: flex; flex-direction: column; align-items: center; gap: 4px;
-  box-shadow: 4px 4px 0 var(--border);
+  box-shadow: var(--shadow-md);
 }
 .cpub-fed-stat-val { font-size: 1.5rem; font-weight: 700; font-family: var(--font-mono); }
 .cpub-fed-stat-label {
@@ -199,14 +199,14 @@ async function deleteMirror(id: string) {
 .cpub-fed-btn-sm {
   padding: 2px 8px; font-family: var(--font-mono); font-size: 10px; font-weight: 600;
   text-transform: uppercase; cursor: pointer; background: transparent;
-  border: 1px solid var(--border); color: var(--text-dim);
+  border: 2px solid var(--border); color: var(--text-dim);
 }
 .cpub-fed-btn-sm:hover { border-color: var(--accent); color: var(--accent); }
 .cpub-fed-btn-danger:hover { border-color: var(--color-error); color: var(--color-error); }
 
 .cpub-fed-activity-list {
   border: 2px solid var(--border); overflow: hidden;
-  box-shadow: 4px 4px 0 var(--border);
+  box-shadow: var(--shadow-md);
 }
 .cpub-fed-empty { padding: 24px; text-align: center; color: var(--text-faint); font-size: 0.8125rem; }
 .cpub-fed-activity-row {

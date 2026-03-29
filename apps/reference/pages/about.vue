@@ -86,7 +86,7 @@ const { hubs: hubsEnabled, learning: learningEnabled, contests: contestsEnabled,
 
 .cpub-about-body { max-width: 1000px; margin: 0 auto; padding: 48px 32px; }
 .cpub-about-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 48px; }
-.cpub-about-card { background: var(--surface); border: 2px solid var(--border); padding: 24px; box-shadow: 4px 4px 0 var(--border); }
+.cpub-about-card { background: var(--surface); border: 2px solid var(--border); padding: 24px; box-shadow: var(--shadow-md); }
 .cpub-about-card-icon { font-size: 24px; color: var(--accent); margin-bottom: 12px; }
 .cpub-about-card h3 { font-size: 14px; font-weight: 600; margin-bottom: 8px; }
 .cpub-about-card p { font-size: 12px; color: var(--text-dim); line-height: 1.6; }

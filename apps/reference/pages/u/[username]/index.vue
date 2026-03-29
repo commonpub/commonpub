@@ -413,8 +413,8 @@ async function handleReport(): Promise<void> {
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px);
+    linear-gradient(var(--border2) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border2) 1px, transparent 1px);
   background-size: 40px 40px;
   opacity: 0.3;
 }
@@ -708,7 +708,7 @@ async function handleReport(): Promise<void> {
   gap: 10px;
   margin-bottom: 10px;
   padding-bottom: 10px;
-  border-bottom: 1px solid var(--border2);
+  border-bottom: 2px solid var(--border2);
 }
 
 .cpub-mini-project:last-child { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
@@ -732,23 +732,23 @@ async function handleReport(): Promise<void> {
 
 /* Certificates list */
 .cpub-cert-list { display: flex; flex-direction: column; gap: 8px; }
-.cpub-cert-card-profile { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border: 2px solid var(--border); background: var(--surface); text-decoration: none; color: var(--text); box-shadow: 4px 4px 0 var(--border); transition: box-shadow 0.15s, transform 0.15s; }
-.cpub-cert-card-profile:hover { box-shadow: 2px 2px 0 var(--border); transform: translate(1px, 1px); }
+.cpub-cert-card-profile { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border: 2px solid var(--border); background: var(--surface); text-decoration: none; color: var(--text); box-shadow: var(--shadow-md); transition: box-shadow 0.15s, transform 0.15s; }
+.cpub-cert-card-profile:hover { box-shadow: var(--shadow-sm); transform: translate(1px, 1px); }
 .cpub-cert-card-badge { width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--yellow); background: var(--yellow-bg); display: flex; align-items: center; justify-content: center; font-size: 18px; color: var(--yellow); flex-shrink: 0; }
 .cpub-cert-card-info { flex: 1; }
 .cpub-cert-card-path { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
 .cpub-cert-card-date { font-size: 11px; font-family: var(--font-mono); color: var(--text-faint); }
-.cpub-cert-card-code { font-size: 10px; font-family: var(--font-mono); color: var(--accent); background: var(--accent-bg); padding: 2px 8px; border: 1px solid var(--accent-border); flex-shrink: 0; }
+.cpub-cert-card-code { font-size: 10px; font-family: var(--font-mono); color: var(--accent); background: var(--accent-bg); padding: 2px 8px; border: 2px solid var(--accent-border); flex-shrink: 0; }
 
 /* Enrollment list */
 .cpub-enrollment-list { display: flex; flex-direction: column; gap: 8px; }
-.cpub-enrollment-card { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border: 2px solid var(--border); background: var(--surface); text-decoration: none; color: var(--text); box-shadow: 4px 4px 0 var(--border); transition: box-shadow 0.15s, transform 0.15s; }
-.cpub-enrollment-card:hover { box-shadow: 2px 2px 0 var(--border); transform: translate(1px, 1px); }
+.cpub-enrollment-card { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border: 2px solid var(--border); background: var(--surface); text-decoration: none; color: var(--text); box-shadow: var(--shadow-md); transition: box-shadow 0.15s, transform 0.15s; }
+.cpub-enrollment-card:hover { box-shadow: var(--shadow-sm); transform: translate(1px, 1px); }
 .cpub-enrollment-icon { width: 40px; height: 40px; border: 2px solid var(--border); background: var(--surface2); display: flex; align-items: center; justify-content: center; font-size: 16px; color: var(--accent); flex-shrink: 0; }
 .cpub-enrollment-info { flex: 1; }
 .cpub-enrollment-title { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
 .cpub-enrollment-progress-row { display: flex; align-items: center; gap: 8px; }
-.cpub-enrollment-bar { flex: 1; height: 4px; background: var(--surface3); border: 1px solid var(--border2); }
+.cpub-enrollment-bar { flex: 1; height: 4px; background: var(--surface3); border: 2px solid var(--border2); }
 .cpub-enrollment-fill { height: 100%; background: var(--accent); }
 .cpub-enrollment-pct { font-size: 11px; font-family: var(--font-mono); color: var(--accent); flex-shrink: 0; }
 
@@ -768,7 +768,7 @@ async function handleReport(): Promise<void> {
   right: 0;
   background: var(--surface);
   border: 2px solid var(--border);
-  box-shadow: 4px 4px 0 var(--border);
+  box-shadow: var(--shadow-md);
   z-index: 100;
   min-width: 140px;
 }

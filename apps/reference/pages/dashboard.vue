@@ -280,12 +280,12 @@ async function deleteItem(id: string, title: string): Promise<void> {
   font-size: 12px;
   font-weight: 600;
   text-decoration: none;
-  box-shadow: 4px 4px 0 var(--border);
+  box-shadow: var(--shadow-md);
   cursor: pointer;
 }
 
 .cpub-dash-create-btn:hover {
-  box-shadow: 2px 2px 0 var(--border);
+  box-shadow: var(--shadow-sm);
 }
 
 /* Stats */
@@ -393,7 +393,7 @@ async function deleteItem(id: string, title: string): Promise<void> {
   align-items: center;
   gap: 12px;
   padding: 10px 16px;
-  border-bottom: 1px solid var(--border2);
+  border-bottom: 2px solid var(--border2);
 }
 
 .cpub-dash-row:last-child {
@@ -476,7 +476,7 @@ async function deleteItem(id: string, title: string): Promise<void> {
   font-size: 10px;
   font-family: var(--font-mono);
   padding: 2px 8px;
-  border: 1px solid var(--border2);
+  border: 2px solid var(--border2);
   background: var(--surface2);
   color: var(--text-dim);
 }

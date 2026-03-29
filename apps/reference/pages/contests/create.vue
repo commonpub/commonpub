@@ -166,7 +166,7 @@ const placeColors = ['var(--yellow)', 'var(--text-faint)', '#a0724a', 'var(--acc
 
 .contest-form { display: flex; flex-direction: column; gap: 20px; }
 
-.form-section { border: 2px solid var(--border); background: var(--surface); padding: 20px; box-shadow: 4px 4px 0 var(--border); }
+.form-section { border: 2px solid var(--border); background: var(--surface); padding: 20px; box-shadow: var(--shadow-md); }
 .form-section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
 .form-section-title { font-size: 14px; font-weight: 700; margin-bottom: 16px; }
 .form-section-header .form-section-title { margin-bottom: 0; }

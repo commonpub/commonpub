@@ -216,21 +216,21 @@ const userUsername = computed(() => user.value?.username ?? '');
 .cpub-icon-btn:hover { background: var(--surface2); border-color: var(--border); color: var(--text); }
 .cpub-notif-dot { position: absolute; top: 5px; right: 5px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); border: 1.5px solid var(--surface); }
 
-.cpub-btn-new { display: flex; align-items: center; gap: 6px; padding: 6px 14px; background: var(--accent); border: 2px solid var(--border); color: var(--color-text-inverse); font-size: 12px; font-weight: 600; transition: all 0.15s; box-shadow: 2px 2px 0 var(--border); text-decoration: none; cursor: pointer; }
-.cpub-btn-new:hover { box-shadow: 4px 4px 0 var(--border); transform: translate(-1px, -1px); }
+.cpub-btn-new { display: flex; align-items: center; gap: 6px; padding: 6px 14px; background: var(--accent); border: 2px solid var(--border); color: var(--color-text-inverse); font-size: 12px; font-weight: 600; transition: all 0.15s; box-shadow: var(--shadow-sm); text-decoration: none; cursor: pointer; }
+.cpub-btn-new:hover { box-shadow: var(--shadow-md); transform: translate(-1px, -1px); }
 
 .cpub-avatar-btn { background: none; border: none; padding: 0; cursor: pointer; }
 .cpub-user-avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--purple-bg); border: 2px solid var(--purple); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: var(--purple); font-family: var(--font-mono); }
 .cpub-user-menu-wrapper { position: relative; }
-.cpub-user-dropdown { position: absolute; top: calc(100% + 6px); right: 0; min-width: 180px; background: var(--surface); border: 2px solid var(--border); box-shadow: 4px 4px 0 var(--border); z-index: 200; display: flex; flex-direction: column; padding: 4px 0; }
+.cpub-user-dropdown { position: absolute; top: calc(100% + 6px); right: 0; min-width: 180px; background: var(--surface); border: 2px solid var(--border); box-shadow: var(--shadow-md); z-index: 200; display: flex; flex-direction: column; padding: 4px 0; }
 .cpub-dropdown-item { display: flex; align-items: center; gap: 8px; padding: 8px 16px; font-size: 12px; color: var(--text-dim); text-decoration: none; background: none; border: none; cursor: pointer; font-family: inherit; width: 100%; text-align: left; transition: all 0.15s; }
 .cpub-dropdown-item:hover { background: var(--surface2); color: var(--text); }
 .cpub-dropdown-item i { width: 14px; text-align: center; font-size: 11px; }
 .cpub-dropdown-divider { height: 2px; background: var(--border2); margin: 4px 12px; }
 
 .cpub-mobile-toggle { display: none; width: 32px; height: 32px; background: none; border: 2px solid transparent; color: var(--text-dim); font-size: 16px; cursor: pointer; align-items: center; justify-content: center; }
-.cpub-mobile-menu { display: none; position: fixed; inset: 0; top: 48px; z-index: 99; background: rgba(0, 0, 0, 0.4); }
-.cpub-mobile-nav { background: var(--surface); border-bottom: 2px solid var(--border); padding: 8px 0; display: flex; flex-direction: column; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); }
+.cpub-mobile-menu { display: none; position: fixed; inset: 0; top: 48px; z-index: 99; background: var(--color-surface-overlay-light); }
+.cpub-mobile-nav { background: var(--surface); border-bottom: 2px solid var(--border); padding: 8px 0; display: flex; flex-direction: column; box-shadow: var(--shadow-md); }
 .cpub-mobile-link { display: flex; align-items: center; gap: 10px; padding: 10px 20px; font-size: 13px; color: var(--text-dim); text-decoration: none; transition: background 0.1s; }
 .cpub-mobile-link:hover { background: var(--surface2); color: var(--text); }
 .cpub-mobile-link i { width: 16px; text-align: center; font-size: 12px; }

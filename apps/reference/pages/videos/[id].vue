@@ -98,7 +98,7 @@ const authorInitial = computed(() => {
   aspect-ratio: 16/9;
   background: var(--text);
   border: 2px solid var(--border);
-  box-shadow: 4px 4px 0 var(--border);
+  box-shadow: var(--shadow-md);
   margin-bottom: 20px;
   overflow: hidden;
 }

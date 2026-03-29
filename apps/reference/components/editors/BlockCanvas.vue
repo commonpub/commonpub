@@ -387,7 +387,7 @@ function isTextBlock(type: string): boolean {
   max-width: 680px;
   background: var(--surface);
   border: 2px solid var(--border);
-  box-shadow: 4px 4px 0 var(--border);
+  box-shadow: var(--shadow-md);
   padding: 44px 56px;
   position: relative;
 }
@@ -444,6 +444,7 @@ function isTextBlock(type: string): boolean {
 <!-- Floating toolbar styles (global since it's teleported) -->
 <style>
 .cpub-floating-toolbar {
+  --ft-surface: rgba(255, 255, 255, 0.15);
   position: fixed;
   z-index: 200;
   display: flex;
@@ -451,7 +452,7 @@ function isTextBlock(type: string): boolean {
   gap: 0;
   background: var(--text, #1a1a1a);
   border: 2px solid var(--border, #1a1a1a);
-  box-shadow: 4px 4px 0 var(--border, #1a1a1a);
+  box-shadow: var(--shadow-md);
   padding: 3px;
   transform: translateX(-50%);
   pointer-events: auto;
@@ -473,14 +474,14 @@ function isTextBlock(type: string): boolean {
 }
 
 .cpub-ft-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--ft-surface);
   color: var(--surface, #fff);
 }
 
 .cpub-ft-divider {
   width: 2px;
   height: 18px;
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--ft-surface);
   margin: 0 2px;
 }
 </style>

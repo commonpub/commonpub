@@ -200,7 +200,7 @@ function stripHtml(html: string): string {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   padding: 0.1em 0.4em;
-  border: 1px solid var(--border);
+  border: 2px solid var(--border);
 }
 
 .cpub-fed-card__type-badge {
@@ -256,13 +256,13 @@ function stripHtml(html: string): string {
   font-family: var(--font-mono);
   color: var(--text-2);
   padding: 0.1em 0.3em;
-  border: 1px solid var(--border);
+  border: 2px solid var(--border);
 }
 
 .cpub-fed-card__actions {
   display: flex;
   gap: var(--space-3);
-  border-top: 1px solid var(--border);
+  border-top: 2px solid var(--border);
   padding-top: var(--space-3);
 }
 

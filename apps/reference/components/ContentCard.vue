@@ -32,6 +32,15 @@ const diffDots = computed(() => {
   return 3;
 });
 
+const isFederated = computed(() => props.item.source === 'federated');
+
+const cardLink = computed(() => {
+  if (isFederated.value && props.item.federatedContentId) {
+    return `/mirror/${props.item.federatedContentId}`;
+  }
+  return `/${props.item.type}/${props.item.slug}`;
+});
+
 const authorInitial = computed(() => {
   const name = props.item.author?.displayName || props.item.author?.username || '?';
   return name.charAt(0).toUpperCase();
@@ -51,7 +60,7 @@ function formatCount(n: number | undefined): string {
 
 <template>
   <article class="cpub-cc">
-    <NuxtLink :to="`/${item.type}/${item.slug}`" class="cpub-cc-link">
+    <NuxtLink :to="cardLink" class="cpub-cc-link">
       <!-- Thumbnail -->
       <div class="cpub-cc-thumb">
         <img v-if="cover" :src="cover" :alt="item.title" class="cpub-cc-cover" loading="lazy" />
@@ -64,6 +73,9 @@ function formatCount(n: number | undefined): string {
         <div class="cpub-cc-badges">
           <span v-if="item.isFeatured" class="cpub-cc-badge cpub-cc-badge--featured">
             <i class="fa-solid fa-star"></i> Featured
+          </span>
+          <span v-if="isFederated && item.sourceDomain" class="cpub-cc-badge cpub-cc-badge--federated">
+            <i class="fa-solid fa-globe" /> {{ item.sourceDomain }}
           </span>
           <ContentTypeBadge :type="item.type" />
         </div>
@@ -82,7 +94,8 @@ function formatCount(n: number | undefined): string {
         <!-- Footer: author + stats -->
         <div class="cpub-cc-footer">
           <div v-if="item.author" class="cpub-cc-author">
-            <span class="cpub-cc-av">{{ authorInitial }}</span>
+            <img v-if="item.author.avatarUrl" :src="item.author.avatarUrl" :alt="item.author.displayName || item.author.username" class="cpub-cc-av cpub-cc-av--img" />
+            <span v-else class="cpub-cc-av">{{ authorInitial }}</span>
             <span class="cpub-cc-aname">{{ item.author.displayName || item.author.username }}</span>
             <span class="cpub-cc-sep">&middot;</span>
             <time class="cpub-cc-date">{{ dateStr }}</time>
@@ -107,7 +120,7 @@ function formatCount(n: number | undefined): string {
 
 .cpub-cc:hover {
   transform: translate(-2px, -2px);
-  box-shadow: 4px 4px 0 var(--border);
+  box-shadow: var(--shadow-md);
 }
 
 .cpub-cc-link {
@@ -177,6 +190,15 @@ function formatCount(n: number | undefined): string {
   background: var(--yellow-bg);
   border: 2px solid var(--yellow);
   color: var(--yellow);
+}
+
+.cpub-cc-badge--federated {
+  background: var(--teal-bg, var(--surface2));
+  border: 2px solid var(--teal);
+  color: var(--teal);
+}
+.cpub-cc-badge--federated i {
+  font-size: 8px;
 }
 
 /* Difficulty dots */
@@ -252,7 +274,7 @@ function formatCount(n: number | undefined): string {
   width: 18px;
   height: 18px;
   background: var(--accent-bg);
-  border: 1px solid var(--accent-border);
+  border: 2px solid var(--accent-border);
   color: var(--accent);
   font-size: 8px;
   font-weight: 700;
@@ -262,6 +284,10 @@ function formatCount(n: number | undefined): string {
   justify-content: center;
   flex-shrink: 0;
   border-radius: 50%;
+}
+
+.cpub-cc-av--img {
+  object-fit: cover;
 }
 
 .cpub-cc-aname {

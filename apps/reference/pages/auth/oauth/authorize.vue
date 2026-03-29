@@ -112,7 +112,7 @@ function deny() {
 }
 
 .cpub-oauth-consent__details {
-  border: 1px solid var(--border);
+  border: 2px solid var(--border);
   padding: var(--space-3);
   margin-bottom: var(--space-4);
 }

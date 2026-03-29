@@ -133,7 +133,7 @@ async function submitScore(entryId: string): Promise<void> {
 .cpub-judge-entry {
   display: flex; align-items: center; justify-content: space-between; gap: 16px;
   padding: 14px 16px; background: var(--surface); border: 2px solid var(--border);
-  box-shadow: 4px 4px 0 var(--border);
+  box-shadow: var(--shadow-md);
 }
 .cpub-judge-entry-info { flex: 1; min-width: 0; }
 .cpub-judge-entry-title { font-size: 14px; font-weight: 600; color: var(--text); }

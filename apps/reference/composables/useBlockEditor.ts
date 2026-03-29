@@ -107,6 +107,11 @@ export function useBlockEditor(initialBlocks?: BlockTuple[]) {
     }
   }
 
+  function clearBlocks(): void {
+    blocks.value.splice(0, blocks.value.length);
+    selectedBlockId.value = null;
+  }
+
   function updateBlock(id: string, content: Record<string, unknown>): void {
     const block = blocks.value.find((b) => b.id === id);
     if (block) {
@@ -165,6 +170,7 @@ export function useBlockEditor(initialBlocks?: BlockTuple[]) {
     isEmpty,
     addBlock,
     removeBlock,
+    clearBlocks,
     updateBlock,
     moveBlock,
     moveBlockUp,

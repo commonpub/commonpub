@@ -48,7 +48,7 @@ const iconMap: Record<string, string> = {
   gap: 12px;
   padding: 12px;
   border: 2px solid transparent;
-  border-bottom: 1px solid var(--border2);
+  border-bottom: 2px solid var(--border2);
 }
 
 .cpub-notif.unread {

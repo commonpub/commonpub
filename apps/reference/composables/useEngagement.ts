@@ -141,11 +141,32 @@ export function useEngagement(contentId: Ref<string | undefined>, contentType: R
     }
   }
 
+  /** Fetch actual liked/bookmarked state from server (call onMounted) */
+  async function fetchInitialState(likes: number): Promise<void> {
+    likeCount.value = likes;
+    if (!contentId.value) return;
+    try {
+      const [likeRes, bmRes] = await Promise.all([
+        $fetch<{ liked: boolean }>('/api/social/like', {
+          params: { targetType: contentType.value, targetId: contentId.value },
+        }).catch(() => ({ liked: false })),
+        $fetch<{ bookmarked: boolean }>('/api/social/bookmark', {
+          params: { targetType: contentType.value, targetId: contentId.value },
+        }).catch(() => ({ bookmarked: false })),
+      ]);
+      liked.value = likeRes.liked;
+      bookmarked.value = bmRes.bookmarked;
+    } catch {
+      // Non-critical — default to false
+    }
+  }
+
   return {
     liked,
     bookmarked,
     likeCount,
     setInitialState,
+    fetchInitialState,
     toggleLike,
     toggleBookmark,
     share,

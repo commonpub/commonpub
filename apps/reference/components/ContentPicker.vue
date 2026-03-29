@@ -101,7 +101,7 @@ watch(() => props.open, (v) => {
   position: fixed;
   inset: 0;
   z-index: 200;
-  background: rgba(0, 0, 0, 0.4);
+  background: var(--color-surface-overlay-light);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -110,7 +110,7 @@ watch(() => props.open, (v) => {
 .cpub-picker-dialog {
   background: var(--surface);
   border: 2px solid var(--border);
-  box-shadow: 8px 8px 0 var(--border);
+  box-shadow: var(--shadow-xl);
   width: 520px;
   max-width: 90vw;
   max-height: 70vh;

@@ -146,7 +146,7 @@ onUnmounted(() => {
   z-index: 100;
   background: var(--surface);
   border: 2px solid var(--border);
-  box-shadow: 6px 6px 0 var(--border);
+  box-shadow: var(--shadow-lg);
   min-width: 260px;
   max-width: 340px;
   max-height: 360px;

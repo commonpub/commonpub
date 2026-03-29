@@ -101,7 +101,7 @@ async function kickMember(userId: string, username: string): Promise<void> {
 .members-count { font-size: 12px; font-family: var(--font-mono); color: var(--text-faint); }
 
 .members-list { border: 2px solid var(--border); background: var(--surface); }
-.member-card { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--border2); }
+.member-card { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 2px solid var(--border2); }
 .member-card:last-child { border-bottom: none; }
 
 .member-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--surface3); border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: var(--accent); font-family: var(--font-mono); text-decoration: none; flex-shrink: 0; }
@@ -111,14 +111,14 @@ async function kickMember(userId: string, username: string): Promise<void> {
 .member-name:hover { color: var(--accent); }
 .member-handle { font-size: 11px; color: var(--text-faint); font-family: var(--font-mono); }
 
-.member-role-badge { font-size: 10px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.06em; padding: 2px 8px; border: 1px solid; flex-shrink: 0; }
+.member-role-badge { font-size: 10px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.06em; padding: 2px 8px; border: 2px solid; flex-shrink: 0; }
 
 .member-joined { font-size: 10px; color: var(--text-faint); font-family: var(--font-mono); flex-shrink: 0; }
 
 .member-actions { display: flex; gap: 4px; flex-shrink: 0; }
-.member-role-select { padding: 3px 6px; border: 1px solid var(--border2); background: var(--surface); color: var(--text-dim); font-size: 10px; font-family: var(--font-mono); text-transform: capitalize; cursor: pointer; }
+.member-role-select { padding: 3px 6px; border: 2px solid var(--border2); background: var(--surface); color: var(--text-dim); font-size: 10px; font-family: var(--font-mono); text-transform: capitalize; cursor: pointer; }
 .member-role-select:focus { border-color: var(--accent); outline: none; }
-.member-kick-btn { background: none; border: 1px solid var(--border2); color: var(--text-faint); cursor: pointer; font-size: 10px; padding: 3px 6px; }
+.member-kick-btn { background: none; border: 2px solid var(--border2); color: var(--text-faint); cursor: pointer; font-size: 10px; padding: 3px 6px; }
 .member-kick-btn:hover { color: var(--red); border-color: var(--red); }
 
 .members-empty { text-align: center; padding: 48px 0; color: var(--text-faint); }

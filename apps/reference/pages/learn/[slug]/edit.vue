@@ -359,10 +359,10 @@ async function handlePublish(): Promise<void> {
 .cpub-edit-subtitle { font-size: 13px; color: var(--text-dim); display: flex; align-items: center; gap: 8px; }
 
 .cpub-status-badge { font-size: 10px; font-family: var(--font-mono); text-transform: uppercase; padding: 2px 8px; letter-spacing: 0.06em; }
-.cpub-status-draft { background: var(--surface3); color: var(--text-faint); border: 1px solid var(--border2); }
-.cpub-status-published { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
+.cpub-status-draft { background: var(--surface3); color: var(--text-faint); border: 2px solid var(--border2); }
+.cpub-status-published { background: var(--green-bg); color: var(--green); border: 2px solid var(--green-border); }
 
-.cpub-meta-section { background: var(--surface); border: 2px solid var(--border); padding: 16px 20px; margin-bottom: 24px; box-shadow: 4px 4px 0 var(--border); }
+.cpub-meta-section { background: var(--surface); border: 2px solid var(--border); padding: 16px 20px; margin-bottom: 24px; box-shadow: var(--shadow-md); }
 .cpub-meta-section-title { font-size: 13px; font-weight: 700; margin-bottom: 12px; }
 .cpub-meta-form { display: flex; flex-direction: column; gap: 10px; }
 .cpub-meta-field { display: flex; flex-direction: column; gap: 3px; }
@@ -374,7 +374,7 @@ async function handlePublish(): Promise<void> {
 
 .cpub-modules-list { display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px; }
 
-.cpub-module-card { background: var(--surface); border: 2px solid var(--border); box-shadow: 4px 4px 0 var(--border); }
+.cpub-module-card { background: var(--surface); border: 2px solid var(--border); box-shadow: var(--shadow-md); }
 
 .cpub-module-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 2px solid var(--border); background: var(--surface2); gap: 8px; }
 .cpub-module-title-input { font-size: 14px; font-weight: 600; background: none; border: 2px solid transparent; padding: 4px 8px; color: var(--text); outline: none; flex: 1; }
@@ -382,13 +382,13 @@ async function handlePublish(): Promise<void> {
 .cpub-module-count { font-size: 10px; font-family: var(--font-mono); color: var(--text-faint); flex-shrink: 0; }
 
 .cpub-lessons-list { padding: 8px 0; }
-.cpub-lesson-row { display: flex; align-items: center; gap: 10px; padding: 8px 16px; border-bottom: 1px solid var(--border2); }
+.cpub-lesson-row { display: flex; align-items: center; gap: 10px; padding: 8px 16px; border-bottom: 2px solid var(--border2); }
 .cpub-lesson-row:last-child { border-bottom: none; }
 .cpub-lesson-grip { color: var(--text-faint); font-size: 10px; cursor: grab; }
-.cpub-lesson-type-badge { font-size: 9px; font-family: var(--font-mono); text-transform: uppercase; padding: 1px 6px; border: 1px solid var(--border2); color: var(--text-faint); background: var(--surface2); }
+.cpub-lesson-type-badge { font-size: 9px; font-family: var(--font-mono); text-transform: uppercase; padding: 1px 6px; border: 2px solid var(--border2); color: var(--text-faint); background: var(--surface2); }
 .cpub-lesson-title { font-size: 13px; color: var(--text); flex: 1; }
-.cpub-lesson-empty-badge { font-size: 9px; font-family: var(--font-mono); color: var(--yellow); background: var(--yellow-bg); border: 1px solid var(--yellow-border); padding: 1px 6px; text-transform: uppercase; }
-.cpub-lesson-edit-btn { font-size: 10px; color: var(--text-faint); padding: 3px 6px; border: 1px solid var(--border2); text-decoration: none; }
+.cpub-lesson-empty-badge { font-size: 9px; font-family: var(--font-mono); color: var(--yellow); background: var(--yellow-bg); border: 2px solid var(--yellow-border); padding: 1px 6px; text-transform: uppercase; }
+.cpub-lesson-edit-btn { font-size: 10px; color: var(--text-faint); padding: 3px 6px; border: 2px solid var(--border2); text-decoration: none; }
 .cpub-lesson-edit-btn:hover { color: var(--accent); border-color: var(--accent); }
 
 .cpub-add-lesson { display: flex; gap: 0; padding: 8px 16px; }

@@ -99,14 +99,14 @@ async function handleSubmit(): Promise<void> {
 .page-subtitle { font-size: 13px; color: var(--text-dim); margin-bottom: 24px; }
 
 .submit-form { display: flex; flex-direction: column; gap: 20px; }
-.form-section { border: 2px solid var(--border); background: var(--surface); padding: 20px; box-shadow: 4px 4px 0 var(--border); display: flex; flex-direction: column; gap: 12px; }
+.form-section { border: 2px solid var(--border); background: var(--surface); padding: 20px; box-shadow: var(--shadow-md); display: flex; flex-direction: column; gap: 12px; }
 .form-field { display: flex; flex-direction: column; gap: 4px; }
 .form-label { font-size: 10px; font-weight: 600; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-faint); }
 .form-input, .form-textarea, .form-select { padding: 8px 10px; border: 2px solid var(--border); background: var(--surface); color: var(--text); font-size: 13px; font-family: inherit; }
 .form-input:focus, .form-textarea:focus, .form-select:focus { border-color: var(--accent); outline: none; }
 .form-textarea { resize: vertical; }
 
-.video-preview { border: 2px solid var(--border); box-shadow: 4px 4px 0 var(--border); }
+.video-preview { border: 2px solid var(--border); box-shadow: var(--shadow-md); }
 .video-iframe { width: 100%; aspect-ratio: 16/9; display: block; }
 
 </style>

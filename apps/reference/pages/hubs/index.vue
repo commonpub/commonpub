@@ -92,11 +92,11 @@ const hubs = computed(() => data.value?.items ?? []);
   text-decoration: none;
   color: inherit;
   transition: box-shadow 0.15s;
-  box-shadow: 4px 4px 0 var(--border);
+  box-shadow: var(--shadow-md);
 }
 
 .cpub-hub-card:hover {
-  box-shadow: 6px 6px 0 var(--border);
+  box-shadow: var(--shadow-lg);
   transform: translate(-1px, -1px);
 }
 
@@ -164,7 +164,7 @@ const hubs = computed(() => data.value?.items ?? []);
   letter-spacing: 0.08em;
   color: var(--accent);
   background: var(--accent-bg);
-  border: 1px solid var(--accent-border);
+  border: 2px solid var(--accent-border);
   padding: 2px 6px;
 }
 

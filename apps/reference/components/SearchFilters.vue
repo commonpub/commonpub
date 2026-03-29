@@ -116,7 +116,7 @@ function removeTag(tag: string): void {
   border-top: none;
   padding: 24px 32px 28px;
   margin-bottom: 24px;
-  box-shadow: 4px 4px 0 var(--border);
+  box-shadow: var(--shadow-md);
 }
 
 .cpub-adv-grid {

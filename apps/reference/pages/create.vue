@@ -21,8 +21,8 @@ const allTypes = [
     type: 'article',
     icon: 'fa-solid fa-file-lines',
     color: 'var(--teal)',
-    bg: 'rgba(20,184,166,0.08)',
-    border: 'rgba(20,184,166,0.25)',
+    bg: 'var(--teal-bg)',
+    border: 'var(--teal-border)',
     name: 'Article',
     desc: 'Write a long-form technical article with code examples, diagrams, and rich formatting.',
   },
@@ -39,8 +39,8 @@ const allTypes = [
     type: 'blog',
     icon: 'fa-solid fa-pen-nib',
     color: 'var(--pink)',
-    bg: 'rgba(236,72,153,0.08)',
-    border: 'rgba(236,72,153,0.25)',
+    bg: 'var(--pink-bg)',
+    border: 'var(--pink-border)',
     name: 'Blog Post',
     desc: 'Share thoughts, tutorials, or updates with a clean writing experience and inline media.',
   },
@@ -131,12 +131,12 @@ const types = computed(() => allTypes.filter(t => isTypeEnabled(t.type as Conten
   border: 2px solid var(--border);
   text-decoration: none;
   color: inherit;
-  box-shadow: 4px 4px 0 var(--border);
+  box-shadow: var(--shadow-md);
   transition: box-shadow 0.15s, transform 0.15s;
 }
 
 .cpub-create-card:hover {
-  box-shadow: 6px 6px 0 var(--border);
+  box-shadow: var(--shadow-lg);
   transform: translate(-1px, -1px);
 }
 

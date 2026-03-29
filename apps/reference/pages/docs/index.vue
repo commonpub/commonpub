@@ -128,7 +128,7 @@ const otherSites = computed(() => {
   font-size: 10px;
   font-family: var(--font-mono);
   background: var(--surface2);
-  border: 1px solid var(--border);
+  border: 2px solid var(--border);
   padding: 1px 6px;
   color: var(--text-faint);
 }
@@ -145,12 +145,12 @@ const otherSites = computed(() => {
   padding: 20px;
   text-decoration: none;
   color: var(--text);
-  box-shadow: 4px 4px 0 var(--border);
+  box-shadow: var(--shadow-md);
   transition: box-shadow 0.15s, transform 0.15s;
 }
 
 .docs-card:hover {
-  box-shadow: 2px 2px 0 var(--border);
+  box-shadow: var(--shadow-sm);
   transform: translate(1px, 1px);
 }
 

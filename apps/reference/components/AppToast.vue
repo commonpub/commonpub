@@ -52,7 +52,7 @@ const { toasts, dismiss } = useToast();
   color: var(--text);
   font-size: 12px;
   font-family: var(--font-mono);
-  box-shadow: 4px 4px 0 var(--border);
+  box-shadow: var(--shadow-md);
   min-width: 240px;
   max-width: 400px;
   animation: cpub-toast-in 0.2s ease-out;

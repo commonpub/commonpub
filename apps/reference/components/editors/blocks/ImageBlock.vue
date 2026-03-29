@@ -165,7 +165,7 @@ async function handleFileSelect(event: Event): Promise<void> {
   font-size: 11px;
   color: var(--red);
   background: var(--red-bg);
-  border: 1px solid var(--red-border);
+  border: 2px solid var(--red-border);
 }
 
 .cpub-image-url-row {

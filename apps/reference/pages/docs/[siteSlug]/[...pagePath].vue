@@ -395,7 +395,7 @@ useSeoMeta({
   color: var(--text-faint);
   text-decoration: none;
   padding: 2px 6px;
-  border: 1px solid var(--border2);
+  border: 2px solid var(--border2);
 }
 
 .docs-edit-link:hover { color: var(--accent); border-color: var(--accent); }
@@ -449,7 +449,7 @@ useSeoMeta({
   right: 16px;
   background: var(--surface);
   border: 2px solid var(--border);
-  box-shadow: 4px 4px 0 var(--border);
+  box-shadow: var(--shadow-md);
   z-index: 50;
   max-height: 200px;
   overflow-y: auto;
@@ -461,7 +461,7 @@ useSeoMeta({
   font-size: 12px;
   color: var(--text-dim);
   text-decoration: none;
-  border-bottom: 1px solid var(--border2);
+  border-bottom: 2px solid var(--border2);
 }
 
 .docs-search-result:last-child { border-bottom: none; }
@@ -470,7 +470,7 @@ useSeoMeta({
 /* Nav Tree */
 .docs-nav { padding: 0; }
 
-.docs-nav-item { border-bottom: 1px solid var(--border2); }
+.docs-nav-item { border-bottom: 2px solid var(--border2); }
 .docs-nav-item:last-child { border-bottom: none; }
 
 .docs-nav-row { display: flex; align-items: center; }
@@ -506,7 +506,7 @@ useSeoMeta({
 
 .docs-nav-toggle:hover { color: var(--text-dim); }
 
-.docs-nav-children { padding-left: 12px; border-top: 1px solid var(--border2); }
+.docs-nav-children { padding-left: 12px; border-top: 2px solid var(--border2); }
 
 .docs-nav-child { font-size: 12px; padding: 5px 16px; }
 
@@ -553,15 +553,15 @@ useSeoMeta({
 .docs-content :deep(a) { color: var(--accent); text-decoration: none; }
 .docs-content :deep(a:hover) { text-decoration: underline; }
 .docs-content :deep(strong) { color: var(--text); font-weight: 600; }
-.docs-content :deep(code) { font-family: var(--font-mono); font-size: 12px; background: var(--surface2); padding: 2px 5px; border: 1px solid var(--border2); color: var(--accent); }
-.docs-content :deep(pre) { padding: 16px; background: var(--surface2); border: 2px solid var(--border); overflow-x: auto; margin: 16px 0; box-shadow: 4px 4px 0 var(--border); }
+.docs-content :deep(code) { font-family: var(--font-mono); font-size: 12px; background: var(--surface2); padding: 2px 5px; border: 2px solid var(--border2); color: var(--accent); }
+.docs-content :deep(pre) { padding: 16px; background: var(--surface2); border: 2px solid var(--border); overflow-x: auto; margin: 16px 0; box-shadow: var(--shadow-md); }
 .docs-content :deep(pre code) { background: none; border: none; padding: 0; font-size: 13px; color: var(--text); }
 .docs-content :deep(ul), .docs-content :deep(ol) { margin-bottom: 14px; padding-left: 24px; }
 .docs-content :deep(li) { margin-bottom: 4px; }
 .docs-content :deep(blockquote) { border-left: 4px solid var(--accent); padding: 8px 16px; margin: 16px 0; background: var(--surface); color: var(--text-dim); }
 .docs-content :deep(table) { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13px; }
 .docs-content :deep(th) { background: var(--surface2); padding: 8px 12px; text-align: left; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; font-family: var(--font-mono); color: var(--text-faint); border-bottom: 2px solid var(--border); }
-.docs-content :deep(td) { padding: 8px 12px; border-bottom: 1px solid var(--border2); }
+.docs-content :deep(td) { padding: 8px 12px; border-bottom: 2px solid var(--border2); }
 .docs-content :deep(hr) { border: none; border-top: 2px solid var(--border); margin: 32px 0; }
 .docs-content :deep(img) { max-width: 100%; border: 2px solid var(--border); }
 
@@ -585,12 +585,12 @@ useSeoMeta({
   text-decoration: none;
   min-width: 0;
   max-width: 48%;
-  box-shadow: 4px 4px 0 var(--border);
+  box-shadow: var(--shadow-md);
   transition: box-shadow 0.15s, transform 0.15s;
 }
 
 .docs-pn-link:hover {
-  box-shadow: 2px 2px 0 var(--border);
+  box-shadow: var(--shadow-sm);
   transform: translate(1px, 1px);
 }
 
@@ -669,7 +669,7 @@ useSeoMeta({
   background: var(--accent);
   color: var(--color-text-inverse);
   border: 2px solid var(--border);
-  box-shadow: 4px 4px 0 var(--border);
+  box-shadow: var(--shadow-md);
   font-size: 16px;
   cursor: pointer;
   z-index: 100;
@@ -697,7 +697,7 @@ useSeoMeta({
   }
   .docs-sidebar.open {
     left: 0;
-    box-shadow: 4px 0 12px rgba(0,0,0,0.15);
+    box-shadow: var(--shadow-md);
   }
   .docs-main { padding: 20px 16px 64px; }
 }

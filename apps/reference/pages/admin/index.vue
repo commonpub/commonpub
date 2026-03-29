@@ -49,14 +49,14 @@ const { data: stats } = await useFetch('/api/admin/stats');
 <style scoped>
 .cpub-admin-title { font-size: var(--text-xl); font-weight: var(--font-weight-bold); margin-bottom: var(--space-6); }
 .cpub-stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-4); margin-bottom: var(--space-8); }
-.cpub-stat-card { padding: var(--space-5); background: var(--surface); border: 2px solid var(--border); box-shadow: 4px 4px 0 var(--border); display: flex; flex-direction: column; align-items: center; gap: var(--space-2); }
+.cpub-stat-card { padding: var(--space-5); background: var(--surface); border: 2px solid var(--border); box-shadow: var(--shadow-md); display: flex; flex-direction: column; align-items: center; gap: var(--space-2); }
 .cpub-stat-icon { font-size: var(--text-xl); color: var(--text-dim); margin-bottom: var(--space-1); }
 .cpub-stat-value { font-size: var(--text-3xl); font-weight: var(--font-weight-bold); font-family: var(--font-mono); }
 .cpub-stat-label { font-family: var(--font-mono); font-size: 10px; font-weight: var(--font-weight-semibold); text-transform: uppercase; letter-spacing: var(--tracking-widest); color: var(--text-dim); }
 .cpub-admin-section-title { font-size: var(--text-lg); font-weight: var(--font-weight-bold); margin-bottom: var(--space-4); }
 .cpub-admin-actions-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-3); }
 .cpub-admin-action { display: flex; flex-direction: column; align-items: center; gap: var(--space-3); padding: var(--space-5); background: var(--surface); border: 2px solid var(--border); text-decoration: none; color: var(--text); transition: all 0.15s; }
-.cpub-admin-action:hover { background: var(--surface2); box-shadow: 4px 4px 0 var(--border); transform: translate(-1px, -1px); }
+.cpub-admin-action:hover { background: var(--surface2); box-shadow: var(--shadow-md); transform: translate(-1px, -1px); }
 .cpub-admin-action-icon { font-size: var(--text-xl); color: var(--text-dim); }
 .cpub-admin-action-label { font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: var(--tracking-wide); color: var(--text-dim); }
 </style>
