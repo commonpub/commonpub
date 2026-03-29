@@ -42,9 +42,29 @@ Session 087 established working federation between commonpub.io and deveco.io wi
 - `handlers` variable extracted for self-reference in onUpdate→onCreate delegation
 - Commits: `b388b36`, `c010aeb`
 
-### Phase 5: Mirror Correctness — TODO
-### Phase 6: Config & Feature Flags — TODO
-### Phase 7: Backfill Hardening — TODO
+### Phase 5: Mirror Correctness — DONE
+- cancelMirror soft-hides content (isHidden=true) instead of orphaning
+- pauseMirror records pausedAt for gap-fill on resume
+- matchMirrorForContent checks sender domain as fallback for re-broadcasts
+- Schema: pausedAt column on instanceMirrors
+- Commit: `9dc01ed`
+
+### Phase 6: Config & Feature Flags — DONE
+- federateHubs feature flag (default false)
+- InboxHandlerOptions accepts federationConfig (backfillOnMirrorAccept, mirrorMaxItems)
+- onAccept auto-triggers backfill when mirror Follow is accepted (fire-and-forget)
+- Commit: `bee5b95`
+
+### Phase 7: Backfill Hardening — DONE
+- Schema: backfillCursor column on instanceMirrors
+- Saves cursor (page URL) after each page for resume
+- Resumes from cursor on subsequent call with mirrorId
+- Per-item error handling (one bad activity doesn't stop the page)
+- Network errors save cursor and stop (next call resumes)
+- Clears cursor when complete
+- Now processes Update activities alongside Create
+- Commit: `ddb8f4f`
+
 ### Phase 8: Circuit Breaker & Error Visibility — TODO
 ### Phase 9: Admin UI — TODO
 ### Phase 10: Remaining Test Coverage — TODO
@@ -58,20 +78,25 @@ Session 087 established working federation between commonpub.io and deveco.io wi
 - Build: 14/14 tasks pass
 
 ## Package Versions (Source — Not Yet Published)
-| Package | Current | Needs Bump |
-|---------|---------|-----------|
-| @commonpub/config | 0.6.0 | Yes (FederationConfig added) |
-| @commonpub/protocol | 0.8.1 | Yes (outbox signature change) |
-| @commonpub/server | 1.1.0 | Yes (delivery, outbox, lifecycle) |
-| @commonpub/schema | 0.7.0 | Yes (lockedAt, deadLetteredAt) |
+All phases 1-7 are committed to commonpub main. Need to publish:
+| Package | Current | New | Changes |
+|---------|---------|-----|---------|
+| @commonpub/config | 0.6.0 | 0.7.0 | FederationConfig, federateHubs flag |
+| @commonpub/protocol | 0.8.1 | 0.9.0 | outbox instance actor support |
+| @commonpub/server | 1.1.0 | 2.0.0 | delivery locking, outbox queries, lifecycle, mirror fixes, config, backfill |
+| @commonpub/schema | 0.7.0 | 0.8.0 | lockedAt, deadLetteredAt, pausedAt, backfillCursor |
 
 ## Key Files Modified
-- `packages/schema/src/federation.ts` — lockedAt, deadLetteredAt columns
-- `packages/config/src/types.ts` — FederationConfig type
+- `packages/schema/src/federation.ts` — lockedAt, deadLetteredAt, pausedAt, backfillCursor
+- `packages/config/src/types.ts` — FederationConfig, federateHubs
 - `packages/config/src/schema.ts` — federationConfigSchema
 - `packages/protocol/src/outbox.ts` — instance actor support
 - `packages/protocol/src/contentMapper.ts` — sanitizeBlockHtml on all data.html
-- `packages/server/src/federation/delivery.ts` — claim locking, dead letter, cleanup
-- `packages/server/src/federation/outboxQueries.ts` — NEW
-- `packages/server/src/federation/inboxHandlers.ts` — onUpdate→onCreate fallback
+- `packages/server/src/federation/delivery.ts` — claim locking, dead letter, cleanup, DeliveryOptions
+- `packages/server/src/federation/outboxQueries.ts` — NEW (4 query functions)
+- `packages/server/src/federation/inboxHandlers.ts` — onUpdate→onCreate, auto-backfill, config
+- `packages/server/src/federation/mirroring.ts` — cancel cleanup, pause/resume, sender domain
+- `packages/server/src/federation/backfill.ts` — resume cursor, per-item errors, BackfillOptions
 - `packages/server/src/content/content.ts` — onContentStatusChange
+- `packages/protocol/src/__tests__/blockTuplesToHtml.test.ts` — NEW (48 tests)
+- `packages/server/src/__tests__/outboxQueries.test.ts` — NEW (8 tests)
