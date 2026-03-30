@@ -32,6 +32,8 @@ const iconMap: Record<string, string> = {
   padding: 3px 10px;
   border: 2px solid var(--border);
   box-shadow: var(--shadow-sm);
+  background: var(--badge-bg, var(--surface2));
+  color: var(--badge-color, var(--text-dim));
 }
 
 .cpub-badge-icon {
@@ -39,27 +41,22 @@ const iconMap: Record<string, string> = {
 }
 
 [data-content-type="project"] {
-  background: var(--accent-bg);
-  color: var(--accent);
+  --badge-bg: var(--accent-bg);
+  --badge-color: var(--accent);
 }
 
 [data-content-type="article"] {
-  background: var(--teal-bg);
-  color: var(--teal);
-}
-
-[data-content-type="guide"] {
-  background: var(--purple-bg);
-  color: var(--purple);
+  --badge-bg: var(--teal-bg);
+  --badge-color: var(--teal);
 }
 
 [data-content-type="blog"] {
-  background: var(--pink-bg);
-  color: var(--pink);
+  --badge-bg: var(--green-bg);
+  --badge-color: var(--green);
 }
 
 [data-content-type="explainer"] {
-  background: var(--yellow-bg);
-  color: var(--yellow);
+  --badge-bg: var(--yellow-bg);
+  --badge-color: var(--yellow);
 }
 </style>

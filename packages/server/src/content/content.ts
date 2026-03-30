@@ -243,7 +243,7 @@ export async function listContent(
 
   // If seamless federation is off or filtering by author, return local-only results.
   // Federated content has no local authorId, so it must never appear in author-filtered views.
-  if (!options?.includeFederated || filters.authorId) {
+  if (!options?.includeFederated || filters.authorId || filters.featured) {
     return { items: localItems, total };
   }
 
