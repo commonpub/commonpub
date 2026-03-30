@@ -792,15 +792,15 @@ export async function likePost(
   userId: string,
   postId: string,
 ): Promise<boolean> {
-  const existing = await db
-    .select({ id: hubPostLikes.id })
-    .from(hubPostLikes)
-    .where(and(eq(hubPostLikes.postId, postId), eq(hubPostLikes.userId, userId)))
-    .limit(1);
+  // Use ON CONFLICT to handle concurrent requests atomically
+  const result = await db
+    .insert(hubPostLikes)
+    .values({ postId, userId })
+    .onConflictDoNothing({ target: [hubPostLikes.postId, hubPostLikes.userId] })
+    .returning({ id: hubPostLikes.id });
 
-  if (existing.length > 0) return false;
+  if (result.length === 0) return false; // Already liked
 
-  await db.insert(hubPostLikes).values({ postId, userId });
   await db.update(hubPosts).set({ likeCount: sql`${hubPosts.likeCount} + 1` }).where(eq(hubPosts.id, postId));
   return true;
 }

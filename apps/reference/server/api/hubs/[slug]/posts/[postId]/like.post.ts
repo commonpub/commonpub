@@ -1,4 +1,4 @@
-import { likePost, unlikePost, hasLikedPost, getHubBySlug } from '@commonpub/server';
+import { likePost, unlikePost, hasLikedPost, getHubBySlug, getPostById } from '@commonpub/server';
 
 export default defineEventHandler(async (event) => {
   const user = requireAuth(event);
@@ -7,6 +7,9 @@ export default defineEventHandler(async (event) => {
 
   const community = await getHubBySlug(db, slug);
   if (!community) throw createError({ statusCode: 404, statusMessage: 'Hub not found' });
+
+  const post = await getPostById(db, postId);
+  if (!post || post.hubId !== community.id) throw createError({ statusCode: 404, statusMessage: 'Post not found' });
 
   const alreadyLiked = await hasLikedPost(db, user.id, postId);
   if (alreadyLiked) {

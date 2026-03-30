@@ -365,28 +365,21 @@ function handleLinkInsert(): void {
             <div v-if="filteredPosts.length" class="cpub-feed-list">
               <template v-for="post in filteredPosts" :key="post.id">
                 <!-- Share posts: render as linked content card -->
-                <article v-if="post.type === 'share'" class="cpub-feed-item">
-                  <div class="cpub-feed-item-body">
-                    <div class="cpub-feed-item-header">
-                      <span class="cpub-feed-badge cpub-feed-badge-accent">shared</span>
-                    </div>
-                    <NuxtLink v-if="parseShareContent(post.content)" :to="`/${parseShareContent(post.content)!.type}/${parseShareContent(post.content)!.slug}`" class="cpub-share-link">
-                      <h3 class="cpub-feed-item-title">{{ parseShareContent(post.content)!.title }}</h3>
-                      <p class="cpub-feed-item-preview">
-                        <i class="fa-solid fa-arrow-up-right-from-square" style="margin-right: 4px; font-size: 10px"></i>
-                        View {{ parseShareContent(post.content)!.type }}
-                      </p>
-                    </NuxtLink>
-                    <div class="cpub-feed-item-meta">
-                      <div class="cpub-feed-item-author">
-                        <div class="cpub-feed-avatar cpub-feed-avatar-placeholder">{{ (post.author?.displayName || post.author?.username || 'U').charAt(0).toUpperCase() }}</div>
-                        <span class="cpub-feed-author-name">{{ post.author?.displayName || post.author?.username || 'Unknown' }}</span>
-                        <span class="cpub-feed-sep">&middot;</span>
-                        <time class="cpub-feed-time">{{ new Date(post.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) }}</time>
+                <NuxtLink v-if="post.type === 'share' && parseShareContent(post.content)" :to="`/${parseShareContent(post.content)!.type}/${parseShareContent(post.content)!.slug}`" class="cpub-share-card">
+                  <div class="cpub-share-card-inner">
+                    <div class="cpub-share-card-icon"><i class="fa-solid fa-share-nodes"></i></div>
+                    <div class="cpub-share-card-content">
+                      <span class="cpub-share-card-label">Shared {{ parseShareContent(post.content)!.type }}</span>
+                      <h3 class="cpub-share-card-title">{{ parseShareContent(post.content)!.title }}</h3>
+                      <div class="cpub-share-card-meta">
+                        <span>{{ post.author?.displayName || post.author?.username || 'Unknown' }}</span>
+                        <span>&middot;</span>
+                        <time>{{ new Date(post.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) }}</time>
                       </div>
                     </div>
+                    <div class="cpub-share-card-arrow"><i class="fa-solid fa-arrow-right"></i></div>
                   </div>
-                </article>
+                </NuxtLink>
                 <!-- Regular posts -->
                 <NuxtLink v-else :to="`/hubs/${slug}/posts/${post.id}`" class="cpub-feed-link">
                   <FeedItem
@@ -1357,11 +1350,42 @@ function handleLinkInsert(): void {
 /* Feed item links */
 .cpub-feed-link { text-decoration: none; color: inherit; display: block; }
 
-/* Share post link */
-.cpub-share-link {
+/* Share card in feed */
+.cpub-share-card {
+  display: block;
   text-decoration: none;
   color: inherit;
-  display: block;
+  background: var(--surface);
+  border: 2px solid var(--accent-border);
+  border-left: 4px solid var(--accent);
+  padding: 14px 16px;
+  transition: transform 0.1s, box-shadow 0.1s;
 }
-.cpub-share-link:hover .cpub-feed-item-title { color: var(--accent); }
+.cpub-share-card:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-md);
+}
+.cpub-share-card-inner { display: flex; align-items: center; gap: 14px; }
+.cpub-share-card-icon {
+  width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--accent-bg); color: var(--accent);
+  border: 1px solid var(--accent-border); flex-shrink: 0;
+  font-size: 14px;
+}
+.cpub-share-card-content { flex: 1; min-width: 0; }
+.cpub-share-card-label {
+  font-family: var(--font-mono); font-size: 10px; text-transform: uppercase;
+  letter-spacing: 0.05em; color: var(--accent); display: block; margin-bottom: 2px;
+}
+.cpub-share-card-title {
+  font-size: 14px; font-weight: 600; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.cpub-share-card-meta {
+  font-size: 11px; color: var(--text-faint); margin-top: 2px;
+  display: flex; gap: 4px;
+}
+.cpub-share-card-arrow { color: var(--text-faint); font-size: 12px; flex-shrink: 0; }
+.cpub-share-card:hover .cpub-share-card-arrow { color: var(--accent); }
 </style>

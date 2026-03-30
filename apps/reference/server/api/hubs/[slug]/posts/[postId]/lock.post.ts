@@ -1,4 +1,4 @@
-import { toggleLockPost, getHubBySlug } from '@commonpub/server';
+import { toggleLockPost, getHubBySlug, getPostById } from '@commonpub/server';
 
 export default defineEventHandler(async (event) => {
   const user = requireAuth(event);
@@ -7,6 +7,9 @@ export default defineEventHandler(async (event) => {
 
   const community = await getHubBySlug(db, slug);
   if (!community) throw createError({ statusCode: 404, statusMessage: 'Hub not found' });
+
+  const post = await getPostById(db, postId);
+  if (!post || post.hubId !== community.id) throw createError({ statusCode: 404, statusMessage: 'Post not found' });
 
   const result = await toggleLockPost(db, postId, user.id, community.id);
   if (!result) throw createError({ statusCode: 403, statusMessage: 'Not authorized' });
