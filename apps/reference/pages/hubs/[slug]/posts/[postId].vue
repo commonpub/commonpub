@@ -92,7 +92,7 @@ async function deletePost(): Promise<void> {
   }
 }
 
-function formatDate(d: string): string {
+function formatDate(d: string | Date): string {
   return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
 }
 
