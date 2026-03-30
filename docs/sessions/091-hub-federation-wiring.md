@@ -1,189 +1,147 @@
-# Session 091 — Hub Federation Wiring + Hub Bug Fixes
+# Session 091 — Hub Federation Wiring + Full Hub UX + Mirror Page Reuse
 
-**Date**: 2026-03-29
-**Scope**: commonpub monorepo + deveco-io — wire up hub federation, fix hub posting bug, add project association UI
+**Date**: 2026-03-29 / 2026-03-30
+**Scope**: commonpub monorepo + deveco-io — marathon session covering hub federation, hub UX, project page redesign, mirror page architecture, package publishing
 
 ## Context
 
-Hub federation infrastructure was fully built (sessions 087-088) but never wired to production code. `federateHubPost()`, `federateHubShare()`, `handleHubFollow()` existed as dead code. Additionally, discussion/post creation in hubs was broken (400 error) and there was no way to associate existing projects with a hub.
+Hub federation infrastructure was built in sessions 087-088 but never wired to production. Discussion posting was broken. Mirror pages used a custom one-off template instead of reusing content view components. Project pages had cluttered sidebars. This session wired everything together and shipped it.
 
-## 1. Hub Post Creation 400 Bug — FIXED
+---
 
-**Root cause**: `createPostSchema` required `hubId` as mandatory UUID in the request body, but the client sends only `{ content, type }` since the hub is identified by slug in the URL. Validation failed before the server could inject hubId.
+## What Was Done
 
-**Fix**:
-- `packages/schema/src/validators.ts` — made `hubId` optional in `createPostSchema`
-- `apps/reference/server/api/hubs/[slug]/posts/index.post.ts` — changed to `readBody()` + `safeParse()` with injected hubId (matching the replies endpoint pattern)
-- Same fix applied to deveco-io
+### Hub Post Creation Fix
+- `createPostSchema` hubId made optional — endpoint injects it from URL slug
+- Changed to `readBody()` + `safeParse()` pattern (matching replies endpoint)
+- Added duplicate share prevention (unique constraint on hubShares)
+- Added `discussion`, `question`, `showcase`, `announcement` to `post_type` enum on BOTH production databases
 
-## 2. Duplicate Share Prevention
+### Hub Federation (6 Phases)
+1. Feature flag enforcement — all hub AP endpoints gated behind `features.federateHubs`
+2. Hub outbox + followers collection routes (AP spec compliance)
+3. Outbound federation — `federateHubPost()` on post creation, `federateHubShare()` on share, `federateHubPostDelete()` on deletion
+4. Hub post Note dereference route for remote instances
+5. Inbound Follow routing — `hubContext` option in inbox handlers routes to `handleHubFollow/handleHubUnfollow`
+6. Likes on hub posts — handles direct Note URI and Announce activity ID resolution, with symmetric Undo(Like)
 
-- `packages/schema/src/hub.ts` — added `unique('uq_hub_shares_hub_content').on(t.hubId, t.contentId)`
-- `packages/server/src/hub/hub.ts` — added duplicate check in `shareContent()` before insert
+### Hub Post Detail Page
+- New page at `/hubs/{slug}/posts/{postId}` with full content, like button, threaded replies, mod actions (pin/lock/delete)
+- `hubPostLikes` table for like deduplication with ON CONFLICT
+- API endpoints: single post GET, like toggle, pin toggle, lock toggle (all with post validation)
+- Feed/discussion items clickable (NuxtLink wrapping)
 
-**Note**: Requires migration to add the unique constraint to existing databases.
-
-## 3. "Add Existing Project" to Hub — NEW FEATURE
-
-Added ability for hub members to share their existing published projects to a hub from the Projects tab.
-
-- `pages/hubs/[slug]/index.vue` (both repos) — added:
-  - "Add Existing Project" button (visible to hub members on non-product hubs)
-  - Project picker modal fetching user's published projects via `/api/content?authorId=...&type=project`
-  - `shareProjectToHub()` handler using existing `/api/hubs/[slug]/share` endpoint
-  - Modal CSS styles matching design system
-
-## 4. Hub Federation — 6 Phases Implemented
-
-### Phase 1: Feature Flag Enforcement
-- `routes/hubs/[slug].ts` (both repos) — gates on `features.federateHubs` alongside `features.federation`
-- `routes/hubs/[slug]/inbox.ts` (both repos) — same
-
-### Phase 2: Hub Outbox + Followers Collection Routes
-- **NEW** `routes/hubs/[slug]/outbox.ts` (both repos) — paginated Announce activities
-- **NEW** `routes/hubs/[slug]/followers.ts` (both repos) — OrderedCollection of follower URIs
-- `packages/server/src/federation/outboxQueries.ts` — added `countHubOutboxItems()`, `getHubOutboxPage()`
-- `packages/protocol/src/outbox.ts` — added `baseUriOverride` parameter to collection builders
-
-### Phase 3: Outbound Post + Share Federation
-- `packages/server/src/federation/hubFederation.ts`:
-  - Added `hubPostToNote()` — builds Note with proper URI `/hubs/{slug}/posts/{postId}`
-  - Added `getHubPostNoteUri()` — URI helper
-  - Fixed Note URI (was using generic `/comments/` path)
-- `packages/protocol/src/activityTypes.ts` — added optional `context` field to `APNote`
-- **NEW** `routes/hubs/[slug]/posts/[postId].ts` (both repos) — serves hub post as AP Note JSON-LD
-- `api/hubs/[slug]/posts/index.post.ts` (both repos) — wired `federateHubPost()` (fire-and-forget)
-- `api/hubs/[slug]/share.post.ts` (both repos) — wired `federateHubShare()` (fire-and-forget)
-
-### Phase 4: Outbound Delete Federation
-- `packages/server/src/federation/hubFederation.ts` — added `federateHubPostDelete()`
-- `api/hubs/[slug]/posts/[postId].delete.ts` (both repos) — wired deletion federation
-
-### Phase 5: Hub Follow Routing
-- `packages/server/src/federation/inboxHandlers.ts`:
-  - Added `hubContext?: { hubSlug: string }` to `InboxHandlerOptions`
-  - `onFollow`: routes to `handleHubFollow()` when hubContext set (writes to `hubFollowers`, not `followRelationships`)
-  - `onUndo(Follow)`: routes to `handleHubUnfollow()` when hubContext set
-- `routes/hubs/[slug]/inbox.ts` (both repos) — passes `hubContext` to `createInboxHandlers()`
-
-### Phase 6: Likes on Hub Posts
-- `packages/server/src/federation/inboxHandlers.ts`:
-  - `onLike`: handles hub post Note URIs (`/hubs/{slug}/posts/{postId}`) and resolves Announce activity URIs back to hub posts
-  - `onUndo(Like)`: same resolution logic for decrements
-
-## Audit Results
-
-### Second-pass audit found and fixed:
-
-1. **XSS vulnerability in federated hub post content** — `hubPostToNote()` was putting raw user input directly into AP Note `content` field without HTML escaping. Fixed by:
-   - Exporting `escapeHtmlForAP()` from `@commonpub/protocol` (was file-private in `contentMapper.ts`)
-   - Importing and using it in `hubPostToNote()` in `hubFederation.ts`
-   - Also applying it in the hub post Note dereference route (`routes/hubs/[slug]/posts/[postId].ts`) in both repos
-
-2. **Undo(Like) asymmetry for Announce activity IDs** — `onLike` resolved Announce activity IDs to hub posts (line 732-758), but `onUndo(Like)` did not, meaning likes via Announce ID could be counted but never decremented. Fixed by adding matching Announce resolution to the Undo(Like) handler.
-
-3. **Unused import** — removed `remoteActors` from `hubFederation.ts` imports (first-pass catch).
-
-4. **Empty state button logic** — removed misleading "New Project" button for non-members; replaced with contextual copy.
-
-### Final verification:
-- All imports valid, no unused imports
-- Types match between callers and callees
-- SQL queries correct (including JSONB `payload->>'id'` matching)
-- Feature flag checks consistent across all 5 routes
-- Content HTML-escaped in all federated output
-- Like/Unlike symmetry verified (both direct Note URI and Announce ID resolution)
-- No null pointer risks
-- Both repos in sync
-- 847 server+protocol tests pass, zero failures
-
-## Files Changed
-
-### commonpub monorepo
-
-| File | Change |
-|------|--------|
-| `packages/schema/src/validators.ts` | `hubId` optional in createPostSchema |
-| `packages/schema/src/hub.ts` | unique constraint on hubShares |
-| `packages/protocol/src/activityTypes.ts` | `context?` field on APNote |
-| `packages/protocol/src/outbox.ts` | `baseUriOverride` parameter |
-| `packages/protocol/src/contentMapper.ts` | exported `escapeHtmlForAP` |
-| `packages/protocol/src/index.ts` | added `escapeHtmlForAP` export |
-| `packages/server/src/hub/hub.ts` | duplicate share check |
-| `packages/server/src/federation/hubFederation.ts` | `hubPostToNote`, `federateHubPostDelete`, `getHubPostNoteUri`, removed unused import |
-| `packages/server/src/federation/inboxHandlers.ts` | `hubContext` routing, hub post Like handling |
-| `packages/server/src/federation/outboxQueries.ts` | `countHubOutboxItems`, `getHubOutboxPage` |
-| `packages/server/src/federation/index.ts` | new exports |
-| `packages/server/src/index.ts` | new re-exports |
-| `apps/reference/server/routes/hubs/[slug].ts` | federateHubs flag |
-| `apps/reference/server/routes/hubs/[slug]/inbox.ts` | federateHubs flag + hubContext |
-| `apps/reference/server/routes/hubs/[slug]/outbox.ts` | **NEW** |
-| `apps/reference/server/routes/hubs/[slug]/followers.ts` | **NEW** |
-| `apps/reference/server/routes/hubs/[slug]/posts/[postId].ts` | **NEW** |
-| `apps/reference/server/api/hubs/[slug]/posts/index.post.ts` | post fix + federation wiring |
-| `apps/reference/server/api/hubs/[slug]/posts/[postId].delete.ts` | federation wiring |
-| `apps/reference/server/api/hubs/[slug]/share.post.ts` | federation wiring |
-| `apps/reference/pages/hubs/[slug]/index.vue` | project picker + empty state fix |
-
-### deveco-io (mirrored)
-All route/API/page changes mirrored identically.
-
-## Known Issues / Not in Scope
-
-- Remote posting to hubs (FEP-1b12 allows it but needs moderation queue)
-- Boost/Announce counting on hub posts (no `boostCount` column)
-- Remote replies to hub posts (needs mapping to `hubPostReplies`)
-- Hub privacy enforcement in federation
-- Migration needed for `uq_hub_shares_hub_content` constraint
-
-## Additional Work (Same Session)
-
-### Hub Post Detail Page + Likes
-- Added `hubPostLikes` table to schema for like deduplication
-- Added `getPostById`, `likePost` (with ON CONFLICT), `unlikePost`, `hasLikedPost` functions
-- Created API endpoints: single post GET, like toggle, pin toggle, lock toggle
-- Post validation added to like/pin/lock endpoints (post exists + belongs to hub)
-- Created post detail page (`/hubs/{slug}/posts/{postId}`) with:
-  - Full post content, author info, timestamp
-  - Like button (heart toggle)
-  - Reply form with nested reply support
-  - Mod actions: pin, lock, delete
-- Made feed/discussion items clickable (link to post detail)
-- Share posts render as styled cards (accent border, icon, title, arrow)
-
-### Post type enum fix
-- Added `discussion`, `question`, `showcase`, `announcement` values to `post_type` enum on both production databases via manual SQL
-
-### Admin federation sync
-- Synced Tools tab to deveco-io admin federation page (pending viewer, repair types, re-federate)
-- Added WebFinger hub discovery (acct:hubslug@domain → Group actor)
-
-### Project page redesign
+### Project Page Redesign
 - Removed Stats, Details, Tags widgets from right sidebar
-- Added inline meta chips below engagement buttons (difficulty, cost, tags, github, license)
-- Added floating table of contents on LEFT side with:
-  - IntersectionObserver-based scroll-spy highlighting
-  - Carousel-style active item (larger, bolder, accent border)
-  - 3-column layout: TOC (200px) | content (1fr) | sidebar (260px)
-  - Collapses on mobile (<1200px: TOC hidden, <1024px: single column)
-- Fixed bookmark button: icon toggles (outline/solid), shows "Saved" text, accent highlight
-- Fixed like button: heart icon toggles
+- Moved difficulty/cost/time to author row as inline text
+- Moved tags to author row as small mono chips (max 5)
+- GitHub source link in author row
+- Left-side floating TOC with IntersectionObserver scroll-spy
+- Carousel-style active item (larger, bolder, accent border)
+- 3-column layout: TOC (200px) | content (1fr) | sidebar (260px)
+- Collapses on mobile (<1200px: TOC hidden, <1024px: single column)
+- Bookmark button: icon toggles, shows "Saved" text, accent color
+- Like button: heart icon toggles
 
-### Mirror page improvements
-- Added boost button (federates Announce to followers)
-- Added comment form (federates reply as Note with inReplyTo)
-- Like button now toggles (was one-way only)
-- Federation note shown below comment input
+### Mirror Page Rewrite
+- Completely rewritten to reuse existing view components (ProjectView, ArticleView, BlogView, ExplainerView)
+- Transforms `FederatedContentItem` → `ContentViewData` at page level
+- Federation banner above content: "Federated from **domain** @user@instance — View Original"
+- Fallback to generic HTML template for non-CommonPub content
+- HTML content wrapped as BlockTuple `[["paragraph", { html }]]` for renderer compatibility
+- Extracts cpub:metadata (difficulty, cost, parts) from federated content
 
-### Package versions published
-- schema: 0.8.4 → 0.8.5 (hubPostLikes table)
-- server: 2.2.1 → 2.3.1 (getPostById, likePost, unlikePost, hasLikedPost, ON CONFLICT fix)
-- protocol: 0.9.2 (unchanged this round)
+### Federation Engagement
+- `useEngagement` composable accepts optional `federatedContentId` parameter
+- When set, likes route to `/api/federation/like` instead of `/api/social/like`
+- Bookmarks stay local
+- All view components accept `federatedId` prop (ProjectView, ArticleView, BlogView, ExplainerView)
+- Mirror page comment form federates replies as Note with inReplyTo
+- Boost button federates Announce to followers
 
-## Next Steps
+### Share Cards in Hub Feed
+- `shareContent()` enriched with coverImageUrl + description in payload
+- Share cards render with thumbnail image, type label, title, description
+- Backfill: `listPosts()` enriches old shares missing coverImageUrl at query time
+- Template uses `post.sharedContent` (pre-parsed) instead of manual JSON parsing
 
-1. Run `drizzle-kit generate` + `drizzle-kit migrate` on both instances for the unique constraint
-2. Set `features.federateHubs: true` on both instances
-3. Test end-to-end: create hub post on commonpub.io, verify Announce delivered to deveco.io followers
-4. Test hub Follow from deveco.io to commonpub.io hub
-5. Test Like on hub post from remote instance
+### Code Block Styling
+- prose.css updated: github-dark palette for pre/code blocks
+- Added basic hljs token colors for pre-rendered federated code
+
+### Admin Federation
+- Tools tab synced to deveco-io (pending viewer, repair types, re-federate)
+- WebFinger hub discovery (acct:hubslug@domain → Group actor)
+
+### BOM Federation
+- `contentToArticle` now includes `cpub:metadata` (difficulty, buildTime, estimatedCost, parts)
+- `FederatedContentItem` interface extended with `cpubMetadata` field
+- Mirror page extracts and passes BOM data to view components
+
+---
+
+## Packages Published
+
+| Package | Start | End | Key Changes |
+|---------|-------|-----|-------------|
+| @commonpub/schema | 0.8.2 | 0.8.5 | hubPostLikes table, hubShares unique constraint, hubId optional |
+| @commonpub/protocol | 0.9.0 | 0.9.3 | APNote context field, escapeHtmlForAP export, outbox baseUriOverride, cpub:metadata in Article |
+| @commonpub/server | 2.1.7 | 2.3.4 | Hub federation wiring, getPostById, likePost/unlikePost, hubPostLikes ON CONFLICT, share backfill, cpubMetadata in timeline |
+
+---
+
+## Known Technical Debt
+
+### Code Quality
+- `packages/server/src/hub/hub.ts` — ~1400 lines, should split into hub/posts.ts, hub/members.ts, hub/moderation.ts
+- `pages/hubs/[slug]/index.vue` — ~1400 lines with complex type casting, should extract components
+- `useEngagement.ts` — federation routing via optional 3rd param is bolted-on, should be cleaner
+- `pages/mirror/[id].vue` — massive inline data transformation in computed, should extract to composable
+- Share card backfill does N+1 queries at runtime — should be a one-time migration or JOIN
+- Manual file-copying between repos to stay in sync — needs automation or shared dependency
+
+### Missing Tests
+- No tests for hub post like system (likePost, unlikePost, hasLikedPost)
+- No tests for federation engagement routing in useEngagement
+- No tests for FederatedContentItem → ContentViewData transformation
+- No tests for share card backfill logic
+
+### Not Implemented
+- **Seamless hub mirroring** — hubs only federate via explicit Group actor follows. Need `federatedHubs` table + mirror sync + `listHubs()` with `includeFederated` flag for hubs to appear on other instances automatically
+- Remote posting to hubs (FEP-1b12 allows it but needs moderation queue)
+- Hub privacy enforcement in federation
+- Boost counting on hub posts (no boostCount column)
+- Remote replies to hub posts (mapping to hubPostReplies)
+- Post editing
+- Reply editing
+
+### Drift Between Repos
+- commonpub reference app may lag behind deveco-io on component-level changes
+- deveco-io has custom theme CSS (`deveco-theme.css`) that the reference app doesn't replicate
+- Some admin pages have style divergences that accumulated over time
+
+---
+
+## Production State
+
+### Both instances deployed with:
+- Hub federation enabled (`federateHubs: true`)
+- Post type enums applied
+- hubPostLikes table created
+- WebFinger hub discovery active
+- Delivery worker running (processes hub Announce activities)
+
+### Database migrations applied:
+- `hub_post_likes` table (both instances)
+- `post_type` enum values: discussion, question, showcase, announcement (both instances)
+- `uq_hub_shares_hub_content` unique constraint (needs manual review on commonpub.io — drizzle-kit push warned)
+
+---
+
+## Next Session Priorities
+
+1. **Refactor** — split hub.ts, extract hub page components, clean useEngagement
+2. **Seamless hub mirroring** — federatedHubs table, mirror sync, unified hub listing
+3. **Repo sync automation** — stop manual file copying
+4. **Tests** — hub post likes, federation engagement, data transformations
+5. **Federated interaction audit** — ensure ALL interactions (like, comment, fork, bookmark) work correctly for federated content across the board
