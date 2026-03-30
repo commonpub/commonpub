@@ -6,7 +6,7 @@ definePageMeta({ layout: 'default' });
 const route = useRoute();
 const id = route.params.id as string;
 
-const { data: fedContent, error } = await useFetch<Record<string, unknown>>(`/api/federation/content/${id}`);
+const { data: fedContent, error, pending } = await useFetch<Record<string, unknown>>(`/api/federation/content/${id}`);
 
 // Transform FederatedContentItem → ContentViewData for view components
 const contentType = computed(() => {
@@ -106,7 +106,8 @@ useSeoMeta({
 </script>
 
 <template>
-  <div v-if="error" class="cpub-not-found">
+  <div v-if="pending" class="cpub-loading" style="padding: 64px 24px; text-align: center">Loading content...</div>
+  <div v-else-if="error" class="cpub-not-found">
     <h1>Content not found</h1>
     <p>This mirrored content may have been removed or is unavailable.</p>
     <NuxtLink to="/">Back to home</NuxtLink>

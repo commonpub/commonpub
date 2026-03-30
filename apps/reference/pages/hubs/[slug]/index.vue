@@ -100,13 +100,6 @@ const moderators = computed(() => {
   );
 });
 
-function parseShareContent(content: string): { contentId: string; title: string; slug: string; type: string } | null {
-  try {
-    const parsed = JSON.parse(content);
-    if (parsed && parsed.title && parsed.slug) return parsed;
-  } catch { /* not JSON */ }
-  return null;
-}
 
 const filteredPosts = computed(() => {
   const items = posts.value?.items ?? [];
