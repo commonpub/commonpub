@@ -133,6 +133,7 @@ export interface ContentListItem {
   likeCount: number;
   commentCount: number;
   buildCount: number;
+  isFeatured?: boolean;
   publishedAt: Date | null;
   createdAt: Date;
   author: UserRef;

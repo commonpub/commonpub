@@ -69,6 +69,7 @@ function mapToListItem(
     likeCount: item.likeCount,
     commentCount: item.commentCount,
     buildCount: item.buildCount,
+    isFeatured: item.isFeatured,
     publishedAt: item.publishedAt,
     createdAt: item.createdAt,
     author,
