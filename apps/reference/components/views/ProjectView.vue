@@ -210,6 +210,47 @@ function scrollToHeading(id: string): void {
   }
 }
 
+// Scroll-spy: highlight active TOC entry based on which heading is in view
+let observer: IntersectionObserver | null = null;
+
+onMounted(() => {
+  nextTick(() => {
+    setupScrollSpy();
+  });
+});
+
+onUnmounted(() => {
+  observer?.disconnect();
+});
+
+function setupScrollSpy(): void {
+  if (!tocEntries.value.length) return;
+  observer?.disconnect();
+
+  const headingEls = tocEntries.value
+    .map((e) => document.getElementById(e.id))
+    .filter((el): el is HTMLElement => !!el);
+
+  if (!headingEls.length) return;
+
+  observer = new IntersectionObserver(
+    (entries) => {
+      // Find the topmost visible heading
+      for (const entry of entries) {
+        if (entry.isIntersecting) {
+          tocActiveId.value = entry.target.id;
+          break;
+        }
+      }
+    },
+    { rootMargin: '-80px 0px -70% 0px', threshold: 0 },
+  );
+
+  for (const el of headingEls) {
+    observer.observe(el);
+  }
+}
+
 // Fork
 const forking = ref(false);
 async function handleFork(): Promise<void> {
@@ -311,9 +352,9 @@ async function handleBuild(): Promise<void> {
         <!-- Engagement Row -->
         <div class="cpub-engagement-row">
           <button class="cpub-engage-btn" :class="{ liked }" @click="toggleLike">
-            <i class="fa-solid fa-heart"></i> Like <span class="cpub-count">{{ likeCount }}</span>
+            <i :class="liked ? 'fa-solid fa-heart' : 'fa-regular fa-heart'"></i> {{ liked ? 'Liked' : 'Like' }} <span class="cpub-count">{{ likeCount }}</span>
           </button>
-          <button class="cpub-engage-btn" :class="{ bookmarked }" @click="toggleBookmark"><i class="fa-regular fa-bookmark"></i> Bookmark</button>
+          <button class="cpub-engage-btn" :class="{ bookmarked }" @click="toggleBookmark"><i :class="bookmarked ? 'fa-solid fa-bookmark' : 'fa-regular fa-bookmark'"></i> {{ bookmarked ? 'Saved' : 'Bookmark' }}</button>
           <button class="cpub-engage-btn" @click="share"><i class="fa-solid fa-share-nodes"></i> Share</button>
           <div class="cpub-engage-sep"></div>
           <button class="cpub-engage-btn" :disabled="forking" @click="handleFork"><i class="fa-solid fa-code-branch"></i> {{ forking ? 'Forking...' : 'Fork' }} <span class="cpub-count">{{ content.forkCount ?? 0 }}</span></button>
@@ -366,8 +407,26 @@ async function handleBuild(): Promise<void> {
 
     <!-- MAIN CONTENT GRID -->
     <div class="cpub-page-outer">
-      <div class="cpub-content-grid">
-        <!-- LEFT: CONTENT -->
+      <div class="cpub-content-grid" :class="{ 'cpub-has-toc': tocEntries.length > 0 && activeTab === 'overview' }">
+        <!-- LEFT: TABLE OF CONTENTS -->
+        <nav v-if="tocEntries.length > 0 && activeTab === 'overview'" class="cpub-toc-col">
+          <div class="cpub-toc">
+            <div class="cpub-toc-title">On This Page</div>
+            <div class="cpub-toc-nav">
+              <button
+                v-for="entry in tocEntries"
+                :key="entry.id"
+                class="cpub-toc-item"
+                :class="{ active: tocActiveId === entry.id, 'cpub-toc-h3': entry.level >= 3 }"
+                @click="scrollToHeading(entry.id)"
+              >
+                <span class="cpub-toc-text">{{ entry.text }}</span>
+              </button>
+            </div>
+          </div>
+        </nav>
+
+        <!-- CENTER: CONTENT -->
         <div class="cpub-content-col">
           <!-- OVERVIEW TAB -->
           <template v-if="activeTab === 'overview'">
@@ -483,22 +542,6 @@ async function handleBuild(): Promise<void> {
 
         <!-- RIGHT: SIDEBAR -->
         <aside class="cpub-sidebar">
-          <!-- Table of Contents (floating) -->
-          <div v-if="tocEntries.length && activeTab === 'overview'" class="cpub-toc">
-            <div class="cpub-toc-title">On This Page</div>
-            <nav class="cpub-toc-nav">
-              <button
-                v-for="entry in tocEntries"
-                :key="entry.id"
-                class="cpub-toc-item"
-                :class="{ active: tocActiveId === entry.id, 'cpub-toc-h3': entry.level >= 3 }"
-                @click="scrollToHeading(entry.id)"
-              >
-                {{ entry.text }}
-              </button>
-            </nav>
-          </div>
-
           <!-- BOM Summary -->
           <div v-if="content.parts?.length || bomProducts?.length" class="cpub-sb-card">
             <div class="cpub-sb-title">BOM Summary</div>
@@ -775,6 +818,7 @@ async function handleBuild(): Promise<void> {
 
 .cpub-engage-btn:hover { color: var(--text); background: var(--surface2); }
 .cpub-engage-btn.liked { color: var(--red); background: var(--red-bg); }
+.cpub-engage-btn.bookmarked { color: var(--accent); background: var(--accent-bg); }
 
 .cpub-engage-btn-green {
   color: var(--green);
@@ -860,10 +904,13 @@ async function handleBuild(): Promise<void> {
 /* ── CONTENT GRID ── */
 .cpub-content-grid {
   display: grid;
-  grid-template-columns: 1fr 300px;
+  grid-template-columns: 1fr 260px;
   gap: 32px;
   align-items: start;
   padding-bottom: 64px;
+}
+.cpub-content-grid.cpub-has-toc {
+  grid-template-columns: 200px 1fr 260px;
 }
 
 /* ── PROSE ── */
@@ -911,23 +958,46 @@ async function handleBuild(): Promise<void> {
   align-self: start;
 }
 
-/* ── TABLE OF CONTENTS ── */
-.cpub-toc {
-  background: var(--surface); border: 2px solid var(--border); padding: 16px;
+/* ── TABLE OF CONTENTS (left column) ── */
+.cpub-toc-col {
+  position: sticky;
+  top: 100px;
+  align-self: start;
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+  scrollbar-width: none;
 }
+.cpub-toc-col::-webkit-scrollbar { display: none; }
+
+.cpub-toc { padding: 0; }
 .cpub-toc-title {
-  font-family: var(--font-mono); font-size: 10px; text-transform: uppercase;
-  letter-spacing: 0.08em; color: var(--text-faint); margin-bottom: 10px; font-weight: 600;
+  font-family: var(--font-mono); font-size: 9px; text-transform: uppercase;
+  letter-spacing: 0.1em; color: var(--text-faint); margin-bottom: 12px; font-weight: 700;
 }
-.cpub-toc-nav { display: flex; flex-direction: column; gap: 1px; }
+.cpub-toc-nav { display: flex; flex-direction: column; gap: 0; }
 .cpub-toc-item {
-  display: block; text-align: left; background: none; border: none; cursor: pointer;
-  font-size: 12px; line-height: 1.4; color: var(--text-dim); padding: 4px 10px;
-  border-left: 2px solid transparent; transition: all 0.1s;
+  display: flex; align-items: flex-start; text-align: left; background: none; border: none; cursor: pointer;
+  font-size: 11px; line-height: 1.35; color: var(--text-faint); padding: 5px 0 5px 12px;
+  border-left: 2px solid var(--border);
+  transition: all 0.2s ease;
 }
-.cpub-toc-item:hover { color: var(--text); border-left-color: var(--border2); }
-.cpub-toc-item.active { color: var(--accent); border-left-color: var(--accent); font-weight: 500; }
-.cpub-toc-h3 { padding-left: 22px; font-size: 11px; }
+.cpub-toc-item:hover { color: var(--text); }
+.cpub-toc-item.active {
+  color: var(--text);
+  font-weight: 600;
+  font-size: 12px;
+  border-left-color: var(--accent);
+  border-left-width: 3px;
+  padding-left: 11px;
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+.cpub-toc-text {
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.cpub-toc-h3 { padding-left: 20px; font-size: 10px; }
+.cpub-toc-h3.active { padding-left: 19px; font-size: 11px; }
 
 .cpub-sb-card {
   background: var(--surface);
@@ -1404,12 +1474,19 @@ async function handleBuild(): Promise<void> {
 }
 
 /* ── RESPONSIVE ── */
+@media (max-width: 1200px) {
+  .cpub-content-grid.cpub-has-toc {
+    grid-template-columns: 1fr 260px;
+  }
+  .cpub-toc-col { display: none; }
+}
 @media (max-width: 1024px) {
-  .cpub-content-grid {
+  .cpub-content-grid,
+  .cpub-content-grid.cpub-has-toc {
     grid-template-columns: 1fr;
   }
   .cpub-sidebar { position: static; }
-  .cpub-toc { display: none; }
+  .cpub-toc-col { display: none; }
 }
 
 @media (max-width: 640px) {

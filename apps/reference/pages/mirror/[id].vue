@@ -32,11 +32,13 @@ const dateStr = computed(() => {
 const renderedContent = computed(() => {
   const raw = content.value?.content;
   if (!raw) return '';
+  // If it starts with [[ it's likely raw BlockTuple JSON
   const trimmed = raw.trim();
   if (trimmed.startsWith('[[') || trimmed.startsWith('[["')) {
     try {
       const blocks = JSON.parse(trimmed) as [string, Record<string, unknown>][];
       if (!Array.isArray(blocks)) return raw;
+      // Sanitize HTML: strip scripts, event handlers, dangerous URIs
       const san = (h: unknown): string => {
         if (typeof h !== 'string') return '';
         return h
@@ -79,21 +81,61 @@ const typeLabel = computed(() => {
 });
 
 // Engagement
+const { isAuthenticated } = useAuth();
+const toast = useToast();
 const liked = ref(false);
 const localLikeCount = ref(content.value?.localLikeCount ?? 0);
+const localCommentCount = ref(content.value?.localCommentCount ?? 0);
 
 async function handleLike(): Promise<void> {
-  if (liked.value) return;
-  liked.value = true;
-  localLikeCount.value++;
+  if (!isAuthenticated.value) return;
+  const prev = liked.value;
+  const prevCount = localLikeCount.value;
+  liked.value = !liked.value;
+  localLikeCount.value += liked.value ? 1 : -1;
   try {
     await $fetch('/api/federation/like', {
       method: 'POST',
       body: { federatedContentId: id },
     });
   } catch {
-    liked.value = false;
-    localLikeCount.value--;
+    liked.value = prev;
+    localLikeCount.value = prevCount;
+  }
+}
+
+async function handleBoost(): Promise<void> {
+  if (!isAuthenticated.value) return;
+  try {
+    await $fetch('/api/federation/boost', {
+      method: 'POST',
+      body: { federatedContentId: id },
+    });
+    toast.success('Shared to your followers');
+  } catch {
+    toast.error('Failed to share');
+  }
+}
+
+// Comments
+const commentText = ref('');
+const commenting = ref(false);
+
+async function handleComment(): Promise<void> {
+  if (!commentText.value.trim() || !isAuthenticated.value) return;
+  commenting.value = true;
+  try {
+    await $fetch('/api/federation/reply', {
+      method: 'POST',
+      body: { federatedContentId: id, content: commentText.value },
+    });
+    commentText.value = '';
+    localCommentCount.value++;
+    toast.success('Reply sent to original instance');
+  } catch {
+    toast.error('Failed to send reply');
+  } finally {
+    commenting.value = false;
   }
 }
 
@@ -132,7 +174,7 @@ useSeoMeta({
           :href="content.url"
           target="_blank"
           rel="noopener noreferrer"
-          class="mirror-banner-link"
+          class="mirror-banner__link"
         >
           View Original <i class="fa-solid fa-arrow-up-right-from-square" />
         </a>
@@ -141,6 +183,7 @@ useSeoMeta({
       <!-- Content header -->
       <div class="mirror-header">
         <span class="mirror-type">{{ typeLabel }}</span>
+
         <h1 v-if="content.title" class="mirror-title">{{ content.title }}</h1>
 
         <!-- Cover image -->
@@ -157,23 +200,23 @@ useSeoMeta({
             v-if="content.actor?.avatarUrl"
             :src="content.actor.avatarUrl"
             :alt="authorName"
-            class="mirror-author-av"
+            class="mirror-author__av"
           />
-          <span v-else class="mirror-author-av mirror-author-av--fallback">
+          <span v-else class="mirror-author__av mirror-author__av--fallback">
             {{ authorName.charAt(0).toUpperCase() }}
           </span>
           <div>
-            <strong class="mirror-author-name">{{ authorName }}</strong>
-            <span class="mirror-author-handle">{{ authorHandle }}</span>
+            <strong class="mirror-author__name">{{ authorName }}</strong>
+            <span class="mirror-author__handle">{{ authorHandle }}</span>
           </div>
-          <time v-if="dateStr" class="mirror-author-date">{{ dateStr }}</time>
+          <time v-if="dateStr" class="mirror-author__date">{{ dateStr }}</time>
         </div>
       </div>
 
       <!-- Summary -->
       <p v-if="content.summary" class="mirror-summary">{{ content.summary }}</p>
 
-      <!-- Content body -->
+      <!-- Content body (rendered HTML from remote instance) -->
       <div
         v-if="renderedContent"
         class="mirror-body prose"
@@ -191,17 +234,22 @@ useSeoMeta({
       <div v-if="content.attachments?.length" class="mirror-attachments">
         <h3>Attachments</h3>
         <div v-for="att in content.attachments" :key="att.url" class="mirror-attachment">
-          <img v-if="att.type === 'Image'" :src="att.url" :alt="att.name ?? ''" class="mirror-attachment-img" />
+          <img v-if="att.type === 'Image'" :src="att.url" :alt="att.name ?? ''" class="mirror-attachment__img" />
           <a v-else :href="att.url" target="_blank" rel="noopener">{{ att.name || att.url }}</a>
         </div>
       </div>
 
       <!-- Engagement actions -->
       <div class="mirror-engagement">
-        <button class="mirror-action" :class="{ 'mirror-action--active': liked }" @click="handleLike">
-          <i class="fa-solid fa-heart" /> {{ localLikeCount }} likes
+        <button class="mirror-action" :class="{ 'mirror-action--active': liked }" :disabled="!isAuthenticated" @click="handleLike" :title="isAuthenticated ? (liked ? 'Unlike' : 'Like') : 'Log in to like'">
+          <i :class="liked ? 'fa-solid fa-heart' : 'fa-regular fa-heart'" /> {{ localLikeCount }}
         </button>
-        <span><i class="fa-solid fa-comment" /> {{ content.localCommentCount ?? 0 }} comments</span>
+        <button class="mirror-action" :disabled="!isAuthenticated" @click="handleBoost" :title="isAuthenticated ? 'Share to your followers' : 'Log in to share'">
+          <i class="fa-solid fa-retweet" /> Boost
+        </button>
+        <span class="mirror-action mirror-action--static">
+          <i class="fa-solid fa-comment" /> {{ localCommentCount }}
+        </span>
         <a
           v-if="content.url"
           :href="content.url"
@@ -209,8 +257,27 @@ useSeoMeta({
           rel="noopener noreferrer"
           class="mirror-action"
         >
-          <i class="fa-solid fa-arrow-up-right-from-square" /> View Original
+          <i class="fa-solid fa-arrow-up-right-from-square" /> Original
         </a>
+      </div>
+
+      <!-- Comment form -->
+      <div v-if="isAuthenticated" class="mirror-comment-form">
+        <div class="mirror-comment-row">
+          <input
+            v-model="commentText"
+            class="mirror-comment-input"
+            type="text"
+            placeholder="Write a reply (federates to original instance)..."
+            @keydown.enter="handleComment"
+          />
+          <button class="cpub-btn cpub-btn-sm cpub-btn-primary" :disabled="commenting || !commentText.trim()" @click="handleComment">
+            <i class="fa-solid fa-paper-plane"></i> Reply
+          </button>
+        </div>
+        <p class="mirror-comment-note">
+          <i class="fa-solid fa-globe"></i> Your reply will be sent as a federated activity to {{ content.originDomain }}
+        </p>
       </div>
     </template>
   </div>
@@ -241,7 +308,8 @@ useSeoMeta({
   gap: 8px;
   padding: 10px 14px;
   background: var(--accent-bg);
-  border: 2px solid var(--accent-border, var(--accent));
+  border: 1px solid var(--accent-border);
+  border-radius: 6px;
   font-size: 0.8125rem;
   color: var(--text-dim);
   margin-bottom: 24px;
@@ -252,14 +320,10 @@ useSeoMeta({
   flex-shrink: 0;
 }
 
-.mirror-banner-link {
+.mirror-banner__link {
   margin-left: auto;
   color: var(--accent);
   font-weight: 600;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
   text-decoration: none;
   white-space: nowrap;
   display: flex;
@@ -267,17 +331,16 @@ useSeoMeta({
   gap: 4px;
 }
 
-.mirror-banner-link:hover {
+.mirror-banner__link:hover {
   text-decoration: underline;
 }
 
 .mirror-type {
   display: inline-block;
-  font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
   color: var(--accent);
   margin-bottom: 8px;
 }
@@ -294,7 +357,7 @@ useSeoMeta({
   width: 100%;
   max-height: 400px;
   object-fit: cover;
-  border: 2px solid var(--border);
+  border-radius: 8px;
   margin-bottom: 20px;
 }
 
@@ -304,42 +367,39 @@ useSeoMeta({
   gap: 10px;
   margin-bottom: 24px;
   padding-bottom: 16px;
-  border-bottom: 2px solid var(--border2);
+  border-bottom: 1px solid var(--border2);
 }
 
-.mirror-author-av {
+.mirror-author__av {
   width: 36px;
   height: 36px;
+  border-radius: 6px;
   object-fit: cover;
-  border: 2px solid var(--border);
 }
 
-.mirror-author-av--fallback {
+.mirror-author__av--fallback {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--accent-bg);
-  color: var(--accent);
+  background: linear-gradient(135deg, var(--accent), var(--teal));
+  color: #fff;
   font-weight: 700;
-  font-family: var(--font-mono);
   font-size: 0.75rem;
 }
 
-.mirror-author-name {
+.mirror-author__name {
   display: block;
   font-size: 0.875rem;
   color: var(--text);
 }
 
-.mirror-author-handle {
-  font-family: var(--font-mono);
+.mirror-author__handle {
   font-size: 0.75rem;
   color: var(--text-faint);
 }
 
-.mirror-author-date {
+.mirror-author__date {
   margin-left: auto;
-  font-family: var(--font-mono);
   font-size: 0.75rem;
   color: var(--text-faint);
 }
@@ -361,7 +421,7 @@ useSeoMeta({
 
 .mirror-body :deep(img) {
   max-width: 100%;
-  border: 2px solid var(--border);
+  border-radius: 6px;
 }
 
 .mirror-body :deep(a) {
@@ -370,8 +430,8 @@ useSeoMeta({
 
 .mirror-body :deep(pre) {
   background: var(--surface2);
-  border: 2px solid var(--border);
   padding: 12px;
+  border-radius: 6px;
   overflow-x: auto;
 }
 
@@ -383,12 +443,11 @@ useSeoMeta({
 }
 
 .mirror-tag {
-  font-family: var(--font-mono);
   font-size: 0.75rem;
   padding: 3px 8px;
   background: var(--surface2);
-  border: 2px solid var(--border2);
   color: var(--text-dim);
+  border-radius: 4px;
 }
 
 .mirror-attachments {
@@ -396,17 +455,14 @@ useSeoMeta({
 }
 
 .mirror-attachments h3 {
-  font-family: var(--font-mono);
   font-size: 0.875rem;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
   margin-bottom: 8px;
 }
 
-.mirror-attachment-img {
+.mirror-attachment__img {
   max-width: 100%;
-  border: 2px solid var(--border);
+  border-radius: 6px;
   margin-bottom: 8px;
 }
 
@@ -414,7 +470,7 @@ useSeoMeta({
   display: flex;
   gap: 20px;
   padding-top: 16px;
-  border-top: 2px solid var(--border2);
+  border-top: 1px solid var(--border2);
   font-size: 0.8125rem;
   color: var(--text-dim);
 }
@@ -425,7 +481,8 @@ useSeoMeta({
 
 .mirror-action {
   background: none;
-  border: 2px solid var(--border2);
+  border: 1px solid var(--border2);
+  border-radius: 4px;
   padding: 4px 10px;
   font-size: 0.8125rem;
   color: var(--text-dim);
@@ -444,6 +501,23 @@ useSeoMeta({
 
 .mirror-action--active {
   color: var(--red);
-  border-color: var(--red);
+  border-color: var(--red-border);
+}
+.mirror-action--static { cursor: default; }
+.mirror-action:disabled { opacity: 0.5; cursor: default; }
+
+/* Comment form */
+.mirror-comment-form {
+  margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border);
+}
+.mirror-comment-row { display: flex; gap: 8px; }
+.mirror-comment-input {
+  flex: 1; padding: 8px 12px; background: var(--surface); border: 2px solid var(--border);
+  color: var(--text); font-size: 13px;
+}
+.mirror-comment-input:focus { outline: none; border-color: var(--accent); }
+.mirror-comment-note {
+  margin-top: 6px; font-size: 10px; color: var(--text-faint);
+  display: flex; align-items: center; gap: 4px;
 }
 </style>
