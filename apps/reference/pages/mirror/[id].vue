@@ -22,14 +22,22 @@ const transformedContent = computed<ContentViewData | null>(() => {
 
   const title = (fc.title as string) || 'Untitled';
 
-  // Parse block content if stored as JSON
+  // Parse block content: may be BlockTuple JSON or raw HTML from federation
   let content: unknown = fc.content;
   if (typeof content === 'string') {
     const trimmed = content.trim();
     if (trimmed.startsWith('[[') || trimmed.startsWith('[["')) {
       try { content = JSON.parse(trimmed); } catch { /* keep as string */ }
     }
+    // If still a string (HTML from federation), wrap as BlockTuple array
+    // so view components' BlocksBlockContentRenderer can render it
+    if (typeof content === 'string' && content.trim()) {
+      content = [['paragraph', { html: content }]];
+    }
   }
+
+  // Extract CommonPub metadata (difficulty, cost, parts) if available
+  const meta = (fc.cpubMetadata as Record<string, unknown>) || null;
 
   return {
     id: fc.id as string,
@@ -41,15 +49,15 @@ const transformedContent = computed<ContentViewData | null>(() => {
     content,
     coverImageUrl: (fc.coverImageUrl as string) || null,
     category: null,
-    difficulty: null,
-    buildTime: null,
-    estimatedCost: null,
+    difficulty: (meta?.difficulty as string) || null,
+    buildTime: (meta?.buildTime as string) || null,
+    estimatedCost: (meta?.estimatedCost as string) || null,
     status: 'published',
     visibility: 'public',
     isFeatured: false,
     seoDescription: null,
     previewToken: null,
-    parts: null,
+    parts: Array.isArray(meta?.parts) ? meta.parts as ContentViewData['parts'] : null,
     sections: null,
     viewCount: 0,
     likeCount: (fc.localLikeCount as number) ?? 0,

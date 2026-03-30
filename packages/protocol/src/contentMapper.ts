@@ -129,6 +129,11 @@ export interface ContentItemInput {
   updatedAt?: Date | null;
   /** Tag names to include as AP Hashtag objects */
   tags?: string[];
+  /** CommonPub metadata: difficulty, build time, cost, parts, etc. */
+  difficulty?: string | null;
+  buildTime?: string | null;
+  estimatedCost?: string | null;
+  parts?: unknown[] | null;
 }
 
 export interface AuthorInput {
@@ -209,6 +214,16 @@ export function contentToArticle(
   article.url = `https://${domain}/${item.type}/${item.slug}`;
   if (tags.length > 0) {
     article.tag = tags;
+  }
+
+  // CommonPub extension: project metadata (difficulty, cost, parts)
+  const cpubMeta: Record<string, unknown> = {};
+  if (item.difficulty) cpubMeta.difficulty = item.difficulty;
+  if (item.buildTime) cpubMeta.buildTime = item.buildTime;
+  if (item.estimatedCost) cpubMeta.estimatedCost = item.estimatedCost;
+  if (item.parts?.length) cpubMeta.parts = item.parts;
+  if (Object.keys(cpubMeta).length > 0) {
+    (article as unknown as Record<string, unknown>)['cpub:metadata'] = cpubMeta;
   }
 
   return article;

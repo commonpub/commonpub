@@ -26,6 +26,7 @@ export interface FederatedContentItem {
   attachments: Array<{ type: string; url: string; name?: string }>;
   inReplyTo: string | null;
   cpubType: string | null;
+  cpubMetadata: Record<string, unknown> | null;
   localLikeCount: number;
   localCommentCount: number;
   publishedAt: string | null;
@@ -109,6 +110,7 @@ export async function listFederatedTimeline(
     attachments: (r.content.attachments ?? []) as Array<{ type: string; url: string; name?: string }>,
     inReplyTo: r.content.inReplyTo,
     cpubType: r.content.cpubType,
+    cpubMetadata: (r.content.cpubMetadata ?? null) as Record<string, unknown> | null,
     localLikeCount: r.content.localLikeCount,
     localCommentCount: r.content.localCommentCount,
     publishedAt: r.content.publishedAt?.toISOString() ?? null,
@@ -165,6 +167,7 @@ export async function getFederatedContent(
     attachments: (r.content.attachments ?? []) as Array<{ type: string; url: string; name?: string }>,
     inReplyTo: r.content.inReplyTo,
     cpubType: r.content.cpubType,
+    cpubMetadata: (r.content.cpubMetadata ?? null) as Record<string, unknown> | null,
     localLikeCount: r.content.localLikeCount,
     localCommentCount: r.content.localCommentCount,
     publishedAt: r.content.publishedAt?.toISOString() ?? null,
@@ -371,6 +374,7 @@ export async function listRemoteReplies(
     attachments: (r.content.attachments ?? []) as Array<{ type: string; url: string; name?: string }>,
     inReplyTo: r.content.inReplyTo,
     cpubType: r.content.cpubType,
+    cpubMetadata: (r.content.cpubMetadata ?? null) as Record<string, unknown> | null,
     localLikeCount: r.content.localLikeCount,
     localCommentCount: r.content.localCommentCount,
     publishedAt: r.content.publishedAt?.toISOString() ?? null,
@@ -448,6 +452,7 @@ export async function searchFederatedContent(
       attachments: (r.content.attachments ?? []) as Array<{ type: string; url: string; name?: string }>,
       inReplyTo: r.content.inReplyTo,
       cpubType: r.content.cpubType,
+      cpubMetadata: (r.content.cpubMetadata ?? null) as Record<string, unknown> | null,
       localLikeCount: r.content.localLikeCount,
       localCommentCount: r.content.localCommentCount,
       publishedAt: r.content.publishedAt?.toISOString() ?? null,
