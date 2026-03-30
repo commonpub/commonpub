@@ -63,6 +63,7 @@ async function toggleFeatured(id: string, current: boolean): Promise<void> {
             <td class="cpub-admin-date">{{ new Date(item.createdAt).toLocaleDateString() }}</td>
             <td class="cpub-admin-actions">
               <button
+                v-if="item.source !== 'federated'"
                 class="cpub-admin-action"
                 :class="{ 'cpub-admin-action--active': item.isFeatured }"
                 :title="item.isFeatured ? 'Remove from featured' : 'Feature on homepage'"
@@ -70,6 +71,9 @@ async function toggleFeatured(id: string, current: boolean): Promise<void> {
               >
                 <i class="fa-solid fa-star"></i>
               </button>
+              <span v-if="item.source === 'federated'" class="cpub-admin-federated-tag">
+                <i class="fa-solid fa-globe"></i> federated
+              </span>
               <button class="cpub-admin-action cpub-admin-action--danger" title="Remove content" @click="removeContent(item.id, item.title)">
                 <i class="fa-solid fa-trash"></i>
               </button>
@@ -101,5 +105,6 @@ async function toggleFeatured(id: string, current: boolean): Promise<void> {
 .cpub-admin-action:hover { color: var(--accent); }
 .cpub-admin-action--active { color: var(--yellow, #e6b800); }
 .cpub-admin-action--danger:hover { color: var(--red); }
+.cpub-admin-federated-tag { font-family: var(--font-mono); font-size: 9px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.04em; display: flex; align-items: center; gap: 3px; }
 .cpub-empty { color: var(--text-faint); text-align: center; padding: var(--space-10) 0; }
 </style>

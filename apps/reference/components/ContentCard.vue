@@ -190,25 +190,24 @@ function formatCount(n: number | undefined): string {
 .cpub-cc-badge {
   font-family: var(--font-mono);
   font-size: 9px;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   padding: 2px 7px;
   display: flex;
   align-items: center;
   gap: 4px;
+  background: rgba(0, 0, 0, 0.75);
+  color: #fff;
+  backdrop-filter: blur(4px);
 }
 
 .cpub-cc-badge--featured {
-  background: var(--yellow-bg);
-  border: 2px solid var(--yellow);
-  color: var(--yellow);
+  color: #fde68a;
 }
 
 .cpub-cc-badge--federated {
-  background: var(--teal-bg, var(--surface2));
-  border: 2px solid var(--teal);
-  color: var(--teal);
+  color: #5eead4;
 }
 .cpub-cc-badge--federated i {
   font-size: 8px;

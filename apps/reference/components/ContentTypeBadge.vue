@@ -26,37 +26,21 @@ const iconMap: Record<string, string> = {
   gap: 5px;
   font-family: var(--font-mono);
   font-size: 10px;
-  font-weight: var(--font-weight-semibold);
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   padding: 3px 10px;
-  border: 2px solid var(--border);
-  box-shadow: var(--shadow-sm);
-  background: var(--badge-bg, var(--surface2));
-  color: var(--badge-color, var(--text-dim));
+  background: rgba(0, 0, 0, 0.75);
+  color: #fff;
+  backdrop-filter: blur(4px);
 }
 
 .cpub-badge-icon {
   font-size: 9px;
 }
 
-[data-content-type="project"] {
-  --badge-bg: var(--accent-bg);
-  --badge-color: var(--accent);
-}
-
-[data-content-type="article"] {
-  --badge-bg: var(--teal-bg);
-  --badge-color: var(--teal);
-}
-
-[data-content-type="blog"] {
-  --badge-bg: var(--green-bg);
-  --badge-color: var(--green);
-}
-
-[data-content-type="explainer"] {
-  --badge-bg: var(--yellow-bg);
-  --badge-color: var(--yellow);
-}
+[data-content-type="project"] { color: #93c5fd; }
+[data-content-type="article"] { color: #5eead4; }
+[data-content-type="blog"] { color: #86efac; }
+[data-content-type="explainer"] { color: #fde68a; }
 </style>
