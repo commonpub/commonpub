@@ -75,6 +75,54 @@ export async function getOutboxPage(
 }
 
 /**
+ * Count total outbox items for a hub Group actor.
+ * Counts delivered outbound Announce activities from the hub actor.
+ */
+export async function countHubOutboxItems(db: DB, hubActorUri: string): Promise<number> {
+  const [result] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(activities)
+    .where(
+      and(
+        eq(activities.actorUri, hubActorUri),
+        eq(activities.direction, 'outbound'),
+        eq(activities.status, 'delivered'),
+        eq(activities.type, 'Announce'),
+      ),
+    );
+  return result?.count ?? 0;
+}
+
+/**
+ * Get a page of outbox activities for a hub Group actor.
+ * Returns Announce activity payloads.
+ */
+export async function getHubOutboxPage(
+  db: DB,
+  hubActorUri: string,
+  page: number,
+  pageSize = DEFAULT_PAGE_SIZE,
+): Promise<Record<string, unknown>[]> {
+  const offset = (page - 1) * pageSize;
+  const rows = await db
+    .select({ payload: activities.payload })
+    .from(activities)
+    .where(
+      and(
+        eq(activities.actorUri, hubActorUri),
+        eq(activities.direction, 'outbound'),
+        eq(activities.status, 'delivered'),
+        eq(activities.type, 'Announce'),
+      ),
+    )
+    .orderBy(desc(activities.createdAt))
+    .limit(pageSize)
+    .offset(offset);
+
+  return rows.map((r) => r.payload as Record<string, unknown>);
+}
+
+/**
  * Get a page of instance-level outbox activities (all users' Create activities).
  * Used by the instance actor outbox for backfill.
  */

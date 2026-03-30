@@ -15,7 +15,7 @@ export default defineEventHandler(async (event) => {
   if (!isAPRequest) return;
 
   const config = useConfig();
-  if (!config.features.federation) return;
+  if (!config.features.federation || !config.features.federateHubs) return;
 
   const slug = getRouterParam(event, 'slug');
   if (!slug) return;

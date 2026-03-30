@@ -10,6 +10,7 @@ import {
   federatedContent,
   remoteActors,
   users,
+  hubPosts,
 } from '@commonpub/schema';
 import {
   buildAcceptActivity,
@@ -19,6 +20,7 @@ import {
 import type { DB } from '../types.js';
 import { resolveRemoteActor } from './federation.js';
 import { matchMirrorForContent } from './mirroring.js';
+import { handleHubFollow, handleHubUnfollow } from './hubFederation.js';
 import { createNotification } from '../notification/notification.js';
 
 /** Helper: create a notification for a local user from a remote actor interaction */
@@ -46,6 +48,10 @@ export interface InboxHandlerOptions {
     backfillOnMirrorAccept?: boolean;
     mirrorMaxItems?: number;
   };
+  /** When set, routes Follow/Undo(Follow) to hub-specific handlers */
+  hubContext?: {
+    hubSlug: string;
+  };
 }
 
 /**
@@ -62,6 +68,20 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
     async onFollow(actorUri: string, targetActorUri: string, activityId: string): Promise<void> {
       // Resolve the remote actor (caches their public key, inbox, etc.)
       await resolveRemoteActor(db, actorUri);
+
+      // Hub-specific Follow: route to handleHubFollow which manages hubFollowers table
+      if (opts.hubContext) {
+        await handleHubFollow(db, opts.hubContext.hubSlug, actorUri, activityId, domain);
+        await db.insert(activities).values({
+          type: 'Follow',
+          actorUri,
+          objectUri: targetActorUri,
+          payload: { type: 'Follow', actor: actorUri, object: targetActorUri, id: activityId },
+          direction: 'inbound',
+          status: 'processed',
+        });
+        return;
+      }
 
       // Upsert follow relationship (atomic — handles concurrent requests)
       await db
@@ -207,11 +227,24 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
      */
     async onUndo(actorUri: string, objectType: string, objectId: string): Promise<void> {
       if (objectType === 'Like' && objectId) {
-        // Undo(Like): decrement like count on local or federated content
+        // Undo(Like): decrement like count on local, hub, or federated content
+        let unliked = false;
         try {
           const url = new URL(objectId).pathname;
           const segments = url.split('/').filter(Boolean);
-          if (segments.length >= 2) {
+
+          // Try hub post by Note URI pattern (/hubs/{slug}/posts/{postId})
+          if (segments.length >= 4 && segments[0] === 'hubs' && segments[2] === 'posts') {
+            const postId = segments[3]!;
+            const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+            if (UUID_RE.test(postId)) {
+              await db.update(hubPosts).set({ likeCount: sql`GREATEST(${hubPosts.likeCount} - 1, 0)` })
+                .where(eq(hubPosts.id, postId));
+              unliked = true;
+            }
+          }
+
+          if (!unliked && segments.length >= 2) {
             const idOrSlug = segments[segments.length - 1]!;
             // Try local content by slug
             const bySlug = await db
@@ -224,48 +257,77 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
                 .update(contentItems)
                 .set({ likeCount: sql`GREATEST(${contentItems.likeCount} - 1, 0)` })
                 .where(eq(contentItems.id, bySlug[0]!.id));
-            } else {
-              // Try federated content by objectUri
-              await db
-                .update(federatedContent)
-                .set({ localLikeCount: sql`GREATEST(${federatedContent.localLikeCount} - 1, 0)` })
-                .where(eq(federatedContent.objectUri, objectId));
+              unliked = true;
             }
+          }
+
+          // Try matching an outbound Announce activity (someone unliked the Announce itself)
+          if (!unliked) {
+            const [announceActivity] = await db
+              .select({ objectUri: activities.objectUri })
+              .from(activities)
+              .where(
+                and(
+                  eq(activities.type, 'Announce'),
+                  eq(activities.direction, 'outbound'),
+                  sql`${activities.payload}->>'id' = ${objectId}`,
+                ),
+              )
+              .limit(1);
+
+            if (announceActivity?.objectUri) {
+              try {
+                const noteSegments = new URL(announceActivity.objectUri).pathname.split('/').filter(Boolean);
+                if (noteSegments.length >= 4 && noteSegments[0] === 'hubs' && noteSegments[2] === 'posts') {
+                  const announcePostId = noteSegments[3]!;
+                  await db.update(hubPosts).set({ likeCount: sql`GREATEST(${hubPosts.likeCount} - 1, 0)` })
+                    .where(eq(hubPosts.id, announcePostId));
+                  unliked = true;
+                }
+              } catch { /* invalid URL */ }
+            }
+          }
+
+          if (!unliked) {
+            // Try federated content by objectUri
+            await db
+              .update(federatedContent)
+              .set({ localLikeCount: sql`GREATEST(${federatedContent.localLikeCount} - 1, 0)` })
+              .where(eq(federatedContent.objectUri, objectId));
           }
         } catch {
           // Invalid URL — skip decrement
         }
       } else if (objectType === 'Follow') {
-        // Try exact match on activityUri first (most accurate)
-        let deleted = false;
-        if (objectId) {
-          const byActivity = await db
-            .select({ id: followRelationships.id })
-            .from(followRelationships)
-            .where(
-              and(
-                eq(followRelationships.followerActorUri, actorUri),
-                eq(followRelationships.activityUri, objectId),
-              ),
-            )
-            .limit(1);
+        // Hub-specific Undo(Follow): route to handleHubUnfollow
+        if (opts.hubContext) {
+          await handleHubUnfollow(db, opts.hubContext.hubSlug, actorUri, objectId);
+        } else {
+          // Try exact match on activityUri first (most accurate)
+          let deleted = false;
+          if (objectId) {
+            const byActivity = await db
+              .select({ id: followRelationships.id })
+              .from(followRelationships)
+              .where(
+                and(
+                  eq(followRelationships.followerActorUri, actorUri),
+                  eq(followRelationships.activityUri, objectId),
+                ),
+              )
+              .limit(1);
 
-          if (byActivity.length > 0) {
-            await db
-              .delete(followRelationships)
-              .where(eq(followRelationships.id, byActivity[0]!.id));
-            deleted = true;
+            if (byActivity.length > 0) {
+              await db
+                .delete(followRelationships)
+                .where(eq(followRelationships.id, byActivity[0]!.id));
+              deleted = true;
+            }
           }
-        }
 
-        // Fallback: try to extract target from the activity payload
-        if (!deleted) {
-          // The Undo object should reference the original Follow, which contains
-          // the target actor. Try parsing objectId as the original Follow's object.
-          // If not possible, we cannot safely determine which follow to delete —
-          // deleting by most-recent-followerActorUri could remove the wrong one.
-          // Instead, log a warning and leave the relationship intact.
-          console.warn(`[inbox] Undo(Follow) from ${actorUri} has no matching activityUri (objectId=${objectId}). Cannot determine target — relationship preserved.`);
+          if (!deleted) {
+            console.warn(`[inbox] Undo(Follow) from ${actorUri} has no matching activityUri (objectId=${objectId}). Cannot determine target — relationship preserved.`);
+          }
         }
       }
 
@@ -673,7 +735,56 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
         } catch { /* invalid URL */ }
       }
 
-      // If not local content, try federated content by exact objectUri
+      // If not local content, try hub post by Note URI pattern (/hubs/{slug}/posts/{postId})
+      if (!matched && isLocalUri) {
+        try {
+          const segments = new URL(objectUri).pathname.split('/').filter(Boolean);
+          // Match /hubs/{slug}/posts/{postId}
+          if (segments.length >= 4 && segments[0] === 'hubs' && segments[2] === 'posts') {
+            const postId = segments[3]!;
+            const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+            if (UUID_RE.test(postId)) {
+              const [post] = await db.select({ id: hubPosts.id }).from(hubPosts)
+                .where(eq(hubPosts.id, postId)).limit(1);
+              if (post) {
+                await db.update(hubPosts).set({ likeCount: sql`${hubPosts.likeCount} + 1` })
+                  .where(eq(hubPosts.id, post.id));
+                matched = true;
+              }
+            }
+          }
+        } catch { /* invalid URL */ }
+      }
+
+      // Try matching an outbound Announce activity (someone liked the Announce itself)
+      if (!matched) {
+        const [announceActivity] = await db
+          .select({ objectUri: activities.objectUri })
+          .from(activities)
+          .where(
+            and(
+              eq(activities.type, 'Announce'),
+              eq(activities.direction, 'outbound'),
+              sql`${activities.payload}->>'id' = ${objectUri}`,
+            ),
+          )
+          .limit(1);
+
+        if (announceActivity?.objectUri) {
+          // The Announce wraps a Note — try to find the hub post from the Note URI
+          try {
+            const noteSegments = new URL(announceActivity.objectUri).pathname.split('/').filter(Boolean);
+            if (noteSegments.length >= 4 && noteSegments[0] === 'hubs' && noteSegments[2] === 'posts') {
+              const postId = noteSegments[3]!;
+              await db.update(hubPosts).set({ likeCount: sql`${hubPosts.likeCount} + 1` })
+                .where(eq(hubPosts.id, postId));
+              matched = true;
+            }
+          } catch { /* invalid URL */ }
+        }
+      }
+
+      // If not local or hub content, try federated content by exact objectUri
       if (!matched) {
         await db
           .update(federatedContent)

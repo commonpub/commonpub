@@ -7,10 +7,13 @@ export function generateOutboxCollection(
   domain: string,
   /** Username for user actor, or null/undefined for instance actor */
   username?: string | null,
+  /** Override the base URI (e.g. for hub outboxes) */
+  baseUriOverride?: string,
 ): APOrderedCollection {
-  const baseUri = username
-    ? `https://${domain}/users/${username}/outbox`
-    : `https://${domain}/actor/outbox`;
+  const baseUri = baseUriOverride
+    ?? (username
+      ? `https://${domain}/users/${username}/outbox`
+      : `https://${domain}/actor/outbox`);
   return {
     '@context': AP_CONTEXT,
     type: 'OrderedCollection',
@@ -30,10 +33,13 @@ export function generateOutboxPage(
   page: number,
   pageSize: number,
   totalItems: number,
+  /** Override the base URI (e.g. for hub outboxes) */
+  baseUriOverride?: string,
 ): APOrderedCollectionPage {
-  const baseUri = username
-    ? `https://${domain}/users/${username}/outbox`
-    : `https://${domain}/actor/outbox`;
+  const baseUri = baseUriOverride
+    ?? (username
+      ? `https://${domain}/users/${username}/outbox`
+      : `https://${domain}/actor/outbox`);
   const totalPages = Math.ceil(totalItems / pageSize);
 
   const result: APOrderedCollectionPage = {

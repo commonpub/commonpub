@@ -55,6 +55,8 @@ export {
   getHubFederatedFollowers,
   federateHubPost,
   federateHubShare,
+  federateHubPostDelete,
+  getHubPostNoteUri,
 } from './hubFederation.js';
 export {
   resolveRemoteHandle,
@@ -77,6 +79,8 @@ export {
   countInstanceOutboxItems,
   getOutboxPage,
   getInstanceOutboxPage,
+  countHubOutboxItems,
+  getHubOutboxPage,
 } from './outboxQueries.js';
 export {
   processAuthorize,

@@ -1,6 +1,6 @@
 // WebFinger endpoint — RFC 7033
 import { parseWebFingerResource, buildWebFingerResponse } from '@commonpub/protocol';
-import { getUserByUsername } from '@commonpub/server';
+import { getUserByUsername, getHubBySlug } from '@commonpub/server';
 
 export default defineEventHandler(async (event) => {
   const query = getQuery(event);
@@ -51,6 +51,21 @@ export default defineEventHandler(async (event) => {
   // Look up user in database
   const db = useDB();
   const profile = await getUserByUsername(db, parsed.username);
+
+  // If not a user, try hub lookup (Group actor)
+  if (!profile && config.features.federation && config.features.federateHubs) {
+    const hub = await getHubBySlug(db, parsed.username);
+    if (hub) {
+      const hubActorUri = `https://${instanceDomain}/hubs/${parsed.username}`;
+      setResponseHeader(event, 'content-type', 'application/jrd+json');
+      return buildWebFingerResponse({
+        username: parsed.username,
+        domain: instanceDomain,
+        actorUri: hubActorUri,
+      });
+    }
+  }
+
   if (!profile) {
     throw createError({
       statusCode: 404,

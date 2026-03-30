@@ -9,7 +9,7 @@ import { verifyInboxRequest } from '../../../utils/inbox';
  */
 export default defineEventHandler(async (event) => {
   const config = useConfig();
-  if (!config.features.federation) {
+  if (!config.features.federation || !config.features.federateHubs) {
     throw createError({ statusCode: 404, statusMessage: 'Not Found' });
   }
 
@@ -22,7 +22,8 @@ export default defineEventHandler(async (event) => {
 
   const db = useDB();
   const domain = config.instance.domain;
-  const handlers = createInboxHandlers({ db, domain });
+  const slug = getRouterParam(event, 'slug');
+  const handlers = createInboxHandlers({ db, domain, hubContext: slug ? { hubSlug: slug } : undefined });
 
   try {
     await processInboxActivity(body, handlers);

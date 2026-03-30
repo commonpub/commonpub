@@ -11,7 +11,6 @@ import {
   hubPosts,
   users,
   activities,
-  remoteActors,
 } from '@commonpub/schema';
 import {
   generateKeypair,
@@ -19,9 +18,12 @@ import {
   exportPrivateKeyPem,
   buildAnnounceActivity,
   buildAcceptActivity,
-  contentToNote,
+  buildDeleteActivity,
+  escapeHtmlForAP,
   AP_CONTEXT,
+  AP_PUBLIC,
   type APGroup,
+  type APNote,
 } from '@commonpub/protocol';
 import type { DB } from '../types.js';
 
@@ -258,18 +260,8 @@ export async function federateHubPost(
   const hubActorUri = getHubActorUri(domain, hub.slug);
   const followersUri = `${hubActorUri}/followers`;
 
-  // Build the post as a Note attributed to the author
-  const note = contentToNote(
-    {
-      id: post.post.id,
-      content: post.post.content,
-      targetId: hubActorUri,
-      targetType: 'hub',
-      createdAt: post.post.createdAt,
-    },
-    { username: post.author.username, displayName: post.author.displayName },
-    domain,
-  );
+  // Build the post as a Note attributed to the author, with hub-specific URI
+  const note = hubPostToNote(post.post, post.author, hub.slug, hubActorUri, domain);
 
   // The hub Group actor Announces the Note
   const announce = buildAnnounceActivity(domain, hubActorUri, note.id, followersUri);
@@ -306,6 +298,66 @@ export async function federateHubShare(
     actorUri: hubActorUri,
     objectUri: contentObjectUri,
     payload: announce,
+    direction: 'outbound',
+    status: 'pending',
+  });
+}
+
+// --- Hub Post Note Builder ---
+
+/** URI for a hub post's AP Note representation */
+export function getHubPostNoteUri(domain: string, hubSlug: string, postId: string): string {
+  return `https://${domain}/hubs/${hubSlug}/posts/${postId}`;
+}
+
+/** Build an AP Note for a hub post with proper hub-scoped URI */
+function hubPostToNote(
+  post: { id: string; content: string; createdAt: Date },
+  author: { username: string; displayName: string | null },
+  hubSlug: string,
+  hubActorUri: string,
+  domain: string,
+): APNote {
+  const actorUri = `https://${domain}/users/${author.username}`;
+  const objectId = getHubPostNoteUri(domain, hubSlug, post.id);
+  const followersUri = `${hubActorUri}/followers`;
+
+  const note: APNote = {
+    '@context': AP_CONTEXT,
+    type: 'Note',
+    id: objectId,
+    attributedTo: actorUri,
+    content: escapeHtmlForAP(post.content),
+    to: [AP_PUBLIC],
+    cc: [followersUri],
+    published: post.createdAt.toISOString(),
+    context: hubActorUri,
+  };
+
+  return note;
+}
+
+// --- Hub Post Deletion ---
+
+/**
+ * Federate a hub post deletion as Delete(Tombstone) from the Group actor.
+ */
+export async function federateHubPostDelete(
+  db: DB,
+  postId: string,
+  hubSlug: string,
+  domain: string,
+): Promise<void> {
+  const hubActorUri = getHubActorUri(domain, hubSlug);
+  const noteUri = getHubPostNoteUri(domain, hubSlug, postId);
+
+  const deleteActivity = buildDeleteActivity(domain, hubActorUri, noteUri, 'Note');
+
+  await db.insert(activities).values({
+    type: 'Delete',
+    actorUri: hubActorUri,
+    objectUri: noteUri,
+    payload: deleteActivity,
     direction: 'outbound',
     status: 'pending',
   });

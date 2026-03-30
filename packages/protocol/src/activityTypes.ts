@@ -31,6 +31,7 @@ export interface APNote {
   published?: string;
   to: string[];
   cc?: string[];
+  context?: string;
 }
 
 export interface APTombstone {

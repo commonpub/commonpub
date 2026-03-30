@@ -1,10 +1,11 @@
-import { createPost, getHubBySlug } from '@commonpub/server';
+import { createPost, getHubBySlug, federateHubPost } from '@commonpub/server';
 import type { HubPostItem } from '@commonpub/server';
 import { createPostSchema } from '@commonpub/schema';
 
 export default defineEventHandler(async (event): Promise<HubPostItem> => {
   const user = requireAuth(event);
   const db = useDB();
+  const config = useConfig();
   const { slug } = parseParams(event, { slug: 'string' });
 
   const community = await getHubBySlug(db, slug);
@@ -12,8 +13,24 @@ export default defineEventHandler(async (event): Promise<HubPostItem> => {
     throw createError({ statusCode: 404, statusMessage: 'Community not found' });
   }
 
-  const input = await parseBody(event, createPostSchema);
+  const body = await readBody(event);
+  const parsed = createPostSchema.safeParse({ ...body, hubId: community.id });
+  if (!parsed.success) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Validation failed',
+      data: { errors: parsed.error.flatten().fieldErrors },
+    });
+  }
 
-  const { hubId: _hubId, ...rest } = input; // eslint-disable-line @typescript-eslint/no-unused-vars
-  return createPost(db, user.id, { hubId: community.id, ...rest });
+  const post = await createPost(db, user.id, { hubId: community.id, type: parsed.data.type, content: parsed.data.content });
+
+  // Federate hub post as Announce from Group actor (fire-and-forget)
+  if (config.features.federation && config.features.federateHubs) {
+    federateHubPost(db, post.id, community.id, config.instance.domain).catch((err) => {
+      console.error('[hub-federation] Failed to federate post:', err);
+    });
+  }
+
+  return post;
 });

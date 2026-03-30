@@ -215,7 +215,7 @@ export function contentToArticle(
 }
 
 /** Escape HTML for safe embedding in AP objects */
-function escapeHtmlForAP(text: string): string {
+export function escapeHtmlForAP(text: string): string {
   return text
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')

@@ -172,7 +172,7 @@ export const updateHubSchema = createHubSchema.partial();
 export type UpdateHubInput = z.infer<typeof updateHubSchema>;
 
 export const createPostSchema = z.object({
-  hubId: z.string().uuid(),
+  hubId: z.string().uuid().optional(),
   type: z.enum(['text', 'link', 'share', 'poll', 'discussion', 'question', 'showcase', 'announcement']).default('text'),
   content: z.string().min(1).max(10000),
   sharedContentId: z.string().uuid().optional(),

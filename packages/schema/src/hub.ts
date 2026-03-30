@@ -164,6 +164,7 @@ export const hubShares = pgTable('hub_shares', {
 }, (t) => [
   index('idx_hub_shares_hub_id').on(t.hubId),
   index('idx_hub_shares_content_id').on(t.contentId),
+  unique('uq_hub_shares_hub_content').on(t.hubId, t.contentId),
 ]);
 
 /** RSA keypairs for hub Group actors (separate from user keypairs) */

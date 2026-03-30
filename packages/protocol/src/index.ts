@@ -69,7 +69,7 @@ export {
 } from './activities.js';
 
 // Content Mapper
-export { contentToArticle, contentToNote, articleToContent, noteToComment } from './contentMapper.js';
+export { contentToArticle, contentToNote, articleToContent, noteToComment, escapeHtmlForAP } from './contentMapper.js';
 export type { ContentItemInput, AuthorInput, CommentInput } from './contentMapper.js';
 
 // Actor Resolution

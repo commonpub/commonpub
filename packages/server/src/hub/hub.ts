@@ -1234,6 +1234,15 @@ export async function shareContent(
 
   if (content.length === 0) return null;
 
+  // Check for duplicate share
+  const existing = await db
+    .select({ id: hubShares.id })
+    .from(hubShares)
+    .where(and(eq(hubShares.hubId, hubId), eq(hubShares.contentId, contentId)))
+    .limit(1);
+
+  if (existing.length > 0) return null;
+
   const sharePayload = JSON.stringify({
     contentId: content[0]!.id,
     title: content[0]!.title,
