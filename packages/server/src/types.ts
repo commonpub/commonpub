@@ -269,6 +269,48 @@ export interface HubBanItem {
   bannedBy: UserRef;
 }
 
+// --- Federated Hub Types ---
+
+export interface FederatedHubListItem {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  hubType: string;
+  iconUrl: string | null;
+  bannerUrl: string | null;
+  memberCount: number;
+  postCount: number;
+  originDomain: string;
+  url: string | null;
+  actorUri: string;
+  receivedAt: Date;
+  source: 'federated';
+}
+
+export interface FederatedHubPostItem {
+  id: string;
+  federatedHubId: string;
+  content: string;
+  postType: string;
+  isPinned: boolean;
+  localLikeCount: number;
+  localReplyCount: number;
+  remoteLikeCount: number;
+  remoteReplyCount: number;
+  publishedAt: Date | null;
+  receivedAt: Date;
+  objectUri: string;
+  author: {
+    actorUri: string;
+    preferredUsername: string | null;
+    displayName: string | null;
+    avatarUrl: string | null;
+    instanceDomain: string;
+  };
+  source: 'federated';
+}
+
 // --- Social Types ---
 
 export interface CommentItem {

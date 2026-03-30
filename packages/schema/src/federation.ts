@@ -169,6 +169,107 @@ export const federatedContentRelations = relations(federatedContent, ({ one }) =
   }),
 }));
 
+// --- Federated Hubs (Seamless Hub Mirroring) ---
+
+/** Remote hubs mirrored from other CommonPub instances via Group actor follows */
+export const federatedHubs = pgTable('federated_hubs', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  /** AP Group actor URI of the remote hub — unique to prevent duplicates */
+  actorUri: text('actor_uri').notNull().unique(),
+  /** FK to cached remote actor (Group type) */
+  remoteActorId: uuid('remote_actor_id').references(() => remoteActors.id, { onDelete: 'set null' }),
+  /** Domain of the origin instance */
+  originDomain: varchar('origin_domain', { length: 255 }).notNull(),
+  /** Hub slug on the remote instance */
+  remoteSlug: varchar('remote_slug', { length: 128 }).notNull(),
+  /** Hub name */
+  name: varchar('name', { length: 256 }).notNull(),
+  description: text('description'),
+  iconUrl: text('icon_url'),
+  bannerUrl: text('banner_url'),
+  /** Remote hub type (community, product, company) */
+  hubType: varchar('hub_type', { length: 32 }).default('community').notNull(),
+  /** Remote member count (snapshot from Group actor) */
+  remoteMemberCount: integer('remote_member_count').default(0).notNull(),
+  /** Remote post count (snapshot) */
+  remotePostCount: integer('remote_post_count').default(0).notNull(),
+  /** Count of posts mirrored locally */
+  localPostCount: integer('local_post_count').default(0).notNull(),
+  /** Follow relationship status (pending = follow sent, active = accepted) */
+  status: followRelationshipStatusEnum('status').default('pending').notNull(),
+  /** The outbound Follow activity URI — for Undo */
+  followActivityUri: text('follow_activity_uri'),
+  /** Canonical URL to the hub on the origin instance */
+  url: text('url'),
+  /** Remote hub's rules (JSON or text) */
+  rules: text('rules'),
+  /** Remote hub categories/tags */
+  categories: jsonb('categories').$type<string[] | null>(),
+  /** Admin can hide a mirrored hub */
+  isHidden: boolean('is_hidden').default(false).notNull(),
+  lastSyncAt: timestamp('last_sync_at', { withTimezone: true }),
+  receivedAt: timestamp('received_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  index('idx_fedhubs_origin_domain').on(t.originDomain),
+  index('idx_fedhubs_status_hidden').on(t.status, t.isHidden),
+  index('idx_fedhubs_name').on(t.name),
+  index('idx_fedhubs_remote_actor_id').on(t.remoteActorId),
+]);
+
+/** Posts from federated hubs, received via Announce activities from remote Group actors */
+export const federatedHubPosts = pgTable('federated_hub_posts', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  /** FK to the federated hub this post belongs to */
+  federatedHubId: uuid('federated_hub_id').notNull().references(() => federatedHubs.id, { onDelete: 'cascade' }),
+  /** AP object URI of the original Note/Article — unique to prevent duplicates */
+  objectUri: text('object_uri').notNull().unique(),
+  /** URI of the remote actor who authored the post */
+  actorUri: text('actor_uri').notNull(),
+  /** FK to cached remote actor */
+  remoteActorId: uuid('remote_actor_id').references(() => remoteActors.id, { onDelete: 'set null' }),
+  /** Post content (text, HTML, or JSON share payload) */
+  content: text('content').notNull(),
+  /** Post type from remote (text, discussion, question, showcase, share, etc.) */
+  postType: varchar('post_type', { length: 32 }).default('text').notNull(),
+  /** Is pinned on the remote hub */
+  isPinned: boolean('is_pinned').default(false).notNull(),
+  /** Local engagement counters */
+  localLikeCount: integer('local_like_count').default(0).notNull(),
+  localReplyCount: integer('local_reply_count').default(0).notNull(),
+  /** Remote engagement snapshot */
+  remoteLikeCount: integer('remote_like_count').default(0).notNull(),
+  remoteReplyCount: integer('remote_reply_count').default(0).notNull(),
+  publishedAt: timestamp('published_at', { withTimezone: true }),
+  receivedAt: timestamp('received_at', { withTimezone: true }).defaultNow().notNull(),
+  /** Soft delete (set on inbound Delete activity) */
+  deletedAt: timestamp('deleted_at', { withTimezone: true }),
+}, (t) => [
+  index('idx_fedhubposts_hub_id').on(t.federatedHubId),
+  index('idx_fedhubposts_received_at').on(t.receivedAt),
+]);
+
+// --- Federated Hub Relations ---
+
+export const federatedHubsRelations = relations(federatedHubs, ({ one, many }) => ({
+  remoteActor: one(remoteActors, {
+    fields: [federatedHubs.remoteActorId],
+    references: [remoteActors.id],
+  }),
+  posts: many(federatedHubPosts),
+}));
+
+export const federatedHubPostsRelations = relations(federatedHubPosts, ({ one }) => ({
+  federatedHub: one(federatedHubs, {
+    fields: [federatedHubPosts.federatedHubId],
+    references: [federatedHubs.id],
+  }),
+  remoteActor: one(remoteActors, {
+    fields: [federatedHubPosts.remoteActorId],
+    references: [remoteActors.id],
+  }),
+}));
+
 // --- Instance Health (Circuit Breaker) ---
 
 /** Tracks delivery health per remote instance for circuit breaker pattern */
@@ -203,3 +304,7 @@ export type FederatedContentRow = typeof federatedContent.$inferSelect;
 export type NewFederatedContentRow = typeof federatedContent.$inferInsert;
 export type InstanceMirrorRow = typeof instanceMirrors.$inferSelect;
 export type NewInstanceMirrorRow = typeof instanceMirrors.$inferInsert;
+export type FederatedHubRow = typeof federatedHubs.$inferSelect;
+export type NewFederatedHubRow = typeof federatedHubs.$inferInsert;
+export type FederatedHubPostRow = typeof federatedHubPosts.$inferSelect;
+export type NewFederatedHubPostRow = typeof federatedHubPosts.$inferInsert;

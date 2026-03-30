@@ -17,6 +17,8 @@ export type {
   HubReplyItem,
   HubInviteItem,
   HubBanItem,
+  FederatedHubListItem,
+  FederatedHubPostItem,
   CommentItem,
   LearningPathListItem,
   LearningPathDetail,

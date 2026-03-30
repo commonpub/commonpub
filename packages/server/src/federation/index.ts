@@ -83,6 +83,20 @@ export {
   getHubOutboxPage,
 } from './outboxQueries.js';
 export {
+  listFederatedHubs,
+  getFederatedHub,
+  getFederatedHubByActorUri,
+  followRemoteHub,
+  sendHubFollow,
+  acceptHubFollow,
+  unfollowRemoteHub,
+  ingestFederatedHubPost,
+  listFederatedHubPosts,
+  deleteFederatedHubPost,
+  likeFederatedHubPost,
+  unlikeFederatedHubPost,
+} from './hubMirroring.js';
+export {
   processAuthorize,
   processTokenExchange,
   registerOAuthClient,

@@ -180,6 +180,12 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
         }
       }
 
+      // Check if this Accept is for a hub mirror (remote Group accepted our Follow)
+      try {
+        const { acceptHubFollow } = await import('./hubMirroring.js');
+        await acceptHubFollow(db, actorUri);
+      } catch { /* non-critical — may not be a hub follow */ }
+
       await db.insert(activities).values({
         type: 'Accept',
         actorUri,
@@ -643,6 +649,12 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
           ),
         );
 
+      // Also check federated hub posts (pass actorUri for author validation)
+      try {
+        const { deleteFederatedHubPost } = await import('./hubMirroring.js');
+        await deleteFederatedHubPost(db, objectId, actorUri);
+      } catch { /* non-critical */ }
+
       await db.insert(activities).values({
         type: 'Delete',
         actorUri,
@@ -860,12 +872,60 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
         } catch { /* invalid URL */ }
       }
 
-      // If not local, try federated content
+      // If not local, try federated content boost
       if (!matched) {
         await db
           .update(federatedContent)
           .set({ localBoostCount: sql`${federatedContent.localBoostCount} + 1` })
           .where(eq(federatedContent.objectUri, objectUri));
+      }
+
+      // Check if this Announce is from a Group actor we're mirroring (hub post ingestion)
+      if (!matched) {
+        try {
+          // Loop prevention: skip Announces of our own content
+          const isOwnContent = new URL(objectUri).hostname === domain;
+          if (!isOwnContent) {
+            const { getFederatedHubByActorUri, ingestFederatedHubPost } = await import('./hubMirroring.js');
+            const mirroredHub = await getFederatedHubByActorUri(db, actorUri);
+            if (mirroredHub) {
+              // Dereference the announced Note to get its content
+              const noteResponse = await fetch(objectUri, {
+                headers: { 'Accept': 'application/activity+json, application/ld+json' },
+                signal: AbortSignal.timeout(10_000),
+              });
+              if (noteResponse.ok) {
+                const note = await noteResponse.json() as Record<string, unknown>;
+                const noteContent = (note.content as string) ?? '';
+
+                // AP spec: attributedTo can be string, object with id, or array
+                let noteActorUri = actorUri;
+                const attr = note.attributedTo;
+                if (typeof attr === 'string') {
+                  noteActorUri = attr;
+                } else if (attr && typeof attr === 'object' && !Array.isArray(attr)) {
+                  noteActorUri = ((attr as Record<string, unknown>).id as string) ?? actorUri;
+                } else if (Array.isArray(attr) && attr.length > 0) {
+                  const first = attr[0];
+                  noteActorUri = typeof first === 'string' ? first : ((first as Record<string, unknown>).id as string) ?? actorUri;
+                }
+
+                // Resolve the post author
+                await resolveRemoteActor(db, noteActorUri);
+
+                await ingestFederatedHubPost(db, mirroredHub.id, {
+                  objectUri,
+                  actorUri: noteActorUri,
+                  content: noteContent,
+                  postType: (note.cpubPostType as string) ?? 'text',
+                  publishedAt: note.published ? new Date(note.published as string) : undefined,
+                });
+              }
+            }
+          }
+        } catch (err) {
+          console.warn('[inbox] Hub post ingestion failed:', err instanceof Error ? err.message : err);
+        }
       }
 
       await db.insert(activities).values({
