@@ -504,7 +504,9 @@ async function incrementAttempts(db: DB, activityId: string, error: string, maxR
 // --- Activity Cleanup ---
 
 /**
- * Delete delivered activities older than the specified retention period.
+ * Delete old activities past the retention period.
+ * Cleans up delivered, failed, and dead-lettered activities.
+ * Keeps pending activities (still need delivery attempts).
  * Call from a scheduled job (e.g., daily via the delivery worker plugin).
  */
 export async function cleanupDeliveredActivities(
@@ -516,7 +518,11 @@ export async function cleanupDeliveredActivities(
     .delete(activities)
     .where(
       and(
-        eq(activities.status, 'delivered'),
+        or(
+          eq(activities.status, 'delivered'),
+          eq(activities.status, 'failed'),
+          sql`${activities.deadLetteredAt} IS NOT NULL`,
+        ),
         lte(activities.createdAt, cutoff),
       ),
     )
