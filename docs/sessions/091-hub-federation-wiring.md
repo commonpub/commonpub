@@ -136,6 +136,50 @@ All route/API/page changes mirrored identically.
 - Hub privacy enforcement in federation
 - Migration needed for `uq_hub_shares_hub_content` constraint
 
+## Additional Work (Same Session)
+
+### Hub Post Detail Page + Likes
+- Added `hubPostLikes` table to schema for like deduplication
+- Added `getPostById`, `likePost` (with ON CONFLICT), `unlikePost`, `hasLikedPost` functions
+- Created API endpoints: single post GET, like toggle, pin toggle, lock toggle
+- Post validation added to like/pin/lock endpoints (post exists + belongs to hub)
+- Created post detail page (`/hubs/{slug}/posts/{postId}`) with:
+  - Full post content, author info, timestamp
+  - Like button (heart toggle)
+  - Reply form with nested reply support
+  - Mod actions: pin, lock, delete
+- Made feed/discussion items clickable (link to post detail)
+- Share posts render as styled cards (accent border, icon, title, arrow)
+
+### Post type enum fix
+- Added `discussion`, `question`, `showcase`, `announcement` values to `post_type` enum on both production databases via manual SQL
+
+### Admin federation sync
+- Synced Tools tab to deveco-io admin federation page (pending viewer, repair types, re-federate)
+- Added WebFinger hub discovery (acct:hubslug@domain → Group actor)
+
+### Project page redesign
+- Removed Stats, Details, Tags widgets from right sidebar
+- Added inline meta chips below engagement buttons (difficulty, cost, tags, github, license)
+- Added floating table of contents on LEFT side with:
+  - IntersectionObserver-based scroll-spy highlighting
+  - Carousel-style active item (larger, bolder, accent border)
+  - 3-column layout: TOC (200px) | content (1fr) | sidebar (260px)
+  - Collapses on mobile (<1200px: TOC hidden, <1024px: single column)
+- Fixed bookmark button: icon toggles (outline/solid), shows "Saved" text, accent highlight
+- Fixed like button: heart icon toggles
+
+### Mirror page improvements
+- Added boost button (federates Announce to followers)
+- Added comment form (federates reply as Note with inReplyTo)
+- Like button now toggles (was one-way only)
+- Federation note shown below comment input
+
+### Package versions published
+- schema: 0.8.4 → 0.8.5 (hubPostLikes table)
+- server: 2.2.1 → 2.3.1 (getPostById, likePost, unlikePost, hasLikedPost, ON CONFLICT fix)
+- protocol: 0.9.2 (unchanged this round)
+
 ## Next Steps
 
 1. Run `drizzle-kit generate` + `drizzle-kit migrate` on both instances for the unique constraint
