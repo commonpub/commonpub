@@ -69,6 +69,7 @@ export default defineNuxtConfig({
         learning: true,
         explainers: true,
         federation: false,
+        federateHubs: false,
         admin: false,
       },
       // Enabled content types (comma-separated) — override with NUXT_PUBLIC_CONTENT_TYPES=project,blog
