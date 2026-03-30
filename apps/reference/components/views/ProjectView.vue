@@ -974,12 +974,19 @@ async function handleBuild(): Promise<void> {
   font-family: var(--font-mono); font-size: 9px; text-transform: uppercase;
   letter-spacing: 0.1em; color: var(--text-faint); margin-bottom: 12px; font-weight: 700;
 }
-.cpub-toc-nav { display: flex; flex-direction: column; gap: 0; }
+.cpub-toc-nav {
+  display: flex; flex-direction: column; gap: 0;
+  position: relative;
+  border-left: 1px solid var(--border);
+}
 .cpub-toc-item {
-  display: flex; align-items: flex-start; text-align: left; background: none; border: none; cursor: pointer;
-  font-size: 11px; line-height: 1.35; color: var(--text-faint); padding: 5px 0 5px 12px;
-  border-left: 2px solid var(--border);
-  transition: all 0.2s ease;
+  display: flex; align-items: flex-start; text-align: left; background: none;
+  border: none; cursor: pointer;
+  font-size: 11px; line-height: 1.35; color: var(--text-faint);
+  padding: 5px 0 5px 12px;
+  margin-left: -1px;
+  border-left: 2px solid transparent;
+  transition: color 0.15s, font-size 0.15s, border-color 0.15s;
 }
 .cpub-toc-item:hover { color: var(--text); }
 .cpub-toc-item.active {
@@ -987,17 +994,13 @@ async function handleBuild(): Promise<void> {
   font-weight: 600;
   font-size: 12px;
   border-left-color: var(--accent);
-  border-left-width: 3px;
-  padding-left: 11px;
-  padding-top: 6px;
-  padding-bottom: 6px;
 }
 .cpub-toc-text {
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
   overflow: hidden;
 }
-.cpub-toc-h3 { padding-left: 20px; font-size: 10px; }
-.cpub-toc-h3.active { padding-left: 19px; font-size: 11px; }
+.cpub-toc-h3 { padding-left: 22px; font-size: 10px; }
+.cpub-toc-h3.active { font-size: 11px; }
 
 .cpub-sb-card {
   background: var(--surface);
