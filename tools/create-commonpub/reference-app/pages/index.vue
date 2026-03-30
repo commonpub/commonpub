@@ -33,19 +33,10 @@ const { data: feed } = await useFetch<PaginatedResponse<Serialized<ContentListIt
   watch: [contentQuery],
 });
 
-// Try actually featured content first, fall back to most popular
-const { data: featuredData } = await useFetch<PaginatedResponse<Serialized<ContentListItem>>>('/api/content', {
+// Only show featured card if an admin has explicitly featured something
+const { data: featured } = await useFetch<PaginatedResponse<Serialized<ContentListItem>>>('/api/content', {
   query: { status: 'published', featured: true, limit: 1 },
 });
-const { data: popularFallback } = await useFetch<PaginatedResponse<Serialized<ContentListItem>>>('/api/content', {
-  query: { status: 'published', sort: 'popular', limit: 1 },
-});
-const featured = computed(() => {
-  const f = featuredData.value;
-  if (f?.items?.length) return f;
-  return popularFallback.value;
-});
-const isActuallyFeatured = computed(() => (featuredData.value?.items?.length ?? 0) > 0);
 
 const { data: stats } = await useFetch('/api/stats');
 
@@ -195,8 +186,7 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
             <i v-if="!featured.items[0].coverImageUrl" class="cpub-thumb-icon fa-solid fa-microchip" />
             <div class="cpub-thumb-overlay">
               <div class="cpub-thumb-badges">
-                <span v-if="isActuallyFeatured" class="cpub-badge cpub-badge-featured">Featured</span>
-                <span v-else class="cpub-badge cpub-badge-featured" style="background: var(--accent)">Popular</span>
+                <span class="cpub-badge cpub-badge-featured">Featured</span>
                 <ContentTypeBadge :type="featured.items[0].type" />
               </div>
             </div>
