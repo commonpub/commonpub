@@ -346,6 +346,11 @@ async function handleBuild(): Promise<void> {
           <span class="cpub-author-detail"><i class="fa-solid fa-signal"></i> {{ content.difficulty || 'Intermediate' }}</span>
           <span v-if="content.buildTime" class="cpub-author-detail"><i class="fa-solid fa-clock"></i> {{ content.buildTime }}</span>
           <span v-if="content.estimatedCost" class="cpub-author-detail"><i class="fa-solid fa-dollar-sign"></i> {{ content.estimatedCost }}</span>
+          <a v-if="content.githubUrl" :href="content.githubUrl" target="_blank" rel="noopener" class="cpub-author-detail cpub-author-detail-link"><i class="fa-brands fa-github"></i> Source</a>
+          <template v-if="content.tags?.length">
+            <span class="cpub-meta-sep">&bull;</span>
+            <span v-for="tag in content.tags.slice(0, 5)" :key="tag.id || tag.name || String(tag)" class="cpub-author-tag">{{ tag.name || tag }}</span>
+          </template>
         </div>
 
         <!-- Engagement Row -->
@@ -360,20 +365,6 @@ async function handleBuild(): Promise<void> {
           <button class="cpub-engage-btn cpub-engage-btn-green" :class="{ 'cpub-engage-active': buildMarked }" :disabled="buildToggling" @click="handleBuild"><i class="fa-solid fa-hammer"></i> I Built This <span class="cpub-count">{{ localBuildCount }}</span></button>
         </div>
 
-        <!-- Tags + links -->
-        <div v-if="content.tags?.length || content.githubUrl || content.license" class="cpub-inline-meta">
-          <div class="cpub-inline-meta-items">
-            <a v-if="content.githubUrl" :href="content.githubUrl" target="_blank" rel="noopener" class="cpub-inline-meta-chip cpub-inline-meta-link">
-              <i class="fa-brands fa-github"></i> Source
-            </a>
-            <span v-if="content.license" class="cpub-inline-meta-chip">
-              <i class="fa-solid fa-scale-balanced"></i> {{ content.license }}
-            </span>
-          </div>
-          <div v-if="content.tags?.length" class="cpub-inline-tags">
-            <span v-for="tag in content.tags" :key="tag.id || tag.name || String(tag)" class="cpub-itag">{{ tag.name || tag }}</span>
-          </div>
-        </div>
       </div>
     </div>
 
@@ -775,6 +766,13 @@ async function handleBuild(): Promise<void> {
   font-size: 11px; color: var(--text-dim); display: inline-flex; align-items: center; gap: 4px;
 }
 .cpub-author-detail i { font-size: 10px; color: var(--text-faint); }
+.cpub-author-detail-link { text-decoration: none; cursor: pointer; }
+.cpub-author-detail-link:hover { color: var(--accent); }
+.cpub-author-tag {
+  font-size: 9px; font-family: var(--font-mono); text-transform: uppercase;
+  letter-spacing: 0.04em; color: var(--text-faint); padding: 1px 6px;
+  border: 1px solid var(--border); background: var(--surface);
+}
 
 .cpub-fork-count {
   font-size: 11px;
