@@ -330,6 +330,28 @@ async function resolveTargetInboxes(
           }
         }
       }
+
+      // Also deliver hub activities to instance actor followers (for mirroring)
+      // This ensures instance mirrors receive hub post Announces
+      const instanceActorUri = `https://${domain}/actor`;
+      const instanceFollowers = await db
+        .select({ followerActorUri: followRelationships.followerActorUri })
+        .from(followRelationships)
+        .where(
+          and(
+            eq(followRelationships.followingActorUri, instanceActorUri),
+            eq(followRelationships.status, 'accepted'),
+          ),
+        );
+      for (const f of instanceFollowers) {
+        const actor = await db
+          .select({ inbox: remoteActors.inbox, sharedInbox: remoteActors.sharedInbox })
+          .from(remoteActors)
+          .where(eq(remoteActors.actorUri, f.followerActorUri))
+          .limit(1);
+        const targetInbox = actor[0]?.sharedInbox ?? actor[0]?.inbox;
+        if (targetInbox) inboxes.push(targetInbox);
+      }
     } else {
       // User actor — resolve from followRelationships table
       const followers = await db
