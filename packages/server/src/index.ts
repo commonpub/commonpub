@@ -365,6 +365,19 @@ export {
   recordDeliverySuccess,
   recordDeliveryFailure,
   getDeliveryHealth,
+  // Hub mirroring
+  listFederatedHubs,
+  getFederatedHub,
+  getFederatedHubByActorUri,
+  followRemoteHub,
+  sendHubFollow,
+  acceptHubFollow,
+  unfollowRemoteHub,
+  ingestFederatedHubPost,
+  listFederatedHubPosts,
+  deleteFederatedHubPost,
+  likeFederatedHubPost,
+  unlikeFederatedHubPost,
 } from './federation/index.js';
 
 // OAuth Codes
