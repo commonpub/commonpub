@@ -13,6 +13,7 @@ import {
   syncContentProducts,
 } from '../product/product.js';
 import { createHub } from '../hub/hub.js';
+
 import { createContent } from '../content/content.js';
 
 describe('product integration', () => {

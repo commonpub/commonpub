@@ -1,0 +1,275 @@
+import { eq, and, desc, sql } from 'drizzle-orm';
+import {
+  hubs,
+  hubMembers,
+  users,
+} from '@commonpub/schema';
+import type {
+  DB,
+  HubMemberItem,
+  HubRole,
+} from '../types.js';
+import { hasPermission, canManageRole } from '../utils.js';
+import { USER_REF_SELECT, normalizePagination, countRows } from '../query.js';
+import { checkBan, validateAndUseInvite } from './moderation.js';
+
+// --- Membership ---
+
+export async function joinHub(
+  db: DB,
+  userId: string,
+  hubId: string,
+  inviteToken?: string,
+): Promise<{ joined: boolean; error?: string }> {
+  // Check ban
+  const ban = await checkBan(db, hubId, userId);
+  if (ban) {
+    return { joined: false, error: 'You are banned from this hub' };
+  }
+
+  // Check join policy
+  const hubRow = await db
+    .select({ joinPolicy: hubs.joinPolicy })
+    .from(hubs)
+    .where(eq(hubs.id, hubId))
+    .limit(1);
+
+  if (hubRow.length === 0) {
+    return { joined: false, error: 'Hub not found' };
+  }
+
+  const policy = hubRow[0]!.joinPolicy;
+
+  if (policy !== 'open') {
+    if (!inviteToken) {
+      return { joined: false, error: 'Invite token required' };
+    }
+    const tokenResult = await validateAndUseInvite(db, inviteToken);
+    if (!tokenResult.valid) {
+      return { joined: false, error: 'Invalid or expired invite token' };
+    }
+    // Verify the invite belongs to this specific hub
+    if (tokenResult.hubId !== hubId) {
+      return { joined: false, error: 'Invite token is not valid for this hub' };
+    }
+  }
+
+  return db.transaction(async (tx) => {
+    const inserted = await tx
+      .insert(hubMembers)
+      .values({ hubId, userId, role: 'member' })
+      .onConflictDoNothing()
+      .returning();
+
+    if (inserted.length === 0) {
+      return { joined: true };
+    }
+
+    await tx
+      .update(hubs)
+      .set({ memberCount: sql`${hubs.memberCount} + 1` })
+      .where(eq(hubs.id, hubId));
+
+    return { joined: true };
+  });
+}
+
+export async function leaveHub(
+  db: DB,
+  userId: string,
+  hubId: string,
+): Promise<{ left: boolean; error?: string }> {
+  const member = await db
+    .select({ role: hubMembers.role })
+    .from(hubMembers)
+    .where(and(eq(hubMembers.hubId, hubId), eq(hubMembers.userId, userId)))
+    .limit(1);
+
+  if (member.length === 0) {
+    return { left: false, error: 'Not a member' };
+  }
+
+  if (member[0]!.role === 'owner') {
+    return { left: false, error: 'Owner cannot leave the hub' };
+  }
+
+  await db
+    .delete(hubMembers)
+    .where(and(eq(hubMembers.hubId, hubId), eq(hubMembers.userId, userId)));
+
+  await db
+    .update(hubs)
+    .set({ memberCount: sql`GREATEST(${hubs.memberCount} - 1, 0)` })
+    .where(eq(hubs.id, hubId));
+
+  return { left: true };
+}
+
+export async function getMember(
+  db: DB,
+  hubId: string,
+  userId: string,
+): Promise<HubMemberItem | null> {
+  const rows = await db
+    .select({
+      member: hubMembers,
+      user: USER_REF_SELECT,
+    })
+    .from(hubMembers)
+    .innerJoin(users, eq(hubMembers.userId, users.id))
+    .where(and(eq(hubMembers.hubId, hubId), eq(hubMembers.userId, userId)))
+    .limit(1);
+
+  if (rows.length === 0) return null;
+
+  const row = rows[0]!;
+  return {
+    hubId: row.member.hubId,
+    userId: row.member.userId,
+    role: row.member.role,
+    joinedAt: row.member.joinedAt,
+    user: row.user,
+  };
+}
+
+export async function listMembers(
+  db: DB,
+  hubId: string,
+  opts: { limit?: number; offset?: number } = {},
+): Promise<{ items: HubMemberItem[]; total: number }> {
+  const { limit, offset } = normalizePagination(opts);
+  const where = eq(hubMembers.hubId, hubId);
+
+  const [rows, total] = await Promise.all([
+    db
+      .select({
+        member: hubMembers,
+        user: USER_REF_SELECT,
+      })
+      .from(hubMembers)
+      .innerJoin(users, eq(hubMembers.userId, users.id))
+      .where(where)
+      .orderBy(desc(hubMembers.joinedAt))
+      .limit(limit)
+      .offset(offset),
+    countRows(db, hubMembers, where),
+  ]);
+
+  const items = rows.map((row) => ({
+    hubId: row.member.hubId,
+    userId: row.member.userId,
+    role: row.member.role,
+    joinedAt: row.member.joinedAt,
+    user: row.user,
+  }));
+
+  return { items, total };
+}
+
+export async function changeRole(
+  db: DB,
+  actorId: string,
+  hubId: string,
+  targetUserId: string,
+  newRole: HubRole,
+): Promise<{ changed: boolean; error?: string }> {
+  const [actorMember, targetMember] = await Promise.all([
+    db
+      .select({ role: hubMembers.role })
+      .from(hubMembers)
+      .where(
+        and(eq(hubMembers.hubId, hubId), eq(hubMembers.userId, actorId)),
+      )
+      .limit(1),
+    db
+      .select({ role: hubMembers.role })
+      .from(hubMembers)
+      .where(
+        and(
+          eq(hubMembers.hubId, hubId),
+          eq(hubMembers.userId, targetUserId),
+        ),
+      )
+      .limit(1),
+  ]);
+
+  if (actorMember.length === 0) {
+    return { changed: false, error: 'Not a member' };
+  }
+  if (targetMember.length === 0) {
+    return { changed: false, error: 'Target is not a member' };
+  }
+
+  if (!hasPermission(actorMember[0]!.role, 'manageMembers')) {
+    return { changed: false, error: 'Insufficient permissions' };
+  }
+  if (!canManageRole(actorMember[0]!.role, targetMember[0]!.role)) {
+    return { changed: false, error: 'Cannot manage a user with equal or higher role' };
+  }
+
+  if (newRole === 'owner') {
+    return { changed: false, error: 'Cannot promote to owner' };
+  }
+
+  await db
+    .update(hubMembers)
+    .set({ role: newRole })
+    .where(
+      and(eq(hubMembers.hubId, hubId), eq(hubMembers.userId, targetUserId)),
+    );
+
+  return { changed: true };
+}
+
+export async function kickMember(
+  db: DB,
+  actorId: string,
+  hubId: string,
+  targetUserId: string,
+): Promise<{ kicked: boolean; error?: string }> {
+  const [actorMember, targetMember] = await Promise.all([
+    db
+      .select({ role: hubMembers.role })
+      .from(hubMembers)
+      .where(
+        and(eq(hubMembers.hubId, hubId), eq(hubMembers.userId, actorId)),
+      )
+      .limit(1),
+    db
+      .select({ role: hubMembers.role })
+      .from(hubMembers)
+      .where(
+        and(
+          eq(hubMembers.hubId, hubId),
+          eq(hubMembers.userId, targetUserId),
+        ),
+      )
+      .limit(1),
+  ]);
+
+  if (actorMember.length === 0) {
+    return { kicked: false, error: 'Not a member' };
+  }
+  if (targetMember.length === 0) {
+    return { kicked: false, error: 'Target is not a member' };
+  }
+  if (!hasPermission(actorMember[0]!.role, 'kickMember')) {
+    return { kicked: false, error: 'Insufficient permissions' };
+  }
+  if (!canManageRole(actorMember[0]!.role, targetMember[0]!.role)) {
+    return { kicked: false, error: 'Cannot kick a user with equal or higher role' };
+  }
+
+  await db
+    .delete(hubMembers)
+    .where(
+      and(eq(hubMembers.hubId, hubId), eq(hubMembers.userId, targetUserId)),
+    );
+
+  await db
+    .update(hubs)
+    .set({ memberCount: sql`GREATEST(${hubs.memberCount} - 1, 0)` })
+    .where(eq(hubs.id, hubId));
+
+  return { kicked: true };
+}

@@ -1,23 +1,10 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import type { DB } from '../types.js';
 import { createTestDB, createTestUser, closeTestDB } from './helpers/testdb.js';
-import {
-  createHub,
-  getHubBySlug,
-  listHubs,
-  updateHub,
-  joinHub,
-  leaveHub,
-  listMembers,
-  createPost,
-  listPosts,
-  banUser,
-  checkBan,
-  unbanUser,
-  listBans,
-  createInvite,
-  listInvites,
-} from '../hub/hub.js';
+import { createHub, getHubBySlug, listHubs, updateHub } from '../hub/hub.js';
+import { joinHub, leaveHub, listMembers } from '../hub/members.js';
+import { createPost, listPosts } from '../hub/posts.js';
+import { banUser, checkBan, unbanUser, listBans, createInvite, listInvites } from '../hub/moderation.js';
 
 describe('hub integration', () => {
   let db: DB;

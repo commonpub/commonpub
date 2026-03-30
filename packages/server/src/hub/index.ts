@@ -1,15 +1,24 @@
+// Hub CRUD
 export {
   listHubs,
   getHubBySlug,
   createHub,
   updateHub,
   deleteHub,
+} from './hub.js';
+
+// Membership
+export {
   joinHub,
   leaveHub,
   getMember,
   listMembers,
   changeRole,
   kickMember,
+} from './members.js';
+
+// Posts, replies, likes, sharing
+export {
   createPost,
   listPosts,
   deletePost,
@@ -22,6 +31,13 @@ export {
   createReply,
   listReplies,
   deleteReply,
+  shareContent,
+  unshareContent,
+  listShares,
+} from './posts.js';
+
+// Bans & invites
+export {
   banUser,
   unbanUser,
   checkBan,
@@ -30,7 +46,4 @@ export {
   validateAndUseInvite,
   revokeInvite,
   listInvites,
-  shareContent,
-  unshareContent,
-  listShares,
-} from './hub.js';
+} from './moderation.js';
