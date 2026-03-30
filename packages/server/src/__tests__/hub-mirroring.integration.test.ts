@@ -4,6 +4,7 @@ import {
   federatedHubs,
   federatedHubPosts,
   remoteActors,
+  instanceMirrors,
   hubs,
   hubMembers,
 } from '@commonpub/schema';
@@ -21,6 +22,7 @@ import {
   deleteFederatedHubPost,
   likeFederatedHubPost,
   unlikeFederatedHubPost,
+  autoDiscoverHub,
 } from '../federation/hubMirroring.js';
 import { listHubs, createHub } from '../hub/hub.js';
 
@@ -381,6 +383,106 @@ describe('hub mirroring integration', () => {
 
   // --- unfollowRemoteHub ---
 
+  // --- Auto-discovery via instance mirrors ---
+
+  describe('autoDiscoverHub', () => {
+    const AUTO_DOMAIN = 'auto.example.com';
+    const AUTO_HUB_ACTOR = `https://${AUTO_DOMAIN}/hubs/auto-hub`;
+
+    beforeAll(async () => {
+      // Set up an active instance mirror for auto.example.com
+      await db.insert(instanceMirrors).values({
+        remoteDomain: AUTO_DOMAIN,
+        remoteActorUri: `https://${AUTO_DOMAIN}/actor`,
+        status: 'active',
+        direction: 'pull',
+      });
+
+      // Cache the Group actor
+      await db.insert(remoteActors).values({
+        actorUri: AUTO_HUB_ACTOR,
+        inbox: `${AUTO_HUB_ACTOR}/inbox`,
+        instanceDomain: AUTO_DOMAIN,
+        actorType: 'Group',
+        preferredUsername: 'auto-hub',
+        displayName: 'Auto-Discovered Hub',
+        summary: 'Found via instance mirror',
+      });
+    });
+
+    it('auto-discovers hub from mirrored instance', async () => {
+      const hubId = await autoDiscoverHub(db, AUTO_HUB_ACTOR);
+      expect(hubId).not.toBeNull();
+
+      // Hub should exist with status=accepted
+      const [row] = await db.select().from(federatedHubs).where(eq(federatedHubs.actorUri, AUTO_HUB_ACTOR));
+      expect(row).toBeDefined();
+      expect(row!.status).toBe('accepted');
+      expect(row!.name).toBe('Auto-Discovered Hub');
+      expect(row!.originDomain).toBe(AUTO_DOMAIN);
+    });
+
+    it('returns null for non-mirrored domain', async () => {
+      const unknownActor = 'https://unknown.example.com/hubs/some-hub';
+      await db.insert(remoteActors).values({
+        actorUri: unknownActor,
+        inbox: `${unknownActor}/inbox`,
+        instanceDomain: 'unknown.example.com',
+        actorType: 'Group',
+      });
+
+      const hubId = await autoDiscoverHub(db, unknownActor);
+      expect(hubId).toBeNull();
+    });
+
+    it('returns null for Person actors (not Groups)', async () => {
+      const personActor = `https://${AUTO_DOMAIN}/users/someone`;
+      await db.insert(remoteActors).values({
+        actorUri: personActor,
+        inbox: `${personActor}/inbox`,
+        instanceDomain: AUTO_DOMAIN,
+        actorType: 'Person',
+        preferredUsername: 'someone',
+      });
+
+      const hubId = await autoDiscoverHub(db, personActor);
+      expect(hubId).toBeNull();
+    });
+
+    it('respects admin hide (does not override)', async () => {
+      // Hide the auto-discovered hub
+      await db.update(federatedHubs).set({ isHidden: true })
+        .where(eq(federatedHubs.actorUri, AUTO_HUB_ACTOR));
+
+      // Try to auto-discover again — should return null (admin chose to hide)
+      const hubId = await autoDiscoverHub(db, AUTO_HUB_ACTOR);
+      expect(hubId).toBeNull();
+
+      // Restore for other tests
+      await db.update(federatedHubs).set({ isHidden: false })
+        .where(eq(federatedHubs.actorUri, AUTO_HUB_ACTOR));
+    });
+
+    it('can ingest posts into auto-discovered hub', async () => {
+      const [hub] = await db.select({ id: federatedHubs.id }).from(federatedHubs)
+        .where(eq(federatedHubs.actorUri, AUTO_HUB_ACTOR));
+
+      const result = await ingestFederatedHubPost(db, hub!.id, {
+        objectUri: `${AUTO_HUB_ACTOR}/posts/auto-001`,
+        actorUri: REMOTE_POST_AUTHOR,
+        content: 'Auto-discovered post!',
+      });
+
+      expect(result.created).toBe(true);
+
+      const posts = await listFederatedHubPosts(db, hub!.id);
+      expect(posts.items.length).toBe(1);
+      expect(posts.items[0]!.content).toBe('Auto-discovered post!');
+    });
+  });
+
+  // --- unfollowRemoteHub ---
+
   describe('unfollowRemoteHub', () => {
     it('hides and rejects the hub', async () => {
       const result = await unfollowRemoteHub(db, REMOTE_HUB_ACTOR);
@@ -393,14 +495,15 @@ describe('hub mirroring integration', () => {
 
     it('hub no longer appears in listings', async () => {
       const result = await listFederatedHubs(db);
-      expect(result.items.length).toBe(0);
+      // The auto-discovered hub from earlier tests may still be visible
+      const hasUnfollowed = result.items.some((h) => h.actorUri === REMOTE_HUB_ACTOR);
+      expect(hasUnfollowed).toBe(false);
     });
 
     it('hub no longer appears in merged listHubs', async () => {
       const result = await listHubs(db, {}, { includeFederated: true });
-      // Only the local hub should remain
-      const federated = result.items.filter((h) => 'source' in h && h.source === 'federated');
-      expect(federated.length).toBe(0);
+      const unfollowedInMerge = result.items.filter((h) => 'actorUri' in h && h.actorUri === REMOTE_HUB_ACTOR);
+      expect(unfollowedInMerge.length).toBe(0);
     });
   });
 });

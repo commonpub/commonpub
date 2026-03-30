@@ -886,8 +886,19 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
           // Loop prevention: skip Announces of our own content
           const isOwnContent = new URL(objectUri).hostname === domain;
           if (!isOwnContent) {
-            const { getFederatedHubByActorUri, ingestFederatedHubPost } = await import('./hubMirroring.js');
-            const mirroredHub = await getFederatedHubByActorUri(db, actorUri);
+            const { getFederatedHubByActorUri, autoDiscoverHub, ingestFederatedHubPost } = await import('./hubMirroring.js');
+            let mirroredHub = await getFederatedHubByActorUri(db, actorUri);
+
+            // Auto-discover: if hub not known but actor's domain is a mirrored instance,
+            // automatically create the federated hub entry (accepted via instance trust)
+            let autoDiscoveredId: string | null = null;
+            if (!mirroredHub) {
+              autoDiscoveredId = await autoDiscoverHub(db, actorUri);
+              if (autoDiscoveredId) {
+                mirroredHub = await getFederatedHubByActorUri(db, actorUri);
+              }
+            }
+
             if (mirroredHub) {
               // Dereference the announced Note to get its content
               const noteResponse = await fetch(objectUri, {

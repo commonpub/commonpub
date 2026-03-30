@@ -90,6 +90,7 @@ export {
   sendHubFollow,
   acceptHubFollow,
   unfollowRemoteHub,
+  autoDiscoverHub,
   ingestFederatedHubPost,
   listFederatedHubPosts,
   deleteFederatedHubPost,

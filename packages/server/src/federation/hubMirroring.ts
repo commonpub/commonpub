@@ -5,6 +5,7 @@ import {
   remoteActors,
   activities,
   followRelationships,
+  instanceMirrors,
 } from '@commonpub/schema';
 import { buildFollowActivity } from '@commonpub/protocol';
 import type {
@@ -243,6 +244,86 @@ export async function unfollowRemoteHub(
     .returning({ id: federatedHubs.id });
 
   return result.length > 0;
+}
+
+/**
+ * Auto-discover a hub from a Group actor URI when it belongs to a mirrored instance.
+ * Checks instanceMirrors for an active pull mirror on the Group's domain.
+ * If found, creates a federatedHubs entry with status='accepted' (auto-accepted
+ * because we trust the instance mirror relationship).
+ *
+ * Returns the federated hub ID if auto-discovered, null otherwise.
+ */
+export async function autoDiscoverHub(
+  db: DB,
+  groupActorUri: string,
+): Promise<string | null> {
+  let groupDomain: string;
+  try {
+    groupDomain = new URL(groupActorUri).hostname;
+  } catch {
+    return null;
+  }
+
+  // Check if this domain has an active pull mirror
+  const [mirror] = await db
+    .select({ id: instanceMirrors.id })
+    .from(instanceMirrors)
+    .where(
+      and(
+        eq(instanceMirrors.remoteDomain, groupDomain),
+        eq(instanceMirrors.status, 'active'),
+        eq(instanceMirrors.direction, 'pull'),
+      ),
+    )
+    .limit(1);
+
+  if (!mirror) return null;
+
+  // Resolve the Group actor to get metadata
+  const [cachedActor] = await db
+    .select()
+    .from(remoteActors)
+    .where(eq(remoteActors.actorUri, groupActorUri))
+    .limit(1);
+
+  if (!cachedActor || cachedActor.actorType !== 'Group') return null;
+
+  // Extract slug from URI pattern: https://domain/hubs/slug
+  const slugMatch = groupActorUri.match(/\/hubs\/([^/]+)$/);
+  const remoteSlug = slugMatch?.[1] ?? cachedActor.preferredUsername ?? 'unknown';
+
+  // Auto-create as accepted (trusted via instance mirror)
+  const inserted = await db.insert(federatedHubs).values({
+    actorUri: groupActorUri,
+    remoteActorId: cachedActor.id,
+    originDomain: groupDomain,
+    remoteSlug,
+    name: cachedActor.displayName ?? cachedActor.preferredUsername ?? remoteSlug,
+    description: cachedActor.summary ?? null,
+    iconUrl: cachedActor.avatarUrl ?? null,
+    bannerUrl: cachedActor.bannerUrl ?? null,
+    hubType: 'community',
+    status: 'accepted',
+    url: `https://${groupDomain}/hubs/${remoteSlug}`,
+  }).onConflictDoNothing({ target: federatedHubs.actorUri })
+    .returning({ id: federatedHubs.id });
+
+  if (inserted.length > 0) {
+    return inserted[0]!.id;
+  }
+
+  // Already existed — return existing (may have been hidden by admin)
+  const [existing] = await db
+    .select({ id: federatedHubs.id, isHidden: federatedHubs.isHidden })
+    .from(federatedHubs)
+    .where(eq(federatedHubs.actorUri, groupActorUri))
+    .limit(1);
+
+  // Don't override admin's decision to hide
+  if (existing?.isHidden) return null;
+
+  return existing?.id ?? null;
 }
 
 /**
