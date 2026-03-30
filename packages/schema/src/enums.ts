@@ -88,7 +88,7 @@ export const hubJoinPolicyEnum = pgEnum('hub_join_policy', [
   'invite',
 ]);
 export const hubMemberStatusEnum = pgEnum('hub_member_status', ['pending', 'active']);
-export const postTypeEnum = pgEnum('post_type', ['text', 'link', 'share', 'poll']);
+export const postTypeEnum = pgEnum('post_type', ['text', 'link', 'share', 'poll', 'discussion', 'question', 'showcase', 'announcement']);
 
 // --- Products ---
 export const productStatusEnum = pgEnum('product_status', ['active', 'discontinued', 'preview']);

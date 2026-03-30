@@ -184,8 +184,8 @@ fn package_json_patched_correctly() {
 
     // workspace:* replaced with npm versions
     assert!(!pkg.contains("workspace:*"));
-    assert!(pkg.contains("\"@commonpub/schema\": \"^0.8.1\""));
-    assert!(pkg.contains("\"@commonpub/server\": \"^2.1.6\""));
+    assert!(pkg.contains("\"@commonpub/schema\": \"^0.8.2\""));
+    assert!(pkg.contains("\"@commonpub/server\": \"^2.1.7\""));
 
     // Package renamed
     assert!(pkg.contains("\"patch-test\""));

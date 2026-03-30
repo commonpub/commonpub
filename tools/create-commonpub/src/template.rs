@@ -261,10 +261,10 @@ pub fn render_nuxt_config(config: &InstanceConfig) -> String {
 pub fn render_package_json(config: &InstanceConfig) -> String {
     let mut deps = vec![
         r#"    "@commonpub/config": "^0.7.0""#.to_string(),
-        r#"    "@commonpub/schema": "^0.8.1""#.to_string(),
+        r#"    "@commonpub/schema": "^0.8.2""#.to_string(),
         r#"    "@commonpub/auth": "^0.5.0""#.to_string(),
         r#"    "@commonpub/ui": "^0.7.0""#.to_string(),
-        r#"    "@commonpub/server": "^2.1.6""#.to_string(),
+        r#"    "@commonpub/server": "^2.1.7""#.to_string(),
         r#"    "@commonpub/infra": "^0.5.0""#.to_string(),
     ];
 

@@ -173,7 +173,7 @@ export type UpdateHubInput = z.infer<typeof updateHubSchema>;
 
 export const createPostSchema = z.object({
   hubId: z.string().uuid(),
-  type: z.enum(['text', 'link', 'share', 'poll']).default('text'),
+  type: z.enum(['text', 'link', 'share', 'poll', 'discussion', 'question', 'showcase', 'announcement']).default('text'),
   content: z.string().min(1).max(10000),
   sharedContentId: z.string().uuid().optional(),
   pollOptions: z.array(z.string().min(1).max(200)).min(2).max(10).optional(),
@@ -206,7 +206,7 @@ export const changeRoleSchema = z.object({
 });
 export type ChangeRoleInput = z.infer<typeof changeRoleSchema>;
 
-export const postTypeSchema = z.enum(['text', 'link', 'share', 'poll']);
+export const postTypeSchema = z.enum(['text', 'link', 'share', 'poll', 'discussion', 'question', 'showcase', 'announcement']);
 export type PostType = z.infer<typeof postTypeSchema>;
 
 export const joinPolicySchema = z.enum(['open', 'approval', 'invite']);
