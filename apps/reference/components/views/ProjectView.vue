@@ -5,6 +5,7 @@ const { hubs: hubsEnabled } = useFeatures();
 
 const props = defineProps<{
   content: ContentViewData;
+  federatedId?: string;
 }>();
 
 const activeTab = ref('overview');
@@ -36,7 +37,8 @@ const tabs = computed(() => {
 
 const contentId = computed(() => props.content?.id);
 const contentType = computed(() => props.content?.type ?? 'project');
-const { liked, bookmarked, likeCount, toggleLike, toggleBookmark, share, fetchInitialState } = useEngagement(contentId, contentType);
+const fedId = computed(() => props.federatedId);
+const { liked, bookmarked, likeCount, toggleLike, toggleBookmark, share, fetchInitialState } = useEngagement(contentId, contentType, fedId);
 
 onMounted(() => {
   fetchInitialState(props.content?.likeCount ?? 0);

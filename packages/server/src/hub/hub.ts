@@ -1328,6 +1328,8 @@ export async function shareContent(
       title: contentItems.title,
       slug: contentItems.slug,
       type: contentItems.type,
+      coverImageUrl: contentItems.coverImageUrl,
+      description: contentItems.description,
     })
     .from(contentItems)
     .where(eq(contentItems.id, contentId))
@@ -1349,6 +1351,8 @@ export async function shareContent(
     title: content[0]!.title,
     slug: content[0]!.slug,
     type: content[0]!.type,
+    coverImageUrl: content[0]!.coverImageUrl ?? null,
+    description: content[0]!.description ?? null,
   });
 
   await db.insert(hubShares).values({

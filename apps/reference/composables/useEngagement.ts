@@ -82,7 +82,7 @@ export interface ContentViewData {
   seriesNext?: { title: string; url: string };
 }
 
-export function useEngagement(contentId: Ref<string | undefined>, contentType: Ref<string>) {
+export function useEngagement(contentId: Ref<string | undefined>, contentType: Ref<string>, federatedContentId?: Ref<string | undefined>) {
   const liked = ref(false);
   const bookmarked = ref(false);
   const likeCount = ref(0);
@@ -101,10 +101,17 @@ export function useEngagement(contentId: Ref<string | undefined>, contentType: R
     likeCount.value += liked.value ? 1 : -1;
 
     try {
-      await $fetch('/api/social/like', {
-        method: 'POST',
-        body: { targetType: contentType.value, targetId: contentId.value },
-      });
+      if (federatedContentId?.value) {
+        await $fetch('/api/federation/like', {
+          method: 'POST',
+          body: { federatedContentId: federatedContentId.value },
+        });
+      } else {
+        await $fetch('/api/social/like', {
+          method: 'POST',
+          body: { targetType: contentType.value, targetId: contentId.value },
+        });
+      }
     } catch {
       liked.value = prev;
       likeCount.value = prevCount;
@@ -145,6 +152,8 @@ export function useEngagement(contentId: Ref<string | undefined>, contentType: R
   async function fetchInitialState(likes: number): Promise<void> {
     likeCount.value = likes;
     if (!contentId.value) return;
+    // Skip state fetch for federated content — no local like/bookmark records
+    if (federatedContentId?.value) return;
     try {
       const [likeRes, bmRes] = await Promise.all([
         $fetch<{ liked: boolean }>('/api/social/like', {
