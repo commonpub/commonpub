@@ -36,10 +36,10 @@ const tabs = computed(() => {
 
 const contentId = computed(() => props.content?.id);
 const contentType = computed(() => props.content?.type ?? 'project');
-const { liked, bookmarked, likeCount, toggleLike, toggleBookmark, share, setInitialState } = useEngagement(contentId, contentType);
+const { liked, bookmarked, likeCount, toggleLike, toggleBookmark, share, fetchInitialState } = useEngagement(contentId, contentType);
 
 onMounted(() => {
-  setInitialState(false, false, props.content?.likeCount ?? 0);
+  fetchInitialState(props.content?.likeCount ?? 0);
 });
 
 const config = useRuntimeConfig();
@@ -178,6 +178,38 @@ const downloadFiles = computed<FileItem[]>(() => {
   return files;
 });
 
+// Extract headings from content for table of contents
+interface TocEntry { id: string; text: string; level: number }
+const tocEntries = computed<TocEntry[]>(() => {
+  const blocks = props.content?.content;
+  if (!Array.isArray(blocks)) return [];
+  const entries: TocEntry[] = [];
+  for (const block of blocks) {
+    const [type, data] = block as [string, Record<string, unknown>];
+    if (type === 'heading' && data.text) {
+      const text = String(data.text).replace(/<[^>]+>/g, '');
+      if (text.trim()) {
+        entries.push({
+          id: text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
+          text: text.trim(),
+          level: (data.level as number) ?? 2,
+        });
+      }
+    }
+  }
+  return entries;
+});
+
+const tocActiveId = ref('');
+
+function scrollToHeading(id: string): void {
+  const el = document.getElementById(id);
+  if (el) {
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    tocActiveId.value = id;
+  }
+}
+
 // Fork
 const forking = ref(false);
 async function handleFork(): Promise<void> {
@@ -286,6 +318,32 @@ async function handleBuild(): Promise<void> {
           <div class="cpub-engage-sep"></div>
           <button class="cpub-engage-btn" :disabled="forking" @click="handleFork"><i class="fa-solid fa-code-branch"></i> {{ forking ? 'Forking...' : 'Fork' }} <span class="cpub-count">{{ content.forkCount ?? 0 }}</span></button>
           <button class="cpub-engage-btn cpub-engage-btn-green" :class="{ 'cpub-engage-active': buildMarked }" :disabled="buildToggling" @click="handleBuild"><i class="fa-solid fa-hammer"></i> I Built This <span class="cpub-count">{{ localBuildCount }}</span></button>
+        </div>
+
+        <!-- Inline project meta: difficulty, cost, tags -->
+        <div class="cpub-inline-meta">
+          <div class="cpub-inline-meta-items">
+            <span class="cpub-inline-meta-chip">
+              <i class="fa-solid fa-signal"></i>
+              {{ content.difficulty || 'Intermediate' }}
+              <span class="cpub-inline-dots"><span v-for="d in 5" :key="d" class="cpub-idot" :class="{ on: d <= difficultyLevel }"></span></span>
+            </span>
+            <span v-if="content.buildTime" class="cpub-inline-meta-chip">
+              <i class="fa-solid fa-clock"></i> {{ content.buildTime }}
+            </span>
+            <span v-if="content.estimatedCost" class="cpub-inline-meta-chip">
+              <i class="fa-solid fa-dollar-sign"></i> {{ content.estimatedCost }}
+            </span>
+            <a v-if="content.githubUrl" :href="content.githubUrl" target="_blank" rel="noopener" class="cpub-inline-meta-chip cpub-inline-meta-link">
+              <i class="fa-brands fa-github"></i> Source
+            </a>
+            <span v-if="content.license" class="cpub-inline-meta-chip">
+              <i class="fa-solid fa-scale-balanced"></i> {{ content.license }}
+            </span>
+          </div>
+          <div v-if="content.tags?.length" class="cpub-inline-tags">
+            <span v-for="tag in content.tags" :key="tag.id || tag.name || String(tag)" class="cpub-itag">{{ tag.name || tag }}</span>
+          </div>
         </div>
       </div>
     </div>
@@ -425,74 +483,20 @@ async function handleBuild(): Promise<void> {
 
         <!-- RIGHT: SIDEBAR -->
         <aside class="cpub-sidebar">
-          <!-- Stats Grid -->
-          <div class="cpub-sb-card">
-            <div class="cpub-sb-title">Stats</div>
-            <div class="cpub-stats-grid">
-              <div class="cpub-stat-cell">
-                <div class="cpub-stat-val">{{ content.viewCount?.toLocaleString() || '0' }}</div>
-                <div class="cpub-stat-label">VIEWS</div>
-              </div>
-              <div class="cpub-stat-cell">
-                <div class="cpub-stat-val">{{ content.likeCount ?? 0 }}</div>
-                <div class="cpub-stat-label">LIKES</div>
-              </div>
-              <div class="cpub-stat-cell">
-                <div class="cpub-stat-val">{{ content.forkCount ?? 0 }}</div>
-                <div class="cpub-stat-label">FORKS</div>
-              </div>
-              <div class="cpub-stat-cell">
-                <div class="cpub-stat-val">{{ content.bookmarkCount ?? 0 }}</div>
-                <div class="cpub-stat-label">SAVES</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Details -->
-          <div class="cpub-sb-card">
-            <div class="cpub-sb-title">Details</div>
-            <div class="cpub-diff-row">
-              <span>Difficulty</span>
-              <div class="cpub-diff-dots">
-                <div v-for="d in 5" :key="d" class="cpub-diff-dot" :class="{ on: d <= difficultyLevel }"></div>
-              </div>
-            </div>
-            <div class="cpub-meta-row">
-              <div class="cpub-meta-row-icon"><i class="fa-solid fa-clock"></i></div>
-              <div>
-                <div class="cpub-meta-row-label">Build Time</div>
-                <div class="cpub-meta-row-val">{{ content.buildTime || '~4 hours' }}</div>
-              </div>
-            </div>
-            <div class="cpub-meta-row">
-              <div class="cpub-meta-row-icon"><i class="fa-solid fa-dollar-sign"></i></div>
-              <div>
-                <div class="cpub-meta-row-label">Estimated Cost</div>
-                <div class="cpub-meta-row-val">{{ content.estimatedCost || '$45–$65' }}</div>
-              </div>
-            </div>
-            <div v-if="content.githubUrl" class="cpub-meta-row">
-              <div class="cpub-meta-row-icon"><i class="fa-brands fa-github"></i></div>
-              <div>
-                <div class="cpub-meta-row-label">Source Code</div>
-                <div class="cpub-meta-row-val"><a :href="content.githubUrl" class="cpub-link-text">View on GitHub</a></div>
-              </div>
-            </div>
-            <div v-if="content.license" class="cpub-meta-row">
-              <div class="cpub-meta-row-icon"><i class="fa-solid fa-scale-balanced"></i></div>
-              <div>
-                <div class="cpub-meta-row-label">License</div>
-                <div class="cpub-meta-row-val">{{ content.license }}</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Tags -->
-          <div v-if="content.tags?.length" class="cpub-sb-card">
-            <div class="cpub-sb-title">Tags</div>
-            <div class="cpub-tag-cloud">
-              <span v-for="tag in content.tags" :key="tag.id || tag.name || String(tag)" class="cpub-tag">{{ tag.name || tag }}</span>
-            </div>
+          <!-- Table of Contents (floating) -->
+          <div v-if="tocEntries.length && activeTab === 'overview'" class="cpub-toc">
+            <div class="cpub-toc-title">On This Page</div>
+            <nav class="cpub-toc-nav">
+              <button
+                v-for="entry in tocEntries"
+                :key="entry.id"
+                class="cpub-toc-item"
+                :class="{ active: tocActiveId === entry.id, 'cpub-toc-h3': entry.level >= 3 }"
+                @click="scrollToHeading(entry.id)"
+              >
+                {{ entry.text }}
+              </button>
+            </nav>
           </div>
 
           <!-- BOM Summary -->
@@ -546,7 +550,7 @@ async function handleBuild(): Promise<void> {
   background: var(--surface2);
   overflow: hidden;
   flex-shrink: 0;
-  border-bottom: 2px solid var(--border);
+  border-bottom: 1px solid var(--border);
 }
 
 .cpub-hero-cover-grid {
@@ -609,14 +613,14 @@ async function handleBuild(): Promise<void> {
 
 .cpub-badge-featured {
   background: var(--yellow-bg);
-  border: 2px solid var(--border);
+  border: 1px solid var(--border);
   color: var(--yellow);
   box-shadow: var(--shadow-sm);
 }
 
 .cpub-badge-outline {
   background: var(--surface);
-  border: 2px solid var(--border);
+  border: 1px solid var(--border);
   color: var(--text-dim);
   box-shadow: var(--shadow-sm);
 }
@@ -677,7 +681,7 @@ async function handleBuild(): Promise<void> {
   height: 28px;
   border-radius: 50%;
   background: var(--surface3);
-  border: 2px solid var(--border);
+  border: 1px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -724,7 +728,7 @@ async function handleBuild(): Promise<void> {
   font-family: var(--font-mono);
   color: var(--accent);
   background: var(--accent-bg);
-  border: 2px solid var(--border);
+  border: 1px solid var(--border);
   padding: 2px 7px;
 }
 
@@ -759,7 +763,7 @@ async function handleBuild(): Promise<void> {
 .cpub-engage-btn {
   font-size: 12px;
   padding: 6px 13px;
-  border: 2px solid var(--border);
+  border: 1px solid var(--border);
   background: var(--surface);
   color: var(--text-dim);
   cursor: pointer;
@@ -785,13 +789,34 @@ async function handleBuild(): Promise<void> {
 
 .cpub-engage-sep { width: 2px; height: 24px; background: var(--border); }
 
+/* ── INLINE META ── */
+.cpub-inline-meta { margin-top: 12px; }
+.cpub-inline-meta-items { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.cpub-inline-meta-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11px; font-family: var(--font-mono); color: var(--text-dim);
+  padding: 3px 10px; background: var(--surface2); border: 1px solid var(--border);
+  white-space: nowrap;
+}
+.cpub-inline-meta-link { text-decoration: none; cursor: pointer; }
+.cpub-inline-meta-link:hover { border-color: var(--accent); color: var(--accent); }
+.cpub-inline-dots { display: inline-flex; gap: 3px; margin-left: 2px; }
+.cpub-idot { width: 6px; height: 6px; background: var(--border2); border-radius: 50%; }
+.cpub-idot.on { background: var(--accent); }
+.cpub-inline-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+.cpub-itag {
+  font-size: 10px; font-family: var(--font-mono); text-transform: uppercase;
+  letter-spacing: 0.04em; padding: 2px 8px; color: var(--text-faint);
+  border: 1px solid var(--border); background: var(--surface);
+}
+
 /* ── TABS ── */
 .cpub-tabs-sticky {
   position: sticky;
   top: 48px;
   z-index: 50;
   background: var(--bg);
-  border-bottom: 2px solid var(--border);
+  border-bottom: 1px solid var(--border);
   margin-bottom: 28px;
 }
 
@@ -866,13 +891,13 @@ async function handleBuild(): Promise<void> {
   font-size: 11px;
   background: var(--surface2);
   padding: 2px 5px;
-  border: 2px solid var(--border2);
+  border: 1px solid var(--border2);
   color: var(--accent);
 }
 
 .cpub-prose :deep(hr) {
   border: none;
-  border-top: 2px solid var(--border);
+  border-top: 1px solid var(--border);
   margin: 24px 0;
 }
 
@@ -881,11 +906,32 @@ async function handleBuild(): Promise<void> {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  position: sticky;
+  top: 100px;
+  align-self: start;
 }
+
+/* ── TABLE OF CONTENTS ── */
+.cpub-toc {
+  background: var(--surface); border: 2px solid var(--border); padding: 16px;
+}
+.cpub-toc-title {
+  font-family: var(--font-mono); font-size: 10px; text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--text-faint); margin-bottom: 10px; font-weight: 600;
+}
+.cpub-toc-nav { display: flex; flex-direction: column; gap: 1px; }
+.cpub-toc-item {
+  display: block; text-align: left; background: none; border: none; cursor: pointer;
+  font-size: 12px; line-height: 1.4; color: var(--text-dim); padding: 4px 10px;
+  border-left: 2px solid transparent; transition: all 0.1s;
+}
+.cpub-toc-item:hover { color: var(--text); border-left-color: var(--border2); }
+.cpub-toc-item.active { color: var(--accent); border-left-color: var(--accent); font-weight: 500; }
+.cpub-toc-h3 { padding-left: 22px; font-size: 11px; }
 
 .cpub-sb-card {
   background: var(--surface);
-  border: 2px solid var(--border);
+  border: 1px solid var(--border);
   padding: 18px;
   box-shadow: var(--shadow-sm);
 }
@@ -899,14 +945,14 @@ async function handleBuild(): Promise<void> {
   color: var(--text-dim);
   margin-bottom: 14px;
   padding-bottom: 8px;
-  border-bottom: 2px solid var(--border);
+  border-bottom: 1px solid var(--border);
 }
 
 /* Stats grid */
 .cpub-stats-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  border: 2px solid var(--border);
+  border: 1px solid var(--border);
   overflow: hidden;
 }
 
@@ -914,8 +960,8 @@ async function handleBuild(): Promise<void> {
   background: var(--surface2);
   padding: 14px;
   text-align: center;
-  border-right: 2px solid var(--border);
-  border-bottom: 2px solid var(--border);
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
 }
 
 .cpub-stat-cell:nth-child(2n) { border-right: none; }
@@ -968,7 +1014,7 @@ async function handleBuild(): Promise<void> {
   align-items: center;
   gap: 10px;
   padding: 8px 0;
-  border-bottom: 2px solid var(--border2);
+  border-bottom: 1px solid var(--border2);
   font-size: 12px;
 }
 
@@ -978,7 +1024,7 @@ async function handleBuild(): Promise<void> {
   width: 28px;
   height: 28px;
   background: var(--surface2);
-  border: 2px solid var(--border2);
+  border: 1px solid var(--border2);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1013,7 +1059,7 @@ async function handleBuild(): Promise<void> {
   font-size: 10px;
   font-family: var(--font-mono);
   padding: 4px 10px;
-  border: 2px solid var(--border);
+  border: 1px solid var(--border);
   color: var(--text-dim);
   background: var(--surface);
   cursor: pointer;
@@ -1032,7 +1078,7 @@ async function handleBuild(): Promise<void> {
   align-items: center;
   justify-content: space-between;
   padding: 7px 0;
-  border-bottom: 2px solid var(--border2);
+  border-bottom: 1px solid var(--border2);
   font-size: 12px;
 }
 
@@ -1051,7 +1097,7 @@ async function handleBuild(): Promise<void> {
   width: 44px;
   height: 44px;
   background: var(--purple-bg);
-  border: 2px solid var(--border);
+  border: 1px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1088,7 +1134,7 @@ async function handleBuild(): Promise<void> {
 .cpub-btn {
   font-size: 12px;
   padding: 6px 14px;
-  border: 2px solid var(--border);
+  border: 1px solid var(--border);
   background: var(--surface);
   color: var(--text);
   cursor: pointer;
@@ -1108,7 +1154,7 @@ async function handleBuild(): Promise<void> {
   background: var(--surface3);
   color: var(--text-faint);
   padding: 1px 5px;
-  border: 2px solid var(--border2);
+  border: 1px solid var(--border2);
 }
 
 /* BOM products in sidebar */
@@ -1121,7 +1167,7 @@ async function handleBuild(): Promise<void> {
   margin-top: 12px;
   margin-bottom: 8px;
   padding-top: 8px;
-  border-top: 2px solid var(--border2);
+  border-top: 1px solid var(--border2);
 }
 
 .cpub-bom-product-row {
@@ -1161,7 +1207,7 @@ async function handleBuild(): Promise<void> {
   gap: 8px;
   margin-bottom: 16px;
   padding-bottom: 10px;
-  border-bottom: 2px solid var(--border);
+  border-bottom: 1px solid var(--border);
 }
 
 .cpub-tab-section-title i { font-size: 12px; color: var(--text-faint); }
@@ -1187,12 +1233,12 @@ async function handleBuild(): Promise<void> {
   padding: 8px 12px;
   text-align: left;
   background: var(--surface2);
-  border-bottom: 2px solid var(--border);
+  border-bottom: 1px solid var(--border);
 }
 
 .cpub-parts-table td {
   padding: 10px 12px;
-  border-bottom: 2px solid var(--border2);
+  border-bottom: 1px solid var(--border2);
   color: var(--text-dim);
 }
 
@@ -1207,7 +1253,7 @@ async function handleBuild(): Promise<void> {
   display: flex; align-items: center; gap: 12px;
   padding: 10px 14px;
   background: var(--surface);
-  border: 2px solid var(--border);
+  border: 1px solid var(--border);
   box-shadow: var(--shadow-sm);
 }
 
@@ -1228,7 +1274,7 @@ async function handleBuild(): Promise<void> {
 .cpub-build-steps { display: flex; flex-direction: column; gap: 16px; }
 
 .cpub-build-step {
-  border: 2px solid var(--border);
+  border: 1px solid var(--border);
   overflow: hidden;
   box-shadow: var(--shadow-sm);
 }
@@ -1265,7 +1311,7 @@ async function handleBuild(): Promise<void> {
   width: 100%;
   max-height: 400px;
   object-fit: cover;
-  border: 2px solid var(--border);
+  border: 1px solid var(--border);
   margin-top: 12px;
 }
 
@@ -1273,7 +1319,7 @@ async function handleBuild(): Promise<void> {
 .cpub-code-tab { display: flex; flex-direction: column; gap: 16px; }
 
 .cpub-code-snippet {
-  border: 2px solid var(--border);
+  border: 1px solid var(--border);
   overflow: hidden;
   box-shadow: var(--shadow-sm);
 }
@@ -1282,7 +1328,7 @@ async function handleBuild(): Promise<void> {
   display: flex; align-items: center; gap: 8px;
   padding: 8px 14px;
   background: var(--surface2);
-  border-bottom: 2px solid var(--border);
+  border-bottom: 1px solid var(--border);
 }
 
 .cpub-code-lang-label {
@@ -1320,14 +1366,14 @@ async function handleBuild(): Promise<void> {
   display: flex; align-items: center; gap: 12px;
   padding: 12px 14px;
   background: var(--surface);
-  border: 2px solid var(--border);
+  border: 1px solid var(--border);
   box-shadow: var(--shadow-sm);
 }
 
 .cpub-file-icon {
   width: 32px; height: 32px;
   background: var(--surface2);
-  border: 2px solid var(--border2);
+  border: 1px solid var(--border2);
   display: flex; align-items: center; justify-content: center;
   font-size: 12px; color: var(--text-faint); flex-shrink: 0;
 }
@@ -1362,6 +1408,8 @@ async function handleBuild(): Promise<void> {
   .cpub-content-grid {
     grid-template-columns: 1fr;
   }
+  .cpub-sidebar { position: static; }
+  .cpub-toc { display: none; }
 }
 
 @media (max-width: 640px) {
