@@ -8,6 +8,15 @@ const { data } = await useFetch('/api/hubs');
 const { isAuthenticated } = useAuth();
 
 const hubs = computed(() => data.value?.items ?? []);
+
+function isFederated(hub: Record<string, unknown>): boolean {
+  return (hub as { source?: string }).source === 'federated';
+}
+
+function hubLink(hub: Record<string, unknown>): string {
+  if (isFederated(hub)) return `/federated-hubs/${hub.id}`;
+  return `/hubs/${hub.slug}`;
+}
 </script>
 
 <template>
@@ -26,7 +35,7 @@ const hubs = computed(() => data.value?.items ?? []);
       <NuxtLink
         v-for="hub in hubs"
         :key="hub.id"
-        :to="`/hubs/${hub.slug}`"
+        :to="hubLink(hub as Record<string, unknown>)"
         class="cpub-hub-card"
       >
         <div class="cpub-hub-card-icon">
@@ -34,12 +43,17 @@ const hubs = computed(() => data.value?.items ?? []);
           <i v-else :class="hub.hubType === 'company' ? 'fa-solid fa-building' : hub.hubType === 'product' ? 'fa-solid fa-microchip' : 'fa-solid fa-users'"></i>
         </div>
         <div class="cpub-hub-card-body">
-          <h2 class="cpub-hub-card-name">{{ hub.name }}</h2>
+          <div class="cpub-hub-card-name-row">
+            <h2 class="cpub-hub-card-name">{{ hub.name }}</h2>
+            <span class="cpub-hub-card-type">{{ hub.hubType ?? 'community' }}</span>
+          </div>
           <p v-if="hub.description" class="cpub-hub-card-desc">{{ hub.description }}</p>
           <div class="cpub-hub-card-meta">
             <span class="cpub-hub-card-stat"><i class="fa-solid fa-users"></i> {{ hub.memberCount ?? 0 }}</span>
             <span class="cpub-hub-card-stat"><i class="fa-solid fa-message"></i> {{ hub.postCount ?? 0 }}</span>
-            <span class="cpub-hub-card-type">{{ hub.hubType ?? 'community' }}</span>
+            <span v-if="isFederated(hub as Record<string, unknown>)" class="cpub-hub-card-origin">
+              <i class="fa-solid fa-globe"></i> {{ (hub as Record<string, unknown>).originDomain }}
+            </span>
           </div>
         </div>
       </NuxtLink>
@@ -66,16 +80,8 @@ const hubs = computed(() => data.value?.items ?? []);
   gap: 16px;
 }
 
-.cpub-hubs-title {
-  font-size: 22px;
-  font-weight: 700;
-}
-
-.cpub-hubs-desc {
-  font-size: 13px;
-  color: var(--text-dim);
-  margin-top: 4px;
-}
+.cpub-hubs-title { font-size: 22px; font-weight: 700; }
+.cpub-hubs-desc { font-size: 13px; color: var(--text-dim); margin-top: 4px; }
 
 .cpub-hubs-grid {
   display: grid;
@@ -114,19 +120,18 @@ const hubs = computed(() => data.value?.items ?? []);
   overflow: hidden;
 }
 
-.cpub-hub-card-avatar {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
+.cpub-hub-card-avatar { width: 100%; height: 100%; object-fit: cover; }
 
 .cpub-hub-card-body { flex: 1; min-width: 0; }
 
-.cpub-hub-card-name {
-  font-size: 14px;
-  font-weight: 600;
+.cpub-hub-card-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin-bottom: 4px;
 }
+
+.cpub-hub-card-name { font-size: 14px; font-weight: 600; }
 
 .cpub-hub-card-desc {
   font-size: 12px;
@@ -154,7 +159,6 @@ const hubs = computed(() => data.value?.items ?? []);
   align-items: center;
   gap: 4px;
 }
-
 .cpub-hub-card-stat i { font-size: 10px; }
 
 .cpub-hub-card-type {
@@ -167,6 +171,16 @@ const hubs = computed(() => data.value?.items ?? []);
   border: 2px solid var(--accent-border);
   padding: 2px 6px;
 }
+
+.cpub-hub-card-origin {
+  font-size: 10px;
+  color: var(--text-faint);
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: auto;
+}
+.cpub-hub-card-origin i { font-size: 9px; color: var(--accent); }
 
 @media (max-width: 640px) {
   .cpub-hubs-grid { grid-template-columns: 1fr; }
