@@ -67,11 +67,13 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  // Hub pages
+  // Hub pages (skip federated hubs — they have canonical URLs on the origin)
   for (const hub of hubs) {
+    if ('source' in hub && hub.source === 'federated') continue;
+    const localHub = hub as { slug: string; createdAt: Date; updatedAt?: Date };
     urls.push({
-      loc: `${siteUrl}/hubs/${hub.slug}`,
-      lastmod: new Date((hub as any).updatedAt ?? hub.createdAt ?? new Date()).toISOString(),
+      loc: `${siteUrl}/hubs/${localHub.slug}`,
+      lastmod: new Date(localHub.updatedAt ?? localHub.createdAt ?? new Date()).toISOString(),
       priority: '0.7',
       changefreq: 'weekly',
     });

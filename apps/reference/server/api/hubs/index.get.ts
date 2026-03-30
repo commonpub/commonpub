@@ -1,10 +1,13 @@
 import { listHubs } from '@commonpub/server';
-import type { PaginatedResponse, HubListItem } from '@commonpub/server';
+import type { HubListItem, FederatedHubListItem } from '@commonpub/server';
 import { hubFiltersSchema } from '@commonpub/schema';
 
-export default defineEventHandler(async (event): Promise<PaginatedResponse<HubListItem>> => {
+export default defineEventHandler(async (event): Promise<{ items: (HubListItem | FederatedHubListItem)[]; total: number }> => {
   const db = useDB();
+  const config = useConfig();
   const filters = parseQueryParams(event, hubFiltersSchema);
 
-  return listHubs(db, filters);
+  const includeFederated = config.features.seamlessFederation && config.features.federateHubs;
+
+  return listHubs(db, filters, { includeFederated });
 });
