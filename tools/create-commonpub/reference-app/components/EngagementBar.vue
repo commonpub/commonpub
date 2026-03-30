@@ -18,6 +18,8 @@ const emit = defineEmits<{
 const contentId = computed(() => props.targetId);
 const contentType = computed(() => props.targetType);
 const { liked, bookmarked, likeCount, toggleLike, toggleBookmark, share, setInitialState } = useEngagement(contentId, contentType);
+const { isAuthenticated } = useAuth();
+const showHubModal = ref(false);
 
 // Sync initial state from props
 watch(() => [props.isLiked, props.isBookmarked, props.likeCount] as const, ([l, b, c]) => {
@@ -68,9 +70,22 @@ async function handleShare(): Promise<void> {
       <i :class="bookmarked ? 'fa-solid fa-bookmark' : 'fa-regular fa-bookmark'"></i>
     </button>
 
+    <button v-if="isAuthenticated" class="cpub-engage-btn" aria-label="Share to Hub" @click="showHubModal = true">
+      <i class="fa-solid fa-users"></i>
+      <span>Hub</span>
+    </button>
+
     <button class="cpub-engage-btn" aria-label="Share" @click="handleShare">
       <i class="fa-solid fa-share-nodes"></i>
     </button>
+
+    <ShareToHubModal
+      v-if="showHubModal"
+      :content-id="targetId"
+      :content-title="'this content'"
+      @close="showHubModal = false"
+      @shared="showHubModal = false"
+    />
   </div>
 </template>
 

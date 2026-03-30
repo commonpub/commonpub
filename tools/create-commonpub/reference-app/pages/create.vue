@@ -5,6 +5,8 @@ useSeoMeta({ title: 'Create — CommonPub' });
 definePageMeta({ middleware: 'auth' });
 
 const { isTypeEnabled } = useContentTypes();
+const route = useRoute();
+const hubParam = computed(() => (route.query.hub as string) || '');
 
 const allTypes = [
   {
@@ -61,7 +63,7 @@ const types = computed(() => allTypes.filter(t => isTypeEnabled(t.type as Conten
       <NuxtLink
         v-for="t in types"
         :key="t.type"
-        :to="`/${t.type}/new/edit`"
+        :to="`/${t.type}/new/edit${hubParam ? `?hub=${hubParam}` : ''}`"
         class="cpub-create-card"
       >
         <div class="cpub-create-card-icon" :style="{ color: t.color, background: t.bg, borderColor: t.border }">

@@ -46,7 +46,15 @@ const hubTypeVal = hub.value?.hubType as string | undefined;
 const initialTab = hubTypeVal === 'community' || !hubTypeVal ? 'feed' : 'overview';
 const activeTab = ref(initialTab);
 const newPostContent = ref('');
+const newPostType = ref<'text' | 'question' | 'discussion' | 'showcase'>('text');
 const posting = ref(false);
+
+const postTypeOptions = [
+  { value: 'text', label: 'Post', icon: 'fa-solid fa-pen' },
+  { value: 'question', label: 'Question', icon: 'fa-solid fa-circle-question' },
+  { value: 'discussion', label: 'Discussion', icon: 'fa-solid fa-comments' },
+  { value: 'showcase', label: 'Showcase', icon: 'fa-solid fa-image' },
+];
 const postError = ref('');
 const feedFilter = ref('all');
 
@@ -100,7 +108,7 @@ const filteredPosts = computed(() => {
 
 const discussionPosts = computed(() => {
   const items = posts.value?.items ?? [];
-  return items.filter((p) => p.type === 'text' || p.type === 'link');
+  return items.filter((p) => p.type === 'text' || p.type === 'link' || p.type === 'discussion' || p.type === 'question');
 });
 
 async function handlePost(): Promise<void> {
@@ -109,7 +117,7 @@ async function handlePost(): Promise<void> {
   try {
     await $fetch(`/api/hubs/${slug.value}/posts`, {
       method: 'POST',
-      body: { content: newPostContent.value, type: 'text' },
+      body: { content: newPostContent.value, type: newPostType.value },
     });
     newPostContent.value = '';
     postError.value = '';
@@ -275,18 +283,32 @@ function handleLinkInsert(): void {
             />
             <!-- Compose bar -->
             <div v-if="isAuthenticated" class="cpub-compose-bar">
-              <input
-                v-model="newPostContent"
-                class="cpub-compose-input"
-                type="text"
-                placeholder="Share a project, ask a question, or start a discussion..."
-              />
-              <input ref="imageInput" type="file" accept="image/*" style="display: none" @change="handleImageUpload" />
-              <button class="cpub-btn cpub-btn-sm" aria-label="Upload image" @click="openImagePicker"><i class="fa-solid fa-image"></i></button>
-              <button class="cpub-btn cpub-btn-sm" aria-label="Insert link" @click="handleLinkInsert"><i class="fa-solid fa-link"></i></button>
-              <button class="cpub-btn cpub-btn-sm cpub-btn-primary" :disabled="posting" @click="handlePost">
-                <i class="fa-solid fa-paper-plane"></i> Post
-              </button>
+              <div class="cpub-compose-types">
+                <button
+                  v-for="opt in postTypeOptions"
+                  :key="opt.value"
+                  class="cpub-compose-type-btn"
+                  :class="{ active: newPostType === opt.value }"
+                  @click="newPostType = opt.value as typeof newPostType"
+                >
+                  <i :class="opt.icon"></i> {{ opt.label }}
+                </button>
+              </div>
+              <div class="cpub-compose-row">
+                <input
+                  v-model="newPostContent"
+                  class="cpub-compose-input"
+                  type="text"
+                  :placeholder="newPostType === 'question' ? 'Ask the community a question...' : newPostType === 'discussion' ? 'Start a discussion...' : newPostType === 'showcase' ? 'Share what you built...' : 'Write a post...'"
+                  @keydown.enter="handlePost"
+                />
+                <input ref="imageInput" type="file" accept="image/*" style="display: none" @change="handleImageUpload" />
+                <button class="cpub-btn cpub-btn-sm" aria-label="Upload image" @click="openImagePicker"><i class="fa-solid fa-image"></i></button>
+                <button class="cpub-btn cpub-btn-sm" aria-label="Insert link" @click="handleLinkInsert"><i class="fa-solid fa-link"></i></button>
+                <button class="cpub-btn cpub-btn-sm cpub-btn-primary" :disabled="posting" @click="handlePost">
+                  <i class="fa-solid fa-paper-plane"></i> Post
+                </button>
+              </div>
             </div>
 
             <!-- Feed filter -->
@@ -326,6 +348,24 @@ function handleLinkInsert(): void {
 
           <!-- Discussions tab (uses posts data filtered to text/link types) -->
           <template v-else-if="activeTab === 'discussions'">
+            <!-- Compose bar for discussions -->
+            <div v-if="isAuthenticated" class="cpub-compose-bar" style="margin-bottom: 16px">
+              <div class="cpub-compose-row">
+                <input
+                  v-model="newPostContent"
+                  class="cpub-compose-input"
+                  type="text"
+                  placeholder="Start a discussion or ask a question..."
+                  @keydown.enter="newPostType = 'discussion'; handlePost()"
+                />
+                <button class="cpub-btn cpub-btn-sm" :class="{ 'cpub-btn-primary': newPostType === 'question' }" @click="newPostType = 'question'" title="Ask a question">
+                  <i class="fa-solid fa-circle-question"></i>
+                </button>
+                <button class="cpub-btn cpub-btn-sm cpub-btn-primary" :disabled="posting" @click="newPostType = 'discussion'; handlePost()">
+                  <i class="fa-solid fa-paper-plane"></i> Post
+                </button>
+              </div>
+            </div>
             <div v-if="discussionPosts.length" class="cpub-disc-list">
               <DiscussionItem
                 v-for="post in discussionPosts"
@@ -339,7 +379,7 @@ function handleLinkInsert(): void {
             <div v-else class="cpub-empty-state">
               <div class="cpub-empty-state-icon"><i class="fa-solid fa-comments"></i></div>
               <p class="cpub-empty-state-title">No discussions yet</p>
-              <p class="cpub-empty-state-desc">Start a conversation by posting in the Feed tab.</p>
+              <p class="cpub-empty-state-desc">Be the first to start a conversation.</p>
             </div>
           </template>
 
@@ -388,6 +428,12 @@ function handleLinkInsert(): void {
               <div class="cpub-empty-state-icon"><i class="fa-solid fa-folder-open"></i></div>
               <p class="cpub-empty-state-title">No projects yet</p>
               <p v-if="isProductHub" class="cpub-empty-state-desc">Projects that use this product in their BOM will appear here automatically.</p>
+              <p v-else class="cpub-empty-state-desc">Share your projects to this hub, or create a new one.</p>
+              <div v-if="isAuthenticated && !isProductHub" class="cpub-empty-state-actions" style="margin-top: 12px; display: flex; gap: 8px; justify-content: center;">
+                <NuxtLink :to="`/create?hub=${slug}`" class="cpub-btn cpub-btn-primary cpub-btn-sm">
+                  <i class="fa-solid fa-plus"></i> New Project
+                </NuxtLink>
+              </div>
             </div>
           </template>
 
@@ -660,6 +706,36 @@ function handleLinkInsert(): void {
   border: 2px solid var(--border);
   padding: 12px 14px;
   margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cpub-compose-types {
+  display: flex;
+  gap: 4px;
+}
+
+.cpub-compose-type-btn {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 4px 10px;
+  background: none;
+  border: 2px solid var(--border);
+  color: var(--text-faint);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: border-color 0.1s, color 0.1s;
+}
+.cpub-compose-type-btn:hover { color: var(--text); border-color: var(--text-dim); }
+.cpub-compose-type-btn.active { color: var(--accent); border-color: var(--accent); background: var(--accent-bg); }
+
+.cpub-compose-row {
   display: flex;
   gap: 10px;
   align-items: center;

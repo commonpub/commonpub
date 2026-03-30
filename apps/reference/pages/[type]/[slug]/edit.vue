@@ -14,12 +14,15 @@ useSeoMeta({
 });
 
 const title = ref('');
+const route = useRoute();
+const hubFromQuery = (route.query.hub as string) || '';
 const metadata = ref<Record<string, unknown>>({
   description: '',
   slug: '',
   tags: [],
   visibility: 'public',
   coverImageUrl: '',
+  ...(hubFromQuery ? { hubSlug: hubFromQuery } : {}),
 });
 const isDirty = ref(false);
 const { extract: extractError } = useApiError();
