@@ -139,7 +139,7 @@ export async function resolveRemoteActor(db: DB, actorUri: string): Promise<Reso
     if (age < 24 * 60 * 60 * 1000) {
       return {
         '@context': 'https://www.w3.org/ns/activitystreams',
-        type: 'Person',
+        type: c.actorType ?? 'Person',
         id: c.actorUri,
         inbox: c.inbox,
         outbox: c.outbox ?? undefined,
@@ -172,6 +172,7 @@ export async function resolveRemoteActor(db: DB, actorUri: string): Promise<Reso
     displayName: actor.name,
     summary: actor.summary,
     avatarUrl: actor.icon?.url,
+    actorType: actor.type ?? 'Person',
     lastFetchedAt: new Date(),
   };
 
@@ -258,6 +259,7 @@ export async function searchRemoteActor(
     displayName: actor.name,
     summary: actor.summary,
     avatarUrl: actor.icon?.url,
+    actorType: actor.type ?? 'Person',
     lastFetchedAt: new Date(),
   };
 
