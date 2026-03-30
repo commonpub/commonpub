@@ -5,11 +5,11 @@ const slug = computed(() => route.params.slug as string);
 import type { Serialized, HubDetail, HubPostItem, HubMemberItem, PaginatedResponse, ContentListItem } from '@commonpub/server';
 
 const { data: hub, pending: hubPending, error: hubError, refresh: refreshHub } = useLazyFetch<Serialized<HubDetail>>(() => `/api/hubs/${slug.value}`);
-const { data: posts } = useLazyFetch<Serialized<PaginatedResponse<HubPostItem>>>(() => `/api/hubs/${slug.value}/posts`, { default: () => ({ items: [], total: 0 }) });
+const { data: posts, refresh: refreshPosts } = useLazyFetch<Serialized<PaginatedResponse<HubPostItem>>>(() => `/api/hubs/${slug.value}/posts`, { default: () => ({ items: [], total: 0 }) });
 const { data: membersData } = useLazyFetch<{ items: Serialized<HubMemberItem>[]; total: number }>(() => `/api/hubs/${slug.value}/members`);
 const members = computed(() => membersData.value?.items ?? []);
 
-const { data: gallery } = useLazyFetch<PaginatedResponse<Serialized<ContentListItem>>>(() => `/api/hubs/${slug.value}/gallery`, { default: () => ({ items: [], total: 0 }) });
+const { data: gallery, refresh: refreshGallery } = useLazyFetch<PaginatedResponse<Serialized<ContentListItem>>>(() => `/api/hubs/${slug.value}/gallery`, { default: () => ({ items: [], total: 0 }) });
 
 // Hub type
 const hubType = computed(() => hub.value?.hubType ?? 'community');
@@ -100,6 +100,14 @@ const moderators = computed(() => {
   );
 });
 
+function parseShareContent(content: string): { contentId: string; title: string; slug: string; type: string } | null {
+  try {
+    const parsed = JSON.parse(content);
+    if (parsed && parsed.title && parsed.slug) return parsed;
+  } catch { /* not JSON */ }
+  return null;
+}
+
 const filteredPosts = computed(() => {
   const items = posts.value?.items ?? [];
   if (feedFilter.value === 'all') return items;
@@ -122,7 +130,7 @@ async function handlePost(): Promise<void> {
     newPostContent.value = '';
     newPostType.value = 'text';
     postError.value = '';
-    await refreshHub();
+    await Promise.all([refreshHub(), refreshPosts()]);
   } catch (e) {
     const fetchErr = e as { data?: { statusMessage?: string }; message?: string };
     postError.value = fetchErr?.data?.statusMessage || fetchErr?.message || 'Failed to create post';
@@ -168,6 +176,7 @@ async function shareProjectToHub(contentId: string): Promise<void> {
     });
     toast.success('Project shared to hub');
     showProjectPicker.value = false;
+    await Promise.all([refreshGallery(), refreshPosts(), refreshHub()]);
   } catch {
     toast.error('Failed to share project');
   } finally {
@@ -354,19 +363,44 @@ function handleLinkInsert(): void {
             <!-- Feed posts -->
             <div v-if="postError" class="cpub-post-error">{{ postError }}</div>
             <div v-if="filteredPosts.length" class="cpub-feed-list">
-              <FeedItem
-                v-for="post in filteredPosts"
-                :key="post.id"
-                :type="(post.type as 'discussion' | 'question' | 'showcase' | 'announcement') || 'discussion'"
-                :title="post.content?.slice(0, 80) || ''"
-                :author="post.author?.displayName || post.author?.username || 'Unknown'"
-                :body="post.content || ''"
-                :created-at="new Date(post.createdAt)"
-                :reply-count="post.replyCount ?? 0"
-                :vote-count="post.likeCount ?? 0"
-                :pinned="post.isPinned"
-                :locked="post.isLocked"
-              />
+              <template v-for="post in filteredPosts" :key="post.id">
+                <!-- Share posts: render as linked content card -->
+                <article v-if="post.type === 'share'" class="cpub-feed-item">
+                  <div class="cpub-feed-item-body">
+                    <div class="cpub-feed-item-header">
+                      <span class="cpub-feed-badge cpub-feed-badge-accent">shared</span>
+                    </div>
+                    <NuxtLink v-if="parseShareContent(post.content)" :to="`/${parseShareContent(post.content)!.type}/${parseShareContent(post.content)!.slug}`" class="cpub-share-link">
+                      <h3 class="cpub-feed-item-title">{{ parseShareContent(post.content)!.title }}</h3>
+                      <p class="cpub-feed-item-preview">
+                        <i class="fa-solid fa-arrow-up-right-from-square" style="margin-right: 4px; font-size: 10px"></i>
+                        View {{ parseShareContent(post.content)!.type }}
+                      </p>
+                    </NuxtLink>
+                    <div class="cpub-feed-item-meta">
+                      <div class="cpub-feed-item-author">
+                        <div class="cpub-feed-avatar cpub-feed-avatar-placeholder">{{ (post.author?.displayName || post.author?.username || 'U').charAt(0).toUpperCase() }}</div>
+                        <span class="cpub-feed-author-name">{{ post.author?.displayName || post.author?.username || 'Unknown' }}</span>
+                        <span class="cpub-feed-sep">&middot;</span>
+                        <time class="cpub-feed-time">{{ new Date(post.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) }}</time>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+                <!-- Regular posts -->
+                <FeedItem
+                  v-else
+                  :type="(post.type as 'discussion' | 'question' | 'showcase' | 'announcement') || 'discussion'"
+                  :title="post.content?.slice(0, 80) || ''"
+                  :author="post.author?.displayName || post.author?.username || 'Unknown'"
+                  :body="post.content || ''"
+                  :created-at="new Date(post.createdAt)"
+                  :reply-count="post.replyCount ?? 0"
+                  :vote-count="post.likeCount ?? 0"
+                  :pinned="post.isPinned"
+                  :locked="post.isLocked"
+                />
+              </template>
             </div>
             <div v-else class="cpub-empty-state">
               <div class="cpub-empty-state-icon"><i class="fa-solid fa-message"></i></div>
@@ -1313,4 +1347,12 @@ function handleLinkInsert(): void {
   font-weight: 500;
   flex: 1;
 }
+
+/* Share post link */
+.cpub-share-link {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+.cpub-share-link:hover .cpub-feed-item-title { color: var(--accent); }
 </style>
