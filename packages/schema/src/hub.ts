@@ -113,6 +113,20 @@ export const hubPostReplies = pgTable('hub_post_replies', {
   index('idx_hub_post_replies_author_id').on(t.authorId),
 ]);
 
+export const hubPostLikes = pgTable('hub_post_likes', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  postId: uuid('post_id')
+    .notNull()
+    .references(() => hubPosts.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  unique('uq_hub_post_likes_post_user').on(t.postId, t.userId),
+  index('idx_hub_post_likes_post_id').on(t.postId),
+]);
+
 export const hubBans = pgTable('hub_bans', {
   id: uuid('id').defaultRandom().primaryKey(),
   hubId: uuid('hub_id')
@@ -290,6 +304,8 @@ export type HubPostRow = typeof hubPosts.$inferSelect;
 export type NewHubPostRow = typeof hubPosts.$inferInsert;
 export type HubPostReplyRow = typeof hubPostReplies.$inferSelect;
 export type NewHubPostReplyRow = typeof hubPostReplies.$inferInsert;
+export type HubPostLikeRow = typeof hubPostLikes.$inferSelect;
+export type NewHubPostLikeRow = typeof hubPostLikes.$inferInsert;
 export type HubBanRow = typeof hubBans.$inferSelect;
 export type NewHubBanRow = typeof hubBans.$inferInsert;
 export type HubInviteRow = typeof hubInvites.$inferSelect;

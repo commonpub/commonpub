@@ -388,18 +388,19 @@ function handleLinkInsert(): void {
                   </div>
                 </article>
                 <!-- Regular posts -->
-                <FeedItem
-                  v-else
-                  :type="(post.type as 'discussion' | 'question' | 'showcase' | 'announcement') || 'discussion'"
-                  :title="post.content?.slice(0, 80) || ''"
-                  :author="post.author?.displayName || post.author?.username || 'Unknown'"
-                  :body="post.content || ''"
-                  :created-at="new Date(post.createdAt)"
-                  :reply-count="post.replyCount ?? 0"
-                  :vote-count="post.likeCount ?? 0"
-                  :pinned="post.isPinned"
-                  :locked="post.isLocked"
-                />
+                <NuxtLink v-else :to="`/hubs/${slug}/posts/${post.id}`" class="cpub-feed-link">
+                  <FeedItem
+                    :type="(post.type as 'discussion' | 'question' | 'showcase' | 'announcement') || 'discussion'"
+                    :title="post.content?.slice(0, 80) || ''"
+                    :author="post.author?.displayName || post.author?.username || 'Unknown'"
+                    :body="post.content || ''"
+                    :created-at="new Date(post.createdAt)"
+                    :reply-count="post.replyCount ?? 0"
+                    :vote-count="post.likeCount ?? 0"
+                    :pinned="post.isPinned"
+                    :locked="post.isLocked"
+                  />
+                </NuxtLink>
               </template>
             </div>
             <div v-else class="cpub-empty-state">
@@ -430,14 +431,19 @@ function handleLinkInsert(): void {
               </div>
             </div>
             <div v-if="discussionPosts.length" class="cpub-disc-list">
-              <DiscussionItem
+              <NuxtLink
                 v-for="post in discussionPosts"
                 :key="post.id"
-                :title="post.content?.slice(0, 80) || 'Untitled'"
-                :author="post.author?.displayName || post.author?.username || 'Unknown'"
-                :reply-count="post.replyCount ?? 0"
-                :vote-count="post.likeCount ?? 0"
-              />
+                :to="`/hubs/${slug}/posts/${post.id}`"
+                class="cpub-feed-link"
+              >
+                <DiscussionItem
+                  :title="post.content?.slice(0, 80) || 'Untitled'"
+                  :author="post.author?.displayName || post.author?.username || 'Unknown'"
+                  :reply-count="post.replyCount ?? 0"
+                  :vote-count="post.likeCount ?? 0"
+                />
+              </NuxtLink>
             </div>
             <div v-else class="cpub-empty-state">
               <div class="cpub-empty-state-icon"><i class="fa-solid fa-comments"></i></div>
@@ -1347,6 +1353,9 @@ function handleLinkInsert(): void {
   font-weight: 500;
   flex: 1;
 }
+
+/* Feed item links */
+.cpub-feed-link { text-decoration: none; color: inherit; display: block; }
 
 /* Share post link */
 .cpub-share-link {

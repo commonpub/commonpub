@@ -4,6 +4,7 @@ import {
   hubMembers,
   hubPosts,
   hubPostReplies,
+  hubPostLikes,
   hubBans,
   hubInvites,
   hubShares,
@@ -739,6 +740,106 @@ export async function toggleLockPost(
     .where(eq(hubPosts.id, postId));
 
   return { locked: newLocked };
+}
+
+/**
+ * Get a single hub post by ID with author info.
+ */
+export async function getPostById(
+  db: DB,
+  postId: string,
+): Promise<HubPostItem | null> {
+  const [row] = await db
+    .select({
+      post: hubPosts,
+      author: USER_REF_SELECT,
+    })
+    .from(hubPosts)
+    .innerJoin(users, eq(hubPosts.authorId, users.id))
+    .where(eq(hubPosts.id, postId))
+    .limit(1);
+
+  if (!row) return null;
+
+  const item: HubPostItem = {
+    id: row.post.id,
+    hubId: row.post.hubId,
+    type: row.post.type,
+    content: row.post.content,
+    isPinned: row.post.isPinned,
+    isLocked: row.post.isLocked,
+    likeCount: row.post.likeCount,
+    replyCount: row.post.replyCount,
+    createdAt: row.post.createdAt,
+    updatedAt: row.post.updatedAt,
+    author: row.author,
+  };
+
+  if (row.post.type === 'share') {
+    try {
+      item.sharedContent = JSON.parse(row.post.content);
+    } catch { /* not JSON */ }
+  }
+
+  return item;
+}
+
+/**
+ * Like a hub post. Returns true if liked, false if already liked.
+ */
+export async function likePost(
+  db: DB,
+  userId: string,
+  postId: string,
+): Promise<boolean> {
+  const existing = await db
+    .select({ id: hubPostLikes.id })
+    .from(hubPostLikes)
+    .where(and(eq(hubPostLikes.postId, postId), eq(hubPostLikes.userId, userId)))
+    .limit(1);
+
+  if (existing.length > 0) return false;
+
+  await db.insert(hubPostLikes).values({ postId, userId });
+  await db.update(hubPosts).set({ likeCount: sql`${hubPosts.likeCount} + 1` }).where(eq(hubPosts.id, postId));
+  return true;
+}
+
+/**
+ * Unlike a hub post. Returns true if unliked, false if wasn't liked.
+ */
+export async function unlikePost(
+  db: DB,
+  userId: string,
+  postId: string,
+): Promise<boolean> {
+  const existing = await db
+    .select({ id: hubPostLikes.id })
+    .from(hubPostLikes)
+    .where(and(eq(hubPostLikes.postId, postId), eq(hubPostLikes.userId, userId)))
+    .limit(1);
+
+  if (existing.length === 0) return false;
+
+  await db.delete(hubPostLikes).where(eq(hubPostLikes.id, existing[0]!.id));
+  await db.update(hubPosts).set({ likeCount: sql`GREATEST(${hubPosts.likeCount} - 1, 0)` }).where(eq(hubPosts.id, postId));
+  return true;
+}
+
+/**
+ * Check if a user has liked a hub post.
+ */
+export async function hasLikedPost(
+  db: DB,
+  userId: string,
+  postId: string,
+): Promise<boolean> {
+  const [row] = await db
+    .select({ id: hubPostLikes.id })
+    .from(hubPostLikes)
+    .where(and(eq(hubPostLikes.postId, postId), eq(hubPostLikes.userId, userId)))
+    .limit(1);
+  return !!row;
 }
 
 export async function createReply(
