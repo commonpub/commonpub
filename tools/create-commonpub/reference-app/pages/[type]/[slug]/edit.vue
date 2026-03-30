@@ -14,7 +14,6 @@ useSeoMeta({
 });
 
 const title = ref('');
-const route = useRoute();
 const hubFromQuery = (route.query.hub as string) || '';
 const metadata = ref<Record<string, unknown>>({
   description: '',

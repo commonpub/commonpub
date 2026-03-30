@@ -120,6 +120,7 @@ async function handlePost(): Promise<void> {
       body: { content: newPostContent.value, type: newPostType.value },
     });
     newPostContent.value = '';
+    newPostType.value = 'text';
     postError.value = '';
     await refreshHub();
   } catch (e) {

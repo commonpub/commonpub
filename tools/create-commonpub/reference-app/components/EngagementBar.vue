@@ -2,6 +2,7 @@
 const props = defineProps<{
   targetType: string;
   targetId: string;
+  targetTitle?: string;
   likeCount: number;
   commentCount: number;
   isLiked?: boolean;
@@ -82,7 +83,7 @@ async function handleShare(): Promise<void> {
     <ShareToHubModal
       v-if="showHubModal"
       :content-id="targetId"
-      :content-title="'this content'"
+      :content-title="targetTitle || 'this content'"
       @close="showHubModal = false"
       @shared="showHubModal = false"
     />
