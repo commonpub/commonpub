@@ -266,14 +266,30 @@ export async function federateHubPost(
   // The hub Group actor Announces the Note
   const announce = buildAnnounceActivity(domain, hubActorUri, note.id, followersUri);
 
-  await db.insert(activities).values({
-    type: 'Announce',
-    actorUri: hubActorUri,
-    objectUri: note.id,
-    payload: announce,
-    direction: 'outbound',
-    status: 'pending',
-  });
+  // Skip if an outbound Announce for this object from this actor already exists
+  const [existing] = await db
+    .select({ id: activities.id })
+    .from(activities)
+    .where(
+      and(
+        eq(activities.type, 'Announce'),
+        eq(activities.actorUri, hubActorUri),
+        eq(activities.objectUri, note.id),
+        eq(activities.direction, 'outbound'),
+      ),
+    )
+    .limit(1);
+
+  if (!existing) {
+    await db.insert(activities).values({
+      type: 'Announce',
+      actorUri: hubActorUri,
+      objectUri: note.id,
+      payload: announce,
+      direction: 'outbound',
+      status: 'pending',
+    });
+  }
 }
 
 /**

@@ -554,14 +554,29 @@ export async function federateContent(db: DB, contentId: string, domain: string)
   const article = contentToArticle({ ...content, tags: tagNames }, author, domain);
   const activity = buildCreateActivity(domain, actorUri, article);
 
-  await db.insert(activities).values({
-    type: 'Create',
-    actorUri,
-    objectUri: article.id,
-    payload: activity,
-    direction: 'outbound',
-    status: 'pending',
-  });
+  // Skip if an outbound Create for this object is already pending or delivered
+  const [existing] = await db
+    .select({ id: activities.id })
+    .from(activities)
+    .where(
+      and(
+        eq(activities.type, 'Create'),
+        eq(activities.objectUri, article.id),
+        eq(activities.direction, 'outbound'),
+      ),
+    )
+    .limit(1);
+
+  if (!existing) {
+    await db.insert(activities).values({
+      type: 'Create',
+      actorUri,
+      objectUri: article.id,
+      payload: activity,
+      direction: 'outbound',
+      status: 'pending',
+    });
+  }
 }
 
 export async function federateUpdate(db: DB, contentId: string, domain: string): Promise<void> {

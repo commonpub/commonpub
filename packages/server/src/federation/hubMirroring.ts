@@ -281,11 +281,25 @@ export async function autoDiscoverHub(
   if (!mirror) return null;
 
   // Resolve the Group actor to get metadata
-  const [cachedActor] = await db
+  let [cachedActor] = await db
     .select()
     .from(remoteActors)
     .where(eq(remoteActors.actorUri, groupActorUri))
     .limit(1);
+
+  // If cached as 'Person' but URI matches hub pattern, force re-resolve
+  // (pre-2.4.4 bug: actorType was never stored, defaulted to 'Person')
+  if (cachedActor && cachedActor.actorType === 'Person' && groupActorUri.includes('/hubs/')) {
+    try {
+      const { resolveRemoteActor } = await import('./federation.js');
+      await resolveRemoteActor(db, groupActorUri);
+      [cachedActor] = await db
+        .select()
+        .from(remoteActors)
+        .where(eq(remoteActors.actorUri, groupActorUri))
+        .limit(1);
+    } catch { /* keep stale cache */ }
+  }
 
   if (!cachedActor || cachedActor.actorType !== 'Group') return null;
 
