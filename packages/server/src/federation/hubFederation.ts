@@ -266,8 +266,9 @@ export async function federateHubPost(
   // The hub Group actor Announces the Note
   const announce = buildAnnounceActivity(domain, hubActorUri, note.id, followersUri);
 
-  // Skip if an outbound Announce for this object from this actor already exists
-  const [existing] = await db
+  // Skip if an outbound Announce for this object is already pending (awaiting delivery).
+  // Allow re-creation if previously delivered/failed so refederate works after delivery fixes.
+  const [pending] = await db
     .select({ id: activities.id })
     .from(activities)
     .where(
@@ -276,11 +277,12 @@ export async function federateHubPost(
         eq(activities.actorUri, hubActorUri),
         eq(activities.objectUri, note.id),
         eq(activities.direction, 'outbound'),
+        eq(activities.status, 'pending'),
       ),
     )
     .limit(1);
 
-  if (!existing) {
+  if (!pending) {
     await db.insert(activities).values({
       type: 'Announce',
       actorUri: hubActorUri,

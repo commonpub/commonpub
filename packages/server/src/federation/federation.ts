@@ -554,8 +554,9 @@ export async function federateContent(db: DB, contentId: string, domain: string)
   const article = contentToArticle({ ...content, tags: tagNames }, author, domain);
   const activity = buildCreateActivity(domain, actorUri, article);
 
-  // Skip if an outbound Create for this object is already pending or delivered
-  const [existing] = await db
+  // Skip if an outbound Create for this object is already pending (awaiting delivery).
+  // If it was already delivered/failed, allow re-creation so refederate works after delivery fixes.
+  const [pending] = await db
     .select({ id: activities.id })
     .from(activities)
     .where(
@@ -563,11 +564,12 @@ export async function federateContent(db: DB, contentId: string, domain: string)
         eq(activities.type, 'Create'),
         eq(activities.objectUri, article.id),
         eq(activities.direction, 'outbound'),
+        eq(activities.status, 'pending'),
       ),
     )
     .limit(1);
 
-  if (!existing) {
+  if (!pending) {
     await db.insert(activities).values({
       type: 'Create',
       actorUri,
