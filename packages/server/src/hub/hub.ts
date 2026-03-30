@@ -16,7 +16,6 @@ import type {
 import { generateSlug, hasPermission } from '../utils.js';
 import { ensureUniqueSlugFor, USER_REF_SELECT, normalizePagination, countRows, escapeLike } from '../query.js';
 import { checkBan } from './moderation.js';
-import { listFederatedHubs } from '../federation/hubMirroring.js';
 
 // --- Hub CRUD ---
 
@@ -73,6 +72,9 @@ export async function listHubs(
   if (!options?.includeFederated) {
     return { items: localItems, total };
   }
+
+  // Dynamic import — avoid loading federation module chain for non-federated queries
+  const { listFederatedHubs } = await import('../federation/hubMirroring.js');
 
   // Merge with federated hubs — fetch enough from both sources to fill the page
   const maxItems = offset + limit;

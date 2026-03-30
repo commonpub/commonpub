@@ -119,8 +119,9 @@ export async function backfillFromOutbox(
         const activity = item as Record<string, unknown>;
         if (!activity || typeof activity !== 'object') continue;
 
-        // Process Create and Update activities (not Follow, Like, etc.)
-        if (activity.type !== 'Create' && activity.type !== 'Update') continue;
+        // Process Create, Update, and Announce activities (not Follow, Like, etc.)
+        // Announce is needed for hub post backfill from Group actors
+        if (activity.type !== 'Create' && activity.type !== 'Update' && activity.type !== 'Announce') continue;
 
         try {
           await processInboxActivity(activity, handlers);
