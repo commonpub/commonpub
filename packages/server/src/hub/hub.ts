@@ -635,6 +635,27 @@ export async function listPosts(
     return item;
   });
 
+  // Backfill missing cover images on share posts (for shares created before enrichment)
+  const sharesToEnrich = items.filter(
+    (i) => i.type === 'share' && i.sharedContent && !(i.sharedContent as Record<string, unknown>).coverImageUrl && (i.sharedContent as Record<string, unknown>).contentId,
+  );
+  if (sharesToEnrich.length > 0) {
+    const contentIds = sharesToEnrich.map((i) => (i.sharedContent as Record<string, unknown>).contentId as string);
+    const enrichData = await db
+      .select({ id: contentItems.id, coverImageUrl: contentItems.coverImageUrl, description: contentItems.description })
+      .from(contentItems)
+      .where(inArray(contentItems.id, contentIds));
+    const enrichMap = new Map(enrichData.map((e) => [e.id, e]));
+    for (const item of sharesToEnrich) {
+      const sc = item.sharedContent as Record<string, unknown>;
+      const enrich = enrichMap.get(sc.contentId as string);
+      if (enrich) {
+        sc.coverImageUrl = enrich.coverImageUrl;
+        sc.description = enrich.description;
+      }
+    }
+  }
+
   return { items, total };
 }
 
