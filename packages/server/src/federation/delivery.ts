@@ -304,6 +304,22 @@ async function resolveTargetInboxes(
       return [...new Set(inboxes)];
     }
 
+    // Deliver to explicit `to` recipients that are specific actors (not #Public)
+    // This handles posting to remote Group hubs, replying to specific actors, etc.
+    if (toField) {
+      for (const recipientUri of toField) {
+        if (recipientUri === AP_PUBLIC || recipientUri === activity.actorUri) continue;
+        // Check if this is a specific actor (not a followers collection)
+        if (recipientUri.includes('/followers')) continue;
+        const actor = await db
+          .select({ inbox: remoteActors.inbox })
+          .from(remoteActors)
+          .where(eq(remoteActors.actorUri, recipientUri))
+          .limit(1);
+        if (actor[0]?.inbox) inboxes.push(actor[0].inbox);
+      }
+    }
+
     // Check if this is a hub actor (pattern: /hubs/{slug} in actor URI)
     const actorUrl = new URL(activity.actorUri);
     const actorSegments = actorUrl.pathname.split('/').filter(Boolean);
