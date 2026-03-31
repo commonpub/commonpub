@@ -46,22 +46,33 @@ const hubVM = computed<HubViewModel | null>(() => {
 });
 
 const postsVM = computed<HubPostViewModel[]>(() => {
-  return (posts.value?.items ?? []).map((p) => ({
-    id: p.id,
-    type: p.postType || 'text',
-    content: p.content || '',
-    author: {
-      name: p.author.displayName || p.author.preferredUsername || 'Unknown',
-      handle: `@${p.author.preferredUsername}@${p.author.instanceDomain}`,
-      avatarUrl: p.author.avatarUrl,
-    },
-    createdAt: String(p.publishedAt ?? p.receivedAt),
-    likeCount: (p.localLikeCount ?? 0) + (p.remoteLikeCount ?? 0),
-    replyCount: (p.localReplyCount ?? 0) + (p.remoteReplyCount ?? 0),
-    isPinned: p.isPinned ?? false,
-    isLocked: false,
-    linkTo: `/federated-hubs/${id}`,
-  }));
+  return (posts.value?.items ?? []).map((p) => {
+    const sc = p.sharedContentMeta;
+    return {
+      id: p.id,
+      type: p.postType || 'text',
+      content: p.content || '',
+      author: {
+        name: p.author.displayName || p.author.preferredUsername || 'Unknown',
+        handle: `@${p.author.preferredUsername}@${p.author.instanceDomain}`,
+        avatarUrl: p.author.avatarUrl,
+      },
+      createdAt: String(p.publishedAt ?? p.receivedAt),
+      likeCount: (p.localLikeCount ?? 0) + (p.remoteLikeCount ?? 0),
+      replyCount: (p.localReplyCount ?? 0) + (p.remoteReplyCount ?? 0),
+      isPinned: p.isPinned ?? false,
+      isLocked: false,
+      linkTo: `/federated-hubs/${id}/posts/${p.id}`,
+      sharedContent: sc ? {
+        type: sc.type,
+        slug: '',
+        title: sc.title,
+        description: sc.summary ?? null,
+        coverImageUrl: sc.coverImageUrl ?? null,
+        url: sc.originUrl ?? null,
+      } : undefined,
+    };
+  });
 });
 
 const discussionPosts = computed(() =>
@@ -99,23 +110,68 @@ async function handlePost(): Promise<void> {
   }
 }
 
-// --- Vote/like on posts ---
+// --- Follow hub ---
+const followStatus = computed(() => hub.value?.followStatus ?? 'pending');
+const following = ref(false);
+
+async function handleFollowHub(): Promise<void> {
+  if (!isAuthenticated.value) {
+    await navigateTo(`/auth/login?redirect=/federated-hubs/${id}`);
+    return;
+  }
+  following.value = true;
+  try {
+    const result = await $fetch<{ status: string }>('/api/federation/hub-follow' as string, {
+      method: 'POST',
+      body: { federatedHubId: id },
+    });
+    if (hub.value) (hub.value as unknown as Record<string, unknown>).followStatus = result.status;
+    toast.success(result.status === 'accepted' ? 'Already following!' : 'Follow request sent');
+  } catch {
+    toast.error('Failed to follow hub');
+  } finally {
+    following.value = false;
+  }
+}
+
+// --- Like state tracking ---
+const likedPostIds = ref<Set<string>>(new Set());
+
+async function fetchLikedState(): Promise<void> {
+  if (!isAuthenticated.value || !posts.value?.items.length) return;
+  try {
+    const ids = posts.value.items.map(p => p.id).join(',');
+    const result = await $fetch<{ likedPostIds: string[] }>(`/api/federation/hub-post-likes?postIds=${ids}`);
+    likedPostIds.value = new Set(result.likedPostIds);
+  } catch { /* best-effort */ }
+}
+
+watch(() => posts.value?.items.length, () => { fetchLikedState(); }, { immediate: true });
+
+// --- Vote/like toggle on posts ---
 async function handlePostVote(postId: string): Promise<void> {
   if (!isAuthenticated.value) {
     await navigateTo(`/auth/login?redirect=/federated-hubs/${id}`);
     return;
   }
   try {
-    await $fetch('/api/federation/hub-post-like' as string, {
+    const result = await $fetch<{ liked: boolean }>('/api/federation/hub-post-like' as string, {
       method: 'POST',
       body: { federatedHubPostId: postId },
     });
-    // Optimistic update: increment vote count in the local view
     const post = posts.value?.items.find(p => p.id === postId);
-    if (post) post.localLikeCount = (post.localLikeCount ?? 0) + 1;
-    toast.success('Liked!');
+    if (post) {
+      if (result.liked) {
+        post.localLikeCount = (post.localLikeCount ?? 0) + 1;
+        likedPostIds.value.add(postId);
+      } else {
+        post.localLikeCount = Math.max((post.localLikeCount ?? 0) - 1, 0);
+        likedPostIds.value.delete(postId);
+      }
+    }
+    toast.success(result.liked ? 'Liked!' : 'Unliked');
   } catch {
-    toast.error('Failed to like post');
+    toast.error('Failed to toggle like');
   }
 }
 
@@ -170,6 +226,18 @@ async function handleDiscPost(): Promise<void> {
           </div>
         </template>
         <template #actions>
+          <button
+            v-if="followStatus !== 'accepted'"
+            class="cpub-btn cpub-btn-sm cpub-btn-primary"
+            :disabled="following || followStatus === 'pending'"
+            @click="handleFollowHub"
+          >
+            <i class="fa-solid fa-rss"></i>
+            {{ followStatus === 'pending' ? 'Follow Pending...' : 'Follow Hub' }}
+          </button>
+          <span v-else class="cpub-btn cpub-btn-sm" style="cursor: default; opacity: 0.8">
+            <i class="fa-solid fa-check"></i> Following
+          </span>
           <a v-if="hub?.url" :href="hub.url" target="_blank" rel="noopener noreferrer" class="cpub-btn cpub-btn-sm">
             <i class="fa-solid fa-arrow-up-right-from-square"></i> Visit on {{ hub?.originDomain }}
           </a>
@@ -181,7 +249,7 @@ async function handleDiscPost(): Promise<void> {
     </template>
 
     <!-- Feed tab -->
-    <HubFeed v-if="activeTab === 'feed'" :posts="postsVM" :interactive="isAuthenticated" @post-vote="handlePostVote">
+    <HubFeed v-if="activeTab === 'feed'" :posts="postsVM" :interactive="isAuthenticated" :liked-post-ids="likedPostIds" @post-vote="handlePostVote">
       <template v-if="isAuthenticated" #compose>
         <div class="cpub-compose-bar">
           <div class="cpub-compose-row">

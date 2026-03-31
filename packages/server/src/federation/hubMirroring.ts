@@ -12,6 +12,7 @@ import type {
   DB,
   FederatedHubListItem,
   FederatedHubPostItem,
+  SharedContentMeta,
 } from '../types.js';
 import { normalizePagination, escapeLike } from '../query.js';
 
@@ -67,6 +68,7 @@ export async function listFederatedHubs(
     originDomain: row.hub.originDomain,
     url: row.hub.url,
     actorUri: row.hub.actorUri,
+    followStatus: row.hub.status as 'pending' | 'accepted' | 'rejected',
     receivedAt: row.hub.receivedAt,
     source: 'federated',
   }));
@@ -121,6 +123,7 @@ export async function getFederatedHub(
     originDomain: row.hub.originDomain,
     url: row.hub.url,
     actorUri: row.hub.actorUri,
+    followStatus: row.hub.status as 'pending' | 'accepted' | 'rejected',
     receivedAt: row.hub.receivedAt,
     source: 'federated',
   };
@@ -196,6 +199,7 @@ export async function getFederatedHubByActorUri(
     originDomain: row.hub.originDomain,
     url: row.hub.url,
     actorUri: row.hub.actorUri,
+    followStatus: row.hub.status as 'pending' | 'accepted' | 'rejected',
     receivedAt: row.hub.receivedAt,
     source: 'federated',
   };
@@ -453,6 +457,7 @@ export async function ingestFederatedHubPost(
     remoteLikeCount?: number;
     remoteReplyCount?: number;
     publishedAt?: Date;
+    sharedContentMeta?: SharedContentMeta | null;
   },
 ): Promise<{ id: string; created: boolean }> {
   // Resolve remote actor
@@ -474,6 +479,7 @@ export async function ingestFederatedHubPost(
     remoteLikeCount: post.remoteLikeCount ?? 0,
     remoteReplyCount: post.remoteReplyCount ?? 0,
     publishedAt: post.publishedAt ?? null,
+    sharedContentMeta: post.sharedContentMeta ?? null,
   }).onConflictDoNothing({ target: federatedHubPosts.objectUri })
     .returning({ id: federatedHubPosts.id });
 
@@ -494,10 +500,62 @@ export async function ingestFederatedHubPost(
     isPinned: post.isPinned ?? false,
     remoteLikeCount: post.remoteLikeCount ?? 0,
     remoteReplyCount: post.remoteReplyCount ?? 0,
+    sharedContentMeta: post.sharedContentMeta ?? null,
   }).where(eq(federatedHubPosts.objectUri, post.objectUri))
     .returning({ id: federatedHubPosts.id });
 
   return { id: existing!.id, created: false };
+}
+
+/**
+ * Get a single federated hub post by ID.
+ */
+export async function getFederatedHubPost(
+  db: DB,
+  postId: string,
+): Promise<FederatedHubPostItem | null> {
+  const rows = await db
+    .select({
+      post: federatedHubPosts,
+      actor: {
+        actorUri: remoteActors.actorUri,
+        preferredUsername: remoteActors.preferredUsername,
+        displayName: remoteActors.displayName,
+        avatarUrl: remoteActors.avatarUrl,
+        instanceDomain: remoteActors.instanceDomain,
+      },
+    })
+    .from(federatedHubPosts)
+    .leftJoin(remoteActors, eq(federatedHubPosts.remoteActorId, remoteActors.id))
+    .where(and(eq(federatedHubPosts.id, postId), isNull(federatedHubPosts.deletedAt)))
+    .limit(1);
+
+  const row = rows[0];
+  if (!row) return null;
+
+  return {
+    id: row.post.id,
+    federatedHubId: row.post.federatedHubId,
+    content: row.post.content,
+    postType: row.post.postType,
+    isPinned: row.post.isPinned,
+    localLikeCount: row.post.localLikeCount,
+    localReplyCount: row.post.localReplyCount,
+    remoteLikeCount: row.post.remoteLikeCount,
+    remoteReplyCount: row.post.remoteReplyCount,
+    publishedAt: row.post.publishedAt,
+    receivedAt: row.post.receivedAt,
+    objectUri: row.post.objectUri,
+    sharedContentMeta: (row.post.sharedContentMeta as SharedContentMeta) ?? null,
+    author: {
+      actorUri: row.actor?.actorUri ?? row.post.actorUri,
+      preferredUsername: row.actor?.preferredUsername ?? null,
+      displayName: row.actor?.displayName ?? null,
+      avatarUrl: row.actor?.avatarUrl ?? null,
+      instanceDomain: row.actor?.instanceDomain ?? 'unknown',
+    },
+    source: 'federated',
+  };
 }
 
 /**
@@ -553,6 +611,7 @@ export async function listFederatedHubPosts(
     publishedAt: row.post.publishedAt,
     receivedAt: row.post.receivedAt,
     objectUri: row.post.objectUri,
+    sharedContentMeta: (row.post.sharedContentMeta as SharedContentMeta) ?? null,
     author: {
       actorUri: row.actor?.actorUri ?? row.post.actorUri,
       preferredUsername: row.actor?.preferredUsername ?? null,

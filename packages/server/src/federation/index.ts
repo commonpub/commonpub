@@ -94,6 +94,7 @@ export {
   unfollowRemoteHub,
   autoDiscoverHub,
   ingestFederatedHubPost,
+  getFederatedHubPost,
   listFederatedHubPosts,
   deleteFederatedHubPost,
   likeFederatedHubPost,

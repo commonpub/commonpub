@@ -11,6 +11,7 @@ import {
   hubPosts,
   users,
   activities,
+  contentItems,
 } from '@commonpub/schema';
 import {
   generateKeypair,
@@ -354,7 +355,36 @@ export async function federateHubShare(
   const hubActorUri = getHubActorUri(domain, hub.slug);
   const followersUri = `${hubActorUri}/followers`;
 
-  const announce = buildAnnounceActivity(domain, hubActorUri, contentObjectUri, followersUri);
+  const announce = buildAnnounceActivity(domain, hubActorUri, contentObjectUri, followersUri) as unknown as Record<string, unknown>;
+
+  // Attach cpub:sharedContent metadata so receiving instances can render rich cards
+  try {
+    const slug = new URL(contentObjectUri).pathname.split('/').filter(Boolean).pop();
+    if (slug) {
+      const [content] = await db
+        .select({
+          title: contentItems.title,
+          type: contentItems.type,
+          description: contentItems.description,
+          coverImageUrl: contentItems.coverImageUrl,
+          slug: contentItems.slug,
+        })
+        .from(contentItems)
+        .where(eq(contentItems.slug, slug))
+        .limit(1);
+
+      if (content) {
+        announce['cpub:sharedContent'] = {
+          type: content.type,
+          title: content.title,
+          summary: content.description ?? null,
+          coverImageUrl: content.coverImageUrl ?? null,
+          originUrl: contentObjectUri,
+          originDomain: domain,
+        };
+      }
+    }
+  } catch { /* best-effort metadata enrichment */ }
 
   await db.insert(activities).values({
     type: 'Announce',
@@ -414,6 +444,7 @@ export async function sendPostToRemoteHub(
   content: string,
   domain: string,
   postType: string = 'text',
+  inReplyTo?: string,
 ): Promise<boolean> {
   // Look up the remote hub's inbox
   const { resolveRemoteActor } = await import('./federation.js');
@@ -433,6 +464,7 @@ export async function sendPostToRemoteHub(
     cc: [AP_PUBLIC],
     published: new Date().toISOString(),
     context: hubActorUri,
+    ...(inReplyTo ? { inReplyTo } : {}),
   };
 
   // Add cpub:postType extension for CommonPub instances

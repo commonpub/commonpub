@@ -284,8 +284,18 @@ export interface FederatedHubListItem {
   originDomain: string;
   url: string | null;
   actorUri: string;
+  followStatus: 'pending' | 'accepted' | 'rejected';
   receivedAt: Date;
   source: 'federated';
+}
+
+export interface SharedContentMeta {
+  type: string;
+  title: string;
+  summary?: string | null;
+  coverImageUrl?: string | null;
+  originUrl?: string | null;
+  originDomain?: string | null;
 }
 
 export interface FederatedHubPostItem {
@@ -301,6 +311,7 @@ export interface FederatedHubPostItem {
   publishedAt: Date | null;
   receivedAt: Date;
   objectUri: string;
+  sharedContentMeta: SharedContentMeta | null;
   author: {
     actorUri: string;
     preferredUsername: string | null;
