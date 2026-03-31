@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { FederatedHubListItem, FederatedHubPostItem } from '@commonpub/server';
+import type { HubViewModel, HubPostViewModel, HubTabDef } from '~/types/hub';
 
 const route = useRoute();
 const id = route.params.id as string;
@@ -10,17 +11,60 @@ const { data: posts } = useLazyFetch<{ items: FederatedHubPostItem[]; total: num
 });
 
 useSeoMeta({
-  title: () => hub.value ? `${hub.value.name} (${hub.value.originDomain})` : 'Federated Hub',
+  title: () => hub.value ? `${hub.value.name} (${hub.value.originDomain}) -- CommonPub` : 'Federated Hub -- CommonPub',
   description: () => hub.value?.description || '',
 });
 
-// noindex — canonical is on the origin instance
 if (hub.value?.url) {
   useHead({
     link: [{ rel: 'canonical', href: hub.value.url }],
     meta: [{ name: 'robots', content: 'noindex, follow' }],
   });
 }
+
+const activeTab = ref('feed');
+
+// --- Map to view models ---
+const hubVM = computed<HubViewModel | null>(() => {
+  if (!hub.value) return null;
+  return {
+    name: hub.value.name,
+    description: hub.value.description,
+    iconUrl: hub.value.iconUrl,
+    bannerUrl: hub.value.bannerUrl,
+    hubType: (hub.value.hubType as 'community' | 'product' | 'company') ?? 'community',
+    memberCount: hub.value.memberCount,
+    postCount: hub.value.postCount,
+    foundedLabel: null,
+    isOfficial: false,
+    joinPolicy: null,
+    categories: null,
+    website: null,
+  };
+});
+
+const postsVM = computed<HubPostViewModel[]>(() => {
+  return (posts.value?.items ?? []).map((p) => ({
+    id: p.id,
+    type: p.postType || 'text',
+    content: p.content || '',
+    author: {
+      name: p.author.displayName || p.author.preferredUsername || 'Unknown',
+      handle: `@${p.author.preferredUsername}@${p.author.instanceDomain}`,
+      avatarUrl: p.author.avatarUrl,
+    },
+    createdAt: String(p.publishedAt ?? p.receivedAt),
+    likeCount: (p.localLikeCount ?? 0) + (p.remoteLikeCount ?? 0),
+    replyCount: (p.localReplyCount ?? 0) + (p.remoteReplyCount ?? 0),
+    isPinned: p.isPinned ?? false,
+    isLocked: false,
+    linkTo: null,
+  }));
+});
+
+const tabDefs = computed<HubTabDef[]>(() => [
+  { value: 'feed', label: 'Feed', icon: 'fa-solid fa-rss', count: hub.value?.postCount },
+]);
 </script>
 
 <template>
@@ -31,80 +75,58 @@ if (hub.value?.url) {
     <NuxtLink to="/hubs">Back to Hubs</NuxtLink>
   </div>
 
-  <div v-else-if="hub" class="cpub-fed-hub-page">
-    <!-- Origin banner -->
-    <div class="cpub-fed-banner">
-      <div class="cpub-fed-banner-inner">
-        <i class="fa-solid fa-globe"></i>
-        <span>Mirrored from <strong>{{ hub.originDomain }}</strong></span>
-        <a v-if="hub.url" :href="hub.url" target="_blank" rel="noopener noreferrer" class="cpub-fed-banner-link">
-          Visit hub on {{ hub.originDomain }} <i class="fa-solid fa-arrow-up-right-from-square"></i>
-        </a>
-      </div>
-    </div>
-
-    <!-- Hub header -->
-    <div class="cpub-fed-hub-header">
-      <div class="cpub-fed-hub-header-inner">
-        <div class="cpub-fed-hub-icon">
-          <img v-if="hub.iconUrl" :src="hub.iconUrl" :alt="hub.name" />
-          <i v-else class="fa-solid fa-users"></i>
-        </div>
-        <div class="cpub-fed-hub-info">
-          <div class="cpub-fed-hub-name-row">
-            <h1 class="cpub-fed-hub-name">{{ hub.name }}</h1>
-            <span class="cpub-fed-hub-type-badge">{{ hub.hubType }}</span>
-          </div>
-          <p v-if="hub.description" class="cpub-fed-hub-desc">{{ hub.description }}</p>
-          <div class="cpub-fed-hub-stats">
-            <span><i class="fa-solid fa-users"></i> {{ hub.memberCount }} members on {{ hub.originDomain }}</span>
-            <span><i class="fa-solid fa-message"></i> {{ hub.postCount }} mirrored posts</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Posts -->
-    <div class="cpub-fed-hub-main">
-      <div v-if="posts?.items?.length" class="cpub-fed-hub-feed">
-        <div v-for="post in posts.items" :key="post.id" class="cpub-fed-hub-post">
-          <div class="cpub-fed-hub-post-header">
-            <div class="cpub-fed-hub-post-avatar">
-              <img v-if="post.author.avatarUrl" :src="post.author.avatarUrl" :alt="post.author.displayName ?? ''" />
-              <span v-else>{{ (post.author.displayName || post.author.preferredUsername || '?').charAt(0).toUpperCase() }}</span>
+  <HubLayout v-else-if="hubVM" v-model:active-tab="activeTab" :tabs="tabDefs">
+    <template #hero>
+      <HubHero :hub="hubVM">
+        <template #banner-overlay>
+          <div class="cpub-fed-banner">
+            <div class="cpub-fed-banner-inner">
+              <i class="fa-solid fa-globe"></i>
+              <span>Mirrored from <strong>{{ hub?.originDomain }}</strong></span>
+              <a v-if="hub?.url" :href="hub.url" target="_blank" rel="noopener noreferrer" class="cpub-fed-banner-link">
+                Visit hub on {{ hub.originDomain }} <i class="fa-solid fa-arrow-up-right-from-square"></i>
+              </a>
             </div>
-            <div class="cpub-fed-hub-post-author-info">
-              <span class="cpub-fed-hub-post-name">{{ post.author.displayName || post.author.preferredUsername }}</span>
-              <span class="cpub-fed-hub-post-handle">@{{ post.author.preferredUsername }}@{{ post.author.instanceDomain }}</span>
+          </div>
+        </template>
+        <template #actions>
+          <a v-if="hub?.url" :href="hub.url" target="_blank" rel="noopener noreferrer" class="cpub-btn cpub-btn-sm">
+            <i class="fa-solid fa-arrow-up-right-from-square"></i> Visit on {{ hub?.originDomain }}
+          </a>
+        </template>
+        <template #badges>
+          <span class="cpub-tag"><i class="fa-solid fa-globe" style="margin-right: 3px"></i>{{ hub?.originDomain }}</span>
+        </template>
+      </HubHero>
+    </template>
+
+    <!-- Feed (no compose slot = read-only) -->
+    <HubFeed :posts="postsVM" />
+
+    <template #sidebar>
+      <HubSidebar>
+        <HubSidebarCard title="Origin Instance">
+          <div class="cpub-origin-info">
+            <div class="cpub-origin-domain">
+              <i class="fa-solid fa-globe"></i>
+              <strong>{{ hub?.originDomain }}</strong>
             </div>
-            <time class="cpub-fed-hub-post-time">
-              {{ post.publishedAt ? new Date(post.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '' }}
-            </time>
+            <p class="cpub-origin-desc">This hub is mirrored from a remote CommonPub instance. Content is read-only.</p>
+            <a v-if="hub?.url" :href="hub.url" target="_blank" rel="noopener noreferrer" class="cpub-btn cpub-btn-sm" style="margin-top: 8px; display: inline-flex">
+              <i class="fa-solid fa-arrow-up-right-from-square"></i> Visit Original
+            </a>
           </div>
-          <div class="cpub-fed-hub-post-content">{{ post.content }}</div>
-          <div class="cpub-fed-hub-post-footer">
-            <span><i class="fa-solid fa-heart"></i> {{ post.localLikeCount + post.remoteLikeCount }}</span>
-            <span><i class="fa-solid fa-comment"></i> {{ post.localReplyCount + post.remoteReplyCount }}</span>
-            <span v-if="post.postType !== 'text'" class="cpub-fed-hub-post-type-label">{{ post.postType }}</span>
-          </div>
-        </div>
-      </div>
-      <div v-else class="cpub-empty-state">
-        <div class="cpub-empty-state-icon"><i class="fa-solid fa-message"></i></div>
-        <p class="cpub-empty-state-title">No posts mirrored yet</p>
-        <p class="cpub-empty-state-desc">Posts from this hub will appear here as they federate.</p>
-      </div>
-    </div>
-  </div>
+        </HubSidebarCard>
+      </HubSidebar>
+    </template>
+  </HubLayout>
 </template>
 
 <style scoped>
-.cpub-fed-hub-page { min-height: 50vh; }
-
 /* Origin banner */
 .cpub-fed-banner { background: var(--accent-bg); border-bottom: 1px solid var(--accent-border); }
 .cpub-fed-banner-inner {
-  max-width: 960px; margin: 0 auto; padding: 8px 24px;
+  max-width: 1200px; margin: 0 auto; padding: 8px 24px;
   display: flex; align-items: center; gap: 8px;
   font-size: 12px; color: var(--text-dim);
 }
@@ -116,78 +138,15 @@ if (hub.value?.url) {
 }
 .cpub-fed-banner-link:hover { text-decoration: underline; }
 
-/* Hub header */
-.cpub-fed-hub-header {
-  background: var(--surface); border-bottom: 2px solid var(--border); padding: 24px 0;
+/* Origin sidebar */
+.cpub-origin-info { font-size: 12px; }
+.cpub-origin-domain {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 13px; margin-bottom: 8px;
 }
-.cpub-fed-hub-header-inner {
-  max-width: 960px; margin: 0 auto; padding: 0 24px;
-  display: flex; align-items: flex-start; gap: 16px;
-}
-.cpub-fed-hub-icon {
-  width: 56px; height: 56px;
-  background: var(--accent-bg); border: 2px solid var(--accent-border);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 22px; color: var(--accent); overflow: hidden; flex-shrink: 0;
-}
-.cpub-fed-hub-icon img { width: 100%; height: 100%; object-fit: cover; }
-.cpub-fed-hub-info { flex: 1; }
-
-.cpub-fed-hub-name-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
-.cpub-fed-hub-name { font-size: 20px; font-weight: 700; }
-.cpub-fed-hub-type-badge {
-  font-size: 9px; font-family: var(--font-mono); text-transform: uppercase;
-  letter-spacing: 0.08em; color: var(--accent);
-  background: var(--accent-bg); border: 2px solid var(--accent-border); padding: 2px 6px;
-}
-.cpub-fed-hub-desc { font-size: 13px; color: var(--text-dim); line-height: 1.5; margin-bottom: 10px; max-width: 600px; }
-.cpub-fed-hub-stats {
-  display: flex; gap: 16px; font-size: 12px; color: var(--text-faint);
-}
-.cpub-fed-hub-stats span { display: flex; align-items: center; gap: 5px; }
-.cpub-fed-hub-stats i { font-size: 10px; }
-
-/* Posts */
-.cpub-fed-hub-main { max-width: 720px; margin: 0 auto; padding: 24px; }
-.cpub-fed-hub-feed { display: flex; flex-direction: column; gap: 2px; }
-
-.cpub-fed-hub-post {
-  background: var(--surface); border: 2px solid var(--border); padding: 16px;
-}
-
-.cpub-fed-hub-post-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-.cpub-fed-hub-post-avatar {
-  width: 32px; height: 32px;
-  background: var(--accent-bg); border: 1px solid var(--accent-border);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 12px; font-weight: 600; color: var(--accent);
-  overflow: hidden; flex-shrink: 0;
-}
-.cpub-fed-hub-post-avatar img { width: 100%; height: 100%; object-fit: cover; }
-.cpub-fed-hub-post-author-info { flex: 1; }
-.cpub-fed-hub-post-name { font-size: 13px; font-weight: 600; }
-.cpub-fed-hub-post-handle { font-size: 11px; color: var(--text-faint); margin-left: 4px; }
-.cpub-fed-hub-post-time { font-size: 11px; color: var(--text-faint); }
-
-.cpub-fed-hub-post-content { font-size: 14px; line-height: 1.6; margin-bottom: 10px; }
-
-.cpub-fed-hub-post-footer {
-  display: flex; gap: 14px; font-size: 12px; color: var(--text-faint);
-}
-.cpub-fed-hub-post-footer i { margin-right: 3px; font-size: 10px; }
-.cpub-fed-hub-post-type-label {
-  font-family: var(--font-mono); font-size: 9px; text-transform: uppercase;
-  letter-spacing: 0.04em; color: var(--accent); font-weight: 600;
-  padding: 1px 6px; background: var(--accent-bg); border: 1px solid var(--accent-border);
-  margin-left: auto;
-}
+.cpub-origin-domain i { color: var(--accent); font-size: 11px; }
+.cpub-origin-desc { color: var(--text-dim); line-height: 1.5; }
 
 .cpub-not-found { text-align: center; padding: 60px 20px; color: var(--text-dim); }
 .cpub-not-found h1 { font-size: 1.5rem; color: var(--text); margin-bottom: 8px; }
-
-@media (max-width: 640px) {
-  .cpub-fed-hub-header-inner { flex-direction: column; }
-  .cpub-fed-hub-main { padding: 16px; }
-  .cpub-fed-hub-stats { flex-wrap: wrap; }
-}
 </style>

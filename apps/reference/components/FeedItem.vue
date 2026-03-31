@@ -4,6 +4,7 @@ const props = defineProps<{
   title: string;
   author: string;
   authorAvatar?: string;
+  authorHandle?: string;
   body: string;
   createdAt: Date;
   replyCount: number;
@@ -61,6 +62,7 @@ const formattedDate = computed((): string => {
             {{ author.charAt(0).toUpperCase() }}
           </div>
           <span class="cpub-feed-author-name">{{ author }}</span>
+          <span v-if="authorHandle" class="cpub-feed-handle">{{ authorHandle }}</span>
           <span class="cpub-feed-sep" aria-hidden="true">&middot;</span>
           <time class="cpub-feed-time">{{ formattedDate }}</time>
         </div>
@@ -224,6 +226,11 @@ const formattedDate = computed((): string => {
 .cpub-feed-author-name {
   font-weight: var(--font-weight-medium);
   color: var(--text-dim);
+}
+
+.cpub-feed-handle {
+  font-size: var(--text-xs);
+  color: var(--text-faint);
 }
 
 .cpub-feed-sep {
