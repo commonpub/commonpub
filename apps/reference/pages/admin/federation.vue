@@ -129,7 +129,7 @@ async function repairTypes(): Promise<void> {
 
 // Tools: re-federate
 const refederating = ref(false);
-const refederateResult = ref<{ queued: number } | null>(null);
+const refederateResult = ref<{ queued: number; content?: number; hubPosts?: number } | null>(null);
 
 async function refederate(): Promise<void> {
   refederating.value = true;
@@ -316,15 +316,18 @@ async function refederate(): Promise<void> {
           </div>
         </div>
 
-        <!-- Re-federate Content -->
+        <!-- Re-federate All Content + Hub Posts -->
         <div class="cpub-fed-tool-card">
-          <h3 class="cpub-fed-tool-title"><i class="fa-solid fa-rotate"></i> Re-federate Content</h3>
-          <p class="cpub-fed-tool-desc">Queue all published content for re-delivery to followers. Use after federation setup changes or to resync.</p>
+          <h3 class="cpub-fed-tool-title"><i class="fa-solid fa-rotate"></i> Re-federate All</h3>
+          <p class="cpub-fed-tool-desc">Queue all published content (Create) and hub posts (Announce) for re-delivery. Safe to run multiple times.</p>
           <button class="cpub-fed-btn" :disabled="refederating" @click="refederate">
             {{ refederating ? 'Queuing...' : 'Re-federate All' }}
           </button>
           <div v-if="refederateResult" class="cpub-fed-tool-result">
             Queued {{ refederateResult.queued }} items for delivery.
+            <span v-if="refederateResult.content !== undefined" style="display: block; font-size: 12px; color: var(--text-faint); margin-top: 4px">
+              {{ refederateResult.content }} content + {{ refederateResult.hubPosts ?? 0 }} hub posts
+            </span>
           </div>
         </div>
       </div>
