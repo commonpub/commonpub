@@ -7,7 +7,9 @@ export default defineEventHandler(async (event): Promise<{ items: (HubListItem |
   const config = useConfig();
   const filters = parseQueryParams(event, hubFiltersSchema);
 
-  const includeFederated = config.features.seamlessFederation && config.features.federateHubs;
+  // seamlessFederation controls display of mirrored content (including hubs from other instances)
+  // federateHubs controls outbound hub federation (sending our hubs) — not needed for display
+  const includeFederated = !!config.features.seamlessFederation;
 
   return listHubs(db, filters, { includeFederated });
 });
