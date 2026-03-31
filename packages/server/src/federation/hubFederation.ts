@@ -234,6 +234,51 @@ export async function getHubFederatedFollowers(
 // --- Hub Content Federation ---
 
 /**
+ * Announce a hub's existence to followers and instance mirrors.
+ * Sends an Announce from the hub Group actor wrapping its own actor URI.
+ * This triggers auto-discovery on receiving instances even when the hub has no posts.
+ */
+export async function federateHubActor(
+  db: DB,
+  hubId: string,
+  domain: string,
+): Promise<void> {
+  const [hub] = await db.select().from(hubs).where(eq(hubs.id, hubId)).limit(1);
+  if (!hub) return;
+
+  const hubActorUri = getHubActorUri(domain, hub.slug);
+  const followersUri = `${hubActorUri}/followers`;
+
+  // Announce the hub's own actor URI — triggers auto-discovery on receiving instances
+  const announce = buildAnnounceActivity(domain, hubActorUri, hubActorUri, followersUri);
+
+  const [pending] = await db
+    .select({ id: activities.id })
+    .from(activities)
+    .where(
+      and(
+        eq(activities.type, 'Announce'),
+        eq(activities.actorUri, hubActorUri),
+        eq(activities.objectUri, hubActorUri),
+        eq(activities.direction, 'outbound'),
+        eq(activities.status, 'pending'),
+      ),
+    )
+    .limit(1);
+
+  if (!pending) {
+    await db.insert(activities).values({
+      type: 'Announce',
+      actorUri: hubActorUri,
+      objectUri: hubActorUri,
+      payload: announce,
+      direction: 'outbound',
+      status: 'pending',
+    });
+  }
+}
+
+/**
  * Federate a hub post as an Announce from the Group actor.
  * Called when content is posted or shared to a hub.
  */

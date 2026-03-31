@@ -1,5 +1,5 @@
 import { contentItems, hubs, hubPosts } from '@commonpub/schema';
-import { federateContent, federateHubPost } from '@commonpub/server';
+import { federateContent, federateHubPost, federateHubActor } from '@commonpub/server';
 import { eq, isNull } from 'drizzle-orm';
 import { extractDomain } from '../../../utils/inbox';
 
@@ -32,6 +32,7 @@ export default defineEventHandler(async (event) => {
   }
 
   let contentQueued = 0;
+  let hubsQueued = 0;
   let hubPostsQueued = 0;
 
   // Re-federate published content (unless hubsOnly)
@@ -51,7 +52,7 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  // Re-federate hub posts (Announce activities from Group actors)
+  // Re-federate hubs: announce each hub's Group actor + all hub posts
   if (config.features.federateHubs) {
     const allHubs = await db
       .select({ id: hubs.id })
@@ -59,6 +60,13 @@ export default defineEventHandler(async (event) => {
       .where(isNull(hubs.deletedAt));
 
     for (const hub of allHubs) {
+      try {
+        await federateHubActor(db, hub.id, domain);
+        hubsQueued++;
+      } catch {
+        // Skip hubs that fail
+      }
+
       const posts = await db
         .select({ id: hubPosts.id })
         .from(hubPosts)
@@ -76,8 +84,9 @@ export default defineEventHandler(async (event) => {
   }
 
   return {
-    queued: contentQueued + hubPostsQueued,
+    queued: contentQueued + hubsQueued + hubPostsQueued,
     content: contentQueued,
+    hubs: hubsQueued,
     hubPosts: hubPostsQueued,
   };
 });

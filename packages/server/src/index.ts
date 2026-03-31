@@ -318,6 +318,7 @@ export {
   handleHubFollow,
   handleHubUnfollow,
   getHubFederatedFollowers,
+  federateHubActor,
   federateHubPost,
   federateHubShare,
   federateHubPostDelete,

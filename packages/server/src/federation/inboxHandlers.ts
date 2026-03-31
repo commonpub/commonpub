@@ -900,6 +900,10 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
             }
 
             if (mirroredHub) {
+              // Self-announce (hub announcing its own existence) — discovery already done, skip post ingestion
+              if (objectUri === actorUri) {
+                // Hub discovered, nothing more to do
+              } else {
               // Dereference the announced Note to get its content
               const noteResponse = await fetch(objectUri, {
                 headers: { 'Accept': 'application/activity+json, application/ld+json' },
@@ -932,6 +936,7 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
                   publishedAt: note.published ? new Date(note.published as string) : undefined,
                 });
               }
+              } // end else (not self-announce)
             }
           }
         } catch (err) {
