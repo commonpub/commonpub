@@ -1,0 +1,22 @@
+import { getUserByUsername, listFollowers } from '@commonpub/server';
+import type { PaginatedResponse, FollowUserItem } from '@commonpub/server';
+import { z } from 'zod';
+
+const paginationSchema = z.object({
+  limit: z.coerce.number().int().positive().max(100).optional(),
+  offset: z.coerce.number().int().min(0).optional(),
+});
+
+export default defineEventHandler(async (event): Promise<PaginatedResponse<FollowUserItem>> => {
+  const db = useDB();
+  const { username } = parseParams(event, { username: 'string' });
+  const query = parseQueryParams(event, paginationSchema);
+
+
+  const target = await getUserByUsername(db, username);
+  if (!target) {
+    throw createError({ statusCode: 404, statusMessage: 'User not found' });
+  }
+
+  return listFollowers(db, target.id, query);
+});

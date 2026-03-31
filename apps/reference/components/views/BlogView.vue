@@ -9,7 +9,7 @@ const props = defineProps<{
 const contentId = computed(() => props.content?.id);
 const contentType = computed(() => props.content?.type ?? 'blog');
 const fedId = computed(() => props.federatedId);
-const { liked, bookmarked, likeCount, toggleLike, toggleBookmark, share, fetchInitialState } = useEngagement(contentId, contentType, fedId);
+const { liked, bookmarked, likeCount, isFederated, toggleLike, toggleBookmark, share, fetchInitialState } = useEngagement({ contentId, contentType, federatedContentId: fedId });
 
 onMounted(() => {
   fetchInitialState(props.content?.likeCount ?? 0);
@@ -169,7 +169,7 @@ const hasSeries = computed(() => !!seriesTitle.value && seriesTotalParts.value >
       </div>
 
       <!-- COMMENTS -->
-      <CommentSection :target-type="content.type" :target-id="content.id" />
+      <CommentSection :target-type="content.type" :target-id="content.id" :federated-content-id="federatedId" />
 
     </div>
   </div>

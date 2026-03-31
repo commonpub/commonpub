@@ -1,0 +1,24 @@
+{
+  "name": "@commonpub/shell",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "preview": "nuxt preview",
+    "typecheck": "nuxt typecheck",
+    "clean": "rm -rf .nuxt .output"
+  },
+  "dependencies": {
+    "@commonpub/base-layer": "workspace:*",
+    "@commonpub/config": "workspace:*",
+    "nuxt": "^3.16.0",
+    "vue": "^3.4.0",
+    "vue-router": "^4.3.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "vue-tsc": "^2.2.0"
+  }
+}

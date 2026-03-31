@@ -95,6 +95,9 @@
   --color-error-bg: var(--red-bg);
   --color-info-bg: var(--accent-bg);
 
+  /* === OVERLAYS === */
+  --color-badge-overlay: rgba(0, 0, 0, 0.75);
+
   /* === INTERACTIVE === */
   --color-link: var(--accent);
   --color-link-hover: #4a8be5;

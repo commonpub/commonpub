@@ -80,7 +80,7 @@ const completedSections = ref<Set<number>>(new Set());
 const contentId = computed(() => props.content?.id);
 const contentType = computed(() => props.content?.type ?? 'explainer');
 const fedId = computed(() => props.federatedId);
-const { bookmarked, toggleBookmark, share } = useEngagement(contentId, contentType, fedId);
+const { bookmarked, toggleBookmark, share } = useEngagement({ contentId, contentType, federatedContentId: fedId });
 
 const { user } = useAuth();
 const isOwner = computed(() => user.value?.id === props.content?.author?.id);
