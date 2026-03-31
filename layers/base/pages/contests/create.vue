@@ -1,7 +1,7 @@
 <script setup lang="ts">
 definePageMeta({ middleware: 'auth' });
 
-useSeoMeta({ title: 'Create Contest — CommonPub' });
+useSeoMeta({ title: `Create Contest — ${useSiteName()}` });
 
 const toast = useToast();
 const { extract: extractError } = useApiError();

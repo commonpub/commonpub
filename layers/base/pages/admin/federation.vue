@@ -1,6 +1,6 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'admin', middleware: 'auth' });
-useSeoMeta({ title: 'Federation — Admin — CommonPub' });
+useSeoMeta({ title: `Federation — Admin — ${useSiteName()}` });
 
 const activeTab = ref<'activity' | 'mirrors' | 'clients' | 'tools'>('activity');
 

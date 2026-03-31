@@ -1,6 +1,6 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'admin', middleware: 'auth' });
-useSeoMeta({ title: 'Users — Admin — CommonPub' });
+useSeoMeta({ title: `Users — Admin — ${useSiteName()}` });
 
 const search = ref('');
 const toast = useToast();

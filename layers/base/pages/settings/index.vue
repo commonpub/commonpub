@@ -1,6 +1,6 @@
 <script setup lang="ts">
 definePageMeta({ middleware: 'auth' });
-useSeoMeta({ title: 'Settings — CommonPub' });
+useSeoMeta({ title: `Settings — ${useSiteName()}` });
 
 // Redirect bare /settings to /settings/profile on mount
 onMounted(() => {

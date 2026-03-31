@@ -1,7 +1,7 @@
 <script setup lang="ts">
 definePageMeta({ middleware: 'auth' });
 
-useSeoMeta({ title: 'Create Learning Path — CommonPub' });
+useSeoMeta({ title: `Create Learning Path — ${useSiteName()}` });
 
 const toast = useToast();
 const { extract: extractError } = useApiError();

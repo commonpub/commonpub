@@ -1,6 +1,6 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'admin', middleware: 'auth' });
-useSeoMeta({ title: 'Reports — Admin — CommonPub' });
+useSeoMeta({ title: `Reports — Admin — ${useSiteName()}` });
 
 const { data: reportsData, refresh } = await useFetch('/api/admin/reports');
 const toast = useToast();

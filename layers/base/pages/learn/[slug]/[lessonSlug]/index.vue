@@ -29,7 +29,7 @@ const lesson = computed(() => lessonData.value?.lesson);
 const lessonModule = computed(() => lessonData.value?.module);
 
 useSeoMeta({
-  title: () => lesson.value ? `${lesson.value.title} — CommonPub` : 'Lesson — CommonPub',
+  title: () => lesson.value ? `${lesson.value.title} — ${useSiteName()}` : `Lesson — ${useSiteName()}`,
 });
 
 const { isAuthenticated, user } = useAuth();

@@ -2,7 +2,7 @@
 definePageMeta({ middleware: 'auth' });
 
 useSeoMeta({
-  title: 'Create Hub — CommonPub',
+  title: `Create Hub — ${useSiteName()}`,
   description: 'Create a new maker hub.',
 });
 

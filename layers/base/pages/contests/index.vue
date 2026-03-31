@@ -1,5 +1,5 @@
 <script setup lang="ts">
-useSeoMeta({ title: 'Contests — CommonPub' });
+useSeoMeta({ title: `Contests — ${useSiteName()}` });
 
 const { data: contests } = await useFetch('/api/contests');
 const { isAuthenticated, isAdmin, user } = useAuth();

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 useSeoMeta({
-  title: 'Documentation — CommonPub',
+  title: `Documentation — ${useSiteName()}`,
   description: 'Browse documentation sites.',
 });
 

@@ -6,7 +6,7 @@ const videoId = computed(() => route.params.id as string);
 const { data: video } = useLazyFetch<any>(() => `/api/videos/${videoId.value}`);
 
 useSeoMeta({
-  title: () => video.value?.title ? `${video.value.title} — CommonPub` : 'Video — CommonPub',
+  title: () => video.value?.title ? `${video.value.title} — ${useSiteName()}` : `Video — ${useSiteName()}`,
   description: () => video.value?.description ?? '',
 });
 

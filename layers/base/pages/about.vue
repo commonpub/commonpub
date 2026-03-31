@@ -1,6 +1,6 @@
 <script setup lang="ts">
 useSeoMeta({
-  title: 'About — CommonPub',
+  title: `About — ${useSiteName()}`,
   description: 'CommonPub is an open-source, federated platform for maker communities.',
 });
 

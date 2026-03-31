@@ -1,5 +1,5 @@
 <script setup lang="ts">
-useSeoMeta({ title: 'Products — CommonPub', description: 'Browse products, components, and tools.' });
+useSeoMeta({ title: `Products — ${useSiteName()}`, description: 'Browse products, components, and tools.' });
 
 const search = ref('');
 const category = ref('');

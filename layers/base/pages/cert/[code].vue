@@ -5,7 +5,7 @@ const code = route.params.code as string;
 const { data: certData } = useLazyFetch(`/api/cert/${code}`);
 
 useSeoMeta({
-  title: () => certData.value ? `Certificate — ${certData.value.path.title} — CommonPub` : 'Certificate — CommonPub',
+  title: () => certData.value ? `Certificate — ${certData.value.path.title} — ${useSiteName()}` : `Certificate — ${useSiteName()}`,
   description: () => certData.value ? `Certificate of completion for ${certData.value.path.title}` : '',
 });
 </script>

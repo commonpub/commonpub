@@ -11,7 +11,7 @@ const { user } = useAuth();
 const currentUserRole = computed(() => hub.value?.currentUserRole ?? null);
 const canManage = computed(() => currentUserRole.value === 'owner' || currentUserRole.value === 'admin');
 
-useSeoMeta({ title: () => `Members — ${hub.value?.name ?? 'Hub'} — CommonPub` });
+useSeoMeta({ title: () => `Members — ${hub.value?.name ?? 'Hub'} — ${useSiteName()}` });
 
 const roles = ['member', 'moderator', 'admin'] as const;
 

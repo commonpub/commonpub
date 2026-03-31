@@ -2,7 +2,7 @@
 import type { Serialized, ContentListItem, PaginatedResponse } from '@commonpub/server';
 
 useSeoMeta({
-  title: 'CommonPub — Open Maker Platform',
+  title: `${useSiteName()} — Open Maker Platform`,
   description: 'Build, document, and share your projects with a community of makers.',
 });
 

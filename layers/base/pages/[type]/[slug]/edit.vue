@@ -10,7 +10,7 @@ const showStarterForm = ref(isNew.value);
 const starterSaving = ref(false);
 
 useSeoMeta({
-  title: () => isNew.value ? `New ${contentType.value} — CommonPub` : `Edit — CommonPub`,
+  title: () => isNew.value ? `New ${contentType.value} — ${useSiteName()}` : `Edit — ${useSiteName()}`,
 });
 
 const title = ref('');

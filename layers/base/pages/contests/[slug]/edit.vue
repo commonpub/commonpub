@@ -7,7 +7,7 @@ const toast = useToast();
 const { extract: extractError } = useApiError();
 
 const { data: contest, refresh } = useLazyFetch(`/api/contests/${slug}`);
-useSeoMeta({ title: () => `Edit: ${contest.value?.title ?? 'Contest'} — CommonPub` });
+useSeoMeta({ title: () => `Edit: ${contest.value?.title ?? 'Contest'} — ${useSiteName()}` });
 
 const saving = ref(false);
 const title = ref('');

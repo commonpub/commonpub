@@ -7,7 +7,7 @@ const siteSlug = computed(() => route.params.siteSlug as string);
 const { data: site, refresh: refreshSite } = useLazyFetch(() => `/api/docs/${siteSlug.value}`);
 const { data: pages, refresh: refreshPages } = useLazyFetch(() => `/api/docs/${siteSlug.value}/pages`);
 
-useSeoMeta({ title: () => `Edit ${site.value?.name ?? 'Docs'} — CommonPub` });
+useSeoMeta({ title: () => `Edit ${site.value?.name ?? 'Docs'} — ${useSiteName()}` });
 
 const { show: toast } = useToast();
 

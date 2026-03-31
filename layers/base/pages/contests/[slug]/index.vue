@@ -5,8 +5,8 @@ const slug = route.params.slug as string;
 const { data: contest } = useLazyFetch(`/api/contests/${slug}`);
 
 useSeoMeta({
-  title: () => `${contest.value?.title || 'Contest'} — CommonPub`,
-  ogTitle: () => `${contest.value?.title || 'Contest'} — CommonPub`,
+  title: () => `${contest.value?.title || 'Contest'} — ${useSiteName()}`,
+  ogTitle: () => `${contest.value?.title || 'Contest'} — ${useSiteName()}`,
   ogImage: '/og-default.png',
 });
 

@@ -2,7 +2,7 @@
 const route = useRoute();
 const username = route.params.username as string;
 
-useSeoMeta({ title: `Followers — @${username} — CommonPub` });
+useSeoMeta({ title: `Followers — @${username} — ${useSiteName()}` });
 
 const { data: followers } = useLazyFetch<Array<{ id: string; username: string; displayName: string | null }>>(`/api/users/${username}/followers`);
 const { isAuthenticated, user } = useAuth();

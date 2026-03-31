@@ -1,5 +1,5 @@
 <script setup lang="ts">
-useSeoMeta({ title: 'Video Hub — CommonPub' });
+useSeoMeta({ title: `Video Hub — ${useSiteName()}` });
 
 const activeFilter = ref('');
 const sortOption = ref('recent');

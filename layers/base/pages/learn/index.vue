@@ -1,5 +1,5 @@
 <script setup lang="ts">
-useSeoMeta({ title: 'Learn — CommonPub' });
+useSeoMeta({ title: `Learn — ${useSiteName()}` });
 
 const { isAuthenticated, user } = useAuth();
 

@@ -17,7 +17,7 @@ type PathModule = Omit<NonNullable<Serialized<LearningPathDetail>['modules']>[nu
 
 const { data: path, pending: pathPending, error: pathError, refresh } = useLazyFetch<Serialized<LearningPathDetail>>(() => `/api/learn/${slug.value}`);
 
-useSeoMeta({ title: () => `Edit ${path.value?.title ?? 'Path'} — CommonPub` });
+useSeoMeta({ title: () => `Edit ${path.value?.title ?? 'Path'} — ${useSiteName()}` });
 
 const saving = ref(false);
 const publishing = ref(false);

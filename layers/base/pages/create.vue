@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { ContentType } from '@commonpub/server';
 
-useSeoMeta({ title: 'Create — CommonPub' });
+useSeoMeta({ title: `Create — ${useSiteName()}` });
 definePageMeta({ middleware: 'auth' });
 
 const { isTypeEnabled } = useContentTypes();

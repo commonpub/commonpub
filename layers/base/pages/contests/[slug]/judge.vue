@@ -9,7 +9,7 @@ import type { Serialized, ContestDetail, ContestEntryItem } from '@commonpub/ser
 const { data: contest } = useLazyFetch<Serialized<ContestDetail>>(`/api/contests/${slug}`);
 const { data: entriesData, refresh: refreshEntries } = useLazyFetch<{ items: Serialized<ContestEntryItem>[]; total: number }>(`/api/contests/${slug}/entries`);
 
-useSeoMeta({ title: () => `Judge: ${contest.value?.title || 'Contest'} — CommonPub` });
+useSeoMeta({ title: () => `Judge: ${contest.value?.title || 'Contest'} — ${useSiteName()}` });
 
 const entryList = computed(() => {
   const items = entriesData.value?.items ?? [];

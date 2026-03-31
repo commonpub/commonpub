@@ -1,6 +1,6 @@
 <script setup lang="ts">
 definePageMeta({ middleware: 'auth' });
-useSeoMeta({ title: 'Edit Profile — CommonPub' });
+useSeoMeta({ title: `Edit Profile — ${useSiteName()}` });
 
 const { user } = useAuth();
 const toast = useToast();

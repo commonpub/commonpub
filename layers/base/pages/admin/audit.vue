@@ -1,7 +1,7 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'admin', middleware: 'auth' });
 
-useSeoMeta({ title: 'Audit Log — Admin — CommonPub' });
+useSeoMeta({ title: `Audit Log — Admin — ${useSiteName()}` });
 
 const { data: logsData } = await useFetch('/api/admin/audit');
 

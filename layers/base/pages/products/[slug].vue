@@ -6,7 +6,7 @@ const { data: product } = useLazyFetch(`/api/products/${slug}`) as { data: Ref<R
 const { data: projectsUsing } = useLazyFetch(`/api/products/${slug}/content`) as { data: Ref<any[] | null> };
 
 useSeoMeta({
-  title: () => product.value ? `${product.value.name} — CommonPub` : 'Product — CommonPub',
+  title: () => product.value ? `${product.value.name} — ${useSiteName()}` : `Product — ${useSiteName()}`,
   description: () => product.value?.description ?? '',
 });
 </script>

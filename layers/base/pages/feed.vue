@@ -2,7 +2,7 @@
 import type { Serialized, ContentListItem, PaginatedResponse } from '@commonpub/server';
 
 useSeoMeta({
-  title: 'Feed — CommonPub',
+  title: `Feed — ${useSiteName()}`,
   description: 'Recent published content from the community.',
 });
 

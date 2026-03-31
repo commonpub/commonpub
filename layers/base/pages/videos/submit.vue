@@ -1,6 +1,6 @@
 <script setup lang="ts">
 definePageMeta({ middleware: 'auth' });
-useSeoMeta({ title: 'Submit Video — CommonPub' });
+useSeoMeta({ title: `Submit Video — ${useSiteName()}` });
 
 const toast = useToast();
 const { extract: extractError } = useApiError();

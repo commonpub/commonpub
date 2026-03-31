@@ -2,7 +2,7 @@
 import type { Serialized, ContentListItem, PaginatedResponse } from '@commonpub/server';
 
 useSeoMeta({
-  title: 'Explore — CommonPub',
+  title: `Explore — ${useSiteName()}`,
   description: 'Discover projects, articles, hubs, and learning paths on CommonPub.',
 });
 

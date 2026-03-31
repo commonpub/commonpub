@@ -2,7 +2,7 @@
 definePageMeta({ layout: 'auth' });
 
 useSeoMeta({
-  title: 'Reset Password — CommonPub',
+  title: `Reset Password — ${useSiteName()}`,
   description: 'Set a new password for your CommonPub account.',
 });
 

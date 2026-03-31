@@ -5,7 +5,7 @@ const route = useRoute();
 const contentType = computed(() => route.params.type as string);
 
 useSeoMeta({
-  title: () => `${contentType.value} — CommonPub`,
+  title: () => `${contentType.value} — ${useSiteName()}`,
   description: () => `Browse ${contentType.value} on CommonPub.`,
 });
 

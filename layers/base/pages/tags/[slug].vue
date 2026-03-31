@@ -5,7 +5,7 @@ const route = useRoute();
 const tagSlug = computed(() => route.params.slug as string);
 
 useSeoMeta({
-  title: () => `#${tagSlug.value} — CommonPub`,
+  title: () => `#${tagSlug.value} — ${useSiteName()}`,
   description: () => `Content tagged with "${tagSlug.value}" on CommonPub`,
 });
 

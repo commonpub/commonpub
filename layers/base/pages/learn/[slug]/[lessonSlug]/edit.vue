@@ -19,7 +19,7 @@ const { data: lessonData, pending: lessonPending, error: lessonError, refresh } 
 );
 
 useSeoMeta({
-  title: () => lessonData.value ? `Edit: ${lessonData.value.lesson.title} — CommonPub` : 'Edit Lesson — CommonPub',
+  title: () => lessonData.value ? `Edit: ${lessonData.value.lesson.title} — ${useSiteName()}` : `Edit Lesson — ${useSiteName()}`,
 });
 
 const lesson = computed(() => lessonData.value?.lesson);

@@ -2,7 +2,7 @@
 definePageMeta({ layout: 'auth' });
 
 useSeoMeta({
-  title: 'Register — CommonPub',
+  title: `Register — ${useSiteName()}`,
   description: 'Create your CommonPub account.',
 });
 

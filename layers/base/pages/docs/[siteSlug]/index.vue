@@ -85,7 +85,7 @@ const firstPageSlug = computed(() => {
 const sidebarOpen = ref(false);
 
 useSeoMeta({
-  title: () => site.value ? `${site.value.name} — Docs — CommonPub` : 'Docs — CommonPub',
+  title: () => site.value ? `${site.value.name} — Docs — ${useSiteName()}` : `Docs — ${useSiteName()}`,
   description: () => site.value?.description || '',
 });
 </script>

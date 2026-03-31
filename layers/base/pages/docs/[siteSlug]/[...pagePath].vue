@@ -181,7 +181,7 @@ watch(site, (s) => {
 const sidebarOpen = ref(false);
 
 useSeoMeta({
-  title: () => renderedPage.value ? `${renderedPage.value.title} — ${site.value?.name ?? 'Docs'}` : 'Docs — CommonPub',
+  title: () => renderedPage.value ? `${renderedPage.value.title} — ${site.value?.name ?? 'Docs'}` : `Docs — ${useSiteName()}`,
   description: () => renderedPage.value?.frontmatter?.description ?? '',
 });
 </script>

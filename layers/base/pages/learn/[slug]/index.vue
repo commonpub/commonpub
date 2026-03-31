@@ -7,7 +7,7 @@ import type { Serialized, LearningPathDetail } from '@commonpub/server';
 const { data: path, pending: pathPending, error: pathError, refresh } = useLazyFetch<Serialized<LearningPathDetail>>(() => `/api/learn/${slug.value}`);
 
 useSeoMeta({
-  title: () => path.value ? `${path.value.title} — Learn — CommonPub` : 'Learn — CommonPub',
+  title: () => path.value ? `${path.value.title} — Learn — ${useSiteName()}` : `Learn — ${useSiteName()}`,
   description: () => path.value?.description || '',
   ogImage: '/og-default.png',
 });

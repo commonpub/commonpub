@@ -1,7 +1,7 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'admin', middleware: 'auth' });
 
-useSeoMeta({ title: 'Settings — Admin — CommonPub' });
+useSeoMeta({ title: `Settings — Admin — ${useSiteName()}` });
 
 const { data: settings, refresh } = await useFetch<Record<string, string>>('/api/admin/settings');
 

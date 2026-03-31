@@ -2,7 +2,7 @@
 definePageMeta({ layout: 'auth' });
 
 useSeoMeta({
-  title: 'Log in — CommonPub',
+  title: `Log in — ${useSiteName()}`,
   description: 'Log in to your CommonPub account.',
 });
 

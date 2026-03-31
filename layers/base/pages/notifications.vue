@@ -1,5 +1,5 @@
 <script setup lang="ts">
-useSeoMeta({ title: 'Notifications — CommonPub' });
+useSeoMeta({ title: `Notifications — ${useSiteName()}` });
 definePageMeta({ middleware: 'auth' });
 
 const activeTab = ref('all');

@@ -3,8 +3,8 @@ const route = useRoute();
 const username = route.params.username as string;
 
 useSeoMeta({
-  title: `${username} — CommonPub`,
-  ogTitle: `${username} — CommonPub`,
+  title: `${username} — ${useSiteName()}`,
+  ogTitle: `${username} — ${useSiteName()}`,
   ogImage: '/og-default.png',
 });
 
