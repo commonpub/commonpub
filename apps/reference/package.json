@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1010.0",
+    "drizzle-kit": "^0.31.10",
     "@commonpub/auth": "workspace:*",
     "@commonpub/config": "workspace:*",
     "@commonpub/docs": "workspace:*",
