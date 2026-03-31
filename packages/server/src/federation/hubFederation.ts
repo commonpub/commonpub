@@ -400,6 +400,71 @@ function hubPostToNote(
   return note;
 }
 
+// --- Post to Remote Hub ---
+
+/**
+ * Send a Note from a local user to a remote Group hub's inbox.
+ * The remote hub should Announce it to its followers.
+ */
+export async function sendPostToRemoteHub(
+  db: DB,
+  userId: string,
+  username: string,
+  hubActorUri: string,
+  content: string,
+  domain: string,
+  postType: string = 'text',
+): Promise<boolean> {
+  // Look up the remote hub's inbox
+  const { resolveRemoteActor } = await import('./federation.js');
+  const actor = await resolveRemoteActor(db, hubActorUri);
+  if (!actor?.inbox) return false;
+
+  const localActorUri = `https://${domain}/users/${username}`;
+  const noteId = `https://${domain}/users/${username}/posts/${crypto.randomUUID()}`;
+
+  const note: APNote = {
+    '@context': AP_CONTEXT,
+    type: 'Note',
+    id: noteId,
+    attributedTo: localActorUri,
+    content: escapeHtmlForAP(content),
+    to: [hubActorUri],
+    cc: [AP_PUBLIC],
+    published: new Date().toISOString(),
+    context: hubActorUri,
+  };
+
+  // Add cpub:postType extension for CommonPub instances
+  if (postType !== 'text') {
+    (note as unknown as Record<string, unknown>)['cpub:postType'] = postType;
+  }
+
+  // Build a Create activity wrapping the Note
+  const createActivity = {
+    '@context': AP_CONTEXT,
+    type: 'Create',
+    id: `${noteId}/activity`,
+    actor: localActorUri,
+    object: note,
+    to: [hubActorUri],
+    cc: [AP_PUBLIC],
+    published: note.published,
+  };
+
+  // Queue for delivery
+  await db.insert(activities).values({
+    type: 'Create',
+    actorUri: localActorUri,
+    objectUri: noteId,
+    payload: createActivity,
+    direction: 'outbound',
+    status: 'pending',
+  });
+
+  return true;
+}
+
 // --- Hub Post Deletion ---
 
 /**

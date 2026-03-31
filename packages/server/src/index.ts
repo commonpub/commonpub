@@ -322,6 +322,7 @@ export {
   federateHubPost,
   federateHubShare,
   federateHubPostDelete,
+  sendPostToRemoteHub,
   getHubPostNoteUri,
   createMirror,
   activateMirror,

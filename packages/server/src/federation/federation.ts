@@ -162,6 +162,22 @@ export async function resolveRemoteActor(db: DB, actorUri: string): Promise<Reso
   const url = new URL(actorUri);
   const instanceDomain = url.hostname;
 
+  // For Group actors, fetch follower count from the followers collection
+  let followerCount: number | undefined;
+  if ((actor.type === 'Group' || actor.type === 'Service') && actor.followers) {
+    try {
+      const collRes = await fetch(actor.followers, {
+        headers: { Accept: 'application/activity+json, application/ld+json' },
+      });
+      if (collRes.ok) {
+        const coll = await collRes.json() as { totalItems?: number };
+        if (typeof coll.totalItems === 'number') {
+          followerCount = coll.totalItems;
+        }
+      }
+    } catch { /* non-fatal — follower count stays unknown */ }
+  }
+
   // Upsert cache — include all fields the protocol returns
   const actorData = {
     inbox: actor.inbox,
@@ -173,6 +189,7 @@ export async function resolveRemoteActor(db: DB, actorUri: string): Promise<Reso
     summary: actor.summary,
     avatarUrl: actor.icon?.url,
     actorType: actor.type ?? 'Person',
+    ...(followerCount !== undefined && { followerCount }),
     lastFetchedAt: new Date(),
   };
 

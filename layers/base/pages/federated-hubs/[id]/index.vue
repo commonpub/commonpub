@@ -5,13 +5,13 @@ import type { HubViewModel, HubPostViewModel, HubTabDef } from '../../../types/h
 const route = useRoute();
 const id = route.params.id as string;
 
-const { data: hub, pending, error } = await useFetch<FederatedHubListItem>(`/api/federated-hubs/${id}`);
-const { data: posts } = useLazyFetch<{ items: FederatedHubPostItem[]; total: number }>(`/api/federated-hubs/${id}/posts`, {
+const { data: hub, pending, error, refresh: refreshHub } = await useFetch<FederatedHubListItem>(`/api/federated-hubs/${id}`);
+const { data: posts, refresh: refreshPosts } = useLazyFetch<{ items: FederatedHubPostItem[]; total: number }>(`/api/federated-hubs/${id}/posts`, {
   default: () => ({ items: [], total: 0 }),
 });
 
 useSeoMeta({
-  title: () => hub.value ? `${hub.value.name} (${hub.value.originDomain}) -- CommonPub` : 'Federated Hub -- CommonPub',
+  title: () => hub.value ? `${hub.value.name} (${hub.value.originDomain})` : 'Federated Hub',
   description: () => hub.value?.description || '',
 });
 
@@ -22,6 +22,8 @@ if (hub.value?.url) {
   });
 }
 
+const { isAuthenticated } = useAuth();
+const toast = useToast();
 const activeTab = ref('feed');
 
 // --- Map to view models ---
@@ -58,13 +60,71 @@ const postsVM = computed<HubPostViewModel[]>(() => {
     replyCount: (p.localReplyCount ?? 0) + (p.remoteReplyCount ?? 0),
     isPinned: p.isPinned ?? false,
     isLocked: false,
-    linkTo: null,
+    linkTo: `/federated-hubs/${id}`,
   }));
 });
 
+const discussionPosts = computed(() =>
+  postsVM.value.filter(p => p.type === 'text' || p.type === 'discussion' || p.type === 'question'),
+);
+
 const tabDefs = computed<HubTabDef[]>(() => [
   { value: 'feed', label: 'Feed', icon: 'fa-solid fa-rss', count: hub.value?.postCount },
+  { value: 'discussions', label: 'Discussions', icon: 'fa-solid fa-comments', count: discussionPosts.value.length || undefined },
 ]);
+
+// --- Compose (posts to remote hub via federation) ---
+const newPostContent = ref('');
+const posting = ref(false);
+
+async function handlePost(): Promise<void> {
+  if (!newPostContent.value.trim() || !hub.value?.actorUri) return;
+  posting.value = true;
+  try {
+    await $fetch('/api/federation/hub-post' as string, {
+      method: 'POST',
+      body: {
+        federatedHubId: id,
+        hubActorUri: hub.value.actorUri,
+        content: newPostContent.value,
+      },
+    });
+    newPostContent.value = '';
+    toast.success('Post sent to hub');
+    await Promise.all([refreshHub(), refreshPosts()]);
+  } catch {
+    toast.error('Failed to post — the remote hub may not accept posts from this instance');
+  } finally {
+    posting.value = false;
+  }
+}
+
+// --- Discussion compose ---
+const newDiscContent = ref('');
+const discPosting = ref(false);
+
+async function handleDiscPost(): Promise<void> {
+  if (!newDiscContent.value.trim() || !hub.value?.actorUri) return;
+  discPosting.value = true;
+  try {
+    await $fetch('/api/federation/hub-post' as string, {
+      method: 'POST',
+      body: {
+        federatedHubId: id,
+        hubActorUri: hub.value.actorUri,
+        content: newDiscContent.value,
+        type: 'discussion',
+      },
+    });
+    newDiscContent.value = '';
+    toast.success('Discussion posted');
+    await Promise.all([refreshHub(), refreshPosts()]);
+  } catch {
+    toast.error('Failed to post discussion');
+  } finally {
+    discPosting.value = false;
+  }
+}
 </script>
 
 <template>
@@ -84,7 +144,7 @@ const tabDefs = computed<HubTabDef[]>(() => [
               <i class="fa-solid fa-globe"></i>
               <span>Mirrored from <strong>{{ hub?.originDomain }}</strong></span>
               <a v-if="hub?.url" :href="hub.url" target="_blank" rel="noopener noreferrer" class="cpub-fed-banner-link">
-                Visit hub on {{ hub.originDomain }} <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                Visit original <i class="fa-solid fa-arrow-up-right-from-square"></i>
               </a>
             </div>
           </div>
@@ -100,18 +160,71 @@ const tabDefs = computed<HubTabDef[]>(() => [
       </HubHero>
     </template>
 
-    <!-- Feed (no compose slot = read-only) -->
-    <HubFeed :posts="postsVM" />
+    <!-- Feed tab -->
+    <HubFeed v-if="activeTab === 'feed'" :posts="postsVM">
+      <template v-if="isAuthenticated" #compose>
+        <div class="cpub-compose-bar">
+          <div class="cpub-compose-row">
+            <input
+              v-model="newPostContent"
+              class="cpub-compose-input"
+              type="text"
+              placeholder="Post to this hub (sent via federation)..."
+              @keydown.enter="handlePost"
+            />
+            <button class="cpub-btn cpub-btn-sm cpub-btn-primary" :disabled="posting" @click="handlePost">
+              <i class="fa-solid fa-paper-plane"></i> Post
+            </button>
+          </div>
+          <p class="cpub-fed-compose-hint">
+            <i class="fa-solid fa-globe"></i> Your post will be sent to {{ hub?.originDomain }} via ActivityPub
+          </p>
+        </div>
+      </template>
+    </HubFeed>
+
+    <!-- Discussions tab -->
+    <HubDiscussions v-else-if="activeTab === 'discussions'" :posts="discussionPosts">
+      <template v-if="isAuthenticated" #compose>
+        <div class="cpub-compose-bar" style="margin-bottom: 16px">
+          <div class="cpub-compose-row">
+            <input
+              v-model="newDiscContent"
+              class="cpub-compose-input"
+              type="text"
+              placeholder="Start a discussion (sent via federation)..."
+              @keydown.enter="handleDiscPost"
+            />
+            <button class="cpub-btn cpub-btn-sm cpub-btn-primary" :disabled="discPosting" @click="handleDiscPost">
+              <i class="fa-solid fa-paper-plane"></i> Post
+            </button>
+          </div>
+        </div>
+      </template>
+    </HubDiscussions>
 
     <template #sidebar>
       <HubSidebar>
+        <HubSidebarCard title="About">
+          <p v-if="hub?.description" class="cpub-sidebar-desc">{{ hub.description }}</p>
+          <div class="cpub-sidebar-stats">
+            <div class="cpub-sidebar-stat">
+              <strong>{{ hub?.memberCount ?? 0 }}</strong>
+              <span>members</span>
+            </div>
+            <div class="cpub-sidebar-stat">
+              <strong>{{ hub?.postCount ?? 0 }}</strong>
+              <span>posts</span>
+            </div>
+          </div>
+        </HubSidebarCard>
         <HubSidebarCard title="Origin Instance">
           <div class="cpub-origin-info">
             <div class="cpub-origin-domain">
               <i class="fa-solid fa-globe"></i>
               <strong>{{ hub?.originDomain }}</strong>
             </div>
-            <p class="cpub-origin-desc">This hub is mirrored from a remote CommonPub instance. Content is read-only.</p>
+            <p class="cpub-origin-desc">Content is mirrored from this remote CommonPub instance via ActivityPub.</p>
             <a v-if="hub?.url" :href="hub.url" target="_blank" rel="noopener noreferrer" class="cpub-btn cpub-btn-sm" style="margin-top: 8px; display: inline-flex">
               <i class="fa-solid fa-arrow-up-right-from-square"></i> Visit Original
             </a>
@@ -138,7 +251,32 @@ const tabDefs = computed<HubTabDef[]>(() => [
 }
 .cpub-fed-banner-link:hover { text-decoration: underline; }
 
-/* Origin sidebar */
+/* Compose */
+.cpub-compose-bar {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; padding: 12px 14px; margin-bottom: 16px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.cpub-compose-row { display: flex; gap: 10px; align-items: center; }
+.cpub-compose-input {
+  flex: 1; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 10px 14px; font-size: 0.8125rem;
+  color: var(--text); font-family: inherit;
+}
+.cpub-compose-input::placeholder { color: var(--text-faint); }
+.cpub-fed-compose-hint {
+  font-size: 11px; color: var(--text-faint);
+  display: flex; align-items: center; gap: 5px;
+}
+.cpub-fed-compose-hint i { font-size: 10px; color: var(--accent); }
+
+/* Sidebar */
+.cpub-sidebar-desc { font-size: 12px; color: var(--text-dim); line-height: 1.5; margin-bottom: 12px; }
+.cpub-sidebar-stats { display: flex; gap: 16px; }
+.cpub-sidebar-stat { display: flex; flex-direction: column; font-size: 11px; color: var(--text-faint); }
+.cpub-sidebar-stat strong { font-size: 16px; color: var(--text); font-weight: 700; }
+
+/* Origin */
 .cpub-origin-info { font-size: 12px; }
 .cpub-origin-domain {
   display: flex; align-items: center; gap: 6px;

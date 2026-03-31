@@ -39,8 +39,9 @@ export async function listFederatedHubs(
 
   const [rows, countResult] = await Promise.all([
     db
-      .select({ hub: federatedHubs })
+      .select({ hub: federatedHubs, actorFollowers: remoteActors.followerCount })
       .from(federatedHubs)
+      .leftJoin(remoteActors, eq(federatedHubs.remoteActorId, remoteActors.id))
       .where(where)
       .orderBy(desc(federatedHubs.receivedAt))
       .limit(limit)
@@ -61,7 +62,7 @@ export async function listFederatedHubs(
     hubType: row.hub.hubType,
     iconUrl: row.hub.iconUrl,
     bannerUrl: row.hub.bannerUrl,
-    memberCount: row.hub.remoteMemberCount,
+    memberCount: Math.max(row.hub.remoteMemberCount, row.actorFollowers ?? 0),
     postCount: row.hub.localPostCount,
     originDomain: row.hub.originDomain,
     url: row.hub.url,
@@ -81,8 +82,9 @@ export async function getFederatedHub(
   hubId: string,
 ): Promise<FederatedHubListItem | null> {
   const [row] = await db
-    .select({ hub: federatedHubs })
+    .select({ hub: federatedHubs, actor: remoteActors })
     .from(federatedHubs)
+    .leftJoin(remoteActors, eq(federatedHubs.remoteActorId, remoteActors.id))
     .where(and(
       eq(federatedHubs.id, hubId),
       eq(federatedHubs.isHidden, false),
@@ -90,6 +92,21 @@ export async function getFederatedHub(
     .limit(1);
 
   if (!row) return null;
+
+  // Refresh metadata from cached actor if stale (> 1 hour)
+  const actor = row.actor;
+  let memberCount = row.hub.remoteMemberCount;
+  if (actor) {
+    const age = Date.now() - (actor.lastFetchedAt?.getTime() ?? 0);
+    if (age > 60 * 60 * 1000) {
+      // Background refresh — don't block the response
+      refreshFederatedHubMetadata(db, row.hub.id, row.hub.actorUri).catch(() => {});
+    }
+    // Use the cached follower count if it's better than what we have
+    if (actor.followerCount && actor.followerCount > memberCount) {
+      memberCount = actor.followerCount;
+    }
+  }
 
   return {
     id: row.hub.id,
@@ -99,7 +116,7 @@ export async function getFederatedHub(
     hubType: row.hub.hubType,
     iconUrl: row.hub.iconUrl,
     bannerUrl: row.hub.bannerUrl,
-    memberCount: row.hub.remoteMemberCount,
+    memberCount,
     postCount: row.hub.localPostCount,
     originDomain: row.hub.originDomain,
     url: row.hub.url,
@@ -107,6 +124,41 @@ export async function getFederatedHub(
     receivedAt: row.hub.receivedAt,
     source: 'federated',
   };
+}
+
+/**
+ * Background refresh of federated hub metadata from the remote Group actor.
+ * Fetches the actor to update name, description, icon, and follower count.
+ */
+async function refreshFederatedHubMetadata(
+  db: DB,
+  hubId: string,
+  actorUri: string,
+): Promise<void> {
+  try {
+    const { resolveRemoteActor } = await import('./federation.js');
+    const actor = await resolveRemoteActor(db, actorUri);
+    if (!actor) return;
+
+    // Read the updated cache
+    const [cached] = await db
+      .select()
+      .from(remoteActors)
+      .where(eq(remoteActors.actorUri, actorUri))
+      .limit(1);
+    if (!cached) return;
+
+    await db.update(federatedHubs).set({
+      name: cached.displayName ?? cached.preferredUsername ?? undefined,
+      description: cached.summary ?? undefined,
+      iconUrl: cached.avatarUrl ?? undefined,
+      bannerUrl: cached.bannerUrl ?? undefined,
+      remoteMemberCount: cached.followerCount ?? undefined,
+      updatedAt: new Date(),
+    }).where(eq(federatedHubs.id, hubId));
+  } catch {
+    // Non-fatal background refresh
+  }
 }
 
 /**
@@ -318,6 +370,7 @@ export async function autoDiscoverHub(
     iconUrl: cachedActor.avatarUrl ?? null,
     bannerUrl: cachedActor.bannerUrl ?? null,
     hubType: 'community',
+    remoteMemberCount: cachedActor.followerCount ?? 0,
     status: 'accepted',
     url: `https://${groupDomain}/hubs/${remoteSlug}`,
   }).onConflictDoNothing({ target: federatedHubs.actorUri })
