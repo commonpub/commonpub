@@ -25,7 +25,7 @@ const reports = computed<Report[]>(() => {
 
 async function resolveReport(id: string, resolution: 'resolved' | 'dismissed'): Promise<void> {
   try {
-    await $fetch(`/api/admin/reports/${id}/resolve`, {
+    await $fetch(`/api/admin/reports/${id}/resolve` as string, {
       method: 'POST',
       body: { resolution },
     });
