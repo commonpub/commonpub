@@ -4,6 +4,7 @@ import type { HubPostViewModel } from '../../types/hub';
 const props = defineProps<{
   posts: HubPostViewModel[];
   interactive?: boolean;
+  likedPostIds?: Set<string>;
 }>();
 
 const emit = defineEmits<{ 'post-vote': [postId: string] }>();
@@ -55,7 +56,7 @@ const filteredPosts = computed(() => {
   <div v-if="filteredPosts.length" class="cpub-feed-list">
     <template v-for="post in filteredPosts" :key="post.id">
       <!-- Share posts -->
-      <NuxtLink v-if="post.sharedContent?.slug" :to="`/${post.sharedContent.type}/${post.sharedContent.slug}`" class="cpub-share-card">
+      <NuxtLink v-if="post.sharedContent?.slug && !post.sharedContent?.url" :to="`/${post.sharedContent.type}/${post.sharedContent.slug}`" class="cpub-share-card">
         <div class="cpub-share-card-context">
           <i class="fa-solid fa-share-nodes"></i>
           {{ post.author.name }} shared a {{ post.sharedContent.type }}
@@ -75,6 +76,29 @@ const filteredPosts = computed(() => {
           </div>
         </div>
       </NuxtLink>
+      <a v-else-if="post.sharedContent?.url" :href="post.sharedContent.url" target="_blank" rel="noopener noreferrer" class="cpub-share-card">
+        <div class="cpub-share-card-context">
+          <i class="fa-solid fa-share-nodes"></i>
+          {{ post.author.name }} shared a {{ post.sharedContent.type }}
+          <span v-if="post.sharedContent.url" class="cpub-share-card-origin">
+            <i class="fa-solid fa-globe"></i> {{ post.sharedContent.url.replace(/^https?:\/\//, '').split('/')[0] }}
+          </span>
+          &middot; {{ new Date(post.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) }}
+        </div>
+        <div class="cpub-share-card-embed">
+          <div v-if="post.sharedContent.coverImageUrl" class="cpub-share-card-thumb">
+            <img :src="post.sharedContent.coverImageUrl" :alt="post.sharedContent.title" />
+          </div>
+          <div v-else class="cpub-share-card-thumb cpub-share-card-thumb-fallback">
+            <i :class="post.sharedContent.type === 'project' ? 'fa-solid fa-microchip' : 'fa-solid fa-file-lines'"></i>
+          </div>
+          <div class="cpub-share-card-body">
+            <span class="cpub-share-card-type">{{ post.sharedContent.type }}</span>
+            <h3 class="cpub-share-card-title">{{ post.sharedContent.title }}</h3>
+            <p v-if="post.sharedContent.description" class="cpub-share-card-desc">{{ post.sharedContent.description }}</p>
+          </div>
+        </div>
+      </a>
 
       <!-- Regular posts — linked or static -->
       <template v-else>
@@ -92,6 +116,7 @@ const filteredPosts = computed(() => {
             :pinned="post.isPinned"
             :locked="post.isLocked"
             :interactive="interactive"
+            :voted="likedPostIds?.has(post.id)"
             @vote="emit('post-vote', post.id)"
           />
         </NuxtLink>
@@ -109,6 +134,7 @@ const filteredPosts = computed(() => {
             :pinned="post.isPinned"
             :locked="post.isLocked"
             :interactive="interactive"
+            :voted="likedPostIds?.has(post.id)"
             @vote="emit('post-vote', post.id)"
           />
         </div>
@@ -133,6 +159,11 @@ const filteredPosts = computed(() => {
   display: flex; align-items: center; gap: 5px;
 }
 .cpub-share-card-context i { font-size: 10px; }
+.cpub-share-card-origin {
+  display: inline-flex; align-items: center; gap: 3px;
+  color: var(--accent); font-size: 10px;
+}
+.cpub-share-card-origin i { font-size: 9px; }
 .cpub-share-card-embed {
   display: flex; gap: 0;
   background: var(--surface); border: 2px solid var(--border);

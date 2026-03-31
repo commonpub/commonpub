@@ -33,6 +33,8 @@ export interface HubPostViewModel {
     title: string
     description: string | null
     coverImageUrl: string | null
+    /** External URL for federated shared content (when slug isn't a local route) */
+    url?: string | null
   }
 }
 

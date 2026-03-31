@@ -242,11 +242,23 @@ export const federatedHubPosts = pgTable('federated_hub_posts', {
   remoteReplyCount: integer('remote_reply_count').default(0).notNull(),
   publishedAt: timestamp('published_at', { withTimezone: true }),
   receivedAt: timestamp('received_at', { withTimezone: true }).defaultNow().notNull(),
+  /** Shared content metadata (title, coverImage, type, originUrl) when post is a content share */
+  sharedContentMeta: jsonb('shared_content_meta'),
   /** Soft delete (set on inbound Delete activity) */
   deletedAt: timestamp('deleted_at', { withTimezone: true }),
 }, (t) => [
   index('idx_fedhubposts_hub_id').on(t.federatedHubId),
   index('idx_fedhubposts_received_at').on(t.receivedAt),
+]);
+
+/** Per-user likes on federated hub posts — tracks who liked what for unlike toggle */
+export const federatedHubPostLikes = pgTable('federated_hub_post_likes', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  postId: uuid('post_id').notNull().references(() => federatedHubPosts.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  unique('uq_fed_hub_post_likes_post_user').on(t.postId, t.userId),
 ]);
 
 // --- Federated Hub Relations ---

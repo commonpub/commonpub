@@ -928,12 +928,40 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
                 // Resolve the post author
                 await resolveRemoteActor(db, noteActorUri);
 
+                // Extract shared content metadata from cpub:sharedContent or AP Article properties
+                let sharedContentMeta = null;
+                const cpubShared = (note as Record<string, unknown>)['cpub:sharedContent'] as Record<string, unknown> | undefined;
+                if (cpubShared && typeof cpubShared === 'object') {
+                  sharedContentMeta = {
+                    type: String(cpubShared.type ?? 'article'),
+                    title: String(cpubShared.title ?? ''),
+                    summary: cpubShared.summary ? String(cpubShared.summary) : null,
+                    coverImageUrl: cpubShared.coverImageUrl ? String(cpubShared.coverImageUrl) : null,
+                    originUrl: cpubShared.originUrl ? String(cpubShared.originUrl) : null,
+                    originDomain: cpubShared.originDomain ? String(cpubShared.originDomain) : null,
+                  };
+                } else if (note.type === 'Article' || (note.name && typeof note.name === 'string')) {
+                  // Fallback: extract from AP Article properties
+                  const imageUrl = typeof note.image === 'string' ? note.image
+                    : (note.image && typeof (note.image as Record<string, unknown>).url === 'string')
+                      ? (note.image as Record<string, unknown>).url as string : null;
+                  sharedContentMeta = {
+                    type: ((note as Record<string, unknown>)['cpub:type'] as string) ?? 'article',
+                    title: note.name as string,
+                    summary: typeof note.summary === 'string' ? note.summary : null,
+                    coverImageUrl: imageUrl,
+                    originUrl: typeof note.url === 'string' ? note.url : objectUri,
+                    originDomain: (() => { try { return new URL(objectUri).hostname; } catch { return null; } })(),
+                  };
+                }
+
                 await ingestFederatedHubPost(db, mirroredHub.id, {
                   objectUri,
                   actorUri: noteActorUri,
                   content: noteContent,
-                  postType: (note.cpubPostType as string) ?? 'text',
+                  postType: (note.cpubPostType as string) ?? (sharedContentMeta ? 'share' : 'text'),
                   publishedAt: note.published ? new Date(note.published as string) : undefined,
+                  sharedContentMeta,
                 });
               }
               } // end else (not self-announce)
