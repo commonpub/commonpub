@@ -73,56 +73,58 @@ export async function listHubs(
     return { items: localItems, total };
   }
 
-  // Dynamic import — avoid loading federation module chain for non-federated queries
-  const { listFederatedHubs } = await import('../federation/hubMirroring.js');
+  // Try to merge with federated hubs — gracefully degrade if table doesn't exist yet
+  try {
+    const { listFederatedHubs } = await import('../federation/hubMirroring.js');
 
-  // Merge with federated hubs — fetch enough from both sources to fill the page
-  const maxItems = offset + limit;
-  const [localAll, fedResult] = await Promise.all([
-    // Re-fetch local without offset to get enough for merge (only if offset > 0)
-    offset > 0
-      ? db
-          .select({ hub: hubs, createdBy: USER_REF_SELECT })
-          .from(hubs)
-          .innerJoin(users, eq(hubs.createdById, users.id))
-          .where(where)
-          .orderBy(desc(hubs.createdAt))
-          .limit(maxItems)
-          .then((r) => r.map((row) => ({
-            id: row.hub.id,
-            name: row.hub.name,
-            slug: row.hub.slug,
-            description: row.hub.description,
-            hubType: row.hub.hubType,
-            iconUrl: row.hub.iconUrl,
-            bannerUrl: row.hub.bannerUrl,
-            joinPolicy: row.hub.joinPolicy,
-            isOfficial: row.hub.isOfficial,
-            memberCount: row.hub.memberCount,
-            postCount: row.hub.postCount,
-            createdAt: row.hub.createdAt,
-            createdBy: row.createdBy,
-          } as HubListItem)))
-      : Promise.resolve(localItems),
-    listFederatedHubs(db, { search: filters.search, limit: maxItems }),
-  ]);
+    const maxItems = offset + limit;
+    const [localAll, fedResult] = await Promise.all([
+      offset > 0
+        ? db
+            .select({ hub: hubs, createdBy: USER_REF_SELECT })
+            .from(hubs)
+            .innerJoin(users, eq(hubs.createdById, users.id))
+            .where(where)
+            .orderBy(desc(hubs.createdAt))
+            .limit(maxItems)
+            .then((r) => r.map((row) => ({
+              id: row.hub.id,
+              name: row.hub.name,
+              slug: row.hub.slug,
+              description: row.hub.description,
+              hubType: row.hub.hubType,
+              iconUrl: row.hub.iconUrl,
+              bannerUrl: row.hub.bannerUrl,
+              joinPolicy: row.hub.joinPolicy,
+              isOfficial: row.hub.isOfficial,
+              memberCount: row.hub.memberCount,
+              postCount: row.hub.postCount,
+              createdAt: row.hub.createdAt,
+              createdBy: row.createdBy,
+            } as HubListItem)))
+        : Promise.resolve(localItems),
+      listFederatedHubs(db, { search: filters.search, limit: maxItems }),
+    ]);
 
-  // Merge and sort by creation date (local createdAt vs federated receivedAt)
-  const merged: (HubListItem | FederatedHubListItem)[] = [
-    ...localAll,
-    ...fedResult.items,
-  ];
+    const merged: (HubListItem | FederatedHubListItem)[] = [
+      ...localAll,
+      ...fedResult.items,
+    ];
 
-  merged.sort((a, b) => {
-    const dateA = 'createdAt' in a ? new Date(a.createdAt).getTime() : new Date((a as FederatedHubListItem).receivedAt).getTime();
-    const dateB = 'createdAt' in b ? new Date(b.createdAt).getTime() : new Date((b as FederatedHubListItem).receivedAt).getTime();
-    return dateB - dateA;
-  });
+    merged.sort((a, b) => {
+      const dateA = 'createdAt' in a ? new Date(a.createdAt).getTime() : new Date((a as FederatedHubListItem).receivedAt).getTime();
+      const dateB = 'createdAt' in b ? new Date(b.createdAt).getTime() : new Date((b as FederatedHubListItem).receivedAt).getTime();
+      return dateB - dateA;
+    });
 
-  return {
-    items: merged.slice(offset, offset + limit),
-    total: total + fedResult.total,
-  };
+    return {
+      items: merged.slice(offset, offset + limit),
+      total: total + fedResult.total,
+    };
+  } catch {
+    // Federated hubs table may not exist yet — return local only
+    return { items: localItems, total };
+  }
 }
 
 export async function getHubBySlug(
