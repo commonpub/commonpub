@@ -99,6 +99,26 @@ async function handlePost(): Promise<void> {
   }
 }
 
+// --- Vote/like on posts ---
+async function handlePostVote(postId: string): Promise<void> {
+  if (!isAuthenticated.value) {
+    await navigateTo(`/auth/login?redirect=/federated-hubs/${id}`);
+    return;
+  }
+  try {
+    await $fetch('/api/federation/hub-post-like' as string, {
+      method: 'POST',
+      body: { federatedHubPostId: postId },
+    });
+    // Optimistic update: increment vote count in the local view
+    const post = posts.value?.items.find(p => p.id === postId);
+    if (post) post.localLikeCount = (post.localLikeCount ?? 0) + 1;
+    toast.success('Liked!');
+  } catch {
+    toast.error('Failed to like post');
+  }
+}
+
 // --- Discussion compose ---
 const newDiscContent = ref('');
 const discPosting = ref(false);
@@ -161,7 +181,7 @@ async function handleDiscPost(): Promise<void> {
     </template>
 
     <!-- Feed tab -->
-    <HubFeed v-if="activeTab === 'feed'" :posts="postsVM">
+    <HubFeed v-if="activeTab === 'feed'" :posts="postsVM" :interactive="isAuthenticated" @post-vote="handlePostVote">
       <template v-if="isAuthenticated" #compose>
         <div class="cpub-compose-bar">
           <div class="cpub-compose-row">

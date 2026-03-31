@@ -2,8 +2,11 @@
 import type { HubPostViewModel } from '../../types/hub';
 
 const props = defineProps<{
-  posts: HubPostViewModel[]
+  posts: HubPostViewModel[];
+  interactive?: boolean;
 }>();
+
+const emit = defineEmits<{ 'post-vote': [postId: string] }>();
 
 const feedFilter = ref('all');
 
@@ -88,6 +91,8 @@ const filteredPosts = computed(() => {
             :vote-count="post.likeCount"
             :pinned="post.isPinned"
             :locked="post.isLocked"
+            :interactive="interactive"
+            @vote="emit('post-vote', post.id)"
           />
         </NuxtLink>
         <div v-else>
@@ -103,6 +108,8 @@ const filteredPosts = computed(() => {
             :vote-count="post.likeCount"
             :pinned="post.isPinned"
             :locked="post.isLocked"
+            :interactive="interactive"
+            @vote="emit('post-vote', post.id)"
           />
         </div>
       </template>

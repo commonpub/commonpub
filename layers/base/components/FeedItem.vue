@@ -11,7 +11,10 @@ const props = defineProps<{
   voteCount: number;
   pinned?: boolean;
   locked?: boolean;
+  interactive?: boolean;
 }>();
+
+const emit = defineEmits<{ vote: [] }>();
 
 const typeBadgeClass = computed((): string => {
   const map: Record<string, string> = {
@@ -68,7 +71,10 @@ const formattedDate = computed((): string => {
         </div>
 
         <div class="cpub-feed-item-stats">
-          <span class="cpub-feed-stat" aria-label="Votes">
+          <button v-if="interactive" class="cpub-feed-stat cpub-feed-stat-btn" aria-label="Vote" @click.prevent.stop="emit('vote')">
+            <i class="fa-solid fa-arrow-up"></i> {{ voteCount }}
+          </button>
+          <span v-else class="cpub-feed-stat" aria-label="Votes">
             <i class="fa-solid fa-arrow-up"></i> {{ voteCount }}
           </span>
           <span class="cpub-feed-stat" aria-label="Replies">
@@ -253,5 +259,20 @@ const formattedDate = computed((): string => {
   gap: 4px;
   font-size: var(--text-xs);
   color: var(--text-faint);
+}
+
+.cpub-feed-stat-btn {
+  background: none;
+  border: 1px solid transparent;
+  cursor: pointer;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: inherit;
+  transition: all 0.12s;
+}
+.cpub-feed-stat-btn:hover {
+  color: var(--accent);
+  background: var(--accent-bg);
+  border-color: var(--accent-border);
 }
 </style>
