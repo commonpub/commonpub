@@ -3,7 +3,6 @@ import type { FederatedContentItem } from '@commonpub/server';
 
 export default defineEventHandler(async (event): Promise<FederatedContentItem> => {
   requireFeature('federation');
-  requireAuth(event);
   const db = useDB();
   const { id } = parseParams(event, { id: 'uuid' });
 
