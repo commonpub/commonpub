@@ -12,6 +12,7 @@ const props = defineProps<{
   pinned?: boolean;
   locked?: boolean;
   interactive?: boolean;
+  voted?: boolean;
 }>();
 
 const emit = defineEmits<{ vote: [] }>();
@@ -71,7 +72,7 @@ const formattedDate = computed((): string => {
         </div>
 
         <div class="cpub-feed-item-stats">
-          <button v-if="interactive" class="cpub-feed-stat cpub-feed-stat-btn" aria-label="Vote" @click.prevent.stop="emit('vote')">
+          <button v-if="interactive" class="cpub-feed-stat cpub-feed-stat-btn" :class="{ 'cpub-feed-stat-voted': voted }" aria-label="Vote" @click.prevent.stop="emit('vote')">
             <i class="fa-solid fa-arrow-up"></i> {{ voteCount }}
           </button>
           <span v-else class="cpub-feed-stat" aria-label="Votes">
@@ -273,6 +274,10 @@ const formattedDate = computed((): string => {
 .cpub-feed-stat-btn:hover {
   color: var(--accent);
   background: var(--accent-bg);
+  border-color: var(--accent-border);
+}
+.cpub-feed-stat-voted {
+  color: var(--accent);
   border-color: var(--accent-border);
 }
 </style>
