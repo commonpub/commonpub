@@ -4,6 +4,7 @@ RUN corepack enable && corepack prepare pnpm@10.10.0 --activate
 WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
 COPY packages/ packages/
+COPY layers/ layers/
 COPY apps/ apps/
 RUN pnpm install --frozen-lockfile
 
