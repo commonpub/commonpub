@@ -18,16 +18,23 @@ export function useMirrorContent(fedContent: Ref<Record<string, unknown> | null>
 
     const title = (fc.title as string) || 'Untitled';
 
-    // Parse block content: may be BlockTuple JSON or raw HTML from federation
-    let content: unknown = fc.content;
-    if (typeof content === 'string') {
-      const trimmed = content.trim();
-      if (trimmed.startsWith('[[') || trimmed.startsWith('[["')) {
-        try { content = JSON.parse(trimmed); } catch { /* keep as string */ }
-      }
-      // If still a string (HTML from federation), wrap as BlockTuple array
-      if (typeof content === 'string' && content.trim()) {
-        content = [['paragraph', { html: content }]];
+    // Parse block content: prefer cpub:blocks (full fidelity from CommonPub instances),
+    // fall back to HTML content (from non-CommonPub instances or legacy federation)
+    let content: unknown;
+    if (Array.isArray(fc.cpubBlocks) && fc.cpubBlocks.length > 0) {
+      // CommonPub→CommonPub: original block structure preserved
+      content = fc.cpubBlocks;
+    } else {
+      content = fc.content;
+      if (typeof content === 'string') {
+        const trimmed = content.trim();
+        if (trimmed.startsWith('[[') || trimmed.startsWith('[["')) {
+          try { content = JSON.parse(trimmed); } catch { /* keep as string */ }
+        }
+        // If still a string (HTML from federation), wrap as BlockTuple array
+        if (typeof content === 'string' && content.trim()) {
+          content = [['paragraph', { html: content }]];
+        }
       }
     }
 

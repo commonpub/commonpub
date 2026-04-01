@@ -104,6 +104,8 @@ export const federatedContent = pgTable('federated_content', {
   cpubType: varchar('cpub_type', { length: 32 }),
   /** CommonPub-specific metadata (BOM, specs, learning data, etc.) */
   cpubMetadata: jsonb('cpub_metadata'),
+  /** Original block tuples from CommonPub instances — preserves full content structure */
+  cpubBlocks: jsonb('cpub_blocks'),
   /** Local engagement counters */
   localLikeCount: integer('local_like_count').default(0).notNull(),
   localCommentCount: integer('local_comment_count').default(0).notNull(),
@@ -122,7 +124,9 @@ export const federatedContent = pgTable('federated_content', {
   index('idx_fedcontent_origin_domain').on(t.originDomain),
   index('idx_fedcontent_received_at').on(t.receivedAt),
   index('idx_fedcontent_ap_type').on(t.apType),
+  index('idx_fedcontent_cpub_type').on(t.cpubType),
   index('idx_fedcontent_mirror_id').on(t.mirrorId),
+  index('idx_fedcontent_object_uri').on(t.objectUri),
 ]);
 
 /** Instance-level mirror subscriptions */

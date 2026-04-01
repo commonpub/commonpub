@@ -27,6 +27,8 @@ export interface FederatedContentItem {
   inReplyTo: string | null;
   cpubType: string | null;
   cpubMetadata: Record<string, unknown> | null;
+  /** Original block tuples from CommonPub instances (null for non-CommonPub content) */
+  cpubBlocks: unknown[] | null;
   localLikeCount: number;
   localCommentCount: number;
   publishedAt: string | null;
@@ -111,6 +113,7 @@ export async function listFederatedTimeline(
     inReplyTo: r.content.inReplyTo,
     cpubType: r.content.cpubType,
     cpubMetadata: (r.content.cpubMetadata ?? null) as Record<string, unknown> | null,
+    cpubBlocks: (r.content.cpubBlocks ?? null) as unknown[] | null,
     localLikeCount: r.content.localLikeCount,
     localCommentCount: r.content.localCommentCount,
     publishedAt: r.content.publishedAt?.toISOString() ?? null,
@@ -168,6 +171,7 @@ export async function getFederatedContent(
     inReplyTo: r.content.inReplyTo,
     cpubType: r.content.cpubType,
     cpubMetadata: (r.content.cpubMetadata ?? null) as Record<string, unknown> | null,
+    cpubBlocks: (r.content.cpubBlocks ?? null) as unknown[] | null,
     localLikeCount: r.content.localLikeCount,
     localCommentCount: r.content.localCommentCount,
     publishedAt: r.content.publishedAt?.toISOString() ?? null,
@@ -375,6 +379,7 @@ export async function listRemoteReplies(
     inReplyTo: r.content.inReplyTo,
     cpubType: r.content.cpubType,
     cpubMetadata: (r.content.cpubMetadata ?? null) as Record<string, unknown> | null,
+    cpubBlocks: (r.content.cpubBlocks ?? null) as unknown[] | null,
     localLikeCount: r.content.localLikeCount,
     localCommentCount: r.content.localCommentCount,
     publishedAt: r.content.publishedAt?.toISOString() ?? null,
@@ -453,6 +458,7 @@ export async function searchFederatedContent(
       inReplyTo: r.content.inReplyTo,
       cpubType: r.content.cpubType,
       cpubMetadata: (r.content.cpubMetadata ?? null) as Record<string, unknown> | null,
+      cpubBlocks: (r.content.cpubBlocks ?? null) as unknown[] | null,
       localLikeCount: r.content.localLikeCount,
       localCommentCount: r.content.localCommentCount,
       publishedAt: r.content.publishedAt?.toISOString() ?? null,

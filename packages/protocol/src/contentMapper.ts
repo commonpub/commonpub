@@ -226,6 +226,13 @@ export function contentToArticle(
     (article as unknown as Record<string, unknown>)['cpub:metadata'] = cpubMeta;
   }
 
+  // CommonPub extension: original block tuples for CommonPub→CommonPub fidelity.
+  // Non-CommonPub instances ignore this; CommonPub instances use it to render
+  // full structured content (parts lists, build steps, code blocks, etc.)
+  if (Array.isArray(item.content) && item.content.length > 0) {
+    (article as unknown as Record<string, unknown>)['cpub:blocks'] = item.content;
+  }
+
   return article;
 }
 

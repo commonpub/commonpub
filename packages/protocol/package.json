@@ -1,6 +1,6 @@
 {
   "name": "@commonpub/protocol",
-  "version": "0.9.3",
+  "version": "0.9.4",
   "type": "module",
   "description": "ActivityPub federation protocol — HTTP signatures, WebFinger, NodeInfo",
   "license": "AGPL-3.0-or-later",

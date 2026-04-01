@@ -474,9 +474,11 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
       const coverImage = attachments.find((a) => a.type === 'Image')?.url
         ?? (typeof object.image === 'object' && object.image !== null ? (object.image as Record<string, string>).url : undefined);
 
-      // Check for CommonPub extension
+      // Check for CommonPub extensions
       const cpubType = typeof object['cpub:type'] === 'string' ? object['cpub:type'] : null;
       const cpubMetadata = object['cpub:metadata'] ?? null;
+      // cpub:blocks preserves original block structure for CommonPub→CommonPub fidelity
+      const cpubBlocks = Array.isArray(object['cpub:blocks']) ? object['cpub:blocks'] : null;
 
       // Check if this content matches an active mirror config
       // Extract sender domain from actorUri for re-broadcast matching
@@ -504,6 +506,7 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
             inReplyTo: typeof object.inReplyTo === 'string' ? object.inReplyTo : null,
             cpubType,
             cpubMetadata,
+            cpubBlocks,
             mirrorId,
             publishedAt: typeof object.published === 'string' ? new Date(object.published) : null,
           })
@@ -515,8 +518,11 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
               summary: typeof object.summary === 'string' ? sanitizeHtml(object.summary) : null,
               coverImageUrl: coverImage ?? sql`${federatedContent.coverImageUrl}`,
               attachments: attachments.length > 0 ? attachments : sql`${federatedContent.attachments}`,
-              // Preserve cpubType: use new value if present, otherwise keep existing
+              tags: tags.length > 0 ? tags : sql`${federatedContent.tags}`,
+              // Preserve cpub extensions: use new value if present, otherwise keep existing
               cpubType: cpubType ?? sql`${federatedContent.cpubType}`,
+              cpubMetadata: cpubMetadata ?? sql`${federatedContent.cpubMetadata}`,
+              cpubBlocks: cpubBlocks ?? sql`${federatedContent.cpubBlocks}`,
               updatedAt: new Date(),
             },
           });
