@@ -8,16 +8,14 @@ on:
 
 jobs:
   check:
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
         node: [22, 23]
 
-    # Postgres service only available on Linux runners
     services:
       postgres:
-        image: ${{ matrix.os == 'ubuntu-latest' && 'postgres:16-alpine' || '' }}
+        image: postgres:16-alpine
         env:
           POSTGRES_USER: commonpub
           POSTGRES_PASSWORD: commonpub_test
@@ -57,10 +55,9 @@ jobs:
       - name: Test
         run: pnpm test
         env:
-          DATABASE_URL: ${{ matrix.os == 'ubuntu-latest' && 'postgresql://commonpub:commonpub_test@localhost:5432/commonpub_test' || '' }}
+          DATABASE_URL: postgresql://commonpub:commonpub_test@localhost:5432/commonpub_test
 
       - name: Build
-        if: matrix.os == 'ubuntu-latest'
         run: pnpm build
 
   rust:

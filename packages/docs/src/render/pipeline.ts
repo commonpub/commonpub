@@ -72,12 +72,3 @@ export async function renderMarkdown(
   };
 }
 
-/**
- * Defense-in-depth HTML sanitizer for use with v-html in Vue templates.
- * Uses DOMPurify for robust sanitization (replaces previous regex approach).
- */
-import DOMPurify from 'isomorphic-dompurify';
-
-export function sanitizeHtml(html: string): string {
-  return DOMPurify.sanitize(html) as string;
-}

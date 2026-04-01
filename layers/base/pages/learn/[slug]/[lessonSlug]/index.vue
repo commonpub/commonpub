@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { sanitizeHtml } from '@commonpub/docs';
 import type { Serialized, LearningPathDetail } from '@commonpub/server';
 
 interface LessonResponse {
@@ -223,7 +222,7 @@ const isOwner = computed(() => user.value?.id === path.value?.author?.id);
         </div>
 
         <!-- ARTICLE / TEXT content -->
-        <div v-if="renderedHtml" class="lesson-content cpub-prose" v-html="sanitizeHtml(renderedHtml)" />
+        <div v-if="renderedHtml" class="lesson-content cpub-prose" v-html="renderedHtml" />
 
         <!-- View original link for linked content -->
         <div v-if="lessonData?.linkedContent" class="lesson-linked-source">

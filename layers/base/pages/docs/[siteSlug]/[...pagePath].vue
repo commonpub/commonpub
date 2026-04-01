@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { sanitizeHtml } from '@commonpub/docs';
 import type { TocEntry } from '@commonpub/docs';
 
 const route = useRoute();
@@ -302,7 +301,7 @@ useSeoMeta({
         <h1 class="docs-page-title">{{ renderedPage.title }}</h1>
 
         <!-- Rendered Content -->
-        <div class="docs-content cpub-prose" v-html="sanitizeHtml(renderedPage.html)" />
+        <div class="docs-content cpub-prose" v-html="renderedPage.html" />
 
         <!-- Prev / Next -->
         <div class="docs-prev-next" v-if="prevNextLinks.prev || prevNextLinks.next">
