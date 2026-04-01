@@ -21,7 +21,7 @@ const tag = computed(() => `h${level.value}` as 'h1' | 'h2' | 'h3' | 'h4' | 'h5'
 }
 
 .cpub-heading-1 { font-size: 28px; font-weight: 700; margin: 48px 0 16px; }
-.cpub-heading-2 { font-size: 22px; font-weight: 700; margin: 40px 0 12px; padding-bottom: 8px; border-bottom: 2px solid var(--border); }
+.cpub-heading-2 { font-size: 22px; font-weight: 700; margin: 40px 0 12px; padding-bottom: 8px; border-bottom: var(--border-width-default) solid var(--border); }
 .cpub-heading-3 { font-size: 17px; font-weight: 600; margin: 28px 0 8px; }
 .cpub-heading-4 { font-size: 15px; font-weight: 600; margin: 24px 0 6px; }
 .cpub-heading-5 { font-size: 14px; font-weight: 600; margin: 20px 0 6px; }

@@ -65,7 +65,7 @@ const body = computed({
   display: block;
   width: 100%;
   background: none;
-  border: 2px solid transparent;
+  border: var(--border-width-default) solid transparent;
   padding: 2px 4px;
   outline: none;
 }
@@ -90,7 +90,7 @@ const body = computed({
   display: block;
   width: 100%;
   background: none;
-  border: 2px solid transparent;
+  border: var(--border-width-default) solid transparent;
   padding: 4px;
   outline: none;
   font-family: inherit;
@@ -113,7 +113,7 @@ const body = computed({
   width: 100%;
   resize: vertical;
   background: none;
-  border: 2px solid transparent;
+  border: var(--border-width-default) solid transparent;
   padding: 4px;
   outline: none;
   font-family: inherit;

@@ -118,7 +118,7 @@ async function addSetting(): Promise<void> {
 }
 
 .settings-list {
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   background: var(--surface);
 }
 
@@ -127,7 +127,7 @@ async function addSetting(): Promise<void> {
   align-items: center;
   justify-content: space-between;
   padding: var(--space-3) var(--space-4);
-  border-bottom: 2px solid var(--border);
+  border-bottom: var(--border-width-default) solid var(--border);
   gap: var(--space-4);
 }
 
@@ -140,7 +140,7 @@ async function addSetting(): Promise<void> {
 
 .settings-value-col { display: flex; align-items: center; gap: var(--space-2); flex-shrink: 0; }
 .settings-value { font-size: var(--text-sm); font-family: var(--font-mono); color: var(--text-dim); }
-.settings-input { font-size: var(--text-sm); padding: 4px 8px; border: 2px solid var(--border); background: var(--surface2); color: var(--text); font-family: var(--font-mono); min-width: 160px; }
+.settings-input { font-size: var(--text-sm); padding: 4px 8px; border: var(--border-width-default) solid var(--border); background: var(--surface2); color: var(--text); font-family: var(--font-mono); min-width: 160px; }
 
 .settings-custom { margin-top: var(--space-6); }
 .settings-section-title { font-size: var(--text-md); font-weight: var(--font-weight-semibold); margin-bottom: var(--space-3); }
@@ -158,5 +158,10 @@ async function addSetting(): Promise<void> {
   color: var(--text-faint);
   text-align: center;
   padding: var(--space-8) 0;
+}
+
+@media (max-width: 768px) {
+  .settings-row { flex-direction: column; align-items: flex-start; gap: var(--space-1); }
+  .settings-add { flex-direction: column; }
 }
 </style>

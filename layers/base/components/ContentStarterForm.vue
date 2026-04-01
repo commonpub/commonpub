@@ -102,7 +102,7 @@ function updateField(key: string, value: unknown): void {
   width: 100%;
   max-width: 600px;
   background: var(--surface);
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   padding: 36px 32px;
   box-shadow: var(--shadow-md);
 }
@@ -136,7 +136,7 @@ function updateField(key: string, value: unknown): void {
   padding: 10px 14px;
   background: var(--red-bg);
   color: var(--red);
-  border: 2px solid var(--red);
+  border: var(--border-width-default) solid var(--red);
   font-size: 0.8125rem;
   font-family: var(--font-mono);
   margin-bottom: 16px;
@@ -158,7 +158,7 @@ function updateField(key: string, value: unknown): void {
 
 .cpub-starter-input {
   padding: 10px 14px;
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   background: var(--surface);
   color: var(--text);
   font-size: 0.875rem;
@@ -181,7 +181,7 @@ function updateField(key: string, value: unknown): void {
   padding: 10px 24px;
   background: var(--accent);
   color: var(--color-text-inverse);
-  border: 2px solid var(--accent);
+  border: var(--border-width-default) solid var(--accent);
   font-size: 0.875rem;
   font-weight: 600;
   text-transform: uppercase;
@@ -201,7 +201,7 @@ function updateField(key: string, value: unknown): void {
   align-items: center;
   padding: 10px 20px;
   background: transparent;
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   color: var(--text-dim);
   font-family: var(--font-mono);
   font-size: 0.875rem;

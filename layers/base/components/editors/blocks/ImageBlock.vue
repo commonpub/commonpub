@@ -165,7 +165,7 @@ async function handleFileSelect(event: Event): Promise<void> {
   font-size: 11px;
   color: var(--red);
   background: var(--red-bg);
-  border: 2px solid var(--red-border);
+  border: var(--border-width-default) solid var(--red-border);
 }
 
 .cpub-image-url-row {
@@ -177,7 +177,7 @@ async function handleFileSelect(event: Event): Promise<void> {
   padding: 6px 10px;
   font-size: 12px;
   background: var(--surface);
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   color: var(--text);
   outline: none;
 }
@@ -200,7 +200,7 @@ async function handleFileSelect(event: Event): Promise<void> {
   object-fit: contain;
   display: block;
   background: var(--surface2);
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
 }
 
 .cpub-image-remove {
@@ -241,7 +241,7 @@ async function handleFileSelect(event: Event): Promise<void> {
   padding: 5px 8px;
   font-size: 11px;
   background: var(--surface);
-  border: 2px solid var(--border2);
+  border: var(--border-width-default) solid var(--border2);
   color: var(--text-dim);
   outline: none;
   font-style: italic;

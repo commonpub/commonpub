@@ -61,7 +61,7 @@ onMounted(() => {
   font-weight: 700;
   color: var(--text-faint);
   background: var(--surface2);
-  border: 2px solid var(--border2);
+  border: var(--border-width-default) solid var(--border2);
   padding: 2px 6px;
   cursor: pointer;
   flex-shrink: 0;

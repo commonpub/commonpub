@@ -53,7 +53,7 @@ defineProps<{
   text-decoration: none;
   display: block;
   padding: 4px 8px;
-  border-left: 2px solid transparent;
+  border-left: var(--border-width-default) solid transparent;
   transition: color 0.15s, border-color 0.15s;
 }
 

@@ -38,6 +38,7 @@ const blockTypes: BlockTypeGroup[] = [
       { type: 'code_block', label: 'Code Block', icon: 'fa-code', description: 'Syntax highlighted code' },
       { type: 'callout', label: 'Callout', icon: 'fa-circle-info', description: 'Tip, warning, or note', attrs: { variant: 'info' } },
       { type: 'embed', label: 'Embed', icon: 'fa-globe', description: 'External embed' },
+      { type: 'markdown', label: 'Markdown', icon: 'fa-brands fa-markdown', description: 'Raw markdown block' },
     ],
   },
 ];
@@ -373,13 +374,13 @@ const canvasMaxWidth = computed(() => {
 .cpub-ae-shell { display: flex; flex: 1; overflow: hidden; }
 
 /* Left panel */
-.cpub-ae-left { width: 240px; flex-shrink: 0; background: var(--surface); border-right: 2px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
-.cpub-ae-left-tabs { display: flex; border-bottom: 2px solid var(--border); flex-shrink: 0; }
+.cpub-ae-left { width: 240px; flex-shrink: 0; background: var(--surface); border-right: var(--border-width-default) solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+.cpub-ae-left-tabs { display: flex; border-bottom: var(--border-width-default) solid var(--border); flex-shrink: 0; }
 .cpub-ae-left-tab {
   flex: 1; padding: 8px 4px; font-family: var(--font-mono); font-size: 10px; font-weight: 600;
   letter-spacing: 0.06em; text-transform: uppercase; text-align: center;
   background: none; border: none; color: var(--text-dim); cursor: pointer;
-  border-bottom: 2px solid transparent; margin-bottom: -2px;
+  border-bottom: var(--border-width-default) solid transparent; margin-bottom: -2px;
 }
 .cpub-ae-left-tab.active { color: var(--accent); border-bottom-color: var(--accent); background: var(--accent-bg); }
 .cpub-ae-left-body { flex: 1; overflow-y: auto; }
@@ -388,12 +389,12 @@ const canvasMaxWidth = computed(() => {
 .cpub-ae-structure-list { padding: 8px; }
 .cpub-ae-structure-item {
   display: flex; align-items: center; gap: 8px; padding: 8px 10px; cursor: pointer;
-  border: 2px solid transparent; transition: all 0.1s;
+  border: var(--border-width-default) solid transparent; transition: all 0.1s;
 }
 .cpub-ae-structure-item:hover { background: var(--surface2); border-color: var(--border2); }
 .cpub-ae-structure-num { font-family: var(--font-mono); font-size: 10px; color: var(--text-faint); font-weight: 600; }
 .cpub-ae-structure-title { flex: 1; font-size: 12px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.cpub-ae-structure-badge { font-family: var(--font-mono); font-size: 9px; color: var(--text-faint); background: var(--surface2); border: 2px solid var(--border2); padding: 1px 6px; }
+.cpub-ae-structure-badge { font-family: var(--font-mono); font-size: 9px; color: var(--text-faint); background: var(--surface2); border: var(--border-width-default) solid var(--border2); padding: 1px 6px; }
 .cpub-ae-structure-hint { font-size: 11px; color: var(--text-dim); line-height: 1.5; padding: 12px; }
 
 /* Assets */
@@ -410,12 +411,12 @@ const canvasMaxWidth = computed(() => {
 .cpub-ae-assets-heading { font-family: var(--font-mono); font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-faint); padding: 4px 0 10px; }
 .cpub-ae-asset-item {
   display: flex; align-items: center; gap: 10px; padding: 8px 10px;
-  background: var(--surface); border: 2px solid var(--border); cursor: pointer;
+  background: var(--surface); border: var(--border-width-default) solid var(--border); cursor: pointer;
   box-shadow: var(--shadow-sm); margin-bottom: 5px;
 }
 .cpub-ae-asset-icon {
   width: 34px; height: 34px; background: var(--surface2); display: flex;
-  align-items: center; justify-content: center; flex-shrink: 0; border: 2px solid var(--border2);
+  align-items: center; justify-content: center; flex-shrink: 0; border: var(--border-width-default) solid var(--border2);
 }
 .cpub-ae-asset-icon i { font-size: 11px; color: var(--text-faint); }
 .cpub-ae-asset-info { flex: 1; min-width: 0; }
@@ -428,11 +429,11 @@ const canvasMaxWidth = computed(() => {
 /* Canvas toolbar */
 .cpub-ae-canvas-toolbar {
   display: flex; align-items: center; gap: 2px; padding: 4px 12px;
-  background: var(--surface); border-bottom: 2px solid var(--border); flex-shrink: 0; min-height: 32px;
+  background: var(--surface); border-bottom: var(--border-width-default) solid var(--border); flex-shrink: 0; min-height: 32px;
 }
 .cpub-ae-tool-btn {
   width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;
-  background: var(--surface2); border: 2px solid var(--border); color: var(--text-dim);
+  background: var(--surface2); border: var(--border-width-default) solid var(--border); color: var(--text-dim);
   font-size: 9px; cursor: pointer;
 }
 .cpub-ae-tool-btn:hover { background: var(--surface3); color: var(--text); }
@@ -440,7 +441,7 @@ const canvasMaxWidth = computed(() => {
 .cpub-ae-viewport-tabs { display: flex; gap: 0; margin-left: auto; }
 .cpub-ae-viewport-tab {
   width: 28px; height: 24px; display: flex; align-items: center; justify-content: center;
-  background: none; border: 2px solid var(--border); border-left-width: 0; color: var(--text-faint);
+  background: none; border: var(--border-width-default) solid var(--border); border-left-width: 0; color: var(--text-faint);
   font-size: 10px; cursor: pointer;
 }
 .cpub-ae-viewport-tab:first-child { border-left-width: 2px; }
@@ -453,7 +454,7 @@ const canvasMaxWidth = computed(() => {
 
 /* Status bar */
 .cpub-ae-statusbar {
-  height: 26px; background: var(--surface); border-top: 2px solid var(--border);
+  height: 26px; background: var(--surface); border-top: var(--border-width-default) solid var(--border);
   display: flex; align-items: center; padding: 0 14px; gap: 18px; flex-shrink: 0;
 }
 .cpub-ae-status-item {
@@ -464,9 +465,9 @@ const canvasMaxWidth = computed(() => {
 .cpub-ae-status-sep { width: 2px; height: 12px; background: var(--border); }
 
 /* Right panel */
-.cpub-ae-right { width: 290px; flex-shrink: 0; background: var(--surface); border-left: 2px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+.cpub-ae-right { width: 290px; flex-shrink: 0; background: var(--surface); border-left: var(--border-width-default) solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
 .cpub-ae-right-header {
-  padding: 12px 16px; border-bottom: 2px solid var(--border); display: flex;
+  padding: 12px 16px; border-bottom: var(--border-width-default) solid var(--border); display: flex;
   align-items: center; gap: 10px; flex-shrink: 0; min-height: 44px;
 }
 .cpub-ae-right-title { font-size: 11px; font-weight: 700; color: var(--text); font-family: var(--font-mono); letter-spacing: 0.04em; text-transform: uppercase; }
@@ -477,7 +478,7 @@ const canvasMaxWidth = computed(() => {
 /* Cover image */
 .cpub-ae-cover {
   position: relative; width: 100%; aspect-ratio: 16/9; background: var(--surface2);
-  border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; overflow: hidden;
+  border: var(--border-width-default) solid var(--border); display: flex; align-items: center; justify-content: center; overflow: hidden;
 }
 .cpub-ae-cover-img { width: 100%; height: 100%; object-fit: cover; }
 .cpub-ae-cover-placeholder { display: flex; flex-direction: column; align-items: center; gap: 6px; }
@@ -492,7 +493,7 @@ const canvasMaxWidth = computed(() => {
 .cpub-ae-cover:focus-within .cpub-ae-cover-overlay,
 .cpub-ae-cover:focus-within .cpub-ae-cover-actions { opacity: 1; }
 .cpub-ae-cover-btn {
-  font-size: 10px; padding: 5px 10px; background: var(--surface); border: 2px solid var(--border);
+  font-size: 10px; padding: 5px 10px; background: var(--surface); border: var(--border-width-default) solid var(--border);
   color: var(--text-dim); cursor: pointer; display: inline-flex; align-items: center; gap: 4px;
   font-family: var(--font-mono); box-shadow: var(--shadow-sm);
 }
@@ -524,7 +525,7 @@ const canvasMaxWidth = computed(() => {
     gap: 8px; z-index: 100;
   }
   .cpub-ae-mobile-btn {
-    width: 44px; height: 44px; border: 2px solid var(--border); background: var(--surface);
+    width: 44px; height: 44px; border: var(--border-width-default) solid var(--border); background: var(--surface);
     color: var(--text-dim); font-size: 16px; cursor: pointer;
     display: flex; align-items: center; justify-content: center;
     box-shadow: var(--shadow-md);

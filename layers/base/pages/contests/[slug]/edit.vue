@@ -131,19 +131,19 @@ async function transitionStatus(newStatus: string): Promise<void> {
 .cpub-back-link:hover { color: var(--accent); }
 .page-title { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
 .page-subtitle { font-size: 13px; color: var(--text-dim); margin-bottom: 24px; display: flex; align-items: center; gap: 8px; }
-.status-badge { font-size: 10px; font-family: var(--font-mono); text-transform: uppercase; padding: 2px 8px; border: 2px solid; }
+.status-badge { font-size: 10px; font-family: var(--font-mono); text-transform: uppercase; padding: 2px 8px; border: var(--border-width-default) solid; }
 .status-upcoming { color: var(--yellow); border-color: var(--yellow-border); background: var(--yellow-bg); }
 .status-active { color: var(--green); border-color: var(--green-border); background: var(--green-bg); }
 .status-judging { color: var(--accent); border-color: var(--accent-border); background: var(--accent-bg); }
 .status-completed { color: var(--text-faint); border-color: var(--border2); background: var(--surface2); }
 
 .edit-form { display: flex; flex-direction: column; gap: 16px; }
-.form-section { border: 2px solid var(--border); background: var(--surface); padding: 20px; box-shadow: var(--shadow-md); }
+.form-section { border: var(--border-width-default) solid var(--border); background: var(--surface); padding: 20px; box-shadow: var(--shadow-md); }
 .form-section-title { font-size: 14px; font-weight: 700; margin-bottom: 14px; }
 .form-field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
 .form-field:last-child { margin-bottom: 0; }
 .form-label { font-size: 10px; font-weight: 600; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-faint); }
-.form-input, .form-textarea { padding: 8px 10px; border: 2px solid var(--border); background: var(--surface); color: var(--text); font-size: 13px; font-family: inherit; }
+.form-input, .form-textarea { padding: 8px 10px; border: var(--border-width-default) solid var(--border); background: var(--surface); color: var(--text); font-size: 13px; font-family: inherit; }
 .form-input:focus, .form-textarea:focus { border-color: var(--accent); outline: none; }
 .form-textarea { resize: vertical; }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }

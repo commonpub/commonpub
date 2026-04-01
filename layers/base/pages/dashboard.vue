@@ -162,11 +162,11 @@ async function deleteItem(id: string, title: string): Promise<void> {
               <time>{{ new Date(item.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) }}</time>
             </span>
             <div class="cpub-dash-row-actions">
-              <NuxtLink :to="`/${item.type}/${item.slug}/edit`" class="cpub-dash-row-action" aria-label="Edit" title="Edit">
-                <i class="fa-solid fa-pen"></i>
+              <NuxtLink :to="`/${item.type}/${item.slug}/edit`" class="cpub-dash-action-btn" aria-label="Edit" title="Edit">
+                <i class="fa-solid fa-pen"></i> Edit
               </NuxtLink>
-              <button class="cpub-dash-row-action cpub-dash-row-action--danger" aria-label="Delete" title="Delete" :disabled="actionLoading === item.id" @click="deleteItem(item.id, item.title)">
-                <i :class="actionLoading === item.id ? 'fa-solid fa-circle-notch fa-spin' : 'fa-solid fa-trash'"></i>
+              <button class="cpub-dash-action-btn cpub-dash-action-btn--danger" aria-label="Delete" title="Delete" :disabled="actionLoading === item.id" @click="deleteItem(item.id, item.title)">
+                <i :class="actionLoading === item.id ? 'fa-solid fa-circle-notch fa-spin' : 'fa-solid fa-trash'"></i> Delete
               </button>
             </div>
           </div>
@@ -187,14 +187,14 @@ async function deleteItem(id: string, title: string): Promise<void> {
               <span><i class="fa-regular fa-heart"></i> {{ item.likeCount ?? 0 }}</span>
             </span>
             <div class="cpub-dash-row-actions">
-              <NuxtLink :to="`/${item.type}/${item.slug}/edit`" class="cpub-dash-row-action" aria-label="Edit" title="Edit">
-                <i class="fa-solid fa-pen"></i>
+              <NuxtLink :to="`/${item.type}/${item.slug}/edit`" class="cpub-dash-action-btn" aria-label="Edit" title="Edit">
+                <i class="fa-solid fa-pen"></i> Edit
               </NuxtLink>
-              <button class="cpub-dash-row-action cpub-dash-row-action--warn" aria-label="Unpublish" title="Unpublish" :disabled="actionLoading === item.id" @click="unpublishItem(item.id)">
-                <i :class="actionLoading === item.id ? 'fa-solid fa-circle-notch fa-spin' : 'fa-solid fa-eye-slash'"></i>
+              <button class="cpub-dash-action-btn cpub-dash-action-btn--warn" aria-label="Unpublish" title="Unpublish" :disabled="actionLoading === item.id" @click="unpublishItem(item.id)">
+                <i :class="actionLoading === item.id ? 'fa-solid fa-circle-notch fa-spin' : 'fa-solid fa-eye-slash'"></i> Unpublish
               </button>
-              <button class="cpub-dash-row-action cpub-dash-row-action--danger" aria-label="Delete" title="Delete" :disabled="actionLoading === item.id" @click="deleteItem(item.id, item.title)">
-                <i :class="actionLoading === item.id ? 'fa-solid fa-circle-notch fa-spin' : 'fa-solid fa-trash'"></i>
+              <button class="cpub-dash-action-btn cpub-dash-action-btn--danger" aria-label="Delete" title="Delete" :disabled="actionLoading === item.id" @click="deleteItem(item.id, item.title)">
+                <i :class="actionLoading === item.id ? 'fa-solid fa-circle-notch fa-spin' : 'fa-solid fa-trash'"></i> Delete
               </button>
             </div>
           </div>
@@ -276,7 +276,7 @@ async function deleteItem(id: string, title: string): Promise<void> {
   padding: 6px 16px;
   background: var(--accent);
   color: var(--color-text-inverse);
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   font-size: 12px;
   font-weight: 600;
   text-decoration: none;
@@ -292,7 +292,7 @@ async function deleteItem(id: string, title: string): Promise<void> {
 .cpub-dash-stats {
   display: flex;
   gap: 0;
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   background: var(--surface);
   margin-bottom: 24px;
 }
@@ -304,7 +304,7 @@ async function deleteItem(id: string, title: string): Promise<void> {
   align-items: center;
   gap: 2px;
   padding: 16px 12px;
-  border-right: 2px solid var(--border);
+  border-right: var(--border-width-default) solid var(--border);
 }
 
 .cpub-dash-stat:last-child {
@@ -330,7 +330,7 @@ async function deleteItem(id: string, title: string): Promise<void> {
 .cpub-dash-tabs {
   display: flex;
   gap: 0;
-  border-bottom: 2px solid var(--border);
+  border-bottom: var(--border-width-default) solid var(--border);
   margin-bottom: 0;
 }
 
@@ -361,12 +361,12 @@ async function deleteItem(id: string, title: string): Promise<void> {
 /* Panel */
 .cpub-dash-panel {
   background: var(--surface);
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   border-top: none;
 }
 
 .cpub-dash-section {
-  border-bottom: 2px solid var(--border);
+  border-bottom: var(--border-width-default) solid var(--border);
 }
 
 .cpub-dash-section:last-child {
@@ -393,7 +393,7 @@ async function deleteItem(id: string, title: string): Promise<void> {
   align-items: center;
   gap: 12px;
   padding: 10px 16px;
-  border-bottom: 2px solid var(--border2);
+  border-bottom: var(--border-width-default) solid var(--border2);
 }
 
 .cpub-dash-row:last-child {
@@ -434,40 +434,49 @@ async function deleteItem(id: string, title: string): Promise<void> {
 .cpub-dash-row-actions {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
   flex-shrink: 0;
 }
 
-.cpub-dash-row-action {
-  width: 24px;
-  height: 24px;
-  display: flex;
+.cpub-dash-action-btn {
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
+  gap: 4px;
+  padding: 3px 10px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
   color: var(--text-faint);
   text-decoration: none;
-  font-size: 10px;
-  flex-shrink: 0;
   background: none;
-  border: none;
+  border: var(--border-width-default) solid var(--border2);
   cursor: pointer;
-  padding: 0;
-  transition: color 0.1s;
+  transition: color 0.1s, border-color 0.1s;
 }
 
-.cpub-dash-row-action:hover {
+.cpub-dash-action-btn:hover {
   color: var(--accent);
+  border-color: var(--accent);
 }
 
-.cpub-dash-row-action--warn:hover {
+.cpub-dash-action-btn--warn {
+  color: var(--text-dim);
+}
+
+.cpub-dash-action-btn--warn:hover {
   color: var(--yellow);
+  border-color: var(--yellow);
+  background: var(--yellow-bg);
 }
 
-.cpub-dash-row-action--danger:hover {
+.cpub-dash-action-btn--danger:hover {
   color: var(--red);
+  border-color: var(--red);
+  background: var(--red-bg);
 }
 
-.cpub-dash-row-action:disabled {
+.cpub-dash-action-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
@@ -476,7 +485,7 @@ async function deleteItem(id: string, title: string): Promise<void> {
   font-size: 10px;
   font-family: var(--font-mono);
   padding: 2px 8px;
-  border: 2px solid var(--border2);
+  border: var(--border-width-default) solid var(--border2);
   background: var(--surface2);
   color: var(--text-dim);
 }
@@ -500,6 +509,13 @@ async function deleteItem(id: string, title: string): Promise<void> {
   }
   .cpub-dash-stat {
     min-width: 33%;
+  }
+  .cpub-dash-row {
+    flex-wrap: wrap;
+  }
+  .cpub-dash-row-actions {
+    width: 100%;
+    margin-top: 4px;
   }
 }
 </style>

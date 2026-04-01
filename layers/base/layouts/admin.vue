@@ -3,6 +3,7 @@ const { isAdmin } = useAuth();
 const { admin: adminEnabled } = useFeatures();
 const runtimeConfig = useRuntimeConfig();
 const siteName = computed(() => (runtimeConfig.public.siteName as string) || 'CommonPub');
+const sidebarOpen = ref(false);
 </script>
 
 <template>
@@ -13,22 +14,25 @@ const siteName = computed(() => (runtimeConfig.public.siteName as string) || 'Co
   <div v-else class="admin-layout">
     <header class="admin-topbar">
       <div class="admin-topbar-inner">
+        <button class="admin-menu-btn" aria-label="Toggle sidebar" @click="sidebarOpen = !sidebarOpen">
+          <i :class="sidebarOpen ? 'fa-solid fa-xmark' : 'fa-solid fa-bars'"></i>
+        </button>
         <NuxtLink to="/" class="admin-brand">{{ siteName }}</NuxtLink>
         <span class="admin-badge">Admin</span>
-        <NuxtLink to="/" class="admin-back">Back to site</NuxtLink>
+        <NuxtLink to="/" class="admin-back"><i class="fa-solid fa-arrow-left"></i> Back to site</NuxtLink>
       </div>
     </header>
 
     <div class="admin-body">
-      <aside class="admin-sidebar" aria-label="Admin navigation">
+      <aside class="admin-sidebar" :class="{ open: sidebarOpen }" aria-label="Admin navigation">
         <nav class="admin-nav">
-          <NuxtLink to="/admin" class="admin-nav-link">Dashboard</NuxtLink>
-          <NuxtLink to="/admin/users" class="admin-nav-link">Users</NuxtLink>
-          <NuxtLink to="/admin/content" class="admin-nav-link">Content</NuxtLink>
-          <NuxtLink to="/admin/reports" class="admin-nav-link">Reports</NuxtLink>
-          <NuxtLink to="/admin/audit" class="admin-nav-link">Audit Log</NuxtLink>
-          <NuxtLink to="/admin/federation" class="admin-nav-link">Federation</NuxtLink>
-          <NuxtLink to="/admin/settings" class="admin-nav-link">Settings</NuxtLink>
+          <NuxtLink to="/admin" class="admin-nav-link" @click="sidebarOpen = false"><i class="fa-solid fa-gauge"></i> Dashboard</NuxtLink>
+          <NuxtLink to="/admin/users" class="admin-nav-link" @click="sidebarOpen = false"><i class="fa-solid fa-users"></i> Users</NuxtLink>
+          <NuxtLink to="/admin/content" class="admin-nav-link" @click="sidebarOpen = false"><i class="fa-solid fa-newspaper"></i> Content</NuxtLink>
+          <NuxtLink to="/admin/reports" class="admin-nav-link" @click="sidebarOpen = false"><i class="fa-solid fa-flag"></i> Reports</NuxtLink>
+          <NuxtLink to="/admin/audit" class="admin-nav-link" @click="sidebarOpen = false"><i class="fa-solid fa-clipboard-list"></i> Audit Log</NuxtLink>
+          <NuxtLink to="/admin/federation" class="admin-nav-link" @click="sidebarOpen = false"><i class="fa-solid fa-globe"></i> Federation</NuxtLink>
+          <NuxtLink to="/admin/settings" class="admin-nav-link" @click="sidebarOpen = false"><i class="fa-solid fa-gear"></i> Settings</NuxtLink>
         </nav>
       </aside>
 
@@ -57,11 +61,14 @@ const siteName = computed(() => (runtimeConfig.public.siteName as string) || 'Co
 
 .admin-topbar {
   height: var(--nav-height);
-  border-bottom: 2px solid var(--border);
+  border-bottom: var(--border-width-default) solid var(--border);
   background: var(--surface);
   display: flex;
   align-items: center;
   padding: 0 var(--space-4);
+  position: sticky;
+  top: 0;
+  z-index: 50;
 }
 
 .admin-topbar-inner {
@@ -69,6 +76,19 @@ const siteName = computed(() => (runtimeConfig.public.siteName as string) || 'Co
   align-items: center;
   width: 100%;
   gap: var(--space-3);
+}
+
+.admin-menu-btn {
+  display: none;
+  width: 36px;
+  height: 36px;
+  background: none;
+  border: var(--border-width-default) solid var(--border);
+  color: var(--text-dim);
+  font-size: 16px;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
 }
 
 .admin-brand {
@@ -93,6 +113,9 @@ const siteName = computed(() => (runtimeConfig.public.siteName as string) || 'Co
   color: var(--text-dim);
   text-decoration: none;
   font-size: var(--text-sm);
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .admin-back:hover {
@@ -106,15 +129,16 @@ const siteName = computed(() => (runtimeConfig.public.siteName as string) || 'Co
 
 .admin-sidebar {
   width: 200px;
-  border-right: 2px solid var(--border);
+  border-right: var(--border-width-default) solid var(--border);
   background: var(--surface);
-  padding: var(--space-4);
+  padding: var(--space-4) var(--space-2);
+  flex-shrink: 0;
 }
 
 .admin-nav {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: 2px;
 }
 
 .admin-nav-link {
@@ -122,11 +146,27 @@ const siteName = computed(() => (runtimeConfig.public.siteName as string) || 'Co
   text-decoration: none;
   font-size: var(--text-sm);
   padding: var(--space-2) var(--space-3);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: color 0.12s, background 0.12s;
+}
+
+.admin-nav-link i {
+  width: 16px;
+  text-align: center;
+  font-size: 12px;
 }
 
 .admin-nav-link:hover {
   color: var(--text);
   background: var(--surface2);
+}
+
+.admin-nav-link.router-link-exact-active {
+  color: var(--accent);
+  background: var(--accent-bg);
+  font-weight: 600;
 }
 
 .admin-nav-link:focus-visible {
@@ -137,11 +177,37 @@ const siteName = computed(() => (runtimeConfig.public.siteName as string) || 'Co
 .admin-main {
   flex: 1;
   padding: var(--space-6);
+  min-width: 0;
 }
 
 .admin-denied {
   text-align: center;
   padding: var(--space-10) 0;
   color: var(--text-dim);
+}
+
+.admin-denied h1 {
+  font-size: var(--text-xl);
+  margin-bottom: var(--space-2);
+}
+
+@media (max-width: 768px) {
+  .admin-menu-btn { display: flex; }
+  .admin-sidebar {
+    position: fixed;
+    top: var(--nav-height);
+    left: 0;
+    bottom: 0;
+    z-index: 40;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+    box-shadow: none;
+    width: 220px;
+  }
+  .admin-sidebar.open {
+    transform: translateX(0);
+    box-shadow: var(--shadow-lg);
+  }
+  .admin-main { padding: var(--space-4); }
 }
 </style>

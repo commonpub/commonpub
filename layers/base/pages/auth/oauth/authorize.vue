@@ -97,7 +97,7 @@ function deny() {
   max-width: 420px;
   margin: var(--space-8) auto;
   padding: var(--space-6);
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   background: var(--surface-1);
 }
 
@@ -112,7 +112,7 @@ function deny() {
 }
 
 .cpub-oauth-consent__details {
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   padding: var(--space-3);
   margin-bottom: var(--space-4);
 }
@@ -138,7 +138,7 @@ function deny() {
 
 .cpub-oauth-consent__error {
   padding: var(--space-2) var(--space-3);
-  border: 2px solid var(--error);
+  border: var(--border-width-default) solid var(--error);
   color: var(--error);
   margin-bottom: var(--space-4);
 }
@@ -156,7 +156,7 @@ function deny() {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   cursor: pointer;
-  border: 2px solid;
+  border: var(--border-width-default) solid;
 }
 
 .cpub-oauth-consent__btn--approve {

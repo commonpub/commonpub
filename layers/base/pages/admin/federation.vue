@@ -129,7 +129,7 @@ async function repairTypes(): Promise<void> {
 
 // Tools: re-federate
 const refederating = ref(false);
-const refederateResult = ref<{ queued: number; content?: number; hubs?: number; hubPosts?: number } | null>(null);
+const refederateResult = ref<{ queued: number; content?: number; hubs?: number; hubsFound?: number; hubPosts?: number } | null>(null);
 
 async function refederate(): Promise<void> {
   refederating.value = true;
@@ -326,7 +326,7 @@ async function refederate(): Promise<void> {
           <div v-if="refederateResult" class="cpub-fed-tool-result">
             Queued {{ refederateResult.queued }} items for delivery.
             <span v-if="refederateResult.content !== undefined" style="display: block; font-size: 12px; color: var(--text-faint); margin-top: 4px">
-              {{ refederateResult.content }} content, {{ refederateResult.hubs ?? 0 }} hubs, {{ refederateResult.hubPosts ?? 0 }} hub posts
+              {{ refederateResult.content }} content, {{ refederateResult.hubs ?? 0 }}/{{ refederateResult.hubsFound ?? '?' }} hubs announced, {{ refederateResult.hubPosts ?? 0 }} hub posts
             </span>
           </div>
         </div>
@@ -342,7 +342,7 @@ async function refederate(): Promise<void> {
   display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 12px; margin-bottom: 24px;
 }
 .cpub-fed-stat {
-  padding: 16px; background: var(--surface); border: 2px solid var(--border);
+  padding: 16px; background: var(--surface); border: var(--border-width-default) solid var(--border);
   display: flex; flex-direction: column; align-items: center; gap: 4px;
   box-shadow: var(--shadow-md);
 }
@@ -353,13 +353,13 @@ async function refederate(): Promise<void> {
 }
 
 .cpub-fed-tabs {
-  display: flex; gap: 0; margin-bottom: 16px; border-bottom: 2px solid var(--border);
+  display: flex; gap: 0; margin-bottom: 16px; border-bottom: var(--border-width-default) solid var(--border);
 }
 .cpub-fed-tabs button {
   padding: 8px 16px; font-family: var(--font-mono); font-size: 11px; font-weight: 600;
   text-transform: uppercase; letter-spacing: 0.06em; cursor: pointer;
   background: transparent; border: none; color: var(--text-dim);
-  border-bottom: 2px solid transparent; margin-bottom: -2px;
+  border-bottom: var(--border-width-default) solid transparent; margin-bottom: -2px;
 }
 .cpub-fed-tabs button.active {
   color: var(--accent); border-bottom-color: var(--accent);
@@ -370,12 +370,12 @@ async function refederate(): Promise<void> {
 }
 .cpub-fed-input {
   flex: 1; padding: 8px 12px; font-family: var(--font-mono); font-size: 0.8125rem;
-  border: 2px solid var(--border); background: var(--surface); color: var(--text);
+  border: var(--border-width-default) solid var(--border); background: var(--surface); color: var(--text);
 }
 .cpub-fed-btn {
   padding: 8px 16px; font-family: var(--font-mono); font-size: 11px; font-weight: 600;
   text-transform: uppercase; letter-spacing: 0.06em; cursor: pointer;
-  background: var(--accent); color: var(--color-text-inverse); border: 2px solid var(--accent);
+  background: var(--accent); color: var(--color-text-inverse); border: var(--border-width-default) solid var(--accent);
   box-shadow: var(--shadow-sm); transition: box-shadow 0.15s, transform 0.15s;
 }
 .cpub-fed-btn:hover { box-shadow: none; transform: translate(2px, 2px); }
@@ -383,32 +383,32 @@ async function refederate(): Promise<void> {
 .cpub-fed-btn-sm {
   padding: 2px 8px; font-family: var(--font-mono); font-size: 10px; font-weight: 600;
   text-transform: uppercase; cursor: pointer; background: transparent;
-  border: 2px solid var(--border); color: var(--text-dim);
+  border: var(--border-width-default) solid var(--border); color: var(--text-dim);
 }
 .cpub-fed-btn-sm:hover { border-color: var(--accent); color: var(--accent); }
 .cpub-fed-btn-sm:disabled { opacity: 0.5; cursor: not-allowed; }
 .cpub-fed-btn-danger:hover { border-color: var(--red); color: var(--red); }
 
 .cpub-fed-activity-list {
-  border: 2px solid var(--border); overflow: hidden;
+  border: var(--border-width-default) solid var(--border); overflow: hidden;
   box-shadow: var(--shadow-md);
 }
 .cpub-fed-empty { padding: 24px; text-align: center; color: var(--text-faint); font-size: 0.8125rem; }
 .cpub-fed-activity-row {
   display: flex; align-items: center; gap: 10px; padding: 10px 14px;
-  border-bottom: 2px solid var(--border); font-size: 0.75rem;
+  border-bottom: var(--border-width-default) solid var(--border); font-size: 0.75rem;
 }
 .cpub-fed-activity-row:last-child { border-bottom: none; }
 .cpub-fed-dir {
   font-size: 10px; font-weight: 700; padding: 2px 6px;
   text-transform: uppercase; letter-spacing: 0.06em; font-family: var(--font-mono);
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
 }
 .cpub-fed-dir.inbound { background: var(--accent-bg); color: var(--accent); border-color: var(--accent-border); }
 .cpub-fed-dir.outbound { background: var(--surface2); color: var(--text-dim); }
 .cpub-fed-type { font-weight: 600; color: var(--text); min-width: 60px; font-family: var(--font-mono); }
 .cpub-fed-actor { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-dim); font-family: var(--font-mono); }
-.cpub-fed-status { font-size: 10px; font-weight: 600; padding: 2px 6px; text-transform: uppercase; font-family: var(--font-mono); border: 2px solid var(--border); }
+.cpub-fed-status { font-size: 10px; font-weight: 600; padding: 2px 6px; text-transform: uppercase; font-family: var(--font-mono); border: var(--border-width-default) solid var(--border); }
 .cpub-fed-status.delivered, .cpub-fed-status.processed, .cpub-fed-status.active { color: var(--accent); border-color: var(--accent-border); background: var(--accent-bg); }
 .cpub-fed-status.pending { color: var(--text-dim); }
 .cpub-fed-status.paused { color: var(--text-dim); background: var(--surface2); }
@@ -420,13 +420,13 @@ async function refederate(): Promise<void> {
 
 .cpub-fed-result {
   margin-top: 8px; padding: 10px 14px; font-size: 0.8125rem; font-family: var(--font-mono);
-  background: var(--accent-bg); border: 2px solid var(--accent-border); color: var(--text);
+  background: var(--accent-bg); border: var(--border-width-default) solid var(--accent-border); color: var(--text);
 }
 
 /* Tools tab */
 .cpub-fed-tools { display: flex; flex-direction: column; gap: 16px; }
 .cpub-fed-tool-card {
-  padding: 20px; background: var(--surface); border: 2px solid var(--border);
+  padding: 20px; background: var(--surface); border: var(--border-width-default) solid var(--border);
   box-shadow: var(--shadow-sm);
 }
 .cpub-fed-tool-title {
@@ -441,6 +441,6 @@ async function refederate(): Promise<void> {
 .cpub-fed-tool-desc code { font-family: var(--font-mono); background: var(--surface2); padding: 1px 4px; }
 .cpub-fed-tool-result {
   margin-top: 10px; padding: 10px 14px; font-size: 0.8125rem; font-family: var(--font-mono);
-  background: var(--accent-bg); border: 2px solid var(--accent-border); color: var(--text);
+  background: var(--accent-bg); border: var(--border-width-default) solid var(--accent-border); color: var(--text);
 }
 </style>

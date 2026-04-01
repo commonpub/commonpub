@@ -66,7 +66,7 @@ const activeTab = defineModel<string>('activeTab', { required: true });
   border: none;
   background: none;
   cursor: pointer;
-  border-bottom: 2px solid transparent;
+  border-bottom: var(--border-width-default) solid transparent;
   display: flex;
   align-items: center;
   gap: 6px;

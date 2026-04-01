@@ -325,7 +325,7 @@ const videoEmbedUrl = computed(() => {
 
 .lesson-section {
   background: var(--surface);
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   padding: 20px;
   margin-bottom: 20px;
   box-shadow: var(--shadow-md);
@@ -340,7 +340,7 @@ const videoEmbedUrl = computed(() => {
 .form-label { font-size: 11px; font-weight: 600; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-faint); }
 .form-input, .form-select, .form-textarea {
   padding: 8px 10px;
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   background: var(--surface);
   color: var(--text);
   font-size: 13px;
@@ -353,7 +353,7 @@ const videoEmbedUrl = computed(() => {
 .lesson-editor {
   width: 100%;
   padding: 12px 14px;
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   background: var(--surface2);
   color: var(--text);
   font-size: 13px;
@@ -369,7 +369,7 @@ const videoEmbedUrl = computed(() => {
 /* Video preview */
 .video-preview {
   margin-top: 12px;
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   background: var(--surface2);
   box-shadow: var(--shadow-md);
 }
@@ -378,14 +378,14 @@ const videoEmbedUrl = computed(() => {
 
 /* Quiz builder */
 .quiz-question-card {
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   padding: 16px;
   margin-bottom: 12px;
   background: var(--surface2);
 }
 
 .quiz-q-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-.quiz-q-number { font-size: 12px; font-family: var(--font-mono); font-weight: 700; color: var(--accent); background: var(--accent-bg); padding: 2px 8px; border: 2px solid var(--accent-border); }
+.quiz-q-number { font-size: 12px; font-family: var(--font-mono); font-weight: 700; color: var(--accent); background: var(--accent-bg); padding: 2px 8px; border: var(--border-width-default) solid var(--accent-border); }
 
 .quiz-options { display: flex; flex-direction: column; gap: 6px; margin: 8px 0; }
 
@@ -405,9 +405,9 @@ const videoEmbedUrl = computed(() => {
 
 /* Linked content */
 .linked-content-info { display: flex; flex-direction: column; gap: 12px; }
-.linked-content-card { display: flex; align-items: center; padding: 12px 14px; background: var(--surface2); border: 2px solid var(--border); }
+.linked-content-card { display: flex; align-items: center; padding: 12px 14px; background: var(--surface2); border: var(--border-width-default) solid var(--border); }
 .linked-content-title { font-size: 14px; font-weight: 600; }
 .linked-content-actions { display: flex; gap: 8px; }
 .linked-content-hint { font-size: 11px; color: var(--text-faint); line-height: 1.5; }
-.cpub-lesson-type-badge { font-size: 9px; font-family: var(--font-mono); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; padding: 2px 7px; border: 2px solid var(--accent-border); background: var(--accent-bg); color: var(--accent); flex-shrink: 0; }
+.cpub-lesson-type-badge { font-size: 9px; font-family: var(--font-mono); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; padding: 2px 7px; border: var(--border-width-default) solid var(--accent-border); background: var(--accent-bg); color: var(--accent); flex-shrink: 0; }
 </style>

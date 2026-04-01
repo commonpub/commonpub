@@ -374,7 +374,7 @@ async function handleMarkdownImport(md: string, importMode: 'append' | 'replace'
 .cpub-editor-topbar {
   height: 48px;
   background: var(--surface);
-  border-bottom: 2px solid var(--border);
+  border-bottom: var(--border-width-default) solid var(--border);
   display: flex;
   align-items: center;
   padding: 0 16px;
@@ -397,7 +397,7 @@ async function handleMarkdownImport(md: string, importMode: 'append' | 'replace'
 .cpub-editor-back {
   width: 30px; height: 30px;
   background: none;
-  border: 2px solid transparent;
+  border: var(--border-width-default) solid transparent;
   color: var(--text-dim);
   cursor: pointer;
   display: flex; align-items: center; justify-content: center;
@@ -427,7 +427,7 @@ async function handleMarkdownImport(md: string, importMode: 'append' | 'replace'
   font-weight: 500;
   color: var(--text);
   background: none;
-  border: 2px solid transparent;
+  border: var(--border-width-default) solid transparent;
   padding: 4px 8px;
   cursor: text;
   white-space: nowrap;
@@ -468,7 +468,7 @@ async function handleMarkdownImport(md: string, importMode: 'append' | 'replace'
 .cpub-mode-tabs {
   display: flex;
   background: var(--surface2);
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   padding: 2px;
   flex-shrink: 0;
   margin: 0 10px;
@@ -505,7 +505,7 @@ async function handleMarkdownImport(md: string, importMode: 'append' | 'replace'
   font-family: var(--font-sans, system-ui);
   font-size: 12px;
   padding: 6px 14px;
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   background: var(--surface);
   color: var(--text);
   cursor: pointer;
@@ -526,7 +526,7 @@ async function handleMarkdownImport(md: string, importMode: 'append' | 'replace'
   padding: 10px 16px;
   background: var(--red-bg);
   color: var(--red);
-  border-bottom: 2px solid var(--red);
+  border-bottom: var(--border-width-default) solid var(--red);
   font-size: 12px;
   font-family: var(--font-mono);
   display: flex;
@@ -653,7 +653,7 @@ async function handleMarkdownImport(md: string, importMode: 'append' | 'replace'
   gap: 6px;
   padding: 6px 14px;
   background: var(--surface);
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   color: var(--text);
   font-family: var(--font-mono);
   font-size: 11px;

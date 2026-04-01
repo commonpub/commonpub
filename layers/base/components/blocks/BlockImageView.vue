@@ -21,7 +21,7 @@ const caption = computed(() => (props.content.caption as string) || '');
 .cpub-image-img {
   width: 100%;
   display: block;
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
 }
 
 .cpub-image-caption {

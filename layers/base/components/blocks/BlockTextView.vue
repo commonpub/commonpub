@@ -27,7 +27,7 @@ const html = computed(() => sanitizeBlockHtml((props.content.html as string) || 
   font-size: 13px;
   color: var(--teal);
   background: var(--surface2);
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   padding: 1px 6px;
 }
 .cpub-block-text :deep(ul),

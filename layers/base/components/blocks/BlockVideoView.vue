@@ -50,7 +50,7 @@ const platform = computed(() => {
 <style scoped>
 .cpub-block-video {
   margin: 24px 0;
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   overflow: hidden;
   box-shadow: var(--shadow-md);
 }
@@ -64,7 +64,7 @@ const platform = computed(() => {
   letter-spacing: 0.06em;
   color: var(--text-faint);
   background: var(--surface2);
-  border-bottom: 2px solid var(--border);
+  border-bottom: var(--border-width-default) solid var(--border);
   display: flex;
   align-items: center;
   gap: 6px;

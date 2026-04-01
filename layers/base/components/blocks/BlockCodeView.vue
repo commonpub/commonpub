@@ -143,7 +143,7 @@ pre.hljs .hljs-title.class_ { color: #ffa657; }
 
 <style scoped>
 .cpub-block-code {
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   overflow: hidden;
   margin: 20px 0;
 }
@@ -154,7 +154,7 @@ pre.hljs .hljs-title.class_ { color: #ffa657; }
   gap: 8px;
   padding: 8px 14px;
   background: #161b22;
-  border-bottom: 2px solid var(--border);
+  border-bottom: var(--border-width-default) solid var(--border);
 }
 
 .cpub-code-lang {
@@ -178,7 +178,7 @@ pre.hljs .hljs-title.class_ { color: #ffa657; }
   font-size: 10px;
   color: #8b949e;
   background: transparent;
-  border: 2px solid #30363d;
+  border: var(--border-width-default) solid #30363d;
   padding: 3px 8px;
   cursor: pointer;
   display: flex;

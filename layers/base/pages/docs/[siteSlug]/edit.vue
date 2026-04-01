@@ -422,7 +422,7 @@ const sortedPages = computed(() => {
 .cpub-back-link { color: var(--accent); text-decoration: none; font-size: 12px; }
 .cpub-back-link:hover { text-decoration: underline; }
 
-.edit-section { border: 2px solid var(--border); background: var(--surface); padding: 20px; margin-bottom: 16px; box-shadow: var(--shadow-md); }
+.edit-section { border: var(--border-width-default) solid var(--border); background: var(--surface); padding: 20px; margin-bottom: 16px; box-shadow: var(--shadow-md); }
 .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
 .section-heading { font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
 .section-heading i { font-size: 12px; color: var(--accent); }
@@ -433,18 +433,18 @@ const sortedPages = computed(() => {
 .form-row { display: flex; gap: 10px; }
 
 .new-form { display: flex; flex-direction: column; gap: 10px; padding: 16px; border: 2px dashed var(--border); margin-bottom: 16px; background: var(--surface2); }
-.edit-input { padding: 6px 10px; border: 2px solid var(--border); background: var(--surface); color: var(--text); font-size: 13px; }
+.edit-input { padding: 6px 10px; border: var(--border-width-default) solid var(--border); background: var(--surface); color: var(--text); font-size: 13px; }
 .edit-input:focus { border-color: var(--accent); outline: none; }
-.edit-select { padding: 6px 10px; border: 2px solid var(--border); background: var(--surface); color: var(--text); font-size: 12px; }
+.edit-select { padding: 6px 10px; border: var(--border-width-default) solid var(--border); background: var(--surface); color: var(--text); font-size: 12px; }
 .edit-select:focus { border-color: var(--accent); outline: none; }
-.edit-textarea { padding: 8px 10px; border: 2px solid var(--border); background: var(--surface); color: var(--text); font-size: 13px; resize: vertical; font-family: inherit; }
+.edit-textarea { padding: 8px 10px; border: var(--border-width-default) solid var(--border); background: var(--surface); color: var(--text); font-size: 13px; resize: vertical; font-family: inherit; }
 .edit-textarea-md { font-family: var(--font-mono); font-size: 13px; line-height: 1.6; min-height: 120px; }
 .edit-textarea:focus { border-color: var(--accent); outline: none; }
 .form-actions { display: flex; gap: 8px; margin-top: 4px; }
 
 /* Markdown toolbar */
-.md-toolbar { display: flex; gap: 2px; padding: 4px; background: var(--surface2); border: 2px solid var(--border); border-bottom: none; }
-.md-btn { padding: 4px 8px; background: none; border: 2px solid transparent; color: var(--text-dim); cursor: pointer; font-size: 12px; font-family: var(--font-mono); display: inline-flex; align-items: center; gap: 4px; }
+.md-toolbar { display: flex; gap: 2px; padding: 4px; background: var(--surface2); border: var(--border-width-default) solid var(--border); border-bottom: none; }
+.md-btn { padding: 4px 8px; background: none; border: var(--border-width-default) solid transparent; color: var(--text-dim); cursor: pointer; font-size: 12px; font-family: var(--font-mono); display: inline-flex; align-items: center; gap: 4px; }
 .md-btn:hover { background: var(--surface); border-color: var(--border); }
 .md-btn.active { background: var(--accent-bg); color: var(--accent); border-color: var(--accent-border); }
 .md-spacer { flex: 1; }
@@ -453,28 +453,28 @@ const sortedPages = computed(() => {
 .editor-pane { display: flex; gap: 0; }
 .editor-pane .edit-textarea-md { flex: 1; border-top: none; }
 .editor-pane.with-preview .edit-textarea-md { width: 50%; }
-.preview-pane { flex: 1; padding: 0; border: 2px solid var(--border); border-left: none; border-top: none; background: var(--surface); overflow-y: auto; max-height: 400px; }
+.preview-pane { flex: 1; padding: 0; border: var(--border-width-default) solid var(--border); border-left: none; border-top: none; background: var(--surface); overflow-y: auto; max-height: 400px; }
 .preview-md { margin: 0; padding: 12px 16px; font-size: 12px; font-family: var(--font-mono); line-height: 1.6; color: var(--text-dim); white-space: pre-wrap; word-wrap: break-word; }
 
 /* Page list */
 .page-list { display: flex; flex-direction: column; }
-.page-item { padding: 12px 0; border-bottom: 2px solid var(--border2); }
+.page-item { padding: 12px 0; border-bottom: var(--border-width-default) solid var(--border2); }
 .page-item:last-child { border-bottom: none; }
 .page-item-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .page-item-info { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
 .page-item-title { font-size: 13px; font-weight: 600; }
 .page-item-slug { font-size: 11px; font-family: var(--font-mono); color: var(--text-faint); }
-.page-item-child-badge { font-size: 9px; font-family: var(--font-mono); color: var(--accent); background: var(--accent-bg); padding: 1px 6px; border: 2px solid var(--accent-border); }
+.page-item-child-badge { font-size: 9px; font-family: var(--font-mono); color: var(--accent); background: var(--accent-bg); padding: 1px 6px; border: var(--border-width-default) solid var(--accent-border); }
 .page-item-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
-.page-action-btn { padding: 4px 6px; background: none; border: 2px solid var(--border2); color: var(--text-faint); cursor: pointer; font-size: 10px; }
+.page-action-btn { padding: 4px 6px; background: none; border: var(--border-width-default) solid var(--border2); color: var(--text-faint); cursor: pointer; font-size: 10px; }
 .page-action-btn:hover { color: var(--text); border-color: var(--border); }
 .page-action-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 .page-action-delete:hover { color: var(--red); border-color: var(--red); }
 
 .version-list { display: flex; flex-wrap: wrap; gap: 8px; }
-.version-item { display: flex; align-items: center; gap: 8px; padding: 6px 12px; border: 2px solid var(--border); background: var(--surface2); font-size: 12px; font-family: var(--font-mono); }
+.version-item { display: flex; align-items: center; gap: 8px; padding: 6px 12px; border: var(--border-width-default) solid var(--border); background: var(--surface2); font-size: 12px; font-family: var(--font-mono); }
 .version-label { font-weight: 600; }
-.version-default-badge { font-size: 10px; padding: 1px 6px; background: var(--accent-bg); color: var(--accent); border: 2px solid var(--accent-border); }
+.version-default-badge { font-size: 10px; padding: 1px 6px; background: var(--accent-bg); color: var(--accent); border: var(--border-width-default) solid var(--accent-border); }
 
 .edit-empty { color: var(--text-faint); font-size: 12px; padding: 16px 0; }
 </style>

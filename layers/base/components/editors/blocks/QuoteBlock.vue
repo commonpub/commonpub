@@ -53,7 +53,7 @@ function onAttributionInput(event: Event): void {
   display: flex;
   gap: 0;
   background: var(--surface2);
-  border: 2px solid var(--border2);
+  border: var(--border-width-default) solid var(--border2);
 }
 
 .cpub-quote-bar {

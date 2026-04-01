@@ -606,7 +606,7 @@ async function handleBuild(): Promise<void> {
 }
 
 .cpub-chip {
-  border: 2px solid currentColor;
+  border: var(--border-width-default) solid currentColor;
   padding: 8px 16px;
   font-size: 10px;
 }
@@ -737,7 +737,7 @@ async function handleBuild(): Promise<void> {
   width: 36px;
   height: 36px;
   object-fit: cover;
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
 }
 
 .cpub-author-meta-row {
@@ -935,6 +935,14 @@ async function handleBuild(): Promise<void> {
   color: var(--accent);
 }
 
+.cpub-prose :deep(pre code) {
+  background: none;
+  border: none;
+  padding: 0;
+  color: inherit;
+  font-size: inherit;
+}
+
 .cpub-prose :deep(hr) {
   border: none;
   border-top: 1px solid var(--border);
@@ -978,7 +986,7 @@ async function handleBuild(): Promise<void> {
   font-size: 11px; line-height: 1.35; color: var(--text-faint);
   padding: 5px 0 5px 12px;
   margin-left: -1px;
-  border-left: 2px solid transparent;
+  border-left: var(--border-width-default) solid transparent;
   transition: color 0.15s, font-size 0.15s, border-color 0.15s;
 }
 .cpub-toc-item:hover { color: var(--text); }
@@ -1326,7 +1334,7 @@ async function handleBuild(): Promise<void> {
 .cpub-linked-product-icon {
   width: 32px; height: 32px;
   background: var(--accent-bg);
-  border: 2px solid var(--accent-border);
+  border: var(--border-width-default) solid var(--accent-border);
   display: flex; align-items: center; justify-content: center;
   font-size: 12px; color: var(--accent); flex-shrink: 0;
 }
@@ -1452,7 +1460,7 @@ async function handleBuild(): Promise<void> {
 .cpub-file-download {
   width: 32px; height: 32px;
   display: flex; align-items: center; justify-content: center;
-  background: var(--accent-bg); border: 2px solid var(--accent-border);
+  background: var(--accent-bg); border: var(--border-width-default) solid var(--accent-border);
   color: var(--accent); font-size: 12px; text-decoration: none; flex-shrink: 0;
 }
 

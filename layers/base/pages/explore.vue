@@ -189,7 +189,8 @@ const sortOptions = [
           class="cpub-explore-hub-card"
         >
           <div class="cpub-explore-hub-icon" style="border-radius: 50%">
-            <span style="font-weight: 700; font-family: var(--font-mono);">{{ (person.displayName || person.username).charAt(0).toUpperCase() }}</span>
+            <img v-if="person.avatarUrl" :src="person.avatarUrl" :alt="person.displayName || person.username" class="cpub-explore-person-avatar-img" />
+            <span v-else style="font-weight: 700; font-family: var(--font-mono);">{{ (person.displayName || person.username).charAt(0).toUpperCase() }}</span>
           </div>
           <div class="cpub-explore-hub-body">
             <h3 class="cpub-explore-hub-name">{{ person.displayName || person.username }}</h3>
@@ -233,7 +234,7 @@ const sortOptions = [
 .cpub-explore-stats {
   display: flex;
   gap: 0;
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   background: var(--surface);
   margin-bottom: 20px;
 }
@@ -245,7 +246,7 @@ const sortOptions = [
   align-items: center;
   gap: 2px;
   padding: 14px;
-  border-right: 2px solid var(--border);
+  border-right: var(--border-width-default) solid var(--border);
 }
 
 .cpub-explore-stat:last-child { border-right: none; }
@@ -267,7 +268,7 @@ const sortOptions = [
 /* Tabs */
 .cpub-explore-tabs {
   display: flex;
-  border-bottom: 2px solid var(--border);
+  border-bottom: var(--border-width-default) solid var(--border);
   margin-bottom: 0;
 }
 
@@ -314,7 +315,7 @@ const sortOptions = [
   font-family: var(--font-mono);
   font-size: 10px;
   padding: 4px 10px;
-  border: 2px solid var(--border2);
+  border: var(--border-width-default) solid var(--border2);
   background: var(--surface);
   color: var(--text-dim);
   cursor: pointer;
@@ -327,7 +328,7 @@ const sortOptions = [
   font-family: var(--font-mono);
   font-size: 10px;
   padding: 5px 8px;
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   background: var(--surface);
   color: var(--text-dim);
   cursor: pointer;
@@ -353,7 +354,7 @@ const sortOptions = [
   gap: 12px;
   padding: 14px;
   background: var(--surface);
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   text-decoration: none;
   color: inherit;
   transition: box-shadow 0.15s;
@@ -365,14 +366,16 @@ const sortOptions = [
   width: 40px;
   height: 40px;
   background: var(--accent-bg);
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 16px;
   color: var(--accent);
   flex-shrink: 0;
+  overflow: hidden;
 }
+.cpub-explore-person-avatar-img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
 
 .cpub-explore-hub-body { flex: 1; min-width: 0; }
 .cpub-explore-hub-name { font-size: 13px; font-weight: 600; margin-bottom: 3px; }
@@ -383,7 +386,7 @@ const sortOptions = [
 .cpub-explore-path-card {
   padding: 16px;
   background: var(--surface);
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   text-decoration: none;
   color: inherit;
   transition: box-shadow 0.15s;
@@ -395,7 +398,7 @@ const sortOptions = [
   width: 32px;
   height: 32px;
   background: var(--green-bg);
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   display: flex;
   align-items: center;
   justify-content: center;

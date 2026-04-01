@@ -71,7 +71,7 @@ function removeTag(idx: number): void {
   font-family: var(--font-mono);
   padding: 2px 8px;
   background: var(--surface2);
-  border: 2px solid var(--border2);
+  border: var(--border-width-default) solid var(--border2);
   color: var(--text-dim);
 }
 
@@ -97,7 +97,7 @@ function removeTag(idx: number): void {
 .cpub-tag-input {
   width: 100%;
   background: var(--surface);
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   padding: 5px 8px;
   font-size: 11px;
   color: var(--text);

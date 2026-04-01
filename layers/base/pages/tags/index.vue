@@ -55,7 +55,7 @@ const tags = computed(() => {
 .tag-chip {
   display: inline-flex; align-items: center; gap: 4px;
   padding: 8px 14px;
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   background: var(--surface);
   color: var(--text);
   text-decoration: none;

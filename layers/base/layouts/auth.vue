@@ -55,7 +55,7 @@
 .auth-card {
   width: 100%;
   background: var(--surface);
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow-md);
   padding: var(--space-6);

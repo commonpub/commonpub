@@ -166,7 +166,7 @@ const placeColors = ['var(--yellow)', 'var(--text-faint)', '#a0724a', 'var(--acc
 
 .contest-form { display: flex; flex-direction: column; gap: 20px; }
 
-.form-section { border: 2px solid var(--border); background: var(--surface); padding: 20px; box-shadow: var(--shadow-md); }
+.form-section { border: var(--border-width-default) solid var(--border); background: var(--surface); padding: 20px; box-shadow: var(--shadow-md); }
 .form-section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
 .form-section-title { font-size: 14px; font-weight: 700; margin-bottom: 16px; }
 .form-section-header .form-section-title { margin-bottom: 0; }
@@ -174,13 +174,19 @@ const placeColors = ['var(--yellow)', 'var(--text-faint)', '#a0724a', 'var(--acc
 .form-field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
 .form-field:last-child { margin-bottom: 0; }
 .form-label { font-size: 10px; font-weight: 600; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-faint); }
-.form-input, .form-textarea { padding: 8px 10px; border: 2px solid var(--border); background: var(--surface); color: var(--text); font-size: 13px; font-family: inherit; }
+.form-input, .form-textarea { padding: 8px 10px; border: var(--border-width-default) solid var(--border); background: var(--surface); color: var(--text); font-size: 13px; font-family: inherit; }
 .form-input:focus, .form-textarea:focus { border-color: var(--accent); outline: none; }
 .form-textarea { resize: vertical; }
 .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
 
-.prize-card { border: 2px solid var(--border); padding: 14px; margin-bottom: 10px; background: var(--surface2); }
+.prize-card { border: var(--border-width-default) solid var(--border); padding: 14px; margin-bottom: 10px; background: var(--surface2); }
 .prize-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
 .prize-place { font-size: 12px; font-weight: 700; font-family: var(--font-mono); display: flex; align-items: center; gap: 6px; }
 
+@media (max-width: 768px) {
+  .contest-create { padding: 16px; }
+  .page-title { font-size: 20px; }
+  .form-section { padding: 14px; }
+  .form-row { grid-template-columns: 1fr; }
+}
 </style>

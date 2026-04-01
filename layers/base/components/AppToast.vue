@@ -47,7 +47,7 @@ const { toasts, dismiss } = useToast();
   align-items: center;
   gap: 8px;
   padding: 10px 14px;
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   background: var(--surface);
   color: var(--text);
   font-size: 12px;

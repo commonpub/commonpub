@@ -54,7 +54,7 @@ const options = [
   align-items: center;
   gap: 10px;
   padding: 8px 10px;
-  border: 2px solid var(--border2);
+  border: var(--border-width-default) solid var(--border2);
   cursor: pointer;
   transition: border-color 0.1s, background 0.1s;
 }

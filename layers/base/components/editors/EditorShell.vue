@@ -71,7 +71,7 @@ function toggleRight(): void {
   width: 220px;
   flex-shrink: 0;
   background: var(--surface);
-  border-right: 2px solid var(--border);
+  border-right: var(--border-width-default) solid var(--border);
   overflow-y: auto;
   padding: var(--space-4);
 }
@@ -87,7 +87,7 @@ function toggleRight(): void {
   width: 280px;
   flex-shrink: 0;
   background: var(--surface);
-  border-left: 2px solid var(--border);
+  border-left: var(--border-width-default) solid var(--border);
   overflow-y: auto;
   padding: var(--space-4);
 }
@@ -149,7 +149,7 @@ function toggleRight(): void {
   .cpub-editor-toggle-btn {
     width: 44px;
     height: 44px;
-    border: 2px solid var(--border);
+    border: var(--border-width-default) solid var(--border);
     background: var(--surface);
     color: var(--text-dim);
     font-size: 16px;

@@ -68,7 +68,7 @@ async function onUnfollow(actorUri: string) {
 .cpub-remote-search__input {
   flex: 1;
   padding: var(--space-2) var(--space-3);
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   background: var(--surface-1);
   color: var(--text-1);
   font-family: var(--font-mono);
@@ -82,7 +82,7 @@ async function onUnfollow(actorUri: string) {
 
 .cpub-remote-search__btn {
   padding: var(--space-2) var(--space-4);
-  border: 2px solid var(--accent);
+  border: var(--border-width-default) solid var(--accent);
   background: var(--accent);
   color: var(--surface-1);
   font-family: var(--font-mono);
@@ -100,7 +100,7 @@ async function onUnfollow(actorUri: string) {
 .cpub-remote-search__error {
   margin-top: var(--space-3);
   padding: var(--space-2) var(--space-3);
-  border: 2px solid var(--error);
+  border: var(--border-width-default) solid var(--error);
   color: var(--error);
   font-size: var(--font-size-sm);
 }

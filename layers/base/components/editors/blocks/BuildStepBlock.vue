@@ -52,19 +52,24 @@ function updateField(field: string, value: unknown): void {
 </template>
 
 <style scoped>
-.cpub-step-block { border: 2px solid var(--border2); background: var(--surface); }
+.cpub-step-block {
+  border: var(--border-width-default) solid var(--accent-border);
+  border-left: 4px solid var(--accent);
+  background: var(--surface);
+}
 
 .cpub-step-header {
   display: flex; align-items: center; gap: 12px;
   padding: 12px 16px;
-  border-bottom: 2px solid var(--border2);
-  background: var(--surface2);
+  border-bottom: var(--border-width-default) solid var(--border2);
+  background: var(--accent-bg);
 }
 
 .cpub-step-num {
   width: 32px; height: 32px;
   background: var(--accent); color: var(--color-text-inverse);
   font-family: var(--font-mono); font-size: 14px; font-weight: 700;
+  border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
 }
@@ -78,7 +83,7 @@ function updateField(field: string, value: unknown): void {
 
 .cpub-step-time {
   width: 80px; font-family: var(--font-mono); font-size: 10px;
-  background: transparent; border: 2px solid var(--border2);
+  background: transparent; border: var(--border-width-default) solid var(--border2);
   padding: 3px 6px; color: var(--text-dim); outline: none;
   text-align: center;
 }

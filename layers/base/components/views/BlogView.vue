@@ -375,6 +375,14 @@ const hasSeries = computed(() => !!seriesTitle.value && seriesTotalParts.value >
   padding: 1px 6px;
 }
 
+.cpub-prose :deep(pre code) {
+  background: none;
+  border: none;
+  padding: 0;
+  color: inherit;
+  font-size: inherit;
+}
+
 .cpub-prose :deep(ul),
 .cpub-prose :deep(ol) {
   margin: 0 0 18px 20px;
@@ -434,7 +442,7 @@ const hasSeries = computed(() => !!seriesTitle.value && seriesTotalParts.value >
   width: 28px;
   height: 28px;
   background: var(--pink-bg);
-  border: 2px solid var(--pink);
+  border: var(--border-width-default) solid var(--pink);
   display: flex;
   align-items: center;
   justify-content: center;

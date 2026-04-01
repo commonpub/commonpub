@@ -90,16 +90,16 @@ async function toggleFeatured(id: string, current: boolean): Promise<void> {
 .cpub-admin-title { font-size: var(--text-xl); font-weight: var(--font-weight-bold); margin-bottom: var(--space-6); }
 .cpub-admin-table-wrap { overflow-x: auto; }
 .cpub-admin-table { width: 100%; border-collapse: collapse; }
-.cpub-admin-table th { font-family: var(--font-mono); font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-dim); text-align: left; padding: 8px 12px; border-bottom: 2px solid var(--border); }
-.cpub-admin-table td { padding: 8px 12px; border-bottom: 2px solid var(--border2); font-size: 13px; }
+.cpub-admin-table th { font-family: var(--font-mono); font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-dim); text-align: left; padding: 8px 12px; border-bottom: var(--border-width-default) solid var(--border); }
+.cpub-admin-table td { padding: 8px 12px; border-bottom: var(--border-width-default) solid var(--border2); font-size: 13px; }
 .cpub-admin-link { color: var(--text); text-decoration: none; font-weight: 500; }
 .cpub-admin-link:hover { color: var(--accent); }
 .cpub-admin-author { font-size: 12px; color: var(--text-dim); }
 .cpub-admin-num { font-family: var(--font-mono); font-size: 11px; color: var(--text-faint); }
 .cpub-admin-date { font-family: var(--font-mono); font-size: 11px; color: var(--text-faint); }
 .cpub-status-badge { font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; padding: 2px 8px; }
-.cpub-status-published { color: var(--green); background: var(--green-bg); border: 2px solid var(--green-border); }
-.cpub-status-draft { color: var(--text-dim); background: var(--surface2); border: 2px solid var(--border2); }
+.cpub-status-published { color: var(--green); background: var(--green-bg); border: var(--border-width-default) solid var(--green-border); }
+.cpub-status-draft { color: var(--text-dim); background: var(--surface2); border: var(--border-width-default) solid var(--border2); }
 .cpub-admin-actions { display: flex; gap: 6px; }
 .cpub-admin-action { background: none; border: none; color: var(--text-faint); cursor: pointer; font-size: 12px; padding: 4px 6px; }
 .cpub-admin-action:hover { color: var(--accent); }
@@ -107,4 +107,10 @@ async function toggleFeatured(id: string, current: boolean): Promise<void> {
 .cpub-admin-action--danger:hover { color: var(--red); }
 .cpub-admin-federated-tag { font-family: var(--font-mono); font-size: 9px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.04em; display: flex; align-items: center; gap: 3px; }
 .cpub-empty { color: var(--text-faint); text-align: center; padding: var(--space-10) 0; }
+
+@media (max-width: 768px) {
+  .cpub-admin-title { font-size: var(--text-lg); }
+  .cpub-admin-table { font-size: var(--text-xs); display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .cpub-admin-table th, .cpub-admin-table td { padding: var(--space-1) var(--space-2); white-space: nowrap; }
+}
 </style>

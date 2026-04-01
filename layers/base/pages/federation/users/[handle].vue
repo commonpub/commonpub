@@ -141,7 +141,7 @@ function stripHtml(html: string): string {
   width: 72px;
   height: 72px;
   object-fit: cover;
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   flex-shrink: 0;
 }
 .cpub-remote-profile__avatar--placeholder {
@@ -162,7 +162,7 @@ function stripHtml(html: string): string {
 }
 .cpub-remote-profile__follow-btn {
   padding: var(--space-2) var(--space-4);
-  border: 2px solid var(--accent);
+  border: var(--border-width-default) solid var(--accent);
   background: transparent;
   color: var(--accent);
   font-family: var(--font-mono);
@@ -197,7 +197,7 @@ function stripHtml(html: string): string {
   color: var(--text-2);
   margin-bottom: var(--space-6);
   padding-bottom: var(--space-4);
-  border-bottom: 2px solid var(--border);
+  border-bottom: var(--border-width-default) solid var(--border);
 }
 .cpub-remote-profile__instance {
   margin-left: auto;

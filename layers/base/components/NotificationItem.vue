@@ -47,8 +47,8 @@ const iconMap: Record<string, string> = {
   align-items: flex-start;
   gap: 12px;
   padding: 12px;
-  border: 2px solid transparent;
-  border-bottom: 2px solid var(--border2);
+  border: var(--border-width-default) solid transparent;
+  border-bottom: var(--border-width-default) solid var(--border2);
 }
 
 .cpub-notif.unread {
@@ -63,7 +63,7 @@ const iconMap: Record<string, string> = {
   align-items: center;
   justify-content: center;
   background: var(--surface2);
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   font-size: 11px;
   color: var(--text-dim);
   flex-shrink: 0;

@@ -115,7 +115,7 @@ const formattedDate = computed((): string => {
   text-transform: uppercase;
   letter-spacing: var(--tracking-widest);
   color: var(--accent);
-  border-bottom: 2px solid var(--accent-border);
+  border-bottom: var(--border-width-default) solid var(--accent-border);
 }
 
 .cpub-feed-item-body {
@@ -137,7 +137,7 @@ const formattedDate = computed((): string => {
   font-weight: var(--font-weight-semibold);
   text-transform: uppercase;
   letter-spacing: var(--tracking-wide);
-  border: 2px solid;
+  border: var(--border-width-default) solid;
 }
 
 .cpub-feed-badge-accent {
@@ -210,7 +210,7 @@ const formattedDate = computed((): string => {
   border-radius: var(--radius-full);
   overflow: hidden;
   flex-shrink: 0;
-  border: 2px solid var(--border2);
+  border: var(--border-width-default) solid var(--border2);
 }
 
 .cpub-feed-avatar img {

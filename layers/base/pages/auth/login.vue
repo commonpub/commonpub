@@ -115,7 +115,7 @@ async function handleSubmit(): Promise<void> {
   padding: var(--space-3);
   background: var(--red-bg);
   color: var(--red);
-  border: 2px solid var(--red);
+  border: var(--border-width-default) solid var(--red);
   border-radius: var(--radius);
   font-size: 12px;
 }
@@ -137,7 +137,7 @@ async function handleSubmit(): Promise<void> {
 
 .field-input {
   padding: 8px 12px;
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   border-radius: var(--radius);
   background: var(--surface);
   color: var(--text);
@@ -161,7 +161,7 @@ async function handleSubmit(): Promise<void> {
   padding: 7px 14px;
   background: var(--accent);
   color: var(--color-text-inverse);
-  border: 2px solid var(--accent);
+  border: var(--border-width-default) solid var(--accent);
   border-radius: var(--radius);
   font-size: 13px;
   font-weight: 500;

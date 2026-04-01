@@ -14,15 +14,27 @@ useSeoMeta({
 });
 
 const form = reactive({
-  name: hub.value?.name ?? '',
-  description: hub.value?.description ?? '',
-  iconUrl: hub.value?.iconUrl ?? '',
-  bannerUrl: hub.value?.bannerUrl ?? '',
-  rules: Array.isArray(hub.value?.rules) ? (hub.value!.rules as string[]).join('\n') : (hub.value?.rules ?? ''),
-  joinPolicy: hub.value?.joinPolicy ?? 'open',
-  privacy: hub.value?.privacy ?? 'public',
-  website: hub.value?.website ?? '',
+  name: '',
+  description: '',
+  iconUrl: '',
+  bannerUrl: '',
+  rules: '',
+  joinPolicy: 'open',
+  privacy: 'public',
+  website: '',
 });
+
+watch(hub, (h) => {
+  if (!h) return;
+  form.name = h.name ?? '';
+  form.description = h.description ?? '';
+  form.iconUrl = h.iconUrl ?? '';
+  form.bannerUrl = h.bannerUrl ?? '';
+  form.rules = Array.isArray(h.rules) ? (h.rules as string[]).join('\n') : (h.rules ?? '');
+  form.joinPolicy = h.joinPolicy ?? 'open';
+  form.privacy = h.privacy ?? 'public';
+  form.website = h.website ?? '';
+}, { immediate: true });
 
 const saving = ref(false);
 const { extract: extractError } = useApiError();
@@ -198,7 +210,7 @@ async function handleSave(): Promise<void> {
 
 .cpub-field-input {
   padding: 8px 12px;
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   background: var(--surface);
   color: var(--text);
   font-size: 13px;

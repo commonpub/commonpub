@@ -171,14 +171,16 @@ async function handleReport(): Promise<void> {
     <section class="cpub-profile-hero">
       <!-- Banner -->
       <div class="cpub-profile-banner">
-        <div class="cpub-profile-banner-grid" />
+        <img v-if="p.bannerUrl" :src="p.bannerUrl" :alt="`${p.displayName || p.username} banner`" class="cpub-profile-banner-img" />
+        <div v-else class="cpub-profile-banner-grid" />
       </div>
 
       <div class="cpub-profile-hero-inner">
         <div class="cpub-profile-hero-top">
           <div class="cpub-profile-avatar-wrap">
             <div class="cpub-profile-avatar">
-              {{ (p.displayName || p.username || 'U').charAt(0).toUpperCase() }}
+              <img v-if="p.avatarUrl" :src="p.avatarUrl" :alt="p.displayName || p.username" class="cpub-profile-avatar-img" />
+              <span v-else>{{ (p.displayName || p.username || 'U').charAt(0).toUpperCase() }}</span>
             </div>
           </div>
           <div class="cpub-profile-hero-info">
@@ -409,6 +411,12 @@ async function handleReport(): Promise<void> {
   overflow: hidden;
 }
 
+.cpub-profile-banner-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .cpub-profile-banner-grid {
   position: absolute;
   inset: 0;
@@ -422,7 +430,7 @@ async function handleReport(): Promise<void> {
 /* Profile Hero */
 .cpub-profile-hero {
   background: var(--surface2);
-  border-bottom: 2px solid var(--border);
+  border-bottom: var(--border-width-default) solid var(--border);
   padding: 0;
 }
 
@@ -462,8 +470,15 @@ async function handleReport(): Promise<void> {
   font-weight: 700;
   color: var(--accent);
   font-family: var(--font-mono);
+  overflow: hidden;
 }
 
+.cpub-profile-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
 
 .cpub-profile-hero-info {
   flex: 1;
@@ -547,7 +562,7 @@ async function handleReport(): Promise<void> {
   width: 28px;
   height: 28px;
   background: var(--surface);
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   color: var(--text-dim);
   display: flex;
   align-items: center;
@@ -565,14 +580,14 @@ async function handleReport(): Promise<void> {
 .cpub-profile-stats {
   display: flex;
   gap: 0;
-  border-top: 2px solid var(--border);
+  border-top: var(--border-width-default) solid var(--border);
   margin-top: 16px;
 }
 
 .cpub-profile-stat {
   flex: 1;
   padding: 14px 20px;
-  border-right: 2px solid var(--border);
+  border-right: var(--border-width-default) solid var(--border);
   cursor: pointer;
 }
 
@@ -604,7 +619,7 @@ async function handleReport(): Promise<void> {
 /* Profile Tabs */
 .cpub-profile-tabs {
   background: var(--surface);
-  border-bottom: 2px solid var(--border);
+  border-bottom: var(--border-width-default) solid var(--border);
   position: sticky;
   top: 48px;
   z-index: 90;
@@ -708,7 +723,7 @@ async function handleReport(): Promise<void> {
   gap: 10px;
   margin-bottom: 10px;
   padding-bottom: 10px;
-  border-bottom: 2px solid var(--border2);
+  border-bottom: var(--border-width-default) solid var(--border2);
 }
 
 .cpub-mini-project:last-child { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
@@ -722,7 +737,7 @@ async function handleReport(): Promise<void> {
   align-items: center;
   justify-content: center;
   font-size: 14px;
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   color: var(--accent);
 }
 
@@ -732,23 +747,23 @@ async function handleReport(): Promise<void> {
 
 /* Certificates list */
 .cpub-cert-list { display: flex; flex-direction: column; gap: 8px; }
-.cpub-cert-card-profile { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border: 2px solid var(--border); background: var(--surface); text-decoration: none; color: var(--text); box-shadow: var(--shadow-md); transition: box-shadow 0.15s, transform 0.15s; }
+.cpub-cert-card-profile { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border: var(--border-width-default) solid var(--border); background: var(--surface); text-decoration: none; color: var(--text); box-shadow: var(--shadow-md); transition: box-shadow 0.15s, transform 0.15s; }
 .cpub-cert-card-profile:hover { box-shadow: var(--shadow-sm); transform: translate(1px, 1px); }
-.cpub-cert-card-badge { width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--yellow); background: var(--yellow-bg); display: flex; align-items: center; justify-content: center; font-size: 18px; color: var(--yellow); flex-shrink: 0; }
+.cpub-cert-card-badge { width: 40px; height: 40px; border-radius: 50%; border: var(--border-width-default) solid var(--yellow); background: var(--yellow-bg); display: flex; align-items: center; justify-content: center; font-size: 18px; color: var(--yellow); flex-shrink: 0; }
 .cpub-cert-card-info { flex: 1; }
 .cpub-cert-card-path { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
 .cpub-cert-card-date { font-size: 11px; font-family: var(--font-mono); color: var(--text-faint); }
-.cpub-cert-card-code { font-size: 10px; font-family: var(--font-mono); color: var(--accent); background: var(--accent-bg); padding: 2px 8px; border: 2px solid var(--accent-border); flex-shrink: 0; }
+.cpub-cert-card-code { font-size: 10px; font-family: var(--font-mono); color: var(--accent); background: var(--accent-bg); padding: 2px 8px; border: var(--border-width-default) solid var(--accent-border); flex-shrink: 0; }
 
 /* Enrollment list */
 .cpub-enrollment-list { display: flex; flex-direction: column; gap: 8px; }
-.cpub-enrollment-card { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border: 2px solid var(--border); background: var(--surface); text-decoration: none; color: var(--text); box-shadow: var(--shadow-md); transition: box-shadow 0.15s, transform 0.15s; }
+.cpub-enrollment-card { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border: var(--border-width-default) solid var(--border); background: var(--surface); text-decoration: none; color: var(--text); box-shadow: var(--shadow-md); transition: box-shadow 0.15s, transform 0.15s; }
 .cpub-enrollment-card:hover { box-shadow: var(--shadow-sm); transform: translate(1px, 1px); }
-.cpub-enrollment-icon { width: 40px; height: 40px; border: 2px solid var(--border); background: var(--surface2); display: flex; align-items: center; justify-content: center; font-size: 16px; color: var(--accent); flex-shrink: 0; }
+.cpub-enrollment-icon { width: 40px; height: 40px; border: var(--border-width-default) solid var(--border); background: var(--surface2); display: flex; align-items: center; justify-content: center; font-size: 16px; color: var(--accent); flex-shrink: 0; }
 .cpub-enrollment-info { flex: 1; }
 .cpub-enrollment-title { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
 .cpub-enrollment-progress-row { display: flex; align-items: center; gap: 8px; }
-.cpub-enrollment-bar { flex: 1; height: 4px; background: var(--surface3); border: 2px solid var(--border2); }
+.cpub-enrollment-bar { flex: 1; height: 4px; background: var(--surface3); border: var(--border-width-default) solid var(--border2); }
 .cpub-enrollment-fill { height: 100%; background: var(--accent); }
 .cpub-enrollment-pct { font-size: 11px; font-family: var(--font-mono); color: var(--accent); flex-shrink: 0; }
 
@@ -767,7 +782,7 @@ async function handleReport(): Promise<void> {
   top: calc(100% + 4px);
   right: 0;
   background: var(--surface);
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   box-shadow: var(--shadow-md);
   z-index: 100;
   min-width: 140px;
@@ -810,7 +825,7 @@ async function handleReport(): Promise<void> {
   }
   .cpub-profile-stat {
     min-width: 50%;
-    border-bottom: 2px solid var(--border);
+    border-bottom: var(--border-width-default) solid var(--border);
   }
   .cpub-about-grid {
     grid-template-columns: 1fr;

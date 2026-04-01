@@ -99,7 +99,7 @@ const lastReplyFormatted = computed((): string | null => {
   width: 28px;
   height: 22px;
   background: none;
-  border: 2px solid var(--border2);
+  border: var(--border-width-default) solid var(--border2);
   color: var(--text-faint);
   cursor: pointer;
   font-size: var(--text-xs);
@@ -157,7 +157,7 @@ const lastReplyFormatted = computed((): string | null => {
   letter-spacing: var(--tracking-wide);
   color: var(--green);
   background: var(--green-bg);
-  border: 2px solid var(--green-border);
+  border: var(--border-width-default) solid var(--green-border);
 }
 
 .cpub-discussion-meta {

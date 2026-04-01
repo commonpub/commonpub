@@ -89,7 +89,7 @@ const stateIcons: Record<string, string> = {
 <style scoped>
 .cpub-block-slider {
   background: var(--surface);
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   border-left: 4px solid var(--accent);
   padding: 22px 24px;
   margin: 28px 0;
@@ -110,7 +110,7 @@ const stateIcons: Record<string, string> = {
   align-items: center;
   justify-content: center;
   background: var(--accent-bg);
-  border: 2px solid var(--accent-border);
+  border: var(--border-width-default) solid var(--accent-border);
   color: var(--accent);
   font-size: 13px;
   flex-shrink: 0;
@@ -160,7 +160,7 @@ const stateIcons: Record<string, string> = {
   width: 100%;
   height: 6px;
   background: var(--surface3);
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   outline: none;
   cursor: pointer;
   position: relative;
@@ -173,7 +173,7 @@ const stateIcons: Record<string, string> = {
   width: 18px;
   height: 18px;
   background: var(--accent);
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   cursor: pointer;
   box-shadow: var(--shadow-sm);
 }
@@ -182,7 +182,7 @@ const stateIcons: Record<string, string> = {
   width: 18px;
   height: 18px;
   background: var(--accent);
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   cursor: pointer;
   box-shadow: var(--shadow-sm);
 }
@@ -213,21 +213,21 @@ const stateIcons: Record<string, string> = {
 .cpub-slider-output.state-slow,
 .cpub-slider-output.state-low {
   background: var(--yellow-bg);
-  border: 2px solid var(--yellow-border);
+  border: var(--border-width-default) solid var(--yellow-border);
   color: var(--yellow);
 }
 
 .cpub-slider-output.state-ok,
 .cpub-slider-output.state-good {
   background: var(--green-bg);
-  border: 2px solid var(--green-border);
+  border: var(--border-width-default) solid var(--green-border);
   color: var(--green);
 }
 
 .cpub-slider-output.state-high,
 .cpub-slider-output.state-danger {
   background: var(--red-bg);
-  border: 2px solid var(--red-border);
+  border: var(--border-width-default) solid var(--red-border);
   color: var(--red);
 }
 

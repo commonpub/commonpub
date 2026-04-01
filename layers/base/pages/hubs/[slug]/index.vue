@@ -82,7 +82,7 @@ const membersVM = computed<HubMemberViewModel[]>(() => {
     name: m.user.displayName || m.user.username || 'Unknown',
     username: m.user.username,
     role: m.role,
-    avatarUrl: null,
+    avatarUrl: m.user.avatarUrl ?? null,
     profileLink: `/u/${m.user.username}`,
     joinedAt: m.joinedAt,
   }));
@@ -366,7 +366,10 @@ async function onRefreshGallery(): Promise<void> {
       <HubSidebar>
         <HubSidebarCard title="Moderators">
           <div v-for="mod in moderators" :key="mod.username" class="cpub-mod-item">
-            <div class="cpub-mod-avatar">{{ mod.name.charAt(0).toUpperCase() }}</div>
+            <div class="cpub-mod-avatar">
+              <img v-if="mod.avatarUrl" :src="mod.avatarUrl" :alt="mod.name" class="cpub-mod-avatar-img" />
+              <span v-else>{{ mod.name.charAt(0).toUpperCase() }}</span>
+            </div>
             <div class="cpub-mod-info">
               <NuxtLink :to="mod.profileLink" class="cpub-mod-name">{{ mod.name }}</NuxtLink>
               <div class="cpub-mod-role">{{ mod.role }}</div>
@@ -470,7 +473,9 @@ async function onRefreshGallery(): Promise<void> {
   background: var(--accent-bg); border: 1px solid var(--accent-border);
   display: flex; align-items: center; justify-content: center;
   font-size: 11px; font-weight: 600; color: var(--accent); flex-shrink: 0;
+  overflow: hidden;
 }
+.cpub-mod-avatar-img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
 .cpub-mod-info { flex: 1; }
 .cpub-mod-name { font-size: 11px; font-weight: 500; }
 .cpub-mod-role { font-size: 0.6875rem; color: var(--text-faint); }

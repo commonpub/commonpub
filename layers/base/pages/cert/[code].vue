@@ -71,7 +71,7 @@ useSeoMeta({
 }
 
 .cert-card {
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   background: var(--surface);
   padding: 40px;
   text-align: center;
@@ -112,7 +112,7 @@ useSeoMeta({
   line-height: 1.2;
 }
 
-.cert-recipient { margin-bottom: 24px; padding: 16px 0; border-top: 2px solid var(--border); border-bottom: 2px solid var(--border); }
+.cert-recipient { margin-bottom: 24px; padding: 16px 0; border-top: var(--border-width-default) solid var(--border); border-bottom: var(--border-width-default) solid var(--border); }
 .cert-recipient-label { font-size: 10px; font-family: var(--font-mono); color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px; }
 .cert-recipient-name { font-size: 20px; font-weight: 700; color: var(--accent); text-decoration: none; }
 .cert-recipient-name:hover { text-decoration: underline; }
@@ -121,7 +121,7 @@ useSeoMeta({
 .cert-detail { display: flex; flex-direction: column; gap: 4px; }
 .cert-detail-label { font-size: 10px; font-family: var(--font-mono); color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.08em; }
 .cert-detail-value { font-size: 13px; color: var(--text); }
-.cert-code { font-family: var(--font-mono); font-weight: 600; color: var(--accent); background: var(--accent-bg); padding: 2px 8px; border: 2px solid var(--accent-border); }
+.cert-code { font-family: var(--font-mono); font-weight: 600; color: var(--accent); background: var(--accent-bg); padding: 2px 8px; border: var(--border-width-default) solid var(--accent-border); }
 
 .cert-footer { margin-top: 8px; }
 .cert-path-link { font-size: 12px; color: var(--accent); text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
@@ -143,4 +143,12 @@ useSeoMeta({
 .cert-not-found-icon { font-size: 40px; color: var(--red); margin-bottom: 16px; }
 .cert-not-found h1 { font-size: 20px; margin-bottom: 8px; }
 .cert-not-found p { font-size: 13px; }
+
+@media (max-width: 768px) {
+  .cert-page { padding: 24px 16px; }
+  .cert-card { padding: 24px 16px; }
+  .cert-title { font-size: 1.125rem; }
+  .cert-recipient-name { font-size: 1rem; }
+  .cert-details { flex-direction: column; gap: 12px; }
+}
 </style>

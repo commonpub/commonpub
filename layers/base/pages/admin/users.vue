@@ -123,19 +123,19 @@ async function deleteUser(userId: string, username: string): Promise<void> {
 
 <style scoped>
 .admin-page-title { font-size: var(--text-xl); font-weight: var(--font-weight-bold); margin-bottom: 16px; }
-.admin-search { width: 100%; max-width: 400px; padding: 6px 10px; border: 2px solid var(--border); background: var(--surface); color: var(--text); font-size: 13px; margin-bottom: 16px; }
+.admin-search { width: 100%; max-width: 400px; padding: 6px 10px; border: var(--border-width-default) solid var(--border); background: var(--surface); color: var(--text); font-size: 13px; margin-bottom: 16px; }
 .admin-search:focus { outline: none; border-color: var(--accent); }
 .admin-table-wrap { overflow-x: auto; }
 .admin-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-.admin-table th { text-align: left; padding: 8px 12px; border-bottom: 2px solid var(--border); font-weight: 600; color: var(--text-dim); font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; font-family: var(--font-mono); }
-.admin-table td { padding: 8px 12px; border-bottom: 2px solid var(--border2); }
+.admin-table th { text-align: left; padding: 8px 12px; border-bottom: var(--border-width-default) solid var(--border); font-weight: 600; color: var(--text-dim); font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; font-family: var(--font-mono); }
+.admin-table td { padding: 8px 12px; border-bottom: var(--border-width-default) solid var(--border2); }
 .admin-link { color: var(--accent); text-decoration: none; font-weight: 500; }
 .admin-link:hover { text-decoration: underline; }
 .admin-email { font-size: 12px; color: var(--text-dim); }
 .admin-date { font-size: 11px; font-family: var(--font-mono); color: var(--text-faint); }
-.admin-role-select { padding: 3px 6px; border: 2px solid var(--border2); background: var(--surface); color: var(--text-dim); font-size: 11px; font-family: var(--font-mono); text-transform: capitalize; cursor: pointer; }
+.admin-role-select { padding: 3px 6px; border: var(--border-width-default) solid var(--border2); background: var(--surface); color: var(--text-dim); font-size: 11px; font-family: var(--font-mono); text-transform: capitalize; cursor: pointer; }
 .admin-role-select:focus { border-color: var(--accent); outline: none; }
-.admin-status-btn { font-size: 10px; font-family: var(--font-mono); text-transform: uppercase; padding: 2px 8px; cursor: pointer; border: 2px solid; background: none; }
+.admin-status-btn { font-size: 10px; font-family: var(--font-mono); text-transform: uppercase; padding: 2px 8px; cursor: pointer; border: var(--border-width-default) solid; background: none; }
 .status-active { color: var(--green); border-color: var(--green-border); background: var(--green-bg); }
 .status-suspended { color: var(--red); border-color: var(--red-border); background: var(--red-bg); }
 .admin-status-btn:hover { opacity: 0.8; }

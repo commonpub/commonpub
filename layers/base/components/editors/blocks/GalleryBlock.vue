@@ -139,7 +139,7 @@ function updateImageField(index: number, field: keyof GalleryImage, value: strin
   position: relative;
   aspect-ratio: 4/3;
   overflow: hidden;
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   background: var(--surface2);
 }
 
@@ -180,7 +180,7 @@ function updateImageField(index: number, field: keyof GalleryImage, value: strin
   padding: 4px 6px;
   font-size: 10px;
   background: var(--surface);
-  border: 2px solid var(--border2);
+  border: var(--border-width-default) solid var(--border2);
   color: var(--text-dim);
   outline: none;
   font-style: italic;

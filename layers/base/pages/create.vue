@@ -130,7 +130,7 @@ const types = computed(() => allTypes.filter(t => isTypeEnabled(t.type as Conten
   gap: 20px;
   padding: 20px 24px;
   background: var(--surface);
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   text-decoration: none;
   color: inherit;
   box-shadow: var(--shadow-md);
@@ -150,7 +150,7 @@ const types = computed(() => allTypes.filter(t => isTypeEnabled(t.type as Conten
   justify-content: center;
   font-size: 22px;
   flex-shrink: 0;
-  border: 2px solid;
+  border: var(--border-width-default) solid;
   position: relative;
 }
 
@@ -166,7 +166,7 @@ const types = computed(() => allTypes.filter(t => isTypeEnabled(t.type as Conten
   padding: 2px 6px;
   background: var(--accent);
   color: var(--color-text-inverse);
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
 }
 
 .cpub-create-card-body {
@@ -193,7 +193,7 @@ const types = computed(() => allTypes.filter(t => isTypeEnabled(t.type as Conten
   align-items: center;
   justify-content: center;
   background: var(--surface2);
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   color: var(--text-faint);
   font-size: 12px;
   flex-shrink: 0;

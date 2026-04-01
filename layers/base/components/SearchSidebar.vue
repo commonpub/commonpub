@@ -89,21 +89,21 @@ const { hubs: hubsEnabled } = useFeatures();
 
 <style scoped>
 .cpub-sb-block {
-  background: var(--surface); border: 2px solid var(--border); padding: 20px;
+  background: var(--surface); border: var(--border-width-default) solid var(--border); padding: 20px;
   margin-bottom: 18px; box-shadow: var(--shadow-md);
 }
 
 .cpub-sb-heading {
   font-size: 10px; font-family: var(--font-mono); font-weight: 700;
   color: var(--text-faint); letter-spacing: 0.12em; text-transform: uppercase;
-  margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid var(--border);
+  margin-bottom: 12px; padding-bottom: 8px; border-bottom: var(--border-width-default) solid var(--border);
 }
 
 .cpub-pop-search-list { list-style: none; }
 
 .cpub-pop-search-item {
   display: flex; align-items: center; gap: 8px; padding: 7px 0;
-  border-bottom: 2px solid var(--border2); cursor: pointer;
+  border-bottom: var(--border-width-default) solid var(--border2); cursor: pointer;
 }
 
 .cpub-pop-search-item:last-child { border-bottom: none; }
@@ -129,7 +129,7 @@ const { hubs: hubsEnabled } = useFeatures();
 
 .cpub-s-tag {
   font-size: 10px; font-family: var(--font-mono); padding: 4px 10px;
-  border: 2px solid var(--border); background: var(--surface2); color: var(--text-dim);
+  border: var(--border-width-default) solid var(--border); background: var(--surface2); color: var(--text-dim);
   cursor: pointer; transition: all 0.15s;
 }
 
@@ -143,7 +143,7 @@ const { hubs: hubsEnabled } = useFeatures();
 .cpub-cat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 
 .cpub-cat-cell {
-  background: var(--surface2); border: 2px solid var(--border); padding: 10px;
+  background: var(--surface2); border: var(--border-width-default) solid var(--border); padding: 10px;
   cursor: pointer; transition: border-color 0.15s, background 0.15s; text-align: center;
 }
 
@@ -155,7 +155,7 @@ const { hubs: hubsEnabled } = useFeatures();
 
 .cpub-related-hub-item {
   display: flex; align-items: center; gap: 10px; padding: 8px 0;
-  border-bottom: 2px solid var(--border2); cursor: pointer;
+  border-bottom: var(--border-width-default) solid var(--border2); cursor: pointer;
 }
 
 .cpub-related-hub-item:last-child { border-bottom: none; }
@@ -172,7 +172,7 @@ const { hubs: hubsEnabled } = useFeatures();
 
 .cpub-btn-join-sm {
   font-size: 10px; font-family: var(--font-mono); padding: 3px 8px;
-  border: 2px solid var(--border); background: var(--green-bg); color: var(--green);
+  border: var(--border-width-default) solid var(--border); background: var(--green-bg); color: var(--green);
   cursor: pointer; flex-shrink: 0; display: inline-flex; align-items: center; gap: 4px;
   box-shadow: var(--shadow-sm); transition: all 0.15s;
 }

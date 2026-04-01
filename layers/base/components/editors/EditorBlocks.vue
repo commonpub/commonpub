@@ -65,6 +65,7 @@ function insertBlock(block: BlockDef): void {
           <button
             v-for="block in group.blocks"
             :key="block.type + (block.attrs?.variant ?? '')"
+            :data-block="block.type"
             class="cpub-bl-block"
             :class="group.variant"
             :title="block.label"
@@ -95,7 +96,7 @@ function insertBlock(block: BlockDef): void {
   align-items: center;
   gap: 7px;
   background: var(--surface2);
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   padding: 5px 9px;
   margin: 10px 8px 4px;
 }
@@ -151,7 +152,7 @@ function insertBlock(block: BlockDef): void {
   gap: 9px;
   padding: 10px 10px;
   cursor: pointer;
-  border: 2px solid transparent;
+  border: var(--border-width-default) solid transparent;
   background: transparent;
   color: var(--text-dim);
   font-size: 12px;
@@ -172,7 +173,7 @@ function insertBlock(block: BlockDef): void {
   width: 22px;
   height: 22px;
   background: var(--surface3);
-  border: 2px solid var(--border2);
+  border: var(--border-width-default) solid var(--border2);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -215,4 +216,33 @@ function insertBlock(block: BlockDef): void {
 @media (hover: none) {
   .cpub-bl-block-drag { opacity: 1; }
 }
+
+/* Per-block-type icon colors */
+[data-block="heading"] .cpub-bl-block-icon { color: var(--teal); background: color-mix(in srgb, var(--teal) 10%, transparent); }
+[data-block="text"] .cpub-bl-block-icon,
+[data-block="paragraph"] .cpub-bl-block-icon { color: var(--text-dim); background: var(--surface2); }
+[data-block="image"] .cpub-bl-block-icon { color: #38bdf8; background: rgba(56, 189, 248, 0.08); }
+[data-block="code"] .cpub-bl-block-icon,
+[data-block="code_block"] .cpub-bl-block-icon { color: #c084fc; background: rgba(192, 132, 252, 0.08); }
+[data-block="callout"] .cpub-bl-block-icon { color: #fbbf24; background: rgba(251, 191, 36, 0.08); }
+[data-block="quote"] .cpub-bl-block-icon,
+[data-block="blockquote"] .cpub-bl-block-icon { color: #94a3b8; background: rgba(148, 163, 184, 0.08); }
+[data-block="embed"] .cpub-bl-block-icon { color: #f472b6; background: rgba(244, 114, 182, 0.08); }
+[data-block="video"] .cpub-bl-block-icon { color: #fb923c; background: rgba(251, 146, 60, 0.08); }
+[data-block="divider"] .cpub-bl-block-icon,
+[data-block="horizontal_rule"] .cpub-bl-block-icon,
+[data-block="horizontalRule"] .cpub-bl-block-icon { color: var(--text-faint); background: var(--surface2); }
+[data-block="gallery"] .cpub-bl-block-icon { color: #2dd4bf; background: rgba(45, 212, 191, 0.08); }
+[data-block="quiz"] .cpub-bl-block-icon { color: #4ade80; background: rgba(74, 222, 128, 0.08); }
+[data-block="slider"] .cpub-bl-block-icon,
+[data-block="interactiveSlider"] .cpub-bl-block-icon { color: #818cf8; background: rgba(129, 140, 248, 0.08); }
+[data-block="math"] .cpub-bl-block-icon,
+[data-block="mathNotation"] .cpub-bl-block-icon { color: #e879f9; background: rgba(232, 121, 249, 0.08); }
+[data-block="markdown"] .cpub-bl-block-icon { color: var(--text-dim); background: var(--surface2); }
+[data-block="buildStep"] .cpub-bl-block-icon { color: var(--accent); background: var(--accent-bg); }
+[data-block="partsList"] .cpub-bl-block-icon { color: #fb7185; background: rgba(251, 113, 133, 0.08); }
+[data-block="toolList"] .cpub-bl-block-icon { color: #a78bfa; background: rgba(167, 139, 250, 0.08); }
+[data-block="downloads"] .cpub-bl-block-icon { color: #22d3ee; background: rgba(34, 211, 238, 0.08); }
+[data-block="sectionHeader"] .cpub-bl-block-icon { color: var(--accent); background: var(--accent-bg); }
+[data-block="checkpoint"] .cpub-bl-block-icon { color: #34d399; background: rgba(52, 211, 153, 0.08); }
 </style>

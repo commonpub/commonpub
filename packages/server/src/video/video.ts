@@ -19,6 +19,7 @@ export interface VideoListItem {
   authorId: string;
   authorName: string | null;
   authorUsername: string;
+  authorAvatarUrl: string | null;
   createdAt: Date;
 }
 
@@ -58,6 +59,7 @@ export async function listVideos(
         video: videos,
         authorName: users.displayName,
         authorUsername: users.username,
+        authorAvatarUrl: users.avatarUrl,
       })
       .from(videos)
       .innerJoin(users, eq(videos.authorId, users.id))
@@ -82,6 +84,7 @@ export async function listVideos(
     authorId: row.video.authorId,
     authorName: row.authorName,
     authorUsername: row.authorUsername,
+    authorAvatarUrl: row.authorAvatarUrl,
     createdAt: row.video.createdAt,
   }));
 
@@ -97,6 +100,7 @@ export async function getVideoById(
       video: videos,
       authorName: users.displayName,
       authorUsername: users.username,
+      authorAvatarUrl: users.avatarUrl,
     })
     .from(videos)
     .innerJoin(users, eq(videos.authorId, users.id))
@@ -120,6 +124,7 @@ export async function getVideoById(
     authorId: row.video.authorId,
     authorName: row.authorName,
     authorUsername: row.authorUsername,
+    authorAvatarUrl: row.authorAvatarUrl,
     createdAt: row.video.createdAt,
     description: row.video.description,
   };

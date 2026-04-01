@@ -69,7 +69,7 @@ const { data } = await useFetch<PaginatedResponse<Serialized<ContentListItem>>>(
 
 .cpub-listing-sort {
   padding: var(--space-1) var(--space-2);
-  border: 2px solid var(--border2);
+  border: var(--border-width-default) solid var(--border2);
   background: var(--surface);
   font-family: var(--font-mono);
   font-size: 10px;
@@ -104,5 +104,15 @@ const { data } = await useFetch<PaginatedResponse<Serialized<ContentListItem>>>(
   text-align: center;
   padding: var(--space-10) 0;
   text-transform: capitalize;
+}
+
+@media (max-width: 768px) {
+  .cpub-listing { padding: 0 12px; }
+  .cpub-listing-header { flex-wrap: wrap; gap: 8px; }
+  .cpub-listing-title { font-size: 1.125rem; }
+  .cpub-listing-grid { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+}
+@media (max-width: 480px) {
+  .cpub-listing-grid { grid-template-columns: 1fr; }
 }
 </style>

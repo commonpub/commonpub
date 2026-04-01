@@ -281,13 +281,20 @@ async function submitEntry(): Promise<void> {
                 class="cpub-entry-card"
               >
                 <div class="cpub-entry-thumb" :class="i % 2 === 0 ? 'cpub-entry-bg-light' : 'cpub-entry-bg-dark'">
-                  <div class="cpub-entry-grid-pat"></div>
-                  <div class="cpub-entry-icon" style="color: var(--accent)"><i class="fa-solid fa-microchip"></i></div>
+                  <img v-if="entry.contentCoverImageUrl" :src="entry.contentCoverImageUrl" :alt="entry.contentTitle" class="cpub-entry-cover-img" />
+                  <template v-else>
+                    <div class="cpub-entry-grid-pat"></div>
+                    <div class="cpub-entry-icon" style="color: var(--accent)"><i class="fa-solid fa-microchip"></i></div>
+                  </template>
                   <span v-if="entry.rank" class="cpub-entry-rank" :class="`cpub-rank-${entry.rank}`">#{{ entry.rank }}</span>
                 </div>
                 <div class="cpub-entry-body">
                   <NuxtLink :to="`/${entry.contentType}/${entry.contentSlug}`" class="cpub-entry-title">{{ entry.contentTitle || `Entry #${i + 1}` }}</NuxtLink>
                   <div class="cpub-entry-author">
+                    <div class="cpub-entry-av">
+                      <img v-if="entry.authorAvatarUrl" :src="entry.authorAvatarUrl" :alt="entry.authorName || entry.authorUsername" class="cpub-entry-av-img" />
+                      <span v-else>{{ (entry.authorName || entry.authorUsername || '?').charAt(0).toUpperCase() }}</span>
+                    </div>
                     <NuxtLink v-if="entry.authorUsername" :to="`/u/${entry.authorUsername}`" style="color: var(--text-dim); text-decoration: none;">{{ entry.authorName }}</NuxtLink>
                     <span class="cpub-entry-meta">{{ new Date(entry.submittedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) }}</span>
                   </div>
@@ -360,12 +367,12 @@ async function submitEntry(): Promise<void> {
 
 /* SUBMIT DIALOG */
 .cpub-submit-overlay { position: fixed; inset: 0; z-index: 200; background: var(--color-surface-overlay-light); display: flex; align-items: center; justify-content: center; }
-.cpub-submit-dialog { background: var(--surface); border: 2px solid var(--border); box-shadow: var(--shadow-xl); width: 420px; max-width: 90vw; }
-.cpub-submit-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 2px solid var(--border); }
+.cpub-submit-dialog { background: var(--surface); border: var(--border-width-default) solid var(--border); box-shadow: var(--shadow-xl); width: 420px; max-width: 90vw; }
+.cpub-submit-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: var(--border-width-default) solid var(--border); }
 .cpub-submit-body { padding: 16px; }
-.cpub-submit-select { width: 100%; padding: 8px 10px; border: 2px solid var(--border); background: var(--surface); color: var(--text); font-size: 13px; }
+.cpub-submit-select { width: 100%; padding: 8px 10px; border: var(--border-width-default) solid var(--border); background: var(--surface); color: var(--text); font-size: 13px; }
 .cpub-submit-select:focus { border-color: var(--accent); outline: none; }
-.cpub-submit-footer { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 16px; border-top: 2px solid var(--border); }
+.cpub-submit-footer { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 16px; border-top: var(--border-width-default) solid var(--border); }
 
 /* HERO */
 .cpub-hero { position: relative; overflow: hidden; background: var(--hero-bg); padding: 56px 0 48px; }
@@ -374,7 +381,7 @@ async function submitEntry(): Promise<void> {
 .cpub-hero-lines { position: absolute; inset: 0; background-image: linear-gradient(var(--accent-bg) 1px, transparent 1px), linear-gradient(90deg, var(--accent-bg) 1px, transparent 1px); background-size: 56px 56px; }
 .cpub-hero-inner { max-width: 1100px; margin: 0 auto; padding: 0 32px; position: relative; z-index: 1; }
 .cpub-hero-eyebrow { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
-.cpub-contest-badge { font-size: 9px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; font-family: var(--font-mono); color: var(--accent); background: var(--accent-bg); border: 2px solid var(--accent); padding: 3px 10px; border-radius: var(--radius); }
+.cpub-contest-badge { font-size: 9px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; font-family: var(--font-mono); color: var(--accent); background: var(--accent-bg); border: var(--border-width-default) solid var(--accent); padding: 3px 10px; border-radius: var(--radius); }
 .cpub-hero-host { font-size: 11px; color: var(--hero-text-dim); font-family: var(--font-mono); display: flex; align-items: center; gap: 6px; }
 .cpub-hero-title { font-size: 36px; font-weight: 800; letter-spacing: -.03em; line-height: 1.1; margin-bottom: 10px; color: var(--hero-text); }
 .cpub-hero-highlight { color: var(--accent); }
@@ -387,16 +394,16 @@ async function submitEntry(): Promise<void> {
 .cpub-countdown-section { margin-bottom: 28px; }
 .cpub-countdown-label { font-size: 10px; font-family: var(--font-mono); color: var(--hero-text-dim); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 10px; }
 .cpub-countdown-row { display: flex; align-items: center; gap: 8px; }
-.cpub-countdown-block { display: flex; flex-direction: column; align-items: center; background: var(--hero-surface); border: 2px solid var(--hero-border); border-radius: var(--radius); padding: 10px 16px; min-width: 60px; box-shadow: 4px 4px 0 var(--hero-surface); }
+.cpub-countdown-block { display: flex; flex-direction: column; align-items: center; background: var(--hero-surface); border: var(--border-width-default) solid var(--hero-border); border-radius: var(--radius); padding: 10px 16px; min-width: 60px; box-shadow: 4px 4px 0 var(--hero-surface); }
 .cpub-countdown-val { font-size: 26px; font-weight: 700; font-family: var(--font-mono); color: var(--hero-text); line-height: 1; margin-bottom: 4px; }
 .cpub-countdown-unit { font-size: 9px; text-transform: uppercase; letter-spacing: .1em; color: var(--hero-text-dim); font-family: var(--font-mono); }
 .cpub-countdown-sep { font-size: 20px; font-weight: 700; color: var(--hero-border); margin-top: -8px; font-family: var(--font-mono); }
 
 /* HERO CTA & STATS */
 .cpub-hero-cta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.cpub-total-prize { font-size: 12px; color: var(--hero-text-dim); font-family: var(--font-mono); display: flex; align-items: center; gap: 6px; padding-left: 10px; border-left: 2px solid var(--hero-border); }
+.cpub-total-prize { font-size: 12px; color: var(--hero-text-dim); font-family: var(--font-mono); display: flex; align-items: center; gap: 6px; padding-left: 10px; border-left: var(--border-width-default) solid var(--hero-border); }
 .cpub-total-prize strong { color: var(--yellow); font-size: 15px; }
-.cpub-hero-stats { display: flex; gap: 24px; margin-top: 28px; padding-top: 24px; border-top: 2px solid var(--hero-border); }
+.cpub-hero-stats { display: flex; gap: 24px; margin-top: 28px; padding-top: 24px; border-top: var(--border-width-default) solid var(--hero-border); }
 .cpub-hero-stat { display: flex; flex-direction: column; }
 .cpub-hero-stat-val { font-size: 20px; font-weight: 700; font-family: var(--font-mono); color: var(--hero-text); }
 .cpub-hero-stat-label { font-size: 10px; color: var(--hero-text-dim); text-transform: uppercase; letter-spacing: .1em; font-family: var(--font-mono); }
@@ -407,7 +414,7 @@ async function submitEntry(): Promise<void> {
 .cpub-btn-dark:hover { background: var(--hero-surface); }
 
 /* AVATARS */
-.cpub-av { display: flex; align-items: center; justify-content: center; border-radius: 50%; font-weight: 600; font-family: var(--font-mono); flex-shrink: 0; background: var(--surface3); border: 2px solid var(--border); color: var(--text-dim); }
+.cpub-av { display: flex; align-items: center; justify-content: center; border-radius: 50%; font-weight: 600; font-family: var(--font-mono); flex-shrink: 0; background: var(--surface3); border: var(--border-width-default) solid var(--border); color: var(--text-dim); }
 .cpub-av-sm { width: 24px; height: 24px; font-size: 9px; }
 
 /* LAYOUT */
@@ -418,16 +425,16 @@ async function submitEntry(): Promise<void> {
 .cpub-sec-sub { font-size: 11px; color: var(--text-faint); margin-left: auto; font-family: var(--font-mono); }
 
 /* ABOUT */
-.cpub-about-card { background: var(--surface); border: 2px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 20px; box-shadow: var(--shadow-md); }
+.cpub-about-card { background: var(--surface); border: var(--border-width-default) solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 20px; box-shadow: var(--shadow-md); }
 .cpub-about-body { font-size: 12px; color: var(--text-dim); line-height: 1.7; }
 .cpub-about-body p { margin-bottom: 10px; }
 .cpub-about-body p:last-child { margin-bottom: 0; }
-.cpub-highlight-box { background: var(--accent-bg); border: 2px solid var(--accent); border-radius: var(--radius); padding: 12px 14px; margin: 12px 0; font-size: 11px; color: var(--text-dim); }
+.cpub-highlight-box { background: var(--accent-bg); border: var(--border-width-default) solid var(--accent); border-radius: var(--radius); padding: 12px 14px; margin: 12px 0; font-size: 11px; color: var(--text-dim); }
 .cpub-highlight-box strong { color: var(--accent); }
 
 /* PRIZES */
 .cpub-prize-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
-.cpub-prize-card { border-radius: var(--radius); padding: 20px; position: relative; overflow: hidden; text-align: center; background: var(--surface); border: 2px solid var(--border); }
+.cpub-prize-card { border-radius: var(--radius); padding: 20px; position: relative; overflow: hidden; text-align: center; background: var(--surface); border: var(--border-width-default) solid var(--border); }
 .cpub-prize-gold { box-shadow: var(--shadow-accent); }
 .cpub-prize-silver { box-shadow: var(--shadow-md); }
 .cpub-prize-bronze { box-shadow: var(--shadow-md); }
@@ -448,13 +455,13 @@ async function submitEntry(): Promise<void> {
 .cpub-prize-perk { font-size: 10px; color: var(--text-dim); display: flex; align-items: center; gap: 5px; margin-bottom: 3px; font-family: var(--font-mono); }
 .cpub-prize-perk i { font-size: 8px; color: var(--green); }
 .cpub-prize-additional { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
-.cpub-prize-extra { background: var(--surface); border: 2px solid var(--border); border-radius: var(--radius); padding: 12px; text-align: center; box-shadow: var(--shadow-md); }
+.cpub-prize-extra { background: var(--surface); border: var(--border-width-default) solid var(--border); border-radius: var(--radius); padding: 12px; text-align: center; box-shadow: var(--shadow-md); }
 .cpub-prize-extra-title { font-size: 11px; font-weight: 600; margin-bottom: 2px; }
 .cpub-prize-extra-val { font-size: 14px; font-weight: 700; font-family: var(--font-mono); color: var(--teal); }
 .cpub-prize-extra-label { font-size: 9px; color: var(--text-faint); font-family: var(--font-mono); }
 
 /* RULES */
-.cpub-rules-card { background: var(--surface); border: 2px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 20px; box-shadow: var(--shadow-md); }
+.cpub-rules-card { background: var(--surface); border: var(--border-width-default) solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 20px; box-shadow: var(--shadow-md); }
 .cpub-rule-item { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; font-size: 12px; color: var(--text-dim); line-height: 1.55; }
 .cpub-rule-item:last-child { margin-bottom: 0; }
 .cpub-rule-icon { font-size: 11px; color: var(--accent); margin-top: 2px; flex-shrink: 0; width: 14px; }
@@ -462,7 +469,7 @@ async function submitEntry(): Promise<void> {
 /* ENTRIES */
 .cpub-entries-filter { display: flex; gap: 6px; margin-bottom: 14px; }
 .cpub-entry-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
-.cpub-entry-card { background: var(--surface); border: 2px solid var(--border); border-radius: var(--radius); overflow: hidden; cursor: pointer; box-shadow: var(--shadow-md); }
+.cpub-entry-card { background: var(--surface); border: var(--border-width-default) solid var(--border); border-radius: var(--radius); overflow: hidden; cursor: pointer; box-shadow: var(--shadow-md); }
 .cpub-entry-card:hover { box-shadow: var(--shadow-accent); }
 .cpub-entry-thumb { height: 110px; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; }
 .cpub-entry-bg-light { background: var(--surface2); }
@@ -470,14 +477,17 @@ async function submitEntry(): Promise<void> {
 .cpub-entry-grid-pat { position: absolute; inset: 0; background-image: linear-gradient(var(--border2) 1px, transparent 1px), linear-gradient(90deg, var(--border2) 1px, transparent 1px); background-size: 20px 20px; opacity: .3; }
 .cpub-entry-icon { position: relative; z-index: 1; font-size: 22px; opacity: .65; }
 .cpub-entry-rank { position: absolute; top: 8px; left: 8px; z-index: 2; font-size: 10px; font-family: var(--font-mono); font-weight: 700; padding: 2px 7px; border-radius: var(--radius); }
-.cpub-rank-1 { background: var(--yellow-bg); color: var(--yellow); border: 2px solid var(--yellow); }
-.cpub-rank-2 { background: var(--surface2); color: var(--silver); border: 2px solid var(--silver); }
-.cpub-rank-3 { background: var(--surface2); color: var(--bronze); border: 2px solid var(--bronze); }
+.cpub-rank-1 { background: var(--yellow-bg); color: var(--yellow); border: var(--border-width-default) solid var(--yellow); }
+.cpub-rank-2 { background: var(--surface2); color: var(--silver); border: var(--border-width-default) solid var(--silver); }
+.cpub-rank-3 { background: var(--surface2); color: var(--bronze); border: var(--border-width-default) solid var(--bronze); }
 .cpub-entry-body { padding: 10px 12px; }
 .cpub-entry-title { font-size: 12px; font-weight: 600; margin-bottom: 3px; line-height: 1.3; }
+.cpub-entry-cover-img { width: 100%; height: 100%; object-fit: cover; }
+.cpub-entry-av { width: 18px; height: 18px; border-radius: 50%; background: var(--surface3); border: var(--border-width-default) solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 7px; font-family: var(--font-mono); color: var(--text-faint); flex-shrink: 0; overflow: hidden; }
+.cpub-entry-av-img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
 .cpub-entry-author { font-size: 10px; color: var(--text-dim); font-family: var(--font-mono); margin-bottom: 6px; display: flex; align-items: center; gap: 5px; }
 .cpub-entry-footer { display: flex; align-items: center; gap: 6px; }
-.cpub-vote-btn { display: flex; align-items: center; gap: 4px; font-size: 10px; font-family: var(--font-mono); padding: 3px 8px; border-radius: var(--radius); border: 2px solid var(--border); background: var(--surface); color: var(--text-dim); cursor: pointer; }
+.cpub-vote-btn { display: flex; align-items: center; gap: 4px; font-size: 10px; font-family: var(--font-mono); padding: 3px 8px; border-radius: var(--radius); border: var(--border-width-default) solid var(--border); background: var(--surface); color: var(--text-dim); cursor: pointer; }
 .cpub-vote-btn:hover { background: var(--surface2); }
 .cpub-vote-btn i { font-size: 9px; }
 .cpub-voted { background: var(--accent-bg); border-color: var(--accent); color: var(--accent); }
@@ -485,8 +495,8 @@ async function submitEntry(): Promise<void> {
 
 /* JUDGES */
 .cpub-judges-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
-.cpub-judge-card { background: var(--surface); border: 2px solid var(--border); border-radius: var(--radius); padding: 14px; text-align: center; box-shadow: var(--shadow-md); }
-.cpub-judge-av { width: 44px; height: 44px; border-radius: 50%; margin: 0 auto 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; font-family: var(--font-mono); border: 2px solid var(--border); }
+.cpub-judge-card { background: var(--surface); border: var(--border-width-default) solid var(--border); border-radius: var(--radius); padding: 14px; text-align: center; box-shadow: var(--shadow-md); }
+.cpub-judge-av { width: 44px; height: 44px; border-radius: 50%; margin: 0 auto 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; font-family: var(--font-mono); border: var(--border-width-default) solid var(--border); }
 .cpub-judge-name { font-size: 11px; font-weight: 600; margin-bottom: 2px; }
 .cpub-judge-title { font-size: 10px; color: var(--text-dim); line-height: 1.35; font-family: var(--font-mono); }
 .cpub-judge-org { font-size: 10px; color: var(--accent); font-family: var(--font-mono); margin-top: 2px; }
@@ -496,9 +506,9 @@ async function submitEntry(): Promise<void> {
 .cpub-tl-item:not(.cpub-tl-last)::before { content: ''; position: absolute; left: 10px; top: 20px; bottom: -14px; width: 2px; background: var(--border); }
 .cpub-tl-last { margin-bottom: 0; }
 .cpub-tl-icon { width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 8px; margin-top: 1px; }
-.cpub-tl-done { background: var(--green-bg); border: 2px solid var(--green); color: var(--green); }
-.cpub-tl-active { background: var(--accent-bg); border: 2px solid var(--accent); color: var(--accent); }
-.cpub-tl-upcoming { background: var(--surface2); border: 2px solid var(--border2); color: var(--text-faint); }
+.cpub-tl-done { background: var(--green-bg); border: var(--border-width-default) solid var(--green); color: var(--green); }
+.cpub-tl-active { background: var(--accent-bg); border: var(--border-width-default) solid var(--accent); color: var(--accent); }
+.cpub-tl-upcoming { background: var(--surface2); border: var(--border-width-default) solid var(--border2); color: var(--text-faint); }
 .cpub-tl-info { flex: 1; padding-top: 1px; }
 .cpub-tl-name { font-size: 11px; font-weight: 600; margin-bottom: 1px; }
 .cpub-tl-name-done { color: var(--green); }
@@ -506,12 +516,12 @@ async function submitEntry(): Promise<void> {
 .cpub-tl-name-upcoming { color: var(--text-faint); }
 .cpub-tl-date { font-size: 10px; color: var(--text-faint); font-family: var(--font-mono); }
 .cpub-tl-status { font-size: 9px; font-family: var(--font-mono); padding: 1px 5px; border-radius: var(--radius); }
-.cpub-status-done { color: var(--green); background: var(--green-bg); border: 2px solid var(--green); }
-.cpub-status-active { color: var(--accent); background: var(--accent-bg); border: 2px solid var(--accent); }
+.cpub-status-done { color: var(--green); background: var(--green-bg); border: var(--border-width-default) solid var(--green); }
+.cpub-status-active { color: var(--accent); background: var(--accent-bg); border: var(--border-width-default) solid var(--accent); }
 
 /* SPONSORS */
 .cpub-sponsor-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.cpub-sponsor-card { background: var(--surface2); border: 2px solid var(--border); border-radius: var(--radius); padding: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
+.cpub-sponsor-card { background: var(--surface2); border: var(--border-width-default) solid var(--border); border-radius: var(--radius); padding: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
 .cpub-sponsor-icon { font-size: 16px; margin-bottom: 2px; color: var(--text-dim); }
 .cpub-sponsor-name { font-size: 10px; font-weight: 600; font-family: var(--font-mono); color: var(--text); }
 .cpub-sponsor-tier { font-size: 8px; font-family: var(--font-mono); color: var(--text-faint); }
@@ -520,20 +530,20 @@ async function submitEntry(): Promise<void> {
 
 /* FAQ */
 .cpub-faq-wrap { box-shadow: none; padding: 0; border: none; background: transparent; }
-.cpub-faq-item { border: 2px solid var(--border); margin-bottom: -2px; overflow: hidden; }
-.cpub-faq-item:first-of-type { border-top: 2px solid var(--border); }
+.cpub-faq-item { border: var(--border-width-default) solid var(--border); margin-bottom: -2px; overflow: hidden; }
+.cpub-faq-item:first-of-type { border-top: var(--border-width-default) solid var(--border); }
 .cpub-faq-q { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; cursor: pointer; font-size: 11px; font-weight: 500; gap: 8px; background: var(--surface); }
 .cpub-faq-q:hover { background: var(--surface2); color: var(--accent); }
 .cpub-faq-q i { font-size: 10px; color: var(--text-faint); flex-shrink: 0; transition: transform .15s; }
 .cpub-faq-open .cpub-faq-q i { transform: rotate(180deg); }
-.cpub-faq-open .cpub-faq-q { background: var(--surface2); border-bottom: 2px solid var(--border2); }
+.cpub-faq-open .cpub-faq-q { background: var(--surface2); border-bottom: var(--border-width-default) solid var(--border2); }
 .cpub-faq-a { font-size: 11px; color: var(--text-dim); line-height: 1.55; padding: 10px 12px; display: none; background: var(--surface); }
 .cpub-faq-open .cpub-faq-a { display: block; }
 
 /* Admin controls */
 .cpub-admin-controls {
   display: flex; align-items: center; gap: 8px; margin-top: 16px;
-  padding: 10px 14px; background: var(--accent-bg); border: 2px solid var(--accent-border);
+  padding: 10px 14px; background: var(--accent-bg); border: var(--border-width-default) solid var(--accent-border);
 }
 .cpub-admin-controls-label {
   font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;

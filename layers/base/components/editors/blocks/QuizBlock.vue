@@ -30,11 +30,11 @@ function removeOption(i: number): void {
   </div>
 </template>
 <style scoped>
-.cpub-quiz-block { border: 2px solid var(--border2); background: var(--surface); }
-.cpub-quiz-header { padding: 8px 12px; font-size: 12px; font-weight: 600; background: var(--surface2); border-bottom: 2px solid var(--border2); display: flex; align-items: center; gap: 8px; }
+.cpub-quiz-block { border: var(--border-width-default) solid var(--border2); background: var(--surface); }
+.cpub-quiz-header { padding: 8px 12px; font-size: 12px; font-weight: 600; background: var(--surface2); border-bottom: var(--border-width-default) solid var(--border2); display: flex; align-items: center; gap: 8px; }
 .cpub-quiz-header i { color: var(--purple); }
 .cpub-quiz-body { padding: 12px; }
-.cpub-quiz-question { width: 100%; font-size: 14px; font-weight: 600; background: transparent; border: none; border-bottom: 2px solid var(--border2); padding: 6px 0; outline: none; color: var(--text); margin-bottom: 12px; }
+.cpub-quiz-question { width: 100%; font-size: 14px; font-weight: 600; background: transparent; border: none; border-bottom: var(--border-width-default) solid var(--border2); padding: 6px 0; outline: none; color: var(--text); margin-bottom: 12px; }
 .cpub-quiz-question::placeholder { color: var(--text-faint); }
 .cpub-quiz-option { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
 .cpub-quiz-option input[type="checkbox"] { accent-color: var(--green); }

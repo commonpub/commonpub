@@ -42,7 +42,7 @@ onUnmounted(() => clearInterval(timer));
 
 .cpub-countdown-unit {
   background: var(--surface2);
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   padding: 10px 4px;
   text-align: center;
 }

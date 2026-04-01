@@ -3,6 +3,7 @@ interface CommentAuthor {
   id: string;
   username: string;
   displayName: string | null;
+  avatarUrl: string | null;
 }
 
 interface Comment {
@@ -141,7 +142,8 @@ async function deleteComment(id: string): Promise<void> {
     <div class="cpub-comment-list">
       <div v-for="comment in (comments || [])" :key="comment.id" class="cpub-comment">
         <div class="cpub-comment-avatar">
-          {{ (comment.author?.displayName || comment.author?.username || 'U').charAt(0).toUpperCase() }}
+          <img v-if="comment.author?.avatarUrl" :src="comment.author.avatarUrl" :alt="comment.author?.displayName || comment.author?.username" class="cpub-comment-avatar-img" />
+          <span v-else>{{ (comment.author?.displayName || comment.author?.username || 'U').charAt(0).toUpperCase() }}</span>
         </div>
         <div class="cpub-comment-body">
           <div class="cpub-comment-header">
@@ -177,7 +179,7 @@ async function deleteComment(id: string): Promise<void> {
 .cpub-comments {
   margin-top: var(--space-8);
   padding-top: var(--space-6);
-  border-top: 2px solid var(--border);
+  border-top: var(--border-width-default) solid var(--border);
 }
 
 .cpub-comments-title {
@@ -246,7 +248,7 @@ async function deleteComment(id: string): Promise<void> {
   height: 28px;
   border-radius: 50%;
   background: var(--surface3);
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -255,6 +257,14 @@ async function deleteComment(id: string): Promise<void> {
   font-weight: 600;
   color: var(--text-dim);
   flex-shrink: 0;
+  overflow: hidden;
+}
+
+.cpub-comment-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
 }
 
 .cpub-comment-body {

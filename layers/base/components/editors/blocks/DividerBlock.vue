@@ -17,6 +17,6 @@
 
 .cpub-divider-line {
   border: none;
-  border-top: 2px solid var(--border2);
+  border-top: var(--border-width-default) solid var(--border2);
 }
 </style>

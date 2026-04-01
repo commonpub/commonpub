@@ -133,7 +133,7 @@ function stripHtml(html: string): string {
 
 <style scoped>
 .cpub-fed-card {
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   padding: var(--space-4);
   background: var(--surface-1);
 }
@@ -150,7 +150,7 @@ function stripHtml(html: string): string {
   height: 36px;
   border-radius: 0;
   object-fit: cover;
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   flex-shrink: 0;
 }
 
@@ -206,7 +206,7 @@ function stripHtml(html: string): string {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   padding: 0.1em 0.4em;
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
 }
 
 .cpub-fed-card__type-badge {
@@ -226,7 +226,7 @@ function stripHtml(html: string): string {
   width: 100%;
   aspect-ratio: 16/9;
   object-fit: cover;
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
 }
 
 .cpub-fed-card__title {
@@ -262,13 +262,13 @@ function stripHtml(html: string): string {
   font-family: var(--font-mono);
   color: var(--text-2);
   padding: 0.1em 0.3em;
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
 }
 
 .cpub-fed-card__actions {
   display: flex;
   gap: var(--space-3);
-  border-top: 2px solid var(--border);
+  border-top: var(--border-width-default) solid var(--border);
   padding-top: var(--space-3);
 }
 

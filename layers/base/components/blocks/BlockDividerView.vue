@@ -5,7 +5,7 @@
 <style scoped>
 .cpub-block-divider {
   border: none;
-  border-top: 2px solid var(--border);
+  border-top: var(--border-width-default) solid var(--border);
   margin: 36px 0;
 }
 </style>

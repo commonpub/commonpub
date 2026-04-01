@@ -121,7 +121,7 @@ onUnmounted(() => {
 
 <style scoped>
 .md-block {
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   border-radius: 0;
   background: var(--surface);
   overflow: hidden;
@@ -133,7 +133,7 @@ onUnmounted(() => {
   justify-content: space-between;
   padding: 6px 12px;
   background: var(--surface2);
-  border-bottom: 2px solid var(--border);
+  border-bottom: var(--border-width-default) solid var(--border);
 }
 
 .md-block-label {
@@ -176,7 +176,7 @@ onUnmounted(() => {
 
 .md-block--edit .md-block-editor { flex: 1; }
 .md-block--preview .md-block-preview { flex: 1; }
-.md-block--split .md-block-editor { flex: 1; border-right: 2px solid var(--border); }
+.md-block--split .md-block-editor { flex: 1; border-right: var(--border-width-default) solid var(--border); }
 .md-block--split .md-block-preview { flex: 1; }
 
 .md-block-textarea {
@@ -219,7 +219,7 @@ onUnmounted(() => {
 .md-preview-text { margin-bottom: 8px; }
 .md-preview-code {
   background: var(--surface2);
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   border-radius: 0;
   padding: 10px;
   font-family: var(--font-mono);
@@ -246,7 +246,7 @@ onUnmounted(() => {
   font-style: italic;
   margin-bottom: 8px;
 }
-.md-preview-hr { border: none; border-top: 2px solid var(--border); margin: 12px 0; }
+.md-preview-hr { border: none; border-top: var(--border-width-default) solid var(--border); margin: 12px 0; }
 .md-preview-unknown {
   padding: 6px 10px;
   background: var(--surface2);

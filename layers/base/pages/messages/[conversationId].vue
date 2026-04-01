@@ -93,7 +93,7 @@ async function handleSend(text: string): Promise<void> {
   height: calc(100vh - 120px);
   display: flex;
   flex-direction: column;
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   background: var(--surface);
 }
 
@@ -102,7 +102,7 @@ async function handleSend(text: string): Promise<void> {
   align-items: center;
   gap: 12px;
   padding: 8px 12px;
-  border-bottom: 2px solid var(--border);
+  border-bottom: var(--border-width-default) solid var(--border);
 }
 
 @media (max-width: 768px) {

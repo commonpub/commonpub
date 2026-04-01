@@ -90,7 +90,7 @@ async function handleShare(): Promise<void> {
 
 .cpub-modal-content {
   background: var(--surface);
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   box-shadow: var(--shadow-lg);
   padding: 24px;
   max-width: 420px;
@@ -148,7 +148,7 @@ async function handleShare(): Promise<void> {
   gap: 10px;
   padding: 8px 12px;
   background: none;
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   cursor: pointer;
   text-align: left;
   transition: border-color 0.1s;
@@ -163,7 +163,7 @@ async function handleShare(): Promise<void> {
   align-items: center;
   justify-content: center;
   background: var(--surface2);
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   font-size: 12px;
   color: var(--text-faint);
   overflow: hidden;

@@ -362,7 +362,7 @@ useSeoMeta({
 
 /* ── SIDEBAR ── */
 .docs-sidebar {
-  border-right: 2px solid var(--border);
+  border-right: var(--border-width-default) solid var(--border);
   padding: 16px 0;
   overflow-y: auto;
   height: calc(100vh - 48px);
@@ -376,7 +376,7 @@ useSeoMeta({
   align-items: center;
   justify-content: space-between;
   padding: 0 16px 12px;
-  border-bottom: 2px solid var(--border);
+  border-bottom: var(--border-width-default) solid var(--border);
   margin-bottom: 12px;
 }
 
@@ -395,7 +395,7 @@ useSeoMeta({
   color: var(--text-faint);
   text-decoration: none;
   padding: 2px 6px;
-  border: 2px solid var(--border2);
+  border: var(--border-width-default) solid var(--border2);
 }
 
 .docs-edit-link:hover { color: var(--accent); border-color: var(--accent); }
@@ -408,7 +408,7 @@ useSeoMeta({
   padding: 5px 8px;
   font-size: 11px;
   font-family: var(--font-mono);
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   background: var(--surface);
   color: var(--text-dim);
   cursor: pointer;
@@ -434,7 +434,7 @@ useSeoMeta({
   width: 100%;
   padding: 6px 8px 6px 26px;
   font-size: 12px;
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   background: var(--surface);
   color: var(--text);
 }
@@ -448,7 +448,7 @@ useSeoMeta({
   left: 16px;
   right: 16px;
   background: var(--surface);
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   box-shadow: var(--shadow-md);
   z-index: 50;
   max-height: 200px;
@@ -461,7 +461,7 @@ useSeoMeta({
   font-size: 12px;
   color: var(--text-dim);
   text-decoration: none;
-  border-bottom: 2px solid var(--border2);
+  border-bottom: var(--border-width-default) solid var(--border2);
 }
 
 .docs-search-result:last-child { border-bottom: none; }
@@ -470,7 +470,7 @@ useSeoMeta({
 /* Nav Tree */
 .docs-nav { padding: 0; }
 
-.docs-nav-item { border-bottom: 2px solid var(--border2); }
+.docs-nav-item { border-bottom: var(--border-width-default) solid var(--border2); }
 .docs-nav-item:last-child { border-bottom: none; }
 
 .docs-nav-row { display: flex; align-items: center; }
@@ -506,7 +506,7 @@ useSeoMeta({
 
 .docs-nav-toggle:hover { color: var(--text-dim); }
 
-.docs-nav-children { padding-left: 12px; border-top: 2px solid var(--border2); }
+.docs-nav-children { padding-left: 12px; border-top: var(--border-width-default) solid var(--border2); }
 
 .docs-nav-child { font-size: 12px; padding: 5px 16px; }
 
@@ -546,24 +546,24 @@ useSeoMeta({
 
 /* Prose */
 .docs-content { font-size: 14px; line-height: 1.75; color: var(--text-dim); }
-.docs-content :deep(h2) { font-size: 20px; font-weight: 700; color: var(--text); margin-top: 32px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid var(--border); }
+.docs-content :deep(h2) { font-size: 20px; font-weight: 700; color: var(--text); margin-top: 32px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: var(--border-width-default) solid var(--border); }
 .docs-content :deep(h3) { font-size: 16px; font-weight: 700; color: var(--text); margin-top: 24px; margin-bottom: 8px; }
 .docs-content :deep(h4) { font-size: 14px; font-weight: 700; color: var(--text); margin-top: 20px; margin-bottom: 6px; }
 .docs-content :deep(p) { margin-bottom: 14px; }
 .docs-content :deep(a) { color: var(--accent); text-decoration: none; }
 .docs-content :deep(a:hover) { text-decoration: underline; }
 .docs-content :deep(strong) { color: var(--text); font-weight: 600; }
-.docs-content :deep(code) { font-family: var(--font-mono); font-size: 12px; background: var(--surface2); padding: 2px 5px; border: 2px solid var(--border2); color: var(--accent); }
-.docs-content :deep(pre) { padding: 16px; background: var(--surface2); border: 2px solid var(--border); overflow-x: auto; margin: 16px 0; box-shadow: var(--shadow-md); }
+.docs-content :deep(code) { font-family: var(--font-mono); font-size: 12px; background: var(--surface2); padding: 2px 5px; border: var(--border-width-default) solid var(--border2); color: var(--accent); }
+.docs-content :deep(pre) { padding: 16px; background: var(--surface2); border: var(--border-width-default) solid var(--border); overflow-x: auto; margin: 16px 0; box-shadow: var(--shadow-md); }
 .docs-content :deep(pre code) { background: none; border: none; padding: 0; font-size: 13px; color: var(--text); }
 .docs-content :deep(ul), .docs-content :deep(ol) { margin-bottom: 14px; padding-left: 24px; }
 .docs-content :deep(li) { margin-bottom: 4px; }
 .docs-content :deep(blockquote) { border-left: 4px solid var(--accent); padding: 8px 16px; margin: 16px 0; background: var(--surface); color: var(--text-dim); }
 .docs-content :deep(table) { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13px; }
-.docs-content :deep(th) { background: var(--surface2); padding: 8px 12px; text-align: left; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; font-family: var(--font-mono); color: var(--text-faint); border-bottom: 2px solid var(--border); }
-.docs-content :deep(td) { padding: 8px 12px; border-bottom: 2px solid var(--border2); }
-.docs-content :deep(hr) { border: none; border-top: 2px solid var(--border); margin: 32px 0; }
-.docs-content :deep(img) { max-width: 100%; border: 2px solid var(--border); }
+.docs-content :deep(th) { background: var(--surface2); padding: 8px 12px; text-align: left; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; font-family: var(--font-mono); color: var(--text-faint); border-bottom: var(--border-width-default) solid var(--border); }
+.docs-content :deep(td) { padding: 8px 12px; border-bottom: var(--border-width-default) solid var(--border2); }
+.docs-content :deep(hr) { border: none; border-top: var(--border-width-default) solid var(--border); margin: 32px 0; }
+.docs-content :deep(img) { max-width: 100%; border: var(--border-width-default) solid var(--border); }
 
 /* Prev / Next */
 .docs-prev-next {
@@ -572,7 +572,7 @@ useSeoMeta({
   gap: 16px;
   margin-top: 48px;
   padding-top: 24px;
-  border-top: 2px solid var(--border);
+  border-top: var(--border-width-default) solid var(--border);
 }
 
 .docs-pn-link {
@@ -580,7 +580,7 @@ useSeoMeta({
   flex-direction: column;
   gap: 4px;
   padding: 12px 16px;
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   background: var(--surface);
   text-decoration: none;
   min-width: 0;
@@ -620,7 +620,7 @@ useSeoMeta({
 /* ── TOC (Right Sidebar) ── */
 .docs-toc {
   padding: 28px 16px;
-  border-left: 2px solid var(--border);
+  border-left: var(--border-width-default) solid var(--border);
   height: calc(100vh - 48px);
   position: sticky;
   top: 48px;
@@ -644,7 +644,7 @@ useSeoMeta({
   color: var(--text-faint);
   text-decoration: none;
   padding: 3px 8px;
-  border-left: 2px solid transparent;
+  border-left: var(--border-width-default) solid transparent;
   line-height: 1.4;
 }
 
@@ -668,7 +668,7 @@ useSeoMeta({
   height: 44px;
   background: var(--accent);
   color: var(--color-text-inverse);
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   box-shadow: var(--shadow-md);
   font-size: 16px;
   cursor: pointer;

@@ -40,7 +40,7 @@ defineProps<{
   height: 4px;
   background: var(--surface3);
   overflow: hidden;
-  border: 2px solid var(--border2);
+  border: var(--border-width-default) solid var(--border2);
 }
 
 .cpub-skill-fill {

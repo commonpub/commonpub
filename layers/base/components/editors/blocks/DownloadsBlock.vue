@@ -24,12 +24,12 @@ function updateFile(i: number, field: string, value: string): void {
   </div>
 </template>
 <style scoped>
-.cpub-downloads-block { border: 2px solid var(--border2); background: var(--surface); }
-.cpub-dl-header { padding: 8px 12px; font-size: 12px; font-weight: 600; background: var(--surface2); border-bottom: 2px solid var(--border2); display: flex; align-items: center; gap: 8px; }
+.cpub-downloads-block { border: var(--border-width-default) solid var(--border2); background: var(--surface); }
+.cpub-dl-header { padding: 8px 12px; font-size: 12px; font-weight: 600; background: var(--surface2); border-bottom: var(--border-width-default) solid var(--border2); display: flex; align-items: center; gap: 8px; }
 .cpub-dl-header i { color: var(--accent); }
 .cpub-dl-add { margin-left: auto; background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 11px; }
 .cpub-dl-add:hover { color: var(--accent); }
-.cpub-dl-item { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-bottom: 2px solid var(--border2); }
+.cpub-dl-item { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-bottom: var(--border-width-default) solid var(--border2); }
 .cpub-dl-file-icon { color: var(--text-faint); font-size: 12px; }
 .cpub-dl-name { flex: 1; font-size: 12px; font-weight: 500; background: transparent; border: none; outline: none; color: var(--text); }
 .cpub-dl-url { flex: 2; font-size: 11px; background: transparent; border: none; outline: none; color: var(--text-dim); font-family: var(--font-mono); }

@@ -112,7 +112,7 @@ function removeTag(tag: string): void {
 <style scoped>
 .cpub-adv-panel {
   background: var(--surface);
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   border-top: none;
   padding: 24px 32px 28px;
   margin-bottom: 24px;
@@ -152,7 +152,7 @@ function removeTag(tag: string): void {
 .cpub-adv-input {
   width: 100%;
   background: var(--surface2);
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   padding: 7px 10px;
   font-size: 12px;
   color: var(--text);
@@ -169,7 +169,7 @@ function removeTag(tag: string): void {
 
 .cpub-tag-chip {
   font-size: 10px; font-family: var(--font-mono); padding: 3px 8px;
-  border: 2px solid var(--border2); background: var(--surface2); color: var(--text-dim);
+  border: var(--border-width-default) solid var(--border2); background: var(--surface2); color: var(--text-dim);
   display: flex; align-items: center; gap: 5px; cursor: default;
 }
 

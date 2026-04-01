@@ -109,7 +109,7 @@ watch(() => props.open, (v) => {
 
 .cpub-picker-dialog {
   background: var(--surface);
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   box-shadow: var(--shadow-xl);
   width: 520px;
   max-width: 90vw;
@@ -123,7 +123,7 @@ watch(() => props.open, (v) => {
   align-items: center;
   justify-content: space-between;
   padding: 14px 16px;
-  border-bottom: 2px solid var(--border);
+  border-bottom: var(--border-width-default) solid var(--border);
 }
 
 .cpub-picker-title {
@@ -154,13 +154,13 @@ watch(() => props.open, (v) => {
 
 .cpub-picker-search {
   padding: 12px 16px;
-  border-bottom: 2px solid var(--border);
+  border-bottom: var(--border-width-default) solid var(--border);
 }
 
 .cpub-picker-input {
   width: 100%;
   padding: 8px 10px;
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   background: var(--surface);
   color: var(--text);
   font-size: 13px;
@@ -216,7 +216,7 @@ watch(() => props.open, (v) => {
   text-transform: uppercase;
   letter-spacing: 0.06em;
   padding: 2px 7px;
-  border: 2px solid var(--accent-border);
+  border: var(--border-width-default) solid var(--accent-border);
   background: var(--accent-bg);
   color: var(--accent);
   flex-shrink: 0;

@@ -126,7 +126,7 @@ function formatCount(n: number | undefined): string {
 <style scoped>
 .cpub-cc {
   background: var(--surface);
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   overflow: hidden;
   transition: transform 0.15s, box-shadow 0.15s;
 }
@@ -145,9 +145,9 @@ function formatCount(n: number | undefined): string {
 /* Thumbnail */
 .cpub-cc-thumb {
   position: relative;
-  height: 150px;
+  aspect-ratio: 4 / 3;
   background: var(--surface2);
-  border-bottom: 2px solid var(--border);
+  border-bottom: var(--border-width-default) solid var(--border);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -226,7 +226,7 @@ function formatCount(n: number | undefined): string {
 .cpub-cc-dot {
   width: 8px;
   height: 8px;
-  border: 2px solid var(--surface);
+  border: var(--border-width-default) solid var(--surface);
   background: transparent;
 }
 
@@ -270,7 +270,7 @@ function formatCount(n: number | undefined): string {
   justify-content: space-between;
   gap: 8px;
   padding-top: 8px;
-  border-top: 2px solid var(--border2);
+  border-top: var(--border-width-default) solid var(--border2);
 }
 
 .cpub-cc-author {
@@ -286,7 +286,7 @@ function formatCount(n: number | undefined): string {
   width: 18px;
   height: 18px;
   background: var(--accent-bg);
-  border: 2px solid var(--accent-border);
+  border: var(--border-width-default) solid var(--accent-border);
   color: var(--accent);
   font-size: 8px;
   font-weight: 700;

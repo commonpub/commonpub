@@ -359,47 +359,47 @@ async function handlePublish(): Promise<void> {
 .cpub-edit-subtitle { font-size: 13px; color: var(--text-dim); display: flex; align-items: center; gap: 8px; }
 
 .cpub-status-badge { font-size: 10px; font-family: var(--font-mono); text-transform: uppercase; padding: 2px 8px; letter-spacing: 0.06em; }
-.cpub-status-draft { background: var(--surface3); color: var(--text-faint); border: 2px solid var(--border2); }
-.cpub-status-published { background: var(--green-bg); color: var(--green); border: 2px solid var(--green-border); }
+.cpub-status-draft { background: var(--surface3); color: var(--text-faint); border: var(--border-width-default) solid var(--border2); }
+.cpub-status-published { background: var(--green-bg); color: var(--green); border: var(--border-width-default) solid var(--green-border); }
 
-.cpub-meta-section { background: var(--surface); border: 2px solid var(--border); padding: 16px 20px; margin-bottom: 24px; box-shadow: var(--shadow-md); }
+.cpub-meta-section { background: var(--surface); border: var(--border-width-default) solid var(--border); padding: 16px 20px; margin-bottom: 24px; box-shadow: var(--shadow-md); }
 .cpub-meta-section-title { font-size: 13px; font-weight: 700; margin-bottom: 12px; }
 .cpub-meta-form { display: flex; flex-direction: column; gap: 10px; }
 .cpub-meta-field { display: flex; flex-direction: column; gap: 3px; }
 .cpub-meta-label { font-size: 10px; font-weight: 600; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-faint); }
-.cpub-meta-input, .cpub-meta-textarea, .cpub-meta-select { padding: 6px 10px; border: 2px solid var(--border); background: var(--surface); color: var(--text); font-size: 13px; }
+.cpub-meta-input, .cpub-meta-textarea, .cpub-meta-select { padding: 6px 10px; border: var(--border-width-default) solid var(--border); background: var(--surface); color: var(--text); font-size: 13px; }
 .cpub-meta-input:focus, .cpub-meta-textarea:focus, .cpub-meta-select:focus { border-color: var(--accent); outline: none; }
 .cpub-meta-textarea { resize: vertical; font-family: inherit; }
 .cpub-meta-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
 .cpub-modules-list { display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px; }
 
-.cpub-module-card { background: var(--surface); border: 2px solid var(--border); box-shadow: var(--shadow-md); }
+.cpub-module-card { background: var(--surface); border: var(--border-width-default) solid var(--border); box-shadow: var(--shadow-md); }
 
-.cpub-module-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 2px solid var(--border); background: var(--surface2); gap: 8px; }
-.cpub-module-title-input { font-size: 14px; font-weight: 600; background: none; border: 2px solid transparent; padding: 4px 8px; color: var(--text); outline: none; flex: 1; }
+.cpub-module-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: var(--border-width-default) solid var(--border); background: var(--surface2); gap: 8px; }
+.cpub-module-title-input { font-size: 14px; font-weight: 600; background: none; border: var(--border-width-default) solid transparent; padding: 4px 8px; color: var(--text); outline: none; flex: 1; }
 .cpub-module-title-input:focus { border-color: var(--accent); background: var(--surface); }
 .cpub-module-count { font-size: 10px; font-family: var(--font-mono); color: var(--text-faint); flex-shrink: 0; }
 
 .cpub-lessons-list { padding: 8px 0; }
-.cpub-lesson-row { display: flex; align-items: center; gap: 10px; padding: 8px 16px; border-bottom: 2px solid var(--border2); }
+.cpub-lesson-row { display: flex; align-items: center; gap: 10px; padding: 8px 16px; border-bottom: var(--border-width-default) solid var(--border2); }
 .cpub-lesson-row:last-child { border-bottom: none; }
 .cpub-lesson-grip { color: var(--text-faint); font-size: 10px; cursor: grab; }
-.cpub-lesson-type-badge { font-size: 9px; font-family: var(--font-mono); text-transform: uppercase; padding: 1px 6px; border: 2px solid var(--border2); color: var(--text-faint); background: var(--surface2); }
+.cpub-lesson-type-badge { font-size: 9px; font-family: var(--font-mono); text-transform: uppercase; padding: 1px 6px; border: var(--border-width-default) solid var(--border2); color: var(--text-faint); background: var(--surface2); }
 .cpub-lesson-title { font-size: 13px; color: var(--text); flex: 1; }
-.cpub-lesson-empty-badge { font-size: 9px; font-family: var(--font-mono); color: var(--yellow); background: var(--yellow-bg); border: 2px solid var(--yellow-border); padding: 1px 6px; text-transform: uppercase; }
-.cpub-lesson-edit-btn { font-size: 10px; color: var(--text-faint); padding: 3px 6px; border: 2px solid var(--border2); text-decoration: none; }
+.cpub-lesson-empty-badge { font-size: 9px; font-family: var(--font-mono); color: var(--yellow); background: var(--yellow-bg); border: var(--border-width-default) solid var(--yellow-border); padding: 1px 6px; text-transform: uppercase; }
+.cpub-lesson-edit-btn { font-size: 10px; color: var(--text-faint); padding: 3px 6px; border: var(--border-width-default) solid var(--border2); text-decoration: none; }
 .cpub-lesson-edit-btn:hover { color: var(--accent); border-color: var(--accent); }
 
 .cpub-add-lesson { display: flex; gap: 0; padding: 8px 16px; }
-.cpub-type-select { padding: 6px 8px; border: 2px solid var(--border); background: var(--surface); color: var(--text-dim); font-size: 11px; font-family: var(--font-mono); outline: none; min-width: 80px; }
+.cpub-type-select { padding: 6px 8px; border: var(--border-width-default) solid var(--border); background: var(--surface); color: var(--text-dim); font-size: 11px; font-family: var(--font-mono); outline: none; min-width: 80px; }
 .cpub-type-select:focus { border-color: var(--accent); }
-.cpub-add-input { flex: 1; padding: 6px 10px; border: 2px solid var(--border); border-left: none; background: var(--surface); color: var(--text); font-size: 12px; outline: none; }
+.cpub-add-input { flex: 1; padding: 6px 10px; border: var(--border-width-default) solid var(--border); border-left: none; background: var(--surface); color: var(--text); font-size: 12px; outline: none; }
 .cpub-add-input:focus { border-color: var(--accent); }
 .cpub-add-input::placeholder { color: var(--text-faint); }
-.cpub-add-btn { padding: 6px 10px; background: var(--accent); color: var(--color-text-inverse); border: 2px solid var(--accent); border-left: none; font-size: 11px; cursor: pointer; }
+.cpub-add-btn { padding: 6px 10px; background: var(--accent); color: var(--color-text-inverse); border: var(--border-width-default) solid var(--accent); border-left: none; font-size: 11px; cursor: pointer; }
 .cpub-add-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.cpub-link-btn { padding: 6px 10px; background: var(--surface2); color: var(--text-dim); border: 2px solid var(--border); font-size: 10px; font-family: var(--font-mono); cursor: pointer; display: flex; align-items: center; gap: 5px; margin-left: 4px; }
+.cpub-link-btn { padding: 6px 10px; background: var(--surface2); color: var(--text-dim); border: var(--border-width-default) solid var(--border); font-size: 10px; font-family: var(--font-mono); cursor: pointer; display: flex; align-items: center; gap: 5px; margin-left: 4px; }
 .cpub-link-btn:hover { border-color: var(--accent); color: var(--accent); }
 .cpub-link-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .cpub-lesson-linked-badge { font-size: 9px; color: var(--teal); display: flex; align-items: center; flex-shrink: 0; }
@@ -407,7 +407,7 @@ async function handlePublish(): Promise<void> {
 .cpub-empty-modules { text-align: center; padding: 32px; color: var(--text-faint); font-size: 13px; }
 
 .cpub-add-module { display: flex; gap: 10px; align-items: center; }
-.cpub-add-module-input { flex: 1; padding: 8px 12px; border: 2px solid var(--border); background: var(--surface); color: var(--text); font-size: 13px; outline: none; }
+.cpub-add-module-input { flex: 1; padding: 8px 12px; border: var(--border-width-default) solid var(--border); background: var(--surface); color: var(--text); font-size: 13px; outline: none; }
 .cpub-add-module-input:focus { border-color: var(--accent); }
 .cpub-add-module-input::placeholder { color: var(--text-faint); }
 

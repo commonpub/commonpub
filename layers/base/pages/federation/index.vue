@@ -111,7 +111,7 @@ onMounted(() => loadMore());
   letter-spacing: 0.05em;
   color: var(--accent);
   text-decoration: none;
-  border: 2px solid var(--accent);
+  border: var(--border-width-default) solid var(--accent);
   padding: var(--space-1) var(--space-3);
 }
 
@@ -136,7 +136,7 @@ onMounted(() => loadMore());
   width: 100%;
   margin-top: var(--space-4);
   padding: var(--space-3);
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   background: transparent;
   color: var(--text-1);
   font-family: var(--font-mono);

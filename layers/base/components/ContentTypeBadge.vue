@@ -38,4 +38,9 @@ const iconMap: Record<string, string> = {
 .cpub-badge-icon {
   font-size: 9px;
 }
+
+[data-content-type="project"] { color: var(--badge-color-project, #93c5fd); }
+[data-content-type="article"] { color: var(--badge-color-article, #5eead4); }
+[data-content-type="blog"] { color: var(--badge-color-blog, #86efac); }
+[data-content-type="explainer"] { color: var(--badge-color-explainer, #fde68a); }
 </style>

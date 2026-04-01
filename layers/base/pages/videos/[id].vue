@@ -70,7 +70,10 @@ const authorInitial = computed(() => {
 
       <!-- Author -->
       <div v-if="video.author" class="cpub-video-author">
-        <div class="cpub-video-author-av">{{ authorInitial }}</div>
+        <div class="cpub-video-author-av">
+          <img v-if="video.author.avatarUrl" :src="video.author.avatarUrl" :alt="video.author.displayName || video.author.username" class="cpub-video-author-av-img" />
+          <span v-else>{{ authorInitial }}</span>
+        </div>
         <div>
           <NuxtLink
             v-if="video.author.username"
@@ -97,7 +100,7 @@ const authorInitial = computed(() => {
   width: 100%;
   aspect-ratio: 16/9;
   background: var(--text);
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   box-shadow: var(--shadow-md);
   margin-bottom: 20px;
   overflow: hidden;
@@ -130,7 +133,7 @@ const authorInitial = computed(() => {
 
 .cpub-video-info {
   background: var(--surface);
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   padding: 20px;
 }
 
@@ -166,7 +169,7 @@ const authorInitial = computed(() => {
   align-items: center;
   gap: 10px;
   padding-top: 14px;
-  border-top: 2px solid var(--border);
+  border-top: var(--border-width-default) solid var(--border);
 }
 
 .cpub-video-author-av {
@@ -174,7 +177,7 @@ const authorInitial = computed(() => {
   height: 36px;
   border-radius: 50%;
   background: var(--surface3);
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -182,7 +185,10 @@ const authorInitial = computed(() => {
   font-size: 13px;
   font-weight: 600;
   color: var(--text-dim);
+  overflow: hidden;
 }
+
+.cpub-video-author-av-img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
 
 .cpub-video-author-name {
   font-size: 13px;

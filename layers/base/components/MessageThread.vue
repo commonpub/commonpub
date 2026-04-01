@@ -82,7 +82,7 @@ function handleSend(): void {
   padding: 8px 12px;
   font-size: 13px;
   background: var(--surface);
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   line-height: 1.5;
 }
 
@@ -110,7 +110,7 @@ function handleSend(): void {
   display: flex;
   gap: 8px;
   padding: 12px;
-  border-top: 2px solid var(--border);
+  border-top: var(--border-width-default) solid var(--border);
   background: var(--surface);
 }
 

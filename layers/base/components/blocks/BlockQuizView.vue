@@ -88,7 +88,7 @@ function optionClass(idx: number): string {
 <style scoped>
 .cpub-block-quiz {
   background: var(--surface);
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   margin: 28px 0;
   box-shadow: var(--shadow-md);
 }
@@ -98,7 +98,7 @@ function optionClass(idx: number): string {
   align-items: center;
   gap: 8px;
   padding: 12px 16px;
-  border-bottom: 2px solid var(--border);
+  border-bottom: var(--border-width-default) solid var(--border);
 }
 
 .cpub-quiz-badge {
@@ -107,7 +107,7 @@ function optionClass(idx: number): string {
   letter-spacing: 0.08em;
   color: var(--yellow);
   background: var(--yellow-bg);
-  border: 2px solid var(--yellow-border);
+  border: var(--border-width-default) solid var(--yellow-border);
   padding: 3px 8px;
 }
 
@@ -139,7 +139,7 @@ function optionClass(idx: number): string {
   gap: 10px;
   padding: 12px 14px;
   background: var(--surface);
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   cursor: pointer;
   transition: background var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
   user-select: none;
@@ -227,13 +227,13 @@ function optionClass(idx: number): string {
 
 .cpub-quiz-feedback.correct {
   background: var(--green-bg);
-  border: 2px solid var(--green-border);
+  border: var(--border-width-default) solid var(--green-border);
   color: var(--green);
 }
 
 .cpub-quiz-feedback.wrong {
   background: var(--red-bg);
-  border: 2px solid var(--red-border);
+  border: var(--border-width-default) solid var(--red-border);
   color: var(--red);
 }
 </style>

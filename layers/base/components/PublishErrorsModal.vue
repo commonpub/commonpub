@@ -44,7 +44,7 @@ const emit = defineEmits<{
 
 .cpub-publish-errors-card {
   background: var(--surface);
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   padding: 28px;
   max-width: 420px;
   width: 100%;
@@ -84,7 +84,7 @@ const emit = defineEmits<{
   color: var(--text);
   padding: 8px 12px;
   background: var(--red-bg);
-  border: 2px solid var(--red);
+  border: var(--border-width-default) solid var(--red);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -100,7 +100,7 @@ const emit = defineEmits<{
   padding: 8px 20px;
   background: var(--accent);
   color: var(--color-text-inverse);
-  border: 2px solid var(--accent);
+  border: var(--border-width-default) solid var(--accent);
   font-size: 0.875rem;
   font-weight: 600;
   text-transform: uppercase;

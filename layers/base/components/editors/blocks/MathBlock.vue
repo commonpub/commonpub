@@ -27,11 +27,11 @@ function updateExpression(value: string): void {
 </template>
 
 <style scoped>
-.cpub-math-edit { border: 2px solid var(--border2); background: var(--surface); }
-.cpub-math-edit-header { padding: 8px 12px; font-size: 12px; font-weight: 600; background: var(--surface2); border-bottom: 2px solid var(--border2); display: flex; align-items: center; gap: 8px; }
+.cpub-math-edit { border: var(--border-width-default) solid var(--border2); background: var(--surface); }
+.cpub-math-edit-header { padding: 8px 12px; font-size: 12px; font-weight: 600; background: var(--surface2); border-bottom: var(--border-width-default) solid var(--border2); display: flex; align-items: center; gap: 8px; }
 .cpub-math-edit-header i { color: var(--purple); }
 .cpub-math-edit-body { padding: 12px; }
-.cpub-math-textarea { width: 100%; font-family: var(--font-mono); font-size: 13px; background: var(--surface2); border: 2px solid var(--border2); padding: 8px; color: var(--text); outline: none; resize: vertical; }
+.cpub-math-textarea { width: 100%; font-family: var(--font-mono); font-size: 13px; background: var(--surface2); border: var(--border-width-default) solid var(--border2); padding: 8px; color: var(--text); outline: none; resize: vertical; }
 .cpub-math-textarea:focus { border-color: var(--accent); }
 .cpub-math-hint { font-size: 10px; color: var(--text-faint); margin-top: 4px; }
 </style>

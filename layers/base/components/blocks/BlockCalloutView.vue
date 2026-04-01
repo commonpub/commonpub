@@ -34,7 +34,7 @@ const config = computed(() => variantConfig[variant.value] ?? variantConfig.info
   gap: 12px;
   padding: 16px 18px;
   margin: 20px 0;
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   border-left-width: 5px;
   box-shadow: var(--shadow-md);
 }

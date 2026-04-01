@@ -103,7 +103,7 @@ function handleBack(): void {
   padding: 8px 18px;
   font-size: 12px;
   font-weight: 500;
-  border: 2px solid var(--border, #1a1a1a);
+  border: var(--border-width-default) solid var(--border, #1a1a1a);
   background: var(--surface, #fff);
   color: var(--text, #1a1a1a);
   text-decoration: none;

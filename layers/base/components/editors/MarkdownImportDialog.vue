@@ -143,7 +143,7 @@ async function readFile(file: File): Promise<void> {
 
 .md-import-dialog {
   width: 100%; max-width: 640px;
-  background: var(--surface); border: 2px solid var(--border);
+  background: var(--surface); border: var(--border-width-default) solid var(--border);
   box-shadow: var(--shadow-xl);
   display: flex; flex-direction: column;
   max-height: 80vh;
@@ -151,7 +151,7 @@ async function readFile(file: File): Promise<void> {
 
 .md-import-header {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 16px 20px; border-bottom: 2px solid var(--border);
+  padding: 16px 20px; border-bottom: var(--border-width-default) solid var(--border);
 }
 
 .md-import-header h2 {
@@ -161,19 +161,19 @@ async function readFile(file: File): Promise<void> {
 }
 
 .md-import-close {
-  width: 32px; height: 32px; border: 2px solid transparent;
+  width: 32px; height: 32px; border: var(--border-width-default) solid transparent;
   background: none; color: var(--text-dim); cursor: pointer; font-size: 14px;
 }
 .md-import-close:hover { background: var(--surface2); border-color: var(--border); }
 
 .md-import-tabs {
-  display: flex; gap: 0; border-bottom: 2px solid var(--border);
+  display: flex; gap: 0; border-bottom: var(--border-width-default) solid var(--border);
 }
 .md-import-tabs button {
   flex: 1; padding: 10px; border: none; background: none;
   font-size: 0.8125rem; font-weight: 500; color: var(--text-dim);
   cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;
-  border-bottom: 2px solid transparent;
+  border-bottom: var(--border-width-default) solid transparent;
 }
 .md-import-tabs button.active {
   color: var(--accent); border-bottom-color: var(--accent);
@@ -201,14 +201,14 @@ async function readFile(file: File): Promise<void> {
 .md-import-drop-content span { font-size: 11px; color: var(--text-faint); }
 
 .md-import-file-btn {
-  padding: 6px 14px; background: var(--surface2); border: 2px solid var(--border);
+  padding: 6px 14px; background: var(--surface2); border: var(--border-width-default) solid var(--border);
   font-size: 12px; color: var(--text); cursor: pointer;
 }
 .md-import-file-btn:hover { background: var(--surface3); }
 
 .md-import-preview {
   display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-  padding: 10px 16px; border-top: 2px solid var(--border);
+  padding: 10px 16px; border-top: var(--border-width-default) solid var(--border);
   font-size: 11px;
 }
 .md-import-preview-label { color: var(--text-faint); font-weight: 600; }
@@ -219,7 +219,7 @@ async function readFile(file: File): Promise<void> {
 }
 
 .md-import-footer {
-  padding: 12px 20px; border-top: 2px solid var(--border);
+  padding: 12px 20px; border-top: var(--border-width-default) solid var(--border);
   display: flex; align-items: center; justify-content: space-between;
 }
 
@@ -231,11 +231,11 @@ async function readFile(file: File): Promise<void> {
 
 .md-import-actions { display: flex; gap: 8px; }
 .md-import-cancel {
-  padding: 7px 14px; border: 2px solid var(--border);
+  padding: 7px 14px; border: var(--border-width-default) solid var(--border);
   background: var(--surface); color: var(--text-dim); font-size: 12px; cursor: pointer;
 }
 .md-import-btn {
-  padding: 7px 16px; border: 2px solid var(--accent);
+  padding: 7px 16px; border: var(--border-width-default) solid var(--accent);
   background: var(--accent); color: var(--color-text-inverse); font-size: 12px;
   font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;
 }

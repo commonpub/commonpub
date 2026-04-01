@@ -50,14 +50,14 @@ function removeTool(index: number): void {
 </template>
 
 <style scoped>
-.cpub-tools-block { border: 2px solid var(--border2); background: var(--surface); }
-.cpub-tools-header { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 2px solid var(--border2); background: var(--surface2); }
+.cpub-tools-block { border: var(--border-width-default) solid var(--border2); background: var(--surface); }
+.cpub-tools-header { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: var(--border-width-default) solid var(--border2); background: var(--surface2); }
 .cpub-tools-icon { font-size: 12px; color: var(--accent); }
 .cpub-tools-title { font-size: 12px; font-weight: 600; flex: 1; }
-.cpub-tools-add { font-family: var(--font-mono); font-size: 10px; padding: 3px 8px; background: transparent; border: 2px solid var(--border2); color: var(--text-dim); cursor: pointer; display: flex; align-items: center; gap: 4px; }
+.cpub-tools-add { font-family: var(--font-mono); font-size: 10px; padding: 3px 8px; background: transparent; border: var(--border-width-default) solid var(--border2); color: var(--text-dim); cursor: pointer; display: flex; align-items: center; gap: 4px; }
 .cpub-tools-add:hover { border-color: var(--accent); color: var(--accent); }
 .cpub-tools-list { padding: 8px; }
-.cpub-tool-item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-bottom: 2px solid var(--border2); }
+.cpub-tool-item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-bottom: var(--border-width-default) solid var(--border2); }
 .cpub-tool-item:last-child { border-bottom: none; }
 .cpub-tool-name { flex: 1; font-size: 12px; font-weight: 500; background: transparent; border: none; outline: none; color: var(--text); }
 .cpub-tool-name::placeholder { color: var(--text-faint); }

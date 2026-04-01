@@ -331,7 +331,7 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
 .cpub-hero-banner {
   position: relative;
   background: var(--surface);
-  border-bottom: 2px solid var(--border);
+  border-bottom: var(--border-width-default) solid var(--border);
   overflow: hidden;
   min-height: 200px;
   display: flex;
@@ -398,7 +398,7 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
   text-transform: uppercase;
   padding: 3px 9px;
   background: var(--yellow-bg);
-  border: 2px solid var(--yellow);
+  border: var(--border-width-default) solid var(--yellow);
   color: var(--yellow);
 }
 
@@ -468,7 +468,7 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
   position: sticky;
   top: 48px;
   background: var(--surface);
-  border-bottom: 2px solid var(--border);
+  border-bottom: var(--border-width-default) solid var(--border);
   z-index: 90;
   padding: 0 32px;
 }
@@ -490,7 +490,7 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
   font-family: var(--font-mono);
   color: var(--text-faint);
   padding: 10px 16px;
-  border-bottom: 2px solid transparent;
+  border-bottom: var(--border-width-default) solid transparent;
   white-space: nowrap;
   background: none;
   border-top: none;
@@ -523,7 +523,7 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
 /* ─── FEATURED CARD ─── */
 .cpub-featured-card {
   background: var(--surface);
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   overflow: hidden;
   margin-bottom: 24px;
   box-shadow: var(--shadow-md);
@@ -580,7 +580,7 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
 
 .cpub-badge-featured {
   background: var(--yellow-bg);
-  border: 2px solid var(--yellow);
+  border: var(--border-width-default) solid var(--yellow);
   color: var(--yellow);
   font-size: 9px;
   font-family: var(--font-mono);
@@ -639,7 +639,7 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
   justify-content: space-between;
   gap: 16px;
   background: var(--accent-bg);
-  border: 2px solid var(--accent);
+  border: var(--border-width-default) solid var(--accent);
   padding: 14px 18px;
   margin-bottom: 20px;
   text-decoration: none;
@@ -679,7 +679,7 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
   padding: 8px 14px;
   background: var(--accent);
   color: var(--color-text-inverse);
-  border: 2px solid var(--accent);
+  border: var(--border-width-default) solid var(--accent);
   white-space: nowrap;
   flex-shrink: 0;
   box-shadow: var(--shadow-sm);
@@ -708,7 +708,7 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
 .cpub-btn-load-more {
   padding: 8px 28px;
   background: var(--surface);
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   color: var(--text-dim);
   font-size: 12px;
   font-family: var(--font-mono);
@@ -743,7 +743,7 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
   letter-spacing: 0.1em;
   color: var(--text-faint);
   padding-bottom: 10px;
-  border-bottom: 2px solid var(--border);
+  border-bottom: var(--border-width-default) solid var(--border);
   margin-bottom: 12px;
   display: flex;
   align-items: center;
@@ -768,7 +768,7 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
 
 .cpub-stat-block {
   background: var(--surface2);
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   padding: 12px 14px;
 }
 
@@ -791,7 +791,7 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
 /* Contest items */
 .cpub-contest-item {
   padding: 10px 0;
-  border-bottom: 2px solid var(--border2);
+  border-bottom: var(--border-width-default) solid var(--border2);
 }
 
 .cpub-contest-item:last-child { border-bottom: none; padding-bottom: 0; }
@@ -836,7 +836,7 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
   width: 100%;
   padding: 6px;
   background: var(--accent-bg);
-  border: 2px solid var(--accent);
+  border: var(--border-width-default) solid var(--accent);
   color: var(--accent);
   font-size: 11px;
   font-family: var(--font-mono);
@@ -860,7 +860,7 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
   align-items: center;
   gap: 10px;
   padding: 8px 0;
-  border-bottom: 2px solid var(--border2);
+  border-bottom: var(--border-width-default) solid var(--border2);
 }
 
 .cpub-hub-item:last-child { border-bottom: none; padding-bottom: 0; }
@@ -874,7 +874,7 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
   justify-content: center;
   font-size: 14px;
   flex-shrink: 0;
-  border: 2px solid var(--teal);
+  border: var(--border-width-default) solid var(--teal);
   background: var(--teal-bg);
   color: var(--teal);
 }
@@ -901,7 +901,7 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
 .cpub-btn-join {
   padding: 4px 10px;
   background: var(--surface);
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   color: var(--text-dim);
   font-size: 10px;
   font-family: var(--font-mono);
@@ -919,7 +919,7 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
 .cpub-btn-joined {
   padding: 4px 10px;
   background: var(--green-bg);
-  border: 2px solid var(--green-border);
+  border: var(--border-width-default) solid var(--green-border);
   color: var(--green);
   font-size: 10px;
   font-family: var(--font-mono);
@@ -938,7 +938,7 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
   gap: 8px;
   padding: 12px;
   background: var(--surface);
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
 }
 
 .cpub-powered-text {
@@ -967,7 +967,7 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
   font-size: 10px;
   font-family: var(--font-mono);
   padding: 3px 10px;
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   background: var(--surface2);
   color: var(--text-dim);
   text-decoration: none;

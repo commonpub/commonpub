@@ -41,7 +41,7 @@ const themes = [
 
 .cpub-theme-card {
   background: var(--surface);
-  border: 2px solid var(--border2);
+  border: var(--border-width-default) solid var(--border2);
   padding: 12px;
   cursor: pointer;
   text-align: left;
@@ -59,7 +59,7 @@ const themes = [
 .cpub-theme-preview {
   height: 60px;
   background: var(--surface2);
-  border: 2px solid var(--border2);
+  border: var(--border-width-default) solid var(--border2);
   margin-bottom: 8px;
 }
 
@@ -72,5 +72,9 @@ const themes = [
 .cpub-theme-desc {
   font-size: 11px;
   color: var(--text-dim);
+}
+
+@media (max-width: 480px) {
+  .cpub-theme-grid { grid-template-columns: 1fr; }
 }
 </style>

@@ -38,7 +38,7 @@ defineProps<{
   width: 7px;
   height: 7px;
   background: var(--border2);
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
 }
 
 .cpub-tl-dot.active {

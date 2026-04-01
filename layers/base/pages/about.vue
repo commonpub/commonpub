@@ -69,7 +69,7 @@ const { hubs: hubsEnabled, learning: learningEnabled, contests: contestsEnabled,
 .cpub-about-hero {
   position: relative;
   background: var(--surface2);
-  border-bottom: 2px solid var(--border);
+  border-bottom: var(--border-width-default) solid var(--border);
   padding: 64px 32px;
   text-align: center;
   overflow: hidden;
@@ -80,18 +80,18 @@ const { hubs: hubsEnabled, learning: learningEnabled, contests: contestsEnabled,
   background-size: 32px 32px; opacity: 0.2;
 }
 .cpub-about-hero-inner { position: relative; z-index: 1; max-width: 600px; margin: 0 auto; }
-.cpub-about-badge { font-family: var(--font-mono); font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; padding: 4px 12px; border: 2px solid var(--green); background: var(--green-bg); color: var(--green); display: inline-flex; align-items: center; gap: 6px; margin-bottom: 16px; }
+.cpub-about-badge { font-family: var(--font-mono); font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; padding: 4px 12px; border: var(--border-width-default) solid var(--green); background: var(--green-bg); color: var(--green); display: inline-flex; align-items: center; gap: 6px; margin-bottom: 16px; }
 .cpub-about-title { font-size: 36px; font-weight: 700; margin-bottom: 12px; letter-spacing: -0.02em; }
 .cpub-about-subtitle { font-size: 15px; color: var(--text-dim); line-height: 1.6; }
 
 .cpub-about-body { max-width: 1000px; margin: 0 auto; padding: 48px 32px; }
 .cpub-about-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 48px; }
-.cpub-about-card { background: var(--surface); border: 2px solid var(--border); padding: 24px; box-shadow: var(--shadow-md); }
+.cpub-about-card { background: var(--surface); border: var(--border-width-default) solid var(--border); padding: 24px; box-shadow: var(--shadow-md); }
 .cpub-about-card-icon { font-size: 24px; color: var(--accent); margin-bottom: 12px; }
 .cpub-about-card h3 { font-size: 14px; font-weight: 600; margin-bottom: 8px; }
 .cpub-about-card p { font-size: 12px; color: var(--text-dim); line-height: 1.6; }
 
-.cpub-about-cta { text-align: center; padding: 32px; background: var(--surface2); border: 2px solid var(--border); }
+.cpub-about-cta { text-align: center; padding: 32px; background: var(--surface2); border: var(--border-width-default) solid var(--border); }
 .cpub-about-cta h2 { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
 .cpub-about-cta p { font-size: 13px; color: var(--text-dim); margin-bottom: 20px; }
 .cpub-about-cta-actions { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }

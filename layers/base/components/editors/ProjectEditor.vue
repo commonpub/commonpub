@@ -41,6 +41,7 @@ const blockTypes: BlockTypeGroup[] = [
       { type: 'callout', label: 'Warning', icon: 'fa-triangle-exclamation', description: 'Warning callout', attrs: { variant: 'warning' } },
       { type: 'blockquote', label: 'Quote', icon: 'fa-quote-left', description: 'Blockquote' },
       { type: 'horizontal_rule', label: 'Divider', icon: 'fa-minus', description: 'Visual separator' },
+      { type: 'markdown', label: 'Markdown', icon: 'fa-brands fa-markdown', description: 'Raw markdown block' },
     ],
   },
 ];
@@ -301,7 +302,7 @@ const blockCount = computed(() => props.blockEditor.blocks.value.length);
 
 <style scoped>
 .cpub-pe-shell { display: flex; flex: 1; overflow: hidden; }
-.cpub-pe-library { width: 220px; flex-shrink: 0; background: var(--surface); border-right: 2px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+.cpub-pe-library { width: 220px; flex-shrink: 0; background: var(--surface); border-right: var(--border-width-default) solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
 .cpub-pe-center { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
 .cpub-pe-canvas { flex: 1; overflow-y: auto; background: var(--bg); }
 .cpub-pe-canvas-inner { margin: 0 auto; transition: max-width 0.2s; }
@@ -309,7 +310,7 @@ const blockCount = computed(() => props.blockEditor.blocks.value.length);
 /* Inline cover image (in canvas body) */
 .cpub-pe-cover-inline {
   position: relative; width: 100%; aspect-ratio: 16/7; background: var(--surface2);
-  border-bottom: 2px solid var(--border); display: flex; align-items: center; justify-content: center; overflow: hidden;
+  border-bottom: var(--border-width-default) solid var(--border); display: flex; align-items: center; justify-content: center; overflow: hidden;
 }
 .cpub-pe-cover-inline-img { width: 100%; height: 100%; object-fit: cover; }
 .cpub-pe-cover-inline-placeholder { display: flex; flex-direction: column; align-items: center; gap: 6px; }
@@ -336,13 +337,13 @@ const blockCount = computed(() => props.blockEditor.blocks.value.length);
 /* Canvas toolbar */
 .cpub-pe-canvas-toolbar {
   display: flex; align-items: center; gap: 2px; padding: 4px 12px;
-  background: var(--surface); border-bottom: 2px solid var(--border); flex-shrink: 0; min-height: 32px;
+  background: var(--surface); border-bottom: var(--border-width-default) solid var(--border); flex-shrink: 0; min-height: 32px;
   justify-content: flex-end;
 }
 .cpub-pe-viewport-tabs { display: flex; gap: 0; }
 .cpub-pe-viewport-tab {
   width: 28px; height: 24px; display: flex; align-items: center; justify-content: center;
-  background: none; border: 2px solid var(--border); border-left-width: 0; color: var(--text-faint);
+  background: none; border: var(--border-width-default) solid var(--border); border-left-width: 0; color: var(--text-faint);
   font-size: 10px; cursor: pointer;
 }
 .cpub-pe-viewport-tab:first-child { border-left-width: 2px; }
@@ -351,7 +352,7 @@ const blockCount = computed(() => props.blockEditor.blocks.value.length);
 
 /* Status bar */
 .cpub-pe-statusbar {
-  height: 26px; background: var(--surface); border-top: 2px solid var(--border);
+  height: 26px; background: var(--surface); border-top: var(--border-width-default) solid var(--border);
   display: flex; align-items: center; padding: 0 14px; gap: 18px; flex-shrink: 0;
 }
 .cpub-pe-status-item {
@@ -360,11 +361,11 @@ const blockCount = computed(() => props.blockEditor.blocks.value.length);
 }
 .cpub-pe-status-item i { font-size: 8px; }
 .cpub-pe-status-sep { width: 2px; height: 12px; background: var(--border); }
-.cpub-pe-settings { width: 280px; flex-shrink: 0; background: var(--surface); border-left: 2px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+.cpub-pe-settings { width: 280px; flex-shrink: 0; background: var(--surface); border-left: var(--border-width-default) solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
 .cpub-pe-settings-body { flex: 1; overflow-y: auto; }
 
-.cpub-pe-toggle-group { display: flex; border: 2px solid var(--border); overflow: hidden; }
-.cpub-pe-toggle-opt { flex: 1; padding: 5px 4px; text-align: center; font-size: 10px; font-family: var(--font-mono); cursor: pointer; color: var(--text-faint); background: transparent; border: none; border-right: 2px solid var(--border); text-transform: capitalize; }
+.cpub-pe-toggle-group { display: flex; border: var(--border-width-default) solid var(--border); overflow: hidden; }
+.cpub-pe-toggle-opt { flex: 1; padding: 5px 4px; text-align: center; font-size: 10px; font-family: var(--font-mono); cursor: pointer; color: var(--text-faint); background: transparent; border: none; border-right: var(--border-width-default) solid var(--border); text-transform: capitalize; }
 .cpub-pe-toggle-opt:last-child { border-right: none; }
 .cpub-pe-toggle-opt:hover { background: var(--surface2); color: var(--text-dim); }
 .cpub-pe-toggle-opt.active { background: var(--accent-bg); color: var(--accent); }
@@ -377,7 +378,7 @@ const blockCount = computed(() => props.blockEditor.blocks.value.length);
 /* Cover image */
 .cpub-pe-cover {
   position: relative; width: 100%; aspect-ratio: 16/9; background: var(--surface2);
-  border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; overflow: hidden;
+  border: var(--border-width-default) solid var(--border); display: flex; align-items: center; justify-content: center; overflow: hidden;
 }
 .cpub-pe-cover-img { width: 100%; height: 100%; object-fit: cover; }
 .cpub-pe-cover-placeholder { display: flex; flex-direction: column; align-items: center; gap: 6px; }
@@ -392,7 +393,7 @@ const blockCount = computed(() => props.blockEditor.blocks.value.length);
 .cpub-pe-cover:focus-within .cpub-pe-cover-overlay,
 .cpub-pe-cover:focus-within .cpub-pe-cover-actions { opacity: 1; }
 .cpub-pe-cover-btn {
-  font-size: 10px; padding: 5px 10px; background: var(--surface); border: 2px solid var(--border);
+  font-size: 10px; padding: 5px 10px; background: var(--surface); border: var(--border-width-default) solid var(--border);
   color: var(--text-dim); cursor: pointer; display: inline-flex; align-items: center; gap: 4px;
   font-family: var(--font-mono); box-shadow: var(--shadow-sm);
 }
@@ -425,7 +426,7 @@ const blockCount = computed(() => props.blockEditor.blocks.value.length);
     gap: 8px; z-index: 100;
   }
   .cpub-pe-mobile-btn {
-    width: 44px; height: 44px; border: 2px solid var(--border); background: var(--surface);
+    width: 44px; height: 44px; border: var(--border-width-default) solid var(--border); background: var(--surface);
     color: var(--text-dim); font-size: 16px; cursor: pointer;
     display: flex; align-items: center; justify-content: center;
     box-shadow: var(--shadow-md);

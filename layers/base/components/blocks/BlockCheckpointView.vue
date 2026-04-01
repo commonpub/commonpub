@@ -31,7 +31,7 @@ onMounted(() => {
   gap: 10px;
   padding: 12px 16px;
   background: var(--green-bg);
-  border: 2px solid var(--green);
+  border: var(--border-width-default) solid var(--green);
   margin: 24px 0;
   font-size: 13px;
   color: var(--green);

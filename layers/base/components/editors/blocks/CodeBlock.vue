@@ -85,7 +85,7 @@ async function copyCode(): Promise<void> {
   --code-surface-dim: rgba(255, 255, 255, 0.04);
 
   background: var(--text);
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   overflow: hidden;
 }
 
@@ -95,7 +95,7 @@ async function copyCode(): Promise<void> {
   gap: 8px;
   padding: 8px 12px;
   background: var(--code-surface-dim);
-  border-bottom: 2px solid var(--code-surface);
+  border-bottom: var(--border-width-default) solid var(--code-surface);
 }
 
 .cpub-code-lang {
@@ -139,7 +139,7 @@ async function copyCode(): Promise<void> {
   font-size: 10px;
   color: var(--code-fg-dim);
   background: transparent;
-  border: 2px solid var(--code-border);
+  border: var(--border-width-default) solid var(--code-border);
   padding: 3px 8px;
   cursor: pointer;
   display: flex;

@@ -166,7 +166,7 @@ const filteredPosts = computed(() => {
 .cpub-share-card-origin i { font-size: 9px; }
 .cpub-share-card-embed {
   display: flex; gap: 0;
-  background: var(--surface); border: 2px solid var(--border);
+  background: var(--surface); border: var(--border-width-default) solid var(--border);
   overflow: hidden; transition: border-color 0.15s;
 }
 .cpub-share-card:hover .cpub-share-card-embed { border-color: var(--accent-border); }

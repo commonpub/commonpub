@@ -123,7 +123,7 @@ async function submitScore(entryId: string): Promise<void> {
 .cpub-judge-icon { color: var(--accent); font-size: 18px; }
 .cpub-judge-desc { font-size: 13px; color: var(--text-dim); margin-top: 6px; }
 
-.cpub-judge-alert { padding: 10px 14px; font-size: 12px; border: 2px solid; margin-bottom: 16px; }
+.cpub-judge-alert { padding: 10px 14px; font-size: 12px; border: var(--border-width-default) solid; margin-bottom: 16px; }
 .cpub-judge-alert--error { background: var(--red-bg); color: var(--red); border-color: var(--red); }
 .cpub-judge-alert--success { background: var(--green-bg); color: var(--green); border-color: var(--green); }
 
@@ -132,7 +132,7 @@ async function submitScore(entryId: string): Promise<void> {
 .cpub-judge-entries { display: flex; flex-direction: column; gap: 8px; }
 .cpub-judge-entry {
   display: flex; align-items: center; justify-content: space-between; gap: 16px;
-  padding: 14px 16px; background: var(--surface); border: 2px solid var(--border);
+  padding: 14px 16px; background: var(--surface); border: var(--border-width-default) solid var(--border);
   box-shadow: var(--shadow-md);
 }
 .cpub-judge-entry-info { flex: 1; min-width: 0; }
@@ -147,12 +147,12 @@ async function submitScore(entryId: string): Promise<void> {
 .cpub-judge-score-value { font-size: 20px; font-weight: 700; color: var(--accent); font-family: var(--font-mono); }
 .cpub-judge-score-input-wrap { display: flex; gap: 0; }
 .cpub-judge-score-input {
-  width: 70px; padding: 6px 8px; border: 2px solid var(--border); background: var(--surface);
+  width: 70px; padding: 6px 8px; border: var(--border-width-default) solid var(--border); background: var(--surface);
   color: var(--text); font-size: 13px; font-family: var(--font-mono); text-align: center; outline: none;
 }
 .cpub-judge-score-input:focus { border-color: var(--accent); }
 .cpub-judge-score-btn {
-  padding: 6px 12px; background: var(--accent); color: var(--color-text-inverse); border: 2px solid var(--accent);
+  padding: 6px 12px; background: var(--accent); color: var(--color-text-inverse); border: var(--border-width-default) solid var(--accent);
   font-size: 11px; font-weight: 600; cursor: pointer; border-left: none;
 }
 .cpub-judge-score-btn:hover { opacity: 0.9; }

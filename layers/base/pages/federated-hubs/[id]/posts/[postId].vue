@@ -134,7 +134,10 @@ if (hub.value?.url) {
 
       <div class="cpub-post-meta">
         <div class="cpub-post-author">
-          <div class="cpub-post-avatar">{{ (post.author?.displayName || post.author?.preferredUsername || 'U').charAt(0).toUpperCase() }}</div>
+          <div class="cpub-post-avatar">
+            <img v-if="post.author?.avatarUrl" :src="post.author.avatarUrl" :alt="post.author?.displayName || post.author?.preferredUsername || 'User'" class="cpub-post-avatar-img" />
+            <span v-else>{{ (post.author?.displayName || post.author?.preferredUsername || 'U').charAt(0).toUpperCase() }}</span>
+          </div>
           <span class="cpub-post-author-name">{{ post.author?.displayName || post.author?.preferredUsername || 'Unknown' }}</span>
           <span class="cpub-post-handle">{{ authorHandle }}</span>
           <span class="cpub-post-sep">&middot;</span>
@@ -214,7 +217,7 @@ if (hub.value?.url) {
 .cpub-breadcrumb-link:hover { color: var(--accent); }
 
 .cpub-post-card {
-  background: var(--surface); border: 2px solid var(--border);
+  background: var(--surface); border: var(--border-width-default) solid var(--border);
   padding: 20px; margin-bottom: 16px;
 }
 
@@ -248,7 +251,9 @@ if (hub.value?.url) {
   width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;
   background: var(--surface2); border: 1px solid var(--border);
   font-family: var(--font-mono); font-size: 10px; font-weight: 700; color: var(--text-dim);
+  border-radius: 50%; overflow: hidden;
 }
+.cpub-post-avatar-img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
 
 .cpub-post-author-name { font-weight: 500; color: var(--text-dim); }
 .cpub-post-handle { color: var(--text-faint); font-size: 11px; }
@@ -270,7 +275,7 @@ if (hub.value?.url) {
 .cpub-reply-form { margin-bottom: 16px; }
 .cpub-reply-row { display: flex; gap: 8px; }
 .cpub-reply-input {
-  flex: 1; padding: 8px 12px; background: var(--surface); border: 2px solid var(--border);
+  flex: 1; padding: 8px 12px; background: var(--surface); border: var(--border-width-default) solid var(--border);
   color: var(--text); font-size: 13px;
 }
 .cpub-reply-input:focus { outline: none; border-color: var(--accent); }
@@ -290,4 +295,15 @@ if (hub.value?.url) {
 .cpub-inline-link:hover { text-decoration: underline; }
 
 .cpub-loading { color: var(--text-dim); }
+
+@media (max-width: 768px) {
+  .cpub-post-page { padding: 0 12px 32px; }
+  .cpub-fed-banner { margin: 0 -12px 12px; }
+  .cpub-post-card { padding: 16px; }
+  .cpub-post-content { font-size: 14px; }
+  .cpub-post-meta { flex-direction: column; align-items: flex-start; }
+  .cpub-post-author { flex-wrap: wrap; }
+  .cpub-reply-row { flex-direction: column; }
+  .cpub-reply-input { width: 100%; }
+}
 </style>

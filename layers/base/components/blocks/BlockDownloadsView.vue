@@ -39,7 +39,7 @@ const files = computed<FileItem[]>(() => {
 
 <style scoped>
 .cpub-block-downloads {
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   margin: 20px 0;
   overflow: hidden;
   box-shadow: var(--shadow-md);
@@ -51,7 +51,7 @@ const files = computed<FileItem[]>(() => {
   gap: 8px;
   padding: 10px 14px;
   background: var(--surface2);
-  border-bottom: 2px solid var(--border);
+  border-bottom: var(--border-width-default) solid var(--border);
 }
 
 .cpub-dl-icon { font-size: 12px; color: var(--accent); }
@@ -65,7 +65,7 @@ const files = computed<FileItem[]>(() => {
   align-items: center;
   gap: 12px;
   padding: 10px 14px;
-  border-bottom: 2px solid var(--border2);
+  border-bottom: var(--border-width-default) solid var(--border2);
 }
 
 .cpub-dl-item:last-child { border-bottom: none; }
@@ -74,7 +74,7 @@ const files = computed<FileItem[]>(() => {
   width: 32px;
   height: 32px;
   background: var(--surface2);
-  border: 2px solid var(--border2);
+  border: var(--border-width-default) solid var(--border2);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -111,7 +111,7 @@ const files = computed<FileItem[]>(() => {
   align-items: center;
   justify-content: center;
   background: var(--accent-bg);
-  border: 2px solid var(--accent-border);
+  border: var(--border-width-default) solid var(--accent-border);
   color: var(--accent);
   font-size: 12px;
   text-decoration: none;

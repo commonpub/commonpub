@@ -129,7 +129,7 @@ async function handleDeleteAccount(): Promise<void> {
 
 .cpub-danger-divider {
   border: none;
-  border-top: 2px solid var(--red-border);
+  border-top: var(--border-width-default) solid var(--red-border);
   margin: var(--space-8) 0 var(--space-4);
 }
 

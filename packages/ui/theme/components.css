@@ -9,7 +9,7 @@
   font-family: var(--font-mono);
   font-size: 12px;
   padding: 6px 14px;
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   background: var(--surface);
   color: var(--text);
   cursor: pointer;
@@ -77,7 +77,7 @@
 /* ─── SIDEBAR CARDS ─── */
 .cpub-sb-card {
   background: var(--surface);
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   padding: 16px;
   margin-bottom: 12px;
   box-shadow: 4px 4px 0 var(--border);
@@ -103,7 +103,7 @@
   gap: 12px;
   margin-bottom: 16px;
   padding-bottom: 10px;
-  border-bottom: 2px solid var(--border);
+  border-bottom: var(--border-width-default) solid var(--border);
 }
 
 .cpub-section-head h2,
@@ -136,7 +136,7 @@
 .cpub-page-btn {
   min-width: 44px;
   min-height: 44px;
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   background: var(--surface);
   color: var(--text-dim);
   font-size: 12px;
@@ -206,7 +206,7 @@
   padding: 10px 14px;
   background: var(--red-bg);
   color: var(--red);
-  border: 2px solid var(--red);
+  border: var(--border-width-default) solid var(--red);
   font-size: 12px;
   font-family: var(--font-mono);
 }
@@ -235,7 +235,7 @@
 
 .cpub-input {
   padding: 8px 12px;
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   background: var(--surface);
   color: var(--text);
   font-size: 13px;
@@ -249,7 +249,7 @@
 
 .cpub-textarea {
   padding: 8px 12px;
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   background: var(--surface);
   color: var(--text);
   font-size: 13px;
@@ -280,7 +280,7 @@
   content: '';
   width: 16px;
   height: 16px;
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   border-top-color: var(--accent);
   animation: cpub-spin 0.6s linear infinite;
 }
@@ -318,5 +318,5 @@
 .cpub-delete-btn-sm { font-size: 10px; padding: 2px 4px; }
 
 /* ─── DIVIDERS ─── */
-.cpub-divider { border: none; border-top: 2px solid var(--border); }
+.cpub-divider { border: none; border-top: var(--border-width-default) solid var(--border); }
 }

@@ -112,13 +112,13 @@ async function handleSubmit(): Promise<void> {
 .reset-success-text { font-size: 13px; color: var(--text-dim); line-height: 1.6; }
 .back-link { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--accent); text-decoration: none; justify-content: center; margin-top: var(--space-4); }
 .back-link:hover { text-decoration: underline; }
-.form-error { padding: var(--space-3); background: var(--red-bg); color: var(--red); border: 2px solid var(--red); border-radius: var(--radius); font-size: 12px; }
+.form-error { padding: var(--space-3); background: var(--red-bg); color: var(--red); border: var(--border-width-default) solid var(--red); border-radius: var(--radius); font-size: 12px; }
 .field { display: flex; flex-direction: column; gap: 4px; }
 .field-label { font-size: 12px; font-weight: 500; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-dim); }
-.field-input { padding: 8px 12px; border: 2px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text); font-size: 13px; font-family: var(--font-sans); outline: none; width: 100%; transition: border-color 0.15s; }
+.field-input { padding: 8px 12px; border: var(--border-width-default) solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text); font-size: 13px; font-family: var(--font-sans); outline: none; width: 100%; transition: border-color 0.15s; }
 .field-input::placeholder { color: var(--text-faint); }
 .field-input:focus { border-color: var(--accent); }
-.submit-btn { padding: 7px 14px; background: var(--accent); color: var(--color-text-inverse); border: 2px solid var(--accent); border-radius: var(--radius); font-size: 13px; font-weight: 500; cursor: pointer; box-shadow: var(--shadow-sm); transition: all 0.15s; }
+.submit-btn { padding: 7px 14px; background: var(--accent); color: var(--color-text-inverse); border: var(--border-width-default) solid var(--accent); border-radius: var(--radius); font-size: 13px; font-weight: 500; cursor: pointer; box-shadow: var(--shadow-sm); transition: all 0.15s; }
 .submit-btn:hover:not(:disabled) { box-shadow: var(--shadow-md); transform: translate(-1px, -1px); }
 .submit-btn:disabled { opacity: 0.7; cursor: not-allowed; }
 </style>

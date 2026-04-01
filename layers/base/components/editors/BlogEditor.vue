@@ -40,6 +40,7 @@ const blockTypes: BlockTypeGroup[] = [
     blocks: [
       { type: 'callout', label: 'Callout', icon: 'fa-circle-info', description: 'Tip, warning, or note', attrs: { variant: 'info' } },
       { type: 'embed', label: 'Embed', icon: 'fa-globe', description: 'External embed' },
+      { type: 'markdown', label: 'Markdown', icon: 'fa-brands fa-markdown', description: 'Raw markdown block' },
     ],
   },
 ];
@@ -351,26 +352,26 @@ const canvasMaxWidth = computed(() => {
 
 <style scoped>
 .cpub-be-shell { display: flex; flex: 1; overflow: hidden; }
-.cpub-be-library { width: 220px; flex-shrink: 0; background: var(--surface); border-right: 2px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+.cpub-be-library { width: 220px; flex-shrink: 0; background: var(--surface); border-right: var(--border-width-default) solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
 .cpub-be-center { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
 .cpub-be-canvas { flex: 1; overflow-y: auto; background: var(--bg); margin: 0 auto; width: 100%; transition: max-width 0.2s; }
 
 /* Canvas toolbar */
 .cpub-be-canvas-toolbar {
   display: flex; align-items: center; gap: 2px; padding: 4px 12px;
-  background: var(--surface); border-bottom: 2px solid var(--border); flex-shrink: 0; min-height: 32px;
+  background: var(--surface); border-bottom: var(--border-width-default) solid var(--border); flex-shrink: 0; min-height: 32px;
   justify-content: flex-end;
 }
 .cpub-be-viewport-tabs { display: flex; gap: 0; }
 .cpub-be-viewport-tab {
   width: 28px; height: 24px; display: flex; align-items: center; justify-content: center;
-  background: none; border: 2px solid var(--border); border-left-width: 0; color: var(--text-faint);
+  background: none; border: var(--border-width-default) solid var(--border); border-left-width: 0; color: var(--text-faint);
   font-size: 10px; cursor: pointer;
 }
 .cpub-be-viewport-tab:first-child { border-left-width: 2px; }
 .cpub-be-viewport-tab.active { background: var(--border); color: var(--color-text-inverse); }
 .cpub-be-viewport-tab:hover:not(.active) { background: var(--surface2); color: var(--text-dim); }
-.cpub-be-right { width: 320px; flex-shrink: 0; background: var(--surface); border-left: 2px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+.cpub-be-right { width: 320px; flex-shrink: 0; background: var(--surface); border-left: var(--border-width-default) solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
 .cpub-be-right-body { flex: 1; overflow-y: auto; }
 
 /* Cover image */
@@ -379,7 +380,7 @@ const canvasMaxWidth = computed(() => {
   width: 100%;
   aspect-ratio: 16/7;
   background: var(--surface2);
-  border-bottom: 2px solid var(--border);
+  border-bottom: var(--border-width-default) solid var(--border);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -398,7 +399,7 @@ const canvasMaxWidth = computed(() => {
 .cpub-be-cover:focus-within .cpub-be-cover-overlay,
 .cpub-be-cover:focus-within .cpub-be-cover-actions { opacity: 1; }
 .cpub-be-cover-btn {
-  font-size: 11px; padding: 6px 12px; background: var(--surface); border: 2px solid var(--border);
+  font-size: 11px; padding: 6px 12px; background: var(--surface); border: var(--border-width-default) solid var(--border);
   color: var(--text-dim); cursor: pointer; display: inline-flex; align-items: center; gap: 5px;
   font-family: var(--font-mono); box-shadow: var(--shadow-sm);
 }
@@ -427,7 +428,7 @@ const canvasMaxWidth = computed(() => {
 .cpub-be-byline-av {
   width: 32px; height: 32px; border-radius: 50%; background: var(--accent);
   display: flex; align-items: center; justify-content: center;
-  font-size: 11px; font-weight: 700; color: var(--color-text-inverse); flex-shrink: 0; border: 2px solid var(--border);
+  font-size: 11px; font-weight: 700; color: var(--color-text-inverse); flex-shrink: 0; border: var(--border-width-default) solid var(--border);
 }
 .cpub-be-byline-info { flex: 1; }
 .cpub-be-byline-name { font-size: 13px; font-weight: 600; color: var(--text); }
@@ -438,7 +439,7 @@ const canvasMaxWidth = computed(() => {
 /* Word count bar */
 .cpub-be-wc-bar {
   display: flex; align-items: center; gap: 18px; padding: 10px 40px;
-  background: var(--surface); border-top: 2px solid var(--border); flex-shrink: 0;
+  background: var(--surface); border-top: var(--border-width-default) solid var(--border); flex-shrink: 0;
 }
 .cpub-be-wc-stat {
   font-family: var(--font-mono); font-size: 10px; color: var(--text-faint);
@@ -455,14 +456,14 @@ const canvasMaxWidth = computed(() => {
 
 /* SEO card */
 .cpub-be-seo-card {
-  background: var(--surface); border: 2px solid var(--border); padding: 14px;
+  background: var(--surface); border: var(--border-width-default) solid var(--border); padding: 14px;
   font-family: Arial, sans-serif; box-shadow: var(--shadow-sm);
 }
 .cpub-be-seo-url { font-size: 11px; color: var(--green); margin-bottom: 4px; display: flex; align-items: center; gap: 4px; }
 .cpub-be-seo-favicon {
   width: 14px; height: 14px; background: var(--accent); display: inline-flex;
   align-items: center; justify-content: center; font-size: 8px; color: var(--color-text-inverse);
-  font-weight: 700; flex-shrink: 0; border: 2px solid var(--border);
+  font-weight: 700; flex-shrink: 0; border: var(--border-width-default) solid var(--border);
 }
 .cpub-be-seo-title { font-size: 15px; color: var(--accent); margin-bottom: 4px; line-height: 1.3; }
 .cpub-be-seo-desc { font-size: 12px; color: var(--text-dim); line-height: 1.45; }
@@ -475,7 +476,7 @@ const canvasMaxWidth = computed(() => {
 .cpub-be-toggle-switch input { display: none; }
 .cpub-be-toggle-track {
   display: block; width: 100%; height: 100%; background: var(--surface3);
-  border: 2px solid var(--border); cursor: pointer; transition: background 0.15s; position: relative;
+  border: var(--border-width-default) solid var(--border); cursor: pointer; transition: background 0.15s; position: relative;
 }
 .cpub-be-toggle-track::after {
   content: ''; position: absolute; width: 8px; height: 8px;
@@ -488,25 +489,25 @@ const canvasMaxWidth = computed(() => {
 /* Author row */
 .cpub-be-author-row {
   display: flex; align-items: center; gap: 10px; padding: 10px;
-  background: var(--surface); border: 2px solid var(--border); box-shadow: var(--shadow-sm);
+  background: var(--surface); border: var(--border-width-default) solid var(--border); box-shadow: var(--shadow-sm);
 }
 .cpub-be-author-av {
   width: 32px; height: 32px; border-radius: 50%; background: var(--accent);
   display: flex; align-items: center; justify-content: center;
-  font-size: 11px; font-weight: 700; color: var(--color-text-inverse); flex-shrink: 0; border: 2px solid var(--border);
+  font-size: 11px; font-weight: 700; color: var(--color-text-inverse); flex-shrink: 0; border: var(--border-width-default) solid var(--border);
 }
 .cpub-be-author-info { flex: 1; }
 .cpub-be-author-name { font-size: 12px; font-weight: 600; color: var(--text); }
 .cpub-be-author-role { font-size: 10px; color: var(--text-faint); font-family: var(--font-mono); }
 .cpub-be-author-badge {
   font-family: var(--font-mono); font-size: 9px; padding: 2px 6px;
-  background: var(--accent-bg); border: 2px solid var(--accent); color: var(--accent);
+  background: var(--accent-bg); border: var(--border-width-default) solid var(--accent); color: var(--accent);
 }
 
 /* OG thumb */
 .cpub-be-og-thumb {
   width: 100%; aspect-ratio: 1200/630; background: var(--surface2);
-  border: 2px solid var(--border); overflow: hidden; position: relative; cursor: pointer;
+  border: var(--border-width-default) solid var(--border); overflow: hidden; position: relative; cursor: pointer;
   background-image: linear-gradient(var(--border2) 1px, transparent 1px), linear-gradient(90deg, var(--border2) 1px, transparent 1px);
   background-size: 20px 20px;
 }
@@ -545,7 +546,7 @@ const canvasMaxWidth = computed(() => {
     gap: 8px; z-index: 100;
   }
   .cpub-be-mobile-btn {
-    width: 44px; height: 44px; border: 2px solid var(--border); background: var(--surface);
+    width: 44px; height: 44px; border: var(--border-width-default) solid var(--border); background: var(--surface);
     color: var(--text-dim); font-size: 16px; cursor: pointer;
     display: flex; align-items: center; justify-content: center;
     box-shadow: var(--shadow-md);

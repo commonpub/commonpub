@@ -375,4 +375,11 @@ async function handleDiscPost(): Promise<void> {
 
 .cpub-not-found { text-align: center; padding: 60px 20px; color: var(--text-dim); }
 .cpub-not-found h1 { font-size: 1.5rem; color: var(--text); margin-bottom: 8px; }
+
+@media (max-width: 768px) {
+  .cpub-fed-banner-inner { padding: 8px 16px; font-size: 11px; flex-wrap: wrap; }
+  .cpub-compose-bar { padding: 10px 12px; }
+  .cpub-compose-input { padding: 8px 10px; font-size: 13px; }
+  .cpub-sidebar-stats { gap: 12px; }
+}
 </style>

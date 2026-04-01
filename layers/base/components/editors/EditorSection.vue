@@ -29,7 +29,7 @@ const emit = defineEmits<{
 
 <style scoped>
 .cpub-ep-section {
-  border-bottom: 2px solid var(--border);
+  border-bottom: var(--border-width-default) solid var(--border);
 }
 
 .cpub-ep-section-header {

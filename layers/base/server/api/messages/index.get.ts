@@ -28,12 +28,12 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  // Replace participant IDs with resolved names
+  // Replace participant IDs with resolved user objects
   return conversations.map((conv) => ({
     ...conv,
     participants: (conv.participants ?? []).map((id: string) => {
       const u = userMap.get(id);
-      return u ? (u.displayName ?? u.username) : id;
+      return u ? { username: u.username, displayName: u.displayName, avatarUrl: u.avatarUrl } : { username: id, displayName: null, avatarUrl: null };
     }),
   }));
 });

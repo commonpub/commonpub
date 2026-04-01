@@ -74,7 +74,7 @@ async function loadMore(): Promise<void> {
   width: 48px;
   height: 48px;
   background: var(--accent-bg);
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   display: flex;
   align-items: center;
   justify-content: center;

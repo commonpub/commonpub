@@ -2,9 +2,15 @@
 useSeoMeta({ title: `Messages — ${useSiteName()}` });
 definePageMeta({ middleware: 'auth' });
 
+interface ParticipantRef {
+  username: string;
+  displayName: string | null;
+  avatarUrl: string | null;
+}
+
 interface ConversationItem {
   id: string;
-  participants: string[];
+  participants: ParticipantRef[];
   lastMessage: string | null;
   lastMessageAt: string;
   createdAt: string;
@@ -67,7 +73,7 @@ async function startConversation(): Promise<void> {
         <div class="cpub-new-msg-body">
           <div class="cpub-new-msg-field">
             <label class="cpub-new-msg-label">Recipient username</label>
-            <input v-model="newRecipient" type="text" class="cpub-new-msg-input" placeholder="username" />
+            <input v-model="newRecipient" type="text" class="cpub-new-msg-input" placeholder="username or @user@remote-instance.com" />
           </div>
           <div class="cpub-new-msg-field">
             <label class="cpub-new-msg-label">Message (optional)</label>
@@ -95,9 +101,12 @@ async function startConversation(): Promise<void> {
         class="cpub-conversation-item"
         :class="{ unread: conv.unread }"
       >
-        <div class="cpub-conv-avatar">{{ (conv.participants?.[0] ?? '?').charAt(0).toUpperCase() }}</div>
+        <div class="cpub-conv-avatar">
+          <img v-if="conv.participants?.[0]?.avatarUrl" :src="conv.participants[0].avatarUrl" :alt="conv.participants[0].displayName || conv.participants[0].username" class="cpub-conv-avatar-img" />
+          <span v-else>{{ (conv.participants?.[0]?.displayName || conv.participants?.[0]?.username || '?').charAt(0).toUpperCase() }}</span>
+        </div>
         <div class="cpub-conv-info">
-          <div class="cpub-conv-name">{{ conv.participants?.join(', ') ?? 'Unknown' }}</div>
+          <div class="cpub-conv-name">{{ conv.participants?.map(p => p.displayName || p.username).join(', ') ?? 'Unknown' }}</div>
           <div class="cpub-conv-preview">{{ conv.lastMessage ?? 'No messages yet' }}</div>
         </div>
         <time class="cpub-conv-time">
@@ -129,7 +138,7 @@ async function startConversation(): Promise<void> {
 }
 
 .cpub-conversation-list {
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   background: var(--surface);
 }
 
@@ -139,7 +148,7 @@ async function startConversation(): Promise<void> {
   gap: 12px;
   padding: 12px 16px;
   text-decoration: none;
-  border-bottom: 2px solid var(--border2);
+  border-bottom: var(--border-width-default) solid var(--border2);
   transition: background 0.1s;
 }
 
@@ -156,7 +165,7 @@ async function startConversation(): Promise<void> {
   height: 36px;
   border-radius: 50%;
   background: var(--surface3);
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -165,7 +174,10 @@ async function startConversation(): Promise<void> {
   font-weight: 600;
   color: var(--text-dim);
   flex-shrink: 0;
+  overflow: hidden;
 }
+
+.cpub-conv-avatar-img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
 
 .cpub-conv-info {
   flex: 1;
@@ -207,7 +219,7 @@ async function startConversation(): Promise<void> {
 
 .cpub-new-msg-dialog {
   background: var(--surface);
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   box-shadow: var(--shadow-xl);
   width: 400px;
   max-width: 90vw;
@@ -218,7 +230,7 @@ async function startConversation(): Promise<void> {
   align-items: center;
   justify-content: space-between;
   padding: 14px 16px;
-  border-bottom: 2px solid var(--border);
+  border-bottom: var(--border-width-default) solid var(--border);
 }
 
 .cpub-new-msg-title {
@@ -265,7 +277,7 @@ async function startConversation(): Promise<void> {
   font-family: var(--font-sans);
   font-size: 13px;
   padding: 8px 10px;
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   background: var(--surface);
   color: var(--text);
   outline: none;
@@ -281,7 +293,11 @@ async function startConversation(): Promise<void> {
   justify-content: flex-end;
   gap: 8px;
   padding: 12px 16px;
-  border-top: 2px solid var(--border);
+  border-top: var(--border-width-default) solid var(--border);
 }
 
+@media (max-width: 768px) {
+  .cpub-messages-page { padding: 16px; }
+  .cpub-conversation-item { padding: 10px 12px; }
+}
 </style>

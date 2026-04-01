@@ -101,7 +101,7 @@ async function toggleFollow() {
 
 <style scoped>
 .cpub-remote-actor-card {
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   padding: var(--space-4);
   background: var(--surface-1);
 }
@@ -117,7 +117,7 @@ async function toggleFollow() {
   height: 48px;
   border-radius: 0;
   object-fit: cover;
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   flex-shrink: 0;
 }
 
@@ -152,7 +152,7 @@ async function toggleFollow() {
 
 .cpub-remote-actor-card__follow-btn {
   padding: var(--space-1) var(--space-3);
-  border: 2px solid var(--accent);
+  border: var(--border-width-default) solid var(--accent);
   background: transparent;
   color: var(--accent);
   font-family: var(--font-mono);

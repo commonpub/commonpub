@@ -87,11 +87,11 @@ h4.cpub-md-heading { font-size: 1rem; font-weight: 600; }
 .cpub-md-text :deep(strong) { font-weight: 600; }
 .cpub-md-text :deep(code) { font-family: var(--font-mono); font-size: 0.875em; padding: 1px 4px; background: var(--surface2); border-radius: 0; }
 .cpub-md-text :deep(table) { width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 13px; }
-.cpub-md-text :deep(th), .cpub-md-text :deep(td) { padding: 6px 10px; border: 2px solid var(--border); text-align: left; }
+.cpub-md-text :deep(th), .cpub-md-text :deep(td) { padding: 6px 10px; border: var(--border-width-default) solid var(--border); text-align: left; }
 .cpub-md-text :deep(th) { background: var(--surface2); font-weight: 600; }
 
 .cpub-md-code {
-  background: var(--surface2); border: 2px solid var(--border); border-radius: 0;
+  background: var(--surface2); border: var(--border-width-default) solid var(--border); border-radius: 0;
   padding: 14px 16px; font-family: var(--font-mono); font-size: 13px;
   line-height: 1.6; overflow-x: auto; margin-bottom: 14px;
 }
@@ -114,5 +114,5 @@ h4.cpub-md-heading { font-size: 1rem; font-weight: 600; }
   color: var(--text-dim); font-style: italic; margin-bottom: 14px;
 }
 
-.cpub-md-hr { border: none; border-top: 2px solid var(--border); margin: 20px 0; }
+.cpub-md-hr { border: none; border-top: var(--border-width-default) solid var(--border); margin: 20px 0; }
 </style>

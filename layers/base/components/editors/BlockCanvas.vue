@@ -386,7 +386,7 @@ function isTextBlock(type: string): boolean {
   width: 100%;
   max-width: 680px;
   background: var(--surface);
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   box-shadow: var(--shadow-md);
   padding: 44px 56px;
   position: relative;
@@ -451,7 +451,7 @@ function isTextBlock(type: string): boolean {
   align-items: center;
   gap: 0;
   background: var(--text, #1a1a1a);
-  border: 2px solid var(--border, #1a1a1a);
+  border: var(--border-width-default) solid var(--border, #1a1a1a);
   box-shadow: var(--shadow-md);
   padding: 3px;
   transform: translateX(-50%);

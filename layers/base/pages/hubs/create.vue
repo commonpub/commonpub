@@ -157,7 +157,7 @@ async function handleCreate(): Promise<void> {
 
 .cpub-field-input {
   padding: 8px 12px;
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   background: var(--surface);
   color: var(--text);
   font-size: 13px;

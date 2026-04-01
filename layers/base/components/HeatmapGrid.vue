@@ -66,7 +66,7 @@ function getDateStr(weekIdx: number, dayIdx: number): string {
 .cpub-heatmap-cell {
   width: 10px;
   height: 10px;
-  border: 2px solid var(--border2);
+  border: var(--border-width-default) solid var(--border2);
 }
 
 .cpub-heatmap-cell[data-level="0"] { background: var(--surface2); }

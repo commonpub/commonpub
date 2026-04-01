@@ -4,7 +4,7 @@ const username = route.params.username as string;
 
 useSeoMeta({ title: `Followers — @${username} — ${useSiteName()}` });
 
-const { data: followers } = useLazyFetch<Array<{ id: string; username: string; displayName: string | null }>>(`/api/users/${username}/followers`);
+const { data: followers } = useLazyFetch<Array<{ id: string; username: string; displayName: string | null; avatarUrl: string | null }>>(`/api/users/${username}/followers`);
 const { isAuthenticated, user } = useAuth();
 const toast = useToast();
 
@@ -33,9 +33,12 @@ async function toggleFollow(targetUsername: string, isFollowing: boolean): Promi
     </div>
 
     <div v-if="followers?.length" class="follow-list">
-      <div v-for="f in (followers as Array<{ id: string; username: string; displayName: string | null }>)" :key="f.id" class="follow-item">
+      <div v-for="f in (followers as Array<{ id: string; username: string; displayName: string | null; avatarUrl: string | null }>)" :key="f.id" class="follow-item">
         <NuxtLink :to="`/u/${f.username}`" class="follow-user">
-          <div class="follow-avatar">{{ (f.displayName || f.username).charAt(0).toUpperCase() }}</div>
+          <div class="follow-avatar">
+            <img v-if="f.avatarUrl" :src="f.avatarUrl" :alt="f.displayName || f.username" class="follow-avatar-img" />
+            <span v-else>{{ (f.displayName || f.username).charAt(0).toUpperCase() }}</span>
+          </div>
           <div>
             <div class="follow-name">{{ f.displayName || f.username }}</div>
             <div class="follow-handle">@{{ f.username }}</div>
@@ -65,13 +68,19 @@ async function toggleFollow(targetUsername: string, isFollowing: boolean): Promi
 .follow-title { font-size: 22px; font-weight: 700; }
 
 .follow-list { display: flex; flex-direction: column; }
-.follow-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 2px solid var(--border2); }
+.follow-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: var(--border-width-default) solid var(--border2); }
 .follow-item:last-child { border-bottom: none; }
 .follow-user { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--text); }
 .follow-user:hover .follow-name { color: var(--accent); }
-.follow-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--surface3); border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; color: var(--accent); font-family: var(--font-mono); }
+.follow-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--surface3); border: var(--border-width-default) solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; color: var(--accent); font-family: var(--font-mono); overflow: hidden; }
+.follow-avatar-img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
 .follow-name { font-size: 14px; font-weight: 600; }
 .follow-handle { font-size: 12px; color: var(--text-faint); font-family: var(--font-mono); }
 
 .follow-empty { text-align: center; padding: 48px 0; color: var(--text-faint); }
+
+@media (max-width: 768px) {
+  .follow-page { padding: var(--space-4); }
+  .follow-title { font-size: var(--text-lg); }
+}
 </style>

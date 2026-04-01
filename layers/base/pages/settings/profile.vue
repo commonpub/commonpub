@@ -520,7 +520,7 @@ async function handleSave(): Promise<void> {
 
 .cpub-form-section {
   padding-bottom: var(--space-6);
-  border-bottom: 2px solid var(--border);
+  border-bottom: var(--border-width-default) solid var(--border);
 }
 
 .cpub-form-section-label {
@@ -582,7 +582,7 @@ async function handleSave(): Promise<void> {
   width: 96px;
   height: 96px;
   border-radius: 50%;
-  border: 2px solid var(--border2);
+  border: var(--border-width-default) solid var(--border2);
   background: var(--surface);
   cursor: pointer;
   overflow: hidden;
@@ -679,7 +679,7 @@ async function handleSave(): Promise<void> {
   width: 14px;
   height: 14px;
   background: var(--accent);
-  border: 2px solid var(--accent);
+  border: var(--border-width-default) solid var(--accent);
   cursor: pointer;
 }
 
@@ -687,7 +687,7 @@ async function handleSave(): Promise<void> {
   width: 14px;
   height: 14px;
   background: var(--accent);
-  border: 2px solid var(--accent);
+  border: var(--border-width-default) solid var(--accent);
   cursor: pointer;
 }
 
@@ -711,7 +711,7 @@ async function handleSave(): Promise<void> {
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 2px solid var(--border2);
+  border: var(--border-width-default) solid var(--border2);
   background: var(--surface);
   color: var(--text-dim);
   cursor: pointer;
@@ -759,7 +759,7 @@ async function handleSave(): Promise<void> {
 
 /* ─── Experience ─── */
 .cpub-experience-card {
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   background: var(--surface);
   padding: var(--space-4);
   margin-bottom: var(--space-4);
@@ -804,7 +804,7 @@ async function handleSave(): Promise<void> {
   padding: var(--space-2) var(--space-5);
   background: var(--accent);
   color: var(--color-text-inverse);
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   font-size: var(--text-sm);
   cursor: pointer;
   font-family: var(--font-sans);
@@ -823,5 +823,16 @@ async function handleSave(): Promise<void> {
 .cpub-save-btn:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+
+@media (max-width: 768px) {
+  .cpub-settings-form { padding: 0 var(--space-1); }
+  .cpub-skill-slider { width: 120px; }
+  .cpub-experience-dates { grid-template-columns: 1fr; }
+  .cpub-banner-upload { height: 100px; }
+}
+
+@media (max-width: 480px) {
+  .cpub-skill-slider { width: 80px; }
 }
 </style>

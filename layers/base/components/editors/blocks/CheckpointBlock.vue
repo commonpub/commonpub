@@ -19,9 +19,9 @@ function updateLabel(value: string): void {
 </template>
 
 <style scoped>
-.cpub-checkpoint-edit { border: 2px solid var(--green-border); background: var(--surface); }
-.cpub-checkpoint-edit-header { padding: 8px 12px; font-size: 12px; font-weight: 600; background: var(--green-bg); border-bottom: 2px solid var(--green-border); display: flex; align-items: center; gap: 8px; color: var(--green); }
+.cpub-checkpoint-edit { border: var(--border-width-default) solid var(--green-border); background: var(--surface); }
+.cpub-checkpoint-edit-header { padding: 8px 12px; font-size: 12px; font-weight: 600; background: var(--green-bg); border-bottom: var(--border-width-default) solid var(--green-border); display: flex; align-items: center; gap: 8px; color: var(--green); }
 .cpub-checkpoint-edit-body { padding: 12px; }
-.cpub-checkpoint-input { width: 100%; font-size: 13px; background: transparent; border: none; border-bottom: 2px solid var(--border2); padding: 6px 0; outline: none; color: var(--text); }
+.cpub-checkpoint-input { width: 100%; font-size: 13px; background: transparent; border: none; border-bottom: var(--border-width-default) solid var(--border2); padding: 6px 0; outline: none; color: var(--text); }
 .cpub-checkpoint-input::placeholder { color: var(--text-faint); }
 </style>

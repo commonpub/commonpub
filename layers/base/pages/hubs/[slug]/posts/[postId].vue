@@ -125,7 +125,10 @@ useSeoMeta({
 
       <div class="cpub-post-meta">
         <div class="cpub-post-author">
-          <div class="cpub-post-avatar">{{ (post.author?.displayName || post.author?.username || 'U').charAt(0).toUpperCase() }}</div>
+          <div class="cpub-post-avatar">
+            <img v-if="post.author?.avatarUrl" :src="post.author.avatarUrl" :alt="post.author?.displayName || post.author?.username" class="cpub-post-avatar-img" />
+            <span v-else>{{ (post.author?.displayName || post.author?.username || 'U').charAt(0).toUpperCase() }}</span>
+          </div>
           <NuxtLink :to="`/u/${post.author?.username}`" class="cpub-post-author-name">{{ post.author?.displayName || post.author?.username }}</NuxtLink>
           <span class="cpub-post-sep">&middot;</span>
           <time class="cpub-post-time">{{ formatDate(post.createdAt) }}</time>
@@ -177,7 +180,10 @@ useSeoMeta({
       <h3 v-if="replies.length" class="cpub-replies-title">{{ repliesData?.total ?? 0 }} Replies</h3>
       <div v-for="reply in replies" :key="reply.id" class="cpub-reply">
         <div class="cpub-reply-author">
-          <div class="cpub-reply-avatar">{{ (reply.author?.displayName || reply.author?.username || 'U').charAt(0).toUpperCase() }}</div>
+          <div class="cpub-reply-avatar">
+            <img v-if="reply.author?.avatarUrl" :src="reply.author.avatarUrl" :alt="reply.author?.displayName || reply.author?.username" class="cpub-reply-avatar-img" />
+            <span v-else>{{ (reply.author?.displayName || reply.author?.username || 'U').charAt(0).toUpperCase() }}</span>
+          </div>
           <NuxtLink :to="`/u/${reply.author?.username}`" class="cpub-reply-author-name">{{ reply.author?.displayName || reply.author?.username }}</NuxtLink>
           <span class="cpub-post-sep">&middot;</span>
           <time class="cpub-post-time">{{ formatDate(reply.createdAt) }}</time>
@@ -193,7 +199,10 @@ useSeoMeta({
         <div v-if="reply.replies?.length" class="cpub-nested-replies">
           <div v-for="child in reply.replies" :key="child.id" class="cpub-reply cpub-reply-nested">
             <div class="cpub-reply-author">
-              <div class="cpub-reply-avatar">{{ (child.author?.displayName || child.author?.username || 'U').charAt(0).toUpperCase() }}</div>
+              <div class="cpub-reply-avatar">
+                <img v-if="child.author?.avatarUrl" :src="child.author.avatarUrl" :alt="child.author?.displayName || child.author?.username" class="cpub-reply-avatar-img" />
+                <span v-else>{{ (child.author?.displayName || child.author?.username || 'U').charAt(0).toUpperCase() }}</span>
+              </div>
               <NuxtLink :to="`/u/${child.author?.username}`" class="cpub-reply-author-name">{{ child.author?.displayName || child.author?.username }}</NuxtLink>
               <span class="cpub-post-sep">&middot;</span>
               <time class="cpub-post-time">{{ formatDate(child.createdAt) }}</time>
@@ -224,7 +233,7 @@ useSeoMeta({
 .cpub-breadcrumb-link:hover { color: var(--accent); }
 
 .cpub-post-card {
-  background: var(--surface); border: 2px solid var(--border);
+  background: var(--surface); border: var(--border-width-default) solid var(--border);
   padding: 20px; margin-bottom: 16px;
 }
 
@@ -260,7 +269,9 @@ useSeoMeta({
   width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;
   background: var(--surface2); border: 1px solid var(--border);
   font-family: var(--font-mono); font-size: 10px; font-weight: 700; color: var(--text-dim);
+  overflow: hidden;
 }
+.cpub-post-avatar-img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
 
 .cpub-post-author-name { font-weight: 500; color: var(--text-dim); text-decoration: none; }
 .cpub-post-author-name:hover { color: var(--accent); }
@@ -295,7 +306,7 @@ useSeoMeta({
 .cpub-cancel-reply { background: none; border: none; cursor: pointer; color: var(--text-faint); font-size: 12px; }
 .cpub-reply-row { display: flex; gap: 8px; }
 .cpub-reply-input {
-  flex: 1; padding: 8px 12px; background: var(--surface); border: 2px solid var(--border);
+  flex: 1; padding: 8px 12px; background: var(--surface); border: var(--border-width-default) solid var(--border);
   color: var(--text); font-size: 13px;
 }
 .cpub-reply-input:focus { outline: none; border-color: var(--accent); }
@@ -310,7 +321,7 @@ useSeoMeta({
 .cpub-replies-title { font-size: 14px; font-weight: 600; margin-bottom: 12px; }
 
 .cpub-reply {
-  padding: 12px 16px; background: var(--surface); border: 2px solid var(--border);
+  padding: 12px 16px; background: var(--surface); border: var(--border-width-default) solid var(--border);
   margin-bottom: 8px;
 }
 
@@ -323,7 +334,9 @@ useSeoMeta({
   width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;
   background: var(--surface2); border: 1px solid var(--border);
   font-family: var(--font-mono); font-size: 9px; font-weight: 700; color: var(--text-dim);
+  overflow: hidden;
 }
+.cpub-reply-avatar-img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
 
 .cpub-reply-author-name { font-weight: 500; color: var(--text-dim); text-decoration: none; }
 .cpub-reply-author-name:hover { color: var(--accent); }

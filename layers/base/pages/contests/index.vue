@@ -18,7 +18,7 @@ const canCreateContest = computed(() => {
   <div class="cpub-contests-page">
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
       <SectionHeader title="Contests" large />
-      <NuxtLink v-if="canCreateContest" to="/contests/create" class="cpub-btn cpub-btn-primary" style="font-size: 12px; padding: 6px 14px; background: var(--accent); color: var(--color-text-inverse); border: 2px solid var(--border); text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+      <NuxtLink v-if="canCreateContest" to="/contests/create" class="cpub-btn cpub-btn-primary" style="font-size: 12px; padding: 6px 14px; background: var(--accent); color: var(--color-text-inverse); border: var(--border-width-default) solid var(--border); text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
         <i class="fa-solid fa-plus"></i> Create Contest
       </NuxtLink>
     </div>
@@ -54,3 +54,16 @@ const canCreateContest = computed(() => {
     </div>
   </div>
 </template>
+
+<style scoped>
+.cpub-contests-page { max-width: 960px; margin: 0 auto; padding: 32px; }
+.cpub-grid-3 { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+.cpub-card { border: var(--border-width-default) solid var(--border); background: var(--surface); overflow: hidden; transition: box-shadow 0.15s, transform 0.15s; box-shadow: var(--shadow-md); }
+.cpub-card:hover { box-shadow: var(--shadow-lg); transform: translate(-1px, -1px); }
+.cpub-card-body { padding: 16px; }
+
+@media (max-width: 768px) {
+  .cpub-contests-page { padding: 16px; }
+  .cpub-grid-3 { grid-template-columns: 1fr; gap: 14px; }
+}
+</style>

@@ -7,6 +7,11 @@ defineProps<{
     duration?: number | null;
     viewCount: number;
     authorId: string;
+    author?: {
+      username: string;
+      displayName: string | null;
+      avatarUrl: string | null;
+    };
   };
 }>();
 
@@ -29,6 +34,13 @@ function formatDuration(seconds: number | null | undefined): string {
     </div>
     <div class="cpub-card-body">
       <h3 class="cpub-video-title">{{ video.title }}</h3>
+      <div v-if="video.author" class="cpub-video-author-row">
+        <div class="cpub-video-av">
+          <img v-if="video.author.avatarUrl" :src="video.author.avatarUrl" :alt="video.author.displayName || video.author.username" class="cpub-video-av-img" />
+          <span v-else>{{ (video.author.displayName || video.author.username || '?').charAt(0).toUpperCase() }}</span>
+        </div>
+        <span class="cpub-video-author-name">{{ video.author.displayName || video.author.username }}</span>
+      </div>
       <div class="cpub-video-meta">
         <span><i class="fa-solid fa-eye"></i> {{ video.viewCount }}</span>
       </div>
@@ -41,7 +53,7 @@ function formatDuration(seconds: number | null | undefined): string {
   position: relative;
   height: 140px;
   background: var(--surface2);
-  border-bottom: 2px solid var(--border);
+  border-bottom: var(--border-width-default) solid var(--border);
   overflow: hidden;
 }
 
@@ -78,6 +90,11 @@ function formatDuration(seconds: number | null | undefined): string {
   margin-bottom: 4px;
   line-height: 1.35;
 }
+
+.cpub-video-author-row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+.cpub-video-av { width: 18px; height: 18px; border-radius: 50%; background: var(--surface2); border: var(--border-width-default) solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 7px; font-family: var(--font-mono); color: var(--text-faint); flex-shrink: 0; overflow: hidden; }
+.cpub-video-av-img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
+.cpub-video-author-name { font-size: 11px; color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .cpub-video-meta {
   font-size: 10px;

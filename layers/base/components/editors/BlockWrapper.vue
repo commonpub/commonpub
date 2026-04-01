@@ -79,7 +79,7 @@ function onDragEnd(event: DragEvent): void {
 <style scoped>
 .cpub-block-wrap {
   position: relative;
-  border: 2px solid transparent;
+  border: var(--border-width-default) solid transparent;
   transition: border-color 0.12s;
 }
 
@@ -117,7 +117,7 @@ function onDragEnd(event: DragEvent): void {
   align-items: center;
   justify-content: center;
   background: var(--surface);
-  border: 2px solid var(--border2);
+  border: var(--border-width-default) solid var(--border2);
   color: var(--text-faint);
   cursor: grab;
   font-size: 11px;

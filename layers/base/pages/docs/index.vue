@@ -128,7 +128,7 @@ const otherSites = computed(() => {
   font-size: 10px;
   font-family: var(--font-mono);
   background: var(--surface2);
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   padding: 1px 6px;
   color: var(--text-faint);
 }
@@ -140,7 +140,7 @@ const otherSites = computed(() => {
 }
 
 .docs-card {
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   background: var(--surface);
   padding: 20px;
   text-decoration: none;
@@ -168,7 +168,7 @@ const otherSites = computed(() => {
 
 .docs-card-meta-item { display: flex; align-items: center; gap: 4px; }
 
-.docs-divider { border: none; border-top: 2px solid var(--border); margin: 32px 0; }
+.docs-divider { border: none; border-top: var(--border-width-default) solid var(--border); margin: 32px 0; }
 
 .docs-empty {
   text-align: center;

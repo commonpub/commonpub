@@ -59,7 +59,7 @@ onMounted(() => {
   font-size: 13px;
   color: var(--text-dim);
   text-decoration: none;
-  border: 2px solid transparent;
+  border: var(--border-width-default) solid transparent;
 }
 
 .cpub-settings-link:hover {

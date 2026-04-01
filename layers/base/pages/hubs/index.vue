@@ -38,9 +38,11 @@ function hubLink(hub: Record<string, unknown>): string {
         :to="hubLink(hub as Record<string, unknown>)"
         class="cpub-hub-card"
       >
-        <div class="cpub-hub-card-icon">
-          <img v-if="hub.iconUrl" :src="hub.iconUrl" :alt="hub.name" class="cpub-hub-card-avatar" />
-          <i v-else :class="hub.hubType === 'company' ? 'fa-solid fa-building' : hub.hubType === 'product' ? 'fa-solid fa-microchip' : 'fa-solid fa-users'"></i>
+        <div class="cpub-hub-card-banner" :style="hub.bannerUrl ? { backgroundImage: `url(${hub.bannerUrl})` } : {}">
+          <div class="cpub-hub-card-icon">
+            <img v-if="hub.iconUrl" :src="hub.iconUrl" :alt="hub.name" class="cpub-hub-card-avatar" />
+            <i v-else :class="hub.hubType === 'company' ? 'fa-solid fa-building' : hub.hubType === 'product' ? 'fa-solid fa-microchip' : 'fa-solid fa-users'"></i>
+          </div>
         </div>
         <div class="cpub-hub-card-body">
           <div class="cpub-hub-card-name-row">
@@ -49,8 +51,8 @@ function hubLink(hub: Record<string, unknown>): string {
           </div>
           <p v-if="hub.description" class="cpub-hub-card-desc">{{ hub.description }}</p>
           <div class="cpub-hub-card-meta">
-            <span class="cpub-hub-card-stat"><i class="fa-solid fa-users"></i> {{ hub.memberCount ?? 0 }}</span>
-            <span class="cpub-hub-card-stat"><i class="fa-solid fa-message"></i> {{ hub.postCount ?? 0 }}</span>
+            <span class="cpub-hub-card-stat"><i class="fa-solid fa-users"></i> {{ hub.memberCount ?? 0 }} members</span>
+            <span class="cpub-hub-card-stat"><i class="fa-solid fa-message"></i> {{ hub.postCount ?? 0 }} posts</span>
             <span v-if="isFederated(hub as Record<string, unknown>)" class="cpub-hub-card-origin">
               <i class="fa-solid fa-globe"></i> {{ (hub as Record<string, unknown>).originDomain }}
             </span>
@@ -70,13 +72,17 @@ function hubLink(hub: Record<string, unknown>): string {
 </template>
 
 <style scoped>
-.cpub-hubs-page { max-width: 960px; }
+.cpub-hubs-page {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 40px 24px 64px;
+}
 
 .cpub-hubs-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: 24px;
+  margin-bottom: 28px;
   gap: 16px;
 }
 
@@ -86,58 +92,69 @@ function hubLink(hub: Record<string, unknown>): string {
 .cpub-hubs-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 14px;
+  gap: 16px;
 }
 
 .cpub-hub-card {
-  display: flex;
-  gap: 14px;
-  padding: 18px;
   background: var(--surface);
-  border: 2px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
+  overflow: hidden;
   text-decoration: none;
   color: inherit;
-  transition: box-shadow 0.15s;
+  transition: box-shadow 0.15s, border-color 0.15s;
   box-shadow: var(--shadow-md);
 }
 
 .cpub-hub-card:hover {
   box-shadow: var(--shadow-lg);
-  transform: translate(-1px, -1px);
+  border-color: var(--accent-border);
+}
+
+.cpub-hub-card-banner {
+  height: 80px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-border));
+  background-size: cover;
+  background-position: center;
+  position: relative;
 }
 
 .cpub-hub-card-icon {
-  width: 44px;
-  height: 44px;
+  position: absolute;
+  bottom: -20px;
+  left: 18px;
+  width: 48px;
+  height: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--accent-bg);
-  border: 2px solid var(--accent-border);
+  background: var(--surface);
+  border: var(--border-width-default) solid var(--surface);
   color: var(--accent);
-  font-size: 18px;
-  flex-shrink: 0;
+  font-size: 20px;
   overflow: hidden;
+  box-shadow: var(--shadow-sm);
 }
 
 .cpub-hub-card-avatar { width: 100%; height: 100%; object-fit: cover; }
 
-.cpub-hub-card-body { flex: 1; min-width: 0; }
+.cpub-hub-card-body {
+  padding: 28px 18px 18px;
+}
 
 .cpub-hub-card-name-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 
-.cpub-hub-card-name { font-size: 14px; font-weight: 600; }
+.cpub-hub-card-name { font-size: 15px; font-weight: 600; }
 
 .cpub-hub-card-desc {
   font-size: 12px;
   color: var(--text-dim);
   line-height: 1.5;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
@@ -148,7 +165,7 @@ function hubLink(hub: Record<string, unknown>): string {
 .cpub-hub-card-meta {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
 }
 
 .cpub-hub-card-stat {
@@ -168,7 +185,7 @@ function hubLink(hub: Record<string, unknown>): string {
   letter-spacing: 0.08em;
   color: var(--accent);
   background: var(--accent-bg);
-  border: 2px solid var(--accent-border);
+  border: var(--border-width-default) solid var(--accent-border);
   padding: 2px 6px;
 }
 
@@ -183,6 +200,7 @@ function hubLink(hub: Record<string, unknown>): string {
 .cpub-hub-card-origin i { font-size: 9px; color: var(--accent); }
 
 @media (max-width: 640px) {
+  .cpub-hubs-page { padding: 24px 16px 48px; }
   .cpub-hubs-grid { grid-template-columns: 1fr; }
   .cpub-hubs-header { flex-direction: column; }
 }
