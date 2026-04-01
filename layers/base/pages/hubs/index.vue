@@ -24,7 +24,7 @@ function hubLink(hub: Record<string, unknown>): string {
     <div class="cpub-hubs-header">
       <div>
         <h1 class="cpub-hubs-title">Hubs</h1>
-        <p class="cpub-hubs-desc">Communities, products, and companies on CommonPub</p>
+        <p class="cpub-hubs-desc">Communities, products, and companies on {{ useSiteName() }}</p>
       </div>
       <NuxtLink v-if="isAuthenticated" to="/hubs/create" class="cpub-btn cpub-btn-primary">
         <i class="fa-solid fa-plus"></i> Create Hub
@@ -91,8 +91,8 @@ function hubLink(hub: Record<string, unknown>): string {
 
 .cpub-hubs-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
 }
 
 .cpub-hub-card {
@@ -101,18 +101,17 @@ function hubLink(hub: Record<string, unknown>): string {
   overflow: hidden;
   text-decoration: none;
   color: inherit;
-  transition: box-shadow 0.15s, border-color 0.15s;
-  box-shadow: var(--shadow-md);
+  transition: box-shadow 0.15s, border-color 0.15s, transform 0.15s;
 }
 
 .cpub-hub-card:hover {
-  box-shadow: var(--shadow-lg);
-  border-color: var(--accent-border);
+  border-color: var(--accent);
+  transform: translateY(-2px);
 }
 
 .cpub-hub-card-banner {
-  height: 80px;
-  background: linear-gradient(135deg, var(--accent), var(--accent-border));
+  height: 72px;
+  background: linear-gradient(135deg, var(--surface2) 0%, var(--accent-bg-strong) 100%);
   background-size: cover;
   background-position: center;
   position: relative;
@@ -120,25 +119,29 @@ function hubLink(hub: Record<string, unknown>): string {
 
 .cpub-hub-card-icon {
   position: absolute;
-  bottom: -20px;
-  left: 18px;
-  width: 48px;
-  height: 48px;
+  bottom: -18px;
+  left: 16px;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: var(--surface);
-  border: var(--border-width-default) solid var(--surface);
+  border: var(--border-width-default) solid var(--border);
   color: var(--accent);
-  font-size: 20px;
+  font-size: 18px;
   overflow: hidden;
-  box-shadow: var(--shadow-sm);
 }
 
 .cpub-hub-card-avatar { width: 100%; height: 100%; object-fit: cover; }
 
 .cpub-hub-card-body {
-  padding: 28px 18px 18px;
+  padding: 24px 16px 16px;
+}
+
+/* Reset borders on all card body children — prevent theme bleed */
+.cpub-hub-card-body > * {
+  border: none;
 }
 
 .cpub-hub-card-name-row {
@@ -166,6 +169,8 @@ function hubLink(hub: Record<string, unknown>): string {
   display: flex;
   align-items: center;
   gap: 14px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border2);
 }
 
 .cpub-hub-card-stat {
@@ -185,7 +190,7 @@ function hubLink(hub: Record<string, unknown>): string {
   letter-spacing: 0.08em;
   color: var(--accent);
   background: var(--accent-bg);
-  border: var(--border-width-default) solid var(--accent-border);
+  border: 1px solid var(--accent-border);
   padding: 2px 6px;
 }
 
