@@ -60,6 +60,7 @@ jobs:
           DATABASE_URL: ${{ matrix.os == 'ubuntu-latest' && 'postgresql://commonpub:commonpub_test@localhost:5432/commonpub_test' || '' }}
 
       - name: Build
+        if: matrix.os == 'ubuntu-latest'
         run: pnpm build
 
   rust:
