@@ -1,6 +1,6 @@
 {
   "name": "@commonpub/layer",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "main": "./nuxt.config.ts",
   "files": [
@@ -17,6 +17,9 @@
     "theme",
     "types"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "prepublishOnly": "node scripts/bundle-theme.mjs"
   },
