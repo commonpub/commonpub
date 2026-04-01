@@ -30,7 +30,6 @@ export default defineEventHandler(async (event) => {
   const hubsOnly = body?.hubsOnly === true;
 
   const db = useDB();
-  const runtimeConfig = useRuntimeConfig();
   const domain = extractDomain((runtimeConfig.public?.siteUrl as string) || `https://${config.instance.domain}`);
 
   if (contentId) {
