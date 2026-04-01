@@ -15,7 +15,7 @@
     "seed": "tsx scripts/seed.ts"
   },
   "dependencies": {
-    "@commonpub/base-layer": "workspace:*",
+    "@commonpub/layer": "workspace:*",
     "@commonpub/config": "workspace:*",
     "@commonpub/schema": "workspace:*",
     "drizzle-kit": "^0.31.10",

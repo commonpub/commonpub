@@ -1,9 +1,25 @@
 {
-  "name": "@commonpub/base-layer",
+  "name": "@commonpub/layer",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
   "main": "./nuxt.config.ts",
+  "files": [
+    "app.vue",
+    "error.vue",
+    "nuxt.config.ts",
+    "components",
+    "composables",
+    "layouts",
+    "middleware",
+    "pages",
+    "plugins",
+    "server",
+    "theme",
+    "types"
+  ],
+  "scripts": {
+    "prepublishOnly": "node scripts/bundle-theme.mjs"
+  },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1010.0",
     "@commonpub/auth": "workspace:*",

@@ -1,8 +1,14 @@
 import { fileURLToPath } from 'node:url';
 import { resolve, dirname } from 'node:path';
+import { existsSync } from 'node:fs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const uiTheme = (file: string) => resolve(__dirname, '../../packages/ui/theme', file);
+
+// Resolve theme CSS: use bundled ./theme/ (npm published) or monorepo path (dev)
+const themeDir = existsSync(resolve(__dirname, 'theme'))
+  ? resolve(__dirname, 'theme')
+  : resolve(__dirname, '../../packages/ui/theme');
+const uiTheme = (file: string) => resolve(themeDir, file);
 
 export default defineNuxtConfig({
   compatibilityDate: '2024-11-01',

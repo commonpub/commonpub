@@ -11,7 +11,7 @@
     "clean": "rm -rf .nuxt .output"
   },
   "dependencies": {
-    "@commonpub/base-layer": "workspace:*",
+    "@commonpub/layer": "workspace:*",
     "@commonpub/config": "workspace:*",
     "nuxt": "^3.16.0",
     "vue": "^3.4.0",

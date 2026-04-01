@@ -44,12 +44,12 @@ importers:
 
   apps/reference:
     dependencies:
-      '@commonpub/base-layer':
-        specifier: workspace:*
-        version: link:../../layers/base
       '@commonpub/config':
         specifier: workspace:*
         version: link:../../packages/config
+      '@commonpub/layer':
+        specifier: workspace:*
+        version: link:../../layers/base
       '@commonpub/schema':
         specifier: workspace:*
         version: link:../../packages/schema
@@ -87,12 +87,12 @@ importers:
 
   apps/shell:
     dependencies:
-      '@commonpub/base-layer':
-        specifier: workspace:*
-        version: link:../../layers/base
       '@commonpub/config':
         specifier: workspace:*
         version: link:../../packages/config
+      '@commonpub/layer':
+        specifier: workspace:*
+        version: link:../../layers/base
       nuxt:
         specifier: ^3.16.0
         version: 3.21.2(@electric-sql/pglite@0.3.16)(@parcel/watcher@2.5.6)(@types/node@25.5.0)(@vue/compiler-sfc@3.5.31)(cac@6.7.14)(db0@0.3.4(@electric-sql/pglite@0.3.16)(drizzle-orm@0.45.2(@electric-sql/pglite@0.3.16)(@opentelemetry/api@1.9.1)(gel@2.2.0)(kysely@0.28.14)(pg@8.20.0)))(drizzle-orm@0.45.2(@electric-sql/pglite@0.3.16)(@opentelemetry/api@1.9.1)(gel@2.2.0)(kysely@0.28.14)(pg@8.20.0))(eslint@9.39.4(jiti@2.6.1))(ioredis@5.10.1)(magicast@0.5.2)(optionator@0.9.4)(rollup-plugin-visualizer@7.0.1(rollup@4.60.0))(rollup@4.60.0)(terser@5.46.1)(tsx@4.21.0)(typescript@5.9.3)(vite@7.3.1(@types/node@25.5.0)(jiti@2.6.1)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))(vue-tsc@2.2.12(typescript@5.9.3))(yaml@2.8.3)
