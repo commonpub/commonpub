@@ -57,16 +57,7 @@ const enrichedContent = computed(() => {
   return { ...content.value, readTime: readTime.value };
 });
 
-// Map content types to specialized view components
-const viewComponent = computed(() => {
-  switch (contentType.value) {
-    case 'article': return resolveComponent('ViewsArticleView');
-    case 'blog': return resolveComponent('ViewsBlogView');
-    case 'explainer': return resolveComponent('ViewsExplainerView');
-    case 'project': return resolveComponent('ViewsProjectView');
-    default: return null;
-  }
-});
+// Content type used for conditional view component rendering in template
 
 // Related content
 const { data: related } = await useFetch<PaginatedResponse<Serialized<ContentListItem>>>('/api/content', {
@@ -91,12 +82,11 @@ onMounted(() => {
       </NuxtLink>
     </div>
 
-    <!-- Specialized view -->
-    <component
-      v-if="viewComponent && typeof viewComponent !== 'string'"
-      :is="viewComponent"
-      :content="enrichedContent"
-    />
+    <!-- Specialized view by content type -->
+    <ViewsProjectView v-if="contentType === 'project'" :content="(enrichedContent as any)" />
+    <ViewsArticleView v-else-if="contentType === 'article'" :content="(enrichedContent as any)" />
+    <ViewsBlogView v-else-if="contentType === 'blog'" :content="(enrichedContent as any)" />
+    <ViewsExplainerView v-else-if="contentType === 'explainer'" :content="(enrichedContent as any)" />
 
     <!-- Fallback: generic view for unknown types -->
     <article v-else class="cpub-view">

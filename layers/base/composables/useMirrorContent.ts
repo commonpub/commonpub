@@ -76,16 +76,6 @@ export function useMirrorContent(fedContent: Ref<Record<string, unknown> | null>
     } satisfies ContentViewData;
   });
 
-  const viewComponent = computed(() => {
-    switch (contentType.value) {
-      case 'article': return resolveComponent('ViewsArticleView');
-      case 'blog': return resolveComponent('ViewsBlogView');
-      case 'explainer': return resolveComponent('ViewsExplainerView');
-      case 'project': return resolveComponent('ViewsProjectView');
-      default: return null;
-    }
-  });
-
   const originDomain = computed(() => (fedContent.value?.originDomain as string) || 'unknown');
   const originUrl = computed(() => (fedContent.value?.url as string) || null);
   const authorHandle = computed(() => {
@@ -97,7 +87,6 @@ export function useMirrorContent(fedContent: Ref<Record<string, unknown> | null>
     contentType,
     actor,
     transformedContent,
-    viewComponent,
     originDomain,
     originUrl,
     authorHandle,

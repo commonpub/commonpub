@@ -7,8 +7,8 @@ const id = route.params.id as string;
 const { data: fedContent, error, pending } = await useFetch<Record<string, unknown>>(`/api/federation/content/${id}`);
 
 const {
+  contentType,
   transformedContent,
-  viewComponent,
   originDomain,
   originUrl,
   authorHandle,
@@ -51,15 +51,13 @@ useSeoMeta({
       </div>
     </div>
 
-    <!-- Reuse existing content view component -->
-    <component
-      v-if="viewComponent && typeof viewComponent !== 'string'"
-      :is="viewComponent"
-      :content="transformedContent"
-      :federated-id="id"
-    />
+    <!-- Reuse existing content view components by type -->
+    <ViewsProjectView v-if="contentType === 'project'" :content="transformedContent" :federated-id="id" />
+    <ViewsArticleView v-else-if="contentType === 'article'" :content="transformedContent" :federated-id="id" />
+    <ViewsBlogView v-else-if="contentType === 'blog'" :content="transformedContent" :federated-id="id" />
+    <ViewsExplainerView v-else-if="contentType === 'explainer'" :content="transformedContent" :federated-id="id" />
 
-    <!-- Fallback for non-CommonPub content -->
+    <!-- Fallback for non-CommonPub content (Mastodon notes, Lemmy posts, etc.) -->
     <article v-else class="cpub-mirror-fallback">
       <div class="cpub-mirror-container">
         <img v-if="transformedContent.coverImageUrl" :src="transformedContent.coverImageUrl" :alt="transformedContent.title" class="cpub-mirror-cover" />
