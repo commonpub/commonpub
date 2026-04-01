@@ -3,10 +3,11 @@ import type { Serialized, ContentListItem, PaginatedResponse } from '@commonpub/
 
 const route = useRoute();
 const contentType = computed(() => route.params.type as string);
+const siteName = useSiteName();
 
 useSeoMeta({
-  title: () => `${contentType.value} — ${useSiteName()}`,
-  description: () => `Browse ${contentType.value} on CommonPub.`,
+  title: () => `${contentType.value} — ${siteName}`,
+  description: () => `Browse ${contentType.value} on ${siteName}.`,
 });
 
 const sortBy = ref('recent');
