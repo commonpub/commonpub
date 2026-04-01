@@ -47,7 +47,15 @@
 - CLI: bump to v0.5.1 and republish binary after template version update
 - Share card N+1 will resolve after refederation (no code change needed)
 
+### Federation Interoperability Audit
+- Comprehensive audit of every local vs federated feature stored in `docs/federation-interop-audit.md`
+- Found 7 bugs (broken buttons, missing update fields, ExplainerView missing like)
+- Found 12 missing features (notifications not wired, comments write-only, no fork, etc.)
+- Documented 12 intentionally-not-federated features
+- Created phased implementation plan (A through E)
+- Session 099 handoff prompt stored in `docs/sessions/099-handoff-prompt.md`
+
 ## Published Packages
 - `@commonpub/docs@0.5.2` — no dompurify, no sanitizeHtml export
-- `@commonpub/layer@0.3.6` — updated docs dep, removed sanitizeHtml from pages
-- Deprecated: `@commonpub/docs@0.5.1`, `@commonpub/layer@0.3.5` (broken workspace refs)
+- `@commonpub/layer@0.3.7` — CLI refederation support, docs cleanup
+- Deprecated: `@commonpub/docs@0.5.1`, `@commonpub/layer@0.3.5`, `@commonpub/layer@0.3.6` (broken workspace refs / intermediate)
