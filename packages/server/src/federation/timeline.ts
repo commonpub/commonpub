@@ -31,6 +31,7 @@ export interface FederatedContentItem {
   cpubBlocks: unknown[] | null;
   localLikeCount: number;
   localCommentCount: number;
+  localViewCount?: number;
   publishedAt: string | null;
   receivedAt: string;
   originDomain: string;
@@ -182,6 +183,7 @@ export async function getFederatedContent(
     cpubBlocks: (r.content.cpubBlocks ?? null) as unknown[] | null,
     localLikeCount: r.content.localLikeCount,
     localCommentCount: r.content.localCommentCount,
+    localViewCount: r.content.localViewCount,
     publishedAt: r.content.publishedAt?.toISOString() ?? null,
     receivedAt: r.content.receivedAt.toISOString(),
     originDomain: r.content.originDomain,

@@ -61,7 +61,7 @@ export function useMirrorContent(fedContent: Ref<Record<string, unknown> | null>
       previewToken: null,
       parts: Array.isArray(meta?.parts) ? meta.parts as ContentViewData['parts'] : null,
       sections: null,
-      viewCount: 0,
+      viewCount: (fc.localViewCount as number) ?? 0,
       likeCount: (fc.localLikeCount as number) ?? 0,
       commentCount: (fc.localCommentCount as number) ?? 0,
       forkCount: 0,

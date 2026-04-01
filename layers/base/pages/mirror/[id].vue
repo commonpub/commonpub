@@ -43,6 +43,11 @@ if (originUrl.value) {
   });
 }
 
+/** Strip HTML tags from remote actor bio (unsanitized — XSS risk with v-html) */
+function stripHtml(html: string): string {
+  return html.replace(/<[^>]*>/g, '').trim();
+}
+
 // Track view
 onMounted(() => {
   $fetch(`/api/federation/content/${id}/view`, { method: 'POST' }).catch(() => {});
@@ -109,7 +114,7 @@ useSeoMeta({
             <strong>{{ transformedContent.author.displayName }}</strong>
             <span v-if="authorHandle" class="cpub-mirror-handle">{{ authorHandle }}</span>
             <span v-if="transformedContent.author.followerCount" class="cpub-mirror-handle">&middot; {{ transformedContent.author.followerCount }} followers</span>
-            <p v-if="transformedContent.author.bio" class="cpub-mirror-bio" v-html="transformedContent.author.bio" />
+            <p v-if="transformedContent.author.bio" class="cpub-mirror-bio">{{ stripHtml(transformedContent.author.bio) }}</p>
           </div>
         </div>
         <div v-if="typeof transformedContent.content === 'string'" class="cpub-mirror-body prose" v-html="transformedContent.content" />
