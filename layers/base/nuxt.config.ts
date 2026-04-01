@@ -79,10 +79,5 @@ export default defineNuxtConfig({
   },
   nitro: {
     preset: 'node-server',
-    // css-tree uses dynamic require() for data/patch.json which Rollup can't resolve.
-    // Keep it in node_modules instead of bundling into server chunks.
-    externals: {
-      external: ['css-tree'],
-    },
   },
 });
