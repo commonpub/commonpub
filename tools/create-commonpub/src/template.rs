@@ -16,8 +16,9 @@ pub fn render_package_json(config: &InstanceConfig) -> String {
   }},
   "dependencies": {{
     "@commonpub/config": "^0.7.0",
-    "@commonpub/layer": "^0.1.1",
-    "@commonpub/schema": "^0.8.7",
+    "@commonpub/layer": "^0.2.0",
+    "@commonpub/schema": "^0.8.8",
+    "@commonpub/server": "^2.7.0",
     "drizzle-orm": "^0.45.1",
     "nuxt": "^3.16.0",
     "vue": "^3.4.0",
@@ -36,7 +37,7 @@ pub fn render_package_json(config: &InstanceConfig) -> String {
 }
 
 pub fn render_nuxt_config(config: &InstanceConfig) -> String {
-    let content_types: Vec<String> = config.content_types.iter().map(|t| t.clone()).collect();
+    let content_types = config.content_types.to_vec();
 
     format!(
         r#"export default defineNuxtConfig({{
@@ -411,8 +412,7 @@ CMD ["node", ".output/server/index.mjs"]
 }
 
 pub fn render_docker_compose(_config: &InstanceConfig) -> String {
-    format!(
-        r#"services:
+    r#"services:
   postgres:
     image: postgres:16-alpine
     environment:
@@ -441,8 +441,7 @@ pub fn render_docker_compose(_config: &InstanceConfig) -> String {
 volumes:
   pgdata:
   meilidata:
-"#
-    )
+"#.to_string()
 }
 
 pub fn render_deploy_workflow(config: &InstanceConfig) -> String {
