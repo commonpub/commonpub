@@ -11,7 +11,14 @@ import { extractDomain } from '../../../utils/inbox';
  * Body: { contentId?: string, hubsOnly?: boolean } — if omitted, re-federates ALL
  */
 export default defineEventHandler(async (event) => {
-  requireAdmin(event);
+  // Allow CLI trigger via AUTH_SECRET header (for server-side automation)
+  const cliSecret = getRequestHeader(event, 'x-admin-secret');
+  const runtimeConfig = useRuntimeConfig();
+  if (cliSecret && cliSecret === runtimeConfig.authSecret) {
+    // Authorized via shared secret
+  } else {
+    requireAdmin(event);
+  }
 
   const config = useConfig();
   if (!config.features.federation) {
