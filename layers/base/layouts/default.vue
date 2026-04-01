@@ -1,6 +1,7 @@
 <script setup lang="ts">
 const { user, isAuthenticated, isAdmin, signOut, refreshSession } = useAuth();
 const { count: unreadCount, connect: connectNotifications, disconnect: disconnectNotifications } = useNotifications();
+const { count: unreadMessages, connect: connectMessages, disconnect: disconnectMessages } = useMessages();
 const { hubs, learning, video, docs, contests, admin, federation } = useFeatures();
 const { enabledTypeMeta } = useContentTypes();
 const runtimeConfig = useRuntimeConfig();
@@ -34,6 +35,7 @@ onMounted(async () => {
   await refreshSession();
   if (isAuthenticated.value) {
     connectNotifications();
+    connectMessages();
   }
   document.addEventListener('keydown', handleGlobalKeydown);
   document.addEventListener('click', handleClickOutside);
@@ -41,6 +43,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
   disconnectNotifications();
+  disconnectMessages();
   document.removeEventListener('keydown', handleGlobalKeydown);
   document.removeEventListener('click', handleClickOutside);
 });
@@ -89,6 +92,7 @@ const userUsername = computed(() => user.value?.username ?? '');
         <template v-if="isAuthenticated">
           <NuxtLink to="/messages" class="cpub-icon-btn" title="Messages" aria-label="Messages">
             <i class="fa-solid fa-envelope"></i>
+            <span v-if="unreadMessages > 0" class="cpub-notif-dot" />
           </NuxtLink>
           <NuxtLink to="/notifications" class="cpub-icon-btn" title="Notifications" aria-label="Notifications">
             <i class="fa-solid fa-bell"></i>

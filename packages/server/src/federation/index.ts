@@ -31,6 +31,7 @@ export {
   boostRemoteContent,
   federateReply,
   listRemoteReplies,
+  incrementFederatedViewCount,
   searchFederatedContent,
   type FederatedContentItem,
   type FederatedTimelineOptions,

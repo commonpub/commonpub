@@ -110,6 +110,7 @@ export const federatedContent = pgTable('federated_content', {
   localLikeCount: integer('local_like_count').default(0).notNull(),
   localCommentCount: integer('local_comment_count').default(0).notNull(),
   localBoostCount: integer('local_boost_count').default(0).notNull(),
+  localViewCount: integer('local_view_count').default(0).notNull(),
   publishedAt: timestamp('published_at', { withTimezone: true }),
   receivedAt: timestamp('received_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),

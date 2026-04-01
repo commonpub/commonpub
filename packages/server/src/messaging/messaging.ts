@@ -195,6 +195,25 @@ export async function sendMessage(
   };
 }
 
+/** Count unread messages across all conversations for a user */
+export async function getUnreadMessageCount(
+  db: DB,
+  userId: string,
+): Promise<number> {
+  const result = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(messages)
+    .innerJoin(conversations, eq(messages.conversationId, conversations.id))
+    .where(
+      and(
+        sql`${conversations.participants} @> ${JSON.stringify([userId])}::jsonb`,
+        sql`${messages.senderId} != ${userId}`,
+        isNull(messages.readAt),
+      ),
+    );
+  return result[0]?.count ?? 0;
+}
+
 export async function markMessagesRead(
   db: DB,
   conversationId: string,

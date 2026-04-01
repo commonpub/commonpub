@@ -40,6 +40,10 @@ export interface FederatedContentItem {
     displayName: string | null;
     avatarUrl: string | null;
     instanceDomain: string;
+    summary?: string | null;
+    bannerUrl?: string | null;
+    followerCount?: number | null;
+    followingCount?: number | null;
   } | null;
 }
 
@@ -147,6 +151,10 @@ export async function getFederatedContent(
         displayName: remoteActors.displayName,
         avatarUrl: remoteActors.avatarUrl,
         instanceDomain: remoteActors.instanceDomain,
+        summary: remoteActors.summary,
+        bannerUrl: remoteActors.bannerUrl,
+        followerCount: remoteActors.followerCount,
+        followingCount: remoteActors.followingCount,
       },
     })
     .from(federatedContent)
@@ -183,8 +191,23 @@ export async function getFederatedContent(
       displayName: r.actor.displayName,
       avatarUrl: r.actor.avatarUrl,
       instanceDomain: r.actor.instanceDomain,
+      summary: r.actor.summary ?? null,
+      bannerUrl: r.actor.bannerUrl ?? null,
+      followerCount: r.actor.followerCount ?? null,
+      followingCount: r.actor.followingCount ?? null,
     } : null,
   };
+}
+
+/** Increment local view count for federated content */
+export async function incrementFederatedViewCount(
+  db: DB,
+  federatedContentId: string,
+): Promise<void> {
+  await db
+    .update(federatedContent)
+    .set({ localViewCount: sql`${federatedContent.localViewCount} + 1` })
+    .where(eq(federatedContent.id, federatedContentId));
 }
 
 /**

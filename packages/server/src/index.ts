@@ -315,6 +315,7 @@ export {
   boostRemoteContent,
   federateReply,
   listRemoteReplies,
+  incrementFederatedViewCount,
   searchFederatedContent,
   getHubActorUri,
   getOrCreateHubKeypair,
@@ -432,6 +433,7 @@ export {
   findOrCreateConversation,
   sendMessage,
   markMessagesRead,
+  getUnreadMessageCount,
 } from './messaging/index.js';
 export type { ConversationItem, MessageItem } from './messaging/index.js';
 

@@ -43,6 +43,11 @@ if (originUrl.value) {
   });
 }
 
+// Track view
+onMounted(() => {
+  $fetch(`/api/federation/content/${id}/view`, { method: 'POST' }).catch(() => {});
+});
+
 useSeoMeta({
   title: transformedContent.value?.title ?? 'Mirrored Content',
   description: transformedContent.value?.description ?? '',
@@ -99,8 +104,13 @@ useSeoMeta({
         <h1 class="cpub-mirror-title">{{ transformedContent.title }}</h1>
         <p v-if="transformedContent.description" class="cpub-mirror-desc">{{ transformedContent.description }}</p>
         <div class="cpub-mirror-author">
-          <strong>{{ transformedContent.author.displayName }}</strong>
-          <span v-if="authorHandle" class="cpub-mirror-handle">{{ authorHandle }}</span>
+          <img v-if="transformedContent.author.avatarUrl" :src="transformedContent.author.avatarUrl" :alt="transformedContent.author.displayName || ''" class="cpub-mirror-author-avatar" />
+          <div>
+            <strong>{{ transformedContent.author.displayName }}</strong>
+            <span v-if="authorHandle" class="cpub-mirror-handle">{{ authorHandle }}</span>
+            <span v-if="transformedContent.author.followerCount" class="cpub-mirror-handle">&middot; {{ transformedContent.author.followerCount }} followers</span>
+            <p v-if="transformedContent.author.bio" class="cpub-mirror-bio" v-html="transformedContent.author.bio" />
+          </div>
         </div>
         <div v-if="typeof transformedContent.content === 'string'" class="cpub-mirror-body prose" v-html="transformedContent.content" />
         <div v-if="transformedContent.tags?.length" class="cpub-mirror-tags">
@@ -144,7 +154,10 @@ useSeoMeta({
 .cpub-mirror-cover { width: 100%; max-height: 400px; object-fit: cover; margin-bottom: 20px; }
 .cpub-mirror-title { font-size: 2rem; font-weight: 800; line-height: 1.2; margin-bottom: 12px; }
 .cpub-mirror-desc { font-size: 1.0625rem; color: var(--text-dim); line-height: 1.6; margin-bottom: 16px; }
-.cpub-mirror-author { font-size: 0.875rem; color: var(--text-dim); margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+.cpub-mirror-author { font-size: 0.875rem; color: var(--text-dim); margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border); display: flex; align-items: flex-start; gap: 12px; }
+.cpub-mirror-author-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: var(--border-width-default) solid var(--border); flex-shrink: 0; }
+.cpub-mirror-bio { font-size: 0.8125rem; color: var(--text-faint); line-height: 1.5; margin-top: 4px; }
+.cpub-mirror-bio :deep(a) { color: var(--accent); }
 .cpub-mirror-handle { color: var(--text-faint); margin-left: 6px; }
 .cpub-mirror-body { font-size: 1rem; line-height: 1.75; margin-bottom: 32px; }
 .cpub-mirror-body :deep(img) { max-width: 100%; }
