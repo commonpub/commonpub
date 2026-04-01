@@ -608,6 +608,17 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
         }
         if (typeof object['cpub:type'] === 'string') updates.cpubType = object['cpub:type'];
 
+        // Update cpub extensions (metadata, blocks) if present
+        if (object['cpub:metadata'] != null) updates.cpubMetadata = object['cpub:metadata'];
+        if (Array.isArray(object['cpub:blocks'])) updates.cpubBlocks = object['cpub:blocks'];
+
+        // Update tags if present
+        const rawTags = Array.isArray(object.tag) ? object.tag : [];
+        const updatedTags = rawTags
+          .filter((t): t is Record<string, string> => typeof t === 'object' && t !== null)
+          .map((t) => ({ type: String(t.type ?? 'Hashtag'), name: String(t.name ?? '') }));
+        if (updatedTags.length > 0) updates.tags = updatedTags;
+
         const updateResult = await db
           .update(federatedContent)
           .set(updates)
@@ -965,7 +976,7 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
                   objectUri,
                   actorUri: noteActorUri,
                   content: noteContent,
-                  postType: (note.cpubPostType as string) ?? (sharedContentMeta ? 'share' : 'text'),
+                  postType: ((note as Record<string, unknown>)['cpub:postType'] as string) ?? (sharedContentMeta ? 'share' : 'text'),
                   publishedAt: note.published ? new Date(note.published as string) : undefined,
                   sharedContentMeta,
                 });

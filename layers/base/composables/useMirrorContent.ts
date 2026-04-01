@@ -77,6 +77,7 @@ export function useMirrorContent(fedContent: Ref<Record<string, unknown> | null>
         username: (actor.value?.preferredUsername as string) || 'unknown',
         displayName: (actor.value?.displayName as string) || (actor.value?.preferredUsername as string) || 'Unknown',
         avatarUrl: (actor.value?.avatarUrl as string) || null,
+        profileUrl: (actor.value?.actorUri as string) || null,
       },
       buildCount: 0,
       bookmarkCount: 0,

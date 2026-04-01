@@ -8,11 +8,32 @@ const { data: fedContent, error, pending } = await useFetch<Record<string, unkno
 
 const {
   contentType,
+  actor,
   transformedContent,
   originDomain,
   originUrl,
   authorHandle,
 } = useMirrorContent(fedContent);
+
+const { user } = useAuth();
+const following = ref(false);
+const followState = ref<'idle' | 'sent' | 'error'>('idle');
+const remoteFollowRef = ref<InstanceType<typeof RemoteFollowDialog> | null>(null);
+
+async function followAuthor(): Promise<void> {
+  const uri = actor.value?.actorUri as string | undefined;
+  if (!uri) return;
+  following.value = true;
+  followState.value = 'idle';
+  try {
+    await $fetch('/api/federation/follow', { method: 'POST', body: { actorUri: uri } });
+    followState.value = 'sent';
+  } catch {
+    followState.value = 'error';
+  } finally {
+    following.value = false;
+  }
+}
 
 // SEO
 if (originUrl.value) {
@@ -45,6 +66,20 @@ useSeoMeta({
           Federated from <strong>{{ originDomain }}</strong>
           <span v-if="authorHandle" class="cpub-fed-banner-handle">{{ authorHandle }}</span>
         </span>
+        <button
+          v-if="user && actor?.actorUri && followState !== 'sent'"
+          class="cpub-fed-banner-follow"
+          :class="{ 'cpub-fed-banner-follow-error': followState === 'error' }"
+          :disabled="following"
+          @click="followAuthor"
+        >
+          <i :class="followState === 'error' ? 'fa-solid fa-rotate-right' : 'fa-solid fa-user-plus'"></i>
+          {{ following ? 'Following...' : followState === 'error' ? 'Retry' : 'Follow' }}
+        </button>
+        <span v-if="followState === 'sent'" class="cpub-fed-banner-followed"><i class="fa-solid fa-check"></i> Follow sent</span>
+        <button v-if="actor?.actorUri && !user" class="cpub-fed-banner-follow" @click="remoteFollowRef?.show()">
+          <i class="fa-solid fa-user-plus"></i> Follow from your instance
+        </button>
         <a v-if="originUrl" :href="originUrl" target="_blank" rel="noopener noreferrer" class="cpub-fed-banner-link">
           View Original <i class="fa-solid fa-arrow-up-right-from-square"></i>
         </a>
@@ -69,11 +104,13 @@ useSeoMeta({
         </div>
         <div v-if="typeof transformedContent.content === 'string'" class="cpub-mirror-body prose" v-html="transformedContent.content" />
         <div v-if="transformedContent.tags?.length" class="cpub-mirror-tags">
-          <span v-for="tag in transformedContent.tags" :key="tag.name" class="cpub-mirror-tag">{{ tag.name }}</span>
+          <NuxtLink v-for="tag in transformedContent.tags" :key="tag.name" :to="`/tags/${tag.slug || tag.name.toLowerCase().replace(/\s+/g, '-')}`" class="cpub-mirror-tag">{{ tag.name }}</NuxtLink>
         </div>
       </div>
     </article>
   </template>
+
+  <RemoteFollowDialog v-if="actor?.actorUri" ref="remoteFollowRef" :actor-uri="(actor.actorUri as string)" :label="transformedContent?.author?.displayName || authorHandle" />
 </template>
 
 <style scoped>
@@ -92,6 +129,14 @@ useSeoMeta({
   text-decoration: none; white-space: nowrap;
   display: flex; align-items: center; gap: 4px; font-size: 11px;
 }
+.cpub-fed-banner-follow {
+  margin-left: auto; background: var(--accent); color: #fff; border: none;
+  font-size: 11px; font-weight: 600; padding: 3px 10px; cursor: pointer;
+  display: flex; align-items: center; gap: 4px; white-space: nowrap;
+}
+.cpub-fed-banner-follow:hover { opacity: 0.9; }
+.cpub-fed-banner-follow:disabled { opacity: 0.6; cursor: default; }
+.cpub-fed-banner-followed { margin-left: auto; font-size: 11px; color: var(--green, #22c55e); font-weight: 600; display: flex; align-items: center; gap: 4px; }
 .cpub-fed-banner-link:hover { text-decoration: underline; }
 
 /* Fallback for non-CommonPub content */
@@ -106,7 +151,8 @@ useSeoMeta({
 .cpub-mirror-body :deep(a) { color: var(--accent); }
 .cpub-mirror-body :deep(pre) { background: var(--surface2); padding: 12px; overflow-x: auto; }
 .cpub-mirror-tags { display: flex; flex-wrap: wrap; gap: 6px; }
-.cpub-mirror-tag { font-size: 0.75rem; padding: 3px 8px; background: var(--surface2); color: var(--text-dim); }
+.cpub-mirror-tag { font-size: 0.75rem; padding: 3px 8px; background: var(--surface2); color: var(--text-dim); text-decoration: none; }
+.cpub-mirror-tag:hover { color: var(--accent); }
 
 .cpub-not-found { text-align: center; padding: 60px 20px; color: var(--text-dim); }
 .cpub-not-found h1 { font-size: 1.5rem; color: var(--text); margin-bottom: 8px; }

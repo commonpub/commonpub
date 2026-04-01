@@ -80,10 +80,20 @@ const completedSections = ref<Set<number>>(new Set());
 const contentId = computed(() => props.content?.id);
 const contentType = computed(() => props.content?.type ?? 'explainer');
 const fedId = computed(() => props.federatedId);
-const { bookmarked, toggleBookmark, share } = useEngagement({ contentId, contentType, federatedContentId: fedId });
+const { liked, bookmarked, likeCount, isFederated, toggleLike, toggleBookmark, share, fetchInitialState } = useEngagement({ contentId, contentType, federatedContentId: fedId });
+
+onMounted(() => {
+  fetchInitialState(props.content?.likeCount ?? 0);
+});
 
 const { user } = useAuth();
 const isOwner = computed(() => user.value?.id === props.content?.author?.id);
+
+const authorUrl = computed(() =>
+  isFederated.value && props.content.author?.profileUrl
+    ? props.content.author.profileUrl
+    : `/u/${props.content.author?.username}`,
+);
 
 const runtimeConfig = useRuntimeConfig();
 useJsonLd({
@@ -166,6 +176,9 @@ onUnmounted(() => { document.removeEventListener('keydown', onKeydown); });
         </button>
       </div>
       <div class="cpub-topbar-divider"></div>
+      <button class="cpub-icon-btn" :class="{ active: liked }" title="Like" @click="toggleLike">
+        <i :class="liked ? 'fa-solid fa-heart' : 'fa-regular fa-heart'"></i>
+      </button>
       <button class="cpub-icon-btn" :class="{ active: bookmarked }" title="Bookmark" @click="toggleBookmark">
         <i :class="bookmarked ? 'fa-solid fa-bookmark' : 'fa-regular fa-bookmark'"></i>
       </button>
@@ -208,12 +221,12 @@ onUnmounted(() => { document.removeEventListener('keydown', onKeydown); });
 
         <!-- Author info -->
         <div v-if="content.author" class="cpub-sidebar-author">
-          <NuxtLink :to="`/u/${content.author.username}`" class="cpub-sidebar-author-avatar">
+          <NuxtLink :to="authorUrl" :external="isFederated" :target="isFederated ? '_blank' : undefined" class="cpub-sidebar-author-avatar">
             <img v-if="content.author.avatarUrl" :src="content.author.avatarUrl" :alt="content.author.displayName || content.author.username" />
             <span v-else class="cpub-sidebar-author-initials">{{ (content.author.displayName || content.author.username).charAt(0).toUpperCase() }}</span>
           </NuxtLink>
           <div class="cpub-sidebar-author-info">
-            <NuxtLink :to="`/u/${content.author.username}`" class="cpub-sidebar-author-name">
+            <NuxtLink :to="authorUrl" :external="isFederated" :target="isFederated ? '_blank' : undefined" class="cpub-sidebar-author-name">
               {{ content.author.displayName || content.author.username }}
             </NuxtLink>
             <time class="cpub-sidebar-author-date" :datetime="new Date(content.publishedAt || content.createdAt).toISOString()">
@@ -233,7 +246,7 @@ onUnmounted(() => { document.removeEventListener('keydown', onKeydown); });
 
             <!-- Author byline (mobile only — desktop shows in sidebar) -->
             <div v-if="activeSection === 0 && content.author" class="cpub-mobile-author">
-              <NuxtLink :to="`/u/${content.author.username}`" class="cpub-mobile-author-link">
+              <NuxtLink :to="authorUrl" :external="isFederated" :target="isFederated ? '_blank' : undefined" class="cpub-mobile-author-link">
                 {{ content.author.displayName || content.author.username }}
               </NuxtLink>
               <span class="cpub-mobile-author-sep">&middot;</span>

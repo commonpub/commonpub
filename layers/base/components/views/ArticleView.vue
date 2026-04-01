@@ -15,6 +15,12 @@ onMounted(() => {
   fetchInitialState(props.content?.likeCount ?? 0);
 });
 
+const authorUrl = computed(() =>
+  isFederated.value && props.content.author?.profileUrl
+    ? props.content.author.profileUrl
+    : `/u/${props.content.author?.username}`,
+);
+
 // Extract headings from block content for TOC
 const tocHeadings = computed(() => {
   const blocks = props.content?.content;
@@ -99,12 +105,12 @@ useJsonLd({
 
       <!-- AUTHOR ROW -->
       <div class="cpub-author-row">
-        <NuxtLink v-if="content.author" :to="`/u/${content.author.username}`" style="text-decoration:none;">
+        <NuxtLink v-if="content.author" :to="authorUrl" :external="isFederated" :target="isFederated ? '_blank' : undefined" style="text-decoration:none;">
           <img v-if="content.author?.avatarUrl" :src="content.author.avatarUrl" :alt="content.author?.displayName ?? content.author?.username ?? ''" class="cpub-av cpub-av-lg" style="object-fit:cover;border:2px solid var(--border);" />
           <div v-else class="cpub-av cpub-av-lg">{{ content.author?.displayName?.slice(0, 2).toUpperCase() || 'CP' }}</div>
         </NuxtLink>
         <div class="cpub-author-info">
-          <NuxtLink v-if="content.author" :to="`/u/${content.author.username}`" class="cpub-author-name">
+          <NuxtLink v-if="content.author" :to="authorUrl" :external="isFederated" :target="isFederated ? '_blank' : undefined" class="cpub-author-name">
             {{ content.author.displayName || content.author.username }}
             <i v-if="content.author.verified" class="fa-solid fa-circle-check cpub-verified" title="Verified"></i>
           </NuxtLink>
@@ -116,7 +122,7 @@ useJsonLd({
             <span><i class="fa-regular fa-clock"></i> {{ content.readTime || '5 min read' }}</span>
             <template v-if="content.tags?.length">
               <span class="cpub-sep">·</span>
-              <span class="cpub-tag cpub-tag-teal">{{ content.tags[0]?.name || content.tags[0] }}</span>
+              <NuxtLink :to="`/tags/${content.tags[0]?.slug || (content.tags[0]?.name || String(content.tags[0])).toLowerCase().replace(/\s+/g, '-')}`" class="cpub-tag cpub-tag-teal">{{ content.tags[0]?.name || content.tags[0] }}</NuxtLink>
             </template>
           </div>
         </div>
@@ -157,14 +163,15 @@ useJsonLd({
       <!-- TAGS -->
       <div v-if="content.tags?.length" class="cpub-tags-row">
         <div class="cpub-tags-label">Filed under</div>
-        <span
+        <NuxtLink
           v-for="(tag, i) in content.tags"
           :key="tag.id || tag.name || i"
+          :to="`/tags/${tag.slug || (tag.name || String(tag)).toLowerCase().replace(/\s+/g, '-')}`"
           class="cpub-tag"
           :class="{ 'cpub-tag-accent': i === 0 }"
         >
           {{ tag.name || tag }}
-        </span>
+        </NuxtLink>
       </div>
 
       <!-- AUTHOR CARD -->
@@ -412,7 +419,9 @@ useJsonLd({
   border: 1px solid var(--border2);
   color: var(--text-dim);
   background: var(--surface2);
+  text-decoration: none;
 }
+.cpub-tag:hover { color: var(--accent); border-color: var(--accent-border); }
 
 .cpub-tag-accent {
   border-color: var(--accent-border);

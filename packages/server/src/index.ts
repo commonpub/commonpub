@@ -99,8 +99,11 @@ export {
   createContentVersion,
   listContentVersions,
   forkContent,
+  forkFederatedContent,
   toggleBuildMark,
+  toggleFederatedBuildMark,
   isBuildMarked,
+  isFederatedBuildMarked,
 } from './content/index.js';
 export type { ContentVersionItem } from './content/index.js';
 
@@ -380,6 +383,7 @@ export {
   ingestFederatedHubPost,
   getFederatedHubPost,
   listFederatedHubPosts,
+  listFederatedHubMembers,
   deleteFederatedHubPost,
   likeFederatedHubPost,
   unlikeFederatedHubPost,

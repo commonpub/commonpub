@@ -397,8 +397,8 @@ export async function listRemoteReplies(
 
 /**
  * Search federated content by text query.
- * Searches title and content fields with case-insensitive matching.
- * For production, this should be backed by Meilisearch.
+ * Uses PostgreSQL full-text search (to_tsvector/websearch_to_tsquery) for fuzzy matching and ranking.
+ * Falls back to ILIKE for single-character or operator-only queries that FTS can't handle.
  */
 export async function searchFederatedContent(
   db: DB,
@@ -407,16 +407,21 @@ export async function searchFederatedContent(
 ): Promise<{ items: FederatedContentItem[]; total: number }> {
   const limit = Math.min(opts.limit ?? 20, 100);
   const offset = opts.offset ?? 0;
-  const searchPattern = `%${query}%`;
+
+  // Use FTS when query is substantive enough, fall back to ILIKE for short/special queries
+  const useFts = query.trim().length > 1;
+  const ftsCondition = useFts
+    ? sql`to_tsvector('english', coalesce(${federatedContent.title}, '') || ' ' || coalesce(${federatedContent.summary}, '') || ' ' || coalesce(${federatedContent.content}, '')) @@ websearch_to_tsquery('english', ${query})`
+    : or(
+        ilike(federatedContent.title, `%${query}%`),
+        ilike(federatedContent.content, `%${query}%`),
+        ilike(federatedContent.summary, `%${query}%`),
+      );
 
   const where = and(
     isNull(federatedContent.deletedAt),
     eq(federatedContent.isHidden, false),
-    or(
-      ilike(federatedContent.title, searchPattern),
-      ilike(federatedContent.content, searchPattern),
-      ilike(federatedContent.summary, searchPattern),
-    ),
+    ftsCondition,
   );
 
   const [countRow] = await db

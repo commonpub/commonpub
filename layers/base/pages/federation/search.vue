@@ -1,7 +1,5 @@
 <script setup lang="ts">
-definePageMeta({
-  middleware: 'auth',
-});
+definePageMeta({});
 
 useHead({
   title: 'Find Remote Users — Federation',

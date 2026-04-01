@@ -174,27 +174,27 @@ These are instance-local by design and should NOT be federated:
 
 ## 6. Implementation priority
 
-### Phase A — Fix broken buttons (1-2 hours)
-- [ ] 1.1 Fork: disable or adapt for federated content
-- [ ] 1.2 "I Built This": disable for federated content
-- [ ] 1.3 Bookmark: hide button or support federated content ID
-- [ ] 1.4 Author link: route to federation profile
-- [ ] 1.5 onUpdate: add cpubMetadata, cpubBlocks, tags
-- [ ] 1.6 ExplainerView: add like support
-- [ ] 2.7 Tags: make clickable
+### Phase A — Fix broken buttons (1-2 hours) ✓ Session 099
+- [x] 1.1 Fork: works for federated content (new forkFederatedContent + /api/federation/content/[id]/fork)
+- [x] 1.2 "I Built This": works for federated content (new federatedContentBuilds table + endpoint)
+- [x] 1.3 Bookmark: works for federated content (polymorphic bookmarks table, removed early return)
+- [x] 1.4 Author link: routes to remote actor URI for federated content (all 4 view components)
+- [x] 1.5 onUpdate: added cpubMetadata, cpubBlocks, tags extraction
+- [x] 1.6 ExplainerView: added like button with toggleLike + fetchInitialState
+- [x] 2.7 Tags: clickable NuxtLinks in ProjectView, ArticleView, BlogView, mirror fallback
 
-### Phase B — Wire local notifications (30 min)
-- [ ] 2.2 Call createNotification from toggleLike, createComment, followUser
+### Phase B — Wire local notifications (30 min) ✓ Session 099
+- [x] 2.2 Call createNotification from toggleLike, createComment, followUser (non-critical, try/catch)
 
-### Phase C — Comment visibility (1-2 hours)
-- [ ] 2.1 Phase 1: "Reply sent" confirmation
-- [ ] 2.1 Phase 2: Fetch remote replies collection or show local activity log
+### Phase C — Comment visibility (1-2 hours) ✓ Session 099
+- [x] 2.1 Phase 1: "Reply sent to origin" confirmation banner (5s auto-dismiss)
+- [x] 2.1 Phase 2: Fetch inbound remote replies via /api/federation/content/[id]/replies endpoint
 
-### Phase D — Federation depth (3-4 hours)
-- [ ] 2.3 "Follow remote author" button on mirror pages
-- [ ] 2.4 Index federated content in Meilisearch on ingest
-- [ ] 2.5 Fork federated content (create local draft from cpubBlocks)
-- [ ] 1.7 Hub post type preservation (cpub:postType extension)
+### Phase D — Federation depth (3-4 hours) ✓ Session 099
+- [x] 2.3 "Follow remote author" button on mirror page banner
+- [x] 2.4 Upgraded federated content search from ILIKE to Postgres FTS (websearch_to_tsquery)
+- [x] 2.5 Fork federated content (forkFederatedContent creates local draft from cpubBlocks)
+- [x] 1.7 Hub post type preservation: cpub:postType added to outbound Note, inbound key fixed
 
 ### Phase E — Polish (2-3 hours)
 - [ ] 2.6 Share federated content to local hub

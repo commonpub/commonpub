@@ -1,9 +1,7 @@
 <script setup lang="ts">
 import type { FederatedContentItem } from '@commonpub/server';
 
-definePageMeta({
-  middleware: 'auth',
-});
+definePageMeta({});
 
 useHead({
   title: 'Federated Timeline',

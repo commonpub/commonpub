@@ -55,6 +55,8 @@ export interface ContentViewData {
     username: string;
     displayName: string | null;
     avatarUrl: string | null;
+    /** Remote actor URI — set for federated content, used as external profile link */
+    profileUrl?: string | null;
     bio?: string | null;
     headline?: string | null;
     verified?: boolean;
@@ -130,8 +132,6 @@ export function useEngagement(opts: EngagementOptions) {
 
   async function toggleBookmark(): Promise<void> {
     if (!contentId.value) return;
-    // Bookmarks are local-only — skip for federated content (no local record to target)
-    if (isFederated.value) return;
     const prev = bookmarked.value;
     bookmarked.value = !bookmarked.value;
 
@@ -164,19 +164,25 @@ export function useEngagement(opts: EngagementOptions) {
   async function fetchInitialState(likes: number): Promise<void> {
     likeCount.value = likes;
     if (!contentId.value) return;
-    // Skip state fetch for federated content — no local like/bookmark records
-    if (isFederated.value) return;
     try {
-      const [likeRes, bmRes] = await Promise.all([
-        $fetch<{ liked: boolean }>('/api/social/like', {
+      if (isFederated.value) {
+        // Federated: likes are tracked via AP (no local like record), but bookmarks are local
+        const bmRes = await $fetch<{ bookmarked: boolean }>('/api/social/bookmark', {
           params: { targetType: contentType.value, targetId: contentId.value },
-        }).catch(() => ({ liked: false })),
-        $fetch<{ bookmarked: boolean }>('/api/social/bookmark', {
-          params: { targetType: contentType.value, targetId: contentId.value },
-        }).catch(() => ({ bookmarked: false })),
-      ]);
-      liked.value = likeRes.liked;
-      bookmarked.value = bmRes.bookmarked;
+        }).catch(() => ({ bookmarked: false }));
+        bookmarked.value = bmRes.bookmarked;
+      } else {
+        const [likeRes, bmRes] = await Promise.all([
+          $fetch<{ liked: boolean }>('/api/social/like', {
+            params: { targetType: contentType.value, targetId: contentId.value },
+          }).catch(() => ({ liked: false })),
+          $fetch<{ bookmarked: boolean }>('/api/social/bookmark', {
+            params: { targetType: contentType.value, targetId: contentId.value },
+          }).catch(() => ({ bookmarked: false })),
+        ]);
+        liked.value = likeRes.liked;
+        bookmarked.value = bmRes.bookmarked;
+      }
     } catch {
       // Non-critical — default to false
     }

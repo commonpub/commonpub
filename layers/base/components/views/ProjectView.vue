@@ -66,6 +66,12 @@ const difficultyLevel = computed(() => {
   return 3;
 });
 
+const authorUrl = computed(() =>
+  isFederated.value && props.content.author?.profileUrl
+    ? props.content.author.profileUrl
+    : `/u/${props.content.author?.username}`,
+);
+
 const formattedDate = computed(() => {
   const date = props.content?.publishedAt || props.content?.createdAt;
   if (!date) return '';
@@ -258,7 +264,10 @@ const forking = ref(false);
 async function handleFork(): Promise<void> {
   forking.value = true;
   try {
-    const result = await $fetch<{ slug: string; type: string }>(`/api/content/${props.content.id}/fork`, { method: 'POST' });
+    const url = isFederated.value
+      ? `/api/federation/content/${props.federatedId}/fork`
+      : `/api/content/${props.content.id}/fork`;
+    const result = await $fetch<{ slug: string; type: string }>(url, { method: 'POST' });
     await navigateTo(`/${result.type}/${result.slug}/edit`);
   } catch {
     // fork failed silently
@@ -274,7 +283,10 @@ const buildToggling = ref(false);
 async function handleBuild(): Promise<void> {
   buildToggling.value = true;
   try {
-    const result = await $fetch<{ marked: boolean; count: number }>(`/api/content/${props.content.id}/build`, { method: 'POST' });
+    const url = isFederated.value
+      ? `/api/federation/content/${props.federatedId}/build`
+      : `/api/content/${props.content.id}/build`;
+    const result = await $fetch<{ marked: boolean; count: number }>(url, { method: 'POST' });
     buildMarked.value = result.marked;
     localBuildCount.value = result.count;
   } catch {
@@ -326,7 +338,7 @@ async function handleBuild(): Promise<void> {
 
         <!-- Author Row -->
         <div class="cpub-author-row">
-          <NuxtLink :to="`/u/${content.author?.username}`" class="cpub-av-link">
+          <NuxtLink :to="authorUrl" :external="isFederated" :target="isFederated ? '_blank' : undefined" class="cpub-av-link">
             <img
               v-if="content.author?.avatarUrl"
               :src="content.author.avatarUrl"
@@ -336,7 +348,7 @@ async function handleBuild(): Promise<void> {
             <div v-else class="cpub-av cpub-av-lg">{{ content.author?.displayName?.slice(0, 2).toUpperCase() || 'CP' }}</div>
           </NuxtLink>
           <div>
-            <NuxtLink :to="`/u/${content.author?.username}`" class="cpub-author-name cpub-author-link">
+            <NuxtLink :to="authorUrl" :external="isFederated" :target="isFederated ? '_blank' : undefined" class="cpub-author-name cpub-author-link">
               {{ content.author?.displayName || content.author?.username || 'Author' }}
             </NuxtLink>
             <div class="cpub-author-meta-row">
@@ -351,7 +363,7 @@ async function handleBuild(): Promise<void> {
           <a v-if="content.githubUrl" :href="content.githubUrl" target="_blank" rel="noopener" class="cpub-author-detail cpub-author-detail-link"><i class="fa-brands fa-github"></i> Source</a>
           <template v-if="content.tags?.length">
             <span class="cpub-meta-sep">&bull;</span>
-            <span v-for="tag in content.tags.slice(0, 5)" :key="tag.id || tag.name || String(tag)" class="cpub-author-tag">{{ tag.name || tag }}</span>
+            <NuxtLink v-for="tag in content.tags.slice(0, 5)" :key="tag.id || tag.name || String(tag)" :to="`/tags/${tag.slug || (tag.name || String(tag)).toLowerCase().replace(/\s+/g, '-')}`" class="cpub-author-tag">{{ tag.name || tag }}</NuxtLink>
           </template>
         </div>
 
@@ -773,8 +785,9 @@ async function handleBuild(): Promise<void> {
 .cpub-author-tag {
   font-size: 9px; font-family: var(--font-mono); text-transform: uppercase;
   letter-spacing: 0.04em; color: var(--text-faint); padding: 1px 6px;
-  border: 1px solid var(--border); background: var(--surface);
+  border: 1px solid var(--border); background: var(--surface); text-decoration: none;
 }
+.cpub-author-tag:hover { color: var(--accent); border-color: var(--accent); }
 
 .cpub-fork-count {
   font-size: 11px;

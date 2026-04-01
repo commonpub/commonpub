@@ -405,7 +405,7 @@ export function getHubPostNoteUri(domain: string, hubSlug: string, postId: strin
 
 /** Build an AP Note for a hub post with proper hub-scoped URI */
 function hubPostToNote(
-  post: { id: string; content: string; createdAt: Date },
+  post: { id: string; content: string; type: string; createdAt: Date },
   author: { username: string; displayName: string | null },
   hubSlug: string,
   hubActorUri: string,
@@ -426,6 +426,11 @@ function hubPostToNote(
     published: post.createdAt.toISOString(),
     context: hubActorUri,
   };
+
+  // Preserve post type for CommonPub→CommonPub hub federation
+  if (post.type && post.type !== 'text') {
+    (note as unknown as Record<string, unknown>)['cpub:postType'] = post.type;
+  }
 
   return note;
 }

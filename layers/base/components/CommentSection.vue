@@ -24,22 +24,22 @@ const { user } = useAuth();
 
 const isFederated = computed(() => !!props.federatedContentId);
 const commentLimit = 20;
+const replySent = ref(false);
 
-const queryParams = computed(() => ({
-  targetType: props.targetType,
-  targetId: props.targetId,
-  limit: commentLimit,
-}));
+const commentUrl = computed(() =>
+  isFederated.value
+    ? `/api/federation/content/${props.federatedContentId}/replies`
+    : '/api/social/comments',
+);
 
-// Skip comment fetch for federated content — local comments table has no record for remote IDs
-const { data: comments, refresh } = await useFetch<Comment[]>('/api/social/comments', {
-  query: queryParams,
-  lazy: true,
-  immediate: !props.federatedContentId,
-});
+const queryParams = computed(() =>
+  isFederated.value ? undefined : { targetType: props.targetType, targetId: props.targetId, limit: commentLimit },
+);
+
+const { data: comments, refresh } = await useFetch<Comment[]>(commentUrl, { query: queryParams, lazy: true });
 
 const allCommentsLoaded = ref(false);
-const hasMore = computed(() => !allCommentsLoaded.value && (comments.value?.length ?? 0) >= commentLimit);
+const hasMore = computed(() => !isFederated.value && !allCommentsLoaded.value && (comments.value?.length ?? 0) >= commentLimit);
 const loadingMore = ref(false);
 
 async function loadMoreComments(): Promise<void> {
@@ -91,9 +91,11 @@ async function submitComment(): Promise<void> {
       });
     }
     newComment.value = '';
-    if (!props.federatedContentId) {
-      await refresh();
+    if (props.federatedContentId) {
+      replySent.value = true;
+      setTimeout(() => { replySent.value = false; }, 5000);
     }
+    await refresh();
   } finally {
     submitting.value = false;
   }
@@ -138,6 +140,11 @@ async function deleteComment(id: string): Promise<void> {
       <NuxtLink to="/auth/login" class="cpub-link">Log in</NuxtLink> to comment.
     </p>
 
+    <!-- Reply sent confirmation -->
+    <div v-if="replySent" class="cpub-reply-sent">
+      <i class="fa-solid fa-check-circle"></i> Reply sent to the original instance.
+    </div>
+
     <!-- Comments list -->
     <div class="cpub-comment-list">
       <div v-for="comment in (comments || [])" :key="comment.id" class="cpub-comment">
@@ -165,7 +172,7 @@ async function deleteComment(id: string): Promise<void> {
           </button>
         </div>
       </div>
-      <p v-if="!comments?.length" class="cpub-comments-empty">No comments yet. Be the first!</p>
+      <p v-if="!comments?.length" class="cpub-comments-empty">{{ isFederated ? 'No replies received yet.' : 'No comments yet. Be the first!' }}</p>
       <div v-if="hasMore" class="cpub-comments-more">
         <button class="cpub-btn cpub-btn-sm" :disabled="loadingMore" @click="loadMoreComments">
           {{ loadingMore ? 'Loading...' : 'Load more comments' }}
@@ -326,5 +333,17 @@ async function deleteComment(id: string): Promise<void> {
 .cpub-comments-more {
   text-align: center;
   padding: var(--space-4) 0;
+}
+
+.cpub-reply-sent {
+  font-size: 12px;
+  color: var(--green, #22c55e);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  background: var(--green-bg, rgba(34, 197, 94, 0.08));
+  border: 1px solid var(--green-border, rgba(34, 197, 94, 0.2));
 }
 </style>

@@ -8,10 +8,10 @@ const searchSchema = z.object({
 
 export default defineEventHandler(async (event): Promise<RemoteActorProfile | null> => {
   requireFeature('federation');
-  const user = requireAuth(event);
+  const user = getOptionalUser(event);
   const db = useDB();
   const config = useConfig();
   const { query } = await parseBody(event, searchSchema);
 
-  return searchRemoteActor(db, query, config.instance.domain, user.id);
+  return searchRemoteActor(db, query, config.instance.domain, user?.id);
 });

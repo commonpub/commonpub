@@ -13,7 +13,6 @@ const querySchema = z.object({
 export default defineEventHandler(
   async (event): Promise<{ items: FederatedContentItem[]; total: number }> => {
     requireFeature('federation');
-    requireAuth(event);
     const db = useDB();
     const opts = parseQueryParams(event, querySchema);
 

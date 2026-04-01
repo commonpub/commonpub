@@ -626,6 +626,31 @@ export async function listFederatedHubPosts(
 }
 
 /**
+ * List known members of a federated hub — distinct post authors with their remote profiles.
+ */
+export async function listFederatedHubMembers(
+  db: DB,
+  federatedHubId: string,
+): Promise<Array<{ actorUri: string; preferredUsername: string | null; displayName: string | null; avatarUrl: string | null; instanceDomain: string; postCount: number }>> {
+  const rows = await db
+    .select({
+      actorUri: remoteActors.actorUri,
+      preferredUsername: remoteActors.preferredUsername,
+      displayName: remoteActors.displayName,
+      avatarUrl: remoteActors.avatarUrl,
+      instanceDomain: remoteActors.instanceDomain,
+      postCount: sql<number>`count(*)::int`,
+    })
+    .from(federatedHubPosts)
+    .innerJoin(remoteActors, eq(federatedHubPosts.remoteActorId, remoteActors.id))
+    .where(and(eq(federatedHubPosts.federatedHubId, federatedHubId), isNull(federatedHubPosts.deletedAt)))
+    .groupBy(remoteActors.id, remoteActors.actorUri, remoteActors.preferredUsername, remoteActors.displayName, remoteActors.avatarUrl, remoteActors.instanceDomain)
+    .orderBy(sql`count(*) desc`);
+
+  return rows;
+}
+
+/**
  * Delete a federated hub post (on receiving Delete activity).
  * Validates actorUri matches the post author for defense in depth.
  */

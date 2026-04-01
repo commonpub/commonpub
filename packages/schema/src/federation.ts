@@ -129,6 +129,25 @@ export const federatedContent = pgTable('federated_content', {
   index('idx_fedcontent_object_uri').on(t.objectUri),
 ]);
 
+/** "I Built This" marks on federated content (separate from local contentBuilds which has FK to contentItems) */
+export const federatedContentBuilds = pgTable(
+  'federated_content_builds',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    federatedContentId: uuid('federated_content_id')
+      .notNull()
+      .references(() => federatedContent.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    unique('fed_content_builds_user_content').on(t.userId, t.federatedContentId),
+    index('idx_fed_content_builds_content_id').on(t.federatedContentId),
+  ],
+);
+
 /** Instance-level mirror subscriptions */
 export const instanceMirrors = pgTable('instance_mirrors', {
   id: uuid('id').defaultRandom().primaryKey(),

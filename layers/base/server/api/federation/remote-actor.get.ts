@@ -8,12 +8,12 @@ const querySchema = z.object({
 
 export default defineEventHandler(async (event): Promise<RemoteActorProfile> => {
   requireFeature('federation');
-  const user = requireAuth(event);
+  const user = getOptionalUser(event);
   const db = useDB();
   const config = useConfig();
   const { uri } = parseQueryParams(event, querySchema);
 
-  const profile = await getRemoteActorProfile(db, uri, config.instance.domain, user.id);
+  const profile = await getRemoteActorProfile(db, uri, config.instance.domain, user?.id);
   if (!profile) {
     throw createError({ statusCode: 404, statusMessage: 'Remote actor not found' });
   }

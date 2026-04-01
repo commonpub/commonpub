@@ -15,6 +15,12 @@ onMounted(() => {
   fetchInitialState(props.content?.likeCount ?? 0);
 });
 
+const authorUrl = computed(() =>
+  isFederated.value && props.content.author?.profileUrl
+    ? props.content.author.profileUrl
+    : `/u/${props.content.author?.username}`,
+);
+
 const config = useRuntimeConfig();
 useJsonLd({
   type: 'article',
@@ -47,12 +53,12 @@ const hasSeries = computed(() => !!seriesTitle.value && seriesTotalParts.value >
 
       <!-- AUTHOR ROW -->
       <div class="cpub-author-row">
-        <NuxtLink v-if="content.author" :to="`/u/${content.author.username}`" style="text-decoration:none;">
+        <NuxtLink v-if="content.author" :to="authorUrl" :external="isFederated" :target="isFederated ? '_blank' : undefined" style="text-decoration:none;">
           <img v-if="content.author?.avatarUrl" :src="content.author.avatarUrl" :alt="content.author?.displayName ?? content.author?.username ?? ''" class="cpub-av cpub-av-lg" style="object-fit:cover;border:2px solid var(--border);" />
           <div v-else class="cpub-av cpub-av-lg">{{ content.author?.displayName?.slice(0, 2).toUpperCase() || 'CP' }}</div>
         </NuxtLink>
         <div class="cpub-author-info">
-          <NuxtLink v-if="content.author" :to="`/u/${content.author.username}`" class="cpub-author-name">
+          <NuxtLink v-if="content.author" :to="authorUrl" :external="isFederated" :target="isFederated ? '_blank' : undefined" class="cpub-author-name">
             {{ content.author.displayName || content.author.username }}
           </NuxtLink>
           <div class="cpub-author-meta">
@@ -140,14 +146,15 @@ const hasSeries = computed(() => !!seriesTitle.value && seriesTotalParts.value >
       <!-- TAGS -->
       <div v-if="content.tags?.length" class="cpub-tags-row">
         <div class="cpub-tags-label">Tags</div>
-        <span
+        <NuxtLink
           v-for="(tag, i) in content.tags"
           :key="tag.id || tag.name || i"
+          :to="`/tags/${tag.slug || (tag.name || String(tag)).toLowerCase().replace(/\s+/g, '-')}`"
           class="cpub-tag"
           :class="{ 'cpub-tag-pink': i === 0 }"
         >
           {{ tag.name || tag }}
-        </span>
+        </NuxtLink>
       </div>
 
       <!-- AUTHOR CARD -->
@@ -276,7 +283,9 @@ const hasSeries = computed(() => !!seriesTitle.value && seriesTotalParts.value >
   border: 1px solid var(--border2);
   color: var(--text-dim);
   background: var(--surface2);
+  text-decoration: none;
 }
+.cpub-tag:hover { color: var(--accent); border-color: var(--accent-border); }
 
 .cpub-tag-pink {
   border-color: var(--pink-border);

@@ -1,5 +1,5 @@
 import { eq, and, desc, sql, inArray, isNull } from 'drizzle-orm';
-import { contentItems, contentVersions, contentForks, contentBuilds, tags, contentTags, users, follows, federatedContent, remoteActors } from '@commonpub/schema';
+import { contentItems, contentVersions, contentForks, contentBuilds, federatedContentBuilds, tags, contentTags, users, follows, federatedContent, remoteActors } from '@commonpub/schema';
 import type { CommonPubConfig } from '@commonpub/config';
 import type { ContentItemRow } from '@commonpub/schema';
 import type {
@@ -713,6 +713,99 @@ export async function forkContent(
     .where(eq(contentItems.id, sourceId));
 
   return (await getContentBySlug(db, forked!.slug, userId))!;
+}
+
+// --- Federated Content: Fork & Build ---
+
+export async function forkFederatedContent(
+  db: DB,
+  federatedContentId: string,
+  userId: string,
+): Promise<ContentDetail> {
+  const source = await db
+    .select()
+    .from(federatedContent)
+    .where(eq(federatedContent.id, federatedContentId))
+    .limit(1);
+
+  if (source.length === 0) {
+    throw new Error('Federated content not found');
+  }
+
+  const fc = source[0]!;
+  const titleBase = fc.title || 'Untitled';
+  const slugBase = titleBase.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+  const slug = await ensureUniqueSlugFor(db, contentItems, contentItems.slug, contentItems.id, `${slugBase}-fork-${Date.now()}`, 'fork');
+  const previewToken = crypto.randomUUID().replace(/-/g, '');
+
+  const meta = fc.cpubMetadata as Record<string, unknown> | null;
+
+  const [forked] = await db
+    .insert(contentItems)
+    .values({
+      authorId: userId,
+      type: (fc.cpubType || 'project') as 'project' | 'article' | 'blog' | 'explainer',
+      title: `${titleBase} (Fork)`,
+      slug,
+      description: fc.summary,
+      content: fc.cpubBlocks ?? fc.content,
+      coverImageUrl: fc.coverImageUrl,
+      difficulty: (meta?.difficulty as 'beginner' | 'intermediate' | 'advanced') ?? null,
+      buildTime: (meta?.buildTime as string) ?? null,
+      estimatedCost: (meta?.estimatedCost as string) ?? null,
+      visibility: 'public',
+      status: 'draft',
+      previewToken,
+    })
+    .returning();
+
+  return (await getContentBySlug(db, forked!.slug, userId))!;
+}
+
+export async function toggleFederatedBuildMark(
+  db: DB,
+  federatedContentId: string,
+  userId: string,
+): Promise<{ marked: boolean; count: number }> {
+  return db.transaction(async (tx) => {
+    const existing = await tx
+      .select()
+      .from(federatedContentBuilds)
+      .where(and(eq(federatedContentBuilds.federatedContentId, federatedContentId), eq(federatedContentBuilds.userId, userId)))
+      .limit(1);
+
+    if (existing.length > 0) {
+      await tx
+        .delete(federatedContentBuilds)
+        .where(and(eq(federatedContentBuilds.federatedContentId, federatedContentId), eq(federatedContentBuilds.userId, userId)));
+      // No denormalized counter on federatedContent — count from table
+      const rows = await tx
+        .select({ count: sql<number>`count(*)::int` })
+        .from(federatedContentBuilds)
+        .where(eq(federatedContentBuilds.federatedContentId, federatedContentId));
+      return { marked: false, count: rows[0]?.count ?? 0 };
+    }
+
+    await tx.insert(federatedContentBuilds).values({ federatedContentId, userId });
+    const rows = await tx
+      .select({ count: sql<number>`count(*)::int` })
+      .from(federatedContentBuilds)
+      .where(eq(federatedContentBuilds.federatedContentId, federatedContentId));
+    return { marked: true, count: rows[0]?.count ?? 0 };
+  });
+}
+
+export async function isFederatedBuildMarked(
+  db: DB,
+  federatedContentId: string,
+  userId: string,
+): Promise<boolean> {
+  const existing = await db
+    .select()
+    .from(federatedContentBuilds)
+    .where(and(eq(federatedContentBuilds.federatedContentId, federatedContentId), eq(federatedContentBuilds.userId, userId)))
+    .limit(1);
+  return existing.length > 0;
 }
 
 // --- Federation Hooks ---

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { RemoteActorProfile, FederatedContentItem } from '@commonpub/server';
 
-definePageMeta({ middleware: 'auth' });
+definePageMeta({});
 
 const route = useRoute();
 const handle = computed(() => decodeURIComponent(route.params.handle as string));

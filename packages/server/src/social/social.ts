@@ -12,6 +12,7 @@ import type { CommonPubConfig } from '@commonpub/config';
 import type { DB, CommentItem } from '../types.js';
 import type { LikeTargetType, CommentTargetType } from '@commonpub/schema';
 import { federateLike, federateUnlike } from '../federation/federation.js';
+import { createNotification } from '../notification/notification.js';
 import { USER_REF_SELECT, USER_REF_WITH_BIO_SELECT, normalizePagination, countRows } from '../query.js';
 
 export type { CommentItem };
@@ -22,7 +23,7 @@ export async function toggleLike(
   targetType: LikeTargetType,
   targetId: string,
 ): Promise<{ liked: boolean }> {
-  return db.transaction(async (tx) => {
+  const result = await db.transaction(async (tx) => {
     const existing = await tx
       .select({ id: likes.id })
       .from(likes)
@@ -45,6 +46,32 @@ export async function toggleLike(
     await updateLikeCount(tx, targetType, targetId, 1);
     return { liked: true };
   });
+
+  // Notify target author on new like (non-critical)
+  if (result.liked) {
+    try {
+      let authorId: string | null = null;
+      let title: string | null = null;
+      let link: string | undefined;
+
+      if (targetType === 'post') {
+        const [t] = await db.select({ authorId: hubPosts.authorId }).from(hubPosts).where(eq(hubPosts.id, targetId)).limit(1);
+        if (t) authorId = t.authorId;
+      } else if (targetType !== 'comment') {
+        // Content types: project, article, blog, explainer
+        const [t] = await db.select({ authorId: contentItems.authorId, title: contentItems.title, slug: contentItems.slug, type: contentItems.type }).from(contentItems).where(eq(contentItems.id, targetId)).limit(1);
+        if (t) { authorId = t.authorId; title = t.title; link = `/${t.type}/${t.slug}`; }
+      }
+
+      if (authorId && authorId !== userId) {
+        const [actor] = await db.select({ displayName: users.displayName, username: users.username }).from(users).where(eq(users.id, userId)).limit(1);
+        const name = actor?.displayName || actor?.username || 'Someone';
+        await createNotification(db, { userId: authorId, type: 'like', actorId: userId, title: 'New like', message: `${name} liked "${title || 'your content'}"`, link });
+      }
+    } catch { /* non-critical */ }
+  }
+
+  return result;
 }
 
 async function updateLikeCount(
@@ -254,6 +281,27 @@ export async function createComment(
     .where(eq(users.id, authorId))
     .limit(1);
 
+  // Notify target author on new comment (non-critical)
+  try {
+    let targetAuthorId: string | null = null;
+    let targetTitle: string | null = null;
+    let link: string | undefined;
+
+    if (input.targetType === 'post') {
+      const [t] = await db.select({ authorId: hubPosts.authorId }).from(hubPosts).where(eq(hubPosts.id, input.targetId)).limit(1);
+      if (t) targetAuthorId = t.authorId;
+    } else {
+      // Content types: project, article, blog, explainer, lesson
+      const [t] = await db.select({ authorId: contentItems.authorId, title: contentItems.title, slug: contentItems.slug, type: contentItems.type }).from(contentItems).where(eq(contentItems.id, input.targetId)).limit(1);
+      if (t) { targetAuthorId = t.authorId; targetTitle = t.title; link = `/${t.type}/${t.slug}`; }
+    }
+
+    if (targetAuthorId && targetAuthorId !== authorId) {
+      const actorName = author[0]?.displayName || author[0]?.username || 'Someone';
+      await createNotification(db, { userId: targetAuthorId, type: 'comment', actorId: authorId, title: 'New comment', message: `${actorName} commented on "${targetTitle || 'your content'}"`, link });
+    }
+  } catch { /* non-critical */ }
+
   return {
     id: row!.id,
     content: row!.content,
@@ -449,6 +497,15 @@ export async function followUser(
     .values({ followerId, followingId })
     .onConflictDoNothing()
     .returning();
+
+  // Notify followed user (non-critical)
+  if (result) {
+    try {
+      const [actor] = await db.select({ displayName: users.displayName, username: users.username }).from(users).where(eq(users.id, followerId)).limit(1);
+      const name = actor?.displayName || actor?.username || 'Someone';
+      await createNotification(db, { userId: followingId, type: 'follow', actorId: followerId, title: 'New follower', message: `${name} started following you`, link: `/u/${actor?.username}` });
+    } catch { /* non-critical */ }
+  }
 
   return { followed: !!result };
 }

@@ -10,6 +10,18 @@ const { data: posts, refresh: refreshPosts } = useLazyFetch<{ items: FederatedHu
   default: () => ({ items: [], total: 0 }),
 });
 
+interface FederatedMember {
+  actorUri: string;
+  preferredUsername: string | null;
+  displayName: string | null;
+  avatarUrl: string | null;
+  instanceDomain: string;
+  postCount: number;
+}
+const { data: members } = useLazyFetch<FederatedMember[]>(`/api/federated-hubs/${id}/members`, {
+  default: () => [],
+});
+
 useSeoMeta({
   title: () => hub.value ? `${hub.value.name} — ${useSiteName()}` : 'Federated Hub',
   description: () => hub.value?.description || '',
@@ -187,29 +199,10 @@ async function handleDiscPost(): Promise<void> {
   }
 }
 
-// --- Follow hub ---
-const followStatus = computed(() => hub.value?.followStatus ?? 'pending');
-const following = ref(false);
+// --- Instance mirror status (not user-level follow) ---
+const mirrorStatus = computed(() => hub.value?.followStatus ?? 'pending');
 
-async function handleFollowHub(): Promise<void> {
-  if (!isAuthenticated.value) {
-    await navigateTo(`/auth/login?redirect=/federated-hubs/${id}`);
-    return;
-  }
-  following.value = true;
-  try {
-    const result = await $fetch<{ status: string }>('/api/federation/hub-follow' as string, {
-      method: 'POST',
-      body: { federatedHubId: id },
-    });
-    if (hub.value) (hub.value as unknown as Record<string, unknown>).followStatus = result.status;
-    toast.success(result.status === 'accepted' ? 'Following!' : 'Follow request sent');
-  } catch {
-    toast.error('Failed to follow hub');
-  } finally {
-    following.value = false;
-  }
-}
+const remoteFollowRef = ref<InstanceType<typeof RemoteFollowDialog> | null>(null);
 
 // --- Like state tracking ---
 const likedPostIds = ref<Set<string>>(new Set());
@@ -273,20 +266,14 @@ async function handlePostVote(postId: string): Promise<void> {
           </div>
         </template>
         <template #actions>
-          <button
-            v-if="followStatus !== 'accepted'"
-            class="cpub-btn cpub-btn-primary"
-            :disabled="following || followStatus === 'pending'"
-            @click="handleFollowHub"
-          >
-            <i class="fa-solid fa-rss"></i>
-            {{ followStatus === 'pending' ? 'Follow Pending...' : 'Follow Hub' }}
-          </button>
-          <span v-else class="cpub-member-badge">
-            <i class="fa-solid fa-check"></i> Following
+          <span v-if="mirrorStatus === 'accepted'" class="cpub-member-badge cpub-member-badge-mirrored">
+            <i class="fa-solid fa-globe"></i> Mirrored
           </span>
+          <button v-if="hub?.actorUri" class="cpub-btn cpub-btn-primary cpub-btn-sm" @click="remoteFollowRef?.show()">
+            <i class="fa-solid fa-user-plus"></i> Join from your instance
+          </button>
           <a v-if="hub?.url" :href="hub.url" target="_blank" rel="noopener noreferrer" class="cpub-btn cpub-btn-sm">
-            <i class="fa-solid fa-arrow-up-right-from-square"></i> Visit
+            <i class="fa-solid fa-arrow-up-right-from-square"></i> Visit original
           </a>
         </template>
         <template #badges>
@@ -389,18 +376,35 @@ async function handlePostVote(postId: string): Promise<void> {
 
     <!-- Members tab -->
     <div v-else-if="activeTab === 'members'" class="cpub-hub-members-tab">
-      <div class="cpub-fed-members-info">
-        <div class="cpub-fed-members-stat">
-          <i class="fa-solid fa-users"></i>
-          <strong>{{ hub?.memberCount ?? 0 }}</strong> members
-        </div>
-        <p class="cpub-fed-members-note">
-          Members are managed on <strong>{{ hub?.originDomain }}</strong>. Visit the original hub to see the full member list and join.
-        </p>
-        <a v-if="hub?.url" :href="hub.url" target="_blank" rel="noopener noreferrer" class="cpub-btn cpub-btn-sm" style="margin-top: 12px; display: inline-flex">
-          <i class="fa-solid fa-arrow-up-right-from-square"></i> View Members on {{ hub?.originDomain }}
+      <div class="cpub-fed-members-stat">
+        <i class="fa-solid fa-users"></i>
+        <strong>{{ hub?.memberCount ?? 0 }}</strong> members on {{ hub?.originDomain }}
+        <span v-if="members?.length" class="cpub-fed-members-known">&middot; {{ members.length }} known</span>
+      </div>
+
+      <div v-if="members?.length" class="cpub-fed-members-list">
+        <a
+          v-for="m in members"
+          :key="m.actorUri"
+          :href="m.actorUri"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="cpub-fed-member"
+        >
+          <img v-if="m.avatarUrl" :src="m.avatarUrl" :alt="m.displayName || m.preferredUsername || ''" class="cpub-fed-member-avatar" />
+          <div v-else class="cpub-fed-member-avatar cpub-fed-member-avatar-fallback">{{ (m.displayName || m.preferredUsername || '?').charAt(0).toUpperCase() }}</div>
+          <div class="cpub-fed-member-info">
+            <div class="cpub-fed-member-name">{{ m.displayName || m.preferredUsername || 'Unknown' }}</div>
+            <div class="cpub-fed-member-handle">@{{ m.preferredUsername || 'unknown' }}@{{ m.instanceDomain }}</div>
+          </div>
+          <div class="cpub-fed-member-posts">{{ m.postCount }} {{ m.postCount === 1 ? 'post' : 'posts' }}</div>
         </a>
       </div>
+      <p v-else class="cpub-fed-members-empty">No known members yet. Members appear here as they post to the hub.</p>
+
+      <a v-if="hub?.url" :href="hub.url" target="_blank" rel="noopener noreferrer" class="cpub-btn cpub-btn-sm cpub-fed-members-origin-link">
+        <i class="fa-solid fa-arrow-up-right-from-square"></i> View all members on {{ hub?.originDomain }}
+      </a>
     </div>
 
     <!-- Overview tab (product/company hubs) -->
@@ -450,6 +454,8 @@ async function handlePostVote(postId: string): Promise<void> {
       </HubSidebar>
     </template>
   </HubLayout>
+
+  <RemoteFollowDialog v-if="hub?.actorUri" ref="remoteFollowRef" :actor-uri="hub.actorUri" :label="hub?.name" />
 </template>
 
 <style scoped>
@@ -539,18 +545,39 @@ async function handlePostVote(postId: string): Promise<void> {
 
 /* Members tab (federated) */
 .cpub-hub-members-tab { padding: 0; }
-.cpub-fed-members-info {
-  background: var(--surface); border: var(--border-width-default) solid var(--border);
-  padding: 32px; text-align: center;
-}
 .cpub-fed-members-stat {
-  font-size: 20px; font-weight: 700; color: var(--text);
-  display: flex; align-items: center; justify-content: center; gap: 8px;
-  margin-bottom: 12px;
+  font-size: 14px; font-weight: 600; color: var(--text-dim);
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 16px; padding: 0 4px;
 }
 .cpub-fed-members-stat i { color: var(--accent); }
-.cpub-fed-members-note {
-  font-size: 13px; color: var(--text-dim); line-height: 1.5; max-width: 400px; margin: 0 auto;
+.cpub-fed-members-known { color: var(--text-faint); font-weight: 400; }
+.cpub-fed-members-list { display: flex; flex-direction: column; gap: 2px; }
+.cpub-fed-member {
+  display: flex; align-items: center; gap: 12px; padding: 10px 12px;
+  text-decoration: none; color: var(--text); border: var(--border-width-default) solid transparent;
+  transition: border-color 0.15s;
+}
+.cpub-fed-member:hover { border-color: var(--border); background: var(--surface); }
+.cpub-fed-member-avatar {
+  width: 36px; height: 36px; border-radius: 50%; object-fit: cover;
+  border: var(--border-width-default) solid var(--border); flex-shrink: 0;
+}
+.cpub-fed-member-avatar-fallback {
+  display: flex; align-items: center; justify-content: center;
+  background: var(--surface2); font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: var(--text-dim);
+}
+.cpub-fed-member-info { flex: 1; min-width: 0; }
+.cpub-fed-member-name { font-size: 13px; font-weight: 600; }
+.cpub-fed-member-handle { font-size: 11px; color: var(--text-faint); font-family: var(--font-mono); }
+.cpub-fed-member-posts { font-size: 11px; color: var(--text-faint); font-family: var(--font-mono); white-space: nowrap; }
+.cpub-fed-members-empty { font-size: 13px; color: var(--text-faint); text-align: center; padding: 32px 16px; }
+.cpub-fed-members-origin-link { margin-top: 16px; display: inline-flex; }
+.cpub-member-badge-mirrored {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 0.6875rem; font-weight: 600;
+  color: var(--accent); background: var(--accent-bg);
+  padding: 4px 12px; border: 1px solid var(--accent-border);
 }
 
 /* Sidebar */
@@ -586,6 +613,6 @@ async function handlePostVote(postId: string): Promise<void> {
   .cpub-fed-indicator { padding: 6px 16px; font-size: 11px; flex-wrap: wrap; }
   .cpub-compose-bar { padding: 10px 12px; }
   .cpub-shared-grid { grid-template-columns: 1fr; }
-  .cpub-fed-members-info { padding: 24px 16px; }
+  .cpub-fed-member { padding: 10px 8px; }
 }
 </style>

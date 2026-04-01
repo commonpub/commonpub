@@ -13,7 +13,10 @@ export {
   createContentVersion,
   listContentVersions,
   forkContent,
+  forkFederatedContent,
   toggleBuildMark,
+  toggleFederatedBuildMark,
   isBuildMarked,
+  isFederatedBuildMarked,
 } from './content.js';
 export type { ContentVersionItem } from './content.js';

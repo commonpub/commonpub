@@ -96,6 +96,7 @@ export {
   ingestFederatedHubPost,
   getFederatedHubPost,
   listFederatedHubPosts,
+  listFederatedHubMembers,
   deleteFederatedHubPost,
   likeFederatedHubPost,
   unlikeFederatedHubPost,
