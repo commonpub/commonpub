@@ -125,9 +125,40 @@ Applied via `ALTER TYPE notification_type ADD VALUE IF NOT EXISTS` on both insta
 
 Bumped: schema 0.8.12, server 2.11.2, layer 0.3.15
 
+## Third pass — federation completeness (hub backfill + members + Undo(Like))
+
+**Root cause of "members not showing on federated hubs":**
+Members list only showed post authors (INNER JOIN on federatedHubPosts). No mechanism existed to fetch a hub's actual followers collection, and no hub outbox backfill meant historical posts (and their authors) were never imported.
+
+**Fixes:**
+- `backfillHubFromOutbox()` — crawls Group actor's outbox for historical Announce activities
+- `fetchRemoteHubFollowers()` — fetches followers collection, resolves each actor
+- `repairFederatedHubPostActors()` — fixes null remoteActorId on ingested posts
+- `listFederatedHubMembers()` now includes domain actors (not just post authors)
+- Admin endpoint: `POST /api/admin/federation/hub-mirrors/[id]/backfill`
+- `federateHubPostUnlike()` — sends Undo(Like) on unlike for federation state sync
+
+Bumped: server 2.12.0, layer 0.3.16
+
+## Dockerfile fix
+
+`npm install --no-save drizzle-kit` failed because copied package.json had `workspace:*` deps. Fixed by using a minimal `{"private":true}` package.json in the runtime stage.
+
+## CI status
+
+- `check` jobs (build+test+typecheck Node 22/23): PASS
+- `e2e` (Playwright): 6 failures — pre-existing flaky UI tests (hero banner dismiss, search filters, footer links). Not related to session 101 changes. All E2E failures also present in pre-session-101 runs.
+- `deploy`: was failing due to workspace:* Dockerfile bug — now fixed
+
 ## Final test results
 
 557 server tests, 319 schema tests, 26/26 typecheck — all green
+
+## Final published versions
+
+- `@commonpub/schema@0.8.12`
+- `@commonpub/server@2.12.0`
+- `@commonpub/layer@0.3.16`
 
 ## Next steps (P1-P4 from session prompt)
 
@@ -135,3 +166,4 @@ Bumped: schema 0.8.12, server 2.11.2, layer 0.3.15
 - P2: Content pages UX fixes (pagination, sorting, explore pagination)
 - P3: Messaging polish (unread counts, read receipts, group conversations)
 - P4: SSE merge, CLI bump, @mentions, notification email preferences
+- Fix flaky E2E tests (hero banner dismiss, search filters, footer links)
