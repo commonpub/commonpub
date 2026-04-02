@@ -16,9 +16,9 @@ pub fn render_package_json(config: &InstanceConfig) -> String {
   }},
   "dependencies": {{
     "@commonpub/config": "^0.7.0",
-    "@commonpub/layer": "^0.3.0",
-    "@commonpub/schema": "^0.8.8",
-    "@commonpub/server": "^2.7.0",
+    "@commonpub/layer": "^0.3.19",
+    "@commonpub/schema": "^0.8.12",
+    "@commonpub/server": "^2.13.0",
     "drizzle-orm": "^0.45.1",
     "nuxt": "^3.16.0",
     "vue": "^3.4.0",
