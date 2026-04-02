@@ -35,7 +35,7 @@ test.describe('Public pages render', () => {
     await page.goto('/auth/login');
     await expect(page).toHaveTitle(/Log in/);
     await expect(page.locator('form[aria-label="Login form"]')).toBeVisible();
-    await expect(page.locator('#email')).toBeVisible();
+    await expect(page.locator('#identity')).toBeVisible();
     await expect(page.locator('#password')).toBeVisible();
     await expect(page.locator('button[type="submit"]')).toBeVisible();
   });
@@ -45,7 +45,7 @@ test.describe('Public pages render', () => {
     await expect(page).toHaveTitle(/Register/);
     await expect(page.locator('form[aria-label="Registration form"]')).toBeVisible();
     await expect(page.locator('#username')).toBeVisible();
-    await expect(page.locator('#email')).toBeVisible();
+    await expect(page.locator('#identity')).toBeVisible();
     await expect(page.locator('#password')).toBeVisible();
   });
 

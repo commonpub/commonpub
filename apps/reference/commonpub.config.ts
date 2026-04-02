@@ -26,5 +26,6 @@ export default defineCommonPubConfig({
     emailPassword: true,
     magicLink: false,
     passkeys: false,
+    trustedInstances: ['deveco.io'],
   },
 });

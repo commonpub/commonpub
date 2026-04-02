@@ -23,9 +23,11 @@ test.describe('Homepage tab switching', () => {
     await page.goto('/');
 
     const banner = page.locator('.cpub-hero-banner');
-    await expect(banner).toBeVisible();
+    await expect(banner).toBeVisible({ timeout: 5000 });
 
-    await page.locator('.cpub-hero-dismiss').click();
+    const dismissBtn = page.locator('.cpub-hero-dismiss');
+    await dismissBtn.waitFor({ state: 'visible' });
+    await dismissBtn.click();
     await expect(banner).not.toBeVisible();
   });
 });
@@ -39,7 +41,7 @@ test.describe('Footer links navigate correctly', () => {
 
     await expect(footer.locator('a[href="/about"]')).toBeVisible();
     await expect(footer.locator('a[href="/docs"]')).toBeVisible();
-    await expect(footer.locator('a[href="/api"]')).toBeVisible();
+    await expect(footer.locator('a[href="/feed.xml"]')).toBeVisible();
   });
 });
 
@@ -78,6 +80,8 @@ test.describe('Search page interactions', () => {
     await page.goto('/search');
 
     const pills = page.locator('.cpub-type-pill');
+    await pills.first().waitFor({ state: 'visible', timeout: 5000 });
+
     const allPill = pills.first();
     const projectsPill = pills.nth(1);
 
@@ -92,6 +96,7 @@ test.describe('Search page interactions', () => {
     await page.goto('/search');
 
     const filterBtn = page.locator('.cpub-adv-filter-btn');
+    await filterBtn.waitFor({ state: 'visible', timeout: 5000 });
     const panel = page.locator('.cpub-adv-panel');
 
     await expect(panel).not.toBeVisible();
