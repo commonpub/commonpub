@@ -5,16 +5,37 @@ const conversationId = route.params.conversationId as string;
 definePageMeta({ middleware: 'auth' });
 
 const { user } = useAuth();
+const toast = useToast();
 
-const { data: convInfo } = useLazyFetch<any>(`/api/messages/${conversationId}/info`, {
-  default: () => ({ id: conversationId, participants: [] as string[] }),
+interface ConvParticipant {
+  id: string;
+  displayName?: string;
+  username?: string;
+}
+
+interface MessageItem {
+  id: string;
+  senderId: string;
+  senderName?: string | null;
+  senderAvatarUrl?: string | null;
+  body: string;
+  createdAt: string;
+}
+
+const { data: convInfo } = useLazyFetch<{ id: string; participants: ConvParticipant[] }>(`/api/messages/${conversationId}/info`, {
+  default: () => ({ id: conversationId, participants: [] }),
 });
 
-const { data: initialMessages, refresh } = useLazyFetch<any[]>(`/api/messages/${conversationId}`, {
+const { data: initialMessages, refresh } = useLazyFetch<MessageItem[]>(`/api/messages/${conversationId}`, {
   default: () => [],
 });
 
-const messages = ref([...(initialMessages.value ?? [])]);
+const messages = ref<MessageItem[]>([]);
+
+// Sync with lazy fetch when it resolves
+watch(initialMessages, (val) => {
+  if (val?.length) messages.value = [...val];
+}, { immediate: true });
 
 // SSE real-time stream
 let eventSource: EventSource | null = null;
@@ -51,22 +72,23 @@ const participantLabel = computed(() => {
   const parts = convInfo.value?.participants ?? [];
   if (!parts.length) return 'Conversation';
   const others = parts
-    .filter((p: any) => typeof p === 'object' ? p.id !== user.value?.id : p !== user.value?.id)
-    .map((p: any) => typeof p === 'object' ? (p.displayName || p.username) : p);
+    .filter((p) => p.id !== user.value?.id)
+    .map((p) => p.displayName || p.username || p.id);
   return others.length > 0 ? others.join(', ') : 'Conversation';
 });
 
 useSeoMeta({ title: () => `Message — ${participantLabel.value}` });
 
 async function handleSend(text: string): Promise<void> {
-  await $fetch(`/api/messages/${conversationId}` as string, {
-    method: 'POST',
-    body: { body: text },
-  });
-  // SSE will pick up the new message, but also do an immediate refresh for responsiveness
-  await refresh();
-  if (initialMessages.value) {
-    messages.value = [...initialMessages.value];
+  try {
+    await $fetch(`/api/messages/${conversationId}` as string, {
+      method: 'POST',
+      body: { body: text },
+    });
+    // SSE will pick up the new message, but also do an immediate refresh for responsiveness
+    await refresh();
+  } catch {
+    toast.error('Failed to send message');
   }
 }
 </script>

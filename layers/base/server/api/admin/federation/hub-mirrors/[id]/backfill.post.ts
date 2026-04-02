@@ -3,8 +3,7 @@ import { backfillHubFromOutbox, fetchRemoteHubFollowers, repairFederatedHubPostA
 export default defineEventHandler(async (event) => {
   requireFeature('federation');
   requireFeature('federateHubs');
-  requireAuth(event);
-  // TODO: admin role check — for now relies on admin layout auth
+  requireAdmin(event);
 
   const db = useDB();
   const config = useConfig();

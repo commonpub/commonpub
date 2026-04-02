@@ -649,38 +649,7 @@ export async function listFederatedHubMembers(
     .groupBy(remoteActors.id, remoteActors.actorUri, remoteActors.preferredUsername, remoteActors.displayName, remoteActors.avatarUrl, remoteActors.instanceDomain)
     .orderBy(sql`count(*) desc`);
 
-  // Also include remote actors from the hub's domain who are known (resolved via followers fetch)
-  // but haven't posted yet
-  const [hub] = await db.select({ originDomain: federatedHubs.originDomain }).from(federatedHubs).where(eq(federatedHubs.id, federatedHubId)).limit(1);
-  if (!hub) return postAuthors;
-
-  const knownActorUris = new Set(postAuthors.map((a) => a.actorUri));
-
-  const domainActors = await db
-    .select({
-      actorUri: remoteActors.actorUri,
-      preferredUsername: remoteActors.preferredUsername,
-      displayName: remoteActors.displayName,
-      avatarUrl: remoteActors.avatarUrl,
-      instanceDomain: remoteActors.instanceDomain,
-    })
-    .from(remoteActors)
-    .where(and(
-      eq(remoteActors.instanceDomain, hub.originDomain),
-      eq(remoteActors.actorType, 'Person'),
-    ))
-    .limit(50);
-
-  // Merge: post authors first, then domain actors who haven't posted
-  const merged = [...postAuthors];
-  for (const actor of domainActors) {
-    if (!knownActorUris.has(actor.actorUri)) {
-      merged.push({ ...actor, postCount: 0 });
-      knownActorUris.add(actor.actorUri);
-    }
-  }
-
-  return merged;
+  return postAuthors;
 }
 
 /**

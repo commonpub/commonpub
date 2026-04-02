@@ -27,6 +27,7 @@ import {
   AP_CONTEXT,
   AP_PUBLIC,
   type APGroup,
+  type APLike,
   type APNote,
 } from '@commonpub/protocol';
 import type { DB } from '../types.js';
@@ -604,8 +605,8 @@ export async function federateHubPostUnlike(
     ))
     .limit(1);
 
-  const undoObject = originalLike?.payload ?? buildLikeActivity(domain, actorUri, objectUri);
-  const undoActivity = buildUndoActivity(domain, actorUri, undoObject as string);
+  const likeActivity = originalLike?.payload as unknown as APLike | undefined;
+  const undoActivity = buildUndoActivity(domain, actorUri, likeActivity ?? buildLikeActivity(domain, actorUri, objectUri));
 
   await db.insert(activities).values({
     type: 'Undo',
