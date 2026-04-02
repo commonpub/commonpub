@@ -724,6 +724,28 @@ const BACKFILL_MAX_PAGES = 20;
 const BACKFILL_DELAY_MS = 1_000;
 
 /**
+ * Perform a signed HTTP GET for ActivityPub resources.
+ * Uses the instance actor keypair for HTTP Signature authentication.
+ */
+async function signedGet(db: DB, url: string, domain: string): Promise<Response> {
+  const { getOrCreateInstanceKeypair } = await import('./federation.js');
+  const { signRequest } = await import('@commonpub/protocol');
+  const keypair = await getOrCreateInstanceKeypair(db);
+  const keyId = `https://${domain}/actor#main-key`;
+
+  const request = new Request(url, {
+    method: 'GET',
+    headers: {
+      Accept: 'application/activity+json, application/ld+json',
+      'User-Agent': `CommonPub/1.0 (+https://${domain})`,
+    },
+  });
+
+  const signed = await signRequest(request, keypair.privateKeyPem, keyId);
+  return fetch(signed, { signal: AbortSignal.timeout(BACKFILL_FETCH_TIMEOUT) });
+}
+
+/**
  * Backfill a federated hub by crawling its Group actor's outbox.
  * Processes Announce activities to import historical hub posts.
  */
@@ -758,10 +780,7 @@ export async function backfillHubFromOutbox(
 
   while (nextPage && pages < BACKFILL_MAX_PAGES) {
     try {
-      const response = await fetch(nextPage, {
-        headers: { Accept: 'application/activity+json, application/ld+json' },
-        signal: AbortSignal.timeout(BACKFILL_FETCH_TIMEOUT),
-      });
+      const response = await signedGet(db, nextPage, domain);
       if (!response.ok) break;
 
       const collection = await response.json() as Record<string, unknown>;
@@ -816,6 +835,7 @@ export async function backfillHubFromOutbox(
 export async function fetchRemoteHubFollowers(
   db: DB,
   federatedHubId: string,
+  domain?: string,
 ): Promise<{ fetched: number; errors: number }> {
   const [hub] = await db
     .select({ actorUri: federatedHubs.actorUri })
@@ -842,10 +862,9 @@ export async function fetchRemoteHubFollowers(
 
   while (nextPage && pages < 10) {
     try {
-      const response = await fetch(nextPage, {
-        headers: { Accept: 'application/activity+json, application/ld+json' },
-        signal: AbortSignal.timeout(BACKFILL_FETCH_TIMEOUT),
-      });
+      const response = domain
+        ? await signedGet(db, nextPage, domain)
+        : await fetch(nextPage, { headers: { Accept: 'application/activity+json, application/ld+json' }, signal: AbortSignal.timeout(BACKFILL_FETCH_TIMEOUT) });
       if (!response.ok) break;
 
       const collection = await response.json() as Record<string, unknown>;

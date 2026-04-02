@@ -15,7 +15,7 @@ export default defineEventHandler(async (event) => {
       console.error('[hub-backfill] Failed:', err);
       return { processed: 0, errors: 1 };
     }),
-    fetchRemoteHubFollowers(db, id).catch((err) => {
+    fetchRemoteHubFollowers(db, id, config.instance.domain).catch((err) => {
       console.error('[hub-followers] Failed:', err);
       return { fetched: 0, errors: 1 };
     }),
