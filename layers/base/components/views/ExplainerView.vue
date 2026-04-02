@@ -168,21 +168,21 @@ onUnmounted(() => { document.removeEventListener('keydown', onKeydown); });
       <span class="cpub-progress-text">Section {{ activeSection + 1 }} of {{ totalSections }}</span>
       <div class="cpub-topbar-divider"></div>
       <div class="cpub-nav-btn-group">
-        <button class="cpub-icon-btn" :disabled="activeSection === 0" title="Previous section" @click="prevSection">
+        <button class="cpub-icon-btn" :disabled="activeSection === 0" aria-label="Previous section" @click="prevSection">
           <i class="fa-solid fa-arrow-left"></i>
         </button>
-        <button class="cpub-icon-btn" :disabled="activeSection === totalSections - 1" title="Next section" @click="nextSection">
+        <button class="cpub-icon-btn" :disabled="activeSection === totalSections - 1" aria-label="Next section" @click="nextSection">
           <i class="fa-solid fa-arrow-right"></i>
         </button>
       </div>
       <div class="cpub-topbar-divider"></div>
-      <button class="cpub-icon-btn" :class="{ active: liked }" title="Like" @click="toggleLike">
+      <button class="cpub-icon-btn" :class="{ active: liked }" :aria-label="liked ? 'Unlike' : 'Like'" :aria-pressed="liked" @click="toggleLike">
         <i :class="liked ? 'fa-solid fa-heart' : 'fa-regular fa-heart'"></i>
       </button>
-      <button class="cpub-icon-btn" :class="{ active: bookmarked }" title="Bookmark" @click="toggleBookmark">
+      <button class="cpub-icon-btn" :class="{ active: bookmarked }" :aria-label="bookmarked ? 'Remove bookmark' : 'Bookmark'" :aria-pressed="bookmarked" @click="toggleBookmark">
         <i :class="bookmarked ? 'fa-solid fa-bookmark' : 'fa-regular fa-bookmark'"></i>
       </button>
-      <button class="cpub-icon-btn" title="Share" @click="share">
+      <button class="cpub-icon-btn" aria-label="Share" @click="share">
         <i class="fa-solid fa-arrow-up-from-bracket"></i>
       </button>
       <NuxtLink
@@ -208,14 +208,14 @@ onUnmounted(() => { document.removeEventListener('keydown', onKeydown); });
             class="cpub-toc-item"
             :class="{ completed: completedSections.has(i), active: activeSection === i }"
           >
-            <a @click="goToSection(i)">
+            <button type="button" :aria-label="`Go to section ${i + 1}: ${section.title}`" @click="goToSection(i)">
               <span class="cpub-toc-icon">
                 <i v-if="completedSections.has(i)" class="fa-solid fa-check"></i>
                 <i v-else-if="activeSection === i" class="fa-solid fa-arrow-right"></i>
               </span>
               <span class="cpub-toc-num">{{ String(i + 1).padStart(2, '0') }}</span>
               <span class="cpub-toc-label">{{ section.title }}</span>
-            </a>
+            </button>
           </li>
         </ul>
 
@@ -291,14 +291,17 @@ onUnmounted(() => { document.removeEventListener('keydown', onKeydown); });
               </button>
               <div v-else></div>
 
-              <div class="cpub-progress-dots">
-                <div
+              <div class="cpub-progress-dots" role="group" aria-label="Section progress">
+                <button
                   v-for="(_, i) in totalSections"
                   :key="i"
+                  type="button"
                   class="cpub-dot"
                   :class="{ done: completedSections.has(i), active: i === activeSection }"
+                  :aria-label="`Section ${i + 1}`"
+                  :aria-current="i === activeSection ? 'step' : undefined"
                   @click="goToSection(i)"
-                ></div>
+                ></button>
               </div>
 
               <button v-if="activeSection < totalSections - 1" class="cpub-next-btn" @click="nextSection">
@@ -430,22 +433,26 @@ onUnmounted(() => { document.removeEventListener('keydown', onKeydown); });
   border-bottom: 1px solid var(--border);
 }
 .cpub-toc-list { list-style: none; padding: 6px 0; }
-.cpub-toc-item a {
+.cpub-toc-item button {
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 8px 14px;
-  text-decoration: none;
+  width: 100%;
+  background: none;
+  border: none;
+  text-align: left;
   color: var(--text-dim);
   font-size: 12px;
+  font-family: inherit;
   line-height: 1.4;
   border-left: 3px solid transparent;
   transition: background 0.1s, color 0.1s, border-color 0.1s;
   cursor: pointer;
 }
-.cpub-toc-item a:hover { background: var(--surface2); color: var(--text); }
-.cpub-toc-item.active a { background: var(--accent-bg); border-left-color: var(--accent); color: var(--accent); font-weight: 500; }
-.cpub-toc-item.completed a { color: var(--text-dim); }
+.cpub-toc-item button:hover { background: var(--surface2); color: var(--text); }
+.cpub-toc-item.active button { background: var(--accent-bg); border-left-color: var(--accent); color: var(--accent); font-weight: 500; }
+.cpub-toc-item.completed button { color: var(--text-dim); }
 .cpub-toc-icon { width: 14px; font-size: 10px; flex-shrink: 0; text-align: center; }
 .cpub-toc-item.completed .cpub-toc-icon { color: var(--green); }
 .cpub-toc-item.active .cpub-toc-icon { color: var(--accent); }
@@ -669,6 +676,8 @@ onUnmounted(() => { document.removeEventListener('keydown', onKeydown); });
 .cpub-dot {
   width: 7px;
   height: 7px;
+  padding: 0;
+  border: none;
   border-radius: 50%;
   background: var(--border2);
   transition: background 0.15s, transform 0.15s;

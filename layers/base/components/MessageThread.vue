@@ -54,7 +54,7 @@ function handleSend(): void {
         aria-label="Message"
         @keyup.enter="handleSend"
       />
-      <button class="cpub-btn cpub-btn-primary" :disabled="!newMessage.trim()" @click="handleSend">
+      <button class="cpub-btn cpub-btn-primary" :disabled="!newMessage.trim()" aria-label="Send message" @click="handleSend">
         <i class="fa-solid fa-paper-plane"></i>
       </button>
     </div>
