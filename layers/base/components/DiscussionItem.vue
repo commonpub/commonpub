@@ -2,6 +2,7 @@
 const props = defineProps<{
   title: string;
   author: string;
+  authorAvatarUrl?: string | null;
   replyCount: number;
   voteCount: number;
   lastReplyAt?: Date;
@@ -50,6 +51,8 @@ const lastReplyFormatted = computed((): string | null => {
         </span>
       </div>
       <div class="cpub-discussion-meta">
+        <img v-if="authorAvatarUrl" :src="authorAvatarUrl" :alt="author" class="cpub-discussion-avatar" />
+        <div v-else class="cpub-discussion-avatar cpub-discussion-avatar-fallback">{{ author.charAt(0).toUpperCase() }}</div>
         <span class="cpub-discussion-author">{{ author }}</span>
         <span class="cpub-discussion-sep" aria-hidden="true">&middot;</span>
         <span class="cpub-discussion-replies">
@@ -168,6 +171,25 @@ const lastReplyFormatted = computed((): string | null => {
   font-size: var(--text-xs);
   color: var(--text-faint);
   flex-wrap: wrap;
+}
+
+.cpub-discussion-avatar {
+  width: 16px;
+  height: 16px;
+  object-fit: cover;
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.cpub-discussion-avatar-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface2);
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 600;
+  color: var(--text-dim);
 }
 
 .cpub-discussion-author {

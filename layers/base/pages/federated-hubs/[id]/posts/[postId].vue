@@ -175,14 +175,14 @@ if (hub.value?.url) {
       </p>
     </div>
 
-    <!-- Empty state for replies -->
+    <!-- Reply thread info -->
     <div class="cpub-replies-section">
       <div class="cpub-empty-state" style="padding: 32px 16px">
-        <p class="cpub-empty-state-title">Replies are on the origin instance</p>
+        <p class="cpub-empty-state-title"><i class="fa-solid fa-globe"></i> Federated thread</p>
         <p class="cpub-empty-state-desc">
-          Reply threads live on <strong>{{ hub?.originDomain }}</strong>.
+          Replies sent here are delivered to <strong>{{ hub?.originDomain }}</strong> via ActivityPub.
           <a v-if="post.objectUri" :href="post.objectUri" target="_blank" rel="noopener noreferrer" class="cpub-inline-link">
-            View thread on origin <i class="fa-solid fa-arrow-up-right-from-square"></i>
+            View full thread on origin <i class="fa-solid fa-arrow-up-right-from-square"></i>
           </a>
         </p>
       </div>

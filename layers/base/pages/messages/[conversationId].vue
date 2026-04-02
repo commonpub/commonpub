@@ -2,7 +2,7 @@
 const route = useRoute();
 const conversationId = route.params.conversationId as string;
 
-useSeoMeta({ title: 'Message -- devEco.io' });
+useSeoMeta({ title: () => `Message — ${participantLabel.value}` });
 definePageMeta({ middleware: 'auth' });
 
 const { user } = useAuth();

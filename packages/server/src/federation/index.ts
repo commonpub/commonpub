@@ -58,6 +58,10 @@ export {
   federateHubPost,
   federateHubShare,
   federateHubPostDelete,
+  federateHubPostUpdate,
+  federateHubPostLike,
+  federateHubPostReply,
+  federateHubUpdate,
   sendPostToRemoteHub,
   getHubPostNoteUri,
 } from './hubFederation.js';

@@ -196,13 +196,13 @@ These are instance-local by design and should NOT be federated:
 - [x] 2.5 Fork federated content (forkFederatedContent creates local draft from cpubBlocks)
 - [x] 1.7 Hub post type preservation: cpub:postType added to outbound Note, inbound key fixed
 
-### Phase E — Polish (2-3 hours) — Partial ✓ Session 099
-- [ ] 2.6 Share federated content to local hub
-- [ ] 2.8 Render attachments on federated content
+### Phase E — Polish (2-3 hours) — Partial ✓ Session 099, ✓ Session 100
+- [x] 2.6 Share federated content to local hub (Session 100: extended share endpoint to accept federatedContentId)
+- [x] 2.8 Render attachments on federated content (Session 100: ContentAttachments component, all view components + mirror fallback)
 - [x] 2.9 View tracking for federated content (localViewCount column + endpoint + mirror page onMounted)
 - [x] 2.10 Enrich remote author profiles (bio, follower count on mirror pages)
 - [x] 2.11 RSS for federated hubs (/api/federated-hubs/[id]/feed.xml)
-- [ ] 2.12 DM initiation to remote users
+- [x] 2.12 DM initiation to remote users (Session 100: /api/federation/dm + Message button on remote profile)
 
 ### Additional (Session 099)
 - [x] Unread message badge on envelope icon (SSE stream + useMessages composable)
@@ -211,3 +211,13 @@ These are instance-local by design and should NOT be federated:
 - [x] Federated hub members list with @user@domain handles
 - [x] Federation pages public (no auth required)
 - [x] Fixed "Following" badge on federated hubs → "Mirrored" indicator
+
+### Phase F — Hub Federation Completeness (Session 100)
+- [x] Hub creation auto-federates (federateHubActor called on hub creation)
+- [x] Hub metadata includes rules/categories in Group actor JSON-LD (cpub:rules, cpub:categories)
+- [x] Hub metadata update federation (Update(Group) on hub edit)
+- [x] Hub post edits federation (editPost + federateHubPostUpdate + PUT endpoint)
+- [x] Hub post likes federation (outbound Like activity on post like)
+- [x] Hub post replies federation (outbound Create(Note) with inReplyTo)
+- [x] Inbound hub post updates (onUpdate handler updates federatedHubPosts)
+- [x] Cover images render on BlogView (was missing — now matches ArticleView/ProjectView)

@@ -19,6 +19,7 @@ import type {
 import { hasPermission } from '../utils.js';
 import { USER_REF_SELECT, normalizePagination, countRows } from '../query.js';
 import { checkBan } from './moderation.js';
+import { createNotification } from '../notification/notification.js';
 
 // --- Posts ---
 
@@ -42,7 +43,7 @@ export async function createPost(
     throw new Error('Must be a member to post');
   }
 
-  return db.transaction(async (tx) => {
+  const postResult = await db.transaction(async (tx) => {
     const [post] = await tx
       .insert(hubPosts)
       .values({
@@ -64,7 +65,7 @@ export async function createPost(
       .where(eq(users.id, authorId))
       .limit(1);
 
-    return {
+    const result: HubPostItem = {
       id: post!.id,
       hubId: post!.hubId,
       type: post!.type,
@@ -77,7 +78,38 @@ export async function createPost(
       updatedAt: post!.updatedAt,
       author: author[0] ?? { id: authorId, username: 'unknown', displayName: null, avatarUrl: null },
     };
+
+    // Collect data for post-transaction notification
+    const hubInfo = await tx.select({ name: hubs.name, slug: hubs.slug }).from(hubs).where(eq(hubs.id, input.hubId)).limit(1);
+    const admins = await tx
+      .select({ userId: hubMembers.userId })
+      .from(hubMembers)
+      .where(and(eq(hubMembers.hubId, input.hubId), or(eq(hubMembers.role, 'owner'), eq(hubMembers.role, 'admin'))))
+      .limit(10);
+
+    return { ...result, _notify: { hub: hubInfo[0], admins, actorName: author[0]?.displayName || author[0]?.username || 'Someone' } };
   });
+
+  // Fire notifications AFTER transaction (avoids single-connection deadlock)
+  const notify = (postResult as HubPostItem & { _notify?: { hub?: { name: string; slug: string }; admins: { userId: string }[]; actorName: string } })._notify;
+  if (notify) {
+    for (const admin of notify.admins) {
+      if (admin.userId !== authorId) {
+        createNotification(db, {
+          userId: admin.userId,
+          type: 'hub',
+          title: `New post in ${notify.hub?.name ?? 'hub'}`,
+          message: `${notify.actorName} posted in ${notify.hub?.name ?? 'your hub'}`,
+          link: notify.hub ? `/hubs/${notify.hub.slug}/posts/${postResult.id}` : undefined,
+          actorId: authorId,
+        }).catch(() => {});
+      }
+    }
+  }
+
+  // Return clean HubPostItem without internal _notify data
+  const { _notify, ...cleanResult } = postResult as HubPostItem & { _notify?: unknown };
+  return cleanResult as HubPostItem;
 }
 
 export async function listPosts(
@@ -195,6 +227,31 @@ export async function deletePost(
     .where(eq(hubs.id, hubId));
 
   return true;
+}
+
+/**
+ * Edit a hub post's content. Only the author can edit.
+ */
+export async function editPost(
+  db: DB,
+  postId: string,
+  userId: string,
+  input: { content: string },
+): Promise<HubPostItem | null> {
+  const [post] = await db
+    .select({ authorId: hubPosts.authorId })
+    .from(hubPosts)
+    .where(eq(hubPosts.id, postId))
+    .limit(1);
+
+  if (!post || post.authorId !== userId) return null;
+
+  await db
+    .update(hubPosts)
+    .set({ content: input.content, updatedAt: new Date() })
+    .where(eq(hubPosts.id, postId));
+
+  return getPostById(db, postId);
 }
 
 export async function togglePinPost(
@@ -325,6 +382,25 @@ export async function likePost(
   if (result.length === 0) return false; // Already liked
 
   await db.update(hubPosts).set({ likeCount: sql`${hubPosts.likeCount} + 1` }).where(eq(hubPosts.id, postId));
+
+  // Notify post author (non-critical)
+  try {
+    const [post] = await db.select({ authorId: hubPosts.authorId, hubId: hubPosts.hubId }).from(hubPosts).where(eq(hubPosts.id, postId)).limit(1);
+    if (post && post.authorId !== userId) {
+      const [actor] = await db.select({ displayName: users.displayName, username: users.username }).from(users).where(eq(users.id, userId)).limit(1);
+      const [hub] = await db.select({ slug: hubs.slug }).from(hubs).where(eq(hubs.id, post.hubId)).limit(1);
+      const actorName = actor?.displayName || actor?.username || 'Someone';
+      await createNotification(db, {
+        userId: post.authorId,
+        type: 'like',
+        title: 'New like',
+        message: `${actorName} liked your post`,
+        link: hub ? `/hubs/${hub.slug}/posts/${postId}` : undefined,
+        actorId: userId,
+      });
+    }
+  } catch { /* non-critical */ }
+
   return true;
 }
 
@@ -417,6 +493,39 @@ export async function createReply(
     .from(users)
     .where(eq(users.id, authorId))
     .limit(1);
+
+  // Notify post author about reply (non-critical)
+  try {
+    const [postRow] = await db.select({ postAuthorId: hubPosts.authorId, hubId: hubPosts.hubId }).from(hubPosts).where(eq(hubPosts.id, input.postId)).limit(1);
+    if (postRow && postRow.postAuthorId !== authorId) {
+      const [hub] = await db.select({ slug: hubs.slug }).from(hubs).where(eq(hubs.id, postRow.hubId)).limit(1);
+      const actorName = author[0]?.displayName || author[0]?.username || 'Someone';
+      await createNotification(db, {
+        userId: postRow.postAuthorId,
+        type: 'comment',
+        title: 'New reply',
+        message: `${actorName} replied to your post`,
+        link: hub ? `/hubs/${hub.slug}/posts/${input.postId}` : undefined,
+        actorId: authorId,
+      });
+    }
+    // Also notify parent reply author if this is a nested reply
+    if (input.parentId) {
+      const [parentReply] = await db.select({ parentAuthorId: hubPostReplies.authorId }).from(hubPostReplies).where(eq(hubPostReplies.id, input.parentId)).limit(1);
+      if (parentReply && parentReply.parentAuthorId !== authorId && parentReply.parentAuthorId !== postRow?.postAuthorId) {
+        const [hub] = await db.select({ slug: hubs.slug }).from(hubs).where(eq(hubs.id, post[0]!.hubId)).limit(1);
+        const actorName = author[0]?.displayName || author[0]?.username || 'Someone';
+        await createNotification(db, {
+          userId: parentReply.parentAuthorId,
+          type: 'comment',
+          title: 'New reply',
+          message: `${actorName} replied to your comment`,
+          link: hub ? `/hubs/${hub.slug}/posts/${input.postId}` : undefined,
+          actorId: authorId,
+        });
+      }
+    }
+  } catch { /* non-critical */ }
 
   return {
     id: reply!.id,

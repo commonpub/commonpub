@@ -434,6 +434,9 @@ async function handleBuild(): Promise<void> {
                 </div>
               </template>
             </div>
+
+            <!-- ATTACHMENTS -->
+            <ContentAttachments v-if="content.attachments?.length" :attachments="content.attachments" />
           </template>
 
           <!-- BOM / PARTS & STEPS TAB -->

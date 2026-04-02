@@ -82,6 +82,7 @@ export interface ContentViewData {
   seriesTotalParts?: number;
   seriesPrev?: { title: string; url: string };
   seriesNext?: { title: string; url: string };
+  attachments?: Array<{ type: string; url: string; name?: string }>;
 }
 
 export interface EngagementOptions {

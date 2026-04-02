@@ -20,6 +20,7 @@ export {
 // Posts, replies, likes, sharing
 export {
   createPost,
+  editPost,
   listPosts,
   deletePost,
   togglePinPost,

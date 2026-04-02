@@ -5,6 +5,7 @@ defineProps<{
     type: string;
     message: string;
     actorName?: string | null;
+    actorAvatarUrl?: string | null;
     link?: string | null;
     targetUrl?: string;
     read: boolean;
@@ -23,8 +24,14 @@ const iconMap: Record<string, string> = {
 
 <template>
   <div class="cpub-notif" :class="{ unread: !notification.read }">
-    <div class="cpub-notif-icon">
-      <i :class="iconMap[notification.type] || 'fa-solid fa-bell'"></i>
+    <div class="cpub-notif-avatar-wrap">
+      <img v-if="notification.actorAvatarUrl" :src="notification.actorAvatarUrl" :alt="notification.actorName ?? ''" class="cpub-notif-avatar" />
+      <div v-else class="cpub-notif-avatar cpub-notif-avatar-fallback">
+        {{ (notification.actorName ?? '?').charAt(0).toUpperCase() }}
+      </div>
+      <div class="cpub-notif-icon-badge">
+        <i :class="iconMap[notification.type] || 'fa-solid fa-bell'"></i>
+      </div>
     </div>
     <div class="cpub-notif-body">
       <p class="cpub-notif-text">
@@ -56,17 +63,45 @@ const iconMap: Record<string, string> = {
   border-color: var(--accent-border);
 }
 
-.cpub-notif-icon {
-  width: 28px;
-  height: 28px;
+.cpub-notif-avatar-wrap {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+}
+
+.cpub-notif-avatar {
+  width: 32px;
+  height: 32px;
+  object-fit: cover;
+  border: var(--border-width-default) solid var(--border);
+}
+
+.cpub-notif-avatar-fallback {
   display: flex;
   align-items: center;
   justify-content: center;
   background: var(--surface2);
-  border: var(--border-width-default) solid var(--border);
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
   color: var(--text-dim);
-  flex-shrink: 0;
+}
+
+.cpub-notif-icon-badge {
+  position: absolute;
+  bottom: -3px;
+  right: -3px;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  font-size: 8px;
+  color: var(--text-dim);
 }
 
 .cpub-notif-body {

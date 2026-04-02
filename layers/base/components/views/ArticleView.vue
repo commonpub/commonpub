@@ -225,6 +225,9 @@ useJsonLd({
         </NuxtLink>
       </div>
 
+      <!-- ATTACHMENTS -->
+      <ContentAttachments v-if="content.attachments?.length" :attachments="content.attachments" />
+
       <!-- COMMENTS SECTION -->
       <CommentSection :target-type="content.type" :target-id="content.id" :federated-content-id="federatedId" />
 

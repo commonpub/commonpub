@@ -240,6 +240,11 @@ onUnmounted(() => { document.removeEventListener('keydown', onKeydown); });
       <main class="cpub-explainer-main">
         <div class="cpub-section-viewport">
           <div class="cpub-content-wrap" :key="activeSection">
+            <!-- Cover image (first section only) -->
+            <div v-if="activeSection === 0 && content.coverImageUrl" class="cpub-explainer-cover">
+              <img :src="content.coverImageUrl" :alt="content.title" />
+            </div>
+
             <!-- Section Header (from sectionHeader block data) -->
             <div v-if="currentSection?.tag" class="cpub-section-tag">{{ currentSection.tag }}</div>
             <h1 class="cpub-section-title">{{ currentSection?.title || content.title }}</h1>
@@ -544,6 +549,22 @@ onUnmounted(() => { document.removeEventListener('keydown', onKeydown); });
   margin: 0 auto;
   padding: 44px 36px 80px;
   min-height: calc(100vh - 51px - 80px);
+}
+
+/* ── COVER IMAGE ── */
+.cpub-explainer-cover {
+  width: 100%;
+  max-height: 320px;
+  overflow: hidden;
+  margin-bottom: 20px;
+  border: var(--border-width-default) solid var(--border);
+}
+.cpub-explainer-cover img {
+  width: 100%;
+  height: 100%;
+  max-height: 320px;
+  object-fit: cover;
+  display: block;
 }
 
 /* ── SECTION TAG ── */

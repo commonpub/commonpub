@@ -8,6 +8,7 @@ import {
   followRelationships,
   contentItems,
   federatedContent,
+  federatedHubPosts,
   remoteActors,
   users,
   hubPosts,
@@ -22,6 +23,25 @@ import { resolveRemoteActor } from './federation.js';
 import { matchMirrorForContent } from './mirroring.js';
 import { handleHubFollow, handleHubUnfollow } from './hubFederation.js';
 import { createNotification } from '../notification/notification.js';
+
+/** Resolve a remote actor's display name from cache, falling back to URI username segment */
+async function resolveRemoteActorName(db: DB, actorUri: string): Promise<string> {
+  try {
+    const [actor] = await db
+      .select({ displayName: remoteActors.displayName, preferredUsername: remoteActors.preferredUsername })
+      .from(remoteActors)
+      .where(eq(remoteActors.actorUri, actorUri))
+      .limit(1);
+    if (actor?.displayName) return actor.displayName;
+    if (actor?.preferredUsername) return actor.preferredUsername;
+  } catch { /* fallback */ }
+  // Fallback: extract username from URI
+  try {
+    return new URL(actorUri).pathname.split('/').filter(Boolean).pop() ?? 'Someone';
+  } catch {
+    return 'Someone';
+  }
+}
 
 /** Helper: create a notification for a local user from a remote actor interaction */
 async function notifyRemoteInteraction(
@@ -131,7 +151,7 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
         if (targetUsername) {
           const [localUser] = await db.select({ id: users.id }).from(users).where(eq(users.username, targetUsername)).limit(1);
           if (localUser) {
-            const actorName = actorUri.split('/').pop() ?? actorUri;
+            const actorName = await resolveRemoteActorName(db, actorUri);
             await notifyRemoteInteraction(db, localUser.id, 'follow', actorUri,
               'New follower', `${actorName} from the fediverse started following you`,
               '/notifications');
@@ -549,7 +569,7 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
               const [parentContent] = await db.select({ authorId: contentItems.authorId, title: contentItems.title })
                 .from(contentItems).where(eq(contentItems.slug, parentSlug)).limit(1);
               if (parentContent) {
-                const remoteUser = actorUri.split('/').pop() ?? 'Someone';
+                const remoteUser = await resolveRemoteActorName(db, actorUri);
                 await notifyRemoteInteraction(db, parentContent.authorId, 'comment', actorUri,
                   'New reply', `${remoteUser} from the fediverse replied to "${parentContent.title ?? 'your content'}"`,
                   `/content/${parentSlug}`);
@@ -637,6 +657,21 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
           await handlers.onCreate(actorUri, object);
           return;
         }
+      }
+
+      // Also try updating federated hub posts (Group actor updating a Note)
+      if (objectUri) {
+        try {
+          const hubPostUpdates: Record<string, unknown> = {};
+          if (typeof object.content === 'string') hubPostUpdates.content = sanitizeHtml(object.content);
+          if (typeof object['cpub:postType'] === 'string') hubPostUpdates.postType = object['cpub:postType'];
+          if (Object.keys(hubPostUpdates).length > 0) {
+            await db
+              .update(federatedHubPosts)
+              .set(hubPostUpdates)
+              .where(eq(federatedHubPosts.objectUri, objectUri));
+          }
+        } catch { /* non-critical */ }
       }
 
       await db.insert(activities).values({
@@ -731,12 +766,18 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
             // Try UUID first (more specific)
             const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
             if (UUID_RE.test(idOrSlug)) {
-              const byId = await db.select({ id: contentItems.id }).from(contentItems)
+              const byId = await db.select({ id: contentItems.id, authorId: contentItems.authorId, title: contentItems.title }).from(contentItems)
                 .where(eq(contentItems.id, idOrSlug)).limit(1);
               if (byId.length > 0) {
                 await db.update(contentItems).set({ likeCount: sql`${contentItems.likeCount} + 1` })
                   .where(eq(contentItems.id, byId[0]!.id));
                 matched = true;
+
+                // Notify content author
+                const remoteUser = await resolveRemoteActorName(db, actorUri);
+                await notifyRemoteInteraction(db, byId[0]!.authorId, 'like', actorUri,
+                  'New like', `${remoteUser} from the fediverse liked "${byId[0]!.title ?? 'your content'}"`,
+                  `/content/${idOrSlug}`);
               }
             }
 
@@ -753,7 +794,7 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
                 const [likedContent] = await db.select({ authorId: contentItems.authorId, title: contentItems.title })
                   .from(contentItems).where(eq(contentItems.id, bySlug[0]!.id)).limit(1);
                 if (likedContent) {
-                  const remoteUser = actorUri.split('/').pop() ?? 'Someone';
+                  const remoteUser = await resolveRemoteActorName(db, actorUri);
                   await notifyRemoteInteraction(db, likedContent.authorId, 'like', actorUri,
                     'New like', `${remoteUser} from the fediverse liked "${likedContent.title ?? 'your content'}"`,
                     `/content/${idOrSlug}`);
@@ -773,12 +814,18 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
             const postId = segments[3]!;
             const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
             if (UUID_RE.test(postId)) {
-              const [post] = await db.select({ id: hubPosts.id }).from(hubPosts)
+              const [post] = await db.select({ id: hubPosts.id, authorId: hubPosts.authorId }).from(hubPosts)
                 .where(eq(hubPosts.id, postId)).limit(1);
               if (post) {
                 await db.update(hubPosts).set({ likeCount: sql`${hubPosts.likeCount} + 1` })
                   .where(eq(hubPosts.id, post.id));
                 matched = true;
+
+                // Notify hub post author
+                const remoteUser = await resolveRemoteActorName(db, actorUri);
+                await notifyRemoteInteraction(db, post.authorId, 'like', actorUri,
+                  'New like', `${remoteUser} from the fediverse liked your hub post`,
+                  `/hubs/${segments[1]}/posts/${postId}`);
               }
             }
           }
@@ -813,7 +860,17 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
         }
       }
 
-      // If not local or hub content, try federated content by exact objectUri
+      // Try federated hub posts by objectUri (remote hub post liked)
+      if (!matched) {
+        const fedHubResult = await db
+          .update(federatedHubPosts)
+          .set({ localLikeCount: sql`${federatedHubPosts.localLikeCount} + 1` })
+          .where(eq(federatedHubPosts.objectUri, objectUri))
+          .returning({ id: federatedHubPosts.id });
+        if (fedHubResult.length > 0) matched = true;
+      }
+
+      // If not local, hub, or federated hub content, try federated content by exact objectUri
       if (!matched) {
         await db
           .update(federatedContent)
@@ -880,7 +937,7 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
               matched = true;
 
               // Notify content author
-              const remoteUser = actorUri.split('/').pop() ?? 'Someone';
+              const remoteUser = await resolveRemoteActorName(db, actorUri);
               await notifyRemoteInteraction(db, bySlug[0]!.authorId, 'mention', actorUri,
                 'Content boosted', `${remoteUser} from the fediverse boosted "${bySlug[0]!.title ?? 'your content'}"`,
                 `/content/${idOrSlug}`);

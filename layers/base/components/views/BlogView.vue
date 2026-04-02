@@ -43,6 +43,12 @@ const hasSeries = computed(() => !!seriesTitle.value && seriesTotalParts.value >
 
 <template>
   <div class="cpub-blog-view">
+
+    <!-- COVER IMAGE -->
+    <div v-if="content.coverImageUrl" class="cpub-cover">
+      <img :src="content.coverImageUrl" :alt="content.title" class="cpub-cover-img" />
+    </div>
+
     <div class="cpub-blog-wrap">
 
       <!-- TYPE BADGE -->
@@ -159,7 +165,8 @@ const hasSeries = computed(() => !!seriesTitle.value && seriesTotalParts.value >
 
       <!-- AUTHOR CARD -->
       <div v-if="content.author" class="cpub-author-card">
-        <div class="cpub-av cpub-av-xl">{{ content.author.displayName?.slice(0, 2).toUpperCase() || 'CP' }}</div>
+        <img v-if="content.author.avatarUrl" :src="content.author.avatarUrl" :alt="content.author.displayName ?? content.author.username ?? ''" class="cpub-av cpub-av-xl" style="object-fit:cover;border:2px solid var(--border);" />
+        <div v-else class="cpub-av cpub-av-xl">{{ content.author.displayName?.slice(0, 2).toUpperCase() || 'CP' }}</div>
         <div class="cpub-author-card-info">
           <div class="cpub-author-card-label">Posted by</div>
           <div class="cpub-author-card-name">{{ content.author.displayName || content.author.username }}</div>
@@ -175,6 +182,9 @@ const hasSeries = computed(() => !!seriesTitle.value && seriesTotalParts.value >
         </div>
       </div>
 
+      <!-- ATTACHMENTS -->
+      <ContentAttachments v-if="content.attachments?.length" :attachments="content.attachments" />
+
       <!-- COMMENTS -->
       <CommentSection :target-type="content.type" :target-id="content.id" :federated-content-id="federatedId" />
 
@@ -183,6 +193,23 @@ const hasSeries = computed(() => !!seriesTitle.value && seriesTotalParts.value >
 </template>
 
 <style scoped>
+/* ── COVER IMAGE ── */
+.cpub-cover {
+  width: 100%;
+  max-height: 420px;
+  overflow: hidden;
+  border-bottom: var(--border-width-default) solid var(--border);
+  background: var(--surface);
+}
+
+.cpub-cover-img {
+  width: 100%;
+  height: 100%;
+  max-height: 420px;
+  object-fit: cover;
+  display: block;
+}
+
 /* ── BLOG WRAP ── */
 .cpub-blog-wrap {
   max-width: 720px;

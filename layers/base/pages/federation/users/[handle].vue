@@ -7,9 +7,33 @@ const route = useRoute();
 const handle = computed(() => decodeURIComponent(route.params.handle as string));
 
 const { searchResult, searchLoading, searchError, searchRemoteUser, followRemoteUser, unfollowRemoteUser } = useFederation();
+const { user } = useAuth();
 
 const content = ref<FederatedContentItem[]>([]);
 const contentLoading = ref(false);
+
+// DM state
+const showDmForm = ref(false);
+const dmBody = ref('');
+const dmSending = ref(false);
+const dmSent = ref(false);
+
+async function sendDm(): Promise<void> {
+  if (!dmBody.value.trim() || !searchResult.value) return;
+  dmSending.value = true;
+  try {
+    const remoteHandle = `@${searchResult.value.preferredUsername}@${searchResult.value.instanceDomain}`;
+    await $fetch('/api/federation/dm', { method: 'POST', body: { handle: remoteHandle, body: dmBody.value } });
+    dmSent.value = true;
+    dmBody.value = '';
+    showDmForm.value = false;
+    setTimeout(() => { dmSent.value = false; }, 5000);
+  } catch {
+    // TODO: show error toast
+  } finally {
+    dmSending.value = false;
+  }
+}
 
 async function loadProfile() {
   const h = handle.value.startsWith('@') ? handle.value : `@${handle.value}`;
@@ -75,17 +99,45 @@ function stripHtml(html: string): string {
           </div>
         </div>
 
-        <button
-          class="cpub-remote-profile__follow-btn"
-          :class="{
-            'cpub-remote-profile__follow-btn--following': searchResult.isFollowing,
-            'cpub-remote-profile__follow-btn--pending': searchResult.isFollowPending,
-          }"
-          :disabled="searchResult.isFollowPending"
-          @click="searchResult.isFollowing ? onUnfollow() : onFollow()"
-        >
-          {{ searchResult.isFollowing ? 'Following' : searchResult.isFollowPending ? 'Pending' : 'Follow' }}
-        </button>
+        <div class="cpub-remote-profile__actions">
+          <button
+            class="cpub-remote-profile__follow-btn"
+            :class="{
+              'cpub-remote-profile__follow-btn--following': searchResult.isFollowing,
+              'cpub-remote-profile__follow-btn--pending': searchResult.isFollowPending,
+            }"
+            :disabled="searchResult.isFollowPending"
+            @click="searchResult.isFollowing ? onUnfollow() : onFollow()"
+          >
+            {{ searchResult.isFollowing ? 'Following' : searchResult.isFollowPending ? 'Pending' : 'Follow' }}
+          </button>
+          <button
+            v-if="user"
+            class="cpub-remote-profile__follow-btn"
+            @click="showDmForm = !showDmForm"
+          >
+            <i class="fa-solid fa-envelope"></i> Message
+          </button>
+        </div>
+      </div>
+
+      <!-- DM Form -->
+      <div v-if="showDmForm" class="cpub-remote-profile__dm-form">
+        <textarea
+          v-model="dmBody"
+          class="cpub-remote-profile__dm-textarea"
+          placeholder="Write a message..."
+          rows="3"
+        ></textarea>
+        <div class="cpub-remote-profile__dm-actions">
+          <button class="cpub-remote-profile__dm-send" :disabled="dmSending || !dmBody.trim()" @click="sendDm">
+            {{ dmSending ? 'Sending...' : 'Send' }}
+          </button>
+          <button class="cpub-remote-profile__dm-cancel" @click="showDmForm = false">Cancel</button>
+        </div>
+      </div>
+      <div v-if="dmSent" class="cpub-remote-profile__dm-sent">
+        <i class="fa-solid fa-check"></i> Message sent via ActivityPub
       </div>
 
       <p v-if="searchResult.summary" class="cpub-remote-profile__bio">
@@ -217,5 +269,56 @@ function stripHtml(html: string): string {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
+}
+.cpub-remote-profile__actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+.cpub-remote-profile__dm-form {
+  margin-bottom: var(--space-4);
+  padding: var(--space-3);
+  border: var(--border-width-default) solid var(--border);
+  background: var(--surface-1, var(--surface));
+}
+.cpub-remote-profile__dm-textarea {
+  width: 100%;
+  padding: var(--space-2);
+  border: var(--border-width-default) solid var(--border);
+  background: var(--surface-2, var(--surface2));
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+  resize: vertical;
+  margin-bottom: var(--space-2);
+}
+.cpub-remote-profile__dm-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+.cpub-remote-profile__dm-send {
+  padding: var(--space-1) var(--space-3);
+  border: var(--border-width-default) solid var(--accent);
+  background: var(--accent);
+  color: var(--surface-1, var(--surface));
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+}
+.cpub-remote-profile__dm-send:disabled { opacity: 0.5; cursor: default; }
+.cpub-remote-profile__dm-cancel {
+  padding: var(--space-1) var(--space-3);
+  border: var(--border-width-default) solid var(--border);
+  background: transparent;
+  color: var(--text-2);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+}
+.cpub-remote-profile__dm-sent {
+  font-size: var(--font-size-sm);
+  color: var(--green, #22c55e);
+  font-weight: 600;
+  margin-bottom: var(--space-4);
 }
 </style>

@@ -20,6 +20,8 @@ import {
   buildAnnounceActivity,
   buildAcceptActivity,
   buildDeleteActivity,
+  buildUpdateActivity,
+  buildLikeActivity,
   escapeHtmlForAP,
   AP_CONTEXT,
   AP_PUBLIC,
@@ -99,6 +101,8 @@ export async function buildHubGroupActor(
     url: `https://${domain}/hubs/${hub.slug}`,
     icon: hub.iconUrl ? { type: 'Image', url: hub.iconUrl } : undefined,
     image: hub.bannerUrl ? { type: 'Image', url: hub.bannerUrl } : undefined,
+    ...(hub.rules ? { 'cpub:rules': hub.rules } : {}),
+    ...(hub.categories && (hub.categories as string[]).length > 0 ? { 'cpub:categories': hub.categories } : {}),
     publicKey: {
       id: `${actorUri}#main-key`,
       owner: actorUri,
@@ -500,6 +504,187 @@ export async function sendPostToRemoteHub(
   });
 
   return true;
+}
+
+// --- Hub Post Update ---
+
+/**
+ * Federate a hub post edit as Update(Note) from the Group actor.
+ */
+export async function federateHubPostUpdate(
+  db: DB,
+  postId: string,
+  hubId: string,
+  domain: string,
+): Promise<void> {
+  const [hub] = await db.select().from(hubs).where(eq(hubs.id, hubId)).limit(1);
+  if (!hub) return;
+
+  const [post] = await db
+    .select({
+      post: hubPosts,
+      author: { username: users.username, displayName: users.displayName },
+    })
+    .from(hubPosts)
+    .innerJoin(users, eq(hubPosts.authorId, users.id))
+    .where(eq(hubPosts.id, postId))
+    .limit(1);
+  if (!post) return;
+
+  const hubActorUri = getHubActorUri(domain, hub.slug);
+  const note = hubPostToNote(post.post, post.author, hub.slug, hubActorUri, domain);
+
+  const updateActivity = buildUpdateActivity(domain, hubActorUri, note);
+
+  await db.insert(activities).values({
+    type: 'Update',
+    actorUri: hubActorUri,
+    objectUri: note.id,
+    payload: updateActivity,
+    direction: 'outbound',
+    status: 'pending',
+  });
+}
+
+// --- Hub Post Like ---
+
+/**
+ * Federate a local user's like on a hub post as a Like activity.
+ */
+export async function federateHubPostLike(
+  db: DB,
+  userId: string,
+  postId: string,
+  hubSlug: string,
+  domain: string,
+): Promise<void> {
+  const [user] = await db.select({ username: users.username }).from(users).where(eq(users.id, userId)).limit(1);
+  if (!user) return;
+
+  const actorUri = `https://${domain}/users/${user.username}`;
+  const objectUri = getHubPostNoteUri(domain, hubSlug, postId);
+
+  const likeActivity = buildLikeActivity(domain, actorUri, objectUri);
+
+  await db.insert(activities).values({
+    type: 'Like',
+    actorUri,
+    objectUri,
+    payload: likeActivity,
+    direction: 'outbound',
+    status: 'pending',
+  });
+}
+
+// --- Hub Post Reply ---
+
+/**
+ * Federate a local user's reply to a hub post as Create(Note) with inReplyTo.
+ */
+export async function federateHubPostReply(
+  db: DB,
+  userId: string,
+  replyContent: string,
+  postId: string,
+  hubSlug: string,
+  domain: string,
+): Promise<void> {
+  const [user] = await db.select({ username: users.username }).from(users).where(eq(users.id, userId)).limit(1);
+  if (!user) return;
+
+  const actorUri = `https://${domain}/users/${user.username}`;
+  const hubActorUri = getHubActorUri(domain, hubSlug);
+  const inReplyTo = getHubPostNoteUri(domain, hubSlug, postId);
+  const noteId = `https://${domain}/users/${user.username}/replies/${crypto.randomUUID()}`;
+  const followersUri = `${hubActorUri}/followers`;
+
+  // Include original post author in cc so they get notified
+  const cc = [followersUri];
+  const [post] = await db
+    .select({ authorId: hubPosts.authorId })
+    .from(hubPosts)
+    .where(eq(hubPosts.id, postId))
+    .limit(1);
+  if (post && post.authorId !== userId) {
+    const [postAuthor] = await db.select({ username: users.username }).from(users).where(eq(users.id, post.authorId)).limit(1);
+    if (postAuthor) {
+      cc.push(`https://${domain}/users/${postAuthor.username}`);
+    }
+  }
+
+  const note: APNote = {
+    '@context': AP_CONTEXT,
+    type: 'Note',
+    id: noteId,
+    attributedTo: actorUri,
+    content: escapeHtmlForAP(replyContent),
+    inReplyTo,
+    to: [AP_PUBLIC],
+    cc,
+    published: new Date().toISOString(),
+    context: hubActorUri,
+  };
+
+  const createActivity = {
+    '@context': AP_CONTEXT,
+    type: 'Create',
+    id: `${noteId}/activity`,
+    actor: actorUri,
+    object: note,
+    to: [AP_PUBLIC],
+    cc,
+    published: note.published,
+  };
+
+  await db.insert(activities).values({
+    type: 'Create',
+    actorUri,
+    objectUri: noteId,
+    payload: createActivity,
+    direction: 'outbound',
+    status: 'pending',
+  });
+}
+
+// --- Hub Metadata Update ---
+
+/**
+ * Federate a hub metadata update as Update(Group) from the Group actor.
+ */
+export async function federateHubUpdate(
+  db: DB,
+  hubId: string,
+  domain: string,
+): Promise<void> {
+  const [hub] = await db.select().from(hubs).where(eq(hubs.id, hubId)).limit(1);
+  if (!hub) return;
+
+  const actor = await buildHubGroupActor(db, hub.slug, domain);
+  if (!actor) return;
+
+  const hubActorUri = getHubActorUri(domain, hub.slug);
+  const followersUri = `${hubActorUri}/followers`;
+
+  // Build Update(Group) manually — buildUpdateActivity expects to/cc from the object,
+  // but Group actors don't have those fields. Address to public + followers.
+  const updateActivity = {
+    '@context': AP_CONTEXT,
+    type: 'Update',
+    id: `https://${domain}/activities/${crypto.randomUUID()}`,
+    actor: hubActorUri,
+    object: actor,
+    to: [AP_PUBLIC],
+    cc: [followersUri],
+  };
+
+  await db.insert(activities).values({
+    type: 'Update',
+    actorUri: hubActorUri,
+    objectUri: hubActorUri,
+    payload: updateActivity,
+    direction: 'outbound',
+    status: 'pending',
+  });
 }
 
 // --- Hub Post Deletion ---

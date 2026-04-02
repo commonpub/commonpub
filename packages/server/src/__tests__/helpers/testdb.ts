@@ -45,6 +45,7 @@ export async function createTestUser(
     email: string;
     username: string;
     displayName: string;
+    avatarUrl: string;
     role: string;
   }> = {},
 ) {
@@ -56,6 +57,7 @@ export async function createTestUser(
       email: overrides.email ?? `test-${id.slice(0, 8)}@example.com`,
       username: overrides.username ?? `testuser-${id.slice(0, 8)}`,
       displayName: overrides.displayName ?? 'Test User',
+      avatarUrl: overrides.avatarUrl ?? null,
       role: (overrides.role ?? 'member') as 'member' | 'pro' | 'verified' | 'staff' | 'admin',
     })
     .returning();

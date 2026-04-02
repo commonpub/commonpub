@@ -3,6 +3,8 @@ defineProps<{
   messages: Array<{
     id: string;
     senderId: string;
+    senderName?: string | null;
+    senderAvatarUrl?: string | null;
     body: string;
     createdAt: string;
   }>;
@@ -31,6 +33,11 @@ function handleSend(): void {
         class="cpub-msg"
         :class="{ own: msg.senderId === currentUserId }"
       >
+        <div v-if="msg.senderId !== currentUserId" class="cpub-msg-sender">
+          <img v-if="msg.senderAvatarUrl" :src="msg.senderAvatarUrl" :alt="msg.senderName ?? ''" class="cpub-msg-avatar" />
+          <div v-else class="cpub-msg-avatar cpub-msg-avatar-fallback">{{ (msg.senderName ?? '?').charAt(0).toUpperCase() }}</div>
+          <span v-if="msg.senderName" class="cpub-msg-name">{{ msg.senderName }}</span>
+        </div>
         <div class="cpub-msg-bubble">{{ msg.body }}</div>
         <time class="cpub-msg-time">
           {{ new Date(msg.createdAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) }}
@@ -76,6 +83,38 @@ function handleSend(): void {
 
 .cpub-msg.own {
   align-self: flex-end;
+}
+
+.cpub-msg-sender {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 3px;
+}
+
+.cpub-msg-avatar {
+  width: 20px;
+  height: 20px;
+  object-fit: cover;
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.cpub-msg-avatar-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface2);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.cpub-msg-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-dim);
 }
 
 .cpub-msg-bubble {

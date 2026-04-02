@@ -92,6 +92,34 @@ async function deletePost(): Promise<void> {
   }
 }
 
+// Edit
+const editing = ref(false);
+const editContent = ref('');
+const saving = ref(false);
+
+function startEdit(): void {
+  editContent.value = post.value?.content ?? '';
+  editing.value = true;
+}
+
+async function saveEdit(): Promise<void> {
+  if (!editContent.value.trim()) return;
+  saving.value = true;
+  try {
+    await $fetch(`/api/hubs/${slug.value}/posts/${postId.value}`, {
+      method: 'PUT',
+      body: { content: editContent.value },
+    });
+    editing.value = false;
+    await refreshPost();
+    toast.success('Post updated');
+  } catch {
+    toast.error('Failed to update post');
+  } finally {
+    saving.value = false;
+  }
+}
+
 function formatDate(d: string | Date): string {
   return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
 }
@@ -121,7 +149,21 @@ useSeoMeta({
         <span v-if="post.isLocked" class="cpub-post-locked"><i class="fa-solid fa-lock"></i> Locked</span>
       </div>
 
-      <div class="cpub-post-content">{{ post.content }}</div>
+      <div v-if="editing" class="cpub-post-edit-form">
+        <textarea v-model="editContent" class="cpub-post-edit-textarea" rows="4"></textarea>
+        <div class="cpub-post-edit-actions">
+          <button class="cpub-btn cpub-btn-sm cpub-btn-primary" :disabled="saving || !editContent.trim()" @click="saveEdit">
+            {{ saving ? 'Saving...' : 'Save' }}
+          </button>
+          <button class="cpub-btn cpub-btn-sm" @click="editing = false">Cancel</button>
+        </div>
+      </div>
+      <div v-else class="cpub-post-content">
+        {{ post.content }}
+        <div v-if="post.updatedAt && post.updatedAt !== post.createdAt" class="cpub-post-edited">
+          <i class="fa-solid fa-pen"></i> edited
+        </div>
+      </div>
 
       <div class="cpub-post-meta">
         <div class="cpub-post-author">
@@ -147,6 +189,9 @@ useSeoMeta({
 
       <!-- Mod actions -->
       <div v-if="isMod || isAuthor" class="cpub-post-mod-bar">
+        <button v-if="isAuthor && !editing" class="cpub-btn cpub-btn-sm" @click="startEdit">
+          <i class="fa-solid fa-pen"></i> Edit
+        </button>
         <button v-if="isMod" class="cpub-btn cpub-btn-sm" @click="togglePin">
           <i class="fa-solid fa-thumbtack"></i> {{ post.isPinned ? 'Unpin' : 'Pin' }}
         </button>
@@ -257,6 +302,19 @@ useSeoMeta({
   font-size: 15px; line-height: 1.7; color: var(--text);
   margin-bottom: 16px; white-space: pre-wrap;
 }
+.cpub-post-edited {
+  font-size: 10px; font-family: var(--font-mono); color: var(--text-faint);
+  margin-top: 4px;
+}
+.cpub-post-edit-form { margin-bottom: 16px; }
+.cpub-post-edit-textarea {
+  width: 100%; padding: 10px 12px; background: var(--surface);
+  border: var(--border-width-default) solid var(--accent-border);
+  color: var(--text); font-size: 14px; font-family: var(--font-sans);
+  line-height: 1.6; resize: vertical;
+}
+.cpub-post-edit-textarea:focus { outline: none; border-color: var(--accent); }
+.cpub-post-edit-actions { display: flex; gap: 6px; margin-top: 8px; }
 
 .cpub-post-meta {
   display: flex; align-items: center; justify-content: space-between;
@@ -294,6 +352,9 @@ useSeoMeta({
   display: flex; gap: 6px;
 }
 
+.cpub-btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+.cpub-btn-primary:hover:not(:disabled) { opacity: 0.9; }
+.cpub-btn-primary:disabled { opacity: 0.5; cursor: default; }
 .cpub-btn-danger { color: var(--red); border-color: var(--red); }
 .cpub-btn-danger:hover { background: var(--red); color: white; }
 

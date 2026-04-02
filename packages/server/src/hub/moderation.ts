@@ -14,6 +14,7 @@ import type {
 } from '../types.js';
 import { hasPermission, canManageRole } from '../utils.js';
 import { USER_REF_SELECT } from '../query.js';
+import { createNotification } from '../notification/notification.js';
 
 // --- Bans ---
 
@@ -80,6 +81,19 @@ export async function banUser(
     reason: reason ?? null,
     expiresAt: expiresAt ?? null,
   }).onConflictDoNothing();
+
+  // Notify banned user (non-critical)
+  try {
+    const [hub] = await db.select({ name: hubs.name, slug: hubs.slug }).from(hubs).where(eq(hubs.id, hubId)).limit(1);
+    const msg = expiresAt
+      ? `You were temporarily banned from ${hub?.name ?? 'a hub'}${reason ? `: ${reason}` : ''}`
+      : `You were banned from ${hub?.name ?? 'a hub'}${reason ? `: ${reason}` : ''}`;
+    await createNotification(db, {
+      userId: targetUserId, type: 'system',
+      title: 'Banned from hub', message: msg,
+      link: hub ? `/hubs/${hub.slug}` : undefined, actorId: actorId,
+    });
+  } catch { /* non-critical */ }
 
   return { banned: true };
 }

@@ -13,6 +13,7 @@ import type { CreateContentInput, UpdateContentInput } from '@commonpub/schema';
 import { generateSlug } from '../utils.js';
 import { ensureUniqueSlugFor, USER_REF_SELECT, USER_REF_WITH_HEADLINE_SELECT, normalizePagination, countRows, escapeLike } from '../query.js';
 import { federateContent, federateUpdate, federateDelete } from '../federation/federation.js';
+import { createNotification } from '../notification/notification.js';
 
 /** Sanitize HTML strings within block content to prevent XSS */
 async function sanitizeBlockContent(content: unknown): Promise<unknown> {
@@ -615,7 +616,7 @@ export async function toggleBuildMark(
   contentId: string,
   userId: string,
 ): Promise<{ marked: boolean; count: number }> {
-  return db.transaction(async (tx) => {
+  const result = await db.transaction(async (tx) => {
     const existing = await tx
       .select()
       .from(contentBuilds)
@@ -639,9 +640,28 @@ export async function toggleBuildMark(
       .update(contentItems)
       .set({ buildCount: sql`${contentItems.buildCount} + 1` })
       .where(eq(contentItems.id, contentId))
-      .returning({ buildCount: contentItems.buildCount });
-    return { marked: true, count: updated?.buildCount ?? 0 };
+      .returning({ buildCount: contentItems.buildCount, authorId: contentItems.authorId, title: contentItems.title, slug: contentItems.slug, type: contentItems.type });
+
+    return { marked: true, count: updated?.buildCount ?? 0, authorId: updated?.authorId, title: updated?.title, slug: updated?.slug, type: updated?.type };
   });
+
+  // Notify content author AFTER transaction completes (avoids single-connection deadlock)
+  if (result.marked && result.authorId && result.authorId !== userId) {
+    try {
+      const [actor] = await db.select({ displayName: users.displayName, username: users.username }).from(users).where(eq(users.id, userId)).limit(1);
+      const actorName = actor?.displayName || actor?.username || 'Someone';
+      await createNotification(db, {
+        userId: result.authorId,
+        type: 'like',
+        title: 'Someone built this!',
+        message: `${actorName} marked "I built this" on "${result.title ?? 'your content'}"`,
+        link: `/${result.type}/${result.slug}`,
+        actorId: userId,
+      });
+    } catch { /* non-critical */ }
+  }
+
+  return { marked: result.marked, count: result.count };
 }
 
 export async function isBuildMarked(
@@ -711,6 +731,22 @@ export async function forkContent(
     .update(contentItems)
     .set({ forkCount: sql`${contentItems.forkCount} + 1` })
     .where(eq(contentItems.id, sourceId));
+
+  // Notify original author about fork (non-critical)
+  try {
+    if (item.authorId !== userId) {
+      const [actor] = await db.select({ displayName: users.displayName, username: users.username }).from(users).where(eq(users.id, userId)).limit(1);
+      const actorName = actor?.displayName || actor?.username || 'Someone';
+      await createNotification(db, {
+        userId: item.authorId,
+        type: 'like',
+        title: 'Content forked',
+        message: `${actorName} forked "${item.title ?? 'your content'}"`,
+        link: `/${item.type}/${item.slug}`,
+        actorId: userId,
+      });
+    }
+  } catch { /* non-critical */ }
 
   return (await getContentBySlug(db, forked!.slug, userId))!;
 }

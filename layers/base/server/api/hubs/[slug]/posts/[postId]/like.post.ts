@@ -1,8 +1,9 @@
-import { likePost, unlikePost, hasLikedPost, getHubBySlug, getPostById } from '@commonpub/server';
+import { likePost, unlikePost, hasLikedPost, getHubBySlug, getPostById, federateHubPostLike } from '@commonpub/server';
 
 export default defineEventHandler(async (event) => {
   const user = requireAuth(event);
   const db = useDB();
+  const config = useConfig();
   const { slug, postId } = parseParams(event, { slug: 'string', postId: 'uuid' });
 
   const community = await getHubBySlug(db, slug);
@@ -17,5 +18,13 @@ export default defineEventHandler(async (event) => {
     return { liked: false };
   }
   await likePost(db, user.id, postId);
+
+  // Federate the like (fire-and-forget)
+  if (config.features.federation && config.features.federateHubs) {
+    federateHubPostLike(db, user.id, postId, slug, config.instance.domain).catch((err) => {
+      console.error('[hub-federation] Failed to federate post like:', err);
+    });
+  }
+
   return { liked: true };
 });

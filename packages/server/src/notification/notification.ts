@@ -12,6 +12,7 @@ export interface NotificationItem {
   link: string | null;
   actorId: string | null;
   actorName: string | null;
+  actorAvatarUrl: string | null;
   read: boolean;
   createdAt: Date;
 }
@@ -50,6 +51,7 @@ export async function listNotifications(
         notification: notifications,
         actorDisplayName: users.displayName,
         actorUsername: users.username,
+        actorAvatarUrl: users.avatarUrl,
       })
       .from(notifications)
       .leftJoin(users, eq(notifications.actorId, users.id))
@@ -69,6 +71,7 @@ export async function listNotifications(
     link: row.notification.link,
     actorId: row.notification.actorId,
     actorName: row.actorDisplayName ?? row.actorUsername ?? 'Someone',
+    actorAvatarUrl: row.actorAvatarUrl ?? null,
     read: row.notification.read,
     createdAt: row.notification.createdAt,
   }));
@@ -148,6 +151,7 @@ export async function createNotification(
     link: row!.link,
     actorId: row!.actorId,
     actorName: null,
+    actorAvatarUrl: null,
     read: row!.read,
     createdAt: row!.createdAt,
   };

@@ -12,6 +12,7 @@ import type {
 import { hasPermission, canManageRole } from '../utils.js';
 import { USER_REF_SELECT, normalizePagination, countRows } from '../query.js';
 import { checkBan, validateAndUseInvite } from './moderation.js';
+import { createNotification } from '../notification/notification.js';
 
 // --- Membership ---
 
@@ -54,7 +55,7 @@ export async function joinHub(
     }
   }
 
-  return db.transaction(async (tx) => {
+  const result = await db.transaction(async (tx) => {
     const inserted = await tx
       .insert(hubMembers)
       .values({ hubId, userId, role: 'member' })
@@ -62,7 +63,7 @@ export async function joinHub(
       .returning();
 
     if (inserted.length === 0) {
-      return { joined: true };
+      return { joined: true, _notify: null };
     }
 
     await tx
@@ -70,8 +71,33 @@ export async function joinHub(
       .set({ memberCount: sql`${hubs.memberCount} + 1` })
       .where(eq(hubs.id, hubId));
 
-    return { joined: true };
+    // Collect data for post-transaction notification
+    const [hub] = await tx.select({ name: hubs.name, slug: hubs.slug }).from(hubs).where(eq(hubs.id, hubId)).limit(1);
+    const [actor] = await tx.select({ displayName: users.displayName, username: users.username }).from(users).where(eq(users.id, userId)).limit(1);
+    const admins = await tx.select({ userId: hubMembers.userId }).from(hubMembers)
+      .where(and(eq(hubMembers.hubId, hubId), eq(hubMembers.role, 'owner'))).limit(5);
+
+    return {
+      joined: true,
+      _notify: { hub, actorName: actor?.displayName || actor?.username || 'Someone', admins },
+    };
   });
+
+  // Fire notifications AFTER transaction (avoids single-connection deadlock)
+  if (result._notify) {
+    const { hub, actorName, admins } = result._notify;
+    for (const admin of admins) {
+      if (admin.userId !== userId) {
+        createNotification(db, {
+          userId: admin.userId, type: 'hub',
+          title: 'New member', message: `${actorName} joined ${hub?.name ?? 'your hub'}`,
+          link: hub ? `/hubs/${hub.slug}/members` : undefined, actorId: userId,
+        }).catch(() => {});
+      }
+    }
+  }
+
+  return { joined: result.joined };
 }
 
 export async function leaveHub(
@@ -218,6 +244,17 @@ export async function changeRole(
       and(eq(hubMembers.hubId, hubId), eq(hubMembers.userId, targetUserId)),
     );
 
+  // Notify affected user (non-critical)
+  try {
+    const [hub] = await db.select({ name: hubs.name, slug: hubs.slug }).from(hubs).where(eq(hubs.id, hubId)).limit(1);
+    await createNotification(db, {
+      userId: targetUserId, type: 'hub',
+      title: 'Role updated',
+      message: `Your role in ${hub?.name ?? 'a hub'} was changed to ${newRole}`,
+      link: hub ? `/hubs/${hub.slug}` : undefined, actorId: actorId,
+    });
+  } catch { /* non-critical */ }
+
   return { changed: true };
 }
 
@@ -270,6 +307,17 @@ export async function kickMember(
     .update(hubs)
     .set({ memberCount: sql`GREATEST(${hubs.memberCount} - 1, 0)` })
     .where(eq(hubs.id, hubId));
+
+  // Notify kicked user (non-critical)
+  try {
+    const [hub] = await db.select({ name: hubs.name, slug: hubs.slug }).from(hubs).where(eq(hubs.id, hubId)).limit(1);
+    await createNotification(db, {
+      userId: targetUserId, type: 'hub',
+      title: 'Removed from hub',
+      message: `You were removed from ${hub?.name ?? 'a hub'}`,
+      link: hub ? `/hubs/${hub.slug}` : undefined, actorId: actorId,
+    });
+  } catch { /* non-critical */ }
 
   return { kicked: true };
 }

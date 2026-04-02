@@ -83,6 +83,7 @@ export function useMirrorContent(fedContent: Ref<Record<string, unknown> | null>
       },
       buildCount: 0,
       bookmarkCount: 0,
+      attachments: Array.isArray(fc.attachments) ? (fc.attachments as Array<{ type: string; url: string; name?: string }>) : [],
     } satisfies ContentViewData;
   });
 

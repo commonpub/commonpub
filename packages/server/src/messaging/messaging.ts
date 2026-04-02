@@ -14,6 +14,8 @@ export interface MessageItem {
   id: string;
   conversationId: string;
   senderId: string;
+  senderName: string | null;
+  senderAvatarUrl: string | null;
   body: string;
   createdAt: Date;
   readAt: Date | null;
@@ -65,18 +67,26 @@ export async function getConversationMessages(
   if (conv.length === 0) return [];
 
   const rows = await db
-    .select()
+    .select({
+      message: messages,
+      senderDisplayName: users.displayName,
+      senderUsername: users.username,
+      senderAvatarUrl: users.avatarUrl,
+    })
     .from(messages)
+    .leftJoin(users, eq(messages.senderId, users.id))
     .where(eq(messages.conversationId, conversationId))
     .orderBy(messages.createdAt);
 
   return rows.map((row) => ({
-    id: row.id,
-    conversationId: row.conversationId,
-    senderId: row.senderId,
-    body: row.body,
-    createdAt: row.createdAt,
-    readAt: row.readAt,
+    id: row.message.id,
+    conversationId: row.message.conversationId,
+    senderId: row.message.senderId,
+    senderName: row.senderDisplayName ?? row.senderUsername ?? null,
+    senderAvatarUrl: row.senderAvatarUrl ?? null,
+    body: row.message.body,
+    createdAt: row.message.createdAt,
+    readAt: row.message.readAt,
   }));
 }
 
@@ -185,10 +195,16 @@ export async function sendMessage(
     })
     .where(eq(conversations.id, conversationId));
 
+  // Resolve sender info
+  const [sender] = await db.select({ displayName: users.displayName, username: users.username, avatarUrl: users.avatarUrl })
+    .from(users).where(eq(users.id, senderId)).limit(1);
+
   return {
     id: row!.id,
     conversationId: row!.conversationId,
     senderId: row!.senderId,
+    senderName: sender?.displayName ?? sender?.username ?? null,
+    senderAvatarUrl: sender?.avatarUrl ?? null,
     body: row!.body,
     createdAt: row!.createdAt,
     readAt: row!.readAt,

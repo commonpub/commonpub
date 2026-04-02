@@ -188,6 +188,11 @@ export const createReplySchema = z.object({
 });
 export type CreateReplyInput = z.infer<typeof createReplySchema>;
 
+export const editPostSchema = z.object({
+  content: z.string().min(1).max(10000),
+});
+export type EditPostInput = z.infer<typeof editPostSchema>;
+
 export const createInviteSchema = z.object({
   maxUses: z.number().int().positive().optional(),
   expiresAt: z.string().datetime().optional(),

@@ -118,6 +118,7 @@ useSeoMeta({
           </div>
         </div>
         <div v-if="typeof transformedContent.content === 'string'" class="cpub-mirror-body prose" v-html="transformedContent.content" />
+        <ContentAttachments v-if="transformedContent.attachments?.length" :attachments="transformedContent.attachments" />
         <div v-if="transformedContent.tags?.length" class="cpub-mirror-tags">
           <NuxtLink v-for="tag in transformedContent.tags" :key="tag.name" :to="`/tags/${tag.slug || tag.name.toLowerCase().replace(/\s+/g, '-')}`" class="cpub-mirror-tag">{{ tag.name }}</NuxtLink>
         </div>
