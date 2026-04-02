@@ -283,11 +283,13 @@ export async function createComment(
     .where(eq(users.id, authorId))
     .limit(1);
 
+  // Resolve target for notifications
+  let targetAuthorId: string | null = null;
+  let targetTitle: string | null = null;
+  let link: string | undefined;
+
   // Notify target author on new comment (non-critical)
   try {
-    let targetAuthorId: string | null = null;
-    let targetTitle: string | null = null;
-    let link: string | undefined;
 
     if (input.targetType === 'post') {
       const [t] = await db.select({ authorId: hubPosts.authorId }).from(hubPosts).where(eq(hubPosts.id, input.targetId)).limit(1);
@@ -301,6 +303,28 @@ export async function createComment(
     if (targetAuthorId && targetAuthorId !== authorId) {
       const actorName = author[0]?.displayName || author[0]?.username || 'Someone';
       await createNotification(db, { userId: targetAuthorId, type: 'comment', actorId: authorId, title: 'New comment', message: `${actorName} commented on "${targetTitle || 'your content'}"`, link });
+    }
+  } catch { /* non-critical */ }
+
+  // Notify @mentioned users (non-critical)
+  try {
+    const { extractMentions, resolveUsernames } = await import('./mentions.js');
+    const mentioned = extractMentions(input.content);
+    if (mentioned.length > 0) {
+      const usernameMap = await resolveUsernames(db, mentioned);
+      const actorName = author[0]?.displayName || author[0]?.username || 'Someone';
+      for (const [, mentionedUserId] of usernameMap) {
+        if (mentionedUserId === authorId) continue;
+        if (mentionedUserId === targetAuthorId) continue;
+        await createNotification(db, {
+          userId: mentionedUserId,
+          type: 'mention',
+          actorId: authorId,
+          title: 'You were mentioned',
+          message: `${actorName} mentioned you in a comment`,
+          link,
+        });
+      }
     }
   } catch { /* non-critical */ }
 

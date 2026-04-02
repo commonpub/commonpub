@@ -186,6 +186,8 @@ isBookmarked,
   listFollowing,
   createReport,
   listUserBookmarks,
+  extractMentions,
+  resolveUsernames,
 } from './social/index.js';
 export type { FollowUserItem, BookmarkItem } from './social/index.js';
 

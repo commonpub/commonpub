@@ -17,3 +17,4 @@ export {
   listUserBookmarks,
 } from './social.js';
 export type { FollowUserItem, BookmarkItem } from './social.js';
+export { extractMentions, resolveUsernames } from './mentions.js';
