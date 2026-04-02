@@ -330,6 +330,7 @@ export {
   federateHubPostDelete,
   federateHubPostUpdate,
   federateHubPostLike,
+  federateHubPostUnlike,
   federateHubPostReply,
   federateHubUpdate,
   sendPostToRemoteHub,

@@ -22,6 +22,7 @@ import {
   buildDeleteActivity,
   buildUpdateActivity,
   buildLikeActivity,
+  buildUndoActivity,
   escapeHtmlForAP,
   AP_CONTEXT,
   AP_PUBLIC,
@@ -571,6 +572,46 @@ export async function federateHubPostLike(
     actorUri,
     objectUri,
     payload: likeActivity,
+    direction: 'outbound',
+    status: 'pending',
+  });
+}
+
+/**
+ * Federate an Undo(Like) when a local user unlikes a hub post.
+ */
+export async function federateHubPostUnlike(
+  db: DB,
+  userId: string,
+  postId: string,
+  hubSlug: string,
+  domain: string,
+): Promise<void> {
+  const [user] = await db.select({ username: users.username }).from(users).where(eq(users.id, userId)).limit(1);
+  if (!user) return;
+
+  const actorUri = `https://${domain}/users/${user.username}`;
+  const objectUri = getHubPostNoteUri(domain, hubSlug, postId);
+
+  // Find the original Like activity to reference in the Undo
+  const [originalLike] = await db.select({ payload: activities.payload })
+    .from(activities)
+    .where(and(
+      eq(activities.type, 'Like'),
+      eq(activities.actorUri, actorUri),
+      eq(activities.objectUri, objectUri),
+      eq(activities.direction, 'outbound'),
+    ))
+    .limit(1);
+
+  const undoObject = originalLike?.payload ?? buildLikeActivity(domain, actorUri, objectUri);
+  const undoActivity = buildUndoActivity(domain, actorUri, undoObject as string);
+
+  await db.insert(activities).values({
+    type: 'Undo',
+    actorUri,
+    objectUri,
+    payload: undoActivity,
     direction: 'outbound',
     status: 'pending',
   });
