@@ -170,12 +170,12 @@ Bumped: server 2.12.0, layer 0.3.16
 - `@commonpub/server@2.12.2`
 - `@commonpub/layer@0.3.18`
 
-## Deploy status
+## Deploy status (verified green)
 
-- commonpub.io: Deploy PASSING (Dockerfile workspace:* fix)
-- deveco.io: Deploy PASSING (Dockerfile clean package.json fix)
-- CI check jobs (build+test+typecheck): PASSING on both repos
-- CI E2E (Playwright): 6 pre-existing flaky failures (not session 101 related)
+- commonpub.io: Deploy PASSING, CI check PASSING
+- deveco.io: Deploy PASSING, CI PASSING
+- deveco Dockerfile simplified: no drizzle-kit in runtime (schema via manual SQL)
+- commonpub CI E2E: 6 pre-existing flaky Playwright failures (not session 101)
 
 ## Session 101 stats
 
