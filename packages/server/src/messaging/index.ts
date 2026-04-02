@@ -6,5 +6,6 @@ export {
   sendMessage,
   markMessagesRead,
   getUnreadMessageCount,
+  getConversationUnreadCounts,
 } from './messaging.js';
 export type { ConversationItem, MessageItem } from './messaging.js';

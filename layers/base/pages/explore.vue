@@ -13,11 +13,14 @@ const activeTab = ref<'content' | 'hubs' | 'learn' | 'people'>('content');
 const contentType = ref('');
 const sort = ref('recent');
 
+const CONTENT_PAGE_SIZE = 20;
+const TAB_PAGE_SIZE = 12;
+
 const contentQuery = computed(() => ({
   status: 'published',
   type: contentType.value || undefined,
   sort: sort.value,
-  limit: 20,
+  limit: CONTENT_PAGE_SIZE,
 }));
 
 const { data: content, pending: contentPending, error: contentError, refresh: refreshContent } = await useFetch<PaginatedResponse<Serialized<ContentListItem>>>('/api/content', {
@@ -25,25 +28,122 @@ const { data: content, pending: contentPending, error: contentError, refresh: re
   watch: [contentQuery],
 });
 
-const { data: hubsData } = await useFetch('/api/hubs', {
-  query: { limit: 12 },
+// Reset content pagination when filters change
+const contentAllLoaded = ref(false);
+const contentLoadingMore = ref(false);
+watch([contentType, sort], () => { contentAllLoaded.value = false; });
+
+async function loadMoreContent(): Promise<void> {
+  if (!content.value?.items) return;
+  contentLoadingMore.value = true;
+  try {
+    const more = await $fetch<PaginatedResponse<Serialized<ContentListItem>>>('/api/content', {
+      query: { ...contentQuery.value, offset: content.value.items.length },
+    });
+    if (more?.items?.length) {
+      content.value.items.push(...more.items);
+    }
+    if (!more?.items?.length || more.items.length < CONTENT_PAGE_SIZE) {
+      contentAllLoaded.value = true;
+    }
+  } catch {
+    contentAllLoaded.value = true;
+  } finally {
+    contentLoadingMore.value = false;
+  }
+}
+
+interface HubItem { id: string; slug: string; name: string; description: string | null; hubType: string; memberCount: number }
+const { data: hubsData } = await useFetch<{ items: HubItem[]; total: number }>('/api/hubs', {
+  query: { limit: TAB_PAGE_SIZE },
   lazy: true,
 });
 
-const { data: pathsData } = await useFetch('/api/learn', {
-  query: { status: 'published', limit: 12 },
+const hubsAllLoaded = ref(false);
+const hubsLoadingMore = ref(false);
+
+async function loadMoreHubs(): Promise<void> {
+  if (!hubsData.value?.items) return;
+  hubsLoadingMore.value = true;
+  try {
+    const more = await $fetch<{ items: HubItem[]; total: number }>('/api/hubs', {
+      query: { limit: TAB_PAGE_SIZE, offset: hubsData.value.items.length },
+    });
+    if (more?.items?.length) {
+      hubsData.value.items.push(...more.items);
+    }
+    if (!more?.items?.length || more.items.length < TAB_PAGE_SIZE) {
+      hubsAllLoaded.value = true;
+    }
+  } catch {
+    hubsAllLoaded.value = true;
+  } finally {
+    hubsLoadingMore.value = false;
+  }
+}
+
+interface PathItem { id: string; slug: string; title: string; description: string | null; moduleCount: number; enrollmentCount: number }
+const { data: pathsData } = await useFetch<{ items: PathItem[]; total: number }>('/api/learn', {
+  query: { status: 'published', limit: TAB_PAGE_SIZE },
   lazy: true,
 });
+
+const pathsAllLoaded = ref(false);
+const pathsLoadingMore = ref(false);
+
+async function loadMorePaths(): Promise<void> {
+  if (!pathsData.value?.items) return;
+  pathsLoadingMore.value = true;
+  try {
+    const more = await $fetch<{ items: PathItem[]; total: number }>('/api/learn', {
+      query: { status: 'published', limit: TAB_PAGE_SIZE, offset: pathsData.value.items.length },
+    });
+    if (more?.items?.length) {
+      pathsData.value.items.push(...more.items);
+    }
+    if (!more?.items?.length || more.items.length < TAB_PAGE_SIZE) {
+      pathsAllLoaded.value = true;
+    }
+  } catch {
+    pathsAllLoaded.value = true;
+  } finally {
+    pathsLoadingMore.value = false;
+  }
+}
 
 const { data: statsData } = await useFetch('/api/stats', {
   lazy: true,
 });
 
-const { data: peopleData } = await useFetch('/api/users', {
-  query: { limit: 20 },
+interface PersonItem { id: string; username: string; displayName: string | null; headline: string | null; avatarUrl: string | null; followerCount: number }
+const { data: peopleData } = await useFetch<{ items: PersonItem[]; total: number }>('/api/users', {
+  query: { limit: TAB_PAGE_SIZE },
   lazy: true,
-  default: () => ({ items: [] }),
+  default: () => ({ items: [], total: 0 }),
 });
+
+const peopleAllLoaded = ref(false);
+const peopleLoadingMore = ref(false);
+
+async function loadMorePeople(): Promise<void> {
+  if (!peopleData.value?.items) return;
+  peopleLoadingMore.value = true;
+  try {
+    const more = await $fetch<{ items: PersonItem[]; total: number }>('/api/users', {
+      query: { limit: TAB_PAGE_SIZE, offset: peopleData.value.items.length },
+    });
+    if (more?.items?.length) {
+      peopleData.value.items.push(...more.items);
+    }
+    if (!more?.items?.length || more.items.length < TAB_PAGE_SIZE) {
+      peopleAllLoaded.value = true;
+    }
+  } catch {
+    peopleAllLoaded.value = true;
+  } finally {
+    peopleLoadingMore.value = false;
+  }
+}
 
 const contentTypes = computed(() => [
   { value: '', label: 'All' },
@@ -125,6 +225,11 @@ const sortOptions = [
       <div v-else class="cpub-empty-state">
         <p class="cpub-empty-state-title">No content found</p>
       </div>
+      <div v-if="!contentAllLoaded && (content?.items?.length ?? 0) >= CONTENT_PAGE_SIZE" class="cpub-explore-more">
+        <button class="cpub-btn" @click="loadMoreContent" :disabled="contentLoadingMore">
+          {{ contentLoadingMore ? 'Loading...' : 'Load More' }}
+        </button>
+      </div>
     </div>
 
     <!-- Hubs tab -->
@@ -152,6 +257,11 @@ const sortOptions = [
       <div v-else class="cpub-empty-state">
         <p class="cpub-empty-state-title">No hubs yet</p>
       </div>
+      <div v-if="!hubsAllLoaded && (hubsData?.items?.length ?? 0) >= TAB_PAGE_SIZE" class="cpub-explore-more">
+        <button class="cpub-btn" @click="loadMoreHubs" :disabled="hubsLoadingMore">
+          {{ hubsLoadingMore ? 'Loading...' : 'Load More' }}
+        </button>
+      </div>
     </div>
 
     <!-- Learn tab -->
@@ -177,6 +287,11 @@ const sortOptions = [
       <div v-else class="cpub-empty-state">
         <p class="cpub-empty-state-title">No learning paths yet</p>
       </div>
+      <div v-if="!pathsAllLoaded && (pathsData?.items?.length ?? 0) >= TAB_PAGE_SIZE" class="cpub-explore-more">
+        <button class="cpub-btn" @click="loadMorePaths" :disabled="pathsLoadingMore">
+          {{ pathsLoadingMore ? 'Loading...' : 'Load More' }}
+        </button>
+      </div>
     </div>
 
     <!-- People tab -->
@@ -188,7 +303,7 @@ const sortOptions = [
           :to="`/u/${person.username}`"
           class="cpub-explore-hub-card"
         >
-          <div class="cpub-explore-hub-icon" style="border-radius: 50%">
+          <div class="cpub-explore-hub-icon">
             <img v-if="person.avatarUrl" :src="person.avatarUrl" :alt="person.displayName || person.username" class="cpub-explore-person-avatar-img" />
             <span v-else style="font-weight: 700; font-family: var(--font-mono);">{{ (person.displayName || person.username).charAt(0).toUpperCase() }}</span>
           </div>
@@ -203,6 +318,11 @@ const sortOptions = [
       </div>
       <div v-else class="cpub-empty-state">
         <p class="cpub-empty-state-title">No makers yet</p>
+      </div>
+      <div v-if="!peopleAllLoaded && (peopleData?.items?.length ?? 0) >= TAB_PAGE_SIZE" class="cpub-explore-more">
+        <button class="cpub-btn" @click="loadMorePeople" :disabled="peopleLoadingMore">
+          {{ peopleLoadingMore ? 'Loading...' : 'Load More' }}
+        </button>
       </div>
     </div>
   </div>
@@ -413,6 +533,11 @@ const sortOptions = [
 
 /* cpub-tag → global components.css */
 .cpub-tag-xs { font-size: 9px; }
+
+.cpub-explore-more {
+  text-align: center;
+  padding: 24px 0;
+}
 
 @media (max-width: 768px) {
   .cpub-explore-grid { grid-template-columns: 1fr; }

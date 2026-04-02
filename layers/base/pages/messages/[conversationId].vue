@@ -20,6 +20,7 @@ interface MessageItem {
   senderAvatarUrl?: string | null;
   body: string;
   createdAt: string;
+  readAt?: string | null;
 }
 
 const { data: convInfo } = useLazyFetch<{ id: string; participants: ConvParticipant[] }>(`/api/messages/${conversationId}/info`, {
@@ -128,8 +129,6 @@ async function handleSend(text: string): Promise<void> {
 }
 
 @media (max-width: 768px) {
-  .msg-page { padding: 12px; }
-  .msg-scroll { height: calc(100vh - 160px); }
-  .msg-compose { padding: 8px; }
+  .cpub-message-view { height: calc(100vh - 100px); }
 }
 </style>

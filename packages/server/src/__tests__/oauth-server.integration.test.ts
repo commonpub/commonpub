@@ -16,8 +16,12 @@ import {
   storeOAuthState,
   consumeOAuthState,
   processDynamicRegistration,
+  createFederatedSession,
+  storePendingLink,
+  consumePendingLink,
 } from '../federation/oauth.js';
-import { oauthClients } from '@commonpub/schema';
+import { oauthClients, sessions } from '@commonpub/schema';
+import { eq } from 'drizzle-orm';
 
 const DOMAIN = 'local.example.com';
 const REMOTE_DOMAIN = 'remote.example.com';
@@ -289,6 +293,29 @@ describe('OAuth2 server integration', () => {
       const found = await findUserByFederatedAccount(db, 'https://unknown.example.com/users/nobody');
       expect(found).toBeNull();
     });
+
+    it('rejects linking to a different user (identity hijacking prevention)', async () => {
+      const otherActorUri = `https://${REMOTE_DOMAIN}/users/bob-hijack`;
+
+      // First link succeeds
+      await linkFederatedAccount(db, userId, otherActorUri, REMOTE_DOMAIN, {
+        preferredUsername: 'bob-hijack',
+      });
+
+      // Create a second user
+      const otherUser = await createTestUser(db, { username: 'attacker' });
+
+      // Attempting to reassign the link to a different user should throw
+      await expect(
+        linkFederatedAccount(db, otherUser.id, otherActorUri, REMOTE_DOMAIN, {
+          preferredUsername: 'bob-hijack',
+        }),
+      ).rejects.toThrow('already linked to another account');
+
+      // Original link should be unchanged
+      const found = await findUserByFederatedAccount(db, otherActorUri);
+      expect(found!.userId).toBe(userId);
+    });
   });
 
   describe('OAuth state management', () => {
@@ -435,6 +462,104 @@ describe('OAuth2 server integration', () => {
         instanceDomain: 'localhost',
       });
       expect('clientId' in result).toBe(true);
+    });
+  });
+
+  describe('createFederatedSession', () => {
+    it('creates a session in the database', async () => {
+      const result = await createFederatedSession(db, userId, '127.0.0.1', 'Test/1.0');
+
+      expect(result.sessionToken).toBeTruthy();
+      expect(result.sessionToken.length).toBe(64); // 32 bytes hex
+      expect(result.userId).toBe(userId);
+      expect(result.expiresAt.getTime()).toBeGreaterThan(Date.now());
+
+      // Verify session exists in DB
+      const [row] = await db.select().from(sessions).where(eq(sessions.token, result.sessionToken)).limit(1);
+      expect(row).toBeDefined();
+      expect(row.userId).toBe(userId);
+      expect(row.ipAddress).toBe('127.0.0.1');
+      expect(row.userAgent).toBe('Test/1.0');
+    });
+
+    it('sets expiry to 7 days', async () => {
+      const result = await createFederatedSession(db, userId);
+      const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
+      const diff = result.expiresAt.getTime() - Date.now();
+      // Should be within 5 seconds of 7 days
+      expect(diff).toBeGreaterThan(sevenDaysMs - 5000);
+      expect(diff).toBeLessThan(sevenDaysMs + 5000);
+    });
+
+    it('creates unique tokens for each call', async () => {
+      const session1 = await createFederatedSession(db, userId);
+      const session2 = await createFederatedSession(db, userId);
+      expect(session1.sessionToken).not.toBe(session2.sessionToken);
+    });
+  });
+
+  describe('pending link tokens', () => {
+    it('stores and consumes a pending link', async () => {
+      const token = await storePendingLink(db, {
+        actorUri: `https://${REMOTE_DOMAIN}/users/pendingalice`,
+        username: 'pendingalice',
+        instanceDomain: REMOTE_DOMAIN,
+        displayName: 'Pending Alice',
+      });
+
+      expect(token).toBeTruthy();
+      expect(token.length).toBe(64);
+
+      const data = await consumePendingLink(db, token);
+      expect(data).not.toBeNull();
+      expect(data!.actorUri).toBe(`https://${REMOTE_DOMAIN}/users/pendingalice`);
+      expect(data!.username).toBe('pendingalice');
+      expect(data!.instanceDomain).toBe(REMOTE_DOMAIN);
+      expect(data!.displayName).toBe('Pending Alice');
+    });
+
+    it('is single-use (second consume returns null)', async () => {
+      const token = await storePendingLink(db, {
+        actorUri: `https://${REMOTE_DOMAIN}/users/singleuse`,
+        username: 'singleuse',
+        instanceDomain: REMOTE_DOMAIN,
+      });
+
+      const first = await consumePendingLink(db, token);
+      expect(first).not.toBeNull();
+
+      const second = await consumePendingLink(db, token);
+      expect(second).toBeNull();
+    });
+
+    it('returns null for invalid token', async () => {
+      const data = await consumePendingLink(db, 'nonexistent-token');
+      expect(data).toBeNull();
+    });
+
+    it('returns null for expired token', async () => {
+      const token = await storePendingLink(db, {
+        actorUri: `https://${REMOTE_DOMAIN}/users/expired`,
+        username: 'expired',
+        instanceDomain: REMOTE_DOMAIN,
+      });
+
+      // Manually expire the token
+      const { instanceSettings } = await import('@commonpub/schema');
+      await db
+        .update(instanceSettings)
+        .set({
+          value: {
+            actorUri: `https://${REMOTE_DOMAIN}/users/expired`,
+            username: 'expired',
+            instanceDomain: REMOTE_DOMAIN,
+            expiresAt: Date.now() - 1000,
+          },
+        })
+        .where(eq(instanceSettings.key, `pending_link:${token}`));
+
+      const data = await consumePendingLink(db, token);
+      expect(data).toBeNull();
     });
   });
 });

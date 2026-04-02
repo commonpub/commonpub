@@ -121,8 +121,13 @@ export {
   storeOAuthState,
   consumeOAuthState,
   exchangeCodeForToken,
+  createFederatedSession,
+  storePendingLink,
+  consumePendingLink,
   type AuthorizeResult,
   type TokenResult,
   type RegisteredClient,
   type OAuthLoginState,
+  type FederatedSessionResult,
+  type PendingLinkData,
 } from './oauth.js';

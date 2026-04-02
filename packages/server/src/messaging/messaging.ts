@@ -230,6 +230,34 @@ export async function getUnreadMessageCount(
   return result[0]?.count ?? 0;
 }
 
+/** Count unread messages per conversation for a user */
+export async function getConversationUnreadCounts(
+  db: DB,
+  userId: string,
+): Promise<Record<string, number>> {
+  const rows = await db
+    .select({
+      conversationId: messages.conversationId,
+      count: sql<number>`count(*)::int`,
+    })
+    .from(messages)
+    .innerJoin(conversations, eq(messages.conversationId, conversations.id))
+    .where(
+      and(
+        sql`${conversations.participants} @> ${JSON.stringify([userId])}::jsonb`,
+        sql`${messages.senderId} != ${userId}`,
+        isNull(messages.readAt),
+      ),
+    )
+    .groupBy(messages.conversationId);
+
+  const result: Record<string, number> = {};
+  for (const row of rows) {
+    result[row.conversationId] = row.count;
+  }
+  return result;
+}
+
 export async function markMessagesRead(
   db: DB,
   conversationId: string,

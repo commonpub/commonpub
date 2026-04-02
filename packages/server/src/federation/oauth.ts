@@ -8,6 +8,7 @@ import {
   oauthClients,
   oauthCodes,
   users,
+  sessions,
   federatedAccounts,
   instanceSettings,
 } from '@commonpub/schema';
@@ -207,11 +208,15 @@ export async function linkFederatedAccount(
     .limit(1);
 
   if (existing.length > 0) {
-    // Update the link
+    // Reject if linked to a different user — prevents identity hijacking
+    if (existing[0]!.userId !== userId) {
+      throw new Error('This federated identity is already linked to another account');
+    }
+
+    // Update profile info for the same user
     await db
       .update(federatedAccounts)
       .set({
-        userId,
         lastSyncedAt: new Date(),
         ...(profile?.preferredUsername && { preferredUsername: profile.preferredUsername }),
         ...(profile?.displayName && { displayName: profile.displayName }),
@@ -341,18 +346,15 @@ export async function consumeOAuthState(
 ): Promise<OAuthLoginState | null> {
   const key = `${OAUTH_STATE_PREFIX}${stateToken}`;
 
-  const rows = await db
-    .select()
-    .from(instanceSettings)
+  // Atomic delete + return to prevent TOCTOU race
+  const deleted = await db
+    .delete(instanceSettings)
     .where(eq(instanceSettings.key, key))
-    .limit(1);
+    .returning();
 
-  if (rows.length === 0) return null;
+  if (deleted.length === 0) return null;
 
-  // Delete immediately (single-use)
-  await db.delete(instanceSettings).where(eq(instanceSettings.key, key));
-
-  const state = rows[0]!.value as OAuthLoginState;
+  const state = deleted[0]!.value as OAuthLoginState;
 
   // Check expiry
   if (Date.now() > state.expiresAt) return null;
@@ -405,4 +407,95 @@ export async function exchangeCodeForToken(
   } catch {
     return null;
   }
+}
+
+// --- Federated Session Creation ---
+
+export interface FederatedSessionResult {
+  sessionToken: string;
+  expiresAt: Date;
+  userId: string;
+}
+
+/**
+ * Create a Better Auth session for a federated user.
+ * Inserts directly into the sessions table — used after OAuth callback
+ * when the federated account is already linked to a local user.
+ */
+export async function createFederatedSession(
+  db: DB,
+  userId: string,
+  ipAddress?: string,
+  userAgent?: string,
+): Promise<FederatedSessionResult> {
+  const sessionToken = generateSecureToken();
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days, matches Better Auth config
+
+  await db.insert(sessions).values({
+    userId,
+    token: sessionToken,
+    expiresAt,
+    ipAddress: ipAddress ?? null,
+    userAgent: userAgent ?? null,
+  });
+
+  return { sessionToken, expiresAt, userId };
+}
+
+// --- Pending Link Tokens ---
+
+const PENDING_LINK_PREFIX = 'pending_link:';
+const PENDING_LINK_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
+export interface PendingLinkData {
+  actorUri: string;
+  username: string;
+  instanceDomain: string;
+  displayName?: string;
+  avatarUrl?: string;
+  expiresAt: number;
+}
+
+/**
+ * Store a verified federated identity as a pending link token.
+ * Used when a user completes OAuth but has no linked local account.
+ * The token proves the identity was authenticated via OAuth.
+ */
+export async function storePendingLink(
+  db: DB,
+  data: Omit<PendingLinkData, 'expiresAt'>,
+): Promise<string> {
+  const token = generateSecureToken();
+  const key = `${PENDING_LINK_PREFIX}${token}`;
+
+  await db.insert(instanceSettings).values({
+    key,
+    value: { ...data, expiresAt: Date.now() + PENDING_LINK_TTL_MS },
+  });
+
+  return token;
+}
+
+/**
+ * Consume a pending link token (single-use, atomic).
+ * Returns the verified federated identity or null if expired/invalid.
+ */
+export async function consumePendingLink(
+  db: DB,
+  token: string,
+): Promise<PendingLinkData | null> {
+  const key = `${PENDING_LINK_PREFIX}${token}`;
+
+  // Atomic delete + return to prevent TOCTOU
+  const deleted = await db
+    .delete(instanceSettings)
+    .where(eq(instanceSettings.key, key))
+    .returning();
+
+  if (deleted.length === 0) return null;
+
+  const data = deleted[0]!.value as PendingLinkData;
+  if (Date.now() > data.expiresAt) return null;
+
+  return data;
 }

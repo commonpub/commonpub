@@ -7,12 +7,25 @@ useSeoMeta({
 });
 
 const { signIn } = useAuth();
+const { federation } = useFeatures();
 const route = useRoute();
 
 const identity = ref('');
 const password = ref('');
 const error = ref('');
 const loading = ref(false);
+
+// Federated login state
+const federatedDomain = ref('');
+const federatedLoading = ref(false);
+const federatedError = ref('');
+
+// Federated callback context — present when redirected back from OAuth callback.
+// Only an opaque linkToken is passed; the verified identity stays server-side.
+const federatedLinkToken = computed(() => {
+  if (route.query.federated !== 'true') return null;
+  return (route.query.linkToken as string) || null;
+});
 
 const redirectTo = computed(() => {
   const raw = (route.query.redirect as string) || '/';
@@ -25,15 +38,27 @@ async function handleSubmit(): Promise<void> {
   loading.value = true;
 
   try {
-    // Step 1: Resolve username to email if needed (server-side)
-    const { email } = await $fetch<{ email: string }>('/api/resolve-identity', {
-      method: 'POST',
-      body: { identity: identity.value },
-    });
-
-    // Step 2: Sign in with Better Auth (sets cookies directly)
-    await signIn(email, password.value);
-    await navigateTo(redirectTo.value);
+    if (federatedLinkToken.value) {
+      // Linking flow: authenticate + link federated account in one step
+      await $fetch('/api/auth/federated/link', {
+        method: 'POST',
+        body: {
+          identity: identity.value,
+          password: password.value,
+          linkToken: federatedLinkToken.value,
+        },
+        credentials: 'include',
+      });
+      await navigateTo('/dashboard');
+    } else {
+      // Normal login flow
+      const { email } = await $fetch<{ email: string }>('/api/resolve-identity', {
+        method: 'POST',
+        body: { identity: identity.value },
+      });
+      await signIn(email, password.value);
+      await navigateTo(redirectTo.value);
+    }
   } catch (err: unknown) {
     const fetchErr = err as { statusCode?: number; data?: { message?: string; statusMessage?: string } };
     if (fetchErr?.statusCode === 503) {
@@ -45,11 +70,47 @@ async function handleSubmit(): Promise<void> {
     loading.value = false;
   }
 }
+
+async function handleFederatedLogin(): Promise<void> {
+  federatedError.value = '';
+  const domain = federatedDomain.value.trim().toLowerCase();
+  if (!domain) return;
+
+  federatedLoading.value = true;
+
+  try {
+    const result = await $fetch<{ authorizationUrl: string }>('/api/auth/federated/login', {
+      method: 'POST',
+      body: { instanceDomain: domain },
+    });
+    // Redirect to the remote instance's OAuth consent page
+    window.location.href = result.authorizationUrl;
+  } catch (err: unknown) {
+    const fetchErr = err as { statusCode?: number; data?: { message?: string; statusMessage?: string } };
+    if (fetchErr?.statusCode === 403) {
+      federatedError.value = `${domain} is not a trusted instance.`;
+    } else if (fetchErr?.statusCode === 502) {
+      federatedError.value = `Could not connect to ${domain}. Check the domain and try again.`;
+    } else {
+      federatedError.value = fetchErr?.data?.statusMessage || fetchErr?.data?.message || 'Failed to initiate federated login.';
+    }
+  } finally {
+    federatedLoading.value = false;
+  }
+}
 </script>
 
 <template>
   <div class="login-page">
     <h1 class="login-title">Log in</h1>
+
+    <!-- Federated context banner — shown when linking an account -->
+    <div v-if="federatedLinkToken" class="cpub-federated-banner" role="status">
+      <p class="cpub-federated-banner-text">
+        Link your federated identity to a local account.
+        Log in below to complete the link.
+      </p>
+    </div>
 
     <form class="login-form" @submit.prevent="handleSubmit" aria-label="Login form">
       <div v-if="error" class="form-error" role="alert">{{ error }}</div>
@@ -81,11 +142,43 @@ async function handleSubmit(): Promise<void> {
       </div>
 
       <button type="submit" class="submit-btn" :disabled="loading">
-        {{ loading ? 'Logging in...' : 'Log in' }}
+        {{ loading
+          ? 'Logging in...'
+          : federatedLinkToken
+            ? 'Log in & Link Account'
+            : 'Log in'
+        }}
       </button>
 
       <NuxtLink to="/auth/forgot-password" class="forgot-link">Forgot your password?</NuxtLink>
     </form>
+
+    <!-- Federated login section — only shown when federation is enabled -->
+    <div v-if="federation && !federatedLinkToken" class="cpub-federated-section">
+      <div class="cpub-federated-divider">
+        <span class="cpub-federated-divider-text">or</span>
+      </div>
+
+      <form class="cpub-federated-form" @submit.prevent="handleFederatedLogin" aria-label="Sign in with another instance">
+        <div v-if="federatedError" class="form-error" role="alert">{{ federatedError }}</div>
+
+        <label for="federated-domain" class="field-label">Sign in with another instance</label>
+        <div class="cpub-federated-input-group">
+          <input
+            id="federated-domain"
+            v-model="federatedDomain"
+            type="text"
+            class="field-input"
+            placeholder="instance.example.com"
+            required
+            autocomplete="off"
+          />
+          <button type="submit" class="cpub-federated-btn" :disabled="federatedLoading" aria-label="Sign in with remote instance">
+            {{ federatedLoading ? 'Connecting...' : 'Go' }}
+          </button>
+        </div>
+      </form>
+    </div>
 
     <p class="login-footer">
       Don't have an account?
@@ -212,5 +305,92 @@ async function handleSubmit(): Promise<void> {
 .forgot-link:hover {
   color: var(--accent);
   text-decoration: underline;
+}
+
+/* Federated login */
+.cpub-federated-banner {
+  padding: var(--space-3);
+  background: var(--blue-bg, var(--surface-raised));
+  border: var(--border-width-default) solid var(--accent);
+  border-radius: var(--radius);
+  margin-bottom: var(--space-4);
+}
+
+.cpub-federated-banner-text {
+  font-size: 13px;
+  color: var(--text);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.cpub-federated-banner-text code {
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.cpub-federated-section {
+  margin-top: var(--space-5);
+}
+
+.cpub-federated-divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.cpub-federated-divider::before,
+.cpub-federated-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.cpub-federated-divider-text {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+}
+
+.cpub-federated-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.cpub-federated-input-group {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.cpub-federated-input-group .field-input {
+  flex: 1;
+}
+
+.cpub-federated-btn {
+  padding: 7px 14px;
+  background: var(--surface-raised);
+  color: var(--text);
+  border: var(--border-width-default) solid var(--border);
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+
+.cpub-federated-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.cpub-federated-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }
 </style>

@@ -356,9 +356,14 @@ export {
   storeOAuthState,
   consumeOAuthState,
   exchangeCodeForToken,
+  createFederatedSession,
+  storePendingLink,
+  consumePendingLink,
   type AuthorizeResult,
   type TokenResult,
   type OAuthLoginState,
+  type FederatedSessionResult,
+  type PendingLinkData,
   type RemoteActorProfile,
   type FederatedContentItem,
   type FederatedTimelineOptions,
@@ -443,6 +448,7 @@ export {
   sendMessage,
   markMessagesRead,
   getUnreadMessageCount,
+  getConversationUnreadCounts,
 } from './messaging/index.js';
 export type { ConversationItem, MessageItem } from './messaging/index.js';
 

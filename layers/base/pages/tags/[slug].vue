@@ -9,23 +9,45 @@ useSeoMeta({
   description: () => `Content tagged with "${tagSlug.value}" on CommonPub`,
 });
 
-const page = ref(0);
-const { data: results, refresh } = await useFetch<PaginatedResponse<Serialized<ContentListItem>>>('/api/content', {
+const PAGE_SIZE = 20;
+const loadingMore = ref(false);
+const allLoaded = ref(false);
+
+const { data: results } = await useFetch<PaginatedResponse<Serialized<ContentListItem>>>('/api/content', {
   query: computed(() => ({
     tag: tagSlug.value,
     status: 'published',
-    limit: 20,
-    offset: page.value * 20,
+    limit: PAGE_SIZE,
   })),
+  watch: [tagSlug],
 });
 
 const items = computed(() => results.value?.items ?? []);
 const total = computed(() => results.value?.total ?? 0);
-const hasMore = computed(() => items.value.length < total.value);
+const hasMore = computed(() => !allLoaded.value && items.value.length < total.value);
+
+// Reset when tag changes
+watch(tagSlug, () => { allLoaded.value = false; });
 
 async function loadMore(): Promise<void> {
-  page.value++;
-  await refresh();
+  if (!results.value?.items) return;
+  loadingMore.value = true;
+  try {
+    const nextOffset = results.value.items.length;
+    const more = await $fetch<PaginatedResponse<Serialized<ContentListItem>>>('/api/content', {
+      query: { tag: tagSlug.value, status: 'published', limit: PAGE_SIZE, offset: nextOffset },
+    });
+    if (more?.items?.length) {
+      results.value.items.push(...more.items);
+    }
+    if (!more?.items?.length || more.items.length < PAGE_SIZE) {
+      allLoaded.value = true;
+    }
+  } catch {
+    allLoaded.value = true;
+  } finally {
+    loadingMore.value = false;
+  }
 }
 </script>
 
@@ -53,7 +75,9 @@ async function loadMore(): Promise<void> {
     </div>
 
     <div v-if="hasMore" class="cpub-tag-more">
-      <button class="cpub-btn" @click="loadMore">Load more</button>
+      <button class="cpub-btn" @click="loadMore" :disabled="loadingMore">
+        {{ loadingMore ? 'Loading...' : 'Load more' }}
+      </button>
     </div>
   </div>
 </template>

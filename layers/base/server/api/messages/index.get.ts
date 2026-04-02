@@ -1,4 +1,4 @@
-import { listConversations } from '@commonpub/server';
+import { listConversations, getConversationUnreadCounts } from '@commonpub/server';
 import { users } from '@commonpub/schema';
 import { inArray } from 'drizzle-orm';
 
@@ -6,11 +6,14 @@ export default defineEventHandler(async (event) => {
   const db = useDB();
   const user = requireAuth(event);
 
-  const conversations = await listConversations(db, user.id);
+  const [conversationList, unreadCounts] = await Promise.all([
+    listConversations(db, user.id),
+    getConversationUnreadCounts(db, user.id),
+  ]);
 
   // Collect all unique participant IDs
   const allIds = new Set<string>();
-  for (const conv of conversations) {
+  for (const conv of conversationList) {
     for (const id of (conv.participants ?? [])) {
       allIds.add(id);
     }
@@ -28,9 +31,10 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  // Replace participant IDs with resolved user objects
-  return conversations.map((conv) => ({
+  // Replace participant IDs with resolved user objects, include unread count
+  return conversationList.map((conv) => ({
     ...conv,
+    unreadCount: unreadCounts[conv.id] ?? 0,
     participants: (conv.participants ?? []).map((id: string) => {
       const u = userMap.get(id);
       return u ? { username: u.username, displayName: u.displayName, avatarUrl: u.avatarUrl } : { username: id, displayName: null, avatarUrl: null };

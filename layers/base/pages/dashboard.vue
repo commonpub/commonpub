@@ -8,15 +8,23 @@ useSeoMeta({
 
 const { user } = useAuth();
 const { learning: learningEnabled } = useFeatures();
+const { enabledTypeMeta } = useContentTypes();
 const reqHeaders = import.meta.server ? useRequestHeaders(['cookie']) : {};
 
 const activeTab = ref<'content' | 'bookmarks' | 'learning'>('content');
+const contentSort = ref<'newest' | 'oldest' | 'popular'>('newest');
+const contentTypeFilter = ref('');
 
 // My content (all statuses)
 const { data: myContent, status: contentStatus } = await useFetch('/api/content', {
   query: { authorId: user.value?.id },
   headers: reqHeaders,
 });
+
+const contentTypeOptions = computed(() => [
+  { value: '', label: 'All types' },
+  ...enabledTypeMeta.value.map(m => ({ value: m.type, label: m.plural })),
+]);
 
 // Bookmarks
 const { data: bookmarkData } = await useFetch('/api/social/bookmarks', {
@@ -40,17 +48,42 @@ const { data: notifCount } = await useFetch('/api/notifications/count', {
 
 const toast = useToast();
 
+function filterByType<T extends { type: string }>(items: T[]): T[] {
+  if (!contentTypeFilter.value) return items;
+  return items.filter((i) => i.type === contentTypeFilter.value);
+}
+
+function sortItems<T extends { createdAt: string; viewCount?: number; likeCount?: number }>(items: T[]): T[] {
+  const sorted = [...items];
+  if (contentSort.value === 'oldest') {
+    sorted.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+  } else if (contentSort.value === 'popular') {
+    sorted.sort((a, b) => ((b.viewCount ?? 0) + (b.likeCount ?? 0)) - ((a.viewCount ?? 0) + (a.likeCount ?? 0)));
+  } else {
+    sorted.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+  return sorted;
+}
+
 const drafts = computed(() =>
-  (myContent.value?.items ?? []).filter((i) => i.status === 'draft'),
+  sortItems(filterByType((myContent.value?.items ?? []).filter((i: { status: string }) => i.status === 'draft'))),
 );
 const published = computed(() =>
-  (myContent.value?.items ?? []).filter((i) => i.status === 'published'),
+  sortItems(filterByType((myContent.value?.items ?? []).filter((i: { status: string }) => i.status === 'published'))),
+);
+
+// Stats use ALL items (unfiltered) so totals don't change with filter selection
+const allPublished = computed(() =>
+  (myContent.value?.items ?? []).filter((i: { status: string }) => i.status === 'published'),
+);
+const allDrafts = computed(() =>
+  (myContent.value?.items ?? []).filter((i: { status: string }) => i.status === 'draft'),
 );
 const totalViews = computed(() =>
-  published.value.reduce((sum, item) => sum + (item.viewCount ?? 0), 0),
+  allPublished.value.reduce((sum, item) => sum + (item.viewCount ?? 0), 0),
 );
 const totalLikes = computed(() =>
-  published.value.reduce((sum, item) => sum + (item.likeCount ?? 0), 0),
+  allPublished.value.reduce((sum, item) => sum + (item.likeCount ?? 0), 0),
 );
 
 // Content actions
@@ -97,11 +130,11 @@ async function deleteItem(id: string, title: string): Promise<void> {
     <!-- Stats row -->
     <div class="cpub-dash-stats">
       <div class="cpub-dash-stat">
-        <span class="cpub-dash-stat-n">{{ published.length }}</span>
+        <span class="cpub-dash-stat-n">{{ allPublished.length }}</span>
         <span class="cpub-dash-stat-l">Published</span>
       </div>
       <div class="cpub-dash-stat">
-        <span class="cpub-dash-stat-n">{{ drafts.length }}</span>
+        <span class="cpub-dash-stat-n">{{ allDrafts.length }}</span>
         <span class="cpub-dash-stat-l">Drafts</span>
       </div>
       <div class="cpub-dash-stat">
@@ -149,6 +182,21 @@ async function deleteItem(id: string, title: string): Promise<void> {
 
     <!-- Content tab -->
     <div v-else-if="activeTab === 'content'" class="cpub-dash-panel">
+      <!-- Sort & filter controls -->
+      <div class="cpub-dash-controls">
+        <div class="cpub-dash-controls-left">
+          <select v-model="contentTypeFilter" class="cpub-dash-select" aria-label="Filter by content type">
+            <option v-for="opt in contentTypeOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+          </select>
+        </div>
+        <div class="cpub-dash-controls-right">
+          <select v-model="contentSort" class="cpub-dash-select" aria-label="Sort order">
+            <option value="newest">Newest first</option>
+            <option value="oldest">Oldest first</option>
+            <option value="popular">Most popular</option>
+          </select>
+        </div>
+      </div>
       <!-- Drafts section -->
       <div v-if="drafts.length" class="cpub-dash-section">
         <h2 class="cpub-dash-section-title">Drafts</h2>
@@ -357,6 +405,39 @@ async function deleteItem(id: string, title: string): Promise<void> {
 .cpub-dash-tab.active {
   color: var(--accent);
   border-bottom-color: var(--accent);
+}
+
+/* Controls */
+.cpub-dash-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  border-bottom: var(--border-width-default) solid var(--border);
+  gap: 8px;
+}
+
+.cpub-dash-controls-left,
+.cpub-dash-controls-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cpub-dash-select {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 4px 8px;
+  border: var(--border-width-default) solid var(--border);
+  background: var(--surface);
+  color: var(--text-dim);
+  cursor: pointer;
+  outline: none;
+  border-radius: var(--radius);
+}
+
+.cpub-dash-select:focus {
+  border-color: var(--accent);
 }
 
 /* Panel */

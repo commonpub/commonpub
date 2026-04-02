@@ -7,6 +7,7 @@ defineProps<{
     senderAvatarUrl?: string | null;
     body: string;
     createdAt: string;
+    readAt?: string | null;
   }>;
   currentUserId: string;
 }>();
@@ -39,9 +40,15 @@ function handleSend(): void {
           <span v-if="msg.senderName" class="cpub-msg-name">{{ msg.senderName }}</span>
         </div>
         <div class="cpub-msg-bubble">{{ msg.body }}</div>
-        <time class="cpub-msg-time">
-          {{ new Date(msg.createdAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) }}
-        </time>
+        <div class="cpub-msg-meta">
+          <time class="cpub-msg-time">
+            {{ new Date(msg.createdAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) }}
+          </time>
+          <span v-if="msg.senderId === currentUserId" class="cpub-msg-receipt" :class="{ 'cpub-msg-read': msg.readAt }" :title="msg.readAt ? `Read ${new Date(msg.readAt).toLocaleString()}` : 'Sent'">
+            <i :class="msg.readAt ? 'fa-solid fa-check-double' : 'fa-solid fa-check'" aria-hidden="true"></i>
+            <span class="sr-only">{{ msg.readAt ? 'Read' : 'Sent' }}</span>
+          </span>
+        </div>
       </div>
       <p v-if="!messages.length" class="cpub-thread-empty">No messages yet. Say hello!</p>
     </div>
@@ -125,17 +132,47 @@ function handleSend(): void {
   line-height: 1.5;
 }
 
-.cpub-msg.own .cpub-msg-bubble {
+.cpub-msg.cpub-msg-own .cpub-msg-bubble {
   background: var(--accent-bg);
-  border-color: var(--accent-border);
+  border-color: var(--accent-border, var(--border));
+}
+
+.cpub-msg-meta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.cpub-msg.cpub-msg-own .cpub-msg-meta {
+  justify-content: flex-end;
 }
 
 .cpub-msg-time {
   font-size: 9px;
   color: var(--text-faint);
   font-family: var(--font-mono);
-  margin-top: 2px;
-  display: block;
+}
+
+.cpub-msg-receipt {
+  font-size: 9px;
+  color: var(--text-faint);
+}
+
+.cpub-msg-receipt.cpub-msg-read {
+  color: var(--accent);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
 }
 
 .cpub-thread-empty {
