@@ -145,8 +145,12 @@ export default defineEventHandler(async (event) => {
     return;
   }
 
-  // Handle auth API routes
-  if (pathname.startsWith('/api/auth')) {
+  // Handle auth API routes — skip our custom federated/oauth2 routes (Nitro handles those)
+  const isBetterAuthRoute = pathname.startsWith('/api/auth')
+    && !pathname.startsWith('/api/auth/federated/')
+    && !pathname.startsWith('/api/auth/oauth2/');
+
+  if (isBetterAuthRoute) {
     try {
       const response = await middleware.handleAuthRoute(
         toWebRequest(event),
