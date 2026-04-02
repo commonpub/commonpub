@@ -2,7 +2,7 @@
 definePageMeta({ layout: 'admin', middleware: 'auth' });
 useSeoMeta({ title: `Federation — Admin — ${useSiteName()}` });
 
-const activeTab = ref<'activity' | 'mirrors' | 'clients' | 'tools'>('activity');
+const activeTab = ref<'activity' | 'mirrors' | 'clients' | 'trusted' | 'tools'>('activity');
 
 const { data: statsData } = await useFetch('/api/admin/federation/stats', {
   default: () => ({ inbound: 0, outbound: 0, pending: 0, failed: 0, followers: 0, following: 0 }),
@@ -20,6 +20,38 @@ const { data: mirrorsData, refresh: refreshMirrors } = await useFetch<any[]>('/a
 const { data: clientsData } = await useFetch<any[]>('/api/admin/federation/clients', {
   default: () => [],
 });
+
+// Trusted instances
+const { data: trustedData, refresh: refreshTrusted } = await useFetch<{ configDomains: string[]; storedDomains: string[] }>('/api/admin/federation/trusted-instances', {
+  default: () => ({ configDomains: [], storedDomains: [] }),
+});
+
+const newTrustedDomain = ref('');
+const trustedAdding = ref(false);
+
+async function addTrusted(): Promise<void> {
+  const domain = newTrustedDomain.value.trim().toLowerCase();
+  if (!domain) return;
+  trustedAdding.value = true;
+  try {
+    await $fetch('/api/admin/federation/trusted-instances', {
+      method: 'POST',
+      body: { domain },
+    });
+    newTrustedDomain.value = '';
+    await refreshTrusted();
+  } finally {
+    trustedAdding.value = false;
+  }
+}
+
+async function removeTrusted(domain: string): Promise<void> {
+  await $fetch('/api/admin/federation/trusted-instances', {
+    method: 'DELETE',
+    body: { domain },
+  });
+  await refreshTrusted();
+}
 
 // Mirror creation
 const newMirrorDomain = ref('');
@@ -179,6 +211,7 @@ async function refederate(): Promise<void> {
       <button :class="{ active: activeTab === 'activity' }" @click="activeTab = 'activity'">Activity</button>
       <button :class="{ active: activeTab === 'mirrors' }" @click="activeTab = 'mirrors'">Mirrors</button>
       <button :class="{ active: activeTab === 'clients' }" @click="activeTab = 'clients'">OAuth Clients</button>
+      <button :class="{ active: activeTab === 'trusted' }" @click="activeTab = 'trusted'">Trusted Instances</button>
       <button :class="{ active: activeTab === 'tools' }" @click="activeTab = 'tools'">Tools</button>
     </div>
 
@@ -280,6 +313,36 @@ async function refederate(): Promise<void> {
       <p class="cpub-fed-info-text">
         Clients are auto-registered via the <code>/api/auth/oauth2/register</code> endpoint.
       </p>
+    </div>
+
+    <!-- Trusted Instances Tab -->
+    <div v-if="activeTab === 'trusted'">
+      <p class="cpub-fed-info-text" style="margin-bottom: 12px;">
+        Trusted instances can use cross-instance SSO to authenticate users on this instance.
+        Domains from the config file cannot be removed here.
+      </p>
+
+      <div class="cpub-fed-form">
+        <input v-model="newTrustedDomain" placeholder="instance.example.com" class="cpub-fed-input" @keydown.enter.prevent="addTrusted" />
+        <button :disabled="trustedAdding || !newTrustedDomain.trim()" class="cpub-fed-btn" @click="addTrusted">
+          {{ trustedAdding ? 'Adding...' : 'Add Instance' }}
+        </button>
+      </div>
+
+      <div class="cpub-fed-activity-list">
+        <div v-if="!trustedData.configDomains.length && !trustedData.storedDomains.length" class="cpub-fed-empty">No trusted instances configured.</div>
+
+        <div v-for="domain in trustedData.configDomains" :key="'config-' + domain" class="cpub-fed-activity-row">
+          <span class="cpub-fed-type">{{ domain }}</span>
+          <span class="cpub-fed-status processed">config</span>
+        </div>
+
+        <div v-for="domain in trustedData.storedDomains" :key="'stored-' + domain" class="cpub-fed-activity-row">
+          <span class="cpub-fed-type">{{ domain }}</span>
+          <span class="cpub-fed-status pending">admin</span>
+          <button class="cpub-fed-btn-sm cpub-fed-btn-danger" @click="removeTrusted(domain)">Remove</button>
+        </div>
+      </div>
     </div>
 
     <!-- Tools Tab -->

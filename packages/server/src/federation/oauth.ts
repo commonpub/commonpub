@@ -301,6 +301,73 @@ export async function processDynamicRegistration(
   return result;
 }
 
+// --- Trusted Instances (DB-stored, admin-managed) ---
+
+const TRUSTED_INSTANCES_KEY = 'trusted_instances';
+
+/**
+ * Get the list of trusted instances stored in the database.
+ * These supplement the config-file trustedInstances list.
+ */
+export async function getStoredTrustedInstances(db: DB): Promise<string[]> {
+  const rows = await db
+    .select()
+    .from(instanceSettings)
+    .where(eq(instanceSettings.key, TRUSTED_INSTANCES_KEY))
+    .limit(1);
+
+  if (rows.length === 0) return [];
+  const value = rows[0]!.value;
+  return Array.isArray(value) ? value as string[] : [];
+}
+
+/** Add a domain to the DB-stored trusted instances list. */
+export async function addTrustedInstance(db: DB, domain: string): Promise<void> {
+  const current = await getStoredTrustedInstances(db);
+  if (current.includes(domain)) return;
+  current.push(domain);
+
+  const existing = await db
+    .select()
+    .from(instanceSettings)
+    .where(eq(instanceSettings.key, TRUSTED_INSTANCES_KEY))
+    .limit(1);
+
+  if (existing.length > 0) {
+    await db.update(instanceSettings).set({ value: current }).where(eq(instanceSettings.key, TRUSTED_INSTANCES_KEY));
+  } else {
+    await db.insert(instanceSettings).values({ key: TRUSTED_INSTANCES_KEY, value: current });
+  }
+}
+
+/** Remove a domain from the DB-stored trusted instances list. */
+export async function removeTrustedInstance(db: DB, domain: string): Promise<void> {
+  const current = await getStoredTrustedInstances(db);
+  const filtered = current.filter(d => d !== domain);
+
+  if (filtered.length === current.length) return; // not found
+
+  await db.update(instanceSettings).set({ value: filtered }).where(eq(instanceSettings.key, TRUSTED_INSTANCES_KEY));
+}
+
+/**
+ * Check if a domain is trusted (in either config or DB-stored list).
+ */
+export async function isDomainTrusted(
+  db: DB,
+  config: { features: { federation?: boolean }; auth: { trustedInstances?: string[] } },
+  domain: string,
+): Promise<boolean> {
+  if (!config.features.federation) return false;
+
+  // Check config-file list
+  if (config.auth.trustedInstances?.includes(domain)) return true;
+
+  // Check DB-stored list
+  const stored = await getStoredTrustedInstances(db);
+  return stored.includes(domain);
+}
+
 // --- OAuth State Management (for federated login flow) ---
 
 const OAUTH_STATE_PREFIX = 'oauth_state:';

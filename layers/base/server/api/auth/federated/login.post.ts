@@ -1,5 +1,5 @@
-import { discoverOAuthEndpoint, isTrustedInstance } from '@commonpub/auth';
-import { storeOAuthState } from '@commonpub/server';
+import { discoverOAuthEndpoint } from '@commonpub/auth';
+import { storeOAuthState, isDomainTrusted } from '@commonpub/server';
 import { z } from 'zod';
 
 const loginSchema = z.object({
@@ -19,7 +19,8 @@ export default defineEventHandler(async (event) => {
   const db = useDB();
   const { instanceDomain, clientId, clientSecret } = await parseBody(event, loginSchema);
 
-  if (!isTrustedInstance(config, instanceDomain)) {
+  const trusted = await isDomainTrusted(db, config, instanceDomain);
+  if (!trusted) {
     throw createError({
       statusCode: 403,
       statusMessage: `Instance ${instanceDomain} is not in the trusted instances list`,
