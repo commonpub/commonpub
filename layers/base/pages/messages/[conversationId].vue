@@ -58,7 +58,7 @@ const participantLabel = computed(() => {
 });
 
 async function handleSend(text: string): Promise<void> {
-  await $fetch(`/api/messages/${conversationId}`, {
+  await $fetch(`/api/messages/${conversationId}` as string, {
     method: 'POST',
     body: { body: text },
   });

@@ -202,7 +202,7 @@ async function handleDiscPost(): Promise<void> {
 // --- Instance mirror status (not user-level follow) ---
 const mirrorStatus = computed(() => hub.value?.followStatus ?? 'pending');
 
-const remoteFollowRef = ref<InstanceType<typeof RemoteFollowDialog> | null>(null);
+const remoteFollowRef = ref<{ show: () => void } | null>(null);
 
 // --- Like state tracking ---
 const likedPostIds = ref<Set<string>>(new Set());

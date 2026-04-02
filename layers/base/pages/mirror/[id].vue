@@ -18,7 +18,7 @@ const {
 const { user } = useAuth();
 const following = ref(false);
 const followState = ref<'idle' | 'sent' | 'error'>('idle');
-const remoteFollowRef = ref<InstanceType<typeof RemoteFollowDialog> | null>(null);
+const remoteFollowRef = ref<{ show: () => void } | null>(null);
 
 async function followAuthor(): Promise<void> {
   const uri = actor.value?.actorUri as string | undefined;

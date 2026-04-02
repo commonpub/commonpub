@@ -36,7 +36,7 @@ async function startConversation(): Promise<void> {
       body: { participants: [newRecipient.value.trim()] },
     });
     if (newMessage.value.trim()) {
-      await $fetch(`/api/messages/${conv.id}`, {
+      await $fetch(`/api/messages/${conv.id}` as string, {
         method: 'POST',
         body: { body: newMessage.value.trim() },
       });
