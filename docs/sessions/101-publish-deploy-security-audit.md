@@ -95,6 +95,40 @@ See docs/sessions/100-hub-federation-completeness.md
 - DM handle regex is permissive on username chars but requires `user@domain.tld` format
 - Group actor mod-edits silently dropped by actorUri check — acceptable security tradeoff
 
+## Second pass — medium + low fixes (18 files, same session)
+
+After critical/high fixes, resolved all remaining audit findings:
+
+**Medium fixes (10):**
+- onAccept/onReject use objectId to match correct pending follow
+- sendFollow stores activityUri on follow relationship for precise matching
+- DM inbound resolves remote actor display name (was raw URI)
+- Federated content share returns 403 not 500 on non-member
+- useHead in federated hub post page uses computed (was dead code at setup time)
+- Fork notifications use type 'fork', build uses 'build' (was 'like')
+- Ban notifications use type 'hub' (was 'system', inconsistent with kick/role)
+- joinHub notifies admins too, not just owners (consistent with createPost)
+- useMirrorContent validates attachment shape from federation
+- Notification icon map covers all 10 trigger types (was 5)
+
+**Low fixes (10+):**
+- ARIA labels on edit textarea, reply inputs, like/follow buttons
+- CSS: remove hardcoded color fallbacks, fix non-prefixed classes (own→cpub-msg-own, unread→cpub-notif-unread)
+- Remove avatar border-radius: 50% on federated hub posts (sharp corners design)
+- Validators: add .trim() to content schemas (reject whitespace-only)
+- Remove unused imports (sql in hubFederation, hasLikedPost in tests)
+- DM send error shows toast (was TODO comment)
+- Update audit doc header
+
+**Schema change:** Added 'fork' and 'build' to notification_type Postgres enum.
+Applied via `ALTER TYPE notification_type ADD VALUE IF NOT EXISTS` on both instances.
+
+Bumped: schema 0.8.12, server 2.11.2, layer 0.3.15
+
+## Final test results
+
+557 server tests, 319 schema tests, 26/26 typecheck — all green
+
 ## Next steps (P1-P4 from session prompt)
 
 - P1: OAuth cross-instance SSO UI
