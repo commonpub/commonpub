@@ -117,6 +117,7 @@ useSeoMeta({
             <p v-if="transformedContent.author.bio" class="cpub-mirror-bio">{{ stripHtml(transformedContent.author.bio) }}</p>
           </div>
         </div>
+        <!-- Content is sanitized on ingest (inboxHandlers.ts → sanitizeHtml). Safe for v-html. -->
         <div v-if="typeof transformedContent.content === 'string'" class="cpub-mirror-body prose" v-html="transformedContent.content" />
         <ContentAttachments v-if="transformedContent.attachments?.length" :attachments="transformedContent.attachments" />
         <div v-if="transformedContent.tags?.length" class="cpub-mirror-tags">
@@ -146,7 +147,7 @@ useSeoMeta({
   display: flex; align-items: center; gap: 4px; font-size: 11px;
 }
 .cpub-fed-banner-follow {
-  margin-left: auto; background: var(--accent); color: #fff; border: none;
+  margin-left: auto; background: var(--accent); color: var(--accent-text, #fff); border: none;
   font-size: 11px; font-weight: 600; padding: 3px 10px; cursor: pointer;
   display: flex; align-items: center; gap: 4px; white-space: nowrap;
 }

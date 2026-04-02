@@ -2,7 +2,6 @@
 const route = useRoute();
 const conversationId = route.params.conversationId as string;
 
-useSeoMeta({ title: () => `Message — ${participantLabel.value}` });
 definePageMeta({ middleware: 'auth' });
 
 const { user } = useAuth();
@@ -57,17 +56,18 @@ const participantLabel = computed(() => {
   return others.length > 0 ? others.join(', ') : 'Conversation';
 });
 
+useSeoMeta({ title: () => `Message — ${participantLabel.value}` });
+
 async function handleSend(text: string): Promise<void> {
   await $fetch(`/api/messages/${conversationId}` as string, {
     method: 'POST',
     body: { body: text },
   });
   // SSE will pick up the new message, but also do an immediate refresh for responsiveness
-  refresh().then((result: any) => {
-    if (result?.data?.value) {
-      messages.value = result.data.value;
-    }
-  });
+  await refresh();
+  if (initialMessages.value) {
+    messages.value = [...initialMessages.value];
+  }
 }
 </script>
 

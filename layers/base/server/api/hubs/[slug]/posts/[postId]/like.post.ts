@@ -1,4 +1,4 @@
-import { likePost, unlikePost, hasLikedPost, getHubBySlug, getPostById, federateHubPostLike } from '@commonpub/server';
+import { likePost, unlikePost, hasLikedPost, getHubBySlug, getPostById, federateHubPostLike, checkBan } from '@commonpub/server';
 
 export default defineEventHandler(async (event) => {
   const user = requireAuth(event);
@@ -11,6 +11,10 @@ export default defineEventHandler(async (event) => {
 
   const post = await getPostById(db, postId);
   if (!post || post.hubId !== community.id) throw createError({ statusCode: 404, statusMessage: 'Post not found' });
+
+  // Banned users cannot like posts
+  const ban = await checkBan(db, community.id, user.id);
+  if (ban) throw createError({ statusCode: 403, statusMessage: 'You are banned from this hub' });
 
   const alreadyLiked = await hasLikedPost(db, user.id, postId);
   if (alreadyLiked) {

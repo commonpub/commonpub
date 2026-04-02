@@ -1,5 +1,5 @@
 <script setup lang="ts">
-defineProps<{
+const { attachments } = defineProps<{
   attachments: Array<{ type: string; url: string; name?: string }>;
 }>();
 
@@ -10,6 +10,15 @@ function iconForType(type: string): string {
   return 'fa-solid fa-file';
 }
 
+function isSafeUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'https:' || parsed.protocol === 'http:';
+  } catch {
+    return false;
+  }
+}
+
 function fileName(att: { url: string; name?: string }): string {
   if (att.name) return att.name;
   try {
@@ -18,14 +27,18 @@ function fileName(att: { url: string; name?: string }): string {
     return 'attachment';
   }
 }
+
+const safeAttachments = computed(() =>
+  attachments.filter((att) => att.url && att.type && isSafeUrl(att.url)),
+);
 </script>
 
 <template>
-  <div v-if="attachments.length > 0" class="cpub-attachments">
+  <div v-if="safeAttachments.length > 0" class="cpub-attachments">
     <div class="cpub-attachments-label">Attachments</div>
     <div class="cpub-attachments-list">
       <a
-        v-for="(att, i) in attachments"
+        v-for="(att, i) in safeAttachments"
         :key="i"
         :href="att.url"
         target="_blank"

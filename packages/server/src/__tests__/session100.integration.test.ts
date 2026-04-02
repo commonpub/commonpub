@@ -41,7 +41,7 @@ describe('session 100 — hub post editing', () => {
     const hub = await createHub(db, authorId, { name: 'Edit Test Hub' });
     const post = await createPost(db, authorId, { hubId: hub.id, content: 'Original content' });
 
-    const updated = await editPost(db, post.id, authorId, { content: 'Updated content' });
+    const updated = await editPost(db, post.id, authorId, hub.id, { content: 'Updated content' });
     expect(updated).not.toBeNull();
     expect(updated!.content).toBe('Updated content');
   });
@@ -51,12 +51,12 @@ describe('session 100 — hub post editing', () => {
     await joinHub(db, otherId, hub.id);
     const post = await createPost(db, authorId, { hubId: hub.id, content: 'Author only' });
 
-    const result = await editPost(db, post.id, otherId, { content: 'Hacked' });
+    const result = await editPost(db, post.id, otherId, hub.id, { content: 'Hacked' });
     expect(result).toBeNull();
   });
 
   it('returns null for nonexistent post', async () => {
-    const result = await editPost(db, '00000000-0000-0000-0000-000000000000', authorId, { content: 'No post' });
+    const result = await editPost(db, '00000000-0000-0000-0000-000000000000', authorId, '00000000-0000-0000-0000-000000000000', { content: 'No post' });
     expect(result).toBeNull();
   });
 });

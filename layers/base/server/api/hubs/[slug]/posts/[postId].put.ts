@@ -14,7 +14,7 @@ export default defineEventHandler(async (event): Promise<HubPostItem> => {
   }
 
   const input = await parseBody(event, editPostSchema);
-  const updated = await editPost(db, postId, user.id, input);
+  const updated = await editPost(db, postId, user.id, community.id, input);
   if (!updated) {
     throw createError({ statusCode: 403, statusMessage: 'Not authorized to edit this post' });
   }

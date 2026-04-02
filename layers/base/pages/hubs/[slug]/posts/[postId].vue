@@ -62,20 +62,22 @@ async function toggleLike(): Promise<void> {
 
 // Mod actions
 async function togglePin(): Promise<void> {
+  const wasPinned = post.value?.isPinned;
   try {
     await $fetch(`/api/hubs/${slug.value}/posts/${postId.value}/pin`, { method: 'POST' });
     await refreshPost();
-    toast.success(post.value?.isPinned ? 'Post unpinned' : 'Post pinned');
+    toast.success(wasPinned ? 'Post unpinned' : 'Post pinned');
   } catch {
     toast.error('Failed to toggle pin');
   }
 }
 
 async function toggleLock(): Promise<void> {
+  const wasLocked = post.value?.isLocked;
   try {
     await $fetch(`/api/hubs/${slug.value}/posts/${postId.value}/lock`, { method: 'POST' });
     await refreshPost();
-    toast.success(post.value?.isLocked ? 'Post unlocked' : 'Post locked');
+    toast.success(wasLocked ? 'Post unlocked' : 'Post locked');
   } catch {
     toast.error('Failed to toggle lock');
   }
@@ -352,7 +354,7 @@ useSeoMeta({
   display: flex; gap: 6px;
 }
 
-.cpub-btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+.cpub-btn-primary { background: var(--accent); color: var(--accent-text, #fff); border-color: var(--accent); }
 .cpub-btn-primary:hover:not(:disabled) { opacity: 0.9; }
 .cpub-btn-primary:disabled { opacity: 0.5; cursor: default; }
 .cpub-btn-danger { color: var(--red); border-color: var(--red); }

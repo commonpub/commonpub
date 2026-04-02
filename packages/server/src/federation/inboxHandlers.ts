@@ -659,7 +659,7 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
         }
       }
 
-      // Also try updating federated hub posts (Group actor updating a Note)
+      // Also try updating federated hub posts — only the original author can update
       if (objectUri) {
         try {
           const hubPostUpdates: Record<string, unknown> = {};
@@ -669,7 +669,10 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
             await db
               .update(federatedHubPosts)
               .set(hubPostUpdates)
-              .where(eq(federatedHubPosts.objectUri, objectUri));
+              .where(and(
+                eq(federatedHubPosts.objectUri, objectUri),
+                eq(federatedHubPosts.actorUri, actorUri),
+              ));
           }
         } catch { /* non-critical */ }
       }
@@ -985,7 +988,7 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
               });
               if (noteResponse.ok) {
                 const note = await noteResponse.json() as Record<string, unknown>;
-                const noteContent = (note.content as string) ?? '';
+                const noteContent = typeof note.content === 'string' ? sanitizeHtml(note.content) : '';
 
                 // AP spec: attributedTo can be string, object with id, or array
                 let noteActorUri = actorUri;

@@ -198,12 +198,12 @@ export async function deletePost(
   hubId: string,
 ): Promise<boolean> {
   const post = await db
-    .select({ authorId: hubPosts.authorId })
+    .select({ authorId: hubPosts.authorId, hubId: hubPosts.hubId })
     .from(hubPosts)
     .where(eq(hubPosts.id, postId))
     .limit(1);
 
-  if (post.length === 0) return false;
+  if (post.length === 0 || post[0]!.hubId !== hubId) return false;
 
   if (post[0]!.authorId !== userId) {
     const member = await db
@@ -230,21 +230,26 @@ export async function deletePost(
 }
 
 /**
- * Edit a hub post's content. Only the author can edit.
+ * Edit a hub post's content. Only the author can edit, and must not be banned.
  */
 export async function editPost(
   db: DB,
   postId: string,
   userId: string,
+  hubId: string,
   input: { content: string },
 ): Promise<HubPostItem | null> {
   const [post] = await db
-    .select({ authorId: hubPosts.authorId })
+    .select({ authorId: hubPosts.authorId, hubId: hubPosts.hubId })
     .from(hubPosts)
     .where(eq(hubPosts.id, postId))
     .limit(1);
 
-  if (!post || post.authorId !== userId) return null;
+  if (!post || post.hubId !== hubId || post.authorId !== userId) return null;
+
+  // Banned users cannot edit posts
+  const ban = await checkBan(db, hubId, userId);
+  if (ban) return null;
 
   await db
     .update(hubPosts)
@@ -628,12 +633,13 @@ export async function deleteReply(
   hubId: string,
 ): Promise<boolean> {
   const reply = await db
-    .select({ authorId: hubPostReplies.authorId, postId: hubPostReplies.postId })
+    .select({ authorId: hubPostReplies.authorId, postId: hubPostReplies.postId, postHubId: hubPosts.hubId })
     .from(hubPostReplies)
+    .innerJoin(hubPosts, eq(hubPostReplies.postId, hubPosts.id))
     .where(eq(hubPostReplies.id, replyId))
     .limit(1);
 
-  if (reply.length === 0) return false;
+  if (reply.length === 0 || reply[0]!.postHubId !== hubId) return false;
 
   if (reply[0]!.authorId !== userId) {
     const member = await db
