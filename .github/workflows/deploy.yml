@@ -46,11 +46,10 @@ jobs:
             docker compose -f docker-compose.prod.yml up -d --force-recreate --remove-orphans
             sleep 5
             # Apply schema changes via drizzle-kit push
-            # --force handles most cases; if it fails due to TTY prompts (e.g. unique
-            # constraint on table with data), log a warning — the deploy still succeeds
-            # and additive changes (new columns/tables) are applied.
-            docker compose -f docker-compose.prod.yml exec -T app npx drizzle-kit push --config=drizzle.config.js --force 2>&1 \
-              && echo "db:push succeeded" \
-              || echo "::warning::db:push needs manual review — run interactively on the droplet if schema changes were not applied"
+            # Use --force to auto-accept additive changes. If it fails (e.g. interactive
+            # prompts for renames), the deploy still succeeds but logs a warning.
+            docker compose -f docker-compose.prod.yml exec -T app npx drizzle-kit push --config=drizzle.config.js --force 2>&1 | tee /tmp/dbpush.log \
+              && echo "✅ db:push succeeded" \
+              || { echo "::warning::db:push failed — schema changes may need manual SQL. Check output above."; cat /tmp/dbpush.log; }
             docker image prune -f
             echo "Deployed ${{ github.sha }}"

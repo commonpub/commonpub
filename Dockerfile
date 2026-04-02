@@ -23,6 +23,8 @@ COPY --from=build /app/apps/reference/package.json ./package.json
 COPY --from=build /app/apps/reference/node_modules ./node_modules
 COPY --from=build /app/apps/reference/drizzle.config.js ./drizzle.config.js
 COPY --from=build /app/packages/schema/dist ./schema/dist
+# drizzle-kit for schema migrations on deploy (not in app's prod deps)
+RUN npm install --no-save drizzle-kit@0.31.10
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV NITRO_PORT=3000
