@@ -208,11 +208,12 @@ async function deleteItem(id: string, title: string): Promise<void> {
       <div class="cpub-dash-list">
         <div v-for="bm in bookmarkData?.items ?? []" :key="bm.id" class="cpub-dash-row">
           <template v-if="bm.content">
-            <NuxtLink :to="`/${bm.content.type}/${bm.content.slug}`" class="cpub-dash-row-title">
+            <NuxtLink :to="bm.isFederated ? `/mirror/${bm.targetId}` : `/${bm.content.type}/${bm.content.slug}`" class="cpub-dash-row-title">
               {{ bm.content.title }}
             </NuxtLink>
             <span class="cpub-dash-row-meta">
               <ContentTypeBadge :type="bm.content.type" />
+              <span v-if="bm.isFederated && bm.content.originDomain" class="cpub-dash-row-fed"><i class="fa-solid fa-globe"></i> {{ bm.content.originDomain }}</span>
               <span v-if="bm.content.author">by {{ bm.content.author.displayName || bm.content.author.username }}</span>
             </span>
           </template>

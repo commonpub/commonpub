@@ -7,6 +7,8 @@ import {
   contentItems,
   hubPosts,
   users,
+  federatedContent,
+  remoteActors,
 } from '@commonpub/schema';
 import type { CommonPubConfig } from '@commonpub/config';
 import type { DB, CommentItem } from '../types.js';
@@ -390,12 +392,14 @@ export interface BookmarkItem {
   targetType: string;
   targetId: string;
   createdAt: Date;
+  isFederated: boolean;
   content: {
     id: string;
     title: string;
     slug: string;
     type: string;
     coverImageUrl: string | null;
+    originDomain?: string | null;
     author: { id: string; username: string; displayName: string | null; avatarUrl: string | null };
   } | null;
 }
@@ -426,10 +430,25 @@ export async function listUserBookmarks(
           displayName: users.displayName,
           avatarUrl: users.avatarUrl,
         },
+        fedContent: {
+          id: federatedContent.id,
+          title: federatedContent.title,
+          cpubType: federatedContent.cpubType,
+          coverImageUrl: federatedContent.coverImageUrl,
+          originDomain: federatedContent.originDomain,
+        },
+        fedActor: {
+          actorUri: remoteActors.actorUri,
+          preferredUsername: remoteActors.preferredUsername,
+          displayName: remoteActors.displayName,
+          avatarUrl: remoteActors.avatarUrl,
+        },
       })
       .from(bookmarks)
       .leftJoin(contentItems, eq(bookmarks.targetId, contentItems.id))
       .leftJoin(users, eq(contentItems.authorId, users.id))
+      .leftJoin(federatedContent, eq(bookmarks.targetId, federatedContent.id))
+      .leftJoin(remoteActors, eq(federatedContent.remoteActorId, remoteActors.id))
       .where(where)
       .orderBy(desc(bookmarks.createdAt))
       .limit(limit)
@@ -437,22 +456,56 @@ export async function listUserBookmarks(
     countRows(db, bookmarks, where),
   ]);
 
-  const items: BookmarkItem[] = rows.map((row) => ({
-    id: row.bookmark.id,
-    targetType: row.bookmark.targetType,
-    targetId: row.bookmark.targetId,
-    createdAt: row.bookmark.createdAt,
-    content: row.content?.id
-      ? {
+  const items: BookmarkItem[] = rows.map((row) => {
+    // Local content match
+    if (row.content?.id) {
+      return {
+        id: row.bookmark.id,
+        targetType: row.bookmark.targetType,
+        targetId: row.bookmark.targetId,
+        createdAt: row.bookmark.createdAt,
+        isFederated: false,
+        content: {
           id: row.content.id,
           title: row.content.title,
           slug: row.content.slug,
           type: row.content.type,
           coverImageUrl: row.content.coverImageUrl,
           author: row.author ?? { id: 'deleted', username: 'deleted', displayName: '[Deleted User]', avatarUrl: null },
-        }
-      : null,
-  }));
+        },
+      };
+    }
+    // Federated content match
+    if (row.fedContent?.id) {
+      return {
+        id: row.bookmark.id,
+        targetType: row.bookmark.targetType,
+        targetId: row.bookmark.targetId,
+        createdAt: row.bookmark.createdAt,
+        isFederated: true,
+        content: {
+          id: row.fedContent.id,
+          title: row.fedContent.title ?? 'Untitled',
+          slug: `mirror/${row.fedContent.id}`,
+          type: row.fedContent.cpubType ?? row.bookmark.targetType,
+          coverImageUrl: row.fedContent.coverImageUrl,
+          originDomain: row.fedContent.originDomain,
+          author: row.fedActor?.actorUri
+            ? { id: '', username: row.fedActor.preferredUsername ?? 'unknown', displayName: row.fedActor.displayName, avatarUrl: row.fedActor.avatarUrl }
+            : { id: 'remote', username: 'remote', displayName: 'Remote Author', avatarUrl: null },
+        },
+      };
+    }
+    // Neither matched — deleted content
+    return {
+      id: row.bookmark.id,
+      targetType: row.bookmark.targetType,
+      targetId: row.bookmark.targetId,
+      createdAt: row.bookmark.createdAt,
+      isFederated: false,
+      content: null,
+    };
+  });
 
   return { items, total };
 }
