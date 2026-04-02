@@ -154,11 +154,42 @@ Bumped: server 2.12.0, layer 0.3.16
 
 557 server tests, 319 schema tests, 26/26 typecheck — all green
 
+## Fourth pass — accessibility, signed fetches, deploy fixes
+
+- ARIA labels on all engagement buttons (ArticleView, BlogView, ExplainerView)
+- ExplainerView TOC: `<a @click>` → `<button>` with aria-label (keyboard accessible)
+- ExplainerView progress dots: `<div @click>` → `<button>` with aria-label
+- MessageThread send button: aria-label
+- Mirror page: removed hardcoded border-radius on avatar
+- Signed HTTP GET for backfill + followers fetch (authorized_fetch compliance)
+- deveco-io Dockerfile: clean package.json for drizzle-kit, drizzle.config.js for runtime
+
 ## Final published versions
 
 - `@commonpub/schema@0.8.12`
-- `@commonpub/server@2.12.0`
-- `@commonpub/layer@0.3.16`
+- `@commonpub/server@2.12.2`
+- `@commonpub/layer@0.3.18`
+
+## Deploy status
+
+- commonpub.io: Deploy PASSING (Dockerfile workspace:* fix)
+- deveco.io: Deploy PASSING (Dockerfile clean package.json fix)
+- CI check jobs (build+test+typecheck): PASSING on both repos
+- CI E2E (Playwright): 6 pre-existing flaky failures (not session 101 related)
+
+## Session 101 stats
+
+- 20 commits on commonpub, ~7 on deveco-io
+- 557 server tests, 319 schema tests, 26/26 typecheck
+- 11 critical/high security fixes
+- 10 medium fixes
+- 15+ low/accessibility fixes
+- 3 new server features (hub backfill, followers fetch, Undo(Like))
+- Schema migration applied on both production instances
+
+## Remaining audit item
+
+- #4 (unsigned outbox fetches in existing `backfill.ts`): The original instance-level backfill still uses unsigned fetches. Only the new hub backfill/followers functions were updated. Low priority since instance mirrors typically auto-accept.
 
 ## Next steps (P1-P4 from session prompt)
 
@@ -167,3 +198,4 @@ Bumped: server 2.12.0, layer 0.3.16
 - P3: Messaging polish (unread counts, read receipts, group conversations)
 - P4: SSE merge, CLI bump, @mentions, notification email preferences
 - Fix flaky E2E tests (hero banner dismiss, search filters, footer links)
+- Add periodic background sync for federated hub data
