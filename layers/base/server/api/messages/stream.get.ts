@@ -1,6 +1,8 @@
 import { getUnreadMessageCount } from '@commonpub/server';
 
+/** @deprecated Use /api/realtime/stream instead */
 export default defineEventHandler(async (event) => {
+  console.warn('[deprecated] /api/messages/stream — use /api/realtime/stream instead');
   const user = requireAuth(event);
   const userId = user.id;
   const db = useDB();

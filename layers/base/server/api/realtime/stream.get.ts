@@ -1,15 +1,14 @@
-import { getUnreadCount } from '@commonpub/server';
+import { getUnreadCount, getUnreadMessageCount } from '@commonpub/server';
 
-/** @deprecated Use /api/realtime/stream instead */
+/**
+ * Unified SSE stream for notification and message counts.
+ * Replaces the separate /api/notifications/stream and /api/messages/stream endpoints.
+ * Sends both counts in a single event, halving DB polls and open connections.
+ */
 export default defineEventHandler(async (event) => {
-  console.warn('[deprecated] /api/notifications/stream — use /api/realtime/stream instead');
   const user = requireAuth(event);
   const userId = user.id;
   const db = useDB();
-
-  setResponseHeader(event, 'Content-Type', 'text/event-stream');
-  setResponseHeader(event, 'Cache-Control', 'no-cache');
-  setResponseHeader(event, 'Connection', 'keep-alive');
 
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
@@ -23,21 +22,27 @@ export default defineEventHandler(async (event) => {
         try { controller.close(); } catch { /* already closed */ }
       }
 
-      // Send initial count
-      const count = await getUnreadCount(db, userId);
-      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'count', count })}\n\n`));
+      async function sendCounts(): Promise<void> {
+        const [notifications, messages] = await Promise.all([
+          getUnreadCount(db, userId),
+          getUnreadMessageCount(db, userId),
+        ]);
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'counts', notifications, messages })}\n\n`));
+      }
 
-      // Poll every 10 seconds for new notifications
+      // Send initial counts
+      await sendCounts();
+
+      // Poll every 10 seconds
       const interval = setInterval(async () => {
         try {
-          const currentCount = await getUnreadCount(db, userId);
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'count', count: currentCount })}\n\n`));
+          await sendCounts();
         } catch {
           cleanup();
         }
       }, 10000);
 
-      // Send keepalive every 30 seconds
+      // Keepalive every 30 seconds
       const keepalive = setInterval(() => {
         try {
           controller.enqueue(encoder.encode(': keepalive\n\n'));
@@ -46,7 +51,6 @@ export default defineEventHandler(async (event) => {
         }
       }, 30000);
 
-      // Clean up on close
       event.node.req.on('close', cleanup);
     },
   });
