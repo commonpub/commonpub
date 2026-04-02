@@ -416,16 +416,17 @@ export async function sendFollow(
 
   const localActorUri = `https://${domain}/users/${user[0].username}`;
 
+  const activity = buildFollowActivity(domain, localActorUri, remoteActorUri);
+
   const [relationship] = await db
     .insert(followRelationships)
     .values({
       followerActorUri: localActorUri,
       followingActorUri: remoteActorUri,
       status: 'pending',
+      activityUri: activity.id,
     })
     .returning();
-
-  const activity = buildFollowActivity(domain, localActorUri, remoteActorUri);
 
   await db.insert(activities).values({
     type: 'Follow',

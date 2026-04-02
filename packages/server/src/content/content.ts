@@ -652,7 +652,7 @@ export async function toggleBuildMark(
       const actorName = actor?.displayName || actor?.username || 'Someone';
       await createNotification(db, {
         userId: result.authorId,
-        type: 'like',
+        type: 'build',
         title: 'Someone built this!',
         message: `${actorName} marked "I built this" on "${result.title ?? 'your content'}"`,
         link: `/${result.type}/${result.slug}`,
@@ -739,7 +739,7 @@ export async function forkContent(
       const actorName = actor?.displayName || actor?.username || 'Someone';
       await createNotification(db, {
         userId: item.authorId,
-        type: 'like',
+        type: 'fork',
         title: 'Content forked',
         message: `${actorName} forked "${item.title ?? 'your content'}"`,
         link: `/${item.type}/${item.slug}`,

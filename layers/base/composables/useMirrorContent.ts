@@ -83,7 +83,9 @@ export function useMirrorContent(fedContent: Ref<Record<string, unknown> | null>
       },
       buildCount: 0,
       bookmarkCount: 0,
-      attachments: Array.isArray(fc.attachments) ? (fc.attachments as Array<{ type: string; url: string; name?: string }>) : [],
+      attachments: Array.isArray(fc.attachments)
+        ? (fc.attachments as Array<Record<string, unknown>>).filter((a) => typeof a.type === 'string' && typeof a.url === 'string').map((a) => ({ type: a.type as string, url: a.url as string, name: typeof a.name === 'string' ? a.name : undefined }))
+        : [],
     } satisfies ContentViewData;
   });
 

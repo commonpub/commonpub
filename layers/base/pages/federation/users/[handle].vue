@@ -8,6 +8,7 @@ const handle = computed(() => decodeURIComponent(route.params.handle as string))
 
 const { searchResult, searchLoading, searchError, searchRemoteUser, followRemoteUser, unfollowRemoteUser } = useFederation();
 const { user } = useAuth();
+const toast = useToast();
 
 const content = ref<FederatedContentItem[]>([]);
 const contentLoading = ref(false);
@@ -29,7 +30,7 @@ async function sendDm(): Promise<void> {
     showDmForm.value = false;
     setTimeout(() => { dmSent.value = false; }, 5000);
   } catch {
-    // TODO: show error toast
+    toast.error('Failed to send message');
   } finally {
     dmSending.value = false;
   }
@@ -107,6 +108,8 @@ function stripHtml(html: string): string {
               'cpub-remote-profile__follow-btn--pending': searchResult.isFollowPending,
             }"
             :disabled="searchResult.isFollowPending"
+            :aria-pressed="searchResult.isFollowing"
+            :aria-label="searchResult.isFollowing ? 'Unfollow user' : searchResult.isFollowPending ? 'Follow request pending' : 'Follow user'"
             @click="searchResult.isFollowing ? onUnfollow() : onFollow()"
           >
             {{ searchResult.isFollowing ? 'Following' : searchResult.isFollowPending ? 'Pending' : 'Follow' }}
@@ -128,6 +131,7 @@ function stripHtml(html: string): string {
           class="cpub-remote-profile__dm-textarea"
           placeholder="Write a message..."
           rows="3"
+          aria-label="Direct message"
         ></textarea>
         <div class="cpub-remote-profile__dm-actions">
           <button class="cpub-remote-profile__dm-send" :disabled="dmSending || !dmBody.trim()" @click="sendDm">
@@ -182,7 +186,7 @@ function stripHtml(html: string): string {
   color: var(--text-2);
   padding: var(--space-8) 0;
 }
-.cpub-remote-profile__error { color: var(--error, #f85149); }
+.cpub-remote-profile__error { color: var(--error); }
 .cpub-remote-profile__header {
   display: flex;
   align-items: center;
@@ -317,7 +321,7 @@ function stripHtml(html: string): string {
 }
 .cpub-remote-profile__dm-sent {
   font-size: var(--font-size-sm);
-  color: var(--green, #22c55e);
+  color: var(--green);
   font-weight: 600;
   margin-bottom: var(--space-4);
 }

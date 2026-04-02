@@ -13,7 +13,7 @@ import type { DB } from '../types.js';
 import { createTestDB, createTestUser, closeTestDB } from './helpers/testdb.js';
 import { createHub } from '../hub/hub.js';
 import { joinHub, kickMember, changeRole } from '../hub/members.js';
-import { createPost, editPost, likePost, hasLikedPost, createReply } from '../hub/posts.js';
+import { createPost, editPost, likePost, createReply } from '../hub/posts.js';
 import { banUser } from '../hub/moderation.js';
 import { createNotification, listNotifications, getUnreadCount } from '../notification/notification.js';
 import { createContent, publishContent, forkContent, toggleBuildMark } from '../content/content.js';
@@ -290,7 +290,7 @@ describe('session 100 — hub membership notifications', () => {
 
     expect(afterCount).toBeGreaterThan(beforeCount);
 
-    const { items } = await listNotifications(db, { userId: memberId, type: 'system' });
+    const { items } = await listNotifications(db, { userId: memberId, type: 'hub' });
     expect(items.some((n) => n.message.includes('banned') && n.message.includes('Spam'))).toBe(true);
   });
 });

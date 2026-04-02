@@ -19,11 +19,16 @@ const iconMap: Record<string, string> = {
   follow: 'fa-solid fa-user-plus',
   mention: 'fa-solid fa-at',
   system: 'fa-solid fa-bell',
+  hub: 'fa-solid fa-users',
+  fork: 'fa-solid fa-code-fork',
+  build: 'fa-solid fa-hammer',
+  contest: 'fa-solid fa-trophy',
+  certificate: 'fa-solid fa-certificate',
 };
 </script>
 
 <template>
-  <div class="cpub-notif" :class="{ unread: !notification.read }">
+  <div class="cpub-notif" :class="{ 'cpub-notif-unread': !notification.read }">
     <div class="cpub-notif-avatar-wrap">
       <img v-if="notification.actorAvatarUrl" :src="notification.actorAvatarUrl" :alt="notification.actorName ?? ''" class="cpub-notif-avatar" />
       <div v-else class="cpub-notif-avatar cpub-notif-avatar-fallback">
@@ -42,7 +47,7 @@ const iconMap: Record<string, string> = {
         {{ new Date(notification.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) }}
       </time>
     </div>
-    <NuxtLink v-if="notification.link || notification.targetUrl" :to="notification.link || notification.targetUrl || '#'" class="cpub-notif-link" aria-label="View">
+    <NuxtLink v-if="notification.link || notification.targetUrl" :to="notification.link || notification.targetUrl || '#'" class="cpub-notif-link" :aria-label="`View ${notification.type} notification`">
       <i class="fa-solid fa-arrow-right"></i>
     </NuxtLink>
   </div>
@@ -58,7 +63,7 @@ const iconMap: Record<string, string> = {
   border-bottom: var(--border-width-default) solid var(--border2);
 }
 
-.cpub-notif.unread {
+.cpub-notif.cpub-notif-unread {
   background: var(--accent-bg);
   border-color: var(--accent-border);
 }

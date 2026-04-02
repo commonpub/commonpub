@@ -31,7 +31,7 @@ function handleSend(): void {
         v-for="msg in messages"
         :key="msg.id"
         class="cpub-msg"
-        :class="{ own: msg.senderId === currentUserId }"
+        :class="{ 'cpub-msg-own': msg.senderId === currentUserId }"
       >
         <div v-if="msg.senderId !== currentUserId" class="cpub-msg-sender">
           <img v-if="msg.senderAvatarUrl" :src="msg.senderAvatarUrl" :alt="msg.senderName ?? ''" class="cpub-msg-avatar" />
@@ -81,7 +81,7 @@ function handleSend(): void {
   max-width: 70%;
 }
 
-.cpub-msg.own {
+.cpub-msg.cpub-msg-own {
   align-self: flex-end;
 }
 

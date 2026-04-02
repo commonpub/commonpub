@@ -144,7 +144,7 @@ export const createCommentSchema = z.object({
   targetType: commentTargetTypeSchema,
   targetId: z.string().uuid(),
   parentId: z.string().uuid().optional(),
-  content: z.string().min(1).max(10000),
+  content: z.string().trim().min(1).max(10000),
 });
 export type CreateCommentInput = z.infer<typeof createCommentSchema>;
 
@@ -174,7 +174,7 @@ export type UpdateHubInput = z.infer<typeof updateHubSchema>;
 export const createPostSchema = z.object({
   hubId: z.string().uuid().optional(),
   type: z.enum(['text', 'link', 'share', 'poll', 'discussion', 'question', 'showcase', 'announcement']).default('text'),
-  content: z.string().min(1).max(10000),
+  content: z.string().trim().min(1).max(10000),
   sharedContentId: z.string().uuid().optional(),
   pollOptions: z.array(z.string().min(1).max(200)).min(2).max(10).optional(),
   pollMultiSelect: z.boolean().optional(),
@@ -183,13 +183,13 @@ export type CreatePostInput = z.infer<typeof createPostSchema>;
 
 export const createReplySchema = z.object({
   postId: z.string().uuid(),
-  content: z.string().min(1).max(10000),
+  content: z.string().trim().min(1).max(10000),
   parentId: z.string().uuid().optional(),
 });
 export type CreateReplyInput = z.infer<typeof createReplySchema>;
 
 export const editPostSchema = z.object({
-  content: z.string().min(1).max(10000),
+  content: z.string().trim().min(1).max(10000),
 });
 export type EditPostInput = z.infer<typeof editPostSchema>;
 

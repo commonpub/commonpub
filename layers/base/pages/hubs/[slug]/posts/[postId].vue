@@ -152,7 +152,7 @@ useSeoMeta({
       </div>
 
       <div v-if="editing" class="cpub-post-edit-form">
-        <textarea v-model="editContent" class="cpub-post-edit-textarea" rows="4"></textarea>
+        <textarea v-model="editContent" class="cpub-post-edit-textarea" rows="4" aria-label="Edit post content"></textarea>
         <div class="cpub-post-edit-actions">
           <button class="cpub-btn cpub-btn-sm cpub-btn-primary" :disabled="saving || !editContent.trim()" @click="saveEdit">
             {{ saving ? 'Saving...' : 'Save' }}
@@ -179,7 +179,7 @@ useSeoMeta({
         </div>
 
         <div class="cpub-post-actions">
-          <button class="cpub-post-action-btn" :class="{ active: post.isLiked }" :disabled="liking || !isAuthenticated" @click="toggleLike" :title="isAuthenticated ? 'Like' : 'Log in to like'">
+          <button class="cpub-post-action-btn" :class="{ active: post.isLiked }" :disabled="liking || !isAuthenticated" @click="toggleLike" :aria-label="post.isLiked ? 'Unlike post' : 'Like post'" :aria-pressed="post.isLiked ?? false">
             <i :class="post.isLiked ? 'fa-solid fa-heart' : 'fa-regular fa-heart'"></i>
             {{ post.likeCount ?? 0 }}
           </button>
@@ -212,7 +212,7 @@ useSeoMeta({
         Replying to a comment <button class="cpub-cancel-reply" @click="replyingTo = null"><i class="fa-solid fa-xmark"></i></button>
       </div>
       <div class="cpub-reply-row">
-        <input v-model="replyContent" class="cpub-reply-input" type="text" placeholder="Write a reply..." @keydown.enter="handleReply" />
+        <input v-model="replyContent" class="cpub-reply-input" type="text" placeholder="Write a reply..." aria-label="Write a reply" @keydown.enter="handleReply" />
         <button class="cpub-btn cpub-btn-sm cpub-btn-primary" :disabled="replying || !replyContent.trim()" @click="handleReply">
           <i class="fa-solid fa-paper-plane"></i> Reply
         </button>

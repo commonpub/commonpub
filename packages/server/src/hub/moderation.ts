@@ -89,7 +89,7 @@ export async function banUser(
       ? `You were temporarily banned from ${hub?.name ?? 'a hub'}${reason ? `: ${reason}` : ''}`
       : `You were banned from ${hub?.name ?? 'a hub'}${reason ? `: ${reason}` : ''}`;
     await createNotification(db, {
-      userId: targetUserId, type: 'system',
+      userId: targetUserId, type: 'hub',
       title: 'Banned from hub', message: msg,
       link: hub ? `/hubs/${hub.slug}` : undefined, actorId: actorId,
     });

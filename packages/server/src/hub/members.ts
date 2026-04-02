@@ -75,7 +75,7 @@ export async function joinHub(
     const [hub] = await tx.select({ name: hubs.name, slug: hubs.slug }).from(hubs).where(eq(hubs.id, hubId)).limit(1);
     const [actor] = await tx.select({ displayName: users.displayName, username: users.username }).from(users).where(eq(users.id, userId)).limit(1);
     const admins = await tx.select({ userId: hubMembers.userId }).from(hubMembers)
-      .where(and(eq(hubMembers.hubId, hubId), eq(hubMembers.role, 'owner'))).limit(5);
+      .where(and(eq(hubMembers.hubId, hubId), sql`${hubMembers.role} IN ('owner', 'admin')`)).limit(10);
 
     return {
       joined: true,

@@ -92,12 +92,10 @@ useSeoMeta({
   description: () => post.value?.content?.slice(0, 160) ?? '',
 });
 
-if (hub.value?.url) {
-  useHead({
-    link: [{ rel: 'canonical', href: hub.value.url }],
-    meta: [{ name: 'robots', content: 'noindex, follow' }],
-  });
-}
+useHead({
+  link: computed(() => hub.value?.url ? [{ rel: 'canonical', href: hub.value.url }] : []),
+  meta: computed(() => hub.value?.url ? [{ name: 'robots', content: 'noindex, follow' }] : []),
+});
 </script>
 
 <template>
@@ -145,7 +143,7 @@ if (hub.value?.url) {
         </div>
 
         <div class="cpub-post-actions">
-          <button class="cpub-post-action-btn" :class="{ active: liked }" :disabled="liking" @click="handleLike" :title="isAuthenticated ? (liked ? 'Unlike' : 'Like') : 'Log in to like'">
+          <button class="cpub-post-action-btn" :class="{ active: liked }" :disabled="liking" @click="handleLike" :aria-label="liked ? 'Unlike post' : 'Like post'" :aria-pressed="liked">
             <i :class="liked ? 'fa-solid fa-heart' : 'fa-regular fa-heart'"></i>
             {{ likeCount }}
           </button>
@@ -164,6 +162,7 @@ if (hub.value?.url) {
           class="cpub-reply-input"
           type="text"
           placeholder="Write a reply (sent via federation)..."
+          aria-label="Write a reply"
           @keydown.enter="handleReply"
         />
         <button class="cpub-btn cpub-btn-sm cpub-btn-primary" :disabled="replying || !replyContent.trim()" @click="handleReply">
@@ -251,7 +250,7 @@ if (hub.value?.url) {
   width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;
   background: var(--surface2); border: 1px solid var(--border);
   font-family: var(--font-mono); font-size: 10px; font-weight: 700; color: var(--text-dim);
-  border-radius: 50%; overflow: hidden;
+  overflow: hidden;
 }
 .cpub-post-avatar-img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
 

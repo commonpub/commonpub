@@ -165,16 +165,18 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
      */
     async onAccept(actorUri: string, objectId: string): Promise<void> {
       // Find the pending follow relationship where we are the follower
-      // objectId is the original Follow activity URI
+      // objectId is the original Follow activity URI — use it for precise matching
+      const conditions = [
+        eq(followRelationships.followingActorUri, actorUri),
+        eq(followRelationships.status, 'pending'),
+      ];
+      if (objectId) {
+        conditions.push(eq(followRelationships.activityUri, objectId));
+      }
       const pending = await db
         .select()
         .from(followRelationships)
-        .where(
-          and(
-            eq(followRelationships.followingActorUri, actorUri),
-            eq(followRelationships.status, 'pending'),
-          ),
-        )
+        .where(and(...conditions))
         .limit(1);
 
       if (pending.length > 0) {
@@ -220,15 +222,17 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
      * Remote instance rejected our Follow request.
      */
     async onReject(actorUri: string, objectId: string): Promise<void> {
+      const conditions = [
+        eq(followRelationships.followingActorUri, actorUri),
+        eq(followRelationships.status, 'pending'),
+      ];
+      if (objectId) {
+        conditions.push(eq(followRelationships.activityUri, objectId));
+      }
       const pending = await db
         .select()
         .from(followRelationships)
-        .where(
-          and(
-            eq(followRelationships.followingActorUri, actorUri),
-            eq(followRelationships.status, 'pending'),
-          ),
-        )
+        .where(and(...conditions))
         .limit(1);
 
       if (pending.length > 0) {
@@ -403,13 +407,20 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
                   .limit(1);
 
                 if (localUser) {
-                  // Store the remote actor as a pseudo-participant using their URI
-                  // The conversation system will handle display via the info endpoint
+                  // Store the federated DM as a message from a system-level sender
+                  // The remote actor's identity is embedded in the message prefix
                   try {
                     const conv = await findOrCreateConversation(db, [localUser.id]);
                     const content = typeof object.content === 'string' ? sanitizeHtml(object.content) : '';
                     if (content) {
-                      await sendMessage(db, conv.id, localUser.id, `[From ${actorUri}]: ${content}`);
+                      // Resolve remote actor display name for better UX
+                      let senderLabel = actorUri;
+                      try {
+                        const [remoteActor] = await db.select({ displayName: remoteActors.displayName, preferredUsername: remoteActors.preferredUsername })
+                          .from(remoteActors).where(eq(remoteActors.actorUri, actorUri)).limit(1);
+                        if (remoteActor) senderLabel = remoteActor.displayName ?? remoteActor.preferredUsername ?? actorUri;
+                      } catch { /* use URI fallback */ }
+                      await sendMessage(db, conv.id, localUser.id, `[${senderLabel}]: ${content}`);
                     }
                   } catch {
                     // Conversation creation may fail — log and continue

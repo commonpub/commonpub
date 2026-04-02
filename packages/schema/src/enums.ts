@@ -71,6 +71,8 @@ export const notificationTypeEnum = pgEnum('notification_type', [
   'certificate',
   'hub',
   'system',
+  'fork',
+  'build',
 ]);
 
 // --- Hubs ---

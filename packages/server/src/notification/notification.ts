@@ -17,7 +17,7 @@ export interface NotificationItem {
   createdAt: Date;
 }
 
-export type NotificationType = 'like' | 'comment' | 'follow' | 'mention' | 'contest' | 'certificate' | 'hub' | 'system';
+export type NotificationType = 'like' | 'comment' | 'follow' | 'mention' | 'contest' | 'certificate' | 'hub' | 'system' | 'fork' | 'build';
 
 export interface NotificationFilters {
   userId: string;

@@ -3,7 +3,7 @@
  * Hubs become Group actors that can be followed by remote users.
  * Hub content is federated as Announce activities from the Group actor.
  */
-import { eq, and, sql } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import {
   hubs,
   hubActorKeypairs,

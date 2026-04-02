@@ -57,11 +57,16 @@ export default defineEventHandler(async (event): Promise<HubPostItem> => {
     originDomain: fedContent.originDomain,
   });
 
-  const post = await createPost(db, user.id, {
-    hubId: hub.id,
-    type: 'share',
-    content: sharePayload,
-  });
+  let post;
+  try {
+    post = await createPost(db, user.id, {
+      hubId: hub.id,
+      type: 'share',
+      content: sharePayload,
+    });
+  } catch {
+    throw createError({ statusCode: 403, statusMessage: 'You must be a hub member to share content' });
+  }
 
   // Federate the share using the object URI of the federated content
   if (config.features.federation && config.features.federateHubs) {
