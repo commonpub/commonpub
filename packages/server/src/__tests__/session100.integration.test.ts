@@ -59,6 +59,23 @@ describe('session 100 — hub post editing', () => {
     const result = await editPost(db, '00000000-0000-0000-0000-000000000000', authorId, '00000000-0000-0000-0000-000000000000', { content: 'No post' });
     expect(result).toBeNull();
   });
+
+  it('rejects edit with wrong hubId (cross-hub attack)', async () => {
+    const hub1 = await createHub(db, authorId, { name: 'Cross Hub 1' });
+    const hub2 = await createHub(db, authorId, { name: 'Cross Hub 2' });
+    const post = await createPost(db, authorId, { hubId: hub1.id, content: 'In hub 1' });
+    const result = await editPost(db, post.id, authorId, hub2.id, { content: 'Cross-hub attack' });
+    expect(result).toBeNull();
+  });
+
+  it('rejects edit from banned user', async () => {
+    const hub = await createHub(db, authorId, { name: 'Ban Edit Hub' });
+    await joinHub(db, otherId, hub.id);
+    const post = await createPost(db, otherId, { hubId: hub.id, content: 'Before ban' });
+    await banUser(db, authorId, hub.id, otherId, 'test ban');
+    const result = await editPost(db, post.id, otherId, hub.id, { content: 'After ban' });
+    expect(result).toBeNull();
+  });
 });
 
 describe('session 100 — editPostSchema validation', () => {

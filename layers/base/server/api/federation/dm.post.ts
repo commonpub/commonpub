@@ -20,7 +20,8 @@ export default defineEventHandler(async (event) => {
 
   try {
     await federateDirectMessage(db, user.id, resolved.actorUri, input.body, config.instance.domain);
-  } catch {
+  } catch (err) {
+    console.error('[federation-dm] Failed to deliver:', err);
     throw createError({ statusCode: 502, statusMessage: 'Failed to deliver message to remote server' });
   }
 
