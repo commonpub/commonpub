@@ -106,6 +106,9 @@ export {
   deleteFederatedHubPost,
   likeFederatedHubPost,
   unlikeFederatedHubPost,
+  backfillHubFromOutbox,
+  fetchRemoteHubFollowers,
+  repairFederatedHubPostActors,
 } from './hubMirroring.js';
 export {
   processAuthorize,

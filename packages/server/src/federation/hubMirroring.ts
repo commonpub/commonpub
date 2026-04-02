@@ -626,13 +626,15 @@ export async function listFederatedHubPosts(
 }
 
 /**
- * List known members of a federated hub — distinct post authors with their remote profiles.
+ * List known members of a federated hub — post authors + resolved followers.
+ * Uses LEFT JOIN so actors who haven't posted but were resolved via followers collection still appear.
  */
 export async function listFederatedHubMembers(
   db: DB,
   federatedHubId: string,
 ): Promise<Array<{ actorUri: string; preferredUsername: string | null; displayName: string | null; avatarUrl: string | null; instanceDomain: string; postCount: number }>> {
-  const rows = await db
+  // First get post authors (most relevant members)
+  const postAuthors = await db
     .select({
       actorUri: remoteActors.actorUri,
       preferredUsername: remoteActors.preferredUsername,
@@ -647,7 +649,38 @@ export async function listFederatedHubMembers(
     .groupBy(remoteActors.id, remoteActors.actorUri, remoteActors.preferredUsername, remoteActors.displayName, remoteActors.avatarUrl, remoteActors.instanceDomain)
     .orderBy(sql`count(*) desc`);
 
-  return rows;
+  // Also include remote actors from the hub's domain who are known (resolved via followers fetch)
+  // but haven't posted yet
+  const [hub] = await db.select({ originDomain: federatedHubs.originDomain }).from(federatedHubs).where(eq(federatedHubs.id, federatedHubId)).limit(1);
+  if (!hub) return postAuthors;
+
+  const knownActorUris = new Set(postAuthors.map((a) => a.actorUri));
+
+  const domainActors = await db
+    .select({
+      actorUri: remoteActors.actorUri,
+      preferredUsername: remoteActors.preferredUsername,
+      displayName: remoteActors.displayName,
+      avatarUrl: remoteActors.avatarUrl,
+      instanceDomain: remoteActors.instanceDomain,
+    })
+    .from(remoteActors)
+    .where(and(
+      eq(remoteActors.instanceDomain, hub.originDomain),
+      eq(remoteActors.actorType, 'Person'),
+    ))
+    .limit(50);
+
+  // Merge: post authors first, then domain actors who haven't posted
+  const merged = [...postAuthors];
+  for (const actor of domainActors) {
+    if (!knownActorUris.has(actor.actorUri)) {
+      merged.push({ ...actor, postCount: 0 });
+      knownActorUris.add(actor.actorUri);
+    }
+  }
+
+  return merged;
 }
 
 /**
@@ -713,4 +746,215 @@ export async function unlikeFederatedHubPost(
     .returning({ id: federatedHubPosts.id });
 
   return result.length > 0;
+}
+
+// --- Hub Outbox Backfill ---
+
+const BACKFILL_FETCH_TIMEOUT = 15_000;
+const BACKFILL_MAX_PAGES = 20;
+const BACKFILL_DELAY_MS = 1_000;
+
+/**
+ * Backfill a federated hub by crawling its Group actor's outbox.
+ * Processes Announce activities to import historical hub posts.
+ */
+export async function backfillHubFromOutbox(
+  db: DB,
+  federatedHubId: string,
+  domain: string,
+): Promise<{ processed: number; errors: number }> {
+  const [hub] = await db
+    .select({ actorUri: federatedHubs.actorUri })
+    .from(federatedHubs)
+    .where(eq(federatedHubs.id, federatedHubId))
+    .limit(1);
+
+  if (!hub) throw new Error('Federated hub not found');
+
+  // Resolve the Group actor to get its outbox URL
+  const { resolveActor } = await import('@commonpub/protocol');
+  const actor = await resolveActor(hub.actorUri, fetch);
+  if (!actor?.outbox) {
+    throw new Error(`Could not resolve outbox for ${hub.actorUri}`);
+  }
+
+  const { createInboxHandlers } = await import('./inboxHandlers.js');
+  const { processInboxActivity } = await import('@commonpub/protocol');
+  const handlers = createInboxHandlers({ db, domain });
+
+  let nextPage: string | null = actor.outbox;
+  let processed = 0;
+  let errors = 0;
+  let pages = 0;
+
+  while (nextPage && pages < BACKFILL_MAX_PAGES) {
+    try {
+      const response = await fetch(nextPage, {
+        headers: { Accept: 'application/activity+json, application/ld+json' },
+        signal: AbortSignal.timeout(BACKFILL_FETCH_TIMEOUT),
+      });
+      if (!response.ok) break;
+
+      const collection = await response.json() as Record<string, unknown>;
+      pages++;
+
+      let items: unknown[] = [];
+      let next: string | null = null;
+
+      if (collection.type === 'OrderedCollection') {
+        const firstPage = collection.first;
+        if (typeof firstPage === 'string') { nextPage = firstPage; continue; }
+        if (firstPage && typeof firstPage === 'object') {
+          items = (firstPage as Record<string, unknown>).orderedItems as unknown[] ?? [];
+          next = (firstPage as Record<string, unknown>).next as string | null ?? null;
+        } else {
+          items = collection.orderedItems as unknown[] ?? [];
+        }
+      } else if (collection.type === 'OrderedCollectionPage') {
+        items = collection.orderedItems as unknown[] ?? [];
+        next = collection.next as string | null ?? null;
+      } else {
+        break;
+      }
+
+      for (const item of items) {
+        const activity = item as Record<string, unknown>;
+        if (!activity || typeof activity !== 'object') continue;
+        if (activity.type !== 'Announce' && activity.type !== 'Create') continue;
+        try {
+          await processInboxActivity(activity, handlers);
+          processed++;
+        } catch {
+          errors++;
+        }
+      }
+
+      nextPage = next;
+      if (nextPage) await new Promise((r) => setTimeout(r, BACKFILL_DELAY_MS));
+    } catch {
+      errors++;
+      break;
+    }
+  }
+
+  return { processed, errors };
+}
+
+/**
+ * Fetch a remote hub's followers collection to populate the members list.
+ * Resolves follower actor URIs and caches them as remoteActors.
+ */
+export async function fetchRemoteHubFollowers(
+  db: DB,
+  federatedHubId: string,
+): Promise<{ fetched: number; errors: number }> {
+  const [hub] = await db
+    .select({ actorUri: federatedHubs.actorUri })
+    .from(federatedHubs)
+    .where(eq(federatedHubs.id, federatedHubId))
+    .limit(1);
+
+  if (!hub) throw new Error('Federated hub not found');
+
+  // Resolve Group actor to get followers URL
+  const { resolveActor } = await import('@commonpub/protocol');
+  const actor = await resolveActor(hub.actorUri, fetch);
+  const followersUrl = actor?.followers;
+  if (!followersUrl || typeof followersUrl !== 'string') {
+    return { fetched: 0, errors: 0 };
+  }
+
+  const { resolveRemoteActor } = await import('./federation.js');
+
+  let fetched = 0;
+  let errors = 0;
+  let nextPage: string | null = followersUrl;
+  let pages = 0;
+
+  while (nextPage && pages < 10) {
+    try {
+      const response = await fetch(nextPage, {
+        headers: { Accept: 'application/activity+json, application/ld+json' },
+        signal: AbortSignal.timeout(BACKFILL_FETCH_TIMEOUT),
+      });
+      if (!response.ok) break;
+
+      const collection = await response.json() as Record<string, unknown>;
+      pages++;
+
+      let items: unknown[] = [];
+      let next: string | null = null;
+
+      if (collection.type === 'OrderedCollection' || collection.type === 'Collection') {
+        const firstPage = collection.first;
+        if (typeof firstPage === 'string') { nextPage = firstPage; continue; }
+        if (firstPage && typeof firstPage === 'object') {
+          items = ((firstPage as Record<string, unknown>).orderedItems ?? (firstPage as Record<string, unknown>).items) as unknown[] ?? [];
+          next = (firstPage as Record<string, unknown>).next as string | null ?? null;
+        } else {
+          items = (collection.orderedItems ?? collection.items) as unknown[] ?? [];
+        }
+      } else if (collection.type === 'OrderedCollectionPage' || collection.type === 'CollectionPage') {
+        items = (collection.orderedItems ?? collection.items) as unknown[] ?? [];
+        next = collection.next as string | null ?? null;
+      } else {
+        break;
+      }
+
+      for (const item of items) {
+        const followerUri = typeof item === 'string' ? item : (item as Record<string, unknown>)?.id as string | undefined;
+        if (!followerUri || typeof followerUri !== 'string') continue;
+
+        try {
+          await resolveRemoteActor(db, followerUri);
+          fetched++;
+        } catch {
+          errors++;
+        }
+      }
+
+      nextPage = next;
+      if (nextPage) await new Promise((r) => setTimeout(r, BACKFILL_DELAY_MS));
+    } catch {
+      errors++;
+      break;
+    }
+  }
+
+  // Update the remote member count
+  await db.update(federatedHubs).set({
+    remoteMemberCount: fetched > 0 ? fetched : undefined,
+    updatedAt: new Date(),
+  }).where(eq(federatedHubs.id, federatedHubId));
+
+  return { fetched, errors };
+}
+
+/**
+ * Fix null remoteActorId on federated hub posts by re-resolving actor URIs.
+ */
+export async function repairFederatedHubPostActors(
+  db: DB,
+): Promise<number> {
+  const orphans = await db
+    .select({ id: federatedHubPosts.id, actorUri: federatedHubPosts.actorUri })
+    .from(federatedHubPosts)
+    .where(isNull(federatedHubPosts.remoteActorId))
+    .limit(100);
+
+  let fixed = 0;
+  for (const orphan of orphans) {
+    const [actor] = await db
+      .select({ id: remoteActors.id })
+      .from(remoteActors)
+      .where(eq(remoteActors.actorUri, orphan.actorUri))
+      .limit(1);
+    if (actor) {
+      await db.update(federatedHubPosts)
+        .set({ remoteActorId: actor.id })
+        .where(eq(federatedHubPosts.id, orphan.id));
+      fixed++;
+    }
+  }
+  return fixed;
 }

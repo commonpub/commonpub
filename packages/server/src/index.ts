@@ -394,6 +394,9 @@ export {
   deleteFederatedHubPost,
   likeFederatedHubPost,
   unlikeFederatedHubPost,
+  backfillHubFromOutbox,
+  fetchRemoteHubFollowers,
+  repairFederatedHubPostActors,
 } from './federation/index.js';
 
 // OAuth Codes
