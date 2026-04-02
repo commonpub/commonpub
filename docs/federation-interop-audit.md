@@ -196,10 +196,18 @@ These are instance-local by design and should NOT be federated:
 - [x] 2.5 Fork federated content (forkFederatedContent creates local draft from cpubBlocks)
 - [x] 1.7 Hub post type preservation: cpub:postType added to outbound Note, inbound key fixed
 
-### Phase E — Polish (2-3 hours)
+### Phase E — Polish (2-3 hours) — Partial ✓ Session 099
 - [ ] 2.6 Share federated content to local hub
 - [ ] 2.8 Render attachments on federated content
-- [ ] 2.9 View tracking for federated content
-- [ ] 2.10 Enrich remote author profiles
-- [ ] 2.11 RSS for federated hubs
+- [x] 2.9 View tracking for federated content (localViewCount column + endpoint + mirror page onMounted)
+- [x] 2.10 Enrich remote author profiles (bio, follower count on mirror pages)
+- [x] 2.11 RSS for federated hubs (/api/federated-hubs/[id]/feed.xml)
 - [ ] 2.12 DM initiation to remote users
+
+### Additional (Session 099)
+- [x] Unread message badge on envelope icon (SSE stream + useMessages composable)
+- [x] Federated bookmark listing (dual LEFT JOIN, dashboard links to /mirror/)
+- [x] Remote follow dialog (authorize_interaction redirect)
+- [x] Federated hub members list with @user@domain handles
+- [x] Federation pages public (no auth required)
+- [x] Fixed "Following" badge on federated hubs → "Mirrored" indicator
