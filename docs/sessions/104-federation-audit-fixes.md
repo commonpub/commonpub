@@ -63,6 +63,27 @@
 - `useSanitize.ts` is a no-op — should implement DOMPurify as defense-in-depth
 - E2E flakiness on navigation tests (timing in CI)
 
+## Final Published Versions
+- `@commonpub/schema@0.8.13`
+- `@commonpub/server@2.18.0`
+- `@commonpub/layer@0.3.31`
+- deveco-io on layer@0.3.31, server@2.18.0
+
+## Final Test Counts
+- Schema: 327, Protocol: 373, Server: 684, Layer: 45
+- **Total: 1,429** (was 1,285 → +144)
+
+## Additional Fixes After Initial Handoff
+- Hub avatars on homepage sidebar (both layer + deveco-io)
+- Hub member count federation: Group actor now emits `cpub:memberCount`, followers collection includes local members, `refreshFederatedHubMetadata` reads these
+- Hook system: typed event emitter for consumer extensions (13 events, documented at `docs/reference/guides/hooks.md`)
+- Share post JSON rendering: `hubPostToNote` + Note serving route generate readable content + `cpub:sharedContent`
+- Content AP route: `server/routes/content/[slug].ts` serves Article JSON-LD
+- FeedItem/HubFeed/HubDiscussions: strip HTML from content previews
+- E2E fixes: stale selectors, footer strict mode, search title, tab timing
+- Layer `.npmignore` excludes test files from npm publish
+- SQL repair of existing share posts on commonpub.io
+
 ## Custom Schema Extensibility — Research Plan
 
 The current architecture has a closed schema: `@commonpub/schema` is published as a compiled npm package. Consumers can't add columns or tables that integrate with the base schema.
