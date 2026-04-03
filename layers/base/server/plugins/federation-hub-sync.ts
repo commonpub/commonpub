@@ -39,7 +39,11 @@ export default defineNitroPlugin((nitro) => {
       // Run first sync after a brief delay to avoid startup contention
       runSync(domain, intervalMs, backfillOnSync);
 
-      interval = setInterval(() => runSync(domain, intervalMs, backfillOnSync), intervalMs);
+      interval = setInterval(() => {
+        runSync(domain, intervalMs, backfillOnSync).catch((err) => {
+          console.error('[hub-sync] Sync worker unexpected error:', err instanceof Error ? err.message : err);
+        });
+      }, intervalMs);
     } catch (err) {
       console.error('[hub-sync] Failed to start:', err instanceof Error ? err.message : err);
     }

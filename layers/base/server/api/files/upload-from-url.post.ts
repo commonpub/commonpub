@@ -10,17 +10,24 @@ export default defineEventHandler(async (event) => {
   const user = requireAuth(event);
   const { url, purpose } = await parseBody(event, schema);
 
-  // SSRF protection — block private IPs
+  // SSRF protection — block private/internal IPs
   const parsed = new URL(url);
-  const hostname = parsed.hostname;
+  const hostname = parsed.hostname.toLowerCase();
+  const h = hostname.replace(/^\[|\]$/g, '');
   if (
-    hostname === 'localhost' ||
-    hostname === '127.0.0.1' ||
-    hostname === '::1' ||
-    hostname.startsWith('10.') ||
-    hostname.startsWith('192.168.') ||
-    hostname.match(/^172\.(1[6-9]|2\d|3[01])\./) ||
-    hostname === '169.254.169.254' // AWS metadata
+    h === 'localhost' ||
+    h === 'localhost.localdomain' ||
+    h === 'metadata.google.internal' ||
+    h.endsWith('.local') ||
+    /^127\./.test(h) ||
+    /^10\./.test(h) ||
+    /^172\.(1[6-9]|2\d|3[01])\./.test(h) ||
+    /^192\.168\./.test(h) ||
+    /^169\.254\./.test(h) ||
+    /^0\./.test(h) ||
+    h === '::1' ||
+    /^f[cd]/i.test(h) ||
+    /^fe80/i.test(h)
   ) {
     throw createError({ statusCode: 400, statusMessage: 'Cannot fetch from private/local addresses' });
   }

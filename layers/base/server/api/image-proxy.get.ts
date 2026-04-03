@@ -29,15 +29,22 @@ export default defineEventHandler(async (event) => {
   }
 
   // Block localhost/private IPs (SSRF prevention)
-  const hostname = parsed.hostname;
+  const hostname = parsed.hostname.toLowerCase();
+  const h = hostname.replace(/^\[|\]$/g, ''); // strip IPv6 brackets
   if (
-    hostname === 'localhost' ||
-    hostname === '127.0.0.1' ||
-    hostname === '::1' ||
-    hostname.startsWith('10.') ||
-    hostname.startsWith('172.') ||
-    hostname.startsWith('192.168.') ||
-    hostname.endsWith('.local')
+    h === 'localhost' ||
+    h === 'localhost.localdomain' ||
+    h === 'metadata.google.internal' ||
+    h.endsWith('.local') ||
+    /^127\./.test(h) ||
+    /^10\./.test(h) ||
+    /^172\.(1[6-9]|2\d|3[01])\./.test(h) ||
+    /^192\.168\./.test(h) ||
+    /^169\.254\./.test(h) ||
+    /^0\./.test(h) ||
+    h === '::1' ||
+    /^f[cd]/i.test(h) ||
+    /^fe80/i.test(h)
   ) {
     throw createError({ statusCode: 403, statusMessage: 'Private addresses not allowed' });
   }

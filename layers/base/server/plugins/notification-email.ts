@@ -64,7 +64,11 @@ export default defineNitroPlugin((nitro) => {
 
       // Digest scheduler — runs every hour, sends digests for users whose digest window has elapsed
       const DIGEST_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
-      digestInterval = setInterval(() => runDigest(siteUrl, siteName), DIGEST_INTERVAL_MS);
+      digestInterval = setInterval(() => {
+        runDigest(siteUrl, siteName).catch((err) => {
+          console.error('[notification-email] Digest scheduler unexpected error:', err instanceof Error ? err.message : err);
+        });
+      }, DIGEST_INTERVAL_MS);
 
       console.log('[notification-email] Digest scheduler started (interval: 1h)');
     } catch (err) {

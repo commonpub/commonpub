@@ -30,8 +30,12 @@ export default defineEventHandler(async (event) => {
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'counts', notifications, messages })}\n\n`));
       }
 
-      // Send initial counts
-      await sendCounts();
+      // Send initial counts — if DB is unavailable, send zeros and let polling retry
+      try {
+        await sendCounts();
+      } catch {
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'counts', notifications: 0, messages: 0 })}\n\n`));
+      }
 
       // Poll every 10 seconds
       const interval = setInterval(async () => {
