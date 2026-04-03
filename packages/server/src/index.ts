@@ -402,6 +402,7 @@ export {
   getFederatedHubPost,
   listFederatedHubPosts,
   listFederatedHubMembers,
+  upsertFederatedHubMember,
   deleteFederatedHubPost,
   likeFederatedHubPost,
   unlikeFederatedHubPost,

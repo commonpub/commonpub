@@ -661,11 +661,20 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
           )
           .returning({ id: federatedContent.id });
 
-        // If no rows updated, content doesn't exist locally — treat as new content
-        // This handles the case where an Update arrives before a Create (e.g., missed during backfill)
+        // If no rows updated, either content doesn't exist locally or the actorUri doesn't match.
+        // Only create new content if there's NO existing row for this objectUri (missed Create).
+        // If a row exists but actorUri doesn't match, this is an unauthorized update — skip.
         if (updateResult.length === 0) {
-          // Delegate to onCreate to store the content
-          await handlers.onCreate(actorUri, object);
+          const [existing] = await db
+            .select({ id: federatedContent.id })
+            .from(federatedContent)
+            .where(eq(federatedContent.objectUri, objectUri))
+            .limit(1);
+          if (!existing) {
+            // Content genuinely doesn't exist — treat as missed Create
+            await handlers.onCreate(actorUri, object);
+          }
+          // else: content exists but different author — silently reject (unauthorized)
           return;
         }
       }

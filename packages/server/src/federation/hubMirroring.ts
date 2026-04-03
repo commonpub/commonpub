@@ -2,6 +2,7 @@ import { eq, and, desc, isNull, sql, ilike } from 'drizzle-orm';
 import {
   federatedHubs,
   federatedHubPosts,
+  federatedHubMembers,
   remoteActors,
   activities,
   followRelationships,
@@ -490,6 +491,11 @@ export async function ingestFederatedHubPost(
       lastSyncAt: new Date(),
     }).where(eq(federatedHubs.id, federatedHubId));
 
+    // Auto-register post author as hub member
+    if (actor?.id) {
+      await upsertFederatedHubMember(db, federatedHubId, actor.id, 'post');
+    }
+
     return { id: inserted[0]!.id, created: true };
   }
 
@@ -626,14 +632,67 @@ export async function listFederatedHubPosts(
 }
 
 /**
- * List known members of a federated hub — post authors + resolved followers.
- * Uses LEFT JOIN so actors who haven't posted but were resolved via followers collection still appear.
+ * Upsert a remote actor as a known member of a federated hub.
+ * Silently skips if the actor is already a member (conflict on unique pair).
+ */
+export async function upsertFederatedHubMember(
+  db: DB,
+  federatedHubId: string,
+  remoteActorId: string,
+  discoveredVia: 'post' | 'followers' | 'mention' = 'post',
+): Promise<void> {
+  await db.insert(federatedHubMembers).values({
+    federatedHubId,
+    remoteActorId,
+    discoveredVia,
+  }).onConflictDoNothing({ target: [federatedHubMembers.federatedHubId, federatedHubMembers.remoteActorId] });
+}
+
+/**
+ * List known members of a federated hub — from the members table (populated by
+ * post ingestion and followers collection fetch) with post counts from hub posts.
+ *
+ * Falls back to post-authors-only query if the members table is empty (backward
+ * compatibility for hubs that existed before the members table was added).
  */
 export async function listFederatedHubMembers(
   db: DB,
   federatedHubId: string,
 ): Promise<Array<{ actorUri: string; preferredUsername: string | null; displayName: string | null; avatarUrl: string | null; instanceDomain: string; postCount: number }>> {
-  // First get post authors (most relevant members)
+  // Subquery: count posts per actor for this hub
+  const postCounts = db
+    .select({
+      remoteActorId: federatedHubPosts.remoteActorId,
+      postCount: sql<number>`count(*)::int`.as('post_count'),
+    })
+    .from(federatedHubPosts)
+    .where(and(
+      eq(federatedHubPosts.federatedHubId, federatedHubId),
+      isNull(federatedHubPosts.deletedAt),
+    ))
+    .groupBy(federatedHubPosts.remoteActorId)
+    .as('post_counts');
+
+  // Primary: query from members table with LEFT JOIN post counts
+  const members = await db
+    .select({
+      actorUri: remoteActors.actorUri,
+      preferredUsername: remoteActors.preferredUsername,
+      displayName: remoteActors.displayName,
+      avatarUrl: remoteActors.avatarUrl,
+      instanceDomain: remoteActors.instanceDomain,
+      postCount: sql<number>`coalesce(${postCounts.postCount}, 0)`,
+    })
+    .from(federatedHubMembers)
+    .innerJoin(remoteActors, eq(federatedHubMembers.remoteActorId, remoteActors.id))
+    .leftJoin(postCounts, eq(federatedHubMembers.remoteActorId, postCounts.remoteActorId))
+    .where(eq(federatedHubMembers.federatedHubId, federatedHubId))
+    .orderBy(sql`coalesce(${postCounts.postCount}, 0) desc`, remoteActors.displayName);
+
+  if (members.length > 0) return members;
+
+  // Fallback: for hubs that predate the members table, derive from post authors.
+  // This self-heals as new posts trigger upsertFederatedHubMember.
   const postAuthors = await db
     .select({
       actorUri: remoteActors.actorUri,
@@ -895,6 +954,15 @@ export async function fetchRemoteHubFollowers(
 
         try {
           await resolveRemoteActor(db, followerUri);
+          // Look up the resolved actor and add as hub member
+          const [resolved] = await db
+            .select({ id: remoteActors.id })
+            .from(remoteActors)
+            .where(eq(remoteActors.actorUri, followerUri))
+            .limit(1);
+          if (resolved) {
+            await upsertFederatedHubMember(db, federatedHubId, resolved.id, 'followers');
+          }
           fetched++;
         } catch {
           errors++;

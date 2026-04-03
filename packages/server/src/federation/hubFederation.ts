@@ -421,12 +421,39 @@ function hubPostToNote(
   const objectId = getHubPostNoteUri(domain, hubSlug, post.id);
   const followersUri = `${hubActorUri}/followers`;
 
+  let noteContent = escapeHtmlForAP(post.content);
+  const ext: Record<string, unknown> = {};
+
+  // Share-type posts: content is JSON metadata, not display text.
+  // Parse it to extract cpub:sharedContent and generate a human-readable summary.
+  if (post.type === 'share') {
+    try {
+      const shared = JSON.parse(post.content) as Record<string, unknown>;
+      ext['cpub:sharedContent'] = {
+        type: shared.type ?? 'article',
+        title: shared.title ?? '',
+        summary: shared.description ?? null,
+        coverImageUrl: shared.coverImageUrl ?? null,
+        originUrl: shared.slug
+          ? `https://${domain}/${shared.type}/${shared.slug}`
+          : null,
+        originDomain: domain,
+      };
+      // Use a readable summary as the Note content instead of raw JSON
+      const displayName = author.displayName ?? author.username;
+      const title = shared.title ? String(shared.title) : 'content';
+      noteContent = escapeHtmlForAP(`${displayName} shared: ${title}`);
+    } catch {
+      // If JSON parsing fails, fall back to escaped content
+    }
+  }
+
   const note: APNote = {
     '@context': AP_CONTEXT,
     type: 'Note',
     id: objectId,
     attributedTo: actorUri,
-    content: escapeHtmlForAP(post.content),
+    content: noteContent,
     to: [AP_PUBLIC],
     cc: [followersUri],
     published: post.createdAt.toISOString(),
@@ -437,6 +464,9 @@ function hubPostToNote(
   if (post.type && post.type !== 'text') {
     (note as unknown as Record<string, unknown>)['cpub:postType'] = post.type;
   }
+
+  // Apply extension fields (cpub:sharedContent)
+  Object.assign(note, ext);
 
   return note;
 }
