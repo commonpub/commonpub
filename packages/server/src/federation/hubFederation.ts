@@ -90,7 +90,7 @@ export async function buildHubGroupActor(
   const keypair = await getOrCreateHubKeypair(db, hub.id);
   const actorUri = getHubActorUri(domain, hub.slug);
 
-  return {
+  const actor: APGroup = {
     '@context': [AP_CONTEXT, 'https://w3id.org/security/v1'],
     type: 'Group',
     id: actorUri,
@@ -111,6 +111,13 @@ export async function buildHubGroupActor(
       publicKeyPem: keypair.publicKeyPem,
     },
   };
+
+  // Add CommonPub extension fields (not in APGroup type)
+  const ext = actor as unknown as Record<string, unknown>;
+  ext['cpub:memberCount'] = hub.memberCount;
+  ext['cpub:postCount'] = hub.postCount;
+
+  return actor;
 }
 
 // --- Hub Follow Management ---

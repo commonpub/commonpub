@@ -160,12 +160,53 @@ export async function refreshFederatedHubMetadata(
       .limit(1);
     if (!cached) return;
 
+    // Fetch the raw Group actor to get cpub:memberCount and cpub:postCount
+    let cpubMemberCount: number | undefined;
+    let cpubPostCount: number | undefined;
+    try {
+      const response = await fetch(actorUri, {
+        headers: { Accept: 'application/activity+json, application/ld+json' },
+        signal: AbortSignal.timeout(10_000),
+      });
+      if (response.ok) {
+        const actorJson = await response.json() as Record<string, unknown>;
+        if (typeof actorJson['cpub:memberCount'] === 'number') {
+          cpubMemberCount = actorJson['cpub:memberCount'];
+        }
+        if (typeof actorJson['cpub:postCount'] === 'number') {
+          cpubPostCount = actorJson['cpub:postCount'];
+        }
+        // Also check AP followers collection totalItems
+        if (!cpubMemberCount && typeof actorJson.followers === 'string') {
+          try {
+            const fResponse = await fetch(actorJson.followers, {
+              headers: { Accept: 'application/activity+json' },
+              signal: AbortSignal.timeout(10_000),
+            });
+            if (fResponse.ok) {
+              const fJson = await fResponse.json() as Record<string, unknown>;
+              if (typeof fJson.totalItems === 'number' && fJson.totalItems > 0) {
+                cpubMemberCount = fJson.totalItems;
+              }
+            }
+          } catch { /* best effort */ }
+        }
+      }
+    } catch { /* best effort — fall back to cached data */ }
+
+    // Use the best member count we can find
+    const memberCount = Math.max(
+      cpubMemberCount ?? 0,
+      cached.followerCount ?? 0,
+    );
+
     await db.update(federatedHubs).set({
       name: cached.displayName ?? cached.preferredUsername ?? undefined,
       description: cached.summary ?? undefined,
       iconUrl: cached.avatarUrl ?? undefined,
       bannerUrl: cached.bannerUrl ?? undefined,
-      remoteMemberCount: cached.followerCount ?? undefined,
+      remoteMemberCount: memberCount > 0 ? memberCount : undefined,
+      remotePostCount: cpubPostCount ?? undefined,
       updatedAt: new Date(),
     }).where(eq(federatedHubs.id, hubId));
   } catch {
