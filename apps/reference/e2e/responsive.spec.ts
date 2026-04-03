@@ -67,7 +67,7 @@ test.describe('Auth pages responsive', () => {
     await page.setViewportSize({ width: 375, height: 812 });
     await page.goto('/auth/login');
 
-    await expect(page.locator('#email')).toBeVisible();
+    await expect(page.locator('#identity')).toBeVisible();
     await expect(page.locator('#password')).toBeVisible();
     await expect(page.locator('button[type="submit"]')).toBeVisible();
   });

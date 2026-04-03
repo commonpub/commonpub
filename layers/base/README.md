@@ -65,7 +65,7 @@ API routes for all CommonPub features, auth middleware, federation endpoints, an
 
 ### Theme
 
-CSS custom properties with 4 built-in themes (base, deepwood, hackbuild, deveco). Override with your own `theme.css`.
+CSS custom properties with 3 built-in themes (base, dark, generics). Consumer apps override with their own `theme.css`.
 
 ## Customization
 

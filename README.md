@@ -142,7 +142,7 @@ commonpub/
 | [`@commonpub/server`](packages/server/README.md) | Framework-agnostic business logic (15 modules, 200+ functions) |
 | [`@commonpub/protocol`](packages/protocol/README.md) | ActivityPub types, HTTP signatures, WebFinger, NodeInfo, OAuth2 |
 | [`@commonpub/auth`](packages/auth/README.md) | Better Auth wrapper, guards, AP Actor SSO |
-| [`@commonpub/ui`](packages/ui/README.md) | 22 headless Vue 3 components, 4 themes, CSS token system |
+| [`@commonpub/ui`](packages/ui/README.md) | 22 headless Vue 3 components, 3 themes (light, dark, generics), CSS token system |
 | [`@commonpub/editor`](packages/editor/README.md) | TipTap extensions, 20 block types, BlockTuple serialization |
 | [`@commonpub/docs`](packages/docs/README.md) | Markdown rendering, versioning, navigation, search adapters |
 | [`@commonpub/explainer`](packages/explainer/README.md) | Interactive sections, quiz engine, progress tracking, HTML export |

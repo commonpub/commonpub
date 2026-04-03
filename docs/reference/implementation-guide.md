@@ -280,10 +280,9 @@ See [Federation Guide](./guides/federation.md) for full details.
 
 | ID | Description |
 |----|-------------|
-| `base` | Clean default with blue accents (light) |
-| `deepwood` | Forest greens, lime accent (dark) |
-| `hackbuild` | Punk zine, paper textures (light) |
-| `deveco` | Clean tech, teal/pink/yellow (light) |
+| `base` | Sharp corners, offset shadows, blue accent (light) |
+| `dark` | Dark surfaces with the same offset aesthetic |
+| `generics` | Dark minimal theme with soft glow |
 
 ### Token Overrides
 

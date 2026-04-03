@@ -23,7 +23,7 @@ Prompts for:
 - Content types (project, article, blog, explainer)
 - Auth methods (email-password, magic-link, passkeys, GitHub, Google)
 - Contest creation level (open, staff, admin)
-- Theme selection (base, deepwood, hackbuild, deveco)
+- Theme selection (base, dark, generics)
 - Docker Compose generation
 
 ### Non-Interactive

@@ -79,19 +79,21 @@ All components accept a `class` prop for external styling:
 
 ### Built-in Themes
 
-| Theme       | ID          | Description                                |
-| ----------- | ----------- | ------------------------------------------ |
-| Base        | `base`      | Clean default theme with blue accents      |
-| Deepwood    | `deepwood`  | Dark theme with forest greens, lime accent |
-| hack.build  | `hackbuild` | Punk zine, paper textures, hard-edge       |
-| deveco.io   | `deveco`    | Clean tech, teal/pink/yellow accents       |
+| Theme    | ID         | Description                                    |
+| -------- | ---------- | ---------------------------------------------- |
+| Light    | `base`     | Sharp corners, offset shadows, blue accent     |
+| Dark     | `dark`     | Dark surfaces with the same offset aesthetic   |
+| Generics | `generics` | Dark minimal theme with soft glow              |
+
+Consumer apps (e.g., deveco.io) add their own theme CSS overrides on top of these.
 
 ### Importing Theme CSS
 
 ```ts
-// Import a specific theme
+// Import the base and dark themes
 import '@commonpub/ui/theme/base.css';
-import '@commonpub/ui/theme/deepwood.css';
+import '@commonpub/ui/theme/dark.css';
+import '@commonpub/ui/theme/generics.css';
 ```
 
 ### Runtime Theme Switching
@@ -100,7 +102,7 @@ import '@commonpub/ui/theme/deepwood.css';
 import { applyThemeToElement, getThemeFromElement, isValidThemeId } from '@commonpub/ui';
 
 // Apply theme via data-theme attribute
-applyThemeToElement(document.documentElement, 'deepwood');
+applyThemeToElement(document.documentElement, 'dark');
 
 // Apply with custom token overrides
 applyThemeToElement(document.documentElement, 'base', {
