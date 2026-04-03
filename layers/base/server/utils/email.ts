@@ -44,6 +44,9 @@ export function useEmailAdapter(): EmailAdapter {
     return cachedAdapter;
   }
 
+  if (process.env.NODE_ENV === 'production') {
+    console.warn('[email] ⚠ Using console email adapter in production — emails will be logged, not sent. Set NUXT_EMAIL_ADAPTER to "smtp" or "resend".');
+  }
   cachedAdapter = new ConsoleEmailAdapter();
   return cachedAdapter;
 }
