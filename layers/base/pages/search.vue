@@ -2,7 +2,7 @@
 import type { Serialized, ContentListItem, PaginatedResponse } from '@commonpub/server';
 
 useSeoMeta({
-  title: 'Search -- devEco.io',
+  title: `Search — ${useSiteName()}`,
   description: 'Search for projects, articles, people, and communities.',
 });
 

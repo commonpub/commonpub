@@ -9,6 +9,8 @@ test.describe('Homepage tab switching', () => {
     await page.goto('/');
 
     const tabs = page.locator('.cpub-tab');
+    await tabs.first().waitFor({ state: 'visible', timeout: 5000 });
+
     const firstTab = tabs.first();
     const secondTab = tabs.nth(1);
 
@@ -41,7 +43,7 @@ test.describe('Footer links navigate correctly', () => {
 
     await expect(footer.locator('a[href="/about"]')).toBeVisible();
     await expect(footer.locator('a[href="/docs"]')).toBeVisible();
-    await expect(footer.locator('a[href="/feed.xml"]')).toBeVisible();
+    await expect(footer.locator('a[href="/feed.xml"]').first()).toBeVisible();
   });
 });
 
