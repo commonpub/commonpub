@@ -275,6 +275,21 @@ export const federatedHubPosts = pgTable('federated_hub_posts', {
   index('idx_fedhubposts_received_at').on(t.receivedAt),
 ]);
 
+/** Known members of federated hubs — populated from post authors and followers collection */
+export const federatedHubMembers = pgTable('federated_hub_members', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  /** FK to the federated hub */
+  federatedHubId: uuid('federated_hub_id').notNull().references(() => federatedHubs.id, { onDelete: 'cascade' }),
+  /** FK to the cached remote actor */
+  remoteActorId: uuid('remote_actor_id').notNull().references(() => remoteActors.id, { onDelete: 'cascade' }),
+  /** How this member was discovered: 'post' (posted in hub), 'followers' (from followers collection), 'mention' */
+  discoveredVia: varchar('discovered_via', { length: 32 }).default('post').notNull(),
+  joinedAt: timestamp('joined_at', { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  unique('uq_fed_hub_members_hub_actor').on(t.federatedHubId, t.remoteActorId),
+  index('idx_fed_hub_members_hub').on(t.federatedHubId),
+]);
+
 /** Per-user likes on federated hub posts — tracks who liked what for unlike toggle */
 export const federatedHubPostLikes = pgTable('federated_hub_post_likes', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -293,6 +308,17 @@ export const federatedHubsRelations = relations(federatedHubs, ({ one, many }) =
     references: [remoteActors.id],
   }),
   posts: many(federatedHubPosts),
+}));
+
+export const federatedHubMembersRelations = relations(federatedHubMembers, ({ one }) => ({
+  federatedHub: one(federatedHubs, {
+    fields: [federatedHubMembers.federatedHubId],
+    references: [federatedHubs.id],
+  }),
+  remoteActor: one(remoteActors, {
+    fields: [federatedHubMembers.remoteActorId],
+    references: [remoteActors.id],
+  }),
 }));
 
 export const federatedHubPostsRelations = relations(federatedHubPosts, ({ one }) => ({
@@ -344,3 +370,5 @@ export type FederatedHubRow = typeof federatedHubs.$inferSelect;
 export type NewFederatedHubRow = typeof federatedHubs.$inferInsert;
 export type FederatedHubPostRow = typeof federatedHubPosts.$inferSelect;
 export type NewFederatedHubPostRow = typeof federatedHubPosts.$inferInsert;
+export type FederatedHubMemberRow = typeof federatedHubMembers.$inferSelect;
+export type NewFederatedHubMemberRow = typeof federatedHubMembers.$inferInsert;
