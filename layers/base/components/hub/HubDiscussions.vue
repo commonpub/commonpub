@@ -5,8 +5,15 @@ const props = defineProps<{
   posts: HubPostViewModel[]
 }>();
 
+function stripHtml(html: string): string {
+  return html.replace(/<[^>]*>/g, '').trim();
+}
+
 const discussionPosts = computed(() => {
-  return props.posts.filter((p) => p.type === 'text' || p.type === 'link' || p.type === 'discussion' || p.type === 'question');
+  return props.posts.filter((p) =>
+    (p.type === 'text' || p.type === 'link' || p.type === 'discussion' || p.type === 'question')
+    && !p.sharedContent,
+  );
 });
 </script>
 
@@ -18,7 +25,7 @@ const discussionPosts = computed(() => {
     <template v-for="post in discussionPosts" :key="post.id">
       <NuxtLink v-if="post.linkTo" :to="post.linkTo" class="cpub-feed-link">
         <DiscussionItem
-          :title="post.content?.slice(0, 80) || 'Untitled'"
+          :title="stripHtml(post.content || '').slice(0, 80) || 'Untitled'"
           :author="post.author.name"
           :reply-count="post.replyCount"
           :vote-count="post.likeCount"
@@ -26,7 +33,7 @@ const discussionPosts = computed(() => {
       </NuxtLink>
       <div v-else>
         <DiscussionItem
-          :title="post.content?.slice(0, 80) || 'Untitled'"
+          :title="stripHtml(post.content || '').slice(0, 80) || 'Untitled'"
           :author="post.author.name"
           :reply-count="post.replyCount"
           :vote-count="post.likeCount"

@@ -3,8 +3,9 @@ definePageMeta({ middleware: 'auth' });
 
 const { themeId: theme, setTheme } = useTheme();
 const themes = [
-  { id: 'base', name: 'Light', desc: 'Sharp corners, offset shadows' },
-  { id: 'dark', name: 'Dark', desc: 'Dark surfaces, same aesthetic' },
+  { id: 'base', name: 'Light', desc: 'Sharp corners, offset shadows, blue accent' },
+  { id: 'dark', name: 'Dark', desc: 'Dark surfaces, same offset shadow aesthetic' },
+  { id: 'generics', name: 'Generics', desc: 'Dark minimal with soft glow' },
 ];
 </script>
 
@@ -35,7 +36,7 @@ const themes = [
 <style scoped>
 .cpub-theme-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 12px;
 }
 
@@ -74,7 +75,7 @@ const themes = [
   color: var(--text-dim);
 }
 
-@media (max-width: 480px) {
+@media (max-width: 640px) {
   .cpub-theme-grid { grid-template-columns: 1fr; }
 }
 </style>

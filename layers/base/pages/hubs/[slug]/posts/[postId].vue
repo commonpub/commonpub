@@ -161,7 +161,7 @@ useSeoMeta({
         </div>
       </div>
       <div v-else class="cpub-post-content">
-        {{ post.content }}
+        <MentionText :text="post.content || ''" />
         <div v-if="post.updatedAt && post.updatedAt !== post.createdAt" class="cpub-post-edited">
           <i class="fa-solid fa-pen"></i> edited
         </div>

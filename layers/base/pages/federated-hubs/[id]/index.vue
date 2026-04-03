@@ -90,13 +90,16 @@ const postsVM = computed<HubPostViewModel[]>(() => {
   });
 });
 
-// Extract shared content posts for "Projects" tab
+// Extract shared content posts for "Projects" tab — filter by type to avoid lumping discussions
 const sharedContentPosts = computed(() =>
-  postsVM.value.filter(p => p.sharedContent),
+  postsVM.value.filter(p => p.sharedContent?.type === 'project'),
 );
 
 const discussionPosts = computed(() =>
-  postsVM.value.filter(p => p.type === 'text' || p.type === 'discussion' || p.type === 'question'),
+  postsVM.value.filter(p =>
+    (p.type === 'text' || p.type === 'discussion' || p.type === 'question')
+    && !p.sharedContent,
+  ),
 );
 
 // Hub rules (from federated metadata)

@@ -6,6 +6,7 @@
 import {
   refreshFederatedHubMetadata,
   backfillHubFromOutbox,
+  fetchRemoteHubFollowers,
 } from '@commonpub/server';
 import { federatedHubs } from '@commonpub/schema';
 import { eq, and, or, lt, isNull } from 'drizzle-orm';
@@ -82,6 +83,19 @@ export default defineNitroPlugin((nitro) => {
         try {
           // Refresh metadata (name, description, icon, member count)
           await refreshFederatedHubMetadata(db, hub.id, hub.actorUri);
+
+          // Fetch followers to populate members list (first sync or periodic refresh)
+          if (!hub.lastSyncAt) {
+            // First sync — fetch followers to seed the members table
+            try {
+              const result = await fetchRemoteHubFollowers(db, hub.id, domain);
+              if (result.fetched > 0) {
+                console.log(`[hub-sync] Fetched ${result.fetched} followers for ${hub.name}`);
+              }
+            } catch (err) {
+              console.warn(`[hub-sync] Followers fetch failed for ${hub.name}:`, err instanceof Error ? err.message : err);
+            }
+          }
 
           // Optionally backfill new posts from outbox
           if (backfillOnSync) {

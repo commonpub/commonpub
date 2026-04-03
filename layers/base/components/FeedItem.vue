@@ -17,6 +17,13 @@ const props = defineProps<{
 
 const emit = defineEmits<{ vote: [] }>();
 
+/** Strip HTML tags for safe plain-text preview */
+function stripHtml(html: string): string {
+  return html.replace(/<[^>]*>/g, '').trim();
+}
+
+const previewText = computed(() => stripHtml(props.body));
+
 const typeBadgeClass = computed((): string => {
   const map: Record<string, string> = {
     discussion: 'cpub-feed-badge-accent',
@@ -55,7 +62,7 @@ const formattedDate = computed((): string => {
 
       <h3 class="cpub-feed-item-title">{{ title }}</h3>
 
-      <p class="cpub-feed-item-preview">{{ body }}</p>
+      <p class="cpub-feed-item-preview">{{ previewText }}</p>
 
       <div class="cpub-feed-item-meta">
         <div class="cpub-feed-item-author">

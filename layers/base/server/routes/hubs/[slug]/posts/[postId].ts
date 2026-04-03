@@ -33,8 +33,10 @@ export default defineEventHandler(async (event) => {
     .select({
       id: hubPosts.id,
       content: hubPosts.content,
+      type: hubPosts.type,
       createdAt: hubPosts.createdAt,
       authorUsername: users.username,
+      authorDisplayName: users.displayName,
     })
     .from(hubPosts)
     .innerJoin(users, eq(hubPosts.authorId, users.id))
@@ -49,15 +51,43 @@ export default defineEventHandler(async (event) => {
 
   setResponseHeader(event, 'content-type', 'application/activity+json');
 
+  // Build Note content — share posts need special handling
+  let noteContent = escapeHtmlForAP(post.content);
+  const ext: Record<string, unknown> = {};
+
+  if (post.type === 'share') {
+    try {
+      const shared = JSON.parse(post.content) as Record<string, unknown>;
+      ext['cpub:sharedContent'] = {
+        type: shared.type ?? 'article',
+        title: shared.title ?? '',
+        summary: shared.description ?? null,
+        coverImageUrl: shared.coverImageUrl ?? null,
+        originUrl: shared.slug
+          ? `https://${domain}/${shared.type}/${shared.slug}`
+          : null,
+        originDomain: domain,
+      };
+      const displayName = post.authorDisplayName ?? post.authorUsername;
+      const title = shared.title ? String(shared.title) : 'content';
+      noteContent = escapeHtmlForAP(`${displayName} shared: ${title}`);
+    } catch { /* fallback to raw content */ }
+  }
+
+  if (post.type && post.type !== 'text') {
+    ext['cpub:postType'] = post.type;
+  }
+
   return {
     '@context': AP_CONTEXT,
     type: 'Note',
     id: noteUri,
     attributedTo: actorUri,
-    content: escapeHtmlForAP(post.content),
+    content: noteContent,
     published: post.createdAt.toISOString(),
     to: [AP_PUBLIC],
     cc: [`${hubActorUri}/followers`],
     context: hubActorUri,
+    ...ext,
   };
 });

@@ -87,9 +87,13 @@ async function handleReply(): Promise<void> {
   }
 }
 
+function stripHtml(html: string): string {
+  return html.replace(/<[^>]*>/g, '').trim();
+}
+
 useSeoMeta({
-  title: () => post.value ? `${post.value.content?.slice(0, 60)} — ${hub.value?.name ?? 'Hub'}` : 'Post',
-  description: () => post.value?.content?.slice(0, 160) ?? '',
+  title: () => post.value ? `${stripHtml(post.value.content || '').slice(0, 60)} — ${hub.value?.name ?? 'Hub'}` : 'Post',
+  description: () => stripHtml(post.value?.content ?? '').slice(0, 160),
 });
 
 useHead({
@@ -128,7 +132,9 @@ useHead({
         <span class="cpub-post-type-badge">{{ post.postType }}</span>
       </div>
 
-      <div class="cpub-post-content">{{ post.content }}</div>
+      <!-- Content is sanitized server-side via sanitizeHtml() before storage -->
+      <!-- eslint-disable-next-line vue/no-v-html -->
+      <div class="cpub-post-content cpub-prose" v-html="post.content"></div>
 
       <div class="cpub-post-meta">
         <div class="cpub-post-author">

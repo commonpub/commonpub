@@ -9,6 +9,11 @@ const props = defineProps<{
 
 const emit = defineEmits<{ 'post-vote': [postId: string] }>();
 
+/** Strip HTML tags for plain-text display in feed items */
+function stripHtml(html: string): string {
+  return html.replace(/<[^>]*>/g, '').trim();
+}
+
 const feedFilter = ref('all');
 
 const feedFilters = [
@@ -30,8 +35,8 @@ const filteredPosts = computed(() => {
   <AnnouncementBand
     v-for="post in filteredPosts.filter(p => p.isPinned && p.type === 'announcement')"
     :key="`ann-${post.id}`"
-    :title="post.content?.slice(0, 80) || 'Announcement'"
-    :body="post.content || ''"
+    :title="stripHtml(post.content || '').slice(0, 80) || 'Announcement'"
+    :body="stripHtml(post.content || '')"
     :author="post.author.name"
     :created-at="new Date(post.createdAt)"
     :pinned="true"
@@ -105,7 +110,7 @@ const filteredPosts = computed(() => {
         <NuxtLink v-if="post.linkTo" :to="post.linkTo" class="cpub-feed-link">
           <FeedItem
             :type="(post.type as 'discussion' | 'question' | 'showcase' | 'announcement') || 'discussion'"
-            :title="post.content?.slice(0, 80) || ''"
+            :title="stripHtml(post.content || '').slice(0, 80) || ''"
             :author="post.author.name"
             :author-avatar="post.author.avatarUrl ?? undefined"
             :author-handle="post.author.handle ?? undefined"
@@ -123,7 +128,7 @@ const filteredPosts = computed(() => {
         <div v-else>
           <FeedItem
             :type="(post.type as 'discussion' | 'question' | 'showcase' | 'announcement') || 'discussion'"
-            :title="post.content?.slice(0, 80) || ''"
+            :title="stripHtml(post.content || '').slice(0, 80) || ''"
             :author="post.author.name"
             :author-avatar="post.author.avatarUrl ?? undefined"
             :author-handle="post.author.handle ?? undefined"
