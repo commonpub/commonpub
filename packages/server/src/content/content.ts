@@ -1,6 +1,7 @@
 import { eq, and, desc, sql, inArray, isNull } from 'drizzle-orm';
 import { contentItems, contentVersions, contentForks, contentBuilds, federatedContentBuilds, tags, contentTags, users, follows, federatedContent, remoteActors } from '@commonpub/schema';
 import type { CommonPubConfig } from '@commonpub/config';
+import { emitHook } from '../hooks.js';
 import type { ContentItemRow } from '@commonpub/schema';
 import type {
   DB,
@@ -852,6 +853,18 @@ export async function onContentPublished(
   contentId: string,
   config: CommonPubConfig,
 ): Promise<{ federated: boolean; error?: string }> {
+  // Emit hook for consumer extensions
+  const [content] = await db
+    .select({ authorId: contentItems.authorId, type: contentItems.type, slug: contentItems.slug })
+    .from(contentItems)
+    .where(eq(contentItems.id, contentId))
+    .limit(1);
+  if (content) {
+    await emitHook('content:published', {
+      db, contentId, authorId: content.authorId, contentType: content.type, slug: content.slug,
+    });
+  }
+
   if (!config.features.federation) return { federated: false };
   try {
     await federateContent(db, contentId, config.instance.domain);
@@ -868,6 +881,15 @@ export async function onContentUpdated(
   contentId: string,
   config: CommonPubConfig,
 ): Promise<{ federated: boolean; error?: string }> {
+  const [content] = await db
+    .select({ authorId: contentItems.authorId })
+    .from(contentItems)
+    .where(eq(contentItems.id, contentId))
+    .limit(1);
+  if (content) {
+    await emitHook('content:updated', { db, contentId, authorId: content.authorId });
+  }
+
   if (!config.features.federation) return { federated: false };
   try {
     await federateUpdate(db, contentId, config.instance.domain);
@@ -906,6 +928,15 @@ export async function onContentDeleted(
   authorUsername: string,
   config: CommonPubConfig,
 ): Promise<void> {
+  const [content] = await db
+    .select({ authorId: contentItems.authorId })
+    .from(contentItems)
+    .where(eq(contentItems.id, contentId))
+    .limit(1);
+  if (content) {
+    await emitHook('content:deleted', { db, contentId, authorId: content.authorId });
+  }
+
   if (!config.features.federation) return;
   await federateDelete(db, contentId, config.instance.domain, authorUsername).catch(
     (err: unknown) => {

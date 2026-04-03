@@ -110,6 +110,14 @@ export async function getFederatedHub(
       memberCount = actor.followerCount;
     }
   }
+  // Also consider locally known members (from posts + followers collection)
+  const [localCount] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(federatedHubMembers)
+    .where(eq(federatedHubMembers.federatedHubId, row.hub.id));
+  if (localCount && localCount.count > memberCount) {
+    memberCount = localCount.count;
+  }
 
   return {
     id: row.hub.id,

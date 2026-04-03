@@ -1,4 +1,5 @@
 import { eq, and, or, desc, sql, inArray, isNull } from 'drizzle-orm';
+import { emitHook } from '../hooks.js';
 import {
   hubs,
   hubMembers,
@@ -106,6 +107,15 @@ export async function createPost(
       }
     }
   }
+
+  // Emit hook for consumer extensions
+  await emitHook('hub:post:created', {
+    db,
+    postId: postResult.id,
+    hubId: input.hubId,
+    authorId,
+    postType: input.type ?? 'text',
+  });
 
   // Return clean HubPostItem without internal _notify data
   const { _notify, ...cleanResult } = postResult as HubPostItem & { _notify?: unknown };

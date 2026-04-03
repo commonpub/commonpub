@@ -1,3 +1,7 @@
+// Hooks — consumer extension system
+export { onHook, emitHook, clearHooks, hookCount } from './hooks.js';
+export type { HookPayloads, HookEvent, HookHandler } from './hooks.js';
+
 // Types
 export type { DB, Serialized, PaginatedResponse } from './types.js';
 export type {

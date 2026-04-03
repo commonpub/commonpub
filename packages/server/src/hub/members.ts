@@ -1,4 +1,5 @@
 import { eq, and, desc, sql } from 'drizzle-orm';
+import { emitHook } from '../hooks.js';
 import {
   hubs,
   hubMembers,
@@ -97,6 +98,10 @@ export async function joinHub(
     }
   }
 
+  if (result.joined) {
+    await emitHook('hub:member:joined', { db, hubId, userId, role: 'member' });
+  }
+
   return { joined: result.joined };
 }
 
@@ -127,6 +132,8 @@ export async function leaveHub(
     .update(hubs)
     .set({ memberCount: sql`GREATEST(${hubs.memberCount} - 1, 0)` })
     .where(eq(hubs.id, hubId));
+
+  await emitHook('hub:member:left', { db, hubId, userId });
 
   return { left: true };
 }

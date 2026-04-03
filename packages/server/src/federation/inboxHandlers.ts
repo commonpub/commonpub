@@ -3,6 +3,7 @@
  * Used by both shared inbox and per-user inbox routes.
  */
 import { eq, and, sql, isNull } from 'drizzle-orm';
+import { emitHook } from '../hooks.js';
 import {
   activities,
   followRelationships,
@@ -596,6 +597,14 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
         } catch {
           // Invalid URL — skip comment counting
         }
+      }
+
+      // Emit hook for consumer extensions
+      if (objectUri) {
+        await emitHook('federation:content:received', {
+          db, federatedContentId: objectUri, objectUri, actorUri,
+          originDomain, apType: objectType, cpubType: cpubType ?? null,
+        });
       }
 
       // Log inbound activity
