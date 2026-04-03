@@ -74,7 +74,28 @@ See [docs/federation.md](docs/federation.md) for the full guide or [docs/federat
 
 ---
 
-## Quick Start
+## Create a New Instance
+
+The fastest way to start a new CommonPub site:
+
+```bash
+cargo install create-commonpub
+create-commonpub new my-community
+```
+
+The CLI walks you through instance name, domain, feature selection, auth methods, theme, and Docker setup. It generates a minimal Nuxt project that extends `@commonpub/layer` — all pages, components, and API routes come from the layer.
+
+```bash
+# Or skip prompts with defaults
+create-commonpub new my-community --defaults
+
+# Or cherry-pick features
+create-commonpub new my-community --features content,social,hubs --auth email-password,github --theme deepwood
+```
+
+See [tools/create-commonpub/README.md](tools/create-commonpub/README.md) for all CLI flags and options.
+
+## Quick Start (Monorepo Development)
 
 ```bash
 git clone https://github.com/commonpub/commonpub.git

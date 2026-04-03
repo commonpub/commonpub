@@ -19,7 +19,7 @@ create-commonpub new my-community
 Prompts for:
 - Instance name and domain
 - Description
-- Feature flags (10 modules: content, social, hubs, docs, video, contests, learning, explainers, federation, admin)
+- Feature flags (10 interactive prompts: content, social, hubs, docs, video, contests, learning, explainers, federation, admin)
 - Content types (project, article, blog, explainer)
 - Auth methods (email-password, magic-link, passkeys, GitHub, Google)
 - Contest creation level (open, staff, admin)
@@ -69,23 +69,24 @@ Available types: `project`, `article`, `blog`, `explainer`.
 
 ## Generated Project Structure
 
+The generated project extends `@commonpub/layer`, so it only needs minimal files:
+
 ```
 my-community/
-  .env                    # Environment variables
-  commonpub.config.ts     # Instance configuration
-  docker-compose.yml      # Local Postgres + Redis + Meilisearch
-  package.json            # Dependencies (all @commonpub/* packages)
+  package.json            # Dependencies (@commonpub/layer + @commonpub/config)
+  nuxt.config.ts          # Extends @commonpub/layer
+  commonpub.config.ts     # Instance name, domain, feature flags, auth
   tsconfig.json           # TypeScript config
-  nuxt.config.ts          # Nuxt 3 config with feature flags
-  pages/                  # File-based routing
-  server/
-    api/                  # Nitro API routes
-    middleware/            # Auth + security middleware
-    utils/                # DB, config, feature flag utilities
-  components/             # Vue 3 components
-  composables/            # Feature flag composables
-  app.vue                 # Root component
+  server/utils/config.ts  # Server-side config with env var overrides
+  components/SiteLogo.vue # Custom branding (override)
+  assets/theme.css        # Theme CSS variable overrides
+  public/favicon.svg      # Site favicon
+  uploads/                # Local file upload directory
+  .env                    # Environment variables (if Docker enabled)
+  docker-compose.yml      # Postgres + Redis + Meilisearch (if Docker enabled)
 ```
+
+All pages, components, composables, API routes, and middleware come from the layer.
 
 ## Architecture Note
 
