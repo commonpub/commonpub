@@ -1,6 +1,6 @@
 {
   "name": "@commonpub/server",
-  "version": "2.14.0",
+  "version": "2.15.0",
   "type": "module",
   "description": "Framework-agnostic business logic for CommonPub instances",
   "license": "AGPL-3.0-or-later",
@@ -9,31 +9,95 @@
     "url": "https://github.com/commonpub/commonpub",
     "directory": "packages/server"
   },
-  "keywords": ["commonpub", "activitypub", "federation", "typescript", "server", "business-logic"],
-  "publishConfig": { "access": "public" },
-  "engines": { "node": ">=22" },
+  "keywords": [
+    "commonpub",
+    "activitypub",
+    "federation",
+    "typescript",
+    "server",
+    "business-logic"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=22"
+  },
   "sideEffects": false,
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
-    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" },
-    "./types": { "types": "./dist/types.d.ts", "import": "./dist/types.js" },
-    "./query": { "types": "./dist/query.d.ts", "import": "./dist/query.js" },
-    "./content": { "types": "./dist/content/index.d.ts", "import": "./dist/content/index.js" },
-    "./hub": { "types": "./dist/hub/index.d.ts", "import": "./dist/hub/index.js" },
-    "./social": { "types": "./dist/social/index.d.ts", "import": "./dist/social/index.js" },
-    "./learning": { "types": "./dist/learning/index.d.ts", "import": "./dist/learning/index.js" },
-    "./docs": { "types": "./dist/docs/index.d.ts", "import": "./dist/docs/index.js" },
-    "./product": { "types": "./dist/product/index.d.ts", "import": "./dist/product/index.js" },
-    "./contest": { "types": "./dist/contest/index.d.ts", "import": "./dist/contest/index.js" },
-    "./admin": { "types": "./dist/admin/index.d.ts", "import": "./dist/admin/index.js" },
-    "./notification": { "types": "./dist/notification/index.d.ts", "import": "./dist/notification/index.js" },
-    "./messaging": { "types": "./dist/messaging/index.d.ts", "import": "./dist/messaging/index.js" },
-    "./video": { "types": "./dist/video/index.d.ts", "import": "./dist/video/index.js" },
-    "./profile": { "types": "./dist/profile/index.d.ts", "import": "./dist/profile/index.js" },
-    "./federation": { "types": "./dist/federation/index.d.ts", "import": "./dist/federation/index.js" }
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./types": {
+      "types": "./dist/types.d.ts",
+      "import": "./dist/types.js"
+    },
+    "./query": {
+      "types": "./dist/query.d.ts",
+      "import": "./dist/query.js"
+    },
+    "./content": {
+      "types": "./dist/content/index.d.ts",
+      "import": "./dist/content/index.js"
+    },
+    "./hub": {
+      "types": "./dist/hub/index.d.ts",
+      "import": "./dist/hub/index.js"
+    },
+    "./social": {
+      "types": "./dist/social/index.d.ts",
+      "import": "./dist/social/index.js"
+    },
+    "./learning": {
+      "types": "./dist/learning/index.d.ts",
+      "import": "./dist/learning/index.js"
+    },
+    "./docs": {
+      "types": "./dist/docs/index.d.ts",
+      "import": "./dist/docs/index.js"
+    },
+    "./product": {
+      "types": "./dist/product/index.d.ts",
+      "import": "./dist/product/index.js"
+    },
+    "./contest": {
+      "types": "./dist/contest/index.d.ts",
+      "import": "./dist/contest/index.js"
+    },
+    "./admin": {
+      "types": "./dist/admin/index.d.ts",
+      "import": "./dist/admin/index.js"
+    },
+    "./notification": {
+      "types": "./dist/notification/index.d.ts",
+      "import": "./dist/notification/index.js"
+    },
+    "./messaging": {
+      "types": "./dist/messaging/index.d.ts",
+      "import": "./dist/messaging/index.js"
+    },
+    "./video": {
+      "types": "./dist/video/index.d.ts",
+      "import": "./dist/video/index.js"
+    },
+    "./profile": {
+      "types": "./dist/profile/index.d.ts",
+      "import": "./dist/profile/index.js"
+    },
+    "./federation": {
+      "types": "./dist/federation/index.d.ts",
+      "import": "./dist/federation/index.js"
+    }
   },
-  "files": ["dist/", "!dist/__tests__/", "README.md", "LICENSE"],
+  "files": [
+    "dist/",
+    "!dist/__tests__/",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",

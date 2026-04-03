@@ -1,6 +1,6 @@
 {
   "name": "@commonpub/infra",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "type": "module",
   "description": "Storage adapters, image processing, email, and security utilities for CommonPub",
   "license": "AGPL-3.0-or-later",
@@ -9,7 +9,16 @@
     "url": "https://github.com/commonpub/commonpub",
     "directory": "packages/infra"
   },
-  "keywords": ["commonpub", "activitypub", "federation", "typescript", "storage", "s3", "email", "security"],
+  "keywords": [
+    "commonpub",
+    "activitypub",
+    "federation",
+    "typescript",
+    "storage",
+    "s3",
+    "email",
+    "security"
+  ],
   "publishConfig": {
     "access": "public"
   },
@@ -41,7 +50,12 @@
       "import": "./dist/security.js"
     }
   },
-  "files": ["dist/", "!dist/__tests__/", "README.md", "LICENSE"],
+  "files": [
+    "dist/",
+    "!dist/__tests__/",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "tsc",
     "prepublishOnly": "pnpm run build",

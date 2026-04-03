@@ -1,6 +1,6 @@
 {
   "name": "@commonpub/config",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "type": "module",
   "description": "CommonPub configuration factory and feature flags",
   "license": "AGPL-3.0-or-later",
@@ -9,7 +9,14 @@
     "url": "https://github.com/commonpub/commonpub",
     "directory": "packages/config"
   },
-  "keywords": ["commonpub", "activitypub", "federation", "typescript", "config", "feature-flags"],
+  "keywords": [
+    "commonpub",
+    "activitypub",
+    "federation",
+    "typescript",
+    "config",
+    "feature-flags"
+  ],
   "publishConfig": {
     "access": "public"
   },
@@ -25,7 +32,12 @@
       "import": "./dist/index.js"
     }
   },
-  "files": ["dist/", "!dist/__tests__/", "README.md", "LICENSE"],
+  "files": [
+    "dist/",
+    "!dist/__tests__/",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "tsc",
     "prepublishOnly": "pnpm run build",
