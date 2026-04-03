@@ -173,29 +173,45 @@ Completed P1 through P4 from the session prompt plus critical federation bug fix
 - WebFinger recognizes both `acct:domain@domain` and `acct:instance@domain` for the instance actor
 - CLI template updated to current versions; test-site is gitignored and stale (legacy)
 
+## Late-session fixes (after initial deploy)
+
+### E2E CI fix
+- Root cause: `pg_isready` health check ran as OS user "root" but Postgres only has "commonpub" role. Health check never passed → job timed out waiting for postgres.
+- Fix: `--health-cmd "pg_isready -U commonpub"` in both `check` and `e2e` jobs.
+
+### Post-deploy smoke test
+- Added `curl /api/health` with 5 retries to deploy.yml. Warns if app didn't start.
+
+### Email adapter production warning
+- `useEmailAdapter()` now logs a prominent warning if console adapter is active in production (`NODE_ENV=production`).
+
+### Production verification
+- Hub sync confirmed working: 6/9 federated hubs have icons, 5/9 have banners — matches source data exactly.
+- 3 hubs without icons (Innatera, Knitronics, devOSH) genuinely don't have them set on deveco.io.
+- Both deploys green. layer@0.3.26 is final published version.
+
 ## Tech debt remaining
 
 - Per-participant read receipts for group chats (needs `message_reads` join table — schema change)
-- E2E CI postgres config (`role "root" does not exist` — pre-existing CI config issue)
 - Redis authentication in production docker-compose
 - `as any` casts in storage adapter (upload-from-url)
 - Auto-admin bootstrap race condition (extremely unlikely, first-deploy only)
 - Digest scheduler has no duplicate prevention on server restart during the 8am hour
 - CLI only prompts for 10 feature flags (missing seamlessFederation, federateHubs, emailNotifications in interactive prompts)
+- refreshFederatedHubMetadata silently swallows all errors (bare catch {})
 
 ## Next steps (Session 104)
 
-### High priority
-1. **E2E CI fix** — The `role "root" does not exist` failure needs investigating. CI workflow uses `commonpub:commonpub_test` credentials (correct), so the "root" error may come from the E2E app connecting with wrong env vars or drizzle-kit push using default credentials. Check the E2E job's env block.
-2. **Verify federated login works** — Session 103 fixed the WebFinger 502. Once both deploys land, test the full flow: commonpub.io → "Sign in with deveco.io" → authorize → callback → session.
-3. **Verify hub avatars/banners populated** — SQL backfill was run. Check if the hub sync plugin re-fetched Group actors and populated iconUrl/bannerUrl on commonpub.io.
+### Verify
+1. **Federated login flow** — Session 103 fixed the WebFinger 502 (acct:instance@domain wasn't recognized). Test full flow: commonpub.io → "Sign in with deveco.io" → authorize → callback → session.
+2. **E2E CI green** — First run with fixed pg_isready should be passing now. Confirm.
 
 ### Feature work
-4. **Per-participant read receipts** — Needs `message_reads` join table (schema change). Currently readAt is per-message, not per-participant.
-5. **CLI interactive prompts** — Add seamlessFederation, federateHubs, emailNotifications to the interactive prompts in prompts.rs.
-6. **Content notifications** — When someone you follow publishes new content, send a notification (currently only likes/comments/follows/mentions trigger notifications).
+3. **Per-participant read receipts** — Needs `message_reads` join table (schema change). Currently readAt is per-message, not per-participant.
+4. **CLI interactive prompts** — Add seamlessFederation, federateHubs, emailNotifications to prompts.rs.
+5. **Content follow notifications** — When someone you follow publishes new content, send a notification.
+6. **Upload icons for Innatera, Knitronics, devOSH** on deveco.io — they have no icon/banner set.
 
 ### Operational
-7. **Post-deploy smoke test** — Deploy workflow succeeds even if app fails to start. Add a `curl /api/health` check after `docker compose up`.
-8. **Email adapter production warning** — If adapter is 'console' in production, log a prominent warning at startup so operators notice emails aren't actually being sent.
-9. **Redis authentication** — Production docker-compose has Redis with no password. Add `--requirepass` for defense in depth.
+7. **Redis authentication** — Production docker-compose has Redis with no password. Add `--requirepass`.
+8. **Federation health lag metric** — how old is the oldest pending activity?
