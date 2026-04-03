@@ -15,10 +15,10 @@ pub fn render_package_json(config: &InstanceConfig) -> String {
     "db:studio": "drizzle-kit studio"
   }},
   "dependencies": {{
-    "@commonpub/config": "^0.7.0",
-    "@commonpub/layer": "^0.3.19",
+    "@commonpub/config": "^0.7.1",
+    "@commonpub/layer": "^0.3.24",
     "@commonpub/schema": "^0.8.12",
-    "@commonpub/server": "^2.13.0",
+    "@commonpub/server": "^2.15.0",
     "drizzle-orm": "^0.45.1",
     "nuxt": "^3.16.0",
     "vue": "^3.4.0",
@@ -213,6 +213,7 @@ export function useConfig(): CommonPubConfig {
     federateHubs: 'FEATURE_FEDERATE_HUBS',
     seamlessFederation: 'FEATURE_SEAMLESS_FEDERATION',
     admin: 'FEATURE_ADMIN',
+    emailNotifications: 'FEATURE_EMAIL_NOTIFICATIONS',
   };
 
   for (const [flag, envKey] of Object.entries(envOverrides)) {

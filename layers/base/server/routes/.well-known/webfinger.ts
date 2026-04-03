@@ -36,8 +36,8 @@ export default defineEventHandler(async (event) => {
   // CORS — WebFinger must be accessible from browser-based AP clients
   setResponseHeader(event, 'access-control-allow-origin', '*');
 
-  // Instance actor lookup: acct:domain@domain → /actor Service
-  if (parsed.username === instanceDomain || parsed.username === config.instance.domain) {
+  // Instance actor lookup: acct:domain@domain or acct:instance@domain → /actor Service
+  if (parsed.username === instanceDomain || parsed.username === config.instance.domain || parsed.username === 'instance') {
     const actorUri = `https://${instanceDomain}/actor`;
     setResponseHeader(event, 'content-type', 'application/jrd+json');
     return buildWebFingerResponse({

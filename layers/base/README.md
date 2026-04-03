@@ -47,13 +47,13 @@ Create `server/utils/config.ts` to load the config on the server side. See `apps
 
 ## What's Included
 
-### Pages (20+ routes)
+### Pages (70+ routes)
 
 Content CRUD, hub feeds, learning paths, docs sites, admin panel, federation management, user profiles, messaging, notifications, search, and more.
 
-### Components (30+)
+### Components (100+)
 
-Content editor (`CpubEditor`), content cards, author rows, comment sections, engagement bars, federation UI, notification items, message threads, and more.
+Content editor (`CpubEditor`), content cards, author rows, comment sections, engagement bars, federation UI, notification items, message threads, block renderers, and more.
 
 ### Composables (19)
 
