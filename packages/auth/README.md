@@ -107,7 +107,7 @@ Auth behavior is driven by `@commonpub/config`. Social providers degrade gracefu
 
 ```ts
 export { createAuth } from './createAuth';
-export { createAuthHook } from './hooks';
+export { createAuthMiddleware, createAuthHook /* @deprecated alias */ } from './hooks';
 export { authGuard, adminGuard, roleGuard } from './guards';
 export { createSSOProviderConfig, discoverOAuthEndpoint, isTrustedInstance } from './sso';
 export { ROLE_HIERARCHY, getRoleLevel } from './types';

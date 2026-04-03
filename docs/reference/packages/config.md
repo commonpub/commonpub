@@ -18,7 +18,8 @@
 | `authConfigSchema` | Zod Schema | Auth configuration validator |
 | `instanceConfigSchema` | Zod Schema | Instance metadata validator |
 | `CommonPubConfig` | Type | Full config shape |
-| `FeatureFlags` | Type | 10 boolean feature flags |
+| `FeatureFlags` | Type | 13 boolean feature flags |
+| `FederationConfig` | Type | Federation-specific configuration |
 | `AuthConfig` | Type | Authentication providers and SSO |
 | `InstanceConfig` | Type | Domain, name, limits |
 

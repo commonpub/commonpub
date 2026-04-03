@@ -9,7 +9,7 @@
                          │                              │
                          │  ┌────────┐  ┌───────────┐  │
                          │  │ Pages  │  │ Components│  │
-                         │  │ (61)   │  │ (85+)     │  │
+                         │  │ (70)   │  │ (108)     │  │
                          │  └───┬────┘  └─────┬─────┘  │
                          │      │             │        │
                          │  ┌───┴─────────────┴───┐    │
@@ -231,7 +231,7 @@ test-utils ────── (schema, config)
   └──────────────┘
 ```
 
-## Page Map (61 pages)
+## Page Map (70 pages)
 
 ```
 /                          Home (tabbed feed, sidebar)
@@ -311,7 +311,7 @@ test-utils ────── (schema, config)
 /admin/content             Content moderation
 ```
 
-## API Route Map (142 routes)
+## API Route Map (206 route files)
 
 | Domain | Routes | Description |
 |--------|--------|-------------|

@@ -12,9 +12,9 @@
 
 The schema package is the foundation of CommonPub — every other package and app depends on it. It defines:
 
-- **53 database tables** across 12 sub-modules
-- **30 PostgreSQL enums** for type-safe domain values
-- **59 Zod validators** for input validation at system boundaries
+- **63 database tables** across 12 sub-modules
+- **32 PostgreSQL enums** for type-safe domain values
+- **74 Zod validators** for input validation at system boundaries
 
 All tables use UUID primary keys, `timestamp with timezone` for dates, and Drizzle's query builder API.
 

@@ -1,6 +1,6 @@
 # Rate Limiting
 
-> Sliding-window rate limiter with five tiers and Nitro server middleware integration.
+> Sliding-window rate limiter with six tiers and Nitro server middleware integration.
 
 **Source**: `packages/server/src/rateLimit.ts`
 
@@ -12,7 +12,7 @@
 |--------|------|-------------|
 | `RateLimitTier` | Interface | Rate limit configuration for a tier |
 | `RateLimitStore` | Class | In-memory sliding window store |
-| `DEFAULT_TIERS` | Constant | Five pre-configured rate limit tiers |
+| `DEFAULT_TIERS` | Constant | Six pre-configured rate limit tiers |
 | `getTierForPath` | Function | Maps a URL pathname to its tier |
 | `createRateLimitHook` | Function | Nitro server middleware factory |
 
@@ -56,11 +56,12 @@ Stops the background cleanup interval and clears all stored entries.
 
 ### `DEFAULT_TIERS`
 
-Five pre-configured rate limit tiers:
+Six pre-configured rate limit tiers:
 
 | Tier | Limit | Window | Use case |
 |------|-------|--------|----------|
 | `auth` | 5 | 60s | Authentication endpoints |
+| `upload` | 10 | 60s | File upload endpoints |
 | `social` | 30 | 60s | Social interactions |
 | `federation` | 60 | 60s | ActivityPub federation |
 | `api` | 60 | 60s | General API routes |
@@ -81,6 +82,7 @@ Maps a URL pathname to its corresponding rate limit tier.
 | Pattern | Tier |
 |---------|------|
 | `/auth/` or `/api/auth/` | `auth` |
+| `/api/files/upload` | `upload` |
 | `/api/social/` | `social` |
 | `/api/federation/`, `/inbox`, or `/users/` | `federation` |
 | `/api/*` | `api` |

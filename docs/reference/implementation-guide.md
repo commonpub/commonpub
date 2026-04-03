@@ -122,7 +122,7 @@ pnpm --filter @commonpub/schema db:push    # Apply schema to database
 pnpm --filter @commonpub/schema db:migrate  # Run migration files
 ```
 
-The schema creates all 52 tables and 30 enums.
+The schema creates all 63 tables and 32 enums.
 
 ---
 

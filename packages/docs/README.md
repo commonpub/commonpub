@@ -57,6 +57,7 @@ const headings = extractHeadings(markdownContent);
 ```ts
 import {
   buildPageTree,
+  buildPagePath,
   buildBreadcrumbs,
   flattenNav,
   getPrevNextLinks,

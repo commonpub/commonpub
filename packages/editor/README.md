@@ -29,7 +29,7 @@ const editor = createCommonPubEditor({
 
 ### Block Types
 
-18 block types are available, covering rich text, media, and maker-specific content:
+20 block types are available, covering rich text, media, and maker-specific content:
 
 **Core blocks:**
 
@@ -50,6 +50,8 @@ const editor = createCommonPubEditor({
 | `video`    | `CommonPubVideo`          | Embedded video player               |
 | `embed`    | `CommonPubEmbed`          | External embed (iframe)             |
 | `markdown` | `CommonPubMarkdown`       | Raw markdown block                  |
+| `divider`  | —                         | Horizontal divider                  |
+| `sectionHeader` | —                    | Section header / separator          |
 
 **Maker-focused blocks:**
 
@@ -107,7 +109,7 @@ Register custom block types or use the built-in ones:
 ```ts
 import { registerBlock, lookupBlock, listBlocks, registerCoreBlocks } from '@commonpub/editor';
 
-// Register all 18 built-in block types
+// Register all 20 built-in block types
 registerCoreBlocks();
 
 // Register a custom block type

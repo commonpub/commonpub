@@ -33,6 +33,12 @@ pnpm add @commonpub/ui
 | `Avatar`         | User avatar                                    | Image with initials fallback           |
 | `Stack`          | Flex layout container                          | Direction, gap, alignment              |
 | `Separator`      | Visual divider                                 | Horizontal/vertical, ARIA separator    |
+| `Card`           | Content card container                         | Header, body, footer slots             |
+| `Toggle`         | Toggle switch                                  | On/off state, ARIA switch              |
+| `TagInput`       | Tag input with chips                           | Add/remove tags, keyboard support      |
+| `ProgressBar`    | Progress indicator                             | Percentage, label, ARIA progressbar    |
+| `Alert`          | Alert/banner message                           | Variants: info, success, warning, error|
+| `Toolbar`        | Toolbar container                              | Horizontal/vertical, ARIA toolbar      |
 | `VisuallyHidden` | Screen reader-only text                        | Accessibility utility                  |
 
 ## Usage

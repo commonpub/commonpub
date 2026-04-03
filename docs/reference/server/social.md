@@ -2,7 +2,7 @@
 
 > Database operations for likes, comments, and bookmarks across content, hub posts, and comments.
 
-**Source**: `packages/server/src/social.ts`
+**Source**: `packages/server/src/social/`
 
 ---
 
@@ -12,11 +12,22 @@
 |--------|------|-------------|
 | `toggleLike` | Function | Toggle a like on/off (transaction) |
 | `isLiked` | Function | Check if a user has liked a target |
+| `isBookmarked` | Function | Check if a user has bookmarked a target |
 | `listComments` | Function | Threaded comment list for a target |
 | `createComment` | Function | Add a comment (top-level or reply) |
 | `deleteComment` | Function | Delete a comment (ownership-checked) |
 | `toggleBookmark` | Function | Toggle a bookmark on/off (transaction) |
+| `listUserBookmarks` | Function | List all bookmarks for a user |
+| `followUser` | Function | Follow a user |
+| `unfollowUser` | Function | Unfollow a user |
+| `isFollowing` | Function | Check if a user follows another |
+| `listFollowers` | Function | List a user's followers |
+| `listFollowing` | Function | List who a user follows |
+| `createReport` | Function | File a moderation report |
+| `extractMentions` | Function | Parse @mentions from text |
+| `resolveUsernames` | Function | Resolve @mention usernames to user IDs |
 | `onContentLiked` | Federation hook | Federate a Like activity |
+| `onContentUnliked` | Federation hook | Federate an Undo(Like) activity |
 
 ---
 

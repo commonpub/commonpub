@@ -2,7 +2,7 @@
 
 > Database operations for creating, reading, updating, and deleting content items (articles, tutorials, snippets).
 
-**Source**: `packages/server/src/content.ts`
+**Source**: `packages/server/src/content/`
 
 ---
 
@@ -17,9 +17,18 @@
 | `deleteContent` | Function | Soft-delete by archiving (ownership-checked) |
 | `publishContent` | Function | Shorthand to publish a draft |
 | `incrementViewCount` | Function | Atomic view count increment |
+| `createContentVersion` | Function | Save a version snapshot on publish |
+| `listContentVersions` | Function | List all versions of a content item |
+| `forkContent` | Function | Fork a local content item |
+| `forkFederatedContent` | Function | Fork federated content into a local draft |
+| `toggleBuildMark` | Function | Toggle build mark on local content |
+| `toggleFederatedBuildMark` | Function | Toggle build mark on federated content |
+| `isBuildMarked` | Function | Check if local content is build-marked |
+| `isFederatedBuildMarked` | Function | Check if federated content is build-marked |
 | `onContentPublished` | Federation hook | Federate a Create activity on first publish |
 | `onContentUpdated` | Federation hook | Federate an Update activity |
 | `onContentDeleted` | Federation hook | Federate a Delete activity |
+| `onContentStatusChange` | Federation hook | Handle content status transitions |
 
 ---
 

@@ -49,6 +49,7 @@ const url = getBestVariant(processed, 600); // best variant for 600px display
 Email sending with adapter pattern:
 
 - **`SmtpEmailAdapter`** -- SMTP transport via nodemailer (optional dependency).
+- **`ResendEmailAdapter`** -- Resend API for transactional email. For production.
 - **`ConsoleEmailAdapter`** -- logs emails to console. For development.
 - **`emailTemplates`** -- pre-built templates: verification, password reset, notification digest, contest announcement, certificate issued.
 
@@ -66,7 +67,7 @@ HTTP security headers and rate limiting:
 
 - **CSP** -- `buildCspDirectives(nonce?)` and `buildCspHeader()` for Content-Security-Policy with optional nonce-based script/style sources.
 - **Security headers** -- `getSecurityHeaders(isDev)` returns X-Content-Type-Options, X-Frame-Options, Referrer-Policy, Permissions-Policy, and HSTS (production only).
-- **Rate limiting** -- `RateLimitStore` with in-memory sliding window, 5 default tiers (auth: 5/min, social: 30/min, federation: 60/min, api: 60/min, general: 120/min), and `checkRateLimit()` for framework-agnostic checking with response headers.
+- **Rate limiting** -- `RateLimitStore` with in-memory sliding window, 6 default tiers (auth: 5/min, upload: 10/min, social: 30/min, federation: 60/min, api: 60/min, general: 120/min), and `checkRateLimit()` for framework-agnostic checking with response headers.
 
 ```ts
 import { RateLimitStore, checkRateLimit, getSecurityHeaders } from '@commonpub/infra';

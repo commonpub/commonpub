@@ -15,7 +15,7 @@
 
 | Document | Package | Description |
 |----------|---------|-------------|
-| [Schema](./packages/schema.md) | `@commonpub/schema` | 53 Drizzle tables, 30 enums, 59 Zod validators |
+| [Schema](./packages/schema.md) | `@commonpub/schema` | 63 Drizzle tables, 32 enums, 74 Zod validators |
 | [Config](./packages/config.md) | `@commonpub/config` | `defineCommonPubConfig()` factory, 13 feature flags, validation schemas |
 | [Protocol](./packages/protocol.md) | `@commonpub/protocol` | ActivityPub types, activity builders, WebFinger, NodeInfo, OAuth2, HTTP signatures |
 | [Auth](./packages/auth.md) | `@commonpub/auth` | Better Auth wrapper, session management, guards, AP actor SSO |
@@ -39,7 +39,7 @@
 | [Docs](./server/docs-server.md) | `docs.ts` | Sites, versions, pages, navigation, search |
 | [Federation](./server/federation-server.md) | `federation.ts` | Keypairs, actor resolution, follow management, content federation |
 | [Admin](./server/admin.md) | `admin.ts` | Platform stats, user management, reports, instance settings |
-| [Rate Limiting](./server/rate-limit.md) | `rateLimit.ts` | 5 tiers, sliding window algorithm |
+| [Rate Limiting](./server/rate-limit.md) | `rateLimit.ts` | 6 tiers, sliding window algorithm |
 | [Security](./server/security.md) | `security.ts` | Nonce-based CSP, HSTS, security headers |
 | [OAuth Codes](./server/oauth-codes.md) | `oauthCodes.ts` | Authorization code store, single-use consumption, TTL cleanup |
 | [Audit](./server/audit.md) | `audit.ts` | Audit log creation and listing |
