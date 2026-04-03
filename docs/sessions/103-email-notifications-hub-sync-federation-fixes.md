@@ -182,3 +182,20 @@ Completed P1 through P4 from the session prompt plus critical federation bug fix
 - Auto-admin bootstrap race condition (extremely unlikely, first-deploy only)
 - Digest scheduler has no duplicate prevention on server restart during the 8am hour
 - CLI only prompts for 10 feature flags (missing seamlessFederation, federateHubs, emailNotifications in interactive prompts)
+
+## Next steps (Session 104)
+
+### High priority
+1. **E2E CI fix** — The `role "root" does not exist` failure needs investigating. CI workflow uses `commonpub:commonpub_test` credentials (correct), so the "root" error may come from the E2E app connecting with wrong env vars or drizzle-kit push using default credentials. Check the E2E job's env block.
+2. **Verify federated login works** — Session 103 fixed the WebFinger 502. Once both deploys land, test the full flow: commonpub.io → "Sign in with deveco.io" → authorize → callback → session.
+3. **Verify hub avatars/banners populated** — SQL backfill was run. Check if the hub sync plugin re-fetched Group actors and populated iconUrl/bannerUrl on commonpub.io.
+
+### Feature work
+4. **Per-participant read receipts** — Needs `message_reads` join table (schema change). Currently readAt is per-message, not per-participant.
+5. **CLI interactive prompts** — Add seamlessFederation, federateHubs, emailNotifications to the interactive prompts in prompts.rs.
+6. **Content notifications** — When someone you follow publishes new content, send a notification (currently only likes/comments/follows/mentions trigger notifications).
+
+### Operational
+7. **Post-deploy smoke test** — Deploy workflow succeeds even if app fails to start. Add a `curl /api/health` check after `docker compose up`.
+8. **Email adapter production warning** — If adapter is 'console' in production, log a prominent warning at startup so operators notice emails aren't actually being sent.
+9. **Redis authentication** — Production docker-compose has Redis with no password. Add `--requirepass` for defense in depth.
