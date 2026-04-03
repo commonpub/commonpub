@@ -3,6 +3,8 @@
 > Written 2026-03-15. Revised same day after deep re-examination of every schema
 > table, every server function, every API route, every page, every component,
 > every TipTap extension, every mockup HTML file, and every package.
+>
+> **Status as of 2026-04-02**: Phases 0-6 are **COMPLETE**. Phase 7 (Federation) is **COMPLETE** — all 7 sub-phases implemented in sessions 074-088. The "Current State" table below reflects the project at the time of writing (March 15) and is preserved for historical context. See session logs 071-102 for execution details.
 
 ---
 
@@ -23,7 +25,7 @@
 
 ---
 
-## Phase 0: Conceptual Model
+## Phase 0: Conceptual Model — COMPLETE
 
 ### 0.1 — The Hub Model
 
@@ -106,7 +108,7 @@ This isolates the risk: Step A is pure refactor (testable), Step B is pure migra
 
 ---
 
-## Phase 1: Schema Evolution
+## Phase 1: Schema Evolution — COMPLETE
 
 ### 1.1 — Hub rename + type discriminator
 
@@ -339,7 +341,7 @@ Every POST/PUT endpoint will validate against these before calling server functi
 
 ---
 
-## Phase 2: Server Layer
+## Phase 2: Server Layer — COMPLETE
 
 ### 2.1 — Hub + product functions
 
@@ -453,7 +455,7 @@ Implementations:
 
 ---
 
-## Phase 3: API Layer
+## Phase 3: API Layer — COMPLETE
 
 ### 3.1 — New endpoints
 
@@ -543,7 +545,7 @@ Many pages already use `useHead()` / `useSeoMeta()`. Additions needed:
 
 ---
 
-## Phase 4: Frontend — Match Every Mockup
+## Phase 4: Frontend — Match Every Mockup — COMPLETE
 
 **Rule: Read the actual mockup HTML file FIRST, then compare with the Vue page, then fix.**
 
@@ -641,7 +643,7 @@ After wiring up all components, audit and remove any truly unused components, co
 
 ---
 
-## Phase 5: Data & Testing
+## Phase 5: Data & Testing — COMPLETE
 
 ### 5.1 — Seed script
 
@@ -699,7 +701,7 @@ For every `@commonpub/ui` component:
 
 ---
 
-## Phase 6: Production Hardening
+## Phase 6: Production Hardening — COMPLETE
 
 ### 6.1 — Security
 - [x] CSP headers (implemented in security.ts)
@@ -755,7 +757,7 @@ For every `@commonpub/ui` component:
 
 ---
 
-## Phase 7: Federation (Post-Launch)
+## Phase 7: Federation (Post-Launch) — COMPLETE
 
 **Per CLAUDE.md rule #10: "No federation before two instances exist with real content."**
 

@@ -16,7 +16,7 @@
 | Document | Package | Description |
 |----------|---------|-------------|
 | [Schema](./packages/schema.md) | `@commonpub/schema` | 53 Drizzle tables, 30 enums, 59 Zod validators |
-| [Config](./packages/config.md) | `@commonpub/config` | `defineCommonPubConfig()` factory, 10 feature flags, validation schemas |
+| [Config](./packages/config.md) | `@commonpub/config` | `defineCommonPubConfig()` factory, 13 feature flags, validation schemas |
 | [Protocol](./packages/protocol.md) | `@commonpub/protocol` | ActivityPub types, activity builders, WebFinger, NodeInfo, OAuth2, HTTP signatures |
 | [Auth](./packages/auth.md) | `@commonpub/auth` | Better Auth wrapper, session management, guards, AP actor SSO |
 | [UI](./packages/ui.md) | `@commonpub/ui` | Headless Vue 3 components, base theme (light/dark), CSS tokens |
@@ -48,11 +48,12 @@
 
 | Document | Description |
 |----------|-------------|
-| [Federation](./guides/federation.md) | v1 capabilities and limitations, OAuth2 SSO flow, endpoint reference, cross-publishing FAQ |
+| [Federation](./guides/federation.md) | Federation capabilities, OAuth2 SSO flow, endpoint reference, cross-publishing FAQ |
 | [Theming](./guides/theming.md) | Base theme (light/dark), CSS tokens by category, token overrides |
-| [Routing](./guides/routing.md) | All routes -- 61 pages, 142 API endpoints, federation endpoints |
-| [Feature Flags](./guides/feature-flags.md) | All 10 flags: what each controls, defaults, dependencies |
-| [v1 Limitations](./guides/v1-limitations.md) | Known blockers, deferred features, federation stubs, honest status |
+| [Routing](./guides/routing.md) | All routes — pages, API endpoints, federation endpoints |
+| [Feature Flags](./guides/feature-flags.md) | All 13 flags: what each controls, defaults, dependencies |
+| [Admin & Permissions](./guides/admin-and-permissions.md) | Admin panel, role hierarchy, permission model |
+| [Known Limitations](./guides/v1-limitations.md) | Current limitations, deferred features, resolved issues, honest status |
 
 ---
 
@@ -62,4 +63,4 @@
 - [Architecture Decision Records](../adr/) — ADRs 001–026
 - [Master Plan](../plan-v2.md) — Current production-grade implementation plan
 - [Accessibility Audit](../a11y-audit.md) — WCAG 2.1 AA compliance report
-- [Contributing Guide](../contributing.md) — Code conventions and PR workflow
+- [Contributing Guide](../contributing.md) — Development workflow, coding standards, and PR process

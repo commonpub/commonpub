@@ -29,15 +29,19 @@ const published = await getContentBySlug(db, 'project', 'my-project');
 | Module | Purpose |
 |--------|---------|
 | `content` | Content CRUD, publishing, view counts, federation hooks |
-| `social` | Likes, comments, bookmarks |
-| `hub` | Hub CRUD (community/product/company), membership, posts, moderation, bans |
+| `social` | Likes, comments, bookmarks, follows, mentions |
+| `hub` | Hub CRUD (community/product/company), membership, posts, moderation, bans, invites |
 | `learning` | Paths, modules, lessons, enrollment, progress, certificates |
 | `docs` | Sites, versions, pages, navigation, search |
-| `federation` | Keypairs, actor resolution, follow management, content federation |
+| `federation` | Keypairs, actor resolution, follow management, content federation, hub mirroring |
 | `admin` | Platform stats, user management, reports, instance settings |
-| `audit` | Audit log creation and listing |
+| `notification` | Notification creation, listing, and real-time counts |
+| `messaging` | Conversations, direct messages, unread counts |
+| `product` | Product CRUD, content-product associations |
+| `contest` | Contest CRUD, entries, judging |
+| `video` | Video management and categories |
+| `profile` | User profile updates |
 | `security` | CSP builder, security headers |
-| `rateLimit` | Sliding-window rate limiter with 5 tiers |
 | `oauthCodes` | Authorization code store with TTL |
 
 ## Dependencies

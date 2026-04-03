@@ -66,7 +66,10 @@ All features are gated behind flags. No feature code runs unless its flag is `tr
 | `learning`     | `true`  | Learning paths, enrollment, certificates       |
 | `explainers`   | `true`  | Interactive explainer modules                  |
 | `federation`   | `false` | ActivityPub federation                         |
+| `seamlessFederation` | `false` | Automatic cross-instance content sync    |
+| `federateHubs` | `false` | Hub federation via AP Group actors             |
 | `admin`        | `false` | Admin panel (user mgmt, reports, settings)     |
+| `emailNotifications` | `false` | Email delivery for notifications         |
 
 ## Auth Configuration
 

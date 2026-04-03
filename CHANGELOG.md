@@ -38,7 +38,7 @@ All notable changes to CommonPub are documented here.
 
 ---
 
-## v1.0.0 — Launch
+## Pre-release Development Phases
 
 ### Reference App UI Full Build (2026-03-11)
 

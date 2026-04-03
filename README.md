@@ -2,10 +2,10 @@
 
 [![Tests](https://github.com/commonpub/commonpub/actions/workflows/test.yml/badge.svg)](https://github.com/commonpub/commonpub/actions/workflows/test.yml)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue.svg)](https://www.typescriptlang.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-yellow.svg)](LICENSE)
 [![ActivityPub](https://img.shields.io/badge/protocol-ActivityPub-purple.svg)](https://www.w3.org/TR/activitypub/)
 [![Packages](https://img.shields.io/badge/packages-12-green.svg)](#architecture)
-[![Tests](https://img.shields.io/badge/tests-1269-brightgreen.svg)](#testing)
+[![Tests](https://img.shields.io/badge/tests-1939+-brightgreen.svg)](#testing)
 
 An open ActivityPub federation protocol and package suite for self-hosted maker communities.
 
@@ -174,8 +174,8 @@ Each package has its own README with API docs, usage examples, and architecture 
 - [Federation Guide](docs/federation.md): How federation works, with diagrams
 - [Federation Plan](docs/federation-plan.md): 10-phase implementation roadmap
 - [Master Plan](docs/plan-v2.md): Implementation phases and architecture
-- [Architecture Decision Records](docs/adr/): 25 ADRs documenting key decisions
-- [Contributing Guide](docs/contributing.md): Development workflow and standards
+- [Architecture Decision Records](docs/adr/): 24 ADRs documenting key decisions
+- [Contributing Guide](docs/contributing.md): Development workflow, coding standards, and PR process
 - [Coding Standards](docs/coding-standards.md): TypeScript, Vue 3, CSS, testing conventions
 - [Building with CommonPub](docs/building-with-commonpub.md): Guide for building a site using published packages
 - [Deployment Guide](docs/deployment.md): Production setup and operations

@@ -40,7 +40,7 @@ This is **content-type-aware federation** — not just forwarding JSON blobs, bu
 | HTTP Signature signing | ✅ | Outbound signed (draft-cavage-12, `signRequest()`) |
 | Activity delivery | ✅ | Outbound hooks wired: publish, update, delete, like, unlike (sessions 074-080) |
 | Inbound content persistence | ✅ | `federatedContent` table, sanitized HTML, loop prevention (session 076) |
-| Hub federation (Group) | ❌ | Hubs are local-only (v2) |
+| Hub federation (Group) | ✅ | FEP-1b12 Group actors, follow lifecycle, Announce (session 083) |
 | Content mirroring | ✅ | Instance mirrors with type/tag filters (session 079) |
 | Cross-instance interaction | ✅ | Like, boost, reply on remote content (sessions 076-077) |
 | CommonPub namespace | ✅ | `cpub:type` and `cpub:metadata` extracted and stored (session 076) |
@@ -1039,5 +1039,4 @@ The following standing rules need revision for full federation:
 - `docs/federation-notes.md` — Research notes, decisions log, open questions
 - `docs/federation.md` — Public-facing federation guide with diagrams
 - `docs/reference/fedify-research.md` — Fedify 2.0 technical reference (created by research agent)
-- `docs/research/federation-content-mirroring.md` — Content mirroring research (created by research agent)
-- `docs/research/federation-system.md` — Updated AP federation research (updated by research agent)
+- `docs/archive/research/federation-system.md` — AP federation research (archived)

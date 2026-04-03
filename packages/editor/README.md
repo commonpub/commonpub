@@ -29,14 +29,45 @@ const editor = createCommonPubEditor({
 
 ### Block Types
 
-| Type       | Extension           | Description                         |
-| ---------- | ------------------- | ----------------------------------- |
-| `text`     | `CommonPubText`      | Rich text paragraph                 |
-| `heading`  | `CommonPubHeading`   | Heading (h1-h6)                     |
-| `code`     | `CommonPubCodeBlock` | Syntax-highlighted code block       |
-| `image`    | `CommonPubImage`     | Image with alt text and caption     |
-| `quote`    | `CommonPubQuote`     | Block quote with attribution        |
-| `callout`  | `CommonPubCallout`   | Callout box (info, warning, tip)    |
+18 block types are available, covering rich text, media, and maker-specific content:
+
+**Core blocks:**
+
+| Type       | Extension                 | Description                         |
+| ---------- | ------------------------- | ----------------------------------- |
+| `text`     | `CommonPubText`           | Rich text paragraph                 |
+| `heading`  | `CommonPubHeading`        | Heading (h1-h6)                     |
+| `code`     | `CommonPubCodeBlock`      | Syntax-highlighted code block       |
+| `image`    | `CommonPubImage`          | Image with alt text and caption     |
+| `quote`    | `CommonPubQuote`          | Block quote with attribution        |
+| `callout`  | `CommonPubCallout`        | Callout box (info, warning, tip)    |
+
+**Media & embed blocks:**
+
+| Type       | Extension                 | Description                         |
+| ---------- | ------------------------- | ----------------------------------- |
+| `gallery`  | `CommonPubGallery`        | Image gallery with captions         |
+| `video`    | `CommonPubVideo`          | Embedded video player               |
+| `embed`    | `CommonPubEmbed`          | External embed (iframe)             |
+| `markdown` | `CommonPubMarkdown`       | Raw markdown block                  |
+
+**Maker-focused blocks:**
+
+| Type               | Extension                       | Description                         |
+| ------------------ | ------------------------------- | ----------------------------------- |
+| `partsList`        | `CommonPubPartsList`            | Bill of materials / parts list      |
+| `buildStep`        | `CommonPubBuildStep`            | Step-by-step build instructions     |
+| `toolList`         | `CommonPubToolList`             | Required tools list                 |
+| `downloads`        | `CommonPubDownloads`            | Downloadable files (STL, Gerber, etc.) |
+
+**Interactive blocks (explainers):**
+
+| Type                 | Extension                       | Description                         |
+| -------------------- | ------------------------------- | ----------------------------------- |
+| `quiz`               | `CommonPubQuiz`                 | Multiple-choice quiz                |
+| `interactiveSlider`  | `CommonPubInteractiveSlider`    | Interactive slider control          |
+| `checkpoint`         | `CommonPubCheckpoint`           | Progress checkpoint                 |
+| `mathNotation`       | `CommonPubMathNotation`         | Mathematical notation               |
 
 ### BlockTuple Format
 
@@ -76,7 +107,7 @@ Register custom block types or use the built-in ones:
 ```ts
 import { registerBlock, lookupBlock, listBlocks, registerCoreBlocks } from '@commonpub/editor';
 
-// Register all 6 core block types
+// Register all 18 built-in block types
 registerCoreBlocks();
 
 // Register a custom block type
@@ -139,7 +170,7 @@ pnpm typecheck    # Type-check without emitting
 
 - `@tiptap/core` + extensions: Editor framework
 - `@tiptap/pm`: ProseMirror bindings
-- `lowlight`: Syntax highlighting for code blocks
+- `shiki`: Syntax highlighting for code blocks
 - `zod`: Block content validation
 - `@commonpub/config`: Feature flags
 - `@commonpub/schema`: Content type definitions

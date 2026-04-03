@@ -56,7 +56,7 @@ CommonPub uses feature flags (defined in `@commonpub/config`) to gate entire sub
 - Product catalog (company/product hubs)
 - Hub gallery (projects using products)
 
-**v1 Limitation**: Hubs are local-only. No AP Group support, no cross-instance hub interaction.
+**Note**: Hub federation (AP Group) is available when `federateHubs` is also enabled.
 
 ---
 
@@ -148,9 +148,9 @@ CommonPub uses feature flags (defined in `@commonpub/config`) to gate entire sub
 - Remote actor resolution and caching
 - `remoteActors`, `activities`, `followRelationships`, `actorKeypairs` tables
 
-**Default off**: Federation requires trusted instances and is not needed for single-instance deployments.
+**Default off**: Federation requires infrastructure setup and trusted instances configuration.
 
-**v1 Limitation**: Inbound Create/Update/Delete/Like/Announce are logged but not processed (stubs). No remote content persistence.
+**Related flags**: `federateHubs` (AP Group federation for hubs), `seamlessFederation` (automatic cross-instance content sync).
 
 ---
 
@@ -169,6 +169,46 @@ CommonPub uses feature flags (defined in `@commonpub/config`) to gate entire sub
 
 ---
 
+### `federateHubs` (default: `false`)
+
+**Controls**: Hub federation via ActivityPub Group actors.
+
+**Enables**:
+- Hubs as AP Group actors (FEP-1b12)
+- Cross-instance hub discovery and membership
+- Hub posts federated as Announce activities
+- Remote users can follow and post to hubs
+
+**Dependencies**: Requires `federation` and `hubs` to be enabled.
+
+---
+
+### `seamlessFederation` (default: `false`)
+
+**Controls**: Automatic cross-instance content synchronization.
+
+**Enables**:
+- Automatic content mirroring from followed instances
+- Content type and tag filtering for mirrors
+- Optional media caching for mirrored content
+
+**Dependencies**: Requires `federation` to be enabled.
+
+---
+
+### `emailNotifications` (default: `false`)
+
+**Controls**: Email delivery for notifications.
+
+**Enables**:
+- Email notifications for follows, likes, comments, mentions
+- Configurable email adapter (SMTP, Resend, or console for dev)
+- Per-user email notification preferences
+
+**Dependencies**: Requires email adapter configuration (SMTP or Resend credentials).
+
+---
+
 ## Flag Defaults Summary
 
 | Flag | Default | Rationale |
@@ -182,7 +222,10 @@ CommonPub uses feature flags (defined in `@commonpub/config`) to gate entire sub
 | `learning` | `true` | Key differentiator for maker communities |
 | `explainers` | `true` | Key differentiator, works with learning |
 | `federation` | `false` | Requires infrastructure setup |
+| `federateHubs` | `false` | Requires federation + hubs |
+| `seamlessFederation` | `false` | Requires federation |
 | `admin` | `false` | Only needed for multi-user instances |
+| `emailNotifications` | `false` | Requires email adapter configuration |
 
 ## Flag Checking Pattern
 
