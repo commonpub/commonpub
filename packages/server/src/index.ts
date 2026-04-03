@@ -408,6 +408,7 @@ export {
   backfillHubFromOutbox,
   fetchRemoteHubFollowers,
   repairFederatedHubPostActors,
+  refreshFederatedHubMetadata,
 } from './federation/index.js';
 
 // OAuth Codes
@@ -442,6 +443,9 @@ export {
   markAllNotificationsRead,
   deleteNotification,
   createNotification,
+  shouldEmailNotification,
+  getNotificationEmailTarget,
+  setNotificationEmailSender,
 } from './notification/index.js';
 export type { NotificationItem, NotificationFilters, NotificationType } from './notification/index.js';
 

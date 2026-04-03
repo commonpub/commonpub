@@ -48,6 +48,11 @@ const MASTODON_PERSON = {
     url: 'https://files.mastodon.social/accounts/avatars/alice.png',
     mediaType: 'image/png',
   },
+  image: {
+    type: 'Image',
+    url: 'https://files.mastodon.social/accounts/headers/alice_header.jpg',
+    mediaType: 'image/jpeg',
+  },
   publicKey: {
     id: 'https://mastodon.social/users/alice#main-key',
     owner: 'https://mastodon.social/users/alice',
@@ -206,6 +211,7 @@ describe('Mastodon interop: actor parsing', () => {
     expect(actor!.publicKey?.publicKeyPem).toContain('BEGIN PUBLIC KEY');
     expect(actor!.endpoints?.sharedInbox).toBe('https://mastodon.social/inbox');
     expect(actor!.icon?.url).toContain('alice.png');
+    expect(actor!.image?.url).toContain('alice_header.jpg');
   });
 
   it('gracefully ignores Mastodon toot: namespace extensions', () => {

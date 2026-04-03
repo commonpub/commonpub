@@ -11,6 +11,7 @@ export interface FeatureFlags {
   explainers: boolean;
   federation: boolean;
   admin: boolean;
+  emailNotifications: boolean;
 }
 
 export function useFeatures() {
@@ -29,5 +30,6 @@ export function useFeatures() {
     explainers: computed(() => flags.explainers),
     federation: computed(() => flags.federation),
     admin: computed(() => flags.admin),
+    emailNotifications: computed(() => flags.emailNotifications),
   };
 }

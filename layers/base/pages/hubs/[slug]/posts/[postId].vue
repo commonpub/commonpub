@@ -235,7 +235,7 @@ useSeoMeta({
           <span class="cpub-post-sep">&middot;</span>
           <time class="cpub-post-time">{{ formatDate(reply.createdAt) }}</time>
         </div>
-        <div class="cpub-reply-content">{{ reply.content }}</div>
+        <div class="cpub-reply-content"><MentionText :text="reply.content" /></div>
         <div class="cpub-reply-actions">
           <button v-if="isAuthenticated && hub?.currentUserRole && !post.isLocked" class="cpub-reply-btn" @click="replyingTo = reply.id; replyContent = `@${reply.author?.username} `">
             <i class="fa-solid fa-reply"></i> Reply
@@ -254,7 +254,7 @@ useSeoMeta({
               <span class="cpub-post-sep">&middot;</span>
               <time class="cpub-post-time">{{ formatDate(child.createdAt) }}</time>
             </div>
-            <div class="cpub-reply-content">{{ child.content }}</div>
+            <div class="cpub-reply-content"><MentionText :text="child.content" /></div>
           </div>
         </div>
       </div>

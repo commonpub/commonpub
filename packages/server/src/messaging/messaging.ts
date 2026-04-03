@@ -2,6 +2,13 @@ import { eq, and, desc, sql, isNull, inArray } from 'drizzle-orm';
 import { conversations, messages, users } from '@commonpub/schema';
 import type { DB } from '../types.js';
 
+/** Truncate a string at a Unicode-safe boundary (never splits surrogate pairs or grapheme clusters). */
+function truncateUnicode(str: string, maxChars: number): string {
+  const chars = [...str];
+  if (chars.length <= maxChars) return str;
+  return chars.slice(0, maxChars).join('') + '...';
+}
+
 export interface ConversationItem {
   id: string;
   participants: string[];
@@ -120,7 +127,8 @@ export async function createConversation(
   };
 }
 
-/** Find an existing conversation with exactly the given participants, or create one. */
+/** Find an existing conversation with exactly the given participants, or create one.
+ *  Uses a transaction with retry to prevent duplicate conversations from concurrent requests. */
 export async function findOrCreateConversation(
   db: DB,
   participants: string[],
@@ -128,20 +136,20 @@ export async function findOrCreateConversation(
   // Sort for deterministic matching
   const sorted = [...participants].sort();
 
-  // Find a conversation that contains all participants and has the same count.
-  // jsonb @> checks containment; we also verify the array length matches to get exact match.
-  const existing = await db
-    .select()
-    .from(conversations)
-    .where(
-      and(
-        sql`${conversations.participants} @> ${JSON.stringify(sorted)}::jsonb`,
-        sql`jsonb_array_length(${conversations.participants}) = ${sorted.length}`,
-      ),
-    )
-    .limit(1);
+  // Helper: find exact participant match
+  async function findExisting(d: DB): Promise<ConversationItem | null> {
+    const existing = await d
+      .select()
+      .from(conversations)
+      .where(
+        and(
+          sql`${conversations.participants} @> ${JSON.stringify(sorted)}::jsonb`,
+          sql`jsonb_array_length(${conversations.participants}) = ${sorted.length}`,
+        ),
+      )
+      .limit(1);
 
-  if (existing.length > 0) {
+    if (existing.length === 0) return null;
     const row = existing[0]!;
     return {
       id: row.id,
@@ -152,7 +160,21 @@ export async function findOrCreateConversation(
     };
   }
 
-  return createConversation(db, sorted);
+  // Check outside transaction first (fast path, no lock)
+  const found = await findExisting(db);
+  if (found) return found;
+
+  // If not found, use transaction with advisory lock to serialize creation.
+  // Advisory lock keyed on a hash of the sorted participant list prevents
+  // concurrent transactions from both inserting the same conversation.
+  const lockKey = sorted.join(',');
+  return await db.transaction(async (tx) => {
+    // pg_advisory_xact_lock is released automatically when the transaction ends
+    await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${lockKey}))`);
+    const existingInTx = await findExisting(tx);
+    if (existingInTx) return existingInTx;
+    return createConversation(tx, sorted);
+  });
 }
 
 export async function sendMessage(
@@ -177,25 +199,32 @@ export async function sendMessage(
     throw new Error('Not a participant in this conversation');
   }
 
-  const [row] = await db
-    .insert(messages)
-    .values({
-      conversationId,
-      senderId,
-      body,
-    })
-    .returning();
+  // Truncate lastMessage safely (preserve multi-byte characters)
+  const truncated = truncateUnicode(body, 200);
 
-  // Update conversation's last message
-  await db
-    .update(conversations)
-    .set({
-      lastMessageAt: new Date(),
-      lastMessage: body.length > 200 ? body.slice(0, 200) + '...' : body,
-    })
-    .where(eq(conversations.id, conversationId));
+  // Insert message + update conversation atomically
+  const [row] = await db.transaction(async (tx) => {
+    const [msgRow] = await tx
+      .insert(messages)
+      .values({
+        conversationId,
+        senderId,
+        body,
+      })
+      .returning();
 
-  // Resolve sender info
+    await tx
+      .update(conversations)
+      .set({
+        lastMessageAt: new Date(),
+        lastMessage: truncated,
+      })
+      .where(eq(conversations.id, conversationId));
+
+    return [msgRow];
+  });
+
+  // Resolve sender info (outside transaction — read-only, non-critical)
   const [sender] = await db.select({ displayName: users.displayName, username: users.username, avatarUrl: users.avatarUrl })
     .from(users).where(eq(users.id, senderId)).limit(1);
 

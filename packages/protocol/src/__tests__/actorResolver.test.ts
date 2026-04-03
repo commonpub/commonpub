@@ -56,6 +56,63 @@ describe('validateActorResponse', () => {
     expect(validateActorResponse('string')).toBeNull();
     expect(validateActorResponse(42)).toBeNull();
   });
+
+  it('should parse icon as object', () => {
+    const actor = validateActorResponse({
+      ...validActor,
+      icon: { type: 'Image', url: 'https://remote.com/avatar.png', mediaType: 'image/png' },
+    });
+    expect(actor).not.toBeNull();
+    expect(actor!.icon?.url).toBe('https://remote.com/avatar.png');
+  });
+
+  it('should parse icon as array (first element)', () => {
+    const actor = validateActorResponse({
+      ...validActor,
+      icon: [{ type: 'Image', url: 'https://remote.com/avatar.png' }],
+    });
+    expect(actor).not.toBeNull();
+    expect(actor!.icon?.url).toBe('https://remote.com/avatar.png');
+  });
+
+  it('should parse image (banner) as object', () => {
+    const actor = validateActorResponse({
+      ...validActor,
+      image: { type: 'Image', url: 'https://remote.com/banner.jpg' },
+    });
+    expect(actor).not.toBeNull();
+    expect(actor!.image?.url).toBe('https://remote.com/banner.jpg');
+  });
+
+  it('should parse image (banner) as array', () => {
+    const actor = validateActorResponse({
+      ...validActor,
+      image: [{ type: 'Image', url: 'https://remote.com/banner.jpg', mediaType: 'image/jpeg' }],
+    });
+    expect(actor).not.toBeNull();
+    expect(actor!.image?.url).toBe('https://remote.com/banner.jpg');
+  });
+
+  it('should accept actor without icon or image', () => {
+    const actor = validateActorResponse(validActor);
+    expect(actor).not.toBeNull();
+    expect(actor!.icon).toBeUndefined();
+    expect(actor!.image).toBeUndefined();
+  });
+
+  it('should accept Group actor with icon and image', () => {
+    const groupActor = {
+      ...validActor,
+      type: 'Group',
+      icon: { type: 'Image', url: 'https://remote.com/hub-icon.png' },
+      image: { type: 'Image', url: 'https://remote.com/hub-banner.jpg' },
+    };
+    const actor = validateActorResponse(groupActor);
+    expect(actor).not.toBeNull();
+    expect(actor!.type).toBe('Group');
+    expect(actor!.icon?.url).toBe('https://remote.com/hub-icon.png');
+    expect(actor!.image?.url).toBe('https://remote.com/hub-banner.jpg');
+  });
 });
 
 describe('extractInbox', () => {

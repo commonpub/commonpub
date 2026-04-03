@@ -146,6 +146,8 @@ export async function resolveRemoteActor(db: DB, actorUri: string): Promise<Reso
         preferredUsername: c.preferredUsername ?? undefined,
         name: c.displayName ?? undefined,
         summary: c.summary ?? undefined,
+        icon: c.avatarUrl ? { type: 'Image', url: c.avatarUrl } : undefined,
+        image: c.bannerUrl ? { type: 'Image', url: c.bannerUrl } : undefined,
         publicKey: c.publicKeyPem
           ? { id: `${c.actorUri}#main-key`, owner: c.actorUri, publicKeyPem: c.publicKeyPem }
           : undefined,
@@ -188,6 +190,7 @@ export async function resolveRemoteActor(db: DB, actorUri: string): Promise<Reso
     displayName: actor.name,
     summary: actor.summary,
     avatarUrl: actor.icon?.url,
+    bannerUrl: actor.image?.url,
     actorType: actor.type ?? 'Person',
     ...(followerCount !== undefined && { followerCount }),
     lastFetchedAt: new Date(),
@@ -276,6 +279,7 @@ export async function searchRemoteActor(
     displayName: actor.name,
     summary: actor.summary,
     avatarUrl: actor.icon?.url,
+    bannerUrl: actor.image?.url,
     actorType: actor.type ?? 'Person',
     lastFetchedAt: new Date(),
   };

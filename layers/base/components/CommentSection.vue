@@ -161,7 +161,7 @@ async function deleteComment(id: string): Promise<void> {
               {{ new Date(comment.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) }}
             </time>
           </div>
-          <p class="cpub-comment-text">{{ comment.content }}</p>
+          <p class="cpub-comment-text"><MentionText :text="comment.content" /></p>
           <button
             v-if="user?.id === comment.author?.id"
             class="cpub-comment-delete"

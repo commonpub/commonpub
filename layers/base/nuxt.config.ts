@@ -67,6 +67,7 @@ export default defineNuxtConfig({
         federation: false,
         federateHubs: false,
         admin: false,
+        emailNotifications: false,
       },
       contentTypes: 'project,article,blog,explainer',
       contestCreation: 'admin',

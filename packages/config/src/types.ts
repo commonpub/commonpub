@@ -23,6 +23,8 @@ export interface FeatureFlags {
   federateHubs: boolean;
   /** Enable admin panel (user management, reports, instance settings) */
   admin: boolean;
+  /** Enable email notifications (instant + digest emails for likes, comments, follows, mentions) */
+  emailNotifications: boolean;
 }
 
 export interface AuthConfig {
@@ -83,6 +85,8 @@ export interface FederationConfig {
   backfillOnMirrorAccept?: boolean;
   /** Max items per mirror to prevent DB bloat (default: unlimited) */
   mirrorMaxItems?: number;
+  /** Hub sync worker poll interval in ms (default: 3600000 = 1 hour) */
+  hubSyncIntervalMs?: number;
 }
 
 export interface CommonPubConfig {

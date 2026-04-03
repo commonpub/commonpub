@@ -133,7 +133,7 @@ export async function getFederatedHub(
  * Background refresh of federated hub metadata from the remote Group actor.
  * Fetches the actor to update name, description, icon, and follower count.
  */
-async function refreshFederatedHubMetadata(
+export async function refreshFederatedHubMetadata(
   db: DB,
   hubId: string,
   actorUri: string,

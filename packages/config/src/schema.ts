@@ -13,6 +13,7 @@ export const featureFlagsSchema = z.object({
   seamlessFederation: z.boolean().default(false),
   federateHubs: z.boolean().default(false),
   admin: z.boolean().default(false),
+  emailNotifications: z.boolean().default(false),
 });
 
 export const authConfigSchema = z.object({
@@ -59,6 +60,7 @@ export const federationConfigSchema = z.object({
   instanceFollowPolicy: z.enum(['auto-accept', 'manual']).default('auto-accept'),
   backfillOnMirrorAccept: z.boolean().default(false),
   mirrorMaxItems: z.number().int().positive().optional(),
+  hubSyncIntervalMs: z.number().int().positive().default(3_600_000),
 });
 
 export const configSchema = z.object({

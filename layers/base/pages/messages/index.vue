@@ -34,6 +34,36 @@ const newRecipients = ref<string[]>([]);
 const newMessage = ref('');
 
 const msgError = ref('');
+const dialogRef = ref<HTMLElement | null>(null);
+const triggerRef = ref<HTMLElement | null>(null);
+
+// WCAG focus trap: trap Tab inside dialog, restore focus on close
+watch(showNewDialog, async (open) => {
+  if (open) {
+    await nextTick();
+    const firstInput = dialogRef.value?.querySelector<HTMLElement>('input, textarea, button:not([disabled])');
+    firstInput?.focus();
+  } else {
+    triggerRef.value?.focus();
+  }
+});
+
+function handleDialogKeydown(e: KeyboardEvent): void {
+  if (e.key !== 'Tab' || !dialogRef.value) return;
+  const focusable = dialogRef.value.querySelectorAll<HTMLElement>(
+    'input:not([disabled]), textarea:not([disabled]), button:not([disabled]), [tabindex]:not([tabindex="-1"])',
+  );
+  if (focusable.length === 0) return;
+  const first = focusable[0]!;
+  const last = focusable[focusable.length - 1]!;
+  if (e.shiftKey && document.activeElement === first) {
+    e.preventDefault();
+    last.focus();
+  } else if (!e.shiftKey && document.activeElement === last) {
+    e.preventDefault();
+    first.focus();
+  }
+}
 
 function addRecipient(): void {
   const val = newRecipientInput.value.trim();
@@ -79,14 +109,14 @@ async function startConversation(): Promise<void> {
   <div class="cpub-messages-page">
     <div class="cpub-messages-header">
       <h1 class="cpub-section-title-lg">Messages</h1>
-      <button class="cpub-btn cpub-btn-sm cpub-btn-primary" @click="showNewDialog = true">
+      <button ref="triggerRef" class="cpub-btn cpub-btn-sm cpub-btn-primary" @click="showNewDialog = true">
         <i class="fa-solid fa-pen"></i> New Message
       </button>
     </div>
 
     <!-- New conversation dialog -->
-    <div v-if="showNewDialog" class="cpub-new-msg-overlay" @click.self="showNewDialog = false" @keydown.escape="showNewDialog = false">
-      <div class="cpub-new-msg-dialog" role="dialog" aria-label="New message">
+    <div v-if="showNewDialog" class="cpub-new-msg-overlay" @click.self="showNewDialog = false" @keydown.escape="showNewDialog = false" @keydown="handleDialogKeydown">
+      <div ref="dialogRef" class="cpub-new-msg-dialog" role="dialog" aria-label="New message" aria-modal="true">
         <div class="cpub-new-msg-header">
           <h2 class="cpub-new-msg-title">New Conversation</h2>
           <button class="cpub-new-msg-close" @click="showNewDialog = false" aria-label="Close">

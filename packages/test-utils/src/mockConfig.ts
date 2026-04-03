@@ -24,6 +24,7 @@ export function createTestConfig(overrides?: Partial<CommonPubConfig>): CommonPu
       seamlessFederation: false,
       federateHubs: false,
       admin: false,
+      emailNotifications: false,
       ...overrides?.features,
     },
     auth: {

@@ -71,11 +71,32 @@ const apActorSchema = z.object({
   following: z.string().url().optional(),
   url: z.string().optional(),
   icon: z
-    .object({
-      type: z.string(),
-      url: z.string().url(),
-      mediaType: z.string().optional(),
-    })
+    .union([
+      z.object({
+        type: z.string(),
+        url: z.string().url(),
+        mediaType: z.string().optional(),
+      }),
+      z.array(z.object({
+        type: z.string(),
+        url: z.string().url(),
+        mediaType: z.string().optional(),
+      })).transform((arr) => arr[0]),
+    ])
+    .optional(),
+  image: z
+    .union([
+      z.object({
+        type: z.string(),
+        url: z.string().url(),
+        mediaType: z.string().optional(),
+      }),
+      z.array(z.object({
+        type: z.string(),
+        url: z.string().url(),
+        mediaType: z.string().optional(),
+      })).transform((arr) => arr[0]),
+    ])
     .optional(),
   publicKey: z
     .object({

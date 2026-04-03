@@ -75,6 +75,7 @@ export async function resolveRemoteHandle(
     displayName: actor.name,
     summary: actor.summary,
     avatarUrl: actor.icon?.url,
+    bannerUrl: actor.image?.url,
     instanceDomain: domain,
     lastFetchedAt: new Date(),
   }).onConflictDoNothing();

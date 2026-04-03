@@ -34,6 +34,7 @@ export function useConfig(): CommonPubConfig {
     federateHubs: 'FEATURE_FEDERATE_HUBS',
     seamlessFederation: 'FEATURE_SEAMLESS_FEDERATION',
     admin: 'FEATURE_ADMIN',
+    emailNotifications: 'FEATURE_EMAIL_NOTIFICATIONS',
   };
 
   for (const [flag, envKey] of Object.entries(envOverrides)) {

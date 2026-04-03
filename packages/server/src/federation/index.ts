@@ -109,6 +109,7 @@ export {
   backfillHubFromOutbox,
   fetchRemoteHubFollowers,
   repairFederatedHubPostActors,
+  refreshFederatedHubMetadata,
 } from './hubMirroring.js';
 export {
   processAuthorize,

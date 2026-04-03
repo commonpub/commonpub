@@ -39,6 +39,22 @@ const socialLinks = ref({
 });
 const experience = ref<Array<{ id: string; title: string; company: string; startDate: string; endDate: string; description: string }>>([]);
 
+const emailNotifications = ref<{
+  digest: 'daily' | 'weekly' | 'none';
+  likes: boolean;
+  comments: boolean;
+  follows: boolean;
+  mentions: boolean;
+}>({
+  digest: 'none',
+  likes: false,
+  comments: false,
+  follows: false,
+  mentions: false,
+});
+
+const { emailNotifications: emailNotificationsEnabled } = useFeatures();
+
 const avatarInput = ref<HTMLInputElement | null>(null);
 const bannerInput = ref<HTMLInputElement | null>(null);
 
@@ -73,12 +89,22 @@ if (profile.value) {
   if (Array.isArray(profileRecord.experience)) {
     experience.value = (profileRecord.experience as Array<Record<string, unknown>>).map((e) => ({ ...e }) as typeof experience.value[number]);
   }
+  if (profileRecord.emailNotifications && typeof profileRecord.emailNotifications === 'object') {
+    const en = profileRecord.emailNotifications as Record<string, unknown>;
+    emailNotifications.value = {
+      digest: (['daily', 'weekly', 'none'].includes(en.digest as string) ? en.digest : 'none') as 'daily' | 'weekly' | 'none',
+      likes: en.likes === true,
+      comments: en.comments === true,
+      follows: en.follows === true,
+      mentions: en.mentions === true,
+    };
+  }
 }
 
 // Watch for form changes AFTER initial data is loaded (nextTick avoids false positive)
 onMounted(() => {
   nextTick(() => {
-    watch([form, skills, socialLinks, experience], () => { isDirty.value = true; }, { deep: true });
+    watch([form, skills, socialLinks, experience, emailNotifications], () => { isDirty.value = true; }, { deep: true });
   });
 });
 
@@ -147,6 +173,7 @@ async function handleSave(): Promise<void> {
         skills: skills.value.filter((s) => s.name.trim()),
         socialLinks: socialLinks.value,
         experience: experience.value.filter((e) => e.title.trim()),
+        ...(emailNotificationsEnabled.value ? { emailNotifications: emailNotifications.value } : {}),
       },
     });
     toast.success('Profile updated');
@@ -490,6 +517,76 @@ async function handleSave(): Promise<void> {
         </button>
       </div>
 
+      <!-- Email Notifications (gated behind feature flag) -->
+      <div v-if="emailNotificationsEnabled" class="cpub-form-section">
+        <span class="cpub-form-section-label">Email Notifications</span>
+
+        <div class="cpub-form-group">
+          <label for="digest-mode" class="cpub-form-label">Digest Mode</label>
+          <select
+            id="digest-mode"
+            v-model="emailNotifications.digest"
+            class="cpub-select"
+          >
+            <option value="none">Off (instant emails only)</option>
+            <option value="daily">Daily digest</option>
+            <option value="weekly">Weekly digest</option>
+          </select>
+          <span class="cpub-form-hint">
+            {{ emailNotifications.digest === 'none'
+              ? 'Instant emails are sent for each enabled type below.'
+              : `A ${emailNotifications.digest} email summarizing your unread notifications.` }}
+          </span>
+        </div>
+
+        <fieldset class="cpub-notification-toggles" :disabled="emailNotifications.digest !== 'none'">
+          <legend class="cpub-form-label cpub-toggle-legend">Instant Email Types</legend>
+          <span v-if="emailNotifications.digest !== 'none'" class="cpub-form-hint cpub-toggle-hint">
+            Individual emails are disabled when digest mode is active.
+          </span>
+
+          <label class="cpub-toggle-row" for="notif-likes">
+            <input
+              id="notif-likes"
+              v-model="emailNotifications.likes"
+              type="checkbox"
+              class="cpub-checkbox"
+            />
+            <span>Likes</span>
+          </label>
+
+          <label class="cpub-toggle-row" for="notif-comments">
+            <input
+              id="notif-comments"
+              v-model="emailNotifications.comments"
+              type="checkbox"
+              class="cpub-checkbox"
+            />
+            <span>Comments</span>
+          </label>
+
+          <label class="cpub-toggle-row" for="notif-follows">
+            <input
+              id="notif-follows"
+              v-model="emailNotifications.follows"
+              type="checkbox"
+              class="cpub-checkbox"
+            />
+            <span>New followers</span>
+          </label>
+
+          <label class="cpub-toggle-row" for="notif-mentions">
+            <input
+              id="notif-mentions"
+              v-model="emailNotifications.mentions"
+              type="checkbox"
+              class="cpub-checkbox"
+            />
+            <span>@mentions</span>
+          </label>
+        </fieldset>
+      </div>
+
       <!-- Actions -->
       <div class="cpub-form-actions">
         <button type="submit" class="cpub-save-btn" :disabled="saving">
@@ -790,6 +887,61 @@ async function handleSave(): Promise<void> {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--space-4);
+}
+
+/* ─── Email notification toggles ─── */
+.cpub-select {
+  display: block;
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface);
+  color: var(--text);
+  border: var(--border-width-default) solid var(--border2);
+  font-size: var(--text-sm);
+  font-family: var(--font-sans);
+  appearance: none;
+}
+
+.cpub-select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.cpub-notification-toggles {
+  border: none;
+  padding: 0;
+  margin: var(--space-3) 0 0;
+}
+
+.cpub-notification-toggles:disabled {
+  opacity: 0.5;
+}
+
+.cpub-toggle-legend {
+  margin-bottom: var(--space-2);
+}
+
+.cpub-toggle-hint {
+  display: block;
+  margin-bottom: var(--space-2);
+}
+
+.cpub-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  cursor: pointer;
+  font-size: var(--text-sm);
+  color: var(--text);
+}
+
+.cpub-checkbox {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  cursor: pointer;
+  flex-shrink: 0;
 }
 
 /* ─── Form actions ─── */

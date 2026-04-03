@@ -193,6 +193,29 @@ export const emailTemplates = {
     };
   },
 
+  notificationInstant(
+    siteName: string,
+    username: string,
+    notification: { title: string; message: string; url: string },
+  ): EmailMessage & { to: '' } {
+    const safeName = escapeHtml(siteName);
+    const safeUsername = escapeHtml(username);
+    const safeTitle = escapeHtml(notification.title);
+    const safeMessage = escapeHtml(notification.message);
+    const safeUrl = escapeHtml(notification.url);
+    return {
+      to: '' as const,
+      subject: `${notification.title} -- ${siteName}`,
+      html: wrapTemplate(safeName, `
+        <h2 style="color:#fff;margin:0 0 16px;">Hi ${safeUsername},</h2>
+        <p><strong>${safeTitle}</strong></p>
+        <p>${safeMessage}</p>
+        <a href="${safeUrl}" style="display:inline-block;background:#5b9cf6;color:#000;padding:12px 24px;text-decoration:none;font-weight:600;margin:16px 0;border:2px solid #5b9cf6;">View</a>
+      `),
+      text: `${notification.title}: ${notification.message}\n${notification.url}`,
+    };
+  },
+
   contestAnnouncement(
     siteName: string,
     contestTitle: string,

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-defineProps<{
+const props = defineProps<{
   messages: Array<{
     id: string;
     senderId: string;
@@ -17,6 +17,19 @@ const emit = defineEmits<{
 }>();
 
 const newMessage = ref('');
+const messagesContainer = ref<HTMLElement | null>(null);
+
+function scrollToBottom(): void {
+  nextTick(() => {
+    if (messagesContainer.value) {
+      messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight;
+    }
+  });
+}
+
+// Auto-scroll when messages change (new message arrives or initial load)
+watch(() => props.messages.length, scrollToBottom);
+onMounted(scrollToBottom);
 
 function handleSend(): void {
   if (!newMessage.value.trim()) return;
@@ -27,7 +40,7 @@ function handleSend(): void {
 
 <template>
   <div class="cpub-thread">
-    <div class="cpub-thread-messages">
+    <div ref="messagesContainer" class="cpub-thread-messages">
       <div
         v-for="msg in messages"
         :key="msg.id"
