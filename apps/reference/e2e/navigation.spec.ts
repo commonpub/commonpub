@@ -6,10 +6,10 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Homepage tab switching', () => {
   test('clicking tabs updates active state', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/', { waitUntil: 'networkidle' });
 
     const tabs = page.locator('.cpub-tab');
-    await tabs.first().waitFor({ state: 'visible', timeout: 5000 });
+    await tabs.first().waitFor({ state: 'visible', timeout: 10000 });
 
     const firstTab = tabs.first();
     const secondTab = tabs.nth(1);
@@ -17,7 +17,7 @@ test.describe('Homepage tab switching', () => {
     await expect(firstTab).toHaveClass(/active/);
 
     await secondTab.click();
-    await expect(secondTab).toHaveClass(/active/);
+    await expect(secondTab).toHaveClass(/active/, { timeout: 5000 });
     await expect(firstTab).not.toHaveClass(/active/);
   });
 

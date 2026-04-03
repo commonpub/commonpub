@@ -294,7 +294,8 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
           <div class="cpub-sb-head">Trending Hubs <NuxtLink to="/hubs">Browse</NuxtLink></div>
           <div v-for="hub in communities.items" :key="hub.id" class="cpub-hub-item">
             <div class="cpub-hub-icon">
-              <i class="fa-solid fa-users"></i>
+              <img v-if="hub.iconUrl" :src="hub.iconUrl" :alt="hub.name" class="cpub-hub-icon-img" />
+              <i v-else class="fa-solid fa-users"></i>
             </div>
             <div class="cpub-hub-info">
               <NuxtLink :to="`/hubs/${hub.slug}`" class="cpub-hub-name">{{ hub.name }}</NuxtLink>
@@ -877,6 +878,12 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
   border: var(--border-width-default) solid var(--teal);
   background: var(--teal-bg);
   color: var(--teal);
+  overflow: hidden;
+}
+.cpub-hub-icon-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .cpub-hub-info { flex: 1; min-width: 0; }
