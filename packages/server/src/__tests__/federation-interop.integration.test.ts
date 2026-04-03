@@ -19,7 +19,7 @@ import {
 } from '../content/content.js';
 import { toggleLike, createComment, followUser } from '../social/social.js';
 import { searchFederatedContent, listRemoteReplies } from '../federation/timeline.js';
-import { listFederatedHubMembers } from '../federation/hubMirroring.js';
+import { listFederatedHubMembers, upsertFederatedHubMember } from '../federation/hubMirroring.js';
 import {
   federatedContent,
   remoteActors,
@@ -27,6 +27,7 @@ import {
   contentItems,
   federatedHubs,
   federatedHubPosts,
+  federatedHubMembers,
 } from '@commonpub/schema';
 
 describe('federation interop (session 099)', () => {
@@ -330,6 +331,9 @@ describe('federation interop (session 099)', () => {
           postType: 'discussion',
         },
       ]);
+
+      // Register charlie as a hub member (post ingestion auto-does this via upsertFederatedHubMember)
+      await upsertFederatedHubMember(db, hubId, charlie!.id, 'post');
     });
 
     it('lists known members with post counts', async () => {

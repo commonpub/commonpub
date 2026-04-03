@@ -5,6 +5,14 @@ import {
   followRelationships,
   actorKeypairs,
   actorKeypairsRelations,
+  federatedContent,
+  federatedHubs,
+  federatedHubPosts,
+  federatedHubMembers,
+  federatedHubMembersRelations,
+  federatedHubPostLikes,
+  instanceMirrors,
+  instanceHealth,
 } from '../federation';
 import { activityDirectionEnum, activityStatusEnum, followRelationshipStatusEnum } from '../enums';
 import {
@@ -159,5 +167,127 @@ describe('federation validators', () => {
       followingActorUri: 'also-not-url',
     });
     expect(invalid.success).toBe(false);
+  });
+});
+
+describe('federated content table', () => {
+  it('should export federatedContent with expected columns', () => {
+    expect(federatedContent).toBeDefined();
+    const cols = Object.keys(federatedContent);
+    expect(cols).toContain('id');
+    expect(cols).toContain('objectUri');
+    expect(cols).toContain('actorUri');
+    expect(cols).toContain('remoteActorId');
+    expect(cols).toContain('originDomain');
+    expect(cols).toContain('apType');
+    expect(cols).toContain('cpubType');
+    expect(cols).toContain('cpubMetadata');
+    expect(cols).toContain('cpubBlocks');
+    expect(cols).toContain('title');
+    expect(cols).toContain('content');
+    expect(cols).toContain('summary');
+    expect(cols).toContain('coverImageUrl');
+    expect(cols).toContain('tags');
+    expect(cols).toContain('attachments');
+    expect(cols).toContain('inReplyTo');
+    expect(cols).toContain('localLikeCount');
+    expect(cols).toContain('localCommentCount');
+    expect(cols).toContain('localBoostCount');
+    expect(cols).toContain('publishedAt');
+    expect(cols).toContain('receivedAt');
+    expect(cols).toContain('deletedAt');
+    expect(cols).toContain('mirrorId');
+    expect(cols).toContain('isHidden');
+  });
+});
+
+describe('federated hubs tables', () => {
+  it('should export federatedHubs with expected columns', () => {
+    expect(federatedHubs).toBeDefined();
+    const cols = Object.keys(federatedHubs);
+    expect(cols).toContain('id');
+    expect(cols).toContain('actorUri');
+    expect(cols).toContain('remoteActorId');
+    expect(cols).toContain('originDomain');
+    expect(cols).toContain('remoteSlug');
+    expect(cols).toContain('name');
+    expect(cols).toContain('description');
+    expect(cols).toContain('iconUrl');
+    expect(cols).toContain('bannerUrl');
+    expect(cols).toContain('hubType');
+    expect(cols).toContain('remoteMemberCount');
+    expect(cols).toContain('remotePostCount');
+    expect(cols).toContain('localPostCount');
+    expect(cols).toContain('status');
+    expect(cols).toContain('isHidden');
+  });
+
+  it('should export federatedHubPosts with expected columns', () => {
+    expect(federatedHubPosts).toBeDefined();
+    const cols = Object.keys(federatedHubPosts);
+    expect(cols).toContain('id');
+    expect(cols).toContain('federatedHubId');
+    expect(cols).toContain('objectUri');
+    expect(cols).toContain('actorUri');
+    expect(cols).toContain('remoteActorId');
+    expect(cols).toContain('content');
+    expect(cols).toContain('postType');
+    expect(cols).toContain('isPinned');
+    expect(cols).toContain('localLikeCount');
+    expect(cols).toContain('localReplyCount');
+    expect(cols).toContain('remoteLikeCount');
+    expect(cols).toContain('remoteReplyCount');
+    expect(cols).toContain('sharedContentMeta');
+    expect(cols).toContain('deletedAt');
+  });
+
+  it('should export federatedHubMembers with expected columns', () => {
+    expect(federatedHubMembers).toBeDefined();
+    const cols = Object.keys(federatedHubMembers);
+    expect(cols).toContain('id');
+    expect(cols).toContain('federatedHubId');
+    expect(cols).toContain('remoteActorId');
+    expect(cols).toContain('discoveredVia');
+    expect(cols).toContain('joinedAt');
+  });
+
+  it('should export federatedHubPostLikes with expected columns', () => {
+    expect(federatedHubPostLikes).toBeDefined();
+    const cols = Object.keys(federatedHubPostLikes);
+    expect(cols).toContain('id');
+    expect(cols).toContain('postId');
+    expect(cols).toContain('userId');
+  });
+
+  it('should export federatedHubMembers relations', () => {
+    expect(federatedHubMembersRelations).toBeDefined();
+  });
+});
+
+describe('instance mirroring tables', () => {
+  it('should export instanceMirrors with expected columns', () => {
+    expect(instanceMirrors).toBeDefined();
+    const cols = Object.keys(instanceMirrors);
+    expect(cols).toContain('id');
+    expect(cols).toContain('remoteDomain');
+    expect(cols).toContain('remoteActorUri');
+    expect(cols).toContain('status');
+    expect(cols).toContain('direction');
+    expect(cols).toContain('filterContentTypes');
+    expect(cols).toContain('filterTags');
+    expect(cols).toContain('contentCount');
+    expect(cols).toContain('backfillCursor');
+  });
+
+  it('should export instanceHealth with expected columns', () => {
+    expect(instanceHealth).toBeDefined();
+    const cols = Object.keys(instanceHealth);
+    expect(cols).toContain('domain');
+    expect(cols).toContain('consecutiveFailures');
+    expect(cols).toContain('totalDelivered');
+    expect(cols).toContain('totalFailed');
+    expect(cols).toContain('circuitOpenUntil');
+    expect(cols).toContain('lastSuccessAt');
+    expect(cols).toContain('lastFailureAt');
   });
 });
