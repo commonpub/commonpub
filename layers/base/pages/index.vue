@@ -298,7 +298,7 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
               <i v-else class="fa-solid fa-users"></i>
             </div>
             <div class="cpub-hub-info">
-              <NuxtLink :to="`/hubs/${hub.slug}`" class="cpub-hub-name">{{ hub.name }}</NuxtLink>
+              <NuxtLink :to="hub.source === 'federated' ? `/federated-hubs/${hub.id}` : `/hubs/${hub.slug}`" class="cpub-hub-name">{{ hub.name }}</NuxtLink>
               <div class="cpub-hub-members">{{ hub.memberCount ?? 0 }} members</div>
             </div>
             <button v-if="joinedHubs.has(hub.slug)" class="cpub-btn-joined" disabled><i class="fa-solid fa-check"></i> Joined</button>
