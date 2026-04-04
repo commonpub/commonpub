@@ -137,7 +137,10 @@ export async function searchWithPostgres(
     isNull(contentItems.deletedAt),
   ];
 
-  if (opts.type) conditions.push(eq(contentItems.type, opts.type as 'project' | 'article' | 'blog' | 'explainer'));
+  const validContentTypes = new Set(['project', 'article', 'blog', 'explainer']);
+  if (opts.type && validContentTypes.has(opts.type)) {
+    conditions.push(eq(contentItems.type, opts.type as 'project' | 'article' | 'blog' | 'explainer'));
+  }
   if (opts.difficulty) conditions.push(eq(contentItems.difficulty, opts.difficulty as 'beginner' | 'intermediate' | 'advanced'));
   if (opts.dateFrom) conditions.push(gte(contentItems.publishedAt, new Date(opts.dateFrom)));
   if (opts.dateTo) conditions.push(lte(contentItems.publishedAt, new Date(opts.dateTo)));

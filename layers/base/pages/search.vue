@@ -327,7 +327,7 @@ const { data: relatedCommunities } = await useFetch('/api/hubs', {
             <NuxtLink
               v-for="hub in results.items"
               :key="hub.id"
-              :to="hub.source === 'federated' ? `/federated-hubs/${hub.id}` : `/hubs/${hub.slug}`"
+              :to="(hub as Record<string, unknown>).source === 'federated' ? `/federated-hubs/${hub.id}` : `/hubs/${hub.slug}`"
               class="cpub-search-hub-card"
             >
               <div class="cpub-search-hub-icon">
@@ -340,7 +340,7 @@ const { data: relatedCommunities } = await useFetch('/api/hubs', {
                 <div class="cpub-search-hub-meta">
                   <span><i class="fa-solid fa-users"></i> {{ hub.memberCount ?? 0 }} members</span>
                   <span><i class="fa-solid fa-message"></i> {{ hub.postCount ?? 0 }} posts</span>
-                  <span v-if="hub.source === 'federated'" class="cpub-search-hub-fed"><i class="fa-solid fa-globe"></i> Federated</span>
+                  <span v-if="(hub as Record<string, unknown>).source === 'federated'" class="cpub-search-hub-fed"><i class="fa-solid fa-globe"></i> Federated</span>
                 </div>
               </div>
             </NuxtLink>
