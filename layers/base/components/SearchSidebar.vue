@@ -75,7 +75,7 @@ const { hubs: hubsEnabled } = useFeatures();
             <i class="fa-solid fa-users"></i>
           </div>
           <div class="cpub-related-hub-info">
-            <NuxtLink :to="`/hubs/${hub.slug}`" class="cpub-related-hub-name">{{ hub.name }}</NuxtLink>
+            <NuxtLink :to="hub.source === 'federated' ? `/federated-hubs/${hub.id}` : `/hubs/${hub.slug}`" class="cpub-related-hub-name">{{ hub.name }}</NuxtLink>
             <div class="cpub-related-hub-members">{{ hub.memberCount ?? 0 }} members</div>
           </div>
           <button class="cpub-btn-join-sm">

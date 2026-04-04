@@ -181,10 +181,15 @@ function setCategory(label: string): void {
   page.value = 1;
 }
 
+const relatedHubsQuery = computed(() => ({
+  search: query.value || undefined,
+  limit: 3,
+}));
 const { data: relatedCommunities } = await useFetch('/api/hubs', {
-  query: { limit: 3 },
+  query: relatedHubsQuery,
   default: () => ({ items: [] }),
   immediate: hubsEnabled.value,
+  watch: [relatedHubsQuery],
 });
 </script>
 
@@ -317,7 +322,56 @@ const { data: relatedCommunities } = await useFetch('/api/hubs', {
         </template>
 
         <template v-else-if="activeType !== 'fediverse' && results?.items?.length">
+          <!-- COMMUNITY RESULTS -->
+          <div v-if="activeType === 'community'" class="cpub-results-grid">
+            <NuxtLink
+              v-for="hub in results.items"
+              :key="hub.id"
+              :to="hub.source === 'federated' ? `/federated-hubs/${hub.id}` : `/hubs/${hub.slug}`"
+              class="cpub-search-hub-card"
+            >
+              <div class="cpub-search-hub-icon">
+                <img v-if="hub.iconUrl" :src="hub.iconUrl" :alt="hub.name" class="cpub-search-hub-img" />
+                <i v-else class="fa-solid fa-users"></i>
+              </div>
+              <div class="cpub-search-hub-body">
+                <h3 class="cpub-search-hub-name">{{ hub.name }}</h3>
+                <p v-if="hub.description" class="cpub-search-hub-desc">{{ hub.description }}</p>
+                <div class="cpub-search-hub-meta">
+                  <span><i class="fa-solid fa-users"></i> {{ hub.memberCount ?? 0 }} members</span>
+                  <span><i class="fa-solid fa-message"></i> {{ hub.postCount ?? 0 }} posts</span>
+                  <span v-if="hub.source === 'federated'" class="cpub-search-hub-fed"><i class="fa-solid fa-globe"></i> Federated</span>
+                </div>
+              </div>
+            </NuxtLink>
+          </div>
+
+          <!-- PEOPLE RESULTS -->
+          <div v-else-if="activeType === 'people'" class="cpub-results-grid">
+            <NuxtLink
+              v-for="user in results.items"
+              :key="user.id"
+              :to="`/u/${user.username}`"
+              class="cpub-search-person-card"
+            >
+              <div class="cpub-search-person-avatar">
+                <img v-if="user.avatarUrl" :src="user.avatarUrl" :alt="user.displayName || user.username" />
+                <span v-else>{{ (user.displayName || user.username || '?').charAt(0).toUpperCase() }}</span>
+              </div>
+              <div class="cpub-search-person-body">
+                <h3 class="cpub-search-person-name">{{ user.displayName || user.username }}</h3>
+                <div class="cpub-search-person-handle">@{{ user.username }}</div>
+                <p v-if="user.headline" class="cpub-search-person-headline">{{ user.headline }}</p>
+                <div class="cpub-search-person-meta">
+                  <span><i class="fa-solid fa-user-group"></i> {{ user.followerCount ?? 0 }} followers</span>
+                </div>
+              </div>
+            </NuxtLink>
+          </div>
+
+          <!-- CONTENT RESULTS (default) -->
           <div
+            v-else
             class="cpub-results-grid"
             :class="{ 'list-view': viewMode === 'list' }"
           >
@@ -695,5 +749,125 @@ const { data: relatedCommunities } = await useFetch('/api/hubs', {
   .cpub-results-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* ── COMMUNITY RESULT CARDS ── */
+.cpub-search-hub-card {
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: var(--border-width-default) solid var(--border);
+  background: var(--surface);
+  text-decoration: none;
+  color: inherit;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+.cpub-search-hub-card:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-md);
+}
+.cpub-search-hub-icon {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: var(--border-width-default) solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-dim);
+  overflow: hidden;
+}
+.cpub-search-hub-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.cpub-search-hub-body {
+  flex: 1;
+  min-width: 0;
+}
+.cpub-search-hub-name {
+  font-size: var(--text-md);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--space-1);
+}
+.cpub-search-hub-desc {
+  font-size: var(--text-sm);
+  color: var(--text-dim);
+  margin-bottom: var(--space-2);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.cpub-search-hub-meta {
+  display: flex;
+  gap: var(--space-3);
+  font-size: var(--text-xs);
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+}
+.cpub-search-hub-fed {
+  color: var(--accent);
+}
+
+/* ── PEOPLE RESULT CARDS ── */
+.cpub-search-person-card {
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: var(--border-width-default) solid var(--border);
+  background: var(--surface);
+  text-decoration: none;
+  color: inherit;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+.cpub-search-person-card:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-md);
+}
+.cpub-search-person-avatar {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: var(--border-width-default) solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-dim);
+  font-weight: var(--font-weight-bold);
+  font-size: var(--text-lg);
+  overflow: hidden;
+}
+.cpub-search-person-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.cpub-search-person-body {
+  flex: 1;
+  min-width: 0;
+}
+.cpub-search-person-name {
+  font-size: var(--text-md);
+  font-weight: var(--font-weight-semibold);
+}
+.cpub-search-person-handle {
+  font-size: var(--text-sm);
+  font-family: var(--font-mono);
+  color: var(--text-faint);
+  margin-bottom: var(--space-1);
+}
+.cpub-search-person-headline {
+  font-size: var(--text-sm);
+  color: var(--text-dim);
+  margin-bottom: var(--space-2);
+}
+.cpub-search-person-meta {
+  font-size: var(--text-xs);
+  color: var(--text-faint);
+  font-family: var(--font-mono);
 }
 </style>
