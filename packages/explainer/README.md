@@ -1,168 +1,82 @@
 # @commonpub/explainer
 
-Interactive explainer module runtime for CommonPub.
+Interactive explainer runtime and Vue 3 components. Build section-by-section explorable explanations with quizzes, interactive sliders, checkpoints, and rich content blocks.
 
-## Overview
+**Two layers:**
 
-Explainers are scroll-driven, interactive educational modules. This package has three layers: a section type system with Zod schemas, a quiz engine, a progress tracker (pure state machine), a TOC generator, section rendering, and a self-contained HTML exporter.
+- **`@commonpub/explainer`** — Pure TypeScript engine (types, schemas, progress tracking, quiz scoring, HTML export). Zero UI dependencies.
+- **`@commonpub/explainer/vue`** — Vue 3 components (viewer, editor, block renderers, composables). Zero Nuxt dependencies. Works in any Vue 3 app.
 
-Explainers can be used standalone or embedded as a lesson type in `@commonpub/learning`.
-
-## Installation
-
-```bash
-pnpm add @commonpub/explainer
-```
-
-## Section Types
-
-| Type          | Description                                          |
-| ------------- | ---------------------------------------------------- |
-| `text`        | Rich text content (rendered from BlockTuples)        |
-| `interactive` | Controls (sliders, toggles, selects) with visuals    |
-| `quiz`        | Multiple-choice questions with scoring               |
-| `checkpoint`  | Progress gate, must complete to continue             |
-
-### Section Registry
-
-```ts
-import { registerCoreSectionTypes, registerSectionType, lookupSectionType } from '@commonpub/explainer';
-
-// Register all 4 core section types
-registerCoreSectionTypes();
-
-// Custom section type
-registerSectionType({
-  type: 'video',
-  schema: videoSectionSchema,
-  renderer: renderVideoSection,
-});
-```
-
-## Quiz Engine
-
-Deterministic quiz with seeded PRNG for reproducible option shuffling:
-
-```ts
-import { checkAnswer, scoreQuiz, isQuizPassed, shuffleOptions } from '@commonpub/explainer';
-
-// Check a single answer
-const result = checkAnswer(question, selectedOptionId);
-// { correct: true, correctOptionId: '...' }
-
-// Score all answers
-const score = scoreQuiz(questions, answers);
-// { total: 5, correct: 4, percentage: 80 }
-
-// Check pass threshold (default 70%)
-const passed = isQuizPassed(score, 0.7);
-
-// Shuffle options deterministically
-const shuffled = shuffleOptions(options, seed);
-```
-
-## Progress Tracker
-
-Pure state machine for tracking section completion:
-
-```ts
-import {
-  createProgressState,
-  markSectionCompleted,
-  canAccessSection,
-  getCompletionPercentage,
-  getNextIncompleteSection,
-  isExplainerComplete,
-} from '@commonpub/explainer';
-
-// Initialize progress state
-let state = createProgressState(sections);
-
-// Mark a section complete
-state = markSectionCompleted(state, 'section-1');
-
-// Check access (respects checkpoint gates)
-const canAccess = canAccessSection(state, 'section-3');
-
-// Get completion percentage
-const pct = getCompletionPercentage(state); // 33.3
-
-// Find next incomplete section
-const next = getNextIncompleteSection(state); // 'section-2'
-
-// Check if explainer is fully complete
-const done = isExplainerComplete(state); // false
-```
-
-## Rendering
-
-### Section Rendering
-
-```ts
-import { renderSection, renderBlockTuples, renderQuizHtml } from '@commonpub/explainer';
-
-// Render a single section to HTML
-const html = renderSection(section);
-
-// Render block tuples to HTML
-const contentHtml = renderBlockTuples(tuples);
-
-// Render quiz to HTML (with form elements)
-const quizHtml = renderQuizHtml(quizSection);
-```
-
-### TOC Generation
-
-```ts
-import { generateToc } from '@commonpub/explainer';
-
-const toc = generateToc(sections);
-// [{ id: 'intro', title: 'Introduction', anchor: '#intro' }, ...]
-```
-
-## HTML Export
-
-Generates a self-contained HTML file with inlined CSS and vanilla JS:
-
-```ts
-import { generateExplainerHtml } from '@commonpub/explainer';
-
-const html = generateExplainerHtml({
-  title: 'How LEDs Work',
-  sections,
-  theme: 'base',
-  includeProgress: true,
-});
-
-// Result: Complete HTML document, zero external dependencies
-```
-
-## Schemas
-
-Zod schemas for validating section data:
-
-```ts
-import {
-  textSectionSchema,
-  interactiveSectionSchema,
-  quizSectionSchema,
-  checkpointSectionSchema,
-  explainerSectionSchema,   // union of all types
-  explainerMetaSchema,       // title, difficulty, estimated time
-} from '@commonpub/explainer';
-```
-
-## Development
+## Install
 
 ```bash
-pnpm build        # Compile TypeScript
-pnpm test         # Run 127 tests
-pnpm typecheck    # Type-check without emitting
+pnpm add @commonpub/explainer vue
 ```
 
-## Dependencies
+## Quick Start — Viewer
 
-- `zod`: Schema validation
-- `@commonpub/editor`: BlockTuple rendering
-- `@commonpub/schema`: Content type definitions
-- `@commonpub/config`: Feature flags
+```vue
+<script setup>
+import { ExplainerViewer } from '@commonpub/explainer/vue';
+import '@commonpub/explainer/vue/theme';
+
+const content = {
+  title: 'My Explainer',
+  content: [
+    ['sectionHeader', { tag: '§ 01', title: 'Introduction', body: 'Welcome.' }],
+    ['text', { html: '<p>Start learning here.</p>' }],
+    ['quiz', {
+      question: 'What is 2 + 2?',
+      options: [
+        { text: '3', correct: false },
+        { text: '4', correct: true },
+      ],
+    }],
+    ['checkpoint', { label: 'Section complete' }],
+  ],
+  author: { displayName: 'Jane', username: 'jane' },
+};
+</script>
+
+<template>
+  <ExplainerViewer :content="content" />
+</template>
+```
+
+## Quick Start — Editor
+
+```vue
+<script setup>
+import { ExplainerEditor, useBlockEditor } from '@commonpub/explainer/vue';
+import '@commonpub/explainer/vue/theme';
+
+const blockEditor = useBlockEditor();
+const metadata = ref({ slug: '', description: '', tags: [], difficulty: 'beginner' });
+</script>
+
+<template>
+  <ExplainerEditor
+    :block-editor="blockEditor"
+    :metadata="metadata"
+    @update:metadata="metadata = $event"
+  />
+</template>
+```
+
+## Playground
+
+Run the development playground to see all components in action:
+
+```bash
+cd packages/explainer
+pnpm playground
+```
+
+Opens at http://localhost:4200 with four tabs: Individual Blocks, Block Renderer, Editor, Full Viewer.
+
+---
+
+For full documentation, see:
+
+- **[vue/README.md](vue/README.md)** — Vue component API, theming, customization, adding blocks
+- **[src/README.md](src/README.md)** — TypeScript engine API, progress tracking, quiz scoring, HTML export

@@ -1,0 +1,12 @@
+export { default as QuizBlock } from './QuizBlock.vue';
+export { default as SliderBlock } from './SliderBlock.vue';
+export { default as CheckpointBlock } from './CheckpointBlock.vue';
+export { default as SectionHeader } from './SectionHeader.vue';
+export { default as TextBlock } from './TextBlock.vue';
+export { default as HeadingBlock } from './HeadingBlock.vue';
+export { default as CodeBlock } from './CodeBlock.vue';
+export { default as ImageBlock } from './ImageBlock.vue';
+export { default as CalloutBlock } from './CalloutBlock.vue';
+export { default as QuoteBlock } from './QuoteBlock.vue';
+export { default as DividerBlock } from './DividerBlock.vue';
+export { default as EmbedBlock } from './EmbedBlock.vue';

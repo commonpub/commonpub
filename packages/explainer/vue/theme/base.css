@@ -1,0 +1,104 @@
+/*
+ * @commonpub/explainer — Base Theme
+ *
+ * Provides all CSS custom properties the explainer components expect.
+ * Import this file (or define your own values for these variables) to theme
+ * the explainer viewer, editor, and block components.
+ *
+ * Design: sharp corners, 2px borders, offset shadows, JetBrains Mono labels.
+ */
+
+:root {
+  /* Surfaces */
+  --bg: #fafaf9;
+  --surface: #ffffff;
+  --surface2: #f4f4f2;
+  --surface3: #eaeae7;
+
+  /* Text */
+  --text: #1a1a1a;
+  --text-dim: #6b6b66;
+  --text-faint: #a3a39e;
+  --color-text-inverse: #ffffff;
+
+  /* Borders */
+  --border: #1a1a1a;
+  --border2: #d4d4d0;
+  --border-width-default: 2px;
+
+  /* Accent (blue) */
+  --accent: #5b9cf6;
+  --accent-bg: rgba(91, 156, 246, 0.08);
+  --accent-border: rgba(91, 156, 246, 0.25);
+
+  /* Semantic: green */
+  --green: #22c55e;
+  --green-bg: rgba(34, 197, 94, 0.08);
+  --green-border: rgba(34, 197, 94, 0.25);
+
+  /* Semantic: yellow */
+  --yellow: #f59e0b;
+  --yellow-bg: rgba(245, 158, 11, 0.08);
+  --yellow-border: rgba(245, 158, 11, 0.25);
+
+  /* Semantic: red */
+  --red: #ef4444;
+  --red-bg: rgba(239, 68, 68, 0.08);
+  --red-border: rgba(239, 68, 68, 0.25);
+
+  /* Semantic: teal */
+  --teal: #14b8a6;
+
+  /* Typography */
+  --font-sans: system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  /* Shadows (offset, no blur) */
+  --shadow-sm: 2px 2px 0 var(--border);
+  --shadow-md: 4px 4px 0 var(--border);
+
+  /* Transitions */
+  --transition-fast: 0.1s ease;
+
+  /* Shape */
+  --radius-full: 50%;
+}
+
+/* Dark theme — apply via [data-theme="dark"] or prefers-color-scheme */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f0f0e;
+    --surface: #1a1a18;
+    --surface2: #252523;
+    --surface3: #2f2f2c;
+
+    --text: #e8e8e3;
+    --text-dim: #a3a39e;
+    --text-faint: #6b6b66;
+    --color-text-inverse: #1a1a1a;
+
+    --border: #e8e8e3;
+    --border2: #3a3a37;
+
+    --shadow-sm: 2px 2px 0 rgba(0, 0, 0, 0.4);
+    --shadow-md: 4px 4px 0 rgba(0, 0, 0, 0.4);
+  }
+}
+
+[data-theme="dark"] {
+  --bg: #0f0f0e;
+  --surface: #1a1a18;
+  --surface2: #252523;
+  --surface3: #2f2f2c;
+
+  --text: #e8e8e3;
+  --text-dim: #a3a39e;
+  --text-faint: #6b6b66;
+  --color-text-inverse: #1a1a1a;
+
+  --border: #e8e8e3;
+  --border2: #3a3a37;
+
+  --shadow-sm: 2px 2px 0 rgba(0, 0, 0, 0.4);
+  --shadow-md: 4px 4px 0 rgba(0, 0, 0, 0.4);
+}

@@ -77,5 +77,12 @@ export {
   renderSection,
 } from './render/sectionRenderer.js';
 
+// Section derivation
+export {
+  deriveSections,
+  computeSectionRanges,
+} from './sections/derive.js';
+export type { DerivedSection, SectionRange } from './sections/derive.js';
+
 // HTML exporter
 export { generateExplainerHtml } from './export/htmlExporter.js';
