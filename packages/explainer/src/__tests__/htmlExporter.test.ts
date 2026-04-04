@@ -140,8 +140,8 @@ describe('generateExplainerHtml', () => {
   });
 
   it('uses theme-specific CSS variables', () => {
-    const html = generateExplainerHtml([textSection], { ...defaultOptions, theme: 'hackbuild' });
-    expect(html).toContain('#0d1117'); // hackbuild bg color
+    const html = generateExplainerHtml([textSection], { ...defaultOptions, theme: 'agora' });
+    expect(html).toContain('#f7f4ed'); // agora bg color
   });
 
   it('escapes special characters in title', () => {

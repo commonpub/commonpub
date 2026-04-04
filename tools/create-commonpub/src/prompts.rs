@@ -102,7 +102,7 @@ pub fn prompt_config(name: &str) -> Result<InstanceConfig, Box<dyn std::error::E
 
     // ── Theme ──────────────────────────────────────────────
 
-    let themes = ["base", "deepwood", "hackbuild", "deveco"];
+    let themes = ["base", "dark", "generics", "agora", "agora-dark"];
     let theme_idx = FuzzySelect::with_theme(&theme)
         .with_prompt("Theme")
         .items(&themes)

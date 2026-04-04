@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm';
 import { users, instanceSettings } from '@commonpub/schema';
 import type { DB } from './types.js';
 
-const VALID_THEME_IDS = new Set(['base', 'dark', 'generics']);
+const VALID_THEME_IDS = new Set(['base', 'dark', 'generics', 'agora', 'agora-dark']);
 
 function isValidThemeId(id: string): boolean {
   return VALID_THEME_IDS.has(id);

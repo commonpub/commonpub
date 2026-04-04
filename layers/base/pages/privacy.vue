@@ -62,13 +62,14 @@ const { federation: federationEnabled } = useFeatures();
       </section>
 
       <section class="cpub-legal-section">
-        <h2>5. Cookies and Local Storage</h2>
-        <p>We use only <strong>strictly necessary</strong> technologies:</p>
+        <h2>5. Cookies</h2>
+        <p>We use a small number of cookies to provide and improve the service:</p>
         <ul>
-          <li><strong>Session cookie</strong> (<code>better-auth.session_token</code>): an authentication cookie that identifies your login session. It is httpOnly (not accessible to JavaScript), secure (HTTPS-only in production), and expires after 7 days. This cookie is strictly necessary for the service to function and does not require consent.</li>
-          <li><strong>Theme preference</strong> (<code>cpub-theme</code> in localStorage): stores your light/dark mode choice in your browser. This is a UI preference, not used for tracking.</li>
+          <li><strong>Session cookie</strong> (<code>better-auth.session_token</code>): strictly necessary — authenticates your login session. HttpOnly, secure, 7-day expiry.</li>
+          <li><strong>Consent cookie</strong> (<code>cpub-consent</code>): strictly necessary — stores your cookie consent choice.</li>
+          <li><strong>Color scheme</strong> (<code>cpub-color-scheme</code>): functional — remembers your light/dark mode preference. Set only with your consent.</li>
         </ul>
-        <p>We do not use any analytics, advertising, or tracking cookies. No cookie consent banner is required because we only use strictly necessary cookies.</p>
+        <p>We do not use any advertising or tracking cookies. Your instance operator may add analytics cookies — these require your explicit consent. For the full list of cookies and to manage your preferences, visit our <NuxtLink to="/cookies">Cookie Policy</NuxtLink>.</p>
       </section>
 
       <section v-if="federationEnabled" class="cpub-legal-section">

@@ -49,7 +49,7 @@ describe('admin relations', () => {
 describe('adminSettingSchema', () => {
   it('should accept valid setting', () => {
     expect(
-      adminSettingSchema.safeParse({ key: 'theme.default', value: 'deepwood' }).success,
+      adminSettingSchema.safeParse({ key: 'theme.default', value: 'agora' }).success,
     ).toBe(true);
   });
 

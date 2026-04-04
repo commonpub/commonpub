@@ -6,11 +6,15 @@ export default defineEventHandler(async (event) => {
   const db = useDB();
   const config = useConfig();
 
-  // Get DB-stored settings
+  // Get DB-stored settings (returns Map — convert to plain object)
   const dbSettings = await getInstanceSettings(db);
+  const stored: Record<string, unknown> = {};
+  for (const [key, value] of dbSettings) {
+    stored[key] = value;
+  }
 
   // Merge with running config defaults so the UI shows actual values
-  const defaults: Record<string, string> = {
+  const defaults: Record<string, unknown> = {
     'instance.name': config.instance.name,
     'instance.description': config.instance.description,
     'instance.registrationOpen': 'true',
@@ -18,5 +22,5 @@ export default defineEventHandler(async (event) => {
     'instance.contactEmail': config.instance.contactEmail ?? '',
   };
 
-  return { ...defaults, ...dbSettings };
+  return { ...defaults, ...stored };
 });

@@ -1,0 +1,156 @@
+@layer commonpub {
+/* ===========================================
+   CommonPub Agora Theme — Light
+   Warm institutional aesthetic: parchment
+   backgrounds, green accent, serif display
+   font, offset shadows.
+   =========================================== */
+
+[data-theme="agora"] {
+  /* === SURFACES (warm, paper-like) === */
+  --bg: #f7f4ed;
+  --surface: #faf8f3;
+  --surface2: #ece8de;
+  --surface3: #e2ddd2;
+
+  --color-surface: var(--surface);
+  --color-surface-alt: var(--surface2);
+  --color-surface-raised: var(--surface);
+  --color-surface-overlay: rgba(26, 26, 26, 0.5);
+  --color-surface-overlay-light: rgba(26, 26, 26, 0.4);
+  --color-surface-scrim: rgba(247, 244, 237, 0.75);
+  --color-surface-hover: var(--surface2);
+  --color-bg-subtle: var(--bg);
+
+  /* === TEXT (ink gradations) === */
+  --text: #1a1a1a;
+  --text-dim: #4a4a44;
+  --text-faint: #7a7a72;
+
+  --color-text: var(--text);
+  --color-text-secondary: var(--text-dim);
+  --color-text-muted: var(--text-faint);
+  --color-text-inverse: #f7f4ed;
+
+  /* === BORDERS (warm) === */
+  --border: #1a1a1a;
+  --border2: #d4cfc4;
+
+  --color-border: var(--border2);
+  --color-border-strong: var(--border);
+  --color-border-focus: var(--accent);
+
+  /* === ACCENT (commons green) === */
+  --accent: #3d8b5e;
+  --accent-bg: rgba(61, 139, 94, 0.08);
+  --accent-bg-strong: rgba(61, 139, 94, 0.2);
+  --accent-bg-heavy: rgba(61, 139, 94, 0.4);
+  --accent-bg-solid: rgba(61, 139, 94, 0.6);
+  --accent-border: rgba(61, 139, 94, 0.25);
+  --accent-focus-ring: 0 0 0 3px rgba(61, 139, 94, 0.12);
+
+  --color-primary: var(--accent);
+  --color-primary-hover: #348050;
+  --color-primary-text: #ffffff;
+  --color-on-primary: #ffffff;
+  --color-accent: var(--accent);
+  --color-accent-hover: #348050;
+  --color-accent-text: #ffffff;
+  --color-on-accent: #ffffff;
+  --color-accent-bg: var(--accent-bg);
+  --color-accent-border: var(--accent-border);
+
+  /* === SEMANTIC COLORS (warm palette) === */
+  --green: #3d8b5e;
+  --green-bg: rgba(61, 139, 94, 0.08);
+  --green-border: rgba(61, 139, 94, 0.25);
+
+  --yellow: #c4882a;
+  --yellow-bg: rgba(196, 136, 42, 0.08);
+  --yellow-border: rgba(196, 136, 42, 0.25);
+
+  --red: #c4443a;
+  --red-bg: rgba(196, 68, 58, 0.08);
+  --red-border: rgba(196, 68, 58, 0.25);
+
+  --purple: #7b5ea7;
+  --purple-bg: rgba(123, 94, 167, 0.08);
+  --purple-border: rgba(123, 94, 167, 0.25);
+
+  --teal: #2a9d8f;
+  --teal-bg: rgba(42, 157, 143, 0.08);
+  --teal-border: rgba(42, 157, 143, 0.25);
+
+  --pink: #b85a7a;
+  --pink-bg: rgba(184, 90, 122, 0.08);
+  --pink-border: rgba(184, 90, 122, 0.25);
+
+  --color-success: var(--green);
+  --color-warning: var(--yellow);
+  --color-error: var(--red);
+  --color-info: #4a7fb8;
+  --color-success-bg: var(--green-bg);
+  --color-warning-bg: var(--yellow-bg);
+  --color-error-bg: var(--red-bg);
+  --color-info-bg: rgba(74, 127, 184, 0.08);
+
+  /* === OVERLAYS === */
+  --color-badge-overlay: rgba(26, 26, 26, 0.75);
+
+  /* === INTERACTIVE === */
+  --color-link: var(--accent);
+  --color-link-hover: #2a6342;
+
+  /* === TYPOGRAPHY (warm, distinctive) === */
+  --font-sans: 'Work Sans', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+
+  --font-heading: var(--font-display);
+  --font-body: var(--font-sans);
+
+  /* Font Sizes (Agora scale) */
+  --text-xs: 0.6875rem;   /* 11px */
+  --text-sm: 0.8125rem;   /* 13px */
+  --text-base: 0.9375rem; /* 15px */
+  --text-md: 1.0625rem;   /* 17px */
+  --text-lg: 1.25rem;     /* 20px */
+  --text-xl: 1.5rem;      /* 24px */
+  --text-2xl: 1.875rem;   /* 30px */
+  --text-3xl: 2.375rem;   /* 38px */
+  --text-4xl: 3rem;       /* 48px */
+  --text-5xl: 4rem;       /* 64px */
+  --text-label: 0.625rem; /* 10px — monospace UI labels */
+
+  /* Line Heights */
+  --leading-tight: 1.15;
+  --leading-snug: 1.35;
+  --leading-normal: 1.7;
+  --leading-relaxed: 1.9;
+
+  /* Letter Spacing */
+  --tracking-tight: -0.02em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.06em;
+  --tracking-wider: 0.1em;
+  --tracking-widest: 0.16em;
+
+  /* === SHADOWS (offset, warm ink) === */
+  --shadow-sm: 2px 2px 0 var(--border);
+  --shadow-md: 4px 4px 0 var(--border);
+  --shadow-lg: 6px 6px 0 var(--border);
+  --shadow-xl: 8px 8px 0 var(--border);
+  --shadow-accent: 4px 4px 0 var(--accent);
+
+  /* === FOCUS === */
+  --focus-ring: var(--shadow-accent);
+}
+
+/* === CONTENT TYPE BADGE COLORS (Agora palette) === */
+[data-theme="agora"] [data-content-type="article"] { --badge-color: #4a7fb8; --badge-bg: rgba(74, 127, 184, 0.08); }
+[data-theme="agora"] [data-content-type="blog"] { --badge-color: #3d8b5e; --badge-bg: rgba(61, 139, 94, 0.08); }
+[data-theme="agora"] [data-content-type="project"] { --badge-color: #7b5ea7; --badge-bg: rgba(123, 94, 167, 0.08); }
+[data-theme="agora"] [data-content-type="explainer"] { --badge-color: #2a9d8f; --badge-bg: rgba(42, 157, 143, 0.08); }
+[data-theme="agora"] [data-content-type="video"] { --badge-color: #c4443a; --badge-bg: rgba(196, 68, 58, 0.08); }
+[data-theme="agora"] [data-content-type="tutorial"] { --badge-color: #c4882a; --badge-bg: rgba(196, 136, 42, 0.08); }
+}

@@ -184,6 +184,7 @@ const userUsername = computed(() => user.value?.username ?? '');
           <NuxtLink to="/about" class="cpub-footer-link">About</NuxtLink>
           <NuxtLink v-if="docs" to="/docs" class="cpub-footer-link">Docs</NuxtLink>
           <NuxtLink to="/privacy" class="cpub-footer-link">Privacy Policy</NuxtLink>
+          <NuxtLink to="/cookies" class="cpub-footer-link">Cookie Policy</NuxtLink>
           <NuxtLink to="/terms" class="cpub-footer-link">Terms of Service</NuxtLink>
           <a href="/feed.xml" class="cpub-footer-link">RSS Feed</a>
         </nav>
@@ -192,6 +193,9 @@ const userUsername = computed(() => user.value?.username ?? '');
         <span>&copy; {{ new Date().getFullYear() }} {{ siteName }}. Open source under MIT.</span>
       </div>
     </footer>
+
+    <!-- Cookie consent banner -->
+    <CookieConsent />
   </div>
 </template>
 

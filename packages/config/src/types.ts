@@ -89,10 +89,30 @@ export interface FederationConfig {
   hubSyncIntervalMs?: number;
 }
 
+/** A cookie registered by the instance for the consent banner and cookie policy page */
+export interface CookieDefinition {
+  /** Cookie name (e.g., '_ga', 'hubspot_utk') */
+  name: string;
+  /** Cookie category — essential cookies bypass consent */
+  category: 'essential' | 'functional' | 'analytics';
+  /** Human-readable description of what this cookie does */
+  description: string;
+  /** Human-readable duration (e.g., '1 year', 'session', '24 hours') */
+  duration: string;
+  /** Who sets this cookie (e.g., 'Google Analytics', 'HubSpot') */
+  provider?: string;
+}
+
 export interface CommonPubConfig {
   instance: InstanceConfig;
   features: FeatureFlags;
   auth: AuthConfig;
   /** Federation-specific configuration (only used when features.federation is true) */
   federation?: FederationConfig;
+  /**
+   * Additional cookies used by this instance (e.g., analytics, marketing).
+   * CommonPub's own cookies (session, color scheme) are registered automatically.
+   * These are shown in the cookie consent banner and cookie policy page.
+   */
+  cookies?: CookieDefinition[];
 }

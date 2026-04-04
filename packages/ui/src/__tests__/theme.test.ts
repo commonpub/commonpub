@@ -9,27 +9,46 @@ import {
 } from '../theme';
 
 describe('BUILT_IN_THEMES', () => {
-  it('should contain 3 themes', () => {
-    expect(BUILT_IN_THEMES).toHaveLength(3);
+  it('should contain 5 themes', () => {
+    expect(BUILT_IN_THEMES).toHaveLength(5);
   });
 
-  it('should include base, dark, generics', () => {
+  it('should include base, dark, generics, agora, agora-dark', () => {
     const ids = BUILT_IN_THEMES.map((t) => t.id);
     expect(ids).toContain('base');
     expect(ids).toContain('dark');
     expect(ids).toContain('generics');
+    expect(ids).toContain('agora');
+    expect(ids).toContain('agora-dark');
   });
 
-  it('should mark dark and generics as dark themes', () => {
+  it('should mark dark themes correctly', () => {
     const dark = BUILT_IN_THEMES.find((t) => t.id === 'dark');
     expect(dark?.isDark).toBe(true);
     const generics = BUILT_IN_THEMES.find((t) => t.id === 'generics');
     expect(generics?.isDark).toBe(true);
+    const agoraDark = BUILT_IN_THEMES.find((t) => t.id === 'agora-dark');
+    expect(agoraDark?.isDark).toBe(true);
   });
 
-  it('should mark base as light theme', () => {
+  it('should mark light themes correctly', () => {
     const base = BUILT_IN_THEMES.find((t) => t.id === 'base');
     expect(base?.isDark).toBe(false);
+    const agora = BUILT_IN_THEMES.find((t) => t.id === 'agora');
+    expect(agora?.isDark).toBe(false);
+  });
+
+  it('should assign correct families', () => {
+    const base = BUILT_IN_THEMES.find((t) => t.id === 'base');
+    expect(base?.family).toBe('classic');
+    const dark = BUILT_IN_THEMES.find((t) => t.id === 'dark');
+    expect(dark?.family).toBe('classic');
+    const agora = BUILT_IN_THEMES.find((t) => t.id === 'agora');
+    expect(agora?.family).toBe('agora');
+    const agoraDark = BUILT_IN_THEMES.find((t) => t.id === 'agora-dark');
+    expect(agoraDark?.family).toBe('agora');
+    const generics = BUILT_IN_THEMES.find((t) => t.id === 'generics');
+    expect(generics?.family).toBe('generics');
   });
 });
 
@@ -38,12 +57,15 @@ describe('isValidThemeId', () => {
     expect(isValidThemeId('base')).toBe(true);
     expect(isValidThemeId('dark')).toBe(true);
     expect(isValidThemeId('generics')).toBe(true);
+    expect(isValidThemeId('agora')).toBe(true);
+    expect(isValidThemeId('agora-dark')).toBe(true);
   });
 
   it('should return false for unknown theme IDs', () => {
     expect(isValidThemeId('custom')).toBe(false);
     expect(isValidThemeId('')).toBe(false);
     expect(isValidThemeId('BASE')).toBe(false);
+    expect(isValidThemeId('deepwood')).toBe(false);
   });
 });
 
@@ -88,10 +110,11 @@ describe('TOKEN_NAMES', () => {
     expect(TOKEN_NAMES).toContain('nav-height');
   });
 
-  it('should contain typography tokens including label size', () => {
+  it('should contain typography tokens including label size and font-display', () => {
     expect(TOKEN_NAMES).toContain('text-label');
     expect(TOKEN_NAMES).toContain('font-sans');
     expect(TOKEN_NAMES).toContain('font-mono');
+    expect(TOKEN_NAMES).toContain('font-display');
   });
 });
 
@@ -99,6 +122,12 @@ describe('validateTokenOverrides', () => {
   it('should accept valid token names', () => {
     const result = validateTokenOverrides({ 'accent': '#ff0000', 'font-sans': 'Arial' });
     expect(result.valid).toEqual({ 'accent': '#ff0000', 'font-sans': 'Arial' });
+    expect(result.invalid).toHaveLength(0);
+  });
+
+  it('should accept font-display as valid token', () => {
+    const result = validateTokenOverrides({ 'font-display': 'Georgia, serif' });
+    expect(result.valid).toEqual({ 'font-display': 'Georgia, serif' });
     expect(result.invalid).toHaveLength(0);
   });
 
@@ -125,6 +154,14 @@ describe('applyThemeToElement', () => {
   it('should set data-theme attribute for non-base themes', () => {
     applyThemeToElement(el, 'dark');
     expect(el.getAttribute('data-theme')).toBe('dark');
+  });
+
+  it('should set data-theme attribute for agora themes', () => {
+    applyThemeToElement(el, 'agora');
+    expect(el.getAttribute('data-theme')).toBe('agora');
+
+    applyThemeToElement(el, 'agora-dark');
+    expect(el.getAttribute('data-theme')).toBe('agora-dark');
   });
 
   it('should remove data-theme attribute for base theme', () => {
@@ -162,6 +199,12 @@ describe('getThemeFromElement', () => {
     el.setAttribute('data-theme', 'dark');
     const result = getThemeFromElement(el);
     expect(result.themeId).toBe('dark');
+  });
+
+  it('should return agora theme from data-theme', () => {
+    el.setAttribute('data-theme', 'agora');
+    const result = getThemeFromElement(el);
+    expect(result.themeId).toBe('agora');
   });
 
   it('should return inline token overrides', () => {

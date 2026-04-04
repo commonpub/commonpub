@@ -1,0 +1,157 @@
+@layer commonpub {
+/* ===========================================
+   CommonPub Agora Theme — Dark (Grove)
+   Warm dark surfaces with green-tinted blacks,
+   green accent, serif display font.
+   =========================================== */
+
+[data-theme="agora-dark"] {
+  /* === SURFACES (grove-tinted warm darks) === */
+  --bg: #0d1a12;
+  --surface: #141f17;
+  --surface2: #1a261e;
+  --surface3: #213028;
+
+  --color-surface: var(--surface);
+  --color-surface-alt: var(--surface2);
+  --color-surface-raised: var(--surface2);
+  --color-surface-overlay: rgba(0, 0, 0, 0.7);
+  --color-surface-overlay-light: rgba(0, 0, 0, 0.6);
+  --color-surface-scrim: rgba(13, 26, 18, 0.85);
+  --color-surface-hover: var(--surface3);
+  --color-bg-subtle: var(--bg);
+
+  /* === TEXT (warm light on dark) === */
+  --text: #e8e8e2;
+  --text-dim: #b0b0a6;
+  --text-faint: #7a7a72;
+
+  --color-text: var(--text);
+  --color-text-secondary: var(--text-dim);
+  --color-text-muted: var(--text-faint);
+  --color-text-inverse: #0d1a12;
+  --color-on-accent: #ffffff;
+  --color-on-primary: #ffffff;
+  --color-primary-hover: #4aa06e;
+
+  /* === BORDERS (grove-tinted) === */
+  --border: #3a4f40;
+  --border2: #2a3a2f;
+
+  --color-border: var(--border2);
+  --color-border-strong: var(--border);
+  --color-border-focus: var(--accent);
+
+  /* === ACCENT (commons green, brighter for dark bg) === */
+  --accent: #4aa06e;
+  --accent-bg: rgba(74, 160, 110, 0.12);
+  --accent-bg-strong: rgba(74, 160, 110, 0.25);
+  --accent-bg-heavy: rgba(74, 160, 110, 0.45);
+  --accent-bg-solid: rgba(74, 160, 110, 0.65);
+  --accent-border: rgba(74, 160, 110, 0.3);
+  --accent-focus-ring: 0 0 0 3px rgba(74, 160, 110, 0.2);
+  --shadow-accent: 4px 4px 0 var(--accent);
+
+  --color-primary: var(--accent);
+  --color-accent: var(--accent);
+  --color-accent-hover: #5ab87e;
+  --color-accent-text: #0d1a12;
+  --color-primary-text: #ffffff;
+  --color-accent-bg: var(--accent-bg);
+  --color-accent-border: var(--accent-border);
+
+  /* === SEMANTIC COLORS (brighter for dark bg) === */
+  --green: #4aa06e;
+  --green-bg: rgba(74, 160, 110, 0.12);
+  --green-border: rgba(74, 160, 110, 0.3);
+
+  --yellow: #daa040;
+  --yellow-bg: rgba(218, 160, 64, 0.12);
+  --yellow-border: rgba(218, 160, 64, 0.3);
+
+  --red: #d85e55;
+  --red-bg: rgba(216, 94, 85, 0.12);
+  --red-border: rgba(216, 94, 85, 0.3);
+
+  --purple: #9a7ec4;
+  --purple-bg: rgba(154, 126, 196, 0.12);
+  --purple-border: rgba(154, 126, 196, 0.3);
+
+  --teal: #3dbcab;
+  --teal-bg: rgba(61, 188, 171, 0.12);
+  --teal-border: rgba(61, 188, 171, 0.3);
+
+  --pink: #d07090;
+  --pink-bg: rgba(208, 112, 144, 0.12);
+  --pink-border: rgba(208, 112, 144, 0.3);
+
+  --color-success: var(--green);
+  --color-warning: var(--yellow);
+  --color-error: var(--red);
+  --color-info: #6a9fd0;
+  --color-success-bg: var(--green-bg);
+  --color-warning-bg: var(--yellow-bg);
+  --color-error-bg: var(--red-bg);
+  --color-info-bg: rgba(106, 159, 208, 0.12);
+
+  /* === OVERLAYS === */
+  --color-badge-overlay: rgba(0, 0, 0, 0.75);
+
+  /* === INTERACTIVE === */
+  --color-link: var(--accent);
+  --color-link-hover: #5ab87e;
+
+  /* === TYPOGRAPHY (warm, distinctive) === */
+  --font-sans: 'Work Sans', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+
+  --font-heading: var(--font-display);
+  --font-body: var(--font-sans);
+
+  /* Font Sizes (Agora scale) */
+  --text-xs: 0.6875rem;
+  --text-sm: 0.8125rem;
+  --text-base: 0.9375rem;
+  --text-md: 1.0625rem;
+  --text-lg: 1.25rem;
+  --text-xl: 1.5rem;
+  --text-2xl: 1.875rem;
+  --text-3xl: 2.375rem;
+  --text-4xl: 3rem;
+  --text-5xl: 4rem;
+  --text-label: 0.625rem;
+
+  /* Line Heights */
+  --leading-tight: 1.15;
+  --leading-snug: 1.35;
+  --leading-normal: 1.7;
+  --leading-relaxed: 1.9;
+
+  /* Letter Spacing */
+  --tracking-tight: -0.02em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.06em;
+  --tracking-wider: 0.1em;
+  --tracking-widest: 0.16em;
+
+  /* === SHADOWS (softer for dark mode) === */
+  --shadow-sm: 2px 2px 0 rgba(0, 0, 0, 0.4);
+  --shadow-md: 4px 4px 0 rgba(0, 0, 0, 0.4);
+  --shadow-lg: 6px 6px 0 rgba(0, 0, 0, 0.4);
+  --shadow-xl: 8px 8px 0 rgba(0, 0, 0, 0.4);
+
+  /* === FOCUS === */
+  --focus-ring: var(--shadow-accent);
+
+  color-scheme: dark;
+}
+
+/* === CONTENT TYPE BADGE COLORS (Agora dark palette) === */
+[data-theme="agora-dark"] [data-content-type="article"] { --badge-color: #6a9fd0; --badge-bg: rgba(106, 159, 208, 0.12); }
+[data-theme="agora-dark"] [data-content-type="blog"] { --badge-color: #4aa06e; --badge-bg: rgba(74, 160, 110, 0.12); }
+[data-theme="agora-dark"] [data-content-type="project"] { --badge-color: #9a7ec4; --badge-bg: rgba(154, 126, 196, 0.12); }
+[data-theme="agora-dark"] [data-content-type="explainer"] { --badge-color: #3dbcab; --badge-bg: rgba(61, 188, 171, 0.12); }
+[data-theme="agora-dark"] [data-content-type="video"] { --badge-color: #d85e55; --badge-bg: rgba(216, 94, 85, 0.12); }
+[data-theme="agora-dark"] [data-content-type="tutorial"] { --badge-color: #daa040; --badge-bg: rgba(218, 160, 64, 0.12); }
+}

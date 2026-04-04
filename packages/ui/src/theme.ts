@@ -3,26 +3,45 @@ export interface ThemeDefinition {
   name: string;
   description: string;
   isDark: boolean;
+  /** Theme family for grouping light/dark variants */
+  family: string;
 }
 
 export const BUILT_IN_THEMES: ThemeDefinition[] = [
   {
     id: 'base',
-    name: 'Light',
+    name: 'Classic Light',
     description: 'Sharp corners, offset shadows, blue accent — the CommonPub signature',
     isDark: false,
+    family: 'classic',
   },
   {
     id: 'dark',
-    name: 'Dark',
+    name: 'Classic Dark',
     description: 'Dark surfaces with the same offset shadow aesthetic',
     isDark: true,
+    family: 'classic',
   },
   {
     id: 'generics',
     name: 'Generics',
-    description: 'Dark minimal theme with blue accent',
+    description: 'Dark minimal theme with blue accent and soft glow',
     isDark: true,
+    family: 'generics',
+  },
+  {
+    id: 'agora',
+    name: 'Agora Light',
+    description: 'Warm parchment backgrounds, green accent, serif display font',
+    isDark: false,
+    family: 'agora',
+  },
+  {
+    id: 'agora-dark',
+    name: 'Agora Dark',
+    description: 'Grove-tinted darks with green accent, serif display font',
+    isDark: true,
+    family: 'agora',
   },
 ];
 
@@ -108,6 +127,7 @@ export const TOKEN_NAMES: string[] = [
   'font-mono',
   'font-heading',
   'font-body',
+  'font-display',
   // Font sizes
   'text-xs',
   'text-sm',

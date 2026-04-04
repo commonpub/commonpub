@@ -51,7 +51,7 @@ struct SharedOpts {
     #[arg(long = "contest-creation")]
     contest_creation: Option<String>,
 
-    /// Theme: base, deepwood, hackbuild, or deveco
+    /// Theme: base, dark, generics, agora, or agora-dark
     #[arg(long)]
     theme: Option<String>,
 

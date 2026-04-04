@@ -63,9 +63,18 @@ export const federationConfigSchema = z.object({
   hubSyncIntervalMs: z.number().int().positive().default(3_600_000),
 });
 
+export const cookieDefinitionSchema = z.object({
+  name: z.string().min(1),
+  category: z.enum(['essential', 'functional', 'analytics']),
+  description: z.string().min(1),
+  duration: z.string().min(1),
+  provider: z.string().optional(),
+});
+
 export const configSchema = z.object({
   instance: instanceConfigSchema,
   features: featureFlagsSchema.default(() => featureFlagsSchema.parse({})),
   auth: authConfigSchema.default(() => authConfigSchema.parse({})),
   federation: federationConfigSchema.optional(),
+  cookies: z.array(cookieDefinitionSchema).optional(),
 });

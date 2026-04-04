@@ -261,22 +261,22 @@ const name = '{name}';
 
 pub fn render_theme_css(config: &InstanceConfig) -> String {
     let theme_preset = match config.theme.as_str() {
-        "deveco" => r#"  /* deveco — rounded, soft shadows, green accent */
-  --accent: #00e7ad;
-  --font-sans: 'Poppins', system-ui, sans-serif;
-  --radius: 6px;
-  --border-width-default: 1px;
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);"#,
-        "deepwood" => r#"  /* deepwood — warm earthy tones */
-  --accent: #c4956a;
-  --radius: 4px;
-  --border-width-default: 1px;"#,
-        "hackbuild" => r#"  /* hackbuild — terminal green on dark */
-  --accent: #39ff14;
-  --radius: 0px;
-  --border-width-default: 1px;"#,
+        "dark" => r#"  /* dark — dark surfaces, same offset shadow aesthetic */
+  /* Set data-theme="dark" on <html> to activate */
+  /* --accent: #5b9cf6; */"#,
+        "generics" => r#"  /* generics — dark minimal with soft glow shadows */
+  /* Set data-theme="generics" on <html> to activate */
+  /* --accent: #5b9cf6; */"#,
+        "agora" => r#"  /* agora — warm parchment, green accent, serif display font */
+  /* Set data-theme="agora" on <html> to activate */
+  /* --accent: #3d8b5e; */
+  /* --font-heading: 'Fraunces', Georgia, serif; */
+  /* --font-body: 'Work Sans', system-ui, sans-serif; */"#,
+        "agora-dark" => r#"  /* agora-dark — grove-tinted darks, green accent, serif display font */
+  /* Set data-theme="agora-dark" on <html> to activate */
+  /* --accent: #4aa06e; */
+  /* --font-heading: 'Fraunces', Georgia, serif; */
+  /* --font-body: 'Work Sans', system-ui, sans-serif; */"#,
         _ => r#"  /* base — sharp corners, 2px borders, offset shadows (CommonPub default) */
   /* --accent: #5b9cf6; */
   /* --radius: 0px; */

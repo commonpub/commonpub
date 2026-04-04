@@ -7,5 +7,10 @@ export default defineEventHandler(async (event): Promise<void> => {
   const db = useDB();
   const input = await parseBody(event, adminSettingSchema);
 
-  return setInstanceSetting(db, input.key, input.value, admin.id);
+  await setInstanceSetting(db, input.key, input.value, admin.id);
+
+  // Invalidate server-side theme cache when the default changes
+  if (input.key === 'theme.default') {
+    invalidateThemeCache();
+  }
 });

@@ -143,7 +143,7 @@ export interface TocItem {
 export interface ExportOptions {
   includeAnimations: boolean;
   inlineImages: boolean;
-  theme: 'base' | 'deepwood' | 'hackbuild' | 'deveco';
+  theme: 'base' | 'dark' | 'generics' | 'agora' | 'agora-dark';
   title: string;
   description?: string;
   author?: string;

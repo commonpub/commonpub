@@ -1,277 +1,207 @@
 # Theming
 
-> Base theme with light/dark mode, CSS custom property tokens, token overrides, and admin controls.
+> Server-resolved theme system with admin-managed families, user light/dark toggle, CSS custom property tokens, and cookie-consented preferences.
 
-**Source**: `packages/ui/theme/`
-
----
-
-## Theme
-
-| ID | Name | Description | Modes |
-|----|------|-------------|-------|
-| `base` | Base | Sharp-cornered brutalist design, blue accent (`#5b9cf6`), JetBrains Mono for UI labels | Light + Dark |
-
-The base theme is defined across CSS files in `packages/ui/theme/`: `base.css` (tokens), `dark.css` (dark mode overrides), `prose.css` (content typography), `layouts.css` (page structure), `forms.css` (form controls), `editor-panels.css` (editor UI).
-
-Two additional themes are available: `dark` (dark mode override) and `generics` (dark minimal with blue accent).
+**Source**: `packages/ui/theme/`, `layers/base/utils/themeConfig.ts`
 
 ---
 
-## CSS Token Reference (136 tokens)
+## Theme Families
 
-All tokens are CSS custom properties prefixed with `--`. Use them as `var(--token-name)` in component styles. **Never hardcode colors or fonts** (standing rule #3).
+Themes are organized into families. The admin picks a family for the instance; users toggle between light and dark mode within that family.
 
-### Surface Colors (4 tokens)
+| Family | Light ID | Dark ID | Accent | Display Font | Body Font |
+|--------|----------|---------|--------|-------------|-----------|
+| **Classic** | `base` | `dark` | Blue `#5b9cf6` | system-ui | system-ui |
+| **Agora** | `agora` | `agora-dark` | Green `#3d8b5e` | Fraunces (serif) | Work Sans |
+| **Generics** | `generics` | `generics` | Blue `#5b9cf6` | system-ui | system-ui |
+
+Theme CSS files in `packages/ui/theme/`:
+
+- `base.css` — Classic light (tokens on `:root`)
+- `dark.css` — Classic dark (`[data-theme="dark"]`)
+- `generics.css` — Generics dark (`[data-theme="generics"]`)
+- `agora.css` — Agora light (`[data-theme="agora"]`)
+- `agora-dark.css` — Agora dark (`[data-theme="agora-dark"]`)
+- `components.css`, `prose.css`, `layouts.css`, `forms.css`, `editor-panels.css` — Shared styles
+
+---
+
+## How It Works
+
+### Server-Side Resolution (Zero Flash)
+
+Theme is resolved on the server before HTML is sent. No client-side flash.
+
+```
+Request → Server Middleware → Plugin (useHead) → SSR HTML with data-theme
+```
+
+1. **Server middleware** (`layers/base/server/middleware/theme.ts`) reads the instance default from DB (cached 60s) and the user's `cpub-color-scheme` cookie
+2. **Theme plugin** (`layers/base/plugins/theme.ts`) reads the resolved theme from event context and sets `data-theme` on `<html>` via `useHead`
+3. **First paint** has the correct theme — zero flash of unstyled content
+
+### Admin Controls
+
+Admins manage the instance theme at `/admin/theme`:
+
+- **Family selection** — Pick Classic, Agora, or Generics (sets the light variant as default)
+- **Token overrides** — Override individual CSS tokens instance-wide (accent color, fonts, spacing, etc.)
+
+Changes are stored in `instanceSettings` and take effect within 60 seconds (cache TTL).
+
+### User Controls
+
+Users toggle light/dark mode at `/settings/appearance`:
+
+- **Light/Dark toggle** — Switches between the family's light and dark variants
+- **Cookie consent** — Dark mode preference is only persisted to cookie (`cpub-color-scheme`) after the user accepts functional cookies via the consent banner
+- Without consent, the toggle works for the current session but resets on page reload
+
+### Resolution Priority
+
+1. User's `cpub-color-scheme` cookie (light/dark within family)
+2. Admin's instance default theme
+3. Fallback: `base`
+
+---
+
+## Adding a New Theme
+
+1. Create CSS files in `packages/ui/theme/` using `[data-theme="your-theme"]` selector
+2. Register in `packages/ui/src/theme.ts` — add to `BUILT_IN_THEMES` with `family` field
+3. Add family mapping in `layers/base/utils/themeConfig.ts` — `THEME_TO_FAMILY`, `FAMILY_VARIANTS`, `IS_DARK`
+4. Add theme ID to `VALID_IDS` in `packages/server/src/theme.ts`
+5. Add CSS import in `layers/base/nuxt.config.ts`
+6. Add preview colors in admin and appearance pages
+
+---
+
+## CSS Token Reference (192 tokens)
+
+All tokens are CSS custom properties prefixed with `--`. Use them as `var(--token-name)`. **Never hardcode colors or fonts** (standing rule #3).
+
+### Surface Colors
 
 | Token | Purpose |
 |-------|---------|
-| `color-surface` | Main background |
-| `color-surface-alt` | Alternate/striped background |
-| `color-surface-raised` | Cards, modals, raised elements |
-| `color-surface-overlay` | Overlay/backdrop background |
+| `bg` | Page background |
+| `surface` | Card/panel background |
+| `surface2` | Secondary surface |
+| `surface3` | Tertiary surface |
+| `color-surface` | Alias for `surface` |
+| `color-surface-alt` | Alias for `surface2` |
+| `color-surface-raised` | Cards, modals |
+| `color-surface-overlay` | Overlay backdrop |
+| `color-surface-hover` | Surface hover state |
+| `color-bg-subtle` | Subtle background |
 
-### Text Colors (4 tokens)
-
-| Token | Purpose |
-|-------|---------|
-| `color-text` | Primary text |
-| `color-text-secondary` | Secondary/supporting text |
-| `color-text-muted` | Muted/disabled text |
-| `color-text-inverse` | Text on dark/primary backgrounds |
-
-### Brand Colors (3 tokens)
+### Text Colors
 
 | Token | Purpose |
 |-------|---------|
-| `color-primary` | Primary brand color (buttons, links) |
-| `color-primary-hover` | Primary hover state |
-| `color-primary-text` | Text on primary-colored backgrounds |
+| `text` | Primary text |
+| `text-dim` | Secondary text |
+| `text-faint` | Muted/disabled text |
+| `color-text` | Alias for `text` |
+| `color-text-secondary` | Alias for `text-dim` |
+| `color-text-muted` | Alias for `text-faint` |
+| `color-text-inverse` | Text on dark backgrounds |
 
-### Accent Colors (3 tokens)
-
-| Token | Purpose |
-|-------|---------|
-| `color-accent` | Secondary brand/accent color |
-| `color-accent-hover` | Accent hover state |
-| `color-accent-text` | Text on accent-colored backgrounds |
-
-### Semantic Colors (4 tokens)
+### Accent & Brand Colors
 
 | Token | Purpose |
 |-------|---------|
-| `color-success` | Success states, confirmations |
-| `color-warning` | Warning states, caution |
-| `color-error` | Error states, destructive actions |
-| `color-info` | Informational states |
+| `accent` | Primary accent color |
+| `accent-bg` | Accent background tint |
+| `accent-border` | Accent-tinted border |
+| `color-primary` / `color-accent` | Aliases for `accent` |
+| `color-primary-hover` / `color-accent-hover` | Hover states |
+| `color-primary-text` / `color-on-primary` | Text on accent bg |
 
-### Border Colors (3 tokens)
+### Semantic Colors
 
-| Token | Purpose |
-|-------|---------|
-| `color-border` | Default borders |
-| `color-border-strong` | Emphasized borders |
-| `color-border-focus` | Focus ring borders |
+`green`, `yellow`, `red`, `purple`, `teal`, `pink` — each with `-bg` and `-border` variants. Plus aliases: `color-success`, `color-warning`, `color-error`, `color-info` with `-bg` variants.
 
-### Interactive Colors (2 tokens)
+### Typography
 
 | Token | Purpose |
 |-------|---------|
-| `color-link` | Link text color |
-| `color-link-hover` | Link hover color |
-
-### Typography — Fonts (3 tokens)
-
-| Token | Purpose |
-|-------|---------|
+| `font-sans` | Sans-serif stack |
+| `font-mono` | Monospace stack |
+| `font-display` | Display/decorative font (Agora: Fraunces) |
 | `font-heading` | Heading font family |
-| `font-body` | Body text font family |
-| `font-mono` | Monospace/code font family |
+| `font-body` | Body font family |
+| `text-xs` through `text-6xl` | Font size scale |
+| `text-label` | Small monospace UI labels |
+| `font-weight-normal/medium/semibold/bold` | Font weights |
+| `leading-tight/snug/normal/relaxed` | Line heights |
+| `tracking-tight/normal/wide/wider/widest` | Letter spacing |
 
-### Typography — Font Sizes (11 tokens)
+### Spacing, Shape, Shadows, Layout
 
-| Token | Typical Value |
-|-------|--------------|
-| `text-xs` | 0.75rem |
-| `text-sm` | 0.875rem |
-| `text-base` | 1rem |
-| `text-md` | 1.0625rem |
-| `text-lg` | 1.125rem |
-| `text-xl` | 1.25rem |
-| `text-2xl` | 1.5rem |
-| `text-3xl` | 1.875rem |
-| `text-4xl` | 2.25rem |
-| `text-5xl` | 3rem |
-| `text-6xl` | 3.75rem |
-
-### Typography — Font Weights (4 tokens)
-
-| Token | Typical Value |
-|-------|--------------|
-| `font-weight-normal` | 400 |
-| `font-weight-medium` | 500 |
-| `font-weight-semibold` | 600 |
-| `font-weight-bold` | 700 |
-
-### Typography — Line Heights (4 tokens)
-
-| Token | Typical Value |
-|-------|--------------|
-| `leading-tight` | 1.25 |
-| `leading-snug` | 1.375 |
-| `leading-normal` | 1.5 |
-| `leading-relaxed` | 1.625 |
-
-### Spacing (12 tokens)
-
-| Token | Typical Value |
-|-------|--------------|
-| `space-1` | 0.25rem |
-| `space-2` | 0.5rem |
-| `space-3` | 0.75rem |
-| `space-4` | 1rem |
-| `space-5` | 1.25rem |
-| `space-6` | 1.5rem |
-| `space-8` | 2rem |
-| `space-10` | 2.5rem |
-| `space-12` | 3rem |
-| `space-16` | 4rem |
-| `space-20` | 5rem |
-| `space-24` | 6rem |
-
-### Border Widths (3 tokens)
-
-| Token | Typical Value |
-|-------|--------------|
-| `border-width-thin` | 1px |
-| `border-width-default` | 2px |
-| `border-width-thick` | 3px |
-
-### Border Radii (7 tokens)
-
-| Token | Typical Value |
-|-------|--------------|
-| `radius-none` | 0 |
-| `radius-sm` | 0.125rem |
-| `radius-md` | 0.375rem |
-| `radius-lg` | 0.5rem |
-| `radius-xl` | 0.75rem |
-| `radius-2xl` | 1rem |
-| `radius-full` | 9999px |
-
-### Shadows (4 tokens)
-
-| Token | Purpose |
-|-------|---------|
-| `shadow-sm` | Subtle shadow (buttons, inputs) |
-| `shadow-md` | Medium shadow (cards) |
-| `shadow-lg` | Large shadow (dropdowns, popovers) |
-| `shadow-xl` | Extra-large shadow (modals) |
-
-### Transitions (3 tokens)
-
-| Token | Typical Value |
-|-------|--------------|
-| `transition-fast` | 100ms |
-| `transition-default` | 200ms |
-| `transition-slow` | 300ms |
-
-### Z-Index Layers (7 tokens)
-
-| Token | Typical Value | Purpose |
-|-------|--------------|---------|
-| `z-dropdown` | 10 | Dropdown menus |
-| `z-sticky` | 20 | Sticky headers |
-| `z-fixed` | 30 | Fixed position elements |
-| `z-modal-backdrop` | 40 | Modal backdrop overlay |
-| `z-modal` | 50 | Modal content |
-| `z-toast` | 60 | Toast notifications |
-| `z-tooltip` | 70 | Tooltips |
-
-### Layout (4 tokens)
-
-| Token | Typical Value | Purpose |
-|-------|--------------|---------|
-| `nav-height` | 64px | Main navigation height |
-| `subnav-height` | 48px | Sub-navigation height |
-| `sidebar-width` | 280px | Sidebar width |
-| `content-max-width` | 768px | Content area max width |
-| `content-wide-max-width` | 1200px | Wide content area max width |
-
-### Focus (1 token)
-
-| Token | Purpose |
-|-------|---------|
-| `focus-ring` | Focus ring style (outline shorthand) |
+| Category | Tokens |
+|----------|--------|
+| Spacing | `space-1` through `space-24` (4px base) |
+| Radius | `radius-none/sm/md/lg/xl/2xl/full` |
+| Border width | `border-width-thin/default/thick` |
+| Shadows | `shadow-sm/md/lg/xl/accent` (offset, no blur) |
+| Transitions | `transition-fast/default/slow` |
+| Z-index | `z-dropdown/sticky/fixed/modal-backdrop/modal/toast/tooltip` |
+| Layout | `nav-height`, `subnav-height`, `sidebar-width`, `content-max-width`, `content-wide-max-width` |
+| Focus | `focus-ring` |
 
 ---
 
-## Theme API
+## Theme API (`@commonpub/ui`)
 
 ### `BUILT_IN_THEMES: ThemeDefinition[]`
 
-Array of all 3 built-in theme definitions (base, dark, generics).
+Array of all 5 built-in theme definitions.
 
 ```typescript
 interface ThemeDefinition {
-  id: string;          // 'base' | 'dark' | 'generics'
-  name: string;        // Human-readable name
-  description: string; // Short description
-  isDark: boolean;     // Whether this is a dark theme
+  id: string;
+  name: string;
+  description: string;
+  isDark: boolean;
+  family: string;  // 'classic' | 'agora' | 'generics'
 }
 ```
-
-### `TOKEN_NAMES: string[]`
-
-Array of all 142 valid token names. Used for validation and iteration.
 
 ### `isValidThemeId(id: string): boolean`
 
 Returns `true` if `id` matches a built-in theme.
 
-### `validateTokenOverrides(overrides: Record<string, string>): { valid, invalid }`
+### `validateTokenOverrides(overrides): { valid, invalid }`
 
-Validates token override keys against `TOKEN_NAMES`.
+Validates token override keys against `TOKEN_NAMES` (192 entries).
 
-**Parameters**: Object mapping token names to CSS values.
+### `applyThemeToElement(el, themeId, overrides?): void`
 
-**Returns**:
-- `valid`: `Record<string, string>` — Only the entries with valid token names
-- `invalid`: `string[]` — Token names that don't exist
+Sets `data-theme` attribute and applies inline CSS custom property overrides.
 
-### `applyThemeToElement(el: HTMLElement, themeId: string, overrides?: Record<string, string>): void`
+### `getThemeFromElement(el): { themeId, overrides }`
 
-Applies a theme to a DOM element:
-1. Sets `data-theme` attribute (or removes it for `base`)
-2. Clears all previous inline token overrides
-3. Applies new overrides as inline `--token-name` CSS custom properties
-
-### `getThemeFromElement(el: HTMLElement): { themeId, overrides }`
-
-Reads the current theme from a DOM element:
-- `themeId`: Value of `data-theme` attribute (or `'base'` if absent)
-- `overrides`: Any inline CSS custom property overrides currently set
+Reads the current theme and any inline overrides from a DOM element.
 
 ---
 
-## Theme Controls
+## Cookie Consent
 
-### User Theme Preference
+The theme system integrates with cookie consent (`useCookieConsent` composable). The `cpub-color-scheme` cookie is categorized as **functional** — it's only set after the user accepts functional cookies via the consent banner.
 
-Users set their preferred theme at `/dashboard/settings` via the `setTheme` form action. Stored in `users.theme` column.
+Instance operators can register additional cookies in `commonpub.config.ts`:
 
-### Admin Instance Theme
+```typescript
+defineCommonPubConfig({
+  cookies: [
+    { name: '_ga', category: 'analytics', description: 'Google Analytics', duration: '2 years', provider: 'Google' },
+  ],
+})
+```
 
-Admins set the instance-wide default theme at `/admin/settings/theme`:
-- `setTheme` action: Set the default theme for all users
-- `setTokenOverrides` action: Override individual CSS tokens instance-wide
-
-Token overrides are stored in `instanceSettings` (key-value store) and applied on the server side during page rendering.
-
-### Theme Application Order
-
-1. Base CSS defines all 136 tokens as CSS custom properties
-2. `data-theme` attribute activates theme-specific overrides via CSS
-3. Admin token overrides applied as inline styles on root element
-4. User theme preference overrides admin default (if set)
-5. Per-element overrides (e.g., docs sites with `themeTokens`) applied last
+Built-in cookies (always registered):
+- `better-auth.session_token` — essential, 7 days
+- `cpub-consent` — essential, 1 year
+- `cpub-color-scheme` — functional, 1 year
