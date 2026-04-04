@@ -8,7 +8,6 @@ import {
   bookmarks,
   notifications,
   messages,
-  conversations,
 } from '@commonpub/schema';
 import { eq, sql } from 'drizzle-orm';
 

@@ -1,4 +1,4 @@
-import { deleteUser, federateDelete, listContent } from '@commonpub/server';
+import { deleteUser, federateDelete } from '@commonpub/server';
 import { contentItems } from '@commonpub/schema';
 import { eq, and } from 'drizzle-orm';
 
