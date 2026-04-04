@@ -2,7 +2,11 @@
 /* ===========================================
    CommonPub Agora Theme — Dark (Grove)
    Warm dark surfaces with green-tinted blacks,
-   green accent, serif display font.
+   commons green accent, serif display font,
+   paper texture, snappy easing.
+
+   Complete design system override — mirrors
+   all agora.css component overrides.
    =========================================== */
 
 [data-theme="agora-dark"] {
@@ -34,9 +38,9 @@
   --color-on-primary: #ffffff;
   --color-primary-hover: #4aa06e;
 
-  /* === BORDERS (grove-tinted) === */
-  --border: #3a4f40;
-  --border2: #2a3a2f;
+  /* === BORDERS (grove-tinted, soft) === */
+  --border: rgba(232, 232, 226, 0.15);
+  --border2: rgba(232, 232, 226, 0.08);
 
   --color-border: var(--border2);
   --color-border-strong: var(--border);
@@ -141,13 +145,205 @@
   --shadow-lg: 6px 6px 0 rgba(0, 0, 0, 0.4);
   --shadow-xl: 8px 8px 0 rgba(0, 0, 0, 0.4);
 
+  /* === TRANSITIONS (snappy) === */
+  --transition-fast: 120ms cubic-bezier(0.22, 1, 0.36, 1);
+  --transition-default: 250ms cubic-bezier(0.22, 1, 0.36, 1);
+  --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
+
   /* === FOCUS === */
-  --focus-ring: var(--shadow-accent);
+  --focus-ring: 0 0 0 3px rgba(74, 160, 110, 0.25);
 
   color-scheme: dark;
 }
 
-/* === CONTENT TYPE BADGE COLORS (Agora dark palette) === */
+
+/* ═══════════════════════════════════════════
+   PAPER TEXTURE — darker, grove-tinted
+   ═══════════════════════════════════════════ */
+
+[data-theme="agora-dark"] body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+
+/* ═══════════════════════════════════════════
+   TYPOGRAPHY — Serif headings
+   ═══════════════════════════════════════════ */
+
+[data-theme="agora-dark"] h1,
+[data-theme="agora-dark"] h2,
+[data-theme="agora-dark"] h3 {
+  font-family: var(--font-display);
+}
+
+[data-theme="agora-dark"] :focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+
+/* ═══════════════════════════════════════════
+   COMPONENT OVERRIDES — mirrors agora.css
+   ═══════════════════════════════════════════ */
+
+/* Topbar */
+[data-theme="agora-dark"] .cpub-topbar {
+  background: var(--surface);
+  border-bottom-color: var(--border);
+}
+
+[data-theme="agora-dark"] .cpub-site-logo .cpub-logo-name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+[data-theme="agora-dark"] .cpub-site-logo .cpub-logo-bracket {
+  color: var(--accent);
+}
+
+/* Buttons */
+[data-theme="agora-dark"] .cpub-btn {
+  border-color: var(--border);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
+}
+
+[data-theme="agora-dark"] .cpub-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+[data-theme="agora-dark"] .cpub-btn:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+[data-theme="agora-dark"] .cpub-btn-primary {
+  background: var(--accent);
+  border-color: #2a6342;
+  box-shadow: var(--shadow-md);
+}
+
+[data-theme="agora-dark"] .cpub-btn-primary:hover {
+  background: #5ab87e;
+  box-shadow: var(--shadow-accent);
+  transform: translateY(-1px);
+}
+
+[data-theme="agora-dark"] .cpub-btn-ghost {
+  color: var(--accent);
+  border-color: transparent;
+}
+
+[data-theme="agora-dark"] .cpub-btn-ghost:hover {
+  color: #5ab87e;
+  background: var(--accent-bg);
+}
+
+/* Cards */
+[data-theme="agora-dark"] .cpub-sb-card,
+[data-theme="agora-dark"] .cpub-stat-card {
+  background: var(--surface);
+  border-color: var(--border);
+  box-shadow: var(--shadow-sm);
+}
+
+[data-theme="agora-dark"] .cpub-content-card {
+  border-color: var(--border);
+  background: var(--surface);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast);
+}
+
+[data-theme="agora-dark"] .cpub-content-card:hover {
+  border-left-color: var(--accent);
+  border-left-width: 4px;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+[data-theme="agora-dark"] .cpub-content-card h3,
+[data-theme="agora-dark"] .cpub-content-card .cpub-card-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+}
+
+/* Inputs */
+[data-theme="agora-dark"] .cpub-input,
+[data-theme="agora-dark"] .cpub-textarea,
+[data-theme="agora-dark"] .cpub-select {
+  border-color: var(--border);
+  background: var(--surface);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+[data-theme="agora-dark"] .cpub-input:focus,
+[data-theme="agora-dark"] .cpub-textarea:focus,
+[data-theme="agora-dark"] .cpub-select:focus {
+  border-color: var(--accent);
+  box-shadow: var(--focus-ring);
+  outline: none;
+}
+
+/* Tags */
+[data-theme="agora-dark"] .cpub-tag {
+  border-width: 1px;
+}
+
+/* Section titles */
+[data-theme="agora-dark"] .cpub-section-title-lg,
+[data-theme="agora-dark"] .cpub-section-title-sm {
+  font-family: var(--font-display);
+}
+
+/* Prose */
+[data-theme="agora-dark"] .cpub-prose h1,
+[data-theme="agora-dark"] .cpub-prose h2,
+[data-theme="agora-dark"] .cpub-prose h3,
+[data-theme="agora-dark"] .cpub-prose h4 {
+  font-family: var(--font-display);
+}
+
+[data-theme="agora-dark"] .cpub-prose blockquote {
+  border-left-color: var(--accent);
+  background: var(--accent-bg);
+}
+
+[data-theme="agora-dark"] .cpub-prose a {
+  color: var(--accent);
+  text-decoration-color: rgba(74, 160, 110, 0.3);
+}
+
+/* Admin */
+[data-theme="agora-dark"] .admin-brand {
+  font-family: var(--font-display);
+}
+
+[data-theme="agora-dark"] .admin-nav-link.router-link-exact-active {
+  color: var(--accent);
+  background: var(--accent-bg);
+}
+
+[data-theme="agora-dark"] .admin-badge {
+  background: var(--accent);
+}
+
+/* Footer */
+[data-theme="agora-dark"] .cpub-footer-logo .cpub-logo-name {
+  font-family: var(--font-display);
+  font-weight: 700;
+}
+
+
+/* ═══════════════════════════════════════════
+   CONTENT TYPE BADGE COLORS (Agora dark)
+   ═══════════════════════════════════════════ */
+
 [data-theme="agora-dark"] [data-content-type="article"] { --badge-color: #6a9fd0; --badge-bg: rgba(106, 159, 208, 0.12); }
 [data-theme="agora-dark"] [data-content-type="blog"] { --badge-color: #4aa06e; --badge-bg: rgba(74, 160, 110, 0.12); }
 [data-theme="agora-dark"] [data-content-type="project"] { --badge-color: #9a7ec4; --badge-bg: rgba(154, 126, 196, 0.12); }
