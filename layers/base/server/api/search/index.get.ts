@@ -1,5 +1,5 @@
 import { searchContent, listHubs, escapeLike } from '@commonpub/server';
-import type { ContentSearchOptions } from '@commonpub/server';
+import type { ContentSearchOptions, MeiliClient } from '@commonpub/server';
 import { users, follows, hubs } from '@commonpub/schema';
 import { sql, desc, ilike, or, and, isNull, eq } from 'drizzle-orm';
 import { z } from 'zod';
@@ -45,7 +45,7 @@ export default defineEventHandler(async (event): Promise<{ items: unknown[]; tot
         bannerUrl: hub.bannerUrl,
         memberCount: hub.memberCount,
         postCount: hub.postCount,
-        source: (hub as Record<string, unknown>).source ?? 'local',
+        source: (hub as unknown as Record<string, unknown>).source ?? 'local',
       })),
       total: result.total,
     };
@@ -108,7 +108,7 @@ export default defineEventHandler(async (event): Promise<{ items: unknown[]; tot
     const meiliKey = process.env.MEILI_MASTER_KEY;
     if (meiliUrl) {
       const { MeiliSearch } = await import('meilisearch');
-      meiliClient = new MeiliSearch({ host: meiliUrl, apiKey: meiliKey });
+      meiliClient = new MeiliSearch({ host: meiliUrl, apiKey: meiliKey }) as unknown as MeiliClient;
     }
   } catch { /* Meilisearch not available */ }
 

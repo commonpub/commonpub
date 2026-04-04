@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Serialized, ContentListItem, PaginatedResponse } from '@commonpub/server';
+import type { PaginatedResponse } from '@commonpub/server';
 
 useSeoMeta({
   title: `Search — ${useSiteName()}`,
@@ -67,7 +67,8 @@ const searchQuery = computed(() => ({
   community: communityFilter.value || undefined,
 }));
 
-const { data: results, status } = await useFetch<PaginatedResponse<Serialized<ContentListItem>>>('/api/search', {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const { data: results, status } = await useFetch<PaginatedResponse<any>>('/api/search', {
   query: searchQuery,
   watch: [searchQuery],
   lazy: true,
