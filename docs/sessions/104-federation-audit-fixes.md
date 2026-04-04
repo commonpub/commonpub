@@ -65,24 +65,34 @@
 
 ## Final Published Versions
 - `@commonpub/schema@0.8.13`
-- `@commonpub/server@2.18.0`
-- `@commonpub/layer@0.3.31`
-- deveco-io on layer@0.3.31, server@2.18.0
+- `@commonpub/server@2.19.1`
+- `@commonpub/layer@0.3.35`
+- deveco-io on layer@0.3.35, server@2.19.1
 
 ## Final Test Counts
-- Schema: 327, Protocol: 373, Server: 684, Layer: 45
-- **Total: 1,429** (was 1,285 → +144)
+- Schema: 327, Protocol: 373, Server: 702, Layer: 45
+- **Total: 1,447** (was 1,285 → +162)
 
-## Additional Fixes After Initial Handoff
+## Additional Fixes (continued through session)
 - Hub avatars on homepage sidebar (both layer + deveco-io)
-- Hub member count federation: Group actor now emits `cpub:memberCount`, followers collection includes local members, `refreshFederatedHubMetadata` reads these
-- Hook system: typed event emitter for consumer extensions (13 events, documented at `docs/reference/guides/hooks.md`)
+- Hub member count federation: Group actor emits `cpub:memberCount`, followers collection includes local members, `refreshFederatedHubMetadata` reads these
+- Hook system: typed event emitter for consumer extensions (13 events, `docs/reference/guides/hooks.md`)
 - Share post JSON rendering: `hubPostToNote` + Note serving route generate readable content + `cpub:sharedContent`
 - Content AP route: `server/routes/content/[slug].ts` serves Article JSON-LD
 - FeedItem/HubFeed/HubDiscussions: strip HTML from content previews
 - E2E fixes: stale selectors, footer strict mode, search title, tab timing
 - Layer `.npmignore` excludes test files from npm publish
 - SQL repair of existing share posts on commonpub.io
+- Federated hub links in homepage sidebar (route to `/federated-hubs/{id}` not `/hubs/{slug}`)
+- Content search service: Meilisearch adapter with Postgres ILIKE fallback, `searchContent()` unified function
+- Search indexing plugin: auto-indexes content on publish/update/delete via hooks
+- `/api/search/federated`: server-side Postgres FTS (replaces client-side timeline filtering)
+- `/api/search?type=community`: routes to hub search (local + federated)
+- `/api/search?type=people`: routes to user search (username + displayName)
+- Community/people result cards on search page
+- Advanced filters now work: author, dateFrom, dateTo
+- Related Communities sidebar filters by search query
+- Type-safe `hub.source` checks + content type enum validation in search
 
 ## Custom Schema Extensibility — Research Plan
 
