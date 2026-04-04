@@ -272,7 +272,8 @@ export type {
 } from './admin/index.js';
 
 // Profile
-export { getUserByUsername, getUserContent, updateUserProfile } from './profile/index.js';
+export { getUserByUsername, getUserContent, updateUserProfile, exportUserData } from './profile/index.js';
+export type { UserDataExport } from './profile/index.js';
 
 // Security
 export {

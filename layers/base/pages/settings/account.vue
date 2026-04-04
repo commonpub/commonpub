@@ -86,6 +86,14 @@ async function handleDeleteAccount(): Promise<void> {
       </button>
     </form>
 
+    <div class="cpub-form-group">
+      <label class="cpub-form-label">Your Data</label>
+      <p class="cpub-form-hint cpub-mb-2">Download a copy of all your data in JSON format.</p>
+      <a href="/api/auth/export-data" download class="cpub-btn cpub-btn-sm">
+        <i class="fa-solid fa-download"></i> Download My Data
+      </a>
+    </div>
+
     <hr class="cpub-danger-divider" />
 
     <div>
@@ -126,6 +134,7 @@ async function handleDeleteAccount(): Promise<void> {
 
 <style scoped>
 .cpub-mt-2 { margin-top: var(--space-2); }
+.cpub-mb-2 { margin-bottom: var(--space-2); }
 
 .cpub-danger-divider {
   border: none;

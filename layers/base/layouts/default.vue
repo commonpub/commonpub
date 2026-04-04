@@ -183,8 +183,9 @@ const userUsername = computed(() => user.value?.username ?? '');
           <h4 class="cpub-footer-col-title">Platform</h4>
           <NuxtLink to="/about" class="cpub-footer-link">About</NuxtLink>
           <NuxtLink v-if="docs" to="/docs" class="cpub-footer-link">Docs</NuxtLink>
+          <NuxtLink to="/privacy" class="cpub-footer-link">Privacy Policy</NuxtLink>
+          <NuxtLink to="/terms" class="cpub-footer-link">Terms of Service</NuxtLink>
           <a href="/feed.xml" class="cpub-footer-link">RSS Feed</a>
-          <a href="/sitemap.xml" class="cpub-footer-link">Sitemap</a>
         </nav>
       </div>
       <div class="cpub-footer-bottom">

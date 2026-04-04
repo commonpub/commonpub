@@ -101,6 +101,13 @@ async function handleSubmit(): Promise<void> {
         />
       </div>
 
+      <p class="register-legal">
+        By creating an account, you agree to our
+        <NuxtLink to="/terms">Terms of Service</NuxtLink>
+        and acknowledge our
+        <NuxtLink to="/privacy">Privacy Policy</NuxtLink>.
+      </p>
+
       <button type="submit" class="submit-btn" :disabled="loading">
         {{ loading ? 'Creating...' : 'Create account' }}
       </button>
@@ -204,6 +211,21 @@ async function handleSubmit(): Promise<void> {
 .submit-btn:disabled {
   opacity: 0.7;
   cursor: not-allowed;
+}
+
+.register-legal {
+  font-size: 11px;
+  color: var(--text-faint);
+  line-height: 1.5;
+}
+
+.register-legal a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.register-legal a:hover {
+  text-decoration: underline;
 }
 
 .register-footer {
