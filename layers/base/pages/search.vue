@@ -75,24 +75,31 @@ const { data: results, status } = await useFetch<PaginatedResponse<Serialized<Co
 
 const resultCount = computed(() => results.value?.total ?? results.value?.items?.length ?? 0);
 
-// Federated search
+// Federated search — uses server-side Postgres FTS
 const fedResults = ref<any[]>([]);
 const fedLoading = ref(false);
 watch([query, activeType], async () => {
   if (activeType.value !== 'fediverse' || !query.value) { fedResults.value = []; return; }
   fedLoading.value = true;
   try {
-    const data = await $fetch<{ items: any[]; total: number }>('/api/federation/timeline', {
-      params: { limit: 20 },
+    const data = await $fetch<{ items: any[]; total: number }>('/api/search/federated', {
+      params: { q: query.value, limit: 20 },
     });
-    // Client-side filter by query since the timeline endpoint doesn't have search
-    const q = query.value.toLowerCase();
-    fedResults.value = data.items.filter((item: any) =>
-      (item.title?.toLowerCase().includes(q)) ||
-      (item.content?.toLowerCase().includes(q)) ||
-      (item.summary?.toLowerCase().includes(q))
-    );
-  } catch { fedResults.value = []; }
+    fedResults.value = data.items;
+  } catch {
+    // Fallback: if federated search endpoint not available, try client-side
+    try {
+      const data = await $fetch<{ items: any[]; total: number }>('/api/federation/timeline', {
+        params: { limit: 40 },
+      });
+      const q = query.value.toLowerCase();
+      fedResults.value = data.items.filter((item: any) =>
+        (item.title?.toLowerCase().includes(q)) ||
+        (item.content?.toLowerCase().includes(q)) ||
+        (item.summary?.toLowerCase().includes(q))
+      );
+    } catch { fedResults.value = []; }
+  }
   fedLoading.value = false;
 }, { immediate: true });
 

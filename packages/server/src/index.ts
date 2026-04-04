@@ -507,6 +507,21 @@ export {
 } from './image.js';
 export type { ProcessedImage, ImageVariant, ImageVariantName } from './image.js';
 
+// Search
+export {
+  searchContent,
+  searchWithMeilisearch,
+  searchWithPostgres,
+  indexContent,
+  removeFromIndex,
+  configureContentIndex,
+} from './search/contentSearch.js';
+export type {
+  ContentSearchResult,
+  ContentSearchOptions,
+  MeiliClient,
+} from './search/contentSearch.js';
+
 // Email
 export {
   SmtpEmailAdapter,
