@@ -522,6 +522,10 @@ export type {
   MeiliClient,
 } from './search/contentSearch.js';
 
+// Import
+export { importFromUrl } from './import/index.js';
+export type { ImportResult } from './import/index.js';
+
 // Email
 export {
   SmtpEmailAdapter,

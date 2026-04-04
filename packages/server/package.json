@@ -1,6 +1,6 @@
 {
   "name": "@commonpub/server",
-  "version": "2.19.1",
+  "version": "2.20.0",
   "type": "module",
   "description": "Framework-agnostic business logic for CommonPub instances",
   "license": "AGPL-3.0-or-later",
@@ -90,6 +90,10 @@
     "./federation": {
       "types": "./dist/federation/index.d.ts",
       "import": "./dist/federation/index.js"
+    },
+    "./import": {
+      "types": "./dist/import/index.d.ts",
+      "import": "./dist/import/index.js"
     }
   },
   "files": [
@@ -111,11 +115,15 @@
     "@commonpub/auth": "workspace:*",
     "@commonpub/config": "workspace:*",
     "@commonpub/docs": "workspace:*",
+    "@commonpub/editor": "workspace:*",
     "@commonpub/infra": "workspace:*",
     "@commonpub/learning": "workspace:*",
     "@commonpub/protocol": "workspace:*",
     "@commonpub/schema": "workspace:*",
-    "isomorphic-dompurify": "^3.3.0"
+    "@mozilla/readability": "^0.6.0",
+    "isomorphic-dompurify": "^3.3.0",
+    "linkedom": "^0.18.12",
+    "turndown": "^7.2.4"
   },
   "peerDependencies": {
     "drizzle-orm": "^0.45.1"
@@ -123,6 +131,7 @@
   "devDependencies": {
     "@electric-sql/pglite": "^0.3.16",
     "@types/node": "^25.5.0",
+    "@types/turndown": "^5.0.6",
     "drizzle-kit": "^0.31.10",
     "typescript": "^5.7.0",
     "vitest": "^3.0.0"

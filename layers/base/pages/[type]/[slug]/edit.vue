@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Component } from 'vue';
+import type { BlockTuple } from '@commonpub/editor';
 definePageMeta({ layout: false, middleware: 'auth' });
 
 const route = useRoute();
@@ -209,6 +210,56 @@ async function handleMarkdownImport(md: string, importMode: 'append' | 'replace'
   await importMarkdown(md, importMode);
   isDirty.value = true;
 }
+
+// --- URL import ---
+const showUrlImport = ref(false);
+const urlImporting = ref(false);
+
+interface ImportedContent {
+  title: string;
+  description: string;
+  coverImageUrl: string | null;
+  content: BlockTuple[];
+  tags: string[];
+  partial: boolean;
+  meta: Record<string, unknown>;
+}
+
+async function handleUrlImport(result: ImportedContent): Promise<void> {
+  urlImporting.value = true;
+  try {
+    // Populate title if empty
+    if (!title.value && result.title) {
+      title.value = result.title;
+    }
+
+    // Populate metadata
+    if (result.description && !metadata.value.description) {
+      metadata.value = { ...metadata.value, description: result.description };
+    }
+    if (result.coverImageUrl && !metadata.value.coverImageUrl) {
+      metadata.value = { ...metadata.value, coverImageUrl: result.coverImageUrl };
+    }
+    if (result.tags.length && (!Array.isArray(metadata.value.tags) || !metadata.value.tags.length)) {
+      metadata.value = { ...metadata.value, tags: result.tags };
+    }
+    if (result.meta.difficulty && !metadata.value.difficulty) {
+      metadata.value = { ...metadata.value, difficulty: result.meta.difficulty as string };
+    }
+
+    // Insert blocks
+    blockEditor.clearBlocks();
+    let insertAt = 0;
+    for (const [type, content] of result.content) {
+      blockEditor.addBlock(type, content as Record<string, unknown>, insertAt);
+      insertAt++;
+    }
+
+    isDirty.value = true;
+  } finally {
+    urlImporting.value = false;
+  }
+}
 </script>
 
 <template>
@@ -229,6 +280,7 @@ async function handleMarkdownImport(md: string, importMode: 'append' | 'replace'
   <div v-else class="cpub-editor-layout">
     <PublishErrorsModal :errors="publishErrors" :show="showPublishErrors" @dismiss="dismissPublishErrors" />
     <EditorsMarkdownImportDialog :show="showImportDialog" @close="showImportDialog = false" @import="handleMarkdownImport" />
+    <ImportUrlModal :show="showUrlImport" @close="showUrlImport = false" @imported="handleUrlImport" />
     <!-- Top bar -->
     <header class="cpub-editor-topbar">
       <NuxtLink to="/" class="cpub-editor-logo" aria-label="Home">
@@ -264,8 +316,11 @@ async function handleMarkdownImport(md: string, importMode: 'append' | 'replace'
       </div>
       <div class="cpub-topbar-spacer" />
       <div class="cpub-topbar-actions">
+        <button class="cpub-topbar-btn cpub-topbar-btn-import" :disabled="urlImporting" @click="showUrlImport = true" title="Import from URL">
+          <i class="fa-solid fa-link"></i> <span class="cpub-import-label">Import URL</span>
+        </button>
         <button class="cpub-topbar-btn cpub-topbar-btn-import" :disabled="importing" @click="showImportDialog = true" title="Import Markdown">
-          <i class="fa-brands fa-markdown"></i> <span class="cpub-import-label">Import</span>
+          <i class="fa-brands fa-markdown"></i> <span class="cpub-import-label">Markdown</span>
         </button>
         <button class="cpub-topbar-btn" :disabled="saving || !title" @click="silentSave">
           {{ saving ? 'Saving...' : 'Save Draft' }}
