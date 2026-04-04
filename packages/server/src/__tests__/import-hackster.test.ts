@@ -34,8 +34,8 @@ describe('hackster.io platform handler', () => {
                 pitch: 'A connected weather display using NeoPixels',
                 cover_image_url: 'https://hackster.imgix.net/uploads/cover.jpg',
                 difficulty: 'intermediate',
-                platforms: ['Arduino', 'Raspberry Pi'],
-                programming_languages: ['C++', 'Python'],
+                platforms: [{ id: 1, name: 'Arduino' }, { id: 2, name: 'Raspberry Pi' }],
+                programming_languages: [{ id: 3, name: 'C++' }, { id: 4, name: 'Python' }],
                 parts: [
                   { full_name: 'Arduino Uno Rev3', name: 'Arduino Uno' },
                   { full_name: 'WS2812B LED Strip', name: 'NeoPixel' },
@@ -179,15 +179,37 @@ Adafruit_NeoPixel strip(30, PIN, NEO_GRB);
       expect(result.partial).toBe(true);
     });
 
-    it('should deduplicate tags', async () => {
-      // Algolia returns platforms and languages that may overlap
+    it('should extract tag names from Algolia platform objects', async () => {
       globalThis.fetch = vi.fn().mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({
           hits: [{
             name: 'Test',
-            platforms: ['Arduino', 'ESP32'],
-            programming_languages: ['C++', 'Arduino'], // duplicate
+            platforms: [{ id: 1, name: 'Arduino' }, { id: 2, name: 'ESP32' }],
+            programming_languages: [{ id: 3, name: 'C++' }],
+          }],
+        }),
+      });
+
+      const html = buildHacksterHtml();
+      const url = new URL('https://www.hackster.io/maker/project');
+
+      const result = await hacksterHandler.import(url, html);
+
+      expect(result.tags).toContain('Arduino');
+      expect(result.tags).toContain('ESP32');
+      expect(result.tags).toContain('C++');
+      expect(result.tags.every(t => typeof t === 'string')).toBe(true);
+    });
+
+    it('should deduplicate tags', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({
+          hits: [{
+            name: 'Test',
+            platforms: [{ id: 1, name: 'Arduino' }, { id: 2, name: 'ESP32' }],
+            programming_languages: [{ id: 3, name: 'C++' }, { id: 1, name: 'Arduino' }],
           }],
         }),
       });

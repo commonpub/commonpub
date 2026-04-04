@@ -83,19 +83,25 @@ export const hacksterHandler: PlatformHandler = {
       ?? null;
 
     const tags: string[] = [];
-    if (algoliaData?.platforms) tags.push(...algoliaData.platforms);
-    if (algoliaData?.programming_languages) tags.push(...algoliaData.programming_languages);
+    if (algoliaData?.platforms) tags.push(...extractNames(algoliaData.platforms));
+    if (algoliaData?.programming_languages) tags.push(...extractNames(algoliaData.programming_languages));
+
+    // Filter out empty heading blocks (step dividers with no text)
+    const cleanedBlocks = blocks.filter(([type, content]) => {
+      if (type === 'heading' && !(content as { text?: string }).text) return false;
+      return true;
+    });
 
     return {
       title,
       description,
       coverImageUrl,
-      content: blocks,
-      tags: [...new Set(tags)].slice(0, 20),
+      content: cleanedBlocks,
+      tags: [...new Set(tags)].map(t => t.slice(0, 64)).slice(0, 20),
       partial,
       meta: {
         difficulty: algoliaData?.difficulty ?? undefined,
-        platforms: algoliaData?.platforms ?? undefined,
+        platforms: algoliaData?.platforms ? extractNames(algoliaData.platforms) : undefined,
         sourceType: 'project',
       },
     };
@@ -108,13 +114,18 @@ function extractProjectSlug(url: URL): string | null {
   return segments[1] ?? null;
 }
 
+interface AlgoliaPlatform {
+  id?: number;
+  name?: string;
+}
+
 interface AlgoliaHit {
   name?: string;
   pitch?: string;
   cover_image_url?: string;
   difficulty?: string;
-  platforms?: string[];
-  programming_languages?: string[];
+  platforms?: AlgoliaPlatform[] | string[];
+  programming_languages?: AlgoliaPlatform[] | string[];
   parts?: Array<{ full_name?: string; name?: string }>;
 }
 
@@ -232,6 +243,13 @@ function mergePartsData(htmlParts: PartInfo[], algoliaParts?: Array<{ full_name?
     name: p.full_name || p.name || 'Unknown',
     qty: 1,
   }));
+}
+
+/** Extract string names from Algolia arrays that may be strings or objects with .name */
+function extractNames(items: Array<string | AlgoliaPlatform>): string[] {
+  return items
+    .map(item => typeof item === 'string' ? item : (item.name || ''))
+    .filter(Boolean);
 }
 
 function createTurndownService(): TurndownService {

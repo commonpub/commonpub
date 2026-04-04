@@ -230,21 +230,32 @@ async function handleUrlImport(result: ImportedContent): Promise<void> {
   try {
     // Populate title if empty
     if (!title.value && result.title) {
-      title.value = result.title;
+      title.value = result.title.slice(0, 255);
     }
 
-    // Populate metadata
+    // Populate metadata — sanitize values to match schema constraints
     if (result.description && !metadata.value.description) {
-      metadata.value = { ...metadata.value, description: result.description };
+      metadata.value = { ...metadata.value, description: result.description.slice(0, 2000) };
     }
     if (result.coverImageUrl && !metadata.value.coverImageUrl) {
-      metadata.value = { ...metadata.value, coverImageUrl: result.coverImageUrl };
+      try {
+        new URL(result.coverImageUrl);
+        metadata.value = { ...metadata.value, coverImageUrl: result.coverImageUrl };
+      } catch { /* skip invalid URL */ }
     }
     if (result.tags.length && (!Array.isArray(metadata.value.tags) || !metadata.value.tags.length)) {
-      metadata.value = { ...metadata.value, tags: result.tags };
+      const safeTags = result.tags
+        .filter(t => typeof t === 'string' && t.length > 0)
+        .map(t => t.slice(0, 64))
+        .slice(0, 20);
+      metadata.value = { ...metadata.value, tags: safeTags };
     }
+    const VALID_DIFFICULTIES = ['beginner', 'intermediate', 'advanced'];
     if (result.meta.difficulty && !metadata.value.difficulty) {
-      metadata.value = { ...metadata.value, difficulty: result.meta.difficulty as string };
+      const diff = String(result.meta.difficulty).toLowerCase();
+      if (VALID_DIFFICULTIES.includes(diff)) {
+        metadata.value = { ...metadata.value, difficulty: diff };
+      }
     }
 
     // Insert blocks

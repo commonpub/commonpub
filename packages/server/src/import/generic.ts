@@ -39,7 +39,11 @@ export function extractArticle(html: string, url: string): ImportResult {
 
   const turndown = createTurndownService();
   const markdown = turndown.turndown(article.content);
-  const blocks = markdownToBlockTuples(markdown);
+  const blocks = markdownToBlockTuples(markdown).filter(([type, content]) => {
+    // Filter out empty heading blocks
+    if (type === 'heading' && !(content as { text?: string }).text) return false;
+    return true;
+  });
 
   return {
     title: article.title || ogTitle || '',
@@ -114,7 +118,7 @@ function resolveUrl(url: string | null | undefined, base: string): string | null
 
 function parseKeywords(keywords: string | null | undefined): string[] {
   if (!keywords) return [];
-  return keywords.split(',').map(k => k.trim()).filter(Boolean).slice(0, 20);
+  return keywords.split(',').map(k => k.trim().slice(0, 64)).filter(Boolean).slice(0, 20);
 }
 
 function countWords(text: string): number {
