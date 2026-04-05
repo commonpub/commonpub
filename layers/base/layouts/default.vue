@@ -3,6 +3,7 @@ const { user, isAuthenticated, isAdmin, signOut, refreshSession } = useAuth();
 const { count: unreadCount, connect: connectNotifications, disconnect: disconnectNotifications } = useNotifications();
 const { count: unreadMessages, connect: connectMessages, disconnect: disconnectMessages } = useMessages();
 const { hubs, learning, video, docs, contests, admin, federation } = useFeatures();
+const { isDark, setDarkMode } = useTheme();
 const { enabledTypeMeta } = useContentTypes();
 const runtimeConfig = useRuntimeConfig();
 const siteName = computed(() => (runtimeConfig.public.siteName as string) || 'CommonPub');
@@ -112,6 +113,9 @@ const userUsername = computed(() => user.value?.username ?? '');
               <NuxtLink :to="`/u/${userUsername}`" class="cpub-dropdown-item" role="menuitem" @click="userMenuOpen = false"><i class="fa-solid fa-user"></i> Profile</NuxtLink>
               <NuxtLink to="/dashboard" class="cpub-dropdown-item" role="menuitem" @click="userMenuOpen = false"><i class="fa-solid fa-gauge"></i> Dashboard</NuxtLink>
               <NuxtLink to="/settings" class="cpub-dropdown-item" role="menuitem" @click="userMenuOpen = false"><i class="fa-solid fa-gear"></i> Settings</NuxtLink>
+              <button class="cpub-dropdown-item" role="menuitem" @click="setDarkMode(!isDark)">
+                <i :class="isDark ? 'fa-solid fa-sun' : 'fa-solid fa-moon'"></i> {{ isDark ? 'Light mode' : 'Dark mode' }}
+              </button>
               <div class="cpub-dropdown-divider" />
               <button class="cpub-dropdown-item" role="menuitem" @click="handleSignOut"><i class="fa-solid fa-right-from-bracket"></i> Sign out</button>
             </div>
