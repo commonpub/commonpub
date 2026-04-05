@@ -157,30 +157,38 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
         <div v-if="activeContest?.endDate" class="cpub-hero-aside">
           <CountdownTimer :target-date="activeContest.endDate" />
         </div>
-        <!-- Large Town Square logo — shown for Agora theme when no contest -->
+        <!-- Large textured Town Square logo — shown for Agora theme when no contest -->
         <div v-if="!activeContest" class="cpub-hero-aside cpub-hero-logo-aside">
           <svg class="cpub-hero-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" aria-hidden="true">
-            <rect x="18" y="18" width="72" height="72" fill="none" stroke="currentColor" stroke-width="5.5" stroke-linejoin="round"/>
-            <rect x="110" y="18" width="72" height="72" fill="none" stroke="currentColor" stroke-width="5.5" stroke-linejoin="round"/>
-            <rect x="18" y="110" width="72" height="72" fill="none" stroke="currentColor" stroke-width="5.5" stroke-linejoin="round"/>
-            <rect x="110" y="110" width="72" height="72" fill="none" stroke="currentColor" stroke-width="5.5" stroke-linejoin="round"/>
-            <rect x="90" y="90" width="20" height="20" fill="var(--accent, #3d8b5e)"/>
-            <rect x="84" y="84" width="6" height="6" fill="var(--accent, #3d8b5e)" opacity="0.6"/>
-            <rect x="110" y="84" width="6" height="6" fill="var(--accent, #3d8b5e)" opacity="0.6"/>
-            <rect x="84" y="110" width="6" height="6" fill="var(--accent, #3d8b5e)" opacity="0.6"/>
-            <rect x="110" y="110" width="6" height="6" fill="var(--accent, #3d8b5e)" opacity="0.6"/>
-            <line x1="32" y1="40" x2="76" y2="40" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" opacity="0.15"/>
-            <line x1="32" y1="52" x2="66" y2="52" stroke="var(--accent, #3d8b5e)" stroke-width="2.5" stroke-linecap="round" opacity="0.7"/>
-            <line x1="32" y1="64" x2="72" y2="64" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" opacity="0.15"/>
-            <line x1="124" y1="40" x2="168" y2="40" stroke="var(--accent, #3d8b5e)" stroke-width="2.5" stroke-linecap="round" opacity="0.7"/>
-            <line x1="124" y1="52" x2="158" y2="52" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" opacity="0.15"/>
-            <line x1="124" y1="64" x2="164" y2="64" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" opacity="0.15"/>
-            <line x1="32" y1="132" x2="76" y2="132" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" opacity="0.15"/>
-            <line x1="32" y1="144" x2="62" y2="144" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" opacity="0.15"/>
-            <line x1="32" y1="156" x2="70" y2="156" stroke="var(--accent, #3d8b5e)" stroke-width="2.5" stroke-linecap="round" opacity="0.7"/>
-            <line x1="124" y1="132" x2="168" y2="132" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" opacity="0.15"/>
-            <line x1="124" y1="144" x2="160" y2="144" stroke="var(--accent, #3d8b5e)" stroke-width="2.5" stroke-linecap="round" opacity="0.7"/>
-            <line x1="124" y1="156" x2="152" y2="156" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" opacity="0.15"/>
+            <defs>
+              <filter id="cpub-hero-tex" x="-5%" y="-5%" width="110%" height="110%">
+                <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="4" result="noise"/>
+                <feDisplacementMap in="SourceGraphic" in2="noise" scale="2"/>
+              </filter>
+            </defs>
+            <g filter="url(#cpub-hero-tex)">
+              <rect x="18" y="18" width="72" height="72" fill="none" stroke="currentColor" stroke-width="5.5" stroke-linejoin="round"/>
+              <rect x="110" y="18" width="72" height="72" fill="none" stroke="currentColor" stroke-width="5.5" stroke-linejoin="round"/>
+              <rect x="18" y="110" width="72" height="72" fill="none" stroke="currentColor" stroke-width="5.5" stroke-linejoin="round"/>
+              <rect x="110" y="110" width="72" height="72" fill="none" stroke="currentColor" stroke-width="5.5" stroke-linejoin="round"/>
+              <rect x="90" y="90" width="20" height="20" fill="var(--accent, #3d8b5e)"/>
+              <rect x="84" y="84" width="6" height="6" fill="var(--accent, #3d8b5e)" opacity="0.6"/>
+              <rect x="110" y="84" width="6" height="6" fill="var(--accent, #3d8b5e)" opacity="0.6"/>
+              <rect x="84" y="110" width="6" height="6" fill="var(--accent, #3d8b5e)" opacity="0.6"/>
+              <rect x="110" y="110" width="6" height="6" fill="var(--accent, #3d8b5e)" opacity="0.6"/>
+              <line x1="32" y1="40" x2="76" y2="40" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" opacity="0.15"/>
+              <line x1="32" y1="52" x2="66" y2="52" stroke="var(--accent, #3d8b5e)" stroke-width="2.5" stroke-linecap="round" opacity="0.7"/>
+              <line x1="32" y1="64" x2="72" y2="64" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" opacity="0.15"/>
+              <line x1="124" y1="40" x2="168" y2="40" stroke="var(--accent, #3d8b5e)" stroke-width="2.5" stroke-linecap="round" opacity="0.7"/>
+              <line x1="124" y1="52" x2="158" y2="52" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" opacity="0.15"/>
+              <line x1="124" y1="64" x2="164" y2="64" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" opacity="0.15"/>
+              <line x1="32" y1="132" x2="76" y2="132" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" opacity="0.15"/>
+              <line x1="32" y1="144" x2="62" y2="144" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" opacity="0.15"/>
+              <line x1="32" y1="156" x2="70" y2="156" stroke="var(--accent, #3d8b5e)" stroke-width="2.5" stroke-linecap="round" opacity="0.7"/>
+              <line x1="124" y1="132" x2="168" y2="132" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" opacity="0.15"/>
+              <line x1="124" y1="144" x2="160" y2="144" stroke="var(--accent, #3d8b5e)" stroke-width="2.5" stroke-linecap="round" opacity="0.7"/>
+              <line x1="124" y1="156" x2="152" y2="156" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" opacity="0.15"/>
+            </g>
           </svg>
         </div>
       </div>

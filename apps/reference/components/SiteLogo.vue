@@ -6,18 +6,26 @@
       <span class="cpub-logo-name">CommonPub</span>
     </span>
 
-    <!-- Agora logo: Town Square mark + Fraunces wordmark -->
+    <!-- Agora logo: Textured Town Square mark + Fraunces wordmark -->
     <span class="cpub-logo-agora">
-      <svg class="cpub-logo-mark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="22" height="22" aria-hidden="true">
-        <rect x="18" y="18" width="72" height="72" fill="none" stroke="currentColor" stroke-width="7" stroke-linejoin="round"/>
-        <rect x="110" y="18" width="72" height="72" fill="none" stroke="currentColor" stroke-width="7" stroke-linejoin="round"/>
-        <rect x="18" y="110" width="72" height="72" fill="none" stroke="currentColor" stroke-width="7" stroke-linejoin="round"/>
-        <rect x="110" y="110" width="72" height="72" fill="none" stroke="currentColor" stroke-width="7" stroke-linejoin="round"/>
-        <rect x="88" y="88" width="24" height="24" fill="var(--accent, #3d8b5e)"/>
-        <line x1="34" y1="54" x2="72" y2="54" stroke="var(--accent, #3d8b5e)" stroke-width="3.5" stroke-linecap="round" opacity="0.7"/>
-        <line x1="128" y1="46" x2="166" y2="46" stroke="var(--accent, #3d8b5e)" stroke-width="3.5" stroke-linecap="round" opacity="0.7"/>
-        <line x1="34" y1="148" x2="68" y2="148" stroke="var(--accent, #3d8b5e)" stroke-width="3.5" stroke-linecap="round" opacity="0.7"/>
-        <line x1="128" y1="142" x2="162" y2="142" stroke="var(--accent, #3d8b5e)" stroke-width="3.5" stroke-linecap="round" opacity="0.7"/>
+      <svg class="cpub-logo-mark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="24" height="24" aria-hidden="true">
+        <defs>
+          <filter id="cpub-tex" x="-5%" y="-5%" width="110%" height="110%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="4" result="noise"/>
+            <feDisplacementMap in="SourceGraphic" in2="noise" scale="2"/>
+          </filter>
+        </defs>
+        <g filter="url(#cpub-tex)">
+          <rect x="18" y="18" width="72" height="72" fill="none" stroke="currentColor" stroke-width="7" stroke-linejoin="round"/>
+          <rect x="110" y="18" width="72" height="72" fill="none" stroke="currentColor" stroke-width="7" stroke-linejoin="round"/>
+          <rect x="18" y="110" width="72" height="72" fill="none" stroke="currentColor" stroke-width="7" stroke-linejoin="round"/>
+          <rect x="110" y="110" width="72" height="72" fill="none" stroke="currentColor" stroke-width="7" stroke-linejoin="round"/>
+          <rect x="88" y="88" width="24" height="24" fill="var(--accent, #3d8b5e)"/>
+          <line x1="34" y1="54" x2="72" y2="54" stroke="var(--accent, #3d8b5e)" stroke-width="3.5" stroke-linecap="round" opacity="0.7"/>
+          <line x1="128" y1="46" x2="166" y2="46" stroke="var(--accent, #3d8b5e)" stroke-width="3.5" stroke-linecap="round" opacity="0.7"/>
+          <line x1="34" y1="148" x2="68" y2="148" stroke="var(--accent, #3d8b5e)" stroke-width="3.5" stroke-linecap="round" opacity="0.7"/>
+          <line x1="128" y1="142" x2="162" y2="142" stroke="var(--accent, #3d8b5e)" stroke-width="3.5" stroke-linecap="round" opacity="0.7"/>
+        </g>
       </svg>
       <span class="cpub-logo-wordmark">Common<span class="cpub-logo-pub">Pub</span></span>
     </span>
@@ -43,7 +51,6 @@
 .cpub-logo-bracket { color: var(--accent); font-size: 15px; }
 .cpub-logo-name { margin-left: 2px; }
 
-/* Agora logo hidden by default — agora.css shows it */
 .cpub-logo-agora {
   display: none;
   align-items: center;
