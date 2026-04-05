@@ -1,6 +1,6 @@
 {
   "name": "@commonpub/ui",
-  "version": "0.8.3",
+  "version": "0.8.4",
   "type": "module",
   "description": "Headless Vue 3 components with CSS custom property theming for CommonPub",
   "license": "AGPL-3.0-or-later",
