@@ -1,14 +1,13 @@
 <template>
   <span class="cpub-site-logo">
-    <!-- Classic logo: shown by default, hidden when Agora active -->
+    <!-- Classic logo -->
     <span class="cpub-logo-classic">
       <span class="cpub-logo-bracket">[</span>C<span class="cpub-logo-bracket">]</span>
       <span class="cpub-logo-name">CommonPub</span>
     </span>
 
-    <!-- Agora logo: hidden by default, shown when Agora active via CSS -->
+    <!-- Agora logo: Town Square mark + Fraunces wordmark -->
     <span class="cpub-logo-agora">
-      <!-- Town Square mark: 4 blocks with content lines + green center -->
       <svg class="cpub-logo-mark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="22" height="22" aria-hidden="true">
         <rect x="18" y="18" width="72" height="72" fill="none" stroke="currentColor" stroke-width="7" stroke-linejoin="round"/>
         <rect x="110" y="18" width="72" height="72" fill="none" stroke="currentColor" stroke-width="7" stroke-linejoin="round"/>
@@ -34,7 +33,6 @@
   white-space: nowrap;
 }
 
-/* Classic logo */
 .cpub-logo-classic {
   display: flex;
   align-items: center;
@@ -45,7 +43,7 @@
 .cpub-logo-bracket { color: var(--accent); font-size: 15px; }
 .cpub-logo-name { margin-left: 2px; }
 
-/* Agora logo — hidden by default */
+/* Agora logo hidden by default — shown via agora.css */
 .cpub-logo-agora {
   display: none;
   align-items: center;
@@ -59,16 +57,4 @@
   letter-spacing: -0.02em;
 }
 .cpub-logo-pub { color: var(--accent); }
-</style>
-
-<style>
-/* Switch logos based on data-theme — pure CSS, no JS hydration needed */
-[data-theme="agora"] .cpub-logo-classic,
-[data-theme="agora-dark"] .cpub-logo-classic {
-  display: none !important;
-}
-[data-theme="agora"] .cpub-logo-agora,
-[data-theme="agora-dark"] .cpub-logo-agora {
-  display: flex !important;
-}
 </style>

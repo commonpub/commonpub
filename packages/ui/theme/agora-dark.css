@@ -357,3 +357,7 @@
 [data-theme="agora-dark"] [data-content-type="explainer"] { --badge-color: #3dbcab; --badge-bg: rgba(61, 188, 171, 0.12); }
 [data-theme="agora-dark"] [data-content-type="video"] { --badge-color: #d85e55; --badge-bg: rgba(216, 94, 85, 0.12); }
 [data-theme="agora-dark"] [data-content-type="tutorial"] { --badge-color: #daa040; --badge-bg: rgba(218, 160, 64, 0.12); }
+
+/* Logo switch */
+[data-theme="agora-dark"] .cpub-logo-classic { display: none !important; }
+[data-theme="agora-dark"] .cpub-logo-agora { display: flex !important; }

@@ -460,3 +460,13 @@
 [data-theme="agora"] [data-content-type="explainer"] { --badge-color: #2a9d8f; --badge-bg: rgba(42, 157, 143, 0.08); }
 [data-theme="agora"] [data-content-type="video"] { --badge-color: #c4443a; --badge-bg: rgba(196, 68, 58, 0.08); }
 [data-theme="agora"] [data-content-type="tutorial"] { --badge-color: #c4882a; --badge-bg: rgba(196, 136, 42, 0.08); }
+
+
+/* ═══════════════════════════════════════════
+   LOGO SWITCH
+   Hide Classic logo, show Agora Town Square
+   mark + Fraunces wordmark.
+   ═══════════════════════════════════════════ */
+
+[data-theme="agora"] .cpub-logo-classic { display: none !important; }
+[data-theme="agora"] .cpub-logo-agora { display: flex !important; }

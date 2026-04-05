@@ -6,7 +6,7 @@ import { eq } from 'drizzle-orm';
 import { instanceSettings } from '@commonpub/schema';
 import { THEME_TO_FAMILY, FAMILY_VARIANTS, IS_DARK, VALID_THEME_IDS } from '../../utils/themeConfig';
 
-const CACHE_TTL = 60_000; // 1 minute
+const CACHE_TTL = 300_000; // 5 minutes — admin changes take up to 5 min to propagate
 
 let cached: string | null = null;
 let cacheTime = 0;
