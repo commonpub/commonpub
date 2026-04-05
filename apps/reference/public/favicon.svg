@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="32" height="32">
+  <!-- Town Square: 4 blocks + green center + content lines -->
+  <rect x="18" y="18" width="72" height="72" fill="none" stroke="#1a1a1a" stroke-width="7" stroke-linejoin="round"/>
+  <rect x="110" y="18" width="72" height="72" fill="none" stroke="#1a1a1a" stroke-width="7" stroke-linejoin="round"/>
+  <rect x="18" y="110" width="72" height="72" fill="none" stroke="#1a1a1a" stroke-width="7" stroke-linejoin="round"/>
+  <rect x="110" y="110" width="72" height="72" fill="none" stroke="#1a1a1a" stroke-width="7" stroke-linejoin="round"/>
+  <rect x="88" y="88" width="24" height="24" fill="#3d8b5e"/>
+  <line x1="34" y1="54" x2="72" y2="54" stroke="#3d8b5e" stroke-width="3.5" stroke-linecap="round" opacity="0.7"/>
+  <line x1="128" y1="46" x2="166" y2="46" stroke="#3d8b5e" stroke-width="3.5" stroke-linecap="round" opacity="0.7"/>
+  <line x1="34" y1="148" x2="68" y2="148" stroke="#3d8b5e" stroke-width="3.5" stroke-linecap="round" opacity="0.7"/>
+  <line x1="128" y1="142" x2="162" y2="142" stroke="#3d8b5e" stroke-width="3.5" stroke-linecap="round" opacity="0.7"/>
+</svg>

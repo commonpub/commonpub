@@ -361,3 +361,6 @@
 /* Logo switch */
 [data-theme="agora-dark"] .cpub-logo-classic { display: none !important; }
 [data-theme="agora-dark"] .cpub-logo-agora { display: flex !important; }
+
+/* Show Town Square logo in hero section */
+[data-theme="agora-dark"] .cpub-hero-logo-aside { display: flex !important; align-items: center; justify-content: center; }
