@@ -157,6 +157,13 @@
   /* === FOCUS (glow instead of outline) === */
   --focus-ring: 0 0 0 3px rgba(61, 139, 94, 0.2);
 }
+} /* end @layer commonpub — token overrides only */
+
+
+/* ═══════════════════════════════════════════
+   COMPONENT OVERRIDES (outside @layer so they
+   beat Vue scoped styles)
+   ═══════════════════════════════════════════ */
 
 
 /* ═══════════════════════════════════════════
@@ -453,4 +460,3 @@
 [data-theme="agora"] [data-content-type="explainer"] { --badge-color: #2a9d8f; --badge-bg: rgba(42, 157, 143, 0.08); }
 [data-theme="agora"] [data-content-type="video"] { --badge-color: #c4443a; --badge-bg: rgba(196, 68, 58, 0.08); }
 [data-theme="agora"] [data-content-type="tutorial"] { --badge-color: #c4882a; --badge-bg: rgba(196, 136, 42, 0.08); }
-}
