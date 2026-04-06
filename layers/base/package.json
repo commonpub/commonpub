@@ -1,6 +1,6 @@
 {
   "name": "@commonpub/layer",
-  "version": "0.5.5",
+  "version": "0.5.6",
   "type": "module",
   "main": "./nuxt.config.ts",
   "files": [
