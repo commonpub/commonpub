@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { TocEntry } from '@commonpub/docs';
+import type { BlockTuple } from '@commonpub/editor';
 
 const route = useRoute();
 const siteSlug = computed(() => route.params.siteSlug as string);
@@ -8,22 +9,32 @@ const pagePath = computed(() => {
   return Array.isArray(p) ? p[p.length - 1] : p;
 });
 
-const { data: site } = useLazyFetch(() => `/api/docs/${siteSlug.value}`);
-const { data: nav } = useLazyFetch(() => `/api/docs/${siteSlug.value}/nav`);
-const { data: pages } = useLazyFetch(() => `/api/docs/${siteSlug.value}/pages`);
+const { data: site } = useLazyFetch<{ id: string; name: string; slug: string; description: string; ownerId: string; versions: Array<{ id: string; label: string; slug: string; version: string; isDefault: boolean }> }>(() => `/api/docs/${siteSlug.value}`);
+const { data: nav } = useLazyFetch<Array<{ id: string; title: string; slug: string; sortOrder: number; parentId: string | null }>>(() => `/api/docs/${siteSlug.value}/nav`);
+const { data: pages } = useLazyFetch<Array<{ id: string; title: string; slug: string; sortOrder: number; parentId: string | null }>>(() => `/api/docs/${siteSlug.value}/pages`);
 
-// Fetch the rendered page (server-side markdown rendering)
+// Fetch the rendered page (server-side markdown rendering or block content)
 interface RenderedPage {
   id: string;
   title: string;
   slug: string;
-  content: string;
+  content: string | BlockTuple[];
   sortOrder: number;
   parentId: string | null;
-  html: string;
+  html: string | null;
   toc: TocEntry[];
   frontmatter: { title?: string; description?: string };
+  format?: 'blocks' | 'markdown';
 }
+
+const isBlockContent = computed(() =>
+  renderedPage.value?.format === 'blocks' || Array.isArray(renderedPage.value?.content),
+);
+
+const blockContent = computed<BlockTuple[]>(() => {
+  if (!renderedPage.value || !isBlockContent.value) return [];
+  return renderedPage.value.content as BlockTuple[];
+});
 
 const { data: renderedPage, pending: pagePending, error: pageError, refresh: refreshPage } = useLazyFetch<RenderedPage>(
   () => `/api/docs/${siteSlug.value}/pages/${pagePath.value}`,
@@ -89,7 +100,7 @@ const activeHeadingId = ref('');
 // Scroll spy for TOC
 function setupScrollSpy(): void {
   if (!import.meta.client) return;
-  const headings = document.querySelectorAll('.docs-content h2[id], .docs-content h3[id]');
+  const headings = document.querySelectorAll('.docs-content h2[id], .docs-content h3[id], .docs-content .cpub-block-heading[id]');
   if (!headings.length) return;
   const observer = new IntersectionObserver(
     (entries) => {
@@ -197,7 +208,7 @@ useSeoMeta({
       <aside class="docs-sidebar" :class="{ open: sidebarOpen }" aria-label="Documentation navigation">
         <div class="docs-sidebar-header">
           <NuxtLink :to="`/docs/${siteSlug}`" class="docs-sidebar-title">{{ site.name }}</NuxtLink>
-          <NuxtLink v-if="isOwner" :to="`/docs/${siteSlug}/edit`" class="docs-edit-link" aria-label="Edit docs">
+          <NuxtLink v-if="isOwner" :to="`/docs/${siteSlug}/edit?page=${pagePath}`" class="docs-edit-link" aria-label="Edit this page">
             <i class="fa-solid fa-pen"></i>
           </NuxtLink>
         </div>
@@ -301,7 +312,10 @@ useSeoMeta({
         <h1 class="docs-page-title">{{ renderedPage.title }}</h1>
 
         <!-- Rendered Content -->
-        <div class="docs-content cpub-prose" v-html="renderedPage.html" />
+        <div v-if="isBlockContent" class="docs-content cpub-prose">
+          <BlocksBlockContentRenderer :blocks="blockContent" />
+        </div>
+        <div v-else class="docs-content cpub-prose" v-html="renderedPage.html" />
 
         <!-- Prev / Next -->
         <div class="docs-prev-next" v-if="prevNextLinks.prev || prevNextLinks.next">

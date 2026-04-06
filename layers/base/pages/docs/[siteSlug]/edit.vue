@@ -1,90 +1,381 @@
 <script setup lang="ts">
-definePageMeta({ middleware: 'auth' });
+import type { BlockTuple } from '@commonpub/editor';
+import type { BlockTypeGroup } from '../../../components/editors/BlockPicker.vue';
+import type { PageTreeItem } from '../../../components/editors/DocsPageTree.vue';
+
+definePageMeta({ layout: false, middleware: 'auth' });
 
 const route = useRoute();
 const siteSlug = computed(() => route.params.siteSlug as string);
+const { show: toast } = useToast();
 
-const { data: site, refresh: refreshSite } = useLazyFetch(() => `/api/docs/${siteSlug.value}`);
-const { data: pages, refresh: refreshPages } = useLazyFetch(() => `/api/docs/${siteSlug.value}/pages`);
+// ═══ DATA FETCHING ═══
+const { data: site, refresh: refreshSite } = await useFetch<{ id: string; name: string; slug: string; description: string; ownerId: string }>(() => `/api/docs/${siteSlug.value}`);
+const { data: rawPages, refresh: refreshPages } = await useFetch<Array<{ id: string; title: string; slug: string; sortOrder: number; parentId: string | null; content: string | BlockTuple[] | null; format?: string }>>(() => `/api/docs/${siteSlug.value}/pages`);
 
 useSeoMeta({ title: () => `Edit ${site.value?.name ?? 'Docs'} — ${useSiteName()}` });
 
-const { show: toast } = useToast();
-
-// ═══ SITE SETTINGS ═══
-const editSiteName = ref('');
-const editSiteDesc = ref('');
-const savingSite = ref(false);
-
-watch(site, (s) => {
-  if (!s) return;
-  editSiteName.value = s.name ?? '';
-  editSiteDesc.value = s.description ?? '';
-}, { immediate: true });
-
-async function saveSiteSettings(): Promise<void> {
-  savingSite.value = true;
-  try {
-    await $fetch(`/api/docs/${siteSlug.value}`, {
-      method: 'PUT',
-      body: { name: editSiteName.value, description: editSiteDesc.value },
-    });
-    toast('Site settings updated', 'success');
-    await refreshSite();
-  } catch (err: unknown) {
-    toast(err instanceof Error ? err.message : 'Failed to update', 'error');
-  } finally {
-    savingSite.value = false;
-  }
+interface DocsPage {
+  id: string;
+  title: string;
+  slug: string;
+  content: string | BlockTuple[];
+  sortOrder: number;
+  parentId: string | null;
 }
 
-// ═══ PAGE CREATION ═══
-const showNewPage = ref(false);
-const newPageTitle = ref('');
-const newPageSlug = ref('');
-const newPageContent = ref('');
-const newPageParentId = ref<string | null>(null);
+const pages = computed<DocsPage[]>(() => (rawPages.value as DocsPage[]) ?? []);
+const treePages = computed<PageTreeItem[]>(() =>
+  pages.value.map(p => ({
+    id: p.id,
+    title: p.title,
+    slug: p.slug,
+    parentId: p.parentId,
+    sortOrder: p.sortOrder,
+  })),
+);
+
+// ═══ BLOCK EDITOR ═══
+const blockEditor = useBlockEditor();
+
+// Docs-specific block palette — no explainer/project blocks
+const blockTypes: BlockTypeGroup[] = [
+  {
+    name: 'Text',
+    blocks: [
+      { type: 'paragraph', label: 'Paragraph', icon: 'fa-align-left', description: 'Body text' },
+      { type: 'heading', label: 'Heading', icon: 'fa-heading', description: 'Section heading (H2-H4)' },
+      { type: 'blockquote', label: 'Quote', icon: 'fa-quote-left', description: 'Blockquote with attribution' },
+    ],
+  },
+  {
+    name: 'Code & Media',
+    blocks: [
+      { type: 'code_block', label: 'Code Block', icon: 'fa-code', description: 'Syntax highlighted code' },
+      { type: 'image', label: 'Image', icon: 'fa-image', description: 'Upload or embed image' },
+      { type: 'embed', label: 'Embed', icon: 'fa-globe', description: 'External embed' },
+    ],
+  },
+  {
+    name: 'Layout',
+    blocks: [
+      { type: 'callout', label: 'Callout', icon: 'fa-circle-info', description: 'Info, tip, warning, or danger', attrs: { variant: 'info' } },
+      { type: 'horizontal_rule', label: 'Divider', icon: 'fa-minus', description: 'Visual separator' },
+    ],
+  },
+];
+
+// ═══ PAGE SELECTION ═══
+const selectedPageId = ref<string | null>(null);
+const selectedPage = computed<DocsPage | null>(() =>
+  pages.value.find(p => p.id === selectedPageId.value) ?? null,
+);
+
+// Page properties (right panel)
+const pageSlug = ref('');
 const savingPage = ref(false);
+const autoSaveTimer = ref<ReturnType<typeof setTimeout> | null>(null);
+const autoSaveStatus = ref<'idle' | 'saving' | 'saved' | 'error'>('idle');
+const isDirty = ref(false);
+const isLoadingPage = ref(false); // Guard: suppresses dirty-marking during page load
+const markdownNotice = ref<string | null>(null); // Shows notice when markdown page is converted
 
-function autoSlug(title: string): string {
-  return title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+// Load page content when selecting
+async function selectPage(pageId: string): Promise<void> {
+  // Save current page first if dirty
+  if (isDirty.value && selectedPageId.value) {
+    await saveCurrentPage();
+  }
+
+  selectedPageId.value = pageId;
+  const page = pages.value.find(p => p.id === pageId);
+  if (!page) return;
+
+  // Guard: suppress dirty-marking during content load
+  isLoadingPage.value = true;
+
+  // Load content into block editor
+  if (Array.isArray(page.content)) {
+    blockEditor.fromBlockTuples(page.content as BlockTuple[]);
+  } else if (typeof page.content === 'string' && page.content.trim()) {
+    // Legacy markdown content — convert to blocks
+    markdownNotice.value = page.title;
+    blockEditor.clearBlocks();
+    const { importMarkdown } = useMarkdownImport(blockEditor);
+    await importMarkdown(page.content, 'replace');
+  } else {
+    blockEditor.clearBlocks();
+    blockEditor.addBlock('paragraph');
+  }
+
+  // Load properties
+  pageSlug.value = page.slug ?? '';
+  isDirty.value = false;
+  autoSaveStatus.value = 'idle';
+
+  // Release guard after watchers have flushed
+  await nextTick();
+  isLoadingPage.value = false;
 }
 
-watch(newPageTitle, (t) => {
-  if (!newPageSlug.value || newPageSlug.value === autoSlug(newPageTitle.value.slice(0, -1))) {
-    newPageSlug.value = autoSlug(t);
-  }
-});
-
-async function createPage(): Promise<void> {
-  if (!newPageTitle.value.trim()) return;
+// ══�� SAVING ═══
+async function saveCurrentPage(): Promise<void> {
+  if (!selectedPageId.value) return;
   savingPage.value = true;
+  autoSaveStatus.value = 'saving';
+
   try {
-    await $fetch(`/api/docs/${siteSlug.value}/pages`, {
-      method: 'POST',
+    await $fetch(`/api/docs/${siteSlug.value}/pages/${selectedPageId.value}`, {
+      method: 'PUT',
       body: {
-        title: newPageTitle.value,
-        slug: newPageSlug.value || autoSlug(newPageTitle.value),
-        content: newPageContent.value,
-        parentId: newPageParentId.value || undefined,
-        sortOrder: (pages.value?.length ?? 0) + 1,
+        title: selectedPage.value?.title,
+        slug: pageSlug.value,
+        content: blockEditor.toBlockTuples(),
       },
     });
-    toast('Page created', 'success');
-    newPageTitle.value = '';
-    newPageSlug.value = '';
-    newPageContent.value = '';
-    newPageParentId.value = null;
-    showNewPage.value = false;
+    isDirty.value = false;
+    autoSaveStatus.value = 'saved';
+    // Refresh pages list to keep tree in sync
     await refreshPages();
   } catch (err: unknown) {
-    toast(err instanceof Error ? err.message : 'Failed to create page', 'error');
+    autoSaveStatus.value = 'error';
+    toast(err instanceof Error ? err.message : 'Failed to save page', 'error');
   } finally {
     savingPage.value = false;
   }
 }
 
-// ═══ DELETE SITE ═══
+// Autosave: debounce 5 seconds for docs (shorter than article 30s)
+function scheduleAutoSave(): void {
+  if (autoSaveTimer.value) clearTimeout(autoSaveTimer.value);
+  autoSaveTimer.value = setTimeout(() => {
+    if (isDirty.value && selectedPageId.value) {
+      saveCurrentPage();
+    }
+  }, 5000);
+}
+
+// Watch for changes — skip during page load to avoid false dirty
+watch(() => blockEditor.blocks.value, () => {
+  if (isLoadingPage.value) return;
+  isDirty.value = true;
+  scheduleAutoSave();
+}, { deep: true });
+
+watch(pageSlug, () => {
+  if (isLoadingPage.value) return;
+  isDirty.value = true;
+  scheduleAutoSave();
+});
+
+// Keyboard shortcut: Cmd+S to save
+function handleKeydown(e: KeyboardEvent): void {
+  if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+    e.preventDefault();
+    saveCurrentPage();
+  }
+}
+
+// Warn about unsaved changes on navigation
+function handleBeforeUnload(e: BeforeUnloadEvent): void {
+  if (isDirty.value) {
+    e.preventDefault();
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('keydown', handleKeydown);
+  window.addEventListener('beforeunload', handleBeforeUnload);
+
+  // Auto-select page from ?page= query or first page
+  const requestedPage = route.query.page as string | undefined;
+  if (requestedPage && pages.value.length > 0) {
+    const match = pages.value.find(p => p.slug === requestedPage || p.id === requestedPage);
+    if (match) {
+      selectPage(match.id);
+      return;
+    }
+  }
+  if (pages.value.length > 0 && !selectedPageId.value) {
+    const first = [...pages.value].sort((a, b) => a.sortOrder - b.sortOrder)[0];
+    if (first) selectPage(first.id);
+  }
+});
+
+onUnmounted(() => {
+  document.removeEventListener('keydown', handleKeydown);
+  window.removeEventListener('beforeunload', handleBeforeUnload);
+  if (autoSaveTimer.value) clearTimeout(autoSaveTimer.value);
+});
+
+// ═══ PAGE TREE ACTIONS ═══
+const pendingReparent = ref(false);
+async function handleCreatePage(parentId: string | null, title: string): Promise<void> {
+  try {
+    const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    const result = await $fetch(`/api/docs/${siteSlug.value}/pages`, {
+      method: 'POST',
+      body: {
+        title,
+        slug,
+        content: [['paragraph', { html: '' }]],
+        parentId: parentId ?? undefined,
+        sortOrder: (pages.value?.length ?? 0) + 1,
+      },
+    });
+    await refreshPages();
+    if (result && typeof result === 'object' && 'id' in result) {
+      selectPage((result as { id: string }).id);
+    }
+    toast('Page created', 'success');
+  } catch (err: unknown) {
+    toast(err instanceof Error ? err.message : 'Failed to create page', 'error');
+  }
+}
+
+async function handleRenamePage(pageId: string, newTitle: string): Promise<void> {
+  try {
+    await $fetch(`/api/docs/${siteSlug.value}/pages/${pageId}`, {
+      method: 'PUT',
+      body: { title: newTitle },
+    });
+    await refreshPages();
+    toast('Page renamed', 'success');
+  } catch (err: unknown) {
+    toast(err instanceof Error ? err.message : 'Failed to rename', 'error');
+  }
+}
+
+async function handleDeletePage(pageId: string): Promise<void> {
+  try {
+    await $fetch(`/api/docs/${siteSlug.value}/pages/${pageId}`, { method: 'DELETE' });
+    if (selectedPageId.value === pageId) {
+      selectedPageId.value = null;
+      blockEditor.clearBlocks();
+    }
+    await refreshPages();
+    toast('Page deleted', 'success');
+  } catch (err: unknown) {
+    toast(err instanceof Error ? err.message : 'Failed to delete', 'error');
+  }
+}
+
+async function handleReorder(pageIds: string[]): Promise<void> {
+  pendingReparent.value = false; // Cancel reparent's deferred refresh
+  try {
+    await $fetch(`/api/docs/${siteSlug.value}/pages/reorder`, {
+      method: 'POST',
+      body: { pageIds },
+    });
+    await refreshPages();
+  } catch {
+    toast('Failed to reorder', 'error');
+  }
+}
+
+async function handleReparent(pageId: string, newParentId: string | null): Promise<void> {
+  try {
+    await $fetch(`/api/docs/${siteSlug.value}/pages/${pageId}`, {
+      method: 'PUT',
+      body: { parentId: newParentId ?? null },
+    });
+    // Don't refresh here — if reorder follows immediately, let reorder refresh
+    // If reparent is standalone (drag inside), refresh
+    pendingReparent.value = true;
+    setTimeout(async () => {
+      if (pendingReparent.value) {
+        pendingReparent.value = false;
+        await refreshPages();
+      }
+    }, 100);
+  } catch {
+    toast('Failed to move page', 'error');
+  }
+}
+
+
+// ═══ PAGE TITLE EDITING ═══
+const editingTitle = ref(false);
+const editTitleValue = ref('');
+
+function startEditTitle(): void {
+  if (!selectedPage.value) return;
+  editTitleValue.value = selectedPage.value.title;
+  editingTitle.value = true;
+  nextTick(() => {
+    const input = document.querySelector('.cpub-docs-title-input') as HTMLInputElement | null;
+    input?.focus();
+    input?.select();
+  });
+}
+
+async function confirmEditTitle(): Promise<void> {
+  if (!selectedPageId.value || !editTitleValue.value.trim()) {
+    editingTitle.value = false;
+    return;
+  }
+  await handleRenamePage(selectedPageId.value, editTitleValue.value.trim());
+  editingTitle.value = false;
+}
+
+// ═══ WORD COUNT ═══
+const wordCount = computed(() => {
+  let count = 0;
+  for (const block of blockEditor.blocks.value) {
+    const html = (block.content.html as string) || (block.content.text as string) || (block.content.code as string) || '';
+    count += html.replace(/<[^>]*>/g, '').split(/\s+/).filter(Boolean).length;
+  }
+  return count;
+});
+
+// ═��═ MARKDOWN IMPORT ═══
+const showImportDialog = ref(false);
+
+function handleMarkdownImport(md: string, mode: 'append' | 'replace'): void {
+  const { importMarkdown } = useMarkdownImport(blockEditor);
+  importMarkdown(md, mode);
+  showImportDialog.value = false;
+  isDirty.value = true;
+  scheduleAutoSave();
+}
+
+// ═══ SITE SETTINGS ═══
+const showSettings = ref(false);
+const settingsName = ref('');
+const settingsDesc = ref('');
+const savingSettings = ref(false);
+const newVersion = ref('');
+const newVersionDefault = ref(false);
+const savingVersion = ref(false);
+
+interface DocsSiteVersion {
+  id: string;
+  version: string;
+  isDefault: boolean;
+}
+
+watch(site, (s) => {
+  if (!s) return;
+  settingsName.value = (s as Record<string, unknown>).name as string ?? '';
+  settingsDesc.value = (s as Record<string, unknown>).description as string ?? '';
+}, { immediate: true });
+
+async function saveSiteSettings(): Promise<void> {
+  savingSettings.value = true;
+  try {
+    await $fetch(`/api/docs/${siteSlug.value}`, {
+      method: 'PUT',
+      body: { name: settingsName.value, description: settingsDesc.value },
+    });
+    toast('Site settings updated', 'success');
+    await refreshSite();
+  } catch (err: unknown) {
+    toast(err instanceof Error ? err.message : 'Failed to update settings', 'error');
+  } finally {
+    savingSettings.value = false;
+  }
+}
+
 async function deleteSite(): Promise<void> {
   if (!confirm('Delete this entire docs site? All pages and versions will be permanently deleted.')) return;
   try {
@@ -95,12 +386,6 @@ async function deleteSite(): Promise<void> {
     toast('Failed to delete docs site', 'error');
   }
 }
-
-// ═══ VERSION CREATION ═══
-const showNewVersion = ref(false);
-const newVersion = ref('');
-const newVersionDefault = ref(false);
-const savingVersion = ref(false);
 
 async function createVersion(): Promise<void> {
   if (!newVersion.value.trim()) return;
@@ -113,7 +398,6 @@ async function createVersion(): Promise<void> {
     toast('Version created', 'success');
     newVersion.value = '';
     newVersionDefault.value = false;
-    showNewVersion.value = false;
     await refreshSite();
   } catch (err: unknown) {
     toast(err instanceof Error ? err.message : 'Failed to create version', 'error');
@@ -121,360 +405,714 @@ async function createVersion(): Promise<void> {
     savingVersion.value = false;
   }
 }
-
-// ═══ PAGE EDITING ═══
-interface DocsPage {
-  id: string;
-  title: string;
-  slug: string;
-  content: string;
-  sortOrder: number;
-  parentId: string | null;
-}
-
-const editingPageId = ref<string | null>(null);
-const editPageContent = ref('');
-const editPageTitle = ref('');
-const editPageParentId = ref<string | null>(null);
-const savingEdit = ref(false);
-const showPreview = ref(false);
-
-function startEditPage(page: DocsPage): void {
-  editingPageId.value = page.id;
-  editPageTitle.value = page.title;
-  editPageContent.value = page.content ?? '';
-  editPageParentId.value = page.parentId;
-  showPreview.value = false;
-}
-
-async function savePageEdit(): Promise<void> {
-  if (!editingPageId.value) return;
-  savingEdit.value = true;
-  try {
-    await $fetch(`/api/docs/${siteSlug.value}/pages/${editingPageId.value}`, {
-      method: 'PUT',
-      body: {
-        title: editPageTitle.value,
-        content: editPageContent.value,
-        parentId: editPageParentId.value || undefined,
-      },
-    });
-    toast('Page updated', 'success');
-    editingPageId.value = null;
-    await refreshPages();
-  } catch (err: unknown) {
-    toast(err instanceof Error ? err.message : 'Failed to update page', 'error');
-  } finally {
-    savingEdit.value = false;
-  }
-}
-
-// ═══ PAGE DELETION ═══
-async function deletePage(pageId: string): Promise<void> {
-  if (!confirm('Delete this page? This cannot be undone.')) return;
-  try {
-    await $fetch(`/api/docs/${siteSlug.value}/pages/${pageId}`, { method: 'DELETE' });
-    toast('Page deleted', 'success');
-    if (editingPageId.value === pageId) editingPageId.value = null;
-    await refreshPages();
-  } catch {
-    toast('Failed to delete page', 'error');
-  }
-}
-
-// ═══ PAGE REORDERING ═══
-async function movePage(pageId: string, direction: 'up' | 'down'): Promise<void> {
-  if (!pages.value) return;
-  const allPages = [...(pages.value as DocsPage[])].sort((a, b) => a.sortOrder - b.sortOrder);
-  const idx = allPages.findIndex(p => p.id === pageId);
-  if (idx === -1) return;
-  if (direction === 'up' && idx === 0) return;
-  if (direction === 'down' && idx === allPages.length - 1) return;
-
-  const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
-  [allPages[idx], allPages[swapIdx]] = [allPages[swapIdx]!, allPages[idx]!];
-
-  try {
-    await $fetch(`/api/docs/${siteSlug.value}/pages/reorder`, {
-      method: 'POST',
-      body: { pageIds: allPages.map(p => p.id) },
-    });
-    await refreshPages();
-  } catch {
-    toast('Failed to reorder', 'error');
-  }
-}
-
-// ═══ MARKDOWN TOOLBAR ═══
-function insertMarkdown(textarea: HTMLTextAreaElement | null, before: string, after: string = ''): void {
-  if (!textarea) return;
-  const start = textarea.selectionStart;
-  const end = textarea.selectionEnd;
-  const selected = textarea.value.substring(start, end);
-  const replacement = before + (selected || 'text') + after;
-  textarea.setRangeText(replacement, start, end, 'select');
-  textarea.focus();
-
-  // Update the reactive value
-  if (editingPageId.value) {
-    editPageContent.value = textarea.value;
-  } else {
-    newPageContent.value = textarea.value;
-  }
-}
-
-// Template refs for markdown toolbar
-const newContentRef = useTemplateRef<HTMLTextAreaElement>('newContent');
-const editContentRef = useTemplateRef<HTMLTextAreaElement>('editContent');
-
-const sortedPages = computed(() => {
-  if (!pages.value) return [];
-  return [...(pages.value as DocsPage[])].sort((a, b) => a.sortOrder - b.sortOrder);
-});
 </script>
 
 <template>
-  <div class="docs-edit" v-if="site">
-    <div class="docs-edit-header">
-      <div>
-        <h1 class="page-title">Edit: {{ site.name }}</h1>
-        <NuxtLink :to="`/docs/${siteSlug}`" class="cpub-back-link">&larr; Back to docs</NuxtLink>
-      </div>
+  <div class="cpub-docs-editor">
+    <!-- Top bar -->
+    <div class="cpub-docs-topbar">
+      <NuxtLink :to="`/docs/${siteSlug}`" class="cpub-docs-back" aria-label="Back to docs">
+        <i class="fa-solid fa-arrow-left" />
+      </NuxtLink>
+      <span class="cpub-docs-topbar-title">{{ site?.name ?? 'Docs' }}</span>
+      <div class="cpub-docs-topbar-spacer" />
+      <button
+        v-if="selectedPageId"
+        class="cpub-docs-toolbar-btn"
+        title="Import Markdown"
+        @click="showImportDialog = true"
+      >
+        <i class="fa-brands fa-markdown" />
+      </button>
+      <button class="cpub-docs-toolbar-btn" title="Site Settings" @click="showSettings = true">
+        <i class="fa-solid fa-gear" />
+      </button>
+      <button
+        class="cpub-docs-toolbar-btn"
+        :class="{ 'cpub-docs-toolbar-btn-saving': savingPage }"
+        :disabled="!isDirty || savingPage"
+        @click="saveCurrentPage"
+      >
+        <i class="fa-solid" :class="savingPage ? 'fa-spinner fa-spin' : 'fa-floppy-disk'" />
+        <span>{{ savingPage ? 'Saving' : isDirty ? 'Save' : 'Saved' }}</span>
+      </button>
     </div>
 
-    <!-- ═══ SITE SETTINGS ═══ -->
-    <section class="edit-section">
-      <div class="section-header">
-        <h2 class="section-heading"><i class="fa-solid fa-gear"></i> Site Settings</h2>
-      </div>
-      <div class="settings-form">
-        <div class="form-field">
-          <label class="form-label">Name</label>
-          <input v-model="editSiteName" class="edit-input" />
+    <!-- 3-panel editor -->
+    <EditorsEditorShell :show-left-sidebar="true" :show-right-sidebar="!!selectedPageId">
+      <!-- LEFT: Page tree -->
+      <template #left>
+        <div class="cpub-docs-left-header">
+          <span class="cpub-docs-left-label">Pages</span>
+          <span class="cpub-docs-page-count">{{ pages.length }}</span>
         </div>
-        <div class="form-field">
-          <label class="form-label">Description</label>
-          <textarea v-model="editSiteDesc" class="edit-textarea" rows="2" />
-        </div>
-        <div style="display: flex; gap: 8px; align-items: center;">
-          <button class="cpub-btn cpub-btn-sm" :disabled="savingSite" @click="saveSiteSettings">
-            {{ savingSite ? 'Saving...' : 'Save Settings' }}
-          </button>
-          <button class="cpub-btn cpub-btn-sm" style="color: var(--red); border-color: var(--red-border); margin-left: auto;" @click="deleteSite">
-            <i class="fa-solid fa-trash"></i> Delete Site
-          </button>
-        </div>
-      </div>
-    </section>
+        <EditorsDocsPageTree
+          :pages="treePages"
+          :selected-page-id="selectedPageId"
+          @select="selectPage"
+          @create="handleCreatePage"
+          @rename="handleRenamePage"
+          @delete="handleDeletePage"
+          @reorder="handleReorder"
+          @reparent="handleReparent"
+        />
+      </template>
 
-    <!-- ═══ PAGES ═══ -->
-    <section class="edit-section">
-      <div class="section-header">
-        <h2 class="section-heading"><i class="fa-solid fa-file-lines"></i> Pages</h2>
-        <button class="cpub-btn cpub-btn-sm" @click="showNewPage = !showNewPage">
-          <i class="fa-solid fa-plus"></i> Add Page
-        </button>
-      </div>
-
-      <!-- New page form -->
-      <div v-if="showNewPage" class="new-form">
-        <div class="form-row">
-          <div class="form-field" style="flex:1">
-            <label class="form-label">Title</label>
-            <input v-model="newPageTitle" class="edit-input" placeholder="Page title" />
+      <!-- CENTER: Block editor -->
+      <template #default>
+        <div v-if="selectedPage" class="cpub-docs-center">
+          <!-- Page title -->
+          <div class="cpub-docs-title-area">
+            <input
+              v-if="editingTitle"
+              v-model="editTitleValue"
+              class="cpub-docs-title-input"
+              @keydown.enter="confirmEditTitle"
+              @keydown.escape="editingTitle = false"
+              @blur="confirmEditTitle"
+            />
+            <h1 v-else class="cpub-docs-title" @click="startEditTitle">
+              {{ selectedPage.title || 'Untitled Page' }}
+            </h1>
           </div>
-          <div class="form-field" style="flex:1">
-            <label class="form-label">Slug</label>
-            <input v-model="newPageSlug" class="edit-input" placeholder="auto-generated" />
+
+          <!-- Markdown conversion notice -->
+          <div v-if="markdownNotice" class="cpub-docs-notice">
+            <i class="fa-solid fa-circle-info" />
+            <span>"{{ markdownNotice }}" was converted from markdown to blocks. Saving will store the block format.</span>
+            <button class="cpub-docs-notice-dismiss" @click="markdownNotice = null" aria-label="Dismiss">
+              <i class="fa-solid fa-xmark" />
+            </button>
+          </div>
+
+          <!-- Block canvas -->
+          <EditorsBlockCanvas
+            :block-editor="blockEditor"
+            :block-types="blockTypes"
+          />
+        </div>
+
+        <!-- Empty state -->
+        <div v-else class="cpub-docs-empty">
+          <i class="fa-solid fa-file-lines cpub-docs-empty-icon" />
+          <p class="cpub-docs-empty-text">Select a page from the sidebar or create a new one.</p>
+        </div>
+      </template>
+
+      <!-- RIGHT: Page properties -->
+      <template #right>
+        <div v-if="selectedPage" class="cpub-docs-props">
+          <h3 class="cpub-docs-props-heading">Page Properties</h3>
+
+          <div class="cpub-docs-field">
+            <label class="cpub-docs-field-label">Slug</label>
+            <input v-model="pageSlug" class="cpub-docs-field-input" placeholder="page-slug" />
+          </div>
+
+          <div class="cpub-docs-field">
+            <label class="cpub-docs-field-label">Parent</label>
+            <div class="cpub-docs-field-value">
+              {{ selectedPage?.parentId ? pages.find(p => p.id === selectedPage!.parentId)?.title ?? 'Unknown' : 'Top level' }}
+            </div>
+            <span class="cpub-docs-field-hint">Drag pages in the tree to change hierarchy</span>
           </div>
         </div>
-        <div class="form-field">
-          <label class="form-label">Parent Page</label>
-          <select v-model="newPageParentId" class="edit-select">
-            <option :value="null">— None (top level) —</option>
-            <option v-for="p in sortedPages" :key="p.id" :value="p.id">{{ p.title }}</option>
-          </select>
-        </div>
-        <!-- Markdown toolbar -->
-        <div class="md-toolbar">
-          <button class="md-btn" title="Bold" @click="insertMarkdown(newContentRef!, '**', '**')"><b>B</b></button>
-          <button class="md-btn" title="Italic" @click="insertMarkdown(newContentRef!, '_', '_')"><i>I</i></button>
-          <button class="md-btn" title="Code" @click="insertMarkdown(newContentRef!, '`', '`')"><code>&lt;/&gt;</code></button>
-          <button class="md-btn" title="Heading" @click="insertMarkdown(newContentRef!, '## ')">H</button>
-          <button class="md-btn" title="Link" @click="insertMarkdown(newContentRef!, '[', '](url)')">🔗</button>
-          <button class="md-btn" title="List" @click="insertMarkdown(newContentRef!, '- ')">≡</button>
-        </div>
-        <textarea ref="newContent" v-model="newPageContent" class="edit-textarea edit-textarea-md" placeholder="Markdown content..." rows="10" />
-        <div class="form-actions">
-          <button class="cpub-btn cpub-btn-sm cpub-btn-primary" :disabled="savingPage || !newPageTitle.trim()" @click="createPage">
-            {{ savingPage ? 'Creating...' : 'Create Page' }}
-          </button>
-          <button class="cpub-btn cpub-btn-sm" @click="showNewPage = false">Cancel</button>
-        </div>
-      </div>
+      </template>
 
-      <!-- Page list -->
-      <div v-if="sortedPages.length" class="page-list">
-        <div v-for="(page, idx) in sortedPages" :key="page.id" class="page-item">
-          <template v-if="editingPageId === page.id">
-            <div class="form-row">
-              <div class="form-field" style="flex:1">
-                <label class="form-label">Title</label>
-                <input v-model="editPageTitle" class="edit-input" />
+      <!-- STATUS BAR -->
+      <template #status>
+        <span class="cpub-docs-stat">
+          <span class="cpub-docs-stat-label">Pages:</span>
+          <span class="cpub-docs-stat-value">{{ pages.length }}</span>
+        </span>
+        <span v-if="selectedPageId" class="cpub-docs-stat">
+          <span class="cpub-docs-stat-label">Words:</span>
+          <span class="cpub-docs-stat-value">{{ wordCount }}</span>
+        </span>
+        <span v-if="selectedPageId" class="cpub-docs-stat">
+          <span class="cpub-docs-stat-label">Blocks:</span>
+          <span class="cpub-docs-stat-value">{{ blockEditor.blocks.value.length }}</span>
+        </span>
+        <div style="flex: 1" />
+        <span class="cpub-docs-stat">
+          <span
+            class="cpub-docs-save-dot"
+            :class="{
+              'cpub-docs-save-dot-clean': !isDirty && autoSaveStatus !== 'error',
+              'cpub-docs-save-dot-dirty': isDirty,
+              'cpub-docs-save-dot-error': autoSaveStatus === 'error',
+            }"
+          />
+          <span class="cpub-docs-stat-label">
+            {{ autoSaveStatus === 'saving' ? 'Saving...' : autoSaveStatus === 'error' ? 'Save failed' : isDirty ? 'Unsaved changes' : 'All saved' }}
+          </span>
+        </span>
+      </template>
+    </EditorsEditorShell>
+
+    <!-- Markdown import dialog -->
+    <EditorsMarkdownImportDialog
+      :show="showImportDialog"
+      @close="showImportDialog = false"
+      @import="handleMarkdownImport"
+    />
+
+    <!-- Site settings panel -->
+    <Teleport to="body">
+      <div v-if="showSettings" class="cpub-settings-overlay" @click.self="showSettings = false">
+        <div class="cpub-settings-panel">
+          <div class="cpub-settings-header">
+            <h2 class="cpub-settings-title"><i class="fa-solid fa-gear" /> Site Settings</h2>
+            <button class="cpub-settings-close" @click="showSettings = false" aria-label="Close settings">
+              <i class="fa-solid fa-xmark" />
+            </button>
+          </div>
+
+          <div class="cpub-settings-body">
+            <!-- Site info -->
+            <section class="cpub-settings-section">
+              <h3 class="cpub-settings-section-title">General</h3>
+              <div class="cpub-settings-field">
+                <label class="cpub-settings-label">Site Name</label>
+                <input v-model="settingsName" class="cpub-settings-input" />
               </div>
-              <div class="form-field" style="flex:1">
-                <label class="form-label">Parent</label>
-                <select v-model="editPageParentId" class="edit-select">
-                  <option :value="null">— None —</option>
-                  <option v-for="p in sortedPages.filter(p => p.id !== page.id)" :key="p.id" :value="p.id">{{ p.title }}</option>
-                </select>
+              <div class="cpub-settings-field">
+                <label class="cpub-settings-label">Description</label>
+                <textarea v-model="settingsDesc" class="cpub-settings-textarea" rows="3" />
               </div>
-            </div>
-            <!-- Toolbar + Preview toggle -->
-            <div class="md-toolbar">
-              <button class="md-btn" title="Bold" @click="insertMarkdown(editContentRef!, '**', '**')"><b>B</b></button>
-              <button class="md-btn" title="Italic" @click="insertMarkdown(editContentRef!, '_', '_')"><i>I</i></button>
-              <button class="md-btn" title="Code" @click="insertMarkdown(editContentRef!, '`', '`')"><code>&lt;/&gt;</code></button>
-              <button class="md-btn" title="Heading" @click="insertMarkdown(editContentRef!, '## ')">H</button>
-              <button class="md-btn" title="Link" @click="insertMarkdown(editContentRef!, '[', '](url)')">🔗</button>
-              <button class="md-btn" title="List" @click="insertMarkdown(editContentRef!, '- ')">≡</button>
-              <div class="md-spacer"></div>
-              <button class="md-btn" :class="{ active: showPreview }" @click="showPreview = !showPreview">
-                <i class="fa-solid fa-eye"></i> Preview
+              <button class="cpub-btn cpub-btn-sm" :disabled="savingSettings" @click="saveSiteSettings">
+                {{ savingSettings ? 'Saving...' : 'Save Settings' }}
               </button>
-            </div>
-            <div class="editor-pane" :class="{ 'with-preview': showPreview }">
-              <textarea ref="editContent" v-model="editPageContent" class="edit-textarea edit-textarea-md" rows="14" />
-              <div v-if="showPreview" class="preview-pane"><pre class="preview-md">{{ editPageContent }}</pre></div>
-            </div>
-            <div class="form-actions">
-              <button class="cpub-btn cpub-btn-sm cpub-btn-primary" :disabled="savingEdit" @click="savePageEdit">
-                {{ savingEdit ? 'Saving...' : 'Save' }}
+            </section>
+
+            <!-- Versions -->
+            <section class="cpub-settings-section">
+              <h3 class="cpub-settings-section-title">Versions</h3>
+              <div v-if="(site as any)?.versions?.length" class="cpub-settings-versions">
+                <div
+                  v-for="v in ((site as any).versions as DocsSiteVersion[])"
+                  :key="v.id"
+                  class="cpub-settings-version-item"
+                >
+                  <span class="cpub-settings-version-label">{{ v.version }}</span>
+                  <span v-if="v.isDefault" class="cpub-settings-version-badge">default</span>
+                </div>
+              </div>
+              <div class="cpub-settings-field" style="margin-top: 10px;">
+                <label class="cpub-settings-label">New Version</label>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                  <input v-model="newVersion" class="cpub-settings-input" placeholder="e.g. 2.0" style="flex: 1;" />
+                  <label class="cpub-settings-checkbox">
+                    <input type="checkbox" v-model="newVersionDefault" /> Default
+                  </label>
+                  <button class="cpub-btn cpub-btn-sm" :disabled="savingVersion || !newVersion.trim()" @click="createVersion">
+                    {{ savingVersion ? 'Creating...' : 'Create' }}
+                  </button>
+                </div>
+              </div>
+            </section>
+
+            <!-- Danger zone -->
+            <section class="cpub-settings-section cpub-settings-danger">
+              <h3 class="cpub-settings-section-title">Danger Zone</h3>
+              <p class="cpub-settings-danger-text">Permanently delete this docs site and all its pages.</p>
+              <button class="cpub-btn cpub-btn-sm cpub-btn-danger" @click="deleteSite">
+                <i class="fa-solid fa-trash" /> Delete Site
               </button>
-              <button class="cpub-btn cpub-btn-sm" @click="editingPageId = null">Cancel</button>
-            </div>
-          </template>
-          <template v-else>
-            <div class="page-item-row">
-              <div class="page-item-info">
-                <span class="page-item-title">{{ page.title }}</span>
-                <span class="page-item-slug">/{{ page.slug }}</span>
-                <span v-if="page.parentId" class="page-item-child-badge">child</span>
-              </div>
-              <div class="page-item-actions">
-                <button class="page-action-btn" title="Move up" :disabled="idx === 0" @click="movePage(page.id, 'up')">
-                  <i class="fa-solid fa-chevron-up"></i>
-                </button>
-                <button class="page-action-btn" title="Move down" :disabled="idx === sortedPages.length - 1" @click="movePage(page.id, 'down')">
-                  <i class="fa-solid fa-chevron-down"></i>
-                </button>
-                <button class="cpub-btn cpub-btn-sm" @click="startEditPage(page)">
-                  <i class="fa-solid fa-pen"></i> Edit
-                </button>
-                <button class="page-action-btn page-action-delete" title="Delete page" @click="deletePage(page.id)">
-                  <i class="fa-solid fa-trash"></i>
-                </button>
-              </div>
-            </div>
-          </template>
+            </section>
+          </div>
         </div>
       </div>
-      <p v-else class="edit-empty">No pages yet. Create one above.</p>
-    </section>
-
-    <!-- ═══ VERSIONS ═══ -->
-    <section class="edit-section">
-      <div class="section-header">
-        <h2 class="section-heading"><i class="fa-solid fa-code-branch"></i> Versions</h2>
-        <button class="cpub-btn cpub-btn-sm" @click="showNewVersion = !showNewVersion">
-          <i class="fa-solid fa-plus"></i> Add Version
-        </button>
-      </div>
-
-      <div v-if="showNewVersion" class="new-form">
-        <input v-model="newVersion" class="edit-input" placeholder="Version (e.g. 1.0.0)" />
-        <label class="cpub-checkbox">
-          <input type="checkbox" v-model="newVersionDefault" /> Set as default version
-        </label>
-        <div class="form-actions">
-          <button class="cpub-btn cpub-btn-sm cpub-btn-primary" :disabled="savingVersion || !newVersion.trim()" @click="createVersion">
-            {{ savingVersion ? 'Creating...' : 'Create Version' }}
-          </button>
-          <button class="cpub-btn cpub-btn-sm" @click="showNewVersion = false">Cancel</button>
-        </div>
-      </div>
-
-      <div v-if="site.versions?.length" class="version-list">
-        <div v-for="v in site.versions" :key="v.id" class="version-item">
-          <span class="version-label">{{ v.version }}</span>
-          <span v-if="v.isDefault" class="version-default-badge">default</span>
-        </div>
-      </div>
-      <p v-else class="edit-empty">No versions yet.</p>
-    </section>
+    </Teleport>
   </div>
 </template>
 
 <style scoped>
-.docs-edit { max-width: 800px; margin: 0 auto; padding: 32px; }
-.docs-edit-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; }
-.page-title { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
-.cpub-back-link { color: var(--accent); text-decoration: none; font-size: 12px; }
-.cpub-back-link:hover { text-decoration: underline; }
+.cpub-docs-editor {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+}
 
-.edit-section { border: var(--border-width-default) solid var(--border); background: var(--surface); padding: 20px; margin-bottom: 16px; box-shadow: var(--shadow-md); }
-.section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
-.section-heading { font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
-.section-heading i { font-size: 12px; color: var(--accent); }
+/* Top bar */
+.cpub-docs-topbar {
+  height: 44px;
+  flex-shrink: 0;
+  background: var(--surface);
+  border-bottom: var(--border-width-default) solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  gap: 10px;
+}
 
-.settings-form { display: flex; flex-direction: column; gap: 10px; }
-.form-field { display: flex; flex-direction: column; gap: 3px; }
-.form-label { font-size: 10px; font-weight: 600; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-faint); }
-.form-row { display: flex; gap: 10px; }
+.cpub-docs-back {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dim);
+  text-decoration: none;
+  font-size: 12px;
+}
 
-.new-form { display: flex; flex-direction: column; gap: 10px; padding: 16px; border: 2px dashed var(--border); margin-bottom: 16px; background: var(--surface2); }
-.edit-input { padding: 6px 10px; border: var(--border-width-default) solid var(--border); background: var(--surface); color: var(--text); font-size: 13px; }
-.edit-input:focus { border-color: var(--accent); outline: none; }
-.edit-select { padding: 6px 10px; border: var(--border-width-default) solid var(--border); background: var(--surface); color: var(--text); font-size: 12px; }
-.edit-select:focus { border-color: var(--accent); outline: none; }
-.edit-textarea { padding: 8px 10px; border: var(--border-width-default) solid var(--border); background: var(--surface); color: var(--text); font-size: 13px; resize: vertical; font-family: inherit; }
-.edit-textarea-md { font-family: var(--font-mono); font-size: 13px; line-height: 1.6; min-height: 120px; }
-.edit-textarea:focus { border-color: var(--accent); outline: none; }
-.form-actions { display: flex; gap: 8px; margin-top: 4px; }
+.cpub-docs-back:hover {
+  color: var(--text);
+}
 
-/* Markdown toolbar */
-.md-toolbar { display: flex; gap: 2px; padding: 4px; background: var(--surface2); border: var(--border-width-default) solid var(--border); border-bottom: none; }
-.md-btn { padding: 4px 8px; background: none; border: var(--border-width-default) solid transparent; color: var(--text-dim); cursor: pointer; font-size: 12px; font-family: var(--font-mono); display: inline-flex; align-items: center; gap: 4px; }
-.md-btn:hover { background: var(--surface); border-color: var(--border); }
-.md-btn.active { background: var(--accent-bg); color: var(--accent); border-color: var(--accent-border); }
-.md-spacer { flex: 1; }
+.cpub-docs-topbar-title {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 0.04em;
+}
 
-/* Editor + Preview pane */
-.editor-pane { display: flex; gap: 0; }
-.editor-pane .edit-textarea-md { flex: 1; border-top: none; }
-.editor-pane.with-preview .edit-textarea-md { width: 50%; }
-.preview-pane { flex: 1; padding: 0; border: var(--border-width-default) solid var(--border); border-left: none; border-top: none; background: var(--surface); overflow-y: auto; max-height: 400px; }
-.preview-md { margin: 0; padding: 12px 16px; font-size: 12px; font-family: var(--font-mono); line-height: 1.6; color: var(--text-dim); white-space: pre-wrap; word-wrap: break-word; }
+.cpub-docs-topbar-spacer {
+  flex: 1;
+}
 
-/* Page list */
-.page-list { display: flex; flex-direction: column; }
-.page-item { padding: 12px 0; border-bottom: var(--border-width-default) solid var(--border2); }
-.page-item:last-child { border-bottom: none; }
-.page-item-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.page-item-info { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
-.page-item-title { font-size: 13px; font-weight: 600; }
-.page-item-slug { font-size: 11px; font-family: var(--font-mono); color: var(--text-faint); }
-.page-item-child-badge { font-size: 9px; font-family: var(--font-mono); color: var(--accent); background: var(--accent-bg); padding: 1px 6px; border: var(--border-width-default) solid var(--accent-border); }
-.page-item-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
-.page-action-btn { padding: 4px 6px; background: none; border: var(--border-width-default) solid var(--border2); color: var(--text-faint); cursor: pointer; font-size: 10px; }
-.page-action-btn:hover { color: var(--text); border-color: var(--border); }
-.page-action-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-.page-action-delete:hover { color: var(--red); border-color: var(--red); }
+.cpub-docs-toolbar-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  background: var(--surface2);
+  border: var(--border-width-default) solid var(--border);
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  cursor: pointer;
+}
 
-.version-list { display: flex; flex-wrap: wrap; gap: 8px; }
-.version-item { display: flex; align-items: center; gap: 8px; padding: 6px 12px; border: var(--border-width-default) solid var(--border); background: var(--surface2); font-size: 12px; font-family: var(--font-mono); }
-.version-label { font-weight: 600; }
-.version-default-badge { font-size: 10px; padding: 1px 6px; background: var(--accent-bg); color: var(--accent); border: var(--border-width-default) solid var(--accent-border); }
+.cpub-docs-toolbar-btn:hover {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--accent);
+}
 
-.edit-empty { color: var(--text-faint); font-size: 12px; padding: 16px 0; }
+.cpub-docs-toolbar-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Left panel header */
+.cpub-docs-left-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 0 8px;
+  border-bottom: var(--border-width-default) solid var(--border2);
+  margin-bottom: 4px;
+}
+
+.cpub-docs-left-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-faint);
+}
+
+.cpub-docs-page-count {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--text-faint);
+  background: var(--surface2);
+  padding: 1px 6px;
+  border: var(--border-width-default) solid var(--border2);
+}
+
+/* Center: editor */
+.cpub-docs-center {
+  max-width: 740px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.cpub-docs-title-area {
+  margin-bottom: 8px;
+}
+
+.cpub-docs-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text);
+  cursor: text;
+  padding: 4px 0;
+  border-bottom: 2px solid transparent;
+  transition: border-color 0.15s;
+}
+
+.cpub-docs-title:hover {
+  border-bottom-color: var(--border2);
+}
+
+.cpub-docs-title-input {
+  width: 100%;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text);
+  background: none;
+  border: none;
+  border-bottom: 2px solid var(--accent);
+  padding: 4px 0;
+  outline: none;
+  font-family: inherit;
+}
+
+/* Empty state */
+.cpub-docs-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 12px;
+  color: var(--text-faint);
+}
+
+.cpub-docs-empty-icon {
+  font-size: 32px;
+  opacity: 0.3;
+}
+
+.cpub-docs-empty-text {
+  font-size: 13px;
+}
+
+/* Right panel: properties */
+.cpub-docs-props {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.cpub-docs-props-heading {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-faint);
+  padding-bottom: 8px;
+  border-bottom: var(--border-width-default) solid var(--border2);
+}
+
+.cpub-docs-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cpub-docs-field-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+}
+
+.cpub-docs-field-input {
+  padding: 6px 8px;
+  background: var(--surface2);
+  border: var(--border-width-default) solid var(--border);
+  color: var(--text);
+  font-size: 12px;
+  font-family: var(--font-mono);
+}
+
+.cpub-docs-field-input:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.cpub-docs-field-hint {
+  font-size: 10px;
+  color: var(--text-faint);
+  line-height: 1.3;
+}
+
+.cpub-docs-field-value {
+  font-size: 12px;
+  color: var(--text-dim);
+  padding: 6px 0;
+}
+
+/* Markdown conversion notice */
+.cpub-docs-notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  background: var(--accent-bg);
+  border: var(--border-width-default) solid var(--accent-border);
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.cpub-docs-notice i:first-child {
+  color: var(--accent);
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.cpub-docs-notice-dismiss {
+  margin-left: auto;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--text-faint);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.cpub-docs-notice-dismiss:hover {
+  color: var(--text);
+}
+
+/* Status bar stats */
+.cpub-docs-stat {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cpub-docs-stat-label {
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.cpub-docs-stat-value {
+  color: var(--text-dim);
+}
+
+.cpub-docs-save-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.cpub-docs-save-dot-clean {
+  background: var(--green, #2a9d5c);
+}
+
+.cpub-docs-save-dot-dirty {
+  background: var(--yellow, #d4a017);
+}
+
+.cpub-docs-save-dot-error {
+  background: var(--red, #e04030);
+}
+
+/* Settings panel */
+.cpub-settings-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 60px;
+}
+
+.cpub-settings-panel {
+  width: 480px;
+  max-height: 80vh;
+  background: var(--surface);
+  border: var(--border-width-default) solid var(--border);
+  box-shadow: var(--shadow-xl, 8px 8px 0 var(--border));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.cpub-settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-bottom: var(--border-width-default) solid var(--border);
+}
+
+.cpub-settings-title {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cpub-settings-title i {
+  color: var(--accent);
+  font-size: 11px;
+}
+
+.cpub-settings-close {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: var(--border-width-default) solid transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.cpub-settings-close:hover {
+  background: var(--surface2);
+  border-color: var(--border);
+}
+
+.cpub-settings-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0;
+}
+
+.cpub-settings-section {
+  padding: 16px 20px;
+  border-bottom: var(--border-width-default) solid var(--border);
+}
+
+.cpub-settings-section:last-child {
+  border-bottom: none;
+}
+
+.cpub-settings-section-title {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-faint);
+  margin-bottom: 12px;
+}
+
+.cpub-settings-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.cpub-settings-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+}
+
+.cpub-settings-input {
+  padding: 6px 10px;
+  background: var(--surface2);
+  border: var(--border-width-default) solid var(--border);
+  color: var(--text);
+  font-size: 13px;
+}
+
+.cpub-settings-input:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.cpub-settings-textarea {
+  padding: 6px 10px;
+  background: var(--surface2);
+  border: var(--border-width-default) solid var(--border);
+  color: var(--text);
+  font-size: 13px;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.cpub-settings-textarea:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.cpub-settings-versions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.cpub-settings-version-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: var(--surface2);
+  border: var(--border-width-default) solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.cpub-settings-version-label {
+  font-weight: 600;
+}
+
+.cpub-settings-version-badge {
+  font-size: 9px;
+  padding: 1px 5px;
+  background: var(--accent-bg);
+  color: var(--accent);
+  border: var(--border-width-default) solid var(--accent-border);
+}
+
+.cpub-settings-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-dim);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.cpub-settings-checkbox input {
+  accent-color: var(--accent);
+}
+
+.cpub-settings-danger {
+  background: rgba(224, 64, 48, 0.03);
+}
+
+.cpub-settings-danger .cpub-settings-section-title {
+  color: var(--red, #e04030);
+}
+
+.cpub-settings-danger-text {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-bottom: 10px;
+}
+
+.cpub-btn-danger {
+  color: var(--red, #e04030);
+  border-color: var(--red, #e04030);
+}
+
+.cpub-btn-danger:hover {
+  background: var(--red, #e04030);
+  color: var(--color-text-inverse, #fff);
+}
 </style>
