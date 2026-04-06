@@ -136,6 +136,9 @@ importers:
       '@commonpub/editor':
         specifier: workspace:*
         version: link:../../packages/editor
+      '@commonpub/explainer':
+        specifier: workspace:*
+        version: link:../../packages/explainer
       '@commonpub/learning':
         specifier: workspace:*
         version: link:../../packages/learning
