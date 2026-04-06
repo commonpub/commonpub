@@ -301,6 +301,29 @@ Adafruit_NeoPixel strip(30, PIN, NEO_GRB);
       expect(result.content[0][0]).toBe('partsList');
     });
 
+    it('should handle real hackster h3 tags with nested empty p elements', async () => {
+      // Real hackster pattern: <h3 class='hckui__typography__h3 title-with-anchor' id='toc-...'><p><p class='hckui__typography__bodyL'></p></p><span>Title</span></h3>
+      const html = buildHacksterHtml({
+        story: `
+          <h3 class='hckui__typography__h3 title-with-anchor' id='toc-1--requirements-0'><p ><p class='hckui__typography__bodyL'></p></p><span >1. Requirements</span></h3>
+          <p class='hckui__typography__bodyL'>You will need the following items.</p>
+          <h3 class='hckui__typography__h3 title-with-anchor' id='toc-hardware-1'><p ><p class='hckui__typography__bodyL'></p></p><span >Hardware</span></h3>
+          <p class='hckui__typography__bodyL'>A Raspberry Pi 4 or 5 with at least 2GB RAM.</p>
+          <h3 class='hckui__typography__h3 title-with-anchor' id='toc-2--setup-3'><p ><p class='hckui__typography__bodyL'></p></p><span >2. Development Environment Setup</span></h3>
+          <p class='hckui__typography__bodyL'>Install the required tools.</p>
+        `,
+      });
+      const url = new URL('https://www.hackster.io/virgilvox/project');
+
+      const result = await hacksterHandler.import(url, html);
+
+      const headings = result.content.filter(([type]) => type === 'heading');
+      expect(headings.length).toBe(3);
+      expect((headings[0]![1] as { text: string }).text).toBe('1. Requirements');
+      expect((headings[1]![1] as { text: string }).text).toBe('Hardware');
+      expect((headings[2]![1] as { text: string }).text).toBe('2. Development Environment Setup');
+    });
+
     it('should convert bold-only paragraphs that look like step headers to heading blocks', async () => {
       const html = buildHacksterHtml({
         story: `

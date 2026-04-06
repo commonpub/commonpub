@@ -184,8 +184,18 @@ function extractStoryHtml(document: Document): string | null {
 
   if (!storyEl) return null;
 
-  const html = storyEl.innerHTML?.trim();
-  return html && html.length > 50 ? html : null;
+  let html = storyEl.innerHTML?.trim();
+  if (!html || html.length < 50) return null;
+
+  // Hackster embeds empty <p> tags inside <h3> which breaks Turndown's heading
+  // detection. The pattern from hackster:
+  //   <h3 class="..."><p><p class="..."></p></p><span>Title</span></h3>
+  // After linkedom parsing, innerHTML becomes:
+  //   <h3 class="..."><p></p><p class="..."></p><p></p><span>Title</span></h3>
+  // Clean all empty <p> tags inside headings.
+  html = html.replace(/<(h[1-6])([^>]*)>((?:<p[^>]*><\/p>)+)/gi, '<$1$2>');
+
+  return html;
 }
 
 function extractPartsFromHtml(document: Document): PartInfo[] {
