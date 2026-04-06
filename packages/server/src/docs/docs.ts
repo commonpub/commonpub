@@ -405,6 +405,7 @@ export async function updateDocsPage(
   if (input.content !== undefined) updates.content = input.content;
   if (input.sortOrder !== undefined) updates.sortOrder = input.sortOrder;
   if (input.parentId !== undefined) updates.parentId = input.parentId;
+  if ((input as Record<string, unknown>).status !== undefined) updates.status = (input as Record<string, unknown>).status;
 
   const [updated] = await db
     .update(docsPages)

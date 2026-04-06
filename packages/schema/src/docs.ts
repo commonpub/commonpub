@@ -41,7 +41,8 @@ export const docsPages = pgTable('docs_pages', {
     .references(() => docsVersions.id, { onDelete: 'cascade' }),
   title: varchar('title', { length: 255 }).notNull(),
   slug: varchar('slug', { length: 255 }).notNull(),
-  content: text('content').notNull(), // Raw markdown (Standing Rule #4)
+  content: text('content').notNull(),
+  status: varchar('status', { length: 16 }).default('draft').notNull(),
   sortOrder: integer('sort_order').default(0).notNull(),
   // Self-referencing FK handled via relations; DB-level constraint added via migration
   parentId: uuid('parent_id'),

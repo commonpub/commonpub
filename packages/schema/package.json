@@ -1,6 +1,6 @@
 {
   "name": "@commonpub/schema",
-  "version": "0.8.15",
+  "version": "0.8.16",
   "type": "module",
   "description": "Drizzle ORM tables and Zod validators for CommonPub",
   "license": "AGPL-3.0-or-later",
@@ -9,7 +9,15 @@
     "url": "https://github.com/commonpub/commonpub",
     "directory": "packages/schema"
   },
-  "keywords": ["commonpub", "activitypub", "federation", "typescript", "drizzle", "schema", "zod"],
+  "keywords": [
+    "commonpub",
+    "activitypub",
+    "federation",
+    "typescript",
+    "drizzle",
+    "schema",
+    "zod"
+  ],
   "publishConfig": {
     "access": "public"
   },
@@ -33,7 +41,12 @@
       "import": "./dist/enums.js"
     }
   },
-  "files": ["dist/", "!dist/__tests__/", "README.md", "LICENSE"],
+  "files": [
+    "dist/",
+    "!dist/__tests__/",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "tsc",
     "prepublishOnly": "pnpm run build",

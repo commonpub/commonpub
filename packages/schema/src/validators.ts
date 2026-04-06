@@ -423,6 +423,7 @@ export const createDocsPageSchema = z.object({
     z.string(),
     z.array(z.array(z.unknown())),
   ]).default(''),
+  status: z.enum(['draft', 'published']).default('draft').optional(),
   sortOrder: z.number().int().min(0).optional(),
   parentId: z.string().uuid().optional(),
 });

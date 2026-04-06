@@ -73,6 +73,7 @@ const selectedPage = computed<DocsPage | null>(() =>
 
 // Page properties (right panel)
 const pageSlug = ref('');
+const pageStatus = ref<'draft' | 'published'>('draft');
 const savingPage = ref(false);
 const autoSaveTimer = ref<ReturnType<typeof setTimeout> | null>(null);
 const autoSaveStatus = ref<'idle' | 'saving' | 'saved' | 'error'>('idle');
@@ -110,6 +111,7 @@ async function selectPage(pageId: string): Promise<void> {
 
   // Load properties
   pageSlug.value = page.slug ?? '';
+  pageStatus.value = ((page as Record<string, unknown>).status as 'draft' | 'published') || 'draft';
   isDirty.value = false;
   autoSaveStatus.value = 'idle';
 
@@ -146,6 +148,36 @@ async function saveCurrentPage(): Promise<void> {
 }
 
 // Autosave: debounce 5 seconds for docs (shorter than article 30s)
+async function publishPage(): Promise<void> {
+  if (!selectedPageId.value) return;
+  try {
+    await $fetch(`/api/docs/${siteSlug.value}/pages/${selectedPageId.value}`, {
+      method: 'PUT',
+      body: { status: 'published' },
+    });
+    pageStatus.value = 'published';
+    await refreshPages();
+    toast('Page published', 'success');
+  } catch {
+    toast('Failed to publish', 'error');
+  }
+}
+
+async function unpublishPage(): Promise<void> {
+  if (!selectedPageId.value) return;
+  try {
+    await $fetch(`/api/docs/${siteSlug.value}/pages/${selectedPageId.value}`, {
+      method: 'PUT',
+      body: { status: 'draft' },
+    });
+    pageStatus.value = 'draft';
+    await refreshPages();
+    toast('Page unpublished', 'success');
+  } catch {
+    toast('Failed to unpublish', 'error');
+  }
+}
+
 function scheduleAutoSave(): void {
   if (autoSaveTimer.value) clearTimeout(autoSaveTimer.value);
   autoSaveTimer.value = setTimeout(() => {
@@ -499,22 +531,66 @@ async function createVersion(): Promise<void> {
         </div>
       </template>
 
-      <!-- RIGHT: Page properties -->
+      <!-- RIGHT: Blocks + Properties -->
       <template #right>
-        <div v-if="selectedPage" class="cpub-docs-props">
-          <h3 class="cpub-docs-props-heading">Page Properties</h3>
-
-          <div class="cpub-docs-field">
-            <label class="cpub-docs-field-label">Slug</label>
-            <input v-model="pageSlug" class="cpub-docs-field-input" placeholder="page-slug" />
+        <div v-if="selectedPage" class="cpub-docs-right">
+          <!-- Block palette -->
+          <div class="cpub-docs-right-section">
+            <h3 class="cpub-docs-props-heading">Blocks</h3>
+            <div class="cpub-docs-block-list">
+              <template v-for="group in blockTypes" :key="group.name">
+                <button
+                  v-for="block in group.blocks"
+                  :key="block.type + (block.attrs?.variant || '')"
+                  class="cpub-docs-block-btn"
+                  @click="blockEditor.addBlock(block.type, block.attrs)"
+                >
+                  <i :class="`fa-solid ${block.icon}`" class="cpub-docs-block-icon" />
+                  <span>{{ block.label }}</span>
+                </button>
+              </template>
+            </div>
           </div>
 
-          <div class="cpub-docs-field">
-            <label class="cpub-docs-field-label">Parent</label>
-            <div class="cpub-docs-field-value">
-              {{ selectedPage?.parentId ? pages.find(p => p.id === selectedPage!.parentId)?.title ?? 'Unknown' : 'Top level' }}
+          <!-- Page properties -->
+          <div class="cpub-docs-right-section">
+            <h3 class="cpub-docs-props-heading">Properties</h3>
+
+            <div class="cpub-docs-field">
+              <label class="cpub-docs-field-label">Slug</label>
+              <input v-model="pageSlug" class="cpub-docs-field-input" placeholder="page-slug" />
             </div>
-            <span class="cpub-docs-field-hint">Drag pages in the tree to change hierarchy</span>
+
+            <div class="cpub-docs-field">
+              <label class="cpub-docs-field-label">Status</label>
+              <div class="cpub-docs-status-row">
+                <span class="cpub-docs-status-badge" :class="pageStatus === 'published' ? 'cpub-docs-status-published' : 'cpub-docs-status-draft'">
+                  {{ pageStatus === 'published' ? 'Published' : 'Draft' }}
+                </span>
+                <button
+                  v-if="pageStatus !== 'published'"
+                  class="cpub-docs-publish-btn"
+                  @click="publishPage"
+                >
+                  <i class="fa-solid fa-globe" /> Publish
+                </button>
+                <button
+                  v-else
+                  class="cpub-docs-unpublish-btn"
+                  @click="unpublishPage"
+                >
+                  Unpublish
+                </button>
+              </div>
+            </div>
+
+            <div class="cpub-docs-field">
+              <label class="cpub-docs-field-label">Parent</label>
+              <div class="cpub-docs-field-value">
+                {{ selectedPage?.parentId ? pages.find(p => p.id === selectedPage!.parentId)?.title ?? 'Unknown' : 'Top level' }}
+              </div>
+              <span class="cpub-docs-field-hint">Drag pages in the tree to change hierarchy</span>
+            </div>
           </div>
         </div>
       </template>
@@ -836,6 +912,117 @@ async function createVersion(): Promise<void> {
   font-size: 10px;
   color: var(--text-faint);
   line-height: 1.3;
+}
+
+/* Right panel layout */
+.cpub-docs-right {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.cpub-docs-right-section {
+  padding: 12px 0;
+  border-bottom: var(--border-width-default) solid var(--border2);
+}
+
+.cpub-docs-right-section:last-child {
+  border-bottom: none;
+}
+
+/* Block palette */
+.cpub-docs-block-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cpub-docs-block-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  background: none;
+  border: var(--border-width-default) solid transparent;
+  color: var(--text-dim);
+  font-size: 11px;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+}
+
+.cpub-docs-block-btn:hover {
+  background: var(--surface2);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+.cpub-docs-block-icon {
+  width: 14px;
+  font-size: 10px;
+  color: var(--text-faint);
+  text-align: center;
+}
+
+/* Status badge + publish */
+.cpub-docs-status-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cpub-docs-status-badge {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 2px 8px;
+}
+
+.cpub-docs-status-draft {
+  color: var(--yellow, #d4a017);
+  background: var(--yellow-bg, rgba(245, 158, 11, 0.08));
+  border: var(--border-width-default) solid var(--yellow-border, rgba(245, 158, 11, 0.25));
+}
+
+.cpub-docs-status-published {
+  color: var(--green, #2a9d5c);
+  background: var(--green-bg, rgba(34, 197, 94, 0.08));
+  border: var(--border-width-default) solid var(--green-border, rgba(34, 197, 94, 0.25));
+}
+
+.cpub-docs-publish-btn {
+  padding: 3px 10px;
+  background: var(--accent);
+  border: var(--border-width-default) solid var(--accent);
+  color: var(--color-text-inverse, #fff);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.cpub-docs-publish-btn:hover {
+  opacity: 0.85;
+}
+
+.cpub-docs-unpublish-btn {
+  padding: 3px 10px;
+  background: none;
+  border: var(--border-width-default) solid var(--border);
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  cursor: pointer;
+}
+
+.cpub-docs-unpublish-btn:hover {
+  color: var(--yellow, #d4a017);
+  border-color: var(--yellow, #d4a017);
 }
 
 .cpub-docs-field-value {

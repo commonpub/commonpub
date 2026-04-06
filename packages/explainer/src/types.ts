@@ -310,27 +310,71 @@ export function isExplainerDocument(data: unknown): data is ExplainerDocument {
   );
 }
 
-/** Create a blank ExplainerDocument for new explainers */
+/** Generate a unique section ID */
+function secId(): string {
+  return `sec_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
+}
+
+/** Create a new ExplainerDocument pre-populated with a template that teaches how to make explainers */
 export function createEmptyDocument(title?: string): ExplainerDocument {
   return {
     version: 2,
     theme: 'dark-industrial',
     hero: {
-      title: title || '',
-      subtitle: '',
+      title: title || 'Your Explainer Title',
+      subtitle: 'A short, curiosity-driven hook. What surprising question are you answering?',
+      highlight: 'Why does this matter?',
       scrollHint: 'Scroll to begin',
     },
     sections: [
       {
-        id: `sec_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`,
-        anchor: 'introduction',
-        heading: '',
-        body: '',
+        id: secId(),
+        anchor: 'start-simple',
+        heading: 'Start Simple',
+        body: '<p>Begin with something your reader already understands. Section 1 should feel almost <strong>too easy</strong>. You are building confidence before the complexity hits.</p><p>Keep it to 1-2 short paragraphs, then let them interact.</p>',
+        module: {
+          type: 'slider',
+          props: {
+            label: 'Example', min: 0, max: 100, step: 1, unit: '', defaultValue: 50,
+            feedback: [
+              { min: 0, max: 30, state: 'low', message: 'Low range. Readers discover this feels different.' },
+              { min: 30, max: 70, state: 'good', message: 'Middle ground. The expected behavior.' },
+              { min: 70, max: 100, state: 'high', message: 'High range. Something interesting happens here.' },
+            ],
+          },
+        },
+        insight: 'Name the concept they just experienced. "This is called X, and it means Y."',
+        bridge: '<em>That was straightforward. <strong>But what happens when we complicate it?</strong></em>',
+        aside: { icon: 'lightbulb', label: 'Key idea', text: 'Every section follows: QUESTION (text) > INTERACT (the toy) > INSIGHT (name the discovery) > BRIDGE (hook to next).' },
+      },
+      {
+        id: secId(),
+        anchor: 'complicate-it',
+        heading: 'Now Complicate It',
+        body: '<p>Section 2-3 introduces the wrinkle. The thing that makes the simple version break down. Use a <strong>rhetorical question</strong> to drive momentum.</p><p>Try a different module type here. A quiz tests if they understood section 1.</p>',
+        module: {
+          type: 'quiz',
+          props: {
+            question: 'What should every section of an explainer have?',
+            options: [
+              { text: 'A heading, body text, and an image', correct: false },
+              { text: 'Question, Interaction, Insight, and Bridge', correct: true },
+              { text: 'Multiple paragraphs and a chart', correct: false },
+            ],
+          },
+        },
+        insight: 'The QUESTION > INTERACT > INSIGHT > BRIDGE rhythm is what makes an explainer feel different from an article. The structure IS the simplicity.',
+        bridge: '<em>Now you know the pattern. <strong>Replace these sections with your own content.</strong></em>',
       },
     ],
+    conclusion: {
+      heading: 'What to Do Next',
+      body: '<p>Replace this template with your own content. Each section should teach <strong>one concept</strong> through <strong>one interaction</strong>. Start simple, build complexity, end with a synthesis.</p><p>Use the module picker to add different interaction types: sliders, quizzes, toggles, reveal cards, and more.</p>',
+    },
     meta: {
       estimatedMinutes: 5,
       difficulty: 'beginner',
+      description: '',
     },
     settings: {
       showProgressBar: true,
