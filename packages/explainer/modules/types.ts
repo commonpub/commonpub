@@ -32,6 +32,8 @@ export interface ConfigField {
   group?: string;
   width?: 'full' | 'half';
   advanced?: boolean;
+  /** For array fields: template object for new items (e.g. { text: '', correct: false }) */
+  itemTemplate?: Record<string, unknown>;
 }
 
 /** A loaded module with all its parts resolved */

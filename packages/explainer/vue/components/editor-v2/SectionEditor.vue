@@ -51,11 +51,14 @@ function updateConfigField(key: string, value: unknown): void {
 }
 
 // Array field helpers
-function addArrayItem(key: string): void {
+function addArrayItem(key: string, itemTemplate?: Record<string, unknown>): void {
   const arr = [...((moduleConfig.value[key] as unknown[]) ?? [])];
-  // Detect item shape from existing items or default to empty string
-  if (arr.length > 0 && typeof arr[0] === 'object' && arr[0] !== null) {
-    // Clone shape with empty values
+
+  if (itemTemplate) {
+    // Use the field's declared template
+    arr.push({ ...itemTemplate });
+  } else if (arr.length > 0 && typeof arr[0] === 'object' && arr[0] !== null) {
+    // Clone shape from first existing item
     const template: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(arr[0] as Record<string, unknown>)) {
       template[k] = typeof v === 'string' ? '' : typeof v === 'number' ? 0 : typeof v === 'boolean' ? false : '';
@@ -251,6 +254,16 @@ function updateAside(field: string, value: string): void {
               <option v-for="opt in field.options" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
             </select>
 
+            <!-- Toggle field -->
+            <label v-else-if="field.type === 'toggle'" class="cpub-se-toggle-label">
+              <input
+                type="checkbox"
+                :checked="(moduleConfig[field.key] as boolean) ?? (field.default as boolean) ?? false"
+                @change="updateConfigField(field.key, ($event.target as HTMLInputElement).checked)"
+              />
+              <span>{{ (moduleConfig[field.key] as boolean) ?? (field.default as boolean) ? 'Enabled' : 'Disabled' }}</span>
+            </label>
+
             <!-- Array field: repeater for lists of items -->
             <div v-else-if="field.type === 'array'" class="cpub-se-array">
               <div
@@ -295,7 +308,7 @@ function updateAside(field: string, value: string): void {
                   <i class="fa-solid fa-xmark" />
                 </button>
               </div>
-              <button class="cpub-se-array-add" @click="addArrayItem(field.key)">
+              <button class="cpub-se-array-add" @click="addArrayItem(field.key, field.itemTemplate)">
                 <i class="fa-solid fa-plus" /> Add item
               </button>
             </div>
@@ -484,6 +497,10 @@ function updateAside(field: string, value: string): void {
 .cpub-se-array-add:hover { border-color: var(--accent, #e04030); color: var(--accent, #e04030); }
 .cpub-se-array-check { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--text-dim, #999); cursor: pointer; }
 .cpub-se-array-check input { accent-color: var(--accent, #e04030); }
+
+/* Toggle field */
+.cpub-se-toggle-label { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-dim, #999); cursor: pointer; padding: 4px 0; }
+.cpub-se-toggle-label input { accent-color: var(--accent, #e04030); }
 
 /* Aside box */
 .cpub-se-aside-box {
