@@ -64,6 +64,7 @@ export async function getUserByUsername(db: DB, username: string): Promise<UserP
     bannerUrl: user.bannerUrl ?? null,
     socialLinks,
     skills: (user.skills as string[]) ?? null,
+    experience: (user.experience as UserProfile['experience']) ?? null,
     pronouns: user.pronouns ?? null,
     createdAt: user.createdAt,
     followerCount,
@@ -93,6 +94,13 @@ export async function updateUserProfile(
     bannerUrl?: string;
     socialLinks?: Record<string, string | undefined>;
     skills?: string[];
+    experience?: Array<{
+      title: string;
+      company: string;
+      startDate: string;
+      endDate: string;
+      description: string;
+    }>;
     pronouns?: string;
     timezone?: string;
     emailNotifications?: {
@@ -123,6 +131,7 @@ export async function updateUserProfile(
   if (input.bannerUrl !== undefined) updates.bannerUrl = input.bannerUrl;
   if (input.socialLinks !== undefined) updates.socialLinks = input.socialLinks;
   if (input.skills !== undefined) updates.skills = input.skills;
+  if (input.experience !== undefined) updates.experience = input.experience;
   if (input.pronouns !== undefined) updates.pronouns = input.pronouns;
   if (input.timezone !== undefined) updates.timezone = input.timezone;
   if (input.emailNotifications !== undefined) updates.emailNotifications = input.emailNotifications;

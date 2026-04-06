@@ -103,6 +103,13 @@ export interface UserProfile {
     discord?: string;
   } | null;
   skills: string[] | null;
+  experience: Array<{
+    title: string;
+    company: string;
+    startDate: string;
+    endDate: string;
+    description: string;
+  }> | null;
   pronouns: string | null;
   createdAt: Date;
   followerCount: number;

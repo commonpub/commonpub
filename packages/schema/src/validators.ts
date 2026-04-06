@@ -55,6 +55,13 @@ export const updateProfileSchema = z.object({
   bannerUrl: optionalUrl(2048),
   socialLinks: socialLinksSchema,
   skills: z.array(z.string().max(64)).max(50).optional(),
+  experience: z.array(z.object({
+    title: z.string().max(128),
+    company: z.string().max(128),
+    startDate: z.string().max(32),
+    endDate: z.string().max(32),
+    description: z.string().max(2000),
+  })).max(20).optional(),
   pronouns: z.string().max(32).optional(),
   timezone: z.string().max(64).optional(),
   emailNotifications: z
@@ -412,7 +419,10 @@ export const createDocsPageSchema = z.object({
   versionId: z.string().uuid().optional(),
   title: z.string().min(1).max(255),
   slug: z.string().max(255).optional(),
-  content: z.string().default(''),
+  content: z.union([
+    z.string(),
+    z.array(z.array(z.unknown())),
+  ]).default(''),
   sortOrder: z.number().int().min(0).optional(),
   parentId: z.string().uuid().optional(),
 });

@@ -171,6 +171,7 @@ async function handleSave(): Promise<void> {
       body: {
         ...form.value,
         skills: skills.value.filter((s) => s.name.trim()).map((s) => s.name),
+        experience: experience.value.filter((e) => e.title.trim()),
         socialLinks: socialLinks.value,
         ...(emailNotificationsEnabled.value ? { emailNotifications: emailNotifications.value } : {}),
       },

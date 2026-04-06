@@ -28,6 +28,13 @@ export const users = pgTable('users', {
   status: userStatusEnum('status').default('active').notNull(),
   profileVisibility: profileVisibilityEnum('profile_visibility').default('public').notNull(),
   skills: jsonb('skills').$type<string[]>(),
+  experience: jsonb('experience').$type<Array<{
+    title: string;
+    company: string;
+    startDate: string;
+    endDate: string;
+    description: string;
+  }>>(),
   theme: varchar('theme', { length: 64 }),
   pronouns: varchar('pronouns', { length: 32 }),
   timezone: varchar('timezone', { length: 64 }),
