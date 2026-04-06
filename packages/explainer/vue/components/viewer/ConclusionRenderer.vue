@@ -1,16 +1,20 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import type { ExplainerConclusion } from '@commonpub/explainer';
+import { sanitizeHtml } from '../../utils/sanitize';
 
-defineProps<{
+const props = defineProps<{
   conclusion: ExplainerConclusion;
 }>();
+
+const sanitizedBody = computed(() => props.conclusion.body ? sanitizeHtml(props.conclusion.body) : '');
 </script>
 
 <template>
   <section class="cpub-explainer-conclusion" data-section-id="conclusion">
     <div class="cpub-explainer-conclusion-inner">
       <h2 class="cpub-conclusion-heading">{{ conclusion.heading }}</h2>
-      <div class="cpub-conclusion-body" v-html="conclusion.body" />
+      <div class="cpub-conclusion-body" v-html="sanitizedBody" />
 
       <a
         v-if="conclusion.callToAction"

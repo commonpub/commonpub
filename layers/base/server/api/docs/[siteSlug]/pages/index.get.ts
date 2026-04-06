@@ -30,5 +30,18 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'No version found for docs site' });
   }
 
-  return listDocsPages(db, version.id);
+  const pages = await listDocsPages(db, version.id);
+
+  // Parse content: if stored as JSON string (BlockTuple[]), parse back to array
+  return pages.map((page) => {
+    let content: string | unknown[] = page.content ?? '';
+    if (typeof content === 'string' && content.startsWith('[')) {
+      try {
+        content = JSON.parse(content);
+      } catch {
+        // Not valid JSON — keep as markdown string
+      }
+    }
+    return { ...page, content };
+  });
 });

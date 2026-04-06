@@ -104,6 +104,8 @@ export type ExplainerSection = TextSection | InteractiveSection | QuizSection | 
 export interface ExplainerMeta {
   estimatedMinutes: number;
   difficulty: ExplainerDifficulty;
+  description?: string;
+  tags?: string[];
   prerequisites?: string[];
   learningObjectives?: string[];
 }
@@ -164,11 +166,49 @@ export interface QuizResult {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// V2 DOCUMENT FORMAT — Scroll-Based Explainer (Sprint 2+)
+// EXPLAINER DOCUMENT FORMAT — Scroll-Based Explainer
 // ═══════════════════════════════════════════════════════════════
 
 /** Theme preset identifiers (from the Explorable Explainer Bible) */
 export type ExplainerThemePreset = 'dark-industrial' | 'punk-zine' | 'paper-teal' | 'clean-light';
+
+/** All customizable theme tokens — maps to CSS custom properties */
+export interface ExplainerThemeTokens {
+  'bg-page': string;
+  'bg-section': string;
+  'bg-section-alt': string;
+  'bg-dark': string;
+  'text-primary': string;
+  'text-secondary': string;
+  'text-muted': string;
+  'accent': string;
+  'accent-hover': string;
+  'accent-light': string;
+  'accent-glow': string;
+  'border': string;
+  'border-dark': string;
+  'border-width': string;
+  'font-display': string;
+  'font-body': string;
+  'font-ui': string;
+  'font-import': string;
+  'radius': string;
+}
+
+/** Theme reference — a preset name, or a preset + custom overrides */
+export type ExplainerThemeRef =
+  | ExplainerThemePreset
+  | { preset: ExplainerThemePreset; overrides: Partial<ExplainerThemeTokens> };
+
+/** Resolve the base preset from a theme reference */
+export function resolveThemePreset(theme: ExplainerThemeRef): ExplainerThemePreset {
+  return typeof theme === 'string' ? theme : theme.preset;
+}
+
+/** Resolve custom overrides from a theme reference (empty object if pure preset) */
+export function resolveThemeOverrides(theme: ExplainerThemeRef): Partial<ExplainerThemeTokens> {
+  return typeof theme === 'string' ? {} : (theme.overrides ?? {});
+}
 
 /** Module configuration for an interactive element within a section */
 export interface ModuleConfig {
@@ -185,7 +225,7 @@ export interface SectionAside {
   text: string;
 }
 
-/** A section in the V2 ExplainerDocument format */
+/** A section in the ExplainerDocument format */
 export interface ExplainerDocSection {
   /** Unique section identifier */
   id: string;
@@ -234,12 +274,12 @@ export interface ExplainerConclusion {
   };
 }
 
-/** The V2 structured document format for scroll-based explainers */
+/** Structured document format for scroll-based explainers */
 export interface ExplainerDocument {
   /** Format version — always 2 for the scroll-based format */
   version: 2;
-  /** Theme preset identifier */
-  theme: ExplainerThemePreset;
+  /** Theme — a preset name, or preset + custom overrides */
+  theme: ExplainerThemeRef;
   /** Hero section (the opening) */
   hero: ExplainerHero;
   /** Content sections (QUESTION > INTERACT > INSIGHT > BRIDGE each) */
@@ -257,7 +297,7 @@ export interface ExplainerDocument {
   };
 }
 
-/** Type guard: checks if data is a V2 ExplainerDocument (vs legacy BlockTuple[]) */
+/** Type guard: checks if data is an ExplainerDocument */
 export function isExplainerDocument(data: unknown): data is ExplainerDocument {
   return (
     typeof data === 'object' &&
@@ -268,4 +308,35 @@ export function isExplainerDocument(data: unknown): data is ExplainerDocument {
     Array.isArray((data as Record<string, unknown>).sections) &&
     'hero' in data
   );
+}
+
+/** Create a blank ExplainerDocument for new explainers */
+export function createEmptyDocument(title?: string): ExplainerDocument {
+  return {
+    version: 2,
+    theme: 'dark-industrial',
+    hero: {
+      title: title || '',
+      subtitle: '',
+      scrollHint: 'Scroll to begin',
+    },
+    sections: [
+      {
+        id: `sec_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`,
+        anchor: 'introduction',
+        heading: '',
+        body: '',
+      },
+    ],
+    meta: {
+      estimatedMinutes: 5,
+      difficulty: 'beginner',
+    },
+    settings: {
+      showProgressBar: true,
+      showNavDots: true,
+      showFooter: true,
+      footerText: 'An explorable explanation',
+    },
+  };
 }

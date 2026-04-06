@@ -48,7 +48,7 @@ export {
 } from './versioning/manager.js';
 
 // Search
-export { stripMarkdown, buildSearchDocument, buildSearchQuery } from './search/indexer.js';
+export { stripMarkdown, stripBlockTuples, buildSearchDocument, buildSearchQuery } from './search/indexer.js';
 
 // Search adapters
 export type {

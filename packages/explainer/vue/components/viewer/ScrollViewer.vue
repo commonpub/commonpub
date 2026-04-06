@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import type { ExplainerDocument, ExplainerThemePreset } from '@commonpub/explainer';
+import type { ExplainerDocument, ExplainerThemeRef } from '@commonpub/explainer';
+import { resolveThemePreset } from '@commonpub/explainer';
 import { useScrollTracking } from '../../composables/useScrollTracking';
 import { useExplainerTheme } from '../../composables/useExplainerTheme';
 import ProgressBar from './ProgressBar.vue';
@@ -21,7 +22,7 @@ const emit = defineEmits<{
 
 // Refs
 const viewerRoot = ref<HTMLElement | null>(null);
-const themeRef = ref<ExplainerThemePreset>(props.document.theme);
+const themeRef = computed<ExplainerThemeRef>(() => props.document.theme);
 
 // Section IDs for scroll tracking (hero + sections + conclusion)
 const allSectionIds = computed(() => {

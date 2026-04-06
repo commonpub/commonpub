@@ -1,0 +1,212 @@
+<script setup lang="ts">
+import { ref, computed } from 'vue';
+import type { ExplainerDocSection } from '@commonpub/explainer';
+import { getModule } from '../../../modules/registry';
+
+const props = defineProps<{
+  sections: ExplainerDocSection[];
+  selectedId: string | null;
+}>();
+
+const emit = defineEmits<{
+  select: [sectionId: string];
+  add: [];
+  move: [fromIndex: number, toIndex: number];
+  delete: [sectionId: string];
+  duplicate: [sectionId: string];
+}>();
+
+function getModuleColor(section: ExplainerDocSection): string {
+  const mod = section.module ? getModule(section.module.type) : getModule('text-only');
+  return mod?.meta.color ?? '#6b7280';
+}
+
+function getModuleName(section: ExplainerDocSection): string {
+  const mod = section.module ? getModule(section.module.type) : getModule('text-only');
+  return mod?.meta.name ?? 'Text';
+}
+
+// Drag state
+const dragIdx = ref<number | null>(null);
+const dropIdx = ref<number | null>(null);
+
+function onDragStart(idx: number, e: DragEvent): void {
+  dragIdx.value = idx;
+  if (e.dataTransfer) {
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', String(idx));
+  }
+}
+
+function onDragOver(idx: number, e: DragEvent): void {
+  if (dragIdx.value === idx) return;
+  e.preventDefault();
+  dropIdx.value = idx;
+}
+
+function onDrop(idx: number): void {
+  if (dragIdx.value !== null && dragIdx.value !== idx) {
+    emit('move', dragIdx.value, idx);
+  }
+  dragIdx.value = null;
+  dropIdx.value = null;
+}
+
+function onDragEnd(): void {
+  dragIdx.value = null;
+  dropIdx.value = null;
+}
+</script>
+
+<template>
+  <div class="cpub-section-list">
+    <div
+      v-for="(section, idx) in sections"
+      :key="section.id"
+      class="cpub-section-item"
+      :class="{
+        'cpub-section-item-selected': selectedId === section.id,
+        'cpub-section-item-dragging': dragIdx === idx,
+        'cpub-section-item-drop': dropIdx === idx,
+      }"
+      draggable="true"
+      @click="emit('select', section.id)"
+      @dragstart="onDragStart(idx, $event)"
+      @dragover="onDragOver(idx, $event)"
+      @dragleave="dropIdx = null"
+      @drop.prevent="onDrop(idx)"
+      @dragend="onDragEnd"
+    >
+      <div
+        class="cpub-section-num"
+        :class="{ 'cpub-section-num-active': selectedId === section.id }"
+      >
+        {{ idx + 1 }}
+      </div>
+      <div class="cpub-section-info">
+        <span class="cpub-section-title">{{ section.heading || 'Untitled' }}</span>
+        <span class="cpub-section-badge" :style="{ color: getModuleColor(section) }">
+          <span class="cpub-section-badge-dot" :style="{ background: getModuleColor(section) }" />
+          {{ getModuleName(section) }}
+        </span>
+      </div>
+    </div>
+
+    <button class="cpub-section-add-btn" @click="emit('add')">
+      <i class="fa-solid fa-plus" /> Add Section
+    </button>
+  </div>
+</template>
+
+<style scoped>
+.cpub-section-list {
+  display: flex;
+  flex-direction: column;
+  padding: 4px 0;
+}
+
+.cpub-section-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px 8px 12px;
+  cursor: pointer;
+  border-left: 2px solid transparent;
+  transition: all 0.1s;
+}
+
+.cpub-section-item:hover {
+  background: var(--surface2, rgba(255, 255, 255, 0.04));
+}
+
+.cpub-section-item-selected {
+  background: var(--accent-bg, rgba(224, 64, 48, 0.06));
+  border-left-color: var(--accent, #e04030);
+}
+
+.cpub-section-item-dragging {
+  opacity: 0.4;
+}
+
+.cpub-section-item-drop {
+  border-top: 2px solid var(--accent, #e04030);
+}
+
+.cpub-section-num {
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-ui, monospace);
+  font-size: 9px;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-faint, #666);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.cpub-section-num-active {
+  background: var(--accent, #e04030);
+  color: #fff;
+}
+
+.cpub-section-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.cpub-section-title {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text, #ccc);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cpub-section-item-selected .cpub-section-title {
+  color: #fff;
+}
+
+.cpub-section-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-ui, monospace);
+  font-size: 9px;
+  margin-top: 2px;
+}
+
+.cpub-section-badge-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.cpub-section-add-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 8px;
+  margin-top: 4px;
+  background: none;
+  border: 2px dashed var(--border, rgba(255, 255, 255, 0.1));
+  color: var(--text-faint, #666);
+  font-family: var(--font-ui, monospace);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+}
+
+.cpub-section-add-btn:hover {
+  border-color: var(--accent, #e04030);
+  color: var(--accent, #e04030);
+}
+</style>

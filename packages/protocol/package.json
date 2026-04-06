@@ -1,8 +1,8 @@
 {
   "name": "@commonpub/protocol",
-  "version": "0.9.5",
+  "version": "0.9.6",
   "type": "module",
-  "description": "ActivityPub federation protocol — HTTP signatures, WebFinger, NodeInfo",
+  "description": "ActivityPub federation protocol \u2014 HTTP signatures, WebFinger, NodeInfo",
   "license": "AGPL-3.0-or-later",
   "repository": {
     "type": "git",

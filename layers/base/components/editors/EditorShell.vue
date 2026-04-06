@@ -19,52 +19,80 @@ function toggleRight(): void {
 </script>
 
 <template>
-  <div class="cpub-editor-shell-inner">
-    <!-- Mobile sidebar toggles -->
-    <div class="cpub-editor-mobile-toggles">
-      <button v-if="showLeftSidebar" class="cpub-editor-toggle-btn" aria-label="Toggle blocks panel" @click="toggleLeft">
-        <i class="fa-solid fa-layer-group"></i>
-      </button>
-      <button v-if="showRightSidebar" class="cpub-editor-toggle-btn" aria-label="Toggle properties panel" @click="toggleRight">
-        <i class="fa-solid fa-sliders"></i>
-      </button>
+  <div class="cpub-editor-shell-wrapper">
+    <div class="cpub-editor-shell-inner">
+      <!-- Mobile sidebar toggles -->
+      <div class="cpub-editor-mobile-toggles">
+        <button v-if="showLeftSidebar" class="cpub-editor-toggle-btn" aria-label="Toggle blocks panel" @click="toggleLeft">
+          <i class="fa-solid fa-layer-group"></i>
+        </button>
+        <button v-if="showRightSidebar" class="cpub-editor-toggle-btn" aria-label="Toggle properties panel" @click="toggleRight">
+          <i class="fa-solid fa-sliders"></i>
+        </button>
+      </div>
+
+      <!-- Left sidebar -->
+      <aside
+        v-if="showLeftSidebar"
+        class="cpub-editor-left"
+        :class="{ 'cpub-editor-sidebar-open': leftOpen }"
+        aria-label="Editor sidebar"
+      >
+        <slot name="left" />
+      </aside>
+
+      <!-- Overlay for mobile sidebars -->
+      <div v-if="leftOpen || rightOpen" class="cpub-editor-overlay" @click="leftOpen = false; rightOpen = false" />
+
+      <div class="cpub-editor-center">
+        <slot />
+      </div>
+
+      <!-- Right sidebar -->
+      <aside
+        v-if="showRightSidebar"
+        class="cpub-editor-right"
+        :class="{ 'cpub-editor-sidebar-open': rightOpen }"
+        aria-label="Properties"
+      >
+        <slot name="right" />
+      </aside>
     </div>
 
-    <!-- Left sidebar -->
-    <aside
-      v-if="showLeftSidebar"
-      class="cpub-editor-left"
-      :class="{ 'cpub-editor-sidebar-open': leftOpen }"
-      aria-label="Editor sidebar"
-    >
-      <slot name="left" />
-    </aside>
-
-    <!-- Overlay for mobile sidebars -->
-    <div v-if="leftOpen || rightOpen" class="cpub-editor-overlay" @click="leftOpen = false; rightOpen = false" />
-
-    <div class="cpub-editor-center">
-      <slot />
+    <!-- Status bar -->
+    <div v-if="$slots.status" class="cpub-editor-status-bar">
+      <slot name="status" />
     </div>
-
-    <!-- Right sidebar -->
-    <aside
-      v-if="showRightSidebar"
-      class="cpub-editor-right"
-      :class="{ 'cpub-editor-sidebar-open': rightOpen }"
-      aria-label="Properties"
-    >
-      <slot name="right" />
-    </aside>
   </div>
 </template>
 
 <style scoped>
+.cpub-editor-shell-wrapper {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+}
+
 .cpub-editor-shell-inner {
   display: flex;
   flex: 1;
   overflow: hidden;
   position: relative;
+}
+
+.cpub-editor-status-bar {
+  height: 28px;
+  flex-shrink: 0;
+  background: var(--surface);
+  border-top: var(--border-width-default) solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  gap: 14px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-faint);
 }
 
 .cpub-editor-left {

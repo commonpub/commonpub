@@ -28,7 +28,10 @@ export const createDocsPageSchema = z.object({
     .min(1)
     .max(255)
     .regex(slugPattern, 'Slug must be lowercase alphanumeric with hyphens'),
-  content: z.string(),
+  content: z.union([
+    z.string(),
+    z.array(z.array(z.unknown())),
+  ]),
   sortOrder: z.number().int().min(0).optional(),
   parentId: z.string().uuid().optional(),
 });

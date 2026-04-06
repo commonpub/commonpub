@@ -13,7 +13,7 @@ The implementation plan is at `docs/plan-v2.md`. Reference documentation is at `
 1. **The schema is the work** — everything else follows from it
 2. **No feature without a flag** in `commonpub.config.ts`
 3. **No hardcoded color or font** in any `@commonpub/ui` or `@commonpub/docs` component — always `var(--*)`
-4. **Docs stored as raw markdown** — never TipTap JSON
+4. **Docs use BlockTuple[] format** — new pages store content as BlockTuple[] (same as articles/projects). Legacy markdown pages are converted to blocks on edit. Viewer supports both formats. Migration: `POST /api/docs/migrate-content` then `ALTER TABLE docs_pages ALTER COLUMN content TYPE jsonb USING content::jsonb`
 5. **Hubs local-only in v1** — AP Group only after real moderation experience
 6. **"Hub" is the umbrella concept** — three types: community, product, company. Products are normalized entities in the `products` table, not JSONB blobs. No `guide` content type — use article or explainer.
 7. **Convex is not self-hostable** — the answer is Postgres

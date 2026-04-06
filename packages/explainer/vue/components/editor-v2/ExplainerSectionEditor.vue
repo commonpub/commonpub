@@ -1,0 +1,651 @@
+<script setup lang="ts">
+import { ref, computed, watch } from 'vue';
+import type { ExplainerDocument, ExplainerDocSection, ExplainerThemeRef, ExplainerConclusion } from '@commonpub/explainer';
+import { resolveThemePreset } from '@commonpub/explainer';
+import { useExplainerTheme } from '../../composables/useExplainerTheme';
+import SectionList from './SectionList.vue';
+import SectionEditor from './SectionEditor.vue';
+import ModulePicker from './ModulePicker.vue';
+import DocumentPanel from './DocumentPanel.vue';
+import ThemeEditor from './ThemeEditor.vue';
+import SectionRenderer from '../viewer/SectionRenderer.vue';
+import HeroRenderer from '../viewer/HeroRenderer.vue';
+
+const props = defineProps<{
+  document: ExplainerDocument;
+}>();
+
+const emit = defineEmits<{
+  'update:document': [doc: ExplainerDocument];
+  save: [doc: ExplainerDocument];
+}>();
+
+// Local mutable copy of the document
+const doc = ref<ExplainerDocument>(JSON.parse(JSON.stringify(props.document)));
+const isDirty = ref(false);
+
+watch(() => props.document, (newDoc) => {
+  doc.value = JSON.parse(JSON.stringify(newDoc));
+  isDirty.value = false;
+}, { deep: false });
+
+function emitUpdate(): void {
+  isDirty.value = true;
+  emit('update:document', JSON.parse(JSON.stringify(doc.value)));
+}
+
+// Selected section
+const selectedId = ref<string | null>(doc.value.sections[0]?.id ?? null);
+const selectedSection = computed<ExplainerDocSection | null>(() =>
+  doc.value.sections.find(s => s.id === selectedId.value) ?? null,
+);
+const selectedIndex = computed(() =>
+  doc.value.sections.findIndex(s => s.id === selectedId.value),
+);
+
+// Module picker
+const showPicker = ref(false);
+
+// Section CRUD
+function generateId(): string {
+  return `sec_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
+}
+
+function addSection(moduleType: string): void {
+  const isLayout = ['hero', 'conclusion', 'text-only'].includes(moduleType);
+  const newSection: ExplainerDocSection = {
+    id: generateId(),
+    anchor: `section-${doc.value.sections.length + 1}`,
+    heading: '',
+    body: '',
+    module: isLayout ? undefined : { type: moduleType, props: {} },
+  };
+
+  // Insert after selected or at end
+  const idx = selectedIndex.value >= 0 ? selectedIndex.value + 1 : doc.value.sections.length;
+  doc.value.sections.splice(idx, 0, newSection);
+  selectedId.value = newSection.id;
+  emitUpdate();
+}
+
+function deleteSection(sectionId: string): void {
+  if (doc.value.sections.length <= 1) return;
+  const idx = doc.value.sections.findIndex(s => s.id === sectionId);
+  if (idx === -1) return;
+  doc.value.sections.splice(idx, 1);
+  if (selectedId.value === sectionId) {
+    selectedId.value = doc.value.sections[Math.min(idx, doc.value.sections.length - 1)]?.id ?? null;
+  }
+  emitUpdate();
+}
+
+function duplicateSection(sectionId: string): void {
+  const idx = doc.value.sections.findIndex(s => s.id === sectionId);
+  if (idx === -1) return;
+  const clone: ExplainerDocSection = JSON.parse(JSON.stringify(doc.value.sections[idx]));
+  clone.id = generateId();
+  doc.value.sections.splice(idx + 1, 0, clone);
+  selectedId.value = clone.id;
+  emitUpdate();
+}
+
+function moveSection(fromIdx: number, toIdx: number): void {
+  if (fromIdx < 0 || toIdx < 0 || fromIdx >= doc.value.sections.length || toIdx >= doc.value.sections.length) return;
+  const [moved] = doc.value.sections.splice(fromIdx, 1);
+  doc.value.sections.splice(toIdx, 0, moved!);
+  emitUpdate();
+}
+
+function updateSectionContent(field: string, value: unknown): void {
+  if (!selectedSection.value) return;
+  const idx = selectedIndex.value;
+  if (idx === -1) return;
+  (doc.value.sections[idx] as Record<string, unknown>)[field] = value;
+  emitUpdate();
+}
+
+function updateSectionConfig(config: Record<string, unknown>): void {
+  if (!selectedSection.value?.module) return;
+  const idx = selectedIndex.value;
+  if (idx === -1) return;
+  doc.value.sections[idx]!.module = { ...doc.value.sections[idx]!.module!, props: config };
+  emitUpdate();
+}
+
+// Hero editing
+function updateHero(field: string, value: string): void {
+  (doc.value.hero as Record<string, unknown>)[field] = value;
+  emitUpdate();
+}
+
+// Meta editing
+function updateMeta(field: string, value: unknown): void {
+  (doc.value.meta as Record<string, unknown>)[field] = value;
+  emitUpdate();
+}
+
+// Conclusion editing
+function updateConclusion(conclusion: ExplainerConclusion | undefined): void {
+  doc.value.conclusion = conclusion;
+  emitUpdate();
+}
+
+// Settings editing
+function updateSettings(field: string, value: unknown): void {
+  if (!doc.value.settings) doc.value.settings = {};
+  (doc.value.settings as Record<string, unknown>)[field] = value;
+  emitUpdate();
+}
+
+// Theme — use composable for font loading + CSS override application
+const previewRoot = ref<HTMLElement | null>(null);
+const themeRef = computed<ExplainerThemeRef>(() => doc.value.theme);
+useExplainerTheme(themeRef, previewRoot);
+
+const showThemeEditor = ref(false);
+
+function updateTheme(theme: ExplainerThemeRef): void {
+  doc.value.theme = theme;
+  emitUpdate();
+}
+
+// Right panel tabs
+const rightTab = ref<'preview' | 'document'>('preview');
+
+// Save
+function handleSave(): void {
+  emit('save', JSON.parse(JSON.stringify(doc.value)));
+  isDirty.value = false;
+}
+
+// Status
+const wordCount = computed(() => {
+  let count = 0;
+  for (const s of doc.value.sections) {
+    const text = `${s.heading} ${s.body} ${s.insight ?? ''} ${s.bridge ?? ''}`;
+    count += text.replace(/<[^>]*>/g, '').split(/\s+/).filter(Boolean).length;
+  }
+  return count;
+});
+
+const sectionCount = computed(() => doc.value.sections.length);
+const interactiveCount = computed(() => doc.value.sections.filter(s => s.module).length);
+
+// Resizable preview panel
+const previewWidth = ref(320);
+const isResizing = ref(false);
+
+function startResize(e: PointerEvent): void {
+  isResizing.value = true;
+  const startX = e.clientX;
+  const startWidth = previewWidth.value;
+
+  function onMove(ev: PointerEvent): void {
+    const delta = startX - ev.clientX;
+    previewWidth.value = Math.max(200, Math.min(600, startWidth + delta));
+  }
+
+  function onUp(): void {
+    isResizing.value = false;
+    document.removeEventListener('pointermove', onMove);
+    document.removeEventListener('pointerup', onUp);
+  }
+
+  document.addEventListener('pointermove', onMove);
+  document.addEventListener('pointerup', onUp);
+}
+
+// Mobile: toggle panels
+const mobilePanel = ref<'list' | 'editor' | 'preview'>('editor');
+</script>
+
+<template>
+  <div class="cpub-explainer-section-editor">
+    <!-- Top bar -->
+    <div class="cpub-ee-topbar">
+      <span class="cpub-ee-topbar-badge">Explainer Editor</span>
+      <input
+        class="cpub-ee-topbar-title"
+        :value="doc.hero.title"
+        placeholder="Explainer title"
+        @input="updateHero('title', ($event.target as HTMLInputElement).value)"
+      />
+      <!-- Mobile panel toggles -->
+      <div class="cpub-ee-mobile-tabs">
+        <button :class="{ active: mobilePanel === 'list' }" @click="mobilePanel = 'list'"><i class="fa-solid fa-list" /></button>
+        <button :class="{ active: mobilePanel === 'editor' }" @click="mobilePanel = 'editor'"><i class="fa-solid fa-pen" /></button>
+        <button :class="{ active: mobilePanel === 'preview' }" @click="mobilePanel = 'preview'"><i class="fa-solid fa-eye" /></button>
+      </div>
+      <div class="cpub-ee-topbar-spacer" />
+
+      <!-- Theme: compact label + customize toggle -->
+      <span class="cpub-ee-theme-label">Theme</span>
+      <button class="cpub-ee-theme-btn" :class="{ active: showThemeEditor }" @click="showThemeEditor = !showThemeEditor">
+        <i class="fa-solid fa-palette" />
+        <span>{{ typeof doc.theme === 'string' ? doc.theme : doc.theme.preset }}</span>
+        <i class="fa-solid" :class="showThemeEditor ? 'fa-chevron-up' : 'fa-chevron-down'" style="font-size: 8px; opacity: 0.5;" />
+      </button>
+
+      <button class="cpub-ee-topbar-btn" @click="handleSave" :disabled="!isDirty">
+        {{ isDirty ? 'Save' : 'Saved' }}
+      </button>
+    </div>
+
+    <!-- Theme editor (expands below topbar) -->
+    <ThemeEditor
+      v-if="showThemeEditor"
+      :theme="doc.theme"
+      @update:theme="updateTheme"
+      @close="showThemeEditor = false"
+    />
+
+    <!-- 3-panel layout -->
+    <div class="cpub-ee-body">
+      <!-- LEFT: Section list -->
+      <div class="cpub-ee-left" :class="{ 'cpub-ee-mobile-active': mobilePanel === 'list' }">
+        <div class="cpub-ee-left-header">
+          <span class="cpub-ee-left-label">Sections</span>
+          <span class="cpub-ee-left-count">{{ sectionCount }}</span>
+        </div>
+
+        <!-- Hero subtitle -->
+        <div class="cpub-ee-subtitle-field">
+          <textarea
+            class="cpub-ee-subtitle-input"
+            :value="doc.hero.subtitle ?? ''"
+            placeholder="Hook subtitle..."
+            rows="2"
+            @input="updateHero('subtitle', ($event.target as HTMLTextAreaElement).value)"
+          />
+        </div>
+
+        <SectionList
+          :sections="doc.sections"
+          :selected-id="selectedId"
+          @select="selectedId = $event"
+          @add="showPicker = true"
+          @move="moveSection"
+          @delete="deleteSection"
+          @duplicate="duplicateSection"
+        />
+      </div>
+
+      <!-- CENTER: Section editor -->
+      <div class="cpub-ee-center" :class="{ 'cpub-ee-mobile-active': mobilePanel === 'editor' }">
+        <SectionEditor
+          v-if="selectedSection"
+          :section="selectedSection"
+          :index="selectedIndex"
+          @update:content="updateSectionContent"
+          @update:config="updateSectionConfig"
+          @delete="deleteSection(selectedSection!.id)"
+          @duplicate="duplicateSection(selectedSection!.id)"
+          @move-up="moveSection(selectedIndex, selectedIndex - 1)"
+          @move-down="moveSection(selectedIndex, selectedIndex + 1)"
+        />
+        <div v-else class="cpub-ee-empty">
+          <p>Select a section or add a new one.</p>
+        </div>
+      </div>
+
+      <!-- Resize handle -->
+      <div class="cpub-ee-resize-handle" @pointerdown="startResize" />
+
+      <!-- RIGHT: Preview / Document tabs -->
+      <div ref="previewRoot" class="cpub-ee-right" :class="{ 'cpub-ee-mobile-active': mobilePanel === 'preview' }" :style="{ width: previewWidth + 'px' }">
+        <div class="cpub-ee-right-header">
+          <button class="cpub-ee-right-tab" :class="{ active: rightTab === 'preview' }" @click="rightTab = 'preview'">Preview</button>
+          <button class="cpub-ee-right-tab" :class="{ active: rightTab === 'document' }" @click="rightTab = 'document'">Document</button>
+        </div>
+
+        <!-- Preview tab -->
+        <div v-if="rightTab === 'preview'" class="cpub-ee-preview-content">
+          <template v-if="selectedSection">
+            <SectionRenderer
+              :key="selectedSection.id"
+              :section="selectedSection"
+              :index="selectedIndex"
+            />
+          </template>
+          <template v-else>
+            <HeroRenderer :hero="doc.hero" />
+          </template>
+        </div>
+
+        <!-- Document tab -->
+        <div v-else class="cpub-ee-document-tab">
+          <DocumentPanel
+            :document="doc"
+            @update:hero="updateHero"
+            @update:meta="updateMeta"
+            @update:conclusion="updateConclusion"
+            @update:settings="updateSettings"
+          />
+        </div>
+      </div>
+    </div>
+
+    <!-- Status bar -->
+    <div class="cpub-ee-status">
+      <span class="cpub-ee-stat"><span class="cpub-ee-stat-label">Sections:</span> {{ sectionCount }}</span>
+      <span class="cpub-ee-stat"><span class="cpub-ee-stat-label">Interactive:</span> {{ interactiveCount }}</span>
+      <span class="cpub-ee-stat"><span class="cpub-ee-stat-label">Words:</span> {{ wordCount }}</span>
+      <span class="cpub-ee-stat"><span class="cpub-ee-stat-label">Est:</span> {{ Math.max(2, Math.round(wordCount / 200 + interactiveCount * 2)) }}min</span>
+      <span class="cpub-ee-stat"><span class="cpub-ee-stat-label">Theme:</span> {{ doc.theme }}</span>
+      <div style="flex: 1" />
+      <span class="cpub-ee-stat">
+        <span class="cpub-ee-save-dot" :class="isDirty ? 'cpub-ee-save-dirty' : 'cpub-ee-save-clean'" />
+        {{ isDirty ? 'Unsaved' : 'Saved' }}
+      </span>
+    </div>
+
+    <!-- Module picker modal -->
+    <ModulePicker v-if="showPicker" @select="addSection" @close="showPicker = false" />
+  </div>
+</template>
+
+<style scoped>
+.cpub-explainer-section-editor {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: var(--bg, #0b0b0e);
+  color: var(--text, #c8c8d0);
+}
+
+/* Top bar */
+.cpub-ee-topbar {
+  height: 44px;
+  flex-shrink: 0;
+  background: var(--surface, #101014);
+  border-bottom: 1px solid var(--border, #333);
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  gap: 10px;
+}
+
+.cpub-ee-topbar-badge {
+  font-family: var(--font-ui, monospace);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent, #e04030);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.cpub-ee-topbar-title {
+  flex: 1;
+  background: none;
+  border: none;
+  color: var(--text, #ccc);
+  font-size: 13px;
+  font-weight: 500;
+  outline: none;
+  font-family: inherit;
+}
+
+.cpub-ee-topbar-spacer { flex: 0; }
+
+.cpub-ee-theme-label {
+  font-family: var(--font-ui, monospace);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-faint, #444);
+}
+
+.cpub-ee-theme-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  background: var(--surface2, #1c1c24);
+  border: 1px solid var(--border, #333);
+  color: var(--text-dim, #999);
+  font-family: var(--font-ui, monospace);
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.cpub-ee-theme-btn:hover { border-color: var(--accent, #e04030); color: var(--text, #ccc); }
+.cpub-ee-theme-btn.active { border-color: var(--accent, #e04030); color: var(--accent, #e04030); }
+.cpub-ee-theme-btn i:first-child { font-size: 11px; }
+
+.cpub-ee-topbar-btn {
+  padding: 4px 12px;
+  background: var(--surface2, #1c1c24);
+  border: 1px solid var(--border, #333);
+  color: var(--text-faint, #666);
+  font-family: var(--font-ui, monospace);
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.cpub-ee-topbar-btn:hover { color: var(--text, #ccc); border-color: var(--accent, #e04030); }
+.cpub-ee-topbar-btn:disabled { opacity: 0.5; cursor: default; }
+
+/* Body */
+.cpub-ee-body {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+/* Left panel */
+.cpub-ee-left {
+  width: 224px;
+  flex-shrink: 0;
+  background: var(--surface, #101014);
+  border-right: 1px solid var(--border, #333);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.cpub-ee-left-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border, #333);
+}
+
+.cpub-ee-left-label {
+  font-family: var(--font-ui, monospace);
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-faint, #666);
+}
+
+.cpub-ee-left-count {
+  font-family: var(--font-ui, monospace);
+  font-size: 9px;
+  color: var(--text-faint, #666);
+}
+
+.cpub-ee-subtitle-field {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border, #333);
+}
+
+.cpub-ee-subtitle-input {
+  width: 100%;
+  padding: 6px 8px;
+  background: var(--surface2, #1c1c24);
+  border: 1px solid var(--border, #333);
+  color: var(--text, #ccc);
+  font-size: 12px;
+  resize: none;
+  outline: none;
+  font-family: inherit;
+  line-height: 1.5;
+}
+
+.cpub-ee-subtitle-input:focus { border-color: var(--accent, #e04030); }
+
+/* Center */
+.cpub-ee-center {
+  flex: 1;
+  overflow-y: auto;
+  border-right: 1px solid var(--border, #333);
+}
+
+.cpub-ee-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-faint, #666);
+  font-size: 13px;
+}
+
+/* Resize handle */
+.cpub-ee-resize-handle {
+  width: 4px;
+  flex-shrink: 0;
+  background: var(--border, #333);
+  cursor: col-resize;
+  transition: background 0.15s;
+}
+
+.cpub-ee-resize-handle:hover,
+.cpub-ee-resize-handle:active {
+  background: var(--accent, #e04030);
+}
+
+/* Right: preview */
+.cpub-ee-right {
+  flex-shrink: 0;
+  background: #08080a;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.cpub-ee-right-tab {
+  padding: 6px 10px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-family: var(--font-ui, monospace);
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-faint, #666);
+  cursor: pointer;
+}
+
+.cpub-ee-right-tab:hover { color: var(--text, #ccc); }
+.cpub-ee-right-tab.active { color: var(--accent, #e04030); border-bottom-color: var(--accent, #e04030); }
+
+.cpub-ee-document-tab {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.cpub-ee-right-header {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border, #333);
+  font-family: var(--font-ui, monospace);
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text-faint, #666);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+
+.cpub-ee-preview-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  transform: scale(0.55);
+  transform-origin: top left;
+  width: 182%;
+}
+
+/* Status bar */
+.cpub-ee-status {
+  height: 26px;
+  flex-shrink: 0;
+  background: var(--surface, #101014);
+  border-top: 1px solid var(--border, #333);
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  gap: 14px;
+}
+
+.cpub-ee-stat {
+  font-family: var(--font-ui, monospace);
+  font-size: 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-faint, #666);
+}
+
+.cpub-ee-stat-label {
+  text-transform: uppercase;
+  color: var(--text-faint, #444);
+}
+
+.cpub-ee-save-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+}
+
+.cpub-ee-save-clean { background: #2a9d5c; }
+.cpub-ee-save-dirty { background: #d4a017; }
+
+/* Mobile tabs (hidden on desktop) */
+.cpub-ee-mobile-tabs {
+  display: none;
+}
+
+@media (max-width: 1024px) {
+  .cpub-ee-resize-handle { display: none; }
+  .cpub-ee-right { display: none; width: 100% !important; }
+  .cpub-ee-left { display: none; width: 100% !important; }
+  .cpub-ee-center { display: none; }
+
+  .cpub-ee-mobile-active { display: flex !important; flex: 1; }
+
+  .cpub-ee-mobile-tabs {
+    display: flex;
+    gap: 2px;
+  }
+
+  .cpub-ee-mobile-tabs button {
+    padding: 4px 10px;
+    background: none;
+    border: 1px solid transparent;
+    color: var(--text-faint, #666);
+    font-size: 12px;
+    cursor: pointer;
+  }
+
+  .cpub-ee-mobile-tabs button.active {
+    color: var(--accent, #e04030);
+    border-color: var(--accent, #e04030);
+  }
+
+  .cpub-ee-right .cpub-ee-preview-content {
+    transform: none;
+    width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .cpub-ee-topbar-title { display: none; }
+  .cpub-ee-topbar-badge { font-size: 9px; }
+}
+</style>

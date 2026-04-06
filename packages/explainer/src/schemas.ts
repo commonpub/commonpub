@@ -112,12 +112,14 @@ export const explainerSectionsSchema = z.array(explainerSectionSchema);
 export const explainerMetaSchema = z.object({
   estimatedMinutes: z.number().int().positive(),
   difficulty: z.enum(['beginner', 'intermediate', 'advanced']),
+  description: z.string().optional(),
+  tags: z.array(z.string()).optional(),
   prerequisites: z.array(z.string()).optional(),
   learningObjectives: z.array(z.string()).optional(),
 });
 
 // ═══════════════════════════════════════════════════════════════
-// V2 DOCUMENT FORMAT SCHEMAS (Sprint 2+)
+// EXPLAINER DOCUMENT SCHEMAS
 // ═══════════════════════════════════════════════════════════════
 
 /** Theme preset */
@@ -141,7 +143,7 @@ export const sectionAsideSchema = z.object({
   text: z.string(),
 });
 
-/** V2 document section */
+/** Document section */
 export const explainerDocSectionSchema = z.object({
   id: z.string().min(1),
   anchor: z.string().min(1),
@@ -173,10 +175,42 @@ export const explainerConclusionSchema = z.object({
   }).optional(),
 });
 
-/** V2 ExplainerDocument schema */
+/** Theme token overrides */
+export const explainerThemeTokensSchema = z.object({
+  'bg-page': z.string(),
+  'bg-section': z.string(),
+  'bg-section-alt': z.string(),
+  'bg-dark': z.string(),
+  'text-primary': z.string(),
+  'text-secondary': z.string(),
+  'text-muted': z.string(),
+  'accent': z.string(),
+  'accent-hover': z.string(),
+  'accent-light': z.string(),
+  'accent-glow': z.string(),
+  'border': z.string(),
+  'border-dark': z.string(),
+  'border-width': z.string(),
+  'font-display': z.string(),
+  'font-body': z.string(),
+  'font-ui': z.string(),
+  'font-import': z.string(),
+  'radius': z.string(),
+}).partial();
+
+/** Theme reference — preset name or preset + overrides */
+export const explainerThemeRefSchema = z.union([
+  explainerThemePresetSchema,
+  z.object({
+    preset: explainerThemePresetSchema,
+    overrides: explainerThemeTokensSchema.optional(),
+  }),
+]);
+
+/** ExplainerDocument schema */
 export const explainerDocumentSchema = z.object({
   version: z.literal(2),
-  theme: explainerThemePresetSchema,
+  theme: explainerThemeRefSchema,
   hero: explainerHeroSchema,
   sections: z.array(explainerDocSectionSchema).min(1),
   conclusion: explainerConclusionSchema.optional(),

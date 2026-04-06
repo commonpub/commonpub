@@ -19,13 +19,46 @@ export default defineEventHandler(async (event) => {
   const page = pages.find((p) => p.slug === pageSlug);
   if (!page) throw createError({ statusCode: 404, statusMessage: 'Page not found' });
 
-  // Render markdown to HTML with TOC extraction
-  const rendered = await renderMarkdown(page.content ?? '');
+  // Handle dual-format content: BlockTuple[] (new) or markdown string (legacy)
+  const content = page.content;
 
+  if (Array.isArray(content)) {
+    // New BlockTuple format — extract text for TOC generation
+    const headings = extractHeadingsFromBlocks(content as [string, Record<string, unknown>][]);
+    return {
+      ...page,
+      content,
+      html: null, // Client renders blocks directly
+      toc: headings,
+      frontmatter: {},
+      format: 'blocks',
+    };
+  }
+
+  // Legacy markdown format
+  const rendered = await renderMarkdown((content as string) ?? '');
   return {
     ...page,
     html: rendered.html,
     toc: rendered.toc,
     frontmatter: rendered.frontmatter,
+    format: 'markdown',
   };
 });
+
+/** Extract TOC headings from BlockTuple array */
+function extractHeadingsFromBlocks(
+  blocks: [string, Record<string, unknown>][],
+): Array<{ id: string; text: string; level: number }> {
+  const headings: Array<{ id: string; text: string; level: number }> = [];
+  for (const [type, content] of blocks) {
+    if (type === 'heading' && content.text) {
+      const text = String(content.text);
+      const level = (content.level as number) || 2;
+      // Must match BlockHeadingView.vue slugification exactly
+      const id = text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      headings.push({ id, text, level });
+    }
+  }
+  return headings;
+}

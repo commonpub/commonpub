@@ -1,6 +1,8 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import type { ExplainerDocSection } from '@commonpub/explainer';
 import InteractiveContainer from './InteractiveContainer.vue';
+import { sanitizeHtml } from '../../utils/sanitize';
 
 const props = defineProps<{
   section: ExplainerDocSection;
@@ -10,6 +12,9 @@ const props = defineProps<{
 const emit = defineEmits<{
   'module-interaction': [sectionId: string, action: string, value?: unknown];
 }>();
+
+const sanitizedBody = computed(() => props.section.body ? sanitizeHtml(props.section.body) : '');
+const sanitizedBridge = computed(() => props.section.bridge ? sanitizeHtml(props.section.bridge) : '');
 </script>
 
 <template>
@@ -27,7 +32,7 @@ const emit = defineEmits<{
       <div
         v-if="section.body"
         class="cpub-section-body"
-        v-html="section.body"
+        v-html="sanitizedBody"
       />
 
       <!-- INTERACT: module in dark container -->
@@ -57,7 +62,7 @@ const emit = defineEmits<{
       <p
         v-if="section.bridge"
         class="cpub-section-bridge"
-        v-html="section.bridge"
+        v-html="sanitizedBridge"
       />
     </div>
   </section>

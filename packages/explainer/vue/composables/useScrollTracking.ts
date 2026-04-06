@@ -103,7 +103,8 @@ export function useScrollTracking(
   }
 
   onMounted(() => {
-    // Defer setup to allow DOM to render
+    // SSR guard + defer setup to allow DOM to render
+    if (typeof window === 'undefined') return;
     requestAnimationFrame(setup);
   });
 

@@ -1,6 +1,6 @@
 {
   "name": "@commonpub/docs",
-  "version": "0.5.2",
+  "version": "0.6.0",
   "type": "module",
   "description": "Markdown rendering pipeline with Meilisearch and Postgres FTS for CommonPub",
   "license": "AGPL-3.0-or-later",
@@ -9,9 +9,21 @@
     "url": "https://github.com/commonpub/commonpub",
     "directory": "packages/docs"
   },
-  "keywords": ["commonpub", "activitypub", "federation", "typescript", "markdown", "docs", "meilisearch"],
-  "publishConfig": { "access": "public" },
-  "engines": { "node": ">=22" },
+  "keywords": [
+    "commonpub",
+    "activitypub",
+    "federation",
+    "typescript",
+    "markdown",
+    "docs",
+    "meilisearch"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=22"
+  },
   "sideEffects": false,
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -21,7 +33,12 @@
       "import": "./dist/index.js"
     }
   },
-  "files": ["dist/", "!dist/__tests__/", "README.md", "LICENSE"],
+  "files": [
+    "dist/",
+    "!dist/__tests__/",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",

@@ -40,6 +40,72 @@ export function stripMarkdown(markdown: string): string {
 }
 
 /**
+ * Extract plain text from BlockTuple array for search indexing.
+ * Strips HTML tags and ignores structural metadata (block types, URLs, etc.).
+ */
+export function stripBlockTuples(blocks: [string, Record<string, unknown>][]): string {
+  const parts: string[] = [];
+
+  for (const [type, content] of blocks) {
+    switch (type) {
+      case 'paragraph':
+      case 'text':
+      case 'callout':
+      case 'bulletList':
+      case 'orderedList':
+        if (content.html) parts.push(stripHtml(content.html as string));
+        break;
+
+      case 'heading':
+        if (content.text) parts.push(content.text as string);
+        break;
+
+      case 'code_block':
+      case 'code':
+        if (content.code) parts.push(content.code as string);
+        break;
+
+      case 'blockquote':
+      case 'quote':
+        if (content.html) parts.push(stripHtml(content.html as string));
+        if (content.attribution) parts.push(content.attribution as string);
+        break;
+
+      case 'image':
+        if (content.alt) parts.push(content.alt as string);
+        if (content.caption) parts.push(content.caption as string);
+        break;
+
+      case 'embed':
+        // Skip — no searchable text
+        break;
+
+      case 'sectionHeader':
+        if (content.title) parts.push(content.title as string);
+        if (content.body) parts.push(content.body as string);
+        break;
+
+      case 'markdown':
+        if (content.source) parts.push(stripMarkdown(content.source as string));
+        break;
+
+      default:
+        // For unknown block types, try to extract any text-like fields
+        if (content.html) parts.push(stripHtml(content.html as string));
+        if (content.text) parts.push(content.text as string);
+        break;
+    }
+  }
+
+  return parts.filter(Boolean).join('\n\n').trim();
+}
+
+/** Strip HTML tags from a string */
+function stripHtml(html: string): string {
+  return html.replace(/<[^>]+>/g, '').trim();
+}
+
+/**
  * Build a search document from a docs page for indexing.
  */
 export function buildSearchDocument(

@@ -1,12 +1,7 @@
-import type { Component } from 'vue';
-import SliderBlock from '../blocks/SliderBlock.vue';
-import QuizBlock from '../blocks/QuizBlock.vue';
+import { buildModuleMap } from '../../../modules/registry';
 
 /**
- * Module type → viewer component map.
- * Sprint 2: simple record. Sprint 3 will formalize to folder-based modules.
+ * Module type -> viewer component map, built from the module registry.
+ * This is the bridge between the viewer and the module system.
  */
-export const moduleMap: Record<string, Component> = {
-  slider: SliderBlock,
-  quiz: QuizBlock,
-};
+export const moduleMap = buildModuleMap();

@@ -2,29 +2,23 @@
 import { computed, type Component } from 'vue';
 import type { ModuleConfig } from '@commonpub/explainer';
 import { moduleMap } from './moduleMap';
+import { getModule } from '../../../modules/registry';
 
 const props = defineProps<{
   module: ModuleConfig;
 }>();
 
 const moduleComponent = computed<Component | null>(() => moduleMap[props.module.type] ?? null);
-const moduleName = computed(() => {
-  const names: Record<string, string> = {
-    slider: 'Slider + Canvas',
-    quiz: 'Knowledge Check',
-    toggle: 'Toggle Compare',
-    'reveal-cards': 'Reveal Cards',
-    'custom-html': 'Custom Interactive',
-  };
-  return names[props.module.type] ?? props.module.type;
-});
+const loadedModule = computed(() => getModule(props.module.type));
+const moduleName = computed(() => loadedModule.value?.meta.name ?? props.module.type);
+const moduleIcon = computed(() => loadedModule.value?.meta.icon ?? 'fa-sliders-h');
 </script>
 
 <template>
   <div class="cpub-interactive-container">
     <!-- Label header -->
     <div class="cpub-interactive-label">
-      <i class="fa-solid fa-sliders-h" />
+      <i :class="`fa-solid ${moduleIcon}`" />
       <span>{{ moduleName }}</span>
     </div>
 
@@ -49,6 +43,22 @@ const moduleName = computed(() => {
   border-radius: var(--radius, 0px);
   margin: 28px 0;
   overflow: hidden;
+
+  /* Bridge: map explainer theme vars to CommonPub design system vars
+     so existing block components (SliderBlock, QuizBlock) render correctly
+     inside the dark interactive container */
+  --surface: transparent;
+  --surface2: rgba(255, 255, 255, 0.06);
+  --surface3: rgba(255, 255, 255, 0.1);
+  --bg: var(--bg-dark, #141418);
+  --text: var(--text-on-dark, rgba(255, 255, 255, 0.85));
+  --text-dim: var(--text-on-dark-dim, rgba(255, 255, 255, 0.45));
+  --text-faint: var(--text-on-dark-faint, rgba(255, 255, 255, 0.2));
+  --border: var(--border-dark, rgba(255, 255, 255, 0.08));
+  --border2: rgba(255, 255, 255, 0.06);
+  --border-width-default: 1px;
+  --shadow-sm: none;
+  --shadow-md: none;
 }
 
 .cpub-interactive-label {

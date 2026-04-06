@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import type { Component } from 'vue';
 import type { BlockTuple } from '@commonpub/editor';
+import { isExplainerDocument, createEmptyDocument } from '@commonpub/explainer';
+import type { ExplainerDocument } from '@commonpub/explainer';
+import { ExplainerSectionEditor } from '@commonpub/explainer/vue';
 definePageMeta({ layout: false, middleware: 'auth' });
 
 const route = useRoute();
@@ -29,8 +32,22 @@ const { extract: extractError } = useApiError();
 const mode = ref<'write' | 'preview' | 'code'>('write');
 const contentId = ref<string | null>(null);
 
-// --- Block editor ---
+// --- Block editor (articles, blogs, projects) ---
 const blockEditor = useBlockEditor();
+
+// --- Explainer document (explainers only) ---
+const isExplainer = computed(() => contentType.value === 'explainer');
+// The prop passed to ExplainerSectionEditor — set once on load, not updated on edits
+const explainerDocInit = ref<ExplainerDocument | null>(null);
+// The latest version from the editor — used for saving
+const explainerDocLatest = ref<ExplainerDocument | null>(null);
+
+function getContentForSave(): unknown {
+  if (isExplainer.value) {
+    return explainerDocLatest.value ?? explainerDocInit.value;
+  }
+  return blockEditor.toBlockTuples();
+}
 
 // --- Content save composable ---
 const {
@@ -50,7 +67,7 @@ const {
   isNew,
   contentId,
   isDirty,
-  getBlockTuples: () => blockEditor.toBlockTuples(),
+  getBlockTuples: getContentForSave as () => BlockTuple[],
   extractError,
   onAfterSave: syncBOM,
 });
@@ -59,7 +76,7 @@ const {
 const { errors: publishErrors, showErrors: showPublishErrors, validate, dismiss: dismissPublishErrors } = usePublishValidation({
   title,
   metadata,
-  getBlockTuples: () => blockEditor.toBlockTuples(),
+  getBlockTuples: getContentForSave as () => BlockTuple[],
 });
 
 // --- Specialized editor component map ---
@@ -80,7 +97,18 @@ if (!isNew.value) {
     const d = data.value as Record<string, unknown>;
     contentId.value = d.id as string;
     title.value = d.title as string;
-    if (Array.isArray(d.content)) {
+    if (isExplainer.value && isExplainerDocument(d.content)) {
+      // Load ExplainerDocument for explainers
+      const doc = d.content as unknown as ExplainerDocument;
+      // Sync: prefer row-level title if hero title is empty
+      if (!doc.hero.title && title.value) {
+        doc.hero.title = title.value;
+      } else if (doc.hero.title) {
+        title.value = doc.hero.title;
+      }
+      explainerDocInit.value = doc;
+      explainerDocLatest.value = JSON.parse(JSON.stringify(doc));
+    } else if (Array.isArray(d.content)) {
       blockEditor.fromBlockTuples(d.content as [string, Record<string, unknown>][]);
     }
     metadata.value = {
@@ -115,7 +143,42 @@ watch(title, (newTitle) => {
 
 // --- Dirty tracking + autosave ---
 watch(() => blockEditor.blocks.value, () => { isDirty.value = true; }, { deep: true });
-initAutoSave([() => blockEditor.blocks.value, title, metadata]);
+watch(explainerDocLatest, () => { isDirty.value = true; }, { deep: true });
+initAutoSave([() => blockEditor.blocks.value, () => explainerDocLatest.value, title, metadata]);
+
+// --- Explainer document events ---
+function handleExplainerUpdate(doc: ExplainerDocument): void {
+  // Store latest for saving — DON'T update explainerDocInit (would cause editor re-render loop)
+  explainerDocLatest.value = doc;
+  // Sync title from hero
+  if (doc.hero.title) title.value = doc.hero.title;
+  // Sync metadata
+  if (doc.meta.description) metadata.value = { ...metadata.value, description: doc.meta.description };
+  if (doc.meta.difficulty) metadata.value = { ...metadata.value, difficulty: doc.meta.difficulty };
+  if (doc.meta.estimatedMinutes) metadata.value = { ...metadata.value, estimatedMinutes: doc.meta.estimatedMinutes };
+  if (doc.meta.tags?.length) metadata.value = { ...metadata.value, tags: doc.meta.tags };
+  if (doc.hero.coverImageUrl) metadata.value = { ...metadata.value, coverImageUrl: doc.hero.coverImageUrl };
+  isDirty.value = true;
+}
+
+function handleExplainerSave(doc: ExplainerDocument): void {
+  handleExplainerUpdate(doc);
+  silentSave();
+}
+
+// --- Init new explainer ---
+if (isNew.value && isExplainer.value) {
+  const emptyDoc = createEmptyDocument();
+  explainerDocInit.value = emptyDoc;
+  explainerDocLatest.value = JSON.parse(JSON.stringify(emptyDoc));
+}
+
+// Sync starter form title to explainer doc hero
+watch(title, (newTitle) => {
+  if (isExplainer.value && explainerDocInit.value && !explainerDocLatest.value?.hero.title) {
+    explainerDocInit.value.hero.title = newTitle;
+  }
+});
 
 function handleMetadataUpdate(newMetadata: Record<string, unknown>): void {
   if (newMetadata.title !== undefined && typeof newMetadata.title === 'string') {
@@ -344,8 +407,17 @@ async function handleUrlImport(result: ImportedContent): Promise<void> {
 
     <div v-if="error" class="cpub-editor-error" role="alert">{{ error }}</div>
 
-    <!-- Write mode with specialized editor -->
-    <template v-if="mode === 'write' && hasSpecializedEditor">
+    <!-- Explainer: section-oriented editor -->
+    <template v-if="mode === 'write' && isExplainer && explainerDocInit">
+      <ExplainerSectionEditor
+        :document="explainerDocInit"
+        @update:document="handleExplainerUpdate"
+        @save="handleExplainerSave"
+      />
+    </template>
+
+    <!-- Write mode with specialized editor (articles, blogs, projects) -->
+    <template v-else-if="mode === 'write' && hasSpecializedEditor && !isExplainer">
       <component
         :is="editorComponent"
         :block-editor="blockEditor"

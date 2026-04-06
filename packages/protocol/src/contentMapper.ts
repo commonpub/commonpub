@@ -1,9 +1,54 @@
 import { AP_CONTEXT, AP_PUBLIC, type APArticle, type APNote, type APTag } from './activityTypes.js';
 
 /**
- * Render BlockTuple[] content to HTML for federation.
+ * Render content to HTML for federation.
+ * Handles both BlockTuple[] (articles/projects/blogs) and ExplainerDocument (explainers).
  * Remote instances receive clean HTML, not our internal JSONB format.
  */
+function contentToHtml(content: unknown): string {
+  if (!content) return '';
+
+  // ExplainerDocument format: { version: 2, hero, sections[], conclusion? }
+  if (typeof content === 'object' && !Array.isArray(content) && 'version' in (content as Record<string, unknown>) && (content as Record<string, unknown>).version === 2) {
+    return explainerDocumentToHtml(content as Record<string, unknown>);
+  }
+
+  // BlockTuple[] format
+  return blockTuplesToHtml(content);
+}
+
+/** Render ExplainerDocument to readable HTML for federation */
+function explainerDocumentToHtml(doc: Record<string, unknown>): string {
+  const parts: string[] = [];
+  const hero = doc.hero as Record<string, unknown> | undefined;
+  const sections = doc.sections as Array<Record<string, unknown>> | undefined;
+  const conclusion = doc.conclusion as Record<string, unknown> | undefined;
+
+  // Hero
+  if (hero) {
+    if (hero.title) parts.push(`<h1>${escapeHtml(String(hero.title))}</h1>`);
+    if (hero.subtitle) parts.push(`<p><em>${escapeHtml(String(hero.subtitle))}</em></p>`);
+  }
+
+  // Sections
+  if (sections) {
+    for (const section of sections) {
+      if (section.heading) parts.push(`<h2>${escapeHtml(String(section.heading))}</h2>`);
+      if (section.body) parts.push(sanitizeBlockHtml(section.body));
+      if (section.insight) parts.push(`<aside><strong>Insight:</strong> ${escapeHtml(String(section.insight))}</aside>`);
+      if (section.bridge) parts.push(`<p><em>${sanitizeBlockHtml(section.bridge)}</em></p>`);
+    }
+  }
+
+  // Conclusion
+  if (conclusion) {
+    if (conclusion.heading) parts.push(`<h2>${escapeHtml(String(conclusion.heading))}</h2>`);
+    if (conclusion.body) parts.push(sanitizeBlockHtml(conclusion.body));
+  }
+
+  return parts.join('\n');
+}
+
 function blockTuplesToHtml(blocks: unknown): string {
   if (!Array.isArray(blocks)) return '';
 
@@ -171,7 +216,7 @@ export function contentToArticle(
     id: objectId,
     attributedTo: actorUri,
     name: item.title,
-    content: typeof item.content === 'string' ? item.content : blockTuplesToHtml(item.content),
+    content: typeof item.content === 'string' ? item.content : contentToHtml(item.content),
     to: [AP_PUBLIC],
     cc: [followersUri],
     // CommonPub extension: original content type (project, article, blog, explainer)

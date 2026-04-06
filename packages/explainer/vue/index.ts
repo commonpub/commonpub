@@ -25,7 +25,7 @@ export {
   EmbedBlock,
 } from './components/blocks/index.js';
 
-// V2 Scroll Viewer components
+// Scroll Viewer components
 export {
   ScrollViewer,
   ProgressBar,
@@ -36,6 +36,14 @@ export {
   ConclusionRenderer,
   moduleMap,
 } from './components/viewer/index.js';
+
+// Section-Oriented Editor
+export { default as ExplainerSectionEditor } from './components/editor-v2/ExplainerSectionEditor.vue';
+export { default as SectionList } from './components/editor-v2/SectionList.vue';
+export { default as SectionEditorPanel } from './components/editor-v2/SectionEditor.vue';
+export { default as ModulePicker } from './components/editor-v2/ModulePicker.vue';
+export { default as DocumentPanel } from './components/editor-v2/DocumentPanel.vue';
+export { default as ThemeEditor } from './components/editor-v2/ThemeEditor.vue';
 
 // Composables
 export { useBlockEditor } from './composables/useBlockEditor.js';

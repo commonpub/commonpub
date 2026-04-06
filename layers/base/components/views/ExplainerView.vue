@@ -1,13 +1,23 @@
 <script setup lang="ts">
 import type { ContentViewData } from '../../composables/useEngagement';
 import type { BlockTuple } from '@commonpub/editor';
+import { isExplainerDocument } from '@commonpub/explainer';
+import type { ExplainerDocument } from '@commonpub/explainer';
+import { ScrollViewer } from '@commonpub/explainer/vue';
 
 const props = defineProps<{
   content: ContentViewData;
   federatedId?: string;
 }>();
 
+// Check if content is the new ExplainerDocument format
+const isDocumentFormat = computed(() => isExplainerDocument(props.content?.content));
+const explainerDoc = computed<ExplainerDocument | null>(() =>
+  isDocumentFormat.value ? (props.content.content as unknown as ExplainerDocument) : null,
+);
+
 const blocks = computed<BlockTuple[]>(() => {
+  if (isDocumentFormat.value) return [];
   const raw = props.content?.content;
   if (!Array.isArray(raw)) return [];
   return raw as BlockTuple[];
@@ -154,7 +164,11 @@ onUnmounted(() => { document.removeEventListener('keydown', onKeydown); });
 </script>
 
 <template>
-  <div class="cpub-explainer-view">
+  <!-- Scroll viewer for ExplainerDocument format -->
+  <ScrollViewer v-if="isDocumentFormat && explainerDoc" :document="explainerDoc" />
+
+  <!-- Block-based viewer fallback -->
+  <div v-else class="cpub-explainer-view">
     <!-- PROGRESS BAR -->
     <div class="cpub-progress-line">
       <div class="cpub-progress-line-fill" :style="{ width: progressPct + '%' }"></div>
