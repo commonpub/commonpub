@@ -1,6 +1,6 @@
 {
   "name": "@commonpub/explainer",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "type": "module",
   "description": "Interactive explainer runtime + Vue components \u2014 standalone, framework-agnostic engine with optional Vue 3 UI",
   "license": "AGPL-3.0-or-later",
@@ -41,6 +41,7 @@
   "files": [
     "dist/",
     "vue/",
+    "modules/",
     "!dist/__tests__/",
     "README.md",
     "LICENSE"
