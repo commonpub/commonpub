@@ -72,7 +72,43 @@ Three gaps closed:
 - 760 server tests (+3 from session start: hook integration, XSS BlockTuple, XSS ExplainerDocument)
 - 181 explainer tests (+21 from session start: ExplainerDocument export coverage)
 
+## Phase 3: Production Hotfixes
+
+### Theme Breakage (both sites)
+- **Root cause**: `explainer-themes.css` imports `base.css` which sets `:root` vars (`--bg`, `--surface`, `--text`, `--border`) — these override the site's own dark theme
+- **Fix**: Import only the 4 preset CSS files individually (scoped to `[data-explainer-theme]`), not `base.css`
+- Published explainer@0.7.1 (CSS export specifiers), layer@0.5.7
+
+### Explainer Preview Won't Scroll
+- **Root cause**: `.cpub-explainer-preview-overlay` had `overflow: hidden`
+- **Fix**: Changed to `overflow-y: auto`
+
+### Hub Follow for Logged-In Users
+- **Root cause**: "Join from your instance" always showed handle modal + redirected to `/authorize_interaction` which was caught by `[type]/[slug]` catch-all
+- **Fix**: Logged-in users call `/api/federation/hub-follow` directly. New `/authorize_interaction` page for inbound AP redirects. New endpoints: `resolve-uri`, `remote-follow`.
+
+### Docs Editor 500 Errors
+- **Root cause**: `status` column missing from `docs_pages` on production (same class of bug as session 106 `experience` column)
+- **Fix**: ALTER TABLE on both instances. **Root cause of root cause**: drizzle-kit push was silently failing.
+
+### drizzle-kit push Silently Failing
+- **Root cause**: Dockerfiles only installed `drizzle-kit`, but push needs `drizzle-orm` + `pg` driver. Error logged as warning, deploy continued.
+- **Fix**: Both Dockerfiles now install `drizzle-kit drizzle-orm pg`. Future schema changes will auto-apply on deploy.
+
+### deveco CI Failure
+- **Root cause**: explainer@0.7.0 published without individual CSS file export specifiers. layer@0.5.6 imported them. Vite build couldn't resolve.
+- **Fix**: Published explainer@0.7.1 with specifiers, layer@0.5.7 with correct dep.
+
+## URL Restructure Plan Written
+- Full plan: `docs/plans/url-restructure-user-scoped-paths.md`
+- 44 files, 69 code locations, 6-phase rollout
+- `/{type}/{slug}` → `/u/{username}/{type}/{slug}`
+- Old AP URIs preserved via 301 redirects
+- Estimated 3-4 sessions
+
 ## Decisions Made
 - Explainer theme CSS vars are duplicated in htmlExporter.ts (for standalone export) rather than importing from CSS files — necessary because export produces a self-contained HTML document
 - Follow delivery uses dynamic import for resolveRemoteActor (circular dep avoidance) — acceptable since it's the fallback path only
 - docsNav table NOT removed — may be useful for custom nav ordering in the future, deferred decision
+- Import explainer theme presets individually, NEVER base.css — it clobbers the host site's design system
+- drizzle-kit push needs drizzle-orm + pg in the runtime container — lesson learned, fixed permanently
