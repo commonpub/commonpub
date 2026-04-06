@@ -47,7 +47,11 @@ export default defineNuxtConfig({
     uiTheme('layouts.css'),
     uiTheme('forms.css'),
     uiTheme('editor-panels.css'),
-    '@commonpub/explainer/vue/theme/explainer-themes.css',
+    // Explainer theme presets only (NOT base.css — it overrides site design system vars)
+    '@commonpub/explainer/vue/theme/dark-industrial.css',
+    '@commonpub/explainer/vue/theme/punk-zine.css',
+    '@commonpub/explainer/vue/theme/paper-teal.css',
+    '@commonpub/explainer/vue/theme/clean-light.css',
   ],
   runtimeConfig: {
     databaseUrl: '',

@@ -37,7 +37,11 @@
     "./vue/theme": {
       "import": "./vue/theme/base.css"
     },
-    "./vue/theme/explainer-themes.css": "./vue/theme/explainer-themes.css"
+    "./vue/theme/explainer-themes.css": "./vue/theme/explainer-themes.css",
+    "./vue/theme/dark-industrial.css": "./vue/theme/dark-industrial.css",
+    "./vue/theme/punk-zine.css": "./vue/theme/punk-zine.css",
+    "./vue/theme/paper-teal.css": "./vue/theme/paper-teal.css",
+    "./vue/theme/clean-light.css": "./vue/theme/clean-light.css"
   },
   "files": [
     "dist/",
