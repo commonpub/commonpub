@@ -15,7 +15,7 @@ export default defineEventHandler(async (event) => {
   const path = getRequestURL(event).pathname;
 
   // Match /{type}/{slug} or /{type}/{slug}/edit — only for known content types
-  const match = path.match(/^\/([a-z]+)\/([a-z0-9][a-z0-9-]*)(\/(edit))?$/);
+  const match = path.match(/^\/([a-z]+)\/([a-z0-9][a-z0-9_-]*)(\/(edit))?$/);
   if (!match) return;
 
   const type = match[1]!;
