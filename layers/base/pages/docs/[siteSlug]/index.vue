@@ -2,9 +2,17 @@
 const route = useRoute();
 const siteSlug = computed(() => route.params.siteSlug as string);
 
+const selectedVersion = ref('');
+
 const { data: site, pending: sitePending, error: siteError, refresh: refreshSite } = useLazyFetch<{ id: string; name: string; slug: string; description: string; ownerId: string; versions: Array<{ id: string; label: string; slug: string; version: string; isDefault: boolean }> }>(() => `/api/docs/${siteSlug.value}`);
-const { data: nav } = useLazyFetch<Array<{ id: string; title: string; slug: string; sortOrder: number; parentId: string | null }>>(() => `/api/docs/${siteSlug.value}/nav`);
-const { data: pages } = useLazyFetch<Array<{ id: string; title: string; slug: string; sortOrder: number; parentId: string | null }>>(() => `/api/docs/${siteSlug.value}/pages`);
+const { data: nav, refresh: refreshNav } = useLazyFetch<Array<{ id: string; title: string; slug: string; sortOrder: number; parentId: string | null }>>(() => {
+  const base = `/api/docs/${siteSlug.value}/nav`;
+  return selectedVersion.value ? `${base}?version=${encodeURIComponent(selectedVersion.value)}` : base;
+});
+const { data: pages, refresh: refreshPages } = useLazyFetch<Array<{ id: string; title: string; slug: string; sortOrder: number; parentId: string | null }>>(() => {
+  const base = `/api/docs/${siteSlug.value}/pages`;
+  return selectedVersion.value ? `${base}?version=${encodeURIComponent(selectedVersion.value)}` : base;
+});
 
 const { user } = useAuth();
 const isOwner = computed(() => site.value && user.value && site.value.ownerId === user.value.id);
@@ -44,14 +52,18 @@ function toggleSection(id: string): void {
   else expandedSections.value.add(id);
 }
 
-// Version selector
-const selectedVersion = ref('');
+// Version selector — initialize from site data, refresh nav on change
 watch(site, (s) => {
   if (s?.versions?.length) {
     const def = s.versions.find((v: { isDefault: boolean }) => v.isDefault) ?? s.versions[0];
-    if (def) selectedVersion.value = def.version;
+    if (def && !selectedVersion.value) selectedVersion.value = def.version;
   }
 }, { immediate: true });
+
+watch(selectedVersion, () => {
+  refreshNav();
+  refreshPages();
+});
 
 // Search
 const searchQuery = ref('');

@@ -165,7 +165,18 @@ onUnmounted(() => { document.removeEventListener('keydown', onKeydown); });
 
 <template>
   <!-- Scroll viewer for ExplainerDocument format -->
-  <ScrollViewer v-if="isDocumentFormat && explainerDoc" :document="explainerDoc" />
+  <div v-if="isDocumentFormat && explainerDoc" class="cpub-scroll-viewer-wrap">
+    <ScrollViewer :document="explainerDoc" />
+    <NuxtLink
+      v-if="isOwner"
+      :to="`/${content.type}/${content.slug}/edit`"
+      class="cpub-scroll-edit-btn"
+      title="Edit explainer"
+      aria-label="Edit explainer"
+    >
+      <i class="fa-solid fa-pen"></i>
+    </NuxtLink>
+  </div>
 
   <!-- Block-based viewer fallback -->
   <div v-else class="cpub-explainer-view">
@@ -332,6 +343,30 @@ onUnmounted(() => { document.removeEventListener('keydown', onKeydown); });
 </template>
 
 <style scoped>
+/* ── SCROLL VIEWER WRAPPER + EDIT BUTTON ── */
+.cpub-scroll-viewer-wrap { position: relative; }
+.cpub-scroll-edit-btn {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface, #1a1a1a);
+  border: 1px solid var(--border, #333);
+  color: var(--text-dim, #999);
+  font-size: 14px;
+  text-decoration: none;
+  z-index: 100;
+  transition: background 0.15s, color 0.15s;
+}
+.cpub-scroll-edit-btn:hover {
+  background: var(--accent-bg, #1a2a4a);
+  color: var(--accent, #5b9cf6);
+}
+
 /* ── PROGRESS BAR ── */
 .cpub-progress-line {
   position: fixed;

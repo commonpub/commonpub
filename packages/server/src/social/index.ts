@@ -8,6 +8,7 @@ export {
   toggleBookmark,
   onContentLiked,
   onContentUnliked,
+  onContentCommented,
   followUser,
   unfollowUser,
   isFollowing,

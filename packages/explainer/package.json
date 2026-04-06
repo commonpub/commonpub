@@ -1,8 +1,8 @@
 {
   "name": "@commonpub/explainer",
-  "version": "0.6.4",
+  "version": "0.7.0",
   "type": "module",
-  "description": "Interactive explainer runtime + Vue components \u2014 standalone, framework-agnostic engine with optional Vue 3 UI",
+  "description": "Interactive explainer runtime + Vue components — standalone, framework-agnostic engine with optional Vue 3 UI",
   "license": "AGPL-3.0-or-later",
   "repository": {
     "type": "git",
@@ -36,7 +36,8 @@
     },
     "./vue/theme": {
       "import": "./vue/theme/base.css"
-    }
+    },
+    "./vue/theme/explainer-themes.css": "./vue/theme/explainer-themes.css"
   },
   "files": [
     "dist/",

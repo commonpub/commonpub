@@ -11,6 +11,7 @@ import { createTestDB, createTestUser, closeTestDB } from './helpers/testdb.js';
 import { onHook, clearHooks } from '../hooks.js';
 import type { HookPayloads } from '../hooks.js';
 import { createContent, onContentPublished } from '../content/content.js';
+import { createComment } from '../social/social.js';
 import { createHub } from '../hub/hub.js';
 import { joinHub, leaveHub } from '../hub/members.js';
 import { createPost } from '../hub/posts.js';
@@ -140,6 +141,35 @@ describe('hook wiring integration', () => {
       expect(calls).toHaveLength(1);
       expect(calls[0]!.hubId).toBe(hubId);
       expect(calls[0]!.userId).toBe(user2Id);
+    });
+  });
+
+  // --- comment:created ---
+
+  describe('comment:created hook', () => {
+    it('fires when a comment is created on content', async () => {
+      const calls: Array<HookPayloads['comment:created']> = [];
+      onHook('comment:created', async (p) => { calls.push(p); });
+
+      // Create content to comment on
+      const content = await createContent(db, userId, {
+        type: 'article',
+        title: 'Comment Hook Article',
+        slug: 'comment-hook-article',
+        status: 'published',
+      });
+
+      const comment = await createComment(db, user2Id, {
+        targetType: 'article',
+        targetId: content.id,
+        content: 'Great article!',
+      });
+
+      expect(calls).toHaveLength(1);
+      expect(calls[0]!.commentId).toBe(comment.id);
+      expect(calls[0]!.authorId).toBe(user2Id);
+      expect(calls[0]!.targetType).toBe('article');
+      expect(calls[0]!.targetId).toBe(content.id);
     });
   });
 

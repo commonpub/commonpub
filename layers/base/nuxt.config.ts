@@ -47,6 +47,7 @@ export default defineNuxtConfig({
     uiTheme('layouts.css'),
     uiTheme('forms.css'),
     uiTheme('editor-panels.css'),
+    '@commonpub/explainer/vue/theme/explainer-themes.css',
   ],
   runtimeConfig: {
     databaseUrl: '',

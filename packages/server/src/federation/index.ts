@@ -14,6 +14,7 @@ export {
   federateDelete,
   federateLike,
   federateUnlike,
+  federateComment,
   buildContentUri,
   getContentSlugById,
   getFollowers,

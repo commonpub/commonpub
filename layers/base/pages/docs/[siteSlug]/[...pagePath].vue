@@ -9,9 +9,17 @@ const pagePath = computed(() => {
   return Array.isArray(p) ? p[p.length - 1] : p;
 });
 
+const selectedVersion = ref('');
+
 const { data: site } = useLazyFetch<{ id: string; name: string; slug: string; description: string; ownerId: string; versions: Array<{ id: string; label: string; slug: string; version: string; isDefault: boolean }> }>(() => `/api/docs/${siteSlug.value}`);
-const { data: nav } = useLazyFetch<Array<{ id: string; title: string; slug: string; sortOrder: number; parentId: string | null }>>(() => `/api/docs/${siteSlug.value}/nav`);
-const { data: pages } = useLazyFetch<Array<{ id: string; title: string; slug: string; sortOrder: number; parentId: string | null }>>(() => `/api/docs/${siteSlug.value}/pages`);
+const { data: nav, refresh: refreshNav } = useLazyFetch<Array<{ id: string; title: string; slug: string; sortOrder: number; parentId: string | null }>>(() => {
+  const base = `/api/docs/${siteSlug.value}/nav`;
+  return selectedVersion.value ? `${base}?version=${encodeURIComponent(selectedVersion.value)}` : base;
+});
+const { data: pages } = useLazyFetch<Array<{ id: string; title: string; slug: string; sortOrder: number; parentId: string | null }>>(() => {
+  const base = `/api/docs/${siteSlug.value}/pages`;
+  return selectedVersion.value ? `${base}?version=${encodeURIComponent(selectedVersion.value)}` : base;
+});
 
 // Fetch the rendered page (server-side markdown rendering or block content)
 interface RenderedPage {
@@ -37,7 +45,10 @@ const blockContent = computed<BlockTuple[]>(() => {
 });
 
 const { data: renderedPage, pending: pagePending, error: pageError, refresh: refreshPage } = useLazyFetch<RenderedPage>(
-  () => `/api/docs/${siteSlug.value}/pages/${pagePath.value}`,
+  () => {
+    const base = `/api/docs/${siteSlug.value}/pages/${pagePath.value}`;
+    return selectedVersion.value ? `${base}?version=${encodeURIComponent(selectedVersion.value)}` : base;
+  },
   { key: `doc-page-${siteSlug.value}-${pagePath.value}` },
 );
 
@@ -178,14 +189,19 @@ watch(searchQuery, (q) => {
   searchTimeout = setTimeout(handleSearch, 300);
 });
 
-// Version switching
-const selectedVersion = ref('');
+// Version switching — initialize from site data
 watch(site, (s) => {
   if (s?.versions?.length) {
     const def = s.versions.find((v: { isDefault: boolean }) => v.isDefault) ?? s.versions[0];
-    if (def) selectedVersion.value = def.version;
+    if (def && !selectedVersion.value) selectedVersion.value = def.version;
   }
 }, { immediate: true });
+
+// Reload page content and nav when version changes
+watch(selectedVersion, () => {
+  refreshNav();
+  refreshPage();
+});
 
 // Mobile sidebar
 const sidebarOpen = ref(false);

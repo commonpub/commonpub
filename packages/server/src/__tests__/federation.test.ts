@@ -25,6 +25,7 @@ describe('federation module', () => {
     expect(typeof mod.federateUpdate).toBe('function');
     expect(typeof mod.federateDelete).toBe('function');
     expect(typeof mod.federateLike).toBe('function');
+    expect(typeof mod.federateComment).toBe('function');
   });
 
   it('should export query functions', async () => {

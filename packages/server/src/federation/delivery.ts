@@ -222,7 +222,7 @@ async function resolveTargetInboxes(
       if (actor[0]?.inbox) inboxes.push(actor[0].inbox);
     }
   } else if (type === 'Follow') {
-    // Send to the target actor's inbox
+    // Send to the target actor's inbox — resolve if not cached
     const targetActorUri = activity.objectUri;
     if (targetActorUri) {
       const actor = await db
@@ -230,7 +230,16 @@ async function resolveTargetInboxes(
         .from(remoteActors)
         .where(eq(remoteActors.actorUri, targetActorUri))
         .limit(1);
-      if (actor[0]?.inbox) inboxes.push(actor[0].inbox);
+      if (actor[0]?.inbox) {
+        inboxes.push(actor[0].inbox);
+      } else {
+        // Actor not in cache — resolve it (sendFollow should have cached it, but handle edge cases)
+        try {
+          const { resolveRemoteActor } = await import('./federation.js');
+          const resolved = await resolveRemoteActor(db, targetActorUri);
+          if (resolved?.inbox) inboxes.push(resolved.inbox);
+        } catch { /* resolution failed — delivery will fail gracefully */ }
+      }
     }
   } else if (type === 'Undo') {
     // Undo can wrap Follow (send to target actor) or Like/Announce (fan out to followers).

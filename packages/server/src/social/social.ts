@@ -13,7 +13,8 @@ import {
 import type { CommonPubConfig } from '@commonpub/config';
 import type { DB, CommentItem } from '../types.js';
 import type { LikeTargetType, CommentTargetType } from '@commonpub/schema';
-import { federateLike, federateUnlike } from '../federation/federation.js';
+import { federateLike, federateUnlike, federateComment } from '../federation/federation.js';
+import { emitHook } from '../hooks.js';
 import { createNotification } from '../notification/notification.js';
 import { USER_REF_SELECT, USER_REF_WITH_BIO_SELECT, normalizePagination, countRows } from '../query.js';
 
@@ -328,6 +329,17 @@ export async function createComment(
     }
   } catch { /* non-critical */ }
 
+  // Emit comment:created hook (non-critical)
+  try {
+    await emitHook('comment:created', {
+      db,
+      commentId: row!.id,
+      authorId,
+      targetType: input.targetType,
+      targetId: input.targetId,
+    });
+  } catch { /* non-critical */ }
+
   return {
     id: row!.id,
     content: row!.content,
@@ -544,6 +556,20 @@ export async function onContentLiked(
 ): Promise<void> {
   if (!config.features.federation) return;
   await federateLike(db, userId, contentUri, config.instance.domain).catch((err: unknown) => {
+    console.error('[federation]', err);
+  });
+}
+
+export async function onContentCommented(
+  db: DB,
+  commentId: string,
+  authorId: string,
+  targetType: string,
+  targetId: string,
+  config: CommonPubConfig,
+): Promise<void> {
+  if (!config.features.federation) return;
+  await federateComment(db, commentId, authorId, targetType, targetId, config.instance.domain).catch((err: unknown) => {
     console.error('[federation]', err);
   });
 }

@@ -10,8 +10,26 @@ const siteSlug = computed(() => route.params.siteSlug as string);
 const { show: toast } = useToast();
 
 // ═══ DATA FETCHING ═══
-const { data: site, refresh: refreshSite } = await useFetch<{ id: string; name: string; slug: string; description: string; ownerId: string }>(() => `/api/docs/${siteSlug.value}`);
-const { data: rawPages, refresh: refreshPages } = await useFetch<Array<{ id: string; title: string; slug: string; sortOrder: number; parentId: string | null; content: string | BlockTuple[] | null; format?: string }>>(() => `/api/docs/${siteSlug.value}/pages`);
+const { data: site, refresh: refreshSite } = await useFetch<{ id: string; name: string; slug: string; description: string; ownerId: string; versions?: Array<{ id: string; version: string; isDefault: boolean }> }>(() => `/api/docs/${siteSlug.value}`);
+
+// Version selector
+const selectedVersion = ref('');
+watch(site, (s) => {
+  if (s?.versions?.length && !selectedVersion.value) {
+    const def = s.versions.find((v) => v.isDefault) ?? s.versions[0];
+    if (def) selectedVersion.value = def.version;
+  }
+}, { immediate: true });
+
+const { data: rawPages, refresh: refreshPages } = await useFetch<Array<{ id: string; title: string; slug: string; sortOrder: number; parentId: string | null; content: string | BlockTuple[] | null; format?: string }>>(() => {
+  const base = `/api/docs/${siteSlug.value}/pages`;
+  return selectedVersion.value ? `${base}?version=${encodeURIComponent(selectedVersion.value)}` : base;
+});
+
+watch(selectedVersion, () => {
+  selectedPageId.value = null;
+  refreshPages();
+});
 
 useSeoMeta({ title: () => `Edit ${site.value?.name ?? 'Docs'} — ${useSiteName()}` });
 
@@ -478,6 +496,13 @@ async function createVersion(): Promise<void> {
           <span class="cpub-docs-left-label">Pages</span>
           <span class="cpub-docs-page-count">{{ pages.length }}</span>
         </div>
+        <div v-if="site?.versions && site.versions.length > 1" class="cpub-docs-version-select">
+          <select v-model="selectedVersion" class="cpub-docs-version-dropdown" aria-label="Select version">
+            <option v-for="v in site.versions" :key="v.id" :value="v.version">
+              {{ v.version }}{{ v.isDefault ? ' (latest)' : '' }}
+            </option>
+          </select>
+        </div>
         <EditorsDocsPageTree
           :pages="treePages"
           :selected-page-id="selectedPageId"
@@ -792,6 +817,20 @@ async function createVersion(): Promise<void> {
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: var(--text-faint);
+}
+
+.cpub-docs-version-select {
+  padding: 4px 0 6px;
+}
+.cpub-docs-version-dropdown {
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 4px 6px;
+  background: var(--surface);
+  border: var(--border-width-default) solid var(--border2);
+  color: var(--text);
+  cursor: pointer;
 }
 
 .cpub-docs-page-count {

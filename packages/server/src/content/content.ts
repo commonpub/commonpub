@@ -18,6 +18,18 @@ import { createNotification } from '../notification/notification.js';
 
 /** Sanitize HTML strings within block content to prevent XSS */
 async function sanitizeBlockContent(content: unknown): Promise<unknown> {
+  // ExplainerDocument format: { version: 2, hero, sections[], ... }
+  if (
+    typeof content === 'object' &&
+    content !== null &&
+    !Array.isArray(content) &&
+    'version' in content &&
+    (content as Record<string, unknown>).version === 2 &&
+    'sections' in content
+  ) {
+    return sanitizeExplainerDocument(content as Record<string, unknown>);
+  }
+
   if (!Array.isArray(content)) return content;
 
   // Check if any block has HTML that needs sanitizing
@@ -52,6 +64,55 @@ async function sanitizeBlockContent(content: unknown): Promise<unknown> {
     }
     return [type, sanitized];
   });
+}
+
+/** Sanitize HTML fields within an ExplainerDocument */
+async function sanitizeExplainerDocument(doc: Record<string, unknown>): Promise<Record<string, unknown>> {
+  let sanitize: (html: string) => string;
+  try {
+    const mod = await import('isomorphic-dompurify');
+    const DOMPurify = mod.default ?? mod;
+    sanitize = (html: string) => DOMPurify.sanitize(html, {
+      ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'b', 'i', 'u', 's', 'code', 'a', 'ul', 'ol', 'li', 'blockquote', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'pre', 'span', 'sub', 'sup'],
+      ALLOWED_ATTR: ['href', 'target', 'rel', 'class'],
+    });
+  } catch {
+    sanitize = (html: string) => html.replace(/<[^>]*>/g, '');
+  }
+
+  const result = { ...doc };
+
+  // Sanitize hero fields
+  if (result.hero && typeof result.hero === 'object') {
+    const hero = { ...(result.hero as Record<string, unknown>) };
+    if (typeof hero.subtitle === 'string') hero.subtitle = sanitize(hero.subtitle);
+    result.hero = hero;
+  }
+
+  // Sanitize section fields
+  if (Array.isArray(result.sections)) {
+    result.sections = (result.sections as Array<Record<string, unknown>>).map((section) => {
+      const s = { ...section };
+      if (typeof s.body === 'string') s.body = sanitize(s.body);
+      if (typeof s.bridge === 'string') s.bridge = sanitize(s.bridge);
+      if (typeof s.insight === 'string') s.insight = sanitize(s.insight);
+      if (s.aside && typeof s.aside === 'object') {
+        const aside = { ...(s.aside as Record<string, unknown>) };
+        if (typeof aside.text === 'string') aside.text = sanitize(aside.text);
+        s.aside = aside;
+      }
+      return s;
+    });
+  }
+
+  // Sanitize conclusion fields
+  if (result.conclusion && typeof result.conclusion === 'object') {
+    const conclusion = { ...(result.conclusion as Record<string, unknown>) };
+    if (typeof conclusion.body === 'string') conclusion.body = sanitize(conclusion.body);
+    result.conclusion = conclusion;
+  }
+
+  return result;
 }
 
 function mapToListItem(

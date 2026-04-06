@@ -7,6 +7,7 @@ import {
   actorKeypairs,
   contentItems,
   contentTags,
+  comments,
   tags,
   instanceSettings,
 } from '@commonpub/schema';
@@ -17,6 +18,7 @@ import {
   resolveActor,
   resolveActorViaWebFinger,
   contentToArticle,
+  contentToNote,
   buildCreateActivity,
   buildUpdateActivity,
   buildDeleteActivity,
@@ -666,6 +668,60 @@ export async function federateDelete(
     type: 'Delete',
     actorUri,
     objectUri,
+    payload: activity,
+    direction: 'outbound',
+    status: 'pending',
+  });
+}
+
+export async function federateComment(
+  db: DB,
+  commentId: string,
+  authorId: string,
+  targetType: string,
+  targetId: string,
+  domain: string,
+): Promise<void> {
+  // Only federate comments on content items (not hub posts)
+  const FEDERABLE_COMMENT_TYPES = new Set(['project', 'article', 'blog', 'explainer']);
+  if (!FEDERABLE_COMMENT_TYPES.has(targetType)) return;
+
+  // Look up comment author
+  const user = await db.select().from(users).where(eq(users.id, authorId)).limit(1);
+  if (!user[0]) return;
+
+  // Look up the target content to build the inReplyTo URI
+  const target = await db
+    .select({ slug: contentItems.slug })
+    .from(contentItems)
+    .where(eq(contentItems.id, targetId))
+    .limit(1);
+  if (!target[0]) return;
+
+  const parentObjectUri = `https://${domain}/content/${target[0].slug}`;
+  const actorUri = `https://${domain}/users/${user[0].username}`;
+
+  // Look up the comment itself
+  const [comment] = await db
+    .select()
+    .from(comments)
+    .where(eq(comments.id, commentId))
+    .limit(1);
+  if (!comment) return;
+
+  const note = contentToNote(
+    { id: comment.id, content: comment.content, targetId, targetType, createdAt: comment.createdAt },
+    { username: user[0].username, displayName: user[0].displayName },
+    domain,
+    parentObjectUri,
+  );
+
+  const activity = buildCreateActivity(domain, actorUri, note);
+
+  await db.insert(activities).values({
+    type: 'Create',
+    actorUri,
+    objectUri: note.id,
     payload: activity,
     direction: 'outbound',
     status: 'pending',

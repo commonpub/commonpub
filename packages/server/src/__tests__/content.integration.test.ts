@@ -142,6 +142,73 @@ describe('content integration', () => {
     expect(versions.length).toBeGreaterThanOrEqual(1);
   });
 
+  it('sanitizes XSS in BlockTuple content on create', async () => {
+    const result = await createContent(db, userId, {
+      type: 'article',
+      title: 'XSS Test',
+      content: [['text', { html: '<p>Hello</p><script>alert(1)</script>' }]],
+    });
+
+    const fetched = await getContentBySlug(db, result.slug, userId);
+    const blocks = fetched!.content as [string, Record<string, unknown>][];
+    const htmlField = blocks[0]![1].html as string;
+    expect(htmlField).not.toContain('<script>');
+    expect(htmlField).toContain('Hello');
+  });
+
+  it('sanitizes XSS in ExplainerDocument content on create', async () => {
+    const explainerDoc = {
+      version: 2,
+      theme: 'dark-industrial',
+      hero: { title: 'Test', subtitle: '<script>alert("xss")</script>safe text' },
+      sections: [
+        {
+          id: 'sec1',
+          anchor: 'test',
+          heading: 'Test Section',
+          body: '<p>Good</p><script>evil()</script>',
+          bridge: '<em>ok</em><img src=x onerror=alert(1)>',
+          aside: { icon: 'test', label: 'Note', text: '<script>bad()</script>safe' },
+        },
+      ],
+      conclusion: { heading: 'End', body: '<p>Done</p><script>hack()</script>' },
+      meta: { estimatedMinutes: 5, difficulty: 'beginner' },
+    };
+
+    const result = await createContent(db, userId, {
+      type: 'explainer',
+      title: 'XSS Explainer Test',
+      content: explainerDoc,
+    });
+
+    const fetched = await getContentBySlug(db, result.slug, userId);
+    const doc = fetched!.content as Record<string, unknown>;
+    expect(doc.version).toBe(2);
+
+    // Hero subtitle sanitized
+    const hero = doc.hero as Record<string, unknown>;
+    expect(hero.subtitle).not.toContain('<script>');
+    expect(hero.subtitle as string).toContain('safe text');
+
+    // Section body sanitized
+    const sections = doc.sections as Array<Record<string, unknown>>;
+    expect(sections[0]!.body).not.toContain('<script>');
+    expect(sections[0]!.body as string).toContain('Good');
+
+    // Bridge sanitized
+    expect(sections[0]!.bridge).not.toContain('onerror');
+
+    // Aside text sanitized
+    const aside = sections[0]!.aside as Record<string, unknown>;
+    expect(aside.text).not.toContain('<script>');
+    expect(aside.text as string).toContain('safe');
+
+    // Conclusion body sanitized
+    const conclusion = doc.conclusion as Record<string, unknown>;
+    expect(conclusion.body).not.toContain('<script>');
+    expect(conclusion.body as string).toContain('Done');
+  });
+
   it('filters by type', async () => {
     const result = await listContent(db, { type: 'project', status: 'draft' });
     for (const item of result.items) {

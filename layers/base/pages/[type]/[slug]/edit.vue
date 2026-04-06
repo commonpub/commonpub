@@ -386,7 +386,7 @@ async function handleUrlImport(result: ImportedContent): Promise<void> {
       <div class="cpub-mode-tabs">
         <button :class="['cpub-mode-tab', { active: mode === 'write' }]" @click="mode = 'write'">Write</button>
         <button :class="['cpub-mode-tab', { active: mode === 'preview' }]" @click="enterPreview">Preview</button>
-        <button :class="['cpub-mode-tab', { active: mode === 'code' }]" @click="mode = 'code'">Code</button>
+        <button v-if="!isExplainer" :class="['cpub-mode-tab', { active: mode === 'code' }]" @click="mode = 'code'">Code</button>
       </div>
       <div class="cpub-topbar-spacer" />
       <div class="cpub-topbar-actions">
@@ -466,7 +466,7 @@ async function handleUrlImport(result: ImportedContent): Promise<void> {
             slug: (metadata.slug as string) || 'preview',
             subtitle: null,
             description: (metadata.description as string) || null,
-            content: blockEditor.toBlockTuples(),
+            content: isExplainer ? (explainerDocLatest ?? explainerDocInit) : blockEditor.toBlockTuples(),
             coverImageUrl: (metadata.coverImageUrl as string) || null,
             category: null,
             difficulty: (metadata.difficulty as string) || null,
