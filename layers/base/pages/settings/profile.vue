@@ -30,14 +30,14 @@ const form = ref({
   bannerUrl: '',
 });
 
-const skills = ref<Array<{ name: string; proficiency: number }>>([]);
+const skills = ref<string[]>([]);
 const socialLinks = ref({
   github: '',
   twitter: '',
   linkedin: '',
-  website: '',
 });
-const experience = ref<Array<{ id: string; title: string; company: string; startDate: string; endDate: string; description: string }>>([]);
+const pronouns = ref('');
+const experience = ref<Array<{ title: string; company: string; startDate: string; endDate: string; description: string }>>([]);
 
 const emailNotifications = ref<{
   digest: 'daily' | 'weekly' | 'none';
@@ -75,19 +75,23 @@ if (profile.value) {
   form.value.bannerUrl = p.bannerUrl || '';
 
   if (Array.isArray(p.skills)) {
-    skills.value = p.skills.map((s) =>
-      typeof s === 'string' ? { name: s, proficiency: 3 } : s,
-    );
+    skills.value = p.skills.filter((s): s is string => typeof s === 'string');
   }
+  pronouns.value = p.pronouns || '';
   if (p.socialLinks) {
     socialLinks.value.github = p.socialLinks.github || '';
     socialLinks.value.twitter = p.socialLinks.twitter || '';
     socialLinks.value.linkedin = p.socialLinks.linkedin || '';
-    socialLinks.value.website = (p.socialLinks as Record<string, string | undefined>).website || '';
   }
   const profileRecord = p as Record<string, unknown>;
   if (Array.isArray(profileRecord.experience)) {
-    experience.value = (profileRecord.experience as Array<Record<string, unknown>>).map((e) => ({ ...e }) as typeof experience.value[number]);
+    experience.value = (profileRecord.experience as Array<Record<string, unknown>>).map((e) => ({
+      title: String(e.title || ''),
+      company: String(e.company || ''),
+      startDate: String(e.startDate || ''),
+      endDate: String(e.endDate || ''),
+      description: String(e.description || ''),
+    }));
   }
   if (profileRecord.emailNotifications && typeof profileRecord.emailNotifications === 'object') {
     const en = profileRecord.emailNotifications as Record<string, unknown>;
@@ -104,25 +108,20 @@ if (profile.value) {
 // Watch for form changes AFTER initial data is loaded (nextTick avoids false positive)
 onMounted(() => {
   nextTick(() => {
-    watch([form, skills, socialLinks, experience, emailNotifications], () => { isDirty.value = true; }, { deep: true });
+    watch([form, skills, pronouns, socialLinks, experience, emailNotifications], () => { isDirty.value = true; }, { deep: true });
   });
 });
 
 function addSkill(): void {
-  skills.value.push({ name: '', proficiency: 50 });
+  skills.value.push('');
 }
 
 function removeSkill(index: number): void {
   skills.value.splice(index, 1);
 }
 
-function generateId(): string {
-  return `exp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-}
-
 function addExperience(): void {
   experience.value.push({
-    id: generateId(),
     title: '',
     company: '',
     startDate: '',
@@ -170,8 +169,9 @@ async function handleSave(): Promise<void> {
       method: 'PUT',
       body: {
         ...form.value,
-        skills: skills.value.filter((s) => s.name.trim()).map((s) => s.name),
+        skills: skills.value.filter((s) => s.trim()),
         experience: experience.value.filter((e) => e.title.trim()),
+        pronouns: pronouns.value || undefined,
         socialLinks: socialLinks.value,
         ...(emailNotificationsEnabled.value ? { emailNotifications: emailNotifications.value } : {}),
       },
@@ -330,39 +330,42 @@ async function handleSave(): Promise<void> {
         </div>
       </div>
 
+      <!-- Pronouns -->
+      <div class="cpub-form-section">
+        <span class="cpub-form-section-label">Identity</span>
+
+        <div class="cpub-form-group">
+          <label for="pronouns" class="cpub-form-label">Pronouns</label>
+          <input
+            id="pronouns"
+            v-model="pronouns"
+            type="text"
+            class="cpub-input"
+            placeholder="e.g., they/them, she/her, he/him"
+          />
+        </div>
+      </div>
+
       <!-- Skills -->
       <div class="cpub-form-section">
         <span class="cpub-form-section-label">Skills</span>
 
         <div
-          v-for="(skill, index) in skills"
+          v-for="(_skill, index) in skills"
           :key="index"
           class="cpub-skill-row"
         >
-          <div class="cpub-skill-name">
-            <input
-              v-model="skill.name"
-              type="text"
-              class="cpub-input"
-              placeholder="Skill name"
-              :aria-label="`Skill ${index + 1} name`"
-            />
-          </div>
-          <div class="cpub-skill-slider">
-            <input
-              v-model.number="skill.proficiency"
-              type="range"
-              min="0"
-              max="100"
-              class="cpub-range"
-              :aria-label="`Skill ${index + 1} proficiency`"
-            />
-            <span class="cpub-skill-value">{{ skill.proficiency }}%</span>
-          </div>
+          <input
+            v-model="skills[index]"
+            type="text"
+            class="cpub-input"
+            placeholder="Skill name"
+            :aria-label="`Skill ${index + 1}`"
+          />
           <button
             type="button"
             class="cpub-btn-icon cpub-btn-danger"
-            :aria-label="`Remove skill ${skill.name || index + 1}`"
+            :aria-label="`Remove skill ${skills[index] || index + 1}`"
             @click="removeSkill(index)"
           >
             <i class="fa-solid fa-xmark" aria-hidden="true"></i>
@@ -416,16 +419,6 @@ async function handleSave(): Promise<void> {
           />
         </div>
 
-        <div class="cpub-form-group">
-          <label for="social-website" class="cpub-form-label">Website URL</label>
-          <input
-            id="social-website"
-            v-model="socialLinks.website"
-            type="url"
-            class="cpub-input"
-            placeholder="https://..."
-          />
-        </div>
       </div>
 
       <!-- Experience -->
@@ -434,7 +427,7 @@ async function handleSave(): Promise<void> {
 
         <div
           v-for="(entry, index) in experience"
-          :key="entry.id"
+          :key="index"
           class="cpub-experience-card"
         >
           <div class="cpub-experience-header">
@@ -451,9 +444,9 @@ async function handleSave(): Promise<void> {
 
           <div class="cpub-experience-fields">
             <div class="cpub-form-group">
-              <label :for="`exp-title-${entry.id}`" class="cpub-form-label">Title</label>
+              <label :for="`exp-title-${index}`" class="cpub-form-label">Title</label>
               <input
-                :id="`exp-title-${entry.id}`"
+                :id="`exp-title-${index}`"
                 v-model="entry.title"
                 type="text"
                 class="cpub-input"
@@ -462,9 +455,9 @@ async function handleSave(): Promise<void> {
             </div>
 
             <div class="cpub-form-group">
-              <label :for="`exp-company-${entry.id}`" class="cpub-form-label">Company</label>
+              <label :for="`exp-company-${index}`" class="cpub-form-label">Company</label>
               <input
-                :id="`exp-company-${entry.id}`"
+                :id="`exp-company-${index}`"
                 v-model="entry.company"
                 type="text"
                 class="cpub-input"
@@ -474,18 +467,18 @@ async function handleSave(): Promise<void> {
 
             <div class="cpub-experience-dates">
               <div class="cpub-form-group">
-                <label :for="`exp-start-${entry.id}`" class="cpub-form-label">Start Date</label>
+                <label :for="`exp-start-${index}`" class="cpub-form-label">Start Date</label>
                 <input
-                  :id="`exp-start-${entry.id}`"
+                  :id="`exp-start-${index}`"
                   v-model="entry.startDate"
                   type="month"
                   class="cpub-input"
                 />
               </div>
               <div class="cpub-form-group">
-                <label :for="`exp-end-${entry.id}`" class="cpub-form-label">End Date</label>
+                <label :for="`exp-end-${index}`" class="cpub-form-label">End Date</label>
                 <input
-                  :id="`exp-end-${entry.id}`"
+                  :id="`exp-end-${index}`"
                   v-model="entry.endDate"
                   type="month"
                   class="cpub-input"
@@ -495,9 +488,9 @@ async function handleSave(): Promise<void> {
             </div>
 
             <div class="cpub-form-group">
-              <label :for="`exp-desc-${entry.id}`" class="cpub-form-label">Description</label>
+              <label :for="`exp-desc-${index}`" class="cpub-form-label">Description</label>
               <textarea
-                :id="`exp-desc-${entry.id}`"
+                :id="`exp-desc-${index}`"
                 v-model="entry.description"
                 class="cpub-textarea"
                 rows="3"

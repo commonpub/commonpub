@@ -370,6 +370,25 @@ async function handleReport(): Promise<void> {
                 <p class="cpub-empty-state-title">No skills listed yet</p>
               </div>
             </div>
+
+            <!-- Experience -->
+            <div v-if="(p as Record<string, unknown>).experience && ((p as Record<string, unknown>).experience as Array<Record<string, string>>).length > 0" class="cpub-experience-section">
+              <div class="cpub-sec-head">
+                <h2><i class="fa-solid fa-briefcase" style="color: var(--purple); margin-right: 6px"></i>Experience</h2>
+              </div>
+              <div class="cpub-experience-list">
+                <div v-for="(exp, idx) in ((p as Record<string, unknown>).experience as Array<Record<string, string>>)" :key="idx" class="cpub-experience-item">
+                  <div class="cpub-exp-header">
+                    <strong>{{ exp.title }}</strong>
+                    <span v-if="exp.company" class="cpub-exp-company">{{ exp.company }}</span>
+                  </div>
+                  <div v-if="exp.startDate" class="cpub-exp-dates">
+                    {{ exp.startDate }}{{ exp.endDate ? ` — ${exp.endDate}` : ' — Present' }}
+                  </div>
+                  <p v-if="exp.description" class="cpub-exp-desc">{{ exp.description }}</p>
+                </div>
+              </div>
+            </div>
           </div>
 
           <!-- Sidebar -->
@@ -708,6 +727,20 @@ async function handleReport(): Promise<void> {
   font-family: var(--font-mono);
   margin-bottom: 8px;
 }
+
+/* Experience */
+.cpub-experience-section { margin-top: 24px; }
+.cpub-experience-list { display: flex; flex-direction: column; gap: 16px; }
+.cpub-experience-item {
+  padding: 12px 16px;
+  border: var(--border-width-default) solid var(--border2);
+  background: var(--surface);
+}
+.cpub-exp-header { display: flex; flex-direction: column; gap: 2px; }
+.cpub-exp-header strong { font-size: var(--text-sm); }
+.cpub-exp-company { font-size: var(--text-xs); color: var(--text-dim); }
+.cpub-exp-dates { font-size: var(--text-xs); color: var(--text-faint); font-family: var(--font-mono); margin-top: 4px; }
+.cpub-exp-desc { font-size: var(--text-sm); color: var(--text-dim); margin-top: 8px; line-height: var(--leading-normal); }
 
 /* About grid */
 .cpub-about-grid {
