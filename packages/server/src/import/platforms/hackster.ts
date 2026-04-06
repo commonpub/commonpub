@@ -279,5 +279,37 @@ function createTurndownService(): TurndownService {
     },
   });
 
+  // Hackster often uses <strong>/<b> inside <p> for step headers instead of <h2>.
+  // Detect bold-only paragraphs that look like headers and convert to ## headings.
+  td.addRule('boldParagraphAsHeading', {
+    filter: (node) => {
+      if (node.nodeName !== 'P') return false;
+      const el = node as Element;
+      const children = el.childNodes;
+      // Must have exactly one child that is <strong> or <b>
+      if (children.length !== 1) return false;
+      const child = children[0] as Element;
+      if (child.nodeName !== 'STRONG' && child.nodeName !== 'B') return false;
+      const text = child.textContent?.trim() || '';
+      // Must look like a header: short text, or starts with "Step", or all-caps
+      return text.length < 120 && (
+        /^step\s+\d/i.test(text) ||
+        /^(introduction|overview|conclusion|summary|getting started|prerequisites|materials|setup|assembly|wiring|programming|testing|demo|result)/i.test(text) ||
+        text === text.toUpperCase() && text.length > 3
+      );
+    },
+    replacement: (content) => `\n\n## ${content.trim()}\n\n`,
+  });
+
+  // Elements with step-related class names should be treated as headings
+  td.addRule('stepTitleElement', {
+    filter: (node) => {
+      const el = node as Element;
+      const className = el.getAttribute?.('class') || '';
+      return /step[-_]?(title|header|name|heading)/i.test(className);
+    },
+    replacement: (content) => `\n\n## ${content.trim()}\n\n`,
+  });
+
   return td;
 }

@@ -301,6 +301,28 @@ Adafruit_NeoPixel strip(30, PIN, NEO_GRB);
       expect(result.content[0][0]).toBe('partsList');
     });
 
+    it('should convert bold-only paragraphs that look like step headers to heading blocks', async () => {
+      const html = buildHacksterHtml({
+        story: `
+          <p><strong>Introduction</strong></p>
+          <p>This project demonstrates the concept.</p>
+          <p><strong>Step 1: Prepare the Board</strong></p>
+          <p>Solder the header pins onto the board.</p>
+          <p><strong>Step 2: Upload Code</strong></p>
+          <p>Flash the firmware via USB.</p>
+        `,
+      });
+      const url = new URL('https://www.hackster.io/maker/project');
+
+      const result = await hacksterHandler.import(url, html);
+
+      const headings = result.content.filter(([type]) => type === 'heading');
+      expect(headings.length).toBe(3);
+      expect((headings[0]![1] as { text: string }).text).toBe('Introduction');
+      expect((headings[1]![1] as { text: string }).text).toBe('Step 1: Prepare the Board');
+      expect((headings[2]![1] as { text: string }).text).toBe('Step 2: Upload Code');
+    });
+
     it('should place tools after parts and before story', async () => {
       const html = buildHacksterHtml({
         tools: '<ul><li>Multimeter</li></ul>',

@@ -184,9 +184,9 @@ function onDragEnd(event: DragEvent): void {
   min-height: 20px;
 }
 
-/* Touch devices: always show controls since there's no hover */
+/* Touch devices: only show controls on selected block since there's no hover */
 @media (hover: none) {
-  .cpub-block-handle { opacity: 1; }
-  .cpub-block-controls { opacity: 1; }
+  .cpub-block-wrap--selected .cpub-block-handle { opacity: 1; }
+  .cpub-block-wrap--selected .cpub-block-controls { opacity: 1; }
 }
 </style>
