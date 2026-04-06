@@ -206,6 +206,33 @@ async function handleDiscPost(): Promise<void> {
 const mirrorStatus = computed(() => hub.value?.followStatus ?? 'pending');
 
 const remoteFollowRef = ref<{ show: () => void } | null>(null);
+const hubFollowing = ref(false);
+const hubFollowStatus = ref('');
+
+/** Follow the hub — if logged in, call API directly; otherwise show the remote follow modal */
+async function handleJoinHub(): Promise<void> {
+  if (isAuthenticated.value && hub.value) {
+    // Logged-in user: call the hub-follow API directly
+    hubFollowing.value = true;
+    try {
+      const result = await $fetch<{ success: boolean; status: string }>('/api/federation/hub-follow', {
+        method: 'POST',
+        body: { federatedHubId: hub.value.id },
+      });
+      hubFollowStatus.value = result.status;
+      toast.success(result.status === 'accepted' ? 'Now following this hub' : 'Follow request sent');
+      await refreshHub();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to follow hub';
+      toast.error(msg);
+    } finally {
+      hubFollowing.value = false;
+    }
+  } else {
+    // Not logged in: show the remote follow modal
+    remoteFollowRef.value?.show();
+  }
+}
 
 // --- Like state tracking ---
 const likedPostIds = ref<Set<string>>(new Set());
@@ -272,8 +299,8 @@ async function handlePostVote(postId: string): Promise<void> {
           <span v-if="mirrorStatus === 'accepted'" class="cpub-member-badge cpub-member-badge-mirrored">
             <i class="fa-solid fa-globe"></i> Mirrored
           </span>
-          <button v-if="hub?.actorUri" class="cpub-btn cpub-btn-primary cpub-btn-sm" @click="remoteFollowRef?.show()">
-            <i class="fa-solid fa-user-plus"></i> Join from your instance
+          <button v-if="hub?.actorUri" class="cpub-btn cpub-btn-primary cpub-btn-sm" :disabled="hubFollowing" @click="handleJoinHub">
+            <i class="fa-solid fa-user-plus"></i> {{ hubFollowing ? 'Following...' : 'Join from your instance' }}
           </button>
           <a v-if="hub?.url" :href="hub.url" target="_blank" rel="noopener noreferrer" class="cpub-btn cpub-btn-sm">
             <i class="fa-solid fa-arrow-up-right-from-square"></i> Visit original
