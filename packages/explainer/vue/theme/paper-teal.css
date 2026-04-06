@@ -1,0 +1,48 @@
+/**
+ * Paper Teal theme — Sora + Space Mono + IBM Plex Mono
+ * Warm paper background, teal accent, registration marks.
+ * Used for LumenCanvas, projection mapping content.
+ */
+[data-explainer-theme="paper-teal"] {
+  /* Page & section backgrounds */
+  --bg-page: #2a2a2d;
+  --bg-section: #faf8f3;
+  --bg-section-alt: #f3f0e8;
+  --bg-dark: #1a1a1e;
+
+  /* Text */
+  --text-primary: #2a2a2d;
+  --text-secondary: #555;
+  --text-muted: #999;
+  --text-on-dark: rgba(255, 255, 255, 0.85);
+  --text-on-dark-dim: rgba(255, 255, 255, 0.45);
+  --text-on-dark-faint: rgba(255, 255, 255, 0.2);
+
+  /* Accent */
+  --accent: #2dd4a8;
+  --accent-hover: #22b890;
+  --accent-light: rgba(45, 212, 168, 0.1);
+  --accent-glow: rgba(45, 212, 168, 0.3);
+
+  /* Semantic */
+  --success: #2dd4a8;
+  --warn: #f0c040;
+  --error: #e05555;
+
+  /* Borders */
+  --border: rgba(0, 0, 0, 0.08);
+  --border-dark: rgba(255, 255, 255, 0.08);
+  --border-width: 1px;
+
+  /* Typography */
+  --font-display: 'Sora', system-ui, sans-serif;
+  --font-body: 'Sora', system-ui, sans-serif;
+  --font-ui: 'Space Mono', ui-monospace, monospace;
+  --font-import: 'https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap';
+
+  /* Layout */
+  --section-max-width: 760px;
+  --section-padding: 72px 32px;
+  --section-padding-mobile: 48px 20px;
+  --radius: 4px;
+}

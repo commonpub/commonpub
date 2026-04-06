@@ -1,0 +1,6 @@
+/* Explainer theme aggregator — import this to get base + all 4 presets */
+@import './base.css';
+@import './dark-industrial.css';
+@import './punk-zine.css';
+@import './paper-teal.css';
+@import './clean-light.css';

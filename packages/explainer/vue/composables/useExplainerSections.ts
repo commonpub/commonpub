@@ -1,5 +1,5 @@
 import { computed, type Ref } from 'vue';
-import { deriveSections, computeSectionRanges, type DerivedSection, type SectionRange } from '../../src/sections/derive.js';
+import { deriveSections, computeSectionRanges, type DerivedSection, type SectionRange } from '@commonpub/explainer';
 
 type BlockTuple = [string, Record<string, unknown>];
 

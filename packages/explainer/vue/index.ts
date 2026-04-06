@@ -25,10 +25,24 @@ export {
   EmbedBlock,
 } from './components/blocks/index.js';
 
+// V2 Scroll Viewer components
+export {
+  ScrollViewer,
+  ProgressBar,
+  NavDots,
+  HeroRenderer,
+  SectionRenderer,
+  InteractiveContainer,
+  ConclusionRenderer,
+  moduleMap,
+} from './components/viewer/index.js';
+
 // Composables
 export { useBlockEditor } from './composables/useBlockEditor.js';
 export { useExplainerSections } from './composables/useExplainerSections.js';
 export { useExplainerProgress } from './composables/useExplainerProgress.js';
+export { useScrollTracking } from './composables/useScrollTracking.js';
+export { useExplainerTheme } from './composables/useExplainerTheme.js';
 
 // Types
 export type { ExplainerContent } from './components/ExplainerViewer.vue';

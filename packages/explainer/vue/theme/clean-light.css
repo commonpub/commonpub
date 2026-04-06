@@ -1,0 +1,48 @@
+/**
+ * Clean Light theme — Inter + IBM Plex Mono
+ * Pure white, blue accent, subtle radius.
+ * A neutral starting point for any topic.
+ */
+[data-explainer-theme="clean-light"] {
+  /* Page & section backgrounds */
+  --bg-page: #111114;
+  --bg-section: #ffffff;
+  --bg-section-alt: #f8f9fa;
+  --bg-dark: #1a1a1e;
+
+  /* Text */
+  --text-primary: #111827;
+  --text-secondary: #4b5563;
+  --text-muted: #9ca3af;
+  --text-on-dark: rgba(255, 255, 255, 0.9);
+  --text-on-dark-dim: rgba(255, 255, 255, 0.5);
+  --text-on-dark-faint: rgba(255, 255, 255, 0.2);
+
+  /* Accent */
+  --accent: #3b82f6;
+  --accent-hover: #2563eb;
+  --accent-light: rgba(59, 130, 246, 0.08);
+  --accent-glow: rgba(59, 130, 246, 0.25);
+
+  /* Semantic */
+  --success: #22c55e;
+  --warn: #f59e0b;
+  --error: #ef4444;
+
+  /* Borders */
+  --border: rgba(0, 0, 0, 0.08);
+  --border-dark: rgba(255, 255, 255, 0.08);
+  --border-width: 1px;
+
+  /* Typography */
+  --font-display: 'Inter', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-ui: 'IBM Plex Mono', ui-monospace, monospace;
+  --font-import: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;700&display=swap';
+
+  /* Layout */
+  --section-max-width: 760px;
+  --section-padding: 72px 32px;
+  --section-padding-mobile: 48px 20px;
+  --radius: 6px;
+}

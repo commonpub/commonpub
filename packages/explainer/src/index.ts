@@ -23,7 +23,18 @@ export type {
   ExportOptions,
   AnswerResult,
   QuizResult,
+  // V2 Document Format
+  ExplainerThemePreset,
+  ModuleConfig,
+  SectionAside,
+  ExplainerDocSection,
+  ExplainerHero,
+  ExplainerConclusion,
+  ExplainerDocument,
 } from './types.js';
+
+// V2 type guard
+export { isExplainerDocument } from './types.js';
 
 // Schemas
 export {
@@ -34,6 +45,14 @@ export {
   explainerSectionSchema,
   explainerSectionsSchema,
   explainerMetaSchema,
+  // V2 schemas
+  explainerThemePresetSchema,
+  moduleConfigSchema,
+  sectionAsideSchema,
+  explainerDocSectionSchema,
+  explainerHeroSchema,
+  explainerConclusionSchema,
+  explainerDocumentSchema,
 } from './schemas.js';
 
 // Section registry

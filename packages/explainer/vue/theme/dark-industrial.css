@@ -1,0 +1,48 @@
+/**
+ * Dark Industrial theme — Space Grotesk + JetBrains Mono
+ * Charcoal page, warm white sections, red accent.
+ * Used for protocol explainers (CLASP, WARD, etc.)
+ */
+[data-explainer-theme="dark-industrial"] {
+  /* Page & section backgrounds */
+  --bg-page: #0c0c0f;
+  --bg-section: #fafaf8;
+  --bg-section-alt: #f2f0ec;
+  --bg-dark: #141418;
+
+  /* Text */
+  --text-primary: #1a1a1a;
+  --text-secondary: #555;
+  --text-muted: #999;
+  --text-on-dark: rgba(255, 255, 255, 0.85);
+  --text-on-dark-dim: rgba(255, 255, 255, 0.45);
+  --text-on-dark-faint: rgba(255, 255, 255, 0.2);
+
+  /* Accent */
+  --accent: #e04030;
+  --accent-hover: #c83628;
+  --accent-light: rgba(224, 64, 48, 0.08);
+  --accent-glow: rgba(224, 64, 48, 0.25);
+
+  /* Semantic */
+  --success: #2a9d5c;
+  --warn: #d4a017;
+  --error: #e04030;
+
+  /* Borders */
+  --border: rgba(0, 0, 0, 0.1);
+  --border-dark: rgba(255, 255, 255, 0.08);
+  --border-width: 0px;
+
+  /* Typography */
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
+  --font-body: 'Space Grotesk', system-ui, sans-serif;
+  --font-ui: 'JetBrains Mono', ui-monospace, monospace;
+  --font-import: 'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap';
+
+  /* Layout */
+  --section-max-width: 760px;
+  --section-padding: 72px 32px;
+  --section-padding-mobile: 48px 20px;
+  --radius: 0px;
+}

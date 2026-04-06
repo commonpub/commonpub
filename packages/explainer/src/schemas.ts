@@ -115,3 +115,76 @@ export const explainerMetaSchema = z.object({
   prerequisites: z.array(z.string()).optional(),
   learningObjectives: z.array(z.string()).optional(),
 });
+
+// ═══════════════════════════════════════════════════════════════
+// V2 DOCUMENT FORMAT SCHEMAS (Sprint 2+)
+// ═══════════════════════════════════════════════════════════════
+
+/** Theme preset */
+export const explainerThemePresetSchema = z.enum([
+  'dark-industrial',
+  'punk-zine',
+  'paper-teal',
+  'clean-light',
+]);
+
+/** Module config for an interactive element */
+export const moduleConfigSchema = z.object({
+  type: z.string().min(1),
+  props: z.record(z.string(), z.unknown()),
+});
+
+/** Section aside/callout */
+export const sectionAsideSchema = z.object({
+  icon: z.string(),
+  label: z.string(),
+  text: z.string(),
+});
+
+/** V2 document section */
+export const explainerDocSectionSchema = z.object({
+  id: z.string().min(1),
+  anchor: z.string().min(1),
+  heading: z.string().min(1),
+  body: z.string(),
+  module: moduleConfigSchema.optional(),
+  insight: z.string().optional(),
+  bridge: z.string().optional(),
+  aside: sectionAsideSchema.optional(),
+  notes: z.string().optional(),
+});
+
+/** Hero section */
+export const explainerHeroSchema = z.object({
+  title: z.string().min(1),
+  subtitle: z.string().optional(),
+  highlight: z.string().optional(),
+  scrollHint: z.string().optional(),
+  coverImageUrl: z.string().optional(),
+});
+
+/** Conclusion section */
+export const explainerConclusionSchema = z.object({
+  heading: z.string().min(1),
+  body: z.string(),
+  callToAction: z.object({
+    label: z.string(),
+    url: z.string(),
+  }).optional(),
+});
+
+/** V2 ExplainerDocument schema */
+export const explainerDocumentSchema = z.object({
+  version: z.literal(2),
+  theme: explainerThemePresetSchema,
+  hero: explainerHeroSchema,
+  sections: z.array(explainerDocSectionSchema).min(1),
+  conclusion: explainerConclusionSchema.optional(),
+  meta: explainerMetaSchema,
+  settings: z.object({
+    showProgressBar: z.boolean().optional(),
+    showNavDots: z.boolean().optional(),
+    showFooter: z.boolean().optional(),
+    footerText: z.string().optional(),
+  }).optional(),
+});

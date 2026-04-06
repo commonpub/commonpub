@@ -14,11 +14,119 @@ import DividerBlock from '../vue/components/blocks/DividerBlock.vue';
 import BlockRenderer from '../vue/components/BlockRenderer.vue';
 import ExplainerViewer from '../vue/components/ExplainerViewer.vue';
 import ExplainerEditor from '../vue/components/ExplainerEditor.vue';
+import ScrollViewer from '../vue/components/viewer/ScrollViewer.vue';
 import { useBlockEditor } from '../vue/composables/useBlockEditor';
+import type { ExplainerDocument, ExplainerThemePreset } from '../src/types';
+import '../vue/theme/explainer-themes.css';
 
 type BlockTuple = [string, Record<string, unknown>];
 
-const activeView = ref<'blocks' | 'renderer' | 'viewer' | 'editor'>('blocks');
+const activeView = ref<'blocks' | 'renderer' | 'viewer' | 'editor' | 'scroll'>('blocks');
+const scrollTheme = ref<ExplainerThemePreset>('dark-industrial');
+
+// V2 Sample document for the scroll viewer
+const sampleDocument: ExplainerDocument = {
+  version: 2,
+  theme: 'dark-industrial',
+  hero: {
+    title: 'Feedback Loops',
+    subtitle: 'A tiny push becomes an avalanche. A small correction keeps a rocket on course.',
+    highlight: 'Why does everything spiral?',
+    scrollHint: 'Scroll to find out',
+  },
+  sections: [
+    {
+      id: 'linear',
+      anchor: 'linear-growth',
+      heading: 'Start Simple: Linear Growth',
+      body: '<p>Imagine you get paid <strong>$10 every day</strong>. After a week you have $70. After a month, $300. The growth is steady and predictable.</p><p>Drag the slider to change the daily amount and watch the total change proportionally.</p>',
+      module: {
+        type: 'slider',
+        props: {
+          label: '$/day',
+          min: 1,
+          max: 50,
+          step: 1,
+          unit: '',
+          defaultValue: 10,
+          feedback: [
+            { min: 1, max: 15, state: 'low', message: 'Modest income. Straight line, no surprises.' },
+            { min: 15, max: 35, state: 'good', message: 'Decent amount. Still perfectly linear.' },
+            { min: 35, max: 50, state: 'high', message: 'Great rate! But still just a straight line.' },
+          ],
+        },
+      },
+      insight: 'In a linear system, the output does not affect the input. Every step adds the same amount.',
+      bridge: '<em>Nothing weird here. <strong>But what happens when the output feeds back into the input?</strong></em>',
+      aside: { icon: 'lightbulb', label: 'Key idea', text: 'Linear growth means every step adds the same amount. The graph is always a straight line.' },
+    },
+    {
+      id: 'exponential',
+      anchor: 'feed-it-back',
+      heading: 'Now Feed It Back',
+      body: '<p>What if instead of a flat $10/day, you earned <strong>a percentage of what you already have</strong>? Now the output feeds back into the input. Your balance grows, which means your earnings grow, which means your balance grows faster.</p>',
+      module: {
+        type: 'slider',
+        props: {
+          label: 'Growth %',
+          min: 1,
+          max: 30,
+          step: 1,
+          unit: '%',
+          defaultValue: 5,
+          feedback: [
+            { min: 1, max: 8, state: 'low', message: 'Slow growth. The curve barely bends.' },
+            { min: 8, max: 18, state: 'good', message: 'Now you can see it. The curve is bending upward.' },
+            { min: 18, max: 30, state: 'high', message: 'Explosive! This is what exponential growth looks like.' },
+          ],
+        },
+      },
+      insight: 'This is exponential growth. The direct result of output feeding back into input. The curve bends because each step is proportional to the current total.',
+      bridge: '<em>Positive loops amplify. <strong>But not all feedback spirals out of control.</strong></em>',
+      aside: { icon: 'globe', label: 'Real world', text: 'Compound interest, viral posts, early-stage epidemics.' },
+    },
+    {
+      id: 'classification',
+      anchor: 'the-other-kind',
+      heading: 'The Other Kind: Correction',
+      body: '<p>Not all feedback spirals out of control. <strong>Negative feedback loops</strong> push the system back toward a target. Your thermostat measures the temperature, compares it to the setpoint, and turns the heater on or off. The output corrects the input.</p><p>Can you identify which type each real-world example is?</p>',
+      module: {
+        type: 'quiz',
+        props: {
+          question: 'A bank run (everyone withdraws money because others are withdrawing) is which type of feedback loop?',
+          options: [
+            { text: 'Positive feedback (amplifying)', correct: true },
+            { text: 'Negative feedback (stabilizing)', correct: false },
+            { text: 'Neither', correct: false },
+          ],
+        },
+      },
+      insight: 'Positive loops amplify. Negative loops stabilize. Most real systems have both, fighting for dominance.',
+      bridge: '<em>Real systems are never just one loop. <strong>They are a tug of war.</strong></em>',
+    },
+    {
+      id: 'synthesis',
+      anchor: 'putting-it-together',
+      heading: 'Both at Once: The Tug of War',
+      body: '<p>In a population, the birth rate creates a <strong>positive loop</strong> (more organisms means more births). But resources are finite. As the population grows, food runs out, disease spreads, competition intensifies. This is the <strong>negative loop</strong>.</p><p>The result? The S-curve. Positive feedback dominates early (exponential growth), then negative feedback takes over (the curve flattens).</p>',
+      insight: 'The S-curve is the signature of two competing feedback loops. Growth rate vs. carrying capacity. Ambition vs. friction. Hype vs. reality.',
+    },
+  ],
+  conclusion: {
+    heading: 'So What?',
+    body: '<p>Once you see feedback loops, you see them everywhere. Every system that <strong>grows</strong>, <strong>stabilizes</strong>, <strong>oscillates</strong>, or <strong>crashes</strong> is driven by some combination of positive and negative feedback.</p><p>The next time something spirals, ask: what is feeding back into what?</p>',
+  },
+  meta: {
+    estimatedMinutes: 12,
+    difficulty: 'beginner',
+  },
+  settings: {
+    showProgressBar: true,
+    showNavDots: true,
+    showFooter: true,
+    footerText: 'An explorable explanation',
+  },
+};
 
 // Editor state
 const editorBlocks = useBlockEditor([
@@ -111,6 +219,7 @@ const rendererBlocks: BlockTuple[] = [
         <button :class="{ active: activeView === 'renderer' }" @click="activeView = 'renderer'">Block Renderer</button>
         <button :class="{ active: activeView === 'editor' }" @click="activeView = 'editor'">Editor</button>
         <button :class="{ active: activeView === 'viewer' }" @click="activeView = 'viewer'">Full Viewer</button>
+        <button :class="{ active: activeView === 'scroll' }" @click="activeView = 'scroll'" style="color: #e04030; font-weight: 700;">Scroll Viewer (V2)</button>
       </div>
     </nav>
 
@@ -210,6 +319,21 @@ const rendererBlocks: BlockTuple[] = [
     <!-- FULL VIEWER -->
     <div v-else class="playground-viewer">
       <ExplainerViewer :content="sampleContent" />
+    </div>
+
+    <!-- SCROLL VIEWER (V2) -->
+    <div v-else-if="activeView === 'scroll'" style="height: 100vh; overflow: auto;">
+      <div style="position: fixed; top: 10px; left: 10px; z-index: 9999; display: flex; gap: 6px; align-items: center;">
+        <label style="font-family: monospace; font-size: 11px; color: rgba(255,255,255,0.5);">Theme:</label>
+        <select v-model="scrollTheme" @change="sampleDocument.theme = scrollTheme" style="font-family: monospace; font-size: 11px; background: #1a1a1a; color: #ccc; border: 1px solid #333; padding: 3px 8px;">
+          <option value="dark-industrial">Dark Industrial</option>
+          <option value="punk-zine">Punk Zine</option>
+          <option value="paper-teal">Paper Teal</option>
+          <option value="clean-light">Clean Light</option>
+        </select>
+        <button @click="activeView = 'blocks'" style="font-family: monospace; font-size: 10px; background: #333; color: #ccc; border: 1px solid #555; padding: 3px 10px; cursor: pointer;">Exit</button>
+      </div>
+      <ScrollViewer :document="sampleDocument" />
     </div>
   </div>
 </template>

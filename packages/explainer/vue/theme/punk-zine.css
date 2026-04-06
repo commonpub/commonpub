@@ -1,0 +1,48 @@
+/**
+ * Punk Zine theme — Permanent Marker + Special Elite + VT323
+ * Paper texture, hot pink accent, block shadows.
+ * Used for hack.build, DevRel, hackerspace game.
+ */
+[data-explainer-theme="punk-zine"] {
+  /* Page & section backgrounds */
+  --bg-page: #1a1a1a;
+  --bg-section: #f5f0e8;
+  --bg-section-alt: #ebe5d9;
+  --bg-dark: #111114;
+
+  /* Text */
+  --text-primary: #1a1a1a;
+  --text-secondary: #444;
+  --text-muted: #888;
+  --text-on-dark: rgba(255, 255, 255, 0.9);
+  --text-on-dark-dim: rgba(255, 255, 255, 0.5);
+  --text-on-dark-faint: rgba(255, 255, 255, 0.25);
+
+  /* Accent */
+  --accent: #ff3366;
+  --accent-hover: #e6294f;
+  --accent-light: rgba(255, 51, 102, 0.1);
+  --accent-glow: rgba(255, 51, 102, 0.3);
+
+  /* Semantic */
+  --success: #33cc66;
+  --warn: #ffcc33;
+  --error: #ff3366;
+
+  /* Borders */
+  --border: rgba(0, 0, 0, 0.15);
+  --border-dark: rgba(255, 255, 255, 0.1);
+  --border-width: 2px;
+
+  /* Typography */
+  --font-display: 'Permanent Marker', cursive;
+  --font-body: 'Special Elite', 'Courier New', monospace;
+  --font-ui: 'VT323', 'Courier New', monospace;
+  --font-import: 'https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Special+Elite&family=VT323&display=swap';
+
+  /* Layout */
+  --section-max-width: 760px;
+  --section-padding: 72px 32px;
+  --section-padding-mobile: 48px 20px;
+  --radius: 0px;
+}
