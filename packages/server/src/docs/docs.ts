@@ -328,7 +328,8 @@ export async function createDocsPage(
     versionId: string;
     title: string;
     slug?: string;
-    content: string;
+    content: string | unknown[];
+    status?: string;
     sortOrder?: number;
     parentId?: string;
   },
@@ -363,7 +364,8 @@ export async function createDocsPage(
       versionId: input.versionId,
       title: input.title,
       slug,
-      content: input.content,
+      content: typeof input.content === 'string' ? input.content : JSON.stringify(input.content),
+      status: input.status ?? 'draft',
       sortOrder,
       parentId: input.parentId ?? null,
     })
@@ -379,7 +381,8 @@ export async function updateDocsPage(
   input: {
     title?: string;
     slug?: string;
-    content?: string;
+    content?: string | unknown[];
+    status?: string;
     sortOrder?: number;
     parentId?: string | null;
   },
@@ -402,10 +405,12 @@ export async function updateDocsPage(
   const updates: Record<string, unknown> = { updatedAt: new Date() };
   if (input.title !== undefined) updates.title = input.title;
   if (input.slug !== undefined) updates.slug = input.slug;
-  if (input.content !== undefined) updates.content = input.content;
+  if (input.content !== undefined) {
+    updates.content = typeof input.content === 'string' ? input.content : JSON.stringify(input.content);
+  }
   if (input.sortOrder !== undefined) updates.sortOrder = input.sortOrder;
   if (input.parentId !== undefined) updates.parentId = input.parentId;
-  if ((input as Record<string, unknown>).status !== undefined) updates.status = (input as Record<string, unknown>).status;
+  if (input.status !== undefined) updates.status = input.status;
 
   const [updated] = await db
     .update(docsPages)

@@ -20,7 +20,15 @@ export default defineEventHandler(async (event) => {
   if (!page) throw createError({ statusCode: 404, statusMessage: 'Page not found' });
 
   // Handle dual-format content: BlockTuple[] (new) or markdown string (legacy)
-  const content = page.content;
+  // Content is stored as TEXT — JSON arrays come back as strings, need parsing
+  let content: string | unknown[] = page.content ?? '';
+  if (typeof content === 'string' && content.trimStart().startsWith('[')) {
+    try {
+      content = JSON.parse(content);
+    } catch {
+      // Not valid JSON — keep as markdown string
+    }
+  }
 
   if (Array.isArray(content)) {
     // New BlockTuple format — extract text for TOC generation

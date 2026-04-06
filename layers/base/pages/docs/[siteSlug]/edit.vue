@@ -111,7 +111,7 @@ async function selectPage(pageId: string): Promise<void> {
 
   // Load properties
   pageSlug.value = page.slug ?? '';
-  pageStatus.value = ((page as Record<string, unknown>).status as 'draft' | 'published') || 'draft';
+  pageStatus.value = ((page as unknown as Record<string, unknown>).status as 'draft' | 'published') || 'draft';
   isDirty.value = false;
   autoSaveStatus.value = 'idle';
 

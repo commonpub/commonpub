@@ -47,7 +47,7 @@ const blockTypes: BlockTypeGroup[] = [
 ];
 
 const openSections = ref<Record<string, boolean>>({
-  meta: true, tags: true, visibility: true, cover: false, checklist: true,
+  meta: true, tags: true, visibility: true, cover: false, seo: false, checklist: true,
 });
 function toggleSection(key: string): void {
   openSections.value[key] = !openSections.value[key];
@@ -281,6 +281,14 @@ const blockCount = computed(() => props.blockEditor.blocks.value.length);
                 <button class="cpub-pe-cover-btn" @click="onCoverUrl"><i class="fa-solid fa-link"></i> From URL</button>
               </div>
             </template>
+          </div>
+        </EditorsEditorSection>
+
+        <EditorsEditorSection title="SEO" icon="fa-magnifying-glass" :open="openSections.seo" @toggle="toggleSection('seo')">
+          <div class="cpub-pe-field">
+            <label class="cpub-pe-flabel">Meta Description</label>
+            <textarea class="cpub-pe-textarea" rows="3" :value="metadata.seoDescription as string" placeholder="Search engine description (recommended 50-160 chars)" @input="updateMeta('seoDescription', ($event.target as HTMLTextAreaElement).value)" />
+            <span class="cpub-pe-hint">{{ ((metadata.seoDescription as string) || '').length }}/160</span>
           </div>
         </EditorsEditorSection>
 
