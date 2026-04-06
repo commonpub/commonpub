@@ -6,6 +6,8 @@ useSeoMeta({
   title: `${username} — ${useSiteName()}`,
   ogTitle: `${username} — ${useSiteName()}`,
   ogImage: '/og-default.png',
+  ogType: 'profile',
+  twitterCard: 'summary',
 });
 
 const { explainers: explainersEnabled, learning: learningEnabled, federation: federationEnabled } = useFeatures();
@@ -372,12 +374,12 @@ async function handleReport(): Promise<void> {
             </div>
 
             <!-- Experience -->
-            <div v-if="(p as Record<string, unknown>).experience && ((p as Record<string, unknown>).experience as Array<Record<string, string>>).length > 0" class="cpub-experience-section">
+            <div v-if="p.experience?.length" class="cpub-experience-section">
               <div class="cpub-sec-head">
                 <h2><i class="fa-solid fa-briefcase" style="color: var(--purple); margin-right: 6px"></i>Experience</h2>
               </div>
               <div class="cpub-experience-list">
-                <div v-for="(exp, idx) in ((p as Record<string, unknown>).experience as Array<Record<string, string>>)" :key="idx" class="cpub-experience-item">
+                <div v-for="(exp, idx) in p.experience" :key="idx" class="cpub-experience-item">
                   <div class="cpub-exp-header">
                     <strong>{{ exp.title }}</strong>
                     <span v-if="exp.company" class="cpub-exp-company">{{ exp.company }}</span>

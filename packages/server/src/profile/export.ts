@@ -45,6 +45,7 @@ export async function exportUserData(db: DB, userId: string): Promise<UserDataEx
       bannerUrl: users.bannerUrl,
       socialLinks: users.socialLinks,
       skills: users.skills,
+      experience: users.experience,
       pronouns: users.pronouns,
       timezone: users.timezone,
       emailNotifications: users.emailNotifications,

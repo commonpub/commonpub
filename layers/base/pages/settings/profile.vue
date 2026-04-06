@@ -35,6 +35,10 @@ const socialLinks = ref({
   github: '',
   twitter: '',
   linkedin: '',
+  youtube: '',
+  instagram: '',
+  mastodon: '',
+  discord: '',
 });
 const pronouns = ref('');
 const experience = ref<Array<{ title: string; company: string; startDate: string; endDate: string; description: string }>>([]);
@@ -79,9 +83,14 @@ if (profile.value) {
   }
   pronouns.value = p.pronouns || '';
   if (p.socialLinks) {
-    socialLinks.value.github = p.socialLinks.github || '';
-    socialLinks.value.twitter = p.socialLinks.twitter || '';
-    socialLinks.value.linkedin = p.socialLinks.linkedin || '';
+    const sl = p.socialLinks as Record<string, string | undefined>;
+    socialLinks.value.github = sl.github || '';
+    socialLinks.value.twitter = sl.twitter || '';
+    socialLinks.value.linkedin = sl.linkedin || '';
+    socialLinks.value.youtube = sl.youtube || '';
+    socialLinks.value.instagram = sl.instagram || '';
+    socialLinks.value.mastodon = sl.mastodon || '';
+    socialLinks.value.discord = sl.discord || '';
   }
   const profileRecord = p as Record<string, unknown>;
   if (Array.isArray(profileRecord.experience)) {
@@ -419,6 +428,26 @@ async function handleSave(): Promise<void> {
           />
         </div>
 
+        <div class="cpub-form-group">
+          <label for="social-youtube" class="cpub-form-label">YouTube</label>
+          <input id="social-youtube" v-model="socialLinks.youtube" type="url" class="cpub-input" placeholder="https://youtube.com/@channel" />
+        </div>
+
+        <div class="cpub-form-group">
+          <label for="social-instagram" class="cpub-form-label">Instagram</label>
+          <input id="social-instagram" v-model="socialLinks.instagram" type="url" class="cpub-input" placeholder="https://instagram.com/username" />
+        </div>
+
+        <div class="cpub-form-group">
+          <label for="social-mastodon" class="cpub-form-label">Mastodon</label>
+          <input id="social-mastodon" v-model="socialLinks.mastodon" type="url" class="cpub-input" placeholder="https://mastodon.social/@username" />
+        </div>
+
+        <div class="cpub-form-group">
+          <label for="social-discord" class="cpub-form-label">Discord</label>
+          <input id="social-discord" v-model="socialLinks.discord" type="url" class="cpub-input" placeholder="https://discord.gg/invite" />
+        </div>
+
       </div>
 
       <!-- Experience -->
@@ -742,58 +771,6 @@ async function handleSave(): Promise<void> {
   margin-bottom: var(--space-3);
 }
 
-.cpub-skill-name {
-  flex: 1;
-  min-width: 0;
-}
-
-.cpub-skill-slider {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  width: 180px;
-  flex-shrink: 0;
-}
-
-.cpub-range {
-  flex: 1;
-  appearance: none;
-  height: 4px;
-  background: var(--border2);
-  outline: none;
-  cursor: pointer;
-}
-
-.cpub-range::-webkit-slider-thumb {
-  appearance: none;
-  width: 14px;
-  height: 14px;
-  background: var(--accent);
-  border: var(--border-width-default) solid var(--accent);
-  cursor: pointer;
-}
-
-.cpub-range::-moz-range-thumb {
-  width: 14px;
-  height: 14px;
-  background: var(--accent);
-  border: var(--border-width-default) solid var(--accent);
-  cursor: pointer;
-}
-
-.cpub-range:focus-visible::-webkit-slider-thumb {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
-.cpub-skill-value {
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
-  color: var(--text-dim);
-  min-width: 36px;
-  text-align: right;
-}
-
 /* ─── Buttons ─── */
 .cpub-btn-icon {
   width: 32px;
@@ -972,12 +949,8 @@ async function handleSave(): Promise<void> {
 
 @media (max-width: 768px) {
   .cpub-settings-form { padding: 0 var(--space-1); }
-  .cpub-skill-slider { width: 120px; }
   .cpub-experience-dates { grid-template-columns: 1fr; }
   .cpub-banner-upload { height: 100px; }
 }
 
-@media (max-width: 480px) {
-  .cpub-skill-slider { width: 80px; }
-}
 </style>
