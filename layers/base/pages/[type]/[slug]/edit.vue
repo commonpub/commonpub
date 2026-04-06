@@ -778,7 +778,7 @@ async function handleUrlImport(result: ImportedContent): Promise<void> {
   inset: 0;
   z-index: 9999;
   background: var(--bg);
-  overflow: hidden;
+  overflow-y: auto;
 }
 
 .cpub-preview-close-btn {
