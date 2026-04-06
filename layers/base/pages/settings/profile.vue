@@ -170,9 +170,8 @@ async function handleSave(): Promise<void> {
       method: 'PUT',
       body: {
         ...form.value,
-        skills: skills.value.filter((s) => s.name.trim()),
+        skills: skills.value.filter((s) => s.name.trim()).map((s) => s.name),
         socialLinks: socialLinks.value,
-        experience: experience.value.filter((e) => e.title.trim()),
         ...(emailNotificationsEnabled.value ? { emailNotifications: emailNotifications.value } : {}),
       },
     });
