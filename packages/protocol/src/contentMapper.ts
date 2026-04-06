@@ -174,6 +174,8 @@ export interface ContentItemInput {
   updatedAt?: Date | null;
   /** Tag names to include as AP Hashtag objects */
   tags?: string[];
+  /** Stored canonical AP object URI — if present, used instead of generating one */
+  apObjectId?: string | null;
   /** CommonPub metadata: difficulty, build time, cost, parts, etc. */
   difficulty?: string | null;
   buildTime?: string | null;
@@ -201,7 +203,10 @@ export function contentToArticle(
   domain: string,
 ): APArticle {
   const actorUri = `https://${domain}/users/${author.username}`;
-  const objectId = `https://${domain}/content/${item.slug}`;
+  // Use stored AP object ID if available (immutable after first publish).
+  // For new content: /u/{username}/{type}/{slug}. Legacy fallback: /content/{slug}.
+  const objectId = item.apObjectId
+    ?? `https://${domain}/u/${author.username}/${item.type}/${item.slug}`;
   const followersUri = `${actorUri}/followers`;
 
   const tags: APTag[] = (item.tags ?? []).map((name) => ({
@@ -256,7 +261,7 @@ export function contentToArticle(
   if (attachments.length > 0) {
     article.attachment = attachments;
   }
-  article.url = `https://${domain}/${item.type}/${item.slug}`;
+  article.url = `https://${domain}/u/${author.username}/${item.type}/${item.slug}`;
   if (tags.length > 0) {
     article.tag = tags;
   }

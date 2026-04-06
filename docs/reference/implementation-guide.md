@@ -183,10 +183,10 @@ Requires HTTPS in production.
 ## 8. Content CRUD Flow
 
 1. **Create**: User fills form at `/create` → validates with `createContentSchema` → calls `createContent()` → returns draft with auto-generated slug and preview token
-2. **Edit**: Author visits `/[type]/[slug]/edit` → updates fields → calls `updateContent()`
-3. **Publish**: Author clicks "Publish" → calls `publishContent()` → sets `publishedAt`, status to `'published'`
-4. **Federation**: If enabled, `onContentPublished()` → `federateContent()` → logs Create activity
-5. **View**: Public visits `/[type]/[slug]` → `getContentBySlug()` → `incrementViewCount()`
+2. **Edit**: Author visits `/u/{username}/[type]/[slug]/edit` → updates fields → calls `updateContent()`
+3. **Publish**: Author clicks "Publish" → calls `publishContent()` → sets `publishedAt`, status to `'published'`, stamps `apObjectId`
+4. **Federation**: If enabled, `onContentPublished()` → `federateContent()` → logs Create activity with `apObjectId` as AP object URI
+5. **View**: Public visits `/u/{username}/[type]/[slug]` → `getContentBySlug(db, slug, requesterId, authorUsername)` → `incrementViewCount()`
 6. **Delete**: Author soft-deletes → `deleteContent()` → sets status to `'archived'`
 
 Content is stored as `BlockTuple[]` in the `contentItems.content` jsonb column. The TipTap editor converts between its document format and BlockTuples via `blockTuplesToDoc()` / `docToBlockTuples()`.

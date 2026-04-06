@@ -2,6 +2,7 @@
 import type { ContentViewData } from '../../composables/useEngagement';
 
 const { hubs: hubsEnabled } = useFeatures();
+const { user: authUser } = useAuth();
 
 const props = defineProps<{
   content: ContentViewData;
@@ -49,7 +50,7 @@ useJsonLd({
   type: 'howto',
   title: props.content.title,
   description: props.content.seoDescription ?? props.content.description ?? '',
-  url: `${config.public.siteUrl}/project/${props.content.slug}`,
+  url: `${config.public.siteUrl}/u/${props.content.author?.username}/${props.content.type}/${props.content.slug}`,
   imageUrl: props.content.coverImageUrl ?? undefined,
   authorName: props.content.author?.displayName ?? props.content.author?.username ?? '',
   authorUrl: `${config.public.siteUrl}/u/${props.content.author?.username}`,
@@ -268,7 +269,7 @@ async function handleFork(): Promise<void> {
       ? `/api/federation/content/${props.federatedId}/fork`
       : `/api/content/${props.content.id}/fork`;
     const result = await $fetch<{ slug: string; type: string }>(url, { method: 'POST' });
-    await navigateTo(`/${result.type}/${result.slug}/edit`);
+    await navigateTo(`/u/${authUser.value?.username ?? ''}/${result.type}/${result.slug}/edit`);
   } catch {
     // fork failed silently
   } finally {

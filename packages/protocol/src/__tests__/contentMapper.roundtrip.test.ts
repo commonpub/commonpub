@@ -187,8 +187,8 @@ describe('URL generation', () => {
         DOMAIN,
       );
 
-      expect(article.url).toBe(`https://${DOMAIN}/${type}/url-test`);
-      expect(article.id).toBe(`https://${DOMAIN}/content/url-test`);
+      expect(article.url).toBe(`https://${DOMAIN}/u/alice/${type}/url-test`);
+      expect(article.id).toBe(`https://${DOMAIN}/u/alice/${type}/url-test`);
     }
   });
 

@@ -17,13 +17,14 @@ export {
   federateComment,
   buildContentUri,
   getContentSlugById,
+  resolveContentObjectUri,
   getFollowers,
   getFollowing,
   listFederationActivity,
   type RemoteActorProfile,
 } from './federation.js';
 
-export { createInboxHandlers, type InboxHandlerOptions } from './inboxHandlers.js';
+export { createInboxHandlers, parseLocalContentUri, type InboxHandlerOptions } from './inboxHandlers.js';
 export { deliverPendingActivities, cleanupDeliveredActivities, type DeliveryResult, type DeliveryOptions } from './delivery.js';
 export {
   listFederatedTimeline,

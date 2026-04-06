@@ -181,7 +181,7 @@ describe('two-instance federation E2E', () => {
     const [fedContent] = await dbB
       .select()
       .from(federatedContent)
-      .where(eq(federatedContent.objectUri, `https://${DOMAIN_A}/content/${contentSlug}`))
+      .where(eq(federatedContent.objectUri, `https://${DOMAIN_A}/u/alice/project/${contentSlug}`))
       .limit(1);
     expect(fedContent).toBeDefined();
     expect(fedContent!.title).toBe('Arduino Weather Station');
@@ -207,7 +207,7 @@ describe('two-instance federation E2E', () => {
       '@context': 'https://www.w3.org/ns/activitystreams',
       type: 'Like',
       actor: `https://${DOMAIN_B}/users/bob`,
-      object: `https://${DOMAIN_A}/content/${contentSlug}`,
+      object: `https://${DOMAIN_A}/u/alice/project/${contentSlug}`,
     };
 
     // Simulate delivery: process Like on A's inbox
@@ -250,7 +250,7 @@ describe('two-instance federation E2E', () => {
     const [fedContent] = await dbB
       .select()
       .from(federatedContent)
-      .where(eq(federatedContent.objectUri, `https://${DOMAIN_A}/content/${contentSlug}`))
+      .where(eq(federatedContent.objectUri, `https://${DOMAIN_A}/u/alice/project/${contentSlug}`))
       .limit(1);
     expect(fedContent!.title).toBe('Arduino Weather Station v2');
   });
@@ -279,7 +279,7 @@ describe('two-instance federation E2E', () => {
     const [fedContent] = await dbB
       .select()
       .from(federatedContent)
-      .where(eq(federatedContent.objectUri, `https://${DOMAIN_A}/content/${contentSlug}`))
+      .where(eq(federatedContent.objectUri, `https://${DOMAIN_A}/u/alice/project/${contentSlug}`))
       .limit(1);
     expect(fedContent!.deletedAt).toBeDefined();
     expect(fedContent!.deletedAt).not.toBeNull();
@@ -308,7 +308,7 @@ describe('two-instance federation E2E', () => {
     const rows = await dbB
       .select()
       .from(federatedContent)
-      .where(eq(federatedContent.objectUri, `https://${DOMAIN_A}/content/test-idempotency`));
+      .where(eq(federatedContent.objectUri, `https://${DOMAIN_A}/u/alice/article/test-idempotency`));
     expect(rows.length).toBe(1);
   });
 

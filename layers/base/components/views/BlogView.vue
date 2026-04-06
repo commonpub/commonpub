@@ -26,7 +26,7 @@ useJsonLd({
   type: 'article',
   title: props.content.title,
   description: props.content.seoDescription ?? props.content.description ?? '',
-  url: `${config.public.siteUrl}/blog/${props.content.slug}`,
+  url: `${config.public.siteUrl}/u/${props.content.author?.username}/${props.content.type}/${props.content.slug}`,
   imageUrl: props.content.coverImageUrl ?? undefined,
   authorName: props.content.author?.displayName ?? props.content.author?.username ?? '',
   authorUrl: `${config.public.siteUrl}/u/${props.content.author?.username}`,

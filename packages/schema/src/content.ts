@@ -21,7 +21,7 @@ export const contentItems = pgTable('content_items', {
     .references(() => users.id, { onDelete: 'cascade' }),
   type: contentTypeEnum('type').notNull(),
   title: varchar('title', { length: 255 }).notNull(),
-  slug: varchar('slug', { length: 255 }).notNull().unique(),
+  slug: varchar('slug', { length: 255 }).notNull(),
   subtitle: varchar('subtitle', { length: 255 }),
   description: text('description'),
   content: jsonb('content'),
@@ -80,6 +80,7 @@ export const contentItems = pgTable('content_items', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull().$onUpdateFn(() => new Date()),
 }, (t) => [
+  unique('content_items_author_type_slug').on(t.authorId, t.type, t.slug),
   index('idx_content_items_author_id').on(t.authorId),
   index('idx_content_items_status').on(t.status),
   index('idx_content_items_type').on(t.type),

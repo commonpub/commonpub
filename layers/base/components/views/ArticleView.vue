@@ -46,7 +46,8 @@ const followingAuthor = ref((props.content as unknown as Record<string, unknown>
 
 async function handleFollowAuthor(): Promise<void> {
   if (!isAuthenticated.value) {
-    await navigateTo(`/auth/login?redirect=/article/${props.content.slug}`);
+    const { contentPath } = useContentUrl();
+    await navigateTo(`/auth/login?redirect=${contentPath(props.content.author?.username ?? '', props.content.type, props.content.slug)}`);
     return;
   }
   const username = props.content.author?.username;
@@ -69,7 +70,7 @@ useJsonLd({
   type: 'article',
   title: props.content.title,
   description: props.content.seoDescription ?? props.content.description ?? '',
-  url: `${config.public.siteUrl}/article/${props.content.slug}`,
+  url: `${config.public.siteUrl}/u/${props.content.author?.username}/${props.content.type}/${props.content.slug}`,
   imageUrl: props.content.coverImageUrl ?? undefined,
   authorName: props.content.author?.displayName ?? props.content.author?.username ?? '',
   authorUrl: `${config.public.siteUrl}/u/${props.content.author?.username}`,
@@ -207,7 +208,7 @@ useJsonLd({
         <NuxtLink
           v-for="item in content.related.slice(0, 3)"
           :key="item.id"
-          :to="`/${item.type}/${item.slug}`"
+          :to="(item as any).author?.username ? `/u/${(item as any).author.username}/${item.type}/${item.slug}` : `/${item.type}/${item.slug}`"
           class="cpub-related-card"
         >
           <div class="cpub-related-card-thumb">

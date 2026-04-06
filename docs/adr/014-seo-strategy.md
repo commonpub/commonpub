@@ -24,9 +24,9 @@ Published content needs proper SEO for discoverability — Open Graph, Twitter C
 
 ### Canonical URLs
 
-- Pattern: `https://{domain}/{type}/{slug}`
-- Set via `<link rel="canonical">` in SeoHead
-- Type maps to URL segment: project→projects, article→articles, guide→guides, blog→blog
+- Pattern: `https://{domain}/u/{username}/{type}/{slug}`
+- Set via `useJsonLd()` composable in each view component
+- Legacy URLs (`/{type}/{slug}`) 301 redirect to the canonical user-scoped URL
 
 ### Sitemap
 

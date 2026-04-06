@@ -14,7 +14,7 @@ CommonPub uses feature flags (defined in `@commonpub/config`) to gate entire sub
 
 **Enables**:
 - Content CRUD (create, update, delete, publish)
-- Content routes: `/create`, `/[type]/[slug]`, `/[type]/[slug]/edit`
+- Content routes: `/create`, `/u/[username]/[type]/[slug]`, `/u/[username]/[type]/[slug]/edit`
 - Content listing and discovery
 - Dashboard content management: `/dashboard`
 - View count tracking, tag management, SEO metadata

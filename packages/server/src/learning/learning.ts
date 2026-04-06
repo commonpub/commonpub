@@ -842,7 +842,7 @@ export async function getLessonBySlug(
   lesson: typeof learningLessons.$inferSelect;
   module: typeof learningModules.$inferSelect;
   pathId: string;
-  linkedContent?: { id: string; title: string; slug: string; type: string; content: unknown };
+  linkedContent?: { id: string; title: string; slug: string; type: string; content: unknown; author?: { username: string } };
 } | null> {
   const path = await db
     .select()
@@ -865,7 +865,7 @@ export async function getLessonBySlug(
     lesson: typeof learningLessons.$inferSelect;
     module: typeof learningModules.$inferSelect;
     pathId: string;
-    linkedContent?: { id: string; title: string; slug: string; type: string; content: unknown };
+    linkedContent?: { id: string; title: string; slug: string; type: string; content: unknown; author?: { username: string } };
   } = {
     lesson: rows[0]!.lesson,
     module: rows[0]!.module,
@@ -881,12 +881,15 @@ export async function getLessonBySlug(
         slug: contentItems.slug,
         type: contentItems.type,
         content: contentItems.content,
+        authorUsername: users.username,
       })
       .from(contentItems)
+      .innerJoin(users, eq(contentItems.authorId, users.id))
       .where(eq(contentItems.id, rows[0]!.lesson.contentItemId))
       .limit(1);
     if (items.length > 0) {
-      result.linkedContent = items[0]!;
+      const { authorUsername, ...rest } = items[0]!;
+      result.linkedContent = { ...rest, author: { username: authorUsername } };
     }
   }
 

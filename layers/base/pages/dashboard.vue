@@ -202,7 +202,7 @@ async function deleteItem(id: string, title: string): Promise<void> {
         <h2 class="cpub-dash-section-title">Drafts</h2>
         <div class="cpub-dash-list">
           <div v-for="item in drafts" :key="item.id" class="cpub-dash-row">
-            <NuxtLink :to="`/${item.type}/${item.slug}/edit`" class="cpub-dash-row-title">
+            <NuxtLink :to="`/u/${user?.username}/${item.type}/${item.slug}/edit`" class="cpub-dash-row-title">
               {{ item.title }}
             </NuxtLink>
             <span class="cpub-dash-row-meta">
@@ -210,7 +210,7 @@ async function deleteItem(id: string, title: string): Promise<void> {
               <time>{{ new Date(item.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) }}</time>
             </span>
             <div class="cpub-dash-row-actions">
-              <NuxtLink :to="`/${item.type}/${item.slug}/edit`" class="cpub-dash-action-btn" aria-label="Edit" title="Edit">
+              <NuxtLink :to="`/u/${user?.username}/${item.type}/${item.slug}/edit`" class="cpub-dash-action-btn" aria-label="Edit" title="Edit">
                 <i class="fa-solid fa-pen"></i> Edit
               </NuxtLink>
               <button class="cpub-dash-action-btn cpub-dash-action-btn--danger" aria-label="Delete" title="Delete" :disabled="actionLoading === item.id" @click="deleteItem(item.id, item.title)">
@@ -226,7 +226,7 @@ async function deleteItem(id: string, title: string): Promise<void> {
         <h2 class="cpub-dash-section-title">Published</h2>
         <div class="cpub-dash-list">
           <div v-for="item in published" :key="item.id" class="cpub-dash-row">
-            <NuxtLink :to="`/${item.type}/${item.slug}`" class="cpub-dash-row-title">
+            <NuxtLink :to="`/u/${user?.username}/${item.type}/${item.slug}`" class="cpub-dash-row-title">
               {{ item.title }}
             </NuxtLink>
             <span class="cpub-dash-row-meta">
@@ -235,7 +235,7 @@ async function deleteItem(id: string, title: string): Promise<void> {
               <span><i class="fa-regular fa-heart"></i> {{ item.likeCount ?? 0 }}</span>
             </span>
             <div class="cpub-dash-row-actions">
-              <NuxtLink :to="`/${item.type}/${item.slug}/edit`" class="cpub-dash-action-btn" aria-label="Edit" title="Edit">
+              <NuxtLink :to="`/u/${user?.username}/${item.type}/${item.slug}/edit`" class="cpub-dash-action-btn" aria-label="Edit" title="Edit">
                 <i class="fa-solid fa-pen"></i> Edit
               </NuxtLink>
               <button class="cpub-dash-action-btn cpub-dash-action-btn--warn" aria-label="Unpublish" title="Unpublish" :disabled="actionLoading === item.id" @click="unpublishItem(item.id)">
@@ -256,7 +256,7 @@ async function deleteItem(id: string, title: string): Promise<void> {
       <div class="cpub-dash-list">
         <div v-for="bm in bookmarkData?.items ?? []" :key="bm.id" class="cpub-dash-row">
           <template v-if="bm.content">
-            <NuxtLink :to="bm.isFederated ? `/mirror/${bm.targetId}` : `/${bm.content.type}/${bm.content.slug}`" class="cpub-dash-row-title">
+            <NuxtLink :to="bm.isFederated ? `/mirror/${bm.targetId}` : `/u/${bm.content.author?.username}/${bm.content.type}/${bm.content.slug}`" class="cpub-dash-row-title">
               {{ bm.content.title }}
             </NuxtLink>
             <span class="cpub-dash-row-meta">

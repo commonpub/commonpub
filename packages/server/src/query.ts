@@ -5,6 +5,7 @@
  * - USER_REF_SELECT: replaces 20+ inline user select shapes
  * - normalizePagination / countRows: replaces identical pagination boilerplate in 15+ list functions
  * - buildPartialUpdates: replaces identical update-builder blocks in 12+ update functions
+ * - buildContentPath / buildContentUrl: canonical content URL construction
  */
 
 import { eq, and, ne, sql } from 'drizzle-orm';
@@ -12,6 +13,46 @@ import type { PgTable, PgColumn } from 'drizzle-orm/pg-core';
 import type { SQL } from 'drizzle-orm';
 import { users } from '@commonpub/schema';
 import type { DB } from './types.js';
+
+// ---- Content URL Builders ----
+
+/**
+ * Build the canonical relative path for a content item.
+ * Single source of truth — every content link should use this.
+ *
+ * @example buildContentPath('alice', 'project', 'robot-arm') → '/u/alice/project/robot-arm'
+ */
+export function buildContentPath(username: string, type: string, slug: string): string {
+  return `/u/${username}/${type}/${slug}`;
+}
+
+/**
+ * Build the canonical absolute URL for a content item (for federation, feeds, SEO).
+ *
+ * @example buildContentUrl('hack.build', 'alice', 'project', 'robot-arm')
+ *          → 'https://hack.build/u/alice/project/robot-arm'
+ */
+export function buildContentUrl(domain: string, username: string, type: string, slug: string): string {
+  return `https://${domain}/u/${username}/${type}/${slug}`;
+}
+
+/**
+ * Build the edit path for a content item.
+ *
+ * @example buildContentEditPath('alice', 'project', 'robot-arm') → '/u/alice/project/robot-arm/edit'
+ */
+export function buildContentEditPath(username: string, type: string, slug: string): string {
+  return `/u/${username}/${type}/${slug}/edit`;
+}
+
+/**
+ * Build the path for creating new content of a given type.
+ *
+ * @example buildContentNewPath('alice', 'project') → '/u/alice/project/new/edit'
+ */
+export function buildContentNewPath(username: string, type: string): string {
+  return `/u/${username}/${type}/new/edit`;
+}
 
 // ---- USER_REF_SELECT ----
 
@@ -51,6 +92,7 @@ export const USER_REF_WITH_HEADLINE_SELECT = {
  * @param slug - The desired slug
  * @param fallbackPrefix - Prefix for auto-generated slugs when input is empty (e.g. 'untitled', 'hub', 'product')
  * @param excludeId - Optional ID to exclude from the uniqueness check (for updates)
+ * @param scopeCols - Optional additional columns to scope uniqueness (e.g. for author+type scoped slugs)
  */
 export async function ensureUniqueSlugFor(
   db: DB,
@@ -60,12 +102,18 @@ export async function ensureUniqueSlugFor(
   slug: string,
   fallbackPrefix: string,
   excludeId?: string,
+  scopeCols?: Array<{ col: PgColumn; value: string }>,
 ): Promise<string> {
   if (!slug) slug = `${fallbackPrefix}-${Date.now()}`;
 
   const conditions: SQL[] = [eq(slugCol, slug)];
   if (excludeId) {
     conditions.push(ne(idCol, excludeId));
+  }
+  if (scopeCols) {
+    for (const { col, value } of scopeCols) {
+      conditions.push(eq(col, value));
+    }
   }
 
   const existing = await db

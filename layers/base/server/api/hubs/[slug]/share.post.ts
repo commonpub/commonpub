@@ -1,4 +1,4 @@
-import { shareContent, getHubBySlug, getFederatedContent, createPost, federateHubShare, getContentSlugById, buildContentUri } from '@commonpub/server';
+import { shareContent, getHubBySlug, getFederatedContent, createPost, federateHubShare, resolveContentObjectUri } from '@commonpub/server';
 import type { HubPostItem } from '@commonpub/server';
 import { z } from 'zod';
 
@@ -28,9 +28,8 @@ export default defineEventHandler(async (event): Promise<HubPostItem> => {
 
     // Federate the shared content as Announce from the hub Group actor
     if (config.features.federation && config.features.federateHubs) {
-      getContentSlugById(db, input.contentId).then((contentSlug) => {
-        if (contentSlug) {
-          const contentUri = buildContentUri(config.instance.domain, contentSlug);
+      resolveContentObjectUri(db, input.contentId, config.instance.domain).then((contentUri) => {
+        if (contentUri) {
           return federateHubShare(db, contentUri, hub.id, config.instance.domain);
         }
       }).catch((err) => {

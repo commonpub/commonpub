@@ -289,7 +289,7 @@ async function submitEntry(): Promise<void> {
                   <span v-if="entry.rank" class="cpub-entry-rank" :class="`cpub-rank-${entry.rank}`">#{{ entry.rank }}</span>
                 </div>
                 <div class="cpub-entry-body">
-                  <NuxtLink :to="`/${entry.contentType}/${entry.contentSlug}`" class="cpub-entry-title">{{ entry.contentTitle || `Entry #${i + 1}` }}</NuxtLink>
+                  <NuxtLink :to="`/u/${entry.authorUsername}/${entry.contentType}/${entry.contentSlug}`" class="cpub-entry-title">{{ entry.contentTitle || `Entry #${i + 1}` }}</NuxtLink>
                   <div class="cpub-entry-author">
                     <div class="cpub-entry-av">
                       <img v-if="entry.authorAvatarUrl" :src="entry.authorAvatarUrl" :alt="entry.authorName || entry.authorUsername" class="cpub-entry-av-img" />

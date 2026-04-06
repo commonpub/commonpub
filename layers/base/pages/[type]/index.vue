@@ -4,6 +4,7 @@ import type { Serialized, ContentListItem, PaginatedResponse } from '@commonpub/
 const route = useRoute();
 const contentType = computed(() => route.params.type as string);
 const siteName = useSiteName();
+const { user } = useAuth();
 
 useSeoMeta({
   title: () => `${contentType.value} — ${siteName}`,
@@ -31,7 +32,7 @@ const { data } = await useFetch<PaginatedResponse<Serialized<ContentListItem>>>(
         <select v-model="sortBy" class="cpub-listing-sort" aria-label="Sort by">
           <option v-for="opt in sortOptions" :key="opt" :value="opt">{{ opt }}</option>
         </select>
-        <NuxtLink :to="`/${contentType}/new/edit`" class="cpub-listing-create">
+        <NuxtLink :to="user?.username ? `/u/${user.username}/${contentType}/new/edit` : `/auth/login?redirect=/${contentType}/new/edit`" class="cpub-listing-create">
           + New {{ contentType }}
         </NuxtLink>
       </div>

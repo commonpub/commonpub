@@ -372,8 +372,16 @@ export async function federateHubShare(
 
   // Attach cpub:sharedContent metadata so receiving instances can render rich cards
   try {
-    const slug = new URL(contentObjectUri).pathname.split('/').filter(Boolean).pop();
-    if (slug) {
+    const segments = new URL(contentObjectUri).pathname.split('/').filter(Boolean);
+    // Parse both /u/{username}/{type}/{slug} and /content/{slug}
+    let slugConditions;
+    if (segments.length >= 4 && segments[0] === 'u') {
+      slugConditions = and(eq(users.username, segments[1]!), eq(contentItems.slug, segments[3]!));
+    } else {
+      const slug = segments[segments.length - 1];
+      slugConditions = slug ? eq(contentItems.slug, slug) : undefined;
+    }
+    if (slugConditions) {
       const [content] = await db
         .select({
           title: contentItems.title,
@@ -381,9 +389,11 @@ export async function federateHubShare(
           description: contentItems.description,
           coverImageUrl: contentItems.coverImageUrl,
           slug: contentItems.slug,
+          authorUsername: users.username,
         })
         .from(contentItems)
-        .where(eq(contentItems.slug, slug))
+        .innerJoin(users, eq(contentItems.authorId, users.id))
+        .where(slugConditions)
         .limit(1);
 
       if (content) {
@@ -441,9 +451,9 @@ function hubPostToNote(
         title: shared.title ?? '',
         summary: shared.description ?? null,
         coverImageUrl: shared.coverImageUrl ?? null,
-        originUrl: shared.slug
-          ? `https://${domain}/${shared.type}/${shared.slug}`
-          : null,
+        originUrl: shared.slug && shared.authorUsername
+          ? `https://${domain}/u/${shared.authorUsername}/${shared.type}/${shared.slug}`
+          : shared.slug ? `https://${domain}/${shared.type}/${shared.slug}` : null,
         originDomain: domain,
       };
       // Use a readable summary as the Note content instead of raw JSON

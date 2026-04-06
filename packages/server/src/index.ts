@@ -84,6 +84,10 @@ export {
   countRows,
   buildPartialUpdates,
   escapeLike,
+  buildContentPath,
+  buildContentUrl,
+  buildContentEditPath,
+  buildContentNewPath,
 } from './query.js';
 export type { PaginationOpts } from './query.js';
 
@@ -312,6 +316,7 @@ export {
   federateLike,
   federateUnlike,
   buildContentUri,
+  resolveContentObjectUri,
   getContentSlugById,
   getFollowers,
   getFollowing,

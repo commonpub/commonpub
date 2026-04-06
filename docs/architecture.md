@@ -248,8 +248,9 @@ test-utils ────── (schema, config)
 
 /create                    Content type selector
 /[type]                    Content listing by type
-/[type]/[slug]             Content view (article/blog/project/explainer)
-/[type]/[slug]/edit        Block editor
+/u/[username]/[type]/[slug]       Content view (article/blog/project/explainer)
+/u/[username]/[type]/[slug]/edit  Block editor
+/[type]/[slug]             Legacy redirect → /u/{author}/{type}/{slug}
 
 /dashboard                 User dashboard (content/bookmarks/learning)
 /u/[username]              User profile (5 tabs)

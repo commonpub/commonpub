@@ -226,7 +226,7 @@ const isOwner = computed(() => user.value?.id === path.value?.author?.id);
 
         <!-- View original link for linked content -->
         <div v-if="lessonData?.linkedContent" class="lesson-linked-source">
-          <NuxtLink :to="`/${lessonData.linkedContent.type}/${lessonData.linkedContent.slug}`" class="lesson-linked-source-link">
+          <NuxtLink :to="`/u/${(lessonData.linkedContent as any).author?.username ?? ''}/${lessonData.linkedContent.type}/${lessonData.linkedContent.slug}`" class="lesson-linked-source-link">
             <i class="fa-solid fa-arrow-up-right-from-square"></i> View original {{ lessonData.linkedContent.type }}
           </NuxtLink>
         </div>

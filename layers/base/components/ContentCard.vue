@@ -47,12 +47,8 @@ const diffDots = computed(() => {
 
 const isFederated = computed(() => props.item.source === 'federated');
 
-const cardLink = computed(() => {
-  if (isFederated.value && props.item.federatedContentId) {
-    return `/mirror/${props.item.federatedContentId}`;
-  }
-  return `/${props.item.type}/${props.item.slug}`;
-});
+const { contentLink } = useContentUrl();
+const cardLink = computed(() => contentLink(props.item));
 
 const authorInitial = computed(() => {
   const name = props.item.author?.displayName || props.item.author?.username || '?';

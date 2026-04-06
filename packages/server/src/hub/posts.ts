@@ -177,23 +177,25 @@ export async function listPosts(
     return item;
   });
 
-  // Backfill missing cover images on share posts (for shares created before enrichment)
+  // Backfill missing cover images and authorUsername on share posts (for shares created before enrichment)
   const sharesToEnrich = items.filter(
-    (i) => i.type === 'share' && i.sharedContent && !(i.sharedContent as Record<string, unknown>).coverImageUrl && (i.sharedContent as Record<string, unknown>).contentId,
+    (i) => i.type === 'share' && i.sharedContent && (!(i.sharedContent as Record<string, unknown>).coverImageUrl || !(i.sharedContent as Record<string, unknown>).authorUsername) && (i.sharedContent as Record<string, unknown>).contentId,
   );
   if (sharesToEnrich.length > 0) {
     const contentIds = sharesToEnrich.map((i) => (i.sharedContent as Record<string, unknown>).contentId as string);
     const enrichData = await db
-      .select({ id: contentItems.id, coverImageUrl: contentItems.coverImageUrl, description: contentItems.description })
+      .select({ id: contentItems.id, coverImageUrl: contentItems.coverImageUrl, description: contentItems.description, authorUsername: users.username })
       .from(contentItems)
+      .innerJoin(users, eq(contentItems.authorId, users.id))
       .where(inArray(contentItems.id, contentIds));
     const enrichMap = new Map(enrichData.map((e) => [e.id, e]));
     for (const item of sharesToEnrich) {
       const sc = item.sharedContent as Record<string, unknown>;
       const enrich = enrichMap.get(sc.contentId as string);
       if (enrich) {
-        sc.coverImageUrl = enrich.coverImageUrl;
-        sc.description = enrich.description;
+        if (!sc.coverImageUrl) sc.coverImageUrl = enrich.coverImageUrl;
+        if (!sc.description) sc.description = enrich.description;
+        if (!sc.authorUsername) sc.authorUsername = enrich.authorUsername;
       }
     }
   }
@@ -699,8 +701,10 @@ export async function shareContent(
       type: contentItems.type,
       coverImageUrl: contentItems.coverImageUrl,
       description: contentItems.description,
+      authorUsername: users.username,
     })
     .from(contentItems)
+    .innerJoin(users, eq(contentItems.authorId, users.id))
     .where(eq(contentItems.id, contentId))
     .limit(1);
 
@@ -722,6 +726,7 @@ export async function shareContent(
     type: content[0]!.type,
     coverImageUrl: content[0]!.coverImageUrl ?? null,
     description: content[0]!.description ?? null,
+    authorUsername: content[0]!.authorUsername,
   });
 
   await db.insert(hubShares).values({

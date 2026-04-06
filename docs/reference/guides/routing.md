@@ -13,8 +13,9 @@
 | `/` | Homepage — featured content, feed, trending hubs |
 | `/explore` | Discover content, hubs, learning paths, people |
 | `/search` | Full-text search with filters, pagination |
-| `/[type]/[slug]` | Content view (article, blog, project, explainer) |
+| `/u/[username]/[type]/[slug]` | Content view (article, blog, project, explainer) |
 | `/[type]` | Content listing by type |
+| `/[type]/[slug]` | Legacy redirect → `/u/{author}/{type}/{slug}` (301) |
 | `/u/[username]` | User profile — projects, articles, about |
 | `/hubs` | Hub directory |
 | `/hubs/[slug]` | Hub detail — feed, gallery, members, products |
@@ -53,7 +54,8 @@
 |-------|-------------|------|
 | `/dashboard` | User dashboard — content, bookmarks, learning | Yes |
 | `/create` | Content type selector → editor | Yes |
-| `/[type]/[slug]/edit` | Content editor (article, blog, project, explainer) | Yes (author) |
+| `/u/[username]/[type]/[slug]/edit` | Content editor (article, blog, project, explainer) | Yes (author) |
+| `/[type]/[slug]/edit` | Legacy redirect → `/u/{author}/{type}/{slug}/edit` (301) | Yes |
 | `/u/[username]/followers` | Follower list | No |
 | `/u/[username]/following` | Following list | No |
 | `/hubs/create` | Create new hub | Yes |

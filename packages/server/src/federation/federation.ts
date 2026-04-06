@@ -651,17 +651,17 @@ export async function federateDelete(
   domain: string,
   authorUsername: string,
 ): Promise<void> {
-  // Look up slug to construct the canonical URI matching the original Create activity
+  // Look up stored AP object ID — this is the canonical URI that remote instances know
   const rows = await db
-    .select({ slug: contentItems.slug })
+    .select({ slug: contentItems.slug, apObjectId: contentItems.apObjectId, type: contentItems.type })
     .from(contentItems)
     .where(eq(contentItems.id, contentId))
     .limit(1);
 
-  const slug = rows[0]?.slug;
   const actorUri = `https://${domain}/users/${authorUsername}`;
-  // Use slug-based URI (matches contentToArticle output); fall back to UUID if content already purged
-  const objectUri = `https://${domain}/content/${slug ?? contentId}`;
+  // Use stored apObjectId if available, otherwise construct from slug
+  const objectUri = rows[0]?.apObjectId
+    ?? (rows[0]?.slug ? `https://${domain}/u/${authorUsername}/${rows[0].type}/${rows[0].slug}` : `https://${domain}/content/${contentId}`);
   const activity = buildDeleteActivity(domain, actorUri, objectUri, 'Article');
 
   await db.insert(activities).values({
@@ -692,13 +692,20 @@ export async function federateComment(
 
   // Look up the target content to build the inReplyTo URI
   const target = await db
-    .select({ slug: contentItems.slug })
+    .select({ slug: contentItems.slug, apObjectId: contentItems.apObjectId, type: contentItems.type, authorId: contentItems.authorId })
     .from(contentItems)
     .where(eq(contentItems.id, targetId))
     .limit(1);
   if (!target[0]) return;
 
-  const parentObjectUri = `https://${domain}/content/${target[0].slug}`;
+  // Use stored apObjectId if available (matches what remote instances have cached)
+  let parentObjectUri = target[0].apObjectId;
+  if (!parentObjectUri) {
+    const [targetAuthor] = await db.select({ username: users.username }).from(users).where(eq(users.id, target[0].authorId)).limit(1);
+    parentObjectUri = targetAuthor
+      ? `https://${domain}/u/${targetAuthor.username}/${target[0].type}/${target[0].slug}`
+      : `https://${domain}/content/${target[0].slug}`;
+  }
   const actorUri = `https://${domain}/users/${user[0].username}`;
 
   // Look up the comment itself
@@ -772,7 +779,10 @@ export async function federateUnlike(
   });
 }
 
-/** Build a content URI from a slug and domain (matches contentToArticle output) */
+/**
+ * @deprecated Use resolveContentObjectUri() instead for AP federation.
+ * Kept for backwards compatibility with existing callers.
+ */
 export function buildContentUri(domain: string, slug: string): string {
   return `https://${domain}/content/${slug}`;
 }
@@ -788,6 +798,30 @@ export async function getContentSlugById(
     .where(eq(contentItems.id, contentId))
     .limit(1);
   return rows[0]?.slug ?? null;
+}
+
+/**
+ * Resolve the canonical AP object URI for a content item.
+ * Uses stored apObjectId if available, otherwise constructs from author/type/slug.
+ */
+export async function resolveContentObjectUri(
+  db: DB,
+  contentId: string,
+  domain: string,
+): Promise<string | null> {
+  const rows = await db
+    .select({
+      slug: contentItems.slug,
+      type: contentItems.type,
+      apObjectId: contentItems.apObjectId,
+      authorUsername: users.username,
+    })
+    .from(contentItems)
+    .innerJoin(users, eq(contentItems.authorId, users.id))
+    .where(eq(contentItems.id, contentId))
+    .limit(1);
+  if (!rows[0]) return null;
+  return rows[0].apObjectId ?? `https://${domain}/u/${rows[0].authorUsername}/${rows[0].type}/${rows[0].slug}`;
 }
 
 // --- Queries ---

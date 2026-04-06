@@ -21,7 +21,7 @@ import { createContent, getContentBySlug } from '@commonpub/server';
 
 // Functions take (db, config, ...args) — no framework coupling
 const content = await createContent(db, config, { title, type, authorId });
-const published = await getContentBySlug(db, 'project', 'my-project');
+const published = await getContentBySlug(db, 'my-project', userId, 'alice');
 ```
 
 ## Modules

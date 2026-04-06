@@ -227,7 +227,7 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
           </div>
           <div class="cpub-featured-body">
             <h2 class="cpub-featured-title">
-              <NuxtLink :to="`/${featured.items[0].type}/${featured.items[0].slug}`">
+              <NuxtLink :to="`/u/${featured.items[0].author?.username}/${featured.items[0].type}/${featured.items[0].slug}`">
                 {{ featured.items[0].title }}
               </NuxtLink>
             </h2>

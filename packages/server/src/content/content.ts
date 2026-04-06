@@ -1,4 +1,5 @@
 import { eq, and, desc, sql, inArray, isNull } from 'drizzle-orm';
+import type { SQL } from 'drizzle-orm';
 import { contentItems, contentVersions, contentForks, contentBuilds, federatedContentBuilds, tags, contentTags, users, follows, federatedContent, remoteActors } from '@commonpub/schema';
 import type { CommonPubConfig } from '@commonpub/config';
 import { emitHook } from '../hooks.js';
@@ -12,7 +13,7 @@ import type {
 } from '../types.js';
 import type { CreateContentInput, UpdateContentInput } from '@commonpub/schema';
 import { generateSlug } from '../utils.js';
-import { ensureUniqueSlugFor, USER_REF_SELECT, USER_REF_WITH_HEADLINE_SELECT, normalizePagination, countRows, escapeLike } from '../query.js';
+import { ensureUniqueSlugFor, USER_REF_SELECT, USER_REF_WITH_HEADLINE_SELECT, normalizePagination, countRows, escapeLike, buildContentPath } from '../query.js';
 import { federateContent, federateUpdate, federateDelete } from '../federation/federation.js';
 import { createNotification } from '../notification/notification.js';
 
@@ -331,7 +332,19 @@ export async function getContentBySlug(
   db: DB,
   slug: string,
   requesterId?: string,
+  /** Optional author username to disambiguate when slugs are not globally unique */
+  authorUsername?: string,
+  /** Optional author ID to disambiguate (used by internal callers that have authorId but not username) */
+  authorId?: string,
 ): Promise<ContentDetail | null> {
+  const conditions: SQL[] = [eq(contentItems.slug, slug), isNull(contentItems.deletedAt)];
+  if (authorUsername) {
+    conditions.push(eq(users.username, authorUsername));
+  }
+  if (authorId) {
+    conditions.push(eq(contentItems.authorId, authorId));
+  }
+
   const rows = await db
     .select({
       content: contentItems,
@@ -339,7 +352,7 @@ export async function getContentBySlug(
     })
     .from(contentItems)
     .innerJoin(users, eq(contentItems.authorId, users.id))
-    .where(and(eq(contentItems.slug, slug), isNull(contentItems.deletedAt)))
+    .where(and(...conditions))
     .limit(1);
 
   if (rows.length === 0) return null;
@@ -379,8 +392,10 @@ export async function getContentBySlug(
         title: contentItems.title,
         viewCount: contentItems.viewCount,
         coverImageUrl: contentItems.coverImageUrl,
+        author: { username: users.username },
       })
       .from(contentItems)
+      .innerJoin(users, eq(contentItems.authorId, users.id))
       .where(
         and(
           eq(contentItems.type, item.type),
@@ -428,7 +443,11 @@ export async function createContent(
   authorId: string,
   input: CreateContentInput,
 ): Promise<ContentDetail> {
-  const slug = await ensureUniqueSlugFor(db, contentItems, contentItems.slug, contentItems.id, generateSlug(input.title), 'untitled');
+  const slug = await ensureUniqueSlugFor(
+    db, contentItems, contentItems.slug, contentItems.id,
+    generateSlug(input.title), 'untitled', undefined,
+    [{ col: contentItems.authorId, value: authorId }, { col: contentItems.type, value: input.type }],
+  );
   const previewToken = crypto.randomUUID().replace(/-/g, '');
 
   const [item] = await db
@@ -461,7 +480,7 @@ export async function createContent(
     await syncTags(db, item!.id, input.tags);
   }
 
-  return (await getContentBySlug(db, item!.slug, authorId))!;
+  return (await getContentBySlug(db, item!.slug, authorId, undefined, authorId))!;
 }
 
 export async function updateContent(
@@ -487,7 +506,11 @@ export async function updateContent(
   if (input.title !== undefined) {
     updates.title = input.title;
     if (input.title !== current.title) {
-      updates.slug = await ensureUniqueSlugFor(db, contentItems, contentItems.slug, contentItems.id, generateSlug(input.title), 'untitled', contentId);
+      updates.slug = await ensureUniqueSlugFor(
+        db, contentItems, contentItems.slug, contentItems.id,
+        generateSlug(input.title), 'untitled', contentId,
+        [{ col: contentItems.authorId, value: authorId }, { col: contentItems.type, value: current.type }],
+      );
     }
   }
   if (input.subtitle !== undefined) updates.subtitle = input.subtitle;
@@ -522,7 +545,7 @@ export async function updateContent(
   }
 
   const slug = (updates.slug as string) ?? current.slug;
-  return (await getContentBySlug(db, slug, authorId))!;
+  return (await getContentBySlug(db, slug, authorId, undefined, authorId))!;
 }
 
 export async function deleteContent(db: DB, contentId: string, authorId: string): Promise<boolean> {
@@ -711,13 +734,14 @@ export async function toggleBuildMark(
   if (result.marked && result.authorId && result.authorId !== userId) {
     try {
       const [actor] = await db.select({ displayName: users.displayName, username: users.username }).from(users).where(eq(users.id, userId)).limit(1);
+      const [contentAuthor] = await db.select({ username: users.username }).from(users).where(eq(users.id, result.authorId)).limit(1);
       const actorName = actor?.displayName || actor?.username || 'Someone';
       await createNotification(db, {
         userId: result.authorId,
         type: 'build',
         title: 'Someone built this!',
         message: `${actorName} marked "I built this" on "${result.title ?? 'your content'}"`,
-        link: `/${result.type}/${result.slug}`,
+        link: buildContentPath(contentAuthor?.username ?? '', result.type!, result.slug!),
         actorId: userId,
       });
     } catch { /* non-critical */ }
@@ -757,7 +781,11 @@ export async function forkContent(
   }
 
   const item = source[0]!;
-  const slug = await ensureUniqueSlugFor(db, contentItems, contentItems.slug, contentItems.id, `${item.slug}-fork-${Date.now()}`, 'fork');
+  const slug = await ensureUniqueSlugFor(
+    db, contentItems, contentItems.slug, contentItems.id,
+    `${item.slug}-fork-${Date.now()}`, 'fork', undefined,
+    [{ col: contentItems.authorId, value: userId }, { col: contentItems.type, value: item.type }],
+  );
   const previewToken = crypto.randomUUID().replace(/-/g, '');
 
   const [forked] = await db
@@ -798,19 +826,20 @@ export async function forkContent(
   try {
     if (item.authorId !== userId) {
       const [actor] = await db.select({ displayName: users.displayName, username: users.username }).from(users).where(eq(users.id, userId)).limit(1);
+      const [itemAuthor] = await db.select({ username: users.username }).from(users).where(eq(users.id, item.authorId)).limit(1);
       const actorName = actor?.displayName || actor?.username || 'Someone';
       await createNotification(db, {
         userId: item.authorId,
         type: 'fork',
         title: 'Content forked',
         message: `${actorName} forked "${item.title ?? 'your content'}"`,
-        link: `/${item.type}/${item.slug}`,
+        link: buildContentPath(itemAuthor?.username ?? '', item.type, item.slug),
         actorId: userId,
       });
     }
   } catch { /* non-critical */ }
 
-  return (await getContentBySlug(db, forked!.slug, userId))!;
+  return (await getContentBySlug(db, forked!.slug, userId, undefined, userId))!;
 }
 
 // --- Federated Content: Fork & Build ---
@@ -833,7 +862,12 @@ export async function forkFederatedContent(
   const fc = source[0]!;
   const titleBase = fc.title || 'Untitled';
   const slugBase = titleBase.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-  const slug = await ensureUniqueSlugFor(db, contentItems, contentItems.slug, contentItems.id, `${slugBase}-fork-${Date.now()}`, 'fork');
+  const forkType = (fc.cpubType || 'project') as 'project' | 'article' | 'blog' | 'explainer';
+  const slug = await ensureUniqueSlugFor(
+    db, contentItems, contentItems.slug, contentItems.id,
+    `${slugBase}-fork-${Date.now()}`, 'fork', undefined,
+    [{ col: contentItems.authorId, value: userId }, { col: contentItems.type, value: forkType }],
+  );
   const previewToken = crypto.randomUUID().replace(/-/g, '');
 
   const meta = fc.cpubMetadata as Record<string, unknown> | null;
@@ -842,7 +876,7 @@ export async function forkFederatedContent(
     .insert(contentItems)
     .values({
       authorId: userId,
-      type: (fc.cpubType || 'project') as 'project' | 'article' | 'blog' | 'explainer',
+      type: forkType,
       title: `${titleBase} (Fork)`,
       slug,
       description: fc.summary,
@@ -857,7 +891,7 @@ export async function forkFederatedContent(
     })
     .returning();
 
-  return (await getContentBySlug(db, forked!.slug, userId))!;
+  return (await getContentBySlug(db, forked!.slug, userId, undefined, userId))!;
 }
 
 export async function toggleFederatedBuildMark(
@@ -916,7 +950,12 @@ export async function onContentPublished(
 ): Promise<{ federated: boolean; error?: string }> {
   // Emit hook for consumer extensions
   const [content] = await db
-    .select({ authorId: contentItems.authorId, type: contentItems.type, slug: contentItems.slug })
+    .select({
+      authorId: contentItems.authorId,
+      type: contentItems.type,
+      slug: contentItems.slug,
+      apObjectId: contentItems.apObjectId,
+    })
     .from(contentItems)
     .where(eq(contentItems.id, contentId))
     .limit(1);
@@ -924,6 +963,19 @@ export async function onContentPublished(
     await emitHook('content:published', {
       db, contentId, authorId: content.authorId, contentType: content.type, slug: content.slug,
     });
+
+    // Stamp the canonical AP object URI on first publish (immutable after this)
+    if (!content.apObjectId && config.instance.domain) {
+      const [author] = await db
+        .select({ username: users.username })
+        .from(users)
+        .where(eq(users.id, content.authorId))
+        .limit(1);
+      if (author) {
+        const apObjectId = `https://${config.instance.domain}/u/${author.username}/${content.type}/${content.slug}`;
+        await db.update(contentItems).set({ apObjectId }).where(eq(contentItems.id, contentId));
+      }
+    }
   }
 
   if (!config.features.federation) return { federated: false };

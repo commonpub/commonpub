@@ -72,6 +72,7 @@ const postsVM = computed<HubPostViewModel[]>(() => {
         title: (p.sharedContent as Record<string, unknown>).title as string,
         description: ((p.sharedContent as Record<string, unknown>).description as string | null) ?? null,
         coverImageUrl: ((p.sharedContent as Record<string, unknown>).coverImageUrl as string | null) ?? null,
+        authorUsername: ((p.sharedContent as Record<string, unknown>).authorUsername as string | undefined) ?? undefined,
       },
     } : {}),
   }));

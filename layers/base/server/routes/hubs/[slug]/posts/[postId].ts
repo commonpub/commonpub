@@ -63,9 +63,9 @@ export default defineEventHandler(async (event) => {
         title: shared.title ?? '',
         summary: shared.description ?? null,
         coverImageUrl: shared.coverImageUrl ?? null,
-        originUrl: shared.slug
-          ? `https://${domain}/${shared.type}/${shared.slug}`
-          : null,
+        originUrl: shared.slug && shared.authorUsername
+          ? `https://${domain}/u/${shared.authorUsername}/${shared.type}/${shared.slug}`
+          : shared.slug ? `https://${domain}/${shared.type}/${shared.slug}` : null,
         originDomain: domain,
       };
       const displayName = post.authorDisplayName ?? post.authorUsername;

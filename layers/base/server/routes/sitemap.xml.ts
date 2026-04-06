@@ -22,8 +22,10 @@ export default defineEventHandler(async (event) => {
       type: contentItems.type,
       slug: contentItems.slug,
       updatedAt: contentItems.updatedAt,
+      authorUsername: users.username,
     })
     .from(contentItems)
+    .innerJoin(users, eq(contentItems.authorId, users.id))
     .where(eq(contentItems.status, 'published'));
 
   // Users with public profiles
@@ -50,7 +52,7 @@ export default defineEventHandler(async (event) => {
   // Content pages
   for (const item of publishedContent) {
     urls.push({
-      loc: `${siteUrl}/${item.type}/${item.slug}`,
+      loc: `${siteUrl}/u/${item.authorUsername}/${item.type}/${item.slug}`,
       lastmod: new Date(item.updatedAt).toISOString(),
       priority: '0.8',
       changefreq: 'weekly',

@@ -128,11 +128,11 @@ These are all post-v1.0.0 features requiring significant protocol work:
   "object": {
     "@context": "https://www.w3.org/ns/activitystreams",
     "type": "Article",
-    "id": "https://hack.build/project/my-robot",
+    "id": "https://hack.build/u/alice/project/my-robot",
     "attributedTo": "https://hack.build/users/alice",
     "name": "Building a Robot Arm",
     "content": "<p>Step by step guide...</p>",
-    "url": "https://hack.build/project/my-robot",
+    "url": "https://hack.build/u/alice/project/my-robot",
     "published": "2026-03-10T00:00:00Z",
     "to": ["https://www.w3.org/ns/activitystreams#Public"],
     "cc": ["https://hack.build/users/alice/followers"]

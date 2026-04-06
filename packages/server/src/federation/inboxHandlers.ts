@@ -20,6 +20,7 @@ import {
   type InboxCallbacks,
 } from '@commonpub/protocol';
 import type { DB } from '../types.js';
+import { buildContentPath } from '../query.js';
 import { resolveRemoteActor } from './federation.js';
 import { matchMirrorForContent } from './mirroring.js';
 import { handleHubFollow, handleHubUnfollow } from './hubFederation.js';
@@ -42,6 +43,51 @@ async function resolveRemoteActorName(db: DB, actorUri: string): Promise<string>
   } catch {
     return 'Someone';
   }
+}
+
+/**
+ * Parse a local content URI into its components.
+ * Handles both new format (/u/{username}/{type}/{slug}) and legacy (/content/{slug}).
+ * Returns null if the URI doesn't match any known pattern.
+ */
+export function parseLocalContentUri(uri: string): { slug: string; username?: string; type?: string } | null {
+  try {
+    const segments = new URL(uri).pathname.split('/').filter(Boolean);
+    // New format: /u/{username}/{type}/{slug}
+    if (segments.length >= 4 && segments[0] === 'u') {
+      return { username: segments[1], type: segments[2], slug: segments[3]! };
+    }
+    // Legacy format: /content/{slug}
+    if (segments.length >= 2 && segments[0] === 'content') {
+      return { slug: segments[1]! };
+    }
+    // Fallback: last segment as slug (covers any other path shape)
+    const lastSegment = segments[segments.length - 1];
+    return lastSegment ? { slug: lastSegment } : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Look up a content item by parsed URI components, using author-scoped query when possible */
+async function lookupContentByUri(
+  db: DB,
+  parsed: { slug: string; username?: string; type?: string },
+): Promise<{ id: string; authorId: string; title: string; type: string; slug: string; authorUsername: string } | null> {
+  const conditions = [eq(contentItems.slug, parsed.slug), isNull(contentItems.deletedAt)];
+  if (parsed.username) {
+    conditions.push(eq(users.username, parsed.username));
+  }
+  if (parsed.type) {
+    conditions.push(eq(contentItems.type, parsed.type as 'project' | 'article' | 'blog' | 'explainer'));
+  }
+  const [row] = await db
+    .select({ id: contentItems.id, authorId: contentItems.authorId, title: contentItems.title, type: contentItems.type, slug: contentItems.slug, authorUsername: users.username })
+    .from(contentItems)
+    .innerJoin(users, eq(contentItems.authorId, users.id))
+    .where(and(...conditions))
+    .limit(1);
+  return row ?? null;
 }
 
 /** Helper: create a notification for a local user from a remote actor interaction */
@@ -276,18 +322,14 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
           }
 
           if (!unliked && segments.length >= 2) {
-            const idOrSlug = segments[segments.length - 1]!;
-            // Try local content by slug
-            const bySlug = await db
-              .select({ id: contentItems.id, likeCount: contentItems.likeCount })
-              .from(contentItems)
-              .where(eq(contentItems.slug, idOrSlug))
-              .limit(1);
-            if (bySlug.length > 0 && bySlug[0]!.likeCount > 0) {
+            // Author-scoped content lookup (handles both /u/{user}/{type}/{slug} and /content/{slug})
+            const parsed = parseLocalContentUri(objectId);
+            const content = parsed ? await lookupContentByUri(db, parsed) : null;
+            if (content) {
               await db
                 .update(contentItems)
                 .set({ likeCount: sql`GREATEST(${contentItems.likeCount} - 1, 0)` })
-                .where(eq(contentItems.id, bySlug[0]!.id));
+                .where(eq(contentItems.id, content.id));
               unliked = true;
             }
           }
@@ -569,22 +611,44 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
           const parentHost = parentUrl.hostname;
 
           if (parentHost === domain) {
-            // Reply to local content — increment commentCount + notify author
-            const parentSlug = parentUrl.pathname.split('/').filter(Boolean).pop();
-            if (parentSlug) {
-              await db
-                .update(contentItems)
-                .set({ commentCount: sql`${contentItems.commentCount} + 1` })
-                .where(eq(contentItems.slug, parentSlug));
+            const parentSegments = parentUrl.pathname.split('/').filter(Boolean);
 
-              // Notify content author
-              const [parentContent] = await db.select({ authorId: contentItems.authorId, title: contentItems.title })
-                .from(contentItems).where(eq(contentItems.slug, parentSlug)).limit(1);
+            // Check if this is a reply to a local hub post (/hubs/{slug}/posts/{postId})
+            if (parentSegments.length >= 4 && parentSegments[0] === 'hubs' && parentSegments[2] === 'posts') {
+              const hubSlug = parentSegments[1]!;
+              const postId = parentSegments[3]!;
+              const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+              if (UUID_RE.test(postId)) {
+                // Increment reply count on the local hub post
+                await db.update(hubPosts)
+                  .set({ replyCount: sql`${hubPosts.replyCount} + 1` })
+                  .where(eq(hubPosts.id, postId));
+
+                // Notify the post author about the federated reply
+                const remoteUser = await resolveRemoteActorName(db, actorUri);
+                const [post] = await db.select({ authorId: hubPosts.authorId }).from(hubPosts).where(eq(hubPosts.id, postId)).limit(1);
+                if (post) {
+                  await notifyRemoteInteraction(db, post.authorId, 'comment', actorUri,
+                    'New hub reply', `${remoteUser} from the fediverse replied to your post`,
+                    `/hubs/${hubSlug}/posts/${postId}`);
+                }
+              }
+            } else {
+              // Reply to local content — increment commentCount + notify author
+              const parsedParent = parseLocalContentUri(inReplyTo);
+              const parentContent = parsedParent ? await lookupContentByUri(db, parsedParent) : null;
               if (parentContent) {
+                await db
+                  .update(contentItems)
+                  .set({ commentCount: sql`${contentItems.commentCount} + 1` })
+                  .where(eq(contentItems.id, parentContent.id));
+
+                // Notify content author
                 const remoteUser = await resolveRemoteActorName(db, actorUri);
                 await notifyRemoteInteraction(db, parentContent.authorId, 'comment', actorUri,
                   'New reply', `${remoteUser} from the fediverse replied to "${parentContent.title ?? 'your content'}"`,
-                  `/content/${parentSlug}`);
+                    buildContentPath(parentContent.authorUsername, parentContent.type, parentContent.slug));
               }
             }
           } else {
@@ -798,7 +862,8 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
             // Try UUID first (more specific)
             const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
             if (UUID_RE.test(idOrSlug)) {
-              const byId = await db.select({ id: contentItems.id, authorId: contentItems.authorId, title: contentItems.title }).from(contentItems)
+              const byId = await db.select({ id: contentItems.id, authorId: contentItems.authorId, title: contentItems.title, type: contentItems.type, slug: contentItems.slug, authorUsername: users.username })
+                .from(contentItems).innerJoin(users, eq(contentItems.authorId, users.id))
                 .where(eq(contentItems.id, idOrSlug)).limit(1);
               if (byId.length > 0) {
                 await db.update(contentItems).set({ likeCount: sql`${contentItems.likeCount} + 1` })
@@ -809,27 +874,24 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
                 const remoteUser = await resolveRemoteActorName(db, actorUri);
                 await notifyRemoteInteraction(db, byId[0]!.authorId, 'like', actorUri,
                   'New like', `${remoteUser} from the fediverse liked "${byId[0]!.title ?? 'your content'}"`,
-                  `/content/${idOrSlug}`);
+                  buildContentPath(byId[0]!.authorUsername, byId[0]!.type, byId[0]!.slug));
               }
             }
 
-            // Slug fallback (only for local URIs to prevent cross-domain collision)
+            // Author-scoped slug lookup (parses /u/{username}/{type}/{slug} for precise matching)
             if (!matched) {
-              const bySlug = await db.select({ id: contentItems.id }).from(contentItems)
-                .where(eq(contentItems.slug, idOrSlug)).limit(1);
-              if (bySlug.length > 0) {
-                await db.update(contentItems).set({ likeCount: sql`${contentItems.likeCount} + 1` })
-                  .where(eq(contentItems.id, bySlug[0]!.id));
-                matched = true;
+              const parsed = parseLocalContentUri(objectUri);
+              if (parsed) {
+                const content = await lookupContentByUri(db, parsed);
+                if (content) {
+                  await db.update(contentItems).set({ likeCount: sql`${contentItems.likeCount} + 1` })
+                    .where(eq(contentItems.id, content.id));
+                  matched = true;
 
-                // Notify content author
-                const [likedContent] = await db.select({ authorId: contentItems.authorId, title: contentItems.title })
-                  .from(contentItems).where(eq(contentItems.id, bySlug[0]!.id)).limit(1);
-                if (likedContent) {
                   const remoteUser = await resolveRemoteActorName(db, actorUri);
-                  await notifyRemoteInteraction(db, likedContent.authorId, 'like', actorUri,
-                    'New like', `${remoteUser} from the fediverse liked "${likedContent.title ?? 'your content'}"`,
-                    `/content/${idOrSlug}`);
+                  await notifyRemoteInteraction(db, content.authorId, 'like', actorUri,
+                    'New like', `${remoteUser} from the fediverse liked "${content.title ?? 'your content'}"`,
+                    buildContentPath(content.authorUsername, content.type, content.slug));
                 }
               }
             }
@@ -953,26 +1015,21 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
 
       if (isLocalUri) {
         try {
-          const segments = new URL(objectUri).pathname.split('/').filter(Boolean);
-          const idOrSlug = segments[segments.length - 1];
-          if (idOrSlug) {
-            const bySlug = await db
-              .select({ id: contentItems.id, title: contentItems.title, authorId: contentItems.authorId })
-              .from(contentItems)
-              .where(eq(contentItems.slug, idOrSlug))
-              .limit(1);
-            if (bySlug.length > 0) {
+          const parsed = parseLocalContentUri(objectUri);
+          if (parsed) {
+            const content = await lookupContentByUri(db, parsed);
+            if (content) {
               await db
                 .update(contentItems)
                 .set({ boostCount: sql`${contentItems.boostCount} + 1` })
-                .where(eq(contentItems.id, bySlug[0]!.id));
+                .where(eq(contentItems.id, content.id));
               matched = true;
 
               // Notify content author
               const remoteUser = await resolveRemoteActorName(db, actorUri);
-              await notifyRemoteInteraction(db, bySlug[0]!.authorId, 'mention', actorUri,
-                'Content boosted', `${remoteUser} from the fediverse boosted "${bySlug[0]!.title ?? 'your content'}"`,
-                `/content/${idOrSlug}`);
+              await notifyRemoteInteraction(db, content.authorId, 'mention', actorUri,
+                'Content boosted', `${remoteUser} from the fediverse boosted "${content.title ?? 'your content'}"`,
+                buildContentPath(content.authorUsername, content.type, content.slug));
             }
           }
         } catch { /* invalid URL */ }

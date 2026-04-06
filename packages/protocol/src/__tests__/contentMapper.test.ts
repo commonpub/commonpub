@@ -23,7 +23,7 @@ describe('contentToArticle', () => {
 
     expect(article.type).toBe('Article');
     expect(article['@context']).toBe(AP_CONTEXT);
-    expect(article.id).toBe('https://test.example.com/content/building-a-robot');
+    expect(article.id).toBe('https://test.example.com/u/alice/article/building-a-robot');
     expect(article.attributedTo).toBe('https://test.example.com/users/alice');
     expect(article.name).toBe('Building a Robot');
     expect(article.content).toBe('<p>Step 1...</p>');
@@ -58,7 +58,7 @@ describe('contentToArticle', () => {
       domain,
     );
 
-    expect(article.url).toBe('https://test.example.com/blog/blog-post');
+    expect(article.url).toBe('https://test.example.com/u/alice/blog/blog-post');
   });
 
   it('should handle null optional fields', () => {

@@ -110,7 +110,7 @@ useJsonLd({
   type: 'article',
   title: props.content.title,
   description: props.content.seoDescription ?? props.content.description ?? '',
-  url: `${runtimeConfig.public.siteUrl}/explainer/${props.content.slug}`,
+  url: `${runtimeConfig.public.siteUrl}/u/${props.content.author?.username}/${props.content.type}/${props.content.slug}`,
   imageUrl: props.content.coverImageUrl ?? undefined,
   authorName: props.content.author?.displayName ?? props.content.author?.username ?? '',
   authorUrl: `${runtimeConfig.public.siteUrl}/u/${props.content.author?.username}`,
@@ -169,7 +169,7 @@ onUnmounted(() => { document.removeEventListener('keydown', onKeydown); });
     <ScrollViewer :document="explainerDoc" />
     <NuxtLink
       v-if="isOwner"
-      :to="`/${content.type}/${content.slug}/edit`"
+      :to="`/u/${content.author?.username}/${content.type}/${content.slug}/edit`"
       class="cpub-scroll-edit-btn"
       title="Edit explainer"
       aria-label="Edit explainer"
@@ -212,7 +212,7 @@ onUnmounted(() => { document.removeEventListener('keydown', onKeydown); });
       </button>
       <NuxtLink
         v-if="isOwner"
-        :to="`/${content.type}/${content.slug}/edit`"
+        :to="`/u/${content.author?.username}/${content.type}/${content.slug}/edit`"
         class="cpub-icon-btn cpub-edit-link"
         title="Edit explainer"
         aria-label="Edit explainer"

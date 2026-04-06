@@ -1,4 +1,4 @@
-import { toggleLike, onContentLiked, onContentUnliked, getContentSlugById, buildContentUri } from '@commonpub/server';
+import { toggleLike, onContentLiked, onContentUnliked, resolveContentObjectUri } from '@commonpub/server';
 import { likeTargetTypeSchema } from '@commonpub/schema';
 import { z } from 'zod';
 
@@ -20,9 +20,8 @@ export default defineEventHandler(async (event): Promise<{ liked: boolean }> => 
 
   // Federate likes on content items (not posts/comments)
   if (FEDERABLE_LIKE_TYPES.has(input.targetType)) {
-    const slug = await getContentSlugById(db, input.targetId);
-    if (slug) {
-      const contentUri = buildContentUri(config.instance.domain, slug);
+    const contentUri = await resolveContentObjectUri(db, input.targetId, config.instance.domain);
+    if (contentUri) {
       if (result.liked) {
         await onContentLiked(db, user.id, contentUri, config);
       } else {

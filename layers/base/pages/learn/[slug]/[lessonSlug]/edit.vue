@@ -222,7 +222,7 @@ const videoEmbedUrl = computed(() => {
           <span class="linked-content-title">{{ lesson.title }}</span>
         </div>
         <div class="linked-content-actions">
-          <NuxtLink :to="`/${lesson.type}/${lessonData?.linkedContent?.slug || ''}/edit`" class="cpub-btn cpub-btn-sm">
+          <NuxtLink :to="`/u/${(lessonData?.linkedContent as any)?.author?.username ?? ''}/${lesson.type}/${lessonData?.linkedContent?.slug || ''}/edit`" class="cpub-btn cpub-btn-sm">
             <i class="fa-solid fa-pen"></i> Edit Content
           </NuxtLink>
           <button class="cpub-btn cpub-btn-sm" style="color: var(--red); border-color: var(--red-border);" @click="unlinkContent">

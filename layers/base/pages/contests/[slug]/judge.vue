@@ -20,6 +20,7 @@ const entryList = computed(() => {
     contentType: entry.contentType,
     contentTitle: entry.contentTitle,
     authorName: entry.authorName,
+    authorUsername: entry.authorUsername,
     score: entry.score ?? null,
     rank: entry.rank ?? null,
   }));
@@ -82,7 +83,7 @@ async function submitScore(entryId: string): Promise<void> {
         <div class="cpub-judge-entry-info">
           <div class="cpub-judge-entry-title">{{ entry.contentTitle }}</div>
           <div class="cpub-judge-entry-author">by {{ entry.authorName }}</div>
-          <NuxtLink :to="`/${entry.contentType}/${entry.contentSlug}`" class="cpub-judge-entry-link" target="_blank">
+          <NuxtLink :to="`/u/${entry.authorUsername}/${entry.contentType}/${entry.contentSlug}`" class="cpub-judge-entry-link" target="_blank">
             <i class="fa-solid fa-arrow-up-right-from-square"></i> View entry
           </NuxtLink>
         </div>

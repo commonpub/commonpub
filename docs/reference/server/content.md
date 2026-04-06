@@ -72,11 +72,13 @@ Returns a paginated list of content items. Inner joins the `users` table to incl
 function getContentBySlug(
   db: NodePgDatabase,
   slug: string,
-  requesterId?: string
+  requesterId?: string,
+  authorUsername?: string,
+  authorId?: string
 ): Promise<ContentDetail | null>
 ```
 
-Fetches a single content item by its URL slug, including associated tags, enriched author data, and related content. Non-published content (draft or archived) is only returned if `requesterId` matches the author.
+Fetches a single content item by its URL slug, including associated tags, enriched author data, and related content. Non-published content (draft or archived) is only returned if `requesterId` matches the author. Use `authorUsername` or `authorId` to disambiguate when slugs are not globally unique (user-scoped slugs).
 
 **Parameters**
 

@@ -16,6 +16,8 @@ export interface ContentSaveOptions {
   extractError: (err: unknown) => string;
   /** Called after every save to sync product links from partsList blocks */
   onAfterSave?: (id: string) => Promise<void>;
+  /** Author username for user-scoped URLs (/u/{username}/{type}/{slug}) */
+  username?: Ref<string>;
 }
 
 export interface ContentSaveReturn {
@@ -53,6 +55,16 @@ function slugify(text: string): string {
 const AUTO_SAVE_DELAY = 30_000;
 
 export function useContentSave(opts: ContentSaveOptions): ContentSaveReturn {
+  // URL helpers — use user-scoped paths when username is available
+  function viewPath(type: string, slug: string): string {
+    if (opts.username?.value) return `/u/${opts.username.value}/${type}/${slug}`;
+    return `/${type}/${slug}`;
+  }
+  function editPath(type: string, slug: string): string {
+    if (opts.username?.value) return `/u/${opts.username.value}/${type}/${slug}/edit`;
+    return `/${type}/${slug}/edit`;
+  }
+
   const saving = ref(false);
   const error = ref('');
   const autoSaveStatus = ref<'idle' | 'saving' | 'saved' | 'error'>('idle');
@@ -108,14 +120,14 @@ export function useContentSave(opts: ContentSaveOptions): ContentSaveReturn {
         opts.isDirty.value = false;
         autoSaveStatus.value = 'saved';
         if (opts.onAfterSave) await opts.onAfterSave(result.id);
-        history.replaceState({}, '', `/${opts.contentType.value}/${result.slug}/edit`);
+        history.replaceState({}, '', editPath(opts.contentType.value, result.slug));
       } else {
         const updated = await $fetch<{ slug: string }>(`/api/content/${opts.contentId.value}`, { method: 'PUT', body });
         opts.isDirty.value = false;
         autoSaveStatus.value = 'saved';
         if (opts.onAfterSave) await opts.onAfterSave(opts.contentId.value!);
         if (updated?.slug) {
-          history.replaceState({}, '', `/${opts.contentType.value}/${updated.slug}/edit`);
+          history.replaceState({}, '', editPath(opts.contentType.value, updated.slug));
         }
       }
 
@@ -145,13 +157,13 @@ export function useContentSave(opts: ContentSaveOptions): ContentSaveReturn {
         opts.isNew.value = false;
         opts.isDirty.value = false;
         if (opts.onAfterSave) await opts.onAfterSave(result.id);
-        await navigateTo(`/${opts.contentType.value}/${result.slug}`);
+        await navigateTo(viewPath(opts.contentType.value, result.slug));
       } else {
         const updated = await $fetch<{ slug?: string }>(`/api/content/${opts.contentId.value}`, { method: 'PUT', body });
         opts.isDirty.value = false;
         if (opts.onAfterSave) await opts.onAfterSave(opts.contentId.value!);
         const currentSlug = updated?.slug || useRoute().params.slug as string;
-        await navigateTo(`/${opts.contentType.value}/${currentSlug}`);
+        await navigateTo(viewPath(opts.contentType.value, currentSlug));
       }
     } catch (err: unknown) {
       error.value = opts.extractError(err);
@@ -203,7 +215,7 @@ export function useContentSave(opts: ContentSaveOptions): ContentSaveReturn {
       }
 
       opts.isDirty.value = false;
-      await navigateTo(`/${opts.contentType.value}/${resultSlug}`);
+      await navigateTo(viewPath(opts.contentType.value, resultSlug));
       return [];
     } catch (err: unknown) {
       error.value = opts.extractError(err);

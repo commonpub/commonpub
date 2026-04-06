@@ -27,7 +27,7 @@ export default defineEventHandler(async (event) => {
     : new Date().toUTCString();
 
   const rssItems = items.map((item) => {
-    const link = `${siteUrl}/${item.type}/${item.slug}`;
+    const link = `${siteUrl}/u/${item.author.username}/${item.type}/${item.slug}`;
     const pubDate = new Date(item.publishedAt ?? item.createdAt).toUTCString();
     return `    <item>
       <title>${escapeXml(item.title)}</title>

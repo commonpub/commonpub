@@ -207,7 +207,7 @@ const mirrorStatus = computed(() => hub.value?.followStatus ?? 'pending');
 
 const remoteFollowRef = ref<{ show: () => void } | null>(null);
 const hubFollowing = ref(false);
-const hubFollowStatus = ref('');
+const hubFollowStatus = computed(() => hub.value?.followStatus ?? '');
 
 /** Follow the hub — if logged in, call API directly; otherwise show the remote follow modal */
 async function handleJoinHub(): Promise<void> {
@@ -219,8 +219,7 @@ async function handleJoinHub(): Promise<void> {
         method: 'POST',
         body: { federatedHubId: hub.value.id },
       });
-      hubFollowStatus.value = result.status;
-      toast.success(result.status === 'accepted' ? 'Now following this hub' : 'Follow request sent');
+      toast.success(result.status === 'accepted' ? 'Now following this hub' : 'Follow request sent — it may take a moment to be accepted');
       await refreshHub();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to follow hub';
@@ -299,9 +298,12 @@ async function handlePostVote(postId: string): Promise<void> {
           <span v-if="mirrorStatus === 'accepted'" class="cpub-member-badge cpub-member-badge-mirrored">
             <i class="fa-solid fa-globe"></i> Mirrored
           </span>
-          <button v-if="hub?.actorUri" class="cpub-btn cpub-btn-primary cpub-btn-sm" :disabled="hubFollowing" @click="handleJoinHub">
-            <i class="fa-solid fa-user-plus"></i> {{ hubFollowing ? 'Following...' : 'Join from your instance' }}
+          <button v-if="hub?.actorUri && mirrorStatus !== 'accepted'" class="cpub-btn cpub-btn-primary cpub-btn-sm" :disabled="hubFollowing || hubFollowStatus === 'pending'" @click="handleJoinHub">
+            <i class="fa-solid fa-user-plus"></i> {{ hubFollowing ? 'Following...' : hubFollowStatus === 'pending' ? 'Follow pending...' : 'Join from your instance' }}
           </button>
+          <span v-else-if="hub?.actorUri && mirrorStatus === 'accepted'" class="cpub-member-badge cpub-member-badge-joined">
+            <i class="fa-solid fa-check"></i> Joined
+          </span>
           <a v-if="hub?.url" :href="hub.url" target="_blank" rel="noopener noreferrer" class="cpub-btn cpub-btn-sm">
             <i class="fa-solid fa-arrow-up-right-from-square"></i> Visit original
           </a>

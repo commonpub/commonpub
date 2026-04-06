@@ -52,7 +52,7 @@ async function toggleFeatured(id: string, current: boolean): Promise<void> {
         <tbody>
           <tr v-for="item in data.items" :key="item.id">
             <td>
-              <NuxtLink :to="`/${item.type}/${item.slug}`" class="cpub-admin-link">{{ item.title }}</NuxtLink>
+              <NuxtLink :to="`/u/${item.author?.username}/${item.type}/${item.slug}`" class="cpub-admin-link">{{ item.title }}</NuxtLink>
             </td>
             <td><ContentTypeBadge :type="item.type" /></td>
             <td class="cpub-admin-author">{{ item.author?.displayName || item.author?.username || 'Unknown' }}</td>

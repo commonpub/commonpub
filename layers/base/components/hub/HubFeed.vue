@@ -61,7 +61,7 @@ const filteredPosts = computed(() => {
   <div v-if="filteredPosts.length" class="cpub-feed-list">
     <template v-for="post in filteredPosts" :key="post.id">
       <!-- Share posts -->
-      <NuxtLink v-if="post.sharedContent?.slug && !post.sharedContent?.url" :to="`/${post.sharedContent.type}/${post.sharedContent.slug}`" class="cpub-share-card">
+      <NuxtLink v-if="post.sharedContent?.slug && !post.sharedContent?.url" :to="(post.sharedContent as any).authorUsername ? `/u/${(post.sharedContent as any).authorUsername}/${post.sharedContent.type}/${post.sharedContent.slug}` : `/${post.sharedContent.type}/${post.sharedContent.slug}`" class="cpub-share-card">
         <div class="cpub-share-card-context">
           <i class="fa-solid fa-share-nodes"></i>
           {{ post.author.name }} shared a {{ post.sharedContent.type }}

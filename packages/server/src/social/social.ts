@@ -14,6 +14,7 @@ import type { CommonPubConfig } from '@commonpub/config';
 import type { DB, CommentItem } from '../types.js';
 import type { LikeTargetType, CommentTargetType } from '@commonpub/schema';
 import { federateLike, federateUnlike, federateComment } from '../federation/federation.js';
+import { buildContentPath } from '../query.js';
 import { emitHook } from '../hooks.js';
 import { createNotification } from '../notification/notification.js';
 import { USER_REF_SELECT, USER_REF_WITH_BIO_SELECT, normalizePagination, countRows } from '../query.js';
@@ -62,8 +63,8 @@ export async function toggleLike(
         if (t) authorId = t.authorId;
       } else if (targetType !== 'comment') {
         // Content types: project, article, blog, explainer
-        const [t] = await db.select({ authorId: contentItems.authorId, title: contentItems.title, slug: contentItems.slug, type: contentItems.type }).from(contentItems).where(eq(contentItems.id, targetId)).limit(1);
-        if (t) { authorId = t.authorId; title = t.title; link = `/${t.type}/${t.slug}`; }
+        const [t] = await db.select({ authorId: contentItems.authorId, title: contentItems.title, slug: contentItems.slug, type: contentItems.type, authorUsername: users.username }).from(contentItems).innerJoin(users, eq(contentItems.authorId, users.id)).where(eq(contentItems.id, targetId)).limit(1);
+        if (t) { authorId = t.authorId; title = t.title; link = buildContentPath(t.authorUsername, t.type, t.slug); }
       }
 
       if (authorId && authorId !== userId) {
@@ -297,8 +298,8 @@ export async function createComment(
       if (t) targetAuthorId = t.authorId;
     } else {
       // Content types: project, article, blog, explainer, lesson
-      const [t] = await db.select({ authorId: contentItems.authorId, title: contentItems.title, slug: contentItems.slug, type: contentItems.type }).from(contentItems).where(eq(contentItems.id, input.targetId)).limit(1);
-      if (t) { targetAuthorId = t.authorId; targetTitle = t.title; link = `/${t.type}/${t.slug}`; }
+      const [t] = await db.select({ authorId: contentItems.authorId, title: contentItems.title, slug: contentItems.slug, type: contentItems.type, authorUsername: users.username }).from(contentItems).innerJoin(users, eq(contentItems.authorId, users.id)).where(eq(contentItems.id, input.targetId)).limit(1);
+      if (t) { targetAuthorId = t.authorId; targetTitle = t.title; link = buildContentPath(t.authorUsername, t.type, t.slug); }
     }
 
     if (targetAuthorId && targetAuthorId !== authorId) {
