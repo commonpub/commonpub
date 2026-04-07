@@ -11,7 +11,7 @@ import { MeilisearchSearchAdapter } from './meilisearchAdapter.js';
  * - Throws if neither is provided.
  */
 export function createSearchAdapter(
-  config: SearchAdapterConfig & { sqlTag?: SqlTagFn },
+  config: SearchAdapterConfig & { sqlTag?: SqlTagFn; language?: string },
 ): SearchAdapter {
   if (config.meiliClient) {
     return new MeilisearchSearchAdapter(config.meiliClient);
@@ -27,6 +27,7 @@ export function createSearchAdapter(
     return new PostgresSearchAdapter(
       config.db as { execute(query: unknown): Promise<{ rows: Array<Record<string, unknown>> }> },
       config.sqlTag,
+      config.language,
     );
   }
 

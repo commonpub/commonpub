@@ -16,6 +16,15 @@ interface DrizzleDB {
  */
 export type SqlTagFn = (strings: TemplateStringsArray, ...values: unknown[]) => unknown;
 
+/** Postgres FTS language names — validated to prevent unexpected values */
+const VALID_FTS_LANGUAGES = new Set([
+  'simple', 'arabic', 'armenian', 'basque', 'catalan', 'danish', 'dutch',
+  'english', 'finnish', 'french', 'german', 'greek', 'hindi', 'hungarian',
+  'indonesian', 'irish', 'italian', 'lithuanian', 'nepali', 'norwegian',
+  'portuguese', 'romanian', 'russian', 'serbian', 'spanish', 'swedish',
+  'tamil', 'turkish', 'yiddish',
+]);
+
 /**
  * Postgres FTS search adapter.
  *
@@ -25,10 +34,12 @@ export type SqlTagFn = (strings: TemplateStringsArray, ...values: unknown[]) => 
 export class PostgresSearchAdapter implements SearchAdapter {
   private db: DrizzleDB;
   private sql: SqlTagFn;
+  private language: string;
 
-  constructor(db: DrizzleDB, sqlTag: SqlTagFn) {
+  constructor(db: DrizzleDB, sqlTag: SqlTagFn, language: string = 'english') {
     this.db = db;
     this.sql = sqlTag;
+    this.language = VALID_FTS_LANGUAGES.has(language) ? language : 'english';
   }
 
   /** No-op: Postgres FTS searches live data, no separate index needed. */
@@ -52,17 +63,17 @@ export class PostgresSearchAdapter implements SearchAdapter {
           dp.title,
           dp.slug,
           ts_headline(
-            'english',
+            ${this.language},
             dp.content,
-            to_tsquery('english', ${tsQuery}),
+            to_tsquery(${this.language}, ${tsQuery}),
             'MaxWords=30, MinWords=15'
           ) AS snippet
         FROM docs_pages dp
         INNER JOIN docs_versions dv ON dp.version_id = dv.id
         WHERE dp.version_id = ${versionId}
           AND dv.site_id = ${siteId}
-          AND to_tsvector('english', dp.title || ' ' || dp.content)
-              @@ to_tsquery('english', ${tsQuery})
+          AND to_tsvector(${this.language}, dp.title || ' ' || dp.content)
+              @@ to_tsquery(${this.language}, ${tsQuery})
         LIMIT ${limit}
         OFFSET ${offset}
       `,

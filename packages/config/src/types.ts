@@ -103,12 +103,20 @@ export interface CookieDefinition {
   provider?: string;
 }
 
+/** Docs-specific configuration */
+export interface DocsConfig {
+  /** Postgres FTS language for docs search (default: 'english'). See: https://www.postgresql.org/docs/current/textsearch-dictionaries.html */
+  searchLanguage: string;
+}
+
 export interface CommonPubConfig {
   instance: InstanceConfig;
   features: FeatureFlags;
   auth: AuthConfig;
   /** Federation-specific configuration (only used when features.federation is true) */
   federation?: FederationConfig;
+  /** Docs module configuration */
+  docs: DocsConfig;
   /**
    * Additional cookies used by this instance (e.g., analytics, marketing).
    * CommonPub's own cookies (session, color scheme) are registered automatically.

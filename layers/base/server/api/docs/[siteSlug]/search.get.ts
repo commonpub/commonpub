@@ -7,6 +7,7 @@ const searchQuerySchema = z.object({
 
 export default defineEventHandler(async (event) => {
   const db = useDB();
+  const config = useConfig();
   const { siteSlug } = parseParams(event, { siteSlug: 'string' });
   const query = parseQueryParams(event, searchQuerySchema);
 
@@ -16,5 +17,5 @@ export default defineEventHandler(async (event) => {
   const version = result.versions?.find((v) => v.isDefault) ?? result.versions?.[0];
   if (!version) return [];
 
-  return searchDocsPages(db, result.site.id, version.id, query.q ?? '');
+  return searchDocsPages(db, result.site.id, version.id, query.q ?? '', config.docs.searchLanguage);
 });

@@ -33,5 +33,9 @@ export function createTestConfig(overrides?: Partial<CommonPubConfig>): CommonPu
       passkeys: false,
       ...overrides?.auth,
     },
+    docs: {
+      searchLanguage: 'english',
+      ...overrides?.docs,
+    },
   };
 }
