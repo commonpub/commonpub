@@ -5,6 +5,6 @@ export default defineConfig({
   out: './migrations',
   dialect: 'postgresql',
   dbCredentials: {
-    url: process.env.DATABASE_URL || 'postgresql://commonpub:commonpub_dev@localhost:5433/commonpub',
+    url: process.env.DATABASE_URL || process.env.NUXT_DATABASE_URL || 'postgresql://commonpub:commonpub_dev@localhost:5433/commonpub',
   },
 });
