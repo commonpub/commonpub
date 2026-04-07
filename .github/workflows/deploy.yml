@@ -48,9 +48,10 @@ jobs:
             # Apply schema changes via drizzle-kit push
             # Use --force to auto-accept additive changes. If it fails (e.g. interactive
             # prompts for renames), the deploy still succeeds but logs a warning.
-            docker compose -f docker-compose.prod.yml exec -T app npx drizzle-kit push --config=drizzle.config.js --force 2>&1 | tee /tmp/dbpush.log \
+            # Write output to file first, then check exit code (pipe to tee masks failures).
+            docker compose -f docker-compose.prod.yml exec -T app npx drizzle-kit push --config=drizzle.config.js --force > /tmp/dbpush.log 2>&1 \
               && echo "✅ db:push succeeded" \
-              || { echo "::warning::db:push failed — schema changes may need manual SQL. Check output above."; cat /tmp/dbpush.log; }
+              || { echo "::warning::db:push failed — schema changes may need manual SQL"; cat /tmp/dbpush.log; }
             docker image prune -f
             # Post-deploy smoke test — verify app is responding
             for i in 1 2 3 4 5; do

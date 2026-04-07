@@ -22,8 +22,8 @@ COPY --from=build /app/apps/reference/.output ./.output
 COPY --from=build /app/apps/reference/node_modules ./node_modules
 COPY --from=build /app/apps/reference/drizzle.config.js ./drizzle.config.js
 COPY --from=build /app/packages/schema/dist ./schema/dist
-# Install drizzle-kit + deps for schema push (drizzle-kit needs drizzle-orm + pg driver)
-RUN echo '{"private":true}' > package.json && npm install --no-save drizzle-kit@0.31.10 drizzle-orm pg
+# Install drizzle-kit + deps for schema push (drizzle-kit needs drizzle-orm + pg driver, schema imports zod)
+RUN echo '{"private":true}' > package.json && npm install --no-save drizzle-kit@0.31.10 drizzle-orm pg zod
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV NITRO_PORT=3000
