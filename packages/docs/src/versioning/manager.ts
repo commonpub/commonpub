@@ -63,7 +63,7 @@ export function prepareVersionCopy(
   versionId: string;
   title: string;
   slug: string;
-  content: string;
+  content: unknown;
   sortOrder: number;
   parentId: string | null;
 }> {

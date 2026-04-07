@@ -11,7 +11,7 @@ export interface SearchResult {
 /** Search adapter interface — implemented by Postgres and Meilisearch adapters */
 export interface SearchAdapter {
   index(documents: SearchDocument[]): Promise<void>;
-  search(query: string, siteId: string, versionId: string): Promise<SearchResult[]>;
+  search(query: string, siteId: string, versionId: string, opts?: { limit?: number; offset?: number }): Promise<SearchResult[]>;
   delete(pageIds: string[]): Promise<void>;
 }
 

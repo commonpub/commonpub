@@ -32,16 +32,9 @@ export default defineEventHandler(async (event) => {
 
   const pages = await listDocsPages(db, version.id);
 
-  // Parse content: if stored as JSON string (BlockTuple[]), parse back to array
+  // Content is JSONB — arrays come back parsed, legacy strings stay as strings
   return pages.map((page) => {
-    let content: string | unknown[] = page.content ?? '';
-    if (typeof content === 'string' && content.startsWith('[')) {
-      try {
-        content = JSON.parse(content);
-      } catch {
-        // Not valid JSON — keep as markdown string
-      }
-    }
+    const content = page.content ?? '';
     return { ...page, content };
   });
 });

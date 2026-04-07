@@ -68,8 +68,7 @@ export default defineEventHandler(async (event) => {
   const ext = contentType.split('/')[1] || 'jpg';
   const key = generateStorageKey(purpose, ext);
 
-  await (storage as any).put(key, buffer, contentType);
-  const resultUrl = (storage as any).getPublicUrl(key);
+  const resultUrl = await storage.upload(key, buffer, contentType);
 
   return { url: resultUrl };
 });

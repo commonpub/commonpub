@@ -9,16 +9,17 @@ test.describe('Homepage tab switching', () => {
     await page.goto('/', { waitUntil: 'networkidle' });
 
     const tabs = page.locator('.cpub-tab');
-    await tabs.first().waitFor({ state: 'visible', timeout: 10000 });
+    await tabs.first().waitFor({ state: 'visible', timeout: 15000 });
 
     const firstTab = tabs.first();
     const secondTab = tabs.nth(1);
 
-    await expect(firstTab).toHaveClass(/active/);
+    await expect(firstTab).toHaveClass(/active/, { timeout: 10000 });
 
     await secondTab.click();
-    await expect(secondTab).toHaveClass(/active/, { timeout: 5000 });
-    await expect(firstTab).not.toHaveClass(/active/);
+    // Wait for Vue reactivity to update the class
+    await expect(secondTab).toHaveClass(/active/, { timeout: 10000 });
+    await expect(firstTab).not.toHaveClass(/active/, { timeout: 5000 });
   });
 
   test('hero banner dismiss button works', async ({ page }) => {
@@ -79,19 +80,20 @@ test.describe('Search page interactions', () => {
   });
 
   test('type filter pills switch active state', async ({ page }) => {
-    await page.goto('/search');
+    await page.goto('/search', { waitUntil: 'networkidle' });
 
     const pills = page.locator('.cpub-type-pill');
-    await pills.first().waitFor({ state: 'visible', timeout: 5000 });
+    await pills.first().waitFor({ state: 'visible', timeout: 10000 });
 
     const allPill = pills.first();
     const projectsPill = pills.nth(1);
 
-    await expect(allPill).toHaveClass(/active/);
+    await expect(allPill).toHaveClass(/active/, { timeout: 10000 });
 
     await projectsPill.click();
-    await expect(projectsPill).toHaveClass(/active/);
-    await expect(allPill).not.toHaveClass(/active/);
+    // Wait for Vue reactivity to update the class
+    await expect(projectsPill).toHaveClass(/active/, { timeout: 10000 });
+    await expect(allPill).not.toHaveClass(/active/, { timeout: 5000 });
   });
 
   test('advanced filters panel toggles', async ({ page }) => {

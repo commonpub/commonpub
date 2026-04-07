@@ -557,19 +557,29 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
                     const VALID_POST_TYPES = new Set(['text', 'link', 'share', 'poll', 'discussion', 'question', 'showcase', 'announcement']);
                     const cpubPostType = VALID_POST_TYPES.has(rawPostType) ? rawPostType : 'text';
 
-                    await db.insert(hubPosts).values({
+                    const [inserted] = await db.insert(hubPosts).values({
                       hubId: hub.id,
                       authorId: null,
                       type: cpubPostType as 'text' | 'discussion' | 'question' | 'showcase' | 'announcement' | 'share',
                       content: rawContent,
                       remoteActorUri: actorUri,
                       remoteActorName: remoteUser,
-                    });
+                    }).returning({ id: hubPosts.id, createdAt: hubPosts.createdAt });
 
                     // Increment post count
                     await db.update(hubsTable)
                       .set({ postCount: sql`${hubsTable.postCount} + 1` })
                       .where(eq(hubsTable.id, hub.id));
+
+                    // Relay: hub Group actor Announces the post to its followers
+                    if (inserted) {
+                      try {
+                        const { relayRemoteMemberPost } = await import('./hubFederation.js');
+                        await relayRemoteMemberPost(db, inserted.id, opts.hubContext!.hubSlug, domain, actorUri, rawContent, cpubPostType, inserted.createdAt);
+                      } catch (relayErr) {
+                        console.warn('[inbox] Hub relay failed:', relayErr instanceof Error ? relayErr.message : relayErr);
+                      }
+                    }
                   }
                 }
               }

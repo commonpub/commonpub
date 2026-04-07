@@ -19,16 +19,8 @@ export default defineEventHandler(async (event) => {
   const page = pages.find((p) => p.slug === pageSlug);
   if (!page) throw createError({ statusCode: 404, statusMessage: 'Page not found' });
 
-  // Handle dual-format content: BlockTuple[] (new) or markdown string (legacy)
-  // Content is stored as TEXT — JSON arrays come back as strings, need parsing
-  let content: string | unknown[] = page.content ?? '';
-  if (typeof content === 'string' && content.trimStart().startsWith('[')) {
-    try {
-      content = JSON.parse(content);
-    } catch {
-      // Not valid JSON — keep as markdown string
-    }
-  }
+  // Content is JSONB — arrays come back parsed, legacy strings stay as strings
+  const content = page.content ?? '';
 
   if (Array.isArray(content)) {
     // New BlockTuple format — extract text for TOC generation

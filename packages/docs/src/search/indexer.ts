@@ -114,8 +114,9 @@ export function buildSearchDocument(
   versionId: string,
   pagePath: string,
 ): SearchDocument {
-  const headings = extractHeadings(page.content).map((h) => h.text);
-  const content = stripMarkdown(page.content);
+  const rawContent = typeof page.content === 'string' ? page.content : JSON.stringify(page.content);
+  const headings = extractHeadings(rawContent).map((h) => h.text);
+  const content = stripMarkdown(rawContent);
 
   return {
     pageId: page.id,

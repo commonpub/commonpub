@@ -205,12 +205,19 @@ async function handleDiscPost(): Promise<void> {
 // --- Instance mirror status ---
 const mirrorStatus = computed(() => hub.value?.followStatus ?? 'pending');
 
-// --- Per-user join state ---
-const { data: userFollowState, refresh: refreshFollowState } = useLazyFetch<{ joined: boolean; status: string | null }>(
-  () => `/api/federation/hub-follow-status?federatedHubId=${id}`,
-  { default: () => ({ joined: false, status: null }) },
-);
+// --- Per-user join state (only fetch when authenticated) ---
+const userFollowState = ref<{ joined: boolean; status: string | null }>({ joined: false, status: null });
 const userJoined = computed(() => userFollowState.value?.joined ?? false);
+
+async function refreshFollowState(): Promise<void> {
+  if (!isAuthenticated.value) return;
+  try {
+    userFollowState.value = await $fetch<{ joined: boolean; status: string | null }>(
+      `/api/federation/hub-follow-status?federatedHubId=${id}`,
+    );
+  } catch { /* best-effort */ }
+}
+onMounted(() => { refreshFollowState(); });
 
 const remoteFollowRef = ref<{ show: () => void } | null>(null);
 const hubFollowing = ref(false);

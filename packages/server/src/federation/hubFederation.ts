@@ -354,6 +354,55 @@ export async function federateHubPost(
 }
 
 /**
+ * Relay a remote member's hub post as an Announce from the Group actor.
+ * Called after a remote follower's Create(Note) is stored as a local hub post.
+ * The hub Announces the Note (attributed to the remote actor) to its followers.
+ */
+export async function relayRemoteMemberPost(
+  db: DB,
+  postId: string,
+  hubSlug: string,
+  domain: string,
+  remoteActorUri: string,
+  content: string,
+  postType: string,
+  createdAt: Date,
+): Promise<void> {
+  const hubActorUri = getHubActorUri(domain, hubSlug);
+  const noteUri = getHubPostNoteUri(domain, hubSlug, postId);
+  const followersUri = `${hubActorUri}/followers`;
+
+  // Build the Note attributed to the remote actor
+  const note: APNote = {
+    '@context': AP_CONTEXT,
+    type: 'Note',
+    id: noteUri,
+    attributedTo: remoteActorUri,
+    content: escapeHtmlForAP(content),
+    to: [AP_PUBLIC],
+    cc: [followersUri],
+    published: createdAt.toISOString(),
+    context: hubActorUri,
+  };
+
+  if (postType !== 'text') {
+    (note as unknown as Record<string, unknown>)['cpub:postType'] = postType;
+  }
+
+  // Hub Group actor Announces the Note
+  const announce = buildAnnounceActivity(domain, hubActorUri, noteUri, followersUri);
+
+  await db.insert(activities).values({
+    type: 'Announce',
+    actorUri: hubActorUri,
+    objectUri: noteUri,
+    payload: announce,
+    direction: 'outbound',
+    status: 'pending',
+  });
+}
+
+/**
  * Federate a content share to a hub as an Announce.
  */
 export async function federateHubShare(

@@ -84,7 +84,8 @@ export interface DocsPage {
   versionId: string;
   title: string;
   slug: string;
-  content: string;
+  /** BlockTuple[] (JSONB) for new pages, legacy string for pre-migration pages */
+  content: unknown;
   sortOrder: number;
   parentId: string | null;
   createdAt: Date;

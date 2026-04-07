@@ -41,7 +41,7 @@ const moduleIcon = computed(() => loadedModule.value?.meta.icon ?? 'fa-sliders-h
   background: var(--bg-dark, #141418);
   border: 1px solid var(--border-dark, rgba(255, 255, 255, 0.08));
   border-radius: var(--radius, 0px);
-  margin: 28px 0;
+  margin: var(--space-7, 28px) 0;
   overflow: hidden;
 
   /* Bridge: map explainer theme vars to CommonPub design system vars
@@ -68,15 +68,15 @@ const moduleIcon = computed(() => loadedModule.value?.meta.icon ?? 'fa-sliders-h
   text-transform: uppercase;
   letter-spacing: 0.12em;
   color: var(--accent);
-  padding: 10px 16px;
+  padding: var(--space-2, 10px) var(--space-4, 16px);
   border-bottom: 1px solid var(--border-dark, rgba(255, 255, 255, 0.08));
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2, 8px);
 }
 
 .cpub-interactive-label i {
-  font-size: 10px;
+  font-size: var(--text-xs, 10px);
 }
 
 .cpub-interactive-content {
@@ -91,10 +91,10 @@ const moduleIcon = computed(() => loadedModule.value?.meta.icon ?? 'fa-sliders-h
 }
 
 .cpub-interactive-missing {
-  padding: 32px 16px;
+  padding: var(--space-8, 32px) var(--space-4, 16px);
   text-align: center;
   color: var(--text-on-dark-faint, rgba(255, 255, 255, 0.2));
   font-family: var(--font-ui);
-  font-size: 12px;
+  font-size: var(--text-xs, 12px);
 }
 </style>

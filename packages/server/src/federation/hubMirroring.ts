@@ -210,8 +210,8 @@ export async function refreshFederatedHubMetadata(
       remotePostCount: cpubPostCount ?? undefined,
       updatedAt: new Date(),
     }).where(eq(federatedHubs.id, hubId));
-  } catch {
-    // Non-fatal background refresh
+  } catch (err) {
+    console.warn('[federation] refreshFederatedHubMetadata failed:', err instanceof Error ? err.message : err);
   }
 }
 

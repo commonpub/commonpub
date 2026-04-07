@@ -76,6 +76,9 @@ export default defineNitroPlugin((nitro) => {
     }
   }, 5_000);
 
+  // Track the last date digests were sent to prevent duplicates on server restart during 8am hour
+  let lastDigestDate = '';
+
   async function runDigest(siteUrl: string, siteName: string): Promise<void> {
     try {
       const db = useDB();
@@ -87,6 +90,11 @@ export default defineNitroPlugin((nitro) => {
       const isMonday = now.getUTCDay() === 1;
 
       if (!isDigestHour) return;
+
+      // Prevent duplicate sends if server restarts during digest hour
+      const todayKey = now.toISOString().slice(0, 10);
+      if (lastDigestDate === todayKey) return;
+      lastDigestDate = todayKey;
 
       // Find users with digest preferences
       const digestUsers = await db

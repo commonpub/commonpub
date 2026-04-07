@@ -58,6 +58,7 @@ export {
   getHubFederatedFollowers,
   federateHubActor,
   federateHubPost,
+  relayRemoteMemberPost,
   federateHubShare,
   federateHubPostDelete,
   federateHubPostUpdate,

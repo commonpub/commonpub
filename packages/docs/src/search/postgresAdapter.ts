@@ -36,11 +36,14 @@ export class PostgresSearchAdapter implements SearchAdapter {
     // Intentional no-op
   }
 
-  async search(query: string, siteId: string, versionId: string): Promise<SearchResult[]> {
+  async search(query: string, siteId: string, versionId: string, opts?: { limit?: number; offset?: number }): Promise<SearchResult[]> {
     if (!query.trim()) return [];
 
     const tsQuery = buildSearchQuery(query);
     if (!tsQuery) return [];
+
+    const limit = Math.min(Math.max(opts?.limit ?? 20, 1), 100);
+    const offset = Math.max(opts?.offset ?? 0, 0);
 
     const result = await this.db.execute(
       this.sql`
@@ -60,7 +63,8 @@ export class PostgresSearchAdapter implements SearchAdapter {
           AND dv.site_id = ${siteId}
           AND to_tsvector('english', dp.title || ' ' || dp.content)
               @@ to_tsquery('english', ${tsQuery})
-        LIMIT 20
+        LIMIT ${limit}
+        OFFSET ${offset}
       `,
     );
 
