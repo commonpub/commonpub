@@ -4,11 +4,11 @@ import { markdownToBlockTuples } from '@commonpub/editor';
 import type { BlockTuple } from '@commonpub/editor';
 
 const props = defineProps<{
-  content: { source: string };
+  content: Record<string, unknown>;
 }>();
 
 const emit = defineEmits<{
-  update: [content: { source: string }];
+  update: [content: Record<string, unknown>];
 }>();
 
 /** Type-safe block content accessors — cast content to record for dynamic key access */
@@ -20,10 +20,10 @@ function bNum(block: BlockTuple, key: string): number {
 }
 
 const viewMode = ref<'edit' | 'split' | 'preview'>('split');
-const source = ref(props.content.source || '');
+const source = ref((props.content.source as string) || '');
 
-watch(() => props.content.source, (val) => {
-  if (val !== source.value) source.value = val;
+watch(() => props.content.source as string, (val) => {
+  if (val !== source.value) source.value = val ?? '';
 });
 
 const previewBlocks = computed(() => {
