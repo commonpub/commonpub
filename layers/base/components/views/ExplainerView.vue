@@ -355,7 +355,7 @@ onUnmounted(() => { document.removeEventListener('keydown', onKeydown); });
   align-items: center;
   justify-content: center;
   background: var(--surface, #1a1a1a);
-  border: 1px solid var(--border, #333);
+  border: var(--border-width-default) solid var(--border, #333);
   color: var(--text-dim, #999);
   font-size: 14px;
   text-decoration: none;
@@ -387,7 +387,7 @@ onUnmounted(() => { document.removeEventListener('keydown', onKeydown); });
   top: 3px; left: 0; right: 0;
   height: 48px;
   background: var(--surface);
-  border-bottom: 1px solid var(--border);
+  border-bottom: var(--border-width-default) solid var(--border);
   display: flex;
   align-items: center;
   gap: 10px;
@@ -441,7 +441,7 @@ onUnmounted(() => { document.removeEventListener('keydown', onKeydown); });
   align-items: center;
   justify-content: center;
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   color: var(--text-dim);
   cursor: pointer;
   font-size: 12px;
@@ -467,7 +467,7 @@ onUnmounted(() => { document.removeEventListener('keydown', onKeydown); });
   width: 200px;
   flex-shrink: 0;
   background: var(--surface);
-  border-right: 1px solid var(--border);
+  border-right: var(--border-width-default) solid var(--border);
   display: flex;
   flex-direction: column;
   overflow-y: auto;
@@ -479,7 +479,7 @@ onUnmounted(() => { document.removeEventListener('keydown', onKeydown); });
   letter-spacing: 0.12em;
   color: var(--text-faint);
   text-transform: uppercase;
-  border-bottom: 1px solid var(--border);
+  border-bottom: var(--border-width-default) solid var(--border);
 }
 .cpub-toc-list { list-style: none; padding: 6px 0; }
 .cpub-toc-item button {
@@ -516,7 +516,7 @@ onUnmounted(() => { document.removeEventListener('keydown', onKeydown); });
   align-items: center;
   gap: 8px;
   padding: 12px 14px;
-  border-top: 1px solid var(--border);
+  border-top: var(--border-width-default) solid var(--border);
   margin-top: auto;
 }
 .cpub-sidebar-author-avatar {
@@ -524,7 +524,7 @@ onUnmounted(() => { document.removeEventListener('keydown', onKeydown); });
   height: 24px;
   border-radius: var(--radius-full);
   background: var(--surface3);
-  border: 1px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -674,7 +674,7 @@ onUnmounted(() => { document.removeEventListener('keydown', onKeydown); });
   font-family: var(--font-mono);
   font-size: 13px;
   background: var(--surface2);
-  border: 1px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   padding: 1px 6px;
   color: var(--accent);
 }
@@ -718,7 +718,7 @@ onUnmounted(() => { document.removeEventListener('keydown', onKeydown); });
   justify-content: space-between;
   margin-top: 48px;
   padding-top: 24px;
-  border-top: 1px solid var(--border);
+  border-top: var(--border-width-default) solid var(--border);
 }
 
 .cpub-progress-dots { display: flex; align-items: center; gap: 5px; }
@@ -742,7 +742,7 @@ onUnmounted(() => { document.removeEventListener('keydown', onKeydown); });
   gap: 8px;
   padding: 10px 18px;
   background: var(--accent);
-  border: 1px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   color: var(--color-text-inverse);
   font-size: 13px;
   font-weight: 600;
@@ -759,7 +759,7 @@ onUnmounted(() => { document.removeEventListener('keydown', onKeydown); });
   gap: 8px;
   padding: 10px 18px;
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   color: var(--text);
   font-size: 13px;
   font-weight: 500;

@@ -174,7 +174,7 @@ useSeoMeta({
   margin-bottom: 20px;
   padding: 8px;
   background: var(--surface2);
-  border: 1px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
 }
 .cpub-authorize-success {
   color: var(--green, #22c55e);

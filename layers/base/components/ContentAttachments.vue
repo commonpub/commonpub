@@ -57,7 +57,7 @@ const safeAttachments = computed(() =>
 .cpub-attachments {
   margin: 28px 0;
   padding-top: 16px;
-  border-top: 1px solid var(--border);
+  border-top: var(--border-width-default) solid var(--border);
 }
 .cpub-attachments-label {
   font-size: 10px;
@@ -77,7 +77,7 @@ const safeAttachments = computed(() =>
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
-  border: 1px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   background: var(--surface);
   text-decoration: none;
   color: var(--text-dim);
@@ -92,7 +92,7 @@ const safeAttachments = computed(() =>
   width: 40px;
   height: 40px;
   object-fit: cover;
-  border: 1px solid var(--border2);
+  border: var(--border-width-default) solid var(--border2);
 }
 .cpub-attachment-icon {
   width: 32px;
@@ -101,7 +101,7 @@ const safeAttachments = computed(() =>
   align-items: center;
   justify-content: center;
   background: var(--surface2);
-  border: 1px solid var(--border2);
+  border: var(--border-width-default) solid var(--border2);
   color: var(--text-faint);
   font-size: 14px;
 }

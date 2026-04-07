@@ -45,7 +45,7 @@ const activeTab = defineModel<string>('activeTab', { required: true });
 <style scoped>
 .cpub-hub-tabs {
   background: var(--surface);
-  border-bottom: 1px solid var(--border);
+  border-bottom: var(--border-width-default) solid var(--border);
   position: sticky;
   top: 48px;
   z-index: 90;

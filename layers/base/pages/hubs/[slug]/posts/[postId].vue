@@ -320,7 +320,7 @@ useSeoMeta({
   display: inline-block; padding: 2px 8px; font-family: var(--font-mono);
   font-size: 10px; font-weight: 600; text-transform: uppercase;
   letter-spacing: 0.05em; color: var(--accent); background: var(--accent-bg);
-  border: 1px solid var(--accent-border);
+  border: var(--border-width-default) solid var(--accent-border);
 }
 
 .cpub-post-locked { font-size: 11px; color: var(--text-faint); }
@@ -352,7 +352,7 @@ useSeoMeta({
 
 .cpub-post-avatar {
   width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;
-  background: var(--surface2); border: 1px solid var(--border);
+  background: var(--surface2); border: var(--border-width-default) solid var(--border);
   font-family: var(--font-mono); font-size: 10px; font-weight: 700; color: var(--text-dim);
   overflow: hidden;
 }
@@ -368,14 +368,14 @@ useSeoMeta({
 .cpub-post-action-btn {
   display: inline-flex; align-items: center; gap: 4px;
   font-size: 12px; color: var(--text-faint); background: none; border: none; cursor: pointer;
-  padding: 4px 8px; border: 1px solid var(--border); transition: all 0.1s;
+  padding: 4px 8px; border: var(--border-width-default) solid var(--border); transition: all 0.1s;
 }
 .cpub-post-action-btn:hover:not(:disabled) { color: var(--accent); border-color: var(--accent-border); }
 .cpub-post-action-btn.active { color: var(--red); border-color: var(--red); }
 .cpub-post-action-btn:disabled { opacity: 0.5; cursor: default; }
 
 .cpub-post-mod-bar {
-  margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border);
+  margin-top: 12px; padding-top: 12px; border-top: var(--border-width-default) solid var(--border);
   display: flex; gap: 6px;
 }
 
@@ -400,7 +400,7 @@ useSeoMeta({
 .cpub-reply-input:focus { outline: none; border-color: var(--accent); }
 
 .cpub-post-locked-notice {
-  padding: 12px 16px; background: var(--surface2); border: 1px solid var(--border);
+  padding: 12px 16px; background: var(--surface2); border: var(--border-width-default) solid var(--border);
   font-size: 12px; color: var(--text-faint); margin-bottom: 16px; text-align: center;
 }
 
@@ -420,7 +420,7 @@ useSeoMeta({
 
 .cpub-reply-avatar {
   width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;
-  background: var(--surface2); border: 1px solid var(--border);
+  background: var(--surface2); border: var(--border-width-default) solid var(--border);
   font-family: var(--font-mono); font-size: 9px; font-weight: 700; color: var(--text-dim);
   overflow: hidden;
 }

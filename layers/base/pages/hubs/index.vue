@@ -170,7 +170,7 @@ function hubLink(hub: Record<string, unknown>): string {
   align-items: center;
   gap: 14px;
   padding-top: 10px;
-  border-top: 1px solid var(--border2);
+  border-top: var(--border-width-default) solid var(--border2);
 }
 
 .cpub-hub-card-stat {
@@ -190,7 +190,7 @@ function hubLink(hub: Record<string, unknown>): string {
   letter-spacing: 0.08em;
   color: var(--accent);
   background: var(--accent-bg);
-  border: 1px solid var(--accent-border);
+  border: var(--border-width-default) solid var(--accent-border);
   padding: 2px 6px;
 }
 

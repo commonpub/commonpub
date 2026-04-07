@@ -456,7 +456,7 @@ function removeTokenOverride(key: string): void {
   display: inline-block;
   width: 14px;
   height: 14px;
-  border: 1px solid var(--border2);
+  border: var(--border-width-default) solid var(--border2);
   flex-shrink: 0;
 }
 

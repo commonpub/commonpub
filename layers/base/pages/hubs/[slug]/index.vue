@@ -422,7 +422,7 @@ async function onRefreshGallery(): Promise<void> {
 /* Compose bar */
 .cpub-compose-bar {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   border-radius: 12px;
   padding: 12px 14px;
   margin-bottom: 16px;
@@ -441,7 +441,7 @@ async function onRefreshGallery(): Promise<void> {
   letter-spacing: 0.04em;
   padding: 4px 10px;
   background: none;
-  border: 1px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   border-radius: 6px;
   color: var(--text-faint);
   cursor: pointer;
@@ -458,7 +458,7 @@ async function onRefreshGallery(): Promise<void> {
 .cpub-compose-input {
   flex: 1;
   background: var(--surface2);
-  border: 1px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   border-radius: 8px;
   padding: 10px 14px;
   font-size: 0.8125rem;
@@ -466,7 +466,7 @@ async function onRefreshGallery(): Promise<void> {
   cursor: pointer;
 }
 
-.cpub-post-error { font-size: 0.75rem; color: var(--red); background: var(--red-bg); border: 1px solid var(--red-border); border-radius: 8px; padding: 8px 12px; margin-bottom: 12px; }
+.cpub-post-error { font-size: 0.75rem; color: var(--red); background: var(--red-bg); border: var(--border-width-default) solid var(--red-border); border-radius: 8px; padding: 8px 12px; margin-bottom: 12px; }
 
 /* Member badge */
 .cpub-member-badge {
@@ -478,7 +478,7 @@ async function onRefreshGallery(): Promise<void> {
   color: var(--green);
   background: var(--green-bg);
   padding: 4px 12px;
-  border: 1px solid var(--green-border);
+  border: var(--border-width-default) solid var(--green-border);
   border-radius: 20px;
 }
 
@@ -488,7 +488,7 @@ async function onRefreshGallery(): Promise<void> {
 
 .cpub-mod-avatar {
   width: 32px; height: 32px; border-radius: 50%;
-  background: var(--accent-bg); border: 1px solid var(--accent-border);
+  background: var(--accent-bg); border: var(--border-width-default) solid var(--accent-border);
   display: flex; align-items: center; justify-content: center;
   font-size: 11px; font-weight: 600; color: var(--accent); flex-shrink: 0;
   overflow: hidden;

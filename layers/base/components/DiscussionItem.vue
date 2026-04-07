@@ -177,7 +177,7 @@ const lastReplyFormatted = computed((): string | null => {
   width: 16px;
   height: 16px;
   object-fit: cover;
-  border: 1px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   flex-shrink: 0;
 }
 

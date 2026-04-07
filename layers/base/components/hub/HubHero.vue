@@ -66,7 +66,7 @@ const isCompanyHub = computed(() => hubType.value === 'company');
   background: linear-gradient(135deg, var(--accent) 0%, #006b6b 50%, var(--accent-border) 100%);
   position: relative;
   overflow: hidden;
-  border-bottom: 1px solid var(--border);
+  border-bottom: var(--border-width-default) solid var(--border);
 }
 
 .cpub-hub-banner-pattern {
@@ -87,7 +87,7 @@ const isCompanyHub = computed(() => hubType.value === 'company');
 
 .cpub-hub-meta-bar {
   background: var(--surface);
-  border-bottom: 1px solid var(--border);
+  border-bottom: var(--border-width-default) solid var(--border);
   padding: 20px 0;
 }
 

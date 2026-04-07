@@ -14,7 +14,7 @@ defineProps<{
 <style scoped>
 .cpub-sb-card {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   padding: 18px;
   box-shadow: var(--shadow-sm);
   margin-bottom: 16px;
@@ -30,6 +30,6 @@ defineProps<{
   color: var(--text-dim);
   margin-bottom: 14px;
   padding-bottom: 8px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: var(--border-width-default) solid var(--border);
 }
 </style>

@@ -103,7 +103,7 @@ const iconMap: Record<string, string> = {
   align-items: center;
   justify-content: center;
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   border-radius: 50%;
   font-size: 8px;
   color: var(--text-dim);

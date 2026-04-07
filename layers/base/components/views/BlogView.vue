@@ -227,7 +227,7 @@ const hasSeries = computed(() => !!seriesTitle.value && seriesTotalParts.value >
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--green);
-  border: 1px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   background: var(--green-bg);
   padding: 3px 10px;
   margin-bottom: 16px;
@@ -250,7 +250,7 @@ const hasSeries = computed(() => !!seriesTitle.value && seriesTotalParts.value >
   height: 28px;
   border-radius: 50%;
   background: var(--surface3);
-  border: 1px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -307,7 +307,7 @@ const hasSeries = computed(() => !!seriesTitle.value && seriesTotalParts.value >
   font-size: 10px;
   font-family: var(--font-mono);
   padding: 2px 8px;
-  border: 1px solid var(--border2);
+  border: var(--border-width-default) solid var(--border2);
   color: var(--text-dim);
   background: var(--surface2);
   text-decoration: none;
@@ -332,8 +332,8 @@ const hasSeries = computed(() => !!seriesTitle.value && seriesTotalParts.value >
   align-items: center;
   gap: 6px;
   padding: 14px 0;
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
+  border-top: var(--border-width-default) solid var(--border);
+  border-bottom: var(--border-width-default) solid var(--border);
   margin-bottom: 36px;
 }
 
@@ -355,7 +355,7 @@ const hasSeries = computed(() => !!seriesTitle.value && seriesTotalParts.value >
   font-family: var(--font-mono);
   color: var(--text-dim);
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   padding: 5px 12px;
   cursor: pointer;
   transition: background var(--transition-fast), color var(--transition-fast);
@@ -407,7 +407,7 @@ const hasSeries = computed(() => !!seriesTitle.value && seriesTotalParts.value >
   font-size: 12.5px;
   color: var(--teal);
   background: var(--surface2);
-  border: 1px solid var(--border2);
+  border: var(--border-width-default) solid var(--border2);
   padding: 1px 6px;
 }
 
@@ -454,14 +454,14 @@ const hasSeries = computed(() => !!seriesTitle.value && seriesTotalParts.value >
 
 .cpub-prose :deep(hr) {
   border: none;
-  border-top: 1px solid var(--border);
+  border-top: var(--border-width-default) solid var(--border);
   margin: 36px 0;
 }
 
 /* ── SERIES NAV ── */
 .cpub-series-nav {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   padding: 20px;
   margin: 40px 0;
   box-shadow: var(--shadow-sm);
@@ -518,7 +518,7 @@ const hasSeries = computed(() => !!seriesTitle.value && seriesTotalParts.value >
   height: 4px;
   background: var(--surface3);
   overflow: hidden;
-  border: 1px solid var(--border2);
+  border: var(--border-width-default) solid var(--border2);
 }
 
 .cpub-series-progress-fill {
@@ -534,7 +534,7 @@ const hasSeries = computed(() => !!seriesTitle.value && seriesTotalParts.value >
 
 .cpub-series-nav-btn {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   padding: 12px 14px;
   cursor: pointer;
   text-decoration: none;
@@ -582,7 +582,7 @@ const hasSeries = computed(() => !!seriesTitle.value && seriesTotalParts.value >
   gap: 6px;
   margin: 36px 0 28px;
   padding-top: 20px;
-  border-top: 1px solid var(--border);
+  border-top: var(--border-width-default) solid var(--border);
 }
 
 .cpub-tags-label {
@@ -598,7 +598,7 @@ const hasSeries = computed(() => !!seriesTitle.value && seriesTotalParts.value >
 /* ── AUTHOR CARD ── */
 .cpub-author-card {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   padding: 22px;
   display: flex;
   gap: 18px;
@@ -671,7 +671,7 @@ const hasSeries = computed(() => !!seriesTitle.value && seriesTotalParts.value >
   font-family: var(--font-sans);
   font-size: 12px;
   padding: 6px 14px;
-  border: 1px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   background: var(--surface);
   color: var(--text);
   cursor: pointer;

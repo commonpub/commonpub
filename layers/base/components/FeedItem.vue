@@ -271,7 +271,7 @@ const formattedDate = computed((): string => {
 
 .cpub-feed-stat-btn {
   background: none;
-  border: 1px solid transparent;
+  border: var(--border-width-default) solid transparent;
   cursor: pointer;
   padding: 2px 8px;
   border-radius: 4px;

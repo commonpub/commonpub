@@ -266,7 +266,7 @@ async function deleteComment(id: string): Promise<void> {
   color: var(--text-faint);
   background: var(--surface2);
   padding: 1px 6px;
-  border: 1px solid var(--border2);
+  border: var(--border-width-default) solid var(--border2);
 }
 
 .cpub-comment-form {
@@ -290,7 +290,7 @@ async function deleteComment(id: string): Promise<void> {
   gap: 8px;
   padding: 6px 10px;
   background: var(--surface2);
-  border: 1px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
 }
 
 .cpub-cancel-reply {
@@ -313,7 +313,7 @@ async function deleteComment(id: string): Promise<void> {
   margin-bottom: 12px;
   padding: 8px 12px;
   background: var(--accent-bg);
-  border: 1px solid var(--accent-border);
+  border: var(--border-width-default) solid var(--accent-border);
   border-radius: 8px;
 }
 .cpub-comment-fed-notice i { color: var(--accent); font-size: 11px; }
@@ -461,6 +461,6 @@ async function deleteComment(id: string): Promise<void> {
   margin-bottom: 12px;
   padding: 8px 12px;
   background: var(--green-bg, rgba(34, 197, 94, 0.08));
-  border: 1px solid var(--green-border, rgba(34, 197, 94, 0.2));
+  border: var(--border-width-default) solid var(--green-border, rgba(34, 197, 94, 0.2));
 }
 </style>

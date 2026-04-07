@@ -506,7 +506,7 @@ async function handlePostVote(postId: string): Promise<void> {
 
 <style scoped>
 /* Federation indicator (inside hero banner) */
-.cpub-fed-indicator { background: var(--accent-bg); border-bottom: 1px solid var(--accent-border); }
+.cpub-fed-indicator { background: var(--accent-bg); border-bottom: var(--border-width-default) solid var(--accent-border); }
 .cpub-fed-indicator {
   padding: 6px 24px;
   display: flex; align-items: center; gap: 8px;
@@ -531,7 +531,7 @@ async function handlePostVote(postId: string): Promise<void> {
 }
 .cpub-compose-type-btn {
   font-size: 11px; font-weight: 600; padding: 4px 10px;
-  border: 1px solid var(--border); background: var(--surface2);
+  border: var(--border-width-default) solid var(--border); background: var(--surface2);
   color: var(--text-dim); cursor: pointer;
   display: flex; align-items: center; gap: 4px;
 }
@@ -540,7 +540,7 @@ async function handlePostVote(postId: string): Promise<void> {
 }
 .cpub-compose-row { display: flex; gap: 8px; align-items: center; }
 .cpub-compose-input {
-  flex: 1; background: var(--surface2); border: 1px solid var(--border);
+  flex: 1; background: var(--surface2); border: var(--border-width-default) solid var(--border);
   padding: 10px 14px; font-size: 0.8125rem;
   color: var(--text); font-family: inherit;
 }
@@ -574,7 +574,7 @@ async function handlePostVote(postId: string): Promise<void> {
 .cpub-shared-card-type {
   font-size: 9px; font-family: var(--font-mono); text-transform: uppercase;
   letter-spacing: 0.08em; color: var(--accent); background: var(--accent-bg);
-  border: 1px solid var(--accent-border); padding: 2px 6px;
+  border: var(--border-width-default) solid var(--accent-border); padding: 2px 6px;
   display: inline-block; margin-bottom: 6px;
 }
 .cpub-shared-card-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
@@ -623,7 +623,7 @@ async function handlePostVote(postId: string): Promise<void> {
   display: inline-flex; align-items: center; gap: 4px;
   font-size: 0.6875rem; font-weight: 600;
   color: var(--accent); background: var(--accent-bg);
-  padding: 4px 12px; border: 1px solid var(--accent-border);
+  padding: 4px 12px; border: var(--border-width-default) solid var(--accent-border);
 }
 
 /* Sidebar */
@@ -646,7 +646,7 @@ async function handlePostVote(postId: string): Promise<void> {
   font-size: 12px; color: var(--text-dim); line-height: 1.5;
   padding: 6px 0;
 }
-.cpub-rule-item + .cpub-rule-item { border-top: 1px solid var(--border2); }
+.cpub-rule-item + .cpub-rule-item { border-top: var(--border-width-default) solid var(--border2); }
 .cpub-rule-num {
   font-family: var(--font-mono); font-size: 10px; font-weight: 700;
   color: var(--accent); flex-shrink: 0; width: 18px; text-align: center;

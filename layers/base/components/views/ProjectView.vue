@@ -590,7 +590,7 @@ async function handleBuild(): Promise<void> {
   background: var(--surface2);
   overflow: hidden;
   flex-shrink: 0;
-  border-bottom: 1px solid var(--border);
+  border-bottom: var(--border-width-default) solid var(--border);
 }
 
 .cpub-hero-cover-grid {
@@ -653,14 +653,14 @@ async function handleBuild(): Promise<void> {
 
 .cpub-badge-featured {
   background: var(--yellow-bg);
-  border: 1px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   color: var(--yellow);
   box-shadow: var(--shadow-sm);
 }
 
 .cpub-badge-outline {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   color: var(--text-dim);
   box-shadow: var(--shadow-sm);
 }
@@ -721,7 +721,7 @@ async function handleBuild(): Promise<void> {
   height: 28px;
   border-radius: 50%;
   background: var(--surface3);
-  border: 1px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -768,7 +768,7 @@ async function handleBuild(): Promise<void> {
   font-family: var(--font-mono);
   color: var(--accent);
   background: var(--accent-bg);
-  border: 1px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   padding: 2px 7px;
 }
 
@@ -789,7 +789,7 @@ async function handleBuild(): Promise<void> {
 .cpub-author-tag {
   font-size: 9px; font-family: var(--font-mono); text-transform: uppercase;
   letter-spacing: 0.04em; color: var(--text-faint); padding: 1px 6px;
-  border: 1px solid var(--border); background: var(--surface); text-decoration: none;
+  border: var(--border-width-default) solid var(--border); background: var(--surface); text-decoration: none;
 }
 .cpub-author-tag:hover { color: var(--accent); border-color: var(--accent); }
 
@@ -816,7 +816,7 @@ async function handleBuild(): Promise<void> {
 .cpub-engage-btn {
   font-size: 12px;
   padding: 6px 13px;
-  border: 1px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   background: var(--surface);
   color: var(--text-dim);
   cursor: pointer;
@@ -849,7 +849,7 @@ async function handleBuild(): Promise<void> {
 .cpub-inline-meta-chip {
   display: inline-flex; align-items: center; gap: 5px;
   font-size: 11px; font-family: var(--font-mono); color: var(--text-dim);
-  padding: 3px 10px; background: var(--surface2); border: 1px solid var(--border);
+  padding: 3px 10px; background: var(--surface2); border: var(--border-width-default) solid var(--border);
   white-space: nowrap;
 }
 .cpub-inline-meta-link { text-decoration: none; cursor: pointer; }
@@ -861,7 +861,7 @@ async function handleBuild(): Promise<void> {
 .cpub-itag {
   font-size: 10px; font-family: var(--font-mono); text-transform: uppercase;
   letter-spacing: 0.04em; padding: 2px 8px; color: var(--text-faint);
-  border: 1px solid var(--border); background: var(--surface);
+  border: var(--border-width-default) solid var(--border); background: var(--surface);
 }
 
 /* ── TABS ── */
@@ -870,7 +870,7 @@ async function handleBuild(): Promise<void> {
   top: 48px;
   z-index: 50;
   background: var(--bg);
-  border-bottom: 1px solid var(--border);
+  border-bottom: var(--border-width-default) solid var(--border);
   margin-bottom: 28px;
 }
 
@@ -948,7 +948,7 @@ async function handleBuild(): Promise<void> {
   font-size: 11px;
   background: var(--surface2);
   padding: 2px 5px;
-  border: 1px solid var(--border2);
+  border: var(--border-width-default) solid var(--border2);
   color: var(--accent);
 }
 
@@ -962,7 +962,7 @@ async function handleBuild(): Promise<void> {
 
 .cpub-prose :deep(hr) {
   border: none;
-  border-top: 1px solid var(--border);
+  border-top: var(--border-width-default) solid var(--border);
   margin: 24px 0;
 }
 
@@ -995,7 +995,7 @@ async function handleBuild(): Promise<void> {
 .cpub-toc-nav {
   display: flex; flex-direction: column; gap: 0;
   position: relative;
-  border-left: 1px solid var(--border);
+  border-left: var(--border-width-default) solid var(--border);
 }
 .cpub-toc-item {
   display: flex; align-items: flex-start; text-align: left; background: none;
@@ -1022,7 +1022,7 @@ async function handleBuild(): Promise<void> {
 
 .cpub-sb-card {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   padding: 18px;
   box-shadow: var(--shadow-sm);
 }
@@ -1036,14 +1036,14 @@ async function handleBuild(): Promise<void> {
   color: var(--text-dim);
   margin-bottom: 14px;
   padding-bottom: 8px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: var(--border-width-default) solid var(--border);
 }
 
 /* Stats grid */
 .cpub-stats-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  border: 1px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   overflow: hidden;
 }
 
@@ -1051,8 +1051,8 @@ async function handleBuild(): Promise<void> {
   background: var(--surface2);
   padding: 14px;
   text-align: center;
-  border-right: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
+  border-right: var(--border-width-default) solid var(--border);
+  border-bottom: var(--border-width-default) solid var(--border);
 }
 
 .cpub-stat-cell:nth-child(2n) { border-right: none; }
@@ -1105,7 +1105,7 @@ async function handleBuild(): Promise<void> {
   align-items: center;
   gap: 10px;
   padding: 8px 0;
-  border-bottom: 1px solid var(--border2);
+  border-bottom: var(--border-width-default) solid var(--border2);
   font-size: 12px;
 }
 
@@ -1115,7 +1115,7 @@ async function handleBuild(): Promise<void> {
   width: 28px;
   height: 28px;
   background: var(--surface2);
-  border: 1px solid var(--border2);
+  border: var(--border-width-default) solid var(--border2);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1150,7 +1150,7 @@ async function handleBuild(): Promise<void> {
   font-size: 10px;
   font-family: var(--font-mono);
   padding: 4px 10px;
-  border: 1px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   color: var(--text-dim);
   background: var(--surface);
   cursor: pointer;
@@ -1169,7 +1169,7 @@ async function handleBuild(): Promise<void> {
   align-items: center;
   justify-content: space-between;
   padding: 7px 0;
-  border-bottom: 1px solid var(--border2);
+  border-bottom: var(--border-width-default) solid var(--border2);
   font-size: 12px;
 }
 
@@ -1188,7 +1188,7 @@ async function handleBuild(): Promise<void> {
   width: 44px;
   height: 44px;
   background: var(--purple-bg);
-  border: 1px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1225,7 +1225,7 @@ async function handleBuild(): Promise<void> {
 .cpub-btn {
   font-size: 12px;
   padding: 6px 14px;
-  border: 1px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   background: var(--surface);
   color: var(--text);
   cursor: pointer;
@@ -1245,7 +1245,7 @@ async function handleBuild(): Promise<void> {
   background: var(--surface3);
   color: var(--text-faint);
   padding: 1px 5px;
-  border: 1px solid var(--border2);
+  border: var(--border-width-default) solid var(--border2);
 }
 
 /* BOM products in sidebar */
@@ -1258,7 +1258,7 @@ async function handleBuild(): Promise<void> {
   margin-top: 12px;
   margin-bottom: 8px;
   padding-top: 8px;
-  border-top: 1px solid var(--border2);
+  border-top: var(--border-width-default) solid var(--border2);
 }
 
 .cpub-bom-product-row {
@@ -1298,7 +1298,7 @@ async function handleBuild(): Promise<void> {
   gap: 8px;
   margin-bottom: 16px;
   padding-bottom: 10px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: var(--border-width-default) solid var(--border);
 }
 
 .cpub-tab-section-title i { font-size: 12px; color: var(--text-faint); }
@@ -1324,12 +1324,12 @@ async function handleBuild(): Promise<void> {
   padding: 8px 12px;
   text-align: left;
   background: var(--surface2);
-  border-bottom: 1px solid var(--border);
+  border-bottom: var(--border-width-default) solid var(--border);
 }
 
 .cpub-parts-table td {
   padding: 10px 12px;
-  border-bottom: 1px solid var(--border2);
+  border-bottom: var(--border-width-default) solid var(--border2);
   color: var(--text-dim);
 }
 
@@ -1344,7 +1344,7 @@ async function handleBuild(): Promise<void> {
   display: flex; align-items: center; gap: 12px;
   padding: 10px 14px;
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   box-shadow: var(--shadow-sm);
 }
 
@@ -1365,7 +1365,7 @@ async function handleBuild(): Promise<void> {
 .cpub-build-steps { display: flex; flex-direction: column; gap: 16px; }
 
 .cpub-build-step {
-  border: 1px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   overflow: hidden;
   box-shadow: var(--shadow-sm);
 }
@@ -1402,7 +1402,7 @@ async function handleBuild(): Promise<void> {
   width: 100%;
   max-height: 400px;
   object-fit: cover;
-  border: 1px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   margin-top: 12px;
 }
 
@@ -1410,7 +1410,7 @@ async function handleBuild(): Promise<void> {
 .cpub-code-tab { display: flex; flex-direction: column; gap: 16px; }
 
 .cpub-code-snippet {
-  border: 1px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   overflow: hidden;
   box-shadow: var(--shadow-sm);
 }
@@ -1419,7 +1419,7 @@ async function handleBuild(): Promise<void> {
   display: flex; align-items: center; gap: 8px;
   padding: 8px 14px;
   background: var(--surface2);
-  border-bottom: 1px solid var(--border);
+  border-bottom: var(--border-width-default) solid var(--border);
 }
 
 .cpub-code-lang-label {
@@ -1457,14 +1457,14 @@ async function handleBuild(): Promise<void> {
   display: flex; align-items: center; gap: 12px;
   padding: 12px 14px;
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   box-shadow: var(--shadow-sm);
 }
 
 .cpub-file-icon {
   width: 32px; height: 32px;
   background: var(--surface2);
-  border: 1px solid var(--border2);
+  border: var(--border-width-default) solid var(--border2);
   display: flex; align-items: center; justify-content: center;
   font-size: 12px; color: var(--text-faint); flex-shrink: 0;
 }

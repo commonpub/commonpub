@@ -36,7 +36,7 @@ defineProps<{
 
 .cpub-product-card {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   border-radius: 12px;
   padding: 16px;
   display: flex;
@@ -55,7 +55,7 @@ defineProps<{
   width: 48px;
   height: 48px;
   background: var(--surface2);
-  border: 1px solid var(--border);
+  border: var(--border-width-default) solid var(--border);
   border-radius: 10px;
   display: flex;
   align-items: center;

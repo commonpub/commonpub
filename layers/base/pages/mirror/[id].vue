@@ -132,7 +132,7 @@ useSeoMeta({
 
 <style scoped>
 .cpub-fed-banner {
-  background: var(--accent-bg); border-bottom: 1px solid var(--accent-border);
+  background: var(--accent-bg); border-bottom: var(--border-width-default) solid var(--accent-border);
 }
 .cpub-fed-banner-inner {
   max-width: 1200px; margin: 0 auto; padding: 8px 24px;
@@ -161,7 +161,7 @@ useSeoMeta({
 .cpub-mirror-cover { width: 100%; max-height: 400px; object-fit: cover; margin-bottom: 20px; }
 .cpub-mirror-title { font-size: 2rem; font-weight: 800; line-height: 1.2; margin-bottom: 12px; }
 .cpub-mirror-desc { font-size: 1.0625rem; color: var(--text-dim); line-height: 1.6; margin-bottom: 16px; }
-.cpub-mirror-author { font-size: 0.875rem; color: var(--text-dim); margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border); display: flex; align-items: flex-start; gap: 12px; }
+.cpub-mirror-author { font-size: 0.875rem; color: var(--text-dim); margin-bottom: 24px; padding-bottom: 16px; border-bottom: var(--border-width-default) solid var(--border); display: flex; align-items: flex-start; gap: 12px; }
 .cpub-mirror-author-avatar { width: 40px; height: 40px; object-fit: cover; border: var(--border-width-default) solid var(--border); flex-shrink: 0; }
 .cpub-mirror-bio { font-size: 0.8125rem; color: var(--text-faint); line-height: 1.5; margin-top: 4px; }
 .cpub-mirror-bio :deep(a) { color: var(--accent); }
