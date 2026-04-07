@@ -99,8 +99,18 @@ layers/base/components/editors/
 - 1 new test file (35 tests)
 - 8 files updated (layer/explainer imports)
 
+### Post-audit fixes (same session)
+- MarkdownBlock: normalized props from `{ source: string }` to `Record<string, unknown>` → published @0.6.1
+- test-site: 8 files with broken imports fixed (gitignored, local only)
+- BlockInsertZone `drop` — confirmed working via Vue 3 fallthrough attrs (not a bug)
+
+### Playground added
+- `packages/editor/playground/` — Vite dev server at port 4201
+- Three views: Block Editor (full EditorShell + BlockCanvas), Components (12 block showcase), Data (live JSON)
+- Mock upload handler via `provide(UPLOAD_HANDLER_KEY, ...)` using FileReader data URLs
+- Run: `pnpm --filter='@commonpub/editor' playground`
+
 ## Next Steps
 
 - Session 112: Docs cleanup + content import expansion
 - Session 113: Explainer Sprint 4 integration
-- Add playground to editor package (matching explainer/playground/ pattern)
