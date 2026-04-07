@@ -300,6 +300,22 @@ export const federatedHubPostLikes = pgTable('federated_hub_post_likes', {
   unique('uq_fed_hub_post_likes_post_user').on(t.postId, t.userId),
 ]);
 
+/** Per-user join tracking for federated hubs.
+ * When a user clicks "Join" on a federated hub, a record is created here.
+ * The instance-level Follow is shared — this tracks which users are personally joined. */
+export const userFederatedHubFollows = pgTable('user_federated_hub_follows', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  federatedHubId: uuid('federated_hub_id').notNull().references(() => federatedHubs.id, { onDelete: 'cascade' }),
+  /** pending = waiting for instance-level Accept; joined = fully active */
+  status: varchar('status', { length: 16 }).default('pending').notNull().$type<'pending' | 'joined'>(),
+  joinedAt: timestamp('joined_at', { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  unique('uq_user_fed_hub_follow').on(t.userId, t.federatedHubId),
+  index('idx_user_fed_hub_follow_user').on(t.userId),
+  index('idx_user_fed_hub_follow_hub').on(t.federatedHubId),
+]);
+
 // --- Federated Hub Relations ---
 
 export const federatedHubsRelations = relations(federatedHubs, ({ one, many }) => ({
@@ -330,6 +346,11 @@ export const federatedHubPostsRelations = relations(federatedHubPosts, ({ one })
     fields: [federatedHubPosts.remoteActorId],
     references: [remoteActors.id],
   }),
+}));
+
+export const userFederatedHubFollowsRelations = relations(userFederatedHubFollows, ({ one }) => ({
+  user: one(users, { fields: [userFederatedHubFollows.userId], references: [users.id] }),
+  federatedHub: one(federatedHubs, { fields: [userFederatedHubFollows.federatedHubId], references: [federatedHubs.id] }),
 }));
 
 // --- Instance Health (Circuit Breaker) ---
@@ -372,3 +393,5 @@ export type FederatedHubPostRow = typeof federatedHubPosts.$inferSelect;
 export type NewFederatedHubPostRow = typeof federatedHubPosts.$inferInsert;
 export type FederatedHubMemberRow = typeof federatedHubMembers.$inferSelect;
 export type NewFederatedHubMemberRow = typeof federatedHubMembers.$inferInsert;
+export type UserFederatedHubFollowRow = typeof userFederatedHubFollows.$inferSelect;
+export type NewUserFederatedHubFollowRow = typeof userFederatedHubFollows.$inferInsert;

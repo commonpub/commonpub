@@ -5,10 +5,16 @@ import type { HubViewModel, HubPostViewModel, HubMemberViewModel, HubTabDef } fr
 const route = useRoute();
 const slug = computed(() => route.params.slug as string);
 
+function remoteDomain(uri: string | undefined): string | null {
+  if (!uri) return null;
+  try { return new URL(uri).hostname; } catch { return 'fediverse'; }
+}
+
+
 // --- Data fetching (unchanged) ---
 const { data: hub, pending: hubPending, error: hubError, refresh: refreshHub } = useLazyFetch<Serialized<HubDetail>>(() => `/api/hubs/${slug.value}`);
 const { data: posts, refresh: refreshPosts } = useLazyFetch<Serialized<PaginatedResponse<HubPostItem>>>(() => `/api/hubs/${slug.value}/posts`, { default: () => ({ items: [], total: 0 }) });
-const { data: membersData } = useLazyFetch<{ items: Serialized<HubMemberItem>[]; total: number }>(() => `/api/hubs/${slug.value}/members`);
+const { data: membersData } = useLazyFetch<{ items: Serialized<HubMemberItem>[]; total: number; remoteMembers?: Array<{ followerActorUri: string; displayName: string | null; preferredUsername: string | null; avatarUrl: string | null; instanceDomain: string; joinedAt: string }> }>(() => `/api/hubs/${slug.value}/members`);
 const { data: gallery, refresh: refreshGallery } = useLazyFetch<PaginatedResponse<Serialized<ContentListItem>>>(() => `/api/hubs/${slug.value}/gallery`, { default: () => ({ items: [], total: 0 }) });
 
 const hubType = computed(() => hub.value?.hubType ?? 'community');
@@ -55,8 +61,8 @@ const postsVM = computed<HubPostViewModel[]>(() => {
     type: p.type,
     content: p.content || '',
     author: {
-      name: p.author?.displayName || p.author?.username || 'Unknown',
-      handle: null,
+      name: p.author?.displayName || p.author?.username || p.remoteActorName || 'Unknown',
+      handle: p.author ? null : remoteDomain(p.remoteActorUri ?? undefined),
       avatarUrl: p.author?.avatarUrl ?? null,
     },
     createdAt: p.createdAt,
@@ -86,6 +92,17 @@ const membersVM = computed<HubMemberViewModel[]>(() => {
     avatarUrl: m.user.avatarUrl ?? null,
     profileLink: `/u/${m.user.username}`,
     joinedAt: m.joinedAt,
+  }));
+});
+
+const remoteMembersVM = computed(() => {
+  const raw = membersData.value?.remoteMembers;
+  if (!raw?.length) return [];
+  return raw.map(rm => ({
+    actorUri: rm.followerActorUri,
+    name: rm.displayName || rm.preferredUsername || 'Unknown',
+    instanceDomain: rm.instanceDomain,
+    avatarUrl: rm.avatarUrl,
   }));
 });
 
@@ -333,7 +350,7 @@ async function onRefreshGallery(): Promise<void> {
     </HubDiscussions>
 
     <!-- Members tab -->
-    <HubMembers v-else-if="activeTab === 'members'" :members="membersVM" />
+    <HubMembers v-else-if="activeTab === 'members'" :members="membersVM" :remote-members="remoteMembersVM" />
 
     <!-- Overview tab -->
     <template v-else-if="activeTab === 'overview'">

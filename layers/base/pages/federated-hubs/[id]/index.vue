@@ -202,8 +202,15 @@ async function handleDiscPost(): Promise<void> {
   }
 }
 
-// --- Instance mirror status (not user-level follow) ---
+// --- Instance mirror status ---
 const mirrorStatus = computed(() => hub.value?.followStatus ?? 'pending');
+
+// --- Per-user join state ---
+const { data: userFollowState, refresh: refreshFollowState } = useLazyFetch<{ joined: boolean; status: string | null }>(
+  () => `/api/federation/hub-follow-status?federatedHubId=${id}`,
+  { default: () => ({ joined: false, status: null }) },
+);
+const userJoined = computed(() => userFollowState.value?.joined ?? false);
 
 const remoteFollowRef = ref<{ show: () => void } | null>(null);
 const hubFollowing = ref(false);
@@ -219,8 +226,8 @@ async function handleJoinHub(): Promise<void> {
         method: 'POST',
         body: { federatedHubId: hub.value.id },
       });
-      toast.success(result.status === 'accepted' ? 'Now following this hub' : 'Follow request sent — it may take a moment to be accepted');
-      await refreshHub();
+      toast.success(result.status === 'joined' ? 'Now following this hub' : 'Follow request sent — it may take a moment to be accepted');
+      await Promise.all([refreshHub(), refreshFollowState()]);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to follow hub';
       toast.error(msg);
@@ -298,12 +305,12 @@ async function handlePostVote(postId: string): Promise<void> {
           <span v-if="mirrorStatus === 'accepted'" class="cpub-member-badge cpub-member-badge-mirrored">
             <i class="fa-solid fa-globe"></i> Mirrored
           </span>
-          <button v-if="hub?.actorUri && mirrorStatus !== 'accepted'" class="cpub-btn cpub-btn-primary cpub-btn-sm" :disabled="hubFollowing || hubFollowStatus === 'pending'" @click="handleJoinHub">
-            <i class="fa-solid fa-user-plus"></i> {{ hubFollowing ? 'Following...' : hubFollowStatus === 'pending' ? 'Follow pending...' : 'Join from your instance' }}
-          </button>
-          <span v-else-if="hub?.actorUri && mirrorStatus === 'accepted'" class="cpub-member-badge cpub-member-badge-joined">
+          <span v-if="userJoined" class="cpub-member-badge cpub-member-badge-joined">
             <i class="fa-solid fa-check"></i> Joined
           </span>
+          <button v-else-if="hub?.actorUri" class="cpub-btn cpub-btn-primary cpub-btn-sm" :disabled="hubFollowing || userFollowState?.status === 'pending'" @click="handleJoinHub">
+            <i class="fa-solid fa-user-plus"></i> {{ hubFollowing ? 'Following...' : userFollowState?.status === 'pending' ? 'Follow pending...' : 'Join Hub' }}
+          </button>
           <a v-if="hub?.url" :href="hub.url" target="_blank" rel="noopener noreferrer" class="cpub-btn cpub-btn-sm">
             <i class="fa-solid fa-arrow-up-right-from-square"></i> Visit original
           </a>

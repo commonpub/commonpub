@@ -241,7 +241,12 @@ export interface HubPostItem {
   replyCount: number;
   createdAt: Date;
   updatedAt: Date;
-  author: UserRef;
+  /** Local author (null for federated posts from remote members) */
+  author: UserRef | null;
+  /** Remote actor URI for federated posts */
+  remoteActorUri?: string | null;
+  /** Cached display name of remote actor */
+  remoteActorName?: string | null;
   sharedContent?: unknown;
 }
 
@@ -253,7 +258,12 @@ export interface HubReplyItem {
   createdAt: Date;
   updatedAt: Date;
   parentId: string | null;
-  author: UserRef;
+  /** Local author (null for federated replies) */
+  author: UserRef | null;
+  /** Remote actor URI for federated replies */
+  remoteActorUri?: string | null;
+  /** Cached display name of remote actor */
+  remoteActorName?: string | null;
   replies?: HubReplyItem[];
 }
 

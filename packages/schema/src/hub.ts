@@ -77,8 +77,8 @@ export const hubPosts = pgTable('hub_posts', {
   hubId: uuid('hub_id')
     .notNull()
     .references(() => hubs.id, { onDelete: 'cascade' }),
+  /** Nullable for federated posts where the author has no local user record */
   authorId: uuid('author_id')
-    .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
   type: postTypeEnum('type').default('text').notNull(),
   content: text('content').notNull(),
@@ -86,6 +86,10 @@ export const hubPosts = pgTable('hub_posts', {
   isLocked: boolean('is_locked').default(false).notNull(),
   likeCount: integer('like_count').default(0).notNull(),
   replyCount: integer('reply_count').default(0).notNull(),
+  /** Remote actor URI for federated posts (null for local posts) */
+  remoteActorUri: text('remote_actor_uri'),
+  /** Display name of remote actor (cached at insert time) */
+  remoteActorName: text('remote_actor_name'),
   lastEditedAt: timestamp('last_edited_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull().$onUpdateFn(() => new Date()),
@@ -99,13 +103,17 @@ export const hubPostReplies = pgTable('hub_post_replies', {
   postId: uuid('post_id')
     .notNull()
     .references(() => hubPosts.id, { onDelete: 'cascade' }),
+  /** Nullable for federated replies where the author has no local user record */
   authorId: uuid('author_id')
-    .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
   // Self-referencing FK handled via relations; DB-level constraint added via migration
   parentId: uuid('parent_id'),
   content: text('content').notNull(),
   likeCount: integer('like_count').default(0).notNull(),
+  /** Remote actor URI for federated replies (null for local replies) */
+  remoteActorUri: text('remote_actor_uri'),
+  /** Display name of remote actor (cached at insert time) */
+  remoteActorName: text('remote_actor_name'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull().$onUpdateFn(() => new Date()),
 }, (t) => [

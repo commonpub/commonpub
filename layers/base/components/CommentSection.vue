@@ -10,7 +10,9 @@ interface Comment {
   id: string;
   content: string;
   createdAt: string;
+  parentId: string | null;
   author: CommentAuthor | null;
+  replies?: Comment[];
 }
 
 const props = defineProps<{
@@ -64,8 +66,23 @@ async function loadMoreComments(): Promise<void> {
   }
 }
 
+// Reply state
 const newComment = ref('');
 const submitting = ref(false);
+const replyingTo = ref<{ id: string; username: string } | null>(null);
+
+function startReply(comment: Comment): void {
+  replyingTo.value = {
+    id: comment.id,
+    username: comment.author?.username ?? 'someone',
+  };
+  newComment.value = `@${comment.author?.username ?? 'someone'} `;
+}
+
+function cancelReply(): void {
+  replyingTo.value = null;
+  newComment.value = '';
+}
 
 async function submitComment(): Promise<void> {
   if (!newComment.value.trim()) return;
@@ -87,10 +104,12 @@ async function submitComment(): Promise<void> {
           targetType: props.targetType,
           targetId: props.targetId,
           content: newComment.value,
+          parentId: replyingTo.value?.id || undefined,
         },
       });
     }
     newComment.value = '';
+    replyingTo.value = null;
     if (props.federatedContentId) {
       replySent.value = true;
       setTimeout(() => { replySent.value = false; }, 5000);
@@ -121,10 +140,14 @@ async function deleteComment(id: string): Promise<void> {
 
     <!-- New comment form -->
     <div v-if="user" class="cpub-comment-form">
+      <div v-if="replyingTo" class="cpub-replying-to">
+        Replying to @{{ replyingTo.username }}
+        <button class="cpub-cancel-reply" @click="cancelReply"><i class="fa-solid fa-xmark"></i></button>
+      </div>
       <textarea
         v-model="newComment"
         class="cpub-textarea"
-        :placeholder="isFederated ? 'Write a reply (will be sent to the original instance)...' : 'Write a comment...'"
+        :placeholder="replyingTo ? `Reply to @${replyingTo.username}...` : isFederated ? 'Write a reply (will be sent to the original instance)...' : 'Write a comment...'"
         rows="3"
         aria-label="Write a comment"
       ></textarea>
@@ -133,7 +156,7 @@ async function deleteComment(id: string): Promise<void> {
         :disabled="!newComment.trim() || submitting"
         @click="submitComment"
       >
-        {{ submitting ? 'Posting...' : isFederated ? 'Send Reply' : 'Post Comment' }}
+        {{ submitting ? 'Posting...' : replyingTo ? 'Reply' : isFederated ? 'Send Reply' : 'Post Comment' }}
       </button>
     </div>
     <p v-else class="cpub-comment-login">
@@ -145,33 +168,72 @@ async function deleteComment(id: string): Promise<void> {
       <i class="fa-solid fa-check-circle"></i> Reply sent to the original instance.
     </div>
 
-    <!-- Comments list -->
+    <!-- Comments list (threaded) -->
     <div class="cpub-comment-list">
-      <div v-for="comment in (comments || [])" :key="comment.id" class="cpub-comment">
-        <div class="cpub-comment-avatar">
-          <img v-if="comment.author?.avatarUrl" :src="comment.author.avatarUrl" :alt="comment.author?.displayName || comment.author?.username" class="cpub-comment-avatar-img" />
-          <span v-else>{{ (comment.author?.displayName || comment.author?.username || 'U').charAt(0).toUpperCase() }}</span>
-        </div>
-        <div class="cpub-comment-body">
-          <div class="cpub-comment-header">
-            <NuxtLink :to="`/u/${comment.author?.username}`" class="cpub-comment-author">
-              {{ comment.author?.displayName || comment.author?.username }}
-            </NuxtLink>
-            <time class="cpub-comment-time">
-              {{ new Date(comment.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) }}
-            </time>
+      <template v-for="comment in (comments || [])" :key="comment.id">
+        <!-- Root comment -->
+        <div class="cpub-comment">
+          <div class="cpub-comment-avatar">
+            <img v-if="comment.author?.avatarUrl" :src="comment.author.avatarUrl" :alt="comment.author?.displayName || comment.author?.username" class="cpub-comment-avatar-img" />
+            <span v-else>{{ (comment.author?.displayName || comment.author?.username || 'U').charAt(0).toUpperCase() }}</span>
           </div>
-          <p class="cpub-comment-text"><MentionText :text="comment.content" /></p>
-          <button
-            v-if="user?.id === comment.author?.id"
-            class="cpub-comment-delete"
-            @click="deleteComment(comment.id)"
-            aria-label="Delete comment"
-          >
-            Delete
-          </button>
+          <div class="cpub-comment-body">
+            <div class="cpub-comment-header">
+              <NuxtLink :to="`/u/${comment.author?.username}`" class="cpub-comment-author">
+                {{ comment.author?.displayName || comment.author?.username }}
+              </NuxtLink>
+              <time class="cpub-comment-time">
+                {{ new Date(comment.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) }}
+              </time>
+            </div>
+            <p class="cpub-comment-text"><MentionText :text="comment.content" /></p>
+            <div class="cpub-comment-actions">
+              <button v-if="user && !isFederated" class="cpub-comment-action-btn" @click="startReply(comment)">
+                <i class="fa-solid fa-reply"></i> Reply
+              </button>
+              <button
+                v-if="user?.id === comment.author?.id"
+                class="cpub-comment-delete"
+                @click="deleteComment(comment.id)"
+                aria-label="Delete comment"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
+
+        <!-- Child replies (threaded) -->
+        <div v-if="comment.replies?.length" class="cpub-comment-thread">
+          <div v-for="child in comment.replies" :key="child.id" class="cpub-comment cpub-comment-nested">
+            <div class="cpub-comment-avatar">
+              <img v-if="child.author?.avatarUrl" :src="child.author.avatarUrl" :alt="child.author?.displayName || child.author?.username" class="cpub-comment-avatar-img" />
+              <span v-else>{{ (child.author?.displayName || child.author?.username || 'U').charAt(0).toUpperCase() }}</span>
+            </div>
+            <div class="cpub-comment-body">
+              <div class="cpub-comment-header">
+                <NuxtLink :to="`/u/${child.author?.username}`" class="cpub-comment-author">
+                  {{ child.author?.displayName || child.author?.username }}
+                </NuxtLink>
+                <time class="cpub-comment-time">
+                  {{ new Date(child.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) }}
+                </time>
+              </div>
+              <p class="cpub-comment-text"><MentionText :text="child.content" /></p>
+              <div class="cpub-comment-actions">
+                <button
+                  v-if="user?.id === child.author?.id"
+                  class="cpub-comment-delete"
+                  @click="deleteComment(child.id)"
+                  aria-label="Delete comment"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </template>
       <p v-if="!comments?.length" class="cpub-comments-empty">{{ isFederated ? 'No replies received yet.' : 'No comments yet. Be the first!' }}</p>
       <div v-if="hasMore" class="cpub-comments-more">
         <button class="cpub-btn cpub-btn-sm" :disabled="loadingMore" @click="loadMoreComments">
@@ -219,6 +281,29 @@ async function deleteComment(id: string): Promise<void> {
   width: 100%;
 }
 
+.cpub-replying-to {
+  width: 100%;
+  font-size: 12px;
+  color: var(--text-dim);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+}
+
+.cpub-cancel-reply {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: var(--text-faint);
+  cursor: pointer;
+  padding: 0 4px;
+  font-size: 12px;
+}
+.cpub-cancel-reply:hover { color: var(--text); }
+
 .cpub-comment-fed-notice {
   font-size: 12px;
   color: var(--text-dim);
@@ -248,6 +333,19 @@ async function deleteComment(id: string): Promise<void> {
 .cpub-comment {
   display: flex;
   gap: 10px;
+}
+
+.cpub-comment-thread {
+  padding-left: 38px;
+  border-left: 2px solid var(--border);
+  margin-left: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.cpub-comment-nested {
+  padding-left: 0;
 }
 
 .cpub-comment-avatar {
@@ -309,13 +407,32 @@ async function deleteComment(id: string): Promise<void> {
   line-height: 1.6;
 }
 
+.cpub-comment-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.cpub-comment-action-btn {
+  font-size: 10px;
+  color: var(--text-faint);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.cpub-comment-action-btn:hover { color: var(--accent); }
+
 .cpub-comment-delete {
   font-size: 10px;
   color: var(--text-faint);
   background: none;
   border: none;
   cursor: pointer;
-  margin-top: 4px;
   padding: 0;
 }
 

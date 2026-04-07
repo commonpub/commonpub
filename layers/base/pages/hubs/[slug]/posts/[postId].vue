@@ -122,6 +122,11 @@ async function saveEdit(): Promise<void> {
   }
 }
 
+function replyDisplayName(reply: { author?: { displayName?: string | null; username?: string } | null; remoteActorName?: string | null }): string {
+  if (reply.author) return reply.author.displayName || reply.author.username || 'U';
+  return reply.remoteActorName || 'Someone';
+}
+
 function formatDate(d: string | Date): string {
   return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
 }
@@ -171,9 +176,12 @@ useSeoMeta({
         <div class="cpub-post-author">
           <div class="cpub-post-avatar">
             <img v-if="post.author?.avatarUrl" :src="post.author.avatarUrl" :alt="post.author?.displayName || post.author?.username" class="cpub-post-avatar-img" />
-            <span v-else>{{ (post.author?.displayName || post.author?.username || 'U').charAt(0).toUpperCase() }}</span>
+            <span v-else>{{ (post.author?.displayName || post.author?.username || post.remoteActorName || 'U').charAt(0).toUpperCase() }}</span>
           </div>
-          <NuxtLink :to="`/u/${post.author?.username}`" class="cpub-post-author-name">{{ post.author?.displayName || post.author?.username }}</NuxtLink>
+          <NuxtLink v-if="post.author" :to="`/u/${post.author.username}`" class="cpub-post-author-name">{{ post.author.displayName || post.author.username }}</NuxtLink>
+          <span v-else class="cpub-post-author-name cpub-reply-remote">
+            <i class="fa-solid fa-globe" title="Federated post"></i> {{ post.remoteActorName || 'Someone' }}
+          </span>
           <span class="cpub-post-sep">&middot;</span>
           <time class="cpub-post-time">{{ formatDate(post.createdAt) }}</time>
         </div>
@@ -229,15 +237,18 @@ useSeoMeta({
         <div class="cpub-reply-author">
           <div class="cpub-reply-avatar">
             <img v-if="reply.author?.avatarUrl" :src="reply.author.avatarUrl" :alt="reply.author?.displayName || reply.author?.username" class="cpub-reply-avatar-img" />
-            <span v-else>{{ (reply.author?.displayName || reply.author?.username || 'U').charAt(0).toUpperCase() }}</span>
+            <span v-else>{{ (replyDisplayName(reply)).charAt(0).toUpperCase() }}</span>
           </div>
-          <NuxtLink :to="`/u/${reply.author?.username}`" class="cpub-reply-author-name">{{ reply.author?.displayName || reply.author?.username }}</NuxtLink>
+          <NuxtLink v-if="reply.author" :to="`/u/${reply.author.username}`" class="cpub-reply-author-name">{{ reply.author.displayName || reply.author.username }}</NuxtLink>
+          <span v-else class="cpub-reply-author-name cpub-reply-remote">
+            <i class="fa-solid fa-globe" title="Federated reply"></i> {{ reply.remoteActorName || 'Someone' }}
+          </span>
           <span class="cpub-post-sep">&middot;</span>
           <time class="cpub-post-time">{{ formatDate(reply.createdAt) }}</time>
         </div>
         <div class="cpub-reply-content"><MentionText :text="reply.content" /></div>
         <div class="cpub-reply-actions">
-          <button v-if="isAuthenticated && hub?.currentUserRole && !post.isLocked" class="cpub-reply-btn" @click="replyingTo = reply.id; replyContent = `@${reply.author?.username} `">
+          <button v-if="isAuthenticated && hub?.currentUserRole && !post.isLocked" class="cpub-reply-btn" @click="replyingTo = reply.id; replyContent = `@${reply.author?.username ?? reply.remoteActorName ?? ''} `">
             <i class="fa-solid fa-reply"></i> Reply
           </button>
         </div>
@@ -248,9 +259,12 @@ useSeoMeta({
             <div class="cpub-reply-author">
               <div class="cpub-reply-avatar">
                 <img v-if="child.author?.avatarUrl" :src="child.author.avatarUrl" :alt="child.author?.displayName || child.author?.username" class="cpub-reply-avatar-img" />
-                <span v-else>{{ (child.author?.displayName || child.author?.username || 'U').charAt(0).toUpperCase() }}</span>
+                <span v-else>{{ (replyDisplayName(child)).charAt(0).toUpperCase() }}</span>
               </div>
-              <NuxtLink :to="`/u/${child.author?.username}`" class="cpub-reply-author-name">{{ child.author?.displayName || child.author?.username }}</NuxtLink>
+              <NuxtLink v-if="child.author" :to="`/u/${child.author.username}`" class="cpub-reply-author-name">{{ child.author.displayName || child.author.username }}</NuxtLink>
+              <span v-else class="cpub-reply-author-name cpub-reply-remote">
+                <i class="fa-solid fa-globe" title="Federated reply"></i> {{ child.remoteActorName || 'Someone' }}
+              </span>
               <span class="cpub-post-sep">&middot;</span>
               <time class="cpub-post-time">{{ formatDate(child.createdAt) }}</time>
             </div>
@@ -403,6 +417,8 @@ useSeoMeta({
 
 .cpub-reply-author-name { font-weight: 500; color: var(--text-dim); text-decoration: none; }
 .cpub-reply-author-name:hover { color: var(--accent); }
+.cpub-reply-remote { display: inline-flex; align-items: center; gap: 4px; }
+.cpub-reply-remote > i { font-size: 10px; color: var(--accent); }
 
 .cpub-reply-content { font-size: 13px; line-height: 1.6; color: var(--text); }
 

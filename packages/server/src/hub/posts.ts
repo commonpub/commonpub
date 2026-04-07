@@ -143,7 +143,7 @@ export async function listPosts(
         author: USER_REF_SELECT,
       })
       .from(hubPosts)
-      .innerJoin(users, eq(hubPosts.authorId, users.id))
+      .leftJoin(users, eq(hubPosts.authorId, users.id))
       .where(where)
       .orderBy(desc(hubPosts.isPinned), desc(hubPosts.createdAt))
       .limit(limit)
@@ -163,7 +163,9 @@ export async function listPosts(
       replyCount: row.post.replyCount,
       createdAt: row.post.createdAt,
       updatedAt: row.post.updatedAt,
-      author: row.author,
+      author: row.author?.id ? row.author as HubPostItem['author'] : null,
+      remoteActorUri: row.post.remoteActorUri,
+      remoteActorName: row.post.remoteActorName,
     };
 
     if (row.post.type === 'share') {
@@ -217,7 +219,7 @@ export async function deletePost(
 
   if (post.length === 0 || post[0]!.hubId !== hubId) return false;
 
-  if (post[0]!.authorId !== userId) {
+  if (!post[0]!.authorId || post[0]!.authorId !== userId) {
     const member = await db
       .select({ role: hubMembers.role })
       .from(hubMembers)
@@ -350,7 +352,7 @@ export async function getPostById(
       author: USER_REF_SELECT,
     })
     .from(hubPosts)
-    .innerJoin(users, eq(hubPosts.authorId, users.id))
+    .leftJoin(users, eq(hubPosts.authorId, users.id))
     .where(eq(hubPosts.id, postId))
     .limit(1);
 
@@ -367,7 +369,9 @@ export async function getPostById(
     replyCount: row.post.replyCount,
     createdAt: row.post.createdAt,
     updatedAt: row.post.updatedAt,
-    author: row.author,
+    author: row.author?.id ? row.author as HubPostItem['author'] : null,
+    remoteActorUri: row.post.remoteActorUri,
+    remoteActorName: row.post.remoteActorName,
   };
 
   if (row.post.type === 'share') {
@@ -403,7 +407,7 @@ export async function likePost(
   // Notify post author (non-critical)
   try {
     const [post] = await db.select({ authorId: hubPosts.authorId, hubId: hubPosts.hubId }).from(hubPosts).where(eq(hubPosts.id, postId)).limit(1);
-    if (post && post.authorId !== userId) {
+    if (post?.authorId && post.authorId !== userId) {
       const [actor] = await db.select({ displayName: users.displayName, username: users.username }).from(users).where(eq(users.id, userId)).limit(1);
       const [hub] = await db.select({ slug: hubs.slug }).from(hubs).where(eq(hubs.id, post.hubId)).limit(1);
       const actorName = actor?.displayName || actor?.username || 'Someone';
@@ -514,7 +518,7 @@ export async function createReply(
   // Notify post author about reply (non-critical)
   try {
     const [postRow] = await db.select({ postAuthorId: hubPosts.authorId, hubId: hubPosts.hubId }).from(hubPosts).where(eq(hubPosts.id, input.postId)).limit(1);
-    if (postRow && postRow.postAuthorId !== authorId) {
+    if (postRow?.postAuthorId && postRow.postAuthorId !== authorId) {
       const [hub] = await db.select({ slug: hubs.slug }).from(hubs).where(eq(hubs.id, postRow.hubId)).limit(1);
       const actorName = author[0]?.displayName || author[0]?.username || 'Someone';
       await createNotification(db, {
@@ -529,7 +533,7 @@ export async function createReply(
     // Also notify parent reply author if this is a nested reply
     if (input.parentId) {
       const [parentReply] = await db.select({ parentAuthorId: hubPostReplies.authorId }).from(hubPostReplies).where(eq(hubPostReplies.id, input.parentId)).limit(1);
-      if (parentReply && parentReply.parentAuthorId !== authorId && parentReply.parentAuthorId !== postRow?.postAuthorId) {
+      if (parentReply?.parentAuthorId && parentReply.parentAuthorId !== authorId && parentReply.parentAuthorId !== postRow?.postAuthorId) {
         const [hub] = await db.select({ slug: hubs.slug }).from(hubs).where(eq(hubs.id, post[0]!.hubId)).limit(1);
         const actorName = author[0]?.displayName || author[0]?.username || 'Someone';
         await createNotification(db, {
@@ -581,7 +585,7 @@ export async function listReplies(
 
   const rootIds = rootRows.map((r) => r.id);
 
-  // Fetch root + children in one query
+  // Fetch root + children in one query (LEFT JOIN: authorId is nullable for federated replies)
   const rows = await db
     .select({
       reply: hubPostReplies,
@@ -593,7 +597,7 @@ export async function listReplies(
       },
     })
     .from(hubPostReplies)
-    .innerJoin(users, eq(hubPostReplies.authorId, users.id))
+    .leftJoin(users, eq(hubPostReplies.authorId, users.id))
     .where(
       and(
         eq(hubPostReplies.postId, postId),
@@ -617,7 +621,9 @@ export async function listReplies(
       createdAt: row.reply.createdAt,
       updatedAt: row.reply.updatedAt,
       parentId: row.reply.parentId,
-      author: row.author,
+      author: row.author?.id ? row.author as HubReplyItem['author'] : null,
+      remoteActorUri: row.reply.remoteActorUri,
+      remoteActorName: row.reply.remoteActorName,
       replies: [],
     };
     replyMap.set(item.id, item);
@@ -653,7 +659,7 @@ export async function deleteReply(
 
   if (reply.length === 0 || reply[0]!.postHubId !== hubId) return false;
 
-  if (reply[0]!.authorId !== userId) {
+  if (!reply[0]!.authorId || reply[0]!.authorId !== userId) {
     const member = await db
       .select({ role: hubMembers.role })
       .from(hubMembers)

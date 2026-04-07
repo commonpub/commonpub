@@ -694,7 +694,7 @@ export async function federateHubPostReply(
     .from(hubPosts)
     .where(eq(hubPosts.id, postId))
     .limit(1);
-  if (post && post.authorId !== userId) {
+  if (post?.authorId && post.authorId !== userId) {
     const [postAuthor] = await db.select({ username: users.username }).from(users).where(eq(users.id, post.authorId)).limit(1);
     if (postAuthor) {
       cc.push(`https://${domain}/users/${postAuthor.username}`);

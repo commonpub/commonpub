@@ -3,6 +3,8 @@ import { emitHook } from '../hooks.js';
 import {
   hubs,
   hubMembers,
+  hubFollowers,
+  remoteActors,
   users,
 } from '@commonpub/schema';
 import type {
@@ -197,6 +199,44 @@ export async function listMembers(
   }));
 
   return { items, total };
+}
+
+export interface RemoteHubMember {
+  followerActorUri: string;
+  preferredUsername: string | null;
+  displayName: string | null;
+  avatarUrl: string | null;
+  instanceDomain: string;
+  joinedAt: Date;
+}
+
+/** List remote (federated) followers of a hub from the hubFollowers table */
+export async function listRemoteMembers(
+  db: DB,
+  hubId: string,
+): Promise<RemoteHubMember[]> {
+  const rows = await db
+    .select({
+      followerActorUri: hubFollowers.followerActorUri,
+      preferredUsername: remoteActors.preferredUsername,
+      displayName: remoteActors.displayName,
+      avatarUrl: remoteActors.avatarUrl,
+      instanceDomain: remoteActors.instanceDomain,
+      joinedAt: hubFollowers.createdAt,
+    })
+    .from(hubFollowers)
+    .leftJoin(remoteActors, eq(hubFollowers.followerActorUri, remoteActors.actorUri))
+    .where(and(eq(hubFollowers.hubId, hubId), eq(hubFollowers.status, 'accepted')))
+    .orderBy(desc(hubFollowers.createdAt));
+
+  return rows.map(r => ({
+    followerActorUri: r.followerActorUri,
+    preferredUsername: r.preferredUsername,
+    displayName: r.displayName,
+    avatarUrl: r.avatarUrl,
+    instanceDomain: r.instanceDomain ?? 'unknown',
+    joinedAt: r.joinedAt,
+  }));
 }
 
 export async function changeRole(

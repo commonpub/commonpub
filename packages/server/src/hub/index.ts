@@ -13,6 +13,8 @@ export {
   leaveHub,
   getMember,
   listMembers,
+  listRemoteMembers,
+  type RemoteHubMember,
   changeRole,
   kickMember,
 } from './members.js';

@@ -126,6 +126,7 @@ export {
   leaveHub,
   getMember,
   listMembers,
+  listRemoteMembers,
   changeRole,
   kickMember,
   createPost,
@@ -153,6 +154,7 @@ export {
   unshareContent,
   listShares,
 } from './hub/index.js';
+export type { RemoteHubMember } from './hub/index.js';
 
 // Products
 export {

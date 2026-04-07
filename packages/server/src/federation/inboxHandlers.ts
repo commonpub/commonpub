@@ -13,6 +13,7 @@ import {
   remoteActors,
   users,
   hubPosts,
+  hubPostReplies,
 } from '@commonpub/schema';
 import {
   buildAcceptActivity,
@@ -509,6 +510,87 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
         }
       }
 
+      // Hub context: remote member posting to a local hub
+      if (opts.hubContext && objectType === 'Note') {
+        const inReplyTo = typeof object.inReplyTo === 'string' ? object.inReplyTo : null;
+
+        // Only create a hub post if this is NOT a reply (no inReplyTo).
+        // All replies (to local hub posts, local content, or remote content) fall through
+        // to the general inReplyTo handler below.
+        if (!inReplyTo) {
+          try {
+            const { hubs: hubsTable, hubFollowers: hubFollowersTable } = await import('@commonpub/schema');
+            const [hub] = await db.select({ id: hubsTable.id }).from(hubsTable)
+              .where(eq(hubsTable.slug, opts.hubContext.hubSlug)).limit(1);
+
+            if (hub) {
+              // Verify the actor is a known follower of this hub
+              const [follower] = await db.select({ id: hubFollowersTable.id })
+                .from(hubFollowersTable)
+                .where(and(
+                  eq(hubFollowersTable.hubId, hub.id),
+                  eq(hubFollowersTable.followerActorUri, actorUri),
+                  eq(hubFollowersTable.status, 'accepted'),
+                )).limit(1);
+
+              if (follower) {
+                // Idempotency: skip if we already processed this exact object
+                let isDuplicate = false;
+                if (objectUri) {
+                  const [dup] = await db.select({ id: activities.id }).from(activities)
+                    .where(and(
+                      eq(activities.type, 'Create'),
+                      eq(activities.actorUri, actorUri),
+                      eq(activities.objectUri, objectUri),
+                      eq(activities.direction, 'inbound'),
+                    )).limit(1);
+                  isDuplicate = !!dup;
+                }
+
+                if (!isDuplicate) {
+                  const rawContent = typeof object.content === 'string' ? sanitizeHtml(object.content) : '';
+                  if (rawContent) {
+                    const remoteUser = await resolveRemoteActorName(db, actorUri);
+                    const rawPostType = typeof (object as Record<string, unknown>)['cpub:postType'] === 'string'
+                      ? (object as Record<string, unknown>)['cpub:postType'] as string : 'text';
+                    // Validate against known post types — fall back to 'text' for unknown values
+                    const VALID_POST_TYPES = new Set(['text', 'link', 'share', 'poll', 'discussion', 'question', 'showcase', 'announcement']);
+                    const cpubPostType = VALID_POST_TYPES.has(rawPostType) ? rawPostType : 'text';
+
+                    await db.insert(hubPosts).values({
+                      hubId: hub.id,
+                      authorId: null,
+                      type: cpubPostType as 'text' | 'discussion' | 'question' | 'showcase' | 'announcement' | 'share',
+                      content: rawContent,
+                      remoteActorUri: actorUri,
+                      remoteActorName: remoteUser,
+                    });
+
+                    // Increment post count
+                    await db.update(hubsTable)
+                      .set({ postCount: sql`${hubsTable.postCount} + 1` })
+                      .where(eq(hubsTable.id, hub.id));
+                  }
+                }
+              }
+            }
+          } catch (err) {
+            console.warn('[inbox] Hub member post creation failed:', err instanceof Error ? err.message : err);
+          }
+
+          // Log and return — don't also store in federatedContent
+          await db.insert(activities).values({
+            type: 'Create',
+            actorUri,
+            objectUri: objectUri ?? null,
+            payload: { type: 'Create', actor: actorUri, object },
+            direction: 'inbound',
+            status: 'processed',
+          });
+          return;
+        }
+      }
+
       // Extract origin domain from the object URI or actor URI
       let originDomain: string;
       try {
@@ -620,18 +702,32 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
               const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
               if (UUID_RE.test(postId)) {
-                // Increment reply count on the local hub post
-                await db.update(hubPosts)
-                  .set({ replyCount: sql`${hubPosts.replyCount} + 1` })
-                  .where(eq(hubPosts.id, postId));
-
-                // Notify the post author about the federated reply
+                // Resolve remote actor name for display
                 const remoteUser = await resolveRemoteActorName(db, actorUri);
-                const [post] = await db.select({ authorId: hubPosts.authorId }).from(hubPosts).where(eq(hubPosts.id, postId)).limit(1);
-                if (post) {
-                  await notifyRemoteInteraction(db, post.authorId, 'comment', actorUri,
-                    'New hub reply', `${remoteUser} from the fediverse replied to your post`,
-                    `/hubs/${hubSlug}/posts/${postId}`);
+                const replyContent = typeof object.content === 'string' ? sanitizeHtml(object.content) : '';
+
+                // Store the federated reply with null authorId + remote actor info
+                if (replyContent) {
+                  await db.insert(hubPostReplies).values({
+                    postId,
+                    authorId: null,
+                    content: replyContent,
+                    remoteActorUri: actorUri,
+                    remoteActorName: remoteUser,
+                  });
+
+                  // Increment reply count on the local hub post
+                  await db.update(hubPosts)
+                    .set({ replyCount: sql`${hubPosts.replyCount} + 1` })
+                    .where(eq(hubPosts.id, postId));
+
+                  // Notify the post author about the federated reply
+                  const [post] = await db.select({ authorId: hubPosts.authorId }).from(hubPosts).where(eq(hubPosts.id, postId)).limit(1);
+                  if (post?.authorId) {
+                    await notifyRemoteInteraction(db, post.authorId, 'comment', actorUri,
+                      'New hub reply', `${remoteUser} from the fediverse replied to your post`,
+                      `/hubs/${hubSlug}/posts/${postId}`);
+                  }
                 }
               }
             } else {
@@ -915,11 +1011,13 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
                   .where(eq(hubPosts.id, post.id));
                 matched = true;
 
-                // Notify hub post author
-                const remoteUser = await resolveRemoteActorName(db, actorUri);
-                await notifyRemoteInteraction(db, post.authorId, 'like', actorUri,
-                  'New like', `${remoteUser} from the fediverse liked your hub post`,
-                  `/hubs/${segments[1]}/posts/${postId}`);
+                // Notify hub post author (skip for federated posts with no local author)
+                if (post.authorId) {
+                  const remoteUser = await resolveRemoteActorName(db, actorUri);
+                  await notifyRemoteInteraction(db, post.authorId, 'like', actorUri,
+                    'New like', `${remoteUser} from the fediverse liked your hub post`,
+                    `/hubs/${segments[1]}/posts/${postId}`);
+                }
               }
             }
           }

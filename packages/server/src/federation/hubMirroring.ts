@@ -7,6 +7,7 @@ import {
   activities,
   followRelationships,
   instanceMirrors,
+  userFederatedHubFollows,
 } from '@commonpub/schema';
 import { buildFollowActivity } from '@commonpub/protocol';
 import type {
@@ -332,6 +333,19 @@ export async function acceptHubFollow(
       eq(federatedHubs.status, 'pending'),
     ))
     .returning({ id: federatedHubs.id });
+
+  // Promote all pending per-user follows for this hub to 'joined'
+  if (result.length > 0) {
+    try {
+      await db
+        .update(userFederatedHubFollows)
+        .set({ status: 'joined' })
+        .where(and(
+          eq(userFederatedHubFollows.federatedHubId, result[0]!.id),
+          eq(userFederatedHubFollows.status, 'pending'),
+        ));
+    } catch { /* non-critical */ }
+  }
 
   return result.length > 0;
 }

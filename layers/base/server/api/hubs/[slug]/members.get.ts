@@ -1,5 +1,5 @@
-import { listMembers, getHubBySlug } from '@commonpub/server';
-import type { HubMemberItem } from '@commonpub/server';
+import { listMembers, listRemoteMembers, getHubBySlug } from '@commonpub/server';
+import type { HubMemberItem, RemoteHubMember } from '@commonpub/server';
 import { z } from 'zod';
 
 const membersQuerySchema = z.object({
@@ -7,8 +7,9 @@ const membersQuerySchema = z.object({
   offset: z.coerce.number().int().min(0).optional(),
 });
 
-export default defineEventHandler(async (event): Promise<{ items: HubMemberItem[]; total: number }> => {
+export default defineEventHandler(async (event): Promise<{ items: HubMemberItem[]; total: number; remoteMembers?: RemoteHubMember[] }> => {
   const db = useDB();
+  const config = useConfig();
   const { slug } = parseParams(event, { slug: 'string' });
   const query = parseQueryParams(event, membersQuerySchema);
   const community = await getHubBySlug(db, slug);
@@ -16,5 +17,13 @@ export default defineEventHandler(async (event): Promise<{ items: HubMemberItem[
     throw createError({ statusCode: 404, statusMessage: 'Community not found' });
   }
 
-  return listMembers(db, community.id, query);
+  const result = await listMembers(db, community.id, query);
+
+  // Include remote followers if hub federation is enabled
+  if (config.features.federation && config.features.federateHubs) {
+    const remoteMembers = await listRemoteMembers(db, community.id);
+    return { ...result, remoteMembers };
+  }
+
+  return result;
 });
