@@ -247,6 +247,8 @@ export interface HubPostItem {
   remoteActorUri?: string | null;
   /** Cached display name of remote actor */
   remoteActorName?: string | null;
+  /** Avatar URL resolved from remoteActors cache */
+  remoteActorAvatarUrl?: string | null;
   sharedContent?: unknown;
 }
 
@@ -264,6 +266,8 @@ export interface HubReplyItem {
   remoteActorUri?: string | null;
   /** Cached display name of remote actor */
   remoteActorName?: string | null;
+  /** Avatar URL resolved from remoteActors cache */
+  remoteActorAvatarUrl?: string | null;
   replies?: HubReplyItem[];
 }
 
@@ -337,6 +341,17 @@ export interface FederatedHubPostItem {
     instanceDomain: string;
   };
   source: 'federated';
+}
+
+export interface FederatedHubPostReplyItem {
+  id: string;
+  federatedHubPostId: string;
+  content: string;
+  createdAt: Date;
+  updatedAt: Date;
+  parentId: string | null;
+  author: UserRef;
+  replies?: FederatedHubPostReplyItem[];
 }
 
 // --- Social Types ---

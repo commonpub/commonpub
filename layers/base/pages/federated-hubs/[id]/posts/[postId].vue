@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { FederatedHubListItem, FederatedHubPostItem } from '@commonpub/server';
+import type { FederatedHubListItem, FederatedHubPostItem, FederatedHubPostReplyItem } from '@commonpub/server';
 
 const route = useRoute();
 const id = route.params.id as string;
@@ -10,6 +10,9 @@ const toast = useToast();
 
 const { data: hub } = useLazyFetch<FederatedHubListItem>(`/api/federated-hubs/${id}`);
 const { data: post, refresh: refreshPost } = useLazyFetch<FederatedHubPostItem>(`/api/federated-hubs/${id}/posts/${postId}`);
+const { data: repliesData, refresh: refreshReplies } = useLazyFetch<{ items: FederatedHubPostReplyItem[]; total: number }>(`/api/federated-hubs/${id}/posts/${postId}/replies`, { default: () => ({ items: [], total: 0 }) });
+
+const replies = computed(() => repliesData.value?.items ?? []);
 
 function formatDate(d: string | Date | null): string {
   if (!d) return '';
@@ -68,6 +71,7 @@ async function handleLike(): Promise<void> {
 // Reply
 const replyContent = ref('');
 const replying = ref(false);
+const replyingTo = ref<string | null>(null);
 
 async function handleReply(): Promise<void> {
   if (!replyContent.value.trim()) return;
@@ -75,11 +79,12 @@ async function handleReply(): Promise<void> {
   try {
     await $fetch('/api/federation/hub-post-reply' as string, {
       method: 'POST',
-      body: { federatedHubPostId: postId, content: replyContent.value },
+      body: { federatedHubPostId: postId, content: replyContent.value, parentId: replyingTo.value || undefined },
     });
     replyContent.value = '';
-    toast.success('Reply sent via federation');
-    await refreshPost();
+    replyingTo.value = null;
+    toast.success('Reply posted');
+    await Promise.all([refreshReplies(), refreshPost()]);
   } catch {
     toast.error('Failed to send reply');
   } finally {
@@ -162,12 +167,15 @@ useHead({
 
     <!-- Reply form -->
     <div v-if="isAuthenticated" class="cpub-reply-form">
+      <div v-if="replyingTo" class="cpub-replying-to">
+        Replying to a comment <button class="cpub-cancel-reply" @click="replyingTo = null"><i class="fa-solid fa-xmark"></i></button>
+      </div>
       <div class="cpub-reply-row">
         <input
           v-model="replyContent"
           class="cpub-reply-input"
           type="text"
-          placeholder="Write a reply (sent via federation)..."
+          placeholder="Write a reply..."
           aria-label="Write a reply"
           @keydown.enter="handleReply"
         />
@@ -176,18 +184,53 @@ useHead({
         </button>
       </div>
       <p class="cpub-fed-reply-hint">
-        <i class="fa-solid fa-globe"></i> Your reply will be sent to {{ hub?.originDomain }} via ActivityPub
+        <i class="fa-solid fa-globe"></i> Your reply will also be sent to {{ hub?.originDomain }} via ActivityPub
       </p>
     </div>
 
-    <!-- Reply thread info -->
+    <!-- Replies -->
     <div class="cpub-replies-section">
-      <div class="cpub-empty-state" style="padding: 32px 16px">
-        <p class="cpub-empty-state-title"><i class="fa-solid fa-globe"></i> Federated thread</p>
+      <h3 v-if="replies.length" class="cpub-replies-title">{{ repliesData?.total ?? 0 }} Local Replies</h3>
+      <div v-for="reply in replies" :key="reply.id" class="cpub-reply">
+        <div class="cpub-reply-author">
+          <div class="cpub-reply-avatar">
+            <img v-if="reply.author?.avatarUrl" :src="reply.author.avatarUrl" :alt="reply.author?.displayName || reply.author?.username" class="cpub-reply-avatar-img" />
+            <span v-else>{{ (reply.author?.displayName || reply.author?.username || 'U').charAt(0).toUpperCase() }}</span>
+          </div>
+          <NuxtLink v-if="reply.author" :to="`/u/${reply.author.username}`" class="cpub-reply-author-name">{{ reply.author.displayName || reply.author.username }}</NuxtLink>
+          <span class="cpub-post-sep">&middot;</span>
+          <time class="cpub-post-time">{{ formatDate(reply.createdAt) }}</time>
+        </div>
+        <div class="cpub-reply-content"><MentionText :text="reply.content" /></div>
+        <div class="cpub-reply-actions">
+          <button v-if="isAuthenticated" class="cpub-reply-btn" @click="replyingTo = reply.id; replyContent = `@${reply.author?.username ?? ''} `">
+            <i class="fa-solid fa-reply"></i> Reply
+          </button>
+        </div>
+
+        <!-- Nested replies -->
+        <div v-if="reply.replies?.length" class="cpub-nested-replies">
+          <div v-for="child in reply.replies" :key="child.id" class="cpub-reply cpub-reply-nested">
+            <div class="cpub-reply-author">
+              <div class="cpub-reply-avatar">
+                <img v-if="child.author?.avatarUrl" :src="child.author.avatarUrl" :alt="child.author?.displayName || child.author?.username" class="cpub-reply-avatar-img" />
+                <span v-else>{{ (child.author?.displayName || child.author?.username || 'U').charAt(0).toUpperCase() }}</span>
+              </div>
+              <NuxtLink v-if="child.author" :to="`/u/${child.author.username}`" class="cpub-reply-author-name">{{ child.author.displayName || child.author.username }}</NuxtLink>
+              <span class="cpub-post-sep">&middot;</span>
+              <time class="cpub-post-time">{{ formatDate(child.createdAt) }}</time>
+            </div>
+            <div class="cpub-reply-content"><MentionText :text="child.content" /></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Federation thread info -->
+      <div class="cpub-fed-thread-info" style="padding: 16px">
         <p class="cpub-empty-state-desc">
-          Replies sent here are delivered to <strong>{{ hub?.originDomain }}</strong> via ActivityPub.
+          <i class="fa-solid fa-globe"></i>
           <a v-if="post.objectUri" :href="post.objectUri" target="_blank" rel="noopener noreferrer" class="cpub-inline-link">
-            View full thread on origin <i class="fa-solid fa-arrow-up-right-from-square"></i>
+            View full thread on {{ hub?.originDomain }} <i class="fa-solid fa-arrow-up-right-from-square"></i>
           </a>
         </p>
       </div>
@@ -278,6 +321,11 @@ useHead({
 
 /* Reply form */
 .cpub-reply-form { margin-bottom: 16px; }
+.cpub-replying-to {
+  font-size: 11px; color: var(--text-dim); margin-bottom: 6px;
+  display: flex; align-items: center; gap: 6px;
+}
+.cpub-cancel-reply { background: none; border: none; cursor: pointer; color: var(--text-faint); font-size: 12px; }
 .cpub-reply-row { display: flex; gap: 8px; }
 .cpub-reply-input {
   flex: 1; padding: 8px 12px; background: var(--surface); border: var(--border-width-default) solid var(--border);
@@ -293,8 +341,38 @@ useHead({
 
 /* Replies section */
 .cpub-replies-section {}
-.cpub-empty-state { text-align: center; }
-.cpub-empty-state-title { font-size: 14px; font-weight: 600; color: var(--text-dim); margin-bottom: 4px; }
+.cpub-replies-title { font-size: 14px; font-weight: 600; margin-bottom: 12px; }
+
+.cpub-reply {
+  padding: 12px 16px; background: var(--surface); border: var(--border-width-default) solid var(--border);
+  margin-bottom: 8px;
+}
+.cpub-reply-nested { margin-left: 24px; border-color: var(--border2); }
+.cpub-nested-replies { margin-top: 8px; }
+
+.cpub-reply-author { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-faint); margin-bottom: 6px; }
+
+.cpub-reply-avatar {
+  width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;
+  background: var(--surface2); border: 1px solid var(--border);
+  font-family: var(--font-mono); font-size: 9px; font-weight: 700; color: var(--text-dim);
+  overflow: hidden;
+}
+.cpub-reply-avatar-img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
+
+.cpub-reply-author-name { font-weight: 500; color: var(--text-dim); text-decoration: none; }
+.cpub-reply-author-name:hover { color: var(--accent); }
+
+.cpub-reply-content { font-size: 13px; line-height: 1.6; color: var(--text); }
+
+.cpub-reply-actions { margin-top: 6px; }
+.cpub-reply-btn {
+  background: none; border: none; cursor: pointer; font-size: 11px;
+  color: var(--text-faint); padding: 2px 0;
+}
+.cpub-reply-btn:hover { color: var(--accent); }
+
+.cpub-fed-thread-info { text-align: center; margin-top: 8px; }
 .cpub-empty-state-desc { font-size: 12px; color: var(--text-faint); line-height: 1.5; }
 .cpub-inline-link { color: var(--accent); text-decoration: none; white-space: nowrap; }
 .cpub-inline-link:hover { text-decoration: underline; }

@@ -300,6 +300,25 @@ export const federatedHubPostLikes = pgTable('federated_hub_post_likes', {
   unique('uq_fed_hub_post_likes_post_user').on(t.postId, t.userId),
 ]);
 
+/** Local user replies to federated hub posts.
+ * When a user on the mirroring instance replies to a federated hub post,
+ * the reply is stored here locally AND sent via AP to the origin hub. */
+export const federatedHubPostReplies = pgTable('federated_hub_post_replies', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  /** FK to the federated hub post this reply is on */
+  federatedHubPostId: uuid('federated_hub_post_id').notNull().references(() => federatedHubPosts.id, { onDelete: 'cascade' }),
+  /** Local user who wrote the reply */
+  authorId: uuid('author_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  /** Self-referencing for threaded replies */
+  parentId: uuid('parent_id'),
+  content: text('content').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull().$onUpdateFn(() => new Date()),
+}, (t) => [
+  index('idx_fed_hub_post_replies_post').on(t.federatedHubPostId),
+  index('idx_fed_hub_post_replies_author').on(t.authorId),
+]);
+
 /** Per-user join tracking for federated hubs.
  * When a user clicks "Join" on a federated hub, a record is created here.
  * The instance-level Follow is shared — this tracks which users are personally joined. */
@@ -337,7 +356,7 @@ export const federatedHubMembersRelations = relations(federatedHubMembers, ({ on
   }),
 }));
 
-export const federatedHubPostsRelations = relations(federatedHubPosts, ({ one }) => ({
+export const federatedHubPostsRelations = relations(federatedHubPosts, ({ one, many }) => ({
   federatedHub: one(federatedHubs, {
     fields: [federatedHubPosts.federatedHubId],
     references: [federatedHubs.id],
@@ -346,6 +365,21 @@ export const federatedHubPostsRelations = relations(federatedHubPosts, ({ one })
     fields: [federatedHubPosts.remoteActorId],
     references: [remoteActors.id],
   }),
+  replies: many(federatedHubPostReplies),
+}));
+
+export const federatedHubPostRepliesRelations = relations(federatedHubPostReplies, ({ one, many }) => ({
+  federatedHubPost: one(federatedHubPosts, {
+    fields: [federatedHubPostReplies.federatedHubPostId],
+    references: [federatedHubPosts.id],
+  }),
+  author: one(users, { fields: [federatedHubPostReplies.authorId], references: [users.id] }),
+  parent: one(federatedHubPostReplies, {
+    fields: [federatedHubPostReplies.parentId],
+    references: [federatedHubPostReplies.id],
+    relationName: 'fedReplyThread',
+  }),
+  children: many(federatedHubPostReplies, { relationName: 'fedReplyThread' }),
 }));
 
 export const userFederatedHubFollowsRelations = relations(userFederatedHubFollows, ({ one }) => ({
@@ -395,3 +429,5 @@ export type FederatedHubMemberRow = typeof federatedHubMembers.$inferSelect;
 export type NewFederatedHubMemberRow = typeof federatedHubMembers.$inferInsert;
 export type UserFederatedHubFollowRow = typeof userFederatedHubFollows.$inferSelect;
 export type NewUserFederatedHubFollowRow = typeof userFederatedHubFollows.$inferInsert;
+export type FederatedHubPostReplyRow = typeof federatedHubPostReplies.$inferSelect;
+export type NewFederatedHubPostReplyRow = typeof federatedHubPostReplies.$inferInsert;

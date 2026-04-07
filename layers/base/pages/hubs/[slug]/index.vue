@@ -63,7 +63,7 @@ const postsVM = computed<HubPostViewModel[]>(() => {
     author: {
       name: p.author?.displayName || p.author?.username || p.remoteActorName || 'Unknown',
       handle: p.author ? null : remoteDomain(p.remoteActorUri ?? undefined),
-      avatarUrl: p.author?.avatarUrl ?? null,
+      avatarUrl: p.author?.avatarUrl ?? p.remoteActorAvatarUrl ?? null,
     },
     createdAt: p.createdAt,
     likeCount: p.likeCount ?? 0,

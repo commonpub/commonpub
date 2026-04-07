@@ -1,17 +1,19 @@
-import { sendPostToRemoteHub, getFederatedHubPost, getFederatedHub } from '@commonpub/server';
+import { sendPostToRemoteHub, getFederatedHubPost, getFederatedHub, createFederatedHubPostReply } from '@commonpub/server';
+import type { FederatedHubPostReplyItem } from '@commonpub/server';
 import { z } from 'zod';
 
 const replySchema = z.object({
   federatedHubPostId: z.string().uuid(),
   content: z.string().min(1).max(10000),
+  parentId: z.string().uuid().optional(),
 });
 
-export default defineEventHandler(async (event): Promise<{ success: boolean }> => {
+export default defineEventHandler(async (event): Promise<FederatedHubPostReplyItem> => {
   requireFeature('federation');
   const user = requireAuth(event);
   const db = useDB();
   const config = useConfig();
-  const { federatedHubPostId, content } = await parseBody(event, replySchema);
+  const { federatedHubPostId, content, parentId } = await parseBody(event, replySchema);
 
   const post = await getFederatedHubPost(db, federatedHubPostId);
   if (!post) {
@@ -23,7 +25,15 @@ export default defineEventHandler(async (event): Promise<{ success: boolean }> =
     throw createError({ statusCode: 404, statusMessage: 'Hub not found' });
   }
 
-  const success = await sendPostToRemoteHub(
+  // Store locally
+  const reply = await createFederatedHubPostReply(db, user.id, {
+    federatedHubPostId,
+    content,
+    parentId,
+  });
+
+  // Send via AP (fire-and-forget — don't block on remote delivery)
+  sendPostToRemoteHub(
     db,
     user.id,
     user.username,
@@ -32,11 +42,7 @@ export default defineEventHandler(async (event): Promise<{ success: boolean }> =
     config.instance.domain,
     'text',
     post.objectUri,
-  );
+  ).catch(() => { /* best-effort federation delivery */ });
 
-  if (!success) {
-    throw createError({ statusCode: 502, statusMessage: 'Could not reach remote hub' });
-  }
-
-  return { success };
+  return reply;
 });

@@ -9,6 +9,7 @@ import {
   hubShares,
   contentItems,
   users,
+  remoteActors,
 } from '@commonpub/schema';
 import type {
   DB,
@@ -141,9 +142,11 @@ export async function listPosts(
       .select({
         post: hubPosts,
         author: USER_REF_SELECT,
+        remoteAvatarUrl: remoteActors.avatarUrl,
       })
       .from(hubPosts)
       .leftJoin(users, eq(hubPosts.authorId, users.id))
+      .leftJoin(remoteActors, eq(hubPosts.remoteActorUri, remoteActors.actorUri))
       .where(where)
       .orderBy(desc(hubPosts.isPinned), desc(hubPosts.createdAt))
       .limit(limit)
@@ -166,6 +169,7 @@ export async function listPosts(
       author: row.author?.id ? row.author as HubPostItem['author'] : null,
       remoteActorUri: row.post.remoteActorUri,
       remoteActorName: row.post.remoteActorName,
+      remoteActorAvatarUrl: row.remoteAvatarUrl ?? null,
     };
 
     if (row.post.type === 'share') {
@@ -350,9 +354,11 @@ export async function getPostById(
     .select({
       post: hubPosts,
       author: USER_REF_SELECT,
+      remoteAvatarUrl: remoteActors.avatarUrl,
     })
     .from(hubPosts)
     .leftJoin(users, eq(hubPosts.authorId, users.id))
+    .leftJoin(remoteActors, eq(hubPosts.remoteActorUri, remoteActors.actorUri))
     .where(eq(hubPosts.id, postId))
     .limit(1);
 
@@ -372,6 +378,7 @@ export async function getPostById(
     author: row.author?.id ? row.author as HubPostItem['author'] : null,
     remoteActorUri: row.post.remoteActorUri,
     remoteActorName: row.post.remoteActorName,
+    remoteActorAvatarUrl: row.remoteAvatarUrl ?? null,
   };
 
   if (row.post.type === 'share') {
@@ -586,6 +593,7 @@ export async function listReplies(
   const rootIds = rootRows.map((r) => r.id);
 
   // Fetch root + children in one query (LEFT JOIN: authorId is nullable for federated replies)
+  // Also LEFT JOIN remoteActors to resolve avatars for federated replies
   const rows = await db
     .select({
       reply: hubPostReplies,
@@ -595,9 +603,11 @@ export async function listReplies(
         displayName: users.displayName,
         avatarUrl: users.avatarUrl,
       },
+      remoteAvatarUrl: remoteActors.avatarUrl,
     })
     .from(hubPostReplies)
     .leftJoin(users, eq(hubPostReplies.authorId, users.id))
+    .leftJoin(remoteActors, eq(hubPostReplies.remoteActorUri, remoteActors.actorUri))
     .where(
       and(
         eq(hubPostReplies.postId, postId),
@@ -624,6 +634,7 @@ export async function listReplies(
       author: row.author?.id ? row.author as HubReplyItem['author'] : null,
       remoteActorUri: row.reply.remoteActorUri,
       remoteActorName: row.reply.remoteActorName,
+      remoteActorAvatarUrl: row.remoteAvatarUrl ?? null,
       replies: [],
     };
     replyMap.set(item.id, item);

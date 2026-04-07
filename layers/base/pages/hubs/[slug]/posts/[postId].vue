@@ -127,6 +127,11 @@ function replyDisplayName(reply: { author?: { displayName?: string | null; usern
   return reply.remoteActorName || 'Someone';
 }
 
+function extractDomain(uri: string | null | undefined): string {
+  if (!uri) return '';
+  try { return new URL(uri).hostname; } catch { return ''; }
+}
+
 function formatDate(d: string | Date): string {
   return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
 }
@@ -176,11 +181,13 @@ useSeoMeta({
         <div class="cpub-post-author">
           <div class="cpub-post-avatar">
             <img v-if="post.author?.avatarUrl" :src="post.author.avatarUrl" :alt="post.author?.displayName || post.author?.username" class="cpub-post-avatar-img" />
+            <img v-else-if="post.remoteActorAvatarUrl" :src="post.remoteActorAvatarUrl" :alt="post.remoteActorName || 'Remote user'" class="cpub-post-avatar-img" />
             <span v-else>{{ (post.author?.displayName || post.author?.username || post.remoteActorName || 'U').charAt(0).toUpperCase() }}</span>
           </div>
           <NuxtLink v-if="post.author" :to="`/u/${post.author.username}`" class="cpub-post-author-name">{{ post.author.displayName || post.author.username }}</NuxtLink>
           <span v-else class="cpub-post-author-name cpub-reply-remote">
             <i class="fa-solid fa-globe" title="Federated post"></i> {{ post.remoteActorName || 'Someone' }}
+            <span v-if="extractDomain(post.remoteActorUri)" class="cpub-remote-domain">@{{ extractDomain(post.remoteActorUri) }}</span>
           </span>
           <span class="cpub-post-sep">&middot;</span>
           <time class="cpub-post-time">{{ formatDate(post.createdAt) }}</time>
@@ -237,11 +244,13 @@ useSeoMeta({
         <div class="cpub-reply-author">
           <div class="cpub-reply-avatar">
             <img v-if="reply.author?.avatarUrl" :src="reply.author.avatarUrl" :alt="reply.author?.displayName || reply.author?.username" class="cpub-reply-avatar-img" />
+            <img v-else-if="reply.remoteActorAvatarUrl" :src="reply.remoteActorAvatarUrl" :alt="reply.remoteActorName || 'Remote user'" class="cpub-reply-avatar-img" />
             <span v-else>{{ (replyDisplayName(reply)).charAt(0).toUpperCase() }}</span>
           </div>
           <NuxtLink v-if="reply.author" :to="`/u/${reply.author.username}`" class="cpub-reply-author-name">{{ reply.author.displayName || reply.author.username }}</NuxtLink>
           <span v-else class="cpub-reply-author-name cpub-reply-remote">
             <i class="fa-solid fa-globe" title="Federated reply"></i> {{ reply.remoteActorName || 'Someone' }}
+            <span v-if="extractDomain(reply.remoteActorUri)" class="cpub-remote-domain">@{{ extractDomain(reply.remoteActorUri) }}</span>
           </span>
           <span class="cpub-post-sep">&middot;</span>
           <time class="cpub-post-time">{{ formatDate(reply.createdAt) }}</time>
@@ -259,11 +268,13 @@ useSeoMeta({
             <div class="cpub-reply-author">
               <div class="cpub-reply-avatar">
                 <img v-if="child.author?.avatarUrl" :src="child.author.avatarUrl" :alt="child.author?.displayName || child.author?.username" class="cpub-reply-avatar-img" />
+                <img v-else-if="child.remoteActorAvatarUrl" :src="child.remoteActorAvatarUrl" :alt="child.remoteActorName || 'Remote user'" class="cpub-reply-avatar-img" />
                 <span v-else>{{ (replyDisplayName(child)).charAt(0).toUpperCase() }}</span>
               </div>
               <NuxtLink v-if="child.author" :to="`/u/${child.author.username}`" class="cpub-reply-author-name">{{ child.author.displayName || child.author.username }}</NuxtLink>
               <span v-else class="cpub-reply-author-name cpub-reply-remote">
                 <i class="fa-solid fa-globe" title="Federated reply"></i> {{ child.remoteActorName || 'Someone' }}
+                <span v-if="extractDomain(child.remoteActorUri)" class="cpub-remote-domain">@{{ extractDomain(child.remoteActorUri) }}</span>
               </span>
               <span class="cpub-post-sep">&middot;</span>
               <time class="cpub-post-time">{{ formatDate(child.createdAt) }}</time>
@@ -419,6 +430,7 @@ useSeoMeta({
 .cpub-reply-author-name:hover { color: var(--accent); }
 .cpub-reply-remote { display: inline-flex; align-items: center; gap: 4px; }
 .cpub-reply-remote > i { font-size: 10px; color: var(--accent); }
+.cpub-remote-domain { font-size: 10px; color: var(--text-faint); font-weight: 400; }
 
 .cpub-reply-content { font-size: 13px; line-height: 1.6; color: var(--text); }
 

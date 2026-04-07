@@ -1,9 +1,11 @@
-import { eq, and, desc, isNull, sql, ilike } from 'drizzle-orm';
+import { eq, and, desc, isNull, sql, ilike, or, inArray } from 'drizzle-orm';
 import {
   federatedHubs,
   federatedHubPosts,
+  federatedHubPostReplies,
   federatedHubMembers,
   remoteActors,
+  users,
   activities,
   followRelationships,
   instanceMirrors,
@@ -14,9 +16,10 @@ import type {
   DB,
   FederatedHubListItem,
   FederatedHubPostItem,
+  FederatedHubPostReplyItem,
   SharedContentMeta,
 } from '../types.js';
-import { normalizePagination, escapeLike } from '../query.js';
+import { normalizePagination, escapeLike, USER_REF_SELECT } from '../query.js';
 
 // --- Federated Hub CRUD ---
 
@@ -837,6 +840,143 @@ export async function unlikeFederatedHubPost(
     .returning({ id: federatedHubPosts.id });
 
   return result.length > 0;
+}
+
+// --- Federated Hub Post Replies (Local User Replies) ---
+
+/**
+ * Create a local user's reply to a federated hub post.
+ * Stores the reply locally and increments the localReplyCount.
+ */
+export async function createFederatedHubPostReply(
+  db: DB,
+  authorId: string,
+  input: { federatedHubPostId: string; content: string; parentId?: string },
+): Promise<FederatedHubPostReplyItem> {
+  const [reply] = await db
+    .insert(federatedHubPostReplies)
+    .values({
+      federatedHubPostId: input.federatedHubPostId,
+      authorId,
+      content: input.content,
+      parentId: input.parentId ?? null,
+    })
+    .returning();
+
+  // Increment localReplyCount
+  await db
+    .update(federatedHubPosts)
+    .set({ localReplyCount: sql`${federatedHubPosts.localReplyCount} + 1` })
+    .where(eq(federatedHubPosts.id, input.federatedHubPostId));
+
+  const [author] = await db
+    .select(USER_REF_SELECT)
+    .from(users)
+    .where(eq(users.id, authorId))
+    .limit(1);
+
+  if (!author) throw new Error('Author not found');
+
+  return {
+    id: reply!.id,
+    federatedHubPostId: reply!.federatedHubPostId,
+    content: reply!.content,
+    createdAt: reply!.createdAt,
+    updatedAt: reply!.updatedAt,
+    parentId: reply!.parentId,
+    author,
+  };
+}
+
+/**
+ * List local user replies to a federated hub post, with threaded structure.
+ */
+export async function listFederatedHubPostReplies(
+  db: DB,
+  federatedHubPostId: string,
+  opts: { limit?: number; offset?: number } = {},
+): Promise<{ items: FederatedHubPostReplyItem[]; total: number }> {
+  const { limit, offset } = normalizePagination(opts);
+
+  // Fetch root replies with pagination
+  const rootWhere = and(
+    eq(federatedHubPostReplies.federatedHubPostId, federatedHubPostId),
+    isNull(federatedHubPostReplies.parentId),
+  );
+
+  const [rootRows, countResult] = await Promise.all([
+    db
+      .select({ id: federatedHubPostReplies.id })
+      .from(federatedHubPostReplies)
+      .where(rootWhere)
+      .orderBy(desc(federatedHubPostReplies.createdAt))
+      .limit(limit)
+      .offset(offset),
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(federatedHubPostReplies)
+      .where(rootWhere),
+  ]);
+
+  const total = countResult[0]?.count ?? 0;
+  if (rootRows.length === 0) return { items: [], total };
+
+  const rootIds = rootRows.map((r) => r.id);
+
+  // Fetch root + children in one query
+  const rows = await db
+    .select({
+      reply: federatedHubPostReplies,
+      author: {
+        id: users.id,
+        username: users.username,
+        displayName: users.displayName,
+        avatarUrl: users.avatarUrl,
+      },
+    })
+    .from(federatedHubPostReplies)
+    .innerJoin(users, eq(federatedHubPostReplies.authorId, users.id))
+    .where(
+      and(
+        eq(federatedHubPostReplies.federatedHubPostId, federatedHubPostId),
+        or(
+          and(isNull(federatedHubPostReplies.parentId), inArray(federatedHubPostReplies.id, rootIds)),
+          inArray(federatedHubPostReplies.parentId, rootIds),
+        ),
+      ),
+    )
+    .orderBy(desc(federatedHubPostReplies.createdAt));
+
+  const replyMap = new Map<string, FederatedHubPostReplyItem>();
+  const rootReplies: FederatedHubPostReplyItem[] = [];
+
+  for (const row of rows) {
+    const item: FederatedHubPostReplyItem = {
+      id: row.reply.id,
+      federatedHubPostId: row.reply.federatedHubPostId,
+      content: row.reply.content,
+      createdAt: row.reply.createdAt,
+      updatedAt: row.reply.updatedAt,
+      parentId: row.reply.parentId,
+      author: row.author,
+      replies: [],
+    };
+    replyMap.set(item.id, item);
+  }
+
+  // Preserve root ordering
+  for (const rootId of rootIds) {
+    const item = replyMap.get(rootId);
+    if (item) rootReplies.push(item);
+  }
+
+  for (const item of replyMap.values()) {
+    if (item.parentId && replyMap.has(item.parentId)) {
+      replyMap.get(item.parentId)!.replies!.push(item);
+    }
+  }
+
+  return { items: rootReplies, total };
 }
 
 // --- Hub Outbox Backfill ---

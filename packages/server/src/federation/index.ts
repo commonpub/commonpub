@@ -110,6 +110,8 @@ export {
   deleteFederatedHubPost,
   likeFederatedHubPost,
   unlikeFederatedHubPost,
+  createFederatedHubPostReply,
+  listFederatedHubPostReplies,
   backfillHubFromOutbox,
   fetchRemoteHubFollowers,
   repairFederatedHubPostActors,
