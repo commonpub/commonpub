@@ -1,11 +1,3 @@
-/** Navigation item matching docsNav.structure JSONB shape */
-export interface NavItem {
-  id: string;
-  title: string;
-  pageId?: string;
-  children?: NavItem[];
-}
-
 /** Computed tree node from flat pages */
 export interface PageTreeNode {
   id: string;

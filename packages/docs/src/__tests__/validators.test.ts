@@ -5,8 +5,6 @@ import {
   createDocsVersionSchema,
   createDocsPageSchema,
   updateDocsPageSchema,
-  docsNavStructureSchema,
-  updateDocsNavSchema,
 } from '../validators';
 
 describe('createDocsSiteSchema', () => {
@@ -120,38 +118,3 @@ describe('updateDocsPageSchema', () => {
   });
 });
 
-describe('docsNavStructureSchema', () => {
-  it('should accept a flat nav structure', () => {
-    const result = docsNavStructureSchema.safeParse([
-      { id: '1', title: 'Intro', pageId: '550e8400-e29b-41d4-a716-446655440000' },
-      { id: '2', title: 'Guide', pageId: '660e8400-e29b-41d4-a716-446655440000' },
-    ]);
-    expect(result.success).toBe(true);
-  });
-
-  it('should accept nested nav structure', () => {
-    const result = docsNavStructureSchema.safeParse([
-      {
-        id: '1',
-        title: 'Getting Started',
-        children: [{ id: '1a', title: 'Install', pageId: '550e8400-e29b-41d4-a716-446655440000' }],
-      },
-    ]);
-    expect(result.success).toBe(true);
-  });
-
-  it('should accept empty array', () => {
-    const result = docsNavStructureSchema.safeParse([]);
-    expect(result.success).toBe(true);
-  });
-});
-
-describe('updateDocsNavSchema', () => {
-  it('should accept valid nav update', () => {
-    const result = updateDocsNavSchema.safeParse({
-      versionId: '550e8400-e29b-41d4-a716-446655440000',
-      structure: [{ id: '1', title: 'Page', pageId: '660e8400-e29b-41d4-a716-446655440000' }],
-    });
-    expect(result.success).toBe(true);
-  });
-});

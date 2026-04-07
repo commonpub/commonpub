@@ -27,12 +27,6 @@ describe('docs module', () => {
     expect(typeof mod.reorderDocsPages).toBe('function');
   });
 
-  it('should export nav functions', async () => {
-    const mod = await import('../docs');
-    expect(typeof mod.getDocsNav).toBe('function');
-    expect(typeof mod.updateDocsNav).toBe('function');
-  });
-
   it('should export search function', async () => {
     const mod = await import('../docs');
     expect(typeof mod.searchDocsPages).toBe('function');

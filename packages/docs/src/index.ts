@@ -1,6 +1,5 @@
 // Types
 export type {
-  NavItem,
   PageTreeNode,
   BreadcrumbItem,
   PrevNextLinks,
@@ -21,8 +20,6 @@ export {
   createDocsVersionSchema,
   createDocsPageSchema,
   updateDocsPageSchema,
-  docsNavStructureSchema,
-  updateDocsNavSchema,
 } from './validators.js';
 
 // Rendering
@@ -35,8 +32,6 @@ export {
   buildPageTree,
   buildBreadcrumbs,
   buildPagePath,
-  flattenNav,
-  getPrevNextLinks,
 } from './navigation/tree.js';
 
 // Versioning

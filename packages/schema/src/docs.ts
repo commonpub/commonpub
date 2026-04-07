@@ -49,26 +49,10 @@ export const docsPages = pgTable('docs_pages', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 }, (t) => [
+  unique('docs_pages_version_slug').on(t.versionId, t.slug),
   index('idx_docs_pages_version_id').on(t.versionId),
   index('idx_docs_pages_parent_id').on(t.parentId),
 ]);
-
-export const docsNav = pgTable('docs_nav', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  versionId: uuid('version_id')
-    .notNull()
-    .references(() => docsVersions.id, { onDelete: 'cascade' }),
-  structure: jsonb('structure').$type<
-    Array<{
-      id: string;
-      title: string;
-      pageId?: string;
-      children?: Array<{ id: string; title: string; pageId: string }>;
-    }>
-  >(),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-});
 
 // --- Relations ---
 
@@ -80,7 +64,6 @@ export const docsSitesRelations = relations(docsSites, ({ one, many }) => ({
 export const docsVersionsRelations = relations(docsVersions, ({ one, many }) => ({
   site: one(docsSites, { fields: [docsVersions.siteId], references: [docsSites.id] }),
   pages: many(docsPages),
-  nav: many(docsNav),
 }));
 
 export const docsPagesRelations = relations(docsPages, ({ one, many }) => ({
@@ -93,10 +76,6 @@ export const docsPagesRelations = relations(docsPages, ({ one, many }) => ({
   children: many(docsPages, { relationName: 'pageHierarchy' }),
 }));
 
-export const docsNavRelations = relations(docsNav, ({ one }) => ({
-  version: one(docsVersions, { fields: [docsNav.versionId], references: [docsVersions.id] }),
-}));
-
 // --- Inferred Types ---
 export type DocsSiteRow = typeof docsSites.$inferSelect;
 export type NewDocsSiteRow = typeof docsSites.$inferInsert;
@@ -104,5 +83,3 @@ export type DocsVersionRow = typeof docsVersions.$inferSelect;
 export type NewDocsVersionRow = typeof docsVersions.$inferInsert;
 export type DocsPageRow = typeof docsPages.$inferSelect;
 export type NewDocsPageRow = typeof docsPages.$inferInsert;
-export type DocsNavRow = typeof docsNav.$inferSelect;
-export type NewDocsNavRow = typeof docsNav.$inferInsert;

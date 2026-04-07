@@ -3,10 +3,8 @@ import {
   buildPageTree,
   buildBreadcrumbs,
   buildPagePath,
-  flattenNav,
-  getPrevNextLinks,
 } from '../navigation/tree';
-import type { DocsPage, NavItem } from '../types';
+import type { DocsPage } from '../types';
 
 const now = new Date();
 
@@ -120,71 +118,3 @@ describe('buildPagePath', () => {
   });
 });
 
-describe('flattenNav', () => {
-  const nav: NavItem[] = [
-    {
-      id: '1',
-      title: 'Getting Started',
-      pageId: 'p1',
-      children: [
-        { id: '1a', title: 'Installation', pageId: 'p2' },
-        { id: '1b', title: 'Configuration', pageId: 'p3' },
-      ],
-    },
-    { id: '2', title: 'API Reference', pageId: 'p4' },
-  ];
-
-  it('should flatten nav to ordered page IDs', () => {
-    const flat = flattenNav(nav);
-    expect(flat).toEqual(['p1', 'p2', 'p3', 'p4']);
-  });
-
-  it('should handle empty nav', () => {
-    expect(flattenNav([])).toEqual([]);
-  });
-
-  it('should skip items without pageId', () => {
-    const navWithGroup: NavItem[] = [
-      {
-        id: '1',
-        title: 'Group (no page)',
-        children: [{ id: '1a', title: 'Page', pageId: 'p1' }],
-      },
-    ];
-    expect(flattenNav(navWithGroup)).toEqual(['p1']);
-  });
-});
-
-describe('getPrevNextLinks', () => {
-  const nav: NavItem[] = [
-    { id: '1', title: 'Intro', pageId: 'p1' },
-    { id: '2', title: 'Install', pageId: 'p2' },
-    { id: '3', title: 'Config', pageId: 'p3' },
-  ];
-
-  it('should return prev and next for middle page', () => {
-    const result = getPrevNextLinks(nav, 'p2', pages);
-    expect(result.prev).not.toBeNull();
-    expect(result.prev!.title).toBe('Getting Started');
-    expect(result.next).not.toBeNull();
-    expect(result.next!.title).toBe('Configuration');
-  });
-
-  it('should return null prev for first page', () => {
-    const result = getPrevNextLinks(nav, 'p1', pages);
-    expect(result.prev).toBeNull();
-    expect(result.next).not.toBeNull();
-  });
-
-  it('should return null next for last page', () => {
-    const result = getPrevNextLinks(nav, 'p3', pages);
-    expect(result.prev).not.toBeNull();
-    expect(result.next).toBeNull();
-  });
-
-  it('should return nulls for unknown page', () => {
-    const result = getPrevNextLinks(nav, 'unknown', pages);
-    expect(result.prev).toBeNull();
-    expect(result.next).toBeNull();
-  });
-});

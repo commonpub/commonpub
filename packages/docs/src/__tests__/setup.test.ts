@@ -9,9 +9,6 @@ describe('barrel export', () => {
     expect(docs.createDocsVersionSchema).toBeDefined();
     expect(docs.createDocsPageSchema).toBeDefined();
     expect(docs.updateDocsPageSchema).toBeDefined();
-    expect(docs.docsNavStructureSchema).toBeDefined();
-    expect(docs.updateDocsNavSchema).toBeDefined();
-
     // Rendering
     expect(docs.parseFrontmatter).toBeInstanceOf(Function);
     expect(docs.extractHeadings).toBeInstanceOf(Function);
@@ -22,9 +19,6 @@ describe('barrel export', () => {
     expect(docs.buildPageTree).toBeInstanceOf(Function);
     expect(docs.buildBreadcrumbs).toBeInstanceOf(Function);
     expect(docs.buildPagePath).toBeInstanceOf(Function);
-    expect(docs.flattenNav).toBeInstanceOf(Function);
-    expect(docs.getPrevNextLinks).toBeInstanceOf(Function);
-
     // Versioning
     expect(docs.validateVersionString).toBeInstanceOf(Function);
     expect(docs.compareVersions).toBeInstanceOf(Function);

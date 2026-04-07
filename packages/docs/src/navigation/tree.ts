@@ -1,4 +1,4 @@
-import type { DocsPage, PageTreeNode, BreadcrumbItem, PrevNextLinks, NavItem } from '../types.js';
+import type { DocsPage, PageTreeNode, BreadcrumbItem } from '../types.js';
 
 /**
  * Build a tree of pages from a flat list, grouped by parentId and sorted by sortOrder.
@@ -63,52 +63,3 @@ export function buildPagePath(pages: DocsPage[], pageId: string): string {
   return segments.join('/');
 }
 
-/**
- * Flatten a NavItem tree into an ordered list of leaf page IDs (DFS).
- */
-export function flattenNav(items: NavItem[]): string[] {
-  const result: string[] = [];
-
-  function walk(nodes: NavItem[]): void {
-    for (const node of nodes) {
-      if (node.pageId) {
-        result.push(node.pageId);
-      }
-      if (node.children?.length) {
-        walk(node.children);
-      }
-    }
-  }
-
-  walk(items);
-  return result;
-}
-
-/**
- * Get previous and next page links relative to the current page in the nav structure.
- */
-export function getPrevNextLinks(
-  navStructure: NavItem[],
-  currentPageId: string,
-  pages: DocsPage[],
-): PrevNextLinks {
-  const ordered = flattenNav(navStructure);
-  const index = ordered.indexOf(currentPageId);
-
-  if (index === -1) {
-    return { prev: null, next: null };
-  }
-
-  const byId = new Map(pages.map((p) => [p.id, p]));
-
-  const prevId = index > 0 ? ordered[index - 1] : undefined;
-  const nextId = index < ordered.length - 1 ? ordered[index + 1] : undefined;
-
-  const prevPage = prevId ? byId.get(prevId) : undefined;
-  const nextPage = nextId ? byId.get(nextId) : undefined;
-
-  return {
-    prev: prevPage ? { title: prevPage.title, path: buildPagePath(pages, prevPage.id) } : null,
-    next: nextPage ? { title: nextPage.title, path: buildPagePath(pages, nextPage.id) } : null,
-  };
-}

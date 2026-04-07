@@ -37,24 +37,3 @@ export const createDocsPageSchema = z.object({
 });
 
 export const updateDocsPageSchema = createDocsPageSchema.omit({ versionId: true }).partial();
-
-const navItemSchema: z.ZodType<{
-  id: string;
-  title: string;
-  pageId?: string;
-  children?: Array<{ id: string; title: string; pageId?: string; children?: unknown[] }>;
-}> = z.lazy(() =>
-  z.object({
-    id: z.string(),
-    title: z.string(),
-    pageId: z.string().uuid().optional(),
-    children: z.array(navItemSchema).optional(),
-  }),
-);
-
-export const docsNavStructureSchema = z.array(navItemSchema);
-
-export const updateDocsNavSchema = z.object({
-  versionId: z.string().uuid(),
-  structure: docsNavStructureSchema,
-});

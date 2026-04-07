@@ -13,7 +13,5 @@ export {
   updateDocsPage,
   deleteDocsPage,
   reorderDocsPages,
-  getDocsNav,
-  updateDocsNav,
   searchDocsPages,
 } from './docs.js';

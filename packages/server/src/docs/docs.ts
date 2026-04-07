@@ -1,5 +1,5 @@
 import { eq, and, desc, sql, asc } from 'drizzle-orm';
-import { docsSites, docsVersions, docsPages, docsNav, users } from '@commonpub/schema';
+import { docsSites, docsVersions, docsPages, users } from '@commonpub/schema';
 import { buildPagePath } from '@commonpub/docs';
 import type { DocsPage } from '@commonpub/docs';
 import type { DB } from '../types.js';
@@ -463,70 +463,27 @@ export async function reorderDocsPages(
   return true;
 }
 
-// --- Nav ---
-
-export async function getDocsNav(
-  db: DB,
-  versionId: string,
-): Promise<typeof docsNav.$inferSelect | null> {
-  const rows = await db.select().from(docsNav).where(eq(docsNav.versionId, versionId)).limit(1);
-
-  return rows[0] ?? null;
-}
-
-export async function updateDocsNav(
-  db: DB,
-  versionId: string,
-  ownerId: string,
-  structure: unknown,
-): Promise<typeof docsNav.$inferSelect> {
-  const version = await db
-    .select({ version: docsVersions, site: docsSites })
-    .from(docsVersions)
-    .innerJoin(docsSites, eq(docsVersions.siteId, docsSites.id))
-    .where(and(eq(docsVersions.id, versionId), eq(docsSites.ownerId, ownerId)))
-    .limit(1);
-
-  if (version.length === 0) throw new Error('Not authorized');
-
-  const existing = await db
-    .select()
-    .from(docsNav)
-    .where(eq(docsNav.versionId, versionId))
-    .limit(1);
-
-  if (existing.length > 0) {
-    const [updated] = await db
-      .update(docsNav)
-      .set({
-        structure: structure as typeof docsNav.$inferInsert.structure,
-        updatedAt: new Date(),
-      })
-      .where(eq(docsNav.id, existing[0]!.id))
-      .returning();
-    return updated!;
-  }
-
-  const [created] = await db
-    .insert(docsNav)
-    .values({
-      versionId,
-      structure: structure as typeof docsNav.$inferInsert.structure,
-    })
-    .returning();
-
-  return created!;
-}
-
 // --- Search ---
+
+/** Postgres FTS language names — validated to prevent SQL injection in raw queries */
+const VALID_FTS_LANGUAGES = new Set([
+  'simple', 'arabic', 'armenian', 'basque', 'catalan', 'danish', 'dutch',
+  'english', 'finnish', 'french', 'german', 'greek', 'hindi', 'hungarian',
+  'indonesian', 'irish', 'italian', 'lithuanian', 'nepali', 'norwegian',
+  'portuguese', 'romanian', 'russian', 'serbian', 'spanish', 'swedish',
+  'tamil', 'turkish', 'yiddish',
+]);
 
 export async function searchDocsPages(
   db: DB,
   siteId: string,
   versionId: string,
   query: string,
+  language: string = 'english',
 ): Promise<Array<{ id: string; title: string; slug: string; snippet: string }>> {
   if (!query.trim()) return [];
+
+  const ftsLang = VALID_FTS_LANGUAGES.has(language) ? language : 'english';
 
   const tsQuery = query
     .trim()
@@ -539,12 +496,14 @@ export async function searchDocsPages(
 
   if (!tsQuery) return [];
 
+  const langLiteral = sql.raw(`'${ftsLang}'`);
+
   const results = await db
     .select({
       id: docsPages.id,
       title: docsPages.title,
       slug: docsPages.slug,
-      snippet: sql<string>`ts_headline('english', ${docsPages.content}, to_tsquery('english', ${tsQuery}), 'MaxWords=30, MinWords=15')`,
+      snippet: sql<string>`ts_headline(${langLiteral}, ${docsPages.content}, to_tsquery(${langLiteral}, ${tsQuery}), 'MaxWords=30, MinWords=15')`,
     })
     .from(docsPages)
     .innerJoin(docsVersions, eq(docsPages.versionId, docsVersions.id))
@@ -552,7 +511,7 @@ export async function searchDocsPages(
       and(
         eq(docsPages.versionId, versionId),
         eq(docsVersions.siteId, siteId),
-        sql`to_tsvector('english', ${docsPages.title} || ' ' || ${docsPages.content}) @@ to_tsquery('english', ${tsQuery})`,
+        sql`to_tsvector(${langLiteral}, ${docsPages.title} || ' ' || ${docsPages.content}) @@ to_tsquery(${langLiteral}, ${tsQuery})`,
       ),
     )
     .limit(20);
