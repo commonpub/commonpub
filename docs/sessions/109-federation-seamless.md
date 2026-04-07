@@ -124,7 +124,26 @@ Template required `reply.author` to be truthy, hiding the reply button for feder
 - `federateHubPost` and `federateHubPostUpdate` use INNER JOIN on users — won't fire for federated posts (correct for now, but blocks future Announce relay)
 - Anonymous visitors trigger a wasted `/api/federation/hub-follow-status` request on federated hub pages
 
+## Infrastructure Fixes (Post-Deploy)
+
+### drizzle-kit push was silently failing on both instances
+Root cause chain: (1) `zod` not installed in Docker runtime stage — schema dist imports it; (2) `| tee` pipe masked the exit code; (3) `type:module` missing from runtime package.json (ESM/CJS hang); (4) `DATABASE_URL` env var not set — config fell back to localhost; (5) on deveco.io, `npm install` wiped the manually-copied schema dist.
+
+Fixes applied across 3 commits:
+- `Dockerfile`: added `zod` to npm install, added `"type":"module"` to package.json
+- `deploy.yml`: replaced `| tee` with `> file` redirect for proper exit code detection
+- `apps/reference/drizzle.config.js`: added `NUXT_DATABASE_URL` fallback
+- `deveco-io/Dockerfile`: moved COPY of schema dist to AFTER npm install
+
+Both instances now show `✅ db:push succeeded` in deploy logs. Future schema changes will auto-apply.
+
+## Deployment Status
+
+**DEPLOYED** to both instances on 2026-04-07:
+- commonpub.io: code + schema + drizzle infra fix ✅
+- deveco.io: code + schema + drizzle infra fix ✅
+
 ## Next Steps
-- Publish updated packages and deploy
-- Test cross-instance flow between commonpub.io and deveco.io
+- Test cross-instance flow: create a hub on deveco.io, join from commonpub.io, post + reply across instances
 - Add Announce relay for remote member posts (so the host hub's followers see them)
+- Guard the `hub-follow-status` fetch behind `isAuthenticated` to avoid wasted requests for anonymous visitors
