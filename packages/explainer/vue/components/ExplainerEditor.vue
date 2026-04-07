@@ -4,7 +4,7 @@
  * No Nuxt dependencies. Works in any Vue 3 app.
  */
 import { ref, computed } from 'vue';
-import type { BlockEditor } from '../composables/useBlockEditor.js';
+import type { BlockEditor } from '@commonpub/editor/vue';
 import type { BlockTypeGroup } from './editor/EditorBlockLibrary.vue';
 import EditorBlockLibrary from './editor/EditorBlockLibrary.vue';
 import EditorSection from './editor/EditorSection.vue';

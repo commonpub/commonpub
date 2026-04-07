@@ -5,7 +5,7 @@
  * No TipTap dependency — uses native inputs for text editing.
  */
 import { ref, computed } from 'vue';
-import type { BlockEditor, EditorBlock } from '../../composables/useBlockEditor.js';
+import type { BlockEditor, EditorBlock } from '@commonpub/editor/vue';
 
 const props = defineProps<{ blockEditor: BlockEditor }>();
 

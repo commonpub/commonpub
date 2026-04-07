@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import type { BlockEditor } from '../../composables/useBlockEditor';
-import type { BlockTypeGroup } from './BlockPicker.vue';
+import { BlockCanvas, EditorBlocks, EditorSection, EditorTagInput, EditorVisibility, type BlockEditor, type BlockTypeGroup } from '@commonpub/editor/vue';
 
 const props = defineProps<{
   blockEditor: BlockEditor;
@@ -203,7 +202,7 @@ const blockCount = computed(() => props.blockEditor.blocks.value.length);
       </div>
 
       <div v-if="activeLeftTab === 'modules'" class="cpub-ee-left-body">
-        <EditorsEditorBlocks :groups="blockTypes" :block-editor="blockEditor" />
+        <EditorBlocks :groups="blockTypes" :block-editor="blockEditor" />
       </div>
 
       <div v-else-if="activeLeftTab === 'structure'" class="cpub-ee-left-body" style="padding: 10px;">
@@ -299,7 +298,7 @@ const blockCount = computed(() => props.blockEditor.blocks.value.length);
 
       <div class="cpub-ee-canvas">
         <div class="cpub-ee-canvas-inner" :style="{ maxWidth: canvasMaxWidth }">
-          <EditorsBlockCanvas :block-editor="blockEditor" :block-types="blockTypes" />
+          <BlockCanvas :block-editor="blockEditor" :block-types="blockTypes" />
         </div>
       </div>
 
@@ -318,7 +317,7 @@ const blockCount = computed(() => props.blockEditor.blocks.value.length);
     <!-- RIGHT: Properties -->
     <aside class="cpub-ee-right" :class="{ 'cpub-ee-sidebar-open': mobileRightOpen }" aria-label="Explainer properties">
       <div class="cpub-ee-right-body">
-        <EditorsEditorSection title="Content" icon="fa-sliders" :open="openSections.section" @toggle="toggleSection('section')">
+        <EditorSection title="Content" icon="fa-sliders" :open="openSections.section" @toggle="toggleSection('section')">
           <div class="cpub-ep-field">
             <label class="cpub-ep-flabel">Slug</label>
             <input class="cpub-ep-input" type="text" :value="metadata.slug" placeholder="auto-generated" @input="updateMeta('slug', ($event.target as HTMLInputElement).value)">
@@ -333,27 +332,27 @@ const blockCount = computed(() => props.blockEditor.blocks.value.length);
           </div>
           <div class="cpub-ep-field">
             <label class="cpub-ep-flabel">Tags</label>
-            <EditorsEditorTagInput :tags="tags" @update:tags="onTagsUpdate" />
+            <EditorTagInput :tags="tags" @update:tags="onTagsUpdate" />
           </div>
-        </EditorsEditorSection>
+        </EditorSection>
 
-        <EditorsEditorSection title="Difficulty" icon="fa-gauge-high" :open="openSections.difficulty" @toggle="toggleSection('difficulty')">
+        <EditorSection title="Difficulty" icon="fa-gauge-high" :open="openSections.difficulty" @toggle="toggleSection('difficulty')">
           <select class="cpub-ep-select" :value="metadata.difficulty || 'beginner'" @change="updateMeta('difficulty', ($event.target as HTMLSelectElement).value)">
             <option value="beginner">Beginner</option>
             <option value="intermediate">Intermediate</option>
             <option value="advanced">Advanced</option>
           </select>
-        </EditorsEditorSection>
+        </EditorSection>
 
-        <EditorsEditorSection title="Visibility" icon="fa-eye" :open="openSections.visibility" @toggle="toggleSection('visibility')">
-          <EditorsEditorVisibility :model-value="visibility" @update:model-value="onVisibilityUpdate" />
-        </EditorsEditorSection>
+        <EditorSection title="Visibility" icon="fa-eye" :open="openSections.visibility" @toggle="toggleSection('visibility')">
+          <EditorVisibility :model-value="visibility" @update:model-value="onVisibilityUpdate" />
+        </EditorSection>
 
-        <EditorsEditorSection title="Cover Image" icon="fa-image" :open="openSections.cover" @toggle="toggleSection('cover')">
+        <EditorSection title="Cover Image" icon="fa-image" :open="openSections.cover" @toggle="toggleSection('cover')">
           <div class="cpub-ep-field">
             <input class="cpub-ep-input" type="url" :value="metadata.coverImageUrl" placeholder="https://..." @input="updateMeta('coverImageUrl', ($event.target as HTMLInputElement).value)">
           </div>
-        </EditorsEditorSection>
+        </EditorSection>
       </div>
     </aside>
   </div>

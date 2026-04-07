@@ -3,7 +3,7 @@
  */
 import { markdownToBlockTuples } from '@commonpub/editor';
 import type { BlockTuple } from '@commonpub/editor';
-import type { BlockEditor } from './useBlockEditor';
+import type { BlockEditor } from '@commonpub/editor/vue';
 
 export function useMarkdownImport(blockEditor: BlockEditor) {
   const importing = ref(false);

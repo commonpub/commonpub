@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import type { BlockEditor } from '../../composables/useBlockEditor';
-import type { BlockTypeGroup } from './BlockPicker.vue';
+import { BlockCanvas, EditorBlocks, EditorSection, EditorTagInput, EditorVisibility, type BlockEditor, type BlockTypeGroup } from '@commonpub/editor/vue';
 
 const props = defineProps<{
   blockEditor: BlockEditor;
@@ -151,7 +150,7 @@ const blockCount = computed(() => props.blockEditor.blocks.value.length);
 
     <!-- LEFT: Block Library -->
     <aside class="cpub-pe-library" :class="{ 'cpub-pe-sidebar-open': mobileLeftOpen }" aria-label="Block library">
-      <EditorsEditorBlocks :groups="blockTypes" :block-editor="blockEditor" />
+      <EditorBlocks :groups="blockTypes" :block-editor="blockEditor" />
     </aside>
 
     <!-- CENTER: Canvas with toolbar -->
@@ -202,7 +201,7 @@ const blockCount = computed(() => props.blockEditor.blocks.value.length);
             placeholder="Project title..."
           />
 
-          <EditorsBlockCanvas :block-editor="blockEditor" :block-types="blockTypes" />
+          <BlockCanvas :block-editor="blockEditor" :block-types="blockTypes" />
         </div>
       </div>
 
@@ -217,7 +216,7 @@ const blockCount = computed(() => props.blockEditor.blocks.value.length);
     <!-- RIGHT: Settings Panel -->
     <aside class="cpub-pe-settings" :class="{ 'cpub-pe-sidebar-open': mobileRightOpen }" aria-label="Project settings">
       <div class="cpub-pe-settings-body">
-        <EditorsEditorSection title="Project Meta" icon="fa-sliders" :open="openSections.meta" @toggle="toggleSection('meta')">
+        <EditorSection title="Project Meta" icon="fa-sliders" :open="openSections.meta" @toggle="toggleSection('meta')">
           <div class="cpub-ep-field">
             <label class="cpub-ep-flabel">Slug</label>
             <input class="cpub-ep-input" type="text" :value="metadata.slug" placeholder="project-url-slug" @input="updateMeta('slug', ($event.target as HTMLInputElement).value)">
@@ -246,17 +245,17 @@ const blockCount = computed(() => props.blockEditor.blocks.value.length);
             <label class="cpub-ep-flabel">Description</label>
             <textarea class="cpub-ep-textarea" rows="3" :value="metadata.description as string" placeholder="Brief project description..." @input="updateMeta('description', ($event.target as HTMLTextAreaElement).value)" />
           </div>
-        </EditorsEditorSection>
+        </EditorSection>
 
-        <EditorsEditorSection title="Tags" icon="fa-tag" :open="openSections.tags" @toggle="toggleSection('tags')">
-          <EditorsEditorTagInput :tags="tags" @update:tags="onTagsUpdate" />
-        </EditorsEditorSection>
+        <EditorSection title="Tags" icon="fa-tag" :open="openSections.tags" @toggle="toggleSection('tags')">
+          <EditorTagInput :tags="tags" @update:tags="onTagsUpdate" />
+        </EditorSection>
 
-        <EditorsEditorSection title="Visibility" icon="fa-eye" :open="openSections.visibility" @toggle="toggleSection('visibility')">
-          <EditorsEditorVisibility :model-value="visibility" @update:model-value="onVisibilityUpdate" />
-        </EditorsEditorSection>
+        <EditorSection title="Visibility" icon="fa-eye" :open="openSections.visibility" @toggle="toggleSection('visibility')">
+          <EditorVisibility :model-value="visibility" @update:model-value="onVisibilityUpdate" />
+        </EditorSection>
 
-        <EditorsEditorSection title="Cover Image" icon="fa-image" :open="openSections.cover" @toggle="toggleSection('cover')">
+        <EditorSection title="Cover Image" icon="fa-image" :open="openSections.cover" @toggle="toggleSection('cover')">
           <div class="cpub-pe-cover" :class="{ 'has-image': !!coverImageUrl }">
             <template v-if="coverImageUrl">
               <img :src="coverImageUrl" alt="Cover image" class="cpub-pe-cover-img" />
@@ -282,17 +281,17 @@ const blockCount = computed(() => props.blockEditor.blocks.value.length);
               </div>
             </template>
           </div>
-        </EditorsEditorSection>
+        </EditorSection>
 
-        <EditorsEditorSection title="SEO" icon="fa-magnifying-glass" :open="openSections.seo" @toggle="toggleSection('seo')">
+        <EditorSection title="SEO" icon="fa-magnifying-glass" :open="openSections.seo" @toggle="toggleSection('seo')">
           <div class="cpub-pe-field">
             <label class="cpub-pe-flabel">Meta Description</label>
             <textarea class="cpub-pe-textarea" rows="3" :value="metadata.seoDescription as string" placeholder="Search engine description (recommended 50-160 chars)" @input="updateMeta('seoDescription', ($event.target as HTMLTextAreaElement).value)" />
             <span class="cpub-pe-hint">{{ ((metadata.seoDescription as string) || '').length }}/160</span>
           </div>
-        </EditorsEditorSection>
+        </EditorSection>
 
-        <EditorsEditorSection title="Checklist" icon="fa-circle-check" :open="openSections.checklist" @toggle="toggleSection('checklist')">
+        <EditorSection title="Checklist" icon="fa-circle-check" :open="openSections.checklist" @toggle="toggleSection('checklist')">
           <div class="cpub-pe-checklist">
             <div v-for="item in checklist" :key="item.label" class="cpub-pe-check-item" :class="{ pass: item.pass }">
               <i :class="item.pass ? 'fa-regular fa-square-check' : 'fa-regular fa-square'" :style="{ color: item.pass ? 'var(--green)' : 'var(--text-faint)' }"></i>
@@ -302,7 +301,7 @@ const blockCount = computed(() => props.blockEditor.blocks.value.length);
           <div class="cpub-pe-checklist-summary">
             {{ checklistDone }}/{{ checklist.length }} complete
           </div>
-        </EditorsEditorSection>
+        </EditorSection>
       </div>
     </aside>
   </div>

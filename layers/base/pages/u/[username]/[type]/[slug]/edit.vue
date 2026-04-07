@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { Component } from 'vue';
 import type { BlockTuple } from '@commonpub/editor';
+import { BlockCanvas, useBlockEditor } from '@commonpub/editor/vue';
 import { isExplainerDocument, createEmptyDocument } from '@commonpub/explainer';
 import type { ExplainerDocument } from '@commonpub/explainer';
 import { ExplainerSectionEditor } from '@commonpub/explainer/vue';
@@ -434,7 +435,7 @@ async function handleUrlImport(result: ImportedContent): Promise<void> {
     <!-- Write mode — fallback generic editor -->
     <div v-else-if="mode === 'write'" class="cpub-editor-shell">
       <div class="cpub-editor-canvas">
-        <EditorsBlockCanvas :block-editor="blockEditor" :block-types="[]" />
+        <BlockCanvas :block-editor="blockEditor" :block-types="[]" />
       </div>
     </div>
 

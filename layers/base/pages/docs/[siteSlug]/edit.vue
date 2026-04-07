@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { BlockTuple } from '@commonpub/editor';
-import type { BlockTypeGroup } from '../../../components/editors/BlockPicker.vue';
+import { BlockCanvas, EditorShell, useBlockEditor, type BlockTypeGroup } from '@commonpub/editor/vue';
 import type { PageTreeItem } from '../../../components/editors/DocsPageTree.vue';
 
 definePageMeta({ layout: false, middleware: 'auth' });
@@ -489,7 +489,7 @@ async function createVersion(): Promise<void> {
     </div>
 
     <!-- 3-panel editor -->
-    <EditorsEditorShell :show-left-sidebar="true" :show-right-sidebar="!!selectedPageId">
+    <EditorShell :show-left-sidebar="true" :show-right-sidebar="!!selectedPageId">
       <!-- LEFT: Page tree -->
       <template #left>
         <div class="cpub-docs-left-header">
@@ -543,7 +543,7 @@ async function createVersion(): Promise<void> {
           </div>
 
           <!-- Block canvas -->
-          <EditorsBlockCanvas
+          <BlockCanvas
             :block-editor="blockEditor"
             :block-types="blockTypes"
           />
@@ -649,7 +649,7 @@ async function createVersion(): Promise<void> {
           </span>
         </span>
       </template>
-    </EditorsEditorShell>
+    </EditorShell>
 
     <!-- Markdown import dialog -->
     <EditorsMarkdownImportDialog

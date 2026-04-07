@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import type { BlockEditor } from '../../composables/useBlockEditor.js';
+import type { BlockEditor } from '@commonpub/editor/vue';
 
 export interface BlockDef {
   type: string;

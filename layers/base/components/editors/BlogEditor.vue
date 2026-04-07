@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import type { BlockEditor } from '../../composables/useBlockEditor';
-import type { BlockTypeGroup } from './BlockPicker.vue';
+import { BlockCanvas, EditorBlocks, EditorSection, EditorTagInput, EditorVisibility, type BlockEditor, type BlockTypeGroup } from '@commonpub/editor/vue';
 
 const props = defineProps<{
   blockEditor: BlockEditor;
@@ -149,7 +148,7 @@ const canvasMaxWidth = computed(() => {
 
     <!-- LEFT: Block Library -->
     <aside class="cpub-be-library" :class="{ 'cpub-be-sidebar-open': mobileLeftOpen }" aria-label="Block library">
-      <EditorsEditorBlocks :groups="blockTypes" :block-editor="blockEditor" />
+      <EditorBlocks :groups="blockTypes" :block-editor="blockEditor" />
     </aside>
 
     <!-- CENTER: Canvas with toolbar, cover, title, subtitle, byline, blocks -->
@@ -231,7 +230,7 @@ const canvasMaxWidth = computed(() => {
         </div>
 
         <!-- Block editor canvas -->
-        <EditorsBlockCanvas :block-editor="blockEditor" :block-types="blockTypes" />
+        <BlockCanvas :block-editor="blockEditor" :block-types="blockTypes" />
       </div>
 
       <!-- Word count bar -->
@@ -247,7 +246,7 @@ const canvasMaxWidth = computed(() => {
     <aside class="cpub-be-right" :class="{ 'cpub-be-sidebar-open': mobileRightOpen }" aria-label="Blog properties">
       <div class="cpub-be-right-body">
         <!-- Meta -->
-        <EditorsEditorSection title="Meta" icon="fa-tag" :open="openSections.meta" @toggle="toggleSection('meta')">
+        <EditorSection title="Meta" icon="fa-tag" :open="openSections.meta" @toggle="toggleSection('meta')">
           <div class="cpub-ep-field">
             <label class="cpub-ep-flabel">Slug</label>
             <input class="cpub-ep-input cpub-ep-input-mono" type="text" :value="metadata.slug" placeholder="auto-generated" @input="updateMeta('slug', ($event.target as HTMLInputElement).value)">
@@ -266,21 +265,21 @@ const canvasMaxWidth = computed(() => {
           </div>
           <div class="cpub-ep-field">
             <label class="cpub-ep-flabel">Tags</label>
-            <EditorsEditorTagInput :tags="tags" @update:tags="onTagsUpdate" />
+            <EditorTagInput :tags="tags" @update:tags="onTagsUpdate" />
           </div>
-        </EditorsEditorSection>
+        </EditorSection>
 
         <!-- Excerpt / Description -->
-        <EditorsEditorSection title="Excerpt" icon="fa-align-left" :open="openSections.excerpt" @toggle="toggleSection('excerpt')">
+        <EditorSection title="Excerpt" icon="fa-align-left" :open="openSections.excerpt" @toggle="toggleSection('excerpt')">
           <div class="cpub-ep-field">
             <label class="cpub-ep-flabel">Custom Excerpt</label>
             <textarea class="cpub-ep-textarea" rows="3" :value="(metadata.description as string) || ''" placeholder="Short description shown in feed previews..." @input="updateMeta('description', ($event.target as HTMLTextAreaElement).value)" />
             <span class="cpub-ep-hint cpub-ep-hint-right">{{ ((metadata.description as string) || '').length }} / 300</span>
           </div>
-        </EditorsEditorSection>
+        </EditorSection>
 
         <!-- SEO Preview -->
-        <EditorsEditorSection title="SEO Preview" icon="fa-brands fa-google" :open="openSections.seo" @toggle="toggleSection('seo')">
+        <EditorSection title="SEO Preview" icon="fa-brands fa-google" :open="openSections.seo" @toggle="toggleSection('seo')">
           <div class="cpub-be-seo-card">
             <div class="cpub-be-seo-url">
               <span class="cpub-be-seo-favicon">C</span>
@@ -294,13 +293,13 @@ const canvasMaxWidth = computed(() => {
             <textarea class="cpub-ep-textarea" rows="3" :value="(metadata.seoDescription as string) || ''" placeholder="Search engine description..." @input="updateMeta('seoDescription', ($event.target as HTMLTextAreaElement).value)" />
             <span class="cpub-ep-hint cpub-ep-hint-right">{{ ((metadata.seoDescription as string) || '').length }}/160</span>
           </div>
-        </EditorsEditorSection>
+        </EditorSection>
 
         <!-- Publishing -->
-        <EditorsEditorSection title="Publishing" icon="fa-globe" :open="openSections.publishing" @toggle="toggleSection('publishing')">
+        <EditorSection title="Publishing" icon="fa-globe" :open="openSections.publishing" @toggle="toggleSection('publishing')">
           <div class="cpub-ep-field">
             <label class="cpub-ep-flabel">Visibility</label>
-            <EditorsEditorVisibility :model-value="(metadata.visibility as string) || 'public'" @update:model-value="(v: string) => updateMeta('visibility', v)" />
+            <EditorVisibility :model-value="(metadata.visibility as string) || 'public'" @update:model-value="(v: string) => updateMeta('visibility', v)" />
           </div>
           <div class="cpub-ep-field">
             <label class="cpub-be-schedule-row">
@@ -319,10 +318,10 @@ const canvasMaxWidth = computed(() => {
             <label class="cpub-ep-flabel">Series <span class="cpub-ep-optional">(optional)</span></label>
             <input class="cpub-ep-input" type="text" :value="metadata.series" placeholder="e.g. Home Lab Chronicles" @input="updateMeta('series', ($event.target as HTMLInputElement).value)">
           </div>
-        </EditorsEditorSection>
+        </EditorSection>
 
         <!-- Author -->
-        <EditorsEditorSection title="Author" icon="fa-user" :open="openSections.author" @toggle="toggleSection('author')">
+        <EditorSection title="Author" icon="fa-user" :open="openSections.author" @toggle="toggleSection('author')">
           <div class="cpub-be-author-row">
             <div class="cpub-be-author-av">{{ authorInitials }}</div>
             <div class="cpub-be-author-info">
@@ -331,10 +330,10 @@ const canvasMaxWidth = computed(() => {
             </div>
             <span class="cpub-be-author-badge">You</span>
           </div>
-        </EditorsEditorSection>
+        </EditorSection>
 
         <!-- Social -->
-        <EditorsEditorSection title="Social" icon="fa-share-nodes" :open="openSections.social" @toggle="toggleSection('social')">
+        <EditorSection title="Social" icon="fa-share-nodes" :open="openSections.social" @toggle="toggleSection('social')">
           <div class="cpub-ep-field">
             <label class="cpub-ep-flabel">Open Graph Image</label>
             <div class="cpub-be-og-thumb">
@@ -344,7 +343,7 @@ const canvasMaxWidth = computed(() => {
               </div>
             </div>
           </div>
-        </EditorsEditorSection>
+        </EditorSection>
       </div>
     </aside>
   </div>

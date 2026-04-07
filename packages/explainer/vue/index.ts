@@ -46,7 +46,7 @@ export { default as DocumentPanel } from './components/editor-v2/DocumentPanel.v
 export { default as ThemeEditor } from './components/editor-v2/ThemeEditor.vue';
 
 // Composables
-export { useBlockEditor } from './composables/useBlockEditor.js';
+export { useBlockEditor } from '@commonpub/editor/vue';
 export { useExplainerSections } from './composables/useExplainerSections.js';
 export { useExplainerProgress } from './composables/useExplainerProgress.js';
 export { useScrollTracking } from './composables/useScrollTracking.js';
@@ -54,5 +54,5 @@ export { useExplainerTheme } from './composables/useExplainerTheme.js';
 
 // Types
 export type { ExplainerContent } from './components/ExplainerViewer.vue';
-export type { BlockEditor, EditorBlock } from './composables/useBlockEditor.js';
+export type { BlockEditor, EditorBlock } from '@commonpub/editor/vue';
 export type { BlockTypeGroup, BlockDef } from './components/editor/EditorBlockLibrary.vue';

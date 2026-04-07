@@ -1,6 +1,6 @@
 {
   "name": "@commonpub/editor",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "type": "module",
   "description": "TipTap block editor with 18+ maker-focused extensions for CommonPub",
   "license": "AGPL-3.0-or-later",
@@ -31,10 +31,14 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./vue": {
+      "import": "./vue/index.ts"
     }
   },
   "files": [
     "dist/",
+    "vue/",
     "!dist/__tests__/",
     "README.md",
     "LICENSE"
@@ -59,6 +63,7 @@
     "zod": "^4.3.6"
   },
   "peerDependencies": {
+    "vue": "^3.4.0",
     "@tiptap/core": "^2.11.0",
     "@tiptap/extension-bold": "^2.11.0",
     "@tiptap/extension-bullet-list": "^2.11.0",
@@ -70,15 +75,22 @@
     "@tiptap/extension-link": "^2.11.0",
     "@tiptap/extension-list-item": "^2.11.0",
     "@tiptap/extension-ordered-list": "^2.11.0",
+    "@tiptap/extension-paragraph": "^2.11.0",
     "@tiptap/extension-placeholder": "^2.11.0",
     "@tiptap/extension-strike": "^2.11.0",
     "@tiptap/extension-text": "^2.11.0",
     "@tiptap/pm": "^2.11.0"
   },
+  "peerDependenciesMeta": {
+    "vue": {
+      "optional": true
+    }
+  },
   "devDependencies": {
     "@types/mdast": "^4.0.4",
     "jsdom": "^25.0.0",
     "typescript": "^5.7.0",
-    "vitest": "^3.0.0"
+    "vitest": "^3.0.0",
+    "vue": "^3.5.0"
   }
 }
