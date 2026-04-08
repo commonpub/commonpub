@@ -1,6 +1,6 @@
 {
   "name": "@commonpub/test-utils",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "type": "module",
   "description": "Test factories and mock config for CommonPub development",
   "license": "AGPL-3.0-or-later",
