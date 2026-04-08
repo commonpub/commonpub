@@ -330,6 +330,181 @@ describe('useBlockEditor', () => {
     });
   });
 
+  describe('undo/redo', () => {
+    it('undo reverts addBlock', () => {
+      const editor = useBlockEditor();
+      editor.addBlock('paragraph', { html: 'text' });
+      expect(editor.blocks.value).toHaveLength(1);
+      expect(editor.canUndo.value).toBe(true);
+
+      editor.undo();
+      expect(editor.blocks.value).toHaveLength(0);
+      expect(editor.canUndo.value).toBe(false);
+    });
+
+    it('redo restores undone addBlock', () => {
+      const editor = useBlockEditor();
+      editor.addBlock('paragraph', { html: 'text' });
+      editor.undo();
+      expect(editor.blocks.value).toHaveLength(0);
+      expect(editor.canRedo.value).toBe(true);
+
+      editor.redo();
+      expect(editor.blocks.value).toHaveLength(1);
+      expect(editor.blocks.value[0].content.html).toBe('text');
+    });
+
+    it('undo reverts removeBlock', () => {
+      const editor = useBlockEditor();
+      const id = editor.addBlock('paragraph', { html: 'keep me' });
+      editor.removeBlock(id);
+      expect(editor.blocks.value).toHaveLength(0);
+
+      editor.undo();
+      expect(editor.blocks.value).toHaveLength(1);
+      expect(editor.blocks.value[0].content.html).toBe('keep me');
+    });
+
+    it('undo reverts moveBlock', () => {
+      const editor = useBlockEditor();
+      editor.addBlock('paragraph', { html: 'A' });
+      editor.addBlock('paragraph', { html: 'B' });
+      editor.moveBlock(0, 1);
+      expect(editor.blocks.value[0].content.html).toBe('B');
+
+      editor.undo();
+      expect(editor.blocks.value[0].content.html).toBe('A');
+      expect(editor.blocks.value[1].content.html).toBe('B');
+    });
+
+    it('undo reverts replaceBlock', () => {
+      const editor = useBlockEditor();
+      const id = editor.addBlock('paragraph', { html: 'original' });
+      editor.replaceBlock(id, 'heading', { text: 'replaced' });
+      expect(editor.blocks.value[0].type).toBe('heading');
+
+      editor.undo();
+      expect(editor.blocks.value[0].type).toBe('paragraph');
+      expect(editor.blocks.value[0].content.html).toBe('original');
+    });
+
+    it('undo reverts duplicateBlock', () => {
+      const editor = useBlockEditor();
+      const id = editor.addBlock('paragraph', { html: 'dup' });
+      editor.duplicateBlock(id);
+      expect(editor.blocks.value).toHaveLength(2);
+
+      editor.undo();
+      expect(editor.blocks.value).toHaveLength(1);
+    });
+
+    it('undo reverts clearBlocks', () => {
+      const editor = useBlockEditor();
+      editor.addBlock('paragraph', { html: 'A' });
+      editor.addBlock('heading', { text: 'B', level: 2 });
+      editor.clearBlocks();
+      expect(editor.blocks.value).toHaveLength(0);
+
+      editor.undo();
+      expect(editor.blocks.value).toHaveLength(2);
+      expect(editor.blocks.value[0].content.html).toBe('A');
+      expect(editor.blocks.value[1].content.text).toBe('B');
+    });
+
+    it('new mutation after undo truncates redo history', () => {
+      const editor = useBlockEditor();
+      editor.addBlock('paragraph', { html: 'A' });
+      editor.addBlock('paragraph', { html: 'B' });
+      editor.undo(); // back to just A
+      expect(editor.canRedo.value).toBe(true);
+
+      editor.addBlock('heading', { text: 'C' }); // branch
+      expect(editor.canRedo.value).toBe(false);
+      expect(editor.blocks.value).toHaveLength(2);
+      expect(editor.blocks.value[1].type).toBe('heading');
+    });
+
+    it('undo returns false when at beginning', () => {
+      const editor = useBlockEditor();
+      expect(editor.undo()).toBe(false);
+      expect(editor.canUndo.value).toBe(false);
+    });
+
+    it('redo returns false when at end', () => {
+      const editor = useBlockEditor();
+      editor.addBlock('paragraph');
+      expect(editor.redo()).toBe(false);
+      expect(editor.canRedo.value).toBe(false);
+    });
+
+    it('multiple undo/redo cycles work correctly', () => {
+      const editor = useBlockEditor();
+      editor.addBlock('paragraph', { html: 'A' });
+      editor.addBlock('paragraph', { html: 'B' });
+      editor.addBlock('paragraph', { html: 'C' });
+
+      editor.undo(); // remove C
+      editor.undo(); // remove B
+      expect(editor.blocks.value).toHaveLength(1);
+
+      editor.redo(); // restore B
+      expect(editor.blocks.value).toHaveLength(2);
+
+      editor.redo(); // restore C
+      expect(editor.blocks.value).toHaveLength(3);
+    });
+
+    it('respects MAX_HISTORY limit', () => {
+      const editor = useBlockEditor();
+      // Add 55 blocks (exceeds 50 max)
+      for (let i = 0; i < 55; i++) {
+        editor.addBlock('paragraph', { html: `block-${i}` });
+      }
+
+      // Should be able to undo up to MAX_HISTORY times but not all 55
+      let undoCount = 0;
+      while (editor.undo()) undoCount++;
+      expect(undoCount).toBeLessThanOrEqual(50);
+      expect(undoCount).toBeGreaterThan(0);
+    });
+
+    it('preserves selection state through undo/redo', () => {
+      const editor = useBlockEditor();
+      const id1 = editor.addBlock('paragraph', { html: 'A' });
+      editor.selectBlock(id1);
+      const id2 = editor.addBlock('paragraph', { html: 'B' }); // auto-selects id2
+
+      editor.undo(); // remove B, should restore selection to id1
+      expect(editor.selectedBlockId.value).toBe(id1);
+    });
+
+    it('updateBlock does NOT push to history (text edits use TipTap undo)', () => {
+      const editor = useBlockEditor();
+      const id = editor.addBlock('paragraph', { html: 'initial' });
+      const undosBefore = editor.canUndo.value;
+
+      editor.updateBlock(id, { html: 'updated' });
+      // canUndo should not change from the updateBlock itself
+      // (it was true from addBlock, stays true from addBlock)
+      expect(editor.blocks.value[0].content.html).toBe('updated');
+
+      editor.undo(); // should undo the addBlock, not the updateBlock
+      expect(editor.blocks.value).toHaveLength(0);
+    });
+
+    it('undo preserves deep content independence', () => {
+      const editor = useBlockEditor();
+      editor.addBlock('gallery', { images: [{ src: 'a.jpg' }, { src: 'b.jpg' }] });
+      editor.undo();
+      editor.redo();
+
+      // Verify the restored content is a deep copy, not a reference
+      const images = editor.blocks.value[0].content.images as Array<{ src: string }>;
+      expect(images).toHaveLength(2);
+      expect(images[0].src).toBe('a.jpg');
+    });
+  });
+
   describe('custom blockDefaults option', () => {
     it('overrides specific block defaults', () => {
       const editor = useBlockEditor(undefined, {

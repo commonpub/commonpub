@@ -42,6 +42,67 @@ export function useBlockEditor(initialBlocks?: BlockTuple[], options?: BlockEdit
   const blocks = ref<EditorBlock[]>([]);
   const selectedBlockId = ref<string | null>(null);
 
+  // --- Undo/Redo History ---
+  const MAX_HISTORY = 50;
+  const history: Array<{ blocks: EditorBlock[]; selectedBlockId: string | null }> = [];
+  const historyIndex = ref(-1);
+  const isRestoring = ref(false);
+
+  function cloneBlocks(): EditorBlock[] {
+    return blocks.value.map((b) => ({
+      id: b.id,
+      type: b.type,
+      content: JSON.parse(JSON.stringify(b.content)),
+    }));
+  }
+
+  /** Save current state snapshot to history (call AFTER mutation) */
+  function pushHistory(): void {
+    if (isRestoring.value) return;
+    // Truncate any future states if we branched from an earlier point
+    if (historyIndex.value < history.length - 1) {
+      history.splice(historyIndex.value + 1);
+    }
+    history.push({ blocks: cloneBlocks(), selectedBlockId: selectedBlockId.value });
+    if (history.length > MAX_HISTORY) {
+      history.shift();
+    }
+    historyIndex.value = history.length - 1;
+  }
+
+  function undo(): boolean {
+    if (historyIndex.value <= 0) return false;
+    historyIndex.value--;
+    const snapshot = history[historyIndex.value]!;
+    isRestoring.value = true;
+    blocks.value.splice(0, blocks.value.length, ...snapshot.blocks.map((b) => ({
+      id: b.id,
+      type: b.type,
+      content: JSON.parse(JSON.stringify(b.content)),
+    })));
+    selectedBlockId.value = snapshot.selectedBlockId;
+    isRestoring.value = false;
+    return true;
+  }
+
+  function redo(): boolean {
+    if (historyIndex.value >= history.length - 1) return false;
+    historyIndex.value++;
+    const snapshot = history[historyIndex.value]!;
+    isRestoring.value = true;
+    blocks.value.splice(0, blocks.value.length, ...snapshot.blocks.map((b) => ({
+      id: b.id,
+      type: b.type,
+      content: JSON.parse(JSON.stringify(b.content)),
+    })));
+    selectedBlockId.value = snapshot.selectedBlockId;
+    isRestoring.value = false;
+    return true;
+  }
+
+  const canUndo = computed(() => historyIndex.value > 0);
+  const canRedo = computed(() => historyIndex.value < history.length - 1);
+
   // Merge custom defaults with built-in defaults
   const defaults = options?.blockDefaults
     ? { ...BLOCK_DEFAULTS, ...options.blockDefaults }
@@ -59,6 +120,9 @@ export function useBlockEditor(initialBlocks?: BlockTuple[], options?: BlockEdit
   if (initialBlocks && initialBlocks.length > 0) {
     fromBlockTuples(initialBlocks);
   }
+
+  // Capture initial state as first history entry
+  pushHistory();
 
   // --- Serialize back to BlockTuples ---
   function toBlockTuples(): BlockTuple[] {
@@ -82,6 +146,7 @@ export function useBlockEditor(initialBlocks?: BlockTuple[], options?: BlockEdit
     }
 
     selectedBlockId.value = block.id;
+    pushHistory();
     return block.id;
   }
 
@@ -98,6 +163,7 @@ export function useBlockEditor(initialBlocks?: BlockTuple[], options?: BlockEdit
 
     blocks.value.splice(idx, 1, newBlock);
     selectedBlockId.value = newBlock.id;
+    pushHistory();
     return newBlock.id;
   }
 
@@ -108,11 +174,13 @@ export function useBlockEditor(initialBlocks?: BlockTuple[], options?: BlockEdit
     if (selectedBlockId.value === id) {
       selectedBlockId.value = null;
     }
+    pushHistory();
   }
 
   function clearBlocks(): void {
     blocks.value.splice(0, blocks.value.length);
     selectedBlockId.value = null;
+    pushHistory();
   }
 
   function updateBlock(id: string, content: Record<string, unknown>): void {
@@ -127,6 +195,7 @@ export function useBlockEditor(initialBlocks?: BlockTuple[], options?: BlockEdit
     if (toIndex < 0 || toIndex >= blocks.value.length) return;
     const [moved] = blocks.value.splice(fromIndex, 1);
     blocks.value.splice(toIndex, 0, moved!);
+    pushHistory();
   }
 
   function moveBlockUp(id: string): void {
@@ -150,6 +219,7 @@ export function useBlockEditor(initialBlocks?: BlockTuple[], options?: BlockEdit
     };
     blocks.value.splice(idx + 1, 0, clone);
     selectedBlockId.value = clone.id;
+    pushHistory();
   }
 
   function selectBlock(id: string | null): void {
@@ -184,6 +254,10 @@ export function useBlockEditor(initialBlocks?: BlockTuple[], options?: BlockEdit
     getBlockIndex,
     toBlockTuples,
     fromBlockTuples,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
   };
 }
 
