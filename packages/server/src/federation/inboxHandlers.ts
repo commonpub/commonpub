@@ -653,7 +653,33 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
       const mirrorId = await matchMirrorForContent(db, originDomain, objectType, cpubType, tags, senderDomain);
 
       // Upsert federated content (objectUri is unique — prevents duplicates)
+      // Handle URI migration: if the same actor has content with a different URI but same slug,
+      // update the old row's URI to prevent duplicates from URL restructures
       if (objectUri) {
+        try {
+          const slugFromUri = new URL(objectUri).pathname.split('/').filter(Boolean).pop();
+          if (slugFromUri) {
+            const [staleRow] = await db
+              .select({ id: federatedContent.id, objectUri: federatedContent.objectUri })
+              .from(federatedContent)
+              .where(
+                and(
+                  eq(federatedContent.actorUri, actorUri),
+                  sql`${federatedContent.objectUri} LIKE ${'%/' + slugFromUri}`,
+                  sql`${federatedContent.objectUri} != ${objectUri}`,
+                ),
+              )
+              .limit(1);
+            if (staleRow) {
+              // Migrate the old URI to the new one so the upsert below updates in place
+              await db
+                .update(federatedContent)
+                .set({ objectUri, updatedAt: new Date() })
+                .where(eq(federatedContent.id, staleRow.id));
+            }
+          }
+        } catch { /* ignore URI parse errors */ }
+
         await db
           .insert(federatedContent)
           .values({
