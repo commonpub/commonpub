@@ -657,16 +657,19 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
       // update the old row's URI to prevent duplicates from URL restructures
       if (objectUri) {
         try {
-          const slugFromUri = new URL(objectUri).pathname.split('/').filter(Boolean).pop();
-          if (slugFromUri) {
+          const parsedUri = new URL(objectUri);
+          const segments = parsedUri.pathname.split('/').filter(Boolean);
+          const slug = segments[segments.length - 1];
+          // Only migrate from old /content/{slug} format to new /u/{user}/{type}/{slug} format
+          if (slug && segments.length >= 3 && segments[0] === 'u') {
+            const oldPattern = `${parsedUri.origin}/content/${slug}`;
             const [staleRow] = await db
               .select({ id: federatedContent.id, objectUri: federatedContent.objectUri })
               .from(federatedContent)
               .where(
                 and(
                   eq(federatedContent.actorUri, actorUri),
-                  sql`${federatedContent.objectUri} LIKE ${'%/' + slugFromUri}`,
-                  sql`${federatedContent.objectUri} != ${objectUri}`,
+                  eq(federatedContent.objectUri, oldPattern),
                 ),
               )
               .limit(1);
