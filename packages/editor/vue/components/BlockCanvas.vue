@@ -118,7 +118,16 @@ function closePicker(): void {
 
 function onPickerSelect(type: string, attrs?: Record<string, unknown>): void {
   if (slashCommandBlockId.value) {
-    props.blockEditor.replaceBlock(slashCommandBlockId.value, type, attrs);
+    // Only replace if the block is empty — otherwise insert below to preserve content
+    const block = props.blockEditor.blocks.value.find((b) => b.id === slashCommandBlockId.value);
+    const html = (block?.content?.html as string) ?? '';
+    const isEmpty = !html.replace(/<[^>]*>/g, '').trim();
+    if (isEmpty) {
+      props.blockEditor.replaceBlock(slashCommandBlockId.value, type, attrs);
+    } else {
+      const idx = props.blockEditor.getBlockIndex(slashCommandBlockId.value);
+      props.blockEditor.addBlock(type, attrs, idx + 1);
+    }
   } else {
     props.blockEditor.addBlock(type, attrs, pickerInsertIndex.value);
   }
