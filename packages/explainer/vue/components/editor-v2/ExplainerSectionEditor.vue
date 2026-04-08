@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import type { ExplainerDocument, ExplainerDocSection, ExplainerThemeRef, ExplainerConclusion } from '@commonpub/explainer';
 import { resolveThemePreset } from '@commonpub/explainer';
 import { useExplainerTheme } from '../../composables/useExplainerTheme';
@@ -156,7 +156,43 @@ const rightTab = ref<'preview' | 'document'>('preview');
 function handleSave(): void {
   emit('save', JSON.parse(JSON.stringify(doc.value)));
   isDirty.value = false;
+  if (autoSaveTimer) {
+    clearTimeout(autoSaveTimer);
+    autoSaveTimer = null;
+  }
 }
+
+// Autosave — 10s debounce after any document change
+let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
+
+watch(doc, () => {
+  if (!isDirty.value) return;
+  if (autoSaveTimer) clearTimeout(autoSaveTimer);
+  autoSaveTimer = setTimeout(() => {
+    if (isDirty.value) handleSave();
+  }, 10_000);
+}, { deep: true });
+
+// Warn before leaving with unsaved changes
+function onBeforeUnload(e: BeforeUnloadEvent): void {
+  if (isDirty.value) {
+    e.preventDefault();
+    e.returnValue = '';
+  }
+}
+
+onMounted(() => {
+  if (typeof window !== 'undefined') {
+    window.addEventListener('beforeunload', onBeforeUnload);
+  }
+});
+
+onUnmounted(() => {
+  if (autoSaveTimer) clearTimeout(autoSaveTimer);
+  if (typeof window !== 'undefined') {
+    window.removeEventListener('beforeunload', onBeforeUnload);
+  }
+});
 
 // Status
 const wordCount = computed(() => {
