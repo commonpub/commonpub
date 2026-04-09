@@ -747,26 +747,38 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
                 const replyContent = typeof object.content === 'string' ? sanitizeHtml(object.content) : '';
 
                 // Store the federated reply with null authorId + remote actor info
+                // Deduplicate: skip if this actor already has a reply with identical content on this post
                 if (replyContent) {
-                  await db.insert(hubPostReplies).values({
-                    postId,
-                    authorId: null,
-                    content: replyContent,
-                    remoteActorUri: actorUri,
-                    remoteActorName: remoteUser,
-                  });
+                  const [existing] = await db
+                    .select({ id: hubPostReplies.id })
+                    .from(hubPostReplies)
+                    .where(and(
+                      eq(hubPostReplies.postId, postId),
+                      eq(hubPostReplies.remoteActorUri, actorUri),
+                      eq(hubPostReplies.content, replyContent),
+                    ))
+                    .limit(1);
 
-                  // Increment reply count on the local hub post
-                  await db.update(hubPosts)
-                    .set({ replyCount: sql`${hubPosts.replyCount} + 1` })
-                    .where(eq(hubPosts.id, postId));
+                  if (!existing) {
+                    await db.insert(hubPostReplies).values({
+                      postId,
+                      authorId: null,
+                      content: replyContent,
+                      remoteActorUri: actorUri,
+                      remoteActorName: remoteUser,
+                    });
 
-                  // Notify the post author about the federated reply
-                  const [post] = await db.select({ authorId: hubPosts.authorId }).from(hubPosts).where(eq(hubPosts.id, postId)).limit(1);
-                  if (post?.authorId) {
-                    await notifyRemoteInteraction(db, post.authorId, 'comment', actorUri,
-                      'New hub reply', `${remoteUser} from the fediverse replied to your post`,
-                      `/hubs/${hubSlug}/posts/${postId}`);
+                    // Increment reply count on the local hub post
+                    await db.update(hubPosts)
+                      .set({ replyCount: sql`${hubPosts.replyCount} + 1` })
+                      .where(eq(hubPosts.id, postId));
+                    // Notify the post author about the federated reply
+                    const [postRow] = await db.select({ authorId: hubPosts.authorId }).from(hubPosts).where(eq(hubPosts.id, postId)).limit(1);
+                    if (postRow?.authorId) {
+                      await notifyRemoteInteraction(db, postRow.authorId, 'comment', actorUri,
+                        'New hub reply', `${remoteUser} from the fediverse replied to your post`,
+                        `/hubs/${hubSlug}/posts/${postId}`);
+                    }
                   }
                 }
               }
@@ -796,22 +808,34 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
               .limit(1);
 
             if (fedHubPost) {
-              // Store the remote reply on the mirrored hub post
+              // Store the remote reply on the mirrored hub post (with dedup)
               const remoteUser = await resolveRemoteActorName(db, actorUri);
               const replyContent = typeof object.content === 'string' ? sanitizeHtml(object.content) : '';
               if (replyContent) {
-                await db.insert(federatedHubPostReplies).values({
-                  federatedHubPostId: fedHubPost.id,
-                  authorId: null,
-                  content: replyContent,
-                  remoteActorUri: actorUri,
-                  remoteActorName: remoteUser,
-                });
+                const [existingReply] = await db
+                  .select({ id: federatedHubPostReplies.id })
+                  .from(federatedHubPostReplies)
+                  .where(and(
+                    eq(federatedHubPostReplies.federatedHubPostId, fedHubPost.id),
+                    eq(federatedHubPostReplies.remoteActorUri, actorUri),
+                    eq(federatedHubPostReplies.content, replyContent),
+                  ))
+                  .limit(1);
 
-                // Increment remote reply count
-                await db.update(federatedHubPosts)
-                  .set({ remoteReplyCount: sql`${federatedHubPosts.remoteReplyCount} + 1` })
-                  .where(eq(federatedHubPosts.id, fedHubPost.id));
+                if (!existingReply) {
+                  await db.insert(federatedHubPostReplies).values({
+                    federatedHubPostId: fedHubPost.id,
+                    authorId: null,
+                    content: replyContent,
+                    remoteActorUri: actorUri,
+                    remoteActorName: remoteUser,
+                  });
+
+                  // Increment remote reply count
+                  await db.update(federatedHubPosts)
+                    .set({ remoteReplyCount: sql`${federatedHubPosts.remoteReplyCount} + 1` })
+                    .where(eq(federatedHubPosts.id, fedHubPost.id));
+                }
               }
             } else {
               // Reply to other federated content — increment localCommentCount
