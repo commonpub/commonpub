@@ -86,8 +86,8 @@ jobs:
         image: postgres:16-alpine
         env:
           POSTGRES_USER: commonpub
-          POSTGRES_PASSWORD: commonpub_test
-          POSTGRES_DB: commonpub_test
+          POSTGRES_PASSWORD: commonpub_ci
+          POSTGRES_DB: commonpub
         ports:
           - 5432:5432
         options: >-
@@ -95,6 +95,10 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://commonpub:commonpub_ci@localhost:5432/commonpub
+      NUXT_DATABASE_URL: postgresql://commonpub:commonpub_ci@localhost:5432/commonpub
 
     steps:
       - uses: actions/checkout@v4
@@ -113,8 +117,6 @@ jobs:
 
       - name: Apply database schema
         run: pnpm --filter @commonpub/schema exec drizzle-kit push --force
-        env:
-          DATABASE_URL: postgresql://commonpub:commonpub_test@localhost:5432/commonpub_test
 
       - name: Install Playwright Browsers
         run: pnpm exec playwright install --with-deps chromium
@@ -122,6 +124,4 @@ jobs:
       - name: Run E2E Tests
         run: pnpm exec playwright test --project=chromium
         env:
-          DATABASE_URL: postgresql://commonpub:commonpub_test@localhost:5432/commonpub_test
-          NUXT_DATABASE_URL: postgresql://commonpub:commonpub_test@localhost:5432/commonpub_test
           AUTH_SECRET: test-secret-for-ci-min-32-chars-long
