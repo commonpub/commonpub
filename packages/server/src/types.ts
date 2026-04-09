@@ -350,7 +350,10 @@ export interface FederatedHubPostReplyItem {
   createdAt: Date;
   updatedAt: Date;
   parentId: string | null;
-  author: UserRef;
+  author: UserRef | null;
+  remoteActorUri?: string | null;
+  remoteActorName?: string | null;
+  remoteActorAvatarUrl?: string | null;
   replies?: FederatedHubPostReplyItem[];
 }
 

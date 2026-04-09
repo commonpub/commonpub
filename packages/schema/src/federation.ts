@@ -300,15 +300,19 @@ export const federatedHubPostLikes = pgTable('federated_hub_post_likes', {
   unique('uq_fed_hub_post_likes_post_user').on(t.postId, t.userId),
 ]);
 
-/** Local user replies to federated hub posts.
- * When a user on the mirroring instance replies to a federated hub post,
- * the reply is stored here locally AND sent via AP to the origin hub. */
+/** Replies to federated hub posts — both local user replies and remote replies received via AP.
+ * Local replies have authorId set + remoteActorUri null.
+ * Remote replies have authorId null + remoteActorUri/remoteActorName set. */
 export const federatedHubPostReplies = pgTable('federated_hub_post_replies', {
   id: uuid('id').defaultRandom().primaryKey(),
   /** FK to the federated hub post this reply is on */
   federatedHubPostId: uuid('federated_hub_post_id').notNull().references(() => federatedHubPosts.id, { onDelete: 'cascade' }),
-  /** Local user who wrote the reply */
-  authorId: uuid('author_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  /** Local user who wrote the reply (null for remote/federated replies) */
+  authorId: uuid('author_id').references(() => users.id, { onDelete: 'cascade' }),
+  /** Remote actor URI for federated replies (null for local replies) */
+  remoteActorUri: text('remote_actor_uri'),
+  /** Remote actor display name for federated replies */
+  remoteActorName: text('remote_actor_name'),
   /** Self-referencing for threaded replies */
   parentId: uuid('parent_id'),
   content: text('content').notNull(),

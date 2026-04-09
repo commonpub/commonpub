@@ -923,7 +923,7 @@ export async function listFederatedHubPostReplies(
 
   const rootIds = rootRows.map((r) => r.id);
 
-  // Fetch root + children in one query
+  // Fetch root + children in one query (LEFT JOIN: authorId is nullable for remote replies)
   const rows = await db
     .select({
       reply: federatedHubPostReplies,
@@ -933,9 +933,11 @@ export async function listFederatedHubPostReplies(
         displayName: users.displayName,
         avatarUrl: users.avatarUrl,
       },
+      remoteAvatarUrl: remoteActors.avatarUrl,
     })
     .from(federatedHubPostReplies)
-    .innerJoin(users, eq(federatedHubPostReplies.authorId, users.id))
+    .leftJoin(users, eq(federatedHubPostReplies.authorId, users.id))
+    .leftJoin(remoteActors, eq(federatedHubPostReplies.remoteActorUri, remoteActors.actorUri))
     .where(
       and(
         eq(federatedHubPostReplies.federatedHubPostId, federatedHubPostId),
@@ -958,7 +960,10 @@ export async function listFederatedHubPostReplies(
       createdAt: row.reply.createdAt,
       updatedAt: row.reply.updatedAt,
       parentId: row.reply.parentId,
-      author: row.author,
+      author: row.author?.id ? row.author as FederatedHubPostReplyItem['author'] : null,
+      remoteActorUri: row.reply.remoteActorUri ?? null,
+      remoteActorName: row.reply.remoteActorName ?? null,
+      remoteActorAvatarUrl: row.remoteAvatarUrl ?? null,
       replies: [],
     };
     replyMap.set(item.id, item);

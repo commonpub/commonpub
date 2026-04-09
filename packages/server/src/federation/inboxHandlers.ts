@@ -14,6 +14,7 @@ import {
   users,
   hubPosts,
   hubPostReplies,
+  federatedHubPostReplies,
 } from '@commonpub/schema';
 import {
   buildAcceptActivity,
@@ -787,11 +788,38 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
               }
             }
           } else {
-            // Reply to federated content — increment localCommentCount
-            await db
-              .update(federatedContent)
-              .set({ localCommentCount: sql`${federatedContent.localCommentCount} + 1` })
-              .where(eq(federatedContent.objectUri, inReplyTo));
+            // Reply to remote content — check if it's a federated hub post we mirror
+            const [fedHubPost] = await db
+              .select({ id: federatedHubPosts.id })
+              .from(federatedHubPosts)
+              .where(eq(federatedHubPosts.objectUri, inReplyTo))
+              .limit(1);
+
+            if (fedHubPost) {
+              // Store the remote reply on the mirrored hub post
+              const remoteUser = await resolveRemoteActorName(db, actorUri);
+              const replyContent = typeof object.content === 'string' ? sanitizeHtml(object.content) : '';
+              if (replyContent) {
+                await db.insert(federatedHubPostReplies).values({
+                  federatedHubPostId: fedHubPost.id,
+                  authorId: null,
+                  content: replyContent,
+                  remoteActorUri: actorUri,
+                  remoteActorName: remoteUser,
+                });
+
+                // Increment remote reply count
+                await db.update(federatedHubPosts)
+                  .set({ remoteReplyCount: sql`${federatedHubPosts.remoteReplyCount} + 1` })
+                  .where(eq(federatedHubPosts.id, fedHubPost.id));
+              }
+            } else {
+              // Reply to other federated content — increment localCommentCount
+              await db
+                .update(federatedContent)
+                .set({ localCommentCount: sql`${federatedContent.localCommentCount} + 1` })
+                .where(eq(federatedContent.objectUri, inReplyTo));
+            }
           }
         } catch {
           // Invalid URL — skip comment counting

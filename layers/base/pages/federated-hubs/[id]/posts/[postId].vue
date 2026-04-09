@@ -190,20 +190,24 @@ useHead({
 
     <!-- Replies -->
     <div class="cpub-replies-section">
-      <h3 v-if="replies.length" class="cpub-replies-title">{{ repliesData?.total ?? 0 }} Local Replies</h3>
+      <h3 v-if="replies.length" class="cpub-replies-title">{{ repliesData?.total ?? 0 }} Replies</h3>
       <div v-for="reply in replies" :key="reply.id" class="cpub-reply">
         <div class="cpub-reply-author">
           <div class="cpub-reply-avatar">
-            <img v-if="reply.author?.avatarUrl" :src="reply.author.avatarUrl" :alt="reply.author?.displayName || reply.author?.username" class="cpub-reply-avatar-img" />
-            <span v-else>{{ (reply.author?.displayName || reply.author?.username || 'U').charAt(0).toUpperCase() }}</span>
+            <img v-if="reply.author?.avatarUrl || reply.remoteActorAvatarUrl" :src="(reply.author?.avatarUrl || reply.remoteActorAvatarUrl)!" :alt="reply.author?.displayName || reply.remoteActorName || 'User'" class="cpub-reply-avatar-img" />
+            <span v-else>{{ (reply.author?.displayName || reply.remoteActorName || 'U').charAt(0).toUpperCase() }}</span>
           </div>
           <NuxtLink v-if="reply.author" :to="`/u/${reply.author.username}`" class="cpub-reply-author-name">{{ reply.author.displayName || reply.author.username }}</NuxtLink>
+          <span v-else class="cpub-reply-author-name cpub-reply-remote">
+            {{ reply.remoteActorName || 'Remote user' }}
+            <i class="fa-solid fa-globe" style="font-size: 9px; opacity: 0.5; margin-left: 2px"></i>
+          </span>
           <span class="cpub-post-sep">&middot;</span>
           <time class="cpub-post-time">{{ formatDate(reply.createdAt) }}</time>
         </div>
         <div class="cpub-reply-content"><MentionText :text="reply.content" /></div>
         <div class="cpub-reply-actions">
-          <button v-if="isAuthenticated" class="cpub-reply-btn" @click="replyingTo = reply.id; replyContent = `@${reply.author?.username ?? ''} `">
+          <button v-if="isAuthenticated && reply.author" class="cpub-reply-btn" @click="replyingTo = reply.id; replyContent = `@${reply.author.username} `">
             <i class="fa-solid fa-reply"></i> Reply
           </button>
         </div>
@@ -213,10 +217,14 @@ useHead({
           <div v-for="child in reply.replies" :key="child.id" class="cpub-reply cpub-reply-nested">
             <div class="cpub-reply-author">
               <div class="cpub-reply-avatar">
-                <img v-if="child.author?.avatarUrl" :src="child.author.avatarUrl" :alt="child.author?.displayName || child.author?.username" class="cpub-reply-avatar-img" />
-                <span v-else>{{ (child.author?.displayName || child.author?.username || 'U').charAt(0).toUpperCase() }}</span>
+                <img v-if="child.author?.avatarUrl || child.remoteActorAvatarUrl" :src="(child.author?.avatarUrl || child.remoteActorAvatarUrl)!" :alt="child.author?.displayName || child.remoteActorName || 'User'" class="cpub-reply-avatar-img" />
+                <span v-else>{{ (child.author?.displayName || child.remoteActorName || 'U').charAt(0).toUpperCase() }}</span>
               </div>
               <NuxtLink v-if="child.author" :to="`/u/${child.author.username}`" class="cpub-reply-author-name">{{ child.author.displayName || child.author.username }}</NuxtLink>
+              <span v-else class="cpub-reply-author-name cpub-reply-remote">
+                {{ child.remoteActorName || 'Remote user' }}
+                <i class="fa-solid fa-globe" style="font-size: 9px; opacity: 0.5; margin-left: 2px"></i>
+              </span>
               <span class="cpub-post-sep">&middot;</span>
               <time class="cpub-post-time">{{ formatDate(child.createdAt) }}</time>
             </div>
