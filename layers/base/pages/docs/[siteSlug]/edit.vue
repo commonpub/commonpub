@@ -1,6 +1,7 @@
 <script setup lang="ts">
+import { provide } from 'vue';
 import type { BlockTuple } from '@commonpub/editor';
-import { BlockCanvas, EditorShell, useBlockEditor, type BlockTypeGroup } from '@commonpub/editor/vue';
+import { BlockCanvas, EditorShell, useBlockEditor, UPLOAD_HANDLER_KEY, type BlockTypeGroup } from '@commonpub/editor/vue';
 import type { PageTreeItem } from '../../../components/editors/DocsPageTree.vue';
 
 definePageMeta({ layout: false, middleware: 'auth' });
@@ -8,6 +9,15 @@ definePageMeta({ layout: false, middleware: 'auth' });
 const route = useRoute();
 const siteSlug = computed(() => route.params.siteSlug as string);
 const { show: toast } = useToast();
+
+// Provide upload handler to block components (ImageBlock, GalleryBlock)
+provide(UPLOAD_HANDLER_KEY, async (file: File) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('purpose', 'content');
+  const res = await $fetch<{ url: string; width?: number | null; height?: number | null }>('/api/files/upload', { method: 'POST', body: formData });
+  return { url: res.url, width: res.width ?? null, height: res.height ?? null };
+});
 
 // ═══ DATA FETCHING ═══
 const { data: site, refresh: refreshSite } = await useFetch<{ id: string; name: string; slug: string; description: string; ownerId: string; versions?: Array<{ id: string; version: string; isDefault: boolean }> }>(() => `/api/docs/${siteSlug.value}`);

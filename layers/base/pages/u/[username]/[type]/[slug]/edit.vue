@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import type { Component } from 'vue';
+import { provide } from 'vue';
 import type { BlockTuple } from '@commonpub/editor';
-import { BlockCanvas, useBlockEditor } from '@commonpub/editor/vue';
+import { BlockCanvas, useBlockEditor, UPLOAD_HANDLER_KEY, SEARCH_PRODUCTS_KEY } from '@commonpub/editor/vue';
 import { isExplainerDocument, createEmptyDocument } from '@commonpub/explainer';
 import type { ExplainerDocument } from '@commonpub/explainer';
 import { ExplainerSectionEditor } from '@commonpub/explainer/vue';
@@ -91,6 +92,20 @@ const { errors: publishErrors, showErrors: showPublishErrors, validate, dismiss:
   title,
   metadata,
   getBlockTuples: getContentForSave as () => BlockTuple[],
+});
+
+// --- Provide upload + search handlers to block components via inject ---
+provide(UPLOAD_HANDLER_KEY, async (file: File) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('purpose', 'content');
+  const res = await $fetch<{ url: string; width?: number | null; height?: number | null }>('/api/files/upload', { method: 'POST', body: formData });
+  return { url: res.url, width: res.width ?? null, height: res.height ?? null };
+});
+
+provide(SEARCH_PRODUCTS_KEY, async (query: string) => {
+  const res = await $fetch<{ items: Array<{ id: string; name: string; slug: string; description: string | null; category: string | null; imageUrl: string | null; purchaseUrl: string | null }> }>(`/api/products?q=${encodeURIComponent(query)}&limit=10`);
+  return res.items ?? [];
 });
 
 // --- Specialized editor component map ---
