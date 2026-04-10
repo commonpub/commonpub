@@ -3,11 +3,13 @@ import { contentItems, users } from '@commonpub/schema';
 import { eq, and, isNull } from 'drizzle-orm';
 
 /**
- * New-format content AP Article endpoint.
- * URI: /u/{username}/{type}/{slug}
+ * Middleware: serve ActivityPub Article JSON-LD for content URIs.
  *
- * Serves Article JSON-LD when requested with AP Accept header.
- * Browsers see the Nuxt page instead (this handler returns nothing for non-AP requests).
+ * Matches /u/{username}/{type}/{slug} with AP Accept headers.
+ * Non-AP requests pass through to the Nuxt page renderer.
+ *
+ * This MUST be a middleware (not a server route) because a server route
+ * returning undefined sends HTTP 204, which prevents the Nuxt page from rendering.
  */
 export default defineEventHandler(async (event) => {
   const accept = getRequestHeader(event, 'accept') ?? '';
@@ -17,12 +19,14 @@ export default defineEventHandler(async (event) => {
 
   if (!isAPRequest) return;
 
+  const path = getRequestURL(event).pathname;
+  const match = path.match(/^\/u\/([a-zA-Z0-9_-]+)\/([a-z]+)\/([a-z0-9][a-z0-9_-]*)$/);
+  if (!match) return;
+
   const config = useConfig();
   if (!config.features.federation) return;
 
-  const username = getRouterParam(event, 'username');
-  const type = getRouterParam(event, 'type');
-  const slug = getRouterParam(event, 'slug');
+  const [, username, type, slug] = match;
   if (!username || !type || !slug) return;
 
   const db = useDB();
@@ -51,7 +55,7 @@ export default defineEventHandler(async (event) => {
 
   setResponseHeader(event, 'content-type', 'application/activity+json');
 
-  const article = contentToArticle(
+  return contentToArticle(
     {
       id: row.content.id,
       type: row.content.type,
@@ -68,6 +72,4 @@ export default defineEventHandler(async (event) => {
     { username: row.author.username, displayName: row.author.displayName ?? row.author.username },
     domain,
   );
-
-  return article;
 });
