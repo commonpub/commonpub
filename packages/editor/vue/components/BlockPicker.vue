@@ -24,6 +24,8 @@ const flatBlocks = computed(() => {
   return props.groups.flatMap((g) => g.blocks);
 });
 
+const isSearching = computed(() => search.value.trim().length > 0);
+
 const filteredBlocks = computed(() => {
   const q = search.value.toLowerCase();
   if (!q) return flatBlocks.value;
@@ -31,6 +33,13 @@ const filteredBlocks = computed(() => {
     (b) => b.label.toLowerCase().includes(q) || b.type.toLowerCase().includes(q),
   );
 });
+
+/** Flat index of a block across all groups (for keyboard nav) */
+function globalIndex(groupIdx: number, blockIdx: number): number {
+  let idx = 0;
+  for (let g = 0; g < groupIdx; g++) idx += props.groups[g]!.blocks.length;
+  return idx + blockIdx;
+}
 
 watch(() => props.visible, (v) => {
   if (v) {
@@ -104,7 +113,29 @@ onUnmounted(() => {
       />
     </div>
     <div class="cpub-picker-body">
-      <template v-if="filteredBlocks.length > 0">
+      <!-- Grouped view (no search) -->
+      <template v-if="!isSearching && groups.length > 0">
+        <template v-for="(group, gi) in groups" :key="group.name">
+          <div class="cpub-picker-group-header">{{ group.name }}</div>
+          <button
+            v-for="(block, bi) in group.blocks"
+            :key="block.type + (block.attrs?.variant ?? '')"
+            :data-block="block.type"
+            class="cpub-picker-item"
+            :class="{ 'cpub-picker-item--active': globalIndex(gi, bi) === selectedIndex }"
+            @mouseenter="selectedIndex = globalIndex(gi, bi)"
+            @click="selectBlock(block)"
+          >
+            <span class="cpub-picker-icon"><i :class="['fa-solid', block.icon]"></i></span>
+            <span class="cpub-picker-text">
+              <span class="cpub-picker-label">{{ block.label }}</span>
+              <span v-if="block.description" class="cpub-picker-desc">{{ block.description }}</span>
+            </span>
+          </button>
+        </template>
+      </template>
+      <!-- Flat filtered view (searching) -->
+      <template v-else-if="filteredBlocks.length > 0">
         <button
           v-for="(block, i) in filteredBlocks"
           :key="block.type + (block.attrs?.variant ?? '')"
@@ -177,6 +208,21 @@ onUnmounted(() => {
   overflow-y: auto;
   flex: 1;
   padding: 4px;
+}
+
+.cpub-picker-group-header {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-faint);
+  padding: 8px 10px 4px;
+  margin-top: 2px;
+}
+
+.cpub-picker-group-header:first-child {
+  margin-top: 0;
 }
 
 .cpub-picker-item {

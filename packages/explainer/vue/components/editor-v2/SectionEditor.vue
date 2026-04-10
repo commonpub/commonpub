@@ -104,28 +104,28 @@ function updateAside(field: string, value: string): void {
         {{ mod.meta.name }}
       </span>
       <div style="flex: 1" />
-      <button class="cpub-se-action" @click="emit('move-up')" title="Move up">Up</button>
-      <button class="cpub-se-action" @click="emit('move-down')" title="Move down">Dn</button>
-      <button class="cpub-se-action" @click="emit('duplicate')" title="Duplicate">Dup</button>
-      <button class="cpub-se-action cpub-se-action-danger" @click="emit('delete')" title="Delete">Del</button>
+      <button class="cpub-se-action" @click="emit('move-up')" title="Move up"><i class="fa-solid fa-arrow-up" /></button>
+      <button class="cpub-se-action" @click="emit('move-down')" title="Move down"><i class="fa-solid fa-arrow-down" /></button>
+      <button class="cpub-se-action" @click="emit('duplicate')" title="Duplicate"><i class="fa-solid fa-copy" /></button>
+      <button class="cpub-se-action cpub-se-action-danger" @click="emit('delete')" title="Delete"><i class="fa-solid fa-trash" /></button>
     </div>
 
     <!-- Content fields -->
     <div class="cpub-se-fields">
-      <!-- Heading -->
+      <!-- Heading (THE QUESTION) -->
       <div class="cpub-se-field">
-        <label class="cpub-se-label">Heading</label>
+        <label class="cpub-se-label">Heading <span class="cpub-se-hint">the question</span></label>
         <input
           class="cpub-se-input cpub-se-input-large"
           :value="section.heading"
-          placeholder="Section heading"
+          placeholder="What question does this section answer?"
           @input="updateContent('heading', ($event.target as HTMLInputElement).value)"
         />
       </div>
 
-      <!-- Body (rich-text-lite) -->
+      <!-- Body (THE SETUP — before interactive) -->
       <div class="cpub-se-field">
-        <label class="cpub-se-label">Body <span class="cpub-se-hint">before interactive</span></label>
+        <label class="cpub-se-label">Body <span class="cpub-se-hint">setup — before interactive</span></label>
         <textarea
           class="cpub-se-textarea"
           :value="section.body"
@@ -135,9 +135,9 @@ function updateAside(field: string, value: string): void {
         />
       </div>
 
-      <!-- Insight -->
+      <!-- Insight (THE DISCOVERY — after interactive) -->
       <div class="cpub-se-field">
-        <label class="cpub-se-label">Insight <span class="cpub-se-hint">after interactive</span></label>
+        <label class="cpub-se-label">Insight <span class="cpub-se-hint">discovery — after interactive</span></label>
         <textarea
           class="cpub-se-textarea cpub-se-textarea-sm"
           :value="section.insight ?? ''"
@@ -147,9 +147,9 @@ function updateAside(field: string, value: string): void {
         />
       </div>
 
-      <!-- Bridge -->
+      <!-- Bridge (THE TRANSITION — to next section) -->
       <div class="cpub-se-field">
-        <label class="cpub-se-label">Bridge to Next</label>
+        <label class="cpub-se-label">Bridge <span class="cpub-se-hint">transition to next</span></label>
         <input
           class="cpub-se-input"
           :value="section.bridge ?? ''"

@@ -50,6 +50,15 @@ watch(() => props.selected, (sel) => {
 function onDragStart(event: DragEvent): void {
   event.dataTransfer?.setData('text/plain', props.block.id);
   event.dataTransfer!.effectAllowed = 'move';
+
+  // Custom drag preview showing block type
+  const preview = document.createElement('div');
+  preview.textContent = props.block.type.replace(/_/g, ' ');
+  preview.style.cssText = 'position:fixed;top:-999px;left:-999px;padding:6px 12px;background:#1a1a1a;color:#eee;font-family:monospace;font-size:11px;font-weight:600;text-transform:capitalize;border:2px solid #333;pointer-events:none;white-space:nowrap;';
+  document.body.appendChild(preview);
+  event.dataTransfer!.setDragImage(preview, 0, 0);
+  requestAnimationFrame(() => document.body.removeChild(preview));
+
   emit('drag-start', event);
 }
 

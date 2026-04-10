@@ -290,6 +290,7 @@ onUnmounted(() => {
       </button>
       <span v-else class="cpub-tree-toggle-spacer" />
 
+      <i class="fa-solid fa-grip-vertical cpub-tree-drag-handle" />
       <i class="fa-solid fa-file-lines cpub-tree-icon" />
       <span class="cpub-tree-title">{{ node.title || 'Untitled' }}</span>
 
@@ -423,6 +424,19 @@ onUnmounted(() => {
   width: 16px;
   flex-shrink: 0;
 }
+
+.cpub-tree-drag-handle {
+  font-size: 9px;
+  color: var(--text-faint);
+  opacity: 0;
+  cursor: grab;
+  flex-shrink: 0;
+  transition: opacity 0.12s;
+}
+
+.cpub-tree-drag-handle:active { cursor: grabbing; }
+.cpub-tree-item:hover .cpub-tree-drag-handle { opacity: 0.6; }
+.cpub-tree-item-selected .cpub-tree-drag-handle { opacity: 0.8; }
 
 .cpub-tree-icon {
   font-size: 11px;
