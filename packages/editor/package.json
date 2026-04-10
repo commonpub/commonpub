@@ -1,6 +1,6 @@
 {
   "name": "@commonpub/editor",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "type": "module",
   "description": "TipTap block editor with 18+ maker-focused extensions for CommonPub",
   "license": "AGPL-3.0-or-later",
