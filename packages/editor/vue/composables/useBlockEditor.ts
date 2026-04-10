@@ -115,6 +115,10 @@ export function useBlockEditor(initialBlocks?: BlockTuple[], options?: BlockEdit
       type,
       content: { ...content },
     }));
+    // Reset history — loading new content is not an undoable operation
+    history.splice(0, history.length);
+    historyIndex.value = -1;
+    pushHistory();
   }
 
   if (initialBlocks && initialBlocks.length > 0) {

@@ -315,8 +315,13 @@ function onKeydown(event: KeyboardEvent): void {
   const mod = event.metaKey || event.ctrlKey;
   if (!mod || event.key.toLowerCase() !== 'z') return;
 
-  // Don't intercept when a TipTap/ProseMirror editor is focused — it handles its own undo
-  if (document.activeElement?.closest('.ProseMirror')) return;
+  // Don't intercept when an element with its own undo is focused:
+  // - ProseMirror (TipTap text blocks have their own undo)
+  // - textarea/input (native browser undo for code blocks, math, titles, etc.)
+  const el = document.activeElement;
+  if (el?.closest('.ProseMirror')) return;
+  const tag = el?.tagName;
+  if (tag === 'TEXTAREA' || tag === 'INPUT' || tag === 'SELECT') return;
 
   event.preventDefault();
   if (event.shiftKey) {
