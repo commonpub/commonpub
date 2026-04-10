@@ -791,7 +791,25 @@ export async function deleteFederatedHubPost(
     isNull(federatedHubPosts.deletedAt),
   ];
   if (actorUri) {
-    conditions.push(eq(federatedHubPosts.actorUri, actorUri));
+    // Authorize: the actor must be either the post author OR the hub Group actor
+    const [post] = await db
+      .select({ id: federatedHubPosts.id, actorUri: federatedHubPosts.actorUri, federatedHubId: federatedHubPosts.federatedHubId })
+      .from(federatedHubPosts)
+      .where(and(eq(federatedHubPosts.objectUri, objectUri), isNull(federatedHubPosts.deletedAt)))
+      .limit(1);
+    if (!post) return false;
+
+    // Check if the actorUri matches the post author
+    const isAuthor = post.actorUri === actorUri;
+    // Check if the actorUri matches the hub's Group actor
+    const [hub] = await db
+      .select({ actorUri: federatedHubs.actorUri })
+      .from(federatedHubs)
+      .where(eq(federatedHubs.id, post.federatedHubId))
+      .limit(1);
+    const isHubActor = hub?.actorUri === actorUri;
+
+    if (!isAuthor && !isHubActor) return false;
   }
   const result = await db
     .update(federatedHubPosts)
