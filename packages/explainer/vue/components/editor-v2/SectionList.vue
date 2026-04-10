@@ -6,10 +6,13 @@ import { getModule } from '../../../modules/registry';
 const props = defineProps<{
   sections: ExplainerDocSection[];
   selectedId: string | null;
+  /** Whether the intro (hero) or conclusion virtual item is selected */
+  pinnedSelection?: 'intro' | 'conclusion' | null;
 }>();
 
 const emit = defineEmits<{
   select: [sectionId: string];
+  'select-pinned': [which: 'intro' | 'conclusion'];
   add: [];
   move: [fromIndex: number, toIndex: number];
   delete: [sectionId: string];
@@ -60,12 +63,29 @@ function onDragEnd(): void {
 
 <template>
   <div class="cpub-section-list">
+    <!-- Pinned: Introduction (hero) -->
+    <div
+      class="cpub-section-item cpub-section-item-pinned"
+      :class="{ 'cpub-section-item-selected': pinnedSelection === 'intro' }"
+      @click="emit('select-pinned', 'intro')"
+    >
+      <div class="cpub-section-pin"><i class="fa-solid fa-thumbtack" /></div>
+      <div class="cpub-section-info">
+        <span class="cpub-section-title">Introduction</span>
+        <span class="cpub-section-badge" style="color: var(--text-faint, #666)">
+          <span class="cpub-section-badge-dot" style="background: var(--accent, #e04030)" />
+          Hero
+        </span>
+      </div>
+    </div>
+
+    <!-- Content sections (draggable) -->
     <div
       v-for="(section, idx) in sections"
       :key="section.id"
       class="cpub-section-item"
       :class="{
-        'cpub-section-item-selected': selectedId === section.id,
+        'cpub-section-item-selected': selectedId === section.id && !pinnedSelection,
         'cpub-section-item-dragging': dragIdx === idx,
         'cpub-section-item-drop': dropIdx === idx,
       }"
@@ -79,7 +99,7 @@ function onDragEnd(): void {
     >
       <div
         class="cpub-section-num"
-        :class="{ 'cpub-section-num-active': selectedId === section.id }"
+        :class="{ 'cpub-section-num-active': selectedId === section.id && !pinnedSelection }"
       >
         {{ idx + 1 }}
       </div>
@@ -95,6 +115,22 @@ function onDragEnd(): void {
     <button class="cpub-section-add-btn" @click="emit('add')">
       <i class="fa-solid fa-plus" /> Add Section
     </button>
+
+    <!-- Pinned: Conclusion -->
+    <div
+      class="cpub-section-item cpub-section-item-pinned"
+      :class="{ 'cpub-section-item-selected': pinnedSelection === 'conclusion' }"
+      @click="emit('select-pinned', 'conclusion')"
+    >
+      <div class="cpub-section-pin"><i class="fa-solid fa-thumbtack" /></div>
+      <div class="cpub-section-info">
+        <span class="cpub-section-title">Conclusion</span>
+        <span class="cpub-section-badge" style="color: var(--text-faint, #666)">
+          <span class="cpub-section-badge-dot" style="background: #2a9d5c" />
+          Wrap-up
+        </span>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -185,6 +221,35 @@ function onDragEnd(): void {
   height: 5px;
   border-radius: 50%;
   flex-shrink: 0;
+}
+
+.cpub-section-item-pinned {
+  opacity: 0.7;
+  cursor: pointer;
+}
+
+.cpub-section-item-pinned:hover {
+  opacity: 1;
+}
+
+.cpub-section-item-pinned.cpub-section-item-selected {
+  opacity: 1;
+}
+
+.cpub-section-pin {
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  color: var(--text-faint, #666);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.cpub-section-item-pinned.cpub-section-item-selected .cpub-section-pin {
+  color: var(--accent, #e04030);
 }
 
 .cpub-section-add-btn {

@@ -34,14 +34,26 @@ function emitUpdate(): void {
   emit('update:document', JSON.parse(JSON.stringify(doc.value)));
 }
 
-// Selected section
+// Selected section — either a content section or a pinned item (intro/conclusion)
 const selectedId = ref<string | null>(doc.value.sections[0]?.id ?? null);
+const pinnedSelection = ref<'intro' | 'conclusion' | null>(null);
+
 const selectedSection = computed<ExplainerDocSection | null>(() =>
-  doc.value.sections.find(s => s.id === selectedId.value) ?? null,
+  pinnedSelection.value ? null : doc.value.sections.find(s => s.id === selectedId.value) ?? null,
 );
 const selectedIndex = computed(() =>
   doc.value.sections.findIndex(s => s.id === selectedId.value),
 );
+
+function selectPinned(which: 'intro' | 'conclusion'): void {
+  pinnedSelection.value = which;
+  selectedId.value = null;
+}
+
+function selectSection(sectionId: string): void {
+  pinnedSelection.value = null;
+  selectedId.value = sectionId;
+}
 
 // Module picker
 const showPicker = ref(false);
@@ -298,7 +310,9 @@ const mobilePanel = ref<'list' | 'editor' | 'preview'>('editor');
         <SectionList
           :sections="doc.sections"
           :selected-id="selectedId"
-          @select="selectedId = $event"
+          :pinned-selection="pinnedSelection"
+          @select="selectSection"
+          @select-pinned="selectPinned"
           @add="showPicker = true"
           @move="moveSection"
           @delete="deleteSection"
@@ -306,10 +320,96 @@ const mobilePanel = ref<'list' | 'editor' | 'preview'>('editor');
         />
       </div>
 
-      <!-- CENTER: Section editor -->
+      <!-- CENTER: Section editor / Intro editor / Conclusion editor -->
       <div class="cpub-ee-center" :class="{ 'cpub-ee-mobile-active': mobilePanel === 'editor' }">
+        <!-- Intro (hero) editor -->
+        <div v-if="pinnedSelection === 'intro'" class="cpub-ee-pinned-editor">
+          <div class="cpub-ee-pinned-header">
+            <i class="fa-solid fa-thumbtack" />
+            <span>Introduction</span>
+          </div>
+          <div class="cpub-ee-pinned-fields">
+            <label class="cpub-ee-field-label">Title</label>
+            <input
+              class="cpub-ee-field-input"
+              :value="doc.hero.title"
+              placeholder="Explainer title..."
+              @input="updateHero('title', ($event.target as HTMLInputElement).value)"
+            />
+            <label class="cpub-ee-field-label">Subtitle</label>
+            <textarea
+              class="cpub-ee-field-textarea"
+              :value="doc.hero.subtitle ?? ''"
+              placeholder="A compelling hook..."
+              rows="3"
+              @input="updateHero('subtitle', ($event.target as HTMLTextAreaElement).value)"
+            />
+            <label class="cpub-ee-field-label">Cover Image URL</label>
+            <input
+              class="cpub-ee-field-input"
+              :value="doc.hero.coverImageUrl ?? ''"
+              placeholder="https://..."
+              @input="updateHero('coverImageUrl', ($event.target as HTMLInputElement).value)"
+            />
+            <label class="cpub-ee-field-label">Highlight Phrase</label>
+            <input
+              class="cpub-ee-field-input"
+              :value="doc.hero.highlight ?? ''"
+              placeholder="Key phrase to emphasize..."
+              @input="updateHero('highlight', ($event.target as HTMLInputElement).value)"
+            />
+            <label class="cpub-ee-field-label">Scroll Hint</label>
+            <input
+              class="cpub-ee-field-input"
+              :value="doc.hero.scrollHint ?? ''"
+              placeholder="e.g. Scroll to explore →"
+              @input="updateHero('scrollHint', ($event.target as HTMLInputElement).value)"
+            />
+          </div>
+        </div>
+
+        <!-- Conclusion editor -->
+        <div v-else-if="pinnedSelection === 'conclusion'" class="cpub-ee-pinned-editor">
+          <div class="cpub-ee-pinned-header">
+            <i class="fa-solid fa-thumbtack" />
+            <span>Conclusion</span>
+          </div>
+          <div class="cpub-ee-pinned-fields">
+            <label class="cpub-ee-field-label">Heading</label>
+            <input
+              class="cpub-ee-field-input"
+              :value="doc.conclusion?.heading ?? ''"
+              placeholder="Wrapping up..."
+              @input="updateConclusion({ ...(doc.conclusion ?? { heading: '', body: '' }), heading: ($event.target as HTMLInputElement).value })"
+            />
+            <label class="cpub-ee-field-label">Body</label>
+            <textarea
+              class="cpub-ee-field-textarea"
+              :value="doc.conclusion?.body ?? ''"
+              placeholder="Summary and next steps..."
+              rows="6"
+              @input="updateConclusion({ ...(doc.conclusion ?? { heading: '', body: '' }), body: ($event.target as HTMLTextAreaElement).value })"
+            />
+            <label class="cpub-ee-field-label">Call to Action — Label</label>
+            <input
+              class="cpub-ee-field-input"
+              :value="doc.conclusion?.callToAction?.label ?? ''"
+              placeholder="e.g. Learn More"
+              @input="updateConclusion({ ...(doc.conclusion ?? { heading: '', body: '' }), callToAction: { ...(doc.conclusion?.callToAction ?? { label: '', url: '' }), label: ($event.target as HTMLInputElement).value } })"
+            />
+            <label class="cpub-ee-field-label">Call to Action — URL</label>
+            <input
+              class="cpub-ee-field-input"
+              :value="doc.conclusion?.callToAction?.url ?? ''"
+              placeholder="https://..."
+              @input="updateConclusion({ ...(doc.conclusion ?? { heading: '', body: '' }), callToAction: { ...(doc.conclusion?.callToAction ?? { label: '', url: '' }), url: ($event.target as HTMLInputElement).value } })"
+            />
+          </div>
+        </div>
+
+        <!-- Regular section editor -->
         <SectionEditor
-          v-if="selectedSection"
+          v-else-if="selectedSection"
           :section="selectedSection"
           :index="selectedIndex"
           @update:content="updateSectionContent"
@@ -336,7 +436,10 @@ const mobilePanel = ref<'list' | 'editor' | 'preview'>('editor');
 
         <!-- Preview tab -->
         <div v-if="rightTab === 'preview'" class="cpub-ee-preview-content">
-          <template v-if="selectedSection">
+          <template v-if="pinnedSelection === 'intro'">
+            <HeroRenderer :hero="doc.hero" />
+          </template>
+          <template v-else-if="selectedSection">
             <SectionRenderer
               :key="selectedSection.id"
               :section="selectedSection"
@@ -605,6 +708,65 @@ const mobilePanel = ref<'list' | 'editor' | 'preview'>('editor');
   transform: scale(0.55);
   transform-origin: top left;
   width: 182%;
+}
+
+/* Pinned section editor (intro/conclusion) */
+.cpub-ee-pinned-editor {
+  padding: 24px;
+}
+
+.cpub-ee-pinned-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-ui, monospace);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--accent, #e04030);
+  margin-bottom: 20px;
+}
+
+.cpub-ee-pinned-header i { font-size: 9px; }
+
+.cpub-ee-pinned-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cpub-ee-field-label {
+  font-family: var(--font-ui, monospace);
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-faint, #666);
+  margin-top: 8px;
+}
+
+.cpub-ee-field-input,
+.cpub-ee-field-textarea {
+  width: 100%;
+  padding: 8px 10px;
+  background: var(--surface2, #1c1c24);
+  border: 1px solid var(--border, #333);
+  color: var(--text, #ccc);
+  font-size: 13px;
+  outline: none;
+  font-family: inherit;
+  line-height: 1.5;
+}
+
+.cpub-ee-field-input:focus,
+.cpub-ee-field-textarea:focus {
+  border-color: var(--accent, #e04030);
+}
+
+.cpub-ee-field-textarea {
+  resize: vertical;
+  min-height: 60px;
 }
 
 /* Status bar */

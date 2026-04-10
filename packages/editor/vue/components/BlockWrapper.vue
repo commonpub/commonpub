@@ -6,6 +6,7 @@
  * - Selected state (accent outline)
  * - Click-to-select
  */
+import { ref, watch } from 'vue';
 import type { EditorBlock } from '../types.js';
 
 const props = defineProps<{
@@ -22,6 +23,29 @@ const emit = defineEmits<{
   'drag-start': [event: DragEvent];
   'drag-end': [event: DragEvent];
 }>();
+
+// Two-step delete: first click arms, second click confirms
+const deleteArmed = ref(false);
+let deleteTimer: ReturnType<typeof setTimeout> | null = null;
+
+function handleDelete(): void {
+  if (deleteArmed.value) {
+    emit('delete');
+    deleteArmed.value = false;
+    if (deleteTimer) { clearTimeout(deleteTimer); deleteTimer = null; }
+  } else {
+    deleteArmed.value = true;
+    deleteTimer = setTimeout(() => { deleteArmed.value = false; }, 2000);
+  }
+}
+
+// Reset armed state when block loses selection
+watch(() => props.selected, (sel) => {
+  if (!sel) {
+    deleteArmed.value = false;
+    if (deleteTimer) { clearTimeout(deleteTimer); deleteTimer = null; }
+  }
+});
 
 function onDragStart(event: DragEvent): void {
   event.dataTransfer?.setData('text/plain', props.block.id);
@@ -53,6 +77,9 @@ function onDragEnd(event: DragEvent): void {
       </button>
     </div>
 
+    <!-- Block type badge (top-left, shown on hover) -->
+    <div class="cpub-block-type-badge">{{ block.type.replace(/_/g, ' ') }}</div>
+
     <!-- Block controls (top-right, shown on hover) -->
     <div class="cpub-block-controls">
       <button class="cpub-block-ctrl" title="Move up" @click.stop="emit('move-up')">
@@ -64,8 +91,18 @@ function onDragEnd(event: DragEvent): void {
       <button class="cpub-block-ctrl" title="Duplicate" @click.stop="emit('duplicate')">
         <i class="fa-solid fa-copy"></i>
       </button>
-      <button class="cpub-block-ctrl cpub-block-ctrl--danger" title="Delete" @click.stop="emit('delete')">
-        <i class="fa-solid fa-trash"></i>
+      <button
+        class="cpub-block-ctrl"
+        :class="deleteArmed ? 'cpub-block-ctrl--armed' : 'cpub-block-ctrl--danger'"
+        :title="deleteArmed ? 'Click again to confirm' : 'Delete'"
+        @click.stop="handleDelete"
+      >
+        <template v-if="deleteArmed">
+          <i class="fa-solid fa-check"></i>
+        </template>
+        <template v-else>
+          <i class="fa-solid fa-trash"></i>
+        </template>
       </button>
     </div>
 
@@ -133,6 +170,25 @@ function onDragEnd(event: DragEvent): void {
   cursor: grabbing;
 }
 
+.cpub-block-type-badge {
+  position: absolute;
+  top: -22px;
+  left: 0;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: capitalize;
+  letter-spacing: 0.04em;
+  color: var(--text-faint);
+  opacity: 0;
+  transition: opacity 0.12s;
+  pointer-events: none;
+}
+
+.cpub-block-wrap:hover .cpub-block-type-badge {
+  opacity: 1;
+}
+
 .cpub-block-controls {
   --ctrl-surface: rgba(255, 255, 255, 0.15);
   position: absolute;
@@ -175,6 +231,17 @@ function onDragEnd(event: DragEvent): void {
 .cpub-block-ctrl--danger:hover {
   background: var(--red);
   color: var(--surface);
+}
+
+.cpub-block-ctrl--armed {
+  background: var(--red);
+  color: var(--surface);
+  animation: cpub-pulse 0.6s ease-in-out infinite alternate;
+}
+
+@keyframes cpub-pulse {
+  from { opacity: 1; }
+  to { opacity: 0.6; }
 }
 
 .cpub-block-inner {

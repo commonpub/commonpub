@@ -140,7 +140,8 @@ const floatingToolbar = ref<{
   top: number;
   left: number;
   blockId: string;
-}>({ visible: false, top: 0, left: 0, blockId: '' });
+  activeMarks: { bold: boolean; italic: boolean; strike: boolean; code: boolean; link: boolean };
+}>({ visible: false, top: 0, left: 0, blockId: '', activeMarks: { bold: false, italic: false, strike: false, code: false, link: false } });
 
 function onSelectionChange(block: EditorBlock, hasSelection: boolean, rect: DOMRect | null): void {
   if (hasSelection && rect) {
@@ -148,14 +149,24 @@ function onSelectionChange(block: EditorBlock, hasSelection: boolean, rect: DOMR
     const toolbarHeight = 44;
     const rawTop = rect.top - toolbarHeight;
     const rawLeft = rect.left + rect.width / 2;
+    // Query active marks from the TipTap editor
+    const editor = getActiveEditorForBlock(block.id);
+    const marks = {
+      bold: editor?.isActive('bold') ?? false,
+      italic: editor?.isActive('italic') ?? false,
+      strike: editor?.isActive('strike') ?? false,
+      code: editor?.isActive('code') ?? false,
+      link: editor?.isActive('link') ?? false,
+    };
     floatingToolbar.value = {
       visible: true,
       top: Math.max(4, rawTop),
       left: Math.max(toolbarWidth / 2 + 4, Math.min(rawLeft, window.innerWidth - toolbarWidth / 2 - 4)),
       blockId: block.id,
+      activeMarks: marks,
     };
   } else {
-    floatingToolbar.value = { visible: false, top: 0, left: 0, blockId: '' };
+    floatingToolbar.value = { visible: false, top: 0, left: 0, blockId: '', activeMarks: { bold: false, italic: false, strike: false, code: false, link: false } };
   }
 }
 
@@ -166,6 +177,11 @@ function setBlockRef(blockId: string, el: unknown): void {
   if (el && typeof el === 'object' && 'getEditor' in el) {
     blockRefs.value.set(blockId, el as { getEditor: () => unknown });
   }
+}
+
+function getActiveEditorForBlock(blockId: string): TipTapEditor | null {
+  const ref = blockRefs.value.get(blockId);
+  return (ref?.getEditor?.() as TipTapEditor) ?? null;
 }
 
 function getActiveEditor(): unknown {
@@ -193,6 +209,9 @@ function toggleMark(mark: string): void {
   editor.chain().focus().toggleMark(mark).run();
 }
 
+// --- Link URL inline prompt ---
+const linkPrompt = ref<{ visible: boolean; url: string }>({ visible: false, url: '' });
+
 function toggleLink(): void {
   const editor = getActiveEditor() as TipTapEditor | null;
   if (!editor) return;
@@ -200,10 +219,23 @@ function toggleLink(): void {
     editor.chain().focus().unsetLink().run();
     return;
   }
-  const url = window.prompt('Enter URL:');
-  if (url) {
-    editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
-  }
+  // Open inline prompt instead of window.prompt
+  linkPrompt.value = { visible: true, url: '' };
+}
+
+function applyLink(): void {
+  const url = linkPrompt.value.url.trim();
+  linkPrompt.value = { visible: false, url: '' };
+  if (!url) return;
+  const editor = getActiveEditor() as TipTapEditor | null;
+  if (!editor) return;
+  editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
+}
+
+function cancelLink(): void {
+  linkPrompt.value = { visible: false, url: '' };
+  const editor = getActiveEditor() as TipTapEditor | null;
+  editor?.chain().focus().run();
 }
 
 // --- Empty state ---
@@ -275,7 +307,7 @@ function onDrop(atIndex: number, event: DragEvent): void {
 // --- Click outside to deselect ---
 function onCanvasClick(): void {
   props.blockEditor.selectBlock(null);
-  floatingToolbar.value = { visible: false, top: 0, left: 0, blockId: '' };
+  floatingToolbar.value = { visible: false, top: 0, left: 0, blockId: '', activeMarks: { bold: false, italic: false, strike: false, code: false, link: false } };
 }
 
 // --- Resolve block component (injected overrides take priority) ---
@@ -310,24 +342,51 @@ function needsSearch(type: string): boolean {
   return type === 'partsList';
 }
 
-// --- Undo/Redo keyboard shortcuts ---
+// --- Keyboard shortcuts ---
 function onKeydown(event: KeyboardEvent): void {
   const mod = event.metaKey || event.ctrlKey;
-  if (!mod || event.key.toLowerCase() !== 'z') return;
-
-  // Don't intercept when an element with its own undo is focused:
-  // - ProseMirror (TipTap text blocks have their own undo)
-  // - textarea/input (native browser undo for code blocks, math, titles, etc.)
   const el = document.activeElement;
-  if (el?.closest('.ProseMirror')) return;
-  const tag = el?.tagName;
-  if (tag === 'TEXTAREA' || tag === 'INPUT' || tag === 'SELECT') return;
+  const inProseMirror = !!el?.closest('.ProseMirror');
+  const inFormField = el?.tagName === 'TEXTAREA' || el?.tagName === 'INPUT' || el?.tagName === 'SELECT';
 
-  event.preventDefault();
-  if (event.shiftKey) {
-    props.blockEditor.redo();
-  } else {
-    props.blockEditor.undo();
+  // Undo/Redo: Ctrl+Z / Ctrl+Shift+Z
+  if (mod && event.key.toLowerCase() === 'z') {
+    if (inProseMirror || inFormField) return;
+    event.preventDefault();
+    if (event.shiftKey) { props.blockEditor.redo(); } else { props.blockEditor.undo(); }
+    return;
+  }
+
+  // Block operations only when a block is selected and not editing text
+  const selectedId = props.blockEditor.selectedBlockId.value;
+  if (!selectedId || inProseMirror || inFormField) return;
+
+  // Ctrl+Shift+ArrowUp: move block up
+  if (mod && event.shiftKey && event.key === 'ArrowUp') {
+    event.preventDefault();
+    props.blockEditor.moveBlockUp(selectedId);
+    return;
+  }
+
+  // Ctrl+Shift+ArrowDown: move block down
+  if (mod && event.shiftKey && event.key === 'ArrowDown') {
+    event.preventDefault();
+    props.blockEditor.moveBlockDown(selectedId);
+    return;
+  }
+
+  // Ctrl+D: duplicate block
+  if (mod && event.key.toLowerCase() === 'd') {
+    event.preventDefault();
+    props.blockEditor.duplicateBlock(selectedId);
+    return;
+  }
+
+  // Delete / Backspace: remove selected block
+  if (event.key === 'Delete' || event.key === 'Backspace') {
+    event.preventDefault();
+    props.blockEditor.removeBlock(selectedId);
+    return;
   }
 }
 
@@ -409,21 +468,43 @@ onUnmounted(() => { document.removeEventListener('keydown', onKeydown); });
         class="cpub-floating-toolbar"
         :style="{ top: floatingToolbar.top + 'px', left: floatingToolbar.left + 'px' }"
       >
-        <button class="cpub-ft-btn" title="Bold" @mousedown.prevent="toggleMark('bold')">
+        <button class="cpub-ft-btn" :class="{ 'cpub-ft-btn--active': floatingToolbar.activeMarks.bold }" title="Bold" @mousedown.prevent="toggleMark('bold')">
           <i class="fa-solid fa-bold"></i>
         </button>
-        <button class="cpub-ft-btn" title="Italic" @mousedown.prevent="toggleMark('italic')">
+        <button class="cpub-ft-btn" :class="{ 'cpub-ft-btn--active': floatingToolbar.activeMarks.italic }" title="Italic" @mousedown.prevent="toggleMark('italic')">
           <i class="fa-solid fa-italic"></i>
         </button>
-        <button class="cpub-ft-btn" title="Strikethrough" @mousedown.prevent="toggleMark('strike')">
+        <button class="cpub-ft-btn" :class="{ 'cpub-ft-btn--active': floatingToolbar.activeMarks.strike }" title="Strikethrough" @mousedown.prevent="toggleMark('strike')">
           <i class="fa-solid fa-strikethrough"></i>
         </button>
-        <button class="cpub-ft-btn" title="Inline code" @mousedown.prevent="toggleMark('code')">
+        <button class="cpub-ft-btn" :class="{ 'cpub-ft-btn--active': floatingToolbar.activeMarks.code }" title="Inline code" @mousedown.prevent="toggleMark('code')">
           <i class="fa-solid fa-code"></i>
         </button>
         <div class="cpub-ft-divider" />
-        <button class="cpub-ft-btn" title="Link" @mousedown.prevent="toggleLink">
+        <button class="cpub-ft-btn" :class="{ 'cpub-ft-btn--active': floatingToolbar.activeMarks.link }" title="Link" @mousedown.prevent="toggleLink">
           <i class="fa-solid fa-link"></i>
+        </button>
+      </div>
+      <!-- Inline link URL prompt -->
+      <div
+        v-if="linkPrompt.visible && floatingToolbar.visible"
+        class="cpub-link-prompt"
+        :style="{ top: (floatingToolbar.top + 38) + 'px', left: floatingToolbar.left + 'px' }"
+      >
+        <input
+          v-model="linkPrompt.url"
+          class="cpub-link-prompt-input"
+          type="url"
+          placeholder="https://..."
+          autofocus
+          @keydown.enter.prevent="applyLink"
+          @keydown.escape.prevent="cancelLink"
+        />
+        <button class="cpub-link-prompt-btn" @mousedown.prevent="applyLink">
+          <i class="fa-solid fa-check"></i>
+        </button>
+        <button class="cpub-link-prompt-btn cpub-link-prompt-btn--cancel" @mousedown.prevent="cancelLink">
+          <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
     </Teleport>
@@ -536,10 +617,59 @@ onUnmounted(() => { document.removeEventListener('keydown', onKeydown); });
   color: var(--surface, #fff);
 }
 
+.cpub-ft-btn--active {
+  background: var(--ft-surface);
+  color: var(--accent, #5b9cf6);
+}
+
 .cpub-ft-divider {
   width: 2px;
   height: 18px;
   background: var(--ft-surface);
   margin: 0 2px;
 }
+
+.cpub-link-prompt {
+  position: fixed;
+  z-index: 201;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  background: var(--text, #1a1a1a);
+  border: var(--border-width-default, 2px) solid var(--border, #1a1a1a);
+  box-shadow: var(--shadow-md);
+  padding: 3px;
+  transform: translateX(-50%);
+}
+
+.cpub-link-prompt-input {
+  width: 200px;
+  padding: 4px 8px;
+  background: transparent;
+  border: none;
+  color: var(--surface3, #eaeae7);
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  outline: none;
+}
+
+.cpub-link-prompt-input::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.cpub-link-prompt-btn {
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--surface3, #eaeae7);
+  cursor: pointer;
+  font-size: 10px;
+}
+
+.cpub-link-prompt-btn:hover { background: rgba(255, 255, 255, 0.15); color: #fff; }
+.cpub-link-prompt-btn--cancel:hover { background: var(--red, #e04030); color: #fff; }
 </style>

@@ -47,6 +47,23 @@ function onDragLeave(): void {
   transition: height 0.15s;
 }
 
+/* Always-visible thin line */
+.cpub-insert-zone::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  background: var(--border2, rgba(0, 0, 0, 0.06));
+  pointer-events: none;
+}
+
+.cpub-insert-zone:hover::before,
+.cpub-insert-zone--dragover::before {
+  background: transparent;
+}
+
 .cpub-insert-zone:hover,
 .cpub-insert-zone--dragover {
   height: 36px;
