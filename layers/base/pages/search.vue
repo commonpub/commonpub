@@ -752,6 +752,11 @@ const { data: relatedCommunities } = await useFetch('/api/hubs', {
   }
 }
 
+@media (max-width: 480px) {
+  .cpub-page-shell { padding: 12px; gap: 16px; }
+  .cpub-search-hero { padding: 12px 12px 0; }
+}
+
 /* ── COMMUNITY RESULT CARDS ── */
 .cpub-search-hub-card {
   display: flex;

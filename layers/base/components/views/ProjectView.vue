@@ -1510,8 +1510,33 @@ async function handleBuild(): Promise<void> {
   .cpub-toc-col { display: none; }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .cpub-page-outer { padding: 0 16px; }
-  .cpub-hero-cover { height: 180px; }
+  .cpub-hero-cover { height: 200px; }
+  .cpub-project-title { font-size: 18px; }
+  .cpub-project-desc { font-size: 13px; }
+  .cpub-tabs-strip { padding: 0 16px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .cpub-tabs-inner { max-width: none; padding: 0; }
+  .cpub-tab { padding: 10px 12px; font-size: 11px; white-space: nowrap; }
+  .cpub-engagement-row { flex-wrap: wrap; gap: 6px; }
+  .cpub-engage-btn { padding: 8px 12px; min-height: 36px; }
+  .cpub-engage-sep { display: none; }
+  .cpub-content-area { padding: 0 16px; }
+  .cpub-sidebar { position: static; }
+  .cpub-author-tags .cpub-author-tag { padding: 2px 8px; font-size: 10px; }
+}
+
+@media (max-width: 480px) {
+  .cpub-page-outer { padding: 0 12px; }
+  .cpub-hero-cover { height: 160px; }
+  .cpub-project-title { font-size: 16px; }
+  .cpub-project-desc { font-size: 12px; line-height: 1.5; }
+  .cpub-project-meta { padding: 16px 0 0; }
+  .cpub-breadcrumbs { font-size: 10px; padding: 10px 0 8px; }
+  .cpub-tab { padding: 8px 10px; font-size: 10px; }
+  .cpub-engage-btn { font-size: 11px; padding: 8px 10px; }
+  .cpub-author-row { gap: 8px; }
+  .cpub-author-detail { font-size: 10px; }
+  .cpub-toc-item { padding: 6px 0 6px 10px; font-size: 11px; min-height: 36px; display: flex; align-items: center; }
 }
 </style>

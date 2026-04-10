@@ -775,6 +775,24 @@ onUnmounted(() => { document.removeEventListener('keydown', onKeydown); });
   .cpub-mobile-author { display: flex; }
   .cpub-content-wrap { padding: 24px 16px 48px; }
   .cpub-section-nav { flex-direction: column; gap: 16px; }
-  .cpub-section-title { font-size: 24px; }
+  .cpub-section-title { font-size: 22px; }
+  .cpub-explainer-topbar { gap: 6px; padding: 0 10px; }
+  .cpub-explainer-badge { display: none; }
+  .cpub-topbar-title { font-size: 12px; }
+  .cpub-topbar-divider { display: none; }
+  .cpub-progress-text { font-size: 10px; }
+  .cpub-icon-btn { width: 34px; height: 34px; }
+  .cpub-progress-dots { display: none; }
+}
+
+@media (max-width: 480px) {
+  .cpub-content-wrap { padding: 16px 12px 40px; }
+  .cpub-section-title { font-size: 18px; }
+  .cpub-section-body { font-size: 14px; }
+  .cpub-section-num-badge { width: 28px; height: 28px; font-size: 11px; }
+  .cpub-icon-btn { width: 36px; height: 36px; }
+  .cpub-nav-btn-group { gap: 2px; }
+  .cpub-section-nav-btn { padding: 12px; font-size: 12px; min-height: 44px; }
+  .cpub-prev-btn { min-height: 44px; padding: 10px 16px; }
 }
 </style>

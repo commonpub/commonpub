@@ -440,4 +440,18 @@ useSeoMeta({
   color: var(--text-faint); padding: 2px 0;
 }
 .cpub-reply-btn:hover { color: var(--accent); }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 480px) {
+  .cpub-post-page { padding: 16px 12px; }
+  .cpub-post-card { padding: 14px; }
+  .cpub-post-content { font-size: 14px; }
+  .cpub-post-actions { flex-wrap: wrap; gap: 6px; }
+  .cpub-post-action-btn { padding: 6px 10px; min-height: 32px; }
+  .cpub-reply-nested { margin-left: 12px; }
+  .cpub-reply { padding: 10px 12px; }
+  .cpub-reply-row { flex-direction: column; }
+  .cpub-reply-input { width: 100%; }
+  .cpub-post-mod-bar { flex-wrap: wrap; }
+}
 </style>

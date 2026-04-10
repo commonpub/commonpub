@@ -869,4 +869,12 @@ async function handleReport(): Promise<void> {
     grid-template-columns: 1fr;
   }
 }
+
+@media (max-width: 480px) {
+  .cpub-profile-tabs-inner { padding: 0 12px; }
+  .cpub-profile-main { padding: 16px 12px; }
+  .cpub-profile-tab { padding: 10px 10px; font-size: 11px; min-height: 40px; }
+  .cpub-profile-stat { min-width: 100%; padding: 10px 16px; }
+  .cpub-profile-name { font-size: 18px; }
+}
 </style>

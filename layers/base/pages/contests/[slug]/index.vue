@@ -553,4 +553,34 @@ async function submitEntry(): Promise<void> {
   font-size: 11px; color: var(--text-dim); margin-left: auto; font-family: var(--font-mono);
 }
 .cpub-admin-status strong { color: var(--accent); text-transform: capitalize; }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 768px) {
+  .cpub-hero { padding: 32px 0 28px; }
+  .cpub-hero-inner { padding: 0 16px; }
+  .cpub-hero-title { font-size: 24px; }
+  .cpub-hero-tagline { font-size: 13px; }
+  .cpub-hero-meta { flex-wrap: wrap; gap: 10px; }
+  .cpub-contest-main { padding: 20px 16px; }
+  .cpub-contest-layout { grid-template-columns: 1fr; }
+  .cpub-prize-grid { grid-template-columns: 1fr; }
+  .cpub-judges-grid { grid-template-columns: 1fr 1fr; }
+  .cpub-entry-grid { grid-template-columns: 1fr; }
+  .cpub-countdown-block { padding: 8px 12px; min-width: 48px; }
+  .cpub-countdown-val { font-size: 20px; }
+}
+
+@media (max-width: 480px) {
+  .cpub-hero-title { font-size: 20px; }
+  .cpub-hero-tagline { font-size: 12px; margin-bottom: 16px; }
+  .cpub-hero-stats { flex-wrap: wrap; gap: 16px; }
+  .cpub-hero-stat-val { font-size: 16px; }
+  .cpub-contest-main { padding: 16px 12px; }
+  .cpub-judges-grid { grid-template-columns: 1fr; }
+  .cpub-prize-additional { grid-template-columns: 1fr; }
+  .cpub-sponsor-grid { grid-template-columns: 1fr; }
+  .cpub-countdown-row { flex-wrap: wrap; justify-content: center; }
+  .cpub-hero-cta { flex-direction: column; align-items: stretch; }
+  .cpub-total-prize { border-left: none; padding-left: 0; justify-content: center; }
+}
 </style>

@@ -766,19 +766,24 @@ useJsonLd({
 }
 
 /* ── RESPONSIVE ── */
-@media (max-width: 640px) {
-  .cpub-article-wrap {
-    padding: 24px 16px 48px;
-  }
-  .cpub-related-grid {
-    grid-template-columns: 1fr;
-  }
-  .cpub-engagement-row {
-    flex-wrap: wrap;
-  }
-  .cpub-author-card {
-    flex-direction: column;
-    gap: 16px;
-  }
+@media (max-width: 768px) {
+  .cpub-article-wrap { padding: 24px 16px 48px; }
+  .cpub-article-title { font-size: 22px; }
+  .cpub-article-lead { font-size: 14px; margin-bottom: 16px; }
+  .cpub-related-grid { grid-template-columns: 1fr 1fr; }
+  .cpub-engagement-row { flex-wrap: wrap; gap: 6px; }
+  .cpub-engage-btn { padding: 8px 12px; min-height: 36px; }
+  .cpub-engage-sep { display: none; }
+  .cpub-tag-link { padding: 4px 10px; font-size: 11px; min-height: 28px; display: inline-flex; align-items: center; }
+}
+
+@media (max-width: 480px) {
+  .cpub-article-wrap { padding: 16px 12px 40px; }
+  .cpub-article-title { font-size: 20px; }
+  .cpub-article-lead { font-size: 13px; }
+  .cpub-related-grid { grid-template-columns: 1fr; }
+  .cpub-author-card { flex-direction: column; gap: 12px; }
+  .cpub-engage-btn { font-size: 11px; }
+  .cpub-meta-row { font-size: 10px; flex-wrap: wrap; gap: 6px; }
 }
 </style>

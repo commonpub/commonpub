@@ -599,5 +599,15 @@ async function deleteItem(id: string, title: string): Promise<void> {
     width: 100%;
     margin-top: 4px;
   }
+  .cpub-dash-action-btn {
+    padding: 6px 10px;
+    min-height: 32px;
+  }
+}
+
+@media (max-width: 480px) {
+  .cpub-dash { padding: 16px 12px; }
+  .cpub-dash-stat { min-width: 50%; padding: 12px 10px; }
+  .cpub-dash-tab { padding: 8px 12px; font-size: 11px; }
 }
 </style>
