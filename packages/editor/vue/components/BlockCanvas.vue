@@ -167,6 +167,7 @@ function onSelectionChange(block: EditorBlock, hasSelection: boolean, rect: DOMR
     };
   } else {
     floatingToolbar.value = { visible: false, top: 0, left: 0, blockId: '', activeMarks: { bold: false, italic: false, strike: false, code: false, link: false } };
+    linkPrompt.value = { visible: false, url: '' };
   }
 }
 
@@ -308,6 +309,7 @@ function onDrop(atIndex: number, event: DragEvent): void {
 function onCanvasClick(): void {
   props.blockEditor.selectBlock(null);
   floatingToolbar.value = { visible: false, top: 0, left: 0, blockId: '', activeMarks: { bold: false, italic: false, strike: false, code: false, link: false } };
+  linkPrompt.value = { visible: false, url: '' };
 }
 
 // --- Resolve block component (injected overrides take priority) ---
