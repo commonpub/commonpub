@@ -404,6 +404,24 @@ async function handleUrlImport(result: ImportedContent): Promise<void> {
           <i class="fa-solid fa-exclamation-triangle"></i> Save failed
         </span>
       </div>
+      <div v-if="!isExplainer" class="cpub-topbar-undo-redo">
+        <button
+          class="cpub-topbar-icon-btn"
+          title="Undo (Ctrl+Z)"
+          :disabled="!blockEditor.canUndo.value"
+          @click="blockEditor.undo()"
+        >
+          <i class="fa-solid fa-rotate-left"></i>
+        </button>
+        <button
+          class="cpub-topbar-icon-btn"
+          title="Redo (Ctrl+Shift+Z)"
+          :disabled="!blockEditor.canRedo.value"
+          @click="blockEditor.redo()"
+        >
+          <i class="fa-solid fa-rotate-right"></i>
+        </button>
+      </div>
       <div class="cpub-mode-tabs">
         <button :class="['cpub-mode-tab', { active: mode === 'write' }]" @click="mode = 'write'">Write</button>
         <button :class="['cpub-mode-tab', { active: mode === 'preview' }]" @click="enterPreview">Preview</button>
@@ -619,6 +637,37 @@ async function handleUrlImport(result: ImportedContent): Promise<void> {
 .cpub-autosave-status--saved { color: var(--green); }
 .cpub-autosave-status--error { color: var(--red); }
 
+.cpub-topbar-undo-redo {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-right: 4px;
+  flex-shrink: 0;
+}
+
+.cpub-topbar-icon-btn {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: var(--border-width-default) solid transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 0;
+}
+.cpub-topbar-icon-btn:hover:not(:disabled) {
+  background: var(--surface2);
+  border-color: var(--border2);
+  color: var(--text);
+}
+.cpub-topbar-icon-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
 .cpub-mode-tabs {
   display: flex;
   background: var(--surface2);
@@ -736,6 +785,7 @@ async function handleUrlImport(result: ImportedContent): Promise<void> {
   .cpub-editor-back { margin-left: 0; }
   .cpub-topbar-title-input { max-width: none; font-size: 12px; padding: 3px 6px; }
   .cpub-autosave-status { display: none; }
+  .cpub-topbar-undo-redo { display: none; }
   .cpub-mode-tabs { margin: 0 6px; padding: 1px; }
   .cpub-mode-tab { padding: 4px 10px; font-size: 10px; }
   .cpub-topbar-spacer { display: none; }

@@ -477,6 +477,22 @@ async function createVersion(): Promise<void> {
       <span class="cpub-docs-topbar-title">{{ site?.name ?? 'Docs' }}</span>
       <div class="cpub-docs-topbar-spacer" />
       <button
+        class="cpub-docs-toolbar-btn"
+        title="Undo (Ctrl+Z)"
+        :disabled="!blockEditor.canUndo.value"
+        @click="blockEditor.undo()"
+      >
+        <i class="fa-solid fa-rotate-left" />
+      </button>
+      <button
+        class="cpub-docs-toolbar-btn"
+        title="Redo (Ctrl+Shift+Z)"
+        :disabled="!blockEditor.canRedo.value"
+        @click="blockEditor.redo()"
+      >
+        <i class="fa-solid fa-rotate-right" />
+      </button>
+      <button
         v-if="selectedPageId"
         class="cpub-docs-toolbar-btn"
         title="Import Markdown"

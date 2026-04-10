@@ -9,7 +9,7 @@
  * - Drag-and-drop reordering via BlockWrapper
  * - Floating text toolbar on selection (delegated to FloatingToolbar)
  */
-import { ref, inject, type Component } from 'vue';
+import { ref, inject, onMounted, onUnmounted, type Component } from 'vue';
 import type { EditorBlock, BlockTypeGroup } from '../types.js';
 import type { BlockEditor } from '../composables/useBlockEditor.js';
 import { BLOCK_COMPONENTS_KEY, UPLOAD_HANDLER_KEY, SEARCH_PRODUCTS_KEY } from '../provide.js';
@@ -309,6 +309,25 @@ function needsUpload(type: string): boolean {
 function needsSearch(type: string): boolean {
   return type === 'partsList';
 }
+
+// --- Undo/Redo keyboard shortcuts ---
+function onKeydown(event: KeyboardEvent): void {
+  const mod = event.metaKey || event.ctrlKey;
+  if (!mod || event.key.toLowerCase() !== 'z') return;
+
+  // Don't intercept when a TipTap/ProseMirror editor is focused — it handles its own undo
+  if (document.activeElement?.closest('.ProseMirror')) return;
+
+  event.preventDefault();
+  if (event.shiftKey) {
+    props.blockEditor.redo();
+  } else {
+    props.blockEditor.undo();
+  }
+}
+
+onMounted(() => { document.addEventListener('keydown', onKeydown); });
+onUnmounted(() => { document.removeEventListener('keydown', onKeydown); });
 </script>
 
 <template>
