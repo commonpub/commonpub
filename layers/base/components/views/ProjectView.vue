@@ -937,9 +937,11 @@ async function handleBuild(): Promise<void> {
 }
 
 .cpub-cover-photo-img {
-  width: 100%;
-  display: block;
+  max-width: 100%;
+  max-height: 500px;
   height: auto;
+  display: block;
+  margin: 0 auto;
 }
 
 /* ── PROSE ── */
