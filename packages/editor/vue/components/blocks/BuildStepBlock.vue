@@ -4,7 +4,7 @@
  * Uses its own useBlockEditor instance for children (text, image, code, callout, divider).
  * Migrates old flat format (instructions + image) to children on load.
  */
-import { ref, computed, watch, inject, type Component } from 'vue';
+import { ref, computed, watch, inject, onMounted, onUnmounted, type Component } from 'vue';
 import type { BlockTuple } from '@commonpub/editor';
 import { useBlockEditor } from '../../composables/useBlockEditor.js';
 import { UPLOAD_HANDLER_KEY } from '../../provide.js';
@@ -127,8 +127,25 @@ function moveChildDown(blockId: string): void {
   emitFullUpdate();
 }
 
+function onChildEnterAtEnd(blockId: string): void {
+  const idx = childEditor.getBlockIndex(blockId);
+  if (idx === -1) return;
+  childEditor.addBlock('paragraph', undefined, idx + 1);
+  emitFullUpdate();
+}
+
+function onChildBackspaceEmpty(blockId: string): void {
+  if (childEditor.blocks.value.length <= 1) return;
+  childEditor.removeBlock(blockId);
+  emitFullUpdate();
+}
+
 function getChildComponent(type: string): Component {
   return CHILD_COMPONENTS[type] ?? TextBlock;
+}
+
+function isTextBlock(type: string): boolean {
+  return type === 'paragraph' || type === 'text' || type === 'bulletList' || type === 'orderedList';
 }
 
 function needsUpload(type: string): boolean {
@@ -151,6 +168,7 @@ watch(
 
 // --- Add menu ---
 const showAddMenu = ref(false);
+const addRowRef = ref<HTMLElement | null>(null);
 
 function toggleAddMenu(): void {
   showAddMenu.value = !showAddMenu.value;
@@ -160,6 +178,15 @@ function onAddType(type: string): void {
   showAddMenu.value = false;
   addChild(type);
 }
+
+function onClickOutsideMenu(e: MouseEvent): void {
+  if (showAddMenu.value && addRowRef.value && !addRowRef.value.contains(e.target as Node)) {
+    showAddMenu.value = false;
+  }
+}
+
+onMounted(() => document.addEventListener('click', onClickOutsideMenu));
+onUnmounted(() => document.removeEventListener('click', onClickOutsideMenu));
 </script>
 
 <template>
@@ -193,6 +220,8 @@ function onAddType(type: string): void {
           :content="block.content"
           v-bind="needsUpload(block.type) && uploadHandler ? { onUpload: uploadHandler } : {}"
           @update="(c: Record<string, unknown>) => onChildUpdate(block.id, c)"
+          @enter-at-end="isTextBlock(block.type) && onChildEnterAtEnd(block.id)"
+          @backspace-empty="isTextBlock(block.type) && onChildBackspaceEmpty(block.id)"
         />
         <div class="cpub-step-child-actions">
           <button
@@ -223,7 +252,7 @@ function onAddType(type: string): void {
       </div>
 
       <!-- Add block button -->
-      <div class="cpub-step-add-row">
+      <div ref="addRowRef" class="cpub-step-add-row">
         <button class="cpub-step-add-btn" @click="toggleAddMenu">
           <i class="fa-solid fa-plus"></i> Add block
         </button>
