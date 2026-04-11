@@ -179,6 +179,7 @@ function closeMobileSidebars(): void {
 }
 
 // --- Canvas toolbar ---
+const canvasRef = ref<{ toggleMark: (mark: string) => void; toggleLink: () => void; getActiveMarks: () => Record<string, boolean> } | null>(null);
 const viewportMode = ref<'desktop' | 'tablet' | 'mobile'>('desktop');
 const canvasMaxWidth = computed(() => {
   if (viewportMode.value === 'mobile') return '375px';
@@ -259,6 +260,14 @@ const canvasMaxWidth = computed(() => {
     <div class="cpub-ae-center">
       <!-- Canvas toolbar -->
       <div class="cpub-ae-canvas-toolbar">
+        <!-- Text formatting -->
+        <button class="cpub-ae-tool-btn" title="Bold (Ctrl+B)" @click="canvasRef?.toggleMark('bold')"><i class="fa-solid fa-bold"></i></button>
+        <button class="cpub-ae-tool-btn" title="Italic (Ctrl+I)" @click="canvasRef?.toggleMark('italic')"><i class="fa-solid fa-italic"></i></button>
+        <button class="cpub-ae-tool-btn" title="Strikethrough" @click="canvasRef?.toggleMark('strike')"><i class="fa-solid fa-strikethrough"></i></button>
+        <button class="cpub-ae-tool-btn" title="Inline code" @click="canvasRef?.toggleMark('code')"><i class="fa-solid fa-code"></i></button>
+        <button class="cpub-ae-tool-btn" title="Link" @click="canvasRef?.toggleLink()"><i class="fa-solid fa-link"></i></button>
+        <div class="cpub-ae-toolbar-divider" />
+        <!-- Navigation -->
         <button class="cpub-ae-tool-btn" title="Previous block"><i class="fa-solid fa-chevron-up"></i></button>
         <button class="cpub-ae-tool-btn" title="Next block"><i class="fa-solid fa-chevron-down"></i></button>
         <div class="cpub-ae-toolbar-divider" />
@@ -272,7 +281,7 @@ const canvasMaxWidth = computed(() => {
       <!-- Scrollable canvas -->
       <div class="cpub-ae-canvas">
         <div class="cpub-ae-canvas-inner" :style="{ maxWidth: canvasMaxWidth }">
-          <BlockCanvas :block-editor="blockEditor" :block-types="blockTypes" />
+          <BlockCanvas ref="canvasRef" :block-editor="blockEditor" :block-types="blockTypes" />
         </div>
       </div>
 

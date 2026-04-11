@@ -132,6 +132,7 @@ function closeMobileSidebars(): void {
 }
 
 // --- Canvas toolbar ---
+const canvasRef = ref<{ toggleMark: (mark: string) => void; toggleLink: () => void; getActiveMarks: () => Record<string, boolean> } | null>(null);
 const viewportMode = ref<'desktop' | 'tablet' | 'mobile'>('desktop');
 const canvasMaxWidth = computed(() => {
   if (viewportMode.value === 'mobile') return '375px';
@@ -158,6 +159,13 @@ const canvasMaxWidth = computed(() => {
     <div class="cpub-be-center">
       <!-- Canvas toolbar -->
       <div class="cpub-be-canvas-toolbar">
+        <!-- Text formatting -->
+        <button class="cpub-be-tool-btn" title="Bold (Ctrl+B)" @click="canvasRef?.toggleMark('bold')"><i class="fa-solid fa-bold"></i></button>
+        <button class="cpub-be-tool-btn" title="Italic (Ctrl+I)" @click="canvasRef?.toggleMark('italic')"><i class="fa-solid fa-italic"></i></button>
+        <button class="cpub-be-tool-btn" title="Strikethrough" @click="canvasRef?.toggleMark('strike')"><i class="fa-solid fa-strikethrough"></i></button>
+        <button class="cpub-be-tool-btn" title="Inline code" @click="canvasRef?.toggleMark('code')"><i class="fa-solid fa-code"></i></button>
+        <button class="cpub-be-tool-btn" title="Link" @click="canvasRef?.toggleLink()"><i class="fa-solid fa-link"></i></button>
+        <div class="cpub-be-toolbar-divider" />
         <div class="cpub-be-viewport-tabs">
           <button class="cpub-be-viewport-tab" :class="{ active: viewportMode === 'desktop' }" title="Desktop" @click="viewportMode = 'desktop'"><i class="fa-solid fa-desktop"></i></button>
           <button class="cpub-be-viewport-tab" :class="{ active: viewportMode === 'tablet' }" title="Tablet" @click="viewportMode = 'tablet'"><i class="fa-solid fa-tablet-screen-button"></i></button>
@@ -233,7 +241,7 @@ const canvasMaxWidth = computed(() => {
         </div>
 
         <!-- Block editor canvas -->
-        <BlockCanvas :block-editor="blockEditor" :block-types="blockTypes" />
+        <BlockCanvas ref="canvasRef" :block-editor="blockEditor" :block-types="blockTypes" />
       </div>
 
       <!-- Word count bar -->
@@ -362,9 +370,15 @@ const canvasMaxWidth = computed(() => {
 .cpub-be-canvas-toolbar {
   display: flex; align-items: center; gap: 2px; padding: 4px 12px;
   background: var(--surface); border-bottom: var(--border-width-default) solid var(--border); flex-shrink: 0; min-height: 32px;
-  justify-content: flex-end;
 }
-.cpub-be-viewport-tabs { display: flex; gap: 0; }
+.cpub-be-tool-btn {
+  width: 28px; height: 26px; display: flex; align-items: center; justify-content: center;
+  background: none; border: var(--border-width-default) solid transparent; color: var(--text-dim);
+  font-size: 11px; cursor: pointer;
+}
+.cpub-be-tool-btn:hover { background: var(--surface2); border-color: var(--border2); color: var(--text); }
+.cpub-be-toolbar-divider { width: 2px; height: 18px; background: var(--border2); margin: 0 6px; }
+.cpub-be-viewport-tabs { display: flex; gap: 0; margin-left: auto; }
 .cpub-be-viewport-tab {
   width: 28px; height: 24px; display: flex; align-items: center; justify-content: center;
   background: none; border: var(--border-width-default) solid var(--border); border-left-width: 0; color: var(--text-faint);

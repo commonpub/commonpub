@@ -122,6 +122,7 @@ watch(() => props.metadata.title, (v) => { if (v !== titleRef.value) titleRef.va
 watch(titleRef, (v) => updateMeta('title', v));
 
 // --- Canvas toolbar ---
+const canvasRef = ref<{ toggleMark: (mark: string) => void; toggleLink: () => void; getActiveMarks: () => Record<string, boolean> } | null>(null);
 const viewportMode = ref<'desktop' | 'tablet' | 'mobile'>('desktop');
 const canvasMaxWidth = computed(() => {
   if (viewportMode.value === 'mobile') return '375px';
@@ -163,6 +164,13 @@ const blockCount = computed(() => props.blockEditor.blocks.value.length);
     <div class="cpub-pe-center">
       <!-- Canvas toolbar -->
       <div class="cpub-pe-canvas-toolbar">
+        <!-- Text formatting -->
+        <button class="cpub-pe-tool-btn" title="Bold (Ctrl+B)" @click="canvasRef?.toggleMark('bold')"><i class="fa-solid fa-bold"></i></button>
+        <button class="cpub-pe-tool-btn" title="Italic (Ctrl+I)" @click="canvasRef?.toggleMark('italic')"><i class="fa-solid fa-italic"></i></button>
+        <button class="cpub-pe-tool-btn" title="Strikethrough" @click="canvasRef?.toggleMark('strike')"><i class="fa-solid fa-strikethrough"></i></button>
+        <button class="cpub-pe-tool-btn" title="Inline code" @click="canvasRef?.toggleMark('code')"><i class="fa-solid fa-code"></i></button>
+        <button class="cpub-pe-tool-btn" title="Link" @click="canvasRef?.toggleLink()"><i class="fa-solid fa-link"></i></button>
+        <div class="cpub-pe-toolbar-divider" />
         <div class="cpub-pe-viewport-tabs">
           <button class="cpub-pe-viewport-tab" :class="{ active: viewportMode === 'desktop' }" title="Desktop" @click="viewportMode = 'desktop'"><i class="fa-solid fa-desktop"></i></button>
           <button class="cpub-pe-viewport-tab" :class="{ active: viewportMode === 'tablet' }" title="Tablet" @click="viewportMode = 'tablet'"><i class="fa-solid fa-tablet-screen-button"></i></button>
@@ -207,7 +215,7 @@ const blockCount = computed(() => props.blockEditor.blocks.value.length);
             placeholder="Project title..."
           />
 
-          <BlockCanvas :block-editor="blockEditor" :block-types="blockTypes" />
+          <BlockCanvas ref="canvasRef" :block-editor="blockEditor" :block-types="blockTypes" />
         </div>
       </div>
 
@@ -359,9 +367,15 @@ const blockCount = computed(() => props.blockEditor.blocks.value.length);
 .cpub-pe-canvas-toolbar {
   display: flex; align-items: center; gap: 2px; padding: 4px 12px;
   background: var(--surface); border-bottom: var(--border-width-default) solid var(--border); flex-shrink: 0; min-height: 32px;
-  justify-content: flex-end;
 }
-.cpub-pe-viewport-tabs { display: flex; gap: 0; }
+.cpub-pe-tool-btn {
+  width: 28px; height: 26px; display: flex; align-items: center; justify-content: center;
+  background: none; border: var(--border-width-default) solid transparent; color: var(--text-dim);
+  font-size: 11px; cursor: pointer;
+}
+.cpub-pe-tool-btn:hover { background: var(--surface2); border-color: var(--border2); color: var(--text); }
+.cpub-pe-toolbar-divider { width: 2px; height: 18px; background: var(--border2); margin: 0 6px; }
+.cpub-pe-viewport-tabs { display: flex; gap: 0; margin-left: auto; }
 .cpub-pe-viewport-tab {
   width: 28px; height: 24px; display: flex; align-items: center; justify-content: center;
   background: none; border: var(--border-width-default) solid var(--border); border-left-width: 0; color: var(--text-faint);

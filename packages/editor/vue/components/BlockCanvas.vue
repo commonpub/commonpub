@@ -394,6 +394,13 @@ function onKeydown(event: KeyboardEvent): void {
 
 onMounted(() => { document.addEventListener('keydown', onKeydown); });
 onUnmounted(() => { document.removeEventListener('keydown', onKeydown); });
+
+/** Expose formatting commands for external toolbar integration */
+defineExpose({
+  toggleMark,
+  toggleLink,
+  getActiveMarks: () => floatingToolbar.value.activeMarks,
+});
 </script>
 
 <template>
