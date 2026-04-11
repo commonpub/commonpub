@@ -21,6 +21,7 @@ WORKDIR /app
 COPY --from=build /app/apps/reference/.output ./.output
 COPY --from=build /app/apps/reference/node_modules ./node_modules
 COPY --from=build /app/apps/reference/drizzle.config.js ./drizzle.config.js
+COPY --from=build /app/scripts ./scripts
 COPY --from=build /app/packages/schema/dist ./schema/dist
 # Install drizzle-kit + deps for schema push (drizzle-kit needs drizzle-orm + pg driver, schema imports zod)
 # type:module required because schema dist files use ES module syntax
