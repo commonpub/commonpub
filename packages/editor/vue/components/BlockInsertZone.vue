@@ -55,7 +55,7 @@ function onDragLeave(): void {
   right: 0;
   top: 50%;
   height: 1px;
-  background: var(--border2, rgba(0, 0, 0, 0.06));
+  background: var(--border, rgba(0, 0, 0, 0.1));
   pointer-events: none;
 }
 
