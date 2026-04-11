@@ -3,6 +3,7 @@ import { computed } from 'vue';
 import type { ExplainerDocSection, ModuleConfig, SectionAside } from '@commonpub/explainer';
 import { getModule, getModuleConfig } from '../../../modules/registry';
 import type { ConfigField } from '../../../modules/types';
+import IconPicker from './IconPicker.vue';
 
 const props = defineProps<{
   section: ExplainerDocSection;
@@ -162,13 +163,12 @@ function updateAside(field: string, value: string): void {
       <div class="cpub-se-aside-box">
         <label class="cpub-se-label">Aside / Callout</label>
         <div class="cpub-se-aside-fields">
-          <div style="width: 80px;">
+          <div style="width: 120px;">
             <label class="cpub-se-label-sm">Icon</label>
-            <input
-              class="cpub-se-input cpub-se-input-mono"
-              :value="section.aside?.icon ?? ''"
-              placeholder="lightbulb"
-              @input="updateAside('icon', ($event.target as HTMLInputElement).value)"
+            <IconPicker
+              :model-value="section.aside?.icon ?? ''"
+              placeholder="Pick icon"
+              @update:model-value="updateAside('icon', $event)"
             />
           </div>
           <div style="width: 100px;">
@@ -264,6 +264,14 @@ function updateAside(field: string, value: string): void {
               <span>{{ (moduleConfig[field.key] as boolean) ?? (field.default as boolean) ? 'Enabled' : 'Disabled' }}</span>
             </label>
 
+            <!-- Icon field -->
+            <IconPicker
+              v-else-if="field.type === 'icon'"
+              :model-value="(moduleConfig[field.key] as string) ?? (field.default as string) ?? ''"
+              :placeholder="field.placeholder"
+              @update:model-value="updateConfigField(field.key, $event)"
+            />
+
             <!-- Array field: repeater for lists of items -->
             <div v-else-if="field.type === 'array'" class="cpub-se-array">
               <div
@@ -284,8 +292,15 @@ function updateAside(field: string, value: string): void {
                   <div class="cpub-se-array-obj">
                     <div v-for="(val, objKey) in (item as Record<string, unknown>)" :key="String(objKey)" class="cpub-se-array-obj-field">
                       <label class="cpub-se-label-sm">{{ String(objKey) }}</label>
+                      <!-- Icon picker for 'icon' keys -->
+                      <IconPicker
+                        v-if="String(objKey) === 'icon' && typeof val === 'string'"
+                        :model-value="val"
+                        placeholder="Pick icon"
+                        @update:model-value="updateArrayObjectField(field.key, arrIdx, String(objKey), $event)"
+                      />
                       <input
-                        v-if="typeof val === 'string'"
+                        v-else-if="typeof val === 'string'"
                         class="cpub-se-input cpub-se-input-mono"
                         :value="val"
                         @input="updateArrayObjectField(field.key, arrIdx, String(objKey), ($event.target as HTMLInputElement).value)"

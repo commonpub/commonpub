@@ -6,6 +6,7 @@ const props = defineProps<{ content: Record<string, unknown> }>();
 interface Card {
   front: string;
   back: string;
+  icon?: string;
   category?: string;
 }
 
@@ -41,7 +42,7 @@ function resetCards(): void {
         @click="toggleCard(i)"
       >
         <div v-if="!revealed.has(i)" class="cpub-reveal-front">
-          <i class="fa-solid fa-question" />
+          <i :class="card.icon ? `fa-solid fa-${card.icon}` : 'fa-solid fa-question'" />
           <span>{{ card.front }}</span>
         </div>
         <div v-else class="cpub-reveal-back">

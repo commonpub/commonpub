@@ -25,7 +25,7 @@ export interface ModuleMeta {
 export interface ConfigField {
   key: string;
   title: string;
-  type: 'text' | 'number' | 'textarea' | 'toggle' | 'select' | 'code' | 'color' | 'array';
+  type: 'text' | 'number' | 'textarea' | 'toggle' | 'select' | 'code' | 'color' | 'icon' | 'array';
   default?: unknown;
   placeholder?: string;
   options?: Array<{ value: string; label: string }>;

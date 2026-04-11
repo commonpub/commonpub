@@ -5,7 +5,7 @@ const config: ConfigField[] = [
   {
     key: 'cards', title: 'Cards', type: 'array', default: [],
     group: 'Cards',
-    itemTemplate: { front: '', back: '', category: '' },
+    itemTemplate: { front: '', back: '', icon: '', category: '' },
   },
 ];
 
