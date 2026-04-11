@@ -50,7 +50,25 @@ const mode = ref<'write' | 'preview' | 'code'>('write');
 const contentId = ref<string | null>(null);
 
 // --- Block editor (articles, blogs, projects) ---
-const blockEditor = useBlockEditor();
+// Pre-populate new projects with a structured template using build step blocks
+const projectTemplate: [string, Record<string, unknown>][] = [
+  ['heading', { text: 'Introduction', level: 2 }],
+  ['paragraph', { html: '<p>State what the reader will build or learn. Open with a relatable scenario or clear goal: "In this guide, we\'ll..."</p>' }],
+  ['heading', { text: 'Prerequisites', level: 2 }],
+  ['paragraph', { html: '<ul><li><p>Required tools, accounts, or hardware</p></li><li><p>Link each tool/service on first mention</p></li></ul>' }],
+  ['buildStep', { stepNumber: 1, instructions: 'Brief context sentence — why this step matters.\n\nNumbered steps with imperative verbs. Use code blocks for commands, inline code for filenames and values.\n\nAfter key steps, state what the reader should see or expect.', image: '', time: '' }],
+  ['buildStep', { stepNumber: 2, instructions: 'Continue the pattern. Each build step = one phase of the build.\n\nLink to external repos for full code instead of pasting walls of code.', image: '', time: '' }],
+  ['buildStep', { stepNumber: 3, instructions: 'Add as many steps as needed. Each step should be a clear, actionable phase.', image: '', time: '' }],
+  ['heading', { text: 'Testing & Verification', level: 2 }],
+  ['paragraph', { html: '<p>Tell the reader how to confirm it works. Describe expected output or show what success looks like. Mention common pitfalls briefly if relevant.</p>' }],
+  ['heading', { text: "What\'s Next?!", level: 2 }],
+  ['paragraph', { html: '<p>Summarize what was accomplished in 2–3 sentences. Suggest ideas for extending or remixing the project. Keep the tone forward-looking and inspiring.</p>' }],
+  ['heading', { text: 'Community', level: 2 }],
+  ['paragraph', { html: '<p>Invite readers to share their results. Link to relevant community spaces. Close with genuine enthusiasm: "We\'d love to see what you build!"</p>' }],
+];
+
+const initialBlocks = isNew.value && contentType.value === 'project' ? projectTemplate : undefined;
+const blockEditor = useBlockEditor(initialBlocks as [string, Record<string, unknown>][] | undefined);
 
 // --- Explainer document (explainers only) ---
 const isExplainer = computed(() => contentType.value === 'explainer');
