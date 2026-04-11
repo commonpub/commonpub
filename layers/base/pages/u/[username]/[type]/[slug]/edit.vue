@@ -56,6 +56,7 @@ const projectTemplate: [string, Record<string, unknown>][] = [
   ['paragraph', { html: '<p>State what the reader will build or learn. Open with a relatable scenario or clear goal: "In this guide, we\'ll..."</p>' }],
   ['heading', { text: 'Prerequisites', level: 2 }],
   ['paragraph', { html: '<ul><li><p>Required tools, accounts, or hardware</p></li><li><p>Link each tool/service on first mention</p></li></ul>' }],
+  ['partsList', { parts: [] }],
   ['buildStep', { stepNumber: 1, instructions: 'Brief context sentence — why this step matters.\n\nNumbered steps with imperative verbs. Use code blocks for commands, inline code for filenames and values.\n\nAfter key steps, state what the reader should see or expect.', image: '', time: '' }],
   ['buildStep', { stepNumber: 2, instructions: 'Continue the pattern. Each build step = one phase of the build.\n\nLink to external repos for full code instead of pasting walls of code.', image: '', time: '' }],
   ['buildStep', { stepNumber: 3, instructions: 'Add as many steps as needed. Each step should be a clear, actionable phase.', image: '', time: '' }],
