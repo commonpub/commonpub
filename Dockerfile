@@ -15,6 +15,7 @@ RUN pnpm build
 
 # Stage 3: runtime (Nuxt outputs a self-contained .output dir)
 FROM node:22-alpine AS runtime
+RUN apk add --no-cache util-linux
 RUN corepack enable && corepack prepare pnpm@10.10.0 --activate
 RUN addgroup -S commonpub && adduser -S commonpub -G commonpub
 WORKDIR /app
