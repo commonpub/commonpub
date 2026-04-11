@@ -42,31 +42,8 @@ function onDragLeave(): void {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 8px;
+  height: 28px;
   position: relative;
-  transition: height 0.15s;
-}
-
-/* Always-visible thin line */
-.cpub-insert-zone::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 50%;
-  height: 1px;
-  background: var(--border, rgba(0, 0, 0, 0.1));
-  pointer-events: none;
-}
-
-.cpub-insert-zone:hover::before,
-.cpub-insert-zone--dragover::before {
-  background: transparent;
-}
-
-.cpub-insert-zone:hover,
-.cpub-insert-zone--dragover {
-  height: 36px;
 }
 
 .cpub-insert-btn {
@@ -78,17 +55,10 @@ function onDragLeave(): void {
   letter-spacing: 0.04em;
   color: var(--text-faint);
   background: transparent;
-  border: 2px dashed transparent;
+  border: 2px dashed var(--border2, rgba(0, 0, 0, 0.08));
   padding: 4px 14px;
   cursor: pointer;
-  opacity: 0;
-  transition: opacity 0.15s, background 0.1s, border-color 0.1s, color 0.1s;
-}
-
-.cpub-insert-zone:hover .cpub-insert-btn,
-.cpub-insert-zone--dragover .cpub-insert-btn {
-  opacity: 1;
-  border-color: var(--border2);
+  transition: background 0.1s, border-color 0.1s, color 0.1s;
 }
 
 .cpub-insert-btn:hover {
