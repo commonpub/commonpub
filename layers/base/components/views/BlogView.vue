@@ -44,9 +44,9 @@ const hasSeries = computed(() => !!seriesTitle.value && seriesTotalParts.value >
 <template>
   <div class="cpub-blog-view">
 
-    <!-- COVER IMAGE -->
-    <div v-if="content.coverImageUrl" class="cpub-cover">
-      <img :src="content.coverImageUrl" :alt="content.title" class="cpub-cover-img" />
+    <!-- HERO BANNER -->
+    <div v-if="content.bannerUrl || content.author?.bannerUrl" class="cpub-cover">
+      <img :src="(content.bannerUrl || content.author?.bannerUrl)!" :alt="content.title" class="cpub-cover-img" />
     </div>
 
     <div class="cpub-blog-wrap">
@@ -94,6 +94,11 @@ const hasSeries = computed(() => !!seriesTitle.value && seriesTotalParts.value >
         <div class="cpub-eng-spacer"></div>
         <button class="cpub-eng-btn" aria-label="Share" @click="share"><i class="fa-solid fa-share-nodes"></i> Share</button>
         <button class="cpub-eng-btn" aria-label="More options"><i class="fa-solid fa-ellipsis"></i></button>
+      </div>
+
+      <!-- COVER PHOTO (in-body) -->
+      <div v-if="content.coverImageUrl" class="cpub-cover-photo">
+        <img :src="content.coverImageUrl" :alt="content.title" class="cpub-cover-photo-img" />
       </div>
 
       <!-- BLOG BODY (PROSE) -->
@@ -324,6 +329,19 @@ const hasSeries = computed(() => !!seriesTitle.value && seriesTotalParts.value >
   border-color: var(--teal-border);
   color: var(--teal);
   background: var(--teal-bg);
+}
+
+/* ── COVER PHOTO (in-body) ── */
+.cpub-cover-photo {
+  margin-bottom: 24px;
+  border: var(--border-width-default) solid var(--border);
+  overflow: hidden;
+}
+.cpub-cover-photo-img {
+  width: 100%;
+  display: block;
+  max-height: 420px;
+  object-fit: cover;
 }
 
 /* ── ENGAGEMENT ROW ── */

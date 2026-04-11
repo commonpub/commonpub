@@ -300,9 +300,10 @@ async function handleBuild(): Promise<void> {
 
 <template>
   <div class="cpub-project-view">
-    <!-- HERO COVER -->
-    <div class="cpub-hero-cover" :class="{ 'cpub-hero-cover-has-image': content.coverImageUrl }">
-      <img v-if="content.coverImageUrl" :src="content.coverImageUrl" :alt="content.title" class="cpub-hero-cover-img" />
+    <!-- HERO BANNER (per-content bannerUrl → author bannerUrl → pattern fallback) -->
+    <div class="cpub-hero-cover" :class="{ 'cpub-hero-cover-has-image': content.bannerUrl || content.author?.bannerUrl }">
+      <img v-if="content.bannerUrl" :src="content.bannerUrl" :alt="content.title" class="cpub-hero-cover-img" />
+      <img v-else-if="content.author?.bannerUrl" :src="content.author.bannerUrl" alt="" class="cpub-hero-cover-img" />
       <template v-else>
         <div class="cpub-hero-cover-grid"></div>
         <div class="cpub-hero-circuit">
@@ -424,6 +425,11 @@ async function handleBuild(): Promise<void> {
         <div class="cpub-content-col">
           <!-- OVERVIEW TAB -->
           <template v-if="activeTab === 'overview'">
+            <!-- Cover photo (in-body featured image) -->
+            <div v-if="content.coverImageUrl" class="cpub-cover-photo">
+              <img :src="content.coverImageUrl" :alt="content.title" class="cpub-cover-photo-img" />
+            </div>
+
             <div class="cpub-prose">
               <template v-if="content.content && Array.isArray(content.content) && (content.content as unknown[]).length > 0">
                 <BlocksBlockContentRenderer :blocks="(content.content as [string, Record<string, unknown>][])" />
@@ -921,6 +927,20 @@ async function handleBuild(): Promise<void> {
 }
 .cpub-content-grid.cpub-has-toc {
   grid-template-columns: 200px 1fr 260px;
+}
+
+/* ── COVER PHOTO (in-body) ── */
+.cpub-cover-photo {
+  margin-bottom: 24px;
+  border: var(--border-width-default) solid var(--border);
+  overflow: hidden;
+}
+
+.cpub-cover-photo-img {
+  width: 100%;
+  display: block;
+  max-height: 420px;
+  object-fit: cover;
 }
 
 /* ── PROSE ── */

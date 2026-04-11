@@ -11,6 +11,7 @@ export interface ContentViewData {
   description: string | null;
   content: unknown;
   coverImageUrl: string | null;
+  bannerUrl?: string | null;
   category: string | null;
   difficulty: string | null;
   buildTime: string | null;
@@ -59,6 +60,7 @@ export interface ContentViewData {
     profileUrl?: string | null;
     bio?: string | null;
     headline?: string | null;
+    bannerUrl?: string | null;
     verified?: boolean;
     org?: string;
     articleCount?: number;

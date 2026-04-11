@@ -70,11 +70,12 @@ export const USER_REF_WITH_BIO_SELECT = {
   bio: users.bio,
 } as const;
 
-/** Extended user ref with headline (for content detail) */
+/** Extended user ref with headline + banner (for content detail) */
 export const USER_REF_WITH_HEADLINE_SELECT = {
   ...USER_REF_SELECT,
   bio: users.bio,
   headline: users.headline,
+  bannerUrl: users.bannerUrl,
 } as const;
 
 // ---- ensureUniqueSlugFor ----

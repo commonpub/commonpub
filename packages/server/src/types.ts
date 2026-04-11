@@ -155,6 +155,7 @@ export interface ContentListItem {
 }
 
 export interface ContentDetailAuthor extends UserRef {
+  bannerUrl?: string | null;
   bio?: string | null;
   headline?: string | null;
   followerCount?: number;

@@ -81,9 +81,10 @@ useJsonLd({
 
 <template>
   <div class="cpub-article-view">
-    <!-- COVER IMAGE -->
+    <!-- HERO BANNER (per-content bannerUrl → author bannerUrl → pattern fallback) -->
     <div class="cpub-cover">
-      <img v-if="content.coverImageUrl" :src="content.coverImageUrl" :alt="content.title" class="cpub-cover-img" />
+      <img v-if="content.bannerUrl" :src="content.bannerUrl" :alt="content.title" class="cpub-cover-img" />
+      <img v-else-if="content.author?.bannerUrl" :src="content.author.bannerUrl" alt="" class="cpub-cover-img" />
       <template v-else>
         <div class="cpub-cover-label">
           <i class="fa-solid fa-microchip"></i>
@@ -149,6 +150,11 @@ useJsonLd({
         <aside class="cpub-article-toc-sidebar" aria-label="Table of contents">
           <TOCNav :headings="tocHeadings" />
         </aside>
+      </div>
+
+      <!-- COVER PHOTO (in-body) -->
+      <div v-if="content.coverImageUrl" class="cpub-cover-photo">
+        <img :src="content.coverImageUrl" :alt="content.title" class="cpub-cover-photo-img" />
       </div>
 
       <!-- ARTICLE BODY (PROSE) -->
@@ -763,6 +769,19 @@ useJsonLd({
   display: flex;
   align-items: center;
   gap: 6px;
+}
+
+/* ── COVER PHOTO (in-body) ── */
+.cpub-cover-photo {
+  margin-bottom: 24px;
+  border: var(--border-width-default) solid var(--border);
+  overflow: hidden;
+}
+.cpub-cover-photo-img {
+  width: 100%;
+  display: block;
+  max-height: 420px;
+  object-fit: cover;
 }
 
 /* ── RESPONSIVE ── */
