@@ -590,6 +590,11 @@ async function handleBuild(): Promise<void> {
 
 <style scoped>
 /* ── HERO COVER ── */
+.cpub-project-view {
+  overflow-x: hidden;
+  width: 100%;
+}
+
 .cpub-hero-cover {
   position: relative;
   height: 280px;
@@ -929,19 +934,21 @@ async function handleBuild(): Promise<void> {
   grid-template-columns: 200px 1fr 260px;
 }
 
+.cpub-content-col {
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+
 /* ── COVER PHOTO (in-body) ── */
 .cpub-cover-photo {
   margin-bottom: 24px;
-  border: var(--border-width-default) solid var(--border);
-  overflow: hidden;
 }
 
 .cpub-cover-photo-img {
-  max-width: 100%;
-  max-height: 500px;
+  width: 100%;
   height: auto;
   display: block;
-  margin: 0 auto;
+  border-radius: var(--radius, 0);
 }
 
 /* ── PROSE ── */
@@ -949,6 +956,8 @@ async function handleBuild(): Promise<void> {
   font-size: 13px;
   line-height: 1.8;
   color: var(--text-dim);
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .cpub-prose :deep(h2),

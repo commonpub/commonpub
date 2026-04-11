@@ -334,15 +334,12 @@ const hasSeries = computed(() => !!seriesTitle.value && seriesTotalParts.value >
 /* ── COVER PHOTO (in-body) ── */
 .cpub-cover-photo {
   margin-bottom: 24px;
-  border: var(--border-width-default) solid var(--border);
-  overflow: hidden;
 }
 .cpub-cover-photo-img {
-  max-width: 100%;
-  max-height: 500px;
+  width: 100%;
   height: auto;
   display: block;
-  margin: 0 auto;
+  border-radius: var(--radius, 0);
 }
 
 /* ── ENGAGEMENT ROW ── */
