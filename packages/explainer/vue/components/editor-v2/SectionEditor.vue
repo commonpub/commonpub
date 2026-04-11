@@ -335,10 +335,10 @@ function updateAside(field: string, value: string): void {
 }
 
 .cpub-se-section-num {
-  font-family: var(--font-ui, monospace);
+  font-family: var(--font-mono);
   font-size: 10px;
   font-weight: 700;
-  color: var(--text-faint, #666);
+  color: var(--text-dim);
   text-transform: uppercase;
 }
 
@@ -346,7 +346,7 @@ function updateAside(field: string, value: string): void {
   display: flex;
   align-items: center;
   gap: 4px;
-  font-family: var(--font-ui, monospace);
+  font-family: var(--font-mono);
   font-size: 10px;
   font-weight: 600;
 }
@@ -361,21 +361,21 @@ function updateAside(field: string, value: string): void {
 .cpub-se-action {
   padding: 3px 8px;
   background: none;
-  border: 1px solid var(--border, #333);
-  color: var(--text-faint, #666);
-  font-family: var(--font-ui, monospace);
+  border: var(--border-width-default) solid var(--border);
+  color: var(--text-dim);
+  font-family: var(--font-mono);
   font-size: 9px;
   cursor: pointer;
 }
 
 .cpub-se-action:hover {
-  color: var(--text, #ccc);
-  border-color: var(--accent, #e04030);
+  color: var(--text);
+  border-color: var(--accent);
 }
 
 .cpub-se-action-danger:hover {
-  color: var(--error, #e04030);
-  border-color: var(--error, #e04030);
+  color: var(--red);
+  border-color: var(--red);
 }
 
 /* Content fields */
@@ -393,20 +393,20 @@ function updateAside(field: string, value: string): void {
 }
 
 .cpub-se-label {
-  font-family: var(--font-ui, monospace);
+  font-family: var(--font-mono);
   font-size: 9px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--text-faint, #666);
+  color: var(--text-dim);
 }
 
 .cpub-se-label-sm {
-  font-family: var(--font-ui, monospace);
+  font-family: var(--font-mono);
   font-size: 8px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--text-faint, #666);
+  color: var(--text-dim);
   margin-bottom: 2px;
   display: block;
 }
@@ -420,16 +420,16 @@ function updateAside(field: string, value: string): void {
 
 .cpub-se-input {
   padding: 7px 10px;
-  background: var(--surface2, #1c1c24);
-  border: 1px solid var(--border, #333);
-  color: var(--text, #ccc);
+  background: var(--surface);
+  border: var(--border-width-default) solid var(--border);
+  color: var(--text);
   font-size: 13px;
   font-family: inherit;
   outline: none;
 }
 
 .cpub-se-input:focus {
-  border-color: var(--accent, #e04030);
+  border-color: var(--accent);
 }
 
 .cpub-se-input-large {
@@ -439,15 +439,15 @@ function updateAside(field: string, value: string): void {
 }
 
 .cpub-se-input-mono {
-  font-family: var(--font-ui, monospace);
+  font-family: var(--font-mono);
   font-size: 12px;
 }
 
 .cpub-se-textarea {
   padding: 7px 10px;
-  background: var(--surface2, #1c1c24);
-  border: 1px solid var(--border, #333);
-  color: var(--text, #ccc);
+  background: var(--surface);
+  border: var(--border-width-default) solid var(--border);
+  color: var(--text);
   font-size: 13px;
   font-family: inherit;
   line-height: 1.6;
@@ -456,7 +456,7 @@ function updateAside(field: string, value: string): void {
 }
 
 .cpub-se-textarea:focus {
-  border-color: var(--accent, #e04030);
+  border-color: var(--accent);
 }
 
 .cpub-se-textarea-sm {
@@ -464,48 +464,48 @@ function updateAside(field: string, value: string): void {
 }
 
 .cpub-se-textarea-code {
-  font-family: var(--font-ui, monospace);
+  font-family: var(--font-mono);
   font-size: 12px;
   line-height: 1.5;
-  background: #0a0a0d;
-  color: #a5d6a7;
+  background: var(--surface2);
+  color: var(--green);
   tab-size: 2;
 }
 
 .cpub-se-select {
   padding: 7px 10px;
-  background: var(--surface2, #1c1c24);
-  border: 1px solid var(--border, #333);
-  color: var(--text, #ccc);
-  font-family: var(--font-ui, monospace);
+  background: var(--surface);
+  border: var(--border-width-default) solid var(--border);
+  color: var(--text);
+  font-family: var(--font-mono);
   font-size: 12px;
   outline: none;
 }
 
 .cpub-se-select:focus {
-  border-color: var(--accent, #e04030);
+  border-color: var(--accent);
 }
 
 /* Array repeater */
 .cpub-se-array { display: flex; flex-direction: column; gap: 4px; width: 100%; }
 .cpub-se-array-item { display: flex; gap: 4px; align-items: flex-start; }
-.cpub-se-array-obj { flex: 1; display: flex; flex-wrap: wrap; gap: 4px; padding: 6px; background: rgba(255,255,255,0.02); border: 1px solid var(--border, #333); }
+.cpub-se-array-obj { flex: 1; display: flex; flex-wrap: wrap; gap: 4px; padding: 6px; background: var(--surface2); border: var(--border-width-default) solid var(--border); }
 .cpub-se-array-obj-field { display: flex; flex-direction: column; gap: 2px; min-width: 80px; flex: 1; }
-.cpub-se-array-remove { width: 24px; height: 24px; flex-shrink: 0; background: none; border: 1px solid var(--border, #333); color: var(--text-faint, #666); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 10px; margin-top: 2px; }
-.cpub-se-array-remove:hover { color: var(--error, #e04030); border-color: var(--error, #e04030); }
-.cpub-se-array-add { padding: 4px 10px; background: none; border: 1px dashed var(--border, #333); color: var(--text-faint, #666); font-family: var(--font-ui, monospace); font-size: 9px; cursor: pointer; display: flex; align-items: center; gap: 5px; text-transform: uppercase; letter-spacing: 0.06em; }
-.cpub-se-array-add:hover { border-color: var(--accent, #e04030); color: var(--accent, #e04030); }
-.cpub-se-array-check { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--text-dim, #999); cursor: pointer; }
-.cpub-se-array-check input { accent-color: var(--accent, #e04030); }
+.cpub-se-array-remove { width: 24px; height: 24px; flex-shrink: 0; background: none; border: var(--border-width-default) solid var(--border); color: var(--text-dim); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 10px; margin-top: 2px; }
+.cpub-se-array-remove:hover { color: var(--red); border-color: var(--red); }
+.cpub-se-array-add { padding: 4px 10px; background: none; border: var(--border-width-default) dashed var(--border); color: var(--text-dim); font-family: var(--font-mono); font-size: 9px; cursor: pointer; display: flex; align-items: center; gap: 5px; text-transform: uppercase; letter-spacing: 0.06em; }
+.cpub-se-array-add:hover { border-color: var(--accent); color: var(--accent); }
+.cpub-se-array-check { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--text-dim); cursor: pointer; }
+.cpub-se-array-check input { accent-color: var(--accent); }
 
 /* Toggle field */
-.cpub-se-toggle-label { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-dim, #999); cursor: pointer; padding: 4px 0; }
-.cpub-se-toggle-label input { accent-color: var(--accent, #e04030); }
+.cpub-se-toggle-label { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-dim); cursor: pointer; padding: 4px 0; }
+.cpub-se-toggle-label input { accent-color: var(--accent); }
 
 /* Aside box */
 .cpub-se-aside-box {
-  background: var(--surface2, #1c1c24);
-  border: 1px solid var(--border, #333);
+  background: var(--surface);
+  border: var(--border-width-default) solid var(--border);
   padding: 12px;
 }
 
@@ -517,8 +517,8 @@ function updateAside(field: string, value: string): void {
 
 /* Module config */
 .cpub-se-config {
-  background: var(--surface, #16161c);
-  border: 1px solid var(--border, #333);
+  background: var(--surface);
+  border: var(--border-width-default) solid var(--border);
   overflow: hidden;
 }
 
@@ -527,22 +527,22 @@ function updateAside(field: string, value: string): void {
   align-items: center;
   gap: 6px;
   padding: 8px 14px;
-  border-bottom: 1px solid var(--border, #333);
-  background: rgba(255, 255, 255, 0.015);
-  font-family: var(--font-ui, monospace);
+  border-bottom: var(--border-width-default) solid var(--border);
+  background: var(--surface2);
+  font-family: var(--font-mono);
   font-size: 10px;
   font-weight: 600;
-  color: var(--text, #ccc);
+  color: var(--text);
 }
 
 .cpub-se-config-group-label {
   padding: 8px 14px;
-  font-family: var(--font-ui, monospace);
+  font-family: var(--font-mono);
   font-size: 9px;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: var(--text-faint, #666);
-  background: rgba(255, 255, 255, 0.02);
+  color: var(--text-dim);
+  background: var(--surface2);
 }
 
 .cpub-se-config-fields {

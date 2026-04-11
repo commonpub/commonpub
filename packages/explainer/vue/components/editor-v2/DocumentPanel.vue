@@ -165,26 +165,26 @@ function removeTag(tag: string): void {
 
 <style scoped>
 .cpub-doc-panel { padding: 4px 0; overflow-y: auto; }
-.cpub-dp-section { border-bottom: 1px solid var(--border, #333); }
-.cpub-dp-header { display: flex; align-items: center; gap: 8px; width: 100%; padding: 10px 12px; background: none; border: none; color: var(--text, #ccc); cursor: pointer; font-family: var(--font-ui, monospace); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; text-align: left; }
-.cpub-dp-header i { font-size: 8px; color: var(--text-faint, #666); width: 10px; }
-.cpub-dp-header:hover { background: rgba(255,255,255,0.03); }
+.cpub-dp-section { border-bottom: var(--border-width-default) solid var(--border); }
+.cpub-dp-header { display: flex; align-items: center; gap: 8px; width: 100%; padding: 10px 12px; background: none; border: none; color: var(--text-dim); cursor: pointer; font-family: var(--font-mono); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; text-align: left; }
+.cpub-dp-header i { font-size: 8px; color: var(--text-faint); width: 10px; }
+.cpub-dp-header:hover { background: var(--surface2); }
 .cpub-dp-body { padding: 4px 12px 12px; display: flex; flex-direction: column; gap: 8px; }
 .cpub-dp-field { display: flex; flex-direction: column; gap: 3px; }
-.cpub-dp-label { font-family: var(--font-ui, monospace); font-size: 8px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-faint, #666); }
-.cpub-dp-input { padding: 5px 8px; background: var(--surface2, #1c1c24); border: 1px solid var(--border, #333); color: var(--text, #ccc); font-size: 12px; font-family: inherit; outline: none; }
-.cpub-dp-input:focus { border-color: var(--accent, #e04030); }
-.cpub-dp-textarea { padding: 5px 8px; background: var(--surface2, #1c1c24); border: 1px solid var(--border, #333); color: var(--text, #ccc); font-size: 12px; font-family: inherit; resize: vertical; outline: none; line-height: 1.5; }
-.cpub-dp-textarea:focus { border-color: var(--accent, #e04030); }
-.cpub-dp-select { padding: 5px 8px; background: var(--surface2, #1c1c24); border: 1px solid var(--border, #333); color: var(--text, #ccc); font-size: 12px; font-family: var(--font-ui, monospace); outline: none; }
-.cpub-dp-select:focus { border-color: var(--accent, #e04030); }
+.cpub-dp-label { font-family: var(--font-mono); font-size: 8px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-dim); }
+.cpub-dp-input { padding: 5px 8px; background: var(--surface); border: var(--border-width-default) solid var(--border); color: var(--text); font-size: 12px; font-family: inherit; outline: none; }
+.cpub-dp-input:focus { border-color: var(--accent); }
+.cpub-dp-textarea { padding: 5px 8px; background: var(--surface); border: var(--border-width-default) solid var(--border); color: var(--text); font-size: 12px; font-family: inherit; resize: vertical; outline: none; line-height: 1.5; }
+.cpub-dp-textarea:focus { border-color: var(--accent); }
+.cpub-dp-select { padding: 5px 8px; background: var(--surface); border: var(--border-width-default) solid var(--border); color: var(--text); font-size: 12px; font-family: var(--font-mono); outline: none; }
+.cpub-dp-select:focus { border-color: var(--accent); }
 .cpub-dp-tags { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
-.cpub-dp-tag { display: flex; align-items: center; gap: 3px; padding: 2px 6px; background: var(--accent-light, rgba(224,64,48,0.08)); border: 1px solid var(--accent-border, rgba(224,64,48,0.25)); color: var(--accent, #e04030); font-size: 10px; font-family: var(--font-ui, monospace); }
+.cpub-dp-tag { display: flex; align-items: center; gap: 3px; padding: 2px 6px; background: var(--accent-bg); border: var(--border-width-default) solid var(--accent-border); color: var(--accent); font-size: 10px; font-family: var(--font-mono); }
 .cpub-dp-tag-remove { background: none; border: none; color: inherit; cursor: pointer; font-size: 12px; padding: 0 2px; }
-.cpub-dp-tag-input { flex: 1; min-width: 60px; padding: 3px 6px; background: none; border: 1px solid transparent; color: var(--text, #ccc); font-size: 11px; outline: none; }
-.cpub-dp-tag-input:focus { border-color: var(--accent, #e04030); }
-.cpub-dp-check { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-dim, #999); cursor: pointer; padding: 3px 0; }
-.cpub-dp-check input { accent-color: var(--accent, #e04030); }
+.cpub-dp-tag-input { flex: 1; min-width: 60px; padding: 3px 6px; background: none; border: var(--border-width-default) solid transparent; color: var(--text); font-size: 11px; outline: none; }
+.cpub-dp-tag-input:focus { border-color: var(--accent); }
+.cpub-dp-check { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-dim); cursor: pointer; padding: 3px 0; }
+.cpub-dp-check input { accent-color: var(--accent); }
 .cpub-dp-toggle { margin-left: auto; }
-.cpub-dp-toggle input { accent-color: var(--accent, #e04030); }
+.cpub-dp-toggle input { accent-color: var(--accent); }
 </style>

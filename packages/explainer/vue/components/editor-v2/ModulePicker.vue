@@ -82,8 +82,8 @@ function handleSelect(moduleId: string): void {
 }
 
 .cpub-module-picker {
-  background: var(--surface, #16161c);
-  border: var(--border-width-default, 2px) solid var(--border, #333);
+  background: var(--surface);
+  border: var(--border-width-default) solid var(--border);
   width: 560px;
   max-height: 80vh;
   overflow: hidden;
@@ -96,16 +96,16 @@ function handleSelect(moduleId: string): void {
   align-items: center;
   justify-content: space-between;
   padding: 14px 18px;
-  border-bottom: 1px solid var(--border, #333);
+  border-bottom: var(--border-width-default) solid var(--border);
 }
 
 .cpub-module-picker-title {
-  font-family: var(--font-ui, monospace);
+  font-family: var(--font-mono);
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--accent, #e04030);
+  color: var(--accent);
 }
 
 .cpub-module-picker-close {
@@ -116,7 +116,7 @@ function handleSelect(moduleId: string): void {
   justify-content: center;
   background: none;
   border: none;
-  color: var(--text-dim, #999);
+  color: var(--text-dim);
   cursor: pointer;
   font-size: 14px;
 }
@@ -129,12 +129,12 @@ function handleSelect(moduleId: string): void {
 
 .cpub-module-group-label {
   padding: 10px 18px 4px;
-  font-family: var(--font-ui, monospace);
+  font-family: var(--font-mono);
   font-size: 9px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  color: var(--text-faint, #666);
+  color: var(--text-dim);
 }
 
 .cpub-module-grid {
@@ -149,16 +149,16 @@ function handleSelect(moduleId: string): void {
   align-items: flex-start;
   gap: 10px;
   padding: 10px 12px;
-  background: var(--surface2, #1c1c24);
-  border: 1px solid var(--border, #333);
-  color: var(--text, #ccc);
+  background: var(--surface2);
+  border: var(--border-width-default) solid var(--border);
+  color: var(--text);
   cursor: pointer;
   text-align: left;
   transition: border-color 0.15s;
 }
 
 .cpub-module-card:hover {
-  border-color: var(--accent, #e04030);
+  border-color: var(--accent);
 }
 
 .cpub-module-icon {
@@ -167,7 +167,7 @@ function handleSelect(moduleId: string): void {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  color: var(--accent);
   font-size: 11px;
   flex-shrink: 0;
 }
@@ -180,14 +180,14 @@ function handleSelect(moduleId: string): void {
 }
 
 .cpub-module-name {
-  font-family: var(--font-ui, monospace);
+  font-family: var(--font-mono);
   font-size: 12px;
   font-weight: 600;
 }
 
 .cpub-module-desc {
   font-size: 10px;
-  color: var(--text-faint, #666);
+  color: var(--text-dim);
   line-height: 1.3;
 }
 </style>

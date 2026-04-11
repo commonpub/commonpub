@@ -72,8 +72,8 @@ function onDragEnd(): void {
       <div class="cpub-section-pin"><i class="fa-solid fa-thumbtack" /></div>
       <div class="cpub-section-info">
         <span class="cpub-section-title">Introduction</span>
-        <span class="cpub-section-badge" style="color: var(--text-faint, #666)">
-          <span class="cpub-section-badge-dot" style="background: var(--accent, #e04030)" />
+        <span class="cpub-section-badge" style="color: var(--text-faint)">
+          <span class="cpub-section-badge-dot" style="background: var(--accent)" />
           Hero
         </span>
       </div>
@@ -125,8 +125,8 @@ function onDragEnd(): void {
       <div class="cpub-section-pin"><i class="fa-solid fa-thumbtack" /></div>
       <div class="cpub-section-info">
         <span class="cpub-section-title">Conclusion</span>
-        <span class="cpub-section-badge" style="color: var(--text-faint, #666)">
-          <span class="cpub-section-badge-dot" style="background: #2a9d5c" />
+        <span class="cpub-section-badge" style="color: var(--text-faint)">
+          <span class="cpub-section-badge-dot" style="background: var(--green)" />
           Wrap-up
         </span>
       </div>
@@ -152,12 +152,12 @@ function onDragEnd(): void {
 }
 
 .cpub-section-item:hover {
-  background: var(--surface2, rgba(255, 255, 255, 0.04));
+  background: var(--surface2);
 }
 
 .cpub-section-item-selected {
-  background: var(--accent-bg, rgba(224, 64, 48, 0.06));
-  border-left-color: var(--accent, #e04030);
+  background: var(--accent-bg);
+  border-left-color: var(--accent);
 }
 
 .cpub-section-item-dragging {
@@ -165,7 +165,7 @@ function onDragEnd(): void {
 }
 
 .cpub-section-item-drop {
-  border-top: 2px solid var(--accent, #e04030);
+  border-top: 2px solid var(--accent);
 }
 
 .cpub-section-num {
@@ -174,18 +174,18 @@ function onDragEnd(): void {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--font-ui, monospace);
+  font-family: var(--font-mono);
   font-size: 9px;
   font-weight: 700;
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--text-faint, #666);
+  background: var(--surface3);
+  color: var(--text-faint);
   flex-shrink: 0;
   margin-top: 1px;
 }
 
 .cpub-section-num-active {
-  background: var(--accent, #e04030);
-  color: #fff;
+  background: var(--accent);
+  color: var(--color-text-inverse);
 }
 
 .cpub-section-info {
@@ -197,21 +197,21 @@ function onDragEnd(): void {
   display: block;
   font-size: 11px;
   font-weight: 500;
-  color: var(--text, #ccc);
+  color: var(--text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .cpub-section-item-selected .cpub-section-title {
-  color: #fff;
+  color: var(--text);
 }
 
 .cpub-section-badge {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-family: var(--font-ui, monospace);
+  font-family: var(--font-mono);
   font-size: 9px;
   margin-top: 2px;
 }
@@ -243,13 +243,13 @@ function onDragEnd(): void {
   align-items: center;
   justify-content: center;
   font-size: 8px;
-  color: var(--text-faint, #666);
+  color: var(--text-faint);
   flex-shrink: 0;
   margin-top: 1px;
 }
 
 .cpub-section-item-pinned.cpub-section-item-selected .cpub-section-pin {
-  color: var(--accent, #e04030);
+  color: var(--accent);
 }
 
 .cpub-section-add-btn {
@@ -261,9 +261,9 @@ function onDragEnd(): void {
   padding: 8px;
   margin-top: 4px;
   background: none;
-  border: 2px dashed var(--border, rgba(255, 255, 255, 0.1));
-  color: var(--text-faint, #666);
-  font-family: var(--font-ui, monospace);
+  border: 2px dashed var(--border2);
+  color: var(--text-faint);
+  font-family: var(--font-mono);
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -271,7 +271,7 @@ function onDragEnd(): void {
 }
 
 .cpub-section-add-btn:hover {
-  border-color: var(--accent, #e04030);
-  color: var(--accent, #e04030);
+  border-color: var(--accent);
+  color: var(--accent);
 }
 </style>
