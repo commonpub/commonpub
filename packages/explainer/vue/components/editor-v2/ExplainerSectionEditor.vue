@@ -10,6 +10,7 @@ import DocumentPanel from './DocumentPanel.vue';
 import ThemeEditor from './ThemeEditor.vue';
 import SectionRenderer from '../viewer/SectionRenderer.vue';
 import HeroRenderer from '../viewer/HeroRenderer.vue';
+import ConclusionRenderer from '../viewer/ConclusionRenderer.vue';
 
 const props = defineProps<{
   document: ExplainerDocument;
@@ -428,16 +429,19 @@ const mobilePanel = ref<'list' | 'editor' | 'preview'>('editor');
       <div class="cpub-ee-resize-handle" @pointerdown="startResize" />
 
       <!-- RIGHT: Preview / Document tabs -->
-      <div ref="previewRoot" class="cpub-ee-right" :class="{ 'cpub-ee-mobile-active': mobilePanel === 'preview' }" :style="{ width: previewWidth + 'px' }">
+      <div class="cpub-ee-right" :class="{ 'cpub-ee-mobile-active': mobilePanel === 'preview' }" :style="{ width: previewWidth + 'px' }">
         <div class="cpub-ee-right-header">
           <button class="cpub-ee-right-tab" :class="{ active: rightTab === 'preview' }" @click="rightTab = 'preview'">Preview</button>
           <button class="cpub-ee-right-tab" :class="{ active: rightTab === 'document' }" @click="rightTab = 'document'">Document</button>
         </div>
 
         <!-- Preview tab -->
-        <div v-if="rightTab === 'preview'" class="cpub-ee-preview-content">
+        <div v-if="rightTab === 'preview'" ref="previewRoot" class="cpub-ee-preview-content">
           <template v-if="pinnedSelection === 'intro'">
             <HeroRenderer :hero="doc.hero" />
+          </template>
+          <template v-else-if="pinnedSelection === 'conclusion' && doc.conclusion">
+            <ConclusionRenderer :conclusion="doc.conclusion" />
           </template>
           <template v-else-if="selectedSection">
             <SectionRenderer
