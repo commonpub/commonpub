@@ -128,6 +128,12 @@ function removeCover(): void {
   updateMeta('coverImageUrl', '');
 }
 
+// --- SEO preview ---
+const seoDomain = computed(() => {
+  try { return new URL(useRequestURL().origin).hostname; } catch { return 'example.com'; }
+});
+const seoPreviewDesc = computed(() => (props.metadata.seoDescription as string) || (props.metadata.description as string) || '');
+
 // --- Right panel ---
 const openSections = ref<Record<string, boolean>>({
   content: true, seo: false, publishing: true, cover: false,
@@ -333,11 +339,19 @@ const canvasMaxWidth = computed(() => {
         </EditorSection>
 
         <!-- SEO -->
-        <EditorSection title="SEO" icon="fa-magnifying-glass" :open="openSections.seo" @toggle="toggleSection('seo')">
-          <div class="cpub-ep-field">
-            <label class="cpub-ep-flabel">Meta Description</label>
+        <EditorSection title="SEO Preview" icon="fa-brands fa-google" :open="openSections.seo" @toggle="toggleSection('seo')">
+          <div class="cpub-seo-card">
+            <div class="cpub-seo-url">
+              <span class="cpub-seo-favicon">C</span>
+              {{ seoDomain }} &rsaquo; article
+            </div>
+            <div class="cpub-seo-title">{{ (metadata.title as string) || 'Article title' }}</div>
+            <div class="cpub-seo-desc">{{ seoPreviewDesc || 'Post description will appear here...' }}</div>
+          </div>
+          <div class="cpub-ep-field" style="margin-top: 10px;">
+            <label class="cpub-ep-flabel">SEO Description</label>
             <textarea class="cpub-ep-textarea" rows="3" :value="metadata.seoDescription as string" placeholder="Search engine description..." @input="updateMeta('seoDescription', ($event.target as HTMLTextAreaElement).value)" />
-            <span class="cpub-ep-hint">{{ ((metadata.seoDescription as string) || '').length }}/160</span>
+            <span class="cpub-ep-hint cpub-ep-hint-right">{{ ((metadata.seoDescription as string) || '').length }}/160</span>
           </div>
         </EditorSection>
 
@@ -541,4 +555,23 @@ const canvasMaxWidth = computed(() => {
   .cpub-ae-cover-overlay,
   .cpub-ae-cover-actions { opacity: 1; }
 }
+
+/* SEO preview card */
+.cpub-seo-card {
+  background: var(--surface2);
+  border: var(--border-width-default) solid var(--border);
+  padding: 14px;
+}
+.cpub-seo-url {
+  font-size: 11px; color: var(--text-faint); margin-bottom: 4px;
+  display: flex; align-items: center; gap: 6px;
+}
+.cpub-seo-favicon {
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--accent-bg); color: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; font-weight: 700;
+}
+.cpub-seo-title { font-size: 14px; color: var(--accent); font-weight: 500; margin-bottom: 2px; }
+.cpub-seo-desc { font-size: 11px; color: var(--text-dim); line-height: 1.5; }
 </style>

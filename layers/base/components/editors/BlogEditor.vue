@@ -107,6 +107,9 @@ const authorInitials = computed(() => {
 const authorUsername = computed(() => user.value?.username || '');
 
 // --- SEO preview ---
+const siteDomain = computed(() => {
+  try { return new URL(useRequestURL().origin).hostname; } catch { return 'example.com'; }
+});
 const seoDesc = computed(() => (props.metadata.seoDescription as string) || (props.metadata.description as string) || '');
 
 // --- Schedule ---
@@ -283,7 +286,7 @@ const canvasMaxWidth = computed(() => {
           <div class="cpub-be-seo-card">
             <div class="cpub-be-seo-url">
               <span class="cpub-be-seo-favicon">C</span>
-              commonpub.io &rsaquo; {{ authorUsername ? `@${authorUsername}` : 'blog' }}
+              {{ siteDomain }} &rsaquo; {{ authorUsername ? `@${authorUsername}` : 'blog' }}
             </div>
             <div class="cpub-be-seo-title">{{ (metadata.title as string) || 'Post title' }}</div>
             <div class="cpub-be-seo-desc">{{ seoDesc || 'Post description will appear here...' }}</div>
