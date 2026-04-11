@@ -340,8 +340,7 @@ const hasSeries = computed(() => !!seriesTitle.value && seriesTotalParts.value >
 .cpub-cover-photo-img {
   width: 100%;
   display: block;
-  max-height: 420px;
-  object-fit: cover;
+  height: auto;
 }
 
 /* ── ENGAGEMENT ROW ── */
