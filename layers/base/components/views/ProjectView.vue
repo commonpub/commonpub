@@ -111,8 +111,7 @@ const partsFromBlocks = computed<PartItem[]>(() => {
 interface BuildStep {
   number: number;
   title: string;
-  instructions: string;
-  image?: string;
+  children: Array<[string, Record<string, unknown>]>;
   time?: string;
 }
 
@@ -125,11 +124,25 @@ const buildStepsFromBlocks = computed<BuildStep[]>(() => {
     const [type, data] = block as [string, Record<string, unknown>];
     if (type === 'buildStep') {
       stepNum++;
+      // Migrate old format (instructions + image) to children
+      let children: Array<[string, Record<string, unknown>]> = [];
+      if (data.children && Array.isArray(data.children) && data.children.length > 0) {
+        children = data.children as Array<[string, Record<string, unknown>]>;
+      } else {
+        const instructions = data.instructions as string | undefined;
+        if (instructions && instructions.trim()) {
+          const html = instructions.startsWith('<') ? instructions : `<p>${instructions}</p>`;
+          children.push(['paragraph', { html }]);
+        }
+        const image = data.image as string | undefined;
+        if (image && image.trim()) {
+          children.push(['image', { src: image, alt: `Step ${stepNum}`, caption: '' }]);
+        }
+      }
       steps.push({
         number: (data.stepNumber as number) || stepNum,
         title: (data.title as string) || `Step ${stepNum}`,
-        instructions: (data.instructions as string) || '',
-        image: data.image as string | undefined,
+        children,
         time: data.time as string | undefined,
       });
     }
@@ -495,9 +508,8 @@ async function handleBuild(): Promise<void> {
                     <h3 class="cpub-build-step-title">{{ step.title }}</h3>
                     <span v-if="step.time" class="cpub-build-step-time"><i class="fa-regular fa-clock"></i> {{ step.time }}</span>
                   </div>
-                  <div class="cpub-build-step-body">
-                    <p>{{ step.instructions }}</p>
-                    <img v-if="step.image" :src="step.image" :alt="`Step ${step.number}`" class="cpub-build-step-img" />
+                  <div v-if="step.children.length > 0" class="cpub-build-step-body">
+                    <BlockContentRenderer :blocks="step.children" />
                   </div>
                 </div>
               </div>

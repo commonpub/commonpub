@@ -174,7 +174,16 @@ const wordCount = computed(() => {
     const html = (block.content.html as string) || '';
     const text = (block.content.text as string) || '';
     const code = (block.content.code as string) || '';
-    const combined = html.replace(/<[^>]*>/g, ' ') + ' ' + text + ' ' + code;
+    let combined = html.replace(/<[^>]*>/g, ' ') + ' ' + text + ' ' + code;
+    const children = block.content.children;
+    if (Array.isArray(children)) {
+      for (const child of children) {
+        const [, childData] = child as [string, Record<string, unknown>];
+        const childHtml = (childData?.html as string) || '';
+        const childCode = (childData?.code as string) || '';
+        combined += ' ' + childHtml.replace(/<[^>]*>/g, ' ') + ' ' + childCode;
+      }
+    }
     count += combined.split(/\s+/).filter((w) => w.length > 0).length;
   }
   return count;
