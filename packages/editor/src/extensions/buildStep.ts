@@ -3,7 +3,7 @@ import { Node, mergeAttributes } from '@tiptap/core';
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
     buildStep: {
-      setBuildStep: (attributes: { stepNumber: number; instructions: string; image?: string; time?: string; partsUsed?: string[] }) => ReturnType;
+      setBuildStep: (attributes: { stepNumber: number; title?: string; time?: string; children?: Array<[string, Record<string, unknown>]> }) => ReturnType;
     };
   }
 }
@@ -16,22 +16,24 @@ export const CommonPubBuildStep = Node.create({
   addAttributes() {
     return {
       stepNumber: { default: 1 },
-      image: { default: null },
-      instructions: { default: '' },
+      title: { default: '' },
       time: { default: null },
-      partsUsed: {
+      children: {
         default: [],
         parseHTML: (element: HTMLElement) => {
           try {
-            return JSON.parse(element.getAttribute('data-parts-used') || '[]');
+            return JSON.parse(element.getAttribute('data-children') || '[]');
           } catch {
             return [];
           }
         },
         renderHTML: (attributes: Record<string, unknown>) => ({
-          'data-parts-used': JSON.stringify(attributes.partsUsed),
+          'data-children': JSON.stringify(attributes.children),
         }),
       },
+      // Legacy attributes — kept for migration from old format
+      instructions: { default: null },
+      image: { default: null },
     };
   },
 
@@ -42,7 +44,7 @@ export const CommonPubBuildStep = Node.create({
   renderHTML({ node, HTMLAttributes }) {
     return ['div', mergeAttributes(HTMLAttributes, { class: 'cpub-build-step' }),
       ['span', { class: 'cpub-build-step-number' }, `Step ${node.attrs.stepNumber}`],
-      ['p', {}, node.attrs.instructions],
+      ['span', { class: 'cpub-build-step-title' }, node.attrs.title || ''],
     ];
   },
 

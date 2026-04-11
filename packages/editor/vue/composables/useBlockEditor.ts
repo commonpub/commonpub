@@ -21,7 +21,7 @@ const BLOCK_DEFAULTS: Record<string, () => Record<string, unknown>> = {
   embed: () => ({ url: '', type: 'generic', html: '' }),
   horizontal_rule: () => ({}),
   partsList: () => ({ parts: [] }),
-  buildStep: () => ({ stepNumber: 1, instructions: '', image: '', time: '' }),
+  buildStep: () => ({ stepNumber: 1, title: '', time: '', children: [['paragraph', { html: '' }]] }),
   toolList: () => ({ tools: [] }),
   downloads: () => ({ files: [] }),
   quiz: () => ({ question: '', options: [], feedback: '' }),

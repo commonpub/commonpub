@@ -456,8 +456,9 @@ defineExpose({
         <BlockPicker :groups="blockTypes" :visible="true" @select="onPickerSelect" @close="closePicker" />
       </div>
 
-      <!-- Insert zone after each block -->
+      <!-- Insert zone after each block (always visible on last block) -->
       <BlockInsertZone
+        :always-visible="index === blockEditor.blocks.value.length - 1"
         @insert="openPicker(index + 1)"
         @drop="onDrop(index + 1, $event)"
       />
@@ -522,29 +523,23 @@ defineExpose({
 
 <style scoped>
 .cpub-block-canvas {
-  padding: 36px 0 52px;
+  padding: 16px 0 52px;
   min-height: 300px;
   position: relative;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
 }
 
 .cpub-canvas-page {
   width: 100%;
-  max-width: 680px;
-  background: var(--surface);
-  border: var(--border-width-default) solid var(--border);
-  box-shadow: var(--shadow-md);
-  padding: 44px 56px;
+  padding: 0 24px;
   position: relative;
 }
 
 @media (max-width: 768px) {
   .cpub-canvas-page {
-    border: none;
-    box-shadow: none;
-    padding: 16px;
+    padding: 0 12px;
   }
   .cpub-block-canvas {
     padding: 8px 0 48px;

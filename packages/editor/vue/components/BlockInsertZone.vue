@@ -2,8 +2,13 @@
 /**
  * Insert zone between blocks — shows "+ Insert block" button.
  * Appears between every block and at the top/bottom of the canvas.
+ * Button shows on hover unless `alwaysVisible` is set.
  */
 import { ref } from 'vue';
+
+defineProps<{
+  alwaysVisible?: boolean;
+}>();
 
 defineEmits<{
   insert: [];
@@ -25,7 +30,10 @@ function onDragLeave(): void {
 <template>
   <div
     class="cpub-insert-zone"
-    :class="{ 'cpub-insert-zone--dragover': isDragOver }"
+    :class="{
+      'cpub-insert-zone--dragover': isDragOver,
+      'cpub-insert-zone--hover-only': !alwaysVisible,
+    }"
     @dragover="onDragOver"
     @dragleave="onDragLeave"
     @drop="isDragOver = false"
@@ -44,6 +52,15 @@ function onDragLeave(): void {
   justify-content: center;
   height: 28px;
   position: relative;
+}
+
+.cpub-insert-zone--hover-only .cpub-insert-btn {
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+
+.cpub-insert-zone--hover-only:hover .cpub-insert-btn {
+  opacity: 1;
 }
 
 .cpub-insert-btn {

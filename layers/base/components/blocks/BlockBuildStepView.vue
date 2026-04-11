@@ -1,14 +1,39 @@
 <script setup lang="ts">
+/**
+ * Build step viewer — renders step header + nested children via BlockContentRenderer.
+ * Migrates old flat format (instructions + image) to children on render.
+ */
+import type { BlockTuple } from '@commonpub/editor';
+
 const props = defineProps<{
   content: Record<string, unknown>;
   stepNumber?: number;
 }>();
 
 const title = computed(() => (props.content.title as string) || `Step ${props.stepNumber ?? 1}`);
-const instructions = computed(() => (props.content.instructions as string) || '');
 const time = computed(() => (props.content.time as string) || '');
-const image = computed(() => (props.content.image as string) || '');
 const num = computed(() => props.stepNumber ?? (props.content.stepNumber as number) ?? 1);
+
+/** Resolve children — migrate from old flat format if needed */
+const children = computed<BlockTuple[]>(() => {
+  if (props.content.children && Array.isArray(props.content.children) && props.content.children.length > 0) {
+    return props.content.children as BlockTuple[];
+  }
+  // Migrate old format
+  const result: BlockTuple[] = [];
+  const instructions = props.content.instructions as string | undefined;
+  if (instructions && instructions.trim()) {
+    const html = instructions.startsWith('<') ? instructions : `<p>${instructions}</p>`;
+    result.push(['paragraph', { html }]);
+  }
+  const image = props.content.image as string | undefined;
+  if (image && image.trim()) {
+    result.push(['image', { src: image, alt: `Step ${num.value}`, caption: '' }]);
+  }
+  return result;
+});
+
+const hasChildren = computed(() => children.value.length > 0);
 </script>
 
 <template>
@@ -18,9 +43,8 @@ const num = computed(() => props.stepNumber ?? (props.content.stepNumber as numb
       <h3 class="cpub-step-title">{{ title }}</h3>
       <span v-if="time" class="cpub-step-time"><i class="fa-regular fa-clock"></i> {{ time }}</span>
     </div>
-    <div class="cpub-step-body">
-      <p v-if="instructions">{{ instructions }}</p>
-      <img v-if="image" :src="image" :alt="`Step ${num}`" class="cpub-step-img" loading="lazy" />
+    <div v-if="hasChildren" class="cpub-step-body">
+      <BlockContentRenderer :blocks="children" />
     </div>
   </div>
 </template>
@@ -77,16 +101,5 @@ const num = computed(() => props.stepNumber ?? (props.content.stepNumber as numb
   font-size: 13px;
   line-height: 1.7;
   color: var(--text-dim);
-}
-
-.cpub-step-body p { margin: 0 0 12px; }
-.cpub-step-body p:last-child { margin-bottom: 0; }
-
-.cpub-step-img {
-  width: 100%;
-  max-height: 400px;
-  object-fit: cover;
-  border: var(--border-width-default) solid var(--border);
-  margin-top: 12px;
 }
 </style>
