@@ -52,7 +52,7 @@ const seoDomain = computed(() => {
 const seoPreviewDesc = computed(() => (props.metadata.seoDescription as string) || (props.metadata.description as string) || '');
 
 const openSections = ref<Record<string, boolean>>({
-  meta: true, tags: true, visibility: true, cover: false, seo: false, checklist: true,
+  meta: true, tags: true, visibility: true, cover: false, banner: false, seo: false, checklist: true,
 });
 function toggleSection(key: string): void {
   openSections.value[key] = !openSections.value[key];
@@ -83,6 +83,26 @@ function onCoverUrl(): void {
 
 function removeCover(): void {
   updateMeta('coverImageUrl', '');
+}
+
+// --- Banner image ---
+const bannerUrl = computed(() => (props.metadata.bannerUrl as string) || '');
+
+function onBannerUpload(event: Event): void {
+  const input = event.target as HTMLInputElement;
+  if (!input.files?.length) return;
+  const file = input.files[0];
+  if (!file) return;
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('purpose', 'cover');
+  $fetch<{ url: string }>('/api/files/upload', { method: 'POST', body: formData })
+    .then((res) => { updateMeta('bannerUrl', res.url); })
+    .catch(() => {});
+}
+
+function removeBanner(): void {
+  updateMeta('bannerUrl', '');
 }
 
 const tags = computed(() => (props.metadata.tags as string[]) || []);
@@ -297,6 +317,27 @@ const blockCount = computed(() => props.blockEditor.blocks.value.length);
           </div>
         </EditorSection>
 
+        <!-- Banner Image -->
+        <EditorSection title="Banner Image" icon="fa-panorama" :open="openSections.banner" @toggle="toggleSection('banner')">
+          <p class="cpub-pe-hint" style="margin-bottom: 8px;">Hero background at the top of the page. Falls back to your profile banner if not set.</p>
+          <div v-if="bannerUrl" class="cpub-pe-banner-preview">
+            <img :src="bannerUrl" alt="Banner" class="cpub-pe-banner-img" />
+            <div class="cpub-pe-banner-actions">
+              <button class="cpub-pe-cover-btn" @click="removeBanner"><i class="fa-solid fa-trash"></i> Remove</button>
+              <label class="cpub-pe-cover-btn">
+                <i class="fa-solid fa-arrow-up-from-bracket"></i> Replace
+                <input type="file" accept="image/*" class="cpub-sr-only" @change="onBannerUpload">
+              </label>
+            </div>
+          </div>
+          <div v-else>
+            <label class="cpub-pe-cover-btn primary" style="display: inline-flex;">
+              <i class="fa-solid fa-arrow-up-from-bracket"></i> Upload Banner
+              <input type="file" accept="image/*" class="cpub-sr-only" @change="onBannerUpload">
+            </label>
+          </div>
+        </EditorSection>
+
         <EditorSection title="SEO Preview" icon="fa-brands fa-google" :open="openSections.seo" @toggle="toggleSection('seo')">
           <div class="cpub-seo-card">
             <div class="cpub-seo-url">
@@ -497,4 +538,9 @@ const blockCount = computed(() => props.blockEditor.blocks.value.length);
 }
 .cpub-seo-title { font-size: 14px; color: var(--accent); font-weight: 500; margin-bottom: 2px; }
 .cpub-seo-desc { font-size: 11px; color: var(--text-dim); line-height: 1.5; }
+
+/* Banner preview */
+.cpub-pe-banner-preview { position: relative; margin-bottom: 8px; }
+.cpub-pe-banner-img { width: 100%; height: 80px; object-fit: cover; display: block; border: var(--border-width-default) solid var(--border); }
+.cpub-pe-banner-actions { display: flex; gap: 6px; margin-top: 6px; }
 </style>

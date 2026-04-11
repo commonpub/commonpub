@@ -45,7 +45,7 @@ const blockTypes: BlockTypeGroup[] = [
 ];
 
 const openSections = ref<Record<string, boolean>>({
-  meta: true, excerpt: true, seo: true, publishing: true, author: true, social: false,
+  meta: true, excerpt: true, banner: false, seo: true, publishing: true, author: true, social: false,
 });
 function toggleSection(key: string): void {
   openSections.value[key] = !openSections.value[key];
@@ -78,6 +78,26 @@ function onCoverUrl(): void {
 
 function removeCover(): void {
   updateMeta('coverImageUrl', '');
+}
+
+// --- Banner image ---
+const bannerUrl = computed(() => (props.metadata.bannerUrl as string) || '');
+
+function onBannerUpload(event: Event): void {
+  const input = event.target as HTMLInputElement;
+  if (!input.files?.length) return;
+  const file = input.files[0];
+  if (!file) return;
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('purpose', 'cover');
+  $fetch<{ url: string }>('/api/files/upload', { method: 'POST', body: formData })
+    .then((res) => { updateMeta('bannerUrl', res.url); })
+    .catch(() => {});
+}
+
+function removeBanner(): void {
+  updateMeta('bannerUrl', '');
 }
 
 // --- Word count ---
@@ -286,6 +306,27 @@ const canvasMaxWidth = computed(() => {
             <label class="cpub-ep-flabel">Custom Excerpt</label>
             <textarea class="cpub-ep-textarea" rows="3" :value="(metadata.description as string) || ''" placeholder="Short description shown in feed previews..." @input="updateMeta('description', ($event.target as HTMLTextAreaElement).value)" />
             <span class="cpub-ep-hint cpub-ep-hint-right">{{ ((metadata.description as string) || '').length }} / 300</span>
+          </div>
+        </EditorSection>
+
+        <!-- Banner Image -->
+        <EditorSection title="Banner Image" icon="fa-panorama" :open="openSections.banner" @toggle="toggleSection('banner')">
+          <p class="cpub-ep-hint" style="margin-bottom: 8px;">Hero background at the top of the page. Falls back to your profile banner if not set.</p>
+          <div v-if="bannerUrl" class="cpub-be-banner-preview">
+            <img :src="bannerUrl" alt="Banner" class="cpub-be-banner-img" />
+            <div class="cpub-be-banner-actions">
+              <button class="cpub-be-cover-btn" @click="removeBanner"><i class="fa-solid fa-trash"></i> Remove</button>
+              <label class="cpub-be-cover-btn">
+                <i class="fa-solid fa-arrow-up-from-bracket"></i> Replace
+                <input type="file" accept="image/*" class="cpub-sr-only" @change="onBannerUpload">
+              </label>
+            </div>
+          </div>
+          <div v-else>
+            <label class="cpub-be-cover-btn primary" style="display: inline-flex;">
+              <i class="fa-solid fa-arrow-up-from-bracket"></i> Upload Banner
+              <input type="file" accept="image/*" class="cpub-sr-only" @change="onBannerUpload">
+            </label>
           </div>
         </EditorSection>
 
@@ -580,4 +621,9 @@ const canvasMaxWidth = computed(() => {
   .cpub-be-cover-actions { opacity: 1; }
   .cpub-be-og-overlay { opacity: 1; }
 }
+
+/* Banner preview */
+.cpub-be-banner-preview { position: relative; margin-bottom: 8px; }
+.cpub-be-banner-img { width: 100%; height: 80px; object-fit: cover; display: block; border: var(--border-width-default) solid var(--border); }
+.cpub-be-banner-actions { display: flex; gap: 6px; margin-top: 6px; }
 </style>

@@ -128,6 +128,26 @@ function removeCover(): void {
   updateMeta('coverImageUrl', '');
 }
 
+// --- Banner image ---
+const bannerUrl = computed(() => (props.metadata.bannerUrl as string) || '');
+
+function onBannerUpload(event: Event): void {
+  const input = event.target as HTMLInputElement;
+  if (!input.files?.length) return;
+  const file = input.files[0];
+  if (!file) return;
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('purpose', 'cover');
+  $fetch<{ url: string }>('/api/files/upload', { method: 'POST', body: formData })
+    .then((res) => { updateMeta('bannerUrl', res.url); })
+    .catch(() => {});
+}
+
+function removeBanner(): void {
+  updateMeta('bannerUrl', '');
+}
+
 // --- SEO preview ---
 const seoDomain = computed(() => {
   try { return new URL(useRequestURL().origin).hostname; } catch { return 'example.com'; }
@@ -136,7 +156,7 @@ const seoPreviewDesc = computed(() => (props.metadata.seoDescription as string) 
 
 // --- Right panel ---
 const openSections = ref<Record<string, boolean>>({
-  content: true, seo: false, publishing: true, cover: false,
+  content: true, seo: false, publishing: true, cover: false, banner: false,
 });
 function toggleSection(key: string): void {
   openSections.value[key] = !openSections.value[key];
@@ -344,6 +364,27 @@ const canvasMaxWidth = computed(() => {
                 <button class="cpub-ae-cover-btn" @click="onCoverUrl"><i class="fa-solid fa-link"></i> From URL</button>
               </div>
             </template>
+          </div>
+        </EditorSection>
+
+        <!-- Banner Image -->
+        <EditorSection title="Banner Image" icon="fa-panorama" :open="openSections.banner" @toggle="toggleSection('banner')">
+          <p class="cpub-ep-hint" style="margin-bottom: 8px;">Hero background at the top of the page. Falls back to your profile banner if not set.</p>
+          <div v-if="bannerUrl" class="cpub-ae-banner-preview">
+            <img :src="bannerUrl" alt="Banner" class="cpub-ae-banner-img" />
+            <div class="cpub-ae-banner-actions">
+              <button class="cpub-ae-cover-btn" @click="removeBanner"><i class="fa-solid fa-trash"></i> Remove</button>
+              <label class="cpub-ae-cover-btn">
+                <i class="fa-solid fa-arrow-up-from-bracket"></i> Replace
+                <input type="file" accept="image/*" class="cpub-sr-only" @change="onBannerUpload">
+              </label>
+            </div>
+          </div>
+          <div v-else>
+            <label class="cpub-ae-cover-btn primary" style="display: inline-flex;">
+              <i class="fa-solid fa-arrow-up-from-bracket"></i> Upload Banner
+              <input type="file" accept="image/*" class="cpub-sr-only" @change="onBannerUpload">
+            </label>
           </div>
         </EditorSection>
 
@@ -583,4 +624,9 @@ const canvasMaxWidth = computed(() => {
 }
 .cpub-seo-title { font-size: 14px; color: var(--accent); font-weight: 500; margin-bottom: 2px; }
 .cpub-seo-desc { font-size: 11px; color: var(--text-dim); line-height: 1.5; }
+
+/* Banner preview */
+.cpub-ae-banner-preview { position: relative; margin-bottom: 8px; }
+.cpub-ae-banner-img { width: 100%; height: 80px; object-fit: cover; display: block; border: var(--border-width-default) solid var(--border); }
+.cpub-ae-banner-actions { display: flex; gap: 6px; margin-top: 6px; }
 </style>

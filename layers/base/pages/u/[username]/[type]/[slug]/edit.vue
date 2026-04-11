@@ -41,6 +41,7 @@ const metadata = ref<Record<string, unknown>>({
   tags: [],
   visibility: 'public',
   coverImageUrl: '',
+  bannerUrl: '',
   ...(hubFromQuery ? { hubSlug: hubFromQuery } : {}),
 });
 const isDirty = ref(false);
@@ -147,6 +148,7 @@ if (!isNew.value) {
       tags: d.tags ? (d.tags as { name: string }[]).map((t) => t.name) : [],
       visibility: (d.visibility as string) || 'public',
       coverImageUrl: (d.coverImageUrl as string) || '',
+      bannerUrl: (d.bannerUrl as string) || '',
       seoDescription: (d.seoDescription as string) || '',
       difficulty: (d.difficulty as string) || '',
       buildTime: (d.buildTime as string) || '',
