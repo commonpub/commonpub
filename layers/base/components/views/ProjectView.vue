@@ -591,8 +591,8 @@ async function handleBuild(): Promise<void> {
 <style scoped>
 /* ── HERO COVER ── */
 .cpub-project-view {
-  overflow-x: hidden;
-  width: 100%;
+  /* Prevent any child from creating horizontal scroll */
+  overflow-x: clip;
 }
 
 .cpub-hero-cover {
@@ -680,7 +680,7 @@ async function handleBuild(): Promise<void> {
 .cpub-page-outer {
   max-width: 1160px;
   margin: 0 auto;
-  padding: 0 32px;
+  padding: 0 clamp(12px, 3vw, 32px);
 }
 
 /* ── BREADCRUMB ── */
@@ -925,16 +925,19 @@ async function handleBuild(): Promise<void> {
 /* ── CONTENT GRID ── */
 .cpub-content-grid {
   display: grid;
-  grid-template-columns: 1fr 260px;
-  gap: 32px;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  gap: clamp(16px, 3vw, 32px);
   align-items: start;
   padding-bottom: 64px;
 }
 .cpub-content-grid.cpub-has-toc {
-  grid-template-columns: 200px 1fr 260px;
+  grid-template-columns: 200px minmax(0, 1fr) 260px;
 }
 
-.cpub-content-col {
+/* Prevent grid children from overflowing */
+.cpub-content-col,
+.cpub-sidebar,
+.cpub-toc-col {
   min-width: 0;
   overflow-wrap: break-word;
 }
@@ -958,6 +961,20 @@ async function handleBuild(): Promise<void> {
   color: var(--text-dim);
   overflow-wrap: break-word;
   word-break: break-word;
+}
+
+/* Prevent images and media from overflowing prose */
+.cpub-prose :deep(img),
+.cpub-prose :deep(video),
+.cpub-prose :deep(iframe) {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Code blocks scroll horizontally instead of overflowing */
+.cpub-prose :deep(pre) {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .cpub-prose :deep(h2),
@@ -1525,48 +1542,53 @@ async function handleBuild(): Promise<void> {
 }
 
 /* ── RESPONSIVE ── */
+
+/* 1200px: Drop left TOC column, keep sidebar */
 @media (max-width: 1200px) {
   .cpub-content-grid.cpub-has-toc {
-    grid-template-columns: 1fr 260px;
+    grid-template-columns: minmax(0, 1fr) 260px;
   }
   .cpub-toc-col { display: none; }
 }
+
+/* 1024px: Single column — sidebar stacks below content */
 @media (max-width: 1024px) {
   .cpub-content-grid,
   .cpub-content-grid.cpub-has-toc {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
   .cpub-sidebar { position: static; }
   .cpub-toc-col { display: none; }
 }
 
+/* 768px: Tablet — reduce sizes, wrap engagement, scroll tabs */
 @media (max-width: 768px) {
-  .cpub-page-outer { padding: 0 16px; }
   .cpub-hero-cover { height: 200px; }
   .cpub-project-title { font-size: 18px; }
   .cpub-project-desc { font-size: 13px; }
-  .cpub-tabs-strip { padding: 0 16px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  .cpub-tabs-inner { max-width: none; padding: 0; }
+  .cpub-tabs-strip { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .cpub-tabs-inner { max-width: none; padding: 0 clamp(12px, 3vw, 32px); }
   .cpub-tab { padding: 10px 12px; font-size: 11px; white-space: nowrap; }
   .cpub-engagement-row { flex-wrap: wrap; gap: 6px; }
   .cpub-engage-btn { padding: 8px 12px; min-height: 36px; }
   .cpub-engage-sep { display: none; }
-  .cpub-content-area { padding: 0 16px; }
   .cpub-sidebar { position: static; }
   .cpub-author-tags .cpub-author-tag { padding: 2px 8px; font-size: 10px; }
+  .cpub-author-row { flex-wrap: wrap; gap: 8px; }
+  .cpub-content-grid { padding-bottom: 32px; }
 }
 
+/* 480px: Phone — compact everything */
 @media (max-width: 480px) {
-  .cpub-page-outer { padding: 0 12px; }
   .cpub-hero-cover { height: 160px; }
   .cpub-project-title { font-size: 16px; }
   .cpub-project-desc { font-size: 12px; line-height: 1.5; }
-  .cpub-project-meta { padding: 16px 0 0; }
-  .cpub-breadcrumbs { font-size: 10px; padding: 10px 0 8px; }
+  .cpub-project-meta { padding: 12px 0 0; }
+  .cpub-breadcrumb { font-size: 10px; padding: 10px 0 8px; }
   .cpub-tab { padding: 8px 10px; font-size: 10px; }
   .cpub-engage-btn { font-size: 11px; padding: 8px 10px; }
-  .cpub-author-row { gap: 8px; }
   .cpub-author-detail { font-size: 10px; }
   .cpub-toc-item { padding: 6px 0 6px 10px; font-size: 11px; min-height: 36px; display: flex; align-items: center; }
+  .cpub-content-grid { gap: 12px; padding-bottom: 24px; }
 }
 </style>
