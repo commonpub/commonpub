@@ -174,6 +174,7 @@ export interface ContentRelatedItem {
 export interface ContentDetail extends ContentListItem {
   subtitle: string | null;
   content: unknown;
+  bannerUrl: string | null;
   category: string | null;
   buildTime: string | null;
   estimatedCost: string | null;

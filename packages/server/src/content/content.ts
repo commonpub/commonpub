@@ -418,6 +418,7 @@ export async function getContentBySlug(
     ...mapToListItem(item, enrichedAuthor),
     subtitle: item.subtitle,
     content: item.content,
+    bannerUrl: item.bannerUrl,
     category: item.category,
     buildTime: item.buildTime,
     estimatedCost: item.estimatedCost,
@@ -461,6 +462,7 @@ export async function createContent(
       description: input.description ?? null,
       content: (await sanitizeBlockContent(input.content)) ?? null,
       coverImageUrl: input.coverImageUrl ?? null,
+      bannerUrl: input.bannerUrl ?? null,
       category: input.category ?? null,
       difficulty: input.difficulty ?? null,
       buildTime: input.buildTime ?? null,
@@ -517,6 +519,7 @@ export async function updateContent(
   if (input.description !== undefined) updates.description = input.description;
   if (input.content !== undefined) updates.content = await sanitizeBlockContent(input.content);
   if (input.coverImageUrl !== undefined) updates.coverImageUrl = input.coverImageUrl;
+  if (input.bannerUrl !== undefined) updates.bannerUrl = input.bannerUrl;
   if (input.category !== undefined) updates.category = input.category;
   if (input.difficulty !== undefined) updates.difficulty = input.difficulty;
   if (input.seoDescription !== undefined) updates.seoDescription = input.seoDescription;

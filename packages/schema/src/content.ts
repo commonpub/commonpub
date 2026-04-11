@@ -26,6 +26,7 @@ export const contentItems = pgTable('content_items', {
   description: text('description'),
   content: jsonb('content'),
   coverImageUrl: text('cover_image_url'),
+  bannerUrl: text('banner_url'),
   category: varchar('category', { length: 64 }),
   difficulty: difficultyEnum('difficulty'),
   buildTime: varchar('build_time', { length: 64 }),

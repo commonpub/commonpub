@@ -100,6 +100,7 @@ export const createContentSchema = z.object({
   description: z.string().max(2000).optional(),
   content: z.unknown().optional(),
   coverImageUrl: optionalUrl(),
+  bannerUrl: optionalUrl(),
   category: z.string().max(64).optional(),
   difficulty: difficultySchema.optional(),
   buildTime: z.string().max(64).optional(),
