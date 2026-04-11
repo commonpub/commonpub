@@ -2,7 +2,7 @@
 const { user, isAuthenticated, isAdmin, signOut, refreshSession } = useAuth();
 const { count: unreadCount, connect: connectNotifications, disconnect: disconnectNotifications } = useNotifications();
 const { count: unreadMessages, connect: connectMessages, disconnect: disconnectMessages } = useMessages();
-const { hubs, learning, video, docs, contests, admin, federation } = useFeatures();
+const { hubs, learning, video, docs, contests, admin, federation, explainers } = useFeatures();
 const { isDark, setDarkMode } = useTheme();
 const { enabledTypeMeta } = useContentTypes();
 const runtimeConfig = useRuntimeConfig();
@@ -16,6 +16,15 @@ useHead({
 
 const userMenuOpen = ref(false);
 const mobileMenuOpen = ref(false);
+const openDropdown = ref<string | null>(null);
+
+function toggleDropdown(name: string): void {
+  openDropdown.value = openDropdown.value === name ? null : name;
+}
+
+function closeDropdowns(): void {
+  openDropdown.value = null;
+}
 
 // Cmd+K / Ctrl+K → search
 function handleGlobalKeydown(e: KeyboardEvent): void {
@@ -29,6 +38,7 @@ function handleGlobalKeydown(e: KeyboardEvent): void {
 function handleClickOutside(e: MouseEvent): void {
   const target = e.target as HTMLElement;
   if (!target.closest('.cpub-user-menu-wrapper')) userMenuOpen.value = false;
+  if (!target.closest('.cpub-nav-dropdown')) openDropdown.value = null;
 }
 
 onMounted(async () => {
@@ -72,11 +82,54 @@ const userUsername = computed(() => user.value?.username ?? '');
 
       <nav class="cpub-topbar-nav" aria-label="Main navigation">
         <NuxtLink to="/" class="cpub-nav-link"><i class="fa-solid fa-house"></i> Home</NuxtLink>
+
+        <!-- Learn dropdown -->
+        <div v-if="learning || docs" class="cpub-nav-dropdown">
+          <button class="cpub-nav-link cpub-nav-trigger" :class="{ 'cpub-nav-trigger--open': openDropdown === 'learn' }" @click.stop="toggleDropdown('learn')">
+            <i class="fa-solid fa-graduation-cap"></i> Learn <i class="fa-solid fa-chevron-down cpub-nav-caret" />
+          </button>
+          <div v-if="openDropdown === 'learn'" class="cpub-nav-panel">
+            <NuxtLink v-if="learning" to="/learn" class="cpub-nav-panel-item" @click="closeDropdowns"><i class="fa-solid fa-route"></i> Learning Paths</NuxtLink>
+            <NuxtLink v-if="explainers" to="/explainer" class="cpub-nav-panel-item" @click="closeDropdowns"><i class="fa-solid fa-lightbulb"></i> Explainers</NuxtLink>
+            <NuxtLink v-if="docs" to="/docs" class="cpub-nav-panel-item" @click="closeDropdowns"><i class="fa-solid fa-book"></i> Docs</NuxtLink>
+          </div>
+        </div>
+
+        <!-- Build dropdown -->
+        <div class="cpub-nav-dropdown">
+          <button class="cpub-nav-link cpub-nav-trigger" :class="{ 'cpub-nav-trigger--open': openDropdown === 'build' }" @click.stop="toggleDropdown('build')">
+            <i class="fa-solid fa-hammer"></i> Build <i class="fa-solid fa-chevron-down cpub-nav-caret" />
+          </button>
+          <div v-if="openDropdown === 'build'" class="cpub-nav-panel">
+            <NuxtLink to="/project" class="cpub-nav-panel-item" @click="closeDropdowns"><i class="fa-solid fa-cube"></i> Projects</NuxtLink>
+            <NuxtLink v-if="contests" to="/contests" class="cpub-nav-panel-item" @click="closeDropdowns"><i class="fa-solid fa-trophy"></i> Contests</NuxtLink>
+          </div>
+        </div>
+
+        <!-- Read dropdown -->
+        <div class="cpub-nav-dropdown">
+          <button class="cpub-nav-link cpub-nav-trigger" :class="{ 'cpub-nav-trigger--open': openDropdown === 'read' }" @click.stop="toggleDropdown('read')">
+            <i class="fa-solid fa-newspaper"></i> Read <i class="fa-solid fa-chevron-down cpub-nav-caret" />
+          </button>
+          <div v-if="openDropdown === 'read'" class="cpub-nav-panel">
+            <NuxtLink to="/article" class="cpub-nav-panel-item" @click="closeDropdowns"><i class="fa-solid fa-file-lines"></i> Articles</NuxtLink>
+            <NuxtLink to="/blog" class="cpub-nav-panel-item" @click="closeDropdowns"><i class="fa-solid fa-pen-nib"></i> Blog</NuxtLink>
+          </div>
+        </div>
+
+        <!-- Watch dropdown -->
+        <div v-if="video" class="cpub-nav-dropdown">
+          <button class="cpub-nav-link cpub-nav-trigger" :class="{ 'cpub-nav-trigger--open': openDropdown === 'watch' }" @click.stop="toggleDropdown('watch')">
+            <i class="fa-solid fa-play"></i> Watch <i class="fa-solid fa-chevron-down cpub-nav-caret" />
+          </button>
+          <div v-if="openDropdown === 'watch'" class="cpub-nav-panel">
+            <NuxtLink to="/videos" class="cpub-nav-panel-item" @click="closeDropdowns"><i class="fa-solid fa-video"></i> Videos</NuxtLink>
+            <span class="cpub-nav-panel-item cpub-nav-panel-item--disabled"><i class="fa-solid fa-tower-broadcast"></i> Live Streams</span>
+            <span class="cpub-nav-panel-item cpub-nav-panel-item--disabled"><i class="fa-solid fa-podcast"></i> Podcasts</span>
+          </div>
+        </div>
+
         <NuxtLink v-if="hubs" to="/hubs" class="cpub-nav-link"><i class="fa-solid fa-users"></i> Hubs</NuxtLink>
-        <NuxtLink v-if="learning" to="/learn" class="cpub-nav-link"><i class="fa-solid fa-graduation-cap"></i> Learn</NuxtLink>
-        <NuxtLink v-if="video" to="/videos" class="cpub-nav-link"><i class="fa-solid fa-video"></i> Videos</NuxtLink>
-        <NuxtLink v-if="docs" to="/docs" class="cpub-nav-link"><i class="fa-solid fa-book"></i> Docs</NuxtLink>
-        <NuxtLink v-if="contests" to="/contests" class="cpub-nav-link"><i class="fa-solid fa-trophy"></i> Contests</NuxtLink>
         <NuxtLink v-if="federation" to="/federation" class="cpub-nav-link"><i class="fa-solid fa-globe"></i> Fediverse</NuxtLink>
         <NuxtLink v-if="isAdmin && admin" to="/admin" class="cpub-nav-link"><i class="fa-solid fa-shield-halved"></i> Admin</NuxtLink>
       </nav>
@@ -133,11 +186,35 @@ const userUsername = computed(() => user.value?.username ?? '');
     <div v-if="mobileMenuOpen" class="cpub-mobile-menu" @click.self="mobileMenuOpen = false">
       <nav class="cpub-mobile-nav" aria-label="Mobile navigation">
         <NuxtLink to="/" class="cpub-mobile-link" @click="mobileMenuOpen = false"><i class="fa-solid fa-house"></i> Home</NuxtLink>
+
+        <!-- Learn -->
+        <template v-if="learning || docs">
+          <div class="cpub-mobile-section-label">Learn</div>
+          <NuxtLink v-if="learning" to="/learn" class="cpub-mobile-link cpub-mobile-link--indent" @click="mobileMenuOpen = false"><i class="fa-solid fa-route"></i> Learning Paths</NuxtLink>
+          <NuxtLink v-if="explainers" to="/explainer" class="cpub-mobile-link cpub-mobile-link--indent" @click="mobileMenuOpen = false"><i class="fa-solid fa-lightbulb"></i> Explainers</NuxtLink>
+          <NuxtLink v-if="docs" to="/docs" class="cpub-mobile-link cpub-mobile-link--indent" @click="mobileMenuOpen = false"><i class="fa-solid fa-book"></i> Docs</NuxtLink>
+        </template>
+
+        <!-- Build -->
+        <div class="cpub-mobile-section-label">Build</div>
+        <NuxtLink to="/project" class="cpub-mobile-link cpub-mobile-link--indent" @click="mobileMenuOpen = false"><i class="fa-solid fa-cube"></i> Projects</NuxtLink>
+        <NuxtLink v-if="contests" to="/contests" class="cpub-mobile-link cpub-mobile-link--indent" @click="mobileMenuOpen = false"><i class="fa-solid fa-trophy"></i> Contests</NuxtLink>
+
+        <!-- Read -->
+        <div class="cpub-mobile-section-label">Read</div>
+        <NuxtLink to="/article" class="cpub-mobile-link cpub-mobile-link--indent" @click="mobileMenuOpen = false"><i class="fa-solid fa-file-lines"></i> Articles</NuxtLink>
+        <NuxtLink to="/blog" class="cpub-mobile-link cpub-mobile-link--indent" @click="mobileMenuOpen = false"><i class="fa-solid fa-pen-nib"></i> Blog</NuxtLink>
+
+        <!-- Watch -->
+        <template v-if="video">
+          <div class="cpub-mobile-section-label">Watch</div>
+          <NuxtLink to="/videos" class="cpub-mobile-link cpub-mobile-link--indent" @click="mobileMenuOpen = false"><i class="fa-solid fa-video"></i> Videos</NuxtLink>
+          <span class="cpub-mobile-link cpub-mobile-link--indent cpub-mobile-link--disabled"><i class="fa-solid fa-tower-broadcast"></i> Live Streams</span>
+          <span class="cpub-mobile-link cpub-mobile-link--indent cpub-mobile-link--disabled"><i class="fa-solid fa-podcast"></i> Podcasts</span>
+        </template>
+
+        <div class="cpub-mobile-divider" />
         <NuxtLink v-if="hubs" to="/hubs" class="cpub-mobile-link" @click="mobileMenuOpen = false"><i class="fa-solid fa-users"></i> Hubs</NuxtLink>
-        <NuxtLink v-if="learning" to="/learn" class="cpub-mobile-link" @click="mobileMenuOpen = false"><i class="fa-solid fa-graduation-cap"></i> Learn</NuxtLink>
-        <NuxtLink v-if="video" to="/videos" class="cpub-mobile-link" @click="mobileMenuOpen = false"><i class="fa-solid fa-video"></i> Videos</NuxtLink>
-        <NuxtLink v-if="docs" to="/docs" class="cpub-mobile-link" @click="mobileMenuOpen = false"><i class="fa-solid fa-book"></i> Docs</NuxtLink>
-        <NuxtLink v-if="contests" to="/contests" class="cpub-mobile-link" @click="mobileMenuOpen = false"><i class="fa-solid fa-trophy"></i> Contests</NuxtLink>
         <NuxtLink v-if="federation" to="/federation" class="cpub-mobile-link" @click="mobileMenuOpen = false"><i class="fa-solid fa-globe"></i> Fediverse</NuxtLink>
         <NuxtLink v-if="isAdmin && admin" to="/admin" class="cpub-mobile-link" @click="mobileMenuOpen = false"><i class="fa-solid fa-shield-halved"></i> Admin</NuxtLink>
         <NuxtLink to="/search" class="cpub-mobile-link" @click="mobileMenuOpen = false"><i class="fa-solid fa-magnifying-glass"></i> Search</NuxtLink>
@@ -219,6 +296,37 @@ const userUsername = computed(() => user.value?.username ?? '');
 .cpub-nav-link i { font-size: 10px; }
 .cpub-nav-link:hover { color: var(--text); background: var(--surface2); }
 .cpub-nav-link.router-link-active { color: var(--text); background: var(--surface2); border-color: var(--border); }
+
+/* Nav dropdowns */
+.cpub-nav-dropdown { position: relative; }
+.cpub-nav-trigger { cursor: pointer; }
+.cpub-nav-caret { font-size: 7px !important; margin-left: 2px; transition: transform 0.15s; }
+.cpub-nav-trigger--open .cpub-nav-caret { transform: rotate(180deg); }
+.cpub-nav-panel {
+  position: absolute; top: 100%; left: 0; min-width: 180px;
+  background: var(--surface); border: var(--border-width-default) solid var(--border);
+  box-shadow: var(--shadow-md); z-index: 200; display: flex; flex-direction: column; padding: 4px 0;
+  margin-top: 4px;
+}
+.cpub-nav-panel-item {
+  display: flex; align-items: center; gap: 8px; padding: 8px 14px;
+  font-size: 12px; color: var(--text-dim); text-decoration: none;
+  transition: background 0.1s, color 0.1s; cursor: pointer;
+}
+.cpub-nav-panel-item:hover { background: var(--surface2); color: var(--text); }
+.cpub-nav-panel-item i { width: 14px; text-align: center; font-size: 11px; }
+.cpub-nav-panel-item--disabled {
+  opacity: 0.35; cursor: not-allowed; pointer-events: none;
+}
+
+/* Mobile nav sections */
+.cpub-mobile-section-label {
+  font-family: var(--font-mono); font-size: 9px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-faint);
+  padding: 10px 20px 2px; margin-top: 4px;
+}
+.cpub-mobile-link--indent { padding-left: 36px; }
+.cpub-mobile-link--disabled { opacity: 0.35; cursor: not-allowed; pointer-events: none; }
 
 .cpub-topbar-spacer { flex: 1; }
 .cpub-topbar-actions { display: flex; align-items: center; gap: 6px; }
