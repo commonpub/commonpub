@@ -17,6 +17,7 @@ const emit = defineEmits<{
 const open = ref(false);
 const search = ref('');
 const pickerRef = ref<HTMLElement | null>(null);
+const dropUp = ref(false);
 
 /** Curated icons organized by category */
 const ICON_GROUPS: Array<{ name: string; icons: Array<{ id: string; label: string }> }> = [
@@ -124,8 +125,6 @@ const ICON_GROUPS: Array<{ name: string; icons: Array<{ id: string; label: strin
   },
 ];
 
-const allIcons = ICON_GROUPS.flatMap(g => g.icons);
-
 const filteredGroups = computed(() => {
   const q = search.value.toLowerCase().trim();
   if (!q) return ICON_GROUPS;
@@ -134,6 +133,20 @@ const filteredGroups = computed(() => {
     icons: g.icons.filter(ic => ic.id.includes(q) || ic.label.toLowerCase().includes(q)),
   })).filter(g => g.icons.length > 0);
 });
+
+function toggleOpen(): void {
+  if (open.value) {
+    open.value = false;
+    search.value = '';
+  } else {
+    // Check if there's room below; flip upward if not
+    if (pickerRef.value) {
+      const rect = pickerRef.value.getBoundingClientRect();
+      dropUp.value = rect.bottom + 300 > window.innerHeight;
+    }
+    open.value = true;
+  }
+}
 
 function selectIcon(id: string): void {
   emit('update:modelValue', id);
@@ -159,14 +172,14 @@ onUnmounted(() => document.removeEventListener('mousedown', onClickOutside));
 
 <template>
   <div ref="pickerRef" class="cpub-icon-picker">
-    <button class="cpub-ip-trigger" @click="open = !open">
+    <button class="cpub-ip-trigger" @click="toggleOpen">
       <i v-if="modelValue" :class="`fa-solid fa-${modelValue}`" />
       <i v-else class="fa-solid fa-icons cpub-ip-placeholder-icon" />
       <span class="cpub-ip-label">{{ modelValue || placeholder || 'Pick icon...' }}</span>
       <i class="fa-solid fa-chevron-down cpub-ip-caret" />
     </button>
 
-    <div v-if="open" class="cpub-ip-dropdown">
+    <div v-if="open" class="cpub-ip-dropdown" :class="{ 'cpub-ip-dropdown--up': dropUp }">
       <input
         v-model="search"
         class="cpub-ip-search"
@@ -256,6 +269,13 @@ onUnmounted(() => document.removeEventListener('mousedown', onClickOutside));
   box-shadow: var(--shadow-md);
   z-index: 50;
   min-width: 240px;
+}
+
+.cpub-ip-dropdown--up {
+  top: auto;
+  bottom: 100%;
+  margin-top: 0;
+  margin-bottom: 2px;
 }
 
 .cpub-ip-search {
