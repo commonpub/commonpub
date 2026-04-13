@@ -5,8 +5,10 @@ const route = useRoute();
 const slug = route.params.slug as string;
 const toast = useToast();
 const { extract: extractError } = useApiError();
+const { user, isAdmin } = useAuth();
 
 const { data: contest, refresh } = useLazyFetch(`/api/contests/${slug}`);
+const isOwner = computed(() => isAdmin.value || (user.value?.id && contest.value?.createdById === user.value.id));
 useSeoMeta({ title: () => `Edit: ${contest.value?.title ?? 'Contest'} — ${useSiteName()}` });
 
 const saving = ref(false);
@@ -105,7 +107,11 @@ async function transitionStatus(newStatus: string): Promise<void> {
 </script>
 
 <template>
-  <div v-if="contest" class="cpub-contest-edit">
+  <div v-if="contest && !isOwner" class="cpub-not-found">
+    <p>You don't have permission to edit this contest.</p>
+    <NuxtLink :to="`/contests/${slug}`" class="cpub-btn cpub-btn-sm">Back to Contest</NuxtLink>
+  </div>
+  <div v-else-if="contest" class="cpub-contest-edit">
     <NuxtLink :to="`/contests/${slug}`" class="cpub-back-link"><i class="fa-solid fa-arrow-left"></i> Back to contest</NuxtLink>
     <h1 class="cpub-edit-title">Edit Contest</h1>
     <p class="cpub-edit-subtitle">

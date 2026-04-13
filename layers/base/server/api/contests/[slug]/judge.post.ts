@@ -5,7 +5,7 @@ export default defineEventHandler(async (event): Promise<{ success: boolean }> =
   requireFeature('contests');
   const user = requireAuth(event);
   const db = useDB();
-  const slug = getRouterParam(event, 'slug')!;
+  const { slug } = parseParams(event, { slug: 'string' });
   const input = await parseBody(event, judgeEntrySchema);
 
   const contest = await getContestBySlug(db, slug);

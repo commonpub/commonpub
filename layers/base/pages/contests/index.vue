@@ -28,7 +28,8 @@ const canCreateContest = computed(() => {
           <span class="cpub-badge" :class="{
             'cpub-badge-green': contest.status === 'active',
             'cpub-badge-yellow': contest.status === 'upcoming',
-            'cpub-badge-red': contest.status === 'completed',
+            'cpub-badge-accent': contest.status === 'judging',
+            'cpub-badge-red': contest.status === 'completed' || contest.status === 'cancelled',
           }">{{ contest.status }}</span>
           <h3 style="font-size: 15px; font-weight: 600; margin: 8px 0">
             <NuxtLink :to="`/contests/${contest.slug}`" style="color: var(--text); text-decoration: none">

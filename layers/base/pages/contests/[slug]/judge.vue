@@ -105,8 +105,13 @@ async function submitScore(entryId: string): Promise<void> {
       <p class="cpub-judge-desc">Score each entry from 1 to 100. Add optional feedback. Scores are saved immediately.</p>
     </header>
 
+    <!-- Loading -->
+    <div v-if="!contest" class="cpub-judge-empty">
+      <p>Loading...</p>
+    </div>
+
     <!-- Auth guard -->
-    <div v-if="contest && !isJudge" class="cpub-judge-unauthorized">
+    <div v-else-if="!isJudge" class="cpub-judge-unauthorized">
       <i class="fa-solid fa-lock"></i>
       <p>You are not a judge for this contest.</p>
       <NuxtLink :to="`/contests/${slug}`" class="cpub-btn cpub-btn-sm">Back to Contest</NuxtLink>

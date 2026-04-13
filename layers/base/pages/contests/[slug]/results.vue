@@ -68,7 +68,7 @@ function medalColor(rank: number): string {
           v-for="entry in podium"
           :key="entry.id"
           class="cpub-podium-card"
-          :class="`cpub-podium-${entry.rank}`"
+          :class="`cpub-podium-${entry.rank ?? 0}`"
         >
           <div class="cpub-podium-medal" :style="{ color: medalColor(entry.rank ?? 0) }">
             <i class="fa-solid" :class="medalIcon(entry.rank ?? 0)"></i>
@@ -81,10 +81,12 @@ function medalColor(rank: number): string {
           <NuxtLink :to="`/u/${entry.authorUsername}/${entry.contentType}/${entry.contentSlug}`" class="cpub-podium-title">{{ entry.contentTitle }}</NuxtLink>
           <NuxtLink :to="`/u/${entry.authorUsername}`" class="cpub-podium-author">{{ entry.authorName }}</NuxtLink>
           <div class="cpub-podium-score">Score: {{ entry.score ?? '—' }}</div>
-          <div v-if="prizeForRank(entry.rank ?? 0)" class="cpub-podium-prize">
-            <i class="fa-solid fa-gift"></i> {{ prizeForRank(entry.rank ?? 0)!.title }}
-            <span v-if="prizeForRank(entry.rank ?? 0)!.value" class="cpub-podium-prize-val">{{ prizeForRank(entry.rank ?? 0)!.value }}</span>
-          </div>
+          <template v-if="entry.rank && prizeForRank(entry.rank)">
+            <div class="cpub-podium-prize">
+              <i class="fa-solid fa-gift"></i> {{ prizeForRank(entry.rank)?.title }}
+              <span v-if="prizeForRank(entry.rank)?.value" class="cpub-podium-prize-val">{{ prizeForRank(entry.rank)?.value }}</span>
+            </div>
+          </template>
         </div>
       </div>
 

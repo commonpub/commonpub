@@ -4,7 +4,7 @@ export default defineEventHandler(async (event): Promise<{ withdrawn: boolean }>
   requireFeature('contests');
   const user = requireAuth(event);
   const db = useDB();
-  const entryId = getRouterParam(event, 'entryId')!;
+  const { entryId } = parseParams(event, { entryId: 'uuid' });
 
   const result = await withdrawContestEntry(db, entryId, user.id);
   if (!result.withdrawn) {
