@@ -169,4 +169,76 @@ describe('createAuth', () => {
       }),
     );
   });
+
+  it('should wire sendResetPassword when emailSender is provided', () => {
+    const sendResetPasswordEmail = vi.fn();
+    createAuth({
+      config: createMockConfig(),
+      db: {} as any,
+      secret: 'test-secret',
+      emailSender: { sendResetPasswordEmail },
+    });
+
+    expect(betterAuth).toHaveBeenCalledWith(
+      expect.objectContaining({
+        emailAndPassword: expect.objectContaining({
+          enabled: true,
+          sendResetPassword: expect.any(Function),
+        }),
+      }),
+    );
+  });
+
+  it('should call emailSender.sendResetPasswordEmail with correct args', async () => {
+    const sendResetPasswordEmail = vi.fn().mockResolvedValue(undefined);
+    createAuth({
+      config: createMockConfig(),
+      db: {} as any,
+      secret: 'test-secret',
+      emailSender: { sendResetPasswordEmail },
+    });
+
+    const call = (betterAuth as unknown as ReturnType<typeof vi.fn>).mock.calls.at(-1)![0];
+    const sendFn = call.emailAndPassword.sendResetPassword;
+    await sendFn({ user: { email: 'test@example.com' }, url: 'https://example.com/reset?token=abc', token: 'abc' });
+
+    expect(sendResetPasswordEmail).toHaveBeenCalledWith(
+      'test@example.com',
+      'https://example.com/reset?token=abc',
+      'abc',
+    );
+  });
+
+  it('should wire sendVerificationEmail when emailSender is provided', () => {
+    const sendVerificationEmail = vi.fn();
+    createAuth({
+      config: createMockConfig(),
+      db: {} as any,
+      secret: 'test-secret',
+      emailSender: { sendVerificationEmail },
+    });
+
+    expect(betterAuth).toHaveBeenCalledWith(
+      expect.objectContaining({
+        emailVerification: expect.objectContaining({
+          sendVerificationEmail: expect.any(Function),
+          sendOnSignUp: true,
+        }),
+      }),
+    );
+  });
+
+  it('should not wire email callbacks when emailSender is not provided', () => {
+    createAuth({
+      config: createMockConfig(),
+      db: {} as any,
+      secret: 'test-secret',
+    });
+
+    expect(betterAuth).toHaveBeenCalledWith(
+      expect.objectContaining({
+        emailAndPassword: { enabled: true },
+      }),
+    );
+  });
 });
