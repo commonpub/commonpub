@@ -233,7 +233,7 @@ export async function updateContest(
 
   await db.update(contests).set(updates).where(eq(contests.slug, slug));
 
-  return getContestBySlug(db, data.slug ?? slug);
+  return getContestBySlug(db, slug);
 }
 
 export async function listContestEntries(

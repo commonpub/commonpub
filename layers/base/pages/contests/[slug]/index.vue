@@ -79,7 +79,6 @@ async function withdrawEntry(entryId: string): Promise<void> {
   try {
     await $fetch(`/api/contests/${slug}/entries/${entryId}`, { method: 'DELETE' });
     toast.success('Entry withdrawn');
-    await refreshEntries();
     refreshNuxtData();
   } catch {
     toast.error('Failed to withdraw entry');

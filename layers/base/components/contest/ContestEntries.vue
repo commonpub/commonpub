@@ -62,7 +62,10 @@ function confirmWithdraw(entryId: string): void {
     <div v-else class="cpub-empty-state">
       <div class="cpub-empty-state-icon"><i class="fa-solid fa-box-open"></i></div>
       <p class="cpub-empty-state-title">No entries yet</p>
-      <p class="cpub-empty-state-desc">Be the first to submit an entry!</p>
+      <p v-if="contestStatus === 'active'" class="cpub-empty-state-desc">Be the first to submit an entry!</p>
+      <p v-else-if="contestStatus === 'cancelled'" class="cpub-empty-state-desc">This contest was cancelled.</p>
+      <p v-else-if="contestStatus === 'completed'" class="cpub-empty-state-desc">No entries were submitted.</p>
+      <p v-else class="cpub-empty-state-desc">Submissions are not open yet.</p>
     </div>
   </div>
 </template>
