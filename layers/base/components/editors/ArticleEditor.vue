@@ -358,6 +358,21 @@ const canvasMaxWidth = computed(() => {
             <textarea class="cpub-ep-textarea" rows="3" :value="metadata.description as string" placeholder="Brief description shown in feed previews..." @input="updateMeta('description', ($event.target as HTMLTextAreaElement).value)" />
             <span class="cpub-ep-hint cpub-ep-hint-right">{{ ((metadata.description as string) || '').length }} / 300</span>
           </div>
+          <div class="cpub-ep-field">
+            <label class="cpub-ep-flabel">Category</label>
+            <select class="cpub-ep-select" :value="metadata.category || ''" @change="updateMeta('category', ($event.target as HTMLSelectElement).value)">
+              <option value="">Select category</option>
+              <option value="article">Article</option>
+              <option value="blog">Blog Post</option>
+              <option value="tutorial">Tutorial</option>
+              <option value="deep-dive">Deep Dive</option>
+              <option value="opinion">Opinion</option>
+              <option value="hardware">Hardware &amp; Makers</option>
+              <option value="software">Software</option>
+              <option value="ai-ml">AI &amp; Machine Learning</option>
+              <option value="homelab">Home Lab</option>
+            </select>
+          </div>
           <div class="cpub-ae-cover" :class="{ 'has-image': !!coverImageUrl }">
             <template v-if="coverImageUrl">
               <img :src="coverImageUrl" alt="Cover image" class="cpub-ae-cover-img" />
@@ -428,21 +443,6 @@ const canvasMaxWidth = computed(() => {
           <div class="cpub-ep-field">
             <label class="cpub-ep-flabel">Visibility</label>
             <EditorVisibility :model-value="visibility" @update:model-value="onVisibilityUpdate" />
-          </div>
-          <div class="cpub-ep-field">
-            <label class="cpub-ep-flabel">Category</label>
-            <select class="cpub-ep-select" :value="metadata.category || ''" @change="updateMeta('category', ($event.target as HTMLSelectElement).value)">
-              <option value="">Select category</option>
-              <option value="article">Article</option>
-              <option value="blog">Blog Post</option>
-              <option value="tutorial">Tutorial</option>
-              <option value="deep-dive">Deep Dive</option>
-              <option value="opinion">Opinion</option>
-              <option value="hardware">Hardware &amp; Makers</option>
-              <option value="software">Software</option>
-              <option value="ai-ml">AI &amp; Machine Learning</option>
-              <option value="homelab">Home Lab</option>
-            </select>
           </div>
           <div class="cpub-ep-field">
             <label class="cpub-ep-flabel">Tags</label>

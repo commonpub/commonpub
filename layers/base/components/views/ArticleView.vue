@@ -30,11 +30,14 @@ const tocHeadings = computed(() => {
       const block = b as [string, Record<string, unknown>];
       return block[0] === 'heading';
     })
-    .map((b: unknown, idx: number) => {
+    .map((b: unknown) => {
       const block = b as [string, Record<string, unknown>];
+      const text = (block[1].text as string) || 'Untitled';
+      // Must match BlockHeadingView's slug generation
+      const slug = text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
       return {
-        id: `heading-${idx}`,
-        text: (block[1].text as string) || 'Untitled',
+        id: slug,
+        text,
         level: (block[1].level as number) || 2,
       };
     });
@@ -298,21 +301,18 @@ useJsonLd({
 
 <style scoped>
 /* ── TOC SIDEBAR ── */
-.cpub-article-toc-sidebar {
+.cpub-article-body-layout {
   display: none;
 }
 @media (min-width: 1200px) {
   .cpub-article-body-layout {
-    position: fixed;
-    right: max(24px, calc((100vw - 720px) / 2 - 240px));
-    top: 120px;
+    display: block;
+    position: absolute;
+    left: calc(100% + 32px);
+    top: 0;
     width: 200px;
-    z-index: 10;
-    pointer-events: none;
   }
   .cpub-article-toc-sidebar {
-    display: block;
-    pointer-events: auto;
     position: sticky;
     top: 80px;
   }
@@ -379,6 +379,7 @@ useJsonLd({
   max-width: 720px;
   margin: 0 auto;
   padding: 40px clamp(12px, 4vw, 24px) 80px;
+  position: relative;
 }
 
 /* ── TYPE BADGE ── */
