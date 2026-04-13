@@ -288,12 +288,38 @@ describe('contentToArticle — cpub:type extension', () => {
     expect((article as Record<string, unknown>)['cpub:type']).toBe('project');
   });
 
-  it('includes cpub:type for articles', () => {
+  it('normalizes cpub:type article to blog', () => {
     const article = contentToArticle(
       { id: 'test', type: 'article', title: 'Test', slug: 'test' },
       author, DOMAIN,
     );
-    expect((article as Record<string, unknown>)['cpub:type']).toBe('article');
+    expect((article as Record<string, unknown>)['cpub:type']).toBe('blog');
+  });
+
+  it('preserves cpub:type blog as-is', () => {
+    const article = contentToArticle(
+      { id: 'test', type: 'blog', title: 'Test', slug: 'test' },
+      author, DOMAIN,
+    );
+    expect((article as Record<string, unknown>)['cpub:type']).toBe('blog');
+  });
+
+  it('preserves cpub:type explainer as-is', () => {
+    const article = contentToArticle(
+      { id: 'test', type: 'explainer', title: 'Test', slug: 'test' },
+      author, DOMAIN,
+    );
+    expect((article as Record<string, unknown>)['cpub:type']).toBe('explainer');
+  });
+
+  it('uses normalized type in AP url field', () => {
+    const article = contentToArticle(
+      { id: 'test', type: 'article', title: 'Test', slug: 'test-post' },
+      author, DOMAIN,
+    );
+    // URL should contain /blog/ not /article/ (article was the input type)
+    expect(article.url).toContain('/blog/test-post');
+    expect(article.url).not.toContain('/article/');
   });
 });
 

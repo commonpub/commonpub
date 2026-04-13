@@ -168,7 +168,7 @@ const sortOptions = [
     <div v-if="statsData" class="cpub-explore-stats">
       <div class="cpub-explore-stat">
         <span class="cpub-explore-stat-n">{{ statsData?.content?.total ?? 0 }}</span>
-        <span class="cpub-explore-stat-l">Projects & Articles</span>
+        <span class="cpub-explore-stat-l">Projects & Posts</span>
       </div>
       <div v-if="hubsEnabled" class="cpub-explore-stat">
         <span class="cpub-explore-stat-n">{{ statsData?.hubs?.total ?? 0 }}</span>

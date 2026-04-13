@@ -98,8 +98,7 @@ useSeoMeta({
 
     <!-- Reuse existing content view components by type -->
     <ViewsProjectView v-if="contentType === 'project'" :content="transformedContent" :federated-id="id" />
-    <ViewsArticleView v-else-if="contentType === 'article'" :content="transformedContent" :federated-id="id" />
-    <ViewsBlogView v-else-if="contentType === 'blog'" :content="transformedContent" :federated-id="id" />
+    <ViewsArticleView v-else-if="contentType === 'article' || contentType === 'blog'" :content="transformedContent" :federated-id="id" />
     <ViewsExplainerView v-else-if="contentType === 'explainer'" :content="transformedContent" :federated-id="id" />
 
     <!-- Fallback for non-CommonPub content (Mastodon notes, Lemmy posts, etc.) -->

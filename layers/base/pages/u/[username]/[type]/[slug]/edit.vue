@@ -130,8 +130,8 @@ provide(SEARCH_PRODUCTS_KEY, async (query: string) => {
 
 // --- Specialized editor component map ---
 const editorMap: Record<string, Component> = {
-  article: resolveComponent('EditorsArticleEditor') as Component,
-  blog: resolveComponent('EditorsBlogEditor') as Component,
+  blog: resolveComponent('EditorsArticleEditor') as Component,
+  article: resolveComponent('EditorsArticleEditor') as Component, // article merged into blog
   explainer: resolveComponent('EditorsExplainerEditor') as Component,
   project: resolveComponent('EditorsProjectEditor') as Component,
 };

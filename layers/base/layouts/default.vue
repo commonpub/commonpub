@@ -112,7 +112,6 @@ const userUsername = computed(() => user.value?.username ?? '');
             <i class="fa-solid fa-newspaper"></i> Read <i class="fa-solid fa-chevron-down cpub-nav-caret" />
           </button>
           <div v-if="openDropdown === 'read'" class="cpub-nav-panel">
-            <NuxtLink to="/article" class="cpub-nav-panel-item" @click="closeDropdowns"><i class="fa-solid fa-file-lines"></i> Articles</NuxtLink>
             <NuxtLink to="/blog" class="cpub-nav-panel-item" @click="closeDropdowns"><i class="fa-solid fa-pen-nib"></i> Blog</NuxtLink>
           </div>
         </div>
@@ -202,7 +201,6 @@ const userUsername = computed(() => user.value?.username ?? '');
 
         <!-- Read -->
         <div class="cpub-mobile-section-label">Read</div>
-        <NuxtLink to="/article" class="cpub-mobile-link cpub-mobile-link--indent" @click="mobileMenuOpen = false"><i class="fa-solid fa-file-lines"></i> Articles</NuxtLink>
         <NuxtLink to="/blog" class="cpub-mobile-link cpub-mobile-link--indent" @click="mobileMenuOpen = false"><i class="fa-solid fa-pen-nib"></i> Blog</NuxtLink>
 
         <!-- Watch -->

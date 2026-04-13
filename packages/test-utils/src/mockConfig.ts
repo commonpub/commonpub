@@ -8,7 +8,7 @@ export function createTestConfig(overrides?: Partial<CommonPubConfig>): CommonPu
       description: 'A test CommonPub instance',
       contactEmail: 'admin@test.example.com',
       maxUploadSize: 10 * 1024 * 1024,
-      contentTypes: ['project', 'article', 'blog', 'explainer'],
+      contentTypes: ['project', 'blog', 'explainer'],
       ...overrides?.instance,
     },
     features: {

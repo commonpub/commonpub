@@ -31,7 +31,7 @@ const { federation: federationEnabled } = useFeatures();
         <ul>
           <li><strong>Account data:</strong> email address, username, password (stored as a secure hash)</li>
           <li><strong>Profile data:</strong> display name, bio, headline, location, website, avatar, banner image, social links, skills, pronouns, timezone (all optional)</li>
-          <li><strong>Content:</strong> projects, articles, blog posts, comments, and other content you create</li>
+          <li><strong>Content:</strong> projects, articles, comments, and other content you create</li>
           <li><strong>Activity data:</strong> likes, follows, bookmarks, hub memberships, learning path enrollments</li>
           <li><strong>Messages:</strong> direct messages you send to other users on this instance</li>
         </ul>
@@ -77,7 +77,7 @@ const { federation: federationEnabled } = useFeatures();
         <p>This instance participates in the <a href="https://activitypub.rocks" target="_blank" rel="noopener">ActivityPub</a> federation protocol. When you publish content or interact publicly, the following data may be shared with remote instances:</p>
         <ul>
           <li>Your username, display name, avatar, and bio</li>
-          <li>Your published content (projects, articles, blog posts)</li>
+          <li>Your published content (projects, articles, explainers)</li>
           <li>Your public interactions (likes, follows, comments on federated content)</li>
         </ul>
         <p>Your email address, location, social links, timezone, and other private profile fields are <strong>never</strong> shared via federation.</p>

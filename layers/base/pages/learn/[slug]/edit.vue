@@ -343,7 +343,7 @@ async function handlePublish(): Promise<void> {
 
   <ContentPicker
     :open="showContentPicker"
-    :types="['article', 'project', 'explainer', 'blog']"
+    :types="['blog', 'project', 'explainer']"
     @update:open="showContentPicker = $event"
     @select="linkContent"
   />

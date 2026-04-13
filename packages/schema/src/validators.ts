@@ -84,6 +84,7 @@ export const slugSchema = z
   .max(255)
   .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Slug must be lowercase alphanumeric with hyphens');
 
+/** Content type enum — includes 'article' for DB/federation backwards compat (normalized to 'blog' at app layer) */
 export const contentTypeSchema = z.enum(['project', 'article', 'blog', 'explainer']);
 export type ContentType = z.infer<typeof contentTypeSchema>;
 

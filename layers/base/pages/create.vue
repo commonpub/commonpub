@@ -21,13 +21,13 @@ const allTypes = [
     badge: 'Popular',
   },
   {
-    type: 'article',
-    icon: 'fa-solid fa-file-lines',
-    color: 'var(--teal)',
-    bg: 'var(--teal-bg)',
-    border: 'var(--teal-border)',
-    name: 'Article',
-    desc: 'Write a long-form technical article with code examples, diagrams, and rich formatting.',
+    type: 'blog',
+    icon: 'fa-solid fa-pen-nib',
+    color: 'var(--pink)',
+    bg: 'var(--pink-bg)',
+    border: 'var(--pink-border)',
+    name: 'Blog',
+    desc: 'Write long-form content — articles, tutorials, deep dives, opinion pieces, or personal updates with rich formatting.',
   },
   {
     type: 'explainer',
@@ -37,15 +37,6 @@ const allTypes = [
     border: 'var(--yellow-border)',
     name: 'Explainer',
     desc: 'Create an interactive explorable explanation with sliders, quizzes, and section-by-section progression.',
-  },
-  {
-    type: 'blog',
-    icon: 'fa-solid fa-pen-nib',
-    color: 'var(--pink)',
-    bg: 'var(--pink-bg)',
-    border: 'var(--pink-border)',
-    name: 'Blog Post',
-    desc: 'Share thoughts, tutorials, or updates with a clean writing experience and inline media.',
   },
 ];
 

@@ -74,7 +74,7 @@ export async function getUserByUsername(db: DB, username: string): Promise<UserP
     stats: {
       projects: countMap['project'] ?? 0,
       explainers: countMap['explainer'] ?? 0,
-      articles: countMap['article'] ?? 0,
+      articles: (countMap['blog'] ?? 0) + (countMap['article'] ?? 0),
       followers: followerCount,
       following: followingCount,
     },

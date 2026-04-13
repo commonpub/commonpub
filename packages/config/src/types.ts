@@ -59,7 +59,7 @@ export interface InstanceConfig {
   contactEmail?: string;
   /** Maximum upload size in bytes (default: 10MB) */
   maxUploadSize?: number;
-  /** Supported content types */
+  /** Supported content types ('article' is accepted for backwards compat, normalized to 'blog') */
   contentTypes?: Array<'project' | 'article' | 'blog' | 'explainer'>;
   /**
    * Who can create contests.

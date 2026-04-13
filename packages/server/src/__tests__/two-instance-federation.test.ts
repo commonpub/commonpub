@@ -308,7 +308,7 @@ describe('two-instance federation E2E', () => {
     const rows = await dbB
       .select()
       .from(federatedContent)
-      .where(eq(federatedContent.objectUri, `https://${DOMAIN_A}/u/alice/article/test-idempotency`));
+      .where(eq(federatedContent.objectUri, `https://${DOMAIN_A}/u/alice/blog/test-idempotency`)); // article normalized to blog
     expect(rows.length).toBe(1);
   });
 

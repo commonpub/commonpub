@@ -1,6 +1,6 @@
 import { contentToArticle } from '@commonpub/protocol';
 import { contentItems, users } from '@commonpub/schema';
-import { eq, and, isNull } from 'drizzle-orm';
+import { eq, and, isNull, sql } from 'drizzle-orm';
 
 /**
  * Middleware: serve ActivityPub Article JSON-LD for content URIs.
@@ -26,11 +26,17 @@ export default defineEventHandler(async (event) => {
   const config = useConfig();
   if (!config.features.federation) return;
 
-  const [, username, type, slug] = match;
-  if (!username || !type || !slug) return;
+  const [, username, rawType, slug] = match;
+  if (!username || !rawType || !slug) return;
+  const type = rawType === 'article' ? 'blog' : rawType; // normalize article→blog
 
   const db = useDB();
   const domain = config.instance.domain;
+
+  // For blog type, also match 'article' in DB (transition: pre-migration rows still have type='article')
+  const typeFilter = type === 'blog'
+    ? sql`${contentItems.type} IN ('blog', 'article')`
+    : eq(contentItems.type, type as 'project' | 'explainer');
 
   const [row] = await db
     .select({
@@ -44,7 +50,7 @@ export default defineEventHandler(async (event) => {
     .innerJoin(users, eq(contentItems.authorId, users.id))
     .where(and(
       eq(users.username, username),
-      eq(contentItems.type, type as 'project' | 'article' | 'blog' | 'explainer'),
+      typeFilter,
       eq(contentItems.slug, slug),
       eq(contentItems.status, 'published'),
       isNull(contentItems.deletedAt),

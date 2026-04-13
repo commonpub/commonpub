@@ -71,7 +71,7 @@ test.describe('Editor-adjacent page structure', () => {
   });
 
   test('explore pages for each content type load', async ({ page }) => {
-    for (const type of ['project', 'article', 'blog', 'explainer']) {
+    for (const type of ['project', 'blog', 'explainer']) {
       await page.goto(`/${type}`);
       await expect(page.locator('body')).toBeVisible();
     }

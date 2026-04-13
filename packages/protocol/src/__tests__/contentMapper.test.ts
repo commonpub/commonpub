@@ -23,7 +23,7 @@ describe('contentToArticle', () => {
 
     expect(article.type).toBe('Article');
     expect(article['@context']).toBe(AP_CONTEXT);
-    expect(article.id).toBe('https://test.example.com/u/alice/article/building-a-robot');
+    expect(article.id).toBe('https://test.example.com/u/alice/blog/building-a-robot'); // article normalized to blog
     expect(article.attributedTo).toBe('https://test.example.com/users/alice');
     expect(article.name).toBe('Building a Robot');
     expect(article.content).toBe('<p>Step 1...</p>');

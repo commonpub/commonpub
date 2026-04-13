@@ -294,8 +294,8 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
               <span class="cpub-stat-lbl">Projects</span>
             </div>
             <div class="cpub-stat-block">
-              <span class="cpub-stat-num">{{ stats?.content?.byType?.article ?? 0 }}</span>
-              <span class="cpub-stat-lbl">Articles</span>
+              <span class="cpub-stat-num">{{ (stats?.content?.byType?.blog ?? 0) + (stats?.content?.byType?.article ?? 0) }}</span>
+              <span class="cpub-stat-lbl">Posts</span>
             </div>
             <div class="cpub-stat-block">
               <span class="cpub-stat-num">{{ stats?.users?.total ?? 0 }}</span>

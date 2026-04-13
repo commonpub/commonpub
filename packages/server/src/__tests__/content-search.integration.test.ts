@@ -103,9 +103,9 @@ describe('content search (Postgres FTS)', () => {
 
   describe('type filtering', () => {
     it('filters by content type', async () => {
-      const result = await searchWithPostgres(db, { query: 'ESP32', type: 'article' });
+      const result = await searchWithPostgres(db, { query: 'ESP32', type: 'blog' }); // article normalized to blog
       expect(result.items.length).toBe(1);
-      expect(result.items[0]!.type).toBe('article');
+      expect(result.items[0]!.type).toBe('blog');
     });
 
     it('returns empty when type does not match', async () => {

@@ -642,7 +642,8 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
         ?? (typeof object.image === 'object' && object.image !== null ? (object.image as Record<string, string>).url : undefined);
 
       // Check for CommonPub extensions
-      const cpubType = typeof object['cpub:type'] === 'string' ? object['cpub:type'] : null;
+      const rawCpubType = typeof object['cpub:type'] === 'string' ? object['cpub:type'] : null;
+      const cpubType = rawCpubType === 'article' ? 'blog' : rawCpubType; // normalize article→blog
       const cpubMetadata = object['cpub:metadata'] ?? null;
       // cpub:blocks preserves original block structure for CommonPub→CommonPub fidelity
       const cpubBlocks = Array.isArray(object['cpub:blocks']) ? object['cpub:blocks'] : null;
@@ -897,7 +898,7 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
             ?? (typeof object.image === 'object' && object.image !== null ? (object.image as Record<string, string>).url : undefined);
           if (coverImg) updates.coverImageUrl = coverImg;
         }
-        if (typeof object['cpub:type'] === 'string') updates.cpubType = object['cpub:type'];
+        if (typeof object['cpub:type'] === 'string') updates.cpubType = object['cpub:type'] === 'article' ? 'blog' : object['cpub:type'];
 
         // Update cpub extensions (metadata, blocks) if present
         if (object['cpub:metadata'] != null) updates.cpubMetadata = object['cpub:metadata'];
@@ -1285,7 +1286,7 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
                 const cpubShared = (note as Record<string, unknown>)['cpub:sharedContent'] as Record<string, unknown> | undefined;
                 if (cpubShared && typeof cpubShared === 'object') {
                   sharedContentMeta = {
-                    type: String(cpubShared.type ?? 'article'),
+                    type: String(cpubShared.type ?? 'blog'),
                     title: String(cpubShared.title ?? ''),
                     summary: cpubShared.summary ? String(cpubShared.summary) : null,
                     coverImageUrl: cpubShared.coverImageUrl ? String(cpubShared.coverImageUrl) : null,
@@ -1297,8 +1298,9 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
                   const imageUrl = typeof note.image === 'string' ? note.image
                     : (note.image && typeof (note.image as Record<string, unknown>).url === 'string')
                       ? (note.image as Record<string, unknown>).url as string : null;
+                  const sharedCpubType = ((note as Record<string, unknown>)['cpub:type'] as string) ?? 'blog';
                   sharedContentMeta = {
-                    type: ((note as Record<string, unknown>)['cpub:type'] as string) ?? 'article',
+                    type: sharedCpubType === 'article' ? 'blog' : sharedCpubType,
                     title: note.name as string,
                     summary: typeof note.summary === 'string' ? note.summary : null,
                     coverImageUrl: imageUrl,

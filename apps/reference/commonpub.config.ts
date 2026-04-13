@@ -5,7 +5,7 @@ export default defineCommonPubConfig({
     name: 'CommonPub',
     domain: 'localhost:3000',
     description: 'A CommonPub reference instance',
-    contentTypes: ['project', 'article', 'blog', 'explainer'],
+    contentTypes: ['project', 'blog', 'explainer'],
     contestCreation: 'open',
   },
   features: {

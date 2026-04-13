@@ -217,7 +217,7 @@ describe('URL restructure', () => {
       const [first] = await db.select({ apObjectId: contentItems.apObjectId })
         .from(contentItems).where(eq(contentItems.id, content.id));
       const originalUri = first!.apObjectId;
-      expect(originalUri).toBe('https://test.example.com/u/bob/article/republish-test');
+      expect(originalUri).toBe('https://test.example.com/u/bob/blog/republish-test'); // article normalized to blog
 
       // Rename and republish
       await updateContent(db, content.id, bob.id, { title: 'Republish Test Renamed' });

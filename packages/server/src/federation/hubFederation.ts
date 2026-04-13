@@ -496,7 +496,7 @@ function hubPostToNote(
     try {
       const shared = JSON.parse(post.content) as Record<string, unknown>;
       ext['cpub:sharedContent'] = {
-        type: shared.type ?? 'article',
+        type: shared.type ?? 'blog',
         title: shared.title ?? '',
         summary: shared.description ?? null,
         coverImageUrl: shared.coverImageUrl ?? null,

@@ -49,7 +49,7 @@ export default defineEventHandler(async (event): Promise<HubPostItem> => {
   const sharePayload = JSON.stringify({
     federatedContentId: fedContent.id,
     title: fedContent.title,
-    type: fedContent.cpubType ?? fedContent.apType ?? 'article',
+    type: fedContent.cpubType ?? fedContent.apType ?? 'blog',
     coverImageUrl: fedContent.coverImageUrl ?? null,
     description: fedContent.summary ?? null,
     originUrl: fedContent.url ?? fedContent.objectUri,

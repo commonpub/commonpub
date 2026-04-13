@@ -90,8 +90,7 @@ onMounted(() => {
 
     <!-- Specialized view by content type -->
     <ViewsProjectView v-if="contentType === 'project'" :content="(enrichedContent as any)" />
-    <ViewsArticleView v-else-if="contentType === 'article'" :content="(enrichedContent as any)" />
-    <ViewsBlogView v-else-if="contentType === 'blog'" :content="(enrichedContent as any)" />
+    <ViewsArticleView v-else-if="contentType === 'article' || contentType === 'blog'" :content="(enrichedContent as any)" />
     <ViewsExplainerView v-else-if="contentType === 'explainer'" :content="(enrichedContent as any)" />
 
     <!-- Fallback: generic view for unknown types -->

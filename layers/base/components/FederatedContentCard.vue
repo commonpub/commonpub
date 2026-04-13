@@ -28,7 +28,7 @@ const actorName = computed(() =>
 
 const typeLabel = computed(() => {
   if (props.content.cpubType) return props.content.cpubType;
-  return props.content.apType === 'Note' ? 'post' : 'article';
+  return props.content.apType === 'Note' ? 'post' : 'blog';
 });
 
 const timeAgo = computed(() => {

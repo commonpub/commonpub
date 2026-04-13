@@ -139,7 +139,12 @@ export async function searchWithPostgres(
 
   const validContentTypes = new Set(['project', 'article', 'blog', 'explainer']);
   if (opts.type && validContentTypes.has(opts.type)) {
-    conditions.push(eq(contentItems.type, opts.type as 'project' | 'article' | 'blog' | 'explainer'));
+    // For blog type, also match 'article' (transition: pre-migration rows may still have type='article')
+    if (opts.type === 'blog') {
+      conditions.push(sql`${contentItems.type} IN ('blog', 'article')`);
+    } else {
+      conditions.push(eq(contentItems.type, opts.type as 'project' | 'article' | 'blog' | 'explainer'));
+    }
   }
   if (opts.difficulty) conditions.push(eq(contentItems.difficulty, opts.difficulty as 'beginner' | 'intermediate' | 'advanced'));
   if (opts.dateFrom) conditions.push(gte(contentItems.publishedAt, new Date(opts.dateFrom)));

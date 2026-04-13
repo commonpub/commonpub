@@ -134,18 +134,17 @@ describe('federation content type handling', () => {
       expect(items[0]!.apType).toBe('Article');
     });
 
-    it('preserves cpubType = article', async () => {
-      const { items } = await listFederatedTimeline(db, { cpubType: 'article' });
-      expect(items.length).toBe(1);
-      expect(items[0]!.title).toBe('Getting Started with ESP32');
-      expect(items[0]!.cpubType).toBe('article');
-    });
-
     it('preserves cpubType = blog', async () => {
       const { items } = await listFederatedTimeline(db, { cpubType: 'blog' });
-      expect(items.length).toBe(1);
-      expect(items[0]!.title).toBe('Week 12 Update');
-      expect(items[0]!.cpubType).toBe('blog');
+      // article is normalized to blog on inbound, so both 'Getting Started' and 'Week 12 Update' are blogs
+      expect(items.length).toBe(2);
+      expect(items.map(i => i.cpubType)).toEqual(['blog', 'blog']);
+    });
+
+    it('normalizes cpubType = article to blog on inbound', async () => {
+      // article type is normalized to blog, so querying for article returns 0
+      const { items } = await listFederatedTimeline(db, { cpubType: 'article' });
+      expect(items.length).toBe(0);
     });
   });
 

@@ -205,8 +205,9 @@ export function contentToArticle(
   const actorUri = `https://${domain}/users/${author.username}`;
   // Use stored AP object ID if available (immutable after first publish).
   // For new content: /u/{username}/{type}/{slug}. Legacy fallback: /content/{slug}.
+  const fedType = item.type === 'article' ? 'blog' : item.type;
   const objectId = item.apObjectId
-    ?? `https://${domain}/u/${author.username}/${item.type}/${item.slug}`;
+    ?? `https://${domain}/u/${author.username}/${fedType}/${item.slug}`;
   const followersUri = `${actorUri}/followers`;
 
   const tags: APTag[] = (item.tags ?? []).map((name) => ({
@@ -224,8 +225,8 @@ export function contentToArticle(
     content: typeof item.content === 'string' ? item.content : contentToHtml(item.content),
     to: [AP_PUBLIC],
     cc: [followersUri],
-    // CommonPub extension: original content type (project, article, blog, explainer)
-    'cpub:type': item.type,
+    // CommonPub extension: content type (article normalized to blog)
+    'cpub:type': item.type === 'article' ? 'blog' : item.type,
   } as APArticle;
 
   if (item.description) {
@@ -261,7 +262,8 @@ export function contentToArticle(
   if (attachments.length > 0) {
     article.attachment = attachments;
   }
-  article.url = `https://${domain}/u/${author.username}/${item.type}/${item.slug}`;
+  const normalizedType = item.type === 'article' ? 'blog' : item.type;
+  article.url = `https://${domain}/u/${author.username}/${normalizedType}/${item.slug}`;
   if (tags.length > 0) {
     article.tag = tags;
   }

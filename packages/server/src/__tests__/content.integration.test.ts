@@ -39,7 +39,7 @@ describe('content integration', () => {
     expect(result.title).toBe('Test Article');
     expect(result.slug).toMatch(/^test-article/);
     expect(result.status).toBe('draft');
-    expect(result.type).toBe('article');
+    expect(result.type).toBe('blog'); // article normalized to blog
   });
 
   it('lists content with filters', async () => {

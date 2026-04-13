@@ -117,7 +117,7 @@ describe('defineCommonPubConfig', () => {
   it('should apply default content types', () => {
     const { config } = defineCommonPubConfig({ instance: validInstance });
 
-    expect(config.instance.contentTypes).toEqual(['project', 'article', 'blog', 'explainer']);
+    expect(config.instance.contentTypes).toEqual(['project', 'blog', 'explainer']);
   });
 
   it('should allow custom content types', () => {

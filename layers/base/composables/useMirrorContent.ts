@@ -6,7 +6,7 @@ import type { ContentViewData } from './useEngagement';
  */
 export function useMirrorContent(fedContent: Ref<Record<string, unknown> | null>) {
   const contentType = computed(() => {
-    const t = (fedContent.value?.cpubType as string) || (fedContent.value?.apType as string)?.toLowerCase() || 'article';
+    const t = (fedContent.value?.cpubType as string) || (fedContent.value?.apType as string)?.toLowerCase() || 'blog';
     return t;
   });
 

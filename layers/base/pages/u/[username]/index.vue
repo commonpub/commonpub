@@ -33,7 +33,7 @@ const activeTab = ref('projects');
 const tabDefs = computed(() => {
   const tabs = [
     { value: 'projects', label: 'Projects', icon: 'fa-solid fa-folder-open' },
-    { value: 'articles', label: 'Articles', icon: 'fa-solid fa-newspaper' },
+    { value: 'articles', label: 'Blog', icon: 'fa-solid fa-pen-nib' },
   ];
   if (explainersEnabled.value) {
     tabs.push({ value: 'explainers', label: 'Explainers', icon: 'fa-solid fa-book-open' });
@@ -52,7 +52,7 @@ const profileStats = computed(() => {
     { value: p.stats?.projects ?? 0, label: 'Projects' },
     { value: p.followerCount ?? p.stats?.followers ?? 0, label: 'Followers' },
     { value: p.followingCount ?? p.stats?.following ?? 0, label: 'Following' },
-    { value: p.stats?.articles ?? 0, label: 'Articles' },
+    { value: p.stats?.articles ?? 0, label: 'Posts' },
     { value: p.viewCount ?? 0, label: 'Total Views' },
     { value: p.likeCount ?? 0, label: 'Likes' },
   ];

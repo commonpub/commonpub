@@ -154,6 +154,9 @@ const seoDomain = computed(() => {
 });
 const seoPreviewDesc = computed(() => (props.metadata.seoDescription as string) || (props.metadata.description as string) || '');
 
+// --- Schedule ---
+const scheduleEnabled = ref(false);
+
 // --- Right panel ---
 const openSections = ref<Record<string, boolean>>({
   content: true, seo: false, publishing: true, cover: false, banner: false,
@@ -174,7 +177,8 @@ const wordCount = computed(() => {
     const html = (block.content.html as string) || '';
     const text = (block.content.text as string) || '';
     const code = (block.content.code as string) || '';
-    let combined = html.replace(/<[^>]*>/g, ' ') + ' ' + text + ' ' + code;
+    const instructions = (block.content.instructions as string) || '';
+    let combined = html.replace(/<[^>]*>/g, ' ') + ' ' + text + ' ' + code + ' ' + instructions;
     const children = block.content.children;
     if (Array.isArray(children)) {
       for (const child of children) {
@@ -346,8 +350,13 @@ const canvasMaxWidth = computed(() => {
             <input class="cpub-ep-input" type="text" :value="metadata.slug" placeholder="auto-generated" @input="updateMeta('slug', ($event.target as HTMLInputElement).value)">
           </div>
           <div class="cpub-ep-field">
+            <label class="cpub-ep-flabel">Subtitle <span class="cpub-ep-optional">(optional)</span></label>
+            <input class="cpub-ep-input" type="text" :value="metadata.subtitle as string" placeholder="Add a subtitle..." @input="updateMeta('subtitle', ($event.target as HTMLInputElement).value)">
+          </div>
+          <div class="cpub-ep-field">
             <label class="cpub-ep-flabel">Description</label>
-            <textarea class="cpub-ep-textarea" rows="3" :value="metadata.description as string" placeholder="Brief description..." @input="updateMeta('description', ($event.target as HTMLTextAreaElement).value)" />
+            <textarea class="cpub-ep-textarea" rows="3" :value="metadata.description as string" placeholder="Brief description shown in feed previews..." @input="updateMeta('description', ($event.target as HTMLTextAreaElement).value)" />
+            <span class="cpub-ep-hint cpub-ep-hint-right">{{ ((metadata.description as string) || '').length }} / 300</span>
           </div>
           <div class="cpub-ae-cover" :class="{ 'has-image': !!coverImageUrl }">
             <template v-if="coverImageUrl">
@@ -402,9 +411,9 @@ const canvasMaxWidth = computed(() => {
           <div class="cpub-seo-card">
             <div class="cpub-seo-url">
               <span class="cpub-seo-favicon">C</span>
-              {{ seoDomain }} &rsaquo; article
+              {{ seoDomain }} &rsaquo; blog
             </div>
-            <div class="cpub-seo-title">{{ (metadata.title as string) || 'Article title' }}</div>
+            <div class="cpub-seo-title">{{ (metadata.title as string) || 'Post title' }}</div>
             <div class="cpub-seo-desc">{{ seoPreviewDesc || 'Post description will appear here...' }}</div>
           </div>
           <div class="cpub-ep-field" style="margin-top: 10px;">
@@ -424,17 +433,37 @@ const canvasMaxWidth = computed(() => {
             <label class="cpub-ep-flabel">Category</label>
             <select class="cpub-ep-select" :value="metadata.category || ''" @change="updateMeta('category', ($event.target as HTMLSelectElement).value)">
               <option value="">Select category</option>
-              <option value="technology">Technology</option>
-              <option value="hardware">Hardware</option>
-              <option value="ai-ml">AI &amp; Machine Learning</option>
+              <option value="article">Article</option>
+              <option value="blog">Blog Post</option>
               <option value="tutorial">Tutorial</option>
               <option value="deep-dive">Deep Dive</option>
               <option value="opinion">Opinion</option>
+              <option value="hardware">Hardware &amp; Makers</option>
+              <option value="software">Software</option>
+              <option value="ai-ml">AI &amp; Machine Learning</option>
+              <option value="homelab">Home Lab</option>
             </select>
           </div>
           <div class="cpub-ep-field">
             <label class="cpub-ep-flabel">Tags</label>
             <EditorTagInput :tags="tags" @update:tags="onTagsUpdate" />
+          </div>
+          <div class="cpub-ep-field">
+            <label class="cpub-ep-flabel">Series <span class="cpub-ep-optional">(optional)</span></label>
+            <input class="cpub-ep-input" type="text" :value="metadata.series as string" placeholder="e.g. Home Lab Chronicles" @input="updateMeta('series', ($event.target as HTMLInputElement).value)">
+          </div>
+          <div class="cpub-ep-field">
+            <label class="cpub-ae-schedule-row">
+              <span class="cpub-ae-toggle-switch">
+                <input v-model="scheduleEnabled" type="checkbox" />
+                <span class="cpub-ae-toggle-track" />
+              </span>
+              <span class="cpub-ae-toggle-label">Schedule for later</span>
+            </label>
+          </div>
+          <div v-if="scheduleEnabled" class="cpub-ep-field">
+            <label class="cpub-ep-flabel">Publish Date</label>
+            <input class="cpub-ep-input cpub-ep-input-mono" type="datetime-local" :value="metadata.scheduledAt as string" @input="updateMeta('scheduledAt', ($event.target as HTMLInputElement).value)">
           </div>
         </EditorSection>
       </div>
@@ -638,4 +667,27 @@ const canvasMaxWidth = computed(() => {
 .cpub-ae-banner-preview { position: relative; margin-bottom: 8px; }
 .cpub-ae-banner-img { width: 100%; height: 80px; object-fit: cover; display: block; border: var(--border-width-default) solid var(--border); }
 .cpub-ae-banner-actions { display: flex; gap: 6px; margin-top: 6px; }
+
+/* Schedule toggle */
+.cpub-ae-schedule-row { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.cpub-ae-toggle-switch {
+  position: relative; width: 30px; height: 16px; flex-shrink: 0;
+}
+.cpub-ae-toggle-switch input { display: none; }
+.cpub-ae-toggle-track {
+  display: block; width: 100%; height: 100%; background: var(--surface3);
+  border: var(--border-width-default) solid var(--border); cursor: pointer; transition: background 0.15s; position: relative;
+}
+.cpub-ae-toggle-track::after {
+  content: ''; position: absolute; width: 8px; height: 8px;
+  background: var(--text-faint); top: 2px; left: 2px; transition: transform 0.15s, background 0.15s;
+}
+.cpub-ae-toggle-switch input:checked + .cpub-ae-toggle-track { background: var(--accent-bg); border-color: var(--accent); }
+.cpub-ae-toggle-switch input:checked + .cpub-ae-toggle-track::after { transform: translateX(14px); background: var(--accent); }
+.cpub-ae-toggle-label { font-size: 11px; color: var(--text-dim); }
+
+/* Optional hint / mono input */
+.cpub-ep-optional { font-size: 9px; font-weight: 400; color: var(--text-faint); }
+.cpub-ep-input-mono { font-family: var(--font-mono); font-size: 11px; }
+.cpub-ep-hint-right { text-align: right; display: block; }
 </style>

@@ -90,7 +90,7 @@ export default defineNuxtConfig({
         admin: false,
         emailNotifications: false,
       },
-      contentTypes: 'project,article,blog,explainer',
+      contentTypes: 'project,blog,explainer',
       contestCreation: 'admin',
       instanceCookies: [] as Array<{ name: string; category: string; description: string; duration: string; provider?: string }>,
     },

@@ -179,6 +179,8 @@ describe('comment → Note → comment round-trip', () => {
 describe('URL generation', () => {
   it('generates correct URLs for each content type', () => {
     const types = ['project', 'article', 'blog', 'explainer'] as const;
+    // article normalizes to blog in URLs
+    const expectedType = (t: string) => t === 'article' ? 'blog' : t;
 
     for (const type of types) {
       const article = contentToArticle(
@@ -187,8 +189,8 @@ describe('URL generation', () => {
         DOMAIN,
       );
 
-      expect(article.url).toBe(`https://${DOMAIN}/u/alice/${type}/url-test`);
-      expect(article.id).toBe(`https://${DOMAIN}/u/alice/${type}/url-test`);
+      expect(article.url).toBe(`https://${DOMAIN}/u/alice/${expectedType(type)}/url-test`);
+      expect(article.id).toBe(`https://${DOMAIN}/u/alice/${expectedType(type)}/url-test`);
     }
   });
 

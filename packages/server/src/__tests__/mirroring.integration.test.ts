@@ -59,13 +59,13 @@ describe('instance mirroring integration', () => {
 
     it('creates a mirror in pending state', async () => {
       const mirror = await createMirror(db, MIRROR_DOMAIN, MIRROR_ACTOR, 'pull', DOMAIN, {
-        contentTypes: ['article', 'project'],
+        contentTypes: ['blog', 'project'],
       });
       mirrorId = mirror.id;
       expect(mirror.status).toBe('active');
       expect(mirror.remoteDomain).toBe(MIRROR_DOMAIN);
       expect(mirror.direction).toBe('pull');
-      expect(mirror.filterContentTypes).toEqual(['article', 'project']);
+      expect(mirror.filterContentTypes).toEqual(['blog', 'project']);
       expect(mirror.contentCount).toBe(0);
     });
 
@@ -105,12 +105,12 @@ describe('instance mirroring integration', () => {
 
   describe('content filtering', () => {
     it('accepts content matching type filter', async () => {
-      // Mirror is active with filter: ['article', 'project']
+      // Mirror is active with filter: ['blog', 'project']
       const mirrorId = await matchMirrorForContent(
         db,
         MIRROR_DOMAIN,
         'Article',
-        'article',
+        'blog',
         [],
       );
       expect(mirrorId).not.toBeNull();
@@ -121,7 +121,7 @@ describe('instance mirroring integration', () => {
         db,
         MIRROR_DOMAIN,
         'Article',
-        'blog', // Not in filter
+        'explainer', // Not in filter
         [],
       );
       expect(mirrorId).toBeNull();
@@ -266,7 +266,7 @@ describe('instance mirroring integration', () => {
 
   describe('mirror content ingestion via inbox', () => {
     it('stores mirrored content with mirrorId set', async () => {
-      // The active mirror for MIRROR_DOMAIN accepts 'article' and 'project'
+      // The active mirror for MIRROR_DOMAIN accepts 'blog' and 'project' (cpub:type 'article' normalized to 'blog')
       await handlers.onCreate(REMOTE_ALICE, {
         type: 'Article',
         id: `https://${MIRROR_DOMAIN}/content/mirrored-article`,

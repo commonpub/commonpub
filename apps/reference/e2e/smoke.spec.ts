@@ -74,7 +74,7 @@ test.describe('Public pages render', () => {
   });
 
   test('content type index pages load', async ({ page }) => {
-    for (const type of ['project', 'article', 'blog', 'explainer']) {
+    for (const type of ['project', 'blog', 'explainer']) {
       await page.goto(`/${type}`);
       await expect(page.locator('body')).toBeVisible();
     }
@@ -115,6 +115,13 @@ test.describe('Public pages render', () => {
     await expect(page.locator('body')).toBeVisible();
     // Should show not-found state
     await expect(page.locator('text=Certificate Not Found')).toBeVisible();
+  });
+
+  test('/article listing redirects to /blog', async ({ page }) => {
+    const response = await page.goto('/article', { waitUntil: 'domcontentloaded' });
+    // Playwright follows redirects — verify we end up at /blog
+    expect(page.url()).toContain('/blog');
+    expect(response?.status()).toBeLessThan(400);
   });
 });
 

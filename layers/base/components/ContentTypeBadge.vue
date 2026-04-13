@@ -5,9 +5,8 @@ defineProps<{
 
 const iconMap: Record<string, string> = {
   project: 'fa-solid fa-microchip',
-  article: 'fa-solid fa-file-lines',
-  guide: 'fa-solid fa-book',
   blog: 'fa-solid fa-pen-nib',
+  article: 'fa-solid fa-file-lines',
   explainer: 'fa-solid fa-lightbulb',
 };
 </script>

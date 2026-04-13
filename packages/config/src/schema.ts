@@ -48,7 +48,7 @@ export const instanceConfigSchema = z.object({
     .default(10 * 1024 * 1024),
   contentTypes: z
     .array(z.enum(['project', 'article', 'blog', 'explainer']))
-    .default(['project', 'article', 'blog', 'explainer']),
+    .default(['project', 'blog', 'explainer']),
   contestCreation: z.enum(['open', 'staff', 'admin']).default('admin'),
 });
 

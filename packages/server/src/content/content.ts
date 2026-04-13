@@ -198,7 +198,7 @@ async function queryFederatedAsListItems(
 
   return rows.map((row): ContentListItem => ({
     id: row.fed.id,
-    type: (row.fed.cpubType ?? row.fed.apType?.toLowerCase() ?? 'article') as string,
+    type: (row.fed.cpubType ?? row.fed.apType?.toLowerCase() ?? 'blog') as string,
     title: row.fed.title ?? 'Untitled',
     slug: `mirror-${row.fed.id.slice(0, 8)}`, // Placeholder slug for routing
     description: row.fed.summary,
@@ -235,9 +235,12 @@ export async function listContent(
     conditions.push(eq(contentItems.status, filters.status));
   }
   if (filters.type) {
-    conditions.push(
-      eq(contentItems.type, filters.type),
-    );
+    // For blog type, also match 'article' (transition: pre-migration rows may still have type='article')
+    if (filters.type === 'blog') {
+      conditions.push(sql`${contentItems.type} IN ('blog', 'article')`);
+    } else {
+      conditions.push(eq(contentItems.type, filters.type));
+    }
   }
   if (filters.authorId) {
     conditions.push(eq(contentItems.authorId, filters.authorId));
@@ -444,10 +447,15 @@ export async function createContent(
   authorId: string,
   input: CreateContentInput,
 ): Promise<ContentDetail> {
+  // Normalize 'article' → 'blog' (article type merged into blog)
+  // Preserve 'article' as category when no category specified
+  const normalizedType = input.type === 'article' ? 'blog' : input.type;
+  const normalizedCategory = input.type === 'article' && !input.category ? 'article' : input.category;
+
   const slug = await ensureUniqueSlugFor(
     db, contentItems, contentItems.slug, contentItems.id,
     generateSlug(input.title), 'untitled', undefined,
-    [{ col: contentItems.authorId, value: authorId }, { col: contentItems.type, value: input.type }],
+    [{ col: contentItems.authorId, value: authorId }, { col: contentItems.type, value: normalizedType }],
   );
   const previewToken = crypto.randomUUID().replace(/-/g, '');
 
@@ -455,7 +463,7 @@ export async function createContent(
     .insert(contentItems)
     .values({
       authorId,
-      type: input.type,
+      type: normalizedType,
       title: input.title,
       slug,
       subtitle: input.subtitle ?? null,
@@ -463,7 +471,7 @@ export async function createContent(
       content: (await sanitizeBlockContent(input.content)) ?? null,
       coverImageUrl: input.coverImageUrl ?? null,
       bannerUrl: input.bannerUrl ?? null,
-      category: input.category ?? null,
+      category: normalizedCategory ?? null,
       difficulty: input.difficulty ?? null,
       buildTime: input.buildTime ?? null,
       estimatedCost: input.estimatedCost ?? null,

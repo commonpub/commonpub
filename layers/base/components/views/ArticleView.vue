@@ -7,7 +7,7 @@ const props = defineProps<{
 }>();
 
 const contentId = computed(() => props.content?.id);
-const contentType = computed(() => props.content?.type ?? 'article');
+const contentType = computed(() => props.content?.type ?? 'blog');
 const fedId = computed(() => props.federatedId);
 const { liked, bookmarked, likeCount, isFederated, toggleLike, toggleBookmark, share, fetchInitialState } = useEngagement({ contentId, contentType, federatedContentId: fedId });
 
@@ -65,6 +65,12 @@ async function handleFollowAuthor(): Promise<void> {
   }
 }
 
+// Series data — only available when content has series metadata
+const seriesPart = computed(() => props.content?.seriesPart as number | undefined);
+const seriesTitle = computed(() => props.content?.seriesTitle as string | undefined);
+const seriesTotalParts = computed(() => (props.content?.seriesTotalParts as number) || 0);
+const hasSeries = computed(() => !!seriesTitle.value && seriesTotalParts.value > 0);
+
 const config = useRuntimeConfig();
 useJsonLd({
   type: 'article',
@@ -97,7 +103,7 @@ useJsonLd({
     <div class="cpub-article-wrap">
 
       <!-- TYPE BADGE -->
-      <div class="cpub-content-type-badge"><i class="fa-solid fa-newspaper"></i> Article</div>
+      <div class="cpub-content-type-badge"><i class="fa-solid fa-pen-nib"></i> {{ content.category || 'Blog Post' }}</div>
 
       <!-- TITLE -->
       <h1 class="cpub-article-title">{{ content.title }}</h1>
@@ -122,6 +128,10 @@ useJsonLd({
             <span>{{ new Date(content.publishedAt || content.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) }}</span>
             <span class="cpub-sep">·</span>
             <span><i class="fa-regular fa-clock"></i> {{ content.readTime || '5 min read' }}</span>
+            <template v-if="hasSeries">
+              <span class="cpub-sep">·</span>
+              <span class="cpub-tag cpub-tag-accent">{{ seriesTitle }} · Part {{ seriesPart || 1 }} of {{ seriesTotalParts }}</span>
+            </template>
             <template v-if="content.tags?.length">
               <span class="cpub-sep">·</span>
               <NuxtLink :to="`/tags/${content.tags[0]?.slug || (content.tags[0]?.name || String(content.tags[0])).toLowerCase().replace(/\s+/g, '-')}`" class="cpub-tag cpub-tag-teal">{{ content.tags[0]?.name || content.tags[0] }}</NuxtLink>
@@ -167,6 +177,49 @@ useJsonLd({
         </template>
       </div>
 
+      <!-- SERIES NAVIGATION -->
+      <div v-if="hasSeries" class="cpub-series-nav">
+        <div class="cpub-series-header">
+          <div class="cpub-series-icon"><i class="fa-solid fa-layer-group"></i></div>
+          <div>
+            <div class="cpub-series-label">Series</div>
+            <div class="cpub-series-title">{{ seriesTitle }}</div>
+          </div>
+          <div style="margin-left:auto;">
+            <span class="cpub-tag cpub-tag-accent">Part {{ seriesPart || 1 }} of {{ seriesTotalParts }}</span>
+          </div>
+        </div>
+        <div class="cpub-series-progress">
+          <div class="cpub-series-progress-label">
+            <span>Progress</span>
+            <span>{{ seriesPart || 1 }} / {{ seriesTotalParts }} published</span>
+          </div>
+          <div class="cpub-series-progress-track">
+            <div class="cpub-series-progress-fill" :style="{ width: ((seriesPart || 1) / seriesTotalParts * 100) + '%' }"></div>
+          </div>
+        </div>
+        <div class="cpub-series-nav-btns">
+          <NuxtLink v-if="content.seriesPrev" :to="content.seriesPrev.url || '#'" class="cpub-series-nav-btn cpub-prev">
+            <div class="cpub-series-nav-dir"><i class="fa-solid fa-chevron-left"></i> Previous</div>
+            <div class="cpub-series-nav-ep">Part {{ (seriesPart || 2) - 1 }}</div>
+            <div class="cpub-series-nav-post-title">{{ content.seriesPrev.title }}</div>
+          </NuxtLink>
+          <div v-else class="cpub-series-nav-btn cpub-prev cpub-disabled">
+            <div class="cpub-series-nav-dir"><i class="fa-solid fa-chevron-left"></i> Previous</div>
+            <div class="cpub-series-nav-ep">—</div>
+          </div>
+          <NuxtLink v-if="content.seriesNext" :to="content.seriesNext.url || '#'" class="cpub-series-nav-btn cpub-next">
+            <div class="cpub-series-nav-dir">Next <i class="fa-solid fa-chevron-right"></i></div>
+            <div class="cpub-series-nav-ep">Part {{ (seriesPart || 1) + 1 }}</div>
+            <div class="cpub-series-nav-post-title">{{ content.seriesNext.title }}</div>
+          </NuxtLink>
+          <div v-else class="cpub-series-nav-btn cpub-next cpub-disabled">
+            <div class="cpub-series-nav-dir">Next <i class="fa-solid fa-chevron-right"></i></div>
+            <div class="cpub-series-nav-ep">Coming soon</div>
+          </div>
+        </div>
+      </div>
+
       <!-- TAGS -->
       <div v-if="content.tags?.length" class="cpub-tags-row">
         <div class="cpub-tags-label">Filed under</div>
@@ -183,7 +236,8 @@ useJsonLd({
 
       <!-- AUTHOR CARD -->
       <div v-if="content.author" class="cpub-author-card">
-        <div class="cpub-av cpub-av-xl">{{ content.author.displayName?.slice(0, 2).toUpperCase() || 'CP' }}</div>
+        <img v-if="content.author.avatarUrl" :src="content.author.avatarUrl" :alt="content.author.displayName ?? content.author.username ?? ''" class="cpub-av cpub-av-xl" style="object-fit:cover;border:2px solid var(--border);" />
+        <div v-else class="cpub-av cpub-av-xl">{{ content.author.displayName?.slice(0, 2).toUpperCase() || 'CP' }}</div>
         <div class="cpub-author-card-info">
           <div class="cpub-author-card-label">Written by</div>
           <div class="cpub-author-card-name">
@@ -194,7 +248,7 @@ useJsonLd({
           <div v-if="content.author.bio" class="cpub-author-card-bio">{{ content.author.bio }}</div>
           <div class="cpub-author-card-footer">
             <div class="cpub-author-card-stats">
-              <div class="cpub-author-card-stat"><span class="n">{{ content.author.articleCount ?? 0 }}</span><span class="l">articles</span></div>
+              <div class="cpub-author-card-stat"><span class="n">{{ content.author.articleCount ?? 0 }}</span><span class="l">posts</span></div>
               <div class="cpub-author-card-stat"><span class="n">{{ content.author.followerCount ?? 0 }}</span><span class="l">followers</span></div>
               <div class="cpub-author-card-stat"><span class="n">{{ content.author.totalViews ?? 0 }}</span><span class="l">total views</span></div>
             </div>
@@ -209,7 +263,7 @@ useJsonLd({
       </div>
 
       <!-- RELATED ARTICLES -->
-      <div v-if="content.related?.length" class="cpub-section-head">Related Articles</div>
+      <div v-if="content.related?.length" class="cpub-section-head">Related Posts</div>
       <div v-if="content.related?.length" class="cpub-related-grid">
         <NuxtLink
           v-for="item in content.related.slice(0, 3)"
@@ -576,6 +630,123 @@ useJsonLd({
   margin: 36px 0;
 }
 
+/* ── SERIES NAV ── */
+.cpub-series-nav {
+  background: var(--surface);
+  border: var(--border-width-default) solid var(--border);
+  padding: 20px;
+  margin: 40px 0;
+  box-shadow: var(--shadow-sm);
+}
+
+.cpub-series-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.cpub-series-icon {
+  width: 28px;
+  height: 28px;
+  background: var(--accent-bg);
+  border: var(--border-width-default) solid var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.cpub-series-label {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--text-faint);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.cpub-series-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.cpub-series-progress {
+  margin-bottom: 16px;
+}
+
+.cpub-series-progress-label {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text-faint);
+  margin-bottom: 6px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.cpub-series-progress-track {
+  height: 4px;
+  background: var(--surface3);
+  overflow: hidden;
+  border: var(--border-width-default) solid var(--border2);
+}
+
+.cpub-series-progress-fill {
+  height: 100%;
+  background: var(--accent);
+}
+
+.cpub-series-nav-btns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.cpub-series-nav-btn {
+  background: var(--surface);
+  border: var(--border-width-default) solid var(--border);
+  padding: 12px 14px;
+  cursor: pointer;
+  text-decoration: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: inherit;
+  transition: background var(--transition-fast);
+}
+
+.cpub-series-nav-btn:hover { background: var(--surface2); }
+.cpub-series-nav-btn.cpub-next { text-align: right; }
+.cpub-series-nav-btn.cpub-disabled { opacity: 0.5; pointer-events: none; }
+
+.cpub-series-nav-dir {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--text-faint);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cpub-series-nav-btn.cpub-next .cpub-series-nav-dir { justify-content: flex-end; }
+
+.cpub-series-nav-ep {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--accent);
+}
+
+.cpub-series-nav-post-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.35;
+}
+
 /* ── TAGS ROW ── */
 .cpub-tags-row {
   display: flex;
@@ -803,6 +974,8 @@ useJsonLd({
   .cpub-engage-btn { padding: 8px 12px; min-height: 36px; }
   .cpub-engage-sep { display: none; }
   .cpub-tag-link { padding: 4px 10px; font-size: 11px; min-height: 28px; display: inline-flex; align-items: center; }
+  .cpub-series-nav-btns { grid-template-columns: 1fr; }
+  .cpub-series-nav-btn { padding: 12px; min-height: 44px; }
 }
 
 @media (max-width: 480px) {
