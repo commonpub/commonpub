@@ -96,27 +96,28 @@ describe('useBlockEditor', () => {
       expect(editor.blocks.value[0].content).toEqual({});
     });
 
-    it('inserts image block with url and alt from asset upload', () => {
+    it('inserts image block with src and alt from asset upload', () => {
       const editor = useBlockEditor();
       editor.addBlock('paragraph', { html: 'before' });
       editor.addBlock('paragraph', { html: 'after' });
 
       // Insert image after first block (simulating asset insert)
-      editor.addBlock('image', { url: 'https://cdn.example.com/photo.webp', alt: 'My photo' }, 1);
+      editor.addBlock('image', { src: 'https://cdn.example.com/photo.webp', alt: 'My photo' }, 1);
 
       expect(editor.blocks.value).toHaveLength(3);
       expect(editor.blocks.value[1].type).toBe('image');
-      expect(editor.blocks.value[1].content.url).toBe('https://cdn.example.com/photo.webp');
+      expect(editor.blocks.value[1].content.src).toBe('https://cdn.example.com/photo.webp');
       expect(editor.blocks.value[1].content.alt).toBe('My photo');
     });
 
     it('inserts image at end when no block selected', () => {
       const editor = useBlockEditor();
       editor.addBlock('paragraph', { html: 'content' });
-      editor.addBlock('image', { url: 'https://cdn.example.com/img.png', alt: 'test' });
+      editor.addBlock('image', { src: 'https://cdn.example.com/img.png', alt: 'test' });
 
       expect(editor.blocks.value).toHaveLength(2);
       expect(editor.blocks.value[1].type).toBe('image');
+      expect(editor.blocks.value[1].content.src).toBe('https://cdn.example.com/img.png');
     });
   });
 

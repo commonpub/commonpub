@@ -97,6 +97,24 @@ const uploadedFiles = ref<UploadedAsset[]>([]);
 const uploadError = ref('');
 const uploading = ref(false);
 
+// Load existing uploads on mount
+onMounted(async () => {
+  try {
+    const files = await $fetch<Array<{ originalName: string; sizeBytes: number; mimeType: string; url: string }>>('/api/files/mine?limit=30');
+    uploadedFiles.value = files.map((f) => ({
+      name: f.originalName,
+      size: f.sizeBytes < 1024 * 1024
+        ? `${(f.sizeBytes / 1024).toFixed(0)} KB`
+        : `${(f.sizeBytes / 1024 / 1024).toFixed(1)} MB`,
+      type: f.mimeType.startsWith('image/') ? 'image' as const : 'file' as const,
+      url: f.url,
+      mimeType: f.mimeType,
+    }));
+  } catch {
+    // Not logged in or API unavailable — empty assets is fine
+  }
+});
+
 function onAssetUpload(event: Event): void {
   const input = event.target as HTMLInputElement;
   if (!input.files?.length) return;
@@ -143,7 +161,7 @@ function insertAsset(asset: UploadedAsset): void {
     const idx = props.blockEditor.selectedBlockId.value
       ? props.blockEditor.getBlockIndex(props.blockEditor.selectedBlockId.value) + 1
       : undefined;
-    props.blockEditor.addBlock('image', { url: asset.url, alt: asset.name }, idx);
+    props.blockEditor.addBlock('image', { src: asset.url, alt: asset.name }, idx);
   } else {
     // Copy URL to clipboard for non-image files
     navigator.clipboard.writeText(asset.url).catch(() => {});
