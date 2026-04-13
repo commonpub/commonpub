@@ -123,6 +123,7 @@ export const contestStatusEnum = pgEnum('contest_status', [
   'active',
   'judging',
   'completed',
+  'cancelled',
 ]);
 
 // --- Video ---

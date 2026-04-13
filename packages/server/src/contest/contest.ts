@@ -63,6 +63,7 @@ export interface ContestEntryItem {
   authorName: string;
   authorUsername: string;
   authorAvatarUrl: string | null;
+  judgeScores?: Array<{ judgeId: string; score: number; feedback?: string }>;
 }
 
 export async function listContests(
@@ -237,7 +238,7 @@ export async function updateContest(
 export async function listContestEntries(
   db: DB,
   contestId: string,
-  opts: { limit?: number; offset?: number } = {},
+  opts: { limit?: number; offset?: number; includeJudgeScores?: boolean } = {},
 ): Promise<{ items: ContestEntryItem[]; total: number }> {
   const { limit, offset } = normalizePagination(opts);
   const where = eq(contestEntries.contestId, contestId);
@@ -268,22 +269,28 @@ export async function listContestEntries(
     countRows(db, contestEntries, where),
   ]);
 
-  const items = rows.map((row) => ({
-    id: row.entry.id,
-    contestId: row.entry.contestId,
-    contentId: row.entry.contentId,
-    userId: row.entry.userId,
-    score: row.entry.score,
-    rank: row.entry.rank,
-    submittedAt: row.entry.submittedAt,
-    contentTitle: row.content.title,
-    contentSlug: row.content.slug,
-    contentType: row.content.type,
-    contentCoverImageUrl: row.content.coverImageUrl,
-    authorName: row.author.displayName ?? row.author.username,
-    authorUsername: row.author.username,
-    authorAvatarUrl: row.author.avatarUrl,
-  }));
+  const items = rows.map((row) => {
+    const item: ContestEntryItem = {
+      id: row.entry.id,
+      contestId: row.entry.contestId,
+      contentId: row.entry.contentId,
+      userId: row.entry.userId,
+      score: row.entry.score,
+      rank: row.entry.rank,
+      submittedAt: row.entry.submittedAt,
+      contentTitle: row.content.title,
+      contentSlug: row.content.slug,
+      contentType: row.content.type,
+      contentCoverImageUrl: row.content.coverImageUrl,
+      authorName: row.author.displayName ?? row.author.username,
+      authorUsername: row.author.username,
+      authorAvatarUrl: row.author.avatarUrl,
+    };
+    if (opts.includeJudgeScores) {
+      item.judgeScores = (row.entry.judgeScores ?? []) as Array<{ judgeId: string; score: number; feedback?: string }>;
+    }
+    return item;
+  });
 
   return { items, total };
 }
@@ -442,10 +449,11 @@ export async function deleteContest(
 }
 
 const VALID_TRANSITIONS: Record<string, string[]> = {
-  upcoming: ['active'],
-  active: ['judging'],
-  judging: ['completed'],
+  upcoming: ['active', 'cancelled'],
+  active: ['judging', 'cancelled'],
+  judging: ['completed', 'cancelled'],
   completed: [],
+  cancelled: [],
 };
 
 export async function transitionContestStatus(
@@ -478,7 +486,43 @@ export async function transitionContestStatus(
     })
     .where(eq(contests.id, contestId));
 
+  if (newStatus === 'completed') {
+    await calculateContestRanks(db, contestId);
+  }
+
   return { transitioned: true };
+}
+
+export async function withdrawContestEntry(
+  db: DB,
+  entryId: string,
+  userId: string,
+): Promise<{ withdrawn: boolean; error?: string }> {
+  const existing = await db
+    .select({
+      entry: contestEntries,
+      contestStatus: contests.status,
+    })
+    .from(contestEntries)
+    .innerJoin(contests, eq(contestEntries.contestId, contests.id))
+    .where(eq(contestEntries.id, entryId))
+    .limit(1);
+
+  if (existing.length === 0) return { withdrawn: false, error: 'Entry not found' };
+
+  const row = existing[0]!;
+  if (row.entry.userId !== userId) return { withdrawn: false, error: 'Not the entry owner' };
+  if (row.contestStatus !== 'active') {
+    return { withdrawn: false, error: 'Can only withdraw from active contests' };
+  }
+
+  await db.delete(contestEntries).where(eq(contestEntries.id, entryId));
+  await db
+    .update(contests)
+    .set({ entryCount: sql`GREATEST(${contests.entryCount} - 1, 0)` })
+    .where(eq(contests.id, row.entry.contestId));
+
+  return { withdrawn: true };
 }
 
 export async function calculateContestRanks(

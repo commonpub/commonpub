@@ -441,6 +441,7 @@ export {
   deleteContest,
   transitionContestStatus,
   calculateContestRanks,
+  withdrawContestEntry,
 } from './contest/index.js';
 export type {
   ContestListItem,

@@ -1264,13 +1264,13 @@ describe('commentTargetTypeSchema — boundary tests', () => {
 
 describe('contestStatusSchema — boundary tests', () => {
   it('accepts all valid contest statuses', () => {
-    for (const status of ['upcoming', 'active', 'judging', 'completed'] as const) {
+    for (const status of ['upcoming', 'active', 'judging', 'completed', 'cancelled'] as const) {
       expect(contestStatusSchema.parse(status)).toBe(status);
     }
   });
 
   it('rejects invalid contest status', () => {
-    expect(() => contestStatusSchema.parse('cancelled')).toThrow();
+    expect(() => contestStatusSchema.parse('invalid-status')).toThrow();
   });
 });
 

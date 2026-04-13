@@ -323,11 +323,11 @@ export const judgeEntrySchema = z.object({
 export type JudgeEntryInput = z.infer<typeof judgeEntrySchema>;
 
 export const contestTransitionSchema = z.object({
-  status: z.enum(['upcoming', 'active', 'judging', 'completed']),
+  status: z.enum(['upcoming', 'active', 'judging', 'completed', 'cancelled']),
 });
 export type ContestTransitionInput = z.infer<typeof contestTransitionSchema>;
 
-export const contestStatusSchema = z.enum(['upcoming', 'active', 'judging', 'completed']);
+export const contestStatusSchema = z.enum(['upcoming', 'active', 'judging', 'completed', 'cancelled']);
 export type ContestStatus = z.infer<typeof contestStatusSchema>;
 
 // --- Video validators ---

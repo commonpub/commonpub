@@ -6,6 +6,7 @@ import { escapeLike } from '@commonpub/server';
 const usersQuerySchema = z.object({
   q: z.string().max(200).optional(),
   search: z.string().max(200).optional(),
+  ids: z.string().max(2000).optional(),
   limit: z.coerce.number().int().positive().max(50).optional(),
   offset: z.coerce.number().int().min(0).optional(),
 });
@@ -19,6 +20,12 @@ export default defineEventHandler(async (event) => {
   const search = query.q || query.search;
 
   const conditions = [isNull(users.deletedAt)];
+  if (query.ids) {
+    const idList = query.ids.split(',').filter(Boolean).slice(0, 50);
+    if (idList.length > 0) {
+      conditions.push(sql`${users.id} = ANY(ARRAY[${sql.join(idList.map((id) => sql`${id}::uuid`), sql`, `)}])`);
+    }
+  }
   if (search) {
     const term = `%${escapeLike(search)}%`;
     conditions.push(or(ilike(users.username, term), ilike(users.displayName, term))!);

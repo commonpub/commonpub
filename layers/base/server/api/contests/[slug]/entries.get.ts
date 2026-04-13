@@ -5,6 +5,7 @@ import { z } from 'zod';
 const entriesQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).optional(),
   offset: z.coerce.number().int().min(0).optional(),
+  includeJudgeScores: z.coerce.boolean().optional(),
 });
 
 export default defineEventHandler(async (event): Promise<{ items: ContestEntryItem[]; total: number }> => {
@@ -14,5 +15,9 @@ export default defineEventHandler(async (event): Promise<{ items: ContestEntryIt
   const query = parseQueryParams(event, entriesQuerySchema);
   const contest = await getContestBySlug(db, slug);
   if (!contest) throw createError({ statusCode: 404, statusMessage: 'Contest not found' });
-  return listContestEntries(db, contest.id, query);
+  return listContestEntries(db, contest.id, {
+    limit: query.limit,
+    offset: query.offset,
+    includeJudgeScores: query.includeJudgeScores,
+  });
 });

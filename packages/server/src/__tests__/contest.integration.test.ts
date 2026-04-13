@@ -12,6 +12,8 @@ import {
   judgeContestEntry,
   transitionContestStatus,
   listContestEntries,
+  withdrawContestEntry,
+  calculateContestRanks,
 } from '../contest/contest.js';
 import { createContent, publishContent } from '../content/content.js';
 
@@ -235,5 +237,164 @@ describe('contest integration', () => {
       const contest = await createContest(db, makeContestInput({ slug: `compat-${Date.now()}` }));
       expect(contest.id).toBeDefined();
     });
+  });
+
+  // --- New tests: rank calc, withdrawal, feedback, cancellation, multi-judge ---
+
+  it('auto-ranks entries on completion transition', async () => {
+    const contest = await createContest(db, {
+      ...makeContestInput({ title: 'Rank Calc Contest' }),
+      judges: [judgeUserId],
+    });
+    await transitionContestStatus(db, contest.id, organizerId, 'active');
+
+    // Create two entries
+    const c1 = await createContent(db, participantId, { type: 'project', title: 'Entry A' });
+    await publishContent(db, c1.id, participantId);
+    const e1 = await submitContestEntry(db, contest.id, c1.id, participantId);
+
+    const participant2 = await createTestUser(db, { username: `p2-${Date.now()}` });
+    const c2 = await createContent(db, participant2.id, { type: 'project', title: 'Entry B' });
+    await publishContent(db, c2.id, participant2.id);
+    const e2 = await submitContestEntry(db, contest.id, c2.id, participant2.id);
+
+    await transitionContestStatus(db, contest.id, organizerId, 'judging');
+
+    // Score: e2 higher than e1
+    await judgeContestEntry(db, e1!.id, 60, judgeUserId);
+    await judgeContestEntry(db, e2!.id, 90, judgeUserId);
+
+    // Complete triggers rank calc
+    await transitionContestStatus(db, contest.id, organizerId, 'completed');
+
+    const { items } = await listContestEntries(db, contest.id);
+    const ranked1 = items.find((i) => i.id === e1!.id);
+    const ranked2 = items.find((i) => i.id === e2!.id);
+    expect(ranked2!.rank).toBe(1); // Higher score = rank 1
+    expect(ranked1!.rank).toBe(2);
+  });
+
+  it('withdraws entry from active contest', async () => {
+    const contest = await createContest(db, makeContestInput({ title: 'Withdraw Test' }));
+    await transitionContestStatus(db, contest.id, organizerId, 'active');
+
+    const content = await createContent(db, participantId, { type: 'project', title: 'To Withdraw' });
+    await publishContent(db, content.id, participantId);
+    const entry = await submitContestEntry(db, contest.id, content.id, participantId);
+    expect(entry).not.toBeNull();
+
+    const result = await withdrawContestEntry(db, entry!.id, participantId);
+    expect(result.withdrawn).toBe(true);
+
+    const { items } = await listContestEntries(db, contest.id);
+    expect(items.find((i) => i.id === entry!.id)).toBeUndefined();
+  });
+
+  it('rejects withdrawal from judging contest', async () => {
+    const contest = await createContest(db, {
+      ...makeContestInput({ title: 'No Withdraw Judging' }),
+      judges: [judgeUserId],
+    });
+    await transitionContestStatus(db, contest.id, organizerId, 'active');
+
+    const content = await createContent(db, participantId, { type: 'project', title: 'Stuck Entry' });
+    await publishContent(db, content.id, participantId);
+    const entry = await submitContestEntry(db, contest.id, content.id, participantId);
+
+    await transitionContestStatus(db, contest.id, organizerId, 'judging');
+
+    const result = await withdrawContestEntry(db, entry!.id, participantId);
+    expect(result.withdrawn).toBe(false);
+    expect(result.error).toContain('active');
+  });
+
+  it('rejects withdrawal by wrong user', async () => {
+    const contest = await createContest(db, makeContestInput({ title: 'Wrong User Withdraw' }));
+    await transitionContestStatus(db, contest.id, organizerId, 'active');
+
+    const content = await createContent(db, participantId, { type: 'project', title: 'Not Yours' });
+    await publishContent(db, content.id, participantId);
+    const entry = await submitContestEntry(db, contest.id, content.id, participantId);
+
+    const result = await withdrawContestEntry(db, entry!.id, organizerId);
+    expect(result.withdrawn).toBe(false);
+    expect(result.error).toContain('owner');
+  });
+
+  it('stores judge feedback in judgeScores', async () => {
+    const contest = await createContest(db, {
+      ...makeContestInput({ title: 'Feedback Test Contest' }),
+      judges: [judgeUserId],
+    });
+    await transitionContestStatus(db, contest.id, organizerId, 'active');
+
+    const content = await createContent(db, participantId, { type: 'project', title: 'Feedback Entry' });
+    await publishContent(db, content.id, participantId);
+    const entry = await submitContestEntry(db, contest.id, content.id, participantId);
+
+    await transitionContestStatus(db, contest.id, organizerId, 'judging');
+    await judgeContestEntry(db, entry!.id, 75, judgeUserId, 'Excellent craftsmanship!');
+
+    const { items } = await listContestEntries(db, contest.id, { includeJudgeScores: true });
+    const judged = items.find((i) => i.id === entry!.id);
+    expect(judged!.judgeScores).toBeDefined();
+    expect(judged!.judgeScores![0]!.feedback).toBe('Excellent craftsmanship!');
+  });
+
+  it('cancels contest from each valid state', async () => {
+    // Cancel from upcoming
+    const c1 = await createContest(db, makeContestInput({ title: 'Cancel Upcoming' }));
+    const r1 = await transitionContestStatus(db, c1.id, organizerId, 'cancelled');
+    expect(r1.transitioned).toBe(true);
+
+    // Cancel from active
+    const c2 = await createContest(db, makeContestInput({ title: 'Cancel Active' }));
+    await transitionContestStatus(db, c2.id, organizerId, 'active');
+    const r2 = await transitionContestStatus(db, c2.id, organizerId, 'cancelled');
+    expect(r2.transitioned).toBe(true);
+
+    // Cancel from judging
+    const c3 = await createContest(db, {
+      ...makeContestInput({ title: 'Cancel Judging' }),
+      judges: [judgeUserId],
+    });
+    await transitionContestStatus(db, c3.id, organizerId, 'active');
+    await transitionContestStatus(db, c3.id, organizerId, 'judging');
+    const r3 = await transitionContestStatus(db, c3.id, organizerId, 'cancelled');
+    expect(r3.transitioned).toBe(true);
+  });
+
+  it('rejects transitions from cancelled state', async () => {
+    const contest = await createContest(db, makeContestInput({ title: 'Cancelled No Escape' }));
+    await transitionContestStatus(db, contest.id, organizerId, 'cancelled');
+
+    const r1 = await transitionContestStatus(db, contest.id, organizerId, 'active');
+    expect(r1.transitioned).toBe(false);
+
+    const r2 = await transitionContestStatus(db, contest.id, organizerId, 'upcoming');
+    expect(r2.transitioned).toBe(false);
+  });
+
+  it('averages scores from multiple judges', async () => {
+    const judge2 = await createTestUser(db, { username: `judge2-${Date.now()}` });
+    const contest = await createContest(db, {
+      ...makeContestInput({ title: 'Multi-Judge Contest' }),
+      judges: [judgeUserId, judge2.id],
+    });
+    await transitionContestStatus(db, contest.id, organizerId, 'active');
+
+    const content = await createContent(db, participantId, { type: 'project', title: 'Multi-Judge Entry' });
+    await publishContent(db, content.id, participantId);
+    const entry = await submitContestEntry(db, contest.id, content.id, participantId);
+
+    await transitionContestStatus(db, contest.id, organizerId, 'judging');
+
+    await judgeContestEntry(db, entry!.id, 80, judgeUserId);
+    await judgeContestEntry(db, entry!.id, 90, judge2.id);
+
+    const { items } = await listContestEntries(db, contest.id);
+    const scored = items.find((i) => i.id === entry!.id);
+    // Average of 80 and 90 = 85
+    expect(scored!.score).toBe(85);
   });
 });
