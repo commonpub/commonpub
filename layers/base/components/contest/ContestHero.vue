@@ -59,6 +59,10 @@ const isEnded = computed(() => c.value?.status === 'completed' || c.value?.statu
     </div>
 
     <div class="cpub-hero-inner">
+      <div v-if="c?.status === 'cancelled'" class="cpub-cancelled-banner">
+        <i class="fa-solid fa-ban"></i> This contest has been cancelled.
+      </div>
+
       <div class="cpub-hero-eyebrow">
         <span class="cpub-contest-badge"><i class="fa fa-trophy"></i> Contest</span>
       </div>
@@ -160,6 +164,8 @@ const isEnded = computed(() => c.value?.status === 'completed' || c.value?.statu
 .cpub-countdown-val { font-size: 26px; font-weight: 700; font-family: var(--font-mono); color: var(--hero-text); line-height: 1; margin-bottom: 4px; }
 .cpub-countdown-unit { font-size: 9px; text-transform: uppercase; letter-spacing: .1em; color: var(--hero-text-dim); font-family: var(--font-mono); }
 .cpub-countdown-sep { font-size: 20px; font-weight: 700; color: var(--hero-border); margin-top: -8px; font-family: var(--font-mono); }
+
+.cpub-cancelled-banner { background: var(--red-bg); border: var(--border-width-default) solid var(--red-border); color: var(--red); padding: 10px 14px; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
 
 .cpub-hero-cta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .cpub-btn-lg { padding: 10px 22px; font-size: 13px; }

@@ -229,6 +229,7 @@ export async function updateContest(
   if (data.judges !== undefined) updates.judges = data.judges;
   if (data.startDate !== undefined) updates.startDate = new Date(data.startDate);
   if (data.endDate !== undefined) updates.endDate = new Date(data.endDate);
+  if (data.judgingEndDate !== undefined) updates.judgingEndDate = data.judgingEndDate ? new Date(data.judgingEndDate) : null;
 
   await db.update(contests).set(updates).where(eq(contests.slug, slug));
 

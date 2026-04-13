@@ -3,6 +3,8 @@ import type { Serialized, ContestDetail } from '@commonpub/server';
 
 defineProps<{
   contest: Serialized<ContestDetail> | null;
+  isOwner?: boolean;
+  isJudge?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -46,6 +48,14 @@ function statusClass(status: string): string {
       </div>
     </div>
 
+    <NuxtLink v-if="isOwner" :to="`/contests/${contest?.slug}/edit`" class="cpub-btn cpub-sb-link">
+      <i class="fa-solid fa-pen-to-square"></i> Edit Contest
+    </NuxtLink>
+
+    <NuxtLink v-if="isJudge && (contest?.status === 'judging')" :to="`/contests/${contest?.slug}/judge`" class="cpub-btn cpub-sb-link cpub-sb-judge">
+      <i class="fa-solid fa-gavel"></i> Judge Entries
+    </NuxtLink>
+
     <NuxtLink v-if="contest?.status === 'completed'" :to="`/contests/${contest.slug}/results`" class="cpub-btn cpub-sb-link">
       <i class="fa-solid fa-ranking-star"></i> View Results
     </NuxtLink>
@@ -69,4 +79,5 @@ function statusClass(status: string): string {
 .cpub-sb-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 .cpub-sb-btn { flex: 1; justify-content: center; }
 .cpub-sb-link { width: 100%; text-align: center; display: block; margin-top: 12px; }
+.cpub-sb-judge { color: var(--accent); border-color: var(--accent-border); }
 </style>

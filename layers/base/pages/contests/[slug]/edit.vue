@@ -8,7 +8,7 @@ const { extract: extractError } = useApiError();
 const { user, isAdmin } = useAuth();
 
 const { data: contest, refresh } = useLazyFetch(`/api/contests/${slug}`);
-const isOwner = computed(() => isAdmin.value || (user.value?.id && contest.value?.createdById === user.value.id));
+const isOwner = computed(() => isAdmin.value || !!(user.value?.id && contest.value?.createdById === user.value.id));
 useSeoMeta({ title: () => `Edit: ${contest.value?.title ?? 'Contest'} — ${useSiteName()}` });
 
 const saving = ref(false);
@@ -19,10 +19,16 @@ const startDate = ref('');
 const endDate = ref('');
 const judgingEndDate = ref('');
 const prizes = ref<Array<{ place: number; title: string; description: string; value: string }>>([]);
-const judgeUsernames = ref('');
+const judgeIds = ref<string[]>([]);
+const judgeSearch = ref('');
+const judgeSearchResults = ref<Array<{ id: string; username: string; displayName: string | null }>>([]);
+const searchingJudges = ref(false);
+
+interface JudgeDisplay { id: string; username: string; displayName: string | null }
+const resolvedJudges = ref<JudgeDisplay[]>([]);
 
 // Load current data
-watch(contest, (c) => {
+watch(contest, async (c) => {
   if (!c) return;
   title.value = c.title ?? '';
   description.value = c.description ?? '';
@@ -36,7 +42,40 @@ watch(contest, (c) => {
     description: p.description ?? '',
     value: p.value ?? '',
   }));
+  judgeIds.value = [...(c.judges ?? [])];
+  // Resolve judge IDs to display info
+  if (judgeIds.value.length > 0) {
+    try {
+      const data = await $fetch<{ items: JudgeDisplay[] }>('/api/users', { query: { ids: judgeIds.value.join(',') } });
+      resolvedJudges.value = data.items;
+    } catch { /* ignore */ }
+  }
 }, { immediate: true });
+
+async function searchJudge(): Promise<void> {
+  const q = judgeSearch.value.trim();
+  if (!q || q.length < 2) { judgeSearchResults.value = []; return; }
+  searchingJudges.value = true;
+  try {
+    const data = await $fetch<{ items: Array<{ id: string; username: string; displayName: string | null }> }>('/api/users', { query: { q, limit: 5 } });
+    judgeSearchResults.value = data.items.filter((u) => !judgeIds.value.includes(u.id));
+  } catch { judgeSearchResults.value = []; }
+  finally { searchingJudges.value = false; }
+}
+
+function addJudge(u: { id: string; username: string; displayName: string | null }): void {
+  if (!judgeIds.value.includes(u.id)) {
+    judgeIds.value.push(u.id);
+    resolvedJudges.value.push(u);
+  }
+  judgeSearch.value = '';
+  judgeSearchResults.value = [];
+}
+
+function removeJudge(id: string): void {
+  judgeIds.value = judgeIds.value.filter((jid) => jid !== id);
+  resolvedJudges.value = resolvedJudges.value.filter((j) => j.id !== id);
+}
 
 function addPrize(): void {
   const nextPlace = prizes.value.length + 1;
@@ -77,6 +116,7 @@ async function handleSave(): Promise<void> {
         endDate: endDate.value ? new Date(endDate.value).toISOString() : undefined,
         judgingEndDate: judgingEndDate.value ? new Date(judgingEndDate.value).toISOString() : undefined,
         prizes: prizeData.length > 0 ? prizeData : undefined,
+        judges: judgeIds.value.length > 0 ? judgeIds.value : undefined,
       },
     });
     toast.success('Contest updated');
@@ -179,6 +219,38 @@ async function transitionStatus(newStatus: string): Promise<void> {
       </section>
 
       <section class="cpub-form-section">
+        <h2 class="cpub-form-section-title">Judges</h2>
+        <div v-if="resolvedJudges.length" class="cpub-judge-list">
+          <div v-for="judge in resolvedJudges" :key="judge.id" class="cpub-judge-chip">
+            <span>{{ judge.displayName || judge.username }}</span>
+            <button type="button" class="cpub-judge-chip-remove" @click="removeJudge(judge.id)"><i class="fa-solid fa-times"></i></button>
+          </div>
+        </div>
+        <div v-else class="cpub-judge-empty">No judges assigned.</div>
+        <div class="cpub-judge-search">
+          <input
+            v-model="judgeSearch"
+            type="text"
+            class="cpub-form-input"
+            placeholder="Search users by name or username..."
+            @input="searchJudge"
+          />
+          <div v-if="judgeSearchResults.length" class="cpub-judge-dropdown">
+            <button
+              v-for="u in judgeSearchResults"
+              :key="u.id"
+              type="button"
+              class="cpub-judge-option"
+              @click="addJudge(u)"
+            >
+              <strong>{{ u.displayName || u.username }}</strong>
+              <span class="cpub-judge-option-username">@{{ u.username }}</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section class="cpub-form-section">
         <h2 class="cpub-form-section-title">Status Transitions</h2>
         <div class="cpub-status-actions">
           <button v-if="contest.status === 'upcoming'" type="button" class="cpub-btn cpub-transition-btn cpub-transition-activate" @click="transitionStatus('active')">
@@ -247,5 +319,17 @@ async function transitionStatus(newStatus: string): Promise<void> {
 .cpub-transition-complete { color: var(--accent); border-color: var(--accent-border); }
 .cpub-transition-cancel { color: var(--red); border-color: var(--red-border); }
 
-.cpub-not-found { text-align: center; padding: 64px; color: var(--text-dim); }
+.cpub-judge-list { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.cpub-judge-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; background: var(--accent-bg); border: var(--border-width-default) solid var(--accent-border); font-size: 11px; font-family: var(--font-mono); color: var(--accent); }
+.cpub-judge-chip-remove { background: none; border: none; color: var(--accent); cursor: pointer; font-size: 10px; padding: 0; }
+.cpub-judge-chip-remove:hover { color: var(--red); }
+.cpub-judge-empty { font-size: 12px; color: var(--text-faint); margin-bottom: 12px; }
+.cpub-judge-search { position: relative; }
+.cpub-judge-dropdown { position: absolute; z-index: 10; top: 100%; left: 0; right: 0; background: var(--surface); border: var(--border-width-default) solid var(--border); box-shadow: var(--shadow-lg); max-height: 200px; overflow-y: auto; }
+.cpub-judge-option { display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 12px; background: none; border: none; border-bottom: var(--border-width-default) solid var(--border); cursor: pointer; font-size: 12px; color: var(--text); text-align: left; }
+.cpub-judge-option:last-child { border-bottom: none; }
+.cpub-judge-option:hover { background: var(--surface2); }
+.cpub-judge-option-username { color: var(--text-faint); font-family: var(--font-mono); font-size: 11px; }
+
+.cpub-not-found { text-align: center; padding: 64px; color: var(--text-dim); display: flex; flex-direction: column; align-items: center; gap: 12px; }
 </style>

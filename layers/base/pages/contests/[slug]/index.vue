@@ -17,6 +17,8 @@ useSeoMeta({
 
 const c = computed(() => contest.value);
 const entries = computed(() => apiEntriesData.value?.items ?? []);
+const isOwner = computed(() => isAdmin.value || !!(user.value?.id && c.value?.createdById === user.value.id));
+const isJudge = computed(() => !!(user.value?.id && ((c.value?.judges ?? []) as string[]).includes(user.value.id)));
 
 // Admin contest management
 const transitioning = ref(false);
@@ -147,7 +149,7 @@ async function withdrawEntry(entryId: string): Promise<void> {
           />
         </div>
 
-        <ContestSidebar :contest="c" @copy-link="copyLink" />
+        <ContestSidebar :contest="c" :is-owner="isOwner" :is-judge="isJudge" @copy-link="copyLink" />
       </div>
     </div>
   </div>
