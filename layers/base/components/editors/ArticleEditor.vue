@@ -82,25 +82,77 @@ function scrollToSection(sectionId: string): void {
 }
 
 // --- Assets ---
-const uploadedFiles = ref<Array<{ name: string; size: string; type: string }>>([]);
+const MAX_CONTENT_UPLOAD_MB = 10;
+const MAX_CONTENT_UPLOAD_BYTES = MAX_CONTENT_UPLOAD_MB * 1024 * 1024;
+
+interface UploadedAsset {
+  name: string;
+  size: string;
+  type: 'image' | 'file';
+  url: string;
+  mimeType: string;
+}
+
+const uploadedFiles = ref<UploadedAsset[]>([]);
+const uploadError = ref('');
+const uploading = ref(false);
 
 function onAssetUpload(event: Event): void {
   const input = event.target as HTMLInputElement;
   if (!input.files?.length) return;
   const file = input.files[0];
   if (!file) return;
+  uploadError.value = '';
+
+  // Client-side size check
+  if (file.size > MAX_CONTENT_UPLOAD_BYTES) {
+    uploadError.value = `File too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Max ${MAX_CONTENT_UPLOAD_MB} MB.`;
+    input.value = '';
+    return;
+  }
+
+  uploading.value = true;
   const formData = new FormData();
   formData.append('file', file);
   formData.append('purpose', 'content');
-  $fetch<{ url: string; originalName: string; size: number }>('/api/files/upload', { method: 'POST', body: formData })
+  $fetch<{ url: string; originalName: string; sizeBytes: number; mimeType: string }>('/api/files/upload', { method: 'POST', body: formData })
     .then((res) => {
       uploadedFiles.value.unshift({
         name: res.originalName || file.name,
-        size: `${(res.size / 1024).toFixed(0)} KB`,
-        type: file.type.startsWith('image/') ? 'image' : 'file',
+        size: res.sizeBytes < 1024 * 1024
+          ? `${(res.sizeBytes / 1024).toFixed(0)} KB`
+          : `${(res.sizeBytes / 1024 / 1024).toFixed(1)} MB`,
+        type: (res.mimeType || file.type).startsWith('image/') ? 'image' : 'file',
+        url: res.url,
+        mimeType: res.mimeType || file.type,
       });
+      uploadError.value = '';
     })
-    .catch(() => { /* silent */ });
+    .catch((err) => {
+      uploadError.value = err?.data?.statusMessage || 'Upload failed';
+    })
+    .finally(() => {
+      uploading.value = false;
+      input.value = '';
+    });
+}
+
+function insertAsset(asset: UploadedAsset): void {
+  if (asset.type === 'image') {
+    // Insert image block after selected block (or at end)
+    const idx = props.blockEditor.selectedBlockId.value
+      ? props.blockEditor.getBlockIndex(props.blockEditor.selectedBlockId.value) + 1
+      : undefined;
+    props.blockEditor.addBlock('image', { url: asset.url, alt: asset.name }, idx);
+  } else {
+    // Copy URL to clipboard for non-image files
+    navigator.clipboard.writeText(asset.url).catch(() => {});
+    asset.name = `${asset.name} (copied!)`;
+    setTimeout(() => {
+      const found = uploadedFiles.value.find((f) => f.url === asset.url);
+      if (found) found.name = found.name.replace(' (copied!)', '');
+    }, 1500);
+  }
 }
 
 // --- Cover image ---
@@ -264,25 +316,34 @@ const canvasMaxWidth = computed(() => {
 
       <!-- Assets tab -->
       <div v-else class="cpub-ae-left-body">
-        <label class="cpub-ae-assets-drop">
-          <i class="fa-solid fa-cloud-arrow-up"></i>
-          <div class="cpub-ae-assets-drop-label">Drop files here</div>
-          <div class="cpub-ae-assets-drop-sub">JPG, PNG, GIF, SVG, PDF</div>
-          <input type="file" class="cpub-sr-only" @change="onAssetUpload">
+        <label class="cpub-ae-assets-drop" :class="{ 'cpub-ae-assets-uploading': uploading }">
+          <i :class="uploading ? 'fa-solid fa-spinner fa-spin' : 'fa-solid fa-cloud-arrow-up'"></i>
+          <div class="cpub-ae-assets-drop-label">{{ uploading ? 'Uploading...' : 'Drop files here' }}</div>
+          <div class="cpub-ae-assets-drop-sub">JPG, PNG, GIF, SVG, PDF — max {{ MAX_CONTENT_UPLOAD_MB }} MB</div>
+          <input type="file" class="cpub-sr-only" :disabled="uploading" @change="onAssetUpload">
         </label>
+        <div v-if="uploadError" class="cpub-ae-assets-error">
+          <i class="fa-solid fa-triangle-exclamation"></i> {{ uploadError }}
+        </div>
         <div v-if="uploadedFiles.length > 0" class="cpub-ae-assets-list">
           <div class="cpub-ae-assets-heading">Recent Uploads</div>
           <div
             v-for="(file, idx) in uploadedFiles"
             :key="idx"
             class="cpub-ae-asset-item"
+            :title="file.type === 'image' ? 'Click to insert image' : 'Click to copy URL'"
+            @click="insertAsset(file)"
           >
-            <div class="cpub-ae-asset-icon">
-              <i :class="file.type === 'image' ? 'fa-solid fa-image' : 'fa-solid fa-file'" />
+            <img v-if="file.type === 'image'" :src="file.url" :alt="file.name" class="cpub-ae-asset-thumb" />
+            <div v-else class="cpub-ae-asset-icon">
+              <i class="fa-solid fa-file" />
             </div>
             <div class="cpub-ae-asset-info">
               <div class="cpub-ae-asset-name">{{ file.name }}</div>
-              <div class="cpub-ae-asset-size">{{ file.size }}</div>
+              <div class="cpub-ae-asset-meta">
+                <span class="cpub-ae-asset-size">{{ file.size }}</span>
+                <span class="cpub-ae-asset-action">{{ file.type === 'image' ? 'insert' : 'copy url' }}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -505,15 +566,26 @@ const canvasMaxWidth = computed(() => {
   transition: border-color 0.15s, background 0.15s; text-align: center;
 }
 .cpub-ae-assets-drop:hover { border-color: var(--accent); background: var(--accent-bg); }
+.cpub-ae-assets-uploading { border-color: var(--accent); background: var(--accent-bg); pointer-events: none; }
 .cpub-ae-assets-drop i { font-size: 20px; color: var(--text-faint); }
 .cpub-ae-assets-drop-label { font-size: 11px; font-weight: 600; color: var(--text-dim); }
 .cpub-ae-assets-drop-sub { font-size: 10px; color: var(--text-faint); font-family: var(--font-mono); }
+.cpub-ae-assets-error {
+  margin: 4px 8px 8px; padding: 6px 10px; font-size: 10px; font-family: var(--font-mono);
+  color: var(--red); background: var(--red-bg); border: var(--border-width-default) solid var(--red);
+  display: flex; align-items: center; gap: 6px;
+}
 .cpub-ae-assets-list { padding: 8px 12px; }
 .cpub-ae-assets-heading { font-family: var(--font-mono); font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-faint); padding: 4px 0 10px; }
 .cpub-ae-asset-item {
   display: flex; align-items: center; gap: 10px; padding: 8px 10px;
   background: var(--surface); border: var(--border-width-default) solid var(--border); cursor: pointer;
-  box-shadow: var(--shadow-sm); margin-bottom: 5px;
+  box-shadow: var(--shadow-sm); margin-bottom: 5px; transition: background 0.1s, border-color 0.1s;
+}
+.cpub-ae-asset-item:hover { background: var(--surface2); border-color: var(--accent-border); }
+.cpub-ae-asset-thumb {
+  width: 34px; height: 34px; object-fit: cover; flex-shrink: 0;
+  border: var(--border-width-default) solid var(--border2);
 }
 .cpub-ae-asset-icon {
   width: 34px; height: 34px; background: var(--surface2); display: flex;
@@ -522,7 +594,12 @@ const canvasMaxWidth = computed(() => {
 .cpub-ae-asset-icon i { font-size: 11px; color: var(--text-faint); }
 .cpub-ae-asset-info { flex: 1; min-width: 0; }
 .cpub-ae-asset-name { font-size: 10px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.cpub-ae-asset-meta { display: flex; align-items: center; gap: 6px; }
 .cpub-ae-asset-size { font-family: var(--font-mono); font-size: 8px; color: var(--text-faint); }
+.cpub-ae-asset-action {
+  font-family: var(--font-mono); font-size: 8px; color: var(--accent);
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
 
 /* Center */
 .cpub-ae-center { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
