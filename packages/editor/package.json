@@ -55,7 +55,7 @@
   },
   "dependencies": {
     "@commonpub/config": "workspace:*",
-    "@commonpub/schema": "workspace:*",
+    "@commonpub/schema": "^0.9.8",
     "rehype-stringify": "^10.0.1",
     "remark-gfm": "^4.0.1",
     "remark-parse": "^11.0.0",
@@ -64,7 +64,6 @@
     "zod": "^4.3.6"
   },
   "peerDependencies": {
-    "vue": "^3.4.0",
     "@tiptap/core": "^2.11.0",
     "@tiptap/extension-bold": "^2.11.0",
     "@tiptap/extension-bullet-list": "^2.11.0",
@@ -80,7 +79,8 @@
     "@tiptap/extension-placeholder": "^2.11.0",
     "@tiptap/extension-strike": "^2.11.0",
     "@tiptap/extension-text": "^2.11.0",
-    "@tiptap/pm": "^2.11.0"
+    "@tiptap/pm": "^2.11.0",
+    "vue": "^3.4.0"
   },
   "peerDependenciesMeta": {
     "vue": {

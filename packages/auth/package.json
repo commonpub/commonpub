@@ -9,9 +9,21 @@
     "url": "https://github.com/commonpub/commonpub",
     "directory": "packages/auth"
   },
-  "keywords": ["commonpub", "activitypub", "federation", "typescript", "auth", "sso", "better-auth"],
-  "publishConfig": { "access": "public" },
-  "engines": { "node": ">=22" },
+  "keywords": [
+    "commonpub",
+    "activitypub",
+    "federation",
+    "typescript",
+    "auth",
+    "sso",
+    "better-auth"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=22"
+  },
   "sideEffects": false,
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -21,7 +33,12 @@
       "import": "./dist/index.js"
     }
   },
-  "files": ["dist/", "!dist/__tests__/", "README.md", "LICENSE"],
+  "files": [
+    "dist/",
+    "!dist/__tests__/",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
@@ -32,9 +49,9 @@
     "prepublishOnly": "pnpm run build"
   },
   "dependencies": {
-    "@commonpub/schema": "workspace:*",
     "@commonpub/config": "workspace:*",
     "@commonpub/protocol": "workspace:*",
+    "@commonpub/schema": "^0.9.8",
     "better-auth": "^1.2.0",
     "drizzle-orm": "^0.45.1"
   },

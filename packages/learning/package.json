@@ -9,9 +9,21 @@
     "url": "https://github.com/commonpub/commonpub",
     "directory": "packages/learning"
   },
-  "keywords": ["commonpub", "activitypub", "federation", "typescript", "learning", "curriculum", "certificates"],
-  "publishConfig": { "access": "public" },
-  "engines": { "node": ">=22" },
+  "keywords": [
+    "commonpub",
+    "activitypub",
+    "federation",
+    "typescript",
+    "learning",
+    "curriculum",
+    "certificates"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=22"
+  },
   "sideEffects": false,
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -21,7 +33,12 @@
       "import": "./dist/index.js"
     }
   },
-  "files": ["dist/", "!dist/__tests__/", "README.md", "LICENSE"],
+  "files": [
+    "dist/",
+    "!dist/__tests__/",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
@@ -32,10 +49,10 @@
     "prepublishOnly": "pnpm run build"
   },
   "dependencies": {
-    "@commonpub/schema": "workspace:*",
     "@commonpub/config": "workspace:*",
-    "@commonpub/explainer": "workspace:*",
     "@commonpub/editor": "workspace:*",
+    "@commonpub/explainer": "^0.7.11",
+    "@commonpub/schema": "^0.9.8",
     "zod": "^4.3.6"
   },
   "devDependencies": {
