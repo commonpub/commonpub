@@ -3,6 +3,7 @@ import { z } from 'zod';
 
 const reorderSchema = z.object({
   pageIds: z.array(z.string().uuid()),
+  version: z.string().max(32).optional(),
 });
 
 export default defineEventHandler(async (event) => {
@@ -14,7 +15,9 @@ export default defineEventHandler(async (event) => {
   const site = await getDocsSiteBySlug(db, siteSlug);
   if (!site) throw createError({ statusCode: 404, statusMessage: 'Docs site not found' });
 
-  const version = site.versions.find((v) => v.isDefault) ?? site.versions[0];
+  const version = body.version
+    ? site.versions.find((v) => v.version === body.version)
+    : site.versions.find((v) => v.isDefault) ?? site.versions[0];
   if (!version) throw createError({ statusCode: 404, statusMessage: 'No version found' });
 
   const result = await reorderDocsPages(db, version.id, user.id, body.pageIds);

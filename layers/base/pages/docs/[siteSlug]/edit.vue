@@ -31,6 +31,12 @@ watch(site, (s) => {
   }
 }, { immediate: true });
 
+// Resolve selected version string → version UUID for write operations
+const selectedVersionId = computed(() => {
+  if (!site.value?.versions?.length || !selectedVersion.value) return undefined;
+  return site.value.versions.find((v) => v.version === selectedVersion.value)?.id;
+});
+
 const { data: rawPages, refresh: refreshPages } = await useFetch<Array<{ id: string; title: string; slug: string; sortOrder: number; parentId: string | null; content: string | BlockTuple[] | null; format?: string }>>(() => {
   const base = `/api/docs/${siteSlug.value}/pages`;
   return selectedVersion.value ? `${base}?version=${encodeURIComponent(selectedVersion.value)}` : base;
@@ -287,6 +293,7 @@ async function handleCreatePage(parentId: string | null, title: string): Promise
         content: [['paragraph', { html: '' }]],
         parentId: parentId ?? undefined,
         sortOrder: (pages.value?.length ?? 0) + 1,
+        versionId: selectedVersionId.value,
       },
     });
     await refreshPages();
@@ -346,7 +353,7 @@ async function handleReorder(pageIds: string[]): Promise<void> {
   try {
     await $fetch(`/api/docs/${siteSlug.value}/pages/reorder`, {
       method: 'POST',
-      body: { pageIds },
+      body: { pageIds, version: selectedVersion.value || undefined },
     });
     await refreshPages();
   } catch {
