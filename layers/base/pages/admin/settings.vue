@@ -58,7 +58,11 @@ async function addSetting(): Promise<void> {
   <div class="admin-settings">
     <h1 class="admin-page-title">Instance Settings</h1>
 
-    <div class="settings-list" v-if="settings">
+    <div v-if="pending" class="admin-loading">
+      <i class="fa-solid fa-circle-notch fa-spin"></i> Loading settings...
+    </div>
+    <template v-else-if="settings">
+    <div class="settings-list">
       <div v-for="item in knownSettings" :key="item.key" class="settings-row">
         <div class="settings-label">
           <span class="settings-key">{{ item.label }}</span>
@@ -78,7 +82,7 @@ async function addSetting(): Promise<void> {
       </div>
     </div>
 
-    <div class="settings-custom" v-if="settings">
+    <div class="settings-custom">
       <h2 class="settings-section-title">Custom Settings</h2>
       <div v-for="(value, key) in (settings as Record<string, string>)" :key="key" class="settings-row">
         <template v-if="!knownSettings.some(k => k.key === key)">
@@ -105,11 +109,8 @@ async function addSetting(): Promise<void> {
         <button class="cpub-btn cpub-btn-sm" :disabled="!newKey.trim()" @click="addSetting">Add</button>
       </div>
     </div>
-
-    <div v-if="pending" class="admin-loading">
-      <i class="fa-solid fa-circle-notch fa-spin"></i> Loading...
-    </div>
-    <p class="admin-empty" v-else-if="!settings">No settings configured.</p>
+    </template>
+    <p v-else class="admin-empty">No settings configured.</p>
   </div>
 </template>
 
