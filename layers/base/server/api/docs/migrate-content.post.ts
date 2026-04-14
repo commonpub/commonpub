@@ -16,13 +16,7 @@ import { docsPages } from '@commonpub/schema';
 import { eq } from 'drizzle-orm';
 
 export default defineEventHandler(async (event) => {
-  const user = requireAuth(event);
-
-  // Only allow admins to run migration
-  if (!user.role || user.role !== 'admin') {
-    throw createError({ statusCode: 403, statusMessage: 'Admin only' });
-  }
-
+  requireAdmin(event);
   const db = useDB();
 
   // Fetch all pages

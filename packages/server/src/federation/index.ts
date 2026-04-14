@@ -36,6 +36,7 @@ export {
   incrementFederatedViewCount,
   searchFederatedContent,
   type FederatedContentItem,
+  repairFederatedContentTypes,
   type FederatedTimelineOptions,
 } from './timeline.js';
 export {

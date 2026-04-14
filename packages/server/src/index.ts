@@ -386,6 +386,7 @@ export {
   type RemoteActorProfile,
   type FederatedContentItem,
   type FederatedTimelineOptions,
+  repairFederatedContentTypes,
   type InboxHandlerOptions,
   type DeliveryResult,
   type DeliveryOptions,
