@@ -4,7 +4,7 @@ import { BUILT_IN_THEMES } from '@commonpub/ui';
 definePageMeta({ layout: 'admin', middleware: 'auth' });
 useSeoMeta({ title: `Theme — Admin — ${useSiteName()}` });
 
-const { data: settings, refresh } = await useFetch<Record<string, unknown>>('/api/admin/settings');
+const { data: settings, pending, refresh } = await useFetch<Record<string, unknown>>('/api/admin/settings');
 
 const saving = ref(false);
 const saveSuccess = ref(false);
@@ -156,8 +156,10 @@ function removeTokenOverride(key: string): void {
       <i class="fa-solid fa-check"></i> Saved
     </div>
 
+    <p v-if="pending" class="admin-empty"><i class="fa-solid fa-circle-notch fa-spin"></i> Loading theme settings...</p>
+
     <!-- Theme Families -->
-    <section class="admin-theme-families">
+    <section v-else class="admin-theme-families">
       <div v-for="family in families" :key="family.id" class="admin-family-card" :class="{ active: activeFamily === family.id }" >
         <button
           class="admin-family-select"

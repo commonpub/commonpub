@@ -3,7 +3,7 @@ definePageMeta({ layout: 'admin', middleware: 'auth' });
 
 useSeoMeta({ title: `Audit Log — Admin — ${useSiteName()}` });
 
-const { data: logsData } = await useFetch('/api/admin/audit');
+const { data: logsData, pending } = await useFetch('/api/admin/audit');
 
 interface AuditEntry {
   id: string;
@@ -27,7 +27,8 @@ const logs = computed<AuditEntry[]>(() => {
   <div class="admin-audit">
     <h1 class="admin-page-title">Audit Log</h1>
 
-    <table class="admin-table" v-if="logs.length">
+    <p v-if="pending" class="admin-empty"><i class="fa-solid fa-circle-notch fa-spin"></i> Loading audit log...</p>
+    <table class="admin-table" v-else-if="logs.length">
       <thead>
         <tr>
           <th>Action</th>

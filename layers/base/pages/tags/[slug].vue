@@ -13,7 +13,7 @@ const PAGE_SIZE = 20;
 const loadingMore = ref(false);
 const allLoaded = ref(false);
 
-const { data: results } = await useFetch<PaginatedResponse<Serialized<ContentListItem>>>('/api/content', {
+const { data: results, pending } = await useFetch<PaginatedResponse<Serialized<ContentListItem>>>('/api/content', {
   query: computed(() => ({
     tag: tagSlug.value,
     status: 'published',
@@ -61,7 +61,8 @@ async function loadMore(): Promise<void> {
       </div>
     </div>
 
-    <div v-if="items.length" class="cpub-tag-grid">
+    <div v-if="pending" class="cpub-empty-state"><p><i class="fa-solid fa-circle-notch fa-spin"></i> Loading...</p></div>
+    <div v-else-if="items.length" class="cpub-tag-grid">
       <ContentCard
         v-for="item in items"
         :key="item.id"

@@ -4,7 +4,7 @@ useSeoMeta({
   description: 'Browse and join maker communities.',
 });
 
-const { data } = await useFetch('/api/hubs');
+const { data, pending } = await useFetch('/api/hubs');
 const { isAuthenticated } = useAuth();
 
 const hubs = computed(() => data.value?.items ?? []);
@@ -31,7 +31,8 @@ function hubLink(hub: Record<string, unknown>): string {
       </NuxtLink>
     </div>
 
-    <div v-if="hubs.length" class="cpub-hubs-grid">
+    <div v-if="pending" class="cpub-empty-state"><p><i class="fa-solid fa-circle-notch fa-spin"></i> Loading hubs...</p></div>
+    <div v-else-if="hubs.length" class="cpub-hubs-grid">
       <NuxtLink
         v-for="hub in hubs"
         :key="hub.id"

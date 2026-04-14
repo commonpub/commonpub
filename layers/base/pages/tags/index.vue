@@ -1,7 +1,7 @@
 <script setup lang="ts">
 useSeoMeta({ title: `Tags — ${useSiteName()}`, description: 'Browse content by tags.' });
 
-const { data: trending } = await useFetch<any>('/api/search/trending');
+const { data: trending, pending } = await useFetch<any>('/api/search/trending');
 
 // Extract unique tags from trending content
 const tags = computed(() => {
@@ -27,7 +27,8 @@ const tags = computed(() => {
     <h1 class="tags-title">Tags</h1>
     <p class="tags-subtitle">Browse content by topic.</p>
 
-    <div v-if="tags.length" class="tags-cloud">
+    <div v-if="pending" class="tags-empty"><p><i class="fa-solid fa-circle-notch fa-spin"></i> Loading tags...</p></div>
+    <div v-else-if="tags.length" class="tags-cloud">
       <NuxtLink
         v-for="tag in tags"
         :key="tag.name"
