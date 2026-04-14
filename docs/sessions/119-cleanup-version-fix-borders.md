@@ -134,9 +134,31 @@ All remaining hex in layer components/pages are now either `var()` fallbacks (co
 
 ## Remaining Work
 
+## Commit 11 — Group Chat Read Receipts
+
+**Commit:** `ad9aa4b`
+
+**Bug:** Group chats (3+ participants) had broken unread counts. `readAt` was a single column on the `messages` row — when Alice read, Bob's unread count dropped to zero because `readAt` was already set.
+
+**Fix:**
+- Added `message_reads` table: `(message_id, user_id, read_at)` with unique constraint
+- `markMessagesRead` → INSERT INTO message_reads ON CONFLICT DO NOTHING
+- `getUnreadMessageCount` / `getConversationUnreadCounts` → NOT EXISTS subquery against message_reads
+- `getConversationMessages` → LEFT JOIN message_reads for per-user readAt
+- 3 new tests: per-participant independence, per-conversation independence, idempotency
+
+Old `readAt` column on `messages` table left in place (drizzle-kit push won't drop columns). New code ignores it completely.
+
+## Commit 12 — Signed Backfill Fetches
+
+**Commit:** `bb8358f`
+
+Instance-level `backfillFromOutbox` was using unsigned fetches, which silently fails against instances requiring HTTP Signatures. Added `signedGet` helper (mirrors hubMirroring.ts pattern) using instance actor keypair, with graceful fallback to unsigned fetch.
+
+## Remaining Work
+
 ### LOW — Technical Debt
-- Backfill historical remote replies on mirrored hubs
-- Per-participant read receipts for group chats (needs message_reads table)
-- Instance-level backfill.ts uses unsigned fetches
-- Commented-out code blocks in ~20 files (audit before next editor refactor)
+- Backfill historical remote replies on mirrored hubs (pre-fix, likely zero volume)
+- Dead code audit found zero commented-out blocks (codebase is clean)
 - Content import expansion (nice-to-have)
+- `buildContentUri` deprecated function — only tests use it, 3 lines, minimal
