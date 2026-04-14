@@ -155,10 +155,29 @@ Old `readAt` column on `messages` table left in place (drizzle-kit push won't dr
 
 Instance-level `backfillFromOutbox` was using unsigned fetches, which silently fails against instances requiring HTTP Signatures. Added `signedGet` helper (mirrors hubMirroring.ts pattern) using instance actor keypair, with graceful fallback to unsigned fetch.
 
+## Commit 13 — Security: Email Disclosure + Admin Input Validation
+
+**Commit:** `92f7aff`
+
+- **Deleted `/api/resolve-identity`** — unauthenticated endpoint that returned user emails given a username. Any anonymous caller could enumerate usernames and harvest emails.
+- **Created `/api/auth/sign-in-username`** — accepts username + password, resolves username→email server-side, proxies to Better Auth's sign-in, returns session. Email never sent to client.
+- Updated login page to call new endpoint + `refreshSession()`.
+- Added Zod validation to 4 admin routes: `retry.post.ts` (activityId UUID), `refederate.post.ts` (contentId UUID + hubsOnly boolean), `content/[id].patch.ts` (parseParams UUID), `mirrors/[id]/backfill.post.ts` (parseParams UUID).
+
+## Commit 14 — Missing Indexes
+
+**Commit:** `cb8a826`
+
+Added `idx_bookmarks_user_id` and `idx_lesson_progress_user_id` — both columns used in WHERE clauses for user-specific queries but had no index.
+
+## Full Codebase Audit
+
+Comprehensive audit performed across all surfaces. See `docs/audit-119.md` for the full report with all findings categorized by severity and status (fixed vs documented for future work).
+
 ## Remaining Work
 
-### LOW — Technical Debt
-- Backfill historical remote replies on mirrored hubs (pre-fix, likely zero volume)
-- Dead code audit found zero commented-out blocks (codebase is clean)
-- Content import expansion (nice-to-have)
-- `buildContentUri` deprecated function — only tests use it, 3 lines, minimal
+All remaining items are documented in `docs/audit-119.md`. Key priorities:
+- **HIGH**: Feature flag bypass on page routes (direct URL access ignores config flags)
+- **HIGH**: Architecture violations — 6 routes with inline business logic
+- **MEDIUM**: Accessibility gaps (aria-expanded, label association), error states, schema cleanup
+- **LOW**: Mobile responsiveness, query param validation, dependency gaps
