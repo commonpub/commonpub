@@ -1,11 +1,11 @@
-# Session 118 — Password Reset + Docs Editor Polish (2026-04-13)
+# Session 118 — v1.0 Completion (All 7 Sessions) (2026-04-13)
 
-Sessions B+C of v1.0 completion plan. 2 commits, deployed via CI auto-deploy.
+Sessions B–G of v1.0 completion plan. 7 commits, all deployed via CI auto-deploy.
 
 ## Verification
-- 26/26 typecheck, 30/30 test suites
-- Password reset deploy: confirmed successful
-- Docs deploy: triggered, drizzle-kit push applies new columns automatically
+- 26/26 typecheck, 30/30 test suites — verified after every commit
+- 7 commits pushed, all auto-deployed via CI
+- Schema migrations: drizzle-kit push auto-applies (docs columns, video enum values)
 
 ## Session B — Password Reset
 
@@ -63,9 +63,31 @@ Sessions B+C of v1.0 completion plan. 2 commits, deployed via CI auto-deploy.
 - Duplicate creates as draft regardless of source page status — prevents accidental publishing of duplicates
 - `sidebarLabel` is shown in nav only; full title still shown in page heading and breadcrumbs
 
-## Outstanding Work (v1.0 plan)
-- **Session D**: Explainer Polish — border cleanup, keyboard a11y, section editor undo
-- **Session E**: Messaging Badge + Settings Verification + Admin
-- **Session F**: Tech Debt Cleanup
-- **Session G**: Video Social Features
+## Session E — Nav Badge + Admin Reports
+**Commit:** `748b047`
+- Nav: dot indicator → numeric badge (capped at 99+) for messages + notifications
+- Reports: fixed broken resolve API call (was sending status as resolution text)
+- Status filter bar (pending/reviewed/resolved/dismissed/all)
+- "Mark Reviewed" intermediate status for triage workflow
+- Bulk select + batch resolve/dismiss/review
+- Show reporter username, reviewer name, resolution text
+- CSS prefixed with cpub-
+
+## Session F — Tech Debt Cleanup
+**Commit:** `57d7278`
+- Fixed useBlockEditor double pushHistory on init — 2 regression tests
+- Deleted dead EditorPropertiesPanel.vue
+- Fixed flaky E2E test timeout (5s → 10s matching timeout)
+- Federation searchFederatedContent language option (was hardcoded 'english')
+- Skipped: signed backfill fetches (higher risk, public outboxes work fine)
+
+## Session G — Video Social Features
+**Commit:** `1943a60`
+- Added 'video' to likeTargetTypeEnum and commentTargetTypeEnum
+- Added 'video' to likeTargetTypeSchema and commentTargetTypeSchema
+- Updated enum boundary tests
+- Video detail page: EngagementBar (like/bookmark/share) + CommentSection (threaded comments)
+
+## Remaining Work
 - **PENDING**: Deploy Article→Blog merge (session 116) — needs SQL migration
+- Backfill.ts unsigned fetches (deferred from Session F — low priority, public outboxes work)
