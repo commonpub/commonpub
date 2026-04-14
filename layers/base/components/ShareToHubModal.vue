@@ -38,7 +38,7 @@ async function handleShare(): Promise<void> {
     <div class="cpub-modal-content">
       <div class="cpub-modal-header">
         <h3 class="cpub-modal-title">Share to Hub</h3>
-        <button class="cpub-modal-close" @click="emit('close')"><i class="fa-solid fa-xmark"></i></button>
+        <button class="cpub-modal-close" aria-label="Close" @click="emit('close')"><i class="fa-solid fa-xmark"></i></button>
       </div>
 
       <p class="cpub-modal-desc">Share "{{ contentTitle }}" to one of your hubs.</p>

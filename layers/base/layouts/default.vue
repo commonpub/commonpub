@@ -85,7 +85,7 @@ const userUsername = computed(() => user.value?.username ?? '');
 
         <!-- Learn dropdown -->
         <div v-if="learning || docs" class="cpub-nav-dropdown">
-          <button class="cpub-nav-link cpub-nav-trigger" :class="{ 'cpub-nav-trigger--open': openDropdown === 'learn' }" @click.stop="toggleDropdown('learn')">
+          <button class="cpub-nav-link cpub-nav-trigger" :class="{ 'cpub-nav-trigger--open': openDropdown === 'learn' }" aria-haspopup="true" :aria-expanded="openDropdown === 'learn'" @click.stop="toggleDropdown('learn')">
             <i class="fa-solid fa-graduation-cap"></i> Learn <i class="fa-solid fa-chevron-down cpub-nav-caret" />
           </button>
           <div v-if="openDropdown === 'learn'" class="cpub-nav-panel">
@@ -97,7 +97,7 @@ const userUsername = computed(() => user.value?.username ?? '');
 
         <!-- Build dropdown -->
         <div class="cpub-nav-dropdown">
-          <button class="cpub-nav-link cpub-nav-trigger" :class="{ 'cpub-nav-trigger--open': openDropdown === 'build' }" @click.stop="toggleDropdown('build')">
+          <button class="cpub-nav-link cpub-nav-trigger" :class="{ 'cpub-nav-trigger--open': openDropdown === 'build' }" aria-haspopup="true" :aria-expanded="openDropdown === 'build'" @click.stop="toggleDropdown('build')">
             <i class="fa-solid fa-hammer"></i> Build <i class="fa-solid fa-chevron-down cpub-nav-caret" />
           </button>
           <div v-if="openDropdown === 'build'" class="cpub-nav-panel">
@@ -108,7 +108,7 @@ const userUsername = computed(() => user.value?.username ?? '');
 
         <!-- Read dropdown -->
         <div class="cpub-nav-dropdown">
-          <button class="cpub-nav-link cpub-nav-trigger" :class="{ 'cpub-nav-trigger--open': openDropdown === 'read' }" @click.stop="toggleDropdown('read')">
+          <button class="cpub-nav-link cpub-nav-trigger" :class="{ 'cpub-nav-trigger--open': openDropdown === 'read' }" aria-haspopup="true" :aria-expanded="openDropdown === 'read'" @click.stop="toggleDropdown('read')">
             <i class="fa-solid fa-newspaper"></i> Read <i class="fa-solid fa-chevron-down cpub-nav-caret" />
           </button>
           <div v-if="openDropdown === 'read'" class="cpub-nav-panel">
@@ -118,7 +118,7 @@ const userUsername = computed(() => user.value?.username ?? '');
 
         <!-- Watch dropdown -->
         <div v-if="video" class="cpub-nav-dropdown">
-          <button class="cpub-nav-link cpub-nav-trigger" :class="{ 'cpub-nav-trigger--open': openDropdown === 'watch' }" @click.stop="toggleDropdown('watch')">
+          <button class="cpub-nav-link cpub-nav-trigger" :class="{ 'cpub-nav-trigger--open': openDropdown === 'watch' }" aria-haspopup="true" :aria-expanded="openDropdown === 'watch'" @click.stop="toggleDropdown('watch')">
             <i class="fa-solid fa-play"></i> Watch <i class="fa-solid fa-chevron-down cpub-nav-caret" />
           </button>
           <div v-if="openDropdown === 'watch'" class="cpub-nav-panel">

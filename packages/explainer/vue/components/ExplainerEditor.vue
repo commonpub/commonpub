@@ -182,25 +182,25 @@ const readTime = computed(() => Math.max(1, Math.round(wordCount.value / 200)));
       <div class="cpub-ee-right-body">
         <EditorSection title="Content" :open="openSections.section" @toggle="toggleSection('section')">
           <div class="cpub-ep-field">
-            <label class="cpub-ep-flabel">Slug</label>
-            <input class="cpub-ep-input" type="text" :value="metadata.slug" placeholder="auto-generated" @input="updateMeta('slug', ($event.target as HTMLInputElement).value)" />
+            <label class="cpub-ep-flabel" for="cpub-ee-slug">Slug</label>
+            <input id="cpub-ee-slug" class="cpub-ep-input" type="text" :value="metadata.slug" placeholder="auto-generated" @input="updateMeta('slug', ($event.target as HTMLInputElement).value)" />
           </div>
           <div class="cpub-ep-field">
-            <label class="cpub-ep-flabel">Description</label>
-            <textarea class="cpub-ep-textarea" rows="3" :value="(metadata.description as string)" placeholder="What does this explainer teach?" @input="updateMeta('description', ($event.target as HTMLTextAreaElement).value)" />
+            <label class="cpub-ep-flabel" for="cpub-ee-description">Description</label>
+            <textarea id="cpub-ee-description" class="cpub-ep-textarea" rows="3" :value="(metadata.description as string)" placeholder="What does this explainer teach?" @input="updateMeta('description', ($event.target as HTMLTextAreaElement).value)" />
           </div>
           <div class="cpub-ep-field">
-            <label class="cpub-ep-flabel">Estimated Minutes</label>
-            <input class="cpub-ep-input" type="number" :value="metadata.estimatedMinutes" placeholder="10" @input="updateMeta('estimatedMinutes', Number(($event.target as HTMLInputElement).value))" />
+            <label class="cpub-ep-flabel" for="cpub-ee-estimated-minutes">Estimated Minutes</label>
+            <input id="cpub-ee-estimated-minutes" class="cpub-ep-input" type="number" :value="metadata.estimatedMinutes" placeholder="10" @input="updateMeta('estimatedMinutes', Number(($event.target as HTMLInputElement).value))" />
           </div>
           <div class="cpub-ep-field">
-            <label class="cpub-ep-flabel">Tags</label>
-            <EditorTagInput :tags="tags" @update:tags="onTagsUpdate" />
+            <label class="cpub-ep-flabel" id="cpub-ee-tags-label">Tags</label>
+            <EditorTagInput :tags="tags" aria-labelledby="cpub-ee-tags-label" @update:tags="onTagsUpdate" />
           </div>
         </EditorSection>
 
         <EditorSection title="Difficulty" :open="openSections.difficulty" @toggle="toggleSection('difficulty')">
-          <select class="cpub-ep-select" :value="metadata.difficulty || 'beginner'" @change="updateMeta('difficulty', ($event.target as HTMLSelectElement).value)">
+          <select id="cpub-ee-difficulty" class="cpub-ep-select" aria-label="Difficulty level" :value="metadata.difficulty || 'beginner'" @change="updateMeta('difficulty', ($event.target as HTMLSelectElement).value)">
             <option value="beginner">Beginner</option>
             <option value="intermediate">Intermediate</option>
             <option value="advanced">Advanced</option>
@@ -209,7 +209,7 @@ const readTime = computed(() => Math.max(1, Math.round(wordCount.value / 200)));
 
         <EditorSection title="Cover Image" :open="openSections.cover" @toggle="toggleSection('cover')">
           <div class="cpub-ep-field">
-            <input class="cpub-ep-input" type="url" :value="metadata.coverImageUrl" placeholder="https://..." @input="updateMeta('coverImageUrl', ($event.target as HTMLInputElement).value)" />
+            <input class="cpub-ep-input" type="url" aria-label="Cover image URL" :value="metadata.coverImageUrl" placeholder="https://..." @input="updateMeta('coverImageUrl', ($event.target as HTMLInputElement).value)" />
           </div>
         </EditorSection>
       </div>
