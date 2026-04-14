@@ -11,15 +11,19 @@ test.describe('Homepage tab switching', () => {
     const tabs = page.locator('.cpub-tab');
     await tabs.first().waitFor({ state: 'visible', timeout: 15000 });
 
-    const firstTab = tabs.first();
-    const secondTab = tabs.nth(1);
+    // Default active tab depends on auth state — find whichever tab starts active
+    const initialActive = page.locator('.cpub-tab.active');
+    await initialActive.waitFor({ state: 'visible', timeout: 10000 });
+    const activeIndex = await tabs.evaluateAll((els) =>
+      els.findIndex((el) => el.classList.contains('active')),
+    );
 
-    await expect(firstTab).toHaveClass(/active/, { timeout: 10000 });
-
-    await secondTab.click();
-    // Wait for Vue reactivity to update the class — use matching timeouts
-    await expect(secondTab).toHaveClass(/active/, { timeout: 10000 });
-    await expect(firstTab).not.toHaveClass(/active/, { timeout: 10000 });
+    // Click a different tab and verify active state switches
+    const otherIndex = activeIndex === 0 ? 1 : 0;
+    const otherTab = tabs.nth(otherIndex);
+    await otherTab.click();
+    await expect(otherTab).toHaveClass(/active/, { timeout: 10000 });
+    await expect(tabs.nth(activeIndex)).not.toHaveClass(/active/, { timeout: 10000 });
   });
 
   test('hero banner dismiss button works', async ({ page }) => {
