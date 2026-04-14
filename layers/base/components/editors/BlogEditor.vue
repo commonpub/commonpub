@@ -549,7 +549,7 @@ const canvasMaxWidth = computed(() => {
   background: var(--text-faint); top: 2px; left: 2px; transition: all 0.15s;
 }
 .cpub-be-toggle-switch input:checked + .cpub-be-toggle-track { background: var(--accent); border-color: var(--border); }
-.cpub-be-toggle-switch input:checked + .cpub-be-toggle-track::after { left: 16px; background: #fff; }
+.cpub-be-toggle-switch input:checked + .cpub-be-toggle-track::after { left: 16px; background: var(--color-text-inverse); }
 .cpub-be-toggle-label { font-size: 12px; color: var(--text-dim); }
 
 /* Author row */

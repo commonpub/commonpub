@@ -285,7 +285,7 @@ function removeTokenOverride(key: string): void {
   right: var(--space-4);
   padding: var(--space-2) var(--space-4);
   background: var(--green);
-  color: #fff;
+  color: var(--color-text-inverse);
   font-size: var(--text-sm);
   font-weight: var(--font-weight-semibold);
   z-index: var(--z-toast);
