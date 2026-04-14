@@ -6,7 +6,7 @@ useSeoMeta({
   description: 'Log in to your CommonPub account.',
 });
 
-const { signIn } = useAuth();
+const { signIn, refreshSession } = useAuth();
 const { federation } = useFeatures();
 const route = useRoute();
 
@@ -51,12 +51,13 @@ async function handleSubmit(): Promise<void> {
       });
       await navigateTo('/dashboard');
     } else {
-      // Normal login flow
-      const { email } = await $fetch<{ email: string }>('/api/resolve-identity', {
+      // Normal login flow — username→email resolved server-side
+      await $fetch('/api/auth/sign-in-username', {
         method: 'POST',
-        body: { identity: identity.value },
+        body: { identity: identity.value, password: password.value },
+        credentials: 'include',
       });
-      await signIn(email, password.value);
+      await refreshSession();
       await navigateTo(redirectTo.value);
     }
   } catch (err: unknown) {

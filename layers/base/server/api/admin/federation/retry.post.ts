@@ -1,12 +1,15 @@
 import { activities } from '@commonpub/schema';
 import { eq, and } from 'drizzle-orm';
+import { z } from 'zod';
+
+const retrySchema = z.object({
+  activityId: z.string().uuid().optional(),
+});
 
 /**
  * POST /api/admin/federation/retry
  * Reset failed activities to pending so the delivery worker retries them.
  * Optionally filter by activity ID.
- *
- * Body: { activityId?: string } — if omitted, retries ALL failed activities
  */
 export default defineEventHandler(async (event) => {
   requireAdmin(event);
@@ -16,8 +19,8 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'Not Found' });
   }
 
-  const body = await readBody(event);
-  const activityId = body?.activityId as string | undefined;
+  const body = await parseBody(event, retrySchema);
+  const activityId = body.activityId;
 
   const db = useDB();
 

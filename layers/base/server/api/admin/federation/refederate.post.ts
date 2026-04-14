@@ -1,6 +1,7 @@
 import { contentItems, hubs, hubPosts } from '@commonpub/schema';
 import { federateContent, federateHubPost, federateHubActor } from '@commonpub/server';
 import { eq, isNull } from 'drizzle-orm';
+import { z } from 'zod';
 import { extractDomain } from '../../../utils/inbox';
 
 /**
@@ -25,9 +26,12 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'Not Found' });
   }
 
-  const body = await readBody(event);
-  const contentId = body?.contentId as string | undefined;
-  const hubsOnly = body?.hubsOnly === true;
+  const body = await parseBody(event, z.object({
+    contentId: z.string().uuid().optional(),
+    hubsOnly: z.boolean().optional(),
+  }));
+  const contentId = body.contentId;
+  const hubsOnly = body.hubsOnly === true;
 
   const db = useDB();
   const domain = extractDomain((runtimeConfig.public?.siteUrl as string) || `https://${config.instance.domain}`);

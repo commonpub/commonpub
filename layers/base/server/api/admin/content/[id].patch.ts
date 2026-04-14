@@ -9,7 +9,7 @@ import { z } from 'zod';
 export default defineEventHandler(async (event) => {
   requireAdmin(event);
 
-  const contentId = getRouterParam(event, 'id')!;
+  const { id: contentId } = parseParams(event, { id: 'uuid' });
   const body = await parseBody(event, z.object({
     isFeatured: z.boolean().optional(),
   }));

@@ -18,7 +18,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'Not Found' });
   }
 
-  const mirrorId = getRouterParam(event, 'id')!;
+  const { id: mirrorId } = parseParams(event, { id: 'uuid' });
   const db = useDB();
 
   const mirror = await getMirror(db, mirrorId);
