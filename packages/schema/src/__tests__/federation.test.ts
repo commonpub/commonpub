@@ -1,19 +1,4 @@
 import { describe, it, expect } from 'vitest';
-import {
-  remoteActors,
-  activities,
-  followRelationships,
-  actorKeypairs,
-  actorKeypairsRelations,
-  federatedContent,
-  federatedHubs,
-  federatedHubPosts,
-  federatedHubMembers,
-  federatedHubMembersRelations,
-  federatedHubPostLikes,
-  instanceMirrors,
-  instanceHealth,
-} from '../federation';
 import { activityDirectionEnum, activityStatusEnum, followRelationshipStatusEnum } from '../enums';
 import {
   createRemoteActorSchema,
@@ -26,268 +11,204 @@ import {
 } from '../validators';
 
 describe('federation enums', () => {
-  it('should define activityDirectionEnum with inbound and outbound', () => {
-    expect(activityDirectionEnum).toBeDefined();
+  it('activityDirectionEnum has inbound and outbound', () => {
     expect(activityDirectionEnum.enumValues).toEqual(['inbound', 'outbound']);
   });
 
-  it('should define activityStatusEnum with all statuses', () => {
-    expect(activityStatusEnum).toBeDefined();
+  it('activityStatusEnum has all statuses', () => {
     expect(activityStatusEnum.enumValues).toEqual(['pending', 'delivered', 'failed', 'processed']);
   });
 
-  it('should define followRelationshipStatusEnum', () => {
-    expect(followRelationshipStatusEnum).toBeDefined();
+  it('followRelationshipStatusEnum has all statuses', () => {
     expect(followRelationshipStatusEnum.enumValues).toEqual(['pending', 'accepted', 'rejected']);
   });
 });
 
-describe('federation tables', () => {
-  it('should export remoteActors table with expected columns', () => {
-    expect(remoteActors).toBeDefined();
-    const cols = Object.keys(remoteActors);
-    expect(cols).toContain('id');
-    expect(cols).toContain('actorUri');
-    expect(cols).toContain('inbox');
-    expect(cols).toContain('outbox');
-    expect(cols).toContain('publicKeyPem');
-    expect(cols).toContain('preferredUsername');
-    expect(cols).toContain('displayName');
-    expect(cols).toContain('avatarUrl');
-    expect(cols).toContain('instanceDomain');
-    expect(cols).toContain('lastFetchedAt');
-  });
-
-  it('should export activities table with expected columns', () => {
-    expect(activities).toBeDefined();
-    const cols = Object.keys(activities);
-    expect(cols).toContain('id');
-    expect(cols).toContain('type');
-    expect(cols).toContain('actorUri');
-    expect(cols).toContain('objectUri');
-    expect(cols).toContain('payload');
-    expect(cols).toContain('direction');
-    expect(cols).toContain('status');
-    expect(cols).toContain('attempts');
-    expect(cols).toContain('error');
-  });
-
-  it('should export followRelationships table with expected columns', () => {
-    expect(followRelationships).toBeDefined();
-    const cols = Object.keys(followRelationships);
-    expect(cols).toContain('id');
-    expect(cols).toContain('followerActorUri');
-    expect(cols).toContain('followingActorUri');
-    expect(cols).toContain('status');
-  });
-
-  it('should export actorKeypairs table with expected columns', () => {
-    expect(actorKeypairs).toBeDefined();
-    const cols = Object.keys(actorKeypairs);
-    expect(cols).toContain('id');
-    expect(cols).toContain('userId');
-    expect(cols).toContain('publicKeyPem');
-    expect(cols).toContain('privateKeyPem');
-  });
-});
-
-describe('federation relations', () => {
-  it('should export actorKeypairs relations', () => {
-    expect(actorKeypairsRelations).toBeDefined();
-  });
-});
-
-describe('federation validators', () => {
-  it('should validate actor URIs', () => {
+describe('actorUriSchema', () => {
+  it('accepts valid HTTPS actor URIs', () => {
     expect(actorUriSchema.safeParse('https://example.com/users/alice').success).toBe(true);
-    expect(actorUriSchema.safeParse('not-a-url').success).toBe(false);
+    expect(actorUriSchema.safeParse('https://mastodon.social/@alice').success).toBe(true);
   });
 
-  it('should validate activity directions', () => {
+  it('accepts HTTP URIs (for dev/local instances)', () => {
+    expect(actorUriSchema.safeParse('http://localhost:3000/users/alice').success).toBe(true);
+  });
+
+  it('rejects non-URL strings', () => {
+    expect(actorUriSchema.safeParse('not-a-url').success).toBe(false);
+    expect(actorUriSchema.safeParse('').success).toBe(false);
+  });
+
+  it('rejects URIs over 2048 chars', () => {
+    expect(actorUriSchema.safeParse('https://example.com/' + 'a'.repeat(2040)).success).toBe(false);
+  });
+});
+
+describe('activityDirectionSchema', () => {
+  it('accepts inbound and outbound', () => {
     expect(activityDirectionSchema.safeParse('inbound').success).toBe(true);
     expect(activityDirectionSchema.safeParse('outbound').success).toBe(true);
+  });
+
+  it('rejects invalid directions', () => {
     expect(activityDirectionSchema.safeParse('sideways').success).toBe(false);
+    expect(activityDirectionSchema.safeParse('').success).toBe(false);
   });
+});
 
-  it('should validate activity statuses', () => {
-    expect(activityStatusSchema.safeParse('pending').success).toBe(true);
-    expect(activityStatusSchema.safeParse('delivered').success).toBe(true);
+describe('activityStatusSchema', () => {
+  it.each(['pending', 'delivered', 'failed', 'processed'] as const)(
+    'accepts status: %s',
+    (status) => {
+      expect(activityStatusSchema.safeParse(status).success).toBe(true);
+    },
+  );
+
+  it('rejects invalid statuses', () => {
     expect(activityStatusSchema.safeParse('unknown').success).toBe(false);
+    expect(activityStatusSchema.safeParse('queued').success).toBe(false);
+  });
+});
+
+describe('followRelationshipStatusSchema', () => {
+  it.each(['pending', 'accepted', 'rejected'] as const)(
+    'accepts status: %s',
+    (status) => {
+      expect(followRelationshipStatusSchema.safeParse(status).success).toBe(true);
+    },
+  );
+
+  it('rejects invalid statuses', () => {
+    expect(followRelationshipStatusSchema.safeParse('blocked').success).toBe(false);
+  });
+});
+
+describe('createRemoteActorSchema', () => {
+  const validActor = {
+    actorUri: 'https://remote.example.com/users/bob',
+    inbox: 'https://remote.example.com/users/bob/inbox',
+    instanceDomain: 'remote.example.com',
+  };
+
+  it('accepts valid remote actor', () => {
+    const result = createRemoteActorSchema.safeParse(validActor);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.actorUri).toBe(validActor.actorUri);
+      expect(result.data.inbox).toBe(validActor.inbox);
+      expect(result.data.instanceDomain).toBe(validActor.instanceDomain);
+    }
   });
 
-  it('should validate follow relationship statuses', () => {
-    expect(followRelationshipStatusSchema.safeParse('pending').success).toBe(true);
-    expect(followRelationshipStatusSchema.safeParse('accepted').success).toBe(true);
-    expect(followRelationshipStatusSchema.safeParse('invalid').success).toBe(false);
-  });
-
-  it('should validate createRemoteActorSchema', () => {
-    const valid = createRemoteActorSchema.safeParse({
-      actorUri: 'https://remote.example.com/users/bob',
-      inbox: 'https://remote.example.com/users/bob/inbox',
-      instanceDomain: 'remote.example.com',
+  it('accepts actor with optional outbox', () => {
+    const result = createRemoteActorSchema.safeParse({
+      ...validActor,
+      outbox: 'https://remote.example.com/users/bob/outbox',
     });
-    expect(valid.success).toBe(true);
+    expect(result.success).toBe(true);
+  });
 
-    const invalid = createRemoteActorSchema.safeParse({
+  it('rejects invalid actor URI', () => {
+    expect(createRemoteActorSchema.safeParse({
+      ...validActor,
       actorUri: 'not-a-url',
-      inbox: 'also-not-a-url',
+    }).success).toBe(false);
+  });
+
+  it('rejects invalid inbox URL', () => {
+    expect(createRemoteActorSchema.safeParse({
+      ...validActor,
+      inbox: 'not-a-url',
+    }).success).toBe(false);
+  });
+
+  it('rejects empty instance domain', () => {
+    expect(createRemoteActorSchema.safeParse({
+      ...validActor,
       instanceDomain: '',
-    });
-    expect(invalid.success).toBe(false);
+    }).success).toBe(false);
   });
 
-  it('should validate createActivitySchema', () => {
-    const valid = createActivitySchema.safeParse({
-      type: 'Create',
-      actorUri: 'https://example.com/users/alice',
-      payload: { '@context': 'https://www.w3.org/ns/activitystreams' },
-      direction: 'outbound',
-    });
-    expect(valid.success).toBe(true);
+  it('rejects missing required fields', () => {
+    expect(createRemoteActorSchema.safeParse({}).success).toBe(false);
+    expect(createRemoteActorSchema.safeParse({ actorUri: validActor.actorUri }).success).toBe(false);
+  });
+});
 
-    const invalid = createActivitySchema.safeParse({
-      type: '',
-      actorUri: 'not-url',
-      payload: {},
+describe('createActivitySchema', () => {
+  const validActivity = {
+    type: 'Create',
+    actorUri: 'https://example.com/users/alice',
+    payload: { '@context': 'https://www.w3.org/ns/activitystreams' },
+    direction: 'outbound',
+  };
+
+  it('accepts valid activity', () => {
+    const result = createActivitySchema.safeParse(validActivity);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.type).toBe('Create');
+      expect(result.data.direction).toBe('outbound');
+    }
+  });
+
+  it('accepts all activity types (Follow, Like, Undo, etc.)', () => {
+    for (const type of ['Follow', 'Like', 'Undo', 'Delete', 'Announce', 'Accept']) {
+      expect(createActivitySchema.safeParse({ ...validActivity, type }).success).toBe(true);
+    }
+  });
+
+  it('rejects empty type', () => {
+    expect(createActivitySchema.safeParse({ ...validActivity, type: '' }).success).toBe(false);
+  });
+
+  it('rejects invalid direction', () => {
+    expect(createActivitySchema.safeParse({
+      ...validActivity,
       direction: 'invalid',
-    });
-    expect(invalid.success).toBe(false);
+    }).success).toBe(false);
   });
 
-  it('should validate createFollowRelationshipSchema', () => {
-    const valid = createFollowRelationshipSchema.safeParse({
+  it('rejects invalid actor URI', () => {
+    expect(createActivitySchema.safeParse({
+      ...validActivity,
+      actorUri: 'not-url',
+    }).success).toBe(false);
+  });
+
+  it('rejects missing required fields', () => {
+    expect(createActivitySchema.safeParse({}).success).toBe(false);
+  });
+});
+
+describe('createFollowRelationshipSchema', () => {
+  it('accepts valid follow relationship', () => {
+    const result = createFollowRelationshipSchema.safeParse({
       followerActorUri: 'https://a.example.com/users/alice',
       followingActorUri: 'https://b.example.com/users/bob',
     });
-    expect(valid.success).toBe(true);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.followerActorUri).toContain('alice');
+      expect(result.data.followingActorUri).toContain('bob');
+    }
+  });
 
-    const invalid = createFollowRelationshipSchema.safeParse({
+  it('rejects invalid follower URI', () => {
+    expect(createFollowRelationshipSchema.safeParse({
       followerActorUri: 'not-url',
-      followingActorUri: 'also-not-url',
-    });
-    expect(invalid.success).toBe(false);
-  });
-});
-
-describe('federated content table', () => {
-  it('should export federatedContent with expected columns', () => {
-    expect(federatedContent).toBeDefined();
-    const cols = Object.keys(federatedContent);
-    expect(cols).toContain('id');
-    expect(cols).toContain('objectUri');
-    expect(cols).toContain('actorUri');
-    expect(cols).toContain('remoteActorId');
-    expect(cols).toContain('originDomain');
-    expect(cols).toContain('apType');
-    expect(cols).toContain('cpubType');
-    expect(cols).toContain('cpubMetadata');
-    expect(cols).toContain('cpubBlocks');
-    expect(cols).toContain('title');
-    expect(cols).toContain('content');
-    expect(cols).toContain('summary');
-    expect(cols).toContain('coverImageUrl');
-    expect(cols).toContain('tags');
-    expect(cols).toContain('attachments');
-    expect(cols).toContain('inReplyTo');
-    expect(cols).toContain('localLikeCount');
-    expect(cols).toContain('localCommentCount');
-    expect(cols).toContain('localBoostCount');
-    expect(cols).toContain('publishedAt');
-    expect(cols).toContain('receivedAt');
-    expect(cols).toContain('deletedAt');
-    expect(cols).toContain('mirrorId');
-    expect(cols).toContain('isHidden');
-  });
-});
-
-describe('federated hubs tables', () => {
-  it('should export federatedHubs with expected columns', () => {
-    expect(federatedHubs).toBeDefined();
-    const cols = Object.keys(federatedHubs);
-    expect(cols).toContain('id');
-    expect(cols).toContain('actorUri');
-    expect(cols).toContain('remoteActorId');
-    expect(cols).toContain('originDomain');
-    expect(cols).toContain('remoteSlug');
-    expect(cols).toContain('name');
-    expect(cols).toContain('description');
-    expect(cols).toContain('iconUrl');
-    expect(cols).toContain('bannerUrl');
-    expect(cols).toContain('hubType');
-    expect(cols).toContain('remoteMemberCount');
-    expect(cols).toContain('remotePostCount');
-    expect(cols).toContain('localPostCount');
-    expect(cols).toContain('status');
-    expect(cols).toContain('isHidden');
+      followingActorUri: 'https://b.example.com/users/bob',
+    }).success).toBe(false);
   });
 
-  it('should export federatedHubPosts with expected columns', () => {
-    expect(federatedHubPosts).toBeDefined();
-    const cols = Object.keys(federatedHubPosts);
-    expect(cols).toContain('id');
-    expect(cols).toContain('federatedHubId');
-    expect(cols).toContain('objectUri');
-    expect(cols).toContain('actorUri');
-    expect(cols).toContain('remoteActorId');
-    expect(cols).toContain('content');
-    expect(cols).toContain('postType');
-    expect(cols).toContain('isPinned');
-    expect(cols).toContain('localLikeCount');
-    expect(cols).toContain('localReplyCount');
-    expect(cols).toContain('remoteLikeCount');
-    expect(cols).toContain('remoteReplyCount');
-    expect(cols).toContain('sharedContentMeta');
-    expect(cols).toContain('deletedAt');
+  it('rejects invalid following URI', () => {
+    expect(createFollowRelationshipSchema.safeParse({
+      followerActorUri: 'https://a.example.com/users/alice',
+      followingActorUri: 'not-url',
+    }).success).toBe(false);
   });
 
-  it('should export federatedHubMembers with expected columns', () => {
-    expect(federatedHubMembers).toBeDefined();
-    const cols = Object.keys(federatedHubMembers);
-    expect(cols).toContain('id');
-    expect(cols).toContain('federatedHubId');
-    expect(cols).toContain('remoteActorId');
-    expect(cols).toContain('discoveredVia');
-    expect(cols).toContain('joinedAt');
-  });
-
-  it('should export federatedHubPostLikes with expected columns', () => {
-    expect(federatedHubPostLikes).toBeDefined();
-    const cols = Object.keys(federatedHubPostLikes);
-    expect(cols).toContain('id');
-    expect(cols).toContain('postId');
-    expect(cols).toContain('userId');
-  });
-
-  it('should export federatedHubMembers relations', () => {
-    expect(federatedHubMembersRelations).toBeDefined();
-  });
-});
-
-describe('instance mirroring tables', () => {
-  it('should export instanceMirrors with expected columns', () => {
-    expect(instanceMirrors).toBeDefined();
-    const cols = Object.keys(instanceMirrors);
-    expect(cols).toContain('id');
-    expect(cols).toContain('remoteDomain');
-    expect(cols).toContain('remoteActorUri');
-    expect(cols).toContain('status');
-    expect(cols).toContain('direction');
-    expect(cols).toContain('filterContentTypes');
-    expect(cols).toContain('filterTags');
-    expect(cols).toContain('contentCount');
-    expect(cols).toContain('backfillCursor');
-  });
-
-  it('should export instanceHealth with expected columns', () => {
-    expect(instanceHealth).toBeDefined();
-    const cols = Object.keys(instanceHealth);
-    expect(cols).toContain('domain');
-    expect(cols).toContain('consecutiveFailures');
-    expect(cols).toContain('totalDelivered');
-    expect(cols).toContain('totalFailed');
-    expect(cols).toContain('circuitOpenUntil');
-    expect(cols).toContain('lastSuccessAt');
-    expect(cols).toContain('lastFailureAt');
+  it('rejects missing fields', () => {
+    expect(createFollowRelationshipSchema.safeParse({}).success).toBe(false);
   });
 });

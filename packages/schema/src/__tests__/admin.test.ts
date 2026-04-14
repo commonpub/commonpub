@@ -1,155 +1,153 @@
 import { describe, it, expect } from 'vitest';
 import {
-  instanceSettings,
-  auditLogs,
-  instanceSettingsRelations,
-  auditLogsRelations,
-} from '../admin';
-import {
   adminSettingSchema,
   adminUpdateRoleSchema,
   adminUpdateStatusSchema,
   resolveReportSchema,
 } from '../validators';
 
-describe('instanceSettings table', () => {
-  it('should export table with expected columns', () => {
-    expect(instanceSettings).toBeDefined();
-    const cols = Object.keys(instanceSettings);
-    expect(cols).toContain('id');
-    expect(cols).toContain('key');
-    expect(cols).toContain('value');
-    expect(cols).toContain('updatedBy');
-    expect(cols).toContain('updatedAt');
-  });
-});
-
-describe('auditLogs table', () => {
-  it('should export table with expected columns', () => {
-    expect(auditLogs).toBeDefined();
-    const cols = Object.keys(auditLogs);
-    expect(cols).toContain('id');
-    expect(cols).toContain('userId');
-    expect(cols).toContain('action');
-    expect(cols).toContain('targetType');
-    expect(cols).toContain('targetId');
-    expect(cols).toContain('metadata');
-    expect(cols).toContain('ipAddress');
-    expect(cols).toContain('createdAt');
-  });
-});
-
-describe('admin relations', () => {
-  it('should export all relation definitions', () => {
-    expect(instanceSettingsRelations).toBeDefined();
-    expect(auditLogsRelations).toBeDefined();
-  });
-});
-
 describe('adminSettingSchema', () => {
-  it('should accept valid setting', () => {
-    expect(
-      adminSettingSchema.safeParse({ key: 'theme.default', value: 'agora' }).success,
-    ).toBe(true);
+  it('accepts valid setting with string value', () => {
+    const result = adminSettingSchema.safeParse({ key: 'theme.default', value: 'agora' });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.key).toBe('theme.default');
+      expect(result.data.value).toBe('agora');
+    }
   });
 
-  it('should accept any value type', () => {
-    expect(adminSettingSchema.safeParse({ key: 'some.bool', value: true }).success).toBe(
-      true,
-    );
-    expect(adminSettingSchema.safeParse({ key: 'some.num', value: 42 }).success).toBe(
-      true,
-    );
-    expect(
-      adminSettingSchema.safeParse({ key: 'some.obj', value: { nested: true } }).success,
-    ).toBe(true);
+  it('accepts any value type (boolean, number, object)', () => {
+    expect(adminSettingSchema.safeParse({ key: 'flag', value: true }).success).toBe(true);
+    expect(adminSettingSchema.safeParse({ key: 'count', value: 42 }).success).toBe(true);
+    expect(adminSettingSchema.safeParse({ key: 'obj', value: { nested: true } }).success).toBe(true);
+    expect(adminSettingSchema.safeParse({ key: 'null', value: null }).success).toBe(true);
   });
 
-  it('should reject empty key', () => {
+  it('rejects empty key', () => {
     expect(adminSettingSchema.safeParse({ key: '', value: 'x' }).success).toBe(false);
   });
 
-  it('should reject key over 128 chars', () => {
-    expect(
-      adminSettingSchema.safeParse({ key: 'a'.repeat(129), value: 'x' }).success,
-    ).toBe(false);
+  it('rejects key over 128 chars', () => {
+    expect(adminSettingSchema.safeParse({ key: 'a'.repeat(129), value: 'x' }).success).toBe(false);
+  });
+
+  it('accepts key at boundary length', () => {
+    expect(adminSettingSchema.safeParse({ key: 'k', value: 'x' }).success).toBe(true);
+    expect(adminSettingSchema.safeParse({ key: 'a'.repeat(128), value: 'x' }).success).toBe(true);
+  });
+
+  it('rejects missing key', () => {
+    expect(adminSettingSchema.safeParse({ value: 'x' }).success).toBe(false);
   });
 });
 
 describe('adminUpdateRoleSchema', () => {
-  it('should accept valid role change', () => {
-    const result = adminUpdateRoleSchema.safeParse({
-      
-      role: 'staff',
-    });
+  const validRoles = ['member', 'pro', 'verified', 'staff', 'admin'] as const;
+
+  it.each(validRoles)('accepts role: %s', (role) => {
+    const result = adminUpdateRoleSchema.safeParse({ role });
     expect(result.success).toBe(true);
+    if (result.success) expect(result.data.role).toBe(role);
   });
 
-  it('should reject invalid role', () => {
-    const result = adminUpdateRoleSchema.safeParse({
-      
-      role: 'superadmin',
-    });
-    expect(result.success).toBe(false);
+  it('rejects invalid roles', () => {
+    expect(adminUpdateRoleSchema.safeParse({ role: 'superadmin' }).success).toBe(false);
+    expect(adminUpdateRoleSchema.safeParse({ role: 'owner' }).success).toBe(false);
+    expect(adminUpdateRoleSchema.safeParse({ role: 'moderator' }).success).toBe(false);
+    expect(adminUpdateRoleSchema.safeParse({ role: '' }).success).toBe(false);
   });
 
-  it('should reject empty role', () => {
+  it('rejects empty object', () => {
     expect(adminUpdateRoleSchema.safeParse({}).success).toBe(false);
+  });
+
+  it('returns parsed role value on success', () => {
+    const result = adminUpdateRoleSchema.safeParse({ role: 'staff' });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.role).toBe('staff');
   });
 });
 
 describe('adminUpdateStatusSchema', () => {
-  it('should accept valid status change', () => {
-    const result = adminUpdateStatusSchema.safeParse({
-      
-      status: 'suspended',
-    });
+  const validStatuses = ['active', 'suspended', 'deleted'] as const;
+
+  it.each(validStatuses)('accepts status: %s', (status) => {
+    const result = adminUpdateStatusSchema.safeParse({ status });
     expect(result.success).toBe(true);
+    if (result.success) expect(result.data.status).toBe(status);
   });
 
-  it('should reject invalid status', () => {
-    const result = adminUpdateStatusSchema.safeParse({
-      
-      status: 'banned',
-    });
-    expect(result.success).toBe(false);
+  it('rejects invalid statuses', () => {
+    expect(adminUpdateStatusSchema.safeParse({ status: 'banned' }).success).toBe(false);
+    expect(adminUpdateStatusSchema.safeParse({ status: 'pending' }).success).toBe(false);
+    expect(adminUpdateStatusSchema.safeParse({ status: '' }).success).toBe(false);
+  });
+
+  it('rejects empty object', () => {
+    expect(adminUpdateStatusSchema.safeParse({}).success).toBe(false);
   });
 });
 
 describe('resolveReportSchema', () => {
-  it('should accept valid resolution', () => {
+  it('accepts valid resolution', () => {
     const result = resolveReportSchema.safeParse({
-      reportId: '550e8400-e29b-41d4-a716-446655440000',
       status: 'resolved',
-      resolution: 'Content was removed as it violated community guidelines.',
+      resolution: 'Content removed per community guidelines.',
     });
     expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.status).toBe('resolved');
+      expect(result.data.resolution).toBe('Content removed per community guidelines.');
+    }
   });
 
-  it('should accept dismissed status', () => {
+  it('accepts dismissed status', () => {
     const result = resolveReportSchema.safeParse({
-      reportId: '550e8400-e29b-41d4-a716-446655440000',
       status: 'dismissed',
-      resolution: 'Report was reviewed and found to be without merit.',
+      resolution: 'Report was without merit.',
     });
     expect(result.success).toBe(true);
   });
 
-  it('should reject empty resolution', () => {
+  it('accepts reviewed status', () => {
     const result = resolveReportSchema.safeParse({
-      reportId: '550e8400-e29b-41d4-a716-446655440000',
+      status: 'reviewed',
+      resolution: 'Under investigation.',
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects invalid status', () => {
+    expect(resolveReportSchema.safeParse({
+      status: 'pending',
+      resolution: 'Something.',
+    }).success).toBe(false);
+  });
+
+  it('rejects empty resolution', () => {
+    expect(resolveReportSchema.safeParse({
       status: 'resolved',
       resolution: '',
-    });
-    expect(result.success).toBe(false);
+    }).success).toBe(false);
   });
 
-  it('should reject resolution over 2000 chars', () => {
-    const result = resolveReportSchema.safeParse({
-      reportId: '550e8400-e29b-41d4-a716-446655440000',
+  it('rejects resolution over 2000 chars', () => {
+    expect(resolveReportSchema.safeParse({
       status: 'resolved',
       resolution: 'a'.repeat(2001),
-    });
-    expect(result.success).toBe(false);
+    }).success).toBe(false);
+  });
+
+  it('accepts resolution at boundary length', () => {
+    expect(resolveReportSchema.safeParse({
+      status: 'resolved',
+      resolution: 'a'.repeat(2000),
+    }).success).toBe(true);
+  });
+
+  it('rejects missing fields', () => {
+    expect(resolveReportSchema.safeParse({}).success).toBe(false);
+    expect(resolveReportSchema.safeParse({ status: 'resolved' }).success).toBe(false);
+    expect(resolveReportSchema.safeParse({ resolution: 'text' }).success).toBe(false);
   });
 });

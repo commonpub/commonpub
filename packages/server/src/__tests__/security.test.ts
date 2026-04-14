@@ -58,28 +58,24 @@ describe('rate limiting', () => {
     store?.destroy();
   });
 
-  it('should export RateLimitStore', () => {
-    expect(RateLimitStore).toBeDefined();
-    store = new RateLimitStore();
-    expect(store).toBeInstanceOf(RateLimitStore);
-  });
-
-  it('should export DEFAULT_TIERS', () => {
-    expect(DEFAULT_TIERS).toBeDefined();
-    expect(DEFAULT_TIERS.auth).toBeDefined();
-    expect(DEFAULT_TIERS.api).toBeDefined();
-  });
-
-  it('should export getTierForPath', () => {
-    expect(typeof getTierForPath).toBe('function');
+  it('maps auth paths to auth tier', () => {
     expect(getTierForPath('/api/auth/login')).toBe(DEFAULT_TIERS.auth);
-    expect(getTierForPath('/api/content')).toBe(DEFAULT_TIERS.api);
+    expect(getTierForPath('/api/auth/sign-up')).toBe(DEFAULT_TIERS.auth);
   });
 
-  it('should export shouldSkipRateLimit', () => {
-    expect(typeof shouldSkipRateLimit).toBe('function');
+  it('maps API paths to api tier', () => {
+    expect(getTierForPath('/api/content')).toBe(DEFAULT_TIERS.api);
+    expect(getTierForPath('/api/hubs')).toBe(DEFAULT_TIERS.api);
+  });
+
+  it('skips rate limiting for static assets', () => {
     expect(shouldSkipRateLimit('/_app/immutable/chunks/foo.js')).toBe(true);
+    expect(shouldSkipRateLimit('/_nuxt/entry.abc123.js')).toBe(true);
+  });
+
+  it('does not skip rate limiting for API routes', () => {
     expect(shouldSkipRateLimit('/api/content')).toBe(false);
+    expect(shouldSkipRateLimit('/api/auth/login')).toBe(false);
   });
 
   it('should allow requests within limit', () => {
@@ -107,11 +103,12 @@ describe('rate limiting', () => {
     expect(result.remaining).toBe(0);
   });
 
-  it('should export checkRateLimit', () => {
-    expect(typeof checkRateLimit).toBe('function');
+  it('checkRateLimit returns allowed result with headers', () => {
     store = new RateLimitStore();
     const { result, headers } = checkRateLimit(store, '127.0.0.1', '/api/content');
     expect(result.allowed).toBe(true);
+    expect(result.remaining).toBeGreaterThan(0);
     expect(headers['X-RateLimit-Limit']).toBeDefined();
+    expect(headers['X-RateLimit-Remaining']).toBeDefined();
   });
 });

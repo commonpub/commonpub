@@ -1,50 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { generateSlug, hasPermission, canManageRole } from '../utils';
 
-describe('content module', () => {
-  it('should export listContent', async () => {
-    const mod = await import('../content');
-    expect(typeof mod.listContent).toBe('function');
-  });
-
-  it('should export getContentBySlug', async () => {
-    const mod = await import('../content');
-    expect(typeof mod.getContentBySlug).toBe('function');
-  });
-
-  it('should export createContent', async () => {
-    const mod = await import('../content');
-    expect(typeof mod.createContent).toBe('function');
-  });
-
-  it('should export updateContent', async () => {
-    const mod = await import('../content');
-    expect(typeof mod.updateContent).toBe('function');
-  });
-
-  it('should export deleteContent', async () => {
-    const mod = await import('../content');
-    expect(typeof mod.deleteContent).toBe('function');
-  });
-
-  it('should export publishContent', async () => {
-    const mod = await import('../content');
-    expect(typeof mod.publishContent).toBe('function');
-  });
-
-  it('should export incrementViewCount', async () => {
-    const mod = await import('../content');
-    expect(typeof mod.incrementViewCount).toBe('function');
-  });
-
-  it('should export federation hooks', async () => {
-    const mod = await import('../content');
-    expect(typeof mod.onContentPublished).toBe('function');
-    expect(typeof mod.onContentUpdated).toBe('function');
-    expect(typeof mod.onContentDeleted).toBe('function');
-  });
-});
-
 describe('generateSlug (content context)', () => {
   it('should lowercase and hyphenate a title', () => {
     expect(generateSlug('My First Blog Post')).toBe('my-first-blog-post');

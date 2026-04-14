@@ -1,4 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { eq } from 'drizzle-orm';
+import { users } from '@commonpub/schema';
 import type { DB } from '../types.js';
 import { createTestDB, createTestUser, closeTestDB } from './helpers/testdb.js';
 import { getUserByUsername, updateUserProfile, getUserContent } from '../profile/profile.js';
@@ -7,12 +9,15 @@ import { createContent, publishContent } from '../content/content.js';
 describe('profile integration', () => {
   let db: DB;
   let userId: string;
+  let ghostId: string;
   const username = 'profiletest';
 
   beforeAll(async () => {
     db = await createTestDB();
     const user = await createTestUser(db, { username, displayName: 'Profile Tester' });
     userId = user.id;
+    const ghost = await createTestUser(db, { username: 'ghostuser' });
+    ghostId = ghost.id;
   });
 
   afterAll(async () => {
@@ -31,6 +36,21 @@ describe('profile integration', () => {
   it('returns null for non-existent username', async () => {
     const profile = await getUserByUsername(db, 'nobody');
     expect(profile).toBeNull();
+  });
+
+  it('returns null for soft-deleted user', async () => {
+    await db.update(users).set({ deletedAt: new Date() }).where(eq(users.id, ghostId));
+    const profile = await getUserByUsername(db, 'ghostuser');
+    expect(profile).toBeNull();
+
+    // Restore
+    await db.update(users).set({ deletedAt: null }).where(eq(users.id, ghostId));
+  });
+
+  it('returns empty content for user with no published items', async () => {
+    const { items, total } = await getUserContent(db, ghostId);
+    expect(items).toEqual([]);
+    expect(total).toBe(0);
   });
 
   it('returns correct content stats', async () => {
