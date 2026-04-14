@@ -13,17 +13,6 @@ import {
 } from '../security';
 
 describe('security module', () => {
-  it('should export CSP functions', () => {
-    expect(typeof buildCspDirectives).toBe('function');
-    expect(typeof buildCspHeader).toBe('function');
-    expect(typeof generateNonce).toBe('function');
-  });
-
-  it('should export header functions', () => {
-    expect(typeof getSecurityHeaders).toBe('function');
-    expect(typeof getStaticCacheHeaders).toBe('function');
-  });
-
   it('should build CSP directives without nonce', () => {
     const directives = buildCspDirectives();
     expect(directives['script-src']).toBe("'self'");
