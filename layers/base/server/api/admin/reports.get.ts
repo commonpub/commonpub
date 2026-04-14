@@ -3,6 +3,7 @@ import type { PaginatedResponse, ReportListItem } from '@commonpub/server';
 import { z } from 'zod';
 
 const reportsQuerySchema = z.object({
+  status: z.enum(['pending', 'reviewed', 'resolved', 'dismissed']).optional(),
   limit: z.coerce.number().int().positive().max(100).optional(),
   offset: z.coerce.number().int().min(0).optional(),
 });

@@ -145,11 +145,11 @@ const userUsername = computed(() => user.value?.username ?? '');
         <template v-if="isAuthenticated">
           <NuxtLink to="/messages" class="cpub-icon-btn" title="Messages" aria-label="Messages">
             <i class="fa-solid fa-envelope"></i>
-            <span v-if="unreadMessages > 0" class="cpub-notif-dot" />
+            <span v-if="unreadMessages > 0" class="cpub-notif-badge" aria-label="unread messages">{{ unreadMessages > 99 ? '99+' : unreadMessages }}</span>
           </NuxtLink>
           <NuxtLink to="/notifications" class="cpub-icon-btn" title="Notifications" aria-label="Notifications">
             <i class="fa-solid fa-bell"></i>
-            <span v-if="unreadCount > 0" class="cpub-notif-dot" />
+            <span v-if="unreadCount > 0" class="cpub-notif-badge" aria-label="unread notifications">{{ unreadCount > 99 ? '99+' : unreadCount }}</span>
           </NuxtLink>
           <NuxtLink to="/create" class="cpub-btn-new" aria-label="Create new content">
             <i class="fa-solid fa-plus"></i> <span class="cpub-new-text">New</span>
@@ -336,7 +336,7 @@ const userUsername = computed(() => user.value?.username ?? '');
 
 .cpub-icon-btn { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; background: transparent; border: var(--border-width-default) solid transparent; color: var(--text-dim); font-size: 13px; position: relative; transition: all 0.15s; text-decoration: none; }
 .cpub-icon-btn:hover { background: var(--surface2); border-color: var(--border); color: var(--text); }
-.cpub-notif-dot { position: absolute; top: 5px; right: 5px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); border: 1.5px solid var(--surface); }
+.cpub-notif-badge { position: absolute; top: 2px; right: 0; min-width: 14px; height: 14px; padding: 0 3px; border-radius: 7px; background: var(--accent); color: var(--color-text-inverse, #000); font-size: 9px; font-weight: 700; font-family: var(--font-mono); line-height: 14px; text-align: center; border: 1.5px solid var(--surface); }
 
 .cpub-btn-new { display: flex; align-items: center; gap: 6px; padding: 6px 14px; background: var(--accent); border: var(--border-width-default) solid var(--border); color: var(--color-text-inverse); font-size: 12px; font-weight: 600; transition: all 0.15s; box-shadow: var(--shadow-sm); text-decoration: none; cursor: pointer; }
 .cpub-btn-new:hover { box-shadow: var(--shadow-md); transform: translate(-1px, -1px); }

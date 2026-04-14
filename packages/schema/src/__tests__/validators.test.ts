@@ -1186,7 +1186,7 @@ describe('resolveReportSchema — boundary tests', () => {
   });
 
   it('accepts all valid status enum values', () => {
-    for (const status of ['resolved', 'dismissed'] as const) {
+    for (const status of ['reviewed', 'resolved', 'dismissed'] as const) {
       expect(
         resolveReportSchema.parse({ status, resolution: 'Done' }).status,
       ).toBe(status);

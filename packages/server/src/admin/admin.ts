@@ -415,7 +415,7 @@ export async function resolveReport(
   db: DB,
   reportId: string,
   resolution: string,
-  status: 'resolved' | 'dismissed',
+  status: 'reviewed' | 'resolved' | 'dismissed',
   adminId: string,
   ip?: string,
 ): Promise<void> {

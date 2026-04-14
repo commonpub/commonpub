@@ -472,7 +472,7 @@ export const adminUpdateStatusSchema = z.object({
 export type AdminUpdateStatusInput = z.infer<typeof adminUpdateStatusSchema>;
 
 export const resolveReportSchema = z.object({
-  status: z.enum(['resolved', 'dismissed']),
+  status: z.enum(['reviewed', 'resolved', 'dismissed']),
   resolution: z.string().min(1).max(2000),
 });
 export type ResolveReportInput = z.infer<typeof resolveReportSchema>;
