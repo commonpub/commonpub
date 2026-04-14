@@ -12,6 +12,40 @@ const MAX_PAGES = 50;
 const FETCH_TIMEOUT_MS = 30_000;
 const DELAY_BETWEEN_PAGES_MS = 1_000;
 
+/**
+ * Perform a signed HTTP GET for ActivityPub resources.
+ * Uses the instance actor keypair for HTTP Signature authentication.
+ * Falls back to unsigned fetch if keypair is unavailable.
+ */
+async function signedGet(db: DB, url: string, domain: string): Promise<Response> {
+  try {
+    const { getOrCreateInstanceKeypair } = await import('./federation.js');
+    const { signRequest } = await import('@commonpub/protocol');
+    const keypair = await getOrCreateInstanceKeypair(db);
+    const keyId = `https://${domain}/actor#main-key`;
+
+    const request = new Request(url, {
+      method: 'GET',
+      headers: {
+        Accept: 'application/activity+json, application/ld+json',
+        'User-Agent': `CommonPub/1.0 (+https://${domain})`,
+      },
+    });
+
+    const signed = await signRequest(request, keypair.privateKeyPem, keyId);
+    return fetch(signed, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+  } catch {
+    // Fall back to unsigned fetch (works for public outboxes)
+    return fetch(url, {
+      headers: {
+        Accept: 'application/activity+json, application/ld+json',
+        'User-Agent': `CommonPub/1.0 (+https://${domain})`,
+      },
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+    });
+  }
+}
+
 export interface BackfillResult {
   processed: number;
   errors: number;
@@ -73,17 +107,7 @@ export async function backfillFromOutbox(
 
   while (nextPage && result.pages < MAX_PAGES && result.processed < maxItems) {
     try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-
-      const response = await fetch(nextPage, {
-        headers: {
-          Accept: 'application/activity+json, application/ld+json',
-          'User-Agent': `CommonPub/1.0 (+https://${domain})`,
-        },
-        signal: controller.signal,
-      });
-      clearTimeout(timeout);
+      const response = await signedGet(db, nextPage, domain);
 
       if (!response.ok) break;
 
