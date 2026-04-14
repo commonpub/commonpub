@@ -48,7 +48,7 @@ function placeIcon(place: number): string {
 </template>
 
 <style scoped>
-.cpub-prizes-section { --silver: var(--text-faint); --bronze: #a0724a; }
+.cpub-prizes-section { }
 
 .cpub-sec-head { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
 .cpub-sec-head h2 { font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px; }

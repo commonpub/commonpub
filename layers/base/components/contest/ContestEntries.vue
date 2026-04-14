@@ -86,7 +86,7 @@ function confirmWithdraw(entryId: string): void {
 .cpub-entry-rank { position: absolute; top: 8px; left: 8px; z-index: 2; font-size: 10px; font-family: var(--font-mono); font-weight: 700; padding: 2px 7px; border-radius: var(--radius); }
 .cpub-rank-1 { background: var(--yellow-bg); color: var(--yellow); border: var(--border-width-default) solid var(--yellow); }
 .cpub-rank-2 { background: var(--surface2); color: var(--text-faint); border: var(--border-width-default) solid var(--text-faint); }
-.cpub-rank-3 { background: var(--surface2); color: #a0724a; border: var(--border-width-default) solid #a0724a; }
+.cpub-rank-3 { background: var(--surface2); color: var(--bronze); border: var(--border-width-default) solid var(--bronze); }
 .cpub-rank-other { background: var(--surface2); color: var(--text-dim); border: var(--border-width-default) solid var(--border); }
 .cpub-entry-body { padding: 10px 12px; }
 .cpub-entry-title { font-size: 12px; font-weight: 600; margin-bottom: 3px; line-height: 1.3; color: var(--text); text-decoration: none; }

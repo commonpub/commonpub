@@ -174,7 +174,7 @@ function clearImage(): void {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  color: var(--color-text-inverse);
   font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 600;

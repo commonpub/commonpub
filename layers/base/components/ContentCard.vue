@@ -194,7 +194,7 @@ function formatCount(n: number | undefined): string {
   align-items: center;
   gap: 4px;
   background: var(--color-badge-overlay, rgba(0, 0, 0, 0.75));
-  color: #fff;
+  color: var(--color-text-inverse);
   backdrop-filter: blur(4px);
 }
 

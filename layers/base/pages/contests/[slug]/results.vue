@@ -35,9 +35,9 @@ function medalIcon(rank: number): string {
 }
 
 function medalColor(rank: number): string {
-  if (rank === 1) return 'var(--yellow)';
-  if (rank === 2) return 'var(--text-faint)';
-  if (rank === 3) return '#a0724a';
+  if (rank === 1) return 'var(--gold)';
+  if (rank === 2) return 'var(--silver)';
+  if (rank === 3) return 'var(--bronze)';
   return 'var(--text-dim)';
 }
 </script>

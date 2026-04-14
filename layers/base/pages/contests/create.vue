@@ -69,7 +69,7 @@ async function handleCreate(): Promise<void> {
 }
 
 const placeLabels = ['1st', '2nd', '3rd', '4th', '5th', '6th'];
-const placeColors = ['var(--yellow)', 'var(--text-faint)', '#a0724a', 'var(--accent)', 'var(--accent)', 'var(--accent)'];
+const placeColors = ['var(--gold)', 'var(--silver)', 'var(--bronze)', 'var(--accent)', 'var(--accent)', 'var(--accent)'];
 </script>
 
 <template>
