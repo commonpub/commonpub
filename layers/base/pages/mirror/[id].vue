@@ -43,7 +43,7 @@ if (originUrl.value) {
   });
 }
 
-/** Strip HTML tags from remote actor bio (unsanitized — XSS risk with v-html) */
+/** Strip HTML tags from remote actor bio for plain-text display */
 function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, '').trim();
 }
@@ -116,8 +116,8 @@ useSeoMeta({
             <p v-if="transformedContent.author.bio" class="cpub-mirror-bio">{{ stripHtml(transformedContent.author.bio) }}</p>
           </div>
         </div>
-        <!-- Content is sanitized on ingest (inboxHandlers.ts → sanitizeHtml). Safe for v-html. -->
-        <div v-if="typeof transformedContent.content === 'string'" class="cpub-mirror-body prose" v-html="transformedContent.content" />
+        <!-- Content is sanitized on ingest AND client-side here (defense-in-depth) -->
+        <div v-if="typeof transformedContent.content === 'string'" class="cpub-mirror-body prose" v-html="sanitizeBlockHtml(transformedContent.content)" />
         <ContentAttachments v-if="transformedContent.attachments?.length" :attachments="transformedContent.attachments" />
         <div v-if="transformedContent.tags?.length" class="cpub-mirror-tags">
           <NuxtLink v-for="tag in transformedContent.tags" :key="tag.name" :to="`/tags/${tag.slug || tag.name.toLowerCase().replace(/\s+/g, '-')}`" class="cpub-mirror-tag">{{ tag.name }}</NuxtLink>

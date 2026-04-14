@@ -137,9 +137,9 @@ useHead({
         <span class="cpub-post-type-badge">{{ post.postType }}</span>
       </div>
 
-      <!-- Content is sanitized server-side via sanitizeHtml() before storage -->
+      <!-- Content is sanitized server-side on ingest AND client-side here (defense-in-depth) -->
       <!-- eslint-disable-next-line vue/no-v-html -->
-      <div class="cpub-post-content cpub-prose" v-html="post.content"></div>
+      <div class="cpub-post-content cpub-prose" v-html="sanitizeBlockHtml(post.content || '')"></div>
 
       <div class="cpub-post-meta">
         <div class="cpub-post-author">
