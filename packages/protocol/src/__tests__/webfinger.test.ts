@@ -65,12 +65,12 @@ describe('buildWebFingerResponse', () => {
       username: 'alice',
       domain: 'example.com',
       actorUri: 'https://example.com/users/alice',
-      oauthEndpoint: 'https://example.com/api/auth/oauth2/authorize',
+      oauthEndpoint: 'https://example.com/auth/oauth/authorize',
     });
 
     expect(response.links).toContainEqual({
       rel: 'oauth_endpoint',
-      href: 'https://example.com/api/auth/oauth2/authorize',
+      href: 'https://example.com/auth/oauth/authorize',
     });
   });
 

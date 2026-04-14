@@ -128,7 +128,7 @@ describe('federation handlers', () => {
       expect(result!.links).toContainEqual(
         expect.objectContaining({
           rel: 'oauth_endpoint',
-          href: 'https://test.example.com/api/auth/oauth2/authorize',
+          href: 'https://test.example.com/auth/oauth/authorize',
         }),
       );
     });

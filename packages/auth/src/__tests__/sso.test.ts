@@ -40,7 +40,7 @@ describe('createSSOProviderConfig', () => {
 
     expect(result).toEqual({
       issuer: 'https://instance-a.example.com',
-      authorizationEndpoint: 'https://instance-a.example.com/api/auth/oauth2/authorize',
+      authorizationEndpoint: 'https://instance-a.example.com/auth/oauth/authorize',
       tokenEndpoint: 'https://instance-a.example.com/api/auth/oauth2/token',
     });
   });
@@ -60,7 +60,7 @@ describe('discoverOAuthEndpoint', () => {
           },
           {
             rel: 'oauth_endpoint',
-            href: 'https://instance-a.example.com/api/auth/oauth2/authorize',
+            href: 'https://instance-a.example.com/auth/oauth/authorize',
           },
         ],
       }),
@@ -74,7 +74,7 @@ describe('discoverOAuthEndpoint', () => {
     );
 
     expect(result).toEqual({
-      authorizationEndpoint: 'https://instance-a.example.com/api/auth/oauth2/authorize',
+      authorizationEndpoint: 'https://instance-a.example.com/auth/oauth/authorize',
       tokenEndpoint: 'https://instance-a.example.com/api/auth/oauth2/token',
       domain: 'instance-a.example.com',
     });

@@ -65,7 +65,7 @@ describe('AP Actor SSO Flow (Model B)', () => {
     expect(providerConfig).not.toBeNull();
     expect(providerConfig!.issuer).toBe('https://instance-a.example.com');
     expect(providerConfig!.authorizationEndpoint).toBe(
-      'https://instance-a.example.com/api/auth/oauth2/authorize',
+      'https://instance-a.example.com/auth/oauth/authorize',
     );
     expect(providerConfig!.tokenEndpoint).toBe(
       'https://instance-a.example.com/api/auth/oauth2/token',
@@ -83,7 +83,7 @@ describe('AP Actor SSO Flow (Model B)', () => {
       username: 'alice',
       domain: 'instance-a.example.com',
       actorUri: 'https://instance-a.example.com/users/alice',
-      oauthEndpoint: 'https://instance-a.example.com/api/auth/oauth2/authorize',
+      oauthEndpoint: 'https://instance-a.example.com/auth/oauth/authorize',
     });
 
     const mockFetch = vi.fn().mockResolvedValue({
@@ -95,7 +95,7 @@ describe('AP Actor SSO Flow (Model B)', () => {
 
     expect(discovery).not.toBeNull();
     expect(discovery!.authorizationEndpoint).toBe(
-      'https://instance-a.example.com/api/auth/oauth2/authorize',
+      'https://instance-a.example.com/auth/oauth/authorize',
     );
     expect(discovery!.tokenEndpoint).toBe('https://instance-a.example.com/api/auth/oauth2/token');
     expect(discovery!.domain).toBe('instance-a.example.com');
@@ -167,7 +167,7 @@ describe('AP Actor SSO Flow (Model B)', () => {
       username: 'alice',
       domain: 'instance-a.example.com',
       actorUri: 'https://instance-a.example.com/users/alice',
-      oauthEndpoint: 'https://instance-a.example.com/api/auth/oauth2/authorize',
+      oauthEndpoint: 'https://instance-a.example.com/auth/oauth/authorize',
     });
 
     const mockFetch = vi.fn().mockResolvedValue({

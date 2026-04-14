@@ -44,7 +44,7 @@ export default defineEventHandler(async (event) => {
       username: instanceDomain,
       domain: instanceDomain,
       actorUri,
-      oauthEndpoint: `https://${instanceDomain}/api/auth/oauth2/authorize`,
+      oauthEndpoint: `https://${instanceDomain}/auth/oauth/authorize`,
     });
   }
 
@@ -81,6 +81,6 @@ export default defineEventHandler(async (event) => {
     username: parsed.username,
     domain: instanceDomain,
     actorUri,
-    oauthEndpoint: `https://${instanceDomain}/api/auth/oauth2/authorize`,
+    oauthEndpoint: `https://${instanceDomain}/auth/oauth/authorize`,
   });
 });

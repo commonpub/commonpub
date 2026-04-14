@@ -21,7 +21,7 @@ export function createSSOProviderConfig(config: CommonPubConfig): SSOProviderCon
 
   return {
     issuer: baseURL,
-    authorizationEndpoint: `${baseURL}/api/auth/oauth2/authorize`,
+    authorizationEndpoint: `${baseURL}/auth/oauth/authorize`,
     tokenEndpoint: `${baseURL}/api/auth/oauth2/token`,
   };
 }
@@ -53,7 +53,9 @@ export async function discoverOAuthEndpoint(
     }
 
     const authorizationEndpoint = oauthLink.href;
-    const tokenEndpoint = authorizationEndpoint.replace('/authorize', '/token');
+    // Token endpoint is always the API path, even though the authorization
+    // endpoint points to the consent page (which handles login + consent UI)
+    const tokenEndpoint = `https://${instanceDomain}/api/auth/oauth2/token`;
 
     return {
       authorizationEndpoint,

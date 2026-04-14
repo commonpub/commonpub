@@ -22,7 +22,7 @@ describe('protocol types', () => {
   it('should allow constructing a valid WebFingerLink', () => {
     const link: WebFingerLink = {
       rel: 'oauth_endpoint',
-      href: 'https://example.com/api/auth/oauth2/authorize',
+      href: 'https://example.com/auth/oauth/authorize',
     };
     expect(link.rel).toBe('oauth_endpoint');
   });

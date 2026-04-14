@@ -27,7 +27,7 @@ export function createFederation(options: CreateFederationOptions): FederationHa
 
   const domain = config.instance.domain;
 
-  const oauthEndpoint = `https://${domain}/api/auth/oauth2/authorize`;
+  const oauthEndpoint = `https://${domain}/auth/oauth/authorize`;
 
   return {
     async handleWebFinger(resource: string): Promise<WebFingerResponse | null> {
