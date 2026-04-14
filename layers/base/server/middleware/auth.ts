@@ -110,10 +110,13 @@ export default defineEventHandler(async (event) => {
     return;
   }
 
-  // Handle auth API routes — skip our custom federated/oauth2 routes (Nitro handles those)
-  const isBetterAuthRoute = pathname.startsWith('/api/auth')
-    && !pathname.startsWith('/api/auth/federated/')
-    && !pathname.startsWith('/api/auth/oauth2/');
+  // Handle auth API routes — skip custom routes that Nitro handles directly
+  const isCustomAuthRoute = pathname.startsWith('/api/auth/federated/')
+    || pathname.startsWith('/api/auth/oauth2/')
+    || pathname === '/api/auth/sign-in-username'
+    || pathname === '/api/auth/delete-user'
+    || pathname === '/api/auth/export-data';
+  const isBetterAuthRoute = pathname.startsWith('/api/auth') && !isCustomAuthRoute;
 
   if (isBetterAuthRoute) {
     try {
