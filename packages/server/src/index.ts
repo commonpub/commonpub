@@ -425,6 +425,10 @@ export {
   fetchRemoteHubFollowers,
   repairFederatedHubPostActors,
   refreshFederatedHubMetadata,
+  toggleFederatedHubPostLike,
+  joinFederatedHub,
+  getFederatedHubFollowStatus,
+  getLikedFederatedHubPostIds,
 } from './federation/index.js';
 
 // OAuth Codes

@@ -4,6 +4,7 @@ import {
   federatedHubPosts,
   federatedHubPostReplies,
   federatedHubMembers,
+  federatedHubPostLikes,
   remoteActors,
   users,
   activities,
@@ -11,7 +12,7 @@ import {
   instanceMirrors,
   userFederatedHubFollows,
 } from '@commonpub/schema';
-import { buildFollowActivity } from '@commonpub/protocol';
+import { buildFollowActivity, AP_CONTEXT, AP_PUBLIC } from '@commonpub/protocol';
 import type {
   DB,
   FederatedHubListItem,
@@ -1239,4 +1240,188 @@ export async function repairFederatedHubPostActors(
     }
   }
   return fixed;
+}
+
+// --- Federated Hub Post Like Toggle ---
+
+/**
+ * Toggle a user's like on a federated hub post.
+ * Handles like record, counter, and AP activity creation in one operation.
+ * Returns { liked, activity } where activity is the AP payload to deliver.
+ */
+export async function toggleFederatedHubPostLike(
+  db: DB,
+  postId: string,
+  userId: string,
+  localActorUri: string,
+): Promise<{ liked: boolean }> {
+  const [post] = await db
+    .select({
+      objectUri: federatedHubPosts.objectUri,
+      actorUri: federatedHubPosts.actorUri,
+    })
+    .from(federatedHubPosts)
+    .where(eq(federatedHubPosts.id, postId))
+    .limit(1);
+
+  if (!post) throw new Error('Post not found');
+
+  const [existing] = await db
+    .select({ id: federatedHubPostLikes.id })
+    .from(federatedHubPostLikes)
+    .where(and(
+      eq(federatedHubPostLikes.postId, postId),
+      eq(federatedHubPostLikes.userId, userId),
+    ))
+    .limit(1);
+
+  if (existing) {
+    // Unlike
+    await db.delete(federatedHubPostLikes).where(eq(federatedHubPostLikes.id, existing.id));
+    await unlikeFederatedHubPost(db, postId);
+
+    const [likeAct] = await db
+      .select({ payload: activities.payload })
+      .from(activities)
+      .where(and(
+        eq(activities.type, 'Like'),
+        eq(activities.actorUri, localActorUri),
+        eq(activities.objectUri, post.objectUri),
+        eq(activities.direction, 'outbound'),
+      ))
+      .limit(1);
+
+    const undoActivity = {
+      '@context': AP_CONTEXT,
+      type: 'Undo',
+      id: `${localActorUri}/undo/${crypto.randomUUID()}`,
+      actor: localActorUri,
+      object: likeAct?.payload ?? {
+        type: 'Like',
+        actor: localActorUri,
+        object: post.objectUri,
+      },
+      to: [post.actorUri],
+      cc: [AP_PUBLIC],
+    };
+
+    await db.insert(activities).values({
+      type: 'Undo',
+      actorUri: localActorUri,
+      objectUri: post.objectUri,
+      payload: undoActivity,
+      direction: 'outbound',
+      status: 'pending',
+    });
+
+    return { liked: false };
+  }
+
+  // Like
+  await db.insert(federatedHubPostLikes).values({
+    postId,
+    userId,
+  }).onConflictDoNothing();
+
+  await likeFederatedHubPost(db, postId);
+
+  const likeActivity = {
+    '@context': AP_CONTEXT,
+    type: 'Like',
+    id: `${localActorUri}/likes/${crypto.randomUUID()}`,
+    actor: localActorUri,
+    object: post.objectUri,
+    to: [post.actorUri],
+    cc: [AP_PUBLIC],
+  };
+
+  await db.insert(activities).values({
+    type: 'Like',
+    actorUri: localActorUri,
+    objectUri: post.objectUri,
+    payload: likeActivity,
+    direction: 'outbound',
+    status: 'pending',
+  });
+
+  return { liked: true };
+}
+
+// --- Federated Hub Follow (User-Level) ---
+
+/**
+ * Join/follow a federated hub as a user.
+ * Creates the per-user follow record and sends instance-level Follow if needed.
+ */
+export async function joinFederatedHub(
+  db: DB,
+  federatedHubId: string,
+  userId: string,
+  instanceDomain: string,
+): Promise<{ status: string }> {
+  const hub = await getFederatedHub(db, federatedHubId);
+  if (!hub) throw new Error('Federated hub not found');
+
+  const userStatus = hub.followStatus === 'accepted' ? 'joined' : 'pending';
+  await db
+    .insert(userFederatedHubFollows)
+    .values({
+      userId,
+      federatedHubId,
+      status: userStatus,
+    })
+    .onConflictDoUpdate({
+      target: [userFederatedHubFollows.userId, userFederatedHubFollows.federatedHubId],
+      set: { status: userStatus, joinedAt: new Date() },
+    });
+
+  if (hub.followStatus !== 'accepted') {
+    await sendHubFollow(db, hub.actorUri, instanceDomain);
+  }
+
+  return { status: userStatus };
+}
+
+/**
+ * Get a user's follow/join status for a federated hub.
+ */
+export async function getFederatedHubFollowStatus(
+  db: DB,
+  federatedHubId: string,
+  userId: string,
+): Promise<{ joined: boolean; status: string | null }> {
+  const [record] = await db
+    .select({ status: userFederatedHubFollows.status })
+    .from(userFederatedHubFollows)
+    .where(
+      and(
+        eq(userFederatedHubFollows.userId, userId),
+        eq(userFederatedHubFollows.federatedHubId, federatedHubId),
+      ),
+    )
+    .limit(1);
+
+  if (!record) return { joined: false, status: null };
+  return { joined: record.status === 'joined', status: record.status };
+}
+
+/**
+ * Get which federated hub posts a user has liked (batch lookup).
+ */
+export async function getLikedFederatedHubPostIds(
+  db: DB,
+  userId: string,
+  postIds: string[],
+): Promise<string[]> {
+  if (postIds.length === 0) return [];
+
+  const liked = await db
+    .select({ postId: federatedHubPostLikes.postId })
+    .from(federatedHubPostLikes)
+    .where(and(
+      eq(federatedHubPostLikes.userId, userId),
+      inArray(federatedHubPostLikes.postId, postIds),
+    ));
+
+  return liked.map((l) => l.postId);
 }

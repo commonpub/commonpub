@@ -1,5 +1,4 @@
-import { federatedHubPostLikes } from '@commonpub/schema';
-import { eq, and, inArray } from 'drizzle-orm';
+import { getLikedFederatedHubPostIds } from '@commonpub/server';
 import { z } from 'zod';
 
 export default defineEventHandler(async (event): Promise<{ likedPostIds: string[] }> => {
@@ -10,15 +9,6 @@ export default defineEventHandler(async (event): Promise<{ likedPostIds: string[
   const query = getQuery(event);
   const postIds = z.string().parse(query.postIds ?? '').split(',').filter(Boolean);
 
-  if (postIds.length === 0) return { likedPostIds: [] };
-
-  const liked = await db
-    .select({ postId: federatedHubPostLikes.postId })
-    .from(federatedHubPostLikes)
-    .where(and(
-      eq(federatedHubPostLikes.userId, user.id),
-      inArray(federatedHubPostLikes.postId, postIds),
-    ));
-
-  return { likedPostIds: liked.map(l => l.postId) };
+  const likedPostIds = await getLikedFederatedHubPostIds(db, user.id, postIds);
+  return { likedPostIds };
 });

@@ -116,6 +116,10 @@ export {
   fetchRemoteHubFollowers,
   repairFederatedHubPostActors,
   refreshFederatedHubMetadata,
+  toggleFederatedHubPostLike,
+  joinFederatedHub,
+  getFederatedHubFollowStatus,
+  getLikedFederatedHubPostIds,
 } from './hubMirroring.js';
 export {
   processAuthorize,

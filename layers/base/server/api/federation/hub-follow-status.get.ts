@@ -1,5 +1,4 @@
-import { userFederatedHubFollows } from '@commonpub/schema';
-import { eq, and } from 'drizzle-orm';
+import { getFederatedHubFollowStatus } from '@commonpub/server';
 import { z } from 'zod';
 
 const querySchema = z.object({
@@ -18,20 +17,5 @@ export default defineEventHandler(async (event): Promise<{ joined: boolean; stat
   const db = useDB();
   const { federatedHubId } = parseQueryParams(event, querySchema);
 
-  const [record] = await db
-    .select({ status: userFederatedHubFollows.status })
-    .from(userFederatedHubFollows)
-    .where(
-      and(
-        eq(userFederatedHubFollows.userId, user.id),
-        eq(userFederatedHubFollows.federatedHubId, federatedHubId),
-      ),
-    )
-    .limit(1);
-
-  if (!record) {
-    return { joined: false, status: null };
-  }
-
-  return { joined: record.status === 'joined', status: record.status };
+  return getFederatedHubFollowStatus(db, federatedHubId, user.id);
 });
