@@ -36,8 +36,28 @@ export default defineEventHandler(async (event) => {
   }
 
   const redirectUri = `https://${config.instance.domain}/api/auth/federated/callback`;
-  const effectiveClientId = clientId ?? `cpub_${config.instance.domain}`;
-  const effectiveClientSecret = clientSecret ?? '';
+  let effectiveClientId = clientId ?? `cpub_${config.instance.domain}`;
+  let effectiveClientSecret = clientSecret ?? '';
+
+  // Auto-register as a dynamic client if no explicit credentials provided
+  if (!clientId) {
+    try {
+      const regUrl = endpoints.tokenEndpoint.replace('/token', '/register');
+      const regResult = await $fetch<{ client_id: string; client_secret: string }>(regUrl, {
+        method: 'POST',
+        body: {
+          client_name: config.instance.name || config.instance.domain,
+          redirect_uris: [redirectUri],
+          client_uri: `https://${config.instance.domain}`,
+          instance_domain: config.instance.domain,
+        },
+      });
+      effectiveClientId = regResult.client_id;
+      effectiveClientSecret = regResult.client_secret;
+    } catch {
+      // Registration failed — proceed with default client ID (may fail at authorize step)
+    }
+  }
 
   // Store state for the callback handler
   const stateToken = await storeOAuthState(db, {

@@ -2,7 +2,7 @@
 const route = useRoute();
 const slug = route.params.slug as string;
 
-const { data: product } = useLazyFetch(`/api/products/${slug}`) as { data: Ref<Record<string, any> | null> };
+const { data: product, pending } = useLazyFetch(`/api/products/${slug}`) as { data: Ref<Record<string, any> | null>; pending: Ref<boolean> };
 const { data: projectsUsing } = useLazyFetch(`/api/products/${slug}/content`) as { data: Ref<any[] | null> };
 
 useSeoMeta({
@@ -12,7 +12,10 @@ useSeoMeta({
 </script>
 
 <template>
-  <div v-if="product" class="product-detail">
+  <div v-if="pending" style="padding: 32px; text-align: center; color: var(--text-faint);">
+    <i class="fa-solid fa-circle-notch fa-spin"></i> Loading product...
+  </div>
+  <div v-else-if="product" class="product-detail">
     <NuxtLink to="/products" class="cpub-back-link"><i class="fa-solid fa-arrow-left"></i> Products</NuxtLink>
 
     <div class="product-layout">

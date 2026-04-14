@@ -48,6 +48,14 @@ export function useTheme(): {
 
     if (import.meta.client) {
       applyThemeToElement(document.documentElement, newTheme);
+
+      // Persist to DB for cross-device sync (fire-and-forget, cookie is primary)
+      $fetch('/api/profile/theme', {
+        method: 'PUT',
+        body: { themeId: newTheme },
+      }).catch(() => {
+        // Not logged in or network error — cookie preference is sufficient
+      });
     }
   }
 
