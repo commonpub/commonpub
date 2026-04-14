@@ -328,6 +328,8 @@ export async function createDocsPage(
     versionId: string;
     title: string;
     slug?: string;
+    sidebarLabel?: string;
+    description?: string;
     content: string | unknown[];
     status?: string;
     sortOrder?: number;
@@ -364,6 +366,8 @@ export async function createDocsPage(
       versionId: input.versionId,
       title: input.title,
       slug,
+      sidebarLabel: input.sidebarLabel ?? null,
+      description: input.description ?? null,
       content: typeof input.content === 'string' ? input.content : JSON.stringify(input.content),
       status: input.status ?? 'draft',
       sortOrder,
@@ -381,6 +385,8 @@ export async function updateDocsPage(
   input: {
     title?: string;
     slug?: string;
+    sidebarLabel?: string | null;
+    description?: string | null;
     content?: string | unknown[];
     status?: string;
     sortOrder?: number;
@@ -405,6 +411,8 @@ export async function updateDocsPage(
   const updates: Record<string, unknown> = { updatedAt: new Date() };
   if (input.title !== undefined) updates.title = input.title;
   if (input.slug !== undefined) updates.slug = input.slug;
+  if (input.sidebarLabel !== undefined) updates.sidebarLabel = input.sidebarLabel;
+  if (input.description !== undefined) updates.description = input.description;
   if (input.content !== undefined) {
     updates.content = typeof input.content === 'string' ? input.content : JSON.stringify(input.content);
   }
@@ -419,6 +427,52 @@ export async function updateDocsPage(
     .returning();
 
   return updated!;
+}
+
+export async function duplicateDocsPage(
+  db: DB,
+  pageId: string,
+  ownerId: string,
+): Promise<typeof docsPages.$inferSelect> {
+  const source = await db
+    .select({ page: docsPages, version: docsVersions, site: docsSites })
+    .from(docsPages)
+    .innerJoin(docsVersions, eq(docsPages.versionId, docsVersions.id))
+    .innerJoin(docsSites, eq(docsVersions.siteId, docsSites.id))
+    .where(and(eq(docsPages.id, pageId), eq(docsSites.ownerId, ownerId)))
+    .limit(1);
+
+  if (source.length === 0) throw new Error('Not authorized');
+  const original = source[0]!.page;
+
+  // Compute next sortOrder among siblings
+  const conditions = [eq(docsPages.versionId, original.versionId)];
+  if (original.parentId) conditions.push(eq(docsPages.parentId, original.parentId));
+  const maxSort = await db
+    .select({ max: sql<number>`coalesce(max(${docsPages.sortOrder}), -1)` })
+    .from(docsPages)
+    .where(and(...conditions));
+  const sortOrder = (maxSort[0]?.max ?? -1) + 1;
+
+  const copyTitle = `${original.title} (copy)`;
+  const copySlug = `${original.slug}-copy`;
+
+  const [page] = await db
+    .insert(docsPages)
+    .values({
+      versionId: original.versionId,
+      title: copyTitle,
+      slug: copySlug,
+      sidebarLabel: original.sidebarLabel,
+      description: original.description,
+      content: original.content,
+      status: 'draft',
+      sortOrder,
+      parentId: original.parentId,
+    })
+    .returning();
+
+  return page!;
 }
 
 export async function deleteDocsPage(db: DB, pageId: string, ownerId: string): Promise<boolean> {

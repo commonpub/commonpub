@@ -24,6 +24,8 @@ import {
   createContestSchema,
   sendMessageSchema,
   createDocsSiteSchema,
+  createDocsPageSchema,
+  updateDocsPageSchema,
   createDocsVersionSchema,
   adminUpdateRoleSchema,
   adminUpdateStatusSchema,
@@ -1283,5 +1285,67 @@ describe('videoPlatformSchema — boundary tests', () => {
 
   it('rejects invalid video platform', () => {
     expect(() => videoPlatformSchema.parse('dailymotion')).toThrow();
+  });
+});
+
+describe('createDocsPageSchema', () => {
+  it('accepts minimal valid page', () => {
+    const result = createDocsPageSchema.safeParse({ title: 'Getting Started' });
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts page with sidebarLabel and description', () => {
+    const result = createDocsPageSchema.safeParse({
+      title: 'Getting Started with CommonPub',
+      sidebarLabel: 'Getting Started',
+      description: 'A brief intro to the platform.',
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.sidebarLabel).toBe('Getting Started');
+      expect(result.data.description).toBe('A brief intro to the platform.');
+    }
+  });
+
+  it('rejects sidebarLabel over 128 chars', () => {
+    const result = createDocsPageSchema.safeParse({
+      title: 'Page',
+      sidebarLabel: 'x'.repeat(129),
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects description over 2000 chars', () => {
+    const result = createDocsPageSchema.safeParse({
+      title: 'Page',
+      description: 'x'.repeat(2001),
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('allows omitting sidebarLabel and description', () => {
+    const result = createDocsPageSchema.safeParse({ title: 'Page' });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.sidebarLabel).toBeUndefined();
+      expect(result.data.description).toBeUndefined();
+    }
+  });
+});
+
+describe('updateDocsPageSchema', () => {
+  it('allows partial updates with only sidebarLabel', () => {
+    const result = updateDocsPageSchema.safeParse({ sidebarLabel: 'Nav label' });
+    expect(result.success).toBe(true);
+  });
+
+  it('allows partial updates with only description', () => {
+    const result = updateDocsPageSchema.safeParse({ description: 'Updated desc' });
+    expect(result.success).toBe(true);
+  });
+
+  it('allows empty object for no-op update', () => {
+    const result = updateDocsPageSchema.safeParse({});
+    expect(result.success).toBe(true);
   });
 });

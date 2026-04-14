@@ -24,6 +24,7 @@ describe('docs module', () => {
     expect(typeof mod.createDocsPage).toBe('function');
     expect(typeof mod.updateDocsPage).toBe('function');
     expect(typeof mod.deleteDocsPage).toBe('function');
+    expect(typeof mod.duplicateDocsPage).toBe('function');
     expect(typeof mod.reorderDocsPages).toBe('function');
   });
 

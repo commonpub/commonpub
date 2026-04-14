@@ -421,6 +421,8 @@ export const createDocsPageSchema = z.object({
   versionId: z.string().uuid().optional(),
   title: z.string().min(1).max(255),
   slug: z.string().max(255).optional(),
+  sidebarLabel: z.string().max(128).optional(),
+  description: z.string().max(2000).optional(),
   content: z.union([
     z.string(),
     z.array(z.array(z.unknown())),

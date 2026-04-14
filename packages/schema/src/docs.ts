@@ -41,6 +41,8 @@ export const docsPages = pgTable('docs_pages', {
     .references(() => docsVersions.id, { onDelete: 'cascade' }),
   title: varchar('title', { length: 255 }).notNull(),
   slug: varchar('slug', { length: 255 }).notNull(),
+  sidebarLabel: varchar('sidebar_label', { length: 128 }),
+  description: text('description'),
   content: jsonb('content').notNull(),
   status: varchar('status', { length: 16 }).default('draft').notNull(),
   sortOrder: integer('sort_order').default(0).notNull(),

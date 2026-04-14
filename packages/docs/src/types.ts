@@ -76,6 +76,8 @@ export interface DocsPage {
   versionId: string;
   title: string;
   slug: string;
+  sidebarLabel?: string | null;
+  description?: string | null;
   /** BlockTuple[] (JSONB) for new pages, legacy string for pre-migration pages */
   content: unknown;
   sortOrder: number;

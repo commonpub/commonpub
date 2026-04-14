@@ -101,6 +101,8 @@ const selectedPage = computed<DocsPage | null>(() =>
 
 // Page properties (right panel)
 const pageSlug = ref('');
+const pageSidebarLabel = ref('');
+const pageDescription = ref('');
 const pageStatus = ref<'draft' | 'published'>('draft');
 const savingPage = ref(false);
 const autoSaveTimer = ref<ReturnType<typeof setTimeout> | null>(null);
@@ -139,6 +141,8 @@ async function selectPage(pageId: string): Promise<void> {
 
   // Load properties
   pageSlug.value = page.slug ?? '';
+  pageSidebarLabel.value = (page as unknown as Record<string, unknown>).sidebarLabel as string ?? '';
+  pageDescription.value = (page as unknown as Record<string, unknown>).description as string ?? '';
   pageStatus.value = ((page as unknown as Record<string, unknown>).status as 'draft' | 'published') || 'draft';
   isDirty.value = false;
   autoSaveStatus.value = 'idle';
@@ -160,6 +164,8 @@ async function saveCurrentPage(): Promise<void> {
       body: {
         title: selectedPage.value?.title,
         slug: pageSlug.value,
+        sidebarLabel: pageSidebarLabel.value || null,
+        description: pageDescription.value || null,
         content: blockEditor.toBlockTuples(),
       },
     });
@@ -222,7 +228,7 @@ watch(() => blockEditor.blocks.value, () => {
   scheduleAutoSave();
 }, { deep: true });
 
-watch(pageSlug, () => {
+watch([pageSlug, pageSidebarLabel, pageDescription], () => {
   if (isLoadingPage.value) return;
   isDirty.value = true;
   scheduleAutoSave();
@@ -303,6 +309,21 @@ async function handleRenamePage(pageId: string, newTitle: string): Promise<void>
     toast('Page renamed', 'success');
   } catch (err: unknown) {
     toast(err instanceof Error ? err.message : 'Failed to rename', 'error');
+  }
+}
+
+async function handleDuplicatePage(pageId: string): Promise<void> {
+  try {
+    const result = await $fetch(`/api/docs/${siteSlug.value}/pages/${pageId}/duplicate`, {
+      method: 'POST',
+    });
+    await refreshPages();
+    if (result && typeof result === 'object' && 'id' in result) {
+      selectPage((result as { id: string }).id);
+    }
+    toast('Page duplicated', 'success');
+  } catch (err: unknown) {
+    toast(err instanceof Error ? err.message : 'Failed to duplicate page', 'error');
   }
 }
 
@@ -535,6 +556,7 @@ async function createVersion(): Promise<void> {
           @select="selectPage"
           @create="handleCreatePage"
           @rename="handleRenamePage"
+          @duplicate="handleDuplicatePage"
           @delete="handleDeletePage"
           @reorder="handleReorder"
           @reparent="handleReparent"
@@ -610,6 +632,17 @@ async function createVersion(): Promise<void> {
             <div class="cpub-docs-field">
               <label class="cpub-docs-field-label">Slug</label>
               <input v-model="pageSlug" class="cpub-docs-field-input" placeholder="page-slug" />
+            </div>
+
+            <div class="cpub-docs-field">
+              <label class="cpub-docs-field-label">Sidebar Label</label>
+              <input v-model="pageSidebarLabel" class="cpub-docs-field-input" placeholder="Short label for nav" maxlength="128" />
+              <span class="cpub-docs-field-hint">Shown in sidebar instead of title when set</span>
+            </div>
+
+            <div class="cpub-docs-field">
+              <label class="cpub-docs-field-label">Description</label>
+              <textarea v-model="pageDescription" class="cpub-docs-field-textarea" placeholder="Brief page description" rows="2" maxlength="2000" />
             </div>
 
             <div class="cpub-docs-field">
@@ -969,6 +1002,22 @@ async function createVersion(): Promise<void> {
 }
 
 .cpub-docs-field-input:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.cpub-docs-field-textarea {
+  padding: 6px 8px;
+  background: var(--surface2);
+  border: var(--border-width-default) solid var(--border);
+  color: var(--text);
+  font-size: 12px;
+  font-family: var(--font-sans);
+  resize: vertical;
+  min-height: 40px;
+}
+
+.cpub-docs-field-textarea:focus {
   border-color: var(--accent);
   outline: none;
 }

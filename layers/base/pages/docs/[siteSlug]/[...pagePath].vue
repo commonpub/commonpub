@@ -12,11 +12,11 @@ const pagePath = computed(() => {
 const selectedVersion = ref('');
 
 const { data: site } = useLazyFetch<{ id: string; name: string; slug: string; description: string; ownerId: string; versions: Array<{ id: string; label: string; slug: string; version: string; isDefault: boolean }> }>(() => `/api/docs/${siteSlug.value}`);
-const { data: nav, refresh: refreshNav } = useLazyFetch<Array<{ id: string; title: string; slug: string; sortOrder: number; parentId: string | null }>>(() => {
+const { data: nav, refresh: refreshNav } = useLazyFetch<Array<{ id: string; title: string; sidebarLabel?: string | null; slug: string; sortOrder: number; parentId: string | null }>>(() => {
   const base = `/api/docs/${siteSlug.value}/nav`;
   return selectedVersion.value ? `${base}?version=${encodeURIComponent(selectedVersion.value)}` : base;
 });
-const { data: pages } = useLazyFetch<Array<{ id: string; title: string; slug: string; sortOrder: number; parentId: string | null }>>(() => {
+const { data: pages } = useLazyFetch<Array<{ id: string; title: string; sidebarLabel?: string | null; slug: string; sortOrder: number; parentId: string | null }>>(() => {
   const base = `/api/docs/${siteSlug.value}/pages`;
   return selectedVersion.value ? `${base}?version=${encodeURIComponent(selectedVersion.value)}` : base;
 });
@@ -59,6 +59,7 @@ const isOwner = computed(() => site.value && user.value && site.value.ownerId ==
 interface NavTreeNode {
   id: string;
   title: string;
+  sidebarLabel?: string | null;
   slug: string;
   sortOrder: number;
   parentId: string | null;
@@ -67,7 +68,7 @@ interface NavTreeNode {
 
 const navTree = computed<NavTreeNode[]>(() => {
   if (!pages.value) return [];
-  const allPages = pages.value as Array<{ id: string; title: string; slug: string; sortOrder: number; parentId: string | null }>;
+  const allPages = pages.value as Array<{ id: string; title: string; sidebarLabel?: string | null; slug: string; sortOrder: number; parentId: string | null }>;
   const byParent = new Map<string | null, typeof allPages>();
   for (const p of allPages) {
     const key = p.parentId ?? null;
@@ -270,7 +271,7 @@ useSeoMeta({
             <div class="docs-nav-item" :class="{ active: node.slug === pagePath }">
               <div class="docs-nav-row">
                 <NuxtLink :to="`/docs/${siteSlug}/${node.slug}`" class="docs-nav-link" @click="sidebarOpen = false">
-                  {{ node.title }}
+                  {{ node.sidebarLabel || node.title }}
                 </NuxtLink>
                 <button
                   v-if="node.children.length"
@@ -291,7 +292,7 @@ useSeoMeta({
                   :class="{ active: child.slug === pagePath }"
                   @click="sidebarOpen = false"
                 >
-                  {{ child.title }}
+                  {{ child.sidebarLabel || child.title }}
                 </NuxtLink>
               </div>
             </div>

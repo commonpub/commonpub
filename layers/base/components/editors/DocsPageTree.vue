@@ -21,6 +21,7 @@ const emit = defineEmits<{
   select: [pageId: string];
   create: [parentId: string | null, title: string];
   rename: [pageId: string, title: string];
+  duplicate: [pageId: string];
   delete: [pageId: string];
   reorder: [pageIds: string[]];
   reparent: [pageId: string, newParentId: string | null];
@@ -142,6 +143,12 @@ function contextDelete(): void {
   if (confirm(`Delete "${page.title}"? This cannot be undone.`)) {
     emit('delete', page.id);
   }
+  closeContext();
+}
+
+function contextDuplicate(): void {
+  if (!contextMenu.value) return;
+  emit('duplicate', contextMenu.value.pageId);
   closeContext();
 }
 
@@ -332,6 +339,9 @@ onUnmounted(() => {
       >
         <button class="cpub-tree-context-item" @click="contextRename">
           <i class="fa-solid fa-pen" /> Rename
+        </button>
+        <button class="cpub-tree-context-item" @click="contextDuplicate">
+          <i class="fa-solid fa-copy" /> Duplicate
         </button>
         <button class="cpub-tree-context-item" @click="contextAddChild">
           <i class="fa-solid fa-folder-plus" /> Add Child

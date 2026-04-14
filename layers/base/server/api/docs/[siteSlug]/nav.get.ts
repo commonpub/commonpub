@@ -22,5 +22,5 @@ export default defineEventHandler(async (event) => {
 
   // Return pages directly as nav items
   const pages = await listDocsPages(db, version.id);
-  return pages.map(p => ({ id: p.id, title: p.title, slug: p.slug, sortOrder: p.sortOrder, parentId: p.parentId }));
+  return pages.map(p => ({ id: p.id, title: p.title, sidebarLabel: p.sidebarLabel, slug: p.slug, sortOrder: p.sortOrder, parentId: p.parentId }));
 });

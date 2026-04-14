@@ -245,6 +245,7 @@ export {
   createDocsPage,
   updateDocsPage,
   deleteDocsPage,
+  duplicateDocsPage,
   reorderDocsPages,
   searchDocsPages,
 } from './docs/index.js';
