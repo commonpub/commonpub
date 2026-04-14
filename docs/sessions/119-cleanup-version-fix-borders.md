@@ -81,25 +81,37 @@ auth/createAuth.test.ts — fully mocks betterAuth, verifies mock args. Tests co
 
 ### Security Findings
 
-**HIGH — v-html on federated content (defense-in-depth gap):**
-- `federated-hubs/[id]/posts/[postId].vue:142` — `v-html="post.content"`
-- `mirror/[id].vue:120` — `v-html="transformedContent.content"`
-- Server-side sanitization exists and is well-tested (`protocol/sanitize.ts` — allowlist-based, strips events/styles/dangerous URLs)
-- Client-side `sanitizeBlockHtml` is an intentional no-op passthrough
-- Risk: If any content enters DB without passing through `sanitizeHtml` (e.g., bug in ingest path, direct DB insert, API bypass), the client has no second barrier
-- Fix: Either make `sanitizeBlockHtml` a real implementation or install DOMPurify as client-side defense-in-depth
+**HIGH — v-html on federated content — FIXED (commit `108a9a3`):**
+- Rewrote `sanitizeBlockHtml` from a no-op passthrough to a real allowlist-based sanitizer (mirrors protocol/sanitize.ts)
+- Applied to `federated-hubs/[id]/posts/[postId].vue` and `mirror/[id].vue`
+- 24 new tests verify XSS protection (script strips, event handlers, dangerous URLs, data URI filtering)
 
-**MEDIUM — Raw SQL template literals:**
-- `search/trending.get.ts`, `users/index.get.ts`, `search/index.get.ts`, `messages/.../info.get.ts`, `content-ap.ts`
-- All use `sql\`...\`` with interpolated values from validated route params
-- Could be replaced with Drizzle `inArray()` for consistency with CLAUDE.md rules
+**HIGH — Raw SQL template literals — FIXED (commit `374e5cc`):**
+- content-ap.ts: `sql IN` → `inArray()`
+- trending.get.ts: `sql = 'published'` → `eq()`, `sql DESC` → `desc()`
+- search/index.get.ts: `sql ANY(ARRAY[...])` → `inArray()`
+- users/index.get.ts: 2× `sql ANY(ARRAY[...])` → `inArray()`
+- messages/info.get.ts left as-is — JSONB `@>` has no Drizzle equivalent, value from requireAuth
 
-**MEDIUM — Hardcoded colors:**
-- `ContestEntries.vue:89` — `#a0724a` (bronze rank color)
-- `ContentCard.vue:197`, `ImageUpload.vue:177` — `#fff`
-- `contests/results.vue:40`, `contests/create.vue:72` — `#a0724a` in JS logic
-- `BlockCodeView.vue:111-193` — 20+ hex values for syntax highlighting theme (architecturally motivated but prevents light-mode theming)
+**MEDIUM — Hardcoded colors — FIXED (commit `e15c5ce`):**
+- Added `--gold`, `--silver`, `--bronze`, `--color-text-inverse` tokens to base.css
+- Replaced `#a0724a` in ContestEntries, ContestPrizes, contests/create, contests/results
+- Replaced `#fff` in ContentCard, ImageUpload
+- BlockCodeView syntax highlighting theme (20+ hex) — intentionally left as-is (standalone highlight.js theme, needs `--hljs-*` token layer if ever themeable)
 
-## Remaining Work — Comprehensive Plan
+## Remaining Work
 
-See MEMORY.md for the updated prioritized list.
+### MEDIUM — Vanity test replacement (~50 tests)
+- 6× `expect(true).toBe(true)` setup files, 36+ typeof-only server module export checks, ~4 schema relation toBeDefined
+- Replace with behavioral tests or single barrel-export snapshot
+
+### MEDIUM — BlockCodeView syntax highlighting
+- 20+ hardcoded hex values for GitHub Dark highlight.js theme
+- Needs `--hljs-*` token layer to support light-mode theming of code blocks
+
+### LOW — Technical Debt
+- Backfill historical remote replies on mirrored hubs
+- Per-participant read receipts for group chats (needs message_reads table)
+- Instance-level backfill.ts uses unsigned fetches
+- Commented-out code blocks in ~20 files (audit before next editor refactor)
+- Content import expansion (nice-to-have)
