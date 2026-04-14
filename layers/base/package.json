@@ -38,7 +38,7 @@
     "@commonpub/explainer": "^0.7.11",
     "@commonpub/learning": "workspace:*",
     "@commonpub/protocol": "workspace:*",
-    "@commonpub/schema": "^0.9.10",
+    "@commonpub/schema": "^0.9.11",
     "@commonpub/server": "^2.29.1",
     "@commonpub/ui": "workspace:*",
     "@tiptap/core": "^2.11.0",
