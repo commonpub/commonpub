@@ -123,10 +123,11 @@ export function useBlockEditor(initialBlocks?: BlockTuple[], options?: BlockEdit
 
   if (initialBlocks && initialBlocks.length > 0) {
     fromBlockTuples(initialBlocks);
+  } else {
+    // Capture initial empty state as first history entry
+    // (fromBlockTuples already pushes history when blocks are loaded)
+    pushHistory();
   }
-
-  // Capture initial state as first history entry
-  pushHistory();
 
   // --- Serialize back to BlockTuples ---
   function toBlockTuples(): BlockTuple[] {

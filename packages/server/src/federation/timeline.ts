@@ -425,18 +425,29 @@ export async function listRemoteReplies(
  * Uses PostgreSQL full-text search (to_tsvector/websearch_to_tsquery) for fuzzy matching and ranking.
  * Falls back to ILIKE for single-character or operator-only queries that FTS can't handle.
  */
+/** Postgres FTS language names — validated to prevent SQL injection */
+const VALID_FTS_LANGUAGES = new Set([
+  'simple', 'arabic', 'armenian', 'basque', 'catalan', 'danish', 'dutch',
+  'english', 'finnish', 'french', 'german', 'greek', 'hindi', 'hungarian',
+  'indonesian', 'irish', 'italian', 'lithuanian', 'nepali', 'norwegian',
+  'portuguese', 'romanian', 'russian', 'serbian', 'spanish', 'swedish',
+  'tamil', 'turkish', 'yiddish',
+]);
+
 export async function searchFederatedContent(
   db: DB,
   query: string,
-  opts: { limit?: number; offset?: number } = {},
+  opts: { limit?: number; offset?: number; language?: string } = {},
 ): Promise<{ items: FederatedContentItem[]; total: number }> {
   const limit = Math.min(opts.limit ?? 20, 100);
   const offset = opts.offset ?? 0;
+  const ftsLang = opts.language && VALID_FTS_LANGUAGES.has(opts.language) ? opts.language : 'english';
+  const langLiteral = sql.raw(`'${ftsLang}'`);
 
   // Use FTS when query is substantive enough, fall back to ILIKE for short/special queries
   const useFts = query.trim().length > 1;
   const ftsCondition = useFts
-    ? sql`to_tsvector('english', coalesce(${federatedContent.title}, '') || ' ' || coalesce(${federatedContent.summary}, '') || ' ' || coalesce(${federatedContent.content}, '')) @@ websearch_to_tsquery('english', ${query})`
+    ? sql`to_tsvector(${langLiteral}, coalesce(${federatedContent.title}, '') || ' ' || coalesce(${federatedContent.summary}, '') || ' ' || coalesce(${federatedContent.content}, '')) @@ websearch_to_tsquery(${langLiteral}, ${query})`
     : or(
         ilike(federatedContent.title, `%${query}%`),
         ilike(federatedContent.content, `%${query}%`),

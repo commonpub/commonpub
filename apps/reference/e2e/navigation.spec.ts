@@ -17,9 +17,9 @@ test.describe('Homepage tab switching', () => {
     await expect(firstTab).toHaveClass(/active/, { timeout: 10000 });
 
     await secondTab.click();
-    // Wait for Vue reactivity to update the class
+    // Wait for Vue reactivity to update the class — use matching timeouts
     await expect(secondTab).toHaveClass(/active/, { timeout: 10000 });
-    await expect(firstTab).not.toHaveClass(/active/, { timeout: 5000 });
+    await expect(firstTab).not.toHaveClass(/active/, { timeout: 10000 });
   });
 
   test('hero banner dismiss button works', async ({ page }) => {

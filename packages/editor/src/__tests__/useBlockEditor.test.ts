@@ -550,4 +550,30 @@ describe('useBlockEditor', () => {
       expect(editor.blocks.value[0].content.level).toBe(2);
     });
   });
+
+  describe('init history', () => {
+    it('should not double-push history when initialBlocks are provided', () => {
+      const editor = useBlockEditor([
+        ['paragraph', { html: 'Hello' }],
+        ['heading', { text: 'Title', level: 2 }],
+      ]);
+      // After init with blocks, canUndo should be false (only one snapshot)
+      expect(editor.canUndo.value).toBe(false);
+      // Making a change should then enable undo
+      editor.addBlock('paragraph');
+      expect(editor.canUndo.value).toBe(true);
+      // Undoing should restore to exactly the initial 2-block state
+      editor.undo();
+      expect(editor.blocks.value).toHaveLength(2);
+    });
+
+    it('should have single history entry when initialized empty', () => {
+      const editor = useBlockEditor();
+      expect(editor.canUndo.value).toBe(false);
+      editor.addBlock('paragraph');
+      expect(editor.canUndo.value).toBe(true);
+      editor.undo();
+      expect(editor.blocks.value).toHaveLength(0);
+    });
+  });
 });
