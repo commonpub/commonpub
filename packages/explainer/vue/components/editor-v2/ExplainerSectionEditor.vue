@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted, type Ref } from 'vue';
 import type { ExplainerDocument, ExplainerDocSection, ExplainerThemeRef, ExplainerConclusion } from '@commonpub/explainer';
 import { resolveThemePreset } from '@commonpub/explainer';
 import { useExplainerTheme } from '../../composables/useExplainerTheme';
+import { useSectionHistory } from '../../composables/useSectionHistory';
 import SectionList from './SectionList.vue';
 import SectionEditor from './SectionEditor.vue';
 import ModulePicker from './ModulePicker.vue';
@@ -25,14 +26,39 @@ const emit = defineEmits<{
 const doc = ref<ExplainerDocument>(JSON.parse(JSON.stringify(props.document)));
 const isDirty = ref(false);
 
+// Undo/redo history for the full document
+const history = useSectionHistory(doc as Ref<unknown>);
+
 watch(() => props.document, (newDoc) => {
   doc.value = JSON.parse(JSON.stringify(newDoc));
   isDirty.value = false;
+  history.clear();
+  history.push(); // Initial snapshot
 }, { deep: false });
+
+// Push initial snapshot
+history.push();
 
 function emitUpdate(): void {
   isDirty.value = true;
+  history.push();
   emit('update:document', JSON.parse(JSON.stringify(doc.value)));
+}
+
+function handleUndo(): void {
+  const restored = history.undo();
+  if (restored) {
+    isDirty.value = true;
+    emit('update:document', JSON.parse(JSON.stringify(doc.value)));
+  }
+}
+
+function handleRedo(): void {
+  const restored = history.redo();
+  if (restored) {
+    isDirty.value = true;
+    emit('update:document', JSON.parse(JSON.stringify(doc.value)));
+  }
 }
 
 // Selected section — either a content section or a pinned item (intro/conclusion)
@@ -194,9 +220,18 @@ function onBeforeUnload(e: BeforeUnloadEvent): void {
   }
 }
 
+function onKeydown(e: KeyboardEvent): void {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'z') {
+    e.preventDefault();
+    if (e.shiftKey) handleRedo();
+    else handleUndo();
+  }
+}
+
 onMounted(() => {
   if (typeof window !== 'undefined') {
     window.addEventListener('beforeunload', onBeforeUnload);
+    document.addEventListener('keydown', onKeydown);
   }
 });
 
@@ -204,6 +239,7 @@ onUnmounted(() => {
   if (autoSaveTimer) clearTimeout(autoSaveTimer);
   if (typeof window !== 'undefined') {
     window.removeEventListener('beforeunload', onBeforeUnload);
+    document.removeEventListener('keydown', onKeydown);
   }
 });
 
@@ -266,6 +302,23 @@ const mobilePanel = ref<'list' | 'editor' | 'preview'>('editor');
         <button :class="{ active: mobilePanel === 'preview' }" @click="mobilePanel = 'preview'"><i class="fa-solid fa-eye" /></button>
       </div>
       <div class="cpub-ee-topbar-spacer" />
+
+      <button
+        class="cpub-ee-topbar-btn"
+        title="Undo (Ctrl+Z)"
+        :disabled="!history.canUndo.value"
+        @click="handleUndo"
+      >
+        <i class="fa-solid fa-rotate-left" />
+      </button>
+      <button
+        class="cpub-ee-topbar-btn"
+        title="Redo (Ctrl+Shift+Z)"
+        :disabled="!history.canRedo.value"
+        @click="handleRedo"
+      >
+        <i class="fa-solid fa-rotate-right" />
+      </button>
 
       <!-- Theme: compact label + customize toggle -->
       <span class="cpub-ee-theme-label">Theme</span>

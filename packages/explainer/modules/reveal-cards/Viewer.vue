@@ -76,7 +76,7 @@ function resetCards(): void {
 .cpub-reveal-card {
   padding: 16px;
   background: rgba(255, 255, 255, 0.04);
-  border: 1px solid var(--border-dark, rgba(255, 255, 255, 0.08));
+  border: var(--border-width-default, 2px) solid var(--border-dark, rgba(255, 255, 255, 0.08));
   cursor: pointer;
   text-align: center;
   transition: all 0.2s;
@@ -136,7 +136,7 @@ function resetCards(): void {
   gap: 12px;
   margin-top: 12px;
   padding-top: 10px;
-  border-top: 1px solid var(--border-dark, rgba(255, 255, 255, 0.05));
+  border-top: var(--border-width-default, 2px) solid var(--border-dark, rgba(255, 255, 255, 0.05));
 }
 
 .cpub-reveal-reset {
@@ -144,7 +144,7 @@ function resetCards(): void {
   font-family: var(--font-ui, monospace);
   font-size: 10px;
   background: transparent;
-  border: 1px solid var(--border-dark, rgba(255, 255, 255, 0.1));
+  border: var(--border-width-default, 2px) solid var(--border-dark, rgba(255, 255, 255, 0.1));
   color: var(--text-on-dark-dim, rgba(255, 255, 255, 0.4));
   cursor: pointer;
   display: flex;

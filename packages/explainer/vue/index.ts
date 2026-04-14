@@ -51,6 +51,7 @@ export { useExplainerSections } from './composables/useExplainerSections.js';
 export { useExplainerProgress } from './composables/useExplainerProgress.js';
 export { useScrollTracking } from './composables/useScrollTracking.js';
 export { useExplainerTheme } from './composables/useExplainerTheme.js';
+export { useSectionHistory } from './composables/useSectionHistory.js';
 
 // Types
 export type { ExplainerContent } from './components/ExplainerViewer.vue';

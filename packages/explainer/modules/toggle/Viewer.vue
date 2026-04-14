@@ -67,7 +67,7 @@ const activeMode = ref<'A' | 'B'>((props.content.defaultMode as 'A' | 'B') ?? 'A
   text-transform: uppercase;
   letter-spacing: 0.06em;
   background: transparent;
-  border: 1px solid var(--border-dark, rgba(255, 255, 255, 0.08));
+  border: var(--border-width-default, 2px) solid var(--border-dark, rgba(255, 255, 255, 0.08));
   color: var(--text-on-dark-dim, rgba(255, 255, 255, 0.45));
   cursor: pointer;
   transition: all 0.15s;
@@ -105,7 +105,7 @@ const activeMode = ref<'A' | 'B'>((props.content.defaultMode as 'A' | 'B') ?? 'A
   font-size: 11px;
   color: var(--text-on-dark-faint, rgba(255, 255, 255, 0.2));
   padding: 10px 0 0;
-  border-top: 1px solid var(--border-dark, rgba(255, 255, 255, 0.05));
+  border-top: var(--border-width-default, 2px) solid var(--border-dark, rgba(255, 255, 255, 0.05));
 }
 
 @keyframes cpub-toggle-fade {

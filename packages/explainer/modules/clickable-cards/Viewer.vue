@@ -63,7 +63,7 @@ function toggleCard(idx: number): void {
 .cpub-cc-card {
   padding: 14px;
   background: rgba(255, 255, 255, 0.04);
-  border: 1px solid var(--border-dark, rgba(255, 255, 255, 0.08));
+  border: var(--border-width-default, 2px) solid var(--border-dark, rgba(255, 255, 255, 0.08));
   cursor: pointer;
   text-align: left;
   display: flex;
@@ -105,7 +105,7 @@ function toggleCard(idx: number): void {
 .cpub-cc-detail {
   margin-top: 12px;
   background: rgba(255, 255, 255, 0.04);
-  border: 1px solid var(--border-dark, rgba(255, 255, 255, 0.08));
+  border: var(--border-width-default, 2px) solid var(--border-dark, rgba(255, 255, 255, 0.08));
   border-left: 3px solid var(--accent, #e04030);
   animation: cpub-cc-expand 0.2s ease;
 }
@@ -115,7 +115,7 @@ function toggleCard(idx: number): void {
   align-items: center;
   justify-content: space-between;
   padding: 10px 14px;
-  border-bottom: 1px solid var(--border-dark, rgba(255, 255, 255, 0.06));
+  border-bottom: var(--border-width-default, 2px) solid var(--border-dark, rgba(255, 255, 255, 0.06));
 }
 
 .cpub-cc-detail-title {

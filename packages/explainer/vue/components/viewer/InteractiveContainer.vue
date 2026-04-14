@@ -39,7 +39,7 @@ const moduleIcon = computed(() => loadedModule.value?.meta.icon ?? 'fa-sliders-h
 <style scoped>
 .cpub-interactive-container {
   background: var(--bg-dark, #141418);
-  border: 1px solid var(--border-dark, rgba(255, 255, 255, 0.08));
+  border: var(--border-width-default, 2px) solid var(--border-dark, rgba(255, 255, 255, 0.08));
   border-radius: var(--radius, 0px);
   margin: var(--space-7, 28px) 0;
   overflow: hidden;
@@ -69,7 +69,7 @@ const moduleIcon = computed(() => loadedModule.value?.meta.icon ?? 'fa-sliders-h
   letter-spacing: 0.12em;
   color: var(--accent);
   padding: var(--space-2, 10px) var(--space-4, 16px);
-  border-bottom: 1px solid var(--border-dark, rgba(255, 255, 255, 0.08));
+  border-bottom: var(--border-width-default, 1px) solid var(--border-dark, rgba(255, 255, 255, 0.08));
   display: flex;
   align-items: center;
   gap: var(--space-2, 8px);
