@@ -1,7 +1,7 @@
 import { pgTable, uuid, varchar, text, timestamp, integer, jsonb, index, unique, boolean } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { users } from './auth.js';
-import { activityDirectionEnum, activityStatusEnum, followRelationshipStatusEnum, mirrorStatusEnum, mirrorDirectionEnum } from './enums.js';
+import { activityDirectionEnum, activityStatusEnum, followRelationshipStatusEnum, mirrorStatusEnum, mirrorDirectionEnum, hubFollowStatusEnum } from './enums.js';
 
 /** Cache of resolved remote ActivityPub actors */
 export const remoteActors = pgTable('remote_actors', {
@@ -331,7 +331,7 @@ export const userFederatedHubFollows = pgTable('user_federated_hub_follows', {
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   federatedHubId: uuid('federated_hub_id').notNull().references(() => federatedHubs.id, { onDelete: 'cascade' }),
   /** pending = waiting for instance-level Accept; joined = fully active */
-  status: varchar('status', { length: 16 }).default('pending').notNull().$type<'pending' | 'joined'>(),
+  status: hubFollowStatusEnum('status').default('pending').notNull(),
   joinedAt: timestamp('joined_at', { withTimezone: true }).defaultNow().notNull(),
 }, (t) => [
   unique('uq_user_fed_hub_follow').on(t.userId, t.federatedHubId),

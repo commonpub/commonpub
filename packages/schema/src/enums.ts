@@ -161,6 +161,12 @@ export const mirrorStatusEnum = pgEnum('mirror_status', [
 ]);
 export const mirrorDirectionEnum = pgEnum('mirror_direction', ['pull', 'push']);
 
+// --- Docs ---
+export const docsPageStatusEnum = pgEnum('docs_page_status', ['draft', 'published', 'archived']);
+
+// --- Federation (user hub follows) ---
+export const hubFollowStatusEnum = pgEnum('hub_follow_status', ['pending', 'joined']);
+
 // --- Tags ---
 export const tagCategoryEnum = pgEnum('tag_category', [
   'platform',

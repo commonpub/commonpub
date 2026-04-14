@@ -1,6 +1,7 @@
 import { pgTable, uuid, varchar, text, timestamp, integer, boolean, jsonb, unique, index } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { users } from './auth.js';
+import { docsPageStatusEnum } from './enums.js';
 
 export const docsSites = pgTable('docs_sites', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -44,7 +45,7 @@ export const docsPages = pgTable('docs_pages', {
   sidebarLabel: varchar('sidebar_label', { length: 128 }),
   description: text('description'),
   content: jsonb('content').notNull(),
-  status: varchar('status', { length: 16 }).default('draft').notNull(),
+  status: docsPageStatusEnum('status').default('draft').notNull(),
   sortOrder: integer('sort_order').default(0).notNull(),
   // Self-referencing FK handled via relations; DB-level constraint added via migration
   parentId: uuid('parent_id'),
