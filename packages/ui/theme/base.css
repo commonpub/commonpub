@@ -93,6 +93,22 @@
 
   --color-text-inverse: #ffffff;
 
+  /* Code block tokens (GitHub Dark defaults — overridable by themes) */
+  --code-bg: #0d1117;
+  --code-text: #e6edf3;
+  --code-header-bg: #161b22;
+  --code-border: #30363d;
+  --code-muted: #8b949e;
+  --code-green: #7ee787;
+  --hljs-comment: #8b949e;
+  --hljs-keyword: #ff7b72;
+  --hljs-literal: #79c0ff;
+  --hljs-string: #a5d6ff;
+  --hljs-deletion: #ffa198;
+  --hljs-meta: #d2a8ff;
+  --hljs-name: #7ee787;
+  --hljs-variable: #ffa657;
+
   --color-success: var(--green);
   --color-warning: var(--yellow);
   --color-error: var(--red);

@@ -106,39 +106,40 @@ async function copyCode(): Promise<void> {
 </template>
 
 <style>
-/* highlight.js github-dark theme — MUST be unscoped so hljs classes apply to v-html content */
+/* highlight.js theme — MUST be unscoped so hljs classes apply to v-html content */
+/* Colors use --hljs-* / --code-* tokens from base.css — overridable by themes */
 pre.hljs {
-  background: #0d1117;
-  color: #e6edf3;
+  background: var(--code-bg);
+  color: var(--code-text);
 }
 pre.hljs .hljs-comment,
-pre.hljs .hljs-quote { color: #8b949e; font-style: italic; }
+pre.hljs .hljs-quote { color: var(--hljs-comment); font-style: italic; }
 pre.hljs .hljs-keyword,
 pre.hljs .hljs-selector-tag,
-pre.hljs .hljs-type { color: #ff7b72; }
+pre.hljs .hljs-type { color: var(--hljs-keyword); }
 pre.hljs .hljs-literal,
 pre.hljs .hljs-number,
-pre.hljs .hljs-tag .hljs-attr { color: #79c0ff; }
+pre.hljs .hljs-tag .hljs-attr { color: var(--hljs-literal); }
 pre.hljs .hljs-string,
-pre.hljs .hljs-addition { color: #a5d6ff; }
-pre.hljs .hljs-deletion { color: #ffa198; }
+pre.hljs .hljs-addition { color: var(--hljs-string); }
+pre.hljs .hljs-deletion { color: var(--hljs-deletion); }
 pre.hljs .hljs-regexp,
-pre.hljs .hljs-link { color: #a5d6ff; }
-pre.hljs .hljs-meta { color: #d2a8ff; }
+pre.hljs .hljs-link { color: var(--hljs-string); }
+pre.hljs .hljs-meta { color: var(--hljs-meta); }
 pre.hljs .hljs-title,
 pre.hljs .hljs-section,
-pre.hljs .hljs-built_in { color: #d2a8ff; }
+pre.hljs .hljs-built_in { color: var(--hljs-meta); }
 pre.hljs .hljs-name,
 pre.hljs .hljs-selector-id,
-pre.hljs .hljs-selector-class { color: #7ee787; }
+pre.hljs .hljs-selector-class { color: var(--hljs-name); }
 pre.hljs .hljs-variable,
-pre.hljs .hljs-template-variable { color: #ffa657; }
-pre.hljs .hljs-attribute { color: #79c0ff; }
+pre.hljs .hljs-template-variable { color: var(--hljs-variable); }
+pre.hljs .hljs-attribute { color: var(--hljs-literal); }
 pre.hljs .hljs-symbol,
-pre.hljs .hljs-bullet { color: #ffa657; }
-pre.hljs .hljs-subst { color: #e6edf3; }
-pre.hljs .hljs-title.function_ { color: #d2a8ff; }
-pre.hljs .hljs-title.class_ { color: #ffa657; }
+pre.hljs .hljs-bullet { color: var(--hljs-variable); }
+pre.hljs .hljs-subst { color: var(--code-text); }
+pre.hljs .hljs-title.function_ { color: var(--hljs-meta); }
+pre.hljs .hljs-title.class_ { color: var(--hljs-variable); }
 </style>
 
 <style scoped>
@@ -153,7 +154,7 @@ pre.hljs .hljs-title.class_ { color: #ffa657; }
   align-items: center;
   gap: 8px;
   padding: 8px 14px;
-  background: #161b22;
+  background: var(--code-header-bg);
   border-bottom: var(--border-width-default) solid var(--border);
 }
 
@@ -163,22 +164,22 @@ pre.hljs .hljs-title.class_ { color: #ffa657; }
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #7ee787;
+  color: var(--code-green);
 }
 
 .cpub-code-filename {
   font-family: var(--font-mono);
   font-size: 10px;
-  color: #8b949e;
+  color: var(--code-muted);
   flex: 1;
 }
 
 .cpub-code-copy {
   font-family: var(--font-mono);
   font-size: 10px;
-  color: #8b949e;
+  color: var(--code-muted);
   background: transparent;
-  border: var(--border-width-default) solid #30363d;
+  border: var(--border-width-default) solid var(--code-border);
   padding: 3px 8px;
   cursor: pointer;
   display: flex;
@@ -189,8 +190,8 @@ pre.hljs .hljs-title.class_ { color: #ffa657; }
 }
 
 .cpub-code-copy:hover {
-  color: #e6edf3;
-  border-color: #8b949e;
+  color: var(--code-text);
+  border-color: var(--code-muted);
 }
 
 .cpub-code-body {
