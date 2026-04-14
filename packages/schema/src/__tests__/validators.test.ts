@@ -1331,6 +1331,33 @@ describe('createDocsPageSchema', () => {
       expect(result.data.description).toBeUndefined();
     }
   });
+
+  it('accepts page with versionId', () => {
+    const result = createDocsPageSchema.safeParse({
+      title: 'Page',
+      versionId: '550e8400-e29b-41d4-a716-446655440000',
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.versionId).toBe('550e8400-e29b-41d4-a716-446655440000');
+    }
+  });
+
+  it('rejects invalid versionId (not UUID)', () => {
+    const result = createDocsPageSchema.safeParse({
+      title: 'Page',
+      versionId: 'not-a-uuid',
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('allows omitting versionId (API resolves default)', () => {
+    const result = createDocsPageSchema.safeParse({ title: 'Page' });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.versionId).toBeUndefined();
+    }
+  });
 });
 
 describe('updateDocsPageSchema', () => {
