@@ -25,6 +25,7 @@ export const files = pgTable('files', {
 }, (t) => [
   index('idx_files_uploader_id').on(t.uploaderId),
   index('idx_files_content_id').on(t.contentId),
+  index('idx_files_hub_id').on(t.hubId),
 ]);
 
 export const filesRelations = relations(files, ({ one }) => ({
