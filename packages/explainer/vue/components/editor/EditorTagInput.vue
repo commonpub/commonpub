@@ -36,7 +36,7 @@ function onKeydown(e: KeyboardEvent): void {
 
 <style scoped>
 .cpub-tag-input { display: flex; flex-wrap: wrap; gap: 4px; padding: 6px; border: var(--border-width-default) solid var(--border); background: var(--surface); min-height: 34px; align-items: center; }
-.cpub-tag-chip { display: flex; align-items: center; gap: 4px; padding: 2px 8px; background: var(--surface2); border: 1px solid var(--border2); font-size: 11px; font-family: var(--font-mono); color: var(--text-dim); }
+.cpub-tag-chip { display: flex; align-items: center; gap: 4px; padding: 2px 8px; background: var(--surface2); border: var(--border-width-default) solid var(--border2); font-size: 11px; font-family: var(--font-mono); color: var(--text-dim); }
 .cpub-tag-remove { background: none; border: none; color: var(--text-faint); cursor: pointer; font-size: 12px; padding: 0 2px; }
 .cpub-tag-remove:hover { color: var(--red); }
 .cpub-tag-field { border: none; outline: none; background: transparent; font-size: 11px; color: var(--text); flex: 1; min-width: 60px; }

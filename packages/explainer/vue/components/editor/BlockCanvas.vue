@@ -166,17 +166,17 @@ const isSelected = (id: string) => props.blockEditor.selectedBlockId.value === i
 .cpub-canvas-block.dragging { opacity: 0.4; }
 .cpub-block-controls { display: flex; align-items: center; gap: 4px; margin-bottom: 6px; }
 .cpub-block-type-label { font-family: var(--font-mono); font-size: 9px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-faint); flex: 1; }
-.cpub-block-ctrl { width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; background: var(--surface2); border: 1px solid var(--border2); color: var(--text-faint); cursor: pointer; font-size: 11px; }
+.cpub-block-ctrl { width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; background: var(--surface2); border: var(--border-width-default) solid var(--border2); color: var(--text-faint); cursor: pointer; font-size: 11px; }
 .cpub-block-ctrl:hover { background: var(--surface3); color: var(--text); }
 .cpub-block-ctrl--danger:hover { color: var(--red); }
 .cpub-block-body { }
-.cpub-inline-input { width: 100%; padding: 6px 8px; border: 1px solid var(--border2); background: var(--surface); font-size: 12px; color: var(--text); outline: none; font-family: inherit; }
+.cpub-inline-input { width: 100%; padding: 6px 8px; border: var(--border-width-default) solid var(--border2); background: var(--surface); font-size: 12px; color: var(--text); outline: none; font-family: inherit; }
 .cpub-inline-input:focus { border-color: var(--accent); }
 .cpub-inline-input--sm { max-width: 100px; }
-.cpub-inline-textarea { width: 100%; padding: 6px 8px; border: 1px solid var(--border2); background: var(--surface); font-size: 12px; color: var(--text); outline: none; resize: vertical; font-family: inherit; line-height: 1.5; }
+.cpub-inline-textarea { width: 100%; padding: 6px 8px; border: var(--border-width-default) solid var(--border2); background: var(--surface); font-size: 12px; color: var(--text); outline: none; resize: vertical; font-family: inherit; line-height: 1.5; }
 .cpub-inline-textarea:focus { border-color: var(--accent); }
 .cpub-inline-textarea--code { font-family: var(--font-mono); font-size: 11px; background: #0d1117; color: #e6edf3; border-color: #30363d; }
-.cpub-inline-select { padding: 5px 8px; border: 1px solid var(--border2); background: var(--surface); font-size: 11px; font-family: var(--font-mono); color: var(--text); cursor: pointer; }
+.cpub-inline-select { padding: 5px 8px; border: var(--border-width-default) solid var(--border2); background: var(--surface); font-size: 11px; font-family: var(--font-mono); color: var(--text); cursor: pointer; }
 .cpub-inline-row { display: flex; gap: 6px; align-items: center; }
 .cpub-inline-stack { display: flex; flex-direction: column; gap: 6px; }
 .cpub-inline-divider { border: none; border-top: 2px dashed var(--border2); margin: 8px 0; }
@@ -185,6 +185,6 @@ const isSelected = (id: string) => props.blockEditor.selectedBlockId.value === i
 .cpub-quiz-options-editor { display: flex; flex-direction: column; gap: 4px; }
 .cpub-quiz-opt-row { display: flex; align-items: center; gap: 6px; }
 .cpub-quiz-opt-row input[type="checkbox"] { cursor: pointer; }
-.cpub-add-option-btn { align-self: flex-start; padding: 4px 10px; font-size: 11px; background: var(--surface2); border: 1px solid var(--border2); color: var(--text-dim); cursor: pointer; font-family: inherit; }
+.cpub-add-option-btn { align-self: flex-start; padding: 4px 10px; font-size: 11px; background: var(--surface2); border: var(--border-width-default) solid var(--border2); color: var(--text-dim); cursor: pointer; font-family: inherit; }
 .cpub-add-option-btn:hover { background: var(--surface3); color: var(--text); }
 </style>

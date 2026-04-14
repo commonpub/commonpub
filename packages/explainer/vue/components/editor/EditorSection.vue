@@ -21,7 +21,7 @@ const emit = defineEmits<{ toggle: [] }>();
 </template>
 
 <style scoped>
-.cpub-ep-section { border-bottom: 1px solid var(--border2); }
+.cpub-ep-section { border-bottom: var(--border-width-default) solid var(--border2); }
 .cpub-ep-section-header { display: flex; align-items: center; width: 100%; padding: 10px 14px; background: none; border: none; cursor: pointer; color: var(--text); font-size: 11px; font-weight: 600; font-family: var(--font-mono); letter-spacing: 0.06em; text-transform: uppercase; }
 .cpub-ep-section-header:hover { background: var(--surface2); }
 .cpub-ep-section-label { flex: 1; text-align: left; }
