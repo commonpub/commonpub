@@ -1,10 +1,11 @@
 # Session 119 — Cleanup, Docs Version Fix, Explainer Borders (2026-04-13)
 
-Post-v1.0 cleanup session. 3 commits, all deployed via CI auto-deploy.
+Post-v1.0 cleanup session. 5 commits, all deployed via CI auto-deploy.
 
 ## Verification
 - 26/26 typecheck, 30/30 test suites — verified after every commit
-- 3 commits pushed, all auto-deployed via CI
+- 5 commits pushed, all auto-deployed via CI
+- Deep audit performed: all $fetch calls in docs editor verified, upstream/downstream effects checked, no regressions
 
 ## Commit 1 — BlogView Cleanup + E2E Fix
 
@@ -12,7 +13,7 @@ Post-v1.0 cleanup session. 3 commits, all deployed via CI auto-deploy.
 
 - Deleted dead `BlogView.vue` from `layers/base/components/views/` (736 lines). Superseded by `ArticleView.vue` in session 116's article→blog merge. No remaining references in the codebase.
 - Also deleted `test-site/components/views/BlogView.vue` and updated test-site routing to use ArticleView for blog type (test-site is gitignored).
-- Fixed flaky E2E test `navigation.spec.ts:17` — the test assumed the first `.cpub-tab` always starts active, but `activeTab` defaults to `'latest'` (2nd tab) when not authenticated. Changed to dynamically find whichever tab starts active, then click a different one.
+- Fixed flaky E2E test `navigation.spec.ts:17` — root cause: test assumed the first `.cpub-tab` always starts active, but `activeTab` defaults to `'latest'` (2nd tab) when not authenticated. Changed to dynamically find whichever tab starts active via `page.locator('.cpub-tab.active')`, then click a different one.
 - Verified article→blog SQL migration already applied on both instances (0 article rows on commonpub.io and deveco.io).
 
 ## Commit 2 — Docs Editor Version Fix
@@ -27,6 +28,12 @@ Post-v1.0 cleanup session. 3 commits, all deployed via CI auto-deploy.
 - `layers/base/pages/docs/[siteSlug]/edit.vue` — Added `selectedVersionId` computed (resolves version string → UUID from site data). Passes `versionId` in create page body. Passes `version` in reorder body.
 - `layers/base/server/api/docs/[siteSlug]/pages/reorder.post.ts` — Added optional `version` field to reorder schema. Resolves to requested version before falling back to default.
 
+**Audit verified:** All 13 `$fetch` calls in edit.vue are correctly version-aware or version-agnostic:
+- Create page: passes `versionId` (new)
+- Reorder: passes `version` string (new)
+- Duplicate: server copies `versionId` from source page (correct as-is)
+- All PUT/DELETE operations: operate on page ID which is already version-scoped (correct as-is)
+
 ## Commit 3 — Explainer Border Width Vars
 
 **Commit:** `89b2b41`
@@ -37,10 +44,62 @@ Replaced 16 hardcoded `1px solid` borders with `var(--border-width-default)` acr
 - `editor/EditorSection.vue` — 1 instance
 - `editor/EditorTagInput.vue` — 1 instance
 
-Remaining: `editor-v2/ThemeEditor.vue` has 6 instances — intentionally left as-is (self-contained dark theme editor with `#333` fallbacks).
+Remaining: `editor-v2/ThemeEditor.vue` has 6 instances — intentionally left as-is (self-contained dark theme editor with `#333` fallbacks). Export templates (11 instances) also intentional — CSS vars unavailable in standalone HTML.
 
-## Outstanding Work
-- E2E flaky test — should now be fixed (dynamic active tab detection). Monitor next CI run.
-- Docs editor version switcher — now functionally complete for create + reorder + list. Remaining: delete/rename/reparent/duplicate all operate on page IDs (version-agnostic), so they work correctly already.
-- Explainer export templates (`src/export/templates.ts`, `src/export/htmlExporter.ts`) — 11 instances of `1px solid` in HTML export strings where CSS vars aren't available. Intentional.
-- Low-priority tech debt from MEMORY.md still applies.
+**Audit verified:** `InteractiveContainer.vue` sets `--border-width-default: 1px` for its dark context — all child component references to the var correctly cascade to 1px within containers. No visual regression.
+
+## Commit 4 — Session Log
+
+**Commit:** `cb55d01`
+
+## Commit 5 — versionId Validator Tests
+
+**Commit:** `fb09192`
+
+Added 3 new tests to `createDocsPageSchema`:
+- Accepts page with valid UUID `versionId`
+- Rejects invalid `versionId` (not UUID)
+- Allows omitting `versionId` (API resolves default)
+
+## Deep Audit Findings
+
+### Vanity Tests (~50 of 2,817 total = ~1.8%)
+
+**Pattern 1 — `expect(true).toBe(true)` (6 tests):**
+setup.test.ts in auth, editor, explainer, protocol, test-utils, ui
+
+**Pattern 2 — typeof-only export checks (36+ tests):**
+server/{docs,social,profile,admin,federation,learning,hub,theme}.test.ts — every test is `expect(typeof mod.X).toBe('function')` without ever calling the function. These are import smoke tests, not behavior tests.
+
+**Pattern 3 — toBeDefined on relations (4+ tests):**
+schema/{auth,federation,admin}.test.ts — relation definition existence checks only.
+
+**Pattern 4 — tautological mocking (borderline):**
+auth/createAuth.test.ts — fully mocks betterAuth, verifies mock args. Tests config transformation wiring but not actual auth behavior. Debatable — the function IS a config transformer.
+
+**Not vanity:** The `createAuth` tests do verify real config mapping (baseURL, social providers, plugins). Counted as borderline, not vanity.
+
+### Security Findings
+
+**HIGH — v-html on federated content (defense-in-depth gap):**
+- `federated-hubs/[id]/posts/[postId].vue:142` — `v-html="post.content"`
+- `mirror/[id].vue:120` — `v-html="transformedContent.content"`
+- Server-side sanitization exists and is well-tested (`protocol/sanitize.ts` — allowlist-based, strips events/styles/dangerous URLs)
+- Client-side `sanitizeBlockHtml` is an intentional no-op passthrough
+- Risk: If any content enters DB without passing through `sanitizeHtml` (e.g., bug in ingest path, direct DB insert, API bypass), the client has no second barrier
+- Fix: Either make `sanitizeBlockHtml` a real implementation or install DOMPurify as client-side defense-in-depth
+
+**MEDIUM — Raw SQL template literals:**
+- `search/trending.get.ts`, `users/index.get.ts`, `search/index.get.ts`, `messages/.../info.get.ts`, `content-ap.ts`
+- All use `sql\`...\`` with interpolated values from validated route params
+- Could be replaced with Drizzle `inArray()` for consistency with CLAUDE.md rules
+
+**MEDIUM — Hardcoded colors:**
+- `ContestEntries.vue:89` — `#a0724a` (bronze rank color)
+- `ContentCard.vue:197`, `ImageUpload.vue:177` — `#fff`
+- `contests/results.vue:40`, `contests/create.vue:72` — `#a0724a` in JS logic
+- `BlockCodeView.vue:111-193` — 20+ hex values for syntax highlighting theme (architecturally motivated but prevents light-mode theming)
+
+## Remaining Work — Comprehensive Plan
+
+See MEMORY.md for the updated prioritized list.
