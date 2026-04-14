@@ -158,6 +158,19 @@ export const messages = pgTable('messages', {
   index('idx_messages_sender_id').on(t.senderId),
 ]);
 
+export const messageReads = pgTable('message_reads', {
+  messageId: uuid('message_id')
+    .notNull()
+    .references(() => messages.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  readAt: timestamp('read_at', { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  index('idx_message_reads_user_id').on(t.userId),
+  unique('uq_message_reads').on(t.messageId, t.userId),
+]);
+
 // --- Relations ---
 
 export const likesRelations = relations(likes, ({ one }) => ({

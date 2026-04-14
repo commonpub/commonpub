@@ -1,5 +1,5 @@
-import { eq, and, desc, sql, isNull, inArray } from 'drizzle-orm';
-import { conversations, messages, users } from '@commonpub/schema';
+import { eq, and, desc, sql, notExists, inArray } from 'drizzle-orm';
+import { conversations, messages, messageReads, users } from '@commonpub/schema';
 import type { DB } from '../types.js';
 
 /** Truncate a string at a Unicode-safe boundary (never splits surrogate pairs or grapheme clusters). */
@@ -79,9 +79,14 @@ export async function getConversationMessages(
       senderDisplayName: users.displayName,
       senderUsername: users.username,
       senderAvatarUrl: users.avatarUrl,
+      readAt: messageReads.readAt,
     })
     .from(messages)
     .leftJoin(users, eq(messages.senderId, users.id))
+    .leftJoin(
+      messageReads,
+      and(eq(messageReads.messageId, messages.id), eq(messageReads.userId, sql`${userId}::uuid`)),
+    )
     .where(eq(messages.conversationId, conversationId))
     .orderBy(messages.createdAt);
 
@@ -93,7 +98,7 @@ export async function getConversationMessages(
     senderAvatarUrl: row.senderAvatarUrl ?? null,
     body: row.message.body,
     createdAt: row.message.createdAt,
-    readAt: row.message.readAt,
+    readAt: row.readAt ?? null,
   }));
 }
 
@@ -236,11 +241,14 @@ export async function sendMessage(
     senderAvatarUrl: sender?.avatarUrl ?? null,
     body: row!.body,
     createdAt: row!.createdAt,
-    readAt: row!.readAt,
+    readAt: null,
   };
 }
 
-/** Count unread messages across all conversations for a user */
+/**
+ * Count unread messages across all conversations for a user.
+ * Uses message_reads table for per-participant read tracking.
+ */
 export async function getUnreadMessageCount(
   db: DB,
   userId: string,
@@ -253,7 +261,11 @@ export async function getUnreadMessageCount(
       and(
         sql`${conversations.participants} @> ${JSON.stringify([userId])}::jsonb`,
         sql`${messages.senderId} != ${userId}`,
-        isNull(messages.readAt),
+        notExists(
+          db.select({ one: sql`1` })
+            .from(messageReads)
+            .where(and(eq(messageReads.messageId, messages.id), eq(messageReads.userId, sql`${userId}::uuid`))),
+        ),
       ),
     );
   return result[0]?.count ?? 0;
@@ -275,7 +287,11 @@ export async function getConversationUnreadCounts(
       and(
         sql`${conversations.participants} @> ${JSON.stringify([userId])}::jsonb`,
         sql`${messages.senderId} != ${userId}`,
-        isNull(messages.readAt),
+        notExists(
+          db.select({ one: sql`1` })
+            .from(messageReads)
+            .where(and(eq(messageReads.messageId, messages.id), eq(messageReads.userId, sql`${userId}::uuid`))),
+        ),
       ),
     )
     .groupBy(messages.conversationId);
@@ -287,19 +303,36 @@ export async function getConversationUnreadCounts(
   return result;
 }
 
+/**
+ * Mark all unread messages in a conversation as read for a specific user.
+ * Uses INSERT ... ON CONFLICT DO NOTHING for idempotency.
+ */
 export async function markMessagesRead(
   db: DB,
   conversationId: string,
   userId: string,
 ): Promise<void> {
-  await db
-    .update(messages)
-    .set({ readAt: new Date() })
+  // Find all messages in this conversation from other participants
+  // that this user hasn't read yet
+  const unread = await db
+    .select({ id: messages.id })
+    .from(messages)
     .where(
       and(
         eq(messages.conversationId, conversationId),
         sql`${messages.senderId} != ${userId}`,
-        isNull(messages.readAt),
+        notExists(
+          db.select({ one: sql`1` })
+            .from(messageReads)
+            .where(and(eq(messageReads.messageId, messages.id), eq(messageReads.userId, sql`${userId}::uuid`))),
+        ),
       ),
     );
+
+  if (unread.length === 0) return;
+
+  await db
+    .insert(messageReads)
+    .values(unread.map((m) => ({ messageId: m.id, userId })))
+    .onConflictDoNothing();
 }

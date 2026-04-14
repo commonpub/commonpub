@@ -4,6 +4,8 @@ import { createTestDB, createTestUser, closeTestDB } from './helpers/testdb.js';
 import {
   listConversations,
   getConversationMessages,
+  getConversationUnreadCounts,
+  getUnreadMessageCount,
   createConversation,
   findOrCreateConversation,
   sendMessage,
@@ -154,5 +156,61 @@ describe('messaging', () => {
   it('respects pagination in listConversations', async () => {
     const convos = await listConversations(db, aliceId, { limit: 2, offset: 0 });
     expect(convos.length).toBeLessThanOrEqual(2);
+  });
+
+  it('group chat: per-participant read tracking', async () => {
+    // Alice, Bob, Carol in a group — Carol sends messages
+    const group = await createConversation(db, [aliceId, bobId, carolId]);
+    await sendMessage(db, group.id, carolId, 'Group hello');
+    await sendMessage(db, group.id, carolId, 'Second msg');
+
+    // Before anyone reads: Alice and Bob each have 2 unread
+    const aliceUnread1 = await getUnreadMessageCount(db, aliceId);
+    const bobUnread1 = await getUnreadMessageCount(db, bobId);
+    expect(aliceUnread1).toBeGreaterThanOrEqual(2);
+    expect(bobUnread1).toBeGreaterThanOrEqual(2);
+
+    // Alice reads the conversation
+    await markMessagesRead(db, group.id, aliceId);
+
+    // Alice's unread drops, Bob's stays the same
+    const aliceUnread2 = await getUnreadMessageCount(db, aliceId);
+    const bobUnread2 = await getUnreadMessageCount(db, bobId);
+    expect(aliceUnread2).toBe(aliceUnread1 - 2);
+    expect(bobUnread2).toBe(bobUnread1); // Bob unaffected by Alice reading
+
+    // Bob reads — now Bob's drops too
+    await markMessagesRead(db, group.id, bobId);
+    const bobUnread3 = await getUnreadMessageCount(db, bobId);
+    expect(bobUnread3).toBe(bobUnread1 - 2);
+  });
+
+  it('group chat: per-conversation unread counts are independent', async () => {
+    const group = await createConversation(db, [aliceId, bobId, carolId]);
+    await sendMessage(db, group.id, bobId, 'Hey group');
+
+    // Carol has 1 unread in this conversation
+    const carolCounts = await getConversationUnreadCounts(db, carolId);
+    expect(carolCounts[group.id]).toBe(1);
+
+    // Alice marks read — Carol still has 1 unread
+    await markMessagesRead(db, group.id, aliceId);
+    const carolCounts2 = await getConversationUnreadCounts(db, carolId);
+    expect(carolCounts2[group.id]).toBe(1);
+
+    // Carol marks read — Carol has 0 unread
+    await markMessagesRead(db, group.id, carolId);
+    const carolCounts3 = await getConversationUnreadCounts(db, carolId);
+    expect(carolCounts3[group.id]).toBeUndefined(); // 0 = not in map
+  });
+
+  it('markMessagesRead is idempotent', async () => {
+    const conv = await createConversation(db, [aliceId, bobId]);
+    await sendMessage(db, conv.id, aliceId, 'Idempotent test');
+    await markMessagesRead(db, conv.id, bobId);
+    await markMessagesRead(db, conv.id, bobId); // second call should not throw
+    const msgs = await getConversationMessages(db, conv.id, bobId);
+    const msg = msgs.find((m) => m.body === 'Idempotent test');
+    expect(msg?.readAt).toBeInstanceOf(Date);
   });
 });
