@@ -46,11 +46,15 @@ async function addTrusted(): Promise<void> {
 }
 
 async function removeTrusted(domain: string): Promise<void> {
-  await $fetch('/api/admin/federation/trusted-instances', {
-    method: 'DELETE',
-    body: { domain },
-  });
-  await refreshTrusted();
+  try {
+    await $fetch('/api/admin/federation/trusted-instances', {
+      method: 'DELETE',
+      body: { domain },
+    });
+    await refreshTrusted();
+  } catch {
+    alert('Failed to remove trusted instance');
+  }
 }
 
 // Mirror creation
@@ -79,16 +83,24 @@ async function createMirror(): Promise<void> {
 }
 
 async function toggleMirror(id: string, currentStatus: string): Promise<void> {
-  await $fetch(`/api/admin/federation/mirrors/${id}`, {
-    method: 'PUT',
-    body: { action: currentStatus === 'active' ? 'pause' : 'resume' },
-  });
-  await refreshMirrors();
+  try {
+    await $fetch(`/api/admin/federation/mirrors/${id}`, {
+      method: 'PUT',
+      body: { action: currentStatus === 'active' ? 'pause' : 'resume' },
+    });
+    await refreshMirrors();
+  } catch {
+    alert('Failed to update mirror');
+  }
 }
 
 async function deleteMirror(id: string): Promise<void> {
-  await $fetch(`/api/admin/federation/mirrors/${id}`, { method: 'DELETE' });
-  await refreshMirrors();
+  try {
+    await $fetch(`/api/admin/federation/mirrors/${id}`, { method: 'DELETE' });
+    await refreshMirrors();
+  } catch {
+    alert('Failed to delete mirror');
+  }
 }
 
 // Backfill
