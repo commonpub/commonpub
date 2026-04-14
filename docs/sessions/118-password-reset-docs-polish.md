@@ -63,6 +63,14 @@ Sessions B–G of v1.0 completion plan. 7 commits, all deployed via CI auto-depl
 - Duplicate creates as draft regardless of source page status — prevents accidental publishing of duplicates
 - `sidebarLabel` is shown in nav only; full title still shown in page heading and breadcrumbs
 
+## Session D — Explainer Polish
+**Commit:** `03af963`
+- Border cleanup: 10 `1px solid` → `var(--border-width-default, 2px) solid` in 4 viewer components (reveal-cards, clickable-cards, toggle, InteractiveContainer)
+- InteractiveContainer already overrides `--border-width-default: 1px` for its dark context — border-width declarations now reference the var instead of hardcoding, staying consistent
+- New `useSectionHistory` composable: snapshot undo/redo for any JSON-serializable ref, max 50 states, truncates on branch, isRestoring guard. 11 tests.
+- Wired into ExplainerSectionEditor: Ctrl+Z / Shift+Ctrl+Z keyboard shortcuts + undo/redo toolbar buttons
+- Keyboard a11y was already done — all interactive viewer elements use `<button>` elements
+
 ## Session E — Nav Badge + Admin Reports
 **Commit:** `748b047`
 - Nav: dot indicator → numeric badge (capped at 99+) for messages + notifications
@@ -88,6 +96,13 @@ Sessions B–G of v1.0 completion plan. 7 commits, all deployed via CI auto-depl
 - Updated enum boundary tests
 - Video detail page: EngagementBar (like/bookmark/share) + CommentSection (threaded comments)
 
+## Audit Notes (post-session)
+- All Deploy Production CI runs succeeded
+- E2E CI still flaky: `navigation.spec.ts:17` — first tab doesn't receive `active` class within 10s in slow CI. Pre-existing. The line 22 fix (5s→10s) addressed a different timeout. Deeper fix needed (e.g., `toPass` retry, or wait for a reactive signal before asserting).
+- Settings pages (profile, account, notifications, appearance) verified as fully wired — no changes needed.
+
 ## Remaining Work
-- **PENDING**: Deploy Article→Blog merge (session 116) — needs SQL migration
+- **PENDING**: Deploy Article→Blog merge (session 116) — needs `UPDATE content_items SET type='blog' WHERE type='article';` on both instances, then push deveco-io
+- E2E flaky test at line 17 needs deeper investigation (first tab active class timing)
 - Backfill.ts unsigned fetches (deferred from Session F — low priority, public outboxes work)
+- Docs editor version switcher (edits only default version currently)
