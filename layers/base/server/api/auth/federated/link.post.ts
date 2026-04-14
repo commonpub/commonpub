@@ -1,4 +1,6 @@
 import { linkFederatedAccount, consumePendingLink } from '@commonpub/server';
+import { eq, and, isNull } from 'drizzle-orm';
+import { users } from '@commonpub/schema';
 import { z } from 'zod';
 
 const linkSchema = z.object({
@@ -30,12 +32,18 @@ export default defineEventHandler(async (event) => {
   }
 
   // Step 2: Resolve identity to email
-  const { email } = await $fetch<{ email: string }>('/api/resolve-identity', {
-    method: 'POST',
-    body: { identity: body.identity },
-  }).catch(() => {
-    throw createError({ statusCode: 401, statusMessage: 'Invalid credentials.' });
-  });
+  let email = body.identity;
+  if (!body.identity.includes('@')) {
+    const [user] = await db
+      .select({ email: users.email })
+      .from(users)
+      .where(and(eq(users.username, body.identity), isNull(users.deletedAt)))
+      .limit(1);
+    if (!user) {
+      throw createError({ statusCode: 401, statusMessage: 'Invalid credentials.' });
+    }
+    email = user.email;
+  }
 
   // Step 3: Authenticate via Better Auth sign-in (also creates session + sets cookie)
   const signInResponse = await $fetch<{ user?: { id: string }; session?: { token: string; expiresAt: string } }>(
