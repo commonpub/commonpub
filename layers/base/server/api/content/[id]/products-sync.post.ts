@@ -1,7 +1,12 @@
 import { syncContentProducts } from '@commonpub/server';
 import type { ContentProductItem } from '@commonpub/server';
 import { eq, and } from 'drizzle-orm';
-import { contentItems } from '@commonpub/schema';
+import { contentItems, addContentProductSchema } from '@commonpub/schema';
+import { z } from 'zod';
+
+const productsSyncSchema = z.object({
+  items: z.array(addContentProductSchema),
+});
 
 export default defineEventHandler(async (event): Promise<ContentProductItem[]> => {
   const db = useDB();
@@ -19,11 +24,7 @@ export default defineEventHandler(async (event): Promise<ContentProductItem[]> =
     throw createError({ statusCode: 403, statusMessage: 'Not authorized to modify this content' });
   }
 
-  const body = await readBody(event);
-
-  if (!Array.isArray(body?.items)) {
-    throw createError({ statusCode: 400, statusMessage: 'items array is required' });
-  }
+  const body = await parseBody(event, productsSyncSchema);
 
   return syncContentProducts(db, id, body.items);
 });

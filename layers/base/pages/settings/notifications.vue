@@ -15,7 +15,7 @@ const prefs = ref({
 // Load current preferences from profile
 import type { Serialized, UserProfile } from '@commonpub/server';
 
-const { data: profile } = await useFetch<Serialized<UserProfile> & { notificationPrefs?: Record<string, boolean> }>('/api/profile');
+const { data: profile, pending } = await useFetch<Serialized<UserProfile> & { notificationPrefs?: Record<string, boolean> }>('/api/profile');
 if (profile.value?.notificationPrefs) {
   const saved = profile.value.notificationPrefs;
   for (const key of Object.keys(prefs.value)) {
@@ -54,6 +54,11 @@ async function handleSave(): Promise<void> {
   <div>
     <h2 class="cpub-section-title-lg">Notification Preferences</h2>
 
+    <div v-if="pending" style="padding: 32px; text-align: center; color: var(--text-faint);">
+      <i class="fa-solid fa-circle-notch fa-spin"></i> Loading preferences...
+    </div>
+
+    <template v-else>
     <div v-for="(val, key) in prefs" :key="key" style="margin-bottom: 12px">
       <label class="cpub-checkbox">
         <input type="checkbox" v-model="prefs[key as keyof typeof prefs]" />
@@ -64,5 +69,6 @@ async function handleSave(): Promise<void> {
     <button class="cpub-btn cpub-btn-primary cpub-btn-sm" style="margin-top: 16px" :disabled="saving" @click="handleSave">
       {{ saving ? 'Saving...' : 'Save Preferences' }}
     </button>
+    </template>
   </div>
 </template>

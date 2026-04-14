@@ -28,7 +28,7 @@ const contentQuery = computed(() => ({
   limit: 12,
 }));
 
-const { data: feed } = await useFetch<PaginatedResponse<Serialized<ContentListItem>>>('/api/content', {
+const { data: feed, pending: feedPending } = await useFetch<PaginatedResponse<Serialized<ContentListItem>>>('/api/content', {
   query: contentQuery,
   watch: [contentQuery],
 });
@@ -38,13 +38,13 @@ const { data: featured } = await useFetch<PaginatedResponse<Serialized<ContentLi
   query: { status: 'published', featured: true, limit: 1 },
 });
 
-const { data: stats } = await useFetch('/api/stats');
+const { data: stats, pending: statsPending } = await useFetch('/api/stats');
 
-const { data: communities } = await useFetch('/api/hubs', {
+const { data: communities, pending: communitiesPending } = await useFetch('/api/hubs', {
   query: { limit: 4 },
 });
 
-const { data: contests } = await useFetch('/api/contests', {
+const { data: contests, pending: contestsPending } = await useFetch('/api/contests', {
   query: { limit: 3 },
 });
 
@@ -254,7 +254,10 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
         </NuxtLink>
 
         <!-- Content grid (2-col) -->
-        <div v-if="feed?.items?.length" class="cpub-content-grid">
+        <div v-if="feedPending" class="cpub-loading-state">
+          <i class="fa-solid fa-circle-notch fa-spin"></i> Loading content...
+        </div>
+        <div v-else-if="feed?.items?.length" class="cpub-content-grid">
           <ContentCard v-for="item in feed.items" :key="item.id" :item="item" />
         </div>
         <div v-else class="cpub-empty-state">
@@ -288,7 +291,8 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
         <!-- Platform Stats -->
         <div class="cpub-sb-card">
           <div class="cpub-sb-head">Platform Stats</div>
-          <div class="cpub-stats-grid">
+          <div v-if="statsPending" class="cpub-loading-state"><i class="fa-solid fa-circle-notch fa-spin"></i></div>
+          <div v-else class="cpub-stats-grid">
             <div class="cpub-stat-block">
               <span class="cpub-stat-num">{{ stats?.content?.byType?.project ?? 0 }}</span>
               <span class="cpub-stat-lbl">Projects</span>
@@ -324,7 +328,11 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
         </div>
 
         <!-- Trending Hubs -->
-        <div v-if="hubsEnabled && communities?.items?.length" class="cpub-sb-card">
+        <div v-if="hubsEnabled && communitiesPending" class="cpub-sb-card">
+          <div class="cpub-sb-head">Trending Hubs</div>
+          <div class="cpub-loading-state"><i class="fa-solid fa-circle-notch fa-spin"></i></div>
+        </div>
+        <div v-else-if="hubsEnabled && communities?.items?.length" class="cpub-sb-card">
           <div class="cpub-sb-head">Trending Hubs <NuxtLink to="/hubs">Browse</NuxtLink></div>
           <div v-for="hub in communities.items" :key="hub.id" class="cpub-hub-item">
             <div class="cpub-hub-icon">
@@ -1050,5 +1058,15 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
   .cpub-main-layout {
     padding: 16px;
   }
+}
+
+.cpub-loading-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2, 8px);
+  padding: var(--space-8, 32px);
+  color: var(--text-faint);
+  font-size: var(--font-size-sm, 14px);
 }
 </style>

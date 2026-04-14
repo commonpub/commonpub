@@ -10,7 +10,7 @@ const notifQuery = computed(() => ({
   limit: 50,
 }));
 
-const { data: notifData, refresh } = await useFetch('/api/notifications', {
+const { data: notifData, pending, refresh } = await useFetch('/api/notifications', {
   query: notifQuery,
   watch: [notifQuery],
   default: () => ({ items: [], total: 0 }),
@@ -51,6 +51,10 @@ async function deleteNotification(id: string): Promise<void> {
     </div>
 
     <div class="cpub-notif-list">
+      <div v-if="pending" class="cpub-notif-loading">
+        <i class="fa-solid fa-circle-notch fa-spin"></i> Loading notifications...
+      </div>
+      <template v-else>
       <NotificationItem
         v-for="n in filteredNotifications"
         :key="n.id"
@@ -61,6 +65,7 @@ async function deleteNotification(id: string): Promise<void> {
         <p class="cpub-empty-state-title">No notifications</p>
         <p class="cpub-empty-state-desc">You're all caught up!</p>
       </div>
+      </template>
     </div>
   </div>
 </template>
@@ -82,6 +87,15 @@ async function deleteNotification(id: string): Promise<void> {
 .cpub-notif-list {
   border: var(--border-width-default) solid var(--border);
   background: var(--surface);
+}
+
+.cpub-notif-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: var(--space-8, 32px);
+  color: var(--text-faint);
 }
 
 @media (max-width: 768px) {
