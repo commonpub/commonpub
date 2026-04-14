@@ -115,6 +115,7 @@ export const lessonProgress = pgTable(
   (t) => [
     unique('lesson_progress_user_lesson').on(t.userId, t.lessonId),
     index('idx_lesson_progress_lesson_id').on(t.lessonId),
+    index('idx_lesson_progress_user_id').on(t.userId),
   ],
 );
 
