@@ -133,6 +133,7 @@ export const hubPostLikes = pgTable('hub_post_likes', {
 }, (t) => [
   unique('uq_hub_post_likes_post_user').on(t.postId, t.userId),
   index('idx_hub_post_likes_post_id').on(t.postId),
+  index('idx_hub_post_likes_user_id').on(t.userId),
 ]);
 
 export const hubBans = pgTable('hub_bans', {
@@ -258,6 +259,7 @@ export const hubPostsRelations = relations(hubPosts, ({ one, many }) => ({
   }),
   author: one(users, { fields: [hubPosts.authorId], references: [users.id] }),
   replies: many(hubPostReplies),
+  likes: many(hubPostLikes),
 }));
 
 export const hubPostRepliesRelations = relations(hubPostReplies, ({ one, many }) => ({
@@ -272,6 +274,11 @@ export const hubPostRepliesRelations = relations(hubPostReplies, ({ one, many })
     relationName: 'replyThread',
   }),
   children: many(hubPostReplies, { relationName: 'replyThread' }),
+}));
+
+export const hubPostLikesRelations = relations(hubPostLikes, ({ one }) => ({
+  post: one(hubPosts, { fields: [hubPostLikes.postId], references: [hubPosts.id] }),
+  user: one(users, { fields: [hubPostLikes.userId], references: [users.id] }),
 }));
 
 export const hubBansRelations = relations(hubBans, ({ one }) => ({

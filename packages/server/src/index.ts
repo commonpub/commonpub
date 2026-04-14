@@ -502,6 +502,9 @@ export type {
   VideoCategoryItem,
 } from './video/index.js';
 
+// Auth
+export { resolveIdentityToEmail } from './auth/index.js';
+
 // Storage
 export {
   LocalStorageAdapter,

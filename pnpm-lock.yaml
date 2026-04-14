@@ -146,11 +146,11 @@ importers:
         specifier: workspace:*
         version: link:../../packages/protocol
       '@commonpub/schema':
-        specifier: ^0.9.8
-        version: 0.9.8(drizzle-orm@0.45.2(@electric-sql/pglite@0.3.16)(@opentelemetry/api@1.9.1)(gel@2.2.0)(kysely@0.28.14)(pg@8.20.0))
+        specifier: ^0.9.9
+        version: 0.9.9(drizzle-orm@0.45.2(@electric-sql/pglite@0.3.16)(@opentelemetry/api@1.9.1)(gel@2.2.0)(kysely@0.28.14)(pg@8.20.0))
       '@commonpub/server':
-        specifier: ^2.29.0
-        version: 2.29.0(ead3d5195deddcda3a0da60942237ff9)
+        specifier: ^2.29.1
+        version: 2.29.1(ead3d5195deddcda3a0da60942237ff9)
       '@commonpub/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -1295,8 +1295,14 @@ packages:
     peerDependencies:
       drizzle-orm: ^0.45.1
 
-  '@commonpub/server@2.29.0':
-    resolution: {integrity: sha512-K8Enykf94aJgjSJbUS5iQqWpm1go+qI19Y2iCREK3AL45TGgWcHEkYWfOjQx+i4m/JfzKPcNxo/ZA2ppfTDBjA==}
+  '@commonpub/schema@0.9.9':
+    resolution: {integrity: sha512-E0QIwQLRD9jytaRcg8p5lqlp4Iy8auPinw4CTgTtQ/MS4AdDAcKC/9Xhr96BwAUaBdFBwSD3Hdi8qPBvm0cAWw==}
+    engines: {node: '>=22'}
+    peerDependencies:
+      drizzle-orm: ^0.45.1
+
+  '@commonpub/server@2.29.1':
+    resolution: {integrity: sha512-OiCq9wReDrIeQv8257Jkm1YjIgbcC1+jcBQlie71A51BLzVLcsMUWuri3yywzFaWsexYmUM4ZbFW68G5F5sFaQ==}
     engines: {node: '>=22'}
     peerDependencies:
       drizzle-orm: ^0.45.1
@@ -9425,7 +9431,12 @@ snapshots:
       drizzle-orm: 0.45.2(@electric-sql/pglite@0.3.16)(@opentelemetry/api@1.9.1)(gel@2.2.0)(kysely@0.28.14)(pg@8.20.0)
       zod: 4.3.6
 
-  '@commonpub/server@2.29.0(ead3d5195deddcda3a0da60942237ff9)':
+  '@commonpub/schema@0.9.9(drizzle-orm@0.45.2(@electric-sql/pglite@0.3.16)(@opentelemetry/api@1.9.1)(gel@2.2.0)(kysely@0.28.14)(pg@8.20.0))':
+    dependencies:
+      drizzle-orm: 0.45.2(@electric-sql/pglite@0.3.16)(@opentelemetry/api@1.9.1)(gel@2.2.0)(kysely@0.28.14)(pg@8.20.0)
+      zod: 4.3.6
+
+  '@commonpub/server@2.29.1(ead3d5195deddcda3a0da60942237ff9)':
     dependencies:
       '@commonpub/auth': 0.5.0(@electric-sql/pglite@0.3.16)(@opentelemetry/api@1.9.1)(@sveltejs/kit@2.54.0(@opentelemetry/api@1.9.1)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.53.10(@typescript-eslint/types@8.58.1))(vite@7.3.2(@types/node@25.6.0)(jiti@2.6.1)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3)))(svelte@5.53.10(@typescript-eslint/types@8.58.1))(typescript@5.9.3)(vite@7.3.2(@types/node@25.6.0)(jiti@2.6.1)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3)))(drizzle-kit@0.31.10)(gel@2.2.0)(kysely@0.28.14)(mongodb@7.1.0)(pg@8.20.0)(svelte@5.53.10(@typescript-eslint/types@8.58.1))(vitest@3.2.4(@types/debug@4.1.12)(@types/node@25.6.0)(jiti@2.6.1)(jsdom@25.0.1)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))(vue@3.5.32(typescript@5.9.3))
       '@commonpub/config': 0.9.1
@@ -9434,7 +9445,7 @@ snapshots:
       '@commonpub/infra': 0.5.1(@aws-sdk/client-s3@3.1029.0)(sharp@0.34.5)
       '@commonpub/learning': 0.5.0(4dec9a5df44f489bb51cc498582f6333)
       '@commonpub/protocol': 0.9.8(drizzle-orm@0.45.2(@electric-sql/pglite@0.3.16)(@opentelemetry/api@1.9.1)(gel@2.2.0)(kysely@0.28.14)(pg@8.20.0))
-      '@commonpub/schema': 0.9.8(drizzle-orm@0.45.2(@electric-sql/pglite@0.3.16)(@opentelemetry/api@1.9.1)(gel@2.2.0)(kysely@0.28.14)(pg@8.20.0))
+      '@commonpub/schema': 0.9.9(drizzle-orm@0.45.2(@electric-sql/pglite@0.3.16)(@opentelemetry/api@1.9.1)(gel@2.2.0)(kysely@0.28.14)(pg@8.20.0))
       '@mozilla/readability': 0.6.0
       drizzle-orm: 0.45.2(@electric-sql/pglite@0.3.16)(@opentelemetry/api@1.9.1)(gel@2.2.0)(kysely@0.28.14)(pg@8.20.0)
       isomorphic-dompurify: 3.8.0(@noble/hashes@2.0.1)
