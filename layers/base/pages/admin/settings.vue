@@ -3,7 +3,7 @@ definePageMeta({ layout: 'admin', middleware: 'auth' });
 
 useSeoMeta({ title: `Settings — Admin — ${useSiteName()}` });
 
-const { data: settings, refresh } = await useFetch<Record<string, string>>('/api/admin/settings');
+const { data: settings, pending, refresh } = await useFetch<Record<string, string>>('/api/admin/settings');
 
 const saving = ref(false);
 const editKey = ref('');
@@ -106,7 +106,10 @@ async function addSetting(): Promise<void> {
       </div>
     </div>
 
-    <p class="admin-empty" v-if="!settings">No settings configured.</p>
+    <div v-if="pending" class="admin-loading">
+      <i class="fa-solid fa-circle-notch fa-spin"></i> Loading...
+    </div>
+    <p class="admin-empty" v-else-if="!settings">No settings configured.</p>
   </div>
 </template>
 
@@ -152,6 +155,14 @@ async function addSetting(): Promise<void> {
   padding: var(--space-3) var(--space-4);
   border: 2px dashed var(--border);
   background: var(--surface);
+}
+
+.admin-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: var(--space-8, 32px);
+  color: var(--text-faint);
 }
 
 .admin-empty {

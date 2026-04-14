@@ -4,7 +4,7 @@ useSeoMeta({ title: `Federation — Admin — ${useSiteName()}` });
 
 const activeTab = ref<'activity' | 'mirrors' | 'clients' | 'trusted' | 'tools'>('activity');
 
-const { data: statsData } = await useFetch('/api/admin/federation/stats', {
+const { data: statsData, pending } = await useFetch('/api/admin/federation/stats', {
   default: () => ({ inbound: 0, outbound: 0, pending: 0, failed: 0, followers: 0, following: 0 }),
 });
 
@@ -177,6 +177,12 @@ async function refederate(): Promise<void> {
 <template>
   <div>
     <h1 class="cpub-admin-title">Federation</h1>
+
+    <!-- Loading -->
+    <div v-if="pending" class="cpub-fed-loading">
+      <i class="fa-solid fa-circle-notch fa-spin"></i> Loading...
+    </div>
+    <template v-else>
 
     <!-- Stats -->
     <div class="cpub-fed-stats">
@@ -395,10 +401,12 @@ async function refederate(): Promise<void> {
         </div>
       </div>
     </div>
+    </template>
   </div>
 </template>
 
 <style scoped>
+.cpub-fed-loading { display: flex; align-items: center; gap: 8px; padding: 32px; color: var(--text-faint); font-family: var(--font-mono); font-size: 0.8125rem; }
 .cpub-admin-title { font-size: 1.25rem; font-weight: 700; margin-bottom: 20px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.04em; }
 
 .cpub-fed-stats {

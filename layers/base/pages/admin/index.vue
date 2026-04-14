@@ -2,13 +2,17 @@
 definePageMeta({ layout: 'admin', middleware: 'auth' });
 useSeoMeta({ title: `Admin Dashboard — ${useSiteName()}` });
 
-const { data: stats } = await useFetch('/api/admin/stats');
+const { data: stats, pending } = await useFetch('/api/admin/stats');
 </script>
 
 <template>
   <div class="cpub-admin-dashboard">
     <h1 class="cpub-admin-title">Platform Dashboard</h1>
 
+    <div v-if="pending" class="cpub-admin-loading">
+      <i class="fa-solid fa-circle-notch fa-spin"></i> Loading...
+    </div>
+    <template v-else>
     <div class="cpub-stats-grid" v-if="stats">
       <div class="cpub-stat-card" v-for="stat in [
         { label: 'Users', value: stats.users?.total ?? 0, icon: 'fa-solid fa-users' },
@@ -43,10 +47,12 @@ const { data: stats } = await useFetch('/api/admin/stats');
         </NuxtLink>
       </div>
     </div>
+    </template>
   </div>
 </template>
 
 <style scoped>
+.cpub-admin-loading { display: flex; align-items: center; gap: 8px; padding: var(--space-8, 32px); color: var(--text-faint); }
 .cpub-admin-title { font-size: var(--text-xl); font-weight: var(--font-weight-bold); margin-bottom: var(--space-6); }
 .cpub-stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: var(--space-4); margin-bottom: var(--space-8); }
 .cpub-stat-card { padding: var(--space-5); background: var(--surface); border: var(--border-width-default) solid var(--border); box-shadow: var(--shadow-md); display: flex; flex-direction: column; align-items: center; gap: var(--space-2); }

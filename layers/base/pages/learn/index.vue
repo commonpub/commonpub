@@ -138,7 +138,7 @@ const activeDifficultyFilter = ref('');
 
           <!-- Loading -->
           <div v-if="loadingPaths" style="padding: 24px 0; text-align: center; color: var(--text-faint); font-size: 12px;">
-            Loading paths...
+            <i class="fa-solid fa-circle-notch fa-spin"></i> Loading paths...
           </div>
 
           <!-- Real data -->
