@@ -1,6 +1,6 @@
 import { contentToArticle } from '@commonpub/protocol';
 import { contentItems, users } from '@commonpub/schema';
-import { eq, and, isNull, sql } from 'drizzle-orm';
+import { eq, and, isNull, inArray } from 'drizzle-orm';
 
 /**
  * Middleware: serve ActivityPub Article JSON-LD for content URIs.
@@ -35,7 +35,7 @@ export default defineEventHandler(async (event) => {
 
   // For blog type, also match 'article' in DB (transition: pre-migration rows still have type='article')
   const typeFilter = type === 'blog'
-    ? sql`${contentItems.type} IN ('blog', 'article')`
+    ? inArray(contentItems.type, ['blog', 'article'])
     : eq(contentItems.type, type as 'project' | 'explainer');
 
   const [row] = await db

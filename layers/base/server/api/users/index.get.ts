@@ -1,5 +1,5 @@
 import { users, follows } from '@commonpub/schema';
-import { sql, desc, ilike, or, and, isNull } from 'drizzle-orm';
+import { sql, desc, ilike, or, and, isNull, inArray } from 'drizzle-orm';
 import { z } from 'zod';
 import { escapeLike } from '@commonpub/server';
 
@@ -23,7 +23,7 @@ export default defineEventHandler(async (event) => {
   if (query.ids) {
     const idList = query.ids.split(',').filter(Boolean).slice(0, 50);
     if (idList.length > 0) {
-      conditions.push(sql`${users.id} = ANY(ARRAY[${sql.join(idList.map((id) => sql`${id}::uuid`), sql`, `)}])`);
+      conditions.push(inArray(users.id, idList));
     }
   }
   if (search) {
@@ -59,7 +59,7 @@ export default defineEventHandler(async (event) => {
         count: sql<number>`count(*)::int`,
       })
       .from(follows)
-      .where(sql`${follows.followingId} = ANY(ARRAY[${sql.join(userIds.map((id) => sql`${id}::uuid`), sql`, `)}])`)
+      .where(inArray(follows.followingId, userIds))
       .groupBy(follows.followingId);
 
     for (const c of counts) {

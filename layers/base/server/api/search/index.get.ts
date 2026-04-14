@@ -1,7 +1,7 @@
 import { searchContent, listHubs, escapeLike } from '@commonpub/server';
 import type { ContentSearchOptions, MeiliClient } from '@commonpub/server';
 import { users, follows, hubs } from '@commonpub/schema';
-import { sql, desc, ilike, or, and, isNull, eq } from 'drizzle-orm';
+import { sql, desc, ilike, or, and, isNull, eq, inArray } from 'drizzle-orm';
 import { z } from 'zod';
 
 const searchQuerySchema = z.object({
@@ -82,7 +82,7 @@ export default defineEventHandler(async (event): Promise<{ items: unknown[]; tot
       const counts = await db
         .select({ followingId: follows.followingId, count: sql<number>`count(*)::int` })
         .from(follows)
-        .where(sql`${follows.followingId} = ANY(ARRAY[${sql.join(userIds.map((id) => sql`${id}::uuid`), sql`, `)}])`)
+        .where(inArray(follows.followingId, userIds))
         .groupBy(follows.followingId);
       for (const c of counts) followerCounts[c.followingId] = c.count;
     }

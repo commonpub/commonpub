@@ -1,4 +1,4 @@
-import { sql } from 'drizzle-orm';
+import { eq, desc } from 'drizzle-orm';
 import { contentItems } from '@commonpub/schema';
 
 export default defineEventHandler(async (): Promise<Array<{ query: string; trend: number }>> => {
@@ -11,8 +11,8 @@ export default defineEventHandler(async (): Promise<Array<{ query: string; trend
       viewCount: contentItems.viewCount,
     })
     .from(contentItems)
-    .where(sql`${contentItems.status} = 'published'`)
-    .orderBy(sql`${contentItems.viewCount} DESC`)
+    .where(eq(contentItems.status, 'published'))
+    .orderBy(desc(contentItems.viewCount))
     .limit(8);
 
   return rows.map((r) => ({
