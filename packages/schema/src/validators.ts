@@ -136,6 +136,7 @@ export const likeTargetTypeSchema = z.enum([
   'comment',
   'post',
   'explainer',
+  'video',
 ]);
 export type LikeTargetType = z.infer<typeof likeTargetTypeSchema>;
 
@@ -146,6 +147,7 @@ export const commentTargetTypeSchema = z.enum([
   'explainer',
   'post',
   'lesson',
+  'video',
 ]);
 export type CommentTargetType = z.infer<typeof commentTargetTypeSchema>;
 

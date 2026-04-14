@@ -68,6 +68,15 @@ const authorInitial = computed(() => {
       </div>
       <p v-if="video.description" class="cpub-video-desc">{{ video.description }}</p>
 
+      <!-- Engagement -->
+      <EngagementBar
+        target-type="video"
+        :target-id="video.id"
+        :target-title="video.title"
+        :like-count="video.likeCount ?? 0"
+        :comment-count="video.commentCount ?? 0"
+      />
+
       <!-- Author -->
       <div v-if="video.author" class="cpub-video-author">
         <div class="cpub-video-author-av">
@@ -84,6 +93,11 @@ const authorInitial = computed(() => {
           </NuxtLink>
         </div>
       </div>
+    </div>
+
+    <!-- Comments -->
+    <div class="cpub-video-comments">
+      <CommentSection target-type="video" :target-id="video.id" />
     </div>
   </div>
   <div v-else class="cpub-empty-state" style="padding: 64px">
@@ -199,6 +213,10 @@ const authorInitial = computed(() => {
 
 .cpub-video-author-name:hover {
   color: var(--accent);
+}
+
+.cpub-video-comments {
+  margin-top: 20px;
 }
 
 .cpub-link {

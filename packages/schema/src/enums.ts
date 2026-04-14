@@ -24,6 +24,7 @@ export const likeTargetTypeEnum = pgEnum('like_target_type', [
   'explainer',
   'comment',
   'post',
+  'video',
 ]);
 export const commentTargetTypeEnum = pgEnum('comment_target_type', [
   'project',
@@ -32,6 +33,7 @@ export const commentTargetTypeEnum = pgEnum('comment_target_type', [
   'explainer',
   'post',
   'lesson',
+  'video',
 ]);
 export const bookmarkTargetTypeEnum = pgEnum('bookmark_target_type', [
   'project',

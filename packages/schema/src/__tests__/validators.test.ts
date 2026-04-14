@@ -1232,7 +1232,7 @@ describe('optionalUrl — boundary tests (via updateProfileSchema)', () => {
 
 describe('likeTargetTypeSchema — boundary tests', () => {
   it('accepts all valid like target types', () => {
-    for (const type of ['project', 'article', 'blog', 'comment', 'post', 'explainer'] as const) {
+    for (const type of ['project', 'article', 'blog', 'comment', 'post', 'explainer', 'video'] as const) {
       expect(likeTargetTypeSchema.parse(type)).toBe(type);
     }
   });
@@ -1249,7 +1249,7 @@ describe('likeTargetTypeSchema — boundary tests', () => {
 describe('commentTargetTypeSchema — boundary tests', () => {
   it('accepts all valid comment target types', () => {
     for (const type of [
-      'project', 'article', 'blog', 'explainer', 'post', 'lesson',
+      'project', 'article', 'blog', 'explainer', 'post', 'lesson', 'video',
     ] as const) {
       expect(commentTargetTypeSchema.parse(type)).toBe(type);
     }
