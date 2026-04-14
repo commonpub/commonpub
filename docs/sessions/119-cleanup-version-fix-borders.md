@@ -99,15 +99,40 @@ auth/createAuth.test.ts — fully mocks betterAuth, verifies mock args. Tests co
 - Replaced `#fff` in ContentCard, ImageUpload
 - BlockCodeView syntax highlighting theme (20+ hex) — intentionally left as-is (standalone highlight.js theme, needs `--hljs-*` token layer if ever themeable)
 
+## Commit 8 — Vanity Test Cleanup
+
+**Commit:** `2baa2f0`
+
+Deleted 50 vanity tests across 18 files:
+- 8× setup.test.ts (`expect(true).toBe(true)`) from auth, editor, explainer, protocol, test-utils, ui, infra, docs
+- 8× server module files (admin, docs, social, profile, federation, learning, hub, theme) — pure typeof-only export checks
+- 2× typeof-only tests from security.test.ts (14 real tests retained)
+- Replaced server/setup.test.ts with a consolidated barrel-export smoke test (1 test covering all 15 module groups)
+
+Test count: 2791 real tests (was 2841 with vanity padding).
+
+## Commit 9 — BlockCodeView Token Layer
+
+**Commit:** `0f2b900`
+
+Added 14 CSS custom properties to base.css for syntax highlighting:
+- `--code-bg`, `--code-text`, `--code-header-bg`, `--code-border`, `--code-muted`, `--code-green`
+- `--hljs-comment`, `--hljs-keyword`, `--hljs-literal`, `--hljs-string`, `--hljs-deletion`, `--hljs-meta`, `--hljs-name`, `--hljs-variable`
+
+BlockCodeView now has zero hardcoded hex values. Themes can override the entire code block color scheme.
+
+## Commit 10 — Last Hardcoded Hex Values
+
+**Commit:** `65a2e7e`
+
+Fixed last 3 non-fallback hex values in layer:
+- HubHero gradient: `#006b6b` → `var(--teal)`
+- BlogEditor toggle: `#fff` → `var(--color-text-inverse)`
+- Admin theme toast: `#fff` → `var(--color-text-inverse)`
+
+All remaining hex in layer components/pages are now either `var()` fallbacks (correct) or theme preview data (intentional).
+
 ## Remaining Work
-
-### MEDIUM — Vanity test replacement (~50 tests)
-- 6× `expect(true).toBe(true)` setup files, 36+ typeof-only server module export checks, ~4 schema relation toBeDefined
-- Replace with behavioral tests or single barrel-export snapshot
-
-### MEDIUM — BlockCodeView syntax highlighting
-- 20+ hardcoded hex values for GitHub Dark highlight.js theme
-- Needs `--hljs-*` token layer to support light-mode theming of code blocks
 
 ### LOW — Technical Debt
 - Backfill historical remote replies on mirrored hubs
