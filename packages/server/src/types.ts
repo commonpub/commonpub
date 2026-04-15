@@ -111,6 +111,13 @@ export interface UserProfile {
     description: string;
   }> | null;
   pronouns: string | null;
+  emailNotifications: {
+    digest?: 'daily' | 'weekly' | 'none';
+    likes?: boolean;
+    comments?: boolean;
+    follows?: boolean;
+    mentions?: boolean;
+  } | null;
   createdAt: Date;
   followerCount: number;
   followingCount: number;

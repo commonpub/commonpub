@@ -66,6 +66,7 @@ export async function getUserByUsername(db: DB, username: string): Promise<UserP
     skills: (user.skills as string[]) ?? null,
     experience: (user.experience as UserProfile['experience']) ?? null,
     pronouns: user.pronouns ?? null,
+    emailNotifications: (user.emailNotifications as UserProfile['emailNotifications']) ?? null,
     createdAt: user.createdAt,
     followerCount,
     followingCount,

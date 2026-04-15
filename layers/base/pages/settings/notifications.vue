@@ -4,41 +4,39 @@ definePageMeta({ middleware: 'auth' });
 const { show: toast } = useToast();
 const saving = ref(false);
 
-const prefs = ref({
-  emailLikes: true,
-  emailComments: true,
-  emailFollows: true,
-  emailMentions: true,
-  emailDigest: false,
-});
+const likes = ref(true);
+const comments = ref(true);
+const follows = ref(true);
+const mentions = ref(true);
+const digest = ref<'none' | 'daily' | 'weekly'>('none');
 
 // Load current preferences from profile
 import type { Serialized, UserProfile } from '@commonpub/server';
 
-const { data: profile, pending } = await useFetch<Serialized<UserProfile> & { notificationPrefs?: Record<string, boolean> }>('/api/profile');
-if (profile.value?.notificationPrefs) {
-  const saved = profile.value.notificationPrefs;
-  for (const key of Object.keys(prefs.value)) {
-    if (key in saved) {
-      (prefs.value as Record<string, boolean>)[key] = saved[key];
-    }
-  }
+const { data: profile, pending } = await useFetch<Serialized<UserProfile> & { emailNotifications?: { digest?: string; likes?: boolean; comments?: boolean; follows?: boolean; mentions?: boolean } }>('/api/profile');
+if (profile.value?.emailNotifications) {
+  const saved = profile.value.emailNotifications;
+  if (saved.likes !== undefined) likes.value = saved.likes;
+  if (saved.comments !== undefined) comments.value = saved.comments;
+  if (saved.follows !== undefined) follows.value = saved.follows;
+  if (saved.mentions !== undefined) mentions.value = saved.mentions;
+  if (saved.digest) digest.value = saved.digest as 'none' | 'daily' | 'weekly';
 }
-
-const labels: Record<string, string> = {
-  emailLikes: 'Email when someone likes your content',
-  emailComments: 'Email when someone comments on your content',
-  emailFollows: 'Email when someone follows you',
-  emailMentions: 'Email when someone mentions you',
-  emailDigest: 'Weekly digest email',
-};
 
 async function handleSave(): Promise<void> {
   saving.value = true;
   try {
     await $fetch('/api/profile', {
       method: 'PUT',
-      body: { notificationPrefs: prefs.value },
+      body: {
+        emailNotifications: {
+          likes: likes.value,
+          comments: comments.value,
+          follows: follows.value,
+          mentions: mentions.value,
+          digest: digest.value,
+        },
+      },
     });
     toast('Preferences saved', 'success');
   } catch (err: unknown) {
@@ -59,11 +57,32 @@ async function handleSave(): Promise<void> {
     </div>
 
     <template v-else>
-    <div v-for="(val, key) in prefs" :key="key" style="margin-bottom: 12px">
-      <label class="cpub-checkbox">
-        <input type="checkbox" v-model="prefs[key as keyof typeof prefs]" />
-        {{ labels[key] || key }}
-      </label>
+    <div class="cpub-prefs-section">
+      <h3 class="cpub-section-subtitle">Email Notifications</h3>
+      <div class="cpub-pref-row">
+        <label class="cpub-checkbox"><input type="checkbox" v-model="likes" /> Email when someone likes your content</label>
+      </div>
+      <div class="cpub-pref-row">
+        <label class="cpub-checkbox"><input type="checkbox" v-model="comments" /> Email when someone comments on your content</label>
+      </div>
+      <div class="cpub-pref-row">
+        <label class="cpub-checkbox"><input type="checkbox" v-model="follows" /> Email when someone follows you</label>
+      </div>
+      <div class="cpub-pref-row">
+        <label class="cpub-checkbox"><input type="checkbox" v-model="mentions" /> Email when someone mentions you</label>
+      </div>
+    </div>
+
+    <div class="cpub-prefs-section">
+      <h3 class="cpub-section-subtitle">Digest</h3>
+      <div class="cpub-pref-row">
+        <label for="digest-select">Summary email frequency</label>
+        <select id="digest-select" v-model="digest" class="cpub-input" style="max-width: 200px;">
+          <option value="none">None</option>
+          <option value="daily">Daily (8am UTC)</option>
+          <option value="weekly">Weekly (Monday 8am UTC)</option>
+        </select>
+      </div>
     </div>
 
     <button class="cpub-btn cpub-btn-primary cpub-btn-sm" style="margin-top: 16px" :disabled="saving" @click="handleSave">
@@ -72,3 +91,9 @@ async function handleSave(): Promise<void> {
     </template>
   </div>
 </template>
+
+<style scoped>
+.cpub-prefs-section { margin-bottom: 24px; }
+.cpub-section-subtitle { font-size: 13px; font-weight: 700; margin-bottom: 12px; color: var(--text); }
+.cpub-pref-row { margin-bottom: 10px; }
+</style>
