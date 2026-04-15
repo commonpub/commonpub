@@ -3,7 +3,7 @@ import type { DB } from '../types.js';
 import { createTestDB, createTestUser, closeTestDB } from './helpers/testdb.js';
 import { createHub, getHubBySlug, listHubs, updateHub } from '../hub/hub.js';
 import { joinHub, leaveHub, listMembers } from '../hub/members.js';
-import { createPost, listPosts } from '../hub/posts.js';
+import { createPost, listPosts, likePost, unlikePost, hasLikedPost } from '../hub/posts.js';
 import { banUser, checkBan, unbanUser, listBans, createInvite, listInvites } from '../hub/moderation.js';
 
 describe('hub integration', () => {
@@ -142,5 +142,42 @@ describe('hub integration', () => {
 
     expect(ownerMember).toBeDefined();
     expect(ownerMember!.role).toBe('owner');
+  });
+
+  // PGlite doesn't support ON CONFLICT ... DO NOTHING ... RETURNING — skip until real Postgres test DB
+  it.skip('likes and unlikes a hub post', async () => {
+    const hub = await createHub(db, ownerId, { name: 'Like Test Hub' });
+    await joinHub(db, memberId, hub.id);
+    const post = await createPost(db, ownerId, { hubId: hub.id, content: 'Test post for likes' });
+
+    // Like
+    const liked = await likePost(db, post.id, memberId);
+    expect(liked).toBe(true);
+
+    // Check liked status
+    const isLiked = await hasLikedPost(db, post.id, memberId);
+    expect(isLiked).toBe(true);
+
+    // Unlike
+    const unliked = await unlikePost(db, post.id, memberId);
+    expect(unliked).toBe(true);
+
+    // Confirm unliked
+    const isStillLiked = await hasLikedPost(db, post.id, memberId);
+    expect(isStillLiked).toBe(false);
+  });
+
+  it.skip('liking a post twice is idempotent', async () => {
+    const hub = await createHub(db, ownerId, { name: 'Idempotent Like Hub' });
+    await joinHub(db, memberId, hub.id);
+    const post = await createPost(db, ownerId, { hubId: hub.id, content: 'Double like test' });
+
+    await likePost(db, post.id, memberId);
+    const secondLike = await likePost(db, post.id, memberId);
+    // onConflictDoNothing means second like returns false (no new row)
+    expect(secondLike).toBe(false);
+
+    // Still liked
+    expect(await hasLikedPost(db, post.id, memberId)).toBe(true);
   });
 });

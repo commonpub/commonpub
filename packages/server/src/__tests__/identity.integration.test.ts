@@ -1,4 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { eq } from 'drizzle-orm';
+import { users } from '@commonpub/schema';
 import type { DB } from '../types.js';
 import { createTestDB, createTestUser, closeTestDB } from './helpers/testdb.js';
 import { resolveIdentityToEmail } from '../auth/identity.js';
@@ -27,5 +29,11 @@ describe('resolveIdentityToEmail', () => {
 
   it('throws when username is not found', async () => {
     await expect(resolveIdentityToEmail(db, 'nonexistent')).rejects.toThrow('Invalid credentials');
+  });
+
+  it('rejects soft-deleted users', async () => {
+    const deleted = await createTestUser(db, { username: 'deleteduser', email: 'deleted@example.com' });
+    await db.update(users).set({ deletedAt: new Date() }).where(eq(users.id, deleted.id));
+    await expect(resolveIdentityToEmail(db, 'deleteduser')).rejects.toThrow('Invalid credentials');
   });
 });
