@@ -275,7 +275,8 @@ useJsonLd({
           class="cpub-related-card"
         >
           <div class="cpub-related-card-thumb">
-            <i class="fa-solid fa-newspaper"></i>
+            <img v-if="(item as any).coverImageUrl" :src="(item as any).coverImageUrl" :alt="item.title" class="cpub-related-card-img" />
+            <i v-else class="fa-solid fa-newspaper"></i>
           </div>
           <div class="cpub-related-card-body">
             <div class="cpub-related-card-type">{{ item.type }}</div>
@@ -909,6 +910,14 @@ useJsonLd({
     linear-gradient(90deg, var(--border2) 1px, transparent 1px);
   background-size: 20px 20px;
   opacity: 0.3;
+}
+
+.cpub-related-card-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  position: relative;
+  z-index: 1;
 }
 
 .cpub-related-card-thumb i {

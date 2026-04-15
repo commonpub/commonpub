@@ -33,13 +33,18 @@ export default defineEventHandler(async (event) => {
   }
 
   // Proxy to Better Auth's email sign-in (internal server-side call)
-  const origin = getRequestURL(event).origin;
+  // Forward Origin + Referer so Better Auth's CSRF protection accepts the request
+  const requestUrl = getRequestURL(event);
+  const origin = requestUrl.origin;
+  const clientOrigin = getRequestHeader(event, 'origin') || origin;
   const response = await $fetch.raw(`${origin}/api/auth/sign-in/email`, {
     method: 'POST',
     body: { email, password: body.password },
     headers: {
       'Content-Type': 'application/json',
       Cookie: getRequestHeader(event, 'cookie') ?? '',
+      Origin: clientOrigin,
+      Referer: getRequestHeader(event, 'referer') || `${clientOrigin}/auth/login`,
     },
   });
 
