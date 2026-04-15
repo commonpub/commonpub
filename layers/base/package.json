@@ -1,6 +1,6 @@
 {
   "name": "@commonpub/layer",
-  "version": "0.9.1",
+  "version": "0.9.2",
   "type": "module",
   "main": "./nuxt.config.ts",
   "files": [
@@ -38,8 +38,8 @@
     "@commonpub/explainer": "^0.7.11",
     "@commonpub/learning": "workspace:*",
     "@commonpub/protocol": "workspace:*",
-    "@commonpub/schema": "^0.9.11",
-    "@commonpub/server": "^2.29.1",
+    "@commonpub/schema": "^0.9.13",
+    "@commonpub/server": "^2.31.0",
     "@commonpub/ui": "workspace:*",
     "@tiptap/core": "^2.11.0",
     "@tiptap/extension-bold": "^2.11.0",
