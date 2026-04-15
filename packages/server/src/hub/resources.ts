@@ -67,16 +67,9 @@ export async function createHubResource(
     throw new Error('Must be a hub member to add resources');
   }
 
-  // Auto-assign sortOrder if not provided
+  // Auto-assign sortOrder if not provided (next position after existing)
   let sortOrder = input.sortOrder ?? 0;
   if (input.sortOrder === undefined) {
-    const [maxRow] = await db
-      .select({ max: hubResources.sortOrder })
-      .from(hubResources)
-      .where(eq(hubResources.hubId, hubId))
-      .orderBy(hubResources.sortOrder)
-      .limit(1);
-    // Simple: count existing to get next position
     const existing = await db
       .select({ id: hubResources.id })
       .from(hubResources)

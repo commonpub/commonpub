@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { createProductSchema } from '@commonpub/schema';
-
 const props = defineProps<{
   products: { items: Array<{ id: string; name: string; description: string | null; imageUrl: string | null; category: string | null; status: string }>; total: number } | null;
   currentUserRole?: string | null;
@@ -48,13 +46,15 @@ async function handleCreate(): Promise<void> {
     <form v-if="showForm" class="cpub-resource-form" @submit.prevent="handleCreate">
       <input v-model="formName" type="text" placeholder="Product name" class="cpub-input" required />
       <input v-model="formDescription" type="text" placeholder="Short description (optional)" class="cpub-input" />
-      <select v-model="formCategory" class="cpub-input">
+      <select v-model="formCategory" class="cpub-input" aria-label="Product category">
         <option value="microcontroller">Microcontroller</option>
         <option value="sbc">SBC</option>
         <option value="sensor">Sensor</option>
+        <option value="actuator">Actuator</option>
         <option value="display">Display</option>
         <option value="communication">Communication</option>
         <option value="power">Power</option>
+        <option value="mechanical">Mechanical</option>
         <option value="software">Software</option>
         <option value="tool">Tool</option>
         <option value="other">Other</option>
@@ -89,6 +89,18 @@ async function handleCreate(): Promise<void> {
 </template>
 
 <style scoped>
+.cpub-products-header { margin-bottom: 16px; }
+
+.cpub-resource-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  background: var(--surface);
+  border: var(--border-width-default) solid var(--border);
+  margin-bottom: 20px;
+}
+
 .cpub-products-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
