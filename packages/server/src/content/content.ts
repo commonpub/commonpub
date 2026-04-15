@@ -843,6 +843,7 @@ export async function forkContent(
       content: item.content,
       coverImageUrl: item.coverImageUrl,
       category: item.category,
+      categoryId: item.categoryId,
       difficulty: item.difficulty,
       buildTime: item.buildTime,
       estimatedCost: item.estimatedCost,

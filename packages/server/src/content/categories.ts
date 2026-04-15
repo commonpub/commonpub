@@ -112,10 +112,19 @@ export async function updateContentCategory(
   return row ? mapRow(row) : null;
 }
 
-export async function deleteContentCategory(db: DB, id: string): Promise<boolean> {
-  const result = await db
-    .delete(contentCategories)
+export async function deleteContentCategory(db: DB, id: string): Promise<{ deleted: boolean; error?: string }> {
+  // Check if category exists and whether it's a system category
+  const [existing] = await db
+    .select({ id: contentCategories.id, isSystem: contentCategories.isSystem })
+    .from(contentCategories)
     .where(eq(contentCategories.id, id))
-    .returning({ id: contentCategories.id });
-  return result.length > 0;
+    .limit(1);
+
+  if (!existing) return { deleted: false, error: 'not_found' };
+  if (existing.isSystem) return { deleted: false, error: 'system_category' };
+
+  await db
+    .delete(contentCategories)
+    .where(eq(contentCategories.id, id));
+  return { deleted: true };
 }

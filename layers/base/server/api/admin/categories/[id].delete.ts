@@ -9,8 +9,11 @@ export default defineEventHandler(async (event) => {
   const db = useDB();
   const { id } = parseParams(event, { id: 'uuid' });
 
-  const deleted = await deleteContentCategory(db, id);
-  if (!deleted) {
+  const result = await deleteContentCategory(db, id);
+  if (!result.deleted) {
+    if (result.error === 'system_category') {
+      throw createError({ statusCode: 403, statusMessage: 'System categories cannot be deleted' });
+    }
     throw createError({ statusCode: 404, statusMessage: 'Category not found' });
   }
   return { success: true };
