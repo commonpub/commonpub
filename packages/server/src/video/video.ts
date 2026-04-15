@@ -49,6 +49,9 @@ export async function listVideos(
   if (filters.authorId) {
     conditions.push(eq(videos.authorId, filters.authorId));
   }
+  if (filters.categoryId) {
+    conditions.push(eq(videos.categoryId, filters.categoryId));
+  }
 
   const where = conditions.length > 0 ? and(...conditions) : undefined;
   const { limit, offset } = normalizePagination(filters);
@@ -141,6 +144,7 @@ export async function createVideo(
     thumbnailUrl?: string;
     duration?: string;
     authorId: string;
+    categoryId?: string;
   },
 ): Promise<VideoDetail> {
   const [row] = await db
@@ -150,11 +154,12 @@ export async function createVideo(
       url: input.url,
       description: input.description ?? null,
       embedUrl: input.embedUrl ?? null,
-      platform: input.platform ?? 'youtube',
+      platform: (input.platform ?? 'youtube') as typeof videos.platform.enumValues[number],
       thumbnailUrl: input.thumbnailUrl ?? null,
       duration: input.duration ?? null,
       authorId: input.authorId,
-    })
+      categoryId: input.categoryId ?? null,
+    } satisfies typeof videos.$inferInsert)
     .returning();
 
   // Fetch with author info

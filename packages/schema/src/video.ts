@@ -15,6 +15,7 @@ export const videos = pgTable('videos', {
   platform: videoPlatformEnum('platform').notNull(),
   thumbnailUrl: text('thumbnail_url'),
   duration: varchar('duration', { length: 16 }),
+  categoryId: uuid('category_id').references(() => videoCategories.id, { onDelete: 'set null' }),
   viewCount: integer('view_count').default(0).notNull(),
   likeCount: integer('like_count').default(0).notNull(),
   commentCount: integer('comment_count').default(0).notNull(),
@@ -22,6 +23,7 @@ export const videos = pgTable('videos', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 }, (t) => [
   index('idx_videos_author_id').on(t.authorId),
+  index('idx_videos_category_id').on(t.categoryId),
 ]);
 
 export const videoCategories = pgTable('video_categories', {
@@ -36,6 +38,11 @@ export const videoCategories = pgTable('video_categories', {
 
 export const videosRelations = relations(videos, ({ one }) => ({
   author: one(users, { fields: [videos.authorId], references: [users.id] }),
+  category: one(videoCategories, { fields: [videos.categoryId], references: [videoCategories.id] }),
+}));
+
+export const videoCategoriesRelations = relations(videoCategories, ({ many }) => ({
+  videos: many(videos),
 }));
 
 // --- Inferred Types ---
