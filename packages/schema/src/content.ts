@@ -14,6 +14,18 @@ import { relations } from 'drizzle-orm';
 import { users } from './auth.js';
 import { contentStatusEnum, contentTypeEnum, difficultyEnum, contentVisibilityEnum } from './enums.js';
 
+export const contentCategories = pgTable('content_categories', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  name: varchar('name', { length: 64 }).notNull(),
+  slug: varchar('slug', { length: 64 }).notNull().unique(),
+  description: varchar('description', { length: 255 }),
+  color: varchar('color', { length: 32 }),
+  icon: varchar('icon', { length: 64 }),
+  sortOrder: integer('sort_order').default(0).notNull(),
+  isSystem: boolean('is_system').default(false).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
 export const contentItems = pgTable('content_items', {
   id: uuid('id').defaultRandom().primaryKey(),
   authorId: uuid('author_id')
@@ -34,6 +46,9 @@ export const contentItems = pgTable('content_items', {
   status: contentStatusEnum('status').default('draft').notNull(),
   visibility: contentVisibilityEnum('visibility').default('public').notNull(),
   isFeatured: boolean('is_featured').default(false).notNull(),
+  isEditorial: boolean('is_editorial').default(false).notNull(),
+  editorialNote: varchar('editorial_note', { length: 255 }),
+  categoryId: uuid('category_id').references(() => contentCategories.id, { onDelete: 'set null' }),
   seoDescription: varchar('seo_description', { length: 320 }),
   previewToken: varchar('preview_token', { length: 64 }),
   // Parts list (for projects)
@@ -86,6 +101,8 @@ export const contentItems = pgTable('content_items', {
   index('idx_content_items_status').on(t.status),
   index('idx_content_items_type').on(t.type),
   index('idx_content_items_published_at').on(t.publishedAt),
+  index('idx_content_items_is_editorial').on(t.isEditorial),
+  index('idx_content_items_category_id').on(t.categoryId),
 ]);
 
 export const contentVersions = pgTable('content_versions', {
@@ -160,8 +177,13 @@ export const contentTags = pgTable('content_tags', {
 
 // --- Relations ---
 
+export const contentCategoriesRelations = relations(contentCategories, ({ many }) => ({
+  contentItems: many(contentItems),
+}));
+
 export const contentItemsRelations = relations(contentItems, ({ one, many }) => ({
   author: one(users, { fields: [contentItems.authorId], references: [users.id] }),
+  category: one(contentCategories, { fields: [contentItems.categoryId], references: [contentCategories.id] }),
   tags: many(contentTags),
   versions: many(contentVersions),
   forksFrom: many(contentForks, { relationName: 'forkSource' }),
@@ -202,6 +224,8 @@ export const contentTagsRelations = relations(contentTags, ({ one }) => ({
 }));
 
 // --- Inferred Types ---
+export type ContentCategoryRow = typeof contentCategories.$inferSelect;
+export type NewContentCategoryRow = typeof contentCategories.$inferInsert;
 export type ContentItemRow = typeof contentItems.$inferSelect;
 export type NewContentItemRow = typeof contentItems.$inferInsert;
 export type ContentVersionRow = typeof contentVersions.$inferSelect;

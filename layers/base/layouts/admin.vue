@@ -29,6 +29,7 @@ const sidebarOpen = ref(false);
           <NuxtLink to="/admin" class="admin-nav-link" @click="sidebarOpen = false"><i class="fa-solid fa-gauge"></i> Dashboard</NuxtLink>
           <NuxtLink to="/admin/users" class="admin-nav-link" @click="sidebarOpen = false"><i class="fa-solid fa-users"></i> Users</NuxtLink>
           <NuxtLink to="/admin/content" class="admin-nav-link" @click="sidebarOpen = false"><i class="fa-solid fa-newspaper"></i> Content</NuxtLink>
+          <NuxtLink to="/admin/categories" class="admin-nav-link" @click="sidebarOpen = false"><i class="fa-solid fa-tags"></i> Categories</NuxtLink>
           <NuxtLink to="/admin/reports" class="admin-nav-link" @click="sidebarOpen = false"><i class="fa-solid fa-flag"></i> Reports</NuxtLink>
           <NuxtLink to="/admin/audit" class="admin-nav-link" @click="sidebarOpen = false"><i class="fa-solid fa-clipboard-list"></i> Audit Log</NuxtLink>
           <NuxtLink to="/admin/theme" class="admin-nav-link" @click="sidebarOpen = false"><i class="fa-solid fa-palette"></i> Theme</NuxtLink>

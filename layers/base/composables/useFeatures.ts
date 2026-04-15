@@ -9,6 +9,7 @@ export interface FeatureFlags {
   contests: boolean;
   learning: boolean;
   explainers: boolean;
+  editorial: boolean;
   federation: boolean;
   admin: boolean;
   emailNotifications: boolean;
@@ -16,7 +17,7 @@ export interface FeatureFlags {
 
 export function useFeatures() {
   const config = useRuntimeConfig();
-  const flags = config.public.features as FeatureFlags;
+  const flags = config.public.features as unknown as FeatureFlags;
 
   return {
     features: flags,
@@ -28,6 +29,7 @@ export function useFeatures() {
     contests: computed(() => flags.contests),
     learning: computed(() => flags.learning),
     explainers: computed(() => flags.explainers),
+    editorial: computed(() => flags.editorial),
     federation: computed(() => flags.federation),
     admin: computed(() => flags.admin),
     emailNotifications: computed(() => flags.emailNotifications),

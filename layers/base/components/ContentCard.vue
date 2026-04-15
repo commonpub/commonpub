@@ -12,7 +12,15 @@ import type { Serialized, ContentListItem } from '@commonpub/server';
  * - Stats: hearts, views, comments
  */
 const props = defineProps<{
-  item: Serialized<ContentListItem> & { isFeatured?: boolean };
+  item: Serialized<ContentListItem> & {
+    isFeatured?: boolean;
+    isEditorial?: boolean;
+    editorialNote?: string | null;
+    categoryName?: string | null;
+    categorySlug?: string | null;
+    categoryColor?: string | null;
+    categoryIcon?: string | null;
+  };
 }>();
 
 const cover = computed(() => {
@@ -80,9 +88,17 @@ function formatCount(n: number | undefined): string {
 
         <!-- Badges overlay -->
         <div class="cpub-cc-badges">
-          <span v-if="item.isFeatured" class="cpub-cc-badge cpub-cc-badge--featured">
+          <EditorialBadge v-if="item.isEditorial" :note="item.editorialNote" />
+          <span v-if="item.isFeatured && !item.isEditorial" class="cpub-cc-badge cpub-cc-badge--featured">
             <i class="fa-solid fa-star"></i> Featured
           </span>
+          <CategoryBadge
+            v-if="item.categoryName && item.categorySlug"
+            :name="item.categoryName"
+            :slug="item.categorySlug"
+            :color="item.categoryColor"
+            :icon="item.categoryIcon"
+          />
           <span v-if="isFederated && item.sourceDomain" class="cpub-cc-badge cpub-cc-badge--federated">
             <i class="fa-solid fa-globe" /> {{ item.sourceDomain }}
           </span>

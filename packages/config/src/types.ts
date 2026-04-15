@@ -21,6 +21,8 @@ export interface FeatureFlags {
   seamlessFederation: boolean;
   /** Enable hub/community federation via AP Group actors (default: false) */
   federateHubs: boolean;
+  /** Enable editorial curation (staff picks, content categories, homepage editorial section) */
+  editorial: boolean;
   /** Enable admin panel (user management, reports, instance settings) */
   admin: boolean;
   /** Enable email notifications (instant + digest emails for likes, comments, follows, mentions) */

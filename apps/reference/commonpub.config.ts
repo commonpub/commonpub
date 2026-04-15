@@ -17,6 +17,7 @@ export default defineCommonPubConfig({
     contests: true,
     learning: true,
     explainers: true,
+    editorial: true,
     federation: true,
     federateHubs: true,
     seamlessFederation: true,

@@ -20,3 +20,13 @@ export {
   isFederatedBuildMarked,
 } from './content.js';
 export type { ContentVersionItem } from './content.js';
+
+export {
+  listContentCategories,
+  getContentCategory,
+  getContentCategoryBySlug,
+  createContentCategory,
+  updateContentCategory,
+  deleteContentCategory,
+} from './categories.js';
+export type { ContentCategoryItem } from './categories.js';

@@ -70,6 +70,8 @@ export type {
   LessonType,
   VideoPlatform,
   ContestStatus,
+  CreateContentCategoryInput,
+  UpdateContentCategoryInput,
 } from '@commonpub/schema';
 
 // Utilities
@@ -115,6 +117,17 @@ export {
   isFederatedBuildMarked,
 } from './content/index.js';
 export type { ContentVersionItem } from './content/index.js';
+
+// Content Categories
+export {
+  listContentCategories,
+  getContentCategory,
+  getContentCategoryBySlug,
+  createContentCategory,
+  updateContentCategory,
+  deleteContentCategory,
+} from './content/index.js';
+export type { ContentCategoryItem } from './content/index.js';
 
 // Hubs
 export {

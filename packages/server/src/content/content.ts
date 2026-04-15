@@ -1,6 +1,6 @@
 import { eq, and, desc, sql, inArray, isNull } from 'drizzle-orm';
 import type { SQL } from 'drizzle-orm';
-import { contentItems, contentVersions, contentForks, contentBuilds, federatedContentBuilds, tags, contentTags, users, follows, federatedContent, remoteActors } from '@commonpub/schema';
+import { contentItems, contentVersions, contentForks, contentBuilds, federatedContentBuilds, tags, contentTags, users, follows, federatedContent, remoteActors, contentCategories } from '@commonpub/schema';
 import type { CommonPubConfig } from '@commonpub/config';
 import { emitHook } from '../hooks.js';
 import type { ContentItemRow } from '@commonpub/schema';
@@ -119,6 +119,7 @@ async function sanitizeExplainerDocument(doc: Record<string, unknown>): Promise<
 function mapToListItem(
   item: ContentItemRow,
   author: UserRef,
+  category?: { name: string; slug: string; color: string | null; icon: string | null } | null,
 ): ContentListItem {
   return {
     id: item.id,
@@ -134,6 +135,13 @@ function mapToListItem(
     commentCount: item.commentCount,
     buildCount: item.buildCount,
     isFeatured: item.isFeatured,
+    isEditorial: item.isEditorial,
+    editorialNote: item.editorialNote,
+    categoryId: item.categoryId,
+    categoryName: category?.name ?? null,
+    categorySlug: category?.slug ?? null,
+    categoryColor: category?.color ?? null,
+    categoryIcon: category?.icon ?? null,
     publishedAt: item.publishedAt,
     createdAt: item.createdAt,
     author,
@@ -248,6 +256,12 @@ export async function listContent(
   if (filters.featured) {
     conditions.push(eq(contentItems.isFeatured, true));
   }
+  if (filters.editorial) {
+    conditions.push(eq(contentItems.isEditorial, true));
+  }
+  if (filters.categoryId) {
+    conditions.push(eq(contentItems.categoryId, filters.categoryId));
+  }
   if (filters.difficulty) {
     conditions.push(eq(contentItems.difficulty, filters.difficulty));
   }
@@ -283,35 +297,44 @@ export async function listContent(
   const where = conditions.length > 0 ? and(...conditions) : undefined;
   const { limit, offset } = normalizePagination(filters);
 
+  const orderBy = filters.sort === 'popular'
+    ? [desc(contentItems.viewCount)]
+    : filters.sort === 'featured'
+      ? [desc(contentItems.isFeatured), desc(contentItems.createdAt)]
+      : filters.sort === 'editorial'
+        ? [desc(contentItems.isEditorial), desc(contentItems.publishedAt)]
+        : [desc(contentItems.publishedAt), desc(contentItems.createdAt)];
+
   const [rows, total] = await Promise.all([
     db
       .select({
         content: contentItems,
         author: USER_REF_SELECT,
+        category: {
+          name: contentCategories.name,
+          slug: contentCategories.slug,
+          color: contentCategories.color,
+          icon: contentCategories.icon,
+        },
       })
       .from(contentItems)
       .innerJoin(users, eq(contentItems.authorId, users.id))
+      .leftJoin(contentCategories, eq(contentItems.categoryId, contentCategories.id))
       .where(where)
-      .orderBy(
-        ...(filters.sort === 'popular'
-          ? [desc(contentItems.viewCount)]
-          : filters.sort === 'featured'
-            ? [desc(contentItems.isFeatured), desc(contentItems.createdAt)]
-            : [desc(contentItems.publishedAt), desc(contentItems.createdAt)]),
-      )
+      .orderBy(...orderBy)
       .limit(limit)
       .offset(offset),
     countRows(db, contentItems, where),
   ]);
 
   const localItems: ContentListItem[] = rows.map((row) => ({
-    ...mapToListItem(row.content, row.author),
+    ...mapToListItem(row.content, row.author, row.category),
     source: 'local' as const,
   }));
 
   // If seamless federation is off or filtering by author, return local-only results.
   // Federated content has no local authorId, so it must never appear in author-filtered views.
-  if (!options?.includeFederated || filters.authorId || filters.featured) {
+  if (!options?.includeFederated || filters.authorId || filters.featured || filters.editorial || filters.categoryId) {
     return { items: localItems, total };
   }
 
@@ -352,9 +375,16 @@ export async function getContentBySlug(
     .select({
       content: contentItems,
       author: USER_REF_WITH_HEADLINE_SELECT,
+      category: {
+        name: contentCategories.name,
+        slug: contentCategories.slug,
+        color: contentCategories.color,
+        icon: contentCategories.icon,
+      },
     })
     .from(contentItems)
     .innerJoin(users, eq(contentItems.authorId, users.id))
+    .leftJoin(contentCategories, eq(contentItems.categoryId, contentCategories.id))
     .where(and(...conditions))
     .limit(1);
 
@@ -418,7 +448,7 @@ export async function getContentBySlug(
   };
 
   return {
-    ...mapToListItem(item, enrichedAuthor),
+    ...mapToListItem(item, enrichedAuthor, row.category),
     subtitle: item.subtitle,
     content: item.content,
     bannerUrl: item.bannerUrl,
@@ -481,6 +511,7 @@ export async function createContent(
       visibility: input.visibility ?? 'public',
       seoDescription: input.seoDescription ?? null,
       sections: input.sections as typeof contentItems.$inferInsert.sections ?? null,
+      categoryId: input.categoryId ?? null,
       status: 'draft',
       previewToken,
     })
@@ -538,6 +569,7 @@ export async function updateContent(
   if (input.licenseType !== undefined) updates.licenseType = input.licenseType;
   if (input.series !== undefined) updates.series = input.series;
   if (input.visibility !== undefined) updates.visibility = input.visibility;
+  if (input.categoryId !== undefined) updates.categoryId = input.categoryId;
 
   // Track status transition for federation
   const wasPublished = current.status === 'published';

@@ -119,6 +119,7 @@ export const createContentSchema = z.object({
   series: z.string().max(128).optional(),
   sections: z.unknown().optional(),
   tags: z.array(z.string().max(64)).max(20).optional(),
+  categoryId: z.string().uuid().optional(),
 });
 export type CreateContentInput = z.infer<typeof createContentSchema>;
 
@@ -126,6 +127,22 @@ export const updateContentSchema = createContentSchema.partial().omit({ type: tr
   status: contentStatusSchema.optional(),
 });
 export type UpdateContentInput = z.infer<typeof updateContentSchema>;
+
+// --- Content Category validators ---
+
+export const createContentCategorySchema = z.object({
+  name: z.string().min(1).max(64),
+  slug: slugSchema,
+  description: z.string().max(255).optional(),
+  color: z.string().max(32).optional(),
+  icon: z.string().max(64).optional(),
+  sortOrder: z.number().int().min(0).optional(),
+  isSystem: z.boolean().optional(),
+});
+export type CreateContentCategoryInput = z.infer<typeof createContentCategorySchema>;
+
+export const updateContentCategorySchema = createContentCategorySchema.partial();
+export type UpdateContentCategoryInput = z.infer<typeof updateContentCategorySchema>;
 
 // --- Social validators ---
 
@@ -552,10 +569,12 @@ export const contentFiltersSchema = z.object({
   authorId: z.string().uuid().optional(),
   followedBy: z.string().uuid().optional(),
   featured: z.coerce.boolean().optional(),
+  editorial: z.coerce.boolean().optional(),
+  categoryId: z.string().uuid().optional(),
   difficulty: difficultySchema.optional(),
   search: z.string().max(200).optional(),
   tag: z.string().max(64).optional(),
-  sort: z.enum(['recent', 'popular', 'featured']).optional(),
+  sort: z.enum(['recent', 'popular', 'featured', 'editorial']).optional(),
   limit: z.coerce.number().int().positive().max(100).optional(),
   offset: z.coerce.number().int().min(0).optional(),
 });

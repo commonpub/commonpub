@@ -12,6 +12,7 @@ export const featureFlagsSchema = z.object({
   federation: z.boolean().default(false),
   seamlessFederation: z.boolean().default(false),
   federateHubs: z.boolean().default(false),
+  editorial: z.boolean().default(true),
   admin: z.boolean().default(false),
   emailNotifications: z.boolean().default(false),
 });

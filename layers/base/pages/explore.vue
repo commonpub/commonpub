@@ -478,6 +478,8 @@ const sortOptions = [
   text-decoration: none;
   color: inherit;
   transition: box-shadow 0.15s;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .cpub-explore-hub-card:hover { box-shadow: var(--shadow-md); }
@@ -499,7 +501,7 @@ const sortOptions = [
 
 .cpub-explore-hub-body { flex: 1; min-width: 0; }
 .cpub-explore-hub-name { font-size: 13px; font-weight: 600; margin-bottom: 3px; }
-.cpub-explore-hub-desc { font-size: 11px; color: var(--text-dim); line-height: 1.5; margin-bottom: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cpub-explore-hub-desc { font-size: 11px; color: var(--text-dim); line-height: 1.5; margin-bottom: 6px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .cpub-explore-hub-meta { font-size: 10px; font-family: var(--font-mono); color: var(--text-faint); display: flex; gap: 8px; align-items: center; }
 
 /* Path cards */

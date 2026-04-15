@@ -7,7 +7,7 @@ useSeoMeta({
 });
 
 const { user: authUser } = useAuth();
-const { hubs: hubsEnabled, contests: contestsEnabled, learning: learningEnabled, video: videoEnabled, docs: docsEnabled } = useFeatures();
+const { hubs: hubsEnabled, contests: contestsEnabled, learning: learningEnabled, video: videoEnabled, docs: docsEnabled, editorial: editorialEnabled } = useFeatures();
 const { enabledTypeMeta } = useContentTypes();
 
 const activeTab = ref(authUser.value ? 'foryou' : 'latest');
@@ -33,7 +33,14 @@ const { data: feed, pending: feedPending } = await useFetch<PaginatedResponse<Se
   watch: [contentQuery],
 });
 
-// Only show featured card if an admin has explicitly featured something
+// Editorial picks — staff-curated content for the homepage (only when editorial feature is enabled)
+const { data: editorialPicks } = editorialEnabled.value
+  ? await useFetch<PaginatedResponse<Serialized<ContentListItem>>>('/api/content', {
+      query: { status: 'published', editorial: true, sort: 'editorial', limit: 3 },
+    })
+  : { data: ref(null) };
+
+// Legacy featured fallback — if no editorial picks, show single featured card
 const { data: featured } = await useFetch<PaginatedResponse<Serialized<ContentListItem>>>('/api/content', {
   query: { status: 'published', featured: true, limit: 1 },
 });
@@ -214,8 +221,18 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
       <!-- Feed column -->
       <main class="cpub-feed-col">
 
-        <!-- Featured card -->
-        <article v-if="featured?.items?.length && activeTab === 'foryou'" class="cpub-featured-card">
+        <!-- Editorial Picks Section -->
+        <section v-if="editorialEnabled && editorialPicks?.items?.length && activeTab === 'foryou'" class="cpub-editorial-section">
+          <div class="cpub-editorial-header">
+            <h2 class="cpub-editorial-heading"><i class="fa-solid fa-pen-fancy"></i> Staff Picks</h2>
+          </div>
+          <div class="cpub-editorial-grid" :class="{ 'cpub-editorial-single': editorialPicks.items.length === 1 }">
+            <ContentCard v-for="item in editorialPicks.items" :key="item.id" :item="item" />
+          </div>
+        </section>
+
+        <!-- Legacy featured card (shown when no editorial picks exist) -->
+        <article v-else-if="featured?.items?.length && activeTab === 'foryou'" class="cpub-featured-card">
           <div class="cpub-featured-thumb" :style="featured.items[0].coverImageUrl ? { backgroundImage: `url(${featured.items[0].coverImageUrl.includes('://') && !featured.items[0].coverImageUrl.includes(useRuntimeConfig().public?.domain as string || 'localhost') ? `/api/image-proxy?url=${encodeURIComponent(featured.items[0].coverImageUrl)}&w=900` : featured.items[0].coverImageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}">
             <i v-if="!featured.items[0].coverImageUrl" class="cpub-thumb-icon fa-solid fa-microchip" />
             <div class="cpub-thumb-overlay">
@@ -570,6 +587,49 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
 }
 
 .cpub-feed-col { min-width: 0; }
+
+/* ─── EDITORIAL PICKS ─── */
+.cpub-editorial-section {
+  margin-bottom: 24px;
+}
+
+.cpub-editorial-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.cpub-editorial-heading {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--teal);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cpub-editorial-heading i {
+  font-size: 10px;
+}
+
+.cpub-editorial-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.cpub-editorial-single {
+  grid-template-columns: 1fr;
+  max-width: 400px;
+}
+
+@media (max-width: 768px) {
+  .cpub-editorial-grid { grid-template-columns: 1fr; }
+}
 
 /* ─── FEATURED CARD ─── */
 .cpub-featured-card {

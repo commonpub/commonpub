@@ -269,7 +269,7 @@ const userUsername = computed(() => user.value?.username ?? '');
         </nav>
       </div>
       <div class="cpub-footer-bottom">
-        <span>&copy; {{ new Date().getFullYear() }} {{ siteName }}. Open source under MIT.</span>
+        <span>&copy; {{ new Date().getFullYear() }} {{ siteName }}. Open source under AGPL-3.0.</span>
       </div>
     </footer>
 

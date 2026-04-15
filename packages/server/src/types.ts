@@ -148,6 +148,13 @@ export interface ContentListItem {
   commentCount: number;
   buildCount: number;
   isFeatured?: boolean;
+  isEditorial?: boolean;
+  editorialNote?: string | null;
+  categoryId?: string | null;
+  categoryName?: string | null;
+  categorySlug?: string | null;
+  categoryColor?: string | null;
+  categoryIcon?: string | null;
   publishedAt: Date | null;
   createdAt: Date;
   author: UserRef;
