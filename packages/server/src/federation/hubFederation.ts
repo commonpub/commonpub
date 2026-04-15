@@ -116,6 +116,8 @@ export async function buildHubGroupActor(
   const ext = actor as unknown as Record<string, unknown>;
   ext['cpub:memberCount'] = hub.memberCount;
   ext['cpub:postCount'] = hub.postCount;
+  ext['cpub:resources'] = `${actorUri}/resources`;
+  ext['cpub:products'] = `${actorUri}/products`;
 
   return actor;
 }

@@ -5,6 +5,8 @@ import {
   federatedHubPostReplies,
   federatedHubMembers,
   federatedHubPostLikes,
+  federatedHubResources,
+  federatedHubProducts,
   remoteActors,
   users,
   activities,
@@ -214,6 +216,23 @@ export async function refreshFederatedHubMetadata(
       remotePostCount: cpubPostCount ?? undefined,
       updatedAt: new Date(),
     }).where(eq(federatedHubs.id, hubId));
+
+    // Sync resources and products collections (best effort)
+    try {
+      const response = await fetch(actorUri, {
+        headers: { Accept: 'application/activity+json, application/ld+json' },
+        signal: AbortSignal.timeout(10_000),
+      });
+      if (response.ok) {
+        const actorJson = await response.json() as Record<string, unknown>;
+        if (typeof actorJson['cpub:resources'] === 'string') {
+          await syncFederatedHubCollection(db, hubId, actorJson['cpub:resources'] as string, 'resources');
+        }
+        if (typeof actorJson['cpub:products'] === 'string') {
+          await syncFederatedHubCollection(db, hubId, actorJson['cpub:products'] as string, 'products');
+        }
+      }
+    } catch { /* best effort — collections sync is non-critical */ }
   } catch (err) {
     console.warn('[federation] refreshFederatedHubMetadata failed:', err instanceof Error ? err.message : err);
   }
@@ -1424,4 +1443,130 @@ export async function getLikedFederatedHubPostIds(
     ));
 
   return liked.map((l) => l.postId);
+}
+
+// --- Federated Hub Collection Sync (Resources + Products) ---
+
+/**
+ * Sync a remote hub's cpub:resources or cpub:products collection.
+ * Fetches the OrderedCollection, upserts items, removes stale entries.
+ */
+async function syncFederatedHubCollection(
+  db: DB,
+  federatedHubId: string,
+  collectionUri: string,
+  type: 'resources' | 'products',
+): Promise<void> {
+  try {
+    const response = await fetch(collectionUri, {
+      headers: { Accept: 'application/activity+json, application/ld+json' },
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (!response.ok) return;
+
+    const collection = await response.json() as Record<string, unknown>;
+    const items = (collection.orderedItems ?? []) as Array<Record<string, unknown>>;
+    if (!Array.isArray(items) || items.length === 0) return;
+
+    if (type === 'resources') {
+      const seenUris = new Set<string>();
+      for (const item of items) {
+        const objectUri = item.id as string;
+        if (!objectUri) continue;
+        seenUris.add(objectUri);
+
+        const existing = await db.select({ id: federatedHubResources.id })
+          .from(federatedHubResources)
+          .where(eq(federatedHubResources.objectUri, objectUri))
+          .limit(1);
+
+        if (existing.length > 0) {
+          await db.update(federatedHubResources).set({
+            title: (item.name as string) ?? '',
+            url: (item.url as string) ?? '',
+            description: (item.summary as string) ?? null,
+            category: (item['cpub:category'] as string) ?? 'other',
+            sortOrder: (item['cpub:sortOrder'] as number) ?? 0,
+          }).where(eq(federatedHubResources.id, existing[0]!.id));
+        } else {
+          await db.insert(federatedHubResources).values({
+            federatedHubId,
+            objectUri,
+            title: (item.name as string) ?? 'Untitled',
+            url: (item.url as string) ?? '',
+            description: (item.summary as string) ?? null,
+            category: (item['cpub:category'] as string) ?? 'other',
+            sortOrder: (item['cpub:sortOrder'] as number) ?? 0,
+          });
+        }
+      }
+
+      // Remove stale entries not in remote collection
+      const all = await db.select({ id: federatedHubResources.id, objectUri: federatedHubResources.objectUri })
+        .from(federatedHubResources)
+        .where(eq(federatedHubResources.federatedHubId, federatedHubId));
+      for (const row of all) {
+        if (!seenUris.has(row.objectUri)) {
+          await db.delete(federatedHubResources).where(eq(federatedHubResources.id, row.id));
+        }
+      }
+    } else {
+      // Products sync
+      const seenUris = new Set<string>();
+      for (const item of items) {
+        const objectUri = item.id as string;
+        if (!objectUri) continue;
+        seenUris.add(objectUri);
+
+        const existing = await db.select({ id: federatedHubProducts.id })
+          .from(federatedHubProducts)
+          .where(eq(federatedHubProducts.objectUri, objectUri))
+          .limit(1);
+
+        const slug = ((item.name as string) ?? 'product').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+        if (existing.length > 0) {
+          await db.update(federatedHubProducts).set({
+            name: (item.name as string) ?? '',
+            slug,
+            description: (item.summary as string) ?? null,
+            category: (item['cpub:category'] as string) ?? null,
+            imageUrl: typeof item.image === 'object' && item.image ? (item.image as Record<string, unknown>).url as string : null,
+            purchaseUrl: (item.url as string) ?? null,
+            datasheetUrl: (item['cpub:datasheetUrl'] as string) ?? null,
+            specs: (item['cpub:specs'] as Record<string, string>) ?? null,
+            pricing: (item['cpub:pricing'] as Record<string, unknown>) ?? null,
+            status: (item['cpub:status'] as string) ?? 'active',
+          }).where(eq(federatedHubProducts.id, existing[0]!.id));
+        } else {
+          await db.insert(federatedHubProducts).values({
+            federatedHubId,
+            objectUri,
+            name: (item.name as string) ?? 'Untitled',
+            slug,
+            description: (item.summary as string) ?? null,
+            category: (item['cpub:category'] as string) ?? null,
+            imageUrl: typeof item.image === 'object' && item.image ? (item.image as Record<string, unknown>).url as string : null,
+            purchaseUrl: (item.url as string) ?? null,
+            datasheetUrl: (item['cpub:datasheetUrl'] as string) ?? null,
+            specs: (item['cpub:specs'] as Record<string, string>) ?? null,
+            pricing: (item['cpub:pricing'] as { min?: number; max?: number; currency?: string }) ?? null,
+            status: (item['cpub:status'] as string) ?? 'active',
+          });
+        }
+      }
+
+      // Remove stale entries
+      const all = await db.select({ id: federatedHubProducts.id, objectUri: federatedHubProducts.objectUri })
+        .from(federatedHubProducts)
+        .where(eq(federatedHubProducts.federatedHubId, federatedHubId));
+      for (const row of all) {
+        if (!seenUris.has(row.objectUri)) {
+          await db.delete(federatedHubProducts).where(eq(federatedHubProducts.id, row.id));
+        }
+      }
+    }
+  } catch (err) {
+    console.warn(`[federation] syncFederatedHubCollection(${type}) failed:`, err instanceof Error ? err.message : err);
+  }
 }
