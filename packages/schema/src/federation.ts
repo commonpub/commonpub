@@ -412,6 +412,51 @@ export const instanceHealth = pgTable('instance_health', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
+// --- Federated Hub Resources (mirrored from remote hubs) ---
+
+export const federatedHubResources = pgTable('federated_hub_resources', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  federatedHubId: uuid('federated_hub_id').notNull().references(() => federatedHubs.id, { onDelete: 'cascade' }),
+  objectUri: text('object_uri').notNull().unique(),
+  title: varchar('title', { length: 255 }).notNull(),
+  url: text('url').notNull(),
+  description: text('description'),
+  category: varchar('category', { length: 32 }).default('other').notNull(),
+  sortOrder: integer('sort_order').default(0).notNull(),
+  receivedAt: timestamp('received_at', { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  index('idx_fed_hub_resources_hub').on(t.federatedHubId),
+]);
+
+export const federatedHubResourcesRelations = relations(federatedHubResources, ({ one }) => ({
+  federatedHub: one(federatedHubs, { fields: [federatedHubResources.federatedHubId], references: [federatedHubs.id] }),
+}));
+
+// --- Federated Hub Products (mirrored from remote hubs) ---
+
+export const federatedHubProducts = pgTable('federated_hub_products', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  federatedHubId: uuid('federated_hub_id').notNull().references(() => federatedHubs.id, { onDelete: 'cascade' }),
+  objectUri: text('object_uri').notNull().unique(),
+  name: varchar('name', { length: 255 }).notNull(),
+  slug: varchar('slug', { length: 255 }).notNull(),
+  description: text('description'),
+  category: varchar('category', { length: 32 }),
+  imageUrl: text('image_url'),
+  purchaseUrl: text('purchase_url'),
+  datasheetUrl: text('datasheet_url'),
+  specs: jsonb('specs').$type<Record<string, string>>(),
+  pricing: jsonb('pricing').$type<{ min?: number; max?: number; currency?: string }>(),
+  status: varchar('status', { length: 32 }).default('active').notNull(),
+  receivedAt: timestamp('received_at', { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  index('idx_fed_hub_products_hub').on(t.federatedHubId),
+]);
+
+export const federatedHubProductsRelations = relations(federatedHubProducts, ({ one }) => ({
+  federatedHub: one(federatedHubs, { fields: [federatedHubProducts.federatedHubId], references: [federatedHubs.id] }),
+}));
+
 // --- Inferred Types ---
 export type RemoteActorRow = typeof remoteActors.$inferSelect;
 export type NewRemoteActorRow = typeof remoteActors.$inferInsert;
@@ -435,3 +480,7 @@ export type UserFederatedHubFollowRow = typeof userFederatedHubFollows.$inferSel
 export type NewUserFederatedHubFollowRow = typeof userFederatedHubFollows.$inferInsert;
 export type FederatedHubPostReplyRow = typeof federatedHubPostReplies.$inferSelect;
 export type NewFederatedHubPostReplyRow = typeof federatedHubPostReplies.$inferInsert;
+export type FederatedHubResourceRow = typeof federatedHubResources.$inferSelect;
+export type NewFederatedHubResourceRow = typeof federatedHubResources.$inferInsert;
+export type FederatedHubProductRow = typeof federatedHubProducts.$inferSelect;
+export type NewFederatedHubProductRow = typeof federatedHubProducts.$inferInsert;

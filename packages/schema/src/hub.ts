@@ -21,6 +21,7 @@ import {
   hubMemberStatusEnum,
   postTypeEnum,
   followRelationshipStatusEnum,
+  resourceCategoryEnum,
 } from './enums.js';
 import { unique } from 'drizzle-orm/pg-core';
 
@@ -219,7 +220,30 @@ export const hubFollowers = pgTable('hub_followers_fed', {
   index('idx_hub_followers_fed_hub').on(t.hubId),
 ]);
 
+// --- Hub Resources ---
+
+export const hubResources = pgTable('hub_resources', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  hubId: uuid('hub_id').notNull().references(() => hubs.id, { onDelete: 'cascade' }),
+  title: varchar('title', { length: 255 }).notNull(),
+  url: text('url').notNull(),
+  description: text('description'),
+  category: resourceCategoryEnum('category').default('other').notNull(),
+  sortOrder: integer('sort_order').default(0).notNull(),
+  addedById: uuid('added_by_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull().$onUpdateFn(() => new Date()),
+}, (t) => [
+  index('idx_hub_resources_hub_id').on(t.hubId),
+  index('idx_hub_resources_added_by_id').on(t.addedById),
+]);
+
 // --- Relations ---
+
+export const hubResourcesRelations = relations(hubResources, ({ one }) => ({
+  hub: one(hubs, { fields: [hubResources.hubId], references: [hubs.id] }),
+  addedBy: one(users, { fields: [hubResources.addedById], references: [users.id] }),
+}));
 
 export const hubActorKeypairsRelations = relations(hubActorKeypairs, ({ one }) => ({
   hub: one(hubs, { fields: [hubActorKeypairs.hubId], references: [hubs.id] }),
@@ -242,6 +266,7 @@ export const hubsRelations = relations(hubs, ({ one, many }) => ({
   bans: many(hubBans),
   invites: many(hubInvites),
   shares: many(hubShares),
+  resources: many(hubResources),
 }));
 
 export const hubMembersRelations = relations(hubMembers, ({ one }) => ({
@@ -331,3 +356,5 @@ export type HubActorKeypairRow = typeof hubActorKeypairs.$inferSelect;
 export type NewHubActorKeypairRow = typeof hubActorKeypairs.$inferInsert;
 export type HubFollowerRow = typeof hubFollowers.$inferSelect;
 export type NewHubFollowerRow = typeof hubFollowers.$inferInsert;
+export type HubResourceRow = typeof hubResources.$inferSelect;
+export type NewHubResourceRow = typeof hubResources.$inferInsert;

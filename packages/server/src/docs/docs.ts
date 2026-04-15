@@ -369,10 +369,10 @@ export async function createDocsPage(
       sidebarLabel: input.sidebarLabel ?? null,
       description: input.description ?? null,
       content: typeof input.content === 'string' ? input.content : JSON.stringify(input.content),
-      status: input.status ?? 'draft',
+      status: (input.status ?? 'draft') as typeof docsPages.status.enumValues[number],
       sortOrder,
       parentId: input.parentId ?? null,
-    })
+    } satisfies typeof docsPages.$inferInsert)
     .returning();
 
   return page!;

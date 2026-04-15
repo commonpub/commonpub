@@ -94,6 +94,17 @@ export const hubJoinPolicyEnum = pgEnum('hub_join_policy', [
 export const hubMemberStatusEnum = pgEnum('hub_member_status', ['pending', 'active']);
 export const postTypeEnum = pgEnum('post_type', ['text', 'link', 'share', 'poll', 'discussion', 'question', 'showcase', 'announcement']);
 
+// --- Hub Resources ---
+export const resourceCategoryEnum = pgEnum('resource_category', [
+  'documentation',
+  'tools',
+  'tutorials',
+  'community',
+  'hardware',
+  'software',
+  'other',
+]);
+
 // --- Products ---
 export const productStatusEnum = pgEnum('product_status', ['active', 'discontinued', 'preview']);
 export const productCategoryEnum = pgEnum('product_category', [

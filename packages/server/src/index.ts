@@ -155,7 +155,14 @@ export {
   unshareContent,
   listShares,
 } from './hub/index.js';
-export type { RemoteHubMember } from './hub/index.js';
+export type { RemoteHubMember, HubResourceItem } from './hub/index.js';
+export {
+  listHubResources,
+  createHubResource,
+  updateHubResource,
+  deleteHubResource,
+  reorderHubResources,
+} from './hub/index.js';
 
 // Products
 export {

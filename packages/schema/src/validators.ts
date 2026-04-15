@@ -234,6 +234,30 @@ export type HubPrivacy = z.infer<typeof hubPrivacySchema>;
 export const hubRoleSchema = z.enum(['owner', 'admin', 'moderator', 'member']);
 export type HubRole = z.infer<typeof hubRoleSchema>;
 
+// --- Hub Resource validators ---
+
+export const resourceCategorySchema = z.enum([
+  'documentation', 'tools', 'tutorials', 'community', 'hardware', 'software', 'other',
+]);
+export type ResourceCategory = z.infer<typeof resourceCategorySchema>;
+
+export const createHubResourceSchema = z.object({
+  title: z.string().min(1).max(255),
+  url: z.string().url().max(2048),
+  description: z.string().max(2000).optional(),
+  category: resourceCategorySchema.default('other'),
+  sortOrder: z.number().int().min(0).optional(),
+});
+export type CreateHubResourceInput = z.infer<typeof createHubResourceSchema>;
+
+export const updateHubResourceSchema = createHubResourceSchema.partial();
+export type UpdateHubResourceInput = z.infer<typeof updateHubResourceSchema>;
+
+export const reorderHubResourcesSchema = z.object({
+  ids: z.array(z.string().uuid()).min(1),
+});
+export type ReorderHubResourcesInput = z.infer<typeof reorderHubResourcesSchema>;
+
 // --- Product validators ---
 
 export const createProductSchema = z.object({

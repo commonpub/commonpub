@@ -36,6 +36,7 @@ const PERMISSION_MAP: Record<string, number> = {
   deletePost: 2,       // moderator+
   pinPost: 2,          // moderator+
   lockPost: 2,         // moderator+
+  manageResources: 2,  // moderator+
 };
 
 /** Check if a role has a specific permission */

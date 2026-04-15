@@ -1,6 +1,6 @@
 {
   "name": "@commonpub/schema",
-  "version": "0.9.11",
+  "version": "0.9.12",
   "type": "module",
   "description": "Drizzle ORM tables and Zod validators for CommonPub",
   "license": "AGPL-3.0-or-later",

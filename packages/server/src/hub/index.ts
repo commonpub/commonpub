@@ -50,3 +50,13 @@ export {
   revokeInvite,
   listInvites,
 } from './moderation.js';
+
+// Resources
+export {
+  listHubResources,
+  createHubResource,
+  updateHubResource,
+  deleteHubResource,
+  reorderHubResources,
+  type HubResourceItem,
+} from './resources.js';
