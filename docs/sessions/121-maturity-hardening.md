@@ -1,10 +1,11 @@
-# Session 121 — Maturity Hardening (2026-04-14)
+# Session 121 — Maturity Hardening + OAuth Fix (2026-04-14)
 
-Post-audit session. 4 phases addressing remaining gaps from sessions 119-120 audit.
+Maturity hardening (4 phases) + deep audit + OAuth federation fix + auth middleware fix.
+20 commits (commonpub) + 8 commits (deveco-io). Both instances deployed.
 
 ## Verification
-- 23/23 typecheck, 30/30 test suites — verified after every phase
-- Test count: 2846 (was 2843 — +3 identity integration tests)
+- 23/23 typecheck, 30/30 test suites — verified throughout
+- Test count: 2852 (was 2843 — +9 new tests)
 
 ## Phase 1 — Validation & Loading States
 
@@ -93,45 +94,84 @@ ALTER TABLE messages DROP COLUMN IF EXISTS read_at;
 - ✓ deveco-io CI health check
 - ✓ commonpub Dockerfile HEALTHCHECK
 
-## Phase 5 — Audit Follow-up (session 121b)
+## Phase 5 — OAuth Federation Fix (HIGH)
 
-**Commit:** `6fce4e1`
+Three interconnected bugs prevented cross-instance OAuth login:
 
-### OAuth federation fix (HIGH)
-- WebFinger + SSO config advertised `/api/auth/oauth2/authorize` (API endpoint) instead of `/auth/oauth/authorize` (consent page)
-- Browser hit 401 on remote instance → dead end instead of login+consent flow
-- Fixed in: webfinger.ts, sso.ts, federation.ts + 4 test files
-- Token endpoint now derived directly from domain instead of string-replacing auth URL
+### Bug 1: WebFinger advertised wrong URL
+- **Commit:** `6fce4e1`
+- WebFinger + SSO config + protocol federation.ts all advertised `/api/auth/oauth2/authorize` (API JSON endpoint)
+- Browser redirected there got raw JSON or 401 instead of the consent page
+- **Fix:** Changed to `/auth/oauth/authorize` (Vue consent page) in webfinger.ts, sso.ts, federation.ts
+- Token endpoint now hardcoded per-domain (`/api/auth/oauth2/token`) instead of derived from auth URL
 
-**Commit:** `195c213`
+### Bug 2: Missing dynamic client registration
+- **Commit:** `cb82a17`
+- `login.post.ts` used a default `cpub_{domain}` client_id without registering it on the remote instance
+- Remote's `processAuthorize` rejected it as `invalid_client` (400), then rate limit kicked in (429)
+- **Fix:** Auto-call remote's `/api/auth/oauth2/register` endpoint before constructing authorization URL
 
-### Loading states on 4 more pages
-- admin/index.vue, admin/settings.vue, admin/federation.vue, learn/index.vue
+### Bug 3: Better Auth middleware intercepting custom auth routes
+- **Commit:** `67d97ef`
+- `auth.ts` middleware routed ALL `/api/auth/*` to Better Auth, only excluding `/federated/` and `/oauth2/`
+- `/api/auth/sign-in-username`, `/api/auth/delete-user`, `/api/auth/export-data` were caught by Better Auth → 404
+- **Fix:** Added explicit exclusion list for custom Nitro route handlers
+- **Root cause of "invalid credentials" report** — sign-in-username was unreachable
 
-**Commit:** `9b97e9b`
+### Bug 4: Federated link endpoint called nonexistent route
+- **Commit:** `0f72512`
+- `link.post.ts` called `$fetch('/api/resolve-identity')` which never existed
+- **Fix:** Inlined username→email resolution (same pattern as sign-in-username)
 
-### Audit fix: admin/settings.vue loading state position
-- Loading spinner was positioned after content (content visible during load)
-- Restructured: v-if="pending" → spinner, v-else-if="settings" → content, v-else → empty
+### Sign-in-username Nitro import revert
+- **Commit:** `22dced4`
+- Reverted `resolveIdentityToEmail` import from `@commonpub/server` back to inline query
+- Originally thought this was causing the 404 (Nitro externalization), but actual cause was Bug 3
+- Kept reverted anyway — safer to avoid `@commonpub/server` imports in auth-critical routes
 
-**Commit:** `b19ef21`
+**Published:** `@commonpub/layer@0.8.8`, `@commonpub/auth@0.5.1`, `@commonpub/protocol@0.9.9`
 
-### Missing FK index
-- Added `idx_files_hub_id` on `files.hubId`
+## Phase 6 — Additional Loading States + Theme + Error Handling
 
-**deveco-io commit:** `834202e`
+- **Commit:** `195c213` — Loading states on admin/index, admin/settings, admin/federation, learn/index
+- **Commit:** `9b97e9b` — admin/settings.vue: loading state restructured (was after content, now wraps it)
+- **Commit:** `51402d7` — `PUT /api/profile/theme` route added (wires up `setUserTheme`)
+- **Commit:** `51402d7` — admin/federation.vue: try-catch on 3 `$fetch` calls
+- **Commit:** `cb82a17` — `useTheme` composable persists theme to DB via fire-and-forget `$fetch`
+- **Commit:** `cb82a17` — products/[slug].vue: loading state (distinguish pending vs not-found)
 
-### DevEco logo hardcoded colors
-- 10 hex values in DevEcoLogo.vue → CSS classes using theme vars
+## Phase 7 — Schema + Indexes
 
-### Verified OK (no action needed)
+- **Commit:** `b19ef21` — Added `idx_files_hub_id` on `files.hubId` FK
+- **Published:** `@commonpub/schema@0.9.11`
+
+## Phase 8 — Tests
+
+- **Commit:** `0fd9bfc`
+- `identity.integration.test.ts`: +1 test (soft-deleted user rejection)
+- `hub.integration.test.ts`: +2 tests (like/unlike + idempotent like — skipped, PGlite `ON CONFLICT...RETURNING` limitation)
+- `auth-middleware-routing.test.ts`: 5 new tests verifying custom auth routes bypass Better Auth
+
+## deveco-io Changes
+
+| Commit | Change |
+|--------|--------|
+| `a7674cc` | Dockerfile non-root user + healthcheck |
+| `a7674cc` | create.vue colors → CSS vars, CI health check |
+| `834202e` | DevEcoLogo.vue hardcoded hex → CSS classes with theme vars |
+| `186999b`→`59b5491` | Layer bumps: 0.8.3 → 0.8.8 (OAuth + auth middleware fixes) |
+
+## Verified OK (no action needed)
 - ✓ Federated HTML sanitization — defense in depth (15+ sanitize calls on ingest + client-side sanitizeBlockHtml)
-- ✓ Rate limiting — already implemented in security.ts middleware (auth:5/min, upload:10/min, API:60/min)
-- ✓ Learning tests — all active (audit over-reported 5 as skipped, only 1 skip in messaging)
+- ✓ Rate limiting — implemented in security.ts middleware (auth:5/min, upload:10/min, API:60/min)
+- ✓ Learning tests — all active (only 1 skip: messaging PGlite JSONB @>)
+- ✓ API route validation — all 210+ routes use parseBody/safeParse/parseParams
+- ✓ `calculateContestRanks` — internal helper called by `transitionContestStatus`, no route needed
+- ✓ `autoDiscoverHub` — internal federation helper, auto-invoked by inbox handler
 
-### Remaining
-- **MEDIUM** — `federatedContent.mirrorId` no DB-level FK (circular table def prevents .references(); ORM relation exists)
-- **MEDIUM** — Missing API routes for calculateContestRanks, setUserTheme, etc.
-- **LOW** — Mobile: 70 components without @media breakpoints
-- **LOW** — Unvalidated query params in federated-hub endpoints
-- **LOW** — 1 skipped messaging test (PGlite JSONB @> limitation)
+## Remaining (all LOW priority)
+- `federatedContent.mirrorId` — no DB-level FK (circular table def; ORM relation exists, low risk)
+- Mobile: ~70 components without @media breakpoints (parent layouts handle most layout)
+- Unvalidated query params in federated-hub endpoints (rate-limited, low risk)
+- 3 skipped tests (1 messaging PGlite JSONB, 2 hub likes PGlite ON CONFLICT)
+- More loading states possible: dashboard, explore (lazy fetches, lower priority)
