@@ -18,7 +18,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="cpub-block-checkpoint" :class="{ visible: completed }">
+  <div class="cpub-block-checkpoint" :class="{ visible: completed }" role="status" aria-live="polite" aria-atomic="true">
     <i class="fa-solid fa-circle-check"></i>
     <span class="cpub-checkpoint-text">{{ label }}</span>
   </div>

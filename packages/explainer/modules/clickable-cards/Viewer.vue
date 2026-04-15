@@ -23,13 +23,15 @@ function toggleCard(idx: number): void {
 </script>
 
 <template>
-  <div class="cpub-clickable-cards">
+  <div class="cpub-clickable-cards" @keydown.escape="expandedIndex = null">
     <div class="cpub-cc-grid">
       <button
         v-for="(card, i) in cards"
         :key="i"
         class="cpub-cc-card"
         :class="{ 'cpub-cc-card-active': expandedIndex === i }"
+        :aria-expanded="expandedIndex === i"
+        :aria-label="`${card.title}: ${card.description}`"
         @click="toggleCard(i)"
       >
         <i v-if="card.icon" :class="`fa-solid fa-${card.icon}`" class="cpub-cc-icon" />
@@ -39,10 +41,10 @@ function toggleCard(idx: number): void {
     </div>
 
     <!-- Detail panel -->
-    <div v-if="expandedIndex !== null && cards[expandedIndex]" class="cpub-cc-detail">
+    <div v-if="expandedIndex !== null && cards[expandedIndex]" class="cpub-cc-detail" role="region" :aria-label="`Detail: ${cards[expandedIndex]!.title}`">
       <div class="cpub-cc-detail-header">
         <span class="cpub-cc-detail-title">{{ cards[expandedIndex]!.title }}</span>
-        <button class="cpub-cc-detail-close" @click="expandedIndex = null">
+        <button class="cpub-cc-detail-close" aria-label="Close detail panel" @click="expandedIndex = null" @keydown.escape="expandedIndex = null">
           <i class="fa-solid fa-xmark" />
         </button>
       </div>

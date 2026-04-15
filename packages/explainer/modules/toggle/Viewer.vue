@@ -17,6 +17,7 @@ const activeMode = ref<'A' | 'B'>((props.content.defaultMode as 'A' | 'B') ?? 'A
       <button
         class="cpub-toggle-btn"
         :class="{ 'cpub-toggle-btn-active': activeMode === 'A' }"
+        :aria-pressed="activeMode === 'A'"
         @click="activeMode = 'A'"
       >
         {{ labelA }}
@@ -24,6 +25,7 @@ const activeMode = ref<'A' | 'B'>((props.content.defaultMode as 'A' | 'B') ?? 'A
       <button
         class="cpub-toggle-btn"
         :class="{ 'cpub-toggle-btn-active': activeMode === 'B' }"
+        :aria-pressed="activeMode === 'B'"
         @click="activeMode = 'B'"
       >
         {{ labelB }}
@@ -41,7 +43,7 @@ const activeMode = ref<'A' | 'B'>((props.content.defaultMode as 'A' | 'B') ?? 'A
       </div>
     </div>
 
-    <div class="cpub-toggle-info">
+    <div class="cpub-toggle-info" aria-live="polite" aria-atomic="true">
       {{ activeMode === 'A' ? labelA : labelB }} selected
     </div>
   </div>

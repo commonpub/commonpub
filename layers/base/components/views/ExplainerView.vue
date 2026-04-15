@@ -147,6 +147,14 @@ watch(activeSection, () => {
   // Scroll section viewport to top on section change
   const viewport = document.querySelector('.cpub-section-viewport');
   if (viewport) viewport.scrollTop = 0;
+  // Focus section heading for screen reader announcement
+  nextTick(() => {
+    const heading = viewport?.querySelector('h1, h2, h3') as HTMLElement | null;
+    if (heading) {
+      heading.setAttribute('tabindex', '-1');
+      heading.focus();
+    }
+  });
 });
 
 // Current section data

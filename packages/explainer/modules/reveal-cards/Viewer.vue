@@ -39,6 +39,8 @@ function resetCards(): void {
         :key="i"
         class="cpub-reveal-card"
         :class="{ 'cpub-reveal-card-revealed': revealed.has(i) }"
+        :aria-label="`Card ${i + 1} of ${cards.length}: ${revealed.has(i) ? card.back : card.front}`"
+        :aria-expanded="revealed.has(i)"
         @click="toggleCard(i)"
       >
         <div v-if="!revealed.has(i)" class="cpub-reveal-front">
@@ -58,7 +60,7 @@ function resetCards(): void {
       <button class="cpub-reveal-reset" @click="resetCards">
         <i class="fa-solid fa-rotate-left" /> Reset
       </button>
-      <span class="cpub-reveal-count">{{ revealed.size }}/{{ cards.length }} revealed</span>
+      <span class="cpub-reveal-count" aria-live="polite" aria-atomic="true">{{ revealed.size }}/{{ cards.length }} revealed</span>
     </div>
   </div>
 </template>

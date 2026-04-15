@@ -77,7 +77,7 @@ function optionClass(idx: number): string {
         </button>
       </div>
 
-      <div v-if="answered" class="cpub-quiz-feedback" :class="isCorrect ? 'correct' : 'wrong'">
+      <div v-if="answered" class="cpub-quiz-feedback" :class="isCorrect ? 'correct' : 'wrong'" role="status" aria-live="polite" aria-atomic="true">
         <i :class="isCorrect ? 'fa-solid fa-circle-check' : 'fa-solid fa-circle-xmark'"></i>
         <span>{{ isCorrect ? 'Correct!' : 'Not quite — the correct answer is highlighted above.' }}</span>
       </div>
