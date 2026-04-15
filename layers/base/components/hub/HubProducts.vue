@@ -156,7 +156,7 @@ async function handleCreate(): Promise<void> {
 
 .cpub-product-card-meta { display: flex; gap: 6px; flex-wrap: wrap; }
 
-@media (max-width: 1024px) {
+@media (max-width: 768px) {
   .cpub-products-grid { grid-template-columns: 1fr; }
 }
 

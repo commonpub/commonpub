@@ -217,18 +217,20 @@ async function handleDelete(id: string): Promise<void> {
 }
 
 .cpub-resource-item-ext {
-  font-size: 9px;
+  font-size: 11px;
   color: var(--text-faint);
-  margin-left: 4px;
+  margin-left: 6px;
 }
 
 .cpub-resource-item-desc {
   font-size: 11px;
   color: var(--text-dim);
   margin-top: 2px;
-  white-space: nowrap;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .cpub-resource-item-meta {
@@ -246,8 +248,13 @@ async function handleDelete(id: string): Promise<void> {
   border: none;
   cursor: pointer;
   color: var(--text-faint);
-  padding: 4px;
-  font-size: 11px;
+  padding: 6px 8px;
+  font-size: 12px;
+  min-width: 32px;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .cpub-resource-delete:hover {

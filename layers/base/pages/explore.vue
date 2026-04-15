@@ -539,12 +539,9 @@ const sortOptions = [
   padding: 24px 0;
 }
 
-@media (max-width: 1024px) {
-  .cpub-explore-hub-grid { grid-template-columns: 1fr; }
-}
-
 @media (max-width: 768px) {
   .cpub-explore-grid { grid-template-columns: 1fr; }
+  .cpub-explore-hub-grid { grid-template-columns: 1fr; }
   .cpub-explore-filters { flex-wrap: wrap; }
 }
 </style>
