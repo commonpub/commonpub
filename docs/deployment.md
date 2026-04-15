@@ -38,16 +38,17 @@ Best for: single-server deployments, small-to-medium communities.
    docker compose -f deploy/docker-compose.prod.yml up -d
    ```
 
-4. **Configure SSL**:
+4. **Configure SSL** (production instances use Caddy with auto-TLS):
    ```bash
+   # Caddy handles TLS automatically via docker-compose.prod.yml
+   # Edit deploy/Caddyfile — replace YOUR_DOMAIN
+   # If using nginx instead:
    sudo cp deploy/nginx.conf /etc/nginx/sites-available/commonpub
-   sudo ln -s /etc/nginx/sites-available/commonpub /etc/nginx/sites-enabled/
-   # Edit /etc/nginx/sites-available/commonpub — replace YOUR_DOMAIN
    sudo certbot --nginx -d your-domain.com
-   sudo systemctl reload nginx
    ```
 
-**Files**: `deploy/docker-compose.prod.yml`, `deploy/nginx.conf`, `deploy/droplet-setup.sh`
+**Files**: `deploy/docker-compose.prod.yml`, `deploy/Caddyfile`, `deploy/droplet-setup.sh`
+**Note**: The live commonpub.io and deveco.io instances use Caddy (not nginx) for reverse proxy with automatic HTTPS.
 
 ---
 
