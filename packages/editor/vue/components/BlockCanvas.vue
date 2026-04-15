@@ -478,20 +478,20 @@ defineExpose({
         class="cpub-floating-toolbar"
         :style="{ top: floatingToolbar.top + 'px', left: floatingToolbar.left + 'px' }"
       >
-        <button class="cpub-ft-btn" :class="{ 'cpub-ft-btn--active': floatingToolbar.activeMarks.bold }" title="Bold" @mousedown.prevent="toggleMark('bold')">
+        <button class="cpub-ft-btn" :class="{ 'cpub-ft-btn--active': floatingToolbar.activeMarks.bold }" aria-label="Bold" :aria-pressed="floatingToolbar.activeMarks.bold" @mousedown.prevent="toggleMark('bold')">
           <i class="fa-solid fa-bold"></i>
         </button>
-        <button class="cpub-ft-btn" :class="{ 'cpub-ft-btn--active': floatingToolbar.activeMarks.italic }" title="Italic" @mousedown.prevent="toggleMark('italic')">
+        <button class="cpub-ft-btn" :class="{ 'cpub-ft-btn--active': floatingToolbar.activeMarks.italic }" aria-label="Italic" :aria-pressed="floatingToolbar.activeMarks.italic" @mousedown.prevent="toggleMark('italic')">
           <i class="fa-solid fa-italic"></i>
         </button>
-        <button class="cpub-ft-btn" :class="{ 'cpub-ft-btn--active': floatingToolbar.activeMarks.strike }" title="Strikethrough" @mousedown.prevent="toggleMark('strike')">
+        <button class="cpub-ft-btn" :class="{ 'cpub-ft-btn--active': floatingToolbar.activeMarks.strike }" aria-label="Strikethrough" :aria-pressed="floatingToolbar.activeMarks.strike" @mousedown.prevent="toggleMark('strike')">
           <i class="fa-solid fa-strikethrough"></i>
         </button>
-        <button class="cpub-ft-btn" :class="{ 'cpub-ft-btn--active': floatingToolbar.activeMarks.code }" title="Inline code" @mousedown.prevent="toggleMark('code')">
+        <button class="cpub-ft-btn" :class="{ 'cpub-ft-btn--active': floatingToolbar.activeMarks.code }" aria-label="Inline code" :aria-pressed="floatingToolbar.activeMarks.code" @mousedown.prevent="toggleMark('code')">
           <i class="fa-solid fa-code"></i>
         </button>
         <div class="cpub-ft-divider" />
-        <button class="cpub-ft-btn" :class="{ 'cpub-ft-btn--active': floatingToolbar.activeMarks.link }" title="Link" @mousedown.prevent="toggleLink">
+        <button class="cpub-ft-btn" :class="{ 'cpub-ft-btn--active': floatingToolbar.activeMarks.link }" aria-label="Insert link" :aria-pressed="floatingToolbar.activeMarks.link" @mousedown.prevent="toggleLink">
           <i class="fa-solid fa-link"></i>
         </button>
       </div>

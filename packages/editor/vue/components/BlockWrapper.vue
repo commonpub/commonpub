@@ -77,7 +77,7 @@ function onDragEnd(event: DragEvent): void {
     <div class="cpub-block-handle">
       <button
         class="cpub-handle-btn"
-        title="Drag to reorder"
+        aria-label="Drag to reorder"
         draggable="true"
         @dragstart="onDragStart"
         @dragend="onDragEnd"
@@ -91,19 +91,19 @@ function onDragEnd(event: DragEvent): void {
 
     <!-- Block controls (top-right, shown on hover) -->
     <div class="cpub-block-controls">
-      <button class="cpub-block-ctrl" title="Move up" @click.stop="emit('move-up')">
+      <button class="cpub-block-ctrl" aria-label="Move up" @click.stop="emit('move-up')">
         <i class="fa-solid fa-arrow-up"></i>
       </button>
-      <button class="cpub-block-ctrl" title="Move down" @click.stop="emit('move-down')">
+      <button class="cpub-block-ctrl" aria-label="Move down" @click.stop="emit('move-down')">
         <i class="fa-solid fa-arrow-down"></i>
       </button>
-      <button class="cpub-block-ctrl" title="Duplicate" @click.stop="emit('duplicate')">
+      <button class="cpub-block-ctrl" aria-label="Duplicate" @click.stop="emit('duplicate')">
         <i class="fa-solid fa-copy"></i>
       </button>
       <button
         class="cpub-block-ctrl"
         :class="deleteArmed ? 'cpub-block-ctrl--armed' : 'cpub-block-ctrl--danger'"
-        :title="deleteArmed ? 'Click again to confirm' : 'Delete'"
+        :aria-label="deleteArmed ? 'Click again to confirm delete' : 'Delete block'"
         @click.stop="handleDelete"
       >
         <template v-if="deleteArmed">
@@ -151,7 +151,8 @@ function onDragEnd(event: DragEvent): void {
 }
 
 .cpub-block-wrap:hover .cpub-block-handle,
-.cpub-block-wrap--selected .cpub-block-handle {
+.cpub-block-wrap--selected .cpub-block-handle,
+.cpub-block-wrap:focus-within .cpub-block-handle {
   opacity: 1;
 }
 
@@ -213,7 +214,8 @@ function onDragEnd(event: DragEvent): void {
 }
 
 .cpub-block-wrap:hover .cpub-block-controls,
-.cpub-block-wrap--selected .cpub-block-controls {
+.cpub-block-wrap--selected .cpub-block-controls,
+.cpub-block-wrap:focus-within .cpub-block-controls {
   opacity: 1;
 }
 
