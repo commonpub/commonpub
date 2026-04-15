@@ -98,21 +98,42 @@ Also fixed pre-existing Drizzle type error in docs.ts (satisfies cast).
 New tables: `hub_resources`, `federated_hub_resources`, `federated_hub_products`
 New enum: `resource_category`
 
+## Phases 5-10 — Remaining v1.0 Tasks (ALL COMPLETED)
+
+### Phase 5 — Accessibility
+- **Explainer a11y** (`c9468b7`): aria-live on quiz/checkpoint, aria-pressed on toggle, aria-label+expanded on cards, focus management on section nav
+- **Editor a11y** (`810607a`): aria-label on block controls/toolbar, :focus-within for keyboard visibility, aria-pressed on format toggles
+
+### Phase 6 — Infrastructure + Polish
+- **Database migration script** (`386c663`): scripts/db-migrate.mjs + docs/migration-switch.md
+- **Video categories FK** (`deb1f0a`): categoryId on videos table, index, relations, server wiring. schema@0.9.13
+- **Admin search reindex** (`1626c10`): POST /api/admin/search/reindex
+- **Stale docs** (`a53591c`): architecture.md counts, deployment.md Caddy note
+
+### Phase 7 — Contest + Notifications + Final
+- **Contest notifications** (`1e772b7`): entrants notified on status transitions
+- **Notification preferences** (`2879b78`): wired to emailNotifications column, digest dropdown
+- **Docs editor gaps**: Already implemented in session 118 (sidebarLabel, duplicate page)
+- **Publish** (`7d71dd7`): server@2.31.0, layer@0.9.1
+
+### Phase 8 — Audit Fixes + UX Polish
+- **Audit cleanup** (`7908026`): dead import, missing categories, aria-label, CSS, hex fallback
+- **Layer deps fix** (`d20e355`): layer pinned to server@^2.31.0, published layer@0.9.2
+- **Smart tab visibility** (`7d4cdd3`): Products/Resources tabs hidden when empty, count badges
+- **UX polish** (`93c986f`): responsive breakpoints 1024→768px, touch targets, description clamp
+
 ## deveco-io Changes
 
 | Commit | Change |
 |--------|--------|
 | `6c708e8` | Layer bump 0.8.9 — login CSRF fix + card border cleanup |
+| `91ca988` | Layer 0.9.0, schema 0.9.12, server 2.30.0 |
+| `a20f81c` | Layer 0.9.1, schema 0.9.13, server 2.31.0 |
+| `7754221` | Layer 0.9.2 — federation collection fix |
+| `dfd0a61` | Force rebuild for new routes |
+| `3cdbb7a` | Fix lockfile — was stuck at layer@0.8.9 |
 
-## Remaining v1.0 Tasks (10 of 16)
+## All 16 v1.0 Tasks — COMPLETE
 
-7. Explainer accessibility (6 modules)
-8. Editor accessibility (block focus, toolbar)
-9. Database migrations (push→migrate)
-10. Video categories FK + search
-11. Notification preferences UI
-12. Docs editor gaps
-13. Contest notifications
-14. Update stale docs
-15. Admin search reindex
-16. Publish + deploy final
+All schema changes applied to both production instances via manual SQL.
+Both instances verified live: health OK, login OK, resources OK, products OK, AP collections OK.
