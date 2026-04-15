@@ -1,10 +1,70 @@
 <script setup lang="ts">
-defineProps<{
+import { createProductSchema } from '@commonpub/schema';
+
+const props = defineProps<{
   products: { items: Array<{ id: string; name: string; description: string | null; imageUrl: string | null; category: string | null; status: string }>; total: number } | null;
+  currentUserRole?: string | null;
+  hubSlug?: string;
 }>();
+
+const emit = defineEmits<{ 'product-created': [] }>();
+
+const canManage = computed(() => ['owner', 'admin', 'moderator'].includes(props.currentUserRole ?? ''));
+const showForm = ref(false);
+const formName = ref('');
+const formDescription = ref('');
+const formCategory = ref('other');
+const formPurchaseUrl = ref('');
+const creating = ref(false);
+
+async function handleCreate(): Promise<void> {
+  if (!formName.value.trim() || !props.hubSlug) return;
+  creating.value = true;
+  try {
+    await $fetch(`/api/hubs/${props.hubSlug}/products`, {
+      method: 'POST',
+      body: { name: formName.value, description: formDescription.value || undefined, category: formCategory.value, purchaseUrl: formPurchaseUrl.value || undefined },
+    });
+    formName.value = '';
+    formDescription.value = '';
+    formCategory.value = 'other';
+    formPurchaseUrl.value = '';
+    showForm.value = false;
+    emit('product-created');
+  } catch { /* toast error */ }
+  finally { creating.value = false; }
+}
 </script>
 
 <template>
+  <div>
+    <div v-if="canManage && hubSlug" class="cpub-products-header">
+      <button class="cpub-btn cpub-btn-sm" @click="showForm = !showForm">
+        <i :class="showForm ? 'fa-solid fa-times' : 'fa-solid fa-plus'"></i>
+        {{ showForm ? 'Cancel' : 'Add Product' }}
+      </button>
+    </div>
+
+    <form v-if="showForm" class="cpub-resource-form" @submit.prevent="handleCreate">
+      <input v-model="formName" type="text" placeholder="Product name" class="cpub-input" required />
+      <input v-model="formDescription" type="text" placeholder="Short description (optional)" class="cpub-input" />
+      <select v-model="formCategory" class="cpub-input">
+        <option value="microcontroller">Microcontroller</option>
+        <option value="sbc">SBC</option>
+        <option value="sensor">Sensor</option>
+        <option value="display">Display</option>
+        <option value="communication">Communication</option>
+        <option value="power">Power</option>
+        <option value="software">Software</option>
+        <option value="tool">Tool</option>
+        <option value="other">Other</option>
+      </select>
+      <input v-model="formPurchaseUrl" type="url" placeholder="Purchase URL (optional)" class="cpub-input" />
+      <button type="submit" class="cpub-btn cpub-btn-primary cpub-btn-sm" :disabled="creating || !formName.trim()">
+        {{ creating ? 'Adding...' : 'Add Product' }}
+      </button>
+    </form>
+
   <div v-if="products?.items?.length" class="cpub-products-grid">
     <div v-for="product in products.items" :key="product.id" class="cpub-product-card">
       <div class="cpub-product-card-icon">
@@ -24,6 +84,7 @@ defineProps<{
   <div v-else class="cpub-empty-state">
     <div class="cpub-empty-state-icon"><i class="fa-solid fa-microchip"></i></div>
     <p class="cpub-empty-state-title">No products listed yet</p>
+  </div>
   </div>
 </template>
 

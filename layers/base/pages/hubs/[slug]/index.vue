@@ -21,9 +21,14 @@ const hubType = computed(() => hub.value?.hubType ?? 'community');
 const isProductHub = computed(() => hubType.value === 'product');
 const isCompanyHub = computed(() => hubType.value === 'company');
 
-const { data: products } = useLazyFetch<{ items: Array<{ id: string; name: string; description: string | null; imageUrl: string | null; category: string | null; status: string }>; total: number }>(
+const { data: products, refresh: refreshProducts } = useLazyFetch<{ items: Array<{ id: string; name: string; description: string | null; imageUrl: string | null; category: string | null; status: string }>; total: number }>(
   () => `/api/hubs/${slug.value}/products`,
-  { default: () => ({ items: [], total: 0 }), immediate: isCompanyHub.value },
+  { default: () => ({ items: [], total: 0 }) },
+);
+
+const { data: resources, refresh: refreshResources } = useLazyFetch<{ items: Array<{ id: string; title: string; url: string; description: string | null; category: string; sortOrder: number; addedBy: { id: string; username: string; displayName: string | null; avatarUrl: string | null }; createdAt: string; updatedAt: string }>; total: number }>(
+  () => `/api/hubs/${slug.value}/resources`,
+  { default: () => ({ items: [], total: 0 }) },
 );
 
 useSeoMeta({
@@ -126,6 +131,7 @@ const tabDefs = computed<HubTabDef[]>(() => {
       { value: 'overview', label: 'Overview', icon: 'fa-solid fa-info-circle' },
       { value: 'projects', label: 'Projects Using This', icon: 'fa-solid fa-folder-open', count: gallery.value?.total },
       { value: 'discussions', label: 'Discussions', icon: 'fa-solid fa-comments' },
+      { value: 'resources', label: 'Resources', icon: 'fa-solid fa-link', count: resources.value?.total },
     ];
   }
   if (isCompanyHub.value) {
@@ -134,12 +140,15 @@ const tabDefs = computed<HubTabDef[]>(() => {
       { value: 'products', label: 'Products', icon: 'fa-solid fa-microchip', count: products.value?.total },
       { value: 'projects', label: 'Projects', icon: 'fa-solid fa-folder-open', count: gallery.value?.total },
       { value: 'discussions', label: 'Discussions', icon: 'fa-solid fa-comments' },
+      { value: 'resources', label: 'Resources', icon: 'fa-solid fa-link', count: resources.value?.total },
     ];
   }
   return [
     { value: 'feed', label: 'Feed', icon: 'fa-solid fa-rss', count: hub.value?.postCount },
     { value: 'projects', label: 'Projects', icon: 'fa-solid fa-folder-open', count: gallery.value?.total },
+    { value: 'products', label: 'Products', icon: 'fa-solid fa-microchip', count: products.value?.total },
     { value: 'discussions', label: 'Discussions', icon: 'fa-solid fa-comments' },
+    { value: 'resources', label: 'Resources', icon: 'fa-solid fa-link', count: resources.value?.total },
     { value: 'members', label: 'Members', icon: 'fa-solid fa-users', count: hub.value?.memberCount },
   ];
 });
@@ -377,7 +386,10 @@ async function onRefreshGallery(): Promise<void> {
     />
 
     <!-- Products tab -->
-    <HubProducts v-else-if="activeTab === 'products'" :products="products" />
+    <HubProducts v-else-if="activeTab === 'products'" :products="products" :current-user-role="hub?.currentUserRole ?? null" :hub-slug="slug" @product-created="refreshProducts" />
+
+    <!-- Resources tab -->
+    <HubResources v-else-if="activeTab === 'resources'" :resources="resources" :current-user-role="hub?.currentUserRole ?? null" :hub-slug="slug" :is-authenticated="isAuthenticated" :auth-user-id="authUser?.id ?? null" @resource-changed="refreshResources" />
 
     <!-- Sidebar -->
     <template #sidebar>
