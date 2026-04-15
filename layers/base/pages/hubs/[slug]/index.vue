@@ -126,31 +126,42 @@ const hubRules = computed<string[]>(() => {
 });
 
 const tabDefs = computed<HubTabDef[]>(() => {
+  const isMember = !!hub.value?.currentUserRole;
+  const showResources = (resources.value?.total ?? 0) > 0 || isMember;
+
   if (isProductHub.value) {
-    return [
+    const tabs: HubTabDef[] = [
       { value: 'overview', label: 'Overview', icon: 'fa-solid fa-info-circle' },
       { value: 'projects', label: 'Projects Using This', icon: 'fa-solid fa-folder-open', count: gallery.value?.total },
       { value: 'discussions', label: 'Discussions', icon: 'fa-solid fa-comments' },
-      { value: 'resources', label: 'Resources', icon: 'fa-solid fa-link', count: resources.value?.total },
     ];
+    if (showResources) tabs.push({ value: 'resources', label: 'Resources', icon: 'fa-solid fa-link', count: resources.value?.total });
+    return tabs;
   }
   if (isCompanyHub.value) {
-    return [
+    const tabs: HubTabDef[] = [
       { value: 'overview', label: 'Overview', icon: 'fa-solid fa-building' },
       { value: 'products', label: 'Products', icon: 'fa-solid fa-microchip', count: products.value?.total },
       { value: 'projects', label: 'Projects', icon: 'fa-solid fa-folder-open', count: gallery.value?.total },
       { value: 'discussions', label: 'Discussions', icon: 'fa-solid fa-comments' },
-      { value: 'resources', label: 'Resources', icon: 'fa-solid fa-link', count: resources.value?.total },
     ];
+    if (showResources) tabs.push({ value: 'resources', label: 'Resources', icon: 'fa-solid fa-link', count: resources.value?.total });
+    return tabs;
   }
-  return [
+  // Community hubs: only show Products/Resources tabs if they have content or user is a member
+  const tabs: HubTabDef[] = [
     { value: 'feed', label: 'Feed', icon: 'fa-solid fa-rss', count: hub.value?.postCount },
     { value: 'projects', label: 'Projects', icon: 'fa-solid fa-folder-open', count: gallery.value?.total },
-    { value: 'products', label: 'Products', icon: 'fa-solid fa-microchip', count: products.value?.total },
-    { value: 'discussions', label: 'Discussions', icon: 'fa-solid fa-comments' },
-    { value: 'resources', label: 'Resources', icon: 'fa-solid fa-link', count: resources.value?.total },
-    { value: 'members', label: 'Members', icon: 'fa-solid fa-users', count: hub.value?.memberCount },
   ];
+  if ((products.value?.total ?? 0) > 0 || isMember) {
+    tabs.push({ value: 'products', label: 'Products', icon: 'fa-solid fa-microchip', count: products.value?.total });
+  }
+  tabs.push({ value: 'discussions', label: 'Discussions', icon: 'fa-solid fa-comments' });
+  if (showResources) {
+    tabs.push({ value: 'resources', label: 'Resources', icon: 'fa-solid fa-link', count: resources.value?.total });
+  }
+  tabs.push({ value: 'members', label: 'Members', icon: 'fa-solid fa-users', count: hub.value?.memberCount });
+  return tabs;
 });
 
 const toast = useToast();

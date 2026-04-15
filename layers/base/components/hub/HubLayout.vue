@@ -24,6 +24,7 @@ const activeTab = defineModel<string>('activeTab', { required: true });
         >
           <i :class="tab.icon" style="font-size: 10px"></i>
           {{ tab.label }}
+          <span v-if="tab.count" class="cpub-tab-count">{{ tab.count }}</span>
         </button>
       </div>
     </div>
@@ -77,6 +78,22 @@ const activeTab = defineModel<string>('activeTab', { required: true });
 
 .cpub-tab-btn:hover { color: var(--text); }
 .cpub-tab-btn.active { color: var(--accent); border-bottom-color: var(--accent-border); font-weight: 600; }
+
+.cpub-tab-count {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  background: var(--surface2);
+  color: var(--text-faint);
+  padding: 1px 6px;
+  border-radius: 10px;
+  min-width: 18px;
+  text-align: center;
+}
+
+.cpub-tab-btn.active .cpub-tab-count {
+  background: var(--accent-bg);
+  color: var(--accent);
+}
 
 .cpub-hub-main {
   max-width: 1200px;
