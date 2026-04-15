@@ -491,6 +491,39 @@ export async function transitionContestStatus(
     await calculateContestRanks(db, contestId);
   }
 
+  // Notify contest entrants about status change (non-critical)
+  try {
+    const { createNotification } = await import('../notification/notification.js');
+    const [contestInfo] = await db.select({ title: contests.title, slug: contests.slug })
+      .from(contests).where(eq(contests.id, contestId)).limit(1);
+
+    if (contestInfo) {
+      const entrants = await db.select({ userId: contestEntries.userId })
+        .from(contestEntries).where(eq(contestEntries.contestId, contestId));
+
+      const messages: Record<string, { title: string; message: string }> = {
+        active: { title: 'Contest Open', message: `"${contestInfo.title}" is now accepting submissions!` },
+        judging: { title: 'Judging Started', message: `"${contestInfo.title}" is now being judged.` },
+        completed: { title: 'Results Posted', message: `Results for "${contestInfo.title}" are now available!` },
+        cancelled: { title: 'Contest Cancelled', message: `"${contestInfo.title}" has been cancelled.` },
+      };
+
+      const msg = messages[newStatus];
+      if (msg) {
+        for (const entrant of entrants) {
+          createNotification(db, {
+            userId: entrant.userId,
+            type: 'contest',
+            title: msg.title,
+            message: msg.message,
+            link: `/contests/${contestInfo.slug}${newStatus === 'completed' ? '/results' : ''}`,
+            actorId: userId,
+          }).catch(() => {});
+        }
+      }
+    }
+  } catch { /* non-critical */ }
+
   return { transitioned: true };
 }
 
