@@ -23,7 +23,7 @@ with test exclusions.
 | Themes | 5 |
 | ADRs | 24+ |
 | Session log files | 48 (session numbers run 071–125; sessions are sometimes bundled) |
-| Tests | 1,939+ (v0.2.0 baseline 2026-03-23); 30/30 & 865 in focused/wider recent runs |
+| Tests | ~2,852 (session 121 log, 2026-04-14); 1,939 at v0.2.0 baseline (2026-03-23); 30/30 test suites |
 
 ## Per-package sizes (rough)
 
@@ -90,7 +90,7 @@ From package versions and file counts:
 
 ## Test coverage
 
-- 1,939+ tests across 12 packages (as of v0.2.0 2026-03-23; likely higher now)
+- ~2,852 tests across 12 packages (session 121 log on 2026-04-14); 1,939 at v0.2.0 baseline
 - 30/30 tests passing in recent session verification
 - 865 tests in focused subsets
 - 3 PGlite-skipped integration tests

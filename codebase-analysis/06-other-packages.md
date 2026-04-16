@@ -34,7 +34,7 @@ Feature flags are **runtime** (environment via `nuxt.config` `runtimeConfig.publ
 - `types.ts` — AP actor + activity interfaces
 - `activityTypes.ts` — CommonPub → AP type mapping (`Article` + `cpub:type` extension for project/blog/explainer)
 - `contentMapper.ts` (13KB) — bidirectional BlockTuple[] ↔ AP object
-- `federation.ts` — Fedify init
+- `federation.ts` — `createFederation({ config, version, lookupUser, getStats })` factory returning WebFinger + NodeInfo handlers; gated on `config.features.federation`
 - `actorResolver.ts` — resolve + cache remote actors; refresh policy
 - `activities.ts` — Create/Announce/Delete/Update builders
 - `inbox.ts` — inbound dispatch

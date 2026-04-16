@@ -31,7 +31,7 @@ Not to be confused with the stale `/Users/obsidian/Projects/commonpub/` director
 | Composables | 20 |
 | Feature flags | 15 |
 | Themes | 5 (base, dark, generics, agora, agora-dark) |
-| Tests | 1,939+ (session 125 recent: 30/30 in focused subsets, 865 in wider runs) |
+| Tests | ~2,852 (session 121); 30/30 test suites; 865 focused recent runs |
 
 ## Files
 

@@ -33,10 +33,10 @@ Nuxt 3 or Drizzle, skim their docs; this guide won't re-teach those.
 - **Nuxt 3** for the distribution unit (the layer) and both apps.
 - **Drizzle ORM** over **PostgreSQL 16**.
 - **Better Auth** + custom AP Actor SSO for identity.
-- **Fedify** for ActivityPub (wrapped by `@commonpub/protocol`).
+- **Pure-TS ActivityPub** in `@commonpub/protocol` (jose for HTTP signatures + keypairs, Zod for AP object validation). No external AP framework.
 - **TipTap** for the block editor, serialized to a compact BlockTuple[] format.
 - **Meilisearch** for search, with Postgres FTS fallback.
-- **Redis/Valkey** for the delivery queue (used via Fedify).
+- **Postgres-backed delivery queue** — the `activities` table with `status`/`attempts`/`lockedAt`/`deadLetteredAt` columns. A Nitro plugin polls on a configurable interval. (Redis runs in docker-compose as a provisioned service for future use but isn't currently integrated.)
 
 For the exhaustive inventory (every table, route, component), see
 [`codebase-analysis/`](../../codebase-analysis/). For decisions, see

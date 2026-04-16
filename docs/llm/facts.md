@@ -88,7 +88,7 @@ Real example: `deveco.io` (~25 branded/config files extending the layer).
 
 ## Federation (ActivityPub)
 
-- Fedify via `@commonpub/protocol`.
+- Pure-TS ActivityPub in `@commonpub/protocol` (no Fedify or external AP framework). `jose` for HTTP signatures.
 - Better Auth + AP Actor SSO (Model B) for cross-instance login.
 - Content federates with `cpub:type` extension — full fidelity CommonPub-to-CommonPub, falls back to AP Article for Mastodon/Lemmy.
 - Hub federation: Group actors (FEP-1b12), session 083+, `federateHubs` flag.

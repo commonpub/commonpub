@@ -4,7 +4,7 @@
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-yellow.svg)](LICENSE)
 [![ActivityPub](https://img.shields.io/badge/protocol-ActivityPub-purple.svg)](https://www.w3.org/TR/activitypub/)
 [![Packages](https://img.shields.io/badge/packages-12-green.svg)](#packages)
-[![Tests](https://img.shields.io/badge/tests-1939+-brightgreen.svg)](#testing)
+[![Tests](https://img.shields.io/badge/tests-2800+-brightgreen.svg)](#testing)
 
 **An open ActivityPub federation protocol and package suite for self-hosted maker communities.**
 
@@ -222,11 +222,11 @@ Plus the layer itself:
 | Framework | Nuxt 3 + Vue 3 (Composition API, `<script setup lang="ts">`) |
 | Language | TypeScript strict |
 | Auth | Better Auth + AP Actor SSO (Model B, OAuth2) |
-| Federation | Fedify (wrapped by `@commonpub/protocol`) |
+| Federation | `@commonpub/protocol` — pure-TS ActivityPub (WebFinger, NodeInfo, HTTP Signatures via `jose`, BlockTuple↔AP mapper, OAuth2) — no external AP framework |
 | Database | PostgreSQL 16 + Drizzle ORM |
 | Editor | TipTap (content), CodeMirror 6 (docs) |
 | Search | Meilisearch (primary), Postgres FTS (fallback) |
-| Queue | Redis / Valkey (via Fedify) |
+| Delivery queue | `activities` Postgres table (advisory locks via `lockedAt`, exponential backoff, dead-letter on max retries) |
 | Monorepo | Turborepo + pnpm |
 | Testing | Vitest + Playwright + Stryker |
 
@@ -261,7 +261,7 @@ development workflow.
 
 | Layer | Tool | Scope |
 |---|---|---|
-| Unit / integration | Vitest | 1,939+ tests across 12 packages |
+| Unit / integration | Vitest | ~2,850 tests across 12 packages (was 1,939 at v0.2.0; session 121 log recorded 2,852) |
 | Components | @testing-library/vue + axe-core | WCAG 2.1 AA on all UI components |
 | E2E | Playwright | Auth, content, theming, admin, accessibility |
 | Mutation | Stryker | Per-package mutation score |

@@ -50,7 +50,7 @@ Note: `tools/create-commonpub` is NOT in the pnpm workspace — it's Rust.
 | @commonpub/config | 0.10.0 | 15 feature flags |
 | @commonpub/layer | 0.15.3 | Bumped in session 126 for typecheck fixes; also consumed via workspace |
 | @commonpub/ui | 0.8.5 | Independent; NOT bundled into layer |
-| @commonpub/protocol | 0.9.9 | Fedify wrapper |
+| @commonpub/protocol | 0.9.9 | Pure-TS ActivityPub: AP types, content mapper, WebFinger, NodeInfo, HTTP signatures (jose), OAuth2 helpers |
 | @commonpub/editor | 0.7.9 | 20 block types |
 | @commonpub/explainer | 0.7.11 | Pure TS engine + optional Vue |
 | @commonpub/learning | 0.5.0 | Curriculum engine |
