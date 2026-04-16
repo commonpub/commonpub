@@ -5,6 +5,7 @@ import { getPollOptions, getUserPollVote } from '@commonpub/server';
  * Get poll options and the user's vote (if authenticated).
  */
 export default defineEventHandler(async (event) => {
+  requireFeature('hubs');
   const db = useDB();
   const postId = getRouterParam(event, 'postId');
   if (!postId) throw createError({ statusCode: 400, statusMessage: 'Missing postId' });

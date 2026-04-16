@@ -66,7 +66,7 @@ const roleLabels: Record<string, string> = {
         </NuxtLink>
         <span class="cpub-judge-role">{{ roleLabels[judge.role] || judge.role }}</span>
         <span v-if="!judge.acceptedAt" class="cpub-judge-pending">Pending</span>
-        <button v-if="isOwner" class="cpub-judge-remove" @click="removeJudge(judge.userId)" title="Remove judge">
+        <button v-if="isOwner" class="cpub-judge-remove" :aria-label="`Remove ${judge.userName} from judges`" @click="removeJudge(judge.userId)">
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>

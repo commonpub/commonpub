@@ -11,11 +11,7 @@ const emit = defineEmits<{
   close: [];
 }>();
 
-function isChildVisible(child: NavItem, features: Record<string, boolean>): boolean {
-  if (child.featureGate && !features[child.featureGate]) return false;
-  return true;
-}
-
+const { isAuthenticated, isAdmin } = useAuth();
 const features = useFeatures();
 const featureMap = computed(() => {
   const map: Record<string, boolean> = {};
@@ -27,28 +23,46 @@ const featureMap = computed(() => {
   return map;
 });
 
+function isChildVisible(child: NavItem): boolean {
+  if (child.featureGate && !featureMap.value[child.featureGate]) return false;
+  if (child.visibleTo === 'authenticated' && !isAuthenticated.value) return false;
+  if (child.visibleTo === 'admin' && !isAdmin.value) return false;
+  return true;
+}
+
 const visibleChildren = computed(() =>
-  (props.item.children ?? []).filter(c => isChildVisible(c, featureMap.value)),
+  (props.item.children ?? []).filter(c => isChildVisible(c)),
 );
+
+function handleKeydown(e: KeyboardEvent): void {
+  if (e.key === 'Escape' && props.open) {
+    emit('close');
+  }
+}
 </script>
 
 <template>
-  <div v-if="visibleChildren.length > 0" class="cpub-nav-dropdown">
+  <div v-if="visibleChildren.length > 0" class="cpub-nav-dropdown" @keydown="handleKeydown">
     <button
       class="cpub-nav-link cpub-nav-trigger"
       :class="{ 'cpub-nav-trigger--open': open }"
+      :aria-label="`${item.label} menu`"
       aria-haspopup="true"
       :aria-expanded="open"
       @click.stop="emit('toggle')"
+      @keydown.enter.stop="emit('toggle')"
+      @keydown.space.prevent.stop="emit('toggle')"
     >
       <i v-if="item.icon" :class="item.icon"></i> {{ item.label }}
       <i class="fa-solid fa-chevron-down cpub-nav-caret" />
     </button>
-    <div v-if="open" class="cpub-nav-panel">
+    <div v-if="open" class="cpub-nav-panel" role="menu">
       <template v-for="child in visibleChildren" :key="child.id">
         <span
           v-if="child.disabled"
           class="cpub-nav-panel-item cpub-nav-panel-item--disabled"
+          role="menuitem"
+          aria-disabled="true"
         >
           <i v-if="child.icon" :class="child.icon"></i> {{ child.label }}
         </span>
@@ -58,15 +72,17 @@ const visibleChildren = computed(() =>
           target="_blank"
           rel="noopener"
           class="cpub-nav-panel-item"
+          role="menuitem"
           @click="emit('close')"
         >
           <i v-if="child.icon" :class="child.icon"></i> {{ child.label }}
-          <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 8px; opacity: 0.5;"></i>
+          <i class="fa-solid fa-arrow-up-right-from-square cpub-nav-external-icon"></i>
         </a>
         <NuxtLink
           v-else-if="child.route"
           :to="child.route"
           class="cpub-nav-panel-item"
+          role="menuitem"
           @click="emit('close')"
         >
           <i v-if="child.icon" :class="child.icon"></i> {{ child.label }}
@@ -75,3 +91,11 @@ const visibleChildren = computed(() =>
     </div>
   </div>
 </template>
+
+<style scoped>
+.cpub-nav-external-icon {
+  font-size: 8px;
+  color: var(--text-faint);
+  margin-left: 2px;
+}
+</style>

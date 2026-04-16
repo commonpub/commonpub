@@ -10,6 +10,7 @@ const voteSchema = z.object({
  * Upvote or downvote a hub post. Toggles off if same direction, flips if different.
  */
 export default defineEventHandler(async (event) => {
+  requireFeature('hubs');
   const user = requireAuth(event);
   const db = useDB();
   const postId = getRouterParam(event, 'postId');

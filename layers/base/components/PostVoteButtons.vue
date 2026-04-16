@@ -13,6 +13,7 @@ const emit = defineEmits<{
 }>();
 
 const { isAuthenticated } = useAuth();
+const toast = useToast();
 const loading = ref(false);
 const currentScore = ref(props.voteScore);
 const currentVote = ref<VoteDirection | null>(props.userVote ?? null);
@@ -32,7 +33,7 @@ async function vote(direction: VoteDirection): Promise<void> {
     currentVote.value = result.direction;
     emit('voted', { voteScore: result.voteScore, direction: result.direction });
   } catch {
-    // silent
+    toast.error('Vote failed');
   } finally {
     loading.value = false;
   }

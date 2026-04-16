@@ -15,6 +15,9 @@ const createEventSchema = z.object({
   onlineUrl: z.string().url().max(500).optional(),
   capacity: z.number().int().min(1).max(100000).optional(),
   hubId: z.string().uuid().optional(),
+}).refine(d => new Date(d.endDate) > new Date(d.startDate), {
+  message: 'End date must be after start date',
+  path: ['endDate'],
 });
 
 /**

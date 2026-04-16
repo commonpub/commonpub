@@ -294,43 +294,45 @@ export async function rsvpEvent(
   eventId: string,
   userId: string,
 ): Promise<{ success: boolean; status: AttendeeStatus; error?: string }> {
-  // Validate event exists and is published/active
-  const [event] = await db
-    .select({ status: events.status, capacity: events.capacity, attendeeCount: events.attendeeCount })
-    .from(events)
-    .where(eq(events.id, eventId))
-    .limit(1);
+  return db.transaction(async (tx) => {
+    // Validate event exists and is published/active
+    const [event] = await tx
+      .select({ status: events.status, capacity: events.capacity, attendeeCount: events.attendeeCount })
+      .from(events)
+      .where(eq(events.id, eventId))
+      .limit(1);
 
-  if (!event) return { success: false, status: 'cancelled', error: 'Event not found' };
-  if (event.status !== 'published' && event.status !== 'active') {
-    return { success: false, status: 'cancelled', error: 'Event is not accepting registrations' };
-  }
+    if (!event) return { success: false, status: 'cancelled' as AttendeeStatus, error: 'Event not found' };
+    if (event.status !== 'published' && event.status !== 'active') {
+      return { success: false, status: 'cancelled' as AttendeeStatus, error: 'Event is not accepting registrations' };
+    }
 
-  // Check if already registered
-  const [existing] = await db
-    .select({ id: eventAttendees.id, status: eventAttendees.status })
-    .from(eventAttendees)
-    .where(and(eq(eventAttendees.eventId, eventId), eq(eventAttendees.userId, userId)))
-    .limit(1);
+    // Check if already registered
+    const [existing] = await tx
+      .select({ id: eventAttendees.id, status: eventAttendees.status })
+      .from(eventAttendees)
+      .where(and(eq(eventAttendees.eventId, eventId), eq(eventAttendees.userId, userId)))
+      .limit(1);
 
-  if (existing) {
-    return { success: false, status: existing.status, error: 'Already registered' };
-  }
+    if (existing) {
+      return { success: false, status: existing.status, error: 'Already registered' };
+    }
 
-  // Determine status based on capacity
-  const attendeeStatus: AttendeeStatus =
-    event.capacity && event.attendeeCount >= event.capacity ? 'waitlisted' : 'registered';
+    // Determine status based on capacity (atomic within transaction)
+    const attendeeStatus: AttendeeStatus =
+      event.capacity && event.attendeeCount >= event.capacity ? 'waitlisted' : 'registered';
 
-  await db.insert(eventAttendees).values({ eventId, userId, status: attendeeStatus });
+    await tx.insert(eventAttendees).values({ eventId, userId, status: attendeeStatus });
 
-  if (attendeeStatus === 'registered') {
-    await db
-      .update(events)
-      .set({ attendeeCount: sql`${events.attendeeCount} + 1` })
-      .where(eq(events.id, eventId));
-  }
+    if (attendeeStatus === 'registered') {
+      await tx
+        .update(events)
+        .set({ attendeeCount: sql`${events.attendeeCount} + 1` })
+        .where(eq(events.id, eventId));
+    }
 
-  return { success: true, status: attendeeStatus };
+    return { success: true, status: attendeeStatus };
+  });
 }
 
 export async function cancelRsvp(

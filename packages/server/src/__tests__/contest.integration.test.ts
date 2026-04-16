@@ -16,6 +16,7 @@ import {
   calculateContestRanks,
 } from '../contest/contest.js';
 import { createContent, publishContent } from '../content/content.js';
+import { addContestJudge, acceptJudgeInvite } from '../contest/judges.js';
 
 describe('contest integration', () => {
   let db: DB;
@@ -157,6 +158,10 @@ describe('contest integration', () => {
       judges: [judgeUserId],
     });
 
+    // Register judge in contestJudges table and accept invite
+    await addContestJudge(db, contest.id, judgeUserId, 'judge');
+    await acceptJudgeInvite(db, contest.id, judgeUserId);
+
     await transitionContestStatus(db, contest.id, organizerId, 'active');
 
     const content = await createContent(db, participantId, {
@@ -246,6 +251,8 @@ describe('contest integration', () => {
       ...makeContestInput({ title: 'Rank Calc Contest' }),
       judges: [judgeUserId],
     });
+    await addContestJudge(db, contest.id, judgeUserId, 'judge');
+    await acceptJudgeInvite(db, contest.id, judgeUserId);
     await transitionContestStatus(db, contest.id, organizerId, 'active');
 
     // Create two entries
@@ -326,6 +333,8 @@ describe('contest integration', () => {
       ...makeContestInput({ title: 'Feedback Test Contest' }),
       judges: [judgeUserId],
     });
+    await addContestJudge(db, contest.id, judgeUserId, 'judge');
+    await acceptJudgeInvite(db, contest.id, judgeUserId);
     await transitionContestStatus(db, contest.id, organizerId, 'active');
 
     const content = await createContent(db, participantId, { type: 'project', title: 'Feedback Entry' });
@@ -381,6 +390,10 @@ describe('contest integration', () => {
       ...makeContestInput({ title: 'Multi-Judge Contest' }),
       judges: [judgeUserId, judge2.id],
     });
+    await addContestJudge(db, contest.id, judgeUserId, 'judge');
+    await acceptJudgeInvite(db, contest.id, judgeUserId);
+    await addContestJudge(db, contest.id, judge2.id, 'judge');
+    await acceptJudgeInvite(db, contest.id, judge2.id);
     await transitionContestStatus(db, contest.id, organizerId, 'active');
 
     const content = await createContent(db, participantId, { type: 'project', title: 'Multi-Judge Entry' });

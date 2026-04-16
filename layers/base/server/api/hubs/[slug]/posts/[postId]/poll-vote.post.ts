@@ -10,6 +10,7 @@ const pollVoteSchema = z.object({
  * Vote on a poll option.
  */
 export default defineEventHandler(async (event) => {
+  requireFeature('hubs');
   const user = requireAuth(event);
   const db = useDB();
   const postId = getRouterParam(event, 'postId');

@@ -1,5 +1,5 @@
 import { eq, and, desc, sql } from 'drizzle-orm';
-import { contests, contestEntries, users, contentItems } from '@commonpub/schema';
+import { contests, contestEntries, contestJudges, users, contentItems } from '@commonpub/schema';
 import type { DB } from '../types.js';
 import { normalizePagination, countRows } from '../query.js';
 
@@ -387,8 +387,8 @@ export async function judgeContestEntry(
   const existing = await db
     .select({
       entry: contestEntries,
-      contestJudges: contests.judges,
       contestStatus: contests.status,
+      contestId: contests.id,
     })
     .from(contestEntries)
     .innerJoin(contests, eq(contestEntries.contestId, contests.id))
@@ -404,10 +404,21 @@ export async function judgeContestEntry(
     return { judged: false, error: 'Contest is not in judging phase' };
   }
 
-  // Check judge authorization
-  const judges = (row.contestJudges ?? []) as string[];
-  if (!judges.includes(judgeId)) {
+  // Check judge authorization via contestJudges table (accepted judges only)
+  const [judgeRecord] = await db
+    .select({ id: contestJudges.id, role: contestJudges.role, acceptedAt: contestJudges.acceptedAt })
+    .from(contestJudges)
+    .where(and(eq(contestJudges.contestId, row.contestId), eq(contestJudges.userId, judgeId)))
+    .limit(1);
+
+  if (!judgeRecord) {
     return { judged: false, error: 'Not authorized to judge this contest' };
+  }
+  if (!judgeRecord.acceptedAt) {
+    return { judged: false, error: 'Judge invitation has not been accepted' };
+  }
+  if (judgeRecord.role === 'guest') {
+    return { judged: false, error: 'Guest judges cannot submit scores' };
   }
 
   const entry = row.entry;

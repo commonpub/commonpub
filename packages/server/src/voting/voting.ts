@@ -18,45 +18,46 @@ export async function voteOnPost(
   userId: string,
   direction: VoteDirection,
 ): Promise<VoteResult> {
-  // Check for existing vote
-  const [existing] = await db
-    .select({ id: hubPostVotes.id, direction: hubPostVotes.direction })
-    .from(hubPostVotes)
-    .where(and(eq(hubPostVotes.postId, postId), eq(hubPostVotes.userId, userId)))
-    .limit(1);
+  return db.transaction(async (tx) => {
+    const [existing] = await tx
+      .select({ id: hubPostVotes.id, direction: hubPostVotes.direction })
+      .from(hubPostVotes)
+      .where(and(eq(hubPostVotes.postId, postId), eq(hubPostVotes.userId, userId)))
+      .limit(1);
 
-  if (existing) {
-    if (existing.direction === direction) {
-      // Same direction — remove vote (toggle off)
-      await db.delete(hubPostVotes).where(eq(hubPostVotes.id, existing.id));
-      const scoreDelta = direction === 'up' ? -1 : 1;
-      await db.update(hubPosts)
-        .set({ voteScore: sql`${hubPosts.voteScore} + ${scoreDelta}` })
-        .where(eq(hubPosts.id, postId));
-      const [post] = await db.select({ voteScore: hubPosts.voteScore }).from(hubPosts).where(eq(hubPosts.id, postId));
-      return { voted: false, direction: null, voteScore: post?.voteScore ?? 0 };
-    } else {
-      // Different direction — flip vote (worth 2 points swing)
-      await db.update(hubPostVotes)
-        .set({ direction })
-        .where(eq(hubPostVotes.id, existing.id));
-      const scoreDelta = direction === 'up' ? 2 : -2;
-      await db.update(hubPosts)
-        .set({ voteScore: sql`${hubPosts.voteScore} + ${scoreDelta}` })
-        .where(eq(hubPosts.id, postId));
-      const [post] = await db.select({ voteScore: hubPosts.voteScore }).from(hubPosts).where(eq(hubPosts.id, postId));
-      return { voted: true, direction, voteScore: post?.voteScore ?? 0 };
+    if (existing) {
+      if (existing.direction === direction) {
+        // Same direction — remove vote (toggle off)
+        await tx.delete(hubPostVotes).where(eq(hubPostVotes.id, existing.id));
+        const scoreDelta = direction === 'up' ? -1 : 1;
+        const [post] = await tx.update(hubPosts)
+          .set({ voteScore: sql`${hubPosts.voteScore} + ${scoreDelta}` })
+          .where(eq(hubPosts.id, postId))
+          .returning({ voteScore: hubPosts.voteScore });
+        return { voted: false, direction: null, voteScore: post?.voteScore ?? 0 };
+      } else {
+        // Different direction — flip vote (worth 2 points swing)
+        await tx.update(hubPostVotes)
+          .set({ direction })
+          .where(eq(hubPostVotes.id, existing.id));
+        const scoreDelta = direction === 'up' ? 2 : -2;
+        const [post] = await tx.update(hubPosts)
+          .set({ voteScore: sql`${hubPosts.voteScore} + ${scoreDelta}` })
+          .where(eq(hubPosts.id, postId))
+          .returning({ voteScore: hubPosts.voteScore });
+        return { voted: true, direction, voteScore: post?.voteScore ?? 0 };
+      }
     }
-  }
 
-  // New vote
-  await db.insert(hubPostVotes).values({ postId, userId, direction });
-  const scoreDelta = direction === 'up' ? 1 : -1;
-  await db.update(hubPosts)
-    .set({ voteScore: sql`${hubPosts.voteScore} + ${scoreDelta}` })
-    .where(eq(hubPosts.id, postId));
-  const [post] = await db.select({ voteScore: hubPosts.voteScore }).from(hubPosts).where(eq(hubPosts.id, postId));
-  return { voted: true, direction, voteScore: post?.voteScore ?? 0 };
+    // New vote
+    await tx.insert(hubPostVotes).values({ postId, userId, direction });
+    const scoreDelta = direction === 'up' ? 1 : -1;
+    const [post] = await tx.update(hubPosts)
+      .set({ voteScore: sql`${hubPosts.voteScore} + ${scoreDelta}` })
+      .where(eq(hubPosts.id, postId))
+      .returning({ voteScore: hubPosts.voteScore });
+    return { voted: true, direction, voteScore: post?.voteScore ?? 0 };
+  });
 }
 
 export async function getUserPostVote(
@@ -123,30 +124,32 @@ export async function voteOnPoll(
   optionId: string,
   userId: string,
 ): Promise<{ voted: boolean; error?: string }> {
-  // Check if already voted on this poll
-  const [existing] = await db
-    .select({ id: pollVotes.id })
-    .from(pollVotes)
-    .where(and(eq(pollVotes.postId, postId), eq(pollVotes.userId, userId)))
-    .limit(1);
+  return db.transaction(async (tx) => {
+    // Check if already voted on this poll
+    const [existing] = await tx
+      .select({ id: pollVotes.id })
+      .from(pollVotes)
+      .where(and(eq(pollVotes.postId, postId), eq(pollVotes.userId, userId)))
+      .limit(1);
 
-  if (existing) return { voted: false, error: 'Already voted on this poll' };
+    if (existing) return { voted: false, error: 'Already voted on this poll' };
 
-  // Verify option belongs to this post
-  const [option] = await db
-    .select({ id: pollOptions.id })
-    .from(pollOptions)
-    .where(and(eq(pollOptions.id, optionId), eq(pollOptions.postId, postId)))
-    .limit(1);
+    // Verify option belongs to this post
+    const [option] = await tx
+      .select({ id: pollOptions.id })
+      .from(pollOptions)
+      .where(and(eq(pollOptions.id, optionId), eq(pollOptions.postId, postId)))
+      .limit(1);
 
-  if (!option) return { voted: false, error: 'Invalid option' };
+    if (!option) return { voted: false, error: 'Invalid option' };
 
-  await db.insert(pollVotes).values({ optionId, userId, postId });
-  await db.update(pollOptions)
-    .set({ voteCount: sql`${pollOptions.voteCount} + 1` })
-    .where(eq(pollOptions.id, optionId));
+    await tx.insert(pollVotes).values({ optionId, userId, postId });
+    await tx.update(pollOptions)
+      .set({ voteCount: sql`${pollOptions.voteCount} + 1` })
+      .where(eq(pollOptions.id, optionId));
 
-  return { voted: true };
+    return { voted: true };
+  });
 }
 
 export async function getUserPollVote(
