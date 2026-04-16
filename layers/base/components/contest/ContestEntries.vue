@@ -1,15 +1,77 @@
 <script setup lang="ts">
-import type { Serialized, ContestEntryItem } from '@commonpub/server';
+import type { Serialized, ContestEntryItem, ContestEntryVoteInfo } from '@commonpub/server';
 
 const props = defineProps<{
   entries: Serialized<ContestEntryItem>[];
   contestStatus?: string;
+  contestSlug?: string;
   currentUserId?: string;
+  communityVotingEnabled?: boolean;
 }>();
 
 const emit = defineEmits<{
   (e: 'withdraw', entryId: string): void;
 }>();
+
+const { isAuthenticated } = useAuth();
+const toast = useToast();
+
+// Vote state: entryId → { count, voted }
+const voteMap = ref<Map<string, { count: number; voted: boolean }>>(new Map());
+const votingEntry = ref<string | null>(null);
+
+// Fetch vote data — always set up the fetch (server returns [] when voting is disabled).
+// Cannot conditionally call useLazyFetch because props from useLazyFetch parent
+// may still be undefined during setup.
+if (props.contestSlug) {
+  const { data: voteData } = useLazyFetch<ContestEntryVoteInfo[]>(
+    `/api/contests/${props.contestSlug}/votes`,
+  );
+  watch(voteData, (data) => {
+    if (!data) return;
+    const map = new Map<string, { count: number; voted: boolean }>();
+    for (const v of data) {
+      map.set(v.entryId, { count: v.count, voted: v.voted });
+    }
+    voteMap.value = map;
+  }, { immediate: true });
+}
+
+function getVoteCount(entryId: string): number {
+  return voteMap.value.get(entryId)?.count ?? 0;
+}
+
+function hasVoted(entryId: string): boolean {
+  return voteMap.value.get(entryId)?.voted ?? false;
+}
+
+async function toggleVote(entryId: string): Promise<void> {
+  if (!isAuthenticated.value || !props.contestSlug || votingEntry.value) return;
+  votingEntry.value = entryId;
+
+  const currentlyVoted = hasVoted(entryId);
+  const currentCount = getVoteCount(entryId);
+
+  // Optimistic update
+  voteMap.value.set(entryId, {
+    count: currentlyVoted ? currentCount - 1 : currentCount + 1,
+    voted: !currentlyVoted,
+  });
+
+  try {
+    if (currentlyVoted) {
+      await $fetch(`/api/contests/${props.contestSlug}/entries/${entryId}/vote`, { method: 'DELETE' });
+    } else {
+      await $fetch(`/api/contests/${props.contestSlug}/entries/${entryId}/vote`, { method: 'POST' });
+    }
+  } catch {
+    // Revert optimistic update
+    voteMap.value.set(entryId, { count: currentCount, voted: currentlyVoted });
+    toast.error(currentlyVoted ? 'Failed to remove vote' : 'Failed to vote');
+  } finally {
+    votingEntry.value = null;
+  }
+}
 
 function confirmWithdraw(entryId: string): void {
   if (confirm('Withdraw this entry? This cannot be undone.')) {
@@ -50,6 +112,18 @@ function confirmWithdraw(entryId: string): void {
           </div>
           <div class="cpub-entry-footer">
             <span v-if="entry.score != null" class="cpub-entry-score">Score: {{ entry.score }}</span>
+            <button
+              v-if="communityVotingEnabled"
+              class="cpub-entry-vote-btn"
+              :class="{ voted: hasVoted(entry.id) }"
+              :disabled="!isAuthenticated || votingEntry === entry.id"
+              :aria-pressed="hasVoted(entry.id)"
+              :aria-label="hasVoted(entry.id) ? 'Remove vote' : 'Vote for this entry'"
+              @click.prevent="toggleVote(entry.id)"
+            >
+              <i :class="hasVoted(entry.id) ? 'fa-solid fa-heart' : 'fa-regular fa-heart'"></i>
+              <span>{{ getVoteCount(entry.id) }}</span>
+            </button>
             <button
               v-if="currentUserId && entry.userId === currentUserId && contestStatus === 'active'"
               class="cpub-withdraw-btn"
@@ -100,6 +174,19 @@ function confirmWithdraw(entryId: string): void {
 .cpub-entry-meta { color: var(--text-faint); }
 .cpub-entry-footer { display: flex; align-items: center; gap: 6px; }
 .cpub-entry-score { font-size: 10px; color: var(--text-faint); font-family: var(--font-mono); display: flex; align-items: center; gap: 3px; }
+
+.cpub-entry-vote-btn {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11px; font-family: var(--font-mono); font-weight: 600;
+  padding: 3px 8px; border: var(--border-width-default) solid var(--border2);
+  background: var(--surface); color: var(--text-dim); cursor: pointer;
+  transition: all 0.15s;
+}
+.cpub-entry-vote-btn:hover:not(:disabled) { border-color: var(--red); color: var(--red); }
+.cpub-entry-vote-btn.voted { color: var(--red); border-color: var(--red); }
+.cpub-entry-vote-btn:disabled { opacity: 0.4; cursor: default; }
+.cpub-entry-vote-btn i { font-size: 10px; }
+
 .cpub-withdraw-btn { display: flex; align-items: center; gap: 4px; font-size: 10px; font-family: var(--font-mono); padding: 3px 8px; border-radius: var(--radius); border: var(--border-width-default) solid var(--red-border); background: var(--surface); color: var(--red); cursor: pointer; margin-left: auto; }
 .cpub-withdraw-btn:hover { background: var(--red-bg); }
 

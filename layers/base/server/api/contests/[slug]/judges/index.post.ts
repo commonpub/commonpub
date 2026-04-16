@@ -26,7 +26,11 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await parseBody(event, addJudgeSchema);
-  const result = await addContestJudge(db, contest.id, body.userId, (body.role ?? 'judge') as JudgeRole);
+  const result = await addContestJudge(db, contest.id, body.userId, (body.role ?? 'judge') as JudgeRole, {
+    contestSlug: slug,
+    contestTitle: contest.title,
+    invitedBy: user.id,
+  });
 
   if (!result.added) {
     throw createError({ statusCode: 400, statusMessage: result.error ?? 'Failed to add judge' });

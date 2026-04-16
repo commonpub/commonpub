@@ -1,4 +1,4 @@
-import { eq, and, desc, sql } from 'drizzle-orm';
+import { eq, and, desc, sql, isNotNull } from 'drizzle-orm';
 import { contests, contestEntries, contestJudges, users, contentItems } from '@commonpub/schema';
 import type { DB } from '../types.js';
 import { normalizePagination, countRows } from '../query.js';
@@ -24,6 +24,7 @@ export interface ContestDetail extends ContestListItem {
   judgingCriteria: unknown | null;
   judgingEndDate: Date | null;
   judges: string[] | null;
+  communityVotingEnabled: boolean;
   createdById: string;
 }
 
@@ -137,6 +138,7 @@ export async function getContestBySlug(
     judgingCriteria: null,
     judgingEndDate: row.judgingEndDate,
     judges: row.judges ?? null,
+    communityVotingEnabled: row.communityVotingEnabled,
     createdById: row.createdById,
   };
 }
@@ -201,6 +203,7 @@ export async function createContest(
     judgingCriteria: null,
     judgingEndDate: row!.judgingEndDate,
     judges: row!.judges ?? null,
+    communityVotingEnabled: row!.communityVotingEnabled,
     createdById: row!.createdById,
   };
 }
@@ -521,15 +524,40 @@ export async function transitionContestStatus(
 
       const msg = messages[newStatus];
       if (msg) {
+        const link = `/contests/${contestInfo.slug}${newStatus === 'completed' ? '/results' : ''}`;
         for (const entrant of entrants) {
           createNotification(db, {
             userId: entrant.userId,
             type: 'contest',
             title: msg.title,
             message: msg.message,
-            link: `/contests/${contestInfo.slug}${newStatus === 'completed' ? '/results' : ''}`,
+            link,
             actorId: userId,
           }).catch(() => {});
+        }
+
+        // Also notify accepted judges on status transitions
+        if (newStatus === 'judging' || newStatus === 'completed' || newStatus === 'cancelled') {
+          const judges = await db.select({ userId: contestJudges.userId })
+            .from(contestJudges)
+            .where(and(eq(contestJudges.contestId, contestId), isNotNull(contestJudges.acceptedAt)));
+
+          const judgeMsg = newStatus === 'judging'
+            ? { title: 'Judging Period Started', message: `"${contestInfo.title}" is ready for judging.` }
+            : msg;
+
+          for (const judge of judges) {
+            // Don't double-notify judges who are also entrants
+            if (entrants.some(e => e.userId === judge.userId)) continue;
+            createNotification(db, {
+              userId: judge.userId,
+              type: 'contest',
+              title: judgeMsg.title,
+              message: judgeMsg.message,
+              link,
+              actorId: userId,
+            }).catch(() => {});
+          }
         }
       }
     }

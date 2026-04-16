@@ -604,11 +604,13 @@ export {
   removeContestEntryVote,
   getContestEntryVoteCount,
   hasVotedOnContestEntry,
+  getContestEntryVotes,
 } from './voting/voting.js';
 export type {
   VoteDirection,
   VoteResult,
   PollOptionResult,
+  ContestEntryVoteInfo,
 } from './voting/voting.js';
 
 // Navigation

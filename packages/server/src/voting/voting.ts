@@ -1,4 +1,4 @@
-import { eq, and, sql } from 'drizzle-orm';
+import { eq, and, sql, inArray } from 'drizzle-orm';
 import { hubPostVotes, hubPosts, pollOptions, pollVotes, contestEntryVotes, contestEntries, contests } from '@commonpub/schema';
 import type { DB } from '../types.js';
 
@@ -246,4 +246,61 @@ export async function hasVotedOnContestEntry(
     .where(and(eq(contestEntryVotes.entryId, entryId), eq(contestEntryVotes.userId, userId)))
     .limit(1);
   return !!row;
+}
+
+export interface ContestEntryVoteInfo {
+  entryId: string;
+  count: number;
+  voted: boolean;
+}
+
+/**
+ * Batch-fetch vote counts + user vote status for all entries in a contest.
+ * If userId is null, `voted` is always false.
+ */
+export async function getContestEntryVotes(
+  db: DB,
+  contestId: string,
+  userId: string | null,
+): Promise<ContestEntryVoteInfo[]> {
+  // Get all entry IDs for this contest
+  const entryRows = await db
+    .select({ id: contestEntries.id })
+    .from(contestEntries)
+    .where(eq(contestEntries.contestId, contestId));
+
+  if (entryRows.length === 0) return [];
+
+  const entryIds = entryRows.map(r => r.id);
+
+  // Get vote counts per entry
+  const counts = await db
+    .select({
+      entryId: contestEntryVotes.entryId,
+      count: sql<number>`COUNT(*)::int`,
+    })
+    .from(contestEntryVotes)
+    .where(inArray(contestEntryVotes.entryId, entryIds))
+    .groupBy(contestEntryVotes.entryId);
+
+  const countMap = new Map(counts.map(c => [c.entryId, c.count]));
+
+  // Get user's votes if logged in
+  let userVoteSet = new Set<string>();
+  if (userId) {
+    const userVotes = await db
+      .select({ entryId: contestEntryVotes.entryId })
+      .from(contestEntryVotes)
+      .where(and(
+        inArray(contestEntryVotes.entryId, entryIds),
+        eq(contestEntryVotes.userId, userId),
+      ));
+    userVoteSet = new Set(userVotes.map(v => v.entryId));
+  }
+
+  return entryRows.map(e => ({
+    entryId: e.id,
+    count: countMap.get(e.id) ?? 0,
+    voted: userVoteSet.has(e.id),
+  }));
 }

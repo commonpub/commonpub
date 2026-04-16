@@ -144,7 +144,9 @@ async function withdrawEntry(entryId: string): Promise<void> {
           <ContestEntries
             :entries="entries"
             :contest-status="c?.status"
+            :contest-slug="slug"
             :current-user-id="user?.id"
+            :community-voting-enabled="c?.communityVotingEnabled"
             @withdraw="withdrawEntry"
           />
         </div>
