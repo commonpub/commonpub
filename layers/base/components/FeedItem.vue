@@ -79,7 +79,7 @@ const formattedDate = computed((): string => {
         </div>
 
         <div class="cpub-feed-item-stats">
-          <button v-if="interactive" class="cpub-feed-stat cpub-feed-stat-btn" :class="{ 'cpub-feed-stat-voted': voted }" aria-label="Vote" @click.prevent.stop="emit('vote')">
+          <button v-if="interactive" type="button" class="cpub-feed-stat cpub-feed-stat-btn" :class="{ 'cpub-feed-stat-voted': voted }" aria-label="Vote" @click.prevent.stop="emit('vote')">
             <i class="fa-solid fa-arrow-up"></i> {{ voteCount }}
           </button>
           <span v-else class="cpub-feed-stat" aria-label="Votes">

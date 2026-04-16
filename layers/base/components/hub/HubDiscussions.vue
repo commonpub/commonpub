@@ -1,9 +1,14 @@
 <script setup lang="ts">
 import type { HubPostViewModel } from '../../types/hub';
+import type { VoteDirection } from '@commonpub/server';
 
 const props = defineProps<{
-  posts: HubPostViewModel[]
+  posts: HubPostViewModel[];
+  hubSlug?: string;
 }>();
+
+const { isAuthenticated } = useAuth();
+const toast = useToast();
 
 function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, '').trim();
@@ -15,6 +20,40 @@ const discussionPosts = computed(() => {
     && !p.sharedContent,
   );
 });
+
+// --- Voting ---
+const scoreOverrides = reactive<Map<string, number>>(new Map());
+const userVotes = reactive<Map<string, VoteDirection>>(new Map());
+const voting = reactive<Set<string>>(new Set());
+
+function getScore(post: HubPostViewModel): number {
+  return scoreOverrides.get(post.id) ?? post.voteScore;
+}
+
+function getUserVote(postId: string): VoteDirection | undefined {
+  return userVotes.get(postId);
+}
+
+async function handleVote(postId: string, direction: VoteDirection): Promise<void> {
+  if (!isAuthenticated.value || !props.hubSlug || voting.has(postId)) return;
+  voting.add(postId);
+  try {
+    const result = await ($fetch as Function)(
+      `/api/hubs/${props.hubSlug}/posts/${postId}/vote`,
+      { method: 'POST', body: { direction } },
+    ) as { voted: boolean; direction: VoteDirection | null; voteScore: number };
+    scoreOverrides.set(postId, result.voteScore);
+    if (result.direction) {
+      userVotes.set(postId, result.direction);
+    } else {
+      userVotes.delete(postId);
+    }
+  } catch {
+    toast.error('Vote failed');
+  } finally {
+    voting.delete(postId);
+  }
+}
 </script>
 
 <template>
@@ -29,7 +68,9 @@ const discussionPosts = computed(() => {
           :author="post.author.name"
           :reply-count="post.replyCount"
           :vote-count="post.likeCount"
-          :vote-score="post.voteScore"
+          :vote-score="getScore(post)"
+          @upvote.prevent.stop="handleVote(post.id, 'up')"
+          @downvote.prevent.stop="handleVote(post.id, 'down')"
         />
       </NuxtLink>
       <div v-else>
@@ -38,7 +79,9 @@ const discussionPosts = computed(() => {
           :author="post.author.name"
           :reply-count="post.replyCount"
           :vote-count="post.likeCount"
-          :vote-score="post.voteScore"
+          :vote-score="getScore(post)"
+          @upvote="handleVote(post.id, 'up')"
+          @downvote="handleVote(post.id, 'down')"
         />
       </div>
     </template>

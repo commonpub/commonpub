@@ -313,7 +313,7 @@ async function onRefreshGallery(): Promise<void> {
     <!-- Main content area -->
 
     <!-- Feed tab -->
-    <HubFeed v-if="activeTab === 'feed'" :posts="postsVM">
+    <HubFeed v-if="activeTab === 'feed'" :posts="postsVM" :hub-slug="slug">
       <template v-if="isAuthenticated" #compose>
         <div class="cpub-compose-bar">
           <div class="cpub-compose-types">
@@ -348,7 +348,7 @@ async function onRefreshGallery(): Promise<void> {
     </HubFeed>
 
     <!-- Discussions tab -->
-    <HubDiscussions v-else-if="activeTab === 'discussions'" :posts="postsVM">
+    <HubDiscussions v-else-if="activeTab === 'discussions'" :posts="postsVM" :hub-slug="slug">
       <template v-if="isAuthenticated" #compose>
         <div class="cpub-compose-bar" style="margin-bottom: 16px">
           <div class="cpub-compose-row">

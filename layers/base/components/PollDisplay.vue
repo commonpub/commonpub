@@ -10,7 +10,7 @@ const { isAuthenticated } = useAuth();
 const toast = useToast();
 const loading = ref(false);
 
-const { data, refresh } = await useFetch<{ options: PollOptionResult[]; userVote: string | null }>(
+const { data, refresh } = useLazyFetch<{ options: PollOptionResult[]; userVote: string | null }>(
   `/api/hubs/${props.hubSlug}/posts/${props.postId}/poll-options`,
 );
 

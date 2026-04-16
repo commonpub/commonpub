@@ -1,15 +1,15 @@
 <script setup lang="ts">
 import type { HubPostViewModel } from '../../types/hub';
+import type { VoteDirection } from '@commonpub/server';
 
 const props = defineProps<{
   posts: HubPostViewModel[];
-  interactive?: boolean;
-  likedPostIds?: Set<string>;
+  hubSlug?: string;
 }>();
 
-const emit = defineEmits<{ 'post-vote': [postId: string] }>();
+const { isAuthenticated } = useAuth();
+const toast = useToast();
 
-/** Strip HTML tags for plain-text display in feed items */
 function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, '').trim();
 }
@@ -28,6 +28,40 @@ const filteredPosts = computed(() => {
   if (feedFilter.value === 'all') return props.posts;
   return props.posts.filter((p) => p.type === feedFilter.value);
 });
+
+// --- Voting state ---
+const votedPosts = reactive<Map<string, VoteDirection>>(new Map());
+const scoreOverrides = reactive<Map<string, number>>(new Map());
+const votingInProgress = reactive<Set<string>>(new Set());
+
+function getScore(post: HubPostViewModel): number {
+  return scoreOverrides.get(post.id) ?? post.voteScore;
+}
+
+function isVoted(postId: string): boolean {
+  return votedPosts.has(postId);
+}
+
+async function handleVote(postId: string): Promise<void> {
+  if (!isAuthenticated.value || !props.hubSlug || votingInProgress.has(postId)) return;
+  votingInProgress.add(postId);
+  try {
+    const result = await ($fetch as Function)(
+      `/api/hubs/${props.hubSlug}/posts/${postId}/vote`,
+      { method: 'POST', body: { direction: 'up' } },
+    ) as { voted: boolean; direction: VoteDirection | null; voteScore: number };
+    scoreOverrides.set(postId, result.voteScore);
+    if (result.direction) {
+      votedPosts.set(postId, result.direction);
+    } else {
+      votedPosts.delete(postId);
+    }
+  } catch {
+    toast.error('Vote failed');
+  } finally {
+    votingInProgress.delete(postId);
+  }
+}
 </script>
 
 <template>
@@ -105,6 +139,26 @@ const filteredPosts = computed(() => {
         </div>
       </a>
 
+      <!-- Poll posts -->
+      <div v-else-if="post.type === 'poll' && hubSlug" class="cpub-feed-poll-wrapper">
+        <FeedItem
+          type="discussion"
+          :title="stripHtml(post.content || '').slice(0, 80) || 'Poll'"
+          :author="post.author.name"
+          :author-avatar="post.author.avatarUrl ?? undefined"
+          :author-handle="post.author.handle ?? undefined"
+          :body="post.content || ''"
+          :created-at="new Date(post.createdAt)"
+          :reply-count="post.replyCount"
+          :vote-count="getScore(post)"
+          :pinned="post.isPinned"
+          :locked="post.isLocked"
+        />
+        <div class="cpub-feed-poll-body">
+          <PollDisplay :hub-slug="hubSlug" :post-id="post.id" />
+        </div>
+      </div>
+
       <!-- Regular posts — linked or static -->
       <template v-else>
         <NuxtLink v-if="post.linkTo" :to="post.linkTo" class="cpub-feed-link">
@@ -117,12 +171,12 @@ const filteredPosts = computed(() => {
             :body="post.content || ''"
             :created-at="new Date(post.createdAt)"
             :reply-count="post.replyCount"
-            :vote-count="post.likeCount"
+            :vote-count="getScore(post)"
             :pinned="post.isPinned"
             :locked="post.isLocked"
-            :interactive="interactive"
-            :voted="likedPostIds?.has(post.id)"
-            @vote="emit('post-vote', post.id)"
+            :interactive="!!hubSlug && isAuthenticated"
+            :voted="isVoted(post.id)"
+            @vote="handleVote(post.id)"
           />
         </NuxtLink>
         <div v-else>
@@ -135,12 +189,12 @@ const filteredPosts = computed(() => {
             :body="post.content || ''"
             :created-at="new Date(post.createdAt)"
             :reply-count="post.replyCount"
-            :vote-count="post.likeCount"
+            :vote-count="getScore(post)"
             :pinned="post.isPinned"
             :locked="post.isLocked"
-            :interactive="interactive"
-            :voted="likedPostIds?.has(post.id)"
-            @vote="emit('post-vote', post.id)"
+            :interactive="!!hubSlug && isAuthenticated"
+            :voted="isVoted(post.id)"
+            @vote="handleVote(post.id)"
           />
         </div>
       </template>
@@ -197,6 +251,10 @@ const filteredPosts = computed(() => {
   font-size: 12px; color: var(--text-dim); margin-top: 4px;
   display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;
 }
+
+/* Poll wrapper */
+.cpub-feed-poll-wrapper { border: var(--border-width-default) solid var(--border); background: var(--surface); }
+.cpub-feed-poll-body { padding: 0 16px 16px; }
 
 @media (max-width: 640px) {
   .cpub-share-card-thumb { width: 80px; }

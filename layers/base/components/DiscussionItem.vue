@@ -32,7 +32,7 @@ const lastReplyFormatted = computed((): string | null => {
       <button
         class="cpub-vote-btn"
         aria-label="Upvote"
-        @click="emit('upvote')"
+        @click.prevent.stop="emit('upvote')"
       >
         <i class="fa-solid fa-chevron-up"></i>
       </button>
@@ -40,7 +40,7 @@ const lastReplyFormatted = computed((): string | null => {
       <button
         class="cpub-vote-btn"
         aria-label="Downvote"
-        @click="emit('downvote')"
+        @click.prevent.stop="emit('downvote')"
       >
         <i class="fa-solid fa-chevron-down"></i>
       </button>
