@@ -13,6 +13,7 @@
   "dependencies": {
     "@commonpub/layer": "workspace:*",
     "@commonpub/config": "workspace:*",
+    "@commonpub/server": "^2.32.1",
     "nuxt": "^3.16.0",
     "vue": "^3.4.0",
     "vue-router": "^4.3.0"
