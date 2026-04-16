@@ -37,8 +37,8 @@ From package versions and file counts:
 | layer | 0.15.3 | 200+ files (pages, components, server, composables, middleware, plugins, theme) |
 | ui | 0.8.5 | 25 Vue components + theme CSS |
 | protocol | 0.9.9 | 15 TS files |
-| editor | 0.7.9 | 40+ TS files (blocks + extensions + serialization + vue wrapper) |
-| explainer | 0.7.11 | 25+ TS files |
+| editor | 0.7.9 | ~35 TS files in src/ (blocks + extensions + serialization + vue wrapper) |
+| explainer | 0.7.11 | ~12 TS files in src/ + ~11 in vue/ (optional Vue renderers + 4 theme CSS presets) |
 | learning | 0.5.0 | 6 TS files |
 | docs | 0.6.2 | 15+ TS files |
 | auth | 0.5.1 | 6 TS files |

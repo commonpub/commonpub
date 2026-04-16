@@ -143,7 +143,7 @@ ContentGridSection, ContestsSection, CustomHtmlSection, EditorialSection, HeroSe
 
 ### Utilities / widgets
 
-AnnouncementBand, AppToast, AuthorCard, AuthorRow, CategoryBadge, CommentSection, ContentAttachments, ContentCard, ContentPicker, ContentStarterForm, ContentTypeBadge, CookieConsent, CountdownTimer, CpubEditor, DiscussionItem, EditorialBadge, EngagementBar, FederatedContentCard, FeedItem, FilterChip, ImageUpload (events cover image integration in session 125), ImportUrlModal, MarkdownImportDialog, MemberCard, MentionText, MessageThread, NotificationItem, ProgressTracker, PublishErrorsModal, RemoteActorCard, RemoteFollowDialog, RemoteUserSearch, SearchFilters, SearchSidebar, SectionHeader, ShareToHubModal, SiteLogo (OVERRIDE POINT), SkillBar, SortSelect, StatBar, TOCNav, TimelineItem, VideoCard.
+AnnouncementBand, AppToast, AuthorCard, AuthorRow, CategoryBadge, CommentSection, ContentAttachments, ContentCard, ContentPicker, ContentStarterForm, ContentTypeBadge, CookieConsent, CountdownTimer, CpubEditor, DiscussionItem, EditorialBadge, EngagementBar, FederatedContentCard, FeedItem, FilterChip, HeatmapGrid, ImageUpload (events cover image integration in session 125), ImportUrlModal, MarkdownImportDialog, MemberCard, MentionText, MessageThread, NotificationItem, ProgressTracker, PublishErrorsModal, RemoteActorCard, RemoteFollowDialog, RemoteUserSearch, SearchFilters, SearchSidebar, SectionHeader, ShareToHubModal, SiteLogo (OVERRIDE POINT), SkillBar, SortSelect, StatBar, TOCNav, TimelineItem, VideoCard.
 
 ### Docs
 
