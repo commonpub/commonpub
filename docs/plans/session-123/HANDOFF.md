@@ -2,45 +2,27 @@
 
 ## Current State (2026-04-16, end of session 125)
 
-Session 125 cleared nearly all remaining plan items: theme fix, events UI (filters/pagination/calendar/cover images/My Events), contest entry voting UI, waitlist auto-promotion, and judge invitation notifications. Four rounds of deep audits caught and fixed 13 issues. No new schema changes — no SQL needed. Packages NOT YET published or deployed.
+Session 125 cleared nearly all remaining plan items: theme fix, events UI (filters/pagination/calendar/cover images/My Events), contest entry voting UI, waitlist auto-promotion, and judge invitation notifications. Four rounds of deep audits caught and fixed 13 issues. No new schema changes — no SQL needed. Published and deployed.
 
-### Deployed Package Versions (unchanged — session 125 not yet published)
-| Package | Version | Pending Changes |
-|---------|---------|-----------------|
-| @commonpub/schema | 0.13.0 | none |
-| @commonpub/server | 2.42.0 | see below |
-| @commonpub/config | 0.10.0 | none |
-| @commonpub/layer | 0.15.1 | see below |
+### Deployed Package Versions
+| Package | Version | Changed in Session 125 |
+|---------|---------|------------------------|
+| @commonpub/schema | 0.13.0 | no |
+| @commonpub/server | 2.43.0 | yes — published session 125 |
+| @commonpub/config | 0.10.0 | no |
+| @commonpub/layer | 0.15.2 | yes — published session 125 |
 
-**@commonpub/server pending changes:**
-- `+getContestEntryVotes()` batch function, `+ContestEntryVoteInfo` type
-- `communityVotingEnabled` added to `ContestDetail` interface + both mapping functions
-- `UpdateEventInput.coverImage` now `string | null` (was `string`)
-- `cancelRsvp` return type changed: `boolean` → `{ cancelled: boolean; promoted?: string }` (**breaking** — only consumer is the layer's rsvp.delete.ts, which was updated)
-- `cancelRsvp` now auto-promotes oldest waitlisted attendee on registered cancel
-- `normalizePagination` clamps offset to non-negative
-- `addContestJudge` accepts optional `context` param for notification (backward-compatible)
-- `acceptJudgeInvite` now notifies contest owner on accept
-- `transitionContestStatus` now notifies judges on judging/completed/cancelled
-- `EventFilters.userId` — new filter for "My Events" (events created or attending)
-- `inArray`, `isNotNull`, `or` imports added
-
-**@commonpub/layer pending changes:**
-- `error.vue` — theme state re-application for SSR error pages
-- `EventCalendar.vue` — NEW monthly calendar component
-- `events/index.vue` — filters, pagination, grid/calendar view toggle, "My Events"
-- `events/create.vue` — cover image upload, end-date validation
-- `events/[slug]/edit.vue` — cover image upload + clearing
-- `events/index.get.ts` — status param whitelist, myEvents param
-- `events/[slug].put.ts` — nullable coverImage in Zod schema
-- `events/[slug]/rsvp.delete.ts` — updated for auto-promotion response
-- `contests/[slug]/votes.get.ts` — NEW batch vote endpoint
-- `contests/[slug]/judges/index.post.ts` — passes notification context
-- `contests/[slug]/index.vue` — passes voting props to ContestEntries
-- `contest/ContestEntries.vue` — vote buttons with optimistic updates
+### Session 125 Commits (commonpub): 6 + (deveco-io): 1
+- `d36c1b8` fix: theme on error pages + server-side offset clamping
+- `40edd08` feat(events): filters, calendar, cover images, My Events, auto-promote
+- `513c6e3` feat(contests): entry voting UI, judge notifications, batch votes API
+- `ab0a2a2` docs: session 125 log and handoff for session 126
+- `a7c334d` chore(deps): publish server@2.43.0, layer@0.15.2
+- `380cb7d` chore(deps): update @commonpub/server to ^2.43.0 across workspace
+- deveco-io `31df83d` chore(deps): update layer@0.15.2, server@2.43.0
 
 ### Database State
-No new tables or columns. Session 125 changes are all code-only. No SQL to apply.
+No new tables or columns. Session 125 changes are all code-only. No SQL applied.
 
 ### Feature Flags (from /api/features)
 | Flag | commonpub.io | deveco.io |
@@ -59,9 +41,11 @@ No new tables or columns. Session 125 changes are all code-only. No SQL to apply
 | admin | true | true |
 
 ### Session 125 Test Results
-- Typecheck: 8/8 passed
+- Typecheck: 8/8 passed (local), shell fails in CI on pre-existing TS2589/implicit-any errors
 - Tests: 30/30 passed (865 individual tests)
 - Four rounds of deep audits completed, 13 issues found and fixed
+- Deploy: succeeded on both commonpub.io and deveco.io
+- CI: fails only on pre-existing shell typecheck errors (CommentSection TS2589, dashboard implicit-any, docs/edit implicit-any, admin/content implicit-any, index.vue implicit-any) — none from session 125
 
 ---
 
@@ -187,20 +171,17 @@ Dashboard, Users, Content, Categories, Reports, Audit, Theme, Homepage, Navigati
 
 ## Suggested Next Work
 
-### Before Deploy
-1. **Publish packages**: server bump for new exports + breaking cancelRsvp return type + auto-promotion; layer bump for all UI changes
-2. **Deploy both instances** — no SQL needed, code-only changes
-
 ### High Priority
-3. **Verify commonpub.io Agora theme** — check DB value on production, may need to re-save from admin panel
+1. **Fix pre-existing shell typecheck errors** — CommentSection TS2589, dashboard/admin/docs implicit-any, index.vue implicit-any. These block CI green. Mostly `$fetch`/`useFetch` type inference issues.
+2. **Verify commonpub.io Agora theme** — check DB: `SELECT key, value FROM instance_settings WHERE key = 'theme.default'` on production, may need to re-save from admin panel
 
 ### Medium Priority
-4. **Fix drizzle-kit CI push** — switch to generate+migrate or fix TTY handling
-5. **Event reminders** — scheduled notifications before event start (requires schema change: `eventAttendees.reminderSent` + external cron)
+3. **Fix drizzle-kit CI push** — switch to generate+migrate or fix TTY handling
+4. **Event reminders** — scheduled notifications before event start (requires schema change: `eventAttendees.reminderSent` + external cron)
 
 ### Low Priority
-6. **Consolidate server/utils/config.ts** between reference and deveco
-7. **Calendar view enhancement** — highlight days with events in month navigation, week view
+5. **Consolidate server/utils/config.ts** between reference and deveco
+6. **Calendar view enhancement** — highlight days with events in month navigation, week view
 
 ---
 
