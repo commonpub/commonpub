@@ -547,6 +547,15 @@ export {
 } from './image.js';
 export type { ProcessedImage, ImageVariant, ImageVariantName } from './image.js';
 
+// Homepage
+export {
+  getHomepageSections,
+  setHomepageSections,
+  resetHomepageSections,
+  DEFAULT_SECTIONS,
+} from './homepage/homepage.js';
+export type { HomepageSection, HomepageSectionConfig } from './homepage/homepage.js';
+
 // Search
 export {
   searchContent,

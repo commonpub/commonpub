@@ -1,10 +1,17 @@
 <script setup lang="ts">
-import type { Serialized, ContentListItem, PaginatedResponse } from '@commonpub/server';
+import type { Serialized, ContentListItem, PaginatedResponse, HomepageSection } from '@commonpub/server';
 
 useSeoMeta({
   title: `${useSiteName()} — Open Maker Platform`,
   description: 'Build, document, and share your projects with a community of makers.',
 });
+
+// Fetch configurable homepage sections (from DB or defaults)
+const { data: homepageSections } = await useFetch<HomepageSection[]>('/api/homepage/sections');
+const hasCustomSections = computed(() => !!homepageSections.value?.length);
+const sortedSections = computed(() =>
+  [...(homepageSections.value ?? [])].sort((a, b) => a.order - b.order),
+);
 
 const { user: authUser } = useAuth();
 const { hubs: hubsEnabled, contests: contestsEnabled, learning: learningEnabled, video: videoEnabled, docs: docsEnabled, editorial: editorialEnabled } = useFeatures();
@@ -117,6 +124,30 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
 
 <template>
   <div>
+    <!-- ═══ CONFIGURABLE HOMEPAGE (section renderer) ═══ -->
+    <template v-if="hasCustomSections">
+      <!-- Full-width sections (hero) -->
+      <HomepageSectionRenderer :sections="sortedSections" zone="full-width" />
+
+      <!-- 2-column layout: main + sidebar -->
+      <div class="cpub-main-layout">
+        <main class="cpub-feed-col">
+          <HomepageSectionRenderer :sections="sortedSections" zone="main" />
+        </main>
+        <aside class="cpub-sidebar">
+          <HomepageSectionRenderer :sections="sortedSections" zone="sidebar" />
+          <!-- Powered badge -->
+          <div class="cpub-powered-badge">
+            <span class="cpub-powered-text">Powered by</span>
+            <span class="cpub-powered-logo">[<span>C</span>] CommonPub</span>
+          </div>
+        </aside>
+      </div>
+    </template>
+
+    <!-- ═══ LEGACY HARDCODED HOMEPAGE (fallback) ═══ -->
+    <template v-else>
+
     <!-- ═══ HERO BANNER ═══ -->
     <section v-if="!heroDismissed" class="cpub-hero-banner">
       <div class="cpub-hero-grid-bg" />
@@ -383,6 +414,8 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
         </div>
       </aside>
     </div>
+
+    </template><!-- end legacy fallback -->
   </div>
 </template>
 
