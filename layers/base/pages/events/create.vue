@@ -9,6 +9,7 @@ const saving = ref(false);
 const form = reactive({
   title: '',
   description: '',
+  coverImage: '',
   eventType: 'in-person' as 'in-person' | 'online' | 'hybrid',
   startDate: '',
   endDate: '',
@@ -24,6 +25,10 @@ async function submit(): Promise<void> {
     toast.error('Title, start date, and end date are required');
     return;
   }
+  if (new Date(form.startDate) >= new Date(form.endDate)) {
+    toast.error('End date must be after start date');
+    return;
+  }
 
   saving.value = true;
   try {
@@ -35,6 +40,7 @@ async function submit(): Promise<void> {
       timezone: form.timezone,
     };
     if (form.description) body.description = form.description;
+    if (form.coverImage) body.coverImage = form.coverImage;
     if (form.location) body.location = form.location;
     if (form.locationUrl) body.locationUrl = form.locationUrl;
     if (form.onlineUrl) body.onlineUrl = form.onlineUrl;
@@ -68,6 +74,8 @@ async function submit(): Promise<void> {
         <label class="cpub-form-label">Description</label>
         <textarea v-model="form.description" class="cpub-form-textarea" rows="4" placeholder="Describe the event..." />
       </div>
+
+      <ImageUpload v-model="form.coverImage" purpose="cover" label="Cover Image" hint="Recommended: 16:9 aspect ratio" />
 
       <div class="cpub-form-row">
         <div class="cpub-form-field">

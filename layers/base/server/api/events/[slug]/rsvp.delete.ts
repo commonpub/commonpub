@@ -14,10 +14,10 @@ export default defineEventHandler(async (event) => {
   const existing = await getEventBySlug(db, slug);
   if (!existing) throw createError({ statusCode: 404, statusMessage: 'Event not found' });
 
-  const cancelled = await cancelRsvp(db, existing.id, user.id);
-  if (!cancelled) {
+  const result = await cancelRsvp(db, existing.id, user.id);
+  if (!result.cancelled) {
     throw createError({ statusCode: 400, statusMessage: 'No RSVP found' });
   }
 
-  return { cancelled: true };
+  return { cancelled: true, promoted: !!result.promoted };
 });

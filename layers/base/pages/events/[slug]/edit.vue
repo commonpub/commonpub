@@ -27,6 +27,7 @@ const saving = ref(false);
 const form = reactive({
   title: event.value.title,
   description: event.value.description ?? '',
+  coverImage: event.value.coverImage ?? '',
   eventType: event.value.eventType,
   status: event.value.status,
   startDate: new Date(event.value.startDate).toISOString().slice(0, 16),
@@ -61,6 +62,7 @@ async function submit(): Promise<void> {
       isFeatured: form.isFeatured,
     };
     if (form.description) body.description = form.description;
+    body.coverImage = form.coverImage || null;
     if (form.location) body.location = form.location;
     if (form.locationUrl) body.locationUrl = form.locationUrl;
     if (form.onlineUrl) body.onlineUrl = form.onlineUrl;
@@ -91,6 +93,8 @@ async function submit(): Promise<void> {
         <label class="cpub-form-label">Description</label>
         <textarea v-model="form.description" class="cpub-form-textarea" rows="4" />
       </div>
+
+      <ImageUpload v-model="form.coverImage" purpose="cover" label="Cover Image" hint="Recommended: 16:9 aspect ratio" />
 
       <div class="cpub-form-row">
         <div class="cpub-form-field">

@@ -1,4 +1,4 @@
-import { eq, and, desc, asc, gte, sql } from 'drizzle-orm';
+import { eq, and, desc, asc, gte, sql, or } from 'drizzle-orm';
 import { events, eventAttendees, users } from '@commonpub/schema';
 import type { DB } from '../types.js';
 import { normalizePagination, countRows } from '../query.js';
@@ -41,6 +41,8 @@ export interface EventFilters {
   hubId?: string;
   upcoming?: boolean;
   featured?: boolean;
+  /** Show events the user is attending or created */
+  userId?: string;
   limit?: number;
   offset?: number;
 }
@@ -65,7 +67,7 @@ export interface CreateEventInput {
 export interface UpdateEventInput {
   title?: string;
   description?: string;
-  coverImage?: string;
+  coverImage?: string | null;
   eventType?: EventType;
   status?: EventStatus;
   startDate?: string;
@@ -107,8 +109,19 @@ export async function listEvents(
   if (filters.featured) {
     conditions.push(eq(events.isFeatured, true));
   }
-  // Only show published/active events in public listing (unless status filter is explicit)
-  if (!filters.status) {
+
+  // "My Events" — events the user created OR is attending (non-cancelled)
+  if (filters.userId) {
+    conditions.push(
+      or(
+        eq(events.createdById, filters.userId),
+        sql`${events.id} IN (SELECT ${eventAttendees.eventId} FROM ${eventAttendees} WHERE ${eventAttendees.userId} = ${filters.userId} AND ${eventAttendees.status} != 'cancelled')`,
+      )!,
+    );
+  }
+
+  // Only show published/active events in public listing (unless status filter or userId is explicit)
+  if (!filters.status && !filters.userId) {
     conditions.push(
       sql`${events.status} IN ('published', 'active')`,
     );
@@ -340,7 +353,7 @@ export async function cancelRsvp(
   db: DB,
   eventId: string,
   userId: string,
-): Promise<boolean> {
+): Promise<{ cancelled: boolean; promoted?: string }> {
   return db.transaction(async (tx) => {
     const [existing] = await tx
       .select({ id: eventAttendees.id, status: eventAttendees.status })
@@ -348,7 +361,7 @@ export async function cancelRsvp(
       .where(and(eq(eventAttendees.eventId, eventId), eq(eventAttendees.userId, userId)))
       .limit(1);
 
-    if (!existing) return false;
+    if (!existing) return { cancelled: false };
 
     await tx.delete(eventAttendees).where(eq(eventAttendees.id, existing.id));
 
@@ -357,9 +370,35 @@ export async function cancelRsvp(
         .update(events)
         .set({ attendeeCount: sql`GREATEST(${events.attendeeCount} - 1, 0)` })
         .where(eq(events.id, eventId));
+
+      // Auto-promote the oldest waitlisted attendee (FIFO)
+      const [nextWaitlisted] = await tx
+        .select({ id: eventAttendees.id, userId: eventAttendees.userId })
+        .from(eventAttendees)
+        .where(and(
+          eq(eventAttendees.eventId, eventId),
+          eq(eventAttendees.status, 'waitlisted'),
+        ))
+        .orderBy(asc(eventAttendees.registeredAt))
+        .limit(1);
+
+      if (nextWaitlisted) {
+        await tx
+          .update(eventAttendees)
+          .set({ status: 'registered' })
+          .where(eq(eventAttendees.id, nextWaitlisted.id));
+
+        // Re-increment count for the promoted attendee
+        await tx
+          .update(events)
+          .set({ attendeeCount: sql`${events.attendeeCount} + 1` })
+          .where(eq(events.id, eventId));
+
+        return { cancelled: true, promoted: nextWaitlisted.userId };
+      }
     }
 
-    return true;
+    return { cancelled: true };
   });
 }
 

@@ -4,7 +4,7 @@ import { z } from 'zod';
 const updateEventSchema = z.object({
   title: z.string().min(1).max(255).optional(),
   description: z.string().max(10000).optional(),
-  coverImage: z.string().max(500).optional(),
+  coverImage: z.string().max(500).nullable().optional(),
   eventType: z.enum(['in-person', 'online', 'hybrid']).optional(),
   status: z.enum(['draft', 'published', 'active', 'completed', 'cancelled']).optional(),
   startDate: z.string().datetime().optional(),
