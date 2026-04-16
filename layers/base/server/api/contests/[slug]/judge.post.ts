@@ -9,7 +9,7 @@ export default defineEventHandler(async (event): Promise<{ success: boolean }> =
 
   const result = await judgeContestEntry(db, input.entryId, input.score, user.id, input.feedback);
   if (!result.judged) {
-    throw createError({ statusCode: 403, message: result.error ?? 'Judging failed' });
+    throw createError({ statusCode: 403, statusMessage: result.error ?? 'Judging failed' });
   }
 
   return { success: true };

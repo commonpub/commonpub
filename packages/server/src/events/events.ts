@@ -340,24 +340,26 @@ export async function cancelRsvp(
   eventId: string,
   userId: string,
 ): Promise<boolean> {
-  const [existing] = await db
-    .select({ id: eventAttendees.id, status: eventAttendees.status })
-    .from(eventAttendees)
-    .where(and(eq(eventAttendees.eventId, eventId), eq(eventAttendees.userId, userId)))
-    .limit(1);
+  return db.transaction(async (tx) => {
+    const [existing] = await tx
+      .select({ id: eventAttendees.id, status: eventAttendees.status })
+      .from(eventAttendees)
+      .where(and(eq(eventAttendees.eventId, eventId), eq(eventAttendees.userId, userId)))
+      .limit(1);
 
-  if (!existing) return false;
+    if (!existing) return false;
 
-  await db.delete(eventAttendees).where(eq(eventAttendees.id, existing.id));
+    await tx.delete(eventAttendees).where(eq(eventAttendees.id, existing.id));
 
-  if (existing.status === 'registered') {
-    await db
-      .update(events)
-      .set({ attendeeCount: sql`GREATEST(${events.attendeeCount} - 1, 0)` })
-      .where(eq(events.id, eventId));
-  }
+    if (existing.status === 'registered') {
+      await tx
+        .update(events)
+        .set({ attendeeCount: sql`GREATEST(${events.attendeeCount} - 1, 0)` })
+        .where(eq(events.id, eventId));
+    }
 
-  return true;
+    return true;
+  });
 }
 
 export async function getUserRsvpStatus(
