@@ -19,3 +19,16 @@ export type {
   CreateContestInput,
   ContestEntryItem,
 } from './contest.js';
+
+export {
+  listContestJudges,
+  addContestJudge,
+  removeContestJudge,
+  updateJudgeRole,
+  acceptJudgeInvite,
+  isContestJudge,
+} from './judges.js';
+export type {
+  JudgeRole,
+  ContestJudgeItem,
+} from './judges.js';

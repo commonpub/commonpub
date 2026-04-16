@@ -476,6 +476,18 @@ export type {
   CreateContestInput,
   ContestEntryItem,
 } from './contest/index.js';
+export {
+  listContestJudges,
+  addContestJudge,
+  removeContestJudge,
+  updateJudgeRole,
+  acceptJudgeInvite,
+  isContestJudge,
+} from './contest/judges.js';
+export type {
+  JudgeRole,
+  ContestJudgeItem,
+} from './contest/judges.js';
 
 // Notification
 export {

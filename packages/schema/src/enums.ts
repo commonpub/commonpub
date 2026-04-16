@@ -140,6 +140,10 @@ export const contestStatusEnum = pgEnum('contest_status', [
   'cancelled',
 ]);
 
+// --- Contest Judging ---
+export const judgeRoleEnum = pgEnum('judge_role', ['lead', 'judge', 'guest']);
+export const judgingVisibilityEnum = pgEnum('judging_visibility', ['public', 'judges-only', 'private']);
+
 // --- Voting ---
 export const voteDirectionEnum = pgEnum('vote_direction', ['up', 'down']);
 

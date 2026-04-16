@@ -2,7 +2,7 @@ import { pgTable, uuid, varchar, text, timestamp, integer, boolean, jsonb, uniqu
 import { relations } from 'drizzle-orm';
 import { users } from './auth.js';
 import { contentItems } from './content.js';
-import { contestStatusEnum } from './enums.js';
+import { contestStatusEnum, judgeRoleEnum, judgingVisibilityEnum } from './enums.js';
 
 /** @v2 — Contest system. Tables defined but not yet referenced in application code. */
 export const contests = pgTable('contests', {
@@ -24,6 +24,7 @@ export const contests = pgTable('contests', {
       value?: string;
     }>
   >(),
+  judgingVisibility: judgingVisibilityEnum('judging_visibility').default('judges-only').notNull(),
   judges: jsonb('judges').$type<string[]>(),
   createdById: uuid('created_by_id')
     .notNull()
@@ -65,11 +66,31 @@ export const contestEntries = pgTable('contest_entries', {
   index('idx_contest_entries_user_id').on(t.userId),
 ]);
 
+// --- Contest Judges ---
+
+export const contestJudges = pgTable('contest_judges', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  contestId: uuid('contest_id')
+    .notNull()
+    .references(() => contests.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  role: judgeRoleEnum('role').default('judge').notNull(),
+  invitedAt: timestamp('invited_at', { withTimezone: true }).defaultNow().notNull(),
+  acceptedAt: timestamp('accepted_at', { withTimezone: true }),
+}, (t) => [
+  unique('uq_contest_judges_contest_user').on(t.contestId, t.userId),
+  index('idx_contest_judges_contest_id').on(t.contestId),
+  index('idx_contest_judges_user_id').on(t.userId),
+]);
+
 // --- Relations ---
 
 export const contestsRelations = relations(contests, ({ one, many }) => ({
   createdBy: one(users, { fields: [contests.createdById], references: [users.id] }),
   entries: many(contestEntries),
+  judgeList: many(contestJudges),
 }));
 
 export const contestEntriesRelations = relations(contestEntries, ({ one }) => ({
@@ -81,8 +102,15 @@ export const contestEntriesRelations = relations(contestEntries, ({ one }) => ({
   user: one(users, { fields: [contestEntries.userId], references: [users.id] }),
 }));
 
+export const contestJudgesRelations = relations(contestJudges, ({ one }) => ({
+  contest: one(contests, { fields: [contestJudges.contestId], references: [contests.id] }),
+  user: one(users, { fields: [contestJudges.userId], references: [users.id] }),
+}));
+
 // --- Inferred Types ---
 export type ContestRow = typeof contests.$inferSelect;
 export type NewContestRow = typeof contests.$inferInsert;
 export type ContestEntryRow = typeof contestEntries.$inferSelect;
 export type NewContestEntryRow = typeof contestEntries.$inferInsert;
+export type ContestJudgeRow = typeof contestJudges.$inferSelect;
+export type NewContestJudgeRow = typeof contestJudges.$inferInsert;
