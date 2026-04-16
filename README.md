@@ -1,6 +1,5 @@
 # CommonPub
 
-[![Tests](https://github.com/commonpub/commonpub/actions/workflows/test.yml/badge.svg)](https://github.com/commonpub/commonpub/actions/workflows/test.yml)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue.svg)](https://www.typescriptlang.org/)
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-yellow.svg)](LICENSE)
 [![ActivityPub](https://img.shields.io/badge/protocol-ActivityPub-purple.svg)](https://www.w3.org/TR/activitypub/)
@@ -9,102 +8,89 @@
 
 **An open ActivityPub federation protocol and package suite for self-hosted maker communities.**
 
-CommonPub gives you everything you need to run a maker community that you own: a rich block editor, learning paths with certificates, versioned documentation sites, interactive explainers, moderated hubs, product catalogs with BOM linking, and full cross-instance federation via ActivityPub. Self-hosted, open source, AGPL-3.0.
+CommonPub gives you everything you need to run a community you own: a rich
+block editor, hubs with feeds and moderation, contests with judging and
+community voting, events with RSVP and waitlists, learning paths with
+certificates, versioned docs sites, interactive explainers, product catalogs
+with BOM linking, and full cross-instance federation via ActivityPub.
+Self-hosted, open source, AGPL-3.0-or-later.
 
 ---
 
-## Why CommonPub?
+## Table of contents
 
-Maker communities are scattered across platforms that don't talk to each other. CommonPub changes that:
+- [Why CommonPub](#why-commonpub)
+- [Features](#features)
+- [Quick start](#quick-start)
+- [Create a new instance](#create-a-new-instance)
+- [Architecture](#architecture)
+- [Packages](#packages)
+- [Tech stack](#tech-stack)
+- [Development](#development)
+- [Testing](#testing)
+- [Deployment](#deployment)
+- [Documentation](#documentation)
+- [Requirements](#requirements)
+- [Contributing](#contributing)
+- [License](#license)
 
-- **Federated by design** -- Your instance federates with others via ActivityPub. Users on `hack.build` follow projects on `circuits.community`. Content flows between instances while each community stays independent.
-- **Structured content, not just posts** -- This isn't microblogging. CommonPub federates full articles, project build logs with bills of materials, learning paths, and product catalogs. Mastodon sees a readable article; another CommonPub instance gets the full structured experience.
-- **12 composable packages** -- Use the full stack or pick the pieces you need. Every package is framework-agnostic TypeScript published to npm. The Nuxt layer gives you a complete app; the packages give you building blocks.
-- **Self-hosted, your data** -- PostgreSQL, no proprietary services. Deploy on a $6 VPS or scale to a cluster.
+---
+
+## Why CommonPub
+
+Maker communities are scattered across platforms that don't talk to each
+other. CommonPub changes that:
+
+- **Federated by design.** Your instance federates with others via ActivityPub.
+  Users on `hack.build` follow projects on `circuits.community`. Content flows
+  between instances while each community stays independent.
+- **Structured content, not just posts.** This isn't microblogging. CommonPub
+  federates full articles, project build logs with bills of materials,
+  learning paths, and product catalogs. Mastodon users see a readable
+  article; another CommonPub instance gets the full structured experience.
+- **Twelve composable packages + a shared Nuxt layer.** Use the full stack or
+  pick the pieces you need. Every package is framework-agnostic TypeScript
+  published to npm. The Nuxt layer gives you a complete app; the packages
+  give you building blocks.
+- **Self-hosted, your data.** PostgreSQL, no proprietary services. Deploy on
+  a $6 VPS or scale to a cluster.
 
 ---
 
 ## Features
 
 | Feature | Description |
-|---------|-------------|
-| **Block Editor** | 20 block types including code, galleries, parts lists, build steps, quizzes. TipTap-based with BlockTuple serialization. |
-| **Hubs** | Three hub types (community, product, company). Moderated feeds, roles, invites, content sharing. Federate as AP Group actors. |
-| **Learning Paths** | Structured courses with modules, lessons (article, video, quiz, project, explainer), enrollment tracking, and auto-certificates. |
-| **Documentation** | Versioned doc sites with CodeMirror editor, hierarchical navigation, and Meilisearch-powered search (Postgres FTS fallback). |
-| **Interactive Explainers** | Scroll-driven interactive explanations with quiz engine, progress tracking, and self-contained HTML export. |
-| **Federation** | Full ActivityPub: follows, content delivery, hub federation (FEP-1b12), content mirroring, OAuth2 SSO across instances. |
-| **Products** | Product catalog with specs, purchase links. Projects auto-link via BOM -- your project appears on the product's page. |
-| **Theming** | 4 built-in themes, CSS custom property system, runtime switching, dark mode. Zero hardcoded colors. |
-| **Admin** | User management, role hierarchy, content moderation, audit logs, instance settings, federation controls. |
-| **22 UI Components** | Headless, accessible (WCAG 2.1 AA), keyboard-navigable Vue 3 components. |
+|---|---|
+| **Block editor** | 20 block types including code, galleries, parts lists, build steps, quizzes. TipTap-based with BlockTuple serialization. |
+| **Hubs** | Three hub types (community, product, company). Moderated feeds, roles, invites, resources, shared products. Federate as AP Group actors (FEP-1b12). |
+| **Contests** | Full lifecycle (upcoming → active → judging → completed), judge permissions (lead/judge/guest) with invite+accept workflow, judging visibility controls, community voting on entries. |
+| **Events** | In-person, online, or hybrid. RSVP with **auto-waitlist** when at capacity; automatic promotion when someone cancels. Event filters, pagination, hub-scoped events. |
+| **Voting & polls** | Up/down votes on hub posts with transaction-safe score adjustment. Poll-type posts with single-choice voting. Community voting on contest entries. |
+| **Learning paths** | Modules → lessons (article/video/quiz/project/explainer). Enrollment and progress tracking. **Auto-certificates** at 100% with a public verification code. |
+| **Documentation sites** | Versioned docs with hierarchical nav, BlockTuple editor, Meilisearch (Postgres FTS fallback). |
+| **Interactive explainers** | Scroll-driven sections with quizzes, progress tracking, gating, self-contained HTML export. |
+| **Federation** | Full ActivityPub: follows, content delivery, hub federation, content mirroring, signed backfill, OAuth2 SSO across trusted instances. |
+| **Products + BOM** | Hub-scoped product catalog. Projects auto-link via parts lists — your project shows up on the product's page across instances. |
+| **Theming** | 4 built-in themes (base, dark, generics, agora), CSS custom property system, runtime switching, SSR-safe with zero FOUC. |
+| **Admin** | User management, role hierarchy, content moderation, audit logs, instance settings, runtime feature-flag overrides, **configurable navigation**, **configurable homepage sections**, federation controls. |
+
+**15 feature flags** let you enable only what you need. See
+[`codebase-analysis/08-feature-flags-inventory.md`](./codebase-analysis/08-feature-flags-inventory.md)
+for the full list with defaults.
 
 ---
 
-## Federation
+## Quick start
 
-CommonPub instances federate with each other and the wider fediverse. This isn't just status updates -- CommonPub federates **structured maker content**.
-
-```
-  hack.build                          circuits.community
- ┌──────────────────┐                ┌──────────────────┐
- │                  │   ActivityPub  │                  │
- │  Alice's Project │◄──────────────►│  Arduino Nano    │
- │  (Article + BOM) │   federation   │  (Product)       │
- │                  │                │                  │
- │  Robotics Hub    │◄──────────────►│  Bob follows     │
- │  (Group actor)   │   hub members  │  the hub         │
- └──────────────────┘                └──────────────────┘
-```
-
-**What federates:**
-
-- **Users** -- Follow across instances, see content in your feed
-- **Hubs** -- Group actors via [FEP-1b12](https://codeberg.org/fediverse/fep/src/branch/main/fep/1b12/fep-1b12.md). Cross-instance membership and posting.
-- **Content** -- Articles, projects, blogs, explainers. Full fidelity between CommonPub instances; graceful degradation to standard AP Article for Mastodon/Lemmy.
-- **Products** -- Federated catalogs. BOM references across instances update product galleries automatically.
-- **Content Mirroring** -- Admins mirror content from other instances with per-type filtering and optional media caching.
-- **SSO** -- OAuth2 cross-instance login for trusted instances
-
-**Interoperability:** Every object degrades to standard AP types. Mastodon users see articles. Lemmy communities interact with hubs. The `cpub:` namespace extensions are only used between CommonPub instances for full fidelity.
-
-**Admin controls:** Selective federation per content type, per hub, per domain. Blocklist, allowlist, or open.
-
-See [docs/federation.md](docs/federation.md) for the full guide or [docs/federation-plan.md](docs/federation-plan.md) for the implementation roadmap.
-
----
-
-## Create a New Instance
-
-The fastest way to start a new CommonPub site:
-
-```bash
-cargo install create-commonpub
-create-commonpub new my-community
-```
-
-The CLI walks you through instance name, domain, feature selection, auth methods, theme, and Docker setup. It generates a minimal Nuxt project that extends `@commonpub/layer` — all pages, components, and API routes come from the layer.
-
-```bash
-# Or skip prompts with defaults
-create-commonpub new my-community --defaults
-
-# Or cherry-pick features
-create-commonpub new my-community --features content,social,hubs --auth email-password,github --theme deepwood
-```
-
-See [tools/create-commonpub/README.md](tools/create-commonpub/README.md) for all CLI flags and options.
-
-## Quick Start (Monorepo Development)
+Prerequisites: Node 22+, pnpm 10+, Docker.
 
 ```bash
 git clone https://github.com/commonpub/commonpub.git
 cd commonpub
 
-# Infrastructure (Postgres 16, Redis 7, Meilisearch)
+# Infrastructure (Postgres 16, Redis 7, Meilisearch — remapped ports to avoid conflicts)
 docker compose up -d
 
-# Install, build, push schema, start
 pnpm install
 pnpm build
 cp .env.example .env
@@ -112,9 +98,49 @@ pnpm db:push
 pnpm dev:app
 ```
 
-Visit **http://localhost:3000**.
+Visit **http://localhost:3000**. The first registered user is auto-promoted
+to admin.
 
-See [docs/quickstart.md](docs/quickstart.md) for the full guide with troubleshooting.
+See [docs/quickstart.md](docs/quickstart.md) for troubleshooting.
+
+---
+
+## Create a new instance
+
+Fastest path — Rust CLI:
+
+```bash
+cargo install create-commonpub
+create-commonpub new my-community
+```
+
+Interactive: asks for instance name, domain, features, auth methods, theme,
+Docker setup. Generates a **thin Nuxt app** that extends `@commonpub/layer`.
+
+Non-interactive:
+
+```bash
+create-commonpub new my-community --defaults
+create-commonpub new my-community --features content,social,hubs --auth email-password,github --theme agora
+```
+
+See [tools/create-commonpub/README.md](tools/create-commonpub/README.md).
+
+### The thin-app pattern
+
+A deployed CommonPub instance is ~4 files + `.env`:
+
+```
+my-site/
+├── nuxt.config.ts            # extends: ['@commonpub/layer']
+├── commonpub.config.ts       # feature flags + instance config
+├── server/utils/config.ts    # proxy re-export (Nitro dedup workaround)
+└── components/SiteLogo.vue   # branded logo
+```
+
+Real example: [`deveco.io`](https://deveco.io) — ~18 branded files over the layer.
+
+Details in [docs/guides/developers.md](docs/guides/developers.md#the-thin-app-pattern).
 
 ---
 
@@ -122,46 +148,87 @@ See [docs/quickstart.md](docs/quickstart.md) for the full guide with troubleshoo
 
 ```
 commonpub/
-  packages/           12 framework-agnostic TypeScript packages (published to npm)
-  layers/base/        Shared Nuxt layer (@commonpub/layer) — 70 pages, 108 components
-  apps/
-    reference/        Full-featured Nuxt 3 reference app
-    shell/            Starter template for new instances
-  tools/
-    create-commonpub/ Rust CLI scaffolder for new sites
-    worker/           Federation delivery monitoring utilities
-  deploy/             Docker, compose configs, deploy scripts
+├── packages/           12 framework-agnostic TypeScript packages (published to npm)
+├── layers/base/        Shared Nuxt layer (@commonpub/layer) — 85 pages, 106 components, 257 API routes
+├── apps/
+│   ├── reference/      Fully featured Nuxt 3 reference app (all features on)
+│   └── shell/          Minimal starter template
+├── tools/
+│   ├── create-commonpub/  Rust CLI scaffolder (published to crates.io)
+│   └── worker/            Activity delivery monitoring utilities
+├── deploy/             Docker, compose configs, Caddyfile, DO app-spec, deploy scripts
+├── docs/               Guides, ADRs, reference, session logs
+│   ├── guides/         Human docs (users.md, developers.md)
+│   ├── llm/            AI-coding-agent context (facts, conventions, gotchas, task-recipes)
+│   ├── reference/      Per-package + per-module reference
+│   ├── adr/            Architecture decision records
+│   ├── sessions/       Chronological session logs (source of truth)
+│   └── archive/        Historical docs
+└── codebase-analysis/  Exhaustive inventory — every table, route, component, flag, gotcha
 ```
 
-### Packages
+- **77 tables, 41 enums** in the schema across 15 domains
+- **257 API routes** in the layer
+- **85 pages, 106 components, 21 composables** in the layer
+- **15 feature flags** gating every non-core feature
 
-| Package | Purpose |
-|---------|---------|
-| [`@commonpub/schema`](packages/schema/README.md) | 63 Drizzle tables, 32 enums, 74 Zod validators |
-| [`@commonpub/config`](packages/config/README.md) | `defineCommonPubConfig()` factory, 13 feature flags |
-| [`@commonpub/server`](packages/server/README.md) | Framework-agnostic business logic (15 modules, 200+ functions) |
-| [`@commonpub/protocol`](packages/protocol/README.md) | ActivityPub types, HTTP signatures, WebFinger, NodeInfo, OAuth2 |
-| [`@commonpub/auth`](packages/auth/README.md) | Better Auth wrapper, guards, AP Actor SSO |
-| [`@commonpub/ui`](packages/ui/README.md) | 22 headless Vue 3 components, 3 themes (light, dark, generics), CSS token system |
-| [`@commonpub/editor`](packages/editor/README.md) | TipTap extensions, 20 block types, BlockTuple serialization |
-| [`@commonpub/docs`](packages/docs/README.md) | Markdown rendering, versioning, navigation, search adapters |
-| [`@commonpub/explainer`](packages/explainer/README.md) | Interactive sections, quiz engine, progress tracking, HTML export |
-| [`@commonpub/learning`](packages/learning/README.md) | Learning path engine, progress calculation, certificates |
-| [`@commonpub/infra`](packages/infra/README.md) | S3/local storage, image processing, email adapters, security |
-| [`@commonpub/test-utils`](packages/test-utils/README.md) | Test factories and mock configuration |
+Full analysis: [`codebase-analysis/`](./codebase-analysis/).
 
-### Tech Stack
+### Dependency graph
+
+```
+apps/{reference,shell}  →  layers/base (@commonpub/layer)  →  packages/*
+```
+
+`@commonpub/schema` + `@commonpub/config` are foundational. Everything else
+depends on them. `@commonpub/ui` is an independent design system published
+to npm but not bundled into the layer (the layer has its own components).
+
+See [`codebase-analysis/01-monorepo-topology.md`](./codebase-analysis/01-monorepo-topology.md).
+
+---
+
+## Packages
+
+All 12 published to npm as `@commonpub/*`. Latest versions as of 2026-04-16:
+
+| Package | Version | Purpose |
+|---|---|---|
+| [`@commonpub/schema`](packages/schema/README.md) | 0.13.0 | 77 Drizzle tables, 41 enums, 50+ Zod validators |
+| [`@commonpub/config`](packages/config/README.md) | 0.10.0 | `defineCommonPubConfig()` factory, 15 feature flags |
+| [`@commonpub/server`](packages/server/README.md) | 2.43.0 | Framework-agnostic business logic (20+ modules, transactions, lifecycle hooks) |
+| [`@commonpub/protocol`](packages/protocol/README.md) | 0.9.9 | ActivityPub types, HTTP signatures, WebFinger, NodeInfo, OAuth2 |
+| [`@commonpub/auth`](packages/auth/README.md) | 0.5.1 | Better Auth wrapper, guards, AP Actor SSO (Model B) |
+| [`@commonpub/ui`](packages/ui/README.md) | 0.8.5 | 25 headless Vue 3 components, 4 themes, CSS token system |
+| [`@commonpub/editor`](packages/editor/README.md) | 0.7.9 | TipTap extensions, 20 block types, BlockTuple serialization |
+| [`@commonpub/docs`](packages/docs/README.md) | 0.6.2 | Markdown pipeline, versioning, navigation, search adapters |
+| [`@commonpub/explainer`](packages/explainer/README.md) | 0.7.11 | Interactive sections, quiz engine, progress tracking, HTML export |
+| [`@commonpub/learning`](packages/learning/README.md) | 0.5.0 | Learning path engine, progress calculation, certificates |
+| [`@commonpub/infra`](packages/infra/README.md) | 0.5.1 | S3/local storage, image processing, email adapters, security |
+| [`@commonpub/test-utils`](packages/test-utils/README.md) | 0.5.3 | Test factories and mock configuration |
+
+Plus the layer itself:
+
+| Package | Version | Purpose |
+|---|---|---|
+| `@commonpub/layer` | 0.15.2 | Shared Nuxt layer — pages, components, API routes, middleware, theme |
+
+---
+
+## Tech stack
 
 | Layer | Technology |
-|-------|------------|
-| Framework | Nuxt 3 + Vue 3 |
-| Auth | Better Auth |
-| Federation | Fedify |
+|---|---|
+| Framework | Nuxt 3 + Vue 3 (Composition API, `<script setup lang="ts">`) |
+| Language | TypeScript strict |
+| Auth | Better Auth + AP Actor SSO (Model B, OAuth2) |
+| Federation | Fedify (wrapped by `@commonpub/protocol`) |
 | Database | PostgreSQL 16 + Drizzle ORM |
 | Editor | TipTap (content), CodeMirror 6 (docs) |
 | Search | Meilisearch (primary), Postgres FTS (fallback) |
-| Queue | Redis / Valkey |
+| Queue | Redis / Valkey (via Fedify) |
 | Monorepo | Turborepo + pnpm |
+| Testing | Vitest + Playwright + Stryker |
 
 ---
 
@@ -169,24 +236,40 @@ commonpub/
 
 ```bash
 pnpm install          # Install all dependencies
-pnpm build            # Build all packages
-pnpm test             # Run all tests
-pnpm lint             # Lint all packages
-pnpm typecheck        # Type-check all packages
-pnpm dev:infra        # Start Docker infrastructure
-pnpm dev:app          # Start Nuxt dev server
+pnpm build            # Build all packages (turbo)
+pnpm dev              # Start dev servers
+pnpm dev:app          # Reference app only
+pnpm dev:infra        # Docker infra only
 pnpm db:push          # Push schema to database
+pnpm db:generate      # Generate SQL migration files
+pnpm test             # All vitest suites
+pnpm test:e2e         # Playwright
+pnpm typecheck        # Type-check all packages
+pnpm lint             # Lint all packages
+pnpm format           # Prettier
+pnpm publish:check    # build + typecheck + test
+pnpm stryker          # Full-repo mutation testing (slow)
+pnpm stryker:server   # Per-package mutation
 ```
 
-### Testing
+See [docs/guides/developers.md](docs/guides/developers.md) for the full
+development workflow.
+
+---
+
+## Testing
 
 | Layer | Tool | Scope |
-|-------|------|-------|
-| Unit / Integration | Vitest | 1,939+ tests across 12 packages |
+|---|---|---|
+| Unit / integration | Vitest | 1,939+ tests across 12 packages |
 | Components | @testing-library/vue + axe-core | WCAG 2.1 AA on all UI components |
 | E2E | Playwright | Auth, content, theming, admin, accessibility |
-| Mutation | Stryker | Per-package mutation score tracking |
-| Interop | Custom | Federation payloads from Mastodon, Lemmy, GoToSocial, Misskey |
+| Mutation | Stryker | Per-package mutation score |
+| Interop | Custom fixtures | Federation payloads from Mastodon, Lemmy, GoToSocial, Misskey |
+
+Three integration tests are skipped for PGlite incompatibility (advisory
+locks, certain extension types). Running against a real Postgres unskips
+them.
 
 ```bash
 pnpm test                    # Unit + integration
@@ -198,44 +281,82 @@ pnpm stryker                 # Mutation testing
 
 ## Deployment
 
-Four deployment options documented:
+Four supported deployment paths:
 
-1. **Docker Compose on VPS** -- `docker-compose.prod.yml` with Nginx reverse proxy
-2. **DigitalOcean App Platform** -- `deploy/app-spec.yaml` ready to go
-3. **App Platform + Supabase** -- Managed Postgres, App Platform for compute
-4. **Any Docker host** -- Multi-stage `Dockerfile` at repo root
+1. **Docker Compose on a VPS** — `deploy/docker-compose.prod.yml` + Caddy
+   reverse proxy (`deploy/Caddyfile`, auto-TLS via Let's Encrypt)
+2. **DigitalOcean App Platform** — `deploy/app-spec.yaml` ready to go
+3. **App Platform + managed Postgres** — DO or Supabase
+4. **Any Docker host** — multi-stage `Dockerfile` at repo root
 
-See [docs/deployment.md](docs/deployment.md) for step-by-step instructions, environment variables, and backup strategy.
+Production examples:
+- [`commonpub.io`](https://commonpub.io) — DO, Docker+Caddy, self-hosted Postgres
+- [`deveco.io`](https://deveco.io) — DO, Docker+Caddy, managed DO Postgres, thin-app
+
+> **⚠ Schema deploy caveat:** `drizzle-kit push` fails in CI when introducing
+> new enums (no TTY). Apply enum SQL manually to deployed DBs before pushing.
+> See [`codebase-analysis/09-gotchas-and-invariants.md`](./codebase-analysis/09-gotchas-and-invariants.md).
+
+Step-by-step: [docs/deployment.md](docs/deployment.md).
 
 ---
 
 ## Documentation
 
+Start here:
+
+| Document | Audience |
+|---|---|
+| [docs/guides/users.md](docs/guides/users.md) | Members, admins, anyone using the product |
+| [docs/guides/developers.md](docs/guides/developers.md) | Setup, architecture, customizing, contributing |
+| [docs/llm/](docs/llm/) | AI coding agents (Claude Code, Cursor, etc.) |
+| [codebase-analysis/](codebase-analysis/) | Exhaustive inventory — every table, route, component |
+
+Operational:
+
 | Document | Description |
-|----------|-------------|
-| [Quickstart](docs/quickstart.md) | Local dev setup in 5 minutes |
-| [Contributing](docs/contributing.md) | Development workflow, coding standards, PR process |
-| [Coding Standards](docs/coding-standards.md) | TypeScript, Vue 3, CSS, testing conventions |
-| [Architecture](docs/architecture.md) | System diagrams, page map, route map |
-| [Federation Guide](docs/federation.md) | How federation works, with diagrams |
-| [Federation Plan](docs/federation-plan.md) | Implementation roadmap |
-| [Building with CommonPub](docs/building-with-commonpub.md) | Guide for building a site using published packages |
-| [Deployment](docs/deployment.md) | Production setup and operations |
-| [ADRs](docs/adr/) | 24 Architecture Decision Records |
-| [Known Limitations](docs/reference/guides/v1-limitations.md) | What's done, what's deferred, honest status |
-| [CHANGELOG](CHANGELOG.md) | Release history |
+|---|---|
+| [docs/quickstart.md](docs/quickstart.md) | 5-minute local dev setup |
+| [docs/deployment.md](docs/deployment.md) | Production setup and operations |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Development workflow, PR process |
+| [docs/coding-standards.md](docs/coding-standards.md) | TypeScript, Vue 3, CSS, testing conventions |
+| [docs/federation.md](docs/federation.md) | Federation guide with diagrams |
+| [docs/building-with-commonpub.md](docs/building-with-commonpub.md) | Guide for building with the published packages |
+
+Reference:
+
+- [docs/adr/](docs/adr/) — 24+ architecture decision records
+- [docs/sessions/](docs/sessions/) — chronological session logs (source of truth for recent changes)
+- [docs/archive/](docs/archive/) — historical docs preserved for context
+- [CHANGELOG.md](CHANGELOG.md) — release history
 
 ---
 
 ## Requirements
 
-- Node.js >= 22
-- pnpm >= 10
-- Docker (for Postgres, Redis, Meilisearch)
+- Node.js **≥ 22**
+- pnpm **≥ 10**
+- Docker (for Postgres 16, Redis 7, Meilisearch)
+
+---
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) and the [full contributing guide](docs/contributing.md).
+See [CONTRIBUTING.md](CONTRIBUTING.md) and the
+[full contributing guide](docs/contributing.md). Key rules:
+
+- **The schema is the work** — features start with the right tables.
+- **No feature without a flag** in `commonpub.config.ts`.
+- **No hardcoded colors or fonts** — always `var(--*)`.
+- **Accessibility-first** — WCAG 2.1 AA minimum.
+- **Test-driven** — tests first.
+- **Session logging** — update `docs/sessions/NNN-description.md` after each session.
+- **`pnpm publish`**, never `npm publish`.
+- **Never add AI co-author attribution** in commits.
+
+Full conventions: [`docs/llm/conventions.md`](docs/llm/conventions.md).
+
+---
 
 ## License
 

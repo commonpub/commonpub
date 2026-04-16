@@ -2,6 +2,124 @@
 
 All notable changes to CommonPub are documented here.
 
+Per-package versions move independently; the entries below are grouped by
+monorepo working period. For session-level detail, see [`docs/sessions/`](./docs/sessions/).
+
+---
+
+## Unreleased (sessions 108–125, through 2026-04-16)
+
+Monorepo state at time of writing: schema 0.13.0, server 2.43.0, config 0.10.0,
+layer 0.15.2, ui 0.8.5, protocol 0.9.9, editor 0.7.9, explainer 0.7.11,
+learning 0.5.0, docs 0.6.2, auth 0.5.1, infra 0.5.1, test-utils 0.5.3.
+
+### Added — Major features
+
+- **Events system** (session 124–125) — events + eventAttendees tables, RSVP
+  with auto-waitlist, capacity limits, status/type/attendee enums, 8 API
+  routes, EventCard + EventCalendar components, `/events/**` pages with
+  pagination and filters (upcoming/featured/past/mine). Gated by `events`
+  feature flag (default OFF).
+- **Voting system** (session 124) — hubPostVotes (up/down), pollOptions,
+  pollVotes, contestEntryVotes tables. voteDirectionEnum. Denormalized
+  `voteScore` on hubPosts. PostVoteButtons + PollDisplay components. Toggle
+  and flip logic with transaction-safe score adjustment.
+- **Contest judge permissions** (session 124) — contestJudges junction table
+  with role enum (lead/judge/guest), invite/accept workflow. judgingVisibility
+  enum (public/judges-only/private) on contests. `communityVotingEnabled` flag
+  on contests. ContestJudgeManager component. 4 judges API routes.
+- **Admin-configurable nav** (session 124) — instanceSettings-backed nav
+  items (link/dropdown/external) with feature gates, role visibility.
+  NavRenderer, NavDropdown, MobileNavRenderer, NavLink components.
+  `/admin/navigation` page. Dropdowns auto-hide when all children are
+  feature-gated out.
+- **Configurable homepage** (session 123) — instanceSettings-backed homepage
+  sections with drag-to-reorder, type-specific editors (hero, content grid,
+  editorial, stats, contests, hubs, custom HTML). `/admin/homepage`.
+- **Editorial curation** (session 123) — staff picks, editorial badges,
+  homepage editorial section. `editorial` feature flag.
+- **Hub resources** (session 122) — curated links per hub with categories,
+  sort order. HubResources component.
+- **Hub products** (session 122) — products scoped to hubs; federatedHubProducts
+  for mirrored catalogs.
+- **Contest system** (session 117) — contests, contestEntries with judging,
+  prize management, 5-phase workflow.
+- **Video social** (session 118) — videos with categories, comments, likes.
+- **Password reset** (session 118) — full reset flow with email tokens.
+- **Admin reports workflow** (session 118) — reports list, resolution,
+  audit trail.
+- **Comment threading** (session 113) — nested replies on content, hubs,
+  federated content.
+- **Article → Blog merge** (session 116) — `article` legacy-normalized to
+  `blog` in contentTypeEnum.
+- **Destination transformation** — 7-phase project across sessions 123–125
+  combining quick-fixes, editorial, runtime flags, configurable homepage,
+  nav, events, voting, judge permissions.
+
+### Added — Federation
+
+- **Hub federation (FEP-1b12)** — hubs act as AP Group actors; cross-instance
+  membership and posting; `federateHubs` feature flag.
+- **Seamless federation** (session 123) — `seamlessFederation` flag merges
+  federated content into local browse/search/feed.
+- **Content mirroring** — instanceMirrors with direction (pull/push),
+  filterContentTypes, backfillCursor, circuit breaker per domain.
+- **OAuth federation fixes** (session 121) — 3 CSRF/security bugs fixed in
+  AP Actor SSO flow.
+- **Signed backfill** (session 119) — outbox crawl now signs requests to
+  protected outboxes.
+
+### URL restructure (session 108)
+
+- Canonical content URLs: `/u/{username}/{type}/{slug}`
+- Legacy URL redirects via `content-redirect.ts`, `blog-redirect.ts` middleware
+
+### Security (session 119)
+
+- HTML sanitizer hardening (additional allowed tags/attrs, CSP integration).
+- Group chat read receipts (messageReads table).
+- SSRF protection extended (all RFC private ranges + CGN + TEST-NET + IPv6
+  with bracketed hostnames).
+
+### Testing & quality
+
+- Session 120: test audit (−71 flaky, +49 new), architecture fixes, a11y
+  improvements, loading states.
+- Session 122: deep audit, hub resources/products, a11y polish, contest
+  notifications — 16 outstanding v1.0 tasks completed.
+- Session 125: events UI polish, contest voting UI with optimistic updates,
+  error.vue SSR theme fix, API status whitelist hardening. 8/8 typecheck,
+  30/30 focused tests, 865 tests in wider runs.
+
+### Schema changes (enum additions)
+
+- `judgeRoleEnum` (lead/judge/guest)
+- `judgingVisibilityEnum` (public/judges-only/private)
+- `voteDirectionEnum` (up/down)
+- `eventStatusEnum` (draft/published/active/completed/cancelled)
+- `eventTypeEnum` (in-person/online/hybrid)
+- `eventAttendeeStatusEnum` (registered/waitlisted/cancelled/attended)
+- `notificationTypeEnum` gained `event`
+
+### Documentation overhaul (session 126)
+
+- Added `codebase-analysis/` — 12-file exhaustive inventory (tables, routes,
+  components, feature flags, state diagrams, gotchas).
+- Added `docs/guides/users.md` and `docs/guides/developers.md`.
+- Added `docs/llm/` — Claude Code / agent-facing context (facts,
+  conventions, gotchas, task recipes).
+- Archived 9 obsolete top-level docs to `docs/archive/`.
+- Rewrote top-level README.
+
+### Known deferred
+
+- `federatedContent.mirrorId` has no DB-level FK (app-enforced only).
+- ~70 layer components lack `@media` breakpoints — mobile polish outstanding.
+- 3 skipped integration tests for PGlite incompatibility.
+- `events` + `eventAttendees` lack Zod validators (gaps).
+
+---
+
 ## v0.2.0 — Audit Repairs & Test Hardening (2026-03-23)
 
 ### Added

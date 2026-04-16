@@ -983,9 +983,11 @@ All incoming HTML content is sanitized before storage:
 
 ## Learn More
 
-- **[Federation Plan](federation-plan.md)** — 10-phase implementation roadmap with schema designs
-- **[Federation Notes](federation-notes.md)** — Research notes, decisions, and open questions
-- **[ADR 019](adr/019-federation-architecture.md)** — Architecture decision record
-- **[W3C ActivityPub Spec](https://www.w3.org/TR/activitypub/)** — The protocol standard
+- **[Codebase analysis](../codebase-analysis/)** — exhaustive current inventory: schema, server modules, API routes, state diagrams. Always current.
+- **[Developers guide](guides/developers.md)** — federation-for-developers section with implementation notes
+- **[ADR 019](adr/019-federation-architecture.md)** — original architecture decision record
+- **[Archived federation plan](archive/federation-plan.md)** — original 10-phase roadmap (all phases complete)
+- **[Archived federation map](archive/federation-map.md)** — 2026-04-03 deep federation reference (superseded by codebase-analysis)
+- **[W3C ActivityPub Spec](https://www.w3.org/TR/activitypub/)** — the protocol standard
 - **[FEP-1b12](https://codeberg.org/fediverse/fep/src/branch/main/fep/1b12/fep-1b12.md)** — Group federation standard
-- **[Fedify](https://fedify.dev)** — The AP framework CommonPub uses
+- **[Fedify](https://fedify.dev)** — the AP framework CommonPub uses
