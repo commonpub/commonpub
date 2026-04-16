@@ -5,9 +5,12 @@ const props = defineProps<{
   authorAvatarUrl?: string | null;
   replyCount: number;
   voteCount: number;
+  voteScore?: number;
   lastReplyAt?: Date;
   solved?: boolean;
 }>();
+
+const displayScore = computed(() => props.voteScore ?? props.voteCount);
 
 const emit = defineEmits<{
   upvote: [];
@@ -33,7 +36,7 @@ const lastReplyFormatted = computed((): string | null => {
       >
         <i class="fa-solid fa-chevron-up"></i>
       </button>
-      <span class="cpub-vote-count">{{ voteCount }}</span>
+      <span class="cpub-vote-count">{{ displayScore }}</span>
       <button
         class="cpub-vote-btn"
         aria-label="Downvote"

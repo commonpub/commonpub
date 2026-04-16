@@ -29,6 +29,7 @@ const discussionPosts = computed(() => {
           :author="post.author.name"
           :reply-count="post.replyCount"
           :vote-count="post.likeCount"
+          :vote-score="post.voteScore"
         />
       </NuxtLink>
       <div v-else>
@@ -37,6 +38,7 @@ const discussionPosts = computed(() => {
           :author="post.author.name"
           :reply-count="post.replyCount"
           :vote-count="post.likeCount"
+          :vote-score="post.voteScore"
         />
       </div>
     </template>

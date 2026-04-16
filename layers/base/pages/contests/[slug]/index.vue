@@ -140,6 +140,7 @@ async function withdrawEntry(entryId: string): Promise<void> {
           <ContestRules v-if="c?.rules" :rules="c.rules" />
           <ContestPrizes v-if="c?.prizes?.length" :prizes="c.prizes" />
           <ContestJudges v-if="c?.judges?.length" :judge-ids="c.judges" />
+          <ContestJudgeManager v-if="isOwner && c" :contest-slug="slug" :is-owner="isOwner" />
           <ContestEntries
             :entries="entries"
             :contest-status="c?.status"

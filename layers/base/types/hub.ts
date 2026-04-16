@@ -23,6 +23,7 @@ export interface HubPostViewModel {
   author: HubPostAuthor
   createdAt: string
   likeCount: number
+  voteScore: number
   replyCount: number
   isPinned: boolean
   isLocked: boolean

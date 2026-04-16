@@ -254,6 +254,7 @@ export interface HubPostItem {
   isPinned: boolean;
   isLocked: boolean;
   likeCount: number;
+  voteScore: number;
   replyCount: number;
   createdAt: Date;
   updatedAt: Date;

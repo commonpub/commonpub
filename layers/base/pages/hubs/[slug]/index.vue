@@ -72,6 +72,7 @@ const postsVM = computed<HubPostViewModel[]>(() => {
     },
     createdAt: p.createdAt,
     likeCount: p.likeCount ?? 0,
+    voteScore: p.voteScore ?? 0,
     replyCount: p.replyCount ?? 0,
     isPinned: p.isPinned ?? false,
     isLocked: p.isLocked ?? false,
