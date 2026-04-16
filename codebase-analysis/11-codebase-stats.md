@@ -72,10 +72,13 @@ From package versions and file counts:
 
 ## Schema growth (session 124 adds)
 
-- 8 new tables: events, eventAttendees, hubPostVotes, pollOptions, pollVotes, contestEntryVotes, contestJudges, (and one more for federation)
+- 7 new tables:
+  - `events`, `eventAttendees` (events.ts)
+  - `hubPostVotes`, `pollOptions`, `pollVotes`, `contestEntryVotes` (voting.ts)
+  - `contestJudges` (contest.ts — replaces legacy `contests.judges` JSONB array, which is still kept for backwards-compat)
 - 6 new enums: judgeRoleEnum, judgingVisibilityEnum, voteDirectionEnum, eventStatusEnum, eventTypeEnum, eventAttendeeStatusEnum
-- 3 new columns: voteScore (hubPosts), communityVotingEnabled (contests), judgingVisibility (contests)
-- notificationTypeEnum gained `event`
+- 3 new columns: `voteScore` on hubPosts (denormalized up-down), `communityVotingEnabled` on contests (default false), `judgingVisibility` on contests (default `'judges-only'`)
+- `notificationTypeEnum` gained `event`
 
 ## Docs coverage
 

@@ -172,8 +172,8 @@ Contest entry community votes:
 - **inboxHandlers.ts** — inbound routing: dispatches Follow/Accept/Undo/Create/Update/Delete/Announce/Like/Reject to correct handler
 - **hubFederation.ts** — Group actor lifecycle, hub post federation, follower management
 - **hubMirroring.ts** — ingests federated hub posts/members/resources/products; de-dupes by objectUri
-- **mirroring.ts** — mirror config CRUD; `backfillMirror(db, id)` walks remote outbox with resume cursor
-- **backfill.ts** — outbox crawl primitives, pagination, signed requests for protected outboxes (session 119 added)
+- **mirroring.ts** — mirror config CRUD: `createMirror`, `activateMirror`, `pauseMirror`, `resumeMirror`, `cancelMirror`, `listMirrors`, `getMirror`, `matchMirrorForContent`, `recordMirrorError`
+- **backfill.ts** — `backfillFromOutbox(db, remoteActorUri, domain, opts?)` walks a remote outbox with pagination + resume cursor + signed requests for protected outboxes (session 119 hardening). Paired `backfillHubFromOutbox(db, federatedHubId, domain)` in `hubMirroring.ts` for hub-post variants.
 - **messaging.ts** — federated DMs via AP Create+Note with direct audience
 - **oauth.ts** — OAuth2 auth server endpoints for AP Actor SSO (Model B)
 - **outboxQueries.ts** — helpers for building Collection/OrderedCollection pagination
