@@ -225,11 +225,18 @@ User-facing federation API:
 | POST | /api/federation/hub-follow | auth | Follow federated group |
 | POST | /api/federation/hub-post / hub-post-reply / hub-post-like | auth | — |
 | GET | /api/federation/hub-post-likes | pub | — |
-| GET | /api/federation/federated-hubs/:id | pub | — |
-| GET | /api/federation/federated-hubs/:id/posts | pub | — |
-| GET | /api/federation/federated-hubs/:id/posts/:postId | pub | — |
-| GET | /api/federation/federated-hubs/:id/posts/:postId/replies | pub | — |
-| GET | /api/federation/federated-hubs/:id/members | pub | — |
+| GET | /api/federated-hubs/:id | pub | Federated hub detail |
+| GET | /api/federated-hubs/:id/feed.xml | pub | RSS feed |
+| GET | /api/federated-hubs/:id/posts | pub | — |
+| GET | /api/federated-hubs/:id/posts/:postId | pub | — |
+| GET | /api/federated-hubs/:id/posts/:postId/replies | pub | — |
+| GET | /api/federated-hubs/:id/members | pub | — |
+
+Note: federated-hubs lives at `/api/federated-hubs/...` (top-level under
+`api/`), **not** under `/api/federation/`. The `/api/federation/` endpoints
+are cross-instance actions (follow, like, boost, reply, dm, hub-follow,
+search, resolve-uri); federated content lookups live at `/api/federation/
+content/*` while federated-hub entity lookups live at `/api/federated-hubs/*`.
 
 ## Admin (flag: `admin: true`)
 
