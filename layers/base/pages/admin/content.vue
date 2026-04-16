@@ -12,7 +12,22 @@ interface Category {
   icon: string | null;
 }
 
-const { data, refresh } = await useFetch('/api/content', {
+interface AdminContentItem {
+  id: string;
+  source?: string;
+  title: string;
+  slug: string;
+  type: string;
+  status: string;
+  isEditorial?: boolean;
+  isFeatured?: boolean;
+  categoryId?: string | null;
+  viewCount?: number;
+  createdAt: string;
+  author?: { id: string; username: string; displayName: string | null } | null;
+}
+
+const { data, refresh } = await useFetch<{ items: AdminContentItem[] }>('/api/content', {
   query: { limit: 50, sort: 'recent' },
 });
 const { data: categories } = await useFetch<Category[]>('/api/categories');
@@ -22,7 +37,11 @@ const selectAll = ref(false);
 
 watch(selectAll, (val) => {
   if (val && data.value?.items) {
-    selectedIds.value = new Set(data.value.items.filter(i => i.source !== 'federated').map(i => i.id));
+    selectedIds.value = new Set(
+      data.value.items
+        .filter((i: AdminContentItem) => i.source !== 'federated')
+        .map((i: AdminContentItem) => i.id),
+    );
   } else {
     selectedIds.value = new Set();
   }

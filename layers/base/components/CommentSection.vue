@@ -12,7 +12,8 @@ interface Comment {
   createdAt: string;
   parentId: string | null;
   author: CommentAuthor | null;
-  replies?: Comment[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  replies?: any[];
 }
 
 const props = defineProps<{
@@ -38,6 +39,8 @@ const queryParams = computed(() =>
   isFederated.value ? undefined : { targetType: props.targetType, targetId: props.targetId, limit: commentLimit },
 );
 
+// @ts-ignore TS2589: useFetch<Comment[]> with this query shape hits deep
+// type instantiation in some consumer apps (notably shell). Runtime is fine.
 const { data: comments, refresh } = await useFetch<Comment[]>(commentUrl, { query: queryParams, lazy: true });
 
 const allCommentsLoaded = ref(false);

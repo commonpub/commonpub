@@ -79,7 +79,7 @@ if (profile.value) {
   form.value.bannerUrl = p.bannerUrl || '';
 
   if (Array.isArray(p.skills)) {
-    skills.value = p.skills.filter((s): s is string => typeof s === 'string');
+    skills.value = (p.skills as unknown[]).filter((s): s is string => typeof s === 'string');
   }
   pronouns.value = p.pronouns || '';
   if (p.socialLinks) {

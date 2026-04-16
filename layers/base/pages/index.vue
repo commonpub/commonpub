@@ -58,7 +58,19 @@ const { data: communities, pending: communitiesPending } = await useFetch('/api/
   query: { limit: 4 },
 });
 
-const { data: contests, pending: contestsPending } = await useFetch('/api/contests', {
+interface ContestListItem {
+  id: string;
+  slug: string;
+  title: string;
+  status: string;
+  description?: string | null;
+  bannerUrl?: string | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  entryCount?: number;
+}
+
+const { data: contests, pending: contestsPending } = await useFetch<{ items: ContestListItem[] }>('/api/contests', {
   query: { limit: 3 },
 });
 
@@ -66,9 +78,9 @@ const heroDismissed = ref(false);
 const joinedHubs = ref(new Set<string>());
 
 // Active contest for hero banner
-const activeContest = computed(() => {
+const activeContest = computed<ContestListItem | null>(() => {
   const items = contests.value?.items;
-  return items?.find((c) => c.status === 'active') ?? null;
+  return items?.find((c: ContestListItem) => c.status === 'active') ?? null;
 });
 
 const isAuthenticated = computed(() => !!user.value);

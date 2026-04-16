@@ -15,8 +15,19 @@ const activeTab = ref<'content' | 'bookmarks' | 'learning'>('content');
 const contentSort = ref<'newest' | 'oldest' | 'popular'>('newest');
 const contentTypeFilter = ref('');
 
+interface DashContentItem {
+  id: string;
+  type: string;
+  slug: string;
+  title: string;
+  status: string;
+  createdAt: string;
+  viewCount?: number;
+  likeCount?: number;
+}
+
 // My content (all statuses)
-const { data: myContent, status: contentStatus } = await useFetch('/api/content', {
+const { data: myContent, status: contentStatus } = await useFetch<{ items: DashContentItem[] }>('/api/content', {
   query: { authorId: user.value?.id },
   headers: reqHeaders,
 });
@@ -65,19 +76,27 @@ function sortItems<T extends { createdAt: string; viewCount?: number; likeCount?
   return sorted;
 }
 
-const drafts = computed(() =>
-  sortItems(filterByType((myContent.value?.items ?? []).filter((i: { status: string }) => i.status === 'draft'))),
+const drafts = computed<DashContentItem[]>(() =>
+  sortItems<DashContentItem>(
+    filterByType<DashContentItem>(
+      (myContent.value?.items ?? []).filter((i: DashContentItem) => i.status === 'draft'),
+    ),
+  ),
 );
-const published = computed(() =>
-  sortItems(filterByType((myContent.value?.items ?? []).filter((i: { status: string }) => i.status === 'published'))),
+const published = computed<DashContentItem[]>(() =>
+  sortItems<DashContentItem>(
+    filterByType<DashContentItem>(
+      (myContent.value?.items ?? []).filter((i: DashContentItem) => i.status === 'published'),
+    ),
+  ),
 );
 
 // Stats use ALL items (unfiltered) so totals don't change with filter selection
-const allPublished = computed(() =>
-  (myContent.value?.items ?? []).filter((i: { status: string }) => i.status === 'published'),
+const allPublished = computed<DashContentItem[]>(() =>
+  (myContent.value?.items ?? []).filter((i: DashContentItem) => i.status === 'published'),
 );
-const allDrafts = computed(() =>
-  (myContent.value?.items ?? []).filter((i: { status: string }) => i.status === 'draft'),
+const allDrafts = computed<DashContentItem[]>(() =>
+  (myContent.value?.items ?? []).filter((i: DashContentItem) => i.status === 'draft'),
 );
 const totalViews = computed(() =>
   allPublished.value.reduce((sum, item) => sum + (item.viewCount ?? 0), 0),

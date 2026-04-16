@@ -24,9 +24,10 @@ const { data: site, refresh: refreshSite } = await useFetch<{ id: string; name: 
 
 // Version selector
 const selectedVersion = ref('');
+type SiteVersion = { id: string; version: string; isDefault: boolean };
 watch(site, (s) => {
   if (s?.versions?.length && !selectedVersion.value) {
-    const def = s.versions.find((v) => v.isDefault) ?? s.versions[0];
+    const def = s.versions.find((v: SiteVersion) => v.isDefault) ?? s.versions[0];
     if (def) selectedVersion.value = def.version;
   }
 }, { immediate: true });
@@ -34,7 +35,7 @@ watch(site, (s) => {
 // Resolve selected version string → version UUID for write operations
 const selectedVersionId = computed(() => {
   if (!site.value?.versions?.length || !selectedVersion.value) return undefined;
-  return site.value.versions.find((v) => v.version === selectedVersion.value)?.id;
+  return site.value.versions.find((v: SiteVersion) => v.version === selectedVersion.value)?.id;
 });
 
 const { data: rawPages, refresh: refreshPages } = await useFetch<Array<{ id: string; title: string; slug: string; sortOrder: number; parentId: string | null; content: string | BlockTuple[] | null; format?: string }>>(() => {
