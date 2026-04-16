@@ -24,6 +24,7 @@ The implementation plan is at `docs/plan-v2.md`. Reference documentation is at `
 12. **Accessibility-first** — WCAG 2.1 AA minimum
 13. **Session logging** — after each work session, update `docs/sessions/` with what was done, decisions made, open questions
 14. **Research before building** — web research for each major system before implementation
+15. **Never add Claude as co-author** — no `Co-Authored-By`, `Signed-off-by`, or any AI attribution in git commits, in any repo
 
 ## Code Conventions
 
