@@ -84,7 +84,7 @@ A deployed instance is ~4 files extending the layer:
 - `server/utils/config.ts` — Nitro-side config resolver: merges `commonpub.config.ts` defaults with `FEATURE_*` env vars and DB overrides from `instanceSettings.features.overrides` (cached 60s). Server handlers import from here.
 - `components/SiteLogo.vue` — branded logo
 
-Real example: `deveco.io` (~18 branded files).
+Real example: `deveco.io` (~25 branded/config files extending the layer).
 
 ## Federation (ActivityPub)
 

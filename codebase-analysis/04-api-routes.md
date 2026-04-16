@@ -252,6 +252,8 @@ Settings: GET/PUT `/api/admin/settings`, GET `/api/admin/stats`.
 
 Features: GET/PUT `/api/admin/features` (runtime overrides).
 
+Search: POST `/api/admin/search/reindex` — rebuild the Meilisearch index from Postgres.
+
 Homepage: GET/PUT `/api/admin/homepage/sections`.
 
 Navigation (session 124): GET/PUT `/api/admin/navigation/items`.

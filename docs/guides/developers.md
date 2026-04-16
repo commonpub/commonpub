@@ -128,8 +128,8 @@ The fastest path: `cargo install create-commonpub && create-commonpub new mysite
 `apps/shell/` is the starter template. `apps/reference/` is a full-featured
 dogfood deployment that shows what everything looks like when it's all on.
 
-`deveco.io` is a real production thin-app — about 18 branded files over the
-layer.
+`deveco.io` is a real production thin-app — about 25 branded/config files
+over the layer.
 
 ### Why a layer, not separate packages?
 

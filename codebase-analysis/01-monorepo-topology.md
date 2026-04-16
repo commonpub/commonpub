@@ -131,7 +131,7 @@ my-site/
 
 `apps/shell/` is the canonical starter. `apps/reference/` is the fully featured reference.
 
-Real deployments: **deveco.io** (~18 branded files extending the layer).
+Real deployments: **deveco.io** (~25 branded/config files extending the layer — overrides app.vue + error.vue + 2 layouts, adds a DevEcoLogo, 4 custom pages/overrides, its own Dockerfile + Caddyfile + 2 docker-composes, 2 drizzle configs, 4 GitHub Actions workflows, server/utils/config.ts, and the usual commonpub.config.ts + nuxt.config.ts + package.json + tsconfig.json).
 
 ## What changes where
 

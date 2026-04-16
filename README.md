@@ -138,7 +138,7 @@ my-site/
 └── components/SiteLogo.vue   # branded logo
 ```
 
-Real example: [`deveco.io`](https://deveco.io) — ~18 branded files over the layer.
+Real example: [`deveco.io`](https://deveco.io) — ~25 branded/config files over the layer.
 
 Details in [docs/guides/developers.md](docs/guides/developers.md#the-thin-app-pattern).
 
