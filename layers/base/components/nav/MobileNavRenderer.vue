@@ -30,7 +30,7 @@ function isVisible(item: NavItem): boolean {
 }
 
 function visibleChildren(item: NavItem): NavItem[] {
-  return (item.children ?? []).filter(c => isVisible(c));
+  return (item.children ?? []).filter((c: NavItem) => isVisible(c));
 }
 </script>
 

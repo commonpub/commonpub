@@ -20,6 +20,20 @@ export interface ClientAuthSession {
   expiresAt: string;
 }
 
+interface AuthResponse {
+  user: ClientAuthUser | null;
+  session: ClientAuthSession | null;
+}
+
+/** Type-safe POST fetch that avoids Nuxt $fetch TS2589 deep instantiation */
+async function authPost(url: string, body: Record<string, unknown>): Promise<AuthResponse | null> {
+  return ($fetch as (url: string, opts: Record<string, unknown>) => Promise<AuthResponse | null>)(url, {
+    method: 'POST',
+    body,
+    credentials: 'include',
+  });
+}
+
 export function useAuth() {
   const user = useState<ClientAuthUser | null>('auth-user', () => null);
   const session = useState<ClientAuthSession | null>('auth-session', () => null);
@@ -28,27 +42,19 @@ export function useAuth() {
   const isAdmin = computed(() => user.value?.role === 'admin');
 
   async function signIn(email: string, password: string): Promise<void> {
-    const data = await $fetch<{ user: ClientAuthUser | null; session: ClientAuthSession | null }>('/api/auth/sign-in/email', {
-      method: 'POST',
-      body: { email, password },
-      credentials: 'include',
-    });
+    const data = await authPost('/api/auth/sign-in/email', { email, password });
     user.value = data?.user ?? null;
     session.value = data?.session ?? null;
   }
 
   async function signUp(email: string, password: string, username: string): Promise<void> {
-    const data = await $fetch<{ user: ClientAuthUser | null; session: ClientAuthSession | null }>('/api/auth/sign-up/email', {
-      method: 'POST',
-      body: { email, password, username, name: username },
-      credentials: 'include',
-    });
+    const data = await authPost('/api/auth/sign-up/email', { email, password, username, name: username });
     user.value = data?.user ?? null;
     session.value = data?.session ?? null;
   }
 
   async function signOut(): Promise<void> {
-    await $fetch('/api/auth/sign-out', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: {} });
+    await authPost('/api/auth/sign-out', {});
     user.value = null;
     session.value = null;
     await navigateTo('/');
@@ -61,14 +67,12 @@ export function useAuth() {
   async function refreshSession(): Promise<void> {
     if (import.meta.server) return;
     try {
-      const data = await $fetch<{ user: ClientAuthUser | null; session: ClientAuthSession | null }>(
-        '/api/me',
-        { credentials: 'include' },
+      const data = await ($fetch as (url: string, opts: Record<string, unknown>) => Promise<AuthResponse | null>)(
+        '/api/me', { credentials: 'include' },
       );
       user.value = data?.user ?? null;
       session.value = data?.session ?? null;
     } catch {
-      // Session invalid or server unreachable — clear client state
       user.value = null;
       session.value = null;
     }

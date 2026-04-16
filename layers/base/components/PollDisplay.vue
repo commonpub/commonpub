@@ -16,7 +16,7 @@ const { data, refresh } = await useFetch<{ options: PollOptionResult[]; userVote
 
 const totalVotes = computed(() => {
   if (!data.value) return 0;
-  return data.value.options.reduce((sum, opt) => sum + opt.voteCount, 0);
+  return data.value.options.reduce((sum: number, opt: { voteCount: number }) => sum + opt.voteCount, 0);
 });
 
 const hasVoted = computed(() => !!data.value?.userVote);

@@ -21,7 +21,10 @@ const mobileMenuOpen = ref(false);
 const openDropdown = ref<string | null>(null);
 
 // Fetch configurable nav items (falls back to defaults on server)
-const { data: navItems } = await useFetch<NavItem[]>('/api/navigation/items');
+// useAsyncData avoids Nuxt's typed route inference which triggers TS2589
+const { data: navItems } = await useAsyncData('nav-items', () =>
+  ($fetch as Function)('/api/navigation/items') as Promise<NavItem[]>,
+);
 
 function toggleDropdown(name: string): void {
   openDropdown.value = openDropdown.value === name ? null : name;

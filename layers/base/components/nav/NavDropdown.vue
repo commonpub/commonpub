@@ -31,7 +31,7 @@ function isChildVisible(child: NavItem): boolean {
 }
 
 const visibleChildren = computed(() =>
-  (props.item.children ?? []).filter(c => isChildVisible(c)),
+  (props.item.children ?? []).filter((c: NavItem) => isChildVisible(c)),
 );
 
 function handleKeydown(e: KeyboardEvent): void {

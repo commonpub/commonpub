@@ -15,7 +15,7 @@ const rsvpLoading = ref(false);
 
 const myRsvpStatus = computed((): AttendeeStatus | null => {
   if (!isAuthenticated.value || !attendees.value) return null;
-  const found = attendees.value.items.find(a => a.userId === user.value?.id);
+  const found = attendees.value.items.find((a: AttendeeItem) => a.userId === user.value?.id);
   return found?.status ?? null;
 });
 
