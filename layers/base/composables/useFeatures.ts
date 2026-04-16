@@ -20,12 +20,18 @@ export interface FeatureFlags {
 
 let hydrated = false;
 
+const DEFAULT_FLAGS: FeatureFlags = {
+  content: true, social: true, hubs: true, docs: true, video: true,
+  contests: false, events: false, learning: true, explainers: true,
+  editorial: true, federation: false, admin: false, emailNotifications: false,
+};
+
 export function useFeatures() {
   const config = useRuntimeConfig();
-  const buildFlags = config.public.features as unknown as FeatureFlags;
+  const buildFlags = (config.public.features as unknown as FeatureFlags) ?? DEFAULT_FLAGS;
 
   // Shared reactive state — initialized from build-time config
-  const flags = useState<FeatureFlags>('feature-flags', () => ({ ...buildFlags }));
+  const flags = useState<FeatureFlags>('feature-flags', () => ({ ...DEFAULT_FLAGS, ...buildFlags }));
 
   // On client, fetch dynamic features once to pick up DB overrides
   if (import.meta.client && !hydrated) {

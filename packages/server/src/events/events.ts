@@ -171,6 +171,7 @@ export async function createEvent(
       slug: input.slug,
       description: input.description ?? null,
       coverImage: input.coverImage ?? null,
+      status: 'published',
       eventType: input.eventType ?? 'in-person',
       startDate: new Date(input.startDate),
       endDate: new Date(input.endDate),
