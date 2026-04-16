@@ -74,6 +74,23 @@ const filteredContent = computed(() => {
 
 const p = computed(() => profile.value);
 
+// Activity heatmap data: count content items published per day (YYYY-MM-DD).
+// HeatmapGrid needs Record<string, number> keyed by ISO date; with no data
+// all cells render as level-0 (empty) which looks broken.
+const activityByDate = computed<Record<string, number>>(() => {
+  const items = content.value?.items;
+  if (!items?.length) return {};
+  const map: Record<string, number> = {};
+  for (const item of items) {
+    // Prefer publishedAt; fall back to createdAt. Items without either are skipped.
+    const ts = item.publishedAt ?? item.createdAt;
+    if (!ts) continue;
+    const date = String(ts).slice(0, 10);
+    map[date] = (map[date] ?? 0) + 1;
+  }
+  return map;
+});
+
 const { isAuthenticated, user } = useAuth();
 const toast = useToast();
 const isOwnProfile = computed(() => user.value?.username === username);
@@ -398,7 +415,7 @@ async function handleReport(): Promise<void> {
             <!-- Activity Heatmap -->
             <div class="cpub-sb-card">
               <div class="cpub-sb-title">Activity</div>
-              <HeatmapGrid :weeks="20" />
+              <HeatmapGrid :data="activityByDate" :weeks="20" />
             </div>
 
             <!-- Featured Projects -->
