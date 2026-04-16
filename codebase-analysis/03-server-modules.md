@@ -208,7 +208,7 @@ Both are thin CRUD over `instanceSettings` JSONB keys:
 
 **importer.ts** — URL → content with block extraction. Uses Readability-style parsing.
 
-**ssrf.ts** — hard block on RFC1918, loopback, CGN (100.64/10), link-local, 6to4, TEST-NET, IPv6 private (fc00::/7, fe80::/10, ::1, bracketed hostnames). Hardened in v0.2.0 audit.
+**ssrf.ts** — hard block on: RFC1918 (10/8, 172.16/12, 192.168/16), loopback (127/8, ::1), CGN (100.64/10), link-local (169.254/16, fe80::/10), IPv6 unique-local (fc00::/7 via fc/fd prefix match), benchmarking (198.18/15), reserved (192.0.0/24, 0/8), TEST-NET 1/2/3 (192.0.2/24, 198.51.100/24, 203.0.113/24), blocked hostnames (localhost, metadata.google.internal, metadata.internal). Handles IPv6 bracketed form by stripping `[...]` before matching. 6to4 (2002::/16) is NOT explicitly blocked — low-risk but a gap. Hardened in v0.2.0 audit.
 
 ### infra utilities (file-level, not domain modules)
 

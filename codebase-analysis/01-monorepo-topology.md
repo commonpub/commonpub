@@ -7,8 +7,8 @@ As of session 125 (2026-04-16).
 ```
 commonpub/
 ├── apps/
-│   ├── reference/         @commonpub/reference — full-featured Nuxt 3 dogfood app
-│   └── shell/             @commonpub/shell     — minimal starter template
+│   ├── reference/         @commonpub/reference — full-featured Nuxt 3 dogfood app (extras: drizzle.config, e2e/, seed scripts)
+│   └── shell/             @commonpub/shell     — plain starter template (same feature flags, smaller file set)
 ├── layers/
 │   └── base/              @commonpub/layer     — shared Nuxt layer (the distribution unit)
 ├── packages/              12 framework-agnostic TS packages (all published to npm)

@@ -152,7 +152,7 @@ Thin Nuxt 3 shell. All features ON, `trustedInstances: ['deveco.io']`. Uses `@co
 
 ## apps/shell/
 
-Starter template. Minimal config, fewer features enabled. Served as the reference for new sites created by create-commonpub.
+Starter template for new CommonPub instances. The config currently mirrors the reference app (all content + community features on) — it's not a minimal-features starter, just the smaller/plainer shell that create-commonpub derives from. Differences from apps/reference: no drizzle.config, no e2e/, no seed scripts, no vitest.config, tighter nuxt.config (devtools only — reference also adds app.head, nitro publicAssets, vite server.fs.allow).
 
 ## tools/create-commonpub/ (Rust CLI)
 
