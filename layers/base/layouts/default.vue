@@ -24,6 +24,7 @@ const openDropdown = ref<string | null>(null);
 // useAsyncData avoids Nuxt's typed route inference which triggers TS2589
 const { data: navItems } = await useAsyncData('nav-items', () =>
   ($fetch as Function)('/api/navigation/items') as Promise<NavItem[]>,
+  { default: () => [] as NavItem[] },
 );
 
 function toggleDropdown(name: string): void {
@@ -233,6 +234,7 @@ const userUsername = computed(() => user.value?.username ?? '');
 :deep(.cpub-nav-link i) { font-size: 10px; }
 :deep(.cpub-nav-link:hover) { color: var(--text); background: var(--surface2); }
 :deep(.cpub-nav-link.router-link-active) { color: var(--text); background: var(--surface2); border-color: var(--border); }
+:deep(.cpub-nav-link--disabled) { opacity: 0.35; cursor: not-allowed; pointer-events: none; }
 
 /* Nav dropdowns */
 :deep(.cpub-nav-dropdown) { position: relative; }

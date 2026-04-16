@@ -9,7 +9,7 @@ const isExternal = computed(() => props.item.type === 'external' && props.item.h
 </script>
 
 <template>
-  <span v-if="item.disabled" class="cpub-nav-link cpub-nav-panel-item--disabled">
+  <span v-if="item.disabled" class="cpub-nav-link cpub-nav-link--disabled">
     <i v-if="item.icon" :class="item.icon"></i> {{ item.label }}
   </span>
   <a
@@ -34,7 +34,7 @@ const isExternal = computed(() => props.item.type === 'external' && props.item.h
 <style scoped>
 .cpub-nav-external-icon {
   font-size: 8px;
-  opacity: 0.5;
+  color: var(--text-faint);
   margin-left: 2px;
 }
 </style>

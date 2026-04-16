@@ -31,6 +31,7 @@ async function authPost(url: string, body: Record<string, unknown>): Promise<Aut
     method: 'POST',
     body,
     credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
   });
 }
 
