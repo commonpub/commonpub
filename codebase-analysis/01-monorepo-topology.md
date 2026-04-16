@@ -48,7 +48,7 @@ Note: `tools/create-commonpub` is NOT in the pnpm workspace — it's Rust.
 | @commonpub/schema | 0.13.0 | Session 124 added events, voting, contestJudges |
 | @commonpub/server | 2.43.0 | Bumped on most sessions |
 | @commonpub/config | 0.10.0 | 15 feature flags |
-| @commonpub/layer | 0.15.2 | Not always published — consumed via workspace too |
+| @commonpub/layer | 0.15.3 | Bumped in session 126 for typecheck fixes; also consumed via workspace |
 | @commonpub/ui | 0.8.5 | Independent; NOT bundled into layer |
 | @commonpub/protocol | 0.9.9 | Fedify wrapper |
 | @commonpub/editor | 0.7.9 | 20 block types |
@@ -125,7 +125,7 @@ The "minimum viable CommonPub instance" is ~4 files + `.env`:
 my-site/
 ├── nuxt.config.ts            # extends: ['@commonpub/layer']
 ├── commonpub.config.ts       # defineCommonPubConfig({ features, auth, instance })
-├── server/utils/config.ts    # re-exports config (Nitro dedup workaround)
+├── server/utils/config.ts    # Nitro-side config resolver (env + DB override layers)
 └── components/SiteLogo.vue   # branded logo
 ```
 

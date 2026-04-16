@@ -250,11 +250,23 @@ moderator 2
 member    1
 ```
 
-- `hasPermission(role, 'post')` → member+
-- `hasPermission(role, 'moderate')` → moderator+
-- `hasPermission(role, 'manage')` → admin+
-- `hasPermission(role, 'own')` → owner only
-- `canManageRole(actor, target)` — strict: actor weight must be strictly greater than target
+Actual `PERMISSION_MAP` in `packages/server/src/utils.ts`:
+
+| Permission | Min role | Weight |
+|---|---|---|
+| `editHub` | admin | 3 |
+| `manageMembers` | admin | 3 |
+| `banUser` | moderator | 2 |
+| `kickMember` | moderator | 2 |
+| `deletePost` | moderator | 2 |
+| `pinPost` | moderator | 2 |
+| `lockPost` | moderator | 2 |
+| `manageResources` | moderator | 2 |
+
+Unknown permission names return `Infinity`, so they always fail. Add new
+permission names to `PERMISSION_MAP` when you need them.
+
+`canManageRole(actor, target)` — strict: actor weight must be strictly greater than target (an admin can't demote another admin).
 
 ## Lifecycle hooks (events on the bus)
 

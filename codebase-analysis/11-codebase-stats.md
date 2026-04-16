@@ -34,7 +34,7 @@ From package versions and file counts:
 | schema | 0.13.0 | 17 TS files (one per domain + validators + index) |
 | server | 2.43.0 | 80+ TS files across 20+ modules |
 | config | 0.10.0 | 4 TS (types, schema, config, index) |
-| layer | 0.15.2 | 200+ files (pages, components, server, composables, middleware, plugins, theme) |
+| layer | 0.15.3 | 200+ files (pages, components, server, composables, middleware, plugins, theme) |
 | ui | 0.8.5 | 25 Vue components + theme CSS |
 | protocol | 0.9.9 | 15 TS files |
 | editor | 0.7.9 | 40+ TS files (blocks + extensions + serialization + vue wrapper) |

@@ -25,7 +25,7 @@ schema, server, config, protocol, auth, ui, editor, explainer, learning, docs, i
 
 ## Latest published versions (session 125, 2026-04-16)
 
-- schema 0.13.0, server 2.43.0, config 0.10.0, layer 0.15.2
+- schema 0.13.0, server 2.43.0, config 0.10.0, layer 0.15.3
 - ui 0.8.5, protocol 0.9.9, editor 0.7.9, explainer 0.7.11
 - learning 0.5.0, docs 0.6.2, auth 0.5.1, infra 0.5.1, test-utils 0.5.3
 
@@ -81,7 +81,7 @@ Details: `codebase-analysis/08-feature-flags-inventory.md`.
 A deployed instance is ~4 files extending the layer:
 - `nuxt.config.ts` — `extends: ['@commonpub/layer']`
 - `commonpub.config.ts` — feature flags + instance config
-- `server/utils/config.ts` — proxy re-export (REQUIRED — Nitro dedup workaround)
+- `server/utils/config.ts` — Nitro-side config resolver: merges `commonpub.config.ts` defaults with `FEATURE_*` env vars and DB overrides from `instanceSettings.features.overrides` (cached 60s). Server handlers import from here.
 - `components/SiteLogo.vue` — branded logo
 
 Real example: `deveco.io` (~18 branded files).

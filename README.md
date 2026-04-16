@@ -134,7 +134,7 @@ A deployed CommonPub instance is ~4 files + `.env`:
 my-site/
 ├── nuxt.config.ts            # extends: ['@commonpub/layer']
 ├── commonpub.config.ts       # feature flags + instance config
-├── server/utils/config.ts    # proxy re-export (Nitro dedup workaround)
+├── server/utils/config.ts    # Nitro-side config resolver (env + DB override layers)
 └── components/SiteLogo.vue   # branded logo
 ```
 
@@ -199,7 +199,7 @@ All 12 published to npm as `@commonpub/*`. Latest versions as of 2026-04-16:
 | [`@commonpub/server`](packages/server/README.md) | 2.43.0 | Framework-agnostic business logic (20+ modules, transactions, lifecycle hooks) |
 | [`@commonpub/protocol`](packages/protocol/README.md) | 0.9.9 | ActivityPub types, HTTP signatures, WebFinger, NodeInfo, OAuth2 |
 | [`@commonpub/auth`](packages/auth/README.md) | 0.5.1 | Better Auth wrapper, guards, AP Actor SSO (Model B) |
-| [`@commonpub/ui`](packages/ui/README.md) | 0.8.5 | 25 headless Vue 3 components, 4 themes, CSS token system |
+| [`@commonpub/ui`](packages/ui/README.md) | 0.8.5 | 22 headless Vue 3 components, 4 themes, CSS token system |
 | [`@commonpub/editor`](packages/editor/README.md) | 0.7.9 | TipTap extensions, 20 block types, BlockTuple serialization |
 | [`@commonpub/docs`](packages/docs/README.md) | 0.6.2 | Markdown pipeline, versioning, navigation, search adapters |
 | [`@commonpub/explainer`](packages/explainer/README.md) | 0.7.11 | Interactive sections, quiz engine, progress tracking, HTML export |
@@ -211,7 +211,7 @@ Plus the layer itself:
 
 | Package | Version | Purpose |
 |---|---|---|
-| `@commonpub/layer` | 0.15.2 | Shared Nuxt layer — pages, components, API routes, middleware, theme |
+| `@commonpub/layer` | 0.15.3 | Shared Nuxt layer — pages, components, API routes, middleware, theme |
 
 ---
 

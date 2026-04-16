@@ -69,17 +69,19 @@ but returns 404 or "Cannot find module" on the deployed instance.
 **Fix:** ensure the import is reachable through the root index; if it's from
 a subpath, add it to `nitro.externals.inline` in nuxt.config.
 
-### Nitro config deduplication requires a proxy re-export
+### `server/utils/config.ts` is the Nitro-side config resolver
 
-In every CommonPub instance, you need `server/utils/config.ts` that re-exports
-the config:
+Every CommonPub instance ships this file. It's NOT a trivial re-export — it
+merges three layers (highest wins):
 
-```ts
-export { default } from '~/commonpub.config'
-```
+1. **DB overrides** — `instanceSettings.features.overrides` (runtime, admin-editable, cached 60s)
+2. **Env vars** — `FEATURE_*` env bool parsing
+3. **Build-time** — `commonpub.config.ts` defaults
 
-Without this, Nitro dedupes the config import and server handlers see `undefined`
-for `config.features`. Known workaround — don't try to remove it.
+Server handlers import from `~/server/utils/config` (not directly from
+`~/commonpub.config`) so that env and DB overrides are respected. Removing it
+breaks admin feature-flag overrides and env-based per-deploy flag flipping.
+See `apps/reference/server/utils/config.ts` as the canonical example.
 
 ### useLazyFetch races with Suspense
 

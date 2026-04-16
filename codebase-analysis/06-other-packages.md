@@ -51,7 +51,7 @@ Feature flags are **runtime** (environment via `nuxt.config` `runtimeConfig.publ
 
 `packages/ui/src/`
 
-25 headless Vue 3 components: Input, Textarea, Select, Checkbox, Radio, Button, Dialog, Dropdown, Tabs, Popover, Card, Badge, Loading, etc. All accept `class` prop, WCAG 2.1 AA.
+22 headless Vue 3 components: Input, Textarea, Select, Checkbox, Radio, Button, Dialog, Dropdown, Tabs, Popover, Card, Badge, Loading, etc. All accept `class` prop, WCAG 2.1 AA.
 
 **Independent npm publication** but NOT bundled into the layer. The layer has its own components under `layers/base/components/`. `@commonpub/ui` is for external consumers who want just the design system without the full CommonPub stack.
 

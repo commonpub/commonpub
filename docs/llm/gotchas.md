@@ -20,7 +20,7 @@ This file is the short version.
 
 ## Nuxt / Nitro
 
-- **`server/utils/config.ts` proxy re-export is REQUIRED** in every CommonPub instance. Nitro dedupes otherwise and the server sees `config.features = undefined`.
+- **`server/utils/config.ts` is the Nitro-side config resolver, not a proxy re-export.** It merges build-time `commonpub.config.ts` with env-var overrides (`FEATURE_*`) and DB overrides from `instanceSettings.features.overrides` (cached 60s). Server handlers import from `~/server/utils/config`, not directly from the config file. See `apps/reference/server/utils/config.ts` for the canonical implementation.
 - **New imports into API routes can 404 in prod.** Nitro externalizes node_modules; if an import wasn't reachable before, Nitro may not bundle it. Add to `nitro.externals.inline` if needed.
 - **`useLazyFetch` inside Suspense** instead of `useFetch` to avoid render races (session 124 fix).
 - **`error.vue` must re-apply data-theme** via `useHead` — error pages render outside the layout tree on SSR.
@@ -61,5 +61,5 @@ This file is the short version.
 ## Session awareness
 
 - **Session logs are the source of truth for recent changes.** When reference docs contradict session logs, trust the log.
-- **CHANGELOG is stale** — ends at v0.2.0 (2026-03-23). Current state is session 125 (2026-04-16).
+- **CHANGELOG** has an Unreleased section covering sessions 108–125. Previous tagged release: v0.2.0 (2026-03-23).
 - **Handoff prompts** in `docs/sessions/NNN-handoff-prompt.md` are context-reset notes. Load the most recent if continuing work.

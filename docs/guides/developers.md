@@ -117,7 +117,7 @@ A new CommonPub instance is ~4 files + `.env`:
 my-site/
 ├── nuxt.config.ts               # extends: ['@commonpub/layer']
 ├── commonpub.config.ts          # defineCommonPubConfig({ features, auth, instance })
-├── server/utils/config.ts       # proxy re-export — REQUIRED (Nitro dedup workaround)
+├── server/utils/config.ts       # Nitro-side config resolver (env + DB override layers)
 └── components/SiteLogo.vue      # branded logo
 ```
 
@@ -395,12 +395,17 @@ onHook('content:published', async ({ contentId }) => {
 ```ts
 import { hasPermission, canManageRole } from '../utils'
 
-if (!hasPermission(actorRole, 'moderate')) throw forbidden()
+if (!hasPermission(actorRole, 'banUser')) throw forbidden()    // mod+
+if (!hasPermission(actorRole, 'editHub')) throw forbidden()    // admin+
 if (!canManageRole(actorRole, targetRole)) throw forbidden()
 ```
 
 Role weights are strict: `owner(4) > admin(3) > moderator(2) > member(1)`.
-`canManageRole` requires `>`, not `>=`.
+`canManageRole` requires `>`, not `>=` (an admin can't demote another admin).
+
+Available permission names are declared in `PERMISSION_MAP` in
+`packages/server/src/utils.ts`. Unknown names return `Infinity` (always fail),
+so add new names there before using them.
 
 ### Slug generation
 
@@ -603,8 +608,11 @@ Highlights:
 - **`drizzle-kit push` + new enums = CI fails.** Apply SQL manually first.
 - **Nitro externalization** can hide new imports from API routes in prod.
   Ensure the import is reachable from a root index or whitelist in `nitro.externals.inline`.
-- **`server/utils/config.ts` proxy re-export** is required in every instance —
-  Nitro dedupes otherwise and config comes through as `undefined`.
+- **`server/utils/config.ts` is the Nitro-side config resolver** (NOT a proxy
+  re-export). It merges build-time defaults with `FEATURE_*` env vars and
+  admin-editable DB overrides (`instanceSettings.features.overrides`, cached
+  60s). Server handlers import from `~/server/utils/config`. Removing it
+  breaks admin flag overrides.
 - **pnpm store staleness** — after locally building `packages/server`,
   consumer typecheck may see old types. `pnpm install --prefer-offline` in
   the consumer refreshes.
