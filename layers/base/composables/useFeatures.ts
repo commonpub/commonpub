@@ -1,4 +1,6 @@
 // Feature flag composable — reactive access to enabled features
+// Initializes from build-time runtime config, then hydrates from /api/features
+// to pick up runtime DB overrides set via admin panel.
 
 export interface FeatureFlags {
   content: boolean;
@@ -16,24 +18,41 @@ export interface FeatureFlags {
   emailNotifications: boolean;
 }
 
+let hydrated = false;
+
 export function useFeatures() {
   const config = useRuntimeConfig();
-  const flags = config.public.features as unknown as FeatureFlags;
+  const buildFlags = config.public.features as unknown as FeatureFlags;
+
+  // Shared reactive state — initialized from build-time config
+  const flags = useState<FeatureFlags>('feature-flags', () => ({ ...buildFlags }));
+
+  // On client, fetch dynamic features once to pick up DB overrides
+  if (import.meta.client && !hydrated) {
+    hydrated = true;
+    ($fetch as Function)('/api/features')
+      .then((dynamic: FeatureFlags) => {
+        if (dynamic && typeof dynamic === 'object') {
+          flags.value = { ...flags.value, ...dynamic };
+        }
+      })
+      .catch(() => { /* use build-time defaults on failure */ });
+  }
 
   return {
     features: flags,
-    content: computed(() => flags.content),
-    social: computed(() => flags.social),
-    hubs: computed(() => flags.hubs),
-    docs: computed(() => flags.docs),
-    video: computed(() => flags.video),
-    contests: computed(() => flags.contests),
-    events: computed(() => flags.events),
-    learning: computed(() => flags.learning),
-    explainers: computed(() => flags.explainers),
-    editorial: computed(() => flags.editorial),
-    federation: computed(() => flags.federation),
-    admin: computed(() => flags.admin),
-    emailNotifications: computed(() => flags.emailNotifications),
+    content: computed(() => flags.value.content),
+    social: computed(() => flags.value.social),
+    hubs: computed(() => flags.value.hubs),
+    docs: computed(() => flags.value.docs),
+    video: computed(() => flags.value.video),
+    contests: computed(() => flags.value.contests),
+    events: computed(() => flags.value.events),
+    learning: computed(() => flags.value.learning),
+    explainers: computed(() => flags.value.explainers),
+    editorial: computed(() => flags.value.editorial),
+    federation: computed(() => flags.value.federation),
+    admin: computed(() => flags.value.admin),
+    emailNotifications: computed(() => flags.value.emailNotifications),
   };
 }
