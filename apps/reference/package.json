@@ -17,7 +17,7 @@
   "dependencies": {
     "@commonpub/config": "workspace:*",
     "@commonpub/layer": "workspace:*",
-    "@commonpub/schema": "^0.9.8",
+    "@commonpub/schema": "^0.10.0",
     "drizzle-kit": "^0.31.10",
     "drizzle-orm": "^0.45.1",
     "nuxt": "^3.16.0",

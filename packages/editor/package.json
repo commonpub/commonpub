@@ -55,7 +55,7 @@
   },
   "dependencies": {
     "@commonpub/config": "workspace:*",
-    "@commonpub/schema": "^0.9.8",
+    "@commonpub/schema": "^0.10.0",
     "rehype-stringify": "^10.0.1",
     "remark-gfm": "^4.0.1",
     "remark-parse": "^11.0.0",

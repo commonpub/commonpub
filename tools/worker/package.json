@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@commonpub/config": "workspace:*",
-    "@commonpub/schema": "^0.9.8"
+    "@commonpub/schema": "^0.10.0"
   },
   "devDependencies": {
     "typescript": "^5.7.0",

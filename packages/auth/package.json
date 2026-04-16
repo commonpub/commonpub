@@ -51,7 +51,7 @@
   "dependencies": {
     "@commonpub/config": "workspace:*",
     "@commonpub/protocol": "workspace:*",
-    "@commonpub/schema": "^0.9.8",
+    "@commonpub/schema": "^0.10.0",
     "better-auth": "^1.2.0",
     "drizzle-orm": "^0.45.1"
   },
