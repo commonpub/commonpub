@@ -9,6 +9,13 @@ const props = defineProps<{
 
 useSeoMeta({ title: `${props.error.statusCode} — CommonPub` });
 
+// Error pages render outside app.vue's NuxtLayout tree during SSR,
+// so the theme plugin's useHead may not propagate. Re-apply here.
+const themeId = useState<string>('cpub-theme', () => 'base');
+if (themeId.value && themeId.value !== 'base') {
+  useHead({ htmlAttrs: { 'data-theme': themeId.value } });
+}
+
 const isNotFound = computed(() => props.error.statusCode === 404);
 
 function handleBack(): void {

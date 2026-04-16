@@ -139,7 +139,7 @@ export interface PaginationOpts {
 export function normalizePagination(opts: PaginationOpts): { limit: number; offset: number } {
   return {
     limit: Math.min(opts.limit ?? 20, 100),
-    offset: opts.offset ?? 0,
+    offset: Math.max(opts.offset ?? 0, 0),
   };
 }
 
