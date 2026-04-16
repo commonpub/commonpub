@@ -74,12 +74,17 @@ learning 0.5.0, docs 0.6.2, auth 0.5.1, infra 0.5.1, test-utils 0.5.3.
 - Canonical content URLs: `/u/{username}/{type}/{slug}`
 - Legacy URL redirects via `content-redirect.ts`, `blog-redirect.ts` middleware
 
-### Security (session 119)
+### Security
 
-- HTML sanitizer hardening (additional allowed tags/attrs, CSP integration).
-- Group chat read receipts (messageReads table).
-- SSRF protection extended (all RFC private ranges + CGN + TEST-NET + IPv6
-  with bracketed hostnames).
+- **Session 119** — Group chat read receipts (`messageReads` table);
+  signed backfill fetches for protected outboxes; email-disclosure fixes;
+  admin input validation. (HTML sanitizer hardening + SSRF-protection
+  extensions actually landed in the v0.2.0 release, not session 119 —
+  earlier CHANGELOG rows referenced them as "session 119" in error.)
+- **Session 121** — OAuth federation bug fixes, auth middleware fix,
+  validation hardening (Zod on more routes), loading states; extracted
+  `resolveIdentityToEmail` helper; Dockerfile non-root user + healthcheck
+  for deveco-io.
 
 ### Testing & quality
 
