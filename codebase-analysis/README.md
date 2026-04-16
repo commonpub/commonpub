@@ -46,6 +46,7 @@ Not to be confused with the stale `/Users/obsidian/Projects/commonpub/` director
 9. [`09-gotchas-and-invariants.md`](./09-gotchas-and-invariants.md) — Drizzle CI failures, Nitro externalization, pnpm dist sync, etc.
 10. [`10-doc-audit.md`](./10-doc-audit.md) — Which existing docs are fresh, stale, contradictory, missing
 11. [`11-codebase-stats.md`](./11-codebase-stats.md) — Line counts, test counts, package sizes
+12. [`12-scaling-and-infrastructure.md`](./12-scaling-and-infrastructure.md) — What breaks first under load, Fedify/Redis analysis, DigitalOcean-specific scaling path
 
 ## Regenerating
 

@@ -57,6 +57,42 @@ a clear error. Always verify new columns actually exist with
 - commonpub.io postgres: `docker exec commonpub-postgres-1 psql -U commonpub -d commonpub`
 - deveco.io postgres: `docker exec deveco-app-1 env` to get `NUXT_DATABASE_URL`, then `psql`
 
+## Scaling / multi-instance gotchas
+
+### Rate limit store is ephemeral
+
+`packages/infra/src/security.ts RateLimitStore` holds state in a `Map` in the
+Nitro process. Consequences:
+
+- Every deploy / restart resets all rate-limit counters.
+- Multiple Nitro instances don't share counters — an attacker who splits
+  requests across 2 instances effectively gets 2× the limit.
+
+Before running a multi-instance web tier, swap in a Redis-backed store. See
+[`12-scaling-and-infrastructure.md`](./12-scaling-and-infrastructure.md).
+
+### SSE streams are single-instance only
+
+`/api/realtime/stream` (notification + message counts) polls the DB in the
+connected Nitro process. If instance A created a notification for a user
+connected to instance B, B's stream won't pick it up until its next poll of
+the counter — not an event-driven wake.
+
+Redis pub/sub is the pattern to migrate to. See scaling doc.
+
+### Federation delivery is setInterval-based
+
+The delivery worker polls `activities` every `deliveryIntervalMs` (default
+30s). Multi-instance workers are coordinated by `lockedAt` advisory locks,
+so parallel workers are safe — but each one still runs its own SELECT. At
+very high scale, prefer Postgres LISTEN/NOTIFY or BullMQ over blind polling.
+
+### Redis is provisioned but unused
+
+`docker-compose.yml` spins up a Redis container, but no code imports a
+Redis client as of session 126. The container is dead weight today — a
+pre-baked dep for the scaling path above.
+
 ## Nuxt / Nitro
 
 ### New server imports can 404 in production
