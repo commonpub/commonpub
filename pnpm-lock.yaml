@@ -54,8 +54,8 @@ importers:
         specifier: ^0.13.0
         version: 0.13.0(drizzle-orm@0.45.2(@electric-sql/pglite@0.3.16)(@opentelemetry/api@1.9.1)(gel@2.2.0)(kysely@0.28.14)(pg@8.20.0))
       '@commonpub/server':
-        specifier: ^2.42.0
-        version: 2.42.0(d3f1211bc6fc0f4afecb776c782f000a)
+        specifier: ^2.43.0
+        version: 2.43.0(d3f1211bc6fc0f4afecb776c782f000a)
       drizzle-kit:
         specifier: ^0.31.10
         version: 0.31.10
@@ -97,8 +97,8 @@ importers:
         specifier: workspace:*
         version: link:../../layers/base
       '@commonpub/server':
-        specifier: ^2.42.0
-        version: 2.42.0(32fe39979f6640056444cff1baaaba05)
+        specifier: ^2.43.0
+        version: 2.43.0(32fe39979f6640056444cff1baaaba05)
       nuxt:
         specifier: ^3.16.0
         version: 3.21.2(@electric-sql/pglite@0.3.16)(@parcel/watcher@2.5.6)(@types/node@25.6.0)(@vue/compiler-sfc@3.5.32)(cac@6.7.14)(db0@0.3.4(@electric-sql/pglite@0.3.16)(drizzle-orm@0.45.2(@electric-sql/pglite@0.3.16)(@opentelemetry/api@1.9.1)(gel@2.2.0)(kysely@0.28.14)(pg@8.20.0)))(drizzle-orm@0.45.2(@electric-sql/pglite@0.3.16)(@opentelemetry/api@1.9.1)(gel@2.2.0)(kysely@0.28.14)(pg@8.20.0))(eslint@9.39.4(jiti@2.6.1))(ioredis@5.10.1)(magicast@0.5.2)(optionator@0.9.4)(rollup-plugin-visualizer@7.0.1(rollup@4.60.0))(rollup@4.60.0)(terser@5.46.1)(tsx@4.21.0)(typescript@5.9.3)(vite@7.3.2(@types/node@25.6.0)(jiti@2.6.1)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))(vue-tsc@2.2.12(typescript@5.9.3))(yaml@2.8.3)
@@ -155,8 +155,8 @@ importers:
         specifier: ^0.13.0
         version: 0.13.0(drizzle-orm@0.45.2(@electric-sql/pglite@0.3.16)(@opentelemetry/api@1.9.1)(gel@2.2.0)(kysely@0.28.14)(pg@8.20.0))
       '@commonpub/server':
-        specifier: ^2.42.0
-        version: 2.42.0(2247366e700b90726cc6b647187c3d99)
+        specifier: ^2.43.0
+        version: 2.43.0(2247366e700b90726cc6b647187c3d99)
       '@commonpub/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -1307,8 +1307,8 @@ packages:
     peerDependencies:
       drizzle-orm: ^0.45.1
 
-  '@commonpub/server@2.42.0':
-    resolution: {integrity: sha512-/kTvuJdBH1WZeoNnJwcD1yHubAB5meIyfcwMMTe/d+TPtVhs9WgPy/qswmRom8V6K++1lHigHHiLUcLeAL8FZw==}
+  '@commonpub/server@2.43.0':
+    resolution: {integrity: sha512-rAxIx5dd7fRP2xOKKRx4dHeNnVXOkQO9rc4pv3oK1AvFG/7RMqceiY47ztEt8N02csQIlGejqanBNKleAOzUCg==}
     engines: {node: '>=22'}
     peerDependencies:
       drizzle-orm: ^0.45.1
@@ -9542,7 +9542,7 @@ snapshots:
       drizzle-orm: 0.45.2(@electric-sql/pglite@0.3.16)(@opentelemetry/api@1.9.1)(gel@2.2.0)(kysely@0.28.14)(pg@8.20.0)
       zod: 4.3.6
 
-  '@commonpub/server@2.42.0(2247366e700b90726cc6b647187c3d99)':
+  '@commonpub/server@2.43.0(2247366e700b90726cc6b647187c3d99)':
     dependencies:
       '@commonpub/auth': 0.5.1(@electric-sql/pglite@0.3.16)(@opentelemetry/api@1.9.1)(@sveltejs/kit@2.54.0(@opentelemetry/api@1.9.1)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.53.10(@typescript-eslint/types@8.58.2))(vite@7.3.2(@types/node@25.6.0)(jiti@2.6.1)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3)))(svelte@5.53.10(@typescript-eslint/types@8.58.2))(typescript@5.9.3)(vite@7.3.2(@types/node@25.6.0)(jiti@2.6.1)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3)))(gel@2.2.0)(kysely@0.28.14)(mongodb@7.1.0)(pg@8.20.0)(svelte@5.53.10(@typescript-eslint/types@8.58.2))(vitest@3.2.4(@types/debug@4.1.12)(@types/node@25.6.0)(jiti@2.6.1)(jsdom@25.0.1)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))(vue@3.5.32(typescript@5.9.3))
       '@commonpub/config': 0.10.0
@@ -9623,7 +9623,7 @@ snapshots:
       - vitest
       - vue
 
-  '@commonpub/server@2.42.0(32fe39979f6640056444cff1baaaba05)':
+  '@commonpub/server@2.43.0(32fe39979f6640056444cff1baaaba05)':
     dependencies:
       '@commonpub/auth': 0.5.1(@electric-sql/pglite@0.3.16)(@opentelemetry/api@1.9.1)(@sveltejs/kit@2.54.0(@opentelemetry/api@1.9.1)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.53.10(@typescript-eslint/types@8.58.2))(vite@7.3.2(@types/node@25.6.0)(jiti@2.6.1)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3)))(svelte@5.53.10(@typescript-eslint/types@8.58.2))(typescript@5.9.3)(vite@7.3.2(@types/node@25.6.0)(jiti@2.6.1)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3)))(gel@2.2.0)(kysely@0.28.14)(mongodb@7.1.0)(pg@8.20.0)(svelte@5.53.10(@typescript-eslint/types@8.58.2))(vitest@3.2.4(@types/debug@4.1.12)(@types/node@25.6.0)(jiti@2.6.1)(jsdom@29.0.2(@noble/hashes@2.0.1))(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))(vue@3.5.32(typescript@5.9.3))
       '@commonpub/config': 0.10.0
@@ -9704,7 +9704,7 @@ snapshots:
       - vitest
       - vue
 
-  '@commonpub/server@2.42.0(d3f1211bc6fc0f4afecb776c782f000a)':
+  '@commonpub/server@2.43.0(d3f1211bc6fc0f4afecb776c782f000a)':
     dependencies:
       '@commonpub/auth': 0.5.1(@electric-sql/pglite@0.3.16)(@opentelemetry/api@1.9.1)(@sveltejs/kit@2.54.0(@opentelemetry/api@1.9.1)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.53.10(@typescript-eslint/types@8.58.2))(vite@7.3.2(@types/node@25.6.0)(jiti@2.6.1)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3)))(svelte@5.53.10(@typescript-eslint/types@8.58.2))(typescript@5.9.3)(vite@7.3.2(@types/node@25.6.0)(jiti@2.6.1)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3)))(drizzle-kit@0.31.10)(gel@2.2.0)(kysely@0.28.14)(mongodb@7.1.0)(pg@8.20.0)(svelte@5.53.10(@typescript-eslint/types@8.58.2))(vitest@3.2.4(@types/debug@4.1.12)(@types/node@25.6.0)(jiti@2.6.1)(jsdom@29.0.2(@noble/hashes@2.0.1))(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))(vue@3.5.32(typescript@5.9.3))
       '@commonpub/config': 0.10.0
