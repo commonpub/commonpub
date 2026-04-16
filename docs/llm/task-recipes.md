@@ -102,7 +102,7 @@ you have a specific reason not to.
 
 ## Rename / change an AP wire field
 
-1. DON'T change `cpub:type` or `cpubBlocks` names unless you version the mapper.
+1. DON'T change the AP JSON field names `cpub:type`, `cpub:metadata`, `cpub:blocks`, `cpub:postType` unless you version the mapper. (Local DB columns `cpubType`, `cpubMetadata`, `cpubBlocks` can be renamed freely — they don't leave the instance.)
 2. For new fields: add under the `cpub:` namespace; older CommonPub versions ignore them gracefully.
 3. For changes: bump `@commonpub/protocol` major; note in CHANGELOG; coordinate deploy across instances.
 

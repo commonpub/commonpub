@@ -28,7 +28,7 @@ This file is the short version.
 ## Federation
 
 - **Don't enable `federation: true` without a peer to federate with.** The delivery worker polls forever.
-- **`cpub:type` + `cpubBlocks` are wire format.** Changing them breaks interop between CommonPub instances on different versions. Version the mapper if you must change.
+- **`cpub:type`, `cpub:metadata`, `cpub:blocks`, `cpub:postType` are wire format.** `cpubType`/`cpubBlocks`/`cpubMetadata` are the local DB column names; the AP JSON fields use the colon-namespaced form. Changing the wire names breaks interop between CommonPub instances on different versions. Version the mapper if you must change.
 - **AP Actor SSO = Model B only** (OAuth2 + WebFinger). Shared auth DB (Model C) is operator opt-in and strongly discouraged.
 - **Signed backfill required for protected outboxes** (session 119). If backfill returns 401, verify your instance keypair is registered.
 

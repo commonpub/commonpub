@@ -44,6 +44,7 @@ Grouped by section.
 | `/explore` | Curated browse |
 | `/search` | Full-text across local + federated |
 | `/feed` | User activity feed (authed) |
+| `/dashboard` | Authed user's dashboard — drafts, published, bookmarks, learning enrollments |
 | `/notifications` | Inbox |
 | `/tags`, `/tags/:slug` | Tag directory + filtered |
 | `/[type]` | Browse by content type |
@@ -60,7 +61,7 @@ URL restructure landed in session 108: canonical content lives at `/u/{username}
 
 ### Hubs
 
-`/hubs`, `/hubs/create`, `/hubs/:slug`, `/hubs/:slug/members`, `/hubs/:slug/posts/:postId`.
+`/hubs`, `/hubs/create`, `/hubs/:slug`, `/hubs/:slug/members`, `/hubs/:slug/settings`, `/hubs/:slug/posts/:postId`.
 
 ### Contests
 
