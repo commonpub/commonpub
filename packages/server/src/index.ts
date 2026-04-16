@@ -556,6 +556,30 @@ export {
 } from './homepage/homepage.js';
 export type { HomepageSection, HomepageSectionConfig } from './homepage/homepage.js';
 
+// Events
+export {
+  listEvents,
+  getEventBySlug,
+  createEvent,
+  updateEvent,
+  deleteEvent,
+  listEventAttendees,
+  rsvpEvent,
+  cancelRsvp,
+  getUserRsvpStatus,
+} from './events/events.js';
+export type {
+  EventListItem,
+  EventDetail,
+  EventFilters,
+  CreateEventInput,
+  UpdateEventInput,
+  AttendeeItem,
+  EventStatus,
+  EventType,
+  AttendeeStatus,
+} from './events/events.js';
+
 // Navigation
 export {
   getNavItems,

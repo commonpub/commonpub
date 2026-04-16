@@ -11,6 +11,8 @@ export interface FeatureFlags {
   video: boolean;
   /** Enable contest system */
   contests: boolean;
+  /** Enable events system (listing, RSVP, calendar) */
+  events: boolean;
   /** Enable learning paths (enrollment, progress, certificates) */
   learning: boolean;
   /** Enable explainer system (interactive modules) */

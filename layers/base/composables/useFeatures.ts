@@ -7,6 +7,7 @@ export interface FeatureFlags {
   docs: boolean;
   video: boolean;
   contests: boolean;
+  events: boolean;
   learning: boolean;
   explainers: boolean;
   editorial: boolean;
@@ -27,6 +28,7 @@ export function useFeatures() {
     docs: computed(() => flags.docs),
     video: computed(() => flags.video),
     contests: computed(() => flags.contests),
+    events: computed(() => flags.events),
     learning: computed(() => flags.learning),
     explainers: computed(() => flags.explainers),
     editorial: computed(() => flags.editorial),

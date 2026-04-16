@@ -24,6 +24,7 @@ const ENV_FLAG_MAP: Record<string, string> = {
   docs: 'FEATURE_DOCS',
   video: 'FEATURE_VIDEO',
   contests: 'FEATURE_CONTESTS',
+  events: 'FEATURE_EVENTS',
   learning: 'FEATURE_LEARNING',
   explainers: 'FEATURE_EXPLAINERS',
   editorial: 'FEATURE_EDITORIAL',

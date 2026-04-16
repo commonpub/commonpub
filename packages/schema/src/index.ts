@@ -28,6 +28,9 @@ export * from './video.js';
 // Contest
 export * from './contest.js';
 
+// Events
+export * from './events.js';
+
 // Files
 export * from './files.js';
 

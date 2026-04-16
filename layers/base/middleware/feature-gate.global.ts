@@ -7,6 +7,7 @@ const ROUTE_FEATURE_MAP: Record<string, keyof import('../composables/useFeatures
   '/videos': 'video',
   '/admin': 'admin',
   '/contests': 'contests',
+  '/events': 'events',
   '/explainer': 'explainers',
 };
 

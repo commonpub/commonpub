@@ -66,6 +66,14 @@ export const DEFAULT_NAV_ITEMS: NavItem[] = [
     ],
   },
   {
+    id: 'events',
+    type: 'link',
+    label: 'Events',
+    icon: 'fa-solid fa-calendar-days',
+    route: '/events',
+    featureGate: 'events',
+  },
+  {
     id: 'hubs',
     type: 'link',
     label: 'Hubs',

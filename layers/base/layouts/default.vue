@@ -4,7 +4,7 @@ import type { NavItem } from '@commonpub/server';
 const { user, isAuthenticated, isAdmin, signOut, refreshSession } = useAuth();
 const { count: unreadCount, connect: connectNotifications, disconnect: disconnectNotifications } = useNotifications();
 const { count: unreadMessages, connect: connectMessages, disconnect: disconnectMessages } = useMessages();
-const { hubs, learning, video, docs, contests, admin, federation, explainers } = useFeatures();
+const { hubs, learning, video, docs, contests, events, admin, federation, explainers } = useFeatures();
 const { isDark, setDarkMode } = useTheme();
 const { enabledTypeMeta } = useContentTypes();
 const runtimeConfig = useRuntimeConfig();
@@ -188,6 +188,7 @@ const userUsername = computed(() => user.value?.username ?? '');
           <h4 class="cpub-footer-col-title">Community</h4>
           <NuxtLink v-if="hubs" to="/hubs" class="cpub-footer-link">Hubs</NuxtLink>
           <NuxtLink v-if="contests" to="/contests" class="cpub-footer-link">Contests</NuxtLink>
+          <NuxtLink v-if="events" to="/events" class="cpub-footer-link">Events</NuxtLink>
           <NuxtLink v-if="learning" to="/learn" class="cpub-footer-link">Learning Paths</NuxtLink>
           <NuxtLink v-if="video" to="/videos" class="cpub-footer-link">Videos</NuxtLink>
           <NuxtLink to="/search" class="cpub-footer-link">Explore</NuxtLink>

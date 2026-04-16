@@ -7,6 +7,7 @@ export const featureFlagsSchema = z.object({
   docs: z.boolean().default(true),
   video: z.boolean().default(true),
   contests: z.boolean().default(false),
+  events: z.boolean().default(false),
   learning: z.boolean().default(true),
   explainers: z.boolean().default(true),
   federation: z.boolean().default(false),
