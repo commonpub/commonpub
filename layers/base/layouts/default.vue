@@ -319,7 +319,7 @@ const userUsername = computed(() => user.value?.username ?? '');
 .cpub-footer-bottom { max-width: 1200px; margin: 0 auto; padding: 16px 32px; border-top: var(--border-width-default) solid var(--border); font-size: 10px; font-family: var(--font-mono); color: var(--text-faint); }
 
 @media (max-width: 768px) {
-  .cpub-topbar-nav { display: none; }
+  :deep(.cpub-topbar-nav) { display: none; }
   .cpub-search-btn { min-width: auto; padding: 6px 8px; }
   .cpub-search-text, .cpub-kbd, .cpub-new-text { display: none; }
   .cpub-mobile-toggle { display: flex; }
