@@ -1,21 +1,46 @@
-# Session 125 Handoff
+# Session 126 Handoff
 
-## Current State (2026-04-16, end of session 124)
+## Current State (2026-04-16, end of session 125)
 
-All 7 phases of the Curated Destination Transformation are complete. Voting, polls, and judge search are wired into the UI. Both instances deployed and verified healthy.
+Session 125 cleared nearly all remaining plan items: theme fix, events UI (filters/pagination/calendar/cover images/My Events), contest entry voting UI, waitlist auto-promotion, and judge invitation notifications. Four rounds of deep audits caught and fixed 13 issues. No new schema changes — no SQL needed. Packages NOT YET published or deployed.
 
-### Deployed Package Versions
-| Package | Version |
-|---------|---------|
-| @commonpub/schema | 0.13.0 |
-| @commonpub/server | 2.42.0 |
-| @commonpub/config | 0.10.0 |
-| @commonpub/layer | 0.15.1 |
+### Deployed Package Versions (unchanged — session 125 not yet published)
+| Package | Version | Pending Changes |
+|---------|---------|-----------------|
+| @commonpub/schema | 0.13.0 | none |
+| @commonpub/server | 2.42.0 | see below |
+| @commonpub/config | 0.10.0 | none |
+| @commonpub/layer | 0.15.1 | see below |
 
-### Session 124 Commits: 19 (commonpub) + 5 (deveco-io)
+**@commonpub/server pending changes:**
+- `+getContestEntryVotes()` batch function, `+ContestEntryVoteInfo` type
+- `communityVotingEnabled` added to `ContestDetail` interface + both mapping functions
+- `UpdateEventInput.coverImage` now `string | null` (was `string`)
+- `cancelRsvp` return type changed: `boolean` → `{ cancelled: boolean; promoted?: string }` (**breaking** — only consumer is the layer's rsvp.delete.ts, which was updated)
+- `cancelRsvp` now auto-promotes oldest waitlisted attendee on registered cancel
+- `normalizePagination` clamps offset to non-negative
+- `addContestJudge` accepts optional `context` param for notification (backward-compatible)
+- `acceptJudgeInvite` now notifies contest owner on accept
+- `transitionContestStatus` now notifies judges on judging/completed/cancelled
+- `EventFilters.userId` — new filter for "My Events" (events created or attending)
+- `inArray`, `isNotNull`, `or` imports added
+
+**@commonpub/layer pending changes:**
+- `error.vue` — theme state re-application for SSR error pages
+- `EventCalendar.vue` — NEW monthly calendar component
+- `events/index.vue` — filters, pagination, grid/calendar view toggle, "My Events"
+- `events/create.vue` — cover image upload, end-date validation
+- `events/[slug]/edit.vue` — cover image upload + clearing
+- `events/index.get.ts` — status param whitelist, myEvents param
+- `events/[slug].put.ts` — nullable coverImage in Zod schema
+- `events/[slug]/rsvp.delete.ts` — updated for auto-promotion response
+- `contests/[slug]/votes.get.ts` — NEW batch vote endpoint
+- `contests/[slug]/judges/index.post.ts` — passes notification context
+- `contests/[slug]/index.vue` — passes voting props to ContestEntries
+- `contest/ContestEntries.vue` — vote buttons with optimistic updates
 
 ### Database State
-SQL applied manually to both instances. Tables: events, event_attendees, hub_post_votes, poll_options, poll_votes, contest_entry_votes, contest_judges. Columns: hub_posts.vote_score, contests.community_voting_enabled, contests.judging_visibility. 6 new enum types + 'event' in notification_type.
+No new tables or columns. Session 125 changes are all code-only. No SQL to apply.
 
 ### Feature Flags (from /api/features)
 | Flag | commonpub.io | deveco.io |
@@ -33,6 +58,69 @@ SQL applied manually to both instances. Tables: events, event_attendees, hub_pos
 | federation | true | true |
 | admin | true | true |
 
+### Session 125 Test Results
+- Typecheck: 8/8 passed
+- Tests: 30/30 passed (865 individual tests)
+- Four rounds of deep audits completed, 13 issues found and fixed
+
+---
+
+## What's New in Session 125
+
+### Theme Fix on Error Pages
+- `error.vue` now reads `cpub-theme` useState and re-applies `data-theme` via `useHead`
+- Fixes theme reverting to classic on 404 pages (error.vue renders outside NuxtLayout tree during SSR)
+
+### Events Pagination + Filters + Calendar View
+- Filter bar: Upcoming (default), Featured, All, Past — bookmarkable via URL query params
+- Pagination: 12 per page, prev/next controls
+- **View toggle**: grid (default) vs monthly calendar view (`?view=calendar`)
+- **EventCalendar component**: monthly grid, multi-day event spanning, type icons, prev/next/today navigation, mobile-responsive (icons-only on small screens)
+- Security: public events API now validates `status` param against whitelist (published, active, completed)
+- a11y: role="group", aria-pressed on filters + view toggle, aria-label on all icon-only buttons, semantic `<nav>` for pagination
+
+### Cover Image Upload on Events
+- `ImageUpload` component (purpose="cover") added to create and edit forms
+- Edit form sends `null` to clear images; Zod schema + TypeScript type updated for nullable
+- Added missing end-date-after-start-date validation on create form
+
+### Contest Entry Voting UI
+- Heart vote button on each entry card with optimistic updates + revert on error
+- New batch endpoint: `GET /api/contests/:slug/votes` returns `{ entryId, count, voted }[]`
+- `communityVotingEnabled` now exposed in `ContestDetail` interface
+- Vote fetch always runs (server returns `[]` when disabled) to avoid race with lazy-loaded contest data
+
+### Waitlist Auto-Promotion
+- `cancelRsvp` now promotes the oldest waitlisted attendee (FIFO) when a registered user cancels
+- Transaction-safe: promotion happens in same transaction as the cancel
+- Net effect on `attendeeCount`: -1 + 1 = 0 (one left, one promoted)
+- Returns `{ cancelled: boolean; promoted?: string }` — API exposes `promoted: boolean`
+
+### Judge Invitation Notifications — FULLY WIRED
+- `addContestJudge()` sends notification to invited judge with contest link
+- `acceptJudgeInvite()` notifies contest owner that judge accepted
+- `transitionContestStatus()` notifies accepted judges on judging/completed/cancelled (de-dupes with entrant notifications)
+
+### "My Events" Filter
+- Shows events the user created OR is attending (non-cancelled RSVPs)
+- API uses `?myEvents=true` — resolves to authenticated user's ID server-side
+- Filter button only visible when authenticated; works in both grid and calendar views
+
+### Audit Fixes (13 issues found and fixed across 4 rounds)
+1. Public events API accepted arbitrary status values including `draft` → whitelist
+2. Nullable coverImage in Zod schema + TypeScript interface (clearing images failed validation)
+3. ARIA labels on all interactive elements (filter buttons, pagination, view toggle, vote buttons)
+4. Drizzle `inArray` usage (was raw `sql` template with array — incorrect SQL)
+5. Negative page values from URL → `Math.max(1, ...)` client clamp
+6. Conditional `useLazyFetch` in ContestEntries raced with parent lazy data → removed condition
+7. Multi-day calendar event loop could freeze on corrupt data → 366-day safety cap
+8. Dead `formatTime` function in EventCalendar → removed
+9. Draft/upcoming contest info leak via votes endpoint → status check
+10. Server-side `normalizePagination` didn't clamp negative offsets → `Math.max(0, ...)`
+11. Invalid `view` query param (`?view=foobar`) showed no active view button → strict validation
+12. Missing end-date-after-start-date validation on event create form (was only on edit)
+13. Unused `ne` import in events.ts → removed
+
 ---
 
 ## What Works Now
@@ -42,32 +130,26 @@ SQL applied manually to both instances. Tables: events, event_attendees, hub_pos
 - NavRenderer/NavDropdown/NavLink/MobileNavRenderer components with `:deep()` scoped CSS
 - Admin page at `/admin/navigation` — reorder, add/remove, inline editor, children
 - Dropdowns auto-hide when all children are feature-gated out
-- Mobile responsive (`:deep()` in `@media` block)
 
-### Phase 5: Events System
+### Phase 5: Events System — FULL FEATURE SET
 - events + event_attendees tables; `events` feature flag
-- New events default to `published` status (immediately visible)
-- RSVP with auto-waitlisting (transaction-wrapped)
-- 8 API routes + create/edit/detail/listing pages
-- EventCard component with date, type, location, capacity
+- **Filter bar**: Upcoming, Featured, My Events, All, Past with pagination (12/page)
+- **Calendar view**: monthly grid with event dots, multi-day spanning, type icons
+- **Cover image upload** on create and edit forms
+- **"My Events"** — events the user created or RSVP'd to (auth-only)
+- RSVP with auto-waitlisting + **auto-promotion** on cancellation (FIFO)
+- EventCard component with date, type, location, capacity, cover image
 
-### Phase 6: Voting + Polls — NOW WIRED INTO UI
-- **Hub post voting works**: FeedItem and DiscussionItem vote buttons call the API with optimistic updates
-- **Polls render**: HubFeed detects `post.type === 'poll'` and renders PollDisplay below content
-- PostVoteButtons, PollDisplay, and hub components all connected
-- Vote buttons use `.prevent.stop` to avoid triggering parent NuxtLink navigation
-- Contest entry voting API exists (POST/DELETE) but no UI yet
+### Phase 6: Voting + Polls — FULLY WIRED
+- Hub post voting with optimistic updates (FeedItem, DiscussionItem)
+- Polls auto-render for poll-type posts
+- **Contest entry voting UI** with heart buttons, vote counts, optimistic updates
 
-### Phase 7: Contest Judge Permissions — WITH USER SEARCH
+### Phase 7: Contest Judge Permissions — FULLY WIRED
 - contestJudges table with invite/accept workflow
-- **User search autocomplete** in ContestJudgeManager (searches /api/admin/users, shows dropdown)
-- judgeContestEntry checks contestJudges table, requires accepted invite, blocks guests
+- User search autocomplete in ContestJudgeManager
 - 4 API routes for judge CRUD + accept
-
-### Runtime Feature Flags
-- `useFeatures()` hydrates from `/api/features` on client mount (DB overrides reflected)
-- DEFAULT_FLAGS fallback prevents null crash during SSR
-- Feature gate middleware reads reactive useState
+- **Notifications**: invite → judge, accept → owner, status transitions → accepted judges
 
 ### Admin Panel (13 pages)
 Dashboard, Users, Content, Categories, Reports, Audit, Theme, Homepage, Navigation, Features, Federation, Settings
@@ -77,46 +159,48 @@ Dashboard, Users, Content, Categories, Reports, Audit, Theme, Homepage, Navigati
 ## Known Issues
 
 ### Active
-1. **Commonpub.io theme not applying** — user reported Agora theme selected but not rendering. Needs investigation (theme stored in instanceSettings, rendered via useTheme composable).
-2. **Pre-existing shell typecheck errors** — dashboard.vue, CommentSection.vue, docs/edit.vue, settings/profile.vue, admin/content.vue (all have $fetch TS2589 or implicit-any)
+1. **Commonpub.io theme not fully applying** — error page theme fixed, but the broader Agora theme issue (selected in admin, not visually applying on regular pages) still needs DB verification. Run on production: `SELECT key, value FROM instance_settings WHERE key = 'theme.default'`
+2. **Pre-existing shell typecheck errors** — currently passing clean (may have been fixed in session 124 or are environment-specific). Known $fetch TS2589 patterns exist in dashboard.vue, CommentSection.vue, docs/edit.vue, settings/profile.vue, admin/content.vue.
 3. **drizzle-kit push fails for new enums in CI** — must apply SQL manually
-4. **No waitlist auto-promotion** on RSVP cancellation
-5. **Poll votes are immutable** (by design)
-6. **Judge invitation notifications** not wired
-7. **Contest entry voting has no UI** (API only)
-8. **CI Node 23 dropped** — rollup native binary issue
+4. **Poll votes are immutable** (by design)
+5. **CI Node 23 dropped** — rollup native binary issue
+6. **pnpm workspace dist sync** — after building @commonpub/server locally, must manually copy dist to pnpm store for Nuxt typecheck to see new exports. Publishing fixes this.
+7. **Concurrent RSVP cancellation** — theoretical attendeeCount drift if two users cancel for the same event at the exact same moment. Extremely unlikely; count is rebuildable from `SELECT COUNT(*)`.
 
-### Resolved in Session 124
-- Admin/events 500 on refresh → useFeatures DEFAULT_FLAGS fallback
-- Events not visible after creation → default to 'published' status
-- Nav unstyled → `:deep()` CSS
-- Nav visible on mobile → `:deep()` in @media block
-- Feature flags frozen at build time → client hydration from /api/features
-- Hub feed voting not connected → wired HubFeed/HubDiscussions
-- Judge UUID input → user search autocomplete
-- Database columns missing → manual SQL on both instances
-- Race conditions → transactions
+### Resolved in Session 125
+- Theme reverting to classic on 404/error pages → error.vue useHead
+- Events listing had no filters or pagination → filter bar + pagination + calendar view
+- No cover image on event create/edit forms → ImageUpload component
+- Contest entry voting had no UI → heart vote buttons + batch endpoint
+- No waitlist auto-promotion → FIFO promotion on RSVP cancel
+- Missing create form date validation → end-date-after-start-date check
+- Public events API accepted arbitrary status including `draft` → whitelist validation
+- Negative offsets from URL manipulation → client Math.max + server normalizePagination clamp
+- Conditional useLazyFetch in ContestEntries raced with parent lazy data → removed condition
+- Upcoming contest info leak via votes endpoint → status check
+- Multi-day calendar event loop could freeze browser → 366-day safety cap
+- Invalid view query param showed broken toggle state → strict validation
+- Judge invitation notifications not wired → invite, accept, and status transition notifications
+- No "My Events" filter → authenticated users can see events they created or RSVP'd to
 
 ---
 
 ## Suggested Next Work
 
+### Before Deploy
+1. **Publish packages**: server bump for new exports + breaking cancelRsvp return type + auto-promotion; layer bump for all UI changes
+2. **Deploy both instances** — no SQL needed, code-only changes
+
 ### High Priority
-1. **Investigate commonpub.io theme issue** — Agora theme selected but not applying
-2. **Fix pre-existing shell typecheck errors** — mostly `useFetch` TS2589 patterns
-3. **Event pagination + filters** — API supports them, UI doesn't expose
-4. **Cover image upload on events** — no image field in create/edit forms
+3. **Verify commonpub.io Agora theme** — check DB value on production, may need to re-save from admin panel
 
 ### Medium Priority
-5. **Contest entry voting UI** — wire API into entry cards
-6. **Event calendar view** — monthly/weekly component
-7. **Waitlist auto-promotion** — promote on cancel
-8. **Fix drizzle-kit CI push** — switch to generate+migrate or fix TTY handling
+4. **Fix drizzle-kit CI push** — switch to generate+migrate or fix TTY handling
+5. **Event reminders** — scheduled notifications before event start (requires schema change: `eventAttendees.reminderSent` + external cron)
 
 ### Low Priority
-9. **Judge invitation notifications**
-10. **Event reminders**
-11. **Consolidate server/utils/config.ts** between reference and deveco
+6. **Consolidate server/utils/config.ts** between reference and deveco
+7. **Calendar view enhancement** — highlight days with events in month navigation, week view
 
 ---
 
@@ -131,6 +215,9 @@ Dashboard, Users, Content, Categories, Reports, Audit, Theme, Homepage, Navigati
 7. **Publish order: schema → server → config → layer**
 8. **Layer minor bumps require updating deveco's package.json** (0.x caret = patch only)
 9. **useFeatures must have DEFAULT_FLAGS fallback** — config.public.features can be null during SSR
+10. **After building @commonpub/server locally**, copy dist to pnpm store for typecheck to work (publishing resolves this permanently)
+11. **Public API status/enum filters must be whitelisted** — never pass raw user input as enum types
+12. **cancelRsvp return type changed** in session 125 — any new consumer must use `result.cancelled` not boolean check
 
 ## Production Access
 - **commonpub.io**: `ssh root@commonpub.io` → `docker exec commonpub-postgres-1 psql -U commonpub -d commonpub`
