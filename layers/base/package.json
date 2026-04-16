@@ -39,7 +39,7 @@
     "@commonpub/learning": "workspace:*",
     "@commonpub/protocol": "workspace:*",
     "@commonpub/schema": "^0.10.0",
-    "@commonpub/server": "^2.33.0",
+    "@commonpub/server": "^2.34.0",
     "@commonpub/ui": "workspace:*",
     "@tiptap/core": "^2.11.0",
     "@tiptap/extension-bold": "^2.11.0",

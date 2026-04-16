@@ -556,6 +556,15 @@ export {
 } from './homepage/homepage.js';
 export type { HomepageSection, HomepageSectionConfig } from './homepage/homepage.js';
 
+// Navigation
+export {
+  getNavItems,
+  setNavItems,
+  resetNavItems,
+  DEFAULT_NAV_ITEMS,
+} from './navigation/navigation.js';
+export type { NavItem } from './navigation/navigation.js';
+
 // Search
 export {
   searchContent,
