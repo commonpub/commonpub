@@ -580,6 +580,25 @@ export type {
   AttendeeStatus,
 } from './events/events.js';
 
+// Voting
+export {
+  voteOnPost,
+  getUserPostVote,
+  createPollOptions,
+  getPollOptions,
+  voteOnPoll,
+  getUserPollVote,
+  voteOnContestEntry,
+  removeContestEntryVote,
+  getContestEntryVoteCount,
+  hasVotedOnContestEntry,
+} from './voting/voting.js';
+export type {
+  VoteDirection,
+  VoteResult,
+  PollOptionResult,
+} from './voting/voting.js';
+
 // Navigation
 export {
   getNavItems,

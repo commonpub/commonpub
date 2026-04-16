@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, timestamp, integer, jsonb, unique, index } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, timestamp, integer, boolean, jsonb, unique, index } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { users } from './auth.js';
 import { contentItems } from './content.js';
@@ -28,6 +28,7 @@ export const contests = pgTable('contests', {
   createdById: uuid('created_by_id')
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
+  communityVotingEnabled: boolean('community_voting_enabled').default(false).notNull(),
   entryCount: integer('entry_count').default(0).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),

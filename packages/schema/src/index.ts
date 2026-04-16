@@ -31,6 +31,9 @@ export * from './contest.js';
 // Events
 export * from './events.js';
 
+// Voting
+export * from './voting.js';
+
 // Files
 export * from './files.js';
 

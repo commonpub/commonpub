@@ -86,6 +86,7 @@ export const hubPosts = pgTable('hub_posts', {
   isPinned: boolean('is_pinned').default(false).notNull(),
   isLocked: boolean('is_locked').default(false).notNull(),
   likeCount: integer('like_count').default(0).notNull(),
+  voteScore: integer('vote_score').default(0).notNull(),
   replyCount: integer('reply_count').default(0).notNull(),
   /** Remote actor URI for federated posts (null for local posts) */
   remoteActorUri: text('remote_actor_uri'),

@@ -140,6 +140,9 @@ export const contestStatusEnum = pgEnum('contest_status', [
   'cancelled',
 ]);
 
+// --- Voting ---
+export const voteDirectionEnum = pgEnum('vote_direction', ['up', 'down']);
+
 // --- Events ---
 export const eventStatusEnum = pgEnum('event_status', ['draft', 'published', 'active', 'completed', 'cancelled']);
 export const eventTypeEnum = pgEnum('event_type', ['in-person', 'online', 'hybrid']);

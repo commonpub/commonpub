@@ -1,0 +1,246 @@
+import { eq, and, sql } from 'drizzle-orm';
+import { hubPostVotes, hubPosts, pollOptions, pollVotes, contestEntryVotes, contestEntries, contests } from '@commonpub/schema';
+import type { DB } from '../types.js';
+
+export type VoteDirection = 'up' | 'down';
+
+// --- Hub Post Voting ---
+
+export interface VoteResult {
+  voted: boolean;
+  direction: VoteDirection | null;
+  voteScore: number;
+}
+
+export async function voteOnPost(
+  db: DB,
+  postId: string,
+  userId: string,
+  direction: VoteDirection,
+): Promise<VoteResult> {
+  // Check for existing vote
+  const [existing] = await db
+    .select({ id: hubPostVotes.id, direction: hubPostVotes.direction })
+    .from(hubPostVotes)
+    .where(and(eq(hubPostVotes.postId, postId), eq(hubPostVotes.userId, userId)))
+    .limit(1);
+
+  if (existing) {
+    if (existing.direction === direction) {
+      // Same direction — remove vote (toggle off)
+      await db.delete(hubPostVotes).where(eq(hubPostVotes.id, existing.id));
+      const scoreDelta = direction === 'up' ? -1 : 1;
+      await db.update(hubPosts)
+        .set({ voteScore: sql`${hubPosts.voteScore} + ${scoreDelta}` })
+        .where(eq(hubPosts.id, postId));
+      const [post] = await db.select({ voteScore: hubPosts.voteScore }).from(hubPosts).where(eq(hubPosts.id, postId));
+      return { voted: false, direction: null, voteScore: post?.voteScore ?? 0 };
+    } else {
+      // Different direction — flip vote (worth 2 points swing)
+      await db.update(hubPostVotes)
+        .set({ direction })
+        .where(eq(hubPostVotes.id, existing.id));
+      const scoreDelta = direction === 'up' ? 2 : -2;
+      await db.update(hubPosts)
+        .set({ voteScore: sql`${hubPosts.voteScore} + ${scoreDelta}` })
+        .where(eq(hubPosts.id, postId));
+      const [post] = await db.select({ voteScore: hubPosts.voteScore }).from(hubPosts).where(eq(hubPosts.id, postId));
+      return { voted: true, direction, voteScore: post?.voteScore ?? 0 };
+    }
+  }
+
+  // New vote
+  await db.insert(hubPostVotes).values({ postId, userId, direction });
+  const scoreDelta = direction === 'up' ? 1 : -1;
+  await db.update(hubPosts)
+    .set({ voteScore: sql`${hubPosts.voteScore} + ${scoreDelta}` })
+    .where(eq(hubPosts.id, postId));
+  const [post] = await db.select({ voteScore: hubPosts.voteScore }).from(hubPosts).where(eq(hubPosts.id, postId));
+  return { voted: true, direction, voteScore: post?.voteScore ?? 0 };
+}
+
+export async function getUserPostVote(
+  db: DB,
+  postId: string,
+  userId: string,
+): Promise<VoteDirection | null> {
+  const [row] = await db
+    .select({ direction: hubPostVotes.direction })
+    .from(hubPostVotes)
+    .where(and(eq(hubPostVotes.postId, postId), eq(hubPostVotes.userId, userId)))
+    .limit(1);
+  return row?.direction ?? null;
+}
+
+// --- Polls ---
+
+export interface PollOptionResult {
+  id: string;
+  label: string;
+  voteCount: number;
+  order: number;
+}
+
+export async function createPollOptions(
+  db: DB,
+  postId: string,
+  labels: string[],
+): Promise<PollOptionResult[]> {
+  const values = labels.map((label, i) => ({
+    postId,
+    label,
+    order: i,
+  }));
+  const rows = await db.insert(pollOptions).values(values).returning();
+  return rows.map(r => ({
+    id: r.id,
+    label: r.label,
+    voteCount: r.voteCount,
+    order: r.order,
+  }));
+}
+
+export async function getPollOptions(
+  db: DB,
+  postId: string,
+): Promise<PollOptionResult[]> {
+  const rows = await db
+    .select()
+    .from(pollOptions)
+    .where(eq(pollOptions.postId, postId))
+    .orderBy(pollOptions.order);
+  return rows.map(r => ({
+    id: r.id,
+    label: r.label,
+    voteCount: r.voteCount,
+    order: r.order,
+  }));
+}
+
+export async function voteOnPoll(
+  db: DB,
+  postId: string,
+  optionId: string,
+  userId: string,
+): Promise<{ voted: boolean; error?: string }> {
+  // Check if already voted on this poll
+  const [existing] = await db
+    .select({ id: pollVotes.id })
+    .from(pollVotes)
+    .where(and(eq(pollVotes.postId, postId), eq(pollVotes.userId, userId)))
+    .limit(1);
+
+  if (existing) return { voted: false, error: 'Already voted on this poll' };
+
+  // Verify option belongs to this post
+  const [option] = await db
+    .select({ id: pollOptions.id })
+    .from(pollOptions)
+    .where(and(eq(pollOptions.id, optionId), eq(pollOptions.postId, postId)))
+    .limit(1);
+
+  if (!option) return { voted: false, error: 'Invalid option' };
+
+  await db.insert(pollVotes).values({ optionId, userId, postId });
+  await db.update(pollOptions)
+    .set({ voteCount: sql`${pollOptions.voteCount} + 1` })
+    .where(eq(pollOptions.id, optionId));
+
+  return { voted: true };
+}
+
+export async function getUserPollVote(
+  db: DB,
+  postId: string,
+  userId: string,
+): Promise<string | null> {
+  const [row] = await db
+    .select({ optionId: pollVotes.optionId })
+    .from(pollVotes)
+    .where(and(eq(pollVotes.postId, postId), eq(pollVotes.userId, userId)))
+    .limit(1);
+  return row?.optionId ?? null;
+}
+
+// --- Contest Entry Voting ---
+
+export async function voteOnContestEntry(
+  db: DB,
+  entryId: string,
+  userId: string,
+): Promise<{ voted: boolean; error?: string }> {
+  // Verify entry exists and contest allows community voting
+  const [entry] = await db
+    .select({
+      id: contestEntries.id,
+      contestId: contestEntries.contestId,
+    })
+    .from(contestEntries)
+    .where(eq(contestEntries.id, entryId))
+    .limit(1);
+
+  if (!entry) return { voted: false, error: 'Entry not found' };
+
+  const [contest] = await db
+    .select({ communityVotingEnabled: contests.communityVotingEnabled, status: contests.status })
+    .from(contests)
+    .where(eq(contests.id, entry.contestId))
+    .limit(1);
+
+  if (!contest) return { voted: false, error: 'Contest not found' };
+  if (!contest.communityVotingEnabled) return { voted: false, error: 'Community voting is not enabled' };
+  if (contest.status !== 'active' && contest.status !== 'judging') {
+    return { voted: false, error: 'Contest is not accepting votes' };
+  }
+
+  const [existing] = await db
+    .select({ id: contestEntryVotes.id })
+    .from(contestEntryVotes)
+    .where(and(eq(contestEntryVotes.entryId, entryId), eq(contestEntryVotes.userId, userId)))
+    .limit(1);
+
+  if (existing) return { voted: false, error: 'Already voted' };
+
+  await db.insert(contestEntryVotes).values({ entryId, userId });
+  return { voted: true };
+}
+
+export async function removeContestEntryVote(
+  db: DB,
+  entryId: string,
+  userId: string,
+): Promise<boolean> {
+  const [existing] = await db
+    .select({ id: contestEntryVotes.id })
+    .from(contestEntryVotes)
+    .where(and(eq(contestEntryVotes.entryId, entryId), eq(contestEntryVotes.userId, userId)))
+    .limit(1);
+
+  if (!existing) return false;
+  await db.delete(contestEntryVotes).where(eq(contestEntryVotes.id, existing.id));
+  return true;
+}
+
+export async function getContestEntryVoteCount(
+  db: DB,
+  entryId: string,
+): Promise<number> {
+  const [row] = await db
+    .select({ count: sql<number>`COUNT(*)::int` })
+    .from(contestEntryVotes)
+    .where(eq(contestEntryVotes.entryId, entryId));
+  return row?.count ?? 0;
+}
+
+export async function hasVotedOnContestEntry(
+  db: DB,
+  entryId: string,
+  userId: string,
+): Promise<boolean> {
+  const [row] = await db
+    .select({ id: contestEntryVotes.id })
+    .from(contestEntryVotes)
+    .where(and(eq(contestEntryVotes.entryId, entryId), eq(contestEntryVotes.userId, userId)))
+    .limit(1);
+  return !!row;
+}

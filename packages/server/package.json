@@ -1,6 +1,6 @@
 {
   "name": "@commonpub/server",
-  "version": "2.36.0",
+  "version": "2.37.0",
   "type": "module",
   "description": "Framework-agnostic business logic for CommonPub instances",
   "license": "AGPL-3.0-or-later",
@@ -119,7 +119,7 @@
     "@commonpub/infra": "workspace:*",
     "@commonpub/learning": "workspace:*",
     "@commonpub/protocol": "workspace:*",
-    "@commonpub/schema": "^0.11.0",
+    "@commonpub/schema": "^0.12.0",
     "@mozilla/readability": "^0.6.0",
     "isomorphic-dompurify": "^3.3.0",
     "linkedom": "^0.18.12",
