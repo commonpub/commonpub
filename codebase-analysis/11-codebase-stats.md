@@ -18,7 +18,7 @@ with test exclusions.
 | API routes | 257 |
 | Layer pages | 85 |
 | Layer components | 106 |
-| Composables | 21 |
+| Composables | 20 |
 | Feature flags | 15 |
 | Themes | 5 |
 | ADRs | 24+ |

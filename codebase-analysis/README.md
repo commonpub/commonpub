@@ -28,7 +28,7 @@ Not to be confused with the stale `/Users/obsidian/Projects/commonpub/` director
 | API routes in layer | 257 |
 | Layer pages | 85 |
 | Layer components | 106 |
-| Composables | 21 |
+| Composables | 20 |
 | Feature flags | 15 |
 | Themes | 5 (base, dark, generics, agora, agora-dark) |
 | Tests | 1,939+ (session 125 recent: 30/30 in focused subsets, 865 in wider runs) |

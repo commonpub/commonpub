@@ -3,7 +3,7 @@
 `layers/base/` — published as `@commonpub/layer`. The distribution unit.
 Instances extend it via `extends: ['@commonpub/layer']` in their nuxt.config.
 
-**85 pages, 106 components, 21 composables, 6 server plugins, 7 request middlewares, 257 API routes.**
+**85 pages, 106 components, 20 composables, 6 server plugins, 7 request middlewares, 257 API routes.**
 
 As of session 125.
 

@@ -56,7 +56,7 @@ schema, server, config, protocol, auth, ui, editor, explainer, learning, docs, i
 `layers/base/` — the distribution unit.
 - 85 pages (Nuxt file-based)
 - 106 components
-- 21 composables
+- 20 composables
 - 257 API routes in `server/api/`
 - AP routes in `server/routes/` (inbox, outbox, .well-known)
 - 6 server plugins, 7 request middlewares

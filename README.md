@@ -169,7 +169,7 @@ commonpub/
 
 - **77 tables, 41 enums** in the schema across 15 domains
 - **257 API routes** in the layer
-- **85 pages, 106 components, 21 composables** in the layer
+- **85 pages, 106 components, 20 composables** in the layer
 - **15 feature flags** gating every non-core feature
 
 Full analysis: [`codebase-analysis/`](./codebase-analysis/).
