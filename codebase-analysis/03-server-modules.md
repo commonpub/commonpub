@@ -212,10 +212,10 @@ Both are thin CRUD over `instanceSettings` JSONB keys:
 
 ### infra utilities (file-level, not domain modules)
 
-- **email.ts** — SMTP, Resend, Console adapters + email templates (welcome, password-reset, digest)
+- **email.ts** — SMTP, Resend, Console adapters. `emailTemplates` exports: verification, passwordReset, notificationDigest, notificationInstant, contestAnnouncement, certificateIssued.
 - **storage.ts** — Local + S3 adapters, `createStorageFromEnv()` auto-detection
-- **image.ts** — Sharp-backed variants: thumbnail, small, medium, large, cover
-- **security.ts** — CSP directive builder, rate-limit store (sliding window), nonce generation
+- **image.ts** — Sharp-backed variants: thumb (150), small (300), medium (600), large (1200) — widths in px
+- **security.ts** — CSP directive builder, rate-limit store: 6 tiers via `DEFAULT_TIERS` (auth=5/min, upload=10/min, social=30/min, federation=60/min, api=60/min, general=120/min), route-to-tier mapping in `getTierForPath()`, nonce generation
 - **theme.ts** — user theme preference storage on `users`
 
 ### Cross-cutting

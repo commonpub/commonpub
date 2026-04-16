@@ -71,7 +71,7 @@ other. CommonPub changes that:
 | **Interactive explainers** | Scroll-driven sections with quizzes, progress tracking, gating, self-contained HTML export. |
 | **Federation** | Full ActivityPub: follows, content delivery, hub federation, content mirroring, signed backfill, OAuth2 SSO across trusted instances. |
 | **Products + BOM** | Hub-scoped product catalog. Projects auto-link via parts lists — your project shows up on the product's page across instances. |
-| **Theming** | 4 built-in themes (base, dark, generics, agora), CSS custom property system, runtime switching, SSR-safe with zero FOUC. |
+| **Theming** | 5 built-in themes (base, dark, generics, agora, agora-dark), CSS custom property system, runtime switching, SSR-safe with zero FOUC. |
 | **Admin** | User management, role hierarchy, content moderation, audit logs, instance settings, runtime feature-flag overrides, **configurable navigation**, **configurable homepage sections**, federation controls. |
 
 **15 feature flags** let you enable only what you need. See
@@ -199,7 +199,7 @@ All 12 published to npm as `@commonpub/*`. Latest versions as of 2026-04-16:
 | [`@commonpub/server`](packages/server/README.md) | 2.43.0 | Framework-agnostic business logic (20+ modules, transactions, lifecycle hooks) |
 | [`@commonpub/protocol`](packages/protocol/README.md) | 0.9.9 | ActivityPub types, HTTP signatures, WebFinger, NodeInfo, OAuth2 |
 | [`@commonpub/auth`](packages/auth/README.md) | 0.5.1 | Better Auth wrapper, guards, AP Actor SSO (Model B) |
-| [`@commonpub/ui`](packages/ui/README.md) | 0.8.5 | 22 headless Vue 3 components, 4 themes, CSS token system |
+| [`@commonpub/ui`](packages/ui/README.md) | 0.8.5 | 22 headless Vue 3 components, 5 themes, CSS token system |
 | [`@commonpub/editor`](packages/editor/README.md) | 0.7.9 | TipTap extensions, 20 block types, BlockTuple serialization |
 | [`@commonpub/docs`](packages/docs/README.md) | 0.6.2 | Markdown pipeline, versioning, navigation, search adapters |
 | [`@commonpub/explainer`](packages/explainer/README.md) | 0.7.11 | Interactive sections, quiz engine, progress tracking, HTML export |

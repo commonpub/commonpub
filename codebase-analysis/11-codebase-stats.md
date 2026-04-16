@@ -20,7 +20,7 @@ with test exclusions.
 | Layer components | 106 |
 | Composables | 21 |
 | Feature flags | 15 |
-| Themes | 4 |
+| Themes | 5 |
 | ADRs | 24+ |
 | Session log files | 48 (session numbers run 071–125; sessions are sometimes bundled) |
 | Tests | 1,939+ (v0.2.0 baseline 2026-03-23); 30/30 & 865 in focused/wider recent runs |

@@ -30,7 +30,7 @@ Not to be confused with the stale `/Users/obsidian/Projects/commonpub/` director
 | Layer components | 106 |
 | Composables | 21 |
 | Feature flags | 15 |
-| Themes | 4 (base, dark, generics, agora) |
+| Themes | 5 (base, dark, generics, agora, agora-dark) |
 | Tests | 1,939+ (session 125 recent: 30/30 in focused subsets, 865 in wider runs) |
 
 ## Files

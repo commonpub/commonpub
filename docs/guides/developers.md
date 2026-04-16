@@ -154,12 +154,15 @@ Key tokens:
 | `--accent` | `#5b9cf6` | green |
 | `--font-sans`, `--font-display` | Work Sans / Fraunces | brand fonts |
 
-### Four built-in theme families
+### Five built-in themes
 
-- **base** — sharp, mono-label, maker-oriented
-- **dark** — dark variant of base
-- **generics** — monochrome, geometric
-- **agora** (+ agora-dark) — warm, editorial
+Registered in `packages/ui/src/theme.ts` as `BUILT_IN_THEMES`:
+
+- **base** — "Classic Light": sharp corners, offset shadows, blue accent
+- **dark** — "Classic Dark": dark variant of base
+- **generics** — "Generics": dark minimal with blue accent and soft glow
+- **agora** — "Agora Light": warm parchment, green accent, serif display font
+- **agora-dark** — "Agora Dark": grove-tinted darks with green accent
 
 Switched via the `data-theme` attribute on `<html>`. The server middleware in
 `layers/base/server/middleware/theme.ts` resolves the theme per-request

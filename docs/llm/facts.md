@@ -60,7 +60,7 @@ schema, server, config, protocol, auth, ui, editor, explainer, learning, docs, i
 - 257 API routes in `server/api/`
 - AP routes in `server/routes/` (inbox, outbox, .well-known)
 - 6 server plugins, 7 request middlewares
-- 4 themes CSS in `theme/`
+- 5 themes registered in `packages/ui/src/theme.ts` `BUILT_IN_THEMES` (base, dark, generics, agora, agora-dark)
 
 ## Server package structure
 

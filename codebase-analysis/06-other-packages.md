@@ -125,9 +125,9 @@ New pages store content as BlockTuple[]. Legacy md supported on read; converted 
 Pure utility adapters — no domain coupling:
 
 - **storage.ts** (8.5KB) — `LocalStorageAdapter`, `S3StorageAdapter`, `createStorageFromEnv()`
-- **image.ts** (3.4KB) — Sharp integration, `IMAGE_VARIANTS` (thumbnail, small, medium, large, cover)
-- **email.ts** (9.9KB) — SMTP/Resend/Console adapters + `emailTemplates` (welcome, password-reset, digest)
-- **security.ts** (6.8KB) — `buildCspHeader()`, rate-limit store (tiered sliding window), nonce
+- **image.ts** (3.4KB) — Sharp integration, `IMAGE_VARIANTS` (thumb=150, small=300, medium=600, large=1200 — widths in px)
+- **email.ts** (9.9KB) — SMTP/Resend/Console adapters + `emailTemplates`: verification, passwordReset, notificationDigest, notificationInstant, contestAnnouncement, certificateIssued
+- **security.ts** (6.8KB) — `buildCspHeader()`, rate-limit store with 6 tiers (auth=5/min, upload=10/min, social=30/min, federation=60/min, api=60/min, general=120/min), nonce
 
 Peer deps: AWS SDK + Sharp (optional).
 
