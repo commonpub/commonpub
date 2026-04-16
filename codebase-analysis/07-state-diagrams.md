@@ -178,15 +178,20 @@ flowchart TD
     B -->|banned| X[403]
     B -->|ok| C{hub.joinPolicy}
     C -->|open| D[insert hubMember status=active]
-    C -->|approval| E[insert hubMember status=pending]
-    C -->|invite| F{invite token valid?}
-    F -->|no| X
+    C -->|approval OR invite| F{invite token valid + matches hubId?}
+    F -->|no| X2[error: invite required / invalid]
     F -->|yes| G[decrement token uses]
     G --> D
     D --> H[increment hub.memberCount]
     H --> I[emit hub:member:joined]
-    E --> J[notify hub admins]
+    I --> J[notify hub admins]
 ```
+
+**Note:** `approval` policy currently behaves the same as `invite` —
+`joinHub()` requires an invite token for any non-open policy. A separate
+request-to-join / admin-approves workflow (using `hubMembers.status =
+'pending'`) is not implemented; the `hubMemberStatusEnum('pending')` value
+exists in the schema but no code path sets it today.
 
 ## ActivityPub federation: outbound delivery
 
@@ -286,7 +291,7 @@ stateDiagram-v2
     unenrolled --> [*]
 
     note right of certified
-      verification code: SNAP-{base36}-{hex8}
+      verification code: CPUB-{timestamp_base36}-{random_hex8}
       public route /cert/:code
       no feature flag required
     end note

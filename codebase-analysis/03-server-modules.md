@@ -80,7 +80,7 @@ packages/server/src/
 - `toggleBuildMark(db, contentId, userId)` — "I built this"
 - `toggleFederatedBuildMark(db, federatedContentId, userId)`
 - `listContentVersions`, `createContentVersion`
-- Hooks emitted: `content:published`, `content:updated`, `content:deleted`, `content:liked`, `content:unliked`
+- Hooks emitted: `content:published`, `content:updated`, `content:deleted`
 
 ### contest/
 
@@ -150,7 +150,7 @@ Contest entry community votes:
 
 **members.ts** — `joinHub` respects `joinPolicy` (open/approval/invite); `changeRole` enforces weight hierarchy (owner > admin > moderator > member). `listRemoteMembers` merges `hubFollowers` for federated views.
 
-**posts.ts** — post CRUD + threaded replies + likes + shareContent; emits `hub:post:created`, `hub:content:shared`.
+**posts.ts** — post CRUD + threaded replies + likes + shareContent; emits `hub:post:created`. `hub:content:shared` is declared but not yet emitted.
 
 **moderation.ts** — bans (mods = temporary only, admins = permanent), invite tokens with maxUses + expiry.
 
@@ -158,7 +158,7 @@ Contest entry community votes:
 
 ### learning/
 
-**learning.ts** — paths → modules → lessons. Enrollment, `markLessonComplete` updates `lessonProgress` + recomputes `enrollments.progress`. Certificates auto-issued at 100%, verification code `SNAP-{base36}-{hex8}` (naming lineage from pre-rename).
+**learning.ts** — paths → modules → lessons. Enrollment, `markLessonComplete` updates `lessonProgress` + recomputes `enrollments.progress`. Certificates auto-issued at 100%, verification code format `CPUB-{timestamp_base36}-{random_hex8}` (prefix configurable via `generateVerificationCode(prefix)` — defaults to `CPUB`).
 
 ### docs/
 
@@ -181,7 +181,7 @@ Contest entry community votes:
 
 ### social/
 
-**social.ts** — polymorphic likes, follows, comments (threaded), bookmarks, reports. Federates likes/unlike and comments (Note + inReplyTo) for federated content. Hooks: `content:liked`, `content:unliked`, `comment:created`.
+**social.ts** — polymorphic likes, follows, comments (threaded), bookmarks, reports. Federates likes/unlike and comments (Note + inReplyTo) for federated content. Hooks emitted: `comment:created`. `content:liked` / `content:unliked` are declared in the hooks registry but not currently emitted.
 
 **mentions.ts** — regex extraction + bulk resolution to users.
 
@@ -270,21 +270,30 @@ permission names to `PERMISSION_MAP` when you need them.
 
 ## Lifecycle hooks (events on the bus)
 
-| Event | Fires after |
-|---|---|
-| content:published | `publishContent` transaction commits |
-| content:updated | `updateContent` returns |
-| content:deleted | `deleteContent` soft-delete commits |
-| content:liked / content:unliked | `toggleLike` commits |
-| comment:created | `createComment` commits |
-| hub:post:created | `createPost` commits |
-| hub:member:joined / hub:member:left | `joinHub`/`leaveHub` commit |
-| hub:content:shared | `shareContent` commits |
-| user:registered | Better Auth after-register |
-| federation:content:received | inbox handler ingests federated Article |
-| federation:hub:post:received | inbox handler ingests federated hub post |
+Events are defined in `hooks.ts`. Below, "emitted" reflects what the code
+actually fires today (verified via grep of `emitHook(` calls); unemitted
+events are declared in the type registry but nothing calls them yet.
 
-Consumer apps subscribe in a server plugin (`plugins/federation-delivery.ts`, `plugins/search-index.ts`, etc.) to drive email, indexing, delivery, etc.
+| Event | Status | Source |
+|---|---|---|
+| content:published | **emitted** | `content/content.ts` (`publishContent`) |
+| content:updated | **emitted** | `content/content.ts` (`updateContent`) |
+| content:deleted | **emitted** | `content/content.ts` (`deleteContent`) |
+| comment:created | **emitted** | `social/social.ts` (`createComment`) |
+| hub:post:created | **emitted** | `hub/posts.ts` (`createPost`) |
+| hub:member:joined | **emitted** | `hub/members.ts` (`joinHub`) |
+| hub:member:left | **emitted** | `hub/members.ts` (`leaveHub`) |
+| federation:content:received | **emitted** | `federation/inboxHandlers.ts` |
+| content:liked / content:unliked | declared, not emitted | (add to `social/social.ts` `toggleLike` when needed) |
+| hub:content:shared | declared, not emitted | (add to `hub/posts.ts` `shareContent`) |
+| user:registered | declared, not emitted | (register in Better Auth after-register hook) |
+| federation:hub:post:received | declared, not emitted | (add to `federation/hubMirroring.ts`) |
+
+**Current subscriptions** (layer server plugins):
+- `plugins/search-index.ts` — subscribes to `content:published`, `content:updated`, `content:deleted` (indexes Meilisearch/FTS).
+- Other plugins (`federation-delivery`, `notification-email`, `auto-admin`, `federation-hub-sync`) use direct `defineNitroPlugin` + timers/callbacks instead of the hook bus.
+
+Consumer apps can register additional handlers via `onHook()` in their own server plugins.
 
 ## What's missing / known issues
 

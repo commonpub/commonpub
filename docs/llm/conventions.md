@@ -103,23 +103,34 @@ Modules under `packages/server/src/<domain>/`:
 
 ## Hook events
 
-Use the bus in `packages/server/src/hooks.ts`:
+Use the bus in `packages/server/src/hooks.ts`. 13 events are declared; 8 are
+emitted today. The rest are declared for future use — wire them up at the
+call site before subscribing.
 
-| Event | Fire after |
+**Emitted (active):**
+
+| Event | Fires at |
 |---|---|
-| `content:published` | publish commits |
-| `content:updated` | update commits |
-| `content:deleted` | soft-delete commits |
-| `content:liked`, `content:unliked` | like toggle |
-| `comment:created` | comment commits |
-| `hub:post:created` | post commits |
-| `hub:member:joined`, `hub:member:left` | membership change |
-| `hub:content:shared` | share commits |
-| `user:registered` | Better Auth after-register |
-| `federation:content:received` | inbox ingest |
-| `federation:hub:post:received` | hub inbox ingest |
+| `content:published` | `content/content.ts` publishContent |
+| `content:updated` | `content/content.ts` updateContent |
+| `content:deleted` | `content/content.ts` deleteContent |
+| `comment:created` | `social/social.ts` createComment |
+| `hub:post:created` | `hub/posts.ts` createPost |
+| `hub:member:joined` | `hub/members.ts` joinHub |
+| `hub:member:left` | `hub/members.ts` leaveHub |
+| `federation:content:received` | `federation/inboxHandlers.ts` |
 
-Register handlers in layer server plugins (`layers/base/server/plugins/*`).
+**Declared but not yet emitted** — add the `emitHook(...)` call at the
+matching site when you need them:
+
+- `content:liked`, `content:unliked` (toggleLike)
+- `hub:content:shared` (shareContent)
+- `user:registered` (Better Auth after-register)
+- `federation:hub:post:received` (hubMirroring)
+
+Register handlers in layer server plugins (`layers/base/server/plugins/*`). Only
+`search-index.ts` currently uses `onHook()` — other plugins use Nitro
+timers/setInterval with `defineNitroPlugin()`.
 
 ## Package versioning
 

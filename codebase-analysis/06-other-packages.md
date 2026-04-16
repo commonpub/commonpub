@@ -99,7 +99,7 @@ Engine is framework-agnostic. Vue components are optional.
 - `validators.ts` — Zod
 - `curriculum.ts` — `computePathCompletion`, `getNextLesson`, `isEligibleForCertificate`
 - `progress.ts` — progress calculation
-- `certificate.ts` — verification code `SNAP-{base36}-{hex8}`
+- `certificate.ts` — verification code `CPUB-{timestamp_base36}-{random_hex8}` (prefix configurable via `generateVerificationCode(prefix)`)
 
 Paths use `status: 'archived'` (soft delete) to preserve enrollment/certificate data.
 

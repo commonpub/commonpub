@@ -237,7 +237,7 @@ A **path** is a course. Structure: path → modules → lessons.
 - **Lessons** can be: article, video, quiz, project, or explainer.
 - **Progress**: percentage of lessons completed.
 - **Certificate**: issued automatically when you complete 100%. Has a public
-  **verification code** (format `SNAP-xxx-xxx`). Anyone can check its
+  **verification code** (format `CPUB-xxx-xxx`). Anyone can check its
   authenticity at `/cert/<code>`.
 
 ### Enrolling
