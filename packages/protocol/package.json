@@ -50,7 +50,7 @@
   },
   "dependencies": {
     "@commonpub/config": "workspace:*",
-    "@commonpub/schema": "^0.13.0",
+    "@commonpub/schema": "^0.14.0",
     "jose": "^6.2.1",
     "zod": "^4.3.6"
   },

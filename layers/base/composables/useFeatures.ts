@@ -16,6 +16,7 @@ export interface FeatureFlags {
   federation: boolean;
   admin: boolean;
   emailNotifications: boolean;
+  publicApi: boolean;
 }
 
 let hydrated = false;
@@ -29,6 +30,7 @@ export const DEFAULT_FLAGS: FeatureFlags = {
   content: true, social: true, hubs: true, docs: true, video: true,
   contests: false, events: false, learning: true, explainers: true,
   editorial: true, federation: false, admin: false, emailNotifications: false,
+  publicApi: false,
 };
 
 /** Build the initial flags by merging the layer's runtime config over defaults. */
@@ -77,5 +79,6 @@ export function useFeatures() {
     federation: computed(() => flags.value.federation),
     admin: computed(() => flags.value.admin),
     emailNotifications: computed(() => flags.value.emailNotifications),
+    publicApi: computed(() => flags.value.publicApi),
   };
 }

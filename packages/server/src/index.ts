@@ -649,3 +649,6 @@ export {
   emailTemplates,
 } from './email.js';
 export type { EmailAdapter, EmailMessage } from './email.js';
+
+// Public API (admin-scoped Bearer keys for external consumers)
+export * from './publicApi/index.js';

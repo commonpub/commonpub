@@ -29,6 +29,12 @@ export interface FeatureFlags {
   admin: boolean;
   /** Enable email notifications (instant + digest emails for likes, comments, follows, mentions) */
   emailNotifications: boolean;
+  /**
+   * Enable the admin-provisioned public Read API at `/api/public/v1/*`.
+   * OFF by default — turning it on does not create any keys; admin must
+   * create keys via `/admin/api-keys` and share the one-time token.
+   */
+  publicApi: boolean;
 }
 
 export interface AuthConfig {

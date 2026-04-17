@@ -37,6 +37,7 @@ const sidebarOpen = ref(false);
           <NuxtLink to="/admin/navigation" class="admin-nav-link" @click="sidebarOpen = false"><i class="fa-solid fa-bars"></i> Navigation</NuxtLink>
           <NuxtLink to="/admin/features" class="admin-nav-link" @click="sidebarOpen = false"><i class="fa-solid fa-toggle-on"></i> Features</NuxtLink>
           <NuxtLink to="/admin/federation" class="admin-nav-link" @click="sidebarOpen = false"><i class="fa-solid fa-globe"></i> Federation</NuxtLink>
+          <NuxtLink to="/admin/api-keys" class="admin-nav-link" @click="sidebarOpen = false"><i class="fa-solid fa-key"></i> API Keys</NuxtLink>
           <NuxtLink to="/admin/settings" class="admin-nav-link" @click="sidebarOpen = false"><i class="fa-solid fa-gear"></i> Settings</NuxtLink>
         </nav>
       </aside>

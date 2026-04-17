@@ -16,6 +16,7 @@ export const featureFlagsSchema = z.object({
   editorial: z.boolean().default(true),
   admin: z.boolean().default(false),
   emailNotifications: z.boolean().default(false),
+  publicApi: z.boolean().default(false),
 });
 
 export const authConfigSchema = z.object({

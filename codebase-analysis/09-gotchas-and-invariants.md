@@ -291,6 +291,24 @@ priority but known.
 
 ## Security
 
+### Public API serializers are ALLOW-lists, never deny-lists
+
+`/api/public/v1/*` responses go through `to*` helpers in
+`packages/server/src/publicApi/serializers.ts` — `toPublicUser`,
+`toPublicContentSummary`, `toPublicHub`, etc. These helpers construct the
+output object field-by-field. Any column added to the underlying DB table is
+EXCLUDED from the public API until someone edits the serializer.
+
+This is the core "no private data leaks" guarantee. Do NOT "spread" the row
+(`{ ...row }`) into the response — spread serializers leak every new column
+until someone remembers to remove it. The integration tests under
+`publicApi.test.ts` serialize the output to JSON and assert that known-private
+field names (`email`, `passwordHash`, `role`, etc.) never appear.
+
+If you add a new entity to the public API, write its serializer with explicit
+per-field copy. The cost is a few extra lines per field; the safety property
+is structural, not vigilance-dependent.
+
 ### Every v-html in @commonpub/explainer must go through sanitizeHtml()
 
 Explainer modules are user-authored and federate. Each `v-html="..."` must

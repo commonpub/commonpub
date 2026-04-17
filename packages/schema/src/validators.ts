@@ -619,3 +619,34 @@ export const hubPostFiltersSchema = z.object({
   offset: z.coerce.number().int().min(0).optional(),
 });
 export type HubPostFilters = z.infer<typeof hubPostFiltersSchema>;
+
+// --- Public API keys ---
+
+export const PUBLIC_API_SCOPES = [
+  'read:content',
+  'read:hubs',
+  'read:users',
+  'read:learn',
+  'read:events',
+  'read:contests',
+  'read:videos',
+  'read:docs',
+  'read:tags',
+  'read:search',
+  'read:federation',
+  'read:instance',
+  'read:*',
+] as const;
+
+export const publicApiScopeSchema = z.enum(PUBLIC_API_SCOPES);
+export type PublicApiScope = z.infer<typeof publicApiScopeSchema>;
+
+export const createApiKeySchema = z.object({
+  name: z.string().min(1).max(120),
+  description: z.string().max(2000).optional().nullable(),
+  scopes: z.array(publicApiScopeSchema).min(1),
+  expiresAt: z.coerce.date().optional().nullable(),
+  rateLimitPerMinute: z.number().int().min(1).max(10_000).optional(),
+  allowedOrigins: z.array(z.string().url()).max(50).optional().nullable(),
+});
+export type CreateApiKeyInput = z.infer<typeof createApiKeySchema>;

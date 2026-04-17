@@ -43,6 +43,9 @@ export * from './federation.js';
 // Admin
 export * from './admin.js';
 
+// Public API (admin-managed access keys)
+export * from './publicApi.js';
+
 // Validators
 export * from './validators.js';
 

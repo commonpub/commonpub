@@ -70,6 +70,7 @@ This file is the short version.
 
 ## Security
 
+- **Public API serializers are ALLOW-lists.** Every `/api/public/v1/*` response is built by an explicit `to*` helper in `packages/server/src/publicApi/serializers.ts` that names each field — never spread (`{ ...row }`) user/content/hub rows into responses. If a new private column lands in the DB, the serializer excludes it by default. Tests in `publicApi.test.ts` assert known-private names (email, passwordHash, role, ...) never appear in any response body.
 - **Every `v-html` in `@commonpub/explainer` must wrap with `sanitizeHtml()`** from `packages/explainer/vue/utils/sanitize.ts` at the render site. `clickable-cards/Viewer.vue` and `toggle/Viewer.vue` missed this (session 127 fix) — stored XSS vector for any registered user, also reachable via federation. Don't rely on ingest-side sanitization alone; audit rule is `grep -rn 'v-html=' packages/explainer/` and require `sanitizeHtml(` in the same file.
 
 ## Nitro server/routes vs server/middleware
