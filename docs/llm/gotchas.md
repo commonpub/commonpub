@@ -66,4 +66,8 @@ This file is the short version.
 
 ## Build-time prerender
 
-- **Never `prerender: true` on data-fetching routes.** Docker build has no DB; the prerenderer saves 500 HTML as the static output and ships it. Was the root cause of the long-running commonpub.io 500-on-refresh bug — `/docs/**` was set to prerender, then `crawlLinks` propagated failures to `/learn` and `/videos`. Use `swr: 60` or `isr: true` (runtime + cache) instead. See `codebase-analysis/09-gotchas-and-invariants.md`.
+- **Never `prerender: true` on data-fetching routes.** Docker build has no DB; the prerenderer saves 500 HTML as the static output and ships it. Use `swr: 60` or `isr: true` (runtime + cache) instead. See `codebase-analysis/09-gotchas-and-invariants.md`.
+
+## useState key collisions
+
+- **`useState(key, initializer)` only runs the initializer ONCE per request.** If two call sites use the same key with different initializers, whichever runs first wins — the other's initializer is silently ignored. Was the root cause of the session 126 SSR-500 bug on `/docs`, `/learn`, `/videos`, `/explainer`: `feature-gate.global.ts` initialized `useState('feature-flags', () => null)` before the layout's `useFeatures()` got to init with real defaults. Pattern: export ONE `getInitialFlags()` from `composables/useFeatures.ts` and use it in every `useState('feature-flags', ...)` call site.

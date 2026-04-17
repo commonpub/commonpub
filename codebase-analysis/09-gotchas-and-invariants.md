@@ -105,6 +105,61 @@ but returns 404 or "Cannot find module" on the deployed instance.
 **Fix:** ensure the import is reachable through the root index; if it's from
 a subpath, add it to `nitro.externals.inline` in nuxt.config.
 
+### `useState(key, initializer)` only runs the initializer once per request — multiple callers with the same key must agree
+
+Nuxt's `useState(key, initializer)` only runs `initializer` the FIRST time a
+given key is seen per request. Every later call with the same key returns
+the already-created state, regardless of what initializer they pass.
+
+Consequence: if two different call sites both do `useState('foo', ...)` with
+DIFFERENT initializers, whichever runs first wins. The other's initializer
+is silently ignored.
+
+**This caused a long-running SSR 500 bug in session 126:**
+
+`layers/base/middleware/feature-gate.global.ts` was calling:
+
+```ts
+const featureState = useState<FeatureFlags | null>('feature-flags', () => null);
+```
+
+This poisoned the shared `feature-flags` state to `null`. When the default
+layout later called `useFeatures()` with its own
+`() => ({...DEFAULT_FLAGS, ...buildFlags})` initializer, Nuxt returned the
+existing null state — the proper initializer never ran. The layout then
+evaluated `computed(() => flags.value.content)` → `null.content` → 500.
+
+The bug only surfaced on routes in `ROUTE_FEATURE_MAP` (`/docs`, `/learn`,
+`/videos`, `/explainer`) because only those triggered the feature-gate
+middleware to run first and poison the state. `/hubs`, `/blog`, `/project`,
+`/u/...` all worked because feature-gate never matched → useState never
+called with the null initializer → useFeatures() initialized the state
+correctly. `/admin` worked because its page-level auth middleware
+redirected before the layout rendered.
+
+**Fix pattern**: export ONE shared initializer function and use it from every
+call site that touches the same useState key.
+
+```ts
+// composables/useFeatures.ts
+export function getInitialFlags(): FeatureFlags {
+  const config = useRuntimeConfig();
+  return { ...DEFAULT_FLAGS, ...(config.public.features as Partial<FeatureFlags>) };
+}
+export function useFeatures() {
+  const flags = useState<FeatureFlags>('feature-flags', getInitialFlags);
+  if (flags.value == null) flags.value = getInitialFlags();  // defensive
+  ...
+}
+
+// middleware/feature-gate.global.ts
+import { getInitialFlags, type FeatureFlags } from '../composables/useFeatures';
+// ...
+const flags = useState<FeatureFlags>('feature-flags', getInitialFlags);
+```
+
+Now whichever runs first, the state is valid.
+
 ### Never use `prerender: true` on routes that fetch from `/api/*`
 
 The Docker build stage in `Dockerfile` runs `pnpm build` with **no database
