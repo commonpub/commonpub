@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
+import { sanitizeHtml } from '../../vue/utils/sanitize.js';
 
 const props = defineProps<{ content: Record<string, unknown> }>();
 
 const labelA = computed(() => (props.content.labelA as string) || 'Mode A');
 const labelB = computed(() => (props.content.labelB as string) || 'Mode B');
-const descA = computed(() => (props.content.descriptionA as string) || '');
-const descB = computed(() => (props.content.descriptionB as string) || '');
+const descA = computed(() => sanitizeHtml((props.content.descriptionA as string) || ''));
+const descB = computed(() => sanitizeHtml((props.content.descriptionB as string) || ''));
 
 const activeMode = ref<'A' | 'B'>((props.content.defaultMode as 'A' | 'B') ?? 'A');
 </script>

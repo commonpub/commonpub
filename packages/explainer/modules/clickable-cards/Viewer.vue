@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
+import { sanitizeHtml } from '../../vue/utils/sanitize.js';
 
 const props = defineProps<{ content: Record<string, unknown> }>();
 
@@ -16,6 +17,12 @@ const cards = computed<Card[]>(() => {
 });
 
 const expandedIndex = ref<number | null>(null);
+
+const expandedDetailHtml = computed(() =>
+  expandedIndex.value !== null && cards.value[expandedIndex.value]
+    ? sanitizeHtml(cards.value[expandedIndex.value]!.detail)
+    : ''
+);
 
 function toggleCard(idx: number): void {
   expandedIndex.value = expandedIndex.value === idx ? null : idx;
@@ -48,7 +55,7 @@ function toggleCard(idx: number): void {
           <i class="fa-solid fa-xmark" />
         </button>
       </div>
-      <div class="cpub-cc-detail-body" v-html="cards[expandedIndex]!.detail" />
+      <div class="cpub-cc-detail-body" v-html="expandedDetailHtml" />
     </div>
   </div>
 </template>
