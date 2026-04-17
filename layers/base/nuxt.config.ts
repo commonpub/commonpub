@@ -95,12 +95,21 @@ export default defineNuxtConfig({
       instanceCookies: [] as Array<{ name: string; category: string; description: string; duration: string; provider?: string }>,
     },
   },
-  routeRules: {
-    ...(process.env.NUXT_PUBLIC_FEATURES_DOCS !== 'false' && {
-      '/docs/**': { prerender: true },
-    }),
-  },
+  // NOTE: /docs/** was previously set to `prerender: true` but this caused
+  // production 500s because the Docker build stage has no DB access. During
+  // prerender, the /api/docs fetch fails → the prerenderer saves the error
+  // HTML as /docs/index.html in .output/public, and crawlLinks propagated
+  // the failure to linked routes (/learn, /videos). Runtime SSR works fine
+  // because the app then has real DB access. If caching is later needed,
+  // use `swr: 60` (stale-while-revalidate at runtime), NOT `prerender: true`.
+  routeRules: {},
   nitro: {
     preset: 'node-server',
+    // Disable link-crawling during prerender so any future prerender rules
+    // can't accidentally cascade failures to other routes.
+    prerender: {
+      crawlLinks: false,
+      failOnError: false,
+    },
   },
 });
