@@ -68,6 +68,10 @@ This file is the short version.
 
 - **Never `prerender: true` on data-fetching routes.** Docker build has no DB; the prerenderer saves 500 HTML as the static output and ships it. Use `swr: 60` or `isr: true` (runtime + cache) instead. See `codebase-analysis/09-gotchas-and-invariants.md`.
 
+## Nitro server/routes vs server/middleware
+
+- **`server/routes/foo/[x].ts` returning `undefined` sends HTTP 204 — it does NOT fall through to a Nuxt page at the same path.** If you need "AP response for AP Accept, render the Nuxt page for browsers" at the same URL, it MUST live in `server/middleware/` not `server/routes/`. Only middleware lets undefined fall through. This bit `/hubs/:slug` and `/hubs/:slug/posts/:postId` (session 127) — every hub detail page returned 204 with an empty body on refresh. `server/middleware/content-ap.ts` has the canonical docstring spelling out this rule. Before adding a new AP endpoint at a URL that has a Nuxt page, check that it's middleware, not a route.
+
 ## useState key collisions
 
 - **`useState(key, initializer)` only runs the initializer ONCE per request.** If two call sites use the same key with different initializers, whichever runs first wins — the other's initializer is silently ignored. Was the root cause of the session 126 SSR-500 bug on `/docs`, `/learn`, `/videos`, `/explainer`: `feature-gate.global.ts` initialized `useState('feature-flags', () => null)` before the layout's `useFeatures()` got to init with real defaults. Pattern: export ONE `getInitialFlags()` from `composables/useFeatures.ts` and use it in every `useState('feature-flags', ...)` call site.

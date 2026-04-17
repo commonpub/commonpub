@@ -105,6 +105,35 @@ but returns 404 or "Cannot find module" on the deployed instance.
 **Fix:** ensure the import is reachable through the root index; if it's from
 a subpath, add it to `nitro.externals.inline` in nuxt.config.
 
+### `server/routes/foo.ts` returning undefined sends 204 — not fall-through
+
+When you want "AP response for AP Accept headers, Nuxt page for browsers" at
+the SAME canonical URL, you MUST put the handler in `server/middleware/`, not
+`server/routes/`. In h3/Nitro:
+
+- Server ROUTES are terminal handlers. Returning `undefined` finalizes the
+  response as HTTP 204 with an empty body. The Nuxt page renderer never runs.
+- Server MIDDLEWARE runs before the route/page handlers. Returning `undefined`
+  passes control to the next handler — including the Nuxt page renderer.
+
+This caused the session 127 regression: `/hubs/:slug` and `/hubs/:slug/posts/:postId`
+both had AP actor/note endpoints defined in `server/routes/` with conditional
+content negotiation (`if (!isAPRequest) return;`). The return-undefined path
+sent 204 for every browser request — every hub detail page looked broken on
+refresh.
+
+Fix: moved to `server/middleware/hub-ap.ts` and `server/middleware/hub-post-ap.ts`.
+Since middleware runs for every request, they also need to match the path
+pattern explicitly (the old server-route file was scoped to `/hubs/:slug` by its
+filename — middleware needs a regex check on `getRequestURL(event).pathname`).
+
+Look at `server/middleware/content-ap.ts` for the canonical pattern; its
+docstring explicitly warns about this rule.
+
+Applies to: any AP endpoint whose URL matches a Nuxt page. Sub-paths like
+`/hubs/:slug/outbox`, `/hubs/:slug/followers` have no Nuxt page, so their
+server/routes files are fine.
+
 ### `useState(key, initializer)` only runs the initializer once per request — multiple callers with the same key must agree
 
 Nuxt's `useState(key, initializer)` only runs `initializer` the FIRST time a
