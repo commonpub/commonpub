@@ -4,9 +4,13 @@ import { hubPosts, users } from '@commonpub/schema';
 import { eq } from 'drizzle-orm';
 
 /**
- * Hub post AP Note endpoint.
- * Serves the Note JSON-LD when requested with AP Accept header.
- * Remote instances dereference this URI when processing Announce activities.
+ * Middleware: serve ActivityPub Note JSON-LD for hub post URIs.
+ *
+ * Matches /hubs/{slug}/posts/{postId} with AP Accept headers.
+ * Non-AP requests pass through to the Nuxt page renderer.
+ *
+ * This MUST be a middleware (not a server route) because a server route
+ * returning undefined sends HTTP 204, which prevents the Nuxt page from rendering.
  */
 export default defineEventHandler(async (event) => {
   const accept = getRequestHeader(event, 'accept') ?? '';
@@ -16,13 +20,15 @@ export default defineEventHandler(async (event) => {
 
   if (!isAPRequest) return;
 
+  const path = getRequestURL(event).pathname;
+  const match = path.match(/^\/hubs\/([a-z0-9][a-z0-9_-]*)\/posts\/([a-zA-Z0-9_-]+)$/);
+  if (!match) return;
+
   const config = useConfig();
   if (!config.features.federation || !config.features.federateHubs) return;
 
-  const slug = getRouterParam(event, 'slug');
-  const postId = getRouterParam(event, 'postId');
-  if (!slug || !postId) return;
-
+  const slug = match[1]!;
+  const postId = match[2]!;
   const db = useDB();
   const domain = config.instance.domain;
 
@@ -51,7 +57,6 @@ export default defineEventHandler(async (event) => {
 
   setResponseHeader(event, 'content-type', 'application/activity+json');
 
-  // Build Note content — share posts need special handling
   let noteContent = escapeHtmlForAP(post.content);
   const ext: Record<string, unknown> = {};
 
