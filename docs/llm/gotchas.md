@@ -14,9 +14,10 @@ This file is the short version.
 
 ## Database
 
-- **`drizzle-kit push` fails in CI when you introduce a new enum.** It prompts for confirmation and CI has no TTY. Apply the enum SQL manually via `psql` on each deployed DB BEFORE the push.
-- **`drizzle-kit push` can silently skip some changes.** Always verify with `\d+ <table>` in psql.
-- **Schema changes in packages/schema require bumping `@commonpub/schema`.** Consumers pin it.
+- **Schema changes go through committed migrations, not `drizzle-kit push`.** After editing `packages/schema/src/*.ts`, run `pnpm --filter=@commonpub/schema db:generate` locally (needs a TTY), commit the resulting `packages/schema/migrations/000N_*.sql` + `meta/` updates alongside the TS changes. CI deploy runs `scripts/db-migrate.mjs` which calls `drizzle-orm/node-postgres/migrator.migrate()` directly and records state in `drizzle.__drizzle_migrations`. No prompts in CI, no manual SQL.
+- **Do not use `drizzle-kit push` in CI.** It blocks on interactive prompts (populated-table constraint changes, varchar→enum conversions, rename detection) and silently drops all queued DDL when it throws. The session-128 docs outage was caused by this — the push had been failing for weeks. `db-push.mjs` remains only for dev-time convenience against a local DB.
+- **Do not call `drizzle-kit migrate` directly in CI either** — its `renderWithTask` spinner exits non-zero on success and swallows error output. `scripts/db-migrate.mjs` uses the underlying drizzle-orm function which is reliable.
+- **Schema changes in packages/schema require bumping `@commonpub/schema`.** Consumers pin it. The `migrations/` folder ships in the npm package (declared in `files`), so deveco and other consumers get the SQL too.
 
 ## Nuxt / Nitro
 
@@ -55,7 +56,7 @@ This file is the short version.
 
 ## Deployment
 
-- **commonpub.io and deveco.io auto-deploy on push to main.** Deploy runs `drizzle-kit push`. If it fails (enum issue), the deploy fails and the app stays on the old code.
+- **commonpub.io and deveco.io auto-deploy on push to main.** Deploy runs `scripts/db-migrate.mjs` (session 128 migration switch) which applies any new `.sql` migrations committed in `packages/schema/migrations/`. Deploy fails hard on migration errors rather than continuing past silent failures.
 - **deveco.io uses DO managed Postgres.** `NUXT_DATABASE_URL` is from the managed DB connection string, not Docker.
 
 ## Session awareness

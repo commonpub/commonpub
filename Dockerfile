@@ -23,6 +23,7 @@ COPY --from=build /app/apps/reference/node_modules ./node_modules
 COPY --from=build /app/apps/reference/drizzle.config.js ./drizzle.config.js
 COPY --from=build /app/scripts ./scripts
 COPY --from=build /app/packages/schema/dist ./schema/dist
+COPY --from=build /app/packages/schema/migrations ./schema/migrations
 # Install drizzle-kit + deps for schema push (drizzle-kit needs drizzle-orm + pg driver, schema imports zod)
 # type:module required because schema dist files use ES module syntax
 RUN echo '{"private":true,"type":"module"}' > package.json && npm install --no-save drizzle-kit@0.31.10 drizzle-orm pg zod

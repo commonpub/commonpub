@@ -1,42 +1,42 @@
 /**
- * Non-interactive drizzle-kit migrate wrapper for CI environments.
+ * Non-interactive schema-migration wrapper for CI.
  *
- * Unlike db-push.mjs (which uses drizzle-kit push --force), this script
- * applies committed migration files via drizzle-kit migrate. This is the
- * production-safe approach: migrations are reviewed in PRs before deploy.
+ * Uses drizzle-orm's native `migrate()` function (node-postgres) rather than
+ * `drizzle-kit migrate`, because the CLI's `renderWithTask` spinner exits
+ * non-zero even on success and swallows error output.
  *
- * Usage: node scripts/db-migrate.mjs [--config=drizzle.config.js]
+ * Reads committed SQL files from the migrations folder, tracks applied
+ * migrations in `drizzle.__drizzle_migrations`, and is fully non-interactive.
  *
  * Workflow:
- * 1. Developer changes schema .ts files
- * 2. Developer runs `npx drizzle-kit generate` locally (requires TTY)
- * 3. Developer commits the generated .sql migration files
- * 4. PR review includes the migration SQL
- * 5. CI deploy runs this script to apply pending migrations
+ *   1. Developer edits packages/schema/src/*.ts.
+ *   2. Developer runs `pnpm --filter=@commonpub/schema db:generate` locally.
+ *   3. Developer commits the generated .sql + snapshot + updated journal.
+ *   4. PR review includes the migration SQL.
+ *   5. CI deploy runs this script to apply any new migrations.
  */
-import { execSync } from 'node:child_process';
+import { drizzle } from 'drizzle-orm/node-postgres';
+import { migrate } from 'drizzle-orm/node-postgres/migrator';
+import pg from 'pg';
 
-const extraArgs = process.argv.slice(2);
-const cmd = `npx drizzle-kit migrate ${extraArgs.join(' ')}`.trim();
+const url = process.env.NUXT_DATABASE_URL || process.env.DATABASE_URL;
+if (!url) {
+  console.error('❌ db:migrate requires NUXT_DATABASE_URL or DATABASE_URL');
+  process.exit(1);
+}
+
+const migrationsFolder = process.env.DRIZZLE_MIGRATIONS_FOLDER || '/app/schema/migrations';
+
+const pool = new pg.Pool({ connectionString: url, max: 2 });
+const db = drizzle(pool);
 
 try {
-  execSync(cmd, {
-    stdio: ['pipe', 'inherit', 'inherit'],
-    env: { ...process.env, FORCE_COLOR: '0' },
-    timeout: 120_000,
-  });
+  await migrate(db, { migrationsFolder });
   console.log('✅ db:migrate succeeded');
 } catch (err) {
-  const exitCode = err.status ?? 1;
-  const stderr = err.stderr?.toString() ?? '';
-
-  // If no pending migrations, drizzle-kit may exit with a message but code 0
-  if (stderr.includes('Nothing to migrate') || stderr.includes('already applied')) {
-    console.log('✅ db:migrate — no pending migrations');
-    process.exit(0);
-  }
-
-  console.error(`❌ db:migrate failed with exit code ${exitCode}`);
-  console.error('Migration may have partially applied. Check the database state.');
-  process.exit(exitCode);
+  console.error('❌ db:migrate failed:', err?.message ?? err);
+  if (err?.stack) console.error(err.stack);
+  process.exit(1);
+} finally {
+  await pool.end();
 }

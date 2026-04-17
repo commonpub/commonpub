@@ -45,12 +45,14 @@ jobs:
             rm -f commonpub-app.tar.gz
             docker compose -f docker-compose.prod.yml up -d --force-recreate --remove-orphans
             sleep 5
-            # Apply schema changes via drizzle-kit push
-            # Use --force to auto-accept additive changes. If it fails (e.g. interactive
-            # prompts for renames), the deploy still succeeds but logs a warning.
-            # Write output to file first, then check exit code (pipe to tee masks failures).
-            docker compose -f docker-compose.prod.yml exec -T app node scripts/db-push.mjs --config=drizzle.config.js 2>&1 | tee /tmp/dbpush.log \
-              || { echo "::warning::db:push had issues"; cat /tmp/dbpush.log; }
+            # Apply schema changes via drizzle-kit migrate (reads committed .sql files,
+            # never prompts in CI — unlike `push`, which blocks on TTY prompts for
+            # populated-table constraint changes and silently drops downstream DDL).
+            # Migration files live under packages/schema/migrations/ and ship in the
+            # image at /app/schema/migrations/. The `drizzle` schema table tracks
+            # which migrations have been applied.
+            docker compose -f docker-compose.prod.yml exec -T app node scripts/db-migrate.mjs --config=drizzle.config.js 2>&1 | tee /tmp/dbmigrate.log \
+              || { echo "::error::db:migrate failed — see log above"; cat /tmp/dbmigrate.log; exit 1; }
             docker image prune -f
             # Post-deploy smoke test — verify app is responding
             for i in 1 2 3 4 5; do
