@@ -343,7 +343,7 @@ Reference:
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) and the
-[full contributing guide](docs/contributing.md). Key rules:
+[developers guide](docs/guides/developers.md). Key rules:
 
 - **The schema is the work** — features start with the right tables.
 - **No feature without a flag** in `commonpub.config.ts`.

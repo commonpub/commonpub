@@ -1,6 +1,6 @@
 # Contributing to CommonPub
 
-Thank you for your interest in contributing! See the full guide at [docs/contributing.md](docs/contributing.md).
+Thank you for your interest in contributing! See the full guide at [docs/guides/developers.md](docs/guides/developers.md).
 
 ## Quick Start
 
