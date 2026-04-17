@@ -31,7 +31,7 @@ commonpub/
 ├── design-system-v2/      ARCHIVE. Figma HTML exports. Not used at runtime.
 ├── docs/                  Human docs, ADRs, session logs, reference material
 ├── test-site/             Separate Nuxt instance for integration testing (npm-locked, legacy)
-├── scripts/               db-push.mjs, db-migrate.mjs, migrate-blog-to-article.sql
+├── scripts/               db-migrate.mjs (CI schema applier), db-push.mjs (legacy dev), migrate-blog-to-article.sql
 ├── Dockerfile             Multi-stage, node:22-alpine, non-root, healthcheck
 ├── docker-compose.yml     Local dev (Postgres, Redis, Meilisearch on non-default ports)
 ├── turbo.json             build/dev/test/lint/typecheck pipelines
@@ -105,9 +105,9 @@ From `package.json` at root:
 | `pnpm dev` | Turbo-runs dev in every package |
 | `pnpm dev:app` | `@commonpub/reference` only |
 | `pnpm dev:infra` | `docker compose up -d` (Postgres, Redis, Meilisearch) |
-| `pnpm db:push` | Drizzle Kit push (applies schema to DB) |
-| `pnpm db:generate` | Drizzle Kit generate (creates SQL migration files) |
-| `pnpm db:migrate` | Drizzle Kit migrate (applies SQL migrations) |
+| `pnpm --filter=@commonpub/schema db:generate` | Create SQL migration from schema edits (TTY required) |
+| `pnpm --filter=@commonpub/schema db:migrate` | Apply committed migrations (what CI deploys run) |
+| `pnpm --filter=@commonpub/schema db:push` | Push schema directly (local dev iteration only) |
 | `pnpm test` | All vitest suites |
 | `pnpm test:e2e` | Playwright |
 | `pnpm lint` / `typecheck` | Turbo pipelines |

@@ -1,7 +1,7 @@
 # CommonPub Codebase Analysis
 
 This folder is the **raw, exhaustive inventory** of the CommonPub monorepo as of
-session 125 (2026-04-16). Human docs in `docs/guides/` are derived from it; this
+session 128 (2026-04-17). Human docs in `docs/guides/` are derived from it; this
 is the source of truth.
 
 If you're a new contributor or an LLM loading context, read `facts.md` in
@@ -21,7 +21,7 @@ Not to be confused with the stale `/Users/obsidian/Projects/commonpub/` director
 | Shared Nuxt layer | 1 (@commonpub/layer) |
 | Apps | 2 (reference, shell) |
 | Tools | 2 (create-commonpub Rust CLI, worker) |
-| Tables in schema | 77 |
+| Tables in schema | 79 |
 | Enums in schema | 41 |
 | Zod validators | 50+ |
 | Server modules | 20+ |
@@ -43,7 +43,7 @@ Not to be confused with the stale `/Users/obsidian/Projects/commonpub/` director
 6. [`06-other-packages.md`](./06-other-packages.md) — config, auth, protocol, ui, editor, explainer, learning, docs, infra, test-utils
 7. [`07-state-diagrams.md`](./07-state-diagrams.md) — Mermaid diagrams for contests, events, hubs, federation, auth
 8. [`08-feature-flags-inventory.md`](./08-feature-flags-inventory.md) — All 15 flags, defaults, what each gates
-9. [`09-gotchas-and-invariants.md`](./09-gotchas-and-invariants.md) — Drizzle CI failures, Nitro externalization, pnpm dist sync, etc.
+9. [`09-gotchas-and-invariants.md`](./09-gotchas-and-invariants.md) — Migrate-based schema deploys, Nitro externalization, pnpm dist sync, useState key collisions, etc.
 10. [`10-doc-audit.md`](./10-doc-audit.md) — Which existing docs are fresh, stale, contradictory, missing
 11. [`11-codebase-stats.md`](./11-codebase-stats.md) — Line counts, test counts, package sizes
 12. [`12-scaling-and-infrastructure.md`](./12-scaling-and-infrastructure.md) — What breaks first under load, Fedify/Redis analysis, DigitalOcean-specific scaling path

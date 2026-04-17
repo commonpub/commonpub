@@ -23,22 +23,22 @@ codebase-analysis/       raw inventory (generated — trust over older docs)
 12 packages on npm as `@commonpub/*`:
 schema, server, config, protocol, auth, ui, editor, explainer, learning, docs, infra, test-utils.
 
-## Latest published versions (session 125, 2026-04-16)
+## Latest published versions (session 128, 2026-04-17)
 
-- schema 0.13.0, server 2.43.0, config 0.10.0, layer 0.15.3
-- ui 0.8.5, protocol 0.9.9, editor 0.7.9, explainer 0.7.11
+- schema 0.14.2, server 2.45.1, config 0.11.0, layer 0.17.0
+- ui 0.8.5, protocol 0.9.9, editor 0.7.9, explainer 0.7.12
 - learning 0.5.0, docs 0.6.2, auth 0.5.1, infra 0.5.1, test-utils 0.5.3
 
 ## Database
 
 - PostgreSQL 16 + Drizzle.
-- **77 tables, 41 enums.** Full list: `codebase-analysis/02-schema-inventory.md`.
+- **79 tables, 41 enums.** Full list: `codebase-analysis/02-schema-inventory.md`.
 - Domains: auth, content, social, messaging, hubs, products, learning, docs, videos, contests, events, voting, federation, admin, files.
 - Soft delete on: users, contentItems, hubs, federatedContent, federatedHubPosts.
 - Denormalized counters pervasive (voteScore, entryCount, attendeeCount, memberCount, likeCount, etc.).
 - `contentTypeEnum`: project, article, blog, explainer. **`article` is legacy — use `blog`** (session 116).
 
-## Recent major additions (sessions 108–125)
+## Recent major additions (sessions 108–128)
 
 - **108** URL restructure → `/u/{username}/{type}/{slug}` canonical
 - **116** Article↔Blog merge
@@ -50,6 +50,9 @@ schema, server, config, protocol, auth, ui, editor, explainer, learning, docs, i
 - **123** Destination phases 0+1+4+2 (editorial, runtime flags, homepage)
 - **124** Destination phases 3+5+6+7 — **nav system, events, voting, contest judges**
 - **125** Events UI polish, contest voting UI, error.vue SSR theme fix
+- **126** Doc overhaul + scaling plan + typecheck fixes
+- **127** Public Read API v1 (admin-managed bearer tokens, 13 read scopes, OpenAPI 3.1) + 8 bug fixes including critical drafts-leak + stored-XSS
+- **128** **Docs unblock** + switched schema deploys from `drizzle-kit push` to committed migrations via `scripts/db-migrate.mjs` + fixed silent drift on both prod DBs
 
 ## Layer structure
 
@@ -102,7 +105,7 @@ Two production instances (both auto-deploy from main on push):
 - **commonpub.io** — DO, Docker+Caddy, self-hosted Postgres
 - **deveco.io** — DO, Docker+Caddy, managed DO Postgres, thin consumer of layer
 
-Deploy invokes `drizzle-kit push`. **New enums FAIL** here (no TTY) — apply SQL manually first.
+Deploy runs `scripts/db-migrate.mjs` (session 128+) which applies committed migrations from `packages/schema/migrations/` via `drizzle-orm/node-postgres/migrator.migrate()`. State tracked in `drizzle.__drizzle_migrations`. No prompts, no manual SQL. (Before session 128: deploys used `drizzle-kit push`, which blocked on TTY prompts for populated-table constraint changes and silently dropped DDL.)
 
 ## Where to read more
 

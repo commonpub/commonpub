@@ -53,13 +53,13 @@ pnpm build
 
 Turborepo builds all 12 packages plus the reference app in dependency order.
 
-## 5. Push Schema to Database
+## 5. Apply Schema Migrations to Database
 
 ```bash
-pnpm db:push
+pnpm --filter=@commonpub/schema db:migrate
 ```
 
-This creates all tables and enums in your local Postgres.
+Applies committed migrations from `packages/schema/migrations/` to your local Postgres. Tracks state in `drizzle.__drizzle_migrations`. For quick local iteration on schema edits you can also use `pnpm --filter=@commonpub/schema db:push`, but production deploys go through `migrate`.
 
 ## 6. Start the Dev Server
 
@@ -85,7 +85,9 @@ docker compose up -d && pnpm dev:app
 | `pnpm dev:app` | Start Nuxt dev server (reference app) |
 | `pnpm dev` | Start all dev servers (Turbo) |
 | `pnpm build` | Build all packages |
-| `pnpm db:push` | Push Drizzle schema to database |
+| `pnpm --filter=@commonpub/schema db:migrate` | Apply committed migrations |
+| `pnpm --filter=@commonpub/schema db:generate` | Generate a new migration from schema edits |
+| `pnpm --filter=@commonpub/schema db:push` | Push schema directly (dev only — CI uses migrate) |
 | `pnpm test` | Run all tests |
 | `pnpm lint` | Lint all packages |
 | `pnpm typecheck` | Type-check all packages |

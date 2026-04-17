@@ -2,7 +2,7 @@
 
 Source: `packages/schema/src/*.ts`. As of session 125 (2026-04-16).
 
-**77 tables, 41 enums, 50+ Zod validators.** Drizzle ORM on PostgreSQL 16. Counts verified by grep.
+**79 tables, 41 enums, 50+ Zod validators.** Drizzle ORM on PostgreSQL 16. Counts verified against both production DBs on 2026-04-17.
 
 ## Files
 
@@ -250,8 +250,15 @@ sessions, accounts, organizations, members, verifications, contentVersions, cont
 - Most other FKs use `ON DELETE CASCADE` where the relationship is ownership (user → session, content → version, hub → post, etc.).
 - Parent self-refs (hubs.parentHubId, comments.parentId) are `ON DELETE SET NULL` to avoid catastrophic tree drop.
 
-## Drizzle-kit gotcha (CI)
+## Schema deploy workflow (session 128+)
 
-`drizzle-kit push` fails interactively in CI when **new enums** are introduced — it prompts for confirmation and the TTY isn't available. Session 124 hit this during deploy and ended up applying the enum SQL manually on both instances. Rule: for new enums, generate SQL with `pnpm db:generate` and apply manually OR commit an SQL migration to `scripts/` and run it pre-`push`.
+Schema changes go through committed migrations, not `drizzle-kit push`.
+Workflow:
 
-See `feedback_drizzle_push_ci.md` in memory.
+1. Edit `packages/schema/src/*.ts`.
+2. `pnpm --filter=@commonpub/schema db:generate` (requires TTY) → creates `migrations/000N_*.sql` + snapshot.
+3. **Commit** the `.ts` change, the `.sql` migration, and the updated `meta/_journal.json` + `meta/000N_snapshot.json` together.
+4. Bump `@commonpub/schema` version; publish if downstream consumers (e.g. deveco) pin it.
+5. Push to main. CI runs `scripts/db-migrate.mjs` which calls `drizzle-orm/node-postgres/migrator.migrate()` against the committed migrations. State is tracked in `drizzle.__drizzle_migrations`.
+
+`drizzle-kit push` is **no longer used** in CI because it blocks on TTY prompts for populated-table constraint changes, varchar→enum conversions, and rename detection — when it throws, it silently drops ALL queued DDL. This caused the session-128 docs outage (two columns on `docs_pages` never got applied for weeks). See `docs/sessions/128-docs-and-learn-audit.md`.

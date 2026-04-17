@@ -9,8 +9,8 @@ you have a specific reason not to.
 2. **Schema** — add tables/columns/enums to `packages/schema/src/<domain>.ts`. Export from `index.ts`.
 3. Add Zod validators in `packages/schema/src/validators.ts`.
 4. Bump `@commonpub/schema` minor version.
-5. Run `pnpm db:generate` → review and commit the SQL migration file.
-6. Run `pnpm db:push` locally. Verify with `psql \d+ <table>`.
+5. Run `pnpm --filter=@commonpub/schema db:generate` → review and **commit** the generated `migrations/000N_*.sql` + updated `meta/_journal.json` + `meta/000N_snapshot.json` alongside the schema change.
+6. Verify locally by applying to a dev DB: `pnpm --filter=@commonpub/schema db:migrate` (or `db:push` for rapid local iteration). Confirm with `psql \d+ <table>`.
 7. **Feature flag** — add to `FeatureFlags` in `packages/config/src/types.ts`. Default OFF. Update `schema.ts` defaults. Bump `@commonpub/config`.
 8. Enable the flag in `apps/reference/commonpub.config.ts` for dogfooding.
 9. **Server module** — add `packages/server/src/<domain>/<domain>.ts` with functions taking `(db: DB, ...)`. Export via `<domain>/index.ts`. Re-export from root `index.ts`. Bump `@commonpub/server`.
@@ -31,8 +31,8 @@ you have a specific reason not to.
 
 1. Edit `packages/schema/src/<domain>.ts`.
 2. Bump `@commonpub/schema` minor.
-3. Run `pnpm db:generate` → commit the migration SQL.
-4. `pnpm db:push` locally; verify.
+3. Run `pnpm --filter=@commonpub/schema db:generate` → **commit** the generated `000N_*.sql` + journal/snapshot updates.
+4. Apply to your local dev DB (`pnpm --filter=@commonpub/schema db:migrate`) and verify with `psql \d+ <table>`.
 5. Update the relevant Zod validator in `validators.ts`.
 6. Update server module functions to read/write the new column.
 7. Update `codebase-analysis/02-schema-inventory.md` with the new column.
@@ -43,18 +43,11 @@ you have a specific reason not to.
 
 1. Edit `packages/schema/src/enums.ts`.
 2. Bump `@commonpub/schema` minor.
-3. **IMPORTANT:** `drizzle-kit push` will fail in CI for new enums. Generate SQL:
-   ```bash
-   pnpm db:generate
-   ```
-4. Apply the enum SQL manually to every deployed DB BEFORE the code change deploys:
-   ```bash
-   docker exec commonpub-postgres-1 psql -U commonpub -d commonpub -f /path/to/new_enum.sql
-   docker exec deveco-app-1 psql $NUXT_DATABASE_URL -f /path/to/new_enum.sql
-   ```
-5. Commit the SQL.
-6. Update validators + server modules.
-7. Update `codebase-analysis/02-schema-inventory.md`.
+3. Run `pnpm --filter=@commonpub/schema db:generate`.
+4. **Commit** the generated `000N_*.sql` alongside the enum change. The migration file will contain the `CREATE TYPE ...` (for a new enum) or `ALTER TYPE ... ADD VALUE 'new'` (for a new value). PG limitation: `ALTER TYPE ... ADD VALUE` runs outside transactions — drizzle-kit handles that correctly in generated migrations, but review the SQL.
+5. Update validators + server modules.
+6. Update `codebase-analysis/02-schema-inventory.md`.
+7. Push. CI deploy runs `scripts/db-migrate.mjs` which applies the migration via `drizzle-orm/node-postgres/migrator.migrate()` — no prompts, no manual SQL.
 
 ## Add a new feature flag
 
@@ -114,26 +107,18 @@ you have a specific reason not to.
 4. Add to theme family options in `/admin/theme` UI.
 5. Test FOUC-free loading — verify server middleware sets `resolvedTheme` correctly.
 
-## Deploy a schema change that includes a new enum
+## Deploy a schema change (any kind — columns, tables, enums, constraints)
 
-1. Make the change in `packages/schema`.
-2. `pnpm db:generate` → SQL migration file.
-3. Review the SQL. Extract the enum statements.
-4. Connect to each production DB and run the enum statements:
-   ```bash
-   # commonpub.io
-   docker exec commonpub-postgres-1 psql -U commonpub -d commonpub
-   CREATE TYPE new_enum AS ENUM ('a', 'b', 'c');
-   \q
+There's no special case anymore. Everything goes through committed migrations.
 
-   # deveco.io
-   docker exec deveco-app-1 env | grep NUXT_DATABASE_URL
-   psql <DATABASE_URL>
-   CREATE TYPE new_enum AS ENUM ('a', 'b', 'c');
-   \q
-   ```
-5. Now safe to push code to main. Deploy's `drizzle-kit push` will add the table/column using the existing enum.
-6. If you skip this and push code first, deploy FAILS silently. App stays on old code.
+1. Make the change in `packages/schema/src/*.ts`.
+2. Run `pnpm --filter=@commonpub/schema db:generate` locally (needs a TTY).
+3. Commit the `.ts` change + the generated `migrations/000N_*.sql` + `meta/_journal.json` + `meta/000N_snapshot.json` in the same commit.
+4. Bump `@commonpub/schema` version.
+5. If consumers pin the package (deveco, other downstream repos): `pnpm publish` the schema package, then bump the consumer's pin.
+6. Push to `main`. CI rebuilds the image (Dockerfile ships `migrations/` into the runtime) and runs `scripts/db-migrate.mjs` on deploy, which applies any pending migrations via `drizzle-orm/node-postgres/migrator.migrate()` and records state in `drizzle.__drizzle_migrations`.
+
+No prompts, no manual SQL, no silent failures. Deploy fails hard if the migration errors out.
 
 ## Debug a 404 in production for a route that works locally
 

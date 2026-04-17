@@ -58,7 +58,7 @@ pnpm build
 docker compose up -d
 
 cp .env.example .env
-pnpm db:push
+pnpm --filter=@commonpub/schema db:migrate
 pnpm dev:app
 ```
 
@@ -74,8 +74,9 @@ admin.
 | `pnpm test` | Vitest across every package |
 | `pnpm test:e2e` | Playwright |
 | `pnpm typecheck` / `lint` / `format` | All packages |
-| `pnpm db:push` | Drizzle Kit push to local DB |
-| `pnpm db:generate` | Generate SQL migration files |
+| `pnpm --filter=@commonpub/schema db:generate` | Generate SQL migration from schema edits |
+| `pnpm --filter=@commonpub/schema db:migrate` | Apply committed migrations (what CI runs) |
+| `pnpm --filter=@commonpub/schema db:push` | Push schema directly (local dev only) |
 | `pnpm publish:check` | build + typecheck + test |
 | `pnpm stryker:<pkg>` | Per-package mutation testing |
 
@@ -242,14 +243,16 @@ Export from `packages/schema/src/index.ts`. Add a Zod validator in
 Apply:
 
 ```bash
-pnpm db:generate   # creates SQL migration
-# Review the SQL. Commit it.
-pnpm db:push       # applies locally
+pnpm --filter=@commonpub/schema db:generate   # creates SQL migration + snapshot
+# Review the generated .sql under packages/schema/migrations/.
+# Commit the .sql + meta/_journal.json + meta/000N_snapshot.json with your schema change.
+pnpm --filter=@commonpub/schema db:migrate    # applies locally
 ```
 
-**WARNING:** If your change introduces a new enum, `drizzle-kit push` may hang
-in CI without a TTY. Apply the enum SQL manually on deployed instances before
-the push — see [gotchas](../../codebase-analysis/09-gotchas-and-invariants.md).
+CI deploys run `scripts/db-migrate.mjs` which applies whatever is committed.
+No prompts, no manual SQL. (Pre-session-128, deploys used `drizzle-kit push`;
+see [gotchas](../../codebase-analysis/09-gotchas-and-invariants.md) for why we
+stopped.)
 
 ### 2. Server module
 
@@ -347,12 +350,10 @@ pnpm -r --filter './packages/*' publish --no-git-checks
 ## Schema changes
 
 - Always edit `packages/schema/src/*.ts` — not raw SQL.
-- Run `pnpm db:generate` to get a migration SQL file. Commit the SQL.
-- Run `pnpm db:push` locally to apply. Verify with `psql` / `\d+ tablename`
-  that new columns actually exist (push can silently skip).
-- On deployed instances, CI runs `drizzle-kit push` during deploy. **New enums
-  will fail** there because the push prompts for confirmation. Apply the enum
-  SQL manually via `psql` on the deployed DB first.
+- Run `pnpm --filter=@commonpub/schema db:generate` to produce a migration.
+  **Commit** the generated `migrations/000N_*.sql` + `meta/_journal.json` + `meta/000N_snapshot.json` alongside the schema change.
+- Apply locally with `pnpm --filter=@commonpub/schema db:migrate`. Verify with `psql \d+ <table>`.
+- CI deploys run `scripts/db-migrate.mjs` which applies committed migrations via `drizzle-orm/node-postgres/migrator.migrate()`. No prompts, no manual SQL.
 - Update validators in `packages/schema/src/validators.ts`.
 - Bump `@commonpub/schema` — minor for additive, major for anything removal.
 
@@ -578,9 +579,10 @@ env vars for DATABASE_URL, AUTH_SECRET, feature flags.
 
 ### Schema on deploy
 
-`pnpm db:push` runs during deploy. If your change introduces a new enum, this
-will fail silently — apply the enum SQL manually via `psql` to the deployed
-DB before pushing. Known CI issue; see gotchas.
+`scripts/db-migrate.mjs` runs during deploy (session 128+). It applies any
+committed migrations under `packages/schema/migrations/` via
+`drizzle-orm/node-postgres/migrator.migrate()`. Deploy fails hard on migration
+errors — no silent drift.
 
 ### Scripts
 
@@ -608,7 +610,7 @@ Full list: [`codebase-analysis/09-gotchas-and-invariants.md`](../../codebase-ana
 
 Highlights:
 
-- **`drizzle-kit push` + new enums = CI fails.** Apply SQL manually first.
+- **Schema deploys go through committed migrations — not `drizzle-kit push`** (session 128). Generate with `db:generate`, commit the SQL, deploy applies via `scripts/db-migrate.mjs`.
 - **Nitro externalization** can hide new imports from API routes in prod.
   Ensure the import is reachable from a root index or whitelist in `nitro.externals.inline`.
 - **`server/utils/config.ts` is the Nitro-side config resolver** (NOT a proxy

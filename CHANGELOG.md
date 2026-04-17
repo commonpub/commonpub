@@ -7,11 +7,65 @@ monorepo working period. For session-level detail, see [`docs/sessions/`](./docs
 
 ---
 
-## Unreleased (sessions 108–127, through 2026-04-17)
+## Unreleased (sessions 108–128, through 2026-04-17)
 
-Monorepo state at time of writing: schema 0.14.1, server 2.45.1, config 0.11.0,
+Monorepo state at time of writing: schema 0.14.2, server 2.45.1, config 0.11.0,
 layer 0.17.0, ui 0.8.5, protocol 0.9.9, editor 0.7.9, explainer 0.7.12,
 learning 0.5.0, docs 0.6.2, auth 0.5.1, infra 0.5.1, test-utils 0.5.3.
+
+### Session 128 — Docs unblock + migrate workflow + schema drift cleanup (2026-04-17)
+
+**User-reported bug fixed — "can't add pages" on docs:**
+- `docs_pages` on commonpub.io was missing `sidebar_label` and `description`
+  columns (added in schema commit `7bffcef`, Apr 13). Every endpoint using
+  `db.select().from(docsPages)` or `.returning()` expanded to SELECT-star and
+  500'd on both list and write paths. Fixed by applying the missing columns
+  via SQL and verified end-to-end.
+
+**Root cause — CI deploy was silently dropping schema changes for weeks:**
+- `drizzle-kit push` (invoked by `scripts/db-push.mjs`) blocked on an
+  interactive prompt because `instance_mirrors` had a unique-constraint name
+  mismatch (PG default `_key` vs drizzle's `_unique`) and a populated table.
+  CI has no TTY → `pgSuggestions` throws before any DDL is applied. Every
+  deploy since Mar 29 silently skipped all queued schema changes.
+
+**Systemic fix — switched to committed migrations:**
+- New `packages/schema/migrations/0000_session128_baseline.sql` captures the
+  full current schema (79 tables, 41 enums, 112 FKs, 54 unique constraints,
+  114 indexes explicit + backing indexes).
+- `scripts/db-migrate.mjs` now calls `drizzle-orm/node-postgres/migrator.migrate()`
+  directly (NOT `drizzle-kit migrate` — its CLI spinner exits non-zero on
+  success and swallows error output). Deploys fail hard on migration errors.
+- Both production DBs pre-seeded with `drizzle.__drizzle_migrations` containing
+  the baseline as applied, so the first post-switch deploy was a verified no-op.
+- `@commonpub/schema` 0.14.2 publishes `migrations/` in `files`; deveco consumes
+  it from npm; both Dockerfiles copy the migration folder into the runtime.
+- GitHub Actions deploy workflows on both repos now call `db-migrate.mjs`.
+
+**Schema drift audit + cleanup on deveco:**
+- 40 FK constraints renamed from PG default `_fkey` to drizzle's `_fk` form.
+- 3 missing enum values added: `comment_target_type.video`,
+  `contest_status.cancelled`, `like_target_type.video`.
+- 10 missing performance indexes created (`idx_bookmarks_user_id`,
+  `idx_fedcontent_*`, `idx_files_hub_id`, `idx_hub_followers_fed_hub`,
+  `idx_hub_post_likes_user_id`, `idx_lesson_progress_user_id`).
+- `hub_followers_fed.status` converted from varchar to `follow_relationship_status` enum.
+- Extra constraints dropped (`content_items_slug_unique`, `idx_fedhubposts_object_uri`).
+- Post-audit both DBs byte-for-byte equivalent in columns/enums/indexes/FK semantics.
+
+**Learn audit (findings deferred):**
+- `POST /api/learn/:slug/:lessonSlug/complete` accepts `quizScore`/`quizPassed`
+  from the client body without server-side grading — certificate-gaming vector.
+- `GET /api/learn/:slug/:lessonSlug` returns lesson content verbatim, leaking
+  `correctOptionId` for quiz questions.
+- Both tracked as P2 for a dedicated security fix.
+
+**Docs overhauled** to reflect the migrate workflow:
+- `docs/llm/{gotchas,facts,task-recipes}.md`, `docs/{quickstart,building-with-commonpub,deployment}.md`,
+  `docs/guides/developers.md`, `codebase-analysis/{01,02,06,09}.md` all updated.
+- Session log at `docs/sessions/128-docs-and-learn-audit.md` (includes deep-audit follow-up).
+
+**Packages:** `@commonpub/schema@0.14.2` (adds migrations/ to npm tarball).
 
 ### Session 127 — Deep audit + Public Read API (2026-04-17)
 

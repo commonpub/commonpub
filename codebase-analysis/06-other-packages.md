@@ -199,6 +199,6 @@ Separate Nuxt instance with FULL UI implementation (not using the layer). Uses n
 
 ## scripts/
 
-- `db-push.mjs` — wrapper for drizzle-kit push
-- `db-migrate.mjs` — wrapper for drizzle-kit migrate
+- `db-migrate.mjs` — **primary schema-deploy wrapper (session 128+)**. Calls `drizzle-orm/node-postgres/migrator.migrate()` directly against `/app/schema/migrations/`. Used by CI on every deploy. No TTY prompts, fails hard on migration errors.
+- `db-push.mjs` — legacy wrapper for `drizzle-kit push`. Retained for local dev iteration; no longer called by CI.
 - `migrate-blog-to-article.sql` — historical one-shot migration (article/blog merge, session 116)

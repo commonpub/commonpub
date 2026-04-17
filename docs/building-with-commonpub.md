@@ -162,12 +162,18 @@ const pool = new pg.Pool({
 export const db = drizzle(pool, { schema });
 ```
 
-Generate and push migrations:
+Apply migrations:
 
 ```bash
-npx drizzle-kit generate
-npx drizzle-kit push
+# One-time: apply the committed baseline from @commonpub/schema to your DB.
+npx drizzle-kit migrate --config=path/to/drizzle.config.ts
+
+# For iterating on your own schema extensions during development:
+npx drizzle-kit generate  # generates new migration SQL
+npx drizzle-kit migrate   # applies them
 ```
+
+`drizzle-kit push` is fine for quick dev iteration but don't rely on it in CI — it blocks on interactive prompts for populated-table changes and silently drops DDL. CommonPub's own deploys use `scripts/db-migrate.mjs` which calls the drizzle-orm migrator directly (see [session 128](sessions/128-docs-and-learn-audit.md)).
 
 ### 5. Create your first API route
 
@@ -252,10 +258,9 @@ pnpm update @commonpub/*
 
 CommonPub uses [Drizzle ORM](https://orm.drizzle.team/) for schema management. When updating `@commonpub/schema`:
 
-1. Update the package: `pnpm update @commonpub/schema`
-2. Generate migration diff: `npx drizzle-kit generate`
-3. Review the generated SQL in `drizzle/` directory
-4. Apply to your database: `npx drizzle-kit push` (dev) or `npx drizzle-kit migrate` (production)
+1. Update the package: `pnpm update @commonpub/schema`. This pulls the new migrations that ship in `node_modules/@commonpub/schema/migrations/`.
+2. Apply them to your database: `npx drizzle-kit migrate` (production-safe, non-interactive). `drizzle-kit push` also works for dev but is not recommended in CI.
+3. If you've added your own schema on top of CommonPub's, run `npx drizzle-kit generate` to produce a diff migration for those additions, review, commit, then `npx drizzle-kit migrate`.
 
 ### Breaking changes
 

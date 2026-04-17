@@ -47,11 +47,12 @@ From package versions and file counts:
 
 ## Database
 
-- **77 tables** across 15 domains
+- **79 tables** across 15 domains (api_keys + api_key_usage added in session 127)
 - **41 enums**
+- **112 FKs** (99 on-delete CASCADE, 13 SET NULL, 0 RESTRICT/NO ACTION)
 - Counters denormalized on ~15 tables
 - 5 soft-delete tables (users, contentItems, hubs, federatedContent, federatedHubPosts)
-- Dozens of indexes; all unique constraints documented in `02-schema-inventory.md`
+- All unique constraints and indexes documented in `02-schema-inventory.md`
 
 ## Recent session churn
 

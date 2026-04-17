@@ -5,10 +5,10 @@
 See [quickstart.md](quickstart.md) for the full local dev setup. TL;DR:
 
 ```bash
-docker compose up -d        # Start Postgres, Redis, Meilisearch
-pnpm install && pnpm build  # Build all packages
-pnpm db:push                # Push schema to database
-pnpm dev:app                # Start Nuxt dev server → http://localhost:3000
+docker compose up -d                              # Start Postgres, Redis, Meilisearch
+pnpm install && pnpm build                        # Build all packages
+pnpm --filter=@commonpub/schema db:migrate        # Apply committed schema migrations
+pnpm dev:app                                      # Start Nuxt dev server → http://localhost:3000
 ```
 
 ---
@@ -138,8 +138,8 @@ npm install   # or pnpm install
 # 3. Start local infrastructure
 docker compose up -d   # Postgres + Redis + Meilisearch
 
-# 4. Push database schema
-npx drizzle-kit push
+# 4. Apply database migrations (committed SQL from @commonpub/schema)
+npx drizzle-kit migrate
 
 # 5. Configure environment (edit .env)
 #    Required: DATABASE_URL, AUTH_SECRET, NUXT_PUBLIC_SITE_URL

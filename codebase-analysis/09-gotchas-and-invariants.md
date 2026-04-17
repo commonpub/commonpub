@@ -33,29 +33,38 @@ old types. After building locally, copy to the pnpm store or run
 
 ## Database
 
-### `drizzle-kit push` FAILS in CI for new enums
+### Schema deploys via committed migrations, never `drizzle-kit push` (session 128)
 
-`drizzle-kit push` prompts interactively to confirm enum-value additions. CI
-has no TTY → the push hangs, then fails. Session 124 hit this during deploy.
+Schema changes go through `pnpm --filter=@commonpub/schema db:generate` locally
+and are committed as `packages/schema/migrations/000N_*.sql` files. On deploy,
+`scripts/db-migrate.mjs` calls `drizzle-orm/node-postgres/migrator.migrate()`,
+which applies any pending migrations and records state in
+`drizzle.__drizzle_migrations`. No TTY prompts, no silent failures.
 
-**Workaround:**
-- Generate SQL with `pnpm db:generate` and commit it
-- OR apply the enum SQL manually via `psql` on both instances before deploy
-- OR add the enum-creation SQL to a pre-deploy migration script
+**Pre-session-128 history:** deploys ran `drizzle-kit push` via `scripts/db-push.mjs`.
+This blocked in CI on populated-table constraint changes (the prompt checks
+`process.stdin.isTTY`), and when it threw, ALL queued DDL got dropped. Multiple
+weeks of silent drift accumulated — docs `sidebar_label`/`description` columns,
+`api_keys`/`api_key_usage` tables, enum-type conversions on `instance_mirrors`,
+and various FK/constraint renames. Fixed in session 128 along with a deep drift
+audit on both prod DBs. See `docs/sessions/128-docs-and-learn-audit.md`.
 
-Never rely on `drizzle-kit push` in CI for NEW enums. Adding columns to
-existing tables is fine; adding an enum value is NOT.
+**Do NOT** use `drizzle-kit push` in CI. Do NOT use `drizzle-kit migrate` either
+(its `renderWithTask` spinner exits non-zero on success and swallows errors —
+`scripts/db-migrate.mjs` uses the underlying `drizzle-orm` function instead).
+`pnpm db:push` remains fine for local dev iteration against a dev DB.
 
-### `drizzle-kit push` can silently skip changes
+### The baseline migration
 
-Schema changes that conflict with existing data sometimes get skipped without
-a clear error. Always verify new columns actually exist with
-`\d+ <table>` in `psql` after pushing.
+`packages/schema/migrations/0000_session128_baseline.sql` is the captured
+schema state as of 2026-04-17. It's been pre-recorded as applied on both
+prod DBs in `drizzle.__drizzle_migrations`, so `migrate()` skips it on them
+but will apply it cleanly to any fresh install.
 
 ### Postgres connection in containers
 
 - commonpub.io postgres: `docker exec commonpub-postgres-1 psql -U commonpub -d commonpub`
-- deveco.io postgres: `docker exec deveco-app-1 env` to get `NUXT_DATABASE_URL`, then `psql`
+- deveco.io (managed): `docker exec deveco-app-1 env | grep NUXT_DATABASE_URL`, then psql from host via `docker run --rm --network host postgres:16-alpine psql '<url>'`
 
 ## Scaling / multi-instance gotchas
 
@@ -368,9 +377,7 @@ rewriting against the in-process engine.
 
 ### commonpub.io auto-deploys from main
 
-Push to main → GitHub Actions → DigitalOcean → `drizzle-kit push` runs during
-deploy. If push fails (see enum gotcha above), the DEPLOY fails — app stays on
-the old code/schema.
+Push to main → GitHub Actions → DigitalOcean → image builds with `packages/schema/migrations/` baked into `/app/schema/migrations/` → `scripts/db-migrate.mjs` applies any pending migrations. Deploy fails hard on migration errors (exits 1, pipeline stops).
 
 ### deveco.io uses managed DO Postgres
 

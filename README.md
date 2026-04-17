@@ -94,7 +94,7 @@ docker compose up -d
 pnpm install
 pnpm build
 cp .env.example .env
-pnpm db:push
+pnpm --filter=@commonpub/schema db:migrate
 pnpm dev:app
 ```
 
@@ -167,7 +167,7 @@ commonpub/
 └── codebase-analysis/  Exhaustive inventory — every table, route, component, flag, gotcha
 ```
 
-- **77 tables, 41 enums** in the schema across 15 domains
+- **79 tables, 41 enums** in the schema across 15 domains
 - **257 API routes** in the layer
 - **85 pages, 106 components, 20 composables** in the layer
 - **15 feature flags** gating every non-core feature
