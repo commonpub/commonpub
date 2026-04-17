@@ -21,7 +21,10 @@ export default defineEventHandler(async (event) => {
   if (!isAPRequest) return;
 
   const path = getRequestURL(event).pathname;
-  const match = path.match(/^\/hubs\/([a-z0-9][a-z0-9_-]*)\/posts\/([a-zA-Z0-9_-]+)$/);
+  // postId must be a UUID — anything else short-circuits before the drizzle
+  // query, which would otherwise throw on invalid UUID input and 500 for
+  // federation peers that probe bad URIs.
+  const match = path.match(/^\/hubs\/([a-z0-9][a-z0-9_-]*)\/posts\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/);
   if (!match) return;
 
   const config = useConfig();

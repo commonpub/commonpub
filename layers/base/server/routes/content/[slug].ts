@@ -3,12 +3,15 @@ import { contentItems, users } from '@commonpub/schema';
 import { eq, and, isNull } from 'drizzle-orm';
 
 /**
- * Content AP Article endpoint.
- * Serves Article JSON-LD when requested with AP Accept header.
- * Remote instances dereference this URI when processing:
- * - Create activities (content federation)
- * - Announce activities (hub share federation)
- * - Like/Boost activities targeting content
+ * Legacy content URI: /content/:slug
+ *
+ * AP clients (Accept: application/activity+json) get Article JSON-LD —
+ * remote instances still dereference this legacy URI when processing old
+ * Create/Announce/Like activities created before the URL restructure.
+ *
+ * Browsers get a 301 redirect to the canonical /u/:author/:type/:slug URL.
+ * Anything else would be a dead 204 (this is a server route, not middleware,
+ * and there's no Nuxt page at /content/:slug to fall through to).
  */
 export default defineEventHandler(async (event) => {
   const accept = getRequestHeader(event, 'accept') ?? '';
@@ -16,14 +19,12 @@ export default defineEventHandler(async (event) => {
     accept.includes('application/activity+json') ||
     accept.includes('application/ld+json');
 
-  if (!isAPRequest) return;
+  const slug = getRouterParam(event, 'slug');
+  if (!slug) {
+    throw createError({ statusCode: 404, statusMessage: 'Not Found' });
+  }
 
   const config = useConfig();
-  if (!config.features.federation) return;
-
-  const slug = getRouterParam(event, 'slug');
-  if (!slug) return;
-
   const db = useDB();
   const domain = config.instance.domain;
 
@@ -44,12 +45,23 @@ export default defineEventHandler(async (event) => {
     ))
     .limit(1);
 
-  if (!row) return;
+  if (!row) {
+    throw createError({ statusCode: 404, statusMessage: 'Content not found' });
+  }
+
+  // Browser: redirect to canonical URL.
+  if (!isAPRequest) {
+    return sendRedirect(event, `/u/${row.author.username}/${row.content.type}/${row.content.slug}`, 301);
+  }
+
+  // AP: serve Article JSON-LD.
+  if (!config.features.federation) {
+    throw createError({ statusCode: 404, statusMessage: 'Federation disabled' });
+  }
 
   setResponseHeader(event, 'content-type', 'application/activity+json');
 
-  // Render the content as an AP Article with all CommonPub extensions
-  const article = contentToArticle(
+  return contentToArticle(
     {
       id: row.content.id,
       type: row.content.type,
@@ -66,6 +78,4 @@ export default defineEventHandler(async (event) => {
     { username: row.author.username, displayName: row.author.displayName ?? row.author.username },
     domain,
   );
-
-  return article;
 });
