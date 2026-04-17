@@ -68,6 +68,10 @@ This file is the short version.
 
 - **Never `prerender: true` on data-fetching routes.** Docker build has no DB; the prerenderer saves 500 HTML as the static output and ships it. Use `swr: 60` or `isr: true` (runtime + cache) instead. See `codebase-analysis/09-gotchas-and-invariants.md`.
 
+## Security
+
+- **Every `v-html` in `@commonpub/explainer` must wrap with `sanitizeHtml()`** from `packages/explainer/vue/utils/sanitize.ts` at the render site. `clickable-cards/Viewer.vue` and `toggle/Viewer.vue` missed this (session 127 fix) — stored XSS vector for any registered user, also reachable via federation. Don't rely on ingest-side sanitization alone; audit rule is `grep -rn 'v-html=' packages/explainer/` and require `sanitizeHtml(` in the same file.
+
 ## Nitro server/routes vs server/middleware
 
 - **`server/routes/foo/[x].ts` returning `undefined` sends HTTP 204 — it does NOT fall through to a Nuxt page at the same path.** If you need "AP response for AP Accept, render the Nuxt page for browsers" at the same URL, it MUST live in `server/middleware/` not `server/routes/`. Only middleware lets undefined fall through. This bit `/hubs/:slug` and `/hubs/:slug/posts/:postId` (session 127) — every hub detail page returned 204 with an empty body on refresh. `server/middleware/content-ap.ts` has the canonical docstring spelling out this rule. Before adding a new AP endpoint at a URL that has a Nuxt page, check that it's middleware, not a route.

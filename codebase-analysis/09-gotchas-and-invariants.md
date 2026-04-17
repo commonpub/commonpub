@@ -289,7 +289,22 @@ at the DB level. The server enforces dedupe via a pre-insert check, but a
 race between two requests for the same user could create duplicates. Low
 priority but known.
 
-## UI / theming
+## Security
+
+### Every v-html in @commonpub/explainer must go through sanitizeHtml()
+
+Explainer modules are user-authored and federate. Each `v-html="..."` must
+wrap with `sanitizeHtml(...)` from `packages/explainer/vue/utils/sanitize.ts`
+at the render site, regardless of whether ingest also sanitizes. Session 127
+found `modules/clickable-cards/Viewer.vue` (`card.detail`) and
+`modules/toggle/Viewer.vue` (`descriptionA/B`) both rendering raw HTML — a
+stored-XSS vector any registered user could exploit, and any remote instance
+could push via federation. `SectionRenderer`, `ConclusionRenderer`,
+`BlockRenderer`, and the per-block viewers are the canonical pattern to
+follow.
+
+**Audit rule**: `grep -rn 'v-html=' packages/explainer/` — every hit should
+also have `sanitizeHtml(` somewhere visible in the same `<script setup>`.
 
 ### No hardcoded colors or fonts
 
