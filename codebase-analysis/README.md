@@ -47,6 +47,7 @@ Not to be confused with the stale `/Users/obsidian/Projects/commonpub/` director
 10. [`10-doc-audit.md`](./10-doc-audit.md) — Which existing docs are fresh, stale, contradictory, missing
 11. [`11-codebase-stats.md`](./11-codebase-stats.md) — Line counts, test counts, package sizes
 12. [`12-scaling-and-infrastructure.md`](./12-scaling-and-infrastructure.md) — What breaks first under load, Fedify/Redis analysis, DigitalOcean-specific scaling path
+13. [`13-architecture-patterns.md`](./13-architecture-patterns.md) — Recommended architecture for a site like this: per-route rendering matrix, queue pattern, cache layers, anti-patterns, TL;DR stack
 
 ## Regenerating
 
