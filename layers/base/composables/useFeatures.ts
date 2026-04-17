@@ -20,18 +20,35 @@ export interface FeatureFlags {
 
 let hydrated = false;
 
-const DEFAULT_FLAGS: FeatureFlags = {
+// Shared default shape. Exported so feature-gate middleware can use the same
+// initializer — if the middleware runs before useFeatures() and initializes
+// the 'feature-flags' state to a different value, useFeatures()'s own
+// initializer is skipped (Nuxt useState only inits once per key), and any
+// `flags.value.X` access would crash at runtime.
+export const DEFAULT_FLAGS: FeatureFlags = {
   content: true, social: true, hubs: true, docs: true, video: true,
   contests: false, events: false, learning: true, explainers: true,
   editorial: true, federation: false, admin: false, emailNotifications: false,
 };
 
-export function useFeatures() {
+/** Build the initial flags by merging the layer's runtime config over defaults. */
+export function getInitialFlags(): FeatureFlags {
   const config = useRuntimeConfig();
-  const buildFlags = (config.public.features as unknown as FeatureFlags) ?? DEFAULT_FLAGS;
+  const buildFlags = (config.public.features as unknown as Partial<FeatureFlags> | undefined) ?? {};
+  return { ...DEFAULT_FLAGS, ...buildFlags };
+}
 
-  // Shared reactive state — initialized from build-time config
-  const flags = useState<FeatureFlags>('feature-flags', () => ({ ...DEFAULT_FLAGS, ...buildFlags }));
+export function useFeatures() {
+  // Shared reactive state — initialized from build-time config.
+  // Uses the shared getInitialFlags() so middleware and composable agree on
+  // the default shape (see the DEFAULT_FLAGS export note above).
+  const flags = useState<FeatureFlags>('feature-flags', getInitialFlags);
+
+  // Defensive: if another consumer poisoned the state to null/undefined
+  // before we ran, repair it here so .value.X accesses don't crash.
+  if (flags.value == null) {
+    flags.value = getInitialFlags();
+  }
 
   // On client, fetch dynamic features once to pick up DB overrides
   if (import.meta.client && !hydrated) {
