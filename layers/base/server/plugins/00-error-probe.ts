@@ -25,9 +25,12 @@ export default defineNitroPlugin((nitro) => {
     }
 
     // Mutate the statusMessage so it shows up in the JSON response body
-    // even in production. Includes first line of message.
+    // even in production. Includes first few stack frames.
     if (err.statusMessage === undefined || err.statusMessage === 'Server Error') {
-      err.statusMessage = `PROBE[${path}]: ${origMessage.slice(0, 180)}`;
+      const firstFrames = err.stack
+        ? err.stack.split('\n').slice(0, 6).join(' || ')
+        : 'no-stack';
+      err.statusMessage = `PROBE[${path}]: ${origMessage.slice(0, 120)} @ ${firstFrames.slice(0, 500)}`;
     }
   });
 });
