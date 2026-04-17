@@ -40,20 +40,26 @@ export async function authenticateApiKey(db: DB, rawToken: string | undefined): 
   const prefix = extractPrefix(rawToken);
   if (!prefix) return { ok: false, reason: 'malformed' };
 
-  const [row] = await db
+  // 24-char prefix (11 random chars past the fixed head) makes collisions
+  // astronomically unlikely, but we still iterate defensively — a future
+  // prefix-length change or a monstrously-unlucky collision should never
+  // silently reject a valid key. Match count is effectively always 0 or 1
+  // in practice, so the loop cost is negligible.
+  const rows = await db
     .select()
     .from(apiKeys)
-    .where(and(eq(apiKeys.prefix, prefix), isNull(apiKeys.revokedAt)))
-    .limit(1);
+    .where(and(eq(apiKeys.prefix, prefix), isNull(apiKeys.revokedAt)));
 
-  if (!row) return { ok: false, reason: 'not_found' };
+  if (rows.length === 0) return { ok: false, reason: 'not_found' };
 
   const providedHash = hashApiKey(rawToken);
-  if (!compareKeyHash(providedHash, row.keyHash)) return { ok: false, reason: 'not_found' };
-
-  if (row.expiresAt && row.expiresAt.getTime() < Date.now()) {
-    return { ok: false, reason: 'expired' };
+  for (const row of rows) {
+    if (!compareKeyHash(providedHash, row.keyHash)) continue;
+    if (row.expiresAt && row.expiresAt.getTime() < Date.now()) {
+      return { ok: false, reason: 'expired' };
+    }
+    return { ok: true, key: row };
   }
 
-  return { ok: true, key: row };
+  return { ok: false, reason: 'not_found' };
 }

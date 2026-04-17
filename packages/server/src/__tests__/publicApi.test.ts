@@ -21,7 +21,7 @@ describe('publicApi/keys', () => {
   it('generates a token, prefix, and hash that round-trip', () => {
     const { token, prefix, keyHash } = generateApiKey();
     expect(token.startsWith('cpub_live_ak_')).toBe(true);
-    expect(prefix.length).toBe(16);
+    expect(prefix.length).toBe(24);
     expect(token.startsWith(prefix)).toBe(true);
     expect(keyHash).toBe(hashApiKey(token));
     expect(compareKeyHash(hashApiKey(token), keyHash)).toBe(true);

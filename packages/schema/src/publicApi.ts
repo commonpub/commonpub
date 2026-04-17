@@ -13,7 +13,7 @@ import { users } from './auth.js';
 export const apiKeys = pgTable('api_keys', {
   id: uuid('id').defaultRandom().primaryKey(),
   name: varchar('name', { length: 120 }).notNull(),
-  prefix: varchar('prefix', { length: 16 }).notNull(),
+  prefix: varchar('prefix', { length: 32 }).notNull(),
   keyHash: varchar('key_hash', { length: 64 }).notNull(),
   scopes: jsonb('scopes').$type<string[]>().notNull().default([]),
   description: text('description'),

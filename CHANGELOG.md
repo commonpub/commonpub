@@ -7,9 +7,66 @@ monorepo working period. For session-level detail, see [`docs/sessions/`](./docs
 
 ---
 
-## Unreleased (sessions 108–125, through 2026-04-16)
+## Unreleased (sessions 108–127, through 2026-04-17)
 
-Monorepo state at time of writing: schema 0.13.0, server 2.43.0, config 0.10.0,
+Monorepo state at time of writing: schema 0.14.1, server 2.44.1, config 0.11.0,
+layer 0.16.0, ui 0.8.5, protocol 0.9.9, editor 0.7.9, explainer 0.7.12,
+learning 0.5.0, docs 0.6.2, auth 0.5.1, infra 0.5.1, test-utils 0.5.3.
+
+### Session 127 — Deep audit + Public Read API (2026-04-17)
+
+**Security (critical):**
+- `/api/content` and `/api/learn` no longer leak drafts to anonymous callers
+  when `?status=draft` is passed. Non-owner status values are whitelisted to
+  `{published, archived}`, same pattern as the session-125 `/api/events` fix.
+- Stored-XSS in `@commonpub/explainer` `clickable-cards` and `toggle` Viewer
+  components patched — both now call `sanitizeHtml()` at render.
+
+**Correctness — 204/500 fixes on refresh:**
+- `/hubs/:slug` and `/hubs/:slug/posts/:postId` no longer return HTTP 204
+  (Nitro `server/routes/*.ts` returning undefined sends 204, not a
+  fall-through — both moved to `server/middleware/`).
+- `/content/:slug` now 301-redirects browsers to canonical
+  `/u/:author/:type/:slug`; AP peers still get Article JSON-LD.
+- `/@username` (WebFinger profile URL) now 301-redirects to `/u/:user` or
+  `/hubs/:slug` instead of rendering a broken catchall.
+- `pages/[type]/index.vue` catchall now 404s on paths that aren't enabled
+  content types (`/foo`, `/wp-admin`, `/_nitro`, `/.env`).
+- AP GET `/hubs/:slug/posts/:postId` with non-UUID postId returns 404, not
+  500.
+
+**Added — Public Read API v1 (`features.publicApi`, default OFF):**
+- Admin-provisioned Bearer-token API at `/api/public/v1/*`. Deploying this
+  code changes nothing on running instances until an admin opts in.
+- Schema: `api_keys` + `api_key_usage` tables. Prefix 24 chars (11 random)
+  for astronomically-unlikely collisions; auth loop still iterates prefix
+  matches defensively.
+- 14 read-only scopes (`read:content`, `read:hubs`, `read:users`,
+  `read:learn`, `read:events`, `read:contests`, `read:videos`, `read:docs`,
+  `read:tags`, `read:search`, `read:federation`, `read:instance`,
+  `read:*`).
+- Phase-1 endpoints: content list/detail, hubs list/detail, users
+  list/detail, instance metadata.
+- Admin UI at `/admin/api-keys`: one-time token reveal with clipboard copy,
+  scope checklist, per-key rate limit, optional CORS allow-list.
+- Safety: allow-list serializers — every response field is explicitly named,
+  new DB columns excluded until someone edits the `to*` helper. 31 tests
+  including a constructed prefix-collision scenario.
+- See [`docs/public-api.md`](./docs/public-api.md) for the reference.
+
+**New gotchas documented** (`codebase-analysis/09-gotchas-and-invariants.md`
++ `docs/llm/gotchas.md`):
+- Nitro `server/routes/*.ts` returning `undefined` sends HTTP 204, not
+  fall-through — use `server/middleware/` for content-negotiated paths
+  that share a URL with a Nuxt page.
+- Public API serializers are ALLOW-lists. Never spread rows into responses;
+  integration tests assert known-private field names never appear.
+- Every `v-html` in `@commonpub/explainer` must wrap with `sanitizeHtml()`
+  at the render site.
+
+## Previously tracked (sessions 108–125, through 2026-04-16)
+
+Monorepo state at end of session 125: schema 0.13.0, server 2.43.0, config 0.10.0,
 layer 0.15.2, ui 0.8.5, protocol 0.9.9, editor 0.7.9, explainer 0.7.11,
 learning 0.5.0, docs 0.6.2, auth 0.5.1, infra 0.5.1, test-utils 0.5.3.
 

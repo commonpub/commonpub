@@ -3,13 +3,20 @@ import { randomBytes, createHash, timingSafeEqual } from 'node:crypto';
 /**
  * Raw-token format: `cpub_<env>_<type>_<32 random bytes base64url>`.
  *
- * - Prefix is fixed at 16 chars so every key has the same indexable head;
- *   secret scanners (GitGuardian, Gitleaks) recognise the literal.
+ * - PREFIX_BASE is the fixed literal secret scanners (GitGuardian, Gitleaks)
+ *   recognise.
+ * - PREFIX_LENGTH is how many chars of the token we index for O(1) lookup.
+ *   It includes PREFIX_BASE plus enough random chars that prefix collisions
+ *   are astronomical. Earlier drafts of this module used length 16 (only 3
+ *   random chars) — at the birthday bound that gave ~2% collision at 100
+ *   keys. Current length 24 gives 11 random chars = 64^11 ≈ 2^66 distinct
+ *   prefixes, so collisions are a practical impossibility — and the auth
+ *   path still loops defensively in case one ever happens.
  * - 32 random bytes → 256 bits entropy → SHA-256 for storage is fine
  *   (bcrypt's KDF cost only matters for low-entropy user-chosen secrets).
  */
 const PREFIX_BASE = 'cpub_live_ak_';
-const PREFIX_LENGTH = 16;
+const PREFIX_LENGTH = 24;
 
 export interface GeneratedKey {
   /** Raw token shown to the admin ONCE. Never store this. */
