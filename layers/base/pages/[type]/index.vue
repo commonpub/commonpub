@@ -1,10 +1,19 @@
 <script setup lang="ts">
 import type { Serialized, ContentListItem, PaginatedResponse } from '@commonpub/server';
+import type { ContentType } from '../../composables/useContentTypes';
 
 const route = useRoute();
 const contentType = computed(() => route.params.type as string);
 const siteName = useSiteName();
 const { user } = useAuth();
+const { isTypeEnabled } = useContentTypes();
+
+// Hard 404 for any path that isn't an enabled content type — this catch-all
+// route would otherwise match /foo, /@username, /wp-admin, /.env, etc. and
+// render a broken empty listing with the URL segment as the "type".
+if (!isTypeEnabled(contentType.value as ContentType)) {
+  throw createError({ statusCode: 404, statusMessage: 'Not Found' });
+}
 
 useSeoMeta({
   title: () => `${contentType.value} — ${siteName}`,
