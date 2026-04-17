@@ -347,6 +347,6 @@ Install only what you need. `@commonpub/server` pulls in everything.
 ## Getting Help
 
 - [GitHub Issues](https://github.com/commonpub/commonpub/issues)
-- [Architecture docs](https://github.com/commonpub/commonpub/blob/main/docs/architecture.md)
-- [API reference](https://github.com/commonpub/commonpub/tree/main/docs/reference)
-- [Feature flags guide](https://github.com/commonpub/commonpub/blob/main/docs/reference/guides/feature-flags.md)
+- [Developers guide](https://github.com/commonpub/commonpub/blob/main/docs/guides/developers.md)
+- [Codebase analysis](https://github.com/commonpub/commonpub/tree/main/codebase-analysis) — exhaustive inventory of schema, server modules, API routes
+- [Feature flags inventory](https://github.com/commonpub/commonpub/blob/main/codebase-analysis/08-feature-flags-inventory.md)

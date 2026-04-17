@@ -3,6 +3,12 @@
 Assessment of `docs/*.md`, `docs/adr/`, `docs/reference/`, and package READMEs
 as of session 125. Source: full read-through of every file vs current code.
 
+> **Status as of session 126:** the archival recommendations in this audit
+> have been applied. Files flagged STALE / archive-candidate now live under
+> `docs/archive/`. Tables below describe the state *at the time of audit*
+> for historical context; links to those files resolve under `docs/archive/`
+> now. Paths to CURRENTLY canonical docs are the fresh ones in the table.
+
 ## Summary
 
 - `docs/sessions/` — **authoritative** for recent changes; trusted
