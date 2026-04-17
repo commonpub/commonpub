@@ -189,6 +189,56 @@ This session's repo changes must land in a specific order:
    push `main` → rebuild image (Dockerfile now copies the migrations
    folder from node_modules) → deploy runs migrate → exit 0.
 
+## Deep audit follow-up (post-deploy)
+
+After both deploys succeeded, a second pass compared each prod DB to the
+baseline migration snapshot. Additional drift was found on deveco
+(commonpub came out clean except for 3 cosmetic PG-identifier-truncation
+diffs that are unavoidable and harmless with migrate).
+
+Deveco drift fixed in this pass (all applied directly to prod; baseline
+migration remains the single source of truth going forward):
+
+- **40 FK constraint names** still used PG's `*_fkey` default instead of
+  drizzle's `{table}_{col}_{ref_table}_{ref_col}_fk` convention. Renamed
+  in a single transaction via `ALTER TABLE ... RENAME CONSTRAINT`. Had
+  any future schema change touched one of these FKs, the generated
+  migration would have referenced the wrong name and failed on deveco.
+- **3 missing enum values**: `comment_target_type.video`,
+  `contest_status.cancelled`, `like_target_type.video`. Added via
+  `ALTER TYPE ADD VALUE IF NOT EXISTS`. Never applied via push because of
+  the same TTY-prompt block.
+- **1 extra unique constraint**: `content_items_slug_unique` (global
+  uniqueness on slug). Dropped — schema enforces uniqueness via the
+  composite `(author_id, type, slug)` only.
+- **10 missing performance indexes** (`idx_bookmarks_user_id`,
+  `idx_fedcontent_*`, `idx_files_hub_id`, `idx_hub_followers_fed_hub`,
+  `idx_hub_post_likes_user_id`, `idx_lesson_progress_user_id`). Created.
+- **1 extra redundant index**: `idx_fedhubposts_object_uri` (duplicated
+  the backing index of the existing unique constraint). Dropped.
+- **`hub_followers_fed.status`** was `varchar(32)` on deveco, schema
+  expected `follow_relationship_status` enum. Converted in place (table
+  is empty on deveco, so USING cast was safe).
+
+Post-fix verification:
+- Column sets: both DBs have identical 732 columns.
+- Enum sets: both DBs have 41 enums with identical value orderings.
+- Index sets: both DBs have 247 indexes matching baseline.
+- UFK constraints: match baseline except for the 3 cosmetic PG truncation
+  diffs (same on both DBs).
+- `node scripts/db-migrate.mjs` exits 0 (`db:migrate succeeded`) on both.
+- End-to-end curl smoke: all 200 on commonpub (docs, learn, public API,
+  viewer pages); deveco correctly 404s feature-gated docs routes.
+
+**Why none of this was caught before the deploys.** The end-to-end deploy
+succeeded because `drizzle-orm`'s `migrate()` is idempotent at the
+migration level, not the statement level — it saw the baseline hash was
+already recorded in `drizzle.__drizzle_migrations` and ran zero SQL.
+That's correct behavior but it means one-time drift inherited from the
+push era was invisible until a future schema change tried to reference
+the non-canonical names. Catching it now means the next `drizzle-kit
+generate` won't emit surprise rename statements.
+
 ## Open / not done
 
 - Quiz security (findings 1 & 2 above) — separate fix.
@@ -197,3 +247,8 @@ This session's repo changes must land in a specific order:
   `smoke.spec.ts:132`) yet; docs-related ones should now clear once the
   deploy lands.
 - `audittest` user cleanup (session 127 incident) — admin's call.
+- `drizzle-kit push` (as a diagnostic tool only — not used in CI) still
+  emits a spurious `content_builds_user_content` prompt on deveco.
+  Drizzle-kit 0.31.10 bug: it fails to recognize an existing unique
+  constraint when the table has rows. Since CI uses migrate, this has no
+  production impact; worth remembering if anyone runs push locally.
