@@ -105,6 +105,30 @@ but returns 404 or "Cannot find module" on the deployed instance.
 **Fix:** ensure the import is reachable through the root index; if it's from
 a subpath, add it to `nitro.externals.inline` in nuxt.config.
 
+### Never use `prerender: true` on routes that fetch from `/api/*`
+
+The Docker build stage in `Dockerfile` runs `pnpm build` with **no database
+available** (DB is a separate service in docker-compose, not reachable
+during image build). If a Nuxt `routeRules` entry sets `prerender: true`
+on a data-fetching route, the prerenderer:
+
+1. Spins up a temporary server
+2. Calls the page's `useFetch('/api/...')`
+3. The API queries the DB, which fails
+4. Nitro saves the ERROR HTML as the prerendered output
+5. **Production serves the pre-baked 500 for every request to that route**
+6. Because `crawlLinks: true` is default, the failure propagates to every
+   linked page reachable from the initial prerender target — so setting
+   `/docs/**: prerender: true` silently breaks `/learn` and `/videos` too
+   if their nav links are discovered during the crawl.
+
+This was the root cause of the long-running commonpub.io 500-on-refresh
+bug (session 126). Fix: removed the `/docs/**` rule entirely.
+
+If you need caching, use `swr: 60` (stale-while-revalidate at runtime)
+or `isr: true` — these render at runtime with real DB, then cache. NEVER
+use `prerender: true` for a page that fetches content.
+
 ### `server/utils/config.ts` is the Nitro-side config resolver
 
 Every CommonPub instance ships this file. It's NOT a trivial re-export — it

@@ -63,3 +63,7 @@ This file is the short version.
 - **Session logs are the source of truth for recent changes.** When reference docs contradict session logs, trust the log.
 - **CHANGELOG** has an Unreleased section covering sessions 108–125. Previous tagged release: v0.2.0 (2026-03-23).
 - **Handoff prompts** in `docs/sessions/NNN-handoff-prompt.md` are context-reset notes. Load the most recent if continuing work.
+
+## Build-time prerender
+
+- **Never `prerender: true` on data-fetching routes.** Docker build has no DB; the prerenderer saves 500 HTML as the static output and ships it. Was the root cause of the long-running commonpub.io 500-on-refresh bug — `/docs/**` was set to prerender, then `crawlLinks` propagated failures to `/learn` and `/videos`. Use `swr: 60` or `isr: true` (runtime + cache) instead. See `codebase-analysis/09-gotchas-and-invariants.md`.
