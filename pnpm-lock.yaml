@@ -143,8 +143,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/editor
       '@commonpub/explainer':
-        specifier: ^0.7.11
-        version: 0.7.11(4825b4966e3ef593dc40bcf556406cb4)
+        specifier: ^0.7.12
+        version: 0.7.12(4825b4966e3ef593dc40bcf556406cb4)
       '@commonpub/learning':
         specifier: workspace:*
         version: link:../../packages/learning
@@ -1244,6 +1244,15 @@ packages:
 
   '@commonpub/explainer@0.7.11':
     resolution: {integrity: sha512-RbmRIAIhKd4b1YMZ66auvYmjGvXvTINx7KLLJotaAeqv+4tsubUb1AylvkWJ5fxLpH7g1Xq+ABXe4tevoqvVOA==}
+    engines: {node: '>=22'}
+    peerDependencies:
+      vue: ^3.4.0
+    peerDependenciesMeta:
+      vue:
+        optional: true
+
+  '@commonpub/explainer@0.7.12':
+    resolution: {integrity: sha512-G/MFv/hMSaW3V5gkCMZzFyvpLaOG36AR8ogQpgZ3+W/G/jDiex8x+6TcsjGNEUtXmtbBMq9XOxGffq/EzRufMg==}
     engines: {node: '>=22'}
     peerDependencies:
       vue: ^3.4.0
@@ -7329,11 +7338,6 @@ packages:
   sprintf-js@1.0.3:
     resolution: {integrity: sha512-D9cPgkvLlV3t3IzL0D0YLvGA9Ahk4PcvVwUbN0dSGr1aP0Nrt4AEnTUbuGvquEC0mA64Gqt1fzirlRs5ibXx8g==}
 
-  srvx@0.11.13:
-    resolution: {integrity: sha512-oknN6qduuMPafxKtHucUeG32Q963pjriA5g3/Bl05cwEsUe5VVbIU4qR9LrALHbipSCyBe+VmfDGGydqazDRkw==}
-    engines: {node: '>=20.16.0'}
-    hasBin: true
-
   srvx@0.11.15:
     resolution: {integrity: sha512-iXsux0UcOjdvs0LCMa2Ws3WwcDUozA3JN3BquNXkaFPP7TpRqgunKdEgoZ/uwb1J6xaYHfxtz9Twlh6yzwM6Tg==}
     engines: {node: '>=20.16.0'}
@@ -9472,6 +9476,34 @@ snapshots:
       - drizzle-orm
       - supports-color
 
+  '@commonpub/explainer@0.7.12(4825b4966e3ef593dc40bcf556406cb4)':
+    dependencies:
+      '@commonpub/config': 0.10.0
+      '@commonpub/editor': 0.7.9(4825b4966e3ef593dc40bcf556406cb4)
+      '@commonpub/schema': 0.13.0(drizzle-orm@0.45.2(@electric-sql/pglite@0.3.16)(@opentelemetry/api@1.9.1)(gel@2.2.0)(kysely@0.28.14)(pg@8.20.0))
+      zod: 4.3.6
+    optionalDependencies:
+      vue: 3.5.32(typescript@5.9.3)
+    transitivePeerDependencies:
+      - '@tiptap/core'
+      - '@tiptap/extension-bold'
+      - '@tiptap/extension-bullet-list'
+      - '@tiptap/extension-code'
+      - '@tiptap/extension-document'
+      - '@tiptap/extension-history'
+      - '@tiptap/extension-horizontal-rule'
+      - '@tiptap/extension-italic'
+      - '@tiptap/extension-link'
+      - '@tiptap/extension-list-item'
+      - '@tiptap/extension-ordered-list'
+      - '@tiptap/extension-paragraph'
+      - '@tiptap/extension-placeholder'
+      - '@tiptap/extension-strike'
+      - '@tiptap/extension-text'
+      - '@tiptap/pm'
+      - drizzle-orm
+      - supports-color
+
   '@commonpub/infra@0.5.1(@aws-sdk/client-s3@3.1030.0)(sharp@0.34.5)':
     optionalDependencies:
       '@aws-sdk/client-s3': 3.1030.0
@@ -10628,7 +10660,7 @@ snapshots:
       pkg-types: 2.3.0
       scule: 1.3.0
       semver: 7.7.4
-      srvx: 0.11.13
+      srvx: 0.11.15
       std-env: 3.10.0
       tinyclip: 0.1.12
       tinyexec: 1.0.2
@@ -16479,8 +16511,6 @@ snapshots:
   split2@4.2.0: {}
 
   sprintf-js@1.0.3: {}
-
-  srvx@0.11.13: {}
 
   srvx@0.11.15: {}
 
