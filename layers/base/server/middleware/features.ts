@@ -21,12 +21,25 @@ export default defineEventHandler((event) => {
 
   for (const [prefix, feature] of Object.entries(ROUTE_FEATURE_MAP)) {
     if (pathname === prefix || pathname.startsWith(prefix + '/')) {
-      const config = useConfig();
-      const flags = config.features as unknown as Record<string, boolean>;
-      if (!flags[feature]) {
-        throw createError({ statusCode: 404, statusMessage: 'Not Found' });
+      // DEBUG (session 126 SSR-500 probe): surface real errors
+      try {
+        const config = useConfig();
+        const flags = config.features as unknown as Record<string, boolean>;
+        if (!flags[feature]) {
+          throw createError({ statusCode: 404, statusMessage: 'Not Found' });
+        }
+        return;
+      } catch (err: unknown) {
+        // Re-throw 404s unchanged
+        if (err && typeof err === 'object' && 'statusCode' in err && (err as { statusCode: number }).statusCode === 404) {
+          throw err;
+        }
+        const msg = err instanceof Error ? err.message : String(err);
+        throw createError({
+          statusCode: 500,
+          statusMessage: `feature-gate[${prefix}→${feature}]: ${msg.slice(0, 200)}`,
+        });
       }
-      return;
     }
   }
 });
