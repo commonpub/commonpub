@@ -215,9 +215,11 @@ If you notice a response leaking any of the above, treat it as a security bug an
 
 ## CORS
 
-By default, no `Access-Control-Allow-Origin` headers are sent — the API is designed for server-to-server use, and browsers will block cross-origin calls.
+By default, no `Access-Control-Allow-Origin` headers are sent on actual (non-preflight) responses — the API is designed for server-to-server use, and browsers will block cross-origin calls.
 
-Per-key CORS allow-lists can be configured at creation time (`allowedOrigins: ["https://app.example.com"]`). When a request's `Origin` matches, the server reflects it in `Access-Control-Allow-Origin` and advertises `Vary: Origin`. Leave this blank unless you explicitly need browser access.
+Per-key CORS allow-lists can be configured at creation time (`allowedOrigins: ["https://app.example.com"]`). When a real request's `Origin` matches, the server reflects it in `Access-Control-Allow-Origin` and advertises `Vary: Origin`. Leave this blank unless you explicitly need browser access.
+
+Preflight (`OPTIONS`) requests bypass authentication (they have to — the browser doesn't include the `Authorization` header on preflight), and echo any `Origin` so the browser can decide whether to proceed to the real request. The real request then goes through the per-key allow-list check.
 
 ## Versioning and deprecation
 
@@ -237,3 +239,7 @@ Per-key CORS allow-lists can be configured at creation time (`allowedOrigins: ["
 Click **Revoke** in the key table. Soft-delete — the `apiKeyUsage` history is preserved; the key is immediately rejected on next request.
 
 Rotation: revoke, then create a new key and hand it off. There's no in-place "rotate" button because atomic rotation requires cutover coordination with the consumer; explicit revoke-and-issue is safer.
+
+## Audit trail
+
+Every `POST /api/admin/api-keys` and `DELETE /api/admin/api-keys/:id` writes to the instance `audit_logs` table with actions `api_key.create` and `api_key.revoke`. The token itself is never audited — only `id`, `name`, `scopes`, and (for create) `expiresAt` + `rateLimitPerMinute` land in the audit metadata. Per-request traffic goes to a separate `api_key_usage` table for analytics; that table only records the key id, endpoint path (no query string), HTTP status, and latency.

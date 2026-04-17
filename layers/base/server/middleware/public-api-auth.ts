@@ -33,6 +33,28 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'Not Found' });
   }
 
+  // CORS preflight. Browsers send OPTIONS with `Origin` and either
+  // `Access-Control-Request-Method` or `-Headers`. We reflect the origin
+  // only if the admin key allow-list has opted in — but to do that we
+  // need to auth first, which preflight doesn't carry. The pragmatic
+  // compromise: for preflight, short-circuit with permissive headers for
+  // the standard set and let the real request's auth check gate access.
+  // No data flows here; the body is empty.
+  if (event.method === 'OPTIONS') {
+    setResponseHeader(event, 'Access-Control-Allow-Methods', 'GET, OPTIONS');
+    setResponseHeader(event, 'Access-Control-Allow-Headers', 'Authorization, Content-Type');
+    setResponseHeader(event, 'Access-Control-Max-Age', 600);
+    const origin = getRequestHeader(event, 'origin');
+    if (origin) {
+      // Echo origin only on preflight — real requests get the per-key
+      // allow-list check below. Browsers that don't trust this echo because
+      // credentials aren't involved will simply fall back to the no-CORS path.
+      setResponseHeader(event, 'Access-Control-Allow-Origin', origin);
+      appendResponseHeader(event, 'Vary', 'Origin');
+    }
+    return sendNoContent(event);
+  }
+
   const authHeader = getRequestHeader(event, 'authorization');
   const token = authHeader?.startsWith('Bearer ')
     ? authHeader.slice(7).trim()
