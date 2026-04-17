@@ -17,7 +17,7 @@ A scoped, admin-provisioned REST API for reading CommonPub data from outside the
 
 ## Status and scope
 
-- **v1** — read-only.
+- **v1** — read-only, phase 2 expanded coverage.
 - Feature-flagged off by default. Admin must enable `features.publicApi = true` in `commonpub.config.ts` or via the admin settings panel before any `/api/public/v1/*` route responds.
 - When the flag is off, every endpoint returns `404 Not Found` — the API surface is invisible on instances that haven't opted in.
 - Write scopes, webhook subscriptions, and GraphQL are explicitly deferred to later phases.
@@ -50,18 +50,18 @@ Scopes are read-only in v1. A key must hold the listed scope for each endpoint. 
 
 | Scope | Allows |
 |---|---|
-| `read:content` | `/content`, `/content/:slug` |
+| `read:content` | `/content`, `/content/:slug`, `/search` |
 | `read:hubs` | `/hubs`, `/hubs/:slug` |
 | `read:users` | `/users`, `/users/:username` |
 | `read:instance` | `/instance` |
-| `read:learn` | (future) `/learn/*` |
-| `read:events` | (future) `/events/*` |
-| `read:contests` | (future) `/contests/*` |
-| `read:videos` | (future) `/videos/*` |
-| `read:docs` | (future) `/docs/*` |
-| `read:tags` | (future) `/tags/*` |
-| `read:search` | (future) `/search` |
-| `read:federation` | (future) federated content and instance metadata |
+| `read:learn` | `/learn`, `/learn/:slug` |
+| `read:events` | `/events`, `/events/:slug` (feature-gated) |
+| `read:contests` | `/contests`, `/contests/:slug` (feature-gated) |
+| `read:videos` | `/videos`, `/videos/:id` (feature-gated) |
+| `read:docs` | `/docs`, `/docs/:slug` (feature-gated) |
+| `read:tags` | `/tags` |
+| `read:search` | `/search` |
+| `read:federation` | (reserved for phase 3) |
 | `read:*` | every `read:...` scope |
 
 A wrong-scope request returns `403 Missing scope: <scope>`.
@@ -160,6 +160,38 @@ Users with `profileVisibility != 'public'`, deleted users, and suspended account
 
 Scope: `read:users`. Single user public profile.
 
+### `GET /api/public/v1/learn`, `/learn/:slug`
+
+Scope: `read:learn`. Requires `features.learning`. List published learning paths or fetch a single one. Fields: id, title, slug, description, coverImageUrl, difficulty, lessonCount, enrollmentCount, publishedAt, createdAt, author, canonicalUrl.
+
+### `GET /api/public/v1/events`, `/events/:slug`
+
+Scope: `read:events`. Requires `features.events`. Non-owner status filter whitelisted to `{published, active, completed}`; anything else coerces to no filter (same pattern as the internal `/api/events` hardening). Fields include eventType, status, location, locationUrl, startAt, endAt, timezone, capacity, attendeeCount, waitlistCount, hubId, host, canonicalUrl.
+
+### `GET /api/public/v1/contests`, `/contests/:slug`
+
+Scope: `read:contests`. Requires `features.contests`. Only `upcoming`/`active`/`judging`/`completed` statuses are returned; draft and cancelled are excluded.
+
+### `GET /api/public/v1/videos`, `/videos/:id`
+
+Scope: `read:videos`. Requires `features.video`. Detail requires a UUID id; returns url, embedUrl, thumbnailUrl, duration, category, view/like counts, author, canonicalUrl.
+
+### `GET /api/public/v1/docs`, `/docs/:slug`
+
+Scope: `read:docs`. Requires `features.docs`. Returns docs sites with pageCount, versionCount, defaultVersion, owner. Individual page contents are not exposed in v1 — phase 2b if there's demand.
+
+### `GET /api/public/v1/tags`
+
+Scope: `read:tags`. All tags ordered by `usageCount DESC` then name. Paginated.
+
+### `GET /api/public/v1/search?q=...`
+
+Scope: `read:search`. Content search (Meilisearch with Postgres fallback). Returns `PublicContentSummary[]` ordered by the search backend's relevance.
+
+### `GET /api/public/v1/openapi.json`
+
+Requires any valid key. Returns an OpenAPI 3.1 spec for the entire API — import into Postman, Insomnia, Swagger UI, or an SDK generator.
+
 ### `GET /api/public/v1/instance`
 
 Scope: `read:instance`. Instance metadata — name, counts, enabled features, software version, discovery links.
@@ -239,6 +271,23 @@ Preflight (`OPTIONS`) requests bypass authentication (they have to — the brows
 Click **Revoke** in the key table. Soft-delete — the `apiKeyUsage` history is preserved; the key is immediately rejected on next request.
 
 Rotation: revoke, then create a new key and hand it off. There's no in-place "rotate" button because atomic rotation requires cutover coordination with the consumer; explicit revoke-and-issue is safer.
+
+## Per-key usage analytics
+
+`GET /api/admin/api-keys/:id/usage?windowDays=7` (admin-only) returns:
+
+```json
+{
+  "windowDays": 7,
+  "totalRequests": 142,
+  "errorCount": 3,
+  "errorRate": 0.021,
+  "requestsByDay": [{ "day": "2026-04-17", "count": 42 }],
+  "topEndpoints": [{ "endpoint": "/api/public/v1/content", "count": 88, "p95LatencyMs": 120 }]
+}
+```
+
+Rendered inline in the admin table under each key's **Usage** button. Default window is 7 days, max 90. The underlying SQL uses conditional aggregation + `percentile_cont(0.95)` — narrow, indexed query on `(keyId, timestamp)`.
 
 ## Audit trail
 

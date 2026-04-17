@@ -9,8 +9,8 @@ monorepo working period. For session-level detail, see [`docs/sessions/`](./docs
 
 ## Unreleased (sessions 108–127, through 2026-04-17)
 
-Monorepo state at time of writing: schema 0.14.1, server 2.44.1, config 0.11.0,
-layer 0.16.0, ui 0.8.5, protocol 0.9.9, editor 0.7.9, explainer 0.7.12,
+Monorepo state at time of writing: schema 0.14.1, server 2.45.1, config 0.11.0,
+layer 0.17.0, ui 0.8.5, protocol 0.9.9, editor 0.7.9, explainer 0.7.12,
 learning 0.5.0, docs 0.6.2, auth 0.5.1, infra 0.5.1, test-utils 0.5.3.
 
 ### Session 127 — Deep audit + Public Read API (2026-04-17)
@@ -41,17 +41,26 @@ learning 0.5.0, docs 0.6.2, auth 0.5.1, infra 0.5.1, test-utils 0.5.3.
 - Schema: `api_keys` + `api_key_usage` tables. Prefix 24 chars (11 random)
   for astronomically-unlikely collisions; auth loop still iterates prefix
   matches defensively.
-- 14 read-only scopes (`read:content`, `read:hubs`, `read:users`,
-  `read:learn`, `read:events`, `read:contests`, `read:videos`, `read:docs`,
-  `read:tags`, `read:search`, `read:federation`, `read:instance`,
-  `read:*`).
-- Phase-1 endpoints: content list/detail, hubs list/detail, users
+- 13 read-only scopes plus `read:*` wildcard.
+- **Phase 1 endpoints**: content list/detail, hubs list/detail, users
   list/detail, instance metadata.
+- **Phase 2 endpoints**: learn + /:slug, events + /:slug, contests + /:slug,
+  videos + /:id, docs + /:slug, tags, search, openapi.json. Feature-gated
+  endpoints 404 when the underlying feature is disabled on the instance.
+- `PublicContentSummary` carries `source` (`'local'` | `'federated'`),
+  `sourceDomain`, and `sourceUri` so consumers can distinguish mirrored
+  content and dereference the authoritative URL.
+- OpenAPI 3.1 spec served at `GET /api/public/v1/openapi.json`.
+- Per-key usage analytics endpoint `GET /api/admin/api-keys/:id/usage`
+  returning counts, error rate, requests-by-day, top endpoints with p95
+  latency — rendered inline under the admin key table.
 - Admin UI at `/admin/api-keys`: one-time token reveal with clipboard copy,
-  scope checklist, per-key rate limit, optional CORS allow-list.
+  scope checklist, per-key rate limit, optional CORS allow-list, usage
+  panel.
 - Safety: allow-list serializers — every response field is explicitly named,
-  new DB columns excluded until someone edits the `to*` helper. 31 tests
-  including a constructed prefix-collision scenario.
+  new DB columns excluded until someone edits the `to*` helper. 39 tests
+  including a constructed prefix-collision scenario and PII-leak guards
+  for every phase-1 and phase-2 shape.
 - See [`docs/public-api.md`](./docs/public-api.md) for the reference.
 
 **New gotchas documented** (`codebase-analysis/09-gotchas-and-invariants.md`

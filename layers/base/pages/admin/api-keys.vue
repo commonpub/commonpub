@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { AdminApiKeyView } from '@commonpub/server';
+import type { AdminApiKeyView, ApiKeyUsageStats } from '@commonpub/server';
 import { PUBLIC_API_SCOPES } from '@commonpub/schema';
 
 definePageMeta({ layout: 'admin', middleware: 'auth' });
@@ -119,6 +119,28 @@ function fmtDate(iso: string | null): string {
   if (!iso) return '—';
   return new Date(iso).toLocaleString();
 }
+
+// Usage panel per key — lazy-loaded when the admin expands a row.
+const usageOpen = ref<Record<string, boolean>>({});
+const usageCache = ref<Record<string, ApiKeyUsageStats | 'loading' | 'error'>>({});
+
+async function toggleUsage(keyId: string): Promise<void> {
+  usageOpen.value[keyId] = !usageOpen.value[keyId];
+  if (usageOpen.value[keyId] && !usageCache.value[keyId]) {
+    usageCache.value[keyId] = 'loading';
+    try {
+      const stats = await $fetch<ApiKeyUsageStats>(`/api/admin/api-keys/${keyId}/usage`);
+      usageCache.value[keyId] = stats;
+    } catch {
+      usageCache.value[keyId] = 'error';
+    }
+  }
+}
+
+function fmtErrorRate(rate: number): string {
+  if (rate === 0) return '0%';
+  return `${(rate * 100).toFixed(1)}%`;
+}
 </script>
 
 <template>
@@ -237,7 +259,8 @@ function fmtDate(iso: string | null): string {
         </tr>
       </thead>
       <tbody>
-        <tr v-for="k in data.items" :key="k.id" :class="{ 'cpub-key-revoked': !!k.revokedAt }">
+        <template v-for="k in data.items" :key="k.id">
+        <tr :class="{ 'cpub-key-revoked': !!k.revokedAt }">
           <td>
             <strong>{{ k.name }}</strong>
             <div v-if="k.description" class="cpub-key-desc">{{ k.description }}</div>
@@ -254,16 +277,66 @@ function fmtDate(iso: string | null): string {
             <span v-else class="cpub-key-badge cpub-key-badge-green">Active</span>
           </td>
           <td>
-            <button
-              v-if="!k.revokedAt"
-              class="cpub-btn-link cpub-btn-danger"
-              @click="revoke(k.id, k.name)"
-              :aria-label="`Revoke ${k.name}`"
-            >
-              Revoke
-            </button>
+            <div class="cpub-key-actions">
+              <button
+                class="cpub-btn-link"
+                :aria-expanded="!!usageOpen[k.id]"
+                :aria-label="`Toggle usage for ${k.name}`"
+                @click="toggleUsage(k.id)"
+              >
+                {{ usageOpen[k.id] ? 'Hide usage' : 'Usage' }}
+              </button>
+              <button
+                v-if="!k.revokedAt"
+                class="cpub-btn-link cpub-btn-danger"
+                @click="revoke(k.id, k.name)"
+                :aria-label="`Revoke ${k.name}`"
+              >
+                Revoke
+              </button>
+            </div>
           </td>
         </tr>
+        <tr v-if="usageOpen[k.id]" class="cpub-key-usage-row">
+          <td colspan="7">
+            <div v-if="usageCache[k.id] === 'loading'" class="cpub-loading">Loading usage...</div>
+            <p v-else-if="usageCache[k.id] === 'error'" class="cpub-form-error">Failed to load usage.</p>
+            <div v-else-if="usageCache[k.id] && typeof usageCache[k.id] === 'object'" class="cpub-usage-grid">
+              <div class="cpub-usage-stat">
+                <span class="cpub-usage-stat-label">Requests (last {{ (usageCache[k.id] as ApiKeyUsageStats).windowDays }}d)</span>
+                <strong>{{ (usageCache[k.id] as ApiKeyUsageStats).totalRequests.toLocaleString() }}</strong>
+              </div>
+              <div class="cpub-usage-stat">
+                <span class="cpub-usage-stat-label">Errors</span>
+                <strong>{{ (usageCache[k.id] as ApiKeyUsageStats).errorCount }} ({{ fmtErrorRate((usageCache[k.id] as ApiKeyUsageStats).errorRate) }})</strong>
+              </div>
+              <div class="cpub-usage-by-day">
+                <span class="cpub-usage-stat-label">By day</span>
+                <ul>
+                  <li v-for="r in (usageCache[k.id] as ApiKeyUsageStats).requestsByDay" :key="r.day">
+                    <code>{{ r.day }}</code> {{ r.count }}
+                  </li>
+                </ul>
+              </div>
+              <div class="cpub-usage-top">
+                <span class="cpub-usage-stat-label">Top endpoints</span>
+                <table class="cpub-usage-table">
+                  <thead>
+                    <tr><th scope="col">Endpoint</th><th scope="col">Count</th><th scope="col">p95 ms</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="e in (usageCache[k.id] as ApiKeyUsageStats).topEndpoints" :key="e.endpoint">
+                      <td><code>{{ e.endpoint }}</code></td>
+                      <td>{{ e.count }}</td>
+                      <td>{{ e.p95LatencyMs ?? '—' }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </td>
+        </tr>
+        </template>
       </tbody>
     </table>
   </div>
@@ -355,6 +428,19 @@ function fmtDate(iso: string | null): string {
 .cpub-key-badge-green { background: var(--green-bg); color: var(--green); border: var(--border-width-default) solid var(--green); }
 .cpub-key-badge-yellow { background: var(--yellow-bg); color: var(--yellow); border: var(--border-width-default) solid var(--yellow); }
 .cpub-key-badge-red { background: var(--red-bg); color: var(--red); border: var(--border-width-default) solid var(--red); }
+
+.cpub-key-actions { display: flex; gap: 8px; }
+.cpub-key-usage-row td { background: var(--surface2); padding: 16px; }
+.cpub-usage-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+.cpub-usage-stat { display: flex; flex-direction: column; gap: 4px; }
+.cpub-usage-stat strong { font-size: 18px; color: var(--text); font-family: var(--font-mono); }
+.cpub-usage-stat-label { font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-faint); }
+.cpub-usage-by-day ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 2px; font-size: 11px; color: var(--text-dim); }
+.cpub-usage-by-day code { font-family: var(--font-mono); color: var(--text); }
+.cpub-usage-top { grid-column: 1 / -1; }
+.cpub-usage-table { width: 100%; border-collapse: collapse; margin-top: 6px; }
+.cpub-usage-table th, .cpub-usage-table td { padding: 4px 8px; text-align: left; font-size: 11px; border-bottom: var(--border-width-default) solid var(--border2); }
+.cpub-usage-table code { font-family: var(--font-mono); font-size: 10px; }
 
 .cpub-loading { padding: 40px; text-align: center; color: var(--text-dim); }
 .cpub-empty { padding: 40px; text-align: center; color: var(--text-dim); background: var(--surface); border: var(--border-width-default) solid var(--border); }

@@ -181,3 +181,145 @@ describe('publicApi/serializers — PII leak guards', () => {
     expect(isPublicHub({ ...row, deletedAt: new Date() })).toBe(false);
   });
 });
+
+// --- Phase 2 serializers ---
+
+describe('publicApi/serializers — phase 2 PII guards', () => {
+  const expectNoPrivate = (out: unknown) => {
+    const s = JSON.stringify(out);
+    for (const forbidden of ['email', 'passwordHash', 'passwordResetToken', 'role', 'sessions', 'moderationNotes', 'internalFlag']) {
+      expect(s).not.toMatch(new RegExp(`"${forbidden}"`));
+    }
+  };
+
+  it('toPublicLearningPath omits private fields', async () => {
+    const { toPublicLearningPath, isPublicLearningPath } = await import('../publicApi/index.js');
+    const row: any = {
+      id: 'p1', title: 'Intro', slug: 'intro', description: null,
+      coverImageUrl: null, difficulty: 'beginner', status: 'published',
+      lessonCount: 5, enrollmentCount: 10, publishedAt: new Date(),
+      createdAt: new Date('2026-01-01'), deletedAt: null,
+      author: { id: 'u1', username: 'alice', displayName: null, avatarUrl: null },
+      internalFlag: 'SECRET',
+    };
+    expect(isPublicLearningPath(row)).toBe(true);
+    expect(isPublicLearningPath({ ...row, status: 'draft' })).toBe(false);
+    expect(isPublicLearningPath({ ...row, deletedAt: new Date() })).toBe(false);
+    const out = toPublicLearningPath(row, 'example.com');
+    expectNoPrivate(out);
+    expect(out.canonicalUrl).toBe('https://example.com/learn/intro');
+  });
+
+  it('toPublicEvent omits deletedAt and private fields', async () => {
+    const { toPublicEvent, isPublicEvent } = await import('../publicApi/index.js');
+    const row: any = {
+      id: 'e1', title: 'Meetup', slug: 'meetup', description: null,
+      coverImageUrl: null, eventType: 'in_person', status: 'published',
+      location: 'Berlin', locationUrl: null, startAt: new Date('2026-06-01'),
+      endAt: null, timezone: 'Europe/Berlin', capacity: 50,
+      attendeeCount: 10, waitlistCount: 0, hubId: null,
+      createdAt: new Date('2026-01-01'), deletedAt: null, host: null,
+      internalFlag: 'SECRET',
+    };
+    expect(isPublicEvent(row)).toBe(true);
+    expect(isPublicEvent({ ...row, status: 'cancelled' })).toBe(false);
+    const out = toPublicEvent(row, 'example.com');
+    expectNoPrivate(out);
+    expect(out.canonicalUrl).toBe('https://example.com/events/meetup');
+  });
+
+  it('toPublicContest: only public statuses pass isPublicContest', async () => {
+    const { toPublicContest, isPublicContest } = await import('../publicApi/index.js');
+    const row: any = {
+      id: 'c1', title: 'Edge AI', slug: 'edge-ai', description: null, bannerUrl: null,
+      status: 'active', startDate: new Date('2026-01-01'), endDate: new Date('2026-06-01'),
+      entryDeadline: null, judgingDeadline: null, prizeDescription: null,
+      entryCount: 5, communityVotingEnabled: true,
+      createdAt: new Date('2026-01-01'), deletedAt: null,
+      internalFlag: 'SECRET',
+    };
+    expect(isPublicContest(row)).toBe(true);
+    expect(isPublicContest({ ...row, status: 'draft' })).toBe(false);
+    expect(isPublicContest({ ...row, status: 'cancelled' })).toBe(false);
+    const out = toPublicContest(row, 'example.com');
+    expectNoPrivate(out);
+    expect(out.canonicalUrl).toBe('https://example.com/contests/edge-ai');
+  });
+
+  it('toPublicVideo drops unlisted fields', async () => {
+    const { toPublicVideo, isPublicVideo } = await import('../publicApi/index.js');
+    const row: any = {
+      id: 'v1', title: 'Video', description: null,
+      url: 'https://youtube.com/watch?v=x', embedUrl: null, thumbnailUrl: null,
+      duration: 120, category: null, viewCount: 3, likeCount: 1,
+      createdAt: new Date('2026-01-01'), deletedAt: null,
+      author: { id: 'u1', username: 'alice', displayName: null, avatarUrl: null },
+      internalFlag: 'SECRET',
+    };
+    expect(isPublicVideo(row)).toBe(true);
+    expect(isPublicVideo({ ...row, deletedAt: new Date() })).toBe(false);
+    const out = toPublicVideo(row, 'example.com');
+    expectNoPrivate(out);
+    expect(out.canonicalUrl).toBe('https://example.com/videos/v1');
+  });
+
+  it('toPublicDocSite drops unlisted fields', async () => {
+    const { toPublicDocSite, isPublicDocSite } = await import('../publicApi/index.js');
+    const row: any = {
+      id: 'd1', name: 'Getting Started', slug: 'getting-started', description: null,
+      pageCount: 10, versionCount: 2, defaultVersion: 'v2',
+      createdAt: new Date('2026-01-01'), deletedAt: null,
+      owner: { id: 'u1', username: 'alice', displayName: null },
+      internalFlag: 'SECRET',
+    };
+    expect(isPublicDocSite(row)).toBe(true);
+    const out = toPublicDocSite(row, 'example.com');
+    expectNoPrivate(out);
+    expect(out.canonicalUrl).toBe('https://example.com/docs/getting-started');
+  });
+
+  it('toPublicTag builds canonicalUrl and strips extras', async () => {
+    const { toPublicTag } = await import('../publicApi/index.js');
+    const row: any = { id: 't1', name: 'Robotics', slug: 'robotics', usageCount: 42, internalFlag: 'SECRET' };
+    const out = toPublicTag(row, 'example.com');
+    expectNoPrivate(out);
+    expect(out.canonicalUrl).toBe('https://example.com/tags/robotics');
+    expect(out.usageCount).toBe(42);
+  });
+});
+
+describe('publicApi/serializers — source/origin on PublicContentSummary', () => {
+  it('local items get source=local and null sourceDomain/sourceUri', async () => {
+    const { toPublicContentSummary } = await import('../publicApi/index.js');
+    const row: any = {
+      id: 'c1', type: 'blog', title: 't', slug: 's', description: null, coverImageUrl: null,
+      difficulty: null, status: 'published', visibility: 'public',
+      publishedAt: new Date(), updatedAt: new Date(), deletedAt: null,
+      viewCount: 0, likeCount: 0, commentCount: 0,
+      author: { id: 'u', username: 'u', displayName: null, avatarUrl: null },
+    };
+    const out = toPublicContentSummary(row, 'example.com');
+    expect(out.source).toBe('local');
+    expect(out.sourceDomain).toBe(null);
+    expect(out.sourceUri).toBe(null);
+    expect(out.canonicalUrl).toBe('https://example.com/u/u/blog/s');
+  });
+
+  it('federated items report source and prefer sourceUri as canonicalUrl', async () => {
+    const { toPublicContentSummary } = await import('../publicApi/index.js');
+    const row: any = {
+      id: 'c1', type: 'blog', title: 't', slug: 'mirror-abc', description: null, coverImageUrl: null,
+      difficulty: null, status: 'published', visibility: 'public',
+      publishedAt: new Date(), updatedAt: new Date(), deletedAt: null,
+      viewCount: 0, likeCount: 0, commentCount: 0,
+      author: { id: 'u', username: 'alice', displayName: null, avatarUrl: null },
+      source: 'federated',
+      sourceDomain: 'deveco.io',
+      sourceUri: 'https://deveco.io/u/alice/blog/real-slug',
+    };
+    const out = toPublicContentSummary(row, 'example.com');
+    expect(out.source).toBe('federated');
+    expect(out.sourceDomain).toBe('deveco.io');
+    expect(out.canonicalUrl).toBe('https://deveco.io/u/alice/blog/real-slug');
+  });
+});

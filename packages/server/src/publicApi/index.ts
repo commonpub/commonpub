@@ -15,6 +15,8 @@ export {
   touchLastUsed,
 } from './adminOps.js';
 export type { CreateApiKeyResult } from './adminOps.js';
+export { getApiKeyUsageStats } from './usage.js';
+export type { ApiKeyUsageStats } from './usage.js';
 export {
   toPublicUser,
   isPublicUser,
@@ -24,6 +26,17 @@ export {
   toPublicHub,
   isPublicHub,
   toAdminApiKeyView,
+  toPublicLearningPath,
+  isPublicLearningPath,
+  toPublicEvent,
+  isPublicEvent,
+  toPublicContest,
+  isPublicContest,
+  toPublicVideo,
+  isPublicVideo,
+  toPublicDocSite,
+  isPublicDocSite,
+  toPublicTag,
 } from './serializers.js';
 export type {
   PublicUser,
@@ -35,4 +48,16 @@ export type {
   PublicHubRow,
   PublicInstance,
   AdminApiKeyView,
+  PublicLearningPath,
+  PublicLearningPathRow,
+  PublicEvent,
+  PublicEventRow,
+  PublicContest,
+  PublicContestRow,
+  PublicVideo,
+  PublicVideoRow,
+  PublicDocSite,
+  PublicDocSiteRow,
+  PublicTag,
+  PublicTagRow,
 } from './serializers.js';
