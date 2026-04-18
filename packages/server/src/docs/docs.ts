@@ -568,24 +568,6 @@ export async function searchDocsPages(
   // BlockTuple array and concatenates html/text/code fields with HTML tags
   // stripped. Legacy string-valued content unwraps via #>>'{}'. Anything
   // else yields empty string.
-  const langIdent = ftsLang;
-  const extractedTextSql = sql<string>`(
-    CASE
-      WHEN jsonb_typeof(${docsPages.content}) = 'array' THEN (
-        SELECT coalesce(string_agg(
-          regexp_replace(
-            coalesce(elem->1->>'html', elem->1->>'text', elem->1->>'code', elem->1->>'title', ''),
-            '<[^>]+>', ' ', 'g'
-          ),
-          ' '
-        ), '')
-        FROM jsonb_array_elements(${docsPages.content}) AS elem
-      )
-      WHEN jsonb_typeof(${docsPages.content}) = 'string' THEN ${docsPages.content} #>> '{}'
-      ELSE ''
-    END
-  )`;
-
   const results = await db.execute(sql`
     SELECT
       dp.id,
@@ -641,9 +623,6 @@ export async function searchDocsPages(
   // as an array depending on driver. Normalize.
   const rows = (results as unknown as { rows?: Array<Record<string, unknown>> }).rows
     ?? (results as unknown as Array<Record<string, unknown>>);
-
-  void langIdent;
-  void extractedTextSql;
 
   return rows.map((r) => ({
     id: r.id as string,

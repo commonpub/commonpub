@@ -7,11 +7,49 @@ monorepo working period. For session-level detail, see [`docs/sessions/`](./docs
 
 ---
 
-## Unreleased (sessions 108–128, through 2026-04-17)
+## Unreleased (sessions 108–129, through 2026-04-17)
 
-Monorepo state at time of writing: schema 0.14.2, server 2.45.1, config 0.11.0,
+Monorepo state at time of writing: schema 0.14.3, server 2.46.1, config 0.11.0,
 layer 0.17.0, ui 0.8.5, protocol 0.9.9, editor 0.7.9, explainer 0.7.12,
-learning 0.5.0, docs 0.6.2, auth 0.5.1, infra 0.5.1, test-utils 0.5.3.
+learning 0.5.1, docs 0.6.2, auth 0.5.1, infra 0.5.1, test-utils 0.5.3.
+
+### Session 129 — Quiz security + docs FTS + jsonb fix (2026-04-17)
+
+**Security — learning paths:**
+- `POST /api/learn/:slug/:lessonSlug/complete` no longer accepts client-supplied
+  `quizScore` / `quizPassed`. Quiz lessons now take `{answers: {questionId: optionId}}`
+  and the server grades against `correctOptionId` via new `gradeQuiz()` in
+  `@commonpub/learning`.
+- `GET /api/learn/:slug/:lessonSlug` now strips `correctOptionId` and
+  `explanation` from quiz questions for non-authors via new `redactQuizAnswers()`.
+- Passed lessons latch — a subsequent failing attempt never regresses progress.
+
+**Docs FTS — snippets over block text:**
+- `searchDocsPages` rewritten as a `LEFT JOIN LATERAL` that extracts block
+  text (html/text/code/title with HTML tags stripped) and feeds clean prose
+  to `to_tsvector` and `ts_headline`. No more raw JSON in search snippets.
+
+**Root-cause bug fix — `docs_pages.content` double-stringification:**
+- `createDocsPage` / `updateDocsPage` was `JSON.stringify`-ing content before
+  handing to drizzle, which also stringifies jsonb. Content landed in the DB
+  as a jsonb STRING containing the JSON text of a BlockTuple array. The app
+  worked via drizzle's read-time double-parse, but SQL couldn't reach blocks.
+- Fix: pass content through directly.
+- Migration `0001_docs_content_unstringify.sql` unwraps existing rows whose
+  value looks like JSON (starts with `[` or `{`). Legacy plain-markdown
+  strings are left alone.
+
+**Published:** `@commonpub/schema@0.14.3`, `@commonpub/server@2.46.1`,
+`@commonpub/learning@0.5.1`. Consumer pins bumped across workspace + deveco.
+
+**Tests:** +26 (15 quiz unit + 7 validator + 4 integration for quiz lifecycle;
+7 integration for docs search). 912 server tests + 97 learning tests green.
+
+**Known gap:** Vue quiz UI (`pages/learn/[slug]/[lessonSlug]/index.vue`) sends
+no answers body. For non-quiz lessons this is fine; for quiz lessons it now
+returns 400. Zero quiz lessons exist in prod today. Rebuild needed before
+anyone ships a real quiz — the Vue uses a non-canonical `correctIndex`
+shape that predates the schema.
 
 ### Session 128 — Docs unblock + migrate workflow + schema drift cleanup (2026-04-17)
 
