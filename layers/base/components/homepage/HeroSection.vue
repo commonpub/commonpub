@@ -17,14 +17,22 @@ const activeContest = computed(() => {
 // (they're async on first load). A local ref would reset on remount and
 // the user would see the banner "come back" after dismissing — which also
 // fails the navigation.spec.ts e2e test.
+//
+// NOTE: useState returns a Ref. Vue SFC's auto-unwrap-on-template-write
+// is reliable for bindings the compiler recognizes as refs, but for
+// auto-imported Nuxt composables the detection is inconsistent across
+// versions — safer to set `.value` explicitly from a real handler.
 const heroDismissed = useState('cpub:hero-dismissed', () => false);
+function dismissHero(): void {
+  heroDismissed.value = true;
+}
 </script>
 
 <template>
   <section v-if="!heroDismissed" class="cpub-hero-banner">
     <div class="cpub-hero-grid-bg" />
     <div class="cpub-hero-gradient" />
-    <button class="cpub-hero-dismiss" title="Dismiss" @click="heroDismissed = true">
+    <button class="cpub-hero-dismiss" title="Dismiss" @click="dismissHero">
       <i class="fa-solid fa-xmark"></i>
     </button>
     <div class="cpub-hero-inner">

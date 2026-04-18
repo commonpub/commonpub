@@ -76,7 +76,12 @@ const { data: contests, pending: contestsPending } = await useFetch<{ items: Con
 
 // Shared with HeroSection.vue via the same useState key so the dismiss
 // persists across the configurable-renderer and legacy code paths.
+// Use an explicit handler — see HeroSection.vue for why template
+// auto-unwrap-on-write isn't reliable for Nuxt composables.
 const heroDismissed = useState('cpub:hero-dismissed', () => false);
+function dismissHero(): void {
+  heroDismissed.value = true;
+}
 const joinedHubs = ref(new Set<string>());
 
 // Active contest for hero banner
@@ -166,7 +171,7 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
     <section v-if="!heroDismissed" class="cpub-hero-banner">
       <div class="cpub-hero-grid-bg" />
       <div class="cpub-hero-gradient" />
-      <button class="cpub-hero-dismiss" title="Dismiss" @click="heroDismissed = true">
+      <button class="cpub-hero-dismiss" title="Dismiss" @click="dismissHero">
         <i class="fa-solid fa-xmark"></i>
       </button>
       <div class="cpub-hero-inner">
