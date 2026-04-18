@@ -59,6 +59,8 @@ export { RedisRateLimitStore } from './redis/rateLimitStore.js';
 export type { RedisRateLimitStoreOptions } from './redis/rateLimitStore.js';
 export { createRateLimitStore } from './redis/factory.js';
 export type { CreateRateLimitStoreOptions } from './redis/factory.js';
+export { createRedisFailOpenLogger } from './redis/logger.js';
+export type { FailOpenHook, FailOpenLoggerOptions, FailOpenSummary } from './redis/logger.js';
 
 // Realtime pub/sub — SSE fanout; memory fallback when NUXT_REDIS_URL is unset
 export { MemoryRealtimePubSub } from './realtime/pubsub.js';

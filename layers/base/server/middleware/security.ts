@@ -1,9 +1,15 @@
 // Security middleware — rate limiting + security headers + CSP
-import { checkRateLimit, createRateLimitStore, shouldSkipRateLimit, getSecurityHeaders, buildCspHeader, buildCspDirectives } from '@commonpub/server';
+import { checkRateLimit, createRateLimitStore, createRedisFailOpenLogger, shouldSkipRateLimit, getSecurityHeaders, buildCspHeader, buildCspDirectives } from '@commonpub/server';
 
 // Selects a Redis-backed store when NUXT_REDIS_URL is set, otherwise the
 // in-process memory store. Unset env = byte-identical behavior to pre-0.6.
-const store = createRateLimitStore({ redisUrl: process.env.NUXT_REDIS_URL });
+// `onRedisError` is rate-limited: first event logs immediately, subsequent
+// events roll up into a one-per-minute summary so a Redis outage doesn't
+// flood the log at real traffic.
+const store = createRateLimitStore({
+  redisUrl: process.env.NUXT_REDIS_URL,
+  onRedisError: createRedisFailOpenLogger({ scope: 'ratelimit:ip' }),
+});
 const isDev = process.env.NODE_ENV !== 'production';
 
 export default defineEventHandler(async (event) => {

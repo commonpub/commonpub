@@ -147,13 +147,17 @@ useSeoMeta({
           </div>
           <div v-if="searchOpen && searchResults?.length" class="docs-search-results">
             <NuxtLink
-              v-for="r in (searchResults as Array<{ id: string; title: string; slug: string }>)"
+              v-for="r in (searchResults as Array<{ id: string; title: string; slug: string; snippet?: string | null }>)"
               :key="r.id"
               :to="`/docs/${siteSlug}/${r.slug}`"
               class="docs-search-result"
               @click="searchOpen = false; searchQuery = ''"
             >
-              {{ r.title }}
+              <span class="docs-search-result-title">{{ r.title }}</span>
+              <!-- eslint-disable-next-line vue/no-v-html — snippet is ts_headline
+                   output, sanitized by highlightSnippet (escapes everything,
+                   restores only <b> and </b>). -->
+              <span v-if="r.snippet" class="docs-search-result-snippet" v-html="highlightSnippet(r.snippet)" />
             </NuxtLink>
           </div>
         </div>
@@ -267,10 +271,14 @@ useSeoMeta({
 .docs-search-input { width: 100%; padding: 6px 8px 6px 26px; font-size: 12px; border: var(--border-width-default) solid var(--border); background: var(--surface); color: var(--text); }
 .docs-search-input::placeholder { color: var(--text-faint); }
 .docs-search-input:focus { border-color: var(--accent); outline: none; }
-.docs-search-results { position: absolute; top: 100%; left: 16px; right: 16px; background: var(--surface); border: var(--border-width-default) solid var(--border); box-shadow: var(--shadow-md); z-index: 50; max-height: 200px; overflow-y: auto; }
+.docs-search-results { position: absolute; top: 100%; left: 16px; right: 16px; background: var(--surface); border: var(--border-width-default) solid var(--border); box-shadow: var(--shadow-md); z-index: 50; max-height: 280px; overflow-y: auto; }
 .docs-search-result { display: block; padding: 8px 12px; font-size: 12px; color: var(--text-dim); text-decoration: none; border-bottom: var(--border-width-default) solid var(--border2); }
 .docs-search-result:last-child { border-bottom: none; }
 .docs-search-result:hover { background: var(--surface2); color: var(--accent); }
+.docs-search-result-title { display: block; color: var(--text); font-weight: 500; }
+.docs-search-result-snippet { display: block; margin-top: 2px; color: var(--text-faint); font-size: 11px; line-height: 1.4; }
+.docs-search-result-snippet :deep(b) { background: var(--accent-soft, rgba(91, 156, 246, 0.18)); color: var(--text); font-weight: 600; padding: 0 2px; border-radius: 2px; }
+.docs-search-result:hover .docs-search-result-title { color: var(--accent); }
 
 .docs-nav { padding: 0; }
 .docs-nav-item { border-bottom: var(--border-width-default) solid var(--border2); }

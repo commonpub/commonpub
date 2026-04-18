@@ -319,8 +319,13 @@ export {
 export type { RateLimitTier, RateLimitResult } from './security.js';
 
 // Redis-backed scaling helpers (opt-in via NUXT_REDIS_URL)
-export { createRateLimitStore, createRedisClient, createRealtimePubSub } from '@commonpub/infra';
-export type { RealtimePubSub, RedisClient } from '@commonpub/infra';
+export {
+  createRateLimitStore,
+  createRedisClient,
+  createRealtimePubSub,
+  createRedisFailOpenLogger,
+} from '@commonpub/infra';
+export type { RealtimePubSub, RedisClient, FailOpenHook } from '@commonpub/infra';
 
 // Realtime pub/sub singleton for SSE fanout
 export { publishSseEvent, subscribeSseEvents, realtimeChannel, resetRealtimeForTests } from './realtime/index.js';
