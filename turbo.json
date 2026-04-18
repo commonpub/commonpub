@@ -11,7 +11,8 @@
     },
     "test": {
       "dependsOn": ["build"],
-      "cache": false
+      "cache": false,
+      "env": ["DATABASE_URL", "NUXT_DATABASE_URL", "REDIS_URL_TEST", "CI"]
     },
     "lint": {
       "dependsOn": ["^build"]
