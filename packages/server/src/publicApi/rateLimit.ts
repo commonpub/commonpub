@@ -1,18 +1,21 @@
 /**
- * Per-API-key rate limiter. In-process fixed window, Map-backed.
+ * Per-API-key rate limiter.
  *
- * This shares the limitation of the IP-based RateLimitStore (see
- * `packages/infra/src/security.ts`): state is lost on restart and NOT shared
- * across Nitro instances. That means a multi-instance deploy gives each
- * instance its own window — swap this for a Redis-backed implementation
- * before you scale horizontally. See codebase-analysis/12-scaling-and-
- * infrastructure.md.
+ * Delegates to a shared `RateLimitStore` from `@commonpub/infra`. When
+ * `NUXT_REDIS_URL` is set, the module-level singleton uses the Redis store
+ * so rate limits are enforced across Nitro instances; unset falls back to
+ * in-process memory, same behavior as sessions 127–129.
+ *
+ * The public shape of `ApiKeyRateLimit` and `apiKeyRateLimit` is preserved
+ * (same export names, same method names, same result fields) but `check`
+ * is now async. Callers must `await` — the Nitro middleware does.
  */
-
-interface Bucket {
-  count: number;
-  resetAt: number;
-}
+import {
+  createRateLimitStore,
+  MemoryRateLimitStore,
+  type RateLimitStore,
+  type RateLimitTier,
+} from '@commonpub/infra';
 
 export interface RateLimitResult {
   allowed: boolean;
@@ -23,46 +26,54 @@ export interface RateLimitResult {
 }
 
 export class ApiKeyRateLimit {
-  private buckets = new Map<string, Bucket>();
-  private lastSweep = Date.now();
+  private store: RateLimitStore;
+  private readonly windowMs: number;
+  private readonly ownsStore: boolean;
 
-  constructor(private readonly windowMs = 60_000) {}
+  /**
+   * @param windowMs  Fixed-window duration in ms (default 60 000).
+   * @param store     Optional store override. Tests pass a fresh
+   *                  `MemoryRateLimitStore` so state is isolated. When
+   *                  omitted, a new memory store is created — use the
+   *                  process-wide `apiKeyRateLimit` singleton in app code.
+   */
+  constructor(windowMs = 60_000, store?: RateLimitStore) {
+    this.windowMs = windowMs;
+    this.store = store ?? new MemoryRateLimitStore();
+    this.ownsStore = store === undefined;
+  }
 
-  check(keyId: string, limit: number): RateLimitResult {
-    const now = Date.now();
-    this.maybeSweep(now);
-
-    let bucket = this.buckets.get(keyId);
-    if (!bucket || bucket.resetAt <= now) {
-      bucket = { count: 0, resetAt: now + this.windowMs };
-      this.buckets.set(keyId, bucket);
-    }
-    bucket.count++;
-
-    const remaining = Math.max(0, limit - bucket.count);
+  async check(keyId: string, limit: number): Promise<RateLimitResult> {
+    const tier: RateLimitTier = { limit, windowMs: this.windowMs };
+    const result = await this.store.check(keyId, tier);
     return {
-      allowed: bucket.count <= limit,
+      allowed: result.allowed,
       limit,
-      remaining,
-      resetAt: Math.floor(bucket.resetAt / 1000),
+      remaining: result.remaining,
+      resetAt: Math.floor(result.resetAt / 1000),
     };
   }
 
-  /** Drop buckets whose window ended more than 5 minutes ago. */
-  private maybeSweep(now: number): void {
-    if (now - this.lastSweep < this.windowMs) return;
-    this.lastSweep = now;
-    const cutoff = now - 5 * this.windowMs;
-    for (const [id, bucket] of this.buckets) {
-      if (bucket.resetAt < cutoff) this.buckets.delete(id);
+  /** Test-only — drop bucket state (memory store). */
+  async reset(): Promise<void> {
+    if (this.ownsStore) {
+      await this.store.destroy();
+      // Replace the inner store so subsequent checks get a clean window.
+      this.store = new MemoryRateLimitStore();
     }
-  }
-
-  /** Test-only helper. */
-  reset(): void {
-    this.buckets.clear();
   }
 }
 
-/** Single process-wide instance so every Nitro handler shares the same state. */
-export const apiKeyRateLimit = new ApiKeyRateLimit();
+/**
+ * Single process-wide instance so every Nitro handler shares the same state.
+ * Selects Redis automatically when `NUXT_REDIS_URL` is set; otherwise memory.
+ * The key namespace is `cpub:ratelimit:apikey` so it can't collide with the
+ * IP limiter (which defaults to `cpub:ratelimit:ip`).
+ */
+export const apiKeyRateLimit: ApiKeyRateLimit = new ApiKeyRateLimit(
+  60_000,
+  createRateLimitStore({
+    redisUrl: process.env.NUXT_REDIS_URL,
+    keyPrefix: 'cpub:ratelimit:apikey',
+  }),
+);

@@ -78,34 +78,34 @@ describe('rate limiting', () => {
     expect(shouldSkipRateLimit('/api/auth/login')).toBe(false);
   });
 
-  it('should allow requests within limit', () => {
+  it('should allow requests within limit', async () => {
     store = new RateLimitStore();
     const tier = { limit: 3, windowMs: 60_000 };
-    const r1 = store.check('test-key', tier);
+    const r1 = await store.check('test-key', tier);
     expect(r1.allowed).toBe(true);
     expect(r1.remaining).toBe(2);
 
-    const r2 = store.check('test-key', tier);
+    const r2 = await store.check('test-key', tier);
     expect(r2.allowed).toBe(true);
     expect(r2.remaining).toBe(1);
 
-    const r3 = store.check('test-key', tier);
+    const r3 = await store.check('test-key', tier);
     expect(r3.allowed).toBe(true);
     expect(r3.remaining).toBe(0);
   });
 
-  it('should block requests over limit', () => {
+  it('should block requests over limit', async () => {
     store = new RateLimitStore();
     const tier = { limit: 1, windowMs: 60_000 };
-    store.check('block-key', tier);
-    const result = store.check('block-key', tier);
+    await store.check('block-key', tier);
+    const result = await store.check('block-key', tier);
     expect(result.allowed).toBe(false);
     expect(result.remaining).toBe(0);
   });
 
-  it('checkRateLimit returns allowed result with headers', () => {
+  it('checkRateLimit returns allowed result with headers', async () => {
     store = new RateLimitStore();
-    const { result, headers } = checkRateLimit(store, '127.0.0.1', '/api/content');
+    const { result, headers } = await checkRateLimit(store, '127.0.0.1', '/api/content');
     expect(result.allowed).toBe(true);
     expect(result.remaining).toBeGreaterThan(0);
     expect(headers['X-RateLimit-Limit']).toBeDefined();

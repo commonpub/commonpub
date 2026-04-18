@@ -43,6 +43,7 @@ export {
   getSecurityHeaders,
   getStaticCacheHeaders,
   generateNonce,
+  MemoryRateLimitStore,
   RateLimitStore,
   DEFAULT_TIERS,
   getTierForPath,
@@ -50,3 +51,18 @@ export {
   checkRateLimit,
 } from './security.js';
 export type { RateLimitTier, RateLimitResult } from './security.js';
+
+// Redis — opt-in store backends when NUXT_REDIS_URL is set
+export { createRedisClient, resetRedisClientsForTests } from './redis/client.js';
+export type { RedisClient } from './redis/client.js';
+export { RedisRateLimitStore } from './redis/rateLimitStore.js';
+export type { RedisRateLimitStoreOptions } from './redis/rateLimitStore.js';
+export { createRateLimitStore } from './redis/factory.js';
+export type { CreateRateLimitStoreOptions } from './redis/factory.js';
+
+// Realtime pub/sub — SSE fanout; memory fallback when NUXT_REDIS_URL is unset
+export { MemoryRealtimePubSub } from './realtime/pubsub.js';
+export type { RealtimePubSub } from './realtime/pubsub.js';
+export { RedisRealtimePubSub } from './realtime/redisPubsub.js';
+export { createRealtimePubSub } from './realtime/factory.js';
+export type { CreateRealtimePubSubOptions } from './realtime/factory.js';

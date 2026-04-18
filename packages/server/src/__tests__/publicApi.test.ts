@@ -73,20 +73,20 @@ describe('publicApi/rateLimit', () => {
   let rl: ApiKeyRateLimit;
   beforeEach(() => { rl = new ApiKeyRateLimit(60_000); });
 
-  it('allows up to the limit and rejects the next call', () => {
+  it('allows up to the limit and rejects the next call', async () => {
     for (let i = 0; i < 5; i++) {
-      const r = rl.check('key1', 5);
+      const r = await rl.check('key1', 5);
       expect(r.allowed).toBe(true);
       expect(r.remaining).toBe(5 - i - 1);
     }
-    const next = rl.check('key1', 5);
+    const next = await rl.check('key1', 5);
     expect(next.allowed).toBe(false);
     expect(next.remaining).toBe(0);
   });
 
-  it('keys do not share buckets', () => {
-    for (let i = 0; i < 5; i++) rl.check('a', 5);
-    const b = rl.check('b', 5);
+  it('keys do not share buckets', async () => {
+    for (let i = 0; i < 5; i++) await rl.check('a', 5);
+    const b = await rl.check('b', 5);
     expect(b.allowed).toBe(true);
     expect(b.remaining).toBe(4);
   });

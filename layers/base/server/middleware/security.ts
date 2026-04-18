@@ -1,10 +1,12 @@
 // Security middleware — rate limiting + security headers + CSP
-import { RateLimitStore, checkRateLimit, shouldSkipRateLimit, getSecurityHeaders, buildCspHeader, buildCspDirectives } from '@commonpub/server';
+import { checkRateLimit, createRateLimitStore, shouldSkipRateLimit, getSecurityHeaders, buildCspHeader, buildCspDirectives } from '@commonpub/server';
 
-const store = new RateLimitStore();
+// Selects a Redis-backed store when NUXT_REDIS_URL is set, otherwise the
+// in-process memory store. Unset env = byte-identical behavior to pre-0.6.
+const store = createRateLimitStore({ redisUrl: process.env.NUXT_REDIS_URL });
 const isDev = process.env.NODE_ENV !== 'production';
 
-export default defineEventHandler((event) => {
+export default defineEventHandler(async (event) => {
   const url = getRequestURL(event);
   const pathname = url.pathname;
 
@@ -18,7 +20,7 @@ export default defineEventHandler((event) => {
       || 'unknown';
 
     const userId = event.context.auth?.user?.id as string | undefined;
-    const { result, headers: rlHeaders } = checkRateLimit(store, ip, pathname, userId);
+    const { result, headers: rlHeaders } = await checkRateLimit(store, ip, pathname, userId);
 
     for (const [key, value] of Object.entries(rlHeaders)) {
       setResponseHeader(event, key, value);

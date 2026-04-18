@@ -74,12 +74,6 @@ export interface RateLimitTier {
   windowMs: number;
 }
 
-/** Sliding window entry */
-interface WindowEntry {
-  count: number;
-  resetAt: number;
-}
-
 /** Rate limit check result */
 export interface RateLimitResult {
   allowed: boolean;
@@ -87,8 +81,30 @@ export interface RateLimitResult {
   resetAt: number;
 }
 
-/** In-memory rate limit store */
-export class RateLimitStore {
+/**
+ * Abstract rate-limit store. Both in-memory and Redis implementations must
+ * honor the same contract: `check` atomically increments the counter for
+ * `key` within its current window and returns whether the request is allowed.
+ * `destroy` releases any background resources (timers, Redis connections
+ * owned by the store itself — shared clients are the factory's concern).
+ *
+ * `check` is async to accommodate Redis-backed stores. The in-process
+ * implementation resolves synchronously under the hood, but callers must
+ * always `await` so a store swap is invisible to call sites.
+ */
+export interface RateLimitStore {
+  check(key: string, tier: RateLimitTier): Promise<RateLimitResult>;
+  destroy(): void | Promise<void>;
+}
+
+/** Sliding window entry */
+interface WindowEntry {
+  count: number;
+  resetAt: number;
+}
+
+/** In-memory rate limit store — default when NUXT_REDIS_URL is unset. */
+export class MemoryRateLimitStore implements RateLimitStore {
   private windows = new Map<string, WindowEntry>();
   private cleanupInterval: ReturnType<typeof setInterval> | null = null;
 
@@ -98,7 +114,7 @@ export class RateLimitStore {
   }
 
   /** Check if a key has exceeded its limit. Returns remaining requests. */
-  check(key: string, tier: RateLimitTier): RateLimitResult {
+  async check(key: string, tier: RateLimitTier): Promise<RateLimitResult> {
     const now = Date.now();
     const existing = this.windows.get(key);
 
@@ -135,6 +151,19 @@ export class RateLimitStore {
     }
   }
 }
+
+/**
+ * Backwards-compat alias. `new RateLimitStore()` constructs a memory-backed
+ * store; this keeps the 0.5.x shape working for consumers that already
+ * instantiate the class directly. New code should prefer
+ * `createRateLimitStore()` (which selects memory vs Redis from env) or
+ * `new MemoryRateLimitStore()` if they explicitly want the memory impl.
+ *
+ * The name `RateLimitStore` exists in both the type namespace (the interface
+ * above) and the value namespace (this const) — identical to how `Error`,
+ * `Map`, etc. are both types and constructors.
+ */
+export const RateLimitStore: new () => RateLimitStore = MemoryRateLimitStore;
 
 /** Default rate limit tiers by route prefix */
 export const DEFAULT_TIERS: Record<string, RateLimitTier> = {
@@ -194,16 +223,16 @@ export function shouldSkipRateLimit(pathname: string): boolean {
  * users on shared IPs from being blocked by other users' traffic, and
  * gives them a separate quota.
  */
-export function checkRateLimit(
+export async function checkRateLimit(
   store: RateLimitStore,
   ip: string,
   pathname: string,
   userId?: string,
-): { result: RateLimitResult; headers: Record<string, string> } {
+): Promise<{ result: RateLimitResult; headers: Record<string, string> }> {
   const tier = getTierForPath(pathname);
   const routePrefix = pathname.split('/').slice(0, 3).join('/');
   const key = userId ? `user:${userId}:${routePrefix}` : `ip:${ip}:${routePrefix}`;
-  const result = store.check(key, tier);
+  const result = await store.check(key, tier);
 
   const headers: Record<string, string> = {
     'X-RateLimit-Limit': String(tier.limit),

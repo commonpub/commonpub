@@ -309,6 +309,7 @@ export {
   getSecurityHeaders,
   getStaticCacheHeaders,
   generateNonce,
+  MemoryRateLimitStore,
   RateLimitStore,
   DEFAULT_TIERS,
   getTierForPath,
@@ -316,6 +317,14 @@ export {
   checkRateLimit,
 } from './security.js';
 export type { RateLimitTier, RateLimitResult } from './security.js';
+
+// Redis-backed scaling helpers (opt-in via NUXT_REDIS_URL)
+export { createRateLimitStore, createRedisClient, createRealtimePubSub } from '@commonpub/infra';
+export type { RealtimePubSub, RedisClient } from '@commonpub/infra';
+
+// Realtime pub/sub singleton for SSE fanout
+export { publishSseEvent, subscribeSseEvents, realtimeChannel, resetRealtimeForTests } from './realtime/index.js';
+export type { SseEventPayload } from './realtime/index.js';
 
 // Theme
 export { resolveTheme, getCustomTokenOverrides, setUserTheme } from './theme.js';

@@ -77,7 +77,7 @@ export default defineEventHandler(async (event) => {
 
   // Per-key rate limit (separate store from IP-based rate limit so a noisy
   // public-API consumer can't DoS the web UI for their own home IP).
-  const rl = apiKeyRateLimit.check(key.id, key.rateLimitPerMinute);
+  const rl = await apiKeyRateLimit.check(key.id, key.rateLimitPerMinute);
   setResponseHeader(event, 'X-RateLimit-Limit', String(rl.limit));
   setResponseHeader(event, 'X-RateLimit-Remaining', String(rl.remaining));
   setResponseHeader(event, 'X-RateLimit-Reset', String(rl.resetAt));

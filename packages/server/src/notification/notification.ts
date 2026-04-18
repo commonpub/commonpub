@@ -2,6 +2,7 @@ import { eq, and, desc, sql } from 'drizzle-orm';
 import { notifications, users } from '@commonpub/schema';
 import type { DB } from '../types.js';
 import { normalizePagination, countRows } from '../query.js';
+import { publishSseEvent } from '../realtime/index.js';
 
 export interface NotificationItem {
   id: string;
@@ -239,6 +240,11 @@ export async function createNotification(
       console.error('[notification-email] Failed to send:', err instanceof Error ? err.message : err);
     });
   }
+
+  // Fire-and-forget SSE fanout so any connected stream for this user
+  // (including on other Nitro processes, when Redis is enabled) re-queries
+  // counts immediately rather than waiting for the next 10 s poll tick.
+  publishSseEvent(input.userId, { type: 'notification', notificationId: notification.id }).catch(() => {});
 
   return notification;
 }

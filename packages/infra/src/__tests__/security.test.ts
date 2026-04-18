@@ -155,67 +155,61 @@ describe('RateLimitStore', () => {
     store?.destroy();
   });
 
-  it('allows requests within the limit', () => {
+  it('allows requests within the limit', async () => {
     store = new RateLimitStore();
     const tier = { limit: 3, windowMs: 60_000 };
-    const r1 = store.check('key1', tier);
+    const r1 = await store.check('key1', tier);
     expect(r1.allowed).toBe(true);
     expect(r1.remaining).toBe(2);
   });
 
-  it('blocks requests exceeding the limit', () => {
+  it('blocks requests exceeding the limit', async () => {
     store = new RateLimitStore();
     const tier = { limit: 2, windowMs: 60_000 };
-    store.check('key1', tier);
-    const r2 = store.check('key1', tier);
+    await store.check('key1', tier);
+    const r2 = await store.check('key1', tier);
     expect(r2.allowed).toBe(true);
     expect(r2.remaining).toBe(0);
-    const r3 = store.check('key1', tier);
+    const r3 = await store.check('key1', tier);
     expect(r3.allowed).toBe(false);
     expect(r3.remaining).toBe(0);
   });
 
-  it('blocks exactly at limit+1 (not at limit)', () => {
+  it('blocks exactly at limit+1 (not at limit)', async () => {
     store = new RateLimitStore();
     const tier = { limit: 3, windowMs: 60_000 };
-    store.check('x', tier); // 1
-    store.check('x', tier); // 2
-    const atLimit = store.check('x', tier); // 3 = limit
+    await store.check('x', tier); // 1
+    await store.check('x', tier); // 2
+    const atLimit = await store.check('x', tier); // 3 = limit
     expect(atLimit.allowed).toBe(true);
     expect(atLimit.remaining).toBe(0);
-    const overLimit = store.check('x', tier); // 4 > limit
+    const overLimit = await store.check('x', tier); // 4 > limit
     expect(overLimit.allowed).toBe(false);
   });
 
-  it('tracks different keys independently', () => {
+  it('tracks different keys independently', async () => {
     store = new RateLimitStore();
     const tier = { limit: 1, windowMs: 60_000 };
-    const r1 = store.check('a', tier);
-    const r2 = store.check('b', tier);
+    const r1 = await store.check('a', tier);
+    const r2 = await store.check('b', tier);
     expect(r1.allowed).toBe(true);
     expect(r2.allowed).toBe(true);
   });
 
-  it('resets after window expires', () => {
+  it('resets after window expires', async () => {
     store = new RateLimitStore();
     const tier = { limit: 1, windowMs: 1 }; // 1ms window
-    store.check('key1', tier);
-
-    // Wait for window to expire
-    return new Promise<void>((resolve) => {
-      setTimeout(() => {
-        const r2 = store.check('key1', tier);
-        expect(r2.allowed).toBe(true);
-        resolve();
-      }, 10);
-    });
+    await store.check('key1', tier);
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    const r2 = await store.check('key1', tier);
+    expect(r2.allowed).toBe(true);
   });
 
-  it('returns resetAt timestamp', () => {
+  it('returns resetAt timestamp', async () => {
     store = new RateLimitStore();
     const now = Date.now();
     const tier = { limit: 5, windowMs: 60_000 };
-    const result = store.check('key1', tier);
+    const result = await store.check('key1', tier);
     expect(result.resetAt).toBeGreaterThanOrEqual(now + 59_000);
     expect(result.resetAt).toBeLessThanOrEqual(now + 61_000);
   });
@@ -228,37 +222,37 @@ describe('checkRateLimit', () => {
     store?.destroy();
   });
 
-  it('returns result and rate limit headers', () => {
+  it('returns result and rate limit headers', async () => {
     store = new RateLimitStore();
-    const { result, headers } = checkRateLimit(store, '127.0.0.1', '/api/content');
+    const { result, headers } = await checkRateLimit(store, '127.0.0.1', '/api/content');
     expect(result.allowed).toBe(true);
     expect(headers['X-RateLimit-Limit']).toBeDefined();
     expect(headers['X-RateLimit-Remaining']).toBeDefined();
     expect(headers['X-RateLimit-Reset']).toBeDefined();
   });
 
-  it('includes Retry-After header when blocked', () => {
+  it('includes Retry-After header when blocked', async () => {
     store = new RateLimitStore();
     // Exhaust the auth tier (limit: 5)
     for (let i = 0; i < 6; i++) {
-      checkRateLimit(store, '127.0.0.1', '/auth/login');
+      await checkRateLimit(store, '127.0.0.1', '/auth/login');
     }
-    const { result, headers } = checkRateLimit(store, '127.0.0.1', '/auth/login');
+    const { result, headers } = await checkRateLimit(store, '127.0.0.1', '/auth/login');
     expect(result.allowed).toBe(false);
     expect(headers['Retry-After']).toBeDefined();
   });
 
-  it('uses userId for key when authenticated — independent limits per user', () => {
+  it('uses userId for key when authenticated — independent limits per user', async () => {
     store = new RateLimitStore();
     // Exhaust user1's auth limit (5 requests)
     for (let i = 0; i < 6; i++) {
-      checkRateLimit(store, '127.0.0.1', '/auth/login', 'user1');
+      await checkRateLimit(store, '127.0.0.1', '/auth/login', 'user1');
     }
     // user1 should be blocked
-    const blocked = checkRateLimit(store, '127.0.0.1', '/auth/login', 'user1');
+    const blocked = await checkRateLimit(store, '127.0.0.1', '/auth/login', 'user1');
     expect(blocked.result.allowed).toBe(false);
     // user2 on the same IP should still be allowed
-    const allowed = checkRateLimit(store, '127.0.0.1', '/auth/login', 'user2');
+    const allowed = await checkRateLimit(store, '127.0.0.1', '/auth/login', 'user2');
     expect(allowed.result.allowed).toBe(true);
   });
 });

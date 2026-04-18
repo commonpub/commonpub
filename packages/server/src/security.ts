@@ -5,6 +5,7 @@ export {
   getSecurityHeaders,
   getStaticCacheHeaders,
   generateNonce,
+  MemoryRateLimitStore,
   RateLimitStore,
   DEFAULT_TIERS,
   getTierForPath,

@@ -1,6 +1,7 @@
 import { eq, and, desc, sql, notExists, inArray } from 'drizzle-orm';
 import { conversations, messages, messageReads, users } from '@commonpub/schema';
 import type { DB } from '../types.js';
+import { publishSseEvent } from '../realtime/index.js';
 
 /** Truncate a string at a Unicode-safe boundary (never splits surrogate pairs or grapheme clusters). */
 function truncateUnicode(str: string, maxChars: number): string {
@@ -188,9 +189,10 @@ export async function sendMessage(
   senderId: string,
   body: string,
 ): Promise<MessageItem> {
-  // Verify sender is a participant in this conversation
+  // Verify sender is a participant in this conversation; fetch the
+  // participants list so we can fan SSE events out below.
   const conv = await db
-    .select({ id: conversations.id })
+    .select({ id: conversations.id, participants: conversations.participants })
     .from(conversations)
     .where(
       and(
@@ -203,6 +205,7 @@ export async function sendMessage(
   if (conv.length === 0) {
     throw new Error('Not a participant in this conversation');
   }
+  const participants = (conv[0]?.participants as string[] | null) ?? [];
 
   // Truncate lastMessage safely (preserve multi-byte characters)
   const truncated = truncateUnicode(body, 200);
@@ -232,6 +235,13 @@ export async function sendMessage(
   // Resolve sender info (outside transaction — read-only, non-critical)
   const [sender] = await db.select({ displayName: users.displayName, username: users.username, avatarUrl: users.avatarUrl })
     .from(users).where(eq(users.id, senderId)).limit(1);
+
+  // Fire-and-forget SSE fanout to every other participant. The sender
+  // already sees the message via the API response, so we skip them.
+  for (const participantId of participants) {
+    if (participantId === senderId) continue;
+    publishSseEvent(participantId, { type: 'message', messageId: row!.id }).catch(() => {});
+  }
 
   return {
     id: row!.id,
