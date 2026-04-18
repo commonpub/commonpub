@@ -207,4 +207,159 @@ describe('learning integration', () => {
     const enrollmentsList = await getUserEnrollments(db, learnerId);
     expect(enrollmentsList.length).toBeGreaterThanOrEqual(1);
   });
+
+  describe('quiz lessons — server-side grading', () => {
+    it('grades a quiz with correct answers → passes + records score', async () => {
+      const path = await createPath(db, authorId, { title: 'Quiz Path Correct' });
+      const mod = await createModule(db, authorId, {
+        pathId: path.id,
+        title: 'Quiz Module',
+        sortOrder: 0,
+      });
+      const lesson = await createLesson(db, authorId, {
+        moduleId: mod.id,
+        title: 'Quiz Lesson',
+        type: 'quiz',
+        content: {
+          type: 'quiz',
+          passingScore: 70,
+          questions: [
+            {
+              id: 'q1',
+              question: '2+2?',
+              options: [{ id: 'a', text: '3' }, { id: 'b', text: '4' }],
+              correctOptionId: 'b',
+            },
+            {
+              id: 'q2',
+              question: '3+3?',
+              options: [{ id: 'a', text: '6' }, { id: 'b', text: '7' }],
+              correctOptionId: 'a',
+            },
+          ],
+        },
+      });
+      await publishPath(db, path.id, authorId);
+      await enroll(db, learnerId, path.id);
+
+      const result = await markLessonComplete(db, learnerId, lesson.id, {
+        q1: 'b',
+        q2: 'a',
+      });
+
+      expect(result.quiz).toBeDefined();
+      expect(result.quiz!.passed).toBe(true);
+      expect(result.quiz!.score).toBe(100);
+      expect(result.progress).toBeGreaterThan(0);
+    });
+
+    it('rejects quiz lesson completion without answers', async () => {
+      const path = await createPath(db, authorId, { title: 'Quiz Path No Answers' });
+      const mod = await createModule(db, authorId, {
+        pathId: path.id,
+        title: 'M',
+        sortOrder: 0,
+      });
+      const lesson = await createLesson(db, authorId, {
+        moduleId: mod.id,
+        title: 'Quiz Lesson',
+        type: 'quiz',
+        content: {
+          type: 'quiz',
+          passingScore: 50,
+          questions: [
+            {
+              id: 'q1',
+              question: 'x',
+              options: [{ id: 'a', text: 'A' }, { id: 'b', text: 'B' }],
+              correctOptionId: 'a',
+            },
+          ],
+        },
+      });
+      await publishPath(db, path.id, authorId);
+      await enroll(db, learnerId, path.id);
+
+      await expect(markLessonComplete(db, learnerId, lesson.id)).rejects.toThrow(
+        /Quiz lessons require answers/,
+      );
+      await expect(markLessonComplete(db, learnerId, lesson.id, {})).rejects.toThrow(
+        /Quiz lessons require answers/,
+      );
+    });
+
+    it('fails a quiz when answers are wrong — completion NOT recorded', async () => {
+      const path = await createPath(db, authorId, { title: 'Quiz Path Wrong' });
+      const mod = await createModule(db, authorId, {
+        pathId: path.id,
+        title: 'M',
+        sortOrder: 0,
+      });
+      const lesson = await createLesson(db, authorId, {
+        moduleId: mod.id,
+        title: 'Quiz Lesson',
+        type: 'quiz',
+        content: {
+          type: 'quiz',
+          passingScore: 100,
+          questions: [
+            {
+              id: 'q1',
+              question: 'x',
+              options: [{ id: 'a', text: 'A' }, { id: 'b', text: 'B' }],
+              correctOptionId: 'a',
+            },
+          ],
+        },
+      });
+      await publishPath(db, path.id, authorId);
+      await enroll(db, learnerId, path.id);
+
+      const result = await markLessonComplete(db, learnerId, lesson.id, { q1: 'b' });
+
+      expect(result.quiz!.passed).toBe(false);
+      expect(result.quiz!.score).toBe(0);
+      // Path progress should stay at 0 since the only lesson didn't pass
+      expect(result.progress).toBe(0);
+    });
+
+    it('retains a prior pass even if a subsequent attempt fails', async () => {
+      const path = await createPath(db, authorId, { title: 'Quiz Path Retry' });
+      const mod = await createModule(db, authorId, {
+        pathId: path.id,
+        title: 'M',
+        sortOrder: 0,
+      });
+      const lesson = await createLesson(db, authorId, {
+        moduleId: mod.id,
+        title: 'Quiz Lesson',
+        type: 'quiz',
+        content: {
+          type: 'quiz',
+          passingScore: 50,
+          questions: [
+            {
+              id: 'q1',
+              question: 'x',
+              options: [{ id: 'a', text: 'A' }, { id: 'b', text: 'B' }],
+              correctOptionId: 'a',
+            },
+          ],
+        },
+      });
+      await publishPath(db, path.id, authorId);
+      await enroll(db, learnerId, path.id);
+
+      // First attempt: pass
+      const first = await markLessonComplete(db, learnerId, lesson.id, { q1: 'a' });
+      expect(first.quiz!.passed).toBe(true);
+      expect(first.progress).toBe(100);
+
+      // Second attempt: fail. The lesson should REMAIN completed since the
+      // user already passed it once — progress should not regress.
+      const second = await markLessonComplete(db, learnerId, lesson.id, { q1: 'b' });
+      expect(second.quiz!.passed).toBe(false);
+      expect(second.progress).toBe(100);
+    });
+  });
 });

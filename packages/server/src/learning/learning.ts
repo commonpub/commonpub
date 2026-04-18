@@ -9,7 +9,8 @@ import {
   users,
   contentItems,
 } from '@commonpub/schema';
-import { calculatePathProgress, isPathComplete } from '@commonpub/learning';
+import { calculatePathProgress, isPathComplete, gradeQuiz } from '@commonpub/learning';
+import type { QuizLessonContent, QuizGrade } from '@commonpub/learning';
 import { generateVerificationCode } from '@commonpub/learning';
 import { generateSlug } from '../utils.js';
 import { ensureUniqueSlugFor, USER_REF_SELECT, normalizePagination, countRows } from '../query.js';
@@ -627,9 +628,8 @@ export async function markLessonComplete(
   db: DB,
   userId: string,
   lessonId: string,
-  quizScore?: number,
-  quizPassed?: boolean,
-): Promise<{ progress: number; certificateIssued: boolean }> {
+  answers?: Record<string, string>,
+): Promise<{ progress: number; certificateIssued: boolean; quiz?: QuizGrade }> {
   const lessonRow = await db
     .select({ lesson: learningLessons, module: learningModules })
     .from(learningLessons)
@@ -640,6 +640,22 @@ export async function markLessonComplete(
   if (lessonRow.length === 0) throw new Error('Lesson not found');
 
   const pathId = lessonRow[0]!.module.pathId;
+  const lesson = lessonRow[0]!.lesson;
+
+  // Server-side quiz grading. The client sends `answers` (questionId → optionId)
+  // and the server is the single source of truth for whether the quiz passed.
+  // `quizScore` / `quizPassed` are NEVER accepted from client input.
+  let quizGrade: QuizGrade | undefined;
+  if (lesson.type === 'quiz') {
+    const content = lesson.content as QuizLessonContent | null;
+    if (!content || content.type !== 'quiz' || !Array.isArray(content.questions)) {
+      throw new Error('Lesson is marked as quiz but has no quiz content');
+    }
+    if (!answers || Object.keys(answers).length === 0) {
+      throw new Error('Quiz lessons require answers to be submitted');
+    }
+    quizGrade = gradeQuiz(content, answers);
+  }
 
   return db.transaction(async (tx) => {
     const enrollmentRow = await tx
@@ -657,23 +673,35 @@ export async function markLessonComplete(
       .where(and(eq(lessonProgress.userId, userId), eq(lessonProgress.lessonId, lessonId)))
       .limit(1);
 
+    // For quiz lessons, `completed` reflects whether the server-graded attempt
+    // passed. For non-quiz lessons, completion is always true on mark-complete.
+    const markAsCompleted = quizGrade ? quizGrade.passed : true;
+    const nextQuizScore = quizGrade ? quizGrade.score.toString() : null;
+    const nextQuizPassed = quizGrade ? quizGrade.passed : null;
+
     if (existingProgress.length === 0) {
       await tx.insert(lessonProgress).values({
         userId,
         lessonId,
-        completed: true,
-        completedAt: new Date(),
-        quizScore: quizScore?.toString() ?? null,
-        quizPassed: quizPassed ?? null,
+        completed: markAsCompleted,
+        completedAt: markAsCompleted ? new Date() : null,
+        quizScore: nextQuizScore,
+        quizPassed: nextQuizPassed,
       });
     } else {
+      // Never downgrade a prior pass. If the user has already passed, keep it
+      // and allow re-attempts to record a new (possibly higher) score.
+      const existing = existingProgress[0]!;
+      const wasPassed = existing.completed;
       await tx
         .update(lessonProgress)
         .set({
-          completed: true,
-          completedAt: new Date(),
-          quizScore: quizScore?.toString() ?? existingProgress[0]!.quizScore,
-          quizPassed: quizPassed ?? existingProgress[0]!.quizPassed,
+          completed: wasPassed || markAsCompleted,
+          completedAt: (wasPassed || markAsCompleted)
+            ? (existing.completedAt ?? new Date())
+            : null,
+          quizScore: nextQuizScore ?? existing.quizScore,
+          quizPassed: nextQuizPassed ?? existing.quizPassed,
         })
         .where(
           and(eq(lessonProgress.userId, userId), eq(lessonProgress.lessonId, lessonId)),
@@ -736,7 +764,7 @@ export async function markLessonComplete(
       }
     }
 
-    return { progress, certificateIssued };
+    return { progress, certificateIssued, quiz: quizGrade };
   });
 }
 
@@ -842,6 +870,7 @@ export async function getLessonBySlug(
   lesson: typeof learningLessons.$inferSelect;
   module: typeof learningModules.$inferSelect;
   pathId: string;
+  pathAuthorId: string;
   linkedContent?: { id: string; title: string; slug: string; type: string; content: unknown; author?: { username: string } };
 } | null> {
   const path = await db
@@ -865,11 +894,13 @@ export async function getLessonBySlug(
     lesson: typeof learningLessons.$inferSelect;
     module: typeof learningModules.$inferSelect;
     pathId: string;
+    pathAuthorId: string;
     linkedContent?: { id: string; title: string; slug: string; type: string; content: unknown; author?: { username: string } };
   } = {
     lesson: rows[0]!.lesson,
     module: rows[0]!.module,
     pathId: path[0]!.id,
+    pathAuthorId: path[0]!.authorId,
   };
 
   // Resolve linked content item if present

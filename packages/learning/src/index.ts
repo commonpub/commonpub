@@ -33,6 +33,7 @@ export {
   updateModuleSchema,
   updateLessonSchema,
   lessonContentSchema,
+  completeLessonSchema,
 } from './validators.js';
 
 // Progress
@@ -60,3 +61,7 @@ export {
   buildCurriculumTree,
   reorderItems,
 } from './curriculum.js';
+
+// Quiz (server-side grading + answer redaction for responses)
+export { gradeQuiz, redactQuizAnswers } from './quiz.js';
+export type { QuizGrade } from './quiz.js';

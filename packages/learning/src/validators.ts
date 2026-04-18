@@ -71,3 +71,19 @@ export const lessonContentSchema = z.discriminatedUnion('type', [
   projectContentSchema,
   explainerContentSchema,
 ]);
+
+// --- Lesson completion (server-graded) ---
+
+/**
+ * Body accepted by `POST /api/learn/:slug/:lessonSlug/complete`.
+ *
+ * For quiz lessons, clients send the chosen optionId per questionId and the
+ * server grades against the answer key. For non-quiz lessons the answers map
+ * is ignored (accept empty body).
+ *
+ * NEVER accept client-supplied `quizScore`/`quizPassed` — that's the whole
+ * point of server-side grading. This schema intentionally strips them.
+ */
+export const completeLessonSchema = z.object({
+  answers: z.record(z.string().min(1), z.string().min(1)).optional(),
+}).strict();

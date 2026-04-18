@@ -1,5 +1,6 @@
 import { getLessonBySlug } from '@commonpub/server';
 import { renderMarkdown } from '@commonpub/docs';
+import { redactQuizAnswers } from '@commonpub/learning';
 
 function blocksToHtml(blocks: unknown): string {
   if (!Array.isArray(blocks)) return '';
@@ -39,6 +40,7 @@ function blocksToHtml(blocks: unknown): string {
 export default defineEventHandler(async (event) => {
   const db = useDB();
   const { slug, lessonSlug } = parseParams(event, { slug: 'string', lessonSlug: 'string' });
+  const user = getOptionalUser(event);
 
   const result = await getLessonBySlug(db, slug, lessonSlug);
   if (!result) {
@@ -64,5 +66,13 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  return { ...result, renderedHtml };
+  // Quiz lessons: strip `correctOptionId` + `explanation` from each question
+  // unless the caller is the path author. Without this, anyone enrolled (or
+  // anonymous) could fetch the answer key directly from the lesson content.
+  const isAuthor = !!user && user.id === result.pathAuthorId;
+  const safeLesson = isAuthor
+    ? result.lesson
+    : { ...result.lesson, content: redactQuizAnswers(result.lesson.content as Record<string, unknown>) };
+
+  return { ...result, lesson: safeLesson, renderedHtml };
 });

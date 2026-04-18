@@ -1,6 +1,6 @@
 {
   "name": "@commonpub/learning",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "type": "module",
   "description": "Learning path engine — curriculum, progress, and certificates for CommonPub",
   "license": "AGPL-3.0-or-later",
@@ -52,7 +52,7 @@
     "@commonpub/config": "workspace:*",
     "@commonpub/editor": "workspace:*",
     "@commonpub/explainer": "^0.7.11",
-    "@commonpub/schema": "^0.14.1",
+    "@commonpub/schema": "^0.14.3",
     "zod": "^4.3.6"
   },
   "devDependencies": {

@@ -5,6 +5,7 @@ import {
   updateModuleSchema,
   updateLessonSchema,
   lessonContentSchema,
+  completeLessonSchema,
 } from '../validators';
 
 describe('updateLearningPathSchema', () => {
@@ -202,5 +203,46 @@ describe('lessonContentSchema', () => {
       url: 'https://example.com/video.mp4',
     });
     expect(result.success).toBe(true);
+  });
+});
+
+describe('completeLessonSchema', () => {
+  it('accepts empty body (non-quiz lessons)', () => {
+    expect(completeLessonSchema.safeParse({}).success).toBe(true);
+  });
+
+  it('accepts valid answers map', () => {
+    const result = completeLessonSchema.safeParse({
+      answers: { q1: 'a', q2: 'b' },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects client-supplied quizScore (strict mode strips unknown keys)', () => {
+    const result = completeLessonSchema.safeParse({ quizScore: 100 });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects client-supplied quizPassed', () => {
+    const result = completeLessonSchema.safeParse({ quizPassed: true });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects both quizScore and answers together', () => {
+    const result = completeLessonSchema.safeParse({
+      answers: { q1: 'a' },
+      quizScore: 100,
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects non-string answer values', () => {
+    const result = completeLessonSchema.safeParse({ answers: { q1: 5 } });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects empty-string answer values', () => {
+    const result = completeLessonSchema.safeParse({ answers: { q1: '' } });
+    expect(result.success).toBe(false);
   });
 });

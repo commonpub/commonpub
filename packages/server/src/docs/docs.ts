@@ -368,7 +368,14 @@ export async function createDocsPage(
       slug,
       sidebarLabel: input.sidebarLabel ?? null,
       description: input.description ?? null,
-      content: typeof input.content === 'string' ? input.content : JSON.stringify(input.content),
+      // Pass content through directly — drizzle's jsonb column serializes
+      // arrays/objects correctly. Manually `JSON.stringify`-ing here would
+      // double-encode (drizzle then stringifies the string), storing the
+      // content as a jsonb STRING rather than a jsonb ARRAY, which breaks
+      // any SQL that uses jsonb_typeof / jsonb_array_elements. Drizzle's
+      // mapFromDriverValue happens to unwrap this at read time, so the app
+      // works — but SQL doesn't.
+      content: input.content,
       status: (input.status ?? 'draft') as typeof docsPages.status.enumValues[number],
       sortOrder,
       parentId: input.parentId ?? null,
@@ -414,7 +421,8 @@ export async function updateDocsPage(
   if (input.sidebarLabel !== undefined) updates.sidebarLabel = input.sidebarLabel;
   if (input.description !== undefined) updates.description = input.description;
   if (input.content !== undefined) {
-    updates.content = typeof input.content === 'string' ? input.content : JSON.stringify(input.content);
+    // See createDocsPage for why we don't JSON.stringify here.
+    updates.content = input.content;
   }
   if (input.sortOrder !== undefined) updates.sortOrder = input.sortOrder;
   if (input.parentId !== undefined) updates.parentId = input.parentId;
@@ -552,24 +560,96 @@ export async function searchDocsPages(
 
   const langLiteral = sql.raw(`'${ftsLang}'`);
 
-  const results = await db
-    .select({
-      id: docsPages.id,
-      title: docsPages.title,
-      slug: docsPages.slug,
-      snippet: sql<string>`ts_headline(${langLiteral}, ${docsPages.content}, to_tsquery(${langLiteral}, ${tsQuery}), 'MaxWords=30, MinWords=15')`,
-    })
-    .from(docsPages)
-    .innerJoin(docsVersions, eq(docsPages.versionId, docsVersions.id))
-    .where(
-      and(
-        eq(docsPages.versionId, versionId),
-        eq(docsVersions.siteId, siteId),
-        sql`to_tsvector(${langLiteral}, ${docsPages.title} || ' ' || ${docsPages.content}) @@ to_tsquery(${langLiteral}, ${tsQuery})`,
-      ),
-    )
-    .limit(20);
+  // docsPages.content is jsonb. `content::text` produces the literal JSON
+  // representation, which pollutes search with keys like "paragraph",
+  // "html", bracket/brace chars, and shows raw JSON in ts_headline snippets.
+  //
+  // Extract just the text content via a LATERAL subquery that walks the
+  // BlockTuple array and concatenates html/text/code fields with HTML tags
+  // stripped. Legacy string-valued content unwraps via #>>'{}'. Anything
+  // else yields empty string.
+  const langIdent = ftsLang;
+  const extractedTextSql = sql<string>`(
+    CASE
+      WHEN jsonb_typeof(${docsPages.content}) = 'array' THEN (
+        SELECT coalesce(string_agg(
+          regexp_replace(
+            coalesce(elem->1->>'html', elem->1->>'text', elem->1->>'code', elem->1->>'title', ''),
+            '<[^>]+>', ' ', 'g'
+          ),
+          ' '
+        ), '')
+        FROM jsonb_array_elements(${docsPages.content}) AS elem
+      )
+      WHEN jsonb_typeof(${docsPages.content}) = 'string' THEN ${docsPages.content} #>> '{}'
+      ELSE ''
+    END
+  )`;
 
-  return results;
+  const results = await db.execute(sql`
+    SELECT
+      dp.id,
+      dp.title,
+      dp.slug,
+      ts_headline(${langLiteral}, dp.title || ' ' || extracted.text_content, to_tsquery(${langLiteral}, ${tsQuery}), 'MaxWords=30, MinWords=15') AS snippet
+    FROM docs_pages dp
+    INNER JOIN docs_versions dv ON dp.version_id = dv.id
+    LEFT JOIN LATERAL (
+      SELECT coalesce(
+        CASE
+          -- BlockTuple array (new format — correct jsonb array)
+          WHEN jsonb_typeof(dp.content) = 'array' THEN (
+            SELECT coalesce(string_agg(
+              regexp_replace(
+                coalesce(elem->1->>'html', elem->1->>'text', elem->1->>'code', elem->1->>'title', ''),
+                '<[^>]+>', ' ', 'g'
+              ),
+              ' '
+            ), '')
+            FROM jsonb_array_elements(dp.content) AS elem
+          )
+          -- Historical: content got double-stringified before the session-129
+          -- fix, so it landed in the DB as a jsonb STRING whose value is the
+          -- JSON text of a BlockTuple array. If it looks like JSON, parse it
+          -- and walk the array the same way.
+          WHEN jsonb_typeof(dp.content) = 'string'
+            AND substr(dp.content #>> '{}', 1, 1) IN ('[', '{')
+            THEN (
+              SELECT coalesce(string_agg(
+                regexp_replace(
+                  coalesce(elem->1->>'html', elem->1->>'text', elem->1->>'code', elem->1->>'title', ''),
+                  '<[^>]+>', ' ', 'g'
+                ),
+                ' '
+              ), '')
+              FROM jsonb_array_elements((dp.content #>> '{}')::jsonb) AS elem
+            )
+          -- Legacy markdown pages stored as plain strings
+          WHEN jsonb_typeof(dp.content) = 'string' THEN dp.content #>> '{}'
+          ELSE ''
+        END,
+        ''
+      ) AS text_content
+    ) extracted ON true
+    WHERE dp.version_id = ${versionId}
+      AND dv.site_id = ${siteId}
+      AND to_tsvector(${langLiteral}, dp.title || ' ' || extracted.text_content) @@ to_tsquery(${langLiteral}, ${tsQuery})
+    LIMIT 20
+  `);
+
+  // drizzle's raw execute returns rows on `.rows` (node-postgres) or directly
+  // as an array depending on driver. Normalize.
+  const rows = (results as unknown as { rows?: Array<Record<string, unknown>> }).rows
+    ?? (results as unknown as Array<Record<string, unknown>>);
+
+  void langIdent;
+  void extractedTextSql;
+
+  return rows.map((r) => ({
+    id: r.id as string,
+    title: r.title as string,
+    slug: r.slug as string,
+    snippet: (r.snippet as string) ?? '',
+  }));
 }
 
