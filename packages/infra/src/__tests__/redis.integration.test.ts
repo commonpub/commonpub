@@ -117,8 +117,22 @@ describeIfRedis('RedisRealtimePubSub (integration)', () => {
   it('publish on one bus reaches a subscriber on another', async () => {
     // Two pub/sub wrappers sharing the same Redis — one publishes, the
     // other subscribes. Mirrors the "two Nitro processes" scenario.
-    const busA = new RedisRealtimePubSub(publisher, subscriber.duplicate());
-    const busB = new RedisRealtimePubSub(publisher, subscriber.duplicate());
+    //
+    // The duplicate overrides `enableOfflineQueue: true` and
+    // `maxRetriesPerRequest: null` to match what `createRealtimePubSub`
+    // does in production — SUBSCRIBE commands must be queued during
+    // reconnect so ioredis can replay them.
+    const subA = subscriber.duplicate({ enableOfflineQueue: true, maxRetriesPerRequest: null });
+    const subB = subscriber.duplicate({ enableOfflineQueue: true, maxRetriesPerRequest: null });
+    subA.on('error', () => {});
+    subB.on('error', () => {});
+    await Promise.all([subA, subB].map((c) => new Promise<void>((resolve) => {
+      if (c.status === 'ready') return resolve();
+      c.once('ready', () => resolve());
+    })));
+
+    const busA = new RedisRealtimePubSub(publisher, subA);
+    const busB = new RedisRealtimePubSub(publisher, subB);
 
     const received: unknown[] = [];
     await busB.subscribe(`${TEST_PREFIX}:pubsub:u1`, (p) => received.push(p));
@@ -126,7 +140,7 @@ describeIfRedis('RedisRealtimePubSub (integration)', () => {
     await new Promise((r) => setTimeout(r, 50));
 
     await busA.publish(`${TEST_PREFIX}:pubsub:u1`, { type: 'notification' });
-    await new Promise((r) => setTimeout(r, 100));
+    await new Promise((r) => setTimeout(r, 200));
 
     expect(received).toEqual([{ type: 'notification' }]);
 

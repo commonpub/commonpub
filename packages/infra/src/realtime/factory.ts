@@ -58,7 +58,17 @@ class LazyRedisRealtimePubSub implements RealtimePubSub {
       // Dedicated subscriber — ioredis's `duplicate()` clones the config
       // (URL, TLS, password) but opens a separate socket. Subscribe-mode
       // restrictions then apply only to this one.
-      const subscriber = publisher.duplicate();
+      //
+      // Override `enableOfflineQueue` back to true: the publisher is
+      // fast-fail because a blocked rate-limit check stalls a hot request
+      // path, but SUBSCRIBE/UNSUBSCRIBE on the subscriber live outside the
+      // request path and MUST be queued during reconnect. ioredis replays
+      // active subscriptions on reconnect, so with the queue enabled a
+      // transient disconnect doesn't silently drop delivery.
+      const subscriber = publisher.duplicate({
+        enableOfflineQueue: true,
+        maxRetriesPerRequest: null,
+      });
       subscriber.on('error', () => {});
       return new RedisRealtimePubSub(publisher, subscriber);
     } catch {

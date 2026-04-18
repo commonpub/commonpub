@@ -27,6 +27,20 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+      # Redis sidecar for the opt-in integration test in
+      # packages/infra/src/__tests__/redis.integration.test.ts. The test
+      # file is gated on REDIS_URL_TEST; without this service the tests
+      # skip cleanly. With it, they cover cross-instance rate-limit
+      # enforcement + pub/sub delivery on every PR.
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - uses: actions/checkout@v4
@@ -50,12 +64,14 @@ jobs:
       - name: Lint
         run: pnpm lint
 
-      # Tests require Postgres (PGlite for unit, real PG for integration)
-      # Run on all platforms — PGlite-based tests work everywhere
+      # Tests require Postgres (PGlite for unit, real PG for integration).
+      # REDIS_URL_TEST opts the redis.integration.test.ts suite in against
+      # the sidecar above.
       - name: Test
         run: pnpm test
         env:
           DATABASE_URL: postgresql://commonpub:commonpub_test@localhost:5432/commonpub_test
+          REDIS_URL_TEST: redis://localhost:6379
 
       - name: Build
         run: pnpm build
