@@ -7,11 +7,55 @@ monorepo working period. For session-level detail, see [`docs/sessions/`](./docs
 
 ---
 
-## Unreleased (sessions 108–129, through 2026-04-17)
+## Unreleased (sessions 108–130, through 2026-04-17)
 
-Monorepo state at time of writing: schema 0.14.3, server 2.46.1, config 0.11.0,
-layer 0.17.0, ui 0.8.5, protocol 0.9.9, editor 0.7.9, explainer 0.7.12,
-learning 0.5.1, docs 0.6.2, auth 0.5.1, infra 0.5.1, test-utils 0.5.3.
+Monorepo state at time of writing: schema 0.14.3, server 2.47.0, config 0.11.0,
+layer 0.18.0, ui 0.8.5, protocol 0.9.9, editor 0.7.9, explainer 0.7.12,
+learning 0.5.1, docs 0.6.2, auth 0.5.1, infra 0.6.0, test-utils 0.5.3.
+
+### Session 130 — Redis integration for horizontal scaling (2026-04-17)
+
+**Rate-limit store abstraction:**
+- New `RateLimitStore` interface in `@commonpub/infra`; `MemoryRateLimitStore`
+  is the default in-process implementation. `RedisRateLimitStore` is the
+  new Redis-backed implementation using atomic `INCR` + `PEXPIRE NX`.
+- `createRateLimitStore({ redisUrl })` factory picks memory vs Redis from
+  `NUXT_REDIS_URL`. Unset → memory (byte-identical to pre-0.6.0). Lazy
+  initialization so no top-level await leaks into consumers.
+- Fail-open: if Redis is unreachable mid-request, the limiter returns
+  `allowed: true` and surfaces the fallback via `onRedisError`. Rate limits
+  must not become a liveness hazard.
+
+**Public-API key limiter:**
+- `ApiKeyRateLimit` (`packages/server/src/publicApi/rateLimit.ts`) now
+  wraps a `RateLimitStore` and defaults to the Redis-or-memory factory.
+  Two Nitro processes sharing Redis enforce the same per-key window.
+- `check()` is now async; the Nitro middleware awaits it.
+
+**SSE pub/sub:**
+- New `RealtimePubSub` abstraction in `@commonpub/infra` with
+  `MemoryRealtimePubSub` (EventEmitter, single-process) and
+  `RedisRealtimePubSub` (Redis pub/sub, cross-process) backends.
+- `@commonpub/server` exposes `publishSseEvent(userId, payload)` and
+  `subscribeSseEvents(userId, handler)`. `createNotification` and
+  `sendMessage` fire-and-forget publish; the SSE stream subscribes once
+  per connection.
+- `/api/realtime/stream` now reacts to pub/sub events instead of
+  exclusively polling. Polling is retained at 30 s as a safety net for
+  missed publishes.
+
+**Breaking (type-level):**
+- `checkRateLimit()` is now `async`. Callers that don't `await` will see
+  `Promise<{ result, headers }>` instead of the object directly.
+- `RateLimitStore.check()` returns a Promise. The class export
+  `new RateLimitStore()` is preserved as an alias for
+  `MemoryRateLimitStore`, so `new RateLimitStore()` still works at
+  runtime; direct callers of `.check()` must `await`.
+
+**Deployment:**
+- Redis is opt-in via `NUXT_REDIS_URL`. Deploys are byte-identical while
+  the env var is unset. Production compose (`deploy/docker-compose.prod.yml`)
+  already runs Redis; flip the env to enable after this release lands.
 
 ### Session 129 — Quiz security + docs FTS + jsonb fix (2026-04-17)
 
