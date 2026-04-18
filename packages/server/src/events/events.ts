@@ -321,7 +321,8 @@ export async function rsvpEvent(
       return { success: false, status: 'cancelled' as AttendeeStatus, error: 'Event is not accepting registrations' };
     }
 
-    // Check if already registered
+    // Check if already registered (fast path — skips the insert attempt
+    // for repeat RSVP clicks).
     const [existing] = await tx
       .select({ id: eventAttendees.id, status: eventAttendees.status })
       .from(eventAttendees)
@@ -336,7 +337,25 @@ export async function rsvpEvent(
     const attendeeStatus: AttendeeStatus =
       event.capacity && event.attendeeCount >= event.capacity ? 'waitlisted' : 'registered';
 
-    await tx.insert(eventAttendees).values({ eventId, userId, status: attendeeStatus });
+    // `onConflictDoNothing` handles the double-click race: the new UNIQUE
+    // (event_id, user_id) constraint would otherwise surface as a 500. If
+    // a parallel request won the race, `returning()` is empty and we
+    // fall back to the existing row without double-incrementing
+    // attendee_count.
+    const inserted = await tx
+      .insert(eventAttendees)
+      .values({ eventId, userId, status: attendeeStatus })
+      .onConflictDoNothing({ target: [eventAttendees.eventId, eventAttendees.userId] })
+      .returning({ id: eventAttendees.id });
+
+    if (inserted.length === 0) {
+      const [current] = await tx
+        .select({ status: eventAttendees.status })
+        .from(eventAttendees)
+        .where(and(eq(eventAttendees.eventId, eventId), eq(eventAttendees.userId, userId)))
+        .limit(1);
+      return { success: false, status: current?.status ?? 'registered', error: 'Already registered' };
+    }
 
     if (attendeeStatus === 'registered') {
       await tx

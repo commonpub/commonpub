@@ -36,8 +36,8 @@ This file is the short version.
 ## Content & schema
 
 - **`article` is legacy.** Use `blog`, `project`, or `explainer`. Schema still has `article` in `contentTypeEnum` but it normalizes to `blog` (session 116 merge).
-- **`eventAttendees` has no unique constraint on (eventId, userId).** Duplicate RSVP is possible in a race. Server dedupe is the only defense.
-- **`federatedContent.mirrorId` has no FK.** Enforced in app code only.
+- **`eventAttendees` has UNIQUE (eventId, userId)** as of migration 0002 (session 130 follow-up). `rsvpEvent` uses `ON CONFLICT DO NOTHING` to handle double-click races — no longer a 500 on race; the second attempt falls through to the "already registered" path.
+- **`federatedContent.mirrorId` has an FK** to `instance_mirrors.id` with `ON DELETE SET NULL` as of migration 0002. Orphans that predated the FK (3 rows on commonpub.io) are nulled by the migration.
 - **Always verify `/api/events` status whitelist** (session 125 security fix). Only `published`, `active`, `upcoming`, `past`, `featured`, `mine` are honored.
 
 ## UI / theming

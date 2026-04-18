@@ -116,8 +116,10 @@ export const federatedContent = pgTable('federated_content', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   /** Soft delete timestamp (set on inbound Delete activity) */
   deletedAt: timestamp('deleted_at', { withTimezone: true }),
-  /** FK to mirror config if content arrived via instance mirroring */
-  mirrorId: uuid('mirror_id'),
+  /** FK to mirror config if content arrived via instance mirroring.
+   *  ON DELETE SET NULL — dropping a mirror config shouldn't purge the
+   *  content we already received from it. */
+  mirrorId: uuid('mirror_id').references(() => instanceMirrors.id, { onDelete: 'set null' }),
   /** Admin can hide specific mirrored content */
   isHidden: boolean('is_hidden').default(false).notNull(),
 }, (t) => [

@@ -281,22 +281,23 @@ against imaginary tables.
 
 Every new feature lives behind a flag in `commonpub.config.ts`. No exceptions.
 
-### `federatedContent.mirrorId` has NO FK
+### `federatedContent.mirrorId` FK — added in migration 0002
 
-Enforced in app code only. If you delete an `instanceMirror` row, orphan
-`federatedContent` rows will remain. Clean up in the same transaction.
+As of schema 0.14.4, `mirror_id` has an FK to `instance_mirrors(id)` with
+`ON DELETE SET NULL`. The migration nulls any orphan references first,
+then enforces. Before 0.14.4 the reference was app-level only.
 
 ### Article type is legacy — use blog or project
 
 `contentTypeEnum` still has `article` for backwards compat, but the system
 normalizes to `blog`. New code should use `blog`, `project`, or `explainer`.
 
-### Events table has NO unique(eventId, userId) on attendees
+### Events attendees — UNIQUE(eventId, userId) — added in migration 0002
 
-`eventAttendees` lacks a unique constraint, so duplicate RSVPs are possible
-at the DB level. The server enforces dedupe via a pre-insert check, but a
-race between two requests for the same user could create duplicates. Low
-priority but known.
+`event_attendees` gained a UNIQUE on `(event_id, user_id)` in schema
+0.14.4. `rsvpEvent` uses `ON CONFLICT DO NOTHING` so a racing duplicate
+falls through to the "already registered" response path, not a 500.
+Pre-0.14.4 duplicates were possible on fast double-clicks.
 
 ## Security
 

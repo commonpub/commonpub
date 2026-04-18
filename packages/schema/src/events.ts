@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, timestamp, integer, boolean, index } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, timestamp, integer, boolean, index, unique } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { users } from './auth.js';
 import { hubs } from './hub.js';
@@ -47,6 +47,10 @@ export const eventAttendees = pgTable('event_attendees', {
 }, (t) => [
   index('idx_event_attendees_event_id').on(t.eventId),
   index('idx_event_attendees_user_id').on(t.userId),
+  // One RSVP row per (event, user). Before this constraint, a racing
+  // double-click on RSVP could create two rows; server-side dedupe was
+  // the only defense (see gotchas).
+  unique('event_attendees_event_user_unique').on(t.eventId, t.userId),
 ]);
 
 // --- Relations ---
