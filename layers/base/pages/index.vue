@@ -74,7 +74,9 @@ const { data: contests, pending: contestsPending } = await useFetch<{ items: Con
   query: { limit: 3 },
 });
 
-const heroDismissed = ref(false);
+// Shared with HeroSection.vue via the same useState key so the dismiss
+// persists across the configurable-renderer and legacy code paths.
+const heroDismissed = useState('cpub:hero-dismissed', () => false);
 const joinedHubs = ref(new Set<string>());
 
 // Active contest for hero banner

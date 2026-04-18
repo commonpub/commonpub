@@ -101,18 +101,28 @@ test.describe('Search page interactions', () => {
   });
 
   test('advanced filters panel toggles', async ({ page }) => {
-    await page.goto('/search');
+    await page.goto('/search', { waitUntil: 'networkidle' });
 
     const filterBtn = page.locator('.cpub-adv-filter-btn');
     await filterBtn.waitFor({ state: 'visible', timeout: 5000 });
-    const panel = page.locator('.cpub-adv-panel');
+    // Wait for Vue hydration: the button's reactive `{ open: advOpen }`
+    // class binding needs to be wired up before the click fires, else
+    // the click event fires into a de-hydrated listener and advOpen
+    // stays false. Use the button's enabled state as a hydration beacon.
+    await expect(filterBtn).toBeEnabled();
 
+    const panel = page.locator('.cpub-adv-panel');
     await expect(panel).not.toBeVisible();
 
     await filterBtn.click();
+    // Confirm the click landed by waiting for the button's `open` class
+    // — this flips with `advOpen` and guards against a false-positive
+    // "panel not found yet" timeout when Vue is still hydrating.
+    await expect(filterBtn).toHaveClass(/open/, { timeout: 5000 });
     await expect(panel).toBeVisible();
 
     await filterBtn.click();
+    await expect(filterBtn).not.toHaveClass(/open/, { timeout: 5000 });
     await expect(panel).not.toBeVisible();
   });
 

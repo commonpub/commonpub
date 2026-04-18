@@ -96,7 +96,14 @@ test.describe('Register form', () => {
   });
 
   test('form fields accept input', async ({ page }) => {
-    await page.goto('/auth/register');
+    await page.goto('/auth/register', { waitUntil: 'networkidle' });
+
+    // Ensure Vue has hydrated before we fill — otherwise `fill` sets the
+    // DOM value before v-model's input listener attaches and hydration
+    // clobbers our value back to the initial empty ref.
+    const submitBtn = page.locator('form button[type="submit"]');
+    await submitBtn.waitFor({ state: 'visible' });
+    await expect(submitBtn).toBeEnabled();
 
     await page.locator('#username').fill('testuser');
     await page.locator('#email').fill('test@example.com');

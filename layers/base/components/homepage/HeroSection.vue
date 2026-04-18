@@ -11,7 +11,13 @@ const activeContest = computed(() => {
   return items?.find((c) => c.status === 'active') ?? null;
 });
 
-const heroDismissed = ref(false);
+// Shared via useState so the dismiss sticks across component remounts.
+// HomepageSectionRenderer's v-if wrappers can remount HeroSection when the
+// `sections` useFetch revalidates on hydration or when feature flags flip
+// (they're async on first load). A local ref would reset on remount and
+// the user would see the banner "come back" after dismissing — which also
+// fails the navigation.spec.ts e2e test.
+const heroDismissed = useState('cpub:hero-dismissed', () => false);
 </script>
 
 <template>

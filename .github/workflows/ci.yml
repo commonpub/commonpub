@@ -115,6 +115,18 @@ jobs:
     env:
       DATABASE_URL: postgresql://commonpub:commonpub_ci@localhost:5432/commonpub
       NUXT_DATABASE_URL: postgresql://commonpub:commonpub_ci@localhost:5432/commonpub
+      # e2e covers smoke tests across feature-gated pages (/contests,
+      # /learn, /videos, /events, /explainer). With the defaults OFF, the
+      # feature-gate middleware 404s mid-navigation, which surfaces as a
+      # "no fatal console errors" flake. Enable everything non-federation
+      # so pages render their real content. Federation stays off — it
+      # needs a second instance to be meaningful.
+      FEATURE_ADMIN: 'true'
+      FEATURE_CONTESTS: 'true'
+      FEATURE_EVENTS: 'true'
+      FEATURE_EXPLAINERS: 'true'
+      FEATURE_LEARNING: 'true'
+      FEATURE_VIDEO: 'true'
 
     steps:
       - uses: actions/checkout@v4
