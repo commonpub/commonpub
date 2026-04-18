@@ -101,10 +101,11 @@ docker build -t commonpub .
 docker run -d \
   -p 3000:3000 \
   -e DATABASE_URL=postgresql://user:pass@host:5432/commonpub \
-  -e REDIS_URL=redis://host:6379 \
   -e AUTH_SECRET=your-secret-min-32-chars \
   -e NUXT_PUBLIC_SITE_URL=https://your-domain.com \
   commonpub
+# Add -e NUXT_REDIS_URL=redis://:password@host:6379 only if running
+# multiple app instances — see Environment Variables Reference below.
 ```
 
 **Or use the production compose file** which includes Postgres, Redis, and Meilisearch:
@@ -194,9 +195,15 @@ docker run -d -p 3000:3000 \
 | Variable       | Description                           | Example                               |
 | -------------- | ------------------------------------- | ------------------------------------- |
 | `DATABASE_URL` | PostgreSQL connection string          | `postgresql://user:pass@host:5432/db` |
-| `REDIS_URL`    | Redis connection string               | `redis://host:6379`                   |
 | `AUTH_SECRET`  | Session signing secret (min 32 chars) | `openssl rand -base64 32`             |
 | `NUXT_PUBLIC_SITE_URL` | Public URL of the instance     | `https://your-domain.com`             |
+
+### Optional — horizontal scaling
+
+| Variable          | Description                                                                 | Example                                      |
+| ----------------- | --------------------------------------------------------------------------- | -------------------------------------------- |
+| `NUXT_REDIS_URL`  | Opt into Redis-backed rate limits + SSE fanout. Unset = in-process defaults (fine for single-instance). See [`codebase-analysis/12-scaling-and-infrastructure.md`](../codebase-analysis/12-scaling-and-infrastructure.md). | `redis://:$REDIS_PASSWORD@redis:6379`        |
+| `REDIS_PASSWORD`  | Password for the bundled Redis container (`deploy/docker-compose.prod.yml`). Only used when the `redis` service is present. | `openssl rand -base64 24`                    |
 
 ### Instance Identity
 

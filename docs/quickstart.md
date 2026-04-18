@@ -102,7 +102,7 @@ Override default ports via environment variables before starting Docker:
 POSTGRES_PORT=5434 REDIS_PORT=6381 MEILI_PORT=7702 docker compose up -d
 ```
 
-Update `DATABASE_URL`, `REDIS_URL`, and `MEILI_URL` in your `.env` to match.
+Update `DATABASE_URL` in your `.env` to match (and `NUXT_REDIS_URL` / `MEILI_URL` if you have them set — both are optional).
 
 ### Database connection refused
 
