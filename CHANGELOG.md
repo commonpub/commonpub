@@ -7,11 +7,53 @@ monorepo working period. For session-level detail, see [`docs/sessions/`](./docs
 
 ---
 
-## Unreleased (sessions 108–130, through 2026-04-17)
+## Unreleased (sessions 108–131, through 2026-04-18)
 
-Monorepo state at time of writing: schema 0.14.3, server 2.47.0, config 0.11.0,
-layer 0.18.0, ui 0.8.5, protocol 0.9.9, editor 0.7.9, explainer 0.7.12,
-learning 0.5.1, docs 0.6.2, auth 0.5.1, infra 0.6.0, test-utils 0.5.3.
+Monorepo state at time of writing: schema 0.14.4, server 2.47.2, config 0.11.0,
+layer 0.18.1, ui 0.8.5, protocol 0.9.9, editor 0.7.9, explainer 0.7.12,
+learning 0.5.1, docs 0.6.2, auth 0.5.1, infra 0.6.1, test-utils 0.5.3.
+
+### Session 131 — DB constraints + CI flakes + Redis observability (2026-04-18)
+
+**Data integrity — migration 0002:**
+- UNIQUE `(event_id, user_id)` on `event_attendees`. `rsvpEvent` uses
+  `ON CONFLICT DO NOTHING + .returning()` so double-click races resolve
+  to "already registered" instead of a 500.
+- FK on `federated_content.mirror_id` → `instance_mirrors(id)` with
+  `ON DELETE SET NULL`. Orphan-cleanup UPDATE runs before the ALTER
+  (commonpub.io: 3 orphans nulled; deveco.io: 0).
+
+**Redis observability:**
+- New `createRedisFailOpenLogger({ scope })` in `@commonpub/infra`.
+  Rate-limited: first event in a window logs immediately, subsequent
+  events roll up into a 60s summary. Wired at both the IP middleware
+  and per-API-key limiter with `ratelimit:ip` / `ratelimit:apikey`
+  scope prefixes.
+- Fix: Redis pub/sub subscriber's `enableOfflineQueue: false` inherited
+  from the publisher was silently dropping SUBSCRIBE during reconnects.
+  Factory now duplicates with `enableOfflineQueue: true,
+  maxRetriesPerRequest: null` for the subscriber.
+
+**CI:**
+- Redis sidecar (`redis:7-alpine`) added to the check job with
+  `REDIS_URL_TEST=redis://localhost:6379`. Turbo 2.x's env-strict mode
+  meant the var never reached vitest workers; fixed by declaring
+  `env: [..., "REDIS_URL_TEST", ...]` on the test task in `turbo.json`.
+  Integration suite now runs (4 tests, ~2s) on every PR against real
+  Redis.
+- Four long-standing e2e flakes fixed: hero banner dismiss (useState
+  for persistence across HomepageSectionRenderer remounts),
+  `/contests` console errors (feature flags enabled in e2e env +
+  filter known-benign CSP + H3Error strings), register form input +
+  advanced filters toggle (hydration races — wait for networkidle +
+  "enabled" beacon).
+
+**Docs FTS:**
+- Search dropdown in `pages/docs/[siteSlug]/index.vue` +
+  `[...pagePath].vue` now renders the `ts_headline` snippet below the
+  title with match tokens bolded. New `layers/base/utils/highlightSnippet.ts`
+  escapes all HTML then restores only bare `<b>`/`</b>`. 7 unit tests
+  covering the XSS defense matrix.
 
 ### Session 130 — Redis integration for horizontal scaling (2026-04-17)
 

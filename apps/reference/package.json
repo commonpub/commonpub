@@ -18,7 +18,7 @@
     "@commonpub/config": "workspace:*",
     "@commonpub/layer": "workspace:*",
     "@commonpub/schema": "^0.14.4",
-    "@commonpub/server": "^2.47.1",
+    "@commonpub/server": "^2.47.2",
     "drizzle-kit": "^0.31.10",
     "drizzle-orm": "^0.45.1",
     "nuxt": "^3.16.0",
