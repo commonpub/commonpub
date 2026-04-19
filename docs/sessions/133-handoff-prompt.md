@@ -57,6 +57,10 @@ is DONE (session 133). Re-listing for quick reference:
    log during the app recreate). See `docs/sessions/133-redis-flip.md`.
    Rollback = comment `NUXT_REDIS_URL` in droplet's `.env` + recreate app.
 
+   Flagged incidental: deploy workflow only ships the image tarball,
+   not `docker-compose.prod.yml`. Repo compose changes don't reach
+   droplets without manual sync.
+
 2. ~~Hero-banner dismiss flake~~ — **FIXED session 133.** Root cause was
    a `page.goto('/')` without a hydration beacon; the dismiss `@click`
    listener hadn't been wired when the test clicked. Added
@@ -70,13 +74,24 @@ is DONE (session 133). Re-listing for quick reference:
 
 3. ~~Vue quiz UI rebuild~~ — DONE, session 133.
 
-4. **Wire `onRedisError` to observability.** Sink is still `console.warn`.
-   Swap when a structured logger / metrics surface lands.
+4. ~~Wire `onRedisError` to observability~~ — **DONE session 133.**
+   `@commonpub/infra` now exports `createStructuredLogger` (JSON-line
+   output to stdout, Docker-native). apiKeyRateLimit and the layer's
+   IP rate limiter both emit structured JSON events. See
+   `docs/sessions/133-final-items.md`.
 
 ### Medium
 
-5. **`audittest` user cleanup** — self-flagged session 127. Admin's call.
-6. **Mobile responsive audit** — ~70 components without `@media`.
+5. ~~`audittest` user cleanup~~ — **DELETED session 133.** 1 account +
+   1 session + user row removed in a single transaction. Zero FK
+   references elsewhere. See `docs/sessions/133-final-items.md`.
+6. **Mobile responsive audit (partial)** — `/learn` index fixed in 133
+   with an `@media (max-width: 768px)` block + 2 new e2e tests.
+   Remaining candidates documented in 133-final-items.md: videos
+   index/detail, auth pages (surprisingly fine via auth-layout wrapper,
+   responsive.spec.ts passes), admin pages, docs edit, federation
+   profile. Each is an atomic piece of work but there are many; needs
+   page prioritization from the user before tackling more.
 
 ### Low / pre-existing
 

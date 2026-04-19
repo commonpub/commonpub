@@ -13,7 +13,40 @@ Monorepo state at time of writing: schema 0.14.4, server 2.47.3, config 0.11.0,
 layer 0.18.2, ui 0.8.5, protocol 0.9.9, editor 0.7.9, explainer 0.7.12,
 learning 0.5.2, docs 0.6.2, auth 0.5.1, infra 0.6.1, test-utils 0.5.3.
 
-### Session 133 — Quiz UI rebuild + hero-banner fix + Redis flip + CI trace artifacts (2026-04-19)
+### Session 133 — Quiz UI rebuild + hero-banner fix + Redis flip + observability + /learn mobile + CI trace artifacts (2026-04-19)
+
+**Observability, cleanup, and mobile — closes items #4, #5, #6
+(partial):**
+
+- **audittest user cleanup (#5):** Claude-self-flagged user from
+  session 127 deleted cleanly. 1 account + 1 session + user row in a
+  single transaction; zero FK references elsewhere to worry about.
+
+- **Redis fail-open → structured JSON logs (#4):**
+  `@commonpub/infra` now exports
+  `createStructuredLogger({ component, level?, write? })` which emits
+  one JSON line per event to stdout (Docker-default log stream,
+  parseable by any aggregator without regex). Falls back to
+  console.warn on circular meta. 5 new unit tests. Wired into
+  `apiKeyRateLimit` (workspace-resolved inside server) and inlined for
+  the layer's IP rate limiter (to avoid a cross-package publish cycle
+  — layer is npm-pinned in the reference app and re-exporting
+  createStructuredLogger through server would require coordinated
+  bumps). Event shape identical in both call sites; a comment in
+  security.ts points at the infra helper.
+
+- **Mobile breakpoint on /learn index (#6 — partial):** Pre-133 had
+  155 lines of scoped CSS and 0 @media queries. On 375px the
+  fixed-width 240px sidebar forced content into a ~135px column,
+  crushing path cards + my-path rows. Added
+  `@media (max-width: 768px)` that stacks the sidebar below content,
+  shrinks outer padding, and flex-columns the path + my-path rows.
+  Two new Playwright tests in `responsive.spec.ts` verify desktop
+  side-by-side + mobile stacked layouts. This is ONE page; the audit
+  of other candidates (videos, admin, docs edit, federation profile)
+  is a follow-up — each atomic but many.
+
+
 
 **Redis flipped on prod** (late-session bonus, closes open-item #1):
 
