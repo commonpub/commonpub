@@ -62,6 +62,52 @@ test.describe('Search page responsive layout', () => {
   });
 });
 
+test.describe('Learn page responsive', () => {
+  test('desktop: sidebar is side-by-side with content', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto('/learn', { waitUntil: 'networkidle' });
+
+    const hero = page.locator('.cpub-learn-hero');
+    await expect(hero).toBeVisible();
+
+    // On desktop both shell columns are visible within the same viewport row
+    const main = page.locator('.cpub-main-content');
+    const sidebar = page.locator('.cpub-sidebar');
+    await expect(main).toBeVisible();
+    await expect(sidebar).toBeVisible();
+
+    const mainBox = await main.boundingBox();
+    const sidebarBox = await sidebar.boundingBox();
+    // Sidebar is to the right of main on desktop
+    expect(mainBox && sidebarBox).toBeTruthy();
+    expect(sidebarBox!.x).toBeGreaterThan(mainBox!.x);
+  });
+
+  test('mobile: sidebar stacks below content (not crushed beside it)', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.goto('/learn', { waitUntil: 'networkidle' });
+
+    const hero = page.locator('.cpub-learn-hero');
+    await expect(hero).toBeVisible();
+
+    const main = page.locator('.cpub-main-content');
+    const sidebar = page.locator('.cpub-sidebar');
+    await expect(main).toBeVisible();
+
+    // Sidebar exists but is stacked below; can't be both (a) visible at the
+    // top AND (b) to the right of main at 375px — session 133 regression
+    // check for the fixed 240px sidebar layout.
+    if (await sidebar.isVisible()) {
+      const mainBox = await main.boundingBox();
+      const sidebarBox = await sidebar.boundingBox();
+      expect(mainBox && sidebarBox).toBeTruthy();
+      // Below (higher y) OR at the same x (not to the right).
+      expect(sidebarBox!.y).toBeGreaterThanOrEqual(mainBox!.y);
+      expect(sidebarBox!.x).toBeLessThanOrEqual(mainBox!.x + 5);
+    }
+  });
+});
+
 test.describe('Auth pages responsive', () => {
   test('login form is usable on mobile', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 812 });

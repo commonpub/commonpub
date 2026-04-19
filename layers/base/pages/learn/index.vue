@@ -357,4 +357,47 @@ const activeDifficultyFilter = ref('');
 .cpub-empty-icon { font-size: 32px; color: var(--text-faint); margin-bottom: 12px; }
 .cpub-empty-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
 .cpub-empty-sub { font-size: 12px; color: var(--text-dim); }
+
+/* MOBILE (≤ 768px) — stack sidebar, collapse multi-column grids,
+   shrink outer padding so content gets the full viewport. */
+@media (max-width: 768px) {
+  .cpub-learn-hero { padding: 24px 16px 18px; }
+  .cpub-hero-title { font-size: 22px; }
+  .cpub-hero-sub { font-size: 13px; margin-bottom: 18px; }
+  .cpub-hero-stats { gap: 16px; margin-top: 18px; padding-top: 16px; }
+
+  .cpub-shell { flex-direction: column; min-height: auto; }
+  .cpub-page { padding: 20px 16px; }
+  .cpub-sidebar {
+    width: 100%;
+    border-left: none;
+    border-top: var(--border-width-default) solid var(--border);
+    padding: 16px 0;
+  }
+
+  /* In-progress cards: already scroll horizontally on mobile via cpub-ip-row */
+
+  /* Path cards: stack vertically so description + aside don't crush */
+  .cpub-path-card { flex-direction: column; gap: 14px; padding: 16px; }
+  .cpub-path-aside {
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    width: 100%;
+  }
+
+  /* My-path rows: put status/meta under title instead of side-by-side */
+  .cpub-my-path-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 12px;
+  }
+  .cpub-my-path-meta { gap: 10px; flex-wrap: wrap; }
+
+  /* Course + explainer grids (not currently rendered on this page but
+     safe to include in case the template adds them back) */
+  .cpub-course-grid { grid-template-columns: 1fr; }
+  .cpub-explainer-grid { grid-template-columns: 1fr; }
+}
 </style>
