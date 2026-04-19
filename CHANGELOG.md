@@ -7,11 +7,47 @@ monorepo working period. For session-level detail, see [`docs/sessions/`](./docs
 
 ---
 
-## Unreleased (sessions 108–132, through 2026-04-19)
+## Unreleased (sessions 108–133, through 2026-04-19)
 
-Monorepo state at time of writing: schema 0.14.4, server 2.47.2, config 0.11.0,
-layer 0.18.1, ui 0.8.5, protocol 0.9.9, editor 0.7.9, explainer 0.7.12,
-learning 0.5.1, docs 0.6.2, auth 0.5.1, infra 0.6.1, test-utils 0.5.3.
+Monorepo state at time of writing: schema 0.14.4, server 2.47.3, config 0.11.0,
+layer 0.18.2, ui 0.8.5, protocol 0.9.9, editor 0.7.9, explainer 0.7.12,
+learning 0.5.2, docs 0.6.2, auth 0.5.1, infra 0.6.1, test-utils 0.5.3.
+
+### Session 133 — Quiz UI rebuild + per-question grade results (2026-04-19)
+
+Finishes the server-side quiz grading thread from session 129. The learn-lesson
+Vue pages had lagged behind the new API: the editor emitted a legacy
+`{correctIndex, options: string[]}` shape and the viewer graded locally against
+the (now-redacted) `correctOptionId`. First author to ship a real quiz would
+have gotten a 400.
+
+**`@commonpub/learning` 0.5.2:**
+- `QuizGrade` now carries `results: QuizQuestionResult[]` — per-question
+  breakdown with `{ questionId, selectedOptionId, correctOptionId, correct,
+  explanation? }` in content order. Unanswered questions report
+  `selectedOptionId: null`. Aggregate fields (`correct`, `total`, `score`,
+  `passed`) unchanged. Additive — no caller of `gradeQuiz` breaks.
+- 4 new unit tests for `results` (order, selected vs. correct, unanswered
+  nulls, explanation passthrough only when present).
+
+**`@commonpub/server` 2.47.3:**
+- `markLessonComplete` returns `quiz.results` (flows through from
+  `gradeQuiz`). Integration test asserts per-question results on a 2-question
+  pass.
+
+**`@commonpub/layer` 0.18.2 — Vue UI rebuild:**
+- **Editor** (`pages/learn/[slug]/[lessonSlug]/edit.vue`): canonical
+  `{type, passingScore, questions:[{id, options:[{id,text}], correctOptionId}]}`
+  on save. New "Passing Score %" field. Legacy migration on load: numeric
+  `correctIndex` + string options get ids auto-assigned and `correctOptionId`
+  derived from the former index. Option removal reassigns `correctOptionId`
+  if the deleted option was the correct one.
+- **Viewer** (`pages/learn/[slug]/[lessonSlug]/index.vue`): draft-answer model
+  — pick freely, "Submit Quiz" posts all answers at once. After grading:
+  per-question correct/wrong indicators + explanations (from server `results`),
+  aggregate score card with pass/fail styling, "Try Again" clears state on
+  fail. Mark-complete footer button hidden for quiz lessons (Submit Quiz is
+  the completion path). Unauthed users see a "sign in to submit" hint.
 
 ### Session 132 — Hero banner punt + session 131 docs correction (2026-04-18→19)
 
