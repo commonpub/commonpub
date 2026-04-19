@@ -51,12 +51,15 @@ is DONE (session 133). Re-listing for quick reference:
    before flipping. Runbook at
    `codebase-analysis/12-scaling-and-infrastructure.md`.
 
-2. **Hero-banner dismiss flake — properly debug.** Needs a Playwright
-   trace from CI. Configure `trace: 'retain-on-failure'` in
-   `apps/reference/playwright.config.ts`, un-fixme
-   `apps/reference/e2e/navigation.spec.ts:29`, let CI fail, download the
-   artifact. Current theories ruled out: useState remount, Vue template
-   auto-unwrap-on-write.
+2. **Hero-banner dismiss flake — properly debug.** Trace capture is now
+   wired: `playwright.config.ts` has `trace: 'on-first-retry'` (already
+   there), and the e2e CI job uploads `playwright-report/` +
+   `test-results/` as an artifact on failure (added end of session 133).
+   Next steps: un-fixme `apps/reference/e2e/navigation.spec.ts:29`, push,
+   wait for the expected CI failure, download the `playwright-report`
+   artifact, and run `pnpm exec playwright show-trace
+   test-results/.../trace.zip` locally. Theories already ruled out:
+   useState remount, Vue template auto-unwrap-on-write.
 
 3. ~~Vue quiz UI rebuild~~ — DONE, session 133.
 
