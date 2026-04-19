@@ -251,6 +251,19 @@ describe('learning integration', () => {
       expect(result.quiz!.passed).toBe(true);
       expect(result.quiz!.score).toBe(100);
       expect(result.progress).toBeGreaterThan(0);
+      expect(result.quiz!.results).toHaveLength(2);
+      expect(result.quiz!.results[0]).toMatchObject({
+        questionId: 'q1',
+        selectedOptionId: 'b',
+        correctOptionId: 'b',
+        correct: true,
+      });
+      expect(result.quiz!.results[1]).toMatchObject({
+        questionId: 'q2',
+        selectedOptionId: 'a',
+        correctOptionId: 'a',
+        correct: true,
+      });
     });
 
     it('rejects quiz lesson completion without answers', async () => {

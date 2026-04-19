@@ -64,4 +64,4 @@ export {
 
 // Quiz (server-side grading + answer redaction for responses)
 export { gradeQuiz, redactQuizAnswers } from './quiz.js';
-export type { QuizGrade } from './quiz.js';
+export type { QuizGrade, QuizQuestionResult } from './quiz.js';
