@@ -13,7 +13,27 @@ Monorepo state at time of writing: schema 0.14.4, server 2.47.3, config 0.11.0,
 layer 0.18.2, ui 0.8.5, protocol 0.9.9, editor 0.7.9, explainer 0.7.12,
 learning 0.5.2, docs 0.6.2, auth 0.5.1, infra 0.6.1, test-utils 0.5.3.
 
-### Session 133 — Quiz UI rebuild + per-question grade results (2026-04-19)
+### Session 133 — Quiz UI rebuild + hero-banner fix + CI trace artifacts (2026-04-19)
+
+Late-session addition: closed open-item #2 (hero-banner dismiss flake)
+as well. Root cause was test-side: the hero-banner test called
+`page.goto('/')` without a hydration beacon, while its passing
+siblings in the same file pass `{ waitUntil: 'networkidle' }`. Clicks
+racing Nuxt hydration landed on un-listener'd DOM. Matched the sibling
+pattern, converted "1 flaky" → clean pass. Sessions 131 (useState
+persistence) + 132 (explicit handler) + 133's test fix together are
+the full story.
+
+Also shipped Playwright trace-artifact upload in CI
+(`.github/workflows/ci.yml` e2e job): `playwright-report/` +
+`test-results/` uploaded with 14-day retention on any non-cancelled
+completion (including flaky passes, which `if: failure()` would have
+silently dropped). Future e2e flakes will land with a downloadable
+trace.zip instead of evaporating with the runner.
+
+Quiz UI rebuild (the session's primary goal):
+
+
 
 Finishes the server-side quiz grading thread from session 129. The learn-lesson
 Vue pages had lagged behind the new API: the editor emitted a legacy
