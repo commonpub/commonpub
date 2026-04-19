@@ -13,7 +13,31 @@ Monorepo state at time of writing: schema 0.14.4, server 2.47.3, config 0.11.0,
 layer 0.18.2, ui 0.8.5, protocol 0.9.9, editor 0.7.9, explainer 0.7.12,
 learning 0.5.2, docs 0.6.2, auth 0.5.1, infra 0.6.1, test-utils 0.5.3.
 
-### Session 133 — Quiz UI rebuild + hero-banner fix + CI trace artifacts (2026-04-19)
+### Session 133 — Quiz UI rebuild + hero-banner fix + Redis flip + CI trace artifacts (2026-04-19)
+
+**Redis flipped on prod** (late-session bonus, closes open-item #1):
+
+- commonpub.io: synced droplet compose to repo (picked up the
+  `--requirepass` flag that never shipped to the droplet despite being
+  in the repo since session 131). Generated hex password; added
+  `REDIS_PASSWORD` + `NUXT_REDIS_URL=redis://:<hex>@redis:6379` to the
+  droplet's `.env` (literal, since `env_file` doesn't interpolate).
+  Recreated redis + app. 8 `cpub:ratelimit:*` keys live, fail-open
+  count = 1 (the expected ioredis startup-race on the app recreate;
+  no ongoing fail-opens).
+- deveco.io: already wired by a prior session — `NUXT_REDIS_URL=redis://redis:6379`
+  (no auth; relies on `expose: 6379` container-network isolation). 6
+  live keys, zero fail-opens in the last 10 minutes. MEMORY.md's
+  "unset on both" claim was outdated.
+- Caught compose-file drift: the deploy workflow only ships the image
+  tarball, not `docker-compose.prod.yml`. Any compose changes in the
+  repo are no-ops for running instances until manually synced. Flagged
+  in the session log as a follow-up.
+
+See `docs/sessions/133-redis-flip.md` for the full operational
+writeup + rollback procedure.
+
+
 
 Late-session addition: closed open-item #2 (hero-banner dismiss flake)
 as well. Root cause was test-side: the hero-banner test called

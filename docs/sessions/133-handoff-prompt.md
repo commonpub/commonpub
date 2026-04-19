@@ -47,9 +47,15 @@ is DONE (session 133). Re-listing for quick reference:
 
 ### High-value, low-effort
 
-1. **Flip `NUXT_REDIS_URL` in prod** — still "wired, not flipped." Ask
-   before flipping. Runbook at
-   `codebase-analysis/12-scaling-and-infrastructure.md`.
+1. ~~Flip `NUXT_REDIS_URL` in prod~~ — **FLIPPED session 133.** Both
+   droplets now on Redis. commonpub.io: auth enabled via `--requirepass`
+   (droplet compose synced to repo version; password hex-generated,
+   stored in droplet's `.env` as `REDIS_PASSWORD` + literal-substituted
+   into `NUXT_REDIS_URL`). deveco.io: already wired by a prior session,
+   no auth (relies on `expose: 6379` container-network isolation).
+   Zero fail-open logs post-flip (commonpub had 1 expected startup-race
+   log during the app recreate). See `docs/sessions/133-redis-flip.md`.
+   Rollback = comment `NUXT_REDIS_URL` in droplet's `.env` + recreate app.
 
 2. ~~Hero-banner dismiss flake~~ — **FIXED session 133.** Root cause was
    a `page.goto('/')` without a hydration beacon; the dismiss `@click`
