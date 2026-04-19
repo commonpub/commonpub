@@ -26,13 +26,17 @@ test.describe('Homepage tab switching', () => {
     await expect(tabs.nth(activeIndex)).not.toHaveClass(/active/, { timeout: 10000 });
   });
 
-  // Re-enabled in session 133 after trace-capture artifact upload was
-  // wired into the e2e job (`.github/workflows/ci.yml`). Sessions 131 +
-  // 132 both shipped fixes that passed in local dev but still failed in
-  // CI — now the failure will produce a downloadable trace.zip so the
-  // actual root cause can be observed instead of guessed.
+  // Re-enabled in session 133. Sessions 131+132 converted this from
+  // "always fails in CI" to "flaky" via Vue-side fixes (useState +
+  // explicit handler). The remaining test-side issue was the goto
+  // waitUntil: session 131's other interactive fixes (tab-switching,
+  // advanced filters) used `networkidle` as a hydration beacon, but
+  // this test kept the default `load` which fires BEFORE Nuxt wires
+  // the `@click` listener. Clicks racing hydration land on a plain
+  // DOM element with no handler, so the banner stays visible. Matching
+  // the passing siblings' pattern.
   test('hero banner dismiss button works', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/', { waitUntil: 'networkidle' });
 
     const banner = page.locator('.cpub-hero-banner');
     await expect(banner).toBeVisible({ timeout: 5000 });

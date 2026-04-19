@@ -155,13 +155,15 @@ jobs:
           AUTH_SECRET: test-secret-for-ci-min-32-chars-long
 
       # Upload the Playwright HTML report + test-results/ (traces, screenshots)
-      # on e2e failure so the artifact can be downloaded and replayed locally
-      # via `pnpm exec playwright show-trace trace.zip`. Without this step the
-      # trace files are captured inside the runner and then discarded with it,
-      # which is why repeat attempts at debugging the hero-banner dismiss
-      # flake (session 131 + 132) had nothing to work from.
-      - name: Upload Playwright trace + report on failure
-        if: failure()
+      # so the artifact can be downloaded and replayed locally via
+      # `pnpm exec playwright show-trace trace.zip`. Uploaded on any non-
+      # cancelled completion — `failure()` alone would miss FLAKY runs (where
+      # a test fails once, passes on retry, and the job is nominally green).
+      # Those were invisible in sessions 131+132 precisely because traces got
+      # thrown out with the runner. `if-no-files-found: ignore` swallows the
+      # fully-green case where test-results/ is empty.
+      - name: Upload Playwright trace + report
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
