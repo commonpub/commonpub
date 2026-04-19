@@ -49,6 +49,27 @@ async function markComplete(): Promise<void> {
   }
 }
 
+// Quiz server-response shape (mirrors @commonpub/learning's QuizGrade).
+interface QuizQuestionResult {
+  questionId: string;
+  selectedOptionId: string | null;
+  correctOptionId: string;
+  correct: boolean;
+  explanation?: string;
+}
+interface QuizGrade {
+  correct: number;
+  total: number;
+  score: number;
+  passed: boolean;
+  results: QuizQuestionResult[];
+}
+interface CompleteResponse {
+  progress: number;
+  certificateIssued: boolean;
+  quiz?: QuizGrade;
+}
+
 // Build flat lesson list for prev/next navigation
 interface FlatLesson {
   slug: string;
@@ -89,41 +110,78 @@ const videoUrl = computed(() => {
   return url;
 });
 
-// Quiz data
+// Quiz data — answers are GRADED SERVER-SIDE. The GET response redacts
+// `correctOptionId` + `explanation` from each question, so the client cannot
+// grade locally; it must POST to /complete and render the server's grade.
+interface QuizOption {
+  id: string;
+  text: string;
+}
 interface QuizQuestion {
+  id: string;
   question: string;
-  options: string[];
-  correctIndex: number;
-  explanation: string;
+  options: QuizOption[];
+  // correctOptionId and explanation are redacted until after submission.
 }
 
 const quizQuestions = computed<QuizQuestion[]>(() => {
   const content = lesson.value?.content as Record<string, unknown> | null;
   if (!content || !Array.isArray(content.questions)) return [];
-  return content.questions as QuizQuestion[];
+  return (content.questions as QuizQuestion[]).filter((q) => q && Array.isArray(q.options));
 });
 
-const quizAnswers = ref<Record<number, number>>({});
-const quizSubmitted = ref<Record<number, boolean>>({});
+// Draft answers: questionId → selected optionId. User can change freely
+// until submit.
+const quizAnswers = ref<Record<string, string>>({});
+const quizSubmitting = ref(false);
+const quizGrade = ref<QuizGrade | null>(null);
+// Lookup map from questionId → result for the current submission.
+const quizResultByQuestion = computed<Record<string, QuizQuestionResult>>(() => {
+  if (!quizGrade.value) return {};
+  const map: Record<string, QuizQuestionResult> = {};
+  for (const r of quizGrade.value.results) map[r.questionId] = r;
+  return map;
+});
 
-function submitQuizAnswer(qIndex: number, optionIndex: number): void {
-  if (quizSubmitted.value[qIndex]) return;
-  quizAnswers.value[qIndex] = optionIndex;
-  quizSubmitted.value[qIndex] = true;
+function selectAnswer(questionId: string, optionId: string): void {
+  if (quizGrade.value) return; // locked after submission until retry
+  quizAnswers.value = { ...quizAnswers.value, [questionId]: optionId };
 }
 
-function isQuizComplete(): boolean {
-  return quizQuestions.value.length > 0 && quizQuestions.value.every((_, i) => quizSubmitted.value[i]);
-}
+const allQuizAnswered = computed(() =>
+  quizQuestions.value.length > 0 &&
+  quizQuestions.value.every((q) => !!quizAnswers.value[q.id]),
+);
 
-const quizScore = computed(() => {
-  if (!isQuizComplete()) return null;
-  let correct = 0;
-  for (let i = 0; i < quizQuestions.value.length; i++) {
-    if (quizAnswers.value[i] === quizQuestions.value[i]!.correctIndex) correct++;
+async function submitQuiz(): Promise<void> {
+  if (!allQuizAnswered.value || quizSubmitting.value) return;
+  quizSubmitting.value = true;
+  try {
+    const res = await $fetch<CompleteResponse>(
+      `/api/learn/${slug.value}/${lessonSlug.value}/complete`,
+      { method: 'POST', body: { answers: { ...quizAnswers.value } } },
+    );
+    if (res.quiz) {
+      quizGrade.value = res.quiz;
+      if (res.quiz.passed) {
+        completed.value = true;
+        toast.success(`Passed — ${res.quiz.score}%`);
+      } else {
+        toast.error(`Scored ${res.quiz.score}% — below passing. Try again.`);
+      }
+    }
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Failed to submit quiz';
+    toast.error(msg);
+  } finally {
+    quizSubmitting.value = false;
   }
-  return { correct, total: quizQuestions.value.length };
-});
+}
+
+function retryQuiz(): void {
+  quizAnswers.value = {};
+  quizGrade.value = null;
+}
 
 // Lesson type icon
 function getLessonTypeIcon(type: string): string {
@@ -233,7 +291,7 @@ const isOwner = computed(() => user.value?.id === path.value?.author?.id);
 
         <!-- QUIZ lesson -->
         <div v-if="lesson.type === 'quiz' && quizQuestions.length" class="lesson-quiz">
-          <div v-for="(q, qi) in quizQuestions" :key="qi" class="quiz-card">
+          <div v-for="(q, qi) in quizQuestions" :key="q.id" class="quiz-card">
             <div class="quiz-header">
               <span class="quiz-badge">QUESTION {{ qi + 1 }}</span>
             </div>
@@ -241,30 +299,51 @@ const isOwner = computed(() => user.value?.id === path.value?.author?.id);
             <div class="quiz-options">
               <button
                 v-for="(opt, oi) in q.options"
-                :key="oi"
+                :key="opt.id"
                 class="quiz-option"
                 :class="{
-                  'selected-correct': quizSubmitted[qi] && oi === q.correctIndex,
-                  'selected-wrong': quizSubmitted[qi] && quizAnswers[qi] === oi && oi !== q.correctIndex,
-                  answered: quizSubmitted[qi],
+                  'selected-correct': quizResultByQuestion[q.id] && opt.id === quizResultByQuestion[q.id].correctOptionId,
+                  'selected-wrong': quizResultByQuestion[q.id] && quizAnswers[q.id] === opt.id && opt.id !== quizResultByQuestion[q.id].correctOptionId,
+                  'selected-pending': !quizGrade && quizAnswers[q.id] === opt.id,
+                  answered: !!quizGrade,
                 }"
-                :disabled="!!quizSubmitted[qi]"
-                @click="submitQuizAnswer(qi, oi)"
+                :disabled="!!quizGrade"
+                :aria-pressed="quizAnswers[q.id] === opt.id"
+                @click="selectAnswer(q.id, opt.id)"
               >
                 <span class="quiz-option-key">{{ String.fromCharCode(65 + oi) }}</span>
-                <span class="quiz-option-text">{{ opt }}</span>
-                <span v-if="quizSubmitted[qi] && oi === q.correctIndex" class="quiz-option-indicator"><i class="fa-solid fa-check"></i></span>
-                <span v-if="quizSubmitted[qi] && quizAnswers[qi] === oi && oi !== q.correctIndex" class="quiz-option-indicator"><i class="fa-solid fa-xmark"></i></span>
+                <span class="quiz-option-text">{{ opt.text }}</span>
+                <span v-if="quizResultByQuestion[q.id] && opt.id === quizResultByQuestion[q.id].correctOptionId" class="quiz-option-indicator"><i class="fa-solid fa-check"></i></span>
+                <span v-if="quizResultByQuestion[q.id] && quizAnswers[q.id] === opt.id && opt.id !== quizResultByQuestion[q.id].correctOptionId" class="quiz-option-indicator"><i class="fa-solid fa-xmark"></i></span>
               </button>
             </div>
-            <div v-if="quizSubmitted[qi] && q.explanation" class="quiz-explanation">
-              <i class="fa-solid fa-lightbulb"></i> {{ q.explanation }}
+            <div v-if="quizResultByQuestion[q.id]?.explanation" class="quiz-explanation">
+              <i class="fa-solid fa-lightbulb"></i> {{ quizResultByQuestion[q.id]!.explanation }}
             </div>
           </div>
 
-          <div v-if="quizScore" class="quiz-score">
-            <div class="quiz-score-value">{{ quizScore.correct }} / {{ quizScore.total }}</div>
-            <div class="quiz-score-label">correct answers</div>
+          <!-- Submit / result / retry -->
+          <div class="quiz-actions">
+            <button
+              v-if="!quizGrade"
+              class="quiz-submit-btn"
+              :disabled="!allQuizAnswered || quizSubmitting || !isAuthenticated"
+              @click="submitQuiz"
+            >
+              <i class="fa-solid fa-check-double"></i>
+              {{ quizSubmitting ? 'Grading...' : 'Submit Quiz' }}
+            </button>
+            <p v-if="!isAuthenticated" class="quiz-signin-hint">Sign in to submit this quiz.</p>
+          </div>
+
+          <div v-if="quizGrade" class="quiz-score" :class="{ passed: quizGrade.passed, failed: !quizGrade.passed }">
+            <div class="quiz-score-value">{{ quizGrade.correct }} / {{ quizGrade.total }}</div>
+            <div class="quiz-score-label">
+              {{ quizGrade.score }}% — {{ quizGrade.passed ? 'Passed' : 'Did not pass' }}
+            </div>
+            <button v-if="!quizGrade.passed" class="quiz-retry-btn" @click="retryQuiz">
+              <i class="fa-solid fa-rotate-right"></i> Try Again
+            </button>
           </div>
         </div>
 
@@ -279,11 +358,16 @@ const isOwner = computed(() => user.value?.id === path.value?.author?.id);
 
         <!-- Footer: Mark Complete + Prev/Next -->
         <footer class="lesson-footer">
-          <div v-if="isAuthenticated" class="lesson-complete-row">
+          <div v-if="isAuthenticated && lesson.type !== 'quiz'" class="lesson-complete-row">
             <button v-if="!completed" class="lesson-complete-btn" @click="markComplete" :disabled="completing">
               <i class="fa-solid fa-check-circle"></i> {{ completing ? 'Marking...' : 'Mark as Complete' }}
             </button>
             <div v-else class="lesson-completed-badge">
+              <i class="fa-solid fa-check-circle"></i> Completed
+            </div>
+          </div>
+          <div v-else-if="isAuthenticated && completed" class="lesson-complete-row">
+            <div class="lesson-completed-badge">
               <i class="fa-solid fa-check-circle"></i> Completed
             </div>
           </div>
@@ -396,10 +480,24 @@ const isOwner = computed(() => user.value?.id === path.value?.author?.id);
 .quiz-option-indicator { font-size: 12px; flex-shrink: 0; }
 .quiz-option.selected-correct .quiz-option-indicator { color: var(--green); }
 .quiz-option.selected-wrong .quiz-option-indicator { color: var(--red); }
+.quiz-option.selected-pending { background: var(--accent-bg); border-color: var(--accent); }
+.quiz-option.selected-pending .quiz-option-key { color: var(--accent); }
+.quiz-option.selected-pending .quiz-option-text { color: var(--text); }
 .quiz-explanation { margin-top: 12px; padding: 10px 14px; background: var(--accent-bg); border: var(--border-width-default) solid var(--accent-border); color: var(--accent); font-size: 13px; display: flex; align-items: flex-start; gap: 8px; line-height: 1.5; }
+.quiz-actions { margin: 16px 0; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.quiz-submit-btn { padding: 10px 20px; background: var(--accent); color: var(--color-text-inverse); border: var(--border-width-default) solid var(--border); font-size: 13px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; box-shadow: var(--shadow-md); font-family: inherit; }
+.quiz-submit-btn:hover:not(:disabled) { box-shadow: var(--shadow-sm); transform: translate(1px, 1px); }
+.quiz-submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.quiz-signin-hint { font-size: 12px; color: var(--text-faint); font-family: var(--font-mono); }
 .quiz-score { text-align: center; padding: 20px; border: var(--border-width-default) solid var(--green); background: var(--green-bg); }
+.quiz-score.passed { border-color: var(--green); background: var(--green-bg); }
+.quiz-score.passed .quiz-score-value, .quiz-score.passed .quiz-score-label { color: var(--green); }
+.quiz-score.failed { border-color: var(--red); background: var(--red-bg); }
+.quiz-score.failed .quiz-score-value, .quiz-score.failed .quiz-score-label { color: var(--red); }
 .quiz-score-value { font-size: 28px; font-weight: 700; font-family: var(--font-mono); color: var(--green); }
 .quiz-score-label { font-size: 11px; font-family: var(--font-mono); color: var(--green); text-transform: uppercase; letter-spacing: 0.08em; }
+.quiz-retry-btn { margin-top: 12px; padding: 8px 16px; background: var(--surface); color: var(--text); border: var(--border-width-default) solid var(--border); font-size: 12px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-family: inherit; }
+.quiz-retry-btn:hover { background: var(--surface2); }
 
 /* Empty state */
 .lesson-empty { color: var(--text-faint); font-size: 13px; text-align: center; padding: 48px 0; display: flex; flex-direction: column; align-items: center; gap: 8px; }

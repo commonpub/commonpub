@@ -37,14 +37,25 @@ const editMarkdown = ref('');
 // Video URL
 const editVideoUrl = ref('');
 
-// Quiz data
+// Quiz data — canonical shape: {id, options:[{id,text}], correctOptionId}.
+// Server grades via `@commonpub/learning/gradeQuiz`; see session 129.
+interface QuizOption {
+  id: string;
+  text: string;
+}
 interface QuizQuestion {
+  id: string;
   question: string;
-  options: string[];
-  correctIndex: number;
+  options: QuizOption[];
+  correctOptionId: string;
   explanation: string;
 }
 const editQuiz = ref<QuizQuestion[]>([]);
+const editPassingScore = ref(70);
+
+function genId(): string {
+  return crypto.randomUUID().replace(/-/g, '').slice(0, 8);
+}
 
 const lessonTypes = ['article', 'video', 'quiz', 'project', 'explainer'] as const;
 
@@ -69,11 +80,45 @@ watch(lesson, (l) => {
     editVideoUrl.value = (content.videoUrl as string) ?? '';
     editMarkdown.value = (content.notes as string) ?? '';
   } else if (l.type === 'quiz') {
-    editQuiz.value = Array.isArray(content.questions)
-      ? (content.questions as QuizQuestion[]).map(q => ({ ...q }))
-      : [];
+    editPassingScore.value = typeof content.passingScore === 'number' ? content.passingScore : 70;
+    const rawQuestions = Array.isArray(content.questions) ? (content.questions as unknown[]) : [];
+    editQuiz.value = rawQuestions.map((raw) => migrateQuestion(raw));
   }
 }, { immediate: true });
+
+// Upgrade legacy `{question, options: string[], correctIndex, explanation}` to the
+// canonical `{id, options:[{id,text}], correctOptionId, explanation}` shape.
+// Content already in canonical shape is preserved. Missing ids are filled in.
+function migrateQuestion(raw: unknown): QuizQuestion {
+  const src = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+  const options: QuizOption[] = Array.isArray(src.options)
+    ? (src.options as unknown[]).map((o) => {
+        if (typeof o === 'string') return { id: genId(), text: o };
+        const obj = (o && typeof o === 'object' ? o : {}) as Record<string, unknown>;
+        return {
+          id: typeof obj.id === 'string' && obj.id ? obj.id : genId(),
+          text: typeof obj.text === 'string' ? obj.text : '',
+        };
+      })
+    : [];
+
+  let correctOptionId =
+    typeof src.correctOptionId === 'string' && src.correctOptionId ? src.correctOptionId : '';
+  if (!correctOptionId && typeof src.correctIndex === 'number') {
+    correctOptionId = options[src.correctIndex]?.id ?? options[0]?.id ?? '';
+  }
+  if (!correctOptionId) {
+    correctOptionId = options[0]?.id ?? '';
+  }
+
+  return {
+    id: typeof src.id === 'string' && src.id ? src.id : genId(),
+    question: typeof src.question === 'string' ? src.question : '',
+    options,
+    correctOptionId,
+    explanation: typeof src.explanation === 'string' ? src.explanation : '',
+  };
+}
 
 // Build content payload based on type
 function buildContent(): unknown {
@@ -85,7 +130,17 @@ function buildContent(): unknown {
     case 'video':
       return { videoUrl: editVideoUrl.value, notes: editMarkdown.value };
     case 'quiz':
-      return { questions: editQuiz.value };
+      return {
+        type: 'quiz',
+        passingScore: editPassingScore.value,
+        questions: editQuiz.value.map((q) => ({
+          id: q.id,
+          question: q.question,
+          options: q.options.map((o) => ({ id: o.id, text: o.text })),
+          correctOptionId: q.correctOptionId,
+          ...(q.explanation ? { explanation: q.explanation } : {}),
+        })),
+      };
     default:
       return { markdown: editMarkdown.value };
   }
@@ -134,10 +189,17 @@ async function unlinkContent(): Promise<void> {
 
 // Quiz helpers
 function addQuestion(): void {
+  const options: QuizOption[] = [
+    { id: genId(), text: '' },
+    { id: genId(), text: '' },
+    { id: genId(), text: '' },
+    { id: genId(), text: '' },
+  ];
   editQuiz.value.push({
+    id: genId(),
     question: '',
-    options: ['', '', '', ''],
-    correctIndex: 0,
+    options,
+    correctOptionId: options[0]!.id,
     explanation: '',
   });
 }
@@ -147,14 +209,16 @@ function removeQuestion(index: number): void {
 }
 
 function addOption(qIndex: number): void {
-  editQuiz.value[qIndex]!.options.push('');
+  editQuiz.value[qIndex]!.options.push({ id: genId(), text: '' });
 }
 
 function removeOption(qIndex: number, oIndex: number): void {
   const q = editQuiz.value[qIndex]!;
+  const removed = q.options[oIndex];
   q.options.splice(oIndex, 1);
-  if (q.correctIndex >= q.options.length) {
-    q.correctIndex = Math.max(0, q.options.length - 1);
+  // If the removed option was the correct answer, reassign to the first remaining.
+  if (removed && removed.id === q.correctOptionId) {
+    q.correctOptionId = q.options[0]?.id ?? '';
   }
 }
 
@@ -265,7 +329,19 @@ const videoEmbedUrl = computed(() => {
     <section v-else-if="editType === 'quiz'" class="lesson-section">
       <h2 class="lesson-section-title">Quiz Questions</h2>
 
-      <div v-for="(q, qi) in editQuiz" :key="qi" class="quiz-question-card">
+      <div class="form-field" style="margin-bottom: 16px; max-width: 240px;">
+        <label for="passing-score" class="form-label">Passing Score (%)</label>
+        <input
+          id="passing-score"
+          v-model.number="editPassingScore"
+          type="number"
+          min="0"
+          max="100"
+          class="form-input"
+        />
+      </div>
+
+      <div v-for="(q, qi) in editQuiz" :key="q.id" class="quiz-question-card">
         <div class="quiz-q-header">
           <span class="quiz-q-number">Q{{ qi + 1 }}</span>
           <button class="cpub-delete-btn" @click="removeQuestion(qi)" aria-label="Remove question">
@@ -279,11 +355,11 @@ const videoEmbedUrl = computed(() => {
         </div>
 
         <div class="quiz-options">
-          <div v-for="(opt, oi) in q.options" :key="oi" class="quiz-option-row">
+          <div v-for="(opt, oi) in q.options" :key="opt.id" class="quiz-option-row">
             <label class="quiz-radio-label">
-              <input type="radio" :name="`q${qi}-correct`" :value="oi" v-model="q.correctIndex" />
+              <input type="radio" :name="`q-${q.id}-correct`" :value="opt.id" v-model="q.correctOptionId" />
             </label>
-            <input v-model="q.options[oi]" type="text" class="form-input quiz-option-input" :placeholder="`Option ${oi + 1}`" />
+            <input v-model="opt.text" type="text" class="form-input quiz-option-input" :placeholder="`Option ${oi + 1}`" />
             <button v-if="q.options.length > 2" class="cpub-delete-btn cpub-delete-btn-sm" @click="removeOption(qi, oi)" aria-label="Remove option">
               <i class="fa-solid fa-xmark"></i>
             </button>
