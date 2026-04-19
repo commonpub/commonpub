@@ -74,7 +74,12 @@ is DONE (session 133). Re-listing for quick reference:
 
 ### Low / pre-existing
 
-7. **`useAuth.ts` TS2589 deep instantiation** — pre-existing.
+7. ~~`useAuth.ts` TS2589 deep instantiation~~ — **verified upstream
+   (session 133):** removing the `$fetch` cast immediately reintroduces
+   the error. The cast is the correct workaround; now documented in the
+   file with a rationale comment. Extracted `authGet` helper alongside
+   `authPost` so both entry points share the wrapper. No actionable
+   local fix remains; clean up when Nuxt simplifies `NitroFetchRequest`.
 8. **Session store → Redis, BullMQ for activity delivery,
    API-response caching** — deferred by 130 scope.
 

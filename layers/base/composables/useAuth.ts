@@ -25,13 +25,24 @@ interface AuthResponse {
   session: ClientAuthSession | null;
 }
 
-/** Type-safe POST fetch that avoids Nuxt $fetch TS2589 deep instantiation */
+// `$fetch<T>(url, options)` instantiates Nuxt's NitroFetchRequest generic
+// with an excessively deep type graph, which fails TS2589 on this
+// specific call shape. The cast below narrows `$fetch` to a concrete
+// signature the compiler can check without recursing. Verified session
+// 133: removing the cast immediately reintroduces the error. Cleanup is
+// upstream — wait for Nuxt to simplify the $fetch type.
 async function authPost(url: string, body: Record<string, unknown>): Promise<AuthResponse | null> {
   return ($fetch as (url: string, opts: Record<string, unknown>) => Promise<AuthResponse | null>)(url, {
     method: 'POST',
     body,
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+async function authGet(url: string): Promise<AuthResponse | null> {
+  return ($fetch as (url: string, opts: Record<string, unknown>) => Promise<AuthResponse | null>)(url, {
+    credentials: 'include',
   });
 }
 
@@ -68,9 +79,7 @@ export function useAuth() {
   async function refreshSession(): Promise<void> {
     if (import.meta.server) return;
     try {
-      const data = await ($fetch as (url: string, opts: Record<string, unknown>) => Promise<AuthResponse | null>)(
-        '/api/me', { credentials: 'include' },
-      );
+      const data = await authGet('/api/me');
       user.value = data?.user ?? null;
       session.value = data?.session ?? null;
     } catch {
