@@ -39,6 +39,7 @@ This file is the short version.
 - **`eventAttendees` has UNIQUE (eventId, userId)** as of migration 0002 (session 130 follow-up). `rsvpEvent` uses `ON CONFLICT DO NOTHING` to handle double-click races — no longer a 500 on race; the second attempt falls through to the "already registered" path.
 - **`federatedContent.mirrorId` has an FK** to `instance_mirrors.id` with `ON DELETE SET NULL` as of migration 0002. Orphans that predated the FK (3 rows on commonpub.io) are nulled by the migration.
 - **Always verify `/api/events` status whitelist** (session 125 security fix). Only `published`, `active`, `upcoming`, `past`, `featured`, `mine` are honored.
+- **Quiz lessons are graded server-side** (session 129). `GET /api/learn/:slug/:lessonSlug` runs `redactQuizAnswers` for non-authors: `correctOptionId` + `explanation` are stripped from each question. The viewer CANNOT grade locally — it must POST answers to `/complete` and render `quiz.results` from the response (added session 133). Canonical shape: `{type:'quiz', passingScore, questions:[{id, options:[{id,text}], correctOptionId, explanation?}]}`. If you see someone reinstate a client-side `correctIndex` or local score computation, they've silently broken grading for every learner.
 
 ## UI / theming
 
