@@ -108,6 +108,56 @@ test.describe('Learn page responsive', () => {
   });
 });
 
+test.describe('Videos page responsive', () => {
+  test('desktop: sidebar is side-by-side with videos grid', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto('/videos', { waitUntil: 'networkidle' });
+
+    const hero = page.locator('.cpub-video-hero');
+    await expect(hero).toBeVisible();
+
+    const mainGrid = page.locator('.cpub-main-grid');
+    await expect(mainGrid).toBeVisible();
+
+    // On desktop the 1fr/300px grid puts sidebar to the right of main.
+    const sidebar = page.locator('.cpub-videos .cpub-sidebar');
+    await expect(sidebar).toBeVisible();
+
+    const gridBox = await mainGrid.boundingBox();
+    const sidebarBox = await sidebar.boundingBox();
+    expect(gridBox && sidebarBox).toBeTruthy();
+    // Sidebar starts past the midpoint of the grid on desktop.
+    expect(sidebarBox!.x).toBeGreaterThan(gridBox!.x + gridBox!.width / 2);
+  });
+
+  test('mobile: sidebar stacks below and hero stays within viewport', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.goto('/videos', { waitUntil: 'networkidle' });
+
+    const hero = page.locator('.cpub-video-hero');
+    await expect(hero).toBeVisible();
+
+    // Hero must not overflow the 375px viewport — regression guard for
+    // the 32px-padding + 1200px max-width layout on small screens.
+    const heroBox = await hero.boundingBox();
+    expect(heroBox!.width).toBeLessThanOrEqual(376);
+
+    // Sidebar exists but is stacked below the main grid — not to the
+    // right at 375px. Regression guard for the 1fr/300px grid.
+    const mainGrid = page.locator('.cpub-main-grid');
+    const sidebar = page.locator('.cpub-videos .cpub-sidebar');
+    await expect(mainGrid).toBeVisible();
+
+    if (await sidebar.isVisible()) {
+      const gridBox = await mainGrid.boundingBox();
+      const sidebarBox = await sidebar.boundingBox();
+      expect(gridBox && sidebarBox).toBeTruthy();
+      // Below (higher y) OR at same x (not pushed off-screen to the right).
+      expect(sidebarBox!.x).toBeLessThanOrEqual(gridBox!.x + 5);
+    }
+  });
+});
+
 test.describe('Auth pages responsive', () => {
   test('login form is usable on mobile', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 812 });

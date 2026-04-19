@@ -324,4 +324,23 @@ function formatDate(dateStr: string): string {
 .cpub-empty-icon { font-size: 32px; color: var(--text-faint); margin-bottom: 12px; }
 .cpub-empty-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
 .cpub-empty-sub { font-size: 12px; color: var(--text-dim); }
+
+/* MOBILE (≤ 768px) — collapse 2-track grid to single column, stack
+   sidebar under main content, shrink outer padding, and single-col
+   the thumbnail grid so cards get full viewport width. */
+@media (max-width: 768px) {
+  .cpub-video-hero { padding: 24px 16px 18px; }
+  .cpub-hero-row { flex-wrap: wrap; gap: 10px; }
+  .cpub-hero-title { font-size: 22px; }
+  .cpub-hero-sub { font-size: 12px; margin-bottom: 14px; }
+
+  .cpub-filter-bar { padding: 0 16px; }
+
+  .cpub-page-wrap { padding: 20px 16px; }
+  .cpub-main-grid { grid-template-columns: 1fr; gap: 20px; }
+
+  .cpub-video-grid { grid-template-columns: 1fr; gap: 14px; }
+
+  .cpub-featured-title { font-size: 15px; }
+}
 </style>

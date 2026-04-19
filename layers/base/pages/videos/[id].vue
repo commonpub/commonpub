@@ -227,4 +227,18 @@ const authorInitial = computed(() => {
 .cpub-link:hover {
   text-decoration: underline;
 }
+
+/* MOBILE (≤ 768px) — let meta items wrap instead of overflowing, shrink
+   title + info padding so content gets the full viewport width. */
+@media (max-width: 768px) {
+  .cpub-video-player { margin-bottom: 16px; }
+  .cpub-video-info { padding: 16px; }
+  .cpub-video-title { font-size: 18px; }
+  .cpub-video-meta {
+    flex-wrap: wrap;
+    gap: 10px;
+    row-gap: 6px;
+  }
+  .cpub-video-desc { font-size: 13px; margin-bottom: 16px; }
+}
 </style>
