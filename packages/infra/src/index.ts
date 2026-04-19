@@ -62,6 +62,10 @@ export type { CreateRateLimitStoreOptions } from './redis/factory.js';
 export { createRedisFailOpenLogger } from './redis/logger.js';
 export type { FailOpenHook, FailOpenLoggerOptions, FailOpenSummary } from './redis/logger.js';
 
+// Structured JSON logging — sink for FailOpenLogger + similar hooks
+export { createStructuredLogger } from './structuredLogger.js';
+export type { StructuredLoggerOptions, StructuredSink } from './structuredLogger.js';
+
 // Realtime pub/sub — SSE fanout; memory fallback when NUXT_REDIS_URL is unset
 export { MemoryRealtimePubSub } from './realtime/pubsub.js';
 export type { RealtimePubSub } from './realtime/pubsub.js';

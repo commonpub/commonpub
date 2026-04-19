@@ -1,6 +1,36 @@
 // Security middleware — rate limiting + security headers + CSP
 import { checkRateLimit, createRateLimitStore, createRedisFailOpenLogger, shouldSkipRateLimit, getSecurityHeaders, buildCspHeader, buildCspDirectives } from '@commonpub/server';
 
+// Structured JSON sink for fail-open events. Emits one JSON line per event
+// to stdout so Docker logs / Loki / Datadog / CloudWatch can parse without
+// regex-scraping. Duplicated from packages/infra/structuredLogger.ts
+// because layers/base doesn't depend on @commonpub/infra directly and the
+// symbol isn't re-exported via @commonpub/server (which pins to the npm
+// registry, not the workspace, in apps/reference). Keep this helper in
+// sync with the one in infra if the event shape changes.
+function jsonLog(component: string) {
+  return (message: string, meta?: Record<string, unknown>) => {
+    try {
+      const event: Record<string, unknown> = {
+        ts: new Date().toISOString(),
+        level: 'warn',
+        component,
+        message,
+      };
+      if (meta) {
+        for (const [k, v] of Object.entries(meta)) {
+          if (k === 'ts' || k === 'level' || k === 'component' || k === 'message') continue;
+          event[k] = v;
+        }
+      }
+      process.stdout.write(JSON.stringify(event) + '\n');
+    } catch {
+      // Circular meta; fall through to plain console so the event isn't lost.
+      console.warn(`[${component}] ${message}`, meta);
+    }
+  };
+}
+
 // Selects a Redis-backed store when NUXT_REDIS_URL is set, otherwise the
 // in-process memory store. Unset env = byte-identical behavior to pre-0.6.
 // `onRedisError` is rate-limited: first event logs immediately, subsequent
@@ -8,7 +38,10 @@ import { checkRateLimit, createRateLimitStore, createRedisFailOpenLogger, should
 // flood the log at real traffic.
 const store = createRateLimitStore({
   redisUrl: process.env.NUXT_REDIS_URL,
-  onRedisError: createRedisFailOpenLogger({ scope: 'ratelimit:ip' }),
+  onRedisError: createRedisFailOpenLogger({
+    scope: 'ratelimit:ip',
+    sink: jsonLog('ratelimit-ip'),
+  }),
 });
 const isDev = process.env.NODE_ENV !== 'production';
 

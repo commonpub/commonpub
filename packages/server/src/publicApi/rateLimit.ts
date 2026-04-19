@@ -13,6 +13,7 @@
 import {
   createRateLimitStore,
   createRedisFailOpenLogger,
+  createStructuredLogger,
   MemoryRateLimitStore,
   type RateLimitStore,
   type RateLimitTier,
@@ -76,6 +77,9 @@ export const apiKeyRateLimit: ApiKeyRateLimit = new ApiKeyRateLimit(
   createRateLimitStore({
     redisUrl: process.env.NUXT_REDIS_URL,
     keyPrefix: 'cpub:ratelimit:apikey',
-    onRedisError: createRedisFailOpenLogger({ scope: 'ratelimit:apikey' }),
+    onRedisError: createRedisFailOpenLogger({
+      scope: 'ratelimit:apikey',
+      sink: createStructuredLogger({ component: 'ratelimit-apikey' }),
+    }),
   }),
 );
