@@ -7,11 +7,49 @@ monorepo working period. For session-level detail, see [`docs/sessions/`](./docs
 
 ---
 
-## Unreleased (sessions 108–133, through 2026-04-19)
+## Unreleased (sessions 108–134, through 2026-04-19)
 
 Monorepo state at time of writing: schema 0.14.4, server 2.47.3, config 0.11.0,
-layer 0.18.2, ui 0.8.5, protocol 0.9.9, editor 0.7.9, explainer 0.7.12,
+layer 0.18.3, ui 0.8.5, protocol 0.9.9, editor 0.7.9, explainer 0.7.12,
 learning 0.5.2, docs 0.6.2, auth 0.5.1, infra 0.6.1, test-utils 0.5.3.
+
+### Session 134 — Mobile responsive on /videos index + detail (2026-04-19)
+
+**Continues the session 133 mobile audit with the next two highest-impact
+pages (per the 133 handoff's candidate list — 127 + 123 scoped CSS lines
+with zero `@media` queries).**
+
+- **`pages/videos/index.vue`**: single `@media (max-width: 768px)` block.
+  The load-bearing fix is collapsing `.cpub-main-grid`'s hard
+  `grid-template-columns: 1fr 300px` to `1fr` on mobile — at 375px the
+  old layout gave the content column ~17px (gap + 300px sidebar ate
+  the viewport). Also: `.cpub-video-grid` 2-col → 1-col, hero padding
+  `32px 32px` → `24px 16px`, title 28px → 22px, hero row flex-wrap so
+  title + Beta tag stack cleanly, filter-bar + page-wrap 32px → 16px
+  horizontal padding.
+
+- **`pages/videos/[id].vue`**: single `@media` block. Primary fix is
+  `.cpub-video-meta { flex-wrap: wrap; row-gap: 6px }` — 4 meta items
+  × 16px gap overflowed 375px. Also: title 20px → 18px, info padding
+  20px → 16px, player margin-bottom 20px → 16px.
+
+- **`apps/reference/e2e/responsive.spec.ts`**: new `Videos page
+  responsive` describe block with two tests mirroring the session 133
+  `/learn` pattern — desktop 1280 sidebar-to-right-of-grid, mobile 375
+  sidebar-stacked-below and hero width ≤ viewport. Both use
+  `{ waitUntil: 'networkidle' }` for hydration safety.
+
+- **Deferred local verification**: port 3000 was occupied by a
+  different project at session time, so Playwright's dev server
+  couldn't start locally. Typecheck + reference unit suite (82/82)
+  green. Selectors were verified by reading the template at the
+  known-good state; each (`.cpub-video-hero`, `.cpub-main-grid`,
+  `.cpub-videos .cpub-sidebar`) exists in the file. CI will run the
+  responsive suite end-to-end against a clean dev server.
+
+- `@commonpub/layer` bumped `0.18.2` → `0.18.3`. `deveco-io` pins
+  `^0.18.1`, so it picks this up on its next install without a
+  coordinated release.
 
 ### Session 133 — Quiz UI rebuild + hero-banner fix + Redis flip + observability + /learn mobile + CI trace artifacts (2026-04-19)
 
