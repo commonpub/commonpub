@@ -9,11 +9,22 @@ monorepo working period. For session-level detail, see [`docs/sessions/`](./docs
 
 ## Unreleased (sessions 108–134, through 2026-04-19)
 
-Monorepo state at time of writing: schema 0.14.4, server 2.47.3, config 0.11.0,
+Monorepo state at time of writing: schema 0.14.4, server 2.47.4, config 0.11.0,
 layer 0.18.3, ui 0.8.5, protocol 0.9.9, editor 0.7.9, explainer 0.7.12,
-learning 0.5.2, docs 0.6.2, auth 0.5.1, infra 0.6.1, test-utils 0.5.3.
+learning 0.5.2, docs 0.6.2, auth 0.5.1, infra 0.6.2, test-utils 0.5.3.
 
-### Session 134 — Mobile responsive on /videos index + detail (2026-04-19)
+### Session 134 — Mobile responsive on /videos index + detail + npm release (2026-04-19)
+
+**Published to npm:** `@commonpub/infra@0.6.2`, `@commonpub/server@2.47.4`,
+`@commonpub/layer@0.18.3`. Cleans up the session-133 carryover where
+infra + server's workspace source held uncommitted additive changes
+(new `createStructuredLogger` export + wiring) at unchanged version
+numbers. All three bumps are additive-only — no removed exports, no
+API changes. `deveco-io` pins `@commonpub/layer@^0.18.1` and will
+pick up 0.18.3 (with the mobile CSS) on next install; nothing else
+changes for external consumers beyond the new symbol availability.
+
+
 
 **Continues the session 133 mobile audit with the next two highest-impact
 pages (per the 133 handoff's candidate list — 127 + 123 scoped CSS lines
