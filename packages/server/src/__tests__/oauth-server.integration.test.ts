@@ -19,8 +19,10 @@ import {
   createFederatedSession,
   storePendingLink,
   consumePendingLink,
+  getDecryptedAccessToken,
+  revokeFederatedAccountGrant,
 } from '../federation/oauth.js';
-import { oauthClients, sessions } from '@commonpub/schema';
+import { federatedAccounts, oauthClients, sessions } from '@commonpub/schema';
 import { eq } from 'drizzle-orm';
 
 const DOMAIN = 'local.example.com';
@@ -315,6 +317,144 @@ describe('OAuth2 server integration', () => {
       // Original link should be unchanged
       const found = await findUserByFederatedAccount(db, otherActorUri);
       expect(found!.userId).toBe(userId);
+    });
+  });
+
+  describe('federated account grants (Phase 1b data layer)', () => {
+    const PRIOR_KEY = process.env.CPUB_FED_TOKEN_KEY;
+    const TEST_KEY = '0'.repeat(64);
+
+    beforeAll(() => {
+      // Token-encryption tests need CPUB_FED_TOKEN_KEY. Set a stable
+      // test key here; restore in afterAll so we don't leak into the
+      // process env for other test files.
+      process.env.CPUB_FED_TOKEN_KEY = TEST_KEY;
+    });
+
+    afterAll(() => {
+      if (PRIOR_KEY === undefined) delete process.env.CPUB_FED_TOKEN_KEY;
+      else process.env.CPUB_FED_TOKEN_KEY = PRIOR_KEY;
+    });
+
+    it('stores an encrypted access token + scopes + softwareKind on link', async () => {
+      const actorUri = `https://${REMOTE_DOMAIN}/users/grant-test-1`;
+      await linkFederatedAccount(
+        db,
+        userId,
+        actorUri,
+        REMOTE_DOMAIN,
+        { preferredUsername: 'grant-test-1' },
+        {
+          accessToken: 'plaintext_bearer_xyz_42',
+          scopes: ['read', 'write'],
+          softwareKind: 'mastodon',
+        },
+      );
+      const [row] = await db.select().from(federatedAccounts).where(eq(federatedAccounts.actorUri, actorUri));
+      expect(row).toBeDefined();
+      expect(row!.accessTokenCiphertext).toBeTruthy();
+      expect(row!.accessTokenIv).toBeTruthy();
+      // Plaintext must NEVER appear in the ciphertext.
+      expect(row!.accessTokenCiphertext).not.toContain('plaintext_bearer_xyz_42');
+      expect(row!.scopes).toEqual(['read', 'write']);
+      expect(row!.softwareKind).toBe('mastodon');
+      expect(row!.lastVerifiedAt).toBeInstanceOf(Date);
+      expect(row!.revokedAt).toBeNull();
+    });
+
+    it('getDecryptedAccessToken returns the plaintext after a grant link', async () => {
+      const actorUri = `https://${REMOTE_DOMAIN}/users/grant-test-2`;
+      await linkFederatedAccount(
+        db, userId, actorUri, REMOTE_DOMAIN, { preferredUsername: 'grant-test-2' },
+        { accessToken: 'roundtrip_token_!@#', scopes: ['read'], softwareKind: 'cpub' },
+      );
+      const [row] = await db.select().from(federatedAccounts).where(eq(federatedAccounts.actorUri, actorUri));
+      const token = await getDecryptedAccessToken(db, row!.id);
+      expect(token).toBe('roundtrip_token_!@#');
+    });
+
+    it('getDecryptedAccessToken returns null for a row with no grant', async () => {
+      const actorUri = `https://${REMOTE_DOMAIN}/users/grant-test-3`;
+      await linkFederatedAccount(db, userId, actorUri, REMOTE_DOMAIN, { preferredUsername: 'grant-test-3' });
+      const [row] = await db.select().from(federatedAccounts).where(eq(federatedAccounts.actorUri, actorUri));
+      const token = await getDecryptedAccessToken(db, row!.id);
+      expect(token).toBeNull();
+    });
+
+    it('getDecryptedAccessToken returns null for a missing federated_account id', async () => {
+      const token = await getDecryptedAccessToken(db, '00000000-0000-0000-0000-000000000000');
+      expect(token).toBeNull();
+    });
+
+    it('revokeFederatedAccountGrant marks the row revoked and blocks token reads', async () => {
+      const actorUri = `https://${REMOTE_DOMAIN}/users/grant-test-4`;
+      await linkFederatedAccount(
+        db, userId, actorUri, REMOTE_DOMAIN, { preferredUsername: 'grant-test-4' },
+        { accessToken: 'will_be_revoked', scopes: ['read'], softwareKind: 'mastodon' },
+      );
+      const [row] = await db.select().from(federatedAccounts).where(eq(federatedAccounts.actorUri, actorUri));
+      // Pre-revoke: token reads
+      expect(await getDecryptedAccessToken(db, row!.id)).toBe('will_be_revoked');
+      // Revoke
+      await revokeFederatedAccountGrant(db, row!.id);
+      const [after] = await db.select().from(federatedAccounts).where(eq(federatedAccounts.id, row!.id));
+      expect(after!.revokedAt).toBeInstanceOf(Date);
+      // Post-revoke: getDecryptedAccessToken returns null even though ciphertext is still there
+      expect(await getDecryptedAccessToken(db, row!.id)).toBeNull();
+    });
+
+    it('re-linking with a fresh grant clears revoked_at and rotates the token', async () => {
+      const actorUri = `https://${REMOTE_DOMAIN}/users/grant-test-5`;
+      // First link with grant
+      await linkFederatedAccount(
+        db, userId, actorUri, REMOTE_DOMAIN, { preferredUsername: 'grant-test-5' },
+        { accessToken: 'first_token', scopes: ['read'], softwareKind: 'mastodon' },
+      );
+      const [row1] = await db.select().from(federatedAccounts).where(eq(federatedAccounts.actorUri, actorUri));
+      // Revoke
+      await revokeFederatedAccountGrant(db, row1!.id);
+      // Re-link with new grant — should lift revocation, rotate token
+      await linkFederatedAccount(
+        db, userId, actorUri, REMOTE_DOMAIN, { preferredUsername: 'grant-test-5' },
+        { accessToken: 'second_token', scopes: ['read', 'write'], softwareKind: 'cpub' },
+      );
+      const [row2] = await db.select().from(federatedAccounts).where(eq(federatedAccounts.actorUri, actorUri));
+      expect(row2!.revokedAt).toBeNull();
+      expect(row2!.scopes).toEqual(['read', 'write']);
+      expect(row2!.softwareKind).toBe('cpub');
+      expect(await getDecryptedAccessToken(db, row2!.id)).toBe('second_token');
+      // Same row id, just rotated state
+      expect(row2!.id).toBe(row1!.id);
+    });
+
+    it('coerces unknown scopes to known ones and unknown softwareKind to "unknown"', async () => {
+      const actorUri = `https://${REMOTE_DOMAIN}/users/grant-test-6`;
+      await linkFederatedAccount(
+        db, userId, actorUri, REMOTE_DOMAIN, { preferredUsername: 'grant-test-6' },
+        { accessToken: 'tok', scopes: ['read', 'admin', 'publish', 'bogus'], softwareKind: 'made-up-protocol' },
+      );
+      const [row] = await db.select().from(federatedAccounts).where(eq(federatedAccounts.actorUri, actorUri));
+      expect(row!.scopes).toEqual(['read', 'publish']); // 'admin' and 'bogus' filtered out
+      expect(row!.softwareKind).toBe('unknown');
+    });
+
+    it('legacy (no-grant) calls do not touch the token columns on update', async () => {
+      const actorUri = `https://${REMOTE_DOMAIN}/users/grant-test-7`;
+      // First link with grant
+      await linkFederatedAccount(
+        db, userId, actorUri, REMOTE_DOMAIN, { preferredUsername: 'grant-test-7' },
+        { accessToken: 'persisted_token', scopes: ['read'], softwareKind: 'mastodon' },
+      );
+      // Legacy update WITHOUT grant — should preserve the token
+      await linkFederatedAccount(
+        db, userId, actorUri, REMOTE_DOMAIN,
+        { displayName: 'Updated Name' },
+      );
+      const [row] = await db.select().from(federatedAccounts).where(eq(federatedAccounts.actorUri, actorUri));
+      expect(row!.displayName).toBe('Updated Name');
+      expect(await getDecryptedAccessToken(db, row!.id)).toBe('persisted_token');
+      expect(row!.scopes).toEqual(['read']);
+      expect(row!.softwareKind).toBe('mastodon');
     });
   });
 

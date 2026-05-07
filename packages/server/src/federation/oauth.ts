@@ -20,6 +20,9 @@ import {
   type OAuthTokenRequest,
   type OAuthDynamicRegistrationRequest,
 } from '@commonpub/protocol';
+import type { Scope, SoftwareKind } from '@commonpub/auth';
+import { isSoftwareKind, coerceScopes } from '@commonpub/auth';
+import { encryptToken, decryptToken } from '@commonpub/infra';
 import type { DB } from '../types.js';
 import { storeAuthCode, consumeAuthCode } from '../oauthCodes.js';
 
@@ -191,7 +194,42 @@ export async function registerOAuthClient(
 }
 
 /**
+ * Optional grant attached to a `linkFederatedAccount` call. When present,
+ * the access token is encrypted at rest via `@commonpub/infra/tokenCrypto`
+ * and stored in `federated_accounts.access_token_ciphertext` + `access_token_iv`.
+ *
+ * Phase 1a clients (the v1 SSO callback) call `linkFederatedAccount`
+ * WITHOUT a grant — those rows store profile info only and remain
+ * display-only "linked profile" records. Phase 1b's flow attaches a
+ * grant with the bearer it just exchanged, enabling delegated actions
+ * via FediClient.
+ */
+export interface FederatedAccountGrant {
+  /** OAuth bearer access token, plain text. Encrypted before storage. */
+  accessToken: string;
+  /** Granted scopes. Filtered through `coerceScopes` to drop unknowns. */
+  scopes: ReadonlyArray<Scope | string>;
+  /** Detected remote AP server software. Validated via `isSoftwareKind`. */
+  softwareKind: SoftwareKind | string;
+}
+
+/**
  * Link a federated account to a local user after successful OAuth callback.
+ *
+ * Backward-compatible: if `grant` is omitted, the row is created/updated
+ * with profile fields only — same as the v1 SSO behaviour. Existing
+ * callers (callback.get.ts, link.post.ts) keep working unchanged.
+ *
+ * When `grant` IS passed:
+ *   - access token is encrypted (ChaCha20-Poly1305) before insert/update
+ *   - scopes filtered to known values, default `[]`
+ *   - softwareKind validated, falls back to `'unknown'` on bad input
+ *   - `last_verified_at` set to now (we just got a fresh token)
+ *   - `revoked_at` cleared to null (re-linking after a revocation lifts the soft-revoke)
+ *
+ * Identity-hijacking guard: if the actor URI is already linked to a
+ * DIFFERENT local user, this throws `Error('already linked to another
+ * account')` — same as before.
  */
 export async function linkFederatedAccount(
   db: DB,
@@ -199,7 +237,13 @@ export async function linkFederatedAccount(
   actorUri: string,
   instanceDomain: string,
   profile?: { preferredUsername?: string; displayName?: string; avatarUrl?: string },
+  grant?: FederatedAccountGrant,
 ): Promise<void> {
+  // If a grant was provided, prepare the encrypted token + validated
+  // scopes/softwareKind once. We do this outside the existence check so
+  // an encryption failure (missing key, etc.) fails fast before any DB I/O.
+  const grantFields = grant ? buildGrantFields(grant) : null;
+
   // Check if already linked
   const existing = await db
     .select()
@@ -213,7 +257,7 @@ export async function linkFederatedAccount(
       throw new Error('This federated identity is already linked to another account');
     }
 
-    // Update profile info for the same user
+    // Update profile info for the same user, plus grant if provided
     await db
       .update(federatedAccounts)
       .set({
@@ -221,6 +265,7 @@ export async function linkFederatedAccount(
         ...(profile?.preferredUsername && { preferredUsername: profile.preferredUsername }),
         ...(profile?.displayName && { displayName: profile.displayName }),
         ...(profile?.avatarUrl && { avatarUrl: profile.avatarUrl }),
+        ...(grantFields ?? {}),
       })
       .where(eq(federatedAccounts.actorUri, actorUri));
   } else {
@@ -232,8 +277,82 @@ export async function linkFederatedAccount(
       displayName: profile?.displayName,
       avatarUrl: profile?.avatarUrl,
       lastSyncedAt: new Date(),
+      ...(grantFields ?? {}),
     });
   }
+}
+
+/**
+ * Validate + encrypt the grant. Centralised so INSERT and UPDATE share
+ * exactly the same rules. Returns the columns to spread into the
+ * Drizzle .set() / .values() call.
+ */
+function buildGrantFields(grant: FederatedAccountGrant): {
+  accessTokenCiphertext: string;
+  accessTokenIv: string;
+  scopes: string[];
+  softwareKind: string;
+  lastVerifiedAt: Date;
+  revokedAt: null;
+} {
+  const enc = encryptToken(grant.accessToken);
+  const safeScopes = coerceScopes(grant.scopes as ReadonlyArray<string>);
+  const safeKind = isSoftwareKind(grant.softwareKind) ? grant.softwareKind : 'unknown';
+  return {
+    accessTokenCiphertext: enc.ciphertext,
+    accessTokenIv: enc.iv,
+    scopes: [...safeScopes],
+    softwareKind: safeKind,
+    lastVerifiedAt: new Date(),
+    // Re-linking lifts a soft-revocation: any prior revoked_at is cleared
+    // because we just successfully re-authenticated.
+    revokedAt: null,
+  };
+}
+
+/**
+ * Read and decrypt the access token for a federated_accounts row. Returns
+ * null if there is no token stored, the row is revoked, or the row id
+ * does not exist. Never throws on missing rows / missing tokens — only
+ * on actual decryption failures (key change, tampered ciphertext).
+ *
+ * Used by Phase 1b's FediClient factory to construct authenticated
+ * Mastodon-API clients on demand.
+ */
+export async function getDecryptedAccessToken(
+  db: DB,
+  federatedAccountId: string,
+): Promise<string | null> {
+  const [row] = await db
+    .select({
+      ct: federatedAccounts.accessTokenCiphertext,
+      iv: federatedAccounts.accessTokenIv,
+      revokedAt: federatedAccounts.revokedAt,
+    })
+    .from(federatedAccounts)
+    .where(eq(federatedAccounts.id, federatedAccountId))
+    .limit(1);
+
+  if (!row) return null;
+  if (row.revokedAt) return null;
+  if (!row.ct || !row.iv) return null;
+  return decryptToken({ ciphertext: row.ct, iv: row.iv });
+}
+
+/**
+ * Soft-revoke a federated account's grant. Marks `revoked_at = now()`;
+ * keeps the row for audit but blocks `getDecryptedAccessToken` from
+ * returning the token. Used by Phase 1b's 401-detection wrapper and by
+ * the user-facing "Unlink" action.
+ */
+export async function revokeFederatedAccountGrant(
+  db: DB,
+  federatedAccountId: string,
+): Promise<void> {
+  await db
+    .update(federatedAccounts)
+    .set({ revokedAt: new Date() })
+    .where(eq(federatedAccounts.id, federatedAccountId));
 }
 
 /**
