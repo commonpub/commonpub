@@ -17,5 +17,5 @@ export {
   LinkedIdentityRevoked,
 } from './router.js';
 
-export type { FediClient, VerifiedAccount } from './fediClient.js';
-export { getFediClient } from './fediClient.js';
+export type { FediClient, VerifiedAccount, FediClientFactory } from './fediClient.js';
+export { getFediClient, setFediClientFactory } from './fediClient.js';

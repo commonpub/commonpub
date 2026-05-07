@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import type {
   Identity,
   LinkedIdentity,
@@ -12,6 +12,14 @@ import {
   LinkedIdentityRevoked,
   type ActionRoute,
 } from '../router.js';
+import {
+  setFediClientFactory,
+  type FediClient,
+  type FediClientFactory,
+} from '../fediClient.js';
+
+// Reset the factory between tests so leakage between cases is impossible.
+afterEach(() => setFediClientFactory(null));
 
 // Tests use `unknown` for the event type — framework-agnostic. Layer
 // code will instantiate ActionRoute<H3Event, ...> with a real event.
@@ -120,16 +128,48 @@ describe('run() — linked identity', () => {
     expect(remote).not.toHaveBeenCalled();
   });
 
-  it('throws ActionUnavailable("phase-1a-foundation-only" path) when reaching getFediClient stub', async () => {
-    // Phase 1a: getFediClient is intentionally unimplemented. With
-    // valid scopes + a non-revoked grant, we should reach the client
-    // construction and surface the stub error. Phase 1b removes this.
+  it('throws when no FediClient factory is registered', async () => {
+    // Phase 1a default state: no factory. Reaching getFediClient must
+    // surface a clear, actionable error rather than silently no-op'ing.
     const remote = vi.fn(async () => 'remote-result');
     const action = makeAction({ scopes: ['read'], remote });
     const linked = makeLinked({ scopes: ['read', 'write'] });
     await expect(run(fakeEvent, linked, action, undefined))
-      .rejects.toThrow(/Phase 1b/);
+      .rejects.toThrow(/factory not registered/);
     expect(remote).not.toHaveBeenCalled();
+  });
+
+  it('dispatches to action.remote with the factory-built client', async () => {
+    // The crucial chain-completeness test: Phase 1b plugs in a factory,
+    // and run() must thread the constructed client through to the
+    // action's remote handler with the linked identity unchanged.
+    const fakeClient: FediClient = {
+      account: { verifyCredentials: vi.fn(async () => ({ id: '1', username: 'm', acct: 'm@host' })) },
+    };
+    const factory: FediClientFactory = vi.fn(async () => fakeClient);
+    setFediClientFactory(factory);
+
+    const remote = vi.fn(async (client: FediClient, _id, _input) => {
+      // Verify it's actually the registered factory's client
+      expect(client).toBe(fakeClient);
+      return 'remote-result';
+    });
+    const action = makeAction({ scopes: ['read'], remote });
+    const linked = makeLinked({ scopes: ['read', 'write'] });
+
+    const result = await run(fakeEvent, linked, action, undefined);
+    expect(result).toBe('remote-result');
+    expect(factory).toHaveBeenCalledOnce();
+    expect(factory).toHaveBeenCalledWith(linked);
+    expect(remote).toHaveBeenCalledOnce();
+  });
+
+  it('propagates factory errors as-is (no silent swallow)', async () => {
+    setFediClientFactory(async () => { throw new Error('database unreachable'); });
+    const action = makeAction({ scopes: ['read'], remote: vi.fn() });
+    const linked = makeLinked({ scopes: ['read'] });
+    await expect(run(fakeEvent, linked, action, undefined))
+      .rejects.toThrow(/database unreachable/);
   });
 });
 

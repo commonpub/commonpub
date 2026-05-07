@@ -671,14 +671,15 @@ export * from './publicApi/index.js';
 
 // Cross-instance identity — Phase 1a foundation. ActionRoute + run()
 // are the gateway for delegated authorization; FediClient is the
-// opaque facade for calling remote Fediverse instances. The runtime
-// resolver lands in Phase 3, the OAuth flow in Phase 1b, and the
-// per-action declarations in Phase 4. See
-// docs/sessions/136-cross-instance-identity-plan.md.
-export type { ActionRoute, FediClient, VerifiedAccount } from './identity/index.js';
+// opaque facade for calling remote Fediverse instances. Phase 1b
+// registers a real factory via setFediClientFactory; Phase 3 lands
+// the runtime resolver; Phase 4 adds per-action declarations.
+// See docs/sessions/136-cross-instance-identity-plan.md.
+export type { ActionRoute, FediClient, VerifiedAccount, FediClientFactory } from './identity/index.js';
 export {
   run,
   getFediClient,
+  setFediClientFactory,
   ActionUnavailable,
   InsufficientScopes,
   LinkedIdentityRevoked,

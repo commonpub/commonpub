@@ -49,20 +49,56 @@ export interface FediClient {
 }
 
 /**
- * Construct a FediClient for a linked identity. Phase 1a stub — actual
- * implementation lands in Phase 1b alongside the OAuth flow that
- * actually mints the access token.
+ * A FediClient factory. Phase 1b will register a real implementation
+ * via `setFediClientFactory` at app init; the factory closes over the
+ * DB handle, decryption key, audit logger, and any other dependencies
+ * a real client needs without forcing those onto `run()`'s call sites.
  *
- * The implementation will:
+ * Tests register mock factories per-case via `setFediClientFactory`
+ * and clear with `setFediClientFactory(null)` in afterEach.
+ */
+export type FediClientFactory = (identity: LinkedIdentity) => Promise<FediClient>;
+
+let registeredFactory: FediClientFactory | null = null;
+
+/**
+ * Register the FediClient factory. Called once at app init by Phase 1b's
+ * Nitro plugin (something like `setFediClientFactory(makeMastodonFactory(useDB(), tokenKey))`).
+ *
+ * Pass `null` to clear (used in tests).
+ *
+ * Why factory-registration instead of explicit DI through `run()`:
+ *   - keeps `run()`'s signature simple — no DB / audit-logger cruft
+ *     leaking into every call site
+ *   - keeps `@commonpub/server` framework-agnostic — no h3 / Nuxt
+ *     specific globals
+ *   - app init is the natural place to wire dependencies once
+ */
+export function setFediClientFactory(factory: FediClientFactory | null): void {
+  registeredFactory = factory;
+}
+
+/**
+ * Construct a FediClient for a linked identity. Delegates to the
+ * registered factory; throws if no factory has been registered (i.e.,
+ * Phase 1b plumbing isn't in place yet, or the test forgot to call
+ * `setFediClientFactory`).
+ *
+ * The Phase 1b factory will:
  *   1. Read federated_accounts row for `identity.id`
  *   2. Decrypt access_token via `decryptToken` (@commonpub/infra)
  *   3. Construct megalodon client based on `identity.softwareKind`
  *   4. Wrap with 401-detection (mark revoked_at on auth failure),
  *      audit logging, and rate-limit handling
  */
-export async function getFediClient(_identity: LinkedIdentity): Promise<FediClient> {
-  throw new Error(
-    'FediClient implementation lands in Phase 1b. ' +
-    'See docs/sessions/136-cross-instance-identity-plan.md.',
-  );
+export async function getFediClient(identity: LinkedIdentity): Promise<FediClient> {
+  if (!registeredFactory) {
+    throw new Error(
+      `FediClient factory not registered. ` +
+      `Phase 1b: call setFediClientFactory(...) at app init. ` +
+      `Tests: register a mock via setFediClientFactory(async () => mockClient). ` +
+      `See docs/sessions/136-cross-instance-identity-plan.md.`,
+    );
+  }
+  return registeredFactory(identity);
 }
