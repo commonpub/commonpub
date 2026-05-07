@@ -77,16 +77,14 @@ function resetState(): void {
   confirmed.value = false;
 }
 
-function onKeydown(e: KeyboardEvent): void {
-  if (e.key === 'Escape') handleClose();
-  if (e.key === 'Enter' && !result.value && canSubmit.value && !loading.value) handleFetch();
-}
+const dialogRef = ref<HTMLElement | null>(null);
+useFocusTrap(dialogRef, () => props.show, handleClose);
 </script>
 
 <template>
   <Teleport to="body">
-    <div v-if="show" class="cpub-import-overlay" @click.self="handleClose" @keydown="onKeydown">
-      <div class="cpub-import-dialog" role="dialog" aria-labelledby="import-url-title" aria-modal="true">
+    <div v-if="show" class="cpub-import-overlay" @click.self="handleClose">
+      <div ref="dialogRef" class="cpub-import-dialog" role="dialog" aria-labelledby="import-url-title" aria-modal="true">
         <div class="cpub-import-header">
           <h2 id="import-url-title"><i class="fa-solid fa-file-import"></i> Import from URL</h2>
           <button class="cpub-import-close" aria-label="Close" @click="handleClose">

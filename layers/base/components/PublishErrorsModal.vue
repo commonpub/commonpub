@@ -3,7 +3,7 @@
  * Modal showing publish validation errors.
  * Displayed when the user tries to publish content that's missing required fields.
  */
-defineProps<{
+const props = defineProps<{
   errors: string[];
   show: boolean;
 }>();
@@ -11,12 +11,15 @@ defineProps<{
 const emit = defineEmits<{
   dismiss: [];
 }>();
+
+const dialogRef = ref<HTMLElement | null>(null);
+useFocusTrap(dialogRef, () => props.show, () => emit('dismiss'));
 </script>
 
 <template>
   <Teleport to="body">
     <div v-if="show" class="cpub-publish-errors-overlay" @click.self="emit('dismiss')">
-      <div class="cpub-publish-errors-card" role="alertdialog" aria-labelledby="publish-errors-title">
+      <div ref="dialogRef" class="cpub-publish-errors-card" role="alertdialog" aria-labelledby="publish-errors-title">
         <h3 id="publish-errors-title" class="cpub-publish-errors-title">
           <i class="fa-solid fa-circle-exclamation" /> Not ready to publish
         </h3>

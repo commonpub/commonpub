@@ -53,12 +53,15 @@ watch(() => props.open, (v) => {
     search.value = '';
   }
 });
+
+const dialogRef = ref<HTMLElement | null>(null);
+useFocusTrap(dialogRef, () => props.open, close);
 </script>
 
 <template>
   <Teleport to="body">
     <div v-if="open" class="cpub-picker-overlay" @click.self="close">
-      <div class="cpub-picker-dialog" role="dialog" aria-label="Select content" @keydown.escape="close">
+      <div ref="dialogRef" class="cpub-picker-dialog" role="dialog" aria-label="Select content">
         <div class="cpub-picker-header">
           <h2 class="cpub-picker-title"><i class="fa-solid fa-link"></i> Link Existing Content</h2>
           <button class="cpub-picker-close" aria-label="Close" @click="close"><i class="fa-solid fa-xmark"></i></button>

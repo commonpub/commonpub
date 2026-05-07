@@ -36,12 +36,15 @@ function submit(): void {
 }
 
 defineExpose({ show });
+
+const dialogRef = ref<HTMLElement | null>(null);
+useFocusTrap(dialogRef, () => open.value, close);
 </script>
 
 <template>
   <Teleport to="body">
     <div v-if="open" class="cpub-rfd-overlay" @click.self="close">
-      <div class="cpub-rfd-dialog" role="dialog" aria-modal="true">
+      <div ref="dialogRef" class="cpub-rfd-dialog" role="dialog" aria-modal="true">
         <div class="cpub-rfd-header">
           <h3>Follow from your instance</h3>
           <button class="cpub-rfd-close" aria-label="Close" @click="close">
