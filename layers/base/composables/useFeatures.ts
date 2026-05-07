@@ -2,6 +2,14 @@
 // Initializes from build-time runtime config, then hydrates from /api/features
 // to pick up runtime DB overrides set via admin panel.
 
+export interface IdentityFeatures {
+  linkRemoteAccounts: boolean;
+  signInWithRemote: boolean;
+  actingAs: boolean;
+  remoteInteract: boolean;
+  remotePublish: boolean;
+}
+
 export interface FeatureFlags {
   content: boolean;
   social: boolean;
@@ -17,6 +25,12 @@ export interface FeatureFlags {
   admin: boolean;
   emailNotifications: boolean;
   publicApi: boolean;
+  /**
+   * Cross-instance delegated authorization. All sub-flags default false.
+   * Mirrors `@commonpub/config`'s `IdentityFeatures`. Phase 1b+ — see
+   * docs/sessions/136-cross-instance-identity-plan.md.
+   */
+  identity: IdentityFeatures;
 }
 
 let hydrated = false;
@@ -31,13 +45,28 @@ export const DEFAULT_FLAGS: FeatureFlags = {
   contests: false, events: false, learning: true, explainers: true,
   editorial: true, federation: false, admin: false, emailNotifications: false,
   publicApi: false,
+  identity: {
+    linkRemoteAccounts: false,
+    signInWithRemote: false,
+    actingAs: false,
+    remoteInteract: false,
+    remotePublish: false,
+  },
 };
 
 /** Build the initial flags by merging the layer's runtime config over defaults. */
 export function getInitialFlags(): FeatureFlags {
   const config = useRuntimeConfig();
   const buildFlags = (config.public.features as unknown as Partial<FeatureFlags> | undefined) ?? {};
-  return { ...DEFAULT_FLAGS, ...buildFlags };
+  // Merge top-level booleans, but deep-merge `identity` so a partial
+  // runtime override (e.g., `{ identity: { actingAs: true } }`) lands on
+  // top of the defaulted sub-flags rather than replacing the whole
+  // nested object.
+  return {
+    ...DEFAULT_FLAGS,
+    ...buildFlags,
+    identity: { ...DEFAULT_FLAGS.identity, ...(buildFlags.identity ?? {}) },
+  };
 }
 
 export function useFeatures() {
@@ -56,9 +85,18 @@ export function useFeatures() {
   if (import.meta.client && !hydrated) {
     hydrated = true;
     ($fetch as Function)('/api/features')
-      .then((dynamic: FeatureFlags) => {
+      .then((dynamic: Partial<FeatureFlags>) => {
         if (dynamic && typeof dynamic === 'object') {
-          flags.value = { ...flags.value, ...dynamic };
+          // Deep-merge `identity` so a server response that omits some
+          // sub-flag doesn't blank it out at the client.
+          flags.value = {
+            ...flags.value,
+            ...dynamic,
+            identity: {
+              ...flags.value.identity,
+              ...(dynamic.identity ?? {}),
+            },
+          };
         }
       })
       .catch(() => { /* use build-time defaults on failure */ });
@@ -80,5 +118,6 @@ export function useFeatures() {
     admin: computed(() => flags.value.admin),
     emailNotifications: computed(() => flags.value.emailNotifications),
     publicApi: computed(() => flags.value.publicApi),
+    identity: computed(() => flags.value.identity),
   };
 }
