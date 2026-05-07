@@ -23,7 +23,7 @@ export default defineNuxtConfig({
           // If Font Awesome is upgraded, regenerate via:
           //   curl -sS https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css \
           //     | openssl dgst -sha384 -binary | openssl base64 -A | sed 's/^/sha384-/'
-          integrity: 'sha384-SZXxX4whJ79/gErwcOYf+zWLeJdY/qpuqC4cAa9rOGUstPomtqpuNWT9wdPEn2fk',
+          integrity: 'sha384-t1nt8BQoYMLFN5p42tRAtuAAFQaCQODekUVeKKZrEnEyp4H2R0RHFz0KWpmj7i8g',
           crossorigin: 'anonymous',
         },
         {
