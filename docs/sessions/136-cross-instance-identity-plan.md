@@ -561,6 +561,48 @@ These are the calls to get right early so the rest follows:
   `oauth.ts` (`storePendingLink` / `consumePendingLink`). Reuse for
   auto-provision flow.
 
+## Phase 1b prerequisites checklist
+
+Concrete things that must land in Phase 1b before any user-facing
+behaviour ships. Each is small; together they unblock everything.
+
+- [ ] **Add `megalodon` as a `@commonpub/server` dependency.**
+      `pnpm --filter @commonpub/server add megalodon`. Bumps server
+      to 2.49.0.
+- [ ] **Implement `setFediClientFactory` registration at app init.**
+      Add a Nitro plugin (`layers/base/server/plugins/fedi-client.ts`)
+      that wires the factory once. Factory body:
+      decrypt-token → construct megalodon → wrap with 401-detection +
+      audit logging. ~50 lines.
+- [ ] **Extend `linkFederatedAccount`** in `oauth.ts` to accept
+      optional `accessToken`, `scopes[]`, `softwareKind`, encrypt the
+      token via `encryptToken`, store ciphertext + iv. Optional params
+      keep the existing v1 SSO callers unchanged.
+- [ ] **Add startup invariant check.** When any
+      `features.identity.{linkRemoteAccounts,signInWithRemote,
+      remoteInteract,remotePublish}` is true, `CPUB_FED_TOKEN_KEY`
+      MUST be set; refuse to start otherwise. Add to a Nitro plugin
+      that runs early.
+- [ ] **Update `layers/base/composables/useFeatures.ts`** to add
+      `identity` to its local `FeatureFlags` interface — currently the
+      composable's type lags the config's, so client-side code can't
+      type-safely read `flags.value.identity`. Add a top-level
+      `identity` ref to the return so consumers don't have to unwrap
+      `features.value.identity`.
+- [ ] **Add a Mastodon-API CHECK constraint at the *application*
+      layer** for software_kind on insert (already enforced by
+      `isSoftwareKind` type guard, but worth a runtime assertion in
+      `linkFederatedAccount` to fail fast on bad data).
+- [ ] **Smoke test** the full link flow: from a fresh local checkout,
+      configure two CommonPub instances (commonpub.io ↔ deveco.io)
+      with `linkRemoteAccounts: true` and `CPUB_FED_TOKEN_KEY` set,
+      perform a link, verify a `federated_accounts` row with
+      decryptable token, scope set, software_kind detected, and
+      `lastVerifiedAt` populated.
+- [ ] **Smoke test against a real Mastodon instance** — register
+      via `/api/v1/apps`, OAuth bounce, verify_credentials returns
+      sensible profile. Iterate UX from there.
+
 ## The 8-step end-to-end demo (when phases 1–4 are shipped)
 
 1. User has `@cwebber@social.coop` (a real Mastodon account).

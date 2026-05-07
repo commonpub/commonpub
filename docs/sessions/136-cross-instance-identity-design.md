@@ -1,20 +1,20 @@
 # Session 136 — Cross-instance identity & delegated authorization design
 
-Status: design doc, no code yet. Drafted 2026-05-06 in conversation
-following the session 135/136 audit + deploy. Supersedes ADR 010 in
-scope (still references it) — this proposal extends the current
-SSO-only model into delegated authorization.
+Status: reference design. **Phase 1a foundation has shipped on branch
+`feat/identity-phase-1a-foundation`** (7 commits, ~1100 LOC, 54 new
+tests; main is unchanged until merge). Drafted 2026-05-06.
+Supersedes ADR 010 in scope (still references it) — this proposal
+extends the current SSO-only model into delegated authorization.
 
 > **For the actionable, Mastodon-first simplified plan, see**
 > [`136-cross-instance-identity-plan.md`](./136-cross-instance-identity-plan.md).
-> That plan supersedes this doc as the working spec — it leverages the
-> Mastodon API as the de-facto Fediverse standard, drops the
-> refresh-token machinery (Mastodon doesn't issue them), uses the
-> existing `megalodon` library, and trims the file diff to ~16 new
-> files / ~10 edits. This document remains as the comprehensive
-> reference: full failure-mode matrix, layered architecture diagram,
-> phased rollout tables, and the prose case for *why* each piece is
-> there.
+> That plan is the working spec — it leverages the Mastodon API as
+> the de-facto Fediverse standard, drops the refresh-token machinery
+> (Mastodon doesn't issue them), uses the existing `megalodon`
+> library, and trims the file diff to ~16 new files / ~10 edits.
+> This document remains as the comprehensive reference: full
+> failure-mode matrix, layered architecture diagram, phased rollout
+> tables, and the prose case for *why* each piece is there.
 
 ## Where we are
 
