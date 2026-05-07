@@ -28,6 +28,14 @@ export function createTestConfig(overrides?: Partial<CommonPubConfig>): CommonPu
       admin: false,
       emailNotifications: false,
       publicApi: false,
+      identity: {
+        linkRemoteAccounts: false,
+        signInWithRemote: false,
+        actingAs: false,
+        remoteInteract: false,
+        remotePublish: false,
+        ...overrides?.features?.identity,
+      },
       ...overrides?.features,
     },
     auth: {

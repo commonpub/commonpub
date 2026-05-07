@@ -1,5 +1,25 @@
 import { z } from 'zod';
 
+/**
+ * Cross-instance identity feature gates. Phase rollout per
+ * docs/sessions/136-cross-instance-identity-plan.md. All default OFF
+ * — turning these on requires phase work to be deployed; flipping the
+ * flag without the supporting code is a no-op (the runtime guards on
+ * each surface).
+ */
+export const identityFeaturesSchema = z.object({
+  /** Phase 1: allow users to link a remote Mastodon-API account (read-only). */
+  linkRemoteAccounts: z.boolean().default(false),
+  /** Phase 2: allow new users to sign up by signing in via a remote instance. */
+  signInWithRemote: z.boolean().default(false),
+  /** Phase 3: enable the "acting as" identity-context switcher + banner. */
+  actingAs: z.boolean().default(false),
+  /** Phase 4a: like/comment/follow via a linked identity (low blast radius). */
+  remoteInteract: z.boolean().default(false),
+  /** Phase 4b: publish via a linked identity (highest blast radius — last). */
+  remotePublish: z.boolean().default(false),
+});
+
 export const featureFlagsSchema = z.object({
   content: z.boolean().default(true),
   social: z.boolean().default(true),
@@ -17,6 +37,9 @@ export const featureFlagsSchema = z.object({
   admin: z.boolean().default(false),
   emailNotifications: z.boolean().default(false),
   publicApi: z.boolean().default(false),
+  // Cross-instance delegated authorization. Nested object so the
+  // namespace stays separate; all sub-flags default off.
+  identity: identityFeaturesSchema.default(() => identityFeaturesSchema.parse({})),
 });
 
 export const authConfigSchema = z.object({

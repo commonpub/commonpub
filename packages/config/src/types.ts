@@ -35,6 +35,26 @@ export interface FeatureFlags {
    * create keys via `/admin/api-keys` and share the one-time token.
    */
   publicApi: boolean;
+  /**
+   * Cross-instance delegated authorization. Phased rollout per
+   * docs/sessions/136-cross-instance-identity-plan.md. All sub-flags
+   * default off; flipping each requires the corresponding phase work
+   * to be deployed (the runtime guards on each surface).
+   */
+  identity: IdentityFeatures;
+}
+
+export interface IdentityFeatures {
+  /** Phase 1: allow users to link a remote Mastodon-API account (read-only). */
+  linkRemoteAccounts: boolean;
+  /** Phase 2: allow new users to sign up by signing in via a remote instance. */
+  signInWithRemote: boolean;
+  /** Phase 3: enable the "acting as" identity-context switcher + banner. */
+  actingAs: boolean;
+  /** Phase 4a: like/comment/follow via a linked identity (low blast radius). */
+  remoteInteract: boolean;
+  /** Phase 4b: publish via a linked identity (highest blast radius — last). */
+  remotePublish: boolean;
 }
 
 export interface AuthConfig {

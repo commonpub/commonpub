@@ -53,7 +53,11 @@ function getBaseConfig(): CommonPubConfig {
   for (const [flag, envKey] of Object.entries(ENV_FLAG_MAP)) {
     const envVal = envBool(envKey) ?? envBool(`NUXT_PUBLIC_FEATURES_${envKey.replace('FEATURE_', '')}`);
     if (envVal !== undefined) {
-      (features as Record<string, boolean>)[flag] = envVal;
+      // ENV_FLAG_MAP only references boolean-shaped feature flags;
+      // identity is a nested object and not in the map. Cast through
+      // unknown to satisfy the typechecker without weakening the index
+      // signature semantically.
+      (features as unknown as Record<string, boolean>)[flag] = envVal;
     }
   }
 
