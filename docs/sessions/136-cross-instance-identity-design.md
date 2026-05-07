@@ -5,6 +5,17 @@ following the session 135/136 audit + deploy. Supersedes ADR 010 in
 scope (still references it) — this proposal extends the current
 SSO-only model into delegated authorization.
 
+> **For the actionable, Mastodon-first simplified plan, see**
+> [`136-cross-instance-identity-plan.md`](./136-cross-instance-identity-plan.md).
+> That plan supersedes this doc as the working spec — it leverages the
+> Mastodon API as the de-facto Fediverse standard, drops the
+> refresh-token machinery (Mastodon doesn't issue them), uses the
+> existing `megalodon` library, and trims the file diff to ~16 new
+> files / ~10 edits. This document remains as the comprehensive
+> reference: full failure-mode matrix, layered architecture diagram,
+> phased rollout tables, and the prose case for *why* each piece is
+> there.
+
 ## Where we are
 
 What ships today (verified in audit, not just docs):

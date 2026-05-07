@@ -17,12 +17,15 @@ delegated authorization (extending the v1 SSO).
 2. `docs/sessions/136-deploy.md` — what shipped this session,
    pre/post-deploy verification, the SRI hotfix surprise, deveco
    bump rationale.
-3. `docs/sessions/136-cross-instance-identity-design.md` — the
-   forward-looking design (this is the substantive read for 137 if
-   the next session continues that thread).
-4. `docs/sessions/135-audit.md` + `135-audit-fixes.md` — only if
+3. **`docs/sessions/136-cross-instance-identity-plan.md`** — the
+   actionable Mastodon-first plan (read this first if 137
+   implements; ~16 new files, 4 phases, ~12 working days).
+4. `docs/sessions/136-cross-instance-identity-design.md` — the
+   reference design with full failure-mode matrix and prose. Read
+   when the plan needs justification or context.
+5. `docs/sessions/135-audit.md` + `135-audit-fixes.md` — only if
    you need backstory on 0.19.x's contents.
-5. `docs/llm/gotchas.md` "Session 135 — audit-fix invariants" —
+6. `docs/llm/gotchas.md` "Session 135 — audit-fix invariants" —
    eight invariants future sessions must not regress.
 
 ## Current state (2026-05-06, end of session 136)
