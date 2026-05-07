@@ -700,3 +700,20 @@ export {
   getDecryptedAccessToken,
   revokeFederatedAccountGrant,
 } from './federation/oauth.js';
+
+// Mastodon-login flow (Phase 2a — server-side OAuth client of any
+// Mastodon-API-compatible remote instance)
+export type {
+  RemoteClientCredentials,
+  MastodonLoginState,
+  VerifiedRemoteAccount,
+} from './federation/mastodonLogin.js';
+export {
+  isValidHost,
+  getOrRegisterRemoteClient,
+  buildAuthorizeUrl,
+  storeMastodonLoginState,
+  consumeMastodonLoginState,
+  detectSoftwareKind,
+  exchangeCodeAndVerify,
+} from './federation/mastodonLogin.js';
