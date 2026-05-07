@@ -111,6 +111,18 @@ export const federatedAccounts = pgTable('federated_accounts', {
   avatarUrl: text('avatar_url'),
   lastSyncedAt: timestamp('last_synced_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  // Phase 1a foundation for cross-instance delegated authorization. All
+  // columns are nullable / defaulted so the v1 SSO flow keeps working
+  // without setting them. accessTokenCiphertext + accessTokenIv are
+  // base64-encoded ChaCha20-Poly1305 outputs; encryption key in
+  // CPUB_FED_TOKEN_KEY env. softwareKind tracks the remote AP server
+  // implementation for client-protocol routing.
+  accessTokenCiphertext: text('access_token_ciphertext'),
+  accessTokenIv: text('access_token_iv'),
+  scopes: text('scopes').array().notNull().default([]),
+  softwareKind: varchar('software_kind', { length: 32 }).notNull().default('unknown'),
+  revokedAt: timestamp('revoked_at', { withTimezone: true }),
+  lastVerifiedAt: timestamp('last_verified_at', { withTimezone: true }),
 });
 
 export const oauthClients = pgTable('oauth_clients', {

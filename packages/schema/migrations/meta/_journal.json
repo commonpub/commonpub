@@ -29,6 +29,13 @@
       "when": 1778012668579,
       "tag": "0003_notifications_dedup",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1778123373396,
+      "tag": "0004_federated_oauth_tokens",
+      "breakpoints": true
     }
   ]
 }
