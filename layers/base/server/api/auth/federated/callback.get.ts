@@ -66,11 +66,30 @@ export default defineEventHandler(async (event) => {
   // Check if the current user is logged in — if so, link to their account
   const auth = event.context.auth;
   if (auth?.user) {
-    await linkFederatedAccount(db, auth.user.id, tokenResult.user.actorUri, oauthState.instanceDomain, {
-      preferredUsername: tokenResult.user.username,
-      displayName: tokenResult.user.displayName ?? undefined,
-      avatarUrl: tokenResult.user.avatarUrl ?? undefined,
-    });
+    await linkFederatedAccount(
+      db,
+      auth.user.id,
+      tokenResult.user.actorUri,
+      oauthState.instanceDomain,
+      {
+        preferredUsername: tokenResult.user.username,
+        displayName: tokenResult.user.displayName ?? undefined,
+        avatarUrl: tokenResult.user.avatarUrl ?? undefined,
+      },
+      // Phase 1b: persist the access token so future delegated actions
+      // (Phase 4) can call the remote on this user's behalf. Encrypted
+      // at rest via @commonpub/infra/tokenCrypto. Scopes default to
+      // 'read write follow' for CommonPub↔CommonPub trust (the existing
+      // SSO model assumes mutual trustedInstances). Software-kind is
+      // 'cpub' here because this callback handles CommonPub→CommonPub;
+      // a Mastodon-login flow (Phase 2) will use a separate callback
+      // that detects software via WebFinger / megalodon.
+      {
+        accessToken: tokenResult.accessToken,
+        scopes: ['read', 'write', 'follow'],
+        softwareKind: 'cpub',
+      },
+    );
 
     return sendRedirect(event, '/settings/account?federated=linked', 302);
   }
