@@ -11,11 +11,10 @@
 > tables. This file is the actionable, simplest path that preserves
 > flexibility.
 
-> **Phase 1a status (2026-05-06):** the foundation has shipped on
-> branch `feat/identity-phase-1a-foundation` (5 commits, ~1100 LOC,
-> 54 new tests). Some implementation choices diverged from this plan;
-> this document has been updated post-hoc to match the implementation.
-> See the "Implementation deviations" section near the bottom.
+> **Phase 1a + Phase 1b status (2026-05-07):** ALL Phase 1a and
+> Phase 1b items are shipped to both commonpub.io and deveco.io.
+> Sessions 137 + 138 cover the deploys; this plan now reads as
+> historical reference + Phase 2+ working spec.
 
 ## TL;DR
 
@@ -563,45 +562,38 @@ These are the calls to get right early so the rest follows:
 
 ## Phase 1b prerequisites checklist
 
-Concrete things that must land in Phase 1b before any user-facing
-behaviour ships. Each is small; together they unblock everything.
+✅ **All shipped in sessions 137 + 138.** Status as of 2026-05-07:
 
-- [ ] **Add `megalodon` as a `@commonpub/server` dependency.**
-      `pnpm --filter @commonpub/server add megalodon`. Bumps server
-      to 2.49.0.
-- [ ] **Implement `setFediClientFactory` registration at app init.**
-      Add a Nitro plugin (`layers/base/server/plugins/fedi-client.ts`)
-      that wires the factory once. Factory body:
-      decrypt-token → construct megalodon → wrap with 401-detection +
-      audit logging. ~50 lines.
-- [ ] **Extend `linkFederatedAccount`** in `oauth.ts` to accept
-      optional `accessToken`, `scopes[]`, `softwareKind`, encrypt the
-      token via `encryptToken`, store ciphertext + iv. Optional params
-      keep the existing v1 SSO callers unchanged.
-- [ ] **Add startup invariant check.** When any
-      `features.identity.{linkRemoteAccounts,signInWithRemote,
-      remoteInteract,remotePublish}` is true, `CPUB_FED_TOKEN_KEY`
-      MUST be set; refuse to start otherwise. Add to a Nitro plugin
-      that runs early.
-- [ ] **Update `layers/base/composables/useFeatures.ts`** to add
-      `identity` to its local `FeatureFlags` interface — currently the
-      composable's type lags the config's, so client-side code can't
-      type-safely read `flags.value.identity`. Add a top-level
-      `identity` ref to the return so consumers don't have to unwrap
-      `features.value.identity`.
-- [ ] **Add a Mastodon-API CHECK constraint at the *application*
-      layer** for software_kind on insert (already enforced by
-      `isSoftwareKind` type guard, but worth a runtime assertion in
-      `linkFederatedAccount` to fail fast on bad data).
-- [ ] **Smoke test** the full link flow: from a fresh local checkout,
-      configure two CommonPub instances (commonpub.io ↔ deveco.io)
-      with `linkRemoteAccounts: true` and `CPUB_FED_TOKEN_KEY` set,
-      perform a link, verify a `federated_accounts` row with
-      decryptable token, scope set, software_kind detected, and
-      `lastVerifiedAt` populated.
-- [ ] **Smoke test against a real Mastodon instance** — register
-      via `/api/v1/apps`, OAuth bounce, verify_credentials returns
-      sensible profile. Iterate UX from there.
+- [x] **Add `megalodon` as a `@commonpub/server` dependency.** Server
+      bumped to 2.50.0; deveco picked up in deploy run `25486817450`.
+- [x] **Implement `setFediClientFactory` registration at app init.**
+      `layers/base/server/plugins/identity-startup.ts` runs at every
+      boot on both prod sites; `createMastodonFediClientFactory(useDB())`
+      registered once per process.
+- [x] **Extend `linkFederatedAccount`** in `oauth.ts` with optional
+      `grant: FederatedAccountGrant` parameter — encrypts on store,
+      validates scopes/softwareKind, lifts revocation on re-link.
+      Backward-compatible: existing 5-arg callers unchanged.
+- [x] **Startup invariant check.** `assertIdentityConfig(useConfig())`
+      called from the `identity-startup` plugin; fails the boot if any
+      token-using flag is enabled without `CPUB_FED_TOKEN_KEY`.
+- [x] **Update `layers/base/composables/useFeatures.ts`** —
+      `IdentityFeatures` interface mirroring `@commonpub/config`'s
+      shape; deep-merge in `getInitialFlags` and the `/api/features`
+      hydration; new `identity` ComputedRef on the composable's return.
+- [x] **Application-layer software_kind validation** —
+      `linkFederatedAccount`'s `buildGrantFields` runs `isSoftwareKind`
+      and falls back to 'unknown' on bad input; `coerceScopes` filters
+      unknown scopes at the boundary. No DB CHECK constraint
+      (forward-compat for future protocol kinds).
+- [ ] **Smoke test CommonPub-to-CommonPub link** — TODO. The integration
+      tests cover this end-to-end against PGlite (7/7 grant tests pass);
+      a real two-instance smoke against the prod sites is pending the
+      `CPUB_FED_TOKEN_KEY` env var being set + flag flipped on.
+- [ ] **Smoke test against a real Mastodon instance** — TODO. Phase 2a
+      slice (Mastodon-login OAuth flow) needs to exist before this is
+      runnable end-to-end. After Phase 2a ships, an operator with a
+      `mastodon.social` test account can probe the flow.
 
 ## The 8-step end-to-end demo (when phases 1–4 are shipped)
 

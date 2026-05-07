@@ -1,10 +1,15 @@
 # Session 136 — Cross-instance identity & delegated authorization design
 
-Status: reference design. **Phase 1a foundation has shipped on branch
-`feat/identity-phase-1a-foundation`** (7 commits, ~1100 LOC, 54 new
-tests; main is unchanged until merge). Drafted 2026-05-06.
-Supersedes ADR 010 in scope (still references it) — this proposal
-extends the current SSO-only model into delegated authorization.
+Status: reference design. **Phase 1a foundation + Phase 1b data
+layer + Phase 1b runtime have all shipped to both prod sites
+(commonpub.io + deveco.io) on 2026-05-07.** Drafted 2026-05-06;
+shipped via sessions 137 + 138. Supersedes ADR 010 in scope (still
+references it) — this proposal extends the current SSO-only model
+into delegated authorization.
+
+For the latest deployed state see
+[`docs/sessions/137-identity-foundation-shipped.md`](137-identity-foundation-shipped.md)
++ [`docs/sessions/138-identity-phase-1b-runtime.md`](138-identity-phase-1b-runtime.md).
 
 > **For the actionable, Mastodon-first simplified plan, see**
 > [`136-cross-instance-identity-plan.md`](./136-cross-instance-identity-plan.md).
