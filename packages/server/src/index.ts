@@ -654,6 +654,8 @@ export type {
 // Import
 export { importFromUrl } from './import/index.js';
 export type { ImportResult } from './import/index.js';
+export { isPrivateUrl, safeFetch, safeFetchBinary } from './import/ssrf.js';
+export type { SafeFetchOptions } from './import/ssrf.js';
 
 // Email
 export {

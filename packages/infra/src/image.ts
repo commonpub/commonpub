@@ -54,10 +54,15 @@ export async function processImage(
 
   const sharp = (await import('sharp')).default;
 
+  // Cap decoded pixel count to defend against image-bomb DoS — a 10 MB PNG
+  // can decode to a 50000×50000 bitmap (~7.5 GB). 100 megapixels caps
+  // worst-case raw-bitmap memory at ~400 MB.
+  const SHARP_OPTIONS = { limitInputPixels: 100_000_000 };
+
   // Get original metadata (also validates the buffer is a real image)
   let metadata: Awaited<ReturnType<ReturnType<typeof sharp>['metadata']>>;
   try {
-    metadata = await sharp(data).metadata();
+    metadata = await sharp(data, SHARP_OPTIONS).metadata();
   } catch {
     throw new Error('Cannot process image: buffer is not a valid image');
   }
@@ -76,7 +81,7 @@ export async function processImage(
     // Skip variants larger than original
     if (originalWidth > 0 && maxWidth >= originalWidth) continue;
 
-    const resized = await sharp(data)
+    const resized = await sharp(data, SHARP_OPTIONS)
       .resize(maxWidth, undefined, {
         fit: 'inside',
         withoutEnlargement: true,

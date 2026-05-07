@@ -52,21 +52,73 @@ const MAX_RESPONSE_SIZE = 10 * 1024 * 1024; // 10 MB
 const FETCH_TIMEOUT_MS = 30_000;
 const MAX_REDIRECTS = 5;
 
+export interface SafeFetchOptions {
+  accept?: string;
+  userAgent?: string;
+  timeoutMs?: number;
+}
+
 /**
- * Fetch a URL with SSRF protection, redirect validation, size limit, and timeout.
- * Returns the response body as a string.
+ * Stream a Response body into a Buffer, aborting if it exceeds maxSize.
+ * Avoids the "buffer everything, then check" pattern that allows a
+ * malicious upstream with chunked encoding (no Content-Length) to OOM us.
+ *
+ * Falls back to `arrayBuffer()` when `response.body` is unavailable
+ * (test mocks, HEAD responses, 304s) — the size check still applies after
+ * the buffer is materialised.
  */
-export async function safeFetch(url: string): Promise<{ html: string; finalUrl: string }> {
+async function streamBoundedBody(response: Response, maxSize: number): Promise<Buffer> {
+  if (!response.body) {
+    const buf = Buffer.from(await response.arrayBuffer());
+    if (buf.byteLength > maxSize) throw new Error('Response too large');
+    return buf;
+  }
+  const reader = response.body.getReader();
+  let total = 0;
+  const chunks: Uint8Array[] = [];
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.length;
+      if (total > maxSize) {
+        await reader.cancel();
+        throw new Error('Response too large');
+      }
+      chunks.push(value);
+    }
+  } finally {
+    try { reader.releaseLock(); } catch { /* may already be released */ }
+  }
+  return Buffer.concat(chunks);
+}
+
+/**
+ * Fetch a URL with redirect re-validation against `isPrivateUrl`.
+ * Returns the final Response and the final URL (after redirects).
+ *
+ * Each redirect target is re-validated — Node's `redirect: 'follow'`
+ * does not re-check the new host against our blocklist, which would
+ * allow an attacker to host `evil.com` redirecting to a private IP.
+ */
+async function fetchWithRedirectValidation(
+  url: string,
+  options: SafeFetchOptions = {},
+): Promise<{ response: Response; finalUrl: string }> {
   if (isPrivateUrl(url)) {
     throw new Error('URL points to a private or reserved address');
   }
+
+  const accept = options.accept ?? 'text/html,application/xhtml+xml';
+  const userAgent = options.userAgent ?? 'CommonPub/1.0 (+https://commonpub.io)';
+  const timeoutMs = options.timeoutMs ?? FETCH_TIMEOUT_MS;
 
   let currentUrl = url;
   let redirectCount = 0;
 
   while (redirectCount < MAX_REDIRECTS) {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
     let response: Response;
     try {
@@ -74,8 +126,8 @@ export async function safeFetch(url: string): Promise<{ html: string; finalUrl: 
         signal: controller.signal,
         redirect: 'manual',
         headers: {
-          'User-Agent': 'CommonPub/1.0 (+https://commonpub.io)',
-          'Accept': 'text/html,application/xhtml+xml',
+          'User-Agent': userAgent,
+          'Accept': accept,
         },
       });
     } finally {
@@ -99,18 +151,33 @@ export async function safeFetch(url: string): Promise<{ html: string; finalUrl: 
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
 
-    const contentLength = response.headers.get('content-length');
-    if (contentLength && parseInt(contentLength, 10) > MAX_RESPONSE_SIZE) {
-      throw new Error('Response too large');
-    }
-
-    const buffer = await response.arrayBuffer();
-    if (buffer.byteLength > MAX_RESPONSE_SIZE) {
-      throw new Error('Response too large');
-    }
-
-    return { html: new TextDecoder().decode(buffer), finalUrl: currentUrl };
+    return { response, finalUrl: currentUrl };
   }
 
   throw new Error('Too many redirects');
+}
+
+/**
+ * Fetch a URL with SSRF protection, redirect validation, size limit, and timeout.
+ * Returns the response body as a string.
+ */
+export async function safeFetch(url: string): Promise<{ html: string; finalUrl: string }> {
+  const { response, finalUrl } = await fetchWithRedirectValidation(url);
+  const buffer = await streamBoundedBody(response, MAX_RESPONSE_SIZE);
+  return { html: new TextDecoder().decode(buffer), finalUrl };
+}
+
+/**
+ * Fetch a URL with SSRF protection, redirect validation, streaming size cap,
+ * and timeout. Returns the response body as a Buffer plus the upstream
+ * Content-Type. Use for binary content (images, etc.).
+ */
+export async function safeFetchBinary(
+  url: string,
+  options: SafeFetchOptions = {},
+): Promise<{ buffer: Buffer; contentType: string; finalUrl: string }> {
+  const { response, finalUrl } = await fetchWithRedirectValidation(url, options);
+  const contentType = response.headers.get('content-type') ?? '';
+  const buffer = await streamBoundedBody(response, MAX_RESPONSE_SIZE);
+  return { buffer, contentType, finalUrl };
 }
