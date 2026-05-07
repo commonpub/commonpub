@@ -140,6 +140,32 @@ Post-deploy verification:
   future sessions: a granular access token with `bypass-2fa` enabled
   in `~/.npmrc` would skip the dance.
 
+- **Wrong Font Awesome SRI hash (caught on the post-deploy CI audit).**
+  Session 135 committed `sha384-SZXxX4w…` to `nuxt.config.ts` — but
+  the actual cdnjs SHA-384 of `font-awesome/6.5.1/css/all.min.css` is
+  `sha384-t1nt8BQ…` (the value `135-audit-fixes.md` and `gotchas.md`
+  always cited). Session 135's local gates didn't run e2e against a
+  real browser, so the mismatch wasn't caught until the post-deploy
+  CI on session 136. Browsers blocked the stylesheet, all Font Awesome
+  icons were missing on both prod sites for ~30 min between deploy
+  and hotfix. Fix shipped as `@commonpub/layer 0.19.1`:
+
+  - `fix(layer): correct Font Awesome SRI hash` — single-line fix in
+    `layers/base/nuxt.config.ts`.
+  - `chore(release): @commonpub/layer 0.19.1 + CHANGELOG` — version
+    bump + this followup.
+  - Pushed → commonpub.io rebuilds from-source, picks up fix.
+  - Published 0.19.1 to npm.
+  - deveco-io lockfile updated via `pnpm update @commonpub/layer`,
+    pushed → deveco.io rebuilds with 0.19.1.
+
+  Lesson for next audit: when verifying a hash/integrity attribute,
+  recompute it against the actual file or compare to the documented
+  value byte-for-byte. "SRI line is present" is not enough; the value
+  is the load-bearing part. Static review of session 135's diff
+  spotted the SRI was wired up correctly but didn't catch the wrong
+  bytes.
+
 ## Open items
 
 - **Redis healthcheck auth fix (audit #9)** — still TODO. Edits to

@@ -7,11 +7,23 @@ monorepo working period. For session-level detail, see [`docs/sessions/`](./docs
 
 ---
 
-## Unreleased (sessions 108–135, through 2026-05-05)
+## Unreleased (sessions 108–136, through 2026-05-06)
 
 Monorepo state at time of writing: schema 0.15.0, server 2.48.0, config 0.11.0,
-layer 0.19.0, ui 0.8.5, protocol 0.9.9, editor 0.7.9, explainer 0.7.12,
+layer 0.19.1, ui 0.8.5, protocol 0.9.9, editor 0.7.9, explainer 0.7.12,
 learning 0.5.2, docs 0.6.2, auth 0.5.1, infra 0.6.3, test-utils 0.5.3.
+
+### Session 136 — Hotfix: Font Awesome SRI hash (2026-05-06)
+
+`@commonpub/layer` 0.19.0 → 0.19.1 (patch). The SHA-384 integrity
+hash committed in session 135 (`sha384-SZXxX4w…`) did not match the
+actual cdnjs file. Browsers blocked the stylesheet, all Font Awesome
+icons were missing on commonpub.io and deveco.io after the 0.19.0
+deploy. Fix: regenerated via the documented
+`curl + openssl dgst -sha384 -binary | openssl base64 -A` pipeline,
+committed `sha384-t1nt8BQ…` (the value the audit-fixes log + gotchas
+already cited). CI's `e2e` job caught this on the session-136 push;
+session-135's local gates didn't run e2e against a real browser.
 
 ### Session 135 — Nine-round audit + audit-fix PR set (2026-05-05)
 
