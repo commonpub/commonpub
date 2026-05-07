@@ -201,12 +201,22 @@ export function createStorageFromEnv(): StorageAdapter {
   const bucket = process.env.S3_BUCKET;
 
   if (bucket) {
+    const accessKeyId = process.env.S3_ACCESS_KEY;
+    const secretAccessKey = process.env.S3_SECRET_KEY;
+    if (!accessKeyId || !secretAccessKey) {
+      // Fail fast at adapter init rather than producing opaque
+      // `InvalidAccessKeyId` errors on every upload at request time.
+      throw new Error(
+        'S3_BUCKET is set but S3_ACCESS_KEY and/or S3_SECRET_KEY are missing. ' +
+        'Set both, or unset S3_BUCKET to use the local filesystem adapter.',
+      );
+    }
     return new S3StorageAdapter({
       bucket,
       region: process.env.S3_REGION ?? 'us-east-1',
       endpoint: process.env.S3_ENDPOINT || undefined,
-      accessKeyId: process.env.S3_ACCESS_KEY ?? '',
-      secretAccessKey: process.env.S3_SECRET_KEY ?? '',
+      accessKeyId,
+      secretAccessKey,
       publicUrl: process.env.S3_PUBLIC_URL || undefined,
       forcePathStyle: process.env.S3_FORCE_PATH_STYLE === 'true',
     });

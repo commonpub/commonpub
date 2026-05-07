@@ -248,9 +248,18 @@ describe('createStorageFromEnv', () => {
 
   it('respects S3_FORCE_PATH_STYLE env var', () => {
     process.env.S3_BUCKET = 'bucket';
+    process.env.S3_ACCESS_KEY = 'key';
+    process.env.S3_SECRET_KEY = 'secret';
     process.env.S3_FORCE_PATH_STYLE = 'true';
     const adapter = createStorageFromEnv();
     // Just verify it creates without error
     expect(adapter).toBeDefined();
+  });
+
+  it('throws if S3_BUCKET is set but credentials are missing', () => {
+    process.env.S3_BUCKET = 'bucket';
+    delete process.env.S3_ACCESS_KEY;
+    delete process.env.S3_SECRET_KEY;
+    expect(() => createStorageFromEnv()).toThrow(/S3_BUCKET is set but/);
   });
 });

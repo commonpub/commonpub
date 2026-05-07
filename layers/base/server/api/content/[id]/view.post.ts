@@ -4,13 +4,15 @@ import { incrementViewCount } from '@commonpub/server';
 const recentViews = new Map<string, number>();
 const VIEW_COOLDOWN_MS = 5 * 60 * 1000;
 
-// Periodic cleanup every 2 minutes
+// Periodic cleanup every 2 minutes. `.unref()` so this interval doesn't
+// hold the event loop on shutdown — Nitro's graceful-exit path shouldn't
+// have to wait on a view-dedup timer.
 setInterval(() => {
   const now = Date.now();
   for (const [key, ts] of recentViews) {
     if (now - ts > VIEW_COOLDOWN_MS) recentViews.delete(key);
   }
-}, 120_000);
+}, 120_000).unref();
 
 export default defineEventHandler(async (event): Promise<{ success: boolean }> => {
   const db = useDB();

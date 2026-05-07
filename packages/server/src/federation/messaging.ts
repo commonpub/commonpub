@@ -9,8 +9,6 @@ import {
   remoteActors,
 } from '@commonpub/schema';
 import {
-  buildCreateActivity,
-  contentToNote,
   resolveActorViaWebFinger,
   sanitizeHtml,
   type ResolvedActor,

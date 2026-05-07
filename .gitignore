@@ -46,6 +46,9 @@ reports/
 # Local test site
 test-site/
 
+# Design archive (Figma HTML exports, not used at runtime)
+design-system-v2/
+
 # Misc
 *.log
 *.tsbuildinfo

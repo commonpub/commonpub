@@ -71,14 +71,22 @@ export async function searchWithMeilisearch(
   const limit = Math.min(opts.limit ?? 24, 100);
   const offset = opts.offset ?? 0;
 
+  // Escape user-supplied values that get interpolated into Meilisearch
+  // filter strings. Meili's filter syntax uses double-quoted string
+  // literals; an unescaped quote (or backslash) would break out of the
+  // current clause and let an attacker inject arbitrary filter logic.
+  // Currently the index only contains published content (drafts skip
+  // indexing in indexContent), so the practical impact is bounded — but
+  // defense-in-depth costs almost nothing.
+  const escapeFilter = (s: string): string => s.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
   const filter: string[] = ['status = "published"'];
-  if (opts.type) filter.push(`type = "${opts.type}"`);
-  if (opts.difficulty) filter.push(`difficulty = "${opts.difficulty}"`);
+  if (opts.type) filter.push(`type = "${escapeFilter(opts.type)}"`);
+  if (opts.difficulty) filter.push(`difficulty = "${escapeFilter(opts.difficulty)}"`);
   if (opts.dateFrom) filter.push(`publishedAtTs >= ${new Date(opts.dateFrom).getTime() / 1000}`);
   if (opts.dateTo) filter.push(`publishedAtTs <= ${new Date(opts.dateTo).getTime() / 1000}`);
-  if (opts.authorUsername) filter.push(`authorUsername = "${opts.authorUsername}"`);
+  if (opts.authorUsername) filter.push(`authorUsername = "${escapeFilter(opts.authorUsername)}"`);
   if (opts.tags?.length) {
-    filter.push(opts.tags.map(t => `tags = "${t}"`).join(' OR '));
+    filter.push(opts.tags.map(t => `tags = "${escapeFilter(t)}"`).join(' OR '));
   }
 
   const sortOpts: string[] = [];

@@ -51,6 +51,13 @@ commonpub.io {
 	}
 
 	handle {
+		# Cap body size on the catch-all so an attacker can't tie up an
+		# upstream worker by streaming a multi-GB body to a non-upload
+		# route. 128MB matches the largest legitimate `attachment` upload
+		# (100MB + 28MB headroom for multipart overhead).
+		request_body {
+			max_size 128MB
+		}
 		reverse_proxy app:3000 {
 			header_up X-Real-IP {remote_host}
 			header_up X-Forwarded-For {remote_host}

@@ -83,6 +83,10 @@ const userUsername = computed(() => user.value?.username ?? '');
 
 <template>
   <div class="cpub-layout">
+    <!-- WCAG 2.4.1 — visually hidden until focused, lets keyboard users
+         skip past the global nav directly to page content. -->
+    <a href="#main-content" class="cpub-skip-link">Skip to content</a>
+
     <!-- ═══ TOP NAV ═══ -->
     <header class="cpub-topbar">
       <NuxtLink to="/" class="cpub-topbar-logo">
@@ -218,6 +222,28 @@ const userUsername = computed(() => user.value?.username ?? '');
 </template>
 
 <style scoped>
+.cpub-skip-link {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: var(--z-modal, 9999);
+  padding: 8px 16px;
+  background: var(--accent);
+  color: var(--color-on-accent, #fff);
+  font-family: var(--font-mono);
+  font-size: var(--text-label);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wider);
+  text-decoration: none;
+  transform: translateY(-100%);
+  transition: transform var(--transition-fast);
+}
+.cpub-skip-link:focus {
+  transform: translateY(0);
+  outline: 2px solid var(--text);
+  outline-offset: -2px;
+}
+
 .cpub-layout { min-height: 100vh; display: flex; flex-direction: column; }
 
 /* ═══ TOPBAR ═══ */

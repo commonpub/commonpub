@@ -1,5 +1,17 @@
 # CommonPub Codebase Analysis
 
+> **⚠ STALE.** Anchored at session 125 (2026-04-16). The session-130
+> Redis flip, the structured-logger work in 133, the per-package version
+> bumps from sessions 130–135, and the audit fixes from session 135 are
+> NOT reflected here. Several specific claims are now factually wrong —
+> notably "Redis is provisioned but unused" and "SSE streams are
+> single-instance only" in `09-gotchas-and-invariants.md`.
+>
+> For current state, read the latest log in `docs/sessions/` and use
+> this folder only for the structural shape (modules, conventions). Use
+> `git log -p` against the package you care about for the authoritative
+> recent change set.
+
 This folder is the **raw, exhaustive inventory** of the CommonPub monorepo as of
 session 128 (2026-04-17). Human docs in `docs/guides/` are derived from it; this
 is the source of truth.

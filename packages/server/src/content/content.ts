@@ -571,9 +571,6 @@ export async function updateContent(
   if (input.visibility !== undefined) updates.visibility = input.visibility;
   if (input.categoryId !== undefined) updates.categoryId = input.categoryId;
 
-  // Track status transition for federation
-  const wasPublished = current.status === 'published';
-
   if (input.status !== undefined) {
     updates.status = input.status;
     if (input.status === 'published' && !current.publishedAt) {
