@@ -109,11 +109,12 @@ Working trees: clean, both repos. Origin sync: in sync.
 
 #### Branch state — `feat/identity-phase-1a-foundation`
 
-13 commits ahead of main. Main is unchanged. Local gates green
-(26/26 typecheck, 30/30 test, lint clean). All flags default off
+12 commits ahead of main. Main is unchanged. Local gates green
+(26/26 typecheck, 30/30 test, 24/24 lint). All flags default off
 so the merge has zero behavioural impact for users.
 
 ```
+b4542de docs(sessions): handoff reflects branch state — Phase 1a + 1b data layer landed
 87bd885 feat(server): checkIdentityConfig startup invariant (Phase 1b)
 b972f64 feat(server): linkFederatedAccount grant + token helpers (Phase 1b data)
 fd99ac4 docs(sessions): identity design status + Phase 1b prerequisites checklist
