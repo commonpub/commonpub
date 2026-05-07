@@ -1,11 +1,20 @@
 # Session 136 → 137 Handoff
 
-Fresh Claude Code context. Session 136 shipped session 135's audit
-fixes to prod (commonpub.io + deveco.io) across 11 commits and 5
-package publishes, hotfixed a wrong Font Awesome SRI hash in the same
-session, ran a deep audit verifying runtime behavior on both prod
-sites, and drafted a comprehensive design doc for cross-instance
-delegated authorization (extending the v1 SSO).
+Fresh Claude Code context. Session 136 did three things:
+
+1. **Shipped session 135's audit fixes to prod** (commonpub.io +
+   deveco.io) across 11 commits, 5 package publishes, and an
+   in-session SRI-hash hotfix.
+2. **Drafted + audited the cross-instance identity design** —
+   reference design + simplified Mastodon-first plan, with the
+   "speak Mastodon API as both client and server" insight that
+   simplifies the architecture.
+3. **Implemented Phase 1a foundation + Phase 1b data layer on a
+   feature branch** — `feat/identity-phase-1a-foundation`. 13
+   commits, ~1300 LOC, 71 new tests. Main is unchanged. Branch is
+   reviewable; merging deploys migration 0004 (additive, 0-row
+   table on both prod sites) and adds new exports/types under a
+   default-off feature flag namespace.
 
 ## Orientation — read in order
 
@@ -14,18 +23,23 @@ delegated authorization (extending the v1 SSO).
      attribution to commits, in any repo.
    - Schema changes via committed migrations + `scripts/db-migrate.mjs`.
    - Feature flags in `commonpub.config.ts` for any new behavior.
-2. `docs/sessions/136-deploy.md` — what shipped this session,
-   pre/post-deploy verification, the SRI hotfix surprise, deveco
-   bump rationale.
+2. `docs/sessions/136-deploy.md` — what shipped to prod this
+   session, pre/post-deploy verification, the SRI hotfix surprise,
+   deveco bump rationale.
 3. **`docs/sessions/136-cross-instance-identity-plan.md`** — the
-   actionable Mastodon-first plan (read this first if 137
-   implements; ~16 new files, 4 phases, ~12 working days).
+   actionable Mastodon-first plan, including the "Phase 1b
+   prerequisites checklist" and "Implementation deviations" section
+   that document Phase 1a-as-shipped decisions. Read first if 137
+   continues the identity thread.
 4. `docs/sessions/136-cross-instance-identity-design.md` — the
    reference design with full failure-mode matrix and prose. Read
    when the plan needs justification or context.
-5. `docs/sessions/135-audit.md` + `135-audit-fixes.md` — only if
+5. **The feature branch `feat/identity-phase-1a-foundation`** — see
+   "Branch state" section below for what's there. `git log --oneline
+   main..feat/identity-phase-1a-foundation` for the commit list.
+6. `docs/sessions/135-audit.md` + `135-audit-fixes.md` — only if
    you need backstory on 0.19.x's contents.
-6. `docs/llm/gotchas.md` "Session 135 — audit-fix invariants" —
+7. `docs/llm/gotchas.md` "Session 135 — audit-fix invariants" —
    eight invariants future sessions must not regress.
 
 ## Current state (2026-05-06, end of session 136)
@@ -91,16 +105,135 @@ Working trees: clean, both repos. Origin sync: in sync.
   clean. Worth a comment in `apps/reference/e2e/smoke.spec.ts`
   near line 132.
 
-### New from session 136 (cross-instance auth design)
+### New from session 136 (cross-instance auth)
 
-If 137 continues the cross-instance identity thread, the design doc
-at `136-cross-instance-identity-design.md` lays out the phased plan.
-Phase 0 (today) is what already ships; phase 1 is the next
-incremental step. Read it in full before opening any code.
+#### Branch state — `feat/identity-phase-1a-foundation`
 
-If 137 picks something else, the design doc is forward reference —
-no commits required to merge. It can sit as a session-scoped
-proposal.
+13 commits ahead of main. Main is unchanged. Local gates green
+(26/26 typecheck, 30/30 test, lint clean). All flags default off
+so the merge has zero behavioural impact for users.
+
+```
+87bd885 feat(server): checkIdentityConfig startup invariant (Phase 1b)
+b972f64 feat(server): linkFederatedAccount grant + token helpers (Phase 1b data)
+fd99ac4 docs(sessions): identity design status + Phase 1b prerequisites checklist
+0543798 fix(test-utils): partial identity overrides in createTestConfig
+57f6906 docs(sessions): sync identity plan with Phase 1a implementation
+1376041 fix(server): FediClient factory registration — chain-complete the router
+7a5bf73 feat(config): identity feature flags (all default off)
+aab25ba feat(server): ActionRoute router + FediClient interface (Phase 1a)
+fa0a97e feat(auth): Identity types + handle parsing for cross-instance auth
+18d1087 feat(infra): ChaCha20-Poly1305 token crypto helpers
+d5f1e67 feat(schema): migration 0004 — token columns on federated_accounts
+```
+
+What's in:
+
+- **Schema migration 0004** — federated_accounts gets six
+  nullable/defaulted columns: `access_token_ciphertext`,
+  `access_token_iv`, `scopes` (text[]), `software_kind` (varchar(32),
+  default 'unknown'), `revoked_at`, `last_verified_at`. Existing v1
+  SSO callers continue to work without setting them.
+- **`@commonpub/infra/tokenCrypto`** — ChaCha20-Poly1305 wrapper.
+  Plain tokens never written to disk; encryption key in
+  `CPUB_FED_TOKEN_KEY` (32-byte hex). 16/16 tamper-detection +
+  validation tests.
+- **`@commonpub/auth/identity`** — `Identity` discriminated union,
+  `IdentityContext`, scope/software-kind enums + type guards,
+  `parseHandle` covering `@user@host` / `acct:user@host` / casing
+  edges. 27/27 tests.
+- **`@commonpub/server/identity/`** — `ActionRoute<TEvent, TIn, TOut>`
+  + `run()` (the only place that branches on linked vs native);
+  `FediClient` interface + factory-registration pattern
+  (`setFediClientFactory` is called once at app init by the future
+  Phase 1b plugin); error classes for ActionUnavailable /
+  InsufficientScopes / LinkedIdentityRevoked. 13/13 tests.
+- **`features.identity.{linkRemoteAccounts, signInWithRemote,
+  actingAs, remoteInteract, remotePublish}`** in `@commonpub/config`,
+  all defaulting `false`. Zod-defaulted so configs that don't
+  declare `identity` are valid.
+- **Phase 1b data layer** — `linkFederatedAccount` extended with
+  optional `grant: FederatedAccountGrant` parameter (encrypts on
+  store, validates scopes/softwareKind, lifts revocation on re-link).
+  `getDecryptedAccessToken` + `revokeFederatedAccountGrant` helpers.
+  7 new PGlite-backed integration tests verifying plaintext-never-
+  in-ciphertext, roundtrip, no-grant rows, missing rows, revoke,
+  re-link rotates + lifts revocation, scope/kind coercion, and that
+  legacy no-grant updates preserve existing tokens.
+- **Startup invariant** — `assertIdentityConfig(config)` throws if
+  any token-using flag is on without `CPUB_FED_TOKEN_KEY`.
+  `actingAs` alone is exempt. 10/10 tests.
+
+#### What Phase 1b still needs (the runtime slice)
+
+When 137 picks this back up, in roughly the order they should ship:
+
+1. **Add `megalodon` as `@commonpub/server` dep.**
+   `pnpm --filter @commonpub/server add megalodon`. Bumps server to
+   2.49.0. Lockfile churn is non-trivial — verify
+   `pnpm install --frozen-lockfile` after.
+2. **Implement the FediClient factory** in
+   `packages/server/src/identity/fediClient.ts` (or a new
+   `mastodonFactory.ts`). Pseudocode:
+   ```ts
+   export function createMastodonFediClientFactory(db: DB): FediClientFactory {
+     return async (identity) => {
+       const token = await getDecryptedAccessToken(db, identity.id);
+       if (!token) throw new LinkedIdentityRevoked(identity);
+       const client = generator(identity.softwareKind, `https://${identity.instance}`, token);
+       return wrapWith401Detection(client, db, identity);
+     };
+   }
+   ```
+3. **Add a Nitro plugin** at
+   `layers/base/server/plugins/identity-startup.ts` that:
+   - Calls `assertIdentityConfig(useConfig())` (fails boot if
+     misconfigured).
+   - Calls `setFediClientFactory(createMastodonFediClientFactory(useDB()))`.
+4. **Extend the existing OAuth callback** at
+   `layers/base/server/api/auth/federated/callback.get.ts` to pass
+   the access token + scopes + softwareKind to `linkFederatedAccount`.
+   The function signature already accepts the optional grant — just
+   wire it.
+5. **Update `layers/base/composables/useFeatures.ts`** local
+   `FeatureFlags` interface (currently lags `@commonpub/config`'s by
+   missing `identity`). Add `identity` field to the type and
+   `DEFAULT_FLAGS` constant. Test the existing nav iteration handles
+   the new nested object cleanly (it should — the iteration works
+   on the composable return, not the FeatureFlags object directly).
+6. **Smoke test 1: CommonPub-to-CommonPub link.** Two local
+   instances, both with `linkRemoteAccounts: true` and
+   `CPUB_FED_TOKEN_KEY` set. Sign in on instance A, link instance B,
+   verify `federated_accounts` row has decryptable token.
+7. **Smoke test 2: Mastodon-to-CommonPub link.** Use a real
+   `mastodon.social` test account; verify `/api/v1/apps`
+   registration → OAuth → `/api/v1/accounts/verify_credentials`
+   roundtrip.
+8. **Bump versions + publish** when ready: schema → infra → server →
+   layer.
+
+The rest of the rollout (Phases 2–4: smart login form, acting-as
+banner, action declarations, UI surfaces) is documented in the plan.
+None of those land in Phase 1b.
+
+#### Branch merge decision
+
+Three options for 137:
+
+A. **Merge as-is** (recommended if 137's first task is Phase 1b).
+   Migration 0004 deploys cleanly (additive, 0-row table on both
+   prod sites). New exports/types ship; flags stay off. Then start
+   Phase 1b on top.
+
+B. **Hold and continue Phase 1b on the branch** before any merge.
+   Keeps the change set as one logical chunk. Single review surface.
+   Riskier — branch grows large; rebase pain if main moves under it.
+
+C. **Rebase / merge piecemeal.** Cherry-pick the schema migration
+   first, the rest behind. Probably overkill for this scope.
+
+Plan recommends A: the branch is foundation-only, every flag is off,
+and the merge surface is small enough to review in one sitting.
 
 ## Lessons recorded as memory
 
