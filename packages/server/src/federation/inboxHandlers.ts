@@ -27,6 +27,7 @@ import { resolveRemoteActor } from './federation.js';
 import { matchMirrorForContent } from './mirroring.js';
 import { handleHubFollow, handleHubUnfollow } from './hubFederation.js';
 import { createNotification } from '../notification/notification.js';
+import { isPrivateUrl } from '../import/ssrf.js';
 
 /** Resolve a remote actor's display name from cache, falling back to URI username segment */
 async function resolveRemoteActorName(db: DB, actorUri: string): Promise<string> {
@@ -1256,6 +1257,11 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
               // Self-announce (hub announcing its own existence) — discovery already done, skip post ingestion
               if (objectUri === actorUri) {
                 // Hub discovered, nothing more to do
+              } else if (isPrivateUrl(objectUri)) {
+                // Refuse to dereference an objectUri pointing at a private/reserved
+                // address — even from a trusted hub actor, we don't want to be
+                // a confused-deputy SSRF vector for internal services.
+                console.warn('[inbox] Refusing to dereference private/reserved objectUri:', objectUri);
               } else {
               // Dereference the announced Note to get its content
               const noteResponse = await fetch(objectUri, {

@@ -5,7 +5,12 @@
 import { eq, and, sql, lte, isNull, or } from 'drizzle-orm';
 import { activities, remoteActors, followRelationships, actorKeypairs, users, hubs, hubActorKeypairs, hubFollowers } from '@commonpub/schema';
 import { signRequest } from '@commonpub/protocol';
+import { createStructuredLogger } from '@commonpub/infra';
 import type { DB } from '../types.js';
+
+/** Structured-log sink for delivery observability events that would otherwise
+ *  vanish into `.catch(() => {})`. Emits one JSON line per event to stdout. */
+const log = createStructuredLogger({ component: 'federation-delivery' });
 
 const DEFAULT_MAX_ATTEMPTS = 6;
 /** Lock expiry: if a worker crashes, its locks expire after 5 minutes */
@@ -176,16 +181,34 @@ async function deliverActivity(
         const response = await fetch(signed, { signal: controller.signal });
         if (!response.ok && response.status !== 202) {
           errors.push(`${inbox}: ${response.status} ${response.statusText}`);
-          await recordDeliveryFailure(db, inboxDomain).catch(() => {});
+          await recordDeliveryFailure(db, inboxDomain).catch((err) =>
+            log('Circuit-breaker failure-record write failed', {
+              domain: inboxDomain,
+              op: 'failure',
+              error: err instanceof Error ? err.message : String(err),
+            }),
+          );
         } else {
-          await recordDeliverySuccess(db, inboxDomain).catch(() => {});
+          await recordDeliverySuccess(db, inboxDomain).catch((err) =>
+            log('Circuit-breaker success-record write failed', {
+              domain: inboxDomain,
+              op: 'success',
+              error: err instanceof Error ? err.message : String(err),
+            }),
+          );
         }
       } finally {
         clearTimeout(timeout);
       }
     } catch (err) {
       errors.push(`${inbox}: ${err instanceof Error ? err.message : String(err)}`);
-      await recordDeliveryFailure(db, inboxDomain).catch(() => {});
+      await recordDeliveryFailure(db, inboxDomain).catch((recordErr) =>
+        log('Circuit-breaker failure-record write failed', {
+          domain: inboxDomain,
+          op: 'failure',
+          error: recordErr instanceof Error ? recordErr.message : String(recordErr),
+        }),
+      );
     }
   }
 
