@@ -325,4 +325,38 @@ function stripHtml(html: string): string {
   font-weight: 600;
   margin-bottom: var(--space-4);
 }
+
+/* Mobile — federated profile view. The header's avatar+info+follow-btn
+   row at gap:16px overflows 375px. Stats wrap, actions stack, DM form
+   actions stack. Avatar shrinks. */
+@media (max-width: 768px) {
+  .cpub-remote-profile { padding: var(--space-4) var(--space-3); }
+  .cpub-remote-profile__header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3);
+  }
+  .cpub-remote-profile__avatar {
+    width: 56px;
+    height: 56px;
+  }
+  .cpub-remote-profile__name { font-size: 1.125rem; }
+  .cpub-remote-profile__actions {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    gap: var(--space-2);
+  }
+  .cpub-remote-profile__follow-btn,
+  .cpub-remote-profile__dm-send,
+  .cpub-remote-profile__dm-cancel { width: 100%; }
+  .cpub-remote-profile__stats {
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    font-size: var(--font-size-sm);
+  }
+  .cpub-remote-profile__dm-actions {
+    flex-direction: column;
+  }
+}
 </style>

@@ -526,4 +526,22 @@ async function refederate(): Promise<void> {
   margin-top: 10px; padding: 10px 14px; font-size: 0.8125rem; font-family: var(--font-mono);
   background: var(--accent-bg); border: var(--border-width-default) solid var(--accent-border); color: var(--text);
 }
+
+/* Mobile — admin federation dashboard. The stats grid (4 cells × 100px min)
+   plus 24px gap claims the entire 375px viewport with nothing left for
+   labels. The form wraps each input + button onto its own line. The
+   activity-list rows shrink to legible. */
+@media (max-width: 768px) {
+  .cpub-fed-stats { grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 16px; }
+  .cpub-fed-stat { padding: 12px 10px; }
+  .cpub-fed-stat-val { font-size: 1.25rem; }
+  .cpub-fed-tabs { overflow-x: auto; }
+  .cpub-fed-tabs button { padding: 8px 12px; white-space: nowrap; }
+  .cpub-fed-form { flex-direction: column; align-items: stretch; gap: 8px; }
+  .cpub-fed-form .cpub-fed-btn,
+  .cpub-fed-form .cpub-fed-input { width: 100%; }
+  .cpub-fed-actor { font-size: 11px; }
+  .cpub-fed-time { font-size: 9px; }
+  .cpub-admin-title { font-size: 1rem; }
+}
 </style>

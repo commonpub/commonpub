@@ -446,4 +446,19 @@ function fmtErrorRate(rate: number): string {
 .cpub-empty { padding: 40px; text-align: center; color: var(--text-dim); background: var(--surface); border: var(--border-width-default) solid var(--border); }
 .cpub-empty code { font-family: var(--font-mono); background: var(--surface2); padding: 1px 6px; }
 .cpub-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
+/* Mobile — admin api-keys table is the worst offender at 375px because
+   Postgres-style 6-column tables don't shrink. We let the table-wrapper
+   scroll horizontally and tighten everything else. The usage drawer's
+   stat grid drops to a single column. */
+@media (max-width: 768px) {
+  .cpub-key-table { display: block; overflow-x: auto; white-space: nowrap; }
+  .cpub-key-table th,
+  .cpub-key-table td { padding: 8px 10px; font-size: 11px; }
+  .cpub-key-actions { flex-direction: column; gap: 4px; align-items: stretch; }
+  .cpub-key-actions .cpub-btn-link { padding: 4px 6px; }
+  .cpub-usage-grid { grid-template-columns: 1fr; gap: 12px; }
+  .cpub-usage-by-day ul { font-size: 10px; }
+  .cpub-key-usage-row td { padding: 12px; }
+}
 </style>
