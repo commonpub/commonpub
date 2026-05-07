@@ -15,3 +15,26 @@ export type {
   UserRole,
 } from './types.js';
 export { ROLE_HIERARCHY, getRoleLevel } from './types.js';
+
+// Cross-instance identity types — Phase 1a foundation. The runtime
+// resolver + action router live in @commonpub/server. See
+// docs/sessions/136-cross-instance-identity-plan.md.
+export {
+  SCOPE_VALUES,
+  SOFTWARE_KIND_VALUES,
+  isScope,
+  isSoftwareKind,
+  makeHandle,
+  parseHandle,
+  hasAllScopes,
+  coerceScopes,
+  isUsableLinkedIdentity,
+} from './identity.js';
+export type {
+  Scope,
+  SoftwareKind,
+  Identity,
+  NativeIdentity,
+  LinkedIdentity,
+  IdentityContext,
+} from './identity.js';
