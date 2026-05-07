@@ -72,3 +72,8 @@ export type { RealtimePubSub } from './realtime/pubsub.js';
 export { RedisRealtimePubSub } from './realtime/redisPubsub.js';
 export { createRealtimePubSub } from './realtime/factory.js';
 export type { CreateRealtimePubSubOptions } from './realtime/factory.js';
+
+// Token crypto — ChaCha20-Poly1305 wrapper for storing OAuth bearer
+// tokens at rest. Used by cross-instance identity / federated_accounts.
+export { encryptToken, decryptToken, isTokenKeyConfigured } from './tokenCrypto.js';
+export type { EncryptedToken } from './tokenCrypto.js';
