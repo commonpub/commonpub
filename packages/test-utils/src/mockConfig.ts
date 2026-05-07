@@ -28,6 +28,11 @@ export function createTestConfig(overrides?: Partial<CommonPubConfig>): CommonPu
       admin: false,
       emailNotifications: false,
       publicApi: false,
+      // Spread overrides BEFORE the explicit `identity:` block so a
+      // partial-identity override (e.g., `{ remoteInteract: true }`)
+      // safely merges over the all-false defaults rather than replacing
+      // the whole nested object with the partial.
+      ...overrides?.features,
       identity: {
         linkRemoteAccounts: false,
         signInWithRemote: false,
@@ -36,7 +41,6 @@ export function createTestConfig(overrides?: Partial<CommonPubConfig>): CommonPu
         remotePublish: false,
         ...overrides?.features?.identity,
       },
-      ...overrides?.features,
     },
     auth: {
       emailPassword: true,
