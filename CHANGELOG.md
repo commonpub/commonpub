@@ -7,11 +7,130 @@ monorepo working period. For session-level detail, see [`docs/sessions/`](./docs
 
 ---
 
-## Unreleased (sessions 108–134, through 2026-04-19)
+## Unreleased (sessions 108–135, through 2026-05-05)
 
-Monorepo state at time of writing: schema 0.14.4, server 2.47.4, config 0.11.0,
-layer 0.18.3, ui 0.8.5, protocol 0.9.9, editor 0.7.9, explainer 0.7.12,
-learning 0.5.2, docs 0.6.2, auth 0.5.1, infra 0.6.2, test-utils 0.5.3.
+Monorepo state at time of writing: schema 0.15.0, server 2.48.0, config 0.11.0,
+layer 0.19.0, ui 0.8.5, protocol 0.9.9, editor 0.7.9, explainer 0.7.12,
+learning 0.5.2, docs 0.6.2, auth 0.5.1, infra 0.6.3, test-utils 0.5.3.
+
+### Session 135 — Nine-round audit + audit-fix PR set (2026-05-05)
+
+**Audit + implementation, code-only.** Nine rounds of meticulous codebase
+audit (`docs/sessions/135-audit.md`) produced 30 CERTAIN findings, of
+which all worth shipping this week landed as five PR-shaped change
+sets in one working tree (`docs/sessions/135-audit-fixes.md`). All
+gates green: 26/26 typecheck, 30/30 turbo test tasks, 912+ vitest
+pass, 82 lint warnings (down from 85). Versions bumped, lockfile
+refreshed, no commits or publishes yet — that's the next session's
+job (see `135-handoff-prompt.md`).
+
+**Security wins (HIGH):**
+
+- **image-proxy SSRF + DoS hardening** — closed two HIGH findings.
+  `redirect: 'follow'` was bypassing the SSRF blocklist on redirect
+  targets; now uses a new `safeFetchBinary` helper in
+  `@commonpub/server` that re-validates `isPrivateUrl` on each
+  redirect (max 5) and streams the response body with a hard
+  size cap (chunked-encoding upstreams could previously fool the
+  Content-Length check into reading unbounded). Same streaming
+  path applied to the existing `safeFetch` (closes audit MED #5).
+
+- **Sharp megapixel-bomb DoS** — `processImage` now passes
+  `limitInputPixels: 100_000_000` to both `sharp(data, ...)` calls.
+  Caps decoded bitmap memory at ~400 MB.
+
+- **Federated `objectUri` SSRF** — `inboxHandlers.ts` now refuses
+  to dereference an Announce's `objectUri` if `isPrivateUrl(it)`,
+  even when the activity comes from a trusted mirrored hub.
+
+**Anti-abuse (MED):**
+
+- **Notification dedup** — added UNIQUE index
+  `uq_notif_user_type_actor_link` (migration
+  `0003_notifications_dedup.sql`). The migration runs a one-time
+  DELETE-duplicates step before creating the index so any database
+  that accumulated pre-migration spam doesn't abort the deploy with
+  `could not create unique index`. `createNotification` is now
+  try-INSERT, on Postgres `23505` retry as UPDATE — collapses
+  like → unlike → like spam to a single row that bumps `read=false`
+  and `created_at`. NOT implemented as `ON CONFLICT DO UPDATE`
+  because PGlite (the test DB) rejects partial-index inference;
+  try/catch is portable across both. Postgres NULL-distinct
+  semantics handle system notifications (no actor + no link)
+  without dedup naturally. Includes a race guard for the
+  delete-between-INSERT-and-UPDATE window.
+
+- **SSE per-user connection cap** —
+  `/api/realtime/stream` now caps each user at 10 concurrent
+  connections via a module-level `Map<userId, count>`. 11th returns
+  429.
+
+- **Federation delivery observability** — three `.catch(() => {})`
+  on circuit-breaker DB writes in `delivery.ts` replaced with
+  structured-log emits via
+  `createStructuredLogger({ component: 'federation-delivery' })`.
+
+**Accessibility:**
+
+- **Modal a11y refactor** — new
+  `layers/base/composables/useFocusTrap.ts` adds focus trap, Esc to
+  close, body scroll lock, and focus restoration. Wired into
+  `ImportUrlModal`, `RemoteFollowDialog`, `ContentPicker`. (The plan
+  considered wrapping each modal in `<Dialog>` from
+  `@commonpub/ui`, but that would have lost per-modal header
+  styling — composable preserves visuals and closes the WCAG 2.1 AA
+  gap.)
+
+- **Default layout** — added `htmlAttrs: { lang: 'en' }` (WCAG
+  3.1.1) and a visible-on-focus skip-to-content link (WCAG 2.4.1)
+  in the default layout.
+
+**LOW hygiene (mechanical):**
+
+- `.gitignore` includes `design-system-v2/` (Figma archive that's
+  been showing up in `git status` since session 105).
+- `deploy/migrations/` deleted (orphan SQL files predating the
+  session-128 baseline).
+- Font Awesome `<link>` now has SRI integrity hash
+  (`sha384-t1nt8BQ…` — real, computed via curl + openssl, not a
+  placeholder).
+- `view.post.ts` `setInterval(...).unref()` so it doesn't hold the
+  event loop on shutdown.
+- `createStorageFromEnv` fail-fast when `S3_BUCKET` is set without
+  `S3_ACCESS_KEY`/`S3_SECRET_KEY` (+ test).
+- Meilisearch filter values escaped (defense-in-depth — drafts
+  aren't indexed, so no current exploit).
+- Removed dead `wasPublished` variable + comment in `content.ts`.
+- Removed unused `buildCreateActivity, contentToNote` imports in
+  `federation/messaging.ts`.
+- `codebase-analysis/README.md` got a stale-as-of-session-125
+  banner pointing at `docs/sessions/`.
+- `deploy/Caddyfile` got a 128 MB `request_body { max_size }` cap
+  on the catch-all handler.
+
+**Workspace pinning convention** — `apps/reference`, `apps/shell`,
+and `layers/base` switched their `@commonpub/server` and
+`@commonpub/schema` deps from `^x.y.z` to `workspace:*`. This
+prevents pnpm from preferring previously-published npm versions
+when the workspace bumps a minor (which was happening for server
+2.47.4 → 2.48.0). At publish time, `pnpm publish` replaces
+`workspace:*` with the actual version.
+
+**Version bumps:** `@commonpub/server` 2.47.4 → 2.48.0 (minor — new
+`safeFetch`/`safeFetchBinary`/`isPrivateUrl` exports);
+`@commonpub/schema` 0.14.4 → 0.15.0 (minor — new migration);
+`@commonpub/infra` 0.6.2 → 0.6.3 (patch — added `limitInputPixels`
+arg); `@commonpub/layer` 0.18.3 → 0.19.0 (minor — new
+`useFocusTrap` composable, SSE cap, skip-link, lang attr).
+
+**Audit findings explicitly NOT shipped this session (deferred or
+dormant):** Redis healthcheck auth (manual-scp gap), OAuth account
+columns (dormant pre-OAuth-enablement), `emailVerified` enforcement,
+DNS-rebind hardening, `enrichUser` caching, graceful-shutdown
+SIGTERM handler, bulk `console.*` migration, mobile @media for
+`admin/*` + `federation/users/[handle]`. See
+`docs/sessions/135-audit.md` and `135-handoff-prompt.md` for
+the full list.
 
 ### Session 134 — Mobile responsive on /videos index + detail + npm release (2026-04-19)
 
