@@ -7,11 +7,53 @@ monorepo working period. For session-level detail, see [`docs/sessions/`](./docs
 
 ---
 
-## Unreleased (sessions 108–137, through 2026-05-07)
+## Unreleased (sessions 108–139, through 2026-05-07)
 
-Monorepo state at time of writing: schema 0.16.0, server 2.50.0, config 0.12.0,
-layer 0.20.0, ui 0.8.5, protocol 0.9.9, editor 0.7.9, explainer 0.7.12,
+Monorepo state at time of writing: schema 0.16.0, server 2.51.0, config 0.12.0,
+layer 0.21.0, ui 0.8.5, protocol 0.9.9, editor 0.7.9, explainer 0.7.12,
 learning 0.5.2, docs 0.6.2, auth 0.6.0, infra 0.7.0, test-utils 0.5.4.
+
+### Session 139 — Cross-instance identity Phase 2a server-side flow (2026-05-07)
+
+Mastodon-login OAuth flow — the OUTBOUND direction (CommonPub as
+client of any Mastodon-API remote). Distinct from the existing v1
+SSO `oauth.ts` which handles INBOUND (other CommonPub instances
+registering with us).
+
+Bumps:
+- `@commonpub/server` 2.50.0 → 2.51.0 (minor — Mastodon-login
+  helpers exported)
+- `@commonpub/layer`  0.20.0 → 0.21.0 (minor — `/api/auth/mastodon/{start,callback}` routes)
+
+What shipped:
+
+- **`packages/server/src/federation/mastodonLogin.ts`** — new module:
+  `isValidHost`, `getOrRegisterRemoteClient` (caches per-host client
+  credentials in `instance_settings`), `buildAuthorizeUrl`,
+  `storeMastodonLoginState` / `consumeMastodonLoginState` (CSRF-state
+  KV; 10-min TTL; single-use), `detectSoftwareKind` (megalodon's
+  `detector` narrowed to our `SoftwareKind`),
+  `exchangeCodeAndVerify` (token exchange + verify in one call).
+
+- **`/api/auth/mastodon/start.get.ts`** — receives `host` param,
+  registers CommonPub at the remote (cached after first call), mints
+  CSRF state, redirects to remote's `/oauth/authorize`. Gated by
+  `features.identity.signInWithRemote`; 404 when off (no scrape
+  surface leakage).
+
+- **`/api/auth/mastodon/callback.get.ts`** — exchanges auth code,
+  verifies identity, then routes to one of three outcomes:
+    1. Already linked → mint Better Auth session, redirect to
+       `returnTo` or `/dashboard`
+    2. Logged-in user → `linkFederatedAccount` with grant; redirect
+       to settings
+    3. Anonymous + first-time → `storePendingLink` (existing v1 SSO
+       machinery); Phase 2b's UI consumes the link token
+
+OAuth-error responses (?error=access_denied etc.) surfaced cleanly
+to `/auth/login?mastodon_error=...`. State management piggybacks on
+`instance_settings` (no new schema migration). Phase 2b will add
+the smart login form + auto-provision UI to actually invoke this.
 
 ### Session 137 — Cross-instance identity Phase 1b runtime (2026-05-07)
 
