@@ -7,11 +7,91 @@ monorepo working period. For session-level detail, see [`docs/sessions/`](./docs
 
 ---
 
-## Unreleased (sessions 108–136, through 2026-05-06)
+## Unreleased (sessions 108–137, through 2026-05-07)
 
-Monorepo state at time of writing: schema 0.15.0, server 2.48.0, config 0.11.0,
-layer 0.19.1, ui 0.8.5, protocol 0.9.9, editor 0.7.9, explainer 0.7.12,
-learning 0.5.2, docs 0.6.2, auth 0.5.1, infra 0.6.3, test-utils 0.5.3.
+Monorepo state at time of writing: schema 0.16.0, server 2.49.0, config 0.12.0,
+layer 0.19.2, ui 0.8.5, protocol 0.9.9, editor 0.7.9, explainer 0.7.12,
+learning 0.5.2, docs 0.6.2, auth 0.6.0, infra 0.7.0, test-utils 0.5.4.
+
+### Session 137 — Cross-instance identity foundation (2026-05-07)
+
+Phase 1a + Phase 1b data layer for cross-instance delegated
+authorization. All flags default off; merging is a zero-behavior-
+change foundation for Phase 1b's runtime slice. Migration 0004
+applied to commonpub.io's prod DB on the merge deploy (additive
+on a 0-row table; no risk).
+
+Bumps:
+- `@commonpub/schema`     0.15.0 → 0.16.0 (minor — migration 0004
+  + six new columns on `federated_accounts`)
+- `@commonpub/infra`      0.6.3  → 0.7.0  (minor — `encryptToken`,
+  `decryptToken`, `isTokenKeyConfigured` exports)
+- `@commonpub/auth`       0.5.1  → 0.6.0  (minor — `Identity`,
+  `IdentityContext`, scope/software-kind enums + type guards,
+  `parseHandle`, `makeHandle`, `hasAllScopes`, `coerceScopes`,
+  `isUsableLinkedIdentity` exports)
+- `@commonpub/config`     0.11.0 → 0.12.0 (minor — new
+  `IdentityFeatures` type + `features.identity` nested object)
+- `@commonpub/server`     2.48.0 → 2.49.0 (minor — `ActionRoute`,
+  `run`, `setFediClientFactory`, `getFediClient`, `FediClient`,
+  `VerifiedAccount`, `FediClientFactory` exports; error classes
+  `ActionUnavailable`, `InsufficientScopes`,
+  `LinkedIdentityRevoked`; `checkIdentityConfig`,
+  `assertIdentityConfig` startup invariants;
+  `linkFederatedAccount` extended with optional `grant`
+  parameter (backward-compat); `getDecryptedAccessToken`,
+  `revokeFederatedAccountGrant`, `FederatedAccountGrant` type)
+- `@commonpub/test-utils` 0.5.3  → 0.5.4  (patch — fix partial
+  `features.identity` overrides in `createTestConfig`)
+- `@commonpub/layer`      0.19.1 → 0.19.2 (patch — no source
+  change; transitive deps updated to new versions above)
+
+Foundation primitives shipped (no UI, no OAuth flow changes,
+existing controllers untouched):
+
+- **Schema migration 0004 (`federated_oauth_tokens.sql`)** —
+  six nullable/defaulted columns on `federated_accounts`:
+  `access_token_ciphertext` / `access_token_iv` (base64
+  ChaCha20-Poly1305 outputs), `scopes` (text[]),
+  `software_kind` (varchar(32) default 'unknown'), `revoked_at`,
+  `last_verified_at`. Existing v1 SSO callers continue to work
+  unchanged.
+- **`@commonpub/infra/tokenCrypto`** — ChaCha20-Poly1305 wrapper.
+  Plain tokens never written to disk; encryption key in
+  `CPUB_FED_TOKEN_KEY` (32-byte hex, generated via
+  `openssl rand -hex 32`). 16/16 tamper-detection + validation
+  tests.
+- **`@commonpub/auth/identity`** — discriminated union for
+  native-vs-linked identities, `IdentityContext` shape, scope
+  vocabulary (`read`/`write`/`follow`/`publish`/`interact`),
+  software-kind enum (mastodon/pleroma/cpub/gotosocial/akkoma/
+  firefish/unknown), handle parsing covering `@user@host` /
+  `acct:user@host` / casing edges. 27/27 tests.
+- **`@commonpub/server/identity`** — `ActionRoute<TEvent, TIn, TOut>`
+  + `run()` (the only place that branches on linked vs native
+  identity); `FediClient` interface + factory-registration
+  pattern (`setFediClientFactory` is called once at app init);
+  error classes for `ActionUnavailable`/`InsufficientScopes`/
+  `LinkedIdentityRevoked`. 13/13 tests.
+- **Phase 1b data layer** — `linkFederatedAccount` extended with
+  optional `grant: FederatedAccountGrant` param (encrypts on
+  store, validates scopes/softwareKind, lifts revocation on
+  re-link); `getDecryptedAccessToken` + `revokeFederatedAccountGrant`
+  helpers. 7 new PGlite-backed integration tests.
+- **`features.identity.{linkRemoteAccounts, signInWithRemote,
+  actingAs, remoteInteract, remotePublish}`** in
+  `@commonpub/config`, all defaulting `false`. Zod-defaulted so
+  existing configs that don't declare `identity` are valid.
+- **Startup invariant `assertIdentityConfig(config)`** — throws
+  if any token-using flag is enabled without `CPUB_FED_TOKEN_KEY`.
+  `actingAs` alone is exempt (UI-only, no token I/O). 10/10 tests.
+
+Total: 71 new tests; 30/30 turbo test tasks green; 26/26
+typecheck; 24/24 lint. Branch
+`feat/identity-phase-1a-foundation` (13 commits) fast-forwarded
+into main. Detailed per-decision rationale + Phase 1b runtime-
+slice prerequisites in
+[`docs/sessions/136-cross-instance-identity-plan.md`](docs/sessions/136-cross-instance-identity-plan.md).
 
 ### Session 136 — Hotfix: Font Awesome SRI hash (2026-05-06)
 
