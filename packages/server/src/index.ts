@@ -675,7 +675,13 @@ export * from './publicApi/index.js';
 // registers a real factory via setFediClientFactory; Phase 3 lands
 // the runtime resolver; Phase 4 adds per-action declarations.
 // See docs/sessions/136-cross-instance-identity-plan.md.
-export type { ActionRoute, FediClient, VerifiedAccount, FediClientFactory } from './identity/index.js';
+export type {
+  ActionRoute,
+  FediClient,
+  VerifiedAccount,
+  FediClientFactory,
+  IdentityConfigCheckResult,
+} from './identity/index.js';
 export {
   run,
   getFediClient,
@@ -683,4 +689,13 @@ export {
   ActionUnavailable,
   InsufficientScopes,
   LinkedIdentityRevoked,
+  checkIdentityConfig,
+  assertIdentityConfig,
 } from './identity/index.js';
+
+// Federated-account grant management (Phase 1b data layer)
+export type { FederatedAccountGrant } from './federation/oauth.js';
+export {
+  getDecryptedAccessToken,
+  revokeFederatedAccountGrant,
+} from './federation/oauth.js';

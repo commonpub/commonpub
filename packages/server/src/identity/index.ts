@@ -19,3 +19,6 @@ export {
 
 export type { FediClient, VerifiedAccount, FediClientFactory } from './fediClient.js';
 export { getFediClient, setFediClientFactory } from './fediClient.js';
+
+export type { IdentityConfigCheckResult } from './health.js';
+export { checkIdentityConfig, assertIdentityConfig } from './health.js';
