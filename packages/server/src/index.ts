@@ -691,6 +691,7 @@ export {
   LinkedIdentityRevoked,
   checkIdentityConfig,
   assertIdentityConfig,
+  createMastodonFediClientFactory,
 } from './identity/index.js';
 
 // Federated-account grant management (Phase 1b data layer)

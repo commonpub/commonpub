@@ -22,3 +22,5 @@ export { getFediClient, setFediClientFactory } from './fediClient.js';
 
 export type { IdentityConfigCheckResult } from './health.js';
 export { checkIdentityConfig, assertIdentityConfig } from './health.js';
+
+export { createMastodonFediClientFactory } from './mastodonFactory.js';
