@@ -16,10 +16,36 @@ import { getUnreadCount, getUnreadMessageCount, subscribeSseEvents } from '@comm
  * the DB. The pub/sub payload is a nudge; we never trust it as the source
  * of truth.
  */
+
+/**
+ * Per-user concurrent SSE connection cap. A normal browser will hold
+ * 1–2 connections per origin (HTTP/2 multiplexes); a script could
+ * trivially open hundreds, each holding a Redis subscriber + interval
+ * timers. Cap at 10 — generous for legitimate clients, hostile for
+ * abuse. The map lives at module scope and persists for the Nitro
+ * process lifetime.
+ *
+ * Multi-instance scale-out: each Nitro process has its own map, so
+ * the effective cap across N instances is `10 × N`. Acceptable; an
+ * attacker can't pin to one instance via L7 routing without a
+ * sticky-session config.
+ */
+const MAX_CONNECTIONS_PER_USER = 10;
+const userConnections = new Map<string, number>();
+
 export default defineEventHandler(async (event) => {
   const user = requireAuth(event);
   const userId = user.id;
   const db = useDB();
+
+  const current = userConnections.get(userId) ?? 0;
+  if (current >= MAX_CONNECTIONS_PER_USER) {
+    throw createError({
+      statusCode: 429,
+      statusMessage: 'Too many concurrent realtime connections',
+    });
+  }
+  userConnections.set(userId, current + 1);
 
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
@@ -39,6 +65,9 @@ export default defineEventHandler(async (event) => {
           unsubscribe = null;
         }
         try { controller.close(); } catch { /* already closed */ }
+        const next = (userConnections.get(userId) ?? 1) - 1;
+        if (next <= 0) userConnections.delete(userId);
+        else userConnections.set(userId, next);
       }
 
       async function sendCounts(): Promise<void> {

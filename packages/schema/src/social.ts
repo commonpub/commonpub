@@ -7,6 +7,7 @@ import {
   integer,
   boolean,
   unique,
+  uniqueIndex,
   jsonb,
   index,
 } from 'drizzle-orm/pg-core';
@@ -110,6 +111,20 @@ export const notifications = pgTable('notifications', {
 }, (t) => [
   index('idx_notifications_user_id').on(t.userId),
   index('idx_notifications_user_read').on(t.userId, t.read),
+  // Dedup social notifications (like/comment/follow/mention) by
+  // (user, type, actor, link). Postgres treats NULLs as distinct in UNIQUE
+  // indexes, so system notifications without an actor or link (both NULL)
+  // stay non-deduplicated naturally — each gets its own row. The
+  // createNotification call site uses try-INSERT then UPDATE-on-23505 to
+  // collapse a like → unlike → like spam cycle to a single row.
+  //
+  // Declared as `uniqueIndex` rather than `unique('name').on(...)` (table
+  // constraint) because drizzle-kit's `pushSchema` API — used by the
+  // PGlite test harness — emits CREATE UNIQUE INDEX statements but
+  // silently drops table-level CONSTRAINT declarations. The runtime
+  // behaviour is identical (Postgres backs both with a unique index);
+  // this form survives the test path.
+  uniqueIndex('uq_notif_user_type_actor_link').on(t.userId, t.type, t.actorId, t.link),
 ]);
 
 export const reports = pgTable('reports', {

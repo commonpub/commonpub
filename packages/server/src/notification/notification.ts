@@ -208,17 +208,62 @@ export async function createNotification(
     actorId?: string;
   },
 ): Promise<NotificationItem> {
-  const [row] = await db
-    .insert(notifications)
-    .values({
-      userId: input.userId,
-      type: input.type,
-      title: input.title,
-      message: input.message,
-      link: input.link ?? null,
-      actorId: input.actorId ?? null,
-    })
-    .returning();
+  // Dedup social notifications (like/comment/follow/mention) via the
+  // UNIQUE constraint on (user_id, type, actor_id, link). System
+  // notifications (no actor or no link, i.e. NULL on either column)
+  // bypass dedup naturally because Postgres treats NULL as distinct
+  // in UNIQUE constraints — each system notification gets its own row.
+  //
+  // Implementation: try INSERT; on a UNIQUE violation (Postgres 23505)
+  // refresh the existing row's title/message/read/createdAt instead. We
+  // avoid drizzle's `onConflictDoUpdate` because PGlite's planner rejects
+  // the inferred-arbiter index even with a literal UNIQUE constraint
+  // (42P10), and Drizzle has no `ON CONFLICT ON CONSTRAINT` form. The
+  // try/catch approach is portable across Postgres + PGlite and matches
+  // the "conflict bumps timestamp" semantics on real Postgres.
+  const values = {
+    userId: input.userId,
+    type: input.type,
+    title: input.title,
+    message: input.message,
+    link: input.link ?? null,
+    actorId: input.actorId ?? null,
+  };
+
+  let row: typeof notifications.$inferSelect | undefined;
+  try {
+    const [inserted] = await db.insert(notifications).values(values).returning();
+    row = inserted;
+  } catch (err: unknown) {
+    // 23505 = unique_violation. Drizzle wraps the underlying PG error,
+    // so the code may be on `err.code`, on `err.cause.code`, or only
+    // mentioned in the message — check all three.
+    const e = err as { code?: string; cause?: { code?: string }; message?: string };
+    const isUniqueViolation =
+      e.code === '23505'
+      || e.cause?.code === '23505'
+      || /23505|unique[_ ]violation|duplicate key/i.test(e.message ?? '');
+    if (isUniqueViolation && input.actorId != null && input.link != null) {
+      const [updated] = await db
+        .update(notifications)
+        .set({ title: input.title, message: input.message, read: false, createdAt: new Date() })
+        .where(and(
+          eq(notifications.userId, input.userId),
+          eq(notifications.type, input.type),
+          eq(notifications.actorId, input.actorId),
+          eq(notifications.link, input.link),
+        ))
+        .returning();
+      // Race guard: if the row that caused our INSERT conflict was
+      // deleted (e.g., by deleteNotification or user-cascade) between
+      // the INSERT failure and this UPDATE, `returning()` is empty.
+      // Re-throw the original conflict rather than crashing on `row!.id`.
+      if (!updated) throw err;
+      row = updated;
+    } else {
+      throw err;
+    }
+  }
 
   const notification: NotificationItem = {
     id: row!.id,
