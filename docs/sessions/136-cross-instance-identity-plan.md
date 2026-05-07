@@ -11,6 +11,12 @@
 > tables. This file is the actionable, simplest path that preserves
 > flexibility.
 
+> **Phase 1a status (2026-05-06):** the foundation has shipped on
+> branch `feat/identity-phase-1a-foundation` (5 commits, ~1100 LOC,
+> 54 new tests). Some implementation choices diverged from this plan;
+> this document has been updated post-hoc to match the implementation.
+> See the "Implementation deviations" section near the bottom.
+
 ## TL;DR
 
 1. **Speak the Mastodon API.** As both client (to log into anything
@@ -195,20 +201,36 @@ The wrapper layer:
 
 ## Schema: one migration, additive
 
-```sql
--- 0004_federated_oauth_tokens.sql
-ALTER TABLE federated_accounts
-  ADD COLUMN access_token_encrypted BYTEA,        -- null until phase 2
-  ADD COLUMN access_token_iv        BYTEA,        -- 12 bytes for chacha20-poly1305
-  ADD COLUMN scopes                 TEXT[] NOT NULL DEFAULT '{}',
-  ADD COLUMN software_kind          TEXT NOT NULL DEFAULT 'unknown'
-    CHECK (software_kind IN ('mastodon', 'pleroma', 'cpub', 'gotosocial', 'akkoma', 'firefish', 'unknown')),
-  ADD COLUMN revoked_at             TIMESTAMPTZ,
-  ADD COLUMN last_verified_at       TIMESTAMPTZ;
+As implemented in
+`packages/schema/migrations/0004_federated_oauth_tokens.sql`:
 
-CREATE INDEX idx_federated_accounts_revoked
-  ON federated_accounts (revoked_at) WHERE revoked_at IS NULL;
+```sql
+ALTER TABLE federated_accounts
+  ADD COLUMN access_token_ciphertext text,           -- base64(ct||tag), null until set
+  ADD COLUMN access_token_iv         text,           -- base64(12-byte nonce)
+  ADD COLUMN scopes                  text[] NOT NULL DEFAULT '{}',
+  ADD COLUMN software_kind           varchar(32) NOT NULL DEFAULT 'unknown',
+  ADD COLUMN revoked_at              timestamptz,
+  ADD COLUMN last_verified_at        timestamptz;
 ```
+
+Notes on what shipped vs the original sketch:
+
+- **`text` not `bytea`.** Tokens are stored as base64-encoded strings.
+  Drizzle/PGlite portability is simpler and the ~33% storage overhead
+  is negligible for OAuth tokens. The crypto layer transparently
+  base64-encodes/decodes.
+- **No CHECK on `software_kind`.** Validation happens at the
+  application layer via `isSoftwareKind()` in `@commonpub/auth`. A
+  database CHECK would lock out future protocol kinds (AT Proto,
+  Solid, etc.) until a migration was filed; the application guard is
+  forward-compatible.
+- **No partial index on `revoked_at`.** Skipped because Phase 1a has
+  no consumers yet. Add when Phase 1b's "find expiring tokens to
+  refresh / verify" cron actually queries it.
+- **Column name: `access_token_ciphertext`** (not
+  `access_token_encrypted`) — more precise, since it's specifically
+  AEAD ciphertext bundling tag||ct, not just "encrypted".
 
 Token encryption: ChaCha20-Poly1305 with a 32-byte key in the
 `CPUB_FED_TOKEN_KEY` env var. IV per row. Plain access tokens are
@@ -303,6 +325,38 @@ Color-distinct from the main UI (Stripe/AWS pattern). Always visible.
 One click reverts. The banner is *the* affordance against the #1
 acting-as failure mode: silently posting from the wrong identity.
 Hidden context = malware. Persistent indicator = sanity.
+
+**Theme-token prerequisites (Phase 4 must add these BEFORE shipping
+any UI):**
+
+CLAUDE.md rule #3: no hardcoded colours in `@commonpub/ui` /
+`@commonpub/docs`. The "amber" banner must read from CSS custom
+properties. Add to `packages/ui/theme/base.css` and `dark.css`:
+
+```css
+:root {
+  /* "Acting as" / context-warning state. Distinct from main UI. */
+  --color-acting-as-bg:        /* amber-ish; ~ #fef3c7 in light, #4a3a18 dark */;
+  --color-acting-as-bg-strong: /* slightly darker for hover */;
+  --color-acting-as-fg:        /* foreground text on the bg */;
+  --color-acting-as-border:    /* 2px border per design system */;
+}
+```
+
+Then `ActingAsBanner.vue` and `IdentitySwitcher.vue` reference
+`var(--color-acting-as-*)` only. Same rule for the per-action chip
+(`Posting as @...` next to publish button) — it should use either
+`--color-acting-as-bg` (consistent visual signal) or `--accent-bg`
+(if the design opts for the theme accent).
+
+The compose form's identity dropdown should reuse existing
+`@commonpub/ui` token primitives (`--input-bg`, `--input-border`,
+`--text-primary`) — no custom palette needed there.
+
+If the design lands in a non-`@commonpub/ui` package (e.g., direct
+in `layers/base/components/`), CLAUDE.md rule #3 technically doesn't
+apply. But the spirit of the rule does: still use `var(--*)` for
+themability across instance brands.
 
 ### Plus: contextual indicators (passive)
 
@@ -574,6 +628,36 @@ protocol.
 
 That's the test. If a future protocol adapter requires more than 5
 file changes outside `identity/`, the abstraction is wrong.
+
+## Implementation deviations (Phase 1a as actually shipped)
+
+Captured here so the plan stays synchronised with reality.
+
+- **Column type / naming:** see the "Schema" section above.
+- **Router signature is generic over event type.** `ActionRoute<TEvent, TIn, TOut>`
+  rather than `ActionRoute<TIn, TOut>` with hardcoded `H3Event`. This
+  keeps `@commonpub/server` framework-agnostic (no `h3` dependency).
+  Layer-side code instantiates `ActionRoute<H3Event, ...>`. Tests use
+  `unknown`.
+- **`run()` does not take `IdentityContext`; it takes the active
+  identity directly.** This keeps `run()` a pure function of its
+  inputs and trivially unit-testable. Middleware that resolves
+  IdentityContext (Phase 3+) reads `event.context.identity.active`
+  and forwards it to `run()`.
+- **FediClient uses factory-registration.** `setFediClientFactory(...)`
+  is called once at app init by Phase 1b's plugin; `getFediClient`
+  internally delegates. Avoids threading `db` / token-key /
+  audit-logger dependencies through every `run()` call site, and
+  avoids leaking framework-specific globals into
+  `@commonpub/server`. Tests register a mock factory per-case via
+  `setFediClientFactory`, clear with `setFediClientFactory(null)` in
+  `afterEach`.
+- **No bounded `revoked_at` partial index in Phase 1a.** No consumers
+  yet. Add with Phase 1b's verify-credentials cron.
+- **No CHECK on `software_kind`.** Application-layer validation only.
+- **PKCE / OIDC discovery doc / refresh tokens NOT added in Phase 1a.**
+  Phase 1a only ships data + crypto + types + router skeleton.
+  Phase 1b adds the OAuth flow; PKCE rides along then.
 
 ## What's NOT in this plan (deliberately)
 
