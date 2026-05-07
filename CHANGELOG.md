@@ -9,9 +9,66 @@ monorepo working period. For session-level detail, see [`docs/sessions/`](./docs
 
 ## Unreleased (sessions 108–137, through 2026-05-07)
 
-Monorepo state at time of writing: schema 0.16.0, server 2.49.0, config 0.12.0,
-layer 0.19.2, ui 0.8.5, protocol 0.9.9, editor 0.7.9, explainer 0.7.12,
+Monorepo state at time of writing: schema 0.16.0, server 2.50.0, config 0.12.0,
+layer 0.20.0, ui 0.8.5, protocol 0.9.9, editor 0.7.9, explainer 0.7.12,
 learning 0.5.2, docs 0.6.2, auth 0.6.0, infra 0.7.0, test-utils 0.5.4.
+
+### Session 137 — Cross-instance identity Phase 1b runtime (2026-05-07)
+
+Phase 1b runtime slice — wires the foundation primitives into actual
+runtime paths. Still gated behind default-off feature flags;
+production behaviour change is bounded to: (1) the existing OAuth
+callback now persists encrypted access tokens for logged-in linkers,
+and (2) the Nitro identity-startup plugin runs `assertIdentityConfig`
++ `setFediClientFactory` at every app boot. Both are no-ops on
+default-off configs.
+
+Bumps:
+- `@commonpub/server` 2.49.0 → 2.50.0 (minor —
+  `createMastodonFediClientFactory` export; megalodon dependency)
+- `@commonpub/layer`  0.19.2 → 0.20.0 (minor — new
+  `identity-startup` Nitro plugin; `IdentityFeatures` exported from
+  `useFeatures` composable; `identity` ref added to `useFeatures()`
+  return)
+
+What shipped:
+- **megalodon dep** added to `@commonpub/server` (production-grade
+  TypeScript Fediverse client; supports Mastodon + Pleroma +
+  Friendica + Firefish + Pixelfed + GoToSocial behind a single
+  `MegalodonInterface`).
+- **`createMastodonFediClientFactory(db)`** — closure factory that
+  loads the decrypted token, maps `SoftwareKind` to megalodon's
+  SNS enum, constructs the client, and wraps `verifyCredentials`
+  with 401-detection that auto-revokes the grant + throws
+  `LinkedIdentityRevoked` on Unauthorized.
+- **`layers/base/server/plugins/identity-startup.ts`** — Nitro
+  plugin runs at app init:
+    1. `assertIdentityConfig(useConfig())` — fails the boot if any
+       token-using flag is enabled without `CPUB_FED_TOKEN_KEY`
+       (only `actingAs` is exempt; it has no token I/O)
+    2. `setFediClientFactory(createMastodonFediClientFactory(useDB()))`
+       — registers the factory once per process
+- **OAuth callback persists tokens** —
+  `layers/base/server/api/auth/federated/callback.get.ts` extends
+  the `linkFederatedAccount` call with a grant: `accessToken`
+  (encrypted at rest), `scopes: ['read','write','follow']` (broad
+  CommonPub↔CommonPub trust), `softwareKind: 'cpub'` (this callback
+  handles the existing v1 SSO flow; a Phase 2 callback will
+  detect software via WebFinger for Mastodon-login flows).
+- **`useFeatures` composable updated** — local `FeatureFlags`
+  interface gains `identity: IdentityFeatures` mirroring
+  `@commonpub/config`'s shape; deep-merge in `getInitialFlags` and
+  the `/api/features` hydration path; new `identity` ComputedRef on
+  the composable's return.
+
+What's still NOT in (deliberately deferred to Phase 2+):
+- Smart login form ("Sign in via @user@host" probe + bounce)
+- Acting-as identity-context switcher + persistent banner
+- Per-action declarations (publish/like/follow/comment via linked)
+- Compose form's publish-as picker
+- Mastodon-login OAuth callback (uses megalodon's
+  `client.registerApp` + bounce flow rather than the existing
+  CommonPub OAuth)
 
 ### Session 137 — Cross-instance identity foundation (2026-05-07)
 
