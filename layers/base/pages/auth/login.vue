@@ -7,7 +7,7 @@ useSeoMeta({
 });
 
 const { signIn, refreshSession } = useAuth();
-const { federation } = useFeatures();
+const { federation, identity: identityFeatures } = useFeatures();
 const route = useRoute();
 
 const identity = ref('');
@@ -15,10 +15,22 @@ const password = ref('');
 const error = ref('');
 const loading = ref(false);
 
-// Federated login state
+// CommonPub-to-CommonPub (v1 SSO) state — `features.federation` gate
 const federatedDomain = ref('');
 const federatedLoading = ref(false);
 const federatedError = ref('');
+
+// Mastodon-API login state (Phase 2b) — `features.identity.signInWithRemote` gate.
+// Accepts `@user@host`, `user@host`, or bare `host` (no leading @).
+// On submit, parses out the host and redirects to /api/auth/mastodon/start.
+const mastodonHandle = ref('');
+const mastodonError = ref('');
+
+// Surface server-side errors redirected back from the callback (?mastodon_error=...)
+onMounted(() => {
+  const queryErr = route.query.mastodon_error;
+  if (typeof queryErr === 'string' && queryErr) mastodonError.value = queryErr;
+});
 
 // Federated callback context — present when redirected back from OAuth callback.
 // Only an opaque linkToken is passed; the verified identity stays server-side.
@@ -99,6 +111,53 @@ async function handleFederatedLogin(): Promise<void> {
     federatedLoading.value = false;
   }
 }
+
+/**
+ * Parse a handle string into a host. Accepts:
+ *   - `@user@mastodon.social`  → mastodon.social
+ *   - `user@mastodon.social`   → mastodon.social
+ *   - `acct:user@mastodon.social` → mastodon.social
+ *   - bare `mastodon.social`   → mastodon.social
+ * Returns null for anything that doesn't look like a host (e.g., bare username, email).
+ */
+function extractHost(input: string): string | null {
+  const trimmed = input.trim().replace(/^acct:/i, '');
+  if (!trimmed) return null;
+  // user@host shape (with or without leading @)
+  const stripped = trimmed.startsWith('@') ? trimmed.slice(1) : trimmed;
+  const atIdx = stripped.indexOf('@');
+  if (atIdx > 0 && atIdx === stripped.lastIndexOf('@')) {
+    const host = stripped.slice(atIdx + 1).toLowerCase();
+    return isHostShape(host) ? host : null;
+  }
+  // Bare host (no @ anywhere, must contain a dot)
+  if (atIdx === -1 && stripped.includes('.')) {
+    return isHostShape(stripped.toLowerCase());
+  }
+  return null;
+}
+
+function isHostShape(host: string): string | null {
+  if (!host || host.length > 253) return null;
+  if (!/^[a-z0-9]([a-z0-9.-]*[a-z0-9])?(:\d+)?$/i.test(host)) return null;
+  if (!host.includes('.')) return null;
+  return host;
+}
+
+function handleMastodonLogin(): void {
+  mastodonError.value = '';
+  const host = extractHost(mastodonHandle.value);
+  if (!host) {
+    mastodonError.value = 'Enter a handle like @user@mastodon.social or just mastodon.social';
+    return;
+  }
+  // The start route is a GET that redirects to the remote's /oauth/authorize.
+  // Use window.location.href so the browser actually navigates (and cookies
+  // for the eventual callback land correctly).
+  const params = new URLSearchParams({ host });
+  if (redirectTo.value && redirectTo.value !== '/') params.set('returnTo', redirectTo.value);
+  window.location.href = `/api/auth/mastodon/start?${params.toString()}`;
+}
 </script>
 
 <template>
@@ -154,16 +213,16 @@ async function handleFederatedLogin(): Promise<void> {
       <NuxtLink to="/auth/forgot-password" class="forgot-link">Forgot your password?</NuxtLink>
     </form>
 
-    <!-- Federated login section — only shown when federation is enabled -->
+    <!-- v1 SSO federation section — gated by features.federation; CommonPub-only via trustedInstances -->
     <div v-if="federation && !federatedLinkToken" class="cpub-federated-section">
       <div class="cpub-federated-divider">
         <span class="cpub-federated-divider-text">or</span>
       </div>
 
-      <form class="cpub-federated-form" @submit.prevent="handleFederatedLogin" aria-label="Sign in with another instance">
+      <form class="cpub-federated-form" @submit.prevent="handleFederatedLogin" aria-label="Sign in with another CommonPub instance">
         <div v-if="federatedError" class="form-error" role="alert">{{ federatedError }}</div>
 
-        <label for="federated-domain" class="field-label">Sign in with another instance</label>
+        <label for="federated-domain" class="field-label">Sign in with another CommonPub instance</label>
         <div class="cpub-federated-input-group">
           <input
             id="federated-domain"
@@ -174,10 +233,51 @@ async function handleFederatedLogin(): Promise<void> {
             required
             autocomplete="off"
           />
-          <button type="submit" class="cpub-federated-btn" :disabled="federatedLoading" aria-label="Sign in with remote instance">
+          <button type="submit" class="cpub-federated-btn" :disabled="federatedLoading" aria-label="Sign in with remote CommonPub instance">
             {{ federatedLoading ? 'Connecting...' : 'Go' }}
           </button>
         </div>
+      </form>
+    </div>
+
+    <!--
+      Mastodon-API login section (Phase 2b) — gated by features.identity.signInWithRemote.
+      Works with any Mastodon-API-compatible host: Mastodon, Pleroma, Akkoma, GoToSocial,
+      Firefish, and other CommonPub instances. On submit, parses the input to extract a
+      host and navigates to /api/auth/mastodon/start, which registers our OAuth client at
+      the remote and redirects the user to their authorize page.
+    -->
+    <div v-if="identityFeatures.signInWithRemote && !federatedLinkToken" class="cpub-federated-section">
+      <div class="cpub-federated-divider">
+        <span class="cpub-federated-divider-text">or</span>
+      </div>
+
+      <form class="cpub-federated-form" @submit.prevent="handleMastodonLogin" aria-label="Sign in with Mastodon or any Fediverse instance">
+        <div v-if="mastodonError" class="form-error" role="alert">{{ mastodonError }}</div>
+
+        <label for="mastodon-handle" class="field-label">
+          Sign in with Mastodon
+          <span class="field-label-note">— or Pleroma, GoToSocial, Akkoma, Firefish</span>
+        </label>
+        <div class="cpub-federated-input-group">
+          <input
+            id="mastodon-handle"
+            v-model="mastodonHandle"
+            type="text"
+            class="field-input"
+            placeholder="@user@mastodon.social or mastodon.social"
+            autocomplete="off"
+            inputmode="email"
+            spellcheck="false"
+            autocapitalize="off"
+          />
+          <button type="submit" class="cpub-federated-btn" aria-label="Sign in with Fediverse instance">
+            Sign in
+          </button>
+        </div>
+        <p class="cpub-federated-hint">
+          You'll be redirected to your home instance to confirm. No new password needed.
+        </p>
       </form>
     </div>
 
@@ -393,5 +493,21 @@ async function handleFederatedLogin(): Promise<void> {
 .cpub-federated-btn:disabled {
   opacity: 0.7;
   cursor: not-allowed;
+}
+
+.field-label-note {
+  font-weight: 400;
+  font-family: var(--font-sans);
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text-faint);
+  font-size: 11px;
+}
+
+.cpub-federated-hint {
+  font-size: 11px;
+  color: var(--text-faint);
+  margin: 4px 0 0 0;
+  line-height: 1.4;
 }
 </style>
