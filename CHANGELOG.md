@@ -7,11 +7,41 @@ monorepo working period. For session-level detail, see [`docs/sessions/`](./docs
 
 ---
 
-## Unreleased (sessions 108–139, through 2026-05-07)
+## Unreleased (sessions 108–139, through 2026-05-13)
 
 Monorepo state at time of writing: schema 0.16.0, server 2.51.0, config 0.12.0,
-layer 0.21.0, ui 0.8.5, protocol 0.9.9, editor 0.7.9, explainer 0.7.12,
+layer 0.21.1, ui 0.8.5, protocol 0.9.9, editor 0.7.9, explainer 0.7.12,
 learning 0.5.2, docs 0.6.2, auth 0.6.0, infra 0.7.0, test-utils 0.5.4.
+
+### Session 140 — Phase 2b login UI for Mastodon-API hosts (2026-05-13)
+
+`@commonpub/layer` 0.21.0 → 0.21.1 (patch — front-end-only, no
+new exports). Adds a parallel "Sign in with Mastodon" form section
+to `/auth/login`, gated by `features.identity.signInWithRemote`
+(default off; section doesn't render in prod until an operator
+flips it). Distinct from the existing v1 SSO section (gated by
+`features.federation` + `trustedInstances`).
+
+Accepts `@user@host`, `user@host`, `acct:user@host`, or bare
+`host`. On submit, parses out the host and navigates to
+`GET /api/auth/mastodon/start` (Phase 2a route) which registers
+CommonPub at the remote (cached) and redirects to its
+`/oauth/authorize`. Surfaces `?mastodon_error=...` from callback
+redirects so server-side error messages land in the form's
+error slot.
+
+Phase 2b items still ahead:
+- Settings-page link UI for logged-in users adding a Mastodon
+  account (currently handled by the existing
+  `/api/auth/federated/callback` v1 SSO callback's
+  "outcome 2: logged-in user adding a link" path; UI for the
+  Mastodon-specific equivalent is not yet wired)
+- Anonymous-first-time auto-provision flow on
+  `/auth/login?federated=true&linkToken=...` — currently prompts
+  for local credentials (link to existing account); a
+  no-password auto-provision flow needs a separate UI surface
+- Live WebFinger probe composable (`useFediHandleProbe`) for
+  in-form host validation before submit
 
 ### Session 139 — Cross-instance identity Phase 2a server-side flow (2026-05-07)
 
