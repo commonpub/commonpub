@@ -7,11 +7,37 @@ monorepo working period. For session-level detail, see [`docs/sessions/`](./docs
 
 ---
 
-## Unreleased (sessions 108–139, through 2026-05-13)
+## Unreleased (sessions 108–142, through 2026-05-16)
 
 Monorepo state at time of writing: schema 0.16.0, server 2.51.0, config 0.12.0,
-layer 0.21.1, ui 0.8.5, protocol 0.9.9, editor 0.7.9, explainer 0.7.12,
+layer 0.21.2, ui 0.8.5, protocol 0.9.9, editor 0.7.9, explainer 0.7.12,
 learning 0.5.2, docs 0.6.2, auth 0.6.0, infra 0.7.0, test-utils 0.5.4.
+
+### Session 142 — Admin bootstrap + one-click DigitalOcean deploy (2026-05-16)
+
+`@commonpub/layer` 0.21.1 → 0.21.2 (patch — additive opt-in).
+
+- **`auto-admin.ts`**: production opt-in `ADMIN_BOOTSTRAP_FIRST_USER`
+  (1/true/yes) — first registered user becomes admin when no admin
+  exists and no `ADMIN_BOOTSTRAP_USER` is set. Default behavior
+  unchanged (dev: first user; prod + user var: that user; prod +
+  neither: nothing). Zero risk to existing prod (both sites already
+  have admins → early return; neither sets the new env).
+- **`tools/create-commonpub`** (Rust CLI, repo-only — not npm):
+  - `--admin-user` flag + interactive prompt; `InstanceConfig.admin_user`.
+  - `.env`/`.env.example` now surface `ADMIN_BOOTSTRAP_USER` /
+    `ADMIN_BOOTSTRAP_FIRST_USER` (default = first-user, zero-config).
+  - **New `.do/deploy.template.yaml`** — DigitalOcean App Platform
+    spec (Dockerfile service, `/api/health` check, managed Postgres
+    16 bound to `NUXT_DATABASE_URL`, `NUXT_AUTH_SECRET` as SECRET,
+    admin env wired). Implements ADR 022 §4, which was specified but
+    never built.
+  - README gains a "Deploy to DigitalOcean" button + admin note.
+  - 7 new cargo regression tests (26/26 pass).
+
+Implements ADR 022 §4 (DO App Platform deploy) and closes the gap
+where the admin-bootstrap mechanism existed in the layer but was
+invisible to scaffolded instances.
 
 ### Session 140 — Phase 2b login UI for Mastodon-API hosts (2026-05-13)
 
