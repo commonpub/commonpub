@@ -1,50 +1,49 @@
 # @commonpub/shell
 
-Starter template for new CommonPub instances. This is the minimal app you need to run a fully-featured CommonPub site.
+A minimal **in-monorepo** app that extends the local `layers/base` directly.
+It exists as a lightweight smoke/harness target (the smallest possible app
+that boots the full layer) — it is **not** a copy-out starter.
+
+> To create a real standalone CommonPub instance, use the scaffolder:
+> `npx create-commonpub` (or `tools/create-commonpub`). That generates a
+> thin app that extends the **published** `@commonpub/layer` npm package,
+> with a pinned Dockerfile, migration runner, and one-click deploy — none
+> of which this directory provides.
 
 ## What's Here
 
 ```
 shell/
-  nuxt.config.ts           # Extends @commonpub/layer
+  nuxt.config.ts           # extends ['../../layers/base'] (monorepo-local path)
   commonpub.config.ts      # Full feature configuration
   server/utils/config.ts   # Server config with env var overrides
   components/SiteLogo.vue  # Custom logo (override example)
 ```
 
-## How to Use
-
-1. Copy this directory as a starting point for your own CommonPub instance
-2. Edit `commonpub.config.ts` to set your instance name, domain, and feature flags
-3. Replace `SiteLogo.vue` with your own branding
-4. Add any custom pages or component overrides
+Because `nuxt.config.ts` extends the layer via a relative path, this
+directory only works **inside the monorepo**. Copying it elsewhere will not
+build — use `create-commonpub` instead.
 
 ## How It Differs from `apps/reference`
 
 | | Shell | Reference |
 |---|---|---|
-| Purpose | Starter template | Development/demo app |
+| Purpose | Minimal layer-boot harness | Development/demo app |
 | Features | All enabled via config | All enabled + seed data |
 | Custom pages | None | Custom homepage, demo content |
-| Intended use | Copy and customize | Run the monorepo locally |
+| Layer source | Local `../../layers/base` | Local `../../layers/base` |
 
 ## Configuration
 
-All features can be toggled via environment variables in `server/utils/config.ts`:
+Features toggle via environment variables in `server/utils/config.ts`:
 
 - `FEATURE_CONTENT`, `FEATURE_SOCIAL`, `FEATURE_HUBS`, etc.
 - `INSTANCE_NAME`, `INSTANCE_DOMAIN`, `INSTANCE_DESCRIPTION`
 - `AUTH_METHODS` (comma-separated: `email`, `github`, `google`)
 
-See `server/utils/config.ts` for the full list of overrides.
-
 ## Running
 
 ```bash
-# From the monorepo root:
+# From the monorepo root (only supported mode):
 pnpm dev:app --filter @commonpub/shell
-
-# Or standalone (after publishing packages to npm):
-pnpm install
-pnpm dev
 ```

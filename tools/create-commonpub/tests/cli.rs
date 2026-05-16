@@ -238,15 +238,13 @@ fn package_json_pins_current_commonpub_versions() {
     let config = create_commonpub::prompts::InstanceConfig::with_defaults("ver-test");
     let pkg = create_commonpub::template::render_package_json(&config);
 
-    assert!(!pkg.contains("\"@commonpub/layer\": \"^0.3"));
-    assert!(!pkg.contains("\"@commonpub/server\": \"^2.15"));
-    assert!(!pkg.contains("\"@commonpub/schema\": \"^0.8"));
-    assert!(!pkg.contains("\"@commonpub/config\": \"^0.7"));
-
-    assert!(pkg.contains("\"@commonpub/layer\": \"^0.21"));
-    assert!(pkg.contains("\"@commonpub/server\": \"^2.51"));
-    assert!(pkg.contains("\"@commonpub/schema\": \"^0.16"));
-    assert!(pkg.contains("\"@commonpub/config\": \"^0.12"));
+    // Exact pins (not loose `^0.21` prefixes): this test is the forcing
+    // function for the RELEASE CHECKLIST — it must fail when template.rs
+    // pins go stale after a publish, so update both together.
+    assert!(pkg.contains("\"@commonpub/layer\": \"^0.21.3\""), "layer pin must be ^0.21.3");
+    assert!(pkg.contains("\"@commonpub/server\": \"^2.53.0\""), "server pin must be ^2.53.0");
+    assert!(pkg.contains("\"@commonpub/schema\": \"^0.16.0\""), "schema pin must be ^0.16.0");
+    assert!(pkg.contains("\"@commonpub/config\": \"^0.12.0\""), "config pin must be ^0.12.0");
 
     assert!(pkg.contains("\"pg\""));
     assert!(pkg.contains("\"db:migrate\""));
