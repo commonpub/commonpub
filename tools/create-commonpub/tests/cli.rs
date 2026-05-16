@@ -207,6 +207,80 @@ fn dockerfile_is_production_ready() {
     assert!(dockerfile.contains(".output/server/index.mjs"));
 }
 
+#[test]
+fn dockerfile_pins_pnpm_not_latest() {
+    // Regression: pnpm@latest broke deveco's deploy (session 140) when
+    // pnpm >=10.11 tightened build-script approval. The scaffolder must
+    // generate a PINNED pnpm so new instances aren't time-bombs.
+    let dockerfile = create_commonpub::template::render_dockerfile();
+    assert!(!dockerfile.contains("pnpm@latest"), "Dockerfile must pin pnpm, not @latest");
+    assert!(dockerfile.contains("pnpm@10.10.0"), "Dockerfile should pin pnpm to the known-good version");
+}
+
+#[test]
+fn dockerfile_runs_migrations_not_push() {
+    // Production must apply committed migrations via db-migrate.mjs,
+    // never `drizzle-kit push` (CLAUDE.md rule). The CMD chains the
+    // migrate step before the server. (A cautionary comment in the
+    // Dockerfile may *mention* drizzle-kit push — we assert it's not
+    // an actual CMD/RUN invocation.)
+    let dockerfile = create_commonpub::template::render_dockerfile();
+    assert!(dockerfile.contains("scripts/db-migrate.mjs"));
+    assert!(dockerfile.contains("node scripts/db-migrate.mjs && node .output/server/index.mjs"));
+    assert!(!dockerfile.contains("RUN drizzle-kit push"));
+    assert!(!dockerfile.contains("drizzle-kit push &&"));
+}
+
+#[test]
+fn package_json_pins_current_commonpub_versions() {
+    // Regression: pins were ~18 minors stale (layer ^0.3.24 vs current
+    // ^0.21.x). Scaffolded instances must install a CURRENT layer.
+    let config = create_commonpub::prompts::InstanceConfig::with_defaults("ver-test");
+    let pkg = create_commonpub::template::render_package_json(&config);
+
+    assert!(!pkg.contains("\"@commonpub/layer\": \"^0.3"));
+    assert!(!pkg.contains("\"@commonpub/server\": \"^2.15"));
+    assert!(!pkg.contains("\"@commonpub/schema\": \"^0.8"));
+    assert!(!pkg.contains("\"@commonpub/config\": \"^0.7"));
+
+    assert!(pkg.contains("\"@commonpub/layer\": \"^0.21"));
+    assert!(pkg.contains("\"@commonpub/server\": \"^2.51"));
+    assert!(pkg.contains("\"@commonpub/schema\": \"^0.16"));
+    assert!(pkg.contains("\"@commonpub/config\": \"^0.12"));
+
+    assert!(pkg.contains("\"pg\""));
+    assert!(pkg.contains("\"db:migrate\""));
+}
+
+#[test]
+fn db_migrate_script_uses_migrate_not_push() {
+    // The script uses drizzle-orm's migrate(); a cautionary comment
+    // mentions `drizzle-kit push` as the thing to avoid, so we assert
+    // the positive behaviour rather than the absence of the phrase.
+    let script = create_commonpub::template::render_db_migrate_script();
+    assert!(script.contains("drizzle-orm/node-postgres/migrator"));
+    assert!(script.contains("migrate(db"));
+    assert!(script.contains("@commonpub/schema/migrations"));
+    assert!(script.contains("import { migrate }"));
+}
+
+#[test]
+fn scaffold_writes_db_migrate_script() {
+    let tmp = TempDir::new().unwrap();
+    let config = create_commonpub::prompts::InstanceConfig::with_defaults("mig-test");
+    create_commonpub::scaffold::create_instance_at(tmp.path(), "mig-test", &config).unwrap();
+    let script = tmp.path().join("mig-test/scripts/db-migrate.mjs");
+    assert!(script.exists(), "scripts/db-migrate.mjs must be scaffolded");
+    assert!(fs::read_to_string(script).unwrap().contains("migrate(db"));
+}
+
+#[test]
+fn env_documents_fed_token_key() {
+    let config = create_commonpub::prompts::InstanceConfig::with_defaults("env-fed");
+    let env = create_commonpub::template::render_env(&config);
+    assert!(env.contains("CPUB_FED_TOKEN_KEY"));
+}
+
 // ── CLI flags ─────────────────────────────────────────────
 
 #[test]

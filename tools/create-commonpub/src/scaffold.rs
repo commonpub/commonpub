@@ -51,6 +51,11 @@ fn write_instance(dir: &Path, config: &InstanceConfig) -> Result<(), Box<dyn std
     fs::write(dir.join("server/utils/config.ts"), template::render_server_config())?;
     fs::write(dir.join("tsconfig.json"), template::render_tsconfig())?;
 
+    // Migration runner (CLAUDE.md-mandated path; db:push is dev-only).
+    // Mirrors deveco.io's proven scripts/db-migrate.mjs.
+    fs::create_dir_all(dir.join("scripts"))?;
+    fs::write(dir.join("scripts/db-migrate.mjs"), template::render_db_migrate_script())?;
+
     // Branding
     fs::write(dir.join("components/SiteLogo.vue"), template::render_site_logo(config))?;
     fs::write(dir.join("assets/theme.css"), template::render_theme_css(config))?;

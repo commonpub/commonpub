@@ -1,5 +1,32 @@
 use crate::prompts::InstanceConfig;
 
+// ── Published @commonpub/* version pins ───────────────────────────────
+//
+// SINGLE SOURCE OF TRUTH for what a freshly-scaffolded instance depends
+// on. These MUST be bumped whenever the corresponding package publishes
+// a new minor — CommonPub uses tight 0.x caret semantics (`^0.21.1`
+// means `>=0.21.1 <0.22.0`), so a stale pin here means a brand-new
+// instance installs an ancient layer that predates current migrations
+// and the identity system.
+//
+// RELEASE CHECKLIST: after `pnpm publish` of any of these packages,
+// update the matching constant below and rebuild the CLI. Keep these
+// in lockstep with deveco.io's package.json pins (the proven
+// production thin-app reference).
+//
+// Last synced: 2026-05-15 (session 141) — layer 0.21.1, server 2.51.0,
+// schema 0.16.0, config 0.12.0.
+const COMMONPUB_CONFIG_VERSION: &str = "^0.12.0";
+const COMMONPUB_LAYER_VERSION: &str = "^0.21.1";
+const COMMONPUB_SCHEMA_VERSION: &str = "^0.16.0";
+const COMMONPUB_SERVER_VERSION: &str = "^2.51.0";
+
+// pnpm pin for the generated Dockerfile. `pnpm@latest` is a time-bomb:
+// pnpm ≥10.11 fails `install --frozen-lockfile` on packages with
+// build scripts (sharp, esbuild, @parcel/watcher) unless they're
+// explicitly approved. Match commonpub + deveco's pinned version.
+const PNPM_VERSION: &str = "10.10.0";
+
 pub fn render_package_json(config: &InstanceConfig) -> String {
     format!(
         r#"{{
@@ -12,15 +39,17 @@ pub fn render_package_json(config: &InstanceConfig) -> String {
     "dev": "nuxt dev",
     "preview": "nuxt preview",
     "db:push": "drizzle-kit push",
+    "db:migrate": "node scripts/db-migrate.mjs",
     "db:studio": "drizzle-kit studio"
   }},
   "dependencies": {{
-    "@commonpub/config": "^0.7.1",
-    "@commonpub/layer": "^0.3.24",
-    "@commonpub/schema": "^0.8.12",
-    "@commonpub/server": "^2.15.0",
+    "@commonpub/config": "{config_version}",
+    "@commonpub/layer": "{layer_version}",
+    "@commonpub/schema": "{schema_version}",
+    "@commonpub/server": "{server_version}",
     "drizzle-orm": "^0.45.1",
     "nuxt": "^3.16.0",
+    "pg": "^8.13.0",
     "vue": "^3.4.0",
     "vue-router": "^4.3.0"
   }},
@@ -33,7 +62,60 @@ pub fn render_package_json(config: &InstanceConfig) -> String {
 }}
 "#,
         name = config.name,
+        config_version = COMMONPUB_CONFIG_VERSION,
+        layer_version = COMMONPUB_LAYER_VERSION,
+        schema_version = COMMONPUB_SCHEMA_VERSION,
+        server_version = COMMONPUB_SERVER_VERSION,
     )
+}
+
+/// Non-interactive migration runner — mirrors deveco.io's proven
+/// `scripts/db-migrate.mjs`. Applies the committed SQL migrations
+/// shipped inside `@commonpub/schema`. This is the CLAUDE.md-mandated
+/// path; `drizzle-kit push` (the `db:push` script) is dev-only and
+/// must NEVER run in CI.
+pub fn render_db_migrate_script() -> String {
+    r#"/**
+ * Non-interactive schema-migration wrapper for CI/deploy.
+ *
+ * Uses drizzle-orm's native `migrate()` (node-postgres) to apply the
+ * committed SQL files shipped inside @commonpub/schema. Tracks applied
+ * migrations in `drizzle.__drizzle_migrations`. Idempotent.
+ *
+ * Run this on every deploy BEFORE starting the app. Do NOT use
+ * `drizzle-kit push` in production — it diffs+mutates the live schema
+ * without the migration ledger and can drop columns.
+ *
+ *   node scripts/db-migrate.mjs
+ */
+import { drizzle } from 'drizzle-orm/node-postgres';
+import { migrate } from 'drizzle-orm/node-postgres/migrator';
+import pg from 'pg';
+
+const url = process.env.NUXT_DATABASE_URL || process.env.DATABASE_URL;
+if (!url) {
+  console.error('db:migrate requires NUXT_DATABASE_URL or DATABASE_URL');
+  process.exit(1);
+}
+
+const migrationsFolder =
+  process.env.DRIZZLE_MIGRATIONS_FOLDER ||
+  './node_modules/@commonpub/schema/migrations';
+
+const pool = new pg.Pool({ connectionString: url, max: 2 });
+const db = drizzle(pool);
+
+try {
+  await migrate(db, { migrationsFolder });
+  console.log('db:migrate succeeded');
+} catch (err) {
+  console.error('db:migrate failed:', err?.message ?? err);
+  if (err?.stack) console.error(err.stack);
+  process.exit(1);
+} finally {
+  await pool.end();
+}
+"#.to_string()
 }
 
 pub fn render_nuxt_config(config: &InstanceConfig) -> String {
@@ -330,6 +412,13 @@ REDIS_URL={redis_url}
 # Auth
 NUXT_AUTH_SECRET=change-me-in-production-min-32-chars
 
+# Cross-instance identity token encryption.
+# Required ONLY if you enable any features.identity.* flag other than
+# `actingAs` (linkRemoteAccounts / signInWithRemote / remoteInteract /
+# remotePublish). Generate with: openssl rand -hex 32
+# The app refuses to boot if an identity flag is on without this set.
+# CPUB_FED_TOKEN_KEY=
+
 # Site
 NUXT_PUBLIC_SITE_URL=http://{domain}
 NUXT_PUBLIC_DOMAIN={domain}
@@ -384,8 +473,14 @@ NUXT_EMAIL_ADAPTER=console
 }
 
 pub fn render_dockerfile() -> String {
-    r#"FROM node:22-alpine AS base
-RUN corepack enable && corepack prepare pnpm@latest --activate
+    format!(
+        r#"# pnpm is pinned (NOT @latest) on purpose: pnpm >=10.11 fails
+# `install --frozen-lockfile` on packages with build scripts
+# (sharp, esbuild, @parcel/watcher) unless explicitly approved.
+# Pinning gives deterministic builds. Bump deliberately, in lockstep
+# with your committed pnpm-lock.yaml.
+FROM node:22-alpine AS base
+RUN corepack enable && corepack prepare pnpm@{pnpm} --activate
 WORKDIR /app
 
 FROM base AS deps
@@ -401,15 +496,20 @@ FROM node:22-alpine AS runtime
 WORKDIR /app
 COPY --from=build /app/.output ./.output
 COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/scripts ./scripts
 COPY --from=build /app/drizzle.config.ts ./drizzle.config.ts
 COPY --from=build /app/package.json ./package.json
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable && corepack prepare pnpm@{pnpm} --activate
 ENV NODE_ENV=production
 ENV NUXT_HOST=0.0.0.0
 ENV NUXT_PORT=3000
 EXPOSE 3000
-CMD ["node", ".output/server/index.mjs"]
-"#.to_string()
+# Apply committed migrations, then start. db:migrate is idempotent —
+# safe to run on every boot. Never `drizzle-kit push` in production.
+CMD ["sh", "-c", "node scripts/db-migrate.mjs && node .output/server/index.mjs"]
+"#,
+        pnpm = PNPM_VERSION,
+    )
 }
 
 pub fn render_docker_compose(_config: &InstanceConfig) -> String {
@@ -465,7 +565,12 @@ jobs:
       # Add your deployment steps here:
       # - Push to container registry
       # - Deploy to your server
-      # - Run database migrations
+      #
+      # Database migrations run automatically: the Dockerfile's CMD is
+      # `node scripts/db-migrate.mjs && node .output/server/index.mjs`,
+      # so committed @commonpub/schema migrations apply on every boot
+      # (idempotent). Do NOT add a `drizzle-kit push` step — that
+      # bypasses the migration ledger and can drop columns.
       #
       # Example for DigitalOcean:
       # - name: Push to DO Registry
