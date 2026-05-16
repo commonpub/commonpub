@@ -419,6 +419,16 @@ NUXT_AUTH_SECRET=change-me-in-production-min-32-chars
 # The app refuses to boot if an identity flag is on without this set.
 # CPUB_FED_TOKEN_KEY=
 
+# Admin bootstrap — runs once, when the instance has no admin yet.
+#   ADMIN_BOOTSTRAP_USER=<username>  → that user is promoted to admin
+#     on the next boot after they register. The canonical way to set
+#     the admin directly.
+#   ADMIN_BOOTSTRAP_FIRST_USER=true  → the FIRST user to register
+#     becomes admin (zero-config; ideal for one-click deploys). Only
+#     honoured in production when explicitly set to true.
+# In dev (NODE_ENV != production) the first user is always admin.
+{admin_env}
+
 # Site
 NUXT_PUBLIC_SITE_URL=http://{domain}
 NUXT_PUBLIC_DOMAIN={domain}
@@ -445,6 +455,10 @@ NUXT_EMAIL_ADAPTER=console
         domain = config.domain,
         database_url = config.database_url,
         redis_url = config.redis_url,
+        admin_env = match &config.admin_user {
+            Some(u) => format!("ADMIN_BOOTSTRAP_USER={}", u),
+            None => "ADMIN_BOOTSTRAP_FIRST_USER=true".to_string(),
+        },
     );
 
     if config.auth_github {
@@ -467,9 +481,98 @@ NUXT_AUTH_SECRET=change-me-in-production-min-32-chars
 NUXT_PUBLIC_SITE_URL=http://{domain}
 NUXT_PUBLIC_DOMAIN={domain}
 NUXT_EMAIL_ADAPTER=console
+
+# Admin bootstrap (pick one; see .env for details):
+# ADMIN_BOOTSTRAP_USER=your-username
+ADMIN_BOOTSTRAP_FIRST_USER=true
 "#,
         domain = config.domain,
     )
+}
+
+/// DigitalOcean App Platform deploy spec. Lets a user click
+/// "Deploy to DigitalOcean" in the README and get a running instance
+/// with a managed Postgres + Valkey, no SSH/Nginx/Certbot. The admin
+/// is bootstrapped via env (ADMIN_BOOTSTRAP_USER if the operator set
+/// one at scaffold time, else ADMIN_BOOTSTRAP_FIRST_USER so the first
+/// signup is admin). NUXT_DATABASE_URL is bound to the managed DB.
+///
+/// DO reads `.do/deploy.template.yaml` (note the `spec:` root, unlike
+/// a plain app.yaml). The user can edit any env in the DO console
+/// before clicking Create.
+pub fn render_do_app_spec(config: &InstanceConfig) -> String {
+    let admin_env = match &config.admin_user {
+        Some(u) => format!(
+            "        - key: ADMIN_BOOTSTRAP_USER\n          scope: RUN_TIME\n          value: \"{}\"",
+            u
+        ),
+        None => "        - key: ADMIN_BOOTSTRAP_FIRST_USER\n          scope: RUN_TIME\n          value: \"true\""
+            .to_string(),
+    };
+
+    // svc name must be lowercase/dns-safe; the instance name may not be.
+    let svc = sanitize_dns(&config.name);
+
+    format!(
+        r#"spec:
+  name: {svc}
+  region: nyc
+  services:
+    - name: web
+      dockerfile_path: Dockerfile
+      source_dir: /
+      http_port: 3000
+      instance_count: 1
+      instance_size_slug: basic-xs
+      health_check:
+        http_path: /api/health
+      envs:
+        - key: NODE_ENV
+          scope: RUN_AND_BUILD_TIME
+          value: "production"
+        - key: NUXT_HOST
+          scope: RUN_TIME
+          value: "0.0.0.0"
+        - key: NUXT_PORT
+          scope: RUN_TIME
+          value: "3000"
+        - key: NUXT_DATABASE_URL
+          scope: RUN_TIME
+          value: "${{db.DATABASE_URL}}"
+        - key: NUXT_AUTH_SECRET
+          scope: RUN_TIME
+          type: SECRET
+          value: "CHANGE_ME_min_32_chars_use_openssl_rand_hex_32"
+        - key: NUXT_PUBLIC_SITE_URL
+          scope: RUN_TIME
+          value: "${{APP_URL}}"
+        - key: NUXT_PUBLIC_DOMAIN
+          scope: RUN_TIME
+          value: "${{APP_DOMAIN}}"
+        - key: NUXT_EMAIL_ADAPTER
+          scope: RUN_TIME
+          value: "console"
+{admin_env}
+  databases:
+    - name: db
+      engine: PG
+      version: "16"
+      production: false
+"#,
+        svc = svc,
+        admin_env = admin_env,
+    )
+}
+
+/// Lowercase + strip to DNS-label-safe chars for the DO app name.
+fn sanitize_dns(name: &str) -> String {
+    let s: String = name
+        .to_lowercase()
+        .chars()
+        .map(|c| if c.is_ascii_alphanumeric() { c } else { '-' })
+        .collect();
+    let trimmed = s.trim_matches('-').to_string();
+    if trimmed.is_empty() { "commonpub-instance".to_string() } else { trimmed }
 }
 
 pub fn render_dockerfile() -> String {
@@ -645,7 +748,25 @@ pub fn render_readme(config: &InstanceConfig) -> String {
 
 Built with [CommonPub](https://commonpub.dev).
 
-## Getting Started
+## One-click deploy
+
+[![Deploy to DO](https://www.deploytodo.com/do-btn-blue.svg)](https://cloud.digitalocean.com/apps/new?repo=https://github.com/YOUR_GITHUB/{name}/tree/main)
+
+Push this repo to GitHub, replace `YOUR_GITHUB` above with your
+GitHub user/org, and click the button. DigitalOcean reads
+`.do/deploy.template.yaml` and provisions the app + a managed
+Postgres 16. **Before clicking Create in the DO console**, set
+`NUXT_AUTH_SECRET` (run `openssl rand -hex 32`).
+
+**Admin:** {admin_note} You can change this any time by editing the
+`ADMIN_BOOTSTRAP_*` env in the DO console (or `.env` for self-hosted).
+
+> Migrations run automatically on every boot (the Docker `CMD`
+> chains `db:migrate` before the server). Redis/Valkey is optional —
+> CommonPub degrades to in-memory rate-limiting without it; add a
+> managed Valkey DB in the DO console if you want shared state.
+
+## Getting Started (local dev)
 
 ```bash
 # Start infrastructure
@@ -654,7 +775,7 @@ docker compose up -d
 # Install dependencies
 pnpm install
 
-# Push database schema
+# Push database schema (dev only — prod uses committed migrations)
 pnpm db:push
 
 # Start dev server
@@ -678,5 +799,14 @@ All pages, components, and server routes update automatically. Your custom overr
 "#,
         name = config.name,
         description = config.description,
+        admin_note = match &config.admin_user {
+            Some(u) => format!(
+                "the user `{}` is promoted to admin once it registers and the app reboots (`ADMIN_BOOTSTRAP_USER`).",
+                u
+            ),
+            None =>
+                "the first user to register becomes admin (`ADMIN_BOOTSTRAP_FIRST_USER=true`)."
+                    .to_string(),
+        },
     )
 }

@@ -63,6 +63,11 @@ struct SharedOpts {
     #[arg(long)]
     description: Option<String>,
 
+    /// Admin username promoted to admin on first boot. Omit to make
+    /// the first registered user admin (ADMIN_BOOTSTRAP_FIRST_USER).
+    #[arg(long = "admin-user")]
+    admin_user: Option<String>,
+
     /// Skip Docker Compose generation
     #[arg(long = "no-docker")]
     no_docker: bool,
@@ -86,6 +91,10 @@ fn apply_overrides(config: &mut prompts::InstanceConfig, opts: &SharedOpts) {
     }
     if let Some(ref ct) = opts.content_types {
         config.content_types = ct.iter().map(|s| s.trim().to_string()).collect();
+    }
+    if let Some(ref admin) = opts.admin_user {
+        let cleaned = prompts::sanitize_value(admin.trim());
+        config.admin_user = if cleaned.is_empty() { None } else { Some(cleaned) };
     }
 
     // When --features is provided, set ALL to false first, then enable only the listed ones
@@ -153,6 +162,7 @@ fn has_any_flags(opts: &SharedOpts) -> bool {
         || opts.theme.is_some()
         || opts.domain.is_some()
         || opts.description.is_some()
+        || opts.admin_user.is_some()
         || opts.no_docker
 }
 
@@ -187,6 +197,13 @@ fn print_next_steps(name: Option<&str>, config: &prompts::InstanceConfig) {
     println!("  pnpm install");
     println!("  pnpm db:push             # Push schema to database");
     println!("  pnpm dev                 # Start Nuxt dev server");
+    println!();
+    match &config.admin_user {
+        Some(u) => println!("  Admin: \"{}\" becomes admin once it registers + the app reboots.", u),
+        None => println!("  Admin: the first user to register becomes admin (ADMIN_BOOTSTRAP_FIRST_USER)."),
+    }
+    println!("  One-click deploy: push to GitHub, then use the");
+    println!("  \"Deploy to DigitalOcean\" button in your README.md.");
 }
 
 fn main() {

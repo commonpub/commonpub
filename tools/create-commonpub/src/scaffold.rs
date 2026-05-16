@@ -73,6 +73,10 @@ fn write_instance(dir: &Path, config: &InstanceConfig) -> Result<(), Box<dyn std
     fs::create_dir_all(dir.join(".github/workflows"))?;
     fs::write(dir.join(".github/workflows/deploy.yml"), template::render_deploy_workflow(config))?;
 
+    // One-click DigitalOcean App Platform deploy spec.
+    fs::create_dir_all(dir.join(".do"))?;
+    fs::write(dir.join(".do/deploy.template.yaml"), template::render_do_app_spec(config))?;
+
     // Database
     fs::write(dir.join("drizzle.config.ts"), template::render_drizzle_config(config))?;
 

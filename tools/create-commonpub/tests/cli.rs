@@ -330,3 +330,90 @@ fn cli_binary_with_feature_flags() {
     assert!(pkg.contains("@commonpub/layer"));
     assert!(pkg.contains("@commonpub/schema"));
 }
+
+// ── Admin bootstrap + one-click DigitalOcean deploy ─────────
+
+#[test]
+fn env_defaults_to_first_user_admin() {
+    // No --admin-user → the frictionless one-click path: first
+    // registered user becomes admin.
+    let config = create_commonpub::prompts::InstanceConfig::with_defaults("admin-default");
+    let env = create_commonpub::template::render_env(&config);
+    assert!(env.contains("ADMIN_BOOTSTRAP_FIRST_USER=true"));
+    assert!(!env.contains("ADMIN_BOOTSTRAP_USER=admin-default"));
+    // .env.example documents both knobs.
+    let ex = create_commonpub::template::render_env_example(&config);
+    assert!(ex.contains("ADMIN_BOOTSTRAP_FIRST_USER=true"));
+    assert!(ex.contains("ADMIN_BOOTSTRAP_USER="));
+}
+
+#[test]
+fn env_pins_explicit_admin_user_when_set() {
+    let mut config = create_commonpub::prompts::InstanceConfig::with_defaults("admin-set");
+    config.admin_user = Some("alice".to_string());
+    let env = create_commonpub::template::render_env(&config);
+    // The active (non-comment) line is ADMIN_BOOTSTRAP_USER=alice.
+    assert!(env.lines().any(|l| l.trim() == "ADMIN_BOOTSTRAP_USER=alice"));
+    // No active first-user line. The doc comment legitimately *mentions*
+    // `ADMIN_BOOTSTRAP_FIRST_USER=true` (prefixed with `#`), so we check
+    // by exact trimmed line, not substring.
+    assert!(!env.lines().any(|l| l.trim() == "ADMIN_BOOTSTRAP_FIRST_USER=true"));
+}
+
+#[test]
+fn do_app_spec_is_valid() {
+    let config = create_commonpub::prompts::InstanceConfig::with_defaults("do-test");
+    let spec = create_commonpub::template::render_do_app_spec(&config);
+    assert!(spec.starts_with("spec:"));
+    assert!(spec.contains("dockerfile_path: Dockerfile"));
+    assert!(spec.contains("http_path: /api/health"));
+    assert!(spec.contains("${db.DATABASE_URL}"));
+    assert!(spec.contains("engine: PG"));
+    // Default = first-user admin (zero-config one-click).
+    assert!(spec.contains("ADMIN_BOOTSTRAP_FIRST_USER"));
+}
+
+#[test]
+fn do_app_spec_uses_explicit_admin_when_set() {
+    let mut config = create_commonpub::prompts::InstanceConfig::with_defaults("do-admin");
+    config.admin_user = Some("bob".to_string());
+    let spec = create_commonpub::template::render_do_app_spec(&config);
+    assert!(spec.contains("ADMIN_BOOTSTRAP_USER"));
+    assert!(spec.contains("value: \"bob\""));
+    assert!(!spec.contains("ADMIN_BOOTSTRAP_FIRST_USER"));
+}
+
+#[test]
+fn scaffold_writes_do_deploy_template() {
+    let tmp = TempDir::new().unwrap();
+    let config = create_commonpub::prompts::InstanceConfig::with_defaults("do-scaffold");
+    create_commonpub::scaffold::create_instance_at(tmp.path(), "do-scaffold", &config).unwrap();
+    let spec = tmp.path().join("do-scaffold/.do/deploy.template.yaml");
+    assert!(spec.exists(), ".do/deploy.template.yaml must be scaffolded");
+    assert!(fs::read_to_string(spec).unwrap().contains("dockerfile_path: Dockerfile"));
+}
+
+#[test]
+fn readme_has_deploy_to_do_button() {
+    let config = create_commonpub::prompts::InstanceConfig::with_defaults("btn-test");
+    let readme = create_commonpub::template::render_readme(&config);
+    assert!(readme.contains("Deploy to DO"));
+    assert!(readme.contains("cloud.digitalocean.com/apps/new"));
+    assert!(readme.contains("first user to register becomes admin"));
+}
+
+#[test]
+fn cli_admin_user_flag_writes_bootstrap_user() {
+    use assert_cmd::Command;
+    let tmp = TempDir::new().unwrap();
+    Command::cargo_bin("create-commonpub")
+        .unwrap()
+        .current_dir(tmp.path())
+        .args(&["new", "flagadmin", "--admin-user", "carol", "--no-docker"])
+        .assert()
+        .success();
+    let env = fs::read_to_string(tmp.path().join("flagadmin/.env")).unwrap();
+    assert!(env.contains("ADMIN_BOOTSTRAP_USER=carol"));
+    let readme = fs::read_to_string(tmp.path().join("flagadmin/README.md")).unwrap();
+    assert!(readme.contains("`carol`"));
+}

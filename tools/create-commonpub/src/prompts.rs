@@ -29,6 +29,10 @@ pub struct InstanceConfig {
     pub auth_passkeys: bool,
     pub auth_github: bool,
     pub auth_google: bool,
+    // Bootstrap admin. Some(username) → ADMIN_BOOTSTRAP_USER is written;
+    // None → ADMIN_BOOTSTRAP_FIRST_USER=true (first registered user
+    // becomes admin) so the one-click deploy path needs zero config.
+    pub admin_user: Option<String>,
     // Infra
     pub use_docker: bool,
 }
@@ -59,6 +63,7 @@ impl InstanceConfig {
             auth_passkeys: false,
             auth_github: false,
             auth_google: false,
+            admin_user: None,
             use_docker: true,
         }
     }
@@ -240,6 +245,17 @@ pub fn prompt_config(name: &str) -> Result<InstanceConfig, Box<dyn std::error::E
     let auth_github = auth_selected.contains(&3);
     let auth_google = auth_selected.contains(&4);
 
+    // ── Admin bootstrap ────────────────────────────────────
+
+    println!("\n  Admin — who runs this instance:");
+    let admin_input: String = Input::with_theme(&theme)
+        .with_prompt("Admin username (blank = first registered user becomes admin)")
+        .allow_empty(true)
+        .default(String::new())
+        .interact_text()?;
+    let admin_trimmed = sanitize_value(admin_input.trim());
+    let admin_user = if admin_trimmed.is_empty() { None } else { Some(admin_trimmed) };
+
     Ok(InstanceConfig {
         name: instance_name,
         domain,
@@ -264,6 +280,7 @@ pub fn prompt_config(name: &str) -> Result<InstanceConfig, Box<dyn std::error::E
         auth_passkeys,
         auth_github,
         auth_google,
+        admin_user,
         use_docker,
     })
 }
