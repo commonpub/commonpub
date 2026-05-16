@@ -16,11 +16,30 @@ const PRIVATE_IP_PATTERNS = [
   /^192\.0\.2\./,                     // TEST-NET-1
   /^198\.51\.100\./,                  // TEST-NET-2
   /^203\.0\.113\./,                   // TEST-NET-3
+  /^22[4-9]\./,                       // 224.0.0.0+ multicast / reserved
+  /^23\d\./,
+  /^24\d\./,
+  /^25[0-5]\./,
   /^::1$/,                            // IPv6 loopback
+  /^::$/,                             // IPv6 unspecified
+  /^::ffff:/i,                        // IPv4-mapped IPv6 (handled below too)
   /^fc/i,                             // IPv6 unique local
   /^fd/i,                             // IPv6 unique local
-  /^fe80/i,                           // IPv6 link-local
+  /^fe[89ab]/i,                       // IPv6 link-local fe80::/10
+  /^ff/i,                             // IPv6 multicast
 ];
+
+/**
+ * Numeric-host SSRF encodings `new URL()` accepts but no public host uses:
+ * dotless decimal (2130706433), hex (0x7f000001), octal-leading segments.
+ */
+function isSuspiciousNumericHost(host: string): boolean {
+  if (/^\d+$/.test(host)) return true;
+  if (/^0x[0-9a-f]+$/i.test(host)) return true;
+  if (/^0\d+(\.\d+){0,3}$/.test(host)) return true;
+  if (/^0x[0-9a-f]+(\.[0-9a-fx]+){0,3}$/i.test(host)) return true;
+  return false;
+}
 
 const BLOCKED_HOSTNAMES = new Set([
   'localhost',
@@ -47,7 +66,9 @@ function isPrivateUrl(urlString: string): boolean {
   // Strip IPv6 brackets for regex matching (Node URL parser keeps them: [::1])
   const hostnameForCheck = hostname.replace(/^\[|\]$/g, '');
 
+  if (!hostnameForCheck) return true;
   if (BLOCKED_HOSTNAMES.has(hostnameForCheck)) return true;
+  if (isSuspiciousNumericHost(hostnameForCheck)) return true;
 
   // Check IP patterns (if hostname is an IP address)
   for (const pattern of PRIVATE_IP_PATTERNS) {
@@ -198,31 +219,31 @@ export async function resolveActorViaWebFinger(
   // SSRF protection
   if (isPrivateUrl(webFingerUrl)) return null;
 
+  // The abort timeout must span the body read too — clearing it before
+  // `wfResponse.json()` (as the old code did) left the JSON parse of a
+  // slow-trickle upstream with no deadline.
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), RESOLVE_TIMEOUT_MS);
-  let wfResponse: Response;
+  let wfJson: { links?: Array<{ rel: string; type?: string; href?: string }> };
   try {
-    wfResponse = await fetchFn(webFingerUrl, {
+    const wfResponse = await fetchFn(webFingerUrl, {
       headers: { Accept: 'application/jrd+json', 'User-Agent': 'CommonPub/1.0 (ActivityPub)' },
       signal: controller.signal,
     });
+    if (!wfResponse.ok) return null;
+    wfJson = await wfResponse.json();
   } catch {
-    clearTimeout(timeout);
     return null;
   } finally {
     clearTimeout(timeout);
   }
 
-  if (!wfResponse.ok) return null;
-
-  const wfJson = await wfResponse.json();
   const selfLink = wfJson?.links?.find(
-    (link: { rel: string; type?: string }) =>
-      link.rel === 'self' && link.type === 'application/activity+json',
+    (link) => link.rel === 'self' && link.type === 'application/activity+json',
   );
 
   if (!selfLink?.href) return null;
 
-  // resolveActor already has SSRF protection
+  // resolveActor already has SSRF protection + its own timeout
   return resolveActor(selfLink.href, fetchFn);
 }
