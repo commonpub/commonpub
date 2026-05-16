@@ -113,6 +113,7 @@ export default defineEventHandler(async (event) => {
   // Handle auth API routes — skip custom routes that Nitro handles directly
   const isCustomAuthRoute = pathname.startsWith('/api/auth/federated/')
     || pathname.startsWith('/api/auth/oauth2/')
+    || pathname.startsWith('/api/auth/mastodon/')
     || pathname === '/api/auth/sign-in-username'
     || pathname === '/api/auth/delete-user'
     || pathname === '/api/auth/export-data';

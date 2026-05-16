@@ -1,5 +1,11 @@
 <script setup lang="ts">
 import type { NavItem } from '@commonpub/server';
+// Explicit import: Nuxt's pathPrefix auto-import names this component
+// `<NavMobileNavRenderer>` (the `nav/` dir prefix only de-duplicates when
+// the filename starts with `Nav`, which `MobileNavRenderer` does not).
+// Referencing `<MobileNavRenderer>` below would otherwise silently fail to
+// resolve, leaving the mobile hamburger menu empty.
+import MobileNavRenderer from '../components/nav/MobileNavRenderer.vue';
 
 const { user, isAuthenticated, isAdmin, signOut, refreshSession } = useAuth();
 const { count: unreadCount, connect: connectNotifications, disconnect: disconnectNotifications } = useNotifications();

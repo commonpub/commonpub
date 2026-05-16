@@ -158,6 +158,34 @@ test.describe('Videos page responsive', () => {
   });
 });
 
+test.describe('Mobile navigation menu', () => {
+  // Regression guard: the mobile hamburger menu must render the real
+  // site nav (MobileNavRenderer), not just the inline Search/auth extras.
+  // Broke silently when <MobileNavRenderer> failed to resolve under
+  // Nuxt's pathPrefix auto-import naming (component at
+  // components/nav/MobileNavRenderer.vue auto-registers as
+  // <NavMobileNavRenderer>). If it regresses, only "Search" shows.
+  test('hamburger opens menu with real nav links (logged out)', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.goto('/', { waitUntil: 'networkidle' });
+
+    const toggle = page.locator('.cpub-mobile-toggle');
+    await expect(toggle).toBeVisible();
+    await toggle.click();
+
+    const menu = page.locator('.cpub-mobile-menu');
+    await expect(menu).toBeVisible();
+
+    // The MobileNavRenderer <nav> (not the cpub-mobile-nav-extra sibling)
+    // must render the always-visible, ungated "Home" link.
+    const mobileNav = page.locator('.cpub-mobile-nav:not(.cpub-mobile-nav-extra)');
+    await expect(mobileNav).toBeVisible();
+    await expect(
+      mobileNav.getByRole('link', { name: 'Home' }),
+    ).toBeVisible();
+  });
+});
+
 test.describe('Auth pages responsive', () => {
   test('login form is usable on mobile', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 812 });

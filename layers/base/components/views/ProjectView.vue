@@ -509,7 +509,10 @@ async function handleBuild(): Promise<void> {
                     <span v-if="step.time" class="cpub-build-step-time"><i class="fa-regular fa-clock"></i> {{ step.time }}</span>
                   </div>
                   <div v-if="step.children.length > 0" class="cpub-build-step-body">
-                    <BlockContentRenderer :blocks="step.children" />
+                    <!-- Auto-import name (same as the body renderer above); the
+                         bare BlockContentRenderer tag does not resolve under
+                         Nuxt pathPrefix and silently blanks nested content. -->
+                    <BlocksBlockContentRenderer :blocks="step.children" />
                   </div>
                 </div>
               </div>

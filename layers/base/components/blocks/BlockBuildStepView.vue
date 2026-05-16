@@ -44,7 +44,13 @@ const hasChildren = computed(() => children.value.length > 0);
       <span v-if="time" class="cpub-step-time"><i class="fa-regular fa-clock"></i> {{ time }}</span>
     </div>
     <div v-if="hasChildren" class="cpub-step-body">
-      <BlockContentRenderer :blocks="children" />
+      <!-- Nuxt pathPrefix auto-imports components/blocks/BlockContentRenderer.vue
+           under the name BlocksBlockContentRenderer (the Blocks dir prefix only
+           de-dups when the filename starts with it). The bare tag would not
+           resolve and would silently blank nested step content. A static import
+           is not an option here: BlockContentRenderer and BlockBuildStepView are
+           mutually recursive (ESM cycle). Use the auto-import name. -->
+      <BlocksBlockContentRenderer :blocks="children" />
     </div>
   </div>
 </template>
