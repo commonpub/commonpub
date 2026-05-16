@@ -9,9 +9,26 @@ monorepo working period. For session-level detail, see [`docs/sessions/`](./docs
 
 ## Unreleased (sessions 108–142, through 2026-05-16)
 
-Monorepo state at time of writing: schema 0.16.0, server 2.51.0, config 0.12.0,
+Monorepo state at time of writing: schema 0.16.0, server 2.52.0, config 0.12.0,
 layer 0.21.2, ui 0.8.5, protocol 0.9.9, editor 0.7.9, explainer 0.7.12,
 learning 0.5.2, docs 0.6.2, auth 0.6.0, infra 0.7.0, test-utils 0.5.4.
+
+### Session 142 — Import: resolve lazy-loaded images (2026-05-16)
+
+`@commonpub/server` 2.51.0 → 2.52.0 (minor). Content import
+(`importFromUrl`) previously pulled only the cover image; in-story
+images from lazy-loading sites (Hackster, Medium, most CMSes) came
+through broken because Turndown only reads `<img src>` and those
+sites put a base64 placeholder there with the real URL in
+`data-src`/`data-srcset`. New `import/images.ts`
+`resolveContentImages()` rewrites every `<img>` to its real,
+absolute URL (data-src / data-original / data-lazy-src /
+data-srcset / srcset largest / non-placeholder src) and strips lazy
+attrs, run before extraction in BOTH `platforms/hackster.ts` (before
+`extractStoryHtml`) and `generic.ts` (before Readability). 9 new
+unit tests; all 71 import tests pass. Follow-ups (bigger scope, not
+done): Hackster gallery/carousel extraction as an image set, and
+downloading/re-hosting images into instance storage.
 
 ### Session 142 — Admin bootstrap + one-click DigitalOcean deploy (2026-05-16)
 
