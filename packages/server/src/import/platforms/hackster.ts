@@ -8,6 +8,7 @@ import { parseHTML } from 'linkedom';
 import { markdownToBlockTuples } from '@commonpub/editor';
 import type { BlockTuple } from '@commonpub/editor';
 import type { ImportResult, PlatformHandler } from '../types.js';
+import { resolveContentImages } from '../images.js';
 
 const ALGOLIA_APP_ID = '7YQJT9BHUX';
 const ALGOLIA_API_KEY = 'c113f0569e873258342405ddf4a4dd09';
@@ -21,6 +22,12 @@ export const hacksterHandler: PlatformHandler = {
   async import(url: URL, html: string): Promise<ImportResult> {
     const slug = extractProjectSlug(url);
     const { document } = parseHTML(html);
+
+    // Hackster lazy-loads in-story images (data-src / data-srcset with a
+    // base64 placeholder in src). Resolve them to real, absolute URLs
+    // BEFORE extracting the story HTML, so Turndown emits real
+    // `![](url)` images instead of broken placeholders.
+    resolveContentImages(document, url.toString());
 
     // Try Algolia for structured metadata
     const algoliaData = slug ? await fetchAlgoliaData(slug) : null;

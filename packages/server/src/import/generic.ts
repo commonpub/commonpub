@@ -7,6 +7,7 @@ import TurndownService from 'turndown';
 import { parseHTML } from 'linkedom';
 import { markdownToBlockTuples } from '@commonpub/editor';
 import type { ImportResult } from './types.js';
+import { resolveContentImages } from './images.js';
 
 /**
  * Extract article content from raw HTML using Readability + Turndown.
@@ -14,6 +15,11 @@ import type { ImportResult } from './types.js';
  */
 export function extractArticle(html: string, url: string): ImportResult {
   const { document } = parseHTML(html);
+
+  // Resolve lazy-loaded <img> (data-src/data-srcset/srcset) to real,
+  // absolute URLs BEFORE Readability runs, so in-article images survive
+  // the HTML→markdown conversion instead of becoming broken placeholders.
+  resolveContentImages(document, url);
 
   // Extract metadata from <head> before Readability modifies the DOM
   const ogTitle = document.querySelector('meta[property="og:title"]')?.getAttribute('content');
