@@ -16,6 +16,11 @@ const sanitizeSchema = {
     ...defaultSchema.attributes,
     // Allow id for heading anchors (rehype-slug)
     '*': [...(defaultSchema.attributes?.['*'] ?? []), 'id', 'className'],
+    // `style` is required: @shikijs/rehype (single-theme) emits per-token
+    // inline `style="color:#…"`. It is safe here because remark-rehype and
+    // rehype-stringify both run with allowDangerousHtml:false, so the only
+    // `style` attrs reaching the sanitizer are shiki-generated (theme colors
+    // on code/span/pre) — never user-authored raw HTML.
     code: [...(defaultSchema.attributes?.['code'] ?? []), 'className', 'style'],
     span: [...(defaultSchema.attributes?.['span'] ?? []), 'className', 'style'],
     pre: [...(defaultSchema.attributes?.['pre'] ?? []), 'className', 'style'],

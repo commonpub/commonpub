@@ -1,7 +1,5 @@
 import type { TocEntry } from '../types.js';
 
-const HEADING_REGEX = /^(#{2,6})\s+(.+)$/gm;
-
 /**
  * Generate a URL-safe heading ID from text.
  * Lowercase, hyphenated, deduped with suffix if needed.
@@ -35,8 +33,12 @@ export function extractHeadings(markdown: string): TocEntry[] {
   const entries: TocEntry[] = [];
   const usedIds = new Set<string>();
 
+  // Construct per call: a shared module-level /g regex carries `lastIndex`
+  // state across invocations, which corrupts the TOC if a prior call throws
+  // mid-drain or runs re-entrantly.
+  const headingRegex = /^(#{2,6})\s+(.+)$/gm;
   let match: RegExpExecArray | null;
-  while ((match = HEADING_REGEX.exec(markdown)) !== null) {
+  while ((match = headingRegex.exec(markdown)) !== null) {
     const level = match[1]!.length;
     const text = match[2]!.trim();
     const id = generateHeadingId(text, usedIds);
