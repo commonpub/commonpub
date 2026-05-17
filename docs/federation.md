@@ -66,8 +66,7 @@ Every CommonPub instance is an independent, self-hosted server with its own data
 | Content Type | AP Object Type | What Federates | What Stays Local |
 |-------------|---------------|----------------|-----------------|
 | Projects | Article + `cpub:bom` | Full article, cover image, tags, BOM with product links | Draft state, view counts, edit history |
-| Articles | Article | Full article, cover image, tags | Draft state |
-| Blog Posts | Article | Full article | Draft state |
+| Blog Posts | Article | Full article, cover image, tags | Draft state |
 | Explainers | Article + `cpub:sections` | Content as article, section metadata | Interactive runtime state |
 | Products | Document + `cpub:specs` | Name, specs, purchase URL, datasheet | Internal inventory |
 | Hub Posts | Note + `audience` | Post content, replies | Pin state (hub-local) |
@@ -78,6 +77,11 @@ Every CommonPub instance is an independent, self-hosted server with its own data
 | Doc Sites | Collection + `cpub:docSite` | Site structure, page content | Version management |
 | User Profiles | Person actor | Bio, avatar, public key, links | Email, settings, sessions |
 | Hubs | Group actor | Name, description, rules, membership | Internal moderation logs |
+
+> `article` is a deprecated content-type alias that normalizes to `blog`
+> on write (session-116). Content authored as `article` federates
+> identically to a Blog Post. Use `blog`, `project`, or `explainer` for
+> new content; never `article`.
 
 ---
 
@@ -268,7 +272,7 @@ GET https://hack.build/.well-known/nodeinfo
   "metadata": {
     "commonpub": {
       "version": "1.0.0",
-      "contentTypes": ["project", "article", "blog", "explainer"],
+      "contentTypes": ["project", "blog", "explainer"],
       "hubTypes": ["community", "product", "company"],
       "features": ["bom", "learning", "docs"]
     }

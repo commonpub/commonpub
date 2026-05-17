@@ -149,7 +149,7 @@ Details in [docs/guides/developers.md](docs/guides/developers.md#the-thin-app-pa
 ```
 commonpub/
 ├── packages/           12 framework-agnostic TypeScript packages (published to npm)
-├── layers/base/        Shared Nuxt layer (@commonpub/layer) — 85 pages, 106 components, 257 API routes
+├── layers/base/        Shared Nuxt layer (@commonpub/layer) — 86 pages, 106 components, 283 API routes
 ├── apps/
 │   ├── reference/      Fully featured Nuxt 3 reference app (all features on)
 │   └── shell/          Minimal starter template
@@ -168,9 +168,9 @@ commonpub/
 ```
 
 - **79 tables, 41 enums** in the schema across 15 domains
-- **257 API routes** in the layer
-- **85 pages, 106 components, 20 composables** in the layer
-- **15 feature flags** gating every non-core feature
+- **283 API routes** in the layer
+- **86 pages, 106 components, 22 composables** in the layer
+- **16 feature flags** (+ 5 nested `identity` sub-flags) gating every non-core feature
 
 Full analysis: [`codebase-analysis/`](./codebase-analysis/).
 
@@ -190,28 +190,28 @@ See [`codebase-analysis/01-monorepo-topology.md`](./codebase-analysis/01-monorep
 
 ## Packages
 
-All 12 published to npm as `@commonpub/*`. Latest versions as of 2026-04-16:
+All 12 published to npm as `@commonpub/*`. Latest versions as of 2026-05-17 (session 144):
 
 | Package | Version | Purpose |
 |---|---|---|
-| [`@commonpub/schema`](packages/schema/README.md) | 0.13.0 | 77 Drizzle tables, 41 enums, 50+ Zod validators |
-| [`@commonpub/config`](packages/config/README.md) | 0.10.0 | `defineCommonPubConfig()` factory, 15 feature flags |
-| [`@commonpub/server`](packages/server/README.md) | 2.43.0 | Framework-agnostic business logic (20+ modules, transactions, lifecycle hooks) |
-| [`@commonpub/protocol`](packages/protocol/README.md) | 0.9.9 | ActivityPub types, HTTP signatures, WebFinger, NodeInfo, OAuth2 |
-| [`@commonpub/auth`](packages/auth/README.md) | 0.5.1 | Better Auth wrapper, guards, AP Actor SSO (Model B) |
+| [`@commonpub/schema`](packages/schema/README.md) | 0.16.0 | 79 Drizzle tables, 41 enums, 50+ Zod validators |
+| [`@commonpub/config`](packages/config/README.md) | 0.12.0 | `defineCommonPubConfig()` factory, 16 feature flags (+5 identity sub-flags) |
+| [`@commonpub/server`](packages/server/README.md) | 2.53.0 | Framework-agnostic business logic (20+ modules, transactions, lifecycle hooks) |
+| [`@commonpub/protocol`](packages/protocol/README.md) | 0.9.10 | ActivityPub types, HTTP signatures, WebFinger, NodeInfo, OAuth2 |
+| [`@commonpub/auth`](packages/auth/README.md) | 0.6.0 | Better Auth wrapper, guards, AP Actor SSO (Model B) |
 | [`@commonpub/ui`](packages/ui/README.md) | 0.8.5 | 22 headless Vue 3 components, 5 themes, CSS token system |
 | [`@commonpub/editor`](packages/editor/README.md) | 0.7.9 | TipTap extensions, 20 block types, BlockTuple serialization |
-| [`@commonpub/docs`](packages/docs/README.md) | 0.6.2 | Markdown pipeline, versioning, navigation, search adapters |
-| [`@commonpub/explainer`](packages/explainer/README.md) | 0.7.11 | Interactive sections, quiz engine, progress tracking, HTML export |
-| [`@commonpub/learning`](packages/learning/README.md) | 0.5.0 | Learning path engine, progress calculation, certificates |
-| [`@commonpub/infra`](packages/infra/README.md) | 0.5.1 | S3/local storage, image processing, email adapters, security |
-| [`@commonpub/test-utils`](packages/test-utils/README.md) | 0.5.3 | Test factories and mock configuration |
+| [`@commonpub/docs`](packages/docs/README.md) | 0.6.3 | Markdown pipeline, versioning, navigation, search adapters |
+| [`@commonpub/explainer`](packages/explainer/README.md) | 0.7.12 | Interactive sections, quiz engine, progress tracking, HTML export |
+| [`@commonpub/learning`](packages/learning/README.md) | 0.5.2 | Learning path engine, progress calculation, certificates |
+| [`@commonpub/infra`](packages/infra/README.md) | 0.7.0 | S3/local storage, image processing, email adapters, security |
+| [`@commonpub/test-utils`](packages/test-utils/README.md) | 0.5.4 | Test factories and mock configuration |
 
 Plus the layer itself:
 
 | Package | Version | Purpose |
 |---|---|---|
-| `@commonpub/layer` | 0.15.3 | Shared Nuxt layer — pages, components, API routes, middleware, theme |
+| `@commonpub/layer` | 0.21.4 | Shared Nuxt layer — pages, components, API routes, middleware, theme |
 
 ---
 

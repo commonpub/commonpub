@@ -7,11 +7,26 @@ monorepo working period. For session-level detail, see [`docs/sessions/`](./docs
 
 ---
 
-## Unreleased (sessions 108–142, through 2026-05-16)
+## Unreleased (sessions 108–144, through 2026-05-17)
 
-Monorepo state at time of writing: schema 0.16.0, server 2.52.0, config 0.12.0,
-layer 0.21.2, ui 0.8.5, protocol 0.9.9, editor 0.7.9, explainer 0.7.12,
-learning 0.5.2, docs 0.6.2, auth 0.6.0, infra 0.7.0, test-utils 0.5.4.
+Monorepo state at time of writing: schema 0.16.0, server 2.53.0, config 0.12.0,
+layer 0.21.4, ui 0.8.5, protocol 0.9.10, editor 0.7.9, explainer 0.7.12,
+learning 0.5.2, docs 0.6.3, auth 0.6.0, infra 0.7.0, test-utils 0.5.4.
+
+### Session 144 — Mobile UX fixes (2026-05-17)
+
+`@commonpub/layer` 0.21.3 → 0.21.4 (patch). Mobile top-bar overflow
+fixed (desktop-only search/messages/notifications ≤768px; messages +
+notifications relocated into the avatar dropdown); hero sizing
+(`min-width:0` + wrapping actions + `<640px` block); contest section
+hoisted above the feed on mobile.
+
+### Session 143 — Component-resolution + SSRF + auth-route fixes (2026-05-16)
+
+`@commonpub/protocol` 0.9.10, `@commonpub/docs` 0.6.3,
+`@commonpub/server` 2.53.0, `@commonpub/layer` 0.21.3. Fixed a
+month-old mobile-nav break (Nuxt pathPrefix component resolution),
+nested build-step blocks, and SSRF hardening on uploads.
 
 ### Session 142 — Import: resolve lazy-loaded images (2026-05-16)
 

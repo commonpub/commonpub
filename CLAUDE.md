@@ -6,7 +6,7 @@ CommonPub is an open ActivityPub federation protocol and package suite for self-
 
 ## Master Plan
 
-The implementation plan is at `docs/plan-v2.md`. Reference documentation is at `docs/reference/`. Session logs are in `docs/sessions/`.
+The original implementation plan is archived at `docs/archive/plan-v2.md` (v2) and `docs/archive/plan-v3-engineering.md` (v3). Active planning docs live in `docs/plans/`. Reference documentation is at `docs/reference/`. Session logs are in `docs/sessions/`.
 
 ## Standing Rules — MUST FOLLOW
 
@@ -15,7 +15,7 @@ The implementation plan is at `docs/plan-v2.md`. Reference documentation is at `
 3. **No hardcoded color or font** in any `@commonpub/ui` or `@commonpub/docs` component — always `var(--*)`
 4. **Docs use BlockTuple[] format** — new pages store content as BlockTuple[] (same as articles/projects). Legacy markdown pages are converted to blocks on edit. Viewer supports both formats. Migration: `POST /api/docs/migrate-content` then `ALTER TABLE docs_pages ALTER COLUMN content TYPE jsonb USING content::jsonb`
 5. **Hubs local-only in v1** — AP Group only after real moderation experience
-6. **"Hub" is the umbrella concept** — three types: community, product, company. Products are normalized entities in the `products` table, not JSONB blobs. No `guide` content type — use article or explainer.
+6. **"Hub" is the umbrella concept** — three types: community, product, company. Products are normalized entities in the `products` table, not JSONB blobs. No `guide` content type. **`article` is a deprecated alias that normalizes to `blog` on write (session-116) — use `blog`, `project`, or `explainer` for new content; never `article`.** It survives only in `contentTypeEnum` for backward compat.
 7. **Convex is not self-hostable** — the answer is Postgres
 8. **Better Auth is a library** — no separate auth service
 9. **AP actor SSO = Model B** — shared auth DB = Model C (operator opt-in only)
@@ -114,7 +114,7 @@ What federates via ActivityPub and what stays instance-local:
 | Feature | Federates | AP Type | Notes |
 |---------|-----------|---------|-------|
 | Projects | Yes | Article + `cpub:type=project` | Full content + cover image + attachments |
-| Articles | Yes | Article + `cpub:type=article` | Full content + cover image |
+| Articles _(legacy alias → blog)_ | Yes | Article + `cpub:type=blog` | Normalizes to `blog` on write; federates identically to Blogs |
 | Blogs | Yes | Article + `cpub:type=blog` | Full content + cover image |
 | Explainers | Yes | Article + `cpub:type=explainer` | Full content + cover image |
 | Hubs | Partial | Group actor | Behind `features.federateHubs`; hub posts as Announce |

@@ -32,7 +32,7 @@ The repo-level [`CONTRIBUTING.md`](../CONTRIBUTING.md) is the entry point for co
   which docs are fresh, stale, missing
 - [../codebase-analysis/11-codebase-stats.md](../codebase-analysis/11-codebase-stats.md) —
   counts by area
-- [../CHANGELOG.md](../CHANGELOG.md) — release log (semver + grouped Unreleased section covering sessions 108–125)
+- [../CHANGELOG.md](../CHANGELOG.md) — release log (semver + grouped Unreleased section covering sessions 108–144)
 
 ## Tips
 
