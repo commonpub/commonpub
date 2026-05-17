@@ -14,10 +14,10 @@ use crate::prompts::InstanceConfig;
 // in lockstep with deveco.io's package.json pins (the proven
 // production thin-app reference).
 //
-// Last synced: 2026-05-16 (session 143) — layer 0.21.3, server 2.53.0,
+// Last synced: 2026-05-16 (session 144) — layer 0.21.4, server 2.53.0,
 // schema 0.16.0, config 0.12.0.
 const COMMONPUB_CONFIG_VERSION: &str = "^0.12.0";
-const COMMONPUB_LAYER_VERSION: &str = "^0.21.3";
+const COMMONPUB_LAYER_VERSION: &str = "^0.21.4";
 const COMMONPUB_SCHEMA_VERSION: &str = "^0.16.0";
 const COMMONPUB_SERVER_VERSION: &str = "^2.53.0";
 
