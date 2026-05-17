@@ -81,10 +81,12 @@ describe('useMirrorContent', () => {
       expect(contentType.value).toBe('note');
     });
 
-    it('falls back to "article" when both cpubType and apType are null', () => {
+    // `article` is a deprecated alias that normalizes to `blog`
+    // (session-116) — the null/null fallback is `blog`, not `article`.
+    it('falls back to "blog" when both cpubType and apType are null', () => {
       const fedContent = ref(makeFedContent({ cpubType: null, apType: null }));
       const { contentType } = useMirrorContent(fedContent);
-      expect(contentType.value).toBe('article');
+      expect(contentType.value).toBe('blog');
     });
 
     it('prefers cpubType over apType', () => {

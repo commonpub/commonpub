@@ -27,6 +27,7 @@
     "access": "public"
   },
   "scripts": {
+    "test": "vitest run",
     "prepublishOnly": "node scripts/bundle-theme.mjs"
   },
   "dependencies": {

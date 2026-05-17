@@ -104,12 +104,14 @@ describe('FederatedContentCard', () => {
     expect(screen.getByText('project')).toBeInTheDocument();
   });
 
-  it('shows "article" for AP Article without cpubType', () => {
+  // `article` is a deprecated alias that normalizes to `blog` (session-116):
+  // a non-CommonPub AP Article without cpubType is labelled "blog".
+  it('shows "blog" for AP Article without cpubType', () => {
     render(FederatedContentCard, {
       props: { content: makeContent({ cpubType: null, apType: 'Article' }) },
       global: { stubs },
     });
-    expect(screen.getByText('article')).toBeInTheDocument();
+    expect(screen.getByText('blog')).toBeInTheDocument();
   });
 
   it('shows "post" for AP Note without cpubType', () => {
