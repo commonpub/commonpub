@@ -1,7 +1,26 @@
 # Session 145 — Full-repo audit + fixes
 
-Date: 2026-05-17. Branch: `main`. **Fixes applied + verified locally;
-NOT yet committed/published/deployed (paused for go-ahead).**
+Date: 2026-05-17. Branch: `main`. **SHIPPED + verified live on all
+three instances.**
+
+## Shipped
+
+7 atomic commits (commonpub `main` 20ee374..278963d). Published
+`@commonpub/layer@0.21.5` (npm propagation confirmed). CLI pin
+`^0.21.5` (template.rs + tests/cli.rs; cargo 26/26). Dependants:
+deveco `b4f4383..dde49ec`, heatsync `7de9bba..f0d5aa6` (its
+uncommitted `commonpub.config.ts` + untracked `ONBOARDING.md` left
+untouched; heatsync gained a committed `pnpm-lock.yaml` it lacked).
+Gates: typecheck 26/26, cargo 26/26, **layer suite now in the gate
+47/47**, all 13 packages green, sweep 0 unresolved, drizzle no drift
+(only the known darwin sharp-wasm32 build flake red).
+
+**Deploys (all success, no SSH-transient flake):** commonpub.io run
+25981727073, deveco.io 25981736800, heatsynclabs.io 25981748270.
+Post-deploy: `/api/health` 200 on all 3; homepages SSR 200 with full
+content (A1 feature-gate change safe in prod). Republish set was
+**only @commonpub/layer 0.21.4 → 0.21.5**; no other package, no
+schema, migration count still 5.
 
 ## Method
 
