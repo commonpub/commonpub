@@ -37,6 +37,17 @@ test.describe('Homepage responsive layout', () => {
     const hero = page.locator('.cpub-hero-banner');
     if (await hero.isVisible()) {
       await expect(hero).toBeVisible();
+      // Regression: hero must not overflow the viewport on mobile
+      // (the action buttons used to run off the right edge).
+      const box = await hero.boundingBox();
+      expect(box).not.toBeNull();
+      expect(box!.x).toBeGreaterThanOrEqual(-1);
+      expect(box!.x + box!.width).toBeLessThanOrEqual(376);
+      const actions = hero.locator('.cpub-hero-actions').first();
+      if (await actions.isVisible()) {
+        const ab = await actions.boundingBox();
+        expect(ab!.x + ab!.width).toBeLessThanOrEqual(376);
+      }
     }
 
     // Tabs should be scrollable

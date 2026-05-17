@@ -1,11 +1,21 @@
 <script setup lang="ts">
 import type { HomepageSection } from '@commonpub/server';
 
-defineProps<{
+const props = defineProps<{
   sections: HomepageSection[];
   /** Which zone to render: 'main' for feed column, 'sidebar' for sidebar */
   zone: 'main' | 'sidebar' | 'full-width';
+  /** If set, only render sections whose type is in this list (zone still applies). */
+  restrictTypes?: string[];
+  /** If set, skip sections whose type is in this list. */
+  excludeTypes?: string[];
 }>();
+
+function typeAllowed(type: string): boolean {
+  if (props.restrictTypes && !props.restrictTypes.includes(type)) return false;
+  if (props.excludeTypes && props.excludeTypes.includes(type)) return false;
+  return true;
+}
 
 const features = useFeatures();
 
@@ -29,7 +39,7 @@ function sectionZone(section: HomepageSection): 'full-width' | 'main' | 'sidebar
 
 <template>
   <template v-for="section in sections" :key="section.id">
-    <template v-if="section.enabled && sectionZone(section) === zone && isFeatureEnabled(section.config.featureGate)">
+    <template v-if="section.enabled && sectionZone(section) === zone && typeAllowed(section.type) && isFeatureEnabled(section.config.featureGate)">
       <HomepageHeroSection
         v-if="section.type === 'hero'"
         :config="section.config"

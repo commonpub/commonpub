@@ -148,13 +148,28 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
       <!-- Full-width sections (hero) -->
       <HomepageSectionRenderer :sections="sortedSections" zone="full-width" />
 
+      <!-- Mobile only: hoist the contests section above the feed (contests
+           are time-sensitive). Desktop keeps contests in the sidebar; hubs
+           and stats stay after the feed on mobile. -->
+      <div class="cpub-mobile-contest-hoist">
+        <HomepageSectionRenderer :sections="sortedSections" zone="sidebar" :restrict-types="['contests']" />
+      </div>
+
       <!-- 2-column layout: main + sidebar -->
       <div class="cpub-main-layout">
         <main class="cpub-feed-col">
           <HomepageSectionRenderer :sections="sortedSections" zone="main" />
         </main>
         <aside class="cpub-sidebar">
-          <HomepageSectionRenderer :sections="sortedSections" zone="sidebar" />
+          <!-- display:contents wrappers — layout-transparent, so the
+               sidebar's flex gap is unaffected. Desktop shows the full
+               sidebar; mobile shows it minus contests (hoisted above). -->
+          <div class="cpub-sidebar-desktop">
+            <HomepageSectionRenderer :sections="sortedSections" zone="sidebar" />
+          </div>
+          <div class="cpub-sidebar-mobile">
+            <HomepageSectionRenderer :sections="sortedSections" zone="sidebar" :exclude-types="['contests']" />
+          </div>
           <!-- Powered badge -->
           <div class="cpub-powered-badge">
             <span class="cpub-powered-text">Powered by</span>
@@ -494,7 +509,7 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
   gap: 48px;
 }
 
-.cpub-hero-content { flex: 1; }
+.cpub-hero-content { flex: 1; min-width: 0; }
 
 .cpub-hero-eyebrow {
   display: flex;
@@ -553,7 +568,7 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
   max-width: 560px;
 }
 
-.cpub-hero-actions { display: flex; gap: 8px; }
+.cpub-hero-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 
 .cpub-hero-meta {
   display: flex;
@@ -898,6 +913,17 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
   gap: 18px;
 }
 
+/* Contests hoisted above the feed on mobile only. display:contents keeps
+   the sidebar's flex gap intact on desktop (wrapper boxes vanish). */
+.cpub-mobile-contest-hoist { display: none; }
+.cpub-sidebar-desktop { display: contents; }
+.cpub-sidebar-mobile { display: none; }
+@media (max-width: 768px) {
+  .cpub-mobile-contest-hoist { display: block; max-width: 1280px; margin: 0 auto; padding: 16px 16px 0; }
+  .cpub-sidebar-desktop { display: none; }
+  .cpub-sidebar-mobile { display: contents; }
+}
+
 .cpub-sb-head {
   font-size: 10px;
   font-family: var(--font-mono);
@@ -1167,6 +1193,8 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
   .cpub-hero-inner {
     padding: 24px 16px;
   }
+  .cpub-hero-actions { width: 100%; }
+  .cpub-hero-actions .cpub-btn { flex: 1 1 140px; justify-content: center; }
   .cpub-main-layout {
     padding: 16px;
   }

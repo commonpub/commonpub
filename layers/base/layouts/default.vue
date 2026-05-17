@@ -110,18 +110,22 @@ const userUsername = computed(() => user.value?.username ?? '');
       <div class="cpub-topbar-spacer" />
 
       <div class="cpub-topbar-actions">
-        <NuxtLink to="/search" class="cpub-search-btn" aria-label="Search">
+        <!-- Search/messages/notifications are desktop-only in the top bar.
+             On mobile they live in the hamburger menu (search) and the
+             avatar dropdown (messages/notifications) so the bar can't
+             overflow and hide the hamburger toggle. -->
+        <NuxtLink to="/search" class="cpub-search-btn cpub-topbar-desktop-only" aria-label="Search">
           <i class="fa-solid fa-magnifying-glass"></i>
           <span class="cpub-search-text">Search...</span>
           <span class="cpub-kbd">&lceil;K</span>
         </NuxtLink>
 
         <template v-if="isAuthenticated">
-          <NuxtLink to="/messages" class="cpub-icon-btn" title="Messages" aria-label="Messages">
+          <NuxtLink to="/messages" class="cpub-icon-btn cpub-topbar-desktop-only" title="Messages" aria-label="Messages">
             <i class="fa-solid fa-envelope"></i>
             <span v-if="unreadMessages > 0" class="cpub-notif-badge" aria-label="unread messages">{{ unreadMessages > 99 ? '99+' : unreadMessages }}</span>
           </NuxtLink>
-          <NuxtLink to="/notifications" class="cpub-icon-btn" title="Notifications" aria-label="Notifications">
+          <NuxtLink to="/notifications" class="cpub-icon-btn cpub-topbar-desktop-only" title="Notifications" aria-label="Notifications">
             <i class="fa-solid fa-bell"></i>
             <span v-if="unreadCount > 0" class="cpub-notif-badge" aria-label="unread notifications">{{ unreadCount > 99 ? '99+' : unreadCount }}</span>
           </NuxtLink>
@@ -136,6 +140,17 @@ const userUsername = computed(() => user.value?.username ?? '');
               </span>
             </button>
             <div v-if="userMenuOpen" class="cpub-user-dropdown" role="menu">
+              <!-- Mobile-only: messages/notifications relocated here from
+                   the top bar (hidden on desktop, which keeps the icons). -->
+              <NuxtLink to="/messages" class="cpub-dropdown-item cpub-dropdown-item--mobile" role="menuitem" @click="userMenuOpen = false">
+                <i class="fa-solid fa-envelope"></i> Messages
+                <span v-if="unreadMessages > 0" class="cpub-dropdown-count">{{ unreadMessages > 99 ? '99+' : unreadMessages }}</span>
+              </NuxtLink>
+              <NuxtLink to="/notifications" class="cpub-dropdown-item cpub-dropdown-item--mobile" role="menuitem" @click="userMenuOpen = false">
+                <i class="fa-solid fa-bell"></i> Notifications
+                <span v-if="unreadCount > 0" class="cpub-dropdown-count">{{ unreadCount > 99 ? '99+' : unreadCount }}</span>
+              </NuxtLink>
+              <div class="cpub-dropdown-divider cpub-dropdown-item--mobile" />
               <NuxtLink :to="`/u/${userUsername}`" class="cpub-dropdown-item" role="menuitem" @click="userMenuOpen = false"><i class="fa-solid fa-user"></i> Profile</NuxtLink>
               <NuxtLink to="/dashboard" class="cpub-dropdown-item" role="menuitem" @click="userMenuOpen = false"><i class="fa-solid fa-gauge"></i> Dashboard</NuxtLink>
               <NuxtLink to="/settings" class="cpub-dropdown-item" role="menuitem" @click="userMenuOpen = false"><i class="fa-solid fa-gear"></i> Settings</NuxtLink>
@@ -168,8 +183,7 @@ const userUsername = computed(() => user.value?.username ?? '');
           <div class="cpub-mobile-divider" />
           <NuxtLink to="/create" class="cpub-mobile-link" @click="mobileMenuOpen = false"><i class="fa-solid fa-plus"></i> Create</NuxtLink>
           <NuxtLink to="/dashboard" class="cpub-mobile-link" @click="mobileMenuOpen = false"><i class="fa-solid fa-gauge"></i> Dashboard</NuxtLink>
-          <NuxtLink to="/messages" class="cpub-mobile-link" @click="mobileMenuOpen = false"><i class="fa-solid fa-envelope"></i> Messages</NuxtLink>
-          <NuxtLink to="/notifications" class="cpub-mobile-link" @click="mobileMenuOpen = false"><i class="fa-solid fa-bell"></i> Notifications</NuxtLink>
+          <!-- Messages/Notifications live in the avatar dropdown on mobile. -->
         </template>
       </div>
     </div>
@@ -323,6 +337,10 @@ const userUsername = computed(() => user.value?.username ?? '');
 .cpub-dropdown-item:hover { background: var(--surface2); color: var(--text); }
 .cpub-dropdown-item i { width: 14px; text-align: center; font-size: 11px; }
 .cpub-dropdown-divider { height: 2px; background: var(--border2); margin: 4px 12px; }
+.cpub-dropdown-count { margin-left: auto; min-width: 18px; height: 16px; padding: 0 5px; border-radius: 8px; background: var(--accent); color: var(--color-text-inverse); font-size: 9px; font-weight: 700; font-family: var(--font-mono); line-height: 16px; text-align: center; }
+/* Messages/Notifications in the avatar dropdown are mobile-only —
+   desktop keeps the dedicated top-bar icons. */
+.cpub-dropdown-item--mobile { display: none; }
 
 .cpub-mobile-toggle { display: none; width: 32px; height: 32px; background: none; border: var(--border-width-default) solid transparent; color: var(--text-dim); font-size: 16px; cursor: pointer; align-items: center; justify-content: center; }
 .cpub-mobile-menu { display: none; position: fixed; inset: 0; top: 48px; z-index: 99; background: var(--color-surface-overlay-light); }
@@ -352,7 +370,10 @@ const userUsername = computed(() => user.value?.username ?? '');
 
 @media (max-width: 768px) {
   :deep(.cpub-topbar-nav) { display: none; }
-  .cpub-search-btn { min-width: auto; padding: 6px 8px; }
+  /* Search / messages / notifications move off the top bar on mobile so
+     the row can't overflow and clip the hamburger + avatar. */
+  .cpub-topbar-desktop-only { display: none !important; }
+  .cpub-dropdown-item--mobile { display: flex; }
   .cpub-search-text, .cpub-kbd, .cpub-new-text { display: none; }
   .cpub-mobile-toggle { display: flex; }
   .cpub-mobile-menu { display: block; }
