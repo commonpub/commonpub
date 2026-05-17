@@ -14,12 +14,21 @@ jobs:
     steps:
       - name: Promote user to admin via database
         uses: appleboy/ssh-action@v1
+        # Username passed via env (no GHA-expression interpolation into the
+        # script), validated against a strict charset, then bound through
+        # psql's `:'u'` quoting so it cannot break out of the SQL string.
+        env:
+          PROMOTE_USER: ${{ github.event.inputs.username }}
         with:
           host: ${{ secrets.PROD_HOST }}
           username: root
           key: ${{ secrets.PROD_SSH_KEY }}
           command_timeout: 30s
+          envs: PROMOTE_USER
           script: |
             cd /opt/commonpub
-            docker compose -f docker-compose.prod.yml exec -T postgres psql -U commonpub -d commonpub -c "UPDATE users SET role = 'admin' WHERE username = '${{ github.event.inputs.username }}';"
-            echo "Promoted ${{ github.event.inputs.username }} to admin"
+            if ! printf '%s' "$PROMOTE_USER" | grep -qE '^[A-Za-z0-9_]+$'; then
+              echo "Invalid username: must match ^[A-Za-z0-9_]+$"; exit 1
+            fi
+            docker compose -f docker-compose.prod.yml exec -T postgres psql -U commonpub -d commonpub -v u="$PROMOTE_USER" -c "UPDATE users SET role = 'admin' WHERE username = :'u';"
+            echo "Promoted $PROMOTE_USER to admin"

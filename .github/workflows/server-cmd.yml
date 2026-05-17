@@ -13,11 +13,19 @@ jobs:
     steps:
       - name: Execute command
         uses: appleboy/ssh-action@v1
+        # Operator tool: intentionally runs an arbitrary command on prod and
+        # is gated by workflow_dispatch (requires repo write). The input is
+        # passed via `env:`/`envs:` so it is delivered to the remote shell as
+        # a runtime variable and never interpolated into the script text by
+        # the GHA expression engine (closes the expression-injection class).
+        env:
+          CMD: ${{ github.event.inputs.command }}
         with:
           host: ${{ secrets.PROD_HOST }}
           username: root
           key: ${{ secrets.PROD_SSH_KEY }}
           command_timeout: 30s
+          envs: CMD
           script: |
             cd /opt/commonpub
-            ${{ github.event.inputs.command }}
+            $CMD

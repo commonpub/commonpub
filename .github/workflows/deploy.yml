@@ -51,7 +51,7 @@ jobs:
             # Migration files live under packages/schema/migrations/ and ship in the
             # image at /app/schema/migrations/. The `drizzle` schema table tracks
             # which migrations have been applied.
-            docker compose -f docker-compose.prod.yml exec -T app node scripts/db-migrate.mjs --config=drizzle.config.js 2>&1 | tee /tmp/dbmigrate.log \
+            docker compose -f docker-compose.prod.yml exec -T app node scripts/db-migrate.mjs 2>&1 | tee /tmp/dbmigrate.log \
               || { echo "::error::db:migrate failed — see log above"; cat /tmp/dbmigrate.log; exit 1; }
             docker image prune -f
             # Post-deploy smoke test — verify app is responding
