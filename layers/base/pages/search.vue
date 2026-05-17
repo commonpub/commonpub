@@ -512,7 +512,7 @@ const { data: relatedCommunities } = await useFetch('/api/hubs', {
   font-size: 15px;
   font-weight: 500;
   color: var(--text);
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: var(--font-sans);
   outline: none;
   transition: border-color 0.15s, box-shadow 0.15s;
 }

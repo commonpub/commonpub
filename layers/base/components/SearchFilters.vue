@@ -156,7 +156,7 @@ function removeTag(tag: string): void {
   padding: 7px 10px;
   font-size: 12px;
   color: var(--text);
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: var(--font-sans);
   outline: none;
   margin-bottom: 6px;
   transition: border-color 0.15s;

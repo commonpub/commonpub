@@ -21,7 +21,7 @@ const features = useFeatures();
 
 function isFeatureEnabled(featureGate?: string): boolean {
   if (!featureGate) return true;
-  return (features.features as unknown as Record<string, boolean>)?.[featureGate] ?? true;
+  return (features.features.value as unknown as Record<string, boolean>)?.[featureGate] ?? true;
 }
 
 /** Section types that render in the full-width zone (above the 2-column layout) */

@@ -125,7 +125,7 @@ function handleBack(): void {
 
 .cpub-error-btn-primary {
   background: var(--accent, #5b9cf6);
-  color: #fff;
+  color: var(--color-text-inverse, #fff);
   box-shadow: var(--shadow-md);
 }
 

@@ -679,7 +679,7 @@ async function handleReport(): Promise<void> {
   background: none;
   cursor: pointer;
   border-bottom: 3px solid transparent;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: var(--font-sans);
   display: flex;
   align-items: center;
   gap: 6px;

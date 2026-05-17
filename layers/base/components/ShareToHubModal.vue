@@ -14,6 +14,14 @@ const { data: userHubs } = useLazyFetch<{ items: Array<{ id: string; name: strin
 const sharing = ref(false);
 const selectedHub = ref('');
 
+// Parent mounts/unmounts this modal via v-if, so it's always "open" while
+// mounted. A local ref flipped on mount drives useFocusTrap's watcher
+// (false -> true), activating the trap, Esc handler and scroll lock.
+const contentRef = ref<HTMLElement | null>(null);
+const visible = ref(false);
+onMounted(() => { visible.value = true; });
+useFocusTrap(contentRef, () => visible.value, () => emit('close'));
+
 async function handleShare(): Promise<void> {
   if (!selectedHub.value) return;
   sharing.value = true;
@@ -35,9 +43,9 @@ async function handleShare(): Promise<void> {
 
 <template>
   <div class="cpub-modal-backdrop" @click.self="emit('close')">
-    <div class="cpub-modal-content">
+    <div ref="contentRef" class="cpub-modal-content" role="dialog" aria-modal="true" aria-labelledby="cpub-share-hub-title">
       <div class="cpub-modal-header">
-        <h3 class="cpub-modal-title">Share to Hub</h3>
+        <h3 id="cpub-share-hub-title" class="cpub-modal-title">Share to Hub</h3>
         <button class="cpub-modal-close" aria-label="Close" @click="emit('close')"><i class="fa-solid fa-xmark"></i></button>
       </div>
 
