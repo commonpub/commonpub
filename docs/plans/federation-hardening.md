@@ -147,10 +147,26 @@ change (migration count stays 5).
   with a Digest header verify (catches the Part-2 regression that
   unit tests alone will miss).
 
-## Product decisions required before implementation
-1. Item 2: require auth (recommended) vs optional-user + strict tier.
-2. Item 3: flag name (`contentImport`) + default (`true`).
-3. Item 4: extend `SafeFetchOptions` to carry method/headers/body
-   (recommended) vs separate `safeDispatch(request)` export.
-4. Item 5: confirm `@commonpub/protocol` as owner + accept the
-   `@commonpub/server` re-export shim (no consumer break).
+## Product decisions — RESOLVED (session 147, by maintainer)
+
+1. **Item 2 (remote-actor/search auth):** DO NOT require auth — keep
+   public/optional-user. Maintainer: "don't want to restrict this too
+   much." Rely on the existing global federation IP rate-limit
+   (60/min/IP, `infra/security.ts` `DEFAULT_TIERS.federation`); do NOT
+   add `requireAuth` and do NOT add an aggressive per-route tier.
+   Revisit only if abuse is observed in practice.
+2. **Item 3 (import flag):** new top-level flag **`contentImport`**,
+   default **`true`** (added to `config/src/schema.ts` +
+   types.ts + `useFeatures` flat list + admin UI; gate
+   `import.post.ts` first line).
+3. **Item 4 (safeFetch API):** **extend `SafeFetchOptions`** to carry
+   `method`/`headers`/`body` (or accept a `Request`) — single
+   hardened path for signed AP GET/POST.
+4. **Item 5 (SSRF module owner):** **`@commonpub/protocol`** owns the
+   consolidated module; `@commonpub/server` re-exports the existing
+   public names (`isPrivateUrl`/`safeFetch`/`safeFetchBinary`/
+   `SafeFetchOptions`) so no consumer breaks.
+
+Implementation gate is now CLEARED. Sequencing unchanged (5→1→4→6→7,
++2/3 parallel); note Item 2 becomes a no-op (no code change — the
+existing global rate limit stands) per decision 1.
