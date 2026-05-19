@@ -40,10 +40,15 @@ const isOwner = computed(() => user.value?.id === content.value?.author?.id);
 
 // Estimate reading time (~200 words per minute)
 const readTime = computed(() => {
-  if (!content.value?.content) return undefined;
-  const blocks = content.value.content as BlockTuple[];
+  // Explainer document-format content is an object ({hero,sections,…}),
+  // not a BlockTuple[] — only blog/project store an array. Guard the
+  // for…of: iterating the object threw "not iterable" and 500'd SSR for
+  // every document-format explainer.
+  const raw = content.value?.content;
+  if (!Array.isArray(raw)) return undefined;
+  const blocks = raw as BlockTuple[];
   let words = 0;
-  for (const [type, data] of blocks) {
+  for (const [, data] of blocks) {
     // Extract text from any string field in the block data
     for (const val of Object.values(data)) {
       if (typeof val === 'string' && val.trim()) {
