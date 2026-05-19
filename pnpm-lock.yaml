@@ -530,6 +530,9 @@ importers:
       jose:
         specifier: ^6.2.1
         version: 6.2.2
+      undici:
+        specifier: ^7.24.7
+        version: 7.24.7
       zod:
         specifier: ^4.3.6
         version: 4.3.6

@@ -1,82 +1,10 @@
 import { z } from 'zod';
+import { isPrivateUrl } from './ssrf.js';
 
-// --- SSRF Protection ---
-
-/** Reserved/private IP ranges that must never be fetched */
-const PRIVATE_IP_PATTERNS = [
-  /^127\./,                           // Loopback
-  /^10\./,                            // RFC 1918 Class A
-  /^172\.(1[6-9]|2\d|3[01])\./,      // RFC 1918 Class B
-  /^192\.168\./,                      // RFC 1918 Class C
-  /^169\.254\./,                      // Link-local
-  /^0\./,                             // Current network
-  /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./, // Shared address space (CGN)
-  /^198\.1[89]\./,                    // Benchmarking
-  /^192\.0\.0\./,                     // IETF Protocol assignments
-  /^192\.0\.2\./,                     // TEST-NET-1
-  /^198\.51\.100\./,                  // TEST-NET-2
-  /^203\.0\.113\./,                   // TEST-NET-3
-  /^22[4-9]\./,                       // 224.0.0.0+ multicast / reserved
-  /^23\d\./,
-  /^24\d\./,
-  /^25[0-5]\./,
-  /^::1$/,                            // IPv6 loopback
-  /^::$/,                             // IPv6 unspecified
-  /^::ffff:/i,                        // IPv4-mapped IPv6 (handled below too)
-  /^fc/i,                             // IPv6 unique local
-  /^fd/i,                             // IPv6 unique local
-  /^fe[89ab]/i,                       // IPv6 link-local fe80::/10
-  /^ff/i,                             // IPv6 multicast
-];
-
-/**
- * Numeric-host SSRF encodings `new URL()` accepts but no public host uses:
- * dotless decimal (2130706433), hex (0x7f000001), octal-leading segments.
- */
-function isSuspiciousNumericHost(host: string): boolean {
-  if (/^\d+$/.test(host)) return true;
-  if (/^0x[0-9a-f]+$/i.test(host)) return true;
-  if (/^0\d+(\.\d+){0,3}$/.test(host)) return true;
-  if (/^0x[0-9a-f]+(\.[0-9a-fx]+){0,3}$/i.test(host)) return true;
-  return false;
-}
-
-const BLOCKED_HOSTNAMES = new Set([
-  'localhost',
-  'localhost.localdomain',
-  'metadata.google.internal',       // GCP metadata
-  'metadata.internal',
-]);
-
-/** Check if a URL points to a private/internal resource */
-function isPrivateUrl(urlString: string): boolean {
-  let parsed: URL;
-  try {
-    parsed = new URL(urlString);
-  } catch {
-    return true; // Malformed URLs are blocked
-  }
-
-  // Must be HTTPS for production ActivityPub
-  if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
-    return true;
-  }
-
-  const hostname = parsed.hostname.toLowerCase();
-  // Strip IPv6 brackets for regex matching (Node URL parser keeps them: [::1])
-  const hostnameForCheck = hostname.replace(/^\[|\]$/g, '');
-
-  if (!hostnameForCheck) return true;
-  if (BLOCKED_HOSTNAMES.has(hostnameForCheck)) return true;
-  if (isSuspiciousNumericHost(hostnameForCheck)) return true;
-
-  // Check IP patterns (if hostname is an IP address)
-  for (const pattern of PRIVATE_IP_PATTERNS) {
-    if (pattern.test(hostnameForCheck)) return true;
-  }
-
-  return false;
-}
+// SSRF protection is consolidated in ./ssrf (federation-hardening Item 5).
+// `resolveActor`/`resolveActorViaWebFinger` keep their per-hop
+// `isPrivateUrl` string check; callers that want DNS-rebind protection
+// inject a `fetchFn` backed by `safeFetch`'s pinned dispatcher.
 
 /** Minimal AP actor shape for validation */
 const apActorSchema = z.object({
