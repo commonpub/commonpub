@@ -227,7 +227,10 @@ const tocActiveId = ref('');
 function scrollToHeading(id: string): void {
   const el = document.getElementById(id);
   if (el) {
-    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // CSS scroll-behavior is reduced-motion-gated in base.css, but the JS
+    // smooth option ignores that — honour the preference explicitly.
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    el.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
     tocActiveId.value = id;
   }
 }

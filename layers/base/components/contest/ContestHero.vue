@@ -139,8 +139,11 @@ const isEnded = computed(() => c.value?.status === 'completed' || c.value?.statu
   --hero-bg: var(--text);
   --hero-text: var(--color-text-inverse);
   --hero-text-dim: var(--text-faint);
-  --hero-border: rgba(255, 255, 255, 0.15);
-  --hero-surface: rgba(255, 255, 255, 0.06);
+  /* Alpha of the hero foreground so the structure lines/surfaces track
+     the inverted hero in both themes (white-on-dark in light mode,
+     dark-on-light in dark mode) instead of vanishing white-on-white. */
+  --hero-border: color-mix(in srgb, var(--hero-text) 18%, transparent);
+  --hero-surface: color-mix(in srgb, var(--hero-text) 7%, transparent);
   position: relative; overflow: hidden; background: var(--hero-bg); padding: 56px 0 48px;
 }
 .cpub-hero-pattern { position: absolute; inset: 0; }

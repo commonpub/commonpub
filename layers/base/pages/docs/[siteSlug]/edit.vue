@@ -1229,7 +1229,7 @@ async function createVersion(): Promise<void> {
   position: fixed;
   inset: 0;
   z-index: 10000;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--color-surface-overlay, rgba(0, 0, 0, 0.5));
   display: flex;
   align-items: flex-start;
   justify-content: center;
@@ -1402,7 +1402,7 @@ async function createVersion(): Promise<void> {
 }
 
 .cpub-settings-danger {
-  background: rgba(224, 64, 48, 0.03);
+  background: var(--red-bg);
 }
 
 .cpub-settings-danger .cpub-settings-section-title {
@@ -1410,7 +1410,7 @@ async function createVersion(): Promise<void> {
 }
 
 .cpub-settings-danger-text {
-  font-size: 12px;
+  font-size: var(--text-xs);
   color: var(--text-dim);
   margin-bottom: 10px;
 }
