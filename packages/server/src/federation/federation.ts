@@ -30,7 +30,7 @@ import {
   type ResolvedActor,
 } from '@commonpub/protocol';
 import type { DB } from '../types.js';
-import { isPrivateUrl } from '../import/ssrf.js';
+import { isPrivateUrl, safeFetch } from '../import/ssrf.js';
 
 // --- Keypair Management ---
 
@@ -175,15 +175,12 @@ export async function resolveRemoteActor(db: DB, actorUri: string): Promise<Reso
     !isPrivateUrl(actor.followers)
   ) {
     try {
-      const collRes = await fetch(actor.followers, {
-        headers: { Accept: 'application/activity+json, application/ld+json' },
-        redirect: 'manual',
+      const { html } = await safeFetch(actor.followers, {
+        accept: 'application/activity+json, application/ld+json',
       });
-      if (collRes.ok) {
-        const coll = await collRes.json() as { totalItems?: number };
-        if (typeof coll.totalItems === 'number') {
-          followerCount = coll.totalItems;
-        }
+      const coll = JSON.parse(html) as { totalItems?: number };
+      if (typeof coll.totalItems === 'number') {
+        followerCount = coll.totalItems;
       }
     } catch { /* non-fatal — follower count stays unknown */ }
   }

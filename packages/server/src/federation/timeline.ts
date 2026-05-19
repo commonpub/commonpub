@@ -11,6 +11,7 @@ import {
 } from '@commonpub/schema';
 import { buildLikeActivity, buildAnnounceActivity, buildCreateActivity, contentToNote } from '@commonpub/protocol';
 import type { DB } from '../types.js';
+import { safeFetch } from '../import/ssrf.js';
 
 /** A federated content item with resolved actor info */
 export interface FederatedContentItem {
@@ -544,17 +545,11 @@ export async function repairFederatedContentTypes(
 
   for (const row of rows) {
     try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 15_000);
-      const response = await fetch(row.objectUri, {
-        headers: { Accept: 'application/activity+json, application/ld+json' },
-        signal: controller.signal,
+      const { html } = await safeFetch(row.objectUri, {
+        accept: 'application/activity+json, application/ld+json',
+        timeoutMs: 15_000,
       });
-      clearTimeout(timeout);
-
-      if (!response.ok) { errors++; continue; }
-
-      const object = await response.json() as Record<string, unknown>;
+      const object = JSON.parse(html) as Record<string, unknown>;
       const cpubType = typeof object['cpub:type'] === 'string' ? object['cpub:type'] : null;
 
       if (cpubType) {

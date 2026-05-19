@@ -27,7 +27,7 @@ import { resolveRemoteActor } from './federation.js';
 import { matchMirrorForContent } from './mirroring.js';
 import { handleHubFollow, handleHubUnfollow } from './hubFederation.js';
 import { createNotification } from '../notification/notification.js';
-import { isPrivateUrl } from '../import/ssrf.js';
+import { isPrivateUrl, safeFetch } from '../import/ssrf.js';
 
 /** Resolve a remote actor's display name from cache, falling back to URI username segment */
 async function resolveRemoteActorName(db: DB, actorUri: string): Promise<string> {
@@ -1264,12 +1264,15 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
                 console.warn('[inbox] Refusing to dereference private/reserved objectUri:', objectUri);
               } else {
               // Dereference the announced Note to get its content
-              const noteResponse = await fetch(objectUri, {
-                headers: { 'Accept': 'application/activity+json, application/ld+json' },
-                signal: AbortSignal.timeout(10_000),
-              });
-              if (noteResponse.ok) {
-                const note = await noteResponse.json() as Record<string, unknown>;
+              let note: Record<string, unknown> = {};
+              try {
+                const { html } = await safeFetch(objectUri, {
+                  accept: 'application/activity+json, application/ld+json',
+                  timeoutMs: 10_000,
+                });
+                note = JSON.parse(html) as Record<string, unknown>;
+              } catch { /* best effort — leave note empty to skip below */ }
+              if (Object.keys(note).length > 0) {
                 const noteContent = typeof note.content === 'string' ? sanitizeHtml(note.content) : '';
 
                 // AP spec: attributedTo can be string, object with id, or array

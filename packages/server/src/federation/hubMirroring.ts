@@ -23,6 +23,7 @@ import type {
   SharedContentMeta,
 } from '../types.js';
 import { normalizePagination, escapeLike, USER_REF_SELECT } from '../query.js';
+import { safeFetch } from '../import/ssrf.js';
 
 // --- Federated Hub CRUD ---
 
@@ -171,33 +172,29 @@ export async function refreshFederatedHubMetadata(
     let cpubMemberCount: number | undefined;
     let cpubPostCount: number | undefined;
     try {
-      const response = await fetch(actorUri, {
-        headers: { Accept: 'application/activity+json, application/ld+json' },
-        signal: AbortSignal.timeout(10_000),
+      const { html } = await safeFetch(actorUri, {
+        accept: 'application/activity+json, application/ld+json',
+        timeoutMs: 10_000,
       });
-      if (response.ok) {
-        const actorJson = await response.json() as Record<string, unknown>;
-        if (typeof actorJson['cpub:memberCount'] === 'number') {
-          cpubMemberCount = actorJson['cpub:memberCount'];
-        }
-        if (typeof actorJson['cpub:postCount'] === 'number') {
-          cpubPostCount = actorJson['cpub:postCount'];
-        }
-        // Also check AP followers collection totalItems
-        if (!cpubMemberCount && typeof actorJson.followers === 'string') {
-          try {
-            const fResponse = await fetch(actorJson.followers, {
-              headers: { Accept: 'application/activity+json' },
-              signal: AbortSignal.timeout(10_000),
-            });
-            if (fResponse.ok) {
-              const fJson = await fResponse.json() as Record<string, unknown>;
-              if (typeof fJson.totalItems === 'number' && fJson.totalItems > 0) {
-                cpubMemberCount = fJson.totalItems;
-              }
-            }
-          } catch { /* best effort */ }
-        }
+      const actorJson = JSON.parse(html) as Record<string, unknown>;
+      if (typeof actorJson['cpub:memberCount'] === 'number') {
+        cpubMemberCount = actorJson['cpub:memberCount'];
+      }
+      if (typeof actorJson['cpub:postCount'] === 'number') {
+        cpubPostCount = actorJson['cpub:postCount'];
+      }
+      // Also check AP followers collection totalItems
+      if (!cpubMemberCount && typeof actorJson.followers === 'string') {
+        try {
+          const { html: fHtml } = await safeFetch(actorJson.followers, {
+            accept: 'application/activity+json',
+            timeoutMs: 10_000,
+          });
+          const fJson = JSON.parse(fHtml) as Record<string, unknown>;
+          if (typeof fJson.totalItems === 'number' && fJson.totalItems > 0) {
+            cpubMemberCount = fJson.totalItems;
+          }
+        } catch { /* best effort */ }
       }
     } catch { /* best effort — fall back to cached data */ }
 
@@ -219,18 +216,16 @@ export async function refreshFederatedHubMetadata(
 
     // Sync resources and products collections (best effort)
     try {
-      const response = await fetch(actorUri, {
-        headers: { Accept: 'application/activity+json, application/ld+json' },
-        signal: AbortSignal.timeout(10_000),
+      const { html } = await safeFetch(actorUri, {
+        accept: 'application/activity+json, application/ld+json',
+        timeoutMs: 10_000,
       });
-      if (response.ok) {
-        const actorJson = await response.json() as Record<string, unknown>;
-        if (typeof actorJson['cpub:resources'] === 'string') {
-          await syncFederatedHubCollection(db, hubId, actorJson['cpub:resources'] as string, 'resources');
-        }
-        if (typeof actorJson['cpub:products'] === 'string') {
-          await syncFederatedHubCollection(db, hubId, actorJson['cpub:products'] as string, 'products');
-        }
+      const actorJson = JSON.parse(html) as Record<string, unknown>;
+      if (typeof actorJson['cpub:resources'] === 'string') {
+        await syncFederatedHubCollection(db, hubId, actorJson['cpub:resources'] as string, 'resources');
+      }
+      if (typeof actorJson['cpub:products'] === 'string') {
+        await syncFederatedHubCollection(db, hubId, actorJson['cpub:products'] as string, 'products');
       }
     } catch { /* best effort — collections sync is non-critical */ }
   } catch (err) {
@@ -1458,13 +1453,11 @@ async function syncFederatedHubCollection(
   type: 'resources' | 'products',
 ): Promise<void> {
   try {
-    const response = await fetch(collectionUri, {
-      headers: { Accept: 'application/activity+json, application/ld+json' },
-      signal: AbortSignal.timeout(15_000),
+    const { html } = await safeFetch(collectionUri, {
+      accept: 'application/activity+json, application/ld+json',
+      timeoutMs: 15_000,
     });
-    if (!response.ok) return;
-
-    const collection = await response.json() as Record<string, unknown>;
+    const collection = JSON.parse(html) as Record<string, unknown>;
     const items = (collection.orderedItems ?? []) as Array<Record<string, unknown>>;
     if (!Array.isArray(items) || items.length === 0) return;
 
