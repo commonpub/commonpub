@@ -11,7 +11,28 @@ monorepo working period. For session-level detail, see [`docs/sessions/`](./docs
 
 Monorepo state at time of writing: schema 0.16.0, server 2.54.1, config 0.13.0,
 layer 0.21.10, ui 0.8.5, protocol 0.10.1, editor 0.7.9, explainer 0.7.13,
-learning 0.5.2, docs 0.6.3, auth 0.6.0, infra 0.7.1, test-utils 0.5.5.
+learning 0.5.2, docs 0.6.3, auth 0.6.0, infra 0.7.1, test-utils 0.5.5,
+explainer 0.7.14.
+
+### Session 149 audit follow-ups (committed locally, NOT shipped)
+
+Deep certainty audit caught two issues to fix before shipping 149:
+
+1. **Admin backfill column set extended** — `/api/admin/storage/
+   backfill-cdn-urls` previously only rewrote files.public_url +
+   contentItems.coverImageUrl + learningPaths.coverImageUrl; the
+   ImageUpload pipeline ALSO writes Spaces URLs into users.avatar_url/
+   banner_url, hubs.icon_url/banner_url, contests.banner_url,
+   contentItems.banner_url, and products.image_url. The tool now
+   rewrites all 10 local upload-target columns (federation-table
+   remote URLs deliberately excluded).
+2. **`@commonpub/explainer` 0.7.13 → 0.7.14** — hardened
+   `isExplainerDocument` to require `hero` is a non-null object
+   (previously `'hero' in data` admitted `hero:null`, which then
+   null-dereffed in HeroRenderer → SSR 500, same class as the readTime
+   hotfix). `explainerDocumentSchema` is dead code on the content
+   write path, so this guard is the load-bearing defence at the
+   render boundary.
 
 ### Session 149 — P0: pinned-lookup dispatcher broke ALL safeFetch (LIVE)
 

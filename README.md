@@ -202,7 +202,7 @@ All 12 published to npm as `@commonpub/*`. Latest versions as of 2026-05-19 (ses
 | [`@commonpub/ui`](packages/ui/README.md) | 0.8.5 | 22 headless Vue 3 components, 5 themes, CSS token system |
 | [`@commonpub/editor`](packages/editor/README.md) | 0.7.9 | TipTap extensions, 20 block types, BlockTuple serialization |
 | [`@commonpub/docs`](packages/docs/README.md) | 0.6.3 | Markdown pipeline, versioning, navigation, search adapters |
-| [`@commonpub/explainer`](packages/explainer/README.md) | 0.7.13 | Interactive sections, quiz engine, progress tracking, HTML export |
+| [`@commonpub/explainer`](packages/explainer/README.md) | 0.7.14 | Interactive sections, quiz engine, progress tracking, HTML export |
 | [`@commonpub/learning`](packages/learning/README.md) | 0.5.2 | Learning path engine, progress calculation, certificates |
 | [`@commonpub/infra`](packages/infra/README.md) | 0.7.1 | S3/local storage (DO Spaces CDN), image processing, email adapters, security |
 | [`@commonpub/test-utils`](packages/test-utils/README.md) | 0.5.5 | Test factories and mock configuration |
