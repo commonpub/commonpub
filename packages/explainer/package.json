@@ -47,7 +47,9 @@
     "dist/",
     "vue/",
     "modules/",
-    "!dist/__tests__/",
+    "!**/__tests__/",
+    "!**/*.test.*",
+    "!**/*.spec.*",
     "README.md",
     "LICENSE"
   ],
