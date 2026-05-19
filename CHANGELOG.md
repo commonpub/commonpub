@@ -11,8 +11,20 @@ monorepo working period. For session-level detail, see [`docs/sessions/`](./docs
 
 Monorepo state at time of writing: schema 0.16.0, server 2.54.1, config 0.13.0,
 layer 0.21.10, ui 0.8.5, protocol 0.10.1, editor 0.7.9, explainer 0.7.13,
-learning 0.5.2, docs 0.6.3, auth 0.6.0, infra 0.7.1, test-utils 0.5.5,
-explainer 0.7.14.
+learning 0.5.2, docs 0.6.3, auth 0.6.0, infra 0.7.1, test-utils 0.5.6,
+explainer 0.7.14, editor 0.7.10.
+
+### Session 149 audit follow-up #3 — stale schema pin
+
+`packages/editor` (0.7.9 → 0.7.10) and `packages/test-utils` (0.5.5
+→ 0.5.6): both pinned `@commonpub/schema: ^0.14.3` while schema is
+`0.16.0` (^0.14.3 = `>=0.14.3 <0.15.0`, does NOT satisfy 0.16.0).
+In-monorepo + thin-app installs were fine because pnpm workspace
+linking dedupes — but a fresh external `npm install @commonpub/editor`
+could pull a second `@commonpub/schema@0.14.x` alongside `0.16.0` and
+trigger Drizzle table-identity drift. Both deps now `workspace:*`
+(matches every other in-monorepo @commonpub/* dep), so pnpm publish
+rewrites to the exact current schema version.
 
 ### Session 149 audit follow-ups (committed locally, NOT shipped)
 
