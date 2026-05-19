@@ -297,16 +297,26 @@ export interface ExplainerDocument {
   };
 }
 
-/** Type guard: checks if data is an ExplainerDocument */
+/**
+ * Type guard: checks if data is an ExplainerDocument.
+ *
+ * Hardened in session 149: requires `hero` to be a non-null object.
+ * Previously `'hero' in data` was sufficient, so `hero:null` (or any
+ * non-object hero) passed the guard, the explainer detail page took
+ * the document-format branch, and HeroRenderer's `{{ hero.title }}`
+ * null-dereffed → SSR 500. Same 500-class as the readTime hotfix; the
+ * explainerDocumentSchema is dead code on the write path
+ * (`content: z.unknown()` validator), so this guard is the
+ * load-bearing defence at the render boundary.
+ */
 export function isExplainerDocument(data: unknown): data is ExplainerDocument {
+  if (typeof data !== 'object' || data === null) return false;
+  const d = data as Record<string, unknown>;
   return (
-    typeof data === 'object' &&
-    data !== null &&
-    'version' in data &&
-    (data as Record<string, unknown>).version === 2 &&
-    'sections' in data &&
-    Array.isArray((data as Record<string, unknown>).sections) &&
-    'hero' in data
+    d.version === 2 &&
+    Array.isArray(d.sections) &&
+    typeof d.hero === 'object' &&
+    d.hero !== null
   );
 }
 
