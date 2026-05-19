@@ -67,7 +67,8 @@ async function backfillCdn(dryRun: boolean): Promise<void> {
     );
     const counts = r.wouldRewrite ?? r.rewritten ?? {};
     const total = Object.values(counts).reduce((a, b) => a + b, 0);
-    cdnResult.value = `${r.dryRun ? 'Would rewrite' : 'Rewrote'} ${total} URL(s) → ${r.hosts.cdn} (files ${counts.files ?? 0}, content ${counts.contentItems ?? 0}, paths ${counts.learningPaths ?? 0}).`;
+    const nonZero = Object.entries(counts).filter(([, v]) => v > 0).map(([k, v]) => `${k}=${v}`).join(', ');
+    cdnResult.value = `${r.dryRun ? 'Would rewrite' : 'Rewrote'} ${total} URL(s) → ${r.hosts.cdn}${nonZero ? ` (${nonZero})` : ''}.`;
   } catch (err: unknown) {
     cdnResult.value = `Failed: ${err instanceof Error ? err.message : 'see server logs'}`;
   } finally {
