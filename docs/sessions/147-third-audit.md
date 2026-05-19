@@ -1,7 +1,22 @@
 # Session 147 — Third full-repo audit (convergence pass)
 
-Date: 2026-05-18. Branch: `main`. **Fixes applied + verified locally;
-NOT yet committed/published/deployed (paused for go-ahead).**
+Date: 2026-05-18. Branch: `main`. **SHIPPED + verified live on all
+three instances.**
+
+## Shipped
+
+5 atomic commits (commonpub `main` d42e586..e3176a3). Published
+`@commonpub/explainer@0.7.13` then `@commonpub/layer@0.21.7` (dep
+order; both npm-propagation-confirmed). CLI pin `^0.21.7`
+(template.rs + tests/cli.rs; cargo 26/26). Dependants: deveco
+`32c300b..469c204`, heatsync `7cf27c6..6c180d2` (its uncommitted
+`commonpub.config.ts` + untracked `ONBOARDING.md` left untouched —
+verified post-commit). **Deploys all success (no SSH flake):**
+commonpub.io 26070181484, deveco.io 26070209417, heatsynclabs.io
+26070227659. Post-deploy `/api/health` 200 + SSR homepages 200 on
+all 3. Gates green: typecheck 26/26, lint 24/24, explainer 191/191,
+layer 47/47, cargo 26/26, sweep 0 unresolved (only the known
+sharp-wasm32 build flake red).
 
 ## Method
 
