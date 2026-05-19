@@ -40,6 +40,36 @@ function updateCta(field: string, value: string): void {
   emit('update:conclusion', { ...c, callToAction: { ...cta, [field]: value } });
 }
 
+// Cover image: upload (POSTs to the layer's /api/files/upload — every
+// CommonPub instance ships that endpoint) OR paste-URL fallback.
+const coverUploading = ref(false);
+const coverError = ref<string>('');
+async function onCoverUpload(e: Event): Promise<void> {
+  const input = e.target as HTMLInputElement;
+  const file = input.files?.[0];
+  if (!file) return;
+  input.value = ''; // allow re-selecting the same file
+  coverError.value = '';
+  coverUploading.value = true;
+  try {
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('purpose', 'cover');
+    const res = await fetch('/api/files/upload', {
+      method: 'POST', body: fd, credentials: 'same-origin',
+    });
+    if (!res.ok) throw new Error(`Upload failed (${res.status})`);
+    const data = await res.json() as { url?: string };
+    if (!data.url) throw new Error('Upload returned no URL');
+    emit('update:hero', 'coverImageUrl', data.url);
+  } catch (err: unknown) {
+    coverError.value = err instanceof Error ? err.message : 'Upload failed';
+  } finally {
+    coverUploading.value = false;
+  }
+}
+function clearCover(): void { emit('update:hero', 'coverImageUrl', ''); }
+
 // Tags
 const tagInput = ref('');
 function addTag(): void {
@@ -66,8 +96,26 @@ function removeTag(tag: string): void {
       </button>
       <div v-if="openSections.has('hero')" class="cpub-dp-body">
         <div class="cpub-dp-field">
-          <label class="cpub-dp-label">Cover Image URL</label>
-          <input class="cpub-dp-input" :value="document.hero.coverImageUrl ?? ''" placeholder="https://..." @input="emit('update:hero', 'coverImageUrl', ($event.target as HTMLInputElement).value)" />
+          <label class="cpub-dp-label">Cover Image</label>
+          <div class="cpub-dp-cover" :class="{ 'has-image': !!document.hero.coverImageUrl }">
+            <img v-if="document.hero.coverImageUrl" :src="document.hero.coverImageUrl" alt="Cover preview" class="cpub-dp-cover-img" />
+            <div v-else class="cpub-dp-cover-empty">
+              <i class="fa-solid fa-image" />
+              <span>No cover image</span>
+            </div>
+          </div>
+          <div class="cpub-dp-cover-actions">
+            <label class="cpub-dp-btn">
+              <i class="fa-solid" :class="coverUploading ? 'fa-circle-notch fa-spin' : 'fa-upload'" />
+              <span>{{ coverUploading ? 'Uploading…' : (document.hero.coverImageUrl ? 'Replace' : 'Upload') }}</span>
+              <input type="file" accept="image/*" class="cpub-sr-only" :disabled="coverUploading" @change="onCoverUpload" />
+            </label>
+            <button v-if="document.hero.coverImageUrl" type="button" class="cpub-dp-btn cpub-dp-btn-ghost" @click="clearCover">
+              <i class="fa-solid fa-xmark" /> Remove
+            </button>
+          </div>
+          <p v-if="coverError" class="cpub-dp-error">{{ coverError }}</p>
+          <input class="cpub-dp-input" :value="document.hero.coverImageUrl ?? ''" placeholder="…or paste an image URL" @input="emit('update:hero', 'coverImageUrl', ($event.target as HTMLInputElement).value)" />
         </div>
         <div class="cpub-dp-field">
           <label class="cpub-dp-label">Highlight Phrase</label>
@@ -187,4 +235,17 @@ function removeTag(tag: string): void {
 .cpub-dp-check input { accent-color: var(--accent); }
 .cpub-dp-toggle { margin-left: auto; }
 .cpub-dp-toggle input { accent-color: var(--accent); }
+
+.cpub-dp-cover { width: 100%; aspect-ratio: 16 / 9; border: var(--border-width-default) solid var(--border); background: var(--surface2); display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.cpub-dp-cover.has-image { background: var(--surface); }
+.cpub-dp-cover-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cpub-dp-cover-empty { display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--text-faint); font-size: 10px; font-family: var(--font-mono); }
+.cpub-dp-cover-empty i { font-size: 18px; }
+.cpub-dp-cover-actions { display: flex; gap: 6px; }
+.cpub-dp-btn { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; background: var(--surface); border: var(--border-width-default) solid var(--border); color: var(--text); font-size: 11px; font-family: var(--font-mono); cursor: pointer; }
+.cpub-dp-btn:hover { border-color: var(--accent); color: var(--accent); }
+.cpub-dp-btn input[type="file"] { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
+.cpub-dp-btn-ghost { background: none; }
+.cpub-dp-error { color: var(--red, #e04030); font-size: 11px; margin: 2px 0 0; }
+.cpub-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
 </style>
