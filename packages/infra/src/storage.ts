@@ -106,16 +106,50 @@ export class S3StorageAdapter implements StorageAdapter {
     secretAccessKey: string;
     publicUrl?: string;
     forcePathStyle?: boolean;
+    /**
+     * Serve assets through the DigitalOcean Spaces CDN edge. Only takes
+     * effect when `publicUrl` is unset AND `endpoint` is a DO Spaces
+     * endpoint — it rewrites the derived URL to the virtual-host
+     * `<bucket>.<region>.cdn.digitaloceanspaces.com` form. Requires the
+     * CDN to be enabled on the Space (DO console → Space → Settings).
+     * No effect for MinIO/AWS or when an explicit `publicUrl` is given,
+     * so existing instances are unaffected unless they opt in.
+     */
+    cdn?: boolean;
   }) {
     this.bucket = config.bucket;
     this.config = config;
-    // DO Spaces: https://<bucket>.<region>.digitaloceanspaces.com
-    // MinIO: use the endpoint directly
-    // AWS S3: https://<bucket>.s3.<region>.amazonaws.com
-    this.publicUrl = config.publicUrl
-      ?? (config.endpoint
-        ? `${config.endpoint}/${config.bucket}`
-        : `https://${config.bucket}.s3.${config.region}.amazonaws.com`);
+    // Explicit publicUrl always wins. Otherwise derive:
+    //   DO Spaces (endpoint `https://<region>.digitaloceanspaces.com`):
+    //     origin → https://<bucket>.<region>.digitaloceanspaces.com
+    //     cdn    → https://<bucket>.<region>.cdn.digitaloceanspaces.com
+    //   MinIO / other S3-compatible (endpoint set): path-style endpoint/bucket
+    //   AWS S3: https://<bucket>.s3.<region>.amazonaws.com
+    this.publicUrl = config.publicUrl ?? S3StorageAdapter.derivePublicUrl(config);
+  }
+
+  private static derivePublicUrl(c: {
+    bucket: string;
+    region: string;
+    endpoint?: string;
+    cdn?: boolean;
+  }): string {
+    // Opt-in DO Spaces CDN: only diverges from the original derivation
+    // when `cdn` is explicitly enabled and the endpoint is a DO Spaces
+    // endpoint — every other case keeps byte-identical legacy behaviour
+    // (strictly zero-regression for existing instances).
+    if (c.cdn && c.endpoint) {
+      const spaces = c.endpoint.match(
+        /^https?:\/\/([a-z0-9-]+)\.digitaloceanspaces\.com\/?$/i,
+      );
+      if (spaces) {
+        const region = c.region || spaces[1]!;
+        return `https://${c.bucket}.${region}.cdn.digitaloceanspaces.com`;
+      }
+    }
+    return c.endpoint
+      ? `${c.endpoint}/${c.bucket}`
+      : `https://${c.bucket}.s3.${c.region}.amazonaws.com`;
   }
 
   private async getClient(): Promise<import('@aws-sdk/client-s3').S3Client> {
@@ -193,6 +227,11 @@ export class S3StorageAdapter implements StorageAdapter {
  *   S3_ACCESS_KEY   — access key ID
  *   S3_SECRET_KEY   — secret access key
  *   S3_PUBLIC_URL   — public URL prefix (auto-derived if not set)
+ *   S3_CDN          — "true" to serve via the DO Spaces CDN edge
+ *                     (virtual-host <bucket>.<region>.cdn.digitaloceanspaces.com).
+ *                     Only applies when S3_PUBLIC_URL is unset and the
+ *                     endpoint is a DO Spaces endpoint; enable CDN on the
+ *                     Space first. No effect otherwise.
  *   S3_FORCE_PATH_STYLE — set to "true" for MinIO (default: auto based on endpoint)
  *   UPLOAD_DIR      — local upload directory (default: ./uploads)
  *   SITE_URL        — base URL for local uploads (default: http://localhost:3000)
@@ -218,6 +257,7 @@ export function createStorageFromEnv(): StorageAdapter {
       accessKeyId,
       secretAccessKey,
       publicUrl: process.env.S3_PUBLIC_URL || undefined,
+      cdn: process.env.S3_CDN === 'true',
       forcePathStyle: process.env.S3_FORCE_PATH_STYLE === 'true',
     });
   }

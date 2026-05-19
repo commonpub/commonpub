@@ -7,6 +7,7 @@ import {
   validateUpload,
   isProcessableImage,
   LocalStorageAdapter,
+  S3StorageAdapter,
   createStorageFromEnv,
   ALLOWED_MIME_TYPES,
   ALLOWED_IMAGE_TYPES,
@@ -261,5 +262,50 @@ describe('createStorageFromEnv', () => {
     delete process.env.S3_ACCESS_KEY;
     delete process.env.S3_SECRET_KEY;
     expect(() => createStorageFromEnv()).toThrow(/S3_BUCKET is set but/);
+  });
+});
+
+describe('S3StorageAdapter public URL derivation', () => {
+  const creds = { accessKeyId: 'k', secretAccessKey: 's' };
+
+  it('explicit publicUrl always wins (existing instances unaffected)', () => {
+    const a = new S3StorageAdapter({
+      bucket: 'b', region: 'nyc3',
+      endpoint: 'https://nyc3.digitaloceanspaces.com',
+      publicUrl: 'https://b.nyc3.cdn.digitaloceanspaces.com',
+      cdn: false, ...creds,
+    });
+    expect(a.getUrl('cover/x.png')).toBe('https://b.nyc3.cdn.digitaloceanspaces.com/cover/x.png');
+  });
+
+  it('DO Spaces + cdn=true derives the CDN virtual-host URL', () => {
+    const a = new S3StorageAdapter({
+      bucket: 'heatsynclabs-uploads', region: 'nyc3',
+      endpoint: 'https://nyc3.digitaloceanspaces.com', cdn: true, ...creds,
+    });
+    expect(a.getUrl('cover/x.png')).toBe(
+      'https://heatsynclabs-uploads.nyc3.cdn.digitaloceanspaces.com/cover/x.png',
+    );
+  });
+
+  it('DO Spaces + cdn=false keeps byte-identical legacy path-style (zero-regression)', () => {
+    const a = new S3StorageAdapter({
+      bucket: 'b', region: 'nyc3',
+      endpoint: 'https://nyc3.digitaloceanspaces.com', cdn: false, ...creds,
+    });
+    expect(a.getUrl('k')).toBe('https://nyc3.digitaloceanspaces.com/b/k');
+  });
+
+  it('MinIO endpoint unchanged even with cdn=true (DO-only)', () => {
+    const a = new S3StorageAdapter({
+      bucket: 'b', region: 'us-east-1',
+      endpoint: 'http://localhost:9000', cdn: true, ...creds,
+    });
+    expect(a.getUrl('k')).toBe('http://localhost:9000/b/k');
+  });
+
+  it('AWS (no endpoint) unchanged', () => {
+    const a = new S3StorageAdapter({ bucket: 'b', region: 'us-west-2', cdn: true, ...creds });
+    expect(a.getUrl('k')).toBe('https://b.s3.us-west-2.amazonaws.com/k');
   });
 });
