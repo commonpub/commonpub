@@ -10,8 +10,25 @@ monorepo working period. For session-level detail, see [`docs/sessions/`](./docs
 ## Unreleased (sessions 108–149, through 2026-05-19)
 
 Monorepo state at time of writing: schema 0.16.0, server 2.54.1, config 0.13.0,
-layer 0.21.10, ui 0.8.5, protocol 0.10.0, editor 0.7.9, explainer 0.7.13,
+layer 0.21.10, ui 0.8.5, protocol 0.10.1, editor 0.7.9, explainer 0.7.13,
 learning 0.5.2, docs 0.6.3, auth 0.6.0, infra 0.7.1, test-utils 0.5.5.
+
+### Session 149 — P0: pinned-lookup dispatcher broke ALL safeFetch (LIVE)
+
+`@commonpub/protocol` 0.10.0 → **0.10.1**. The session-148 pinned
+SSRF dispatcher returned the classic `(err, address, family)` lookup
+form; undici's custom `connect.lookup` invokes with `all` semantics
+and expects `callback(err, LookupAddress[])`. undici read
+`addresses[0].address` off a string → `ERR_INVALID_IP_ADDRESS:
+undefined` → **every `safeFetch`/`safeFetchBinary` failed in prod**
+(URL content import + remote-image fetch) on all three instances
+since 0.10.0 deployed. Session-148 gates missed it because no test
+exercised a real fetch through the dispatcher (the integration test
+the plan had explicitly deferred). Fixed to return the validated
+`LookupAddress[]`; SSRF (literal/RFC1918/metadata/DNS-rebind) still
+blocked. Locked by a network-free contract regression test
+(`ssrf-pinned-lookup.test.ts`) + an empirical safeFetch check.
+Caught by the maintainer-requested deep certainty audit.
 
 ### Session 149 — DO Spaces CDN support + scaffolder storage fix (2026-05-19)
 

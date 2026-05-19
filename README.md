@@ -197,7 +197,7 @@ All 12 published to npm as `@commonpub/*`. Latest versions as of 2026-05-19 (ses
 | [`@commonpub/schema`](packages/schema/README.md) | 0.16.0 | 79 Drizzle tables, 41 enums, 50+ Zod validators |
 | [`@commonpub/config`](packages/config/README.md) | 0.13.0 | `defineCommonPubConfig()` factory, 17 feature flags (+5 identity sub-flags) |
 | [`@commonpub/server`](packages/server/README.md) | 2.54.1 | Framework-agnostic business logic (20+ modules, transactions, lifecycle hooks) |
-| [`@commonpub/protocol`](packages/protocol/README.md) | 0.10.0 | ActivityPub types, HTTP signatures, WebFinger, NodeInfo, OAuth2, SSRF-safe fetch |
+| [`@commonpub/protocol`](packages/protocol/README.md) | 0.10.1 | ActivityPub types, HTTP signatures, WebFinger, NodeInfo, OAuth2, SSRF-safe fetch |
 | [`@commonpub/auth`](packages/auth/README.md) | 0.6.0 | Better Auth wrapper, guards, AP Actor SSO (Model B) |
 | [`@commonpub/ui`](packages/ui/README.md) | 0.8.5 | 22 headless Vue 3 components, 5 themes, CSS token system |
 | [`@commonpub/editor`](packages/editor/README.md) | 0.7.9 | TipTap extensions, 20 block types, BlockTuple serialization |
