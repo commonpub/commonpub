@@ -25,6 +25,7 @@ export interface FeatureFlags {
   admin: boolean;
   emailNotifications: boolean;
   publicApi: boolean;
+  contentImport: boolean;
   /**
    * Cross-instance delegated authorization. All sub-flags default false.
    * Mirrors `@commonpub/config`'s `IdentityFeatures`. Phase 1b+ — see
@@ -44,7 +45,7 @@ export const DEFAULT_FLAGS: FeatureFlags = {
   content: true, social: true, hubs: true, docs: true, video: true,
   contests: false, events: false, learning: true, explainers: true,
   editorial: true, federation: false, admin: false, emailNotifications: false,
-  publicApi: false,
+  publicApi: false, contentImport: true,
   identity: {
     linkRemoteAccounts: false,
     signInWithRemote: false,
@@ -118,6 +119,7 @@ export function useFeatures() {
     admin: computed(() => flags.value.admin),
     emailNotifications: computed(() => flags.value.emailNotifications),
     publicApi: computed(() => flags.value.publicApi),
+    contentImport: computed(() => flags.value.contentImport),
     identity: computed(() => flags.value.identity),
   };
 }

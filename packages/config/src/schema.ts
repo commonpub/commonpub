@@ -37,6 +37,11 @@ export const featureFlagsSchema = z.object({
   admin: z.boolean().default(false),
   emailNotifications: z.boolean().default(false),
   publicApi: z.boolean().default(false),
+  // URL content import (importFromUrl). Default on; operators can
+  // disable URL import without disabling content authoring. The import
+  // path is SSRF-safe (safeFetch) — this flag is the rule-#2 gate + an
+  // operator off-switch for a remote-fetch surface.
+  contentImport: z.boolean().default(true),
   // Cross-instance delegated authorization. Nested object so the
   // namespace stays separate; all sub-flags default off.
   identity: identityFeaturesSchema.default(() => identityFeaturesSchema.parse({})),

@@ -36,6 +36,11 @@ export interface FeatureFlags {
    */
   publicApi: boolean;
   /**
+   * Enable URL content import (`importFromUrl`). Default on; an
+   * operator off-switch for the remote-fetch surface (rule #2 gate).
+   */
+  contentImport: boolean;
+  /**
    * Cross-instance delegated authorization. Phased rollout per
    * docs/sessions/136-cross-instance-identity-plan.md. All sub-flags
    * default off; flipping each requires the corresponding phase work

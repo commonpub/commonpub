@@ -7,6 +7,7 @@ const importBodySchema = z.object({
 });
 
 export default defineEventHandler(async (event): Promise<ImportResult> => {
+  requireFeature('contentImport');
   requireAuth(event);
 
   const { url } = await parseBody(event, importBodySchema);

@@ -33,6 +33,7 @@ const ENV_FLAG_MAP: Record<string, string> = {
   seamlessFederation: 'FEATURE_SEAMLESS_FEDERATION',
   admin: 'FEATURE_ADMIN',
   emailNotifications: 'FEATURE_EMAIL_NOTIFICATIONS',
+  contentImport: 'FEATURE_CONTENT_IMPORT',
 };
 
 /** Base config (config.ts + env overrides) — computed once at startup */

@@ -19,7 +19,7 @@ function makeConfig(idOverrides: Partial<CommonPubConfig['features']['identity']
       contests: false, events: false, learning: true, explainers: true,
       editorial: true, federation: false, seamlessFederation: false,
       federateHubs: false, admin: false, emailNotifications: false,
-      publicApi: false,
+      publicApi: false, contentImport: true,
       identity: {
         linkRemoteAccounts: false,
         signInWithRemote: false,
