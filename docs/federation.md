@@ -861,7 +861,7 @@ GET /api/federation/directory
     "software": "commonpub",
     "users": 150,
     "content": 3200,
-    "contentTypes": ["project", "article", "blog"],
+    "contentTypes": ["project", "blog"],
     "hubTypes": ["community", "product"],
     "description": "A maker community for hardware hackers"
   },
@@ -870,7 +870,7 @@ GET /api/federation/directory
     "software": "commonpub",
     "users": 89,
     "content": 1400,
-    "contentTypes": ["project", "article", "product"],
+    "contentTypes": ["project", "blog", "product"],
     "hubTypes": ["product", "company"],
     "description": "Electronics and embedded systems"
   }

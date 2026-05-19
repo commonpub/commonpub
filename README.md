@@ -74,7 +74,7 @@ other. CommonPub changes that:
 | **Theming** | 5 built-in themes (base, dark, generics, agora, agora-dark), CSS custom property system, runtime switching, SSR-safe with zero FOUC. |
 | **Admin** | User management, role hierarchy, content moderation, audit logs, instance settings, runtime feature-flag overrides, **configurable navigation**, **configurable homepage sections**, federation controls. |
 
-**15 feature flags** let you enable only what you need. See
+**16 feature flags** (+ 5 nested `identity` sub-flags) let you enable only what you need. See
 [`codebase-analysis/08-feature-flags-inventory.md`](./codebase-analysis/08-feature-flags-inventory.md)
 for the full list with defaults.
 
@@ -196,7 +196,7 @@ All 12 published to npm as `@commonpub/*`. Latest versions as of 2026-05-17 (ses
 |---|---|---|
 | [`@commonpub/schema`](packages/schema/README.md) | 0.16.0 | 79 Drizzle tables, 41 enums, 50+ Zod validators |
 | [`@commonpub/config`](packages/config/README.md) | 0.12.0 | `defineCommonPubConfig()` factory, 16 feature flags (+5 identity sub-flags) |
-| [`@commonpub/server`](packages/server/README.md) | 2.53.0 | Framework-agnostic business logic (20+ modules, transactions, lifecycle hooks) |
+| [`@commonpub/server`](packages/server/README.md) | 2.53.1 | Framework-agnostic business logic (20+ modules, transactions, lifecycle hooks) |
 | [`@commonpub/protocol`](packages/protocol/README.md) | 0.9.10 | ActivityPub types, HTTP signatures, WebFinger, NodeInfo, OAuth2 |
 | [`@commonpub/auth`](packages/auth/README.md) | 0.6.0 | Better Auth wrapper, guards, AP Actor SSO (Model B) |
 | [`@commonpub/ui`](packages/ui/README.md) | 0.8.5 | 22 headless Vue 3 components, 5 themes, CSS token system |
@@ -211,7 +211,7 @@ Plus the layer itself:
 
 | Package | Version | Purpose |
 |---|---|---|
-| `@commonpub/layer` | 0.21.4 | Shared Nuxt layer — pages, components, API routes, middleware, theme |
+| `@commonpub/layer` | 0.21.6 | Shared Nuxt layer — pages, components, API routes, middleware, theme |
 
 ---
 
