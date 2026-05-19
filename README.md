@@ -190,7 +190,7 @@ See [`codebase-analysis/01-monorepo-topology.md`](./codebase-analysis/01-monorep
 
 ## Packages
 
-All 12 published to npm as `@commonpub/*`. Latest versions as of 2026-05-17 (session 144):
+All 12 published to npm as `@commonpub/*`. Latest versions as of 2026-05-18 (session 146):
 
 | Package | Version | Purpose |
 |---|---|---|
@@ -202,7 +202,7 @@ All 12 published to npm as `@commonpub/*`. Latest versions as of 2026-05-17 (ses
 | [`@commonpub/ui`](packages/ui/README.md) | 0.8.5 | 22 headless Vue 3 components, 5 themes, CSS token system |
 | [`@commonpub/editor`](packages/editor/README.md) | 0.7.9 | TipTap extensions, 20 block types, BlockTuple serialization |
 | [`@commonpub/docs`](packages/docs/README.md) | 0.6.3 | Markdown pipeline, versioning, navigation, search adapters |
-| [`@commonpub/explainer`](packages/explainer/README.md) | 0.7.12 | Interactive sections, quiz engine, progress tracking, HTML export |
+| [`@commonpub/explainer`](packages/explainer/README.md) | 0.7.13 | Interactive sections, quiz engine, progress tracking, HTML export |
 | [`@commonpub/learning`](packages/learning/README.md) | 0.5.2 | Learning path engine, progress calculation, certificates |
 | [`@commonpub/infra`](packages/infra/README.md) | 0.7.0 | S3/local storage, image processing, email adapters, security |
 | [`@commonpub/test-utils`](packages/test-utils/README.md) | 0.5.4 | Test factories and mock configuration |
@@ -211,7 +211,7 @@ Plus the layer itself:
 
 | Package | Version | Purpose |
 |---|---|---|
-| `@commonpub/layer` | 0.21.6 | Shared Nuxt layer — pages, components, API routes, middleware, theme |
+| `@commonpub/layer` | 0.21.7 | Shared Nuxt layer — pages, components, API routes, middleware, theme |
 
 ---
 
@@ -293,8 +293,11 @@ Production examples:
 - [`commonpub.io`](https://commonpub.io) — DO, Docker+Caddy, self-hosted Postgres
 - [`deveco.io`](https://deveco.io) — DO, Docker+Caddy, managed DO Postgres, thin-app
 
-> **⚠ Schema deploy caveat:** `drizzle-kit push` fails in CI when introducing
-> new enums (no TTY). Apply enum SQL manually to deployed DBs before pushing.
+> **Schema deploys:** schema changes ship as committed SQL migrations in
+> `packages/schema/migrations/`. CI/deploy runs `scripts/db-migrate.mjs`
+> (drizzle-orm's `migrate()`) on every boot — idempotent, non-interactive,
+> fails hard on error. Never run `drizzle-kit push` in CI and never apply
+> SQL by hand to a deployed DB.
 > See [`codebase-analysis/09-gotchas-and-invariants.md`](./codebase-analysis/09-gotchas-and-invariants.md).
 
 Step-by-step: [docs/deployment.md](docs/deployment.md).

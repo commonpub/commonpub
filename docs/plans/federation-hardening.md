@@ -83,6 +83,44 @@ absent. **Fix:** reject if request has a body and `digest` ∉ signed
 set; require `(request-target)`, `host`, `date` ∈ signed set; require
 `Date` present + recent + signed.
 
+## Part 3 — outbound session minting (added session 147)
+
+### 8. Hand-minted session cookies are unsigned / wrong-named
+`layers/base/server/api/auth/federated/callback.get.ts`,
+`auth/mastodon/callback.get.ts`, `auth/federated/link.post.ts` set
+`setCookie(event, 'better-auth.session_token', token, …)` with the
+bare token. Better Auth (1.6.4 / better-call 1.3.5) `getSession`
+reads via `getSignedCookie` — requires `${token}.${HMAC}` format and
+the `__Secure-` cookie-name prefix in production. A bare token →
+`getSignedCookie` returns null → the "already-linked → log in"
+outcome of federated/Mastodon SSO produces a **non-authenticating
+session** (redirect to /dashboard, next request is anonymous).
+Fail-closed (no bypass) but a complete functional break of the
+flagged auth flows; both flags OFF in prod so dormant — same
+second-instance-blocking class as Parts 1–2, hence tracked here.
+`auth/delete-user.post.ts:52` has the matching prefix bug
+(`deleteCookie('better-auth.session_token')` won't clear the prod
+`__Secure-` cookie).
+**Fix:** mint the session through Better Auth so it sets its own
+signed, correctly-prefixed cookie (drive linked-user login via the
+`auth.api`-issued cookie), or replicate `setSignedCookie` using the
+same `AUTH_SECRET` HMAC + `__Secure-` prefix logic
+(`better-auth/dist/cookies/index.mjs`). Needs the actual flow
+exercised against a real linked account (why it is NOT a hasty
+in-audit patch). Verified against pinned better-auth source
+(session 147 audit).
+
+### 9. Rate-limit key from spoofable X-Forwarded-For (needs-confirmation)
+`layers/base/server/middleware/security.ts:57-59` keys the IP limiter
+on the leftmost `x-forwarded-for` token — client-supplied — so an
+attacker rotating XFF gets a fresh bucket per request, defeating the
+`auth:{limit:5}` brute-force tier. Bounded only if the reverse proxy
+overwrites XFF (deployment-dependent — confirm the commonpub.io /
+deveco.io proxy contract). **Fix:** use the rightmost
+(proxy-appended) XFF entry or a configured trusted-proxy depth, and
+document the proxy contract. Distinct from the documented
+per-process rate-limit deferral.
+
 ## Sequencing
 5 (consolidate) → 1 (pinned dispatcher) → 4 (migrate fetches, incl.
 `safeFetch` signed-Request API) → 6 (raw-body digest) → 7 (coverage

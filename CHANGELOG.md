@@ -7,11 +7,43 @@ monorepo working period. For session-level detail, see [`docs/sessions/`](./docs
 
 ---
 
-## Unreleased (sessions 108–144, through 2026-05-17)
+## Unreleased (sessions 108–146, through 2026-05-18)
 
-Monorepo state at time of writing: schema 0.16.0, server 2.53.0, config 0.12.0,
-layer 0.21.4, ui 0.8.5, protocol 0.9.10, editor 0.7.9, explainer 0.7.12,
+Monorepo state at time of writing: schema 0.16.0, server 2.53.1, config 0.12.0,
+layer 0.21.7, ui 0.8.5, protocol 0.9.10, editor 0.7.9, explainer 0.7.13,
 learning 0.5.2, docs 0.6.3, auth 0.6.0, infra 0.7.0, test-utils 0.5.4.
+
+### Session 147 — Third full-repo audit (2026-05-18)
+
+`@commonpub/explainer` 0.7.12 → 0.7.13, `@commonpub/layer` 0.21.6 →
+0.21.7 (patches). Fixed a live stored-XSS: the custom-html explainer
+module let an author disable the iframe sandbox, running their script
+same-origin against every viewer — `sandbox="allow-scripts"` is now
+unconditional. Also: ContestHero invisible chrome in dark mode,
+docs-editor hardcoded colors, TOC scroll not honouring
+prefers-reduced-motion, and CHANGELOG/README doc drift (incl. a
+schema-deploy caveat that contradicted the migrate-not-push
+invariant).
+
+### Session 146 — Second full-repo audit (2026-05-18)
+
+`@commonpub/server` 2.53.0 → 2.53.1, `@commonpub/layer` 0.21.5 →
+0.21.6 (patches). Fixed a live SSE connection-counter leak (pre-stream
+abort 429-locked users for the process lifetime), `toggleBuildMark`
+concurrent-double-click 500, `MarkdownImportDialog` missing modal
+a11y, an undefined `--shadow` token, and the scaffolder's one-click
+deploy (Dockerfile required a lockfile it never emitted). Layer test
+suite added to the vitest workspace. Federation-hardening plan written
+(`docs/plans/federation-hardening.md`).
+
+### Session 145 — First full-repo audit (2026-05-17)
+
+`@commonpub/layer` 0.21.4 → 0.21.5 (patch). Fixed a homepage
+feature-gate no-op (gated sections rendered regardless of flags),
+`ShareToHubModal` modal a11y, theming-token violations, and CI
+injection vectors in `server-cmd`/`admin-promote` workflows. Layer
+vitest suite wired into the `pnpm test` gate; `article` made an
+authoritative deprecated alias of `blog`.
 
 ### Session 144 — Mobile UX fixes (2026-05-17)
 
