@@ -8,17 +8,22 @@
     "dev": "nuxt dev",
     "preview": "nuxt preview",
     "typecheck": "nuxt typecheck",
-    "clean": "rm -rf .nuxt .output"
+    "clean": "rm -rf .nuxt .output",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
     "@commonpub/config": "workspace:*",
     "@commonpub/layer": "workspace:*",
+    "@commonpub/schema": "workspace:*",
     "@commonpub/server": "workspace:*",
+    "drizzle-orm": "^0.45.1",
     "nuxt": "^3.16.0",
     "vue": "^3.4.0",
     "vue-router": "^4.3.0"
   },
   "devDependencies": {
+    "drizzle-kit": "^0.31.0",
     "typescript": "^5.7.0",
     "vue-tsc": "^2.2.0"
   }

@@ -152,16 +152,22 @@ automatically and the layer's own deps come along for the ride.
 `^2.53.0` → `^2.54.0`): you **must** bump the thin-app's direct pin too,
 not just the layer pin.
 
-Why: on `0.x` versions, the caret means *same-minor only* — `^0.12.0`
-accepts `0.12.99` but **not** `0.13.0`. If the layer requires
-`@commonpub/config@^0.13.0` and the thin-app still pins `^0.12.0`, pnpm
-hoists `0.12.x` (the direct pin wins for the top-level resolution path the
-layer code imports), feature flags defined only in `0.13.x` resolve as
-`undefined`, and `requireFeature` returns 404 at runtime.
+Why: the thin-app's `commonpub.config.ts` imports `defineCommonPubConfig`
+from `@commonpub/config` — pnpm resolves that import from the thin-app's
+**direct** dependency, not from the layer's transitive copy. The zod
+schema bundled with that version is what parses the config object, and
+zod's default behaviour strips unknown fields. On `0.x` versions, the
+caret means *same-minor only* — `^0.12.0` accepts `0.12.99` but **not**
+`0.13.0`. So if `@commonpub/config@0.13.0` adds a new flag and the
+thin-app still pins `^0.12.0`, the 0.12 schema parses the config, the
+new flag is stripped (or never had a default applied), the merged config
+object that reaches `useConfig()` lacks the field, and
+`requireFeature()` returns 404 at runtime.
 
 Symptom seen in session 149: `/api/content/import` returned 404 on the
 thin apps after the layer shipped `contentImport` (added in
-`@commonpub/config@0.13.0`) — `/api/features` showed `contentImport: null`.
+`@commonpub/config@0.13.0`) — `/api/features` showed `contentImport: null`
+even though the layer code was new enough.
 
 Procedure for a minor bump of `config` or `server`:
 
