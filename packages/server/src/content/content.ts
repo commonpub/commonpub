@@ -760,7 +760,25 @@ export async function toggleBuildMark(
       return { marked: false, count: updated?.buildCount ?? 0 };
     }
 
-    await tx.insert(contentBuilds).values({ contentId, userId });
+    // ON CONFLICT DO NOTHING so a concurrent double-click doesn't hit the
+    // content_builds_user_content UNIQUE and throw an uncaught 500 (same
+    // race class as rsvpEvent). If the row already existed, another request
+    // already incremented — return the current count without double-counting.
+    const inserted = await tx
+      .insert(contentBuilds)
+      .values({ contentId, userId })
+      .onConflictDoNothing()
+      .returning({ id: contentBuilds.id });
+
+    if (inserted.length === 0) {
+      const [row] = await tx
+        .select({ buildCount: contentItems.buildCount })
+        .from(contentItems)
+        .where(eq(contentItems.id, contentId))
+        .limit(1);
+      return { marked: true, count: row?.buildCount ?? 0 };
+    }
+
     const [updated] = await tx
       .update(contentItems)
       .set({ buildCount: sql`${contentItems.buildCount} + 1` })
