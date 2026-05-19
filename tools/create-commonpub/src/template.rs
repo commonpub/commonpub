@@ -14,12 +14,12 @@ use crate::prompts::InstanceConfig;
 // in lockstep with deveco.io's package.json pins (the proven
 // production thin-app reference).
 //
-// Last synced: 2026-05-17 (session 145) — layer 0.21.5, server 2.53.0,
+// Last synced: 2026-05-18 (session 146) — layer 0.21.6, server 2.53.1,
 // schema 0.16.0, config 0.12.0.
 const COMMONPUB_CONFIG_VERSION: &str = "^0.12.0";
-const COMMONPUB_LAYER_VERSION: &str = "^0.21.5";
+const COMMONPUB_LAYER_VERSION: &str = "^0.21.6";
 const COMMONPUB_SCHEMA_VERSION: &str = "^0.16.0";
-const COMMONPUB_SERVER_VERSION: &str = "^2.53.0";
+const COMMONPUB_SERVER_VERSION: &str = "^2.53.1";
 
 // pnpm pin for the generated Dockerfile. `pnpm@latest` is a time-bomb:
 // pnpm ≥10.11 fails `install --frozen-lockfile` on packages with
@@ -577,18 +577,21 @@ fn sanitize_dns(name: &str) -> String {
 
 pub fn render_dockerfile() -> String {
     format!(
-        r#"# pnpm is pinned (NOT @latest) on purpose: pnpm >=10.11 fails
-# `install --frozen-lockfile` on packages with build scripts
-# (sharp, esbuild, @parcel/watcher) unless explicitly approved.
-# Pinning gives deterministic builds. Bump deliberately, in lockstep
-# with your committed pnpm-lock.yaml.
+        r#"# pnpm is pinned (NOT @latest) on purpose: pnpm >=10.11 changed
+# install/build-script behaviour; pinning gives reproducible builds.
+# The lockfile is COPYed if present (the glob tolerates its absence
+# so a fresh one-click deploy — which has no committed lockfile yet —
+# still builds). Plain `pnpm install` honours a committed
+# pnpm-lock.yaml when present and generates one otherwise. For fully
+# reproducible deploys, run `pnpm install` locally and commit
+# pnpm-lock.yaml (see README).
 FROM node:22-alpine AS base
 RUN corepack enable && corepack prepare pnpm@{pnpm} --activate
 WORKDIR /app
 
 FROM base AS deps
-COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
+COPY package.json pnpm-lock.yaml* ./
+RUN pnpm install
 
 FROM base AS build
 COPY --from=deps /app/node_modules ./node_modules
@@ -757,6 +760,12 @@ GitHub user/org, and click the button. DigitalOcean reads
 `.do/deploy.template.yaml` and provisions the app + a managed
 Postgres 16. **Before clicking Create in the DO console**, set
 `NUXT_AUTH_SECRET` (run `openssl rand -hex 32`).
+
+> **Reproducible builds (recommended):** run `pnpm install` locally
+> once and commit the generated `pnpm-lock.yaml` before deploying.
+> The Docker build works without it (a lockfile is generated at
+> build time), but committing one pins exact dependency versions
+> across every deploy.
 
 **Admin:** {admin_note} You can change this any time by editing the
 `ADMIN_BOOTSTRAP_*` env in the DO console (or `.env` for self-hosted).

@@ -202,7 +202,12 @@ fn theme_css_has_variable_overrides() {
 fn dockerfile_is_production_ready() {
     let dockerfile = create_commonpub::template::render_dockerfile();
     assert!(dockerfile.contains("node:22-alpine"));
-    assert!(dockerfile.contains("pnpm install --frozen-lockfile"));
+    // The lockfile is optional via glob so a fresh one-click deploy
+    // (no committed pnpm-lock.yaml) still builds; --frozen-lockfile
+    // must NOT be reintroduced (it breaks the no-lockfile first deploy).
+    assert!(dockerfile.contains("COPY package.json pnpm-lock.yaml* ./"));
+    assert!(dockerfile.contains("RUN pnpm install"));
+    assert!(!dockerfile.contains("--frozen-lockfile"));
     assert!(dockerfile.contains("pnpm build"));
     assert!(dockerfile.contains(".output/server/index.mjs"));
 }
@@ -241,8 +246,8 @@ fn package_json_pins_current_commonpub_versions() {
     // Exact pins (not loose `^0.21` prefixes): this test is the forcing
     // function for the RELEASE CHECKLIST — it must fail when template.rs
     // pins go stale after a publish, so update both together.
-    assert!(pkg.contains("\"@commonpub/layer\": \"^0.21.5\""), "layer pin must be ^0.21.5");
-    assert!(pkg.contains("\"@commonpub/server\": \"^2.53.0\""), "server pin must be ^2.53.0");
+    assert!(pkg.contains("\"@commonpub/layer\": \"^0.21.6\""), "layer pin must be ^0.21.6");
+    assert!(pkg.contains("\"@commonpub/server\": \"^2.53.1\""), "server pin must be ^2.53.1");
     assert!(pkg.contains("\"@commonpub/schema\": \"^0.16.0\""), "schema pin must be ^0.16.0");
     assert!(pkg.contains("\"@commonpub/config\": \"^0.12.0\""), "config pin must be ^0.12.0");
 
