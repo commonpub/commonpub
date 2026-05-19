@@ -74,7 +74,7 @@ other. CommonPub changes that:
 | **Theming** | 5 built-in themes (base, dark, generics, agora, agora-dark), CSS custom property system, runtime switching, SSR-safe with zero FOUC. |
 | **Admin** | User management, role hierarchy, content moderation, audit logs, instance settings, runtime feature-flag overrides, **configurable navigation**, **configurable homepage sections**, federation controls. |
 
-**16 feature flags** (+ 5 nested `identity` sub-flags) let you enable only what you need. See
+**17 feature flags** (+ 5 nested `identity` sub-flags) let you enable only what you need. See
 [`codebase-analysis/08-feature-flags-inventory.md`](./codebase-analysis/08-feature-flags-inventory.md)
 for the full list with defaults.
 
@@ -170,7 +170,7 @@ commonpub/
 - **79 tables, 41 enums** in the schema across 15 domains
 - **283 API routes** in the layer
 - **86 pages, 106 components, 22 composables** in the layer
-- **16 feature flags** (+ 5 nested `identity` sub-flags) gating every non-core feature
+- **17 feature flags** (+ 5 nested `identity` sub-flags) gating every non-core feature
 
 Full analysis: [`codebase-analysis/`](./codebase-analysis/).
 
@@ -190,14 +190,14 @@ See [`codebase-analysis/01-monorepo-topology.md`](./codebase-analysis/01-monorep
 
 ## Packages
 
-All 12 published to npm as `@commonpub/*`. Latest versions as of 2026-05-18 (session 146):
+All 12 published to npm as `@commonpub/*`. Latest versions as of 2026-05-19 (session 148):
 
 | Package | Version | Purpose |
 |---|---|---|
 | [`@commonpub/schema`](packages/schema/README.md) | 0.16.0 | 79 Drizzle tables, 41 enums, 50+ Zod validators |
-| [`@commonpub/config`](packages/config/README.md) | 0.12.0 | `defineCommonPubConfig()` factory, 16 feature flags (+5 identity sub-flags) |
-| [`@commonpub/server`](packages/server/README.md) | 2.53.1 | Framework-agnostic business logic (20+ modules, transactions, lifecycle hooks) |
-| [`@commonpub/protocol`](packages/protocol/README.md) | 0.9.10 | ActivityPub types, HTTP signatures, WebFinger, NodeInfo, OAuth2 |
+| [`@commonpub/config`](packages/config/README.md) | 0.13.0 | `defineCommonPubConfig()` factory, 17 feature flags (+5 identity sub-flags) |
+| [`@commonpub/server`](packages/server/README.md) | 2.54.0 | Framework-agnostic business logic (20+ modules, transactions, lifecycle hooks) |
+| [`@commonpub/protocol`](packages/protocol/README.md) | 0.10.0 | ActivityPub types, HTTP signatures, WebFinger, NodeInfo, OAuth2, SSRF-safe fetch |
 | [`@commonpub/auth`](packages/auth/README.md) | 0.6.0 | Better Auth wrapper, guards, AP Actor SSO (Model B) |
 | [`@commonpub/ui`](packages/ui/README.md) | 0.8.5 | 22 headless Vue 3 components, 5 themes, CSS token system |
 | [`@commonpub/editor`](packages/editor/README.md) | 0.7.9 | TipTap extensions, 20 block types, BlockTuple serialization |
@@ -205,13 +205,13 @@ All 12 published to npm as `@commonpub/*`. Latest versions as of 2026-05-18 (ses
 | [`@commonpub/explainer`](packages/explainer/README.md) | 0.7.13 | Interactive sections, quiz engine, progress tracking, HTML export |
 | [`@commonpub/learning`](packages/learning/README.md) | 0.5.2 | Learning path engine, progress calculation, certificates |
 | [`@commonpub/infra`](packages/infra/README.md) | 0.7.0 | S3/local storage, image processing, email adapters, security |
-| [`@commonpub/test-utils`](packages/test-utils/README.md) | 0.5.4 | Test factories and mock configuration |
+| [`@commonpub/test-utils`](packages/test-utils/README.md) | 0.5.5 | Test factories and mock configuration |
 
 Plus the layer itself:
 
 | Package | Version | Purpose |
 |---|---|---|
-| `@commonpub/layer` | 0.21.7 | Shared Nuxt layer — pages, components, API routes, middleware, theme |
+| `@commonpub/layer` | 0.21.8 | Shared Nuxt layer — pages, components, API routes, middleware, theme |
 
 ---
 
