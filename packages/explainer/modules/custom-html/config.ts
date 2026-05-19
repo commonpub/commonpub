@@ -5,7 +5,6 @@ const config: ConfigField[] = [
   { key: 'css', title: 'CSS', type: 'code', default: '', group: 'Code' },
   { key: 'js', title: 'JavaScript', type: 'code', default: '', group: 'Code' },
   { key: 'height', title: 'Container Height', type: 'number', default: 300, group: 'Layout' },
-  { key: 'sandboxed', title: 'Run in iframe sandbox', type: 'toggle', default: true, group: 'Security' },
 ];
 
 export default config;

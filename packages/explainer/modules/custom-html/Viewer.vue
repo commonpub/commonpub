@@ -7,7 +7,6 @@ const html = computed(() => (props.content.html as string) || '');
 const css = computed(() => (props.content.css as string) || '');
 const js = computed(() => (props.content.js as string) || '');
 const height = computed(() => (props.content.height as number) || 300);
-const sandboxed = computed(() => (props.content.sandboxed as boolean) !== false);
 
 const iframeRef = ref<HTMLIFrameElement | null>(null);
 
@@ -44,7 +43,7 @@ watch(srcdoc, () => {
       ref="iframeRef"
       :srcdoc="srcdoc"
       :style="{ height: height + 'px' }"
-      :sandbox="sandboxed ? 'allow-scripts' : undefined"
+      sandbox="allow-scripts"
       class="cpub-custom-iframe"
       title="Custom interactive"
     />
