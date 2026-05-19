@@ -52,6 +52,28 @@ async function addSetting(): Promise<void> {
   newKey.value = '';
   newValue.value = '';
 }
+
+// Maintenance: rewrite stored DO Spaces origin asset URLs → CDN edge.
+const cdnBusy = ref(false);
+const cdnResult = ref<string>('');
+async function backfillCdn(dryRun: boolean): Promise<void> {
+  if (!dryRun && !confirm('Rewrite all stored Spaces asset URLs to the CDN host? This updates the database.')) return;
+  cdnBusy.value = true;
+  cdnResult.value = '';
+  try {
+    const r = await $fetch<{ dryRun: boolean; hosts: { origin: string; cdn: string }; wouldRewrite?: Record<string, number>; rewritten?: Record<string, number> }>(
+      `/api/admin/storage/backfill-cdn-urls${dryRun ? '?dryRun=1' : ''}`,
+      { method: 'POST' },
+    );
+    const counts = r.wouldRewrite ?? r.rewritten ?? {};
+    const total = Object.values(counts).reduce((a, b) => a + b, 0);
+    cdnResult.value = `${r.dryRun ? 'Would rewrite' : 'Rewrote'} ${total} URL(s) → ${r.hosts.cdn} (files ${counts.files ?? 0}, content ${counts.contentItems ?? 0}, paths ${counts.learningPaths ?? 0}).`;
+  } catch (err: unknown) {
+    cdnResult.value = `Failed: ${err instanceof Error ? err.message : 'see server logs'}`;
+  } finally {
+    cdnBusy.value = false;
+  }
+}
 </script>
 
 <template>
@@ -111,6 +133,25 @@ async function addSetting(): Promise<void> {
     </div>
     </template>
     <p v-else class="admin-empty">No settings configured.</p>
+
+    <section class="cpub-maint">
+      <h2 class="cpub-maint-title">Maintenance</h2>
+      <div class="cpub-maint-row">
+        <div>
+          <strong>Spaces → CDN URL backfill</strong>
+          <p class="cpub-maint-desc">
+            Rewrite stored DigitalOcean Spaces origin asset URLs to the CDN
+            edge host. Only affects existing rows (new uploads already use
+            the configured host). Idempotent; preview first.
+          </p>
+        </div>
+        <div class="cpub-maint-actions">
+          <button class="cpub-btn cpub-btn-sm" :disabled="cdnBusy" @click="backfillCdn(true)">Preview</button>
+          <button class="cpub-btn cpub-btn-sm cpub-btn-primary" :disabled="cdnBusy" @click="backfillCdn(false)">Apply</button>
+        </div>
+      </div>
+      <p v-if="cdnResult" class="cpub-maint-result">{{ cdnResult }}</p>
+    </section>
   </div>
 </template>
 
@@ -172,8 +213,44 @@ async function addSetting(): Promise<void> {
   padding: var(--space-8) 0;
 }
 
+.cpub-maint {
+  margin-top: var(--space-8);
+  border: var(--border-width-default) solid var(--border);
+  background: var(--surface);
+  padding: var(--space-4);
+}
+.cpub-maint-title {
+  font-size: var(--text-lg);
+  font-weight: var(--font-weight-bold);
+  margin-bottom: var(--space-4);
+}
+.cpub-maint-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+.cpub-maint-desc {
+  color: var(--text-dim);
+  font-size: var(--text-sm);
+  margin-top: var(--space-1);
+  max-width: 52ch;
+}
+.cpub-maint-actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+.cpub-maint-result {
+  margin-top: var(--space-3);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--text);
+}
+
 @media (max-width: 768px) {
   .settings-row { flex-direction: column; align-items: flex-start; gap: var(--space-1); }
   .settings-add { flex-direction: column; }
+  .cpub-maint-row { flex-direction: column; }
 }
 </style>
