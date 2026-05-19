@@ -14,12 +14,12 @@ use crate::prompts::InstanceConfig;
 // in lockstep with deveco.io's package.json pins (the proven
 // production thin-app reference).
 //
-// Last synced: 2026-05-19 (session 149) — layer 0.21.10, server 2.54.1,
+// Last synced: 2026-05-19 (session 149 bundled patch) — layer 0.21.11, server 2.54.2,
 // schema 0.16.0, config 0.13.0.
 const COMMONPUB_CONFIG_VERSION: &str = "^0.13.0";
-const COMMONPUB_LAYER_VERSION: &str = "^0.21.10";
+const COMMONPUB_LAYER_VERSION: &str = "^0.21.11";
 const COMMONPUB_SCHEMA_VERSION: &str = "^0.16.0";
-const COMMONPUB_SERVER_VERSION: &str = "^2.54.1";
+const COMMONPUB_SERVER_VERSION: &str = "^2.54.2";
 
 // pnpm pin for the generated Dockerfile. `pnpm@latest` is a time-bomb:
 // pnpm ≥10.11 fails `install --frozen-lockfile` on packages with
