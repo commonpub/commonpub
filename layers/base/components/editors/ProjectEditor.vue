@@ -34,6 +34,13 @@ const blockTypes: BlockTypeGroup[] = [
     ],
   },
   {
+    name: 'Media',
+    blocks: [
+      { type: 'video', label: 'Video', icon: 'fa-film', description: 'YouTube, Vimeo embed' },
+      { type: 'embed', label: 'Embed', icon: 'fa-globe', description: 'External embed (translates YouTube/Vimeo URLs)' },
+    ],
+  },
+  {
     name: 'Rich',
     blocks: [
       { type: 'callout', label: 'Tip', icon: 'fa-lightbulb', description: 'Tip callout', attrs: { variant: 'tip' } },

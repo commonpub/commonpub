@@ -1,21 +1,30 @@
 <script setup lang="ts">
 const props = defineProps<{ content: Record<string, unknown> }>();
 
-const url = computed(() => {
+// Translate common watch-page URLs into iframe-embeddable equivalents
+// so authors who paste a YouTube/Vimeo URL into the generic Embed block
+// don't end up with an iframe that the provider refuses to render
+// (X-Frame-Options / CSP frame-ancestors). Mirrors BlockVideoView.
+const embedUrl = computed(() => {
   const raw = (props.content.url as string) || '';
-  // Only allow http/https URLs — block javascript:, data:, etc.
-  if (raw && (raw.startsWith('https://') || raw.startsWith('http://'))) return raw;
+  if (!raw) return '';
+  const yt = raw.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{6,})/);
+  if (yt) return `https://www.youtube-nocookie.com/embed/${yt[1]}`;
+  const vimeo = raw.match(/vimeo\.com\/(\d+)/);
+  if (vimeo) return `https://player.vimeo.com/video/${vimeo[1]}`;
+  // Anything else: allow http(s) only (block javascript:, data:, etc.).
+  if (raw.startsWith('https://') || raw.startsWith('http://')) return raw;
   return '';
 });
 </script>
 
 <template>
-  <div v-if="url" class="cpub-block-embed">
+  <div v-if="embedUrl" class="cpub-block-embed">
     <div class="cpub-embed-label">
       <i class="fa-solid fa-globe"></i> Embed
     </div>
     <div class="cpub-embed-wrap">
-      <iframe :src="url" class="cpub-embed-iframe" frameborder="0" loading="lazy" title="Embedded content" />
+      <iframe :src="embedUrl" class="cpub-embed-iframe" frameborder="0" loading="lazy" title="Embedded content" />
     </div>
   </div>
 </template>

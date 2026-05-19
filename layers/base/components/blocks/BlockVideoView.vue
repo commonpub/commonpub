@@ -7,8 +7,8 @@ const embedUrl = computed(() => {
   const u = url.value;
   if (!u) return '';
 
-  // YouTube — extract video ID and construct safe embed URL
-  const ytMatch = u.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/);
+  // YouTube — handle watch + youtu.be + /embed/ + /v/ + /shorts/.
+  const ytMatch = u.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{6,})/);
   if (ytMatch) return `https://www.youtube-nocookie.com/embed/${ytMatch[1]}`;
 
   // Vimeo — extract video ID and construct safe embed URL
