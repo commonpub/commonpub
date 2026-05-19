@@ -7,11 +7,26 @@ monorepo working period. For session-level detail, see [`docs/sessions/`](./docs
 
 ---
 
-## Unreleased (sessions 108–148, through 2026-05-19)
+## Unreleased (sessions 108–149, through 2026-05-19)
 
-Monorepo state at time of writing: schema 0.16.0, server 2.54.0, config 0.13.0,
-layer 0.21.9, ui 0.8.5, protocol 0.10.0, editor 0.7.9, explainer 0.7.13,
-learning 0.5.2, docs 0.6.3, auth 0.6.0, infra 0.7.0, test-utils 0.5.5.
+Monorepo state at time of writing: schema 0.16.0, server 2.54.1, config 0.13.0,
+layer 0.21.10, ui 0.8.5, protocol 0.10.0, editor 0.7.9, explainer 0.7.13,
+learning 0.5.2, docs 0.6.3, auth 0.6.0, infra 0.7.1, test-utils 0.5.5.
+
+### Session 149 — DO Spaces CDN support + scaffolder storage fix (2026-05-19)
+
+`@commonpub/infra` 0.7.0 → 0.7.1, `@commonpub/server` 2.54.0 →
+2.54.1, `@commonpub/layer` 0.21.9 → 0.21.10 (prepared; committed
+locally, not yet published). Opt-in `S3_CDN` derives the DO Spaces
+CDN edge URL (strictly zero-regression — explicit S3_PUBLIC_URL still
+wins; only diverges with S3_CDN=true + a DO endpoint). Scaffolder
+emitted inert `NUXT_S3_*` (the adapter reads bare `S3_*`) — fixed +
+a DO Spaces CDN recipe added. New admin-only maintenance action
+(`/api/admin/storage/backfill-cdn-urls`, Preview/Apply in admin
+settings) rewrites existing origin asset URLs → CDN host (URLs are
+frozen at upload time). Investigation: heatsync uses Spaces+CDN
+(committed example drift fixed in the heatsync repo); deveco.io uses
+local uploads; commonpub.io storage mode lives in its droplet env.
 
 ### Session 148 — Federation hardening, Stage 1+2 (2026-05-19)
 
