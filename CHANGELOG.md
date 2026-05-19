@@ -9,10 +9,38 @@ monorepo working period. For session-level detail, see [`docs/sessions/`](./docs
 
 ## Unreleased (sessions 108–149, through 2026-05-19)
 
-Monorepo state at time of writing: schema 0.16.0, server 2.54.1, config 0.13.0,
-layer 0.21.10, ui 0.8.5, protocol 0.10.1, editor 0.7.9, explainer 0.7.13,
+Monorepo state at time of writing: schema 0.16.0, server 2.54.2, config 0.13.0,
+layer 0.21.11, ui 0.8.5, protocol 0.10.1, editor 0.7.9, explainer 0.7.13,
 learning 0.5.2, docs 0.6.3, auth 0.6.0, infra 0.7.1, test-utils 0.5.6,
-explainer 0.7.14, editor 0.7.10.
+explainer 0.7.15, editor 0.7.10.
+
+### Session 149 bundled patch — YouTube/embed + explainer cover-image + tarball hygiene
+
+`@commonpub/explainer` 0.7.14 → **0.7.15** (Document-tab cover-image
+upload control + tarball hygiene), `@commonpub/server` 2.54.1 →
+**2.54.2** (tarball hygiene — `files` glob now excludes nested
+`__tests__` / .test.* / .spec.*), `@commonpub/layer` 0.21.10 →
+**0.21.11** (YouTube/Vimeo URL translation in the generic Embed
+block + ProjectEditor Media block group). Closes #29 + #31 + #33;
+bundled at the maintainer's request rather than three separate
+patches.
+
+### Session 149 follow-up (P1) — thin-app config pin drift
+
+deveco.io + heatsync still 404'd `/api/content/import` after the
+0.21.10 ship because their `package.json` explicitly pinned
+`@commonpub/config: ^0.12.0` — caret on 0.x is same-minor, so the
+layer's transitive 0.13.0 (where the contentImport flag was added)
+couldn't hoist over the direct pin. They resolved 0.12.0
+(no contentImport in schema) and `requireFeature('contentImport')`
+saw undefined → 404. Fix: bumped each thin app's direct
+`@commonpub/config: ^0.13.0` + `@commonpub/server: ^2.54.1`. Verified
+live: `/api/features.contentImport=true`, `/api/content/import → 401`.
+**Pattern:** when a `@commonpub/*` package the thin app directly
+imports has a MINOR bump, the thin-app's direct pin must be bumped
+in lockstep with the layer pin (the scaffolder template already does
+this for new instances; existing thin apps need manual lockstep
+during upgrades — tracked as task #34).
 
 ### Session 149 audit follow-up #3 — stale schema pin
 
