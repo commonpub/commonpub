@@ -98,3 +98,17 @@ cargo; then deveco.io + heatsynclabs.io `@commonpub/layer ^0.21.8`;
 commonpub.io builds from source. README version table + CHANGELOG +
 this session log. Leave heatsync's uncommitted `commonpub.config.ts`
 + `ONBOARDING.md` untouched.
+
+## P0 hotfix (same session) — layer 0.21.9
+
+While verifying the ship, the user reported explainers 500ing
+(heatsync). Root cause (NOT introduced by 145–148; pre-existing):
+`pages/u/[username]/[type]/[slug]/index.vue` `readTime` did
+`for (const [type,data] of content.content as BlockTuple[])`.
+blog/project store `content` as `BlockTuple[]`; explainer
+document-format content is an object → `for…of` threw "not iterable"
+→ via `enrichedContent` it 500'd SSR for every v2 explainer on every
+instance. Fixed with an `Array.isArray` guard (document-format
+explainers get no read-time estimate; ExplainerView has its own
+chrome). Shipped as `@commonpub/layer` 0.21.8 → **0.21.9** on top of
+the Stage-1+2 release. typecheck 26/26.

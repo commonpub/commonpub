@@ -10,14 +10,19 @@ monorepo working period. For session-level detail, see [`docs/sessions/`](./docs
 ## Unreleased (sessions 108–148, through 2026-05-19)
 
 Monorepo state at time of writing: schema 0.16.0, server 2.54.0, config 0.13.0,
-layer 0.21.8, ui 0.8.5, protocol 0.10.0, editor 0.7.9, explainer 0.7.13,
+layer 0.21.9, ui 0.8.5, protocol 0.10.0, editor 0.7.9, explainer 0.7.13,
 learning 0.5.2, docs 0.6.3, auth 0.6.0, infra 0.7.0, test-utils 0.5.5.
 
 ### Session 148 — Federation hardening, Stage 1+2 (2026-05-19)
 
 `@commonpub/config` 0.12.0 → 0.13.0, `@commonpub/protocol` 0.9.10 →
 0.10.0, `@commonpub/test-utils` 0.5.4 → 0.5.5, `@commonpub/server`
-2.53.1 → 2.54.0, `@commonpub/layer` 0.21.7 → 0.21.8. SSRF protection
+2.53.1 → 2.54.0, `@commonpub/layer` 0.21.7 → 0.21.9 (0.21.9 = P0
+hotfix: the content-detail `readTime` computed iterated
+`content.content` as a BlockTuple[]; explainer document-format
+content is an object, so every v2 explainer 500'd SSR on all
+instances — a pre-existing latent bug, not introduced by 145–148).
+SSRF protection
 consolidated into `@commonpub/protocol` (server re-exports; the
 diverged `actorResolver` copy removed) with a pinned-lookup undici
 dispatcher that closes the DNS-rebinding TOCTOU (validate-then-pin;

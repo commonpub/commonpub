@@ -211,7 +211,7 @@ Plus the layer itself:
 
 | Package | Version | Purpose |
 |---|---|---|
-| `@commonpub/layer` | 0.21.8 | Shared Nuxt layer — pages, components, API routes, middleware, theme |
+| `@commonpub/layer` | 0.21.9 | Shared Nuxt layer — pages, components, API routes, middleware, theme |
 
 ---
 
