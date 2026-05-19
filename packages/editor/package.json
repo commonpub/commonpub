@@ -1,6 +1,6 @@
 {
   "name": "@commonpub/editor",
-  "version": "0.7.9",
+  "version": "0.7.10",
   "type": "module",
   "description": "TipTap block editor with 18+ maker-focused extensions for CommonPub",
   "license": "AGPL-3.0-or-later",
@@ -55,7 +55,7 @@
   },
   "dependencies": {
     "@commonpub/config": "workspace:*",
-    "@commonpub/schema": "^0.14.3",
+    "@commonpub/schema": "workspace:*",
     "rehype-stringify": "^10.0.1",
     "remark-gfm": "^4.0.1",
     "remark-parse": "^11.0.0",

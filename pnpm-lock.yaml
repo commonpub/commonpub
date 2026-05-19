@@ -342,8 +342,8 @@ importers:
         specifier: workspace:*
         version: link:../config
       '@commonpub/schema':
-        specifier: ^0.14.3
-        version: 0.14.3(drizzle-orm@0.45.2(@electric-sql/pglite@0.3.16)(@opentelemetry/api@1.9.1)(gel@2.2.0)(kysely@0.28.14)(pg@8.20.0))
+        specifier: workspace:*
+        version: link:../schema
       '@tiptap/core':
         specifier: ^2.11.0
         version: 2.27.2(@tiptap/pm@2.27.2)
@@ -636,8 +636,8 @@ importers:
         specifier: workspace:*
         version: link:../config
       '@commonpub/schema':
-        specifier: ^0.14.3
-        version: 0.14.3(drizzle-orm@0.45.2(@electric-sql/pglite@0.3.16)(@opentelemetry/api@1.9.1)(gel@2.2.0)(kysely@0.28.14)(pg@8.20.0))
+        specifier: workspace:*
+        version: link:../schema
     devDependencies:
       typescript:
         specifier: ^5.7.0
@@ -1179,12 +1179,6 @@ packages:
 
   '@commonpub/schema@0.13.0':
     resolution: {integrity: sha512-2525smTKHS8eYlLJcBjseiOVL5Zz1OCcdTvvk8seqgsRtNaPZfOUuLCPWLzh15bU1gGe6Fn8uP4Z9qm7WwMl/g==}
-    engines: {node: '>=22'}
-    peerDependencies:
-      drizzle-orm: ^0.45.1
-
-  '@commonpub/schema@0.14.3':
-    resolution: {integrity: sha512-Mm/meWiKdtO+g9AXEdZiMIV2cgOwlvoRmeEJWwrrzQM9MAB2i4ljblV17WiGElPlz53R93a/jmQMUbjpy+nozg==}
     engines: {node: '>=22'}
     peerDependencies:
       drizzle-orm: ^0.45.1
@@ -9081,11 +9075,6 @@ snapshots:
       w3c-keyname: 2.2.8
 
   '@commonpub/schema@0.13.0(drizzle-orm@0.45.2(@electric-sql/pglite@0.3.16)(@opentelemetry/api@1.9.1)(gel@2.2.0)(kysely@0.28.14)(pg@8.20.0))':
-    dependencies:
-      drizzle-orm: 0.45.2(@electric-sql/pglite@0.3.16)(@opentelemetry/api@1.9.1)(gel@2.2.0)(kysely@0.28.14)(pg@8.20.0)
-      zod: 4.3.6
-
-  '@commonpub/schema@0.14.3(drizzle-orm@0.45.2(@electric-sql/pglite@0.3.16)(@opentelemetry/api@1.9.1)(gel@2.2.0)(kysely@0.28.14)(pg@8.20.0))':
     dependencies:
       drizzle-orm: 0.45.2(@electric-sql/pglite@0.3.16)(@opentelemetry/api@1.9.1)(gel@2.2.0)(kysely@0.28.14)(pg@8.20.0)
       zod: 4.3.6
