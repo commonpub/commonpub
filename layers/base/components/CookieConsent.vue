@@ -34,7 +34,7 @@ const visible = computed(() => !hasConsented.value && hasNonEssentialCookies.val
   z-index: var(--z-toast);
   background: var(--surface);
   border-top: var(--border-width-default) solid var(--border);
-  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 -2px 0 var(--border);
 }
 
 .cpub-consent-inner {

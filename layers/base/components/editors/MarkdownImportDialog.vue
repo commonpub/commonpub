@@ -10,6 +10,9 @@ const emit = defineEmits<{
   import: [md: string, mode: 'append' | 'replace'];
 }>();
 
+const dialogRef = ref<HTMLElement | null>(null);
+useFocusTrap(dialogRef, () => props.show, () => emit('close'));
+
 const activeTab = ref<'paste' | 'file'>('paste');
 const markdownText = ref('');
 const mode = ref<'append' | 'replace'>('append');
@@ -58,9 +61,9 @@ async function readFile(file: File): Promise<void> {
 <template>
   <Teleport to="body">
     <div v-if="show" class="md-import-overlay" @click.self="emit('close')">
-      <div class="md-import-dialog">
+      <div ref="dialogRef" class="md-import-dialog" role="dialog" aria-modal="true" aria-labelledby="md-import-title">
         <div class="md-import-header">
-          <h2><i class="fa-brands fa-markdown"></i> Import Markdown</h2>
+          <h2 id="md-import-title"><i class="fa-brands fa-markdown"></i> Import Markdown</h2>
           <button class="md-import-close" @click="emit('close')"><i class="fa-solid fa-xmark"></i></button>
         </div>
 

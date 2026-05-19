@@ -79,14 +79,14 @@ useFocusTrap(dialogRef, () => open.value, close);
 <style scoped>
 .cpub-rfd-overlay {
   position: fixed; inset: 0; z-index: 9999;
-  background: rgba(0, 0, 0, 0.5); display: flex;
+  background: var(--color-surface-overlay, rgba(0, 0, 0, 0.5)); display: flex;
   align-items: center; justify-content: center;
   padding: 16px;
 }
 .cpub-rfd-dialog {
   background: var(--bg); border: var(--border-width-default) solid var(--border);
   width: 100%; max-width: 420px; padding: 24px;
-  box-shadow: 4px 4px 0 var(--shadow);
+  box-shadow: var(--shadow-md);
 }
 .cpub-rfd-header {
   display: flex; align-items: center; justify-content: space-between;

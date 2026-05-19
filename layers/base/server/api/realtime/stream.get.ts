@@ -47,6 +47,23 @@ export default defineEventHandler(async (event) => {
   }
   userConnections.set(userId, current + 1);
 
+  // Decrement exactly once on disconnect. Registered at handler scope (not
+  // inside ReadableStream.start) because start() is invoked lazily when the
+  // runtime begins pulling the stream — if the client aborts before that,
+  // start() never runs and an in-start cleanup would never fire, leaking
+  // the slot permanently and eventually 429-locking the user for the
+  // process lifetime. cleanup() also calls release(); the guard makes it
+  // idempotent so there is no double-decrement.
+  let released = false;
+  const release = (): void => {
+    if (released) return;
+    released = true;
+    const next = (userConnections.get(userId) ?? 1) - 1;
+    if (next <= 0) userConnections.delete(userId);
+    else userConnections.set(userId, next);
+  };
+  event.node.req.on('close', release);
+
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {
@@ -65,9 +82,7 @@ export default defineEventHandler(async (event) => {
           unsubscribe = null;
         }
         try { controller.close(); } catch { /* already closed */ }
-        const next = (userConnections.get(userId) ?? 1) - 1;
-        if (next <= 0) userConnections.delete(userId);
-        else userConnections.set(userId, next);
+        release();
       }
 
       async function sendCounts(): Promise<void> {
