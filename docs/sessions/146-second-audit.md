@@ -1,7 +1,23 @@
 # Session 146 — Second full-repo audit (deeper pass)
 
-Date: 2026-05-18. Branch: `main`. **Fixes applied + verified locally;
-NOT yet committed/published/deployed (paused for go-ahead).**
+Date: 2026-05-18. Branch: `main`. **SHIPPED + verified live on all
+three instances.**
+
+## Shipped
+
+6 atomic commits (commonpub `main` a76777f..13241af). Published
+`@commonpub/server@2.53.1` then `@commonpub/layer@0.21.6` (dep order;
+both npm-propagation-confirmed). CLI pins `^2.53.1`/`^0.21.6`
+(template.rs + tests/cli.rs; cargo 26/26). Dependants: deveco
+`dde49ec..32c300b`, heatsync `f0d5aa6..7cf27c6` (its uncommitted
+`commonpub.config.ts` + untracked `ONBOARDING.md` left untouched —
+verified post-commit). **Deploys all success (no SSH flake):**
+commonpub.io 26067722598, deveco.io 26067748548, heatsynclabs.io
+26067772823. Post-deploy `/api/health` 200 + SSR homepages 200 on
+all 3. Gates green: typecheck 26/26, lint 24/24, layer 47/47, server
+964/3skip, cargo 26/26, sweep 0 unresolved (only the known
+sharp-wasm32 build flake red). Scaffolder one-click-deploy lockfile
+fix included per maintainer go-ahead.
 
 ## Method
 
