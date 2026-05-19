@@ -1,8 +1,9 @@
 # Session 149 — DO Spaces CDN support + scaffolder storage fix
 
-Date: 2026-05-19. Branch: `main`. **Committed locally per maintainer
-("commit dont push") — NOT pushed, NOT published, NOT deployed.
-Pending a deep-certainty audit before the release is pushed.**
+Date: 2026-05-19. Branch: `main`. **SHIPPED + verified live on all
+three instances.** The deep certainty audit (three passes; 8
+verification agents in total) caught a live P0 mid-process; the fix
+was bundled into this release.
 
 Triggered by the user: heatsynclabs.io's Space has CDN enabled
 manually; is the code emitting CDN links? do commonpub.io/deveco.io
@@ -89,3 +90,84 @@ pre-existing `commonpub.config.ts` M + `ONBOARDING.md` untracked).
    host). No repo change possible/needed here; heatsync working tree
    left pristine.
 3. Confirm commonpub.io droplet `.env` storage mode (local vs Spaces).
+
+## Shipped (final)
+
+### Deep certainty audit caught a LIVE P0
+
+The user's "be 10000% certain — audit deeply, continue, audit again"
+discipline directly caught a production outage. The empirical
+safeFetch check (first call of the deep audit) showed `safeFetch`
+threw `fetch failed` against a public URL: undici's custom
+`connect.lookup` invokes with `all` semantics and expects
+`callback(err, LookupAddress[])` — session-148's pinned dispatcher
+returned the classic `(err, address, family)` single form, so undici
+read `addresses[0].address` off a string → `ERR_INVALID_IP_ADDRESS:
+undefined` → **every safeFetch threw "fetch failed" on commonpub.io,
+deveco.io, heatsync since protocol 0.10.0 deployed**. Live-broken
+routes: content import (`importFromUrl`), remote-image upload
+(`upload-from-url`), image proxy. Session-148 gates missed it
+because no test exercised a real fetch through the dispatcher — the
+plan had explicitly deferred that integration test. Fixed in
+`packages/protocol/src/ssrf.ts` (return the validated array);
+network-free contract regression test added.
+
+### Additional audit follow-ups bundled
+
+- Admin backfill column set extended to all 10 local Spaces-target
+  columns (users.avatar/banner_url, hubs.icon/banner_url,
+  contests.banner_url, contentItems.banner_url, products.image_url,
+  plus the original 3). Federation-table remote URLs deliberately
+  excluded.
+- `isExplainerDocument` hardened to require non-null hero (same
+  500-class as the readTime hotfix; explainerDocumentSchema is dead
+  code on the content write path).
+- `packages/editor` + `packages/test-utils` `@commonpub/schema` pin
+  changed `^0.14.3` → `workspace:*` (Drizzle-drift risk for external
+  npm installs); both bumped to 0.7.10 / 0.5.6.
+
+### Final 7-package publish chain (dep order, polled between each)
+
+`@commonpub/protocol@0.10.1` → `@commonpub/infra@0.7.1` →
+`@commonpub/editor@0.7.10` → `@commonpub/test-utils@0.5.6` →
+`@commonpub/explainer@0.7.14` → `@commonpub/server@2.54.1` →
+`@commonpub/layer@0.21.10`. All propagated; deveco.io + heatsync
+bumped `@commonpub/layer ^0.21.10`. commonpub.io built from source.
+
+### Live verification
+
+**ALL 3 DEPLOYS SUCCESS** — commonpub.io run 26126600151, deveco.io
+26127175025, heatsynclabs.io 26127193131. Empirical end-to-end
+check on each via image-proxy (which routes through the
+pinned-dispatcher `safeFetchBinary` — the previously-broken path):
+
+```
+https://commonpub.io      image-proxy → 200 13504B image/png
+https://deveco.io         image-proxy → 200 13504B image/png
+https://heatsynclabs.io   image-proxy → 200 13504B image/png
+/api/health → 200 on all 3
+```
+
+The pinned dispatcher works correctly, public fetches succeed
+through it, and SSRF (literal/RFC1918/metadata/DNS-rebind) is still
+blocked (proven by `ssrf-pinned-lookup.test.ts` + the safeFetch
+matrix).
+
+## Local-only follow-up (not yet shipped)
+
+`fix(layer): translate YouTube/Vimeo URLs in generic Embed block; add
+video+embed to Project editor` (`083c289`) — user-reported: "video
+embeds like YouTube don't work" + projects should support embeds.
+Root causes: BlockEmbedView iframed the raw url so YouTube watch
+URLs failed under X-Frame-Options; ProjectEditor's blockTypes had
+no media blocks. Local commit, awaits a 0.21.11 patch or a bundled
+follow-up release.
+
+## Carryover hygiene (non-blocker, queued)
+
+`packages/server`'s `files` glob `"!dist/__tests__/"` doesn't exclude
+nested `dist/<sub>/__tests__/` — confirmed 8 such files in the
+published tarball. Same pattern for `packages/explainer` shipping
+`vue/__tests__/useSectionHistory.test.ts`. Non-security (mock data,
+no creds), but bloat. Recommend `"!**/__tests__/"` + `"!**/*.test.*"`
+in both `files` globs as a future hygiene patch.
