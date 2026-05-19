@@ -228,3 +228,68 @@ the thin-app **must** bump its direct pin alongside the
 This is the rule that prevented the `contentImport` P1 from
 recurring across the 0.21.10 → 0.21.11 patch (both releases
 stayed on `config@0.13`/`server@2.54`, so no minor crossing).
+
+## Post-ship audit pass 2 (same-session)
+
+After the bundled 0.21.11 went live, a final ultrathink-audit pass
+swept for residual issues. Two minor findings, both fixed in
+`706aa79` + `dfa4609` + the CHANGELOG sync.
+
+### Findings + fixes
+
+1. **`apps/shell/package.json` was a divergent subset of the
+   scaffolder template** — missing `@commonpub/schema`, `drizzle-orm`,
+   `drizzle-kit`, `db:push`/`db:studio` scripts, and
+   `drizzle.config.ts`. The developers guide calls `apps/shell/` the
+   starter template, so a contributor copying it would get a
+   working Nuxt app with no DB path. Synced to scaffolder parity.
+
+2. **Lockstep-pin doc mechanism was imprecise** — the previous text
+   said pnpm "hoists 0.12.x". Corrected: the cause is that the
+   thin-app's `commonpub.config.ts` imports `defineCommonPubConfig`
+   from its **direct** `@commonpub/config` pin, so the zod schema
+   bundled with that version parses the config. Zod strips unknown
+   fields, so flags added in a later minor never appear in the
+   merged config object.
+
+3. **CHANGELOG "at time of writing" line was contradictory** —
+   listed `editor 0.7.9, explainer 0.7.13` then `editor 0.7.10,
+   explainer 0.7.15` two lines later. Consolidated.
+
+### Verification
+
+- All 13 published @commonpub/* tarballs checked: 0 nested test
+  files across the board (no further hygiene bumps needed).
+- Workspace typecheck: 26/26 success.
+- Live SSRF defense empirically verified on all 3 prod instances:
+  public=200, 127.0.0.1=400, metadata-IP=400.
+- Live `/api/health`, `/api/features.contentImport=true`,
+  `/api/image-proxy=200` on commonpub.io, deveco.io,
+  heatsynclabs.io.
+
+### Next session (queued)
+
+**Federation-hardening Stage 3 — Parts 2 & 3:**
+
+- **Item 6** — inbound digest re-serialization break (every signed
+  inbound activity with a digest header would 401; fail-closed but a
+  complete interop break). Fix: capture raw body once, hash raw
+  bytes, parse a copy. Unit-testable via fixture signed requests.
+
+- **Item 7** — signature coverage policy. Require `digest` ∈ signed
+  set when body present; require `(request-target)`, `host`, `date`
+  ∈ signed set; require Date present + recent + signed. Unit-testable
+  matrix.
+
+- **Item 8** — hand-minted Better-Auth session cookies are unsigned /
+  wrong-named. Federated/Mastodon SSO produces a non-authenticating
+  session after "already-linked → log in". Both flags OFF in prod
+  so currently dormant. Fix: mint through `auth.api` or replicate
+  `setSignedCookie` with the `__Secure-` prefix.
+
+- **Item 9** — XFF rate-limit key spoofable (needs-confirmation of
+  proxy contract before fixing).
+
+Items 6 + 7 are unit-testable; Item 8 needs a real linked-account
+exercise. None require a literal second instance to start
+implementation — interop testing happens at the END of the session.

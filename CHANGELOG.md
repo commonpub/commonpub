@@ -10,9 +10,8 @@ monorepo working period. For session-level detail, see [`docs/sessions/`](./docs
 ## Unreleased (sessions 108–149, through 2026-05-19)
 
 Monorepo state at time of writing: schema 0.16.0, server 2.54.2, config 0.13.0,
-layer 0.21.11, ui 0.8.5, protocol 0.10.1, editor 0.7.9, explainer 0.7.13,
-learning 0.5.2, docs 0.6.3, auth 0.6.0, infra 0.7.1, test-utils 0.5.6,
-explainer 0.7.15, editor 0.7.10.
+layer 0.21.11, ui 0.8.5, protocol 0.10.1, editor 0.7.10, explainer 0.7.15,
+learning 0.5.2, docs 0.6.3, auth 0.6.0, infra 0.7.1, test-utils 0.5.6.
 
 ### Session 149 bundled patch — YouTube/embed + explainer cover-image + tarball hygiene
 
