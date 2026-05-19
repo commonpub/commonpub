@@ -246,8 +246,8 @@ fn package_json_pins_current_commonpub_versions() {
     // Exact pins (not loose `^0.21` prefixes): this test is the forcing
     // function for the RELEASE CHECKLIST — it must fail when template.rs
     // pins go stale after a publish, so update both together.
-    assert!(pkg.contains("\"@commonpub/layer\": \"^0.21.9\""), "layer pin must be ^0.21.9");
-    assert!(pkg.contains("\"@commonpub/server\": \"^2.54.0\""), "server pin must be ^2.54.0");
+    assert!(pkg.contains("\"@commonpub/layer\": \"^0.21.10\""), "layer pin must be ^0.21.10");
+    assert!(pkg.contains("\"@commonpub/server\": \"^2.54.1\""), "server pin must be ^2.54.1");
     assert!(pkg.contains("\"@commonpub/schema\": \"^0.16.0\""), "schema pin must be ^0.16.0");
     assert!(pkg.contains("\"@commonpub/config\": \"^0.13.0\""), "config pin must be ^0.13.0");
 
@@ -419,4 +419,17 @@ fn cli_admin_user_flag_writes_bootstrap_user() {
     assert!(env.contains("ADMIN_BOOTSTRAP_USER=carol"));
     let readme = fs::read_to_string(tmp.path().join("flagadmin/README.md")).unwrap();
     assert!(readme.contains("`carol`"));
+}
+
+#[test]
+fn env_example_uses_bare_s3_vars_with_cdn_recipe() {
+    // Regression: the storage adapter reads bare process.env.S3_* — Nuxt
+    // does NOT map NUXT_S3_* into process.env, so the old NUXT_S3_*
+    // example was inert (silently no S3). Must emit bare S3_* + a
+    // DO Spaces CDN recipe.
+    let config = create_commonpub::prompts::InstanceConfig::with_defaults("s3test");
+    let env = create_commonpub::template::render_env(&config);
+    assert!(env.contains("S3_BUCKET="), "must document bare S3_BUCKET");
+    assert!(env.contains("S3_CDN=true"), "must document the DO Spaces CDN knob");
+    assert!(!env.contains("NUXT_S3_"), "NUXT_S3_* is inert — must not be emitted");
 }

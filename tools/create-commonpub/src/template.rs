@@ -14,12 +14,12 @@ use crate::prompts::InstanceConfig;
 // in lockstep with deveco.io's package.json pins (the proven
 // production thin-app reference).
 //
-// Last synced: 2026-05-19 (session 148) — layer 0.21.9, server 2.54.0,
+// Last synced: 2026-05-19 (session 149) — layer 0.21.10, server 2.54.1,
 // schema 0.16.0, config 0.13.0.
 const COMMONPUB_CONFIG_VERSION: &str = "^0.13.0";
-const COMMONPUB_LAYER_VERSION: &str = "^0.21.9";
+const COMMONPUB_LAYER_VERSION: &str = "^0.21.10";
 const COMMONPUB_SCHEMA_VERSION: &str = "^0.16.0";
-const COMMONPUB_SERVER_VERSION: &str = "^2.54.0";
+const COMMONPUB_SERVER_VERSION: &str = "^2.54.1";
 
 // pnpm pin for the generated Dockerfile. `pnpm@latest` is a time-bomb:
 // pnpm ≥10.11 fails `install --frozen-lockfile` on packages with
@@ -443,13 +443,20 @@ NUXT_EMAIL_ADAPTER=console
 # NUXT_RESEND_API_KEY=
 # NUXT_RESEND_FROM=noreply@{domain}
 
-# Storage — set S3_BUCKET to enable S3/DO Spaces, otherwise local ./uploads
-# NUXT_S3_BUCKET=
-# NUXT_S3_REGION=us-east-1
-# NUXT_S3_ENDPOINT=
-# NUXT_S3_ACCESS_KEY=
-# NUXT_S3_SECRET_KEY=
-# NUXT_S3_PUBLIC_URL=
+# Storage — set S3_BUCKET to enable S3/DO Spaces, otherwise local ./uploads.
+# NOTE: the app reads bare S3_* vars (the NUXT_-prefixed form is inert).
+# DigitalOcean Spaces + CDN (recommended for production):
+#   1. Create a Space; enable its CDN (DO console -> Space -> Settings -> CDN).
+#   2. Uncomment + fill the vars below. With S3_CDN=true and S3_PUBLIC_URL
+#      left unset, assets are served from the CDN edge
+#      (https://<bucket>.<region>.cdn.digitaloceanspaces.com).
+# S3_BUCKET=
+# S3_REGION=nyc3
+# S3_ENDPOINT=https://nyc3.digitaloceanspaces.com
+# S3_ACCESS_KEY=
+# S3_SECRET_KEY=
+# S3_CDN=true
+# S3_PUBLIC_URL=   # optional explicit override; leave unset to auto-derive the CDN URL
 "#,
         name = config.name,
         domain = config.domain,
