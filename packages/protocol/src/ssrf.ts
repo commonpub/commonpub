@@ -153,45 +153,51 @@ const MAX_REDIRECTS = 5;
 /**
  * Custom DNS lookup for the SSRF dispatcher. We resolve the hostname
  * ourselves (`all`, `verbatim`), reject if ANY returned address is
- * private/reserved (fail-closed — a rebinding resolver can return a mix),
- * then hand the FIRST validated address back in the classic
- * `(err, address, family)` form Node's `net.connect` lookup contract
- * expects. Because the connection pins to this validated address, there
- * is no second resolution between check and connect (closes the TOCTOU).
+ * private/reserved (fail-closed — a rebinding resolver can return a
+ * mix), then hand the validated address LIST back.
+ *
+ * undici's connector invokes the custom `lookup` with `all` semantics
+ * and expects `callback(err, LookupAddress[])` (an array of
+ * `{ address, family }`) — NOT the classic `(err, address, family)`
+ * single form. Returning the single form makes undici read
+ * `addresses[0].address` off a string → `ERR_INVALID_IP_ADDRESS:
+ * undefined` and every fetch fails. Verified empirically against
+ * undici 7 (see ssrf.integration.test.ts). Because every returned
+ * address is pre-validated and the connection pins to one of them,
+ * there is no second resolution between check and connect (TOCTOU
+ * closed).
  */
-function pinnedLookup(
+export function pinnedLookup(
   hostname: string,
-  _options: dns.LookupOptions,
-  callback: (err: NodeJS.ErrnoException | null, address: string, family: number) => void,
+  options: dns.LookupOptions,
+  callback: (err: NodeJS.ErrnoException | null, addresses: dns.LookupAddress[]) => void,
 ): void {
-  dns.lookup(hostname, { all: true, verbatim: true }, (err, addresses) => {
+  dns.lookup(hostname, { ...options, all: true, verbatim: true }, (err, addresses) => {
     if (err) {
-      callback(err, '', 0);
+      callback(err, []);
       return;
     }
-    if (!addresses || addresses.length === 0) {
+    const list = Array.isArray(addresses) ? addresses : [];
+    if (list.length === 0) {
       callback(
         Object.assign(new Error(`SSRF: ${hostname} did not resolve`), { code: 'ENOTFOUND' }),
-        '',
-        0,
+        [],
       );
       return;
     }
-    for (const a of addresses) {
+    for (const a of list) {
       if (isPrivateIp(a.address)) {
         callback(
           Object.assign(
             new Error(`SSRF: ${hostname} resolved to a private or reserved address`),
             { code: 'ECONNREFUSED' },
           ),
-          '',
-          0,
+          [],
         );
         return;
       }
     }
-    const first = addresses[0]!;
-    callback(null, first.address, first.family);
+    callback(null, list);
   });
 }
 
