@@ -171,3 +171,60 @@ published tarball. Same pattern for `packages/explainer` shipping
 `vue/__tests__/useSectionHistory.test.ts`. Non-security (mock data,
 no creds), but bloat. Recommend `"!**/__tests__/"` + `"!**/*.test.*"`
 in both `files` globs as a future hygiene patch.
+
+## Bundled patch ship — `0.21.11` (same-session, post-149 rollup)
+
+After session 149 closed, the user requested the local-only YouTube
+fix + explainer cover-upload feature + tarball hygiene be bundled
+into a single patch release rather than three separate ships.
+
+### Contents
+
+- **`feat(explainer): cover-image upload from Document tab`** (#29) —
+  `DocumentPanel.vue` now exposes an Upload / Remove control beside
+  the Hero image URL field; same uploader the rest of the editor
+  uses (`/api/files/upload`, `credentials: 'same-origin'`). URL
+  fallback preserved.
+- **`fix(layer): YouTube/Vimeo URL translation in Embed block`**
+  (#31, was local commit `083c289`) — `BlockEmbedView.vue` matches
+  the same regex set as `BlockVideoView.vue` and rewrites watch
+  URLs to `youtube-nocookie.com/embed/<id>`. Project editor
+  `blockTypes` gained a Media group (`video`, `embed`).
+- **`fix(packaging): exclude nested __tests__ from server + explainer
+  tarballs`** — `packages/server` and `packages/explainer` `files`
+  globs gained `"!**/__tests__/"` + `"!**/*.test.*"` +
+  `"!**/*.spec.*"`. Verified post-publish: `server@2.54.2` and
+  `explainer@0.7.15` tarballs each contain **0** nested test files
+  (was 8 + 1 respectively).
+
+### 3-package publish chain (dep order)
+
+`@commonpub/server@2.54.2` → `@commonpub/explainer@0.7.15` →
+`@commonpub/layer@0.21.11`. All propagated; deveco.io and
+heatsynclabs.io bumped `@commonpub/layer ^0.21.10` → `^0.21.11`
+(plus matching `@commonpub/server ^2.54.2` direct pin).
+commonpub.io built from source.
+
+### Live verification
+
+**ALL 3 DEPLOYS SUCCESS** — commonpub.io run 26129169644,
+deveco.io 26129192521, heatsynclabs.io 26129196153.
+
+```
+https://commonpub.io      health=200  contentImport=true  image-proxy=200
+https://deveco.io         health=200  contentImport=true  image-proxy=200
+https://heatsynclabs.io   health=200  contentImport=true  image-proxy=200
+```
+
+Tarball hygiene confirmed against the published artifacts.
+
+### Doc landed
+
+`docs/guides/developers.md` thin-app section gained an "Upgrading
+a thin-app" subsection that codifies the lockstep-pin pattern: on
+a **minor** bump of `@commonpub/config` or `@commonpub/server`,
+the thin-app **must** bump its direct pin alongside the
+`@commonpub/layer` bump, because `^0.x.y` is same-minor only.
+This is the rule that prevented the `contentImport` P1 from
+recurring across the 0.21.10 → 0.21.11 patch (both releases
+stayed on `config@0.13`/`server@2.54`, so no minor crossing).

@@ -133,6 +133,46 @@ dogfood deployment that shows what everything looks like when it's all on.
 `deveco.io` is a real production thin-app — about 25 branded/config files
 over the layer.
 
+### Upgrading a thin-app
+
+Thin-app `package.json` typically pins four packages directly:
+
+```json
+"@commonpub/config": "^0.x.y",
+"@commonpub/layer":  "^0.x.y",
+"@commonpub/schema": "^0.x.y",
+"@commonpub/server": "^x.y.z"
+```
+
+**Patch bumps** (e.g. `^0.21.10` → `^0.21.11`): bump the layer pin, run
+`pnpm install`, commit, deploy. The caret resolves the new patch
+automatically and the layer's own deps come along for the ride.
+
+**Minor bumps to `config` or `server`** (e.g. `^0.12.0` → `^0.13.0`, or
+`^2.53.0` → `^2.54.0`): you **must** bump the thin-app's direct pin too,
+not just the layer pin.
+
+Why: on `0.x` versions, the caret means *same-minor only* — `^0.12.0`
+accepts `0.12.99` but **not** `0.13.0`. If the layer requires
+`@commonpub/config@^0.13.0` and the thin-app still pins `^0.12.0`, pnpm
+hoists `0.12.x` (the direct pin wins for the top-level resolution path the
+layer code imports), feature flags defined only in `0.13.x` resolve as
+`undefined`, and `requireFeature` returns 404 at runtime.
+
+Symptom seen in session 149: `/api/content/import` returned 404 on the
+thin apps after the layer shipped `contentImport` (added in
+`@commonpub/config@0.13.0`) — `/api/features` showed `contentImport: null`.
+
+Procedure for a minor bump of `config` or `server`:
+
+1. Bump `@commonpub/layer` to the new release.
+2. In the **same commit**, bump every direct `@commonpub/config` /
+   `@commonpub/server` / `@commonpub/schema` pin to the same minor.
+3. `pnpm install`, verify `pnpm-lock.yaml` resolves the new versions,
+   commit, deploy.
+4. After deploy, sanity-check `/api/features` for any newly-added flag
+   and `/api/health` for 200.
+
 ### Why a layer, not separate packages?
 
 The layer is the distribution unit because UI + CSS are tightly coupled to
