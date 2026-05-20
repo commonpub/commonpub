@@ -1,7 +1,31 @@
 # Redis Integration Plan
 
-**Status**: deferred (not started). Written session 128; pick up in a later
-session when horizontal scaling matters.
+**Status (session 150 audit, 2026-05-19): SHIPPED in session 130
+(2026-04-17).** `RateLimitStore` (memory + Redis backends) and
+`RealtimePubSub` (memory + Redis backends) are in `@commonpub/infra`
+and re-exported via `@commonpub/server`. Activation is opt-in via
+`NUXT_REDIS_URL` — unset = byte-identical to pre-130 single-process
+behavior. Production Redis containers are running on commonpub.io +
+deveco.io droplets (`deploy/docker-compose.prod.yml`); the env var
+is NOT yet flipped on any instance — single-process is fine at current
+load, multi-instance flip is the next operator decision (procedure
+in `codebase-analysis/12-scaling-and-infrastructure.md` "How to turn
+Redis ON").
+
+The plan below is preserved for historical context — the design
+landed as written. Code references now resolve to:
+- `packages/infra/src/security.ts` — `RateLimitStore` interface
+- `packages/infra/src/redis/{client,rateLimitStore,factory,logger}.ts`
+- `packages/infra/src/realtime/{pubsub,redisPubsub,factory}.ts`
+- `packages/server/src/realtime/index.ts` — `publishSseEvent` +
+  `subscribeSseEvents` singletons
+
+---
+
+(historical context — written session 128 when this was still deferred)
+
+**Original status (session 128)**: deferred (not started). Pick up in a
+later session when horizontal scaling matters.
 
 ## Why
 
