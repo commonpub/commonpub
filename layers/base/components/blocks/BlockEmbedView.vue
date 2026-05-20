@@ -1,21 +1,7 @@
 <script setup lang="ts">
 const props = defineProps<{ content: Record<string, unknown> }>();
 
-// Translate common watch-page URLs into iframe-embeddable equivalents
-// so authors who paste a YouTube/Vimeo URL into the generic Embed block
-// don't end up with an iframe that the provider refuses to render
-// (X-Frame-Options / CSP frame-ancestors). Mirrors BlockVideoView.
-const embedUrl = computed(() => {
-  const raw = (props.content.url as string) || '';
-  if (!raw) return '';
-  const yt = raw.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{6,})/);
-  if (yt) return `https://www.youtube-nocookie.com/embed/${yt[1]}`;
-  const vimeo = raw.match(/vimeo\.com\/(\d+)/);
-  if (vimeo) return `https://player.vimeo.com/video/${vimeo[1]}`;
-  // Anything else: allow http(s) only (block javascript:, data:, etc.).
-  if (raw.startsWith('https://') || raw.startsWith('http://')) return raw;
-  return '';
-});
+const embedUrl = computed(() => toEmbedUrl(props.content.url as string));
 </script>
 
 <template>

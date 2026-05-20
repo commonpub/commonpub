@@ -2,23 +2,7 @@
 const props = defineProps<{ content: Record<string, unknown> }>();
 
 const url = computed(() => (props.content.url as string) || '');
-
-const embedUrl = computed(() => {
-  const u = url.value;
-  if (!u) return '';
-
-  // YouTube — handle watch + youtu.be + /embed/ + /v/ + /shorts/.
-  const ytMatch = u.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{6,})/);
-  if (ytMatch) return `https://www.youtube-nocookie.com/embed/${ytMatch[1]}`;
-
-  // Vimeo — extract video ID and construct safe embed URL
-  const vimeoMatch = u.match(/vimeo\.com\/(\d+)/);
-  if (vimeoMatch) return `https://player.vimeo.com/video/${vimeoMatch[1]}`;
-
-  // Only allow http/https URLs for unknown platforms — block javascript:, data:, etc.
-  if (u.startsWith('https://') || u.startsWith('http://')) return u;
-  return '';
-});
+const embedUrl = computed(() => toEmbedUrl(url.value));
 
 const platform = computed(() => {
   const u = url.value;
