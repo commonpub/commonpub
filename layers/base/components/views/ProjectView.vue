@@ -73,6 +73,20 @@ const authorUrl = computed(() =>
     : `/u/${props.content.author?.username}`,
 );
 
+/**
+ * Whether the right sidebar has any content to render. When false we
+ * suppress the sidebar `<aside>` AND the grid's 260px column so the
+ * content column gets the full width. Without this guard, projects
+ * with no BOM/parts AND no community hub get a squished content
+ * column with empty whitespace on the right (heatsynclabs.io
+ * report, 2026-05-19).
+ */
+const hasSidebar = computed(() => {
+  const bom = (props.content?.parts?.length ?? 0) > 0 || (bomProducts.value?.length ?? 0) > 0;
+  const community = hubsEnabled.value && !!props.content?.community;
+  return bom || community;
+});
+
 const formattedDate = computed(() => {
   const date = props.content?.publishedAt || props.content?.createdAt;
   if (!date) return '';
@@ -418,7 +432,7 @@ async function handleBuild(): Promise<void> {
 
     <!-- MAIN CONTENT GRID -->
     <div class="cpub-page-outer">
-      <div class="cpub-content-grid" :class="{ 'cpub-has-toc': tocEntries.length > 0 && activeTab === 'overview' }">
+      <div class="cpub-content-grid" :class="{ 'cpub-has-toc': tocEntries.length > 0 && activeTab === 'overview', 'cpub-has-sidebar': hasSidebar }">
         <!-- LEFT: TABLE OF CONTENTS -->
         <nav v-if="tocEntries.length > 0 && activeTab === 'overview'" class="cpub-toc-col">
           <div class="cpub-toc">
@@ -561,8 +575,9 @@ async function handleBuild(): Promise<void> {
           </template>
         </div>
 
-        <!-- RIGHT: SIDEBAR -->
-        <aside class="cpub-sidebar">
+        <!-- RIGHT: SIDEBAR (rendered only when there's BOM/community content;
+             the cpub-has-sidebar grid-class reserves the 260px column to match) -->
+        <aside v-if="hasSidebar" class="cpub-sidebar">
           <!-- BOM Summary -->
           <div v-if="content.parts?.length || bomProducts?.length" class="cpub-sb-card">
             <div class="cpub-sb-title">BOM Summary</div>
@@ -940,15 +955,29 @@ async function handleBuild(): Promise<void> {
   border-bottom-color: var(--border);
 }
 
-/* ── CONTENT GRID ── */
+/* ── CONTENT GRID ──
+   4 layouts via 2 boolean modifier classes:
+     base                              → content only
+     .cpub-has-toc                     → TOC + content
+     .cpub-has-sidebar                 → content + sidebar
+     .cpub-has-toc.cpub-has-sidebar    → TOC + content + sidebar
+   The sidebar 260px column is reserved ONLY when there's sidebar
+   content to put in it (BOM/parts OR community hub) — otherwise the
+   content column gets the freed width. */
 .cpub-content-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 260px;
+  grid-template-columns: minmax(0, 1fr);
   gap: clamp(16px, 3vw, 32px);
   align-items: start;
   padding-bottom: 64px;
 }
 .cpub-content-grid.cpub-has-toc {
+  grid-template-columns: 200px minmax(0, 1fr);
+}
+.cpub-content-grid.cpub-has-sidebar {
+  grid-template-columns: minmax(0, 1fr) 260px;
+}
+.cpub-content-grid.cpub-has-toc.cpub-has-sidebar {
   grid-template-columns: 200px minmax(0, 1fr) 260px;
 }
 
@@ -1561,9 +1590,12 @@ async function handleBuild(): Promise<void> {
 
 /* ── RESPONSIVE ── */
 
-/* 1200px: Drop left TOC column, keep sidebar */
+/* 1200px: Drop left TOC column, keep sidebar if it exists */
 @media (max-width: 1200px) {
   .cpub-content-grid.cpub-has-toc {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .cpub-content-grid.cpub-has-toc.cpub-has-sidebar {
     grid-template-columns: minmax(0, 1fr) 260px;
   }
   .cpub-toc-col { display: none; }
@@ -1572,7 +1604,9 @@ async function handleBuild(): Promise<void> {
 /* 1024px: Single column — sidebar stacks below content */
 @media (max-width: 1024px) {
   .cpub-content-grid,
-  .cpub-content-grid.cpub-has-toc {
+  .cpub-content-grid.cpub-has-toc,
+  .cpub-content-grid.cpub-has-sidebar,
+  .cpub-content-grid.cpub-has-toc.cpub-has-sidebar {
     grid-template-columns: minmax(0, 1fr);
   }
   .cpub-sidebar { position: static; }
