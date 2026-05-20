@@ -1,4 +1,4 @@
-import { incrementViewCount } from '@commonpub/server';
+import { incrementViewCount, getClientIp } from '@commonpub/server';
 
 // Simple in-memory dedup — tracks IP+contentId pairs for 5 minutes
 const recentViews = new Map<string, number>();
@@ -18,10 +18,11 @@ export default defineEventHandler(async (event): Promise<{ success: boolean }> =
   const db = useDB();
   const { id } = parseParams(event, { id: 'uuid' });
 
-  // De-duplicate views per IP + content within cooldown window
-  const ip = getRequestHeader(event, 'x-forwarded-for')?.split(',')[0]?.trim()
-    || getRequestHeader(event, 'x-real-ip')
-    || 'unknown';
+  // De-duplicate views per IP + content within cooldown window. Use the
+  // trusted (rightmost) XFF token (federation-hardening Item 9) — the
+  // previous leftmost-token read let any anonymous caller rotate
+  // `X-Forwarded-For: random` to inflate view counts past the 5-min cap.
+  const ip = getClientIp(event);
   const dedupKey = `${ip}:${id}`;
   const lastView = recentViews.get(dedupKey);
 

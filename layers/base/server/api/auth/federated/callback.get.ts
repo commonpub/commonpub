@@ -1,24 +1,11 @@
-import { consumeOAuthState, exchangeCodeForToken, linkFederatedAccount, findUserByFederatedAccount, createFederatedSession, storePendingLink } from '@commonpub/server';
-import type { H3Event } from 'h3';
+import { consumeOAuthState, exchangeCodeForToken, linkFederatedAccount, findUserByFederatedAccount, createFederatedSession, storePendingLink, getClientIp } from '@commonpub/server';
 import { z } from 'zod';
+import { setBetterAuthSessionCookie } from '../../../utils/betterAuthCookie';
 
 const callbackSchema = z.object({
   code: z.string(),
   state: z.string(),
 });
-
-/**
- * Set the Better Auth session cookie after federated login.
- */
-function setSessionCookie(event: H3Event, token: string, expiresAt: Date): void {
-  setCookie(event, 'better-auth.session_token', token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    path: '/',
-    expires: expiresAt,
-  });
-}
 
 /**
  * OAuth2 callback handler for federated login.
@@ -48,18 +35,25 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  const ipAddress = getRequestHeader(event, 'x-forwarded-for')?.split(',')[0]?.trim()
-    ?? getRequestHeader(event, 'x-real-ip')
-    ?? undefined;
+  // Trusted client IP for the session audit row (federation-hardening
+  // Item 9 — use the rightmost XFF token / x-real-ip / socket address,
+  // matching the rate-limit middleware so the audit log + the rate-limit
+  // key reference the same address).
+  const resolvedIp = getClientIp(event);
+  const ipAddress = resolvedIp === 'unknown' ? undefined : resolvedIp;
   const userAgent = getRequestHeader(event, 'user-agent') ?? undefined;
 
   // Check if a local user is already linked to this federated account
   const existingLink = await findUserByFederatedAccount(db, tokenResult.user.actorUri);
 
   if (existingLink) {
-    // User already linked — create session and redirect to dashboard
+    // User already linked — create session and redirect to dashboard.
+    // Cookie is signed + correctly named (federation-hardening Item 8);
+    // before the fix the bare-token/bare-name cookie was rejected by
+    // Better Auth's getSession on the next request, leaving the redirect
+    // anonymous.
     const session = await createFederatedSession(db, existingLink.userId, ipAddress, userAgent);
-    setSessionCookie(event, session.sessionToken, session.expiresAt);
+    setBetterAuthSessionCookie(event, session.sessionToken, session.expiresAt);
     return sendRedirect(event, '/dashboard', 302);
   }
 

@@ -1,5 +1,5 @@
 // Security middleware — rate limiting + security headers + CSP
-import { checkRateLimit, createRateLimitStore, createRedisFailOpenLogger, shouldSkipRateLimit, getSecurityHeaders, buildCspHeader, buildCspDirectives } from '@commonpub/server';
+import { checkRateLimit, createRateLimitStore, createRedisFailOpenLogger, shouldSkipRateLimit, getSecurityHeaders, buildCspHeader, buildCspDirectives, getClientIp } from '@commonpub/server';
 
 // Structured JSON sink for fail-open events. Emits one JSON line per event
 // to stdout so Docker logs / Loki / Datadog / CloudWatch can parse without
@@ -54,9 +54,15 @@ export default defineEventHandler(async (event) => {
 
   // Skip rate limiting in development — SSR + HMR + prefetch burns through limits instantly
   if (!isDev) {
-    const ip = getRequestHeader(event, 'x-forwarded-for')?.split(',')[0]?.trim()
-      || getRequestHeader(event, 'x-real-ip')
-      || 'unknown';
+    // Trusted client IP for the rate-limit bucket (federation-hardening
+    // Item 9). All 3 prod instances run Caddy with `header_up
+    // X-Forwarded-For {remote_host}` (overwrite) — XFF chain length 1,
+    // leftmost === rightmost, so the previous leftmost-token code was NOT
+    // live-exploitable in our setup. The rightmost-token rule here is
+    // forward-compatible hardening for self-hosters on nginx-append /
+    // multi-proxy topologies; they set CPUB_TRUSTED_PROXY_DEPTH to match
+    // their chain (default 1 covers single-proxy append too).
+    const ip = getClientIp(event);
 
     const userId = event.context.auth?.user?.id as string | undefined;
     const { result, headers: rlHeaders } = await checkRateLimit(store, ip, pathname, userId);

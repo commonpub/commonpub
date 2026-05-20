@@ -1,6 +1,7 @@
 import { deleteUser, federateDelete } from '@commonpub/server';
 import { contentItems } from '@commonpub/schema';
 import { eq, and } from 'drizzle-orm';
+import { clearBetterAuthSessionCookies } from '../../utils/betterAuthCookie';
 
 export default defineEventHandler(async (event): Promise<{ success: true }> => {
   const user = requireAuth(event);
@@ -48,8 +49,13 @@ export default defineEventHandler(async (event): Promise<{ success: true }> => {
   // Delete the user (cascades to all related data)
   await deleteUser(db, user.id, user.id);
 
-  // Clear the session cookie
-  deleteCookie(event, 'better-auth.session_token', { path: '/' });
+  // Clear both Better Auth cookies — session_token AND session_data
+  // (SSR session cache). Federation-hardening Item 8: the previous
+  // single deleteCookie('better-auth.session_token') didn't match the
+  // `__Secure-`-prefixed prod cookie name and left the session_data
+  // cache cookie hanging for up to 5 minutes of stale enriched-user
+  // data on the response of a freshly-deleted account.
+  clearBetterAuthSessionCookies(event);
 
   return { success: true };
 });

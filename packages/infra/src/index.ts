@@ -52,6 +52,10 @@ export {
 } from './security.js';
 export type { RateLimitTier, RateLimitResult } from './security.js';
 
+// Trusted client-IP extraction (XFF-spoof-resistant)
+export { getClientIp } from './clientIp.js';
+export type { GetClientIpOptions } from './clientIp.js';
+
 // Redis — opt-in store backends when NUXT_REDIS_URL is set
 export { createRedisClient, resetRedisClientsForTests } from './redis/client.js';
 export type { RedisClient } from './redis/client.js';

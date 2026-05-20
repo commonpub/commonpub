@@ -4,20 +4,25 @@
  */
 import { eq } from 'drizzle-orm';
 import { instanceMirrors } from '@commonpub/schema';
-import { resolveActor, processInboxActivity } from '@commonpub/protocol';
+import { resolveActor, processInboxActivity, safeFetchResponse, safeFetchSigned, type SafeFetchResponseResult } from '@commonpub/protocol';
 import type { DB } from '../types.js';
 import { createInboxHandlers } from './inboxHandlers.js';
+import { createSafeActorFetchFn } from './safeFetchFn.js';
 
 const MAX_PAGES = 50;
 const FETCH_TIMEOUT_MS = 30_000;
 const DELAY_BETWEEN_PAGES_MS = 1_000;
 
 /**
- * Perform a signed HTTP GET for ActivityPub resources.
- * Uses the instance actor keypair for HTTP Signature authentication.
- * Falls back to unsigned fetch if keypair is unavailable.
+ * Perform a signed HTTP GET for ActivityPub resources through the SSRF-safe
+ * dispatcher (federation-hardening Item 4). Uses the instance actor keypair
+ * for HTTP Signature authentication. Falls back to an unsigned safe fetch
+ * if keypair generation fails (still SSRF-protected).
+ *
+ * Returns the buffered response shape; callers parse the body themselves
+ * and inspect `ok`/`status` for federation-side flow control.
  */
-async function signedGet(db: DB, url: string, domain: string): Promise<Response> {
+async function signedGet(db: DB, url: string, domain: string): Promise<SafeFetchResponseResult> {
   try {
     const { getOrCreateInstanceKeypair } = await import('./federation.js');
     const { signRequest } = await import('@commonpub/protocol');
@@ -33,15 +38,14 @@ async function signedGet(db: DB, url: string, domain: string): Promise<Response>
     });
 
     const signed = await signRequest(request, keypair.privateKeyPem, keyId);
-    return fetch(signed, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+    return await safeFetchSigned(signed, { timeoutMs: FETCH_TIMEOUT_MS });
   } catch {
-    // Fall back to unsigned fetch (works for public outboxes)
-    return fetch(url, {
-      headers: {
-        Accept: 'application/activity+json, application/ld+json',
-        'User-Agent': `CommonPub/1.0 (+https://${domain})`,
-      },
-      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+    // Fall back to unsigned safeFetchResponse (works for public outboxes;
+    // still SSRF-protected by the pinned dispatcher).
+    return safeFetchResponse(url, {
+      accept: 'application/activity+json, application/ld+json',
+      userAgent: `CommonPub/1.0 (+https://${domain})`,
+      timeoutMs: FETCH_TIMEOUT_MS,
     });
   }
 }
@@ -93,9 +97,11 @@ export async function backfillFromOutbox(
     }
   }
 
-  // If no cursor, resolve the remote actor's outbox URL
+  // If no cursor, resolve the remote actor's outbox URL through the
+  // SSRF-safe fetch (DNS-rebind protection on top of resolveActor's per-hop
+  // string check — federation-hardening Item 4).
   if (!startUrl) {
-    const actor = await resolveActor(remoteActorUri, fetch);
+    const actor = await resolveActor(remoteActorUri, createSafeActorFetchFn());
     if (!actor?.outbox) {
       throw new Error(`Could not resolve outbox for ${remoteActorUri}`);
     }
@@ -111,7 +117,7 @@ export async function backfillFromOutbox(
 
       if (!response.ok) break;
 
-      const collection = await response.json() as Record<string, unknown>;
+      const collection = JSON.parse(response.body.toString('utf-8')) as Record<string, unknown>;
       result.pages++;
 
       // Handle OrderedCollection (top-level) vs OrderedCollectionPage

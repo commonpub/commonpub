@@ -7,11 +7,76 @@ monorepo working period. For session-level detail, see [`docs/sessions/`](./docs
 
 ---
 
-## Unreleased (sessions 108–149, through 2026-05-19)
+## Unreleased (sessions 108–150, through 2026-05-19)
 
-Monorepo state at time of writing: schema 0.16.0, server 2.54.3, config 0.13.0,
-layer 0.21.14, ui 0.8.5, protocol 0.11.0, editor 0.7.10, explainer 0.7.15,
-learning 0.5.2, docs 0.6.3, auth 0.6.0, infra 0.7.1, test-utils 0.5.6.
+Monorepo state at time of writing: schema 0.16.0, server 2.55.0, config 0.13.0,
+layer 0.21.15, ui 0.8.5, protocol 0.12.0, editor 0.7.10, explainer 0.7.15,
+learning 0.5.2, docs 0.6.3, auth 0.6.0, infra 0.8.0, test-utils 0.5.6.
+
+### Session 150 federation-hardening Stage 3 wrap — Items 4 + 8 + 9 (+ F1, F2)
+
+`@commonpub/protocol` 0.11.0 → **0.12.0**: new
+`safeFetchResponse(url, options)` + `safeFetchSigned(signedRequest)`
+exports for federation outbound. `safeFetchResponse` returns the
+buffered response shape (`{ ok, status, statusText, headers, body,
+contentType, finalUrl }`) so callers that need the status code don't
+throw on non-2xx and don't follow redirects by default. `safeFetchSigned`
+forwards a pre-signed `Request` (HTTP Signatures) through the
+SSRF-safe dispatcher — refuses to follow redirects (the signature
+covers the original target), forwards all headers verbatim. 14 new
+unit tests in `safeFetchResponse.test.ts`.
+
+`@commonpub/infra` 0.7.1 → **0.8.0**: new
+`getClientIp(event, opts?)` exported from `@commonpub/infra/security`.
+Reads the rightmost `X-Forwarded-For` token by default (the address
+appended by the last trusted proxy). `CPUB_TRUSTED_PROXY_DEPTH=N` env
+var for stacked-proxy deployments. 17 unit tests for the parsing
+matrix. **Scope clarification**: on our 3 prod deploys (Caddy with
+`header_up X-Forwarded-For {remote_host}` — overwrite, not append),
+the XFF chain length is always 1 so leftmost === rightmost; the
+previous leftmost-token code was NOT live-exploitable in our setup.
+This change is forward-compatible hardening for self-hosters who run
+multi-proxy topologies (CDN → nginx → app) where the XFF chain length
+can exceed 1 — those operators set `CPUB_TRUSTED_PROXY_DEPTH` to match
+their chain.
+
+`@commonpub/server` 2.54.3 → **2.55.0**: re-exports `safeFetchResponse`,
+`safeFetchSigned`, `SafeFetchResponseResult`, `getClientIp`,
+`GetClientIpOptions` from `@commonpub/protocol` / `@commonpub/infra`.
+Federation outbound migrated to the SSRF-safe path:
+`federation/backfill.ts`, `federation/hubMirroring.ts`,
+`federation/delivery.ts`, `federation/federation.ts`,
+`federation/messaging.ts`, `federation/oauth.ts` — every signed-GET,
+signed-POST, raw `fetch`-into-`resolveActor`, and OAuth-token-endpoint
+fetch now routes through `safeFetchSigned`/`safeFetchResponse` /
+`createSafeActorFetchFn`. **Item 4** closes the live-exploitable
+DNS-rebinding gap that session 148's audit-fix missed (signed GETs +
+POSTs were still bypassing the pinned dispatcher; federation is ON in
+prod on commonpub.io + deveco.io).
+
+`@commonpub/layer` 0.21.14 → **0.21.15**: **Item 8** — new
+`server/utils/betterAuthCookie.ts` mints Better Auth-compatible
+signed session cookies (HMAC-SHA256(AUTH_SECRET, token) base64-padded,
+`__Secure-` prefix in production — matches better-auth 1.6.4 +
+better-call 1.3.5 exactly, verified against the vendored source). All
+3 federated-auth callbacks (`auth/federated/callback.get.ts`,
+`auth/mastodon/callback.get.ts`, `auth/federated/link.post.ts`) now
+produce cookies that `auth.api.getSession` actually authenticates
+against; the previous bare-token/bare-name cookies were silently
+rejected, redirecting the user to /dashboard with an anonymous
+session. `auth/delete-user.post.ts` now clears both `__Secure-`-prefixed
+cookies (session_token + session_data SSR cache). 11 unit tests cover
+the cookie name + signed value shape + HMAC round-trip vs the better-call
+contract. Identity flags are OFF in prod so dormant; fixes a complete
+functional break of the flagged auth flows in dev today. **Item 9** —
+`middleware/security.ts` rate-limit key + 4 logging/dedup XFF callsites
+(content view dedup x2, session ipAddress audit x2) migrated to
+`getClientIp(event)`. All 3 prod instances run Caddy with
+`header_up X-Forwarded-For {remote_host}` so depth=1 matches the
+deployed proxy contract without operator action.
+
+Republish set (dep order): infra → protocol → server → layer. No
+schema change; migration count holds at 5.
 
 ### Session 149 federation-hardening Stage 3 — inbound signature/digest
 

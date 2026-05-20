@@ -315,8 +315,9 @@ export {
   getTierForPath,
   shouldSkipRateLimit,
   checkRateLimit,
+  getClientIp,
 } from './security.js';
-export type { RateLimitTier, RateLimitResult } from './security.js';
+export type { RateLimitTier, RateLimitResult, GetClientIpOptions } from './security.js';
 
 // Redis-backed scaling helpers (opt-in via NUXT_REDIS_URL)
 export {
@@ -654,8 +655,8 @@ export type {
 // Import
 export { importFromUrl } from './import/index.js';
 export type { ImportResult } from './import/index.js';
-export { isPrivateUrl, safeFetch, safeFetchBinary } from './import/ssrf.js';
-export type { SafeFetchOptions } from './import/ssrf.js';
+export { isPrivateUrl, safeFetch, safeFetchBinary, safeFetchResponse, safeFetchSigned } from './import/ssrf.js';
+export type { SafeFetchOptions, SafeFetchResponseResult } from './import/ssrf.js';
 
 // Email
 export {

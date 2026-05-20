@@ -50,6 +50,38 @@ Best for: single-server deployments, small-to-medium communities.
 **Files**: `deploy/docker-compose.prod.yml`, `deploy/Caddyfile`, `deploy/droplet-setup.sh`
 **Note**: The live commonpub.io and deveco.io instances use Caddy (not nginx) for reverse proxy with automatic HTTPS.
 
+#### Reverse-proxy contract (X-Forwarded-For)
+
+CommonPub trusts the **rightmost** `X-Forwarded-For` token by default (the
+address appended by the last trusted proxy). This is the rate-limit key
+and the address recorded on session audit rows. If the proxy passes
+client-supplied XFF through unchanged, an attacker can rotate
+`X-Forwarded-For: <random>` for a fresh rate-limit bucket per request,
+defeating the auth-route brute-force tier. So the proxy MUST either:
+
+- **Overwrite XFF** (preferred — matches the bundled Caddyfile and
+  the live deployments):
+  ```
+  reverse_proxy app:3000 {
+      header_up X-Forwarded-For {remote_host}
+      header_up X-Real-IP {remote_host}
+      header_up X-Forwarded-Proto {scheme}
+  }
+  ```
+- **Append exactly one token** (nginx default — also safe at depth=1):
+  ```
+  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  ```
+
+If you front the app with **N trusted proxies in series** (e.g.
+Cloudflare → nginx → app), set `CPUB_TRUSTED_PROXY_DEPTH=N` so the
+helper reads the token at index `length - N`. Default is `1`.
+
+The `deploy/nginx.conf` example uses `$proxy_add_x_forwarded_for`
+(append). With depth=1 (default) the rightmost token is the nginx-set
+client IP, so this is safe — but make sure no third party in front of
+nginx is stripping or rewriting the header.
+
 ---
 
 ### Option 2: DigitalOcean App Platform

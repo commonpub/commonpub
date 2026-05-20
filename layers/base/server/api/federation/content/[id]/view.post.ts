@@ -1,4 +1,4 @@
-import { incrementFederatedViewCount } from '@commonpub/server';
+import { incrementFederatedViewCount, getClientIp } from '@commonpub/server';
 
 const recentViews = new Map<string, number>();
 const VIEW_COOLDOWN_MS = 5 * 60 * 1000;
@@ -15,9 +15,9 @@ export default defineEventHandler(async (event): Promise<{ success: boolean }> =
   const db = useDB();
   const { id } = parseParams(event, { id: 'uuid' });
 
-  const ip = getRequestHeader(event, 'x-forwarded-for')?.split(',')[0]?.trim()
-    || getRequestHeader(event, 'x-real-ip')
-    || 'unknown';
+  // Trusted client IP for view dedup (federation-hardening Item 9 — see
+  // sibling content/view.post.ts).
+  const ip = getClientIp(event);
   const dedupKey = `fed:${ip}:${id}`;
   const lastView = recentViews.get(dedupKey);
 

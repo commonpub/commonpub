@@ -2,6 +2,7 @@ import { linkFederatedAccount, consumePendingLink } from '@commonpub/server';
 import { eq, and, isNull } from 'drizzle-orm';
 import { users } from '@commonpub/schema';
 import { z } from 'zod';
+import { setBetterAuthSessionCookie } from '../../../utils/betterAuthCookie';
 
 const linkSchema = z.object({
   /** Local credentials */
@@ -74,14 +75,16 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 409, statusMessage: msg });
   }
 
-  // Step 5: Use the session Better Auth created — set cookie for the client
-  setCookie(event, 'better-auth.session_token', signInResponse.session.token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    path: '/',
-    expires: new Date(signInResponse.session.expiresAt),
-  });
+  // Step 5: Set a signed + correctly-named Better Auth session cookie so
+  // `auth.api.getSession` reads the session on the next request. Before
+  // federation-hardening Item 8, this used a bare token + bare cookie
+  // name, which Better Auth's getSignedCookie rejected silently — the
+  // sign-in succeeded server-side but the next request was anonymous.
+  setBetterAuthSessionCookie(
+    event,
+    signInResponse.session.token,
+    new Date(signInResponse.session.expiresAt),
+  );
 
   return {
     success: true,

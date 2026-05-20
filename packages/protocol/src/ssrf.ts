@@ -360,3 +360,135 @@ export async function safeFetchBinary(
     return { buffer, contentType, finalUrl };
   });
 }
+
+/** Buffered response shape returned by `safeFetchResponse` / `safeFetchSigned`. */
+export interface SafeFetchResponseResult {
+  ok: boolean;
+  status: number;
+  statusText: string;
+  /** Response headers, lowercased keys. */
+  headers: Record<string, string>;
+  /** Already-streamed body, size-capped at MAX_RESPONSE_SIZE. */
+  body: Buffer;
+  /** Convenience accessor for the upstream `content-type` header. */
+  contentType: string;
+  finalUrl: string;
+}
+
+/**
+ * SSRF-safe fetch that returns the response shape (status + buffered body)
+ * without throwing on non-2xx, defaults `followRedirects: false`, and
+ * applies the same pinned-dispatcher + per-hop URL validation as
+ * `safeFetch`/`safeFetchBinary`.
+ *
+ * Use for callers that need the status code (federation delivery's
+ * circuit-breaker) or that mint pre-signed HTTP-Signature requests
+ * (signed bodies/headers must not replay to redirect targets).
+ *
+ * Body is fully consumed under the deadline + 10MB cap; the caller
+ * decodes/parses synchronously off the returned `body` Buffer.
+ */
+export async function safeFetchResponse(
+  url: string,
+  options: SafeFetchOptions = {},
+): Promise<SafeFetchResponseResult> {
+  const accept = options.accept ?? 'application/activity+json, application/ld+json';
+  const userAgent = options.userAgent ?? 'CommonPub/1.0 (+https://commonpub.io)';
+  const followRedirects = options.followRedirects ?? false;
+  const method = options.method ?? 'GET';
+
+  // Normalize header keys to lowercase so the spread merge below produces
+  // one wire header per name. A signed `Request` carries headers
+  // lowercased (per Headers.forEach), so without normalization we'd send
+  // BOTH 'User-Agent' (the default) AND 'user-agent' (from the signed
+  // request) — undici/WHATWG fetch would emit them as a comma-joined
+  // multi-value header. Cosmetic in our deploys (no signature/digest
+  // coverage of UA), but worth keeping the wire clean for strict
+  // receivers (some Mastodon forks reject duplicate header names).
+  const userHeaders = options.headers ?? {};
+  const lowerHeaders: Record<string, string> = {};
+  for (const [k, v] of Object.entries(userHeaders)) {
+    lowerHeaders[k.toLowerCase()] = v;
+  }
+  const finalHeaders: Record<string, string> = {
+    'user-agent': userAgent,
+    'accept': accept,
+    ...lowerHeaders,
+  };
+
+  return withDeadline(options.timeoutMs ?? FETCH_TIMEOUT_MS, async (deadlineSignal) => {
+    // If the caller provided their own AbortSignal (e.g. `resolveActor`'s
+    // per-call timeout via `createSafeActorFetchFn`), abort when EITHER
+    // their signal or our deadline fires. Otherwise just use the deadline.
+    // `AbortSignal.any` is stable since Node 20.3.
+    const signal = options.signal
+      ? AbortSignal.any([deadlineSignal, options.signal])
+      : deadlineSignal;
+    let currentUrl = url;
+    let redirectCount = 0;
+
+    while (redirectCount < MAX_REDIRECTS) {
+      if (isPrivateUrl(currentUrl)) {
+        throw new Error('URL points to a private or reserved address');
+      }
+
+      const response = await fetch(currentUrl, {
+        method,
+        signal,
+        redirect: 'manual',
+        headers: finalHeaders,
+        ...(options.body !== undefined ? { body: options.body } : {}),
+        dispatcher: ssrfAgent,
+      } as RequestInit & { dispatcher: Agent });
+
+      if (response.status >= 300 && response.status < 400 && followRedirects) {
+        const location = response.headers.get('location');
+        if (!location) throw new Error('Redirect without Location header');
+        currentUrl = new URL(location, currentUrl).toString();
+        redirectCount++;
+        continue;
+      }
+
+      const body = await streamBoundedBody(response, MAX_RESPONSE_SIZE);
+      const headers: Record<string, string> = {};
+      response.headers.forEach((value, key) => { headers[key.toLowerCase()] = value; });
+      return {
+        ok: response.ok,
+        status: response.status,
+        statusText: response.statusText,
+        headers,
+        body,
+        contentType: headers['content-type'] ?? '',
+        finalUrl: currentUrl,
+      };
+    }
+
+    throw new Error('Too many redirects');
+  });
+}
+
+/**
+ * Forward a pre-signed `Request` (HTTP Signatures) through `safeFetchResponse`.
+ * `followRedirects` is forced false — the signature covers the original
+ * target and replaying it to a redirect target invalidates the signature
+ * (and is a confused-deputy risk). All headers on the signed Request
+ * are forwarded as-is; the body is read once (consuming the Request).
+ */
+export async function safeFetchSigned(
+  signedRequest: Request,
+  options?: Omit<SafeFetchOptions, 'method' | 'headers' | 'body' | 'followRedirects'>,
+): Promise<SafeFetchResponseResult> {
+  const headers: Record<string, string> = {};
+  signedRequest.headers.forEach((value, key) => { headers[key] = value; });
+  const method = signedRequest.method.toUpperCase();
+  const body = method === 'GET' || method === 'HEAD'
+    ? undefined
+    : await signedRequest.text();
+  return safeFetchResponse(signedRequest.url, {
+    ...options,
+    method,
+    headers,
+    ...(body !== undefined ? { body } : {}),
+    followRedirects: false,
+  });
+}

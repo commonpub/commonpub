@@ -159,8 +159,11 @@ export async function resolveRemoteActor(db: DB, actorUri: string): Promise<Reso
     }
   }
 
-  // Fetch from remote
-  const actor = await resolveActor(actorUri, fetch);
+  // Fetch from remote through the SSRF-safe dispatcher
+  // (federation-hardening Item 4 — pinned-lookup closes DNS-rebind TOCTOU
+  // that the per-hop `isPrivateUrl` string check alone cannot).
+  const { createSafeActorFetchFn } = await import('./safeFetchFn.js');
+  const actor = await resolveActor(actorUri, createSafeActorFetchFn());
   if (!actor) return null;
 
   // Extract domain
@@ -258,10 +261,12 @@ export async function searchRemoteActor(
   // Don't look up local users via federation
   if (domain === localDomain) return null;
 
-  // WebFinger resolution — returns null on any network/DNS/parse error
+  // WebFinger resolution — returns null on any network/DNS/parse error.
+  // Routed through SSRF-safe fetch (federation-hardening Item 4).
   let actor: Awaited<ReturnType<typeof resolveActorViaWebFinger>>;
   try {
-    actor = await resolveActorViaWebFinger(username, domain, fetch);
+    const { createSafeActorFetchFn } = await import('./safeFetchFn.js');
+    actor = await resolveActorViaWebFinger(username, domain, createSafeActorFetchFn());
   } catch {
     return null;
   }

@@ -8,5 +8,5 @@
  * public API (stable since 2.48.0) unchanged. Do not add logic here —
  * edit `packages/protocol/src/ssrf.ts`.
  */
-export { isPrivateIp, isPrivateUrl, safeFetch, safeFetchBinary } from '@commonpub/protocol';
-export type { SafeFetchOptions } from '@commonpub/protocol';
+export { isPrivateIp, isPrivateUrl, safeFetch, safeFetchBinary, safeFetchResponse, safeFetchSigned } from '@commonpub/protocol';
+export type { SafeFetchOptions, SafeFetchResponseResult } from '@commonpub/protocol';

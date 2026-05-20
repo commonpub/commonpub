@@ -11,5 +11,6 @@ export {
   getTierForPath,
   shouldSkipRateLimit,
   checkRateLimit,
+  getClientIp,
 } from '@commonpub/infra/security';
-export type { RateLimitTier, RateLimitResult } from '@commonpub/infra/security';
+export type { RateLimitTier, RateLimitResult, GetClientIpOptions } from '@commonpub/infra/security';

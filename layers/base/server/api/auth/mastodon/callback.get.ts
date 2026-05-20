@@ -22,7 +22,6 @@
  * Gated by `features.identity.signInWithRemote`.
  */
 import { z } from 'zod';
-import type { H3Event } from 'h3';
 import {
   consumeMastodonLoginState,
   createFederatedSession,
@@ -31,7 +30,9 @@ import {
   getOrRegisterRemoteClient,
   linkFederatedAccount,
   storePendingLink,
+  getClientIp,
 } from '@commonpub/server';
+import { setBetterAuthSessionCookie } from '../../../utils/betterAuthCookie';
 
 const callbackSchema = z.object({
   code: z.string().min(1),
@@ -41,16 +42,6 @@ const callbackSchema = z.object({
   error: z.string().optional(),
   error_description: z.string().optional(),
 });
-
-function setSessionCookie(event: H3Event, token: string, expiresAt: Date): void {
-  setCookie(event, 'better-auth.session_token', token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    path: '/',
-    expires: expiresAt,
-  });
-}
 
 export default defineEventHandler(async (event) => {
   const config = useConfig();
@@ -95,17 +86,21 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  const ipAddress =
-    getRequestHeader(event, 'x-forwarded-for')?.split(',')[0]?.trim()
-    ?? getRequestHeader(event, 'x-real-ip')
-    ?? undefined;
+  // Trusted client IP for the session audit row (federation-hardening
+  // Item 9 — see federated/callback.get.ts).
+  const resolvedIp = getClientIp(event);
+  const ipAddress = resolvedIp === 'unknown' ? undefined : resolvedIp;
   const userAgent = getRequestHeader(event, 'user-agent') ?? undefined;
 
   // Outcome 1: identity already linked → log them in, redirect.
+  // Cookie minted via the Better Auth signed-cookie helper so
+  // `auth.api.getSession` authenticates the next request
+  // (federation-hardening Item 8 — bare-name/bare-value cookie was
+  // rejected before).
   const existingLink = await findUserByFederatedAccount(db, verified.profile.actorUri);
   if (existingLink) {
     const session = await createFederatedSession(db, existingLink.userId, ipAddress, userAgent);
-    setSessionCookie(event, session.sessionToken, session.expiresAt);
+    setBetterAuthSessionCookie(event, session.sessionToken, session.expiresAt);
     return sendRedirect(event, loginState.returnTo ?? '/dashboard', 302);
   }
 

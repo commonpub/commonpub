@@ -14,12 +14,16 @@ use crate::prompts::InstanceConfig;
 // in lockstep with deveco.io's package.json pins (the proven
 // production thin-app reference).
 //
-// Last synced: 2026-05-19 (session 149 fed-hardening Stage 3) — layer 0.21.14, server 2.54.3,
-// schema 0.16.0, config 0.13.0.
+// Last synced: 2026-05-19 (session 150 fed-hardening Stage 3 wrap) — layer 0.21.15, server 2.55.0,
+// schema 0.16.0, config 0.13.0. Server crosses minor (2.54.3 → 2.55.0) to add
+// `getClientIp` + `safeFetchResponse`/`safeFetchSigned` re-exports — the
+// lockstep-pin rule means thin-apps MUST bump `@commonpub/server` alongside
+// `@commonpub/layer` whenever server crosses minor, otherwise pnpm hoists
+// 2.54.x and the layer's `getClientIp` import resolves to undefined.
 const COMMONPUB_CONFIG_VERSION: &str = "^0.13.0";
-const COMMONPUB_LAYER_VERSION: &str = "^0.21.14";
+const COMMONPUB_LAYER_VERSION: &str = "^0.21.15";
 const COMMONPUB_SCHEMA_VERSION: &str = "^0.16.0";
-const COMMONPUB_SERVER_VERSION: &str = "^2.54.3";
+const COMMONPUB_SERVER_VERSION: &str = "^2.55.0";
 
 // pnpm pin for the generated Dockerfile. `pnpm@latest` is a time-bomb:
 // pnpm ≥10.11 fails `install --frozen-lockfile` on packages with

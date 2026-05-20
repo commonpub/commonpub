@@ -100,5 +100,5 @@ export { signRequest } from './sign.js';
 export { sanitizeHtml } from './sanitize.js';
 
 // SSRF protection (canonical home; @commonpub/server re-exports these)
-export { isPrivateIp, isPrivateUrl, safeFetch, safeFetchBinary } from './ssrf.js';
-export type { SafeFetchOptions } from './ssrf.js';
+export { isPrivateIp, isPrivateUrl, safeFetch, safeFetchBinary, safeFetchResponse, safeFetchSigned } from './ssrf.js';
+export type { SafeFetchOptions, SafeFetchResponseResult } from './ssrf.js';

@@ -14,7 +14,7 @@ import {
   instanceMirrors,
   userFederatedHubFollows,
 } from '@commonpub/schema';
-import { buildFollowActivity, AP_CONTEXT, AP_PUBLIC } from '@commonpub/protocol';
+import { buildFollowActivity, AP_CONTEXT, AP_PUBLIC, safeFetchResponse, safeFetchSigned, type SafeFetchResponseResult } from '@commonpub/protocol';
 import type {
   DB,
   FederatedHubListItem,
@@ -1024,10 +1024,11 @@ const BACKFILL_MAX_PAGES = 20;
 const BACKFILL_DELAY_MS = 1_000;
 
 /**
- * Perform a signed HTTP GET for ActivityPub resources.
- * Uses the instance actor keypair for HTTP Signature authentication.
+ * Perform a signed HTTP GET for ActivityPub resources through the
+ * SSRF-safe dispatcher (federation-hardening Item 4). Uses the instance
+ * actor keypair for HTTP Signature authentication.
  */
-async function signedGet(db: DB, url: string, domain: string): Promise<Response> {
+async function signedGet(db: DB, url: string, domain: string): Promise<SafeFetchResponseResult> {
   const { getOrCreateInstanceKeypair } = await import('./federation.js');
   const { signRequest } = await import('@commonpub/protocol');
   const keypair = await getOrCreateInstanceKeypair(db);
@@ -1042,7 +1043,7 @@ async function signedGet(db: DB, url: string, domain: string): Promise<Response>
   });
 
   const signed = await signRequest(request, keypair.privateKeyPem, keyId);
-  return fetch(signed, { signal: AbortSignal.timeout(BACKFILL_FETCH_TIMEOUT) });
+  return safeFetchSigned(signed, { timeoutMs: BACKFILL_FETCH_TIMEOUT });
 }
 
 /**
@@ -1062,9 +1063,14 @@ export async function backfillHubFromOutbox(
 
   if (!hub) throw new Error('Federated hub not found');
 
-  // Resolve the Group actor to get its outbox URL
+  // Resolve the Group actor to get its outbox URL — through the SSRF-safe
+  // fetch so DNS-rebinding to private IPs is blocked (federation-hardening
+  // Item 4). The actor URI itself is operator-vetted (mirror config) but
+  // a malicious remote DNS resolver can still point a public name at a
+  // private IP between checks; the pinned dispatcher closes that TOCTOU.
   const { resolveActor } = await import('@commonpub/protocol');
-  const actor = await resolveActor(hub.actorUri, fetch);
+  const { createSafeActorFetchFn } = await import('./safeFetchFn.js');
+  const actor = await resolveActor(hub.actorUri, createSafeActorFetchFn());
   if (!actor?.outbox) {
     throw new Error(`Could not resolve outbox for ${hub.actorUri}`);
   }
@@ -1083,7 +1089,7 @@ export async function backfillHubFromOutbox(
       const response = await signedGet(db, nextPage, domain);
       if (!response.ok) break;
 
-      const collection = await response.json() as Record<string, unknown>;
+      const collection = JSON.parse(response.body.toString('utf-8')) as Record<string, unknown>;
       pages++;
 
       let items: unknown[] = [];
@@ -1145,9 +1151,11 @@ export async function fetchRemoteHubFollowers(
 
   if (!hub) throw new Error('Federated hub not found');
 
-  // Resolve Group actor to get followers URL
+  // Resolve Group actor to get followers URL through the SSRF-safe fetch
+  // (federation-hardening Item 4 — see above).
   const { resolveActor } = await import('@commonpub/protocol');
-  const actor = await resolveActor(hub.actorUri, fetch);
+  const { createSafeActorFetchFn } = await import('./safeFetchFn.js');
+  const actor = await resolveActor(hub.actorUri, createSafeActorFetchFn());
   const followersUrl = actor?.followers;
   if (!followersUrl || typeof followersUrl !== 'string') {
     return { fetched: 0, errors: 0 };
@@ -1162,12 +1170,18 @@ export async function fetchRemoteHubFollowers(
 
   while (nextPage && pages < 10) {
     try {
+      // Unsigned fallback (no domain → no instance keypair available) still
+      // routes through `safeFetchResponse` so DNS-rebinding to private IPs
+      // is blocked. Federation-hardening Item 4.
       const response = domain
         ? await signedGet(db, nextPage, domain)
-        : await fetch(nextPage, { headers: { Accept: 'application/activity+json, application/ld+json' }, signal: AbortSignal.timeout(BACKFILL_FETCH_TIMEOUT) });
+        : await safeFetchResponse(nextPage, {
+            accept: 'application/activity+json, application/ld+json',
+            timeoutMs: BACKFILL_FETCH_TIMEOUT,
+          });
       if (!response.ok) break;
 
-      const collection = await response.json() as Record<string, unknown>;
+      const collection = JSON.parse(response.body.toString('utf-8')) as Record<string, unknown>;
       pages++;
 
       let items: unknown[] = [];

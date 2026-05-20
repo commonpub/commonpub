@@ -4,7 +4,7 @@
  */
 import { eq, and, sql, lte, isNull, or } from 'drizzle-orm';
 import { activities, remoteActors, followRelationships, actorKeypairs, users, hubs, hubActorKeypairs, hubFollowers } from '@commonpub/schema';
-import { signRequest } from '@commonpub/protocol';
+import { signRequest, safeFetchSigned } from '@commonpub/protocol';
 import { createStructuredLogger } from '@commonpub/infra';
 import type { DB } from '../types.js';
 
@@ -175,30 +175,30 @@ async function deliverActivity(
       });
 
       const signed = await signRequest(request, keypair.privateKeyPem, keyId);
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 30_000);
-      try {
-        const response = await fetch(signed, { signal: controller.signal });
-        if (!response.ok && response.status !== 202) {
-          errors.push(`${inbox}: ${response.status} ${response.statusText}`);
-          await recordDeliveryFailure(db, inboxDomain).catch((err) =>
-            log('Circuit-breaker failure-record write failed', {
-              domain: inboxDomain,
-              op: 'failure',
-              error: err instanceof Error ? err.message : String(err),
-            }),
-          );
-        } else {
-          await recordDeliverySuccess(db, inboxDomain).catch((err) =>
-            log('Circuit-breaker success-record write failed', {
-              domain: inboxDomain,
-              op: 'success',
-              error: err instanceof Error ? err.message : String(err),
-            }),
-          );
-        }
-      } finally {
-        clearTimeout(timeout);
+      // Signed POST through the SSRF-safe dispatcher (federation-hardening
+      // Item 4). `safeFetchSigned` forwards the signature headers as-is,
+      // refuses to follow redirects (the signature covers the original
+      // target), and runs the pinned-lookup dispatcher to defend against
+      // DNS-rebinding of `inbox` URIs (which come from follower actor JSON
+      // and are attacker-controlled).
+      const response = await safeFetchSigned(signed, { timeoutMs: 30_000 });
+      if (!response.ok && response.status !== 202) {
+        errors.push(`${inbox}: ${response.status} ${response.statusText}`);
+        await recordDeliveryFailure(db, inboxDomain).catch((err) =>
+          log('Circuit-breaker failure-record write failed', {
+            domain: inboxDomain,
+            op: 'failure',
+            error: err instanceof Error ? err.message : String(err),
+          }),
+        );
+      } else {
+        await recordDeliverySuccess(db, inboxDomain).catch((err) =>
+          log('Circuit-breaker success-record write failed', {
+            domain: inboxDomain,
+            op: 'success',
+            error: err instanceof Error ? err.message : String(err),
+          }),
+        );
       }
     } catch (err) {
       errors.push(`${inbox}: ${err instanceof Error ? err.message : String(err)}`);

@@ -5,6 +5,12 @@
  *  middleware / hook systems.
  */
 
+// Trusted client-IP extraction — re-exported so consumers can import from
+// `@commonpub/infra/security` alongside `checkRateLimit` (its primary
+// caller). Federation-hardening Item 9.
+export { getClientIp } from './clientIp.js';
+export type { GetClientIpOptions } from './clientIp.js';
+
 // --- CSP ---
 
 /** Build CSP directives with optional nonce for script-src */

@@ -1,9 +1,26 @@
 # Federation Hardening Plan (SSRF + inbound signature/digest)
 
-Created session 146 (2026-05-18). Status: **design approved-pending**;
-implementation deferred to a dedicated session. `features.federation`
-is OFF in prod, so none of this is live-exploitable today — but it is
-all on the critical path before any second instance federates.
+Created session 146 (2026-05-18). **Status (post-session 150,
+2026-05-19): mostly SHIPPED.**
+
+- Items 1, 2, 3, 5 shipped sessions 145–148.
+- Items 6, 7 shipped session 149 (`@commonpub/protocol@0.11.0`).
+- Items 4, 8, 9 shipped session 150 (this session — protocol 0.12.0,
+  infra 0.8.0, server 2.55.0, layer 0.21.15). Item 4 was actually
+  live-exploitable because `features.federation` had been silently ON
+  on commonpub.io + deveco.io since the seamlessFederation work
+  shipped (memory drift from session 137's "OFF" snapshot — see the
+  session 149 doc's "corrected understanding" section).
+- Two minor add-ons surfaced by the session 150 audit and bundled in:
+  - **F1**: outbound `resolveActor(uri, fetch)` and `signedGet` /
+    `safeFetch.delivery` raw-fetch sites in
+    `federation/backfill.ts`, `hubMirroring.ts`, `delivery.ts`,
+    `federation.ts`, `messaging.ts`, `oauth.ts` — all migrated.
+  - **F2**: same XFF-leftmost-token spoof as Item 9 found in 4 more
+    callsites (view dedup x2 + session audit ipAddress x2) — all
+    migrated to `getClientIp`.
+
+Sections below preserved for historical context.
 
 ## Why one plan
 

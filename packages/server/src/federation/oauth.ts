@@ -16,6 +16,7 @@ import {
   validateAuthorizeRequest,
   validateTokenRequest,
   validateDynamicRegistration,
+  safeFetchResponse,
   type OAuthAuthorizeRequest,
   type OAuthTokenRequest,
   type OAuthDynamicRegistrationRequest,
@@ -559,9 +560,17 @@ export async function exchangeCodeForToken(
   user: { id: string; username: string; displayName: string | null; avatarUrl: string | null; actorUri: string };
 } | null> {
   try {
-    const response = await fetch(state.tokenEndpoint, {
+    // SSRF-safe POST: the remote-discovered tokenEndpoint URL is
+    // attacker-influenced (sourced from the federated server's NodeInfo /
+    // OAuth-server metadata), so it must be routed through
+    // `safeFetchResponse` to block private/loopback resolution
+    // (federation-hardening Item 4). Accept is JSON (not AP) — the default
+    // would send `application/activity+json` which some strict OAuth
+    // implementations refuse.
+    const response = await safeFetchResponse(state.tokenEndpoint, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'content-type': 'application/json' },
+      accept: 'application/json',
       body: JSON.stringify({
         grant_type: 'authorization_code',
         code,
@@ -573,7 +582,7 @@ export async function exchangeCodeForToken(
 
     if (!response.ok) return null;
 
-    const data = await response.json() as {
+    const data = JSON.parse(response.body.toString('utf-8')) as {
       access_token?: string;
       user?: { id: string; username: string; displayName?: string | null; avatarUrl?: string | null; actorUri?: string };
     };

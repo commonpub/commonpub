@@ -53,10 +53,11 @@ export async function resolveRemoteHandle(
     };
   }
 
-  // WebFinger resolve
+  // WebFinger resolve through SSRF-safe fetch (federation-hardening Item 4).
   let actor: ResolvedActor | null;
   try {
-    actor = await resolveActorViaWebFinger(username, domain, fetch);
+    const { createSafeActorFetchFn } = await import('./safeFetchFn.js');
+    actor = await resolveActorViaWebFinger(username, domain, createSafeActorFetchFn());
   } catch {
     return null;
   }
