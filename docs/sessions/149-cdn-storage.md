@@ -415,3 +415,38 @@ Scaffolder pins, cli.rs test assertions, CHANGELOG, README, deveco +
 heatsync `@commonpub/layer ^0.21.14` + `@commonpub/server ^2.54.3`
 follow in lockstep. Items 8 + 9 still deferred (need real auth-flow
 exercise + proxy contract confirmation).
+
+## Stage 3 ship verified — corrected understanding
+
+Live verification post-deploy revealed the federation flag is actually
+**ON** in prod for commonpub.io and deveco.io (`/api/features.federation
+= true`), not off as the session-137 memory note suggested. The
+`CPUB_FED_TOKEN_KEY` env var (identity-token encryption) is the thing
+that's not set; that's separate from the broad `federation` feature
+flag that gates the inbox routes.
+
+This means Stage 3 ships **LIVE-ACTIVE** on commonpub.io + deveco.io,
+not dormant:
+
+```
+https://commonpub.io  health=200  federation=true  image-proxy=200
+https://deveco.io     health=200  federation=true  image-proxy=200
+https://heatsynclabs.io  health=200  federation=missing  image-proxy=200
+```
+
+Net effect is positive: the old broken digest path 401'd every signed
+inbound activity from compliant senders (Mastodon/Pleroma/etc), so
+real inbound traffic was never working anyway. Stage 3 fixes the digest
+mismatch + tightens coverage, so compliant senders now actually
+authenticate. Heatsync has federation off, so Stage 3 is dormant
+there.
+
+No runtime errors at startup — `/api/health` 200 on all 3 immediately
+after deploy. If a signed inbound now flows through, the actor
+resolution + domain check + signature/digest verification all run; if
+any fail, 401 with a specific reason (as before, just with the new
+strict coverage policy enforced).
+
+Open: there's no monitoring/alerting on inbox 401 rates that would let
+us *see* whether real traffic is now succeeding. Worth setting up
+before two-instance interop testing in the next session.
