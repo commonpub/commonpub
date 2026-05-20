@@ -52,3 +52,9 @@ design-system-v2/
 # Misc
 *.log
 *.tsbuildinfo
+
+# Local secret backups (NEVER commit — operator-side .env material,
+# per-instance keys for CPUB_FED_TOKEN_KEY / NUXT_AUTH_SECRET, etc.)
+secrets/
+.secrets/
+*.secrets
