@@ -205,3 +205,83 @@ Built-in cookies (always registered):
 - `better-auth.session_token` — essential, 7 days
 - `cpub-consent` — essential, 1 year
 - `cpub-color-scheme` — functional, 1 year
+
+---
+
+## Custom Theme Overrides — Class-Naming Gotchas
+
+Operators sometimes write a global stylesheet that re-skins layer
+components (heatsync's `theme/heatsync-ui.css` is the canonical
+example). Before adding `!important` overrides to layer classes,
+verify the class is unique to the layout you intend to target —
+**layer classes named `cpub-*-grid`, `cpub-prose`, `cpub-sidebar`,
+etc. are not always view-exclusive**, and a "homepage-only" override
+of a name shared by another view will silently break that view at
+desktop widths.
+
+### View-identity classes (safe to target)
+
+These classes are **scoped to exactly one component** and are safe
+override targets for a per-view re-skin:
+
+| Class | Used by | Purpose |
+|---|---|---|
+| `cpub-content-grid` | `pages/index.vue`, `components/homepage/ContentGridSection.vue` | **Homepage feed/card grid only.** |
+| `cpub-project-grid` | `components/views/ProjectView.vue` | Project page's TOC \| content \| sidebar grid. Modifier classes `cpub-has-toc` and `cpub-has-sidebar` toggle 4 grid layouts. |
+| `cpub-prose` | `views/ArticleView.vue`, `views/ProjectView.vue`, others | **NOT view-exclusive** — generic body-prose styling. Override only via scoped parent selector. |
+| `cpub-listing-grid` | `pages/blog.vue`, `pages/projects/index.vue`, etc. | Listing-page card grid. |
+
+### The footgun: shared "generic" classes
+
+`cpub-content-grid` was historically used by BOTH the homepage's
+`ContentGridSection` and the project view (before session 150 / layer
+0.21.17 renamed the project use to `cpub-project-grid`). An operator
+who wrote:
+
+```css
+/* Intended for the homepage card grid only */
+.cpub-content-grid {
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)) !important;
+}
+```
+
+…silently broke the project view's TOC|content|sidebar layout —
+the `!important` won over Vue's scoped `[data-v-XXX]` selector, and
+the 3 grid children became auto-filled 280px columns, leaving the
+body squished and the right side empty. (See session 150 + 0.21.17.)
+
+### Recommended override patterns
+
+**Prefer the view-identity class.** If you only want to re-skin the
+homepage card grid, target `.cpub-content-grid`. If you want to
+re-skin the project layout, target `.cpub-project-grid`. Operators
+do not need to use `!important` if the override matches the layer's
+specificity (0,2,0) — `.cpub-project-grid.cpub-has-toc` is enough.
+
+**For generic classes (`cpub-prose`, `cpub-sidebar`, etc.), scope by
+parent.** Target a specific page-body element or use a route-class
+hook:
+
+```css
+/* Re-skin prose ONLY on /blog/* pages, not project/explainer/docs */
+:where(.cpub-blog-page) .cpub-prose { ... }
+```
+
+**Use `!important` sparingly.** Vue scoped styles (the layer's
+default) compile to `[data-v-XXX]` selectors (specificity 0,2,0).
+A plain operator selector at 0,1,0 will lose; bumping to 0,2,0
+(e.g. `.cpub-project-grid.cpub-has-toc`) is enough. Reach for
+`!important` only when the layer's selector chain is genuinely
+unbeatable.
+
+**Before publishing a theme override, grep the layer source for
+the class name** to confirm it's used by exactly the view(s) you
+intend to target:
+
+```bash
+grep -rn 'cpub-content-grid' layers/base/ --include='*.vue'
+```
+
+If more than one component appears, either rename one of them in
+the layer (preferred — closes the footgun for all operators) or use
+a scoped parent selector in your theme.
