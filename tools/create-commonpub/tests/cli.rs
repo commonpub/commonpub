@@ -284,6 +284,72 @@ fn env_documents_fed_token_key() {
     assert!(env.contains("CPUB_FED_TOKEN_KEY"));
 }
 
+/// Extract the value after `KEY=` on its own line (stdlib parser; no
+/// regex dep). Returns the substring until the first newline.
+fn extract_env_value<'a>(env: &'a str, key: &str) -> Option<&'a str> {
+    let needle = format!("\n{}=", key);
+    let start = env.find(&needle)? + needle.len();
+    let end = env[start..].find('\n').map(|i| start + i).unwrap_or(env.len());
+    Some(&env[start..end])
+}
+
+/// `NUXT_AUTH_SECRET` and `CPUB_FED_TOKEN_KEY` must be auto-generated
+/// real values, not the old `change-me-in-production-min-32-chars`
+/// placeholder. Asserts both keys are present with hex values of
+/// the right length (64 hex chars = 32 bytes per RFC 8439 + Better
+/// Auth's signing length).
+#[test]
+fn env_auto_generates_strong_secrets() {
+    let config = create_commonpub::prompts::InstanceConfig::with_defaults("secret-test");
+    let env = create_commonpub::template::render_env(&config);
+
+    // No placeholder text — the old `change-me-...` value would silently
+    // ship to production if not caught by this test.
+    assert!(
+        !env.contains("change-me-in-production"),
+        "render_env must not emit the placeholder NUXT_AUTH_SECRET"
+    );
+
+    let auth = extract_env_value(&env, "NUXT_AUTH_SECRET")
+        .expect("NUXT_AUTH_SECRET must be present");
+    let fed = extract_env_value(&env, "CPUB_FED_TOKEN_KEY")
+        .expect("CPUB_FED_TOKEN_KEY must be present");
+
+    // 64 hex chars = 32 bytes. Both consumers require exactly this.
+    assert_eq!(auth.len(), 64, "NUXT_AUTH_SECRET must be 64 hex chars; got: {}", auth);
+    assert_eq!(fed.len(), 64, "CPUB_FED_TOKEN_KEY must be 64 hex chars; got: {}", fed);
+    assert!(
+        auth.chars().all(|c| c.is_ascii_hexdigit() && (c.is_ascii_digit() || c.is_ascii_lowercase())),
+        "NUXT_AUTH_SECRET must be lowercase hex: {}", auth
+    );
+    assert!(
+        fed.chars().all(|c| c.is_ascii_hexdigit() && (c.is_ascii_digit() || c.is_ascii_lowercase())),
+        "CPUB_FED_TOKEN_KEY must be lowercase hex: {}", fed
+    );
+
+    // The two secrets must NOT be identical (would mean the RNG is
+    // broken or the same value was reused).
+    assert_ne!(auth, fed, "AUTH_SECRET and FED_TOKEN_KEY must differ");
+}
+
+/// Two consecutive scaffolds must produce DIFFERENT secrets — keys
+/// MUST be per-instance (commonpub.io decrypting deveco.io's stored
+/// OAuth tokens would be a major confidentiality failure).
+#[test]
+fn env_secrets_are_unique_per_scaffold() {
+    let config = create_commonpub::prompts::InstanceConfig::with_defaults("uniq-test");
+    let env_a = create_commonpub::template::render_env(&config);
+    let env_b = create_commonpub::template::render_env(&config);
+
+    let auth_a = extract_env_value(&env_a, "NUXT_AUTH_SECRET").unwrap();
+    let auth_b = extract_env_value(&env_b, "NUXT_AUTH_SECRET").unwrap();
+    let fed_a = extract_env_value(&env_a, "CPUB_FED_TOKEN_KEY").unwrap();
+    let fed_b = extract_env_value(&env_b, "CPUB_FED_TOKEN_KEY").unwrap();
+
+    assert_ne!(auth_a, auth_b, "successive AUTH_SECRET values must differ");
+    assert_ne!(fed_a, fed_b, "successive FED_TOKEN_KEY values must differ");
+}
+
 // ── CLI flags ─────────────────────────────────────────────
 
 #[test]
