@@ -285,3 +285,35 @@ grep -rn 'cpub-content-grid' layers/base/ --include='*.vue'
 If more than one component appears, either rename one of them in
 the layer (preferred — closes the footgun for all operators) or use
 a scoped parent selector in your theme.
+
+### Most-shared "looks generic" classes (as of layer 0.21.17)
+
+These classes appear in many components. A global `!important`
+override hits all of them — generally fine when the override is
+purely cosmetic and the harmonization is desired (heatsync's
+button-press effect is a good example), but a structural override
+(grid/layout/sizing) will likely break some view it wasn't intended
+for. Cross-check before overriding any of these:
+
+| Class | Used by N components | Typical content |
+|---|---|---|
+| `cpub-sidebar` | 12 | right-column asides on hubs/learn/videos/profile/search/explainer/project |
+| `cpub-prose` | 8 | article/blog/project body prose, lesson body, docs body, hub-post body |
+| `cpub-sb-card` | 8 | sidebar cards (stats, hubs, contests, BOM, hub-card) |
+| `cpub-tab` / `cpub-tabs-inner` | 4–6 | tab strips on homepage feed, hub layout, project, user profile, notifications |
+| `cpub-sb-title` | 5 | sidebar card title labels |
+| `cpub-engagement-row` / `cpub-engage-btn` | 2–3 | like/bookmark/share rows on article + project |
+| `cpub-cover-photo` | 2 | hero cover image on article + project |
+| `cpub-btn` / `cpub-btn-primary` | many | generic button skin |
+
+**Heatsync's session-150 override touched 5 ProjectView classes
+unintentionally** (`cpub-content-grid` was the actual bug; the
+other 4 — `cpub-btn`, `cpub-tab`, `cpub-tabs-inner`, `cpub-sb-card`
+— were cosmetic harmonizations that worked as intended even though
+they were authored as "homepage-only" rules). The lesson: **if the
+override is purely cosmetic and you'd accept the change across all
+views, a global rule is fine**; **if the override is structural or
+intended to shape only one view's layout, target the view-identity
+class** (`cpub-content-grid` for homepage, `cpub-project-grid` for
+project, `cpub-article-wrap` for article, `cpub-listing-grid` for
+listings).
