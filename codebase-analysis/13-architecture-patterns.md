@@ -2,6 +2,13 @@
 
 What IS the best pattern for a site like CommonPub, given how it's set up?
 
+**As of session 125 (2026-04-16); the recommendations remain
+applicable but several "future-state" Redis suggestions have since
+been implemented (session 130) — see `12-scaling-and-infrastructure.md`
+for current state. The "Add managed Redis" recommendation under
+"Scaling path" is now optional-via-`NUXT_REDIS_URL` rather than
+unimplemented.**
+
 This is the opinionated companion to
 [`12-scaling-and-infrastructure.md`](./12-scaling-and-infrastructure.md).
 Read that first for current-state + horizontal-scaling decisions. This doc

@@ -5,7 +5,11 @@ Instances extend it via `extends: ['@commonpub/layer']` in their nuxt.config.
 
 **85 pages, 106 components, 20 composables, 6 server plugins, 7 request middlewares, 257 API routes.**
 
-As of session 125.
+As of session 125 (2026-04-16). **Spot-counts re-verified session 150
+(2026-05-19): ~85 pages (auth login flow + federated link UI added in
+sessions 137–140 are ≤5 new), ~110 components, ~20 composables, ~284
+API routes** (see 04 for breakdown). The directory layout below is
+shape-stable; specific file lists are not.
 
 ## Directory layout (depth 3)
 

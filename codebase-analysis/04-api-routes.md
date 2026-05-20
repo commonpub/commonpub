@@ -1,7 +1,22 @@
 # 04 — API Route Inventory
 
 Nitro server routes in `layers/base/server/api/` and federation routes in
-`layers/base/server/routes/`. **257 routes as of session 125.**
+`layers/base/server/routes/`. **257 routes as of session 125; ~284 as
+of session 150.**
+
+**Routes added since 125 (not yet enumerated below)**:
+- `/api/auth/mastodon/start` + `/api/auth/mastodon/callback` (session 139, Phase 2a Mastodon SSO; flag `identity.signInWithRemote`)
+- `/api/auth/federated/link.post` + (existing `callback.get`) — Phase 1b/2b
+- `/api/admin/storage/backfill-cdn-urls` (session 149)
+- `/api/content/import` (session 148, gated `contentImport`)
+- `/api/public/v1/**` (session 127, ~13+ routes; gated `publicApi`)
+- `/api/realtime/stream` + `/api/messages/:id/stream` (session 130)
+- `/api/features` runtime resolver
+- `/api/identity/*` routes (Phase 1b runtime; flag-gated)
+
+The auth tables below reflect session-125 state for `/api/auth/*` —
+new federated/mastodon entries are documented inline in the source
+files (`layers/base/server/api/auth/{federated,mastodon}/`).
 
 Auth column:
 - **pub** — public, no auth required

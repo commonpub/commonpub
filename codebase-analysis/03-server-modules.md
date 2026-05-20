@@ -6,6 +6,19 @@ lifecycle hooks. Pure TypeScript. No Nuxt dependency.
 
 Source: `packages/server/src/`. As of session 125 (2026-04-16).
 
+**Modules added since 125 (not yet enumerated in detail below)**:
+- `identity/` — cross-instance identity (Phase 1a foundation + Phase 1b runtime, sessions 136–140). Files: `fediClient.ts`, `health.ts`, `index.ts`, `mastodonFactory.ts`, `router.ts`. Behind `features.identity.*` flags.
+- `publicApi/` — read-only public API (session 127). Bearer-token auth (`api_keys`), 13 read scopes, OpenAPI 3.1.
+- `realtime/` — SSE pub/sub abstraction (session 130). `publishSseEvent` / `subscribeSseEvents` against `@commonpub/infra`'s `RealtimePubSub`.
+- `federation/mastodonLogin.ts` — Mastodon SSO server-side (session 139).
+- `federation/safeFetchFn.ts` — `createSafeActorFetchFn` for SSRF-safe `resolveActor` (session 150).
+
+`@commonpub/server` exports `safeFetch`, `safeFetchBinary`,
+`safeFetchResponse`, `safeFetchSigned`, `isPrivateUrl`,
+`SafeFetchOptions`, `SafeFetchResponseResult`, `getClientIp`,
+`GetClientIpOptions` (re-exported from `@commonpub/protocol` and
+`@commonpub/infra` for backward compat — see 06-other-packages).
+
 ## Directory map
 
 ```

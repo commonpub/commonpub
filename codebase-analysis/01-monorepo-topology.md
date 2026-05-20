@@ -1,6 +1,8 @@
 # 01 — Monorepo Topology
 
-As of session 125 (2026-04-16).
+Structural shape from session 125 (2026-04-16); **published-version
+table refreshed session 150 (2026-05-19).** Module boundaries and the
+dependency graph below are unchanged through 150.
 
 ## Repo shape
 

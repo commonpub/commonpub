@@ -80,14 +80,18 @@ Nitro process. Consequences:
 Before running a multi-instance web tier, swap in a Redis-backed store. See
 [`12-scaling-and-infrastructure.md`](./12-scaling-and-infrastructure.md).
 
-### SSE streams are single-instance only
+### SSE streams: event-driven via Redis when `NUXT_REDIS_URL` is set (since session 130)
 
-`/api/realtime/stream` (notification + message counts) polls the DB in the
-connected Nitro process. If instance A created a notification for a user
-connected to instance B, B's stream won't pick it up until its next poll of
-the counter — not an event-driven wake.
+`/api/realtime/stream` (notification + message counts) is event-driven
+via `RealtimePubSub` (`packages/infra/src/realtime/`). Memory backend
+(in-process EventEmitter) by default; Redis backend (`RedisRealtimePubSub`
+with a dedicated subscriber client + auto-replay on reconnect) when
+`NUXT_REDIS_URL` is set. 30 s DB-poll retained as a safety net.
 
-Redis pub/sub is the pattern to migrate to. See scaling doc.
+**Pre-session-130 (incorrect, but for historical context)**: the stream
+only polled the DB — multi-instance deploys had a fanout gap (instance
+A's notification wouldn't reach a user connected to instance B until
+the 30 s poll). Session 130 fixed this.
 
 ### Federation delivery is setInterval-based
 
@@ -96,11 +100,14 @@ The delivery worker polls `activities` every `deliveryIntervalMs` (default
 so parallel workers are safe — but each one still runs its own SELECT. At
 very high scale, prefer Postgres LISTEN/NOTIFY or BullMQ over blind polling.
 
-### Redis is provisioned but unused
+### Redis: opt-in via `NUXT_REDIS_URL` (wired in session 130)
 
-`docker-compose.yml` spins up a Redis container, but no code imports a
-Redis client as of session 126. The container is dead weight today — a
-pre-baked dep for the scaling path above.
+`docker-compose.yml` + `docker-compose.prod.yml` spin up a Redis
+container. **Since session 130**, both `RateLimitStore` and
+`RealtimePubSub` have Redis backends that activate when `NUXT_REDIS_URL`
+is set — opt-in, so the env-var-unset default is byte-identical to
+pre-130 single-process behavior. See `12-scaling-and-infrastructure.md`
+for the flip procedure.
 
 ## Nuxt / Nitro
 

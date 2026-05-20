@@ -1,6 +1,14 @@
 # 02 — Schema Inventory
 
 Source: `packages/schema/src/*.ts`. As of session 125 (2026-04-16).
+**Headline counts re-verified session 150 (2026-05-19): still 79
+tables, 41 enums.** The file list below is missing `publicApi.ts`
+(session 127 — api_keys + api_key_usage tables). Migration set has
+grown to 0000–0004 (0001 docs unstringify, 0002 session-130
+constraints, 0003 notifications dedup, 0004 federated OAuth tokens
+in session 137). Individual tables added since 125 — federated_accounts
++ oauth_codes for cross-instance identity (session 137) — are reflected
+in pgTable() counts but NOT yet enumerated in the per-file list below.
 
 **79 tables, 41 enums, 50+ Zod validators.** Drizzle ORM on PostgreSQL 16. Counts verified against both production DBs on 2026-04-17.
 
