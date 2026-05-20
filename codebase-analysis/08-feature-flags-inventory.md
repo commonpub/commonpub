@@ -1,9 +1,11 @@
 # 08 — Feature Flags Inventory
 
-All 15 flags live in `packages/config/src/types.ts` → `FeatureFlags`. Set in
+Flags live in `packages/config/src/types.ts` → `FeatureFlags`. Set in
 `commonpub.config.ts` at the app level. Gated in: server modules (check at call
 site), layer pages (`feature-gate.global.ts` middleware), layer components
 (via `useFeatures()` composable), nav items (per-item `requiredFeature`).
+
+17 top-level flags + 5 nested `identity.*` sub-flags.
 
 | Flag | Default | What it gates | Runtime override? |
 |---|---|---|---|
@@ -15,13 +17,20 @@ site), layer pages (`feature-gate.global.ts` middleware), layer components
 | `learning` | ON | `/learn/**`, enrollments, certificates | admin |
 | `explainers` | ON | Explainer content type + interactive rendering | admin |
 | `editorial` | ON | Staff picks, editorial badges, homepage editorial section, categories admin | admin |
+| `admin` | ON (since config 0.13.0 prod default) | `/admin/**`, admin API, admin nav | admin |
+| `contentImport` | ON (added config 0.13.0) | `/api/content/import` (URL → content) | admin |
 | `contests` | **OFF** | `/contests/**`, contest API, judges, voting | admin |
-| `events` | **OFF** | `/events/**`, events API, RSVP (session 124 added) | admin |
-| `federation` | **OFF** | AP `.well-known/*`, `/api/federation/**`, inbox, outbox | admin |
-| `federateHubs` | **OFF** | Hub Group actor + FEP-1b12 hub federation | admin |
-| `seamlessFederation` | **OFF** | Merge federated content into local browse/search/feed | admin |
-| `admin` | **OFF** | `/admin/**`, admin API, admin nav | admin |
+| `events` | **OFF** | `/events/**`, events API, RSVP | admin |
+| `federation` | **OFF default** (live `true` on commonpub.io + deveco.io as of session 137-ish; verify with `curl /api/features` before any "dormant" claim) | AP `.well-known/*`, `/api/federation/**`, inbox, outbox | admin |
+| `federateHubs` | **OFF default** (live `true` on commonpub.io + deveco.io) | Hub Group actor + FEP-1b12 hub federation | admin |
+| `seamlessFederation` | **OFF default** (live `true` on commonpub.io + deveco.io) | Merge federated content into local browse/search/feed | admin |
 | `emailNotifications` | **OFF** | Outbound email for likes/comments/follows/mentions/digest | admin |
+| `publicApi` | **OFF** | `/api/public/v1/**` read API (admin-managed bearer tokens, 13 read scopes) | admin |
+| `identity.linkRemoteAccounts` | **OFF** (added config 0.12.0) | UI for linking a remote AP account; requires `CPUB_FED_TOKEN_KEY` | admin |
+| `identity.signInWithRemote` | **OFF** | Mastodon-login flow; requires `CPUB_FED_TOKEN_KEY` | admin |
+| `identity.actingAs` | **OFF** | "Acting as remote identity" banner + UI (no token I/O, no key needed) | admin |
+| `identity.remoteInteract` | **OFF** | Delegated likes/follows on the remote; requires `CPUB_FED_TOKEN_KEY` | admin |
+| `identity.remotePublish` | **OFF** | Delegated publish to the remote; requires `CPUB_FED_TOKEN_KEY` | admin |
 
 ## Where flags are consumed
 

@@ -397,3 +397,150 @@ contradict session logs, session logs are newer.
 
 E.g. `100-handoff-prompt.md`, `099-handoff-prompt.md`. These are a running
 context-reset mechanism — if you're continuing work, read the most recent one.
+
+## Session 150 — federation-hardening Stage 3 wrap invariants
+
+### Federation outbound MUST go through the SSRF-safe path
+
+Three primitives in `@commonpub/protocol` (re-exported from
+`@commonpub/server`) — use these for any new federation outbound:
+
+- **`safeFetchResponse(url, options)`** returns
+  `{ ok, status, statusText, headers, body: Buffer, contentType, finalUrl }`.
+  Does NOT throw on non-2xx (delivery's circuit-breaker logic needs the
+  status). Default `followRedirects: false` (signed AP requests must
+  not replay to redirect targets — the signature covers the original
+  target). Streams the body under a 10 MB cap + deadline.
+- **`safeFetchSigned(signedRequest)`** takes a pre-signed `Request`
+  (output of `signRequest`), extracts its headers/body, forces
+  `followRedirects: false`, forwards through `safeFetchResponse`.
+- **`createSafeActorFetchFn()`** in
+  `packages/server/src/federation/safeFetchFn.ts` is the
+  `FetchFn`-shaped wrapper for `resolveActor`/
+  `resolveActorViaWebFinger`. Passes the caller's `init?.signal`
+  through via `AbortSignal.any` combination with the internal deadline.
+
+**Do not add new raw `fetch(...)` in `packages/server/src/federation/`.**
+The pinned dispatcher closes the DNS-rebind TOCTOU that the per-hop
+`isPrivateUrl` string check cannot. Pre-session-150 federation
+outbound (signed GETs in `backfill.ts`/`hubMirroring.ts`, signed POST
+in `delivery.ts`, raw `fetch` passed to `resolveActor`) bypassed this
+— live-exploitable on commonpub.io + deveco.io since federation
+flipped ON. Session 150 migrated all 6 federation modules; the
+`oauth.ts` token endpoint POST also went through `safeFetchResponse`
+with `accept: 'application/json'`.
+
+### `signRequest` signs exactly `(request-target) host date digest`
+
+`packages/protocol/src/sign.ts:41`. NOT content-type. The strict
+inbound coverage policy `verifyHttpSignature` (session 149's Item 7)
+requires those four headers in the signed set; if our outbound signs
+a different set, our own inbound verifier (and every other compliant
+strict checker) rejects. Tests at
+`packages/protocol/src/__tests__/security/verifyHttpSignature.test.ts`
+lock the matrix.
+
+### Trusted client-IP via `getClientIp(event, opts?)`
+
+`packages/infra/src/clientIp.ts`, re-exported via
+`@commonpub/infra/security` and `@commonpub/server/security`. Reads
+the **rightmost** `X-Forwarded-For` token by default. Falls back to
+`x-real-ip` then the socket's `remoteAddress` then `'unknown'`. Use
+this anywhere an IP needs to be derived (rate-limit key, view dedup,
+audit-log `ipAddress` column) — don't re-parse XFF inline.
+
+Multi-proxy operators set `CPUB_TRUSTED_PROXY_DEPTH=N` to read index
+`length - N`. Default 1.
+
+**Scope note**: all 3 prod instances use Caddy with
+`header_up X-Forwarded-For {remote_host}` (overwrite). XFF chain
+length is always 1, so leftmost === rightmost on our deploys —
+the pre-fix leftmost-token code was NOT live-exploitable in our
+setup. The fix is forward-compatible hardening for nginx-append /
+multi-proxy operators. `deploy/nginx.conf` uses
+`$proxy_add_x_forwarded_for` (append) — depth=1 still works with
+exactly one trusted proxy. Proxy contract documented in
+`docs/deployment.md` "Reverse-proxy contract" subsection.
+
+### Better Auth signed-cookie helper
+
+`layers/base/server/utils/betterAuthCookie.ts` is the only correct
+way to mint a Better Auth session cookie from a custom route (the
+federated SSO callbacks). Three exports:
+
+- `setBetterAuthSessionCookie(event, token, expiresAt)`
+- `clearBetterAuthSessionCookies(event)` — clears BOTH the session
+  token and the `session_data` SSR cache cookies
+- `shouldUseSecurePrefix()` — matches Better Auth's
+  `NODE_ENV=production || baseURL.startsWith('https://')` logic for
+  the `__Secure-` cookie name prefix
+
+**Critical: `signBetterAuthCookieValue` returns the RAW
+`${token}.${signature}` string with NO `encodeURIComponent`.** h3's
+`setCookie` → cookie-es `serialize` always URL-encodes the value
+exactly once. Pre-encoding here gave a double-encoded wire value;
+Better Auth's `getSignedCookie` single-decodes and checks the
+signature against `length === 44 && endsWith('=')` — fails on the
+double-encoded value, returns null, session is anonymous.
+
+**Caught only by deep audit** (session 150 post-implementation
+sweep) — same exact failure shape as session 149's safeFetch P0:
+unit tests verified the algorithm in isolation against a WebCrypto
+verifier (matched), but the framework above (h3 setCookie) broke
+the wire format. The integration regression test at
+`betterAuthCookie.test.ts:140` simulates the cookie-es encode +
+decode round-trip and asserts the post-decode signature is length-44
+and ends with `=`. The negative regression test at
+`betterAuthCookie.test.ts:182` proves the broken pre-encoded helper
+would fail the same shape check.
+
+### `getAuthSecret()` MUST stay in sync with `middleware/auth.ts:27-33`
+
+Both `betterAuthCookie.ts` and `middleware/auth.ts` resolve the
+auth-signing secret from `useRuntimeConfig().authSecret`. Same dev
+fallback (`'dev-secret-change-me'`), same prod-throws-if-missing.
+If they diverge, our helper signs cookies under a different key than
+Better Auth's `getSession` verifies against — federated logins
+silent-fail (session set in DB, cookie on wire, but next request
+auths as anonymous). KEEP IN SYNC comment in the helper.
+
+### `signedRequest.text()` consumes the Request — never re-use after
+
+`safeFetchSigned` calls `signedRequest.text()` to extract the body.
+After that, the Request body is consumed — calling `.text()` again
+throws "Body already used". Don't pass the same `signedRequest` to
+multiple helpers. The current call sites only pass once; mind the
+contract if adding new ones.
+
+### Algorithm tests pass, integration breaks — test the FULL output path
+
+Both session 149 and session 150 shipped a P0 of this exact shape:
+unit tests fed helper output to a verifier of the same algorithm
+(matched), but the framework integration broke the wire format.
+When adding a primitive that flows through h3/undici/Nuxt:
+
+1. Algorithm test (unit) — verifies the helper does the right
+   transform.
+2. Integration test — exercises the framework layer above (h3
+   setCookie + parse Set-Cookie, or simulate cookie-es / undici
+   exactly) and asserts end-state matches what the downstream
+   consumer expects.
+3. Negative regression-guard — proves the broken version of the
+   helper would fail the integration test.
+
+Without #2 + #3, the broken-helper unit tests pass and prod ships
+broken. This is the pattern memory `feedback_integration_test_full_output_path`
+references.
+
+### XFF in non-security sites also migrated
+
+Five XFF callsites total in `layers/base/server/`:
+- `middleware/security.ts:57` — rate-limit key (security-critical).
+- `api/content/[id]/view.post.ts:22` + `api/federation/content/[id]/view.post.ts:18`
+  — view-dedup key (publicly exploitable for count inflation when
+  proxy passes XFF through; not exploitable on our Caddy deploys).
+- `api/auth/federated/callback.get.ts:42` + `api/auth/mastodon/callback.get.ts:99`
+  — session `ipAddress` audit-log column (logging only).
+
+All migrated to `getClientIp(event)`. If you add a new IP-derived
+key, use the helper — don't re-parse XFF inline.

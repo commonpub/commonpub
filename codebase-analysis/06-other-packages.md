@@ -35,17 +35,27 @@ Feature flags are **runtime** (environment via `nuxt.config` `runtimeConfig.publ
 - `activityTypes.ts` — CommonPub → AP type mapping (`Article` + `cpub:type` extension for project/blog/explainer)
 - `contentMapper.ts` (13KB) — bidirectional BlockTuple[] ↔ AP object
 - `federation.ts` — `createFederation({ config, version, lookupUser, getStats })` factory returning WebFinger + NodeInfo handlers; gated on `config.features.federation`
-- `actorResolver.ts` — resolve + cache remote actors; refresh policy
+- `actorResolver.ts` — resolve + cache remote actors; refresh policy. Per-hop `isPrivateUrl` string check; callers should inject a `FetchFn` from `createSafeActorFetchFn()` for DNS-rebind protection.
 - `activities.ts` — Create/Announce/Delete/Update builders
 - `inbox.ts` — inbound dispatch
 - `outbox.ts` — outbound coordinator
-- `sign.ts` — HTTP Signature (jose)
-- `keypairs.ts` — RSA 2048
+- `sign.ts` — HTTP Signature (jose); signs `(request-target) host date digest` exactly (strict coverage policy in verify; do not change without also updating verify)
+- `keypairs.ts` — RSA 2048 keypair + `verifyHttpSignature` with strict coverage policy (since 0.11.0): `(request-target)`, `host`, `date` MUST be in the signed header set; `digest` MUST be in the set AND match SHA-256 of the raw body when body is non-empty
 - `sanitize.ts` — HTML sanitizer with CSP integration
 - `oauth.ts` — OAuth2 token endpoints
 - `webfinger.ts`, `nodeinfo.ts` — `.well-known` handlers
+- `ssrf.ts` — SSRF protection (consolidated since session 148, federation-hardening Item 5):
+  - `isPrivateIp(ip)` / `isPrivateUrl(url)` — sync literal-IP + hostname classifiers (IPv4, IPv6, IPv4-mapped IPv6, 6to4, NAT64; numeric-encoding bypasses)
+  - `pinnedLookup(...)` — undici `connect.lookup` callback that resolves hostname once, rejects on any private/reserved address, returns the validated `LookupAddress[]` (closes DNS-rebind TOCTOU)
+  - `safeFetch(url, options)` — text fetch; throws on non-2xx; 10 MB streaming cap
+  - `safeFetchBinary(url, options)` — Buffer + Content-Type return; same guarantees
+  - **`safeFetchResponse(url, options)` (since 0.12.0)** — Response-shape return (`{ ok, status, statusText, headers, body: Buffer, contentType, finalUrl }`); no throw on non-2xx (federation delivery needs the status); default `followRedirects: false` (signed requests must not replay); combines caller `AbortSignal` with internal deadline via `AbortSignal.any`
+  - **`safeFetchSigned(signedRequest, options?)` (since 0.12.0)** — forwards a pre-signed `Request` through `safeFetchResponse`; extracts headers/body from the signed Request; forces `followRedirects: false`
+  - `SafeFetchOptions`, `SafeFetchResponseResult` types exported
 
 **cpub: namespace** — extensions preserved only between CommonPub instances. Mastodon/Lemmy see generic `Article`.
+
+**SSRF rule**: any new server-side fetch of an attacker-influenced URL (federation, content-import, remote actor lookup, OAuth metadata discovery) MUST go through `safeFetch`/`safeFetchBinary`/`safeFetchResponse`/`safeFetchSigned` — never raw `globalThis.fetch`. Pre-session-150 federation outbound bypassed this for signed requests; the migration plugged it.
 
 ## @commonpub/ui
 
@@ -124,10 +134,15 @@ New pages store content as BlockTuple[]. Legacy md supported on read; converted 
 
 Pure utility adapters — no domain coupling:
 
-- **storage.ts** (8.5KB) — `LocalStorageAdapter`, `S3StorageAdapter`, `createStorageFromEnv()`
-- **image.ts** (3.4KB) — Sharp integration, `IMAGE_VARIANTS` (thumb=150, small=300, medium=600, large=1200 — widths in px)
-- **email.ts** (9.9KB) — SMTP/Resend/Console adapters + `emailTemplates`: verification, passwordReset, notificationDigest, notificationInstant, contestAnnouncement, certificateIssued
-- **security.ts** (6.8KB) — `buildCspHeader()`, rate-limit store with 6 tiers (auth=5/min, upload=10/min, social=30/min, federation=60/min, api=60/min, general=120/min), nonce
+- **storage.ts** — `LocalStorageAdapter`, `S3StorageAdapter`, `createStorageFromEnv()`; DO Spaces CDN URL derivation when `S3_CDN=true` (added in 0.7.0)
+- **image.ts** — Sharp integration, `IMAGE_VARIANTS` (thumb=150, small=300, medium=600, large=1200 — widths in px); `limitInputPixels: 100_000_000` caps decoded bitmap memory
+- **email.ts** — SMTP/Resend/Console adapters + `emailTemplates`: verification, passwordReset, notificationDigest, notificationInstant, contestAnnouncement, certificateIssued
+- **security.ts** — `buildCspHeader()`, rate-limit store with 6 tiers (auth=5/min, upload=10/min, social=30/min, federation=60/min, api=60/min, general=120/min), nonce. Re-exports **`getClientIp(event, opts?)` (added in 0.8.0)** for XFF-spoof-resistant client IP extraction.
+- **clientIp.ts** (added 0.8.0) — `getClientIp(event, opts?)` reads rightmost `X-Forwarded-For` token by default. Falls back to `x-real-ip` then socket `remoteAddress` then `'unknown'`. `CPUB_TRUSTED_PROXY_DEPTH=N` env var or `trustedProxyDepth` option for multi-proxy operators. Framework-agnostic (uses a locally-defined `ClientIpEvent` interface so infra stays `h3`-free).
+- **structuredLogger.ts** — `createStructuredLogger({ component })` emits one JSON line per event to stdout
+- **tokenCrypto.ts** (added 0.7.0) — ChaCha20-Poly1305 helpers for OAuth bearer tokens at rest (`encryptToken`, `decryptToken`, `isTokenKeyConfigured`)
+- **redis/** — opt-in Redis-backed `RateLimitStore` (`createRateLimitStore({ redisUrl, onRedisError })`), client factory, fail-open logger
+- **realtime/** — pub/sub abstractions for SSE fanout (memory + Redis backends, `createRealtimePubSub`)
 
 Peer deps: AWS SDK + Sharp (optional).
 

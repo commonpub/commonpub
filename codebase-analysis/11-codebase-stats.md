@@ -1,6 +1,6 @@
 # 11 — Codebase Stats
 
-As of session 125 (2026-04-16). Numbers are approximate — exact counts vary
+As of session 150 (2026-05-19). Numbers are approximate — exact counts vary
 with test exclusions.
 
 ## Headline
@@ -11,19 +11,21 @@ with test exclusions.
 | Shared Nuxt layer | 1 |
 | Apps | 2 |
 | Tools | 2 |
-| Tables | 77 |
+| Tables | 79 (federated_accounts + oauth_codes added in 0004 migration) |
 | Enums | 41 |
 | Zod validators | 50+ |
-| Server modules | 20+ |
-| API routes | 257 |
-| Layer pages | 85 |
-| Layer components | 106 |
-| Composables | 20 |
-| Feature flags | 15 |
-| Themes | 5 |
+| Server modules | 22+ |
+| API routes | 270+ (admin storage backfill + federated/mastodon callback chains added since session 128) |
+| Layer pages | 85+ |
+| Layer components | 110+ |
+| Composables | 20+ |
+| Feature flags | 17 top-level (including `contentImport`, `editorial`) + 5 nested `identity.*` sub-flags |
+| Themes | 5 (base, dark, generics, agora, agora-dark) |
+| Migrations | 5 (0000_session128_baseline → 0004_federated_oauth_tokens) |
 | ADRs | 24+ |
-| Session log files | 48 (session numbers run 071–125; sessions are sometimes bundled) |
-| Tests | ~2,852 (session 121 log, 2026-04-14); 1,939 at v0.2.0 baseline (2026-03-23); 30/30 test suites |
+| Production instances | 3 (commonpub.io, deveco.io, heatsynclabs.io — all auto-deploy from main) |
+| Session log files | 80+ (session numbers run 071–150; bundled where related work landed together) |
+| Tests | ~3,200 (session 150: protocol 419 + infra 305 + server 967 + layer 85 + scaffolder cargo 27 + other packages) |
 
 ## Per-package sizes (rough)
 
@@ -31,19 +33,19 @@ From package versions and file counts:
 
 | Package | Version | Src files (est.) |
 |---|---|---|
-| schema | 0.13.0 | 17 TS files (one per domain + validators + index) |
-| server | 2.43.0 | 80+ TS files across 20+ modules |
-| config | 0.10.0 | 4 TS (types, schema, config, index) |
-| layer | 0.15.3 | 200+ files (pages, components, server, composables, middleware, plugins, theme) |
+| schema | 0.16.0 | 17 TS files (one per domain + validators + index) |
+| server | 2.55.0 | 90+ TS files across 22+ modules (federation, identity, federation-outbound through safeFetch as of 2.55.0) |
+| config | 0.13.0 | 4 TS (types, schema, config, index); flags as of 0.13.0 add `contentImport` and the `identity.*` nested object |
+| layer | 0.21.15 | 240+ files (pages, components, server, composables, middleware, plugins, theme; `server/utils/betterAuthCookie.ts` added 0.21.15) |
 | ui | 0.8.5 | 25 Vue components + theme CSS |
-| protocol | 0.9.9 | 15 TS files |
-| editor | 0.7.9 | ~35 TS files in src/ (blocks + extensions + serialization + vue wrapper) |
-| explainer | 0.7.11 | ~12 TS files in src/ + ~11 in vue/ (optional Vue renderers + 4 theme CSS presets) |
-| learning | 0.5.0 | 6 TS files |
-| docs | 0.6.2 | 15+ TS files |
-| auth | 0.5.1 | 6 TS files |
-| infra | 0.5.1 | 5 TS files |
-| test-utils | 0.5.3 | 3 TS files |
+| protocol | 0.12.0 | 15 TS files; ssrf.ts adds `safeFetchResponse`+`safeFetchSigned` as of 0.12.0 |
+| editor | 0.7.10 | ~35 TS files in src/ (blocks + extensions + serialization + vue wrapper) |
+| explainer | 0.7.15 | ~12 TS files in src/ + ~11 in vue/ (Vue renderers + 4 theme CSS presets) |
+| learning | 0.5.2 | 6 TS files |
+| docs | 0.6.3 | 15+ TS files |
+| auth | 0.6.0 | 8 TS files (adds identity types in 0.6.0) |
+| infra | 0.8.0 | 7 TS files (adds `clientIp.ts` in 0.8.0; `tokenCrypto.ts` in 0.7.0; `redis/` + `realtime/` since 0.6.0) |
+| test-utils | 0.5.6 | 3 TS files |
 
 ## Database
 
@@ -70,6 +72,17 @@ From package versions and file counts:
 | 123 | Destination phase 0+1+4+2 |
 | 124 | Destination phase 3/5/6/7 — nav, events, voting, judges |
 | 125 | Events UI, contest voting, theme fix |
+| 126 | Doc overhaul + scaling plan + typecheck fixes |
+| 127 | Public Read API v1 + 8 bug fixes (drafts-leak + stored-XSS) |
+| 128 | Docs unblock + drizzle-kit push → committed migrations |
+| 135 | Audit-fix: safeFetch/safeFetchBinary added (since server 2.48.0) |
+| 136–140 | Cross-instance identity foundation + runtime + Mastodon login UI |
+| 141–142 | CLI scaffolder version-drift fix + admin DO deploy + import lazy-loaded images |
+| 143 | Mobile-nav pathPrefix regression + extreme audit |
+| 144 | Mobile UX fixes |
+| 145–148 | Three audit-fix passes + federation-hardening Stage 1+2 (SSRF consolidation) |
+| 149 | DO Spaces CDN + safeFetch P0 hotfix + Stage 3 Items 6+7 (raw-body digest + strict sig coverage) |
+| 150 | Stage 3 Items 4+8+9 wrap: federation outbound through SSRF-safe path, Better Auth signed-cookie helper, `getClientIp` (rightmost XFF). Plan fully cleared. |
 
 ## Schema growth (session 124 adds)
 

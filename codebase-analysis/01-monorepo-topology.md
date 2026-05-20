@@ -41,25 +41,23 @@ commonpub/
 
 Note: `tools/create-commonpub` is NOT in the pnpm workspace — it's Rust.
 
-## Published package versions (2026-04-16)
+## Published package versions (2026-05-19, session 150)
 
 | Package | Version | Notes |
 |---|---|---|
-| @commonpub/schema | 0.13.0 | Session 124 added events, voting, contestJudges |
-| @commonpub/server | 2.43.0 | Bumped on most sessions |
-| @commonpub/config | 0.10.0 | 15 feature flags |
-| @commonpub/layer | 0.15.3 | Bumped in session 126 for typecheck fixes; also consumed via workspace |
+| @commonpub/schema | 0.16.0 | 79 tables, 41 enums; migration 0004 adds federated_accounts/oauth_codes |
+| @commonpub/server | 2.55.0 | Federation outbound through SSRF-safe path (session 150); `getClientIp` + `safeFetchResponse`/`safeFetchSigned` re-exports added in 2.55.0 |
+| @commonpub/config | 0.13.0 | 17 top-level flags + nested `identity.*` (5 sub-flags); `contentImport` flag added in 0.13.0 |
+| @commonpub/layer | 0.21.15 | Better Auth signed-cookie helper + 5 XFF callsite migration added in 0.21.15 |
 | @commonpub/ui | 0.8.5 | Independent; NOT bundled into layer |
-| @commonpub/protocol | 0.9.9 | Pure-TS ActivityPub: AP types, content mapper, WebFinger, NodeInfo, HTTP signatures (jose), OAuth2 helpers |
-| @commonpub/editor | 0.7.9 | 20 block types |
-| @commonpub/explainer | 0.7.11 | Pure TS engine + optional Vue |
-| @commonpub/learning | 0.5.0 | Curriculum engine |
-| @commonpub/docs | 0.6.2 | Search adapters |
-| @commonpub/auth | 0.5.1 | Better Auth wrapper + AP SSO |
-| @commonpub/infra | 0.5.1 | Storage / image / email / security |
-| @commonpub/test-utils | 0.5.3 | Factories + mock config |
-
-Root `package.json` version: `0.15.2`.
+| @commonpub/protocol | 0.12.0 | Pure-TS ActivityPub; `safeFetchResponse`+`safeFetchSigned` added 0.12.0; strict `verifyHttpSignature` coverage policy + raw-body digest in 0.11.0 |
+| @commonpub/editor | 0.7.10 | 20 block types |
+| @commonpub/explainer | 0.7.15 | Pure TS engine + Vue; cover-image upload UI in 0.7.14 |
+| @commonpub/learning | 0.5.2 | Curriculum engine |
+| @commonpub/docs | 0.6.3 | Search adapters |
+| @commonpub/auth | 0.6.0 | Better Auth wrapper + AP SSO + cross-instance identity types |
+| @commonpub/infra | 0.8.0 | Storage / image / email / security; `getClientIp` added in 0.8.0; DO Spaces CDN derivation 0.7.0+ |
+| @commonpub/test-utils | 0.5.6 | Factories + mock config |
 
 ## Dependency graph (core → leaf)
 

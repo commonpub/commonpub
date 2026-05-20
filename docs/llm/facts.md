@@ -23,11 +23,20 @@ codebase-analysis/       raw inventory (generated — trust over older docs)
 12 packages on npm as `@commonpub/*`:
 schema, server, config, protocol, auth, ui, editor, explainer, learning, docs, infra, test-utils.
 
-## Latest published versions (session 128, 2026-04-17)
+## Latest published versions (session 150, 2026-05-19)
 
-- schema 0.14.2, server 2.45.1, config 0.11.0, layer 0.17.0
-- ui 0.8.5, protocol 0.9.9, editor 0.7.9, explainer 0.7.12
-- learning 0.5.0, docs 0.6.2, auth 0.5.1, infra 0.5.1, test-utils 0.5.3
+- schema 0.16.0, server 2.55.0, config 0.13.0, layer 0.21.15
+- ui 0.8.5, protocol 0.12.0, editor 0.7.10, explainer 0.7.15
+- learning 0.5.2, docs 0.6.3, auth 0.6.0, infra 0.8.0, test-utils 0.5.6
+
+All three prod instances on this version set: commonpub.io, deveco.io,
+heatsynclabs.io. Federation flag is `true` on commonpub.io + deveco.io,
+`false` on heatsynclabs.io. All identity sub-flags
+(`linkRemoteAccounts`, `signInWithRemote`, `actingAs`, `remoteInteract`,
+`remotePublish`) are `false` everywhere; `CPUB_FED_TOKEN_KEY` is unset.
+Run `curl /api/features` to verify before any "dormant" claim — memory
+of past flag state drifts (see session 149's "live-active state
+correction").
 
 ## Database
 
@@ -38,7 +47,7 @@ schema, server, config, protocol, auth, ui, editor, explainer, learning, docs, i
 - Denormalized counters pervasive (voteScore, entryCount, attendeeCount, memberCount, likeCount, etc.).
 - `contentTypeEnum`: project, article, blog, explainer. **`article` is legacy — use `blog`** (session 116).
 
-## Recent major additions (sessions 108–128)
+## Recent major additions (sessions 108–150)
 
 - **108** URL restructure → `/u/{username}/{type}/{slug}` canonical
 - **116** Article↔Blog merge
@@ -51,8 +60,16 @@ schema, server, config, protocol, auth, ui, editor, explainer, learning, docs, i
 - **124** Destination phases 3+5+6+7 — **nav system, events, voting, contest judges**
 - **125** Events UI polish, contest voting UI, error.vue SSR theme fix
 - **126** Doc overhaul + scaling plan + typecheck fixes
-- **127** Public Read API v1 (admin-managed bearer tokens, 13 read scopes, OpenAPI 3.1) + 8 bug fixes including critical drafts-leak + stored-XSS
-- **128** **Docs unblock** + switched schema deploys from `drizzle-kit push` to committed migrations via `scripts/db-migrate.mjs` + fixed silent drift on both prod DBs
+- **127** Public Read API v1 + 8 bug fixes including drafts-leak + stored-XSS
+- **128** **Docs unblock** + drizzle-kit push → committed migrations + fix silent drift
+- **135** Audit-fix: SSRF defense (safeFetch/safeFetchBinary added since 2.48.0)
+- **136–140** Cross-instance identity foundation + runtime + Mastodon login UI (all behind `identity.*` flags; off in prod, 5-flag gate)
+- **141–142** CLI scaffolder version-drift fix + admin DO deploy + import resolves lazy-loaded images
+- **143** Mobile-nav pathPrefix regression + extreme audit
+- **144** Mobile UX fixes
+- **145–148** Three audit-fix passes + federation-hardening Stage 1+2 (SSRF cluster + protocol/server SSRF consolidation)
+- **149** DO Spaces CDN + safeFetch P0 hotfix + Stage 3 Items 6+7 (raw-body digest + strict sig coverage policy)
+- **150** Stage 3 Items 4+8+9 wrap: `safeFetchResponse`/`safeFetchSigned` (federation outbound through pinned dispatcher), Better Auth signed-cookie helper (federated SSO callbacks), `getClientIp` (rightmost XFF, multi-proxy hardening). Plan fully cleared.
 
 ## Layer structure
 
@@ -72,10 +89,18 @@ admin, auth (identity), content, contest (+judges), docs, events, federation (10
 
 Plus file-level utilities: email, hooks, image, oauthCodes, query, security, storage, theme, utils.
 
-## Feature flags (15)
+## Feature flags
 
-Default ON: content, social, hubs, docs, video, learning, explainers, editorial.
-Default OFF: contests, events, federation, federateHubs, seamlessFederation, admin, emailNotifications.
+Top-level flags default ON: `content`, `social`, `hubs`, `docs`, `video`,
+`learning`, `explainers`, `editorial`, `admin`, `contentImport`.
+Default OFF: `events`, `contests`, `federation`, `federateHubs`,
+`seamlessFederation`, `emailNotifications`, `publicApi`.
+
+`identity` is a nested object with 5 sub-flags, all default OFF:
+`linkRemoteAccounts`, `signInWithRemote`, `actingAs`, `remoteInteract`,
+`remotePublish`. Enabling any of the token-using ones requires
+`CPUB_FED_TOKEN_KEY` (32-byte hex) in env — the identity-startup Nitro
+plugin's `assertIdentityConfig` refuses to boot otherwise.
 
 Details: `codebase-analysis/08-feature-flags-inventory.md`.
 
@@ -101,9 +126,19 @@ Real example: `deveco.io` (~25 branded/config files extending the layer).
 
 ## Deployment
 
-Two production instances (both auto-deploy from main on push):
-- **commonpub.io** — DO, Docker+Caddy, self-hosted Postgres
-- **deveco.io** — DO, Docker+Caddy, managed DO Postgres, thin consumer of layer
+Three production instances (all auto-deploy from main on push):
+- **commonpub.io** — DO, Docker+Caddy, self-hosted Postgres. Builds
+  from monorepo source (`@commonpub/layer` workspace dep).
+- **deveco.io** — DO, Docker+Caddy, managed DO Postgres. Thin consumer
+  of `@commonpub/layer` via npm.
+- **heatsynclabs.io** — DO, Docker+Caddy. Thin consumer of
+  `@commonpub/layer` via npm. Federation flag OFF.
+
+All 3 use Caddy with `header_up X-Forwarded-For {remote_host}` —
+OVERWRITES XFF, so depth=1 (the default for the session-150
+`getClientIp` helper) is the correct rate-limit-key choice. Operators
+behind multi-proxy topologies (CDN → nginx → app) set
+`CPUB_TRUSTED_PROXY_DEPTH=N`.
 
 Deploy runs `scripts/db-migrate.mjs` (session 128+) which applies committed migrations from `packages/schema/migrations/` via `drizzle-orm/node-postgres/migrator.migrate()`. State tracked in `drizzle.__drizzle_migrations`. No prompts, no manual SQL. (Before session 128: deploys used `drizzle-kit push`, which blocked on TTY prompts for populated-table constraint changes and silently dropped DDL.)
 
