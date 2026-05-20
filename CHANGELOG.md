@@ -9,9 +9,41 @@ monorepo working period. For session-level detail, see [`docs/sessions/`](./docs
 
 ## Unreleased (sessions 108–149, through 2026-05-19)
 
-Monorepo state at time of writing: schema 0.16.0, server 2.54.2, config 0.13.0,
-layer 0.21.13, ui 0.8.5, protocol 0.10.1, editor 0.7.10, explainer 0.7.15,
+Monorepo state at time of writing: schema 0.16.0, server 2.54.3, config 0.13.0,
+layer 0.21.14, ui 0.8.5, protocol 0.11.0, editor 0.7.10, explainer 0.7.15,
 learning 0.5.2, docs 0.6.3, auth 0.6.0, infra 0.7.1, test-utils 0.5.6.
+
+### Session 149 federation-hardening Stage 3 — inbound signature/digest
+
+`@commonpub/protocol` 0.10.1 → **0.11.0**: `verifyHttpSignature` now
+enforces a strict coverage policy (`(request-target)`, `host`, `date`
+MUST be in the signed headers set; `digest` MUST be in the set AND
+match the SHA-256 of the raw body whenever the body is non-empty).
+The `headers=` parameter on the Signature header is required — no
+implicit defaults. The `verifyDigest` option flag was removed
+(security-tightening — there is no legitimate use case for disabling
+digest verification on a body request). 14 new fixture-based unit
+tests cover the coverage matrix + a tampered-body case + the wrong-key
+case.
+
+`@commonpub/layer` 0.21.13 → **0.21.14**:
+`server/utils/inbox.ts:verifyInboxRequest` now uses `readRawBody` to
+capture the body bytes exactly as received, instead of `readBody` +
+`JSON.stringify`. `JSON.stringify(JSON.parse(x)) !== x` in general
+(whitespace, escapes, key ordering), so the previous code's
+re-serialized digest would never match the sender's digest over the
+original wire bytes. Item 6 of the federation-hardening plan: every
+signed inbound activity with a Digest header would 401 on this code
+path — fail-closed but a complete interop break. The Date header is
+also now mandatory (was optional with skew-check-when-present).
+
+`@commonpub/server` 2.54.2 → **2.54.3**: transitive bump to pick up
+`@commonpub/protocol@0.11.0`; no behavior change.
+
+Federation flag is OFF in prod for all 3 instances so this ships
+dormant; the next two-instance interop test will exercise the path.
+Item 8 (Better-Auth signed-cookie session minting) and Item 9 (XFF
+rate-limit key proxy contract) remain deferred.
 
 ### Session 149 polish patch — embed URL parsing
 

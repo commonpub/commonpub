@@ -157,7 +157,7 @@ describe('signRequest', () => {
     // GET requests don't have a body, so digest behavior depends on implementation
   });
 
-  it('passes verification with tampered body when digest verification disabled', async () => {
+  it('always rejects tampered body — digest is mandatory in the strict policy', async () => {
     const body = JSON.stringify({ type: 'Follow' });
     const request = new Request('https://remote.test/inbox', {
       method: 'POST',
@@ -173,10 +173,12 @@ describe('signRequest', () => {
       body: JSON.stringify({ type: 'Malicious' }),
     });
 
-    // With digest verification disabled, tampered body is NOT caught
-    // (only the Signature header is verified, which covers the old Digest)
-    const result = await verifyHttpSignature(tampered, publicKeyPem, { verifyDigest: false });
-    expect(result).toBe(true);
+    // The verifyDigest=false escape hatch was removed in session 149 as
+    // part of federation-hardening Stage 3 (Item 7 coverage policy):
+    // digest is now unconditionally required when a body is present, so a
+    // tampered body always fails verification.
+    const result = await verifyHttpSignature(tampered, publicKeyPem);
+    expect(result).toBe(false);
   });
 
   it('GET requests skip digest verification by default', async () => {

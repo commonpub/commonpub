@@ -78,26 +78,43 @@ export async function verifyInboxRequest(event: H3Event, label: string): Promise
     throw createError({ statusCode: 401, statusMessage: 'Invalid actor URI' });
   }
 
-  // 6. Date header freshness check
+  // 6. Date header is mandatory + must be fresh (replay-window protection).
   const dateHeader = getHeader(event, 'date');
-  if (dateHeader) {
-    const requestDate = new Date(dateHeader).getTime();
-    if (!isNaN(requestDate)) {
-      const skew = Math.abs(Date.now() - requestDate);
-      if (skew > MAX_DATE_SKEW_MS) {
-        console.warn(`[${label}] Date header too old/new: skew=${Math.round(skew / 1000)}s from ${actorUri}`);
-        throw createError({ statusCode: 401, statusMessage: 'Request date too far from server time' });
-      }
-    }
+  if (!dateHeader) {
+    throw createError({ statusCode: 401, statusMessage: 'Missing Date header' });
+  }
+  const requestDate = new Date(dateHeader).getTime();
+  if (isNaN(requestDate)) {
+    throw createError({ statusCode: 401, statusMessage: 'Invalid Date header' });
+  }
+  const skew = Math.abs(Date.now() - requestDate);
+  if (skew > MAX_DATE_SKEW_MS) {
+    console.warn(`[${label}] Date header too old/new: skew=${Math.round(skew / 1000)}s from ${actorUri}`);
+    throw createError({ statusCode: 401, statusMessage: 'Request date too far from server time' });
   }
 
-  // 7. Read body and reconstruct Request for signature verification
-  const body = await readBody(event);
-  const bodyStr = typeof body === 'string' ? body : JSON.stringify(body);
+  // 7. Read the RAW body once. Two uses:
+  //    - Hashing for digest verification (must match the sender's digest,
+  //      which was computed over the exact bytes on the wire).
+  //    - JSON.parse for handler consumption.
+  //    `JSON.stringify(JSON.parse(x)) !== x` in general, so we cannot
+  //    rebuild the verify-Request from a re-serialized copy without
+  //    breaking digest comparison. Item 6 of federation-hardening Stage 3.
+  const rawBody = await readRawBody(event, false);
+  if (!rawBody) {
+    throw createError({ statusCode: 400, statusMessage: 'Empty body' });
+  }
+  const bodyStr = typeof rawBody === 'string' ? rawBody : Buffer.from(rawBody).toString('utf-8');
 
-  // Body size check on actual content (in case Content-Length was missing/wrong)
   if (bodyStr.length > MAX_BODY_SIZE) {
     throw createError({ statusCode: 413, statusMessage: 'Payload too large' });
+  }
+
+  let body: Record<string, unknown>;
+  try {
+    body = JSON.parse(bodyStr);
+  } catch {
+    throw createError({ statusCode: 400, statusMessage: 'Invalid JSON body' });
   }
 
   const url = getRequestURL(event);
@@ -111,7 +128,10 @@ export async function verifyInboxRequest(event: H3Event, label: string): Promise
     body: bodyStr,
   });
 
-  // 8. Verify HTTP Signature cryptographically
+  // 8. Verify HTTP Signature cryptographically (also enforces the coverage
+  //    policy: (request-target), host, date, and — when body is non-empty —
+  //    digest MUST all be in the signed headers set; digest must match raw
+  //    body SHA-256. Item 7.)
   const signatureValid = await verifyHttpSignature(verifyRequest, actor.publicKey.publicKeyPem);
   if (!signatureValid) {
     console.warn(`[${label}] HTTP Signature verification failed for ${actorUri}`);

@@ -29,25 +29,36 @@ export function buildKeyId(domain: string, username: string): string {
   return `https://${domain}/users/${username}#main-key`;
 }
 
-/** Verify an HTTP Signature on an incoming ActivityPub request.
- *  Returns true if the signature is valid, false otherwise.
- *  Returns false if no Signature header is present.
+/**
+ * Verify an HTTP Signature on an incoming ActivityPub request
+ * (draft-cavage-http-signatures-12, the de facto fediverse standard).
  *
- *  When verifyDigest is true (default for POST/PUT/PATCH), also verifies
- *  that the Digest header matches the actual request body. This prevents
- *  body tampering attacks where the signature is valid but the body has
- *  been replaced.
+ * Returns true if the signature is valid AND the coverage policy is met.
+ * Returns false on missing/invalid Signature header, missing required
+ * signed headers, missing/stale digest, or cryptographic failure.
+ *
+ * **Coverage policy (strict by default — matches Mastodon/Pleroma/Lemmy):**
+ * - The `headers=` parameter MUST be present and explicit; no defaults.
+ * - `(request-target)`, `host`, and `date` MUST be in the signed set.
+ * - If the request body is non-empty, `digest` MUST be in the signed set
+ *   AND the digest header value MUST match the SHA-256 of the raw body.
+ *
+ * **Digest verification (Item 6 fix, session 149):** the body is hashed
+ * exactly as received (`request.text()` on a clone of the verify Request);
+ * the caller is responsible for building that Request with the ORIGINAL
+ * raw bytes from the wire, not a re-serialized JSON copy.
+ * `JSON.stringify(JSON.parse(x)) !== x` in general (whitespace, escapes,
+ * key ordering), so re-serializing breaks digest comparison even when the
+ * sender computed everything correctly.
  */
 export async function verifyHttpSignature(
   request: Request,
   publicKeyPem: string,
-  options?: { verifyDigest?: boolean },
 ): Promise<boolean> {
   const signatureHeader = request.headers.get('signature');
   if (!signatureHeader) return false;
 
   try {
-    // Parse the Signature header
     const parts: Record<string, string> = {};
     for (const part of signatureHeader.split(',')) {
       const eqIdx = part.indexOf('=');
@@ -57,65 +68,55 @@ export async function verifyHttpSignature(
       parts[key] = value;
     }
 
-    const headers = (parts.headers ?? '(request-target) host date').split(' ');
-    const signature = parts.signature;
+    const rawHeaders = parts.headers;
+    if (!rawHeaders) return false;
+    const headers = rawHeaders.split(' ');
 
+    const signature = parts.signature;
     if (!signature) return false;
 
-    const url = new URL(request.url);
-
-    // Verify Digest header matches body (prevents body tampering)
-    const method = request.method.toUpperCase();
-    const shouldVerifyDigest = options?.verifyDigest ??
-      (method === 'POST' || method === 'PUT' || method === 'PATCH');
-
-    if (shouldVerifyDigest && headers.includes('digest')) {
-      const digestHeader = request.headers.get('digest');
-      if (digestHeader) {
-        const body = await request.clone().text();
-        const bodyBytes = new TextEncoder().encode(body);
-        const hashBuffer = await crypto.subtle.digest('SHA-256', bodyBytes);
-        const hashBase64 = btoa(String.fromCharCode(...new Uint8Array(hashBuffer)));
-        const expectedDigest = `SHA-256=${hashBase64}`;
-
-        if (digestHeader !== expectedDigest) {
-          return false; // Body was tampered
-        }
-      }
+    // Coverage policy: (request-target), host, date must all be signed.
+    for (const required of ['(request-target)', 'host', 'date']) {
+      if (!headers.includes(required)) return false;
     }
 
-    // Build the signing string
+    // Date header must be present at the HTTP level too (signing-line value
+    // is read from `request.headers.get('date')` below; empty would still
+    // pass signature math but is meaningless for replay protection).
+    if (!request.headers.get('date')) return false;
+
+    // Digest verification + coverage: if body is non-empty, digest MUST
+    // be signed AND match the raw body's SHA-256.
+    const body = await request.clone().text();
+    if (body.length > 0) {
+      if (!headers.includes('digest')) return false;
+      const digestHeader = request.headers.get('digest');
+      if (!digestHeader) return false;
+      const bodyBytes = new TextEncoder().encode(body);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', bodyBytes);
+      const hashBase64 = btoa(String.fromCharCode(...new Uint8Array(hashBuffer)));
+      const expectedDigest = `SHA-256=${hashBase64}`;
+      if (digestHeader !== expectedDigest) return false;
+    }
+
+    const url = new URL(request.url);
     const signingLines: string[] = [];
     for (const header of headers) {
       if (header === '(request-target)') {
         signingLines.push(`(request-target): ${request.method.toLowerCase()} ${url.pathname}`);
       } else if (header === 'host') {
         signingLines.push(`host: ${request.headers.get('host') ?? url.host}`);
-      } else if (header === 'date') {
-        signingLines.push(`date: ${request.headers.get('date') ?? ''}`);
-      } else if (header === 'digest') {
-        signingLines.push(`digest: ${request.headers.get('digest') ?? ''}`);
       } else {
         const val = request.headers.get(header);
-        if (val !== null) {
-          signingLines.push(`${header}: ${val}`);
-        }
+        if (val !== null) signingLines.push(`${header}: ${val}`);
       }
     }
-
     const signingString = signingLines.join('\n');
 
-    // Import the public key using jose
     const publicKey = await importSPKI(publicKeyPem, 'RS256');
-
-    // Decode base64 signature
     const sigBytes = Uint8Array.from(atob(signature), (c) => c.charCodeAt(0));
+    const data = new TextEncoder().encode(signingString);
 
-    // Encode signing string
-    const encoder = new TextEncoder();
-    const data = encoder.encode(signingString);
-
-    // Verify using Web Crypto API
     return await crypto.subtle.verify(
       { name: 'RSASSA-PKCS1-v1_5' },
       publicKey as CryptoKey,

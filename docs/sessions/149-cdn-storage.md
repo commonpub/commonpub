@@ -344,3 +344,74 @@ Recovery (same session):
 the layer with `pnpm publish` from inside `layers/base/`, never
 `npm publish`. Worth a `publish:layer` script that calls the right
 command, or extending `publish:all` filter to include the layer.
+
+## Federation-hardening Stage 3 — Items 6 + 7
+
+Followed the polish-patch with the long-deferred Stage 3 work,
+limited to Items 6 + 7 (the two pieces that don't need a real
+two-instance interop environment to start).
+
+### Item 6 — raw-body digest verification
+
+**Bug**: `layers/base/server/utils/inbox.ts` used `readBody(event)`
+(which JSON.parses) followed by `JSON.stringify(body)` to rebuild
+the verify-Request body. The protocol's `verifyHttpSignature` then
+hashed THAT re-serialized JSON and compared it against the sender's
+Digest header, which was computed over the original raw bytes.
+`JSON.stringify(JSON.parse(x)) !== x` in general — whitespace, key
+ordering, number formatting, `\uXXXX` escapes all diverge — so every
+signed inbound activity with a digest header would 401. Fail-closed
+but a complete interop break. Dormant because federation is OFF in
+prod.
+
+**Fix**: switched to `readRawBody(event, false)` (returns the
+original UTF-8 string). The raw string is used twice: hashed for
+digest verification, and `JSON.parse`d separately for handler
+consumption. The verify-Request body is now the original wire bytes.
+
+### Item 7 — coverage policy
+
+**Bug**: `packages/protocol/src/keypairs.ts:verifyHttpSignature`
+trusted the attacker-supplied `headers=` Signature parameter and
+defaulted to `(request-target) host date` when missing. An attacker
+who signed only a minimal subset (e.g. omitting `digest`) could swap
+the body without invalidating the signature.
+
+**Fix**: strict coverage policy enforced unconditionally:
+- The `headers=` parameter must be present and explicit; no defaults.
+- `(request-target)`, `host`, `date` must ALL be in the signed set.
+- If the request body is non-empty, `digest` must be in the signed
+  set AND match the SHA-256 of the raw body.
+- The HTTP Date header must be present (the inbox util also enforces
+  freshness within ±5 min skew).
+
+The `verifyDigest=false` option flag was removed — it was a security
+escape hatch with no legitimate use case for body requests.
+
+### Tests
+
+14 new fixture-based tests in
+`packages/protocol/src/__tests__/security/verifyHttpSignature.test.ts`:
+happy path; raw-body digest matches whitespace-preserving body;
+tampered body; digest-header mutation; missing `headers=` parameter;
+missing `(request-target)` / `host` / `date` from signed set; body
+present but digest not signed; missing HTTP Date header; missing
+Signature header; missing `signature=` parameter; wrong public key.
+402/402 protocol tests pass; one pre-existing test that asserted the
+old loose-mode `verifyDigest=false` bypass was inverted to assert
+the new strict behavior.
+
+### Release
+
+Will ship as:
+- `@commonpub/protocol` 0.10.1 → **0.11.0** (behavior tightened —
+  strict-by-default; minor bump signals the change)
+- `@commonpub/server` 2.54.2 → **2.54.3** (transitive bump to pick up
+  protocol@0.11.0; no behavior change)
+- `@commonpub/layer` 0.21.13 → **0.21.14** (inbox.ts raw-body switch,
+  mandatory Date header)
+
+Scaffolder pins, cli.rs test assertions, CHANGELOG, README, deveco +
+heatsync `@commonpub/layer ^0.21.14` + `@commonpub/server ^2.54.3`
+follow in lockstep. Items 8 + 9 still deferred (need real auth-flow
+exercise + proxy contract confirmation).
