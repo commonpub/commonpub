@@ -17,7 +17,7 @@ use crate::prompts::InstanceConfig;
 // Last synced: 2026-05-19 (session 149 bundled patch) — layer 0.21.11, server 2.54.2,
 // schema 0.16.0, config 0.13.0.
 const COMMONPUB_CONFIG_VERSION: &str = "^0.13.0";
-const COMMONPUB_LAYER_VERSION: &str = "^0.21.12";
+const COMMONPUB_LAYER_VERSION: &str = "^0.21.13";
 const COMMONPUB_SCHEMA_VERSION: &str = "^0.16.0";
 const COMMONPUB_SERVER_VERSION: &str = "^2.54.2";
 
