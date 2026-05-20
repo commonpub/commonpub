@@ -432,7 +432,7 @@ async function handleBuild(): Promise<void> {
 
     <!-- MAIN CONTENT GRID -->
     <div class="cpub-page-outer">
-      <div class="cpub-content-grid" :class="{ 'cpub-has-toc': tocEntries.length > 0 && activeTab === 'overview', 'cpub-has-sidebar': hasSidebar }">
+      <div class="cpub-project-grid" :class="{ 'cpub-has-toc': tocEntries.length > 0 && activeTab === 'overview', 'cpub-has-sidebar': hasSidebar }">
         <!-- LEFT: TABLE OF CONTENTS -->
         <nav v-if="tocEntries.length > 0 && activeTab === 'overview'" class="cpub-toc-col">
           <div class="cpub-toc">
@@ -964,20 +964,20 @@ async function handleBuild(): Promise<void> {
    The sidebar 260px column is reserved ONLY when there's sidebar
    content to put in it (BOM/parts OR community hub) — otherwise the
    content column gets the freed width. */
-.cpub-content-grid {
+.cpub-project-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: clamp(16px, 3vw, 32px);
   align-items: start;
   padding-bottom: 64px;
 }
-.cpub-content-grid.cpub-has-toc {
+.cpub-project-grid.cpub-has-toc {
   grid-template-columns: 200px minmax(0, 1fr);
 }
-.cpub-content-grid.cpub-has-sidebar {
+.cpub-project-grid.cpub-has-sidebar {
   grid-template-columns: minmax(0, 1fr) 260px;
 }
-.cpub-content-grid.cpub-has-toc.cpub-has-sidebar {
+.cpub-project-grid.cpub-has-toc.cpub-has-sidebar {
   grid-template-columns: 200px minmax(0, 1fr) 260px;
 }
 
@@ -1592,10 +1592,10 @@ async function handleBuild(): Promise<void> {
 
 /* 1200px: Drop left TOC column, keep sidebar if it exists */
 @media (max-width: 1200px) {
-  .cpub-content-grid.cpub-has-toc {
+  .cpub-project-grid.cpub-has-toc {
     grid-template-columns: minmax(0, 1fr);
   }
-  .cpub-content-grid.cpub-has-toc.cpub-has-sidebar {
+  .cpub-project-grid.cpub-has-toc.cpub-has-sidebar {
     grid-template-columns: minmax(0, 1fr) 260px;
   }
   .cpub-toc-col { display: none; }
@@ -1603,10 +1603,10 @@ async function handleBuild(): Promise<void> {
 
 /* 1024px: Single column — sidebar stacks below content */
 @media (max-width: 1024px) {
-  .cpub-content-grid,
-  .cpub-content-grid.cpub-has-toc,
-  .cpub-content-grid.cpub-has-sidebar,
-  .cpub-content-grid.cpub-has-toc.cpub-has-sidebar {
+  .cpub-project-grid,
+  .cpub-project-grid.cpub-has-toc,
+  .cpub-project-grid.cpub-has-sidebar,
+  .cpub-project-grid.cpub-has-toc.cpub-has-sidebar {
     grid-template-columns: minmax(0, 1fr);
   }
   .cpub-sidebar { position: static; }
@@ -1627,7 +1627,7 @@ async function handleBuild(): Promise<void> {
   .cpub-sidebar { position: static; }
   .cpub-author-tags .cpub-author-tag { padding: 2px 8px; font-size: 10px; }
   .cpub-author-row { flex-wrap: wrap; gap: 8px; }
-  .cpub-content-grid { padding-bottom: 32px; }
+  .cpub-project-grid { padding-bottom: 32px; }
 }
 
 /* 480px: Phone — compact everything */
@@ -1641,6 +1641,6 @@ async function handleBuild(): Promise<void> {
   .cpub-engage-btn { font-size: 11px; padding: 8px 10px; }
   .cpub-author-detail { font-size: 10px; }
   .cpub-toc-item { padding: 6px 0 6px 10px; font-size: 11px; min-height: 36px; display: flex; align-items: center; }
-  .cpub-content-grid { gap: 12px; padding-bottom: 24px; }
+  .cpub-project-grid { gap: 12px; padding-bottom: 24px; }
 }
 </style>

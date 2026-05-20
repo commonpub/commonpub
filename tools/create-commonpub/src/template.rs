@@ -22,7 +22,7 @@ use crate::prompts::InstanceConfig;
 // `@commonpub/layer` whenever server crosses minor, otherwise pnpm
 // hoists 2.54.x and the layer's `getClientIp` import resolves to undefined.
 const COMMONPUB_CONFIG_VERSION: &str = "^0.13.0";
-const COMMONPUB_LAYER_VERSION: &str = "^0.21.16";
+const COMMONPUB_LAYER_VERSION: &str = "^0.21.17";
 const COMMONPUB_SCHEMA_VERSION: &str = "^0.16.0";
 const COMMONPUB_SERVER_VERSION: &str = "^2.55.0";
 
