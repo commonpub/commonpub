@@ -293,3 +293,54 @@ swept for residual issues. Two minor findings, both fixed in
 Items 6 + 7 are unit-testable; Item 8 needs a real linked-account
 exercise. None require a literal second instance to start
 implementation — interop testing happens at the END of the session.
+
+## Polish patch 0.21.13 — embed URL parsing
+
+After the audit-pass-2 wrap, a follow-up polish patch addressed two
+known limitations of the embed-URL rewrite:
+
+- **YouTube `?t=` start-time was silently dropped** on the watch →
+  `youtube-nocookie.com/embed/ID` rewrite. Now extracts the timestamp
+  (bare seconds, `s`-suffixed, or `h+m+s` composite) and emits
+  `?start=N` integer seconds — the parameter the iframe player
+  actually accepts. YouTube's own `?t=` isn't honored by the embed
+  iframe; only `?start=N` is.
+- **Vimeo private-video hash was dropped**, so `vimeo.com/ID/HASH`
+  rewrote to `player.vimeo.com/video/ID` and the iframe 403'd because
+  the unlisted-video hash was missing. Now forwards as `?h=HASH`.
+
+Extracted shared `toEmbedUrl()` + `extractStartSeconds()` helpers to
+`layers/base/utils/embedUrl.ts` and pointed both `BlockEmbedView` and
+`BlockVideoView` at them — was duplicated regex/rewrite logic before.
+24 unit tests across YouTube format matrix (watch / shorts / embed /
+v / m.* / youtu.be), Vimeo public+private, scheme-safety
+(javascript: / data: / file: rejected), and the time-parser.
+
+### Release botch + recovery (publish-tool gotcha)
+
+`pnpm publish` substitutes `workspace:*` → concrete version on
+publish; `npm publish` does NOT and leaves the workspace protocol
+literally in the published `package.json`. I published 0.21.12 via
+`npm publish` from inside `layers/base`, so consumers got
+`ERR_PNPM_WORKSPACE_PKG_NOT_FOUND: "@commonpub/auth@workspace:*" is
+in the dependencies but no package named "@commonpub/auth" is
+present in the workspace` on `pnpm install`.
+
+Recovery (same session):
+1. Bumped to 0.21.13 in `layers/base/package.json`.
+2. Republished via `pnpm publish --access public --no-git-checks`
+   from inside `layers/base`. Verified packed tarball: 0
+   `workspace:*` occurrences; all 10 `@commonpub/*` deps resolved
+   to concrete versions.
+3. `npm deprecate @commonpub/layer@0.21.12 "Broken publish — …"`.
+4. Bumped deveco + heatsync `@commonpub/layer ^0.21.13` (with clean
+   `pnpm install` to regenerate the lockfile — deveco's first bump
+   had a stale lockfile because its install bailed mid-stream on
+   the broken 0.21.12).
+5. All 3 deploys triggered + monitored.
+
+**Lesson for next release** (the root `publish:all` script in
+`package.json` covers `packages/*` but NOT `layers/base`): publish
+the layer with `pnpm publish` from inside `layers/base/`, never
+`npm publish`. Worth a `publish:layer` script that calls the right
+command, or extending `publish:all` filter to include the layer.

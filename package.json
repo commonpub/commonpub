@@ -26,6 +26,7 @@
     "format:check": "prettier --check .",
     "publish:check": "pnpm build && pnpm typecheck && pnpm test",
     "publish:all": "pnpm -r --filter './packages/*' publish --no-git-checks",
+    "publish:layer": "pnpm --filter @commonpub/layer publish --no-git-checks --access public",
     "stryker": "stryker run",
     "stryker:infra": "pnpm --filter @commonpub/infra exec stryker run",
     "stryker:schema": "pnpm --filter @commonpub/schema exec stryker run",
