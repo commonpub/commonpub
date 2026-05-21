@@ -1010,12 +1010,29 @@ async function handleBuild(): Promise<void> {
   word-break: break-word;
 }
 
-/* Prevent images and media from overflowing prose */
+/* Prevent images and media from overflowing prose, AND cap them at a
+   reading-friendly size in wide content columns. Without this cap, body
+   images blew up to 900px+ once the right sidebar was made optional in
+   0.21.16 (the content column got wider when no BOM/community). 760px
+   for images matches what photographers + technical-writing layouts
+   converge on; videos/iframes get a touch more (880px) for visibility.
+   Cover photo lives OUTSIDE .cpub-prose so it still goes full-width. */
 .cpub-prose :deep(img),
 .cpub-prose :deep(video),
 .cpub-prose :deep(iframe) {
   max-width: 100%;
   height: auto;
+}
+.cpub-prose :deep(img) {
+  max-width: min(100%, 760px);
+  margin-inline: auto;
+  display: block;
+}
+.cpub-prose :deep(video),
+.cpub-prose :deep(iframe) {
+  max-width: min(100%, 880px);
+  margin-inline: auto;
+  display: block;
 }
 
 /* Code blocks scroll horizontally instead of overflowing */
