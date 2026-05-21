@@ -19,8 +19,28 @@ const alt = computed(() => (props.content.alt as string) ?? '');
 const caption = computed(() => (props.content.caption as string) ?? '');
 const hasImage = computed(() => !!src.value);
 
+/** Rendered-width preset. Defaults to 'm' for new uploads; existing
+ * BlockTuples without `size` render at 'l' (the viewer's fallback) to
+ * preserve their pre-picker visual width. */
+type ImageSize = 's' | 'm' | 'l' | 'full';
+const size = computed<ImageSize>(() => {
+  const v = props.content.size;
+  return v === 's' || v === 'm' || v === 'l' || v === 'full' ? v : 'm';
+});
+
+const sizeOptions: Array<{ value: ImageSize; label: string; hint: string }> = [
+  { value: 's', label: 'S', hint: 'small (~320px)' },
+  { value: 'm', label: 'M', hint: 'medium (~540px)' },
+  { value: 'l', label: 'L', hint: 'large (~760px)' },
+  { value: 'full', label: 'Full', hint: 'full width' },
+];
+
 function updateField(field: string, value: string): void {
   emit('update', { ...props.content, [field]: value });
+}
+
+function setSize(s: ImageSize): void {
+  emit('update', { ...props.content, size: s });
 }
 
 const uploading = ref(false);
@@ -107,6 +127,23 @@ async function handleFileSelect(event: Event): Promise<void> {
           aria-label="Image caption"
           @input="updateField('caption', ($event.target as HTMLInputElement).value)"
         />
+      </div>
+      <div class="cpub-image-size-row" role="group" aria-label="Image size">
+        <span class="cpub-image-size-label">Size</span>
+        <div class="cpub-image-size-options">
+          <button
+            v-for="opt in sizeOptions"
+            :key="opt.value"
+            type="button"
+            class="cpub-image-size-btn"
+            :class="{ 'cpub-image-size-btn-active': size === opt.value }"
+            :title="opt.hint"
+            :aria-pressed="size === opt.value"
+            @click="setSize(opt.value)"
+          >
+            {{ opt.label }}
+          </button>
+        </div>
       </div>
     </template>
   </div>
@@ -268,5 +305,59 @@ async function handleFileSelect(event: Event): Promise<void> {
   overflow: hidden;
   clip: rect(0, 0, 0, 0);
   border: 0;
+}
+
+.cpub-image-size-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 6px;
+}
+
+.cpub-image-size-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.cpub-image-size-options {
+  display: inline-flex;
+  border: var(--border-width-default) solid var(--border2);
+  background: var(--surface);
+}
+
+.cpub-image-size-btn {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  padding: 4px 10px;
+  cursor: pointer;
+  border-right: var(--border-width-default) solid var(--border2);
+  transition: background 0.12s, color 0.12s;
+}
+
+.cpub-image-size-btn:last-child {
+  border-right: none;
+}
+
+.cpub-image-size-btn:hover {
+  background: var(--surface2);
+  color: var(--text);
+}
+
+.cpub-image-size-btn-active {
+  background: var(--accent);
+  color: var(--color-on-accent, var(--surface));
+}
+
+.cpub-image-size-btn-active:hover {
+  background: var(--accent);
+  color: var(--color-on-accent, var(--surface));
 }
 </style>

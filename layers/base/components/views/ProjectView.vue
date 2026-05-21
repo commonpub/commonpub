@@ -713,7 +713,10 @@ async function handleBuild(): Promise<void> {
 .cpub-page-outer {
   max-width: 1160px;
   margin: 0 auto;
-  padding: 0 clamp(12px, 3vw, 32px);
+  /* A smidge more breathing room at all widths: min 20 (was 12),
+     max 40 (was 32). Keeps content from hugging the viewport edge
+     on mid-size screens. */
+  padding: 0 clamp(20px, 3.5vw, 40px);
 }
 
 /* ── BREADCRUMB ── */
@@ -989,9 +992,16 @@ async function handleBuild(): Promise<void> {
   overflow-wrap: break-word;
 }
 
-/* ── COVER PHOTO (in-body) ── */
+/* ── COVER PHOTO (in-body) ──
+ * The in-body featured image. Lives OUTSIDE .cpub-prose, so the
+ * `.cpub-prose img` cap doesn't reach it. Cap here at 880px (a touch
+ * wider than the 'l' preset for body images, since this is the hero
+ * featured image) and center. Pre-0.21.19 this was unbounded `width:
+ * 100%` and grew to whatever the content column was — too big on wide
+ * layouts. */
 .cpub-cover-photo {
-  margin-bottom: 24px;
+  margin: 0 auto 24px;
+  max-width: 880px;
 }
 
 .cpub-cover-photo-img {

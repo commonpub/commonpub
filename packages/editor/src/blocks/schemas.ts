@@ -18,12 +18,26 @@ export const codeContentSchema = z.object({
 });
 export type CodeContent = z.infer<typeof codeContentSchema>;
 
+/**
+ * `size` controls the rendered width of the image. The viewer applies it
+ * via a CSS class (e.g. `.cpub-image-size-m`):
+ *   - `s` = ~320px max (small inline figure)
+ *   - `m` = ~540px max (reading-friendly default for new uploads)
+ *   - `l` = ~760px max (matches the ProjectView prose-image cap)
+ *   - `full` = no width cap (fills its container up to 100%)
+ *
+ * Optional + back-compat: BlockTuples authored before this field existed
+ * parse fine and render at `l` per the viewer's fallback (matches the
+ * pre-size-picker behavior from layer 0.21.18).
+ */
 export const imageContentSchema = z.object({
   src: z.string().url(),
   alt: z.string(),
   caption: z.string().optional(),
+  size: z.enum(['s', 'm', 'l', 'full']).optional(),
 });
 export type ImageContent = z.infer<typeof imageContentSchema>;
+export type ImageSize = NonNullable<ImageContent['size']>;
 
 export const quoteContentSchema = z.object({
   html: z.string(),
