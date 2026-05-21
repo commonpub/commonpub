@@ -1541,6 +1541,10 @@ async function handleBuild(): Promise<void> {
   padding: 8px 14px;
   background: var(--surface2);
   border-bottom: var(--border-width-default) solid var(--border);
+  /* Universal *,::before,::after{border-radius:var(--radius)} leak — see
+     BlockCodeView. Inner header must tile flush with the body below on
+     themes with non-zero --radius (deveco). */
+  border-radius: 0;
 }
 
 .cpub-code-lang-label {
@@ -1569,6 +1573,8 @@ async function handleBuild(): Promise<void> {
   line-height: 1.6;
   overflow-x: auto;
   white-space: pre;
+  /* Universal radius leak reset — see .cpub-code-snippet-header above. */
+  border-radius: 0;
 }
 
 /* Files Tab */
