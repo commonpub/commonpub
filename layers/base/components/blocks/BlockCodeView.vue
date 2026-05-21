@@ -201,6 +201,13 @@ pre.hljs .hljs-title.class_ { color: var(--hljs-variable); }
   font-size: 13px;
   line-height: 1.6;
   overflow-x: auto;
+  /* Reset the global `.cpub-prose pre` rule from prose.css that adds
+     border + 16px top/bottom margin to every <pre> inside prose. Inside
+     a BlockCodeView the container already owns the border + the header
+     sits directly above the body — the global rule's margin and extra
+     border created a visible "floating bar with gap then code block"
+     effect (heatsynclabs.io report, 2026-05-21). */
+  border: 0 !important;
 }
 
 .cpub-code-body code {

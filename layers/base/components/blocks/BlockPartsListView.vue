@@ -77,6 +77,15 @@ const totalPrice = computed(() => {
 
 .cpub-parts-table { width: 100%; border-collapse: collapse; }
 
+/* Reset the global `.cpub-prose th` rule from prose.css that puts a
+   1px border on every <th>. With `border-collapse: collapse`, those
+   borders merge into thin lines that visually split the dark header
+   row into separate "rounded gap" boxes against the var(--text)
+   background. The container's outer border already frames the row;
+   internal cell borders are not wanted (heatsynclabs.io report,
+   2026-05-21). Use !important to beat the global rule (specificity
+   0,2,0 vs 0,1,1 would normally win, but the global rule sets
+   `border` which the scoped rule doesn't, so it leaks through). */
 .cpub-parts-table th {
   font-family: var(--font-mono);
   font-size: 9px;
@@ -87,10 +96,12 @@ const totalPrice = computed(() => {
   padding: 8px 12px;
   background: var(--text);
   color: var(--surface);
+  border: 0 !important;
 }
 
 .cpub-parts-table td {
   padding: 10px 12px;
+  border: 0;
   border-bottom: var(--border-width-default) solid var(--border2);
   font-size: 13px;
   color: var(--text-dim);
