@@ -52,6 +52,9 @@ const files = computed<FileItem[]>(() => {
   padding: 10px 14px;
   background: var(--surface2);
   border-bottom: var(--border-width-default) solid var(--border);
+  /* Universal radius leak — see BlockCodeView. Inner sections must tile
+     flush inside the rounded outer container. */
+  border-radius: 0;
 }
 
 .cpub-dl-icon { font-size: 12px; color: var(--accent); }
@@ -66,6 +69,7 @@ const files = computed<FileItem[]>(() => {
   gap: 12px;
   padding: 10px 14px;
   border-bottom: var(--border-width-default) solid var(--border2);
+  border-radius: 0;
 }
 
 .cpub-dl-item:last-child { border-bottom: none; }

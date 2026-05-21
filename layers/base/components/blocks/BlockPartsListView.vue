@@ -69,6 +69,10 @@ const totalPrice = computed(() => {
   padding: 10px 14px;
   background: var(--surface2);
   border-bottom: var(--border-width-default) solid var(--border);
+  /* Reset universal *,::before,::after{border-radius:var(--radius)} so the
+     dark header tiles flush against the table below on themes with
+     non-zero --radius (deveco). See BlockCodeView for the full pattern. */
+  border-radius: 0;
 }
 
 .cpub-parts-icon { font-size: 12px; color: var(--accent); }
@@ -97,6 +101,9 @@ const totalPrice = computed(() => {
   background: var(--text);
   color: var(--surface);
   border: 0 !important;
+  /* Universal radius leak — sharp cells tile flush with no rounded gaps
+     between them on themes with non-zero --radius. */
+  border-radius: 0;
 }
 
 .cpub-parts-table td {
@@ -105,6 +112,7 @@ const totalPrice = computed(() => {
   border-bottom: var(--border-width-default) solid var(--border2);
   font-size: 13px;
   color: var(--text-dim);
+  border-radius: 0;
 }
 
 .cpub-part-name { font-weight: 500; color: var(--text); }

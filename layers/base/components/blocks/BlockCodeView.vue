@@ -156,6 +156,14 @@ pre.hljs .hljs-title.class_ { color: var(--hljs-variable); }
   padding: 8px 14px;
   background: var(--code-header-bg);
   border-bottom: var(--border-width-default) solid var(--border);
+  /* Reset the universal `*,::before,::after{border-radius:var(--radius)}`
+     rule from base.css. Themes that override --radius to non-zero (e.g.
+     deveco --radius:6px) leave the inner header + body with their own
+     rounded corners — the rounded edges curve AWAY from each other inside
+     the outer rounded container, leaving wedges of empty page-bg between
+     them. Sharp inner edges tile flush inside the outer overflow:hidden
+     rounded box. (deveco.io report, 2026-05-21) */
+  border-radius: 0;
 }
 
 .cpub-code-lang {
@@ -208,6 +216,9 @@ pre.hljs .hljs-title.class_ { color: var(--hljs-variable); }
      border created a visible "floating bar with gap then code block"
      effect (heatsynclabs.io report, 2026-05-21). */
   border: 0 !important;
+  /* Also reset universal border-radius for the same wedge-gap reason
+     described on .cpub-code-header above. */
+  border-radius: 0;
 }
 
 .cpub-code-body code {

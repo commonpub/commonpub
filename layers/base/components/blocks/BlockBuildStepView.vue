@@ -70,6 +70,9 @@ const hasChildren = computed(() => children.value.length > 0);
   padding: 12px 16px;
   background: var(--border);
   color: var(--surface);
+  /* Universal radius leak — see BlockCodeView. Inner dark bar must tile
+     flush with the body below on themes with non-zero --radius. */
+  border-radius: 0;
 }
 
 .cpub-step-num {

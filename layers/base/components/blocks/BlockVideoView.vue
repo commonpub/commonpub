@@ -52,6 +52,10 @@ const platform = computed(() => {
   display: flex;
   align-items: center;
   gap: 6px;
+  /* Universal *,::before,::after{border-radius:var(--radius)} leak — sharp
+     inner sections tile flush inside the rounded outer container on
+     themes with non-zero --radius (deveco). */
+  border-radius: 0;
 }
 
 .cpub-video-label i { color: var(--accent); }
@@ -61,6 +65,7 @@ const platform = computed(() => {
   padding-bottom: 56.25%;
   height: 0;
   background: var(--text);
+  border-radius: 0;
 }
 
 .cpub-video-iframe {

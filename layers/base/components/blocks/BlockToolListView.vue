@@ -51,6 +51,8 @@ const tools = computed<Tool[]>(() => {
   padding: 10px 14px;
   background: var(--surface2);
   border-bottom: var(--border-width-default) solid var(--border);
+  /* Universal radius leak — see BlockCodeView. */
+  border-radius: 0;
 }
 
 .cpub-tools-icon { font-size: 12px; color: var(--accent); }

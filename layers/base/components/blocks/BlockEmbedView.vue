@@ -36,6 +36,9 @@ const embedUrl = computed(() => toEmbedUrl(props.content.url as string));
   display: flex;
   align-items: center;
   gap: 6px;
+  /* Universal *,::before,::after{border-radius:var(--radius)} leak — see
+     BlockCodeView for the pattern. */
+  border-radius: 0;
 }
 
 .cpub-embed-label i { color: var(--accent); }
@@ -44,6 +47,7 @@ const embedUrl = computed(() => toEmbedUrl(props.content.url as string));
   position: relative;
   padding-bottom: 56.25%;
   height: 0;
+  border-radius: 0;
 }
 
 .cpub-embed-iframe {
