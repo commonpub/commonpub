@@ -1,245 +1,202 @@
 # Session 152 → 153 Handoff
 
-Fresh Claude Code context. Session 152 (2026-05-21) shipped a single
-layer patch (`@commonpub/layer@0.21.21`) fixing a universal CSS
-`border-radius` leak that was visually mangling code blocks on deveco.io
-specifically. Plus a deep audit pass that uncovered a few clarifications
-worth carrying forward.
+Fresh Claude Code context. Session 152 (2026-05-21) shipped a focused
+visual-bug fix for deveco.io across two layer patches (`0.21.21` +
+`0.21.22`), then ran a deep audit pass that surfaced one new actionable
+item and corrected two stale framings carried in from the session 151
+handoff.
 
 ## TL;DR
 
-- **Layer 0.21.20 → 0.21.21 live on all 3 instances.** Fixed a universal
-  `*,::before,::after{border-radius:var(--radius)}` leak in
-  `layers/base/theme/base.css` that produced "wedge gaps" between inner
-  sections of 7 block components on themes with non-zero `--radius`.
-- **All 3 instances healthy.** Federation state is unchanged (Phase 4
-  still gated on identity flag flip).
-- **Heatsync has 36 open Dependabot alerts** (26 axios transitive, 4
-  nuxt, 2 esbuild, 2 ws, 2 @nuxt/nitro-server). Two dependabot
-  auto-update runs have failed — investigate before manually bumping
-  nuxt.
-- **Session 151's "federation flag off on deveco/commonpub" framing was
-  slightly stale.** The flag has been TRUE on deveco since 2026-03-28
-  (commit `72bc80c`) and the seamlessFederation + federateHubs flags
-  also TRUE since 2026-03-29. What's actually dormant is the AP actor
-  provisioning + identity sub-flags.
+- **Layer 0.21.20 → 0.21.22 live on all 3 instances.** Two patches in
+  one session, both closing out the same universal CSS `border-radius`
+  leak — first across 7 block components (`0.21.21`), then on
+  ProjectView's own `.cpub-code-snippet` renderer (`0.21.22`) caught
+  in the post-ship audit sweep.
+- **Heatsync "dependabot failure" mystery solved.** Not a failure —
+  PR #3 (nuxt 3.21.5 → 3.21.6) is sitting open + MERGEABLE since
+  2026-05-19. Subsequent dependabot runs error with
+  `pull_request_exists_for_security_update`, which surfaces as a red
+  workflow status but means "the PR already exists, merge it." Merging
+  PR #3 will clear 30 of heatsync's 36 alerts.
+- **Federation flag framing in 151 was stale.** `federation: true` has
+  been live on deveco + commonpub.io since `72bc80c` (2026-03-28). What
+  was actually dormant: AP actor provisioning (WebFinger returns 404
+  on all 3) + identity sub-flags (all `false`). P3 (signInWithRemote
+  canary) is still the right next move.
 
 ## Orientation — read in order
 
-1. `CLAUDE.md` — standing rules. Re-emphasize: no AI attribution to
-   commits; `pnpm publish` not `npm publish` for layer; schema is the
-   work.
+1. `CLAUDE.md` — standing rules. No AI attribution to commits; `pnpm
+   publish` not `npm publish` for layer; schema is the work.
 2. **`docs/sessions/151-handoff-prompt.md`** — the prior handoff. Read
    it for full background on Stage 3 federation hardening, all the
-   shipped primitives, and the existing priority list. Session 152's
-   handoff (this file) is a delta on top of it.
-3. `docs/sessions/152-universal-radius-leak.md` — session 152 work log.
-4. `docs/plans/instance-self-update.md` — design doc for the admin
-   self-update feature (P4, planning-only so far).
+   shipped primitives, and the existing priority list. This file is
+   a delta on top of it — most priorities stand.
+3. `docs/sessions/152-universal-radius-leak.md` — session 152 work log
+   (covers 0.21.21 only; 0.21.22 is documented here as a direct
+   continuation in the same audit pass).
+4. `docs/plans/instance-self-update.md` — P4 admin self-update plan,
+   awaiting maintainer decisions on 4 points.
 
 ## Current state (2026-05-21, end of session 152)
 
-| Site | Versions live | Migration count | Federation flag | Identity flags | `CPUB_FED_TOKEN_KEY` |
-|---|---|---|---|---|---|
-| commonpub.io | schema 0.16.0, server 2.55.0, **layer 0.21.21**, infra 0.8.0, protocol 0.12.0, auth 0.6.0, config 0.13.0, ui 0.8.5, editor 0.7.11, explainer 0.7.15, learning 0.5.2, docs 0.6.3, test-utils 0.5.6 | 5 | true (live-active, no AP actor) | all false | SET in `/opt/commonpub/.env` |
-| deveco.io | (same) | 5 | true (live-active) | all false | SET in `/opt/deveco/.env` |
-| heatsynclabs.io | (same) | 5 | **false** (config setting, but operator has uncommitted WIP to flip it on) | all false | SET in `/opt/commonpub/.env` |
+| Site | Versions live | Migration count | Federation flag | Identity flags | `CPUB_FED_TOKEN_KEY` | Dependabot |
+|---|---|---|---|---|---|---|
+| commonpub.io | schema 0.16.0, server 2.55.0, **layer 0.21.22**, infra 0.8.0, protocol 0.12.0, auth 0.6.0, config 0.13.0, ui 0.8.5, editor 0.7.11, explainer 0.7.15, learning 0.5.2, docs 0.6.3, test-utils 0.5.6 | 5 | true (live-flag, no actor) | all false | SET | 0 alerts |
+| deveco.io | (same) | 5 | true (live-flag, no actor) | all false | SET | 0 alerts |
+| heatsynclabs.io | (same) | 5 | **false** (flag) — but operator has uncommitted WIP to flip it on | all false | SET | **36 open** (1 open PR #3 awaiting merge) |
 
-Verified live via `/api/health` + `/api/features` on each site,
-2026-05-21 22:46 UTC. WebFinger returns 404 on all 3 — no instance
-actor provisioned even though `federation: true` in config. This is the
-"flag-on, actor-not-wired" state; the dormancy is real but it's the
-actor + identity sub-flags that are dormant, not the feature flag.
+Health checks at 22:46 UTC: all 3 `/api/health` 200. WebFinger
+`acct:moheeb@deveco.io` returns 404 — no instance actor provisioned
+even with `federation: true`. The dormancy is in the actor + identity
+layers, not the feature flag.
 
 ## What shipped in session 152
 
-### `@commonpub/layer@0.21.21` — universal radius leak fix
+Two layer patches addressing one root cause: the universal
+`*,::before,::after{border-radius:var(--radius)}` rule in
+`layers/base/theme/base.css:239-244` applying the theme's `--radius` to
+every element on the page. Invisible on `--radius:0` themes
+(heatsync/commonpub.io); on `--radius:6px` themes (deveco) it rounds
+inner sections of multi-section containers, leaving visible wedge gaps
+inside `overflow:hidden` parents.
 
-**Bug**: `layers/base/theme/base.css:239-244` has a universal rule:
+| Patch | Components | Trigger |
+|---|---|---|
+| `0.21.21` | BlockCodeView, BlockPartsListView, BlockVideoView, BlockEmbedView, BlockDownloadsView, BlockToolListView, BlockBuildStepView | User-reported "weird codeblocks" on deveco |
+| `0.21.22` | ProjectView's `.cpub-code-snippet-header` + `.cpub-code-body` (the project sidebar Code tab) | Post-ship audit caught identical pattern outside `blocks/` |
 
-```css
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-  border-radius: var(--radius);
-}
+Fix pattern: explicit `border-radius: 0` on each inner-section
+selector. Specificity `(0,2,0)` on scoped selectors beats `*` universal
+`(0,0,0)` cleanly — no `!important` needed.
+
+**Stacked resets** on `BlockCodeView`'s `.cpub-code-body` (and
+`BlockPartsListView`'s `<th>`): `border: 0 !important` from 0.21.20
+defeats the `.cpub-prose pre` leak; `border-radius: 0` from 0.21.21
+defeats the universal-radius leak. Different leak sources, both needed.
+
+**`.cpub-step-num` (BlockBuildStepView)** was NOT reset — auto-rounding
+to 6px on deveco looks intentional for a number badge. Don't reset
+border-radius on bullet/icon/avatar elements.
+
+**Why not remove the universal rule from base.css**: tempting but the
+blast radius across deveco's theme is unpredictable. Deveco's design
+likely depends on implicit rounding for elements that don't set
+`border-radius` explicitly (cards, buttons, badges). The per-component
+reset is targeted and reversible. Documented pitfall:
+`feedback_universal_radius_leak.md`.
+
+## Audit findings — corrections + new
+
+### Federation framing — corrected
+
+The session 151 handoff implied federation was off in prod. Empirical
+state via `/api/features` on 2026-05-21:
+
+| Site | `federation` | `seamlessFederation` | `federateHubs` | identity sub-flags | WebFinger | Outcome |
+|---|---|---|---|---|---|---|
+| deveco.io | **true** (since 2026-03-28) | **true** | **true** (since 2026-03-29) | all false | 404 | Flag-on, no actor |
+| commonpub.io | **true** | **true** | **true** | all false | 404 | Flag-on, no actor |
+| heatsynclabs.io | false | false | false | all false | 404 | Flag-off |
+
+So the "federation flag off" framing in 151 was wrong; what was
+genuinely dormant: (a) AP actor provisioning, (b) identity sub-flags,
+(c) the `signCookieValue` codepath that flips live the moment any
+identity flag is true. P3 (signInWithRemote canary) is still the right
+next move because IT is the genuine flag flip needed to activate
+identity flows. Memory `feedback_verify_flag_state` already covers
+this pattern; this audit just confirmed it still happens.
+
+### Heatsync "dependabot failure" — resolved
+
+Two consecutive `Dependabot Updates` workflow runs (26209190010 +
+26210041xxxx) show RED status on heatsync. Full log inspection
+(`gh run view 26209190010 --log-failed`) reveals the actual error:
+
+```
+| pull_request_exists_for_security_update |
+|   "dependency-name": "nuxt",            |
+|   "dependency-version": "3.21.6"        |
 ```
 
-On heatsync + commonpub.io (`--radius: 0`) this is a visual no-op. On
-deveco (`--radius: 6px`) it rounds the corners of every element on the
-page. Inside an outer container with `overflow: hidden + border + radius:6px`,
-the **inner** sections (header bars, list items, table cells) curve
-**away from each other**, leaving wedges of empty page-bg between them.
-Deveco screenshots showed "floating bar with gap then code block."
+Dependabot opened PR #3 (`chore(deps): bump nuxt from 3.21.5 to
+3.21.6`) on 2026-05-19. It's been MERGEABLE + CLEAN since. Subsequent
+dependabot runs detect the PR already exists and exit with this
+"error" — which is really a notification, not a failure. The workflow
+status is misleadingly red.
 
-**Fix**: explicit `border-radius: 0` on inner-section selectors of 7
-block components. Specificity (0,2,0) on scoped selector beats `*`
-universal (0,0,0); no `!important` needed.
+**Action**: merge PR #3 on heatsynclabs/heatsynclabs-io. That will
+auto-bump nuxt + regenerate the lockfile (dependabot did the work
+already). Merging will close ~30 of the 36 open alerts (axios is
+transitive via nuxt's build chain; ws + esbuild are deep transitive
+and may persist).
 
-| Component | Selectors reset |
-|---|---|
-| `BlockCodeView` | `.cpub-code-header`, `.cpub-code-body` |
-| `BlockPartsListView` | `.cpub-parts-header`, `.cpub-parts-table th`, `.cpub-parts-table td` |
-| `BlockVideoView` | `.cpub-video-label`, `.cpub-video-wrap` |
-| `BlockEmbedView` | `.cpub-embed-label`, `.cpub-embed-wrap` |
-| `BlockDownloadsView` | `.cpub-dl-header`, `.cpub-dl-item` |
-| `BlockToolListView` | `.cpub-tools-header` |
-| `BlockBuildStepView` | `.cpub-step-header` (not `.cpub-step-num` — auto-round on the number badge looks intentional) |
+### Latent leak — ProjectView Parts tab (deferred)
 
-Live-verified on deveco: the netburner project page's 4 code-block
-instances now use `data-v-54c9fcc2` with `border-radius:0` on both
-header and body selectors.
+ProjectView also has its own `.cpub-parts-table` styling (the Parts
+tab, separate from `BlockPartsListView`). The cells (`<th>`, `<td>`)
+get universal `border-radius:6px` on deveco. The wrap is `overflow-x:
+auto`, NOT `overflow: hidden`, so there's no outer rounded clip → no
+dramatic wedge-gap. With `border-collapse: collapse`, each cell's
+auto-rounded corners produce subtle visual artifacts (cells with
+`background: var(--surface2)` headers don't quite tile flush). Not
+user-reported; left for next session as part of P8.
 
-**Why not remove the universal rule from `base.css`**: tempting (it's
-the root cause) but the blast radius is hard to predict. Deveco's theme
-likely depends on the implicit rounding for elements that don't set
-`border-radius` explicitly (cards, buttons, dropdowns). The
-per-component reset is targeted and reversible; the universal rule
-survives as a documented pitfall. Memory:
-`feedback_universal_radius_leak`.
+### Stacked resets table (for future block-component authors)
 
-### Stacking with the prose-style fix (0.21.20)
-
-`BlockCodeView` + `BlockPartsListView` now carry **two** layered resets
-on the same inner selectors — different leak sources:
-
-```css
-.cpub-code-body {
-  border: 0 !important;       /* 0.21.20: defeat .cpub-prose pre */
-  border-radius: 0;           /* 0.21.21: defeat universal *,::after,::before */
-  /* ... */
-}
-```
-
-Both are needed. The prose rule sets `border` (so we need `!important`
-because the scoped CSS doesn't declare border by default). The universal
-rule sets `border-radius` (so plain specificity wins).
-
-## Audit findings worth carrying
-
-### Federation framing correction
-
-The session 151 handoff stated `CPUB_FED_TOKEN_KEY` was "set live
-2026-05-20" but said "federation flag off (dormant)" in the live-state
-table. This was inconsistent — `/api/features` shows:
-
-| Site | `federation` | `seamlessFederation` | `federateHubs` | identity sub-flags |
-|---|---|---|---|---|
-| deveco.io | **true** (since 2026-03-28) | **true** (since 2026-03-28) | **true** (since 2026-03-29) | all false |
-| commonpub.io | **true** | **true** | **true** | all false |
-| heatsynclabs.io | false | false | false | all false |
-
-So the "federation is off" framing was about **identity** sub-flags +
-the fact that no AP **actor** has been provisioned. The feature flag
-itself has been TRUE on 2 of 3 sites for nearly 2 months. WebFinger
-returns 404 because there's no actor at `/actors/instance` or
-`/users/{name}` to serve. Federation infrastructure is enabled, runtime
-isn't wired.
-
-P3 (signInWithRemote canary) is still the right next move — it's the
-identity sub-flag flip that's actually load-bearing.
-
-### Heatsync dependabot situation
-
-36 open Dependabot alerts on heatsynclabs/heatsynclabs-io. Breakdown:
-
-| Package | Count | Severities | Source |
+| Component | `border: 0 !important` (prose-pre leak) | `border-radius: 0` (universal leak) | Notes |
 |---|---|---|---|
-| axios | 26 | high, medium, low | Transitive (heatsync doesn't list axios; pulled in via nuxt/build) |
-| nuxt | 4 | medium, low | Direct dep (3.21.5) |
-| esbuild | 2 | medium | Transitive |
-| ws | 2 | medium | Transitive |
-| @nuxt/nitro-server | 2 | low | Transitive (nuxt subpackage) |
-
-Two consecutive automated Dependabot update runs **failed** (run IDs
-26209190010 + 26210041xxxx, both "npm_and_yarn for nuxt"). The
-dependabot-action ran setup but the actual update step's failure isn't
-captured in the first 60 lines of log — needs deeper inspection. Manual
-P0 bump of nuxt to 3.21.6 (already on P0 list) will likely clear most
-of the alerts since axios is transitive.
-
-**Commonpub + deveco repos have 0 Dependabot alerts** — clean.
-
-### Heatsync uncommitted WIP
-
-`commonpub.config.ts` is **modified** with a federation-flag flip:
-
-```diff
--    federation: false,
-+    federation: true,
-+    federateHubs: true,
-+    seamlessFederation: false,
-   admin: true,
- },
-+  federation: {
-+    instanceFollowPolicy: 'auto-accept',
-+  },
-```
-
-Plus an untracked `ONBOARDING.md`. This is the operator's in-progress
-work, paused for some reason. Don't commit it. If the user wants to
-land it, that's a separate decision (and it'd be the heatsync side of
-P3).
-
-### Class-collision / view-identity hygiene — still clean
-
-No new collisions surfaced. The `cpub-project-grid` rename from session
-150 is doing its job.
+| BlockCodeView body | ✓ 0.21.20 | ✓ 0.21.21 | Both leaks confirmed live; both fixes confirmed on wire |
+| BlockPartsListView `<th>` | ✓ 0.21.20 | ✓ 0.21.21 | Same |
+| BlockMathView `<pre>` | ✗ (latent) | ✗ (latent) | P8 — math rare, not user-reported |
+| BlockQuoteView `<blockquote>` | n/a (only color leaks — desirable) | n/a (no bg) | Acceptable |
 
 ## Priority list — refreshed for session 153
 
-Most priorities from the 151 handoff still stand. Updates:
+Inherits all P0-P9 from 151 except where noted. Item numbering held
+stable for easy cross-reference.
 
 ### P0 — Security patches (Nuxt, better-auth, jose)
 
-Unchanged. **Bump Nuxt 3.21.5 → 3.21.6 FIRST** — it's likely to clear
-most of heatsync's 36 dependabot alerts (axios is transitive via nuxt's
-build chain). Caveats from 151 still apply for better-auth (verify
-cookie shape against `betterAuthCookie.ts`) and jose (verify against
-`packages/protocol/src/sign.ts`).
+Unchanged from 151. **Two specific actions:**
 
-### P0.5 — Investigate heatsync dependabot failure (NEW)
-
-Two consecutive auto-update runs failed. Setup completed but the actual
-update step crashed before reaching push-PR phase. Check the workflow
-log past line 60 for the real error. Likely a pnpm-lockfile-mode
-incompatibility or a package range that can't be auto-resolved by
-dependabot-action. If the manual P0 nuxt bump goes smoothly, the
-dependabot failures will fix themselves; if not, dig deeper.
+1. **Merge heatsync PR #3** (chore(deps): bump nuxt from 3.21.5 to
+   3.21.6). The lockfile is already regenerated by dependabot; merging
+   triggers the existing Deploy Production workflow + clears most
+   alerts. ~1 minute of work. (See "Heatsync dependabot failure
+   resolved" above.)
+2. Apply the same nuxt 3.21.6 bump on deveco + commonpub (no
+   dependabot PR open there; manual `pnpm up nuxt`). Then better-auth
+   1.6.4 → 1.6.11 (re-verify `betterAuthCookie.ts` against the cited
+   lines first) and jose 6.2.2 → 6.2.3.
 
 ### P1 — Two-instance interop test for federation
 
-Unchanged. The Stage 3 SSRF + signature primitives are live but
-deveco↔commonpub follow flow hasn't been exercised end-to-end. WebFinger
-returns 404 today; the test would need to provision an actor + follow
-flow.
+Unchanged. With the layer fix shipped, focus shifts to federation
+testing. WebFinger 404 says the AP actor isn't provisioned — that's a
+prerequisite to follow + Create round-trip testing.
 
 ### P2 — Inbox 401 monitoring
 
-Unchanged. Add structured-log event in `inbox.ts` rejection path; wire
-to log aggregator with rate alert.
+Unchanged.
 
 ### P3 — Flag flip: `signInWithRemote` canary on deveco.io
 
-Unchanged. Keys are in place; cookie helper is dormant but verified.
-Flip → commit → push → deploy auto-runs → Mastodon-login button appears
-→ exercise with a real Mastodon account → watch the encrypted token
-land in `federated_accounts`.
+Unchanged. Keys are in place; the actor situation (WebFinger 404)
+might need investigation first.
 
 ### P4 — Instance self-update admin feature
 
-Design at `docs/plans/instance-self-update.md`. Plan-only so far; 4
-decision points (approval flow default, GitHub App vs PAT, schema
-migration UX, package scope) flagged for maintainer. Phase 1 MVP ~2-3
-sessions of work.
+Unchanged. Design at `docs/plans/instance-self-update.md`. 4 maintainer
+decisions still pending. Phase 1 MVP estimate ~2-3 sessions.
 
-### P5 — One-time cleanup tasks (deferred)
+### P5 — One-time cleanup tasks
 
-Unchanged from 151:
-- `docker builder prune -af` on deveco — recover 18.87 GB
-- Retry / dead-letter 10 stuck `failed` activities on deveco
-- Delete or activate the dead-loop heatsync mirror config on deveco
+Unchanged from 151 list:
+- `docker builder prune -af` on deveco (recover 18.87 GB)
+- Retry/dead-letter 10 stuck `failed` activities on deveco
+- Delete or activate dead-loop heatsync mirror config on deveco
 - Rename `instance_mirrors.content_count` → `total_received_count`
 - Add `dead_lettered` to `activity_status` enum (migration 0005)
 
@@ -247,81 +204,95 @@ Unchanged from 151:
 
 Unchanged. Batch after P0.
 
-### P7 — Class-hygiene proactive renames (deferred)
+### P7 — Class-hygiene proactive renames
 
 Unchanged. No new collisions surfaced.
 
-### P8 — `BlockMathView` prose-style + radius leaks (deferred)
+### P8 — Remaining latent radius/prose leaks
 
-Same as 151 plus the new `border-radius: 0` reset would be needed too
-(same pattern as 0.21.21). Math blocks are rare, not user-reported.
+Combine the previously-deferred `BlockMathView` leak with the new
+finding:
+
+- `BlockMathView` `<pre class="cpub-math-expression">` — leaks `border
+  + bg #0d1117 + padding` from `.cpub-prose pre`. Fix:
+  `border: 0 !important; background: transparent; border-radius: 0`.
+- `ProjectView.cpub-parts-table th/td` — universal-radius leak on
+  Parts-tab cells. Subtle (no outer overflow:hidden clip), not
+  user-reported. Fix: `border-radius: 0` on `th` + `td`.
+
+Both rare, both deferred. Batch into a future layer patch when one
+becomes user-visible.
 
 ### P9 — Phase 4 federation (delegated actions)
 
-Unchanged. Natural completion of P3.
+Unchanged.
 
 ## What to watch for in session 153
 
-All the gotchas from 151 still apply. Adding:
+All gotchas from 151 still apply (1-8). Adding:
 
-9. **The universal `*,::before,::after{border-radius:var(--radius)}`
-   rule in `layers/base/theme/base.css`** is a latent footgun for any
-   theme that overrides `--radius` to non-zero. New multi-section
-   block components MUST add explicit `border-radius: 0` to inner
-   sections. Memory: `feedback_universal_radius_leak`. The 7
-   currently-patched components are listed in the table above.
+9. **Universal `border-radius` rule in `base.css`** is the latent
+   footgun for any theme that overrides `--radius` to non-zero. New
+   multi-section block components MUST add explicit `border-radius: 0`
+   to inner sections. Memory: `feedback_universal_radius_leak`. The
+   8 currently-patched components (7 from 0.21.21 + ProjectView code-
+   snippet from 0.21.22) are documented.
 
-10. **The session 151 framing of "federation flag off on prod"
-    was slightly stale.** Always `curl /api/features` and `curl
-    /.well-known/webfinger?resource=acct:test@<domain>` together to
-    distinguish "flag on but actor not provisioned" from "flag off."
-    Memory: `feedback_verify_flag_state` already covers the
-    flag-snapshot drift; this audit just confirms it still happens.
+10. **Empirical federation state check.** Always run BOTH:
+    - `curl /api/features | jq '.federation, .seamlessFederation, .identity'`
+    - `curl '/.well-known/webfinger?resource=acct:test@<domain>'`
 
-11. **`tools/create-commonpub/src/template.rs` pin constants** —
-    bump to `^0.21.21` (was `^0.21.20`). The cargo test
-    `package_json_pins_current_commonpub_versions` will fail until
-    bumped. Wasn't done in 152.
+    The flag can be `true` while the actor isn't provisioned, and vice
+    versa. Don't conflate them.
 
-12. **`packages/ui` `--radius` token** is set to `0px` in the layer's
-    `base.css` default. Themes that override (deveco's `theme/*.css`
-    sets `--radius: 6px`) propagate through the universal rule.
-    Operators who want sharp corners but pick a non-zero radius for
-    SOME elements will hit the same wedge bug — point them at
-    `feedback_universal_radius_leak` for the pattern.
+11. **Dependabot red status ≠ failure.** Check for already-open
+    dependabot PRs before debugging "failures." `gh pr list --label
+    dependencies` shows them. The
+    `pull_request_exists_for_security_update` error code means "merge
+    the existing PR."
 
-## Where the new symbols live (delta from 151)
+12. **Heatsync WIP federation config** is still uncommitted
+    (`commonpub.config.ts` M, `ONBOARDING.md` untracked). Don't commit
+    it; it's the operator's in-progress P3-canary work that needs the
+    actor-provisioning prerequisite worked out first.
 
-Nothing new in this session — only CSS changes to existing components.
+13. **`tools/create-commonpub/src/template.rs` pins** are now at
+    `^0.21.22` (matches latest publish). The cargo test
+    `package_json_pins_current_commonpub_versions` is the regression
+    guard — bump pin + test assertion together after any future
+    publish.
 
-## Test counts (locked, end of session 152)
+## What did NOT change in session 152
 
-Same as 151. No new tests added (CSS-only changes).
+- Test counts identical to 151 (no new tests; only CSS-only changes).
+  Cargo green at 29/29 after pin bump.
+- Schema migration count holds at 5.
+- No new feature flags.
+- No new symbols / no new public exports.
+- Memory files: added `feedback_universal_radius_leak.md` (new); no
+  others touched.
 
-- `@commonpub/protocol` 419/419
-- `@commonpub/infra` 305/305
-- `@commonpub/server` 964/967 (3 expected PGlite skips)
-- `@commonpub/editor` 230/230
-- `@commonpub/layer` 85/85
-- Cargo (scaffolder) 29/29 (pin assertion is now STALE for 0.21.21 —
-  cargo test will fail until template.rs constants are bumped to
-  `^0.21.21`; see watch-out #11 above)
-- Workspace typecheck 26/26, lint 24/24
+## Commits this session
 
-## Memory additions in session 152
-
-- `feedback_universal_radius_leak.md` (new) — full pattern doc + the
-  7 vulnerable components + the "why not remove the universal rule"
-  decision + the `BlockBuildStepView .cpub-step-num` exception.
+| Repo | Commit | Subject |
+|---|---|---|
+| commonpub | `c798344` | fix(layer): reset border-radius:0 on inner block sections (0.21.21) |
+| commonpub | `7e27da7` | docs(sessions): 152 — universal border-radius leak on deveco code blocks |
+| commonpub | `c07e8e4` | docs(sessions): 153 handoff + bump scaffolder pin to ^0.21.21 |
+| commonpub | `5e89d30` | fix(layer): reset border-radius:0 on ProjectView code-snippet (0.21.22) |
+| commonpub | _(this commit)_ | docs(sessions): rewrite 153 handoff post-audit |
+| deveco-io | `9a13e5d` | chore: bump @commonpub/layer 0.21.20 → 0.21.21 |
+| deveco-io | `75791c2` | chore: bump @commonpub/layer 0.21.21 → 0.21.22 |
+| heatsynclabs-io | `e8a4270` | chore: bump @commonpub/layer 0.21.20 → 0.21.21 |
+| heatsynclabs-io | `3ed6e15` | chore: bump @commonpub/layer 0.21.21 → 0.21.22 |
 
 ## Standing rule reminders
 
-- Schema is the work. Migration count holds at 5; no schema change this
-  session.
+- Schema is the work. Migration count: 5. No change this session.
 - No feature without a flag. No new flags this session.
-- `var(--*)` only — no hardcoded colors/fonts (the radius leak fix
-  uses `border-radius: 0` literal — that's intentional; the universal
-  rule applies `var(--radius)` so the literal-0 is the override).
+- `var(--*)` only — except for `border-radius: 0` literal resets that
+  intentionally override the universal `var(--radius)` rule. The
+  literal-0 IS the override semantic; nothing wrong with it.
 - WCAG 2.1 AA min.
 - Sessions logged at `docs/sessions/NNN-*.md`.
 - Squash merge to main.
