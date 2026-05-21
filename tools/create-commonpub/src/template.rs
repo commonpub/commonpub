@@ -35,15 +35,15 @@ pub fn generate_hex_token(byte_len: usize) -> String {
 // in lockstep with deveco.io's package.json pins (the proven
 // production thin-app reference).
 //
-// Last synced: 2026-05-19 (session 150 + project-view sidebar patch) —
-// layer 0.21.16, server 2.55.0, schema 0.16.0, config 0.13.0. Server
+// Last synced: 2026-05-21 (session 152, universal-radius leak fix) —
+// layer 0.21.21, server 2.55.0, schema 0.16.0, config 0.13.0. Server
 // crosses minor (2.54.3 → 2.55.0) to add `getClientIp` +
 // `safeFetchResponse`/`safeFetchSigned` re-exports — the lockstep-pin
 // rule means thin-apps MUST bump `@commonpub/server` alongside
 // `@commonpub/layer` whenever server crosses minor, otherwise pnpm
 // hoists 2.54.x and the layer's `getClientIp` import resolves to undefined.
 const COMMONPUB_CONFIG_VERSION: &str = "^0.13.0";
-const COMMONPUB_LAYER_VERSION: &str = "^0.21.20";
+const COMMONPUB_LAYER_VERSION: &str = "^0.21.21";
 const COMMONPUB_SCHEMA_VERSION: &str = "^0.16.0";
 const COMMONPUB_SERVER_VERSION: &str = "^2.55.0";
 
