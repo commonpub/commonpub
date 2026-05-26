@@ -41,11 +41,11 @@ From package versions and file counts:
 
 | Package | Version | Src files (est.) |
 |---|---|---|
-| schema | 0.16.0 | 17 TS files (one per domain + validators + index) |
-| server | 2.55.0 | 90+ TS files across 22+ modules (federation, identity, federation-outbound through safeFetch as of 2.55.0) |
-| config | 0.13.0 | 4 TS (types, schema, config, index); flags as of 0.13.0 add `contentImport` and the `identity.*` nested object |
-| layer | 0.21.15 | 240+ files (pages, components, server, composables, middleware, plugins, theme; `server/utils/betterAuthCookie.ts` added 0.21.15) |
-| ui | 0.8.5 | 25 Vue components + theme CSS |
+| schema | **0.17.0** (session 156) | 18 TS files (added `layout.ts` for layout engine tables) + layout validators bundled in `validators.ts` |
+| server | **2.56.0** (session 156) | 90+ TS files; theme.ts now has custom-theme CRUD (`listCustomThemes`/`saveCustomTheme`/etc) + the existing federation/identity surface |
+| config | **0.14.0** (session 156) | 4 TS (types, schema, config, index); optional `themes: RegisteredTheme[]` field added 0.14.0 |
+| layer | **0.22.0** (session 156) | 248+ files; admin theme editor (8 AdminTheme* components + theme editor pages + useThemeAdmin composable + utils/themeIds.ts + utils/themeDiscovery.ts + utils/themeIO.ts + types/theme.ts) added 0.22.0 |
+| ui | **0.9.0** (session 156) | 25 Vue components + theme CSS + `tokens.ts` (split from theme.ts in 0.9.0) + `sections.ts` (SectionRegistry for layout engine, types-only) + zod peerDep added |
 | protocol | 0.12.0 | 15 TS files; ssrf.ts adds `safeFetchResponse`+`safeFetchSigned` as of 0.12.0 |
 | editor | 0.7.10 | ~35 TS files in src/ (blocks + extensions + serialization + vue wrapper) |
 | explainer | 0.7.15 | ~12 TS files in src/ + ~11 in vue/ (Vue renderers + 4 theme CSS presets) |
