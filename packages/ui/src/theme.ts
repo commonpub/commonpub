@@ -1,3 +1,13 @@
+/**
+ * Theme definitions + DOM helpers for applying / reading themes.
+ *
+ * The design-token registry (what tokens exist, what their defaults are,
+ * what input controls render for them) lives in `./tokens.ts`. This file
+ * focuses on built-in theme metadata and the small DOM/CSS helpers used
+ * by both the SSR middleware and the admin editor.
+ */
+import { TOKEN_NAMES } from './tokens.js';
+
 export interface ThemeDefinition {
   id: string;
   name: string;
@@ -45,191 +55,19 @@ export const BUILT_IN_THEMES: ThemeDefinition[] = [
   },
 ];
 
-const THEME_IDS = new Set(BUILT_IN_THEMES.map((t) => t.id));
+const BUILT_IN_THEME_IDS = new Set(BUILT_IN_THEMES.map((t) => t.id));
 
+export function isBuiltInThemeId(id: string): boolean {
+  return BUILT_IN_THEME_IDS.has(id);
+}
+
+/** Backwards-compat alias for older callers. Prefer `isBuiltInThemeId`. */
 export function isValidThemeId(id: string): boolean {
-  return THEME_IDS.has(id);
+  return BUILT_IN_THEME_IDS.has(id);
 }
 
-export const TOKEN_NAMES: string[] = [
-  // Surfaces
-  'bg',
-  'surface',
-  'surface2',
-  'surface3',
-  // Surface aliases
-  'color-surface',
-  'color-surface-alt',
-  'color-surface-raised',
-  'color-surface-overlay',
-  'color-surface-hover',
-  'color-bg-subtle',
-  // Text
-  'text',
-  'text-dim',
-  'text-faint',
-  'color-text',
-  'color-text-secondary',
-  'color-text-muted',
-  'color-text-inverse',
-  // Borders
-  'border',
-  'border2',
-  'color-border',
-  'color-border-strong',
-  'color-border-focus',
-  // Accent
-  'accent',
-  'accent-bg',
-  'accent-border',
-  'color-primary',
-  'color-primary-hover',
-  'color-primary-text',
-  'color-on-primary',
-  'color-accent',
-  'color-accent-hover',
-  'color-accent-text',
-  'color-on-accent',
-  'color-accent-bg',
-  'color-accent-border',
-  // Semantic colors
-  'green',
-  'green-bg',
-  'green-border',
-  'yellow',
-  'yellow-bg',
-  'yellow-border',
-  'red',
-  'red-bg',
-  'red-border',
-  'purple',
-  'purple-bg',
-  'purple-border',
-  'teal',
-  'teal-bg',
-  'teal-border',
-  'pink',
-  'pink-bg',
-  'pink-border',
-  'color-success',
-  'color-warning',
-  'color-error',
-  'color-info',
-  'color-success-bg',
-  'color-warning-bg',
-  'color-error-bg',
-  'color-info-bg',
-  // Interactive
-  'color-link',
-  'color-link-hover',
-  // Typography
-  'font-sans',
-  'font-mono',
-  'font-heading',
-  'font-body',
-  'font-display',
-  // Font sizes
-  'text-xs',
-  'text-sm',
-  'text-base',
-  'text-md',
-  'text-lg',
-  'text-xl',
-  'text-2xl',
-  'text-3xl',
-  'text-4xl',
-  'text-5xl',
-  'text-6xl',
-  'text-label',
-  // Font weights
-  'font-weight-normal',
-  'font-weight-medium',
-  'font-weight-semibold',
-  'font-weight-bold',
-  // Line heights
-  'leading-tight',
-  'leading-snug',
-  'leading-normal',
-  'leading-relaxed',
-  // Letter spacing
-  'tracking-tight',
-  'tracking-normal',
-  'tracking-wide',
-  'tracking-wider',
-  'tracking-widest',
-  // Spacing
-  'space-1',
-  'space-2',
-  'space-3',
-  'space-4',
-  'space-5',
-  'space-6',
-  'space-8',
-  'space-10',
-  'space-12',
-  'space-16',
-  'space-20',
-  'space-24',
-  // Shape
-  'radius',
-  'radius-none',
-  'radius-sm',
-  'radius-md',
-  'radius-lg',
-  'radius-xl',
-  'radius-2xl',
-  'radius-full',
-  'border-width-thin',
-  'border-width-default',
-  'border-width-thick',
-  // Shadows
-  'shadow-sm',
-  'shadow-md',
-  'shadow-lg',
-  'shadow-xl',
-  'shadow-accent',
-  // Transitions
-  'transition-fast',
-  'transition-default',
-  'transition-slow',
-  // Z-index
-  'z-dropdown',
-  'z-sticky',
-  'z-fixed',
-  'z-modal-backdrop',
-  'z-modal',
-  'z-toast',
-  'z-tooltip',
-  // Layout
-  'nav-height',
-  'subnav-height',
-  'sidebar-width',
-  'content-max-width',
-  'content-wide-max-width',
-  // Focus
-  'focus-ring',
-];
-
-const TOKEN_SET = new Set(TOKEN_NAMES);
-
-export function validateTokenOverrides(overrides: Record<string, string>): {
-  valid: Record<string, string>;
-  invalid: string[];
-} {
-  const valid: Record<string, string> = {};
-  const invalid: string[] = [];
-
-  for (const key of Object.keys(overrides)) {
-    if (TOKEN_SET.has(key)) {
-      valid[key] = overrides[key]!;
-    } else {
-      invalid.push(key);
-    }
-  }
-
-  return { valid, invalid };
-}
-
+/** Apply a theme to a DOM element. Used client-side when the user toggles
+ *  light/dark mode and inside the editor preview pane. */
 export function applyThemeToElement(
   el: HTMLElement,
   themeId: string,
@@ -241,15 +79,16 @@ export function applyThemeToElement(
     el.setAttribute('data-theme', themeId);
   }
 
-  // Clear any previous inline overrides
+  // Clear any previous inline overrides on canonical token names
   for (const token of TOKEN_NAMES) {
     el.style.removeProperty(`--${token}`);
   }
 
-  // Apply overrides as inline CSS custom properties
+  // Apply overrides as inline CSS custom properties. Lenient — allow
+  // non-canonical keys (a custom theme can introduce brand tokens like
+  // `deveco-portal-purple` that aren't in TOKEN_SPECS).
   if (overrides) {
-    const { valid } = validateTokenOverrides(overrides);
-    for (const [key, value] of Object.entries(valid)) {
+    for (const [key, value] of Object.entries(overrides)) {
       el.style.setProperty(`--${key}`, value);
     }
   }
@@ -271,3 +110,68 @@ export function getThemeFromElement(el: HTMLElement): {
 
   return { themeId, overrides };
 }
+
+/**
+ * Serialize a token map into a CSS rule body. Used by the SSR middleware
+ * to inject custom-theme styles into the document head.
+ *
+ * Escaping rules (defense-in-depth — admins are the only writers, but
+ * we still want a malformed token to fail closed rather than break the
+ * page or escape the <style> block):
+ *   - keys are stripped to `[a-zA-Z0-9_-]`; empty keys are dropped
+ *   - values strip CR/LF (prevents premature rule termination) and
+ *     escape `</` (prevents closing the <style> block)
+ *   - the function returns the rule body only; the caller wraps it in
+ *     `<style>...</style>` (which Vue/Nuxt's useHead does for us)
+ *
+ * @param selector — e.g. `:root[data-theme="cpub-custom-deveco"]` or just `:root`
+ * @param tokens — map of name→value (without leading `--`)
+ */
+export function tokensToCss(selector: string, tokens: Record<string, string>): string {
+  const lines: string[] = [];
+  for (const [key, value] of Object.entries(tokens)) {
+    if (typeof value !== 'string') continue;
+    const safeKey = key.replace(/[^a-zA-Z0-9_-]/g, '');
+    if (!safeKey) continue;
+    const safeVal = value.replace(/[\r\n]/g, ' ').replace(/<\//g, '<\\/');
+    lines.push(`  --${safeKey}: ${safeVal};`);
+  }
+  if (lines.length === 0) return '';
+  return `${selector} {\n${lines.join('\n')}\n}`;
+}
+
+/** Compute a 5-color preview swatch from a token map (for the picker card). */
+export function previewFromTokens(tokens: Record<string, string>, isDark: boolean): {
+  bg: string;
+  surface: string;
+  accent: string;
+  text: string;
+  border: string;
+} {
+  const fallbackLight = { bg: '#fafaf9', surface: '#ffffff', accent: '#5b9cf6', text: '#1a1a1a', border: '#1a1a1a' };
+  const fallbackDark = { bg: '#111111', surface: '#1a1a1a', accent: '#5b9cf6', text: '#e5e5e3', border: '#444440' };
+  const fb = isDark ? fallbackDark : fallbackLight;
+  return {
+    bg: tokens.bg ?? fb.bg,
+    surface: tokens.surface ?? fb.surface,
+    accent: tokens.accent ?? fb.accent,
+    text: tokens.text ?? fb.text,
+    border: tokens.border ?? fb.border,
+  };
+}
+
+// ---- Re-exports from tokens.ts for back-compat -------------------------
+// Older callers (`@commonpub/ui`-facing code) imported these from
+// `theme.ts` before the split — re-exporting keeps that working without
+// forcing every import to change.
+export {
+  TOKEN_NAMES,
+  TOKEN_SPECS,
+  TOKEN_GROUP_LABELS,
+  TOKEN_GROUP_ORDER,
+  ALIAS_TOKEN_NAMES,
+  validateTokenOverrides,
+  tokensByGroup,
+  getTokenSpec,
+} from './tokens.js';
+export type { TokenSpec, TokenGroup, TokenKind } from './tokens.js';

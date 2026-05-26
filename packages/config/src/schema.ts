@@ -106,6 +106,30 @@ export const cookieDefinitionSchema = z.object({
   provider: z.string().optional(),
 });
 
+const themeIdSlug = z
+  .string()
+  .min(1)
+  .max(64)
+  .regex(/^[a-z0-9][a-z0-9_-]*$/i, 'Theme id must be alphanumeric with - or _');
+
+export const registeredThemeSchema = z.object({
+  id: themeIdSlug,
+  name: z.string().min(1).max(120),
+  description: z.string().max(2000).optional(),
+  family: themeIdSlug,
+  isDark: z.boolean(),
+  pairId: themeIdSlug.optional(),
+  preview: z
+    .object({
+      bg: z.string().optional(),
+      surface: z.string().optional(),
+      accent: z.string().optional(),
+      text: z.string().optional(),
+      border: z.string().optional(),
+    })
+    .optional(),
+});
+
 export const configSchema = z.object({
   instance: instanceConfigSchema,
   features: featureFlagsSchema.default(() => featureFlagsSchema.parse({})),
@@ -113,4 +137,5 @@ export const configSchema = z.object({
   federation: federationConfigSchema.optional(),
   docs: docsConfigSchema.default(() => docsConfigSchema.parse({})),
   cookies: z.array(cookieDefinitionSchema).optional(),
+  themes: z.array(registeredThemeSchema).optional(),
 });

@@ -1,15 +1,42 @@
 // @commonpub/ui — Vue 3 component library
 
+// Section registry (layout engine — session 155+)
+export {
+  SectionRegistry,
+  resolveColSpan,
+  migrateSectionConfig,
+} from './sections.js';
+export type {
+  SectionDefinition,
+  SectionCategory,
+  SectionStatus,
+  SectionRenderProps,
+  SectionRenderMeta,
+} from './sections.js';
+
 // Theme utilities
 export {
   BUILT_IN_THEMES,
   TOKEN_NAMES,
+  TOKEN_SPECS,
+  TOKEN_GROUP_LABELS,
+  TOKEN_GROUP_ORDER,
+  isBuiltInThemeId,
   isValidThemeId,
   validateTokenOverrides,
   applyThemeToElement,
   getThemeFromElement,
+  tokensByGroup,
+  getTokenSpec,
+  tokensToCss,
+  previewFromTokens,
 } from './theme.js';
-export type { ThemeDefinition } from './theme.js';
+export type {
+  ThemeDefinition,
+  TokenSpec,
+  TokenGroup,
+  TokenKind,
+} from './theme.js';
 
 // Foundation components
 export { default as VisuallyHidden } from './components/VisuallyHidden.vue';

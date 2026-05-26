@@ -144,6 +144,40 @@ export interface DocsConfig {
   searchLanguage: string;
 }
 
+/**
+ * Code-registered theme declared by a thin layer app in `commonpub.config.ts`.
+ * The accompanying CSS file is loaded via Nuxt's `css:` array — this entry
+ * tells the admin UI the theme exists so it shows up in the selector.
+ *
+ * Code-registered themes are NOT user-editable (they ship with the app);
+ * use DB-stored custom themes (created in the admin UI) for that.
+ */
+export interface RegisteredTheme {
+  /** Slug used in `data-theme="<id>"` — must match the CSS selector. */
+  id: string;
+  /** Display name shown in the admin theme picker. */
+  name: string;
+  /** Short description shown under the name. */
+  description?: string;
+  /** Family slug — groups light + dark variants together. */
+  family: string;
+  /** Whether this is a dark theme. Picks the right variant when the user toggles. */
+  isDark: boolean;
+  /** Sibling theme ID for the opposite mode in the same family. Optional. */
+  pairId?: string;
+  /**
+   * Preview swatches for the picker (hex strings). If omitted, derived
+   * from CSS computed values at runtime.
+   */
+  preview?: {
+    bg?: string;
+    surface?: string;
+    accent?: string;
+    text?: string;
+    border?: string;
+  };
+}
+
 export interface CommonPubConfig {
   instance: InstanceConfig;
   features: FeatureFlags;
@@ -158,4 +192,10 @@ export interface CommonPubConfig {
    * These are shown in the cookie consent banner and cookie policy page.
    */
   cookies?: CookieDefinition[];
+  /**
+   * Themes registered in code by the thin layer app. These appear in the
+   * admin theme picker alongside built-in and DB-stored custom themes.
+   * The matching CSS file must be added separately to the Nuxt `css:` array.
+   */
+  themes?: RegisteredTheme[];
 }

@@ -8,6 +8,7 @@ export type {
   FederationConfig,
   DocsConfig,
   CookieDefinition,
+  RegisteredTheme,
 } from './types.js';
 export {
   configSchema,
@@ -18,4 +19,5 @@ export {
   federationConfigSchema,
   docsConfigSchema,
   cookieDefinitionSchema,
+  registeredThemeSchema,
 } from './schema.js';
