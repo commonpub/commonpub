@@ -41,6 +41,16 @@ export interface FeatureFlags {
    */
   contentImport: boolean;
   /**
+   * Phase 1 layout engine — when ON, the new `<LayoutSlot>` renderer
+   * reads from the `layouts`/`layout_rows`/`layout_sections` DB tables
+   * (migration 0005) instead of the legacy `homepage.sections` JSON
+   * setting. Default OFF until the consumer code paths are wired into
+   * every layout-bearing page (Phase 4). Flipping this without the
+   * migration applied + a layout row for each route will result in
+   * empty pages.
+   */
+  layoutEngine: boolean;
+  /**
    * Cross-instance delegated authorization. Phased rollout per
    * docs/sessions/136-cross-instance-identity-plan.md. All sub-flags
    * default off; flipping each requires the corresponding phase work

@@ -347,6 +347,31 @@ export {
 } from './theme.js';
 export type { CustomThemeRecord } from './theme.js';
 
+// Layout engine (Phase 1 — session 157)
+export {
+  listLayouts,
+  getLayoutByScope,
+  getLayoutById,
+  saveLayout,
+  deleteLayout,
+  publishLayout,
+  listLayoutVersions,
+  revertToVersion,
+} from './layout/layout.js';
+export type {
+  LayoutScope,
+  LayoutInput,
+  LayoutRecord,
+  LayoutZone,
+  LayoutZoneInput,
+  LayoutRowInput,
+  LayoutRowResolved,
+  LayoutSectionInput,
+  LayoutSectionResolved,
+  LayoutVersionRecord,
+  LayoutPageMeta,
+} from './layout/layout.js';
+
 // Federation
 export {
   getOrCreateActorKeypair,

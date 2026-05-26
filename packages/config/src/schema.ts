@@ -42,6 +42,9 @@ export const featureFlagsSchema = z.object({
   // path is SSRF-safe (safeFetch) — this flag is the rule-#2 gate + an
   // operator off-switch for a remote-fetch surface.
   contentImport: z.boolean().default(true),
+  // Phase 1 layout engine. Default OFF until consumer pages are wired
+  // (Phase 4) and migration 0005 is run on every consumer DB.
+  layoutEngine: z.boolean().default(false),
   // Cross-instance delegated authorization. Nested object so the
   // namespace stays separate; all sub-flags default off.
   identity: identityFeaturesSchema.default(() => identityFeaturesSchema.parse({})),
