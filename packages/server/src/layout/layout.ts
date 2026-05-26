@@ -272,120 +272,134 @@ export async function saveLayout(
   const { scopeType, scopeKey } = packScope(input.scope);
   const now = new Date();
 
-  let layoutId = opts.id ?? null;
-  if (!layoutId) {
-    // Look up by scope first — one layout per scope is the invariant.
-    const [existing] = await db
-      .select({ id: layouts.id })
-      .from(layouts)
-      .where(and(eq(layouts.scopeType, scopeType), eq(layouts.scopeKey, scopeKey)));
-    layoutId = existing?.id ?? null;
-  }
+  // Wrap the whole upsert + child rewrite in a single transaction so two
+  // admins saving the same layout simultaneously can't interleave their
+  // delete + insert calls (which would either lose data silently OR hit
+  // the unique-(layout_id,zone,position) constraint and 500). Last-writer-
+  // wins semantics still apply at the transaction boundary, but the
+  // partial-state failure mode is impossible inside the tx.
+  //
+  // PGlite (used by tests) supports db.transaction; real Postgres ditto.
+  const layoutId = await db.transaction(async (tx) => {
+    let id = opts.id ?? null;
+    if (!id) {
+      // Look up by scope first — one layout per scope is the invariant.
+      const [existing] = await tx
+        .select({ id: layouts.id })
+        .from(layouts)
+        .where(and(eq(layouts.scopeType, scopeType), eq(layouts.scopeKey, scopeKey)));
+      id = existing?.id ?? null;
+    }
 
-  // Upsert the layouts row first (need its id for FK).
-  if (layoutId) {
-    await db
-      .update(layouts)
-      .set({
-        name: input.name,
-        pageMeta: input.pageMeta ?? null,
-        state: input.state ?? 'draft',
-        updatedBy: opts.userId ?? null,
-        updatedAt: now,
-      })
-      .where(eq(layouts.id, layoutId));
-  } else {
-    const [created] = await db
-      .insert(layouts)
-      .values({
-        scopeType,
-        scopeKey,
-        name: input.name,
-        pageMeta: input.pageMeta ?? null,
-        state: input.state ?? 'draft',
-        createdBy: opts.userId ?? null,
-        updatedBy: opts.userId ?? null,
-      })
-      .returning({ id: layouts.id });
-    layoutId = created!.id;
-  }
+    // Upsert the layouts row first (need its id for FK).
+    if (id) {
+      await tx
+        .update(layouts)
+        .set({
+          name: input.name,
+          pageMeta: input.pageMeta ?? null,
+          state: input.state ?? 'draft',
+          updatedBy: opts.userId ?? null,
+          updatedAt: now,
+        })
+        .where(eq(layouts.id, id));
+    } else {
+      const [created] = await tx
+        .insert(layouts)
+        .values({
+          scopeType,
+          scopeKey,
+          name: input.name,
+          pageMeta: input.pageMeta ?? null,
+          state: input.state ?? 'draft',
+          createdBy: opts.userId ?? null,
+          updatedBy: opts.userId ?? null,
+        })
+        .returning({ id: layouts.id });
+      id = created!.id;
+    }
 
-  // Atomic children-rewrite — delete all rows for this layout (sections
-  // cascade), then re-insert from input. Position-stable IDs are
-  // preserved when the input row has an `id` field. This is simpler than
-  // a 3-way diff and well within budget for small layouts (~30 rows).
-  await db.delete(layoutRows).where(eq(layoutRows.layoutId, layoutId));
+    // Children rewrite — delete all rows for this layout (sections cascade),
+    // then re-insert from input. Position-stable IDs are preserved when the
+    // input row has an `id` field.
+    await tx.delete(layoutRows).where(eq(layoutRows.layoutId, id));
 
-  // Normalize positions {0..n} per zone for rows, {0..n} per row for sections
-  // (ignore caller-provided values to enforce canonical order).
-  let zoneRowsToInsert: Array<{
-    id?: string;
-    zone: string;
-    position: number;
-    config: LayoutRowInput['config'] | null;
-    sections: LayoutSectionInput[];
-  }> = [];
-  for (const z of input.zones) {
-    const sorted = [...z.rows].sort((a, b) => a.order - b.order);
-    sorted.forEach((r, i) => {
-      zoneRowsToInsert.push({
-        id: r.id,
-        zone: z.zone,
-        position: i,
-        config: r.config ?? null,
-        sections: r.sections,
+    // Normalize positions {0..n} per zone for rows, {0..n} per row for sections
+    // (ignore caller-provided values to enforce canonical order).
+    const zoneRowsToInsert: Array<{
+      id?: string;
+      zone: string;
+      position: number;
+      config: LayoutRowInput['config'] | null;
+      sections: LayoutSectionInput[];
+    }> = [];
+    for (const z of input.zones) {
+      const sorted = [...z.rows].sort((a, b) => a.order - b.order);
+      sorted.forEach((r, i) => {
+        zoneRowsToInsert.push({
+          id: r.id,
+          zone: z.zone,
+          position: i,
+          config: r.config ?? null,
+          sections: r.sections,
+        });
       });
-    });
-  }
+    }
 
-  if (zoneRowsToInsert.length === 0) {
-    // Empty layout — done
-    return (await getLayoutById(db, layoutId))!;
-  }
+    if (zoneRowsToInsert.length === 0) {
+      // Empty layout — children already cleared by the delete above
+      return id;
+    }
 
-  // Insert rows + capture their final IDs
-  const insertedRows = await db
-    .insert(layoutRows)
-    .values(zoneRowsToInsert.map((r) => ({
-      ...(r.id ? { id: r.id } : {}),
-      layoutId,
-      zone: r.zone,
-      position: r.position,
-      config: r.config,
-    })))
-    .returning({ id: layoutRows.id, zone: layoutRows.zone, position: layoutRows.position });
+    // Insert rows + capture their final IDs
+    const insertedRows = await tx
+      .insert(layoutRows)
+      .values(zoneRowsToInsert.map((r) => ({
+        ...(r.id ? { id: r.id } : {}),
+        layoutId: id,
+        zone: r.zone,
+        position: r.position,
+        config: r.config,
+      })))
+      .returning({ id: layoutRows.id, zone: layoutRows.zone, position: layoutRows.position });
 
-  // Build {zone, position} → rowId map so we know where to attach sections
-  const rowIdMap = new Map<string, string>();
-  for (const r of insertedRows) {
-    rowIdMap.set(`${r.zone}|${r.position}`, r.id);
-  }
+    // Build {zone, position} → rowId map so we know where to attach sections
+    const rowIdMap = new Map<string, string>();
+    for (const r of insertedRows) {
+      rowIdMap.set(`${r.zone}|${r.position}`, r.id);
+    }
 
-  // Insert sections per row
-  const sectionsToInsert: Array<typeof layoutSections.$inferInsert> = [];
-  for (const r of zoneRowsToInsert) {
-    const rowId = rowIdMap.get(`${r.zone}|${r.position}`)!;
-    const sortedSections = [...r.sections].sort((a, b) => a.order - b.order);
-    sortedSections.forEach((s, i) => {
-      sectionsToInsert.push({
-        ...(s.id ? { id: s.id } : {}),
-        rowId,
-        position: i,
-        enabled: s.enabled ?? true,
-        type: s.type,
-        config: s.config,
-        colSpan: s.colSpan ?? 12,
-        responsive: s.responsive ?? null,
-        visibility: s.visibility ?? null,
-        schemaVersion: s.schemaVersion ?? 1,
+    // Insert sections per row
+    const sectionsToInsert: Array<typeof layoutSections.$inferInsert> = [];
+    for (const r of zoneRowsToInsert) {
+      const rowId = rowIdMap.get(`${r.zone}|${r.position}`)!;
+      const sortedSections = [...r.sections].sort((a, b) => a.order - b.order);
+      sortedSections.forEach((s, i) => {
+        sectionsToInsert.push({
+          ...(s.id ? { id: s.id } : {}),
+          rowId,
+          position: i,
+          enabled: s.enabled ?? true,
+          type: s.type,
+          config: s.config,
+          colSpan: s.colSpan ?? 12,
+          responsive: s.responsive ?? null,
+          visibility: s.visibility ?? null,
+          schemaVersion: s.schemaVersion ?? 1,
+        });
       });
-    });
-  }
+    }
 
-  if (sectionsToInsert.length > 0) {
-    await db.insert(layoutSections).values(sectionsToInsert);
-  }
+    if (sectionsToInsert.length > 0) {
+      await tx.insert(layoutSections).values(sectionsToInsert);
+    }
 
+    return id;
+  });
+
+  // Re-fetch outside the transaction so the returned shape uses the post-
+  // commit state. (assembleLayout makes multiple selects; running them
+  // inside the tx works too but isn't necessary.)
   return (await getLayoutById(db, layoutId))!;
 }
 

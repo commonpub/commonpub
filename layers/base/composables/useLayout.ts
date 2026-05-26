@@ -79,13 +79,35 @@ export interface UseLayoutResult {
  *
  * Returns a layout=null Ref when the feature is off so consumers can
  * `v-if="layout"` and fall through to a legacy renderer.
+ *
+ * **Reactivity**: pass a string for the typical case (literal route on
+ * a page) — useFetch fires once at setup. For the rare case where the
+ * route changes without remount (e.g. a parent component swapping the
+ * prop dynamically), pass a Ref or getter — useFetch will refire on
+ * change. Without this, a path-prop change on `<LayoutSlot>` would
+ * silently leave the stale fetch result in place.
  */
-export function useLayout(path: string): UseLayoutResult {
+export function useLayout(path: string | Ref<string> | (() => string)): UseLayoutResult {
+  const pathGetter = (): string => (
+    typeof path === 'string'
+      ? path
+      : typeof path === 'function'
+        ? path()
+        : path.value
+  );
+
   const { data, pending, error, refresh } = useFetch<LayoutPayload | null>(
     '/api/layouts/by-route',
     {
-      key: `layout:${path}`,
-      query: { path },
+      // Static key for the literal-string case (so Nuxt's request cache
+      // can dedupe across components on the same nav). For the reactive
+      // case, omit key so useFetch derives one from the query Ref.
+      key: typeof path === 'string' ? `layout:${path}` : undefined,
+      // Functional query — useFetch re-evaluates on watched deps change.
+      query: { path: pathGetter },
+      // Watch the path getter so reactive callers refetch on change.
+      // For string callers this is empty array → no extra reactivity.
+      watch: typeof path === 'string' ? [] : [pathGetter],
       // 404 from the API (feature off OR route has no layout) is NOT an
       // exceptional case — surface as null. Don't treat as error.
       onResponseError({ response }) {
@@ -96,10 +118,6 @@ export function useLayout(path: string): UseLayoutResult {
       },
       // Falsy data on 404 maps to null
       transform: (input: LayoutPayload | null | undefined) => input ?? null,
-      // Match the server-side cache TTL (60s) for client-side dedup
-      // when navigating across pages that share a layout key.
-      // (Nuxt's request cache already dedupes within a single nav; this
-      // sets the staleness window for repeat navs.)
       server: true,
       lazy: false,
     },

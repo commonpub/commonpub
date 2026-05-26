@@ -28,6 +28,17 @@ interface PublicLayoutSlice {
 const CACHE_TTL_MS = 60_000;
 const cache = new Map<string, { value: PublicLayoutSlice | null; at: number }>();
 
+/**
+ * Invalidate the by-route cache. **Currently unused** — no admin layout
+ * write API exists yet (Phase 1c). When `POST/PUT/DELETE /api/admin/layouts/*`
+ * land, EACH write handler MUST call this before returning, otherwise SSR
+ * will serve stale data for up to 60s after a save. There's a layout-CRUD
+ * integration test that should be added at the same time to pin this.
+ *
+ * For Phase 1 (this commit), the export exists so consumers don't have to
+ * reach into module internals — and so it's a single grep to find every
+ * write site once admin write APIs land.
+ */
 export function invalidateLayoutsByRouteCache(): void {
   cache.clear();
 }
