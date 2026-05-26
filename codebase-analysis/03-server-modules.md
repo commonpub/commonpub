@@ -71,7 +71,7 @@ packages/server/src/
 ├── query.ts                             pagination, slug uniqueness, escapeLike, USER_REF_SELECT
 ├── security.ts                          CSP builder, rate limit store, nonce
 ├── storage.ts                           Local + S3 adapters
-├── theme.ts                             user theme resolution
+├── theme.ts                             user theme resolution + custom-theme CRUD (session 154)
 ├── types.ts                             cross-module types (UserRef, ContentDetail, etc.)
 └── utils.ts                             generateSlug, hasPermission, canManageRole
 ```
@@ -229,7 +229,13 @@ Both are thin CRUD over `instanceSettings` JSONB keys:
 - **storage.ts** — Local + S3 adapters, `createStorageFromEnv()` auto-detection
 - **image.ts** — Sharp-backed variants: thumb (150), small (300), medium (600), large (1200) — widths in px
 - **security.ts** — CSP directive builder, rate-limit store: 6 tiers via `DEFAULT_TIERS` (auth=5/min, upload=10/min, social=30/min, federation=60/min, api=60/min, general=120/min), route-to-tier mapping in `getTierForPath()`, nonce generation
-- **theme.ts** — user theme preference storage on `users`
+- **theme.ts** — theme resolution + custom-theme CRUD.
+  - `resolveTheme(db, userId?)` — user preference > instance default > `base` (silent fallback on unknown ids so a deleted custom theme doesn't break SSR).
+  - `setUserTheme(db, userId, themeId)` — persists `users.theme` with a structural-only check (slug regex + custom-prefix). The actual cross-check against available themes happens at the API layer.
+  - `getCustomTokenOverrides(db)` — reads the legacy `theme.token_overrides` JSON record (ad-hoc overrides applied on top of whichever theme is active).
+  - Custom-theme CRUD (session 154): `listCustomThemes`, `getCustomTheme`, `saveCustomTheme`, `deleteCustomTheme`. Storage: single row in `instance_settings` keyed `theme.custom` holding a JSON array of `CustomThemeRecord`. Atomic upsert — the whole array is rewritten on each save.
+  - Helpers: `customThemeDataAttr(id) → 'cpub-custom-<id>'`, `parseCustomThemeId(attr) → 'id' | null`. Constant: `CUSTOM_THEME_PREFIX = 'cpub-custom-'`.
+  - **Browser duplication**: the prefix + parse helper are re-declared in `layers/base/utils/themeIds.ts` because this server module imports drizzle + schema and isn't browser-safe. Both definitions are pinned by `custom-themes.integration.test.ts`.
 
 ### Cross-cutting
 

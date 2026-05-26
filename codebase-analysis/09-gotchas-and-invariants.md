@@ -353,6 +353,44 @@ Error pages render outside the normal layout tree on SSR, so the `data-theme`
 attribute is missing. `error.vue` re-calls `useHead({ htmlAttrs })` using a
 `useState<string>('cpub-theme', ...)` — don't remove it.
 
+### Custom-theme inline style ships via SSR — must not be `@layer`-wrapped (session 154)
+
+The theme editor stores custom theme tokens in `instance_settings.theme.custom`
+as a JSON array. The SSR middleware reads that, merges in any `theme.token_overrides`,
+serializes via `tokensToCss(':root', tokens)`, and the client plugin injects
+the result as `<style id="cpub-theme-inline">` via `useHead({ style: [...] })`.
+
+The injected style is intentionally NOT wrapped in `@layer commonpub` so it sits
+at the highest cascade tier and beats the layer's CSS files without needing
+`!important`. If a future refactor moves the injection inside a layer, custom
+themes will silently stop overriding base.css. See `feedback_css_layer_specificity.md`.
+
+### `CUSTOM_THEME_PREFIX` is duplicated in server + client (session 154)
+
+`packages/server/src/theme.ts` and `layers/base/utils/themeIds.ts` both export
+`CUSTOM_THEME_PREFIX = 'cpub-custom-'` + a matching `parseCustomThemeId`.
+The duplication is necessary — the server module imports drizzle + schema and
+isn't browser-safe. Both files note the contract; the round-trip is pinned by
+`custom-themes.integration.test.ts`. If you change the prefix, change both.
+
+### `tokensToCss` escaping is defense-in-depth — admins are still the only writers (session 154)
+
+`packages/ui/src/theme.ts:tokensToCss` strips disallowed chars from token
+keys, drops keys that sanitise to empty, removes CR/LF from values, and
+escapes `</` so the injected `<style>` block can't be terminated early.
+This is hardening, not the primary defence — only admins (who already have
+arbitrary site control) can write tokens. Tests live in
+`packages/ui/src/__tests__/tokens.test.ts` (`tokensToCss > escapes </`).
+
+### `theme/` in `.gitignore` must be `/theme/`-anchored (session 154)
+
+`layers/base/.gitignore` ignores `theme/` because the layer's publish step
+copies bundled theme CSS into `./theme/`. **The pattern MUST be `/theme/`**
+(leading slash) — without it, git also ignores `components/admin/theme/`,
+`pages/admin/theme/`, and any future `theme/` subdirectory. This bit session
+154 silently until `git status --untracked-files=all` was used to confirm
+new files were tracked.
+
 ### Federated UI must reuse local components
 
 When you're rendering federated content, use the SAME components as for local

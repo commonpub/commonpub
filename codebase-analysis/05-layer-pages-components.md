@@ -101,7 +101,9 @@ URL restructure landed in session 108: canonical content lives at `/u/{username}
 
 ### Admin (flag: `admin`)
 
-`/admin`, `/admin/users`, `/admin/content`, `/admin/categories`, `/admin/reports`, `/admin/audit`, `/admin/theme`, `/admin/homepage`, **`/admin/navigation` (session 124)**, `/admin/features`, `/admin/federation`, `/admin/settings`.
+`/admin`, `/admin/users`, `/admin/content`, `/admin/categories`, `/admin/reports`, `/admin/audit`, `/admin/theme`, **`/admin/theme/edit/:id` (session 154)**, `/admin/homepage`, **`/admin/navigation` (session 124)**, `/admin/features`, `/admin/federation`, `/admin/settings`, `/admin/api-keys`.
+
+**Theme admin (session 154)** — `/admin/theme` lists every theme across three sources (built-in / code-registered / DB-stored custom), with capture-from-`:root` detection for thin layer apps that ship their own CSS. `/admin/theme/edit/:id` is the split-pane editor; the special id `__new` reads a seed from sessionStorage (used by create / duplicate / capture / import flows). See [`docs/reference/guides/theme-editor.md`](../docs/reference/guides/theme-editor.md) for the full architecture.
 
 ### Misc
 
@@ -160,6 +162,7 @@ DocsPageTree.
 | useAuth | session state (user, isAuthenticated, isAdmin), sign-in/out |
 | useFeatures | reactive feature flags, hydrated from /api/features |
 | useTheme | data-theme / isDark / setDarkMode |
+| useThemeAdmin | (session 154) admin theme picker state — unified families view across built-in/registered/custom, refresh via `/api/admin/themes`. Discovery + import/export live in `utils/themeDiscovery.ts` + `utils/themeIO.ts`; id helpers in `utils/themeIds.ts`; types in `types/theme.ts` |
 | useToast | notification system |
 | useCookieConsent | GDPR consent state |
 | useContentSave | autosave + publish workflow |
@@ -240,10 +243,11 @@ Key overridable tokens:
 
 ## SSR theme plumbing
 
-1. Server middleware `theme.ts` reads instance theme (from instanceSettings) and user dark-mode cookie → `event.context.resolvedTheme = 'base' | 'dark' | 'agora' | ...`.
-2. Server plugins write `event.context.instanceTheme` + `isDarkMode` + `resolvedTheme` for client hydration.
-3. Client plugin `plugins/theme.ts` reads context and calls `useHead({ htmlAttrs: { 'data-theme': themeId } })` → `<html data-theme="...">` rendered on server. Zero FOUC.
-4. `useTheme().setDarkMode(bool)` mutates cookie + re-applies `data-theme`.
+1. Server middleware `theme.ts` calls `resolveThemeContext(userScheme, registeredIds)` from `server/utils/instanceTheme.ts`, which reads instance theme + user dark-mode cookie + custom-theme tokens + instance overrides (cached 60s).
+2. Middleware writes four context values for the client plugin: `instanceTheme`, `resolvedTheme`, `isDarkMode`, **`themeInlineCss`** (session 154 — a serialized `:root { --token: value; … }` rule body for any active DB-stored custom theme + ad-hoc overrides).
+3. Client plugin `plugins/theme.ts` reads context and calls `useHead({ htmlAttrs: { 'data-theme': themeId }, style: [{ id: 'cpub-theme-inline', innerHTML: themeInlineCss }] })` — both shipped in SSR HTML. Zero FOUC.
+4. `useTheme().setDarkMode(bool)` mutates cookie + re-applies `data-theme` for built-in families; for custom themes with a `pairId`, the server picks the variant on next request.
+5. Cascade order: built-in `theme/*.css` → code-registered theme CSS (loaded by thin app) → inline `<style id="cpub-theme-inline">`. No `@layer` wrapper on the inline style so it beats `@layer commonpub` rules without `!important`.
 
 `error.vue` re-applies the same useHead call because error pages render outside the layout tree on SSR.
 

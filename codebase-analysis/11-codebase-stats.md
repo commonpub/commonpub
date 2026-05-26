@@ -1,7 +1,15 @@
 # 11 — Codebase Stats
 
-As of session 150 (2026-05-19). Numbers are approximate — exact counts vary
+As of session 154 (2026-05-26). Numbers are approximate — exact counts vary
 with test exclusions.
+
+**Session 154 deltas** (admin theme editor):
+- API routes: +6 under `/api/admin/themes`
+- Layer pages: +1 (`/admin/theme/edit/:id`)
+- Layer components: +8 (`AdminTheme*.vue` family + scenes + overrides panel)
+- Composables: +1 (`useThemeAdmin`)
+- Server modules: theme.ts grew custom-theme CRUD (saveCustomTheme / list / get / delete)
+- Tests: +21 UI (`tokens.test.ts`) + 10 server (`custom-themes.integration.test.ts`) = +31
 
 ## Headline
 
@@ -15,17 +23,17 @@ with test exclusions.
 | Enums | 41 |
 | Zod validators | 50+ |
 | Server modules | 22+ |
-| API routes | 270+ (admin storage backfill + federated/mastodon callback chains added since session 128) |
-| Layer pages | 85+ |
-| Layer components | 110+ |
-| Composables | 20+ |
+| API routes | 276+ (admin storage backfill + federated/mastodon callback chains since session 128; +6 admin themes routes in session 154) |
+| Layer pages | 86+ (admin/theme/edit/[id] added session 154) |
+| Layer components | 118+ (8 AdminTheme* components added session 154) |
+| Composables | 21+ (useThemeAdmin added session 154) |
 | Feature flags | 17 top-level (including `contentImport`, `editorial`) + 5 nested `identity.*` sub-flags |
-| Themes | 5 (base, dark, generics, agora, agora-dark) |
+| Themes | 5 built-in (base, dark, generics, agora, agora-dark) + N DB-stored custom + N code-registered (admin-managed via `/admin/theme`, session 154) |
 | Migrations | 5 (0000_session128_baseline → 0004_federated_oauth_tokens) |
 | ADRs | 24+ |
 | Production instances | 3 (commonpub.io, deveco.io, heatsynclabs.io — all auto-deploy from main) |
-| Session log files | 80+ (session numbers run 071–150; bundled where related work landed together) |
-| Tests | ~3,200 (session 150: protocol 419 + infra 305 + server 967 + layer 85 + scaffolder cargo 27 + other packages) |
+| Session log files | 80+ (session numbers run 071–154; bundled where related work landed together) |
+| Tests | ~3,230 (session 154: protocol 419 + infra 305 + server 977 + layer 85 + ui 238 + scaffolder cargo 27 + other packages) |
 
 ## Per-package sizes (rough)
 

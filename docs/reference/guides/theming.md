@@ -1,6 +1,8 @@
 # Theming
 
 > Server-resolved theme system with admin-managed families, user light/dark toggle, CSS custom property tokens, and cookie-consented preferences.
+>
+> **Looking for the admin theme editor?** That's a separate document — see [`theme-editor.md`](theme-editor.md) for custom themes, code-registered themes from `commonpub.config.ts`, the preview scene system, and import/export.
 
 **Source**: `packages/ui/theme/`, `layers/base/utils/themeConfig.ts`
 

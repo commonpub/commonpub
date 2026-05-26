@@ -308,6 +308,32 @@ Consider for v1.1:
 - **NavItem / Homepage section schemas exported from `@commonpub/config`**
   so consumer apps can configure via TS, not just DB.
 
+### Pluggable scene pattern (session 154 — admin theme editor)
+
+The admin theme editor's preview pane uses a "scene picker" — the user
+picks between curated scenes (component gallery, prose mockup, admin
+shell mockup) that render in an isolated token-scoped subtree. Adding
+a scene is a 3-step contract:
+
+1. Drop `components/admin/theme/AdminThemeScene{Name}.vue` — must use
+   `var(--*)` exclusively (no hardcoded colors/fonts).
+2. Add an entry to `PREVIEW_SCENES` in `AdminThemePreviewPane.vue` with
+   id, label, description, icon.
+3. Add the `v-if` branch in the surface section.
+
+This same pattern absorbs the future layout-builder work without
+restructuring: the scene picker becomes the surface for `'iframe-route'`
+(real route in an iframe), `'page-layout'` (editable section mockup),
+`'layout-builder'` (drag-and-drop composer). The picker exists today
+even with only three scenes because that future is in scope — wiring
+it later would mean migrating the editor; wiring it now costs nothing.
+
+**Generalised**: when shipping a feature whose v1 surface is a curated
+list of options but whose v2+ surface is a registry of plugins, ship
+the picker (selector + dispatcher) on day one with a 3-item list. The
+selector becomes the integration point; new options drop in without
+restructuring.
+
 ## What to avoid
 
 Concrete anti-patterns for this site class:

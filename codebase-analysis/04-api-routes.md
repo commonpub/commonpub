@@ -265,6 +265,18 @@ Reports + audit: GET `/api/admin/reports`, POST `/api/admin/reports/:id/resolve`
 
 Settings: GET/PUT `/api/admin/settings`, GET `/api/admin/stats`.
 
+Themes (session 154):
+| Verb | Path | Notes |
+|---|---|---|
+| GET | `/api/admin/themes` | Returns `{ builtIn, registered, custom }` — unified theme list for the admin picker |
+| POST | `/api/admin/themes` | Create a DB-stored custom theme (`customThemeSchema`); 409 on built-in or duplicate id |
+| GET | `/api/admin/themes/:id` | Fetch one custom theme (404 if absent) |
+| PUT | `/api/admin/themes/:id` | Update (id in URL must match body) |
+| DELETE | `/api/admin/themes/:id` | Delete; resets `theme.default` to `base` if the deleted theme was active (returns `resetDefault: true`) |
+| GET | `/api/admin/themes/discover` | Returns `{ defaults }` — canonical base values for every `TOKEN_SPECS` key, used client-side to diff against `getComputedStyle(:root)` |
+
+All theme writes call `invalidateThemeCache()` so the SSR middleware picks up changes within the next request.
+
 Features: GET/PUT `/api/admin/features` (runtime overrides).
 
 Search: POST `/api/admin/search/reindex` — rebuild the Meilisearch index from Postgres.
