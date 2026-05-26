@@ -10,6 +10,11 @@ import { THEME_TO_FAMILY, FAMILY_VARIANTS } from '../utils/themeConfig';
  *
  * The dark mode preference cookie (`cpub-color-scheme`) is only persisted
  * when the user has accepted functional cookies via the consent banner.
+ *
+ * Custom themes (`cpub-custom-*`) and code-registered themes pass through —
+ * the user's cookie toggle is recorded but the server picks the actual variant
+ * using the custom theme's `pairId` (if declared). For built-in family pairs,
+ * the variant flip happens client-side immediately for snappy UX.
  */
 export function useTheme(): {
   /** Current active theme ID (resolved from instance default + dark mode) */
@@ -39,23 +44,28 @@ export function useTheme(): {
       schemeCookie.value = dark ? 'dark' : 'light';
     }
 
-    // Resolve the correct variant for this family + mode
-    const family = THEME_TO_FAMILY[instanceDefault.value] ?? 'classic';
-    const variants = FAMILY_VARIANTS[family] ?? FAMILY_VARIANTS.classic!;
-    const newTheme = dark ? variants.dark : variants.light;
+    // Built-in family flip is purely client-side for snappy UX.
+    // Custom/registered themes need a server round-trip on next nav
+    // (the server reads the new cookie and picks the right pair).
+    if (THEME_TO_FAMILY[instanceDefault.value]) {
+      const family = THEME_TO_FAMILY[instanceDefault.value]!;
+      const variants = FAMILY_VARIANTS[family] ?? FAMILY_VARIANTS.classic!;
+      const newTheme = dark ? variants.dark : variants.light;
+      themeId.value = newTheme;
 
-    themeId.value = newTheme;
-
-    if (import.meta.client) {
-      applyThemeToElement(document.documentElement, newTheme);
-
-      // Persist to DB for cross-device sync (fire-and-forget, cookie is primary)
+      if (import.meta.client) {
+        applyThemeToElement(document.documentElement, newTheme);
+        $fetch('/api/profile/theme', {
+          method: 'PUT',
+          body: { themeId: newTheme },
+        }).catch(() => {});
+      }
+    } else if (import.meta.client) {
+      // Custom theme: just persist preference; server will pick the variant on next request
       $fetch('/api/profile/theme', {
         method: 'PUT',
-        body: { themeId: newTheme },
-      }).catch(() => {
-        // Not logged in or network error — cookie preference is sufficient
-      });
+        body: { themeId: instanceDefault.value },
+      }).catch(() => {});
     }
   }
 

@@ -1,2 +1,5 @@
-# Bundled theme CSS (copied from packages/ui/theme at publish time)
-theme/
+# Bundled theme CSS (copied from packages/ui/theme at publish time).
+# Leading slash anchors to the root of this layer — without it, ANY
+# subdirectory called `theme/` gets ignored, which catches admin theme
+# component/page dirs.
+/theme/

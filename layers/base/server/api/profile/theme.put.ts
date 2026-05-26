@@ -1,8 +1,9 @@
 import { setUserTheme } from '@commonpub/server';
 import { z } from 'zod';
 
+// Permissive length: `cpub-custom-<slug>` can be longer than 32 chars.
 const themeSchema = z.object({
-  themeId: z.string().min(1).max(32),
+  themeId: z.string().min(1).max(96).regex(/^[a-z0-9][a-z0-9_-]*$/i),
 });
 
 export default defineEventHandler(async (event): Promise<{ success: boolean }> => {
