@@ -43,6 +43,9 @@ export * from './federation.js';
 // Admin
 export * from './admin.js';
 
+// Layout engine (session 155+)
+export * from './layout.js';
+
 // Public API (admin-managed access keys)
 export * from './publicApi.js';
 
