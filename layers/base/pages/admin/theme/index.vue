@@ -244,6 +244,28 @@ function recheckDiscovery(): void {
   discovery.value = detectAppliedOverrides();
 }
 
+/**
+ * Only show the "your site has a custom theme" banner when the detected
+ * overrides are LIKELY from a CSS file shipped by the layer app — NOT from
+ * a custom theme the admin has already saved (which would also appear as
+ * :root token overrides because the SSR middleware injects them there).
+ *
+ * Gating rules:
+ *   - hide when the active default is already a cpub-custom-* theme
+ *   - hide when instance-wide token overrides are set (those tokens explain
+ *     the diff; the banner would confuse the admin into re-capturing them)
+ *   - hide when no overrides were detected
+ *
+ * If admins want to re-capture from a fresh :root state, they can revert
+ * to the base theme, clear overrides, then the banner will reappear.
+ */
+const showDiscoveryBanner = computed<boolean>(() => {
+  if (discovery.value.count === 0) return false;
+  if (instanceDefault.value.startsWith('cpub-custom-')) return false;
+  if (Object.keys(initialOverrides.value).length > 0) return false;
+  return true;
+});
+
 // --- Token overrides (legacy / quick tweaks) ---
 // State + UI live in <AdminThemeOverridesPanel>; this page only persists
 // what the panel emits.
@@ -304,9 +326,12 @@ async function saveOverrides(overrides: Record<string, string>): Promise<void> {
       {{ toast.msg }}
     </div>
 
-    <!-- Discovery banner -->
+    <!-- Discovery banner — only when the overrides are from CSS (not from
+         a custom theme this admin already saved or instance-wide overrides).
+         Without this gate, the banner would re-appear after capture since
+         the custom theme it created now appears as a token override on :root. -->
     <section
-      v-if="discovery.count > 0"
+      v-if="showDiscoveryBanner"
       class="admin-theme-discovery"
       role="region"
       aria-label="Discovered theme tokens"

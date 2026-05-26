@@ -149,7 +149,13 @@ const pairCandidates = computed(() =>
 
 // --- Save / cancel / export -----------------------------------------
 
-async function save(): Promise<void> {
+/**
+ * Save the draft. If `apply` is true, ALSO set this theme as the
+ * instance default in the same await chain — must happen BEFORE the
+ * create-mode router.replace, otherwise the navigation could unmount
+ * the component mid-PUT and lose the apply.
+ */
+async function save({ apply = false }: { apply?: boolean } = {}): Promise<void> {
   saving.value = true;
   error.value = null;
   try {
@@ -163,15 +169,14 @@ async function save(): Promise<void> {
       parentTheme: draft.value.parentTheme,
       tokens: draft.value.tokens,
     };
+
+    let savedId: string;
     if (isCreating) {
       const created = await $fetch('/api/admin/themes', {
         method: 'POST',
         body: payload,
       });
-      notify('Theme created', 'success');
-      dirty.value = false;
-      await themesApi.refresh();
-      router.replace(`/admin/theme/edit/${(created as { id: string }).id}`);
+      savedId = (created as { id: string }).id;
     } else {
       // Cast: Nuxt's typed-route inference for dynamic URLs picks the
       // narrowest method overload (GET) — same workaround used in
@@ -180,9 +185,25 @@ async function save(): Promise<void> {
         `/api/admin/themes/${draft.value.id}`,
         { method: 'PUT', body: payload },
       );
-      notify('Saved', 'success');
-      dirty.value = false;
-      await themesApi.refresh();
+      savedId = draft.value.id;
+    }
+
+    // Apply BEFORE refresh/navigation so the navigate doesn't unmount us
+    // mid-PUT (would lose the apply + the success toast).
+    if (apply) {
+      await $fetch('/api/admin/settings', {
+        method: 'PUT',
+        body: { key: 'theme.default', value: `cpub-custom-${savedId}` },
+      });
+    }
+
+    notify(apply ? 'Saved & applied' : (isCreating ? 'Theme created' : 'Saved'), 'success');
+    dirty.value = false;
+    await themesApi.refresh();
+
+    // Navigate LAST so all the awaits above have observable effects.
+    if (isCreating) {
+      router.replace(`/admin/theme/edit/${savedId}`);
     }
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Save failed';
@@ -194,13 +215,7 @@ async function save(): Promise<void> {
 }
 
 async function applyAndSave(): Promise<void> {
-  await save();
-  if (error.value) return;
-  await $fetch('/api/admin/settings', {
-    method: 'PUT',
-    body: { key: 'theme.default', value: `cpub-custom-${draft.value.id}` },
-  });
-  notify('Saved and applied instance-wide', 'success');
+  await save({ apply: true });
 }
 
 function exportTheme(): void {
@@ -248,9 +263,14 @@ onBeforeUnmount(() => {
 <template>
   <div class="theme-editor">
     <header class="theme-editor-toolbar">
-      <button class="cpub-btn cpub-btn-sm theme-editor-back" @click="cancel">
+      <button
+        class="cpub-btn cpub-btn-sm theme-editor-back"
+        :title="dirty ? 'You have unsaved changes' : 'Back to themes list'"
+        @click="cancel"
+      >
         <i class="fa-solid fa-arrow-left" aria-hidden="true" />
         <span>Themes</span>
+        <span v-if="dirty" class="theme-editor-dirty-dot" aria-label="unsaved changes"></span>
       </button>
 
       <div class="theme-editor-meta">
@@ -329,11 +349,13 @@ onBeforeUnmount(() => {
         <button class="cpub-btn cpub-btn-sm" @click="exportTheme" title="Download .cpub-theme.json">
           <i class="fa-solid fa-file-export" aria-hidden="true" /> Export
         </button>
-        <button class="cpub-btn cpub-btn-sm" :disabled="saving || !dirty" @click="save">
-          <i class="fa-solid fa-floppy-disk" aria-hidden="true" /> Save
+        <button class="cpub-btn cpub-btn-sm" :disabled="saving || !dirty" @click="() => save()">
+          <i :class="['fa-solid', saving ? 'fa-circle-notch fa-spin' : 'fa-floppy-disk']" aria-hidden="true" />
+          {{ saving ? 'Saving…' : 'Save' }}
         </button>
         <button class="cpub-btn cpub-btn-sm cpub-btn-primary" :disabled="saving" @click="applyAndSave">
-          <i class="fa-solid fa-rocket" aria-hidden="true" /> Save &amp; apply
+          <i :class="['fa-solid', saving ? 'fa-circle-notch fa-spin' : 'fa-rocket']" aria-hidden="true" />
+          {{ saving ? 'Applying…' : 'Save & apply' }}
         </button>
       </div>
     </header>
@@ -406,7 +428,33 @@ onBeforeUnmount(() => {
   flex-wrap: wrap;
 }
 
-.theme-editor-back { flex-shrink: 0; }
+.theme-editor-back {
+  flex-shrink: 0;
+  position: relative;
+}
+
+.theme-editor-dirty-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background: var(--accent);
+  border-radius: var(--radius-full);
+  margin-left: 4px;
+  /* Subtle pulse so it draws the eye without being noisy */
+  animation: theme-editor-dirty-pulse 2s ease-in-out infinite;
+}
+
+@keyframes theme-editor-dirty-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .theme-editor-dirty-dot { animation: none; }
+}
+
+.theme-editor-input-name {
+  font-weight: var(--font-weight-semibold);
+}
 
 .theme-editor-meta {
   display: flex;

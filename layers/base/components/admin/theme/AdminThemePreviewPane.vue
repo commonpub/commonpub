@@ -39,6 +39,37 @@ const activeScene = ref<SceneOption['id']>('gallery');
 const previewMode = ref<'light' | 'dark'>(props.isDark ? 'dark' : 'light');
 
 /**
+ * Map every parent-theme id to its family's light + dark variant. Mirrors
+ * `layers/base/utils/themeConfig.ts` THEME_TO_FAMILY + FAMILY_VARIANTS,
+ * inlined here so the preview pane doesn't need to import the SSR-side
+ * utils. Custom-theme parents (`cpub-custom-*`) and any unknown id fall
+ * back to the classic family — the user's tokens override on top regardless.
+ */
+const FAMILY_VARIANT_OF: Record<string, { light: string; dark: string }> = {
+  base: { light: 'base', dark: 'dark' },
+  dark: { light: 'base', dark: 'dark' },
+  agora: { light: 'agora', dark: 'agora-dark' },
+  'agora-dark': { light: 'agora', dark: 'agora-dark' },
+  generics: { light: 'generics', dark: 'generics' },
+};
+
+/**
+ * The actual `data-theme` attribute applied to the preview surface,
+ * resolved from `parentTheme` + `previewMode`. Returns `undefined` for the
+ * base/light case (no attribute = `:root` rules apply natively, matching
+ * the convention used by `applyThemeToElement` elsewhere).
+ *
+ * **Bug fix from 0.22.0**: previously `:data-theme="parentTheme"` was
+ * hardcoded, so the Light/Dark toggle updated a ref but never re-rendered
+ * the preview. Now the toggle actually swaps the rendered theme.
+ */
+const effectiveDataTheme = computed<string | undefined>(() => {
+  const variants = FAMILY_VARIANT_OF[props.parentTheme] ?? FAMILY_VARIANT_OF.base!;
+  const v = previewMode.value === 'dark' ? variants.dark : variants.light;
+  return v === 'base' ? undefined : v;
+});
+
+/**
  * Build the inline style string scoped to the preview surface. We apply
  * tokens to the wrapper element only — that scopes the in-progress theme
  * to the preview and avoids leaking it into the surrounding admin UI.
@@ -102,7 +133,7 @@ const previewStyle = computed(() => {
 
     <div
       class="theme-preview-surface"
-      :data-theme="parentTheme"
+      :data-theme="effectiveDataTheme"
       :style="previewStyle"
       :data-preview-mode="previewMode"
     >
