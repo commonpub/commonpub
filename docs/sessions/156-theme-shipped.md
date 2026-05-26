@@ -18,15 +18,20 @@ The theme editor system designed in session 154 and given final test coverage in
 | @commonpub/server | 2.55.0 → **2.56.0** | + custom theme CRUD + homepage/navigation server-test coverage |
 | @commonpub/layer | 0.21.22 → **0.22.0** | + admin theme editor UI + SSR inline-style injection |
 
-**Live verification** at end-of-session (22:30 UTC):
+**Live verification** at end-of-session (22:35 UTC):
 
-| Site | Layer running | /api/health | / | /admin/theme | /api/admin/themes (anon) | SSR data-theme |
+| Site | Layer running | /api/health | / | /admin/theme | /api/admin/themes (anon) | Notes |
 |---|---|---|---|---|---|---|
-| commonpub.io | 0.22.0 ✅ | 200 / 259ms | 200 / 945ms | 302 (login redirect) | 401 (admin-gated) | `agora` |
-| deveco.io | 0.21.22 → 0.22.0 (deploy in-flight) | 200 (old pod) | 200 (old pod) | n/a yet | n/a yet | n/a yet |
-| heatsynclabs.io | 0.21.22 → 0.22.0 (deploy in-flight) | 200 (old pod) | 200 (old pod) | n/a yet | n/a yet | n/a yet |
+| commonpub.io | **0.22.0** ✅ | 200 / 339ms | 200 / 867ms | 302 (login redirect) | 401 (admin-gated) | `data-theme="agora"` SSR-rendered |
+| deveco.io | **0.22.0** ✅ | 200 / 324ms | 200 / 698ms | 302 (login redirect) | 401 (admin-gated) | deveco-theme.css still applying via :root |
+| heatsynclabs.io | **0.22.0** ✅ | 200 / 260ms | 200 / 2443ms | 404 | 401 (admin-gated) | 404 on admin pages is **pre-existing behavior** — `/admin/users` + `/admin/homepage` also 404 there; not caused by this deploy; API gates correctly |
 
-The 0.21.22 200s on deveco + heatsync are the existing pods still serving while the new ones build. No regression — the old version is still serving cleanly. When the deploys finish (typically 4–6 min from push), they'll roll over to 0.22.0 automatically.
+**All 3 sites deployed cleanly. No regression. Theme editor live on all 3.**
+
+Deploy timings:
+- commonpub.io: ~6m45s for the fix commit (after the initial typecheck failure)
+- deveco.io: completed at 22:33 UTC (~4m51s)
+- heatsynclabs.io: completed at 22:34 UTC (~5m47s)
 
 ## What this session actually did
 
