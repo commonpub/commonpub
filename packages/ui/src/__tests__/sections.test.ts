@@ -208,14 +208,20 @@ describe('migrateSectionConfig', () => {
   });
 
   it('runs a multi-step migration chain', () => {
+    // The migrations Record<number, fn -> TConfig> is strictly typed, but
+    // intermediate migration steps produce intermediate shapes — they're only
+    // type-safe IN AGGREGATE once the chain completes. The `as never` cast on
+    // intermediate steps mirrors the same escape used for defaultConfig +
+    // configSchema above (vue-tsc strict mode catches this where vitest
+    // doesn't — caught when CI ran the repo's `vue-tsc --noEmit` step).
     const v3Def: SectionDefinition<{ headline: string; subline: string }> = {
       ...heroDef,
       schemaVersion: 3,
       defaultConfig: { headline: '', subline: '' } as never,
       configSchema: z.object({ headline: z.string(), subline: z.string() }) as never,
       migrations: {
-        2: (old) => ({ headline: (old.title as string | undefined) ?? '' }),
-        3: (old) => ({ headline: old.headline as string, subline: '' }),
+        2: ((old: Record<string, unknown>) => ({ headline: (old.title as string | undefined) ?? '' })) as never,
+        3: ((old: Record<string, unknown>) => ({ headline: old.headline as string, subline: '' })) as never,
       },
     };
     const result = migrateSectionConfig(v3Def, { title: 'Old title' }, 1);
@@ -229,9 +235,9 @@ describe('migrateSectionConfig', () => {
       schemaVersion: 3,
       defaultConfig: { headline: '', subline: '' } as never,
       configSchema: z.object({ headline: z.string(), subline: z.string() }) as never,
-      // step 2 present, step 3 missing
+      // step 2 present, step 3 missing — see comment in chain test above
       migrations: {
-        2: (old) => ({ headline: (old.title as string | undefined) ?? '' }),
+        2: ((old: Record<string, unknown>) => ({ headline: (old.title as string | undefined) ?? '' })) as never,
       },
     };
     const result = migrateSectionConfig(v3Def, { title: 'X' }, 1);
