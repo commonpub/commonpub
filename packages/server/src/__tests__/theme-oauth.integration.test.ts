@@ -51,9 +51,14 @@ describe('theme + oauth integration', () => {
       expect(theme).toBe('dark');
     });
 
-    it('rejects invalid theme ID', async () => {
-      await expect(setUserTheme(db, userId, 'invalid-theme')).rejects.toThrow(
-        'Invalid theme ID: invalid-theme',
+    it('accepts slug-shaped theme IDs (custom + code-registered themes)', async () => {
+      // After custom-theme support landed, the structural check is the only
+      // pure-server guard — cross-checking against actual available themes
+      // happens at the API layer (where the runtime config is reachable).
+      // `invalid-theme` IS structurally valid; bad strings still throw.
+      await expect(setUserTheme(db, userId, 'invalid-theme')).resolves.toBeUndefined();
+      await expect(setUserTheme(db, userId, '../../../etc/passwd')).rejects.toThrow(
+        /Invalid theme ID/,
       );
     });
   });

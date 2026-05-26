@@ -333,7 +333,19 @@ export { publishSseEvent, subscribeSseEvents, realtimeChannel, resetRealtimeForT
 export type { SseEventPayload } from './realtime/index.js';
 
 // Theme
-export { resolveTheme, getCustomTokenOverrides, setUserTheme } from './theme.js';
+export {
+  resolveTheme,
+  getCustomTokenOverrides,
+  setUserTheme,
+  listCustomThemes,
+  getCustomTheme,
+  saveCustomTheme,
+  deleteCustomTheme,
+  customThemeDataAttr,
+  parseCustomThemeId,
+  CUSTOM_THEME_PREFIX,
+} from './theme.js';
+export type { CustomThemeRecord } from './theme.js';
 
 // Federation
 export {
