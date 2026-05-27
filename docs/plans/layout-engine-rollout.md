@@ -144,7 +144,8 @@ Goal: admin can drag sections from a palette onto rows + reorder within rows.
 | 2026-05-27 | Custom-html ships unsanitised + status:'beta' | Matches legacy security baseline; Phase 6b adds DOMPurify at admin-write |
 | 2026-05-27 | Auto-fallback: `layoutEngineActive = flag && layout !== null` | Prevents blank-page when flag flipped without seeded layout |
 | 2026-05-27 | Hold publish + rollout per user direction (post-canary) | Let commonpub.io soak for a day |
-| (NEW) | Resume — start with Stage A | User said keep going |
+| 2026-05-27 | Resume autonomous execution per user direction "keep going" | Stages A-C shipped 16 commits + Phase 2 catch-all |
+| 2026-05-27 | Catch-all uses `await useFetch` not useLayout | useLayout's non-await pattern returned null at setup; the sync check throw fired before SSR data settled. P0 latent bug found in audit, fixed in 0473313 |
 
 ---
 
@@ -184,3 +185,4 @@ These came up THIS session and will likely come up again during rollout:
 - [[feedback-nuxt-env-only-declared-keys]] — env vars only propagate to `runtimeConfig.public.X` keys declared in nuxt.config.ts. Drift between FeatureFlags type and nuxt.config = silently-ignored env vars.
 - [[feedback-usefetch-query-function]] — `query: { k: fn }` serialises function as undefined → 400 → null. Wrap in `computed()`.
 - Dockerfile @commonpub/* exposure — `RUN rm -rf ./node_modules/@commonpub/{schema,server}` then COPY dist + package.json. MUST be AFTER `npm install` (npm prunes anything not in package.json). Subpath imports like `@commonpub/server/layout/migrate-homepage` bypass index.js's transitive workspace deps. (commonpub-only — heatsync uses npm install which copies real files.)
+- **useLayout vs await useFetch in pages** — `useLayout('/x')` returns refs without internally awaiting. If a page does sync logic against `.value` in setup (early `throw createError(404)` or similar), the data is null at that point because Nuxt's SSR data coordination awaits AFTER setup returns. For sync-in-setup access, use `await useFetch('/api/layouts/by-route', ...)` directly. Pages are Suspense-wrapped — top-level await is safe. Composables that don't need sync access can keep using useLayout. Bug caught by session 159 audit (commit 0473313).
