@@ -115,6 +115,77 @@ describe('layer section registry — built-in registrations', () => {
     expect(def.configSchema.safeParse({ ...def.defaultConfig, columns: 2 }).success).toBe(true);
   });
 
+  // --- Session 159 — full legacy parity sections --------------------------
+
+  it('session-159 sections (editorial, stats, hubs, contests, learning, custom-html) are registered', () => {
+    const reg = useSectionRegistry();
+    for (const type of ['editorial', 'stats', 'hubs', 'contests', 'learning', 'custom-html']) {
+      expect(reg.has(type), `${type} should be registered`).toBe(true);
+    }
+  });
+
+  it('editorial section: data category, full-width default, limit 1-12, columns 1-4', () => {
+    const def = useSectionRegistry().get('editorial')!;
+    expect(def.category).toBe('data');
+    expect(def.defaultColSpan).toBe(12);
+    expect(def.minColSpan).toBe(6);
+    expect(def.configSchema.safeParse({ ...def.defaultConfig, limit: 0 }).success).toBe(false);
+    expect(def.configSchema.safeParse({ ...def.defaultConfig, limit: 13 }).success).toBe(false);
+    expect(def.configSchema.safeParse({ ...def.defaultConfig, limit: 12 }).success).toBe(true);
+    expect(def.configSchema.safeParse({ ...def.defaultConfig, columns: 5 }).success).toBe(false);
+  });
+
+  it('stats section: data category, sidebar-friendly default 4, heading-only config', () => {
+    const def = useSectionRegistry().get('stats')!;
+    expect(def.category).toBe('data');
+    expect(def.defaultColSpan).toBe(4);
+    expect(def.minColSpan).toBe(3);
+    // heading is the only field; clamp at 120 char max
+    expect(def.configSchema.safeParse({ heading: 'x'.repeat(121) }).success).toBe(false);
+    expect(def.configSchema.safeParse({ heading: 'x'.repeat(120) }).success).toBe(true);
+    expect(def.configSchema.safeParse({}).success).toBe(true);  // default fills heading
+  });
+
+  it('hubs section: data category, default 4 col, limit clamped 1-20', () => {
+    const def = useSectionRegistry().get('hubs')!;
+    expect(def.category).toBe('data');
+    expect(def.defaultColSpan).toBe(4);
+    expect(def.configSchema.safeParse({ ...def.defaultConfig, limit: 0 }).success).toBe(false);
+    expect(def.configSchema.safeParse({ ...def.defaultConfig, limit: 21 }).success).toBe(false);
+    expect(def.configSchema.safeParse({ ...def.defaultConfig, limit: 20 }).success).toBe(true);
+  });
+
+  it('contests section: data category, default 4 col, limit clamped 1-10', () => {
+    const def = useSectionRegistry().get('contests')!;
+    expect(def.category).toBe('data');
+    expect(def.defaultColSpan).toBe(4);
+    expect(def.configSchema.safeParse({ ...def.defaultConfig, limit: 0 }).success).toBe(false);
+    expect(def.configSchema.safeParse({ ...def.defaultConfig, limit: 11 }).success).toBe(false);
+    expect(def.configSchema.safeParse({ ...def.defaultConfig, limit: 10 }).success).toBe(true);
+  });
+
+  it('learning section: data category, full-width default, limit 1-12, columns 1-4', () => {
+    const def = useSectionRegistry().get('learning')!;
+    expect(def.category).toBe('data');
+    expect(def.defaultColSpan).toBe(12);
+    expect(def.configSchema.safeParse({ ...def.defaultConfig, limit: 0 }).success).toBe(false);
+    expect(def.configSchema.safeParse({ ...def.defaultConfig, limit: 13 }).success).toBe(false);
+    expect(def.configSchema.safeParse({ ...def.defaultConfig, columns: 5 }).success).toBe(false);
+    expect(def.configSchema.safeParse({ ...def.defaultConfig, columns: 3 }).success).toBe(true);
+  });
+
+  it('custom-html section: content category, BETA status (intentional XSS posture)', () => {
+    const def = useSectionRegistry().get('custom-html')!;
+    expect(def.category).toBe('content');
+    // status: 'beta' surfaces the no-runtime-sanitisation warning to the admin
+    // UI. If this flips to 'stable', the section MUST also have its
+    // sanitisation gap closed (see builtin/custom-html.ts header).
+    expect(def.status).toBe('beta');
+    // 50KB cap is a sanity bound, not a security control
+    expect(def.configSchema.safeParse({ heading: '', html: 'x'.repeat(50_001) }).success).toBe(false);
+    expect(def.configSchema.safeParse({ heading: '', html: 'x'.repeat(50_000) }).success).toBe(true);
+  });
+
   // --- URL scheme guards (session 158 audit-fix) -------------------------
 
   it('hero CTA href rejects dangerous URI schemes (stored-XSS surface)', () => {
@@ -204,7 +275,7 @@ describe('layer section registry — built-in registrations', () => {
     // hardcoded colors are how non-zero --radius / dark-mode themes leak.
     const sectionsDir = resolve(__dirname, '../../components/sections');
     const files = readdirSync(sectionsDir).filter((f) => f.endsWith('.vue'));
-    expect(files.length).toBeGreaterThanOrEqual(6);  // divider + 5 starters
+    expect(files.length).toBeGreaterThanOrEqual(12);  // divider + 5 starters + 6 session-159 sections
 
     const offenders: Array<{ file: string; match: string }> = [];
     for (const file of files) {

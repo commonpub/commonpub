@@ -29,26 +29,46 @@ import { paragraphSection } from './builtin/paragraph';
 import { imageSection } from './builtin/image';
 import { heroSection } from './builtin/hero';
 import { contentFeedSection } from './builtin/content-feed';
+import { editorialSection } from './builtin/editorial';
+import { statsSection } from './builtin/stats';
+import { hubsSection } from './builtin/hubs';
+import { contestsSection } from './builtin/contests';
+import { learningSection } from './builtin/learning';
+import { customHtmlSection } from './builtin/custom-html';
 
 // Singleton — registered once at module load. Vue/Nuxt's setup() runs
 // per-component, but module load is once per app process. Safe.
 const registry = new SectionRegistry();
 
 // --- Built-in registrations -----------------------------------------------
-// Phase 1c starter catalog: divider (proof-of-life) + 5 sections covering
-// the four leading categories — layout (hero, divider), content (heading,
-// paragraph, image), and data (content-feed).
+// Phase 1c full catalog (session 159): divider (proof-of-life) + 11
+// sections covering the four leading categories — layout (hero,
+// divider), content (heading, paragraph, image, custom-html), and data
+// (content-feed, editorial, stats, hubs, contests, learning).
 //
-// Phase 6b adds the remaining 20 types (gallery, video, embed, spacer,
-// cta, featured-content, content-card, contest-list, hub-list, event-list,
-// member-list, stats-grid, contact-form, newsletter, announcement,
-// markdown, custom-html, iframe, editorial). See docs/plans/layout-and-pages.md §3.4.
+// With the addition of editorial / stats / hubs / contests / learning /
+// custom-html this session, every section type the legacy
+// `homepage.sections` JSON dispatches to (HomepageSectionRenderer.vue)
+// is now representable as a registered section — unblocking the real
+// legacy-homepage migration (Phase 1c step 3 in the session-158 handoff).
+//
+// Phase 6b will add the remaining 18 types (gallery, video, embed,
+// spacer, cta, featured-content, content-card, contest-list, hub-list,
+// event-list, member-list, stats-grid, contact-form, newsletter,
+// announcement, markdown, iframe, content-grid alias). See
+// docs/plans/layout-and-pages.md §3.4.
 registry.register(dividerSection);
 registry.register(heroSection);
 registry.register(headingSection);
 registry.register(paragraphSection);
 registry.register(imageSection);
 registry.register(contentFeedSection);
+registry.register(editorialSection);
+registry.register(statsSection);
+registry.register(hubsSection);
+registry.register(contestsSection);
+registry.register(learningSection);
+registry.register(customHtmlSection);
 
 /**
  * Read-only accessor — the layer's standard pattern for shared state.
