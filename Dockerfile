@@ -24,26 +24,26 @@ COPY --from=build /app/apps/reference/drizzle.config.js ./drizzle.config.js
 COPY --from=build /app/scripts ./scripts
 COPY --from=build /app/packages/schema/dist ./schema/dist
 COPY --from=build /app/packages/schema/migrations ./schema/migrations
-# CLI scripts that import @commonpub/server or @commonpub/schema (e.g.
-# scripts/migrate-homepage-layout.mjs) need these resolvable at runtime.
-# Nuxt's nitro bundles them into .output for the HTTP path, but standalone
-# `node scripts/*.mjs` invocations get plain ESM resolution.
+# Install drizzle-kit + deps for schema push (drizzle-kit needs drizzle-orm + pg driver, schema imports zod)
+# type:module required because schema dist files use ES module syntax
+RUN echo '{"private":true,"type":"module"}' > package.json && npm install --no-save drizzle-kit@0.31.10 drizzle-orm pg zod
+# After the npm install — npm prunes anything not in the freshly-created
+# package.json + the deps we just asked for ("removed 11 packages" in
+# the build log). That means the @commonpub/* symlinks copied from
+# apps/reference/node_modules get reaped. Re-install the two we need
+# AFTER npm is done so they survive: wipe-then-COPY drops a real dir
+# (vs the original dangling symlink at the path) and stays put because
+# npm won't run again.
 #
-# IMPORTANT: apps/reference/node_modules/@commonpub/ contains pnpm
-# workspace symlinks like `server -> ../../../../packages/server` which
-# point to nonexistent paths in this runtime image (packages/ wasn't
-# COPYed). Without removing them first, the COPY lines below either
-# follow the dangling symlinks (writing into nowhere) or get clobbered
-# by the subsequent npm install cleanup. Wipe + recreate as real dirs.
+# Why: CLI scripts like scripts/migrate-homepage-layout.mjs do plain
+# ESM resolution (vs. Nuxt's nitro bundle, which inlines workspace
+# packages into chunks at build time).
 RUN rm -rf ./node_modules/@commonpub/schema ./node_modules/@commonpub/server
 COPY --from=build /app/packages/schema/package.json ./node_modules/@commonpub/schema/package.json
 COPY --from=build /app/packages/schema/dist ./node_modules/@commonpub/schema/dist
 COPY --from=build /app/packages/schema/migrations ./node_modules/@commonpub/schema/migrations
 COPY --from=build /app/packages/server/package.json ./node_modules/@commonpub/server/package.json
 COPY --from=build /app/packages/server/dist ./node_modules/@commonpub/server/dist
-# Install drizzle-kit + deps for schema push (drizzle-kit needs drizzle-orm + pg driver, schema imports zod)
-# type:module required because schema dist files use ES module syntax
-RUN echo '{"private":true,"type":"module"}' > package.json && npm install --no-save drizzle-kit@0.31.10 drizzle-orm pg zod
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV NITRO_PORT=3000
