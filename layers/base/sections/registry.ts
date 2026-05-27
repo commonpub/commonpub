@@ -35,6 +35,11 @@ import { hubsSection } from './builtin/hubs';
 import { contestsSection } from './builtin/contests';
 import { learningSection } from './builtin/learning';
 import { customHtmlSection } from './builtin/custom-html';
+import { ctaSection } from './builtin/cta';
+import { markdownSection } from './builtin/markdown';
+import { gallerySection } from './builtin/gallery';
+import { videoSection } from './builtin/video';
+import { embedSection } from './builtin/embed';
 
 // Singleton — registered once at module load. Vue/Nuxt's setup() runs
 // per-component, but module load is once per app process. Safe.
@@ -69,6 +74,12 @@ registry.register(hubsSection);
 registry.register(contestsSection);
 registry.register(learningSection);
 registry.register(customHtmlSection);
+// Phase 6b additions (session 159)
+registry.register(ctaSection);
+registry.register(markdownSection);
+registry.register(gallerySection);
+registry.register(videoSection);
+registry.register(embedSection);
 
 /**
  * Read-only accessor — the layer's standard pattern for shared state.

@@ -186,6 +186,71 @@ describe('layer section registry — built-in registrations', () => {
     expect(def.configSchema.safeParse({ heading: '', html: 'x'.repeat(50_000) }).success).toBe(true);
   });
 
+  // --- Session 159 Stage C — Phase 6b additions ---------------------------
+
+  it('Phase 6b sections (cta, markdown, gallery, video, embed) are registered', () => {
+    const reg = useSectionRegistry();
+    for (const type of ['cta', 'markdown', 'gallery', 'video', 'embed']) {
+      expect(reg.has(type), `${type} should be registered`).toBe(true);
+    }
+  });
+
+  it('cta section: content category, button URL guard rejects javascript: hrefs', () => {
+    const def = useSectionRegistry().get('cta')!;
+    expect(def.category).toBe('content');
+    expect(def.configSchema.safeParse({
+      ...def.defaultConfig,
+      buttons: [{ label: 'X', href: 'javascript:alert(1)', variant: 'primary' }],
+    }).success).toBe(false);
+    expect(def.configSchema.safeParse({
+      ...def.defaultConfig,
+      buttons: [{ label: 'X', href: '/safe', variant: 'primary' }],
+    }).success).toBe(true);
+    // Max 3 buttons
+    const fourBtn = Array(4).fill({ label: 'X', href: '/x', variant: 'primary' });
+    expect(def.configSchema.safeParse({ ...def.defaultConfig, buttons: fourBtn }).success).toBe(false);
+  });
+
+  it('markdown section: content category, body length capped at 100KB', () => {
+    const def = useSectionRegistry().get('markdown')!;
+    expect(def.category).toBe('content');
+    expect(def.configSchema.safeParse({ heading: '', body: 'x'.repeat(100_001) }).success).toBe(false);
+    expect(def.configSchema.safeParse({ heading: '', body: 'x'.repeat(100_000) }).success).toBe(true);
+  });
+
+  it('gallery section: content category, columns 2-5 only, 20-item cap', () => {
+    const def = useSectionRegistry().get('gallery')!;
+    expect(def.category).toBe('content');
+    expect(def.configSchema.safeParse({ ...def.defaultConfig, columns: 1 }).success).toBe(false);
+    expect(def.configSchema.safeParse({ ...def.defaultConfig, columns: 6 }).success).toBe(false);
+    for (const c of [2, 3, 4, 5]) {
+      expect(def.configSchema.safeParse({ ...def.defaultConfig, columns: c }).success).toBe(true);
+    }
+    // 20-cap
+    const twentyOne = Array(21).fill({ src: '/x.jpg', alt: '', caption: '', href: '' });
+    expect(def.configSchema.safeParse({ ...def.defaultConfig, items: twentyOne }).success).toBe(false);
+  });
+
+  it('video section: src must be http(s) or relative; SAFE_VIDEO_URL rejects javascript: + data:', () => {
+    const def = useSectionRegistry().get('video')!;
+    expect(def.configSchema.safeParse({ ...def.defaultConfig, src: 'javascript:alert(1)' }).success).toBe(false);
+    expect(def.configSchema.safeParse({ ...def.defaultConfig, src: 'data:text/html,x' }).success).toBe(false);
+    expect(def.configSchema.safeParse({ ...def.defaultConfig, src: '/uploads/x.mp4' }).success).toBe(true);
+    expect(def.configSchema.safeParse({ ...def.defaultConfig, src: 'https://youtube.com/x' }).success).toBe(true);
+  });
+
+  it('embed section: content category, BETA status (sandbox policy still being tuned)', () => {
+    const def = useSectionRegistry().get('embed')!;
+    expect(def.category).toBe('content');
+    expect(def.status).toBe('beta');
+    expect(def.configSchema.safeParse({ ...def.defaultConfig, src: 'not-a-url' }).success).toBe(false);
+    expect(def.configSchema.safeParse({ ...def.defaultConfig, src: 'https://twitter.com/x' }).success).toBe(true);
+    // height clamp
+    expect(def.configSchema.safeParse({ ...def.defaultConfig, src: 'https://x.com/y', height: 100 }).success).toBe(false);
+    expect(def.configSchema.safeParse({ ...def.defaultConfig, src: 'https://x.com/y', height: 2001 }).success).toBe(false);
+    expect(def.configSchema.safeParse({ ...def.defaultConfig, src: 'https://x.com/y', height: 500 }).success).toBe(true);
+  });
+
   // --- URL scheme guards (session 158 audit-fix) -------------------------
 
   it('hero CTA href rejects dangerous URI schemes (stored-XSS surface)', () => {
@@ -275,7 +340,7 @@ describe('layer section registry — built-in registrations', () => {
     // hardcoded colors are how non-zero --radius / dark-mode themes leak.
     const sectionsDir = resolve(__dirname, '../../components/sections');
     const files = readdirSync(sectionsDir).filter((f) => f.endsWith('.vue'));
-    expect(files.length).toBeGreaterThanOrEqual(12);  // divider + 5 starters + 6 session-159 sections
+    expect(files.length).toBeGreaterThanOrEqual(17);  // divider + 5 starters + 6 session-159 sections + 5 Phase 6b (cta, markdown, gallery, video, embed)
 
     const offenders: Array<{ file: string; match: string }> = [];
     for (const file of files) {
