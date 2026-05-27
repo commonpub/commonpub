@@ -2,8 +2,9 @@
 
 > **Living document.** Updated as each phase completes. Source of truth for the unification effort that fixes the "I built parallel renderers instead of reusing existing components" mistake from sessions 158-9.
 
-**Started**: session 159 (commit pending)
-**Status**: Phase E.0 in progress
+**Started**: session 159 commit 610e17f
+**Completed**: session 159 commit d669bc8 — verified live on commonpub.io (layout 99f2bc3e, 5 sections via existing HomepageX components, real hero copy via HeroSection.vue, sidebar `.cpub-sb-card` markers present, Load more button rendered by ContentGridSection's existing pagination)
+**Status**: ✅ Phase E.0-E.4 shipped. E.5 migration-shape update made unnecessary (Zod strips unknown fields, unified components ignore extras). Memory + handoff updates pending.
 
 ---
 

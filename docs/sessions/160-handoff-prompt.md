@@ -8,20 +8,32 @@ Paste the prompt block below (everything between the `---` rules) into the new s
 >
 > 1. **Read `CLAUDE.md`** — standing rules. Rule #15: NEVER add AI attribution to git artifacts.
 > 2. **Read memory** — `MEMORY.md` index in `~/.claude/projects/-Users-obsidian-Projects-ossuary-projects-commonpub/memory/`. Top of mind:
->    - `project-session-159-canary` — the big one. Captures the full autonomous run (16 commits + 3 stages) that landed Phase 1c canary + Phase 2 catch-all + 5 Phase 6b sections.
->    - New feedback from session 159: `feedback-nuxt-env-only-declared-keys`, `feedback-usefetch-query-function`.
+>    - `project-session-159-canary` — captures Phase 1c canary + Phase 2 catch-all + 5 Phase 6b sections.
+>    - **Critical**: `feedback-reuse-existing-components` — Stage E reversed the "I built parallel renderers" mistake from sessions 158-9. 16 duplicate Section*.vue files deleted; section registry now points at existing Block + Homepage components via propMap. **Read this BEFORE adding any new section type.**
+>    - New feedback from session 159: `feedback-nuxt-env-only-declared-keys`, `feedback-usefetch-query-function`, `feedback-reuse-existing-components`.
 >    - `feedback-deployment-architecture` — per-droplet SSH keys + paths. commonpub uses `~/.ssh/id_ed25519`; heatsync uses `/Users/obsidian/Projects/heatsync/heatsynclabs-io/secrets/ci_deploy_ed25519`; deveco uses default key. All `root@<host>`. I have doctl access too (account hackbuildvideo@gmail.com).
 >    - Standing publish rules: `feedback-pnpm-publish-layer`, `feedback-npm-propagation-lag`, `feedback-caret-semver-0x-minor-bump`, `feedback-vue-tsc-strict-vs-vitest`, `feedback-no-coauthor`.
-> 3. **Read the rollout plan tracker** — `docs/plans/layout-engine-rollout.md`. Living document. Stages A-C done; D-J still open. Decision log + memory-of-gotchas at the bottom.
-> 4. **Read the previous session log** — `docs/sessions/159-canary-shipped.md` for the full Phase 1c canary arc. `docs/sessions/159-phase-1c-section-completion.md` for the section-build details.
+> 3. **Read the rollout plan tracker** — `docs/plans/layout-engine-rollout.md`. Living document. Stages A-D done; E-J open. Decision log + memory-of-gotchas at the bottom.
+> 4. **Read the Stage E unification plan** — `docs/plans/stage-e-unification.md`. Documents the cleanup. Section registry NOW points at existing Block + Homepage components via `propMap`. When the user says "add a section type", FIRST check existing components.
+> 5. **Read the previous session log** — `docs/sessions/159-canary-shipped.md` for the full Phase 1c canary arc.
 >
 > **End-of-session-159 state** (everything I should ALREADY be on top of):
 >
 > | Site | Layer | Phase 1c rendering | Custom-page catch-all | Health |
 > |---|---|---|---|---|
-> | commonpub.io | workspace `main` (latest 0473313) | **LayoutSlot — 7 sections, homepage live** | Live + verified end-to-end via canary seed | ✓ 200 |
+> | commonpub.io | workspace `main` (latest d669bc8) | **LayoutSlot — 5 sections via existing HomepageX components (Stage E unified)** | Live + verified end-to-end | ✓ 200 |
 > | heatsynclabs.io | npm `@commonpub/layer@0.24.0` | legacy renderer; dormant infra | Catch-all code shipped, untested on this site | ✓ 200 |
 > | deveco.io | npm `@commonpub/layer@0.24.0` | legacy renderer; dormant infra | Catch-all code shipped, untested on this site | ✓ 200 |
+>
+> **Stage E (session 159 close)**: section registry no longer has parallel renderers. 16 duplicate Section*.vue files deleted; remaining 2 are genuinely-new (`SectionCta.vue`, `SectionLearning.vue`). Layout-engine now arranges existing Block + Homepage components via `propMap`. Commonpub.io's homepage renders via:
+> - hero → HeroSection (homepage)
+> - editorial → EditorialSection
+> - content-feed → ContentGridSection (already had pagination)
+> - contests → ContestsSection
+> - hubs → HubsSection
+> - stats → StatsSection
+> - custom-html → CustomHtmlSection
+> Plus block primitives: heading → BlockHeadingView, paragraph → BlockTextView, image → BlockImageView, divider → BlockDividerView (extended for variant/spacing), gallery → BlockGalleryView, video → BlockVideoView, embed → BlockEmbedView, markdown → BlockMarkdownView
 >
 > **Published npm**:
 > - `@commonpub/server@2.58.0` — adds migrateHomepageSectionsToLayout, validateCustomPageScope, pathNormalize, `./layout/*` subpath export
@@ -36,12 +48,18 @@ Paste the prompt block below (everything between the `---` rules) into the new s
 > for u in https://commonpub.io https://deveco.io https://heatsynclabs.io; do
 >   echo "  $u/api/health = $(curl -s -o /dev/null -w "%{http_code}" $u/api/health)"
 > done
-> # commonpub.io should be rendering via LayoutSlot:
-> curl -sS https://commonpub.io/ | grep -oE 'cpub-section-(hero|editorial|content-feed|stats|hubs|contests)' | sort -u
+> # commonpub.io should be rendering via LayoutSlot + the existing HomepageX
+> # components (Stage E unification — NOT my deleted Section* duplicates):
+> curl -sS https://commonpub.io/ | grep -oE 'cpub-(hero-banner|content-grid|sb-card|btn-load-more|layout-(row|section))' | sort | uniq -c
+> # ^ expect: cpub-hero-banner (HeroSection class) + cpub-sb-card (sidebar)
+> # + cpub-btn-load-more (ContentGridSection pagination) + cpub-layout-row/section
+> # (LayoutSlot wrappers). If you see cpub-section-hero / cpub-section-editorial
+> # etc., the section registry has REGRESSED to using my deleted duplicates.
+> #
 > # catch-all on unknown path returns 404:
 > curl -s -o /dev/null -w '/nonexistent = %{http_code}\n' https://commonpub.io/nonexistent
 > ```
-> All sites should be 200. Section markers should show all 6 types. Catch-all 404.
+> All sites should be 200. Catch-all 404.
 >
 > ---
 >
