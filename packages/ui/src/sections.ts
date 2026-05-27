@@ -59,8 +59,38 @@ export interface SectionDefinition<TConfig extends Record<string, unknown> = Rec
   defaultConfig: TConfig;
   /** Current schema version. Bump when configSchema breaks. */
   schemaVersion: number;
-  /** Renderer Vue component. Receives `{ config: TConfig; meta: SectionRenderMeta }`. */
+  /**
+   * Renderer Vue component. Default contract: receives
+   * `{ config: TConfig; meta: SectionRenderMeta }`. Override the prop
+   * shape via `propMap` (below) when pointing at an existing reusable
+   * component (e.g. a Block*View or a homepage *Section.vue) that has
+   * its own established prop contract.
+   */
   component: Component;
+  /**
+   * Optional prop transform — maps the standard `{config, meta}` shape
+   * to whatever the target `component` actually expects. Use this when
+   * reusing an existing component (Block*View takes `{content}`;
+   * HeroSection.vue takes `{config: HomepageSectionConfig}`; etc.) so
+   * we don't write redundant Section*.vue adapters.
+   *
+   * Default: identity — passes `{config, meta}` unchanged.
+   *
+   * Example:
+   *   component: BlockHeadingView,
+   *   propMap: ({ config }) => ({ content: config }),
+   *
+   * Lesson from session 159: layout engine = arranger for existing
+   * components. See `feedback-reuse-existing-components` memory +
+   * `docs/plans/stage-e-unification.md`.
+   *
+   * Type note: NOT tied to TConfig — most propMaps just route config
+   * without caring about its specific shape, and tying to TConfig
+   * makes SectionDefinition incompatible with spread+override patterns
+   * (test fixtures pulling a base def into a different TConfig).
+   * configSchema validates the shape at runtime.
+   */
+  propMap?: (props: { config: Record<string, unknown>; meta: SectionRenderMeta }) => Record<string, unknown>;
   /** Optional migrations: oldVersion → newConfig. */
   migrations?: Record<number, (oldConfig: Record<string, unknown>) => TConfig>;
   /** Feature flag that must be ON for this section to appear in the palette. */

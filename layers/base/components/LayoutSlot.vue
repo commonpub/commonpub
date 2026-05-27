@@ -99,6 +99,34 @@ function resolveColSpan(s: LayoutSection, viewport: 'lg' | 'md' | 'sm'): number 
   // Mobile default 12 unless explicitly overridden
   return s.responsive?.sm ?? 12;
 }
+
+/**
+ * Build the props bag to pass to the section's component. Default shape
+ * is `{ config, meta }` (the SectionRenderProps contract). Sections
+ * registered with a `propMap` use that to adapt the shape — primarily
+ * to reuse existing components (Block*View, homepage *Section) without
+ * writing parallel Section*.vue renderers.
+ *
+ * See packages/ui/src/sections.ts:SectionDefinition.propMap.
+ */
+function resolveSectionProps(section: LayoutSection): Record<string, unknown> {
+  const def = sectionRegistry.get(section.type);
+  if (!def) return {};
+  const standardProps = {
+    config: section.config,
+    meta: {
+      route: props.route,
+      zone: props.zone,
+      isPreview: !!props.previewOverride,
+      effectiveColSpan: resolveColSpan(section, 'lg'),
+      sectionId: section.id,
+    },
+  };
+  // propMap is optional — if absent, pass the standard shape through.
+  // If present, it takes the standard props and returns the shape the
+  // target component expects (e.g., for BlockHeadingView: `{ content: config }`).
+  return def.propMap ? def.propMap(standardProps) : standardProps;
+}
 </script>
 
 <template>
@@ -150,17 +178,19 @@ function resolveColSpan(s: LayoutSection, viewport: 'lg' | 'md' | 'sm'): number 
                end users see nothing for the section (an unknown section
                shouldn't leak rendering debug info to the public).
         -->
+        <!--
+          Section render — props resolved via the registry's optional
+          `propMap`. Default (no propMap) → {config, meta}. With propMap,
+          the section definition can adapt the standard shape to whatever
+          the target component expects (e.g. Block*View takes `content`;
+          HomepageHeroSection takes `config: HomepageSectionConfig`).
+          See packages/ui/src/sections.ts:SectionDefinition.propMap +
+          docs/plans/stage-e-unification.md.
+        -->
         <component
           v-if="sectionRegistry.has(section.type)"
           :is="sectionRegistry.get(section.type)!.component"
-          :config="section.config"
-          :meta="{
-            route,
-            zone,
-            isPreview: !!previewOverride,
-            effectiveColSpan: resolveColSpan(section, 'lg'),
-            sectionId: section.id,
-          }"
+          v-bind="resolveSectionProps(section)"
         />
         <div
           v-else

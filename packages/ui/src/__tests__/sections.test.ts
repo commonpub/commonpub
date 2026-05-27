@@ -105,6 +105,28 @@ describe('SectionRegistry.register', () => {
     const reg = new SectionRegistry();
     expect(reg.get('does-not-exist')).toBeNull();
   });
+
+  it('stores propMap when provided (Stage E unification)', () => {
+    const reg = new SectionRegistry();
+    const propMap = ({ config }: { config: Record<string, unknown>; meta: unknown }) => ({
+      content: config,
+    });
+    reg.register({ ...heroDef, propMap });
+    const def = reg.get('hero');
+    expect(def?.propMap).toBe(propMap);
+    // Returns the adapted shape — config becomes content
+    const adapted = def?.propMap?.({
+      config: { title: 'X', variant: 'default' },
+      meta: { route: '/', zone: 'main', isPreview: false, effectiveColSpan: 12, sectionId: 'x' },
+    });
+    expect(adapted).toEqual({ content: { title: 'X', variant: 'default' } });
+  });
+
+  it('propMap is optional — registration works without it', () => {
+    const reg = new SectionRegistry();
+    reg.register(heroDef);  // no propMap
+    expect(reg.get('hero')?.propMap).toBeUndefined();
+  });
 });
 
 describe('SectionRegistry.list / byCategory', () => {
