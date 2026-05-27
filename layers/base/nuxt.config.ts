@@ -82,6 +82,14 @@ export default defineNuxtConfig({
       domain: 'localhost:3000',
       siteName: 'CommonPub',
       siteDescription: 'A CommonPub instance',
+      // Nuxt only propagates env-var overrides (NUXT_PUBLIC_FEATURES_X) for
+      // keys DECLARED here. Undeclared keys are ignored at runtime, so
+      // every flag in @commonpub/config's FeatureFlags type must appear
+      // below — even if its default is false — or operators can't flip
+      // it via env var on a per-instance basis. Drift caused
+      // commonpub.io's first canary attempt to silently keep
+      // layoutEngine:false at SSR despite NUXT_PUBLIC_FEATURES_LAYOUT_ENGINE=true
+      // being set on the container.
       features: {
         content: true,
         social: true,
@@ -89,12 +97,18 @@ export default defineNuxtConfig({
         docs: true,
         video: true,
         contests: false,
+        events: false,
         learning: true,
         explainers: true,
+        editorial: true,
         federation: false,
         federateHubs: false,
+        seamlessFederation: false,
         admin: false,
         emailNotifications: false,
+        publicApi: false,
+        contentImport: true,
+        layoutEngine: false,
       },
       contentTypes: 'project,blog,explainer',
       contestCreation: 'admin',
