@@ -79,6 +79,21 @@ Goal: chip away at the 13 remaining section types. Pick the most-used.
 - [ ] **C.fix.2**: Lightbox composable + style wired to gallery's `data-lightbox-id` hook. Phase 10 polish (a11y-quality OSS lightbox audit needed).
 - [ ] **C.fix.3**: Remaining 8 Phase 6b sections: spacer, featured-content, content-card, event-list, member-list, contact-form, newsletter, announcement, iframe. Defer per docs/plans/layout-and-pages.md §8 (estimated ~2 sessions for the lot).
 
+### Stage D — Phase 1c canary polish (3 live-bug fixes) ✅ shipped 2026-05-27 commit 1174e7b
+
+Goal: fix the 3 issues the user reported on the live canary.
+
+- [x] **D1**: Migration hero defaults — legacy.title is the EDITOR DISPLAY NAME, not user-facing copy. When legacy hero has no real content (no customTitle/customSubtitle/eyebrow), restore the hardcoded copy from HeroSection.vue (Build/Document/Share + Open Source eyebrow + 2 CTAs). +3 PGlite tests.
+- [x] **D2**: SectionContentFeed pagination — ported the legacy offset-based load-more pattern. Watch on query resets accumulated pages when admin changes section config. Button shows when items >= page size; hides on partial-page response.
+- [x] **D3**: Auto-sync admin homepage.sections edits → layouts table. After PUT /api/admin/homepage/sections succeeds AND if features.layoutEngine is on, re-run migrateHomepageSectionsToLayout(force:true) + invalidate cache. Soft-fail (logs but doesn't block the user's save). Layer-flag off → no-op (legacy renderer reads sections directly).
+- [x] **D4**: Re-canary verified on commonpub.io — hero shows real copy, Load more button rendered, removed sections stay removed. 5 sections live (user removed 2 via admin between canary attempts).
+
+### Stage D follow-ups
+
+- [ ] **D.fix.1**: Publish layer 0.25.0 + server 2.59.0 with these fixes when ready to roll out to heatsync + deveco. Not needed today — they're dormant (flag off) so auto-sync is no-op anyway.
+- [ ] **D.fix.2**: SectionContentFeed pagination test — added the code path but no test asserting button-visibility / load-more-click flow. Manual canary covered today; add Vitest coverage next round.
+- [ ] **D.fix.3**: The migration script's verification SQL uses `s."order"` which postgres parses fine but my SSH-inlined query escaped to `s.order` which fails. Cosmetic; the migration itself worked.
+
 ### Stage D — Phase 3a: editor shell read-only
 
 Goal: admin can SEE the layout in the editor, no editing yet.
