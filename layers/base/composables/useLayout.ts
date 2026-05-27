@@ -17,6 +17,7 @@
  * The `<LayoutSlot>` component is the only intended caller in v1; other
  * consumers should use that instead.
  */
+import { computed } from 'vue';
 import type { Ref } from 'vue';
 
 export interface LayoutSection {
@@ -96,6 +97,16 @@ export function useLayout(path: string | Ref<string> | (() => string)): UseLayou
         : path.value
   );
 
+  // Resolve query as a reactive computed — passing `{ path: pathGetter }`
+  // (a raw function value) made useFetch serialise the function reference,
+  // turning the request URL into ?path=undefined → 400 → null layout. The
+  // bug was load-bearing for the canary on commonpub.io (session 159): SSR
+  // saw `homepageLayout.value === null` despite a published layout existing,
+  // so layoutEngineActive resolved to false and pages/index.vue fell
+  // through to the legacy renderer. Fix: always pass a Ref/computed so
+  // useFetch reads the resolved value AND re-evaluates on dep change.
+  const queryRef = computed(() => ({ path: pathGetter() }));
+
   const { data, pending, error, refresh } = useFetch<LayoutPayload | null>(
     '/api/layouts/by-route',
     {
@@ -103,8 +114,7 @@ export function useLayout(path: string | Ref<string> | (() => string)): UseLayou
       // can dedupe across components on the same nav). For the reactive
       // case, omit key so useFetch derives one from the query Ref.
       key: typeof path === 'string' ? `layout:${path}` : undefined,
-      // Functional query — useFetch re-evaluates on watched deps change.
-      query: { path: pathGetter },
+      query: queryRef,
       // Watch the path getter so reactive callers refetch on change.
       // For string callers this is empty array → no extra reactivity.
       watch: typeof path === 'string' ? [] : [pathGetter],
