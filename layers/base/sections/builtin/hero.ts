@@ -1,28 +1,24 @@
 /**
  * Built-in section definition: hero.
  *
- * Phase 1c starter. Three variants — `default` (left-aligned with grid
- * backdrop), `compact` (narrow with no backdrop), `centered` (centered
- * content). Up to two CTAs each with their own variant.
+ * Stage E.4 — reuses the existing HeroSection (`layers/base/components/
+ * homepage/HeroSection.vue`) which already handles contest-aware swap +
+ * dismiss button + hardcoded fallback copy ("Build. Document. Share.").
  *
- * NOT contest-aware (the existing HomepageHeroSection has dispatch
- * logic for the live-contest hero — that responsibility moves to a
- * future `contest-feature` data section in Phase 6b).
+ * Config matches HomepageSectionConfig — the legacy homepage section
+ * schema (variant + customTitle/customSubtitle + ctas optional). When
+ * the operator hasn't customised anything, HeroSection renders its
+ * hardcoded defaults; legacy admin form's customTitle/customSubtitle
+ * fields override.
+ *
+ * URL guard kept on CTA hrefs — same threat model (admin-set href
+ * renders to all visitors).
  */
 import { z } from 'zod';
 import type { SectionDefinition } from '@commonpub/ui';
-import SectionHero from '../../components/sections/SectionHero.vue';
+import HeroSection from '../../components/homepage/HeroSection.vue';
 
-/**
- * URL guard — accepts http(s), site-relative paths, hash links, mailto/tel.
- * Rejects javascript:, data:, vbscript:, file:, etc. — admin-set fields
- * render to ALL visitors, so a malicious admin (or DB corruption) could
- * inject a clickable XSS via `<a href="javascript:...">` without this.
- *
- * Defense at the write boundary; the renderer doesn't re-validate
- * (Vue's :href binding doesn't sanitize, so this IS the guard).
- */
-const SAFE_LINK_URL = /^(https?:\/\/|\/|#|mailto:|tel:)/i;
+const SAFE_LINK_URL = /^(?:$|https?:\/\/|\/|#|mailto:|tel:)/i;
 
 const ctaSchema = z.object({
   label: z.string().min(1).max(80),
@@ -34,34 +30,26 @@ const ctaSchema = z.object({
 
 const configSchema = z.object({
   variant: z.enum(['default', 'compact', 'centered']).default('default'),
-  eyebrow: z.string().max(120).default(''),
-  title: z.string().min(1).max(240).default('Welcome'),
-  subtitle: z.string().max(800).default(''),
-  // Capped at 2 — visual + a11y guidance: more than two competing CTAs
-  // dilute the call-to-action and read as a button bar instead.
+  customTitle: z.string().max(255).default(''),
+  customSubtitle: z.string().max(500).default(''),
   ctas: z.array(ctaSchema).max(2).default([]),
 });
 
 export const heroSection: SectionDefinition<z.infer<typeof configSchema>> = {
   type: 'hero',
   name: 'Hero',
-  description: 'Banner with title, subtitle, and up to two CTAs',
+  description: 'Top-of-page banner (uses HeroSection — contest-aware)',
   icon: 'fa-bullhorn',
   category: 'layout',
   status: 'stable',
   configSchema,
-  defaultConfig: {
-    variant: 'default',
-    eyebrow: '',
-    title: 'Welcome',
-    subtitle: '',
-    ctas: [],
-  },
+  defaultConfig: { variant: 'default', customTitle: '', customSubtitle: '', ctas: [] },
   schemaVersion: 1,
-  component: SectionHero,
-  // Hero breaks at <6 cols (CTA wrap looks awful); 12 is the canonical use
-  minColSpan: 6,
+  component: HeroSection,
+  // HeroSection takes { config: HomepageSectionConfig }
+  propMap: ({ config }) => ({ config }),
+  minColSpan: 12,
   maxColSpan: 12,
   defaultColSpan: 12,
-  resizable: true,
+  resizable: false,
 };

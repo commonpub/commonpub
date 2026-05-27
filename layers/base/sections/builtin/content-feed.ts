@@ -1,33 +1,33 @@
 /**
  * Built-in section definition: content-feed.
  *
- * Phase 1c starter and the first DATA section. Fetches `/api/content`
- * with config-driven filters and renders a responsive grid of
- * `<ContentCard>`s.
+ * Stage E.4 — reuses the existing ContentGridSection (`layers/base/
+ * components/homepage/ContentGridSection.vue`) which already has
+ * tabs (For You / Latest / Following / per-type) + the content grid
+ * + pagination via Load More. (My pre-Stage-E SectionContentFeed
+ * reimplemented the pagination; it was already there.)
  *
- * Config fields split into server-filter (forwarded to `/api/content`)
- * and render-only (`heading`, `columns`). Keeping the contract explicit
- * here matches the auto-form mapping in Phase 3e and stops accidental
- * pass-through of admin-only filter values.
+ * Config matches HomepageSectionConfig (contentType, sort, limit,
+ * columns, categorySlug). The optional `title` prop on
+ * ContentGridSection comes from the section's heading config.
  */
 import { z } from 'zod';
 import type { SectionDefinition } from '@commonpub/ui';
-import SectionContentFeed from '../../components/sections/SectionContentFeed.vue';
+import ContentGridSection from '../../components/homepage/ContentGridSection.vue';
 
 const configSchema = z.object({
   heading: z.string().max(120).default(''),
   contentType: z.string().max(64).default(''),
   sort: z.enum(['recent', 'popular', 'featured', 'editorial']).default('recent'),
-  limit: z.number().int().min(1).max(24).default(6),
-  columns: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4)]).default(3),
-  tag: z.string().max(64).default(''),
-  featured: z.boolean().default(false),
+  limit: z.number().int().min(1).max(24).default(12),
+  columns: z.union([z.literal(2), z.literal(3), z.literal(4)]).default(2),
+  categorySlug: z.string().max(64).default(''),
 });
 
 export const contentFeedSection: SectionDefinition<z.infer<typeof configSchema>> = {
   type: 'content-feed',
   name: 'Content feed',
-  description: 'Grid of content cards filtered by type / tag / sort',
+  description: 'Filterable content grid with tabs + load more (uses ContentGridSection)',
   icon: 'fa-stream',
   category: 'data',
   status: 'stable',
@@ -36,15 +36,17 @@ export const contentFeedSection: SectionDefinition<z.infer<typeof configSchema>>
     heading: '',
     contentType: '',
     sort: 'recent',
-    limit: 6,
-    columns: 3,
-    tag: '',
-    featured: false,
+    limit: 12,
+    columns: 2,
+    categorySlug: '',
   },
   schemaVersion: 1,
-  component: SectionContentFeed,
-  // Multi-column grid collapses to less than half-width — readability + the
-  // card aspect ratio break down below 6
+  component: ContentGridSection,
+  // ContentGridSection takes { config: HomepageSectionConfig; title?: string }
+  propMap: ({ config }) => ({
+    config,
+    title: (config.heading as string | undefined) ?? '',
+  }),
   minColSpan: 6,
   maxColSpan: 12,
   defaultColSpan: 12,

@@ -64,14 +64,15 @@ describe('layer section registry — built-in registrations', () => {
     }
   });
 
-  it('hero section: layout category, min 6 / default 12 / resizable', () => {
+  // Stage E.4: hero now uses the existing HeroSection (homepage)
+  it('hero section: layout category, full-width via HeroSection (contest-aware)', () => {
     const def = useSectionRegistry().get('hero')!;
     expect(def.category).toBe('layout');
-    expect(def.minColSpan).toBe(6);
+    expect(def.minColSpan).toBe(12);  // hero is always full-width
     expect(def.maxColSpan).toBe(12);
     expect(def.defaultColSpan).toBe(12);
-    expect(def.resizable).toBe(true);
-    expect(def.defaultConfig).toMatchObject({ variant: 'default', title: expect.any(String) });
+    expect(def.propMap).toBeTypeOf('function');
+    expect(def.defaultConfig).toMatchObject({ variant: 'default' });
   });
 
   // --- Stage E.1: primitives now point at BlockX components via propMap
@@ -126,12 +127,17 @@ describe('layer section registry — built-in registrations', () => {
     expect(adapted).toEqual({ content: { variant: 'accent', spacingY: 'xl' } });
   });
 
-  it('content-feed section: data category, limit clamped 1-24, columns 1-4 only', () => {
+  // Stage E.4: content-feed unifies to ContentGridSection (which already has
+  // tabs + pagination — my SectionContentFeed was a reimplementation).
+  it('content-feed section: data category, limit 1-24, columns 2-4 (ContentGridSection contract)', () => {
     const def = useSectionRegistry().get('content-feed')!;
     expect(def.category).toBe('data');
+    expect(def.propMap).toBeTypeOf('function');
     expect(def.configSchema.safeParse({ ...def.defaultConfig, limit: 0 }).success).toBe(false);
     expect(def.configSchema.safeParse({ ...def.defaultConfig, limit: 25 }).success).toBe(false);
     expect(def.configSchema.safeParse({ ...def.defaultConfig, limit: 12 }).success).toBe(true);
+    // ContentGridSection's existing schema is columns 2-4 (not 1-4)
+    expect(def.configSchema.safeParse({ ...def.defaultConfig, columns: 1 }).success).toBe(false);
     expect(def.configSchema.safeParse({ ...def.defaultConfig, columns: 5 }).success).toBe(false);
     expect(def.configSchema.safeParse({ ...def.defaultConfig, columns: 2 }).success).toBe(true);
   });
@@ -145,26 +151,27 @@ describe('layer section registry — built-in registrations', () => {
     }
   });
 
-  it('editorial section: data category, full-width default, limit 1-12, columns 1-4', () => {
+  // Stage E.4: editorial unifies to EditorialSection (which fixes its own
+  // grid layout — no columns config). Config is just `limit`.
+  it('editorial section: data category, limit only (EditorialSection contract)', () => {
     const def = useSectionRegistry().get('editorial')!;
     expect(def.category).toBe('data');
     expect(def.defaultColSpan).toBe(12);
     expect(def.minColSpan).toBe(6);
-    expect(def.configSchema.safeParse({ ...def.defaultConfig, limit: 0 }).success).toBe(false);
-    expect(def.configSchema.safeParse({ ...def.defaultConfig, limit: 13 }).success).toBe(false);
-    expect(def.configSchema.safeParse({ ...def.defaultConfig, limit: 12 }).success).toBe(true);
-    expect(def.configSchema.safeParse({ ...def.defaultConfig, columns: 5 }).success).toBe(false);
+    expect(def.propMap).toBeTypeOf('function');
+    expect(def.configSchema.safeParse({ limit: 0 }).success).toBe(false);
+    expect(def.configSchema.safeParse({ limit: 13 }).success).toBe(false);
+    expect(def.configSchema.safeParse({ limit: 12 }).success).toBe(true);
   });
 
-  it('stats section: data category, sidebar-friendly default 4, heading-only config', () => {
+  // Stage E.4: stats unifies to StatsSection (no config — fixes its own data)
+  it('stats section: data category, default 4, config is empty (StatsSection takes no props)', () => {
     const def = useSectionRegistry().get('stats')!;
     expect(def.category).toBe('data');
     expect(def.defaultColSpan).toBe(4);
     expect(def.minColSpan).toBe(3);
-    // heading is the only field; clamp at 120 char max
-    expect(def.configSchema.safeParse({ heading: 'x'.repeat(121) }).success).toBe(false);
-    expect(def.configSchema.safeParse({ heading: 'x'.repeat(120) }).success).toBe(true);
-    expect(def.configSchema.safeParse({}).success).toBe(true);  // default fills heading
+    expect(def.propMap).toBeTypeOf('function');
+    expect(def.configSchema.safeParse({}).success).toBe(true);
   });
 
   it('hubs section: data category, default 4 col, limit clamped 1-20', () => {
@@ -195,16 +202,14 @@ describe('layer section registry — built-in registrations', () => {
     expect(def.configSchema.safeParse({ ...def.defaultConfig, columns: 3 }).success).toBe(true);
   });
 
-  it('custom-html section: content category, BETA status (intentional XSS posture)', () => {
+  it('custom-html section: content category, BETA status (uses CustomHtmlSection)', () => {
     const def = useSectionRegistry().get('custom-html')!;
     expect(def.category).toBe('content');
-    // status: 'beta' surfaces the no-runtime-sanitisation warning to the admin
-    // UI. If this flips to 'stable', the section MUST also have its
-    // sanitisation gap closed (see builtin/custom-html.ts header).
     expect(def.status).toBe('beta');
+    expect(def.propMap).toBeTypeOf('function');
     // 50KB cap is a sanity bound, not a security control
-    expect(def.configSchema.safeParse({ heading: '', html: 'x'.repeat(50_001) }).success).toBe(false);
-    expect(def.configSchema.safeParse({ heading: '', html: 'x'.repeat(50_000) }).success).toBe(true);
+    expect(def.configSchema.safeParse({ title: '', html: 'x'.repeat(50_001) }).success).toBe(false);
+    expect(def.configSchema.safeParse({ title: '', html: 'x'.repeat(50_000) }).success).toBe(true);
   });
 
   // --- Session 159 Stage C — Phase 6b additions ---------------------------

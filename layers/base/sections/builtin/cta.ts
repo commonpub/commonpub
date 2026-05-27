@@ -12,6 +12,13 @@
  *   default  → boxed panel with subtle border
  *   contrast → high-contrast inverse (accent bg, contrast text)
  *   minimal  → no box, centered text + buttons
+ *
+ * **Stage E.3 audit (session 159)**: kept as a section-specific
+ * SectionCta.vue renderer because the closest existing component
+ * (BlockCalloutView, an info/tip/warning notice with icon + label)
+ * doesn't support action buttons — the core CTA affordance. Extending
+ * BlockCalloutView would force two unrelated UI patterns through one
+ * renderer. Genuinely new component, not a duplicate.
  */
 import { z } from 'zod';
 import type { SectionDefinition } from '@commonpub/ui';

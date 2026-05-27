@@ -1,48 +1,38 @@
 /**
  * Built-in section definition: custom-html.
  *
- * Phase 1c addition (session 159) — admin-only raw HTML escape hatch.
+ * Stage E.4 — reuses the existing CustomHtmlSection (`layers/base/
+ * components/homepage/CustomHtmlSection.vue`) which renders `config.html`
+ * via `v-html` with an optional title.
  *
- * **SECURITY POSTURE** — important. This section renders config.html via
- * `v-html` with NO runtime sanitization, intentionally matching the
- * legacy `CustomHtmlSection.vue` behavior (already shipped in
- * production for the configurable homepage path). The threat model:
- *   - Writes are gated on `requireAdmin(event)` in
- *     `/api/admin/layouts/*` — only trusted admin users can set HTML.
- *   - Even so, a compromised admin account → stored XSS on every
- *     visitor's homepage. Phase 6b will add server-side DOMPurify
- *     sanitization at admin-write time (matching the pattern in
- *     `packages/server/src/content/content.ts:sanitizeBlockContent`)
- *     and an `unsafeHtmlAllowed` instance setting that gates whether
- *     this section type can be saved at all.
- *   - For now: `status: 'beta'` flags the risk to admin-UI consumers.
- *     The 50KB cap is a sanity bound, not a security control.
- *   - Tracked in docs/plans/layout-and-pages.md §6.5 (custom-html
- *     sanitization roadmap).
- *
- * Use this only when no other section type fits.
+ * **SECURITY POSTURE**: identical to legacy CustomHtmlSection — `v-html`
+ * with no runtime sanitisation. Admin-only via the layout API gate +
+ * the existing homepage editor's section schema. Phase 6b plans server-
+ * side sanitisation at admin-write time (see prior SectionCustomHtml.vue
+ * doc + `docs/plans/layout-and-pages.md §6.5`).
  */
 import { z } from 'zod';
 import type { SectionDefinition } from '@commonpub/ui';
-import SectionCustomHtml from '../../components/sections/SectionCustomHtml.vue';
+import CustomHtmlSection from '../../components/homepage/CustomHtmlSection.vue';
 
 const configSchema = z.object({
-  heading: z.string().max(120).default(''),
+  title: z.string().max(255).default(''),
   html: z.string().max(50_000).default(''),
 });
 
 export const customHtmlSection: SectionDefinition<z.infer<typeof configSchema>> = {
   type: 'custom-html',
   name: 'Custom HTML',
-  description: 'Raw HTML escape hatch — admin-only; see security note in source',
+  description: 'Raw HTML escape hatch (uses CustomHtmlSection)',
   icon: 'fa-code',
   category: 'content',
-  // Beta marks the unsanitised render path; admin UI shows a warning chip
   status: 'beta',
   configSchema,
-  defaultConfig: { heading: '', html: '' },
+  defaultConfig: { title: '', html: '' },
   schemaVersion: 1,
-  component: SectionCustomHtml,
+  component: CustomHtmlSection,
+  // CustomHtmlSection takes { config: HomepageSectionConfig; title?: string }
+  propMap: ({ config }) => ({ config, title: (config.title as string | undefined) ?? '' }),
   minColSpan: 3,
   maxColSpan: 12,
   defaultColSpan: 12,
