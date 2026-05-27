@@ -273,6 +273,61 @@ Without SSH access to deveco's host, I can't see container stderr. The deploy wo
 
 After diagnosis: re-bump deveco's pins to `^0.23.1` and redeploy.
 
+## Post-rollback deep investigation (same session, with SSH + doctl)
+
+After the user reminded me I have SSH access, dug into the crash with real artifacts:
+
+**Crash stack trace** (captured by `docker run --rm` of the 0.23.1 image on deveco's host with deveco's `.env`):
+
+```
+file:///app/.output/server/node_modules/@commonpub/server/dist/layout/layout.js:29
+import { layouts, layoutRows, layoutSections, layoutVersions, } from '@commonpub/schema';
+                  ^^^^^^^^^^
+SyntaxError: The requested module '@commonpub/schema' does not provide an export named 'layoutRows'
+```
+
+**Root cause: pnpm 10.10.0 install bug.**
+
+- Inspected the deveco image's installed `@commonpub/schema@0.17.0`: 76 dist files, **missing `layout.js`, `layout.d.ts`, `layout.js.map`, `layout.d.ts.map`**. `dist/index.js` also missing the `export * from './layout.js'` line.
+- Fresh `npm pack @commonpub/schema@0.17.0` from npm: 80 dist files, layout present, integrity matches what's in deveco's lockfile.
+- Reproduced in a clean `node:22-alpine` container: with corepack pnpm@10.10.0 + deveco's `pnpm-lock.yaml` + `--frozen-lockfile` → 76 files. Same container with no lockfile + plain `pnpm install` → 80 files. Same container with `npm install` → 80 files.
+
+So the published tarball is correct; pnpm's `--frozen-lockfile` install is dropping 4 files. Heatsync was unaffected because its Dockerfile uses `npm install`. commonpub.io is unaffected because it uses `workspace:*` (monorepo `src/` — no install).
+
+Memory: [[feedback-pnpm-install-drops-files]] with reproducer + workarounds.
+
+**Mitigation queue for next session**, in order:
+1. **Don't republish schema as 0.17.1** — tarball is correct; the bug is on the install side, a republish won't help.
+2. **Regenerate deveco-io's `pnpm-lock.yaml`** by deleting it and running `pnpm install` fresh. Verify the resulting docker build produces a complete schema install (≥80 dist files). If yes, push the new lockfile + retry the 0.23.1 bump.
+3. **If regen still fails**, switch deveco-io's `Dockerfile` from `pnpm install --frozen-lockfile` to `npm install` (matches heatsync's known-good approach).
+4. **Long-term**: file a pnpm GitHub issue with the reproducer; consider standardising on `npm install` across all consumer-site Dockerfiles.
+
+## Two user-reported bugs also fixed this session (commit `3a30d32`)
+
+While debugging, user asked about two unrelated issues. Root-caused both:
+
+**(1) Admin feature-flag UI override silently reverts** — `PUT /api/admin/features` had a dedup loop:
+
+```ts
+const base = config.features as unknown as Record<string, boolean>;
+for (const [key, value] of Object.entries(merged)) {
+  if (base[key] === value) delete merged[key];  // bug
+}
+```
+
+`config.features` is the EFFECTIVE config (build-time MERGED WITH existing overrides). So once a flag was overridden ON, re-saving with the same value matched `base[key] === value` (because the override was already applied) and deleted the override — flag reverted to build-time default on next read.
+
+Fix: drop the dedup. Persist user intent verbatim. A future "reset to default" can be a separate DELETE-overrides endpoint.
+
+**(2) Blog avatar squished** — `.cpub-av` in ArticleView + ProjectView had `display: flex` on a class shared between `<img>` (photo) and `<div>` (initials fallback). On `<img>` (replaced element), Chromium silently drops the inline `object-fit: cover` when `display: flex` is also set, so a portrait avatar (816×1456 on the deveco blog example) stretches to 44×44 instead of center-cropping.
+
+Fix: split — base `.cpub-av` keeps sizing only; `div.cpub-av` keeps flex centering for initials; `img.cpub-av` gets `object-fit: cover` as a defensive default. Memory: [[feedback-display-flex-on-img]].
+
+**Where these fixes live**:
+- ✅ commonpub.io: workspace mode → auto-deploys main → already live after `3a30d32` lands
+- ❌ heatsynclabs.io: on layer 0.23.1 npm; needs layer 0.23.2 publish + pin bump
+- ❌ deveco.io: still on layer 0.22.1 (rolled back); needs the pnpm install bug fix first
+
 ## Standing rule reminders
 
 - Schema is the work. Migration count: 6 (unchanged this session).
