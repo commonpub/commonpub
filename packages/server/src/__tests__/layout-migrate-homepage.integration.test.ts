@@ -222,6 +222,63 @@ describe('migrateHomepageSectionsToLayout', () => {
     expect(sections[0]!.config).toMatchObject({ heading: 'Staff Picks', limit: 5 });
   });
 
+  // ---- Hero-specific copy mapping (session 159 fix for the "Hero Banner" bug) ----
+
+  it('hero with sparse legacy config uses hardcoded HeroSection.vue defaults, NOT legacy.title', async () => {
+    // Legacy.title is "Hero Banner" (the editor display name); the
+    // actual user-facing copy was hardcoded in HeroSection.vue. Migration
+    // should ignore legacy.title for the user-facing fields and use the
+    // canonical defaults — otherwise the live homepage literally says
+    // "Hero Banner" as its h1.
+    await setLegacyHomepage(db, [
+      { id: 'hero', type: 'hero', order: 0, title: 'Hero Banner',
+        enabled: true, config: { variant: 'default' } },
+    ]);
+    await migrateHomepageSectionsToLayout(db, { adminId });
+    const sections = await db.select().from(layoutSections);
+    expect(sections[0]!.config).toMatchObject({
+      variant: 'default',
+      title: 'Build. Document. Share.',
+      eyebrow: 'Open Source',
+    });
+    const cfg = sections[0]!.config as { ctas: Array<{ label: string; href: string }> };
+    expect(cfg.ctas).toHaveLength(2);
+    expect(cfg.ctas[0]?.label).toBe('Start Building');
+    expect(cfg.ctas[0]?.href).toBe('/create');
+    expect(cfg.ctas[1]?.label).toBe('Explore');
+    expect(cfg.ctas[1]?.href).toBe('/explore');
+  });
+
+  it('hero with customTitle/customSubtitle uses those (legacy admin editor field names)', async () => {
+    await setLegacyHomepage(db, [
+      { id: 'hero', type: 'hero', order: 0, title: 'Hero Banner',
+        enabled: true,
+        config: {
+          customTitle: 'Welcome to Acme',
+          customSubtitle: 'A community for makers',
+        } },
+    ]);
+    await migrateHomepageSectionsToLayout(db, { adminId });
+    const sections = await db.select().from(layoutSections);
+    expect(sections[0]!.config).toMatchObject({
+      title: 'Welcome to Acme',
+      subtitle: 'A community for makers',
+    });
+    // No hardcoded fallback CTAs — operator set custom content so respect it
+    const cfg = sections[0]!.config as { ctas: unknown[] };
+    expect(cfg.ctas).toEqual([]);
+  });
+
+  it('hero with both new-style title and legacy customTitle → customTitle wins (admin editor takes precedence)', async () => {
+    await setLegacyHomepage(db, [
+      { id: 'hero', type: 'hero', order: 0, enabled: true,
+        config: { customTitle: 'Custom Win', title: 'Direct loss' } },
+    ]);
+    await migrateHomepageSectionsToLayout(db, { adminId });
+    const sections = await db.select().from(layoutSections);
+    expect((sections[0]!.config as { title: string }).title).toBe('Custom Win');
+  });
+
   it('clamps config.limit to each section type max', async () => {
     await setLegacyHomepage(db, [
       { id: 'h', type: 'hubs', order: 0, enabled: true, config: { limit: 999 } },

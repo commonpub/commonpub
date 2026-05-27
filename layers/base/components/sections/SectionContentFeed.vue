@@ -1,6 +1,7 @@
 <script setup lang="ts">
 /**
- * Built-in section: content-feed — a data-driven grid of content cards.
+ * Built-in section: content-feed — a data-driven grid of content cards
+ * with pagination.
  *
  * Phase 1c starter and the first DATA section. Fetches `/api/content`
  * with config-driven filter parameters; renders the existing
@@ -13,12 +14,20 @@
  * differently-configured feeds (e.g. main + sidebar with different
  * `sort`) hit the endpoint separately.
  *
+ * Pagination (session 159 fix — initial Phase 1c shipped without a
+ * load-more button; legacy `pages/index.vue` had it via offset-based
+ * $fetch). State: `loadedItems` ref accumulates page results; click
+ * "Load more" → $fetch with offset = loadedItems.length, append. Hide
+ * the button when the API returns fewer items than the page size
+ * (signals last page).
+ *
  * SSR-safe: useFetch fetches at setup() and includes the payload in the
- * hydration snapshot.
+ * hydration snapshot. Subsequent load-more clicks are client-only
+ * (interactive after hydration).
  *
  * `var(--*)` only.
  */
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import type { PaginatedResponse, Serialized, ContentListItem } from '@commonpub/server';
 import type { SectionRenderProps } from '@commonpub/ui';
 
@@ -34,14 +43,17 @@ interface ContentFeedConfig extends Record<string, unknown> {
 
 const props = defineProps<SectionRenderProps<ContentFeedConfig>>();
 
+// Page size — clamp config.limit into [1, 24]. This is BOTH the initial
+// page count AND the load-more increment.
+const pageSize = computed(() => Math.min(Math.max(props.config.limit, 1), 24));
+
 // Build the API query — server expects `type` (single value or absent),
 // `sort`, `limit`, `tag`, `featured`. Omit empty strings so the validator
 // treats them as absent (vs the empty-string=match-empty trap).
-const apiQuery = computed(() => {
+const baseQuery = computed(() => {
   const q: Record<string, unknown> = {
     status: 'published',
     sort: props.config.sort,
-    limit: Math.min(Math.max(props.config.limit, 1), 24),
   };
   if (props.config.contentType) q.type = props.config.contentType;
   if (props.config.tag) q.tag = props.config.tag;
@@ -49,31 +61,73 @@ const apiQuery = computed(() => {
   return q;
 });
 
+const initialQuery = computed(() => ({ ...baseQuery.value, limit: pageSize.value }));
+
 // Stable key so two identical content-feed sections on the same page
 // share a single request, while different configurations don't collide.
 const fetchKey = computed(
-  () => `section-content-feed:${JSON.stringify(apiQuery.value)}`,
+  () => `section-content-feed:${JSON.stringify(initialQuery.value)}`,
 );
 
 // NO await — section is rendered inside <LayoutSlot> deep in the tree;
 // awaiting top-level here would require Suspense on every parent, which
 // neither the production page-render path nor the editor preview pane
-// is set up for. The page (`/`, `/about`, etc.) already does its own
-// `await useFetch` for content via the legacy renderer, so initial
-// load is data-ready; this section's fetch is a fresh request per
-// instance + config. Pending state surfaces in the template instead.
+// is set up for. Pending state surfaces in the template instead.
 const { data: feed, pending } = useFetch<PaginatedResponse<Serialized<ContentListItem>>>(
   '/api/content',
   {
-    query: apiQuery,
+    query: initialQuery,
     key: fetchKey.value,
-    // Empty-result handler: surface a friendly empty state in the template
-    // rather than throwing. 404 wouldn't be a thing on /api/content anyway.
   },
 );
 
-const items = computed(() => feed.value?.items ?? []);
+// Load-more state. `loadedItems` is the union of (a) the SSR-hydrated
+// first page (read from feed.value on first access) plus (b) all
+// client-side load-more results appended.
+const extraItems = ref<Array<Serialized<ContentListItem>>>([]);
+const loadingMore = ref(false);
+const allLoaded = ref(false);
+
+// Reset accumulated pages when the query shape changes (sort flips,
+// content-type changes, etc) — operator changing the section config
+// in the admin editor would otherwise show stale appended items.
+watch(initialQuery, () => {
+  extraItems.value = [];
+  allLoaded.value = false;
+}, { deep: true });
+
+const items = computed(() => [
+  ...(feed.value?.items ?? []),
+  ...extraItems.value,
+]);
 const isEmpty = computed(() => !pending.value && items.value.length === 0);
+const canLoadMore = computed(
+  () => !pending.value && !loadingMore.value && !allLoaded.value && items.value.length >= pageSize.value,
+);
+
+async function loadMore(): Promise<void> {
+  if (loadingMore.value || allLoaded.value) return;
+  loadingMore.value = true;
+  try {
+    const offset = items.value.length;
+    const more = await $fetch<PaginatedResponse<Serialized<ContentListItem>>>(
+      '/api/content',
+      { query: { ...baseQuery.value, limit: pageSize.value, offset } },
+    );
+    const newItems = more?.items ?? [];
+    if (newItems.length > 0) {
+      extraItems.value.push(...newItems);
+    }
+    if (newItems.length < pageSize.value) {
+      allLoaded.value = true;  // last page returned a partial → no more
+    }
+  } catch {
+    // Soft-fail: leave allLoaded false so the user can retry. A toast
+    // here would be noisy if /api/content briefly hiccups during load.
+  } finally {
+    loadingMore.value = false;
+  }
+}
 </script>
 
 <template>
@@ -94,17 +148,35 @@ const isEmpty = computed(() => !pending.value && items.value.length === 0);
       <span>Loading…</span>
     </div>
 
-    <div
-      v-else-if="!isEmpty"
-      class="cpub-section-content-feed-grid"
-      :data-columns="config.columns"
-    >
-      <ContentCard
-        v-for="item in items"
-        :key="item.id"
-        :item="item"
-      />
-    </div>
+    <template v-else-if="!isEmpty">
+      <div
+        class="cpub-section-content-feed-grid"
+        :data-columns="config.columns"
+      >
+        <ContentCard
+          v-for="item in items"
+          :key="item.id"
+          :item="item"
+        />
+      </div>
+
+      <div v-if="canLoadMore || loadingMore" class="cpub-section-content-feed-load-more">
+        <button
+          type="button"
+          class="cpub-section-content-feed-load-more-btn"
+          :disabled="loadingMore"
+          @click="loadMore"
+        >
+          <template v-if="loadingMore">
+            <i class="fa-solid fa-circle-notch fa-spin" aria-hidden="true" />
+            Loading…
+          </template>
+          <template v-else>
+            Load more
+          </template>
+        </button>
+      </div>
+    </template>
 
     <p v-else class="cpub-section-content-feed-empty">
       No content yet.
@@ -156,5 +228,33 @@ const isEmpty = computed(() => !pending.value && items.value.length === 0);
   padding: var(--space-6);
   color: var(--text-faint);
   font-size: var(--text-sm);
+}
+
+.cpub-section-content-feed-load-more {
+  display: flex;
+  justify-content: center;
+  padding-top: var(--space-3);
+}
+.cpub-section-content-feed-load-more-btn {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: var(--space-2) var(--space-5);
+  border: var(--border-width-default) solid var(--accent);
+  color: var(--accent);
+  background: transparent;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.cpub-section-content-feed-load-more-btn:hover:not(:disabled) {
+  background: var(--accent-bg);
+}
+.cpub-section-content-feed-load-more-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 </style>

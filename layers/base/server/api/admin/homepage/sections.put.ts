@@ -1,5 +1,6 @@
-import { setHomepageSections } from '@commonpub/server';
+import { setHomepageSections, migrateHomepageSectionsToLayout } from '@commonpub/server';
 import { z } from 'zod';
+import { invalidateLayoutsByRouteCache } from '../../../utils/layoutCache';
 
 const sectionConfigSchema = z.object({
   contentType: z.string().max(64).optional(),
@@ -47,6 +48,39 @@ export default defineEventHandler(async (event) => {
   }
 
   await setHomepageSections(db, body.sections, user.id, getRequestIP(event) ?? undefined);
+
+  // When the layout engine is on, the legacy `homepage.sections` JSON
+  // is no longer what /pages/index.vue renders — the page reads from
+  // the `layouts` table. Without this sync, admin edits made via the
+  // existing homepage editor (which still writes homepage.sections,
+  // because the Phase 3 layout editor isn't built yet) would have
+  // ZERO visible effect on the live page.
+  //
+  // Fix: after the legacy save succeeds, if layoutEngine is on,
+  // re-run migrateHomepageSectionsToLayout with force:true. This
+  // deletes the existing layout row + recreates it from the freshly-
+  // saved homepage.sections. Idempotent + matches the user's mental
+  // model ("I edited the sections, the page reflects my edit").
+  //
+  // Caught session 159 when user removed "New Section" from the admin
+  // editor + saw it still rendering on commonpub.io's homepage.
+  const config = useConfig();
+  if (config.features.layoutEngine) {
+    try {
+      const result = await migrateHomepageSectionsToLayout(db, {
+        adminId: user.id,
+        force: true,
+      });
+      if (result.migrated) {
+        invalidateLayoutsByRouteCache();
+      }
+    } catch (err) {
+      // Don't fail the user's save just because the layout sync hit a
+      // hiccup. Log + return — they can re-trigger the migration via
+      // the dedicated /api/admin/layouts/migrate-homepage endpoint.
+      console.error('[admin:homepage.sections] post-save layout sync failed:', err);
+    }
+  }
 
   return { sections: body.sections, message: 'Homepage updated' };
 });

@@ -135,19 +135,58 @@ function buildConfig(newType: string, legacy: LegacyHomepageSection): Record<str
   const heading = legacy.title ?? '';
 
   switch (newType) {
-    case 'hero':
-      // The legacy "hero" type in HomepageSectionRenderer was the
-      // top-of-page banner with title/subtitle/eyebrow/cta. Operators may
-      // have only set `variant`. Default the rest to the registered
-      // section's defaults so the section renders with stock copy if the
-      // legacy config didn't include text.
+    case 'hero': {
+      // **Important**: legacy `homepage.sections[].title` is the EDITOR
+      // DISPLAY NAME shown in admin UI ("Hero Banner") — NOT the user-
+      // facing content. The actual legacy hero copy was hardcoded in
+      // `layers/base/components/homepage/HeroSection.vue`:
+      //
+      //   eyebrow: "Open Source" badge
+      //   title:    "Build. Document. Share."
+      //   subtitle: "CommonPub is an open platform for maker communities..."
+      //   CTAs:     "Start Building" → /create, "Explore" → /explore
+      //
+      // When the legacy hero only set `variant: 'default'` (which is
+      // common — most operators never customised because the legacy
+      // editor didn't expose these fields), copying `legacy.title` into
+      // `new.config.title` gives the user a hero that says literally
+      // "Hero Banner" on the live page. That's the session-159 canary
+      // bug.
+      //
+      // Fix: prefer legacyConfig.title/subtitle/etc if explicitly set;
+      // otherwise fall through to the canonical hardcoded defaults that
+      // match what the legacy HeroSection.vue rendered. legacy.title
+      // (the display name) is intentionally IGNORED for these fields.
+      // Legacy admin editor exposes `customTitle`/`customSubtitle` fields
+      // (per layers/base/server/api/admin/homepage/sections.put.ts schema);
+      // some operator workflows write directly as `title`/`subtitle`. Check
+      // both naming conventions before falling through to defaults.
+      const legacyTitle = (legacyConfig.customTitle ?? legacyConfig.title) as string | undefined;
+      const legacySubtitle = (legacyConfig.customSubtitle ?? legacyConfig.subtitle) as string | undefined;
+      const legacyEyebrow = legacyConfig.eyebrow as string | undefined;
+      const hasLegacyContent = !!(legacyTitle || legacySubtitle || legacyEyebrow);
+      if (hasLegacyContent) {
+        return {
+          variant: (legacyConfig.variant as string) ?? 'default',
+          eyebrow: legacyEyebrow ?? '',
+          title: legacyTitle ?? 'Welcome',
+          subtitle: legacySubtitle ?? '',
+          ctas: Array.isArray(legacyConfig.ctas) ? legacyConfig.ctas : [],
+        };
+      }
+      // No legacy content — restore the hardcoded copy from HeroSection.vue
       return {
         variant: (legacyConfig.variant as string) ?? 'default',
-        eyebrow: (legacyConfig.eyebrow as string) ?? '',
-        title: (legacyConfig.title as string) ?? heading ?? 'Welcome',
-        subtitle: (legacyConfig.subtitle as string) ?? '',
-        ctas: Array.isArray(legacyConfig.ctas) ? legacyConfig.ctas : [],
+        eyebrow: 'Open Source',
+        title: 'Build. Document. Share.',
+        subtitle:
+          'CommonPub is an open platform for maker communities. Document your builds with rich editors, join hubs, learn with structured paths, and share with the world.',
+        ctas: [
+          { label: 'Start Building', href: '/create', variant: 'primary' },
+          { label: 'Explore', href: '/explore', variant: 'secondary' },
+        ],
       };
+    }
 
     case 'editorial':
       return {
