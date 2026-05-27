@@ -31,23 +31,36 @@ Goal: ship the work that's already on main to npm + roll to all 3 sites. Closes 
 
 - [x] **A1**: Bump `@commonpub/server` 2.57.0 → 2.58.0 ✓ daafd2a
 - [x] **A2**: Bump `@commonpub/layer` 0.23.3 → 0.24.0 ✓ daafd2a
-- [x] **A3**: Publish both — server published 2.58.0, layer published 0.24.0 with 635 files including all 6 new sections + migration endpoint + feature-flags-prime Nitro plugin
-- [x] **A4**: Verified on registry — `pnpm view @commonpub/server@2.58.0 version` + `pnpm view @commonpub/layer@0.24.0 version` both resolve
-- [-] **A5**: Heatsync pin bump (68e1959 in heatsynclabs-io) — pushed; deploy in flight
-- [ ] **A6**: Heatsync verify health + run migration via admin endpoint OR script (TBD: heatsync's runtime container has @commonpub/* from npm install — should resolve cleanly; need to add migrate-homepage-layout script to heatsync's repo OR call admin endpoint with admin session)
-- [ ] **A7**: Bump deveco's pin — schema already at ^0.17.0, layer + server need bumps. Same npm-install gotcha NOT applicable to heatsync; deveco uses pnpm so the schema-pin caveat from session 158 might still apply
-- [ ] **A8**: Deveco canary
+- [x] **A3**: Publish both ✓ server 2.58.0 + layer 0.24.0 (635 files, all 6 sections + endpoints + Nitro plugin)
+- [x] **A4**: Verified on registry via `pnpm view`
+- [x] **A5**: Heatsync — 68e1959 in heatsynclabs-io, deployed clean, health 200, layer 0.24.0 + server 2.58.0 + schema 0.17.0 (80 files) installed via npm, layoutEngine flag stays off, legacy renderer serving. No homepage.sections to migrate — DORMANT state.
+- [x] **A6**: ⚠️ feature-flags-prime plugin not in heatsync's nitro bundle (grep returned 0). Investigate before any operator canary. Workaround for now: operator can flip layoutEngine via `NUXT_PUBLIC_FEATURES_LAYOUT_ENGINE=true` env var (path that bypasses the plugin).
+- [x] **A7**: Deveco — 4a1dcf0 in deveco-io, deployed in 4m28s, health 200, layer 0.24.0 + server 2.58.0 + schema 0.17.0 (80 files, no pnpm-drop-files bug). layoutEngine off, legacy serving. No homepage.sections to migrate.
+- [x] **A8**: Deveco canary state confirmed dormant. Same plugin gap as heatsync.
 
-### Stage B — Phase 2: custom-page catch-all
+**Stage A complete 2026-05-27**. All 3 sites on layer 0.24.0; commonpub.io ACTIVE (LayoutSlot serving), heatsync + deveco DORMANT (legacy serving, infra ready for operator opt-in).
+
+### Stage A follow-ups (queue for next session)
+
+- [ ] **A.fix.1**: Investigate why feature-flags-prime plugin isn't in heatsync/deveco's nitro bundle. The plugin file IS in layer 0.24.0's tarball (`server/plugins/feature-flags-prime.ts`). Nuxt may not auto-discover server-plugins from extended layers' `server/plugins/` dirs. If true, plugin needs to move into apps' own server/plugins/ OR be exported as a Nuxt module.
+- [ ] **A.fix.2**: PUT handler on /api/admin/layouts/[id] enforces scope immutability so custom-page validate is moot. But could add a "normalise-then-compare" check so a client sending `/About` doesn't 400 against DB's `/about`. Low priority.
+
+### Stage B — Phase 2: custom-page catch-all ✅ shipped 2026-05-27
 
 Goal: enable admins to create `/about`, `/team`, etc as layout-only pages.
 
-- [ ] **B1**: Catch-all route at `pages/[...slug].vue` with priority below file-based routes
-- [ ] **B2**: Path normalisation utility (strip trailing slash, lowercase, reject reserved prefixes `/api`, `/_nuxt`, etc)
-- [ ] **B3**: Conflict detection on save — refuse a `custom-page` layout if a file-based route exists for that path
-- [ ] **B4**: Admin endpoint POST `/api/admin/layouts` for `scope.type='custom-page'` (CRUD already supports it; just needs conflict check)
-- [ ] **B5**: 404 handling — if no layout for the path AND no file route, render 404
-- [ ] **B6**: Integration tests + session log entry
+- [x] **B1**: Catch-all route `layers/base/pages/[...customPath].vue` ✓ commit 919270a
+- [x] **B2**: `pathNormalize(input)` utility in `@commonpub/server` ✓ 52 tests
+- [x] **B3**: `validateCustomPageScope(db, path)` with FILE_ROUTE_PREFIXES + duplicate detection ✓ 23 tests
+- [x] **B4**: POST /api/admin/layouts wired with custom-page validate ✓ 400/409 errors
+- [x] **B5**: Catch-all throws createError({statusCode:404}) for malformed paths + missing layouts ✓ SSR-safe via setResponseStatus
+- [x] **B6**: 75 tests cover full path; commit 919270a
+
+### Stage B follow-ups (deferred, queue for next session)
+
+- [ ] **B.fix.1**: Wire validateCustomPageScope into PUT handler. Scope immutability check already enforced; this just adds path-normalisation safeguard. Low priority.
+- [ ] **B.fix.2**: FILE_ROUTE_PREFIXES is hardcoded today. Phase 3 needs the Nitro plugin scanner that reads Nuxt's compiled route table at startup. Until then, thin apps adding routes must update the list manually.
+- [ ] **B.fix.3**: Access control on catch-all — `'admin'` access returns 404 if not auth'd. Currently uses `useAuth().user` which is client-hydrated. SSR-side admin probe needed before this is bulletproof against existence-leak.
 
 ### Stage C — Phase 6b: 5 more sections (highest-value subset)
 
