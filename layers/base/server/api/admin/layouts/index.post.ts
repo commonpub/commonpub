@@ -12,7 +12,7 @@
  * Invalidates the layouts-by-route cache on success.
  */
 import { layoutCreateSchema } from '@commonpub/schema';
-import { getLayoutByScope, saveLayout } from '@commonpub/server';
+import { getLayoutByScope, saveLayout, validateCustomPageScope } from '@commonpub/server';
 import { invalidateLayoutsByRouteCache } from '../../../utils/layoutCache';
 
 export default defineEventHandler(async (event) => {
@@ -23,18 +23,43 @@ export default defineEventHandler(async (event) => {
 
   const body = await parseBody(event, layoutCreateSchema);
 
-  const existing = await getLayoutByScope(db, body.scope);
+  // Custom-page paths get extra validation: pathNormalize + file-route
+  // conflict + duplicate detection (Phase 2). Returns 400 for malformed
+  // paths, 409 for collisions. The route-scope + virtual paths go
+  // straight to the existing exists-check below — those types aren't
+  // operator-creatable in v1 anyway.
+  let scopeToSave = body.scope;
+  if (body.scope.type === 'custom-page') {
+    const validation = await validateCustomPageScope(db, body.scope.path);
+    if (!validation.ok) {
+      // 'has-query', 'has-fragment', 'has-dot-segment', 'invalid-char',
+      // 'empty' → 400 (malformed)
+      // 'reserved-prefix', 'file-route-conflict',
+      // 'custom-page-already-exists' → 409 (collision)
+      const status = (validation.reason === 'reserved-prefix'
+        || validation.reason === 'file-route-conflict'
+        || validation.reason === 'custom-page-already-exists') ? 409 : 400;
+      throw createError({
+        statusCode: status,
+        statusMessage: validation.message,
+        data: { reason: validation.reason },
+      });
+    }
+    scopeToSave = validation.scope;
+  }
+
+  const existing = await getLayoutByScope(db, scopeToSave);
   if (existing) {
     throw createError({
       statusCode: 409,
-      statusMessage: `A layout already exists for scope ${JSON.stringify(body.scope)}; PUT to /api/admin/layouts/${existing.id} to update it`,
+      statusMessage: `A layout already exists for scope ${JSON.stringify(scopeToSave)}; PUT to /api/admin/layouts/${existing.id} to update it`,
     });
   }
 
   const saved = await saveLayout(
     db,
     {
-      scope: body.scope,
+      scope: scopeToSave,
       name: body.name,
       pageMeta: body.pageMeta,
       zones: body.zones,

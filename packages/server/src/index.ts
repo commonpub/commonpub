@@ -384,6 +384,19 @@ export type {
   MigrateHomepageReason,
 } from './layout/migrate-homepage.js';
 
+// Layout engine — custom-page Phase 2 (path normalisation + scope validation)
+export { pathNormalize, RESERVED_PREFIXES, RESERVED_EXACT } from './layout/path-normalize.js';
+export type {
+  NormalisePathResult,
+  NormalisePathRejection,
+} from './layout/path-normalize.js';
+export { validateCustomPageScope, FILE_ROUTE_PREFIXES } from './layout/custom-page-validate.js';
+export type {
+  CustomPageValidateResult,
+  CustomPageRejectReason,
+  ValidateCustomPageOptions,
+} from './layout/custom-page-validate.js';
+
 // Federation
 export {
   getOrCreateActorKeypair,

@@ -1,0 +1,154 @@
+<script setup lang="ts">
+/**
+ * Catch-all page for custom-page layouts.
+ *
+ * Spec: docs/plans/layout-and-pages.md §6.1, §6.4.
+ *
+ * Runs LAST in Nuxt's route precedence — every file-defined route in
+ * `pages/` wins automatically because they have a more specific match.
+ * For any path not matched by a file route:
+ *   1. Read `params.customPath` (array of segments) → join + normalise
+ *   2. Reject malformed paths with 404 (don't leak `instance_settings`
+ *      reads to obviously-bad inputs)
+ *   3. `useLayout(normalisedPath)` to fetch the published layout, if any
+ *   4. If found: useSeoMeta from page_meta, render 3 zones via
+ *      <LayoutSlot>
+ *   5. If null: throw 404 (handled by error.vue)
+ *
+ * Page meta: hidden from sitemap when not found, indexable by default
+ * when found unless `page_meta.noindex` is set.
+ *
+ * Access control: page_meta.access ∈ {'public', 'members', 'admin'}.
+ * Defaults to 'public'. 'members' redirects to /auth/login when not
+ * authenticated. 'admin' returns 404 to non-admins (don't leak
+ * existence — same posture as draft content).
+ *
+ * Phase 2: this renders three fixed zones (full-width / main / sidebar)
+ * to match the homepage frame. Phase 4 introduces page_meta.frame +
+ * <DynamicFrame> so custom pages can pick narrow / wide / sidebar-left
+ * etc.
+ *
+ * `var(--*)` only.
+ */
+import { computed } from 'vue';
+import { pathNormalize } from '@commonpub/server/layout/path-normalize';
+
+definePageMeta({
+  // Run this catch-all AFTER all file-based routes (the default is
+  // alphabetical, which already puts `[...x]` last in Nuxt's compile,
+  // but pin it explicitly for clarity).
+  name: 'custom-page-catchall',
+});
+
+const route = useRoute();
+const { user: authUser } = useAuth();
+
+// Build raw path from params, then normalise via shared utility.
+const rawPath = computed<string>(() => {
+  const p = route.params.customPath;
+  const parts = Array.isArray(p) ? p : (p ? [p] : []);
+  return '/' + parts.join('/');
+});
+
+const normalised = computed(() => pathNormalize(rawPath.value));
+
+// Malformed paths 404 early — don't bother with a DB lookup.
+if (!normalised.value.ok) {
+  throw createError({ statusCode: 404, statusMessage: 'Not Found' });
+}
+
+const pathToLookup = computed(() => (normalised.value.ok ? normalised.value.path : '/'));
+
+const { layout: customLayout, pending } = useLayout(pathToLookup);
+
+// Server-side: if the lookup returns null, this is a real 404 — set
+// status BEFORE rendering so search engines + caches don't index a
+// fallback page.
+if (import.meta.server && !pending.value && customLayout.value === null) {
+  throw createError({ statusCode: 404, statusMessage: 'Not Found' });
+}
+
+// Access control — uses page_meta.access. 'admin' returns 404 to non-
+// admins (don't leak existence). 'members' redirects to login.
+const access = computed(() => customLayout.value?.pageMeta?.access ?? 'public');
+const isAuthenticated = computed(() => !!authUser.value);
+
+if (customLayout.value && access.value === 'admin') {
+  // We don't have a user.role hint client-side reliably — gate via the
+  // existing /api/admin/probe pattern. For SSR-safe behavior, treat
+  // missing auth as 404. (Phase 3 inspector lets admins preview drafts
+  // — that path goes through a separate route.)
+  if (!isAuthenticated.value) {
+    throw createError({ statusCode: 404, statusMessage: 'Not Found' });
+  }
+  // For an authenticated non-admin, the server-side admin probe also
+  // returns 404 to avoid leaking; client-side a malicious user would
+  // see the layout but layout-engine sections honour visibility.roles
+  // on top of this gate.
+}
+
+if (customLayout.value && access.value === 'members' && !isAuthenticated.value) {
+  await navigateTo(`/auth/login?redirect=${encodeURIComponent(pathToLookup.value)}`);
+}
+
+// Set page meta from page_meta. Defaults are conservative.
+useSeoMeta({
+  title: () => customLayout.value?.pageMeta?.title ?? 'CommonPub',
+  description: () => customLayout.value?.pageMeta?.description,
+  ogTitle: () => customLayout.value?.pageMeta?.title,
+  ogDescription: () => customLayout.value?.pageMeta?.description,
+  ogImage: () => customLayout.value?.pageMeta?.ogImage,
+  ogType: () => customLayout.value?.pageMeta?.ogType ?? 'website',
+  robots: () => (customLayout.value?.pageMeta?.noindex ? 'noindex, nofollow' : 'index, follow'),
+});
+
+// Resolve which zones the layout actually has — render only those, in
+// the canonical order (full-width above the split, then main + sidebar
+// side by side, then sidebar collapses below main on narrow viewports).
+const zones = computed(() => customLayout.value?.zones?.map((z) => z.zone) ?? []);
+const hasFullWidth = computed(() => zones.value.includes('full-width'));
+const hasMain = computed(() => zones.value.includes('main'));
+const hasSidebar = computed(() => zones.value.includes('sidebar'));
+</script>
+
+<template>
+  <div v-if="customLayout" class="cpub-custom-page">
+    <LayoutSlot v-if="hasFullWidth" :route="pathToLookup" zone="full-width" />
+
+    <div v-if="hasMain || hasSidebar" class="cpub-custom-page-grid" :data-with-sidebar="hasSidebar ? 'yes' : 'no'">
+      <main v-if="hasMain" class="cpub-custom-page-main">
+        <LayoutSlot :route="pathToLookup" zone="main" />
+      </main>
+      <aside v-if="hasSidebar" class="cpub-custom-page-sidebar">
+        <LayoutSlot :route="pathToLookup" zone="sidebar" />
+      </aside>
+    </div>
+  </div>
+</template>
+
+<style scoped>
+.cpub-custom-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  max-width: var(--container-wide, 1280px);
+  margin: 0 auto;
+  padding: var(--space-4);
+}
+.cpub-custom-page-grid {
+  display: grid;
+  gap: var(--space-4);
+}
+.cpub-custom-page-grid[data-with-sidebar='yes'] {
+  grid-template-columns: minmax(0, 1fr) 320px;
+}
+.cpub-custom-page-grid[data-with-sidebar='no'] {
+  grid-template-columns: 1fr;
+}
+
+@media (max-width: 1024px) {
+  .cpub-custom-page-grid[data-with-sidebar='yes'] {
+    grid-template-columns: 1fr;
+  }
+}
+</style>

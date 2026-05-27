@@ -29,13 +29,13 @@
 
 Goal: ship the work that's already on main to npm + roll to all 3 sites. Closes Phase 1 fully.
 
-- [ ] **A1**: Bump `@commonpub/server` 2.57.0 → 2.58.0 (migrateHomepageSectionsToLayout + `./layout/*` subpath export)
-- [ ] **A2**: Bump `@commonpub/layer` 0.23.3 → 0.24.0 (6 new sections + migration endpoint + useLayout fix + useFeatures SSR prime + lazy fetch + featureGate + img cover swap)
-- [ ] **A3**: Publish both via `pnpm publish:layer` (per memory [[feedback-pnpm-publish-layer]])
-- [ ] **A4**: Verify on registry with `pnpm view`
-- [ ] **A5**: Bump heatsync's pin `^0.23.3` → `^0.24.0` (hand-edit per [[feedback-caret-semver-0x-minor-bump]]) + same for server
-- [ ] **A6**: Heatsync canary — verify layout-engine flag stays off until migration runs; run migration via admin endpoint OR script in container
-- [ ] **A7**: Bump deveco's pin — also direct schema pin check per [[feedback-pnpm-install-drops-files]]
+- [x] **A1**: Bump `@commonpub/server` 2.57.0 → 2.58.0 ✓ daafd2a
+- [x] **A2**: Bump `@commonpub/layer` 0.23.3 → 0.24.0 ✓ daafd2a
+- [x] **A3**: Publish both — server published 2.58.0, layer published 0.24.0 with 635 files including all 6 new sections + migration endpoint + feature-flags-prime Nitro plugin
+- [x] **A4**: Verified on registry — `pnpm view @commonpub/server@2.58.0 version` + `pnpm view @commonpub/layer@0.24.0 version` both resolve
+- [-] **A5**: Heatsync pin bump (68e1959 in heatsynclabs-io) — pushed; deploy in flight
+- [ ] **A6**: Heatsync verify health + run migration via admin endpoint OR script (TBD: heatsync's runtime container has @commonpub/* from npm install — should resolve cleanly; need to add migrate-homepage-layout script to heatsync's repo OR call admin endpoint with admin session)
+- [ ] **A7**: Bump deveco's pin — schema already at ^0.17.0, layer + server need bumps. Same npm-install gotcha NOT applicable to heatsync; deveco uses pnpm so the schema-pin caveat from session 158 might still apply
 - [ ] **A8**: Deveco canary
 
 ### Stage B — Phase 2: custom-page catch-all
