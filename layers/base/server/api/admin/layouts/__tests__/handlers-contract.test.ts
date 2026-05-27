@@ -42,10 +42,11 @@ const handlerFiles = walkHandlers(handlersRoot);
 
 describe('admin layout handlers — security contract', () => {
   it('discovers handlers across the admin/layouts subtree', () => {
-    // 8 routes today: index.get + index.post + [id].get + [id].put + [id].delete
+    // index.get + index.post + [id].get + [id].put + [id].delete
     // + [id]/publish.post + [id]/versions/index.get + [id]/versions/[versionId]/revert.post
-    // + seed-homepage.post = 9
-    expect(handlerFiles.length).toBe(9);
+    // + seed-homepage.post (session 158)
+    // + migrate-homepage.post (session 159) = 10
+    expect(handlerFiles.length).toBe(10);
   });
 
   it.each(handlerFiles.map((f) => [f.replace(handlersRoot + '/', '')]))(
@@ -67,8 +68,9 @@ describe('admin layout handlers — cache invalidation contract', () => {
   const writeHandlers = handlerFiles.filter((f) => /\.(post|put|delete|patch)\.ts$/.test(f));
 
   it('discovers the expected write handlers', () => {
-    // index.post + [id].put + [id].delete + publish.post + revert.post + seed-homepage.post = 6
-    expect(writeHandlers.length).toBe(6);
+    // index.post + [id].put + [id].delete + publish.post + revert.post
+    // + seed-homepage.post + migrate-homepage.post = 7
+    expect(writeHandlers.length).toBe(7);
   });
 
   it.each(writeHandlers.map((f) => [f.replace(handlersRoot + '/', '')]))(

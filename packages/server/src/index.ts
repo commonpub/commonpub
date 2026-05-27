@@ -376,6 +376,14 @@ export type {
 export { seedHomepageLayout } from './layout/seed.js';
 export type { SeedHomepageResult } from './layout/seed.js';
 
+// Layout engine — legacy homepage migration (Phase 1c — session 159)
+export { migrateHomepageSectionsToLayout } from './layout/migrate-homepage.js';
+export type {
+  MigrateHomepageResult,
+  MigrateHomepageOptions,
+  MigrateHomepageReason,
+} from './layout/migrate-homepage.js';
+
 // Federation
 export {
   getOrCreateActorKeypair,
