@@ -14,8 +14,21 @@ const sortedSections = computed(() =>
 );
 
 const { user: authUser } = useAuth();
-const { hubs: hubsEnabled, contests: contestsEnabled, learning: learningEnabled, video: videoEnabled, docs: docsEnabled, editorial: editorialEnabled, layoutEngine: layoutEngineEnabled } = useFeatures();
+const { hubs: hubsEnabled, contests: contestsEnabled, learning: learningEnabled, video: videoEnabled, docs: docsEnabled, editorial: editorialEnabled, layoutEngine: layoutEngineFlag } = useFeatures();
 const { enabledTypeMeta } = useContentTypes();
+
+// Layout engine path — only active when BOTH the flag is on AND a layout
+// actually exists in the DB for this route. Prevents the "operator enables
+// the flag without seeding a homepage layout → page goes blank" trap
+// (reported by user, session 158 follow-up). When the flag's on but
+// useLayout returns null (feature off OR no published layout for route),
+// we fall through to the configurable/legacy render paths so the user
+// still sees content. Admin can call POST /api/admin/layouts/seed-homepage
+// to populate a default and start using the layout engine for real.
+const { layout: homepageLayout } = useLayout('/');
+const layoutEngineActive = computed(
+  () => layoutEngineFlag.value && homepageLayout.value !== null,
+);
 
 const activeTab = ref(authUser.value ? 'foryou' : 'latest');
 const tabs = computed(() => [
@@ -144,15 +157,16 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
 <template>
   <div>
     <!-- ═══ LAYOUT ENGINE (Phase 1c — feature-flagged) ═══
-         When `features.layoutEngine` is ON, render the homepage via
-         <LayoutSlot> zones backed by the layouts table. Operators flip
-         this on AFTER running POST /api/admin/layouts/seed-homepage so
-         a default layout exists at scope ('route', '/'). If the flag is
-         on but no layout exists, LayoutSlot renders nothing and the
-         user sees an empty page — documented at
-         docs/reference/guides/layout-engine.md. Falls through to the
-         configurable section renderer when the flag is OFF (default). -->
-    <template v-if="layoutEngineEnabled">
+         Renders DB-driven layout via <LayoutSlot> zones ONLY when BOTH
+         (a) features.layoutEngine is ON AND (b) a layout actually exists
+         at scope ('route', '/'). Falls through to the configurable or
+         legacy renderer otherwise — including when the flag's ON but
+         no layout has been seeded yet (the "blank page" trap reported
+         in session 158 follow-up).
+
+         To enable for real: POST /api/admin/layouts/seed-homepage,
+         then flip the flag. See docs/reference/guides/layout-engine.md. -->
+    <template v-if="layoutEngineActive">
       <LayoutSlot route="/" zone="full-width" />
       <div class="cpub-main-layout">
         <main class="cpub-feed-col">
