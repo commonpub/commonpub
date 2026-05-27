@@ -115,6 +115,78 @@ describe('layer section registry — built-in registrations', () => {
     expect(def.configSchema.safeParse({ ...def.defaultConfig, columns: 2 }).success).toBe(true);
   });
 
+  // --- URL scheme guards (session 158 audit-fix) -------------------------
+
+  it('hero CTA href rejects dangerous URI schemes (stored-XSS surface)', () => {
+    const def = useSectionRegistry().get('hero')!;
+    const baseCta = { label: 'Click', variant: 'primary' as const };
+    const baseConfig = { ...def.defaultConfig, ctas: [{ ...baseCta, href: '' }] };
+
+    // Each known-bad scheme is independently rejected — admin-set fields
+    // render to ALL visitors, so without this guard a malicious or
+    // careless admin produces a clickable XSS payload.
+    for (const badHref of [
+      'javascript:alert(1)',
+      'JAVASCRIPT:alert(1)',          // case-insensitive
+      'data:text/html,<script>x</script>',
+      'vbscript:msgbox(1)',
+      'file:///etc/passwd',
+      ' javascript:alert(1)',         // leading whitespace
+    ]) {
+      const result = def.configSchema.safeParse({
+        ...baseConfig,
+        ctas: [{ ...baseCta, href: badHref }],
+      });
+      expect(result.success, `expected reject of: ${JSON.stringify(badHref)}`).toBe(false);
+    }
+
+    // Each known-good URL is accepted (positive coverage so the regex
+    // doesn't drift into over-restriction)
+    for (const goodHref of [
+      '/create',
+      '/u/alice/projects/x',
+      'https://example.com',
+      'http://localhost:3000',
+      '#section',
+      'mailto:a@b.com',
+      'tel:+15555555',
+    ]) {
+      const result = def.configSchema.safeParse({
+        ...baseConfig,
+        ctas: [{ ...baseCta, href: goodHref }],
+      });
+      expect(result.success, `expected accept of: ${JSON.stringify(goodHref)}`).toBe(true);
+    }
+  });
+
+  it('image href + src reject dangerous URI schemes', () => {
+    const def = useSectionRegistry().get('image')!;
+    const base = { alt: 'x', caption: '', fit: 'contain', aspectRatio: 'auto' };
+
+    // href: same scheme as hero CTA
+    for (const badHref of ['javascript:alert(1)', 'data:text/html,x', 'vbscript:m', 'file:///etc']) {
+      const r = def.configSchema.safeParse({ ...base, src: '', href: badHref });
+      expect(r.success, `image.href rejects ${badHref}`).toBe(false);
+    }
+
+    // src: tighter — no mailto/tel/hash (img src ignores them anyway)
+    for (const badSrc of ['javascript:alert(1)', 'data:image/svg+xml,<svg/onload=x>', 'vbscript:m']) {
+      const r = def.configSchema.safeParse({ ...base, src: badSrc, href: '' });
+      expect(r.success, `image.src rejects ${badSrc}`).toBe(false);
+    }
+
+    // Empty strings allowed for both — that's the "no image / no link" state
+    expect(def.configSchema.safeParse({ ...base, src: '', href: '' }).success).toBe(true);
+
+    // Known-good
+    expect(def.configSchema.safeParse({
+      ...base, src: 'https://cdn.example.com/x.png', href: '/explore',
+    }).success).toBe(true);
+    expect(def.configSchema.safeParse({
+      ...base, src: '/images/local.jpg', href: '#section',
+    }).success).toBe(true);
+  });
+
   it('every registered section: defaultConfig passes configSchema (round-trip safe)', () => {
     const reg = useSectionRegistry();
     for (const def of reg.list()) {

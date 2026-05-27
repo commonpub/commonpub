@@ -13,9 +13,22 @@ import { z } from 'zod';
 import type { SectionDefinition } from '@commonpub/ui';
 import SectionHero from '../../components/sections/SectionHero.vue';
 
+/**
+ * URL guard — accepts http(s), site-relative paths, hash links, mailto/tel.
+ * Rejects javascript:, data:, vbscript:, file:, etc. — admin-set fields
+ * render to ALL visitors, so a malicious admin (or DB corruption) could
+ * inject a clickable XSS via `<a href="javascript:...">` without this.
+ *
+ * Defense at the write boundary; the renderer doesn't re-validate
+ * (Vue's :href binding doesn't sanitize, so this IS the guard).
+ */
+const SAFE_LINK_URL = /^(https?:\/\/|\/|#|mailto:|tel:)/i;
+
 const ctaSchema = z.object({
   label: z.string().min(1).max(80),
-  href: z.string().min(1).max(2048),
+  href: z.string().min(1).max(2048).regex(SAFE_LINK_URL, {
+    message: 'href must be http(s), relative (/), hash (#), mailto:, or tel:',
+  }),
   variant: z.enum(['primary', 'secondary']).default('primary'),
 });
 
