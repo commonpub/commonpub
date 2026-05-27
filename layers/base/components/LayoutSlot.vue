@@ -39,6 +39,7 @@
  */
 import { computed } from 'vue';
 import type { LayoutSection, LayoutPayload, LayoutZoneClient } from '../composables/useLayout';
+import { useSectionRegistry } from '../sections/registry';
 
 const props = defineProps<{
   /** Route path this layout is for — e.g. '/', '/blog', '/hubs/foo'. */
@@ -56,6 +57,7 @@ const props = defineProps<{
 const { layout, pending } = useLayout(props.route);
 const features = useFeatures();
 const { isAuthenticated, user } = useAuth();
+const sectionRegistry = useSectionRegistry();
 
 const activeLayout = computed(() => props.previewOverride ?? layout.value);
 
@@ -136,13 +138,37 @@ function resolveColSpan(s: LayoutSection, viewport: 'lg' | 'md' | 'sm'): number 
         }"
       >
         <!--
-          v1 placeholder — the section renderer registry lands in Phase
-          1c (separate file: layers/base/sections/registry.ts). Until
-          then, this exposes the section's type + id so the structure
-          is testable while the renderer wiring catches up.
+          Section render path:
+            1. Look up the section's `type` in the registry (one shared
+               instance per app process, populated at module-load time in
+               sections/registry.ts).
+            2. If registered, render via <component :is> with the section's
+               `config` + computed `meta`. Vue's component-resolver handles
+               both functional + SFC renderers.
+            3. If NOT registered, fall back to the admin-only placeholder
+               so admins can see "this section type isn't installed" while
+               end users see nothing for the section (an unknown section
+               shouldn't leak rendering debug info to the public).
         -->
-        <div class="cpub-layout-section-placeholder" aria-label="Unrendered section">
+        <component
+          v-if="sectionRegistry.has(section.type)"
+          :is="sectionRegistry.get(section.type)!.component"
+          :config="section.config"
+          :meta="{
+            route,
+            zone,
+            isPreview: !!previewOverride,
+            effectiveColSpan: resolveColSpan(section, 'lg'),
+            sectionId: section.id,
+          }"
+        />
+        <div
+          v-else
+          class="cpub-layout-section-placeholder"
+          :aria-label="`Unregistered section type: ${section.type}`"
+        >
           <code>{{ section.type }}</code>
+          <span class="cpub-layout-section-placeholder-hint">section type not registered</span>
         </div>
       </div>
     </div>
@@ -204,9 +230,17 @@ function resolveColSpan(s: LayoutSection, viewport: 'lg' | 'md' | 'sm'): number 
   font-size: var(--text-sm);
   color: var(--text-dim);
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
 }
 .cpub-layout-section-placeholder code {
   color: var(--accent);
+}
+.cpub-layout-section-placeholder-hint {
+  font-size: var(--text-xs);
+  color: var(--text-faint);
 }
 
 /* Skeleton loading state */
