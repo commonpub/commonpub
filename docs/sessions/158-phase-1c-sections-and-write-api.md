@@ -2,7 +2,7 @@
 
 **Date**: 2026-05-26
 **Branch**: main
-**Status**: Slice landed in main; nothing published. `features.layoutEngine` still defaults OFF; default behavior unchanged on all 3 prod sites (still on `@commonpub/layer@0.22.1`).
+**Status**: Slice landed in main + deployed to commonpub.io (workspace layer mode); nothing published to npm. `features.layoutEngine` still defaults OFF; default behavior unchanged on all 3 prod sites (deveco.io + heatsynclabs.io still on `@commonpub/layer@0.22.1` npm).
 
 ## TL;DR
 
@@ -155,6 +155,63 @@ From the 158 handoff priority list:
 6. ✅ **Admin layout write API + cache invalidation** — done (9 routes, contract-tested)
 
 Estimated 2 more sessions to ship Phase 1c fully: one for the real homepage migration (depends on at least `editorial` + `stats` sections being built), one for the publish + canary.
+
+## Audit pass + URL-guard fix (post-merge, same session)
+
+Second-pass review caught one real defect and a few accepted trade-offs:
+
+| Finding | Severity | Disposition |
+|---|---|---|
+| `hero.cta[].href`, `image.href`, `image.src` accepted ANY string ≤ 2048 chars — no URL scheme validation. Admin-set, all-visitor-rendered → stored XSS via `<a href="javascript:...">` on click | **P0** | **Fixed**. Added Zod regex guards: href allows `http(s)://`, `/relative`, `#hash`, `mailto:`, `tel:`, empty. src allows `http(s)://`, `/relative`, empty. Caught a regex bug along the way (empty alternation `^(?:|alts)` matches anything at position 0); fixed via `^(?:$|alts)` end-anchor in the empty branch. Pinned by 22 new test cases (known-bad scheme corpus + known-good URLs). Memory: [[feedback-regex-empty-alternation]] |
+| `seedHomepageLayout` race: two concurrent calls both report `created:true` (only one row exists). Final state correct; return value misleading | P3 | Accepted — admin clicks are rarely concurrent; unique constraint guarantees state correctness |
+| Image w/ `aspectRatio=auto` causes CLS on load (no reserved space) | P3 | Accepted — operator can set explicit ratio; future TODO |
+| FeatureFlags drift sweep across 5 source-of-truth files (config types + config schema + test-utils mock + identity health test + layer composable) | ✅ clean | No action |
+
+## Production verification (post-deploy)
+
+```
+commonpub.io (deployed from main 5b3bfcc):
+  /                            : 200 (1.19s)
+  /api/health                  : 200
+  /api/layouts/by-route?path=/ : 404 (flag off — correct)
+  /api/admin/layouts (no auth) : 404 (flag off — correct; admin handlers gate
+                                      via requireFeature('layoutEngine') first)
+  /api/features                : { admin: true, layoutEngine: false }
+  Legacy HTML markers present  : cpub-hero-banner, cpub-content-grid,
+                                 cpub-tabs-bar (legacy renderer unchanged)
+
+deveco.io + heatsynclabs.io (still on 0.22.1 npm):
+  /                            : 200
+  /api/health                  : 200
+  /api/layouts/by-route?path=/ : 404 (flag off — correct; endpoint shipped
+                                      0.22.0 session 157)
+```
+
+All 3 prod sites healthy. Phase 1c code live on commonpub.io but inert.
+
+## Full repo test verification
+
+Per-package test counts (run directly, bypassing turbo build chain):
+
+| Package | Tests |
+|---|---|
+| schema | 413 |
+| config | 23 |
+| ui | 256 |
+| **server** | **1031** (+7 from 1024 — layout-seed integration) |
+| test-utils | 13 |
+| auth | 72 |
+| infra | 305 (+ 4 skipped) |
+| editor | 230 |
+| explainer | 191 |
+| learning | 101 |
+| protocol | 419 |
+| docs | 131 |
+| **layer** | **180** (+63 from 117 — sections × ~5 + registry expansion + URL guards + cache util + handlers-contract) |
+
+**Total: 3,365 passed + 7 skipped** across 13 packages. All green.
+
+(Local `pnpm test` via turbo failed on apps/{reference,shell} build due to sharp wasm32 fallback on arm64 Mac — environmental, not a regression. CI builds Linux x64 with native sharp and passes.)
 
 ## Standing rule reminders
 
