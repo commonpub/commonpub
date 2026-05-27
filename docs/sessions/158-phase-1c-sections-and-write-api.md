@@ -328,6 +328,50 @@ Fix: split — base `.cpub-av` keeps sizing only; `div.cpub-av` keeps flex cente
 - ❌ heatsynclabs.io: on layer 0.23.1 npm; needs layer 0.23.2 publish + pin bump
 - ❌ deveco.io: still on layer 0.22.1 (rolled back); needs the pnpm install bug fix first
 
+## Post-session-158 follow-up: all 3 sites finally caught up
+
+After the user said "get everything up to date" and explicitly granted SSH/doctl access, did three more rounds of changes + publishes:
+
+### Round 1 — layer 0.23.2 + heatsync bump
+
+Layer-only bump shipping the 2 user-fixes (feature-flag override + avatar squish). Heatsync uses npm install in its Dockerfile so the pnpm install bug doesn't apply — heatsync deployed cleanly to 0.23.2. Verified avatar CSS fix live by `curl`ing a blog page and `grep`ing the served styles: `img.cpub-av`, `div.cpub-av`, `object-fit:cover` all present.
+
+### Round 2 — layer 0.23.3 (homepage no-blank fix)
+
+User reported: enabling `features.layoutEngine` made the homepage go blank. Root cause: `pages/index.vue` had `v-if='layoutEngineEnabled'` which unconditionally rendered LayoutSlot zones when the flag was on — but with no layout in the `layouts` table, LayoutSlot had nothing to render and the page was empty.
+
+Fix: `layoutEngineActive = layoutEngineFlag.value && useLayout('/').layout.value !== null`. The page now requires BOTH the flag AND a present layout before activating LayoutSlot zones, otherwise falls through to legacy. Operator can flip the flag safely; turning the engine on "for real" still needs the seed step. Updated LLM ref + `08-feature-flags-inventory.md` to reflect.
+
+Published layer 0.23.3 + bumped heatsync. Both 3-day sites verified 200.
+
+### Round 3 — deveco pnpm install bug fix
+
+The session 158 attempt to bump deveco-io to 0.23.1 took the site down with a `schema does not provide an export named 'layoutRows'` startup crash. Initial diagnosis (post-rollback) blamed pnpm install dropping files; further investigation revealed the issue was specific to the COMBINATION of:
+- deveco-io's direct pin `@commonpub/schema: ^0.16.0` (caret on 0.x.y so resolves to 0.16.0)
+- Transitive deps from `@commonpub/server@2.57.0` requiring `@commonpub/schema@0.17.0`
+- pnpm 10.10.0 (and 10.15.0 — tested both) handling the mixed-version state by producing an incomplete 76–77-file 0.17.0 install instead of the full 80
+
+**Heatsync was unaffected** because its Dockerfile uses `npm install`, which handles the mixed-version state correctly.
+
+**Fix**: bumped deveco's direct `@commonpub/schema` pin from `^0.16.0` to `^0.17.0` AND regenerated `pnpm-lock.yaml` from scratch. The cleaner single-version state produces a complete 80-file schema install.
+
+**Verified BEFORE pushing**: built the image on deveco's host with the new lockfile, ran the container with deveco's `.env` on a non-prod port, confirmed `Listening on http://[::]:3000` with no crash. Schema dist = 80 files, layout exports present.
+
+Then pushed `chore: bump @commonpub/{config,layer,server,schema} for Phase 1c` (commit `0613d9d`). Deploy in flight at session end (monitoring).
+
+### End state — all 3 sites finally on Phase 1c
+
+| Site | Layer | Has Phase 1c + all user-fixes? | Health |
+|---|---|---|---|
+| commonpub.io | workspace `48d680d` (main) | yes | ✓ 200 |
+| heatsynclabs.io | npm 0.23.3 | yes | ✓ 200 |
+| deveco.io | npm 0.23.3 (after deploy succeeds) | yes | (deploying) |
+
+Migration 0005 status:
+- commonpub.io: NOT yet applied (workspace deploy doesn't run migrations automatically; user would need to run manually if they want to enable layoutEngine)
+- heatsynclabs.io: NOT yet applied
+- deveco.io: applied during the session 158 failed deploy (extra tables exist but unused with flag off)
+
 ## Standing rule reminders
 
 - Schema is the work. Migration count: 6 (unchanged this session).

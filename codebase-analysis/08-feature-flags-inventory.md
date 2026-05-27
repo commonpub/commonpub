@@ -26,7 +26,7 @@ site), layer pages (`feature-gate.global.ts` middleware), layer components
 | `seamlessFederation` | **OFF default** (live `true` on commonpub.io + deveco.io) | Merge federated content into local browse/search/feed | admin |
 | `emailNotifications` | **OFF** | Outbound email for likes/comments/follows/mentions/digest | admin |
 | `publicApi` | **OFF** | `/api/public/v1/**` read API (admin-managed bearer tokens, 13 read scopes) | admin |
-| `layoutEngine` | **OFF** (added in session 157, will ship in config 0.15.0 bundled with Phase 1c) | Phase 1 layout engine. When ON, `<LayoutSlot>` renders from the `layouts`/`layout_rows`/`layout_sections` DB tables (migration 0005) instead of the legacy `homepage.sections` JSON. `/api/layouts/by-route` 404s when off so the legacy `HomepageSectionRenderer` stays in charge. **Flipping ON without migration 0005 applied + a layout row for every adopted route = empty pages.** | admin (Phase 4 adoption) |
+| `layoutEngine` | **OFF** (added session 157; shipped in config 0.15.0 + layer 0.23.x — session 158) | Phase 1 layout engine. When ON, `<LayoutSlot>` renders from `layouts`/`layout_rows`/`layout_sections` DB tables (migration 0005) instead of the legacy `homepage.sections` JSON. `/api/layouts/by-route` 404s when off so the legacy `HomepageSectionRenderer` stays in charge. **As of layer 0.23.3: auto-fallback** — when the flag is ON but no layout exists at scope `('route', '/')`, `pages/index.vue` falls through to the legacy renderer instead of rendering blank `<LayoutSlot>` zones (fixes "operator flips flag → blank homepage" trap). To actually use the engine, operator must FIRST `POST /api/admin/layouts/seed-homepage` (admin auth) to populate a default layout, THEN flip the flag. | admin (Phase 4 adoption) |
 | `identity.linkRemoteAccounts` | **OFF** (added config 0.12.0) | UI for linking a remote AP account; requires `CPUB_FED_TOKEN_KEY` | admin |
 | `identity.signInWithRemote` | **OFF** | Mastodon-login flow; requires `CPUB_FED_TOKEN_KEY` | admin |
 | `identity.actingAs` | **OFF** | "Acting as remote identity" banner + UI (no token I/O, no key needed) | admin |
@@ -56,6 +56,7 @@ site), layer pages (`feature-gate.global.ts` middleware), layer components
 - Writes to `instanceSettings.features.<flag>` (JSONB)
 - Layered over build-time `commonpub.config.ts`
 - Only admin-visible flags overridable via UI
+- **As of layer 0.23.2**: `PUT /api/admin/features` persists overrides verbatim. Previously a dedup loop compared each override against `config.features` (which was the EFFECTIVE config — already had the existing override applied) and silently deleted overrides that "matched" the base — so flipping a flag on, saving, then re-saving would silently revert to build-time default. Fix dropped the dedup; future "reset to default" should be a separate DELETE handler.
 
 ## Dependency relationships
 

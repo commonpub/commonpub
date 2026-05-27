@@ -139,15 +139,15 @@ The class-level enforcement (in `@commonpub/ui`'s `SectionRegistry`) rejects dup
 
 ## Enabling the layout engine on the homepage
 
-The flag defaults OFF and the layouts table starts empty. If you flip the flag before seeding, the homepage's v-if branch renders empty zones.
+The flag defaults OFF and the layouts table starts empty. **As of layer 0.23.3, flipping the flag without seeding first is SAFE** — `pages/index.vue` checks both the flag AND `useLayout('/')` resolves to non-null; if the flag's on but no layout exists, it falls through to the existing configurable / legacy renderer instead of rendering blank `<LayoutSlot>` zones. So the order of operations is flexible.
 
-**Per-instance enable sequence**:
+**Per-instance enable sequence** (recommended order, but step 3 won't break anything if done before step 2):
 
 1. **Run migration 0005** (creates the 4 tables). Skip if already applied — `drizzle-kit` migrator is idempotent.
 2. **Seed the homepage layout**: `POST /api/admin/layouts/seed-homepage` (admin auth required; flag must be ON to reach this endpoint — see step 3). `seedHomepageLayout()` creates + publishes a default layout at `('route', '/')` with one hero + one content-feed. Idempotent — returns `{ created: false, layoutId }` on second call.
    - Server-side alternative for ops scripts: `import { seedHomepageLayout } from '@commonpub/server'; await seedHomepageLayout(db, { adminId });`
-3. **Flip the flag**: set `features.layoutEngine: true` in the instance's `commonpub.config.ts` (build-time) or via the admin-features API at runtime.
-4. **Verify**: load `/`. The `v-if='layoutEngineEnabled'` branch in `pages/index.vue` resolves to the LayoutSlot zones. Hero shows; content-feed pulls latest published content; the legacy section renderer is bypassed.
+3. **Flip the flag**: set `features.layoutEngine: true` in the instance's `commonpub.config.ts` (build-time) or via the admin-features API at runtime. (As of layer 0.23.2, admin UI flips persist verbatim — earlier dedup bug that reverted overrides was fixed.)
+4. **Verify**: load `/`. The layout-engine branch in `pages/index.vue` resolves to the LayoutSlot zones. Hero shows; content-feed pulls latest published content; the legacy section renderer is bypassed. (If flag is on but layout doesn't exist: page falls back to legacy automatically.)
 
 **Rollback**: flip the flag OFF. The v-else-if branches (configurable section renderer if `hasCustomSections`, else legacy hardcoded) take over. The layouts table is untouched — re-enabling is a flag flip again.
 

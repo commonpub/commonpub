@@ -3,7 +3,7 @@
 As of session 158 (2026-05-26 — same calendar day as 154/155/156/157).
 Numbers are approximate — exact counts vary with test exclusions.
 
-**Session 158 deltas** (Phase 1c sections + admin write API + homepage adoption):
+**Session 158 deltas** (Phase 1c sections + admin write API + homepage adoption + post-publish fixes):
 - Layer sections: registry expanded 1 → 6 (`hero`, `heading`, `paragraph`, `image`, `content-feed` added; `divider` already there). Each is 3 files (Zod + Vue + register call).
 - Layer components: +5 `Section{Hero,Heading,Paragraph,Image,ContentFeed}.vue`
 - API routes: +9 under `/api/admin/layouts/*` (CRUD + publish + versions + revert + seed-homepage); 0 user-facing changes (all flag-gated)
@@ -13,6 +13,12 @@ Numbers are approximate — exact counts vary with test exclusions.
 - Tests: +61 layer (5 sections × ~5 + registry expansion + cache util 5 + handlers-contract 17), +7 server (layout-seed integration)
 - Docs: +1 LLM ref (`docs/reference/guides/layout-engine.md`)
 - Homepage `pages/index.vue`: 3-way v-if/v-else-if/v-else (LayoutSlot zones / configurable / legacy); default behavior unchanged because the flag defaults OFF
+- **Post-publish fixes in 0.23.2 + 0.23.3** (user-reported):
+  - **0.23.2**: admin feature-flag UI override sticks (dedup loop bug — compared against effective config, deleted matching overrides → flags reverted on re-save). Avatar `<img>` no longer squished — `.cpub-av` class shared between img + div had `display: flex` which silently dropped `object-fit: cover` on the img variant.
+  - **0.23.3**: homepage no-blank — pages/index.vue checks `useLayout('/')` is non-null in addition to the flag, falls through to legacy renderer if no DB layout exists. Prevents "operator flips flag → blank page" trap.
+- **Published npm**: config 0.15.0, server 2.57.0, layer 0.23.3 (0.23.0 deprecated — missing sections/; 0.23.1 hotfix; 0.23.2 user-fixes; 0.23.3 homepage no-blank).
+- **Consumer state**: commonpub.io workspace + main (always latest); heatsynclabs.io npm 0.23.3 (uses npm install, complete schema install); deveco.io npm 0.22.1 ROLLED BACK pending pnpm install bug fix (workaround in flight = bump direct schema pin to ^0.17.0 + regen lockfile).
+- **3 new feedback memories**: `feedback-regex-empty-alternation`, `feedback-deploy-health-check-warn-not-fail`, `feedback-display-flex-on-img`, `feedback-pnpm-install-drops-files`.
 
 **Session 154 deltas** (admin theme editor):
 - API routes: +6 under `/api/admin/themes`

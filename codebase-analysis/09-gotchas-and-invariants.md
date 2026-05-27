@@ -56,12 +56,47 @@ task in parallel, ~30s). **Bypass for emergencies**:
 
 Memory: `feedback_vue_tsc_strict_vs_vitest.md`.
 
+### pnpm 10.10.0 install can silently drop files from a published tarball (session 158)
+
+A `pnpm install --frozen-lockfile` against a consumer repo's lockfile (deveco-io specifically) produced an INCOMPLETE install of `@commonpub/schema@0.17.0`: 76–77 of 80 dist files; the missing ones are `layout.{js,d.ts,js.map,d.ts.map}` AND the corresponding `export * from './layout.js'` line in `dist/index.js`. The published npm tarball IS complete (verified by fresh `npm pack` + integrity hash match) — the bug is on the install side.
+
+**Symptom**: `SyntaxError: The requested module '@commonpub/schema' does not provide an export named 'layoutRows'` when any consumer code imports the layout tables. **Took deveco.io down during session 158.**
+
+**Crucially**: heatsync-io was UNAFFECTED because its Dockerfile uses `npm install`, not `pnpm install`. commonpub.io unaffected because workspace mode bypasses install entirely. The bug is specific to the pnpm install path.
+
+Reproduced cleanly in `node:22-alpine` containers across pnpm `10.10.0` AND `10.15.0`. Fresh `pnpm install` (no lockfile) → complete. `npm install` → complete. `pnpm install --frozen-lockfile` against deveco's old lockfile → incomplete.
+
+**Workarounds, in order of preference**:
+1. Bump the consumer's direct `@commonpub/schema` pin from `^0.16.0` to `^0.17.0` AND regenerate lockfile. The mixed-version state (top-level wanted 0.16.0, transitive deps wanted 0.17.0) seems to trigger pnpm's bug — pinning directly to 0.17.0 + fresh lockfile avoided it in our verify.
+2. If that doesn't fix it: switch the consumer's Dockerfile from `pnpm install --frozen-lockfile` to `npm install` (heatsync's approach — known-good).
+3. Long-term: file a pnpm bug with the reproducer; consider standardising consumer-site Dockerfiles on `npm install`.
+
+**Pre-bump sanity check** — before pushing a deveco-style consumer-site pin bump, build the image and verify the schema 0.17.0 dist has ≥ 80 files:
+```sh
+docker build -t verify .
+docker run --rm --entrypoint sh verify -c 'ls /app/.output/server/node_modules/@commonpub/schema/dist | wc -l'
+# Expect: 80. If less than 80, the install is bad — DO NOT push the pin bump.
+```
+
+Memory: `feedback_pnpm_install_drops_files.md`.
+
 ### Copy dist to pnpm store after local server build
 
 If you `pnpm build` in `packages/server/` and then run `pnpm typecheck` in a
 consumer app that imports `@commonpub/server`, the consumer may still see the
 old types. After building locally, copy to the pnpm store or run
 `pnpm install --prefer-offline` in the consumer to refresh the symlink.
+
+### Deploy workflow's health check warns instead of failing (session 158)
+
+`deveco-io` + `heatsynclabs-io` deploy workflows have:
+```sh
+curl -sf http://localhost:3000/ || echo "::warning::Health check failed — app may not have started correctly"
+```
+
+`|| echo` swallows the curl failure — the SSH action returns 0 even when the container's crashing in a restart loop. `gh run list` reports the deploy as `success` with a yellow annotation. **NEVER trust `gh run list` deploy status — always `curl /api/health` after a push.** The fix on the workflow side is to change `|| echo` to `|| { echo "::error::..."; exit 1; }` so a bad container fails the run.
+
+Memory: `feedback_deploy_health_check_warn_not_fail.md`.
 
 ## Database
 
@@ -450,6 +485,26 @@ When you're rendering federated content, use the SAME components as for local
 content — not a parallel federation-only component tree. Session 122 found
 several duplicated federation components that had drifted from their local
 counterparts.
+
+## CSS / Vue
+
+### `display: flex` on a class used by both `<img>` and `<div>` drops `object-fit` silently (session 158)
+
+If a CSS class is applied to both an `<img>` (replaced element) AND a `<div>` (e.g. `.cpub-av` used for avatar photo OR initials fallback), do NOT set `display: flex` (or its centering buddies `align-items`/`justify-content`) on the shared base class. On the `<img>` variant, Chromium silently drops the inline `object-fit: cover` when `display: flex` is also applied — so a portrait avatar (e.g. 816×1456) gets stretched into the box dimensions instead of center-cropped. User-visible squish on every author photo where the source isn't square. Reported on deveco.io blog pages.
+
+**Fix pattern**:
+```css
+.avatar { width: 44px; height: 44px; border-radius: 50%; }
+div.avatar { display: flex; align-items: center; justify-content: center; }
+img.avatar { object-fit: cover; }
+```
+
+Applied to `ArticleView.vue` + `ProjectView.vue` in layer 0.23.2 (session 158).
+Memory: `feedback_display_flex_on_img.md`.
+
+### Universal radius + prose-style leaks into shared selectors
+
+See memories `feedback_universal_radius_leak.md` + `feedback_prose_style_leak.md`. base.css universal `*,::before,::after{border-radius:var(--radius)}` rounds every inner section of every block component (invisible on `--radius:0` themes; visible wedge gaps on deveco's `--radius:6px`). Likewise `.cpub-prose` global rules on bare `pre`/`th`/`blockquote`/`hr` leak into scoped block components for any property the scoped CSS doesn't redeclare.
 
 ## Git / commits
 

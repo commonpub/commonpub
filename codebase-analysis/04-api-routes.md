@@ -277,7 +277,7 @@ Themes (session 154):
 
 All theme writes call `invalidateThemeCache()` so the SSR middleware picks up changes within the next request.
 
-Features: GET/PUT `/api/admin/features` (runtime overrides).
+Features: GET/PUT `/api/admin/features` (runtime overrides). **As of layer 0.23.2 (session 158)**: PUT persists overrides verbatim — the previous dedup loop compared against `config.features` (already-merged) and silently deleted "matching" overrides, causing flips to revert on next read. Now the user's explicit override is always stored. A future "reset to default" should be a separate DELETE handler.
 
 Search: POST `/api/admin/search/reindex` — rebuild the Meilisearch index from Postgres.
 
