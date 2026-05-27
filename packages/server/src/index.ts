@@ -372,6 +372,10 @@ export type {
   LayoutPageMeta,
 } from './layout/layout.js';
 
+// Layout engine — homepage seed helper (Phase 1c — session 158)
+export { seedHomepageLayout } from './layout/seed.js';
+export type { SeedHomepageResult } from './layout/seed.js';
+
 // Federation
 export {
   getOrCreateActorKeypair,
