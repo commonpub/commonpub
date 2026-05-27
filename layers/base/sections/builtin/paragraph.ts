@@ -1,31 +1,38 @@
 /**
  * Built-in section definition: paragraph.
  *
- * Phase 1c starter — plain prose, blank-line split into `<p>` tags.
- * Upgrade to TipTap-driven rich text in Phase 3e via `.describe('rich')`
- * + a v2 migration; this v1 keeps the storage simple so the editor work
- * doesn't block on TipTap integration.
+ * Stage E.1 — reuses BlockTextView (`layers/base/components/blocks/
+ * BlockTextView.vue`) which renders sanitised HTML body via
+ * `sanitizeBlockHtml`. The Block system's `text` block produces this
+ * same HTML output from TipTap; the layout-engine paragraph section
+ * follows the same convention.
+ *
+ * Config: `{ html }` — sanitised at render time by BlockTextView.
+ * Pre-Stage-E my SectionParagraph had `{text, align}` (plain text);
+ * dropped to align with the Block contract. Admin-set HTML works
+ * because BlockTextView pipes through sanitizeBlockHtml — same XSS
+ * posture as the rest of the Block system.
  */
 import { z } from 'zod';
 import type { SectionDefinition } from '@commonpub/ui';
-import SectionParagraph from '../../components/sections/SectionParagraph.vue';
+import BlockTextView from '../../components/blocks/BlockTextView.vue';
 
 const configSchema = z.object({
-  text: z.string().max(8000).default(''),
-  align: z.enum(['left', 'center']).default('left'),
+  html: z.string().max(8000).default('<p>Paragraph body.</p>'),
 });
 
 export const paragraphSection: SectionDefinition<z.infer<typeof configSchema>> = {
   type: 'paragraph',
   name: 'Paragraph',
-  description: 'Plain prose body with blank-line paragraph breaks',
+  description: 'Sanitised HTML body (uses BlockTextView)',
   icon: 'fa-align-left',
   category: 'content',
   status: 'stable',
   configSchema,
-  defaultConfig: { text: '', align: 'left' },
+  defaultConfig: { html: '<p>Paragraph body.</p>' },
   schemaVersion: 1,
-  component: SectionParagraph,
+  component: BlockTextView,
+  propMap: ({ config }) => ({ content: config }),
   // Prose reads best at ~6/12; allow narrower for sidebars + full-width on landing pages
   minColSpan: 3,
   maxColSpan: 12,

@@ -74,35 +74,56 @@ describe('layer section registry — built-in registrations', () => {
     expect(def.defaultConfig).toMatchObject({ variant: 'default', title: expect.any(String) });
   });
 
-  it('heading section: content category, min 3, level enum 1-4', () => {
+  // --- Stage E.1: primitives now point at BlockX components via propMap
+
+  it('heading section: content category, level enum 1-6 (matches BlockHeadingView contract)', () => {
     const def = useSectionRegistry().get('heading')!;
     expect(def.category).toBe('content');
     expect(def.minColSpan).toBe(3);
-    // Each valid level parses; level 5 rejects (zod literal union)
-    for (const level of [1, 2, 3, 4]) {
+    expect(def.propMap).toBeTypeOf('function');  // ← Stage E adapter
+    // BlockHeadingView supports h1-h6 (not just h1-h4 like my pre-Stage-E shape)
+    for (const level of [1, 2, 3, 4, 5, 6]) {
       expect(def.configSchema.safeParse({ ...def.defaultConfig, level }).success).toBe(true);
     }
-    expect(def.configSchema.safeParse({ ...def.defaultConfig, level: 5 }).success).toBe(false);
+    expect(def.configSchema.safeParse({ ...def.defaultConfig, level: 7 }).success).toBe(false);
   });
 
-  it('paragraph section: content category, default 6 col, text length cap', () => {
+  it('paragraph section: content category, default 6 col, html length cap (BlockTextView contract)', () => {
     const def = useSectionRegistry().get('paragraph')!;
     expect(def.category).toBe('content');
     expect(def.defaultColSpan).toBe(6);
-    expect(def.configSchema.safeParse({ text: 'a'.repeat(8001), align: 'left' }).success).toBe(false);
-    expect(def.configSchema.safeParse({ text: 'a'.repeat(100), align: 'left' }).success).toBe(true);
+    expect(def.propMap).toBeTypeOf('function');
+    // BlockTextView takes { content: { html } }
+    expect(def.configSchema.safeParse({ html: 'a'.repeat(8001) }).success).toBe(false);
+    expect(def.configSchema.safeParse({ html: '<p>hi</p>' }).success).toBe(true);
   });
 
-  it('image section: aspect + fit enums; href optional empty string OK', () => {
+  it('image section: BlockImageView contract — src + alt + caption + size enum', () => {
     const def = useSectionRegistry().get('image')!;
+    expect(def.propMap).toBeTypeOf('function');
+    // Valid: size 's' | 'm' | 'l' | 'full'; src http(s) or relative or empty
+    for (const size of ['s', 'm', 'l', 'full']) {
+      expect(def.configSchema.safeParse({
+        src: 'https://example.com/x.png', alt: '', caption: '', size,
+      }).success).toBe(true);
+    }
     expect(def.configSchema.safeParse({
-      src: 'https://example.com/x.png', alt: '', caption: '', href: '',
-      fit: 'cover', aspectRatio: '16/9',
-    }).success).toBe(true);
-    expect(def.configSchema.safeParse({
-      src: '', alt: '', caption: '', href: '',
-      fit: 'stretch', aspectRatio: 'auto',
+      src: '', alt: '', caption: '', size: 'xl',  // bad size
     }).success).toBe(false);
+    // SAFE_IMAGE_URL still guards: javascript: rejected
+    expect(def.configSchema.safeParse({
+      src: 'javascript:alert(1)', alt: '', caption: '', size: 'l',
+    }).success).toBe(false);
+  });
+
+  it('divider section: variant + spacingY pass through propMap to BlockDividerView', () => {
+    const def = useSectionRegistry().get('divider')!;
+    expect(def.propMap).toBeTypeOf('function');
+    const adapted = def.propMap!({
+      config: { variant: 'accent', spacingY: 'xl' },
+      meta: { route: '/', zone: 'main', isPreview: false, effectiveColSpan: 12, sectionId: 'd1' },
+    });
+    expect(adapted).toEqual({ content: { variant: 'accent', spacingY: 'xl' } });
   });
 
   it('content-feed section: data category, limit clamped 1-24, columns 1-4 only', () => {
@@ -296,31 +317,24 @@ describe('layer section registry — built-in registrations', () => {
   });
 
   it('image href + src reject dangerous URI schemes', () => {
+    // Stage E.1: image now uses BlockImageView contract (src/alt/caption/size).
+    // href + fit + aspectRatio dropped (BlockImageView uses size preset for
+    // width capping; no link wrap in the Block contract).
     const def = useSectionRegistry().get('image')!;
-    const base = { alt: 'x', caption: '', fit: 'contain', aspectRatio: 'auto' };
+    const base = { alt: 'x', caption: '', size: 'l' };
 
-    // href: same scheme as hero CTA
-    for (const badHref of ['javascript:alert(1)', 'data:text/html,x', 'vbscript:m', 'file:///etc']) {
-      const r = def.configSchema.safeParse({ ...base, src: '', href: badHref });
-      expect(r.success, `image.href rejects ${badHref}`).toBe(false);
-    }
-
-    // src: tighter — no mailto/tel/hash (img src ignores them anyway)
+    // src: javascript:/data:/vbscript: rejected (admin-set; renders to all visitors)
     for (const badSrc of ['javascript:alert(1)', 'data:image/svg+xml,<svg/onload=x>', 'vbscript:m']) {
-      const r = def.configSchema.safeParse({ ...base, src: badSrc, href: '' });
+      const r = def.configSchema.safeParse({ ...base, src: badSrc });
       expect(r.success, `image.src rejects ${badSrc}`).toBe(false);
     }
 
-    // Empty strings allowed for both — that's the "no image / no link" state
-    expect(def.configSchema.safeParse({ ...base, src: '', href: '' }).success).toBe(true);
+    // Empty src allowed (the "no image yet" state)
+    expect(def.configSchema.safeParse({ ...base, src: '' }).success).toBe(true);
 
     // Known-good
-    expect(def.configSchema.safeParse({
-      ...base, src: 'https://cdn.example.com/x.png', href: '/explore',
-    }).success).toBe(true);
-    expect(def.configSchema.safeParse({
-      ...base, src: '/images/local.jpg', href: '#section',
-    }).success).toBe(true);
+    expect(def.configSchema.safeParse({ ...base, src: 'https://cdn.example.com/x.png' }).success).toBe(true);
+    expect(def.configSchema.safeParse({ ...base, src: '/images/local.jpg' }).success).toBe(true);
   });
 
   it('every registered section: defaultConfig passes configSchema (round-trip safe)', () => {
@@ -340,7 +354,13 @@ describe('layer section registry — built-in registrations', () => {
     // hardcoded colors are how non-zero --radius / dark-mode themes leak.
     const sectionsDir = resolve(__dirname, '../../components/sections');
     const files = readdirSync(sectionsDir).filter((f) => f.endsWith('.vue'));
-    expect(files.length).toBeGreaterThanOrEqual(17);  // divider + 5 starters + 6 session-159 sections + 5 Phase 6b (cta, markdown, gallery, video, embed)
+    // Stage E (sessions 159+): primitives (heading/paragraph/image/divider)
+    // unified onto BlockX components; their Section*.vue files deleted. Same
+    // for content block-style sections (gallery/video/embed/markdown) in E.2
+    // and homepage sections (hero/editorial/stats/etc) in E.4. Sweep count
+    // drops as each unification phase completes. Sticky floor: 1 (Learning)
+    // because no existing component renders learning paths as a section.
+    expect(files.length).toBeGreaterThanOrEqual(1);
 
     const offenders: Array<{ file: string; match: string }> = [];
     for (const file of files) {
