@@ -304,6 +304,7 @@ Federation admin (extensive):
 - GET /api/openapi — generated OpenAPI 3 spec
 - GET /api/image-proxy — image CORS proxy
 - GET /api/cert/:code — verify learning certificate
+- **GET /api/layouts/by-route?path=/some-path** (session 157, Phase 1 of the layout engine) — resolves the active layout for an SSR page. Gated by `features.layoutEngine` (default OFF) — returns `404 "Layout engine not enabled"` when the flag's off so the legacy `HomepageSectionRenderer` stays in charge during the migration window. Module-level 60s cache keyed by path. Returns slim shape `{ zones, pageMeta, state }`. Cache is per-pod; `invalidateLayoutsByRouteCache()` is exported but **currently uncalled** (no admin layout write API exists yet) — when Phase 1c adds admin writes, EVERY write handler MUST call it to avoid 60s stale-read window.
 
 ## Gotchas worth remembering
 

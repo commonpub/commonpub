@@ -1,7 +1,7 @@
 # 11 — Codebase Stats
 
-As of session 154 (2026-05-26). Numbers are approximate — exact counts vary
-with test exclusions.
+As of session 157 (2026-05-26 — same calendar day as 154/155/156).
+Numbers are approximate — exact counts vary with test exclusions.
 
 **Session 154 deltas** (admin theme editor):
 - API routes: +6 under `/api/admin/themes`
@@ -11,6 +11,28 @@ with test exclusions.
 - Server modules: theme.ts grew custom-theme CRUD (saveCustomTheme / list / get / delete)
 - Tests: +21 UI (`tokens.test.ts`) + 10 server (`custom-themes.integration.test.ts`) = +31
 
+**Session 155 deltas** (Phase 1 schema foundation):
+- New tables: layouts, layout_rows, layout_sections, layout_versions (migration 0005 → count 5→6)
+- Schema validators: layoutScopeSchema + layoutSchema + layoutCreateSchema + 6 nested
+- `@commonpub/ui` split: theme.ts + tokens.ts; SectionRegistry types
+- Tests: +21 schema (layout-validators) + 18 ui (sections) + 14 server (homepage) + 15 server (navigation) + 10 layer (HomepageSectionRenderer expansion) = +78
+
+**Session 156 deltas** (theme editor SHIPPED):
+- 5 packages published: schema 0.17.0, config 0.14.0, ui 0.9.0, server 2.56.0, layer 0.22.0
+- All 3 consumer sites (commonpub.io, deveco.io, heatsynclabs.io) updated + deployed
+- Apps/reference Playwright e2e: +14 (`theme.spec.ts`)
+
+**Session 157 deltas** (theme hotfix 0.22.1 + Phase 1 server/consumer):
+- Theme editor hotfix 0.22.1 published + deployed all 3 (light/dark toggle, applyAndSave race, discovery banner gate)
+- `@commonpub/server`: +1 module (`layout/layout.ts`, 520 LOC) — full CRUD with `db.transaction()` wrap
+- `@commonpub/config`: `features.layoutEngine` flag added (default OFF; not yet bumped to 0.15.0)
+- Layer API: +1 endpoint (`/api/layouts/by-route`, flag-gated, 60s cache)
+- Layer composable: +1 (`useLayout` — reactive-aware, accepts string|Ref|getter)
+- Layer component: +1 (`<LayoutSlot>` — 12-col responsive grid, visibility filters, previewOverride for editor integration)
+- Tests: +21 server (layout-server.integration) + 16 layer (AdminThemePreviewPane regression) = +37
+- Tooling: `simple-git-hooks` pre-push hook running `pnpm typecheck` (closes the vue-tsc-vs-vitest pattern that bit 3 times)
+- 6 audit findings fixed + 3 deferred to Phase 2/1c with documented TODOs
+
 ## Headline
 
 | | |
@@ -19,21 +41,22 @@ with test exclusions.
 | Shared Nuxt layer | 1 |
 | Apps | 2 |
 | Tools | 2 |
-| Tables | 79 (federated_accounts + oauth_codes added in 0004 migration) |
+| Tables | 83 (federated_accounts + oauth_codes added in 0004; layouts/layout_rows/layout_sections/layout_versions added in 0005, session 155) |
 | Enums | 41 |
-| Zod validators | 50+ |
-| Server modules | 22+ |
-| API routes | 276+ (admin storage backfill + federated/mastodon callback chains since session 128; +6 admin themes routes in session 154) |
+| Zod validators | 60+ (layout engine added 10 in session 155) |
+| Server modules | 23+ (layout/ added session 157) |
+| API routes | 277+ (+1 `/api/layouts/by-route` session 157 — public, flag-gated; admin layout write routes still TODO in Phase 1c) |
 | Layer pages | 86+ (admin/theme/edit/[id] added session 154) |
-| Layer components | 118+ (8 AdminTheme* components added session 154) |
-| Composables | 21+ (useThemeAdmin added session 154) |
-| Feature flags | 17 top-level (including `contentImport`, `editorial`) + 5 nested `identity.*` sub-flags |
+| Layer components | 119+ (8 AdminTheme* in 154; 1 LayoutSlot in 157) |
+| Composables | 22+ (useThemeAdmin in 154; useLayout in 157) |
+| Feature flags | 18 top-level (added `layoutEngine` in session 157) + 5 nested `identity.*` sub-flags |
 | Themes | 5 built-in (base, dark, generics, agora, agora-dark) + N DB-stored custom + N code-registered (admin-managed via `/admin/theme`, session 154) |
-| Migrations | 5 (0000_session128_baseline → 0004_federated_oauth_tokens) |
+| Migrations | 6 (0000_session128_baseline → 0005_wonderful_blue_marvel — layout engine, session 155+157 — drizzle-kit generated to keep journal in sync) |
 | ADRs | 24+ |
 | Production instances | 3 (commonpub.io, deveco.io, heatsynclabs.io — all auto-deploy from main) |
-| Session log files | 80+ (session numbers run 071–154; bundled where related work landed together) |
-| Tests | ~3,230 (session 154: protocol 419 + infra 305 + server 977 + layer 85 + ui 238 + scaffolder cargo 27 + other packages) |
+| Session log files | 80+ (session numbers run 071–157; bundled where related work landed together) |
+| Tests | ~3,360 (session 157: schema 413 + config 23 + ui 256 + server 1024 + layer 111 + protocol 419 + infra 305 + scaffolder cargo 27 + other = 1827 in the touched packages alone) |
+| Pre-push git hook | `pnpm typecheck` via simple-git-hooks (installed session 157; closes vue-tsc-vs-vitest regression pattern that hit 3 times in 2 sessions) |
 
 ## Per-package sizes (rough)
 

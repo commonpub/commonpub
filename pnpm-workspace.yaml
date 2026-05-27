@@ -1,6 +1,8 @@
 packages:
-  - 'packages/*'
-  - 'layers/*'
-  - 'apps/*'
-  - 'tools/worker'
-  - 'deploy'
+  - packages/*
+  - layers/*
+  - apps/*
+  - tools/worker
+  - deploy
+onlyBuiltDependencies:
+  - simple-git-hooks

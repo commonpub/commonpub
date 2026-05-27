@@ -24,6 +24,38 @@ If you run `pnpm update @commonpub/layer` in a consumer repo, the lockfile
 changes too. Commit both. CI installs from lockfile, so dropping the lockfile
 change means CI uses the OLD version while local works with the new.
 
+### Caret semver on 0.x.y excludes minor bumps (session 156-157)
+
+`^0.21.22` resolves to `>=0.21.22 <0.22.0` — caret on 0.x.y treats minor
+bumps as breaking. **`pnpm update <pkg>` silently won't cross the 0.21 →
+0.22 boundary.** Manually edit `package.json` to `^0.22.0` and re-run
+`pnpm install`. Per-patch bumps (0.21.21 → 0.21.22) `pnpm update`
+handles correctly; only the minor boundary trips. Caught twice in
+session 156 when bumping the layer 0.21.22 → 0.22.0 on both deveco-io
+and heatsynclabs-io. Memory: `feedback_caret_semver_0x_minor_bump.md`.
+
+### vue-tsc strict mode catches what vitest+esbuild misses (sessions 156-157)
+
+`pnpm test` in this repo runs vitest, which uses esbuild — permissive
+about type-narrowing failures, generic factories, partial config
+types, and DOM element narrowing. CI's `pnpm typecheck` runs
+`vue-tsc --noEmit` (strict) and will fail what vitest passed.
+
+Caught **3 times** before a pre-push hook was installed (session 157):
+- `sections.test.ts` migration test cases with intermediate partial-type returns
+- `mockConfig.ts` + `health.test.ts` literals missing a newly-added FeatureFlag field
+- `AdminThemePreviewPane.test.ts` helpers typed `HTMLElement` but receiving `Element` from `querySelector`
+
+**The hook** (session 157): `simple-git-hooks` installed as a devDep at
+the root; `package.json` declares `"simple-git-hooks": { "pre-push":
+"pnpm typecheck" }`; the root `prepare` script runs `simple-git-hooks
+|| true` so `pnpm install` activates it on every dev machine. The hook
+runs the root `pnpm typecheck` (turbo runs every package's typecheck
+task in parallel, ~30s). **Bypass for emergencies**:
+`SKIP_SIMPLE_GIT_HOOKS=1 git push`.
+
+Memory: `feedback_vue_tsc_strict_vs_vitest.md`.
+
 ### Copy dist to pnpm store after local server build
 
 If you `pnpm build` in `packages/server/` and then run `pnpm typecheck` in a
@@ -32,6 +64,27 @@ old types. After building locally, copy to the pnpm store or run
 `pnpm install --prefer-offline` in the consumer to refresh the symlink.
 
 ## Database
+
+### Drizzle migrator reads the journal — hand-writing the SQL alone is not enough (session 157)
+
+Caught in deep audit: session 155 committed `0005_layout_engine.sql`
+by hand (well-intentioned: align with the existing 0004-and-earlier
+naming + structure pattern), but **didn't run `drizzle-kit generate`**
+to update `migrations/meta/_journal.json` and `migrations/meta/0005_snapshot.json`.
+
+`scripts/db-migrate.mjs` calls `drizzle-orm/node-postgres/migrator.migrate()`,
+which **reads the journal** to know which migrations to apply. A SQL
+file without a journal entry is invisible to it — the migration simply
+won't run. The schema would "ship" but the tables would never get created.
+
+**Always use `pnpm db:generate`** (drizzle-kit, hands-off) to create
+new migrations. Don't hand-write SQL files. The drizzle-kit-generated
+output is functionally identical for additive migrations AND keeps the
+journal in sync.
+
+If a hand-written file exists alongside a generated one (the session 155
+→ 157 transition), DELETE the hand-written one and rely on the generated
+file. Session 157's `127b86e` did exactly that. Memory: `project_session_157_hotfix_and_phase1_server`.
 
 ### Schema deploys via committed migrations, never `drizzle-kit push` (session 128)
 

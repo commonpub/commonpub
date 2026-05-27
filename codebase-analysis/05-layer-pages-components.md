@@ -139,6 +139,10 @@ HubDiscussions, HubFeed, HubHero, HubLayout (tabs), HubMembers, HubProducts, Hub
 
 ContentGridSection, ContestsSection, CustomHtmlSection, EditorialSection, HeroSection, HomepageSectionRenderer (dispatcher), HubsSection, StatsSection.
 
+### Layout engine (session 157, Phase 1)
+
+**LayoutSlot** — `<LayoutSlot route="/" zone="main" />` renders one zone of a route's active layout. 12-column CSS Grid per row with `--cpub-section-cols-{sm|md|lg}` custom properties driving responsive `grid-column` spans via media queries (mobile defaults to span 12 = stack). Visibility filters at render time: `enabled`, `role`, `feature`, `hideAt`. `previewOverride` prop lets the editor's preview pane render an in-progress draft without a save round-trip (single source of truth for editor + production rendering). Renders a section-type placeholder until the section registry (Phase 1c) plugs renderers in. Gated by `features.layoutEngine`.
+
 ### Navigation (session 124)
 
 **NavRenderer**, **NavDropdown**, **MobileNavRenderer**, **NavLink**.
@@ -163,6 +167,7 @@ DocsPageTree.
 | useFeatures | reactive feature flags, hydrated from /api/features |
 | useTheme | data-theme / isDark / setDarkMode |
 | useThemeAdmin | (session 154) admin theme picker state — unified families view across built-in/registered/custom, refresh via `/api/admin/themes`. Discovery + import/export live in `utils/themeDiscovery.ts` + `utils/themeIO.ts`; id helpers in `utils/themeIds.ts`; types in `types/theme.ts` |
+| useLayout | (session 157, Phase 1 layout engine) resolves a route's active layout via `useFetch('/api/layouts/by-route')`. SSR-safe with hydration. Accepts `string \| Ref<string> \| (() => string)` — pass a getter/Ref for reactive callers (a parent-driven `<LayoutSlot>` whose `route` prop changes); a plain string for the typical static case. 404-as-null so consumers fall through to legacy renderers when `features.layoutEngine` is off. |
 | useToast | notification system |
 | useCookieConsent | GDPR consent state |
 | useContentSave | autosave + publish workflow |

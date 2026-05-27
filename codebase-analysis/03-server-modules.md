@@ -44,6 +44,7 @@ packages/server/src/
 │                    outboxQueries.ts    pagination helpers
 │                    timeline.ts         federated content timeline query
 ├── homepage/        homepage.ts         homepage-section config (stored in instanceSettings)
+├── layout/          layout.ts           layout engine CRUD: zones→rows→sections + versions (session 157)
 ├── hub/             hub.ts              hub CRUD
 │                    members.ts          join/leave/kick/role, remote member merge
 │                    moderation.ts       bans, invites
@@ -216,6 +217,42 @@ Both are thin CRUD over `instanceSettings` JSONB keys:
 
 - `nav.items` — list of `NavItem` (link/dropdown/external) with visibility + feature gates
 - `homepage.sections` — array of section configs (hero, grid, editorial, stats, custom html, etc.)
+
+### layout/ (session 157 — Phase 1 of the layout engine)
+
+**layout.ts** — full CRUD for the new layout engine, which replaces
+`homepage.sections` once `features.layoutEngine` flips ON (Phase 4
+adoption). 8 exports across 4 tables (`layouts`, `layout_rows`,
+`layout_sections`, `layout_versions` — migration 0005):
+
+- `listLayouts(db, opts?)` — optionally filter by scope_type
+- `getLayoutByScope(db, scope)` — primary read path; returns full nested
+  `LayoutRecord` (zones → rows → sections) — the shape `<LayoutSlot>` needs
+- `getLayoutById(db, id)` — by-uuid variant
+- `saveLayout(db, input, opts?)` — **atomic** "replace whole layout"
+  semantics. Wraps upsert + child-rewrite in `db.transaction(...)` so
+  concurrent admin saves can't interleave delete + insert and hit the
+  unique-(layout_id, zone, position) constraint. Renormalizes
+  `position` to {0..n} per zone/row. Preserves caller-supplied `id`
+  on rows + sections so reorders don't churn UUIDs.
+- `deleteLayout(db, id)` — cascades through rows + sections + versions
+- `publishLayout(db, id, opts)` — snapshots current state into
+  `layout_versions` (immutable), sets `published_version_id`,
+  transitions state → 'published'
+- `listLayoutVersions(db, layoutId)` — newest first
+- `revertToVersion(db, layoutId, versionId, opts)` — rewrites current
+  layout from a snapshot; version row never modified
+
+**Soft FK**: `layouts.published_version_id` references
+`layout_versions(id)` but as a soft pointer (no DB constraint) — would
+create a circular FK with cascade-delete chicken-and-egg. Read-side
+tolerates stale id by treating as "no published version".
+
+**Tests**: `packages/server/src/__tests__/layout-server.integration.test.ts`
+— 21 PGlite integration tests covering CRUD round-trip, position
+normalization, cascade DELETE, all 3 scope variants, version
+immutability, revert. Server total: 1003 → 1024 after this module
+landed.
 
 ### import/
 

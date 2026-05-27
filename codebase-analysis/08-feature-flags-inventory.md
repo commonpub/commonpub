@@ -26,6 +26,7 @@ site), layer pages (`feature-gate.global.ts` middleware), layer components
 | `seamlessFederation` | **OFF default** (live `true` on commonpub.io + deveco.io) | Merge federated content into local browse/search/feed | admin |
 | `emailNotifications` | **OFF** | Outbound email for likes/comments/follows/mentions/digest | admin |
 | `publicApi` | **OFF** | `/api/public/v1/**` read API (admin-managed bearer tokens, 13 read scopes) | admin |
+| `layoutEngine` | **OFF** (added in session 157, will ship in config 0.15.0 bundled with Phase 1c) | Phase 1 layout engine. When ON, `<LayoutSlot>` renders from the `layouts`/`layout_rows`/`layout_sections` DB tables (migration 0005) instead of the legacy `homepage.sections` JSON. `/api/layouts/by-route` 404s when off so the legacy `HomepageSectionRenderer` stays in charge. **Flipping ON without migration 0005 applied + a layout row for every adopted route = empty pages.** | admin (Phase 4 adoption) |
 | `identity.linkRemoteAccounts` | **OFF** (added config 0.12.0) | UI for linking a remote AP account; requires `CPUB_FED_TOKEN_KEY` | admin |
 | `identity.signInWithRemote` | **OFF** | Mastodon-login flow; requires `CPUB_FED_TOKEN_KEY` | admin |
 | `identity.actingAs` | **OFF** | "Acting as remote identity" banner + UI (no token I/O, no key needed) | admin |

@@ -232,6 +232,17 @@ Federated hubs:
 | auditLogs | Append-only action log | action field uses `verb.noun` naming |
 | files | Uploads | purpose enum; polymorphic context (contentId OR hubId OR none) |
 
+### Layout engine (4 — session 155 + session 157, migration 0005)
+
+| Table | Purpose | Notable |
+|---|---|---|
+| layouts | One per route/virtual/custom-page scope | `unique(scope_type, scope_key)`; `state in (draft, published)`; `published_version_id` is a **soft FK** to `layout_versions` (no constraint — avoids the circular FK with cascade-delete) |
+| layoutRows | Rows within a zone of a layout | `unique(layout_id, zone, position)`; cascades from layouts |
+| layoutSections | Sections within a row | `unique(row_id, position)`; `CHECK col_span between 1 and 12`; `responsive` + `visibility` are JSONB; `schema_version` for per-type config migrations; cascades from layoutRows |
+| layoutVersions | Immutable publish snapshots | `unique(layout_id, version)`; full nested `LayoutRecord` in JSONB `snapshot`; revert copies snapshot back to current — version row itself untouched |
+
+Consumed by `packages/server/src/layout/layout.ts` (Phase 1 server CRUD, session 157). Read via `<LayoutSlot>` Vue component once `features.layoutEngine` flips ON.
+
 ## Zod validators
 
 Live in `packages/schema/src/validators.ts`. All user-facing writes go through these.
