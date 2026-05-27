@@ -419,13 +419,31 @@ useJsonLd({
   font-weight: 400;
 }
 
-/* ── AVATARS ── */
+/* ── AVATARS ──
+ * Two render modes share the .cpub-av class:
+ *   <img class="cpub-av cpub-av-lg" ...>     ← avatar photo
+ *   <div class="cpub-av cpub-av-lg">JD</div>  ← initials fallback when no avatar
+ *
+ * Sizing + border-radius is shared. But `display: flex` MUST NOT apply to
+ * the <img> — when a replaced element gets `display: flex` set, browsers
+ * (notably Chromium) treat the img content render-box inconsistently and
+ * the inline `object-fit: cover` is silently dropped, producing a squished
+ * (stretched-to-box) image instead of a center-cropped one. Visible on
+ * deveco.io blog pages where author avatars are vertical photos (e.g.
+ * 816×1456) rendered into a 44×44 square.
+ *
+ * Fix: scope display:flex centering to the div variant only.
+ */
 .cpub-av {
   width: 28px;
   height: 28px;
   border-radius: 50%;
   background: var(--surface3);
   border: var(--border-width-default) solid var(--border);
+  flex-shrink: 0;
+}
+
+div.cpub-av {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -433,7 +451,12 @@ useJsonLd({
   font-weight: 600;
   color: var(--text-dim);
   font-family: var(--font-mono);
-  flex-shrink: 0;
+}
+
+/* Defensive: even when consumers forget the inline `object-fit:cover`,
+   img.cpub-av crops instead of stretching. */
+img.cpub-av {
+  object-fit: cover;
 }
 
 .cpub-av-lg { width: 44px; height: 44px; font-size: 14px; }

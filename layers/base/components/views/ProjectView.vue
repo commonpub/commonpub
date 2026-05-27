@@ -763,12 +763,19 @@ async function handleBuild(): Promise<void> {
   flex-wrap: wrap;
 }
 
+/* See ArticleView.vue's .cpub-av comment for why display:flex is scoped
+ * to the div-variant only — stops img-variant from squishing portrait
+ * avatars (object-fit:cover gets dropped on flex-set replaced elements). */
 .cpub-av {
   width: 28px;
   height: 28px;
   border-radius: 50%;
   background: var(--surface3);
   border: var(--border-width-default) solid var(--border);
+  flex-shrink: 0;
+}
+
+div.cpub-av {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -776,7 +783,10 @@ async function handleBuild(): Promise<void> {
   font-weight: 700;
   color: var(--text-dim);
   font-family: var(--font-mono);
-  flex-shrink: 0;
+}
+
+img.cpub-av {
+  object-fit: cover;
 }
 
 .cpub-av-lg { width: 36px; height: 36px; font-size: 12px; }

@@ -37,13 +37,15 @@ export default defineEventHandler(async (event) => {
 
   const merged = { ...existing, ...body.overrides };
 
-  // Remove overrides that match the base config default (no point overriding to same value)
-  const base = config.features as unknown as Record<string, boolean>;
-  for (const [key, value] of Object.entries(merged)) {
-    if (base[key] === value) {
-      delete (merged as Record<string, unknown>)[key];
-    }
-  }
+  // NOTE: previously this block tried to "remove overrides that match the
+  // base config" as a dedup, but `config.features` is the EFFECTIVE config
+  // (with overrides ALREADY applied) — so re-saving a previously-overridden
+  // flag would see `base[key] === value` (because the override was applied
+  // to base) and delete the override. The flag would then revert to the
+  // build-time default on next read. User-visible symptom: "I flipped X on
+  // in the UI but it kept reverting off." The dedup is dropped — the user's
+  // explicit override is persisted verbatim. Future "reset to default" can
+  // be a separate DELETE-overrides handler.
 
   await setInstanceSetting(db, 'features.overrides', merged, user.id, getRequestIP(event) ?? undefined);
 
