@@ -232,44 +232,46 @@ describe('layer section registry — built-in registrations', () => {
     expect(def.configSchema.safeParse({ ...def.defaultConfig, buttons: fourBtn }).success).toBe(false);
   });
 
-  it('markdown section: content category, body length capped at 100KB', () => {
+  // Stage E.2: markdown / gallery / video / embed unified onto BlockX components
+
+  it('markdown section: BlockMarkdownView contract — source field, 100KB cap', () => {
     const def = useSectionRegistry().get('markdown')!;
     expect(def.category).toBe('content');
-    expect(def.configSchema.safeParse({ heading: '', body: 'x'.repeat(100_001) }).success).toBe(false);
-    expect(def.configSchema.safeParse({ heading: '', body: 'x'.repeat(100_000) }).success).toBe(true);
+    expect(def.propMap).toBeTypeOf('function');
+    expect(def.configSchema.safeParse({ source: 'x'.repeat(100_001) }).success).toBe(false);
+    expect(def.configSchema.safeParse({ source: '# Hello' }).success).toBe(true);
   });
 
-  it('gallery section: content category, columns 2-5 only, 20-item cap', () => {
+  it('gallery section: BlockGalleryView contract — images array, 20 cap, src URL guard', () => {
     const def = useSectionRegistry().get('gallery')!;
     expect(def.category).toBe('content');
-    expect(def.configSchema.safeParse({ ...def.defaultConfig, columns: 1 }).success).toBe(false);
-    expect(def.configSchema.safeParse({ ...def.defaultConfig, columns: 6 }).success).toBe(false);
-    for (const c of [2, 3, 4, 5]) {
-      expect(def.configSchema.safeParse({ ...def.defaultConfig, columns: c }).success).toBe(true);
-    }
-    // 20-cap
-    const twentyOne = Array(21).fill({ src: '/x.jpg', alt: '', caption: '', href: '' });
-    expect(def.configSchema.safeParse({ ...def.defaultConfig, items: twentyOne }).success).toBe(false);
+    expect(def.propMap).toBeTypeOf('function');
+    // src URL guard rejects javascript:
+    expect(def.configSchema.safeParse({
+      images: [{ src: 'javascript:alert(1)', alt: '', caption: '' }],
+    }).success).toBe(false);
+    // 20-item cap
+    const twentyOne = Array(21).fill({ src: '/x.jpg', alt: '', caption: '' });
+    expect(def.configSchema.safeParse({ images: twentyOne }).success).toBe(false);
+    // Empty OK
+    expect(def.configSchema.safeParse({ images: [] }).success).toBe(true);
   });
 
-  it('video section: src must be http(s) or relative; SAFE_VIDEO_URL rejects javascript: + data:', () => {
+  it('video section: BlockVideoView contract — url field, URL guard rejects javascript:', () => {
     const def = useSectionRegistry().get('video')!;
-    expect(def.configSchema.safeParse({ ...def.defaultConfig, src: 'javascript:alert(1)' }).success).toBe(false);
-    expect(def.configSchema.safeParse({ ...def.defaultConfig, src: 'data:text/html,x' }).success).toBe(false);
-    expect(def.configSchema.safeParse({ ...def.defaultConfig, src: '/uploads/x.mp4' }).success).toBe(true);
-    expect(def.configSchema.safeParse({ ...def.defaultConfig, src: 'https://youtube.com/x' }).success).toBe(true);
+    expect(def.propMap).toBeTypeOf('function');
+    expect(def.configSchema.safeParse({ url: 'javascript:alert(1)' }).success).toBe(false);
+    expect(def.configSchema.safeParse({ url: '/uploads/x.mp4' }).success).toBe(true);
+    expect(def.configSchema.safeParse({ url: 'https://youtube.com/watch?v=x' }).success).toBe(true);
   });
 
-  it('embed section: content category, BETA status (sandbox policy still being tuned)', () => {
+  it('embed section: BlockEmbedView contract — url field, http(s) only', () => {
     const def = useSectionRegistry().get('embed')!;
     expect(def.category).toBe('content');
-    expect(def.status).toBe('beta');
-    expect(def.configSchema.safeParse({ ...def.defaultConfig, src: 'not-a-url' }).success).toBe(false);
-    expect(def.configSchema.safeParse({ ...def.defaultConfig, src: 'https://twitter.com/x' }).success).toBe(true);
-    // height clamp
-    expect(def.configSchema.safeParse({ ...def.defaultConfig, src: 'https://x.com/y', height: 100 }).success).toBe(false);
-    expect(def.configSchema.safeParse({ ...def.defaultConfig, src: 'https://x.com/y', height: 2001 }).success).toBe(false);
-    expect(def.configSchema.safeParse({ ...def.defaultConfig, src: 'https://x.com/y', height: 500 }).success).toBe(true);
+    expect(def.propMap).toBeTypeOf('function');
+    expect(def.configSchema.safeParse({ url: 'not-a-url' }).success).toBe(false);
+    expect(def.configSchema.safeParse({ url: 'https://twitter.com/x' }).success).toBe(true);
+    expect(def.configSchema.safeParse({ url: '' }).success).toBe(true);  // empty OK
   });
 
   // --- URL scheme guards (session 158 audit-fix) -------------------------

@@ -1,39 +1,35 @@
 /**
  * Built-in section definition: markdown.
  *
- * Phase 6b addition (session 159). Sanitised markdown body. Pipes the
- * source through `@commonpub/docs`'s `renderMarkdown` (remark + rehype
- * + rehype-sanitize with the docs default schema) so the rendered HTML
- * has the same XSS posture as docs pages.
+ * Stage E.2 — reuses BlockMarkdownView (`layers/base/components/blocks/
+ * BlockMarkdownView.vue`). Same markdown renderer used by block-system
+ * content. Source markdown lives in `content.source`; BlockMarkdownView
+ * pipes through markdownToBlockTuples + sanitizeBlockHtml.
  *
- * Unlike custom-html (which renders raw HTML at the admin's risk), this
- * section provides a SAFE authoring path: markdown source is sanitised
- * at render time, every visit, with no admin-input HTML reaching the
- * DOM unscrubbed.
- *
- * Config: heading (optional) + body (markdown source, max 100KB).
- * Sanitisation happens server-side via useAsyncData in the renderer.
+ * Config matches BlockMarkdownView's content contract: `{source}`.
+ * Pre-Stage-E my SectionMarkdown had `{heading, body}` — dropped to
+ * follow the Block contract (renderer doesn't have a heading).
  */
 import { z } from 'zod';
 import type { SectionDefinition } from '@commonpub/ui';
-import SectionMarkdown from '../../components/sections/SectionMarkdown.vue';
+import BlockMarkdownView from '../../components/blocks/BlockMarkdownView.vue';
 
 const configSchema = z.object({
-  heading: z.string().max(120).default(''),
-  body: z.string().max(100_000).default(''),
+  source: z.string().max(100_000).default(''),
 });
 
 export const markdownSection: SectionDefinition<z.infer<typeof configSchema>> = {
   type: 'markdown',
   name: 'Markdown',
-  description: 'Markdown body — safer than custom-html for admin authoring',
+  description: 'Markdown body — safer than custom-html (uses BlockMarkdownView)',
   icon: 'fa-markdown',
   category: 'content',
   status: 'stable',
   configSchema,
-  defaultConfig: { heading: '', body: '' },
+  defaultConfig: { source: '' },
   schemaVersion: 1,
-  component: SectionMarkdown,
+  component: BlockMarkdownView,
+  propMap: ({ config }) => ({ content: config }),
   minColSpan: 3,
   maxColSpan: 12,
   defaultColSpan: 12,
