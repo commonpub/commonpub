@@ -124,14 +124,23 @@ Phase 1 server CRUD + LayoutSlot are in commonpub.io's deployed code (workspace 
 
 ## What's next session (Phase 1c)
 
-1. **Section registry plugin** (`layers/base/plugins/sections.{client,server}.ts`) — startup-time registration of the 5 starter section types
-2. **5 starter sections** (Vue components + Zod schemas + tests): `hero`, `heading`, `paragraph`, `image`, `contentFeed`
-3. **`<LayoutSlot>` renderer integration** — wire the registry into the placeholder
-4. **Homepage migration script** — converts existing `homepage.sections` setting → a `layouts` row + rows + sections
-5. **Adopt `<LayoutSlot>` in `pages/index.vue`** behind `v-if="layoutEngine"` with legacy `HomepageSectionRenderer` as fallback
-6. **drizzle-kit meta snapshot for migration 0005** — `pnpm drizzle-kit generate` then reconcile with the hand-written SQL
-7. **Bump + publish**: config 0.14.0→0.15.0, server 2.56.0→2.57.0, layer 0.22.1→0.23.0
-8. **Per-instance**: run migration + enable `features.layoutEngine` selectively (commonpub.io first as canary)
+**Done in this session's late commits (afd5111 + efaffe2 + earlier)**:
+- ✅ Section registry — `layers/base/sections/registry.ts` (singleton + `useSectionRegistry()` accessor)
+- ✅ `<LayoutSlot>` wired to use the registry (`<component :is>` for registered types; admin-only placeholder for unregistered)
+- ✅ Proof-of-life section: `divider` (`sections/builtin/divider.ts` + `components/sections/SectionDivider.vue`) + 6 tests
+- ✅ Drizzle migration meta — `drizzle-kit generate`d, `0005_wonderful_blue_marvel.sql` replaces the hand-written file, journal in sync
+- ✅ Pre-push hook installed (simple-git-hooks → `pnpm typecheck`) closing the vue-tsc/vitest gap structurally
+- ✅ Codebase-analysis 02 / 03 / 04 / 05 / 08 / 09 / 11 updated
+
+**Still pending for Phase 1c**:
+1. **4 more starter sections** (Vue components + Zod schemas + tests): `hero`, `heading`, `paragraph`, `image`, `contentFeed`. Pattern is locked by `divider` — drop one file in `sections/builtin/` + one in `components/sections/` + one `registry.register()` call. ~30 min per section incl. tests.
+2. **Homepage migration script** — converts existing `homepage.sections` → a `layouts` row + rows + sections. Idempotent. ~1 session.
+3. **Adopt `<LayoutSlot>` in `pages/index.vue`** behind `v-if="layoutEngine"` with legacy `HomepageSectionRenderer` as fallback.
+4. **Bump + publish bundle**: config 0.14.0→0.15.0, server 2.56.0→2.57.0, layer 0.22.1→0.23.0. (Schema 0.17.0 already has migration; no bump needed.)
+5. **Per-instance**: run migration 0005 + enable `features.layoutEngine` selectively (commonpub.io first as canary).
+6. **Admin layout write API** (`POST/PUT/DELETE /api/admin/layouts/*`) — invoke `invalidateLayoutsByRouteCache()` after every write (TODO documented in `by-route.get.ts`).
+
+**Estimated**: 3-4 sessions to ship Phase 1c fully (sections + migration + adoption + publish + canary).
 
 ## Standing rule reminders
 
