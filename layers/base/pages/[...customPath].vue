@@ -32,6 +32,7 @@
  */
 import { computed } from 'vue';
 import { pathNormalize } from '@commonpub/server/layout/path-normalize';
+import type { LayoutPayload } from '../composables/useLayout';
 
 definePageMeta({
   // Run this catch-all AFTER all file-based routes (the default is
@@ -59,12 +60,35 @@ if (!normalised.value.ok) {
 
 const pathToLookup = computed(() => (normalised.value.ok ? normalised.value.path : '/'));
 
-const { layout: customLayout, pending } = useLayout(pathToLookup);
+// IMPORTANT: use `await useFetch` directly (NOT useLayout) because we need
+// the resolved data synchronously in setup() to throw 404 on missing.
+// useLayout returns refs without awaiting; the data settles AFTER setup
+// returns, so an early `customLayout.value === null` check fires for
+// EVERY request — even when a real layout exists. Pages are Suspense-
+// wrapped in Nuxt, so top-level await is safe here (same pattern
+// pages/index.vue uses for /api/content).
+//
+// Session 159 audit caught this — it shipped first as `useLayout(...) +
+// sync null-check` which had a load-bearing bug (404 always). Fixed by
+// switching to awaited useFetch.
+const { data: customLayout } = await useFetch<LayoutPayload | null>(
+  '/api/layouts/by-route',
+  {
+    query: computed(() => ({ path: pathToLookup.value })),
+    key: computed(() => `layout:${pathToLookup.value}`).value,
+    transform: (input: LayoutPayload | null | undefined) => input ?? null,
+    onResponseError({ response }) {
+      // 404 from API (feature off OR no layout for route) → treat as null;
+      // we'll throw a page-level 404 below if needed.
+      if (response.status === 404) return;
+    },
+    server: true,
+    lazy: false,
+  },
+);
 
-// Server-side: if the lookup returns null, this is a real 404 — set
-// status BEFORE rendering so search engines + caches don't index a
-// fallback page.
-if (import.meta.server && !pending.value && customLayout.value === null) {
+// Now safe to check — data is settled by Nuxt's Suspense before this line
+if (customLayout.value === null) {
   throw createError({ statusCode: 404, statusMessage: 'Not Found' });
 }
 
@@ -105,7 +129,7 @@ useSeoMeta({
 // Resolve which zones the layout actually has — render only those, in
 // the canonical order (full-width above the split, then main + sidebar
 // side by side, then sidebar collapses below main on narrow viewports).
-const zones = computed(() => customLayout.value?.zones?.map((z) => z.zone) ?? []);
+const zones = computed(() => customLayout.value?.zones?.map((z: { zone: string }) => z.zone) ?? []);
 const hasFullWidth = computed(() => zones.value.includes('full-width'));
 const hasMain = computed(() => zones.value.includes('main'));
 const hasSidebar = computed(() => zones.value.includes('sidebar'));
