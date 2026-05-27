@@ -36,13 +36,13 @@ Goal: ship the work that's already on main to npm + roll to all 3 sites. Closes 
 - [x] **A5**: Heatsync — 68e1959 in heatsynclabs-io, deployed clean, health 200, layer 0.24.0 + server 2.58.0 + schema 0.17.0 (80 files) installed via npm, layoutEngine flag stays off, legacy renderer serving. No homepage.sections to migrate — DORMANT state.
 - [x] **A6**: ⚠️ feature-flags-prime plugin not in heatsync's nitro bundle (grep returned 0). Investigate before any operator canary. Workaround for now: operator can flip layoutEngine via `NUXT_PUBLIC_FEATURES_LAYOUT_ENGINE=true` env var (path that bypasses the plugin).
 - [x] **A7**: Deveco — 4a1dcf0 in deveco-io, deployed in 4m28s, health 200, layer 0.24.0 + server 2.58.0 + schema 0.17.0 (80 files, no pnpm-drop-files bug). layoutEngine off, legacy serving. No homepage.sections to migrate.
-- [x] **A8**: Deveco canary state confirmed dormant. Same plugin gap as heatsync.
+- [x] **A8**: Deveco canary state confirmed dormant. Plugin bundled correctly (re-checked post-audit, see A.fix.1).
 
-**Stage A complete 2026-05-27**. All 3 sites on layer 0.24.0; commonpub.io ACTIVE (LayoutSlot serving), heatsync + deveco DORMANT (legacy serving, infra ready for operator opt-in).
+**Stage A complete 2026-05-27**. All 3 sites on layer 0.24.0; commonpub.io ACTIVE (LayoutSlot serving), heatsync + deveco DORMANT (legacy serving, full infra including feature-flags-prime plugin ready for operator opt-in).
 
 ### Stage A follow-ups (queue for next session)
 
-- [ ] **A.fix.1**: Investigate why feature-flags-prime plugin isn't in heatsync/deveco's nitro bundle. The plugin file IS in layer 0.24.0's tarball (`server/plugins/feature-flags-prime.ts`). Nuxt may not auto-discover server-plugins from extended layers' `server/plugins/` dirs. If true, plugin needs to move into apps' own server/plugins/ OR be exported as a Nuxt module.
+- [x] **A.fix.1**: ~~Feature-flags-prime plugin missing from heatsync/deveco bundle~~ — **FALSE ALARM, retracted.** Re-checked: `grep -c cpubFeatureFlags /app/.output/server/chunks/nitro/nitro.mjs` returns 1 on all 3 sites. The plugin IS bundled via Nuxt's auto-discovery from extended layers (`server/plugins/` auto-merge). Earlier finding-of-0 was measured BEFORE the layer-0.24.0 deploy fully landed (against a stale 0.23.x bundle). **Operator opt-in path is unblocked on heatsync + deveco.** Lesson: never grep prod artifacts during a deploy window.
 - [ ] **A.fix.2**: PUT handler on /api/admin/layouts/[id] enforces scope immutability so custom-page validate is moot. But could add a "normalise-then-compare" check so a client sending `/About` doesn't 400 against DB's `/about`. Low priority.
 
 ### Stage B — Phase 2: custom-page catch-all ✅ shipped 2026-05-27

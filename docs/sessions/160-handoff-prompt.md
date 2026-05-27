@@ -49,7 +49,7 @@ Paste the prompt block below (everything between the `---` rules) into the new s
 >
 > **Critical follow-ups from session 159 (DO FIRST)**:
 >
-> 1. **A.fix.1 — `feature-flags-prime` plugin not bundled on heatsync/deveco** (P1). Layer 0.24.0's tarball ships `server/plugins/feature-flags-prime.ts`. heatsync's nitro chunk grep `cpubFeatureFlags` returned 0 (NOT loaded). Theory: Nuxt's auto-discovery of `server/plugins/` may not cross extended-layers. If true, plugin needs to ship as a Nuxt module OR be added to each consumer app's `server/plugins/`. Until fixed, operator opt-in on heatsync/deveco will have the SSR-flag-hydration bug (legacy renderer flashes before client hydration switches to LayoutSlot). Investigate: try `pnpm view @commonpub/layer@0.24.0 dist/server/plugins/feature-flags-prime.ts` then check whether heatsync's nuxt build actually picks it up via `nuxt extends '../node_modules/@commonpub/layer'`.
+> 1. ~~**A.fix.1 — feature-flags-prime plugin not bundled on heatsync/deveco**~~ **RETRACTED.** False alarm in session 159 audit. Re-checked: grep returns 1 on all 3 sites. Plugin IS auto-discovered from extended layer. Operator opt-in path is unblocked.
 >
 > 2. **B.fix.1 — PUT handler on /api/admin/layouts/[id] doesn't validate path-normalisation** (P3). Scope is immutable so a wrong-cased path 400s rather than 409. Low priority.
 >
