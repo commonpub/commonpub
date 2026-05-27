@@ -139,9 +139,19 @@ HubDiscussions, HubFeed, HubHero, HubLayout (tabs), HubMembers, HubProducts, Hub
 
 ContentGridSection, ContestsSection, CustomHtmlSection, EditorialSection, HeroSection, HomepageSectionRenderer (dispatcher), HubsSection, StatsSection.
 
-### Layout engine (session 157, Phase 1)
+### Layout engine (session 157, Phase 1 + session 158, Phase 1c)
 
-**LayoutSlot** — `<LayoutSlot route="/" zone="main" />` renders one zone of a route's active layout. 12-column CSS Grid per row with `--cpub-section-cols-{sm|md|lg}` custom properties driving responsive `grid-column` spans via media queries (mobile defaults to span 12 = stack). Visibility filters at render time: `enabled`, `role`, `feature`, `hideAt`. `previewOverride` prop lets the editor's preview pane render an in-progress draft without a save round-trip (single source of truth for editor + production rendering). Renders a section-type placeholder until the section registry (Phase 1c) plugs renderers in. Gated by `features.layoutEngine`.
+**LayoutSlot** — `<LayoutSlot route="/" zone="main" />` renders one zone of a route's active layout. 12-column CSS Grid per row with `--cpub-section-cols-{sm|md|lg}` custom properties driving responsive `grid-column` spans via media queries (mobile defaults to span 12 = stack). Visibility filters at render time: `enabled`, `role`, `feature`, `hideAt`. `previewOverride` prop lets the editor's preview pane render an in-progress draft without a save round-trip (single source of truth for editor + production rendering). Resolves the section's `type` slug against the layer section registry (session 157 scaffolding + session 158's 6-section catalog). Gated by `features.layoutEngine`.
+
+**Section renderers** (`layers/base/components/sections/Section*.vue`) — session 158 added 5 to the proof-of-life divider from session 157, for a total of 6 in the starter catalog:
+- `SectionDivider.vue` (layout cat, 12 col, not resizable)
+- `SectionHero.vue` (layout cat, 6-12 col, default/compact/centered variants, up to 2 CTAs, NOT contest-aware — that's Phase 6b)
+- `SectionHeading.vue` (content cat, 3-12 col, h1-h4 + eyebrow + subline)
+- `SectionParagraph.vue` (content cat, 3-12 col, default 6, plain prose w/ blank-line split)
+- `SectionImage.vue` (content cat, 3-12 col, lazy <img> + optional <a href> wrap + figcaption + fit/aspect)
+- `SectionContentFeed.vue` (data cat, 6-12 col, server-backed grid of ContentCard via `/api/content`, 1-4 cols responsive). First DATA section — uses NON-await useFetch (await would require Suspense on every parent).
+
+**Homepage adoption** (session 158): `layers/base/pages/index.vue` now has a 3-way v-if/v-else-if/v-else. `v-if="layoutEngineEnabled"` renders 3 LayoutSlot zones; v-else-if renders the existing configurable section renderer (when `hasCustomSections`); v-else renders the legacy hardcoded homepage. Flag default OFF → behavior on existing instances unchanged.
 
 ### Navigation (session 124)
 

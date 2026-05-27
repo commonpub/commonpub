@@ -1,7 +1,18 @@
 # 11 — Codebase Stats
 
-As of session 157 (2026-05-26 — same calendar day as 154/155/156).
+As of session 158 (2026-05-26 — same calendar day as 154/155/156/157).
 Numbers are approximate — exact counts vary with test exclusions.
+
+**Session 158 deltas** (Phase 1c sections + admin write API + homepage adoption):
+- Layer sections: registry expanded 1 → 6 (`hero`, `heading`, `paragraph`, `image`, `content-feed` added; `divider` already there). Each is 3 files (Zod + Vue + register call).
+- Layer components: +5 `Section{Hero,Heading,Paragraph,Image,ContentFeed}.vue`
+- API routes: +9 under `/api/admin/layouts/*` (CRUD + publish + versions + revert + seed-homepage); 0 user-facing changes (all flag-gated)
+- Server modules: +1 `layout/seed.ts` (`seedHomepageLayout`)
+- Server utils (layer): +1 `server/utils/layoutCache.ts` (lifted from inline by-route.get.ts; shared between public reader + admin invalidators)
+- Composable: `useFeatures` gained `layoutEngine` (was missed in session 157's config-side flag addition)
+- Tests: +61 layer (5 sections × ~5 + registry expansion + cache util 5 + handlers-contract 17), +7 server (layout-seed integration)
+- Docs: +1 LLM ref (`docs/reference/guides/layout-engine.md`)
+- Homepage `pages/index.vue`: 3-way v-if/v-else-if/v-else (LayoutSlot zones / configurable / legacy); default behavior unchanged because the flag defaults OFF
 
 **Session 154 deltas** (admin theme editor):
 - API routes: +6 under `/api/admin/themes`
@@ -44,10 +55,10 @@ Numbers are approximate — exact counts vary with test exclusions.
 | Tables | 83 (federated_accounts + oauth_codes added in 0004; layouts/layout_rows/layout_sections/layout_versions added in 0005, session 155) |
 | Enums | 41 |
 | Zod validators | 60+ (layout engine added 10 in session 155) |
-| Server modules | 23+ (layout/ added session 157) |
-| API routes | 277+ (+1 `/api/layouts/by-route` session 157 — public, flag-gated; admin layout write routes still TODO in Phase 1c) |
+| Server modules | 23+ (layout/ added session 157; layout/seed.ts added session 158) |
+| API routes | 286+ (+9 admin layout routes session 158 under `/api/admin/layouts/*` — all flag-gated; +1 `/api/layouts/by-route` session 157) |
 | Layer pages | 86+ (admin/theme/edit/[id] added session 154) |
-| Layer components | 119+ (8 AdminTheme* in 154; 1 LayoutSlot in 157) |
+| Layer components | 124+ (8 AdminTheme* in 154; 1 LayoutSlot in 157; 5 Section* in 158) |
 | Composables | 22+ (useThemeAdmin in 154; useLayout in 157) |
 | Feature flags | 18 top-level (added `layoutEngine` in session 157) + 5 nested `identity.*` sub-flags |
 | Themes | 5 built-in (base, dark, generics, agora, agora-dark) + N DB-stored custom + N code-registered (admin-managed via `/admin/theme`, session 154) |
@@ -55,7 +66,7 @@ Numbers are approximate — exact counts vary with test exclusions.
 | ADRs | 24+ |
 | Production instances | 3 (commonpub.io, deveco.io, heatsynclabs.io — all auto-deploy from main) |
 | Session log files | 80+ (session numbers run 071–157; bundled where related work landed together) |
-| Tests | ~3,360 (session 157: schema 413 + config 23 + ui 256 + server 1024 + layer 111 + protocol 419 + infra 305 + scaffolder cargo 27 + other = 1827 in the touched packages alone) |
+| Tests | ~3,400+ (session 158: layer 178 + server 1031 in touched packages; full repo wider) |
 | Pre-push git hook | `pnpm typecheck` via simple-git-hooks (installed session 157; closes vue-tsc-vs-vitest regression pattern that hit 3 times in 2 sessions) |
 
 ## Per-package sizes (rough)

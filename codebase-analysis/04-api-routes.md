@@ -304,7 +304,18 @@ Federation admin (extensive):
 - GET /api/openapi — generated OpenAPI 3 spec
 - GET /api/image-proxy — image CORS proxy
 - GET /api/cert/:code — verify learning certificate
-- **GET /api/layouts/by-route?path=/some-path** (session 157, Phase 1 of the layout engine) — resolves the active layout for an SSR page. Gated by `features.layoutEngine` (default OFF) — returns `404 "Layout engine not enabled"` when the flag's off so the legacy `HomepageSectionRenderer` stays in charge during the migration window. Module-level 60s cache keyed by path. Returns slim shape `{ zones, pageMeta, state }`. Cache is per-pod; `invalidateLayoutsByRouteCache()` is exported but **currently uncalled** (no admin layout write API exists yet) — when Phase 1c adds admin writes, EVERY write handler MUST call it to avoid 60s stale-read window.
+- **GET /api/layouts/by-route?path=/some-path** (session 157, Phase 1 of the layout engine) — resolves the active layout for an SSR page. Gated by `features.layoutEngine` (default OFF) — returns `404 "Layout engine not enabled"` when the flag's off so the legacy `HomepageSectionRenderer` stays in charge during the migration window. Module-level 60s cache keyed by path. Returns slim shape `{ zones, pageMeta, state }`. **Session 158**: cache lifted into `server/utils/layoutCache.ts` so the admin write API can invalidate it cleanly. `by-route.get.ts` re-exports `invalidateLayoutsByRouteCache` for backwards compat.
+
+**Admin layout write API** (session 158, Phase 1c) — 9 routes under `/api/admin/layouts/*`, all gated on `requireFeature('admin') + requireFeature('layoutEngine') + requireAdmin(event)`. Every write handler calls `invalidateLayoutsByRouteCache()` before returning (statically enforced by `handlers-contract.test.ts`):
+- `GET    /api/admin/layouts` — list (optional `?scope=route|virtual|custom-page`)
+- `POST   /api/admin/layouts` — create (409 if scope already exists)
+- `GET    /api/admin/layouts/[id]`
+- `PUT    /api/admin/layouts/[id]` — update; rejects scope change (400)
+- `DELETE /api/admin/layouts/[id]` — cascade through rows + sections + versions
+- `POST   /api/admin/layouts/[id]/publish` — snapshot + flip state=published
+- `GET    /api/admin/layouts/[id]/versions` — version history
+- `POST   /api/admin/layouts/[id]/versions/[versionId]/revert` — restore from snapshot (snapshot itself never touched; immutable)
+- `POST   /api/admin/layouts/seed-homepage` — idempotent bootstrap for the homepage canary (creates + publishes a default hero + content-feed layout at `('route', '/')` if none exists)
 
 ## Gotchas worth remembering
 
