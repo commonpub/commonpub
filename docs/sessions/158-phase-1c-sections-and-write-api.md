@@ -213,6 +213,66 @@ Per-package test counts (run directly, bypassing turbo build chain):
 
 (Local `pnpm test` via turbo failed on apps/{reference,shell} build due to sharp wasm32 fallback on arm64 Mac — environmental, not a regression. CI builds Linux x64 with native sharp and passes.)
 
+## Publish + consumer bumps (same session, post-audit)
+
+After the audit closed clean, decided to publish the bundle and bump
+all 3 consumer sites — work is shippable, flag default OFF means zero
+consumer behavior change, and carrying the unshipped state forward
+adds cognitive cost.
+
+| Package | Old | New | Notes |
+|---|---|---|---|
+| `@commonpub/config` | 0.14.0 | **0.15.0** | `features.layoutEngine` flag (added session 157, never published) |
+| `@commonpub/server` | 2.56.0 | **2.57.0** | Phase 1 layout CRUD (session 157) + `seedHomepageLayout` (session 158) |
+| `@commonpub/layer` | 0.22.1 | **0.23.1** | Phase 1c full slice. 0.23.0 was a botched first publish — see below. |
+
+Skipped bumps: `@commonpub/test-utils` had a 1-line change (mock got `layoutEngine: false`) but no consumer outside the workspace depends on it from npm.
+
+**Layer 0.23.0 → 0.23.1 hotfix** mid-publish: 0.23.0's tarball was missing the `sections/` directory because `layers/base/package.json`'s `files` whitelist didn't include it. `LayoutSlot.vue` imports `../sections/registry` — vue-tsc on consumer install failed `TS2307: Cannot find module`. Caught immediately by `deveco-io`'s post-install vue-tsc check; never reached production. Fix: add `"sections"` to the whitelist, republish 0.23.1, `npm deprecate @commonpub/layer@0.23.0`. Tarball verified to contain `sections/registry.ts` + `sections/builtin/*.ts`.
+
+**Consumer pin bumps** (caret semver on 0.x.y doesn't cross minor — per `feedback_caret_semver_0x_minor_bump`, hand-edit package.json):
+
+| Site | Layer pin |
+|---|---|
+| `commonpub.io` | workspace mode — no pin (auto-deploys from main) |
+| `deveco-io` | `^0.22.1` → `^0.23.1` + same for config 0.13.0 → 0.15.0, server 2.55.0 → 2.57.0 |
+| `heatsynclabs-io` | `^0.22.1` → `^0.23.1` + same for config + server |
+
+`heatsynclabs-io` has uncommitted operator WIP (`commonpub.config.ts`, `ONBOARDING.md`) — staged only `package.json + pnpm-lock.yaml`; WIP preserved across the bump per memory `feedback_deployment_architecture`.
+
+Vue-tsc on consumer sites: deveco clean. Heatsync has ~10 pre-existing `Element` vs `HTMLElement` DOM-type errors (also present on the pre-bump 0.22.1 install — verified by `git stash` + re-checking) — not regressions; the existing CI workflow tolerates them.
+
+## Post-deploy: deveco.io incident + rollback
+
+Both deveco-io + heatsynclabs-io pushed at the same time. Heatsync deployed cleanly, came up healthy (200, all endpoints behaving correctly with flag off — verified by curl on `/api/health` + `/api/layouts/by-route` + `/api/admin/layouts`).
+
+Deveco's container failed to start. The deploy script (`gh -R devEcoConsultingLLC/deveco-io view`) reported `Deploy Production / success` because the post-deploy health check is `curl -sf http://localhost:3000/ || echo "::warning::..."` — `||` + echo means the curl failure doesn't propagate to exit code, so the SSH action returned 0 and the GH run looked green. Only the workflow's annotations panel showed the warning.
+
+Smoke-checked deveco's URL: `502 Bad Gateway` from the front-end proxy → upstream container is down. Triggered a fresh empty-commit deploy → same outcome. Heatsync on the EXACT same versions (config 0.15.0 / server 2.57.0 / layer 0.23.1) was serving 200 throughout — proved the published code is correct; the failure is deveco-host-specific.
+
+Without SSH access to deveco's host, I can't see container stderr. The deploy workflow's SSH action only captures script stdout. Per `feedback_deploy_health_check_warn_not_fail`, the deploy workflow itself should be fixed: `|| { echo "::error"; exit 1; }` so a crashed container fails the run.
+
+**Rolled back deveco** to pre-Phase-1c pins (config 0.13.0 / server 2.55.0 / layer 0.22.1). Deploy succeeded, health returned to 200. End state for deveco:
+- pins: 0.22.1 baseline (matches session 157 + before)
+- DB: migration 0005 was already applied during the failed deploy (it ran before the container start failure). The `layout_*` tables exist but go unused with the 0.22.1 layer + `features.layoutEngine: false`. No corruption.
+
+**End-of-session site map**:
+
+| Site | Layer pin | Phase 1c code? | Healthy? |
+|---|---|---|---|
+| commonpub.io | workspace (main `2b9cab7`) | yes, inert (flag off) | ✓ 200 |
+| heatsynclabs.io | `0.23.1` npm | yes, inert (flag off) | ✓ 200 |
+| deveco.io | `0.22.1` npm (rolled back) | no | ✓ 200 |
+
+**Diagnostic queue for the operator** (resolve before re-attempting deveco bump):
+1. `ssh root@<deveco-host>` + `cd /opt/deveco` + `docker compose logs app --tail=200` — find the actual crash stack trace
+2. Compare deveco's `docker-compose.yml` env vars to heatsync's — anything obvious diverging
+3. Compare deveco's `/opt/deveco/.env` / secrets to heatsync's
+4. Disk space + memory pressure on deveco's host
+5. Fix the deploy workflow to fail-on-bad-health (see memory)
+
+After diagnosis: re-bump deveco's pins to `^0.23.1` and redeploy.
+
 ## Standing rule reminders
 
 - Schema is the work. Migration count: 6 (unchanged this session).
