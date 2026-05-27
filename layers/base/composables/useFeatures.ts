@@ -64,14 +64,41 @@ export const DEFAULT_FLAGS: FeatureFlags = {
   },
 };
 
-/** Build the initial flags by merging the layer's runtime config over defaults. */
+/**
+ * Build the initial flags. Two sources, in priority order:
+ *
+ *   1. **Server-side, request-scoped**: `event.context.cpubFeatureFlags` —
+ *      DB-merged values set by the Nitro `feature-flags-prime` plugin
+ *      (apps/reference/server/plugins/feature-flags-prime.ts). This is
+ *      how admin-UI flag overrides take effect at SSR time. Without it,
+ *      SSR would render with stale build-time defaults until client
+ *      hydration replaced them — visible flash + broken curl-based canary.
+ *
+ *   2. **Build-time runtime config**: `useRuntimeConfig().public.features` —
+ *      the legacy initialisation. Fallback for client-side, for early
+ *      startup before the plugin's hook can fire, and for thin apps
+ *      that haven't installed the prime plugin yet.
+ *
+ * Either way, defaults fill any unmentioned flags + identity is deep-
+ * merged so a partial override (e.g. `{ identity: { actingAs: true } }`)
+ * lands on top of the defaulted sub-flags rather than replacing the
+ * whole nested object.
+ */
 export function getInitialFlags(): FeatureFlags {
+  if (import.meta.server) {
+    // useRequestEvent is auto-imported on Nuxt server-side
+    const event = (typeof useRequestEvent === 'function') ? useRequestEvent() : null;
+    const ctxFlags = event?.context?.cpubFeatureFlags as Partial<FeatureFlags> | undefined;
+    if (ctxFlags && typeof ctxFlags === 'object') {
+      return {
+        ...DEFAULT_FLAGS,
+        ...ctxFlags,
+        identity: { ...DEFAULT_FLAGS.identity, ...(ctxFlags.identity ?? {}) },
+      };
+    }
+  }
   const config = useRuntimeConfig();
   const buildFlags = (config.public.features as unknown as Partial<FeatureFlags> | undefined) ?? {};
-  // Merge top-level booleans, but deep-merge `identity` so a partial
-  // runtime override (e.g., `{ identity: { actingAs: true } }`) lands on
-  // top of the defaulted sub-flags rather than replacing the whole
-  // nested object.
   return {
     ...DEFAULT_FLAGS,
     ...buildFlags,
