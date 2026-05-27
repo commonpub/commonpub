@@ -62,16 +62,22 @@ Goal: enable admins to create `/about`, `/team`, etc as layout-only pages.
 - [ ] **B.fix.2**: FILE_ROUTE_PREFIXES is hardcoded today. Phase 3 needs the Nitro plugin scanner that reads Nuxt's compiled route table at startup. Until then, thin apps adding routes must update the list manually.
 - [ ] **B.fix.3**: Access control on catch-all — `'admin'` access returns 404 if not auth'd. Currently uses `useAuth().user` which is client-hydrated. SSR-side admin probe needed before this is bulletproof against existence-leak.
 
-### Stage C — Phase 6b: 5 more sections (highest-value subset)
+### Stage C — Phase 6b: 5 more sections ✅ shipped 2026-05-27 commit 8ae246b
 
 Goal: chip away at the 13 remaining section types. Pick the most-used.
 
-- [ ] **C1**: `gallery` — image grid 2-5 cols with lightbox
-- [ ] **C2**: `video` — local file OR YouTube/Vimeo embed
-- [ ] **C3**: `embed` — oEmbed URL (twitter, github, codepen)
-- [ ] **C4**: `cta` — heading + paragraph + button(s)
-- [ ] **C5**: `markdown` — sanitised markdown body
-- [ ] **C6**: Update registry + tests + LLM ref doc
+- [x] **C1**: `cta` — heading + body + up to 3 buttons (variants: default/contrast/minimal). URL guard on hrefs
+- [x] **C2**: `markdown` — sanitised via @commonpub/docs renderMarkdown (remark+rehype-sanitize). Server-side render via useAsyncData; safer alternative to custom-html
+- [x] **C3**: `gallery` — 2-5 col image grid, 5 aspect ratios, 20-item cap. URL guards on src + href. Lightbox deferred (data-lightbox-id hook present for Phase 10)
+- [x] **C4**: `video` — dispatches between `<video>` (local file/.mp4) and `<iframe>` (YouTube/Vimeo via utils/embedUrl). Restrictive sandbox; autoplay → muted
+- [x] **C5**: `embed` — generic sandboxed iframe with hardcoded host allowlist (twitter/x, github, codepen, loom, jsfiddle, figma, glitch, replit, youtube, vimeo). status:'beta' until sandbox policy stable
+- [x] **C6**: Registry up to 17 sections (divider + 11 + 5 Phase 6b). 60 new component tests + 6 registry assertions. 300 layer tests total
+
+### Stage C follow-ups
+
+- [ ] **C.fix.1**: Per-instance embed allowlist override via `instance_settings.embedAllowlist` (admin can extend the hardcoded list). Phase 6b polish.
+- [ ] **C.fix.2**: Lightbox composable + style wired to gallery's `data-lightbox-id` hook. Phase 10 polish (a11y-quality OSS lightbox audit needed).
+- [ ] **C.fix.3**: Remaining 8 Phase 6b sections: spacer, featured-content, content-card, event-list, member-list, contact-form, newsletter, announcement, iframe. Defer per docs/plans/layout-and-pages.md §8 (estimated ~2 sessions for the lot).
 
 ### Stage D — Phase 3a: editor shell read-only
 
