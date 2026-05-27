@@ -259,9 +259,30 @@ function recheckDiscovery(): void {
  * If admins want to re-capture from a fresh :root state, they can revert
  * to the base theme, clear overrides, then the banner will reappear.
  */
+/**
+ * Show the "your site has a custom theme" banner ONLY when the detected
+ * overrides on :root are likely from a CSS file the thin layer app
+ * loaded (the deveco.io case) — NOT from the built-in theme itself or
+ * from a custom theme the admin already saved.
+ *
+ * Refined gate (5 conditions, all must pass):
+ *   - count > 0 (something to capture)
+ *   - active theme is NOT a custom theme (already captured)
+ *   - active theme IS 'base' (any non-base built-in's tokens would
+ *     dominate the diff, making "capture" produce a clone of that
+ *     theme — pointless. e.g. commonpub.io's active='agora' triggers
+ *     count > 0 from agora.css; banner would confuse the admin)
+ *   - no instance-wide token overrides set (those explain the diff)
+ *
+ * Caveat: a thin app that registers a `themes:` entry AND sets
+ * instanceDefault to the registered slug (e.g. 'deveco') would have
+ * the banner HIDDEN even though their CSS file overrides ARE the use
+ * case the banner targets. For that case the admin can use the Fork
+ * button on the registered theme's card instead. Document.
+ */
 const showDiscoveryBanner = computed<boolean>(() => {
   if (discovery.value.count === 0) return false;
-  if (instanceDefault.value.startsWith('cpub-custom-')) return false;
+  if (instanceDefault.value !== 'base') return false;  // hides built-in non-base + registered + custom
   if (Object.keys(initialOverrides.value).length > 0) return false;
   return true;
 });
