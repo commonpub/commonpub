@@ -24,6 +24,17 @@ COPY --from=build /app/apps/reference/drizzle.config.js ./drizzle.config.js
 COPY --from=build /app/scripts ./scripts
 COPY --from=build /app/packages/schema/dist ./schema/dist
 COPY --from=build /app/packages/schema/migrations ./schema/migrations
+# CLI scripts that import @commonpub/server or @commonpub/schema (e.g.
+# scripts/migrate-homepage-layout.mjs) need these resolvable at runtime.
+# Nuxt's nitro bundles them into .output for the HTTP path, but standalone
+# `node scripts/*.mjs` invocations get plain ESM resolution. Drop a thin
+# package.json into each and place under /app/node_modules so that
+# `import 'X'` resolves without symlink chains.
+COPY --from=build /app/packages/schema/package.json ./node_modules/@commonpub/schema/package.json
+COPY --from=build /app/packages/schema/dist ./node_modules/@commonpub/schema/dist
+COPY --from=build /app/packages/schema/migrations ./node_modules/@commonpub/schema/migrations
+COPY --from=build /app/packages/server/package.json ./node_modules/@commonpub/server/package.json
+COPY --from=build /app/packages/server/dist ./node_modules/@commonpub/server/dist
 # Install drizzle-kit + deps for schema push (drizzle-kit needs drizzle-orm + pg driver, schema imports zod)
 # type:module required because schema dist files use ES module syntax
 RUN echo '{"private":true,"type":"module"}' > package.json && npm install --no-save drizzle-kit@0.31.10 drizzle-orm pg zod
