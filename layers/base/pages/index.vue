@@ -14,7 +14,7 @@ const sortedSections = computed(() =>
 );
 
 const { user: authUser } = useAuth();
-const { hubs: hubsEnabled, contests: contestsEnabled, learning: learningEnabled, video: videoEnabled, docs: docsEnabled, editorial: editorialEnabled } = useFeatures();
+const { hubs: hubsEnabled, contests: contestsEnabled, learning: learningEnabled, video: videoEnabled, docs: docsEnabled, editorial: editorialEnabled, layoutEngine: layoutEngineEnabled } = useFeatures();
 const { enabledTypeMeta } = useContentTypes();
 
 const activeTab = ref(authUser.value ? 'foryou' : 'latest');
@@ -143,8 +143,29 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
 
 <template>
   <div>
+    <!-- ═══ LAYOUT ENGINE (Phase 1c — feature-flagged) ═══
+         When `features.layoutEngine` is ON, render the homepage via
+         <LayoutSlot> zones backed by the layouts table. Operators flip
+         this on AFTER running POST /api/admin/layouts/seed-homepage so
+         a default layout exists at scope ('route', '/'). If the flag is
+         on but no layout exists, LayoutSlot renders nothing and the
+         user sees an empty page — documented at
+         docs/reference/guides/layout-engine.md. Falls through to the
+         configurable section renderer when the flag is OFF (default). -->
+    <template v-if="layoutEngineEnabled">
+      <LayoutSlot route="/" zone="full-width" />
+      <div class="cpub-main-layout">
+        <main class="cpub-feed-col">
+          <LayoutSlot route="/" zone="main" />
+        </main>
+        <aside class="cpub-sidebar">
+          <LayoutSlot route="/" zone="sidebar" />
+        </aside>
+      </div>
+    </template>
+
     <!-- ═══ CONFIGURABLE HOMEPAGE (section renderer) ═══ -->
-    <template v-if="hasCustomSections">
+    <template v-else-if="hasCustomSections">
       <!-- Full-width sections (hero) -->
       <HomepageSectionRenderer :sections="sortedSections" zone="full-width" />
 

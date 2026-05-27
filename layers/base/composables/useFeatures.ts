@@ -27,6 +27,14 @@ export interface FeatureFlags {
   publicApi: boolean;
   contentImport: boolean;
   /**
+   * DB-backed page layout engine. Default OFF — when ON, the homepage
+   * (and future layout-bearing pages) render via `<LayoutSlot>` zones
+   * resolved from the `layouts` table. Operator MUST run
+   * POST /api/admin/layouts/seed-homepage before flipping this on so
+   * a default layout exists at scope ('route', '/'). Added session 158.
+   */
+  layoutEngine: boolean;
+  /**
    * Cross-instance delegated authorization. All sub-flags default false.
    * Mirrors `@commonpub/config`'s `IdentityFeatures`. Phase 1b+ — see
    * docs/sessions/136-cross-instance-identity-plan.md.
@@ -46,6 +54,7 @@ export const DEFAULT_FLAGS: FeatureFlags = {
   contests: false, events: false, learning: true, explainers: true,
   editorial: true, federation: false, admin: false, emailNotifications: false,
   publicApi: false, contentImport: true,
+  layoutEngine: false,
   identity: {
     linkRemoteAccounts: false,
     signInWithRemote: false,
@@ -120,6 +129,7 @@ export function useFeatures() {
     emailNotifications: computed(() => flags.value.emailNotifications),
     publicApi: computed(() => flags.value.publicApi),
     contentImport: computed(() => flags.value.contentImport),
+    layoutEngine: computed(() => flags.value.layoutEngine),
     identity: computed(() => flags.value.identity),
   };
 }
