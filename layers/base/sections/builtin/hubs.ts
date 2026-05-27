@@ -28,6 +28,12 @@ export const hubsSection: SectionDefinition<z.infer<typeof configSchema>> = {
   icon: 'fa-users',
   category: 'data',
   status: 'stable',
+  // Palette gate — admins on a hubs-disabled instance shouldn't see this
+  // type in the section-picker. Runtime gating is separate: each placed
+  // instance's `visibility.features` array controls render visibility
+  // (LayoutSlot honors it). Setting both here AND in the migration script
+  // is the belt-and-braces.
+  featureGate: 'hubs',
   configSchema,
   defaultConfig: { heading: 'Trending Hubs', limit: 4 },
   schemaVersion: 1,

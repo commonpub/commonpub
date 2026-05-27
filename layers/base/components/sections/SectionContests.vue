@@ -42,6 +42,10 @@ const { data: contests, pending } = useFetch<ContestsResponse>(
   {
     query: apiQuery,
     key: `section-contests:${JSON.stringify(apiQuery.value)}`,
+    // Sidebar widget — lazy so initial SSR doesn't block on the contests
+    // query (which is ~5x slower than /api/hubs in practice). Matches the
+    // legacy ContestsSection.vue pattern.
+    lazy: true,
   },
 );
 

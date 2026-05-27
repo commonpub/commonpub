@@ -25,6 +25,8 @@ export const contestsSection: SectionDefinition<z.infer<typeof configSchema>> = 
   icon: 'fa-trophy',
   category: 'data',
   status: 'stable',
+  // Palette gate — see hubs.ts for the rationale.
+  featureGate: 'contests',
   configSchema,
   defaultConfig: { heading: 'Active Contests', limit: 3 },
   schemaVersion: 1,

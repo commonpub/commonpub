@@ -82,11 +82,22 @@ const isEmpty = computed(() => !pending.value && items.value.length === 0);
     >
       <li v-for="path in items" :key="path.id" class="cpub-section-learning-card">
         <NuxtLink :to="`/learn/${path.slug}`" class="cpub-section-learning-link">
-          <div
+          <!--
+            Using <img> rather than background-image: (a) Vue auto-escapes
+            attribute bindings so a path.coverImageUrl containing `");
+            evil(` can't escape the url(...) context (modern browsers
+            ignore JS in CSS URLs but still — defence in depth), and (b)
+            the cover IS semantically information when present, so giving
+            it an `alt` of the path title is better a11y than `role=
+            presentation`. Empty alt would also be fine here; the title
+            text directly follows.
+          -->
+          <img
             v-if="path.coverImageUrl"
+            :src="path.coverImageUrl"
+            :alt="''"
+            loading="lazy"
             class="cpub-section-learning-cover"
-            :style="{ backgroundImage: `url(${path.coverImageUrl})` }"
-            role="presentation"
           />
           <div class="cpub-section-learning-body">
             <h3 class="cpub-section-learning-title">{{ path.title }}</h3>
@@ -163,9 +174,10 @@ const isEmpty = computed(() => !pending.value && items.value.length === 0);
   text-decoration: none;
 }
 .cpub-section-learning-cover {
+  display: block;
+  width: 100%;
   aspect-ratio: 16 / 9;
-  background-size: cover;
-  background-position: center;
+  object-fit: cover;
   background-color: var(--surface-2);
 }
 .cpub-section-learning-body {

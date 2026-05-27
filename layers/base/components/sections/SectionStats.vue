@@ -44,6 +44,9 @@ const { data: stats, pending } = useFetch<StatsResponse>(
   '/api/stats',
   {
     key: `section-stats:${props.meta.sectionId}`,
+    // Lazy — sidebar metric tile, not above-the-fold content. Matches the
+    // legacy StatsSection.vue pattern and keeps homepage SSR fast.
+    lazy: true,
   },
 );
 

@@ -46,6 +46,11 @@ const { data: hubs, pending } = useFetch<HubsResponse>(
   {
     query: apiQuery,
     key: `section-hubs:${JSON.stringify(apiQuery.value)}`,
+    // Sidebar widget — lazy so initial SSR doesn't block on the trending-
+    // hubs query. Pending state renders a spinner; hub list pops in
+    // client-side after first paint. Matches the legacy HubsSection.vue
+    // pattern that we're replacing.
+    lazy: true,
   },
 );
 

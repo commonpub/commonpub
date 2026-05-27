@@ -25,6 +25,8 @@ export const learningSection: SectionDefinition<z.infer<typeof configSchema>> = 
   icon: 'fa-graduation-cap',
   category: 'data',
   status: 'stable',
+  // Palette gate — see hubs.ts for the rationale.
+  featureGate: 'learning',
   configSchema,
   defaultConfig: { heading: 'Learning Paths', limit: 6, columns: 3 },
   schemaVersion: 1,

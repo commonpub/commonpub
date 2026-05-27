@@ -120,15 +120,51 @@ describe('SectionLearning — render', () => {
     expect(chips[0].textContent?.trim()).toBe('0 enrolled');
   });
 
-  it('renders cover image as background when present', () => {
+  it('renders cover image as <img src> when present', () => {
     mountLearning({
       items: [{
         id: '1', slug: 'a', title: 'X', enrollmentCount: 0,
         coverImageUrl: 'https://cdn.example/x.jpg',
       }],
     });
-    const cover = document.querySelector('.cpub-section-learning-cover') as HTMLElement;
-    expect(cover?.style.backgroundImage).toContain('https://cdn.example/x.jpg');
+    const cover = document.querySelector('img.cpub-section-learning-cover') as HTMLImageElement;
+    expect(cover).not.toBeNull();
+    expect(cover.getAttribute('src')).toBe('https://cdn.example/x.jpg');
+    // Empty alt — the cover is decorative for the card; the title text is
+    // a sibling, so a screen reader gets the meaningful name without the
+    // image announcement.
+    expect(cover.getAttribute('alt')).toBe('');
+    expect(cover.getAttribute('loading')).toBe('lazy');
+  });
+
+  it('renders no <img> when coverImageUrl is null/missing', () => {
+    mountLearning({
+      items: [{ id: '1', slug: 'a', title: 'X', enrollmentCount: 0, coverImageUrl: null }],
+    });
+    expect(document.querySelector('img.cpub-section-learning-cover')).toBeNull();
+  });
+
+  // Regression guard — previously the cover was rendered via
+  // `:style="{ backgroundImage: \`url(${url})\` }"` which permitted CSS
+  // context-breaks. <img src> with Vue's attribute escaping closes that
+  // vector. This test pins the new shape so a regression to background-
+  // image must update the assertion + close the gap again.
+  it('SECURITY GUARD: a coverImageUrl with CSS-injection chars stays inside src, not in a style attr', () => {
+    const naughty = 'https://example/x.jpg"); evil:url(javascript:alert(1)); padding:url("';
+    mountLearning({
+      items: [{ id: '1', slug: 'a', title: 'X', enrollmentCount: 0, coverImageUrl: naughty }],
+    });
+    const cover = document.querySelector('img.cpub-section-learning-cover') as HTMLImageElement;
+    // The src attribute carries the value verbatim. Browsers reject the
+    // URL as malformed when loading; no CSS context exists to break out
+    // of (we're in an attribute, not in a <style>/style= value).
+    expect(cover.getAttribute('src')).toBe(naughty);
+    // The injected payload pretends to be CSS — verify NO style attribute
+    // exists on the cover element, so the naughty value can't reach a CSS
+    // parser anywhere.
+    expect(cover.hasAttribute('style')).toBe(false);
+    // And no <style> tags were emitted that could host the pseudo-properties
+    expect(document.querySelectorAll('style').length).toBe(0);
   });
 
   it('shows empty state for no paths', () => {
