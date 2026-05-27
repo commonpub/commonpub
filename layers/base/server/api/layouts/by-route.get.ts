@@ -6,14 +6,25 @@
  * version when available, otherwise the draft (during pre-publish
  * editing — admins see drafts, end users get a 404 until published).
  *
- * Cached server-side for 60s per path (TTL matches the theme cache
- * pattern). Invalidate on any layout write — see `invalidateLayoutCache()`
- * in `server/utils/instanceLayouts.ts`.
+ * Cached server-side for `LAYOUT_CACHE_TTL_MS` per path (see
+ * `server/utils/layoutCache.ts`). Invalidated on any layout write —
+ * the admin POST/PUT/DELETE/publish/revert handlers each call
+ * `invalidateLayoutsByRouteCache()` before returning.
  *
  * Gated by `features.layoutEngine`. Returns 404 when off so the legacy
  * homepage section renderer keeps working.
  */
 import { getLayoutByScope, type LayoutRecord, type LayoutScope } from '@commonpub/server';
+import {
+  LAYOUT_CACHE_TTL_MS,
+  getLayoutCacheEntry,
+  setLayoutCacheEntry,
+} from '../../utils/layoutCache';
+
+// Re-export for callers that import the invalidator from this file
+// (kept for backwards compat after the session-158 refactor that moved
+// the cache into utils/). New code should import from utils/layoutCache.
+export { invalidateLayoutsByRouteCache } from '../../utils/layoutCache';
 
 interface PublicLayoutSlice {
   /** Zones → rows → enabled+visible sections only. Strips draft metadata. */
@@ -22,25 +33,6 @@ interface PublicLayoutSlice {
   pageMeta: LayoutRecord['pageMeta'];
   /** State so SSR can mark `noindex` on drafts. */
   state: LayoutRecord['state'];
-}
-
-// Module-level cache. Per-process; fine — 60s TTL bounds staleness across pods.
-const CACHE_TTL_MS = 60_000;
-const cache = new Map<string, { value: PublicLayoutSlice | null; at: number }>();
-
-/**
- * Invalidate the by-route cache. **Currently unused** — no admin layout
- * write API exists yet (Phase 1c). When `POST/PUT/DELETE /api/admin/layouts/*`
- * land, EACH write handler MUST call this before returning, otherwise SSR
- * will serve stale data for up to 60s after a save. There's a layout-CRUD
- * integration test that should be added at the same time to pin this.
- *
- * For Phase 1 (this commit), the export exists so consumers don't have to
- * reach into module internals — and so it's a single grep to find every
- * write site once admin write APIs land.
- */
-export function invalidateLayoutsByRouteCache(): void {
-  cache.clear();
 }
 
 export default defineEventHandler(async (event): Promise<PublicLayoutSlice | null> => {
@@ -52,9 +44,9 @@ export default defineEventHandler(async (event): Promise<PublicLayoutSlice | nul
 
   const { path } = parseQueryParams(event, layoutsByRoutePathSchema);
   const cacheKey = path;
-  const hit = cache.get(cacheKey);
+  const hit = getLayoutCacheEntry<PublicLayoutSlice>(cacheKey);
   const now = Date.now();
-  if (hit && now - hit.at < CACHE_TTL_MS) {
+  if (hit && now - hit.at < LAYOUT_CACHE_TTL_MS) {
     return hit.value;
   }
 
@@ -73,7 +65,7 @@ export default defineEventHandler(async (event): Promise<PublicLayoutSlice | nul
       }
     : null;
 
-  cache.set(cacheKey, { value, at: now });
+  setLayoutCacheEntry(cacheKey, value, now);
   return value;
 });
 
