@@ -27,9 +27,15 @@ COPY --from=build /app/packages/schema/migrations ./schema/migrations
 # CLI scripts that import @commonpub/server or @commonpub/schema (e.g.
 # scripts/migrate-homepage-layout.mjs) need these resolvable at runtime.
 # Nuxt's nitro bundles them into .output for the HTTP path, but standalone
-# `node scripts/*.mjs` invocations get plain ESM resolution. Drop a thin
-# package.json into each and place under /app/node_modules so that
-# `import 'X'` resolves without symlink chains.
+# `node scripts/*.mjs` invocations get plain ESM resolution.
+#
+# IMPORTANT: apps/reference/node_modules/@commonpub/ contains pnpm
+# workspace symlinks like `server -> ../../../../packages/server` which
+# point to nonexistent paths in this runtime image (packages/ wasn't
+# COPYed). Without removing them first, the COPY lines below either
+# follow the dangling symlinks (writing into nowhere) or get clobbered
+# by the subsequent npm install cleanup. Wipe + recreate as real dirs.
+RUN rm -rf ./node_modules/@commonpub/schema ./node_modules/@commonpub/server
 COPY --from=build /app/packages/schema/package.json ./node_modules/@commonpub/schema/package.json
 COPY --from=build /app/packages/schema/dist ./node_modules/@commonpub/schema/dist
 COPY --from=build /app/packages/schema/migrations ./node_modules/@commonpub/schema/migrations
