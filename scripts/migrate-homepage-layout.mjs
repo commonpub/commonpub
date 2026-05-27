@@ -26,7 +26,12 @@
  *
  * Reads NUXT_DATABASE_URL or DATABASE_URL (matches db-migrate.mjs).
  */
-import { migrateHomepageSectionsToLayout } from '@commonpub/server';
+// Import via the subpath export — `@commonpub/server` (the index entry)
+// pulls in @commonpub/infra + @commonpub/auth + @commonpub/protocol
+// transitively, none of which are present in the runtime image's
+// /app/node_modules. The `./layout/migrate-homepage` deep path has a
+// clean dep chain: drizzle-orm + @commonpub/schema only (both available).
+import { migrateHomepageSectionsToLayout } from '@commonpub/server/layout/migrate-homepage';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import * as schema from '@commonpub/schema';
 import pg from 'pg';

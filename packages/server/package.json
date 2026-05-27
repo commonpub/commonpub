@@ -91,6 +91,10 @@
       "types": "./dist/federation/index.d.ts",
       "import": "./dist/federation/index.js"
     },
+    "./layout/*": {
+      "types": "./dist/layout/*.d.ts",
+      "import": "./dist/layout/*.js"
+    },
     "./import": {
       "types": "./dist/import/index.d.ts",
       "import": "./dist/import/index.js"
