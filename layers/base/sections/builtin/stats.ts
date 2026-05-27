@@ -10,7 +10,10 @@ import { z } from 'zod';
 import type { SectionDefinition } from '@commonpub/ui';
 import StatsSection from '../../components/homepage/StatsSection.vue';
 
-const configSchema = z.object({}).strict();
+// Non-strict — admin tooling or migrations may pass extra fields
+// (e.g., legacy migration adds `heading: 'Platform Stats'`); they're
+// ignored since StatsSection takes no props.
+const configSchema = z.object({});
 
 export const statsSection: SectionDefinition<z.infer<typeof configSchema>> = {
   type: 'stats',

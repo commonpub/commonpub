@@ -16,7 +16,10 @@ import type { SectionDefinition } from '@commonpub/ui';
 import CustomHtmlSection from '../../components/homepage/CustomHtmlSection.vue';
 
 const configSchema = z.object({
-  title: z.string().max(255).default(''),
+  // `heading` (not `title`) to align with migration output + the broader
+  // section convention; propMap maps it to CustomHtmlSection's `title`
+  // prop name.
+  heading: z.string().max(255).default(''),
   html: z.string().max(50_000).default(''),
 });
 
@@ -28,11 +31,11 @@ export const customHtmlSection: SectionDefinition<z.infer<typeof configSchema>> 
   category: 'content',
   status: 'beta',
   configSchema,
-  defaultConfig: { title: '', html: '' },
+  defaultConfig: { heading: '', html: '' },
   schemaVersion: 1,
   component: CustomHtmlSection,
   // CustomHtmlSection takes { config: HomepageSectionConfig; title?: string }
-  propMap: ({ config }) => ({ config, title: (config.title as string | undefined) ?? '' }),
+  propMap: ({ config }) => ({ config, title: (config.heading as string | undefined) ?? '' }),
   minColSpan: 3,
   maxColSpan: 12,
   defaultColSpan: 12,

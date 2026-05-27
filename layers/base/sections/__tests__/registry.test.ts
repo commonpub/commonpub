@@ -208,8 +208,8 @@ describe('layer section registry — built-in registrations', () => {
     expect(def.status).toBe('beta');
     expect(def.propMap).toBeTypeOf('function');
     // 50KB cap is a sanity bound, not a security control
-    expect(def.configSchema.safeParse({ title: '', html: 'x'.repeat(50_001) }).success).toBe(false);
-    expect(def.configSchema.safeParse({ title: '', html: 'x'.repeat(50_000) }).success).toBe(true);
+    expect(def.configSchema.safeParse({ heading: '', html: 'x'.repeat(50_001) }).success).toBe(false);
+    expect(def.configSchema.safeParse({ heading: '', html: 'x'.repeat(50_000) }).success).toBe(true);
   });
 
   // --- Session 159 Stage C — Phase 6b additions ---------------------------
