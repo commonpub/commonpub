@@ -30,13 +30,13 @@ function mountPane(props: { tokens?: Record<string, string>; parentTheme: string
   });
 }
 
-function surface(container: HTMLElement): HTMLElement {
+function surface(container: HTMLElement | Element): HTMLElement {
   const el = container.querySelector('.theme-preview-surface');
   if (!el) throw new Error('.theme-preview-surface not found');
   return el as HTMLElement;
 }
 
-function modeButton(container: HTMLElement, label: 'Light' | 'Dark'): HTMLElement {
+function modeButton(container: HTMLElement | Element, label: 'Light' | 'Dark'): HTMLElement {
   const btns = container.querySelectorAll('.theme-preview-mode-btn');
   for (const b of Array.from(btns)) {
     if ((b.textContent ?? '').includes(label)) return b as HTMLElement;
