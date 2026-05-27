@@ -44,7 +44,7 @@ layouts (1)  →  layout_rows (N per zone)  →  layout_sections (N per row)
 
 ## Section registry — what an admin can drop on a page
 
-Built-in sections shipped today (Phase 1c starter catalog):
+Built-in sections shipped today (Phase 1c full catalog — 11 sections + divider proof-of-life):
 
 | Type slug | Category | Default colSpan | Resizable | Notes |
 |---|---|---|---|---|
@@ -53,9 +53,17 @@ Built-in sections shipped today (Phase 1c starter catalog):
 | `heading` | content | 12 (min 3) | yes | h1–h4 + optional eyebrow + subline. Align left/center |
 | `paragraph` | content | 6 (min 3) | yes | Plain prose, blank-line split into `<p>`. Phase 3e upgrades to TipTap subset via `.describe('rich')` |
 | `image` | content | 12 (min 3) | yes | `<img>` lazy-loaded, optional `<a href>` wrap, optional caption. Fit + aspect ratio |
+| `custom-html` | content | 12 (min 3) | yes | **`status: 'beta'`** — admin-only raw HTML escape hatch. Renders via `v-html` without runtime sanitisation; matches legacy `CustomHtmlSection.vue` security baseline. Phase 6b adds DOMPurify at admin-write |
 | `content-feed` | data | 12 (min 6) | yes | Server-backed grid of `<ContentCard>`. Filters: type / sort / limit / tag / featured. 1–4 cols responsive |
+| `editorial` | data | 12 (min 6) | yes | Staff Picks grid — `/api/content?editorial=true&sort=editorial`. 1–4 cols responsive |
+| `stats` | data | 4 (min 3) | yes | Platform stats: Projects / Posts / Members / Hubs (hubs cell gated on `features.hubs`). Card layout, sidebar-friendly default |
+| `hubs` | data | 4 (min 3) | yes | Trending hubs with Join action. Anonymous click → `/auth/login?redirect=/`; auth → POST `/api/hubs/:slug/join`. Feature-gated upstream on `features.hubs` |
+| `contests` | data | 4 (min 3) | yes | Active contests with `Nd left` countdown + Enter CTA. Feature-gated upstream on `features.contests` |
+| `learning` | data | 12 (min 6) | yes | Learning paths grid (cover image + difficulty + duration + enrollment). Feature-gated upstream on `features.learning` |
 
-Phase 6b adds the remaining 20 types (gallery, video, embed, spacer, cta, featured-content, content-card, contest-list, hub-list, event-list, member-list, stats-grid, contact-form, newsletter, announcement, markdown, custom-html, iframe, editorial). See `docs/plans/layout-and-pages.md` §3.4.
+All section types the legacy `homepage.sections` renderer dispatched to (`HomepageSectionRenderer.vue`) are now representable as registered sections. The real legacy-homepage migration script (`instance_settings.homepage.sections` → `layouts` row) is unblocked.
+
+Phase 6b will add the remaining 18 types (gallery, video, embed, spacer, cta, featured-content, content-card, contest-list, hub-list, event-list, member-list, stats-grid, contact-form, newsletter, announcement, markdown, iframe, content-grid alias). See `docs/plans/layout-and-pages.md` §3.4.
 
 ---
 
