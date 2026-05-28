@@ -36,6 +36,10 @@ const props = defineProps<{
   errorMessage: string | null;
   /** ISO timestamp of the last successful save — drives "Saved · 2m ago". */
   lastSavedAt?: string | null;
+  /** Palette panel hidden (parent owns state via useEditorChrome). */
+  paletteHidden: boolean;
+  /** Inspector panel hidden (parent owns state via useEditorChrome). */
+  inspectorHidden: boolean;
 }>();
 
 // Relative-time string for the save indicator. Updates every 30s so the
@@ -107,6 +111,8 @@ const emit = defineEmits<{
   (e: 'save'): void;
   (e: 'publish'): void;
   (e: 'discard'): void;
+  (e: 'toggle-palette'): void;
+  (e: 'toggle-inspector'): void;
 }>();
 
 const indicatorText = computed<string>(() => {
@@ -149,6 +155,22 @@ const VIEWPORTS: Array<{ value: 'mobile' | 'tablet' | 'desktop'; icon: string; l
       >{{ STATE_LABELS[effectiveState] }}</span>
     </div>
 
+    <!-- Palette toggle (left-edge of view controls). Hides/shows the
+         section palette panel. Chevron direction signals where the panel
+         "goes" — left when visible (click to collapse left), right when
+         hidden (click to expand from left). Session 161 user-reported
+         canvas squish fix. -->
+    <button
+      type="button"
+      class="cpub-admin-layouts-toolbar-panel-btn"
+      :aria-label="paletteHidden ? 'Show sections panel' : 'Hide sections panel'"
+      :aria-pressed="!paletteHidden"
+      :title="paletteHidden ? 'Show sections panel' : 'Hide sections panel'"
+      @click="emit('toggle-palette')"
+    >
+      <i :class="paletteHidden ? 'fa-solid fa-angles-right' : 'fa-solid fa-angles-left'"></i>
+    </button>
+
     <div
       class="cpub-admin-layouts-toolbar-viewport"
       role="radiogroup"
@@ -167,6 +189,18 @@ const VIEWPORTS: Array<{ value: 'mobile' | 'tablet' | 'desktop'; icon: string; l
         <i :class="vp.icon"></i>
       </button>
     </div>
+
+    <!-- Inspector toggle (right-edge of view controls, mirror of palette). -->
+    <button
+      type="button"
+      class="cpub-admin-layouts-toolbar-panel-btn"
+      :aria-label="inspectorHidden ? 'Show inspector panel' : 'Hide inspector panel'"
+      :aria-pressed="!inspectorHidden"
+      :title="inspectorHidden ? 'Show inspector panel' : 'Hide inspector panel'"
+      @click="emit('toggle-inspector')"
+    >
+      <i :class="inspectorHidden ? 'fa-solid fa-angles-left' : 'fa-solid fa-angles-right'"></i>
+    </button>
 
     <div
       class="cpub-admin-layouts-toolbar-indicator"
@@ -280,6 +314,43 @@ const VIEWPORTS: Array<{ value: 'mobile' | 'tablet' | 'desktop'; icon: string; l
   color: var(--text);
   background: var(--yellow-bg);
   border-color: var(--yellow);
+}
+
+/* Panel toggles (palette + inspector hide/show — session 161 canvas-squish fix).
+   Same 28×28 minimum target as viewport buttons (WCAG 2.5.8 AA buffer).
+   Visually similar but bordered alone (not grouped) so they don't read as
+   part of the viewport segmented control. */
+.cpub-admin-layouts-toolbar-panel-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  min-height: 28px;
+  padding: var(--space-1) var(--space-2);
+  background: transparent;
+  border: 1px solid var(--border2);
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: var(--text-sm);
+  transition: color var(--transition-default), border-color var(--transition-default), background var(--transition-default);
+}
+.cpub-admin-layouts-toolbar-panel-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-bg);
+}
+.cpub-admin-layouts-toolbar-panel-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+/* When the panel is hidden (aria-pressed=false), give the button a
+   subtle "active" tint so the admin sees it's holding a non-default
+   state. Pressed=true means "the panel is visible", which IS default,
+   so no tint needed. */
+.cpub-admin-layouts-toolbar-panel-btn[aria-pressed='false'] {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-bg);
 }
 
 .cpub-admin-layouts-toolbar-viewport {

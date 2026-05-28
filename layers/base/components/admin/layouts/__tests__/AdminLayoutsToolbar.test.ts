@@ -27,6 +27,8 @@ function mount(props: Partial<{
   dirty: boolean;
   errorMessage: string | null;
   lastSavedAt: string | null;
+  paletteHidden: boolean;
+  inspectorHidden: boolean;
 }> = {}) {
   return render(AdminLayoutsToolbar, {
     props: {
@@ -37,6 +39,8 @@ function mount(props: Partial<{
       dirty: false,
       errorMessage: null,
       lastSavedAt: null,
+      paletteHidden: false,
+      inspectorHidden: false,
       ...props,
     },
     global: {

@@ -3,7 +3,7 @@
 `layers/base/` — published as `@commonpub/layer`. The distribution unit.
 Instances extend it via `extends: ['@commonpub/layer']` in their nuxt.config.
 
-**85 pages, 106 components, 21 composables, 6 server plugins, 7 request middlewares, 257 API routes.**
+**85 pages, 106 components, 22 composables, 6 server plugins, 7 request middlewares, 257 API routes.**
 
 As of session 125 (2026-04-16). **Spot-counts re-verified session 150
 (2026-05-19): ~85 pages (auth login flow + federated link UI added in
@@ -19,7 +19,7 @@ layers/base/
 ├── error.vue                  404 / error page — re-applies data-theme for SSR
 ├── nuxt.config.ts             modules, CSS bundle, runtime config, features
 ├── components/                117 Vue components (grouped below)
-├── composables/               21 useX helpers
+├── composables/               22 useX helpers
 ├── layouts/                   default, admin (collapsible sidebar, session 161), auth, editor
 ├── middleware/                auth.ts + feature-gate.global.ts
 ├── pages/                     75 routes (Nuxt file-based)
@@ -173,7 +173,7 @@ AnnouncementBand, AppToast, AuthorCard, AuthorRow, CategoryBadge, CommentSection
 
 DocsPageTree.
 
-## Composables (21)
+## Composables (22)
 
 | Name | Purpose |
 |---|---|
@@ -199,7 +199,8 @@ DocsPageTree.
 | useMirrorContent | federated content handlers |
 | useSanitize | DOMPurify wrapper |
 | useEngagement | like/bookmark state |
-| useAdminSidebar | (session 161) admin chrome left-nav state machine. Two surfaces: desktop collapse (200px ↔ 56px icons-only, persisted to `localStorage[cpub-admin-sidebar-collapsed]`) + mobile drawer (independent). Editor routes `/admin/layouts/[id]` + `/admin/theme/edit/[id]` auto-collapse to give canvas room; user can override per visit (session-only, resets on route change). 17 tests in `__tests__/useAdminSidebar.test.ts`. |
+| useAdminSidebar | (session 161) admin chrome left-nav state machine. Two surfaces: desktop collapse (200px ↔ 56px icons-only, persisted to `cookie[cpub-admin-sidebar-collapsed]` — switched from localStorage in audit-polish round to eliminate SSR/CSR hydration flash) + mobile drawer (independent). Editor routes `/admin/layouts/[id]` + `/admin/theme/edit/[id]` auto-collapse to give canvas room; user can override per visit (session-only, resets on route change). 16 tests in `__tests__/useAdminSidebar.test.ts`. |
+| useEditorChrome | (session 161) palette + inspector visibility state for the layout editor. Two cookie-persisted booleans (`cpub-editor-palette-hidden`, `cpub-editor-inspector-hidden`). Page grid (`pages/admin/layouts/[id].vue`) reflows `grid-template-columns` based on visibility class; `v-show` on the panels themselves preserves component state across toggles. User-reported canvas squish fix. 9 tests in `__tests__/useEditorChrome.test.ts`. |
 
 ## Middleware
 

@@ -27,6 +27,11 @@ const id = computed<string>(() => String(route.params.id));
 
 const editor = useLayoutEditor(id.value);
 
+// Palette + inspector visibility — persists per-admin via cookie so the
+// admin's last layout (e.g. "I always work with inspector hidden, palette
+// visible") sticks across sessions. Session 161 user-reported squish fix.
+const chrome = useEditorChrome();
+
 // SSR-prime: fetch the layout via useFetch (hydration-safe), then
 // hand it to the editor composable. The composable also exposes
 // refresh() for client-only re-fetches (after publish, etc).
@@ -185,10 +190,14 @@ async function onConflictForceSave(): Promise<void> {
         :dirty="editor.dirty.value"
         :error-message="editor.errorMessage.value"
         :last-saved-at="editor.original.value?.updatedAt ?? null"
+        :palette-hidden="chrome.paletteHidden.value"
+        :inspector-hidden="chrome.inspectorHidden.value"
         @update:viewport="viewport = $event"
         @save="onSave"
         @publish="onPublish"
         @discard="onDiscard"
+        @toggle-palette="chrome.togglePalette"
+        @toggle-inspector="chrome.toggleInspector"
       />
 
       <!--
@@ -203,14 +212,23 @@ async function onConflictForceSave(): Promise<void> {
         <NuxtLink to="/admin/layouts" class="cpub-admin-layouts-editor-phone-back">← Back to Layouts</NuxtLink>
       </div>
 
-      <div class="cpub-admin-layouts-editor-body">
+      <div
+        class="cpub-admin-layouts-editor-body"
+        :class="{
+          'cpub-admin-layouts-editor-body--palette-hidden': chrome.paletteHidden.value,
+          'cpub-admin-layouts-editor-body--inspector-hidden': chrome.inspectorHidden.value,
+        }"
+      >
         <!-- Tablet/phone collapse: canvas FIRST so the surface admin came
              for is immediately visible; palette + inspector stack below.
              (Pre-audit ordering put palette first → admin had to scroll
-             past 17 tiles to reach the canvas.) -->
+             past 17 tiles to reach the canvas.)
+             v-show on palette + inspector (not v-if) preserves component
+             state — scroll position, focused field — across hide/show. -->
         <AdminLayoutsCanvas :layout="editor.draft.value" :viewport="viewport" />
-        <AdminLayoutsPalette />
+        <AdminLayoutsPalette v-show="!chrome.paletteHidden.value" />
         <AdminLayoutsInspector
+          v-show="!chrome.inspectorHidden.value"
           :draft="editor.draft.value"
           @update:page-meta="onPageMetaUpdate"
           @update:name="onNameUpdate"
@@ -264,8 +282,29 @@ async function onConflictForceSave(): Promise<void> {
 .cpub-admin-layouts-editor-body > :nth-child(2) { grid-area: palette; }   /* palette (2nd in DOM) */
 .cpub-admin-layouts-editor-body > :nth-child(3) { grid-area: inspector; } /* inspector (3rd in DOM) */
 
+/* Session 161: hide-palette / hide-inspector grid reflow. Removes the
+   panel column entirely (vs display:none on the child, which would
+   leave the grid column reserved as empty space). v-show on the panel
+   element keeps it in the DOM so component state (scroll, focus,
+   active field) survives toggling. */
+.cpub-admin-layouts-editor-body--palette-hidden {
+  grid-template-columns: 1fr 320px;
+  grid-template-areas: 'canvas inspector';
+}
+.cpub-admin-layouts-editor-body--inspector-hidden {
+  grid-template-columns: 280px 1fr;
+  grid-template-areas: 'palette canvas';
+}
+.cpub-admin-layouts-editor-body--palette-hidden.cpub-admin-layouts-editor-body--inspector-hidden {
+  grid-template-columns: 1fr;
+  grid-template-areas: 'canvas';
+}
+
 @media (max-width: 1280px) {
   .cpub-admin-layouts-editor-body { grid-template-columns: 240px 1fr 280px; }
+  .cpub-admin-layouts-editor-body--palette-hidden { grid-template-columns: 1fr 280px; }
+  .cpub-admin-layouts-editor-body--inspector-hidden { grid-template-columns: 240px 1fr; }
+  .cpub-admin-layouts-editor-body--palette-hidden.cpub-admin-layouts-editor-body--inspector-hidden { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 1024px) {
