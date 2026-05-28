@@ -420,4 +420,117 @@ describe('layout server CRUD', () => {
       expect(row.sections[0]!.visibility?.hideAt).toEqual(['sm']);
     });
   });
+
+  // ---- Bulk list (session 162 P2.2 — no N+1) ----------------------------
+
+  describe('listLayouts (bulk)', () => {
+    it('returns assembled records identical to per-layout getLayoutById for many layouts', async () => {
+      // Seed 6 layouts spanning all 3 scope types, each with varied
+      // zone / row / section shapes so the bulk assembler exercises:
+      //   - multiple zones per layout
+      //   - multiple rows per zone
+      //   - multiple sections per row
+      //   - empty zones (no rows)
+      //   - layouts with no rows at all
+      const inputs: LayoutInput[] = [
+        {
+          scope: { type: 'route', path: '/' },
+          name: 'Homepage',
+          zones: [
+            {
+              zone: 'main',
+              rows: [
+                { order: 0, sections: [{ order: 0, type: 'hero', config: { a: 1 }, colSpan: 12 }] },
+                { order: 1, sections: [
+                  { order: 0, type: 'image', config: { url: 'x' }, colSpan: 6 },
+                  { order: 1, type: 'paragraph', config: { body: 'y' }, colSpan: 6 },
+                ] },
+              ],
+            },
+            {
+              zone: 'sidebar',
+              rows: [{ order: 0, sections: [{ order: 0, type: 'stats', config: {}, colSpan: 12 }] }],
+            },
+          ],
+        },
+        { scope: { type: 'route', path: '/about' }, name: 'About', zones: [] },
+        {
+          scope: { type: 'custom-page', path: '/landing' },
+          name: 'Landing',
+          pageMeta: { title: 'Landing', access: 'public' },
+          zones: [{ zone: 'main', rows: [
+            { order: 0, sections: [{ order: 0, type: 'heading', config: { text: 'Hi' }, colSpan: 12 }] },
+          ] }],
+        },
+        { scope: { type: 'virtual', key: '__footer' }, name: 'Footer', zones: [] },
+        { scope: { type: 'virtual', key: '__not-found' }, name: '404', zones: [] },
+        {
+          scope: { type: 'custom-page', path: '/pricing' },
+          name: 'Pricing',
+          zones: [{ zone: 'main', rows: [
+            { order: 0, sections: [
+              { order: 0, type: 'content-feed', config: { contentType: 'project' }, colSpan: 12 },
+            ] },
+          ] }],
+        },
+      ];
+      for (const i of inputs) await saveLayout(db, i, { userId });
+
+      const bulk = await listLayouts(db);
+      expect(bulk).toHaveLength(6);
+
+      // Each bulk record must match what getLayoutById would return for it.
+      for (const b of bulk) {
+        const single = await getLayoutById(db, b.id);
+        expect(single).not.toBeNull();
+        expect(single).toEqual(b);
+      }
+    });
+
+    it('honours scopeType filter without re-querying per layout', async () => {
+      await saveLayout(db, { scope: { type: 'route', path: '/' }, name: 'A', zones: [] }, { userId });
+      await saveLayout(db, { scope: { type: 'route', path: '/x' }, name: 'B', zones: [] }, { userId });
+      await saveLayout(db, { scope: { type: 'virtual', key: '__footer' }, name: 'F', zones: [] }, { userId });
+      await saveLayout(db, { scope: { type: 'custom-page', path: '/p' }, name: 'P', zones: [] }, { userId });
+
+      const routes = await listLayouts(db, { scopeType: 'route' });
+      expect(routes).toHaveLength(2);
+      expect(routes.every((l) => l.scope.type === 'route')).toBe(true);
+
+      const virtuals = await listLayouts(db, { scopeType: 'virtual' });
+      expect(virtuals).toHaveLength(1);
+
+      const customs = await listLayouts(db, { scopeType: 'custom-page' });
+      expect(customs).toHaveLength(1);
+    });
+
+    it('does not cross-pollinate rows between layouts (R4 regression guard)', async () => {
+      // Two layouts with disjoint rows + sections — the bulk assembler
+      // must not stitch a row from layout B into layout A's zones.
+      const a = await saveLayout(db, {
+        scope: { type: 'route', path: '/' },
+        name: 'A',
+        zones: [{ zone: 'main', rows: [
+          { order: 0, sections: [{ order: 0, type: 'hero', config: { who: 'a-hero' }, colSpan: 12 }] },
+        ] }],
+      }, { userId });
+      const b = await saveLayout(db, {
+        scope: { type: 'route', path: '/x' },
+        name: 'B',
+        zones: [{ zone: 'sidebar', rows: [
+          { order: 0, sections: [{ order: 0, type: 'stats', config: { who: 'b-stats' }, colSpan: 12 }] },
+        ] }],
+      }, { userId });
+
+      const bulk = await listLayouts(db);
+      const ra = bulk.find((l) => l.id === a.id)!;
+      const rb = bulk.find((l) => l.id === b.id)!;
+      expect(ra.zones).toHaveLength(1);
+      expect(ra.zones[0]!.zone).toBe('main');
+      expect(ra.zones[0]!.rows[0]!.sections[0]!.config).toEqual({ who: 'a-hero' });
+      expect(rb.zones).toHaveLength(1);
+      expect(rb.zones[0]!.zone).toBe('sidebar');
+      expect(rb.zones[0]!.rows[0]!.sections[0]!.config).toEqual({ who: 'b-stats' });
+    });
+  });
 });

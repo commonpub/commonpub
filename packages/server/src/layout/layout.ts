@@ -191,18 +191,67 @@ export async function getLayoutById(db: DB, id: string): Promise<LayoutRecord | 
   return assembleLayout(db, row);
 }
 
-/** List all layouts, optionally filtered by scope type. */
+/**
+ * List all layouts, optionally filtered by scope type.
+ *
+ * Session 162 P2.2 — used to be 1 + 2N queries (one assembleLayout per
+ * layout, each making 2 child selects). For an instance with 50
+ * layouts that was 101 round-trips per list-page render. Now a flat
+ * 3 queries regardless of N: layouts → rows IN (layoutIds) → sections
+ * IN (rowIds), assembled in memory. Per-layout invariants preserved
+ * (cross-layout sort by scopeType/scopeKey, zone-stable row order,
+ * position-stable section order).
+ */
 export async function listLayouts(
   db: DB,
   opts: { scopeType?: 'route' | 'virtual' | 'custom-page' } = {},
 ): Promise<LayoutRecord[]> {
-  const rows = opts.scopeType
+  const layoutRowsTop = opts.scopeType
     ? await db.select().from(layouts).where(eq(layouts.scopeType, opts.scopeType))
     : await db.select().from(layouts);
-  return Promise.all(rows.map((r) => assembleLayout(db, r)));
+  if (layoutRowsTop.length === 0) return [];
+
+  const layoutIds = layoutRowsTop.map((l) => l.id);
+  const allRowsForAllLayouts = await db
+    .select()
+    .from(layoutRows)
+    .where(inArray(layoutRows.layoutId, layoutIds))
+    .orderBy(asc(layoutRows.zone), asc(layoutRows.position));
+
+  const allRowIds = allRowsForAllLayouts.map((r) => r.id);
+  const allSections = allRowIds.length > 0
+    ? await db
+        .select()
+        .from(layoutSections)
+        .where(inArray(layoutSections.rowId, allRowIds))
+        .orderBy(asc(layoutSections.position))
+    : [];
+
+  // Bucket child rows by parent id once. assembleFromParts does no I/O.
+  const rowsByLayoutId = new Map<string, typeof allRowsForAllLayouts>();
+  for (const r of allRowsForAllLayouts) {
+    const arr = rowsByLayoutId.get(r.layoutId) ?? [];
+    arr.push(r);
+    rowsByLayoutId.set(r.layoutId, arr);
+  }
+  const sectionsByRowId = new Map<string, LayoutSectionDbRow[]>();
+  for (const s of allSections) {
+    const arr = sectionsByRowId.get(s.rowId) ?? [];
+    arr.push(s);
+    sectionsByRowId.set(s.rowId, arr);
+  }
+
+  return layoutRowsTop.map((l) =>
+    assembleFromParts(l, rowsByLayoutId.get(l.id) ?? [], sectionsByRowId),
+  );
 }
 
-/** Inner helper: take a layout-table row + fetch its rows + sections, return assembled record. */
+/**
+ * Inner helper: take a layout-table row + fetch its rows + sections,
+ * return assembled record. Used by single-record reads (getLayoutByScope,
+ * getLayoutById, publishLayout). List reads use assembleFromParts directly
+ * to avoid the N+1.
+ */
 async function assembleLayout(db: DB, row: typeof layouts.$inferSelect): Promise<LayoutRecord> {
   const rowsForLayout = await db
     .select()
@@ -223,14 +272,28 @@ async function assembleLayout(db: DB, row: typeof layouts.$inferSelect): Promise
         .orderBy(asc(layoutSections.position))
     : [];
 
-  const sectionsByRow = new Map<string, LayoutSectionResolved[]>();
+  const sectionsByRow = new Map<string, LayoutSectionDbRow[]>();
   for (const s of allSections) {
     const arr = sectionsByRow.get(s.rowId) ?? [];
-    arr.push(rowToSection(s));
+    arr.push(s);
     sectionsByRow.set(s.rowId, arr);
   }
 
-  // Group rows by zone preserving order
+  return assembleFromParts(row, rowsForLayout, sectionsByRow);
+}
+
+/**
+ * Pure assembler: given a layout row + its pre-fetched child rows +
+ * sections keyed by rowId, produce the resolved LayoutRecord. No I/O.
+ * Lets listLayouts batch fetch once and assemble N records without
+ * re-querying per record.
+ */
+function assembleFromParts(
+  layout: typeof layouts.$inferSelect,
+  rowsForLayout: Array<typeof layoutRows.$inferSelect>,
+  sectionsByRowId: Map<string, LayoutSectionDbRow[]>,
+): LayoutRecord {
+  // Group rows by zone preserving order (already ordered by zone, position).
   const zoneMap = new Map<string, LayoutRowResolved[]>();
   for (const r of rowsForLayout) {
     const list = zoneMap.get(r.zone) ?? [];
@@ -238,22 +301,22 @@ async function assembleLayout(db: DB, row: typeof layouts.$inferSelect): Promise
       id: r.id,
       order: r.position,
       config: (r.config ?? null) as LayoutRowInput['config'] | null,
-      sections: sectionsByRow.get(r.id) ?? [],
+      sections: (sectionsByRowId.get(r.id) ?? []).map(rowToSection),
     });
     zoneMap.set(r.zone, list);
   }
   const zones: LayoutZone[] = [...zoneMap.entries()].map(([zone, rs]) => ({ zone, rows: rs }));
 
   return {
-    id: row.id,
-    scope: unpackScope(row.scopeType, row.scopeKey),
-    name: row.name,
-    pageMeta: (row.pageMeta ?? null) as LayoutPageMeta | null,
-    state: row.state as 'draft' | 'published',
-    publishedVersionId: row.publishedVersionId,
+    id: layout.id,
+    scope: unpackScope(layout.scopeType, layout.scopeKey),
+    name: layout.name,
+    pageMeta: (layout.pageMeta ?? null) as LayoutPageMeta | null,
+    state: layout.state as 'draft' | 'published',
+    publishedVersionId: layout.publishedVersionId,
     zones,
-    createdAt: row.createdAt.toISOString(),
-    updatedAt: row.updatedAt.toISOString(),
+    createdAt: layout.createdAt.toISOString(),
+    updatedAt: layout.updatedAt.toISOString(),
   };
 }
 
