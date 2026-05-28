@@ -33,8 +33,10 @@ export interface LayoutEditorState {
   status: Ref<'idle' | 'saving' | 'saved' | 'error' | 'conflict'>;
   /** Last save error message (when status==='error'). */
   errorMessage: Ref<string | null>;
-  /** Persist the draft. Throws on 409 (conflict — caller handles). */
-  save: () => Promise<void>;
+  /** Persist the draft. Throws on 409 (conflict — caller handles).
+   *  Pass `{ force: true }` to omit the If-Match header (overwrites
+   *  whatever's on the server). */
+  save: (opts?: { force?: boolean }) => Promise<void>;
   /** Publish the current saved version → live. */
   publish: () => Promise<void>;
   /** Pull latest from server, replacing draft + original. */
@@ -83,17 +85,22 @@ export function useLayoutEditor(id: string): LayoutEditorState {
     errorMessage.value = null;
   }
 
-  async function save(): Promise<void> {
+  async function save(opts: { force?: boolean } = {}): Promise<void> {
     if (!draft.value || !original.value) return;
     if (!dirty.value) return;
     saving.value = true;
     status.value = 'saving';
     errorMessage.value = null;
+    // Capture the original.updatedAt BEFORE the request — used as the
+    // If-Match value. The server's response will give us a fresh
+    // updatedAt to use for the next save's optimistic-concurrency check.
+    const ifMatch = opts.force ? undefined : original.value.updatedAt;
     try {
+      const headers: Record<string, string> = {};
+      if (ifMatch) headers['If-Match'] = ifMatch;
       const updated = await $fetch<LayoutRecord>(`/api/admin/layouts/${id}`, {
         method: 'PUT',
-        // 3a.6 wires If-Match header here; server PUT will read it.
-        headers: { 'If-Match': original.value.updatedAt },
+        headers,
         body: {
           scope: draft.value.scope,
           name: draft.value.name,
@@ -102,11 +109,13 @@ export function useLayoutEditor(id: string): LayoutEditorState {
           state: draft.value.state,
         },
       });
+      // Update `original` only — DON'T overwrite `draft`. The user may
+      // have made further edits while the save was in flight; those
+      // edits stay in draft + the dirty comparison correctly flips
+      // true again so the auto-save composable schedules a follow-up.
+      // The server returns the saved snapshot which becomes the new
+      // baseline for If-Match.
       original.value = updated;
-      // Preserve any local edits the user made AFTER the save started
-      // by only replacing draft when it still matches the pre-save
-      // snapshot. Simplest v1: just adopt the server response.
-      draft.value = clone(updated);
       status.value = 'saved';
     } catch (err) {
       const e = err as { statusCode?: number; statusMessage?: string; message?: string };

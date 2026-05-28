@@ -45,6 +45,22 @@ useSeoMeta({
 // Viewport preview state — purely UI; doesn't mutate the layout.
 const viewport = ref<'mobile' | 'tablet' | 'desktop'>('desktop');
 
+// Conflict modal visibility — flips true when save() returns 409.
+const conflictOpen = ref<boolean>(false);
+
+// Auto-save: watches editor.dirty, debounces 1.5s, calls editor.save().
+// Composable handles unmount cleanup.
+useLayoutAutoSave({
+  dirty: editor.dirty,
+  save: () => editor.save(),
+  debounceMs: 1500,
+});
+
+// Surface conflicts from any save (manual or auto) as the modal.
+watch(editor.status, (status) => {
+  if (status === 'conflict') conflictOpen.value = true;
+});
+
 function onPageMetaUpdate(value: LayoutRecord['pageMeta']): void {
   if (!editor.draft.value) return;
   editor.draft.value.pageMeta = value;
@@ -59,13 +75,12 @@ async function onSave(): Promise<void> {
     await editor.save();
     toast.success('Layout saved');
   } catch (err) {
-    // editor.status already reflects the error; toast for visibility.
     const e = err as { statusCode?: number; statusMessage?: string };
     if (e.statusCode === 409) {
-      toast.error('Conflict — another admin edited this layout. Refresh and re-apply your changes.');
-    } else {
-      toast.error(e.statusMessage ?? 'Save failed');
+      // Modal is already open via the status watcher; no toast (modal is louder).
+      return;
     }
+    toast.error(e.statusMessage ?? 'Save failed');
   }
 }
 
@@ -77,6 +92,28 @@ async function onPublish(): Promise<void> {
   } catch (err) {
     const e = err as { statusMessage?: string };
     toast.error(e.statusMessage ?? 'Publish failed');
+  }
+}
+
+async function onConflictRefresh(): Promise<void> {
+  conflictOpen.value = false;
+  try {
+    await editor.refresh();
+    toast.success('Refreshed — server state loaded');
+  } catch (err) {
+    const e = err as { statusMessage?: string };
+    toast.error(e.statusMessage ?? 'Refresh failed');
+  }
+}
+
+async function onConflictForceSave(): Promise<void> {
+  conflictOpen.value = false;
+  try {
+    await editor.save({ force: true });
+    toast.success('Layout force-saved');
+  } catch (err) {
+    const e = err as { statusMessage?: string };
+    toast.error(e.statusMessage ?? 'Force save failed');
   }
 }
 </script>
@@ -110,6 +147,14 @@ async function onPublish(): Promise<void> {
           @update:name="onNameUpdate"
         />
       </div>
+
+      <AdminLayoutsConflictModal
+        :open="conflictOpen"
+        :message="editor.errorMessage.value"
+        @refresh="onConflictRefresh"
+        @force-save="onConflictForceSave"
+        @close="conflictOpen = false"
+      />
     </template>
   </div>
 </template>

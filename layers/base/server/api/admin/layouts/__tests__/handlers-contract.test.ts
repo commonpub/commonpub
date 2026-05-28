@@ -64,6 +64,34 @@ describe('admin layout handlers — security contract', () => {
   );
 });
 
+describe('admin layout handlers — optimistic concurrency contract', () => {
+  // Phase 3a.6: the PUT handler must honor an If-Match header so the
+  // editor's auto-save can detect cross-session conflicts. Other write
+  // handlers (POST/DELETE/publish/revert/seed/migrate) operate on different
+  // semantics (creation, terminal state changes, batch migrations) and
+  // don't need If-Match in v1 — locked here so we revisit deliberately.
+  const putHandlers = handlerFiles.filter((f) => /\.put\.ts$/.test(f));
+
+  it('discovers the PUT handlers', () => {
+    expect(putHandlers.length).toBeGreaterThan(0);
+  });
+
+  it.each(putHandlers.map((f) => [f.replace(handlersRoot + '/', '')]))(
+    '%s honors If-Match header (returns 409 on mismatch)',
+    (relPath) => {
+      const src = readFileSync(join(handlersRoot, relPath), 'utf8');
+      // Reads the header
+      expect(src, `${relPath}: missing getHeader(event, 'if-match')`).toMatch(
+        /getHeader\(\s*event\s*,\s*['"]if-match['"]\s*\)/i,
+      );
+      // Throws 409 on mismatch
+      expect(src, `${relPath}: missing 409 statusCode for If-Match mismatch`).toMatch(
+        /statusCode:\s*409/,
+      );
+    },
+  );
+});
+
 describe('admin layout handlers — cache invalidation contract', () => {
   const writeHandlers = handlerFiles.filter((f) => /\.(post|put|delete|patch)\.ts$/.test(f));
 

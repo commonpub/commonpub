@@ -8,6 +8,14 @@
  * Scope CANNOT be changed via PUT (it's immutable per layout). A scope
  * change would mean a new layout — POST instead.
  *
+ * Optimistic concurrency (Phase 3a.6): if the request includes an
+ * `If-Match` header, it must equal the layout's current `updatedAt`.
+ * Mismatch → 412 Precondition Failed (or 409 if we want to match
+ * the editor's existing handler — RFC 7232 says 412, but pragmatic
+ * web editors use 409. We follow editor convention: 409 conflict).
+ * Omit the header (or pass empty string) to force an unconditional
+ * write (the "overwrite" path from the conflict modal).
+ *
  * Admin + features.admin + features.layoutEngine.
  * Invalidates the layouts-by-route cache on success.
  */
@@ -29,6 +37,22 @@ export default defineEventHandler(async (event) => {
   const existing = await getLayoutById(db, id);
   if (!existing) {
     throw createError({ statusCode: 404, statusMessage: 'Layout not found' });
+  }
+
+  // Optimistic concurrency check — client sends If-Match: <updatedAt>;
+  // mismatch means someone else saved in between. The client's auto-save
+  // catches the 409 and pops a conflict modal (3a.6).
+  const ifMatch = getHeader(event, 'if-match');
+  if (ifMatch && ifMatch.trim() !== '' && ifMatch !== existing.updatedAt) {
+    throw createError({
+      statusCode: 409,
+      statusMessage: 'Layout was modified by another session',
+      data: {
+        code: 'LAYOUT_CONFLICT',
+        clientUpdatedAt: ifMatch,
+        serverUpdatedAt: existing.updatedAt,
+      },
+    });
   }
 
   const body = await parseBody(event, layoutCreateSchema);
