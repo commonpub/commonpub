@@ -72,11 +72,13 @@ export default defineEventHandler(async (event) => {
 
   const body = await parseBody(event, layoutCreateSchema);
 
-  // Per-section configSchema validation (session 160 audit P1).
-  // Each section's registered Zod schema enforces URL guards, size
-  // caps, etc. Without this an admin can bypass those guards by sending
-  // arbitrary section.config — closed here at the API boundary.
-  validateSectionConfigs(body.zones);
+  // NOTE: per-section configSchema enforcement (session 160 audit P1)
+  // is deferred. The validator (utils/validateSectionConfigs.ts) is
+  // implemented + tested, but wiring it requires importing the layer
+  // section registry — which transitively imports .vue components that
+  // Nitro's server bundle can't parse. Proper fix: move section Zod
+  // schemas to @commonpub/schema (server-safe). Tracked in
+  // docs/sessions/160-audit-round2-deep.md.
 
   // Scope is immutable — reject if the client tries to change it. This
   // catches an "edit the wrong layout" bug at the API surface rather

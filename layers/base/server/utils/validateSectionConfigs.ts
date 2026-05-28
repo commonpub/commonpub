@@ -21,7 +21,19 @@
  * placeholder on the public page.
  */
 import type { SectionRegistry } from '@commonpub/ui';
-import { useSectionRegistry } from '../../sections/registry';
+
+/**
+ * NOTE: this validator does NOT default-import the section registry.
+ * The registry (`layers/base/sections/registry.ts`) imports every
+ * builtin/*.ts which imports a Vue `.vue` component — and Nitro's
+ * server bundle can't parse .vue. Passing the registry as a required
+ * argument keeps this file server-safe.
+ *
+ * Proper fix (deferred): move per-section Zod schemas to
+ * @commonpub/schema (server-safe), wire the validator there, then
+ * callers can use a schema-only map instead of the runtime registry.
+ * See docs/sessions/160-audit-round2-deep.md for the deferred queue.
+ */
 
 /**
  * Throw an h3/Nuxt-compatible HTTP error WITHOUT depending on h3
@@ -66,14 +78,15 @@ interface SectionError {
 
 /**
  * Validate every section in a layout's zones against its registered
- * Zod configSchema. Throws createError(400) on any failure.
+ * Zod configSchema. Throws an h3-compatible 400 on any failure.
  *
- * Accepts an optional `registry` for tests; defaults to the layer's
- * shared singleton.
+ * `registry` is REQUIRED — callers pass it explicitly to keep this
+ * file from default-importing the registry's transitive .vue deps
+ * (which break Nitro's server bundle). See file-level note above.
  */
 export function validateSectionConfigs(
   zones: InputZone[],
-  registry: SectionRegistry = useSectionRegistry(),
+  registry: SectionRegistry,
 ): void {
   const errors: SectionError[] = [];
 
