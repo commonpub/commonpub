@@ -94,16 +94,18 @@ Goal: fix the 3 issues the user reported on the live canary.
 - [ ] **D.fix.2**: SectionContentFeed pagination test — added the code path but no test asserting button-visibility / load-more-click flow. Manual canary covered today; add Vitest coverage next round.
 - [ ] **D.fix.3**: The migration script's verification SQL uses `s."order"` which postgres parses fine but my SSH-inlined query escaped to `s.order` which fails. Cosmetic; the migration itself worked.
 
-### Stage D — Phase 3a: editor shell read-only
+### Stage D — Phase 3a: editor shell read-only ✅ shipped 2026-05-28 (session 160)
 
-Goal: admin can SEE the layout in the editor, no editing yet.
+Goal: admin can SEE the layout in the editor, edit page meta, save + publish.
 
-- [ ] **D1**: `pages/admin/layouts/index.vue` — page list (one row per layout)
-- [ ] **D2**: `pages/admin/layouts/[id].vue` — canvas (LayoutSlot in `:editable=false` mode)
-- [ ] **D3**: LayoutSlot `editable` prop — wraps each section in a selection overlay
-- [ ] **D4**: Right-side inspector panel with page-meta form (title, description, ogImage, access, frame)
-- [ ] **D5**: Toolbar with viewport toggle (mobile/tablet/desktop preview)
-- [ ] **D6**: Auto-save scaffolding (debounced PUT, conflict detection)
+- [x] **D1**: `pages/admin/layouts/index.vue` — page list (one row per layout) ✓ commit 583b7c3
+- [x] **D2**: `pages/admin/layouts/[id].vue` — three-column editor shell ✓ commit 8358bff
+- [x] **D3**: LayoutSlot `editable` prop — section + row chrome via modifier class + pseudo-element ✓ commit 85b0412
+- [x] **D4**: Right-side inspector panel with page-meta form ✓ commit 8358bff
+- [x] **D5**: Toolbar with viewport toggle + save indicator + publish ✓ commit d7ab0b9
+- [x] **D6**: Auto-save scaffolding (1.5s debounce + If-Match → 409 → conflict modal) ✓ commit e60ff26
+
+**End state (session 160)**: commonpub.io on workspace main (e60ff26). Editor available at `/admin/layouts` + `/admin/layouts/[id]`. heatsync + deveco untouched (npm 0.24.0 dormant). Layer tests 183 → 196 (+13). Server tests 1125 (no count change). Typecheck 26/26.
 
 ### Stage E — Phase 3b: drag-drop
 

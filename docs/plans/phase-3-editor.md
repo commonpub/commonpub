@@ -54,16 +54,16 @@ For auto-form generation from per-section Zod configSchemas. Each section in the
 
 Each phase: small commits, run tests, push, verify on commonpub.io (editor pages are admin-only — won't affect public homepage rendering).
 
-### Phase 3a — Editor shell read-only (1 session)
+### Phase 3a — Editor shell read-only (session 160 — SHIPPED)
 
-- [ ] **3a.1** Add `:editable` prop to `LayoutSlot.vue` (default false). When true, wraps each section in a selection overlay div (no behavior change yet — just visual affordance).
-- [ ] **3a.2** Page list — `layers/base/pages/admin/layouts/index.vue`. Table: scope, name, state, updated_at, actions (edit/delete). Uses `GET /api/admin/layouts` (already exists from session 158).
-- [ ] **3a.3** Editor shell — `layers/base/pages/admin/layouts/[id].vue`. Three columns: section palette (left, registered-from-registry list), canvas (LayoutSlot :editable=true, previewOverride=draft), inspector (right).
-- [ ] **3a.4** Page-meta inspector form — title/description/ogImage/access/frame fields (hardcoded inspector, not yet Zod-driven). Uses `PUT /api/admin/layouts/[id]` (already exists).
-- [ ] **3a.5** Toolbar — viewport toggle (mobile/tablet/desktop preview width), save indicator, publish button.
-- [ ] **3a.6** Auto-save scaffolding — debounced PUT (5s after last edit), `etag`/version conflict detection (409 → modal).
-- [ ] **3a.7** Tests — page render tests + smoke test of layout fetch path.
-- [ ] **3a.8** Commit + push + verify `/admin/layouts/[id]` page loads on commonpub.io with a real layout.
+- [x] **3a.1** Add `:editable` prop to `LayoutSlot.vue` (default false). When true, applies `cpub-layout-{section,row}--editable` modifier classes — dashed hover outline + type-label badge via ::after. NO event handlers / selection state — pure visual affordance. Commit 85b0412.
+- [x] **3a.2** Page list — `layers/base/pages/admin/layouts/index.vue`. Table: scope, name, state, updated_at, actions (edit/delete). New named middleware `admin-layouts.ts` gates on layoutEngine flag (global middleware already gates /admin on admin). Commit 583b7c3.
+- [x] **3a.3** Editor shell — `layers/base/pages/admin/layouts/[id].vue`. Three columns: `<AdminLayoutsPalette>` (left), `<AdminLayoutsCanvas>` wrapping `<LayoutSlot :editable previewOverride>` (center), `<AdminLayoutsInspector>` (right). State in new `useLayoutEditor(id)` composable. Commit 8358bff.
+- [x] **3a.4** Page-meta inspector form — `<AdminLayoutsInspectorPage>` with title/description/ogImage/ogType/access/frame/noindex fields. Fully controlled component; emits `update:page-meta` + `update:name`. Shipped together with 3a.3 in 8358bff.
+- [x] **3a.5** Toolbar — `<AdminLayoutsToolbar>` with viewport segmented control (mobile/tablet/desktop sets canvas max-width), save indicator (Saving/Saved/Unsaved/Failed/Conflict) with aria-live, Save + Publish buttons. Commit d7ab0b9.
+- [x] **3a.6** Auto-save scaffolding — debounced PUT (1.5s per docs/plans/layout-and-pages.md §7.13), If-Match header for optimistic concurrency, 409 → `<AdminLayoutsConflictModal>` with Refresh + Force Save options. Server PUT handler reads If-Match header. Commit (next).
+- [x] **3a.7** Tests — 5 LayoutSlot tests, 6 useLayoutAutoSave tests (fake timers), 2 If-Match contract tests. Layer total 183 → 196.
+- [x] **3a.8** Verified on commonpub.io — /admin/layouts loads, /admin/layouts/[id] loads, public homepage byte-pattern unchanged.
 
 ### Phase 3b — Drag-drop (2 sessions; split at the half-way mark)
 
