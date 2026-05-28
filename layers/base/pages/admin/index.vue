@@ -3,6 +3,11 @@ definePageMeta({ layout: 'admin', middleware: 'auth' });
 useSeoMeta({ title: `Admin Dashboard — ${useSiteName()}` });
 
 const { data: stats, pending } = await useFetch('/api/admin/stats');
+
+// R3 P2: surface /admin/layouts on the dashboard landing.
+// The sidebar already hides itself behind layoutEngine; mirror the
+// same gate so the dashboard tile only appears when the editor is on.
+const { layoutEngine: layoutEngineEnabled } = useFeatures();
 </script>
 
 <template>
@@ -44,6 +49,14 @@ const { data: stats, pending } = await useFetch('/api/admin/stats');
         <NuxtLink to="/admin/settings" class="cpub-admin-action">
           <i class="fa-solid fa-gear cpub-admin-action-icon"></i>
           <span class="cpub-admin-action-label">Instance Settings</span>
+        </NuxtLink>
+        <NuxtLink
+          v-if="layoutEngineEnabled"
+          to="/admin/layouts"
+          class="cpub-admin-action"
+        >
+          <i class="fa-solid fa-table-cells-large cpub-admin-action-icon"></i>
+          <span class="cpub-admin-action-label">Edit Layouts</span>
         </NuxtLink>
       </div>
     </div>
