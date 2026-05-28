@@ -25,16 +25,40 @@ Both reports were extensive. Synthesis produced a 12-finding action list ranked 
 - Cache key bifurcated: `admin:<path>` vs `public:<path>` so an admin's draft-aware response can't leak to an anonymous hit on the same key
 - Lock via static contract test (`by-route-draft-leak.test.ts`, 4 tests) — string-matches the load-bearing fragments of the fix; regression surfaces if any are removed by refactor
 
-### 🟠 P1 — per-section configSchema NOT enforced on write (FIXED)
+### 🟠 P1 — per-section configSchema NOT enforced on write (DEFERRED after build break)
 
 **Verified by reading code**: `layoutCreateSchema` validates the SHAPE of `section.config` as `z.record(z.unknown())` — but ignores the per-type Zod schemas registered in `layers/base/sections/builtin/*.ts`. An admin can bypass URL guards, size caps, sandbox flags by sending arbitrary config. Limited blast radius (admin-only) but every CMS validates admin input anyway — admin tier is semi-trusted.
 
-**Fix applied**:
-- New `layers/base/server/utils/validateSectionConfigs.ts` — iterates zones → rows → sections, looks up each section's `def.configSchema` from the registry, runs `safeParse`, collects all errors into a structured 400 response
-- Unknown section types also 400 with a clear error (was previously silently rendering a placeholder)
+**Attempted fix + roll-back** (commits 8316ce2 → 8f4a860):
+- Created `layers/base/server/utils/validateSectionConfigs.ts` — iterates zones → rows → sections, looks up each section's `def.configSchema` from the registry, runs `safeParse`, collects errors into a structured 400 response
 - Wired into both POST + PUT handlers BEFORE saveLayout call
-- Local `httpError` helper (h3 isn't a direct layer dep — Nuxt/Nitro treats any error with `statusCode` + `statusMessage` + `data` as createError-equivalent on the wire)
-- 5 tests against the REAL section registry (17 builtin sections) covering happy path + unknown types + bulk error reporting + position-info preservation
+- 5 tests against the REAL section registry (17 builtins) — happy path + unknown types + bulk error reporting + position-info preservation
+- **Build broke**: the validator imported `useSectionRegistry()` which transitively imports every `builtin/*.ts` → each imports a `.vue` Vue component. Nitro's server bundle can't parse `.vue` ("Expression expected" RollupError). Local vitest worked (vitest has Vue plugin); the prod Docker build failed.
+- **Rolled back**: removed the calls from handlers; made validator's `registry` arg REQUIRED (no default that triggers the registry import). The validator file + 5 tests remain as dormant infrastructure — fully tested, ready to wire once the schemas are server-safe.
+
+**Proper fix (deferred to next session)**: move per-section Zod schemas to `@commonpub/schema` (already server-safe — no Vue imports). Each `builtin/*.ts` imports its schema from there. The server-side `validateSectionConfigs` builds a schema-map from `@commonpub/schema` instead of the runtime registry. Pattern:
+
+```ts
+// packages/schema/src/sectionConfigs.ts (new)
+export const dividerConfigSchema = z.object({...});
+export const heroConfigSchema = z.object({...});
+// ... 17 schemas
+
+// layers/base/sections/builtin/divider.ts (modified)
+import { dividerConfigSchema } from '@commonpub/schema';
+import BlockDividerView from '../../components/blocks/BlockDividerView.vue';
+export const dividerSection = { configSchema: dividerConfigSchema, component: BlockDividerView, ... };
+
+// layers/base/server/utils/validateSectionConfigs.ts (modified)
+import * as schemas from '@commonpub/schema/sectionConfigs';
+// build the map, no .vue transitive imports
+```
+
+**Residual risk while deferred**: admin can bypass per-section URL guards (e.g., CTA hrefs) + size caps + sandbox flags by sending crafted section.config to POST/PUT. Mitigations in effect:
+- All admin endpoints gated on `requireFeature('admin') + requireFeature('layoutEngine') + requireAdmin` (locked by contract test)
+- Audit log on destructive paths (force-save + delete) — forensic trail if exploited
+- Top-level `layoutCreateSchema` still enforces overall shape + bounds (zones/rows/sections caps from this audit pass)
+- Admin tier is single-tenant per instance; no cross-tenant blast radius
 
 ### 🟠 P1 — ogImage URL scheme bypass (FIXED)
 
