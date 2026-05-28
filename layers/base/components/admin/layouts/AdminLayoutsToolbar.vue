@@ -106,6 +106,7 @@ const emit = defineEmits<{
   (e: 'update:viewport', value: 'mobile' | 'tablet' | 'desktop'): void;
   (e: 'save'): void;
   (e: 'publish'): void;
+  (e: 'discard'): void;
 }>();
 
 const indicatorText = computed<string>(() => {
@@ -180,6 +181,20 @@ const VIEWPORTS: Array<{ value: 'mobile' | 'tablet' | 'desktop'; icon: string; l
     </div>
 
     <div class="cpub-admin-layouts-toolbar-actions">
+      <!-- R4 audit P2 fix: Discard button wires useLayoutEditor.discard().
+           Enabled only when dirty; emits 'discard' for the parent page to
+           confirm + invoke. Previously discard() was implemented but
+           unwired — admin's only revert path was page refresh. -->
+      <button
+        type="button"
+        class="cpub-admin-layouts-toolbar-btn"
+        :disabled="!dirty || saveStatus === 'saving'"
+        @click="emit('discard')"
+        title="Discard unsaved changes"
+      >
+        <i class="fa-solid fa-rotate-left"></i>
+        <span>Discard</span>
+      </button>
       <button
         type="button"
         class="cpub-admin-layouts-toolbar-btn"

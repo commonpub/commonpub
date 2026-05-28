@@ -76,9 +76,10 @@ describe('AdminLayoutsToolbar — Strapi 3-state model', () => {
 
 describe('AdminLayoutsToolbar — dynamic Publish button copy', () => {
   function publishBtnText(container: Element): string | undefined {
-    // Find the second toolbar button — Publish (Save is first)
+    // Toolbar buttons in DOM order: Discard, Save, Publish.
+    // R4 audit: Discard added (was Save, Publish only). Publish is 3rd.
     const btns = container.querySelectorAll('.cpub-admin-layouts-toolbar-btn');
-    return btns[1]?.textContent?.trim().toLowerCase();
+    return btns[2]?.textContent?.trim().toLowerCase();
   }
 
   it('reads "Publish" for draft layouts', () => {
@@ -101,8 +102,9 @@ describe('AdminLayoutsToolbar — dynamic Publish button copy', () => {
 
 describe('AdminLayoutsToolbar — Publish button disabled state', () => {
   function publishBtnDisabled(container: Element): boolean {
+    // Publish is the 3rd button after R4's Discard addition.
     const btns = container.querySelectorAll('.cpub-admin-layouts-toolbar-btn');
-    return (btns[1] as HTMLButtonElement | undefined)?.disabled ?? false;
+    return (btns[2] as HTMLButtonElement | undefined)?.disabled ?? false;
   }
 
   it('Publish is enabled for draft state', () => {

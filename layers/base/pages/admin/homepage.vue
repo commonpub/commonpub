@@ -102,10 +102,31 @@ function discard(): void {
 }
 
 const editingId = ref<string | null>(null);
+
+// R4 audit deprecation note: when layoutEngine is on, this page's edits
+// no longer overwrite a bespoke layout (the auto-sync at sections.put.ts
+// is now non-destructive). The legacy editor still works for the saved
+// JSON shape — but the live page renders via /admin/layouts. Surface this.
+const { layoutEngine } = useFeatures();
 </script>
 
 <template>
   <div class="cpub-admin-homepage">
+    <!-- R4 audit (session 160): deprecation banner when layoutEngine is on.
+         The new visual editor at /admin/layouts is the canonical surface;
+         this legacy page still saves its JSON but the live homepage now
+         renders via the layouts table. Auto-sync is non-destructive — it
+         only creates the layout if one doesn't yet exist. -->
+    <div v-if="layoutEngine" class="cpub-admin-homepage-deprecation" role="status">
+      <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+      <div>
+        <p><strong>This is the legacy homepage editor.</strong> The Layout Engine is active on this instance — use the new visual editor for live changes.</p>
+        <NuxtLink to="/admin/layouts" class="cpub-admin-homepage-deprecation-link">
+          Open Layouts editor <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+        </NuxtLink>
+      </div>
+    </div>
+
     <div class="cpub-admin-header">
       <div>
         <h1 class="cpub-admin-title">Homepage Layout</h1>
@@ -288,5 +309,30 @@ const editingId = ref<string | null>(null);
   .cpub-editor-grid { grid-template-columns: 1fr; }
   .cpub-section-row { flex-direction: column; align-items: flex-start; }
   .cpub-section-actions { align-self: flex-end; }
+}
+
+/* R4 audit (session 160): deprecation banner for the legacy editor
+   when layoutEngine is on. Direct, friendly, non-blocking — links to
+   the new editor without removing access to this page (which still
+   saves the JSON for backward compat). */
+.cpub-admin-homepage-deprecation {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+  padding: var(--space-3) var(--space-4);
+  background: var(--yellow-bg, var(--surface2));
+  border: 1px solid var(--yellow, var(--border));
+  margin-bottom: var(--space-4);
+}
+.cpub-admin-homepage-deprecation i { color: var(--yellow, var(--text-dim)); font-size: var(--text-lg); margin-top: 2px; }
+.cpub-admin-homepage-deprecation p { margin: 0 0 var(--space-1) 0; color: var(--text); }
+.cpub-admin-homepage-deprecation-link {
+  display: inline-flex; align-items: center; gap: var(--space-1);
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  text-decoration: underline;
 }
 </style>

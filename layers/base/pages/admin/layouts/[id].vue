@@ -48,6 +48,43 @@ const viewport = ref<'mobile' | 'tablet' | 'desktop'>('desktop');
 // Conflict modal visibility — flips true when save() returns 409.
 const conflictOpen = ref<boolean>(false);
 
+// R4 audit P1 fix: unsaved-edit guards. Without these, the user can
+// navigate (back button, sidebar nav, typed URL) between the last edit
+// and the 1500ms debounce firing → silent data loss. visibilitychange
+// flush handles tab close/Cmd+Tab but NOT in-app navigation.
+//
+// Two guards:
+//   1. onBeforeRouteLeave — fires on Nuxt navigation (sidebar links,
+//      router.push, NuxtLink). Confirms with the user; if they cancel,
+//      navigation aborts and they stay on the editor.
+//   2. beforeunload — fires on tab close, reload, or external nav.
+//      Modern browsers ignore the message string and show their generic
+//      prompt; setting preventDefault is enough to trigger it.
+function onBeforeUnload(e: BeforeUnloadEvent): void {
+  if (editor.dirty.value) {
+    e.preventDefault();
+    // Some browsers still read returnValue; set for compatibility.
+    e.returnValue = '';
+  }
+}
+onMounted(() => {
+  if (typeof window !== 'undefined') {
+    window.addEventListener('beforeunload', onBeforeUnload);
+  }
+});
+onBeforeUnmount(() => {
+  if (typeof window !== 'undefined') {
+    window.removeEventListener('beforeunload', onBeforeUnload);
+  }
+});
+onBeforeRouteLeave((_to, _from, next) => {
+  if (!editor.dirty.value) return next();
+  const ok = window.confirm(
+    'You have unsaved changes that haven’t auto-saved yet. Leave anyway?',
+  );
+  return next(ok);
+});
+
 // Auto-save: watches editor.dirty, debounces 1.5s, calls editor.save().
 // Composable handles unmount cleanup.
 useLayoutAutoSave({
@@ -82,6 +119,15 @@ async function onSave(): Promise<void> {
     }
     toast.error(e.statusMessage ?? 'Save failed');
   }
+}
+
+function onDiscard(): void {
+  // R4 audit P2 fix: surfaces discard() to the UI. Confirms first since
+  // discard is destructive (loses unsaved edits).
+  if (!editor.dirty.value) return;
+  if (!confirm('Discard all unsaved changes? This cannot be undone.')) return;
+  editor.discard();
+  toast.success('Unsaved changes discarded');
 }
 
 async function onPublish(): Promise<void> {
@@ -137,6 +183,7 @@ async function onConflictForceSave(): Promise<void> {
         @update:viewport="viewport = $event"
         @save="onSave"
         @publish="onPublish"
+        @discard="onDiscard"
       />
 
       <!--

@@ -25,7 +25,7 @@
  * `invalidateLayoutCache()` after any write — see `instanceLayouts.ts`
  * in `layers/base/server/utils/` (next phase).
  */
-import { and, asc, desc, eq } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray } from 'drizzle-orm';
 import {
   layouts,
   layoutRows,
@@ -210,17 +210,21 @@ async function assembleLayout(db: DB, row: typeof layouts.$inferSelect): Promise
     .where(eq(layoutRows.layoutId, row.id))
     .orderBy(asc(layoutRows.zone), asc(layoutRows.position));
 
+  // R4 audit fix (P0-perf): WHERE clause on rowId. Without it Drizzle
+  // ran SELECT * FROM layout_sections (no filter) on every layout fetch
+  // — full table scan on the by-route hot path. The idx_layout_sections_row
+  // index is now actually used by this query.
   const sectionRowIds = rowsForLayout.map((r) => r.id);
   const allSections = sectionRowIds.length > 0
     ? await db
         .select()
         .from(layoutSections)
+        .where(inArray(layoutSections.rowId, sectionRowIds))
         .orderBy(asc(layoutSections.position))
     : [];
 
   const sectionsByRow = new Map<string, LayoutSectionResolved[]>();
   for (const s of allSections) {
-    if (!sectionRowIds.includes(s.rowId)) continue;
     const arr = sectionsByRow.get(s.rowId) ?? [];
     arr.push(rowToSection(s));
     sectionsByRow.set(s.rowId, arr);

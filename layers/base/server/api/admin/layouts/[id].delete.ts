@@ -28,6 +28,26 @@ export default defineEventHandler(async (event): Promise<{ ok: true; id: string 
     throw createError({ statusCode: 404, statusMessage: 'Layout not found' });
   }
 
+  // R4 audit P1 fix: homepage scope special-case. Deleting the
+  // ('route', '/') layout nukes the homepage + its entire publish
+  // history. The list-page UI already confirm()s before DELETE, but
+  // the API can also be called directly — require an explicit
+  // X-Cpub-Confirm-Homepage-Delete: 1 header for the homepage scope
+  // as defense-in-depth. Surfaces operator footgun loudly + audit log
+  // still captures the action when the header is set.
+  const isHomepage =
+    existing.scope.type === 'route' && existing.scope.path === '/';
+  if (isHomepage && getHeader(event, 'x-cpub-confirm-homepage-delete') !== '1') {
+    throw createError({
+      statusCode: 409,
+      statusMessage: 'Refusing to delete the homepage layout without explicit confirmation',
+      data: {
+        code: 'HOMEPAGE_DELETE_NEEDS_CONFIRM',
+        hint: 'Set X-Cpub-Confirm-Homepage-Delete: 1 header to override.',
+      },
+    });
+  }
+
   // Audit log (session 160 audit P2). Layout deletion is destructive +
   // not recoverable; structured stdout line gives operators a forensic
   // trail when an admin reports "the homepage layout disappeared".

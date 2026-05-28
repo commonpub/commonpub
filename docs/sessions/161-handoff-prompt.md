@@ -4,12 +4,15 @@ Paste the prompt block below as the first message of the new session.
 
 ---
 
-Fresh Claude Code session on the CommonPub monorepo. Predecessor: **session 160 SHIPPED Phase 3a + 3 audit rounds**. Editor is live at `https://commonpub.io/admin/layouts` (sidebar nav added in R3). 262 layer tests + 26/26 typecheck. heatsync + deveco UNTOUCHED on npm 0.24.0 (per standing user direction).
+Fresh Claude Code session on the CommonPub monorepo. Predecessor: **session 160 SHIPPED Phase 3a + 4 audit rounds**. Editor is live at `https://commonpub.io/admin/layouts` (sidebar nav added in R3). **264 layer tests** + 26/26 typecheck. heatsync + deveco UNTOUCHED on npm 0.24.0 (per standing user direction).
+
+**R4 caught and fixed two more P0s + four P1/P2s**: assembleLayout was doing a full table scan on every page load (one-line drizzle fix); legacy /admin/homepage save was silently destroying layout-engine edits + publish history (force:true → false + deprecation banner); plus unsaved-edit guards, bounded LRU cache, homepage-delete confirmation header, and the Discard button that was implemented but never wired. Full audit doc at `docs/sessions/160-audit-round4-deep.md`.
 
 ## Mandatory reads before any code
 
 1. `CLAUDE.md` at the repo root — standing rules (#2 flag-gate, #3 `var(--*)`-only, #11 TDD, #12 WCAG AA, #15 NO AI attribution)
-2. `MEMORY.md` and these priority memories:
+2. **All four audit docs** (in order): `docs/sessions/160-audit-godmode.md` (R1 UX), `160-audit-round2-deep.md` (R2 security), `160-audit-round4-deep.md` (R4 DB+perf+edges). R3 fixes only in commit messages.
+3. `MEMORY.md` and these priority memories:
    - **[[feedback-visual-editor-ux-patterns]]** — R1 UX patterns synthesis (cursor as contract, save-trust signals, Strapi 3-state, drag a11y, 10 anti-patterns)
    - **[[feedback-editor-security-patterns]]** — R2 security patterns (draft-leak guard, per-section enforcement at API boundary, URL scheme refinement, single-flight save, array bounds, structured audit logs)
    - **[[feedback-reuse-existing-components]]** — Layout engine is an ARRANGER for existing components; never write parallel renderers
@@ -97,10 +100,33 @@ The validator (`layers/base/server/utils/validateSectionConfigs.ts`) is implemen
 
 ## End state (session 160 close)
 
-- commonpub.io: workspace `main` (3 audit rounds applied). Editor live at `/admin/layouts` + `/[id]`. Public homepage byte-pattern unchanged. heatsync + deveco UNTOUCHED.
-- Tests: layer 262, schema 431, repo typecheck 26/26 fresh
-- Memories: 2 new feedback memories captured for future editor work
-- Deferred queue (in audit docs): per-section validation (P1 — proper-fix path documented), LayoutPayload type narrow, Inspector storm + dirty cost at scale, pagehide + sendBeacon, conflict cascade throttle, 30s interval pause, useLayoutEditor provide/inject, operator runbook, dashboard tile
+- commonpub.io: workspace `main` (4 audit rounds applied). Editor live at `/admin/layouts` + `/[id]`. Public homepage byte-pattern unchanged. heatsync + deveco UNTOUCHED.
+- Tests: layer **264**, schema 431, repo typecheck 26/26 fresh
+- Memories: 2 new feedback memories (UX patterns + security patterns) captured for future editor work
+
+### Deferred queue (from all 4 audit rounds)
+
+**P1 — should land before Phase 3c**:
+- Per-section validation (R2 deferred — needs schema-package refactor, see Path B above)
+- `migrate-homepage` with `force: true` still destroys layout versions (R4)
+
+**P2 — quality but not bug**:
+- LayoutRecord → LayoutPayload type narrow (R2)
+- Inspector storm + dirty cost at N=50+ sections (R2)
+- `pagehide` + `navigator.sendBeacon` for guaranteed unload delivery (R2)
+- Conflict cascade throttle (R2)
+- `listLayouts` N+1 (R4)
+- Partial publish-chain failure UX (R4)
+- `AbortController` on save fetch (R4)
+- Dashboard Quick Actions tile for /admin/layouts (R3)
+
+**P3 — trivia / polish**:
+- 30s setInterval pause on tab hidden (R2)
+- `useLayoutEditor` provide/inject (R2)
+- Drop `idx_layouts_scope` (redundant with UNIQUE) (R4)
+- Document layouts-being-local-only alongside CLAUDE.md fed rules (R4)
+- Document multi-pod cache divergence (60s propagation window) (R4)
+- Operator runbook for `layoutEngine` setup (R3)
 
 ## First action
 

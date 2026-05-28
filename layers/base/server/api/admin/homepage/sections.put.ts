@@ -57,19 +57,36 @@ export default defineEventHandler(async (event) => {
   // ZERO visible effect on the live page.
   //
   // Fix: after the legacy save succeeds, if layoutEngine is on,
-  // re-run migrateHomepageSectionsToLayout with force:true. This
-  // deletes the existing layout row + recreates it from the freshly-
-  // saved homepage.sections. Idempotent + matches the user's mental
-  // model ("I edited the sections, the page reflects my edit").
+  // **R4 audit P0 data-loss fix (session 160)**: previously this called
+  // migrateHomepageSectionsToLayout with force:true on every legacy save,
+  // which DELETES the existing layout (cascade → rows, sections,
+  // VERSIONS). If an admin had bespoke-edited the homepage via /admin/
+  // layouts, those edits + the entire publish history were silently
+  // destroyed the next time anyone touched /admin/homepage. Same data-
+  // loss path also hit the audit log if two admins were editing in
+  // parallel.
   //
-  // Caught session 159 when user removed "New Section" from the admin
-  // editor + saw it still rendering on commonpub.io's homepage.
+  // New semantics: NON-DESTRUCTIVE auto-sync. If a layout doesn't yet
+  // exist for ('route','/'), create it from the legacy data so the
+  // first-time operator's legacy edits keep working. If a layout DOES
+  // exist, leave it alone — the new editor is the source of truth from
+  // that point forward. /admin/homepage now shows a deprecation banner
+  // (see the page itself) directing operators to /admin/layouts.
+  //
+  // History: original auto-sync added session 159 (per the comment
+  // above) to handle "I removed a section in /admin/homepage but it
+  // still renders" — that scenario still works on first-time admins
+  // since the layout gets created on first save. After the operator
+  // adopts the layout editor, /admin/homepage becomes effectively
+  // read-only with respect to the live homepage; the legacy data still
+  // saves into instance_settings for backward-compat but is no longer
+  // promoted.
   const config = useConfig();
   if (config.features.layoutEngine) {
     try {
       const result = await migrateHomepageSectionsToLayout(db, {
         adminId: user.id,
-        force: true,
+        force: false, // changed from true — see comment above
       });
       if (result.migrated) {
         invalidateLayoutsByRouteCache();

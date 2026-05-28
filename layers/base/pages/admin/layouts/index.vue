@@ -81,8 +81,25 @@ async function deleteLayout(layout: LayoutRecord): Promise<void> {
   ) {
     return;
   }
+  // R4 audit P1 fix: homepage scope gets an extra confirm + the special
+  // X-Cpub-Confirm-Homepage-Delete header (the API refuses without it).
+  // Two prompts is intentional — deleting the homepage layout nukes
+  // its entire publish history.
+  const isHomepage =
+    layout.scope.type === 'route' && layout.scope.path === '/';
+  const headers: Record<string, string> = {};
+  if (isHomepage) {
+    if (
+      !confirm(
+        'You are deleting the HOMEPAGE layout. This destroys all publish history. The homepage will fall back to the legacy renderer until re-migrated. Continue?',
+      )
+    ) {
+      return;
+    }
+    headers['X-Cpub-Confirm-Homepage-Delete'] = '1';
+  }
   try {
-    await $fetch(`/api/admin/layouts/${layout.id}`, { method: 'DELETE' });
+    await $fetch(`/api/admin/layouts/${layout.id}`, { method: 'DELETE', headers });
     toast.success('Layout deleted');
     await refresh();
   } catch (err) {

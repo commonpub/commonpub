@@ -60,4 +60,38 @@ describe('layoutCache', () => {
     expect(_layoutCacheSize()).toBe(1);
     expect(getLayoutCacheEntry<number>('/x')?.value).toBe(2);
   });
+
+  // R4 audit P1 fix — bounded LRU eviction
+  describe('bounded LRU eviction (audit R4)', () => {
+    it('caps cache at MAX_CACHE_ENTRIES; oldest evicted first', async () => {
+      const { MAX_CACHE_ENTRIES } = await import('../layoutCache');
+      // Fill past the cap
+      for (let i = 0; i < MAX_CACHE_ENTRIES + 50; i++) {
+        setLayoutCacheEntry(`/path-${i}`, i);
+      }
+      expect(_layoutCacheSize()).toBe(MAX_CACHE_ENTRIES);
+      // First 50 keys should be gone (oldest)
+      expect(getLayoutCacheEntry(`/path-0`)).toBeUndefined();
+      expect(getLayoutCacheEntry(`/path-49`)).toBeUndefined();
+      // Key at the cap boundary survives
+      expect(getLayoutCacheEntry(`/path-50`)).toBeDefined();
+      // Most-recent survives
+      expect(getLayoutCacheEntry(`/path-${MAX_CACHE_ENTRIES + 49}`)).toBeDefined();
+    });
+
+    it('get() touches LRU order — recently-read entries survive eviction longer', async () => {
+      const { MAX_CACHE_ENTRIES } = await import('../layoutCache');
+      // Fill to exactly the cap
+      for (let i = 0; i < MAX_CACHE_ENTRIES; i++) {
+        setLayoutCacheEntry(`/p-${i}`, i);
+      }
+      // Touch the oldest entry to move it to "newest"
+      expect(getLayoutCacheEntry(`/p-0`)).toBeDefined();
+      // Add ONE more entry — should evict /p-1 (now oldest), NOT /p-0
+      setLayoutCacheEntry(`/p-new`, 'new');
+      expect(getLayoutCacheEntry(`/p-0`)).toBeDefined();
+      expect(getLayoutCacheEntry(`/p-1`)).toBeUndefined();
+      expect(getLayoutCacheEntry(`/p-new`)).toBeDefined();
+    });
+  });
 });
