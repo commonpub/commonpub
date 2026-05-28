@@ -6,6 +6,7 @@ interface HeroCta {
   label: string;
   href: string;
   variant?: 'primary' | 'secondary';
+  icon?: string;  // Font Awesome class (e.g. 'fa-plus'); optional
 }
 
 const props = defineProps<{ config: HomepageSectionConfig }>();
@@ -52,9 +53,12 @@ const heroEyebrow = computed(() => {
 const heroCtas = computed<HeroCta[]>(() => {
   const cfg = props.config as { ctas?: HeroCta[] };
   if (Array.isArray(cfg.ctas) && cfg.ctas.length > 0) return cfg.ctas;
+  // Hardcoded fallbacks keep the legacy hero's exact look: icons +
+  // canonical labels. Admin-set ctas (no icon field in the legacy
+  // admin form) render without icons by design.
   return [
-    { label: 'Start Building', href: '/create', variant: 'primary' },
-    { label: 'Explore', href: '/explore', variant: 'secondary' },
+    { label: 'Start Building', href: '/create', variant: 'primary', icon: 'fa-plus' },
+    { label: 'Explore', href: '/explore', variant: 'secondary', icon: 'fa-compass' },
   ];
 });
 
@@ -114,6 +118,7 @@ function dismissHero(): void {
               class="cpub-btn"
               :class="cta.variant === 'primary' ? 'cpub-btn-primary' : ''"
             >
+              <i v-if="cta.icon" :class="['fa-solid', cta.icon]" aria-hidden="true" />
               {{ cta.label }}
             </NuxtLink>
           </div>
