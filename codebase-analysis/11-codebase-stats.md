@@ -7,7 +7,7 @@ Numbers are approximate — exact counts vary with test exclusions.
 - Composables: 20 → **21** (`+useAdminSidebar.ts`, ~95 LOC; uses `useCookie` for persistence — matches `useTheme` pattern, no SSR/CSR hydration flash)
 - Schema package: `+ src/sectionConfigs.ts` (~210 LOC) — 17 per-section Zod schemas + `SECTION_CONFIG_SCHEMAS` lookup map + 3 shared URL regex constants. Re-exported from `src/index.ts`.
 - Schema tests: 431 → **470** (+39 — sectionConfigs.test.ts covers SECTION_CONFIG_SCHEMAS surface, URL guards, array bounds, enum walls, defaults)
-- Layer tests: 264 → **286** (+22 — useAdminSidebar 16 after the useCookie audit-polish drop, validateSectionConfigs +6 per-section enforcement tests on top of the 5 it had)
+- Layer tests: 264 → **289** (+25 — useAdminSidebar 16 after the useCookie audit-polish drop, validateSectionConfigs +6 per-section enforcement tests on top of the 5 it had, useLayoutEditor +3 for AbortController coverage)
 - Server tests: 1125+3skip → **1126**+3skip (+1 — `layout-migrate-homepage > preserves layout_versions across a force=true migration`)
 - 17 × `layers/base/sections/builtin/*.ts` refactored — each imports its schema + type from `@commonpub/schema` instead of defining inline. Drops `import { z } from 'zod'`. Comments updated to point at canonical location.
 - `layers/base/server/utils/validateSectionConfigs.ts` — registry parameter removed; uses `SECTION_CONFIG_SCHEMAS` from `@commonpub/schema`. Wired into POST + PUT handlers in `layers/base/server/api/admin/layouts/{index.post,[id].put}.ts` with `cpub.audit.layout.config-rejected` audit logging on failure.

@@ -76,6 +76,11 @@ onBeforeUnmount(() => {
   if (typeof window !== 'undefined') {
     window.removeEventListener('beforeunload', onBeforeUnload);
   }
+  // R4 P2 (session 161): cancel any in-flight save. Without this, a save
+  // started before unmount lands afterward as an "orphan" PUT — which can
+  // cause stale 409s the next time the user opens the editor in another
+  // tab (server bumped updatedAt; client's cached If-Match is stale).
+  editor.abort();
 });
 onBeforeRouteLeave((_to, _from, next) => {
   if (!editor.dirty.value) return next();

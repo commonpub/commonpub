@@ -43,6 +43,11 @@ export interface LayoutEditorState {
   refresh: () => Promise<void>;
   /** Discard local changes (revert draft to original). */
   discard: () => void;
+  /** Abort any in-flight save fetch — call from `onBeforeUnmount` to
+   *  prevent orphan PUTs from landing after the editor unmounts (which
+   *  could cause stale 409s when the user opens the editor again).
+   *  R4 P2 fix (session 161). */
+  abort: () => void;
 }
 
 /** Deep-clone via JSON. The LayoutRecord shape is JSON-safe (no Date/Map/Set). */
@@ -102,6 +107,26 @@ export function useLayoutEditor(id: string): LayoutEditorState {
    */
   let inFlightSave: Promise<void> | null = null;
 
+  /**
+   * AbortController for the editor's lifetime — aborted by abort() on
+   * unmount (called from the page's onBeforeUnmount). The single-flight
+   * guard above prevents parallel saves, so one controller suffices for
+   * the whole composable instance: after abort, no further saves should
+   * fire (the editor is unmounting). A new mount creates a new composable
+   * instance → new controller.
+   *
+   * The `typeof` guard makes this resilient to environments without
+   * the AbortController global (older Node test harnesses, etc).
+   * R4 P2 fix (session 161).
+   */
+  const abortController = typeof AbortController !== 'undefined'
+    ? new AbortController()
+    : null;
+
+  function abort(): void {
+    abortController?.abort();
+  }
+
   async function save(opts: { force?: boolean } = {}): Promise<void> {
     if (!draft.value || !original.value) return;
     if (!dirty.value) return;
@@ -136,6 +161,10 @@ export function useLayoutEditor(id: string): LayoutEditorState {
             zones: draft.value!.zones,
             state: draft.value!.state,
           },
+          // Cancel the fetch if the editor unmounts mid-save. Catch block
+          // below recognises the AbortError and short-circuits without
+          // surfacing it as a user-visible error.
+          signal: abortController?.signal,
         });
         // Update `original` only — DON'T overwrite `draft`. The user may
         // have made further edits while the save was in flight; those
@@ -146,7 +175,18 @@ export function useLayoutEditor(id: string): LayoutEditorState {
         original.value = updated;
         status.value = 'saved';
       } catch (err) {
-        const e = err as { statusCode?: number; statusMessage?: string; message?: string };
+        const e = err as { statusCode?: number; statusMessage?: string; message?: string; name?: string };
+        // AbortError: the editor unmounted mid-save (the user navigated
+        // away). The component is gone — surfacing "Save failed" is
+        // wrong (the user isn't here to see it, and the fetch was
+        // CANCELLED, not failed). Reset to idle + re-throw so the
+        // outer caller knows the promise didn't complete normally,
+        // but skip the user-visible status/error mutations.
+        if (e.name === 'AbortError') {
+          status.value = 'idle';
+          errorMessage.value = null;
+          throw err;
+        }
         if (e.statusCode === 409) {
           status.value = 'conflict';
           errorMessage.value = 'Another admin edited this layout while you were working.';
@@ -190,5 +230,6 @@ export function useLayoutEditor(id: string): LayoutEditorState {
     publish,
     refresh,
     discard,
+    abort,
   };
 }

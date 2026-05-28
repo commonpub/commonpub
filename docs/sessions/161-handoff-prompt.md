@@ -151,7 +151,7 @@ Closes R2's deferred P1. Validator (`layers/base/server/utils/validateSectionCon
 - Conflict cascade throttle (R2)
 - `listLayouts` N+1 (R4)
 - Partial publish-chain failure UX (R4)
-- `AbortController` on save fetch (R4)
+- ~~`AbortController` on save fetch~~ — **DONE in session 161 round 3**. `useLayoutEditor` owns a per-instance AbortController; `signal` passed to the PUT fetch; `abort()` method called from the page's existing `onBeforeUnmount`. AbortError caught + treated as cancellation (status returns to `idle`, no user-visible "Save failed" toast).
 - Dashboard Quick Actions tile for `/admin/layouts` (R3)
 
 **P3 (trivia)**:
