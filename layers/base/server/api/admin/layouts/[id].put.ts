@@ -55,7 +55,28 @@ export default defineEventHandler(async (event) => {
     });
   }
 
+  // Audit log: client signals deliberate force-save via X-Cpub-Force-Save
+  // when the user clicks "Overwrite their changes" in the conflict modal.
+  // Forensic trail captures who overwrote what + when (audit P2 from
+  // session 160). Structured for greppability — operators can `docker
+  // logs ... | grep cpub.audit.layout.force-save`.
+  if (getHeader(event, 'x-cpub-force-save') === '1') {
+    console.info('cpub.audit.layout.force-save', JSON.stringify({
+      at: new Date().toISOString(),
+      adminId: admin.id,
+      layoutId: id,
+      scope: existing.scope,
+      previousUpdatedAt: existing.updatedAt,
+    }));
+  }
+
   const body = await parseBody(event, layoutCreateSchema);
+
+  // Per-section configSchema validation (session 160 audit P1).
+  // Each section's registered Zod schema enforces URL guards, size
+  // caps, etc. Without this an admin can bypass those guards by sending
+  // arbitrary section.config — closed here at the API boundary.
+  validateSectionConfigs(body.zones);
 
   // Scope is immutable — reject if the client tries to change it. This
   // catches an "edit the wrong layout" bug at the API surface rather

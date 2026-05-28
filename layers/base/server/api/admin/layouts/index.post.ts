@@ -23,6 +23,12 @@ export default defineEventHandler(async (event) => {
 
   const body = await parseBody(event, layoutCreateSchema);
 
+  // Per-section configSchema validation (session 160 audit P1).
+  // layoutCreateSchema only validates top-level shape; the per-type
+  // Zod schemas (URL guards, size caps, sandbox flags, etc) live in
+  // the section registry and must be enforced separately.
+  validateSectionConfigs(body.zones);
+
   // Custom-page paths get extra validation: pathNormalize + file-route
   // conflict + duplicate detection (Phase 2). Returns 400 for malformed
   // paths, 409 for collisions. The route-scope + virtual paths go

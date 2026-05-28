@@ -69,6 +69,33 @@ describe('pageMetaSchema', () => {
   it('rejects unknown access value', () => {
     expect(() => pageMetaSchema.parse({ title: 'x', access: 'partner' as never })).toThrow();
   });
+
+  // P1 security fix from session 160 audit — closes ogImage scheme bypass
+  describe('ogImage scheme restriction (P1 audit fix)', () => {
+    it('accepts https:// URL', () => {
+      expect(pageMetaSchema.parse({ title: 'x', ogImage: 'https://cdn.example.com/og.png' }).ogImage)
+        .toBe('https://cdn.example.com/og.png');
+    });
+    it('accepts http:// URL', () => {
+      expect(pageMetaSchema.parse({ title: 'x', ogImage: 'http://example.com/img.jpg' }).ogImage)
+        .toBe('http://example.com/img.jpg');
+    });
+    it('REJECTS protocol-relative // URL (Zod url() requires a scheme)', () => {
+      expect(() => pageMetaSchema.parse({ title: 'x', ogImage: '//cdn.example.com/img.png' })).toThrow();
+    });
+    it('REJECTS javascript: URL (XSS vector)', () => {
+      expect(() => pageMetaSchema.parse({ title: 'x', ogImage: 'javascript:alert(1)' })).toThrow();
+    });
+    it('REJECTS data: URL (CSP bypass / large payload)', () => {
+      expect(() => pageMetaSchema.parse({ title: 'x', ogImage: 'data:image/png;base64,AAAA' })).toThrow();
+    });
+    it('REJECTS file: URL', () => {
+      expect(() => pageMetaSchema.parse({ title: 'x', ogImage: 'file:///etc/passwd' })).toThrow();
+    });
+    it('REJECTS ftp: URL', () => {
+      expect(() => pageMetaSchema.parse({ title: 'x', ogImage: 'ftp://example.com/img.png' })).toThrow();
+    });
+  });
 });
 
 // ---- Section ------------------------------------------------------------
@@ -172,6 +199,13 @@ describe('layoutRowSchema', () => {
     })).toThrow(/orders.*unique/);
   });
 
+  // P2 audit fix (session 160): payload-bomb DOS bound
+  it('rejects rows with more than 24 sections (payload-bomb cap)', () => {
+    const sections = Array.from({ length: 25 }, (_, i) => section(uuid(), i, 1));
+    // sum colSpans = 25 (also > 12) — either rejection wins; assert at-least-one
+    expect(() => layoutRowSchema.parse({ id: uuid(), order: 0, sections })).toThrow();
+  });
+
   it('parses row config (gap / align / background / paddingY)', () => {
     const cfg = layoutRowConfigSchema.parse({
       gap: 'md', align: 'center', background: 'var(--surface2)', paddingY: 'lg',
@@ -206,6 +240,12 @@ describe('layoutZoneSchema', () => {
         { id: uuid(), order: 0, sections: [] },
       ],
     })).toThrow(/Row orders.*unique/);
+  });
+
+  // P2 audit fix (session 160): payload-bomb DOS bound
+  it('rejects zones with more than 200 rows (payload-bomb cap)', () => {
+    const rows = Array.from({ length: 201 }, (_, i) => ({ id: uuid(), order: i, sections: [] }));
+    expect(() => layoutZoneSchema.parse({ zone: 'main', rows })).toThrow();
   });
 
   it('rejects invalid zone slug', () => {

@@ -85,9 +85,32 @@ export function useLayoutEditor(id: string): LayoutEditorState {
     errorMessage.value = null;
   }
 
+  /**
+   * In-flight save promise (single-flight guard — session 160 audit P1).
+   * Two distinct triggers can fire save() in parallel: manual Save click
+   * + auto-save timer, OR auto-save + visibility-flush. Without this
+   * guard, both calls pass the dirty check, both set saving=true, both
+   * send PUTs with the SAME (stale) If-Match. Server accepts both
+   * (last-write-wins). Client's `original.updatedAt` ends up referring
+   * to whichever response landed LAST in the await queue, which is not
+   * guaranteed to be the same as the actual DB row's updatedAt under
+   * network jitter — leading to spurious 409s on the next save.
+   *
+   * Pattern: store the in-flight promise; concurrent callers return
+   * the SAME promise (await it). Cleared in finally so the next save
+   * starts fresh.
+   */
+  let inFlightSave: Promise<void> | null = null;
+
   async function save(opts: { force?: boolean } = {}): Promise<void> {
     if (!draft.value || !original.value) return;
     if (!dirty.value) return;
+    // Single-flight: if a save is already in flight, coalesce — return
+    // the in-flight promise instead of starting a parallel request.
+    // Subsequent saves are picked up by the auto-save watcher when the
+    // first one completes (dirty stays true if the user kept editing).
+    if (inFlightSave) return inFlightSave;
+
     saving.value = true;
     status.value = 'saving';
     errorMessage.value = null;
@@ -95,41 +118,50 @@ export function useLayoutEditor(id: string): LayoutEditorState {
     // If-Match value. The server's response will give us a fresh
     // updatedAt to use for the next save's optimistic-concurrency check.
     const ifMatch = opts.force ? undefined : original.value.updatedAt;
-    try {
-      const headers: Record<string, string> = {};
-      if (ifMatch) headers['If-Match'] = ifMatch;
-      const updated = await $fetch<LayoutRecord>(`/api/admin/layouts/${id}`, {
-        method: 'PUT',
-        headers,
-        body: {
-          scope: draft.value.scope,
-          name: draft.value.name,
-          pageMeta: draft.value.pageMeta ?? undefined,
-          zones: draft.value.zones,
-          state: draft.value.state,
-        },
-      });
-      // Update `original` only — DON'T overwrite `draft`. The user may
-      // have made further edits while the save was in flight; those
-      // edits stay in draft + the dirty comparison correctly flips
-      // true again so the auto-save composable schedules a follow-up.
-      // The server returns the saved snapshot which becomes the new
-      // baseline for If-Match.
-      original.value = updated;
-      status.value = 'saved';
-    } catch (err) {
-      const e = err as { statusCode?: number; statusMessage?: string; message?: string };
-      if (e.statusCode === 409) {
-        status.value = 'conflict';
-        errorMessage.value = 'Another admin edited this layout while you were working.';
-      } else {
-        status.value = 'error';
-        errorMessage.value = e.statusMessage ?? e.message ?? 'Save failed';
+
+    inFlightSave = (async () => {
+      try {
+        const headers: Record<string, string> = {};
+        if (ifMatch) headers['If-Match'] = ifMatch;
+        // Signal a deliberate force-save so the server can audit-log
+        // it distinctly from first-creation (both share no-If-Match).
+        if (opts.force) headers['X-Cpub-Force-Save'] = '1';
+        const updated = await $fetch<LayoutRecord>(`/api/admin/layouts/${id}`, {
+          method: 'PUT',
+          headers,
+          body: {
+            scope: draft.value!.scope,
+            name: draft.value!.name,
+            pageMeta: draft.value!.pageMeta ?? undefined,
+            zones: draft.value!.zones,
+            state: draft.value!.state,
+          },
+        });
+        // Update `original` only — DON'T overwrite `draft`. The user may
+        // have made further edits while the save was in flight; those
+        // edits stay in draft + the dirty comparison correctly flips
+        // true again so the auto-save composable schedules a follow-up.
+        // The server returns the saved snapshot which becomes the new
+        // baseline for If-Match.
+        original.value = updated;
+        status.value = 'saved';
+      } catch (err) {
+        const e = err as { statusCode?: number; statusMessage?: string; message?: string };
+        if (e.statusCode === 409) {
+          status.value = 'conflict';
+          errorMessage.value = 'Another admin edited this layout while you were working.';
+        } else {
+          status.value = 'error';
+          errorMessage.value = e.statusMessage ?? e.message ?? 'Save failed';
+        }
+        throw err;
+      } finally {
+        saving.value = false;
+        inFlightSave = null;
       }
-      throw err;
-    } finally {
-      saving.value = false;
-    }
+    })();
+
+    return inFlightSave;
   }
 
   async function publish(): Promise<void> {

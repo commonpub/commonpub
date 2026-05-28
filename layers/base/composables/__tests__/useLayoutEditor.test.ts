@@ -187,6 +187,81 @@ describe('useLayoutEditor — discard()', () => {
   });
 });
 
+describe('useLayoutEditor — single-flight guard (P1 audit fix)', () => {
+  it('coalesces concurrent save() calls into ONE PUT request', async () => {
+    const updated = fixture({ name: 'Renamed', updatedAt: '2026-05-28T12:00:00.000Z' });
+    // Slow-resolving fetch so we can fire concurrent saves
+    let resolveFetch: ((v: LayoutRecord) => void) | null = null;
+    const fetchPromise = new Promise<LayoutRecord>((res) => { resolveFetch = res; });
+    const { mock } = installFetch(() => fetchPromise);
+
+    const editor = useLayoutEditor('L1');
+    editor.original.value = fixture();
+    editor.draft.value = { ...fixture(), name: 'Renamed' };
+
+    // Fire three saves in parallel
+    const p1 = editor.save();
+    const p2 = editor.save();
+    const p3 = editor.save();
+
+    // Only ONE fetch should have been initiated
+    expect(mock).toHaveBeenCalledTimes(1);
+
+    // Resolve the in-flight fetch
+    resolveFetch!(updated);
+    await Promise.all([p1, p2, p3]);
+
+    // After completion, still only one fetch call total
+    expect(mock).toHaveBeenCalledTimes(1);
+    expect(editor.status.value).toBe('saved');
+  });
+
+  it('starts a new save after the in-flight one completes', async () => {
+    const updated1 = fixture({ name: 'V1', updatedAt: '2026-05-28T12:00:00.000Z' });
+    const updated2 = fixture({ name: 'V2', updatedAt: '2026-05-28T12:00:01.000Z' });
+    let callCount = 0;
+    const { mock } = installFetch(() => {
+      callCount++;
+      return Promise.resolve(callCount === 1 ? updated1 : updated2);
+    });
+
+    const editor = useLayoutEditor('L1');
+    editor.original.value = fixture();
+    editor.draft.value = { ...fixture(), name: 'V1' };
+
+    await editor.save();
+    expect(mock).toHaveBeenCalledTimes(1);
+
+    // Make a new edit + save again — should fire a SECOND fetch
+    editor.draft.value = { ...editor.draft.value!, name: 'V2' };
+    await editor.save();
+    expect(mock).toHaveBeenCalledTimes(2);
+  });
+
+  it('releases the in-flight lock even on error (next save can proceed)', async () => {
+    let callCount = 0;
+    const fetchImpl = () => {
+      callCount++;
+      if (callCount === 1) return Promise.reject({ statusCode: 500, statusMessage: 'boom' });
+      return Promise.resolve(fixture({ name: 'V2' }));
+    };
+    const { mock } = installFetch(fetchImpl);
+
+    const editor = useLayoutEditor('L1');
+    editor.original.value = fixture();
+    editor.draft.value = { ...fixture(), name: 'V1' };
+
+    // First save errors — lock must release
+    await expect(editor.save()).rejects.toBeDefined();
+    expect(mock).toHaveBeenCalledTimes(1);
+
+    // Second save should fire a NEW request (lock released)
+    editor.draft.value = { ...editor.draft.value!, name: 'V2' };
+    await editor.save();
+    expect(mock).toHaveBeenCalledTimes(2);
+  });
+});
+
 describe('useLayoutEditor — publish()', () => {
   it('saves first when dirty, then POSTs publish, then refreshes', async () => {
     const calls: string[] = [];

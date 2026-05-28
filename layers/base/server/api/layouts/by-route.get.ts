@@ -2,9 +2,22 @@
  * GET /api/layouts/by-route?path=/some-path
  *
  * Public endpoint — resolves the active layout for a route, used by the
- * `<LayoutSlot>` renderer on every page request. Returns the published
- * version when available, otherwise the draft (during pre-publish
- * editing — admins see drafts, end users get a 404 until published).
+ * `<LayoutSlot>` renderer on every page request.
+ *
+ * **Admins-only drafts (session 160 audit — P0 fix)**: anonymous +
+ * non-admin authenticated requests see the layout ONLY when its
+ * `state === 'published'`. Drafts return null (404 in the cache, no
+ * layout in the response). Admins see the live draft state regardless
+ * — this is what enables WYSIWYG editing via `<LayoutSlot
+ * previewOverride>`.
+ *
+ * The check uses `getOptionalUser` (does not throw on unauthenticated)
+ * because the endpoint MUST stay public for published-state layouts;
+ * 401-ing anonymous users would break SSR for any logged-out visitor.
+ *
+ * Cache key includes the "admin?" boolean so admins + anonymous don't
+ * cross-contaminate (an admin's draft-aware response would leak to an
+ * anonymous hit on the same key).
  *
  * Cached server-side for `LAYOUT_CACHE_TTL_MS` per path (see
  * `server/utils/layoutCache.ts`). Invalidated on any layout write —
@@ -43,7 +56,14 @@ export default defineEventHandler(async (event): Promise<PublicLayoutSlice | nul
   }
 
   const { path } = parseQueryParams(event, layoutsByRoutePathSchema);
-  const cacheKey = path;
+
+  // P0 (session 160 audit): admins see drafts; everyone else sees only
+  // published layouts. Cache key bifurcates on this so admin draft
+  // payloads don't leak to anonymous requesters on the same path.
+  const user = getOptionalUser(event);
+  const isAdmin = user?.role === 'admin';
+  const cacheKey = isAdmin ? `admin:${path}` : `public:${path}`;
+
   const hit = getLayoutCacheEntry<PublicLayoutSlice>(cacheKey);
   const now = Date.now();
   if (hit && now - hit.at < LAYOUT_CACHE_TTL_MS) {
@@ -57,13 +77,20 @@ export default defineEventHandler(async (event): Promise<PublicLayoutSlice | nul
     : { type: 'route', path };
 
   const layout = await getLayoutByScope(db, scope);
-  const value: PublicLayoutSlice | null = layout
-    ? {
-        zones: layout.zones,
-        pageMeta: layout.pageMeta,
-        state: layout.state,
-      }
-    : null;
+
+  // Draft-leak guard: a non-admin must NOT see a layout whose state is
+  // 'draft'. Returning null surfaces as "no layout for this route" to
+  // the catch-all + the homepage v-if fallback — the legacy renderer
+  // takes over, exactly matching the pre-publish behavior the design
+  // promised.
+  const value: PublicLayoutSlice | null =
+    layout && (isAdmin || layout.state === 'published')
+      ? {
+          zones: layout.zones,
+          pageMeta: layout.pageMeta,
+          state: layout.state,
+        }
+      : null;
 
   setLayoutCacheEntry(cacheKey, value, now);
   return value;

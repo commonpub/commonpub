@@ -15,7 +15,7 @@ import { invalidateLayoutsByRouteCache } from '../../../utils/layoutCache';
 export default defineEventHandler(async (event): Promise<{ ok: true; id: string }> => {
   requireFeature('admin');
   requireFeature('layoutEngine');
-  requireAdmin(event);
+  const admin = requireAdmin(event);
   const db = useDB();
 
   const id = getRouterParam(event, 'id');
@@ -27,6 +27,18 @@ export default defineEventHandler(async (event): Promise<{ ok: true; id: string 
   if (!existing) {
     throw createError({ statusCode: 404, statusMessage: 'Layout not found' });
   }
+
+  // Audit log (session 160 audit P2). Layout deletion is destructive +
+  // not recoverable; structured stdout line gives operators a forensic
+  // trail when an admin reports "the homepage layout disappeared".
+  console.info('cpub.audit.layout.delete', JSON.stringify({
+    at: new Date().toISOString(),
+    adminId: admin.id,
+    layoutId: id,
+    scope: existing.scope,
+    name: existing.name,
+    state: existing.state,
+  }));
 
   await deleteLayout(db, id);
   invalidateLayoutsByRouteCache();

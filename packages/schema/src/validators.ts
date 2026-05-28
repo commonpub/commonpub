@@ -743,7 +743,18 @@ export type LayoutScope = z.infer<typeof layoutScopeSchema>;
 export const pageMetaSchema = z.object({
   title: z.string().min(1).max(256),
   description: z.string().max(2000).optional(),
-  ogImage: z.string().url().max(2048).optional(),
+  // ogImage MUST be an http(s) URL. Zod's plain .url() accepts
+  // javascript:, data:, blob:, file: etc — which would render into
+  // the `<meta property="og:image">` content attribute and become a
+  // downstream vector for social-media scrapers (the URL is also
+  // sometimes fetched server-side by SSR proxies). Refining here
+  // closes the entire surface at the validation layer. Session 160
+  // audit P1. Protocol-relative `//` is rejected by Zod's url()
+  // anyway (no scheme); document for clarity.
+  ogImage: z.string().url().max(2048).refine(
+    (v) => /^https?:\/\//i.test(v),
+    { message: 'ogImage must be an http:// or https:// URL' },
+  ).optional(),
   noindex: z.boolean().optional().default(false),
   ogType: z.enum(['website', 'article', 'profile']).optional().default('website'),
   /** Server-side render gate. 'public' = anyone, 'members' = authenticated, 'admin' = admin only. */
@@ -810,7 +821,11 @@ export const layoutRowSchema = z
     id: z.string().uuid(),
     order: z.number().int().min(0),
     config: layoutRowConfigSchema.optional(),
-    sections: z.array(layoutSectionSchema).default([]),
+    // Max 24 sections per row — comfortable headroom for the 12-col
+    // grid (12 col / 1-col each = 12 sections natural max; 24 covers
+    // multi-row stacking pre-row-split). Bounded to cap payload-bomb
+    // DOS from a malicious admin sending 10k sections (audit P2).
+    sections: z.array(layoutSectionSchema).max(24).default([]),
   })
   .refine(
     (row) => row.sections.reduce((sum, s) => sum + s.colSpan, 0) <= 12,
@@ -826,7 +841,9 @@ export type LayoutRowInput = z.infer<typeof layoutRowSchema>;
 export const layoutZoneSchema = z
   .object({
     zone: slug64,
-    rows: z.array(layoutRowSchema).default([]),
+    // Max 200 rows per zone — a complex marketing page rarely exceeds
+    // 50; 200 is comfortable headroom. Caps payload-bomb DOS (audit P2).
+    rows: z.array(layoutRowSchema).max(200).default([]),
   })
   .refine(
     (z) => new Set(z.rows.map((r) => r.order)).size === z.rows.length,
@@ -843,7 +860,10 @@ const layoutBaseObject = z.object({
   scope: layoutScopeSchema,
   name: z.string().min(1).max(256),
   pageMeta: pageMetaSchema.optional(),
-  zones: z.array(layoutZoneSchema).default([]),
+  // Max 16 zones — covers narrow/wide/two-column/three-column/sidebar-*
+  // frames + virtual zones (footer, not-found, error) + room for
+  // operator-defined frames. Caps payload-bomb DOS (audit P2).
+  zones: z.array(layoutZoneSchema).max(16).default([]),
   state: z.enum(['draft', 'published']).default('draft'),
   publishedVersionId: z.string().uuid().optional(),
   createdAt: z.string().datetime().optional(),
