@@ -163,6 +163,11 @@ async function onConflictForceSave(): Promise<void> {
 .cpub-admin-layouts-editor {
   display: flex;
   flex-direction: column;
+  /* The admin layout (.admin-main) wraps us in `padding: var(--space-6)`,
+     which would inset the editor + cause its 100vh-based height to
+     overflow the viewport. Suck up to the parent padding edges so the
+     editor reads as full-bleed inside the admin chrome. */
+  margin: calc(var(--space-6) * -1);
   height: calc(100vh - var(--admin-topbar-height, 56px));
   min-height: 600px;
 }
