@@ -41,7 +41,7 @@ import { computed } from 'vue';
 import type { LayoutSection, LayoutPayload, LayoutZoneClient } from '../composables/useLayout';
 import { useSectionRegistry } from '../sections/registry';
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   /** Route path this layout is for — e.g. '/', '/blog', '/hubs/foo'. */
   route: string;
   /** Zone slug — must match a zone declared in the layout's storage. */
@@ -52,7 +52,22 @@ const props = defineProps<{
    * pane to render the in-progress draft without a save round-trip.
    */
   previewOverride?: LayoutPayload | null;
-}>();
+  /**
+   * Editor mode flag. When `true`, the row + section wrappers get
+   * `--editable` modifier classes which paint a dashed hover outline
+   * + a small type-label badge — pure visual affordance. NO event
+   * handlers, selection state, or keyboard model land here; those
+   * arrive in Phase 3a.3 (editor shell) + 3b (drag-drop) + 3d (a11y
+   * keyboard equivalence). Default `false` so public render paths
+   * (pages/index.vue, [...customPath].vue) are byte-pattern unchanged.
+   *
+   * See docs/plans/phase-3-editor.md Phase 3a.1.
+   */
+  editable?: boolean;
+}>(), {
+  previewOverride: null,
+  editable: false,
+});
 
 const { layout, pending } = useLayout(props.route);
 const features = useFeatures();
@@ -144,6 +159,7 @@ function resolveSectionProps(section: LayoutSection): Record<string, unknown> {
       v-for="row in zone.rows"
       :key="row.id"
       class="cpub-layout-row"
+      :class="{ 'cpub-layout-row--editable': editable }"
       :data-row-id="row.id"
       :data-gap="row.config?.gap ?? 'md'"
       :data-align="row.config?.align ?? 'stretch'"
@@ -154,6 +170,7 @@ function resolveSectionProps(section: LayoutSection): Record<string, unknown> {
         v-for="section in row.sections.filter(sectionVisible)"
         :key="section.id"
         class="cpub-layout-section"
+        :class="{ 'cpub-layout-section--editable': editable }"
         :data-section-id="section.id"
         :data-section-type="section.type"
         :data-hide-sm="section.visibility?.hideAt?.includes('sm') ? 'true' : 'false'"
@@ -292,5 +309,65 @@ function resolveSectionProps(section: LayoutSection): Record<string, unknown> {
 }
 @media (prefers-reduced-motion: reduce) {
   .cpub-layout-skeleton-row { animation: none; }
+}
+
+/* ------------------------------------------------------------------ */
+/* Phase 3a.1 — editable-mode chrome.                                  */
+/* Pure visual affordance. NO event handlers, no selection state, no  */
+/* keyboard model — those arrive in 3a.3 + 3d. The chrome ONLY        */
+/* renders when `:editable=true` is passed (admin editor surface);    */
+/* public render paths never set the flag, so this CSS is dormant     */
+/* on commonpub.io / heatsync / deveco homepages.                     */
+/* ------------------------------------------------------------------ */
+
+/* Row chrome — slightly more prominent dashed outline than sections,
+   so rows read as containers when an admin hovers between them. */
+.cpub-layout-row--editable {
+  position: relative;
+}
+.cpub-layout-row--editable:hover {
+  outline: 1px dashed var(--border);
+  outline-offset: 2px;
+}
+
+/* Section chrome — invisible at rest (per docs/plans/layout-and-pages.md §7.11),
+   dashed outline + type-label badge on hover. Uses `outline` (not `border`)
+   so grid-column math + min-width:0 stay intact. */
+.cpub-layout-section--editable {
+  position: relative;
+}
+.cpub-layout-section--editable:hover {
+  outline: 1px dashed var(--border2);
+  outline-offset: -1px;
+}
+
+/* Type-label badge — top-left corner, only on hover. Reads the
+   section's `data-section-type` attribute via attr() so any
+   registered section type self-documents without per-type CSS. */
+.cpub-layout-section--editable::after {
+  content: attr(data-section-type);
+  position: absolute;
+  top: 0;
+  left: 0;
+  padding: var(--space-1) var(--space-2);
+  background: var(--surface2);
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  border: 1px solid var(--border2);
+  border-top: 0;
+  border-left: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 100ms ease-out;
+  z-index: 1;
+}
+.cpub-layout-section--editable:hover::after {
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cpub-layout-section--editable::after { transition: none; }
 }
 </style>
