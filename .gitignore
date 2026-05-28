@@ -58,3 +58,8 @@ design-system-v2/
 secrets/
 .secrets/
 *.secrets
+
+# Claude Code user-local config (settings.local.json + scheduled tasks
+# + per-user worktrees). Distinct from team-shared .claude/agents/ +
+# .claude/commands/ which would be opt-in if/when we adopt them.
+.claude/

@@ -18,9 +18,8 @@
  *   - 'Save failed' (last save errored)
  *   - 'Conflict' (last save returned 409 — caller surfaces a modal)
  */
-import type { LayoutRecord } from '@commonpub/server';
 
-import { onMounted, onBeforeUnmount, ref, watch } from 'vue';
+import { onMounted, onBeforeUnmount, ref } from 'vue';
 
 const props = defineProps<{
   /** Layout name (read from draft so renames show live). */

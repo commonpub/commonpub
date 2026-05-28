@@ -105,7 +105,9 @@ Goal: admin can SEE the layout in the editor, edit page meta, save + publish.
 - [x] **D5**: Toolbar with viewport toggle + save indicator + publish ✓ commit d7ab0b9
 - [x] **D6**: Auto-save scaffolding (1.5s debounce + If-Match → 409 → conflict modal) ✓ commit e60ff26
 
-**End state (session 160)**: commonpub.io on workspace main (e60ff26). Editor available at `/admin/layouts` + `/admin/layouts/[id]`. heatsync + deveco untouched (npm 0.24.0 dormant). Layer tests 183 → 196 (+13). Server tests 1125 (no count change). Typecheck 26/26.
+**End state (session 160, post-audit)**: commonpub.io on workspace main (6bc33c8). Editor available at `/admin/layouts` + `/admin/layouts/[id]`. heatsync + deveco untouched (npm 0.24.0 dormant). Layer tests 183 → 213 (+30: LayoutSlot 5, useLayoutAutoSave 9, useLayoutEditor 14, If-Match contract 2). Server tests 1125 (no count change). Typecheck 26/26.
+
+**Session 160 god-mode audit + polish** (post-3a.8): web-research synthesis of best-practice patterns from Linear/Notion/Figma/Webflow/Framer/Strapi/Sanity/Carbon/Cloudscape/GitLab/Primer/dnd-kit/React Aria/XWiki + cruft scan. 6 priority-1 fixes shipped (cursor fix, conflict modal redesign, Modified state pill, touch targets, save timestamp, visibility flush). Full audit + decisions + deferred items at `docs/sessions/160-audit-godmode.md`.
 
 ### Stage E — Phase 3b: drag-drop
 

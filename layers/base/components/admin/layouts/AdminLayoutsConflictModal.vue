@@ -39,13 +39,21 @@ const emit = defineEmits<{
 // pattern: initial focus on the recommended-action button so screen
 // readers + keyboard users land on the safe choice, not the destructive
 // one. (Tab can still walk to the destructive button after.)
+//
+// `immediate: true` so initial mounting with :open=true also focuses
+// (catches the common-case where the parent toggles conflictOpen=true
+// and Vue re-renders the modal subtree from scratch).
 const primaryBtn = ref<HTMLButtonElement | null>(null);
-watch(() => props.open, async (isOpen) => {
-  if (isOpen) {
-    await nextTick();
-    primaryBtn.value?.focus();
-  }
-});
+watch(
+  () => props.open,
+  async (isOpen) => {
+    if (isOpen) {
+      await nextTick();
+      primaryBtn.value?.focus();
+    }
+  },
+  { immediate: true },
+);
 
 // Esc to dismiss (per dialog ARIA pattern). The :open guard makes this
 // a no-op when the modal is closed; listener attached on client mount only.
