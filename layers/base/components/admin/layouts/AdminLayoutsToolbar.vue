@@ -255,8 +255,15 @@ const VIEWPORTS: Array<{ value: 'mobile' | 'tablet' | 'desktop'; icon: string; l
   color: var(--accent);
   border-color: var(--accent);
 }
+/* "modified" pill: yellow border + tint background, but theme-safe
+   text color (var(--text)) for WCAG contrast. The raw --yellow token
+   (#f59e0b) is 2.07:1 on white — fails both AA text (4.5:1) and
+   non-text UI (3:1). Pairing border+tint with --text gives the visual
+   signal (warning) without the contrast failure. Per session 160
+   audit catch. */
 .cpub-admin-layouts-toolbar-state[data-state='modified'] {
-  color: var(--yellow);
+  color: var(--text);
+  background: var(--yellow-bg);
   border-color: var(--yellow);
 }
 
