@@ -78,7 +78,7 @@ All 11 fresh. Accurately describe current public APIs. Cited counts match code
 | federation-server.md | ✔ fresh |
 | learning-server.md | ⚠ stale |
 | docs-server.md | ⚠ stale |
-| admin.md | ⚠ stale (no admin nav config from session 124) |
+| admin.md | ⚠ stale (no admin nav config from session 124; also missing /admin/layouts editor + sidebar collapse from sessions 160–161) |
 | security.md | ✔ fresh (session 119 hardening) |
 | rate-limit.md | ✔ fresh |
 | oauth-codes.md | ✔ fresh |
@@ -97,7 +97,7 @@ All 11 fresh. Accurately describe current public APIs. Cited counts match code
 | federation.md | ⚠ stale (v1 limitations out of date) |
 | routing.md | ⚠ likely stale (url restructure session 108) |
 | feature-flags.md | ⚠ stale (missing contests/events/voting flags) |
-| admin-and-permissions.md | ⚠ stale (no admin nav or judge perms) |
+| admin-and-permissions.md | ⚠ stale (no admin nav, judge perms, layout editor, theme editor, or sidebar collapse from sessions 154+160+161) |
 | theming.md | ✔ fresh |
 | url-structure.md | ✔ fresh |
 | v1-limitations.md | ⚠ stale |

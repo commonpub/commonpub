@@ -1,7 +1,20 @@
 # 11 — Codebase Stats
 
-As of session 158 (2026-05-26 — same calendar day as 154/155/156/157).
+As of session 161 (2026-05-28 — admin sidebar collapse). Sessions 159 + 160 stats are folded into the session-by-session entries below.
 Numbers are approximate — exact counts vary with test exclusions.
+
+**Session 161 deltas** (admin sidebar collapsible on desktop):
+- Composables: 20 → **21** (`+useAdminSidebar.ts`, ~95 LOC)
+- Layer tests: 264 → **281** (+17 — full coverage of state machine: hydration, persist, editor-route auto-collapse, session override + reset on route change, mobile/desktop independence, throw-safe localStorage)
+- CSS tokens: `+ --sidebar-width-collapsed: 3.5rem` in `layers/base/theme/base.css`
+- `layers/base/layouts/admin.vue` refactor: replaced inline `ref(false)` with `useAdminSidebar()`; added topbar collapse toggle (chevron); nav links wrap label text in `.admin-nav-label <span>` so labels can collapse smoothly while keeping screen-reader text; `title=` only when collapsed (no double-announce when expanded)
+- Typecheck: 26/26 (unchanged)
+- 0 npm publishes (workspace-only change to `@commonpub/layer` for commonpub.io)
+
+**Session 160 deltas** (Phase 3a editor shell + 4 audit rounds — recap, see `docs/sessions/160-*.md` for details):
+- Layer tests: 196 → 264 (+68 across phase 3a + 4 audit rounds)
+- Schema tests: +9 (ogImage scheme refine + array `.max()` bounds)
+- Server tests: 1125 (unchanged; R4 `inArray` fix exercised by existing coverage)
 
 **Session 158 deltas** (Phase 1c sections + admin write API + homepage adoption + post-publish fixes):
 - Layer sections: registry expanded 1 → 6 (`hero`, `heading`, `paragraph`, `image`, `content-feed` added; `divider` already there). Each is 3 files (Zod + Vue + register call).

@@ -218,6 +218,7 @@
   --nav-height: 3rem;       /* 48px topbar */
   --subnav-height: 2.75rem;
   --sidebar-width: 12.5rem; /* 200px fixed sidebar */
+  --sidebar-width-collapsed: 3.5rem; /* 56px icons-only — admin chrome collapsed state */
   --content-max-width: 60rem; /* 960px */
   --content-wide-max-width: 75rem;
 

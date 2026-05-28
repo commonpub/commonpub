@@ -3,7 +3,11 @@ const { isAdmin } = useAuth();
 const { admin: adminEnabled, layoutEngine } = useFeatures();
 const runtimeConfig = useRuntimeConfig();
 const siteName = computed(() => (runtimeConfig.public.siteName as string) || 'CommonPub');
-const sidebarOpen = ref(false);
+
+// Sidebar state (desktop collapse + mobile drawer) — see useAdminSidebar.ts.
+// Editor routes (/admin/layouts/[id], /admin/theme/edit/[id]) auto-collapse
+// so the editor canvas gets more horizontal room; user can override per visit.
+const { desktopCollapsed, mobileOpen, toggleDesktop, toggleMobile, closeMobile } = useAdminSidebar();
 </script>
 
 <template>
@@ -14,8 +18,24 @@ const sidebarOpen = ref(false);
   <div v-else class="admin-layout">
     <header class="admin-topbar">
       <div class="admin-topbar-inner">
-        <button class="admin-menu-btn" aria-label="Toggle sidebar" @click="sidebarOpen = !sidebarOpen">
-          <i :class="sidebarOpen ? 'fa-solid fa-xmark' : 'fa-solid fa-bars'"></i>
+        <button
+          class="admin-menu-btn"
+          :aria-label="mobileOpen ? 'Close menu' : 'Open menu'"
+          :aria-expanded="mobileOpen"
+          aria-controls="admin-sidebar-nav"
+          @click="toggleMobile"
+        >
+          <i :class="mobileOpen ? 'fa-solid fa-xmark' : 'fa-solid fa-bars'"></i>
+        </button>
+        <button
+          class="admin-collapse-btn"
+          :aria-label="desktopCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
+          :aria-expanded="!desktopCollapsed"
+          aria-controls="admin-sidebar-nav"
+          :title="desktopCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
+          @click="toggleDesktop"
+        >
+          <i :class="desktopCollapsed ? 'fa-solid fa-angles-right' : 'fa-solid fa-angles-left'"></i>
         </button>
         <NuxtLink to="/" class="admin-brand">{{ siteName }}</NuxtLink>
         <span class="admin-badge">Admin</span>
@@ -24,25 +44,64 @@ const sidebarOpen = ref(false);
     </header>
 
     <div class="admin-body">
-      <aside class="admin-sidebar" :class="{ open: sidebarOpen }" aria-label="Admin navigation">
+      <aside
+        id="admin-sidebar-nav"
+        class="admin-sidebar"
+        :class="{ 'admin-sidebar--collapsed': desktopCollapsed, 'admin-sidebar--mobile-open': mobileOpen }"
+        aria-label="Admin navigation"
+      >
         <nav class="admin-nav">
-          <NuxtLink to="/admin" class="admin-nav-link" @click="sidebarOpen = false"><i class="fa-solid fa-gauge"></i> Dashboard</NuxtLink>
-          <NuxtLink to="/admin/users" class="admin-nav-link" @click="sidebarOpen = false"><i class="fa-solid fa-users"></i> Users</NuxtLink>
-          <NuxtLink to="/admin/content" class="admin-nav-link" @click="sidebarOpen = false"><i class="fa-solid fa-newspaper"></i> Content</NuxtLink>
-          <NuxtLink to="/admin/categories" class="admin-nav-link" @click="sidebarOpen = false"><i class="fa-solid fa-tags"></i> Categories</NuxtLink>
-          <NuxtLink to="/admin/reports" class="admin-nav-link" @click="sidebarOpen = false"><i class="fa-solid fa-flag"></i> Reports</NuxtLink>
-          <NuxtLink to="/admin/audit" class="admin-nav-link" @click="sidebarOpen = false"><i class="fa-solid fa-clipboard-list"></i> Audit Log</NuxtLink>
-          <NuxtLink to="/admin/theme" class="admin-nav-link" @click="sidebarOpen = false"><i class="fa-solid fa-palette"></i> Theme</NuxtLink>
-          <NuxtLink to="/admin/homepage" class="admin-nav-link" @click="sidebarOpen = false"><i class="fa-solid fa-house"></i> Homepage</NuxtLink>
+          <!--
+            Nav link pattern: icon + visible label. When collapsed, label text
+            stays in the DOM (clip-path) so screen readers still announce
+            "Dashboard, link" — the icon alone has no accessible name.
+            `title` attr only set when collapsed → visual tooltip on hover.
+          -->
+          <NuxtLink to="/admin" class="admin-nav-link" :title="desktopCollapsed ? 'Dashboard' : undefined" @click="closeMobile">
+            <i class="fa-solid fa-gauge"></i><span class="admin-nav-label">Dashboard</span>
+          </NuxtLink>
+          <NuxtLink to="/admin/users" class="admin-nav-link" :title="desktopCollapsed ? 'Users' : undefined" @click="closeMobile">
+            <i class="fa-solid fa-users"></i><span class="admin-nav-label">Users</span>
+          </NuxtLink>
+          <NuxtLink to="/admin/content" class="admin-nav-link" :title="desktopCollapsed ? 'Content' : undefined" @click="closeMobile">
+            <i class="fa-solid fa-newspaper"></i><span class="admin-nav-label">Content</span>
+          </NuxtLink>
+          <NuxtLink to="/admin/categories" class="admin-nav-link" :title="desktopCollapsed ? 'Categories' : undefined" @click="closeMobile">
+            <i class="fa-solid fa-tags"></i><span class="admin-nav-label">Categories</span>
+          </NuxtLink>
+          <NuxtLink to="/admin/reports" class="admin-nav-link" :title="desktopCollapsed ? 'Reports' : undefined" @click="closeMobile">
+            <i class="fa-solid fa-flag"></i><span class="admin-nav-label">Reports</span>
+          </NuxtLink>
+          <NuxtLink to="/admin/audit" class="admin-nav-link" :title="desktopCollapsed ? 'Audit Log' : undefined" @click="closeMobile">
+            <i class="fa-solid fa-clipboard-list"></i><span class="admin-nav-label">Audit Log</span>
+          </NuxtLink>
+          <NuxtLink to="/admin/theme" class="admin-nav-link" :title="desktopCollapsed ? 'Theme' : undefined" @click="closeMobile">
+            <i class="fa-solid fa-palette"></i><span class="admin-nav-label">Theme</span>
+          </NuxtLink>
+          <NuxtLink to="/admin/homepage" class="admin-nav-link" :title="desktopCollapsed ? 'Homepage' : undefined" @click="closeMobile">
+            <i class="fa-solid fa-house"></i><span class="admin-nav-label">Homepage</span>
+          </NuxtLink>
           <!-- Layouts editor — gated on layoutEngine feature flag (CLAUDE.md rule #2).
                Stays invisible until the operator flips the flag, then appears between
                the legacy /admin/homepage editor and Navigation. Phase 3a — session 160 audit. -->
-          <NuxtLink v-if="layoutEngine" to="/admin/layouts" class="admin-nav-link" @click="sidebarOpen = false"><i class="fa-solid fa-table-cells-large"></i> Layouts</NuxtLink>
-          <NuxtLink to="/admin/navigation" class="admin-nav-link" @click="sidebarOpen = false"><i class="fa-solid fa-bars"></i> Navigation</NuxtLink>
-          <NuxtLink to="/admin/features" class="admin-nav-link" @click="sidebarOpen = false"><i class="fa-solid fa-toggle-on"></i> Features</NuxtLink>
-          <NuxtLink to="/admin/federation" class="admin-nav-link" @click="sidebarOpen = false"><i class="fa-solid fa-globe"></i> Federation</NuxtLink>
-          <NuxtLink to="/admin/api-keys" class="admin-nav-link" @click="sidebarOpen = false"><i class="fa-solid fa-key"></i> API Keys</NuxtLink>
-          <NuxtLink to="/admin/settings" class="admin-nav-link" @click="sidebarOpen = false"><i class="fa-solid fa-gear"></i> Settings</NuxtLink>
+          <NuxtLink v-if="layoutEngine" to="/admin/layouts" class="admin-nav-link" :title="desktopCollapsed ? 'Layouts' : undefined" @click="closeMobile">
+            <i class="fa-solid fa-table-cells-large"></i><span class="admin-nav-label">Layouts</span>
+          </NuxtLink>
+          <NuxtLink to="/admin/navigation" class="admin-nav-link" :title="desktopCollapsed ? 'Navigation' : undefined" @click="closeMobile">
+            <i class="fa-solid fa-bars"></i><span class="admin-nav-label">Navigation</span>
+          </NuxtLink>
+          <NuxtLink to="/admin/features" class="admin-nav-link" :title="desktopCollapsed ? 'Features' : undefined" @click="closeMobile">
+            <i class="fa-solid fa-toggle-on"></i><span class="admin-nav-label">Features</span>
+          </NuxtLink>
+          <NuxtLink to="/admin/federation" class="admin-nav-link" :title="desktopCollapsed ? 'Federation' : undefined" @click="closeMobile">
+            <i class="fa-solid fa-globe"></i><span class="admin-nav-label">Federation</span>
+          </NuxtLink>
+          <NuxtLink to="/admin/api-keys" class="admin-nav-link" :title="desktopCollapsed ? 'API Keys' : undefined" @click="closeMobile">
+            <i class="fa-solid fa-key"></i><span class="admin-nav-label">API Keys</span>
+          </NuxtLink>
+          <NuxtLink to="/admin/settings" class="admin-nav-link" :title="desktopCollapsed ? 'Settings' : undefined" @click="closeMobile">
+            <i class="fa-solid fa-gear"></i><span class="admin-nav-label">Settings</span>
+          </NuxtLink>
         </nav>
       </aside>
 
@@ -88,18 +147,37 @@ const sidebarOpen = ref(false);
   gap: var(--space-3);
 }
 
-.admin-menu-btn {
-  display: none;
+.admin-menu-btn,
+.admin-collapse-btn {
   width: 36px;
   height: 36px;
   background: none;
   border: var(--border-width-default) solid var(--border);
   color: var(--text-dim);
-  font-size: 16px;
+  font-size: 14px;
   cursor: pointer;
   align-items: center;
   justify-content: center;
+  transition: color var(--transition-default), border-color var(--transition-default), background var(--transition-default);
 }
+
+.admin-menu-btn:hover,
+.admin-collapse-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-bg);
+}
+
+.admin-menu-btn:focus-visible,
+.admin-collapse-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Mobile drawer toggle — desktop hides it, mobile media query reveals. */
+.admin-menu-btn { display: none; }
+/* Desktop collapse toggle — desktop shows it, mobile media query hides. */
+.admin-collapse-btn { display: flex; }
 
 .admin-brand {
   font-weight: var(--font-weight-bold);
@@ -138,11 +216,17 @@ const sidebarOpen = ref(false);
 }
 
 .admin-sidebar {
-  width: 200px;
+  width: var(--sidebar-width);
   border-right: var(--border-width-default) solid var(--border);
   background: var(--surface);
   padding: var(--space-4) var(--space-2);
   flex-shrink: 0;
+  transition: width var(--transition-default);
+  overflow: hidden; /* clip the labels as the width transitions */
+}
+
+.admin-sidebar--collapsed {
+  width: var(--sidebar-width-collapsed);
 }
 
 .admin-nav {
@@ -159,6 +243,7 @@ const sidebarOpen = ref(false);
   display: flex;
   align-items: center;
   gap: 10px;
+  white-space: nowrap;
   transition: color 0.12s, background 0.12s;
 }
 
@@ -166,6 +251,21 @@ const sidebarOpen = ref(false);
   width: 16px;
   text-align: center;
   font-size: 12px;
+  flex-shrink: 0;
+}
+
+.admin-nav-label {
+  /* Label fades out + width collapses when sidebar is collapsed. Kept in DOM
+     (not display:none) so screen readers continue to announce the link name. */
+  transition: opacity var(--transition-default), max-width var(--transition-default);
+  max-width: 12rem;
+  opacity: 1;
+  overflow: hidden;
+}
+
+.admin-sidebar--collapsed .admin-nav-label {
+  opacity: 0;
+  max-width: 0;
 }
 
 .admin-nav-link:hover {
@@ -202,8 +302,13 @@ const sidebarOpen = ref(false);
 }
 
 @media (max-width: 768px) {
+  /* Mobile: hide the desktop collapse toggle, show the drawer hamburger. */
+  .admin-collapse-btn { display: none; }
   .admin-menu-btn { display: flex; }
+
   .admin-sidebar {
+    /* Reset desktop collapse semantics — mobile is a drawer, full width. */
+    width: 220px !important;
     position: fixed;
     top: var(--nav-height);
     left: 0;
@@ -212,9 +317,13 @@ const sidebarOpen = ref(false);
     transform: translateX(-100%);
     transition: transform 0.2s ease;
     box-shadow: none;
-    width: 220px;
   }
-  .admin-sidebar.open {
+  /* Mobile labels are always visible (drawer is either open or closed, not collapsed). */
+  .admin-sidebar .admin-nav-label {
+    opacity: 1 !important;
+    max-width: 12rem !important;
+  }
+  .admin-sidebar--mobile-open {
     transform: translateX(0);
     box-shadow: var(--shadow-lg);
   }

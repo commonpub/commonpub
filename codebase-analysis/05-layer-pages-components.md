@@ -3,7 +3,7 @@
 `layers/base/` — published as `@commonpub/layer`. The distribution unit.
 Instances extend it via `extends: ['@commonpub/layer']` in their nuxt.config.
 
-**85 pages, 106 components, 20 composables, 6 server plugins, 7 request middlewares, 257 API routes.**
+**85 pages, 106 components, 21 composables, 6 server plugins, 7 request middlewares, 257 API routes.**
 
 As of session 125 (2026-04-16). **Spot-counts re-verified session 150
 (2026-05-19): ~85 pages (auth login flow + federated link UI added in
@@ -19,8 +19,8 @@ layers/base/
 ├── error.vue                  404 / error page — re-applies data-theme for SSR
 ├── nuxt.config.ts             modules, CSS bundle, runtime config, features
 ├── components/                117 Vue components (grouped below)
-├── composables/               20 useX helpers
-├── layouts/                   default, admin, auth, editor
+├── composables/               21 useX helpers
+├── layouts/                   default, admin (collapsible sidebar, session 161), auth, editor
 ├── middleware/                auth.ts + feature-gate.global.ts
 ├── pages/                     75 routes (Nuxt file-based)
 ├── plugins/                   theme.ts + auth.ts (client)
@@ -101,9 +101,11 @@ URL restructure landed in session 108: canonical content lives at `/u/{username}
 
 ### Admin (flag: `admin`)
 
-`/admin`, `/admin/users`, `/admin/content`, `/admin/categories`, `/admin/reports`, `/admin/audit`, `/admin/theme`, **`/admin/theme/edit/:id` (session 154)**, `/admin/homepage`, **`/admin/navigation` (session 124)**, `/admin/features`, `/admin/federation`, `/admin/settings`, `/admin/api-keys`.
+`/admin`, `/admin/users`, `/admin/content`, `/admin/categories`, `/admin/reports`, `/admin/audit`, `/admin/theme`, **`/admin/theme/edit/:id` (session 154)**, `/admin/homepage`, **`/admin/layouts` + `/admin/layouts/:id` (session 160, flag: `layoutEngine`)**, **`/admin/navigation` (session 124)**, `/admin/features`, `/admin/federation`, `/admin/settings`, `/admin/api-keys`.
 
 **Theme admin (session 154)** — `/admin/theme` lists every theme across three sources (built-in / code-registered / DB-stored custom), with capture-from-`:root` detection for thin layer apps that ship their own CSS. `/admin/theme/edit/:id` is the split-pane editor; the special id `__new` reads a seed from sessionStorage (used by create / duplicate / capture / import flows). See [`docs/reference/guides/theme-editor.md`](../docs/reference/guides/theme-editor.md) for the full architecture.
+
+**Admin chrome (session 161)** — `layouts/admin.vue` left sidebar is collapsible on desktop via a topbar chevron button (200px ↔ 56px icons-only). State + persistence in `composables/useAdminSidebar.ts`. Editor routes (`/admin/layouts/:id` + `/admin/theme/edit/:id`) auto-collapse for canvas room; user preference is persisted to `localStorage[cpub-admin-sidebar-collapsed]` on all other admin routes; in-editor toggle is a session-only override (resets on route change). Mobile drawer behavior unchanged. `cursor:grab`-style "UI lies" check: every toggle has a wired handler before the button renders.
 
 ### Misc
 
@@ -169,7 +171,7 @@ AnnouncementBand, AppToast, AuthorCard, AuthorRow, CategoryBadge, CommentSection
 
 DocsPageTree.
 
-## Composables (20)
+## Composables (21)
 
 | Name | Purpose |
 |---|---|
@@ -195,6 +197,7 @@ DocsPageTree.
 | useMirrorContent | federated content handlers |
 | useSanitize | DOMPurify wrapper |
 | useEngagement | like/bookmark state |
+| useAdminSidebar | (session 161) admin chrome left-nav state machine. Two surfaces: desktop collapse (200px ↔ 56px icons-only, persisted to `localStorage[cpub-admin-sidebar-collapsed]`) + mobile drawer (independent). Editor routes `/admin/layouts/[id]` + `/admin/theme/edit/[id]` auto-collapse to give canvas room; user can override per visit (session-only, resets on route change). 17 tests in `__tests__/useAdminSidebar.test.ts`. |
 
 ## Middleware
 
