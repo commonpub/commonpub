@@ -1,7 +1,14 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import type { HomepageSectionConfig } from '@commonpub/server';
 
-defineProps<{ config: HomepageSectionConfig }>();
+interface HeroCta {
+  label: string;
+  href: string;
+  variant?: 'primary' | 'secondary';
+}
+
+const props = defineProps<{ config: HomepageSectionConfig }>();
 
 const { contests: contestsEnabled } = useFeatures();
 const { data: contests } = await useFetch('/api/contests', { query: { limit: 3 }, lazy: true });
@@ -9,6 +16,46 @@ const { data: contests } = await useFetch('/api/contests', { query: { limit: 3 }
 const activeContest = computed(() => {
   const items = (contests.value as { items?: Array<Record<string, unknown>> })?.items;
   return items?.find((c) => c.status === 'active') ?? null;
+});
+
+// Config-driven overrides (Stage E session 159 — finally wired). The
+// legacy admin form (/admin/homepage) has accepted `customTitle` +
+// `customSubtitle` for a long time, but the renderer ignored them —
+// admin would type a custom title and see no change. Now respected.
+//
+// Hardcoded fallbacks preserve the existing "Build. Document. Share."
+// + Open Source eyebrow + Start Building/Explore CTAs when admin
+// hasn't customised anything.
+//
+// Contest-aware swap still wins when there's an active contest +
+// `features.contests` is on — the contest hero is intentionally not
+// overridable because it pulls live data; admins who want fully-static
+// copy can either disable the contests flag or set customTitle which
+// applies in the non-contest branch.
+const heroTitle = computed(() => {
+  const cfg = props.config as { customTitle?: string };
+  return cfg.customTitle?.trim() || 'Build. Document. Share.';
+});
+const heroTitleIsCustom = computed(() => {
+  const cfg = props.config as { customTitle?: string };
+  return !!cfg.customTitle?.trim();
+});
+const heroSubtitle = computed(() => {
+  const cfg = props.config as { customSubtitle?: string };
+  return cfg.customSubtitle?.trim() ||
+    'CommonPub is an open platform for maker communities. Document your builds with rich editors, join hubs, learn with structured paths, and share with the world.';
+});
+const heroEyebrow = computed(() => {
+  const cfg = props.config as { eyebrow?: string };
+  return cfg.eyebrow?.trim() || 'Open Source';
+});
+const heroCtas = computed<HeroCta[]>(() => {
+  const cfg = props.config as { ctas?: HeroCta[] };
+  if (Array.isArray(cfg.ctas) && cfg.ctas.length > 0) return cfg.ctas;
+  return [
+    { label: 'Start Building', href: '/create', variant: 'primary' },
+    { label: 'Explore', href: '/explore', variant: 'secondary' },
+  ];
 });
 
 // Shared via useState so the dismiss sticks across component remounts.
@@ -51,15 +98,24 @@ function dismissHero(): void {
         </template>
         <template v-else>
           <div class="cpub-hero-eyebrow">
-            <span class="cpub-hero-badge cpub-hero-badge-live"><span class="cpub-live-dot" /> Open Source</span>
+            <span class="cpub-hero-badge cpub-hero-badge-live"><span class="cpub-live-dot" /> {{ heroEyebrow }}</span>
           </div>
-          <h1 class="cpub-hero-title">Build. Document.<br><span>Share.</span></h1>
-          <p class="cpub-hero-excerpt">
-            CommonPub is an open platform for maker communities. Document your builds with rich editors, join hubs, learn with structured paths, and share with the world.
-          </p>
+          <!-- When admin supplied a customTitle, show as plain text. The
+               hardcoded fallback uses inline <br> + accent span for the
+               canonical "Build. Document. Share." typography. -->
+          <h1 v-if="heroTitleIsCustom" class="cpub-hero-title">{{ heroTitle }}</h1>
+          <h1 v-else class="cpub-hero-title">Build. Document.<br><span>Share.</span></h1>
+          <p class="cpub-hero-excerpt">{{ heroSubtitle }}</p>
           <div class="cpub-hero-actions">
-            <NuxtLink to="/create" class="cpub-btn cpub-btn-primary"><i class="fa-solid fa-plus"></i> Start Building</NuxtLink>
-            <NuxtLink to="/explore" class="cpub-btn"><i class="fa-solid fa-compass"></i> Explore</NuxtLink>
+            <NuxtLink
+              v-for="(cta, i) in heroCtas"
+              :key="i"
+              :to="cta.href"
+              class="cpub-btn"
+              :class="cta.variant === 'primary' ? 'cpub-btn-primary' : ''"
+            >
+              {{ cta.label }}
+            </NuxtLink>
           </div>
         </template>
       </div>

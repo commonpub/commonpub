@@ -224,12 +224,14 @@ describe('migrateHomepageSectionsToLayout', () => {
 
   // ---- Hero-specific copy mapping (session 159 fix for the "Hero Banner" bug) ----
 
-  it('hero with sparse legacy config uses hardcoded HeroSection.vue defaults, NOT legacy.title', async () => {
+  it('hero with sparse legacy config emits empty customTitle/Subtitle — HeroSection applies hardcoded defaults at render', async () => {
     // Legacy.title is "Hero Banner" (the editor display name); the
-    // actual user-facing copy was hardcoded in HeroSection.vue. Migration
-    // should ignore legacy.title for the user-facing fields and use the
-    // canonical defaults — otherwise the live homepage literally says
-    // "Hero Banner" as its h1.
+    // actual user-facing copy is hardcoded in HeroSection.vue. After
+    // Stage E.4 hero unifies to HeroSection (homepage). Migration's
+    // job: emit empty customTitle/customSubtitle so the renderer falls
+    // back to its hardcoded "Build. Document. Share." copy. Setting
+    // them to the hardcoded values here would PIN the copy in the DB
+    // (breaks future hardcoded updates).
     await setLegacyHomepage(db, [
       { id: 'hero', type: 'hero', order: 0, title: 'Hero Banner',
         enabled: true, config: { variant: 'default' } },
@@ -238,18 +240,13 @@ describe('migrateHomepageSectionsToLayout', () => {
     const sections = await db.select().from(layoutSections);
     expect(sections[0]!.config).toMatchObject({
       variant: 'default',
-      title: 'Build. Document. Share.',
-      eyebrow: 'Open Source',
+      customTitle: '',
+      customSubtitle: '',
+      ctas: [],
     });
-    const cfg = sections[0]!.config as { ctas: Array<{ label: string; href: string }> };
-    expect(cfg.ctas).toHaveLength(2);
-    expect(cfg.ctas[0]?.label).toBe('Start Building');
-    expect(cfg.ctas[0]?.href).toBe('/create');
-    expect(cfg.ctas[1]?.label).toBe('Explore');
-    expect(cfg.ctas[1]?.href).toBe('/explore');
   });
 
-  it('hero with customTitle/customSubtitle uses those (legacy admin editor field names)', async () => {
+  it('hero with customTitle/customSubtitle round-trips them into the section config', async () => {
     await setLegacyHomepage(db, [
       { id: 'hero', type: 'hero', order: 0, title: 'Hero Banner',
         enabled: true,
@@ -261,12 +258,9 @@ describe('migrateHomepageSectionsToLayout', () => {
     await migrateHomepageSectionsToLayout(db, { adminId });
     const sections = await db.select().from(layoutSections);
     expect(sections[0]!.config).toMatchObject({
-      title: 'Welcome to Acme',
-      subtitle: 'A community for makers',
+      customTitle: 'Welcome to Acme',
+      customSubtitle: 'A community for makers',
     });
-    // No hardcoded fallback CTAs — operator set custom content so respect it
-    const cfg = sections[0]!.config as { ctas: unknown[] };
-    expect(cfg.ctas).toEqual([]);
   });
 
   it('hero with both new-style title and legacy customTitle → customTitle wins (admin editor takes precedence)', async () => {
@@ -276,7 +270,7 @@ describe('migrateHomepageSectionsToLayout', () => {
     ]);
     await migrateHomepageSectionsToLayout(db, { adminId });
     const sections = await db.select().from(layoutSections);
-    expect((sections[0]!.config as { title: string }).title).toBe('Custom Win');
+    expect((sections[0]!.config as { customTitle: string }).customTitle).toBe('Custom Win');
   });
 
   it('clamps config.limit to each section type max', async () => {

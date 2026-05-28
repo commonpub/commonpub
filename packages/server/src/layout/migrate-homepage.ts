@@ -164,27 +164,26 @@ function buildConfig(newType: string, legacy: LegacyHomepageSection): Record<str
       const legacyTitle = (legacyConfig.customTitle ?? legacyConfig.title) as string | undefined;
       const legacySubtitle = (legacyConfig.customSubtitle ?? legacyConfig.subtitle) as string | undefined;
       const legacyEyebrow = legacyConfig.eyebrow as string | undefined;
+      // Field NAMES match hero section's configSchema (Stage E.4): the
+      // unified hero uses customTitle/customSubtitle (mirrors the legacy
+      // admin form's field names), not title/subtitle. ctas optional.
       const hasLegacyContent = !!(legacyTitle || legacySubtitle || legacyEyebrow);
       if (hasLegacyContent) {
         return {
           variant: (legacyConfig.variant as string) ?? 'default',
-          eyebrow: legacyEyebrow ?? '',
-          title: legacyTitle ?? 'Welcome',
-          subtitle: legacySubtitle ?? '',
+          customTitle: legacyTitle ?? '',
+          customSubtitle: legacySubtitle ?? '',
           ctas: Array.isArray(legacyConfig.ctas) ? legacyConfig.ctas : [],
         };
       }
-      // No legacy content — restore the hardcoded copy from HeroSection.vue
+      // No legacy customisation — produce an empty config; HeroSection
+      // applies its hardcoded "Build. Document. Share." defaults when
+      // customTitle/Subtitle are empty (Stage E hero extension).
       return {
         variant: (legacyConfig.variant as string) ?? 'default',
-        eyebrow: 'Open Source',
-        title: 'Build. Document. Share.',
-        subtitle:
-          'CommonPub is an open platform for maker communities. Document your builds with rich editors, join hubs, learn with structured paths, and share with the world.',
-        ctas: [
-          { label: 'Start Building', href: '/create', variant: 'primary' },
-          { label: 'Explore', href: '/explore', variant: 'secondary' },
-        ],
+        customTitle: '',
+        customSubtitle: '',
+        ctas: [],
       };
     }
 
