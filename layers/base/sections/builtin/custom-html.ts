@@ -1,36 +1,29 @@
 /**
  * Built-in section definition: custom-html.
  *
- * Stage E.4 — reuses the existing CustomHtmlSection (`layers/base/
- * components/homepage/CustomHtmlSection.vue`) which renders `config.html`
- * via `v-html` with an optional title.
+ * Stage E.4 — reuses the existing CustomHtmlSection (renders
+ * `config.html` via `v-html` with an optional title).
  *
  * **SECURITY POSTURE**: identical to legacy CustomHtmlSection — `v-html`
  * with no runtime sanitisation. Admin-only via the layout API gate +
  * the existing homepage editor's section schema. Phase 6b plans server-
  * side sanitisation at admin-write time (see prior SectionCustomHtml.vue
  * doc + `docs/plans/layout-and-pages.md §6.5`).
+ *
+ * Schema lives in `@commonpub/schema/sectionConfigs` (session 161 move).
  */
-import { z } from 'zod';
 import type { SectionDefinition } from '@commonpub/ui';
+import { customHtmlConfigSchema, type CustomHtmlConfig } from '@commonpub/schema';
 import CustomHtmlSection from '../../components/homepage/CustomHtmlSection.vue';
 
-const configSchema = z.object({
-  // `heading` (not `title`) to align with migration output + the broader
-  // section convention; propMap maps it to CustomHtmlSection's `title`
-  // prop name.
-  heading: z.string().max(255).default(''),
-  html: z.string().max(50_000).default(''),
-});
-
-export const customHtmlSection: SectionDefinition<z.infer<typeof configSchema>> = {
+export const customHtmlSection: SectionDefinition<CustomHtmlConfig> = {
   type: 'custom-html',
   name: 'Custom HTML',
   description: 'Raw HTML escape hatch (uses CustomHtmlSection)',
   icon: 'fa-code',
   category: 'content',
   status: 'beta',
-  configSchema,
+  configSchema: customHtmlConfigSchema,
   defaultConfig: { heading: '', html: '' },
   schemaVersion: 1,
   component: CustomHtmlSection,

@@ -3,13 +3,17 @@
 As of session 161 (2026-05-28 — admin sidebar collapse). Sessions 159 + 160 stats are folded into the session-by-session entries below.
 Numbers are approximate — exact counts vary with test exclusions.
 
-**Session 161 deltas** (admin sidebar collapsible on desktop):
+**Session 161 deltas** (admin sidebar collapsible on desktop + schema-package refactor closes R2 deferred):
 - Composables: 20 → **21** (`+useAdminSidebar.ts`, ~95 LOC)
-- Layer tests: 264 → **281** (+17 — full coverage of state machine: hydration, persist, editor-route auto-collapse, session override + reset on route change, mobile/desktop independence, throw-safe localStorage)
-- CSS tokens: `+ --sidebar-width-collapsed: 3.5rem` in `layers/base/theme/base.css`
-- `layers/base/layouts/admin.vue` refactor: replaced inline `ref(false)` with `useAdminSidebar()`; added topbar collapse toggle (chevron); nav links wrap label text in `.admin-nav-label <span>` so labels can collapse smoothly while keeping screen-reader text; `title=` only when collapsed (no double-announce when expanded)
-- Typecheck: 26/26 (unchanged)
-- 0 npm publishes (workspace-only change to `@commonpub/layer` for commonpub.io)
+- Schema package: `+ src/sectionConfigs.ts` (~210 LOC) — 17 per-section Zod schemas + `SECTION_CONFIG_SCHEMAS` lookup map + 4 shared URL regex constants. Re-exported from `src/index.ts`.
+- Schema tests: 431 → **470** (+39 — sectionConfigs.test.ts covers SECTION_CONFIG_SCHEMAS surface, URL guards, array bounds, enum walls, defaults)
+- Layer tests: 264 → **287** (+23 — useAdminSidebar 17, validateSectionConfigs +6 per-section enforcement tests on top of the 5 it had)
+- 17 × `layers/base/sections/builtin/*.ts` refactored — each imports its schema + type from `@commonpub/schema` instead of defining inline. Drops `import { z } from 'zod'`. Comments updated to point at canonical location.
+- `layers/base/server/utils/validateSectionConfigs.ts` — registry parameter removed; uses `SECTION_CONFIG_SCHEMAS` from `@commonpub/schema`. Wired into POST + PUT handlers in `layers/base/server/api/admin/layouts/{index.post,[id].put}.ts` with `cpub.audit.layout.config-rejected` audit logging on failure.
+- CSS tokens: `+ --sidebar-width-collapsed: 3.5rem` in `packages/ui/theme/base.css` (canonical) — `layers/base/theme/base.css` synced via `bundle-theme.mjs` (gitignored copy).
+- Nitro build verified locally (`pnpm --filter @commonpub/reference build` succeeds, 72MB output, no `.vue`-into-server-bundle errors that broke the R2 attempt).
+- Typecheck: 26/26 fresh (--force, no cache).
+- 0 npm publishes (workspace-only; commonpub.io serves from `main`; heatsync + deveco stay on layer 0.24.0 dormant per standing direction).
 
 **Session 160 deltas** (Phase 3a editor shell + 4 audit rounds — recap, see `docs/sessions/160-*.md` for details):
 - Layer tests: 196 → 264 (+68 across phase 3a + 4 audit rounds)

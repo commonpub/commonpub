@@ -31,7 +31,9 @@ packages/schema/src/
 ├── federation.ts    remoteActors, activities, followRelationships, actorKeypairs, federatedContent, federatedContentBuilds, instanceMirrors, instanceHealth, federatedHubs, federatedHubPosts, federatedHubMembers, federatedHubPostReplies, federatedHubResources, federatedHubProducts, userFederatedHubFollows
 ├── files.ts         files
 ├── admin.ts         instanceSettings, auditLogs
+├── layout.ts        layouts, layoutRows, layoutSections, layoutVersions (session 155)
 ├── validators.ts    Zod schemas (50+)
+├── sectionConfigs.ts per-section Zod schemas + SECTION_CONFIG_SCHEMAS lookup map (17 sections, session 161)
 ├── index.ts         barrel
 └── openapi.ts       OpenAPI generator
 ```

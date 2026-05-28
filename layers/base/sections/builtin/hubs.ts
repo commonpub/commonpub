@@ -1,19 +1,16 @@
 /**
  * Built-in section definition: hubs.
  *
- * Stage E.4 — reuses the existing HubsSection (`layers/base/components/
- * homepage/HubsSection.vue`) which renders the Trending Hubs sidebar
- * card with join CTAs.
+ * Stage E.4 — reuses the existing HubsSection (Trending Hubs sidebar
+ * card with join CTAs).
+ *
+ * Schema lives in `@commonpub/schema/sectionConfigs` (session 161 move).
  */
-import { z } from 'zod';
 import type { SectionDefinition } from '@commonpub/ui';
+import { hubsConfigSchema, type HubsConfig } from '@commonpub/schema';
 import HubsSection from '../../components/homepage/HubsSection.vue';
 
-const configSchema = z.object({
-  limit: z.number().int().min(1).max(20).default(4),
-});
-
-export const hubsSection: SectionDefinition<z.infer<typeof configSchema>> = {
+export const hubsSection: SectionDefinition<HubsConfig> = {
   type: 'hubs',
   name: 'Hubs',
   description: 'Trending hubs with join action (uses HubsSection)',
@@ -21,7 +18,7 @@ export const hubsSection: SectionDefinition<z.infer<typeof configSchema>> = {
   category: 'data',
   status: 'stable',
   featureGate: 'hubs',
-  configSchema,
+  configSchema: hubsConfigSchema,
   defaultConfig: { limit: 4 },
   schemaVersion: 1,
   component: HubsSection,

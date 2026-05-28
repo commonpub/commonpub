@@ -6,24 +6,23 @@
  * (BlockContentRenderer) pass nothing and get the legacy 36px solid line.
  * Layout-engine callers pass `{variant, spacingY}` via the propMap below
  * to customise.
+ *
+ * Schema moved to `@commonpub/schema/sectionConfigs` in session 161 so
+ * the server can validate per-section configs without dragging Vue into
+ * the Nitro bundle. See `validateSectionConfigs.ts`.
  */
-import { z } from 'zod';
 import type { SectionDefinition } from '@commonpub/ui';
+import { dividerConfigSchema, type DividerConfig } from '@commonpub/schema';
 import BlockDividerView from '../../components/blocks/BlockDividerView.vue';
 
-const configSchema = z.object({
-  variant: z.enum(['solid', 'dashed', 'dotted', 'accent']).default('solid'),
-  spacingY: z.enum(['sm', 'md', 'lg', 'xl']).default('md'),
-});
-
-export const dividerSection: SectionDefinition<z.infer<typeof configSchema>> = {
+export const dividerSection: SectionDefinition<DividerConfig> = {
   type: 'divider',
   name: 'Divider',
   description: 'Horizontal rule with style + spacing (uses BlockDividerView)',
   icon: 'fa-minus',
   category: 'layout',
   status: 'stable',
-  configSchema,
+  configSchema: dividerConfigSchema,
   defaultConfig: { variant: 'solid', spacingY: 'md' },
   schemaVersion: 1,
   component: BlockDividerView,

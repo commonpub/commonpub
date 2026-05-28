@@ -46,6 +46,9 @@ export * from './admin.js';
 // Layout engine (session 155+)
 export * from './layout.js';
 
+// Section config schemas (session 161 — per-type wire validation, see validateSectionConfigs)
+export * from './sectionConfigs.js';
+
 // Public API (admin-managed access keys)
 export * from './publicApi.js';
 

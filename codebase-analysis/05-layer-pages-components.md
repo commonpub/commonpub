@@ -155,6 +155,8 @@ ContentGridSection, ContestsSection, CustomHtmlSection, EditorialSection, HeroSe
 
 **Homepage adoption** (session 158): `layers/base/pages/index.vue` now has a 3-way v-if/v-else-if/v-else. `v-if="layoutEngineEnabled"` renders 3 LayoutSlot zones; v-else-if renders the existing configurable section renderer (when `hasCustomSections`); v-else renders the legacy hardcoded homepage. Flag default OFF → behavior on existing instances unchanged.
 
+**Per-section config validation** (session 161): `layers/base/server/utils/validateSectionConfigs.ts` enforces every section's Zod `configSchema` on POST/PUT to `/api/admin/layouts/*`. Schemas live in `@commonpub/schema/sectionConfigs` (server-safe, no Vue imports) and are looked up via `SECTION_CONFIG_SCHEMAS`. Rejection → 400 with structured `data.sectionErrors` payload (zone + rowIndex + sectionIndex + Zod issues per offending section) + audit log `cpub.audit.layout.config-rejected`. Closes the "admin bypasses URL guards / size caps / sandbox flags" surface (session 160 R2 P1 deferred → wired in session 161 after the schema-package refactor removed the .vue transitive that broke the R2 attempt).
+
 ### Navigation (session 124)
 
 **NavRenderer**, **NavDropdown**, **MobileNavRenderer**, **NavLink**.

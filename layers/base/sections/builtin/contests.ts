@@ -1,19 +1,16 @@
 /**
  * Built-in section definition: contests.
  *
- * Stage E.4 — reuses the existing ContestsSection (`layers/base/
- * components/homepage/ContestsSection.vue`) which renders the Active
- * Contests sidebar card with `Nd left` countdowns.
+ * Stage E.4 — reuses the existing ContestsSection (Active Contests
+ * sidebar card with `Nd left` countdowns).
+ *
+ * Schema lives in `@commonpub/schema/sectionConfigs` (session 161 move).
  */
-import { z } from 'zod';
 import type { SectionDefinition } from '@commonpub/ui';
+import { contestsConfigSchema, type ContestsConfig } from '@commonpub/schema';
 import ContestsSection from '../../components/homepage/ContestsSection.vue';
 
-const configSchema = z.object({
-  limit: z.number().int().min(1).max(10).default(3),
-});
-
-export const contestsSection: SectionDefinition<z.infer<typeof configSchema>> = {
+export const contestsSection: SectionDefinition<ContestsConfig> = {
   type: 'contests',
   name: 'Contests',
   description: 'Active contests with deadlines (uses ContestsSection)',
@@ -21,7 +18,7 @@ export const contestsSection: SectionDefinition<z.infer<typeof configSchema>> = 
   category: 'data',
   status: 'stable',
   featureGate: 'contests',
-  configSchema,
+  configSchema: contestsConfigSchema,
   defaultConfig: { limit: 3 },
   schemaVersion: 1,
   component: ContestsSection,

@@ -22,6 +22,7 @@
 import { layoutCreateSchema } from '@commonpub/schema';
 import { getLayoutById, saveLayout } from '@commonpub/server';
 import { invalidateLayoutsByRouteCache } from '../../../utils/layoutCache';
+import { validateSectionConfigs } from '../../../utils/validateSectionConfigs';
 
 export default defineEventHandler(async (event) => {
   requireFeature('admin');
@@ -72,13 +73,25 @@ export default defineEventHandler(async (event) => {
 
   const body = await parseBody(event, layoutCreateSchema);
 
-  // NOTE: per-section configSchema enforcement (session 160 audit P1)
-  // is deferred. The validator (utils/validateSectionConfigs.ts) is
-  // implemented + tested, but wiring it requires importing the layer
-  // section registry — which transitively imports .vue components that
-  // Nitro's server bundle can't parse. Proper fix: move section Zod
-  // schemas to @commonpub/schema (server-safe). Tracked in
-  // docs/sessions/160-audit-round2-deep.md.
+  // Per-section configSchema enforcement (R2 P1 deferred → wired session 161
+  // once schemas moved to @commonpub/schema/sectionConfigs, removing the
+  // .vue transitive import that broke the Nitro bundle on the R2 attempt).
+  // On failure logs an audit event + re-throws the validator's 400.
+  try {
+    validateSectionConfigs(body.zones);
+  } catch (err) {
+    const e = err as { data?: { code?: string; sectionErrors?: unknown[] } };
+    if (e?.data?.code === 'SECTION_CONFIG_INVALID') {
+      console.info('cpub.audit.layout.config-rejected', JSON.stringify({
+        at: new Date().toISOString(),
+        adminId: admin.id,
+        layoutId: id,
+        scope: existing.scope,
+        errorCount: e.data.sectionErrors?.length ?? 0,
+      }));
+    }
+    throw err;
+  }
 
   // Scope is immutable — reject if the client tries to change it. This
   // catches an "edit the wrong layout" bug at the API surface rather

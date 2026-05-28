@@ -1,31 +1,23 @@
 /**
  * Built-in section definition: markdown.
  *
- * Stage E.2 — reuses BlockMarkdownView (`layers/base/components/blocks/
- * BlockMarkdownView.vue`). Same markdown renderer used by block-system
- * content. Source markdown lives in `content.source`; BlockMarkdownView
- * pipes through markdownToBlockTuples + sanitizeBlockHtml.
+ * Stage E.2 — reuses BlockMarkdownView. Pipes source markdown through
+ * markdownToBlockTuples + sanitizeBlockHtml — safer than custom-html.
  *
- * Config matches BlockMarkdownView's content contract: `{source}`.
- * Pre-Stage-E my SectionMarkdown had `{heading, body}` — dropped to
- * follow the Block contract (renderer doesn't have a heading).
+ * Schema lives in `@commonpub/schema/sectionConfigs` (session 161 move).
  */
-import { z } from 'zod';
 import type { SectionDefinition } from '@commonpub/ui';
+import { markdownConfigSchema, type MarkdownConfig } from '@commonpub/schema';
 import BlockMarkdownView from '../../components/blocks/BlockMarkdownView.vue';
 
-const configSchema = z.object({
-  source: z.string().max(100_000).default(''),
-});
-
-export const markdownSection: SectionDefinition<z.infer<typeof configSchema>> = {
+export const markdownSection: SectionDefinition<MarkdownConfig> = {
   type: 'markdown',
   name: 'Markdown',
   description: 'Markdown body — safer than custom-html (uses BlockMarkdownView)',
   icon: 'fa-markdown',
   category: 'content',
   status: 'stable',
-  configSchema,
+  configSchema: markdownConfigSchema,
   defaultConfig: { source: '' },
   schemaVersion: 1,
   component: BlockMarkdownView,

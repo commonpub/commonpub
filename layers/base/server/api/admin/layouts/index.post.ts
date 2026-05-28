@@ -14,6 +14,7 @@
 import { layoutCreateSchema } from '@commonpub/schema';
 import { getLayoutByScope, saveLayout, validateCustomPageScope } from '@commonpub/server';
 import { invalidateLayoutsByRouteCache } from '../../../utils/layoutCache';
+import { validateSectionConfigs } from '../../../utils/validateSectionConfigs';
 
 export default defineEventHandler(async (event) => {
   requireFeature('admin');
@@ -22,6 +23,25 @@ export default defineEventHandler(async (event) => {
   const db = useDB();
 
   const body = await parseBody(event, layoutCreateSchema);
+
+  // Per-section configSchema enforcement (R2 P1 deferred → wired session 161
+  // once schemas moved to @commonpub/schema/sectionConfigs). On failure logs
+  // an audit event + re-throws the validator's 400; otherwise no-ops.
+  try {
+    validateSectionConfigs(body.zones);
+  } catch (err) {
+    const e = err as { data?: { code?: string; sectionErrors?: unknown[] } };
+    if (e?.data?.code === 'SECTION_CONFIG_INVALID') {
+      console.info('cpub.audit.layout.config-rejected', JSON.stringify({
+        at: new Date().toISOString(),
+        adminId: admin.id,
+        layoutId: null, // POST = create; no id yet
+        scope: body.scope,
+        errorCount: e.data.sectionErrors?.length ?? 0,
+      }));
+    }
+    throw err;
+  }
 
   // Custom-page paths get extra validation: pathNormalize + file-route
   // conflict + duplicate detection (Phase 2). Returns 400 for malformed

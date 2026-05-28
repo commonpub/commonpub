@@ -1,35 +1,24 @@
 /**
  * Built-in section definition: video.
  *
- * Stage E.2 — reuses BlockVideoView (`layers/base/components/blocks/
- * BlockVideoView.vue`) which handles YouTube/Vimeo embed routing
- * + local file fallback. Same video-rendering treatment as block-
- * embedded videos in articles/blogs.
+ * Stage E.2 — reuses BlockVideoView (YouTube/Vimeo embed routing +
+ * local file fallback).
  *
- * Config matches BlockVideoView's content contract: `{url}`.
- * Pre-Stage-E my SectionVideo had `{heading, src, title, aspectRatio,
- * autoplay}` — dropped to follow the Block contract.
+ * Schema (incl. URL_MEDIA_OR_EMPTY guard) lives in
+ * `@commonpub/schema/sectionConfigs` (session 161 move).
  */
-import { z } from 'zod';
 import type { SectionDefinition } from '@commonpub/ui';
+import { videoConfigSchema, type VideoConfig } from '@commonpub/schema';
 import BlockVideoView from '../../components/blocks/BlockVideoView.vue';
 
-const SAFE_VIDEO_URL = /^(?:$|https?:\/\/|\/)/i;
-
-const configSchema = z.object({
-  url: z.string().max(2048).regex(SAFE_VIDEO_URL, {
-    message: 'url must be http(s) (YouTube/Vimeo/etc) or relative (/) for local file',
-  }).default(''),
-});
-
-export const videoSection: SectionDefinition<z.infer<typeof configSchema>> = {
+export const videoSection: SectionDefinition<VideoConfig> = {
   type: 'video',
   name: 'Video',
   description: 'YouTube / Vimeo / local file (uses BlockVideoView)',
   icon: 'fa-film',
   category: 'content',
   status: 'stable',
-  configSchema,
+  configSchema: videoConfigSchema,
   defaultConfig: { url: '' },
   schemaVersion: 1,
   component: BlockVideoView,

@@ -2,16 +2,17 @@
  * Per-section config validation — runs every section's registered
  * Zod schema against the user-submitted config blob.
  *
- * P1 security fix from session 160 audit. The `layoutCreateSchema`
- * top-level Zod only validates the SHAPE of `section.config` as
- * `z.record(z.unknown())` — it doesn't enforce the per-type rules
- * (URL guards on hrefs, size caps on arrays, sandbox flags on iframes,
- * etc) declared in each section's `configSchema`. Without this check,
+ * P1 security fix from session 160 audit, finally wired in session 161
+ * after the schemas moved to `@commonpub/schema/sectionConfigs`. The
+ * `layoutCreateSchema` top-level Zod only validates the SHAPE of
+ * `section.config` as `z.record(z.unknown())` — it doesn't enforce
+ * per-type rules (URL guards on hrefs, size caps on arrays, etc)
+ * declared in each section's `configSchema`. Without this check,
  * an admin can bypass those guards by sending arbitrary config —
  * limited blast radius (admin auth required) but every CMS treats
  * admin-tier input as semi-trusted and validates anyway.
  *
- * Throws a 400 createError with a structured `data.sectionErrors`
+ * Throws an h3-compatible 400 with a structured `data.sectionErrors`
  * payload listing every invalid section + the Zod issue. Used by:
  *   - POST /api/admin/layouts (create)
  *   - PUT  /api/admin/layouts/[id] (update)
@@ -19,21 +20,14 @@
  * Unknown section types ALSO 400 — same handler — so a typo'd type
  * surfaces as a validation error instead of silently rendering a
  * placeholder on the public page.
- */
-import type { SectionRegistry } from '@commonpub/ui';
-
-/**
- * NOTE: this validator does NOT default-import the section registry.
- * The registry (`layers/base/sections/registry.ts`) imports every
- * builtin/*.ts which imports a Vue `.vue` component — and Nitro's
- * server bundle can't parse .vue. Passing the registry as a required
- * argument keeps this file server-safe.
  *
- * Proper fix (deferred): move per-section Zod schemas to
- * @commonpub/schema (server-safe), wire the validator there, then
- * callers can use a schema-only map instead of the runtime registry.
- * See docs/sessions/160-audit-round2-deep.md for the deferred queue.
+ * Server-safe because `@commonpub/schema` has zero Vue imports. The
+ * previous attempt to wire this (session 160 R2) imported the section
+ * registry, which transitively pulled `.vue` components into the Nitro
+ * bundle and broke the build. The proper fix — moving schemas to the
+ * schema package — was deferred then; this is that fix.
  */
+import { SECTION_CONFIG_SCHEMAS } from '@commonpub/schema';
 
 /**
  * Throw an h3/Nuxt-compatible HTTP error WITHOUT depending on h3
@@ -80,21 +74,19 @@ interface SectionError {
  * Validate every section in a layout's zones against its registered
  * Zod configSchema. Throws an h3-compatible 400 on any failure.
  *
- * `registry` is REQUIRED — callers pass it explicitly to keep this
- * file from default-importing the registry's transitive .vue deps
- * (which break Nitro's server bundle). See file-level note above.
+ * No `registry` parameter — schema lookup is done via
+ * `SECTION_CONFIG_SCHEMAS` from `@commonpub/schema`, which is the
+ * canonical type → schema map. Keep that map in sync when adding
+ * new section types (see `packages/schema/src/sectionConfigs.ts`).
  */
-export function validateSectionConfigs(
-  zones: InputZone[],
-  registry: SectionRegistry,
-): void {
+export function validateSectionConfigs(zones: InputZone[]): void {
   const errors: SectionError[] = [];
 
   for (const zone of zones) {
     zone.rows.forEach((row, rowIndex) => {
       row.sections.forEach((section, sectionIndex) => {
-        const def = registry.get(section.type);
-        if (!def) {
+        const schema = SECTION_CONFIG_SCHEMAS[section.type];
+        if (!schema) {
           errors.push({
             zone: zone.zone,
             rowIndex,
@@ -104,7 +96,7 @@ export function validateSectionConfigs(
           });
           return;
         }
-        const result = def.configSchema.safeParse(section.config);
+        const result = schema.safeParse(section.config);
         if (!result.success) {
           errors.push({
             zone: zone.zone,

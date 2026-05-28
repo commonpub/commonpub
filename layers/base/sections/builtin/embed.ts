@@ -1,35 +1,25 @@
 /**
  * Built-in section definition: embed.
  *
- * Stage E.2 — reuses BlockEmbedView (`layers/base/components/blocks/
- * BlockEmbedView.vue`). Same generic-iframe renderer used by block-
- * system content for tweets, gists, CodePen, etc.
+ * Stage E.2 — reuses BlockEmbedView (generic-iframe renderer). Host
+ * allowlist + sandbox policy live in BlockEmbedView.
  *
- * Config matches BlockEmbedView's content contract: `{url}`.
- * Pre-Stage-E my SectionEmbed had `{heading, src, title, height}` +
- * a hardcoded host allowlist — dropped to follow the Block contract.
- * The host allowlist + sandbox policy live in BlockEmbedView.
+ * Schema (incl. URL_HTTPS_OR_EMPTY guard — strict http(s) only, no
+ * relative-path branch unlike image/video/gallery) lives in
+ * `@commonpub/schema/sectionConfigs` (session 161 move).
  */
-import { z } from 'zod';
 import type { SectionDefinition } from '@commonpub/ui';
+import { embedConfigSchema, type EmbedConfig } from '@commonpub/schema';
 import BlockEmbedView from '../../components/blocks/BlockEmbedView.vue';
 
-const SAFE_URL = /^(?:$|https?:\/\/)/i;
-
-const configSchema = z.object({
-  url: z.string().max(2048).regex(SAFE_URL, {
-    message: 'url must be an http(s) URL or empty',
-  }).default(''),
-});
-
-export const embedSection: SectionDefinition<z.infer<typeof configSchema>> = {
+export const embedSection: SectionDefinition<EmbedConfig> = {
   type: 'embed',
   name: 'Embed',
   description: 'Tweets, gists, CodePen, Loom, etc (uses BlockEmbedView)',
   icon: 'fa-square-arrow-up-right',
   category: 'content',
   status: 'stable',
-  configSchema,
+  configSchema: embedConfigSchema,
   defaultConfig: { url: '' },
   schemaVersion: 1,
   component: BlockEmbedView,

@@ -141,6 +141,10 @@ Closes R2's deferred P1. Validator (`layers/base/server/utils/validateSectionCon
 
 **P2 (UX + perf)**:
 - ~~Admin sidebar collapsible on desktop~~ — **DONE in session 161** (see `docs/sessions/161-admin-sidebar-collapse.md`). Layer 264 → 281 tests. Composable `useAdminSidebar` + `--sidebar-width-collapsed` CSS token + topbar chevron toggle + editor-route auto-collapse + session override.
+- **Editor canvas squish — palette/inspector collapse OR zoom controls** (user-reported 2026-05-28 follow-up screenshot, AFTER sidebar collapse shipped): on `/admin/layouts/[id]` the canvas is still squished because the editor's OWN 3-column shell (palette ~280px / canvas / inspector ~320px) eats space — even with the admin sidebar collapsed, canvas content cards still clip mid-word ("VIDEO/AYBACK SYSTE"). Two paths:
+  - **(A) Independently-collapsible palette + inspector** — icons-only ~48px when collapsed, same `useAdminSidebar`-style pattern but scoped to the editor shell. Each can collapse independently; toolbar gains two chevron buttons. Probably the simpler win.
+  - **(B) Viewport control with zoom** — like Figma/Webflow/Framer/Webstudio. Canvas becomes a zoomable preview (fit-width / 100% / fit-all / zoom in/out). Palette + inspector keep their full width; canvas viewport scales independently. More powerful but a bigger lift (transform-origin math + scrollable canvas pane + zoom-to-cursor).
+  - Probably want both eventually. Files affected: `AdminLayoutsToolbar.vue` (viewport+zoom controls), `AdminLayoutsPalette.vue`, `AdminLayoutsInspector.vue`, `AdminLayoutsCanvas.vue`.
 - LayoutRecord → LayoutPayload type narrow (R2)
 - Inspector storm + dirty cost at N=50+ sections (R2)
 - `pagehide` + `navigator.sendBeacon` for tab close (R2)
