@@ -1,18 +1,18 @@
 <script setup lang="ts">
 /**
- * /admin/layouts/[id] — editor shell (Phase 3a.3).
+ * /admin/layouts/[id] — editor shell (Phase 3a.3 + 3a.5).
  *
- * Three-column orchestrator: palette (left), canvas (center, hosts
- * <LayoutSlot :editable previewOverride=draft>), inspector (right).
+ * Three-column orchestrator with a sticky top toolbar:
+ *   - Toolbar (3a.5): back-link + name + state + viewport segmented
+ *     control + save indicator + Save/Publish buttons
+ *   - Palette (left) — every registered section, grouped by category
+ *   - Canvas (center) — <LayoutSlot :editable previewOverride=draft>
+ *   - Inspector (right) — page-meta form (3a.4); section/row forms
+ *     arrive alongside drag-drop in 3b/3f
  *
  * State lives in `useLayoutEditor(id)` — draft + original + dirty +
- * save/publish/refresh/discard. The toolbar (3a.5) + auto-save
- * (3a.6) bind to that composable. The InspectorPage edits mutate
- * the draft in place; the draft ref drives the canvas re-render.
- *
- * NO drag-drop, NO click-to-select in 3a.3 — those live in 3b + 3d.
- * The visual chrome from LayoutSlot's :editable prop (3a.1) is the
- * affordance admins see in this phase.
+ * save/publish/refresh/discard. Auto-save (3a.6) is wired through
+ * `useLayoutAutoSave` watching `editor.dirty`.
  */
 import type { LayoutRecord } from '@commonpub/server';
 
@@ -22,6 +22,7 @@ definePageMeta({
 });
 
 const route = useRoute();
+const toast = useToast();
 const id = computed<string>(() => String(route.params.id));
 
 const editor = useLayoutEditor(id.value);
@@ -41,6 +42,9 @@ useSeoMeta({
   title: () => `Edit: ${editor.draft.value?.name ?? 'Layout'} — Admin — ${useSiteName()}`,
 });
 
+// Viewport preview state — purely UI; doesn't mutate the layout.
+const viewport = ref<'mobile' | 'tablet' | 'desktop'>('desktop');
+
 function onPageMetaUpdate(value: LayoutRecord['pageMeta']): void {
   if (!editor.draft.value) return;
   editor.draft.value.pageMeta = value;
@@ -48,6 +52,32 @@ function onPageMetaUpdate(value: LayoutRecord['pageMeta']): void {
 function onNameUpdate(value: string): void {
   if (!editor.draft.value) return;
   editor.draft.value.name = value;
+}
+
+async function onSave(): Promise<void> {
+  try {
+    await editor.save();
+    toast.success('Layout saved');
+  } catch (err) {
+    // editor.status already reflects the error; toast for visibility.
+    const e = err as { statusCode?: number; statusMessage?: string };
+    if (e.statusCode === 409) {
+      toast.error('Conflict — another admin edited this layout. Refresh and re-apply your changes.');
+    } else {
+      toast.error(e.statusMessage ?? 'Save failed');
+    }
+  }
+}
+
+async function onPublish(): Promise<void> {
+  if (!confirm('Publish this layout? The current draft replaces the live version.')) return;
+  try {
+    await editor.publish();
+    toast.success('Layout published');
+  } catch (err) {
+    const e = err as { statusMessage?: string };
+    toast.error(e.statusMessage ?? 'Publish failed');
+  }
 }
 </script>
 
@@ -59,28 +89,21 @@ function onNameUpdate(value: string): void {
     </div>
 
     <template v-else>
-      <header class="cpub-admin-layouts-editor-toolbar">
-        <NuxtLink to="/admin/layouts" class="cpub-admin-layouts-editor-back">
-          <i class="fa-solid fa-chevron-left"></i>
-          <span>Layouts</span>
-        </NuxtLink>
-        <div class="cpub-admin-layouts-editor-toolbar-title">
-          <span class="cpub-admin-layouts-editor-toolbar-name">{{ editor.draft.value?.name ?? '—' }}</span>
-          <span
-            v-if="editor.draft.value"
-            class="cpub-admin-layouts-editor-toolbar-state"
-            :data-state="editor.draft.value.state"
-          >{{ editor.draft.value.state }}</span>
-        </div>
-        <div class="cpub-admin-layouts-editor-toolbar-status">
-          <span v-if="editor.dirty.value" class="cpub-admin-layouts-editor-dirty">Unsaved changes</span>
-          <span v-else-if="editor.status.value === 'saved'" class="cpub-admin-layouts-editor-saved">Saved</span>
-        </div>
-      </header>
+      <AdminLayoutsToolbar
+        :layout-name="editor.draft.value?.name ?? ''"
+        :state="editor.draft.value?.state ?? 'draft'"
+        :viewport="viewport"
+        :save-status="editor.status.value"
+        :dirty="editor.dirty.value"
+        :error-message="editor.errorMessage.value"
+        @update:viewport="viewport = $event"
+        @save="onSave"
+        @publish="onPublish"
+      />
 
       <div class="cpub-admin-layouts-editor-body">
         <AdminLayoutsPalette />
-        <AdminLayoutsCanvas :layout="editor.draft.value" viewport="desktop" />
+        <AdminLayoutsCanvas :layout="editor.draft.value" :viewport="viewport" />
         <AdminLayoutsInspector
           :draft="editor.draft.value"
           @update:page-meta="onPageMetaUpdate"
@@ -108,65 +131,6 @@ function onNameUpdate(value: string): void {
   color: var(--text-dim);
 }
 .cpub-admin-layouts-editor-error a { color: var(--accent); text-decoration: underline; }
-
-.cpub-admin-layouts-editor-toolbar {
-  display: flex;
-  align-items: center;
-  gap: var(--space-4);
-  padding: var(--space-2) var(--space-4);
-  background: var(--surface);
-  border-bottom: var(--border-width-default) solid var(--border);
-  flex: 0 0 auto;
-}
-
-.cpub-admin-layouts-editor-back {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  color: var(--text-dim);
-  text-decoration: none;
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-wide);
-}
-.cpub-admin-layouts-editor-back:hover { color: var(--accent); }
-
-.cpub-admin-layouts-editor-toolbar-title {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  flex: 1;
-  min-width: 0;
-}
-.cpub-admin-layouts-editor-toolbar-name {
-  font-size: var(--text-base);
-  color: var(--text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.cpub-admin-layouts-editor-toolbar-state {
-  display: inline-block;
-  padding: 2px var(--space-2);
-  font-family: var(--font-mono);
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-wide);
-  border: 1px solid var(--border2);
-}
-.cpub-admin-layouts-editor-toolbar-state[data-state='published'] { color: var(--accent); border-color: var(--accent); }
-.cpub-admin-layouts-editor-toolbar-state[data-state='draft'] { color: var(--text-dim); }
-
-.cpub-admin-layouts-editor-toolbar-status {
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-wide);
-  color: var(--text-faint);
-}
-.cpub-admin-layouts-editor-dirty { color: var(--text-dim); }
-.cpub-admin-layouts-editor-saved { color: var(--accent); }
 
 .cpub-admin-layouts-editor-body {
   display: grid;
