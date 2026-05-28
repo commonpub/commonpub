@@ -131,3 +131,15 @@ Back to the session 161 fork:
 - **Path B**: schema-package refactor (1 session, closes R2's deferred per-section configSchema enforcement)
 
 Defaults still apply: NEVER trust `gh run list`, always curl `/api/health` after deploy; no AI attribution in commits; commonpub.io is the test bed.
+
+## Post-script: audit polish (session 161 round 3)
+
+Audited my own work and caught a real P2: SSR/CSR **hydration flash**. Server rendered with `userPref: false` (the useState default), client mounted, `onMounted` read `localStorage`, flipped to `true` → visible ~100ms snap from expanded to collapsed on the first page load.
+
+**Fix**: switched `userPref` from `useState` + `localStorage` to **`useCookie`** — matches the existing `useTheme.ts` pattern (which also uses cookies for the same SSR-correctness reason). Nuxt's `useCookie` reads the cookie on the server during SSR, so the first render uses the actual value. No flash.
+
+Cookie config: `maxAge: 1 year`, `path: '/'`, `sameSite: 'lax'`. Cookie only emitted when the user actually toggles — Nuxt's `useCookie` doesn't write `Set-Cookie` for unchanged default values.
+
+Also dropped the now-unused `URL_LINK_OR_EMPTY` regex constant from `packages/schema/src/sectionConfigs.ts` (every current caller pairs the link regex with `.min(1)`, making the empty branch dead; YAGNI). Added a comment explaining why `URL_LINK_STRICT` has no `_OR_EMPTY` counterpart.
+
+Test counts after polish: layer 287 → 286 (-1; dropped 2 localStorage-specific tests, added 1 cookie-default test). Schema 470 unchanged.

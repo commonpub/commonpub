@@ -3,7 +3,7 @@
  *
  * Two independent surfaces:
  *   1. Desktop (≥768px): width can collapse from 200px to ~56px (icons-only).
- *      The user's preference is persisted to localStorage. Editor routes
+ *      The user's preference is persisted to a cookie. Editor routes
  *      (`/admin/layouts/[id]`, `/admin/theme/edit/[id]`) auto-collapse to
  *      give the canvas more room; the user can override that for the
  *      current page visit only.
@@ -11,20 +11,31 @@
  *      of the desktop collapse state. Closes when a nav link is clicked.
  *
  * Design (mirrors Linear/Figma/Notion editor-mode patterns):
- *   - userPref       — persisted boolean; the user's "default" collapsed state
+ *   - userPref       — persisted boolean (cookie); the user's "default"
+ *                      collapsed state. Cookie chosen over localStorage
+ *                      so SSR renders correctly first time — no
+ *                      hydration flash where the sidebar starts expanded
+ *                      and then snaps to collapsed once the client tick
+ *                      reads storage. Matches `useTheme`'s pattern.
  *   - sessionOverride — null | boolean; non-null only when the user manually
  *                       toggled while on an editor route. Resets on route
  *                       change so leaving the editor returns to userPref.
  *   - desktopCollapsed (computed):
  *       sessionOverride ?? (isEditorRoute ? true : userPref)
  *
- * Tests live in `__tests__/useAdminSidebar.test.ts` — cover hydration,
- * route-aware override, toggle persistence, and the mobile/desktop split.
+ * Tests live in `__tests__/useAdminSidebar.test.ts` — cover SSR-safe
+ * hydration via mocked cookie, route-aware override, toggle persistence,
+ * and the mobile/desktop split.
  *
  * Wired into `layers/base/layouts/admin.vue` only.
+ *
+ * Sub-route caveat: `EDITOR_ROUTE_PATTERNS` use `$` end-anchors so
+ * `/admin/layouts/abc/preview` would NOT auto-collapse. Today no editor
+ * has sub-routes; if Phase 3b+ adds them, extend the regexes or use
+ * `startsWith` semantics.
  */
 
-const STORAGE_KEY = 'cpub-admin-sidebar-collapsed';
+const COOKIE_KEY = 'cpub-admin-sidebar-collapsed';
 
 const EDITOR_ROUTE_PATTERNS: RegExp[] = [
   /^\/admin\/layouts\/[^/]+$/, // /admin/layouts/[id] — Phase 3a layout editor
@@ -49,10 +60,21 @@ export interface AdminSidebarApi {
 export function useAdminSidebar(): AdminSidebarApi {
   const route = useRoute();
 
-  // Use Nuxt's useState so the layout's collapse + override survive page
-  // navigations within the admin area (the layout itself stays mounted, but
-  // useState makes the pattern explicit + testable).
-  const userPref = useState<boolean>('cpub-admin-sidebar-pref', () => false);
+  // Persistent user pref: cookie (server-readable → no hydration flash).
+  // `useCookie` returns a Ref bound bidirectionally to the cookie; setting
+  // `.value` writes Set-Cookie on the next SSR response or updates
+  // document.cookie on the client. Default = false (expanded). The cookie
+  // is only created when the user actually toggles (Nuxt useCookie doesn't
+  // emit Set-Cookie for unchanged default values).
+  const userPref = useCookie<boolean>(COOKIE_KEY, {
+    default: () => false,
+    maxAge: 60 * 60 * 24 * 365, // 1 year — sidebar pref is "forever"
+    path: '/',
+    sameSite: 'lax',
+  });
+
+  // Transient: useState so it survives in-layout navigation but doesn't
+  // persist across page reloads (it's a per-visit override).
   const sessionOverride = useState<boolean | null>('cpub-admin-sidebar-override', () => null);
   const mobileOpen = useState<boolean>('cpub-admin-sidebar-mobile-open', () => false);
 
@@ -63,23 +85,6 @@ export function useAdminSidebar(): AdminSidebarApi {
   const desktopCollapsed = computed<boolean>(() => {
     if (sessionOverride.value !== null) return sessionOverride.value;
     return isEditorRoute.value ? true : userPref.value;
-  });
-
-  // Hydrate userPref from localStorage on the client. Done in onMounted to
-  // avoid the SSR/CSR hydration mismatch (server-rendered HTML always uses
-  // the default `false`; first client tick reconciles).
-  // Using `typeof window` rather than `import.meta.client` so the composable
-  // works in vitest (where `import.meta.client` is undefined, not a built-in
-  // Nuxt replacement) as well as in Nuxt SSR/CSR.
-  onMounted(() => {
-    if (typeof window === 'undefined') return;
-    try {
-      const stored = window.localStorage.getItem(STORAGE_KEY);
-      if (stored === 'true') userPref.value = true;
-      else if (stored === 'false') userPref.value = false;
-    } catch {
-      // localStorage can throw in private mode / iframe sandboxing — swallow
-    }
   });
 
   // Route change clears the session override so leaving the editor route
@@ -96,13 +101,7 @@ export function useAdminSidebar(): AdminSidebarApi {
     }
     userPref.value = next;
     sessionOverride.value = null;
-    if (typeof window !== 'undefined') {
-      try {
-        window.localStorage.setItem(STORAGE_KEY, String(next));
-      } catch {
-        // ignore — same reasoning as hydrate
-      }
-    }
+    // No explicit storage write — `useCookie` syncs automatically.
   }
 
   function toggleMobile(): void {

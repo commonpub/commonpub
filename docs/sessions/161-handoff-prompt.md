@@ -136,8 +136,8 @@ Closes R2's deferred P1. Validator (`layers/base/server/utils/validateSectionCon
 - `layers/base/README.md` "What's Included" tables are stale
 
 **P1 (security/correctness)**:
-- Per-section configSchema enforcement (R2 — Path B above)
-- `migrate-homepage` with `force: true` still destroys layout versions (R4 — fix path: use `saveLayout(... { id })` instead of delete+create)
+- ~~Per-section configSchema enforcement~~ — **DONE in session 161** (schema-package refactor; see `161-schema-package-refactor.md`)
+- ~~`migrate-homepage` with `force: true` destroys layout versions~~ — **DONE in session 161 round 3** (post-audit). `packages/server/src/layout/migrate-homepage.ts` no longer deletes the existing layout; passes `existing.id` to `saveLayout` so the update is in-place. `layout_versions` snapshots survive force migrations. Test added: `layout-migrate-homepage.integration.test.ts > preserves layout_versions across a force=true migration (R4 P1)`.
 
 **P2 (UX + perf)**:
 - ~~Admin sidebar collapsible on desktop~~ — **DONE in session 161** (see `docs/sessions/161-admin-sidebar-collapse.md`). Layer 264 → 281 tests. Composable `useAdminSidebar` + `--sidebar-width-collapsed` CSS token + topbar chevron toggle + editor-route auto-collapse + session override.

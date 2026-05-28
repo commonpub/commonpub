@@ -3,15 +3,17 @@
 As of session 161 (2026-05-28 — admin sidebar collapse). Sessions 159 + 160 stats are folded into the session-by-session entries below.
 Numbers are approximate — exact counts vary with test exclusions.
 
-**Session 161 deltas** (admin sidebar collapsible on desktop + schema-package refactor closes R2 deferred):
-- Composables: 20 → **21** (`+useAdminSidebar.ts`, ~95 LOC)
-- Schema package: `+ src/sectionConfigs.ts` (~210 LOC) — 17 per-section Zod schemas + `SECTION_CONFIG_SCHEMAS` lookup map + 4 shared URL regex constants. Re-exported from `src/index.ts`.
+**Session 161 deltas** (admin sidebar collapse + schema-package refactor + audit polish + migrate-homepage P1 fix):
+- Composables: 20 → **21** (`+useAdminSidebar.ts`, ~95 LOC; uses `useCookie` for persistence — matches `useTheme` pattern, no SSR/CSR hydration flash)
+- Schema package: `+ src/sectionConfigs.ts` (~210 LOC) — 17 per-section Zod schemas + `SECTION_CONFIG_SCHEMAS` lookup map + 3 shared URL regex constants. Re-exported from `src/index.ts`.
 - Schema tests: 431 → **470** (+39 — sectionConfigs.test.ts covers SECTION_CONFIG_SCHEMAS surface, URL guards, array bounds, enum walls, defaults)
-- Layer tests: 264 → **287** (+23 — useAdminSidebar 17, validateSectionConfigs +6 per-section enforcement tests on top of the 5 it had)
+- Layer tests: 264 → **286** (+22 — useAdminSidebar 16 after the useCookie audit-polish drop, validateSectionConfigs +6 per-section enforcement tests on top of the 5 it had)
+- Server tests: 1125+3skip → **1126**+3skip (+1 — `layout-migrate-homepage > preserves layout_versions across a force=true migration`)
 - 17 × `layers/base/sections/builtin/*.ts` refactored — each imports its schema + type from `@commonpub/schema` instead of defining inline. Drops `import { z } from 'zod'`. Comments updated to point at canonical location.
 - `layers/base/server/utils/validateSectionConfigs.ts` — registry parameter removed; uses `SECTION_CONFIG_SCHEMAS` from `@commonpub/schema`. Wired into POST + PUT handlers in `layers/base/server/api/admin/layouts/{index.post,[id].put}.ts` with `cpub.audit.layout.config-rejected` audit logging on failure.
+- `packages/server/src/layout/migrate-homepage.ts` — R4 P1 fixed: `force=true` no longer calls `deleteLayout` (which cascaded through `layout_versions`); instead passes `existing.id` to `saveLayout` for an in-place update. Publish snapshots are preserved across force migrations.
 - CSS tokens: `+ --sidebar-width-collapsed: 3.5rem` in `packages/ui/theme/base.css` (canonical) — `layers/base/theme/base.css` synced via `bundle-theme.mjs` (gitignored copy).
-- Nitro build verified locally (`pnpm --filter @commonpub/reference build` succeeds, 72MB output, no `.vue`-into-server-bundle errors that broke the R2 attempt).
+- Nitro build verified locally (`pnpm --filter @commonpub/reference build` succeeds, no `.vue`-into-server-bundle errors that broke the R2 attempt).
 - Typecheck: 26/26 fresh (--force, no cache).
 - 0 npm publishes (workspace-only; commonpub.io serves from `main`; heatsync + deveco stay on layer 0.24.0 dormant per standing direction).
 

@@ -38,11 +38,15 @@ import { z, type ZodType } from 'zod';
 // See `feedback-regex-empty-alternation` memory.
 // ---------------------------------------------------------------------------
 
-/** Anchor-style link: http(s), root-relative, fragment, mailto, tel. Must be non-empty (paired with .min(1)). */
+/**
+ * Anchor-style link: http(s), root-relative, fragment, mailto, tel.
+ * Must be non-empty — pair with `.min(1)`. Used by cta + hero CTA hrefs.
+ *
+ * No `URL_LINK_OR_EMPTY` counterpart exists: every current caller pairs
+ * the regex with `.min(1)`, which makes the empty branch dead. If a
+ * future caller needs the optional variant, add it back then.
+ */
 export const URL_LINK_STRICT = /^(https?:\/\/|\/|#|mailto:|tel:)/i;
-
-/** Anchor-style link OR empty string. */
-export const URL_LINK_OR_EMPTY = /^(?:$|https?:\/\/|\/|#|mailto:|tel:)/i;
 
 /** Media src: http(s) or root-relative path or empty. */
 export const URL_MEDIA_OR_EMPTY = /^(?:$|https?:\/\/|\/)/i;

@@ -128,18 +128,37 @@ describe('migrateHomepageSectionsToLayout', () => {
     expect(second.layoutId).toBe(first.layoutId);
   });
 
-  it('replaces existing layout when force=true (deletes + recreates)', async () => {
+  it('updates the existing layout when force=true (in-place, same id)', async () => {
     await setLegacyHomepage(db, REALISTIC_LEGACY);
     const first = await migrateHomepageSectionsToLayout(db, { adminId });
     const firstId = first.layoutId!;
 
     const second = await migrateHomepageSectionsToLayout(db, { adminId, force: true });
     expect(second.migrated).toBe(true);
-    expect(second.layoutId).not.toBe(firstId);  // new uuid
+    // R4 P1 fix (session 161): force=true now updates in place rather than
+    // delete+create, so the layout id is stable across migrations.
+    expect(second.layoutId).toBe(firstId);
+  });
 
-    // Old layout's rows are gone (cascade)
-    const oldRows = await db.select().from(layoutRows).where(eq(layoutRows.layoutId, firstId));
-    expect(oldRows).toHaveLength(0);
+  it('preserves layout_versions across a force=true migration (R4 P1 — was previously cascaded away)', async () => {
+    await setLegacyHomepage(db, REALISTIC_LEGACY);
+    const first = await migrateHomepageSectionsToLayout(db, { adminId });
+    const firstId = first.layoutId!;
+
+    // After first migrate: exactly 1 version snapshot (publishLayout fires once).
+    const versionsBeforeForce = await db.select().from(layoutVersions).where(eq(layoutVersions.layoutId, firstId));
+    expect(versionsBeforeForce.length).toBeGreaterThanOrEqual(1);
+
+    const second = await migrateHomepageSectionsToLayout(db, { adminId, force: true });
+    expect(second.migrated).toBe(true);
+    expect(second.layoutId).toBe(firstId);
+
+    // After force migrate: the FIRST version is still here. Previously force
+    // deleted the layout (FK cascade wiped layout_versions), destroying the
+    // operator's publish history. Now both pre-force AND post-force snapshots
+    // coexist.
+    const versionsAfterForce = await db.select().from(layoutVersions).where(eq(layoutVersions.layoutId, firstId));
+    expect(versionsAfterForce.length).toBeGreaterThan(versionsBeforeForce.length);
   });
 
   // ---- Section conversion ----------------------------------------------

@@ -38,7 +38,7 @@
  * UI "re-run migration" affordance would set this).
  */
 import { sql } from 'drizzle-orm';
-import { saveLayout, publishLayout, getLayoutByScope, deleteLayout } from './layout.js';
+import { saveLayout, publishLayout, getLayoutByScope } from './layout.js';
 import type { LayoutInput, LayoutRowInput, LayoutSectionInput, LayoutZoneInput } from './layout.js';
 import type { DB } from '../types.js';
 
@@ -289,10 +289,13 @@ export async function migrateHomepageSectionsToLayout(
       reason: 'layout-already-exists',
     };
   }
-  if (existing && opts.force) {
-    // Cascade-delete via FK; replaces with a fresh saveLayout below.
-    await deleteLayout(db, existing.id);
-  }
+  // Note: we DO NOT delete `existing` here, even with force=true. Deleting
+  // the layout would cascade through `layout_versions` (FK ON DELETE CASCADE),
+  // destroying the operator's entire publish history. Instead, force passes
+  // `existing.id` to saveLayout below — saveLayout updates the layout row
+  // in-place, rewrites the rows + sections, and the cascade chain stops at
+  // those children. Publish snapshots survive.
+  // (R4 P1 fix, session 161. Previously this branch did `await deleteLayout(db, existing.id)`.)
 
   // 3. Filter + map legacy sections.
   const skipReasons: Record<string, 'disabled' | 'unknown-type'> = {};
@@ -387,7 +390,14 @@ export async function migrateHomepageSectionsToLayout(
 
   // 6. Save + publish atomically. publishLayout takes a snapshot into
   //    layout_versions so the operator can revert if needed.
-  const saved = await saveLayout(db, input, { userId: opts.adminId });
+  //
+  //    When `existing` is set (force=true path), pass its id to saveLayout
+  //    so the layout row is updated in-place — preserves prior
+  //    `layout_versions` snapshots that delete+create would have cascaded
+  //    away. (R4 P1 fix, session 161.)
+  const saveOpts: { id?: string; userId?: string } = { userId: opts.adminId };
+  if (existing) saveOpts.id = existing.id;
+  const saved = await saveLayout(db, input, saveOpts);
   await publishLayout(db, saved.id, { publishedBy: opts.adminId });
 
   const sectionsConverted = mapped.length;

@@ -1,117 +1,117 @@
 /**
  * Tests for useAdminSidebar — the admin chrome sidebar state machine.
  *
+ * After the audit-polish refactor (session 161 round 2), userPref persists
+ * via `useCookie` (not localStorage) — this eliminates the SSR/CSR hydration
+ * flash where the sidebar would start expanded then snap to collapsed on
+ * the first client tick. Tests mock `useCookie` to a ref-backed shim.
+ *
  * Coverage:
- *   - Default state (not collapsed) when no localStorage + non-editor route
- *   - localStorage hydration on mount (true / false / missing)
- *   - localStorage write on toggle from non-editor route
- *   - Editor routes auto-collapse without writing to localStorage
- *   - Session override on editor route survives within the route, resets on
- *     route change
+ *   - Default state (not collapsed) when no cookie + non-editor route
+ *   - Cookie-backed userPref hydrates correctly on first render
+ *   - Toggle on non-editor route updates the cookie (which Nuxt syncs)
+ *   - Editor routes auto-collapse without writing the cookie
+ *   - Session override on editor route survives within the route, resets
+ *     on route change
  *   - Mobile drawer state independent of desktop collapse
- *   - SSR safety: composable doesn't touch window/localStorage during setup
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ref, nextTick, type Ref } from 'vue';
 import { useAdminSidebar } from '../useAdminSidebar';
 
-// Nuxt auto-imports we need to shim: useRoute + useState.
-// (Vue's primitives are auto-imported by test-setup.ts.)
+// Nuxt auto-imports we shim: useRoute, useState, useCookie.
+// (Vue's primitives come from test-setup.ts.)
 const routePath = ref('/admin');
 const useRouteMock = vi.fn(() => ({
   get path() { return routePath.value; },
 }));
 
 // useState is a globally-keyed singleton in Nuxt; tests need a fresh store
-// per test so the composable doesn't carry state across cases. Crucially,
-// we hand back real Vue refs — otherwise the `computed` inside the
-// composable won't track changes to .value (Vue tracks refs, not plain
-// objects with a .value property).
+// per test so the composable doesn't carry state across cases. Hand back
+// real Vue refs — `computed` only tracks real refs, not plain `{ value }`.
 let stateStore: Map<string, Ref<unknown>>;
 const useStateMock = vi.fn(<T>(key: string, init: () => T) => {
   if (!stateStore.has(key)) stateStore.set(key, ref(init()) as Ref<unknown>);
   return stateStore.get(key) as Ref<T>;
 });
 
+// useCookie shim: ref-backed, mirrors the Nuxt API surface we use
+// (key + { default } → Ref). Cookie store reset per test.
+let cookieStore: Map<string, Ref<unknown>>;
+const useCookieMock = vi.fn(<T>(key: string, opts?: { default?: () => T }) => {
+  if (!cookieStore.has(key)) {
+    cookieStore.set(key, ref(opts?.default?.() ?? null) as Ref<unknown>);
+  }
+  return cookieStore.get(key) as Ref<T>;
+});
+
 const g = globalThis as Record<string, unknown>;
-let originalOnMounted: unknown;
 
 beforeEach(() => {
   stateStore = new Map();
+  cookieStore = new Map();
   routePath.value = '/admin';
   g.useRoute = useRouteMock;
   g.useState = useStateMock;
-  // Replace onMounted with a synchronous executor so the composable's
-  // hydration logic runs immediately when called outside a component.
-  // (Real onMounted no-ops + warns when there's no setup() context.)
-  originalOnMounted = g.onMounted;
-  g.onMounted = (fn: () => void) => fn();
-  window.localStorage.clear();
+  g.useCookie = useCookieMock;
 });
 
 afterEach(() => {
   // vi.clearAllMocks() — clears call history but preserves implementations.
-  // vi.restoreAllMocks() would wipe the module-level useRouteMock/useStateMock
-  // impls (vi.fn(impl)), breaking every subsequent test in the file.
+  // vi.restoreAllMocks() would wipe the module-level mocks (vi.fn(impl)),
+  // breaking every subsequent test in the file.
   vi.clearAllMocks();
   delete g.useRoute;
   delete g.useState;
-  g.onMounted = originalOnMounted;
+  delete g.useCookie;
 });
 
 describe('useAdminSidebar — defaults', () => {
-  it('is not collapsed on /admin with no localStorage', () => {
+  it('is not collapsed on /admin with no cookie', () => {
     const s = useAdminSidebar();
     expect(s.desktopCollapsed.value).toBe(false);
     expect(s.isEditorRoute.value).toBe(false);
     expect(s.mobileOpen.value).toBe(false);
   });
+
+  it('uses the cookie default function (false) when cookie not set', () => {
+    const s = useAdminSidebar();
+    expect(cookieStore.get('cpub-admin-sidebar-collapsed')?.value).toBe(false);
+    expect(s.desktopCollapsed.value).toBe(false);
+  });
 });
 
-describe('useAdminSidebar — localStorage hydration', () => {
-  it('hydrates userPref=true from localStorage', () => {
-    window.localStorage.setItem('cpub-admin-sidebar-collapsed', 'true');
+describe('useAdminSidebar — cookie-backed userPref', () => {
+  it('hydrates userPref=true from the cookie (no flash — SSR sees the value)', () => {
+    // Pre-seed the cookie BEFORE constructing the composable, mimicking
+    // a request that arrives with a Cookie: header.
+    cookieStore.set('cpub-admin-sidebar-collapsed', ref(true));
     const s = useAdminSidebar();
     expect(s.desktopCollapsed.value).toBe(true);
   });
 
-  it('hydrates userPref=false from localStorage', () => {
-    window.localStorage.setItem('cpub-admin-sidebar-collapsed', 'false');
+  it('hydrates userPref=false from the cookie', () => {
+    cookieStore.set('cpub-admin-sidebar-collapsed', ref(false));
     const s = useAdminSidebar();
     expect(s.desktopCollapsed.value).toBe(false);
-  });
-
-  it('ignores bogus localStorage values (default stays false)', () => {
-    window.localStorage.setItem('cpub-admin-sidebar-collapsed', 'not-a-bool');
-    const s = useAdminSidebar();
-    expect(s.desktopCollapsed.value).toBe(false);
-  });
-
-  it('survives a localStorage that throws on read (private mode, sandboxed iframe)', () => {
-    const spy = vi.spyOn(window.localStorage, 'getItem').mockImplementation(() => {
-      throw new Error('SecurityError: localStorage denied');
-    });
-    const s = useAdminSidebar();
-    expect(s.desktopCollapsed.value).toBe(false); // default
-    spy.mockRestore();
   });
 });
 
-describe('useAdminSidebar — toggle on non-editor route persists', () => {
-  it('writes "true" to localStorage on toggle-to-collapsed', () => {
+describe('useAdminSidebar — toggle on non-editor route persists via cookie', () => {
+  it('updates the cookie ref on toggle-to-collapsed', () => {
     const s = useAdminSidebar();
     expect(s.desktopCollapsed.value).toBe(false);
     s.toggleDesktop();
     expect(s.desktopCollapsed.value).toBe(true);
-    expect(window.localStorage.getItem('cpub-admin-sidebar-collapsed')).toBe('true');
+    expect(cookieStore.get('cpub-admin-sidebar-collapsed')?.value).toBe(true);
   });
 
-  it('writes "false" to localStorage on toggle-to-expanded', () => {
+  it('toggles back to false on the second click', () => {
     const s = useAdminSidebar();
-    s.toggleDesktop(); // -> true
-    s.toggleDesktop(); // -> false
+    s.toggleDesktop(); // → true
+    s.toggleDesktop(); // → false
     expect(s.desktopCollapsed.value).toBe(false);
-    expect(window.localStorage.getItem('cpub-admin-sidebar-collapsed')).toBe('false');
+    expect(cookieStore.get('cpub-admin-sidebar-collapsed')?.value).toBe(false);
   });
 });
 
@@ -143,13 +143,13 @@ describe('useAdminSidebar — editor route auto-collapse', () => {
     expect(s.isEditorRoute.value).toBe(false);
   });
 
-  it('toggle on editor route uses session override, does NOT write to localStorage', () => {
+  it('toggle on editor route uses session override, does NOT touch the cookie', () => {
     routePath.value = '/admin/layouts/L1';
     const s = useAdminSidebar();
     expect(s.desktopCollapsed.value).toBe(true); // auto-collapsed
     s.toggleDesktop(); // expand manually for this visit
     expect(s.desktopCollapsed.value).toBe(false);
-    expect(window.localStorage.getItem('cpub-admin-sidebar-collapsed')).toBeNull();
+    expect(cookieStore.get('cpub-admin-sidebar-collapsed')?.value).toBe(false); // still default
   });
 
   it('navigating away from editor route clears the session override', async () => {
