@@ -71,8 +71,9 @@ other. CommonPub changes that:
 | **Interactive explainers** | Scroll-driven sections with quizzes, progress tracking, gating, self-contained HTML export. |
 | **Federation** | Full ActivityPub: follows, content delivery, hub federation, content mirroring, signed backfill, OAuth2 SSO across trusted instances. |
 | **Products + BOM** | Hub-scoped product catalog. Projects auto-link via parts lists — your project shows up on the product's page across instances. |
-| **Theming** | 5 built-in themes (base, dark, generics, agora, agora-dark), CSS custom property system, runtime switching, SSR-safe with zero FOUC. |
-| **Admin** | User management, role hierarchy, content moderation, audit logs, instance settings, runtime feature-flag overrides, **configurable navigation**, **configurable homepage sections**, federation controls. |
+| **Theming** | 5 built-in themes (base, dark, generics, agora, agora-dark), CSS custom property system, runtime switching, SSR-safe with zero FOUC. Admin theme editor at `/admin/theme/edit/[id]` (session 154+156). |
+| **Layout engine** | Visual editor at `/admin/layouts` and `/admin/layouts/[id]`. 17 section types arranged across rows in a 12-column grid; supports route layouts, custom pages (`/about`, `/team`), and virtual zones. Auto-save with optimistic concurrency (If-Match → 409 conflict modal). Admin-only; gated on `features.layoutEngine`. Phase 3a editor shipped session 160 + 4 audit rounds. |
+| **Admin** | User management, role hierarchy, content moderation, audit logs, instance settings, runtime feature-flag overrides, **configurable navigation**, **configurable homepage sections** (legacy editor, now non-destructively syncs with the layout engine), **layout engine** for page editing, federation controls. |
 
 **17 feature flags** (+ 5 nested `identity` sub-flags) let you enable only what you need. See
 [`codebase-analysis/08-feature-flags-inventory.md`](./codebase-analysis/08-feature-flags-inventory.md)
@@ -190,28 +191,28 @@ See [`codebase-analysis/01-monorepo-topology.md`](./codebase-analysis/01-monorep
 
 ## Packages
 
-All 12 published to npm as `@commonpub/*`. Latest versions as of 2026-05-19 (session 149):
+All 12 published to npm as `@commonpub/*`. Latest versions as of 2026-05-28 (session 160 close):
 
 | Package | Version | Purpose |
 |---|---|---|
-| [`@commonpub/schema`](packages/schema/README.md) | 0.16.0 | 79 Drizzle tables, 41 enums, 50+ Zod validators |
-| [`@commonpub/config`](packages/config/README.md) | 0.13.0 | `defineCommonPubConfig()` factory, 17 feature flags (+5 identity sub-flags) |
-| [`@commonpub/server`](packages/server/README.md) | 2.54.3 | Framework-agnostic business logic (20+ modules, transactions, lifecycle hooks) |
-| [`@commonpub/protocol`](packages/protocol/README.md) | 0.11.0 | ActivityPub types, HTTP signatures, WebFinger, NodeInfo, OAuth2, SSRF-safe fetch |
+| [`@commonpub/schema`](packages/schema/README.md) | 0.17.0 | 80+ Drizzle tables (incl. `layouts`/`layout_rows`/`layout_sections`/`layout_versions`), 41 enums, 50+ Zod validators |
+| [`@commonpub/config`](packages/config/README.md) | 0.15.0 | `defineCommonPubConfig()` factory, 17 feature flags (+5 identity sub-flags) |
+| [`@commonpub/server`](packages/server/README.md) | 2.58.0 | Framework-agnostic business logic (20+ modules incl. `src/layout/*` CRUD, transactions, lifecycle hooks) |
+| [`@commonpub/protocol`](packages/protocol/README.md) | 0.12.0 | ActivityPub types, HTTP signatures, WebFinger, NodeInfo, OAuth2, SSRF-safe fetch |
 | [`@commonpub/auth`](packages/auth/README.md) | 0.6.0 | Better Auth wrapper, guards, AP Actor SSO (Model B) |
-| [`@commonpub/ui`](packages/ui/README.md) | 0.8.5 | 22 headless Vue 3 components, 5 themes, CSS token system |
-| [`@commonpub/editor`](packages/editor/README.md) | 0.7.10 | TipTap extensions, 20 block types, BlockTuple serialization |
+| [`@commonpub/ui`](packages/ui/README.md) | 0.9.0 | 22 headless Vue 3 components + SectionRegistry/SectionDefinition (Phase 3a layout engine), 5 themes, CSS token system |
+| [`@commonpub/editor`](packages/editor/README.md) | 0.7.11 | TipTap extensions, 20 block types, BlockTuple serialization |
 | [`@commonpub/docs`](packages/docs/README.md) | 0.6.3 | Markdown pipeline, versioning, navigation, search adapters |
 | [`@commonpub/explainer`](packages/explainer/README.md) | 0.7.15 | Interactive sections, quiz engine, progress tracking, HTML export |
 | [`@commonpub/learning`](packages/learning/README.md) | 0.5.2 | Learning path engine, progress calculation, certificates |
-| [`@commonpub/infra`](packages/infra/README.md) | 0.7.1 | S3/local storage (DO Spaces CDN), image processing, email adapters, security |
+| [`@commonpub/infra`](packages/infra/README.md) | 0.8.0 | S3/local storage (DO Spaces CDN), image processing, email adapters, security |
 | [`@commonpub/test-utils`](packages/test-utils/README.md) | 0.5.6 | Test factories and mock configuration |
 
 Plus the layer itself:
 
 | Package | Version | Purpose |
 |---|---|---|
-| `@commonpub/layer` | 0.21.14 | Shared Nuxt layer — pages, components, API routes, middleware, theme |
+| `@commonpub/layer` | 0.24.0 | Shared Nuxt layer — pages, components, API routes, middleware, theme. Phase 3a layout editor (`/admin/layouts`) shipped session 160 + 4 audit rounds. |
 
 ---
 

@@ -2,7 +2,7 @@
 
 > DB-stored, admin-editable page layouts composed from a registry of section components. Powers the homepage today (Phase 1c); future phases extend to hub pages, blog indexes, the footer, the 404, and admin-authored custom pages.
 
-**Status**: Phase 1c (session 158). Feature-flagged OFF by default — `features.layoutEngine`. Operators flip ON per-instance after running the homepage seed endpoint.
+**Status**: Phase 3a editor shell shipped + 4 audit rounds (session 160). Feature-flagged OFF by default — `features.layoutEngine`. Operators flip ON per-instance, then either auto-migrate (legacy editor saves trigger a one-time non-destructive sync) or use the explicit "Migrate homepage to layout" CTA on `/admin/layouts`. Phase 1c (session 158) shipped the runtime (`<LayoutSlot>`, CRUD, public endpoint). Phase 3a (session 160) shipped the visual editor at `/admin/layouts/[id]` + page-meta inspector + auto-save with optimistic concurrency + 3-option conflict modal.
 
 **Source**:
 - Schema: `packages/schema/src/layout.ts` (Drizzle tables) + `packages/schema/src/validators.ts` (`layoutScopeSchema`, `layoutSchema`, `layoutCreateSchema`, `layoutSectionSchema`, `layoutRowSchema`, `layoutZoneSchema`, `pageMetaSchema`, `sectionVisibilitySchema`, `sectionResponsiveSchema`)
@@ -44,7 +44,7 @@ layouts (1)  →  layout_rows (N per zone)  →  layout_sections (N per row)
 
 ## Section registry — what an admin can drop on a page
 
-Built-in sections shipped today (Phase 1c full catalog — 11 sections + divider proof-of-life):
+Built-in sections shipped today (17 total — Phase 1c catalog + 5 Phase 6b additions in Stage C, session 159):
 
 | Type slug | Category | Default colSpan | Resizable | Notes |
 |---|---|---|---|---|
@@ -53,7 +53,12 @@ Built-in sections shipped today (Phase 1c full catalog — 11 sections + divider
 | `heading` | content | 12 (min 3) | yes | h1–h4 + optional eyebrow + subline. Align left/center |
 | `paragraph` | content | 6 (min 3) | yes | Plain prose, blank-line split into `<p>`. Phase 3e upgrades to TipTap subset via `.describe('rich')` |
 | `image` | content | 12 (min 3) | yes | `<img>` lazy-loaded, optional `<a href>` wrap, optional caption. Fit + aspect ratio |
-| `custom-html` | content | 12 (min 3) | yes | **`status: 'beta'`** — admin-only raw HTML escape hatch. Renders via `v-html` without runtime sanitisation; matches legacy `CustomHtmlSection.vue` security baseline. Phase 6b adds DOMPurify at admin-write |
+| `gallery` | content | 12 (min 6) | yes | 2–5 column image grid, 5 aspect ratios, 20-item cap. URL guards on src + href. Lightbox via `data-lightbox-id` hook (Phase 10) |
+| `video` | content | 12 (min 6) | yes | Dispatches between `<video>` (local file/.mp4) and `<iframe>` (YouTube/Vimeo via `utils/embedUrl`). Restrictive sandbox; autoplay → muted |
+| `embed` | embed | 12 (min 6) | yes | **`status: 'beta'`** — generic sandboxed iframe with hardcoded host allowlist (twitter/x, github, codepen, loom, jsfiddle, figma, glitch, replit, youtube, vimeo). Per-instance override planned via `instance_settings.embedAllowlist` |
+| `markdown` | content | 12 (min 6) | yes | Sanitised via `@commonpub/docs renderMarkdown` (remark + rehype-sanitize). Server-side render via `useAsyncData`; safer than `custom-html` |
+| `custom-html` | embed | 12 (min 3) | yes | **`status: 'beta'`** — admin-only raw HTML escape hatch. Renders via `v-html` without runtime sanitisation; matches legacy `CustomHtmlSection.vue` security baseline. Phase 6b adds DOMPurify at admin-write |
+| `cta` | interactive | 12 (min 6) | yes | Heading + body + up to 3 buttons (variants: default/contrast/minimal). URL guard on hrefs |
 | `content-feed` | data | 12 (min 6) | yes | Server-backed grid of `<ContentCard>`. Filters: type / sort / limit / tag / featured. 1–4 cols responsive |
 | `editorial` | data | 12 (min 6) | yes | Staff Picks grid — `/api/content?editorial=true&sort=editorial`. 1–4 cols responsive |
 | `stats` | data | 4 (min 3) | yes | Platform stats: Projects / Posts / Members / Hubs (hubs cell gated on `features.hubs`). Card layout, sidebar-friendly default |
@@ -61,9 +66,9 @@ Built-in sections shipped today (Phase 1c full catalog — 11 sections + divider
 | `contests` | data | 4 (min 3) | yes | Active contests with `Nd left` countdown + Enter CTA. Feature-gated upstream on `features.contests` |
 | `learning` | data | 12 (min 6) | yes | Learning paths grid (cover image + difficulty + duration + enrollment). Feature-gated upstream on `features.learning` |
 
-All section types the legacy `homepage.sections` renderer dispatched to (`HomepageSectionRenderer.vue`) are now representable as registered sections. The real legacy-homepage migration script (`instance_settings.homepage.sections` → `layouts` row) is unblocked.
+All section types the legacy `homepage.sections` renderer dispatched to (`HomepageSectionRenderer.vue`) are now representable as registered sections.
 
-Phase 6b will add the remaining 18 types (gallery, video, embed, spacer, cta, featured-content, content-card, contest-list, hub-list, event-list, member-list, stats-grid, contact-form, newsletter, announcement, markdown, iframe, content-grid alias). See `docs/plans/layout-and-pages.md` §3.4.
+Phase 6b will add the remaining 13 types (spacer, featured-content, content-card, contest-list, hub-list, event-list, member-list, stats-grid, contact-form, newsletter, announcement, iframe, content-grid alias). See `docs/plans/layout-and-pages.md` §3.4.
 
 ---
 
@@ -230,3 +235,87 @@ For data-driven sections (today: `content-feed`), the test stubs `useFetch` to c
 - **Forgot to invalidate the cache on a new admin write route**: the handlers-contract test catches this — assertion message points at the offending file. Import from `server/utils/layoutCache`, not from `api/layouts/by-route.get`.
 - **Layer's local `FeatureFlags` interface and `@commonpub/config`'s drift apart**: when adding a new flag, update BOTH `packages/config/src/types.ts` AND `layers/base/composables/useFeatures.ts` (the layer mirror, including `DEFAULT_FLAGS` + the destructure). Session 157 missed this; session 158 fixed it for `layoutEngine`.
 - **Tried to seed via `INSERT INTO layouts ...` directly**: don't — `saveLayout` is transactional + generates UUIDs + creates the version row + validates. The `seedHomepageLayout` helper wraps it.
+
+---
+
+## Operator runbook (session 160 additions)
+
+### Three paths into the `layouts` table
+
+Three distinct entry points exist for getting a layout into the database — pick by your starting state.
+
+| Path | When | Endpoint / Trigger | Behavior |
+|---|---|---|---|
+| **Seed** | Fresh instance, no legacy data | `POST /api/admin/layouts/seed-homepage` | Creates a stub homepage layout (hero + content-feed) if NONE exists. Idempotent — returns `{created:false}` if a layout already exists. Used in developer setup + the create-commonpub CLI scaffolder. |
+| **Migrate** | Existing instance with `instance_settings.homepage.sections` JSON | `POST /api/admin/layouts/migrate-homepage` OR the "Migrate homepage to layout" CTA on `/admin/layouts` (R3 audit) | Converts the legacy JSON into a layout row matching the live homepage. Skip-if-exists by default; `{force: true}` deletes and recreates (destructive — kills publish history; R4 deferred work to use saveLayout-by-id instead). |
+| **Auto-sync** | Existing instance, operator still edits `/admin/homepage` | Hook in `PUT /api/admin/homepage/sections` (R4 audit changed `force: true → false`) | First save creates the layout (idempotent, non-destructive). Subsequent saves DO NOT touch the layout — preserves bespoke layout-engine edits. |
+
+### Fresh-instance flow
+
+1. `docker compose up -d` (Postgres + Redis + Meilisearch)
+2. `pnpm install && pnpm build`
+3. Run migrations: `cd apps/reference && pnpm exec drizzle-kit migrate` (applies 0001 through 0005)
+4. Set environment: `NUXT_PUBLIC_FEATURES_LAYOUT_ENGINE=true` (see [[feedback-nuxt-env-only-declared-keys]])
+5. Start the server: `pnpm dev`
+6. Open `/admin/layouts` → empty state → click **"Migrate homepage to layout"** → operator's stub layout appears
+
+### Existing-instance flow (`instance_settings.homepage.sections` populated)
+
+1. Apply migration 0005: `pnpm exec drizzle-kit migrate` — adds 4 tables
+2. Flip the flag: `NUXT_PUBLIC_FEATURES_LAYOUT_ENGINE=true` and restart
+3. Either: hit the **"Migrate homepage to layout"** CTA on `/admin/layouts` once → layout created from current legacy sections
+4. Or: just save any change in `/admin/homepage` once with the flag on → auto-sync creates the layout (non-destructive after R4)
+5. Open the new layout in `/admin/layouts/[id]` → bespoke edits from this point forward are preserved against subsequent legacy saves
+
+### Rollback
+
+| Scenario | Action |
+|---|---|
+| Editor regresses | `DELETE FROM layouts WHERE scope_type='route' AND scope_key='/'` — auto-fallback to legacy renderer kicks in within 60s (cache TTL) |
+| Flag flip-off | `NUXT_PUBLIC_FEATURES_LAYOUT_ENGINE=false` + restart → public endpoint returns 404 → catch-all + homepage v-if fall back to legacy. Migration 0005 stays in place. |
+| Permanent revert | Drop the tables: `DROP TABLE layout_versions, layout_sections, layout_rows, layouts CASCADE;` then drizzle-kit's status will show migration 0005 as pending. Re-apply on flag flip-on. |
+
+### Cache + concurrency model
+
+- **Cache**: Per-pod in-memory `Map` with **60s TTL** and **1000-entry bounded LRU** (R4 fix). Key trifurcated by tier: `admin:<path>` / `members:<path>` / `anon:<path>` (R3 fix prevents draft + access-restricted layouts leaking across tiers).
+- **Invalidation**: every write handler calls `invalidateLayoutsByRouteCache()` — full clear. The handlers-contract test locks this across all 7 write handlers.
+- **Multi-pod note**: each pod has its own cache, so after a write the other pods serve the previous version for up to 60s. Acceptable for v1; Phase 10 replaces with ETag-based revalidation.
+- **Optimistic concurrency**: the editor sends `If-Match: <updatedAt>` on every save (R2). Server returns 409 on mismatch + `{code: 'LAYOUT_CONFLICT'}`. The client surfaces a 3-option modal (Reload their version / Keep editing here / Overwrite their changes).
+- **Single-flight save**: client-side guard prevents parallel `save()` calls from sending PUTs with the same stale If-Match (R2 fix).
+
+### Access tiers + draft visibility
+
+- `state === 'draft'` → only `admin` users see the payload via `/api/layouts/by-route`. Non-admins see null (P0 R2 fix).
+- `pageMeta.access === 'public'` → anyone sees it (default)
+- `pageMeta.access === 'members'` → only authenticated users see it
+- `pageMeta.access === 'admin'` → only admins see it (R3 added server-side enforcement parallel to the catch-all's client check)
+
+Combined: `admin && state==='draft'` is the only path to draft visibility. Cache key bifurcation prevents cross-tier leak.
+
+### Audit / forensic trail
+
+All 7 destructive admin paths emit structured stdout audit logs prefixed `cpub.audit.layout.*`. Greppable:
+
+```bash
+docker logs commonpub-app-1 2>&1 | grep cpub.audit.layout
+```
+
+| Event | Triggered by | Fields |
+|---|---|---|
+| `cpub.audit.layout.create` | POST `/api/admin/layouts` | `adminId, layoutId, scope, name, state` |
+| `cpub.audit.layout.delete` | DELETE `/api/admin/layouts/[id]` | `adminId, layoutId, scope, name, state` |
+| `cpub.audit.layout.force-save` | PUT `/api/admin/layouts/[id]` with `X-Cpub-Force-Save: 1` header (the "Overwrite their changes" modal action) | `adminId, layoutId, scope, previousUpdatedAt` |
+| `cpub.audit.layout.publish` | POST `/api/admin/layouts/[id]/publish` | `adminId, layoutId, scope, versionId` |
+| `cpub.audit.layout.revert` | POST `/api/admin/layouts/[id]/versions/[versionId]/revert` | `adminId, layoutId, scope, versionId` |
+| `cpub.audit.layout.seed-homepage` | POST `/api/admin/layouts/seed-homepage` (only when result.created === true) | `adminId, layoutId` |
+| `cpub.audit.layout.migrate-homepage` | POST `/api/admin/layouts/migrate-homepage` | `adminId, migrated, force, layoutId, reason` |
+
+### Homepage scope is special
+
+Deleting the `('route', '/')` layout requires the `X-Cpub-Confirm-Homepage-Delete: 1` header (R4 fix). The list-page UI sets it after a SECOND confirm() — admin sees two prompts when deleting the homepage layout (defense in depth against direct API calls).
+
+### Validation contracts
+
+Per-section configSchema enforcement at the API boundary is currently **DEFERRED** — the validator (`layers/base/server/utils/validateSectionConfigs.ts`) is implemented + tested but un-wired because the registry import transitively pulls `.vue` components which Nitro's server bundle can't parse. Proper fix in `docs/sessions/160-audit-round2-deep.md`: move per-section Zod schemas to `@commonpub/schema` (server-safe), then wire the validator. Residual risk while deferred: admin can craft section.config to bypass URL guards / size caps / sandbox flags. Mitigated by admin-only auth + audit logs.
+
+Top-level `layoutCreateSchema` (`packages/schema/src/validators.ts`) enforces overall shape + array bounds (R2 fix): zones `.max(16)`, rows `.max(200)` per zone, sections `.max(24)` per row.

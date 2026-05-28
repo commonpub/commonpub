@@ -123,6 +123,7 @@ What federates via ActivityPub and what stays instance-local:
 | Contests | No | — | Instance-local; judging workflow |
 | Videos | No | — | Instance-local; category management |
 | Messages | No | — | Instance-local; DMs stay on-instance |
+| Layouts | No | — | Instance-local; `layouts`/`layout_rows`/`layout_sections`/`layout_versions` tables never serialize through `@commonpub/protocol`. Session 160 R4 audit verified zero refs. |
 
 Content type protection: federated feeds filter by `config.instance.contentTypes` so unsupported types don't leak into an instance's UI. The `cpub:type` extension preserves type identity across CommonPub instances. Non-CommonPub instances (Mastodon, Lemmy) see all content as generic Article.
 

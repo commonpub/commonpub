@@ -43,6 +43,7 @@ const published = await getContentBySlug(db, 'my-project', userId, 'alice');
 | `profile` | User profile updates |
 | `security` | CSP builder, security headers |
 | `oauthCodes` | Authorization code store with TTL |
+| `layout` | Layout engine CRUD — `listLayouts`, `getLayoutByScope`, `getLayoutById`, `saveLayout` (transactional whole-layout replace), `deleteLayout`, `publishLayout` (snapshots into `layout_versions`), `listLayoutVersions`, `revertToVersion`, `seedHomepageLayout` (idempotent bootstrap), `migrateHomepageSectionsToLayout` (legacy JSON → layout row), `pathNormalize`, `validateCustomPageScope` |
 
 ## Dependencies
 

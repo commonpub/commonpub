@@ -7,11 +7,124 @@ monorepo working period. For session-level detail, see [`docs/sessions/`](./docs
 
 ---
 
-## Unreleased (sessions 108–150, through 2026-05-19)
+## Unreleased (sessions 108–160, through 2026-05-28)
 
-Monorepo state at time of writing: schema 0.16.0, server 2.55.0, config 0.13.0,
-layer 0.21.15, ui 0.8.5, protocol 0.12.0, editor 0.7.10, explainer 0.7.15,
+Monorepo state at time of writing: schema **0.17.0**, server **2.58.0**, config **0.15.0**,
+layer **0.24.0** (commonpub.io serves from workspace `main` at `946820c`; heatsync + deveco
+still on npm `0.24.0`), ui **0.9.0**, protocol 0.12.0, editor 0.7.11, explainer 0.7.15,
 learning 0.5.2, docs 0.6.3, auth 0.6.0, infra 0.8.0, test-utils 0.5.6.
+
+### Session 160 Phase 3a layout editor + 4 audit rounds (2026-05-28)
+
+**SHIPPED**: visual layout editor at `/admin/layouts` + `/admin/layouts/[id]` (admin-only,
+gated on `features.layoutEngine`). Three-column shell — palette / canvas / inspector — with
+page-meta form, viewport segmented control (mobile/tablet/desktop preview), Save + Discard +
+Publish buttons, save indicator with relative timestamp ("Saved · 2m ago"), and a 3-option
+conflict modal (Reload their version / Keep editing here / Overwrite their changes) on 409.
+
+Auto-save with debounced PUT (1.5s), `If-Match: <updatedAt>` optimistic concurrency
+(server returns 409 on mismatch), single-flight save guard (closure-promise pattern prevents
+parallel PUTs with stale If-Match), `visibilitychange` flush on tab-hide, and
+`beforeunload` + `onBeforeRouteLeave` guards on in-app navigation.
+
+**Final commit on `main`**: `946820c`. Layer tests **196 → 264** (+68 across the session +
+4 audit rounds). Schema tests +9 (R2 added ogImage scheme refine + zones/rows/sections
+`.max()` bounds). Server tests unchanged at 1125 + 3 skipped (R4 `assembleLayout` `inArray`
+fix exercised by existing coverage).
+
+**4 audit rounds caught + fixed 20 real bugs**:
+- R1 UX polish: cursor lie on inert palette tiles, WCAG `--yellow` contrast fail on the
+  Modified state pill, conflict modal focus-on-mount (`watch immediate`), bare-saved trust
+  signal → "Saved · 2m ago" relative time, visibility-change save flush, 28×28 touch
+  targets, empty-state CTA pattern from Carbon. See `docs/sessions/160-audit-godmode.md`.
+- R2 security/correctness: **P0** draft layouts leaked to anonymous users via
+  `/api/layouts/by-route` (pre-existing from Phase 1c); ogImage accepted `javascript:` /
+  `data:` / `file:` schemes; save re-entry + visibility-flush races; no array `.max()`
+  bounds; no audit logs. Plus build-break recovery (validateSectionConfigs registry
+  transitive `.vue` import). Per-section configSchema enforcement deferred — wired-but-
+  rolled-back, validator file kept as dormant infrastructure. See
+  `docs/sessions/160-audit-round2-deep.md`.
+- R3 operational: `/admin/layouts` invisible in admin sidebar (user-reported empirically);
+  misleading "Migrate homepage layout" CTA went to legacy `/admin/homepage` not the
+  migration endpoint; `frame` `<select>` in inspector was a UI lie (no effect); server-side
+  `pageMeta.access` enforcement gap → 3-way cache tier bifurcation
+  (`admin:<path>` / `members:<path>` / `anon:<path>`); 5 missing audit logs
+  (create/publish/revert/migrate/seed); mobile editor stack order put palette first.
+  See `docs/sessions/160-audit-round3-ops.md`.
+- R4 DB/perf/edge cases: **P0** `assembleLayout` ran full table scan on every layout fetch
+  (`SELECT * FROM layout_sections` with no WHERE) — added `inArray(rowId, sectionRowIds)`
+  + index range lookup; **P0** legacy `/admin/homepage` save destroyed bespoke layout-
+  engine edits + publish history via `force: true` auto-sync — flipped to `force: false`
+  + added deprecation banner; bounded LRU layout cache (1000 entries) to prevent
+  unbounded-Map DOS; `onBeforeRouteLeave` + `beforeunload` guards; homepage-DELETE requires
+  `X-Cpub-Confirm-Homepage-Delete: 1` header; Discard button wired to the previously-
+  implemented-but-unwired `useLayoutEditor.discard()`. See `docs/sessions/160-audit-round4-deep.md`.
+
+**3 new feedback memories captured for future editor work**:
+- `feedback-visual-editor-ux-patterns` — R1 UX patterns + 10 anti-patterns from
+  Linear/Notion/Figma/Webflow/Strapi/dnd-kit/WCAG synthesis
+- `feedback-editor-security-patterns` — R2 patterns + 5 anti-patterns
+- `feedback-editor-db-perf-patterns` — R4 patterns (Drizzle indexes only used with WHERE
+  clause, force-replace destroys cascade history, bounded LRU one-Map worth of code, etc.)
+
+**Deferred to session 161** (in `docs/sessions/161-handoff-prompt.md`): per-section
+configSchema enforcement (Path B: move schemas to `@commonpub/schema`, 1 session) OR
+Phase 3b drag-drop (Path A: 2 sessions, wires `grid-layout-plus@1.1.1` +
+`@vue-dnd-kit/core@2.4.6` already installed; selection model + Pinia undo store).
+
+### Session 159 Phase 1c canary + Stage E unification (2026-05-27)
+
+`@commonpub/layer` **0.24.0**, `@commonpub/server` **2.58.0**: commonpub.io homepage
+renders via `<LayoutSlot>` using EXISTING Block + Homepage components instead of duplicate
+Section*.vue renderers. Caught + reversed the "I built parallel renderers" mistake from
+sessions 158-9 — 16 duplicate Section*.vue files deleted. New `propMap` field on
+`SectionDefinition` lets the registry adapt to existing component prop shapes. Plus the
+`useLayout` query-function bug fix (`computed(() => ({ path: pathGetter() }))` instead of
+`{ path: pathGetter }` which serialised to `?path=undefined`) + the Nuxt-env-only-declared-
+keys fix in `runtimeConfig.public.features`.
+
+### Session 158 Phase 1c part 1 — sections + admin write API + homepage adoption (2026-05-26)
+
+`@commonpub/layer` 0.23.3 (after 4 hotfix rounds), `@commonpub/server` 2.57.0,
+`@commonpub/config` 0.15.0: 5 starter sections (hero/heading/paragraph/image/content-feed),
+9 admin `/api/admin/layouts/*` routes, `seedHomepageLayout` server helper, 3-way `v-if`
+on `pages/index.vue`, URL XSS guard. Per-pod cache invalidation hardened. 1003 → 1024
+layer tests + 21 PGlite tests covering server CRUD.
+
+### Session 157 hotfix 0.22.1 + Phase 1 server + scaffolding (2026-05-26)
+
+`@commonpub/layer` 0.22.1 hotfix (dark/light theme toggle bug + 8 audit fixes from user
++ deep-audit pass). Same session: Phase 1 layout engine server CRUD (520 LOC + 21 PGlite
+tests), `features.layoutEngine` flag (default OFF), `/api/layouts/by-route` endpoint,
+`<LayoutSlot>` Vue component, section registry scaffolding + divider proof-of-life
+section. **`simple-git-hooks` pre-push hook installed** — runs `pnpm typecheck` before
+every push (vue-tsc strict vs vitest gotcha pattern from session 156 closed structurally).
+
+### Session 156 theme editor SHIPPED (2026-05-26)
+
+Published all 5 packages from session 154: `@commonpub/schema` **0.17.0**,
+`@commonpub/config` **0.14.0**, `@commonpub/ui` **0.9.0**, `@commonpub/server` **2.56.0**,
+`@commonpub/layer` **0.22.0**. Editor at `/admin/theme/edit/[id]`. New feedback memories:
+`feedback-vue-tsc-strict-vs-vitest` (CI's `pnpm typecheck` catches what vitest+esbuild
+misses) + `feedback-caret-semver-0x-minor-bump` (`pnpm update` silently won't cross
+`0.21 → 0.22` boundary; hand-edit consumer package.json).
+
+### Session 155 layout foundation (2026-05-26)
+
+`docs/plans/layout-and-pages.md` (1342 lines — architectural design doc). Phase 0.5 test
+gap fill + Phase 1 foundations: Drizzle tables (`layouts`, `layout_rows`, `layout_sections`,
+`layout_versions`), migration 0005, Zod validators, section registry types in
+`@commonpub/ui`. Consumer code (server CRUD, `<LayoutSlot>`, etc.) shipped session 158.
+
+### Session 154 admin theme editor (2026-05-26)
+
+DB-stored custom themes + config-registered themes + capture-from-`:root` + pluggable
+preview scenes. **Published in session 156** (see above). Editor at `/admin/theme/edit/[id]`.
+LLM ref at `docs/reference/guides/theme-editor.md`.
+
+### Sessions 151-153
+
+Smaller polish + fix sessions. See `docs/sessions/` for individual logs if needed.
 
 ### Session 150 federation-hardening Stage 3 wrap — Items 4 + 8 + 9 (+ F1, F2)
 

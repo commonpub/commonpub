@@ -2,7 +2,8 @@
 
 **Date**: 2026-05-27 → 2026-05-28
 **Branch**: `main` (commonpub.io workspace)
-**Final layer head**: `e60ff26`
+**Final layer head (post-3a.8)**: `e60ff26`
+**Final layer head (post-audit)**: `946820c` — after 4 post-shipping audit rounds (see "Post-3a.8: 4 audit rounds" section below)
 
 ## What was done
 
@@ -96,3 +97,32 @@ Phase 3a of the layout editor ([docs/plans/phase-3-editor.md](../plans/phase-3-e
 - `docs/plans/layout-engine-rollout.md` — Stage D ✅; Stage E (3b drag-drop) is the next queue
 - `docs/plans/layout-and-pages.md` — §7 (editor UX) is the design source of truth; §7.13 (auto-save) + §7.14 (undo) drove 3a.6 + 3b
 - Memories used: [[feedback-reuse-existing-components]], [[feedback-no-coauthor]], [[feedback-vue-tsc-strict-vs-vitest]], [[feedback-deploy-health-check-warn-not-fail]], [[feedback-nuxt-pathprefix-components]], [[feedback-usefetch-query-function]]
+
+---
+
+## Post-3a.8: 4 audit rounds (R1-R4)
+
+This main session log covers Phase 3a.1-3a.8 ending at commit `e60ff26` with 196 layer tests. After 3a.8 closed, four post-shipping audit rounds caught + fixed **20 real bugs** (9 self-introduced, 1 pre-existing P0 from Phase 1c, 5 R3 ops findings, 5 R4 DB/perf findings). The editor's actual final state is **commit `946820c` with 264 layer tests**.
+
+| Round | Focus | Bugs caught | Doc |
+|---|---|---|---|
+| R1 | UX polish — web-research synthesis from Linear/Notion/Figma/Webflow/Strapi/dnd-kit/WCAG | 3 self (cursor lie, WCAG contrast, modal focus) | [`160-audit-godmode.md`](./160-audit-godmode.md) |
+| R2 | Security + correctness — parallel agents for auth/XSS/CSRF + race conditions | 5 (1 pre-existing P0 draft leak + 4 self: ogImage scheme, save race, no bounds, no audit log) + 1 build break recovery | [`160-audit-round2-deep.md`](./160-audit-round2-deep.md) |
+| R3 | Operational — sidebar nav (user-reported empirically!), migrate CTA, frame UI lie, access tier, 5 missing audit logs, mobile order | 6 | (in commit `a4135c5` message + [`160-audit-round3-ops.md`](./160-audit-round3-ops.md)) |
+| R4 | DB + perf + edge cases — parallel agents for queries/transactions + edge cases | 5 (2 P0s: `assembleLayout` full table scan + legacy /admin/homepage destroying layout-engine edits; plus nav guards, bounded LRU, homepage-DELETE confirm, Discard button) | [`160-audit-round4-deep.md`](./160-audit-round4-deep.md) |
+
+**Memories left for future editor work** (all indexed in MEMORY.md):
+- `feedback-visual-editor-ux-patterns` — R1 patterns + 10 anti-patterns
+- `feedback-editor-security-patterns` — R2 patterns + 5 anti-patterns
+- `feedback-editor-db-perf-patterns` — R4 patterns
+- (R3 had no separate feedback memory — operational fixes captured in commit messages)
+
+**Final test counts** (corrects the R1-era table above):
+| Package | Phase 3a end | After R4 | Delta |
+|---|---|---|---|
+| `@commonpub/layer` | 196 | **264** | **+68** |
+| `@commonpub/schema` | baseline | +9 | new ogImage refine + array bounds tests |
+| `@commonpub/server` | 1125 | 1125 | unchanged (R4 `inArray` fix exercised by existing coverage) |
+| `pnpm typecheck` | 26/26 | 26/26 | held stable |
+
+**Handoff**: see [`docs/sessions/161-handoff-prompt.md`](./161-handoff-prompt.md) — picks between Phase 3b drag-drop (2 sessions) and the schema-package refactor (1 session, unblocks R2's deferred per-section validation).

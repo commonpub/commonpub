@@ -2,7 +2,7 @@
 
 > **Living document.** Update as each stage completes. Source of truth for "what's next" during autonomous execution sessions.
 
-**Last updated**: session 159 (canary live on commonpub.io, holding for soak per user direction)
+**Last updated**: session 160 (Phase 3a editor shell shipped + 4 audit rounds; final head `946820c`, 264 layer tests). Next: Phase 3b drag-drop (2 sessions) or schema-package refactor (1 session, unblocks R2's deferred per-section validation) per `docs/sessions/161-handoff-prompt.md`.
 **Architectural source**: `docs/plans/layout-and-pages.md` (1342 lines — the design doc, frozen)
 
 ---
@@ -105,9 +105,15 @@ Goal: admin can SEE the layout in the editor, edit page meta, save + publish.
 - [x] **D5**: Toolbar with viewport toggle + save indicator + publish ✓ commit d7ab0b9
 - [x] **D6**: Auto-save scaffolding (1.5s debounce + If-Match → 409 → conflict modal) ✓ commit e60ff26
 
-**End state (session 160, post-audit)**: commonpub.io on workspace main (6bc33c8). Editor available at `/admin/layouts` + `/admin/layouts/[id]`. heatsync + deveco untouched (npm 0.24.0 dormant). Layer tests 183 → 213 (+30: LayoutSlot 5, useLayoutAutoSave 9, useLayoutEditor 14, If-Match contract 2). Server tests 1125 (no count change). Typecheck 26/26.
+**End state (session 160 close — post-4-audit-rounds)**: commonpub.io on workspace main (`946820c`). Editor available at `/admin/layouts` + `/admin/layouts/[id]`. heatsync + deveco untouched (npm 0.24.0 dormant). Layer tests 196 → **264** (+68 across phase 3a + 4 audit rounds). Schema +9 tests. Server tests 1125 (no count change; R4 perf fix exercised by existing coverage). Typecheck 26/26.
 
-**Session 160 god-mode audit + polish** (post-3a.8): web-research synthesis of best-practice patterns from Linear/Notion/Figma/Webflow/Framer/Strapi/Sanity/Carbon/Cloudscape/GitLab/Primer/dnd-kit/React Aria/XWiki + cruft scan. 6 priority-1 fixes shipped (cursor fix, conflict modal redesign, Modified state pill, touch targets, save timestamp, visibility flush). Full audit + decisions + deferred items at `docs/sessions/160-audit-godmode.md`.
+**Session 160 four audit rounds** (post-3a.8):
+- **R1 UX polish** — web-research synthesis from Linear/Notion/Figma/Webflow/Framer/Strapi/Sanity/Carbon/Cloudscape/GitLab/Primer/dnd-kit/React Aria/XWiki + cruft scan. 6 priority-1 fixes (cursor lie, conflict modal redesign, Modified state pill, touch targets, save timestamp, visibility flush) + 3 self-caught bugs (WCAG yellow contrast, modal focus-on-mount, build-break recovery). Doc: `docs/sessions/160-audit-godmode.md`.
+- **R2 security + correctness** — parallel agents for auth/XSS/CSRF + race conditions. **P0 draft leak** (pre-existing from Phase 1c!) on `/api/layouts/by-route` fixed via 2-way cache bifurcation. P1 ogImage scheme bypass, save re-entry race (single-flight guard), array `.max()` bounds, structured stdout audit logs (`cpub.audit.layout.*` on delete + force-save). Per-section configSchema validation DEFERRED — validator implemented + 5 tests passing but wiring broke Nitro build (transitive `.vue` import from registry); proper fix is schema-package refactor. Doc: `docs/sessions/160-audit-round2-deep.md`.
+- **R3 operational** — discoverability + operator UX audit. **User reported empirically** that `/admin/layouts` was invisible in admin sidebar; agent independently found same finding. Fixed: sidebar nav added with `v-if="layoutEngine"`, misleading "Migrate" CTA now actually fires migration endpoint, `frame` `<select>` disabled + Phase 4 badge (was a UI lie), 3-way cache tier bifurcation for `pageMeta.access` enforcement, 5 missing audit logs (create/publish/revert/migrate/seed), mobile editor canvas-first DOM order + <640px phone banner. Doc: `docs/sessions/160-audit-round3-ops.md`.
+- **R4 DB + perf + edge cases** — parallel agents for DB layer + edge cases. **P0 `assembleLayout` full table scan** (one-line drizzle fix: `inArray(rowId, sectionRowIds)`). **P0 legacy `/admin/homepage` data loss** — auto-sync ran `force: true` which destroyed bespoke layout-engine edits + entire publish history; flipped to `force: false` + deprecation banner. Bounded LRU (1000 entries), `onBeforeRouteLeave` + `beforeunload` guards, homepage-DELETE requires `X-Cpub-Confirm-Homepage-Delete` header, Discard button wired. Doc: `docs/sessions/160-audit-round4-deep.md`.
+
+**Total bugs caught + fixed across 4 rounds**: 20 (9 self-introduced + 1 pre-existing P0 from Phase 1c + 5 R3 + 5 R4).
 
 ### Stage E — Phase 3b: drag-drop
 

@@ -36,7 +36,8 @@ import { createContentItemSchema, updateUserProfileSchema } from '@commonpub/sch
 | `contest`    | `contests`, `contestEntries`                                                                 | Contest/competition system                 |
 | `files`      | `files`                                                                                      | File upload tracking                       |
 | `enums`      | (none)                                                                                       | Shared PostgreSQL enums                    |
-| `validators` | (none)                                                                                       | Zod schemas for input validation           |
+| `layout`     | `layouts`, `layout_rows`, `layout_sections`, `layout_versions`                              | Layout engine — DB-stored page layouts composed from a section registry. Phase 3a editor shipped session 160. Instance-local (never federates). |
+| `validators` | (none)                                                                                       | Zod schemas for input validation (includes `layoutSchema`, `layoutCreateSchema`, `layoutSectionSchema`, `layoutRowSchema`, `layoutZoneSchema`, `pageMetaSchema`) |
 
 ## Enums
 
