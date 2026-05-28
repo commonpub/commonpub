@@ -3,17 +3,26 @@
  * Conflict resolution modal — appears when the server returns 409
  * on a save (another admin edited the layout in the same window).
  *
- * Phase 3a.6 ships two options:
- *   - "Refresh" — re-fetch from server; LOCAL CHANGES LOST
- *   - "Force save" — re-send PUT without If-Match (overwrites)
+ * Phase 3a.6 ships THREE options (per session-160 UX audit — the
+ * two-option pattern forces a misclick risk; the safe-middle option
+ * lets the user step back without committing):
+ *   - "Reload their version" — re-fetch from server; LOCAL CHANGES LOST.
+ *     This is the default-focused safe action.
+ *   - "Keep editing here" — closes the modal; the user can copy text
+ *     out or decide later. Sticky banner reminds them they're in conflict.
+ *   - "Overwrite their changes" — re-send PUT without If-Match; their
+ *     edits are lost. Styled destructive; not at button-peer level with
+ *     the safe options (right side, red border).
  *
- * A real diff view (showing what changed on the server side) is
- * deferred to Phase 7 (versioning UI). For v1 the operator-quality
- * choice (read-current vs force-overwrite) is enough — both paths
- * surface the conflict + give the admin agency.
+ * Per UX research synthesis (Notion/XWiki/Webflow patterns): "Force
+ * save" terminology is bureaucratic and doesn't name the consequence.
+ * "Overwrite their changes" names what actually happens. A real block-
+ * level diff is deferred to Phase 7 (versioning UI).
  */
 
-defineProps<{
+import { ref, watch, nextTick, onMounted, onBeforeUnmount } from 'vue';
+
+const props = defineProps<{
   /** Show/hide the modal. */
   open: boolean;
   /** Optional error message from the server. */
@@ -25,6 +34,37 @@ const emit = defineEmits<{
   (e: 'force-save'): void;
   (e: 'close'): void;
 }>();
+
+// Focus the safe primary action when the modal opens. WCAG dialog
+// pattern: initial focus on the recommended-action button so screen
+// readers + keyboard users land on the safe choice, not the destructive
+// one. (Tab can still walk to the destructive button after.)
+const primaryBtn = ref<HTMLButtonElement | null>(null);
+watch(() => props.open, async (isOpen) => {
+  if (isOpen) {
+    await nextTick();
+    primaryBtn.value?.focus();
+  }
+});
+
+// Esc to dismiss (per dialog ARIA pattern). The :open guard makes this
+// a no-op when the modal is closed; listener attached on client mount only.
+function onKeydown(e: KeyboardEvent): void {
+  if (props.open && e.key === 'Escape') {
+    e.preventDefault();
+    emit('close');
+  }
+}
+onMounted(() => {
+  if (typeof window !== 'undefined') {
+    window.addEventListener('keydown', onKeydown);
+  }
+});
+onBeforeUnmount(() => {
+  if (typeof window !== 'undefined') {
+    window.removeEventListener('keydown', onKeydown);
+  }
+});
 </script>
 
 <template>
@@ -44,32 +84,41 @@ const emit = defineEmits<{
         <header class="cpub-admin-layouts-conflict-header">
           <i class="fa-solid fa-triangle-exclamation cpub-admin-layouts-conflict-icon"></i>
           <h2 id="cpub-admin-layouts-conflict-title" class="cpub-admin-layouts-conflict-title">
-            Conflict
+            Version conflict
           </h2>
         </header>
         <div id="cpub-admin-layouts-conflict-body" class="cpub-admin-layouts-conflict-body">
-          <p>{{ message ?? 'Another admin edited this layout while you were working.' }}</p>
+          <p>{{ message ?? 'Another admin saved this layout while you were editing.' }}</p>
           <p class="cpub-admin-layouts-conflict-body-hint">
-            <strong>Refresh</strong> pulls the latest from the server and discards your changes.
-            <strong>Force save</strong> overwrites the server with your draft. Choose carefully.
+            Reload their version (recommended) — or keep your edits visible so you can copy what
+            you need before deciding. Overwriting their changes is destructive and final.
           </p>
         </div>
         <footer class="cpub-admin-layouts-conflict-footer">
           <button
+            ref="primaryBtn"
             type="button"
-            class="cpub-admin-layouts-conflict-btn"
+            class="cpub-admin-layouts-conflict-btn cpub-admin-layouts-conflict-btn--primary"
             @click="emit('refresh')"
           >
             <i class="fa-solid fa-arrows-rotate"></i>
-            <span>Refresh — lose my changes</span>
+            <span>Reload their version</span>
+          </button>
+          <button
+            type="button"
+            class="cpub-admin-layouts-conflict-btn"
+            @click="emit('close')"
+          >
+            <i class="fa-solid fa-pause"></i>
+            <span>Keep editing here</span>
           </button>
           <button
             type="button"
             class="cpub-admin-layouts-conflict-btn cpub-admin-layouts-conflict-btn--danger"
             @click="emit('force-save')"
           >
-            <i class="fa-solid fa-cloud-arrow-up"></i>
-            <span>Force save — overwrite server</span>
+            <i class="fa-solid fa-arrow-up-from-bracket"></i>
+            <span>Overwrite their changes</span>
           </button>
         </footer>
       </div>
@@ -155,6 +204,16 @@ const emit = defineEmits<{
 }
 .cpub-admin-layouts-conflict-btn:hover { background: var(--surface2); }
 .cpub-admin-layouts-conflict-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.cpub-admin-layouts-conflict-btn--primary {
+  background: var(--accent);
+  color: var(--surface);
+  border-color: var(--accent);
+}
+.cpub-admin-layouts-conflict-btn--primary:hover {
+  background: var(--accent);
+  filter: brightness(1.1);
+  color: var(--surface);
+}
 .cpub-admin-layouts-conflict-btn--danger {
   color: var(--red);
   border-color: var(--red);

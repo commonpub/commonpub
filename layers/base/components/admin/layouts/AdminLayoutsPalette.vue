@@ -47,9 +47,9 @@ const grouped = computed(() => {
 <template>
   <aside class="cpub-admin-layouts-palette" aria-label="Section palette">
     <header class="cpub-admin-layouts-palette-header">
-      <h2 class="cpub-admin-layouts-palette-title">Sections</h2>
+      <h2 class="cpub-admin-layouts-palette-title">Sections available</h2>
       <p class="cpub-admin-layouts-palette-hint">
-        Drag-and-drop arrives in the next release.
+        Catalog of section types your layouts can use. Drag-to-insert ships next release.
       </p>
     </header>
 
@@ -130,11 +130,16 @@ const grouped = computed(() => {
   padding: var(--space-2) var(--space-3);
   background: var(--surface2);
   border: 1px solid var(--border2);
-  cursor: grab;
+  /* Cursor is `default` — NOT `grab`. Drag-to-insert ships in Phase 3b.
+     Per Smashing 2021 + UX research synthesis (session 160 audit): a
+     grab cursor on a tile whose pointerdown is a no-op is the single
+     most common "this UI lies" pattern. The tile is a read-only label
+     for now; the cursor must reflect that. The "coming soon" hint
+     lives in the palette header text instead. */
   user-select: none;
 }
 .cpub-admin-layouts-palette-tile:hover {
-  border-color: var(--accent);
+  border-color: var(--border);
   background: var(--surface);
 }
 .cpub-admin-layouts-palette-tile[data-section-status='deprecated'] { opacity: 0.5; }

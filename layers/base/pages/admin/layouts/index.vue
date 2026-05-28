@@ -93,14 +93,23 @@ const sortedLayouts = computed<LayoutRecord[]>(() => {
     </div>
 
     <template v-else-if="sortedLayouts.length === 0">
+      <!--
+        Empty state — single icon + headline + one-line description +
+        single primary action, per Carbon + Mobbin SaaS empty-state
+        synthesis. Skipping illustration on purpose: the sharp-corner +
+        mono UI label aesthetic reads as intentional with just text.
+      -->
       <div class="cpub-admin-layouts-empty">
-        <i class="fa-regular fa-folder-open cpub-admin-layouts-empty-icon"></i>
-        <p class="cpub-admin-layouts-empty-text">No layouts yet.</p>
+        <i class="fa-regular fa-folder-open cpub-admin-layouts-empty-icon" aria-hidden="true"></i>
+        <h2 class="cpub-admin-layouts-empty-text">No layouts yet</h2>
         <p class="cpub-admin-layouts-empty-hint">
-          Migrate the legacy homepage via
-          <NuxtLink to="/admin/homepage" class="cpub-admin-layouts-empty-link">/admin/homepage</NuxtLink>
-          or create a custom page from the API.
+          Layouts arrange sections — hero, feed, blocks — into reusable page templates.
+          Start by migrating your homepage.
         </p>
+        <NuxtLink to="/admin/homepage" class="cpub-admin-layouts-empty-cta">
+          <i class="fa-solid fa-house" aria-hidden="true"></i>
+          <span>Migrate homepage layout</span>
+        </NuxtLink>
       </div>
     </template>
 
@@ -170,13 +179,35 @@ const sortedLayouts = computed<LayoutRecord[]>(() => {
 
 .cpub-admin-layouts-empty {
   display: flex; flex-direction: column; align-items: center;
-  gap: var(--space-3); padding: var(--space-8);
+  gap: var(--space-3); padding: var(--space-10) var(--space-6);
   background: var(--surface2); border: var(--border-width-default) solid var(--border2);
+  max-width: 560px;
+  margin: 0 auto;
+  text-align: center;
 }
 .cpub-admin-layouts-empty-icon { font-size: var(--text-3xl); color: var(--text-faint); }
-.cpub-admin-layouts-empty-text { font-size: var(--text-lg); color: var(--text); margin: 0; }
-.cpub-admin-layouts-empty-hint { color: var(--text-dim); margin: 0; }
-.cpub-admin-layouts-empty-link { color: var(--accent); text-decoration: underline; }
+.cpub-admin-layouts-empty-text {
+  font-size: var(--text-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text);
+  margin: 0;
+}
+.cpub-admin-layouts-empty-hint { color: var(--text-dim); margin: 0 0 var(--space-2) 0; max-width: 44ch; }
+.cpub-admin-layouts-empty-cta {
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  background: var(--accent);
+  border: var(--border-width-default) solid var(--accent);
+  color: var(--surface);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  text-decoration: none;
+  margin-top: var(--space-2);
+}
+.cpub-admin-layouts-empty-cta:hover { filter: brightness(1.1); }
+.cpub-admin-layouts-empty-cta:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 .cpub-admin-layouts-table {
   width: 100%; border-collapse: collapse;

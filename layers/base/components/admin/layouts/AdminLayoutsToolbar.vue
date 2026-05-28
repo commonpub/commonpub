@@ -20,6 +20,8 @@
  */
 import type { LayoutRecord } from '@commonpub/server';
 
+import { onMounted, onBeforeUnmount, ref, watch } from 'vue';
+
 const props = defineProps<{
   /** Layout name (read from draft so renames show live). */
   layoutName: string;
@@ -33,7 +35,73 @@ const props = defineProps<{
   dirty: boolean;
   /** Friendly error text (only shown when saveStatus==='error'). */
   errorMessage: string | null;
+  /** ISO timestamp of the last successful save — drives "Saved · 2m ago". */
+  lastSavedAt?: string | null;
 }>();
+
+// Relative-time string for the save indicator. Updates every 30s so the
+// "Saved · 5s ago" indicator stays current without manual refresh.
+// Per UX research synthesis (session 160 audit): the relative time IS
+// the trust signal — a bare "Saved" without context erodes user
+// confidence ("did my LAST edit save, or one from earlier?").
+const now = ref<number>(Date.now());
+let nowTimer: ReturnType<typeof setInterval> | null = null;
+onMounted(() => {
+  nowTimer = setInterval(() => { now.value = Date.now(); }, 30_000);
+});
+onBeforeUnmount(() => {
+  if (nowTimer) clearInterval(nowTimer);
+});
+
+function relativeTime(iso: string | null | undefined, ref: number): string {
+  if (!iso) return '';
+  const t = new Date(iso).getTime();
+  if (Number.isNaN(t)) return '';
+  const deltaSec = Math.max(0, Math.round((ref - t) / 1000));
+  if (deltaSec < 5) return 'just now';
+  if (deltaSec < 60) return `${deltaSec}s ago`;
+  const m = Math.round(deltaSec / 60);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.round(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return new Date(iso).toLocaleDateString();
+}
+
+const savedAgo = computed<string>(() => relativeTime(props.lastSavedAt, now.value));
+
+/**
+ * Effective state for the pill — adopts the Strapi 3-state model:
+ *   - 'draft': never been published
+ *   - 'published': live, no pending changes
+ *   - 'modified': live, has un-published draft edits
+ * The Modified state is the one most CMSs hide. Surfacing it explicitly
+ * gives the admin a clear mental model of "what's live vs what's drafted."
+ * Per UX research synthesis (session 160 audit).
+ */
+const effectiveState = computed<'draft' | 'published' | 'modified'>(() => {
+  if (props.state === 'published' && props.dirty) return 'modified';
+  return props.state;
+});
+
+const STATE_LABELS: Record<'draft' | 'published' | 'modified', string> = {
+  draft: 'draft',
+  published: 'published',
+  modified: 'modified',
+};
+
+/** Publish button copy adapts to context per the Strapi model. */
+const publishLabel = computed<string>(() => {
+  if (effectiveState.value === 'modified') return 'Publish changes';
+  if (effectiveState.value === 'published') return 'Republish';
+  return 'Publish';
+});
+
+/** Publish is disabled when there's nothing meaningful to publish — i.e.,
+ * the layout is already live and there are no draft edits. (Republish
+ * still works, but only via the explicit menu in a later phase.) */
+const publishDisabled = computed<boolean>(() => {
+  return props.saveStatus === 'saving' || effectiveState.value === 'published';
+});
 
 const emit = defineEmits<{
   (e: 'update:viewport', value: 'mobile' | 'tablet' | 'desktop'): void;
@@ -46,6 +114,8 @@ const indicatorText = computed<string>(() => {
   if (props.saveStatus === 'conflict') return 'Conflict';
   if (props.saveStatus === 'error') return props.errorMessage ?? 'Save failed';
   if (props.dirty) return 'Unsaved changes';
+  // Saved + relative time — "Saved · 2m ago" is the trust signal
+  if (props.lastSavedAt) return savedAgo.value ? `Saved · ${savedAgo.value}` : 'Saved';
   if (props.saveStatus === 'saved') return 'Saved';
   return '';
 });
@@ -73,7 +143,10 @@ const VIEWPORTS: Array<{ value: 'mobile' | 'tablet' | 'desktop'; icon: string; l
 
     <div class="cpub-admin-layouts-toolbar-title">
       <span class="cpub-admin-layouts-toolbar-name">{{ layoutName || '—' }}</span>
-      <span class="cpub-admin-layouts-toolbar-state" :data-state="state">{{ state }}</span>
+      <span
+        class="cpub-admin-layouts-toolbar-state"
+        :data-state="effectiveState"
+      >{{ STATE_LABELS[effectiveState] }}</span>
     </div>
 
     <div
@@ -120,11 +193,11 @@ const VIEWPORTS: Array<{ value: 'mobile' | 'tablet' | 'desktop'; icon: string; l
       <button
         type="button"
         class="cpub-admin-layouts-toolbar-btn cpub-admin-layouts-toolbar-btn--primary"
-        :disabled="saveStatus === 'saving'"
+        :disabled="publishDisabled"
         @click="emit('publish')"
       >
         <i class="fa-solid fa-cloud-arrow-up"></i>
-        <span>Publish</span>
+        <span>{{ publishLabel }}</span>
       </button>
     </div>
   </header>
@@ -183,6 +256,10 @@ const VIEWPORTS: Array<{ value: 'mobile' | 'tablet' | 'desktop'; icon: string; l
   color: var(--accent);
   border-color: var(--accent);
 }
+.cpub-admin-layouts-toolbar-state[data-state='modified'] {
+  color: var(--yellow);
+  border-color: var(--yellow);
+}
 
 .cpub-admin-layouts-toolbar-viewport {
   display: inline-flex;
@@ -193,6 +270,11 @@ const VIEWPORTS: Array<{ value: 'mobile' | 'tablet' | 'desktop'; icon: string; l
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  /* WCAG 2.5.8 AA — 24×24 minimum target. We use 28×28 (the GitHub
+     Primer "small" segmented-control spec) as a buffer + comfort
+     adjustment. The visible icon stays ~14px; padding pads the hit area. */
+  min-width: 28px;
+  min-height: 28px;
   padding: var(--space-1) var(--space-2);
   background: transparent;
   border: 0;

@@ -1,10 +1,14 @@
 /**
  * useLayoutAutoSave — debounced auto-save for the layout editor.
  *
- * Phase 3a.6. Watches a dirty flag; when it flips true, waits
- * `debounceMs` (default 1500 per docs/plans/layout-and-pages.md
- * §7.13) then calls save. Further edits within the window reset
- * the timer.
+ * Phase 3a.6 + session-160 audit polish. Two complementary triggers:
+ *   1. Debounce: watch a dirty flag; on first dirt, wait `debounceMs`
+ *      (default 1500 per docs/plans/layout-and-pages.md §7.13) then
+ *      save. Further edits within the window reset the timer.
+ *   2. Visibility-change flush: when the tab becomes hidden (Cmd+Tab,
+ *      tab close intent, minimize) and the draft is dirty, fire an
+ *      immediate save. This is the safety net for users who edit
+ *      then close the tab during the debounce window.
  *
  * Caller (the editor page) owns:
  *   - the dirty ref (from useLayoutEditor)
@@ -13,10 +17,15 @@
  *     catches it; auto-save itself just swallows + lets the
  *     editor.status reflect the result
  *
+ * Per UX research synthesis (session 160 audit): debounce alone loses
+ * data when the user Cmd-W's during the window; blur alone misses
+ * idle-keyboard edits; both together gives a "nothing was lost"
+ * mental model.
+ *
  * The composable returns a `cancel()` for tests + manual pause; the
  * timer is automatically cleared on component unmount.
  */
-import { onBeforeUnmount, watch, type ComputedRef, type Ref } from 'vue';
+import { onBeforeUnmount, onMounted, watch, type ComputedRef, type Ref } from 'vue';
 
 export interface UseLayoutAutoSaveOptions {
   /** Reactive dirty flag — when true, schedule a save. */
@@ -63,7 +72,42 @@ export function useLayoutAutoSave(opts: UseLayoutAutoSaveOptions): UseLayoutAuto
     { flush: 'post' },
   );
 
-  onBeforeUnmount(cancel);
+  /**
+   * Visibility-change flush: when the tab is being hidden AND the draft
+   * is dirty, cancel the pending debounce and save IMMEDIATELY. This
+   * protects against data loss when the user Cmd+Tab's or closes the
+   * tab during the debounce window.
+   *
+   * `document.visibilityState === 'hidden'` fires reliably across modern
+   * browsers (per CanIUse: 100% support). The save() call is async and
+   * returns a promise that we don't await — the browser may not give
+   * us time to finish, but firing the request is better than not. For
+   * REAL safety we'd use navigator.sendBeacon, but that requires a
+   * different server endpoint shape; deferred to a later polish.
+   */
+  function onVisibilityChange(): void {
+    if (typeof document === 'undefined') return;
+    if (document.visibilityState !== 'hidden') return;
+    if (opts.paused?.value) return;
+    // Only flush if there's a pending dirty save
+    const isDirty = (opts.dirty as { value: boolean }).value;
+    if (!isDirty) return;
+    cancel();
+    void opts.save().catch(() => { /* handled */ });
+  }
+
+  onMounted(() => {
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', onVisibilityChange);
+    }
+  });
+
+  onBeforeUnmount(() => {
+    cancel();
+    if (typeof document !== 'undefined') {
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    }
+  });
 
   return { cancel };
 }

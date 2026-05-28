@@ -133,6 +133,7 @@ async function onConflictForceSave(): Promise<void> {
         :save-status="editor.status.value"
         :dirty="editor.dirty.value"
         :error-message="editor.errorMessage.value"
+        :last-saved-at="editor.original.value?.updatedAt ?? null"
         @update:viewport="viewport = $event"
         @save="onSave"
         @publish="onPublish"

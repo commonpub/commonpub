@@ -144,6 +144,51 @@ describe('useLayoutAutoSave', () => {
     expect(save).toHaveBeenCalledTimes(1);
     // No unhandled rejection — vitest would surface it via process.on if so.
     host.unmount();
+  });
 
+  // Audit polish (session 160): visibility-change flush.
+  it('flushes immediately on visibilitychange to hidden when dirty', async () => {
+    const dirty = ref(true);
+    const save = vi.fn().mockResolvedValue(undefined);
+    const host = render(hostFactory({ dirty, save, debounceMs: 100_000 })); // huge debounce so timer doesn't fire
+
+    // Simulate tab being hidden
+    Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true });
+    document.dispatchEvent(new Event('visibilitychange'));
+    await Promise.resolve();
+    expect(save).toHaveBeenCalledTimes(1);
+
+    // Reset back to visible
+    Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true });
+    host.unmount();
+  });
+
+  it('does NOT flush on visibilitychange to hidden when not dirty', async () => {
+    const dirty = ref(false);
+    const save = vi.fn().mockResolvedValue(undefined);
+    const host = render(hostFactory({ dirty, save, debounceMs: 100_000 }));
+
+    Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true });
+    document.dispatchEvent(new Event('visibilitychange'));
+    await Promise.resolve();
+    expect(save).not.toHaveBeenCalled();
+
+    Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true });
+    host.unmount();
+  });
+
+  it('does NOT flush on visibilitychange when paused', async () => {
+    const dirty = ref(true);
+    const paused = ref(true);
+    const save = vi.fn().mockResolvedValue(undefined);
+    const host = render(hostFactory({ dirty, paused, save, debounceMs: 100_000 }));
+
+    Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true });
+    document.dispatchEvent(new Event('visibilitychange'));
+    await Promise.resolve();
+    expect(save).not.toHaveBeenCalled();
+
+    Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true });
+    host.unmount();
   });
 });
