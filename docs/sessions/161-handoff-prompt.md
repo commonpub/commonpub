@@ -140,6 +140,7 @@ Closes R2's deferred P1. Validator (`layers/base/server/utils/validateSectionCon
 - `migrate-homepage` with `force: true` still destroys layout versions (R4 — fix path: use `saveLayout(... { id })` instead of delete+create)
 
 **P2 (UX + perf)**:
+- **Admin sidebar collapsible on desktop** (user-reported 2026-05-28): `layers/base/layouts/admin.vue` sidebar is fixed-width on desktop (the `sidebarOpen` ref only toggles the mobile drawer). On `/admin/layouts/[id]` the editor's 3-column palette/canvas/inspector gets squeezed into ~50% viewport width — canvas content wraps and content-card thumbnails clip ("VIDEO/AYBACK SYSTE" cut off). Fix: add a desktop collapse toggle that shrinks the sidebar to icons-only (~56px) with the labels hidden + tooltip on hover. Persist the collapsed state to `localStorage` keyed `cpub.admin.sidebar.collapsed`. Bonus: auto-collapse on first visit to `/admin/layouts/[id]` + `/admin/theme/edit/[id]` (and any future editor routes) so the canvas gets max width by default. Keep mobile drawer behavior intact. WCAG: toggle is `<button aria-expanded>`, focus-visible ring, keyboard reachable.
 - LayoutRecord → LayoutPayload type narrow (R2)
 - Inspector storm + dirty cost at N=50+ sections (R2)
 - `pagehide` + `navigator.sendBeacon` for tab close (R2)
