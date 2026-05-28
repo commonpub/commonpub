@@ -57,12 +57,15 @@ export default defineEventHandler(async (event): Promise<PublicLayoutSlice | nul
 
   const { path } = parseQueryParams(event, layoutsByRoutePathSchema);
 
-  // P0 (session 160 audit): admins see drafts; everyone else sees only
-  // published layouts. Cache key bifurcates on this so admin draft
-  // payloads don't leak to anonymous requesters on the same path.
+  // Session 160 audit: admins see drafts + admin-access layouts;
+  // members see published members-and-public layouts; anonymous only
+  // sees public published layouts. Cache key trifurcates on the
+  // requester's access tier so a layout served to a higher tier can't
+  // leak via cache to a lower tier on the same path.
   const user = getOptionalUser(event);
   const isAdmin = user?.role === 'admin';
-  const cacheKey = isAdmin ? `admin:${path}` : `public:${path}`;
+  const tier: 'admin' | 'members' | 'anon' = isAdmin ? 'admin' : user ? 'members' : 'anon';
+  const cacheKey = `${tier}:${path}`;
 
   const hit = getLayoutCacheEntry<PublicLayoutSlice>(cacheKey);
   const now = Date.now();
@@ -78,13 +81,27 @@ export default defineEventHandler(async (event): Promise<PublicLayoutSlice | nul
 
   const layout = await getLayoutByScope(db, scope);
 
-  // Draft-leak guard: a non-admin must NOT see a layout whose state is
-  // 'draft'. Returning null surfaces as "no layout for this route" to
-  // the catch-all + the homepage v-if fallback — the legacy renderer
-  // takes over, exactly matching the pre-publish behavior the design
-  // promised.
+  // Multi-guard returns null when ANY check fails:
+  //   1. Draft-leak guard (audit round 2 P0): a non-admin must NOT see
+  //      a layout whose state is 'draft'.
+  //   2. pageMeta.access guard (audit round 3): if pageMeta.access ===
+  //      'admin', only admins see the payload. The catch-all page does
+  //      a parallel client-side check, but the SERVER is the trust
+  //      boundary — a malicious authenticated user could hit this
+  //      endpoint directly and exfiltrate admin-only layout payloads.
+  //   3. pageMeta.access === 'members': any authenticated user passes;
+  //      anonymous see null (catch-all redirects to /auth/login).
+  // Returning null surfaces as "no layout for this route" to the
+  // catch-all + the homepage v-if fallback.
+  const access = layout?.pageMeta?.access ?? 'public';
+  const isAuthenticated = !!user;
+  const accessOk =
+    access === 'public' ||
+    (access === 'members' && isAuthenticated) ||
+    (access === 'admin' && isAdmin);
+
   const value: PublicLayoutSlice | null =
-    layout && (isAdmin || layout.state === 'published')
+    layout && accessOk && (isAdmin || layout.state === 'published')
       ? {
           zones: layout.zones,
           pageMeta: layout.pageMeta,

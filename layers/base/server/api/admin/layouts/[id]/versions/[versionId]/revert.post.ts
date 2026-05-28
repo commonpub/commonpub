@@ -31,6 +31,17 @@ export default defineEventHandler(async (event) => {
 
   try {
     const reverted = await revertToVersion(db, id, versionId, { userId: admin.id });
+
+    // Audit log (round 3): revert overwrites current state with a prior
+    // snapshot — destructive transformation, deserves forensic trail.
+    console.info('cpub.audit.layout.revert', JSON.stringify({
+      at: new Date().toISOString(),
+      adminId: admin.id,
+      layoutId: id,
+      scope: existing.scope,
+      versionId,
+    }));
+
     invalidateLayoutsByRouteCache();
     return reverted;
   } catch (e) {

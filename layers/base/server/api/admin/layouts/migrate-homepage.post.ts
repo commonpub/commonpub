@@ -49,6 +49,18 @@ export default defineEventHandler(async (event) => {
     force,
   });
 
+  // Audit log (round 3): migrate-homepage is the one-time destructive
+  // transformation that lifts an instance from the legacy renderer to
+  // the layout engine. Forensic trail for "the migration ate my homepage".
+  console.info('cpub.audit.layout.migrate-homepage', JSON.stringify({
+    at: new Date().toISOString(),
+    adminId: admin.id,
+    migrated: result.migrated,
+    force,
+    layoutId: (result as { layoutId?: string }).layoutId ?? null,
+    reason: (result as { reason?: string }).reason ?? null,
+  }));
+
   if (result.migrated) {
     invalidateLayoutsByRouteCache();
   }

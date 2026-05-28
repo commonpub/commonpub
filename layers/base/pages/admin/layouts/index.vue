@@ -43,6 +43,36 @@ function formatDate(iso: string): string {
   return d.toLocaleString();
 }
 
+// Round-3 audit fix: real migration trigger (was a misleading link to
+// the legacy editor). Wires POST /api/admin/layouts/migrate-homepage.
+const migrating = ref<boolean>(false);
+
+async function migrateHomepage(): Promise<void> {
+  if (migrating.value) return;
+  migrating.value = true;
+  try {
+    const result = await $fetch<{ migrated: boolean; reason?: string; layoutId?: string }>(
+      '/api/admin/layouts/migrate-homepage',
+      { method: 'POST', body: {} },
+    );
+    if (result.migrated) {
+      toast.success('Homepage migrated to layout engine');
+      await refresh();
+    } else if (result.reason === 'layout-already-exists') {
+      toast.show('A homepage layout already exists — opening it');
+      await refresh();
+    } else {
+      toast.show(result.reason ?? 'Migration finished');
+      await refresh();
+    }
+  } catch (err) {
+    const e = err as { statusMessage?: string; message?: string };
+    toast.error(e.statusMessage ?? e.message ?? 'Migration failed');
+  } finally {
+    migrating.value = false;
+  }
+}
+
 async function deleteLayout(layout: LayoutRecord): Promise<void> {
   if (
     !confirm(
@@ -98,18 +128,37 @@ const sortedLayouts = computed<LayoutRecord[]>(() => {
         single primary action, per Carbon + Mobbin SaaS empty-state
         synthesis. Skipping illustration on purpose: the sharp-corner +
         mono UI label aesthetic reads as intentional with just text.
+
+        Round-3 audit fix: the primary CTA now actually fires the
+        migration endpoint (POST /api/admin/layouts/migrate-homepage)
+        instead of misleading-linking to the legacy /admin/homepage editor.
       -->
       <div class="cpub-admin-layouts-empty">
         <i class="fa-regular fa-folder-open cpub-admin-layouts-empty-icon" aria-hidden="true"></i>
         <h2 class="cpub-admin-layouts-empty-text">No layouts yet</h2>
         <p class="cpub-admin-layouts-empty-hint">
           Layouts arrange sections — hero, feed, blocks — into reusable page templates.
-          Start by migrating your homepage.
+          Start by migrating your existing homepage from the legacy editor.
         </p>
-        <NuxtLink to="/admin/homepage" class="cpub-admin-layouts-empty-cta">
-          <i class="fa-solid fa-house" aria-hidden="true"></i>
-          <span>Migrate homepage layout</span>
-        </NuxtLink>
+        <button
+          type="button"
+          class="cpub-admin-layouts-empty-cta"
+          :disabled="migrating"
+          @click="migrateHomepage"
+        >
+          <i
+            :class="migrating
+              ? 'fa-solid fa-circle-notch fa-spin'
+              : 'fa-solid fa-house-circle-check'"
+            aria-hidden="true"
+          ></i>
+          <span>{{ migrating ? 'Migrating…' : 'Migrate homepage to layout' }}</span>
+        </button>
+        <p class="cpub-admin-layouts-empty-secondary">
+          Or
+          <NuxtLink to="/admin/homepage" class="cpub-admin-layouts-empty-link">edit the legacy homepage</NuxtLink>
+          first.
+        </p>
       </div>
     </template>
 
@@ -206,8 +255,16 @@ const sortedLayouts = computed<LayoutRecord[]>(() => {
   text-decoration: none;
   margin-top: var(--space-2);
 }
-.cpub-admin-layouts-empty-cta:hover { filter: brightness(1.1); }
+.cpub-admin-layouts-empty-cta:hover:not(:disabled) { filter: brightness(1.1); }
 .cpub-admin-layouts-empty-cta:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.cpub-admin-layouts-empty-cta:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.cpub-admin-layouts-empty-secondary {
+  margin: var(--space-2) 0 0 0;
+  font-size: var(--text-sm);
+  color: var(--text-faint);
+}
+.cpub-admin-layouts-empty-link { color: var(--accent); text-decoration: underline; }
 
 .cpub-admin-layouts-table {
   width: 100%; border-collapse: collapse;

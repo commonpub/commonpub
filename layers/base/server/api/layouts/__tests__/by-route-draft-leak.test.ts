@@ -41,11 +41,17 @@ describe('GET /api/layouts/by-route — draft-leak P0 guard', () => {
     );
   });
 
-  it('bifurcates the cache key on admin status (no cross-contamination)', () => {
-    // Otherwise an admin's draft-aware response could leak to an
-    // anonymous hit on the same key
-    expect(src, 'must split cache keys by admin status').toMatch(
-      /admin:[^a-z]|isAdmin\s*\?/,
+  it('trifurcates the cache key on access tier (no cross-contamination)', () => {
+    // Round-3 audit: 3-way split admin / members / anon so a
+    // higher-tier response can't leak to a lower-tier hit on the same path.
+    expect(src, 'must derive a 3-way tier for cache-key bifurcation').toMatch(
+      /tier.*admin.*members.*anon|admin.*members.*anon/s,
+    );
+  });
+
+  it('reads pageMeta.access to gate members/admin pages', () => {
+    expect(src, 'must read pageMeta.access for the access-tier guard').toMatch(
+      /pageMeta\?\.access|pageMeta\.access/,
     );
   });
 });

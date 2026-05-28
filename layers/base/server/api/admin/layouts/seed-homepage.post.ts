@@ -28,7 +28,16 @@ export default defineEventHandler(async (event) => {
   const db = useDB();
 
   const result = await seedHomepageLayout(db, { adminId: admin.id });
+
+  // Audit log (round 3): seed is idempotent but the first-call creates
+  // the initial homepage layout — significant for "when did the layout
+  // engine first come online on this instance?".
   if (result.created) {
+    console.info('cpub.audit.layout.seed-homepage', JSON.stringify({
+      at: new Date().toISOString(),
+      adminId: admin.id,
+      layoutId: (result as { layoutId?: string }).layoutId ?? null,
+    }));
     invalidateLayoutsByRouteCache();
   }
   return result;

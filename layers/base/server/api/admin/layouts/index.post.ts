@@ -68,6 +68,17 @@ export default defineEventHandler(async (event) => {
     { userId: admin.id },
   );
 
+  // Audit log (round 3): every new layout creation is forensically
+  // significant — admins creating routes/custom-pages from scratch.
+  console.info('cpub.audit.layout.create', JSON.stringify({
+    at: new Date().toISOString(),
+    adminId: admin.id,
+    layoutId: saved.id,
+    scope: saved.scope,
+    name: saved.name,
+    state: saved.state,
+  }));
+
   invalidateLayoutsByRouteCache();
   return saved;
 });

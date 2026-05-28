@@ -1,6 +1,6 @@
 <script setup lang="ts">
 const { isAdmin } = useAuth();
-const { admin: adminEnabled } = useFeatures();
+const { admin: adminEnabled, layoutEngine } = useFeatures();
 const runtimeConfig = useRuntimeConfig();
 const siteName = computed(() => (runtimeConfig.public.siteName as string) || 'CommonPub');
 const sidebarOpen = ref(false);
@@ -34,6 +34,10 @@ const sidebarOpen = ref(false);
           <NuxtLink to="/admin/audit" class="admin-nav-link" @click="sidebarOpen = false"><i class="fa-solid fa-clipboard-list"></i> Audit Log</NuxtLink>
           <NuxtLink to="/admin/theme" class="admin-nav-link" @click="sidebarOpen = false"><i class="fa-solid fa-palette"></i> Theme</NuxtLink>
           <NuxtLink to="/admin/homepage" class="admin-nav-link" @click="sidebarOpen = false"><i class="fa-solid fa-house"></i> Homepage</NuxtLink>
+          <!-- Layouts editor — gated on layoutEngine feature flag (CLAUDE.md rule #2).
+               Stays invisible until the operator flips the flag, then appears between
+               the legacy /admin/homepage editor and Navigation. Phase 3a — session 160 audit. -->
+          <NuxtLink v-if="layoutEngine" to="/admin/layouts" class="admin-nav-link" @click="sidebarOpen = false"><i class="fa-solid fa-table-cells-large"></i> Layouts</NuxtLink>
           <NuxtLink to="/admin/navigation" class="admin-nav-link" @click="sidebarOpen = false"><i class="fa-solid fa-bars"></i> Navigation</NuxtLink>
           <NuxtLink to="/admin/features" class="admin-nav-link" @click="sidebarOpen = false"><i class="fa-solid fa-toggle-on"></i> Features</NuxtLink>
           <NuxtLink to="/admin/federation" class="admin-nav-link" @click="sidebarOpen = false"><i class="fa-solid fa-globe"></i> Federation</NuxtLink>

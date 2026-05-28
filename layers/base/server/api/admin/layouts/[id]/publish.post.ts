@@ -28,6 +28,18 @@ export default defineEventHandler(async (event) => {
   }
 
   const version = await publishLayout(db, id, { publishedBy: admin.id });
+
+  // Audit log (round 3): publish changes what the public sees — highest-
+  // leverage action. layout_versions also stores publishedBy (durable trail);
+  // stdout adds incident-response greppability.
+  console.info('cpub.audit.layout.publish', JSON.stringify({
+    at: new Date().toISOString(),
+    adminId: admin.id,
+    layoutId: id,
+    scope: existing.scope,
+    versionId: (version as { id?: string } | null | undefined)?.id ?? null,
+  }));
+
   invalidateLayoutsByRouteCache();
   return version;
 });

@@ -159,9 +159,9 @@ const id = (suffix: string): string => `cpub-inspector-page-${suffix}`;
       </div>
     </div>
 
-    <div class="cpub-inspector-page-field">
-      <label :for="id('frame')">Frame</label>
-      <select :id="id('frame')" v-model="frame">
+    <div class="cpub-inspector-page-field cpub-inspector-page-field--disabled">
+      <label :for="id('frame')">Frame <span class="cpub-inspector-page-soon">Phase 4</span></label>
+      <select :id="id('frame')" v-model="frame" disabled aria-describedby="frame-soon-hint">
         <option value="narrow">narrow</option>
         <option value="wide">wide</option>
         <option value="two-column">two-column</option>
@@ -169,8 +169,9 @@ const id = (suffix: string): string => `cpub-inspector-page-${suffix}`;
         <option value="sidebar-left">sidebar-left</option>
         <option value="sidebar-right">sidebar-right</option>
       </select>
-      <p class="cpub-inspector-page-hint">
-        Page chrome shape — drives the zones the layout exposes.
+      <p id="frame-soon-hint" class="cpub-inspector-page-hint">
+        Page chrome shape — reserved for Phase 4. Currently has no effect; the renderer
+        always exposes the same three zones (full-width, main, sidebar).
       </p>
     </div>
 
@@ -234,6 +235,22 @@ const id = (suffix: string): string => `cpub-inspector-page-${suffix}`;
   font-size: var(--text-xs);
   color: var(--text-faint);
   margin: 0;
+}
+
+/* Disabled-field pattern for "reserved for future phase" controls.
+   The field is visible (signals the surface exists) but greyed out to
+   prevent the "set it, see nothing change" trust break per audit round 3. */
+.cpub-inspector-page-field--disabled { opacity: 0.65; }
+.cpub-inspector-page-field--disabled select { cursor: not-allowed; background: var(--surface2); }
+.cpub-inspector-page-soon {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  color: var(--text-faint);
+  border: 1px solid var(--border2);
+  padding: 0 4px;
+  margin-left: var(--space-1);
 }
 
 .cpub-inspector-page-checkbox {

@@ -139,9 +139,25 @@ async function onConflictForceSave(): Promise<void> {
         @publish="onPublish"
       />
 
+      <!--
+        Round-3 audit fix: phone (<640px) sees a single banner instead
+        of the editor. Drag-drop on a 375px viewport is user-hostile
+        regardless of how well-designed — matches docs/plans/layout-and-pages.md §7.7.
+      -->
+      <div class="cpub-admin-layouts-editor-phone-only">
+        <i class="fa-solid fa-display cpub-admin-layouts-editor-phone-icon" aria-hidden="true"></i>
+        <h2>Use a larger screen</h2>
+        <p>The layout editor needs a tablet or desktop viewport (640px or wider).</p>
+        <NuxtLink to="/admin/layouts" class="cpub-admin-layouts-editor-phone-back">← Back to Layouts</NuxtLink>
+      </div>
+
       <div class="cpub-admin-layouts-editor-body">
-        <AdminLayoutsPalette />
+        <!-- Tablet/phone collapse: canvas FIRST so the surface admin came
+             for is immediately visible; palette + inspector stack below.
+             (Pre-audit ordering put palette first → admin had to scroll
+             past 17 tiles to reach the canvas.) -->
         <AdminLayoutsCanvas :layout="editor.draft.value" :viewport="viewport" />
+        <AdminLayoutsPalette />
         <AdminLayoutsInspector
           :draft="editor.draft.value"
           @update:page-meta="onPageMetaUpdate"
@@ -185,18 +201,73 @@ async function onConflictForceSave(): Promise<void> {
 
 .cpub-admin-layouts-editor-body {
   display: grid;
+  /* DOM order: canvas, palette, inspector. CSS grid-template-areas
+     places them visually palette / canvas / inspector at >=1024px. */
   grid-template-columns: 280px 1fr 320px;
+  grid-template-areas: 'palette canvas inspector';
   flex: 1;
   min-height: 0;
 }
+.cpub-admin-layouts-editor-body > :nth-child(1) { grid-area: canvas; }    /* canvas (1st in DOM) */
+.cpub-admin-layouts-editor-body > :nth-child(2) { grid-area: palette; }   /* palette (2nd in DOM) */
+.cpub-admin-layouts-editor-body > :nth-child(3) { grid-area: inspector; } /* inspector (3rd in DOM) */
 
 @media (max-width: 1280px) {
   .cpub-admin-layouts-editor-body { grid-template-columns: 240px 1fr 280px; }
 }
 
 @media (max-width: 1024px) {
-  .cpub-admin-layouts-editor-body { grid-template-columns: 1fr; }
-  /* On tablet/phone the palette + inspector collapse; v1 doesn't ship
-     bottom-sheet behavior (Phase 6a) — they stack below the canvas. */
+  /* On tablet, fall back to DOM-order single column (canvas first,
+     palette next, inspector last) — admin sees the editing surface
+     immediately without scrolling past the palette. v1 doesn't ship
+     bottom-sheet behavior (Phase 6a). */
+  .cpub-admin-layouts-editor-body {
+    grid-template-columns: 1fr;
+    grid-template-areas: none;
+  }
+  .cpub-admin-layouts-editor-body > * { grid-area: auto; }
+}
+
+/* Phone (<640px) — show a "use a larger screen" banner and HIDE the
+   editor body entirely. Drag-drop on 375px is user-hostile per the
+   plan §7.7. */
+.cpub-admin-layouts-editor-phone-only {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-8) var(--space-4);
+  text-align: center;
+}
+.cpub-admin-layouts-editor-phone-only h2 {
+  font-size: var(--text-lg);
+  margin: 0;
+  color: var(--text);
+}
+.cpub-admin-layouts-editor-phone-only p {
+  margin: 0;
+  color: var(--text-dim);
+  max-width: 32ch;
+}
+.cpub-admin-layouts-editor-phone-icon {
+  font-size: var(--text-3xl);
+  color: var(--text-faint);
+}
+.cpub-admin-layouts-editor-phone-back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-top: var(--space-2);
+  color: var(--accent);
+  text-decoration: underline;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+}
+
+@media (max-width: 640px) {
+  .cpub-admin-layouts-editor-phone-only { display: flex; }
+  .cpub-admin-layouts-editor-body { display: none; }
 }
 </style>
