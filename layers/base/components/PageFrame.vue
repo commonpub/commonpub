@@ -8,61 +8,50 @@
  *
  * The "frame" (how zones are arranged + sized) was hand-duplicated in
  * every page, and the copies drifted into FOUR divergent definitions:
- *   - homepage  `index.vue` `.cpub-main-layout`      → 1280px, `1fr 300px`
- *   - custom    `[...customPath].vue` `.cpub-custom-page-grid` → 1280px, `minmax(0,1fr) 320px`
+ *   - homepage  `index.vue` `.cpub-main-layout`      → 1280px, `1fr 300px`, pad 28/32/48, gap 32
+ *   - custom    `[...customPath].vue`                → 1280px, `minmax(0,1fr) 320px`, pad var(--space-4)
  *   - editor    `AdminLayoutsCanvas.vue`             → 375/768/100%, NO main+sidebar grid (zones stacked in boxes)
  * → the editor preview was structurally wrong vs production (broken
  * WYSIWYG) and homepage vs custom-page disagreed (300 vs 320 sidebar).
- * This component collapses them to one. See `LayoutSlot.vue` header: "the
- * page is the FRAME; this component is the fillings" — PageFrame extracts
- * exactly that frame, nothing else.
+ * This collapses them to one, using the LIVE HOMEPAGE's exact values
+ * (the homepage is the primary live surface the editor previews) so
+ * adoption is WYSIWYG-faithful. See `LayoutSlot.vue` header.
  *
  * ## API: slots, not props
  *
  * Named slots `#full-width` / `#main` / `#sidebar` so callers keep their
- * bespoke zone content (the homepage's mobile-contest-hoist, the
- * powered-badge, the sidebar-desktop/mobile `display:contents` wrappers).
- * PageFrame owns ARRANGEMENT only. Each region renders only when its slot
- * has content (mirrors the `hasMain`/`hasSidebar` gating the custom-page
- * already used).
+ * bespoke zone content (homepage's mobile-hoist / powered-badge; the
+ * editor's per-zone labels + add-row). Each region renders only when its
+ * slot has content — checked via `$slots` in the template (NOT a computed
+ * over `useSlots()`, which isn't reactive and can go stale).
  *
- * `editable` does NOT change the arrangement (that is the whole point —
- * the editor must preview the REAL frame). It only flags edit mode + is
- * forwarded to the zone scoped-slots so the editor canvas (Stage 2) can
- * wrap each region with its own chrome without re-diverging the layout.
+ * `editable` does NOT change the arrangement (the editor must preview the
+ * REAL frame); it only flags edit mode + is forwarded to the zone
+ * scoped-slots so the editor canvas can wrap each region with its own
+ * chrome without re-diverging the layout.
  *
- * Uniquely-named `cpub-page-frame-*` classes (NOT the old
- * `.cpub-main-layout` / `.cpub-custom-page-grid`) per
- * feedback-view-identity-classes — a shared structural class name would
- * recreate the cross-component scoped-hash coupling we're removing.
- *
- * `var(--*)` only.
+ * Uniquely-named `cpub-page-frame-*` classes per feedback-view-identity-classes.
+ * `var(--*)` only — the frame's literal values live in `--cpub-frame-*`
+ * custom props (one place; Phase 4 frame variants override them).
  */
-import { computed, useSlots } from 'vue';
-
 withDefaults(defineProps<{ editable?: boolean }>(), { editable: false });
-
-const slots = useSlots();
-const hasFullWidth = computed<boolean>(() => !!slots['full-width']);
-const hasMain = computed<boolean>(() => !!slots.main);
-const hasSidebar = computed<boolean>(() => !!slots.sidebar);
 </script>
 
 <template>
   <div class="cpub-page-frame" :class="{ 'cpub-page-frame--editable': editable }">
-    <div v-if="hasFullWidth" class="cpub-page-frame-full">
+    <div v-if="$slots['full-width']" class="cpub-page-frame-full">
       <slot name="full-width" :editable="editable" />
     </div>
 
     <div
-      v-if="hasMain || hasSidebar"
+      v-if="$slots.main || $slots.sidebar"
       class="cpub-page-frame-grid"
-      :data-with-sidebar="hasSidebar ? 'yes' : 'no'"
+      :data-with-sidebar="$slots.sidebar ? 'yes' : 'no'"
     >
-      <main v-if="hasMain" class="cpub-page-frame-main">
+      <main v-if="$slots.main" class="cpub-page-frame-main">
         <slot name="main" :editable="editable" />
       </main>
-      <aside v-if="hasSidebar" class="cpub-page-frame-sidebar">
+      <aside v-if="$slots.sidebar" class="cpub-page-frame-sidebar">
         <slot name="sidebar" :editable="editable" />
       </aside>
     </div>
@@ -71,17 +60,18 @@ const hasSidebar = computed<boolean>(() => !!slots.sidebar);
 
 <style scoped>
 .cpub-page-frame {
-  /* Canonical frame tokens — one place. Sidebar resolved to 320px (the
-     wider of the two pre-consolidation values). Override per-instance by
-     setting these custom props on a wrapper if a narrow frame is needed
-     (Phase 4 frame variants). */
-  --cpub-frame-max: 80rem; /* 1280px */
-  --cpub-frame-sidebar: 320px;
-  --cpub-frame-gap: var(--space-6);
+  /* Canonical frame tokens — ONE place. Values replicate the live homepage
+     `.cpub-main-layout` exactly so the editor canvas (which renders the
+     homepage layout via PageFrame) is a faithful preview. Override these
+     custom props on a wrapper for Phase 4 frame variants (narrow/wide). */
+  --cpub-frame-max: 1280px;
+  --cpub-frame-sidebar: 300px;
+  --cpub-frame-gap: 32px;
+  --cpub-frame-pad: 28px 32px 48px;
   max-width: var(--cpub-frame-max);
   width: 100%;
   margin: 0 auto;
-  padding: var(--space-6) var(--space-4) var(--space-8);
+  padding: var(--cpub-frame-pad);
   display: flex;
   flex-direction: column;
   gap: var(--cpub-frame-gap);
@@ -100,10 +90,13 @@ const hasSidebar = computed<boolean>(() => !!slots.sidebar);
 }
 .cpub-page-frame-main { min-width: 0; }
 
-/* Sidebar collapses below main on tablet/phone. */
+/* Sidebar collapses below main on tablet/phone (matches the homepage). */
 @media (max-width: 1024px) {
   .cpub-page-frame-grid[data-with-sidebar='yes'] {
     grid-template-columns: 1fr;
   }
+}
+@media (max-width: 640px) {
+  .cpub-page-frame { --cpub-frame-pad: 24px 16px; }
 }
 </style>
