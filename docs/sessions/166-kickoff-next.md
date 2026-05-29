@@ -1,6 +1,6 @@
 # Kickoff prompt — session 166 (path-pick: Phase 3c resize OR Phase 3e config inspector OR polish batch)
 
-Paste everything between the `---` rules as the FIRST message of a fresh Claude Code session. **Prerequisite: session 165 shipped (commits `569c0e2` + `810c08d`).**
+Paste everything between the `---` rules as the FIRST message of a fresh Claude Code session. **Prerequisite: session 165 shipped (commits `569c0e2` + `810c08d` + `4e030f2`).**
 
 ---
 
@@ -9,7 +9,7 @@ Fresh Claude Code session on the CommonPub monorepo. **Two tasks this session, i
 1. **Path-pick** — three roughly-equal-leverage options below. Ask the user at session start.
 2. **Execute the picked path with R1-R4 self-audit + audit-of-audit at close.**
 
-**Predecessor**: session 165 shipped session-164 audit fixes + Phase 3d a11y completion. Backspace/Delete remove section, Cmd+D duplicate, `?` opens the new `<AdminLayoutsHelpOverlay>`, axe-core regression. The axe scan caught + fixed a latent `aria-allowed-attr` violation from session 163 (`aria-selected` on the section's outer div with no supporting role) — converted selection-state-conveyance to `aria-label` state-in-name. Layer 489 → **547** tests (+58), typecheck 26/26 FULL TURBO. Last commit `810c08d`. heatsync + deveco UNTOUCHED on npm 0.24.0. commonpub.io workspace `main`.
+**Predecessor**: session 165 shipped session-164 audit fixes + Phase 3d a11y completion + an ultrathink deep-audit polish round. Backspace/Delete remove section, Cmd+D duplicate, `?` opens the new `<AdminLayoutsHelpOverlay>`, axe-core regression. The axe scan caught + fixed a latent `aria-allowed-attr` violation from session 163 (`aria-selected` on the section's outer div with no supporting role) — converted to `aria-label` state-in-name. The deep audit added: modal-open suppresses global section hotkeys (probes DOM for `[role="dialog"]`/`[role="alertdialog"]`), HelpOverlay focus trap via `focusin`-snap-back, dropped misleading Move group, `isRemoveLike` excludes Shift. Layer 489 → **559** tests (+70), typecheck 26/26 FULL TURBO. Last commit `4e030f2`. heatsync + deveco UNTOUCHED on npm 0.24.0. commonpub.io workspace `main`.
 
 ## Verify session 165 actually shipped
 
@@ -23,17 +23,20 @@ done
 grep -rE "removeSectionCommand|duplicateSectionCommand|findSectionLocation|narrateSectionRemoved|narrateSectionDuplicated|AdminLayoutsHelpOverlay|onShowHelp|getSelection" layers/base/composables layers/base/components 2>/dev/null | head -20
 # Confirm the aria-selected → aria-label state-in-name fix
 grep -nE "aria-selected|Selected: " layers/base/components/LayoutSection.vue
+# Confirm deep-audit fixes (modal suppression, focus trap, Move-group drop, Shift exclude)
+grep -nE "isAnyDialogOpen|e.shiftKey" layers/base/composables/useLayoutHotkeys.ts
+grep -nE "onFocusIn|dialogEl" layers/base/components/admin/layouts/AdminLayoutsHelpOverlay.vue
 # Confirm axe-core install + regression file
 grep -nE "axe-core" layers/base/package.json
 ls layers/base/components/admin/layouts/__tests__/editor-axe.test.ts
 # Confirm test count
-pnpm --filter @commonpub/layer test 2>&1 | grep "Tests" | tail -1     # expect: 547 passed
+pnpm --filter @commonpub/layer test 2>&1 | grep "Tests" | tail -1     # expect: 559 passed
 pnpm typecheck 2>&1 | tail -3                                          # expect: 26 successful, 26 total
 curl -s -o /dev/null -w '/admin/layouts = %{http_code} (302 expected)\n' https://commonpub.io/admin/layouts
 curl -sS https://commonpub.io/ | grep -oE 'class="[^"]*cpub-layout-(row|section)[^"]*"' | grep -oE 'cpub-layout-(row|section)(--editable)?' | sort | uniq -c
 ```
 
-**Expected**: all 3 sites health=200; all the named symbols present; layer 547 tests; typecheck 26/26; `/admin/layouts=302`; **3 layout-row + 5 layout-section** + NO `--editable` (public byte-pattern). Any divergence: STOP + investigate.
+**Expected**: all 3 sites health=200; all the named symbols present; layer 559 tests; typecheck 26/26; `/admin/layouts=302`; **3 layout-row + 5 layout-section** + NO `--editable` (public byte-pattern). Any divergence: STOP + investigate.
 
 ## Mandatory reads (in order)
 
@@ -95,12 +98,13 @@ curl -sS https://commonpub.io/ | grep -oE 'class="[^"]*cpub-layout-(row|section)
 - Surfaces several admin pain points that have been deferred for sessions.
 
 **Candidates** (pick 3-4):
-1. **HelpOverlay focus trap** — Tab cycles within the modal. Pair with `AdminLayoutsConflictModal` since both share the gap.
+1. **ConflictModal focus trap** — Mirror HelpOverlay's `focusin` snap-back pattern (session 165 `4e030f2`). Close-on-Esc already present; just add the trap.
 2. **Empty-zone droppable target** — true zone-level drop affordance ("Drop a section to begin"); complements Add Row.
 3. **Preview button** — `?previewLayoutId=<draftId>` + 15min token; toolbar opens in new tab.
 4. **Publish dropdown ▾** — Publish / Revert to last published / Version history (Phase 7 versioning prep).
 5. **Per-breakpoint editing wiring** — Tablet viewport edits `responsive.md`, not base `colSpan`.
 6. **Section type pill on hover verify; grab handle on row hover** [§7.11]
+7. **Selection restored on Cmd+Z** — when undo brings back a removed section, restore selection to it (capture selection in command record at time-of-record). Power-feature UX.
 
 **Why NOT pick yet**:
 - No architectural progress — pure polish.
@@ -140,7 +144,7 @@ What's left, ordered by leverage:
 - **Phase 3e — Config inspector / auto-form from Zod** [§7.9, §7.10] — biggest remaining feature
 
 **Small wins** (could batch — see Path C):
-- HelpOverlay + ConflictModal focus traps
+- ConflictModal focus trap (HelpOverlay's was shipped in `4e030f2`; mirror the same `focusin` pattern there)
 - Per-breakpoint editing wiring
 - Preview button + Publish dropdown
 - Empty-zone droppable target

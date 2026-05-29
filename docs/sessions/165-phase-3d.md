@@ -3,8 +3,8 @@
 **Date**: 2026-05-29
 **Predecessor**: session 164 (Phase 3b/B + 2 polish rounds + audit, ending at commit `fcc8190`)
 **Path taken**: TASK 1 (3 audit fixes from session 164) then TASK 2 (user picked Phase 3d a11y completion over Phase 3c resize)
-**End state**: layer **547** tests passing across **29** files + typecheck 26/26 FULL TURBO
-**Net delta**: 2 commits, 19 files changed, +1538 / -70 lines (3 new files)
+**End state**: layer **559** tests passing across **29** files + typecheck 26/26 FULL TURBO
+**Net delta**: 3 commits, 19 files changed (+1 modified twice for the deep-audit polish), +1787 / -93 lines (3 new files)
 **Sites**: commonpub.io workspace `main`; heatsync + deveco UNTOUCHED on npm 0.24.0 dormant
 **Public byte-pattern unchanged**: 3 layout-row + 5 layout-section, no `--editable` leak (`useLayoutHotkeys` is an editor-only composable; new HelpOverlay is `<Teleport to="body">` inside the `/admin/layouts/[id].vue` route → zero public path)
 
@@ -14,6 +14,7 @@
 |---|---|
 | `569c0e2` | Session 164 audit polish (R1-1 + R2-2 + R3-3). Edge tab 18px → 28px (WCAG 2.5.8 AA), dropIndicatorSide mirrors `placement.top`/`bottom` (matches `computeInsertIndex`'s vertical-list fallback), tablet panels forced visible via `display: flex !important` to defeat the persisted desktop `paletteHidden` / `inspectorHidden` cookie. 491 tests. |
 | `810c08d` | Phase 3d a11y completion. 3 hotkeys + help overlay + axe regression. 547 tests. Caught + fixed a real `aria-allowed-attr` violation introduced in session 163 (aria-selected on the section's outer div). |
+| `4e030f2` | Deep-audit polish (R3-A + R1-A + R3-B + R2-A). Modal-open suppresses global section hotkeys; HelpOverlay Move group dropped (was misleading duplicate-chord rows); HelpOverlay focus trap via `focusin` snap-back; `isRemoveLike` excludes Shift modifier. 559 tests. |
 
 ## What shipped (Phase 3d)
 
@@ -64,23 +65,50 @@ The very first axe scan caught `aria-allowed-attr: Ensure an element's role supp
 
 This is exactly the kind of latent regression the axe pass is meant to surface, and the kind of cross-cutting fix that's safer to land WITH the test than separately. New feedback memory: [[feedback-aria-selected-needs-role]].
 
-## R1-R4 self-audit + audit-of-audit
+## R1-R4 self-audit + audit-of-audit + ultrathink deep audit
 
-| Round | Lens | Finding | Action |
+### Round 1 (surface R1-R4)
+
+| Lens | Finding | Action |
+|---|---|---|
+| R1 | HelpOverlay's Move group originally claimed `↑` / `↓` as global hotkeys; those are not wired. Re-wrote to `Tab + Enter` — but this turned out to be the wrong fix (see deep-audit R1-A below). | PATCHED then REVISED. |
+| R3 | HelpOverlay has no focus trap. | Initially deferred → FIXED in deep-audit polish (R3-B). |
+| (axe) | `aria-selected` on the section's outer div violates `aria-allowed-attr`. | FIXED. |
+
+### Round 2 (audit-of-audit on round 1)
+
+0 additional findings on Round 1's three fixes. The deeper audit happened in Round 3.
+
+### Round 3 (ultrathink deep audit — `4e030f2`)
+
+After the session was "closed" + the kickoff written, an ultrathink deep audit found **4 more actionable items** at the same diminishing-returns surface. All fixed in `4e030f2`.
+
+| # | Lens | Finding | Action |
 |---|---|---|---|
-| R1 | UX | HelpOverlay's Move group originally claimed `↑` / `↓` as global hotkeys; those are not wired (Move Up/Down are dedicated buttons you Tab to + Enter). The overlay was lying about what existed. | Re-wrote the Move group to describe the actual keyboard path (Tab + Enter on the section's button cluster). |
-| R3 | operational | HelpOverlay has no focus trap — Tab from the Close button leaves the modal. | DEFERRED. Matches `AdminLayoutsConflictModal` precedent which has the same gap and was previously audited as OK. A real trap is a Phase 3e a11y polish ticket. |
-| (axe) | a11y | `aria-selected` on the section's outer div violates `aria-allowed-attr`. | FIXED — see "axe regression earned its keep" above. |
+| R3-A | operational | Backspace + Cmd+D + Cmd+Z fire while HelpOverlay/ConflictModal is open. User presses `?` → focus on Close button → presses Backspace → section behind the modal silently vanishes. | New `isAnyDialogOpen()` helper probes DOM for `[role="dialog"]` or `[role="alertdialog"]`. Suspends ALL section-mutating hotkeys when present. Future modals participate via their ARIA attributes — no callback wiring. |
+| R1-A | UX | Round 1's Move-group "fix" rendered `Tab + Enter` TWICE with different descriptions — same chord, no disambiguation between Move Up / Down / To Zone (three different button targets). The buttons are visible UI, discoverable via Tab — they're not hidden shortcuts. | Dropped the Move group entirely. Overlay structure is now Edit / History / View. |
+| R3-B | a11y | HelpOverlay had no focus trap. Round 1 deferred it as "matches conflict modal precedent". Deep audit: it's ~15 lines via `focusin`-snap-back; closing the WCAG ARIA Dialog gap is in scope for the 3d a11y session. | Added focusin listener: `dialog.contains(target)` allows nested focus, rejects outside. Forward-compatible. Loop-safe (focusing Close fires focusin on Close → contains-check true → no re-snap). |
+| R2-A | correctness | `isRemoveLike` excluded Cmd/Ctrl/Alt but NOT Shift. Some browsers map Shift+Backspace to back-nav; some editors to delete-word. User would silently lose a section. | 1-line: add `e.shiftKey` to the modifier-rejection clause. 2 regression tests (Shift+Backspace + Shift+Delete). |
 
-Audit-of-audit: **0 additional findings**. Walked the Move-group rewrite (test assertions still match: kbd count + chord-content matchers untouched). Walked the aria-selected fix (state-in-name covers SR contract; visual `--selected` class covers sighted contract; 3 test files re-aligned).
+### Round 4 (audit-of-audit on round 3)
 
-Recursion data:
+**0 new findings**. Walked each deep-audit fix for race conditions (focusin → contains → no loop), DOM lifecycle (v-if removes on close, probe correctly returns null when modal closed — documented convention that future modals MUST use v-if, not v-show), and modifier exclusion ladder (Cmd / Ctrl / Alt / Shift all rejected).
+
+### Recursion data
 
 | Round | Findings | Cumulative |
 |---|---|---|
 | TASK 1 audit fixes | 3 (R1-1, R2-2, R3-3) | 3 |
 | Phase 3d R1-R4 | 1 fixed + 1 deferred + 1 axe catch = 3 | 6 |
 | audit-of-audit | 0 actionable | 6 |
+| ultrathink deep audit | 4 fixed | 10 |
+| audit-of-audit on deep | 0 actionable | 10 |
+
+The deep-audit round was prompted by the user's "ultrathink audit then continue". Half the value of a self-audit is matching scrutiny to risk; "make me look harder" prompts surface real findings that surface scans miss. Findings deferred from the deep audit (documented, not blocking):
+- `{center: true}` alone returns null indicator but `computeInsertIndex` returns 'after' — UX mismatch.
+- Resize boundary focus loss: admin focused in panel field, resize desktop ↔ tablet across 1024px → focus falls to body.
+- Selection stale after Cmd+Z restoring a removed section: user must re-click.
+- Held Cmd+D rapid-duplicates: each press creates a history entry — no runaway.
 
 Diminishing-returns curve continues: session 160 had 20 findings, 162 had 9, 163 had 13 (incl. 6-agent deep audit), 164 had 7 (2 + 0 + 3 + 0), 165 has 6 across two scope chunks. Each session's surface is smaller AND the cumulative test base catches more.
 
