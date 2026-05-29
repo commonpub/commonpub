@@ -140,7 +140,7 @@ function activate(): void {
 const sectionRef = ref<HTMLElement | null>(null);
 const dragDisabled = computed<boolean>(() => !props.editable);
 
-const { isDragOver } = makeDraggable(
+const { isDragOver, isDragging } = makeDraggable(
   sectionRef,
   {
     groups: ['section'],
@@ -309,6 +309,13 @@ const isResizing = computed<boolean>(() => {
   const s = resize.state.value;
   return s.kind === 'resizing' && s.sectionId === props.section.id;
 });
+
+/** Phase 3c polish (Path B #9): is THIS section being DRAGGED by dnd-kit
+ *  (section reorder gesture)? When true, the resize handle is hidden so
+ *  the cursor doesn't lie ("col-resize" over a section that's mid-drag).
+ *  isDragging is exposed by dnd-kit's makeDraggable; it's a `Ref<boolean>`
+ *  matching the existing isDragOver shape we already destructure. */
+const isSectionDragging = computed<boolean>(() => isDragging.value === true);
 
 /** Is THIS section the right-neighbour absorbing the resize? Drives the
  *  dimmed neighbour pill so the user can see both spans update together. */
@@ -511,6 +518,7 @@ function onHandlePointerDown(e: PointerEvent): void {
       class="cpub-layout-section-resize-handle"
       :class="{
         'cpub-layout-section-resize-handle--active': isResizing,
+        'cpub-layout-section-resize-handle--hidden-during-drag': isSectionDragging,
       }"
       :aria-label="`Resize ${section.type} section, currently ${section.colSpan} of 12 columns. Hold and drag, or use Shift plus Arrow Left or Right while focused on this section.`"
       :title="`Drag to resize · ${section.colSpan}/12`"
@@ -892,6 +900,18 @@ function onHandlePointerDown(e: PointerEvent): void {
 .cpub-layout-section-resize-handle--active {
   width: 6px;
   right: -3px;
+}
+/* Phase 3c polish (Path B #9): hide the handle while dnd-kit is
+ * dragging the section. Without this, the col-resize cursor flashes
+ * over the handle during drag pickup → user momentarily thinks they
+ * need to grab the handle to drag. The handle re-appears the moment
+ * the drag ends. pointer-events:none here is belt-and-suspenders —
+ * opacity:0 alone already removes the visual; pointer-events:none
+ * ensures the touch target can't interfere if the dragged section
+ * temporarily overlaps the handle's hit area. */
+.cpub-layout-section-resize-handle--hidden-during-drag {
+  opacity: 0 !important;
+  pointer-events: none !important;
 }
 @media (prefers-reduced-motion: reduce) {
   .cpub-layout-section-resize-handle { transition: none; }

@@ -449,4 +449,42 @@ describe('LayoutSection — resize handle (Phase 3c)', () => {
     expect(pill?.textContent?.trim()).toBe('8/12');
     expect(pill?.classList.contains('cpub-layout-section-span-pill--active')).toBe(false);
   });
+
+  /* Phase 3c polish (Path B #9) — handle dim during dnd-kit drag. */
+  it('handle gains --hidden-during-drag class when dnd-kit reports isDragging=true', () => {
+    // Override the per-mount return so isDragging.value === true.
+    makeDraggableMock.mockReturnValueOnce({
+      selected: { value: false },
+      isDragging: { value: true },
+      isAllowed: { value: true },
+      isDragOver: { value: undefined },
+    } as never);
+    const { container } = render(LayoutSection, {
+      props: {
+        section: makeSection('s-drag'),
+        rowId: 'r',
+        route: '/',
+        zone: 'main',
+        editable: true,
+        onResizeStart: vi.fn(),
+      },
+    });
+    const handle = container.querySelector('.cpub-layout-section-resize-handle');
+    expect(handle?.classList.contains('cpub-layout-section-resize-handle--hidden-during-drag')).toBe(true);
+  });
+
+  it('handle does NOT gain the hidden class when isDragging=false (default)', () => {
+    const { container } = render(LayoutSection, {
+      props: {
+        section: makeSection('s-static'),
+        rowId: 'r',
+        route: '/',
+        zone: 'main',
+        editable: true,
+        onResizeStart: vi.fn(),
+      },
+    });
+    const handle = container.querySelector('.cpub-layout-section-resize-handle');
+    expect(handle?.classList.contains('cpub-layout-section-resize-handle--hidden-during-drag')).toBe(false);
+  });
 });
