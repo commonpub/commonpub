@@ -111,3 +111,26 @@ describe('admin layout handlers — cache invalidation contract', () => {
     },
   );
 });
+
+/*
+ * Audit log contract (session 163 deep audit):
+ * EVERY write handler must emit at least one `cpub.audit.layout.*`
+ * structured log line so operators can grep the forensic trail. The
+ * audit gap caught: PUT only logged force-save + config-rejected, not
+ * regular auto-saves — meaning a normal admin update left zero trail.
+ * Fix landed alongside this contract test. Future regression: adding
+ * a new write endpoint that doesn't log → red.
+ */
+describe('admin layout handlers — audit log contract', () => {
+  const writeHandlers = handlerFiles.filter((f) => /\.(post|put|delete|patch)\.ts$/.test(f));
+
+  it.each(writeHandlers.map((f) => [f.replace(handlersRoot + '/', '')]))(
+    '%s emits at least one cpub.audit.layout.* log line',
+    (relPath) => {
+      const src = readFileSync(join(handlersRoot, relPath), 'utf8');
+      expect(src, `${relPath}: missing cpub.audit.layout.* console.info`).toMatch(
+        /console\.info\(\s*['"]cpub\.audit\.layout\./,
+      );
+    },
+  );
+});

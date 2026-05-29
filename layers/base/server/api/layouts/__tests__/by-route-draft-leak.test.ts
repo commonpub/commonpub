@@ -55,3 +55,21 @@ describe('GET /api/layouts/by-route — draft-leak P0 guard', () => {
     );
   });
 });
+
+describe('GET /api/layouts/by-route — path normalization (session 163 audit)', () => {
+  it('normalizes trailing slashes so /blog and /blog/ hit the same cache + DB', () => {
+    // Without this, `/blog` and `/blog/` create separate cache entries
+    // AND the second can silently miss the DB record stored under the
+    // first. The deep audit caught both as P2 (Agent E + Agent B).
+    expect(src, 'must strip trailing slashes from the request path before lookup').toMatch(
+      /replace\(\s*\/\\\/\+\$\/\s*,\s*['"]['"]\s*\)/,
+    );
+  });
+
+  it('preserves the root path "/" (no slash to strip)', () => {
+    // The strip pattern must special-case the root so '/' doesn't become ''.
+    expect(src, 'must not strip the leading slash from the root path').toMatch(
+      /rawPath\s*===\s*['"]\/['"]/,
+    );
+  });
+});

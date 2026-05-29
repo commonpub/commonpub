@@ -119,6 +119,24 @@ export default defineEventHandler(async (event) => {
     { id, userId: admin.id },
   );
 
+  // Audit log: every successful update goes through cpub.audit.layout.update.
+  // Per session 163 deep audit: the gap between "5 mutations should log
+  // (create/update/publish/delete/migrate)" (session 160 R3 plan) and the
+  // current implementation (force-save + config-rejected only) was a
+  // forensic blind spot — regular auto-saves left zero trail. Operators
+  // can grep + filter; the `source` header lets them separate manual saves
+  // from auto-saves vs beacons vs force-saves. Default 'auto' for legacy
+  // clients that don't send the header.
+  const saveSource = getHeader(event, 'x-cpub-save-source') ?? 'auto';
+  console.info('cpub.audit.layout.update', JSON.stringify({
+    at: new Date().toISOString(),
+    adminId: admin.id,
+    layoutId: id,
+    scope: existing.scope,
+    source: saveSource,
+    savedUpdatedAt: saved.updatedAt,
+  }));
+
   invalidateLayoutsByRouteCache();
   return saved;
 });

@@ -55,7 +55,15 @@ export default defineEventHandler(async (event): Promise<PublicLayoutSlice | nul
     throw createError({ statusCode: 404, statusMessage: 'Layout engine not enabled' });
   }
 
-  const { path } = parseQueryParams(event, layoutsByRoutePathSchema);
+  const { path: rawPath } = parseQueryParams(event, layoutsByRoutePathSchema);
+  // Session 163 deep audit: normalize trailing slash so `/blog` and
+  // `/blog/` hit the SAME cache entry + DB lookup. Without this, the
+  // cache stores both forms separately AND a layout saved under `/blog`
+  // is unreachable when requested as `/blog/`. Root is special-cased
+  // (no slash to strip). Future tightening: enforce canonical form at
+  // POST/PUT write time too — for now the read-side normalize covers
+  // the actual user-visible bug (cached duplication + accidental misses).
+  const path = rawPath === '/' ? '/' : rawPath.replace(/\/+$/, '');
 
   // Session 160 audit: admins see drafts + admin-access layouts;
   // members see published members-and-public layouts; anonymous only
