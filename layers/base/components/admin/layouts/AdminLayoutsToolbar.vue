@@ -36,10 +36,6 @@ const props = defineProps<{
   errorMessage: string | null;
   /** ISO timestamp of the last successful save — drives "Saved · 2m ago". */
   lastSavedAt?: string | null;
-  /** Palette panel hidden (parent owns state via useEditorChrome). */
-  paletteHidden: boolean;
-  /** Inspector panel hidden (parent owns state via useEditorChrome). */
-  inspectorHidden: boolean;
   /** Phase 3b/B — undo/redo button enablement + tooltip labels. */
   canUndo?: boolean;
   canRedo?: boolean;
@@ -119,8 +115,6 @@ const emit = defineEmits<{
   (e: 'save'): void;
   (e: 'publish'): void;
   (e: 'discard'): void;
-  (e: 'toggle-palette'): void;
-  (e: 'toggle-inspector'): void;
   (e: 'undo'): void;
   (e: 'redo'): void;
 }>();
@@ -176,22 +170,16 @@ const VIEWPORTS: Array<{ value: 'mobile' | 'tablet' | 'desktop'; icon: string; l
       >{{ STATE_LABELS[effectiveState] }}</span>
     </div>
 
-    <!-- Palette toggle (left-edge of view controls). Hides/shows the
-         section palette panel. Chevron direction signals where the panel
-         "goes" — left when visible (click to collapse left), right when
-         hidden (click to expand from left). Session 161 user-reported
-         canvas squish fix. -->
-    <button
-      type="button"
-      class="cpub-admin-layouts-toolbar-panel-btn"
-      :aria-label="paletteHidden ? 'Show sections panel' : 'Hide sections panel'"
-      :aria-pressed="!paletteHidden"
-      :title="paletteHidden ? 'Show sections panel' : 'Hide sections panel'"
-      @click="emit('toggle-palette')"
-    >
-      <i :class="paletteHidden ? 'fa-solid fa-angles-right' : 'fa-solid fa-angles-left'"></i>
-    </button>
-
+    <!--
+      Session 164 polish: palette/inspector toggles MOVED to edge tabs on the
+      panels themselves (see pages/admin/layouts/[id].vue body). The toolbar
+      previously hosted these buttons, but the placement was non-obvious —
+      collapsing made it unclear where to re-open. The edge tabs at the
+      panel/canvas boundary follow the Notion/Linear convention: when
+      expanded they sit at the panel's outer edge; when collapsed they sit
+      at the screen edge inviting expansion. The icon (« / ») tells the
+      direction.
+    -->
     <div
       class="cpub-admin-layouts-toolbar-viewport"
       role="radiogroup"
@@ -210,18 +198,6 @@ const VIEWPORTS: Array<{ value: 'mobile' | 'tablet' | 'desktop'; icon: string; l
         <i :class="vp.icon"></i>
       </button>
     </div>
-
-    <!-- Inspector toggle (right-edge of view controls, mirror of palette). -->
-    <button
-      type="button"
-      class="cpub-admin-layouts-toolbar-panel-btn"
-      :aria-label="inspectorHidden ? 'Show inspector panel' : 'Hide inspector panel'"
-      :aria-pressed="!inspectorHidden"
-      :title="inspectorHidden ? 'Show inspector panel' : 'Hide inspector panel'"
-      @click="emit('toggle-inspector')"
-    >
-      <i :class="inspectorHidden ? 'fa-solid fa-angles-left' : 'fa-solid fa-angles-right'"></i>
-    </button>
 
     <!--
       Phase 3b/B — undo / redo. Plan §7.12 toolbar mockup shows '⤺ ⤻'

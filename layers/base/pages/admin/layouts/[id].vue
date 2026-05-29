@@ -352,8 +352,6 @@ async function onConflictForceSave(): Promise<void> {
         :dirty="editor.dirty.value"
         :error-message="editor.errorMessage.value"
         :last-saved-at="editor.original.value?.updatedAt ?? null"
-        :palette-hidden="chrome.paletteHidden.value"
-        :inspector-hidden="chrome.inspectorHidden.value"
         :can-undo="history.canUndo.value"
         :can-redo="history.canRedo.value"
         :undo-label="history.lastLabel.value"
@@ -362,8 +360,6 @@ async function onConflictForceSave(): Promise<void> {
         @save="onSave"
         @publish="onPublish"
         @discard="onDiscard"
-        @toggle-palette="chrome.togglePalette"
-        @toggle-inspector="chrome.toggleInspector"
         @undo="onToolbarUndo"
         @redo="onToolbarRedo"
       />
@@ -506,6 +502,45 @@ async function onConflictForceSave(): Promise<void> {
             @update:page-meta="onPageMetaUpdate"
             @update:name="onNameUpdate"
           />
+
+          <!--
+            Session 164 polish: edge tab toggles for palette + inspector.
+            Move-on-collapse pattern (Notion / Linear / Cursor): when the
+            panel is visible the tab sits at the panel's outer edge; when
+            the panel is collapsed the tab sits at the screen edge,
+            inviting expansion. The chevron icon tells the direction.
+
+            Placed INSIDE editor-body (which is position:relative) so
+            absolute positioning anchors to it. v-show on the panels
+            preserves their state across toggles; the tabs themselves
+            are always visible in editable mode.
+
+            Hidden on mobile/tablet (< 1024px) where the body falls
+            back to a single column DOM-order stack — the toggles
+            would float over content with no panel to collapse.
+          -->
+          <button
+            type="button"
+            class="cpub-admin-layouts-editor-edge-tab cpub-admin-layouts-editor-edge-tab--left"
+            :class="{ 'cpub-admin-layouts-editor-edge-tab--collapsed': chrome.paletteHidden.value }"
+            :aria-label="chrome.paletteHidden.value ? 'Show sections panel' : 'Hide sections panel'"
+            :aria-pressed="!chrome.paletteHidden.value"
+            :title="chrome.paletteHidden.value ? 'Show sections panel' : 'Hide sections panel'"
+            @click="chrome.togglePalette"
+          >
+            <i :class="chrome.paletteHidden.value ? 'fa-solid fa-angles-right' : 'fa-solid fa-angles-left'" aria-hidden="true"></i>
+          </button>
+          <button
+            type="button"
+            class="cpub-admin-layouts-editor-edge-tab cpub-admin-layouts-editor-edge-tab--right"
+            :class="{ 'cpub-admin-layouts-editor-edge-tab--collapsed': chrome.inspectorHidden.value }"
+            :aria-label="chrome.inspectorHidden.value ? 'Show inspector panel' : 'Hide inspector panel'"
+            :aria-pressed="!chrome.inspectorHidden.value"
+            :title="chrome.inspectorHidden.value ? 'Show inspector panel' : 'Hide inspector panel'"
+            @click="chrome.toggleInspector"
+          >
+            <i :class="chrome.inspectorHidden.value ? 'fa-solid fa-angles-left' : 'fa-solid fa-angles-right'" aria-hidden="true"></i>
+          </button>
         </div>
       </DnDProvider>
 
@@ -656,6 +691,10 @@ async function onConflictForceSave(): Promise<void> {
   grid-template-areas: 'palette canvas inspector';
   flex: 1;
   min-height: 0;
+  /* Session 164: positions the edge-tab toggles anchored to the body's
+     left/right boundaries. The tabs use absolute positioning relative
+     to this container. */
+  position: relative;
 }
 .cpub-admin-layouts-editor-body > :nth-child(1) { grid-area: canvas; }    /* canvas (1st in DOM) */
 .cpub-admin-layouts-editor-body > :nth-child(2) { grid-area: palette; }   /* palette (2nd in DOM) */
@@ -696,6 +735,94 @@ async function onConflictForceSave(): Promise<void> {
     grid-template-areas: none;
   }
   .cpub-admin-layouts-editor-body > * { grid-area: auto; }
+}
+
+/* ------------------------------------------------------------------ */
+/* Session 164 polish: panel edge-tab toggles.                          */
+/*                                                                      */
+/* Replaces the toolbar palette/inspector buttons (user-reported as     */
+/* non-obvious). Tabs sit at the panel/canvas boundary when the panel  */
+/* is visible, and AT the screen edge when the panel is collapsed —    */
+/* the icon (« / ») tells the direction.                                */
+/*                                                                      */
+/* 280px on the left aligns to palette's grid column width; 320px on   */
+/* the right aligns to inspector's. The --collapsed modifier moves the */
+/* tab to the screen edge (left:0 or right:0).                          */
+/*                                                                      */
+/* Hidden on <1024px viewport: at tablet/phone the body falls back to a */
+/* DOM-order single column stack; floating edge tabs would overlay the  */
+/* stacked panels meaninglessly.                                        */
+/* ------------------------------------------------------------------ */
+.cpub-admin-layouts-editor-edge-tab {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 56px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  cursor: pointer;
+  /* Above the canvas + panel content but below modals + announcer */
+  z-index: 5;
+  transition: left 200ms ease-out, right 200ms ease-out, background var(--transition-default), color var(--transition-default);
+  /* Small enough to not eat much canvas width; tall enough to be a
+     comfortable mouse target. Keyboard reach via the toolbar exists
+     for accessibility but the tab itself is also Tab-able. */
+  font-size: 10px;
+}
+.cpub-admin-layouts-editor-edge-tab:hover {
+  background: var(--surface2);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.cpub-admin-layouts-editor-edge-tab:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  color: var(--accent);
+}
+
+.cpub-admin-layouts-editor-edge-tab--left {
+  /* Sit at the right edge of the palette (which is 280px wide). The
+     -9px offset centers the 18px-wide tab ON the boundary so half is
+     in the palette + half in the canvas — reads as "the boundary
+     itself is the toggle". */
+  left: calc(280px - 9px);
+}
+.cpub-admin-layouts-editor-edge-tab--right {
+  right: calc(320px - 9px);
+}
+.cpub-admin-layouts-editor-edge-tab--left.cpub-admin-layouts-editor-edge-tab--collapsed {
+  /* Collapsed: snap to the screen edge so the admin sees an obvious
+     "click here to bring it back" affordance. */
+  left: 0;
+}
+.cpub-admin-layouts-editor-edge-tab--right.cpub-admin-layouts-editor-edge-tab--collapsed {
+  right: 0;
+}
+
+/* Mirror the breakpoint reduction at <=1280px so the tabs follow the
+   narrower panel widths (240 / 280 from the body media query). */
+@media (max-width: 1280px) {
+  .cpub-admin-layouts-editor-edge-tab--left { left: calc(240px - 9px); }
+  .cpub-admin-layouts-editor-edge-tab--right { right: calc(280px - 9px); }
+  .cpub-admin-layouts-editor-edge-tab--left.cpub-admin-layouts-editor-edge-tab--collapsed { left: 0; }
+  .cpub-admin-layouts-editor-edge-tab--right.cpub-admin-layouts-editor-edge-tab--collapsed { right: 0; }
+}
+
+/* Tablet/phone: hide. The single-column DOM stack already gives admin
+   direct access to each section without needing collapse affordances. */
+@media (max-width: 1024px) {
+  .cpub-admin-layouts-editor-edge-tab { display: none; }
+}
+
+/* prefers-reduced-motion: kill the slide transition so the tab snaps
+   to its new position immediately. Plan §7.11 + WCAG 2.3.3. */
+@media (prefers-reduced-motion: reduce) {
+  .cpub-admin-layouts-editor-edge-tab { transition: none; }
 }
 
 /* Phone (<640px) — show a "use a larger screen" banner and HIDE the
