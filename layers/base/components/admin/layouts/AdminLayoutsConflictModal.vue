@@ -44,6 +44,7 @@ const emit = defineEmits<{
 // (catches the common-case where the parent toggles conflictOpen=true
 // and Vue re-renders the modal subtree from scratch).
 const primaryBtn = ref<HTMLButtonElement | null>(null);
+const dialogEl = ref<HTMLElement | null>(null);
 watch(
   () => props.open,
   async (isOpen) => {
@@ -63,14 +64,47 @@ function onKeydown(e: KeyboardEvent): void {
     emit('close');
   }
 }
+
+// Focus trap (session 165 round 5 — mirrors HelpOverlay's pattern).
+// When focus leaves the dialog while open, snap it back to the
+// safe-action primary button. The `dialog.contains(target)` check
+// allows free focus movement within the dialog (Tab walks Reload →
+// Keep editing → Overwrite, then wraps back to Reload via snap-back).
+// Forward-compatible — any future focusable added inside the dialog
+// naturally participates via the contains check.
+//
+// Topmost-only guard: if a later-mounted dialog is on top (rare; the
+// editor doesn't normally stack modals, and the parent coordinator
+// in [id].vue closes HelpOverlay when this one opens), let that
+// dialog's own trap own focus. Without the guard, two modals' traps
+// would fight in a focus ping-pong.
+function isTopmostDialog(): boolean {
+  if (typeof document === 'undefined') return false;
+  if (!dialogEl.value) return false;
+  const all = document.querySelectorAll('[role="dialog"], [role="alertdialog"]');
+  return all[all.length - 1] === dialogEl.value;
+}
+function onFocusIn(e: FocusEvent): void {
+  if (!props.open) return;
+  if (!isTopmostDialog()) return;
+  const target = e.target as Node | null;
+  if (!target) return;
+  const dlg = dialogEl.value;
+  if (!dlg) return;
+  if (dlg.contains(target)) return;
+  primaryBtn.value?.focus();
+}
+
 onMounted(() => {
   if (typeof window !== 'undefined') {
     window.addEventListener('keydown', onKeydown);
+    document.addEventListener('focusin', onFocusIn);
   }
 });
 onBeforeUnmount(() => {
   if (typeof window !== 'undefined') {
     window.removeEventListener('keydown', onKeydown);
+    document.removeEventListener('focusin', onFocusIn);
   }
 });
 </script>
@@ -84,6 +118,7 @@ onBeforeUnmount(() => {
       @click.self="emit('close')"
     >
       <div
+        ref="dialogEl"
         class="cpub-admin-layouts-conflict-modal"
         role="alertdialog"
         aria-labelledby="cpub-admin-layouts-conflict-title"

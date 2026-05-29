@@ -257,9 +257,19 @@ useLayoutAutoSave({
 // EXCEPT when we've already crossed into thrashing. At that point the
 // banner is the single reconciliation surface; the modal on top would
 // be redundant (same actions, more visual noise).
+//
+// Session 165 round 5 — dual-modal coordination: if the user has the
+// keyboard-shortcuts help overlay open and a 409 fires (e.g. auto-save
+// debounce landed on a conflict mid-read), close help so the conflict
+// resolution dialog owns focus exclusively. Both modals have focus
+// traps; without this, the briefly-overlapping mount window would
+// ping-pong focus between them. The topmost-only guard inside each
+// modal's trap covers the brief mount window; this closes the window
+// fully by making the lower modal go away.
 watch(editor.status, (status) => {
   if (status === 'conflict' && !editor.conflictThrashing.value) {
     conflictOpen.value = true;
+    helpOpen.value = false;
   }
 });
 

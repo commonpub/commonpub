@@ -53,6 +53,7 @@ vi.mock('@vue-dnd-kit/core', () => ({
 }));
 
 import AdminLayoutsHelpOverlay from '../AdminLayoutsHelpOverlay.vue';
+import AdminLayoutsConflictModal from '../AdminLayoutsConflictModal.vue';
 import LayoutSection from '../../../LayoutSection.vue';
 import type { LayoutSection as LayoutSectionType } from '../../../../composables/useLayout';
 
@@ -97,6 +98,27 @@ describe('a11y — AdminLayoutsHelpOverlay (Phase 3d.3)', () => {
 
   it('closed state has zero AA violations (nothing rendered)', async () => {
     const { container } = render(AdminLayoutsHelpOverlay, { props: { open: false } });
+    await checkA11y(container);
+  });
+});
+
+describe('a11y — AdminLayoutsConflictModal (session 165 round 5)', () => {
+  it('open state has zero AA violations (3-option dialog + alertdialog ARIA)', async () => {
+    render(AdminLayoutsConflictModal, {
+      props: { open: true, message: 'Test conflict message.' },
+    });
+    await checkA11y(document.body);
+  });
+
+  it('open with null message (default copy path) has zero AA violations', async () => {
+    render(AdminLayoutsConflictModal, { props: { open: true, message: null } });
+    await checkA11y(document.body);
+  });
+
+  it('closed state has zero AA violations', async () => {
+    const { container } = render(AdminLayoutsConflictModal, {
+      props: { open: false, message: null },
+    });
     await checkA11y(container);
   });
 });

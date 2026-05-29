@@ -198,6 +198,30 @@ describe('AdminLayoutsHelpOverlay — focus trap (session 165 deep audit R3-B)',
 
     document.body.removeChild(outside);
   });
+
+  it('topmost-only guard: when a later dialog is on top, this trap yields (session 165 round 5)', async () => {
+    mount(true);
+    await new Promise((r) => setTimeout(r, 0));
+
+    // Inject a LATER dialog (simulates ConflictModal mounted on top of
+    // help — DOM order puts later one last; topmost check picks the later
+    // one). Help's trap must NOT snap focus back when the later dialog
+    // is foreground.
+    const laterDialog = document.createElement('div');
+    laterDialog.setAttribute('role', 'alertdialog');
+    const laterFocusable = document.createElement('button');
+    laterFocusable.textContent = 'Conflict modal button';
+    laterDialog.appendChild(laterFocusable);
+    document.body.appendChild(laterDialog);
+
+    laterFocusable.focus();
+    await new Promise((r) => setTimeout(r, 0));
+
+    // HelpOverlay's trap is inactive because we're not topmost.
+    expect(document.activeElement).toBe(laterFocusable);
+
+    document.body.removeChild(laterDialog);
+  });
 });
 
 describe('AdminLayoutsHelpOverlay — hotkey table after session 165 audit R1-A', () => {

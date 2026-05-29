@@ -118,9 +118,23 @@ function onKeydown(e: KeyboardEvent): void {
  * focus changes, including ones the editor page might trigger via
  * other composables. The check fires AFTER focus has moved, so the
  * snap-back is observable (a tiny focus blip on the outside element),
- * but it's the most robust approach in jsdom + browsers. */
+ * but it's the most robust approach in jsdom + browsers.
+ *
+ * Topmost-only guard (session 165 round 5): if a later-mounted dialog
+ * is on top of us, let THAT dialog's trap own focus. Without this guard
+ * two simultaneously-open modals' traps would ping-pong focus. Parent
+ * coordination in [id].vue closes us when ConflictModal opens, so this
+ * guard is belt-and-suspenders — necessary only for the brief window
+ * where both are mounted before the watcher fires. */
+function isTopmostDialog(): boolean {
+  if (typeof document === 'undefined') return false;
+  if (!dialogEl.value) return false;
+  const all = document.querySelectorAll('[role="dialog"], [role="alertdialog"]');
+  return all[all.length - 1] === dialogEl.value;
+}
 function onFocusIn(e: FocusEvent): void {
   if (!props.open) return;
+  if (!isTopmostDialog()) return;
   const target = e.target as Node | null;
   if (!target) return;
   const dlg = dialogEl.value;

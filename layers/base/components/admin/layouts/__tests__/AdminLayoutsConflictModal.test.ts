@@ -154,3 +154,88 @@ describe('AdminLayoutsConflictModal — emit contract', () => {
     expect(emitted().close).toBeFalsy();
   });
 });
+
+describe('AdminLayoutsConflictModal — focus trap (session 165 round 5)', () => {
+  it('focus moved outside the dialog while open snaps back to the primary button', async () => {
+    mount({ open: true });
+    await new Promise((r) => setTimeout(r, 0));
+
+    // Sanity: primary button has initial focus (matches the watcher).
+    const primary = document.querySelector<HTMLButtonElement>(
+      '.cpub-admin-layouts-conflict-btn--primary',
+    );
+    expect(document.activeElement).toBe(primary);
+
+    // Move focus to an element OUTSIDE the dialog.
+    const outside = document.createElement('button');
+    outside.textContent = 'Outside';
+    document.body.appendChild(outside);
+    outside.focus();
+    await new Promise((r) => setTimeout(r, 0));
+
+    // Trap kicks in: focus snaps back to the safe primary action.
+    expect(document.activeElement).toBe(primary);
+
+    document.body.removeChild(outside);
+  });
+
+  it('Tab walks among the three buttons WITHOUT triggering the trap (focus stays inside dialog)', async () => {
+    mount({ open: true });
+    await new Promise((r) => setTimeout(r, 0));
+
+    const btns = Array.from(
+      document.querySelectorAll<HTMLButtonElement>('.cpub-admin-layouts-conflict-btn'),
+    );
+    expect(btns.length).toBe(3);
+
+    // Programmatically focus the middle "Keep editing" button — focusin
+    // fires, contains-check returns true → no snap to primary.
+    btns[1]!.focus();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(document.activeElement).toBe(btns[1]);
+
+    // And the destructive button — same dialog → focus allowed.
+    btns[2]!.focus();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(document.activeElement).toBe(btns[2]);
+  });
+
+  it('focus trap is inactive when :open=false', async () => {
+    const { rerender } = mount({ open: true });
+    await new Promise((r) => setTimeout(r, 0));
+    await rerender({ open: false, message: null });
+    await new Promise((r) => setTimeout(r, 0));
+
+    const outside = document.createElement('button');
+    document.body.appendChild(outside);
+    outside.focus();
+    await new Promise((r) => setTimeout(r, 0));
+
+    expect(document.activeElement).toBe(outside);
+    document.body.removeChild(outside);
+  });
+
+  it('topmost-only guard: when another later-mounted dialog is on top, this dialog yields focus to it', async () => {
+    mount({ open: true });
+    await new Promise((r) => setTimeout(r, 0));
+
+    // Inject a LATER dialog into the body (simulates HelpOverlay mounted
+    // after ConflictModal — DOM order puts the later one last, our
+    // querySelector returns it as topmost).
+    const laterDialog = document.createElement('div');
+    laterDialog.setAttribute('role', 'dialog');
+    const laterFocusable = document.createElement('button');
+    laterFocusable.textContent = 'Later dialog button';
+    laterDialog.appendChild(laterFocusable);
+    document.body.appendChild(laterDialog);
+
+    // Focus moves to a focusable in the later dialog.
+    laterFocusable.focus();
+    await new Promise((r) => setTimeout(r, 0));
+
+    // ConflictModal's trap should NOT snap back — it's not topmost.
+    expect(document.activeElement).toBe(laterFocusable);
+
+    document.body.removeChild(laterDialog);
+  });
+});
