@@ -37,11 +37,15 @@ const props = withDefaults(defineProps<{
    * parent forgot to wire it, NOT an intentional disabled state).
    */
   onAddRow?: (zoneSlug: string) => void;
+  /** Session 164 polish — remove row handler. Same wiring as onAddRow;
+   *  threaded through LayoutSlot to each LayoutRow's × button. */
+  onRemoveRow?: (zoneSlug: string, rowId: string) => void;
 }>(), {
   viewport: 'desktop',
   onSelect: undefined,
   selectedId: null,
   onAddRow: undefined,
+  onRemoveRow: undefined,
 });
 
 // Session 162 P2.4 (R2 audit): LayoutPayload is now
@@ -177,6 +181,7 @@ function findFirstRowInZone(zoneSlug: string): LayoutRowType | null {
               :find-zone="findZone"
               :zone-slugs="zoneSlugs"
               :find-first-row-in-zone="findFirstRowInZone"
+              :on-remove-row="props.onRemoveRow"
             />
             <!--
               Session 164 polish (v1 blocker): "+ Add row". Without

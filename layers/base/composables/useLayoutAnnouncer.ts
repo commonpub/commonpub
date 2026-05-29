@@ -228,3 +228,12 @@ export function narrateRedoEmpty(): string {
 export function narrateRowAdded(zone: string, at: number, total: number): string {
   return `Row added in ${zone}, ${formatPosition(at, total)}.`;
 }
+
+/**
+ * Row removal — names the zone so the user has a frame of reference
+ * for what disappeared. Doesn't include the prior position because
+ * by announce-time the row is gone + neighboring rows have shifted.
+ */
+export function narrateRowRemoved(zone: string): string {
+  return `Row removed from ${zone}.`;
+}

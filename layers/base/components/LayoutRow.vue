@@ -79,6 +79,13 @@ const props = withDefaults(defineProps<{
   /** Phase 3b/B — first-row-in-zone lookup; landing target for the
    *  "Move to zone…" keyboard path. */
   findFirstRowInZone?: (zoneSlug: string) => LayoutRow | null;
+  /**
+   * Session 164 polish — remove-row handler. Editor page implements;
+   * Canvas threads through. When absent, the × button is hidden.
+   * The handler receives (zoneSlug, rowId) so it can locate + splice
+   * + record + narrate.
+   */
+  onRemoveRow?: (zoneSlug: string, rowId: string) => void;
 }>(), {
   editable: false,
   isPreview: false,
@@ -88,6 +95,7 @@ const props = withDefaults(defineProps<{
   findZone: undefined,
   zoneSlugs: () => [],
   findFirstRowInZone: undefined,
+  onRemoveRow: undefined,
 });
 
 /*
@@ -355,6 +363,23 @@ function moveSectionToZone(section: LayoutSection, targetZone: string): void {
   }));
 }
 
+/* ----- Remove row — Session 164 polish -------------------------------- */
+/*
+ * Delegates to the editor page (which has full draft access + handles
+ * the confirm dialog for non-empty rows). The row passes its own zone
+ * slug + id; the editor mutates + records `removeRowCommand` + narrates.
+ *
+ * `hasRemoveHandler` is computed instead of inlined `editable && onRemoveRow`
+ * in the template because vue-tsc strict narrows withDefaults'd optional
+ * function props to "always defined" — TS2774. The computed sidesteps
+ * the narrowing (matches the existing pattern for hasMoveTargets).
+ * Per feedback-vue-tsc-strict-vs-vitest.
+ */
+const hasRemoveHandler = computed<boolean>(() => !!(props.editable && props.onRemoveRow));
+function handleRemoveClick(): void {
+  props.onRemoveRow?.(props.zone, props.row.id);
+}
+
 const { isDragOver } = makeDroppable(
   rowRef,
   {
@@ -417,6 +442,27 @@ const isOver = computed<boolean>(() => isDragOver.value !== undefined);
       :available-zones="availableZones"
       :on-move-to-zone="(targetZone: string) => moveSectionToZone(section, targetZone)"
     />
+    <!--
+      Session 164 polish — remove row × button.
+      Keyed child so <TransitionGroup> tracks it (TG requires keyed
+      children). The button is position:absolute on the row corner
+      so it doesn't take a grid column; FLIP doesn't move it because
+      its key is constant. Visible only on row hover or focus + only
+      when an onRemoveRow handler is wired (public path stays clean).
+    -->
+    <button
+      v-if="hasRemoveHandler"
+      key="cpub-row-remove"
+      type="button"
+      class="cpub-layout-row-remove"
+      :aria-label="`Remove this row from ${zone}`"
+      :title="`Remove this row from ${zone}`"
+      @click.stop="handleRemoveClick"
+      @keydown.space.stop.prevent="handleRemoveClick"
+      @keydown.enter.stop.prevent="handleRemoveClick"
+    >
+      <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+    </button>
   </TransitionGroup>
 </template>
 
@@ -484,6 +530,49 @@ const isOver = computed<boolean>(() => isDragOver.value !== undefined);
   background: color-mix(in srgb, var(--accent) 6%, transparent);
   outline: 2px dashed var(--accent);
   outline-offset: 4px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Session 164 — Remove row × button.                                   */
+/* Hover-reveal on the row's top-right corner. Stays at opacity 0 by   */
+/* default so it doesn't clutter the canvas; fades in on hover/focus.  */
+/* Red on hover (destructive intent) per the design system convention. */
+/* prefers-reduced-motion: skip the fade.                              */
+/* ------------------------------------------------------------------ */
+.cpub-layout-row-remove {
+  position: absolute;
+  top: -14px;
+  right: -14px;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  cursor: pointer;
+  z-index: 3;
+  opacity: 0;
+  transition: opacity 100ms ease-out, color var(--transition-default), border-color var(--transition-default);
+  font-size: var(--text-sm);
+}
+.cpub-layout-row--editable:hover > .cpub-layout-row-remove,
+.cpub-layout-row-remove:focus-visible,
+.cpub-layout-row--selected > .cpub-layout-row-remove {
+  opacity: 1;
+}
+.cpub-layout-row-remove:hover {
+  color: var(--red);
+  border-color: var(--red);
+  background: var(--red-bg, var(--surface));
+}
+.cpub-layout-row-remove:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cpub-layout-row-remove { transition: none; }
 }
 
 /* ------------------------------------------------------------------ */

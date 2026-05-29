@@ -94,6 +94,7 @@ function mount(props: {
   zone?: string;
   zoneSlugs?: string[];
   findFirstRowInZone?: (zone: string) => LayoutRowType | null;
+  onRemoveRow?: (zoneSlug: string, rowId: string) => void;
 } = {}) {
   return render(LayoutRow, {
     props: {
@@ -106,6 +107,7 @@ function mount(props: {
       selectedId: props.selectedId ?? null,
       zoneSlugs: props.zoneSlugs,
       findFirstRowInZone: props.findFirstRowInZone,
+      onRemoveRow: props.onRemoveRow,
     },
   });
 }
@@ -435,5 +437,54 @@ describe('LayoutRow — FLIP animation wrapping (Phase 3b/B)', () => {
       container.querySelectorAll('[data-section-id]'),
     ).map((s) => s.getAttribute('data-section-id'));
     expect(ids).toEqual(['a', 'b', 'c']);
+  });
+});
+
+/* ---- Remove Row × button (Session 164 polish) ---- */
+
+describe('LayoutRow — Remove Row × (Session 164)', () => {
+  it('renders the remove button when editable=true + onRemoveRow provided', () => {
+    const { container } = mount({
+      editable: true,
+      onRemoveRow: vi.fn(),
+    });
+    expect(container.querySelector('[aria-label*="Remove this row"]')).not.toBeNull();
+  });
+
+  it('does NOT render the remove button on the public path (editable=false)', () => {
+    const { container } = mount({
+      editable: false,
+      onRemoveRow: vi.fn(), // even if a callback was provided
+    });
+    expect(container.querySelector('[aria-label*="Remove this row"]')).toBeNull();
+  });
+
+  it('does NOT render the remove button when no callback provided (editable but no handler)', () => {
+    const { container } = mount({ editable: true });
+    expect(container.querySelector('[aria-label*="Remove this row"]')).toBeNull();
+  });
+
+  it('click fires onRemoveRow with (zone, rowId)', async () => {
+    const onRemoveRow = vi.fn();
+    const row = makeRow('r-target', []);
+    const { container } = mount({
+      row,
+      zone: 'sidebar',
+      editable: true,
+      onRemoveRow,
+    });
+    const btn = container.querySelector('[aria-label*="Remove this row"]') as HTMLElement;
+    await fireEvent.click(btn);
+    expect(onRemoveRow).toHaveBeenCalledWith('sidebar', 'r-target');
+  });
+
+  it('aria-label includes the zone name (frame of reference for SR users)', () => {
+    const { container } = mount({
+      zone: 'main',
+      editable: true,
+      onRemoveRow: vi.fn(),
+    });
+    const btn = container.querySelector('[aria-label*="Remove this row"]');
+    expect(btn?.getAttribute('aria-label')).toContain('main');
   });
 });

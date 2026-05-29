@@ -19,6 +19,7 @@ import {
   narrateUndoEmpty,
   narrateRedoEmpty,
   narrateRowAdded,
+  narrateRowRemoved,
 } from '../useLayoutAnnouncer';
 
 beforeEach(() => {
@@ -147,6 +148,11 @@ describe('narration helpers', () => {
   it('narrateRowAdded names the zone + 1-indexed position', () => {
     expect(narrateRowAdded('main', 2, 3)).toBe('Row added in main, position 3 of 3.');
     expect(narrateRowAdded('sidebar', 0, 1)).toBe('Row added in sidebar, position 1 of 1.');
+  });
+
+  it('narrateRowRemoved names the zone (no position — row is gone)', () => {
+    expect(narrateRowRemoved('main')).toBe('Row removed from main.');
+    expect(narrateRowRemoved('sidebar')).toBe('Row removed from sidebar.');
   });
 });
 

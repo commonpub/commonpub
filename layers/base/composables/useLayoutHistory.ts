@@ -306,6 +306,47 @@ export function addRowCommand(params: {
 }
 
 /**
+ * Remove a row from a zone.
+ *
+ *   apply:  remove the row by id from zone.rows
+ *   invert: restore the row at `position` (clamped if the zone now has
+ *           fewer rows)
+ *
+ * Symmetric pair with `addRowCommand`. The full row (including any
+ * sections it contained at remove-time) is deep-cloned + stored on the
+ * command so the invert restores the row's contents — Cmd+Z after a
+ * row removal brings back the sections too.
+ */
+export function removeRowCommand(params: {
+  zoneSlug: string;
+  position: number;
+  row: LayoutRow;
+  label?: string;
+}): LayoutCommand {
+  const rowClone = JSON.parse(JSON.stringify(params.row)) as LayoutRow;
+  const label = params.label ?? `remove row`;
+  return {
+    label,
+    timestamp: Date.now(),
+    apply(draft) {
+      const zone = draft.zones.find((z) => z.zone === params.zoneSlug);
+      if (!zone) return;
+      const idx = zone.rows.findIndex((r) => r.id === rowClone.id);
+      if (idx === -1) return;
+      zone.rows.splice(idx, 1);
+    },
+    invert(draft) {
+      const zone = draft.zones.find((z) => z.zone === params.zoneSlug);
+      if (!zone) return;
+      // Clamp to the current length — intervening commands may have
+      // removed other rows, putting our captured position out of range.
+      const pos = Math.min(params.position, zone.rows.length);
+      zone.rows.splice(pos, 0, JSON.parse(JSON.stringify(rowClone)));
+    },
+  };
+}
+
+/**
  * Cross-row / cross-zone move.
  *
  *   apply:  remove from sourceRow at fromIdx, insert into destRow at toIdx

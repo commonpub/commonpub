@@ -23,6 +23,7 @@ import {
   reorderSectionCommand,
   moveSectionCommand,
   addRowCommand,
+  removeRowCommand,
 } from '../useLayoutHistory';
 import type { LayoutRow } from '../useLayout';
 
@@ -430,6 +431,101 @@ describe('addRowCommand', () => {
     cmd.invert(draft);
     expect(draft.zones[0]!.rows.map((r) => r.id))
       .toEqual(['row-main-1', 'row-main-2']);
+  });
+});
+
+describe('removeRowCommand', () => {
+  it('apply removes by id; invert restores at original position', () => {
+    const draft = makeDraft();
+    const before = JSON.stringify(draft.zones);
+    // Capture the row BEFORE remove so the command holds the full payload
+    const removedRow = JSON.parse(JSON.stringify(draft.zones[0]!.rows[0]!));
+    const cmd = removeRowCommand({
+      zoneSlug: 'main',
+      position: 0,
+      row: removedRow,
+    });
+    cmd.apply(draft);
+    expect(draft.zones[0]!.rows.map((r) => r.id)).toEqual(['row-main-2']);
+
+    cmd.invert(draft);
+    expect(JSON.stringify(draft.zones)).toBe(before);
+  });
+
+  it('invert restores SECTIONS too (not just the row chrome)', () => {
+    const draft = makeDraft();
+    // row-main-1 has sections s1 + s2; capture before removal
+    const removedRow = JSON.parse(JSON.stringify(draft.zones[0]!.rows[0]!));
+    expect(removedRow.sections.map((s: { id: string }) => s.id)).toEqual(['s1', 's2']);
+
+    const cmd = removeRowCommand({
+      zoneSlug: 'main',
+      position: 0,
+      row: removedRow,
+    });
+    cmd.apply(draft);
+    expect(draft.zones[0]!.rows).toHaveLength(1);
+
+    cmd.invert(draft);
+    const restoredRow = draft.zones[0]!.rows[0]!;
+    expect(restoredRow.id).toBe('row-main-1');
+    expect(restoredRow.sections.map((s) => s.id)).toEqual(['s1', 's2']);
+  });
+
+  it('invert clamps position when zone has fewer rows than at remove time', () => {
+    const draft = makeDraft();
+    // Remove BOTH rows of main; then invert the SECOND removal's command.
+    // The captured position is 1, but the zone now only has 0 rows;
+    // clamp should append at position 0.
+    const row2 = JSON.parse(JSON.stringify(draft.zones[0]!.rows[1]!));
+    const row1 = JSON.parse(JSON.stringify(draft.zones[0]!.rows[0]!));
+
+    // Remove row 1 first (idx 0)
+    const cmd1 = removeRowCommand({ zoneSlug: 'main', position: 0, row: row1 });
+    cmd1.apply(draft);
+    // Now row 2 is at idx 0; remove it
+    const cmd2 = removeRowCommand({ zoneSlug: 'main', position: 1, row: row2 });
+    // Note: cmd2 was created when row2 was at position 1, but after cmd1
+    // applied, row2 is at position 0. Apply still works (find by id):
+    cmd2.apply(draft);
+    expect(draft.zones[0]!.rows).toHaveLength(0);
+
+    // Invert cmd2: position=1, but zone has 0 rows. Clamp → splice at 0.
+    cmd2.invert(draft);
+    expect(draft.zones[0]!.rows.map((r) => r.id)).toEqual(['row-main-2']);
+  });
+
+  it('apply on vanished zone is a silent noop', () => {
+    const draft = makeDraft();
+    const before = JSON.stringify(draft.zones);
+    const cmd = removeRowCommand({
+      zoneSlug: 'ghost-zone',
+      position: 0,
+      row: { id: 'orphan', order: 0, config: null, sections: [] },
+    });
+    cmd.apply(draft);
+    expect(JSON.stringify(draft.zones)).toBe(before);
+  });
+
+  it('apply on vanished row id is a silent noop', () => {
+    const draft = makeDraft();
+    const before = JSON.stringify(draft.zones);
+    const cmd = removeRowCommand({
+      zoneSlug: 'main',
+      position: 0,
+      row: { id: 'ghost-row', order: 0, config: null, sections: [] },
+    });
+    cmd.apply(draft);
+    expect(JSON.stringify(draft.zones)).toBe(before);
+  });
+
+  it('default label is "remove row"', () => {
+    const cmd = removeRowCommand({
+      zoneSlug: 'main',
+      position: 0,
+      row: { id: 'x', order: 0, config: null, sections: [] },
+    });
+    expect(cmd.label).toBe('remove row');
   });
 });
 

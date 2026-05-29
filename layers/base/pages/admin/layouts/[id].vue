@@ -16,8 +16,8 @@
  */
 import type { LayoutRecord } from '@commonpub/server';
 import { PublishStepError } from '../../../composables/useLayoutEditor';
-import { useLayoutAnnouncer, narrateUndo, narrateRedo, narrateUndoEmpty, narrateRedoEmpty, narrateRowAdded } from '../../../composables/useLayoutAnnouncer';
-import { useLayoutHistory, addRowCommand } from '../../../composables/useLayoutHistory';
+import { useLayoutAnnouncer, narrateUndo, narrateRedo, narrateUndoEmpty, narrateRedoEmpty, narrateRowAdded, narrateRowRemoved } from '../../../composables/useLayoutAnnouncer';
+import { useLayoutHistory, addRowCommand, removeRowCommand } from '../../../composables/useLayoutHistory';
 import { useLayoutHotkeys } from '../../../composables/useLayoutHotkeys';
 import { DnDProvider } from '@vue-dnd-kit/core';
 
@@ -88,6 +88,54 @@ function onAddRow(zoneSlug: string): void {
     row: newRow,
     label: `add row to ${zoneSlug}`,
   }));
+}
+
+/**
+ * Session 164 polish — Remove row. Confirm before removing rows with
+ * sections (destructive intent: section data goes away, only restorable
+ * via Cmd+Z within the same editor session). Empty rows skip confirm —
+ * they were the Add Row button's leftover dashed placeholder; removing
+ * is a recovery action, not a destruction.
+ */
+function onRemoveRow(zoneSlug: string, rowId: string): void {
+  const draft = editor.draft.value;
+  if (!draft) return;
+  const zone = draft.zones.find((z) => z.zone === zoneSlug);
+  if (!zone) return;
+  const idx = zone.rows.findIndex((r) => r.id === rowId);
+  if (idx === -1) return;
+  const row = zone.rows[idx];
+  if (!row) return;
+  if (row.sections.length > 0) {
+    const sectionWord = row.sections.length === 1 ? 'section' : 'sections';
+    const ok = window.confirm(
+      `Remove this row and its ${row.sections.length} ${sectionWord}? `
+      + `Cmd+Z restores it within this session.`,
+    );
+    if (!ok) return;
+  }
+  const position = idx;
+  // Capture the row's full state BEFORE splice so the command's invert
+  // can restore sections + config too.
+  const rowClone = JSON.parse(JSON.stringify(row));
+  zone.rows.splice(idx, 1);
+  const ann = useLayoutAnnouncer();
+  ann.announce(narrateRowRemoved(zoneSlug));
+  history.record(removeRowCommand({
+    zoneSlug,
+    position,
+    row: rowClone,
+    label: `remove row from ${zoneSlug}`,
+  }));
+  // Clear selection if the removed row contained the currently-selected
+  // section/row (it's no longer in draft).
+  const sel = editor.selectedId.value;
+  if (sel) {
+    if (sel.kind === 'row' && sel.id === rowId) editor.clearSelection();
+    else if (sel.kind === 'section' && rowClone.sections.some((s: { id: string }) => s.id === sel.id)) {
+      editor.clearSelection();
+    }
+  }
 }
 
 // Palette + inspector visibility — persists per-admin via cookie so the
@@ -528,6 +576,7 @@ async function onConflictForceSave(): Promise<void> {
             :on-select="editor.select"
             :selected-id="editor.selectedId.value"
             :on-add-row="onAddRow"
+            :on-remove-row="onRemoveRow"
           />
           <AdminLayoutsPalette v-show="!chrome.paletteHidden.value" />
           <AdminLayoutsInspector

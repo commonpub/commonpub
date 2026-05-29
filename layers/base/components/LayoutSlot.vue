@@ -100,6 +100,8 @@ const props = withDefaults(defineProps<{
   zoneSlugs?: string[];
   /** Phase 3b/B — landing-row lookup for the "Move to zone…" path. */
   findFirstRowInZone?: (zoneSlug: string) => LayoutRowType | null;
+  /** Session 164 polish — remove row callback threaded down to LayoutRow. */
+  onRemoveRow?: (zoneSlug: string, rowId: string) => void;
 }>(), {
   previewOverride: null,
   editable: false,
@@ -109,6 +111,7 @@ const props = withDefaults(defineProps<{
   findZone: undefined,
   zoneSlugs: () => [],
   findFirstRowInZone: undefined,
+  onRemoveRow: undefined,
 });
 
 const { layout, pending } = useLayout(props.route);
@@ -153,6 +156,7 @@ const zone = computed<LayoutZoneClient | null>(
       :find-zone="findZone"
       :zone-slugs="zoneSlugs"
       :find-first-row-in-zone="findFirstRowInZone"
+      :on-remove-row="onRemoveRow"
     />
   </template>
 
