@@ -161,23 +161,55 @@ export function computeInsertIndex(event: IDragEvent, fallbackLen: number): numb
  * Outcome of a dispatched drop — useful for callers that want to
  * narrate the result (ARIA live region, audit log, telemetry) without
  * sniffing the row's array.
+ *
+ * Phase 3b/B adds `'moved'` for cross-row + cross-zone. The caller
+ * uses `fromRowId` + `toRowId` to build a moveSectionCommand for the
+ * undo stack + to look up zone slugs for narration.
  */
 export type DropOutcome =
   | { kind: 'inserted'; section: LayoutSection; at: number }
   | { kind: 'reordered'; section: LayoutSection; from: number; to: number }
+  | {
+      kind: 'moved';
+      section: LayoutSection;
+      fromRowId: string;
+      fromIdx: number;
+      fromTotal: number;
+      toRowId: string;
+      toIdx: number;
+      toTotal: number;
+    }
   | { kind: 'noop'; reason: string };
+
+/**
+ * Context the dispatcher needs for CROSS-ROW operations. Optional so
+ * within-row + palette callers (which don't need to look up other
+ * rows) can still call the dispatcher with a 2-arg signature.
+ *
+ * When `findRow` is omitted OR returns null for the source row, a
+ * cross-row drop falls back to noop (with reason `'no-find-row'` or
+ * `'source-row-not-found'`). This makes the cross-zone wiring an
+ * opt-in: callers in old contexts (single-row tests) still work.
+ */
+export interface DispatchContext {
+  /** Look up a row anywhere in the draft by id. Returns null if the
+   *  row doesn't exist (or the caller chose not to support cross-row). */
+  findRow?: (rowId: string) => LayoutRow | null;
+}
 
 /**
  * Apply a drop to a row. The row's `sections` array is mutated in
  * place — the editor's deep watcher picks it up + auto-save fires.
  *
- * 3b/A scope:
+ * Phase 3b/B scope:
  *   - palette-section-spec → splice in a fresh section at the computed
  *     insert index.
  *   - section-instance dragged FROM THIS SAME ROW → reorder in place
  *     via splice-remove + splice-insert (sameList per dnd-kit's model).
- *   - section-instance dragged FROM A DIFFERENT ROW → noop in 3b/A
- *     (cross-row + cross-zone arrive in 3b/B).
+ *   - section-instance dragged FROM A DIFFERENT ROW + ctx.findRow
+ *     provides the source → remove from source, insert into destination
+ *     row. Cross-row + cross-zone share this branch (a "different
+ *     row" may be in another zone).
  *
  * Returns a DropOutcome describing what happened. `noop` outcomes have
  * a `reason` for diagnostics — surfaced in tests + (optionally) audit
@@ -186,6 +218,7 @@ export type DropOutcome =
 export function dispatchSectionDrop(
   event: IDragEvent,
   row: LayoutRow,
+  ctx: DispatchContext = {},
 ): DropOutcome {
   const item = event.draggedItems[0]?.item as DragPayload | undefined;
   if (!item) return { kind: 'noop', reason: 'no-dragged-item' };
@@ -199,8 +232,39 @@ export function dispatchSectionDrop(
 
   if (item.kind === 'section-instance') {
     if (item.fromRowId !== row.id) {
-      // Cross-row drag — deferred to Phase 3b/B (cross-zone arc).
-      return { kind: 'noop', reason: 'cross-row-deferred-to-3b-B' };
+      // Cross-row drag. Needs the source row to splice out of.
+      // Without ctx.findRow, we can't reach it — fall back to noop.
+      if (!ctx.findRow) {
+        return { kind: 'noop', reason: 'no-find-row' };
+      }
+      const sourceRow = ctx.findRow(item.fromRowId);
+      if (!sourceRow) {
+        return { kind: 'noop', reason: 'source-row-not-found' };
+      }
+      const fromIdx = sourceRow.sections.findIndex((s) => s.id === item.section.id);
+      if (fromIdx === -1) {
+        // The dragged section isn't in the source row — defensive
+        // against a stale payload or concurrent edit.
+        return { kind: 'noop', reason: 'section-not-found' };
+      }
+      const fromTotal = sourceRow.sections.length;
+      // Target index in the DESTINATION row (which is `row`, separate
+      // from source). No adjustment needed — the splice on source
+      // doesn't shift indices in the destination.
+      const targetIdx = computeInsertIndex(event, row.sections.length);
+      const [moved] = sourceRow.sections.splice(fromIdx, 1);
+      if (!moved) return { kind: 'noop', reason: 'section-vanished-mid-splice' };
+      row.sections.splice(targetIdx, 0, moved);
+      return {
+        kind: 'moved',
+        section: moved,
+        fromRowId: sourceRow.id,
+        fromIdx,
+        fromTotal,
+        toRowId: row.id,
+        toIdx: targetIdx,
+        toTotal: row.sections.length,
+      };
     }
     const fromIdx = row.sections.findIndex((s) => s.id === item.section.id);
     if (fromIdx === -1) {
@@ -215,6 +279,7 @@ export function dispatchSectionDrop(
     const [moved] = row.sections.splice(fromIdx, 1);
     // Adjust if removing the source shifted the target.
     const adjustedTarget = targetIdx > fromIdx ? targetIdx - 1 : targetIdx;
+    if (!moved) return { kind: 'noop', reason: 'section-vanished-mid-splice' };
     row.sections.splice(adjustedTarget, 0, moved);
     return { kind: 'reordered', section: moved, from: fromIdx, to: adjustedTarget };
   }

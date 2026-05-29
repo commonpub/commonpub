@@ -309,8 +309,8 @@ describe('dispatchSectionDrop — section-instance → same row (reorder)', () =
   });
 });
 
-describe('dispatchSectionDrop — section-instance from a DIFFERENT row (deferred)', () => {
-  it('cross-row drop → noop in 3b/A (deferred to 3b/B)', () => {
+describe('dispatchSectionDrop — section-instance from a DIFFERENT row (3b/B cross-row + cross-zone)', () => {
+  it('cross-row drop WITHOUT ctx.findRow → noop (backward-compat with 2-arg call)', () => {
     const row = makeRow('R1', [makeSection('S1')]);
     const event = makeEvent({
       payload: {
@@ -321,10 +321,96 @@ describe('dispatchSectionDrop — section-instance from a DIFFERENT row (deferre
     });
     const outcome = dispatchSectionDrop(event, row);
     expect(outcome.kind).toBe('noop');
-    if (outcome.kind === 'noop') {
-      expect(outcome.reason).toBe('cross-row-deferred-to-3b-B');
-    }
+    if (outcome.kind === 'noop') expect(outcome.reason).toBe('no-find-row');
     expect(row.sections.map((s) => s.id)).toEqual(['S1']);
+  });
+
+  it('cross-row drop WITH ctx.findRow → moved outcome + sections shift', () => {
+    const sourceSection = makeSection('S-cross');
+    const sourceRow = makeRow('R-SOURCE', [makeSection('S-keep'), sourceSection]);
+    const destRow = makeRow('R-DEST', [makeSection('D1')]);
+    const event = makeEvent({
+      payload: {
+        kind: 'section-instance',
+        section: sourceSection,
+        fromRowId: 'R-SOURCE',
+      },
+      hoveredIdx: 0,
+      hoveredPlacement: placement({ left: true }), // insert BEFORE D1
+    });
+    const findRow = (id: string): LayoutRow | null =>
+      id === 'R-SOURCE' ? sourceRow : id === 'R-DEST' ? destRow : null;
+    const outcome = dispatchSectionDrop(event, destRow, { findRow });
+
+    expect(outcome.kind).toBe('moved');
+    if (outcome.kind === 'moved') {
+      expect(outcome.section.id).toBe('S-cross');
+      expect(outcome.fromRowId).toBe('R-SOURCE');
+      expect(outcome.fromIdx).toBe(1);
+      // fromTotal reflects the source BEFORE the splice
+      expect(outcome.fromTotal).toBe(2);
+      expect(outcome.toRowId).toBe('R-DEST');
+      expect(outcome.toIdx).toBe(0);
+      // toTotal is the destination AFTER the insert
+      expect(outcome.toTotal).toBe(2);
+    }
+    expect(sourceRow.sections.map((s) => s.id)).toEqual(['S-keep']);
+    expect(destRow.sections.map((s) => s.id)).toEqual(['S-cross', 'D1']);
+  });
+
+  it('cross-row drop appending to destination (no hovered draggable → end)', () => {
+    const sourceSection = makeSection('S-move');
+    const sourceRow = makeRow('R-SOURCE', [sourceSection]);
+    const destRow = makeRow('R-DEST', [makeSection('D1'), makeSection('D2')]);
+    const event = makeEvent({
+      payload: {
+        kind: 'section-instance',
+        section: sourceSection,
+        fromRowId: 'R-SOURCE',
+      },
+      // No hoveredIdx → append
+    });
+    const findRow = (id: string): LayoutRow | null =>
+      id === 'R-SOURCE' ? sourceRow : id === 'R-DEST' ? destRow : null;
+    const outcome = dispatchSectionDrop(event, destRow, { findRow });
+    expect(outcome.kind).toBe('moved');
+    if (outcome.kind === 'moved') expect(outcome.toIdx).toBe(2);
+    expect(destRow.sections.map((s) => s.id)).toEqual(['D1', 'D2', 'S-move']);
+    expect(sourceRow.sections).toHaveLength(0);
+  });
+
+  it('cross-row drop with findRow returning null for source → noop', () => {
+    const destRow = makeRow('R-DEST', [makeSection('D1')]);
+    const event = makeEvent({
+      payload: {
+        kind: 'section-instance',
+        section: makeSection('S-orphan'),
+        fromRowId: 'R-VANISHED',
+      },
+    });
+    const outcome = dispatchSectionDrop(event, destRow, {
+      findRow: () => null,
+    });
+    expect(outcome.kind).toBe('noop');
+    if (outcome.kind === 'noop') expect(outcome.reason).toBe('source-row-not-found');
+    expect(destRow.sections.map((s) => s.id)).toEqual(['D1']);
+  });
+
+  it('cross-row drop where section vanished from source mid-flight → noop', () => {
+    const sourceRow = makeRow('R-SOURCE', [makeSection('S-different')]);
+    const destRow = makeRow('R-DEST', [makeSection('D1')]);
+    const event = makeEvent({
+      payload: {
+        kind: 'section-instance',
+        section: makeSection('S-ghost'), // not present in source
+        fromRowId: 'R-SOURCE',
+      },
+    });
+    const outcome = dispatchSectionDrop(event, destRow, {
+      findRow: (id) => (id === 'R-SOURCE' ? sourceRow : id === 'R-DEST' ? destRow : null),
+    });
+    expect(outcome.kind).toBe('noop');
+    if (outcome.kind === 'noop') expect(outcome.reason).toBe('section-not-found');
   });
 });
 
