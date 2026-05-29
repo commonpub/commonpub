@@ -151,6 +151,102 @@ describe('useLayoutEditor — save()', () => {
   });
 });
 
+describe('useLayoutEditor — flushBeacon() (session 162 P2.3)', () => {
+  // flushBeacon uses the NATIVE `fetch` global, not `$fetch` — the whole
+  // point is to bypass ofetch's response parsing/retries/abort wiring
+  // and get a raw request the browser keeps alive past page teardown.
+  // So these tests install a separate fetch mock rather than reusing
+  // the installFetch helper above.
+  function installNativeFetch(impl?: (url: string, opts?: Record<string, unknown>) => Promise<unknown>) {
+    const mock = vi.fn(impl ?? (() => Promise.resolve(undefined as unknown)));
+    const g = globalThis as Record<string, unknown>;
+    const prev = g.fetch;
+    g.fetch = mock;
+    return {
+      mock,
+      restore: () => { g.fetch = prev; },
+    };
+  }
+
+  it('returns false (no-op) when there is no draft or original', () => {
+    const { mock } = installNativeFetch();
+    const editor = useLayoutEditor('L1');
+    // draft + original both null
+    expect(editor.flushBeacon()).toBe(false);
+    expect(mock).not.toHaveBeenCalled();
+  });
+
+  it('returns false (no-op) when not dirty', () => {
+    const { mock } = installNativeFetch();
+    const editor = useLayoutEditor('L1');
+    editor.original.value = fixture();
+    editor.draft.value = fixture();  // identical
+    expect(editor.dirty.value).toBe(false);
+    expect(editor.flushBeacon()).toBe(false);
+    expect(mock).not.toHaveBeenCalled();
+  });
+
+  it('fires PUT with keepalive:true and If-Match header from original.updatedAt', () => {
+    const { mock } = installNativeFetch();
+    const editor = useLayoutEditor('L1');
+    editor.original.value = fixture();
+    editor.draft.value = { ...fixture(), name: 'Renamed' };
+
+    expect(editor.flushBeacon()).toBe(true);
+    expect(mock).toHaveBeenCalledTimes(1);
+    const [url, opts] = mock.mock.calls[0]! as [string, Record<string, unknown>];
+    expect(url).toBe('/api/admin/layouts/L1');
+    expect(opts.method).toBe('PUT');
+    expect(opts.keepalive).toBe(true);
+    const headers = opts.headers as Record<string, string>;
+    expect(headers['Content-Type']).toBe('application/json');
+    expect(headers['If-Match']).toBe('2026-05-27T00:00:00.000Z');
+    expect(headers['X-Cpub-Save-Source']).toBe('beacon');
+    // Body contains the renamed name
+    const body = JSON.parse(opts.body as string) as { name: string };
+    expect(body.name).toBe('Renamed');
+  });
+
+  it('does NOT pass an abort signal — the request must outlive the editor', () => {
+    const { mock } = installNativeFetch();
+    const editor = useLayoutEditor('L1');
+    editor.original.value = fixture();
+    editor.draft.value = { ...fixture(), name: 'Renamed' };
+
+    editor.flushBeacon();
+    const [, opts] = mock.mock.calls[0]! as [string, Record<string, unknown>];
+    // Beacon must NOT pass signal; the whole point is to survive the
+    // unmount abort that the regular save respects.
+    expect(opts.signal).toBeUndefined();
+  });
+
+  it('is sync — returns true BEFORE the fetch promise resolves', () => {
+    // Resolve never; flushBeacon should still return synchronously.
+    const fetchPromise = new Promise(() => { /* never resolves */ });
+    installNativeFetch(() => fetchPromise);
+    const editor = useLayoutEditor('L1');
+    editor.original.value = fixture();
+    editor.draft.value = { ...fixture(), name: 'Renamed' };
+
+    const result = editor.flushBeacon();
+    // No await — the call returned with a boolean
+    expect(result).toBe(true);
+  });
+
+  it('swallows synchronous fetch errors and returns false', () => {
+    installNativeFetch(() => {
+      throw new Error('fetch threw synchronously');
+    });
+    const editor = useLayoutEditor('L1');
+    editor.original.value = fixture();
+    editor.draft.value = { ...fixture(), name: 'Renamed' };
+
+    // Must not propagate — the page is leaving
+    expect(() => editor.flushBeacon()).not.toThrow();
+    expect(editor.flushBeacon()).toBe(false);
+  });
+});
+
 describe('useLayoutEditor — abort() (R4 P2 audit fix)', () => {
   it('passes a signal to the PUT fetch', async () => {
     const { mock } = installFetch(() => Promise.resolve(fixture()));

@@ -56,15 +56,21 @@ const conflictOpen = ref<boolean>(false);
 // R4 audit P1 fix: unsaved-edit guards. Without these, the user can
 // navigate (back button, sidebar nav, typed URL) between the last edit
 // and the 1500ms debounce firing → silent data loss. visibilitychange
-// flush handles tab close/Cmd+Tab but NOT in-app navigation.
+// flush handles Cmd+Tab/minimize but NOT in-app navigation.
 //
-// Two guards:
+// Three guards layered for the unique failure modes each covers:
 //   1. onBeforeRouteLeave — fires on Nuxt navigation (sidebar links,
 //      router.push, NuxtLink). Confirms with the user; if they cancel,
 //      navigation aborts and they stay on the editor.
 //   2. beforeunload — fires on tab close, reload, or external nav.
 //      Modern browsers ignore the message string and show their generic
-//      prompt; setting preventDefault is enough to trigger it.
+//      prompt; setting preventDefault is enough to trigger it. Does
+//      NOT fire on iOS Safari.
+//   3. pagehide → editor.flushBeacon() — session 162 P2.3. The only
+//      event that fires reliably on tab-close + bfcache eviction +
+//      iOS Safari. Sends the unsaved draft via fetch(keepalive:true)
+//      so it survives page teardown when the user closes the tab
+//      inside the auto-save debounce window.
 function onBeforeUnload(e: BeforeUnloadEvent): void {
   if (editor.dirty.value) {
     e.preventDefault();
@@ -72,14 +78,21 @@ function onBeforeUnload(e: BeforeUnloadEvent): void {
     e.returnValue = '';
   }
 }
+function onPageHide(): void {
+  // Fire-and-forget — the page may be teardowning RIGHT NOW. The
+  // beacon's keepalive flag is what makes the request survive.
+  editor.flushBeacon();
+}
 onMounted(() => {
   if (typeof window !== 'undefined') {
     window.addEventListener('beforeunload', onBeforeUnload);
+    window.addEventListener('pagehide', onPageHide);
   }
 });
 onBeforeUnmount(() => {
   if (typeof window !== 'undefined') {
     window.removeEventListener('beforeunload', onBeforeUnload);
+    window.removeEventListener('pagehide', onPageHide);
   }
   // R4 P2 (session 161): cancel any in-flight save. Without this, a save
   // started before unmount lands afterward as an "orphan" PUT — which can

@@ -48,6 +48,18 @@ export interface LayoutEditorState {
    *  could cause stale 409s when the user opens the editor again).
    *  R4 P2 fix (session 161). */
   abort: () => void;
+  /** Fire a best-effort PUT via `fetch({keepalive:true})` — survives
+   *  page teardown so unsaved edits don't vanish when the tab is
+   *  closed inside the 1.5s auto-save debounce window. Returns true
+   *  if a request was queued, false if the no-op preconditions held
+   *  (no draft/original, not dirty, or fetch unavailable). Fire-and-
+   *  forget; does NOT await. Bypasses the abort controller (the whole
+   *  point is for this request to outlive it).
+   *
+   *  Call from a `pagehide` listener (the only event that fires
+   *  reliably on mobile tab-close + bfcache eviction; `beforeunload`
+   *  doesn't run on iOS Safari at all). R2 P2 deferred (session 162). */
+  flushBeacon: () => boolean;
 }
 
 /** Deep-clone via JSON. The LayoutRecord shape is JSON-safe (no Date/Map/Set). */
@@ -125,6 +137,67 @@ export function useLayoutEditor(id: string): LayoutEditorState {
 
   function abort(): void {
     abortController?.abort();
+  }
+
+  /**
+   * Beacon save — session 162 P2.3.
+   *
+   * The auto-save composable's `visibilitychange` flush handles the
+   * common Cmd+Tab / minimize case via regular `$fetch`. That works
+   * because the page is still alive when the request goes out and the
+   * browser drains the connection normally. But for tab close (and
+   * especially iOS Safari, which doesn't fire `beforeunload` at all),
+   * the page is torn down before the request finishes — the abort
+   * controller cancels it, or the browser kills the network stack.
+   *
+   * `pagehide` fires reliably on every tab-close + bfcache event on
+   * every browser; combined with `fetch(..., { keepalive: true })` the
+   * browser commits to delivering the request even after the page is
+   * gone (subject to the 64KB body cap, which our LayoutPayload sits
+   * well under).
+   *
+   * sendBeacon would work too but is POST-only; we want PUT to share
+   * the existing endpoint + If-Match contract. The keepalive flag is
+   * the modern way to get the same lifecycle guarantee with arbitrary
+   * methods. Native `fetch` is used directly (not `$fetch`/ofetch)
+   * because we don't want response parsing, retries, or error wrapping
+   * — the page is gone, nobody can read the result.
+   */
+  function flushBeacon(): boolean {
+    if (typeof fetch === 'undefined') return false;
+    if (!draft.value || !original.value) return false;
+    if (!dirty.value) return false;
+
+    const body = JSON.stringify({
+      scope: draft.value.scope,
+      name: draft.value.name,
+      pageMeta: draft.value.pageMeta ?? undefined,
+      zones: draft.value.zones,
+      state: draft.value.state,
+    });
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'If-Match': original.value.updatedAt,
+      // Lets the server audit-log distinguish beacon saves from regular
+      // auto-saves (helpful when tracing "did my last edit land?").
+      'X-Cpub-Save-Source': 'beacon',
+    };
+    try {
+      // Fire-and-forget. No signal so the unmount abort() cannot cancel
+      // it. `keepalive:true` lets the browser deliver the request after
+      // page teardown — without it, the connection dies with the page.
+      void fetch(`/api/admin/layouts/${id}`, {
+        method: 'PUT',
+        headers,
+        body,
+        keepalive: true,
+      });
+      return true;
+    } catch {
+      // Swallow — the page is going away; the user isn't here to see
+      // an error, and the fetch is best-effort anyway.
+      return false;
+    }
   }
 
   async function save(opts: { force?: boolean } = {}): Promise<void> {
@@ -231,5 +304,6 @@ export function useLayoutEditor(id: string): LayoutEditorState {
     refresh,
     discard,
     abort,
+    flushBeacon,
   };
 }

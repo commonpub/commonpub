@@ -81,9 +81,13 @@ export function useLayoutAutoSave(opts: UseLayoutAutoSaveOptions): UseLayoutAuto
    * `document.visibilityState === 'hidden'` fires reliably across modern
    * browsers (per CanIUse: 100% support). The save() call is async and
    * returns a promise that we don't await — the browser may not give
-   * us time to finish, but firing the request is better than not. For
-   * REAL safety we'd use navigator.sendBeacon, but that requires a
-   * different server endpoint shape; deferred to a later polish.
+   * us time to finish, but firing the request is better than not.
+   *
+   * The "REAL safety" path (request that survives page teardown) is
+   * now wired separately: session 162 P2.3 added `editor.flushBeacon()`
+   * (fetch with `keepalive:true`) which the editor page calls from a
+   * `pagehide` listener. visibilitychange is the fast path; pagehide-
+   * +-beacon is the safety net for the actual teardown.
    */
   function onVisibilityChange(): void {
     if (typeof document === 'undefined') return;
