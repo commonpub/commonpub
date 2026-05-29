@@ -70,6 +70,15 @@ const props = withDefaults(defineProps<{
    * the position-only `narrateReordered` form.
    */
   findZone?: (rowId: string) => string | null;
+  /**
+   * Phase 3b/B — all zone slugs in the layout. Drives the "Move to
+   * zone…" popover's option list. The row filters out its OWN zone
+   * before passing the list to its sections.
+   */
+  zoneSlugs?: string[];
+  /** Phase 3b/B — first-row-in-zone lookup; landing target for the
+   *  "Move to zone…" keyboard path. */
+  findFirstRowInZone?: (zoneSlug: string) => LayoutRow | null;
 }>(), {
   editable: false,
   isPreview: false,
@@ -77,6 +86,8 @@ const props = withDefaults(defineProps<{
   selectedId: null,
   findRow: undefined,
   findZone: undefined,
+  zoneSlugs: () => [],
+  findFirstRowInZone: undefined,
 });
 
 /*
@@ -261,6 +272,62 @@ function moveSection(section: LayoutSection, direction: 'up' | 'down'): void {
   }));
 }
 
+/* ----- Move to zone … — WCAG cross-zone keyboard path -------------- */
+/*
+ * Per the keyboard model decision in 163-kickoff-3b-B (user-selected
+ * "Move to zone..." button on each section): the popover on each
+ * section lists every zone EXCEPT the current one + non-empty zones
+ * only (a target zone needs a row to land on; "Add row" is a separate
+ * arc).
+ *
+ * Landing rule: section appends to the END of the FIRST row in the
+ * target zone — predictable + Notion-like "go to top of section X".
+ * User can refine with Move Up/Down + drag after the move.
+ *
+ * Mutation matches drag's cross-row path: splice from source row,
+ * push to destination, narrate via narrateMovedToZone, record a
+ * moveSectionCommand for undo. One round-trip, full a11y parity.
+ */
+const availableZones = computed<string[]>(() => {
+  if (!props.editable) return [];
+  if (!props.findFirstRowInZone) return [];
+  return props.zoneSlugs.filter((slug) => {
+    if (slug === props.zone) return false;
+    // A zone with no rows can't accept a landing target — disable.
+    // (Could be enabled when "Add row" lands; defer for now.)
+    return props.findFirstRowInZone!(slug) !== null;
+  });
+});
+
+function moveSectionToZone(section: LayoutSection, targetZone: string): void {
+  if (!props.findFirstRowInZone) return;
+  const targetRow = props.findFirstRowInZone(targetZone);
+  if (!targetRow) return;
+  const idx = props.row.sections.findIndex((s) => s.id === section.id);
+  if (idx === -1) return;
+  const fromTotal = props.row.sections.length;
+  const [moved] = props.row.sections.splice(idx, 1);
+  if (!moved) return;
+  const toIdx = targetRow.sections.length; // append
+  targetRow.sections.push(moved);
+  // Narrate cross-zone. `fromTotal` is the pre-splice source length;
+  // `toTotal` is the post-push destination length — both 1-indexed
+  // in the narration template.
+  announcer.announce(narrateMovedToZone(
+    moved.type,
+    props.zone, idx, fromTotal,
+    targetZone, toIdx, targetRow.sections.length,
+  ));
+  history.record(moveSectionCommand({
+    fromRowId: props.row.id,
+    toRowId: targetRow.id,
+    sectionId: moved.id,
+    fromIdx: idx,
+    toIdx,
+    label: `move ${moved.type} to ${targetZone}`,
+  }));
+}
+
 const { isDragOver } = makeDroppable(
   rowRef,
   {
@@ -310,6 +377,8 @@ const isOver = computed<boolean>(() => isDragOver.value !== undefined);
       :selected-id="selectedId"
       :on-move-up="() => moveSection(section, 'up')"
       :on-move-down="() => moveSection(section, 'down')"
+      :available-zones="availableZones"
+      :on-move-to-zone="(targetZone: string) => moveSectionToZone(section, targetZone)"
     />
   </div>
 </template>

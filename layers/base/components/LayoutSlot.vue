@@ -95,6 +95,11 @@ const props = withDefaults(defineProps<{
   findRow?: (rowId: string) => LayoutRowType | null;
   /** Phase 3b/B — zone-of-row lookup for narration. */
   findZone?: (rowId: string) => string | null;
+  /** Phase 3b/B — all zone slugs in the active layout. Drives the
+   *  "Move to zone…" popover's option list. */
+  zoneSlugs?: string[];
+  /** Phase 3b/B — landing-row lookup for the "Move to zone…" path. */
+  findFirstRowInZone?: (zoneSlug: string) => LayoutRowType | null;
 }>(), {
   previewOverride: null,
   editable: false,
@@ -102,6 +107,8 @@ const props = withDefaults(defineProps<{
   selectedId: null,
   findRow: undefined,
   findZone: undefined,
+  zoneSlugs: () => [],
+  findFirstRowInZone: undefined,
 });
 
 const { layout, pending } = useLayout(props.route);
@@ -144,6 +151,8 @@ const zone = computed<LayoutZoneClient | null>(
       :selected-id="selectedId"
       :find-row="findRow"
       :find-zone="findZone"
+      :zone-slugs="zoneSlugs"
+      :find-first-row-in-zone="findFirstRowInZone"
     />
   </template>
 

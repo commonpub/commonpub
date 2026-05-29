@@ -91,16 +91,21 @@ function mount(props: {
   editable?: boolean;
   selectedId?: import('../../composables/useLayoutEditor').EditorSelection | null;
   onSelect?: (sel: import('../../composables/useLayoutEditor').EditorSelection) => void;
+  zone?: string;
+  zoneSlugs?: string[];
+  findFirstRowInZone?: (zone: string) => LayoutRowType | null;
 } = {}) {
   return render(LayoutRow, {
     props: {
       row: props.row ?? makeRow('row-1', [makeSection('sec-1')]),
       route: '/test',
-      zone: 'main',
+      zone: props.zone ?? 'main',
       editable: props.editable ?? false,
       isPreview: true,
       onSelect: props.onSelect,
       selectedId: props.selectedId ?? null,
+      zoneSlugs: props.zoneSlugs,
+      findFirstRowInZone: props.findFirstRowInZone,
     },
   });
 }
@@ -288,5 +293,100 @@ describe('LayoutRow — selection chrome (Phase 3b/A)', () => {
     });
     const row = container.querySelector('[data-row-id="row-1"]');
     expect(row?.classList.contains('cpub-layout-row--selected')).toBe(true);
+  });
+});
+
+/* ---- Move to zone … (Phase 3b/B keyboard cross-zone path) ---- */
+
+describe('LayoutRow — moveSectionToZone (Phase 3b/B)', () => {
+  it('clicking a zone option appends section to the target zone\'s first row', async () => {
+    const sidebarRow: LayoutRowType = {
+      id: 'r-sidebar',
+      order: 0,
+      config: null,
+      sections: [makeSection('side-existing')],
+    };
+    const sourceRow = makeRow('r-main', [makeSection('movable')]);
+    const { container } = mount({
+      row: sourceRow,
+      editable: true,
+      zone: 'main',
+      zoneSlugs: ['main', 'sidebar'],
+      findFirstRowInZone: (z) => (z === 'sidebar' ? sidebarRow : null),
+    });
+
+    const trigger = container.querySelector(
+      '[aria-label="Move divider to another zone"]',
+    ) as HTMLElement;
+    expect(trigger).not.toBeNull();
+    await fireEvent.click(trigger);
+
+    // Popover opens; pick sidebar.
+    const zoneBtn = container.querySelector(
+      '.cpub-layout-section-move-menu-item',
+    ) as HTMLElement;
+    expect(zoneBtn).not.toBeNull();
+    await fireEvent.click(zoneBtn);
+
+    expect(sourceRow.sections.map((s) => s.id)).toEqual([]);
+    expect(sidebarRow.sections.map((s) => s.id)).toEqual(['side-existing', 'movable']);
+  });
+
+  it('button is hidden when availableZones is empty (no other zones with rows)', () => {
+    const { container } = mount({
+      editable: true,
+      zone: 'main',
+      zoneSlugs: ['main'],
+      findFirstRowInZone: () => null,
+    });
+    expect(
+      container.querySelector('[aria-label="Move divider to another zone"]'),
+    ).toBeNull();
+  });
+
+  it('current zone is excluded from the popover (no self-move)', async () => {
+    const mainRow = makeRow('r-main', [makeSection('keep')]);
+    const sidebarRow: LayoutRowType = {
+      id: 'r-side',
+      order: 0,
+      config: null,
+      sections: [],
+    };
+    const { container } = mount({
+      row: mainRow,
+      editable: true,
+      zone: 'main',
+      zoneSlugs: ['main', 'sidebar'],
+      findFirstRowInZone: (z) => (z === 'sidebar' ? sidebarRow : z === 'main' ? mainRow : null),
+    });
+    const trigger = container.querySelector(
+      '[aria-label="Move divider to another zone"]',
+    ) as HTMLElement;
+    await fireEvent.click(trigger);
+    const items = container.querySelectorAll('.cpub-layout-section-move-menu-item');
+    // Only sidebar — main (current) should not appear.
+    expect(items).toHaveLength(1);
+    expect(items[0]?.textContent?.toLowerCase()).toContain('sidebar');
+  });
+
+  it('zones with zero rows are excluded (no landing target)', async () => {
+    const mainRow = makeRow('r-main', [makeSection('keep')]);
+    const { container } = mount({
+      row: mainRow,
+      editable: true,
+      zone: 'main',
+      zoneSlugs: ['main', 'sidebar', 'full-width'],
+      findFirstRowInZone: (z) => {
+        if (z === 'sidebar') return { id: 'r-side', order: 0, config: null, sections: [] };
+        return null; // full-width has no rows
+      },
+    });
+    const trigger = container.querySelector(
+      '[aria-label="Move divider to another zone"]',
+    ) as HTMLElement;
+    await fireEvent.click(trigger);
+    const items = container.querySelectorAll('.cpub-layout-section-move-menu-item');
+    expect(items).toHaveLength(1);
+    expect(items[0]?.textContent?.toLowerCase()).toContain('sidebar');
   });
 });

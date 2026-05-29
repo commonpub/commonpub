@@ -16,7 +16,7 @@
  * → dispatchSectionDrop, which mutates row.sections in place. No save
  * call from here; the editor's deep watcher picks it up.
  */
-import { ref, computed } from 'vue';
+import { ref, computed, onBeforeUnmount, nextTick } from 'vue';
 import { makeDraggable } from '@vue-dnd-kit/core';
 import type { LayoutSection } from '../composables/useLayout';
 import { useSectionRegistry } from '../sections/registry';
@@ -44,6 +44,21 @@ const props = withDefaults(defineProps<{
    */
   onMoveUp?: () => void;
   onMoveDown?: () => void;
+  /**
+   * Phase 3b/B — "Move to zone…" keyboard cross-zone path. The list
+   * of OTHER zones the section can move to (current zone filtered out
+   * + zones with no rows filtered out by the parent). Empty / undefined
+   * → button hidden, no popover.
+   *
+   * Per the kickoff design pick (see session log): chosen over
+   * focusable-zone-header + Cmd+Shift+Arrow chord because discoverability
+   * matters more than economy — a single FAQ-able answer to "how do I
+   * move with the keyboard" is the goal.
+   */
+  availableZones?: string[];
+  /** Click handler — invoked with the target zone slug. The parent
+   *  (LayoutRow) handles the splice + narration + history record. */
+  onMoveToZone?: (targetZone: string) => void;
 }>(), {
   editable: false,
   isPreview: false,
@@ -51,6 +66,8 @@ const props = withDefaults(defineProps<{
   selectedId: null,
   onMoveUp: undefined,
   onMoveDown: undefined,
+  availableZones: () => [],
+  onMoveToZone: undefined,
 });
 
 const sectionRegistry = useSectionRegistry();
@@ -126,6 +143,84 @@ makeDraggable(
   ],
 );
 
+/* ----- Move to zone … popover (Phase 3b/B) ------------------------- */
+/*
+ * Disclosure pattern: button toggles a small inline menu listing the
+ * available target zones. Single-select (one click → move + close).
+ * Esc closes; click-outside closes; focus returns to the trigger on
+ * close so keyboard users don't lose context.
+ *
+ * Why not a dropdown library? The list is 1-3 items (we have 3 zones
+ * total: full-width / main / sidebar). A 5-line inline popover keeps
+ * bundle + maintenance overhead at zero.
+ */
+const moveMenuOpen = ref<boolean>(false);
+const moveMenuTrigger = ref<HTMLButtonElement | null>(null);
+const moveMenuPanel = ref<HTMLElement | null>(null);
+
+function toggleMoveMenu(): void {
+  moveMenuOpen.value = !moveMenuOpen.value;
+  // When opening, move focus into the panel so keyboard users can
+  // immediately Tab through the zone options. Done in nextTick so the
+  // panel is rendered first.
+  if (moveMenuOpen.value) {
+    void nextTick().then(() => {
+      const firstBtn = moveMenuPanel.value?.querySelector<HTMLButtonElement>('button');
+      firstBtn?.focus();
+    });
+  }
+}
+
+function closeMoveMenu(): void {
+  moveMenuOpen.value = false;
+  // Return focus to the trigger so keyboard navigation stays predictable.
+  moveMenuTrigger.value?.focus();
+}
+
+function chooseMoveTarget(zone: string): void {
+  props.onMoveToZone?.(zone);
+  moveMenuOpen.value = false;
+  // After move, the section's DOM may be re-keyed under a new row
+  // (Vue's v-for keying). Don't try to focus the trigger — it may
+  // already be unmounted. Focus management for the moved section's
+  // new location is the editor's responsibility (out of scope for
+  // 3b/B; selection follows the section via the existing select
+  // callback in a future polish).
+}
+
+function onMoveMenuKey(e: KeyboardEvent): void {
+  if (e.key === 'Escape') {
+    e.preventDefault();
+    closeMoveMenu();
+  }
+}
+
+/* Click-outside dismissal. Attached to document on open, removed on
+ * close + unmount. The condition `!panel.contains(target) && target !==
+ * trigger` allows clicks on the trigger itself to handle the toggle
+ * (otherwise the toggle would close, then the click handler would
+ * re-open — flicker). */
+function onDocumentPointerDown(e: PointerEvent): void {
+  if (!moveMenuOpen.value) return;
+  const target = e.target as Node | null;
+  if (!target) return;
+  if (moveMenuPanel.value?.contains(target)) return;
+  if (moveMenuTrigger.value?.contains(target)) return;
+  moveMenuOpen.value = false;
+}
+if (typeof window !== 'undefined') {
+  document.addEventListener('pointerdown', onDocumentPointerDown);
+}
+onBeforeUnmount(() => {
+  if (typeof window !== 'undefined') {
+    document.removeEventListener('pointerdown', onDocumentPointerDown);
+  }
+});
+
+const hasMoveTargets = computed<boolean>(() =>
+  !!props.onMoveToZone && props.availableZones.length > 0,
+);
+
 /* ----- Visibility -------------------------------------------------- */
 /* hideAt is applied via CSS data-* attrs; the parent already filters
    enabled + visibility.roles + visibility.features. */
@@ -184,7 +279,7 @@ makeDraggable(
       keyboard sensor from interpreting Space-on-button as a drag
       pickup of the section.
     -->
-    <div v-if="editable && (onMoveUp || onMoveDown)" class="cpub-layout-section-moves">
+    <div v-if="editable && (onMoveUp || onMoveDown || hasMoveTargets)" class="cpub-layout-section-moves">
       <button
         v-if="onMoveUp"
         type="button"
@@ -207,6 +302,51 @@ makeDraggable(
       >
         <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
       </button>
+      <!--
+        Phase 3b/B — "Move to zone…" disclosure. Renders only when the
+        parent provided a non-empty availableZones list (current zone
+        excluded, zones with zero rows excluded). aria-haspopup='menu'
+        + aria-expanded so screen readers announce the disclosure state;
+        aria-controls links to the panel id for assistive tech
+        traversal.
+      -->
+      <button
+        v-if="hasMoveTargets"
+        ref="moveMenuTrigger"
+        type="button"
+        class="cpub-layout-section-move"
+        :aria-label="`Move ${section.type} to another zone`"
+        aria-haspopup="menu"
+        :aria-expanded="moveMenuOpen ? 'true' : 'false'"
+        :aria-controls="`cpub-move-menu-${section.id}`"
+        @click.stop="toggleMoveMenu"
+        @keydown.space.stop.prevent="toggleMoveMenu"
+        @keydown.enter.stop.prevent="toggleMoveMenu"
+      >
+        <i class="fa-solid fa-arrows-up-down-left-right" aria-hidden="true"></i>
+      </button>
+      <div
+        v-if="moveMenuOpen"
+        :id="`cpub-move-menu-${section.id}`"
+        ref="moveMenuPanel"
+        class="cpub-layout-section-move-menu"
+        role="menu"
+        :aria-label="`Move ${section.type} to zone`"
+        @click.stop
+        @keydown="onMoveMenuKey"
+      >
+        <button
+          v-for="zone in availableZones"
+          :key="zone"
+          type="button"
+          role="menuitem"
+          class="cpub-layout-section-move-menu-item"
+          @click.stop="chooseMoveTarget(zone)"
+        >
+          <i class="fa-solid fa-arrow-right-long" aria-hidden="true"></i>
+          <span>{{ zone }}</span>
+        </button>
+      </div>
     </div>
   </div>
 </template>
@@ -351,4 +491,48 @@ makeDraggable(
      by the section's own outline. */
   z-index: 3;
 }
+
+/* ------------------------------------------------------------------ */
+/* Phase 3b/B — "Move to zone…" popover. Anchored below the trigger    */
+/* button group. Same surface/border tokens as the move buttons so it  */
+/* reads as a single chrome cluster.                                   */
+/* ------------------------------------------------------------------ */
+.cpub-layout-section-move-menu {
+  position: absolute;
+  top: 30px; /* below the 28px button row + 2px gap */
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  min-width: 140px;
+  /* Sits above sibling sections; the section-moves cluster is z-index:2
+     so the menu needs higher. */
+  z-index: 4;
+}
+.cpub-layout-section-move-menu-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: transparent;
+  border: 0;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  cursor: pointer;
+  text-align: left;
+}
+.cpub-layout-section-move-menu-item:hover {
+  background: var(--accent-bg);
+  color: var(--accent);
+}
+.cpub-layout-section-move-menu-item:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+.cpub-layout-section-move-menu-item i { color: var(--text-dim); }
+.cpub-layout-section-move-menu-item:hover i { color: var(--accent); }
 </style>

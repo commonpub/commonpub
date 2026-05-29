@@ -94,6 +94,28 @@ function findZone(rowId: string): string | null {
   }
   return null;
 }
+
+/**
+ * Phase 3b/B — keyboard cross-zone landing target. The "Move to zone…"
+ * popover on each section lets a keyboard user move a section to
+ * another zone WITHOUT pointer drag (WCAG 2.1.1 a11y path; per the
+ * a11y memory: drag-drop alone isn't enough — every operation needs a
+ * non-drag alternative).
+ *
+ * Landing rule: end of the FIRST row in the target zone. Predictable
+ * ("go to sidebar" → land at top of sidebar), no ambiguous row-picker,
+ * works with v1 layouts that have 1–2 rows per zone. After landing,
+ * the user can Move Up/Down + drag to refine. Returns null for zones
+ * with zero rows (button gets disabled — creating a row from cross-zone
+ * move is deferred to the "Add row" arc).
+ */
+function findFirstRowInZone(zoneSlug: string): LayoutRowType | null {
+  const l = props.layout;
+  if (!l) return null;
+  const z = l.zones.find((zone) => zone.zone === zoneSlug);
+  if (!z || z.rows.length === 0) return null;
+  return (z.rows[0] ?? null) as LayoutRowType | null;
+}
 </script>
 
 <template>
@@ -144,6 +166,8 @@ function findZone(rowId: string): string | null {
               :selected-id="props.selectedId"
               :find-row="findRow"
               :find-zone="findZone"
+              :zone-slugs="zoneSlugs"
+              :find-first-row-in-zone="findFirstRowInZone"
             />
           </div>
         </div>
