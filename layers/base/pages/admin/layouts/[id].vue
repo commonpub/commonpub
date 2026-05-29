@@ -133,8 +133,18 @@ watch(editor.status, (status) => {
 
 // And: if thrashing trips while the modal is open (the 3rd conflict
 // arrives mid-modal), close the modal so the banner is the only surface.
-watch(() => editor.conflictThrashing.value, (thrashing) => {
-  if (thrashing && conflictOpen.value) conflictOpen.value = false;
+// Focus the banner's safe recommended action AFTER the modal unmounts +
+// banner mounts — without this, the previously-focused modal button
+// disappears and focus falls back to <body>, stranding keyboard users.
+// Only steal focus when the modal WAS open; otherwise the banner's
+// role="alert" announces it without disrupting wherever the user was.
+const thrashPrimaryBtn = ref<HTMLButtonElement | null>(null);
+watch(() => editor.conflictThrashing.value, async (thrashing) => {
+  if (!thrashing) return;
+  if (!conflictOpen.value) return;
+  conflictOpen.value = false;
+  await nextTick();
+  thrashPrimaryBtn.value?.focus();
 });
 
 function onResumeAutoSave(): void {
@@ -293,31 +303,47 @@ async function onConflictForceSave(): Promise<void> {
         <div class="cpub-admin-layouts-editor-thrash-body">
           <strong>Auto-save paused</strong>
           <span>
-            Another admin keeps editing the same layout — three of your
-            recent saves collided. Pick one of the actions on the right.
+            Three of your recent saves collided with another admin's
+            edits. Reload their version (recommended) — your edits will
+            be lost. Overwriting their changes is destructive and final.
           </span>
         </div>
+        <!--
+          Button hierarchy matches AdminLayoutsConflictModal verbatim
+          (session 160 R1 audit established this discipline): primary
+          accent = SAFE recommended action, neutral default = middle
+          option, danger red = destructive action LAST in tab order so
+          keyboard users don't land on it.
+          Banner-specific: "Resume auto-save" replaces the modal's
+          "Keep editing here" — same neutral level, different semantic
+          (banner's middle option turns auto-save back on without
+          reconciliation; modal's middle option closes the modal).
+        -->
         <div class="cpub-admin-layouts-editor-thrash-actions">
           <button
-            type="button"
-            class="cpub-admin-layouts-editor-thrash-btn"
-            @click="onConflictRefresh"
-          >
-            Refresh
-          </button>
-          <button
-            type="button"
-            class="cpub-admin-layouts-editor-thrash-btn"
-            @click="onConflictForceSave"
-          >
-            Force save
-          </button>
-          <button
+            ref="thrashPrimaryBtn"
             type="button"
             class="cpub-admin-layouts-editor-thrash-btn cpub-admin-layouts-editor-thrash-btn--primary"
+            @click="onConflictRefresh"
+          >
+            <i class="fa-solid fa-arrows-rotate" aria-hidden="true"></i>
+            Reload their version
+          </button>
+          <button
+            type="button"
+            class="cpub-admin-layouts-editor-thrash-btn"
             @click="onResumeAutoSave"
           >
+            <i class="fa-solid fa-play" aria-hidden="true"></i>
             Resume auto-save
+          </button>
+          <button
+            type="button"
+            class="cpub-admin-layouts-editor-thrash-btn cpub-admin-layouts-editor-thrash-btn--danger"
+            @click="onConflictForceSave"
+          >
+            <i class="fa-solid fa-arrow-up-from-bracket" aria-hidden="true"></i>
+            Overwrite their changes
           </button>
         </div>
       </div>
@@ -451,12 +477,24 @@ async function onConflictForceSave(): Promise<void> {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
+/* Hierarchy matches AdminLayoutsConflictModal's btn--primary +
+   btn--danger so the cognitive model for resolving a conflict is the
+   same whether the admin meets the modal first or the cascade banner
+   first (session 162 audit-on-audit fix). */
 .cpub-admin-layouts-editor-thrash-btn--primary {
   background: var(--accent);
   border-color: var(--accent);
   color: var(--surface);
 }
 .cpub-admin-layouts-editor-thrash-btn--primary:hover { filter: brightness(1.1); background: var(--accent); }
+.cpub-admin-layouts-editor-thrash-btn--danger {
+  color: var(--red);
+  border-color: var(--red);
+}
+.cpub-admin-layouts-editor-thrash-btn--danger:hover {
+  background: var(--red);
+  color: var(--surface);
+}
 
 @media (max-width: 1024px) {
   /* Wrap the action buttons under the body on tablet/mobile so they
