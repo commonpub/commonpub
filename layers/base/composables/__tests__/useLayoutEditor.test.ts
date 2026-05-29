@@ -47,7 +47,16 @@ function installFetch(impl?: (url: string, opts?: Record<string, unknown>) => Pr
 }
 
 afterEach(() => {
-  vi.restoreAllMocks();
+  // Session 163 deep audit: was vi.restoreAllMocks() — but per
+  // feedback-vi-restoreallmocks-wipes-vifn-impls memory, restoreAllMocks
+  // RESETS the impl of any vi.fn(impl) mock, not just spies. The
+  // installFetch helper uses vi.fn(impl); under restoreAllMocks a
+  // subsequent test would inherit a vi.fn() with no impl → undefined
+  // returns + mystery failures. clearAllMocks clears call history but
+  // preserves impls — the right call for a file that mixes vi.fn()
+  // mocks + (none here) vi.spyOn spies. Same root cause as the
+  // session 161 wasted-20-min debug.
+  vi.clearAllMocks();
 });
 
 describe('useLayoutEditor — dirty derivation', () => {
