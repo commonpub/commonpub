@@ -375,6 +375,15 @@ async function onConflictForceSave(): Promise<void> {
         Click-outside the body clears selection (the inspector then
         falls back to the page-meta form per §7.9 dispatch pattern).
       -->
+      <!--
+        Phase 3b/A: SR narration channel — a singleton aria-live region
+        that <LayoutSection> + <LayoutRow> mirror drag/drop + Move
+        Up/Down events into. dnd-kit ships no announcer OOTB; this
+        closes the WCAG 2.1.1 gap. Mounted ONCE outside the
+        DnDProvider so it survives the inner reactivity churn.
+      -->
+      <AdminLayoutsAnnouncer />
+
       <DnDProvider
         preview-to="body"
         class="cpub-admin-layouts-editor-dnd"

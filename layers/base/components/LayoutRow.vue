@@ -23,6 +23,12 @@ import { makeDroppable, type IDragEvent } from '@vue-dnd-kit/core';
 import type { LayoutSection, LayoutRow } from '../composables/useLayout';
 import type { EditorSelection } from '../composables/useLayoutEditor';
 import { dispatchSectionDrop } from '../composables/useLayoutDrag';
+import {
+  useLayoutAnnouncer,
+  narrateInserted,
+  narrateReordered,
+  narrateMoveBlocked,
+} from '../composables/useLayoutAnnouncer';
 import LayoutSectionComponent from './LayoutSection.vue';
 
 const props = withDefaults(defineProps<{
@@ -99,11 +105,63 @@ const rowIsSelected = computed<boolean>(() => {
  */
 const rowRef = ref<HTMLElement | null>(null);
 const dragDisabled = computed<boolean>(() => !props.editable);
+const announcer = useLayoutAnnouncer();
 
 function handleDrop(event: IDragEvent): void {
   // Delegate to the pure dispatcher — same function used by tests, so
   // the behavior matrix is exercised once + this component is wiring.
-  dispatchSectionDrop(event, props.row);
+  const outcome = dispatchSectionDrop(event, props.row);
+  // Narrate the result for screen readers. `total` reflects post-drop
+  // length (palette → row insert grows by 1; within-row reorder stays
+  // the same).
+  if (outcome.kind === 'inserted') {
+    announcer.announce(
+      narrateInserted(outcome.section.type, outcome.at, props.row.sections.length),
+    );
+  } else if (outcome.kind === 'reordered') {
+    announcer.announce(
+      narrateReordered(
+        outcome.section.type,
+        outcome.from,
+        outcome.to,
+        props.row.sections.length,
+      ),
+    );
+  }
+  // noop outcomes (cross-row, ghost id, empty payload) — silent so
+  // we don't narrate "nothing happened" on every accidental drop. The
+  // user's pointer feedback is enough.
+}
+
+/* ----- Move Up / Move Down — WCAG 2.1.1 non-drag a11y path -------- */
+/*
+ * Drag-drop has a notoriously bad SR story; per the editor a11y memory
+ * + WCAG 2.1.1, every drag operation needs a non-drag keyboard path.
+ * Move Up / Move Down buttons on each section satisfy this — the user
+ * Tabs to a section, focuses one of the buttons, presses Enter.
+ *
+ * Bounds-check returns early with a narrateMoveBlocked announcement
+ * so SR users hear WHY the press did nothing (otherwise it reads as a
+ * broken control). Mutation flows through row.sections.splice → Vue
+ * watcher → auto-save (same path as drag drops).
+ */
+function moveSection(section: LayoutSection, direction: 'up' | 'down'): void {
+  const idx = props.row.sections.findIndex((s) => s.id === section.id);
+  if (idx === -1) return; // section vanished mid-keypress
+  const total = props.row.sections.length;
+  if (direction === 'up' && idx === 0) {
+    announcer.announce(narrateMoveBlocked(section.type, 'up'));
+    return;
+  }
+  if (direction === 'down' && idx === total - 1) {
+    announcer.announce(narrateMoveBlocked(section.type, 'down'));
+    return;
+  }
+  const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
+  const [moved] = props.row.sections.splice(idx, 1);
+  if (!moved) return;
+  props.row.sections.splice(targetIdx, 0, moved);
+  announcer.announce(narrateReordered(moved.type, idx, targetIdx, total));
 }
 
 const { isDragOver } = makeDroppable(
@@ -153,6 +211,8 @@ const isOver = computed<boolean>(() => isDragOver.value !== undefined);
       :is-preview="isPreview"
       :on-select="onSelect"
       :selected-id="selectedId"
+      :on-move-up="() => moveSection(section, 'up')"
+      :on-move-down="() => moveSection(section, 'down')"
     />
   </div>
 </template>

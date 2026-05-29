@@ -207,6 +207,53 @@ describe('LayoutRow — makeDroppable wiring (Phase 3b/A)', () => {
   });
 });
 
+/* ---- Move Up / Move Down (WCAG 2.1.1 non-drag a11y path) ---- */
+
+describe('LayoutRow — moveSection (Move Up / Move Down buttons)', () => {
+  it('Move Down on s1 (idx 0) → row becomes [s2, s1, s3]', async () => {
+    const row = makeRow('r', [makeSection('s1'), makeSection('s2'), makeSection('s3')]);
+    const { container } = mount({ row, editable: true });
+    // Find the Move Down button for s1.
+    const s1 = container.querySelector('[data-section-id="s1"]')!;
+    const downBtn = s1.querySelector('[aria-label="Move divider down"]') as HTMLElement;
+    await fireEvent.click(downBtn);
+    expect(row.sections.map((s) => s.id)).toEqual(['s2', 's1', 's3']);
+  });
+
+  it('Move Up on s3 (idx 2) → row becomes [s1, s3, s2]', async () => {
+    const row = makeRow('r', [makeSection('s1'), makeSection('s2'), makeSection('s3')]);
+    const { container } = mount({ row, editable: true });
+    const s3 = container.querySelector('[data-section-id="s3"]')!;
+    const upBtn = s3.querySelector('[aria-label="Move divider up"]') as HTMLElement;
+    await fireEvent.click(upBtn);
+    expect(row.sections.map((s) => s.id)).toEqual(['s1', 's3', 's2']);
+  });
+
+  it('Move Up on the FIRST section is a noop (bounds-check)', async () => {
+    const row = makeRow('r', [makeSection('s1'), makeSection('s2')]);
+    const { container } = mount({ row, editable: true });
+    const s1 = container.querySelector('[data-section-id="s1"]')!;
+    const upBtn = s1.querySelector('[aria-label="Move divider up"]') as HTMLElement;
+    await fireEvent.click(upBtn);
+    expect(row.sections.map((s) => s.id)).toEqual(['s1', 's2']);
+  });
+
+  it('Move Down on the LAST section is a noop', async () => {
+    const row = makeRow('r', [makeSection('s1'), makeSection('s2')]);
+    const { container } = mount({ row, editable: true });
+    const s2 = container.querySelector('[data-section-id="s2"]')!;
+    const downBtn = s2.querySelector('[aria-label="Move divider down"]') as HTMLElement;
+    await fireEvent.click(downBtn);
+    expect(row.sections.map((s) => s.id)).toEqual(['s1', 's2']);
+  });
+
+  it('move buttons are NOT rendered when editable=false (public path pristine)', () => {
+    const row = makeRow('r', [makeSection('s1'), makeSection('s2')]);
+    const { container } = mount({ row, editable: false });
+    expect(container.querySelector('.cpub-layout-section-moves')).toBeNull();
+  });
+});
+
 /* ---- Selection chrome (regression: still works after extraction) ---- */
 
 describe('LayoutRow — selection chrome (Phase 3b/A)', () => {

@@ -35,11 +35,22 @@ const props = withDefaults(defineProps<{
   isPreview?: boolean;
   onSelect?: (selection: EditorSelection) => void;
   selectedId?: EditorSelection | null;
+  /**
+   * Move Up — WCAG 2.1.1 non-drag keyboard path. The parent (LayoutRow)
+   * passes a closure that mutates row.sections; this component only
+   * fires the click. Absence = button hidden (defensive: editable=true
+   * without the callbacks means a parent forgot to wire them, NOT an
+   * intentional "no move" state).
+   */
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
 }>(), {
   editable: false,
   isPreview: false,
   onSelect: undefined,
   selectedId: null,
+  onMoveUp: undefined,
+  onMoveDown: undefined,
 });
 
 const sectionRegistry = useSectionRegistry();
@@ -159,6 +170,45 @@ makeDraggable(
       <code>{{ section.type }}</code>
       <span class="cpub-layout-section-placeholder-hint">section type not registered</span>
     </div>
+
+    <!--
+      Phase 3b/A: WCAG 2.1.1 Level A non-drag keyboard path. Two
+      buttons in the section's top-right corner. Always visible in
+      editable mode (per feedback-visual-editor-ux-patterns: SR users
+      need an always-discoverable alternative; revealing on hover hides
+      it from keyboard users + assistive tech). Sized 28×28 minimum
+      per the same memory (WCAG 2.5.8's 24×24 is the bare floor, not
+      the design target).
+      `@click.stop` prevents the click bubbling to the section's own
+      click handler (which would set selection); the move IS the user's
+      intent, not selection. `@keydown.space.stop` prevents the dnd-kit
+      keyboard sensor from interpreting Space-on-button as a drag
+      pickup of the section.
+    -->
+    <div v-if="editable && (onMoveUp || onMoveDown)" class="cpub-layout-section-moves">
+      <button
+        v-if="onMoveUp"
+        type="button"
+        class="cpub-layout-section-move"
+        :aria-label="`Move ${section.type} up`"
+        @click.stop="onMoveUp"
+        @keydown.space.stop
+        @keydown.enter.stop
+      >
+        <i class="fa-solid fa-chevron-up" aria-hidden="true"></i>
+      </button>
+      <button
+        v-if="onMoveDown"
+        type="button"
+        class="cpub-layout-section-move"
+        :aria-label="`Move ${section.type} down`"
+        @click.stop="onMoveDown"
+        @keydown.space.stop
+        @keydown.enter.stop
+      >
+        <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+      </button>
+    </div>
   </div>
 </template>
 
@@ -257,5 +307,47 @@ makeDraggable(
   color: var(--surface);
   border-color: var(--accent);
   opacity: 1;
+}
+
+/* ------------------------------------------------------------------ */
+/* Move Up / Move Down — non-drag a11y path (WCAG 2.1.1 Level A).      */
+/* Top-right corner mirror of the type-label badge (top-left).         */
+/* 28×28 touch targets per feedback-visual-editor-ux-patterns.         */
+/* Always visible in editable mode — discoverability for keyboard +    */
+/* SR users is the entire point of this control.                       */
+/* ------------------------------------------------------------------ */
+.cpub-layout-section-moves {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  gap: 1px;
+  z-index: 2;
+  pointer-events: auto;
+}
+.cpub-layout-section-move {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: var(--surface2);
+  color: var(--text-dim);
+  border: 1px solid var(--border2);
+  border-top: 0;
+  border-right: 0;
+  cursor: pointer;
+  font-size: var(--text-sm);
+}
+.cpub-layout-section-move:hover {
+  background: var(--surface);
+  color: var(--text);
+}
+.cpub-layout-section-move:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  /* Bring the focused button to the top so the outline isn't clipped
+     by the section's own outline. */
+  z-index: 3;
 }
 </style>
