@@ -23,10 +23,10 @@
  * authenticated. 'admin' returns 404 to non-admins (don't leak
  * existence — same posture as draft content).
  *
- * Phase 2: this renders three fixed zones (full-width / main / sidebar)
- * to match the homepage frame. Phase 4 introduces page_meta.frame +
- * <DynamicFrame> so custom pages can pick narrow / wide / sidebar-left
- * etc.
+ * Zones (full-width / main / sidebar) are arranged by the shared
+ * <PageFrame> — the one canonical frame used by every page (consolidation
+ * pass). Phase 4 will let page_meta.frame parameterise PageFrame's tokens
+ * (narrow / wide / sidebar-left etc.) so custom pages pick a frame variant.
  *
  * `var(--*)` only.
  */
@@ -136,43 +136,19 @@ const hasSidebar = computed(() => zones.value.includes('sidebar'));
 </script>
 
 <template>
-  <div v-if="customLayout" class="cpub-custom-page">
-    <LayoutSlot v-if="hasFullWidth" :route="pathToLookup" zone="full-width" />
-
-    <div v-if="hasMain || hasSidebar" class="cpub-custom-page-grid" :data-with-sidebar="hasSidebar ? 'yes' : 'no'">
-      <main v-if="hasMain" class="cpub-custom-page-main">
-        <LayoutSlot :route="pathToLookup" zone="main" />
-      </main>
-      <aside v-if="hasSidebar" class="cpub-custom-page-sidebar">
-        <LayoutSlot :route="pathToLookup" zone="sidebar" />
-      </aside>
-    </div>
-  </div>
+  <!-- Consolidation: the page frame now comes from the shared <PageFrame>
+       (one canonical max-width + sidebar width + responsive collapse),
+       not a per-page `.cpub-custom-page-grid`. Slots are provided only for
+       the zones this layout actually has (preserves the prior hasX gating). -->
+  <PageFrame v-if="customLayout">
+    <template v-if="hasFullWidth" #full-width>
+      <LayoutSlot :route="pathToLookup" zone="full-width" />
+    </template>
+    <template v-if="hasMain" #main>
+      <LayoutSlot :route="pathToLookup" zone="main" />
+    </template>
+    <template v-if="hasSidebar" #sidebar>
+      <LayoutSlot :route="pathToLookup" zone="sidebar" />
+    </template>
+  </PageFrame>
 </template>
-
-<style scoped>
-.cpub-custom-page {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-  max-width: var(--container-wide, 1280px);
-  margin: 0 auto;
-  padding: var(--space-4);
-}
-.cpub-custom-page-grid {
-  display: grid;
-  gap: var(--space-4);
-}
-.cpub-custom-page-grid[data-with-sidebar='yes'] {
-  grid-template-columns: minmax(0, 1fr) 320px;
-}
-.cpub-custom-page-grid[data-with-sidebar='no'] {
-  grid-template-columns: 1fr;
-}
-
-@media (max-width: 1024px) {
-  .cpub-custom-page-grid[data-with-sidebar='yes'] {
-    grid-template-columns: 1fr;
-  }
-}
-</style>
