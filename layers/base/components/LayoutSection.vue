@@ -153,8 +153,12 @@ const { isDragOver } = makeDraggable(
  * edge — showing the admin EXACTLY where the drop will land.
  *
  * Rows are horizontal, so `left` and `right` are the primary signals.
- * (Vertical-list fallbacks `top`/`bottom` are left unused here; if the
- * row's `flex-direction` ever flips, extend this computed.)
+ * Session 164 audit R2-2: dnd-kit's pointer math falls back to `top` /
+ * `bottom` flags whenever the hovered element's bounding rect is taller
+ * than wide (e.g. a section that wrapped to two grid lines, or any
+ * future vertical row). `useLayoutDrag.computeInsertIndex` already
+ * honors them — the indicator MUST match or it lies about where the
+ * drop will land. Mirror that logic here.
  *
  * No animation framework: box-shadow + 100ms opacity transition. The
  * indicator vanishes the moment the cursor leaves the section. FLIP
@@ -164,8 +168,8 @@ const { isDragOver } = makeDraggable(
 const dropIndicatorSide = computed<'before' | 'after' | null>(() => {
   const placement = isDragOver.value;
   if (!placement) return null;
-  if (placement.left) return 'before';
-  if (placement.right) return 'after';
+  if (placement.left || placement.top) return 'before';
+  if (placement.right || placement.bottom) return 'after';
   return null;
 });
 

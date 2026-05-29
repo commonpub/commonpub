@@ -840,7 +840,12 @@ async function onConflictForceSave(): Promise<void> {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  width: 18px;
+  /* Session 164 audit R1-1: bumped from 18px → 28px to clear WCAG 2.5.8
+     AA minimum target size (24×24) with a small design buffer.
+     Matches the 28×28 button convention used for cpub-layout-section-move
+     per feedback-visual-editor-ux-patterns. Height stays at 56px (2× width)
+     so the tab still reads as a vertical edge handle, not a square button. */
+  width: 28px;
   height: 56px;
   display: inline-flex;
   align-items: center;
@@ -852,9 +857,8 @@ async function onConflictForceSave(): Promise<void> {
   /* Above the canvas + panel content but below modals + announcer */
   z-index: 5;
   transition: left 200ms ease-out, right 200ms ease-out, background var(--transition-default), color var(--transition-default);
-  /* Small enough to not eat much canvas width; tall enough to be a
-     comfortable mouse target. Keyboard reach via the toolbar exists
-     for accessibility but the tab itself is also Tab-able. */
+  /* Compact icon size matches the slim handle silhouette. The 28px
+     touch surface is what WCAG cares about — the chevron centers inside. */
   font-size: 10px;
 }
 .cpub-admin-layouts-editor-edge-tab:hover {
@@ -870,13 +874,13 @@ async function onConflictForceSave(): Promise<void> {
 
 .cpub-admin-layouts-editor-edge-tab--left {
   /* Sit at the right edge of the palette (which is 280px wide). The
-     -9px offset centers the 18px-wide tab ON the boundary so half is
+     -14px offset centers the 28px-wide tab ON the boundary so half is
      in the palette + half in the canvas — reads as "the boundary
-     itself is the toggle". */
-  left: calc(280px - 9px);
+     itself is the toggle". (Was -9px when the tab was 18px wide.) */
+  left: calc(280px - 14px);
 }
 .cpub-admin-layouts-editor-edge-tab--right {
-  right: calc(320px - 9px);
+  right: calc(320px - 14px);
 }
 .cpub-admin-layouts-editor-edge-tab--left.cpub-admin-layouts-editor-edge-tab--collapsed {
   /* Collapsed: snap to the screen edge so the admin sees an obvious
@@ -888,10 +892,12 @@ async function onConflictForceSave(): Promise<void> {
 }
 
 /* Mirror the breakpoint reduction at <=1280px so the tabs follow the
-   narrower panel widths (240 / 280 from the body media query). */
+   narrower panel widths (240 / 280 from the body media query). The
+   -14px offset is the 28px-wide tab's half-width, same logic as the
+   1025px+ case above (was -9px when the tab was 18px wide). */
 @media (max-width: 1280px) {
-  .cpub-admin-layouts-editor-edge-tab--left { left: calc(240px - 9px); }
-  .cpub-admin-layouts-editor-edge-tab--right { right: calc(280px - 9px); }
+  .cpub-admin-layouts-editor-edge-tab--left { left: calc(240px - 14px); }
+  .cpub-admin-layouts-editor-edge-tab--right { right: calc(280px - 14px); }
   .cpub-admin-layouts-editor-edge-tab--left.cpub-admin-layouts-editor-edge-tab--collapsed { left: 0; }
   .cpub-admin-layouts-editor-edge-tab--right.cpub-admin-layouts-editor-edge-tab--collapsed { right: 0; }
 }
@@ -900,6 +906,23 @@ async function onConflictForceSave(): Promise<void> {
    direct access to each section without needing collapse affordances. */
 @media (max-width: 1024px) {
   .cpub-admin-layouts-editor-edge-tab { display: none; }
+  /* Session 164 audit R3-3: force panels visible regardless of the
+     cookie-persisted desktop-collapse state. At tablet/phone the body
+     falls back to a DOM-order single-column stack — the desktop
+     'collapsed' state has no useful meaning when there's no grid column
+     to remove, but `chrome.paletteHidden` / `chrome.inspectorHidden`
+     still drive v-show on the panel components, leaving an admin who
+     collapsed on desktop with NO way to re-show on tablet (the edge
+     tabs are hidden by the rule above; the toolbar toggles were
+     removed in the 164 polish). Override v-show's inline display:none
+     with `flex !important` (panels natively use display:flex column —
+     'block' would break their internal layout). Scoped :deep() because
+     the .cpub-admin-layouts-{palette,inspector} root classes live in
+     child components. */
+  :deep(.cpub-admin-layouts-palette),
+  :deep(.cpub-admin-layouts-inspector) {
+    display: flex !important;
+  }
 }
 
 /* prefers-reduced-motion: kill the slide transition so the tab snaps

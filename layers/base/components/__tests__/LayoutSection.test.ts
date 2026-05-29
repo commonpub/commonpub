@@ -281,8 +281,26 @@ describe('LayoutSection — drop-indicator class binding (Session 164)', () => {
     expect(el.classList.contains('cpub-layout-section--drop-after')).toBe(false);
   });
 
-  it('placement with NEITHER left nor right (e.g. dead-center) → neither class', () => {
+  it('placement.top=true → --drop-before class (vertical-list symmetry with computeInsertIndex)', () => {
+    // Session 164 audit R2-2: dnd-kit emits top/bottom when the hovered
+    // element's bbox is taller than wide. `useLayoutDrag.computeInsertIndex`
+    // honors `left || top` as "insert before"; the indicator must agree
+    // or it lies about the drop position.
     const { container } = mountWithDragOver({ top: true });
+    const el = container.querySelector('.cpub-layout-section')!;
+    expect(el.classList.contains('cpub-layout-section--drop-before')).toBe(true);
+    expect(el.classList.contains('cpub-layout-section--drop-after')).toBe(false);
+  });
+
+  it('placement.bottom=true → --drop-after class (vertical-list symmetry)', () => {
+    const { container } = mountWithDragOver({ bottom: true });
+    const el = container.querySelector('.cpub-layout-section')!;
+    expect(el.classList.contains('cpub-layout-section--drop-after')).toBe(true);
+    expect(el.classList.contains('cpub-layout-section--drop-before')).toBe(false);
+  });
+
+  it('placement with no left/right/top/bottom flags (truly dead-center) → neither class', () => {
+    const { container } = mountWithDragOver({});
     const el = container.querySelector('.cpub-layout-section')!;
     expect(el.classList.contains('cpub-layout-section--drop-before')).toBe(false);
     expect(el.classList.contains('cpub-layout-section--drop-after')).toBe(false);
