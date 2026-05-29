@@ -297,6 +297,128 @@ const endpoints: Record<string, Record<string, OpenAPIEndpoint>> = {
     get: { summary: 'Get settings (admin)', tags: ['Admin'], security: [{ bearerAuth: [] }], responses: { '200': { description: 'Settings' } } },
     put: { summary: 'Update settings (admin)', tags: ['Admin'], security: [{ bearerAuth: [] }], requestBody: { content: { 'application/json': { schema: { $ref: '#/components/schemas/AdminSetting' } } } }, responses: { '200': { description: 'Updated' } } },
   },
+
+  // -- Layouts (added session 162) -------------------------------------
+  // Gated by features.layoutEngine. Public endpoint serves published-only
+  // to anon/members (draft-leak P0 fix from session 160 R2); admins see
+  // drafts. Admin endpoints require admin + layoutEngine.
+  '/api/layouts/by-route': {
+    get: {
+      summary: 'Get active layout for a route (public)',
+      tags: ['Layouts'],
+      parameters: [{ name: 'path', in: 'query', required: true, schema: { type: 'string' } }],
+      responses: {
+        '200': { description: 'LayoutPayload — { zones, pageMeta, state }. Anonymous + members see only published; admins see drafts.' },
+        '404': { description: 'Feature off, no layout for path, or non-admin requesting a draft' },
+      },
+    },
+  },
+  '/api/admin/layouts': {
+    get: {
+      summary: 'List layouts (admin)',
+      tags: ['Layouts', 'Admin'],
+      security: [{ bearerAuth: [] }],
+      parameters: [{ name: 'scope', in: 'query', required: false, schema: { type: 'string', enum: ['route', 'virtual', 'custom-page'] } }],
+      responses: { '200': { description: 'Array of LayoutRecord (full nested zones → rows → sections)' } },
+    },
+    post: {
+      summary: 'Create a layout (admin)',
+      tags: ['Layouts', 'Admin'],
+      security: [{ bearerAuth: [] }],
+      responses: {
+        '201': { description: 'Created LayoutRecord' },
+        '400': { description: 'Validation failed (Zod) OR per-section configSchema rejected (session 161)' },
+      },
+    },
+  },
+  '/api/admin/layouts/{id}': {
+    get: {
+      summary: 'Get layout by id (admin)',
+      tags: ['Layouts', 'Admin'],
+      security: [{ bearerAuth: [] }],
+      parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+      responses: { '200': { description: 'LayoutRecord' } },
+    },
+    put: {
+      summary: 'Update layout (admin) — optimistic concurrency via If-Match',
+      tags: ['Layouts', 'Admin'],
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        { name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+        { name: 'If-Match', in: 'header', required: false, schema: { type: 'string', description: 'Last-known updatedAt — returns 409 on mismatch. Omit (or send X-Cpub-Force-Save: 1) to force-overwrite.' } },
+        { name: 'X-Cpub-Force-Save', in: 'header', required: false, schema: { type: 'string', enum: ['1'], description: 'Explicit force-save signal for audit-log differentiation (session 160 R2).' } },
+        { name: 'X-Cpub-Save-Source', in: 'header', required: false, schema: { type: 'string', enum: ['beacon'], description: 'Set on pagehide flushBeacon saves (session 162 P2.3).' } },
+      ],
+      responses: {
+        '200': { description: 'Updated LayoutRecord' },
+        '400': { description: 'Validation failed OR per-section configSchema rejected (logged as cpub.audit.layout.config-rejected)' },
+        '409': { description: 'If-Match mismatch — another admin saved this layout in between' },
+      },
+    },
+    delete: {
+      summary: 'Delete layout (admin) — cascades to rows + sections + versions',
+      tags: ['Layouts', 'Admin'],
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        { name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+        { name: 'X-Cpub-Confirm-Homepage-Delete', in: 'header', required: false, schema: { type: 'string', enum: ['1'], description: 'REQUIRED for homepage-scope layouts (route=/); session 160 R4 guard against accidental deletion of an instance\'s entire publish history.' } },
+      ],
+      responses: {
+        '200': { description: 'Deleted' },
+        '400': { description: 'Homepage layout without X-Cpub-Confirm-Homepage-Delete header' },
+      },
+    },
+  },
+  '/api/admin/layouts/{id}/publish': {
+    post: {
+      summary: 'Publish current draft (admin) — snapshots into layout_versions',
+      tags: ['Layouts', 'Admin'],
+      security: [{ bearerAuth: [] }],
+      parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+      responses: { '200': { description: 'LayoutVersionRecord — immutable snapshot at publish moment' } },
+    },
+  },
+  '/api/admin/layouts/{id}/versions': {
+    get: {
+      summary: 'List versions for a layout (admin)',
+      tags: ['Layouts', 'Admin'],
+      security: [{ bearerAuth: [] }],
+      parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+      responses: { '200': { description: 'Array of LayoutVersionRecord, newest first' } },
+    },
+  },
+  '/api/admin/layouts/{id}/versions/{versionId}/revert': {
+    post: {
+      summary: 'Revert layout to a published version (admin)',
+      tags: ['Layouts', 'Admin'],
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        { name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+        { name: 'versionId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+      ],
+      responses: {
+        '200': { description: 'LayoutRecord at the reverted state (now back to draft) — the original version row is untouched (snapshots are immutable)' },
+      },
+    },
+  },
+  '/api/admin/layouts/migrate-homepage': {
+    post: {
+      summary: 'Migrate legacy homepage settings into a layout (admin) — in-place update preserves layout_versions',
+      tags: ['Layouts', 'Admin'],
+      security: [{ bearerAuth: [] }],
+      responses: {
+        '200': { description: '{ migrated: boolean, reason?: string, layoutId?: string }' },
+      },
+    },
+  },
+  '/api/admin/layouts/seed-homepage': {
+    post: {
+      summary: 'Seed canonical homepage layout from registry defaults (admin)',
+      tags: ['Layouts', 'Admin'],
+      security: [{ bearerAuth: [] }],
+      responses: { '200': { description: 'Created LayoutRecord for the seeded homepage' } },
+    },
+  },
 };
 
 export function generateOpenAPISpec(): Record<string, unknown> {
@@ -332,6 +454,7 @@ export function generateOpenAPISpec(): Record<string, unknown> {
       { name: 'Notifications', description: 'Notification management and real-time stream' },
       { name: 'Search', description: 'Global search across content types' },
       { name: 'Docs', description: 'Documentation sites' },
+      { name: 'Layouts', description: 'Layout engine — zone/row/section page composition (admin-gated; layoutEngine feature)' },
       { name: 'Admin', description: 'Instance administration' },
       { name: 'System', description: 'Health checks and system info' },
     ],
