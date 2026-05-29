@@ -16,6 +16,7 @@
  */
 import type { LayoutRecord } from '@commonpub/server';
 import { PublishStepError } from '../../../composables/useLayoutEditor';
+import { DnDProvider } from '@vue-dnd-kit/core';
 
 definePageMeta({
   layout: 'admin',
@@ -360,28 +361,48 @@ async function onConflictForceSave(): Promise<void> {
         <NuxtLink to="/admin/layouts" class="cpub-admin-layouts-editor-phone-back">← Back to Layouts</NuxtLink>
       </div>
 
-      <div
-        class="cpub-admin-layouts-editor-body"
-        :class="{
-          'cpub-admin-layouts-editor-body--palette-hidden': chrome.paletteHidden.value,
-          'cpub-admin-layouts-editor-body--inspector-hidden': chrome.inspectorHidden.value,
-        }"
+      <!--
+        Phase 3b/A: DnDProvider is the drag-drop root. ONE provider per
+        editor; ALL draggables (palette tiles) + droppables (rows / zones)
+        must be inside this subtree so dnd-kit's collision detection +
+        keyboard sensor can see them as a single namespace.
+        Wraps palette + canvas + inspector together so drag-from-palette
+        → drop-on-canvas works without crossing a provider boundary.
+        Per the package's external API verified at session 162 close:
+        - keyboard sensor auto-attaches to document on mount (Space/Arrow/Esc)
+        - `previewTo='body'` teleports the drag preview to <body> so it
+          escapes any overflow:hidden ancestor + stays above the chrome
+        Click-outside the body clears selection (the inspector then
+        falls back to the page-meta form per §7.9 dispatch pattern).
+      -->
+      <DnDProvider
+        preview-to="body"
+        class="cpub-admin-layouts-editor-dnd"
+        @click.self="editor.clearSelection"
       >
-        <!-- Tablet/phone collapse: canvas FIRST so the surface admin came
-             for is immediately visible; palette + inspector stack below.
-             (Pre-audit ordering put palette first → admin had to scroll
-             past 17 tiles to reach the canvas.)
-             v-show on palette + inspector (not v-if) preserves component
-             state — scroll position, focused field — across hide/show. -->
-        <AdminLayoutsCanvas :layout="editor.draft.value" :viewport="viewport" />
-        <AdminLayoutsPalette v-show="!chrome.paletteHidden.value" />
-        <AdminLayoutsInspector
-          v-show="!chrome.inspectorHidden.value"
-          :draft="editor.draft.value"
-          @update:page-meta="onPageMetaUpdate"
-          @update:name="onNameUpdate"
-        />
-      </div>
+        <div
+          class="cpub-admin-layouts-editor-body"
+          :class="{
+            'cpub-admin-layouts-editor-body--palette-hidden': chrome.paletteHidden.value,
+            'cpub-admin-layouts-editor-body--inspector-hidden': chrome.inspectorHidden.value,
+          }"
+        >
+          <!-- Tablet/phone collapse: canvas FIRST so the surface admin came
+               for is immediately visible; palette + inspector stack below.
+               (Pre-audit ordering put palette first → admin had to scroll
+               past 17 tiles to reach the canvas.)
+               v-show on palette + inspector (not v-if) preserves component
+               state — scroll position, focused field — across hide/show. -->
+          <AdminLayoutsCanvas :layout="editor.draft.value" :viewport="viewport" />
+          <AdminLayoutsPalette v-show="!chrome.paletteHidden.value" />
+          <AdminLayoutsInspector
+            v-show="!chrome.inspectorHidden.value"
+            :draft="editor.draft.value"
+            @update:page-meta="onPageMetaUpdate"
+            @update:name="onNameUpdate"
+          />
+        </div>
+      </DnDProvider>
 
       <AdminLayoutsConflictModal
         :open="conflictOpen"
@@ -505,6 +526,21 @@ async function onConflictForceSave(): Promise<void> {
   }
   .cpub-admin-layouts-editor-thrash-body { flex-basis: 100%; }
   .cpub-admin-layouts-editor-thrash-actions { flex-basis: 100%; justify-content: flex-end; }
+}
+
+/* Phase 3b/A — DnDProvider sits between the editor wrapper and the
+   body grid. Without explicit dimensions it would collapse and the
+   body grid loses its height. Mirrors the body's flex behavior so
+   the provider is layout-transparent. */
+.cpub-admin-layouts-editor-dnd {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+.cpub-admin-layouts-editor-dnd > .cpub-admin-layouts-editor-body {
+  flex: 1;
+  min-height: 0;
 }
 
 .cpub-admin-layouts-editor-body {
