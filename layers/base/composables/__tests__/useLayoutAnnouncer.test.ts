@@ -20,6 +20,8 @@ import {
   narrateRedoEmpty,
   narrateRowAdded,
   narrateRowRemoved,
+  narrateSectionRemoved,
+  narrateSectionDuplicated,
 } from '../useLayoutAnnouncer';
 
 beforeEach(() => {
@@ -153,6 +155,20 @@ describe('narration helpers', () => {
   it('narrateRowRemoved names the zone (no position — row is gone)', () => {
     expect(narrateRowRemoved('main')).toBe('Row removed from main.');
     expect(narrateRowRemoved('sidebar')).toBe('Row removed from sidebar.');
+  });
+
+  it('narrateSectionRemoved names the section type + zone + restore hint', () => {
+    expect(narrateSectionRemoved('hero', 'main'))
+      .toBe('hero removed from main. Press Command+Z to undo.');
+    expect(narrateSectionRemoved('content-feed', 'sidebar'))
+      .toBe('content-feed removed from sidebar. Press Command+Z to undo.');
+  });
+
+  it('narrateSectionDuplicated names type + 1-indexed position', () => {
+    expect(narrateSectionDuplicated('hero', 1, 3))
+      .toBe('hero duplicated at position 2 of 3.');
+    expect(narrateSectionDuplicated('image', 0, 1))
+      .toBe('image duplicated at position 1 of 1.');
   });
 });
 

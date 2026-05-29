@@ -296,8 +296,9 @@ const hasMoveTargets = computed<boolean>(() =>
       '--cpub-section-cols-lg': resolveColSpan('lg'),
     }"
     :tabindex="editable ? 0 : undefined"
-    :aria-selected="editable ? (isSelected ? 'true' : 'false') : undefined"
-    :aria-label="editable ? `Select ${section.type} section` : undefined"
+    :aria-label="editable
+      ? (isSelected ? `Selected: ${section.type} section` : `Select ${section.type} section`)
+      : undefined"
     @click.stop="activate"
     @keydown.enter.prevent="activate"
     @keydown.space.prevent.stop="activate"

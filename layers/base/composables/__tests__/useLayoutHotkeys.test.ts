@@ -13,6 +13,7 @@ import { defineComponent, h, ref } from 'vue';
 import { render } from '@testing-library/vue';
 import type { LayoutRecord } from '@commonpub/server';
 import type { LayoutSection } from '../useLayout';
+import type { EditorSelection } from '../useLayoutEditor';
 import { useLayoutHotkeys } from '../useLayoutHotkeys';
 import { useLayoutHistory, insertSectionCommand } from '../useLayoutHistory';
 import { useLayoutAnnouncer } from '../useLayoutAnnouncer';
@@ -60,6 +61,28 @@ function mountHost(initial: LayoutRecord) {
   });
   const wrapper = render(Host);
   return { wrapper, draft };
+}
+
+/** Same as mountHost but with the Phase 3d options wired (selection +
+ *  setSelection + onShowHelp). Each option is a ref so the test can
+ *  observe the post-keypress state. */
+function mountHostFull(initial: LayoutRecord, initialSel: EditorSelection = null) {
+  const draft = ref<LayoutRecord | null>(initial);
+  const selection = ref<EditorSelection>(initialSel);
+  const helpCalls = ref<number>(0);
+  const Host = defineComponent({
+    setup() {
+      useLayoutHotkeys({
+        getDraft: () => draft.value,
+        getSelection: () => selection.value,
+        setSelection: (s) => { selection.value = s; },
+        onShowHelp: () => { helpCalls.value++; },
+      });
+      return () => h('div');
+    },
+  });
+  const wrapper = render(Host);
+  return { wrapper, draft, selection, helpCalls };
 }
 
 /* ---- Test setup ---- */
@@ -341,6 +364,262 @@ describe('useLayoutHotkeys — input/textarea skip', () => {
 
     expect(history.canUndo.value).toBe(false); // undo DID fire
     document.body.removeChild(ce);
+    wrapper.unmount();
+  });
+});
+
+/* ---- Backspace / Delete = remove section (Phase 3d.1) ---- */
+
+describe('useLayoutHotkeys — Backspace/Delete remove section', () => {
+  it('Backspace with a section selected splices it out + announces + clears selection', () => {
+    const { wrapper, draft, selection } = mountHostFull(makeDraft(), { kind: 'section', id: 's1' });
+    const history = useLayoutHistory();
+    const announcer = useLayoutAnnouncer();
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true }));
+
+    expect(draft.value!.zones[0]!.rows[0]!.sections.map((s) => s.id)).toEqual([]);
+    expect(selection.value).toBeNull();
+    expect(history.canUndo.value).toBe(true);
+    expect(history.lastLabel.value).toBe('remove divider');
+    expect(announcer.message.value).toBe('divider removed from main. Press Command+Z to undo.');
+    wrapper.unmount();
+  });
+
+  it('Delete key fires the same remove path as Backspace', () => {
+    const { wrapper, draft } = mountHostFull(makeDraft(), { kind: 'section', id: 's1' });
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete', bubbles: true }));
+
+    expect(draft.value!.zones[0]!.rows[0]!.sections).toEqual([]);
+    wrapper.unmount();
+  });
+
+  it('Cmd+Z restores the removed section', () => {
+    const { wrapper, draft } = mountHostFull(makeDraft(), { kind: 'section', id: 's1' });
+    const history = useLayoutHistory();
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true }));
+    expect(draft.value!.zones[0]!.rows[0]!.sections).toEqual([]);
+
+    history.undo(draft.value!);
+    expect(draft.value!.zones[0]!.rows[0]!.sections.map((s) => s.id)).toEqual(['s1']);
+    wrapper.unmount();
+  });
+
+  it('Backspace with NO selection → silent noop (no mutation, no narration)', () => {
+    const { wrapper, draft } = mountHostFull(makeDraft(), null);
+    const announcer = useLayoutAnnouncer();
+    const before = JSON.stringify(draft.value!.zones);
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true }));
+
+    expect(JSON.stringify(draft.value!.zones)).toBe(before);
+    expect(announcer.message.value).toBe('');
+    wrapper.unmount();
+  });
+
+  it('Backspace with row selected (not section) → silent noop', () => {
+    const { wrapper, draft } = mountHostFull(makeDraft(), { kind: 'row', id: 'r1' });
+    const before = JSON.stringify(draft.value!.zones);
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true }));
+
+    expect(JSON.stringify(draft.value!.zones)).toBe(before);
+    wrapper.unmount();
+  });
+
+  it('rich section (non-empty config) prompts window.confirm before removal', () => {
+    const rich = makeDraft();
+    (rich.zones[0]!.rows[0]!.sections[0] as LayoutSection).config = { title: 'Hero' } as never;
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValueOnce(true);
+    const { wrapper } = mountHostFull(rich, { kind: 'section', id: 's1' });
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true }));
+
+    expect(confirmSpy).toHaveBeenCalledTimes(1);
+    expect(confirmSpy.mock.calls[0]![0]).toContain('Command+Z');
+    confirmSpy.mockRestore();
+    wrapper.unmount();
+  });
+
+  it('rich section + confirm cancel → no mutation, no record', () => {
+    const rich = makeDraft();
+    (rich.zones[0]!.rows[0]!.sections[0] as LayoutSection).config = { title: 'Keep me' } as never;
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValueOnce(false);
+    const { wrapper, draft } = mountHostFull(rich, { kind: 'section', id: 's1' });
+    const history = useLayoutHistory();
+    const before = JSON.stringify(draft.value!.zones);
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true }));
+
+    expect(JSON.stringify(draft.value!.zones)).toBe(before);
+    expect(history.canUndo.value).toBe(false);
+    confirmSpy.mockRestore();
+    wrapper.unmount();
+  });
+
+  it('empty-config section skips the confirm (sweep flow stays fast)', () => {
+    const confirmSpy = vi.spyOn(window, 'confirm');
+    const { wrapper } = mountHostFull(makeDraft(), { kind: 'section', id: 's1' });
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true }));
+
+    expect(confirmSpy).not.toHaveBeenCalled();
+    confirmSpy.mockRestore();
+    wrapper.unmount();
+  });
+
+  it('Backspace inside an <input> → browser-native, no remove', () => {
+    const { wrapper, draft } = mountHostFull(makeDraft(), { kind: 'section', id: 's1' });
+    const input = document.createElement('input');
+    document.body.appendChild(input);
+    input.focus();
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true }));
+
+    expect(draft.value!.zones[0]!.rows[0]!.sections).toHaveLength(1);
+    document.body.removeChild(input);
+    wrapper.unmount();
+  });
+
+  it('Cmd+Backspace (modified) does NOT trigger remove (URL clear in Safari stays user-controlled)', () => {
+    const { wrapper, draft } = mountHostFull(makeDraft(), { kind: 'section', id: 's1' });
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Backspace', metaKey: true, bubbles: true }));
+    expect(draft.value!.zones[0]!.rows[0]!.sections).toHaveLength(1);
+    wrapper.unmount();
+  });
+});
+
+/* ---- Cmd/Ctrl+D = duplicate section (Phase 3d.2) ---- */
+
+describe('useLayoutHotkeys — Cmd/Ctrl+D duplicate section', () => {
+  it('Cmd+D with a section selected inserts a clone immediately after the source + moves selection to clone', () => {
+    const { wrapper, draft, selection } = mountHostFull(makeDraft(), { kind: 'section', id: 's1' });
+    const announcer = useLayoutAnnouncer();
+    const history = useLayoutHistory();
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'd', metaKey: true, bubbles: true }));
+
+    const sections = draft.value!.zones[0]!.rows[0]!.sections;
+    expect(sections).toHaveLength(2);
+    expect(sections[0]!.id).toBe('s1');
+    expect(sections[1]!.id).not.toBe('s1'); // new id minted
+    expect(sections[1]!.type).toBe('divider'); // clone shares type
+    expect(selection.value).toEqual({ kind: 'section', id: sections[1]!.id });
+    expect(announcer.message.value).toBe('divider duplicated at position 2 of 2.');
+    expect(history.lastLabel.value).toBe('duplicate divider');
+    wrapper.unmount();
+  });
+
+  it('Ctrl+D fires duplicate on Windows/Linux too', () => {
+    const { wrapper, draft } = mountHostFull(makeDraft(), { kind: 'section', id: 's1' });
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'd', ctrlKey: true, bubbles: true }));
+    expect(draft.value!.zones[0]!.rows[0]!.sections).toHaveLength(2);
+    wrapper.unmount();
+  });
+
+  it('clone preserves authored config (deep copy)', () => {
+    const richDraft = makeDraft();
+    (richDraft.zones[0]!.rows[0]!.sections[0] as LayoutSection).config = { title: 'Hi' } as never;
+    const { wrapper, draft } = mountHostFull(richDraft, { kind: 'section', id: 's1' });
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'd', metaKey: true, bubbles: true }));
+
+    const sections = draft.value!.zones[0]!.rows[0]!.sections;
+    expect(sections[1]!.config).toEqual({ title: 'Hi' });
+    // Mutating the clone must NOT touch the source (deep copy).
+    (sections[1] as LayoutSection).config = { title: 'Other' } as never;
+    expect(sections[0]!.config).toEqual({ title: 'Hi' });
+    wrapper.unmount();
+  });
+
+  it('a second Cmd+D duplicates the clone (selection chained to the new copy)', () => {
+    const { wrapper, draft } = mountHostFull(makeDraft(), { kind: 'section', id: 's1' });
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'd', metaKey: true, bubbles: true }));
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'd', metaKey: true, bubbles: true }));
+    expect(draft.value!.zones[0]!.rows[0]!.sections).toHaveLength(3);
+    wrapper.unmount();
+  });
+
+  it('Cmd+Z restores the pre-duplicate state', () => {
+    const { wrapper, draft } = mountHostFull(makeDraft(), { kind: 'section', id: 's1' });
+    const history = useLayoutHistory();
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'd', metaKey: true, bubbles: true }));
+    expect(draft.value!.zones[0]!.rows[0]!.sections).toHaveLength(2);
+    history.undo(draft.value!);
+    expect(draft.value!.zones[0]!.rows[0]!.sections).toHaveLength(1);
+    wrapper.unmount();
+  });
+
+  it('Cmd+D with no selection → silent noop (browser bookmark not preempted)', () => {
+    const { wrapper, draft } = mountHostFull(makeDraft(), null);
+    const e = new KeyboardEvent('keydown', { key: 'd', metaKey: true, cancelable: true, bubbles: true });
+    window.dispatchEvent(e);
+    expect(e.defaultPrevented).toBe(false); // bookmark left alone
+    expect(draft.value!.zones[0]!.rows[0]!.sections).toHaveLength(1);
+    wrapper.unmount();
+  });
+
+  it('Cmd+Shift+D excluded (no duplicate fires)', () => {
+    const { wrapper, draft } = mountHostFull(makeDraft(), { kind: 'section', id: 's1' });
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'd', metaKey: true, shiftKey: true, bubbles: true }));
+    expect(draft.value!.zones[0]!.rows[0]!.sections).toHaveLength(1);
+    wrapper.unmount();
+  });
+
+  it('Cmd+D in an <input> → browser default, no duplicate', () => {
+    const { wrapper, draft } = mountHostFull(makeDraft(), { kind: 'section', id: 's1' });
+    const input = document.createElement('input');
+    document.body.appendChild(input);
+    input.focus();
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'd', metaKey: true, bubbles: true }));
+    expect(draft.value!.zones[0]!.rows[0]!.sections).toHaveLength(1);
+    document.body.removeChild(input);
+    wrapper.unmount();
+  });
+});
+
+/* ---- ? (Shift+/) = help overlay (Phase 3d.3) ---- */
+
+describe('useLayoutHotkeys — ? help overlay', () => {
+  it('? press calls onShowHelp + preventDefault', () => {
+    const { wrapper, helpCalls } = mountHostFull(makeDraft());
+    const e = new KeyboardEvent('keydown', { key: '?', cancelable: true, bubbles: true });
+    window.dispatchEvent(e);
+    expect(helpCalls.value).toBe(1);
+    expect(e.defaultPrevented).toBe(true);
+    wrapper.unmount();
+  });
+
+  it('? inside <input> → browser-native (no help)', () => {
+    const { wrapper, helpCalls } = mountHostFull(makeDraft());
+    const input = document.createElement('input');
+    document.body.appendChild(input);
+    input.focus();
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: '?', bubbles: true }));
+    expect(helpCalls.value).toBe(0);
+    document.body.removeChild(input);
+    wrapper.unmount();
+  });
+
+  it('? with no onShowHelp callback → silent noop, defaults NOT prevented', () => {
+    const draft = ref<LayoutRecord | null>(makeDraft());
+    const Host = defineComponent({
+      setup() {
+        useLayoutHotkeys({ getDraft: () => draft.value });
+        return () => h('div');
+      },
+    });
+    const wrapper = render(Host);
+    const e = new KeyboardEvent('keydown', { key: '?', cancelable: true, bubbles: true });
+    window.dispatchEvent(e);
+    expect(e.defaultPrevented).toBe(false);
+    wrapper.unmount();
+  });
+
+  it('Cmd+? does NOT fire (modifier-free binding only)', () => {
+    const { wrapper, helpCalls } = mountHostFull(makeDraft());
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: '?', metaKey: true, bubbles: true }));
+    expect(helpCalls.value).toBe(0);
     wrapper.unmount();
   });
 });

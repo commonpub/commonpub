@@ -194,6 +194,37 @@ export function findZoneOfRow(draft: LayoutRecord, rowId: string): string | null
 }
 
 /**
+ * Walk zones → rows → sections to locate a section by id. Phase 3d
+ * keystrokes (Backspace, Cmd+D) work from an EditorSelection that
+ * carries only the section id — finding the host row + zone + index
+ * needs a search. O(zones × rows × sections); fine at v1 N=10s.
+ *
+ * Returns null when the section is no longer in the draft (e.g. the
+ * selection went stale because a drag mid-keydown removed it).
+ */
+export interface SectionLocation {
+  zoneSlug: string;
+  row: LayoutRow;
+  idx: number;
+  section: LayoutSection;
+}
+export function findSectionLocation(
+  draft: LayoutRecord,
+  sectionId: string,
+): SectionLocation | null {
+  for (const zone of draft.zones) {
+    for (const row of zone.rows) {
+      const idx = (row.sections as LayoutSection[]).findIndex((s) => s.id === sectionId);
+      if (idx !== -1) {
+        const section = (row.sections as LayoutSection[])[idx]!;
+        return { zoneSlug: zone.zone, row: row as LayoutRow, idx, section };
+      }
+    }
+  }
+  return null;
+}
+
+/**
  * Palette → row insert.
  *
  *   apply:  splice the section into row at `at`
@@ -342,6 +373,97 @@ export function removeRowCommand(params: {
       // removed other rows, putting our captured position out of range.
       const pos = Math.min(params.position, zone.rows.length);
       zone.rows.splice(pos, 0, JSON.parse(JSON.stringify(rowClone)));
+    },
+  };
+}
+
+/**
+ * Remove a section from a row.
+ *
+ *   apply:  remove the section by id from row.sections
+ *   invert: restore the section at `position` (clamped if the row now has
+ *           fewer sections)
+ *
+ * Symmetric pair with `insertSectionCommand`. Phase 3d.1 (Backspace /
+ * Delete) records this. The full section (config + responsive + every
+ * authored field) is deep-cloned + stored on the command so the invert
+ * restores complete content — Cmd+Z after a section removal brings the
+ * authored copy back, not just the type stub.
+ */
+export function removeSectionCommand(params: {
+  rowId: string;
+  position: number;
+  section: LayoutSection;
+  label?: string;
+}): LayoutCommand {
+  const sectionClone = cloneSection(params.section);
+  const label = params.label ?? `remove ${params.section.type}`;
+  return {
+    label,
+    timestamp: Date.now(),
+    apply(draft) {
+      const row = findRowInDraft(draft, params.rowId);
+      if (!row) return;
+      const idx = row.sections.findIndex((s) => s.id === sectionClone.id);
+      if (idx === -1) return;
+      row.sections.splice(idx, 1);
+    },
+    invert(draft) {
+      const row = findRowInDraft(draft, params.rowId);
+      if (!row) return;
+      // Clamp to current length — intervening commands may have removed
+      // other sections, pushing our captured position out of range.
+      const pos = Math.min(params.position, row.sections.length);
+      row.sections.splice(pos, 0, cloneSection(sectionClone));
+    },
+  };
+}
+
+/**
+ * Duplicate a section in place — clones the source, inserts directly
+ * after it. Phase 3d.2 (Cmd/Ctrl+D).
+ *
+ *   apply:  splice `clone` into row at `at`
+ *   invert: remove `clone` by id
+ *
+ * The clone's id MUST be unique within the layout — the caller mints
+ * it via `crypto.randomUUID()` BEFORE building the command, so apply +
+ * invert can both find the same instance across undo/redo cycles.
+ *
+ * Practically equivalent to `insertSectionCommand` for purposes of
+ * apply/invert, but kept as a separate factory because:
+ *   1. The label defaults differ (`duplicate hero` vs `insert hero`),
+ *      which surfaces in the toolbar tooltip + screen-reader narration.
+ *      Telling the user "you can undo the insert" when the action was a
+ *      duplicate is jarring.
+ *   2. Tests + audit lenses can target duplicate semantics specifically
+ *      (e.g. "does the new id collide with the source?"). One factory
+ *      per intent matches the convention the row commands already set.
+ */
+export function duplicateSectionCommand(params: {
+  rowId: string;
+  at: number;
+  clone: LayoutSection;
+  label?: string;
+}): LayoutCommand {
+  const clone = cloneSection(params.clone);
+  const label = params.label ?? `duplicate ${clone.type}`;
+  return {
+    label,
+    timestamp: Date.now(),
+    apply(draft) {
+      const row = findRowInDraft(draft, params.rowId);
+      if (!row) return;
+      // Fresh clone on each apply so undo→redo cycles don't share a
+      // mutated object — same rule the other factories follow.
+      row.sections.splice(params.at, 0, cloneSection(clone));
+    },
+    invert(draft) {
+      const row = findRowInDraft(draft, params.rowId);
+      if (!row) return;
+      const idx = row.sections.findIndex((s) => s.id === clone.id);
+      if (idx === -1) return;
+      row.sections.splice(idx, 1);
     },
   };
 }

@@ -237,3 +237,36 @@ export function narrateRowAdded(zone: string, at: number, total: number): string
 export function narrateRowRemoved(zone: string): string {
   return `Row removed from ${zone}.`;
 }
+
+/**
+ * Section removal (Phase 3d.1 — Backspace / Delete).
+ *
+ * Names the section type + zone so the user knows WHICH section
+ * disappeared without having to count remaining ones. Mirrors
+ * narrateRowRemoved's "no position" rationale — by announce-time
+ * the section is gone + neighbors have shifted, so position would
+ * be meaningless. The `Cmd+Z restores` hint is folded into the
+ * announcement so screen-reader users hear the recovery affordance
+ * (sighted users see the toolbar's enabled Undo button).
+ */
+export function narrateSectionRemoved(sectionType: string, zone: string): string {
+  return `${sectionType} removed from ${zone}. Press Command+Z to undo.`;
+}
+
+/**
+ * Section duplication (Phase 3d.2 — Cmd/Ctrl+D).
+ *
+ * The clone lands directly after the source so position is the
+ * source's index + 1. Naming both position + total gives the user
+ * a frame of reference for the next arrow press; matches
+ * narrateInserted's wording so screen-reader output stays consistent
+ * regardless of how the section got there (palette drop, duplicate,
+ * eventually paste).
+ */
+export function narrateSectionDuplicated(
+  sectionType: string,
+  at: number,
+  total: number,
+): string {
+  return `${sectionType} duplicated at ${formatPosition(at, total)}.`;
+}

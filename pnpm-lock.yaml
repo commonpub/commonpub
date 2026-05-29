@@ -257,6 +257,9 @@ importers:
       '@vitejs/plugin-vue':
         specifier: ^5.2.4
         version: 5.2.4(vite@7.3.2(@types/node@25.6.0)(jiti@2.6.1)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))(vue@3.5.32(typescript@5.9.3))
+      axe-core:
+        specifier: ^4.11.3
+        version: 4.11.3
       jsdom:
         specifier: ^25.0.1
         version: 25.0.1
@@ -2102,7 +2105,6 @@ packages:
   '@img/sharp-wasm32@0.34.5':
     resolution: {integrity: sha512-OdWTEiVkY2PHwqkbBI8frFxQQFekHaSSkUIJkwzclWZe64O1X4UlUjqqqLaPbUpMOQk6FBu/HtlGXNblIs0huw==}
     engines: {node: ^18.17.0 || ^20.3.0 || >=21.0.0}
-    cpu: [wasm32]
 
   '@img/sharp-win32-arm64@0.34.5':
     resolution: {integrity: sha512-WQ3AgWCWYSb2yt+IG8mnC6Jdk9Whs7O0gxphblsLvdhSpSTtmu69ZG1Gkb6NuvxsNACwiPV6cNSZNzt0KPsw7g==}

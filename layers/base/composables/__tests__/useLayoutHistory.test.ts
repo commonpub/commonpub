@@ -19,11 +19,14 @@ import {
   useLayoutHistory,
   findRowInDraft,
   findZoneOfRow,
+  findSectionLocation,
   insertSectionCommand,
   reorderSectionCommand,
   moveSectionCommand,
   addRowCommand,
   removeRowCommand,
+  removeSectionCommand,
+  duplicateSectionCommand,
 } from '../useLayoutHistory';
 import type { LayoutRow } from '../useLayout';
 
@@ -526,6 +529,179 @@ describe('removeRowCommand', () => {
       row: { id: 'x', order: 0, config: null, sections: [] },
     });
     expect(cmd.label).toBe('remove row');
+  });
+});
+
+describe('removeSectionCommand (Phase 3d.1)', () => {
+  it('apply removes by id; invert restores at original position', () => {
+    const draft = makeDraft();
+    const before = JSON.stringify(draft.zones);
+    const removed = JSON.parse(JSON.stringify(draft.zones[0]!.rows[0]!.sections[0]!));
+    const cmd = removeSectionCommand({
+      rowId: 'row-main-1',
+      position: 0,
+      section: removed,
+    });
+    cmd.apply(draft);
+    expect(findRowInDraft(draft, 'row-main-1')!.sections.map((s) => s.id))
+      .toEqual(['s2']);
+    cmd.invert(draft);
+    expect(JSON.stringify(draft.zones)).toBe(before);
+  });
+
+  it('invert clamps position when row has fewer sections at restore time', () => {
+    const draft = makeDraft();
+    // row-main-1 starts with [s1, s2]. Remove s1 (position 0) then s2
+    // (position 1 at capture-time, but really position 0 after first remove).
+    const s1 = JSON.parse(JSON.stringify(draft.zones[0]!.rows[0]!.sections[0]!));
+    const s2 = JSON.parse(JSON.stringify(draft.zones[0]!.rows[0]!.sections[1]!));
+    const c1 = removeSectionCommand({ rowId: 'row-main-1', position: 0, section: s1 });
+    const c2 = removeSectionCommand({ rowId: 'row-main-1', position: 1, section: s2 });
+    c1.apply(draft);
+    c2.apply(draft);
+    expect(findRowInDraft(draft, 'row-main-1')!.sections).toHaveLength(0);
+
+    // Invert c2 at captured position 1; row is empty → clamp to 0.
+    c2.invert(draft);
+    expect(findRowInDraft(draft, 'row-main-1')!.sections.map((s) => s.id)).toEqual(['s2']);
+  });
+
+  it('default label is "remove <type>"', () => {
+    const cmd = removeSectionCommand({
+      rowId: 'row-main-1',
+      position: 0,
+      section: makeSection('x', 'hero'),
+    });
+    expect(cmd.label).toBe('remove hero');
+  });
+
+  it('apply against a vanished row is a silent noop', () => {
+    const draft = makeDraft();
+    const before = JSON.stringify(draft.zones);
+    const cmd = removeSectionCommand({
+      rowId: 'ghost-row',
+      position: 0,
+      section: makeSection('orphan'),
+    });
+    cmd.apply(draft);
+    expect(JSON.stringify(draft.zones)).toBe(before);
+  });
+
+  it('apply against a vanished section is a silent noop', () => {
+    const draft = makeDraft();
+    const before = JSON.stringify(draft.zones);
+    const cmd = removeSectionCommand({
+      rowId: 'row-main-1',
+      position: 0,
+      section: makeSection('ghost-section'),
+    });
+    cmd.apply(draft);
+    expect(JSON.stringify(draft.zones)).toBe(before);
+  });
+
+  it('invert deep-clones — multiple invokes do not share a mutated object', () => {
+    const draft = makeDraft();
+    const removed = JSON.parse(JSON.stringify(draft.zones[0]!.rows[0]!.sections[0]!));
+    const cmd = removeSectionCommand({
+      rowId: 'row-main-1',
+      position: 0,
+      section: removed,
+    });
+    cmd.apply(draft);
+    cmd.invert(draft);
+    // Mutate the restored section in place.
+    findRowInDraft(draft, 'row-main-1')!.sections[0]!.config = { mutated: true } as never;
+    cmd.apply(draft);
+    cmd.invert(draft);
+    // The second restore is from the captured snapshot, NOT the mutated one.
+    expect(findRowInDraft(draft, 'row-main-1')!.sections[0]!.config).toEqual({});
+  });
+});
+
+describe('duplicateSectionCommand (Phase 3d.2)', () => {
+  it('apply splices clone at `at`; invert removes by clone id', () => {
+    const draft = makeDraft();
+    const before = JSON.stringify(draft.zones);
+    const clone: LayoutSection = { ...makeSection('s1-copy', 'hero'), config: { title: 'Hi' } as never };
+    const cmd = duplicateSectionCommand({
+      rowId: 'row-main-1',
+      at: 1,
+      clone,
+    });
+    cmd.apply(draft);
+    expect(findRowInDraft(draft, 'row-main-1')!.sections.map((s) => s.id))
+      .toEqual(['s1', 's1-copy', 's2']);
+    // The clone's authored config survives the deep-clone inside apply.
+    expect(findRowInDraft(draft, 'row-main-1')!.sections[1]!.config).toEqual({ title: 'Hi' });
+
+    cmd.invert(draft);
+    expect(JSON.stringify(draft.zones)).toBe(before);
+  });
+
+  it('default label is "duplicate <type>"', () => {
+    const cmd = duplicateSectionCommand({
+      rowId: 'row-main-1',
+      at: 0,
+      clone: makeSection('c1', 'image'),
+    });
+    expect(cmd.label).toBe('duplicate image');
+  });
+
+  it('multiple applies of the same command produce distinct objects (undo/redo safety)', () => {
+    const draft = makeDraft();
+    const clone = makeSection('dup-clone', 'divider');
+    const cmd = duplicateSectionCommand({
+      rowId: 'row-main-1',
+      at: 2,
+      clone,
+    });
+    cmd.apply(draft);
+    cmd.invert(draft);
+    cmd.apply(draft);
+    // Mutate the just-applied clone in place.
+    findRowInDraft(draft, 'row-main-1')!.sections[2]!.colSpan = 6;
+    cmd.invert(draft);
+    cmd.apply(draft);
+    // Third apply ignores the mutation; clones the captured snapshot.
+    expect(findRowInDraft(draft, 'row-main-1')!.sections[2]!.colSpan).toBe(12);
+  });
+
+  it('apply against a vanished row is a silent noop', () => {
+    const draft = makeDraft();
+    const before = JSON.stringify(draft.zones);
+    const cmd = duplicateSectionCommand({
+      rowId: 'ghost-row',
+      at: 0,
+      clone: makeSection('orphan-clone'),
+    });
+    cmd.apply(draft);
+    expect(JSON.stringify(draft.zones)).toBe(before);
+  });
+});
+
+describe('findSectionLocation (Phase 3d helper)', () => {
+  it('finds a section across zones + rows + returns full location envelope', () => {
+    const draft = makeDraft();
+    const loc = findSectionLocation(draft, 's4');
+    expect(loc).not.toBeNull();
+    expect(loc!.zoneSlug).toBe('sidebar');
+    expect(loc!.row.id).toBe('row-side-1');
+    expect(loc!.idx).toBe(0);
+    expect(loc!.section.id).toBe('s4');
+  });
+
+  it('returns null when section id does not exist', () => {
+    const draft = makeDraft();
+    expect(findSectionLocation(draft, 'ghost-section')).toBeNull();
+  });
+
+  it('returns the FIRST match — sections with the same id (illegal but defensive)', () => {
+    // Synthesize a duplicate id across two rows; the helper should
+    // return the first walk-order hit + leave the second in place.
+    const draft = makeDraft();
+    findRowInDraft(draft, 'row-side-1')!.sections.push(makeSection('s1', 'divider'));
+    const loc = findSectionLocation(draft, 's1');
+    expect(loc!.row.id).toBe('row-main-1'); // first walk wins
   });
 });
 

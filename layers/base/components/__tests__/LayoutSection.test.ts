@@ -97,12 +97,15 @@ describe('LayoutSection — render shape', () => {
     expect(el?.getAttribute('aria-label')).toBeNull();
   });
 
-  it('editable=true sets tabindex=0 + aria-selected + aria-label (NO role=button)', () => {
-    // R1/R2-1 audit fix: role='button' would have nested ARIA buttons
-    // (Move Up/Down inside) which violates the role spec. Dropped in
-    // favor of aria-selected — the section is a selectable item, not
-    // a button. tabindex + click+keydown handlers still wire Tab+Space+
-    // Enter activation, so the keyboard contract is unchanged.
+  it('editable=true sets tabindex=0 + aria-label (NO role=button, NO aria-selected)', () => {
+    // Session 163 R1/R2-1 audit fix: role='button' would have nested ARIA
+    // buttons (Move Up/Down inside) which violates the role spec.
+    // Session 165 (Phase 3d.5 axe regression caught this): aria-selected
+    // requires a supporting role (option/gridcell/row/tab/treeitem); the
+    // section's outer div has no role + no listbox parent, so aria-selected
+    // was an axe `aria-allowed-attr` violation. Convey selection state
+    // via aria-label state-in-name instead — universally supported, no
+    // role plumbing required.
     const { container } = render(LayoutSection, {
       props: {
         section: makeSection('s', { type: 'hero' }),
@@ -115,8 +118,8 @@ describe('LayoutSection — render shape', () => {
     const el = container.querySelector('.cpub-layout-section');
     expect(el?.getAttribute('tabindex')).toBe('0');
     expect(el?.getAttribute('role')).toBeNull(); // intentionally not 'button'
+    expect(el?.getAttribute('aria-selected')).toBeNull(); // dropped — was axe violation
     expect(el?.getAttribute('aria-label')).toBe('Select hero section');
-    expect(el?.getAttribute('aria-selected')).toBe('false');
   });
 });
 
@@ -157,10 +160,14 @@ describe('LayoutSection — selection', () => {
     expect(onSelect).toHaveBeenCalledTimes(1);
   });
 
-  it('selectedId matching this section adds --selected + aria-selected=true', () => {
+  it('selectedId matching this section adds --selected + aria-label flips to "Selected:" prefix', () => {
+    // Session 165 — aria-selected dropped (axe `aria-allowed-attr`
+    // violation: the outer div has no supporting role). Selection state
+    // now flows through aria-label (state-in-name) + the visual --selected
+    // class + outline.
     const { container } = render(LayoutSection, {
       props: {
-        section: makeSection('S1'),
+        section: makeSection('S1', { type: 'hero' }),
         rowId: 'r',
         route: '/',
         zone: 'main',
@@ -170,7 +177,8 @@ describe('LayoutSection — selection', () => {
     });
     const el = container.querySelector('.cpub-layout-section');
     expect(el?.classList.contains('cpub-layout-section--selected')).toBe(true);
-    expect(el?.getAttribute('aria-selected')).toBe('true');
+    expect(el?.getAttribute('aria-selected')).toBeNull();
+    expect(el?.getAttribute('aria-label')).toBe('Selected: hero section');
   });
 });
 

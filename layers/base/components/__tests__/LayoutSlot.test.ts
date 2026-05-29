@@ -171,19 +171,21 @@ describe('LayoutSlot — :editable prop', () => {
     expect(section?.getAttribute('data-section-type')).toBe('divider');
   });
 
-  it('editable=true adds tabindex=0 + aria-selected + aria-label (3b/A selection chrome, NO role=button)', () => {
-    // 3b/A cashes the reservation 3a.1 made: now there IS a selection
-    // model behind the affordance. R2/R1-1 audit (this session) dropped
-    // role='button' because Move Up/Down buttons live inside the section
-    // → nested role='button' is an ARIA violation. aria-selected
-    // expresses the same selectable semantic without the violation.
+  it('editable=true adds tabindex=0 + aria-label (3b/A selection chrome, NO role=button, NO aria-selected)', () => {
+    // 3b/A cashes the reservation 3a.1 made: there IS now a selection
+    // model. Session 163 R2/R1-1 audit dropped role='button' (Move Up/Down
+    // buttons inside violate the ARIA spec's no-nested-button rule).
+    // Session 165 Phase 3d.5 axe regression caught the next layer:
+    // aria-selected requires a supporting role (option/gridcell/row/tab/
+    // treeitem) which the section doesn't have. State now lives in
+    // aria-label (state-in-name) + the visual --selected class.
     setupComposables();
     const { container } = mount({ editable: true });
     const section = container.querySelector('.cpub-layout-section--editable');
     expect(section?.getAttribute('tabindex')).toBe('0');
     expect(section?.getAttribute('role')).toBeNull();
     expect(section?.getAttribute('aria-label')).toBe('Select divider section');
-    expect(section?.getAttribute('aria-selected')).toBe('false');
+    expect(section?.getAttribute('aria-selected')).toBeNull();
   });
 
   it('editable=false keeps section tabindex / aria attrs unset (public path pristine)', () => {
@@ -252,7 +254,7 @@ describe('LayoutSlot — selection (Phase 3b/A)', () => {
     expect(section).not.toBeNull();
   });
 
-  it('selectedId={kind:"section", id} adds --selected modifier to that section only', () => {
+  it('selectedId={kind:"section", id} adds --selected modifier + flips aria-label to "Selected:"', () => {
     setupComposables();
     const { container } = mount({
       editable: true,
@@ -260,15 +262,17 @@ describe('LayoutSlot — selection (Phase 3b/A)', () => {
     });
     const section = container.querySelector('[data-section-id="sec-1"]');
     expect(section?.classList.contains('cpub-layout-section--selected')).toBe(true);
-    expect(section?.getAttribute('aria-selected')).toBe('true');
+    expect(section?.getAttribute('aria-selected')).toBeNull();
+    expect(section?.getAttribute('aria-label')).toBe('Selected: divider section');
   });
 
-  it('selectedId=null leaves no section selected (aria-selected=false)', () => {
+  it('selectedId=null leaves no section selected + aria-label stays "Select"', () => {
     setupComposables();
     const { container } = mount({ editable: true, selectedId: null });
     const section = container.querySelector('[data-section-id="sec-1"]');
     expect(section?.classList.contains('cpub-layout-section--selected')).toBe(false);
-    expect(section?.getAttribute('aria-selected')).toBe('false');
+    expect(section?.getAttribute('aria-selected')).toBeNull();
+    expect(section?.getAttribute('aria-label')).toBe('Select divider section');
   });
 
   it('selectedId={kind:"section", id:"other"} does NOT paint THIS section', () => {

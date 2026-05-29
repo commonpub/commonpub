@@ -33,10 +33,19 @@ const id = computed<string>(() => String(route.params.id));
 const editor = useLayoutEditor(id.value);
 const history = useLayoutHistory();
 
-// Phase 3b/B: window-level Cmd+Z / Cmd+Shift+Z. The composable
+// Phase 3b/B + 3d: window-level keyboard shortcuts. The composable
 // attaches on mount + detaches on unmount; input/textarea/contenteditable
-// focus skips so the browser's native text undo wins.
-useLayoutHotkeys({ getDraft: () => editor.draft.value });
+// focus skips so the browser's native text editing wins. Phase 3d adds:
+//   - Backspace / Delete = remove the selected section
+//   - Cmd/Ctrl+D        = duplicate the selected section
+//   - ?                 = open the keyboard shortcuts help overlay
+const helpOpen = ref<boolean>(false);
+useLayoutHotkeys({
+  getDraft: () => editor.draft.value,
+  getSelection: () => editor.selectedId.value,
+  setSelection: (sel) => editor.select(sel),
+  onShowHelp: () => { helpOpen.value = true; },
+});
 
 // Toolbar undo / redo emit handlers — wire to the same history singleton
 // the hotkey uses + the same announcer narration. Tooltip text comes
@@ -633,6 +642,13 @@ async function onConflictForceSave(): Promise<void> {
         @refresh="onConflictRefresh"
         @force-save="onConflictForceSave"
         @close="conflictOpen = false"
+      />
+      <!-- Phase 3d.3 — keyboard shortcut help overlay. Opens on `?`
+           via useLayoutHotkeys.onShowHelp; Esc / backdrop click / Close
+           button dismiss. Read-only; no editor state mutation. -->
+      <AdminLayoutsHelpOverlay
+        :open="helpOpen"
+        @close="helpOpen = false"
       />
     </template>
   </div>

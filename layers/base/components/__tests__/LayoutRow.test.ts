@@ -264,20 +264,22 @@ describe('LayoutRow — moveSection (Move Up / Move Down buttons)', () => {
 /* ---- Selection chrome (regression: still works after extraction) ---- */
 
 describe('LayoutRow — selection chrome (Phase 3b/A)', () => {
-  it('editable=true sections have tabindex=0 + aria-selected (NO role=button — R1/R2-1 audit)', () => {
+  it('editable=true sections have tabindex=0 + aria-label (NO role=button, NO aria-selected — sessions 163+165)', () => {
     const { container } = mount({ editable: true });
     const section = container.querySelector('[data-section-id="sec-1"]');
     expect(section?.getAttribute('tabindex')).toBe('0');
     expect(section?.getAttribute('role')).toBeNull();
-    expect(section?.getAttribute('aria-selected')).toBe('false');
+    expect(section?.getAttribute('aria-selected')).toBeNull(); // session 165 axe fix
+    expect(section?.getAttribute('aria-label')).toBeTruthy();
   });
 
-  it('editable=false sections have NO tabindex / aria-selected (public path)', () => {
+  it('editable=false sections have NO tabindex / aria-selected / aria-label (public path)', () => {
     const { container } = mount({ editable: false });
     const section = container.querySelector('[data-section-id="sec-1"]');
     expect(section?.getAttribute('tabindex')).toBeNull();
     expect(section?.getAttribute('role')).toBeNull();
     expect(section?.getAttribute('aria-selected')).toBeNull();
+    expect(section?.getAttribute('aria-label')).toBeNull();
   });
 
   it('clicking a section calls onSelect', async () => {
