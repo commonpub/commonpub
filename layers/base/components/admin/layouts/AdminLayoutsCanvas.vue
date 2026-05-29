@@ -23,35 +23,14 @@ const props = withDefaults(defineProps<{
   viewport: 'desktop',
 });
 
-// Cast the editor's LayoutRecord (server shape) to LayoutPayload (client
-// shape) for <LayoutSlot>. The shapes are structurally compatible —
-// LayoutPayload is a leaner subset used by the public render path.
-const payload = computed<LayoutPayload | null>(() => {
-  if (!props.layout) return null;
-  return {
-    state: props.layout.state,
-    pageMeta: props.layout.pageMeta,
-    zones: props.layout.zones.map((z) => ({
-      zone: z.zone,
-      rows: z.rows.map((r) => ({
-        id: r.id,
-        order: r.order,
-        config: r.config ?? null,
-        sections: r.sections.map((s) => ({
-          id: s.id,
-          order: s.order,
-          type: s.type,
-          config: s.config,
-          colSpan: s.colSpan,
-          responsive: s.responsive ?? null,
-          enabled: s.enabled,
-          visibility: s.visibility ?? null,
-          schemaVersion: s.schemaVersion,
-        })),
-      })),
-    })),
-  };
-});
+// Session 162 P2.4 (R2 audit): LayoutPayload is now
+// `Pick<LayoutRecord, 'state' | 'pageMeta' | 'zones'>`, so a LayoutRecord
+// is structurally assignable as-is. The 25-line hand-built map this
+// replaced silently dropped any newly-added section field — a future
+// 'pinned' / 'theme' / etc would appear on the public render path but
+// vanish from the editor preview. Direct assignment makes the preview
+// shape track the live shape automatically.
+const payload = computed<LayoutPayload | null>(() => props.layout);
 
 const route = computed<string>(() => {
   if (!props.layout) return '/';

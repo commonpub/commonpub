@@ -19,49 +19,31 @@
  */
 import { computed } from 'vue';
 import type { Ref } from 'vue';
+import type {
+  LayoutRecord,
+  LayoutSectionResolved,
+  LayoutRowResolved,
+  LayoutZone,
+} from '@commonpub/server';
 
-export interface LayoutSection {
-  id: string;
-  order: number;
-  type: string;
-  config: Record<string, unknown>;
-  colSpan: number;
-  responsive: { sm?: number; md?: number; lg?: number } | null;
-  enabled: boolean;
-  visibility: { roles?: string[]; features?: string[]; hideAt?: ('sm' | 'md' | 'lg')[] } | null;
-  schemaVersion: number;
-}
+// Re-export the server-side resolved types under the existing client-
+// facing names. Until session 162 these were locally-declared duplicates
+// (manually kept in sync) — the R2 audit caught that AdminLayoutsCanvas
+// hand-mapped LayoutRecord → LayoutPayload field-by-field, silently
+// dropping any newly-added section field (e.g. a future `pinned` flag).
+// Same-named single source of truth fixes that bug class.
+export type LayoutSection = LayoutSectionResolved;
+export type LayoutRow = LayoutRowResolved;
+export type LayoutZoneClient = LayoutZone;
 
-export interface LayoutRow {
-  id: string;
-  order: number;
-  config: {
-    gap?: 'none' | 'sm' | 'md' | 'lg';
-    align?: 'start' | 'center' | 'stretch';
-    background?: string;
-    paddingY?: 'none' | 'sm' | 'md' | 'lg' | 'xl';
-  } | null;
-  sections: LayoutSection[];
-}
-
-export interface LayoutZoneClient {
-  zone: string;
-  rows: LayoutRow[];
-}
-
-export interface LayoutPayload {
-  zones: LayoutZoneClient[];
-  pageMeta: {
-    title: string;
-    description?: string;
-    ogImage?: string;
-    noindex?: boolean;
-    ogType?: 'website' | 'article' | 'profile';
-    access?: 'public' | 'members' | 'admin';
-    frame?: 'narrow' | 'wide' | 'two-column' | 'three-column' | 'sidebar-left' | 'sidebar-right';
-  } | null;
-  state: 'draft' | 'published';
-}
+/**
+ * The leaner client-facing view of a layout — only the fields the
+ * renderer needs (state for draft-gate, pageMeta for SEO, zones for
+ * structure). Structurally a `Pick` of the full server LayoutRecord
+ * so any LayoutRecord is assignable to LayoutPayload without
+ * transformation (session 162 P2.4 R2 audit fix).
+ */
+export type LayoutPayload = Pick<LayoutRecord, 'state' | 'pageMeta' | 'zones'>;
 
 export interface UseLayoutResult {
   /** The layout payload, or null if none exists / feature off. */
