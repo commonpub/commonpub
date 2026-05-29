@@ -143,6 +143,33 @@ const dragDisabled = computed<boolean>(() => !props.editable);
 const announcer = useLayoutAnnouncer();
 const history = useLayoutHistory();
 
+/**
+ * Phase 3b/B FLIP — `<TransitionGroup>` is rendered AS the row's outer
+ * `<div class="cpub-layout-row">`. That preserves the byte-pattern + the
+ * grid-container role + the makeDroppable ref binding. The ref on a
+ * component points at the component instance, not the DOM; this setter
+ * extracts `.$el` so makeDroppable's HTMLElement contract holds.
+ *
+ * On the public path (editable=false), the `name` prop is unset so no
+ * transition CSS classes are added during the (rare) section re-renders.
+ * The initial mount has no `appear` either, so the public byte-pattern
+ * is unaffected.
+ */
+function setRowRef(el: unknown): void {
+  if (!el) { rowRef.value = null; return; }
+  if (typeof el === 'object' && '$el' in el) {
+    rowRef.value = ((el as { $el: HTMLElement | null }).$el) ?? null;
+  } else {
+    rowRef.value = el as HTMLElement;
+  }
+}
+
+/** Animation name — bound conditionally so the public path (editable=false)
+ *  stays animation-free. */
+const flipName = computed<string | undefined>(() =>
+  props.editable ? 'cpub-flip' : undefined,
+);
+
 function handleDrop(event: IDragEvent): void {
   // Delegate to the pure dispatcher — same function used by tests, so
   // the behavior matrix is exercised once + this component is wiring.
@@ -345,8 +372,18 @@ const isOver = computed<boolean>(() => isDragOver.value !== undefined);
 </script>
 
 <template>
-  <div
-    ref="rowRef"
+  <!--
+    Phase 3b/B: <TransitionGroup> IS the row's outer element. The grid
+    container role + makeDroppable ref + selection/drop-over class set
+    transfers verbatim. `tag="div"` keeps the rendered HTML identical
+    to the pre-FLIP shape. `name` is unset on the public path so no
+    transition CSS attaches there (initial mount has no `appear`, so
+    public byte-pattern is unchanged).
+  -->
+  <TransitionGroup
+    :ref="setRowRef"
+    tag="div"
+    :name="flipName"
     class="cpub-layout-row"
     :class="{
       'cpub-layout-row--editable': editable,
@@ -380,7 +417,7 @@ const isOver = computed<boolean>(() => isDragOver.value !== undefined);
       :available-zones="availableZones"
       :on-move-to-zone="(targetZone: string) => moveSectionToZone(section, targetZone)"
     />
-  </div>
+  </TransitionGroup>
 </template>
 
 <style scoped>
@@ -447,5 +484,64 @@ const isOver = computed<boolean>(() => isDragOver.value !== undefined);
   background: color-mix(in srgb, var(--accent) 6%, transparent);
   outline: 2px dashed var(--accent);
   outline-offset: 4px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Phase 3b/B FLIP animations — name="cpub-flip" attaches these classes */
+/* during enter/leave/move. Only editable mode wires the name prop, so */
+/* the public path stays animation-free.                                */
+/*                                                                      */
+/* Plan §7.11 (visual design system):                                   */
+/*   - insertion: transform scale(0.96)→1 + opacity 0→1 over 150ms      */
+/*     cubic ease-out                                                   */
+/*   - removal: reverse                                                 */
+/*   - reorder: FLIP — sections slide via transform from delta          */
+/*                                                                      */
+/* The `*-move` class is what gives reorder its visual FLIP — Vue       */
+/* computes the new transform from the position delta + transitions     */
+/* via the `transition` property listed below.                          */
+/*                                                                      */
+/* prefers-reduced-motion: `transition: none` on all three classes      */
+/* disables the animation while preserving the layout mutation.         */
+/* (Not display:none — we still want the section to appear in its       */
+/* new location, just without the animation.)                           */
+/* ------------------------------------------------------------------ */
+.cpub-flip-enter-active,
+.cpub-flip-leave-active {
+  transition:
+    opacity 150ms cubic-bezier(0.2, 0.8, 0.4, 1),
+    transform 150ms cubic-bezier(0.2, 0.8, 0.4, 1);
+}
+.cpub-flip-enter-from,
+.cpub-flip-leave-to {
+  opacity: 0;
+  transform: scale(0.96);
+}
+/* `*-move` covers FLIP-driven reorder (Vue calculates the from→to
+   transform; this transition smooths it). */
+.cpub-flip-move {
+  transition: transform 150ms cubic-bezier(0.2, 0.8, 0.4, 1);
+}
+/* When an item is leaving, its DOM stays for the duration of the
+   leave transition. Take it out of the document flow so other items
+   can FLIP into its space WITHOUT waiting for the leave to finish —
+   gives a visually-coherent reorder when a section is also being
+   removed. */
+.cpub-flip-leave-active {
+  position: absolute;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cpub-flip-enter-active,
+  .cpub-flip-leave-active,
+  .cpub-flip-move {
+    transition: none;
+  }
+  .cpub-flip-enter-from,
+  .cpub-flip-leave-to {
+    /* Skip the scale/opacity prelude so reduced-motion users see the
+       section appear/disappear instantly in its final state. */
+    opacity: 1;
+    transform: none;
+  }
 }
 </style>

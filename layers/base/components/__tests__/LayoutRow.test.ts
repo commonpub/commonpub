@@ -390,3 +390,50 @@ describe('LayoutRow — moveSectionToZone (Phase 3b/B)', () => {
     expect(items[0]?.textContent?.toLowerCase()).toContain('sidebar');
   });
 });
+
+/* ---- FLIP animation wrapping (Phase 3b/B) ---- */
+
+/*
+ * Note on TransitionGroup in test env: @testing-library/vue stubs
+ * TransitionGroup as <transition-group-stub>, NOT <div tag="div">. The
+ * browser runtime renders it as <div>. So we don't check tagName.
+ * The contracts we CAN test:
+ *   - the wrapper carries the `.cpub-layout-row` class (forwarded by
+ *     the stub) + correct modifier classes
+ *   - children (sections) render through the stub's default slot
+ *   - public-path branch doesn't add `--editable`
+ * The FLIP transition CSS rules + prefers-reduced-motion media query
+ * are CSS — code-reviewed, not unit-tested. Mocking matchMedia for
+ * jsdom buys little over reading the CSS source.
+ */
+
+describe('LayoutRow — FLIP animation wrapping (Phase 3b/B)', () => {
+  it('editable=true: row carries the editable modifier, sections render', () => {
+    const { container } = mount({ editable: true });
+    const row = container.querySelector('.cpub-layout-row');
+    expect(row).not.toBeNull();
+    expect(row?.classList.contains('cpub-layout-row--editable')).toBe(true);
+    expect(row?.querySelectorAll('.cpub-layout-section').length).toBeGreaterThan(0);
+  });
+
+  it('editable=false: public-path byte-pattern preserved (no editable, sections rendered)', () => {
+    const { container } = mount({ editable: false });
+    const row = container.querySelector('.cpub-layout-row');
+    expect(row).not.toBeNull();
+    expect(row?.classList.contains('cpub-layout-row--editable')).toBe(false);
+    expect(row?.querySelectorAll('.cpub-layout-section').length).toBe(1);
+  });
+
+  it('multiple sections all render through TG (children forwarded)', () => {
+    const row = makeRow('r', [
+      makeSection('a'),
+      makeSection('b'),
+      makeSection('c'),
+    ]);
+    const { container } = mount({ row, editable: true });
+    const ids = Array.from(
+      container.querySelectorAll('[data-section-id]'),
+    ).map((s) => s.getAttribute('data-section-id'));
+    expect(ids).toEqual(['a', 'b', 'c']);
+  });
+});
