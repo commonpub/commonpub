@@ -21,9 +21,9 @@
 import { computed, ref } from 'vue';
 import { makeDroppable, type IDragEvent } from '@vue-dnd-kit/core';
 import type { LayoutSection, LayoutRow } from '../composables/useLayout';
-import { useSectionRegistry } from '../sections/registry';
 import type { EditorSelection } from '../composables/useLayoutEditor';
 import { dispatchSectionDrop } from '../composables/useLayoutDrag';
+import LayoutSectionComponent from './LayoutSection.vue';
 
 const props = withDefaults(defineProps<{
   /** The row's reactive object — mutating row.sections here is picked
@@ -49,9 +49,14 @@ const props = withDefaults(defineProps<{
   selectedId: null,
 });
 
+/*
+ * Visibility filter — features + roles + enabled. hideAt is a CSS-side
+ * filter applied inside <LayoutSection> via data-* attrs. Selection +
+ * click handling + drag wiring + colSpan resolution all live in
+ * <LayoutSection> now.
+ */
 const features = useFeatures();
 const { isAuthenticated, user } = useAuth();
-const sectionRegistry = useSectionRegistry();
 
 function isFeatureOn(featureGate: string | undefined): boolean {
   if (!featureGate) return true;
@@ -70,40 +75,6 @@ function sectionVisible(s: LayoutSection): boolean {
   if (v.features && v.features.some((f: string) => !isFeatureOn(f))) return false;
   if (v.roles && v.roles.length > 0 && !v.roles.includes(currentRole())) return false;
   return true;
-}
-
-function resolveColSpan(s: LayoutSection, viewport: 'lg' | 'md' | 'sm'): number {
-  if (viewport === 'lg') return s.responsive?.lg ?? s.colSpan;
-  if (viewport === 'md') return s.responsive?.md ?? s.responsive?.lg ?? s.colSpan;
-  return s.responsive?.sm ?? 12;
-}
-
-function resolveSectionProps(section: LayoutSection): Record<string, unknown> {
-  const def = sectionRegistry.get(section.type);
-  if (!def) return {};
-  const standardProps = {
-    config: section.config,
-    meta: {
-      route: props.route,
-      zone: props.zone,
-      isPreview: props.isPreview,
-      effectiveColSpan: resolveColSpan(section, 'lg'),
-      sectionId: section.id,
-    },
-  };
-  return def.propMap ? def.propMap(standardProps) : standardProps;
-}
-
-/* ----- Selection — click / Enter / Space activate ------------------ */
-
-function onSectionActivate(section: LayoutSection): void {
-  if (!props.editable) return;
-  props.onSelect?.({ kind: 'section', id: section.id });
-}
-
-function isSectionSelected(section: LayoutSection): boolean {
-  const sel = props.selectedId;
-  return !!sel && sel.kind === 'section' && sel.id === section.id;
 }
 
 const rowIsSelected = computed<boolean>(() => {
@@ -167,50 +138,22 @@ const isOver = computed<boolean>(() => isDragOver.value !== undefined);
     :style="row.config?.background ? { background: row.config.background } : {}"
   >
     <!--
-      Section render — same shape as the pre-extraction LayoutSlot
-      template so existing selectors / a11y scanners / tests don't
-      have to chase a moving target.
+      Section rendering delegated to <LayoutSection> so each section
+      owns its own makeDraggable template ref. Same per-iteration
+      reasoning as the row extraction.
     -->
-    <div
+    <LayoutSectionComponent
       v-for="section in row.sections.filter(sectionVisible)"
       :key="section.id"
-      class="cpub-layout-section"
-      :class="{
-        'cpub-layout-section--editable': editable,
-        'cpub-layout-section--selected': editable && isSectionSelected(section),
-      }"
-      :data-section-id="section.id"
-      :data-section-type="section.type"
-      :data-hide-sm="section.visibility?.hideAt?.includes('sm') ? 'true' : 'false'"
-      :data-hide-md="section.visibility?.hideAt?.includes('md') ? 'true' : 'false'"
-      :data-hide-lg="section.visibility?.hideAt?.includes('lg') ? 'true' : 'false'"
-      :style="{
-        '--cpub-section-cols-sm': resolveColSpan(section, 'sm'),
-        '--cpub-section-cols-md': resolveColSpan(section, 'md'),
-        '--cpub-section-cols-lg': resolveColSpan(section, 'lg'),
-      }"
-      :tabindex="editable ? 0 : undefined"
-      :role="editable ? 'button' : undefined"
-      :aria-pressed="editable ? (isSectionSelected(section) ? 'true' : 'false') : undefined"
-      :aria-label="editable ? `Select ${section.type} section` : undefined"
-      @click.stop="onSectionActivate(section)"
-      @keydown.enter.prevent="onSectionActivate(section)"
-      @keydown.space.prevent.stop="onSectionActivate(section)"
-    >
-      <component
-        v-if="sectionRegistry.has(section.type)"
-        :is="sectionRegistry.get(section.type)!.component"
-        v-bind="resolveSectionProps(section)"
-      />
-      <div
-        v-else
-        class="cpub-layout-section-placeholder"
-        :aria-label="`Unregistered section type: ${section.type}`"
-      >
-        <code>{{ section.type }}</code>
-        <span class="cpub-layout-section-placeholder-hint">section type not registered</span>
-      </div>
-    </div>
+      :section="section"
+      :row-id="row.id"
+      :route="route"
+      :zone="zone"
+      :editable="editable"
+      :is-preview="isPreview"
+      :on-select="onSelect"
+      :selected-id="selectedId"
+    />
   </div>
 </template>
 
@@ -243,43 +186,9 @@ const isOver = computed<boolean>(() => isDragOver.value !== undefined);
 .cpub-layout-row[data-padding-y='lg'] { padding-block: var(--space-6); }
 .cpub-layout-row[data-padding-y='xl'] { padding-block: var(--space-8); }
 
-.cpub-layout-section {
-  grid-column: span var(--cpub-section-cols-lg, 12);
-  min-width: 0;
-}
-@media (max-width: 1024px) {
-  .cpub-layout-section { grid-column: span var(--cpub-section-cols-md, var(--cpub-section-cols-lg, 12)); }
-}
-@media (max-width: 640px) {
-  .cpub-layout-section { grid-column: span var(--cpub-section-cols-sm, 12); }
-}
-
-.cpub-layout-section[data-hide-sm='true'] { @media (max-width: 640px) { display: none; } }
-.cpub-layout-section[data-hide-md='true'] { @media (min-width: 641px) and (max-width: 1024px) { display: none; } }
-.cpub-layout-section[data-hide-lg='true'] { @media (min-width: 1025px) { display: none; } }
-
-.cpub-layout-section-placeholder {
-  padding: var(--space-4);
-  background: var(--surface2);
-  border: 1px dashed var(--border2);
-  font-family: var(--font-mono);
-  font-size: var(--text-sm);
-  color: var(--text-dim);
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  align-items: center;
-}
-.cpub-layout-section-placeholder code { color: var(--accent); }
-.cpub-layout-section-placeholder-hint {
-  font-size: var(--text-xs);
-  color: var(--text-faint);
-}
-
 /* ------------------------------------------------------------------ */
-/* Editable-mode chrome — visual affordance only.                      */
-/* Public render path (editable=false) is byte-pattern identical.      */
+/* Editable-mode chrome — row only. Section chrome moved to            */
+/* LayoutSection.vue with the section extraction.                      */
 /* ------------------------------------------------------------------ */
 .cpub-layout-row--editable { position: relative; }
 .cpub-layout-row--editable:hover {
@@ -287,57 +196,6 @@ const isOver = computed<boolean>(() => isDragOver.value !== undefined);
   outline-offset: 2px;
 }
 
-.cpub-layout-section--editable {
-  position: relative;
-  /* cursor: pointer — selection wired; cursor: grab arrives WITH
-     makeDraggable on sections in commit F. */
-  cursor: pointer;
-}
-.cpub-layout-section--editable:hover {
-  outline: 1px dashed var(--border2);
-  outline-offset: -1px;
-}
-.cpub-layout-section--editable:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: -1px;
-}
-
-.cpub-layout-section--editable::after {
-  content: attr(data-section-type);
-  position: absolute;
-  top: 0;
-  left: 0;
-  padding: var(--space-1) var(--space-2);
-  background: var(--surface2);
-  color: var(--text-dim);
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-wide);
-  border: 1px solid var(--border2);
-  border-top: 0;
-  border-left: 0;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 100ms ease-out;
-  z-index: 1;
-}
-.cpub-layout-section--editable:hover::after { opacity: 1; }
-@media (prefers-reduced-motion: reduce) {
-  .cpub-layout-section--editable::after { transition: none; }
-}
-
-/* Selection chrome (commit C) — 2px accent outline + pinned badge. */
-.cpub-layout-section--selected {
-  outline: 2px solid var(--accent);
-  outline-offset: -1px;
-}
-.cpub-layout-section--selected::after {
-  background: var(--accent);
-  color: var(--surface);
-  border-color: var(--accent);
-  opacity: 1;
-}
 .cpub-layout-row--selected {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
