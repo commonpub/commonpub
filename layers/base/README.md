@@ -55,7 +55,7 @@ Content CRUD (projects/blogs/explainers), hub feeds (community/product/company),
 
 ### Components (123)
 
-Content editor (`CpubEditor`), content cards, author rows, comment sections, engagement bars, federation UI, notification items, message threads, **17 block renderers** (`BlockHero`, `BlockHeading`, `BlockCallout`, `BlockEmbedView`, `BlockMarkdownView`, etc.), homepage section renderers, the **layout-editor admin chrome** (`AdminLayoutsToolbar`, `AdminLayoutsCanvas`, `AdminLayoutsPalette`, `AdminLayoutsInspector`, `AdminLayoutsConflictModal`), and the `<LayoutSlot>` renderer that arranges existing components per the layout engine.
+Content editor (`CpubEditor`), content cards, author rows, comment sections, engagement bars, federation UI, notification items, message threads, **21 block renderers** under `components/blocks/` (`BlockHeadingView`, `BlockCalloutView`, `BlockEmbedView`, `BlockMarkdownView`, `BlockGalleryView`, etc. — all `*View` suffixed), homepage section renderers (`HeroSection`, etc.), the **layout-editor admin chrome** (`AdminLayoutsToolbar`, `AdminLayoutsCanvas`, `AdminLayoutsPalette`, `AdminLayoutsInspector`, `AdminLayoutsConflictModal`), and the `<LayoutSlot>` renderer that arranges existing components per the layout engine.
 
 ### Composables (27)
 
