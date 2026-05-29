@@ -1,6 +1,6 @@
 # Kickoff prompt — session 167 (path-pick: Phase 3e config inspector OR polish batch OR adoption blockers)
 
-Paste everything between the `---` rules as the FIRST message of a fresh Claude Code session. **Prerequisite: session 166 shipped — commits `7e4dcd5` (foundation) + `b73e064` (LayoutSection handle) + `2a20e1b` (LayoutRow + plumbing) + `5cf0201` (keyboard + audit fixes), plus the docs commit.**
+Paste everything between the `---` rules as the FIRST message of a fresh Claude Code session. **Prerequisite: session 166 shipped — commits `7e4dcd5` (foundation) + `b73e064` (LayoutSection handle) + `2a20e1b` (LayoutRow + plumbing) + `5cf0201` (keyboard + R1-R4 audit fixes) + `6a43a7b` (round-2 audit P0 + P1 fixes), plus the docs commits.**
 
 ---
 
@@ -9,7 +9,7 @@ Fresh Claude Code session on the CommonPub monorepo. **Two tasks this session, i
 1. **Path-pick** — three options below. Ask the user at session start.
 2. **Execute + R1-R4 self-audit + audit-of-audit at close.**
 
-**Predecessor**: session 166 shipped Phase 3c **resize** end-to-end on commonpub.io (workspace `main`). Right-edge handle on each LayoutSection with pointer-drag + snap-to-12 + neighbour absorption + LAST-in-row trailing extend + 12-col guideline overlay + live span pill + constraint-snap label + Shift+Arrow keyboard a11y + per-press narration + Cmd+Z undo of both section AND absorbed neighbour. **PATH Y** (vanilla pointer events) over PATH X (`grid-layout-plus@1.1.1`) per the explore-agent's collision-boundary research + the CSS Grid incompatibility — session 163's deferred risk stays closed. Layer **567 → 621** tests (+54). Typecheck 12/12 FULL TURBO. **4 atomic commits**; 8 audit findings across R1-R4 + audit-of-audit + post-recursion sweep (all fixed). Last code commit `5cf0201`. heatsync + deveco UNTOUCHED on npm 0.24.0. **Audit recursion**: 8 findings across 6 rounds (R1=3, R2=1, R3=1, R4=0, audit-of-audit=1, sweep=0); two consecutive 0-finding rounds = diminishing-returns floor.
+**Predecessor**: session 166 shipped Phase 3c **resize** end-to-end on commonpub.io (workspace `main`). Right-edge handle on each LayoutSection with pointer-drag + snap-to-12 + neighbour absorption + LAST-in-row trailing extend + 12-col guideline overlay + live span pill + constraint-snap label + Shift+Arrow keyboard a11y + per-press narration + Cmd+Z undo of both section AND absorbed neighbour. **PATH Y** (vanilla pointer events) over PATH X (`grid-layout-plus@1.1.1`) per the explore-agent's collision-boundary research + the CSS Grid incompatibility — session 163's deferred risk stays closed. Layer **567 → 622** tests (+55). Typecheck 12/12 FULL TURBO. **5 atomic commits**; 11 audit findings across R1-R4 + audit-of-audit + sweep + round-2 ultrathink (all fixed including a P0 the round-1 sweep missed — see 166-3c.md Round-2 audit section). Last code commit `6a43a7b`. heatsync + deveco UNTOUCHED on npm 0.24.0. **Audit recursion**: 11 findings across 7 rounds (R1=3, R2=1, R3=1, R4=0, audit-of-audit=1, sweep=0, round-2-fresh-eyes=3 incl 1 P0); diminishing-returns claim from round-1 sweep was premature — CSS-cascade specificity bug surfaced only on a slower fresh-eyes re-read.
 
 ## Verify session 166 actually shipped
 
@@ -32,8 +32,11 @@ grep -n "lookupResizeBounds" layers/base/composables/useLayoutHotkeys.ts layers/
 grep -n "PolyfillPointerEvent" layers/base/test-setup.ts
 # Confirm help-overlay rows
 grep -n "Shift', '←'\|Shift', '→'" layers/base/components/admin/layouts/AdminLayoutsHelpOverlay.vue
+# Round-2 audit fixes (must be present)
+grep -n ":not(.cpub-layout-section-resize-handle)" layers/base/components/LayoutSection.vue
+grep -n "neighbourFixed\|effectiveNeighbourMin" layers/base/components/LayoutRow.vue "layers/base/pages/admin/layouts/[id].vue"
 # Test count + typecheck
-pnpm --filter @commonpub/layer test 2>&1 | grep "Tests" | tail -1     # expect: 621 passed
+pnpm --filter @commonpub/layer test 2>&1 | grep "Tests" | tail -1     # expect: 622 passed
 pnpm typecheck 2>&1 | tail -3                                          # expect: 26 cached, 26 total
 curl -s -o /dev/null -w '/admin/layouts = %{http_code} (302 expected)\n' https://commonpub.io/admin/layouts
 curl -sS https://commonpub.io/ | grep -oE 'class="[^"]*cpub-layout-(row|section)[^"]*"' | grep -oE 'cpub-layout-(row|section)(--editable)?' | sort | uniq -c
