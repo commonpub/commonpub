@@ -317,6 +317,40 @@ describe('useLayoutEditor — dirty version counter (session 162 P2.6)', () => {
     expect(editor.dirty.value).toBe(false);
   });
 
+  it('dirty stays FALSE when discard happens MID-SAVE (savedVersion monotonic guard)', async () => {
+    // Session 164 audit-of-audit P3 regression-guard.
+    // Trace: edit → save fires → user discards mid-flight → save
+    // completes with the pre-discard snapshot. Without the monotonic
+    // guard, save's success path writes savedVersion = savingVersion
+    // (the pre-discard counter), MOVING IT BACKWARD from discard's
+    // post-replacement counter. Result: dirty spuriously flips true
+    // even though the local draft IS the discarded baseline.
+    let resolveFetch: ((v: LayoutRecord) => void) | null = null;
+    const fetchPromise = new Promise<LayoutRecord>((res) => { resolveFetch = res; });
+    installFetch(() => fetchPromise);
+
+    const editor = useLayoutEditor('L1');
+    editor.original.value = fixture();
+    editor.draft.value = { ...fixture(), name: 'Edit' };
+    expect(editor.dirty.value).toBe(true);
+
+    // Start the save (in flight, not resolved)
+    const savePromise = editor.save();
+
+    // User discards while save is in flight
+    editor.discard();
+    expect(editor.dirty.value).toBe(false);
+
+    // Resolve the in-flight save with the pre-discard payload
+    resolveFetch!(fixture({ name: 'Edit', updatedAt: '2026-05-28T12:00:00.000Z' }));
+    await savePromise;
+
+    // The fix: savedVersion only moves FORWARD; discard's bumped value
+    // wins over save's stale savingVersion. dirty stays false because
+    // the local draft (post-discard) matches the post-discard baseline.
+    expect(editor.dirty.value).toBe(false);
+  });
+
   it('handles 1000 nested mutations without blowing the stack or hanging', () => {
     // Stress-guard: the previous O(N) stableString dirty would walk
     // the whole layout per access. The version counter must stay O(1).

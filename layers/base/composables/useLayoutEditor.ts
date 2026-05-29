@@ -468,7 +468,29 @@ export function useLayoutEditor(id: string): LayoutEditorState {
         // during the await, dirtyVersion > savingVersion → dirty stays
         // true → auto-save schedules a follow-up. If no edits during
         // await, dirtyVersion === savingVersion → dirty becomes false.
-        savedVersion.value = savingVersion;
+        //
+        // Session 164 audit-of-audit P3 fix — savedVersion is monotonic:
+        // discard()/refresh() also write to savedVersion (syncing it to
+        // the post-replacement dirtyVersion), which can leave it AHEAD
+        // of the savingVersion captured at save start. Without this
+        // guard, save's completion would move savedVersion BACKWARD,
+        // spuriously flipping `dirty` true post-discard. Concrete trace:
+        //
+        //   t=0   edit (dirtyVersion=1, savedVersion=0)
+        //   t=1500 save fires (savingVersion=1, in flight)
+        //   t=1800 discard (draft=original; dirtyVersion=2; discard sets
+        //          savedVersion=dirtyVersion=2 → dirty=false)
+        //   t=2000 save completes
+        //          old: savedVersion = savingVersion = 1 → dirty = (2!=1)=true (WRONG)
+        //          new: savingVersion=1 NOT > savedVersion=2; skip → dirty=false ✓
+        //
+        // Server-state divergence (server saved pre-discard edit while
+        // client discarded) still exists; abort-on-discard would close
+        // it but requires more surface area. Defer; the dirty-flag UX
+        // fix here is the high-leverage piece.
+        if (savingVersion > savedVersion.value) {
+          savedVersion.value = savingVersion;
+        }
         status.value = 'saved';
       } catch (err) {
         const e = err as { statusCode?: number; statusMessage?: string; message?: string; name?: string };
