@@ -121,6 +121,7 @@ onBeforeUnmount(() => {
         ref="dialogEl"
         class="cpub-admin-layouts-conflict-modal"
         role="alertdialog"
+        aria-modal="true"
         aria-labelledby="cpub-admin-layouts-conflict-title"
         aria-describedby="cpub-admin-layouts-conflict-body"
       >
