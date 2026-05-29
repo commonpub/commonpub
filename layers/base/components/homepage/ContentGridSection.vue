@@ -123,7 +123,29 @@ const columns = computed(() => props.config.columns ?? 2);
 .cpub-tab:hover { color: var(--text); }
 .cpub-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
 
-.cpub-content-grid { display: grid; grid-template-columns: repeat(var(--grid-cols, 2), 1fr); gap: 16px; }
+/*
+ * Session 164 polish: cap the grid's max width so cards don't stretch
+ * into a "giant cards in mobile layout" pattern at desktop widths.
+ *
+ * Was: `grid-template-columns: repeat(2, 1fr)` with NO width cap → at
+ * 1440px window, 2 columns of ~700px each. Cards stretched far past
+ * their natural design width and read as "single column of bigs".
+ *
+ * Now: same column behavior but bounded by --content-max-width (default
+ * 1280px) — matches the tabs-inner cap above (same theme token). At
+ * 1280px and below, behaves identically to before. Above, the grid
+ * stays at 1280 centered and cards stay at their design proportions.
+ *
+ * `var(--grid-cols)` config still drives column count. Mobile drops to
+ * 1-column at <=768px (unchanged).
+ */
+.cpub-content-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--grid-cols, 2), 1fr);
+  gap: 16px;
+  max-width: var(--content-max-width, 1280px);
+  margin-inline: auto;
+}
 
 .cpub-load-more-row { text-align: center; padding: 24px 0; }
 .cpub-btn-load-more { font-family: var(--font-mono); font-size: 11px; padding: 8px 20px; border: var(--border-width-default) solid var(--border); background: var(--surface); color: var(--text-dim); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
