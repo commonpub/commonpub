@@ -487,6 +487,98 @@ describe('useLayoutHotkeys — Backspace/Delete remove section', () => {
     expect(draft.value!.zones[0]!.rows[0]!.sections).toHaveLength(1);
     wrapper.unmount();
   });
+
+  it('Shift+Backspace does NOT trigger remove (session 165 deep audit R2-A; back-nav fallback stays user-controlled)', () => {
+    const { wrapper, draft } = mountHostFull(makeDraft(), { kind: 'section', id: 's1' });
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Backspace', shiftKey: true, bubbles: true }));
+    expect(draft.value!.zones[0]!.rows[0]!.sections).toHaveLength(1);
+    wrapper.unmount();
+  });
+
+  it('Shift+Delete does NOT trigger remove either', () => {
+    const { wrapper, draft } = mountHostFull(makeDraft(), { kind: 'section', id: 's1' });
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete', shiftKey: true, bubbles: true }));
+    expect(draft.value!.zones[0]!.rows[0]!.sections).toHaveLength(1);
+    wrapper.unmount();
+  });
+});
+
+/* ---- Modal-open suppression (session 165 deep audit R3-A) ---- */
+
+describe('useLayoutHotkeys — modal-open suppression', () => {
+  // Pattern: inject a dialog element into document.body so the DOM
+  // probe in `isAnyDialogOpen` matches. We attach + remove explicitly
+  // in each test so the singleton doesn't leak the dialog into the
+  // next case.
+  function withModal<T>(role: 'dialog' | 'alertdialog', fn: () => T): T {
+    const modal = document.createElement('div');
+    modal.setAttribute('role', role);
+    document.body.appendChild(modal);
+    try {
+      return fn();
+    } finally {
+      document.body.removeChild(modal);
+    }
+  }
+
+  it('Backspace is suppressed while a [role="dialog"] is present (HelpOverlay scenario)', () => {
+    const { wrapper, draft } = mountHostFull(makeDraft(), { kind: 'section', id: 's1' });
+    withModal('dialog', () => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true }));
+    });
+    expect(draft.value!.zones[0]!.rows[0]!.sections).toHaveLength(1);
+    wrapper.unmount();
+  });
+
+  it('Cmd+D is suppressed while a [role="alertdialog"] is present (ConflictModal scenario)', () => {
+    const { wrapper, draft } = mountHostFull(makeDraft(), { kind: 'section', id: 's1' });
+    withModal('alertdialog', () => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'd', metaKey: true, bubbles: true }));
+    });
+    expect(draft.value!.zones[0]!.rows[0]!.sections).toHaveLength(1);
+    wrapper.unmount();
+  });
+
+  it('Cmd+Z is suppressed while a modal is open (no silent layout mutation behind the modal)', () => {
+    const { wrapper, draft } = mountHostFull(makeDraft(), { kind: 'section', id: 's1' });
+    const history = useLayoutHistory();
+    const cmd = insertSectionCommand({
+      rowId: 'r1',
+      at: 0,
+      section: makeSection('s-bg', 'hero'),
+    });
+    cmd.apply(draft.value!);
+    history.record(cmd);
+    expect(history.canUndo.value).toBe(true);
+
+    withModal('dialog', () => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', metaKey: true, bubbles: true }));
+    });
+
+    expect(history.canUndo.value).toBe(true); // undo did NOT fire
+    wrapper.unmount();
+  });
+
+  it('? is suppressed while a modal is open (no re-open / no other modal opens)', () => {
+    const { wrapper, helpCalls } = mountHostFull(makeDraft());
+    withModal('dialog', () => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: '?', bubbles: true }));
+    });
+    expect(helpCalls.value).toBe(0);
+    wrapper.unmount();
+  });
+
+  it('once the modal is removed, hotkeys fire again', () => {
+    const { wrapper, draft } = mountHostFull(makeDraft(), { kind: 'section', id: 's1' });
+    withModal('dialog', () => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true }));
+    });
+    expect(draft.value!.zones[0]!.rows[0]!.sections).toHaveLength(1);
+    // Modal gone → next keystroke fires.
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true }));
+    expect(draft.value!.zones[0]!.rows[0]!.sections).toHaveLength(0);
+    wrapper.unmount();
+  });
 });
 
 /* ---- Cmd/Ctrl+D = duplicate section (Phase 3d.2) ---- */

@@ -136,6 +136,80 @@ describe('AdminLayoutsHelpOverlay — hotkey table coverage', () => {
   });
 });
 
+describe('AdminLayoutsHelpOverlay — focus trap (session 165 deep audit R3-B)', () => {
+  it('focus moved outside the dialog while open snaps back to the close button', async () => {
+    mount(true);
+    // Inject a focusable element OUTSIDE the dialog + focus it. The
+    // trap should snap focus back to the close button on focusin.
+    const outside = document.createElement('button');
+    outside.textContent = 'Outside';
+    document.body.appendChild(outside);
+    await new Promise((r) => setTimeout(r, 0));
+
+    // Sanity: close button has initial focus from the watcher.
+    const close = document.querySelector<HTMLButtonElement>('.cpub-admin-layouts-help-close');
+    expect(document.activeElement).toBe(close);
+
+    // User Tabs to (or programmatically focuses) the outside element.
+    outside.focus();
+    await new Promise((r) => setTimeout(r, 0));
+
+    // Trap kicked in: focus is back on close.
+    expect(document.activeElement).toBe(close);
+
+    document.body.removeChild(outside);
+  });
+
+  it('focus moves freely WITHIN the dialog (trap allows nested focusables)', async () => {
+    // Sanity check: if a future change adds another focusable to the
+    // dialog, the trap shouldn't fight it. Today we only have one
+    // (Close); inject a defensive extra to verify the contains-check.
+    mount(true);
+    await new Promise((r) => setTimeout(r, 0));
+    const dialog = document.querySelector<HTMLElement>('.cpub-admin-layouts-help-modal')!;
+    const extra = document.createElement('button');
+    extra.textContent = 'Extra';
+    dialog.appendChild(extra);
+
+    extra.focus();
+    await new Promise((r) => setTimeout(r, 0));
+
+    // Focus stays on the in-dialog button — the trap doesn't snap back
+    // when focus is INSIDE the dialog tree.
+    expect(document.activeElement).toBe(extra);
+
+    dialog.removeChild(extra);
+  });
+
+  it('focus trap is inactive when :open=false (outside focus stays put)', async () => {
+    const { rerender } = mount(true);
+    await new Promise((r) => setTimeout(r, 0));
+    await rerender({ open: false });
+    await new Promise((r) => setTimeout(r, 0));
+
+    const outside = document.createElement('button');
+    outside.textContent = 'Outside';
+    document.body.appendChild(outside);
+    outside.focus();
+    await new Promise((r) => setTimeout(r, 0));
+
+    // Closed → no snap-back; focus stays on outside button.
+    expect(document.activeElement).toBe(outside);
+
+    document.body.removeChild(outside);
+  });
+});
+
+describe('AdminLayoutsHelpOverlay — hotkey table after session 165 audit R1-A', () => {
+  it('Move group dropped (no duplicate-chord Tab+Enter rows)', () => {
+    mount(true);
+    const groupTitles = Array.from(
+      document.querySelectorAll('.cpub-admin-layouts-help-group-title'),
+    ).map((el) => el.textContent?.trim());
+    expect(groupTitles).toEqual(['Edit', 'History', 'View']);
+  });
+});
+
 describe('AdminLayoutsHelpOverlay — lifecycle', () => {
   it('removes the global keydown listener on unmount (Esc no longer emits)', () => {
     const { unmount } = mount(true);
@@ -145,5 +219,16 @@ describe('AdminLayoutsHelpOverlay — lifecycle', () => {
     expect(() => {
       window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     }).not.toThrow();
+  });
+
+  it('removes the focusin listener on unmount (no trap-snap after the dialog is gone)', () => {
+    const { unmount } = mount(true);
+    unmount();
+    const outside = document.createElement('button');
+    document.body.appendChild(outside);
+    outside.focus();
+    // After unmount, the focusin listener is gone — outside focus stays.
+    expect(document.activeElement).toBe(outside);
+    document.body.removeChild(outside);
   });
 });

@@ -97,11 +97,35 @@ function isUndoLike(e: KeyboardEvent): boolean {
 /** Backspace OR Delete with no modifiers. macOS sends 'Backspace' for the
  *  big delete key + 'Delete' for fn+Backspace; Windows sends 'Delete' for
  *  the standalone Del key. Both should fire the same intent — "remove
- *  the selected thing". Modifier-free so Cmd+Backspace (URL clear in
- *  Safari) stays user-controlled. */
+ *  the selected thing". Strictly modifier-free so:
+ *    - Cmd+Backspace (URL-bar clear in Safari) stays user-controlled
+ *    - Shift+Backspace (browser back-nav fallback in some browsers, or
+ *      "delete word" in some editors) doesn't trigger a section remove
+ *      under the user's elbow (session 165 deep audit R2-A) */
 function isRemoveLike(e: KeyboardEvent): boolean {
-  if (e.metaKey || e.ctrlKey || e.altKey) return false;
+  if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return false;
   return e.key === 'Backspace' || e.key === 'Delete';
+}
+
+/**
+ * Is any modal dialog currently open in the document? Used to suspend
+ * global section-mutating hotkeys (Backspace, Cmd+D, Cmd+Z) while a
+ * modal owns the user's focus. Without this, pressing Backspace while
+ * focused on the HelpOverlay's Close button or the ConflictModal's
+ * "Keep editing" button would silently remove the section behind the
+ * modal — the user can't even see the change happen.
+ *
+ * Detects any element with `role="dialog"` or `role="alertdialog"` in
+ * the DOM. Vue's `v-if` removes the element when closed, so presence
+ * = open. Doesn't require a wired-up callback — the modal's own ARIA
+ * attributes are the source of truth. This means new modals added later
+ * automatically participate without touching `useLayoutHotkeys`.
+ *
+ * Session 165 deep audit R3-A.
+ */
+function isAnyDialogOpen(): boolean {
+  if (typeof document === 'undefined') return false;
+  return document.querySelector('[role="dialog"], [role="alertdialog"]') !== null;
 }
 
 /** Cmd/Ctrl+D — duplicate. Shift modifier explicitly excluded so
@@ -149,6 +173,11 @@ export function useLayoutHotkeys(opts: UseLayoutHotkeysOptions): UseLayoutHotkey
 
   function onKeyDown(e: KeyboardEvent): void {
     if (isTextInputTarget(e.target)) return; // text fields own the keystroke
+    // Modal-open suspends global hotkeys (session 165 deep audit R3-A).
+    // The modal owns the keystroke until dismissed; Esc + the modal's own
+    // dismiss-buttons still fire because they're handled in the modal's
+    // local listener, not this global one.
+    if (isAnyDialogOpen()) return;
 
     // --- Undo / Redo (Phase 3b/B) ---
     if (isUndoLike(e)) {

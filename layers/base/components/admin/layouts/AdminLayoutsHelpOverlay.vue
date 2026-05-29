@@ -1,19 +1,18 @@
 <script setup lang="ts">
 /**
- * Help overlay — keyboard shortcut reference modal. Phase 3d.3.
+ * Help overlay — keyboard shortcut reference modal. Phase 3d.3 +
+ * session 165 deep audit R3-B (focus trap).
  *
  * Opens on `?` (Shift+/) per the convention Linear / GitHub / Notion
  * / Figma all share. Read-only: lists every keyboard shortcut grouped
  * by category. Close via Esc, backdrop click, or the Close button.
  *
- * Why no focus trap (matching the conflict-modal precedent at
- * `AdminLayoutsConflictModal.vue`): this overlay carries ONE focusable
- * control (Close); the natural focus-on-open + Esc + backdrop close
- * pattern is sufficient. A trap would protect against Tab-out, but with
- * only one button and the close icon, Tab-out lands on the next page
- * element with no destructive consequence. Per
- * `feedback-match-established-pattern` — match what the existing
- * audited-OK modal does rather than invent a parallel pattern.
+ * Focus trap: when focus leaves the dialog while it's open, snap it
+ * back to the Close button. Implemented via a `focusin` listener on
+ * document. The check `dialog.contains(target)` allows focus to move
+ * freely WITHIN the dialog (future-proof: works even if more
+ * focusables are added later) but rejects focus outside. Closes WCAG
+ * ARIA Dialog pattern (focus shouldn't escape an open modal).
  *
  * Cross-platform key rendering: shows ⌘ (Cmd) for the META modifier in
  * each chord. Mac users see "⌘ Z"; the visible glyph is the same
@@ -67,17 +66,12 @@ const groups: HotkeyGroup[] = [
       { chord: ['⌘', 'Shift', 'Z'], description: 'Redo. Cancelled by any new action — Notion/Linear convention.' },
     ],
   },
-  {
-    title: 'Move (focus a section first)',
-    rows: [
-      // Move Up / Down are dedicated buttons in the section's top-right
-      // cluster — Tab to focus, Enter or Space to activate. No global
-      // arrow-key hotkey ships yet (would conflict with text-input arrow
-      // navigation; deferred to a future inspector-focused session).
-      { chord: ['Tab', 'Enter'], description: 'Focus the section, then press Enter or Space on the Move Up / Move Down button in its top-right corner.' },
-      { chord: ['Tab', 'Enter'], description: 'Open "Move to zone…" disclosure on the same button cluster to send the section to a different zone.' },
-    ],
-  },
+  // (Move group deliberately omitted — session 165 deep audit R1-A.
+  // Move Up / Move Down / Move-to-zone are visible buttons in the
+  // section's top-right cluster, discoverable via Tab. They're not
+  // hidden keyboard shortcuts; listing them here as "Tab + Enter"
+  // chord rows was misleading — the chord didn't disambiguate the
+  // three different button targets.)
   {
     title: 'View',
     rows: [
@@ -91,6 +85,7 @@ const groups: HotkeyGroup[] = [
 /* Focus on close button at open-time (matches conflict modal).        */
 /* ------------------------------------------------------------------ */
 const closeBtn = ref<HTMLButtonElement | null>(null);
+const dialogEl = ref<HTMLElement | null>(null);
 watch(
   () => props.open,
   async (isOpen) => {
@@ -111,14 +106,38 @@ function onKeydown(e: KeyboardEvent): void {
     emit('close');
   }
 }
+
+/* Focus trap (session 165 deep audit R3-B). When the modal is open and
+ * focus moves to an element OUTSIDE the dialog (Tab past the close
+ * button, programmatic focus from underlying page, etc), snap focus
+ * back to the close button. The `dialog.contains(target)` check
+ * future-proofs the trap: any new focusable inside the dialog is
+ * naturally allowed.
+ *
+ * Why focusin (vs keydown Tab): catches BOTH Tab and programmatic
+ * focus changes, including ones the editor page might trigger via
+ * other composables. The check fires AFTER focus has moved, so the
+ * snap-back is observable (a tiny focus blip on the outside element),
+ * but it's the most robust approach in jsdom + browsers. */
+function onFocusIn(e: FocusEvent): void {
+  if (!props.open) return;
+  const target = e.target as Node | null;
+  if (!target) return;
+  const dlg = dialogEl.value;
+  if (!dlg) return;
+  if (dlg.contains(target)) return;
+  closeBtn.value?.focus();
+}
 onMounted(() => {
   if (typeof window !== 'undefined') {
     window.addEventListener('keydown', onKeydown);
+    document.addEventListener('focusin', onFocusIn);
   }
 });
 onBeforeUnmount(() => {
   if (typeof window !== 'undefined') {
     window.removeEventListener('keydown', onKeydown);
+    document.removeEventListener('focusin', onFocusIn);
   }
 });
 </script>
@@ -132,6 +151,7 @@ onBeforeUnmount(() => {
       @click.self="emit('close')"
     >
       <div
+        ref="dialogEl"
         class="cpub-admin-layouts-help-modal"
         role="dialog"
         aria-modal="true"
