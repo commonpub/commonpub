@@ -245,6 +245,25 @@ describe('useLayoutEditor — flushBeacon() (session 162 P2.3)', () => {
     expect(() => editor.flushBeacon()).not.toThrow();
     expect(editor.flushBeacon()).toBe(false);
   });
+
+  it('returns false when body would exceed the 60KB beacon cap (session 163 audit)', () => {
+    // The keepalive flag has a 64KB browser-enforced body limit. Past
+    // it, the browser silently drops the request — fire-and-vanish.
+    // The composable refuses to emit a beacon over 60KB (4KB headroom)
+    // so the beforeunload prompt (which fires for >0 dirty edits) is
+    // the user's last-resort signal that work could be lost.
+    const fetchSpy = vi.fn();
+    installNativeFetch(fetchSpy);
+    const editor = useLayoutEditor('L1');
+    editor.original.value = fixture();
+    // Construct a layout whose serialized body exceeds 60KB. A name
+    // field of 70KB of ASCII forces JSON.stringify past the cap.
+    const fatName = 'x'.repeat(70 * 1024);
+    editor.draft.value = { ...fixture(), name: fatName };
+
+    expect(editor.flushBeacon()).toBe(false);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
 });
 
 describe('useLayoutEditor — dirty version counter (session 162 P2.6)', () => {

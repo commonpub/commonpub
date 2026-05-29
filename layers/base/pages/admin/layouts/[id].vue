@@ -16,6 +16,7 @@
  */
 import type { LayoutRecord } from '@commonpub/server';
 import { PublishStepError } from '../../../composables/useLayoutEditor';
+import { useLayoutAnnouncer } from '../../../composables/useLayoutAnnouncer';
 import { DnDProvider } from '@vue-dnd-kit/core';
 
 definePageMeta({
@@ -101,6 +102,13 @@ onBeforeUnmount(() => {
   // cause stale 409s the next time the user opens the editor in another
   // tab (server bumped updatedAt; client's cached If-Match is stale).
   editor.abort();
+  // Session 163 deep audit: useLayoutAnnouncer is a module-scope
+  // singleton with a 1.2s auto-clear setTimeout. Without explicit
+  // clear() on unmount, the message + pending timer leak across editor
+  // mounts — closing layout A while a Move announcement is mid-cycle
+  // would show that stale message on the next editor open. Two agents
+  // independently caught this (Agent A + Agent B).
+  useLayoutAnnouncer().clear();
 });
 onBeforeRouteLeave((_to, _from, next) => {
   if (!editor.dirty.value) return next();
@@ -350,9 +358,11 @@ async function onConflictForceSave(): Promise<void> {
       </div>
 
       <!--
-        Round-3 audit fix: phone (<640px) sees a single banner instead
+        Round-3 audit fix: phone (≤640px) sees a single banner instead
         of the editor. Drag-drop on a 375px viewport is user-hostile
         regardless of how well-designed — matches docs/plans/layout-and-pages.md §7.7.
+        Note: the @media rule uses `max-width: 640px` (inclusive), so
+        a viewport at exactly 640px sees the banner — comment matches.
       -->
       <div class="cpub-admin-layouts-editor-phone-only">
         <i class="fa-solid fa-display cpub-admin-layouts-editor-phone-icon" aria-hidden="true"></i>

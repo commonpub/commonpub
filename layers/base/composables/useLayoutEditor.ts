@@ -376,6 +376,19 @@ export function useLayoutEditor(id: string): LayoutEditorState {
       zones: draft.value.zones,
       state: draft.value.state,
     });
+    // Session 163 deep audit: the `keepalive: true` PUT has a 64KB body
+    // cap enforced by every browser. A complex layout (many sections
+    // with rich text + image URLs + visibility metadata) can exceed
+    // this. The browser silently drops the request → fire-and-forget
+    // becomes fire-and-vanish + the user's edits are lost. Surface
+    // false here so the caller (or the beforeunload prompt) is aware
+    // the beacon path can't carry this payload. Beforeunload still
+    // catches the user's intent to leave; the auto-save's pre-hide
+    // visibility-flush handles smaller payloads (no keepalive cap).
+    const BEACON_BODY_MAX_BYTES = 60 * 1024; // 60KB — 4KB headroom under the 64KB browser cap
+    if (body.length > BEACON_BODY_MAX_BYTES) {
+      return false;
+    }
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'If-Match': original.value.updatedAt,
