@@ -267,6 +267,45 @@ export function reorderSectionCommand(params: {
 }
 
 /**
+ * Add a new row to a zone.
+ *
+ *   apply:  splice the row into zone.rows at `position`
+ *   invert: remove the row by id
+ *
+ * Used by the "+ Add row" canvas button (plan §7.2). The row's sections
+ * are typically empty at add-time, but the command stores a deep clone
+ * so future "duplicate row" callers (which pre-populate sections) work
+ * with the same factory. Undo of an add-row removes the WHOLE row +
+ * any sections that landed in it after the add.
+ */
+export function addRowCommand(params: {
+  zoneSlug: string;
+  position: number;
+  row: LayoutRow;
+  label?: string;
+}): LayoutCommand {
+  const rowClone = JSON.parse(JSON.stringify(params.row)) as LayoutRow;
+  const label = params.label ?? `add row`;
+  return {
+    label,
+    timestamp: Date.now(),
+    apply(draft) {
+      const zone = draft.zones.find((z) => z.zone === params.zoneSlug);
+      if (!zone) return;
+      // Fresh clone each apply so undo→redo doesn't share a mutated object.
+      zone.rows.splice(params.position, 0, JSON.parse(JSON.stringify(rowClone)));
+    },
+    invert(draft) {
+      const zone = draft.zones.find((z) => z.zone === params.zoneSlug);
+      if (!zone) return;
+      const idx = zone.rows.findIndex((r) => r.id === rowClone.id);
+      if (idx === -1) return;
+      zone.rows.splice(idx, 1);
+    },
+  };
+}
+
+/**
  * Cross-row / cross-zone move.
  *
  *   apply:  remove from sourceRow at fromIdx, insert into destRow at toIdx

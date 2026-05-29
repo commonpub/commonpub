@@ -22,7 +22,9 @@ import {
   insertSectionCommand,
   reorderSectionCommand,
   moveSectionCommand,
+  addRowCommand,
 } from '../useLayoutHistory';
+import type { LayoutRow } from '../useLayout';
 
 /* ---- Fixtures ---- */
 
@@ -347,6 +349,87 @@ describe('reorderSectionCommand', () => {
     });
     cmd.apply(draft);
     expect(JSON.stringify(draft.zones)).toBe(before);
+  });
+});
+
+describe('addRowCommand', () => {
+  function makeNewRow(id: string): LayoutRow {
+    return { id, order: 0, config: null, sections: [] };
+  }
+
+  it('apply inserts at position; invert removes by id (round-trip restores)', () => {
+    const draft = makeDraft();
+    const before = JSON.stringify(draft.zones);
+    const cmd = addRowCommand({
+      zoneSlug: 'main',
+      position: 1,
+      row: makeNewRow('new-row'),
+    });
+    cmd.apply(draft);
+    const rowIds = draft.zones[0]!.rows.map((r) => r.id);
+    expect(rowIds).toEqual(['row-main-1', 'new-row', 'row-main-2']);
+
+    cmd.invert(draft);
+    expect(JSON.stringify(draft.zones)).toBe(before);
+  });
+
+  it('apply at end of zone (position = rows.length) appends', () => {
+    const draft = makeDraft();
+    const cmd = addRowCommand({
+      zoneSlug: 'main',
+      position: 2,
+      row: makeNewRow('appended'),
+    });
+    cmd.apply(draft);
+    expect(draft.zones[0]!.rows.map((r) => r.id))
+      .toEqual(['row-main-1', 'row-main-2', 'appended']);
+  });
+
+  it('apply against vanished zone is a silent noop', () => {
+    const draft = makeDraft();
+    const before = JSON.stringify(draft.zones);
+    const cmd = addRowCommand({
+      zoneSlug: 'ghost-zone',
+      position: 0,
+      row: makeNewRow('orphan'),
+    });
+    cmd.apply(draft);
+    expect(JSON.stringify(draft.zones)).toBe(before);
+  });
+
+  it('default label is "add row"', () => {
+    const cmd = addRowCommand({
+      zoneSlug: 'main',
+      position: 0,
+      row: makeNewRow('x'),
+    });
+    expect(cmd.label).toBe('add row');
+  });
+
+  it('label override works ("add row to main")', () => {
+    const cmd = addRowCommand({
+      zoneSlug: 'main',
+      position: 0,
+      row: makeNewRow('x'),
+      label: 'add row to main',
+    });
+    expect(cmd.label).toBe('add row to main');
+  });
+
+  it('multiple applies of the same command produce distinct row clones (undo/redo safety)', () => {
+    const draft = makeDraft();
+    const cmd = addRowCommand({
+      zoneSlug: 'main',
+      position: 0,
+      row: makeNewRow('clone-test'),
+    });
+    cmd.apply(draft);
+    cmd.invert(draft);
+    cmd.apply(draft);
+    // The second apply's row IS in the draft — invert can still find + remove it.
+    cmd.invert(draft);
+    expect(draft.zones[0]!.rows.map((r) => r.id))
+      .toEqual(['row-main-1', 'row-main-2']);
   });
 });
 

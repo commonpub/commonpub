@@ -16,8 +16,8 @@
  */
 import type { LayoutRecord } from '@commonpub/server';
 import { PublishStepError } from '../../../composables/useLayoutEditor';
-import { useLayoutAnnouncer, narrateUndo, narrateRedo, narrateUndoEmpty, narrateRedoEmpty } from '../../../composables/useLayoutAnnouncer';
-import { useLayoutHistory } from '../../../composables/useLayoutHistory';
+import { useLayoutAnnouncer, narrateUndo, narrateRedo, narrateUndoEmpty, narrateRedoEmpty, narrateRowAdded } from '../../../composables/useLayoutAnnouncer';
+import { useLayoutHistory, addRowCommand } from '../../../composables/useLayoutHistory';
 import { useLayoutHotkeys } from '../../../composables/useLayoutHotkeys';
 import { DnDProvider } from '@vue-dnd-kit/core';
 
@@ -55,6 +55,39 @@ function onToolbarRedo(): void {
   const ann = useLayoutAnnouncer();
   const cmd = history.redo(draft);
   ann.announcePolite(cmd ? narrateRedo(cmd.label) : narrateRedoEmpty());
+}
+
+/**
+ * Session 164 polish — "+ Add row" handler. Closes the v1 blocker
+ * where a fresh layout (or one with an empty zone) had no drop target.
+ *
+ * Mutates draft directly so the existing dirty watcher fires +
+ * auto-save schedules. Records to history so Cmd+Z removes the row
+ * (the addRowCommand's invert handles this). Narrates via assertive
+ * channel — "Row added" is a state change like drag/drop, not
+ * informational like undo.
+ */
+function onAddRow(zoneSlug: string): void {
+  const draft = editor.draft.value;
+  if (!draft) return;
+  const zone = draft.zones.find((z) => z.zone === zoneSlug);
+  if (!zone) return;
+  const newRow = {
+    id: crypto.randomUUID(),
+    order: zone.rows.length,
+    config: null,
+    sections: [],
+  };
+  const position = zone.rows.length;
+  zone.rows.push(newRow);
+  const ann = useLayoutAnnouncer();
+  ann.announce(narrateRowAdded(zoneSlug, position, zone.rows.length));
+  history.record(addRowCommand({
+    zoneSlug,
+    position,
+    row: newRow,
+    label: `add row to ${zoneSlug}`,
+  }));
 }
 
 // Palette + inspector visibility — persists per-admin via cookie so the
@@ -494,6 +527,7 @@ async function onConflictForceSave(): Promise<void> {
             :viewport="viewport"
             :on-select="editor.select"
             :selected-id="editor.selectedId.value"
+            :on-add-row="onAddRow"
           />
           <AdminLayoutsPalette v-show="!chrome.paletteHidden.value" />
           <AdminLayoutsInspector

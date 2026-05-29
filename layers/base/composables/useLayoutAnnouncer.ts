@@ -219,3 +219,12 @@ export function narrateUndoEmpty(): string {
 export function narrateRedoEmpty(): string {
   return 'Nothing to redo.';
 }
+
+/**
+ * "+ Add row" outcome — names the zone + the new row's position so a
+ * keyboard user knows where focus lands. Sample:
+ *   `Row added in main, position 4 of 4.`
+ */
+export function narrateRowAdded(zone: string, at: number, total: number): string {
+  return `Row added in ${zone}, ${formatPosition(at, total)}.`;
+}

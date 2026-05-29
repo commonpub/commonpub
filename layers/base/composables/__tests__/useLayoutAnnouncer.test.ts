@@ -18,6 +18,7 @@ import {
   narrateRedo,
   narrateUndoEmpty,
   narrateRedoEmpty,
+  narrateRowAdded,
 } from '../useLayoutAnnouncer';
 
 beforeEach(() => {
@@ -141,6 +142,11 @@ describe('narration helpers', () => {
   it('narrateUndoEmpty / narrateRedoEmpty — fixed copy for hotkey on empty stack', () => {
     expect(narrateUndoEmpty()).toBe('Nothing to undo.');
     expect(narrateRedoEmpty()).toBe('Nothing to redo.');
+  });
+
+  it('narrateRowAdded names the zone + 1-indexed position', () => {
+    expect(narrateRowAdded('main', 2, 3)).toBe('Row added in main, position 3 of 3.');
+    expect(narrateRowAdded('sidebar', 0, 1)).toBe('Row added in sidebar, position 1 of 1.');
   });
 });
 

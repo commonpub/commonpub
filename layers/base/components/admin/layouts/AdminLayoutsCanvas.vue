@@ -29,10 +29,19 @@ const props = withDefaults(defineProps<{
   onSelect?: (selection: EditorSelection) => void;
   /** Currently-selected target — drives `--selected` chrome on sections/rows. */
   selectedId?: EditorSelection | null;
+  /**
+   * Session 164 polish — "+ Add row" handler. Called with the zone slug
+   * the admin wants to add a row to. Editor page mutates draft +
+   * records to history + narrates. When absent, the Add row button is
+   * hidden (defensive: editable canvas without the callback means a
+   * parent forgot to wire it, NOT an intentional disabled state).
+   */
+  onAddRow?: (zoneSlug: string) => void;
 }>(), {
   viewport: 'desktop',
   onSelect: undefined,
   selectedId: null,
+  onAddRow: undefined,
 });
 
 // Session 162 P2.4 (R2 audit): LayoutPayload is now
@@ -169,6 +178,25 @@ function findFirstRowInZone(zoneSlug: string): LayoutRowType | null {
               :zone-slugs="zoneSlugs"
               :find-first-row-in-zone="findFirstRowInZone"
             />
+            <!--
+              Session 164 polish (v1 blocker): "+ Add row". Without
+              this, a fresh layout (or a layout with an empty zone)
+              has no drop target — admin is stuck. Click → editor
+              page mutates draft.zones[i].rows + records to history
+              + narrates. Plan §7.2.
+              Renders only when the parent provided onAddRow (so the
+              public path can't accidentally light up an action button).
+            -->
+            <button
+              v-if="props.onAddRow"
+              type="button"
+              class="cpub-admin-layouts-canvas-add-row"
+              :aria-label="`Add row to ${zoneSlug} zone`"
+              @click.stop="props.onAddRow!(zoneSlug)"
+            >
+              <i class="fa-solid fa-plus" aria-hidden="true"></i>
+              <span>Add row</span>
+            </button>
           </div>
         </div>
       </template>
@@ -225,4 +253,43 @@ function findFirstRowInZone(zoneSlug: string): LayoutRowType | null {
   color: var(--text-faint);
 }
 .cpub-admin-layouts-canvas-zone-body { padding: var(--space-4); }
+
+/* ------------------------------------------------------------------ */
+/* "+ Add row" button at the bottom of each zone. Dashed border picks  */
+/* up the existing editor-chrome convention (dashed hover outlines on  */
+/* rows / empty rows). Full-width within the zone so it reads as a     */
+/* drop target peer, not an icon button.                                */
+/* ------------------------------------------------------------------ */
+.cpub-admin-layouts-canvas-add-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-3);
+  margin-top: var(--space-3);
+  background: transparent;
+  border: 1px dashed var(--border2);
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  cursor: pointer;
+  transition: color var(--transition-default), border-color var(--transition-default), background var(--transition-default);
+}
+.cpub-admin-layouts-canvas-add-row:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  border-style: solid;
+  background: var(--accent-bg);
+}
+.cpub-admin-layouts-canvas-add-row:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  color: var(--accent);
+}
+@media (prefers-reduced-motion: reduce) {
+  .cpub-admin-layouts-canvas-add-row { transition: none; }
+}
 </style>
