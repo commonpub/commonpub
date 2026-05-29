@@ -247,6 +247,95 @@ describe('useLayoutEditor — flushBeacon() (session 162 P2.3)', () => {
   });
 });
 
+describe('useLayoutEditor — conflict thrash window (session 162 P2.5)', () => {
+  // Conflict throttle: after 3 conflicts within a 60s rolling window,
+  // conflictThrashing flips true. Auto-save composable consumers wire
+  // this to their paused prop so they stop re-tripping the 409 loop.
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  // Helper: drive save() to a 409 result.
+  async function fireConflict(editor: ReturnType<typeof useLayoutEditor>): Promise<void> {
+    editor.original.value = fixture({ updatedAt: new Date().toISOString() });
+    editor.draft.value = { ...fixture(), name: `Edit-${Math.random()}` };
+    await expect(editor.save()).rejects.toMatchObject({ statusCode: 409 });
+  }
+
+  it('starts not thrashing', () => {
+    const editor = useLayoutEditor('L1');
+    expect(editor.conflictThrashing.value).toBe(false);
+  });
+
+  it('does not flip after a single 409', async () => {
+    installFetch(() => Promise.reject({ statusCode: 409, statusMessage: 'Conflict' }));
+    const editor = useLayoutEditor('L1');
+    await fireConflict(editor);
+    expect(editor.conflictThrashing.value).toBe(false);
+  });
+
+  it('does not flip after 2 conflicts in 60s', async () => {
+    installFetch(() => Promise.reject({ statusCode: 409, statusMessage: 'Conflict' }));
+    const editor = useLayoutEditor('L1');
+    await fireConflict(editor);
+    vi.advanceTimersByTime(10_000);
+    await fireConflict(editor);
+    expect(editor.conflictThrashing.value).toBe(false);
+  });
+
+  it('flips true after 3 conflicts within 60s', async () => {
+    installFetch(() => Promise.reject({ statusCode: 409, statusMessage: 'Conflict' }));
+    const editor = useLayoutEditor('L1');
+    await fireConflict(editor);
+    vi.advanceTimersByTime(10_000);
+    await fireConflict(editor);
+    vi.advanceTimersByTime(10_000);
+    await fireConflict(editor);
+    expect(editor.conflictThrashing.value).toBe(true);
+  });
+
+  it('does NOT flip when conflicts are spread across more than 60s', async () => {
+    installFetch(() => Promise.reject({ statusCode: 409, statusMessage: 'Conflict' }));
+    const editor = useLayoutEditor('L1');
+    await fireConflict(editor);
+    vi.advanceTimersByTime(30_000);
+    await fireConflict(editor);
+    vi.advanceTimersByTime(40_000); // first conflict now > 60s old
+    await fireConflict(editor);
+    // Only 2 conflicts within last 60s; threshold is 3.
+    expect(editor.conflictThrashing.value).toBe(false);
+  });
+
+  it('clearConflictHistory() resets thrashing to false', async () => {
+    installFetch(() => Promise.reject({ statusCode: 409, statusMessage: 'Conflict' }));
+    const editor = useLayoutEditor('L1');
+    await fireConflict(editor);
+    await fireConflict(editor);
+    await fireConflict(editor);
+    expect(editor.conflictThrashing.value).toBe(true);
+
+    editor.clearConflictHistory();
+    expect(editor.conflictThrashing.value).toBe(false);
+  });
+
+  it('non-409 errors do NOT increment the conflict window', async () => {
+    installFetch(() => Promise.reject({ statusCode: 500, statusMessage: 'boom' }));
+    const editor = useLayoutEditor('L1');
+    // Three 500s in a row should NOT trip thrashing.
+    for (let i = 0; i < 3; i++) {
+      editor.original.value = fixture({ updatedAt: new Date().toISOString() });
+      editor.draft.value = { ...fixture(), name: `Edit-${i}` };
+      await expect(editor.save()).rejects.toBeDefined();
+    }
+    expect(editor.conflictThrashing.value).toBe(false);
+  });
+});
+
 describe('useLayoutEditor — abort() (R4 P2 audit fix)', () => {
   it('passes a signal to the PUT fetch', async () => {
     const { mock } = installFetch(() => Promise.resolve(fixture()));

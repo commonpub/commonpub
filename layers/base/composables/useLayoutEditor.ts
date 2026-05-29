@@ -60,6 +60,16 @@ export interface LayoutEditorState {
    *  reliably on mobile tab-close + bfcache eviction; `beforeunload`
    *  doesn't run on iOS Safari at all). R2 P2 deferred (session 162). */
   flushBeacon: () => boolean;
+  /** True when the recent conflict rate has exceeded the threshold
+   *  (3 conflicts within 60s). Wire this into useLayoutAutoSave's
+   *  `paused` prop so auto-save stops banging the server while the
+   *  user reconciles with the other editor. Cleared by
+   *  `clearConflictHistory()`. R2 P2 deferred (session 162). */
+  conflictThrashing: ComputedRef<boolean>;
+  /** Reset the conflict-window counter back to zero. Call after the
+   *  user has explicitly refreshed/force-saved + wants auto-save to
+   *  resume. */
+  clearConflictHistory: () => void;
 }
 
 /** Deep-clone via JSON. The LayoutRecord shape is JSON-safe (no Date/Map/Set). */
@@ -92,6 +102,45 @@ export function useLayoutEditor(id: string): LayoutEditorState {
   const dirty = computed<boolean>(() => {
     if (!draft.value || !original.value) return false;
     return stableString(draft.value) !== stableString(original.value);
+  });
+
+  /**
+   * Conflict-window tracking — session 162 P2.5 (R2 audit).
+   *
+   * Scenario: admin clicks "Reload" in the conflict modal; while their
+   * refresh is in flight a third admin saves; their next edit 409s
+   * immediately. Each conflict is a different third-party save (not a
+   * loop), but the UX thrashes — modal in/out/in. Worse, the auto-save
+   * watcher keeps re-triggering the save-then-409 cycle.
+   *
+   * Mitigation: after 3 conflicts within a 60s rolling window, flip
+   * `conflictThrashing` true. The editor page passes this to
+   * useLayoutAutoSave's `paused` prop, halting the auto-save cycle.
+   * A banner prompts the user to refresh / force-save / coordinate;
+   * `clearConflictHistory()` (UI: "Resume auto-save") clears the
+   * window and restarts. The 3-in-60s threshold matches what mature
+   * collab editors (Notion, Linear retros) settled on after tuning.
+   */
+  const CONFLICT_WINDOW_MS = 60_000;
+  const CONFLICT_THRESHOLD = 3;
+  const conflictHistory = ref<number[]>([]);
+  function recordConflict(): void {
+    const now = Date.now();
+    conflictHistory.value = [
+      ...conflictHistory.value.filter((t) => now - t < CONFLICT_WINDOW_MS),
+      now,
+    ];
+  }
+  function clearConflictHistory(): void {
+    conflictHistory.value = [];
+  }
+  const conflictThrashing = computed<boolean>(() => {
+    // Recompute the rolling-window count on every read so a stale
+    // window expires without an explicit timer. Cheap (history is
+    // bounded by the threshold for practical purposes).
+    const now = Date.now();
+    return conflictHistory.value.filter((t) => now - t < CONFLICT_WINDOW_MS).length
+      >= CONFLICT_THRESHOLD;
   });
 
   async function refresh(): Promise<void> {
@@ -263,6 +312,10 @@ export function useLayoutEditor(id: string): LayoutEditorState {
         if (e.statusCode === 409) {
           status.value = 'conflict';
           errorMessage.value = 'Another admin edited this layout while you were working.';
+          // Session 162 P2.5: feed the rolling-window throttle. A single
+          // 409 is normal collab; 3 within 60s is thrashing → pause
+          // auto-save so the user reconciles before the next round trip.
+          recordConflict();
         } else {
           status.value = 'error';
           errorMessage.value = e.statusMessage ?? e.message ?? 'Save failed';
@@ -305,5 +358,7 @@ export function useLayoutEditor(id: string): LayoutEditorState {
     discard,
     abort,
     flushBeacon,
+    conflictThrashing,
+    clearConflictHistory,
   };
 }

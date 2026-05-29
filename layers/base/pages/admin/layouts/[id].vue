@@ -109,17 +109,26 @@ onBeforeRouteLeave((_to, _from, next) => {
 });
 
 // Auto-save: watches editor.dirty, debounces 1.5s, calls editor.save().
-// Composable handles unmount cleanup.
+// Composable handles unmount cleanup. Session 162 P2.5: pause when the
+// conflict rate exceeds the threshold (3 in 60s) so we stop banging
+// the server while the user reconciles with the other editor; the
+// banner below surfaces this state with a Resume button.
 useLayoutAutoSave({
   dirty: editor.dirty,
   save: () => editor.save(),
   debounceMs: 1500,
+  paused: computed(() => editor.conflictThrashing.value),
 });
 
 // Surface conflicts from any save (manual or auto) as the modal.
 watch(editor.status, (status) => {
   if (status === 'conflict') conflictOpen.value = true;
 });
+
+function onResumeAutoSave(): void {
+  editor.clearConflictHistory();
+  toast.success('Auto-save resumed');
+}
 
 function onPageMetaUpdate(value: LayoutRecord['pageMeta']): void {
   if (!editor.draft.value) return;
@@ -214,6 +223,40 @@ async function onConflictForceSave(): Promise<void> {
       />
 
       <!--
+        Session 162 P2.5: conflict-thrash banner. Shows when 3+ saves
+        have 409'd within the last 60s — auto-save is now paused so the
+        page stops banging the server while the admin reconciles. The
+        existing AdminLayoutsConflictModal handles the per-conflict UX;
+        this banner is the layer above, addressing the cascade pattern.
+        role="alert" + aria-live="assertive" so screen readers announce
+        the pause immediately (it changes the editor's autosave contract).
+      -->
+      <div
+        v-if="editor.conflictThrashing.value"
+        class="cpub-admin-layouts-editor-thrash"
+        role="alert"
+        aria-live="assertive"
+        aria-atomic="true"
+      >
+        <i class="fa-solid fa-triangle-exclamation cpub-admin-layouts-editor-thrash-icon" aria-hidden="true"></i>
+        <div class="cpub-admin-layouts-editor-thrash-body">
+          <strong>Auto-save paused</strong>
+          <span>
+            Another admin keeps editing the same layout. Refresh to load
+            their changes, force-save to overwrite, or resume auto-save
+            once you've reconciled.
+          </span>
+        </div>
+        <button
+          type="button"
+          class="cpub-admin-layouts-editor-thrash-resume"
+          @click="onResumeAutoSave"
+        >
+          Resume auto-save
+        </button>
+      </div>
+
+      <!--
         Round-3 audit fix: phone (<640px) sees a single banner instead
         of the editor. Drag-drop on a 375px viewport is user-hostile
         regardless of how well-designed — matches docs/plans/layout-and-pages.md §7.7.
@@ -281,6 +324,59 @@ async function onConflictForceSave(): Promise<void> {
   color: var(--text-dim);
 }
 .cpub-admin-layouts-editor-error a { color: var(--accent); text-decoration: underline; }
+
+/* Session 162 P2.5 conflict-thrash banner. Sticky top so it's
+   visible regardless of canvas scroll. var(--warning) / red palette
+   to read as "attention required" without being a hard error. */
+.cpub-admin-layouts-editor-thrash {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--warning, var(--surface2));
+  color: var(--text);
+  border-bottom: var(--border-width-default) solid var(--border);
+  flex-shrink: 0;
+}
+.cpub-admin-layouts-editor-thrash-icon {
+  color: var(--text-dim);
+  font-size: var(--text-lg);
+  flex-shrink: 0;
+}
+.cpub-admin-layouts-editor-thrash-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+.cpub-admin-layouts-editor-thrash-body strong {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+}
+.cpub-admin-layouts-editor-thrash-body span {
+  font-size: var(--text-sm);
+  color: var(--text-dim);
+}
+.cpub-admin-layouts-editor-thrash-resume {
+  padding: var(--space-1) var(--space-3);
+  background: var(--surface);
+  border: var(--border-width-default) solid var(--border);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.cpub-admin-layouts-editor-thrash-resume:hover { background: var(--surface2); }
+.cpub-admin-layouts-editor-thrash-resume:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
 
 .cpub-admin-layouts-editor-body {
   display: grid;
