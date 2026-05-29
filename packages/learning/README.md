@@ -141,7 +141,7 @@ type LessonContent =
 
 ```bash
 pnpm build        # Compile TypeScript
-pnpm test         # Run 75 tests
+pnpm test         # Run 101 tests
 pnpm typecheck    # Type-check without emitting
 ```
 
