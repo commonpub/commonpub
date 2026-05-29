@@ -688,3 +688,78 @@ describe('useLayoutEditor — publish() partial-failure UX (session 162 P2.7)', 
     expect((caught as PublishStepError).cause).toBe(innerErr);
   });
 });
+
+/* ------------------------------------------------------------------ */
+/* Selection model — Phase 3b/A foundation. Drives the inspector       */
+/* dispatcher (page-meta when null, section-config when kind='section',*/
+/* row-config when kind='row'). Cleared on refresh/discard because     */
+/* those swap the draft wholesale + the selected id may no longer      */
+/* exist; preserved through save() because the server returns the      */
+/* same ids in the saved snapshot.                                     */
+/* ------------------------------------------------------------------ */
+
+describe('useLayoutEditor — selection', () => {
+  it('starts null (inspector falls back to page-meta form)', () => {
+    const editor = useLayoutEditor('L1');
+    expect(editor.selectedId.value).toBeNull();
+  });
+
+  it('select({kind:"section", id}) sets a section selection', () => {
+    const editor = useLayoutEditor('L1');
+    editor.select({ kind: 'section', id: 'S1' });
+    expect(editor.selectedId.value).toEqual({ kind: 'section', id: 'S1' });
+  });
+
+  it('select({kind:"row", id}) sets a row selection', () => {
+    const editor = useLayoutEditor('L1');
+    editor.select({ kind: 'row', id: 'R1' });
+    expect(editor.selectedId.value).toEqual({ kind: 'row', id: 'R1' });
+  });
+
+  it('select(null) clears selection (click-outside path)', () => {
+    const editor = useLayoutEditor('L1');
+    editor.select({ kind: 'section', id: 'S1' });
+    editor.select(null);
+    expect(editor.selectedId.value).toBeNull();
+  });
+
+  it('clearSelection() is sugar for select(null)', () => {
+    const editor = useLayoutEditor('L1');
+    editor.select({ kind: 'section', id: 'S1' });
+    editor.clearSelection();
+    expect(editor.selectedId.value).toBeNull();
+  });
+
+  it('refresh() clears selection (the id may not exist in the fresh snapshot)', async () => {
+    installFetch(() => Promise.resolve(fixture({ updatedAt: '2026-05-29T00:00:00.000Z' })));
+    const editor = useLayoutEditor('L1');
+    editor.original.value = fixture();
+    editor.draft.value = fixture();
+    editor.select({ kind: 'section', id: 'S1' });
+
+    await editor.refresh();
+    expect(editor.selectedId.value).toBeNull();
+  });
+
+  it('discard() clears selection (the discarded draft may have had ids the original lacks)', () => {
+    const editor = useLayoutEditor('L1');
+    editor.original.value = fixture();
+    editor.draft.value = { ...fixture(), name: 'Renamed' };
+    editor.select({ kind: 'section', id: 'S-new-unsaved' });
+
+    editor.discard();
+    expect(editor.selectedId.value).toBeNull();
+  });
+
+  it('save() PRESERVES selection (server returns the same ids in the snapshot)', async () => {
+    const updated = fixture({ name: 'Renamed', updatedAt: '2026-05-28T00:00:00.000Z' });
+    installFetch(() => Promise.resolve(updated));
+    const editor = useLayoutEditor('L1');
+    editor.original.value = fixture();
+    editor.draft.value = { ...fixture(), name: 'Renamed' };
+    editor.select({ kind: 'section', id: 'S1' });
+
+    await editor.save();
+    expect(editor.selectedId.value).toEqual({ kind: 'section', id: 'S1' });
+  });
+});

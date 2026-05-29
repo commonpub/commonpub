@@ -70,7 +70,39 @@ export interface LayoutEditorState {
    *  user has explicitly refreshed/force-saved + wants auto-save to
    *  resume. */
   clearConflictHistory: () => void;
+  /**
+   * Current selection — drives the right-hand inspector dispatcher.
+   *
+   *   `null`                    → render the page-meta form (default).
+   *   `{kind:'section', id:X}`  → render the section-config form (Phase 3f placeholder this session).
+   *   `{kind:'row', id:Y}`      → render the row-config form (Phase 3f placeholder this session).
+   *
+   * Session 3b/A landing: click / Enter on a section sets selection;
+   * click outside the canvas (or Esc) clears. Selection is intentionally
+   * NOT persisted across refresh/discard — those operations replace the
+   * draft wholesale, so the previously-selected id may no longer exist.
+   *
+   * See `feedback-visual-editor-ux-patterns` (inspector dispatch pattern)
+   * + docs/plans/layout-and-pages.md §7.9.
+   */
+  selectedId: Ref<EditorSelection>;
+  /** Set selection; pass `null` to clear. */
+  select: (selection: EditorSelection) => void;
+  /** Alias for `select(null)` — semantic sugar for click-outside / Esc. */
+  clearSelection: () => void;
 }
+
+/**
+ * Discriminated selection target. Encoded as an object (not a tuple) so
+ * inspector callers can branch on `kind` cleanly + so future kinds
+ * (e.g. `'zone'`) extend the union without breaking call sites.
+ *
+ * `null` = no selection (default; inspector renders page-meta form).
+ */
+export type EditorSelection =
+  | { kind: 'section'; id: string }
+  | { kind: 'row'; id: string }
+  | null;
 
 /**
  * Discriminated failure for the multi-step publish() flow.
@@ -240,6 +272,22 @@ export function useLayoutEditor(id: string): LayoutEditorState {
       >= CONFLICT_THRESHOLD;
   });
 
+  /**
+   * Selection state — drives the inspector dispatcher (Phase 3b/A).
+   *
+   * Held as a single ref containing a discriminated union. Cleared on
+   * refresh/discard because those operations replace draft wholesale +
+   * the selected id may no longer exist in the new draft. NOT cleared
+   * on save() — the server returns the same ids in the snapshot.
+   */
+  const selectedId = ref<EditorSelection>(null);
+  function select(selection: EditorSelection): void {
+    selectedId.value = selection;
+  }
+  function clearSelection(): void {
+    selectedId.value = null;
+  }
+
   async function refresh(): Promise<void> {
     const fresh = await $fetch<LayoutRecord>(`/api/admin/layouts/${id}`);
     original.value = fresh;
@@ -249,6 +297,10 @@ export function useLayoutEditor(id: string): LayoutEditorState {
     savedVersion.value = dirtyVersion.value;
     status.value = 'idle';
     errorMessage.value = null;
+    // The id that was selected may not exist in the fresh snapshot
+    // (another admin deleted it; we can't keep a phantom selection).
+    // Clear; the inspector falls back to the page-meta form.
+    selectedId.value = null;
   }
 
   /**
@@ -478,6 +530,10 @@ export function useLayoutEditor(id: string): LayoutEditorState {
     savedVersion.value = dirtyVersion.value;
     status.value = 'idle';
     errorMessage.value = null;
+    // Same rationale as refresh — the discarded draft's selected id may
+    // not exist in the original snapshot if the user added a section
+    // then discarded.
+    selectedId.value = null;
   }
 
   return {
@@ -495,5 +551,8 @@ export function useLayoutEditor(id: string): LayoutEditorState {
     flushBeacon,
     conflictThrashing,
     clearConflictHistory,
+    selectedId,
+    select,
+    clearSelection,
   };
 }
