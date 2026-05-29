@@ -418,6 +418,17 @@ function resizeHandlerForSection(section: LayoutSection): ((e: PointerEvent) => 
       ? props.row.sections[idx + 1]
       : null;
     const neighbourDef = neighbour ? sectionRegistry.get(neighbour.type) : null;
+    // Session 166 round-2 audit P1: if the neighbour is `resizable: false`,
+    // the operator opted that section out of resize. Absorbing the source
+    // section's delta into it would silently resize a fixed-width section
+    // — contradicting the intent. Treat it as fixed: set neighbourMin to
+    // its CURRENT colSpan so clampResize stops the source at the boundary.
+    // (Same trick used by single-value-range sliders that want to model a
+    // hard wall on one side.)
+    const neighbourFixed = !!neighbour && neighbourDef?.resizable === false;
+    const effectiveNeighbourMin = neighbourFixed
+      ? (neighbour?.colSpan ?? 1)
+      : (neighbourDef?.minColSpan ?? 1);
     resize.startResize({
       rowId: props.row.id,
       sectionId: section.id,
@@ -427,7 +438,7 @@ function resizeHandlerForSection(section: LayoutSection): ((e: PointerEvent) => 
       sectionMax: def.maxColSpan,
       neighbourId: neighbour?.id ?? null,
       neighbourStartColSpan: neighbour?.colSpan ?? 0,
-      neighbourMin: neighbourDef?.minColSpan ?? 1,
+      neighbourMin: effectiveNeighbourMin,
       neighbourMax: neighbourDef?.maxColSpan ?? 12,
       startPointerX: e.clientX,
       pointerId: e.pointerId,

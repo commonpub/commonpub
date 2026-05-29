@@ -77,6 +77,14 @@ function lookupResizeBounds(sectionId: string) {
       const neighbourDef = neighbourSection
         ? sectionRegistry.get(neighbourSection.type)
         : null;
+      // Session 166 round-2 audit P1: mirror LayoutRow's
+      // resizable:false-neighbour rule. If the neighbour explicitly
+      // opted out of resize, treat it as fixed-width (effective min =
+      // current colSpan) so the keyboard path can't shrink it either.
+      const neighbourFixed = !!neighbourSection && neighbourDef?.resizable === false;
+      const effectiveNeighbourMin = neighbourFixed
+        ? (neighbourSection?.colSpan ?? 1)
+        : (neighbourDef?.minColSpan ?? 1);
       return {
         sectionType: section.type,
         rowId: row.id,
@@ -85,7 +93,7 @@ function lookupResizeBounds(sectionId: string) {
         neighbour: neighbourSection
           ? {
               sectionId: neighbourSection.id,
-              min: neighbourDef?.minColSpan ?? 1,
+              min: effectiveNeighbourMin,
               max: neighbourDef?.maxColSpan ?? 12,
             }
           : null,

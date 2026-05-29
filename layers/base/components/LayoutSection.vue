@@ -649,7 +649,21 @@ function onHandlePointerDown(e: PointerEvent): void {
  * direct manipulation. (Phase 3f's inline-edit affordance can carve
  * out specific zones if needed.)
  */
-.cpub-layout-section--editable > *:not(.cpub-layout-section-moves) {
+/* Session 166 round-2 audit P0: the resize handle (Phase 3c) is a
+ * direct child of .cpub-layout-section--editable too. Without an
+ * explicit :not(), this cascade makes it hit-test-invisible — clicks
+ * + pointerdowns drop to the section's outer wrapper instead of
+ * firing on the handle. Tests don't catch it (jsdom dispatchEvent
+ * bypasses pointer-events hit testing); only a real browser does.
+ * Adding the carve-out matches the established "interactive editor
+ * chrome opts out" pattern (.cpub-layout-section-moves did the same
+ * thing).
+ *
+ * The span pill + constraint label DO want pointer-events:none
+ * (they're aria-hidden visual badges that shouldn't intercept
+ * clicks on the section content beneath), so they're NOT carved out
+ * here — each sets pointer-events:none explicitly below for clarity. */
+.cpub-layout-section--editable > *:not(.cpub-layout-section-moves):not(.cpub-layout-section-resize-handle) {
   pointer-events: none;
 }
 .cpub-layout-section--editable:hover {

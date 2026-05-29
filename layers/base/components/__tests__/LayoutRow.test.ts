@@ -490,3 +490,82 @@ describe('LayoutRow — Remove Row × (Session 164)', () => {
     expect(btn?.getAttribute('aria-label')).toContain('main');
   });
 });
+
+/* ---- Phase 3c round-2 audit P1: resizable:false neighbour ---- */
+
+describe('LayoutRow — resize handle + resizable:false neighbour (round-2 audit P1)', () => {
+  it('startResize neighbourMin equals neighbour.colSpan when neighbour is resizable:false', async () => {
+    // Use real built-in sections so we can rely on the registry's
+    // resizable flags (heading = resizable: true; hero = resizable:
+    // false). Mount editable + getDraft to wire the handle closure.
+    const { useLayoutResize } = await import('../../composables/useLayoutResize');
+    const resize = useLayoutResize();
+    resize.cancelResize(); // ensure idle
+
+    const headingSection: LayoutSection = {
+      id: 'sec-heading',
+      order: 0,
+      type: 'heading',
+      config: { text: 'Title', level: 2 },
+      colSpan: 8,
+      responsive: null,
+      enabled: true,
+      visibility: null,
+      schemaVersion: 1,
+    };
+    const heroSection: LayoutSection = {
+      id: 'sec-hero',
+      order: 1,
+      type: 'hero',
+      config: {} as never,
+      colSpan: 4, // not the default 12 so the neighbourMin assertion is meaningful
+      responsive: null,
+      enabled: true,
+      visibility: null,
+      schemaVersion: 1,
+    };
+    const row = makeRow('r1', [headingSection, heroSection]);
+
+    const { container } = render(LayoutRow, {
+      props: {
+        row,
+        route: '/',
+        zone: 'main',
+        editable: true,
+        isPreview: false,
+        onSelect: () => {},
+        selectedId: null,
+        zoneSlugs: ['main'],
+        findFirstRowInZone: () => null,
+        findRow: () => row,
+        findZone: () => 'main',
+        // Provide a draft getter so the resize handle closure renders.
+        getDraft: () => ({ zones: [{ zone: 'main', rows: [row] }] } as never),
+      },
+    });
+
+    // Find the heading section's resize handle (first section's right edge).
+    const headingEl = container.querySelector('[data-section-id="sec-heading"]') as HTMLElement;
+    const handle = headingEl.querySelector('.cpub-layout-section-resize-handle') as HTMLElement;
+    expect(handle).not.toBeNull();
+
+    // Dispatch the pointerdown — the closure resolves bounds + calls startResize.
+    handle.dispatchEvent(new PointerEvent('pointerdown', {
+      pointerId: 1,
+      button: 0,
+      pointerType: 'mouse',
+      clientX: 200,
+      bubbles: true,
+    }));
+
+    // Assert state machine moved to 'resizing' with the fixed-width
+    // neighbour rule applied: neighbourMin === neighbour's current colSpan (4).
+    expect(resize.state.value.kind).toBe('resizing');
+    if (resize.state.value.kind === 'resizing') {
+      expect(resize.state.value.neighbourId).toBe('sec-hero');
+      expect(resize.state.value.neighbourMin).toBe(4);
+      expect(resize.state.value.neighbourStartColSpan).toBe(4);
+    }
+    resize.cancelResize();
+  });
+});

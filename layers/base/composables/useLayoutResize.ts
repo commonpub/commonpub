@@ -53,6 +53,17 @@
  *   - useLayoutHotkeys.ts — Shift+ArrowLeft / Shift+ArrowRight call
  *     `applyKeyboardResize(opts)` to change colSpan by ±1.
  *
+ * **Phase 3c base-only resize (round-2 audit P2 deferral)**: this
+ * composable mutates `section.colSpan` — the BASE breakpoint value.
+ * When `section.responsive.lg` is set, the LG viewport renders that
+ * value instead of the base; mutating the base in that case is
+ * INVISIBLE at LG. v1 ships with no built-in section setting
+ * `responsive` by default + no UI to author it, so this edge is
+ * latent. Phase 3e (per-breakpoint editing) needs to route resize at
+ * the active viewport to mutate the right field
+ * (`responsive[viewport]` or `colSpan` fallback). Tracked in
+ * `docs/sessions/167-kickoff.md` Path A subtask 6.
+ *
  * SSR: every `document` / `window` reference is guarded with
  * `typeof window !== 'undefined'` per
  * `feedback-vitest-import-meta-client-undefined` — vitest's jsdom env
