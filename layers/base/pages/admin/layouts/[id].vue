@@ -167,33 +167,43 @@ useLayoutAutoSave({
 // EXCEPT when we've already crossed into thrashing. At that point the
 // banner is the single reconciliation surface; the modal on top would
 // be redundant (same actions, more visual noise).
-watch(editor.status, (status, prev) => {
+watch(editor.status, (status) => {
   if (status === 'conflict' && !editor.conflictThrashing.value) {
     conflictOpen.value = true;
   }
-  // Phase 3b/B: clear undo history on save success. Plan §7.14:
-  // "saved draft is the new baseline; redo across save is hostile".
-  // The transition we care about is `saving → saved` (NOT every time
-  // status holds at 'saved', which would clear after every harmless
-  // re-render). Refresh + discard also flow through here transitively
-  // because both end at status='idle' AFTER having cleared the draft,
-  // but those paths clear history directly via their own watchers below.
-  if (prev === 'saving' && status === 'saved') {
-    history.clear();
-  }
 });
 
-// Phase 3b/B: also clear on `refresh()` + `discard()` paths. Both
-// replace `draft` wholesale, which leaves the existing past/future
-// commands pointing at sections that may no longer exist. Watching
-// `original.value` change picks up both: refresh assigns a new server
-// snapshot; discard re-clones original into draft (original itself
-// doesn't change, so this watch doesn't fire then — but discard's own
-// `selectedId = null` sets, and we mirror the same intent here).
+/*
+ * Phase 3b/B + R2 audit P1 fix: history clears when the SERVER baseline
+ * changes (refresh, save success) AND the local draft matches that
+ * baseline (dirty=false). One watcher, one gate.
+ *
+ * Why dirty-gated: the original status-transition approach cleared on
+ * every saving→saved transition, but that's wrong when the user undid
+ * MID-SAVE. Concretely: save kicks off at t=1500ms; user undos at
+ * t=1800ms; save completes at t=2200ms (with the pre-undo snapshot
+ * persisted). After save: original = pre-undo state; draft = post-undo
+ * state; dirty = TRUE. Clearing history here would nuke the redo branch
+ * for an undo that hasn't actually been persisted yet. The dirty gate
+ * ensures we only clear when the LOCAL state ALSO matches the server.
+ *
+ * Why one watcher instead of two: save() reassigns original AND
+ * transitions status; refresh() reassigns original AND resets status to
+ * 'idle'. Both flow through the original-change. The previous dual-
+ * watcher setup fired clear() twice on save (idempotent but indicates
+ * architectural confusion).
+ *
+ * discard() doesn't change original (just draft); its explicit
+ * history.clear() call in onDiscard covers that path.
+ */
 watch(() => editor.original.value, (newOriginal, oldOriginal) => {
-  // Initial assignment (oldOriginal === null) — the seed-time clear()
-  // above already covered this. Subsequent reassignments are refresh().
-  if (oldOriginal !== null && newOriginal !== oldOriginal) {
+  if (oldOriginal === null) return; // initial seed; handled at await time
+  if (newOriginal === oldOriginal) return;
+  // The server baseline changed. If the local draft has un-saved edits
+  // on top of it, keep history so the user can still undo them. If
+  // draft is in lockstep with original, clear (saved baseline is the
+  // new ground truth per plan §7.14).
+  if (!editor.dirty.value) {
     history.clear();
   }
 });

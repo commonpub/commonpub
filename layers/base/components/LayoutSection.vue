@@ -195,6 +195,25 @@ function onMoveMenuKey(e: KeyboardEvent): void {
   }
 }
 
+/* R1 audit P2 fix: keyboard users who Tab past the last menu item
+ * would leave focus elsewhere on the page while the popover stayed
+ * open. focusout fires whenever focus leaves the panel; relatedTarget
+ * is the new focus destination. If that destination is OUTSIDE both
+ * the panel AND the trigger button, close. (Inside the trigger is
+ * fine — clicking trigger again toggles via its own handler.) */
+function onMoveMenuFocusOut(e: FocusEvent): void {
+  const next = e.relatedTarget as Node | null;
+  if (!next) {
+    // Focus moved to nothing (e.g. clicking outside the document).
+    // Treat as outside.
+    moveMenuOpen.value = false;
+    return;
+  }
+  if (moveMenuPanel.value?.contains(next)) return;
+  if (moveMenuTrigger.value?.contains(next)) return;
+  moveMenuOpen.value = false;
+}
+
 /* Click-outside dismissal. Attached to document on open, removed on
  * close + unmount. The condition `!panel.contains(target) && target !==
  * trigger` allows clicks on the trigger itself to handle the toggle
@@ -334,6 +353,7 @@ const hasMoveTargets = computed<boolean>(() =>
         :aria-label="`Move ${section.type} to zone`"
         @click.stop
         @keydown="onMoveMenuKey"
+        @focusout="onMoveMenuFocusOut"
       >
         <button
           v-for="zone in availableZones"
