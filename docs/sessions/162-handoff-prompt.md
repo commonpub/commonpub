@@ -6,13 +6,15 @@ Paste everything between the `---` rules as the first message of session 163. De
 
 Fresh Claude Code session on the CommonPub monorepo.
 
-**Predecessor**: session 162 shipped 9 commits on `main` closing the layout-editor P2 deferred queue from session 160's R2/R3/R4 audits, plus a self-audit polish round on the P2 work itself. All session 160 audit P1+P2s are now closed. Editor lives at https://commonpub.io/admin/layouts. **Layer 318 tests + schema 470 + server 1129+3skip + repo typecheck 26/26.** heatsync + deveco UNTOUCHED on npm 0.24.0. Final commit `16ccfd2` on `main`.
+**Predecessor**: session 162 shipped 10 code-impacting commits on `main` closing the layout-editor P2 deferred queue from session 160's R2/R3/R4 audits, plus TWO recursive audit rounds on the P2 work itself (the second caught label/style violations in the first). All session 160 audit P1+P2s are now closed. Editor lives at https://commonpub.io/admin/layouts. **Layer 318 tests + schema 470 + server 1129+3skip + repo typecheck 26/26.** heatsync + deveco UNTOUCHED on npm 0.24.0. Last code commit `11b9190` on `main`.
 
-## Session 162 in two paragraphs
+## Session 162 in three paragraphs
 
 User said "pick whatever thing to do first makes sense". I picked Path B (P2 sweep) over Path A (Phase 3b drag-drop) because the predecessor handoff said "Don't accumulate debt; finish what's started before adding scope" — a 2-session drag-drop arc on top of 8 deferred P2s inverts that. Seven P2 commits landed in priority order (smallest-visibility-win first → perf → correctness): Dashboard tile, listLayouts N+1 → 3 queries flat, pagehide-flushBeacon (fetch keepalive:true), LayoutPayload = Pick<LayoutRecord,…>, conflict-cascade throttle (3-in-60s), O(1) version-counter dirty (replaces O(N) per-keystroke walk), and step-typed PublishStepError.
 
-After "ultrathink audit and continue", a self-audit round caught 5 real bugs in the just-shipped work: conflict-thrash banner missing inline CTAs, wrong CSS var token (--warning didn't exist), dashboard tile label mismatch with sidebar, modal + banner showing simultaneously during thrashing, and Refresh/Force Save not clearing the thrash window. All five closed in `16ccfd2` "self-audit polish". No new memories added — every change was already covered by existing feedback memories.
+After "ultrathink audit and continue", a self-audit round caught 5 real bugs in the just-shipped work: conflict-thrash banner missing inline CTAs, wrong CSS var token (--warning didn't exist), dashboard tile label mismatch with sidebar, modal + banner showing simultaneously during thrashing, and Refresh/Force Save not clearing the thrash window. All five closed in `16ccfd2` "self-audit polish".
+
+After "ultrathink audit then continue" a SECOND time, an audit-of-audit caught 3 more bugs in the polish itself — and these were R1 violations of the very conventions session 160's R1 audit established. My audit-polish reused the OLD bureaucratic verbs ('Refresh', 'Force save') instead of the modal's `Reload their version` / `Overwrite their changes`; styled Resume auto-save as PRIMARY when Resume isn't a reconciliation; and gave Force-save no danger styling. All three closed in `11b9190`. Lesson re-pinned: when extending an established pattern, MATCH IT.
 
 ## Mandatory reads (in order)
 

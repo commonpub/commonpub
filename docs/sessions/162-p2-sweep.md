@@ -1,8 +1,8 @@
-# Session 162 — P2 sweep (closes the deferred queue) + self-audit polish
+# Session 162 — P2 sweep (closes the deferred queue) + self-audit polish + audit-of-audit
 
 **Date**: 2026-05-28 (single-day session)
 **Branch**: `main` (commonpub.io workspace, 0 npm publishes)
-**Outcome**: 9 commits on main; **every P2 from the session 160 audit rounds is closed** + a self-audit round caught 5 real bugs in the P2 work and closed them in the same session. Editor canvas, dirty tracking, save lifecycle, conflict reconciliation surface, and admin discoverability all polished. Zero deferred P1/P2s remain on the layout-editor queue.
+**Outcome**: 10 code-impacting commits on main + docs; **every P2 from the session 160 audit rounds is closed** + a self-audit round caught 5 real bugs in the P2 work + a recursive audit-of-audit caught 3 more bugs in the polish itself. Editor canvas, dirty tracking, save lifecycle, conflict reconciliation surface, and admin discoverability all polished. Zero deferred P1/P2s remain on the layout-editor queue.
 
 ## What the session looked like
 
@@ -77,6 +77,24 @@ Documentation also added:
 
 Layer tests still **318 passing**; typecheck 26/26 clean (all changes either non-behavioral or page-level wire-up not covered by composable tests).
 
+## Audit-of-audit (caught + fixed in `11b9190`)
+
+User said "ultrathink audit then continue" a second time. Re-applied the R1-R4 lens to the audit-polish commit (`16ccfd2`) and caught 3 real R1 violations of the conventions session 160's R1 audit explicitly established:
+
+| Finding | Fix |
+|---|---|
+| Banner used the bureaucratic verbs `Refresh` + `Force save` — session 160 R1 named those exact words as patterns to AVOID ("bureaucratic and don't name the consequence"). The modal uses `Reload their version` + `Overwrite their changes`. | Renamed banner buttons to match the modal verbatim. |
+| `Resume auto-save` was styled as the PRIMARY (accent) button — but Resume isn't a reconciliation action, it just turns auto-save back on. Modal's primary is always the SAFE recommended reconciliation. | Hierarchy now matches modal: primary = `Reload their version`, neutral = `Resume auto-save`, danger = `Overwrite their changes`. |
+| `Force save` styled identically to the safe action (no red border, no destructive cue). | Added `cpub-admin-layouts-editor-thrash-btn--danger` modifier with `--red` border + red hover bg, mirroring `AdminLayoutsConflictModal`'s pattern. |
+
+Two further a11y improvements landed in the same commit:
+- Tab order: Reload → Resume → Overwrite (destructive LAST in tab order so keyboard users don't land on it).
+- Focus management: when the suppression watcher closes the modal due to thrashing-trip-while-modal-open, the previously-focused modal button vanishes → focus would fall to `<body>`, stranding keyboard users. Now `await nextTick()` + focus the banner's `Reload their version` button. Only steals focus when the modal WAS open; otherwise `role=alert` is enough.
+
+Body copy also tightened to mirror the modal's "Reload (recommended) — your edits will be lost. Overwriting is destructive and final" phrasing.
+
+Lesson re-pinned: when extending an existing pattern (this banner reusing the modal's handlers), MATCH THE PATTERN. My audit-polish caught half the gaps from the audit but introduced new inconsistencies because I treated the banner as a fresh surface rather than a reuse of an established convention.
+
 ## New surfaces
 
 | Name | Purpose | Surface |
@@ -111,7 +129,7 @@ All use `var(--*)`; no hardcoded colors.
 
 ## End state
 
-- commonpub.io: workspace `main` (`16ccfd2`). Public homepage byte-pattern unchanged (3 layout-rows + 5 layout-sections, no `--editable` leak). Admin editor at `/admin/layouts` + `/admin/layouts/[id]` now has flushBeacon for tab-close, conflict throttle for cascade scenarios with a complete inline-action banner surface, O(1) dirty for high-N sections, and step-typed publish errors. heatsync + deveco UNTOUCHED.
+- commonpub.io: workspace `main` (last code commit `11b9190`). Public homepage byte-pattern unchanged (3 layout-rows + 5 layout-sections, no `--editable` leak). Admin editor at `/admin/layouts` + `/admin/layouts/[id]` now has flushBeacon for tab-close, conflict throttle for cascade scenarios with a complete inline-action banner surface (label/style discipline matching the conflict modal), O(1) dirty for high-N sections, and step-typed publish errors. heatsync + deveco UNTOUCHED.
 - Tests: layer **318**, schema 470, server **1129** + 3 skipped, repo typecheck 26/26 FULL TURBO.
 - No memories added (every change was already covered by existing feedback memories).
 - No codebase-analysis updates queued — the surface area is small enough that the next session's audit can catch any drift.
