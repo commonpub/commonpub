@@ -142,6 +142,18 @@ After the audit recursion hit diminishing returns, took the user's "ok then cont
 
 Total docs delta: +1 new README, 4 updated. Layer + schema tests unchanged at 318 + 470; typecheck 26/26 clean.
 
+### Audit-of-docs round (commits `e4e3443`, `9a129f8`, `c16b026`)
+
+A third recursive audit applied the same "verify claims against the file system" lens to the just-written docs and caught 3 rounds of inaccuracies — same shape as the audit-of-audit on the editor banner. The pattern keeps repeating because the failure mode is the same: writing what I expect rather than what exists.
+
+| Round | Caught |
+|---|---|
+| `e4e3443` | `apps/reference/README.md` — 8 wrong env var names / file paths (`pnpm db:migrate` script doesn't exist, `docker-compose.dev.yml` is `docker-compose.yml`, `deploy-production.yml` is `deploy.yml`, `DATABASE_URL` is `NUXT_DATABASE_URL`, `REDIS_URL` is `NUXT_REDIS_URL`, `BETTER_AUTH_SECRET` is `NUXT_AUTH_SECRET`, `MEILISEARCH_URL` is `MEILI_URL`, `MEILISEARCH_API_KEY` is `MEILI_MASTER_KEY`). All verified against `process.env.*` reads in code. |
+| `9a129f8` | `layers/base/README.md` composables — `useBlockEditor` listed as a layer composable but it lives in `@commonpub/editor`. Added 8 missing real composables to the table (`usePublishValidation`, `useRealtimeCounts`, `useThemeAdmin`, `useMarkdownImport`, `useSanitize`, `useFocusTrap`, `useToast`, `useApiError`). |
+| `c16b026` | `layers/base/README.md` blocks — said "17 block renderers" but actual count is 21; the 17 was the SECTION registry count (different folder, different surface). Also fixed names: `BlockHero` / `BlockHeading` don't exist; convention is `*View` suffix (`BlockHeadingView`, `BlockCalloutView`). |
+
+Diminishing returns observation (third time this session): the audit cycles work but each pass yields fewer/smaller findings. The remaining work is large-scope (Phase 3b drag-drop, Figma zoom) — both are 1-to-2-session arcs that shouldn't start mid-recursion. Stopping the audit loop here.
+
 ## End state
 
 - commonpub.io: workspace `main` (last code commit `11b9190`; last docs commit `812601b`). Public homepage byte-pattern unchanged (3 layout-rows + 5 layout-sections, no `--editable` leak). Admin editor at `/admin/layouts` + `/admin/layouts/[id]` now has flushBeacon for tab-close, conflict throttle for cascade scenarios with a complete inline-action banner surface (label/style discipline matching the conflict modal), O(1) dirty for high-N sections, and step-typed publish errors. heatsync + deveco UNTOUCHED.
