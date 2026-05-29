@@ -1,6 +1,6 @@
 # Kickoff prompt — session 166 (path-pick: Phase 3c resize OR Phase 3e config inspector OR polish batch)
 
-Paste everything between the `---` rules as the FIRST message of a fresh Claude Code session. **Prerequisite: session 165 shipped (commits `569c0e2` + `810c08d` + `4e030f2` + `15a0fb0`, plus docs commits).**
+Paste everything between the `---` rules as the FIRST message of a fresh Claude Code session. **Prerequisite: session 165 shipped (commits `569c0e2` + `810c08d` + `4e030f2` + `15a0fb0` + `e7b10f3`, plus 3 docs commits).**
 
 ---
 
@@ -9,7 +9,7 @@ Fresh Claude Code session on the CommonPub monorepo. **Two tasks this session, i
 1. **Path-pick** — three roughly-equal-leverage options below. Ask the user at session start.
 2. **Execute the picked path with R1-R4 self-audit + audit-of-audit at close.**
 
-**Predecessor**: session 165 shipped session-164 audit fixes + Phase 3d a11y completion + two ultrathink rounds. Backspace/Delete remove section, Cmd+D duplicate, `?` opens the new `<AdminLayoutsHelpOverlay>`, axe-core regression. axe scan caught + fixed a latent `aria-allowed-attr` violation from session 163. Round 3 added: modal-open suppresses global section hotkeys, HelpOverlay focus trap, dropped misleading Move group, `isRemoveLike` excludes Shift. Round 5 added: ConflictModal axe scan + focus trap (mirrors HelpOverlay), topmost-only guard on BOTH modal traps (querySelector last = stacking-top), parent watcher in `[id].vue` closes HelpOverlay when ConflictModal opens. Layer 489 → **567** tests (+78), typecheck 26/26 FULL TURBO. Last code commit `15a0fb0`. heatsync + deveco UNTOUCHED on npm 0.24.0. commonpub.io workspace `main`.
+**Predecessor**: session 165 shipped session-164 audit fixes + Phase 3d a11y completion + three ultrathink audit rounds (deep audit / continuation / nit pass). Backspace/Delete remove section, Cmd+D duplicate, `?` opens the new `<AdminLayoutsHelpOverlay>`, axe-core regression. axe scan caught + fixed a latent `aria-allowed-attr` violation from session 163. Round 3 added: modal-open suppresses global section hotkeys, HelpOverlay focus trap, dropped misleading Move group, `isRemoveLike` excludes Shift. Round 5 added: ConflictModal axe scan + focus trap (mirrors HelpOverlay), topmost-only guard on BOTH modal traps, parent watcher in `[id].vue` closes HelpOverlay when ConflictModal opens. Round 7 added explicit `aria-modal="true"` on ConflictModal for spec consistency. Layer 489 → **567** tests (+78), typecheck 26/26 FULL TURBO. Last code commit `e7b10f3`. heatsync + deveco UNTOUCHED on npm 0.24.0. commonpub.io workspace `main`. **Audit recursion**: 14 findings across 7 rounds; three consecutive 0-finding rounds (4/6/end-of-7) marked diminishing-returns floor.
 
 ## Verify session 165 actually shipped
 
@@ -28,11 +28,13 @@ grep -nE "isAnyDialogOpen|e.shiftKey" layers/base/composables/useLayoutHotkeys.t
 grep -nE "onFocusIn|dialogEl|isTopmostDialog" layers/base/components/admin/layouts/AdminLayoutsHelpOverlay.vue layers/base/components/admin/layouts/AdminLayoutsConflictModal.vue
 # Round 5: dual-modal coordination — helpOpen=false when conflict opens
 grep -n "helpOpen.value = false" layers/base/pages/admin/layouts/\[id\].vue
+# Round 7: explicit aria-modal on both modals
+grep -nE 'aria-modal="true"' layers/base/components/admin/layouts/AdminLayoutsHelpOverlay.vue layers/base/components/admin/layouts/AdminLayoutsConflictModal.vue
 # Confirm axe-core install + regression file
 grep -nE "axe-core" layers/base/package.json
 ls layers/base/components/admin/layouts/__tests__/editor-axe.test.ts
 # Confirm test count
-pnpm --filter @commonpub/layer test 2>&1 | grep "Tests" | tail -1     # expect: 559 passed
+pnpm --filter @commonpub/layer test 2>&1 | grep "Tests" | tail -1     # expect: 567 passed
 pnpm typecheck 2>&1 | tail -3                                          # expect: 26 successful, 26 total
 curl -s -o /dev/null -w '/admin/layouts = %{http_code} (302 expected)\n' https://commonpub.io/admin/layouts
 curl -sS https://commonpub.io/ | grep -oE 'class="[^"]*cpub-layout-(row|section)[^"]*"' | grep -oE 'cpub-layout-(row|section)(--editable)?' | sort | uniq -c

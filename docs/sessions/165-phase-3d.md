@@ -16,6 +16,7 @@
 | `810c08d` | Phase 3d a11y completion. 3 hotkeys + help overlay + axe regression. 547 tests. Caught + fixed a real `aria-allowed-attr` violation introduced in session 163 (aria-selected on the section's outer div). |
 | `4e030f2` | Deep-audit polish (R3-A + R1-A + R3-B + R2-A). Modal-open suppresses global section hotkeys; HelpOverlay Move group dropped (was misleading duplicate-chord rows); HelpOverlay focus trap via `focusin` snap-back; `isRemoveLike` excludes Shift modifier. 559 tests. |
 | `15a0fb0` | Round 5: ConflictModal focus trap + dual-modal coordination. axe scan extended to ConflictModal (clean — no violations). ConflictModal trap mirrors HelpOverlay's pattern, snapping focus to safe primary action. Both modals get a topmost-only guard (querySelector last = highest stacking). Parent watcher in `[id].vue` closes HelpOverlay when ConflictModal opens — belt-and-suspenders. 567 tests. |
+| `e7b10f3` | Round 7: explicit `aria-modal="true"` on ConflictModal. `role="alertdialog"` implies blocking semantics per ARIA spec but explicit `aria-modal` is the documented convention (HelpOverlay already has it). 1 line, 567 tests stay green. |
 
 ## What shipped (Phase 3d)
 
@@ -105,6 +106,16 @@ After the "ultrathink continue" prompt, walked the post-deep-audit surface and s
 | 5-b | a11y | ConflictModal had no focus trap. The 166 kickoff named this as a "small win" but it's directly continuing the round-3 R3-B work — closing the WCAG ARIA Dialog gap consistently across all editor modals. | Mirrored HelpOverlay's `focusin` snap-back pattern. Focus snaps to safe primary action (Reload their version). 4 new tests. |
 | 5-c | correctness | With both modals having focus traps, a real (rare) scenario — admin opens help, auto-save lands on 409 — would create a focus ping-pong between the two traps. | Added a topmost-only guard inside each trap: `document.querySelectorAll('[role="dialog"], [role="alertdialog"]')` returns DOM-order; last = highest stacking; only the topmost dialog's trap fires. Plus parent watcher in `[id].vue` force-closes HelpOverlay when ConflictModal opens (belt-and-suspenders). |
 
+### Round 7 (ultrathink nit pass — `e7b10f3`)
+
+After the "ultrathink audit, update handoff" prompt, ran a fourth-pass audit on the round-5 surfaces:
+
+| # | Finding | Action |
+|---|---|---|
+| 7-a | ConflictModal had `role="alertdialog"` but no explicit `aria-modal="true"`. HelpOverlay has it. Spec implies-modal for alertdialog, but the documented convention is to set it explicitly. | FIXED — 1 line. |
+
+Also walked and confirmed CLEAN: Backspace mid-save flow (existing behavior is correct), history singleton across editor unmount (next seed clears stale commands; no consumers outside editor), pathPrefix component auto-import (verified `apps/reference/.nuxt/components.d.ts:69-70`).
+
 ### Round 6 (audit-of-audit on round 5)
 
 **0 new findings**. Walked each round-5 layer:
@@ -125,6 +136,7 @@ After the "ultrathink continue" prompt, walked the post-deep-audit surface and s
 | audit-of-audit on deep (round 4) | 0 actionable | 10 |
 | ultrathink continuation (round 5) | 3 fixed | 13 |
 | audit-of-audit on round 5 (round 6) | 0 actionable | 13 |
+| ultrathink nit pass (round 7) | 1 fixed (aria-modal) | 14 |
 
 Two consecutive 0-finding audit-of-audit rounds (4 + 6) mark the diminishing-returns floor for this surface. Sessions 160 / 162 / 163 / 164 / 165 round-counts: 20 / 9 / 13 / 7 / 13 — session 165's higher number reflects the user's two ultrathink prompts forcing deeper passes after the surface scan would have closed earlier.
 
