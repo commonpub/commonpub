@@ -455,17 +455,20 @@ const sortOptions = [
   outline: none;
 }
 
-/* Grid */
+/* Grid — responsive auto-fill so cards stay a reasonable, consistent
+   width and fill the row (matches feed.vue's proven pattern). The old
+   fixed repeat(3,1fr)/repeat(2,1fr) produced oversized cards (esp. the
+   2-col hub/people grid ≈ 470px each) that didn't adapt to the container. */
 .cpub-explore-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 16px;
 }
 
-/* Hub cards */
+/* Hub cards (horizontal layout — slightly wider min) */
 .cpub-explore-hub-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 12px;
 }
 
@@ -542,8 +545,15 @@ const sortOptions = [
 }
 
 @media (max-width: 768px) {
-  .cpub-explore-grid { grid-template-columns: 1fr; }
-  .cpub-explore-hub-grid { grid-template-columns: 1fr; }
+  /* Tighter min on tablet keeps 2 columns where they fit (matches feed.vue)
+     rather than collapsing straight to one. */
+  .cpub-explore-grid { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+  .cpub-explore-hub-grid { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
   .cpub-explore-filters { flex-wrap: wrap; }
+}
+
+@media (max-width: 480px) {
+  .cpub-explore-grid,
+  .cpub-explore-hub-grid { grid-template-columns: 1fr; }
 }
 </style>
