@@ -6,7 +6,7 @@ Paste everything between the `---` rules as the FIRST message of a fresh Claude 
 
 Fresh Claude Code session on the CommonPub monorepo. **Task: Phase 3c — resize sections via `grid-layout-plus`.**
 
-**Predecessor**: session 164 shipped Phase 3b/B — cross-row + cross-zone drag, FLIP animations (150ms cubic ease-out, prefers-reduced-motion honored), `useLayoutHistory` undo/redo singleton with command pattern + 50-cap, `useLayoutHotkeys` (Cmd+Z / Cmd+Shift+Z, NOT Cmd+Y), "Move to zone…" keyboard cross-zone path, toolbar undo/redo buttons. **9 commits on `main`**, layer 411 → **464** tests (+53), typecheck 26/26 FULL TURBO. Last commit `139d704`. heatsync + deveco UNTOUCHED on npm 0.24.0. commonpub.io workspace `main` — public byte-pattern unchanged (3 rows + 5 sections, no `--editable` leak).
+**Predecessor**: session 164 shipped Phase 3b/B + a polish round. Cross-row + cross-zone drag, FLIP animations (150ms cubic ease-out, prefers-reduced-motion honored), `useLayoutHistory` undo/redo singleton with command pattern + 50-cap, `useLayoutHotkeys` (Cmd+Z / Cmd+Shift+Z, NOT Cmd+Y), "Move to zone…" keyboard cross-zone path, toolbar undo/redo buttons. **Polish round also added**: edge-tab panel collapse toggles (user-reported), ContentGridSection responsive cap, discard-during-save race fix (savedVersion monotonic), **"+ Add row" button per zone** (v1 blocker), `addRowCommand`. **13 commits on `main` since session 162 close**, layer 411 → **472** tests (+61), typecheck 26/26 FULL TURBO. Last commit `e98d999`. heatsync + deveco UNTOUCHED on npm 0.24.0. commonpub.io workspace `main` — public byte-pattern unchanged (3 rows + 5 sections, no `--editable` leak).
 
 Before doing anything else, **verify 3b/B actually shipped** (don't trust the handoff per `feedback-verify-loadbearing-values` + session 162/163's audit pattern):
 
@@ -14,19 +14,21 @@ Before doing anything else, **verify 3b/B actually shipped** (don't trust the ha
 for u in https://commonpub.io https://deveco.io https://heatsynclabs.io; do
   echo "  $u/api/health = $(curl -s -o /dev/null -w "%{http_code}" $u/api/health)"
 done
-# Confirm 3b/B wiring exists
-grep -rE "useLayoutHistory|useLayoutHotkeys|moveSectionCommand|cpub-flip-move" layers/base/composables layers/base/components 2>/dev/null | head -10
-grep -rE "narrateMovedToZone|politeMessage|onMoveToZone|cpub-layout-section-move-menu" layers/base 2>/dev/null | head -5
+# Confirm 3b/B + polish wiring exists
+grep -rE "useLayoutHistory|useLayoutHotkeys|moveSectionCommand|cpub-flip-move|addRowCommand" layers/base/composables layers/base/components 2>/dev/null | head -10
+grep -rE "narrateMovedToZone|politeMessage|onMoveToZone|cpub-layout-section-move-menu|cpub-admin-layouts-canvas-add-row|cpub-admin-layouts-editor-edge-tab" layers/base 2>/dev/null | head -10
 # Confirm dispatcher's cross-row branch landed (no more 'cross-row-deferred-to-3b-B' noop)
 grep -rE "cross-row-deferred|no-find-row|source-row-not-found" layers/base/composables/useLayoutDrag.ts
-# Confirm layer tests pass
+# Confirm savedVersion monotonic guard landed (audit-of-audit race fix)
+grep -nE "savingVersion > savedVersion" layers/base/composables/useLayoutEditor.ts
+# Confirm layer tests pass — expect 472
 pnpm --filter @commonpub/layer test 2>&1 | grep "Tests" | tail -1
 # Editor still loads + public byte-pattern unchanged
 curl -s -o /dev/null -w '/admin/layouts = %{http_code} (302 expected)\n' https://commonpub.io/admin/layouts
 curl -sS https://commonpub.io/ | grep -oE 'class="[^"]*cpub-layout-(row|section)[^"]*"' | grep -oE 'cpub-layout-(row|section)(--editable)?' | sort | uniq -c
 ```
 
-**Expected**: all 3 sites health=200; useLayoutHistory + useLayoutHotkeys + moveSectionCommand + cpub-flip-move all present; narrateMovedToZone + politeMessage + onMoveToZone + move-menu CSS present; dispatcher has `no-find-row` + `source-row-not-found` (NO `cross-row-deferred-to-3b-B`); **layer 464 tests passing**; `/admin/layouts=302`; 3 layout-row + 5 layout-section + NO `--editable`. Any divergence: STOP + investigate.
+**Expected**: all 3 sites health=200; all the named symbols present (including `addRowCommand`, the edge-tab CSS, the add-row button); dispatcher has `no-find-row` + `source-row-not-found` (NO `cross-row-deferred-to-3b-B`); savedVersion monotonic guard present; **layer 472 tests passing**; `/admin/layouts=302`; 3 layout-row + 5 layout-section + NO `--editable`. Any divergence: STOP + investigate.
 
 ## Mandatory reads (in order)
 
