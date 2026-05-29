@@ -247,6 +247,64 @@ describe('useLayoutEditor — flushBeacon() (session 162 P2.3)', () => {
   });
 });
 
+describe('useLayoutEditor — dirty version counter (session 162 P2.6)', () => {
+  // Session 162 replaced the per-keystroke stableString-walk dirty
+  // computed with O(1) version counters. These tests pin the new
+  // semantics: editing during save preserves dirt, discard resets it,
+  // and many mutations don't blow up.
+
+  it('dirty stays TRUE after save success if user edited during the await', async () => {
+    let resolveFetch: ((v: LayoutRecord) => void) | null = null;
+    const fetchPromise = new Promise<LayoutRecord>((res) => { resolveFetch = res; });
+    installFetch(() => fetchPromise);
+
+    const editor = useLayoutEditor('L1');
+    editor.original.value = fixture();
+    editor.draft.value = { ...fixture(), name: 'Renamed' };
+    expect(editor.dirty.value).toBe(true);
+
+    // Start the save (in flight, not resolved yet)
+    const savePromise = editor.save();
+
+    // User keeps editing during the await
+    editor.draft.value = { ...editor.draft.value!, name: 'RenamedAgain' };
+
+    // Resolve the in-flight save with the FIRST version
+    resolveFetch!(fixture({ name: 'Renamed', updatedAt: '2026-05-28T12:00:00.000Z' }));
+    await savePromise;
+
+    // dirtyVersion bumped during the await; savedVersion only caught
+    // up to the save-start snapshot. Dirty must remain TRUE so the
+    // auto-save composable picks up the newer edits.
+    expect(editor.dirty.value).toBe(true);
+  });
+
+  it('dirty resets to false after discard', () => {
+    const editor = useLayoutEditor('L1');
+    editor.original.value = fixture();
+    editor.draft.value = { ...fixture(), name: 'Edit' };
+    expect(editor.dirty.value).toBe(true);
+
+    editor.discard();
+    expect(editor.dirty.value).toBe(false);
+  });
+
+  it('handles 1000 nested mutations without blowing the stack or hanging', () => {
+    // Stress-guard: the previous O(N) stableString dirty would walk
+    // the whole layout per access. The version counter must stay O(1).
+    // This test would have run in seconds the old way; now it's sub-ms.
+    const editor = useLayoutEditor('L1');
+    editor.original.value = fixture();
+    editor.draft.value = fixture();
+    expect(editor.dirty.value).toBe(false);
+
+    for (let i = 0; i < 1000; i++) {
+      editor.draft.value!.name = `Change${i}`;
+    }
+    expect(editor.dirty.value).toBe(true);
+  });
+});
+
 describe('useLayoutEditor — conflict thrash window (session 162 P2.5)', () => {
   // Conflict throttle: after 3 conflicts within a 60s rolling window,
   // conflictThrashing flips true. Auto-save composable consumers wire

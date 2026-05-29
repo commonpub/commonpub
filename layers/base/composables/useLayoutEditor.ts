@@ -18,7 +18,7 @@
  * because the route + middleware already filter callers.
  */
 import type { LayoutRecord } from '@commonpub/server';
-import { computed, ref, type ComputedRef, type Ref } from 'vue';
+import { computed, ref, watch, type ComputedRef, type Ref } from 'vue';
 
 export interface LayoutEditorState {
   /** The editable layout — mutate freely. */
@@ -77,8 +77,13 @@ function clone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
 
-/** Stable JSON stringify for dirty comparison. Sort-key-aware to ignore
- * key-order differences between server response + local mutation. */
+/**
+ * Stable-JSON stringify — key-order insensitive. Used only at SEED
+ * time (the first non-null assignment to draft) to decide whether to
+ * auto-mark pristine. The R2-audit perf concern was that this used to
+ * run per-keystroke via the old `dirty` computed; here it runs once
+ * per editor instance lifetime, so the O(N) cost is amortised.
+ */
 function stableString(value: unknown): string {
   return JSON.stringify(value, (_key, val) => {
     if (val && typeof val === 'object' && !Array.isArray(val)) {
@@ -99,9 +104,64 @@ export function useLayoutEditor(id: string): LayoutEditorState {
   const status = ref<'idle' | 'saving' | 'saved' | 'error' | 'conflict'>('idle');
   const errorMessage = ref<string | null>(null);
 
+  /**
+   * Dirty tracking — session 162 P2.6 (R2 audit).
+   *
+   * Was: `dirty = computed(stableString(draft) !== stableString(original))`.
+   * Walked the entire layout JSON on every keystroke. At N=50 sections
+   * the audit measured 5-10ms per keystroke; at N=200 it ate a frame
+   * (>16ms). Today's homepage at N=5 hid it.
+   *
+   * Now: O(1) version counters. `dirtyVersion` increments on every
+   * draft mutation via a deep watcher; `savedVersion` snapshots at
+   * save-success (or seed/refresh/discard); `dirty` is a single
+   * `dirtyVersion !== savedVersion` compare.
+   *
+   * The deep watcher subscribes to nested properties once at setup
+   * (using Vue's reactive Proxy infrastructure); subsequent mutations
+   * notify it in O(1) without re-walking. Outer ref reassignment
+   * (`draft.value = ...`) re-walks the new value — rare path (initial
+   * seed, refresh, discard).
+   *
+   * `flush: 'sync'` so dirty reflects the mutation in the SAME tick
+   * (lets test code read `dirty.value` immediately after a mutation
+   * without `await nextTick()`). Safe re-entrancy: the watcher only
+   * mutates dirtyVersion/savedVersion, never draft itself.
+   *
+   * Auto-sync on initial seed: the canonical consumer pattern is
+   * `editor.original.value = X; editor.draft.value = clone(X);` (the
+   * editor page does exactly this after useFetch lands). On that first
+   * draft assignment the watcher fires with oldDraft===null. We do a
+   * ONE-TIME stable-string compare against original.value — if equal,
+   * sync savedVersion so dirty starts false. If different, leave
+   * savedVersion alone so dirty starts true (covers tests that seed
+   * a divergent draft to assert dirty behavior).
+   *
+   * This single O(N) walk per editor lifetime replaces the previous
+   * O(N) walk per keystroke — the audit's actual cost concern.
+   */
+  const dirtyVersion = ref(0);
+  const savedVersion = ref(0);
+
+  watch(
+    draft,
+    (newDraft, oldDraft) => {
+      dirtyVersion.value++;
+      if (
+        oldDraft === null &&
+        newDraft !== null &&
+        original.value !== null &&
+        stableString(newDraft) === stableString(original.value)
+      ) {
+        savedVersion.value = dirtyVersion.value;
+      }
+    },
+    { deep: true, flush: 'sync' },
+  );
+
   const dirty = computed<boolean>(() => {
     if (!draft.value || !original.value) return false;
-    return stableString(draft.value) !== stableString(original.value);
+    return dirtyVersion.value !== savedVersion.value;
   });
 
   /**
@@ -146,7 +206,10 @@ export function useLayoutEditor(id: string): LayoutEditorState {
   async function refresh(): Promise<void> {
     const fresh = await $fetch<LayoutRecord>(`/api/admin/layouts/${id}`);
     original.value = fresh;
+    // Replaces a non-null draft → the auto-sync-on-null path doesn't
+    // fire. Bump-and-sync explicitly so dirty starts false post-refresh.
     draft.value = clone(fresh);
+    savedVersion.value = dirtyVersion.value;
     status.value = 'idle';
     errorMessage.value = null;
   }
@@ -265,6 +328,10 @@ export function useLayoutEditor(id: string): LayoutEditorState {
     // If-Match value. The server's response will give us a fresh
     // updatedAt to use for the next save's optimistic-concurrency check.
     const ifMatch = opts.force ? undefined : original.value.updatedAt;
+    // Capture dirtyVersion AT SAVE START so any edits the user makes
+    // during the await leave `dirty` true post-save (their unsaved
+    // newer edits survive). Session 162 P2.6.
+    const savingVersion = dirtyVersion.value;
 
     inFlightSave = (async () => {
       try {
@@ -295,6 +362,11 @@ export function useLayoutEditor(id: string): LayoutEditorState {
         // The server returns the saved snapshot which becomes the new
         // baseline for If-Match.
         original.value = updated;
+        // Mark the version we sent as durable. If the user made edits
+        // during the await, dirtyVersion > savingVersion → dirty stays
+        // true → auto-save schedules a follow-up. If no edits during
+        // await, dirtyVersion === savingVersion → dirty becomes false.
+        savedVersion.value = savingVersion;
         status.value = 'saved';
       } catch (err) {
         const e = err as { statusCode?: number; statusMessage?: string; message?: string; name?: string };
@@ -341,6 +413,8 @@ export function useLayoutEditor(id: string): LayoutEditorState {
   function discard(): void {
     if (!original.value) return;
     draft.value = clone(original.value);
+    // Same as refresh — non-null replacement. Sync explicitly.
+    savedVersion.value = dirtyVersion.value;
     status.value = 'idle';
     errorMessage.value = null;
   }
