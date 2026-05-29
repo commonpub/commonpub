@@ -22,11 +22,13 @@ Routes, pages, composables, blocks, sections, admin chrome — all of those come
 # Install once (monorepo)
 pnpm install
 
-# Local infra (Postgres + Redis + MinIO + Meilisearch)
-docker compose -f docker-compose.dev.yml up -d
+# Local infra (Postgres + Redis at non-default ports per docker-compose.yml)
+docker compose up -d
 
-# Run migrations + seed
-pnpm --filter @commonpub/reference db:migrate
+# Run migrations (root-level script — applies committed .sql files via drizzle-kit)
+node scripts/db-migrate.mjs
+
+# Seed dev data
 pnpm --filter @commonpub/reference seed
 
 # Dev server (http://localhost:3000)
@@ -51,20 +53,22 @@ Repo-wide `pnpm test` + `pnpm typecheck` run these as part of the Turborepo grap
 
 ## Environment variables
 
+Names match what the codebase actually reads (`process.env.*`); `NUXT_*`-prefixed names override the matching `runtimeConfig` key per Nuxt convention.
+
 | Variable | Purpose |
 |---|---|
-| `DATABASE_URL` | Postgres connection — required |
-| `REDIS_URL` | Redis/Valkey connection for queues + cache — required |
-| `BETTER_AUTH_SECRET` | Better Auth signing secret — required (32-byte hex) |
-| `S3_ENDPOINT` / `S3_REGION` / `S3_BUCKET` / `S3_ACCESS_KEY` / `S3_SECRET_KEY` | Object storage (MinIO in dev, S3/R2 in prod) |
-| `MEILISEARCH_URL` / `MEILISEARCH_API_KEY` | Search backend (optional — falls back to Postgres FTS) |
-| `CPUB_FED_TOKEN_KEY` | Federation OAuth-token encryption key (32-byte hex). REQUIRED before flipping any `federation*` flag in production |
-| `NUXT_PUBLIC_FEATURES_*` | Per-feature override at runtime (each flag must ALSO be declared in `runtimeConfig.public.features` in `nuxt.config.ts` — undeclared keys silently drop; see `feedback-nuxt-env-only-declared-keys`) |
-| `ADMIN_BOOTSTRAP_FIRST_USER` | Opt-in: the first user to register becomes admin (one-click DO deploy template) |
+| `NUXT_DATABASE_URL` (or `DATABASE_URL` fallback) | Postgres connection — required. Read in `scripts/db-migrate.mjs` and `packages/schema/drizzle.config.ts`. |
+| `NUXT_REDIS_URL` | Redis/Valkey connection — opt-in (memory fallback for realtime + queues when unset). |
+| `NUXT_AUTH_SECRET` | Better Auth signing secret — required in production (refuses to start with the dev-fallback string). |
+| `S3_ENDPOINT` / `S3_REGION` / `S3_BUCKET` / `S3_ACCESS_KEY` / `S3_SECRET_KEY` / `S3_PUBLIC_URL` / `S3_FORCE_PATH_STYLE` | Object storage (MinIO in dev, S3/R2 in prod). |
+| `MEILI_URL` / `MEILI_MASTER_KEY` | Search backend (optional — falls back to Postgres FTS when unset). |
+| `CPUB_FED_TOKEN_KEY` | Federation OAuth-token encryption key (64 hex chars = 32 bytes; off-by-one rejected). REQUIRED before flipping any `federation*` flag in production. |
+| `NUXT_PUBLIC_FEATURES_*` | Per-feature override at runtime — each flag must ALSO be declared in `runtimeConfig.public.features` in `nuxt.config.ts` or the override silently drops (`feedback-nuxt-env-only-declared-keys`). |
+| `ADMIN_BOOTSTRAP_FIRST_USER` | Opt-in: the first user to register becomes admin (one-click DO deploy template). |
 
 ## Deploy
 
-The reference app deploys to commonpub.io via the workflow at `.github/workflows/deploy-production.yml`. Heatsynclabs and Deveco use the same Dockerfile/Nuxt build with their own `commonpub.config.ts` shadow. NEVER trust `gh run list` for deploy health — always `curl /api/health` afterwards (see `feedback-deploy-health-check-warn-not-fail`).
+The reference app deploys to commonpub.io via `.github/workflows/deploy.yml` (runs `node scripts/db-migrate.mjs` inside the container before swapping). Heatsynclabs and Deveco use the same Dockerfile/Nuxt build with their own `commonpub.config.ts` shadow. NEVER trust `gh run list` for deploy health — the workflow's curl-then-warn pattern means a crashed container shows as `success` with only a yellow annotation. Always `curl /api/health` afterwards (see `feedback-deploy-health-check-warn-not-fail`).
 
 ## Customisation pattern
 
