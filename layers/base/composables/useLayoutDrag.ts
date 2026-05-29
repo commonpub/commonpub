@@ -59,11 +59,20 @@ export interface PaletteSectionDragPayload {
  * Payload carried by a section-instance drag (drag a section from one
  * row to reorder or move to another row). 3b/A scope is within-row
  * reorder; 3b/B adds cross-row + cross-zone.
+ *
+ * **The dispatcher MUST look up by `section.id`, not by `section`
+ * reference identity.** The envelope holds a reference at drag-start;
+ * if a concurrent `editor.refresh()` happens mid-drag (another admin's
+ * save + the user clicks "Reload their version" in the conflict modal),
+ * the referenced `section` becomes a phantom. Id-based lookup against
+ * the LIVE `row.sections` array tolerates the swap. Tests cover the
+ * 'section-not-found' noop branch.
  */
 export interface SectionInstanceDragPayload {
   kind: 'section-instance';
-  /** The section being dragged (deep-cloned NOT — the drop handler
-   *  works in terms of identity/id, not by-value). */
+  /** The section being dragged. Held by REFERENCE — the dispatcher
+   *  uses `.id` to look up the live position in `row.sections`,
+   *  never the reference directly. See class-comment above. */
   section: LayoutSection;
   /** The row this section currently lives in — needed for cross-row
    *  moves so the dispatcher can remove it from its source. */

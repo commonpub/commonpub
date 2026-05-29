@@ -15,10 +15,14 @@
  * not just the diff. (Default false would read only the changed words,
  * which fragments narration like "moved" + "3 of 5" into pieces.)
  *
- * `role="status"` is the WCAG-recommended role for "informational
- * change" announcements; pair with aria-live. Some SRs (notably
- * NVDA + Firefox per the editor a11y memory's testing notes) need
- * BOTH the role + the live attribute.
+ * `role="status"` + explicit `aria-live="assertive"`: ARIA 1.2 defines
+ * `role="status"` with an implicit `aria-live="polite"` default. Setting
+ * `aria-live="assertive"` explicitly OVERRIDES the implicit polite —
+ * valid combo per the ARIA spec ("Authors MAY override implicit
+ * values"). The role+attribute pairing matters because some screen
+ * readers (NVDA, JAWS) trigger different announcement queues based on
+ * the explicit aria-live value, while others (VoiceOver) read the role
+ * directly. Setting both reaches the union.
  *
  * Mount this ONCE per editor page; the singleton design means
  * multiple instances would mirror identical content (harmless but
