@@ -48,6 +48,18 @@ const props = withDefaults(defineProps<{
   onRemoveRow: undefined,
 });
 
+/**
+ * Phase 3c — getDraft closure for the row's resize handler. Same
+ * `props.layout` reference the canvas already renders against — for
+ * the editor, `editor.draft.value` IS the layout prop (the editor page
+ * binds `:layout="editor.draft.value"`). The resize composable mutates
+ * the live tree directly; the editor's deep watcher picks it up + the
+ * existing dirty/auto-save path fires. No new state.
+ */
+function getDraft(): LayoutRecord | null {
+  return props.layout;
+}
+
 // Session 162 P2.4 (R2 audit): LayoutPayload is now
 // `Pick<LayoutRecord, 'state' | 'pageMeta' | 'zones'>`, so a LayoutRecord
 // is structurally assignable as-is. The 25-line hand-built map this
@@ -182,6 +194,7 @@ function findFirstRowInZone(zoneSlug: string): LayoutRowType | null {
               :zone-slugs="zoneSlugs"
               :find-first-row-in-zone="findFirstRowInZone"
               :on-remove-row="props.onRemoveRow"
+              :get-draft="getDraft"
             />
             <!--
               Session 164 polish (v1 blocker): "+ Add row". Without

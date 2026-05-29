@@ -36,6 +36,8 @@ import {
   reorderSectionCommand,
   moveSectionCommand,
 } from '../composables/useLayoutHistory';
+import { useLayoutResize } from '../composables/useLayoutResize';
+import { useSectionRegistry } from '../sections/registry';
 import LayoutSectionComponent from './LayoutSection.vue';
 
 const props = withDefaults(defineProps<{
@@ -86,6 +88,18 @@ const props = withDefaults(defineProps<{
    * + record + narrate.
    */
   onRemoveRow?: (zoneSlug: string, rowId: string) => void;
+  /**
+   * Phase 3c — closure threading the editor's live draft into the
+   * resize composable. The row's onResizeStart needs the draft (so the
+   * composable can mutate it for live preview); passing through props
+   * keeps the row decoupled from useLayoutEditor (which already only
+   * exists at the editor page level, NOT in LayoutSlot's public path).
+   *
+   * Absent on the public render path + on LayoutSlot's previewOverride
+   * path → resize handles aren't rendered (parent doesn't pass an
+   * onResizeStart to its sections). Plan §7.5: resize is editor-only.
+   */
+  getDraft?: () => import('@commonpub/server').LayoutRecord | null;
 }>(), {
   editable: false,
   isPreview: false,
@@ -96,6 +110,7 @@ const props = withDefaults(defineProps<{
   zoneSlugs: () => [],
   findFirstRowInZone: undefined,
   onRemoveRow: undefined,
+  getDraft: undefined,
 });
 
 /*
@@ -363,6 +378,97 @@ function moveSectionToZone(section: LayoutSection, targetZone: string): void {
   }));
 }
 
+/* ----- Resize handle wiring (Phase 3c) -------------------------------- */
+/*
+ * The row owns the resize orchestration because:
+ *   - rowRef is the row's DOM element → containerWidth via getBoundingClientRect
+ *   - row.sections is the array we look up the right neighbour from
+ *   - the registry lives at the layer level; the row already imports it
+ *     for the section renderer + can use it for bounds
+ *
+ * The actual pointer-event listener lives on the section's right-edge
+ * handle button (LayoutSection.vue). When that fires, it calls the
+ * closure we pass via `onResizeStart` — which here resolves the row's
+ * width, finds the neighbour, looks up bounds, then asks
+ * useLayoutResize.startResize to take over with full document-level
+ * pointer-event handling.
+ */
+const resize = useLayoutResize();
+const sectionRegistry = useSectionRegistry();
+
+function resizeHandlerForSection(section: LayoutSection): ((e: PointerEvent) => void) | undefined {
+  // Public path: nothing. Same gate as the move handlers.
+  if (!props.editable) return undefined;
+  // Without a draft getter, the composable can't mutate live state for
+  // preview — the resize would be visually inert. Skip.
+  if (!props.getDraft) return undefined;
+  const def = sectionRegistry.get(section.type);
+  if (!def) return undefined;
+  if (!def.resizable) return undefined;
+  // Bind a closure capturing this section's identity + its def's bounds.
+  return (e: PointerEvent) => {
+    const containerEl = rowRef.value;
+    if (!containerEl) return;
+    const containerWidth = containerEl.getBoundingClientRect().width;
+    // Find the right neighbour from the LIVE sections array — handles
+    // any intervening reorders since the closure was built.
+    const idx = props.row.sections.findIndex((s) => s.id === section.id);
+    if (idx === -1) return;
+    const neighbour = idx < props.row.sections.length - 1
+      ? props.row.sections[idx + 1]
+      : null;
+    const neighbourDef = neighbour ? sectionRegistry.get(neighbour.type) : null;
+    resize.startResize({
+      rowId: props.row.id,
+      sectionId: section.id,
+      sectionType: section.type,
+      startColSpan: section.colSpan,
+      sectionMin: def.minColSpan,
+      sectionMax: def.maxColSpan,
+      neighbourId: neighbour?.id ?? null,
+      neighbourStartColSpan: neighbour?.colSpan ?? 0,
+      neighbourMin: neighbourDef?.minColSpan ?? 1,
+      neighbourMax: neighbourDef?.maxColSpan ?? 12,
+      startPointerX: e.clientX,
+      pointerId: e.pointerId,
+      containerWidth,
+      getDraft: props.getDraft!,
+      captureEl: e.currentTarget as HTMLElement,
+    });
+  };
+}
+
+/**
+ * Should the 12-col guide overlay render? True when a resize is in
+ * flight AND it targets THIS row. The overlay is a row-level affordance
+ * (12 vertical lines across the full row width) so it lives here,
+ * NOT in LayoutSection.
+ */
+const showResizeOverlay = computed<boolean>(() => {
+  const s = resize.state.value;
+  return s.kind === 'resizing' && s.rowId === props.row.id;
+});
+
+/** The current snap-line column to bold (1..12). Computed from the
+ *  resizing section's currentColSpan + its position in the row, so the
+ *  bolded line lands at the resized section's right edge. */
+const snapLineCol = computed<number | null>(() => {
+  const s = resize.state.value;
+  if (s.kind !== 'resizing' || s.rowId !== props.row.id) return null;
+  // Walk row.sections summing colSpans up to and INCLUDING the resized
+  // section. That column index (1..12) is where the section's right
+  // edge currently lies — which is what the handle is dragging.
+  let cumulative = 0;
+  for (const sec of props.row.sections) {
+    cumulative += sec.colSpan;
+    if (sec.id === s.sectionId) {
+      // Cap at 12 — defensive against draft-corruption (sum > 12).
+      return Math.min(12, cumulative);
+    }
+  }
+  return null;
+});
+
 /* ----- Remove row — Session 164 polish -------------------------------- */
 /*
  * Delegates to the editor page (which has full draft access + handles
@@ -441,6 +547,7 @@ const isOver = computed<boolean>(() => isDragOver.value !== undefined);
       :on-move-down="() => moveSection(section, 'down')"
       :available-zones="availableZones"
       :on-move-to-zone="(targetZone: string) => moveSectionToZone(section, targetZone)"
+      :on-resize-start="resizeHandlerForSection(section)"
     />
     <!--
       Session 164 polish — remove row × button.
@@ -463,6 +570,30 @@ const isOver = computed<boolean>(() => isDragOver.value !== undefined);
     >
       <i class="fa-solid fa-xmark" aria-hidden="true"></i>
     </button>
+    <!--
+      Phase 3c — 12-col guideline overlay. Shown ONLY while a resize is
+      in flight AND it's resizing a section in THIS row. 12 vertical
+      lines absolutely positioned across the row's inside; the line at
+      `snapLineCol` (the resized section's right edge) bolds to opacity
+      0.7 so the user sees their current snap target.
+      Keyed so <TransitionGroup> tracks it without animating in/out
+      (constant key; v-if drives mount/unmount). pointer-events:none on
+      the wrapper so the overlay can't intercept the resize gesture.
+    -->
+    <div
+      v-if="showResizeOverlay"
+      key="cpub-resize-overlay"
+      class="cpub-layout-row-resize-overlay"
+      aria-hidden="true"
+    >
+      <span
+        v-for="col in 12"
+        :key="col"
+        class="cpub-layout-row-resize-overlay-line"
+        :class="{ 'cpub-layout-row-resize-overlay-line--snap': snapLineCol === col }"
+        :style="{ left: `${(col / 12) * 100}%` }"
+      ></span>
+    </div>
   </TransitionGroup>
 </template>
 
@@ -632,5 +763,76 @@ const isOver = computed<boolean>(() => isDragOver.value !== undefined);
     opacity: 1;
     transform: none;
   }
+}
+
+/* ------------------------------------------------------------------ */
+/* Phase 3c — 12-column guideline overlay during a resize.              */
+/*                                                                      */
+/* Renders 12 faint vertical lines across the row's inside width; the   */
+/* line at the resized section's current snap target bolds. Gives the   */
+/* admin a visual frame of reference for "where will the snap land" and */
+/* matches Webflow / Framer / Cursor's grid-edit affordance.            */
+/*                                                                      */
+/* pointer-events:none on the wrapper so the overlay can't intercept    */
+/* the resize gesture. position:absolute relative to the row (which is  */
+/* already position:relative in editable mode).                         */
+/*                                                                      */
+/* prefers-reduced-motion: opacity-in transition skipped.               */
+/* ------------------------------------------------------------------ */
+.cpub-layout-row-resize-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  /* Above the section content (which is pointer-events:none anyway in
+     editable mode) but below the move-buttons cluster (z=2) + the
+     resize handle (z=1). Set to 0 so it sits just over content but
+     under interactive chrome. The lines themselves are opaque enough
+     to read against any background. */
+  z-index: 0;
+  /* Fade in for sighted users; reduced-motion users see it instantly. */
+  animation: cpub-overlay-fade-in 100ms ease-out;
+}
+/* R1-7 audit fix: the overlay is a keyed child of the row's
+   <TransitionGroup>, so it INHERITS the cpub-flip-enter/leave classes
+   while mounting. Their opacity:0 + scale(0.96) prelude conflicts with
+   the overlay's own fade-in animation — for ~150ms the overlay would
+   pop to scale 0.96, then snap back. Override to neutralise the flip
+   prelude on the overlay specifically; sections + the remove button
+   keep their flip animations. */
+.cpub-flip-enter-active.cpub-layout-row-resize-overlay,
+.cpub-flip-leave-active.cpub-layout-row-resize-overlay,
+.cpub-flip-move.cpub-layout-row-resize-overlay {
+  transition: none;
+}
+.cpub-flip-enter-from.cpub-layout-row-resize-overlay,
+.cpub-flip-leave-to.cpub-layout-row-resize-overlay {
+  opacity: 1;
+  transform: none;
+}
+@keyframes cpub-overlay-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.cpub-layout-row-resize-overlay-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--accent);
+  opacity: 0.25;
+  /* Center the line on its column boundary so the visual lands exactly
+     where the snap will. */
+  transform: translateX(-0.5px);
+}
+.cpub-layout-row-resize-overlay-line--snap {
+  /* The current snap target — bold AND wider so it pops against the
+     12-line backdrop. Three independent signals (color + width +
+     opacity) per WCAG 1.4.1. */
+  opacity: 0.85;
+  width: 2px;
+  transform: translateX(-1px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .cpub-layout-row-resize-overlay { animation: none; }
 }
 </style>

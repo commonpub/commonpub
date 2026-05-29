@@ -102,6 +102,16 @@ const props = withDefaults(defineProps<{
   findFirstRowInZone?: (zoneSlug: string) => LayoutRowType | null;
   /** Session 164 polish — remove row callback threaded down to LayoutRow. */
   onRemoveRow?: (zoneSlug: string, rowId: string) => void;
+  /**
+   * Phase 3c — closure threading the editor's live draft into the
+   * resize composable, via LayoutRow. The closure stays optional so
+   * LayoutSlot's public render path (no editor in scope) skips it +
+   * the resize handle isn't rendered. Synthesised by AdminLayoutsCanvas
+   * from `editor.draft` so the row's resize closure sees the LIVE
+   * mutating draft (not the previewOverride snapshot — those diverge
+   * mid-edit).
+   */
+  getDraft?: () => import('@commonpub/server').LayoutRecord | null;
 }>(), {
   previewOverride: null,
   editable: false,
@@ -112,6 +122,7 @@ const props = withDefaults(defineProps<{
   zoneSlugs: () => [],
   findFirstRowInZone: undefined,
   onRemoveRow: undefined,
+  getDraft: undefined,
 });
 
 const { layout, pending } = useLayout(props.route);
@@ -157,6 +168,7 @@ const zone = computed<LayoutZoneClient | null>(
       :zone-slugs="zoneSlugs"
       :find-first-row-in-zone="findFirstRowInZone"
       :on-remove-row="onRemoveRow"
+      :get-draft="getDraft"
     />
   </template>
 
