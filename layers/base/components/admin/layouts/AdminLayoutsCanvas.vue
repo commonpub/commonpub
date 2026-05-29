@@ -98,7 +98,10 @@ const viewportWidthPx: Record<'mobile' | 'tablet' | 'desktop', string> = {
           <header class="cpub-admin-layouts-canvas-zone-label">
             <span class="cpub-admin-layouts-canvas-zone-label-text">{{ zoneSlug }}</span>
           </header>
-          <div class="cpub-admin-layouts-canvas-zone-body">
+          <div
+            class="cpub-admin-layouts-canvas-zone-body"
+            @click.self="props.onSelect?.(null)"
+          >
             <LayoutSlot
               :route="route"
               :zone="zoneSlug"

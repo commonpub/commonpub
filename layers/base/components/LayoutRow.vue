@@ -257,12 +257,14 @@ const isOver = computed<boolean>(() => isDragOver.value !== undefined);
 /* ------------------------------------------------------------------ */
 .cpub-layout-row--editable {
   position: relative;
-  /* Empty editable rows still need to be reachable as drop targets
-     (audit R1/R3-2). Without min-height the row collapses to 0 height
-     when sections.length===0, so dnd-kit's hit-test never matches the
-     row. 64px is generous enough to be hover-discoverable + tap-
-     friendly without dominating the canvas when populated. The
-     :not selector means populated rows size to their content. */
+}
+/* Audit-of-audit A2-2: gate min-height to :empty so populated rows
+   size to their content (the original min-height was correct for
+   empty rows but over-padded compact rows). :empty matches when the
+   row has zero child elements, which happens when sections.length===0
+   OR all sections are filtered out by sectionVisible. Both cases mean
+   "no drop target without help" — exactly when we need to enlarge it. */
+.cpub-layout-row--editable:empty {
   min-height: 64px;
 }
 .cpub-layout-row--editable:hover {
