@@ -125,7 +125,7 @@ function activate(): void {
 const sectionRef = ref<HTMLElement | null>(null);
 const dragDisabled = computed<boolean>(() => !props.editable);
 
-makeDraggable(
+const { isDragOver } = makeDraggable(
   sectionRef,
   {
     groups: ['section'],
@@ -142,6 +142,32 @@ makeDraggable(
     ],
   ],
 );
+
+/**
+ * Session 164 polish — placement-aware drop indicator (plan §7.4).
+ *
+ * When a drag is held over THIS section, dnd-kit's `isDragOver` carries
+ * an `IPlacement` describing which side the cursor is on. We translate
+ * that into a 'before' / 'after' / null tri-state, then bind two CSS
+ * classes that paint a 2px accent line on the section's left or right
+ * edge — showing the admin EXACTLY where the drop will land.
+ *
+ * Rows are horizontal, so `left` and `right` are the primary signals.
+ * (Vertical-list fallbacks `top`/`bottom` are left unused here; if the
+ * row's `flex-direction` ever flips, extend this computed.)
+ *
+ * No animation framework: box-shadow + 100ms opacity transition. The
+ * indicator vanishes the moment the cursor leaves the section. FLIP
+ * transitions on the section list use `transform`, which doesn't
+ * conflict with box-shadow. prefers-reduced-motion disables the fade.
+ */
+const dropIndicatorSide = computed<'before' | 'after' | null>(() => {
+  const placement = isDragOver.value;
+  if (!placement) return null;
+  if (placement.left) return 'before';
+  if (placement.right) return 'after';
+  return null;
+});
 
 /* ----- Move to zone … popover (Phase 3b/B) ------------------------- */
 /*
@@ -252,6 +278,8 @@ const hasMoveTargets = computed<boolean>(() =>
     :class="{
       'cpub-layout-section--editable': editable,
       'cpub-layout-section--selected': editable && isSelected,
+      'cpub-layout-section--drop-before': editable && dropIndicatorSide === 'before',
+      'cpub-layout-section--drop-after': editable && dropIndicatorSide === 'after',
     }"
     :data-section-id="section.id"
     :data-section-type="section.type"
@@ -498,6 +526,27 @@ const hasMoveTargets = computed<boolean>(() =>
   color: var(--surface);
   border-color: var(--accent);
   opacity: 1;
+}
+
+/* ------------------------------------------------------------------ */
+/* Session 164 — placement-aware drop indicators (plan §7.4).           */
+/* 2px accent line on left/right edge during drag-over. Box-shadow      */
+/* keeps the section's layout box unchanged + plays well with FLIP's    */
+/* transform animations. 100ms fade matches the existing chrome timing. */
+/* ------------------------------------------------------------------ */
+.cpub-layout-section--drop-before {
+  box-shadow: -3px 0 0 0 var(--accent);
+  transition: box-shadow 100ms ease-out;
+}
+.cpub-layout-section--drop-after {
+  box-shadow: 3px 0 0 0 var(--accent);
+  transition: box-shadow 100ms ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cpub-layout-section--drop-before,
+  .cpub-layout-section--drop-after {
+    transition: none;
+  }
 }
 
 /* ------------------------------------------------------------------ */

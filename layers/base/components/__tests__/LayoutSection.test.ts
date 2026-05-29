@@ -229,3 +229,82 @@ describe('LayoutSection — makeDraggable wiring (Phase 3b/A)', () => {
     expect((env.section as { id: string }).id).toBe('S1');
   });
 });
+
+/* ---- Placement-aware drop indicator (Session 164 polish) ---- */
+
+describe('LayoutSection — drop-indicator class binding (Session 164)', () => {
+  // Drive isDragOver from the mock so we can verify the computed
+  // dropIndicatorSide → CSS class wiring across the three states.
+  // Each test resets the mock's return so the next mount picks up
+  // a fresh ref shape.
+
+  function mountWithDragOver(placement: { left?: boolean; right?: boolean; top?: boolean; bottom?: boolean } | undefined) {
+    // `as never` cast: makeDraggableMock's inferred return type pins
+    // isDragOver to { value: undefined }; the runtime mock CAN return
+    // any placement but vue-tsc narrows the literal. Matches the
+    // existing typed-accessor pattern (feedback-vue-tsc-strict-vs-vitest).
+    makeDraggableMock.mockReturnValueOnce({
+      selected: { value: false },
+      isDragging: { value: false },
+      isAllowed: { value: true },
+      isDragOver: { value: placement },
+    } as never);
+    return render(LayoutSection, {
+      props: {
+        section: makeSection('sec-DI'),
+        rowId: 'row-1',
+        route: '/',
+        zone: 'main',
+        editable: true,
+      },
+    });
+  }
+
+  it('placement.left=true → --drop-before class on the section', () => {
+    const { container } = mountWithDragOver({ left: true });
+    const el = container.querySelector('.cpub-layout-section')!;
+    expect(el.classList.contains('cpub-layout-section--drop-before')).toBe(true);
+    expect(el.classList.contains('cpub-layout-section--drop-after')).toBe(false);
+  });
+
+  it('placement.right=true → --drop-after class', () => {
+    const { container } = mountWithDragOver({ right: true });
+    const el = container.querySelector('.cpub-layout-section')!;
+    expect(el.classList.contains('cpub-layout-section--drop-after')).toBe(true);
+    expect(el.classList.contains('cpub-layout-section--drop-before')).toBe(false);
+  });
+
+  it('isDragOver=undefined → neither class applied', () => {
+    const { container } = mountWithDragOver(undefined);
+    const el = container.querySelector('.cpub-layout-section')!;
+    expect(el.classList.contains('cpub-layout-section--drop-before')).toBe(false);
+    expect(el.classList.contains('cpub-layout-section--drop-after')).toBe(false);
+  });
+
+  it('placement with NEITHER left nor right (e.g. dead-center) → neither class', () => {
+    const { container } = mountWithDragOver({ top: true });
+    const el = container.querySelector('.cpub-layout-section')!;
+    expect(el.classList.contains('cpub-layout-section--drop-before')).toBe(false);
+    expect(el.classList.contains('cpub-layout-section--drop-after')).toBe(false);
+  });
+
+  it('editable=false: drop-indicator classes NEVER apply (public path stays clean)', () => {
+    makeDraggableMock.mockReturnValueOnce({
+      selected: { value: false },
+      isDragging: { value: false },
+      isAllowed: { value: true },
+      isDragOver: { value: { left: true } },
+    } as never);
+    const { container } = render(LayoutSection, {
+      props: {
+        section: makeSection('sec-pub'),
+        rowId: 'r',
+        route: '/',
+        zone: 'main',
+        editable: false,
+      },
+    });
+    const el = container.querySelector('.cpub-layout-section')!;
+    expect(el.classList.contains('cpub-layout-section--drop-before')).toBe(false);
+  });
+});
