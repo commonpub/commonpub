@@ -97,13 +97,29 @@ Each phase: small commits, run tests, push, verify on commonpub.io (editor pages
 - [ ] **3d.4** axe-core scan clean for the editor surface
 - [ ] **3d.5** Tests with `@testing-library/vue` + axe assertion helper
 
-### Phase 3e — Auto-form from Zod (1 session)
+### Phase 3e — Auto-form from Zod (2-3 sessions)
 
-- [ ] **3e.1** Install `@formkit/vue` + `@formkit/zod` (or evaluate `shadcn-vue/auto-form` if FormKit feels heavy)
-- [ ] **3e.2** 14 Zod kind → form-field mappings per docs/plans/layout-and-pages.md §7.10
-- [ ] **3e.3** Custom pickers (content/hub/image/color) — wrap as FormKit input plugins
-- [ ] **3e.4** Replace inspector's hardcoded form (3a.4) with the auto-form
-- [ ] **3e.5** Tests for each Zod kind mapping
+> **DECISION (session 167) — FormKit ABANDONED for the auto-form.** Verified
+> against source per the "verify load-bearing claims" rule: `@formkit/zod`'s
+> `createZodPlugin` is **validation-only** (does NOT generate fields from a
+> schema) AND peer-deps `zod@^3` while the monorepo is on `zod@4.3.6`.
+> Adopted the risk-register fallback below: a hand-rolled `<AutoForm>` driven
+> by **Zod 4's native `z.toJSONSchema()`**. Zero new bundle weight. See
+> `docs/sessions/167-3e.md` + [[project-session-167-formkit-pivot]].
+
+**Session 1 (167) — SHIPPED**:
+- [x] **3e.1** Pure `buildAutoForm()` engine over `z.toJSONSchema()` — `composables/autoFormSchema.ts`. Maps the §7.10 table (string/textarea/url-text/enum+union-const-select/number/toggle/array-repeater/group/empty). 15 table tests over all 17 builtin schemas + the row schema.
+- [x] **3e.2** `<AdminLayoutsAutoForm>` (recursive native-input renderer, `cpub-autoform-*` reusing the design language) + `<AdminLayoutsInspectorSection>` (registry lookup + inline Zod validation + §7.15 edge states) + `<AdminLayoutsInspectorRow>` (dogfoods the engine on `layoutRowConfigSchema`).
+- [x] **3e.3** `<AdminLayoutsInspector>` 3-way dispatch (null/section/row) + `[id].vue` config-update wiring + **row-select handle** in `LayoutRow` (the row branch was unreachable — rows had `--selected` wired but no trigger).
+- [x] Tests + axe slice of 3e.6 for the new components (engine + behavioral + 5 axe scans).
+
+**Sessions 2-3 (168+) — CARRY-OVER** (see `docs/sessions/167-kickoff-next.md`):
+- [ ] Browser-verify session 167's pointer interactions (NOT yet done — unit tests bypass hit-testing).
+- [ ] **3e.4** Mobile colSpan slider routed through `useLayoutResize.applyKeyboardResize`.
+- [ ] **3e.5** Phase 3c polish (R3-10 separator role + R3-12 overlay gap).
+- [ ] **3e.6** Full-shell axe via `@nuxt/test-utils` + Playwright harness.
+- [ ] Custom pickers (content/hub/image/color) + rich text — via the `.describe('keyword:arg')` seam the engine already reads.
+- [ ] Config-edit undo (§7.14 `edit-section-config`) + migration application.
 
 ### Phase 3f — Inspector polish (1 session)
 
@@ -145,6 +161,7 @@ Each phase: small commits, run tests, push, verify on commonpub.io (editor pages
 | 2026-05-27 | One GridLayout per zone (full-width / main / sidebar) | Avoids fighting grid-layout-plus's single-grid model; @vue-dnd-kit/core spans the boundary |
 | 2026-05-27 | Auto-save is debounced PUT, NOT live websocket | Simpler; conflict detection on 409 is enough for v1. WebSocket can come in Phase 10. |
 | 2026-05-27 | Lazy-load editor bundle behind /admin/layouts route | Public homepage shouldn't pay the editor JS cost |
+| 2026-05-29 | **FormKit abandoned for the auto-form** — hand-rolled `<AutoForm>` over Zod 4's `z.toJSONSchema()` instead | `@formkit/zod` is validation-only (no field-gen) + peer-deps Zod 3 vs our Zod 4. The risk register's pre-authorized fallback. Zero bundle delta. Session 167. |
 
 ---
 
