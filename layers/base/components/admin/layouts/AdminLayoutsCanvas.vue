@@ -13,7 +13,7 @@
  */
 import { computed } from 'vue';
 import type { LayoutRecord } from '@commonpub/server';
-import type { LayoutPayload } from '../../../composables/useLayout';
+import type { LayoutPayload, LayoutRow as LayoutRowType } from '../../../composables/useLayout';
 import type { EditorSelection } from '../../../composables/useLayoutEditor';
 
 const props = withDefaults(defineProps<{
@@ -61,6 +61,39 @@ const viewportWidthPx: Record<'mobile' | 'tablet' | 'desktop', string> = {
   tablet: '768px',
   desktop: '100%',
 };
+
+/**
+ * Phase 3b/B — cross-row lookups. The dispatcher needs to find the
+ * source row of a section-instance drag, which can be in any zone.
+ * The Canvas has access to the WHOLE layout (vs LayoutRow which only
+ * has its own row), so it synthesises these once + passes them down.
+ *
+ * Closures over `props.layout` — re-evaluated on every layout mutation
+ * via Vue's reactivity. The closures themselves are stable references
+ * (LayoutRow re-renders on prop change), but the data they read is
+ * always the live, post-mutation tree.
+ */
+function findRow(rowId: string): LayoutRowType | null {
+  const l = props.layout;
+  if (!l) return null;
+  for (const zone of l.zones) {
+    for (const row of zone.rows) {
+      if (row.id === rowId) return row as LayoutRowType;
+    }
+  }
+  return null;
+}
+
+function findZone(rowId: string): string | null {
+  const l = props.layout;
+  if (!l) return null;
+  for (const zone of l.zones) {
+    for (const row of zone.rows) {
+      if (row.id === rowId) return zone.zone;
+    }
+  }
+  return null;
+}
 </script>
 
 <template>
@@ -109,6 +142,8 @@ const viewportWidthPx: Record<'mobile' | 'tablet' | 'desktop', string> = {
               :editable="true"
               :on-select="props.onSelect"
               :selected-id="props.selectedId"
+              :find-row="findRow"
+              :find-zone="findZone"
             />
           </div>
         </div>

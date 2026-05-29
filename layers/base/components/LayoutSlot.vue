@@ -38,7 +38,7 @@
  * an admin-only error placeholder.
  */
 import { computed } from 'vue';
-import type { LayoutPayload, LayoutZoneClient } from '../composables/useLayout';
+import type { LayoutPayload, LayoutZoneClient, LayoutRow as LayoutRowType } from '../composables/useLayout';
 import type { EditorSelection } from '../composables/useLayoutEditor';
 import LayoutRow from './LayoutRow.vue';
 
@@ -86,11 +86,22 @@ const props = withDefaults(defineProps<{
    * a re-render contract. Optional; defaults to null (no highlight).
    */
   selectedId?: EditorSelection | null;
+  /**
+   * Phase 3b/B — cross-zone lookup, threaded down to each LayoutRow's
+   * drop handler. Synthesised by AdminLayoutsCanvas from the editor's
+   * full draft (which the public render path doesn't have access to).
+   * Without it, cross-row drops fall back to noop in the dispatcher.
+   */
+  findRow?: (rowId: string) => LayoutRowType | null;
+  /** Phase 3b/B — zone-of-row lookup for narration. */
+  findZone?: (rowId: string) => string | null;
 }>(), {
   previewOverride: null,
   editable: false,
   onSelect: undefined,
   selectedId: null,
+  findRow: undefined,
+  findZone: undefined,
 });
 
 const { layout, pending } = useLayout(props.route);
@@ -131,6 +142,8 @@ const zone = computed<LayoutZoneClient | null>(
       :is-preview="!!previewOverride"
       :on-select="onSelect"
       :selected-id="selectedId"
+      :find-row="findRow"
+      :find-zone="findZone"
     />
   </template>
 

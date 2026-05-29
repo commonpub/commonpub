@@ -40,6 +40,14 @@ const props = defineProps<{
   paletteHidden: boolean;
   /** Inspector panel hidden (parent owns state via useEditorChrome). */
   inspectorHidden: boolean;
+  /** Phase 3b/B — undo/redo button enablement + tooltip labels. */
+  canUndo?: boolean;
+  canRedo?: boolean;
+  /** Label of the command that undo/redo will apply — shown as the
+   *  button's title attribute ("Undo: move hero"). null when stack
+   *  is empty (button is disabled then). */
+  undoLabel?: string | null;
+  redoLabel?: string | null;
 }>();
 
 // Relative-time string for the save indicator. Updates every 30s so the
@@ -113,7 +121,20 @@ const emit = defineEmits<{
   (e: 'discard'): void;
   (e: 'toggle-palette'): void;
   (e: 'toggle-inspector'): void;
+  (e: 'undo'): void;
+  (e: 'redo'): void;
 }>();
+
+/* Phase 3b/B — undo/redo button copy. Title attribute shows the
+ * specific label of the next command ("Undo: move hero") — this is
+ * the discoverable counterpart to the hotkey + a confirmation that the
+ * stack actually holds something meaningful before the user clicks. */
+const undoTitle = computed<string>(() =>
+  props.canUndo && props.undoLabel ? `Undo: ${props.undoLabel} (Cmd+Z)` : 'Undo (Cmd+Z)',
+);
+const redoTitle = computed<string>(() =>
+  props.canRedo && props.redoLabel ? `Redo: ${props.redoLabel} (Cmd+Shift+Z)` : 'Redo (Cmd+Shift+Z)',
+);
 
 const indicatorText = computed<string>(() => {
   if (props.saveStatus === 'saving') return 'Saving…';
@@ -201,6 +222,41 @@ const VIEWPORTS: Array<{ value: 'mobile' | 'tablet' | 'desktop'; icon: string; l
     >
       <i :class="inspectorHidden ? 'fa-solid fa-angles-left' : 'fa-solid fa-angles-right'"></i>
     </button>
+
+    <!--
+      Phase 3b/B — undo / redo. Plan §7.12 toolbar mockup shows '⤺ ⤻'
+      between viewport and save indicator. Tooltip carries the next
+      command's specific label ("Undo: move hero") so the discoverable
+      affordance answers "what will Cmd+Z do?" without taking action.
+      Disabled state when stack is empty in that direction; keyboard
+      hotkeys (Cmd+Z / Cmd+Shift+Z) live independently in useLayoutHotkeys.
+    -->
+    <div
+      class="cpub-admin-layouts-toolbar-history"
+      role="group"
+      aria-label="Undo and redo"
+    >
+      <button
+        type="button"
+        class="cpub-admin-layouts-toolbar-panel-btn"
+        :aria-label="undoTitle"
+        :title="undoTitle"
+        :disabled="!canUndo"
+        @click="emit('undo')"
+      >
+        <i class="fa-solid fa-rotate-left" aria-hidden="true"></i>
+      </button>
+      <button
+        type="button"
+        class="cpub-admin-layouts-toolbar-panel-btn"
+        :aria-label="redoTitle"
+        :title="redoTitle"
+        :disabled="!canRedo"
+        @click="emit('redo')"
+      >
+        <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
+      </button>
+    </div>
 
     <div
       class="cpub-admin-layouts-toolbar-indicator"
@@ -351,6 +407,23 @@ const VIEWPORTS: Array<{ value: 'mobile' | 'tablet' | 'desktop'; icon: string; l
   color: var(--accent);
   border-color: var(--accent);
   background: var(--accent-bg);
+}
+/* Disabled state for undo/redo when stack is empty in that direction.
+   The aria-pressed treatment above is for toggle buttons; history
+   buttons have no pressed state, so the disabled rule wins on overlap. */
+.cpub-admin-layouts-toolbar-panel-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  color: var(--text-dim);
+  border-color: var(--border2);
+  background: transparent;
+}
+
+/* Group the undo + redo buttons visually so they read as a pair (matches
+   the viewport segmented control's grouping discipline). */
+.cpub-admin-layouts-toolbar-history {
+  display: inline-flex;
+  gap: var(--space-1);
 }
 
 .cpub-admin-layouts-toolbar-viewport {

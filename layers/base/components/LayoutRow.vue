@@ -28,7 +28,14 @@ import {
   narrateInserted,
   narrateReordered,
   narrateMoveBlocked,
+  narrateMovedToZone,
 } from '../composables/useLayoutAnnouncer';
+import {
+  useLayoutHistory,
+  insertSectionCommand,
+  reorderSectionCommand,
+  moveSectionCommand,
+} from '../composables/useLayoutHistory';
 import LayoutSectionComponent from './LayoutSection.vue';
 
 const props = withDefaults(defineProps<{
@@ -48,11 +55,28 @@ const props = withDefaults(defineProps<{
   onSelect?: (selection: EditorSelection) => void;
   /** Currently-selected target. */
   selectedId?: EditorSelection | null;
+  /**
+   * Phase 3b/B — cross-zone lookup. Synthesised by AdminLayoutsCanvas
+   * from the editor's draft + threaded through LayoutSlot. When present,
+   * the row's drop handler can route cross-row drops (section dragged
+   * from a different row in either the same OR a different zone).
+   * When absent (public render path / tests), cross-row drops noop.
+   */
+  findRow?: (rowId: string) => LayoutRow | null;
+  /**
+   * Phase 3b/B — zone-of-row lookup. Used to narrate cross-zone moves
+   * ("Hero moved from main, position 3 of 5, to sidebar, position 1
+   * of 2"). Optional — when absent, cross-row narration falls back to
+   * the position-only `narrateReordered` form.
+   */
+  findZone?: (rowId: string) => string | null;
 }>(), {
   editable: false,
   isPreview: false,
   onSelect: undefined,
   selectedId: null,
+  findRow: undefined,
+  findZone: undefined,
 });
 
 /*
@@ -106,24 +130,37 @@ const rowIsSelected = computed<boolean>(() => {
 const rowRef = ref<HTMLElement | null>(null);
 const dragDisabled = computed<boolean>(() => !props.editable);
 const announcer = useLayoutAnnouncer();
+const history = useLayoutHistory();
 
 function handleDrop(event: IDragEvent): void {
   // Delegate to the pure dispatcher — same function used by tests, so
   // the behavior matrix is exercised once + this component is wiring.
-  const outcome = dispatchSectionDrop(event, props.row);
-  // Narrate the result for screen readers. `total` reflects post-drop
-  // length (palette → row insert grows by 1; within-row reorder stays
-  // the same).
+  // Phase 3b/B: pass `findRow` so cross-row + cross-zone drops route
+  // through the dispatcher's `'moved'` branch instead of noop.
+  const outcome = dispatchSectionDrop(event, props.row, { findRow: props.findRow });
+
   if (outcome.kind === 'inserted') {
     announcer.announce(
       narrateInserted(outcome.section.type, outcome.at, props.row.sections.length),
     );
-  } else if (outcome.kind === 'reordered' && outcome.from !== outcome.to) {
+    // Phase 3b/B: record for undo. The dispatcher already mutated the
+    // row; the command captures how to invert + how to replay.
+    history.record(insertSectionCommand({
+      rowId: props.row.id,
+      at: outcome.at,
+      section: outcome.section,
+      label: `insert ${outcome.section.type}`,
+    }));
+    return;
+  }
+  if (outcome.kind === 'reordered') {
     // No-op reorder (audit R2-5): drag-onto-self produces from===to.
     // Narrating "moved from position 3 to position 3" is confusing
     // and worse-than-silent for SR users. The drag still consumed
     // pointer focus, so the implicit feedback is "I held + released
-    // and nothing changed". Silent is correct.
+    // and nothing changed". Silent is correct. Also DON'T record a
+    // command — the stack would fill with self-equal entries.
+    if (outcome.from === outcome.to) return;
     announcer.announce(
       narrateReordered(
         outcome.section.type,
@@ -132,10 +169,54 @@ function handleDrop(event: IDragEvent): void {
         props.row.sections.length,
       ),
     );
+    history.record(reorderSectionCommand({
+      rowId: props.row.id,
+      sectionId: outcome.section.id,
+      from: outcome.from,
+      to: outcome.to,
+      label: `reorder ${outcome.section.type}`,
+    }));
+    return;
   }
-  // noop outcomes (cross-row, ghost id, empty payload) — silent so
-  // we don't narrate "nothing happened" on every accidental drop. The
-  // user's pointer feedback is enough.
+  if (outcome.kind === 'moved') {
+    // Cross-row / cross-zone — Phase 3b/B's headline feature. Narrate
+    // with zone slugs when findZone is available so SR users hear the
+    // destination zone explicitly ("moved from main … to sidebar …").
+    // The dispatcher's `fromTotal` is the source's BEFORE-splice length;
+    // `toTotal` is the destination's AFTER-insert length. Both are the
+    // right numbers for "position N of M" narration after the move.
+    const fromZone = props.findZone?.(outcome.fromRowId);
+    const toZone = props.findZone?.(outcome.toRowId);
+    if (fromZone && toZone && fromZone !== toZone) {
+      announcer.announce(narrateMovedToZone(
+        outcome.section.type,
+        fromZone, outcome.fromIdx, outcome.fromTotal,
+        toZone, outcome.toIdx, outcome.toTotal,
+      ));
+    } else {
+      // Cross-row within the same zone (or zones unknown). Fall back to
+      // the row-relative form — still position-based, just doesn't name
+      // a zone the user already implicitly knew about.
+      announcer.announce(narrateReordered(
+        outcome.section.type,
+        outcome.fromIdx,
+        outcome.toIdx,
+        outcome.toTotal,
+      ));
+    }
+    history.record(moveSectionCommand({
+      fromRowId: outcome.fromRowId,
+      toRowId: outcome.toRowId,
+      sectionId: outcome.section.id,
+      fromIdx: outcome.fromIdx,
+      toIdx: outcome.toIdx,
+      label: `move ${outcome.section.type}`,
+    }));
+    return;
+  }
+  // noop outcomes (ghost id, empty payload) — silent so we don't narrate
+  // "nothing happened" on every accidental drop. The user's pointer
+  // feedback is enough.
 }
 
 /* ----- Move Up / Move Down — WCAG 2.1.1 non-drag a11y path -------- */
@@ -167,6 +248,17 @@ function moveSection(section: LayoutSection, direction: 'up' | 'down'): void {
   if (!moved) return;
   props.row.sections.splice(targetIdx, 0, moved);
   announcer.announce(narrateReordered(moved.type, idx, targetIdx, total));
+  // Phase 3b/B: keyboard reorder records to undo too, so Cmd+Z works
+  // identically for drag-driven + keyboard-driven moves. The command
+  // captures the absolute positions (not just direction) so a redo
+  // after intervening commands still lands correctly.
+  history.record(reorderSectionCommand({
+    rowId: props.row.id,
+    sectionId: moved.id,
+    from: idx,
+    to: targetIdx,
+    label: `move ${moved.type} ${direction}`,
+  }));
 }
 
 const { isDragOver } = makeDroppable(

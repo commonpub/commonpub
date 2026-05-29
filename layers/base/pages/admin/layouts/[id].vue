@@ -16,7 +16,9 @@
  */
 import type { LayoutRecord } from '@commonpub/server';
 import { PublishStepError } from '../../../composables/useLayoutEditor';
-import { useLayoutAnnouncer } from '../../../composables/useLayoutAnnouncer';
+import { useLayoutAnnouncer, narrateUndo, narrateRedo, narrateUndoEmpty, narrateRedoEmpty } from '../../../composables/useLayoutAnnouncer';
+import { useLayoutHistory } from '../../../composables/useLayoutHistory';
+import { useLayoutHotkeys } from '../../../composables/useLayoutHotkeys';
 import { DnDProvider } from '@vue-dnd-kit/core';
 
 definePageMeta({
@@ -29,6 +31,31 @@ const toast = useToast();
 const id = computed<string>(() => String(route.params.id));
 
 const editor = useLayoutEditor(id.value);
+const history = useLayoutHistory();
+
+// Phase 3b/B: window-level Cmd+Z / Cmd+Shift+Z. The composable
+// attaches on mount + detaches on unmount; input/textarea/contenteditable
+// focus skips so the browser's native text undo wins.
+useLayoutHotkeys({ getDraft: () => editor.draft.value });
+
+// Toolbar undo / redo emit handlers — wire to the same history singleton
+// the hotkey uses + the same announcer narration. Tooltip text comes
+// from `history.lastLabel` / `nextLabel` so the user can see WHICH
+// command they're about to undo without taking action.
+function onToolbarUndo(): void {
+  const draft = editor.draft.value;
+  if (!draft) return;
+  const ann = useLayoutAnnouncer();
+  const cmd = history.undo(draft);
+  ann.announcePolite(cmd ? narrateUndo(cmd.label) : narrateUndoEmpty());
+}
+function onToolbarRedo(): void {
+  const draft = editor.draft.value;
+  if (!draft) return;
+  const ann = useLayoutAnnouncer();
+  const cmd = history.redo(draft);
+  ann.announcePolite(cmd ? narrateRedo(cmd.label) : narrateRedoEmpty());
+}
 
 // Palette + inspector visibility — persists per-admin via cookie so the
 // admin's last layout (e.g. "I always work with inspector hidden, palette
@@ -45,6 +72,12 @@ if (initial.value) {
   editor.original.value = initial.value;
   editor.draft.value = JSON.parse(JSON.stringify(initial.value));
 }
+
+// Phase 3b/B: clear undo history at seed time. The history singleton is
+// module-scoped, so opening a different layout could otherwise inherit
+// the previous editor's stack — Cmd+Z would undo into the wrong draft.
+// Same rule applies on refresh + save success (handled below via watch).
+history.clear();
 
 useSeoMeta({
   title: () => `Edit: ${editor.draft.value?.name ?? 'Layout'} — Admin — ${useSiteName()}`,
@@ -134,9 +167,34 @@ useLayoutAutoSave({
 // EXCEPT when we've already crossed into thrashing. At that point the
 // banner is the single reconciliation surface; the modal on top would
 // be redundant (same actions, more visual noise).
-watch(editor.status, (status) => {
+watch(editor.status, (status, prev) => {
   if (status === 'conflict' && !editor.conflictThrashing.value) {
     conflictOpen.value = true;
+  }
+  // Phase 3b/B: clear undo history on save success. Plan §7.14:
+  // "saved draft is the new baseline; redo across save is hostile".
+  // The transition we care about is `saving → saved` (NOT every time
+  // status holds at 'saved', which would clear after every harmless
+  // re-render). Refresh + discard also flow through here transitively
+  // because both end at status='idle' AFTER having cleared the draft,
+  // but those paths clear history directly via their own watchers below.
+  if (prev === 'saving' && status === 'saved') {
+    history.clear();
+  }
+});
+
+// Phase 3b/B: also clear on `refresh()` + `discard()` paths. Both
+// replace `draft` wholesale, which leaves the existing past/future
+// commands pointing at sections that may no longer exist. Watching
+// `original.value` change picks up both: refresh assigns a new server
+// snapshot; discard re-clones original into draft (original itself
+// doesn't change, so this watch doesn't fire then — but discard's own
+// `selectedId = null` sets, and we mirror the same intent here).
+watch(() => editor.original.value, (newOriginal, oldOriginal) => {
+  // Initial assignment (oldOriginal === null) — the seed-time clear()
+  // above already covered this. Subsequent reassignments are refresh().
+  if (oldOriginal !== null && newOriginal !== oldOriginal) {
+    history.clear();
   }
 });
 
@@ -190,6 +248,13 @@ function onDiscard(): void {
   if (!editor.dirty.value) return;
   if (!confirm('Discard all unsaved changes? This cannot be undone.')) return;
   editor.discard();
+  // Phase 3b/B: discard replaces `draft` with a clone of `original`. The
+  // commands in the past stack reference sections + positions that may
+  // not exist in the discarded-from state; an undo would re-apply
+  // operations that "discard" effectively rolled back. The confirm
+  // dialog already warned this is destructive — undo across discard
+  // would be more surprising, not less. So clear.
+  history.clear();
   toast.success('Unsaved changes discarded');
 }
 
@@ -279,12 +344,18 @@ async function onConflictForceSave(): Promise<void> {
         :last-saved-at="editor.original.value?.updatedAt ?? null"
         :palette-hidden="chrome.paletteHidden.value"
         :inspector-hidden="chrome.inspectorHidden.value"
+        :can-undo="history.canUndo.value"
+        :can-redo="history.canRedo.value"
+        :undo-label="history.lastLabel.value"
+        :redo-label="history.nextLabel.value"
         @update:viewport="viewport = $event"
         @save="onSave"
         @publish="onPublish"
         @discard="onDiscard"
         @toggle-palette="chrome.togglePalette"
         @toggle-inspector="chrome.toggleInspector"
+        @undo="onToolbarUndo"
+        @redo="onToolbarRedo"
       />
 
       <!--
