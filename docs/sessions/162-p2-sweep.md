@@ -1,8 +1,8 @@
-# Session 162 — P2 sweep (closes the deferred queue)
+# Session 162 — P2 sweep (closes the deferred queue) + self-audit polish
 
 **Date**: 2026-05-28 (single-day session)
 **Branch**: `main` (commonpub.io workspace, 0 npm publishes)
-**Outcome**: 7 commits on main; **every P2 from the session 160 audit rounds is closed**. Editor canvas, dirty tracking, save lifecycle, and admin discoverability all polished. Zero deferred P1/P2s remain on the layout-editor queue.
+**Outcome**: 9 commits on main; **every P2 from the session 160 audit rounds is closed** + a self-audit round caught 5 real bugs in the P2 work and closed them in the same session. Editor canvas, dirty tracking, save lifecycle, conflict reconciliation surface, and admin discoverability all polished. Zero deferred P1/P2s remain on the layout-editor queue.
 
 ## What the session looked like
 
@@ -59,6 +59,24 @@ The seven P2s shipped in priority order: smallest-visibility-win first to build 
 - **vue-tsc TS4114 on `Error.cause` override** — vitest's esbuild let it slide; vue-tsc strict caught the missing `override` modifier on `PublishStepError.cause`. Fixed before push.
 - **Version-counter auto-sync was too aggressive at first pass** — initial impl synced savedVersion on every null→non-null draft assignment, breaking the "seed with divergent draft → expect dirty=true" test pattern used in 20+ existing tests. Tightened to "auto-sync only when stable-string-equal to original" → all existing tests still pass + new behavior pinned. The retained stable-string runs ONCE per editor instance (at seed) rather than per-keystroke — the audit's actual cost concern.
 
+## Self-audit round (caught + fixed in `16ccfd2`)
+
+After all 7 P2s shipped + deploy verified, ran the R1–R4 lens of the session 160 audit pattern over the diff. Five real bugs surfaced — all closed in one polish commit:
+
+| Lens | Finding | Fix |
+|---|---|---|
+| R1 UX | Conflict-thrash banner copy mentioned "Refresh / force-save / Resume" but only rendered a Resume button. Admin had to trigger save to surface the modal for the other two CTAs. | Added inline Refresh + Force save + Resume buttons to the banner. Banner is now the single complete reconciliation surface. |
+| R1 UX | Banner CSS used `var(--warning, var(--surface2))` — `--warning` never existed in the theme system, so the fallback rendered as neutral gray (not "attention"). | Switched to `--yellow-bg` / `--yellow-border` / `--yellow` tokens (defined on every theme in `packages/ui/theme/*.css`). |
+| R1 UX | Dashboard tile labelled "Edit Layouts" implied a direct-to-editor jump but the route is the list page. | Renamed to "Layouts" to match the sidebar nav verbatim. |
+| R2 correctness | When the 3rd conflict tripped thrashing, the modal AND banner were visible simultaneously — same actions, redundant UI. | Suppressed modal during thrashing (status watcher checks `!conflictThrashing`); added watcher that closes the modal if thrashing trips while it was open. |
+| R2 correctness | `onConflictRefresh` + `onConflictForceSave` didn't call `clearConflictHistory` — admin's explicit reconciliation left the banner stuck until they clicked Resume separately. | Added `editor.clearConflictHistory()` to both handlers on success. The conservative path: only EXPLICIT admin intent (force/refresh) auto-clears; regular saves don't. |
+
+Documentation also added:
+- `conflictThrashing` computed: documented the Vue-cache assumption (rolling window doesn't auto-expire via wall-clock — feedback loop holds in practice but the original comment claimed wall-clock expiry, which was wrong).
+- `LayoutPayload`: warned future devs that any new field on `LayoutSectionResolved` / `LayoutRowResolved` automatically flows to `/api/layouts/by-route` (public). Admin-only fields must NOT be added to those resolved types.
+
+Layer tests still **318 passing**; typecheck 26/26 clean (all changes either non-behavioral or page-level wire-up not covered by composable tests).
+
 ## New surfaces
 
 | Name | Purpose | Surface |
@@ -93,7 +111,7 @@ All use `var(--*)`; no hardcoded colors.
 
 ## End state
 
-- commonpub.io: workspace `main` (`121f289`). Public homepage byte-pattern unchanged (3 layout-rows + 5 layout-sections, no `--editable` leak). Admin editor at `/admin/layouts` + `/admin/layouts/[id]` now has flushBeacon for tab-close, conflict throttle for cascade scenarios, O(1) dirty for high-N sections, and step-typed publish errors. heatsync + deveco UNTOUCHED.
+- commonpub.io: workspace `main` (`16ccfd2`). Public homepage byte-pattern unchanged (3 layout-rows + 5 layout-sections, no `--editable` leak). Admin editor at `/admin/layouts` + `/admin/layouts/[id]` now has flushBeacon for tab-close, conflict throttle for cascade scenarios with a complete inline-action banner surface, O(1) dirty for high-N sections, and step-typed publish errors. heatsync + deveco UNTOUCHED.
 - Tests: layer **318**, schema 470, server **1129** + 3 skipped, repo typecheck 26/26 FULL TURBO.
 - No memories added (every change was already covered by existing feedback memories).
 - No codebase-analysis updates queued — the surface area is small enough that the next session's audit can catch any drift.
