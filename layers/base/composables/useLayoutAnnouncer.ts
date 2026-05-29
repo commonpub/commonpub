@@ -35,12 +35,36 @@
  */
 import { ref, type Ref } from 'vue';
 
-const message = ref<string>('');
+/* ------------------------------------------------------------------ */
+/* Two narration channels — assertive (drag/drop) + polite (undo/redo) */
+/* ------------------------------------------------------------------ */
+/*
+ * Drag/drop state changes are TIME-CRITICAL: the user's next keypress
+ * lands on whichever drop target is currently under the cursor; missing
+ * the previous narration means flying blind on the next step. That
+ * earns `aria-live="assertive"`.
+ *
+ * Undo / redo confirmations are INFORMATIONAL: the user is telling the
+ * editor what to do, the editor is acknowledging. Interrupting another
+ * narration (e.g. a save status) to announce "Undid: …" is louder than
+ * the action warrants. That earns `aria-live="polite"` — the screen
+ * reader queues it for the next quiet moment.
+ *
+ * Mixing both channels into one assertive region would push undo
+ * confirmations to interrupt drag narration, which is the opposite of
+ * what we want. So two separate refs + a separate role="status"
+ * polite mirror in <AdminLayoutsAnnouncer>.
+ */
 
-/** Auto-clear handle so a stale message doesn't linger for the next
- *  drag's announcement (when the new message would be identical to
- *  the lingering one, some screen readers don't re-announce). */
+const message = ref<string>('');
+const politeMessage = ref<string>('');
+
+/** Auto-clear handles so stale messages don't linger for the next
+ *  announcement (when the new message would be identical to the
+ *  lingering one, some screen readers don't re-announce). One handle
+ *  per channel so the timers don't clobber each other. */
 let clearHandle: ReturnType<typeof setTimeout> | null = null;
+let politeClearHandle: ReturnType<typeof setTimeout> | null = null;
 const CLEAR_AFTER_MS = 1200;
 
 function scheduleClear(): void {
@@ -52,17 +76,33 @@ function scheduleClear(): void {
   }, CLEAR_AFTER_MS);
 }
 
+function schedulePoliteClear(): void {
+  if (typeof window === 'undefined') return;
+  if (politeClearHandle !== null) clearTimeout(politeClearHandle);
+  politeClearHandle = setTimeout(() => {
+    politeMessage.value = '';
+    politeClearHandle = null;
+  }, CLEAR_AFTER_MS);
+}
+
 export interface LayoutAnnouncer {
-  /** The current narration text — bound to the announcer component's
-   *  aria-live region's text content. */
+  /** The current ASSERTIVE narration text — drag/drop state changes.
+   *  Bound to the announcer component's aria-live="assertive" region. */
   message: Ref<string>;
-  /** Set the current message + schedule an auto-clear. Calling
+  /** The current POLITE narration text — undo/redo + non-time-critical
+   *  confirmations. Bound to the announcer component's separate
+   *  aria-live="polite" region. */
+  politeMessage: Ref<string>;
+  /** Set the assertive message + schedule an auto-clear. Calling
    *  announce() twice in quick succession REPLACES the previous
    *  message (last-write-wins) — the user only cares about the
    *  most-recent state. */
   announce: (text: string) => void;
-  /** Immediately clear. Called on editor unmount to prevent the
-   *  message lingering into the next page. */
+  /** Set the polite message — for undo/redo confirmations + other
+   *  informational acknowledgements. Same last-write-wins semantics. */
+  announcePolite: (text: string) => void;
+  /** Immediately clear BOTH channels. Called on editor unmount to
+   *  prevent the message lingering into the next page. */
   clear: () => void;
 }
 
@@ -80,14 +120,28 @@ export function useLayoutAnnouncer(): LayoutAnnouncer {
     }
     scheduleClear();
   }
+  function announcePolite(text: string): void {
+    if (politeMessage.value === text) {
+      politeMessage.value = '';
+      Promise.resolve().then(() => { politeMessage.value = text; });
+    } else {
+      politeMessage.value = text;
+    }
+    schedulePoliteClear();
+  }
   function clear(): void {
     message.value = '';
+    politeMessage.value = '';
     if (clearHandle !== null) {
       clearTimeout(clearHandle);
       clearHandle = null;
     }
+    if (politeClearHandle !== null) {
+      clearTimeout(politeClearHandle);
+      politeClearHandle = null;
+    }
   }
-  return { message, announce, clear };
+  return { message, politeMessage, announce, announcePolite, clear };
 }
 
 /* ------------------------------------------------------------------ */
@@ -121,4 +175,47 @@ export function narrateReordered(
  *  isn't left wondering why the press didn't do anything. */
 export function narrateMoveBlocked(sectionType: string, direction: 'up' | 'down'): string {
   return `${sectionType} already at the ${direction === 'up' ? 'first' : 'last'} position.`;
+}
+
+/**
+ * Cross-zone move narration — Phase 3b/B. Always position-AND-zone-based:
+ * the user needs to hear WHERE the section landed (which zone) plus
+ * its new ordinal so the next arrow press has a frame of reference.
+ *
+ * Sample output: `Hero moved from main, position 3 of 5, to sidebar, position 1 of 2.`
+ *
+ * Both endpoints carry the zone slug AND the per-row position. The
+ * caller computes positions against the LIVE arrays after mutation
+ * (so `toTotal` reflects the destination's new length).
+ */
+export function narrateMovedToZone(
+  sectionType: string,
+  fromZone: string,
+  fromIdx: number,
+  fromTotal: number,
+  toZone: string,
+  toIdx: number,
+  toTotal: number,
+): string {
+  return `${sectionType} moved from ${fromZone}, ${formatPosition(fromIdx, fromTotal)}, to ${toZone}, ${formatPosition(toIdx, toTotal)}.`;
+}
+
+/** Undo / redo confirmation. The label describes the operation that
+ *  was undone/redone. Routed through `announcePolite` (NOT assertive)
+ *  per the channel design at the top of this file. */
+export function narrateUndo(label: string): string {
+  return `Undid: ${label}.`;
+}
+
+export function narrateRedo(label: string): string {
+  return `Redid: ${label}.`;
+}
+
+/** Hotkey was pressed but the stack was empty in that direction. */
+export function narrateUndoEmpty(): string {
+  return 'Nothing to undo.';
+}
+
+export function narrateRedoEmpty(): string {
+  return 'Nothing to redo.';
 }
