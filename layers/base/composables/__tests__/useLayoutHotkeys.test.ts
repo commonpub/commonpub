@@ -765,3 +765,184 @@ describe('useLayoutHotkeys — lifecycle', () => {
     wrapper.unmount();
   });
 });
+
+/* ---- Phase 3c — Shift+Arrow keyboard resize ---- */
+
+/** Host that wires lookupResizeBounds too. Returns the draft + the
+ *  selection + the captured bounds-call args. */
+function mountHostResize(initial: LayoutRecord, initialSel: EditorSelection = null) {
+  const draft = ref<LayoutRecord | null>(initial);
+  const selection = ref<EditorSelection>(initialSel);
+  const lookupCalls = ref<string[]>([]);
+  const Host = defineComponent({
+    setup() {
+      useLayoutHotkeys({
+        getDraft: () => draft.value,
+        getSelection: () => selection.value,
+        setSelection: (s) => { selection.value = s; },
+        lookupResizeBounds: (sectionId: string) => {
+          lookupCalls.value.push(sectionId);
+          const d = draft.value;
+          if (!d) return null;
+          // Walk to find the host row + idx.
+          for (const zone of d.zones) {
+            for (const row of zone.rows) {
+              const idx = row.sections.findIndex((s) => s.id === sectionId);
+              if (idx === -1) continue;
+              const sec = row.sections[idx];
+              if (!sec) continue;
+              const neighbour = idx < row.sections.length - 1
+                ? row.sections[idx + 1]
+                : null;
+              return {
+                sectionType: sec.type,
+                rowId: row.id,
+                sectionMin: 1,
+                sectionMax: 12,
+                neighbour: neighbour ? { sectionId: neighbour.id, min: 1, max: 12 } : null,
+              };
+            }
+          }
+          return null;
+        },
+      });
+      return () => h('div');
+    },
+  });
+  const wrapper = render(Host);
+  return { wrapper, draft, selection, lookupCalls };
+}
+
+function makeResizeDraft(): LayoutRecord {
+  return {
+    id: 'l1',
+    scope: { type: 'route', path: '/' },
+    name: 'home',
+    state: 'draft',
+    pageMeta: null,
+    zones: [
+      {
+        zone: 'main',
+        rows: [
+          {
+            id: 'r1',
+            config: null,
+            sections: [
+              { ...makeSection('s1', 'hero'), colSpan: 6 } as LayoutSection,
+              { ...makeSection('s2', 'image'), colSpan: 6 } as LayoutSection,
+            ],
+          },
+        ],
+      },
+    ],
+    updatedAt: '2026-05-29T00:00:00.000Z',
+  } as unknown as LayoutRecord;
+}
+
+describe('useLayoutHotkeys — Shift+Arrow keyboard resize (Phase 3c)', () => {
+  it('Shift+ArrowRight grows the selected section by 1 + shrinks neighbour by 1', () => {
+    const { wrapper, draft } = mountHostResize(makeResizeDraft(), { kind: 'section', id: 's1' });
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', shiftKey: true, bubbles: true }));
+    expect(draft.value!.zones[0]!.rows[0]!.sections[0]!.colSpan).toBe(7);
+    expect(draft.value!.zones[0]!.rows[0]!.sections[1]!.colSpan).toBe(5);
+    wrapper.unmount();
+  });
+
+  it('Shift+ArrowLeft shrinks selected by 1 + grows neighbour by 1', () => {
+    const { wrapper, draft } = mountHostResize(makeResizeDraft(), { kind: 'section', id: 's1' });
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', shiftKey: true, bubbles: true }));
+    expect(draft.value!.zones[0]!.rows[0]!.sections[0]!.colSpan).toBe(5);
+    expect(draft.value!.zones[0]!.rows[0]!.sections[1]!.colSpan).toBe(7);
+    wrapper.unmount();
+  });
+
+  it('records a resizeSectionCommand for each press', () => {
+    const { wrapper } = mountHostResize(makeResizeDraft(), { kind: 'section', id: 's1' });
+    const h = useLayoutHistory();
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', shiftKey: true, bubbles: true }));
+    expect(h.past.value).toHaveLength(1);
+    expect(h.past.value[0]?.label).toBe('resize hero (keyboard)');
+    wrapper.unmount();
+  });
+
+  it('Cmd+Z reverts a keyboard resize back to start span', () => {
+    const { wrapper, draft } = mountHostResize(makeResizeDraft(), { kind: 'section', id: 's1' });
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', shiftKey: true, bubbles: true }));
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', metaKey: true, bubbles: true }));
+    expect(draft.value!.zones[0]!.rows[0]!.sections[0]!.colSpan).toBe(6);
+    expect(draft.value!.zones[0]!.rows[0]!.sections[1]!.colSpan).toBe(6);
+    wrapper.unmount();
+  });
+
+  it('Shift+Arrow with NO selection → silent noop', () => {
+    const { wrapper, draft } = mountHostResize(makeResizeDraft(), null);
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', shiftKey: true, bubbles: true }));
+    expect(draft.value!.zones[0]!.rows[0]!.sections[0]!.colSpan).toBe(6);
+    wrapper.unmount();
+  });
+
+  it('Shift+Arrow without lookupResizeBounds → silent noop', () => {
+    const draft = ref<LayoutRecord | null>(makeResizeDraft());
+    const selection = ref<EditorSelection>({ kind: 'section', id: 's1' });
+    const Host = defineComponent({
+      setup() {
+        useLayoutHotkeys({
+          getDraft: () => draft.value,
+          getSelection: () => selection.value,
+          setSelection: (s) => { selection.value = s; },
+          // No lookupResizeBounds.
+        });
+        return () => h('div');
+      },
+    });
+    const wrapper = render(Host);
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', shiftKey: true, bubbles: true }));
+    expect(draft.value!.zones[0]!.rows[0]!.sections[0]!.colSpan).toBe(6);
+    wrapper.unmount();
+  });
+
+  it('lookupResizeBounds returning null (unresizable section) → silent noop', () => {
+    const draft = ref<LayoutRecord | null>(makeResizeDraft());
+    const selection = ref<EditorSelection>({ kind: 'section', id: 's1' });
+    const Host = defineComponent({
+      setup() {
+        useLayoutHotkeys({
+          getDraft: () => draft.value,
+          getSelection: () => selection.value,
+          setSelection: (s) => { selection.value = s; },
+          lookupResizeBounds: () => null,
+        });
+        return () => h('div');
+      },
+    });
+    const wrapper = render(Host);
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', shiftKey: true, bubbles: true }));
+    expect(draft.value!.zones[0]!.rows[0]!.sections[0]!.colSpan).toBe(6);
+    wrapper.unmount();
+  });
+
+  it('plain ArrowRight (no Shift) → no resize (reserved for §7.8 drag-mode nav)', () => {
+    const { wrapper, draft } = mountHostResize(makeResizeDraft(), { kind: 'section', id: 's1' });
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+    expect(draft.value!.zones[0]!.rows[0]!.sections[0]!.colSpan).toBe(6);
+    wrapper.unmount();
+  });
+
+  it('Cmd+Shift+ArrowRight does NOT resize (Cmd reserved for future cross-row arrow nav)', () => {
+    const { wrapper, draft } = mountHostResize(makeResizeDraft(), { kind: 'section', id: 's1' });
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', shiftKey: true, metaKey: true, bubbles: true }));
+    expect(draft.value!.zones[0]!.rows[0]!.sections[0]!.colSpan).toBe(6);
+    wrapper.unmount();
+  });
+
+  it('Shift+Arrow inside <input> → browser native, no resize', () => {
+    const { wrapper, draft } = mountHostResize(makeResizeDraft(), { kind: 'section', id: 's1' });
+    const input = document.createElement('input');
+    document.body.appendChild(input);
+    input.focus();
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', shiftKey: true, bubbles: true }));
+    expect(draft.value!.zones[0]!.rows[0]!.sections[0]!.colSpan).toBe(6);
+    document.body.removeChild(input);
+    wrapper.unmount();
+  });
+});

@@ -57,6 +57,8 @@ const groups: HotkeyGroup[] = [
       { chord: ['Backspace'], description: 'Remove the selected section. Press Command+Z to restore.' },
       { chord: ['Delete'], description: 'Remove the selected section (alias for Backspace).' },
       { chord: ['⌘', 'D'], description: 'Duplicate the selected section. Selection moves to the new copy.' },
+      { chord: ['Shift', '←'], description: 'Shrink the selected section by 1 column. Right neighbour absorbs the gap; stops at the section’s minimum.' },
+      { chord: ['Shift', '→'], description: 'Grow the selected section by 1 column. Right neighbour shrinks; stops at its minimum.' },
     ],
   },
   {

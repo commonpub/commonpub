@@ -173,4 +173,47 @@ describe('a11y — LayoutSection editable mode (Phase 3a/b/d surface)', () => {
     await new Promise((r) => setTimeout(r, 0));
     await checkA11y(container);
   });
+
+  /* Phase 3c — resize handle + span pill + constraint label markup.
+   * Session 165's lesson ([[feedback-aria-selected-needs-role]]) was
+   * that ARIA additions to existing components silently regress unless
+   * each new variant gets axe coverage. The resize handle introduces a
+   * new <button> with a state-baked aria-label; scan with + without it
+   * present so the regression caught at the boundary if anyone reverts
+   * to a less-narrative label or strips type=button. */
+  it('editable + resize handle present passes axe', async () => {
+    const { container } = render(LayoutSection, {
+      props: {
+        section: makeSection('s-resize'),
+        rowId: 'r1',
+        route: '/',
+        zone: 'main',
+        editable: true,
+        selectedId: { kind: 'section', id: 's-resize' },
+        onResizeStart: () => {},
+      },
+    });
+    await checkA11y(container);
+  });
+
+  it('editable + resize handle + selected (span pill visible) passes axe', async () => {
+    const { container } = render(LayoutSection, {
+      props: {
+        section: makeSection('s-resize-sel'),
+        rowId: 'r1',
+        route: '/',
+        zone: 'main',
+        editable: true,
+        selectedId: { kind: 'section', id: 's-resize-sel' },
+        onResizeStart: () => {},
+        // All move buttons present alongside the resize handle so the
+        // SR-traversable chrome cluster passes the full coverage scan.
+        onMoveUp: () => {},
+        onMoveDown: () => {},
+        onMoveToZone: () => {},
+        availableZones: ['sidebar'],
+      },
+    });
+    await checkA11y(container);
+  });
 });

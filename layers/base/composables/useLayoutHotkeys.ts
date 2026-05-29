@@ -47,6 +47,7 @@ import {
   narrateSectionRemoved,
   narrateSectionDuplicated,
 } from './useLayoutAnnouncer';
+import { useLayoutResize } from './useLayoutResize';
 
 export interface UseLayoutHotkeysOptions {
   /** Read the live draft at hotkey-time. Closure so the hotkey handler
@@ -68,6 +69,32 @@ export interface UseLayoutHotkeysOptions {
    *  modal + binds its `open` state to this callback. Optional — when
    *  absent, `?` is a silent noop. */
   onShowHelp?: () => void;
+  /**
+   * Phase 3c — closure resolving per-section resize bounds from the
+   * section registry. Returns `null` when the section is not resizable
+   * (registry's `resizable: false`) OR not registered — in which case
+   * the Shift+Arrow binding is a silent noop. The closure also returns
+   * the right neighbour's id + bounds when one exists.
+   *
+   * Why a closure, not a registry import: useLayoutHotkeys runs in
+   * setup() but its handlers fire AT KEYSTROKE TIME, possibly long
+   * after setup. The registry instance is mounted as a Vue plugin —
+   * its `useSectionRegistry` calls inside a window handler would NOT
+   * inject correctly. Passing in a closure that the editor page builds
+   * (where the registry IS injected) keeps the import clean.
+   *
+   * When absent, Shift+Arrow is a no-op (degrade gracefully — same
+   * shape as the other selection-gated hotkeys).
+   */
+  lookupResizeBounds?: (sectionId: string) => {
+    sectionType: string;
+    rowId: string;
+    sectionMin: number;
+    sectionMax: number;
+    /** Null when the section is LAST in its row OR no neighbour
+     *  registered. Same shape `applyKeyboardResize` expects. */
+    neighbour: { sectionId: string; min: number; max: number } | null;
+  } | null;
 }
 
 export interface UseLayoutHotkeysResult {
@@ -147,6 +174,19 @@ function isHelpLike(e: KeyboardEvent): boolean {
   return e.key === '?';
 }
 
+/** Shift+ArrowLeft / Shift+ArrowRight = keyboard resize (Phase 3c).
+ *  Strict-Shift-only so unmodified arrows stay free for future drag-
+ *  mode arrow navigation (plan §7.8). Cmd/Ctrl excluded so neither
+ *  "switch tabs" (browser default) nor "move section" (intended for
+ *  cross-row arrow nav per §7.8) collides with resize semantics. */
+function isResizeLike(e: KeyboardEvent): 'shrink' | 'grow' | null {
+  if (e.metaKey || e.ctrlKey || e.altKey) return null;
+  if (!e.shiftKey) return null;
+  if (e.key === 'ArrowLeft') return 'shrink';
+  if (e.key === 'ArrowRight') return 'grow';
+  return null;
+}
+
 /**
  * Should removing a section require a confirm? Heuristic: any
  * authored config makes the section "rich" — the keystroke could
@@ -169,6 +209,7 @@ function isRichSection(section: LayoutSection): boolean {
 export function useLayoutHotkeys(opts: UseLayoutHotkeysOptions): UseLayoutHotkeysResult {
   const history = useLayoutHistory();
   const announcer = useLayoutAnnouncer();
+  const resize = useLayoutResize();
   let attached = false;
 
   function onKeyDown(e: KeyboardEvent): void {
@@ -205,14 +246,38 @@ export function useLayoutHotkeys(opts: UseLayoutHotkeysOptions): UseLayoutHotkey
       return;
     }
 
-    // The remaining bindings (Backspace, Cmd+D) require a section
-    // selection. Read once + short-circuit if not applicable.
+    // The remaining bindings (Backspace, Cmd+D, Shift+Arrow) require a
+    // section selection. Read once + short-circuit if not applicable.
     const sel = opts.getSelection?.();
     if (!sel || sel.kind !== 'section') return;
     const draft = opts.getDraft();
     if (!draft) return;
     const loc = findSectionLocation(draft, sel.id);
     if (!loc) return; // stale selection — section vanished mid-keydown
+
+    // --- Keyboard resize (Phase 3c) ---
+    // Run BEFORE Backspace/Cmd+D so Shift+ArrowRight doesn't fall through.
+    // Modal-open guard already handled at top of handler.
+    const resizeDir = isResizeLike(e);
+    if (resizeDir !== null) {
+      e.preventDefault();
+      if (!opts.lookupResizeBounds) return;
+      const bounds = opts.lookupResizeBounds(sel.id);
+      if (!bounds) return; // not resizable / not registered
+      // applyKeyboardResize handles bounds checking + history record +
+      // narration; the return value is just for caller's follow-up.
+      resize.applyKeyboardResize({
+        rowId: bounds.rowId,
+        sectionId: sel.id,
+        direction: resizeDir,
+        getDraft: opts.getDraft,
+        sectionMin: bounds.sectionMin,
+        sectionMax: bounds.sectionMax,
+        sectionType: bounds.sectionType,
+        neighbour: bounds.neighbour,
+      });
+      return;
+    }
 
     // --- Remove (Phase 3d.1) ---
     if (isRemoveLike(e)) {

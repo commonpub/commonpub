@@ -20,6 +20,8 @@ import { useLayoutAnnouncer, narrateUndo, narrateRedo, narrateUndoEmpty, narrate
 import { useLayoutHistory, addRowCommand, removeRowCommand } from '../../../composables/useLayoutHistory';
 import { useLayoutHotkeys } from '../../../composables/useLayoutHotkeys';
 import { DnDProvider } from '@vue-dnd-kit/core';
+import { useSectionRegistry } from '../../../sections/registry';
+import { useLayoutResize } from '../../../composables/useLayoutResize';
 
 definePageMeta({
   layout: 'admin',
@@ -40,11 +42,65 @@ const history = useLayoutHistory();
 //   - Cmd/Ctrl+D        = duplicate the selected section
 //   - ?                 = open the keyboard shortcuts help overlay
 const helpOpen = ref<boolean>(false);
+const sectionRegistry = useSectionRegistry();
+
+/**
+ * Phase 3c — bounds lookup for the Shift+Arrow keyboard resize. Walks
+ * the live draft to find the section's host row + its right neighbour,
+ * then reads the registry for min/max colSpan. Returning null silences
+ * the binding for unresizable / unregistered sections.
+ *
+ * Lives at the editor page level (vs inside useLayoutHotkeys directly)
+ * because the closure needs the LIVE editor.draft + the registry —
+ * passing both as closures from setup mirrors the existing
+ * `getDraft` / `getSelection` pattern in `useLayoutHotkeys` and
+ * keeps the same semantic shape the LayoutRow's
+ * `resizeHandlerForSection` already uses.
+ */
+function lookupResizeBounds(sectionId: string) {
+  const draft = editor.draft.value;
+  if (!draft) return null;
+  // Walk to find host row + index. Inline rather than importing
+  // findSectionLocation to keep the search self-contained at the editor
+  // page level + return the precise row id.
+  for (const zone of draft.zones) {
+    for (const row of zone.rows) {
+      const idx = row.sections.findIndex((s) => s.id === sectionId);
+      if (idx === -1) continue;
+      const section = row.sections[idx];
+      if (!section) continue;
+      const def = sectionRegistry.get(section.type);
+      if (!def || !def.resizable) return null;
+      const neighbourSection = idx < row.sections.length - 1
+        ? row.sections[idx + 1]
+        : null;
+      const neighbourDef = neighbourSection
+        ? sectionRegistry.get(neighbourSection.type)
+        : null;
+      return {
+        sectionType: section.type,
+        rowId: row.id,
+        sectionMin: def.minColSpan,
+        sectionMax: def.maxColSpan,
+        neighbour: neighbourSection
+          ? {
+              sectionId: neighbourSection.id,
+              min: neighbourDef?.minColSpan ?? 1,
+              max: neighbourDef?.maxColSpan ?? 12,
+            }
+          : null,
+      };
+    }
+  }
+  return null;
+}
+
 useLayoutHotkeys({
   getDraft: () => editor.draft.value,
   getSelection: () => editor.selectedId.value,
   setSelection: (sel) => editor.select(sel),
   onShowHelp: () => { helpOpen.value = true; },
+  lookupResizeBounds,
 });
 
 // Toolbar undo / redo emit handlers — wire to the same history singleton
@@ -232,6 +288,14 @@ onBeforeUnmount(() => {
   // would show that stale message on the next editor open. Two agents
   // independently caught this (Agent A + Agent B).
   useLayoutAnnouncer().clear();
+  // Session 166 R3-6 audit: useLayoutResize is also a module-scope
+  // singleton. If the user navigates away mid-drag (e.g. unsaved-edit
+  // guard accepts), the resize state stays 'resizing' across editor
+  // mounts. The composable's defensive recovery in startResize would
+  // commit-and-replace, but until then the state is stale + the
+  // document handlers are still attached. Explicit cancel matches the
+  // announcer pattern + closes the leak fully.
+  useLayoutResize().cancelResize();
 });
 onBeforeRouteLeave((_to, _from, next) => {
   if (!editor.dirty.value) return next();
