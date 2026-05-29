@@ -3,8 +3,8 @@
 **Date**: 2026-05-29
 **Predecessor**: session 164 (Phase 3b/B + 2 polish rounds + audit, ending at commit `fcc8190`)
 **Path taken**: TASK 1 (3 audit fixes from session 164) then TASK 2 (user picked Phase 3d a11y completion over Phase 3c resize)
-**End state**: layer **559** tests passing across **29** files + typecheck 26/26 FULL TURBO
-**Net delta**: 3 commits, 19 files changed (+1 modified twice for the deep-audit polish), +1787 / -93 lines (3 new files)
+**End state**: layer **567** tests passing across **29** files + typecheck 26/26 FULL TURBO
+**Net delta**: 4 commits, ~25 files changed (some modified across rounds), +1978 / -94 lines (3 new files)
 **Sites**: commonpub.io workspace `main`; heatsync + deveco UNTOUCHED on npm 0.24.0 dormant
 **Public byte-pattern unchanged**: 3 layout-row + 5 layout-section, no `--editable` leak (`useLayoutHotkeys` is an editor-only composable; new HelpOverlay is `<Teleport to="body">` inside the `/admin/layouts/[id].vue` route → zero public path)
 
@@ -15,6 +15,7 @@
 | `569c0e2` | Session 164 audit polish (R1-1 + R2-2 + R3-3). Edge tab 18px → 28px (WCAG 2.5.8 AA), dropIndicatorSide mirrors `placement.top`/`bottom` (matches `computeInsertIndex`'s vertical-list fallback), tablet panels forced visible via `display: flex !important` to defeat the persisted desktop `paletteHidden` / `inspectorHidden` cookie. 491 tests. |
 | `810c08d` | Phase 3d a11y completion. 3 hotkeys + help overlay + axe regression. 547 tests. Caught + fixed a real `aria-allowed-attr` violation introduced in session 163 (aria-selected on the section's outer div). |
 | `4e030f2` | Deep-audit polish (R3-A + R1-A + R3-B + R2-A). Modal-open suppresses global section hotkeys; HelpOverlay Move group dropped (was misleading duplicate-chord rows); HelpOverlay focus trap via `focusin` snap-back; `isRemoveLike` excludes Shift modifier. 559 tests. |
+| `15a0fb0` | Round 5: ConflictModal focus trap + dual-modal coordination. axe scan extended to ConflictModal (clean — no violations). ConflictModal trap mirrors HelpOverlay's pattern, snapping focus to safe primary action. Both modals get a topmost-only guard (querySelector last = highest stacking). Parent watcher in `[id].vue` closes HelpOverlay when ConflictModal opens — belt-and-suspenders. 567 tests. |
 
 ## What shipped (Phase 3d)
 
@@ -94,6 +95,25 @@ After the session was "closed" + the kickoff written, an ultrathink deep audit f
 
 **0 new findings**. Walked each deep-audit fix for race conditions (focusin → contains → no loop), DOM lifecycle (v-if removes on close, probe correctly returns null when modal closed — documented convention that future modals MUST use v-if, not v-show), and modifier exclusion ladder (Cmd / Ctrl / Alt / Shift all rejected).
 
+### Round 5 (ultrathink continuation — `15a0fb0`)
+
+After the "ultrathink continue" prompt, walked the post-deep-audit surface and surfaced:
+
+| # | Lens | Finding | Action |
+|---|---|---|---|
+| 5-a | a11y / coverage | `editor-axe.test.ts` only scanned HelpOverlay + LayoutSection. ConflictModal — the SECOND editor modal — had no axe baseline. | Added 3 scans (open/with-msg, open/null-msg, closed). All clean. Baseline established for future regressions. |
+| 5-b | a11y | ConflictModal had no focus trap. The 166 kickoff named this as a "small win" but it's directly continuing the round-3 R3-B work — closing the WCAG ARIA Dialog gap consistently across all editor modals. | Mirrored HelpOverlay's `focusin` snap-back pattern. Focus snaps to safe primary action (Reload their version). 4 new tests. |
+| 5-c | correctness | With both modals having focus traps, a real (rare) scenario — admin opens help, auto-save lands on 409 — would create a focus ping-pong between the two traps. | Added a topmost-only guard inside each trap: `document.querySelectorAll('[role="dialog"], [role="alertdialog"]')` returns DOM-order; last = highest stacking; only the topmost dialog's trap fires. Plus parent watcher in `[id].vue` force-closes HelpOverlay when ConflictModal opens (belt-and-suspenders). |
+
+### Round 6 (audit-of-audit on round 5)
+
+**0 new findings**. Walked each round-5 layer:
+- `isTopmostDialog()` defensive null guard during the mount race window.
+- Render-flush race when conflict fires mid-help-open: both modals briefly co-mounted; topmost guard yields HelpOverlay; parent watcher then unmounts HelpOverlay cleanly. No ping-pong.
+- Initial-focus race: ConflictModal mounts second, its watcher focuses primary, beats HelpOverlay's watcher. Correct end state.
+- Esc race in dual-mount window: both handlers fire, both emit close → both close. Net same as conflict-only close. Harmless.
+- Backdrop click: backdrop has `role="presentation"` + no tabindex → not focus target → never triggers focusin. ✓
+
 ### Recursion data
 
 | Round | Findings | Cumulative |
@@ -101,13 +121,17 @@ After the session was "closed" + the kickoff written, an ultrathink deep audit f
 | TASK 1 audit fixes | 3 (R1-1, R2-2, R3-3) | 3 |
 | Phase 3d R1-R4 | 1 fixed + 1 deferred + 1 axe catch = 3 | 6 |
 | audit-of-audit | 0 actionable | 6 |
-| ultrathink deep audit | 4 fixed | 10 |
-| audit-of-audit on deep | 0 actionable | 10 |
+| ultrathink deep audit (round 3) | 4 fixed | 10 |
+| audit-of-audit on deep (round 4) | 0 actionable | 10 |
+| ultrathink continuation (round 5) | 3 fixed | 13 |
+| audit-of-audit on round 5 (round 6) | 0 actionable | 13 |
 
-The deep-audit round was prompted by the user's "ultrathink audit then continue". Half the value of a self-audit is matching scrutiny to risk; "make me look harder" prompts surface real findings that surface scans miss. Findings deferred from the deep audit (documented, not blocking):
-- `{center: true}` alone returns null indicator but `computeInsertIndex` returns 'after' — UX mismatch.
+Two consecutive 0-finding audit-of-audit rounds (4 + 6) mark the diminishing-returns floor for this surface. Sessions 160 / 162 / 163 / 164 / 165 round-counts: 20 / 9 / 13 / 7 / 13 — session 165's higher number reflects the user's two ultrathink prompts forcing deeper passes after the surface scan would have closed earlier.
+
+Findings deferred (documented, not blocking; queued in 166 kickoff):
+- `{center: true}` alone returns null indicator but `computeInsertIndex` returns 'after' — UX mismatch in dnd-kit's center-zone semantics.
 - Resize boundary focus loss: admin focused in panel field, resize desktop ↔ tablet across 1024px → focus falls to body.
-- Selection stale after Cmd+Z restoring a removed section: user must re-click.
+- Selection stale after Cmd+Z restoring a removed section: user must re-click. Would require commands to capture pre/post selection snapshots.
 - Held Cmd+D rapid-duplicates: each press creates a history entry — no runaway.
 
 Diminishing-returns curve continues: session 160 had 20 findings, 162 had 9, 163 had 13 (incl. 6-agent deep audit), 164 had 7 (2 + 0 + 3 + 0), 165 has 6 across two scope chunks. Each session's surface is smaller AND the cumulative test base catches more.
