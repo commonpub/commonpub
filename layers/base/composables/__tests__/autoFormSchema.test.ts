@@ -157,8 +157,19 @@ describe('autoFormSchema — buildAutoForm', () => {
     expect(field(fields, 'align').control).toBe('select');
     expect(field(fields, 'paddingY').control).toBe('select');
     expect(field(fields, 'background').control).toBe('text');
-    // All row-config fields are .optional() → none form-required.
-    for (const f of fields) expect(f.required).toBe(false);
+    // All row-config fields are .optional() with no default → not required,
+    // BUT optional (so selects offer a leading "default" choice).
+    for (const f of fields) {
+      expect(f.required).toBe(false);
+      expect(f.optional).toBe(true);
+    }
+  });
+
+  it('marks defaulted fields as NOT optional (heading.level has a default)', () => {
+    const { fields } = buildAutoForm(headingConfigSchema);
+    // level/text both have defaults → pre-filled, neither required nor optional-empty.
+    expect(field(fields, 'level').optional).toBe(false);
+    expect(field(fields, 'text').optional).toBe(false);
   });
 });
 

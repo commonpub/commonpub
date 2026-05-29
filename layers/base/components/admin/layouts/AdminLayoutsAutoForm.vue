@@ -84,6 +84,12 @@ function onToggle(field: AutoFormField, e: Event): void {
 
 function onSelect(field: AutoFormField, e: Event): void {
   const raw = (e.target as HTMLSelectElement).value;
+  // The leading "— Default —" option (optional fields) clears the key so
+  // the renderer falls back to its own default instead of a forced choice.
+  if (raw === '' && field.optional) {
+    setKey(field.key, undefined);
+    return;
+  }
   // Numeric-const selects (heading.level, columns) must store numbers —
   // <select> always yields strings. Coerce when every option is numeric.
   const numeric = field.options?.every((o) => typeof o.value === 'number');
@@ -207,11 +213,14 @@ function groupValue(field: AutoFormField): Record<string, unknown> {
         <select
           v-if="f.control === 'select'"
           :id="controlId(f.key)"
-          :value="valueOf(f)"
+          :value="valueOf(f) ?? ''"
           :aria-invalid="!!errorFor(f.key)"
           :aria-describedby="errorFor(f.key) ? `${controlId(f.key)}-err` : undefined"
           @change="onSelect(f, $event)"
         >
+          <!-- Optional fields (no default) get a leading unset option so an
+               undefined value reads as "default", not the first real choice. -->
+          <option v-if="f.optional" value="">— Default —</option>
           <option v-for="opt in f.options" :key="String(opt.value)" :value="opt.value">
             {{ opt.label }}
           </option>
@@ -339,6 +348,10 @@ function groupValue(field: AutoFormField): Record<string, unknown> {
   flex-direction: column;
   gap: var(--space-3);
   margin: 0;
+  /* fieldset defaults to min-inline-size: min-content, which refuses to
+     shrink below its content + overflows the 320px inspector. Force it to
+     shrink with its container. */
+  min-width: 0;
   padding: var(--space-3);
   border: var(--border-width-default) solid var(--border2);
   border-radius: 0;

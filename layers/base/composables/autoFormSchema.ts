@@ -65,6 +65,13 @@ export interface AutoFormField {
    * is pre-filled, so it never blocks the user; we don't asterisk it.
    */
   required: boolean;
+  /**
+   * True when the field can legitimately be ABSENT — not in `required` AND
+   * no `default` (e.g. the optional row-config enums). Selects use this to
+   * offer a leading "default/unset" option so a `undefined` value doesn't
+   * masquerade as the first real choice being selected.
+   */
+  optional: boolean;
   /** JSON Schema `description` — reserved for the §7.10 `keyword:arg`
    *  rich-field extension (rich/content-picker/image/color). Unused in v1. */
   description?: string;
@@ -169,11 +176,14 @@ function nodeToField(
   const defaultValue = node['default'];
   // Form-required: in the required list AND no default to pre-fill it.
   const required = inRequiredArray && defaultValue === undefined;
+  // Optional: absent-allowed (not required) AND no default to fall back to.
+  const optional = !inRequiredArray && defaultValue === undefined;
   const base: AutoFormField = {
     key,
     label: humanizeKey(key),
     control: 'unsupported',
     required,
+    optional,
     defaultValue,
   };
   const description = node['description'];

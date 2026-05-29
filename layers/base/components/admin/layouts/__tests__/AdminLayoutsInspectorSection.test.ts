@@ -24,6 +24,7 @@ import {
   heroConfigSchema,
   headingConfigSchema,
   statsConfigSchema,
+  layoutRowConfigSchema,
 } from '@commonpub/schema';
 
 // Mock the registry BEFORE importing the inspector (hoisted).
@@ -74,6 +75,38 @@ describe('AdminLayoutsAutoForm — controlled rendering + emits', () => {
     expect(ev).toBeTruthy();
     // Emits a NEW object (immutable update), text replaced, level preserved.
     expect(ev!.at(-1)).toEqual([{ level: 2, text: 'World' }]);
+  });
+
+  it('reflects the current value in a select on render (heading.level=3)', () => {
+    const { fields } = buildAutoForm(headingConfigSchema);
+    const { getByLabelText } = render(AdminLayoutsAutoForm, {
+      props: { fields, modelValue: { level: 3, text: 'Hi' } },
+    });
+    expect((getByLabelText('Level') as HTMLSelectElement).value).toBe('3');
+  });
+
+  it('optional select (row gap, no default) shows a leading "Default" option + undefined value selects it', () => {
+    const { fields } = buildAutoForm(layoutRowConfigSchema);
+    const { getByLabelText, emitted } = render(AdminLayoutsAutoForm, {
+      props: { fields, modelValue: {} }, // fresh row — no gap set
+    });
+    const gap = getByLabelText('Gap') as HTMLSelectElement;
+    // undefined value → the leading empty "— Default —" option is selected,
+    // NOT the first real enum value ('none').
+    expect(gap.value).toBe('');
+    // Picking a real value emits it; picking back the default clears the key.
+    fireEvent.update(gap, 'lg');
+    expect((emitted()['update:modelValue']!.at(-1) as unknown[])[0]).toMatchObject({ gap: 'lg' });
+  });
+
+  it('clearing an optional select back to Default emits undefined (key dropped on save)', async () => {
+    const { fields } = buildAutoForm(layoutRowConfigSchema);
+    const { getByLabelText, emitted } = render(AdminLayoutsAutoForm, {
+      props: { fields, modelValue: { gap: 'lg' } },
+    });
+    await fireEvent.update(getByLabelText('Gap') as HTMLSelectElement, '');
+    const payload = (emitted()['update:modelValue']!.at(-1) as unknown[])[0] as Record<string, unknown>;
+    expect(payload.gap).toBeUndefined();
   });
 
   it('coerces numeric-const selects back to numbers (heading.level)', async () => {
