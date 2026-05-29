@@ -52,6 +52,14 @@ Shipping that = a broken-but-passing mechanism + test noise. **Reverted fully** 
 
 **Remaining Stage 2 (browser-gated):** migrate the live `index.vue` homepage (all 3 branches **together**, to avoid orphaning the shared `.cpub-main-layout` scoped rule) to `<PageFrame>`. This is now a **code-dedup cleanup**, not a WYSIWYG prerequisite — the editor already faithfully replicates the homepage's values via PageFrame. Still needs a real-browser smoke on a commonpub.io build (touching live public legacy markup). Steps in `168-kickoff-next.md`.
 
+### Continued-session follow-ups
+
+**`ce5d68c` — PageFrame full-width is FULL-BLEED (correctness fix).** Audit of the canvas work caught that PageFrame capped its `#full-width` slot at 1280px, but the live homepage renders full-width **edge-to-edge** (the full-width LayoutSlot is a direct child of the page root — no max-width; verified in `index.vue` + on commonpub.io). So the editor previewed the hero capped vs production full-bleed, and a homepage migration would've regressed it. Fixed: `.cpub-page-frame` is a plain full-width block; max-width/padding/grid moved to `.cpub-page-frame-grid` (the `.cpub-main-layout` equivalent). Class names + DOM unchanged → 669 tests + typecheck green. Custom-page gets the same correct full-bleed.
+
+**Homepage-migration entanglement found (raises the bar for the browser-gated step):** `.cpub-sidebar` carries `display:flex; flex-direction:column; gap:18px` (sidebar inter-row spacing) that `.cpub-page-frame-sidebar` does NOT replicate, while the main zone (`.cpub-feed-col`) has only `min-width:0` (no gap). So the homepage migration must either replicate the sidebar flex-gap in PageFrame or relocate inter-row spacing into LayoutSlot/LayoutRow consistently — a real decision, not a mechanical swap. Recorded in `168-kickoff-next.md`.
+
+**`docs/adr/028-homepage-customization-model.md` — Stage 3 decision (written).** Retires the "three parallel homepage models" debt: code-override for developers + layout engine for operators are the two sanctioned models; legacy `homepage.sections` is deprecated (kept as fallback/import until the 2-instance federation milestone, then removed with the bidirectional-sync seam). The two models MUST compose → the shadowing fix is now a committed direction.
+
 ## Stage 3 (deferred — decision/doc)
 ADR: *code-override for devs* + *layout engine for operators*; deprecate legacy `homepage.sections` once the engine is proven; remove the bidirectional-sync seam.
 
