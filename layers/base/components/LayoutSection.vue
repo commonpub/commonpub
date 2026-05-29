@@ -423,6 +423,38 @@ const hasMoveTargets = computed<boolean>(() =>
 .cpub-layout-section--editable:active {
   cursor: grabbing;
 }
+
+/*
+ * Session 164 polish — inert content in editable mode (fixes the
+ * pre-existing 3a "clicking Hero CTA navigates away from the editor"
+ * bug + every variant of it across all 21 sections).
+ *
+ * The section's outer wrapper handles selection (click) + drag pickup
+ * (pointerdown via makeDraggable). The inner content — rendered by
+ * <component :is="..."> from the registry — frequently contains
+ * <NuxtLink>s (Hero CTA, FeedItem cards, etc) that would otherwise
+ * navigate the admin AWAY from /admin/layouts/[id] on any click.
+ *
+ * Pointer-events: none on the rendered content makes it transparent
+ * to mouse events; clicks fall through to the section's outer wrapper
+ * (selection). The moves cluster + popover stay interactive via their
+ * own ":not()" carve-out. The drag pickup still works because dnd-kit
+ * binds to the OUTER element, not inner content.
+ *
+ * One CSS rule replaces the alternative — drilling `isPreview` through
+ * propMap on all 21 sections + adding navigation guards inside each.
+ * (Per session 163's "reuse existing components" memory: the layout
+ * engine is an ARRANGER for existing components; we shouldn't fork
+ * each section just for editable-mode behavior.)
+ *
+ * Text selection inside the preview is also blocked — fine for v1; the
+ * admin uses the inspector (Phase 3e) to edit copy, not in-canvas
+ * direct manipulation. (Phase 3f's inline-edit affordance can carve
+ * out specific zones if needed.)
+ */
+.cpub-layout-section--editable > *:not(.cpub-layout-section-moves) {
+  pointer-events: none;
+}
 .cpub-layout-section--editable:hover {
   outline: 1px dashed var(--border2);
   outline-offset: -1px;
