@@ -22,6 +22,7 @@ import type { LayoutSection } from '../composables/useLayout';
 import { useSectionRegistry } from '../sections/registry';
 import type { EditorSelection } from '../composables/useLayoutEditor';
 import type { SectionInstanceDragPayload } from '../composables/useLayoutDrag';
+import { useLayoutResize } from '../composables/useLayoutResize';
 
 const props = withDefaults(defineProps<{
   section: LayoutSection;
@@ -59,6 +60,19 @@ const props = withDefaults(defineProps<{
   /** Click handler — invoked with the target zone slug. The parent
    *  (LayoutRow) handles the splice + narration + history record. */
   onMoveToZone?: (targetZone: string) => void;
+  /**
+   * Phase 3c — resize handle pointerdown handler. The closure lives on
+   * the parent <LayoutRow> because that's where the row's DOM element +
+   * sibling sections (neighbour lookup) + registry-derived bounds are
+   * naturally accessible. Absence = no handle rendered (parent decided
+   * the section isn't resizable OR this is the public render path).
+   *
+   * Receives the raw PointerEvent so `useLayoutResize.startResize` can
+   * capture pointer + read clientX. The handler is responsible for
+   * `e.preventDefault()` so the gesture doesn't bubble into the
+   * section's dnd-kit drag pickup or its `@click.stop` selection.
+   */
+  onResizeStart?: (e: PointerEvent) => void;
 }>(), {
   editable: false,
   isPreview: false,
@@ -68,6 +82,7 @@ const props = withDefaults(defineProps<{
   onMoveDown: undefined,
   availableZones: () => [],
   onMoveToZone: undefined,
+  onResizeStart: undefined,
 });
 
 const sectionRegistry = useSectionRegistry();
@@ -270,6 +285,76 @@ const hasMoveTargets = computed<boolean>(() =>
   !!props.onMoveToZone && props.availableZones.length > 0,
 );
 
+/* ----- Resize handle wiring (Phase 3c) --------------------------------- */
+/*
+ * Handle visibility: editable + parent passed a handler. The parent
+ * (LayoutRow) only passes a handler when the section's registry def
+ * has `resizable: true` AND the row is wider than its mobile breakpoint
+ * (plan §7.5 — resize is disabled on < 768px). Section-side check is
+ * thin: render IFF the prop is present. CSS hides the handle at < 768px
+ * defensively in case a layout author passes the handler anyway.
+ *
+ * The pointerdown attribute is captured WITH passive=false (default for
+ * `.passive` modifier absence) so we can preventDefault and consume
+ * the gesture before dnd-kit's listener on the root element fires.
+ */
+const resize = useLayoutResize();
+const hasResizeHandle = computed<boolean>(
+  () => props.editable && typeof props.onResizeStart === 'function',
+);
+
+/** Is THIS section currently being resized? Drives the live pill + the
+ *  "dim move buttons during resize" rule below. */
+const isResizing = computed<boolean>(() => {
+  const s = resize.state.value;
+  return s.kind === 'resizing' && s.sectionId === props.section.id;
+});
+
+/** Is THIS section the right-neighbour absorbing the resize? Drives the
+ *  dimmed neighbour pill so the user can see both spans update together. */
+const isResizeNeighbour = computed<boolean>(() => {
+  const s = resize.state.value;
+  return s.kind === 'resizing' && s.neighbourId === props.section.id;
+});
+
+/** Span text the pill renders. During a resize, follows the live
+ *  state; otherwise echoes the section's own colSpan so the pill stays
+ *  meaningful as a static badge when selected. */
+const liveSpanText = computed<string>(() => {
+  const s = resize.state.value;
+  if (s.kind === 'resizing' && s.sectionId === props.section.id) {
+    return `${s.currentColSpan}/12`;
+  }
+  if (s.kind === 'resizing' && s.neighbourId === props.section.id) {
+    return `${s.neighbourCurrentColSpan}/12`;
+  }
+  return `${props.section.colSpan}/12`;
+});
+
+/** Constraint-snap label — only shown while resizing + a bound was hit.
+ *  Mirrors `narrateResizeBlocked`'s wording in compact visual form. */
+const constraintLabel = computed<string | null>(() => {
+  const s = resize.state.value;
+  if (s.kind !== 'resizing') return null;
+  if (s.sectionId !== props.section.id) return null;
+  if (s.constraintHit === null) return null;
+  if (s.constraintHit === 'section-min') return `🔒 min ${s.constraintBound}/12`;
+  if (s.constraintHit === 'section-max') return `🔒 max ${s.constraintBound}/12`;
+  return `🔒 next at ${s.constraintBound}/12`;
+});
+
+/** Direct pointerdown wrapper — stops bubbling so the section's own
+ *  drag-pickup (dnd-kit) + click (selection) don't fire. */
+function onHandlePointerDown(e: PointerEvent): void {
+  if (!props.onResizeStart) return;
+  // Only respond to primary button (mouse) OR any touch/pen. Right-click
+  // on the handle shouldn't start a resize.
+  if (e.pointerType === 'mouse' && e.button !== 0) return;
+  e.stopPropagation();
+  e.preventDefault();
+  props.onResizeStart(e);
+}
+
 /* ----- Visibility -------------------------------------------------- */
 /* hideAt is applied via CSS data-* attrs; the parent already filters
    enabled + visibility.roles + visibility.features. */
@@ -384,7 +469,7 @@ const hasMoveTargets = computed<boolean>(() =>
         class="cpub-layout-section-move-menu"
         role="menu"
         :aria-label="`Move ${section.type} to zone`"
-        @click.stop
+        @click.stop="(e: Event) => e.stopPropagation()"
         @keydown="onMoveMenuKey"
         @focusout="onMoveMenuFocusOut"
       >
@@ -400,6 +485,85 @@ const hasMoveTargets = computed<boolean>(() =>
           <span>{{ zone }}</span>
         </button>
       </div>
+    </div>
+
+    <!--
+      Phase 3c — right-edge resize handle.
+      Renders only when the parent (LayoutRow) passes onResizeStart —
+      that's the parent's signal that the section's registry def is
+      `resizable: true` AND the row is wider than the mobile breakpoint
+      (CSS further hides at < 768px defensively).
+
+      The button is the SAME DOM subtree as the move-buttons cluster
+      but sits at the right edge instead of top-right. dnd-kit's
+      pointerdown is on the OUTER .cpub-layout-section root; this
+      handle's pointerdown handler stops propagation so the section's
+      drag pickup doesn't fire while resizing.
+
+      `aria-label` includes both intent + current state ("Resize hero
+      section, currently 8 of 12 columns") so SR users hear the live
+      span without depending on the visual pill. State-in-name pattern
+      per feedback-aria-selected-needs-role.
+    -->
+    <button
+      v-if="hasResizeHandle"
+      type="button"
+      class="cpub-layout-section-resize-handle"
+      :class="{
+        'cpub-layout-section-resize-handle--active': isResizing,
+      }"
+      :aria-label="`Resize ${section.type} section, currently ${section.colSpan} of 12 columns. Hold and drag, or use Shift plus Arrow Left or Right while focused on this section.`"
+      :title="`Drag to resize · ${section.colSpan}/12`"
+      @pointerdown="onHandlePointerDown"
+      @click.stop
+      @keydown.space.stop
+      @keydown.enter.stop
+    >
+      <!-- Two parallel lines mimic the convention from Figma / Webflow /
+           Framer / Linear: vertical grip indicating "draggable edge". -->
+      <i class="fa-solid fa-grip-lines-vertical" aria-hidden="true"></i>
+    </button>
+
+    <!--
+      Phase 3c — live span pill. Shown while the section is selected OR
+      involved in an in-flight resize. Three-state visual:
+        - selected only: subtle outline-style badge "8/12"
+        - resizing (this section): accent-filled, follows live span
+        - neighbour during resize: dim variant, shows neighbour's live span
+      Sighted users get the same fact SR users hear via narrateResize.
+    -->
+    <div
+      v-if="editable && (isSelected || isResizing || isResizeNeighbour)"
+      class="cpub-layout-section-span-pill"
+      :class="{
+        'cpub-layout-section-span-pill--active': isResizing,
+        'cpub-layout-section-span-pill--neighbour': isResizeNeighbour,
+      }"
+      aria-hidden="true"
+    >
+      {{ liveSpanText }}
+    </div>
+
+    <!--
+      Phase 3c — constraint snap label. Shown ONLY while THIS section is
+      being resized AND a bound was hit. Provides the three independent
+      signals plan §7.5 + WCAG 1.4.1 require: outline color change (the
+      handle's --active state), lock icon ("🔒"), text ("min 3/12").
+      Floats just below the span pill so colour-blind / sighted users
+      have all three at once.
+
+      `aria-hidden="true"`: this label is a VISUAL cue only. The audio
+      channel is already covered by the announcer's
+      narrateResizeBlocked (assertive), fired from useLayoutResize.
+      Adding `aria-live="polite"` here would double-narrate the bound
+      to screen readers (audit R1-1).
+    -->
+    <div
+      v-if="constraintLabel"
+      class="cpub-layout-section-constraint-label"
+      aria-hidden="true"
+    >
+      {{ constraintLabel }}
     </div>
   </div>
 </template>
@@ -641,4 +805,160 @@ const hasMoveTargets = computed<boolean>(() =>
 }
 .cpub-layout-section-move-menu-item i { color: var(--text-dim); }
 .cpub-layout-section-move-menu-item:hover i { color: var(--accent); }
+
+/* ------------------------------------------------------------------ */
+/* Phase 3c — Resize handle on the section's right edge.                */
+/* Slim vertical strip (4px wide), centered on the section's right      */
+/* border. Touch target is enlarged via padding on the inner button     */
+/* so the visible affordance stays minimal but WCAG 2.5.8 (24×24)       */
+/* is satisfied. col-resize cursor establishes the contract.            */
+/*                                                                      */
+/* Hover/selection reveals; default is 0 opacity so the canvas isn't    */
+/* visually noisy when nothing's selected. Visible during a resize-in-  */
+/* flight via the --active modifier (the gesture's own owning section). */
+/*                                                                      */
+/* < 768px: hidden per plan §7.5. The inspector slider becomes the      */
+/* colSpan path on small viewports (Phase 3e ships it; for now the      */
+/* handle's just absent on mobile + the move buttons still work).       */
+/* ------------------------------------------------------------------ */
+.cpub-layout-section-resize-handle {
+  position: absolute;
+  /* Centered on the section's right border. -2px so the 4px-wide handle
+     sits half-in/half-out — reads as "the border itself is the grip". */
+  top: 50%;
+  right: -2px;
+  transform: translateY(-50%);
+  /* Visible affordance is 4×56 (slim strip). Inner padding bumps the
+     hit area to ≥24×24 per WCAG without bloating the visual. */
+  width: 4px;
+  height: 56px;
+  /* Pad the click target — inset shadow doesn't grow visually; the
+     element's box-sizing makes click area = width + padding-x*2. */
+  padding: 0 12px;
+  background: var(--accent);
+  border: 0;
+  cursor: col-resize;
+  /* Above section content so the user can grab it even with overlapping
+     hover affordances; below the move-buttons cluster (z=2) + the move
+     popover (z=4) so disclosure UIs win conflicts. */
+  z-index: 1;
+  /* Hover/focus/active reveal — opacity 0 by default so the canvas is
+     visually quiet when nothing's selected. */
+  opacity: 0;
+  transition: opacity 100ms ease-out;
+  /* The icon's contained inside the inner 4px strip — center it. */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--surface);
+  font-size: 10px;
+}
+.cpub-layout-section-resize-handle i {
+  /* The grip lines icon — visible only when handle is. Keeps the
+     touch target generous without taking visual space. */
+  line-height: 1;
+  pointer-events: none;
+}
+/* Reveal on the section's hover, selection, or focus-within (keyboard
+   user tabbed to a child) — the union covers all input modes. */
+.cpub-layout-section--editable:hover > .cpub-layout-section-resize-handle,
+.cpub-layout-section--selected > .cpub-layout-section-resize-handle,
+.cpub-layout-section--editable:focus-within > .cpub-layout-section-resize-handle,
+.cpub-layout-section-resize-handle--active,
+.cpub-layout-section-resize-handle:focus-visible {
+  opacity: 1;
+}
+.cpub-layout-section-resize-handle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+/* During an active resize, fatten the strip so the visual matches the
+   "I'm gripping this" gesture + adds the third independent signal
+   (alongside color + lock icon) that constraint-snap relies on. */
+.cpub-layout-section-resize-handle--active {
+  width: 6px;
+  right: -3px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cpub-layout-section-resize-handle { transition: none; }
+}
+/* < 768px: hide the handle per plan §7.5. Colspan changes happen via
+   the inspector slider on mobile (deferred to Phase 3e — keyboard
+   path via Shift+Arrow still works in the meantime). */
+@media (max-width: 768px) {
+  .cpub-layout-section-resize-handle { display: none; }
+}
+
+/* ------------------------------------------------------------------ */
+/* Phase 3c — Live span pill.                                           */
+/* Anchored top-right INSIDE the section (under the move-buttons        */
+/* cluster). Three states:                                              */
+/*   - default (selected only): outline-style "8/12" badge              */
+/*   - --active (this section is being resized): accent-filled          */
+/*   - --neighbour (this section is absorbing the resize delta): dim    */
+/* ------------------------------------------------------------------ */
+.cpub-layout-section-span-pill {
+  position: absolute;
+  /* Below the moves cluster so they don't overlap. moves is at top:2 +
+     28px tall + 2 gap = 32. Pill sits at top:36 with a bit of breathing
+     room. */
+  top: 36px;
+  right: 2px;
+  padding: 2px var(--space-2);
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  /* Above the rendered section content (which is pointer-events:none)
+     but below the moves cluster. */
+  z-index: 2;
+  pointer-events: none;
+  /* Compactness: pill should read as ONE word "8/12" not a multi-line
+     wrap on narrow sections. */
+  white-space: nowrap;
+}
+.cpub-layout-section-span-pill--active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--surface);
+  /* Subtle scale to draw the eye during the active resize. Skipped
+     under prefers-reduced-motion. */
+  transform: scale(1.05);
+  transition: transform 100ms ease-out;
+}
+.cpub-layout-section-span-pill--neighbour {
+  /* Dim variant — clearly visible but not competing with the active
+     pill's accent. Mirrors plan §7.5 "neighbour's pill 4/12, dimmed". */
+  opacity: 0.65;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cpub-layout-section-span-pill--active { transition: none; transform: none; }
+}
+
+/* ------------------------------------------------------------------ */
+/* Phase 3c — Constraint-snap label.                                    */
+/* Below the active pill, shows the bound the user pushed against. The  */
+/* lock emoji + bound number give two more independent signals beyond   */
+/* the handle's color change → three total per WCAG 1.4.1.              */
+/* ------------------------------------------------------------------ */
+.cpub-layout-section-constraint-label {
+  position: absolute;
+  /* Below the span pill (which is at top:36 + 2+2*2+font-size ~24 tall
+     = ~62). 64 leaves a 2px gap. */
+  top: 64px;
+  right: 2px;
+  padding: 2px var(--space-2);
+  background: var(--red, var(--accent));
+  color: var(--surface);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  z-index: 2;
+  pointer-events: none;
+  white-space: nowrap;
+}
 </style>

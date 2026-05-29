@@ -334,3 +334,119 @@ describe('LayoutSection — drop-indicator class binding (Session 164)', () => {
     expect(el.classList.contains('cpub-layout-section--drop-before')).toBe(false);
   });
 });
+
+/* ------------------------------------------------------------------ */
+/* Phase 3c — resize handle markup                                      */
+/* ------------------------------------------------------------------ */
+
+describe('LayoutSection — resize handle (Phase 3c)', () => {
+  it('editable + onResizeStart present → renders the resize handle', () => {
+    const onResizeStart = vi.fn();
+    const { container } = render(LayoutSection, {
+      props: {
+        section: makeSection('s1'),
+        rowId: 'r',
+        route: '/',
+        zone: 'main',
+        editable: true,
+        onResizeStart,
+      },
+    });
+    const handle = container.querySelector('.cpub-layout-section-resize-handle');
+    expect(handle).not.toBeNull();
+    expect(handle?.getAttribute('aria-label')).toMatch(/Resize .* section/);
+    // Plan §7.5 + a11y: aria-label includes the current span + the keyboard
+    // alternative so SR users hear both fact + recovery affordance.
+    expect(handle?.getAttribute('aria-label')).toMatch(/Shift plus Arrow/);
+  });
+
+  it('editable but NO onResizeStart → handle is omitted (parent decided not resizable)', () => {
+    const { container } = render(LayoutSection, {
+      props: {
+        section: makeSection('s1'),
+        rowId: 'r',
+        route: '/',
+        zone: 'main',
+        editable: true,
+      },
+    });
+    expect(container.querySelector('.cpub-layout-section-resize-handle')).toBeNull();
+  });
+
+  it('editable=false: handle is omitted regardless of onResizeStart', () => {
+    const { container } = render(LayoutSection, {
+      props: {
+        section: makeSection('s-pub'),
+        rowId: 'r',
+        route: '/',
+        zone: 'main',
+        editable: false,
+        onResizeStart: vi.fn(),
+      },
+    });
+    expect(container.querySelector('.cpub-layout-section-resize-handle')).toBeNull();
+  });
+
+  it('handle pointerdown calls onResizeStart with the PointerEvent', async () => {
+    const onResizeStart = vi.fn();
+    const { container } = render(LayoutSection, {
+      props: {
+        section: makeSection('s1'),
+        rowId: 'r',
+        route: '/',
+        zone: 'main',
+        editable: true,
+        onResizeStart,
+      },
+    });
+    const handle = container.querySelector('.cpub-layout-section-resize-handle') as HTMLElement;
+    expect(handle).not.toBeNull();
+    handle.dispatchEvent(new PointerEvent('pointerdown', {
+      pointerId: 1,
+      button: 0,
+      pointerType: 'mouse',
+      clientX: 100,
+      bubbles: true,
+    }));
+    expect(onResizeStart).toHaveBeenCalledTimes(1);
+  });
+
+  it('right-click (button !== 0) does NOT start a resize', () => {
+    const onResizeStart = vi.fn();
+    const { container } = render(LayoutSection, {
+      props: {
+        section: makeSection('s1'),
+        rowId: 'r',
+        route: '/',
+        zone: 'main',
+        editable: true,
+        onResizeStart,
+      },
+    });
+    const handle = container.querySelector('.cpub-layout-section-resize-handle') as HTMLElement;
+    handle.dispatchEvent(new PointerEvent('pointerdown', {
+      pointerId: 1,
+      button: 2,
+      pointerType: 'mouse',
+      bubbles: true,
+    }));
+    expect(onResizeStart).not.toHaveBeenCalled();
+  });
+
+  it('selected section + no resize in flight → static span pill renders the current colSpan', () => {
+    const sec = { ...makeSection('s1'), colSpan: 8 };
+    const { container } = render(LayoutSection, {
+      props: {
+        section: sec,
+        rowId: 'r',
+        route: '/',
+        zone: 'main',
+        editable: true,
+        selectedId: { kind: 'section', id: 's1' },
+      },
+    });
+    const pill = container.querySelector('.cpub-layout-section-span-pill');
+    expect(pill?.textContent?.trim()).toBe('8/12');
+    expect(pill?.classList.contains('cpub-layout-section-span-pill--active')).toBe(false);
+  });
+});
