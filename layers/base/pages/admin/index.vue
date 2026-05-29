@@ -56,7 +56,10 @@ const { layoutEngine: layoutEngineEnabled } = useFeatures();
           class="cpub-admin-action"
         >
           <i class="fa-solid fa-table-cells-large cpub-admin-action-icon"></i>
-          <span class="cpub-admin-action-label">Edit Layouts</span>
+          <!-- Label matches the sidebar nav verbatim ("Layouts"). "Edit
+               Layouts" implied a direct-to-editor jump but the route is
+               the list page. -->
+          <span class="cpub-admin-action-label">Layouts</span>
         </NuxtLink>
       </div>
     </div>

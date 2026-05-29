@@ -42,6 +42,17 @@ export type LayoutZoneClient = LayoutZone;
  * structure). Structurally a `Pick` of the full server LayoutRecord
  * so any LayoutRecord is assignable to LayoutPayload without
  * transformation (session 162 P2.4 R2 audit fix).
+ *
+ * IMPORTANT CAVEAT — because the row/section types are re-exports of
+ * the server's resolved types (above), any new field added to
+ * LayoutSectionResolved or LayoutRowResolved on the server will
+ * automatically flow through to the public render path here. That's
+ * usually what you want for genuinely public fields (e.g. a future
+ * `pinned: boolean` should be visible). But fields that should be
+ * admin-only (e.g. internal moderation tags) MUST be added to a
+ * separate server-side type, never to LayoutSectionResolved /
+ * LayoutRowResolved — otherwise they leak via /api/layouts/by-route.
+ * Session 162 audit note.
  */
 export type LayoutPayload = Pick<LayoutRecord, 'state' | 'pageMeta' | 'zones'>;
 

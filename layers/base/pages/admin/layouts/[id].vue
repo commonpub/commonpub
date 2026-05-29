@@ -121,9 +121,20 @@ useLayoutAutoSave({
   paused: computed(() => editor.conflictThrashing.value),
 });
 
-// Surface conflicts from any save (manual or auto) as the modal.
+// Surface conflicts from any save (manual or auto) as the modal —
+// EXCEPT when we've already crossed into thrashing. At that point the
+// banner is the single reconciliation surface; the modal on top would
+// be redundant (same actions, more visual noise).
 watch(editor.status, (status) => {
-  if (status === 'conflict') conflictOpen.value = true;
+  if (status === 'conflict' && !editor.conflictThrashing.value) {
+    conflictOpen.value = true;
+  }
+});
+
+// And: if thrashing trips while the modal is open (the 3rd conflict
+// arrives mid-modal), close the modal so the banner is the only surface.
+watch(() => editor.conflictThrashing.value, (thrashing) => {
+  if (thrashing && conflictOpen.value) conflictOpen.value = false;
 });
 
 function onResumeAutoSave(): void {
@@ -205,6 +216,10 @@ async function onConflictRefresh(): Promise<void> {
   conflictOpen.value = false;
   try {
     await editor.refresh();
+    // Refresh = explicit reconciliation (admin took the other version).
+    // Clear the throttle so auto-save resumes; if cascade really
+    // persists, the rolling-window will trip again on its own.
+    editor.clearConflictHistory();
     toast.success('Refreshed — server state loaded');
   } catch (err) {
     const e = err as { statusMessage?: string };
@@ -216,6 +231,9 @@ async function onConflictForceSave(): Promise<void> {
   conflictOpen.value = false;
   try {
     await editor.save({ force: true });
+    // Force save = explicit reconciliation (admin overwrote with their
+    // version). Same rationale as Refresh — resume auto-save.
+    editor.clearConflictHistory();
     toast.success('Layout force-saved');
   } catch (err) {
     const e = err as { statusMessage?: string };
@@ -258,6 +276,11 @@ async function onConflictForceSave(): Promise<void> {
         this banner is the layer above, addressing the cascade pattern.
         role="alert" + aria-live="assertive" so screen readers announce
         the pause immediately (it changes the editor's autosave contract).
+
+        Audit fix: the three actions promised in the body copy
+        (Refresh / Force save / Resume) all render as inline buttons so
+        the admin can reconcile without first triggering a save to surface
+        the modal. Reuses the same handlers as the conflict modal.
       -->
       <div
         v-if="editor.conflictThrashing.value"
@@ -270,18 +293,33 @@ async function onConflictForceSave(): Promise<void> {
         <div class="cpub-admin-layouts-editor-thrash-body">
           <strong>Auto-save paused</strong>
           <span>
-            Another admin keeps editing the same layout. Refresh to load
-            their changes, force-save to overwrite, or resume auto-save
-            once you've reconciled.
+            Another admin keeps editing the same layout — three of your
+            recent saves collided. Pick one of the actions on the right.
           </span>
         </div>
-        <button
-          type="button"
-          class="cpub-admin-layouts-editor-thrash-resume"
-          @click="onResumeAutoSave"
-        >
-          Resume auto-save
-        </button>
+        <div class="cpub-admin-layouts-editor-thrash-actions">
+          <button
+            type="button"
+            class="cpub-admin-layouts-editor-thrash-btn"
+            @click="onConflictRefresh"
+          >
+            Refresh
+          </button>
+          <button
+            type="button"
+            class="cpub-admin-layouts-editor-thrash-btn"
+            @click="onConflictForceSave"
+          >
+            Force save
+          </button>
+          <button
+            type="button"
+            class="cpub-admin-layouts-editor-thrash-btn cpub-admin-layouts-editor-thrash-btn--primary"
+            @click="onResumeAutoSave"
+          >
+            Resume auto-save
+          </button>
+        </div>
       </div>
 
       <!--
@@ -353,21 +391,25 @@ async function onConflictForceSave(): Promise<void> {
 }
 .cpub-admin-layouts-editor-error a { color: var(--accent); text-decoration: underline; }
 
-/* Session 162 P2.5 conflict-thrash banner. Sticky top so it's
-   visible regardless of canvas scroll. var(--warning) / red palette
-   to read as "attention required" without being a hard error. */
+/* Session 162 P2.5 conflict-thrash banner. Audit fix: the original
+   --warning token didn't exist in the theme system → fell back to
+   surface2 which read as a neutral box, not alert. Now uses the
+   established --yellow-bg / --yellow-border tokens (defined on every
+   theme — base.css line 70-71 + all variants) that other "attention"
+   surfaces in the layer use. Sits between toolbar + body so it's
+   visible regardless of canvas scroll. */
 .cpub-admin-layouts-editor-thrash {
   display: flex;
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-3) var(--space-4);
-  background: var(--warning, var(--surface2));
+  background: var(--yellow-bg);
   color: var(--text);
-  border-bottom: var(--border-width-default) solid var(--border);
+  border-bottom: var(--border-width-default) solid var(--yellow-border);
   flex-shrink: 0;
 }
 .cpub-admin-layouts-editor-thrash-icon {
-  color: var(--text-dim);
+  color: var(--yellow);
   font-size: var(--text-lg);
   flex-shrink: 0;
 }
@@ -388,7 +430,12 @@ async function onConflictForceSave(): Promise<void> {
   font-size: var(--text-sm);
   color: var(--text-dim);
 }
-.cpub-admin-layouts-editor-thrash-resume {
+.cpub-admin-layouts-editor-thrash-actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+.cpub-admin-layouts-editor-thrash-btn {
   padding: var(--space-1) var(--space-3);
   background: var(--surface);
   border: var(--border-width-default) solid var(--border);
@@ -398,12 +445,28 @@ async function onConflictForceSave(): Promise<void> {
   text-transform: uppercase;
   letter-spacing: var(--tracking-wide);
   cursor: pointer;
-  flex-shrink: 0;
 }
-.cpub-admin-layouts-editor-thrash-resume:hover { background: var(--surface2); }
-.cpub-admin-layouts-editor-thrash-resume:focus-visible {
+.cpub-admin-layouts-editor-thrash-btn:hover { background: var(--surface2); }
+.cpub-admin-layouts-editor-thrash-btn:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+.cpub-admin-layouts-editor-thrash-btn--primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--surface);
+}
+.cpub-admin-layouts-editor-thrash-btn--primary:hover { filter: brightness(1.1); background: var(--accent); }
+
+@media (max-width: 1024px) {
+  /* Wrap the action buttons under the body on tablet/mobile so they
+     don't squish the message. */
+  .cpub-admin-layouts-editor-thrash {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+  .cpub-admin-layouts-editor-thrash-body { flex-basis: 100%; }
+  .cpub-admin-layouts-editor-thrash-actions { flex-basis: 100%; justify-content: flex-end; }
 }
 
 .cpub-admin-layouts-editor-body {

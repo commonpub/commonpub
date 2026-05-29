@@ -221,9 +221,20 @@ export function useLayoutEditor(id: string): LayoutEditorState {
     conflictHistory.value = [];
   }
   const conflictThrashing = computed<boolean>(() => {
-    // Recompute the rolling-window count on every read so a stale
-    // window expires without an explicit timer. Cheap (history is
-    // bounded by the threshold for practical purposes).
+    // The computed only re-evaluates when `conflictHistory.value`
+    // changes — Vue caches the last result otherwise. That means a
+    // rolling window doesn't naturally "expire" via wall-clock time;
+    // once `thrashing===true` is set, it stays true until either
+    //   (a) a new conflict event mutates conflictHistory (rare while
+    //       auto-save is paused — see the feedback loop below), or
+    //   (b) the user explicitly calls `clearConflictHistory()`.
+    //
+    // Feedback loop: thrashing=true → useLayoutAutoSave.paused=true →
+    // no new save attempts → no new conflicts → conflictHistory frozen
+    // → thrashing stays true. That matches the intended UX: the admin
+    // must explicitly acknowledge (Refresh / Force save / Resume)
+    // before auto-save resumes. A wall-clock timer would silently
+    // resume in the background, defeating the throttle's purpose.
     const now = Date.now();
     return conflictHistory.value.filter((t) => now - t < CONFLICT_WINDOW_MS).length
       >= CONFLICT_THRESHOLD;
