@@ -59,19 +59,25 @@ Content editor (`CpubEditor`), content cards, author rows, comment sections, eng
 
 ### Composables (27)
 
+Highlights — see `layers/base/composables/*.ts` for the full set:
+
 | Composable | Purpose |
 |---|---|
 | `useAuth` | Better Auth session + identity |
 | `useFeatures` | Reactive feature-flag lookup |
-| `useBlockEditor` / `useContentSave` | TipTap block editor + save lifecycle |
-| `useEngagement` | Likes, comments, bookmarks |
+| `useContentSave` / `usePublishValidation` | Save lifecycle for blocks-based content + pre-publish validation |
+| `useEngagement` / `useRealtimeCounts` | Likes, comments, bookmarks + realtime counters |
 | `useFederation` / `useMirrorContent` | AP discovery + mirrored content |
 | `useMessages` / `useNotifications` | Realtime SSE streams |
-| `useTheme` | Dark/light + branded theme switch (cookie-persisted, no flash) |
+| `useTheme` / `useThemeAdmin` | Dark/light + branded theme switch (cookie-persisted, no flash) + admin theme editor |
 | `useAdminSidebar` | Desktop sidebar collapse + mobile drawer (session 161) |
 | `useEditorChrome` | Layout-editor palette + inspector visibility (session 161) |
 | `useLayoutEditor` / `useLayoutAutoSave` | Layout draft state, single-flight save, conflict throttle, pagehide beacon, version-counter dirty (sessions 160-162) |
 | `useLayout` | Public layout resolution via `<LayoutSlot>` |
+| `useMarkdownImport` / `useSanitize` | Markdown ingest + HTML/iframe sanitization |
+| `useFocusTrap` / `useToast` / `useApiError` | Accessibility + UX utilities |
+
+The TipTap block editor itself lives in `@commonpub/editor` (composable `useBlockEditor` is imported from there, not declared in the layer).
 
 ### Server (90+ Nitro API routes)
 
