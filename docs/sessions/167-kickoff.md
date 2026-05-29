@@ -35,8 +35,10 @@ grep -n "Shift', '←'\|Shift', '→'" layers/base/components/admin/layouts/Admi
 # Round-2 audit fixes (must be present)
 grep -n ":not(.cpub-layout-section-resize-handle)" layers/base/components/LayoutSection.vue
 grep -n "neighbourFixed\|effectiveNeighbourMin" layers/base/components/LayoutRow.vue "layers/base/pages/admin/layouts/[id].vue"
+# Confirm Path B #9 polish (handle dim during drag) shipped
+grep -nE "cpub-layout-section-resize-handle--hidden-during-drag|isSectionDragging" layers/base/components/LayoutSection.vue
 # Test count + typecheck
-pnpm --filter @commonpub/layer test 2>&1 | grep "Tests" | tail -1     # expect: 622 passed
+pnpm --filter @commonpub/layer test 2>&1 | grep "Tests" | tail -1     # expect: 624 passed
 pnpm typecheck 2>&1 | tail -3                                          # expect: 26 cached, 26 total
 curl -s -o /dev/null -w '/admin/layouts = %{http_code} (302 expected)\n' https://commonpub.io/admin/layouts
 curl -sS https://commonpub.io/ | grep -oE 'class="[^"]*cpub-layout-(row|section)[^"]*"' | grep -oE 'cpub-layout-(row|section)(--editable)?' | sort | uniq -c
@@ -105,7 +107,7 @@ curl -sS https://commonpub.io/ | grep -oE 'class="[^"]*cpub-layout-(row|section)
 6. **Selection restored on Cmd+Z** — when undo brings back a removed section, restore selection to it (capture selection in command record at time-of-record).
 7. **`{center: true}` placement** — drop indicator returns null but `computeInsertIndex` returns 'after'. Indicator UX mismatch; 3-line fix.
 8. **axe scan expansion** — extend `editor-axe.test.ts` to `AdminLayoutsToolbar`, `AdminLayoutsPalette`, `AdminLayoutsInspector`.
-9. **Resize handle dim during dnd-kit drag** — prevent visual confusion when a section is mid-drag + the handle is also visible. CSS-only.
+9. ~~**Resize handle dim during dnd-kit drag**~~ — ✓ already shipped at session 166 close (commit `91848dc`).
 
 **Why NOT pick yet**:
 - No architectural progress — pure polish.
