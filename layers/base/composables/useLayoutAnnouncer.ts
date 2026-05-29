@@ -270,3 +270,63 @@ export function narrateSectionDuplicated(
 ): string {
   return `${sectionType} duplicated at ${formatPosition(at, total)}.`;
 }
+
+/**
+ * Section resize — drag of the right-edge handle OR Shift+Arrow keypress
+ * (Phase 3c). Always names the section type + the NEW span "X of 12"
+ * because plan §7.5's UX contract is "you can always read your current
+ * span aloud" — sighted users see the on-screen pill, SR users need
+ * the same fact in the audio channel.
+ *
+ * Routed through `announce` (NOT `announcePolite`): resize is a
+ * positional state change like drag/drop, not informational like undo.
+ * The user is mid-gesture (or mid-keystroke) and the next press is
+ * relative to the NEW span — they need to hear it NOW.
+ *
+ * Sample output: `Hero now spans 8 of 12 columns.`
+ *
+ * Pure helper — no Vue. Callers (the resize composable + the hotkeys
+ * composable) pass their own announcer reference + the narrated text.
+ */
+export function narrateResize(sectionType: string, newColSpan: number): string {
+  return `${sectionType} now spans ${newColSpan} of 12 columns.`;
+}
+
+/**
+ * Section resize hit a hard limit — the user pushed past the section's
+ * `minColSpan` / `maxColSpan` OR the right neighbour's own min (Plan §7.5's
+ * "constraint snap"). Without this narration the keystroke / drag would
+ * fall silent at the boundary, leaving SR users wondering if the press
+ * registered.
+ *
+ * `reason` discriminates so the message names WHICH bound the user hit;
+ * the pill near the cursor shows the matching label visually
+ * ("🔒 min 3/12") for sighted users.
+ *
+ *   'section-min'    → the resized section can't shrink further
+ *   'section-max'    → the resized section can't grow further
+ *   'neighbour-min'  → the right neighbour can't shrink any more
+ *
+ * The numeric bound is included so the user knows what to aim for
+ * with the next press ("can't go below 3 of 12 columns").
+ *
+ * Routed through `announce` (assertive) so it interrupts an in-flight
+ * resize narration — the user's next press needs the updated frame of
+ * reference.
+ */
+export function narrateResizeBlocked(
+  sectionType: string,
+  reason: 'section-min' | 'section-max' | 'neighbour-min',
+  bound: number,
+): string {
+  if (reason === 'section-min') {
+    return `${sectionType} can't go below ${bound} of 12 columns.`;
+  }
+  if (reason === 'section-max') {
+    return `${sectionType} can't go above ${bound} of 12 columns.`;
+  }
+  // 'neighbour-min' — the bound is the neighbour's min. Wording names the
+  // neighbour as the blocker so the user knows resizing the OTHER section
+  // (or removing it) is what unblocks them.
+  return `${sectionType} can't grow further; next section at minimum ${bound} of 12 columns.`;
+}

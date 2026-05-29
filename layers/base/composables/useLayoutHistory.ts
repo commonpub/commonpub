@@ -469,6 +469,73 @@ export function duplicateSectionCommand(params: {
 }
 
 /**
+ * Resize a section + (optionally) its right neighbour. Phase 3c.
+ *
+ *   apply:  set section.colSpan to `toColSpan`; if neighbourId present,
+ *           set neighbour.colSpan to `neighbourToColSpan`
+ *   invert: restore both to their `*FromColSpan`
+ *
+ * The pointer-drag handler in `useLayoutResize` mutates the live draft
+ * during the gesture (for live preview); on pointer-release it commits
+ * ONE command capturing the start + end values. A drag-back-to-original
+ * (toColSpan === fromColSpan AND no neighbour change) is a no-op the
+ * caller filters before recording — keeps the stack from filling with
+ * self-equal entries (mirrors the reorder dispatcher's `from===to` skip).
+ *
+ * Neighbour semantics:
+ *   - `neighbourId === null` → section is LAST in its row; neighbour
+ *     fields are unused. Plain colSpan swap.
+ *   - `neighbourId` set → both sections were in the same row at command-
+ *     record time; the apply/invert restores both. The `findSectionLocation`
+ *     walks zones → rows → sections by id, so neither cares about the
+ *     specific row index — robust against intervening reorders.
+ *
+ * Idempotence + intervening commands: if either section was deleted
+ * between record + replay, the corresponding find returns null and
+ * that side is silently skipped — same defensive shape as the other
+ * factories. Cmd+Z on a deleted section's resize is a quiet noop.
+ *
+ * Symmetric pair design (no separate factory for keyboard vs pointer):
+ * Shift+Arrow keyboard resize records the same command shape; the only
+ * difference is `label` ("resize hero (keyboard)" vs default "resize
+ * section") so narration tells SR users which input drove it.
+ */
+export function resizeSectionCommand(params: {
+  rowId: string;
+  sectionId: string;
+  fromColSpan: number;
+  toColSpan: number;
+  /** Right neighbour at resize-start. Null when the resized section
+   *  was LAST in its row (no absorption — extends to row edge). */
+  neighbourId: string | null;
+  neighbourFromColSpan?: number;
+  neighbourToColSpan?: number;
+  label?: string;
+}): LayoutCommand {
+  const label = params.label ?? `resize section`;
+  return {
+    label,
+    timestamp: Date.now(),
+    apply(draft) {
+      const loc = findSectionLocation(draft, params.sectionId);
+      if (loc) loc.section.colSpan = params.toColSpan;
+      if (params.neighbourId && params.neighbourToColSpan !== undefined) {
+        const nLoc = findSectionLocation(draft, params.neighbourId);
+        if (nLoc) nLoc.section.colSpan = params.neighbourToColSpan;
+      }
+    },
+    invert(draft) {
+      const loc = findSectionLocation(draft, params.sectionId);
+      if (loc) loc.section.colSpan = params.fromColSpan;
+      if (params.neighbourId && params.neighbourFromColSpan !== undefined) {
+        const nLoc = findSectionLocation(draft, params.neighbourId);
+        if (nLoc) nLoc.section.colSpan = params.neighbourFromColSpan;
+      }
+    },
+  };
+}
+
+/**
  * Cross-row / cross-zone move.
  *
  *   apply:  remove from sourceRow at fromIdx, insert into destRow at toIdx
