@@ -410,6 +410,39 @@ function onNameUpdate(value: string): void {
   editor.draft.value.name = value;
 }
 
+/**
+ * Phase 3e — section/row config edits from the inspector. Locate the
+ * target by id in the live draft + replace its `config` object. The deep
+ * `draft` watcher fires → `dirty` flips → the existing 1.5s auto-save
+ * debounce persists (single-flight save untouched). Config edits are not
+ * yet recorded to the undo stack — plan §7.14's `edit-section-config` op
+ * is a follow-up (Phase 3f); page-meta edits have the same gap today.
+ */
+function onSectionConfigUpdate(payload: { id: string; config: Record<string, unknown> }): void {
+  const draft = editor.draft.value;
+  if (!draft) return;
+  for (const zone of draft.zones) {
+    for (const row of zone.rows) {
+      const section = row.sections.find((s) => s.id === payload.id);
+      if (section) {
+        section.config = payload.config;
+        return;
+      }
+    }
+  }
+}
+function onRowConfigUpdate(payload: { id: string; config: Record<string, unknown> }): void {
+  const draft = editor.draft.value;
+  if (!draft) return;
+  for (const zone of draft.zones) {
+    const row = zone.rows.find((r) => r.id === payload.id);
+    if (row) {
+      row.config = payload.config;
+      return;
+    }
+  }
+}
+
 async function onSave(): Promise<void> {
   try {
     await editor.save();
@@ -673,8 +706,11 @@ async function onConflictForceSave(): Promise<void> {
           <AdminLayoutsInspector
             v-show="!chrome.inspectorHidden.value"
             :draft="editor.draft.value"
+            :selection="editor.selectedId.value"
             @update:page-meta="onPageMetaUpdate"
             @update:name="onNameUpdate"
+            @update:section-config="onSectionConfigUpdate"
+            @update:row-config="onRowConfigUpdate"
           />
 
           <!--

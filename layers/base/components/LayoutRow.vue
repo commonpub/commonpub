@@ -497,6 +497,21 @@ function handleRemoveClick(): void {
   props.onRemoveRow?.(props.zone, props.row.id);
 }
 
+/**
+ * Phase 3e — row selection. Sections had a selection trigger since 3b
+ * (LayoutSection click → onSelect({kind:'section'})); rows had the
+ * `--selected` class + `rowIsSelected` computed wired but NO trigger, so
+ * the inspector's row branch was unreachable. A dedicated handle button
+ * (mirrors the remove button, top-LEFT corner) toggles row selection —
+ * a separate button rather than making the whole row clickable avoids the
+ * nested-interactive ARIA violation (feedback-nested-aria-button-violation).
+ * `@click.stop` keeps the click off the canvas click-outside-to-deselect.
+ */
+const hasSelectHandler = computed<boolean>(() => !!(props.editable && props.onSelect));
+function handleRowSelectClick(): void {
+  props.onSelect?.(rowIsSelected.value ? null : { kind: 'row', id: props.row.id });
+}
+
 const { isDragOver } = makeDroppable(
   rowRef,
   {
@@ -568,6 +583,27 @@ const isOver = computed<boolean>(() => isDragOver.value !== undefined);
       its key is constant. Visible only on row hover or focus + only
       when an onRemoveRow handler is wired (public path stays clean).
     -->
+    <!--
+      Phase 3e — row select handle. Top-left corner so it doesn't collide
+      with the top-right remove button. Toggles row selection → the
+      inspector swaps to the row-config form. Keyed for TransitionGroup;
+      hidden on the public path (no onSelect handler).
+    -->
+    <button
+      v-if="hasSelectHandler"
+      key="cpub-row-select"
+      type="button"
+      class="cpub-layout-row-select"
+      :class="{ 'cpub-layout-row-select--active': rowIsSelected }"
+      :aria-label="rowIsSelected ? `Row in ${zone} selected — activate to deselect` : `Select this row in ${zone}`"
+      :aria-pressed="rowIsSelected"
+      :title="rowIsSelected ? 'Deselect row' : 'Select row'"
+      @click.stop="handleRowSelectClick"
+      @keydown.space.stop.prevent="handleRowSelectClick"
+      @keydown.enter.stop.prevent="handleRowSelectClick"
+    >
+      <i class="fa-solid fa-grip-lines" aria-hidden="true"></i>
+    </button>
     <button
       v-if="hasRemoveHandler"
       key="cpub-row-remove"
@@ -715,6 +751,46 @@ const isOver = computed<boolean>(() => isDragOver.value !== undefined);
 }
 @media (prefers-reduced-motion: reduce) {
   .cpub-layout-row-remove { transition: none; }
+}
+
+/* Phase 3e — row select handle. Mirrors the remove button's reveal-on-
+   hover/focus/selected behavior; positioned top-LEFT (remove is top-right)
+   so both fit on a row corner without overlap. Accent (not red) — it's a
+   selection affordance, not destructive. */
+.cpub-layout-row-select {
+  position: absolute;
+  top: -14px;
+  left: -14px;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  cursor: pointer;
+  z-index: 3;
+  opacity: 0;
+  transition: opacity 100ms ease-out, color var(--transition-default), border-color var(--transition-default);
+  font-size: var(--text-xs);
+}
+.cpub-layout-row--editable:hover > .cpub-layout-row-select,
+.cpub-layout-row-select:focus-visible,
+.cpub-layout-row--selected > .cpub-layout-row-select {
+  opacity: 1;
+}
+.cpub-layout-row-select:hover,
+.cpub-layout-row-select--active {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.cpub-layout-row-select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cpub-layout-row-select { transition: none; }
 }
 
 /* ------------------------------------------------------------------ */
