@@ -17,7 +17,8 @@
  * call from here; the editor's deep watcher picks it up.
  */
 import { ref, computed, onBeforeUnmount, nextTick } from 'vue';
-import { makeDraggable } from '@vue-dnd-kit/core';
+import type { ComputedRef } from 'vue';
+import { makeDraggable, type IPlacement } from '@vue-dnd-kit/core';
 import type { LayoutSection } from '../composables/useLayout';
 import { useSectionRegistry } from '../sections/registry';
 import type { EditorSelection } from '../composables/useLayoutEditor';
@@ -140,23 +141,52 @@ function activate(): void {
 const sectionRef = ref<HTMLElement | null>(null);
 const dragDisabled = computed<boolean>(() => !props.editable);
 
-const { isDragOver, isDragging } = makeDraggable(
-  sectionRef,
-  {
-    groups: ['section'],
-    disabled: dragDisabled,
-  },
-  () => [
-    0,
-    [
-      {
-        kind: 'section-instance',
-        section: props.section,
-        fromRowId: props.rowId,
-      } satisfies SectionInstanceDragPayload,
+/*
+ * CRITICAL — public-path provider guard (session 169 P0 hotfix).
+ *
+ * `makeDraggable` calls `inject('VueDnDKitProvider')` at setup and THROWS
+ * "DnD provider not found" when there's no <DnDProvider> ancestor.
+ * `disabled: true` does NOT suppress that inject (verified against
+ * @vue-dnd-kit/core 2.4.6). The public render path — the homepage layout
+ * canary + custom pages render <LayoutSlot> with editable=false and have
+ * NO provider ancestor — so calling makeDraggable there crashed the whole
+ * page with a 500 (live incident: commonpub.io homepage down after the
+ * sessions 163-168 deploy; the unit tests masked it by vi.mock-ing the
+ * whole dnd-kit module — see feedback-integration-test-full-output-path).
+ *
+ * Fix: instantiate the drag machinery ONLY in editable mode, which always
+ * renders inside the editor's <DnDProvider>. `editable` is static for an
+ * instance's lifetime (a section is never toggled public<->editor without
+ * remounting), so this conditional composable call is safe under Vue's
+ * setup-once model. Public instances use inert ComputedRef fallbacks —
+ * their drag state is always idle anyway.
+ */
+let isDragOver: ComputedRef<IPlacement | undefined>;
+let isDragging: ComputedRef<boolean>;
+if (props.editable) {
+  const draggable = makeDraggable(
+    sectionRef,
+    {
+      groups: ['section'],
+      disabled: dragDisabled,
+    },
+    () => [
+      0,
+      [
+        {
+          kind: 'section-instance',
+          section: props.section,
+          fromRowId: props.rowId,
+        } satisfies SectionInstanceDragPayload,
+      ],
     ],
-  ],
-);
+  );
+  isDragOver = draggable.isDragOver;
+  isDragging = draggable.isDragging;
+} else {
+  isDragOver = computed(() => undefined);
+  isDragging = computed(() => false);
+}
 
 /**
  * Session 164 polish — placement-aware drop indicator (plan §7.4).

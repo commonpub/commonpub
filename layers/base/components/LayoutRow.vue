@@ -19,7 +19,8 @@
  * useLayoutDrag.ts — this component is wiring only.
  */
 import { computed, ref } from 'vue';
-import { makeDroppable, type IDragEvent } from '@vue-dnd-kit/core';
+import type { ComputedRef } from 'vue';
+import { makeDroppable, type IDragEvent, type IPlacement } from '@vue-dnd-kit/core';
 import type { LayoutSection, LayoutRow } from '../composables/useLayout';
 import type { EditorSelection } from '../composables/useLayoutEditor';
 import { dispatchSectionDrop } from '../composables/useLayoutDrag';
@@ -512,17 +513,35 @@ function handleRowSelectClick(): void {
   props.onSelect?.(rowIsSelected.value ? null : { kind: 'row', id: props.row.id });
 }
 
-const { isDragOver } = makeDroppable(
-  rowRef,
-  {
-    disabled: dragDisabled,
-    groups: ['section'],
-    events: {
-      onDrop: handleDrop,
+/*
+ * CRITICAL — public-path provider guard (session 169 P0 hotfix). Mirror of
+ * the guard in LayoutSection.vue: `makeDroppable` injects 'VueDnDKitProvider'
+ * at setup and throws "DnD provider not found" with no <DnDProvider>
+ * ancestor (disabled:true does NOT suppress the inject). The public render
+ * path (homepage layout canary + custom pages: <LayoutSlot editable=false>)
+ * has no provider, so this crashed the page with a 500. Instantiate the
+ * droppable ONLY in editable mode (always inside the editor's
+ * <DnDProvider>); editable is static per instance so the conditional call
+ * is safe. Public rows use an inert ComputedRef fallback (never a drop
+ * target). See feedback-integration-test-full-output-path.
+ */
+let isDragOver: ComputedRef<IPlacement | undefined>;
+if (props.editable) {
+  const droppable = makeDroppable(
+    rowRef,
+    {
+      disabled: dragDisabled,
+      groups: ['section'],
+      events: {
+        onDrop: handleDrop,
+      },
     },
-  },
-  () => props.row.sections,
-);
+    () => props.row.sections,
+  );
+  isDragOver = droppable.isDragOver;
+} else {
+  isDragOver = computed(() => undefined);
+}
 
 /** Exposed for the drop-indicator class binding in the template. */
 const isOver = computed<boolean>(() => isDragOver.value !== undefined);

@@ -167,13 +167,13 @@ describe('LayoutRow — makeDroppable wiring (Phase 3b/A)', () => {
     expect(options.groups).toEqual(['section']);
   });
 
-  it('disabled option is reactive — flips with editable prop', () => {
-    mount({ editable: false });
+  it('passes a reactive disabled ComputedRef when editable (registered)', () => {
+    mount({ editable: true });
     const [, options] = firstDroppableCall();
     const disabled = options.disabled;
     expect(disabled).toBeDefined();
-    // ComputedRef — read .value for the current state.
-    expect((disabled as { value?: boolean }).value).toBe(true);
+    // ComputedRef — read .value for the current state (false in editor).
+    expect((disabled as { value?: boolean }).value).toBe(false);
   });
 
   it('disabled is FALSE when editable=true (drops accepted)', () => {
@@ -205,12 +205,19 @@ describe('LayoutRow — makeDroppable wiring (Phase 3b/A)', () => {
     expect(() => onDrop?.({ draggedItems: [], hoveredDraggable: undefined })).not.toThrow();
   });
 
-  it('public path (editable=false) STILL registers makeDroppable but disabled=true', () => {
-    // The composable is called unconditionally in setup (Vue rules-of-
-    // hooks). The disabled flag is what gates behavior. Asserting
-    // unconditional registration locks the structural choice.
+  it('public path (editable=false) does NOT call makeDroppable — provider-not-found guard', () => {
+    // Session 169 P0 regression guard. makeDroppable injects the dnd-kit
+    // provider at setup and THROWS "DnD provider not found" with no
+    // <DnDProvider> ancestor — disabled:true does NOT suppress that inject.
+    // The public render path (homepage layout canary, custom pages) has no
+    // provider, so calling makeDroppable there crashed the page with a 500.
+    // The fix instantiates the droppable ONLY in editable mode; the public
+    // path must never touch dnd-kit. (The old test asserted the OPPOSITE —
+    // "STILL registers ... but disabled=true" — which encoded the exact
+    // behavior that took commonpub.io's homepage down. See
+    // feedback-integration-test-full-output-path.)
     mount({ editable: false });
-    expect(makeDroppableMock).toHaveBeenCalledTimes(1);
+    expect(makeDroppableMock).not.toHaveBeenCalled();
   });
 });
 

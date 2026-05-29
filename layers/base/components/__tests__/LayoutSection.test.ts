@@ -200,7 +200,31 @@ describe('LayoutSection — makeDraggable wiring (Phase 3b/A)', () => {
     expect(options.groups).toEqual(['section']);
   });
 
-  it('disabled is reactive — flips with editable', () => {
+  it('disabled ComputedRef is false when editable (drag enabled)', () => {
+    render(LayoutSection, {
+      props: {
+        section: makeSection('s'),
+        rowId: 'r',
+        route: '/',
+        zone: 'main',
+        editable: true,
+      },
+    });
+    const [, options] = firstDraggableCall();
+    expect((options.disabled as { value?: boolean }).value).toBe(false);
+  });
+
+  it('public path (editable=false) does NOT call makeDraggable — provider-not-found guard', () => {
+    // Session 169 P0 regression guard. makeDraggable injects the dnd-kit
+    // provider at setup and THROWS "DnD provider not found" with no
+    // <DnDProvider> ancestor — disabled:true does NOT suppress that inject.
+    // The public render path (homepage layout canary, custom pages) has no
+    // provider, so calling makeDraggable there crashed the page with a 500.
+    // The fix instantiates the draggable ONLY in editable mode; the public
+    // path must never touch dnd-kit. (The old test asserted disabled.value
+    // === true on the public path — which presumed the call still happened,
+    // i.e. the exact behavior that took commonpub.io's homepage down.
+    // See feedback-integration-test-full-output-path.)
     render(LayoutSection, {
       props: {
         section: makeSection('s'),
@@ -210,8 +234,7 @@ describe('LayoutSection — makeDraggable wiring (Phase 3b/A)', () => {
         editable: false,
       },
     });
-    const [, options] = firstDraggableCall();
-    expect((options.disabled as { value?: boolean }).value).toBe(true);
+    expect(makeDraggableMock).not.toHaveBeenCalled();
   });
 
   it('payload factory returns section-instance envelope with fromRowId', () => {
