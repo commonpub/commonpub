@@ -38,8 +38,9 @@
  * an admin-only error placeholder.
  */
 import { computed } from 'vue';
-import type { LayoutSection, LayoutPayload, LayoutZoneClient } from '../composables/useLayout';
+import type { LayoutSection, LayoutRow, LayoutPayload, LayoutZoneClient } from '../composables/useLayout';
 import { useSectionRegistry } from '../sections/registry';
+import type { EditorSelection } from '../composables/useLayoutEditor';
 
 const props = withDefaults(defineProps<{
   /** Route path this layout is for — e.g. '/', '/blog', '/hubs/foo'. */
@@ -54,19 +55,42 @@ const props = withDefaults(defineProps<{
   previewOverride?: LayoutPayload | null;
   /**
    * Editor mode flag. When `true`, the row + section wrappers get
-   * `--editable` modifier classes which paint a dashed hover outline
-   * + a small type-label badge — pure visual affordance. NO event
-   * handlers, selection state, or keyboard model land here; those
-   * arrive in Phase 3a.3 (editor shell) + 3b (drag-drop) + 3d (a11y
-   * keyboard equivalence). Default `false` so public render paths
-   * (pages/index.vue, [...customPath].vue) are byte-pattern unchanged.
+   * `--editable` modifier classes (dashed hover outline + type-label
+   * badge) AND Phase 3b/A's selection chrome (tabindex, click→select,
+   * keyboard activation, --selected outline). Drag-drop itself wires
+   * up in the next commits of this session via @vue-dnd-kit/core
+   * makeDraggable/makeDroppable on the section/row containers.
    *
-   * See docs/plans/phase-3-editor.md Phase 3a.1.
+   * Default `false` so public render paths (pages/index.vue,
+   * [...customPath].vue) are byte-pattern unchanged. The selection
+   * callback prop is optional — its absence makes the section
+   * affordances inert (still focusable visually but click is a no-op),
+   * so consumers without an editor in scope don't accidentally light
+   * up selection behavior.
+   *
+   * See docs/plans/phase-3-editor.md Phase 3a.1 + 3b/A.
    */
   editable?: boolean;
+  /**
+   * Selection callback — called when the admin clicks (or presses
+   * Enter/Space on) a section in editable mode. The editor page wires
+   * this to `useLayoutEditor.select` so the inspector dispatcher
+   * switches to the section-config form. Optional — when absent,
+   * editable=true still paints the chrome but click is inert.
+   */
+  onSelect?: (selection: EditorSelection) => void;
+  /**
+   * The currently-selected target — drives the `--selected` modifier
+   * class on the section or row wrapper. Read from the editor's
+   * reactive `selectedId` ref upstream so the highlight updates without
+   * a re-render contract. Optional; defaults to null (no highlight).
+   */
+  selectedId?: EditorSelection | null;
 }>(), {
   previewOverride: null,
   editable: false,
+  onSelect: undefined,
+  selectedId: null,
 });
 
 const { layout, pending } = useLayout(props.route);
@@ -142,6 +166,39 @@ function resolveSectionProps(section: LayoutSection): Record<string, unknown> {
   // target component expects (e.g., for BlockHeadingView: `{ content: config }`).
   return def.propMap ? def.propMap(standardProps) : standardProps;
 }
+
+/**
+ * Phase 3b/A — section selection. Click / Enter / Space activates.
+ *
+ *  - `.stop` on the click so it doesn't bubble to a row click handler
+ *    above (rows get their own click → row-select in commit D's wrapper).
+ *  - `.prevent` on Space so the page doesn't scroll.
+ *  - Optional onSelect — when absent (public path or tests without a
+ *    handler), the click silently no-ops so editable=true alone doesn't
+ *    light up unintended behavior.
+ *
+ * The handler captures the section id ONLY — the row id isn't passed
+ * because the inspector renders the section's own config + visibility
+ * + colSpan (the section knows its row via `meta.sectionId` + a lookup
+ * when needed; the editor will gain a `findContext(sectionId)` helper
+ * when the inspector needs row context).
+ */
+function onSectionActivate(section: LayoutSection): void {
+  if (!props.editable) return;
+  props.onSelect?.({ kind: 'section', id: section.id });
+}
+
+/** Helper for `:class` — true when this section is the currently-selected target. */
+function isSectionSelected(section: LayoutSection): boolean {
+  const sel = props.selectedId;
+  return !!sel && sel.kind === 'section' && sel.id === section.id;
+}
+
+/** Helper for `:class` — true when this row is the currently-selected target. */
+function isRowSelected(row: LayoutRow): boolean {
+  const sel = props.selectedId;
+  return !!sel && sel.kind === 'row' && sel.id === row.id;
+}
 </script>
 
 <template>
@@ -159,18 +216,36 @@ function resolveSectionProps(section: LayoutSection): Record<string, unknown> {
       v-for="row in zone.rows"
       :key="row.id"
       class="cpub-layout-row"
-      :class="{ 'cpub-layout-row--editable': editable }"
+      :class="{
+        'cpub-layout-row--editable': editable,
+        'cpub-layout-row--selected': editable && isRowSelected(row),
+      }"
       :data-row-id="row.id"
       :data-gap="row.config?.gap ?? 'md'"
       :data-align="row.config?.align ?? 'stretch'"
       :data-padding-y="row.config?.paddingY ?? 'none'"
       :style="row.config?.background ? { background: row.config.background } : {}"
     >
+      <!--
+        Phase 3b/A: section gains selection chrome in editable mode.
+        - tabindex='0' so Tab cycles through sections (WCAG 2.4.3
+          Focus Order)
+        - role='button' communicates the selectable affordance to ATs
+        - aria-pressed reflects current selection state
+        - click + Enter + Space all activate; Space.prevent so the page
+          doesn't scroll; .stop on click so a row-level click handler
+          (commit D's row wrapper) doesn't also fire
+        Public path (editable=false): no tabindex / role / handlers —
+        byte-pattern identical to pre-3b/A.
+      -->
       <div
         v-for="section in row.sections.filter(sectionVisible)"
         :key="section.id"
         class="cpub-layout-section"
-        :class="{ 'cpub-layout-section--editable': editable }"
+        :class="{
+          'cpub-layout-section--editable': editable,
+          'cpub-layout-section--selected': editable && isSectionSelected(section),
+        }"
         :data-section-id="section.id"
         :data-section-type="section.type"
         :data-hide-sm="section.visibility?.hideAt?.includes('sm') ? 'true' : 'false'"
@@ -181,6 +256,13 @@ function resolveSectionProps(section: LayoutSection): Record<string, unknown> {
           '--cpub-section-cols-md': resolveColSpan(section, 'md'),
           '--cpub-section-cols-lg': resolveColSpan(section, 'lg'),
         }"
+        :tabindex="editable ? 0 : undefined"
+        :role="editable ? 'button' : undefined"
+        :aria-pressed="editable ? (isSectionSelected(section) ? 'true' : 'false') : undefined"
+        :aria-label="editable ? `Select ${section.type} section` : undefined"
+        @click.stop="onSectionActivate(section)"
+        @keydown.enter.prevent="onSectionActivate(section)"
+        @keydown.space.prevent.stop="onSectionActivate(section)"
       >
         <!--
           Section render path:
@@ -369,5 +451,41 @@ function resolveSectionProps(section: LayoutSection): Record<string, unknown> {
 }
 @media (prefers-reduced-motion: reduce) {
   .cpub-layout-section--editable::after { transition: none; }
+}
+
+/* ------------------------------------------------------------------ */
+/* Phase 3b/A — selection chrome. Per docs/plans/layout-and-pages.md  */
+/* §7.11 visual design system: selected = 2px solid var(--accent).    */
+/* Outline (not border) so grid-column math + min-width:0 stay intact. */
+/* Always pin the type-label badge visible when selected (no hover    */
+/* required) — the badge IS part of the selection signal.             */
+/* Focus-visible on the bare focusable section paints the same ring   */
+/* so keyboard users see exactly what a click would do.               */
+/* ------------------------------------------------------------------ */
+.cpub-layout-section--editable {
+  /* Default cursor stays default — the section is selectable, not draggable
+     yet. Per feedback-visual-editor-ux-patterns "cursor as contract":
+     `cursor: grab` arrives in the same commit as makeDraggable, not before. */
+  cursor: pointer;
+}
+.cpub-layout-section--editable:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+.cpub-layout-section--selected {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+.cpub-layout-section--selected::after {
+  /* Selected badge: accent surface + accent text instead of muted neutral.
+     Pin opacity so it doesn't fade out on un-hover. */
+  background: var(--accent);
+  color: var(--surface);
+  border-color: var(--accent);
+  opacity: 1;
+}
+.cpub-layout-row--selected {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 </style>

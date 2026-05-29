@@ -14,13 +14,25 @@
 import { computed } from 'vue';
 import type { LayoutRecord } from '@commonpub/server';
 import type { LayoutPayload } from '../../../composables/useLayout';
+import type { EditorSelection } from '../../../composables/useLayoutEditor';
 
 const props = withDefaults(defineProps<{
   layout: LayoutRecord | null;
   /** Simulated viewport from the toolbar. */
   viewport?: 'mobile' | 'tablet' | 'desktop';
+  /**
+   * Phase 3b/A — selection callback passed down to <LayoutSlot>.
+   * The editor page wires this to `useLayoutEditor.select` so the
+   * inspector dispatcher switches when the admin clicks a section.
+   * Optional — without it, clicks are silent (canvas still renders).
+   */
+  onSelect?: (selection: EditorSelection) => void;
+  /** Currently-selected target — drives `--selected` chrome on sections/rows. */
+  selectedId?: EditorSelection | null;
 }>(), {
   viewport: 'desktop',
+  onSelect: undefined,
+  selectedId: null,
 });
 
 // Session 162 P2.4 (R2 audit): LayoutPayload is now
@@ -81,6 +93,8 @@ const viewportWidthPx: Record<'mobile' | 'tablet' | 'desktop', string> = {
               :zone="zoneSlug"
               :preview-override="payload"
               :editable="true"
+              :on-select="props.onSelect"
+              :selected-id="props.selectedId"
             />
           </div>
         </div>

@@ -12,11 +12,12 @@
  * the network — useLayout is still called, so we stub it to return
  * null + pending=false (the previewOverride path takes over the render).
  */
-import { describe, it, expect, afterEach } from 'vitest';
-import { render } from '@testing-library/vue';
+import { describe, it, expect, afterEach, vi } from 'vitest';
+import { render, fireEvent } from '@testing-library/vue';
 import { ref } from 'vue';
 import LayoutSlot from '../LayoutSlot.vue';
 import type { LayoutPayload } from '../../composables/useLayout';
+import type { EditorSelection } from '../../composables/useLayoutEditor';
 
 /* ---- Composable stubs ---- */
 
@@ -81,7 +82,11 @@ function makeLayout(): LayoutPayload {
   };
 }
 
-function mount(props: { editable?: boolean }) {
+function mount(props: {
+  editable?: boolean;
+  onSelect?: (sel: EditorSelection) => void;
+  selectedId?: EditorSelection | null;
+}) {
   return render(LayoutSlot, {
     props: {
       route: '/test',
@@ -134,17 +139,137 @@ describe('LayoutSlot — :editable prop', () => {
     expect(section?.getAttribute('data-section-type')).toBe('divider');
   });
 
-  it('editable=true does NOT add tabindex / role / click handlers (deferred to 3a.3)', () => {
-    // Phase 3a.1 is visual-affordance only. Shipping tabindex/role here
-    // without a selection model behind them would mislead screen readers
-    // ("a button that does nothing"). 3a.3 introduces both together.
+  it('editable=true adds tabindex=0 + role=button + aria-label on sections (3b/A selection chrome)', () => {
+    // 3b/A cashes the reservation 3a.1 made: now there IS a selection
+    // model behind the affordance (useLayoutEditor.select + selectedId).
+    // The chrome promises something true.
     setupComposables();
     const { container } = mount({ editable: true });
     const section = container.querySelector('.cpub-layout-section--editable');
+    expect(section?.getAttribute('tabindex')).toBe('0');
+    expect(section?.getAttribute('role')).toBe('button');
+    expect(section?.getAttribute('aria-label')).toBe('Select divider section');
+    expect(section?.getAttribute('aria-pressed')).toBe('false');
+  });
+
+  it('editable=false keeps section tabindex / role unset (public path pristine)', () => {
+    // The load-bearing byte-pattern test: commonpub.io's homepage path
+    // MUST NOT light up selection a11y attributes when no editor is in
+    // scope. Mirrors the existing --editable class regression-guard.
+    setupComposables();
+    const { container } = mount({});
+    const section = container.querySelector('.cpub-layout-section');
     expect(section?.getAttribute('tabindex')).toBeNull();
     expect(section?.getAttribute('role')).toBeNull();
-    const row = container.querySelector('.cpub-layout-row--editable');
-    expect(row?.getAttribute('tabindex')).toBeNull();
-    expect(row?.getAttribute('role')).toBeNull();
+    expect(section?.getAttribute('aria-pressed')).toBeNull();
+    expect(section?.getAttribute('aria-label')).toBeNull();
+  });
+});
+
+describe('LayoutSlot — selection (Phase 3b/A)', () => {
+  it('clicking a section calls onSelect({kind:"section", id})', async () => {
+    setupComposables();
+    const onSelect = vi.fn();
+    const { container } = mount({ editable: true, onSelect });
+    const section = container.querySelector('[data-section-id="sec-1"]') as HTMLElement;
+    await fireEvent.click(section);
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    expect(onSelect).toHaveBeenCalledWith({ kind: 'section', id: 'sec-1' });
+  });
+
+  it('Enter on a focused section activates selection', async () => {
+    setupComposables();
+    const onSelect = vi.fn();
+    const { container } = mount({ editable: true, onSelect });
+    const section = container.querySelector('[data-section-id="sec-1"]') as HTMLElement;
+    await fireEvent.keyDown(section, { key: 'Enter' });
+    expect(onSelect).toHaveBeenCalledWith({ kind: 'section', id: 'sec-1' });
+  });
+
+  it('Space on a focused section activates selection (Space.prevent so page does not scroll)', async () => {
+    setupComposables();
+    const onSelect = vi.fn();
+    const { container } = mount({ editable: true, onSelect });
+    const section = container.querySelector('[data-section-id="sec-1"]') as HTMLElement;
+    await fireEvent.keyDown(section, { key: ' ' });
+    expect(onSelect).toHaveBeenCalledWith({ kind: 'section', id: 'sec-1' });
+  });
+
+  it('clicking is a no-op when editable=false (public path)', async () => {
+    setupComposables();
+    const onSelect = vi.fn();
+    const { container } = mount({ editable: false, onSelect });
+    const section = container.querySelector('[data-section-id="sec-1"]') as HTMLElement;
+    await fireEvent.click(section);
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it('clicking is a no-op when onSelect is undefined (editable but no editor wired)', async () => {
+    // Defensive: a consumer might pass :editable=true to preview-only
+    // surfaces without an editor (e.g. theme preview). The chrome
+    // still renders but click must not crash.
+    setupComposables();
+    const { container } = mount({ editable: true });
+    const section = container.querySelector('[data-section-id="sec-1"]') as HTMLElement;
+    // Should not throw — the optional chaining in onSectionActivate
+    // guards the undefined callback.
+    await fireEvent.click(section);
+    // No assertion needed — surviving the click is the test.
+    expect(section).not.toBeNull();
+  });
+
+  it('selectedId={kind:"section", id} adds --selected modifier to that section only', () => {
+    setupComposables();
+    const { container } = mount({
+      editable: true,
+      selectedId: { kind: 'section', id: 'sec-1' },
+    });
+    const section = container.querySelector('[data-section-id="sec-1"]');
+    expect(section?.classList.contains('cpub-layout-section--selected')).toBe(true);
+    expect(section?.getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('selectedId=null leaves no section selected (aria-pressed=false)', () => {
+    setupComposables();
+    const { container } = mount({ editable: true, selectedId: null });
+    const section = container.querySelector('[data-section-id="sec-1"]');
+    expect(section?.classList.contains('cpub-layout-section--selected')).toBe(false);
+    expect(section?.getAttribute('aria-pressed')).toBe('false');
+  });
+
+  it('selectedId={kind:"section", id:"other"} does NOT paint THIS section', () => {
+    // Multiple sections in real layouts; selecting one should highlight
+    // only that one.
+    setupComposables();
+    const { container } = mount({
+      editable: true,
+      selectedId: { kind: 'section', id: 'sec-DIFFERENT' },
+    });
+    const section = container.querySelector('[data-section-id="sec-1"]');
+    expect(section?.classList.contains('cpub-layout-section--selected')).toBe(false);
+  });
+
+  it('selectedId={kind:"row", id} adds --selected to that row', () => {
+    setupComposables();
+    const { container } = mount({
+      editable: true,
+      selectedId: { kind: 'row', id: 'row-1' },
+    });
+    const row = container.querySelector('[data-row-id="row-1"]');
+    expect(row?.classList.contains('cpub-layout-row--selected')).toBe(true);
+  });
+
+  it('public path: --selected NEVER paints even if selectedId is passed (defense in depth)', () => {
+    // Belt-and-braces: even if a misconfigured caller passes selectedId
+    // with editable=false, --selected must not leak. The class binding
+    // is `editable && isSectionSelected(section)` so both conditions
+    // must be true.
+    setupComposables();
+    const { container } = mount({
+      editable: false,
+      selectedId: { kind: 'section', id: 'sec-1' },
+    });
+    const section = container.querySelector('[data-section-id="sec-1"]');
+    expect(section?.classList.contains('cpub-layout-section--selected')).toBe(false);
   });
 });

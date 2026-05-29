@@ -393,7 +393,12 @@ async function onConflictForceSave(): Promise<void> {
                past 17 tiles to reach the canvas.)
                v-show on palette + inspector (not v-if) preserves component
                state — scroll position, focused field — across hide/show. -->
-          <AdminLayoutsCanvas :layout="editor.draft.value" :viewport="viewport" />
+          <AdminLayoutsCanvas
+            :layout="editor.draft.value"
+            :viewport="viewport"
+            :on-select="editor.select"
+            :selected-id="editor.selectedId.value"
+          />
           <AdminLayoutsPalette v-show="!chrome.paletteHidden.value" />
           <AdminLayoutsInspector
             v-show="!chrome.inspectorHidden.value"
