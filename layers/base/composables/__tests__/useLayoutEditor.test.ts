@@ -15,7 +15,7 @@
  *   - discard() reverts draft to original
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { useLayoutEditor } from '../useLayoutEditor';
+import { useLayoutEditor, PublishStepError } from '../useLayoutEditor';
 import type { LayoutRecord } from '@commonpub/server';
 
 function fixture(overrides: Partial<LayoutRecord> = {}): LayoutRecord {
@@ -595,5 +595,96 @@ describe('useLayoutEditor — publish()', () => {
     // PUT NOT called — only publish + refresh
     expect(calls.filter((c) => c.startsWith('PUT'))).toEqual([]);
     expect(calls).toContain('POST /api/admin/layouts/L1/publish');
+  });
+});
+
+describe('useLayoutEditor — publish() partial-failure UX (session 162 P2.7)', () => {
+  // Each step (save / publish / refresh) gets its own PublishStepError
+  // so the caller can render a step-specific toast. The most important
+  // case is publish-failing-after-save-succeeded: changes are saved as
+  // a draft + must be communicated to the user.
+
+  it('save-step failure → throws PublishStepError with step="save"', async () => {
+    const saveError = { statusCode: 500, statusMessage: 'DB down' };
+    const fetchImpl = vi.fn((url: string, opts?: Record<string, unknown>) => {
+      const method = (opts as { method?: string } | undefined)?.method ?? 'GET';
+      if (url === '/api/admin/layouts/L1' && method === 'PUT') {
+        return Promise.reject(saveError);
+      }
+      return Promise.resolve(fixture());
+    });
+    installFetch(fetchImpl);
+
+    const editor = useLayoutEditor('L1');
+    editor.original.value = fixture();
+    editor.draft.value = { ...fixture(), name: 'Renamed' }; // dirty → save fires
+
+    let caught: unknown;
+    try { await editor.publish(); } catch (e) { caught = e; }
+
+    expect(caught).toBeInstanceOf(PublishStepError);
+    expect((caught as PublishStepError).step).toBe('save');
+    expect((caught as PublishStepError).cause).toBe(saveError);
+  });
+
+  it('publish-step failure → throws PublishStepError with step="publish" (changes ARE saved)', async () => {
+    const saved = fixture({ name: 'Renamed', updatedAt: '2026-05-28T01:00:00.000Z' });
+    const publishError = { statusCode: 500, statusMessage: 'Publish endpoint exploded' };
+    const fetchImpl = vi.fn((url: string, opts?: Record<string, unknown>) => {
+      const method = (opts as { method?: string } | undefined)?.method ?? 'GET';
+      if (url === '/api/admin/layouts/L1' && method === 'PUT') return Promise.resolve(saved);
+      if (url === '/api/admin/layouts/L1/publish') return Promise.reject(publishError);
+      return Promise.resolve(fixture());
+    });
+    installFetch(fetchImpl);
+
+    const editor = useLayoutEditor('L1');
+    editor.original.value = fixture();
+    editor.draft.value = { ...fixture(), name: 'Renamed' };
+
+    let caught: unknown;
+    try { await editor.publish(); } catch (e) { caught = e; }
+
+    expect(caught).toBeInstanceOf(PublishStepError);
+    expect((caught as PublishStepError).step).toBe('publish');
+    // The crucial property: save DID succeed. original.updatedAt has the
+    // saved timestamp; the user's edits are durable as a draft.
+    expect(editor.original.value?.updatedAt).toBe('2026-05-28T01:00:00.000Z');
+    expect(editor.status.value).toBe('saved');
+  });
+
+  it('refresh-step failure → throws PublishStepError with step="refresh" (publish DID succeed)', async () => {
+    const saved = fixture({ name: 'Renamed', updatedAt: '2026-05-28T01:00:00.000Z' });
+    const refreshError = { statusCode: 500, statusMessage: 'GET failed' };
+    const fetchImpl = vi.fn((url: string, opts?: Record<string, unknown>) => {
+      const method = (opts as { method?: string } | undefined)?.method ?? 'GET';
+      if (url === '/api/admin/layouts/L1' && method === 'PUT') return Promise.resolve(saved);
+      if (url === '/api/admin/layouts/L1/publish') return Promise.resolve({ id: 'v1' });
+      if (url === '/api/admin/layouts/L1' && method === 'GET') return Promise.reject(refreshError);
+      return Promise.reject(new Error('unexpected ' + url));
+    });
+    installFetch(fetchImpl);
+
+    const editor = useLayoutEditor('L1');
+    editor.original.value = fixture();
+    editor.draft.value = { ...fixture(), name: 'Renamed' };
+
+    let caught: unknown;
+    try { await editor.publish(); } catch (e) { caught = e; }
+
+    expect(caught).toBeInstanceOf(PublishStepError);
+    expect((caught as PublishStepError).step).toBe('refresh');
+  });
+
+  it('PublishStepError exposes the inner cause', async () => {
+    const innerErr = new Error('inner');
+    installFetch(() => Promise.reject(innerErr));
+    const editor = useLayoutEditor('L1');
+    editor.original.value = fixture();
+    editor.draft.value = { ...fixture(), name: 'X' };
+
+    let caught: unknown;
+    try { await editor.publish(); } catch (e) { caught = e; }
+    expect((caught as PublishStepError).cause).toBe(innerErr);
   });
 });

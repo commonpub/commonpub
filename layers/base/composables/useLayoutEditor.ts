@@ -72,6 +72,32 @@ export interface LayoutEditorState {
   clearConflictHistory: () => void;
 }
 
+/**
+ * Discriminated failure for the multi-step publish() flow.
+ *
+ * publish() chains three independent server calls: save (only when
+ * dirty), POST /publish, then refresh. The R4 audit found that a
+ * generic "Publish failed" toast hides which step actually failed —
+ * the most important case being a publish-step failure AFTER a
+ * successful save, where the user's changes ARE durably saved as a
+ * draft but they don't know it.
+ *
+ * The consumer (editor page) catches `PublishStepError`, branches on
+ * `step`, and renders a step-specific toast. Session 162 P2.7.
+ */
+export type PublishStep = 'save' | 'publish' | 'refresh';
+
+export class PublishStepError extends Error {
+  readonly step: PublishStep;
+  override readonly cause: unknown;
+  constructor(step: PublishStep, cause: unknown) {
+    super(`Publish step "${step}" failed`);
+    this.name = 'PublishStepError';
+    this.step = step;
+    this.cause = cause;
+  }
+}
+
 /** Deep-clone via JSON. The LayoutRecord shape is JSON-safe (no Date/Map/Set). */
 function clone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
@@ -404,10 +430,34 @@ export function useLayoutEditor(id: string): LayoutEditorState {
 
   async function publish(): Promise<void> {
     if (!draft.value) return;
+
     // Save first if dirty — publish snapshots the LAST SAVED state.
-    if (dirty.value) await save();
-    await $fetch(`/api/admin/layouts/${id}/publish`, { method: 'POST' });
-    await refresh();
+    // Session 162 P2.7: wrap each step in its own try/catch so the
+    // caller can render a step-specific failure toast. The most
+    // important case is a 'publish' step failure AFTER a successful
+    // 'save' — the user's changes are durably saved as a draft but
+    // the generic "Publish failed" toast hid that.
+    if (dirty.value) {
+      try {
+        await save();
+      } catch (err) {
+        throw new PublishStepError('save', err);
+      }
+    }
+
+    try {
+      await $fetch(`/api/admin/layouts/${id}/publish`, { method: 'POST' });
+    } catch (err) {
+      throw new PublishStepError('publish', err);
+    }
+
+    try {
+      await refresh();
+    } catch (err) {
+      // Server data IS published. Only the editor's local view is
+      // stale. The page handler can recommend a manual reload.
+      throw new PublishStepError('refresh', err);
+    }
   }
 
   function discard(): void {

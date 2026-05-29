@@ -15,6 +15,7 @@
  * `useLayoutAutoSave` watching `editor.dirty`.
  */
 import type { LayoutRecord } from '@commonpub/server';
+import { PublishStepError } from '../../../composables/useLayoutEditor';
 
 definePageMeta({
   layout: 'admin',
@@ -168,6 +169,33 @@ async function onPublish(): Promise<void> {
     await editor.publish();
     toast.success('Layout published');
   } catch (err) {
+    // Session 162 P2.7: surface WHICH step failed so the admin knows
+    // whether their changes are safely saved or lost. Generic
+    // "Publish failed" hid the save-succeeded-publish-failed case.
+    if (err instanceof PublishStepError) {
+      const causeMsg = (err.cause as { statusMessage?: string })?.statusMessage;
+      switch (err.step) {
+        case 'save':
+          toast.error(causeMsg
+            ? `Could not save your edits (${causeMsg}). Nothing was published.`
+            : 'Could not save your edits. Nothing was published.');
+          return;
+        case 'publish':
+          toast.error(
+            'Your changes are saved as a draft, but publish failed. ' +
+            'Try Publish again — the saved draft is durable.',
+          );
+          return;
+        case 'refresh':
+          // The publish succeeded on the server; only the local view
+          // is stale. The next save / publish picks up correctly; a
+          // reload syncs immediately.
+          toast.show(
+            'Published — but the editor view is stale. Reload to sync.',
+          );
+          return;
+      }
+    }
     const e = err as { statusMessage?: string };
     toast.error(e.statusMessage ?? 'Publish failed');
   }
