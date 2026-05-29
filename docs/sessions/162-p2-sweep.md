@@ -127,9 +127,24 @@ All use `var(--*)`; no hardcoded colors.
 - Pre-push hook ran `pnpm typecheck` on every push
 - Test-driven: every behavioral change has co-located test coverage
 
+## Path C — stale-docs sweep (commit `812601b`)
+
+After the audit recursion hit diminishing returns, took the user's "ok then continue" as permission to start Path C from the handoff. Five of six items closed; one (D.5 packages/ui section-registry) was a no-op because the handoff's claim was wrong about the registry's location (it lives in `@commonpub/layer`, not `@commonpub/ui`).
+
+| Item | What |
+|---|---|
+| D.1 | `packages/schema/src/openapi.ts` — added 8 layout paths covering 11 verb/path combos (public `/api/layouts/by-route` + the full admin CRUD + publish/versions/revert + migrate-homepage + seed-homepage). Headers documented: `If-Match`, `X-Cpub-Force-Save`, `X-Cpub-Save-Source: beacon` (session 162 P2.3), `X-Cpub-Confirm-Homepage-Delete` (session 160 R4). New `Layouts` tag added. Spec generates clean (42 total paths, 8 layout). |
+| D.2 | `apps/reference/README.md` — created (was genuinely missing). Doc covers package layout, env vars (DATABASE_URL through ADMIN_BOOTSTRAP_FIRST_USER), dev/build/test commands, deploy pattern, and the shadowing/customisation model. |
+| D.3 | `packages/config/README.md` — feature-flag table refreshed. The 9 flags that drifted from the FeatureFlags type are now documented: `events`, `editorial`, `publicApi`, `contentImport`, `layoutEngine`, plus the 5 `identity` sub-flags (phase 1-4b). Removed `article` from contentTypes example (CLAUDE.md #6 deprecation). Test count 17 → 23. |
+| D.4 | `packages/learning/README.md` — handoff claimed it was missing; verified accurate API + bumped test count 75 → 101. |
+| D.5 | (no-op) `packages/ui/README.md` doesn't need a section-registry section — the registry lives in `@commonpub/layer`. ui README is otherwise current. |
+| D.6 | `layers/base/README.md` — the biggest gap. Composables count 19 → 27. Routes 70+ → 90. Components 100+ → 123. Added the 17-section registry + per-section configSchema enforcement, the layout-engine surface (LayoutSlot + admin chrome), 4 user-selectable themes. Removed `article` + replaced the (wrong) `auth.methods: ['email']` shape with the actual `emailPassword: true` boolean. |
+
+Total docs delta: +1 new README, 4 updated. Layer + schema tests unchanged at 318 + 470; typecheck 26/26 clean.
+
 ## End state
 
-- commonpub.io: workspace `main` (last code commit `11b9190`). Public homepage byte-pattern unchanged (3 layout-rows + 5 layout-sections, no `--editable` leak). Admin editor at `/admin/layouts` + `/admin/layouts/[id]` now has flushBeacon for tab-close, conflict throttle for cascade scenarios with a complete inline-action banner surface (label/style discipline matching the conflict modal), O(1) dirty for high-N sections, and step-typed publish errors. heatsync + deveco UNTOUCHED.
+- commonpub.io: workspace `main` (last code commit `11b9190`; last docs commit `812601b`). Public homepage byte-pattern unchanged (3 layout-rows + 5 layout-sections, no `--editable` leak). Admin editor at `/admin/layouts` + `/admin/layouts/[id]` now has flushBeacon for tab-close, conflict throttle for cascade scenarios with a complete inline-action banner surface (label/style discipline matching the conflict modal), O(1) dirty for high-N sections, and step-typed publish errors. heatsync + deveco UNTOUCHED.
 - Tests: layer **318**, schema 470, server **1129** + 3 skipped, repo typecheck 26/26 FULL TURBO.
 - No memories added (every change was already covered by existing feedback memories).
 - No codebase-analysis updates queued — the surface area is small enough that the next session's audit can catch any drift.

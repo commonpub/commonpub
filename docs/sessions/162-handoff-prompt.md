@@ -6,7 +6,7 @@ Paste everything between the `---` rules as the first message of session 163. De
 
 Fresh Claude Code session on the CommonPub monorepo.
 
-**Predecessor**: session 162 shipped 10 code-impacting commits on `main` closing the layout-editor P2 deferred queue from session 160's R2/R3/R4 audits, plus TWO recursive audit rounds on the P2 work itself (the second caught label/style violations in the first). All session 160 audit P1+P2s are now closed. Editor lives at https://commonpub.io/admin/layouts. **Layer 318 tests + schema 470 + server 1129+3skip + repo typecheck 26/26.** heatsync + deveco UNTOUCHED on npm 0.24.0. Last code commit `11b9190` on `main`.
+**Predecessor**: session 162 shipped 10 code-impacting commits on `main` closing the layout-editor P2 deferred queue from session 160's R2/R3/R4 audits, plus TWO recursive audit rounds on the P2 work itself (the second caught label/style violations in the first), plus a Path C stale-docs sweep (5 of 6 items; 1 was a no-op from a wrong handoff claim). All session 160 audit P1+P2s are now closed. Editor lives at https://commonpub.io/admin/layouts. **Layer 318 tests + schema 470 + server 1129+3skip + repo typecheck 26/26.** heatsync + deveco UNTOUCHED on npm 0.24.0. Last code commit `11b9190`; last docs commit `812601b` (apps/reference/README.md created; openapi.ts now documents the 8 layout paths; config + learning + layer READMEs no longer stale).
 
 ## Session 162 in three paragraphs
 
@@ -64,7 +64,7 @@ pnpm typecheck 2>&1 | tail -3
 
 ## Pick your path (ask the user up front)
 
-**"Phase 3b drag-drop (the big arc, 2 sessions), Figma viewport zoom (1 session, complements 161 collapse fix), or stale-docs sweep (0.5 session)?"**
+**"Phase 3b drag-drop (the big arc, 2 sessions) or Figma viewport zoom (1 session, complements 161 collapse fix)?"** (Stale-docs sweep already closed in session 162.)
 
 ### Path A — Phase 3b drag-drop (2 sessions)
 
@@ -93,9 +93,9 @@ Complementary to session 161's palette/inspector collapse fix. Users who want fu
 
 Useful Phase 3b feature too — being able to zoom OUT to see a long layout while dragging is a real workflow.
 
-### Path C — Stale docs sweep (0.5 session)
+### ~~Path C — Stale docs sweep~~ (DONE in session 162)
 
-`packages/learning/README.md` MISSING, `apps/reference/README.md` MISSING, `packages/schema/src/openapi.ts` doesn't include layout endpoints, `packages/ui/README.md` no section-registry section, `packages/config/README.md` flag list stale, `layers/base/README.md` "What's Included" tables stale.
+Closed in commit `812601b`. apps/reference README created; openapi.ts now documents the 8 layout paths (11 verb/path combos); config flag list refreshed; learning + layer READMEs current. Two handoff inaccuracies surfaced + corrected: packages/learning was NOT missing (had 154 lines), and packages/ui doesn't need a section-registry section (registry lives in `@commonpub/layer`).
 
 ## Deferred queue (after session 162)
 
