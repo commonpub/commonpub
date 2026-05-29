@@ -64,14 +64,25 @@ const viewportWidthPx: Record<'mobile' | 'tablet' | 'desktop', string> = {
 </script>
 
 <template>
+  <!--
+    Phase 3b/A: @click.self on the canvas stage clears editor selection
+    (audit R3-3). The DnDProvider above us is exactly canvas-sized, so
+    its @click.self rarely fires; the stage's padded chrome (visible
+    blank area between zones) is the natural click-clear surface.
+    Per docs/plans/layout-and-pages.md §7.9 dispatcher pattern:
+    nothing selected → page-meta form. Clicking the stage chrome IS
+    "deselect" in a visual editor.
+  -->
   <section
     class="cpub-admin-layouts-canvas"
     :data-viewport="viewport"
     aria-label="Layout canvas"
+    @click.self="props.onSelect?.(null)"
   >
     <div
       class="cpub-admin-layouts-canvas-stage"
       :style="{ maxWidth: viewportWidthPx[viewport] }"
+      @click.self="props.onSelect?.(null)"
     >
       <div v-if="!layout" class="cpub-admin-layouts-canvas-empty">
         <i class="fa-regular fa-folder-open"></i>

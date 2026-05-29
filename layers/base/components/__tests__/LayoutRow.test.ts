@@ -2,7 +2,7 @@
  * Tests for <LayoutRow> — the row component extracted from LayoutSlot
  * in Phase 3b/A. Owns:
  *  - row + section markup (shape preserved from pre-extraction LayoutSlot)
- *  - section selection chrome (tabindex / role / aria-pressed)
+ *  - section selection chrome (tabindex / aria-selected / aria-label)
  *  - makeDroppable wiring (commit E)
  *  - drop dispatcher delegation to dispatchSectionDrop (pure fn — tested
  *    separately in useLayoutDrag.test.ts)
@@ -257,18 +257,20 @@ describe('LayoutRow — moveSection (Move Up / Move Down buttons)', () => {
 /* ---- Selection chrome (regression: still works after extraction) ---- */
 
 describe('LayoutRow — selection chrome (Phase 3b/A)', () => {
-  it('editable=true sections have tabindex=0 + role=button', () => {
+  it('editable=true sections have tabindex=0 + aria-selected (NO role=button — R1/R2-1 audit)', () => {
     const { container } = mount({ editable: true });
     const section = container.querySelector('[data-section-id="sec-1"]');
     expect(section?.getAttribute('tabindex')).toBe('0');
-    expect(section?.getAttribute('role')).toBe('button');
+    expect(section?.getAttribute('role')).toBeNull();
+    expect(section?.getAttribute('aria-selected')).toBe('false');
   });
 
-  it('editable=false sections have NO tabindex / role (public path)', () => {
+  it('editable=false sections have NO tabindex / aria-selected (public path)', () => {
     const { container } = mount({ editable: false });
     const section = container.querySelector('[data-section-id="sec-1"]');
     expect(section?.getAttribute('tabindex')).toBeNull();
     expect(section?.getAttribute('role')).toBeNull();
+    expect(section?.getAttribute('aria-selected')).toBeNull();
   });
 
   it('clicking a section calls onSelect', async () => {

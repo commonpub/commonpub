@@ -150,8 +150,7 @@ makeDraggable(
       '--cpub-section-cols-lg': resolveColSpan('lg'),
     }"
     :tabindex="editable ? 0 : undefined"
-    :role="editable ? 'button' : undefined"
-    :aria-pressed="editable ? (isSelected ? 'true' : 'false') : undefined"
+    :aria-selected="editable ? (isSelected ? 'true' : 'false') : undefined"
     :aria-label="editable ? `Select ${section.type} section` : undefined"
     @click.stop="activate"
     @keydown.enter.prevent="activate"
@@ -318,8 +317,10 @@ makeDraggable(
 /* ------------------------------------------------------------------ */
 .cpub-layout-section-moves {
   position: absolute;
-  top: 0;
-  right: 0;
+  /* Inset 2px so the buttons don't visually kiss the section's
+     2px --selected outline (audit R4-4). */
+  top: 2px;
+  right: 2px;
   display: flex;
   gap: 1px;
   z-index: 2;

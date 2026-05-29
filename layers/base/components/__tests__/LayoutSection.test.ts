@@ -81,7 +81,7 @@ describe('LayoutSection — render shape', () => {
     expect(el?.getAttribute('data-section-type')).toBe('heading');
   });
 
-  it('editable=false has no tabindex / role / aria-pressed (public path pristine)', () => {
+  it('editable=false has no tabindex / aria-selected / aria-label (public path pristine)', () => {
     const { container } = render(LayoutSection, {
       props: {
         section: makeSection('s'),
@@ -93,11 +93,16 @@ describe('LayoutSection — render shape', () => {
     });
     const el = container.querySelector('.cpub-layout-section');
     expect(el?.getAttribute('tabindex')).toBeNull();
-    expect(el?.getAttribute('role')).toBeNull();
-    expect(el?.getAttribute('aria-pressed')).toBeNull();
+    expect(el?.getAttribute('aria-selected')).toBeNull();
+    expect(el?.getAttribute('aria-label')).toBeNull();
   });
 
-  it('editable=true sets tabindex=0 + role=button + aria-label + aria-pressed', () => {
+  it('editable=true sets tabindex=0 + aria-selected + aria-label (NO role=button)', () => {
+    // R1/R2-1 audit fix: role='button' would have nested ARIA buttons
+    // (Move Up/Down inside) which violates the role spec. Dropped in
+    // favor of aria-selected — the section is a selectable item, not
+    // a button. tabindex + click+keydown handlers still wire Tab+Space+
+    // Enter activation, so the keyboard contract is unchanged.
     const { container } = render(LayoutSection, {
       props: {
         section: makeSection('s', { type: 'hero' }),
@@ -109,9 +114,9 @@ describe('LayoutSection — render shape', () => {
     });
     const el = container.querySelector('.cpub-layout-section');
     expect(el?.getAttribute('tabindex')).toBe('0');
-    expect(el?.getAttribute('role')).toBe('button');
+    expect(el?.getAttribute('role')).toBeNull(); // intentionally not 'button'
     expect(el?.getAttribute('aria-label')).toBe('Select hero section');
-    expect(el?.getAttribute('aria-pressed')).toBe('false');
+    expect(el?.getAttribute('aria-selected')).toBe('false');
   });
 });
 
@@ -152,7 +157,7 @@ describe('LayoutSection — selection', () => {
     expect(onSelect).toHaveBeenCalledTimes(1);
   });
 
-  it('selectedId matching this section adds --selected + aria-pressed=true', () => {
+  it('selectedId matching this section adds --selected + aria-selected=true', () => {
     const { container } = render(LayoutSection, {
       props: {
         section: makeSection('S1'),
@@ -165,7 +170,7 @@ describe('LayoutSection — selection', () => {
     });
     const el = container.querySelector('.cpub-layout-section');
     expect(el?.classList.contains('cpub-layout-section--selected')).toBe(true);
-    expect(el?.getAttribute('aria-pressed')).toBe('true');
+    expect(el?.getAttribute('aria-selected')).toBe('true');
   });
 });
 

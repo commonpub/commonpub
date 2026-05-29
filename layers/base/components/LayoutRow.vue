@@ -118,7 +118,12 @@ function handleDrop(event: IDragEvent): void {
     announcer.announce(
       narrateInserted(outcome.section.type, outcome.at, props.row.sections.length),
     );
-  } else if (outcome.kind === 'reordered') {
+  } else if (outcome.kind === 'reordered' && outcome.from !== outcome.to) {
+    // No-op reorder (audit R2-5): drag-onto-self produces from===to.
+    // Narrating "moved from position 3 to position 3" is confusing
+    // and worse-than-silent for SR users. The drag still consumed
+    // pointer focus, so the implicit feedback is "I held + released
+    // and nothing changed". Silent is correct.
     announcer.announce(
       narrateReordered(
         outcome.section.type,
@@ -250,7 +255,16 @@ const isOver = computed<boolean>(() => isDragOver.value !== undefined);
 /* Editable-mode chrome — row only. Section chrome moved to            */
 /* LayoutSection.vue with the section extraction.                      */
 /* ------------------------------------------------------------------ */
-.cpub-layout-row--editable { position: relative; }
+.cpub-layout-row--editable {
+  position: relative;
+  /* Empty editable rows still need to be reachable as drop targets
+     (audit R1/R3-2). Without min-height the row collapses to 0 height
+     when sections.length===0, so dnd-kit's hit-test never matches the
+     row. 64px is generous enough to be hover-discoverable + tap-
+     friendly without dominating the canvas when populated. The
+     :not selector means populated rows size to their content. */
+  min-height: 64px;
+}
 .cpub-layout-row--editable:hover {
   outline: 1px dashed var(--border);
   outline-offset: 2px;

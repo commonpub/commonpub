@@ -171,20 +171,22 @@ describe('LayoutSlot — :editable prop', () => {
     expect(section?.getAttribute('data-section-type')).toBe('divider');
   });
 
-  it('editable=true adds tabindex=0 + role=button + aria-label on sections (3b/A selection chrome)', () => {
+  it('editable=true adds tabindex=0 + aria-selected + aria-label (3b/A selection chrome, NO role=button)', () => {
     // 3b/A cashes the reservation 3a.1 made: now there IS a selection
-    // model behind the affordance (useLayoutEditor.select + selectedId).
-    // The chrome promises something true.
+    // model behind the affordance. R2/R1-1 audit (this session) dropped
+    // role='button' because Move Up/Down buttons live inside the section
+    // → nested role='button' is an ARIA violation. aria-selected
+    // expresses the same selectable semantic without the violation.
     setupComposables();
     const { container } = mount({ editable: true });
     const section = container.querySelector('.cpub-layout-section--editable');
     expect(section?.getAttribute('tabindex')).toBe('0');
-    expect(section?.getAttribute('role')).toBe('button');
+    expect(section?.getAttribute('role')).toBeNull();
     expect(section?.getAttribute('aria-label')).toBe('Select divider section');
-    expect(section?.getAttribute('aria-pressed')).toBe('false');
+    expect(section?.getAttribute('aria-selected')).toBe('false');
   });
 
-  it('editable=false keeps section tabindex / role unset (public path pristine)', () => {
+  it('editable=false keeps section tabindex / aria attrs unset (public path pristine)', () => {
     // The load-bearing byte-pattern test: commonpub.io's homepage path
     // MUST NOT light up selection a11y attributes when no editor is in
     // scope. Mirrors the existing --editable class regression-guard.
@@ -193,7 +195,7 @@ describe('LayoutSlot — :editable prop', () => {
     const section = container.querySelector('.cpub-layout-section');
     expect(section?.getAttribute('tabindex')).toBeNull();
     expect(section?.getAttribute('role')).toBeNull();
-    expect(section?.getAttribute('aria-pressed')).toBeNull();
+    expect(section?.getAttribute('aria-selected')).toBeNull();
     expect(section?.getAttribute('aria-label')).toBeNull();
   });
 });
@@ -258,15 +260,15 @@ describe('LayoutSlot — selection (Phase 3b/A)', () => {
     });
     const section = container.querySelector('[data-section-id="sec-1"]');
     expect(section?.classList.contains('cpub-layout-section--selected')).toBe(true);
-    expect(section?.getAttribute('aria-pressed')).toBe('true');
+    expect(section?.getAttribute('aria-selected')).toBe('true');
   });
 
-  it('selectedId=null leaves no section selected (aria-pressed=false)', () => {
+  it('selectedId=null leaves no section selected (aria-selected=false)', () => {
     setupComposables();
     const { container } = mount({ editable: true, selectedId: null });
     const section = container.querySelector('[data-section-id="sec-1"]');
     expect(section?.classList.contains('cpub-layout-section--selected')).toBe(false);
-    expect(section?.getAttribute('aria-pressed')).toBe('false');
+    expect(section?.getAttribute('aria-selected')).toBe('false');
   });
 
   it('selectedId={kind:"section", id:"other"} does NOT paint THIS section', () => {
