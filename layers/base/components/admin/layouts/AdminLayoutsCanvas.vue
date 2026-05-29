@@ -81,6 +81,18 @@ const zoneSlugs = computed<string[]>(() => {
   return props.layout.zones.map((z) => z.zone);
 });
 
+/**
+ * The three zones <PageFrame> arranges (full-width above; main + sidebar
+ * grid below). The canvas maps each layout zone to the matching PageFrame
+ * slot via a dynamic slot name so the editor previews the REAL production
+ * arrangement instead of the old stacked equal-width boxes. Filtered to
+ * the known frame zones (v1 ships exactly these three).
+ */
+const FRAME_ZONES = ['full-width', 'main', 'sidebar'] as const;
+const frameZones = computed<string[]>(() =>
+  zoneSlugs.value.filter((z) => (FRAME_ZONES as readonly string[]).includes(z)),
+);
+
 const viewportWidthPx: Record<'mobile' | 'tablet' | 'desktop', string> = {
   mobile: '375px',
   tablet: '768px',
@@ -168,56 +180,63 @@ function findFirstRowInZone(zoneSlug: string): LayoutRowType | null {
         <i class="fa-regular fa-folder-open"></i>
         <p>Loading layout…</p>
       </div>
-      <template v-else>
-        <div
-          v-for="zoneSlug in zoneSlugs"
-          :key="zoneSlug"
-          class="cpub-admin-layouts-canvas-zone"
-          :data-zone="zoneSlug"
-        >
-          <header class="cpub-admin-layouts-canvas-zone-label">
-            <span class="cpub-admin-layouts-canvas-zone-label-text">{{ zoneSlug }}</span>
-          </header>
-          <div
-            class="cpub-admin-layouts-canvas-zone-body"
-            @click.self="props.onSelect?.(null)"
-          >
-            <LayoutSlot
-              :route="route"
-              :zone="zoneSlug"
-              :preview-override="payload"
-              :editable="true"
-              :on-select="props.onSelect"
-              :selected-id="props.selectedId"
-              :find-row="findRow"
-              :find-zone="findZone"
-              :zone-slugs="zoneSlugs"
-              :find-first-row-in-zone="findFirstRowInZone"
-              :on-remove-row="props.onRemoveRow"
-              :get-draft="getDraft"
-            />
-            <!--
-              Session 164 polish (v1 blocker): "+ Add row". Without
-              this, a fresh layout (or a layout with an empty zone)
-              has no drop target — admin is stuck. Click → editor
-              page mutates draft.zones[i].rows + records to history
-              + narrates. Plan §7.2.
-              Renders only when the parent provided onAddRow (so the
-              public path can't accidentally light up an action button).
-            -->
-            <button
-              v-if="props.onAddRow"
-              type="button"
-              class="cpub-admin-layouts-canvas-add-row"
-              :aria-label="`Add row to ${zoneSlug} zone`"
-              @click.stop="props.onAddRow!(zoneSlug)"
+      <!--
+        Consolidation Stage 2: the canvas previews the layout through the
+        shared <PageFrame> — the SAME frame production uses (full-width
+        above; main + sidebar side-by-side; one max-width/sidebar-width).
+        Previously zones were stacked as equal-width labeled boxes, which
+        did NOT match what visitors see (broken WYSIWYG). Each zone keeps
+        its editor chrome (label + add-row) via a dynamic PageFrame slot;
+        the section DOM inside <LayoutSlot> is UNCHANGED so drag/resize
+        bindings are unaffected.
+      -->
+      <PageFrame v-else editable>
+        <template v-for="zoneSlug in frameZones" :key="zoneSlug" #[zoneSlug]>
+          <div class="cpub-admin-layouts-canvas-zone" :data-zone="zoneSlug">
+            <header class="cpub-admin-layouts-canvas-zone-label">
+              <span class="cpub-admin-layouts-canvas-zone-label-text">{{ zoneSlug }}</span>
+            </header>
+            <div
+              class="cpub-admin-layouts-canvas-zone-body"
+              @click.self="props.onSelect?.(null)"
             >
-              <i class="fa-solid fa-plus" aria-hidden="true"></i>
-              <span>Add row</span>
-            </button>
+              <LayoutSlot
+                :route="route"
+                :zone="zoneSlug"
+                :preview-override="payload"
+                :editable="true"
+                :on-select="props.onSelect"
+                :selected-id="props.selectedId"
+                :find-row="findRow"
+                :find-zone="findZone"
+                :zone-slugs="zoneSlugs"
+                :find-first-row-in-zone="findFirstRowInZone"
+                :on-remove-row="props.onRemoveRow"
+                :get-draft="getDraft"
+              />
+              <!--
+                Session 164 polish (v1 blocker): "+ Add row". Without
+                this, a fresh layout (or a layout with an empty zone)
+                has no drop target — admin is stuck. Click → editor
+                page mutates draft.zones[i].rows + records to history
+                + narrates. Plan §7.2.
+                Renders only when the parent provided onAddRow (so the
+                public path can't accidentally light up an action button).
+              -->
+              <button
+                v-if="props.onAddRow"
+                type="button"
+                class="cpub-admin-layouts-canvas-add-row"
+                :aria-label="`Add row to ${zoneSlug} zone`"
+                @click.stop="props.onAddRow!(zoneSlug)"
+              >
+                <i class="fa-solid fa-plus" aria-hidden="true"></i>
+                <span>Add row</span>
+              </button>
+            </div>
           </div>
-        </div>
-      </template>
+        </template>
+      </PageFrame>
     </div>
   </section>
 </template>
