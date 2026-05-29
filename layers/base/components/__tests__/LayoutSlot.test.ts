@@ -14,7 +14,39 @@
  */
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import { render, fireEvent } from '@testing-library/vue';
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
+
+/**
+ * Mock @vue-dnd-kit/core BEFORE importing components — makeDroppable
+ * (called inside LayoutRow.vue during setup) throws "DnD provider not
+ * found" without a DnDProvider ancestor. We replace it with stubs that
+ * return inert reactive values. Tests that need to assert call args
+ * use `vi.mocked(makeDroppable).mock.calls` (see LayoutRow.test.ts).
+ *
+ * This pattern is local to test files that mount components touching
+ * the editor surface — public-path tests (which never instantiate
+ * LayoutRow with editable=true) don't need the mock, but the mock is
+ * cheap + makes the file robust to refactors.
+ */
+vi.mock('@vue-dnd-kit/core', () => ({
+  DnDProvider: { template: '<div><slot/></div>' },
+  DragPreview: { template: '<div />' },
+  makeDraggable: () => ({
+    selected: ref(false),
+    isDragging: computed(() => false),
+    isAllowed: computed(() => true),
+    isDragOver: computed(() => undefined),
+  }),
+  makeDroppable: () => ({
+    isAllowed: computed(() => true),
+    isDragOver: computed(() => undefined),
+  }),
+  useDnDProvider: () => ({}),
+  makeSelectionArea: () => ({}),
+  makeConstraintArea: () => ({}),
+  makeAutoScroll: () => ({}),
+}));
+
 import LayoutSlot from '../LayoutSlot.vue';
 import type { LayoutPayload } from '../../composables/useLayout';
 import type { EditorSelection } from '../../composables/useLayoutEditor';
