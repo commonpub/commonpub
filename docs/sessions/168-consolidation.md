@@ -40,8 +40,17 @@ Shipping that = a broken-but-passing mechanism + test noise. **Reverted fully** 
 
 **Verified auto-import name mapping** (derived from `apps/shell/.nuxt/components.d.ts` — the pathPrefix dedupe is non-obvious, e.g. `blocks/BlockHeadingView.vue` → `BlocksBlockHeadingView`), preserved for the future fix in `168-kickoff-next.md`.
 
-## Stage 2 (deferred — browser-gated)
-Migrate the homepage (all 3 branches **together**, to avoid orphaning the shared `.cpub-main-layout` scoped rule) + the editor canvas to `<PageFrame>`. This is the WYSIWYG payoff (editor previews the real frame). Requires a real-browser smoke on a commonpub.io build (jsdom is cascade-blind) — the one thing the css-cascade lesson forbids doing blind. Full steps in `168-kickoff-next.md`.
+## Stage 2 — editor canvas SHIPPED (continued session); homepage dedup remains
+
+**Shipped** (`816c6fd` + `ba01ab4`):
+- **PageFrame audit + homepage alignment** — fixed a slot-staleness bug (`computed` over `useSlots()` → `$slots` in template) and aligned the `--cpub-frame-*` tokens to the LIVE homepage's exact `.cpub-main-layout` values (max 1280, sidebar **300** [was 320], gap 32, pad 28/32/48, collapse 1024). PageFrame is now a faithful homepage replica, so the editor previewing the homepage layout through it is WYSIWYG-correct. (Custom-page, already on PageFrame, inherits the canonical frame.)
+- **Editor canvas → PageFrame** — the canvas previewed zones as stacked equal-width labeled boxes (NOT the production main+sidebar split). It now renders through `<PageFrame>` via dynamic slots (`#[zoneSlug]`), keeping per-zone label + add-row chrome; the `<LayoutSlot>` section DOM is UNCHANGED so drag/resize bindings are unaffected. 5 tests lock the zone→region mapping.
+
+**Verified** (jsdom): zone→region mapping, PageFrame slot logic, compilation/typecheck. **NOT verified (deploy smoke needed):** the actual side-by-side visual split + cross-zone drag feel.
+
+**Known limitation** (documented, not a regression): the viewport toggle (375/768/100%) shrinks the *stage*, but PageFrame's collapse uses `@media (max-width:1024px)` = **viewport**-based, so "tablet"/"mobile" sim won't collapse the sidebar (it still sees the desktop viewport). Desktop preview is accurate (the old canvas never showed the split at all). True breakpoint sim needs CSS container queries (`@container`) — a future enhancement; not done blind here because it'd also change the public custom-page surface.
+
+**Remaining Stage 2 (browser-gated):** migrate the live `index.vue` homepage (all 3 branches **together**, to avoid orphaning the shared `.cpub-main-layout` scoped rule) to `<PageFrame>`. This is now a **code-dedup cleanup**, not a WYSIWYG prerequisite — the editor already faithfully replicates the homepage's values via PageFrame. Still needs a real-browser smoke on a commonpub.io build (touching live public legacy markup). Steps in `168-kickoff-next.md`.
 
 ## Stage 3 (deferred — decision/doc)
 ADR: *code-override for devs* + *layout engine for operators*; deprecate legacy `homepage.sections` once the engine is proven; remove the bidirectional-sync seam.
