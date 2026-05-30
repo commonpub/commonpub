@@ -14,28 +14,33 @@ npm consumers. **No AI attribution in commits. pnpm (never npm) for publishing.*
 
 ## Latest published + live (sessions 171–173)
 
-- `@commonpub/schema@0.20.0`, `@commonpub/server@2.61.1`, `@commonpub/layer@0.27.1`.
+- `@commonpub/schema@0.21.0`, `@commonpub/server@2.62.0`, `@commonpub/layer@0.28.0`.
 - Migrations through **0007** (0006 = contest `judging_criteria`; 0007 = contest
-  `eligible_content_types` + `max_entries_per_user`). server 2.61.1 was a
-  no-migration patch (winner notifications).
+  `eligible_content_types` + `max_entries_per_user`). server 2.61.1 (winner
+  notifications) + 0.21.0/2.62.0/0.28.0 (per-criterion judging) were
+  **no-migration** releases — heatsync needed no manual ALTER for them.
 - **All three instances live + verified**: `/`, `/contests`, `/api/contests` 200;
-  `contests: true`; judge-score leak closed; self-vote blocked; **winners get a
-  "🏆 You won!" notification on completion** (naming placement + prize).
+  `contests: true`; judge-score leak closed; self-vote blocked; winners get a
+  "🏆 You won!" notification; **judges score per-criterion against the rubric**
+  (normalized weighted overall); **score writes are row-locked** (no lost updates).
 
 ## Contest feature state (complete)
 
 Judges live in `contest_judges` (the `contests.judges` jsonb is dead). Score
-privacy via `shouldRevealScores(visibility, status, privileged)`. Customization:
-prizes (place AND/OR category), judging-criteria rubric, judging visibility,
-community voting (+ Community-Choice on results), eligible content types, max
-entries per user. Tabbed detail + phase timeline. Lifecycle FSM
+privacy via `shouldRevealScores(visibility, status, privileged)`; `judgeContestEntry`
+is row-locked (no lost updates). Judging rubric is functional: judges score
+per-criterion (0..weight) → normalized weighted overall, breakdown in
+`judgeScores[].criteriaScores`; no criteria → single 1–100. Customization:
+prizes (place AND/OR category), judging visibility, community voting (+
+Community-Choice on results), eligible content types, max entries per user.
+Winners alerted on completion. Tabbed detail + phase timeline. Lifecycle FSM
 upcoming→active→judging→completed (+cancelled); `RANK()` ranking on completion.
 
 ## Verify the state
 
 ```bash
 for u in https://commonpub.io https://deveco.io https://heatsynclabs.io; do echo "  $u home=$(curl -s -o /dev/null -w '%{http_code}' $u/) contests=$(curl -s $u/api/features | grep -o '\"contests\":[a-z]*') api=$(curl -s -o /dev/null -w '%{http_code}' $u/api/contests)"; done
-npm view @commonpub/layer version   # 0.27.1
+npm view @commonpub/layer version   # 0.28.0
 ```
 
 ## ⚠️ heatsync deploy — read before ANY schema bump
@@ -60,8 +65,8 @@ See `[[feedback-heatsync-dbpush-ci-fragile]]`.
   the committed-migration runner (`db-migrate.mjs`; baseline existing schema in
   `__drizzle_migrations` first) + add `set -o pipefail`. Eliminates the recurring
   manual ALTER above.
-- **Contest follow-ups:** per-criterion scoring (vs single 1–100), participants
-  tab, contest discussion board, transaction-safe `judgeScores` jsonb update.
+- **Contest follow-ups (remaining):** a participants tab, a contest discussion
+  board. (Per-criterion scoring + transaction-safe judgeScores: DONE in 0.28.0.)
 - Layout-engine Part A/B/C still open (see `170-kickoff-next.md`).
 
 ## Conventions reminder
