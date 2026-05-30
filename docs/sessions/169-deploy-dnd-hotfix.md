@@ -115,23 +115,59 @@ count from a server-stamped value) + the auth-dependent default tab.
   `colW = (rowWidth − 11*gap) / 12; offset = col*colW + (col−1)*gap`. NOTE the
   168-kickoff sketch `(col/12)*(W−11g)+col*g` **overshoots** (gives `W+g` at
   col=12) — derive + unit-test the endpoints (col=12 → rowWidth; col=1 → colW;
-  gap=0 → (col/12)*W) instead of transcribing it.
+  gap=0 → (col/12)*W) instead of transcribing it. **Gotcha (found this
+  session): this is NOT a pure-function-only fix.** The pure offset helper is
+  trivial + testable, but wiring it needs the row's px `rowWidth` (available
+  from the resize state's `containerWidth`) AND the gap in px
+  (`getComputedStyle(rowRef).columnGap`, since `data-gap` → `var(--space-N)`).
+  Cleaner alternative worth considering: make the overlay a `display:grid;
+  grid-template-columns:repeat(12,1fr); gap:<same>` matching the row so the
+  browser positions the lines — gap-correct with zero JS measurement. Either
+  way it's a transient admin-only overlay (lowest stakes; can't crash) but the
+  alignment genuinely wants a **browser** to verify — which is why it was
+  deferred rather than shipped blind this session.
 - **3e.4**: `applyKeyboardResize` does ±1; a slider needs an absolute target —
   either loop ±1 or add an `applyResizeTo(target)` that reuses `clampResize` +
   records ONE command. "Mobile" colSpan = the `responsive` field, not base
   `colSpan` (see the per-breakpoint note in `useLayoutResize.ts`).
 
+## Deploy pipeline hardening (this session — SHIPPED, live in `deploy.yml`)
+
+The dnd P0 shipped as a green "success" because the post-deploy smoke only
+checked `/api/health` (200) and was warn-only. Fixed in three commits (each
+caught by the next deploy — all FALSE failures, the site stayed 200 throughout):
+
+1. `e62532a` — smoke `/` + `/api/health`, hard-fail (exit 1) on non-2xx.
+   False-failed: 30s startup window too short for a cold-loaded image.
+2. `1ca13d7` — widen the gate to 120s + per-route retry. False-failed AGAIN:
+   the probe used `curl http://localhost:3000` **from the droplet host**, but
+   the app's :3000 is **not published to the host** — caddy fronts 80/443, so
+   the app is only reachable on localhost:3000 from **inside its own
+   container** (cf. the Dockerfile `HEALTHCHECK`). The old check used the same
+   wrong endpoint but was warn-only, so it had been silently failing forever.
+3. `2a13cf0` — **final**: `scripts/smoke.mjs` run via
+   `docker compose exec -T app node scripts/smoke.mjs`. In-container, so
+   localhost:3000 IS the app. Waits for `/api/health` (≤120s), then verifies
+   `/` and `/api/health`, exits non-zero on any non-2xx. Validated locally with
+   `SMOKE_BASE=https://commonpub.io node scripts/smoke.mjs` before shipping.
+
+**Net:** a homepage 500 (or any critical-route error) now FAILS the deploy
+loudly instead of hiding behind a healthy `/api/health`.
+
 ## Deploy mechanics reference
 - `deploy.yml` triggers on push to `main`. Build Docker → scp tarball → ssh
-  `docker load` + `up -d --force-recreate` → `db-migrate.mjs` → health smoke.
-- **Health smoke is `curl … || ::warning`** (warns, never fails) and checks
-  **only `/api/health`** — a crashing public page reads as deploy "success".
-  ALWAYS curl `/` (and browser-smoke) after a deploy, never trust the run
-  status. The old image is `prune`d on the droplet post-load, so rollback =
-  full rebuild of a prior SHA, not an image swap — fix-forward is usually
-  faster.
+  `docker load` + `up -d --force-recreate` → `db-migrate.mjs` → **in-container
+  `scripts/smoke.mjs`** (the hardened smoke above).
+- **The app's :3000 is container-internal only** (caddy fronts 80/443). Any
+  in-droplet probe MUST go through `docker compose exec -T app …` or through
+  caddy — never host `curl localhost:3000`.
+- The old image is `prune`d on the droplet post-load, so rollback = full
+  rebuild of a prior SHA, not an image swap — fix-forward is usually faster.
 - Transient `ssh handshake failed` at "Load image and restart" → rerun the
-  failed job; prod is untouched because the failure precedes the script.
+  failed job; prod is untouched because the failure precedes the script. Hit
+  it ~3× this session — the droplet's sshd is flaky.
+- Pushing ANY commit (incl. docs) triggers a full rebuild + redeploy of
+  identical app code — batch docs with code pushes to avoid churn.
 
 ## Next steps
 1. Pick up **Part C** (browser-free, prepped above) — safest next code work.
