@@ -75,12 +75,15 @@ committed lock; `npm install` reconciles. See `[[feedback-heatsync-dbpush-ci-fra
 - **Remaining additive contest item:** a contest **discussion board** (threaded
   posts + moderation + notifications) — a substantial sub-system, deferred so it
   gets its own focused effort.
-- **Global custom roles (open question):** session 174 delivered contest-scoped
-  access (visibility + role-gate using the existing 5-role enum + per-contest
-  stakeholders), which covers preview-before-publish, role-based visibility, and
-  review-only stakeholders. A *global* custom-role/RBAC system (create arbitrary
-  named roles, assign, enforce everywhere) is a separate large auth effort — build
-  only if explicitly wanted.
+- **🎯 NEXT MAJOR PROJECT — global RBAC (greenlit, being planned):** move from
+  the fixed 5-role enum (member/pro/verified/staff/admin) to a real
+  role/permission system: operator-defined custom roles, a stable permission
+  catalog, multi-role users, and a single `requirePermission()` choke-point
+  replacing the ~scattered `requireAdmin`/`user.role === 'x'` checks. Contest-scoped
+  access (session 174) stays; RBAC generalizes the GLOBAL role layer. Detailed
+  implementation plan: **`docs/plans/rbac.md`** (written this session). It's a
+  large, multi-phase, auth-critical effort — phased + flag-gated + back-compat so
+  no instance ever locks out. Read the plan before starting; do NOT big-bang it.
 - Layout-engine Part A/B/C still open (see `170-kickoff-next.md`).
 
 ## Conventions reminder
