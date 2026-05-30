@@ -59,25 +59,36 @@ jobs:
             # health endpoint stays 200: session 169, the homepage layout-engine
             # canary crashed with "DnD provider not found" yet the old health-only
             # smoke reported the deploy as a SUCCESS. Smoking `/` catches that.
-            up=0
-            for i in 1 2 3 4 5 6; do
+            # Startup gate — poll until the app serves /api/health, up to 120s.
+            # A freshly-loaded image cold-starting Nuxt SSR + DB/redis/meili
+            # connection pools can take 30-60s, well past the old 25-30s window
+            # (which is why this gate must be generous — too tight = false-fail
+            # every deploy, and a flapping signal gets ignored). Early-breaks the
+            # moment it's healthy, so a fast boot costs nothing.
+            up=0; tries=0
+            while [ "$tries" -lt 40 ]; do
               if curl -sf http://localhost:3000/api/health > /dev/null 2>&1; then
-                up=1; echo "✅ Health endpoint responding"; break
+                up=1; echo "✅ Health endpoint responding after $((tries*3))s"; break
               fi
-              echo "⏳ Waiting for app to start... ($i/6)"
-              sleep 5
+              tries=$((tries+1)); sleep 3
             done
             if [ "$up" -ne 1 ]; then
-              echo "::error::App did not become healthy within the startup window"
+              echo "::error::App did not become healthy within 120s of startup"
               exit 1
             fi
             # HARD-FAIL the deploy if any critical route serves an error. The new
             # image is already live (in-place recreate, no blue-green), so a red
             # run is the signal to investigate / redeploy the previous SHA — far
-            # better than a green run hiding a down homepage.
+            # better than a green run hiding a down homepage. A few retries per
+            # route absorb a slow first SSR render right after the health gate.
             smoke_fail=0
             for route in / /api/health; do
-              code=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:3000${route}" || echo "000")
+              code=000
+              for attempt in 1 2 3 4; do
+                code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "http://localhost:3000${route}" || echo "000")
+                if [ "$code" -ge 200 ] && [ "$code" -lt 400 ]; then break; fi
+                sleep 3
+              done
               if [ "$code" -ge 400 ] || [ "$code" -lt 200 ]; then
                 echo "::error::Smoke FAILED: ${route} returned ${code}"
                 smoke_fail=1
