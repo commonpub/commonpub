@@ -119,10 +119,20 @@ schema **477** (+6: date refine, new fields, category prizes), layer **675**
 
 ## Release
 
-Published schema/server/layer (minor bumps), updated `create-commonpub` pins +
-deveco + heatsync, deployed all three, verified `/api/features`, `/contests`, and
-that the judge-score leak is closed. (See `172-kickoff-next.md` for the live
-state snapshot.)
+Published `@commonpub/schema@0.19.0`, `@commonpub/server@2.60.0`,
+`@commonpub/layer@0.26.0` (verified the published layer pins schema 0.19.0 +
+server 2.60.0, and the published server dist exports `shouldRevealScores` — the
+0.25.0-class regression guard). Bumped `create-commonpub` pins + deveco pins.
+
+- **commonpub.io** (workspace push to main): deploy GREEN, migration 0006
+  applied + smoke passed; `/`, `/api/health`, `/contests`, `/api/contests` 200.
+- **deveco.io** (npm consumer, pins bumped + pushed): Deploy Production GREEN,
+  migration 0006 applied; all routes 200. Real-consumer build proved the
+  published packages resolve. Verified the leak is closed live (anon
+  `?includeJudgeScores=true` → zero `judgeScores`).
+- **heatsynclabs.io**: NOT updated — its CommonPub deploy source isn't
+  discoverable (no `virgilvox` repo pins `@commonpub/layer`; `heatsync-org` holds
+  a Vite SPA). Pending the deploy repo/path. See `172-kickoff-next.md`.
 
 ## Open / next
 
