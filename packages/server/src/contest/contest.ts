@@ -554,6 +554,13 @@ const VALID_TRANSITIONS: Record<string, string[]> = {
   cancelled: [],
 };
 
+/** Format an integer rank as an ordinal: 1 → "1st", 2 → "2nd", 11 → "11th". */
+function ordinalPlace(n: number): string {
+  const s = ['th', 'st', 'nd', 'rd'];
+  const v = n % 100;
+  return `${n}${s[(v - 20) % 10] ?? s[v] ?? s[0]}`;
+}
+
 export async function transitionContestStatus(
   db: DB,
   contestId: string,
@@ -591,11 +598,11 @@ export async function transitionContestStatus(
   // Notify contest entrants about status change (non-critical)
   try {
     const { createNotification } = await import('../notification/notification.js');
-    const [contestInfo] = await db.select({ title: contests.title, slug: contests.slug })
+    const [contestInfo] = await db.select({ title: contests.title, slug: contests.slug, prizes: contests.prizes })
       .from(contests).where(eq(contests.id, contestId)).limit(1);
 
     if (contestInfo) {
-      const entrants = await db.select({ userId: contestEntries.userId })
+      const entrants = await db.select({ userId: contestEntries.userId, rank: contestEntries.rank })
         .from(contestEntries).where(eq(contestEntries.contestId, contestId));
 
       const messages: Record<string, { title: string; message: string }> = {
@@ -604,43 +611,68 @@ export async function transitionContestStatus(
         completed: { title: 'Results Posted', message: `Results for "${contestInfo.title}" are now available!` },
         cancelled: { title: 'Contest Cancelled', message: `"${contestInfo.title}" has been cancelled.` },
       };
-
       const msg = messages[newStatus];
-      if (msg) {
-        const link = `/contests/${contestInfo.slug}${newStatus === 'completed' ? '/results' : ''}`;
-        for (const entrant of entrants) {
-          createNotification(db, {
-            userId: entrant.userId,
-            type: 'contest',
-            title: msg.title,
-            message: msg.message,
-            link,
-            actorId: userId,
-          }).catch(() => {});
+      const link = `/contests/${contestInfo.slug}${newStatus === 'completed' ? '/results' : ''}`;
+
+      if (newStatus === 'completed') {
+        // Winner-aware: an entrant whose rank earns a place-prize (or, when no
+        // place-prizes are defined, places in the top 3) gets a congratulatory
+        // alert naming their placement + prize; everyone else gets the standard
+        // "results posted" note.
+        const placePrize = new Map<number, { title: string; value?: string }>();
+        for (const p of contestInfo.prizes ?? []) {
+          if (typeof p.place === 'number') placePrize.set(p.place, { title: p.title, value: p.value });
         }
-
-        // Also notify accepted judges on status transitions
-        if (newStatus === 'judging' || newStatus === 'completed' || newStatus === 'cancelled') {
-          const judges = await db.select({ userId: contestJudges.userId })
-            .from(contestJudges)
-            .where(and(eq(contestJudges.contestId, contestId), isNotNull(contestJudges.acceptedAt)));
-
-          const judgeMsg = newStatus === 'judging'
-            ? { title: 'Judging Period Started', message: `"${contestInfo.title}" is ready for judging.` }
-            : msg;
-
-          for (const judge of judges) {
-            // Don't double-notify judges who are also entrants
-            if (entrants.some(e => e.userId === judge.userId)) continue;
+        const hasPlacePrizes = placePrize.size > 0;
+        for (const entrant of entrants) {
+          const rank = entrant.rank;
+          const prize = rank != null ? placePrize.get(rank) : undefined;
+          const isWinner = rank != null && (prize !== undefined || (!hasPlacePrizes && rank <= 3));
+          if (isWinner) {
+            const won = prize ? ` and won ${prize.title}${prize.value ? ` (${prize.value})` : ''}` : '';
             createNotification(db, {
-              userId: judge.userId,
+              userId: entrant.userId,
               type: 'contest',
-              title: judgeMsg.title,
-              message: judgeMsg.message,
+              title: '🏆 You won!',
+              message: `Congratulations — you placed ${ordinalPlace(rank!)} in "${contestInfo.title}"${won}!`,
               link,
               actorId: userId,
             }).catch(() => {});
+          } else if (msg) {
+            createNotification(db, {
+              userId: entrant.userId, type: 'contest', title: msg.title, message: msg.message, link, actorId: userId,
+            }).catch(() => {});
           }
+        }
+      } else if (msg) {
+        for (const entrant of entrants) {
+          createNotification(db, {
+            userId: entrant.userId, type: 'contest', title: msg.title, message: msg.message, link, actorId: userId,
+          }).catch(() => {});
+        }
+      }
+
+      // Also notify accepted judges on status transitions
+      if (newStatus === 'judging' || newStatus === 'completed' || newStatus === 'cancelled') {
+        const judges = await db.select({ userId: contestJudges.userId })
+          .from(contestJudges)
+          .where(and(eq(contestJudges.contestId, contestId), isNotNull(contestJudges.acceptedAt)));
+
+        const judgeMsg = newStatus === 'judging'
+          ? { title: 'Judging Period Started', message: `"${contestInfo.title}" is ready for judging.` }
+          : (msg ?? { title: 'Contest Update', message: `"${contestInfo.title}" was updated.` });
+
+        for (const judge of judges) {
+          // Don't double-notify judges who are also entrants
+          if (entrants.some(e => e.userId === judge.userId)) continue;
+          createNotification(db, {
+            userId: judge.userId,
+            type: 'contest',
+            title: judgeMsg.title,
+            message: judgeMsg.message,
+            link,
+            actorId: userId,
+          }).catch(() => {});
         }
       }
     }

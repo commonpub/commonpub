@@ -19,6 +19,8 @@ import {
 import { createContent, publishContent } from '../content/content.js';
 import { addContestJudge, acceptJudgeInvite, listContestJudges, isContestJudge, updateJudgeRole } from '../contest/judges.js';
 import { voteOnContestEntry, removeContestEntryVote, getContestEntryVotes } from '../voting/voting.js';
+import { notifications } from '@commonpub/schema';
+import { eq } from 'drizzle-orm';
 
 describe('contest integration', () => {
   let db: DB;
@@ -832,5 +834,48 @@ describe('contest integration', () => {
     const votes = await getContestEntryVotes(db, contest.id, null);
     expect(votes.find((v) => v.entryId === aEntry!.id)!.count).toBe(1);
     expect(votes.find((v) => v.entryId === bEntry!.id)!.count).toBe(0);
+  });
+
+  // --- Winner notifications on completion (session 173) ---
+
+  it('alerts the winner with a congratulatory notification naming placement + prize', async () => {
+    const judge = await createTestUser(db, { username: `win-j-${Date.now()}` });
+    const winner = await createTestUser(db, { username: `win-w-${Date.now()}` });
+    const runnerUp = await createTestUser(db, { username: `win-r-${Date.now()}` });
+    const contest = await createContest(db, {
+      ...makeContestInput({ title: 'Winner Notify Contest' }),
+      judges: [judge.id],
+      prizes: [{ place: 1, title: 'Gold Prize', value: '$500' }],
+    });
+    await acceptJudgeInvite(db, contest.id, judge.id);
+    await transitionContestStatus(db, contest.id, organizerId, 'active');
+
+    const wc = await createContent(db, winner.id, { type: 'project', title: 'Winning Build' });
+    await publishContent(db, wc.id, winner.id);
+    const wEntry = await submitContestEntry(db, contest.id, wc.id, winner.id);
+    const rc = await createContent(db, runnerUp.id, { type: 'project', title: 'Runner Up Build' });
+    await publishContent(db, rc.id, runnerUp.id);
+    const rEntry = await submitContestEntry(db, contest.id, rc.id, runnerUp.id);
+
+    await transitionContestStatus(db, contest.id, organizerId, 'judging');
+    await judgeContestEntry(db, wEntry!.id, 95, judge.id);
+    await judgeContestEntry(db, rEntry!.id, 70, judge.id);
+    await transitionContestStatus(db, contest.id, organizerId, 'completed');
+
+    // Status-change notifications are fire-and-forget; let them settle.
+    await new Promise((r) => setTimeout(r, 200));
+
+    const winnerNotifs = await db.select().from(notifications).where(eq(notifications.userId, winner.id));
+    const win = winnerNotifs.find((n) => n.title.includes('You won'));
+    expect(win, 'winner should receive a "You won" notification').toBeDefined();
+    expect(win!.message).toMatch(/1st/);
+    expect(win!.message).toMatch(/Gold Prize/);
+    expect(win!.message).toMatch(/\$500/);
+    expect(win!.link).toContain('/results');
+
+    // The runner-up (rank 2, no place-2 prize) gets the standard results note, NOT a win alert.
+    const runnerNotifs = await db.select().from(notifications).where(eq(notifications.userId, runnerUp.id));
+    expect(runnerNotifs.some((n) => n.title.includes('You won'))).toBe(false);
+    expect(runnerNotifs.some((n) => n.title === 'Results Posted')).toBe(true);
   });
 });
