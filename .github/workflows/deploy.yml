@@ -54,14 +54,39 @@ jobs:
             docker compose -f docker-compose.prod.yml exec -T app node scripts/db-migrate.mjs 2>&1 | tee /tmp/dbmigrate.log \
               || { echo "::error::db:migrate failed — see log above"; cat /tmp/dbmigrate.log; exit 1; }
             docker image prune -f
-            # Post-deploy smoke test — verify app is responding
-            for i in 1 2 3 4 5; do
+            # Post-deploy smoke — wait for startup, then verify CRITICAL ROUTES,
+            # not just /api/health. A public page can 500 during SSR while the
+            # health endpoint stays 200: session 169, the homepage layout-engine
+            # canary crashed with "DnD provider not found" yet the old health-only
+            # smoke reported the deploy as a SUCCESS. Smoking `/` catches that.
+            up=0
+            for i in 1 2 3 4 5 6; do
               if curl -sf http://localhost:3000/api/health > /dev/null 2>&1; then
-                echo "✅ Health check passed"
-                break
+                up=1; echo "✅ Health endpoint responding"; break
               fi
-              echo "⏳ Waiting for app to start... ($i/5)"
+              echo "⏳ Waiting for app to start... ($i/6)"
               sleep 5
             done
-            curl -sf http://localhost:3000/api/health || echo "::warning::Health check failed — app may not have started correctly"
+            if [ "$up" -ne 1 ]; then
+              echo "::error::App did not become healthy within the startup window"
+              exit 1
+            fi
+            # HARD-FAIL the deploy if any critical route serves an error. The new
+            # image is already live (in-place recreate, no blue-green), so a red
+            # run is the signal to investigate / redeploy the previous SHA — far
+            # better than a green run hiding a down homepage.
+            smoke_fail=0
+            for route in / /api/health; do
+              code=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:3000${route}" || echo "000")
+              if [ "$code" -ge 400 ] || [ "$code" -lt 200 ]; then
+                echo "::error::Smoke FAILED: ${route} returned ${code}"
+                smoke_fail=1
+              else
+                echo "✅ ${route} -> ${code}"
+              fi
+            done
+            if [ "$smoke_fail" -ne 0 ]; then
+              echo "::error::Post-deploy smoke failed — new image is live but serving errors on a critical route. Investigate immediately."
+              exit 1
+            fi
             echo "Deployed ${{ github.sha }}"
