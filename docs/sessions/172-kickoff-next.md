@@ -2,8 +2,9 @@
 
 Paste everything between the `---` rules as the FIRST message when you come back.
 Session 171 overhauled + shipped the **contest feature** and is in a clean,
-published, deployed state on the two instances we directly operate. One
-follow-up (heatsynclabs.io) is pending a deploy-source decision — see below.
+published, deployed, verified state on **all three** instances
+(commonpub.io, deveco.io, heatsynclabs.io). One operator follow-up remains:
+heatsync's CI uses the fragile `db:push --force` (see the heatsync note below).
 
 ---
 
@@ -46,16 +47,29 @@ unauthenticated judge-score leak).
   Deploy Production GREEN, migration 0006 applied. All routes 200. Verified the
   leak is closed: anon `GET /api/contests/edge-ai-challenge-2026/entries?includeJudgeScores=true`
   returns **zero** `judgeScores`.
-- **heatsynclabs.io** — ⚠️ **NOT updated.** Still on layer 0.24.0. It is a live
-  CommonPub/Nuxt deploy (Caddy + `x-powered-by: Nuxt`, `contests:true`) but its
-  deploy SOURCE is not discoverable: no repo under `virgilvox` pins
-  `@commonpub/layer` (all 60 scanned), and `virgilvox/heatsync-org` now holds
-  only a Vite SPA (`heatsync-website`) on `main`. Likely a server-side checkout or
-  a repo under an org I can't see. **To finish: get the heatsynclabs.io deploy
-  repo/path, bump its pins to layer `^0.26.0` + schema `^0.19.0` + server
-  `^2.60.0`, `pnpm install` (regen lockfile — watch
-  [[feedback-pnpm-install-drops-files]]), push.** It runs the OLD (leaky) contest
-  code until then — non-trivial given contests is on.
+- **heatsynclabs.io** — LIVE on layer 0.26.0 / schema 0.19.0 / server 2.60.0.
+  Repo is `heatsynclabs/heatsynclabs-io` (org, not `virgilvox` — hence the
+  earlier miss); local checkout `~/Projects/heatsync/heatsynclabs-io`. Droplet
+  `commonpub-heatsynclabs` = `167.99.13.109`, key
+  `secrets/ci_deploy_ed25519`, app at `/opt/commonpub`. All routes 200,
+  leak closed.
+  - ⚠️ **heatsync deploy is fragile — read before the next schema change.** Its
+    deploy does `npm run db:push -- --force` (NOT migration files like
+    commonpub/deveco). For this release push **crashed** (it wanted to add the
+    `contest_entries_user_content` UNIQUE constraint to a populated table →
+    interactive truncate prompt → "Interactive prompts require a TTY"), and the
+    `… | tee /tmp/dbpush.log` pipe **masked the failure** (pipeline exit = tee's
+    0, no `set -o pipefail`), so the run went GREEN while `judging_criteria` was
+    never added → `/api/contests` 500. Fixed by applying migration 0006's
+    statement directly on the droplet:
+    `docker compose -f docker-compose.prod.yml exec -T postgres sh -lc 'psql -U $POSTGRES_USER -d $POSTGRES_DB -c "ALTER TABLE contests ADD COLUMN IF NOT EXISTS judging_criteria jsonb;"'`.
+    Also: a macOS-regenerated `package-lock.json` dropped `oxc-parser`'s
+    linux-x64-musl native binding and broke the alpine build — keep the
+    committed (linux-correct) lock and let `npm install` reconcile the
+    `@commonpub` bump. **Operator follow-up:** move heatsync off `db:push --force`
+    in CI to the committed-migration runner (`db-migrate.mjs`, baseline the
+    existing schema first) and add `set -o pipefail` so failures stop being
+    silent. See `[[feedback-heatsync-dbpush-ci-fragile]]`.
 
 ## Verify the state
 
@@ -68,7 +82,8 @@ npm view @commonpub/server version  # 2.60.0
 
 ## Resumable work (pick any)
 
-- **Finish heatsynclabs.io** (above) once the deploy source is known.
+- **Operator: harden heatsync's deploy** — move off `db:push --force` to the
+  committed-migration runner + add `set -o pipefail` (heatsync note above).
 - **Contest follow-ups:** per-criterion scoring (vs single 1–100), a participants
   tab, surfacing community-vote counts in results, a contest discussion board,
   transaction-safe `judgeScores` jsonb update (current read-modify-write can drop

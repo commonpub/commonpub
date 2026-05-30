@@ -130,9 +130,14 @@ server 2.60.0, and the published server dist exports `shouldRevealScores` — th
   migration 0006 applied; all routes 200. Real-consumer build proved the
   published packages resolve. Verified the leak is closed live (anon
   `?includeJudgeScores=true` → zero `judgeScores`).
-- **heatsynclabs.io**: NOT updated — its CommonPub deploy source isn't
-  discoverable (no `virgilvox` repo pins `@commonpub/layer`; `heatsync-org` holds
-  a Vite SPA). Pending the deploy repo/path. See `172-kickoff-next.md`.
+- **heatsynclabs.io** (repo `heatsynclabs/heatsynclabs-io`): bumped + deployed
+  on layer 0.26.0. Its CI `db:push --force` crashed on a TTY prompt (wanted to
+  add a UNIQUE constraint to a populated `contest_entries`) and the `| tee` pipe
+  masked the failure → `judging_criteria` never added → `/api/contests` 500.
+  Fixed by applying migration 0006 directly on the droplet
+  (`ALTER TABLE contests ADD COLUMN IF NOT EXISTS judging_criteria jsonb`). All
+  routes 200, leak closed. Deploy fragility documented for the operator in
+  `172-kickoff-next.md` + `[[feedback-heatsync-dbpush-ci-fragile]]`.
 
 ## Open / next
 
