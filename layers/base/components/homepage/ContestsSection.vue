@@ -4,7 +4,12 @@ import type { HomepageSectionConfig } from '@commonpub/server';
 const props = defineProps<{ config: HomepageSectionConfig }>();
 
 const limit = computed(() => props.config.limit ?? 3);
-const { data: contests } = await useFetch('/api/contests', { query: { limit }, lazy: true });
+// Only surface contests that are open for entries — the card is titled
+// "Active Contests" and links to "Enter Contest".
+const { data: contests } = await useFetch('/api/contests', {
+  query: computed(() => ({ limit: limit.value, status: 'active' })),
+  lazy: true,
+});
 </script>
 
 <template>

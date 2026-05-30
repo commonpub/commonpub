@@ -1,26 +1,31 @@
 <script setup lang="ts">
+interface Prize { place?: number; category?: string; title: string; description?: string; value?: string }
 defineProps<{
-  prizes: Array<{ place: number; title: string; description?: string; value?: string }>;
+  prizes: Prize[];
 }>();
 
-function placeLabel(place: number): string {
+function prizeLabel(prize: Prize): string {
+  if (prize.category) return prize.category.toUpperCase();
+  const place = prize.place;
   if (place === 1) return '1ST PLACE';
   if (place === 2) return '2ND PLACE';
   if (place === 3) return '3RD PLACE';
-  return `${place}TH PLACE`;
+  if (place) return `${place}TH PLACE`;
+  return 'PRIZE';
 }
 
-function placeColor(place: number): string {
-  if (place === 1) return 'gold';
-  if (place === 2) return 'silver';
-  if (place === 3) return 'bronze';
+function prizeColor(prize: Prize): string {
+  if (prize.category) return 'default';
+  if (prize.place === 1) return 'gold';
+  if (prize.place === 2) return 'silver';
+  if (prize.place === 3) return 'bronze';
   return 'default';
 }
 
-function placeIcon(place: number): string {
-  if (place === 1) return 'fa-trophy';
-  if (place === 2) return 'fa-medal';
-  if (place === 3) return 'fa-award';
+function prizeIcon(prize: Prize): string {
+  if (prize.place === 1) return 'fa-trophy';
+  if (prize.place === 2) return 'fa-medal';
+  if (prize.place === 3) return 'fa-award';
   return 'fa-star';
 }
 </script>
@@ -32,14 +37,14 @@ function placeIcon(place: number): string {
     </div>
     <div class="cpub-prize-grid">
       <div
-        v-for="prize in prizes"
-        :key="prize.place"
+        v-for="(prize, i) in prizes"
+        :key="i"
         class="cpub-prize-card"
-        :class="`cpub-prize-${placeColor(prize.place)}`"
+        :class="`cpub-prize-${prizeColor(prize)}`"
       >
-        <div class="cpub-prize-rank" :class="`cpub-prize-rank-${placeColor(prize.place)}`">{{ placeLabel(prize.place) }}</div>
-        <div class="cpub-prize-icon" :class="`cpub-prize-icon-${placeColor(prize.place)}`"><i class="fa-solid" :class="placeIcon(prize.place)"></i></div>
-        <div v-if="prize.value" class="cpub-prize-amount" :class="`cpub-prize-amount-${placeColor(prize.place)}`">{{ prize.value }}</div>
+        <div class="cpub-prize-rank" :class="`cpub-prize-rank-${prizeColor(prize)}`">{{ prizeLabel(prize) }}</div>
+        <div class="cpub-prize-icon" :class="`cpub-prize-icon-${prizeColor(prize)}`"><i class="fa-solid" :class="prizeIcon(prize)"></i></div>
+        <div v-if="prize.value" class="cpub-prize-amount" :class="`cpub-prize-amount-${prizeColor(prize)}`">{{ prize.value }}</div>
         <div class="cpub-prize-title">{{ prize.title }}</div>
         <div v-if="prize.description" class="cpub-prize-desc">{{ prize.description }}</div>
       </div>

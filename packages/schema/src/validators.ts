@@ -333,34 +333,73 @@ export type ProductCategory = z.infer<typeof productCategorySchema>;
 
 // --- Contest validators ---
 
-export const createContestSchema = z.object({
-  title: z.string().min(1).max(255),
-  description: z.string().max(10000).optional(),
-  rules: z.string().max(10000).optional(),
-  bannerUrl: optionalUrl(),
-  startDate: z.string().datetime(),
-  endDate: z.string().datetime(),
-  judgingEndDate: z.string().datetime().optional(),
-  prizes: z
-    .array(
-      z.object({
-        place: z.number().int().positive(),
-        title: z.string().max(255),
-        description: z.string().max(1000).optional(),
-        value: z.string().max(128).optional(),
-      }),
-    )
-    .optional(),
-  judges: z.array(z.string().uuid()).optional(),
+export const contestPrizeSchema = z.object({
+  place: z.number().int().positive().optional(),
+  category: z.string().max(120).optional(),
+  title: z.string().max(255),
+  description: z.string().max(1000).optional(),
+  value: z.string().max(128).optional(),
 });
+export type ContestPrize = z.infer<typeof contestPrizeSchema>;
+
+export const contestJudgingCriterionSchema = z.object({
+  label: z.string().min(1).max(120),
+  weight: z.number().int().min(0).max(100).optional(),
+  description: z.string().max(500).optional(),
+});
+export type ContestJudgingCriterion = z.infer<typeof contestJudgingCriterionSchema>;
+
+export const createContestSchema = z
+  .object({
+    title: z.string().min(1).max(255),
+    description: z.string().max(10000).optional(),
+    rules: z.string().max(10000).optional(),
+    bannerUrl: optionalUrl(),
+    startDate: z.string().datetime(),
+    endDate: z.string().datetime(),
+    judgingEndDate: z.string().datetime().optional(),
+    prizes: z.array(contestPrizeSchema).max(50).optional(),
+    judgingCriteria: z.array(contestJudgingCriterionSchema).max(20).optional(),
+    judges: z.array(z.string().uuid()).max(50).optional(),
+    communityVotingEnabled: z.boolean().optional(),
+    judgingVisibility: z.enum(['public', 'judges-only', 'private']).optional(),
+  })
+  .refine((d) => new Date(d.endDate) > new Date(d.startDate), {
+    message: 'End date must be after the start date',
+    path: ['endDate'],
+  })
+  .refine((d) => !d.judgingEndDate || new Date(d.judgingEndDate) >= new Date(d.endDate), {
+    message: 'Judging end date must be on or after the end date',
+    path: ['judgingEndDate'],
+  });
 export type CreateContestInput = z.infer<typeof createContestSchema>;
 
-export const updateContestSchema = createContestSchema.partial();
+// `.partial()` is unavailable on a refined object, so derive the update schema
+// from the underlying shape and re-apply the cross-field date guards.
+export const updateContestSchema = z
+  .object({
+    title: z.string().min(1).max(255).optional(),
+    description: z.string().max(10000).optional(),
+    rules: z.string().max(10000).optional(),
+    bannerUrl: optionalUrl(),
+    startDate: z.string().datetime().optional(),
+    endDate: z.string().datetime().optional(),
+    judgingEndDate: z.string().datetime().optional(),
+    prizes: z.array(contestPrizeSchema).max(50).optional(),
+    judgingCriteria: z.array(contestJudgingCriterionSchema).max(20).optional(),
+    judges: z.array(z.string().uuid()).max(50).optional(),
+    communityVotingEnabled: z.boolean().optional(),
+    judgingVisibility: z.enum(['public', 'judges-only', 'private']).optional(),
+  })
+  .refine((d) => !d.startDate || !d.endDate || new Date(d.endDate) > new Date(d.startDate), {
+    message: 'End date must be after the start date',
+    path: ['endDate'],
+  });
 export type UpdateContestInput = z.infer<typeof updateContestSchema>;
 
 export const judgeEntrySchema = z.object({
   entryId: z.string().uuid(),
-  score: z.number().int().min(0).max(100),
+  score: z.number().int().min(1).max(100),
   feedback: z.string().max(2000).optional(),
 });
 export type JudgeEntryInput = z.infer<typeof judgeEntrySchema>;

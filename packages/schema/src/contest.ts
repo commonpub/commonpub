@@ -18,10 +18,25 @@ export const contests = pgTable('contests', {
   judgingEndDate: timestamp('judging_end_date', { withTimezone: true }),
   prizes: jsonb('prizes').$type<
     Array<{
-      place: number;
+      /** Finishing place (1, 2, 3…). Optional — omit for category-only prizes. */
+      place?: number;
+      /** Optional category label (e.g. "Best in Show", "Robotics"). */
+      category?: string;
       title: string;
       description?: string;
       value?: string;
+    }>
+  >(),
+  /**
+   * Judging rubric shown to entrants and judges. Each criterion carries a
+   * label, an optional weight (points), and optional guidance. Display + scoring
+   * guidance only — judges still submit a single 0–100 score per entry.
+   */
+  judgingCriteria: jsonb('judging_criteria').$type<
+    Array<{
+      label: string;
+      weight?: number;
+      description?: string;
     }>
   >(),
   judgingVisibility: judgingVisibilityEnum('judging_visibility').default('judges-only').notNull(),

@@ -4,10 +4,12 @@ definePageMeta({ middleware: 'auth' });
 const route = useRoute();
 const slug = route.params.slug as string;
 const { user } = useAuth();
+const toast = useToast();
 
-import type { Serialized, ContestDetail, ContestEntryItem } from '@commonpub/server';
+import type { Serialized, ContestDetail, ContestEntryItem, ContestJudgeItem } from '@commonpub/server';
 
 const { data: contest } = useLazyFetch<Serialized<ContestDetail>>(`/api/contests/${slug}`);
+const { data: judgesData, refresh: refreshJudges } = useLazyFetch<ContestJudgeItem[]>(`/api/contests/${slug}/judges`);
 const { data: entriesData, refresh: refreshEntries } = useLazyFetch<{ items: (Serialized<ContestEntryItem> & { judgeScores?: Array<{ judgeId: string; score: number; feedback?: string }> })[]; total: number }>(
   `/api/contests/${slug}/entries`,
   { query: { includeJudgeScores: true } },
@@ -15,10 +17,26 @@ const { data: entriesData, refresh: refreshEntries } = useLazyFetch<{ items: (Se
 
 useSeoMeta({ title: () => `Judge: ${contest.value?.title || 'Contest'} — ${useSiteName()}` });
 
-const isJudge = computed(() => {
-  if (!contest.value || !user.value) return false;
-  return ((contest.value.judges ?? []) as string[]).includes(user.value.id);
-});
+// Judge authorization derives from the contest_judges table.
+const myJudge = computed(() => (judgesData.value ?? []).find((j) => j.userId === user.value?.id) ?? null);
+const pendingInvite = computed(() => !!myJudge.value && !myJudge.value.acceptedAt);
+const isGuest = computed(() => myJudge.value?.role === 'guest');
+const canScore = computed(() => !!myJudge.value && !!myJudge.value.acceptedAt && !isGuest.value);
+const inJudgingPhase = computed(() => contest.value?.status === 'judging');
+
+const accepting = ref(false);
+async function acceptInvite(): Promise<void> {
+  accepting.value = true;
+  try {
+    await $fetch(`/api/contests/${slug}/judges/accept`, { method: 'POST' });
+    toast.success('Invitation accepted');
+    await refreshJudges();
+  } catch {
+    toast.error('Failed to accept invitation');
+  } finally {
+    accepting.value = false;
+  }
+}
 
 const entryList = computed(() => {
   const items = entriesData.value?.items ?? [];
@@ -63,6 +81,10 @@ watch(entryList, (list) => {
 }, { immediate: true });
 
 async function submitScore(entryId: string): Promise<void> {
+  if (!inJudgingPhase.value) {
+    error.value = 'Scoring is only open during the judging phase.';
+    return;
+  }
   const score = scoring.value[entryId];
   if (score === undefined || score < 1 || score > 100) {
     error.value = 'Score must be between 1 and 100.';
@@ -106,18 +128,45 @@ async function submitScore(entryId: string): Promise<void> {
     </header>
 
     <!-- Loading -->
-    <div v-if="!contest" class="cpub-judge-empty">
+    <div v-if="!contest || !judgesData" class="cpub-judge-empty">
       <p>Loading...</p>
     </div>
 
-    <!-- Auth guard -->
-    <div v-else-if="!isJudge" class="cpub-judge-unauthorized">
+    <!-- Not a judge -->
+    <div v-else-if="!myJudge" class="cpub-judge-unauthorized">
       <i class="fa-solid fa-lock"></i>
       <p>You are not a judge for this contest.</p>
       <NuxtLink :to="`/contests/${slug}`" class="cpub-btn cpub-btn-sm">Back to Contest</NuxtLink>
     </div>
 
+    <!-- Pending invitation -->
+    <div v-else-if="pendingInvite" class="cpub-judge-unauthorized">
+      <i class="fa-solid fa-envelope-open-text"></i>
+      <p>You've been invited to judge this contest. Accept to begin scoring.</p>
+      <button class="cpub-btn cpub-btn-sm cpub-btn-primary" :disabled="accepting" @click="acceptInvite">
+        {{ accepting ? 'Accepting...' : 'Accept invitation' }}
+      </button>
+    </div>
+
+    <!-- Guest judge (view-only) -->
+    <div v-else-if="isGuest" class="cpub-judge-unauthorized">
+      <i class="fa-solid fa-eye"></i>
+      <p>You are a guest judge and can view entries but cannot submit scores.</p>
+      <NuxtLink :to="`/contests/${slug}`" class="cpub-btn cpub-btn-sm">Back to Contest</NuxtLink>
+    </div>
+
     <template v-else>
+      <!-- Judging not open yet -->
+      <div v-if="!inJudgingPhase" class="cpub-judge-notice" role="status">
+        <i class="fa-solid fa-circle-info"></i>
+        Scoring opens when the contest enters the judging phase (currently <strong>{{ contest.status }}</strong>).
+      </div>
+
+      <!-- Rubric guidance -->
+      <div v-if="contest.judgingCriteria?.length" class="cpub-judge-rubric">
+        <ContestJudgingCriteria :criteria="contest.judgingCriteria" compact />
+      </div>
+
       <!-- Progress bar -->
       <div v-if="totalCount > 0" class="cpub-judge-progress">
         <div class="cpub-judge-progress-label">
@@ -162,7 +211,7 @@ async function submitScore(entryId: string): Promise<void> {
                 />
                 <button
                   class="cpub-judge-score-btn"
-                  :disabled="submitting === entry.id"
+                  :disabled="submitting === entry.id || !inJudgingPhase"
                   @click="submitScore(entry.id)"
                 >
                   {{ submitting === entry.id ? '...' : entry.myScore !== null ? 'Update' : 'Score' }}
@@ -194,6 +243,10 @@ async function submitScore(entryId: string): Promise<void> {
 
 .cpub-judge-unauthorized { text-align: center; padding: 48px 0; color: var(--text-faint); font-size: 13px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
 .cpub-judge-unauthorized i { font-size: 24px; }
+
+.cpub-judge-notice { display: flex; align-items: center; gap: 8px; padding: 10px 14px; margin-bottom: 16px; font-size: 12px; color: var(--text-dim); background: var(--surface2); border: var(--border-width-default) solid var(--border); }
+.cpub-judge-notice i { color: var(--accent); }
+.cpub-judge-rubric { margin-bottom: 20px; }
 
 .cpub-judge-progress { margin-bottom: 20px; }
 .cpub-judge-progress-label { font-size: 12px; color: var(--text-dim); font-family: var(--font-mono); margin-bottom: 6px; }

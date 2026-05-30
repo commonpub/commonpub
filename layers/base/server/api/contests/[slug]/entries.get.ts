@@ -1,4 +1,4 @@
-import { listContestEntries, getContestBySlug } from '@commonpub/server';
+import { listContestEntries, getContestBySlug, isContestJudge, shouldRevealScores } from '@commonpub/server';
 import type { ContestEntryItem } from '@commonpub/server';
 import { z } from 'zod';
 
@@ -15,9 +15,24 @@ export default defineEventHandler(async (event): Promise<{ items: ContestEntryIt
   const query = parseQueryParams(event, entriesQuerySchema);
   const contest = await getContestBySlug(db, slug);
   if (!contest) throw createError({ statusCode: 404, statusMessage: 'Contest not found' });
+
+  // A privileged viewer is the contest owner, an admin, or a panel judge.
+  // Only privileged viewers may read per-judge scores + written feedback.
+  // Aggregate score visibility additionally honours the contest's
+  // judgingVisibility setting (public / judges-only / private).
+  const user = getOptionalUser(event);
+  let privileged = false;
+  if (user) {
+    privileged =
+      user.id === contest.createdById ||
+      user.role === 'admin' ||
+      (await isContestJudge(db, contest.id, user.id));
+  }
+
   return listContestEntries(db, contest.id, {
     limit: query.limit,
     offset: query.offset,
-    includeJudgeScores: query.includeJudgeScores,
+    includeJudgeScores: privileged && query.includeJudgeScores,
+    revealScores: shouldRevealScores(contest.judgingVisibility, contest.status, privileged),
   });
 });

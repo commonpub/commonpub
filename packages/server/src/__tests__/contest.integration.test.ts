@@ -14,9 +14,11 @@ import {
   listContestEntries,
   withdrawContestEntry,
   calculateContestRanks,
+  shouldRevealScores,
 } from '../contest/contest.js';
 import { createContent, publishContent } from '../content/content.js';
-import { addContestJudge, acceptJudgeInvite } from '../contest/judges.js';
+import { addContestJudge, acceptJudgeInvite, listContestJudges, isContestJudge, updateJudgeRole } from '../contest/judges.js';
+import { voteOnContestEntry, removeContestEntryVote, getContestEntryVotes } from '../voting/voting.js';
 
 describe('contest integration', () => {
   let db: DB;
@@ -409,5 +411,266 @@ describe('contest integration', () => {
     const scored = items.find((i) => i.id === entry!.id);
     // Average of 80 and 90 = 85
     expect(scored!.score).toBe(85);
+  });
+
+  // --- Judge unification, score gating, ranking, new config fields ---
+
+  it('seeds the contest_judges table from create input (single source of truth)', async () => {
+    const judge = await createTestUser(db, { username: `seedjudge-${Date.now()}` });
+    const contest = await createContest(db, {
+      ...makeContestInput({ title: 'Seeded Judges Contest' }),
+      judges: [judge.id],
+    });
+
+    // The judge is in the table without a separate addContestJudge call.
+    const panel = await listContestJudges(db, contest.id);
+    expect(panel.map((j) => j.userId)).toContain(judge.id);
+    expect(await isContestJudge(db, contest.id, judge.id)).toBe(true);
+
+    // Accept-then-score works end to end without addContestJudge.
+    await acceptJudgeInvite(db, contest.id, judge.id);
+    await transitionContestStatus(db, contest.id, organizerId, 'active');
+    const content = await createContent(db, participantId, { type: 'project', title: 'Seeded Entry' });
+    await publishContent(db, content.id, participantId);
+    const entry = await submitContestEntry(db, contest.id, content.id, participantId);
+    await transitionContestStatus(db, contest.id, organizerId, 'judging');
+    const result = await judgeContestEntry(db, entry!.id, 70, judge.id);
+    expect(result.judged).toBe(true);
+  });
+
+  it('hides aggregate scores when revealScores is false', async () => {
+    const judge = await createTestUser(db, { username: `gatejudge-${Date.now()}` });
+    const contest = await createContest(db, {
+      ...makeContestInput({ title: 'Score Gate Contest' }),
+      judges: [judge.id],
+    });
+    await acceptJudgeInvite(db, contest.id, judge.id);
+    await transitionContestStatus(db, contest.id, organizerId, 'active');
+    const content = await createContent(db, participantId, { type: 'project', title: 'Gated Entry' });
+    await publishContent(db, content.id, participantId);
+    const entry = await submitContestEntry(db, contest.id, content.id, participantId);
+    await transitionContestStatus(db, contest.id, organizerId, 'judging');
+    await judgeContestEntry(db, entry!.id, 88, judge.id);
+
+    const hidden = await listContestEntries(db, contest.id, { revealScores: false });
+    expect(hidden.items.find((i) => i.id === entry!.id)!.score).toBeNull();
+
+    const shown = await listContestEntries(db, contest.id, { revealScores: true });
+    expect(shown.items.find((i) => i.id === entry!.id)!.score).toBe(88);
+
+    // Judge feedback is omitted unless includeJudgeScores is requested.
+    expect(shown.items[0]!.judgeScores).toBeUndefined();
+  });
+
+  it('shares rank for tied scores and leaves unscored entries unranked', async () => {
+    const judge = await createTestUser(db, { username: `rankjudge-${Date.now()}` });
+    const contest = await createContest(db, {
+      ...makeContestInput({ title: 'Tie Rank Contest' }),
+      judges: [judge.id],
+    });
+    await acceptJudgeInvite(db, contest.id, judge.id);
+    await transitionContestStatus(db, contest.id, organizerId, 'active');
+
+    const mkEntry = async (userIdx: number, title: string) => {
+      const u = await createTestUser(db, { username: `rank-u${userIdx}-${Date.now()}-${Math.random().toString(36).slice(2, 5)}` });
+      const c = await createContent(db, u.id, { type: 'project', title });
+      await publishContent(db, c.id, u.id);
+      return submitContestEntry(db, contest.id, c.id, u.id);
+    };
+    const eA = await mkEntry(1, 'Tie A');
+    const eB = await mkEntry(2, 'Tie B');
+    const eC = await mkEntry(3, 'Unscored C');
+
+    await transitionContestStatus(db, contest.id, organizerId, 'judging');
+    await judgeContestEntry(db, eA!.id, 90, judge.id);
+    await judgeContestEntry(db, eB!.id, 90, judge.id);
+    // eC is never scored.
+
+    await transitionContestStatus(db, contest.id, organizerId, 'completed');
+
+    const { items } = await listContestEntries(db, contest.id);
+    const a = items.find((i) => i.id === eA!.id)!;
+    const b = items.find((i) => i.id === eB!.id)!;
+    const c = items.find((i) => i.id === eC!.id)!;
+    // Tied scores share rank 1 (RANK(), not ROW_NUMBER()).
+    expect(a.rank).toBe(1);
+    expect(b.rank).toBe(1);
+    // Unscored entry stays unranked.
+    expect(c.rank).toBeNull();
+  });
+
+  it('persists community voting, judging visibility, and criteria on create and update', async () => {
+    const contest = await createContest(db, {
+      ...makeContestInput({ title: 'Config Fields Contest' }),
+      communityVotingEnabled: true,
+      judgingVisibility: 'public',
+      judgingCriteria: [
+        { label: 'Documentation', weight: 20, description: 'Clear build log' },
+        { label: 'Creativity', weight: 30 },
+      ],
+    });
+    expect(contest.communityVotingEnabled).toBe(true);
+    expect(contest.judgingVisibility).toBe('public');
+    expect(contest.judgingCriteria).toHaveLength(2);
+    expect(contest.judgingCriteria![0]!.label).toBe('Documentation');
+
+    const updated = await updateContest(db, contest.slug, organizerId, {
+      communityVotingEnabled: false,
+      judgingVisibility: 'private',
+      judgingCriteria: [{ label: 'Impact', weight: 100 }],
+    });
+    expect(updated!.communityVotingEnabled).toBe(false);
+    expect(updated!.judgingVisibility).toBe('private');
+    expect(updated!.judgingCriteria).toHaveLength(1);
+    expect(updated!.judgingCriteria![0]!.label).toBe('Impact');
+  });
+
+  it('supports category prizes alongside place-based prizes', async () => {
+    const contest = await createContest(db, {
+      ...makeContestInput({ title: 'Category Prizes Contest' }),
+      prizes: [
+        { place: 1, title: 'Grand Prize', value: '$1000' },
+        { category: 'Best in Show', title: 'Editor Pick', value: 'Trophy' },
+      ],
+    });
+    expect(contest.prizes).toHaveLength(2);
+    expect(contest.prizes![0]!.place).toBe(1);
+    expect(contest.prizes![1]!.category).toBe('Best in Show');
+    expect(contest.prizes![1]!.place).toBeUndefined();
+  });
+
+  // --- shouldRevealScores: exhaustive pure-logic matrix ---
+
+  describe('shouldRevealScores (judging visibility)', () => {
+    const statuses = ['upcoming', 'active', 'judging', 'completed', 'cancelled'] as const;
+
+    it('always reveals to privileged viewers regardless of visibility/status', () => {
+      for (const v of ['public', 'judges-only', 'private'] as const) {
+        for (const s of statuses) {
+          expect(shouldRevealScores(v, s, true)).toBe(true);
+        }
+      }
+    });
+
+    it('public: reveals to everyone in every status', () => {
+      for (const s of statuses) expect(shouldRevealScores('public', s, false)).toBe(true);
+    });
+
+    it('private: never reveals to non-privileged, even when completed', () => {
+      for (const s of statuses) expect(shouldRevealScores('private', s, false)).toBe(false);
+    });
+
+    it('judges-only: hides from public until completed', () => {
+      expect(shouldRevealScores('judges-only', 'active', false)).toBe(false);
+      expect(shouldRevealScores('judges-only', 'judging', false)).toBe(false);
+      expect(shouldRevealScores('judges-only', 'completed', false)).toBe(true);
+    });
+  });
+
+  // --- Judge authorization edge cases ---
+
+  it('rejects scoring by a guest judge', async () => {
+    const guest = await createTestUser(db, { username: `guest-${Date.now()}` });
+    const contest = await createContest(db, makeContestInput({ title: 'Guest Judge Contest' }));
+    await addContestJudge(db, contest.id, guest.id, 'guest');
+    await acceptJudgeInvite(db, contest.id, guest.id);
+    await transitionContestStatus(db, contest.id, organizerId, 'active');
+    const content = await createContent(db, participantId, { type: 'project', title: 'Guest-judged Entry' });
+    await publishContent(db, content.id, participantId);
+    const entry = await submitContestEntry(db, contest.id, content.id, participantId);
+    await transitionContestStatus(db, contest.id, organizerId, 'judging');
+
+    const result = await judgeContestEntry(db, entry!.id, 80, guest.id);
+    expect(result.judged).toBe(false);
+    expect(result.error).toMatch(/guest/i);
+  });
+
+  it('rejects scoring by a judge who has not accepted the invite', async () => {
+    const judge = await createTestUser(db, { username: `unaccepted-${Date.now()}` });
+    const contest = await createContest(db, makeContestInput({ title: 'Unaccepted Judge Contest' }));
+    await addContestJudge(db, contest.id, judge.id, 'judge'); // no acceptJudgeInvite
+    await transitionContestStatus(db, contest.id, organizerId, 'active');
+    const content = await createContent(db, participantId, { type: 'project', title: 'Unaccepted Entry' });
+    await publishContent(db, content.id, participantId);
+    const entry = await submitContestEntry(db, contest.id, content.id, participantId);
+    await transitionContestStatus(db, contest.id, organizerId, 'judging');
+
+    const result = await judgeContestEntry(db, entry!.id, 80, judge.id);
+    expect(result.judged).toBe(false);
+    expect(result.error).toMatch(/accept/i);
+  });
+
+  it('promotes a guest to judge so they can then score', async () => {
+    const u = await createTestUser(db, { username: `promote-${Date.now()}` });
+    const contest = await createContest(db, makeContestInput({ title: 'Promote Judge Contest' }));
+    await addContestJudge(db, contest.id, u.id, 'guest');
+    await acceptJudgeInvite(db, contest.id, u.id);
+    await updateJudgeRole(db, contest.id, u.id, 'judge');
+    await transitionContestStatus(db, contest.id, organizerId, 'active');
+    const content = await createContent(db, participantId, { type: 'project', title: 'Promote Entry' });
+    await publishContent(db, content.id, participantId);
+    const entry = await submitContestEntry(db, contest.id, content.id, participantId);
+    await transitionContestStatus(db, contest.id, organizerId, 'judging');
+
+    const result = await judgeContestEntry(db, entry!.id, 77, u.id);
+    expect(result.judged).toBe(true);
+  });
+
+  it('rejects status transition by a non-owner', async () => {
+    const contest = await createContest(db, makeContestInput({ title: 'Owner-only Transition' }));
+    const r = await transitionContestStatus(db, contest.id, participantId, 'active');
+    expect(r.transitioned).toBe(false);
+    expect(r.error).toMatch(/owner/i);
+  });
+
+  it('acceptJudgeInvite is idempotent and rejects when no invite exists', async () => {
+    const judge = await createTestUser(db, { username: `accept-${Date.now()}` });
+    const contest = await createContest(db, makeContestInput({ title: 'Accept Edge Contest' }));
+    // No invite yet.
+    expect(await acceptJudgeInvite(db, contest.id, judge.id)).toBe(false);
+    await addContestJudge(db, contest.id, judge.id, 'judge');
+    expect(await acceptJudgeInvite(db, contest.id, judge.id)).toBe(true);
+    // Already accepted → false.
+    expect(await acceptJudgeInvite(db, contest.id, judge.id)).toBe(false);
+  });
+
+  // --- Community voting ---
+
+  it('community voting: gated by flag, one vote per user, removable, counted', async () => {
+    const voter = await createTestUser(db, { username: `voter-${Date.now()}` });
+    const contest = await createContest(db, {
+      ...makeContestInput({ title: 'Voting Contest' }),
+      communityVotingEnabled: true,
+    });
+    await transitionContestStatus(db, contest.id, organizerId, 'active');
+    const content = await createContent(db, participantId, { type: 'project', title: 'Votable Entry' });
+    await publishContent(db, content.id, participantId);
+    const entry = await submitContestEntry(db, contest.id, content.id, participantId);
+
+    const v1 = await voteOnContestEntry(db, entry!.id, voter.id);
+    expect(v1.voted).toBe(true);
+    // Duplicate vote rejected.
+    const v2 = await voteOnContestEntry(db, entry!.id, voter.id);
+    expect(v2.voted).toBe(false);
+
+    let votes = await getContestEntryVotes(db, contest.id, voter.id);
+    expect(votes.find((x) => x.entryId === entry!.id)).toMatchObject({ count: 1, voted: true });
+
+    expect(await removeContestEntryVote(db, entry!.id, voter.id)).toBe(true);
+    votes = await getContestEntryVotes(db, contest.id, null);
+    expect(votes.find((x) => x.entryId === entry!.id)!.count).toBe(0);
+  });
+
+  it('community voting: rejected when the contest has it disabled', async () => {
+    const voter = await createTestUser(db, { username: `novote-${Date.now()}` });
+    const contest = await createContest(db, makeContestInput({ title: 'No Voting Contest' }));
+    await transitionContestStatus(db, contest.id, organizerId, 'active');
+    const content = await createContent(db, participantId, { type: 'project', title: 'Unvotable Entry' });
+    await publishContent(db, content.id, participantId);
+    const entry = await submitContestEntry(db, contest.id, content.id, participantId);
+
+    const r = await voteOnContestEntry(db, entry!.id, voter.id);
+    expect(r.voted).toBe(false);
+    expect(r.error).toMatch(/not enabled/i);
   });
 });

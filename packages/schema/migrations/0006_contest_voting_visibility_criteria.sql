@@ -1,0 +1,1 @@
+ALTER TABLE "contests" ADD COLUMN "judging_criteria" jsonb;

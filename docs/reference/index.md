@@ -24,3 +24,4 @@ Fresh, focused reference pages that cover one specific subject well:
 - [`guides/theming.md`](guides/theming.md) — theme resolution, CSS tokens, consumer overrides
 - [`guides/theme-editor.md`](guides/theme-editor.md) — admin theme editor: custom + code-registered themes, scene preview system, import/export, capture-from-:root flow
 - [`guides/url-structure.md`](guides/url-structure.md) — URL canonical form (session 108 restructure)
+- [`guides/contests.md`](guides/contests.md) — contest lifecycle, judge panel + accept flow, score visibility, prizes/criteria, community voting

@@ -246,6 +246,31 @@ describe('publicApi/serializers — phase 2 PII guards', () => {
     expect(out.canonicalUrl).toBe('https://example.com/contests/edge-ai');
   });
 
+  it('toPublicContest maps real contest fields (deadlines + prizes), not null placeholders', async () => {
+    const { toPublicContest } = await import('../publicApi/index.js');
+    const row: any = {
+      id: 'c2', title: 'TinyML', slug: 'tinyml', description: 'd', bannerUrl: null,
+      status: 'judging',
+      startDate: new Date('2026-01-01T00:00:00Z'),
+      endDate: new Date('2026-06-01T00:00:00Z'),
+      judgingEndDate: new Date('2026-06-15T00:00:00Z'),
+      prizes: [
+        { place: 1, title: 'Grand Prize', value: '$500' },
+        { category: 'Best in Show', title: 'Editor Pick' },
+      ],
+      entryCount: 9, communityVotingEnabled: false,
+      createdAt: new Date('2026-01-01T00:00:00Z'),
+    };
+    const out = toPublicContest(row, 'example.com');
+    // Submissions close at the end date; judging deadline maps from judgingEndDate.
+    expect(out.entryDeadline).toBe('2026-06-01T00:00:00.000Z');
+    expect(out.judgingDeadline).toBe('2026-06-15T00:00:00.000Z');
+    // Prize summary reflects both place-based and category prizes.
+    expect(out.prizeDescription).toContain('#1: Grand Prize ($500)');
+    expect(out.prizeDescription).toContain('Best in Show: Editor Pick');
+    expect(out.entryCount).toBe(9);
+  });
+
   it('toPublicVideo drops unlisted fields', async () => {
     const { toPublicVideo, isPublicVideo } = await import('../publicApi/index.js');
     const row: any = {

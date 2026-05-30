@@ -545,6 +545,7 @@ export {
   transitionContestStatus,
   calculateContestRanks,
   withdrawContestEntry,
+  shouldRevealScores,
 } from './contest/index.js';
 export type {
   ContestListItem,
@@ -552,6 +553,9 @@ export type {
   ContestFilters,
   CreateContestInput,
   ContestEntryItem,
+  ContestPrize,
+  ContestJudgingCriterion,
+  ContestJudgingVisibility,
 } from './contest/index.js';
 export {
   listContestJudges,

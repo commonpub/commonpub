@@ -43,6 +43,13 @@
       "when": 1779839080979,
       "tag": "0005_wonderful_blue_marvel",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1780140423862,
+      "tag": "0006_contest_voting_visibility_criteria",
+      "breakpoints": true
     }
   ]
 }

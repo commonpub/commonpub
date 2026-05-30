@@ -837,12 +837,16 @@ describe('createProductSchema — boundary tests', () => {
 describe('judgeEntrySchema — boundary tests', () => {
   const uuid = crypto.randomUUID();
 
-  it('rejects score below 0', () => {
+  it('rejects score below 1', () => {
     expect(() => judgeEntrySchema.parse({ entryId: uuid, score: -1 })).toThrow();
   });
 
-  it('accepts score of exactly 0', () => {
-    expect(judgeEntrySchema.parse({ entryId: uuid, score: 0 }).score).toBe(0);
+  it('rejects score of exactly 0 (scores are 1–100)', () => {
+    expect(() => judgeEntrySchema.parse({ entryId: uuid, score: 0 })).toThrow();
+  });
+
+  it('accepts score of exactly 1', () => {
+    expect(judgeEntrySchema.parse({ entryId: uuid, score: 1 }).score).toBe(1);
   });
 
   it('accepts score of exactly 100', () => {
@@ -919,6 +923,56 @@ describe('createContestSchema — boundary tests', () => {
     expect(() =>
       createContestSchema.parse({ ...validContest, rules: 'x'.repeat(10001) }),
     ).toThrow();
+  });
+
+  // Cross-field date refinement (session 171).
+  it('rejects an end date on or before the start date', () => {
+    expect(() =>
+      createContestSchema.parse({ ...validContest, startDate: '2026-02-01T00:00:00Z', endDate: '2026-02-01T00:00:00Z' }),
+    ).toThrow();
+    expect(() =>
+      createContestSchema.parse({ ...validContest, startDate: '2026-03-01T00:00:00Z', endDate: '2026-02-01T00:00:00Z' }),
+    ).toThrow();
+  });
+
+  it('rejects a judging end date before the end date', () => {
+    expect(() =>
+      createContestSchema.parse({ ...validContest, judgingEndDate: '2026-01-15T00:00:00Z' }),
+    ).toThrow();
+  });
+
+  it('accepts a judging end date on or after the end date', () => {
+    expect(
+      createContestSchema.parse({ ...validContest, judgingEndDate: '2026-02-15T00:00:00Z' }).judgingEndDate,
+    ).toBe('2026-02-15T00:00:00Z');
+  });
+
+  // New fields (session 171).
+  it('accepts community voting, judging visibility, and a criteria rubric', () => {
+    const parsed = createContestSchema.parse({
+      ...validContest,
+      communityVotingEnabled: true,
+      judgingVisibility: 'public',
+      judgingCriteria: [{ label: 'Docs', weight: 20, description: 'Clear log' }],
+    });
+    expect(parsed.communityVotingEnabled).toBe(true);
+    expect(parsed.judgingVisibility).toBe('public');
+    expect(parsed.judgingCriteria).toHaveLength(1);
+  });
+
+  it('rejects an invalid judging visibility value', () => {
+    expect(() =>
+      createContestSchema.parse({ ...validContest, judgingVisibility: 'everyone' }),
+    ).toThrow();
+  });
+
+  it('accepts category-only prizes (place optional)', () => {
+    const parsed = createContestSchema.parse({
+      ...validContest,
+      prizes: [{ category: 'Best in Show', title: 'Editor Pick', value: 'Trophy' }],
+    });
+    expect(parsed.prizes![0]!.place).toBeUndefined();
+    expect(parsed.prizes![0]!.category).toBe('Best in Show');
   });
 });
 

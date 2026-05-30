@@ -23,7 +23,11 @@ let countdownInterval: ReturnType<typeof setInterval> | null = null;
 function pad(n: number): string { return String(n).padStart(2, '0'); }
 
 function updateCountdown(): void {
-  const target = c.value?.endDate ? new Date(c.value.endDate) : new Date();
+  // During judging, count down to the judging deadline (if set); otherwise the
+  // submission end date.
+  const isJudging = c.value?.status === 'judging';
+  const targetStr = isJudging ? (c.value?.judgingEndDate ?? c.value?.endDate) : c.value?.endDate;
+  const target = targetStr ? new Date(targetStr) : new Date();
   const now = new Date();
   let diff = Math.max(0, Math.floor((target.getTime() - now.getTime()) / 1000));
   const days = Math.floor(diff / 86400); diff %= 86400;
@@ -126,7 +130,7 @@ const isEnded = computed(() => c.value?.status === 'completed' || c.value?.statu
           <div class="cpub-hero-stat-label">Entries</div>
         </div>
         <div class="cpub-hero-stat">
-          <div class="cpub-hero-stat-val">{{ c?.status ?? 'draft' }}</div>
+          <div class="cpub-hero-stat-val">{{ c?.status ?? 'upcoming' }}</div>
           <div class="cpub-hero-stat-label">Status</div>
         </div>
       </div>

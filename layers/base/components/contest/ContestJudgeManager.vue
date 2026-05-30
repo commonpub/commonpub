@@ -6,6 +6,8 @@ const props = defineProps<{
   isOwner: boolean;
 }>();
 
+const emit = defineEmits<{ (e: 'changed'): void }>();
+
 const toast = useToast();
 const { data: judges, refresh } = useLazyFetch<ContestJudgeItem[]>(
   `/api/contests/${props.contestSlug}/judges`,
@@ -49,10 +51,11 @@ async function addJudge(userId: string): Promise<void> {
       method: 'POST',
       body: { userId, role: newJudgeRole.value },
     });
-    toast.success('Judge added');
+    toast.success('Judge invited');
     searchQuery.value = '';
     searchResults.value = [];
     await refresh();
+    emit('changed');
   } catch {
     toast.error('Failed to add judge');
   } finally {
@@ -66,6 +69,7 @@ async function removeJudge(userId: string): Promise<void> {
     await ($fetch as Function)(`/api/contests/${props.contestSlug}/judges/${userId}`, { method: 'DELETE' });
     toast.success('Judge removed');
     await refresh();
+    emit('changed');
   } catch {
     toast.error('Failed to remove judge');
   }

@@ -23,7 +23,7 @@ const leaderboard = computed(() => rankedEntries.value);
 const prizes = computed(() => contest.value?.prizes ?? []);
 
 function prizeForRank(rank: number): { title: string; value?: string } | null {
-  const prize = prizes.value.find((p: { place: number; title: string; value?: string }) => p.place === rank);
+  const prize = prizes.value.find((p: { place?: number; title: string; value?: string }) => p.place === rank);
   return prize ?? null;
 }
 

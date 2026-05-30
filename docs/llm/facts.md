@@ -105,8 +105,13 @@ Plus file-level utilities: email, hooks, image, oauthCodes, query, security, sto
 
 Top-level flags default ON: `content`, `social`, `hubs`, `docs`, `video`,
 `learning`, `explainers`, `editorial`, `admin`, `contentImport`.
-Default OFF: `events`, `contests`, `federation`, `federateHubs`,
-`seamlessFederation`, `emailNotifications`, `publicApi`.
+Default OFF (layer `nuxt.config.ts` build-time default): `events`, `contests`,
+`federation`, `federateHubs`, `seamlessFederation`, `emailNotifications`,
+`publicApi`. **Note:** the build-time default is the lowest-priority tier —
+`contests` is turned **ON live** on commonpub.io / deveco.io / heatsynclabs.io
+via per-instance config (`apps/reference/commonpub.config.ts` sets
+`contests: true`). Always `curl /api/features` for ground truth before calling a
+flag "dormant".
 
 `identity` is a nested object with 5 sub-flags, all default OFF:
 `linkRemoteAccounts`, `signInWithRemote`, `actingAs`, `remoteInteract`,
@@ -122,6 +127,28 @@ DB-driven page layouts behind `features.layoutEngine` (default **OFF**; **ON
 live on commonpub.io** via a runtime override — verify with `curl
 /api/features`). Instance-local — the `layouts`/`layout_rows`/
 `layout_sections`/`layout_versions` tables **never federate**.
+
+## Contest system (session 117, overhauled 171)
+
+Behind `features.contests` (**live on all three instances**). Tables:
+`contests`, `contest_entries`, `contest_judges`, `contest_entry_votes`.
+Lifecycle FSM: `upcoming → active → judging → completed` (+ `cancelled` from any
+non-terminal state); `calculateContestRanks` runs on completion (`RANK()`, scored
+entries only). Instance-local — contests never federate.
+
+Session-171 invariants (don't regress):
+- **Judges live in the `contest_judges` table — the single source of truth.** The
+  legacy `contests.judges` jsonb column is vestigial; `createContest` seeds the
+  table from it but auth + display + the "Judge Entries" link all read the table.
+  Scoring requires an *accepted*, non-`guest` judge record.
+- **Score privacy:** per-judge scores + written feedback (`includeJudgeScores`)
+  are privileged-only (owner / admin / panel judge). Aggregate `score` exposure
+  goes through `shouldRevealScores(visibility, status, privileged)` honouring
+  `judgingVisibility` (`public` always / `judges-only` after completion /
+  `private` never to the public). Pure helper — exhaustively unit-tested.
+- `judgingCriteria` (jsonb, migration 0006) is a display/guidance rubric; judges
+  still submit one 1–100 score. Prizes support optional `place` **and** optional
+  `category` (Hackster-style themed awards).
 
 - **Render path**: `<LayoutSlot route zone>` (`layers/base/components/`) →
   `useLayout(route)` fetches `/api/layouts/by-route` → `<LayoutRow>` →

@@ -5,6 +5,20 @@ import { normalizePagination, countRows } from '../query.js';
 
 import type { ContestStatus } from '@commonpub/schema';
 
+export type ContestJudgingVisibility = 'public' | 'judges-only' | 'private';
+export interface ContestPrize {
+  place?: number;
+  category?: string;
+  title: string;
+  description?: string;
+  value?: string;
+}
+export interface ContestJudgingCriterion {
+  label: string;
+  weight?: number;
+  description?: string;
+}
+
 export interface ContestListItem {
   id: string;
   title: string;
@@ -20,8 +34,9 @@ export interface ContestListItem {
 
 export interface ContestDetail extends ContestListItem {
   rules: string | null;
-  prizes: Array<{ place: number; title: string; description?: string; value?: string }> | null;
-  judgingCriteria: unknown | null;
+  prizes: ContestPrize[] | null;
+  judgingCriteria: ContestJudgingCriterion[] | null;
+  judgingVisibility: ContestJudgingVisibility;
   judgingEndDate: Date | null;
   judges: string[] | null;
   communityVotingEnabled: boolean;
@@ -40,8 +55,11 @@ export interface CreateContestInput {
   description?: string;
   rules?: string;
   bannerUrl?: string;
-  prizes?: Array<{ place: number; title: string; description?: string; value?: string }>;
+  prizes?: ContestPrize[];
+  judgingCriteria?: ContestJudgingCriterion[];
   judges?: string[];
+  communityVotingEnabled?: boolean;
+  judgingVisibility?: ContestJudgingVisibility;
   startDate: string;
   endDate: string;
   judgingEndDate?: string;
@@ -109,19 +127,9 @@ export async function listContests(
   return { items, total };
 }
 
-export async function getContestBySlug(
-  db: DB,
-  slug: string,
-): Promise<ContestDetail | null> {
-  const rows = await db
-    .select()
-    .from(contests)
-    .where(eq(contests.slug, slug))
-    .limit(1);
+type ContestRow = typeof contests.$inferSelect;
 
-  if (rows.length === 0) return null;
-
-  const row = rows[0]!;
+function toContestDetail(row: ContestRow): ContestDetail {
   return {
     id: row.id,
     title: row.title,
@@ -135,12 +143,27 @@ export async function getContestBySlug(
     createdAt: row.createdAt,
     rules: row.rules,
     prizes: row.prizes ?? null,
-    judgingCriteria: null,
+    judgingCriteria: row.judgingCriteria ?? null,
+    judgingVisibility: row.judgingVisibility,
     judgingEndDate: row.judgingEndDate,
     judges: row.judges ?? null,
     communityVotingEnabled: row.communityVotingEnabled,
     createdById: row.createdById,
   };
+}
+
+export async function getContestBySlug(
+  db: DB,
+  slug: string,
+): Promise<ContestDetail | null> {
+  const rows = await db
+    .select()
+    .from(contests)
+    .where(eq(contests.slug, slug))
+    .limit(1);
+
+  if (rows.length === 0) return null;
+  return toContestDetail(rows[0]!);
 }
 
 /**
@@ -179,7 +202,10 @@ export async function createContest(
       rules: input.rules ?? null,
       bannerUrl: input.bannerUrl ?? null,
       prizes: input.prizes ?? null,
+      judgingCriteria: input.judgingCriteria ?? null,
       judges: input.judges ?? null,
+      communityVotingEnabled: input.communityVotingEnabled ?? false,
+      judgingVisibility: input.judgingVisibility ?? 'judges-only',
       startDate: new Date(input.startDate),
       endDate: new Date(input.endDate),
       judgingEndDate: input.judgingEndDate ? new Date(input.judgingEndDate) : null,
@@ -187,25 +213,17 @@ export async function createContest(
     })
     .returning();
 
-  return {
-    id: row!.id,
-    title: row!.title,
-    slug: row!.slug,
-    description: row!.description,
-    bannerUrl: row!.bannerUrl,
-    status: row!.status,
-    startDate: row!.startDate,
-    endDate: row!.endDate,
-    entryCount: row!.entryCount,
-    createdAt: row!.createdAt,
-    rules: row!.rules,
-    prizes: row!.prizes ?? null,
-    judgingCriteria: null,
-    judgingEndDate: row!.judgingEndDate,
-    judges: row!.judges ?? null,
-    communityVotingEnabled: row!.communityVotingEnabled,
-    createdById: row!.createdById,
-  };
+  // Single source of truth: seed the contest_judges table from any judge IDs
+  // provided at creation. The legacy `judges` jsonb column is retained for
+  // backward compatibility but authorization + display read the table.
+  if (input.judges && input.judges.length > 0) {
+    await db
+      .insert(contestJudges)
+      .values(input.judges.map((userId) => ({ contestId: row!.id, userId })))
+      .onConflictDoNothing();
+  }
+
+  return toContestDetail(row!);
 }
 
 export async function updateContest(
@@ -229,7 +247,10 @@ export async function updateContest(
   if (data.rules !== undefined) updates.rules = data.rules;
   if (data.bannerUrl !== undefined) updates.bannerUrl = data.bannerUrl;
   if (data.prizes !== undefined) updates.prizes = data.prizes;
+  if (data.judgingCriteria !== undefined) updates.judgingCriteria = data.judgingCriteria;
   if (data.judges !== undefined) updates.judges = data.judges;
+  if (data.communityVotingEnabled !== undefined) updates.communityVotingEnabled = data.communityVotingEnabled;
+  if (data.judgingVisibility !== undefined) updates.judgingVisibility = data.judgingVisibility;
   if (data.startDate !== undefined) updates.startDate = new Date(data.startDate);
   if (data.endDate !== undefined) updates.endDate = new Date(data.endDate);
   if (data.judgingEndDate !== undefined) updates.judgingEndDate = data.judgingEndDate ? new Date(data.judgingEndDate) : null;
@@ -239,11 +260,44 @@ export async function updateContest(
   return getContestBySlug(db, slug);
 }
 
+/**
+ * Decide whether a viewer may see aggregate entry scores, honouring the
+ * contest's `judgingVisibility` setting. Pure + exhaustively testable.
+ *
+ * - Privileged viewers (owner / admin / panel judge) always see scores.
+ * - `public`     → scores visible to everyone (during judging and after).
+ * - `judges-only`→ scores hidden from the public until the contest completes.
+ * - `private`    → aggregate scores never exposed to the public (ranks may
+ *                  still be shown so winners can be announced).
+ */
+export function shouldRevealScores(
+  visibility: ContestJudgingVisibility,
+  status: ContestStatus,
+  privileged: boolean,
+): boolean {
+  if (privileged) return true;
+  if (visibility === 'public') return true;
+  if (visibility === 'private') return false;
+  return status === 'completed';
+}
+
 export async function listContestEntries(
   db: DB,
   contestId: string,
-  opts: { limit?: number; offset?: number; includeJudgeScores?: boolean } = {},
+  opts: {
+    limit?: number;
+    offset?: number;
+    /** Include per-judge scores + written feedback. Privileged viewers only. */
+    includeJudgeScores?: boolean;
+    /**
+     * Whether the aggregate `score` is exposed. When false, `score` is nulled
+     * out for every entry so running averages don't leak during judging.
+     * Defaults to true (server-internal callers see everything).
+     */
+    revealScores?: boolean;
+  } = {},
 ): Promise<{ items: ContestEntryItem[]; total: number }> {
+  const revealScores = opts.revealScores ?? true;
   const { limit, offset } = normalizePagination(opts);
   const where = eq(contestEntries.contestId, contestId);
 
@@ -279,7 +333,7 @@ export async function listContestEntries(
       contestId: row.entry.contestId,
       contentId: row.entry.contentId,
       userId: row.entry.userId,
-      score: row.entry.score,
+      score: revealScores ? row.entry.score : null,
       rank: row.entry.rank,
       submittedAt: row.entry.submittedAt,
       contentTitle: row.content.title,
@@ -602,15 +656,23 @@ export async function calculateContestRanks(
   db: DB,
   contestId: string,
 ): Promise<void> {
-  // Single query: assign ranks by score using a window function
+  // Assign ranks by score with RANK() so tied scores share a rank (1, 1, 3…).
+  // Only scored entries are ranked; entries that were never judged keep a null
+  // rank rather than being handed an arbitrary trailing position.
   await db.execute(sql`
     UPDATE ${contestEntries}
     SET rank = ranked.rn
     FROM (
-      SELECT id, ROW_NUMBER() OVER (ORDER BY score DESC NULLS LAST) AS rn
+      SELECT id, RANK() OVER (ORDER BY score DESC) AS rn
       FROM ${contestEntries}
-      WHERE contest_id = ${contestId}
+      WHERE contest_id = ${contestId} AND score IS NOT NULL
     ) AS ranked
     WHERE ${contestEntries}.id = ranked.id
+  `);
+  // Clear ranks for any entries that have no score (e.g. unjudged).
+  await db.execute(sql`
+    UPDATE ${contestEntries}
+    SET rank = NULL
+    WHERE contest_id = ${contestId} AND score IS NULL
   `);
 }

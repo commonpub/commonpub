@@ -15,95 +15,94 @@ const saving = ref(false);
 const title = ref('');
 const description = ref('');
 const rules = ref('');
+const bannerUrl = ref('');
 const startDate = ref('');
 const endDate = ref('');
 const judgingEndDate = ref('');
-const prizes = ref<Array<{ place: number; title: string; description: string; value: string }>>([]);
-const judgeIds = ref<string[]>([]);
-const judgeSearch = ref('');
-const judgeSearchResults = ref<Array<{ id: string; username: string; displayName: string | null }>>([]);
-const searchingJudges = ref(false);
+const communityVotingEnabled = ref(false);
+const judgingVisibility = ref<'public' | 'judges-only' | 'private'>('judges-only');
 
-interface JudgeDisplay { id: string; username: string; displayName: string | null }
-const resolvedJudges = ref<JudgeDisplay[]>([]);
+interface Prize { place: number | null; category: string; title: string; description: string; value: string }
+const prizes = ref<Prize[]>([]);
+
+interface Criterion { label: string; weight: number | null; description: string }
+const criteria = ref<Criterion[]>([]);
 
 // Load current data
-watch(contest, async (c) => {
+watch(contest, (c) => {
   if (!c) return;
   title.value = c.title ?? '';
   description.value = c.description ?? '';
   rules.value = c.rules ?? '';
+  bannerUrl.value = c.bannerUrl ?? '';
   startDate.value = c.startDate ? new Date(c.startDate).toISOString().slice(0, 16) : '';
   endDate.value = c.endDate ? new Date(c.endDate).toISOString().slice(0, 16) : '';
   judgingEndDate.value = c.judgingEndDate ? new Date(c.judgingEndDate).toISOString().slice(0, 16) : '';
-  prizes.value = (c.prizes ?? []).map((p: { place: number; title: string; description?: string; value?: string }) => ({
-    place: p.place,
+  communityVotingEnabled.value = !!c.communityVotingEnabled;
+  judgingVisibility.value = (c.judgingVisibility as typeof judgingVisibility.value) ?? 'judges-only';
+  prizes.value = (c.prizes ?? []).map((p: { place?: number; category?: string; title: string; description?: string; value?: string }) => ({
+    place: p.place ?? null,
+    category: p.category ?? '',
     title: p.title,
     description: p.description ?? '',
     value: p.value ?? '',
   }));
-  judgeIds.value = [...(c.judges ?? [])];
-  // Resolve judge IDs to display info
-  if (judgeIds.value.length > 0) {
-    try {
-      const data = await $fetch<{ items: JudgeDisplay[] }>('/api/users', { query: { ids: judgeIds.value.join(',') } });
-      resolvedJudges.value = data.items;
-    } catch { /* ignore */ }
-  }
+  criteria.value = (c.judgingCriteria ?? []).map((cr: { label: string; weight?: number; description?: string }) => ({
+    label: cr.label,
+    weight: cr.weight ?? null,
+    description: cr.description ?? '',
+  }));
 }, { immediate: true });
 
-async function searchJudge(): Promise<void> {
-  const q = judgeSearch.value.trim();
-  if (!q || q.length < 2) { judgeSearchResults.value = []; return; }
-  searchingJudges.value = true;
-  try {
-    const data = await $fetch<{ items: Array<{ id: string; username: string; displayName: string | null }> }>('/api/users', { query: { q, limit: 5 } });
-    judgeSearchResults.value = data.items.filter((u) => !judgeIds.value.includes(u.id));
-  } catch { judgeSearchResults.value = []; }
-  finally { searchingJudges.value = false; }
-}
-
-function addJudge(u: { id: string; username: string; displayName: string | null }): void {
-  if (!judgeIds.value.includes(u.id)) {
-    judgeIds.value.push(u.id);
-    resolvedJudges.value.push(u);
-  }
-  judgeSearch.value = '';
-  judgeSearchResults.value = [];
-}
-
-function removeJudge(id: string): void {
-  judgeIds.value = judgeIds.value.filter((jid) => jid !== id);
-  resolvedJudges.value = resolvedJudges.value.filter((j) => j.id !== id);
-}
-
 function addPrize(): void {
-  const nextPlace = prizes.value.length + 1;
-  prizes.value.push({ place: nextPlace, title: '', description: '', value: '' });
+  prizes.value.push({ place: null, category: '', title: '', description: '', value: '' });
 }
-
 function removePrize(index: number): void {
   prizes.value.splice(index, 1);
-  prizes.value.forEach((p, i) => { p.place = i + 1; });
+}
+function prizeLabel(prize: Prize, idx: number): string {
+  if (prize.category.trim()) return prize.category;
+  const labels = ['1st', '2nd', '3rd', '4th', '5th', '6th'];
+  return prize.place ? `${labels[prize.place - 1] || `${prize.place}th`} Place` : `${labels[idx] || `${idx + 1}th`} Place`;
 }
 
-function placeLabel(place: number): string {
-  if (place === 1) return '1st Place';
-  if (place === 2) return '2nd Place';
-  if (place === 3) return '3rd Place';
-  return `${place}th Place`;
+function addCriterion(): void {
+  criteria.value.push({ label: '', weight: null, description: '' });
 }
+function removeCriterion(index: number): void {
+  criteria.value.splice(index, 1);
+}
+const criteriaTotal = computed(() => criteria.value.reduce((s, c) => s + (c.weight ?? 0), 0));
+
+const dateError = computed(() => {
+  if (startDate.value && endDate.value && new Date(endDate.value) <= new Date(startDate.value)) {
+    return 'End date must be after the start date.';
+  }
+  if (judgingEndDate.value && endDate.value && new Date(judgingEndDate.value) < new Date(endDate.value)) {
+    return 'Judging end date must be on or after the end date.';
+  }
+  return '';
+});
 
 async function handleSave(): Promise<void> {
+  if (dateError.value) { toast.error(dateError.value); return; }
   saving.value = true;
   try {
     const prizeData = prizes.value
       .filter((p) => p.title.trim())
       .map((p) => ({
-        place: p.place,
+        place: typeof p.place === 'number' && Number.isFinite(p.place) && p.place > 0 ? p.place : undefined,
+        category: p.category.trim() || undefined,
         title: p.title,
         description: p.description || undefined,
         value: p.value || undefined,
+      }));
+    const criteriaData = criteria.value
+      .filter((c) => c.label.trim())
+      .map((c) => ({
+        label: c.label.trim(),
+        weight: typeof c.weight === 'number' && Number.isFinite(c.weight) ? c.weight : undefined,
+        description: c.description.trim() || undefined,
       }));
 
     await $fetch(`/api/contests/${slug}`, {
@@ -112,11 +111,14 @@ async function handleSave(): Promise<void> {
         title: title.value,
         description: description.value || undefined,
         rules: rules.value || undefined,
+        bannerUrl: bannerUrl.value || undefined,
         startDate: startDate.value ? new Date(startDate.value).toISOString() : undefined,
         endDate: endDate.value ? new Date(endDate.value).toISOString() : undefined,
         judgingEndDate: judgingEndDate.value ? new Date(judgingEndDate.value).toISOString() : undefined,
-        prizes: prizeData.length > 0 ? prizeData : undefined,
-        judges: judgeIds.value.length > 0 ? judgeIds.value : undefined,
+        communityVotingEnabled: communityVotingEnabled.value,
+        judgingVisibility: judgingVisibility.value,
+        prizes: prizeData,
+        judgingCriteria: criteriaData,
       },
     });
     toast.success('Contest updated');
@@ -134,10 +136,7 @@ async function transitionStatus(newStatus: string): Promise<void> {
     : `Change contest status to "${newStatus}"?`;
   if (!confirm(msg)) return;
   try {
-    await $fetch(`/api/contests/${slug}/transition`, {
-      method: 'POST',
-      body: { status: newStatus },
-    });
+    await $fetch(`/api/contests/${slug}/transition`, { method: 'POST', body: { status: newStatus } });
     toast.success(`Status changed to ${newStatus}`);
     await refresh();
   } catch (err: unknown) {
@@ -173,6 +172,10 @@ async function transitionStatus(newStatus: string): Promise<void> {
           <label class="cpub-form-label">Rules</label>
           <textarea v-model="rules" class="cpub-form-textarea" rows="4" placeholder="One rule per line" />
         </div>
+        <div class="cpub-form-field">
+          <label class="cpub-form-label">Banner Image URL</label>
+          <input v-model="bannerUrl" type="url" class="cpub-form-input" placeholder="https://..." />
+        </div>
       </section>
 
       <section class="cpub-form-section">
@@ -191,14 +194,25 @@ async function transitionStatus(newStatus: string): Promise<void> {
           <label class="cpub-form-label">Judging End Date</label>
           <input v-model="judgingEndDate" type="datetime-local" class="cpub-form-input" />
         </div>
+        <p v-if="dateError" class="cpub-form-error" role="alert">{{ dateError }}</p>
       </section>
 
       <section class="cpub-form-section">
         <h2 class="cpub-form-section-title">Prizes</h2>
         <div v-for="(prize, i) in prizes" :key="i" class="cpub-prize-row">
           <div class="cpub-prize-header">
-            <span class="cpub-prize-label">{{ placeLabel(prize.place) }}</span>
-            <button type="button" class="cpub-prize-remove" @click="removePrize(i)"><i class="fa-solid fa-times"></i></button>
+            <span class="cpub-prize-label">{{ prizeLabel(prize, i) }}</span>
+            <button type="button" class="cpub-prize-remove" aria-label="Remove prize" @click="removePrize(i)"><i class="fa-solid fa-times"></i></button>
+          </div>
+          <div class="cpub-form-row">
+            <div class="cpub-form-field">
+              <label class="cpub-form-label">Place</label>
+              <input v-model.number="prize.place" type="number" min="1" class="cpub-form-input" placeholder="1" />
+            </div>
+            <div class="cpub-form-field">
+              <label class="cpub-form-label">Category (optional)</label>
+              <input v-model="prize.category" type="text" class="cpub-form-input" placeholder="e.g. Best in Show" />
+            </div>
           </div>
           <div class="cpub-form-row">
             <div class="cpub-form-field">
@@ -219,35 +233,47 @@ async function transitionStatus(newStatus: string): Promise<void> {
       </section>
 
       <section class="cpub-form-section">
+        <h2 class="cpub-form-section-title">Judging</h2>
+        <div class="cpub-form-field">
+          <label class="cpub-form-label">Score Visibility</label>
+          <select v-model="judgingVisibility" class="cpub-form-input">
+            <option value="judges-only">Judges only — scores hidden until results</option>
+            <option value="public">Public — show scores during judging</option>
+            <option value="private">Private — scores stay with organizers</option>
+          </select>
+        </div>
+        <label class="cpub-form-check">
+          <input v-model="communityVotingEnabled" type="checkbox" />
+          <span>Enable community voting</span>
+        </label>
+
+        <div class="cpub-subhead">
+          <h3 class="cpub-form-subtitle">Judging Criteria <span v-if="criteriaTotal" class="cpub-form-hint-inline">{{ criteriaTotal }} pts</span></h3>
+          <button type="button" class="cpub-btn cpub-btn-sm" @click="addCriterion"><i class="fa-solid fa-plus"></i> Add Criterion</button>
+        </div>
+        <div v-for="(crit, ci) in criteria" :key="ci" class="cpub-criterion-row">
+          <div class="cpub-form-row">
+            <div class="cpub-form-field" style="flex: 3">
+              <label class="cpub-form-label">Criterion</label>
+              <input v-model="crit.label" type="text" class="cpub-form-input" placeholder="e.g. Documentation" />
+            </div>
+            <div class="cpub-form-field" style="flex: 1">
+              <label class="cpub-form-label">Points</label>
+              <input v-model.number="crit.weight" type="number" min="0" max="100" class="cpub-form-input" placeholder="20" />
+            </div>
+            <button type="button" class="cpub-prize-remove cpub-criterion-del" aria-label="Remove criterion" @click="removeCriterion(ci)"><i class="fa-solid fa-times"></i></button>
+          </div>
+          <div class="cpub-form-field">
+            <input v-model="crit.description" type="text" class="cpub-form-input" placeholder="What judges look for (optional)" />
+          </div>
+        </div>
+      </section>
+
+      <!-- Judge panel (single source of truth: contest_judges table) -->
+      <section class="cpub-form-section">
         <h2 class="cpub-form-section-title">Judges</h2>
-        <div v-if="resolvedJudges.length" class="cpub-judge-list">
-          <div v-for="judge in resolvedJudges" :key="judge.id" class="cpub-judge-chip">
-            <span>{{ judge.displayName || judge.username }}</span>
-            <button type="button" class="cpub-judge-chip-remove" @click="removeJudge(judge.id)"><i class="fa-solid fa-times"></i></button>
-          </div>
-        </div>
-        <div v-else class="cpub-judge-empty">No judges assigned.</div>
-        <div class="cpub-judge-search">
-          <input
-            v-model="judgeSearch"
-            type="text"
-            class="cpub-form-input"
-            placeholder="Search users by name or username..."
-            @input="searchJudge"
-          />
-          <div v-if="judgeSearchResults.length" class="cpub-judge-dropdown">
-            <button
-              v-for="u in judgeSearchResults"
-              :key="u.id"
-              type="button"
-              class="cpub-judge-option"
-              @click="addJudge(u)"
-            >
-              <strong>{{ u.displayName || u.username }}</strong>
-              <span class="cpub-judge-option-username">@{{ u.username }}</span>
-            </button>
-          </div>
-        </div>
+        <p class="cpub-form-hint">Invited judges receive a notification and must accept before they can score.</p>
+        <ContestJudgeManager :contest-slug="slug" :is-owner="true" />
       </section>
 
       <section class="cpub-form-section">
@@ -273,7 +299,7 @@ async function transitionStatus(newStatus: string): Promise<void> {
         </div>
       </section>
 
-      <button type="submit" class="cpub-btn cpub-btn-primary" :disabled="saving || !title.trim()">
+      <button type="submit" class="cpub-btn cpub-btn-primary" :disabled="saving || !title.trim() || !!dateError">
         <i class="fa-solid fa-floppy-disk"></i> {{ saving ? 'Saving...' : 'Save Changes' }}
       </button>
     </form>
@@ -306,11 +332,21 @@ async function transitionStatus(newStatus: string): Promise<void> {
 .cpub-form-textarea { resize: vertical; }
 .cpub-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
-.cpub-prize-row { border: var(--border-width-default) solid var(--border); padding: 14px; margin-bottom: 10px; background: var(--surface2); }
+.cpub-form-error { font-size: 12px; color: var(--red); margin-top: 8px; }
+.cpub-form-check { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-dim); cursor: pointer; }
+.cpub-form-check input { width: 14px; height: 14px; }
+.cpub-subhead { display: flex; align-items: center; justify-content: space-between; margin: 18px 0 10px; }
+.cpub-form-subtitle { font-size: 12px; font-weight: 700; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .06em; color: var(--text-dim); display: flex; align-items: center; gap: 8px; }
+.cpub-form-hint-inline { font-size: 10px; color: var(--accent); }
+.cpub-form-hint { font-size: 11px; color: var(--text-faint); margin: 0 0 12px; line-height: 1.5; }
+
+.cpub-prize-row, .cpub-criterion-row { border: var(--border-width-default) solid var(--border); padding: 14px; margin-bottom: 10px; background: var(--surface2); }
 .cpub-prize-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-.cpub-prize-label { font-size: 11px; font-weight: 700; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.06em; }
+.cpub-prize-label { font-size: 11px; font-weight: 700; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent); }
 .cpub-prize-remove { background: none; border: none; color: var(--text-faint); cursor: pointer; font-size: 12px; }
 .cpub-prize-remove:hover { color: var(--red); }
+.cpub-criterion-row .cpub-form-row { align-items: flex-end; }
+.cpub-criterion-del { align-self: flex-end; margin-bottom: 12px; }
 
 .cpub-status-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .cpub-transition-btn { display: inline-flex; align-items: center; gap: 6px; }
@@ -319,17 +355,10 @@ async function transitionStatus(newStatus: string): Promise<void> {
 .cpub-transition-complete { color: var(--accent); border-color: var(--accent-border); }
 .cpub-transition-cancel { color: var(--red); border-color: var(--red-border); }
 
-.cpub-judge-list { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
-.cpub-judge-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; background: var(--accent-bg); border: var(--border-width-default) solid var(--accent-border); font-size: 11px; font-family: var(--font-mono); color: var(--accent); }
-.cpub-judge-chip-remove { background: none; border: none; color: var(--accent); cursor: pointer; font-size: 10px; padding: 0; }
-.cpub-judge-chip-remove:hover { color: var(--red); }
-.cpub-judge-empty { font-size: 12px; color: var(--text-faint); margin-bottom: 12px; }
-.cpub-judge-search { position: relative; }
-.cpub-judge-dropdown { position: absolute; z-index: 10; top: 100%; left: 0; right: 0; background: var(--surface); border: var(--border-width-default) solid var(--border); box-shadow: var(--shadow-lg); max-height: 200px; overflow-y: auto; }
-.cpub-judge-option { display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 12px; background: none; border: none; border-bottom: var(--border-width-default) solid var(--border); cursor: pointer; font-size: 12px; color: var(--text); text-align: left; }
-.cpub-judge-option:last-child { border-bottom: none; }
-.cpub-judge-option:hover { background: var(--surface2); }
-.cpub-judge-option-username { color: var(--text-faint); font-family: var(--font-mono); font-size: 11px; }
-
 .cpub-not-found { text-align: center; padding: 64px; color: var(--text-dim); display: flex; flex-direction: column; align-items: center; gap: 12px; }
+
+@media (max-width: 768px) {
+  .cpub-contest-edit { padding: 16px; }
+  .cpub-form-row { grid-template-columns: 1fr; }
+}
 </style>

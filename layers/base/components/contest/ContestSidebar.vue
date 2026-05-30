@@ -1,15 +1,42 @@
 <script setup lang="ts">
 import type { Serialized, ContestDetail } from '@commonpub/server';
 
-defineProps<{
+const props = defineProps<{
   contest: Serialized<ContestDetail> | null;
   isOwner?: boolean;
-  isJudge?: boolean;
+  /** True when the viewer is an accepted, non-guest judge able to score. */
+  canJudge?: boolean;
 }>();
 
 const emit = defineEmits<{
   (e: 'copy-link'): void;
 }>();
+
+type StepState = 'done' | 'current' | 'upcoming';
+interface TimelineStep { label: string; date: string | null; state: StepState; icon: string }
+
+function fmt(d: string | null | undefined): string | null {
+  if (!d) return null;
+  return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+// Ordinal position of each status along the lifecycle, used to mark steps
+// done / current / upcoming.
+const STATUS_ORDER: Record<string, number> = { upcoming: 0, active: 1, judging: 2, completed: 3 };
+
+const timeline = computed<TimelineStep[]>(() => {
+  const c = props.contest;
+  if (!c || c.status === 'cancelled') return [];
+  const pos = STATUS_ORDER[c.status] ?? 0;
+  const stepState = (idx: number): StepState => (idx < pos ? 'done' : idx === pos ? 'current' : 'upcoming');
+  const steps: TimelineStep[] = [
+    { label: 'Opens', date: fmt(c.startDate), state: stepState(0), icon: 'fa-flag' },
+    { label: 'Submissions close', date: fmt(c.endDate), state: stepState(1), icon: 'fa-pen-to-square' },
+    { label: 'Judging', date: fmt(c.judgingEndDate) ?? fmt(c.endDate), state: stepState(2), icon: 'fa-gavel' },
+    { label: 'Results', date: null, state: stepState(3), icon: 'fa-ranking-star' },
+  ];
+  return steps;
+});
 
 function statusClass(status: string): string {
   const map: Record<string, string> = {
@@ -25,7 +52,7 @@ function statusClass(status: string): string {
 
 <template>
   <div class="cpub-sidebar">
-    <!-- STATUS -->
+    <!-- STATUS + TIMELINE -->
     <div class="cpub-sb-card">
       <div class="cpub-sb-title"><i class="fa-solid fa-circle-info"></i> Status</div>
       <div class="cpub-sb-body">
@@ -33,11 +60,24 @@ function statusClass(status: string): string {
           <strong>Status:</strong>
           <span class="cpub-sb-status" :class="statusClass(contest?.status ?? '')">{{ contest?.status ?? 'unknown' }}</span>
         </div>
-        <div v-if="contest?.startDate" class="cpub-sb-row"><strong>Starts:</strong> {{ new Date(contest.startDate).toLocaleDateString() }}</div>
-        <div v-if="contest?.endDate" class="cpub-sb-row"><strong>Ends:</strong> {{ new Date(contest.endDate).toLocaleDateString() }}</div>
-        <div v-if="contest?.judgingEndDate" class="cpub-sb-row"><strong>Judging ends:</strong> {{ new Date(contest.judgingEndDate).toLocaleDateString() }}</div>
         <div class="cpub-sb-row"><strong>Entries:</strong> {{ contest?.entryCount ?? 0 }}</div>
       </div>
+
+      <ol v-if="timeline.length" class="cpub-timeline">
+        <li
+          v-for="step in timeline"
+          :key="step.label"
+          class="cpub-tl-step"
+          :class="`cpub-tl-${step.state}`"
+        >
+          <span class="cpub-tl-dot"><i class="fa-solid" :class="step.icon"></i></span>
+          <div class="cpub-tl-content">
+            <div class="cpub-tl-label">{{ step.label }}<span v-if="step.state === 'current'" class="cpub-tl-now">Now</span></div>
+            <div v-if="step.date" class="cpub-tl-date">{{ step.date }}</div>
+          </div>
+        </li>
+      </ol>
+      <p v-else-if="contest?.status === 'cancelled'" class="cpub-sb-cancelled">This contest was cancelled.</p>
     </div>
 
     <!-- LINKS -->
@@ -52,7 +92,7 @@ function statusClass(status: string): string {
       <i class="fa-solid fa-pen-to-square"></i> Edit Contest
     </NuxtLink>
 
-    <NuxtLink v-if="isJudge && (contest?.status === 'judging')" :to="`/contests/${contest?.slug}/judge`" class="cpub-btn cpub-sb-link cpub-sb-judge">
+    <NuxtLink v-if="canJudge && (contest?.status === 'judging')" :to="`/contests/${contest?.slug}/judge`" class="cpub-btn cpub-sb-link cpub-sb-judge">
       <i class="fa-solid fa-gavel"></i> Judge Entries
     </NuxtLink>
 
@@ -75,6 +115,23 @@ function statusClass(status: string): string {
 .cpub-status-judging { color: var(--accent); border-color: var(--accent-border); background: var(--accent-bg); }
 .cpub-status-completed { color: var(--text-faint); border-color: var(--border2); background: var(--surface2); }
 .cpub-status-cancelled { color: var(--red); border-color: var(--red-border); background: var(--red-bg); }
+
+/* TIMELINE */
+.cpub-timeline { list-style: none; margin: 14px 0 0; padding: 0; }
+.cpub-tl-step { display: flex; gap: 10px; position: relative; padding-bottom: 14px; }
+.cpub-tl-step:not(:last-child)::before { content: ''; position: absolute; left: 11px; top: 22px; bottom: 0; width: var(--border-width-default); background: var(--border2); }
+.cpub-tl-dot { width: 23px; height: 23px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border: var(--border-width-default) solid var(--border2); background: var(--surface); color: var(--text-faint); font-size: 9px; border-radius: 50%; z-index: 1; }
+.cpub-tl-content { padding-top: 2px; }
+.cpub-tl-label { font-size: 12px; font-weight: 600; color: var(--text-dim); display: flex; align-items: center; gap: 6px; }
+.cpub-tl-date { font-size: 10px; font-family: var(--font-mono); color: var(--text-faint); margin-top: 1px; }
+.cpub-tl-now { font-size: 8px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .08em; color: var(--accent); border: var(--border-width-default) solid var(--accent-border); background: var(--accent-bg); padding: 1px 5px; }
+
+.cpub-tl-done .cpub-tl-dot { color: var(--green); border-color: var(--green-border); background: var(--green-bg); }
+.cpub-tl-done .cpub-tl-label { color: var(--text); }
+.cpub-tl-current .cpub-tl-dot { color: var(--accent); border-color: var(--accent); background: var(--accent-bg); }
+.cpub-tl-current .cpub-tl-label { color: var(--text); font-weight: 700; }
+
+.cpub-sb-cancelled { font-size: 11px; color: var(--red); margin: 10px 0 0; }
 
 .cpub-sb-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 .cpub-sb-btn { flex: 1; justify-content: center; }

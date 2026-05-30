@@ -10,41 +10,60 @@ const saving = ref(false);
 const title = ref('');
 const description = ref('');
 const rules = ref('');
+const bannerUrl = ref('');
 const startDate = ref('');
 const endDate = ref('');
 const judgingEndDate = ref('');
+const communityVotingEnabled = ref(false);
+const judgingVisibility = ref<'public' | 'judges-only' | 'private'>('judges-only');
 
 // Prizes
 interface Prize {
-  place: number;
+  place: number | null;
+  category: string;
   title: string;
   description: string;
   value: string;
 }
 
 const prizes = ref<Prize[]>([
-  { place: 1, title: '1st Place', description: '', value: '' },
-  { place: 2, title: '2nd Place', description: '', value: '' },
-  { place: 3, title: '3rd Place', description: '', value: '' },
+  { place: 1, category: '', title: '1st Place', description: '', value: '' },
+  { place: 2, category: '', title: '2nd Place', description: '', value: '' },
+  { place: 3, category: '', title: '3rd Place', description: '', value: '' },
 ]);
 
 function addPrize(): void {
-  prizes.value.push({
-    place: prizes.value.length + 1,
-    title: `${prizes.value.length + 1}th Place`,
-    description: '',
-    value: '',
-  });
+  prizes.value.push({ place: null, category: '', title: '', description: '', value: '' });
 }
 
 function removePrize(index: number): void {
   prizes.value.splice(index, 1);
-  // Renumber
-  prizes.value.forEach((p, i) => { p.place = i + 1; });
 }
+
+// Judging criteria (rubric)
+interface Criterion { label: string; weight: number | null; description: string }
+const criteria = ref<Criterion[]>([]);
+function addCriterion(): void {
+  criteria.value.push({ label: '', weight: null, description: '' });
+}
+function removeCriterion(index: number): void {
+  criteria.value.splice(index, 1);
+}
+const criteriaTotal = computed(() => criteria.value.reduce((s, c) => s + (c.weight ?? 0), 0));
+
+const dateError = computed(() => {
+  if (startDate.value && endDate.value && new Date(endDate.value) <= new Date(startDate.value)) {
+    return 'End date must be after the start date.';
+  }
+  if (judgingEndDate.value && endDate.value && new Date(judgingEndDate.value) < new Date(endDate.value)) {
+    return 'Judging end date must be on or after the end date.';
+  }
+  return '';
+});
 
 async function handleCreate(): Promise<void> {
   if (!title.value.trim() || !startDate.value || !endDate.value) return;
+  if (dateError.value) { toast.error(dateError.value); return; }
   saving.value = true;
   try {
     const result = await $fetch<{ slug: string }>('/api/contests', {
@@ -53,10 +72,28 @@ async function handleCreate(): Promise<void> {
         title: title.value,
         description: description.value || undefined,
         rules: rules.value || undefined,
+        bannerUrl: bannerUrl.value || undefined,
         startDate: new Date(startDate.value).toISOString(),
         endDate: new Date(endDate.value).toISOString(),
         judgingEndDate: judgingEndDate.value ? new Date(judgingEndDate.value).toISOString() : undefined,
-        prizes: prizes.value.filter(p => p.title.trim()),
+        communityVotingEnabled: communityVotingEnabled.value,
+        judgingVisibility: judgingVisibility.value,
+        prizes: prizes.value
+          .filter(p => p.title.trim())
+          .map(p => ({
+            place: typeof p.place === 'number' && Number.isFinite(p.place) && p.place > 0 ? p.place : undefined,
+            category: p.category.trim() || undefined,
+            title: p.title,
+            description: p.description || undefined,
+            value: p.value || undefined,
+          })),
+        judgingCriteria: criteria.value
+          .filter(c => c.label.trim())
+          .map(c => ({
+            label: c.label.trim(),
+            weight: typeof c.weight === 'number' && Number.isFinite(c.weight) ? c.weight : undefined,
+            description: c.description.trim() || undefined,
+          })),
       },
     });
     toast.success('Contest created!');
@@ -68,8 +105,11 @@ async function handleCreate(): Promise<void> {
   }
 }
 
-const placeLabels = ['1st', '2nd', '3rd', '4th', '5th', '6th'];
-const placeColors = ['var(--gold)', 'var(--silver)', 'var(--bronze)', 'var(--accent)', 'var(--accent)', 'var(--accent)'];
+function prizeLabel(prize: Prize, idx: number): string {
+  if (prize.category.trim()) return prize.category;
+  const labels = ['1st', '2nd', '3rd', '4th', '5th', '6th'];
+  return `${labels[idx] || `${idx + 1}th`} Place`;
+}
 </script>
 
 <template>
@@ -91,7 +131,11 @@ const placeColors = ['var(--gold)', 'var(--silver)', 'var(--bronze)', 'var(--acc
         </div>
         <div class="cpub-form-field">
           <label for="contest-rules" class="cpub-form-label">Rules</label>
-          <textarea id="contest-rules" v-model="rules" class="cpub-form-textarea" rows="4" placeholder="Contest rules and requirements..." />
+          <textarea id="contest-rules" v-model="rules" class="cpub-form-textarea" rows="4" placeholder="Contest rules and requirements (one per line)..." />
+        </div>
+        <div class="cpub-form-field">
+          <label for="contest-banner" class="cpub-form-label">Banner Image URL</label>
+          <input id="contest-banner" v-model="bannerUrl" type="url" class="cpub-form-input" placeholder="https://..." />
         </div>
       </section>
 
@@ -112,6 +156,46 @@ const placeColors = ['var(--gold)', 'var(--silver)', 'var(--bronze)', 'var(--acc
             <input id="judging-date" v-model="judgingEndDate" type="datetime-local" class="cpub-form-input" />
           </div>
         </div>
+        <p v-if="dateError" class="cpub-form-error" role="alert">{{ dateError }}</p>
+      </section>
+
+      <!-- Judging -->
+      <section class="cpub-form-section">
+        <h2 class="cpub-form-section-title">Judging</h2>
+        <div class="cpub-form-field">
+          <label for="judging-visibility" class="cpub-form-label">Score Visibility</label>
+          <select id="judging-visibility" v-model="judgingVisibility" class="cpub-form-input">
+            <option value="judges-only">Judges only — scores hidden until results</option>
+            <option value="public">Public — show scores during judging</option>
+            <option value="private">Private — scores stay with organizers</option>
+          </select>
+        </div>
+        <label class="cpub-form-check">
+          <input v-model="communityVotingEnabled" type="checkbox" />
+          <span>Enable community voting (let signed-in members upvote entries)</span>
+        </label>
+
+        <div class="cpub-form-section-header" style="margin-top: 16px;">
+          <h3 class="cpub-form-subtitle">Judging Criteria <span v-if="criteriaTotal" class="cpub-form-hint-inline">{{ criteriaTotal }} pts</span></h3>
+          <button type="button" class="cpub-btn cpub-btn-sm" @click="addCriterion"><i class="fa-solid fa-plus"></i> Add Criterion</button>
+        </div>
+        <p v-if="!criteria.length" class="cpub-form-hint">Optional rubric shown to entrants and judges (e.g. Documentation — 20 pts).</p>
+        <div v-for="(crit, ci) in criteria" :key="ci" class="cpub-criterion-row">
+          <div class="cpub-form-row">
+            <div class="cpub-form-field" style="flex: 3">
+              <label class="cpub-form-label">Criterion</label>
+              <input v-model="crit.label" type="text" class="cpub-form-input" placeholder="e.g. Documentation" />
+            </div>
+            <div class="cpub-form-field" style="flex: 1">
+              <label class="cpub-form-label">Points</label>
+              <input v-model.number="crit.weight" type="number" min="0" max="100" class="cpub-form-input" placeholder="20" />
+            </div>
+            <button type="button" class="cpub-delete-btn cpub-criterion-del" aria-label="Remove criterion" @click="removeCriterion(ci)"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+          <div class="cpub-form-field">
+            <input v-model="crit.description" type="text" class="cpub-form-input" placeholder="What judges look for (optional)" />
+          </div>
+        </div>
       </section>
 
       <!-- Prizes -->
@@ -123,14 +207,25 @@ const placeColors = ['var(--gold)', 'var(--silver)', 'var(--bronze)', 'var(--acc
           </button>
         </div>
 
+        <p class="cpub-form-hint">Use <strong>place</strong> for ranked prizes (1st/2nd/3rd) or a <strong>category</strong> for themed awards (e.g. "Best in Show").</p>
         <div v-for="(prize, idx) in prizes" :key="idx" class="cpub-prize-card">
           <div class="cpub-prize-header">
-            <span class="cpub-prize-place" :style="{ color: placeColors[idx] || 'var(--accent)' }">
-              <i class="fa-solid fa-trophy"></i> {{ placeLabels[idx] || `${idx + 1}th` }} Place
+            <span class="cpub-prize-place">
+              <i class="fa-solid fa-trophy"></i> {{ prizeLabel(prize, idx) }}
             </span>
-            <button v-if="prizes.length > 1" type="button" class="cpub-delete-btn" @click="removePrize(idx)">
+            <button v-if="prizes.length > 1" type="button" class="cpub-delete-btn" aria-label="Remove prize" @click="removePrize(idx)">
               <i class="fa-solid fa-xmark"></i>
             </button>
+          </div>
+          <div class="cpub-form-row">
+            <div class="cpub-form-field" style="flex: 1">
+              <label class="cpub-form-label">Place</label>
+              <input v-model.number="prize.place" type="number" min="1" class="cpub-form-input" placeholder="1" />
+            </div>
+            <div class="cpub-form-field" style="flex: 2">
+              <label class="cpub-form-label">Category (optional)</label>
+              <input v-model="prize.category" type="text" class="cpub-form-input" placeholder="e.g. Best in Show" />
+            </div>
           </div>
           <div class="cpub-form-row">
             <div class="cpub-form-field" style="flex: 2">
@@ -149,7 +244,7 @@ const placeColors = ['var(--gold)', 'var(--silver)', 'var(--bronze)', 'var(--acc
         </div>
       </section>
 
-      <button type="submit" class="cpub-btn cpub-btn-primary cpub-btn-lg" :disabled="saving || !title.trim() || !startDate || !endDate">
+      <button type="submit" class="cpub-btn cpub-btn-primary cpub-btn-lg" :disabled="saving || !title.trim() || !startDate || !endDate || !!dateError">
         <i class="fa-solid fa-trophy"></i> {{ saving ? 'Creating...' : 'Create Contest' }}
       </button>
     </form>
@@ -181,7 +276,19 @@ const placeColors = ['var(--gold)', 'var(--silver)', 'var(--bronze)', 'var(--acc
 
 .cpub-prize-card { border: var(--border-width-default) solid var(--border); padding: 14px; margin-bottom: 10px; background: var(--surface2); }
 .cpub-prize-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-.cpub-prize-place { font-size: 12px; font-weight: 700; font-family: var(--font-mono); display: flex; align-items: center; gap: 6px; }
+.cpub-prize-place { font-size: 12px; font-weight: 700; font-family: var(--font-mono); display: flex; align-items: center; gap: 6px; color: var(--accent); }
+
+.cpub-form-error { font-size: 12px; color: var(--red); margin-top: 8px; }
+.cpub-form-check { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-dim); cursor: pointer; margin-top: 4px; }
+.cpub-form-check input { width: 14px; height: 14px; }
+.cpub-form-subtitle { font-size: 12px; font-weight: 700; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .06em; color: var(--text-dim); display: flex; align-items: center; gap: 8px; }
+.cpub-form-hint-inline { font-size: 10px; color: var(--accent); }
+.cpub-form-hint { font-size: 11px; color: var(--text-faint); margin: 8px 0; line-height: 1.5; }
+.cpub-criterion-row { border: var(--border-width-default) solid var(--border); padding: 12px; margin-bottom: 8px; background: var(--surface2); }
+.cpub-criterion-row .cpub-form-row { align-items: flex-end; }
+.cpub-criterion-del { align-self: flex-end; margin-bottom: 12px; }
+.cpub-delete-btn { background: none; border: none; color: var(--text-faint); cursor: pointer; font-size: 14px; }
+.cpub-delete-btn:hover { color: var(--red); }
 
 @media (max-width: 768px) {
   .cpub-contest-create { padding: 16px; }

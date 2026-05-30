@@ -463,6 +463,12 @@ export interface PublicContest {
   canonicalUrl: string;
 }
 
+/**
+ * Shape accepted by {@link toPublicContest}. Mirrors the fields on
+ * `ContestListItem` / `ContestDetail` so the public serializer reads the
+ * contest's real columns instead of a parallel set that never gets populated.
+ * Detail-only fields are optional because the list view omits them.
+ */
 export interface PublicContestRow {
   id: string;
   title: string;
@@ -472,9 +478,8 @@ export interface PublicContestRow {
   status: string;
   startDate: Date;
   endDate: Date;
-  entryDeadline: Date | null;
-  judgingDeadline: Date | null;
-  prizeDescription: string | null;
+  judgingEndDate?: Date | null;
+  prizes?: Array<{ place?: number; category?: string; title: string; value?: string }> | null;
   entryCount?: number | null;
   communityVotingEnabled?: boolean | null;
   createdAt: Date;
@@ -488,6 +493,19 @@ export function isPublicContest(row: Pick<PublicContestRow, 'status' | 'deletedA
   return PUBLIC_CONTEST_STATUSES.has(row.status);
 }
 
+function summarizePrizes(
+  prizes: PublicContestRow['prizes'],
+): string | null {
+  if (!prizes || prizes.length === 0) return null;
+  return prizes
+    .map((p) => {
+      const label = p.category ?? (p.place ? `#${p.place}` : null);
+      const head = label ? `${label}: ${p.title}` : p.title;
+      return p.value ? `${head} (${p.value})` : head;
+    })
+    .join('; ');
+}
+
 export function toPublicContest(row: PublicContestRow, domain: string): PublicContest {
   return {
     id: row.id,
@@ -498,9 +516,10 @@ export function toPublicContest(row: PublicContestRow, domain: string): PublicCo
     status: row.status,
     startDate: row.startDate.toISOString(),
     endDate: row.endDate.toISOString(),
-    entryDeadline: row.entryDeadline?.toISOString() ?? null,
-    judgingDeadline: row.judgingDeadline?.toISOString() ?? null,
-    prizeDescription: row.prizeDescription,
+    // Submissions close at the contest end date.
+    entryDeadline: row.endDate.toISOString(),
+    judgingDeadline: row.judgingEndDate?.toISOString() ?? null,
+    prizeDescription: summarizePrizes(row.prizes),
     entryCount: row.entryCount ?? 0,
     communityVotingEnabled: row.communityVotingEnabled ?? false,
     createdAt: row.createdAt.toISOString(),

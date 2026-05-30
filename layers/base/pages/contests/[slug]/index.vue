@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Serialized, ContestEntryItem } from '@commonpub/server';
+import type { Serialized, ContestEntryItem, ContestJudgeItem } from '@commonpub/server';
 
 const route = useRoute();
 const slug = route.params.slug as string;
@@ -8,35 +8,85 @@ const { isAuthenticated, isAdmin, user } = useAuth();
 
 const { data: contest } = useLazyFetch(`/api/contests/${slug}`);
 const { data: apiEntriesData, refresh: refreshEntries } = useLazyFetch<{ items: Serialized<ContestEntryItem>[]; total: number }>(`/api/contests/${slug}/entries`);
+const { data: judgesData, refresh: refreshJudges } = useLazyFetch<ContestJudgeItem[]>(`/api/contests/${slug}/judges`);
 
 useSeoMeta({
   title: () => `${contest.value?.title || 'Contest'} — ${useSiteName()}`,
   ogTitle: () => `${contest.value?.title || 'Contest'} — ${useSiteName()}`,
-  ogImage: '/og-default.png',
+  ogImage: () => contest.value?.bannerUrl || '/og-default.png',
 });
 
 const c = computed(() => contest.value);
 const entries = computed(() => apiEntriesData.value?.items ?? []);
+const judges = computed<ContestJudgeItem[]>(() => judgesData.value ?? []);
 const isOwner = computed(() => isAdmin.value || !!(user.value?.id && c.value?.createdById === user.value.id));
-const isJudge = computed(() => !!(user.value?.id && ((c.value?.judges ?? []) as string[]).includes(user.value.id)));
+
+// Judge state derives entirely from the contest_judges table (single source of
+// truth) — not the legacy `judges` jsonb column.
+const myJudge = computed(() => judges.value.find((j) => j.userId === user.value?.id) ?? null);
+const pendingInvite = computed(() => !!myJudge.value && !myJudge.value.acceptedAt);
+const canJudge = computed(() => !!myJudge.value && !!myJudge.value.acceptedAt && myJudge.value.role !== 'guest');
+
+// Tabs ----------------------------------------------------------------------
+interface Tab { key: string; label: string; icon: string; count?: number }
+const tabs = computed<Tab[]>(() => {
+  const t: Tab[] = [{ key: 'overview', label: 'Overview', icon: 'fa-circle-info' }];
+  if (c.value?.rules) t.push({ key: 'rules', label: 'Rules', icon: 'fa-file-lines' });
+  if (c.value?.prizes?.length) t.push({ key: 'prizes', label: 'Prizes', icon: 'fa-trophy' });
+  t.push({ key: 'entries', label: 'Entries', icon: 'fa-box-open', count: c.value?.entryCount ?? entries.value.length });
+  if (judges.value.length || isOwner.value) t.push({ key: 'judges', label: 'Judges', icon: 'fa-gavel', count: judges.value.length || undefined });
+  return t;
+});
+const activeTab = ref('overview');
+watch(tabs, (list) => {
+  if (!list.some((t) => t.key === activeTab.value)) activeTab.value = 'overview';
+});
+
+// WAI-ARIA tabs keyboard pattern (arrow keys + Home/End, roving focus).
+function focusTab(key: string): void {
+  activeTab.value = key;
+  nextTick(() => {
+    if (typeof document !== 'undefined') document.getElementById(`cpub-tab-${key}`)?.focus();
+  });
+}
+function onTabKey(e: KeyboardEvent, key: string): void {
+  const keys = tabs.value.map((t) => t.key);
+  const i = keys.indexOf(key);
+  if (i < 0) return;
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); focusTab(keys[(i + 1) % keys.length]!); }
+  else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); focusTab(keys[(i - 1 + keys.length) % keys.length]!); }
+  else if (e.key === 'Home') { e.preventDefault(); focusTab(keys[0]!); }
+  else if (e.key === 'End') { e.preventDefault(); focusTab(keys[keys.length - 1]!); }
+}
 
 // Admin contest management
 const transitioning = ref(false);
-
 async function transitionStatus(newStatus: string): Promise<void> {
   if (newStatus === 'cancelled' && !confirm('Cancel this contest? This cannot be undone.')) return;
   transitioning.value = true;
   try {
-    await $fetch(`/api/contests/${slug}/transition`, {
-      method: 'POST',
-      body: { status: newStatus },
-    });
+    await $fetch(`/api/contests/${slug}/transition`, { method: 'POST', body: { status: newStatus } });
     toast.success(`Contest ${newStatus}`);
     refreshNuxtData();
   } catch {
     toast.error(`Failed to transition to ${newStatus}`);
   } finally {
     transitioning.value = false;
+  }
+}
+
+// Judge invite acceptance
+const accepting = ref(false);
+async function acceptInvite(): Promise<void> {
+  accepting.value = true;
+  try {
+    await $fetch(`/api/contests/${slug}/judges/accept`, { method: 'POST' });
+    toast.success('You are now a judge for this contest');
+    await refreshJudges();
+  } catch {
+    toast.error('Failed to accept invitation');
+  } finally {
+    accepting.value = false;
   }
 }
 
@@ -48,6 +98,7 @@ const { data: userContent } = useFetch('/api/content', {
   query: { status: 'published', limit: 50 },
   immediate: isAuthenticated.value,
 });
+const enteredContentIds = computed(() => new Set(entries.value.map((e) => e.contentId)));
 
 function copyLink(): void {
   if (typeof window !== 'undefined' && window.navigator?.clipboard) {
@@ -60,10 +111,7 @@ async function submitEntry(): Promise<void> {
   if (!submitContentId.value) return;
   submitting.value = true;
   try {
-    await $fetch(`/api/contests/${slug}/entries`, {
-      method: 'POST',
-      body: { contentId: submitContentId.value },
-    });
+    await $fetch(`/api/contests/${slug}/entries`, { method: 'POST', body: { contentId: submitContentId.value } });
     showSubmitDialog.value = false;
     submitContentId.value = '';
     toast.success('Entry submitted!');
@@ -103,14 +151,19 @@ async function withdrawEntry(entryId: string): Promise<void> {
       <div class="cpub-submit-dialog" role="dialog" aria-label="Submit entry">
         <div class="cpub-submit-header">
           <h2>Submit Entry</h2>
-          <button class="cpub-submit-close" @click="showSubmitDialog = false"><i class="fa-solid fa-times"></i></button>
+          <button class="cpub-submit-close" aria-label="Close" @click="showSubmitDialog = false"><i class="fa-solid fa-times"></i></button>
         </div>
         <div class="cpub-submit-body">
           <p class="cpub-submit-hint">Select one of your published projects to submit as an entry.</p>
-          <select v-model="submitContentId" class="cpub-submit-select">
+          <select v-model="submitContentId" class="cpub-submit-select" aria-label="Select a project to submit">
             <option value="">Select a project...</option>
-            <option v-for="item in (userContent?.items ?? [])" :key="item.id" :value="item.id">
-              {{ item.title }} ({{ item.type }})
+            <option
+              v-for="item in (userContent?.items ?? [])"
+              :key="item.id"
+              :value="item.id"
+              :disabled="enteredContentIds.has(item.id)"
+            >
+              {{ item.title }} ({{ item.type }}){{ enteredContentIds.has(item.id) ? ' — already entered' : '' }}
             </option>
           </select>
         </div>
@@ -126,32 +179,80 @@ async function withdrawEntry(entryId: string): Promise<void> {
     <!-- MAIN CONTENT -->
     <div class="cpub-contest-main">
       <div class="cpub-contest-layout">
-        <div>
-          <!-- ABOUT -->
-          <div class="cpub-about-section">
-            <div class="cpub-sec-head">
-              <h2><i class="fa fa-circle-info" style="color: var(--accent);"></i> About This Contest</h2>
+        <div class="cpub-contest-body">
+          <!-- Judge invite banner -->
+          <div v-if="pendingInvite" class="cpub-invite-banner">
+            <div class="cpub-invite-text">
+              <i class="fa-solid fa-gavel"></i>
+              <span>You've been invited to judge this contest.</span>
             </div>
-            <div class="cpub-about-card">
-              <p>{{ c?.description || 'No description available for this contest.' }}</p>
-            </div>
+            <button class="cpub-btn cpub-btn-sm cpub-btn-primary" :disabled="accepting" @click="acceptInvite">
+              {{ accepting ? 'Accepting...' : 'Accept invitation' }}
+            </button>
           </div>
 
-          <ContestRules v-if="c?.rules" :rules="c.rules" />
-          <ContestPrizes v-if="c?.prizes?.length" :prizes="c.prizes" />
-          <ContestJudges v-if="c?.judges?.length" :judge-ids="c.judges" />
-          <ContestJudgeManager v-if="isOwner && c" :contest-slug="slug" :is-owner="isOwner" />
-          <ContestEntries
-            :entries="entries"
-            :contest-status="c?.status"
-            :contest-slug="slug"
-            :current-user-id="user?.id"
-            :community-voting-enabled="c?.communityVotingEnabled"
-            @withdraw="withdrawEntry"
-          />
+          <!-- Tab bar -->
+          <div class="cpub-tabbar" role="tablist" aria-label="Contest sections">
+            <button
+              v-for="tab in tabs"
+              :id="`cpub-tab-${tab.key}`"
+              :key="tab.key"
+              role="tab"
+              type="button"
+              class="cpub-tab"
+              :class="{ 'cpub-tab-active': activeTab === tab.key }"
+              :aria-selected="activeTab === tab.key"
+              :aria-controls="`cpub-panel-${tab.key}`"
+              :tabindex="activeTab === tab.key ? 0 : -1"
+              @click="activeTab = tab.key"
+              @keydown="onTabKey($event, tab.key)"
+            >
+              <i class="fa-solid" :class="tab.icon"></i> {{ tab.label }}
+              <span v-if="tab.count != null" class="cpub-tab-count">{{ tab.count }}</span>
+            </button>
+          </div>
+
+          <!-- OVERVIEW -->
+          <div v-show="activeTab === 'overview'" id="cpub-panel-overview" role="tabpanel" aria-labelledby="cpub-tab-overview" tabindex="0">
+            <div class="cpub-about-section">
+              <div class="cpub-sec-head"><h2><i class="fa fa-circle-info" style="color: var(--accent);"></i> About This Contest</h2></div>
+              <div class="cpub-about-card">
+                <p>{{ c?.description || 'No description available for this contest.' }}</p>
+              </div>
+            </div>
+            <ContestJudgingCriteria v-if="c?.judgingCriteria?.length" :criteria="c.judgingCriteria" />
+          </div>
+
+          <!-- RULES -->
+          <div v-show="activeTab === 'rules'" id="cpub-panel-rules" role="tabpanel" aria-labelledby="cpub-tab-rules" tabindex="0">
+            <ContestRules v-if="c?.rules" :rules="c.rules" />
+          </div>
+
+          <!-- PRIZES -->
+          <div v-show="activeTab === 'prizes'" id="cpub-panel-prizes" role="tabpanel" aria-labelledby="cpub-tab-prizes" tabindex="0">
+            <ContestPrizes v-if="c?.prizes?.length" :prizes="c.prizes" />
+          </div>
+
+          <!-- ENTRIES -->
+          <div v-show="activeTab === 'entries'" id="cpub-panel-entries" role="tabpanel" aria-labelledby="cpub-tab-entries" tabindex="0">
+            <ContestEntries
+              :entries="entries"
+              :contest-status="c?.status"
+              :contest-slug="slug"
+              :current-user-id="user?.id"
+              :community-voting-enabled="c?.communityVotingEnabled"
+              @withdraw="withdrawEntry"
+            />
+          </div>
+
+          <!-- JUDGES -->
+          <div v-show="activeTab === 'judges'" id="cpub-panel-judges" role="tabpanel" aria-labelledby="cpub-tab-judges" tabindex="0">
+            <ContestJudges :judges="judges" />
+            <ContestJudgeManager v-if="isOwner && c" :contest-slug="slug" :is-owner="isOwner" @changed="refreshJudges" />
+          </div>
         </div>
 
-        <ContestSidebar :contest="c" :is-owner="isOwner" :is-judge="isJudge" @copy-link="copyLink" />
+        <ContestSidebar :contest="c" :is-owner="isOwner" :can-judge="canJudge" @copy-link="copyLink" />
       </div>
     </div>
   </div>
@@ -173,6 +274,23 @@ async function withdrawEntry(entryId: string): Promise<void> {
 /* LAYOUT */
 .cpub-contest-main { max-width: 1100px; margin: 0 auto; padding: 32px; }
 .cpub-contest-layout { display: grid; grid-template-columns: 1fr 300px; gap: 28px; align-items: start; }
+.cpub-contest-body { min-width: 0; }
+
+/* INVITE BANNER */
+.cpub-invite-banner { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 12px 16px; margin-bottom: 18px; background: var(--accent-bg); border: var(--border-width-default) solid var(--accent-border); }
+.cpub-invite-text { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--text); }
+.cpub-invite-text i { color: var(--accent); }
+
+/* TABS */
+.cpub-tabbar { display: flex; gap: 2px; flex-wrap: wrap; border-bottom: var(--border-width-default) solid var(--border); margin-bottom: 20px; }
+.cpub-tab { display: inline-flex; align-items: center; gap: 6px; padding: 9px 14px; background: none; border: none; border-bottom: 2px solid transparent; margin-bottom: -1px; font-family: var(--font-mono); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--text-faint); cursor: pointer; }
+.cpub-tab:hover { color: var(--text-dim); }
+.cpub-tab-active { color: var(--accent); border-bottom-color: var(--accent); }
+.cpub-tab i { font-size: 11px; }
+.cpub-tab-count { font-size: 9px; padding: 1px 6px; background: var(--surface2); border: var(--border-width-default) solid var(--border2); color: var(--text-dim); }
+.cpub-tab-active .cpub-tab-count { background: var(--accent-bg); border-color: var(--accent-border); color: var(--accent); }
+
+[role="tabpanel"]:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
 
 /* SECTION HEADERS */
 .cpub-sec-head { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
@@ -181,7 +299,7 @@ async function withdrawEntry(entryId: string): Promise<void> {
 /* ABOUT */
 .cpub-about-section { margin-bottom: 20px; }
 .cpub-about-card { background: var(--surface); border: var(--border-width-default) solid var(--border); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow-md); font-size: 12px; color: var(--text-dim); line-height: 1.7; }
-.cpub-about-card p { margin: 0; }
+.cpub-about-card p { margin: 0; white-space: pre-line; }
 
 @media (max-width: 768px) {
   .cpub-contest-main { padding: 20px 16px; }

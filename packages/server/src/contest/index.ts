@@ -11,6 +11,7 @@ export {
   transitionContestStatus,
   calculateContestRanks,
   withdrawContestEntry,
+  shouldRevealScores,
 } from './contest.js';
 export type {
   ContestListItem,
@@ -18,6 +19,9 @@ export type {
   ContestFilters,
   CreateContestInput,
   ContestEntryItem,
+  ContestPrize,
+  ContestJudgingCriterion,
+  ContestJudgingVisibility,
 } from './contest.js';
 
 export {
