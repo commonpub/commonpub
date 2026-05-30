@@ -54,50 +54,16 @@ jobs:
             docker compose -f docker-compose.prod.yml exec -T app node scripts/db-migrate.mjs 2>&1 | tee /tmp/dbmigrate.log \
               || { echo "::error::db:migrate failed — see log above"; cat /tmp/dbmigrate.log; exit 1; }
             docker image prune -f
-            # Post-deploy smoke — wait for startup, then verify CRITICAL ROUTES,
-            # not just /api/health. A public page can 500 during SSR while the
-            # health endpoint stays 200: session 169, the homepage layout-engine
-            # canary crashed with "DnD provider not found" yet the old health-only
-            # smoke reported the deploy as a SUCCESS. Smoking `/` catches that.
-            # Startup gate — poll until the app serves /api/health, up to 120s.
-            # A freshly-loaded image cold-starting Nuxt SSR + DB/redis/meili
-            # connection pools can take 30-60s, well past the old 25-30s window
-            # (which is why this gate must be generous — too tight = false-fail
-            # every deploy, and a flapping signal gets ignored). Early-breaks the
-            # moment it's healthy, so a fast boot costs nothing.
-            up=0; tries=0
-            while [ "$tries" -lt 40 ]; do
-              if curl -sf http://localhost:3000/api/health > /dev/null 2>&1; then
-                up=1; echo "✅ Health endpoint responding after $((tries*3))s"; break
-              fi
-              tries=$((tries+1)); sleep 3
-            done
-            if [ "$up" -ne 1 ]; then
-              echo "::error::App did not become healthy within 120s of startup"
-              exit 1
-            fi
-            # HARD-FAIL the deploy if any critical route serves an error. The new
-            # image is already live (in-place recreate, no blue-green), so a red
-            # run is the signal to investigate / redeploy the previous SHA — far
-            # better than a green run hiding a down homepage. A few retries per
-            # route absorb a slow first SSR render right after the health gate.
-            smoke_fail=0
-            for route in / /api/health; do
-              code=000
-              for attempt in 1 2 3 4; do
-                code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "http://localhost:3000${route}" || echo "000")
-                if [ "$code" -ge 200 ] && [ "$code" -lt 400 ]; then break; fi
-                sleep 3
-              done
-              if [ "$code" -ge 400 ] || [ "$code" -lt 200 ]; then
-                echo "::error::Smoke FAILED: ${route} returned ${code}"
-                smoke_fail=1
-              else
-                echo "✅ ${route} -> ${code}"
-              fi
-            done
-            if [ "$smoke_fail" -ne 0 ]; then
-              echo "::error::Post-deploy smoke failed — new image is live but serving errors on a critical route. Investigate immediately."
-              exit 1
-            fi
+            # Post-deploy smoke — runs INSIDE the app container. The app listens
+            # on localhost:3000 *inside* the container (see the Dockerfile
+            # HEALTHCHECK); that port is NOT published to the droplet host (caddy
+            # fronts 80/443), so a host-level `curl localhost:3000` never reaches
+            # the app — which is why the old `curl … || ::warning` check silently
+            # never worked. scripts/smoke.mjs waits for /api/health, then verifies
+            # CRITICAL ROUTES incl. `/`, and exits non-zero if any serves non-2xx.
+            # This is what would have caught session 169's homepage 500 ("DnD
+            # provider not found") that the health-only, warn-only smoke shipped
+            # as a green success.
+            docker compose -f docker-compose.prod.yml exec -T app node scripts/smoke.mjs \
+              || { echo "::error::Post-deploy smoke failed — new image is live but serving errors. Investigate / consider redeploying the previous SHA."; exit 1; }
             echo "Deployed ${{ github.sha }}"
