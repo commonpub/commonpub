@@ -546,6 +546,7 @@ export {
   calculateContestRanks,
   withdrawContestEntry,
   shouldRevealScores,
+  canViewContest,
 } from './contest/index.js';
 export type {
   ContestListItem,
@@ -556,6 +557,7 @@ export type {
   ContestPrize,
   ContestJudgingCriterion,
   ContestJudgingVisibility,
+  ContestVisibility,
   CriterionScore,
   JudgeScoreEntry,
 } from './contest/index.js';
@@ -571,6 +573,13 @@ export type {
   JudgeRole,
   ContestJudgeItem,
 } from './contest/judges.js';
+export {
+  listContestStakeholders,
+  addContestStakeholder,
+  removeContestStakeholder,
+  isContestStakeholder,
+} from './contest/index.js';
+export type { ContestStakeholderItem } from './contest/index.js';
 
 // Notification
 export {

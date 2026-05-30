@@ -241,6 +241,10 @@ describe('publicApi/serializers — phase 2 PII guards', () => {
     expect(isPublicContest(row)).toBe(true);
     expect(isPublicContest({ ...row, status: 'draft' })).toBe(false);
     expect(isPublicContest({ ...row, status: 'cancelled' })).toBe(false);
+    // Unlisted/private contests must never surface through the public API.
+    expect(isPublicContest({ ...row, visibility: 'unlisted' })).toBe(false);
+    expect(isPublicContest({ ...row, visibility: 'private' })).toBe(false);
+    expect(isPublicContest({ ...row, visibility: 'public' })).toBe(true);
     const out = toPublicContest(row, 'example.com');
     expectNoPrivate(out);
     expect(out.canonicalUrl).toBe('https://example.com/contests/edge-ai');

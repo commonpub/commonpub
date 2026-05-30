@@ -15,7 +15,14 @@ import {
   withdrawContestEntry,
   calculateContestRanks,
   shouldRevealScores,
+  canViewContest,
 } from '../contest/contest.js';
+import {
+  addContestStakeholder,
+  removeContestStakeholder,
+  listContestStakeholders,
+  isContestStakeholder,
+} from '../contest/stakeholders.js';
 import { createContent, publishContent } from '../content/content.js';
 import { addContestJudge, acceptJudgeInvite, listContestJudges, isContestJudge, updateJudgeRole } from '../contest/judges.js';
 import { voteOnContestEntry, removeContestEntryVote, getContestEntryVotes } from '../voting/voting.js';
@@ -949,5 +956,92 @@ describe('contest integration', () => {
     expect(e.judgeScores).toHaveLength(2); // neither write was lost
     expect(new Set(e.judgeScores!.map((s) => s.judgeId))).toEqual(new Set([j1.id, j2.id]));
     expect(e.score).toBe(85); // average of 80 and 90
+  });
+
+  // --- Judging integrity: no self-judging (session 174) ---
+
+  it('rejects a judge scoring their own entry', async () => {
+    const judgeEntrant = await createTestUser(db, { username: `selfjudge-${Date.now()}` });
+    const contest = await createContest(db, { ...makeContestInput({ title: 'Self Judge Contest' }), judges: [judgeEntrant.id] });
+    await acceptJudgeInvite(db, contest.id, judgeEntrant.id);
+    await transitionContestStatus(db, contest.id, organizerId, 'active');
+    const own = await createContent(db, judgeEntrant.id, { type: 'project', title: 'Judge Own Entry' });
+    await publishContent(db, own.id, judgeEntrant.id);
+    const entry = await submitContestEntry(db, contest.id, own.id, judgeEntrant.id);
+    await transitionContestStatus(db, contest.id, organizerId, 'judging');
+
+    const res = await judgeContestEntry(db, entry!.id, 100, judgeEntrant.id);
+    expect(res.judged).toBe(false);
+    expect(res.error).toMatch(/your own entry/i);
+  });
+
+  // --- Access control: visibility + role gate + stakeholders (session 174) ---
+
+  it('canViewContest: public/unlisted are open; private is gated', async () => {
+    const outsider = await createTestUser(db, { username: `outsider-${Date.now()}` });
+    const staff = await createTestUser(db, { username: `staff-${Date.now()}`, role: 'staff' });
+
+    const pub = await createContest(db, makeContestInput({ title: 'Public Vis' })); // default public
+    expect(await canViewContest(db, pub, null)).toBe(true);
+
+    const unlisted = await createContest(db, { ...makeContestInput({ title: 'Unlisted Vis' }), visibility: 'unlisted' });
+    expect(await canViewContest(db, unlisted, null)).toBe(true);
+
+    const priv = await createContest(db, { ...makeContestInput({ title: 'Private Vis' }), visibility: 'private', visibleToRoles: ['staff'] });
+    expect(priv.visibility).toBe('private');
+    expect(await canViewContest(db, priv, null)).toBe(false); // anon
+    expect(await canViewContest(db, priv, { id: outsider.id, role: 'member' })).toBe(false); // wrong role
+    expect(await canViewContest(db, priv, { id: staff.id, role: 'staff' })).toBe(true); // role gate
+    expect(await canViewContest(db, priv, { id: organizerId, role: 'member' })).toBe(true); // owner
+    expect(await canViewContest(db, priv, { id: outsider.id, role: 'admin' })).toBe(true); // admin
+  });
+
+  it('stakeholders get review access to a private contest', async () => {
+    const reviewer = await createTestUser(db, { username: `reviewer-${Date.now()}` });
+    const priv = await createContest(db, { ...makeContestInput({ title: 'Stakeholder Vis' }), visibility: 'private' });
+
+    expect(await canViewContest(db, priv, { id: reviewer.id, role: 'member' })).toBe(false);
+    const r = await addContestStakeholder(db, priv.id, reviewer.id);
+    expect(r.added).toBe(true);
+    expect(await isContestStakeholder(db, priv.id, reviewer.id)).toBe(true);
+    expect(await canViewContest(db, priv, { id: reviewer.id, role: 'member' })).toBe(true);
+
+    const list = await listContestStakeholders(db, priv.id);
+    expect(list.map((s) => s.userId)).toContain(reviewer.id);
+
+    expect(await removeContestStakeholder(db, priv.id, reviewer.id)).toBe(true);
+    expect(await canViewContest(db, priv, { id: reviewer.id, role: 'member' })).toBe(false);
+  });
+
+  it('seeds stakeholders + visibility from create input', async () => {
+    const reviewer = await createTestUser(db, { username: `seed-sh-${Date.now()}` });
+    const contest = await createContest(db, {
+      ...makeContestInput({ title: 'Seeded Access Contest' }),
+      visibility: 'private',
+      visibleToRoles: ['verified'],
+      stakeholders: [reviewer.id],
+    });
+    expect(contest.visibility).toBe('private');
+    expect(contest.visibleToRoles).toEqual(['verified']);
+    expect(await isContestStakeholder(db, contest.id, reviewer.id)).toBe(true);
+  });
+
+  it('listContests hides non-public contests from the public list', async () => {
+    const owner = await createTestUser(db, { username: `vis-owner-${Date.now()}` });
+    const tag = `vislist-${Date.now()}`;
+    await createContest(db, { ...makeContestInput({ title: `${tag} public` }), createdBy: owner.id });
+    await createContest(db, { ...makeContestInput({ title: `${tag} unlisted` }), createdBy: owner.id, visibility: 'unlisted' });
+    await createContest(db, { ...makeContestInput({ title: `${tag} private` }), createdBy: owner.id, visibility: 'private' });
+
+    const anon = (await listContests(db, { limit: 100 })).items.filter((c) => c.title.startsWith(tag));
+    expect(anon.map((c) => c.title)).toEqual([`${tag} public`]);
+
+    // The owner sees all of their own (incl. drafts).
+    const mine = (await listContests(db, { limit: 100 }, { userId: owner.id, role: 'member' })).items.filter((c) => c.title.startsWith(tag));
+    expect(mine.length).toBe(3);
+
+    // An admin sees everything.
+    const asAdmin = (await listContests(db, { limit: 100 }, { userId: organizerId, role: 'admin' })).items.filter((c) => c.title.startsWith(tag));
+    expect(asAdmin.length).toBe(3);
   });
 });

@@ -12,6 +12,7 @@ export {
   calculateContestRanks,
   withdrawContestEntry,
   shouldRevealScores,
+  canViewContest,
 } from './contest.js';
 export type {
   ContestListItem,
@@ -22,6 +23,7 @@ export type {
   ContestPrize,
   ContestJudgingCriterion,
   ContestJudgingVisibility,
+  ContestVisibility,
   CriterionScore,
   JudgeScoreEntry,
 } from './contest.js';
@@ -38,3 +40,11 @@ export type {
   JudgeRole,
   ContestJudgeItem,
 } from './judges.js';
+
+export {
+  listContestStakeholders,
+  addContestStakeholder,
+  removeContestStakeholder,
+  isContestStakeholder,
+} from './stakeholders.js';
+export type { ContestStakeholderItem } from './stakeholders.js';

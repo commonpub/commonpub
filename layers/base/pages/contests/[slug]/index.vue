@@ -27,6 +27,25 @@ const myJudge = computed(() => judges.value.find((j) => j.userId === user.value?
 const pendingInvite = computed(() => !!myJudge.value && !myJudge.value.acceptedAt);
 const canJudge = computed(() => !!myJudge.value && !!myJudge.value.acceptedAt && myJudge.value.role !== 'guest');
 
+// Unique entrants (the people), distinct from entries (the submissions).
+interface Participant { username: string; name: string; avatar: string | null; count: number }
+const participants = computed<Participant[]>(() => {
+  const map = new Map<string, Participant>();
+  for (const e of entries.value) {
+    const cur = map.get(e.authorUsername);
+    if (cur) cur.count++;
+    else map.set(e.authorUsername, { username: e.authorUsername, name: e.authorName, avatar: e.authorAvatarUrl, count: 1 });
+  }
+  return [...map.values()];
+});
+
+// Visibility banner shown to those who can see a non-public contest.
+const visibilityNote = computed(() => {
+  if (!c.value || c.value.visibility === 'public') return null;
+  if (c.value.visibility === 'unlisted') return { icon: 'fa-link', text: 'Unlisted — visible by direct link only, hidden from listings.' };
+  return { icon: 'fa-lock', text: 'Private — visible only to you, reviewers, judges, and allowed roles.' };
+});
+
 // Tabs ----------------------------------------------------------------------
 interface Tab { key: string; label: string; icon: string; count?: number }
 const tabs = computed<Tab[]>(() => {
@@ -34,6 +53,7 @@ const tabs = computed<Tab[]>(() => {
   if (c.value?.rules) t.push({ key: 'rules', label: 'Rules', icon: 'fa-file-lines' });
   if (c.value?.prizes?.length) t.push({ key: 'prizes', label: 'Prizes', icon: 'fa-trophy' });
   t.push({ key: 'entries', label: 'Entries', icon: 'fa-box-open', count: c.value?.entryCount ?? entries.value.length });
+  if (participants.value.length) t.push({ key: 'participants', label: 'Participants', icon: 'fa-users', count: participants.value.length });
   if (judges.value.length || isOwner.value) t.push({ key: 'judges', label: 'Judges', icon: 'fa-gavel', count: judges.value.length || undefined });
   return t;
 });
@@ -207,6 +227,12 @@ async function withdrawEntry(entryId: string): Promise<void> {
             </button>
           </div>
 
+          <!-- Visibility banner (non-public contests, shown to those who can see it) -->
+          <div v-if="visibilityNote" class="cpub-visibility-banner">
+            <i class="fa-solid" :class="visibilityNote.icon"></i>
+            <span>{{ visibilityNote.text }}</span>
+          </div>
+
           <!-- Tab bar -->
           <div class="cpub-tabbar" role="tablist" aria-label="Contest sections">
             <button
@@ -261,6 +287,23 @@ async function withdrawEntry(entryId: string): Promise<void> {
             />
           </div>
 
+          <!-- PARTICIPANTS -->
+          <div v-show="activeTab === 'participants'" id="cpub-panel-participants" role="tabpanel" aria-labelledby="cpub-tab-participants" tabindex="0">
+            <div class="cpub-sec-head"><h2><i class="fa-solid fa-users" style="color: var(--accent);"></i> Participants</h2><span class="cpub-sec-sub">{{ participants.length }}</span></div>
+            <div class="cpub-participant-grid">
+              <NuxtLink v-for="p in participants" :key="p.username" :to="`/u/${p.username}`" class="cpub-participant">
+                <span class="cpub-participant-av">
+                  <img v-if="p.avatar" :src="p.avatar" :alt="p.name" />
+                  <span v-else>{{ (p.name || p.username || '?').charAt(0).toUpperCase() }}</span>
+                </span>
+                <span class="cpub-participant-info">
+                  <span class="cpub-participant-name">{{ p.name }}</span>
+                  <span class="cpub-participant-meta">{{ p.count }} {{ p.count === 1 ? 'entry' : 'entries' }}</span>
+                </span>
+              </NuxtLink>
+            </div>
+          </div>
+
           <!-- JUDGES -->
           <div v-show="activeTab === 'judges'" id="cpub-panel-judges" role="tabpanel" aria-labelledby="cpub-tab-judges" tabindex="0">
             <ContestJudges :judges="judges" />
@@ -309,9 +352,25 @@ async function withdrawEntry(entryId: string): Promise<void> {
 
 [role="tabpanel"]:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
 
+/* VISIBILITY BANNER */
+.cpub-visibility-banner { display: flex; align-items: center; gap: 8px; padding: 10px 14px; margin-bottom: 16px; font-size: 12px; color: var(--text-dim); background: var(--surface2); border: var(--border-width-default) solid var(--border); }
+.cpub-visibility-banner i { color: var(--accent); }
+
 /* SECTION HEADERS */
 .cpub-sec-head { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
 .cpub-sec-head h2 { font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.cpub-sec-sub { font-size: 11px; color: var(--text-faint); margin-left: auto; font-family: var(--font-mono); }
+
+/* PARTICIPANTS */
+.cpub-participant-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+.cpub-participant { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--surface); border: var(--border-width-default) solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-md); text-decoration: none; }
+.cpub-participant:hover { box-shadow: var(--shadow-accent); }
+.cpub-participant-av { width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; font-family: var(--font-mono); border: var(--border-width-default) solid var(--border); background: var(--surface3); color: var(--text-dim); overflow: hidden; }
+.cpub-participant-av img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
+.cpub-participant-info { display: flex; flex-direction: column; min-width: 0; }
+.cpub-participant-name { font-size: 12px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cpub-participant-meta { font-size: 10px; color: var(--text-faint); font-family: var(--font-mono); }
+@media (max-width: 480px) { .cpub-participant-grid { grid-template-columns: 1fr; } }
 
 /* ABOUT */
 .cpub-about-section { margin-bottom: 20px; }

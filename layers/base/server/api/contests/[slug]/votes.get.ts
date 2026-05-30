@@ -1,4 +1,4 @@
-import { getContestBySlug, getContestEntryVotes } from '@commonpub/server';
+import { getContestBySlug, getContestEntryVotes, canViewContest } from '@commonpub/server';
 import type { ContestEntryVoteInfo } from '@commonpub/server';
 
 /**
@@ -13,6 +13,9 @@ export default defineEventHandler(async (event): Promise<ContestEntryVoteInfo[]>
 
   const contest = await getContestBySlug(db, slug);
   if (!contest) throw createError({ statusCode: 404, statusMessage: 'Contest not found' });
+  if (!(await canViewContest(db, contest, user))) {
+    throw createError({ statusCode: 404, statusMessage: 'Contest not found' });
+  }
   // Voting disabled, or contest not yet open (no entries) → empty array, not an error.
   if (!contest.communityVotingEnabled || contest.status === 'upcoming') return [];
 

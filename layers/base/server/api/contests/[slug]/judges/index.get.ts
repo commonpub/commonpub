@@ -1,4 +1,4 @@
-import { getContestBySlug, listContestJudges } from '@commonpub/server';
+import { getContestBySlug, listContestJudges, canViewContest } from '@commonpub/server';
 
 /**
  * GET /api/contests/:slug/judges
@@ -12,6 +12,9 @@ export default defineEventHandler(async (event) => {
 
   const contest = await getContestBySlug(db, slug);
   if (!contest) throw createError({ statusCode: 404, statusMessage: 'Contest not found' });
+  if (!(await canViewContest(db, contest, getOptionalUser(event)))) {
+    throw createError({ statusCode: 404, statusMessage: 'Contest not found' });
+  }
 
   return listContestJudges(db, contest.id);
 });

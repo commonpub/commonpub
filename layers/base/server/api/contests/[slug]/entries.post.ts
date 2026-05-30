@@ -1,4 +1,4 @@
-import { submitContestEntry, getContestBySlug } from '@commonpub/server';
+import { submitContestEntry, getContestBySlug, canViewContest } from '@commonpub/server';
 import type { ContestEntryItem } from '@commonpub/server';
 import { z } from 'zod';
 
@@ -13,6 +13,10 @@ export default defineEventHandler(async (event): Promise<ContestEntryItem> => {
   const { slug } = parseParams(event, { slug: 'string' });
   const contest = await getContestBySlug(db, slug);
   if (!contest) throw createError({ statusCode: 404, statusMessage: 'Contest not found' });
+  // Can't enter a contest you can't see.
+  if (!(await canViewContest(db, contest, user))) {
+    throw createError({ statusCode: 404, statusMessage: 'Contest not found' });
+  }
   const input = await parseBody(event, submitEntrySchema);
 
   const entry = await submitContestEntry(db, contest.id, input.contentId, user.id);

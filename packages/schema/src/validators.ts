@@ -363,10 +363,14 @@ export const createContestSchema = z
     // Seed-only: populates the contest_judges table. Judges are managed via the
     // dedicated /judges endpoints after creation.
     judges: z.array(z.string().uuid()).max(50).optional(),
+    // Seed-only: populates the contest_stakeholders table (view-only reviewers).
+    stakeholders: z.array(z.string().uuid()).max(100).optional(),
     communityVotingEnabled: z.boolean().optional(),
     judgingVisibility: z.enum(['public', 'judges-only', 'private']).optional(),
     eligibleContentTypes: z.array(z.string().max(40)).max(20).optional(),
     maxEntriesPerUser: z.number().int().positive().max(1000).optional(),
+    visibility: z.enum(['public', 'unlisted', 'private']).optional(),
+    visibleToRoles: z.array(z.enum(['member', 'pro', 'verified', 'staff', 'admin'])).max(5).optional(),
   })
   .refine((d) => new Date(d.endDate) > new Date(d.startDate), {
     message: 'End date must be after the start date',
@@ -395,9 +399,11 @@ export const updateContestSchema = z
     judgingVisibility: z.enum(['public', 'judges-only', 'private']).optional(),
     eligibleContentTypes: z.array(z.string().max(40)).max(20).optional(),
     maxEntriesPerUser: z.number().int().positive().max(1000).optional(),
+    visibility: z.enum(['public', 'unlisted', 'private']).optional(),
+    visibleToRoles: z.array(z.enum(['member', 'pro', 'verified', 'staff', 'admin'])).max(5).optional(),
   })
-  // `judges` is intentionally NOT updatable here — judges are managed via the
-  // dedicated /judges endpoints (the contest_judges table is the source of truth).
+  // `judges` + `stakeholders` are intentionally NOT updatable here — they are
+  // managed via the dedicated /judges and /stakeholders endpoints.
   .refine((d) => !d.startDate || !d.endDate || new Date(d.endDate) > new Date(d.startDate), {
     message: 'End date must be after the start date',
     path: ['endDate'],

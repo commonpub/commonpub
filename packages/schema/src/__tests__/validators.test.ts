@@ -1011,6 +1011,24 @@ describe('createContestSchema — boundary tests', () => {
     expect(() => createContestSchema.parse({ ...validContest, maxEntriesPerUser: 0 })).toThrow();
     expect(() => createContestSchema.parse({ ...validContest, maxEntriesPerUser: -1 })).toThrow();
   });
+
+  // Visibility + access (session 174)
+  it('accepts visibility + visibleToRoles + stakeholders', () => {
+    const parsed = createContestSchema.parse({
+      ...validContest,
+      visibility: 'private',
+      visibleToRoles: ['staff', 'admin'],
+      stakeholders: ['11111111-1111-4111-8111-111111111111'],
+    });
+    expect(parsed.visibility).toBe('private');
+    expect(parsed.visibleToRoles).toEqual(['staff', 'admin']);
+    expect(parsed.stakeholders).toHaveLength(1);
+  });
+
+  it('rejects an invalid visibility or role', () => {
+    expect(() => createContestSchema.parse({ ...validContest, visibility: 'secret' })).toThrow();
+    expect(() => createContestSchema.parse({ ...validContest, visibleToRoles: ['wizard'] })).toThrow();
+  });
 });
 
 describe('updateContestSchema', () => {

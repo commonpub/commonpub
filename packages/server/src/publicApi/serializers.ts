@@ -482,14 +482,18 @@ export interface PublicContestRow {
   prizes?: Array<{ place?: number; category?: string; title: string; value?: string }> | null;
   entryCount?: number | null;
   communityVotingEnabled?: boolean | null;
+  /** Only fully-public contests appear in the public API (not unlisted/private). */
+  visibility?: string | null;
   createdAt: Date;
   deletedAt?: Date | null;
 }
 
 const PUBLIC_CONTEST_STATUSES = new Set(['upcoming', 'active', 'judging', 'completed']);
 
-export function isPublicContest(row: Pick<PublicContestRow, 'status' | 'deletedAt'>): boolean {
+export function isPublicContest(row: Pick<PublicContestRow, 'status' | 'deletedAt' | 'visibility'>): boolean {
   if (row.deletedAt) return false;
+  // Unlisted/private contests are never exposed through the public API.
+  if (row.visibility != null && row.visibility !== 'public') return false;
   return PUBLIC_CONTEST_STATUSES.has(row.status);
 }
 

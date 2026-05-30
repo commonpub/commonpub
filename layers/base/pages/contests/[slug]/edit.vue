@@ -31,6 +31,15 @@ function toggleType(type: string): void {
   else eligibleContentTypes.value.push(type);
 }
 
+const visibility = ref<'public' | 'unlisted' | 'private'>('public');
+const visibleToRoles = ref<string[]>([]);
+const ROLE_OPTIONS = ['member', 'pro', 'verified', 'staff', 'admin'];
+function toggleRole(r: string): void {
+  const i = visibleToRoles.value.indexOf(r);
+  if (i >= 0) visibleToRoles.value.splice(i, 1);
+  else visibleToRoles.value.push(r);
+}
+
 interface Prize { place: number | null; category: string; title: string; description: string; value: string }
 const prizes = ref<Prize[]>([]);
 
@@ -51,6 +60,8 @@ watch(contest, (c) => {
   judgingVisibility.value = (c.judgingVisibility as typeof judgingVisibility.value) ?? 'judges-only';
   eligibleContentTypes.value = [...(c.eligibleContentTypes ?? [])];
   maxEntriesPerUser.value = c.maxEntriesPerUser ?? null;
+  visibility.value = (c.visibility as typeof visibility.value) ?? 'public';
+  visibleToRoles.value = [...(c.visibleToRoles ?? [])];
   prizes.value = (c.prizes ?? []).map((p: { place?: number; category?: string; title: string; description?: string; value?: string }) => ({
     place: p.place ?? null,
     category: p.category ?? '',
@@ -130,6 +141,8 @@ async function handleSave(): Promise<void> {
         judgingVisibility: judgingVisibility.value,
         eligibleContentTypes: eligibleContentTypes.value,
         maxEntriesPerUser: maxEntriesPerUser.value && maxEntriesPerUser.value > 0 ? maxEntriesPerUser.value : undefined,
+        visibility: visibility.value,
+        visibleToRoles: visibility.value === 'private' ? visibleToRoles.value : [],
         prizes: prizeData,
         judgingCriteria: criteriaData,
       },
@@ -298,6 +311,32 @@ async function transitionStatus(newStatus: string): Promise<void> {
             <input v-model="crit.description" type="text" class="cpub-form-input" placeholder="What judges look for (optional)" />
           </div>
         </div>
+      </section>
+
+      <!-- Visibility & Access -->
+      <section class="cpub-form-section">
+        <h2 class="cpub-form-section-title">Visibility &amp; Access</h2>
+        <div class="cpub-form-field">
+          <label class="cpub-form-label">Who can see this contest</label>
+          <select v-model="visibility" class="cpub-form-input">
+            <option value="public">Public — listed and visible to everyone</option>
+            <option value="unlisted">Unlisted — visible by direct link, hidden from listings</option>
+            <option value="private">Private — restricted</option>
+          </select>
+        </div>
+        <div v-if="visibility === 'private'" class="cpub-form-field">
+          <span class="cpub-form-label">Also visible to roles</span>
+          <div class="cpub-type-options" role="group" aria-label="Roles that can view">
+            <label v-for="r in ROLE_OPTIONS" :key="r" class="cpub-form-check">
+              <input type="checkbox" :checked="visibleToRoles.includes(r)" @change="toggleRole(r)" />
+              <span>{{ r }}</span>
+            </label>
+          </div>
+        </div>
+        <div class="cpub-subhead">
+          <h3 class="cpub-form-subtitle">Reviewers</h3>
+        </div>
+        <ContestStakeholderManager :contest-slug="slug" />
       </section>
 
       <!-- Judge panel (single source of truth: contest_judges table) -->

@@ -154,7 +154,14 @@ Invariants (don't regress):
   Prizes support optional `place` **and** optional `category`.
 - **`judgeContestEntry` is concurrency-safe** — the judgeScores read-modify-write
   runs in a transaction with `SELECT … FOR UPDATE` on the entry row, so two
-  judges scoring the same entry can't lose each other's writes.
+  judges scoring the same entry can't lose each other's writes. A judge **cannot
+  score their own entry** (conflict-of-interest guard).
+- **Access control (migration 0008):** `visibility` (`public`/`unlisted`/`private`,
+  orthogonal to `status`) + `visibleToRoles` (role gate) + the `contest_stakeholders`
+  table (named view-only reviewers). `canViewContest(db, contest, user)` enforces
+  it on every read endpoint (404 on block — no existence leak); the public v1 API
+  exposes only `public` contests. Listings show only `public` (+ your own drafts;
+  admins see all). Stakeholders ≠ judges (no scoring, not in judge list).
 - **Entry customization (migration 0007):** `eligibleContentTypes` (jsonb[]) gates
   which content types may be entered; `maxEntriesPerUser` (int, null=unlimited)
   caps entries per person. Both enforced in `submitContestEntry`.

@@ -5,13 +5,14 @@ Source: `packages/schema/src/*.ts`. As of session 125 (2026-04-16).
 tables, 41 enums. Now ~80+ tables after the 4 layout-engine tables
 landed (sessions 155 + 157, migration 0005).** The file list below is
 missing `publicApi.ts` (session 127 — api_keys + api_key_usage tables).
-Migration set has grown to 0000–0007 (0001 docs unstringify, 0002
+Migration set has grown to 0000–0008 (0001 docs unstringify, 0002
 session-130 constraints, 0003 notifications dedup, 0004 federated OAuth
 tokens in session 137, **0005 `0005_wonderful_blue_marvel` — layout
 engine tables, session 155/157**, **0006 contest `judging_criteria`,
-0007 contest `eligible_content_types` + `max_entries_per_user` —
-sessions 171/172**). 8 migrations total; latest is
-`0007_contest_entry_eligibility`. Individual tables added since 125 —
+0007 contest `eligible_content_types` + `max_entries_per_user`,
+0008 contest `visibility`/`visible_to_roles` + `contest_stakeholders` table —
+sessions 171/172/174**). 9 migrations total; latest is
+`0008_contest_visibility_stakeholders`. Individual tables added since 125 —
 federated_accounts + oauth_codes for cross-instance identity (session
 137) — are reflected in pgTable() counts but NOT yet enumerated in the
 per-file list below.
@@ -31,7 +32,7 @@ packages/schema/src/
 ├── learning.ts      learningPaths, learningModules, learningLessons, enrollments, lessonProgress, certificates
 ├── docs.ts          docsSites, docsVersions, docsPages
 ├── video.ts         videos, videoCategories
-├── contest.ts       contests, contestEntries, contestJudges
+├── contest.ts       contests, contestEntries, contestJudges, contestStakeholders
 ├── events.ts        events, eventAttendees
 ├── voting.ts        hubPostVotes, pollOptions, pollVotes, contestEntryVotes
 ├── federation.ts    remoteActors, activities, followRelationships, actorKeypairs, federatedContent, federatedContentBuilds, instanceMirrors, instanceHealth, federatedHubs, federatedHubPosts, federatedHubMembers, federatedHubPostReplies, federatedHubResources, federatedHubProducts, userFederatedHubFollows
@@ -73,6 +74,7 @@ packages/schema/src/
 | productCategoryEnum | microcontroller, sbc, sensor, actuator, display, communication, power, mechanical, software, tool, other |
 | lessonTypeEnum | article, video, quiz, project, explainer |
 | contestStatusEnum | upcoming, active, judging, completed, cancelled |
+| contestVisibilityEnum | public, unlisted, private (session 174) |
 | judgeRoleEnum | **lead, judge, guest** (session 124) |
 | judgingVisibilityEnum | **public, judges-only, private** (session 124) |
 | voteDirectionEnum | **up, down** (session 124) |
@@ -180,13 +182,14 @@ packages/schema/src/
 | videos | Video catalog | platform enum; denormalized counters |
 | videoCategories | Taxonomy | — |
 
-### Contests (3) — sessions 124 / 171–172
+### Contests (4) — sessions 124 / 171–174
 
 | Table | Purpose | Notable |
 |---|---|---|
-| contests | Contests | status enum (5 states); JSONB `prizes` (place AND/OR category) + `judgingCriteria` rubric (migration 0006); `judgingVisibility` + `communityVotingEnabled`; `eligibleContentTypes` + `maxEntriesPerUser` (migration 0007). **`judges` jsonb is deprecated/dead — judges live in `contestJudges`.** |
-| contestEntries | Submissions | unique(contestId, userId, contentId); JSONB judgeScores; `score` (avg, gated by `shouldRevealScores`) + `rank` (RANK(), scored entries only) |
-| contestJudges | Judge roster (THE source of truth; `contests.judges` jsonb is dead) | unique(contestId, userId); role enum (lead/judge/guest); invitedAt/acceptedAt — scoring needs accepted + non-guest |
+| contests | Contests | status enum (5 states, lifecycle); JSONB `prizes` (place AND/OR category) + `judgingCriteria` rubric (0006); `judgingVisibility` + `communityVotingEnabled`; `eligibleContentTypes` + `maxEntriesPerUser` (0007); **`visibility` (public/unlisted/private) + `visibleToRoles` role-gate (0008)**. **`judges` jsonb is deprecated/dead — judges live in `contestJudges`.** |
+| contestEntries | Submissions | unique(contestId, userId, contentId); JSONB judgeScores (incl. per-criterion `criteriaScores`); `score` (avg, gated by `shouldRevealScores`) + `rank` (RANK(), scored entries only) |
+| contestJudges | Judge roster (THE source of truth; `contests.judges` jsonb is dead) | unique(contestId, userId); role enum (lead/judge/guest); invitedAt/acceptedAt — scoring needs accepted + non-guest; can't judge own entry |
+| contestStakeholders | View-only reviewers (0008) | unique(contestId, userId); grants `canViewContest` access to private/unpublished contests without judge/admin rights |
 
 ### Events (2) — session 124 added
 

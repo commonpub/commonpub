@@ -1,11 +1,14 @@
-import { eq, and, desc, sql, isNotNull } from 'drizzle-orm';
-import { contests, contestEntries, contestJudges, users, contentItems } from '@commonpub/schema';
+import { eq, and, or, desc, sql, isNotNull } from 'drizzle-orm';
+import { contests, contestEntries, contestJudges, contestStakeholders, users, contentItems } from '@commonpub/schema';
 import type { DB } from '../types.js';
 import { normalizePagination, countRows } from '../query.js';
+import { isContestStakeholder } from './stakeholders.js';
+import { isContestJudge } from './judges.js';
 
 import type { ContestStatus } from '@commonpub/schema';
 
 export type ContestJudgingVisibility = 'public' | 'judges-only' | 'private';
+export type ContestVisibility = 'public' | 'unlisted' | 'private';
 export interface ContestPrize {
   place?: number;
   category?: string;
@@ -52,6 +55,8 @@ export interface ContestDetail extends ContestListItem {
   communityVotingEnabled: boolean;
   eligibleContentTypes: string[] | null;
   maxEntriesPerUser: number | null;
+  visibility: ContestVisibility;
+  visibleToRoles: string[] | null;
   createdById: string;
 }
 
@@ -75,6 +80,10 @@ export interface CreateContestInput {
   judgingVisibility?: ContestJudgingVisibility;
   eligibleContentTypes?: string[];
   maxEntriesPerUser?: number;
+  visibility?: ContestVisibility;
+  visibleToRoles?: string[];
+  /** Seed-only: populates the contest_stakeholders table at creation. */
+  stakeholders?: string[];
   startDate: string;
   endDate: string;
   judgingEndDate?: string;
@@ -103,6 +112,7 @@ export interface ContestEntryItem {
 export async function listContests(
   db: DB,
   filters: ContestFilters = {},
+  viewer?: { userId: string; role: string } | null,
 ): Promise<{ items: ContestListItem[]; total: number }> {
   const conditions = [];
 
@@ -110,6 +120,16 @@ export async function listContests(
     conditions.push(
       eq(contests.status, filters.status),
     );
+  }
+
+  // Visibility: listings only ever surface `public` contests. `unlisted` is
+  // link-only (never listed); `private` is hidden. An admin sees everything; a
+  // signed-in user additionally sees their own contests (so they can manage
+  // drafts). Stakeholders/role-gated viewers reach private contests by link.
+  if (viewer?.role !== 'admin') {
+    const visConds = [eq(contests.visibility, 'public')];
+    if (viewer?.userId) visConds.push(eq(contests.createdById, viewer.userId));
+    conditions.push(visConds.length > 1 ? or(...visConds)! : visConds[0]!);
   }
 
   const where = conditions.length > 0 ? and(...conditions) : undefined;
@@ -164,8 +184,30 @@ function toContestDetail(row: ContestRow): ContestDetail {
     communityVotingEnabled: row.communityVotingEnabled,
     eligibleContentTypes: row.eligibleContentTypes ?? null,
     maxEntriesPerUser: row.maxEntriesPerUser ?? null,
+    visibility: row.visibility,
+    visibleToRoles: row.visibleToRoles ?? null,
     createdById: row.createdById,
   };
+}
+
+/**
+ * Whether `user` may view this contest. `public`/`unlisted` are viewable by
+ * anyone (unlisted is simply hidden from listings). `private` is restricted to
+ * the owner, admins, stakeholders, panel judges, and users whose role is in
+ * `visibleToRoles`.
+ */
+export async function canViewContest(
+  db: DB,
+  contest: { id: string; visibility: ContestVisibility; visibleToRoles: string[] | null; createdById: string },
+  user: { id: string; role: string } | null,
+): Promise<boolean> {
+  if (contest.visibility !== 'private') return true;
+  if (!user) return false;
+  if (user.id === contest.createdById || user.role === 'admin') return true;
+  if (contest.visibleToRoles && contest.visibleToRoles.includes(user.role)) return true;
+  if (await isContestStakeholder(db, contest.id, user.id)) return true;
+  if (await isContestJudge(db, contest.id, user.id)) return true;
+  return false;
 }
 
 export async function getContestBySlug(
@@ -223,6 +265,8 @@ export async function createContest(
       judgingVisibility: input.judgingVisibility ?? 'judges-only',
       eligibleContentTypes: input.eligibleContentTypes ?? null,
       maxEntriesPerUser: input.maxEntriesPerUser ?? null,
+      visibility: input.visibility ?? 'public',
+      visibleToRoles: input.visibleToRoles ?? null,
       startDate: new Date(input.startDate),
       endDate: new Date(input.endDate),
       judgingEndDate: input.judgingEndDate ? new Date(input.judgingEndDate) : null,
@@ -237,6 +281,13 @@ export async function createContest(
     await db
       .insert(contestJudges)
       .values(input.judges.map((userId) => ({ contestId: row!.id, userId })))
+      .onConflictDoNothing();
+  }
+  // Seed stakeholders (view-only reviewers) from create input.
+  if (input.stakeholders && input.stakeholders.length > 0) {
+    await db
+      .insert(contestStakeholders)
+      .values(input.stakeholders.map((userId) => ({ contestId: row!.id, userId })))
       .onConflictDoNothing();
   }
 
@@ -271,6 +322,8 @@ export async function updateContest(
   if (data.judgingVisibility !== undefined) updates.judgingVisibility = data.judgingVisibility;
   if (data.eligibleContentTypes !== undefined) updates.eligibleContentTypes = data.eligibleContentTypes;
   if (data.maxEntriesPerUser !== undefined) updates.maxEntriesPerUser = data.maxEntriesPerUser;
+  if (data.visibility !== undefined) updates.visibility = data.visibility;
+  if (data.visibleToRoles !== undefined) updates.visibleToRoles = data.visibleToRoles;
   if (data.startDate !== undefined) updates.startDate = new Date(data.startDate);
   if (data.endDate !== undefined) updates.endDate = new Date(data.endDate);
   if (data.judgingEndDate !== undefined) updates.judgingEndDate = data.judgingEndDate ? new Date(data.judgingEndDate) : null;
@@ -486,6 +539,7 @@ export async function judgeContestEntry(
     .select({
       contestStatus: contests.status,
       contestId: contests.id,
+      entrantId: contestEntries.userId,
     })
     .from(contestEntries)
     .innerJoin(contests, eq(contestEntries.contestId, contests.id))
@@ -499,6 +553,11 @@ export async function judgeContestEntry(
   // Check contest is in judging phase
   if (row.contestStatus !== 'judging') {
     return { judged: false, error: 'Contest is not in judging phase' };
+  }
+
+  // Conflict of interest: a judge cannot score their own entry.
+  if (row.entrantId === judgeId) {
+    return { judged: false, error: 'You cannot judge your own entry' };
   }
 
   // Check judge authorization via contestJudges table (accepted judges only)

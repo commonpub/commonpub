@@ -17,6 +17,16 @@ const judgingEndDate = ref('');
 const communityVotingEnabled = ref(false);
 const judgingVisibility = ref<'public' | 'judges-only' | 'private'>('judges-only');
 
+// Visibility & access
+const visibility = ref<'public' | 'unlisted' | 'private'>('public');
+const visibleToRoles = ref<string[]>([]);
+const ROLE_OPTIONS = ['member', 'pro', 'verified', 'staff', 'admin'];
+function toggleRole(r: string): void {
+  const i = visibleToRoles.value.indexOf(r);
+  if (i >= 0) visibleToRoles.value.splice(i, 1);
+  else visibleToRoles.value.push(r);
+}
+
 // Entry rules
 const { enabledTypeMeta } = useContentTypes();
 const eligibleContentTypes = ref<string[]>([]); // empty = all types allowed
@@ -88,6 +98,8 @@ async function handleCreate(): Promise<void> {
         judgingEndDate: judgingEndDate.value ? new Date(judgingEndDate.value).toISOString() : undefined,
         communityVotingEnabled: communityVotingEnabled.value,
         judgingVisibility: judgingVisibility.value,
+        visibility: visibility.value,
+        visibleToRoles: visibility.value === 'private' && visibleToRoles.value.length ? visibleToRoles.value : undefined,
         eligibleContentTypes: eligibleContentTypes.value.length ? eligibleContentTypes.value : undefined,
         maxEntriesPerUser: maxEntriesPerUser.value && maxEntriesPerUser.value > 0 ? maxEntriesPerUser.value : undefined,
         prizes: prizes.value
@@ -169,6 +181,30 @@ function prizeLabel(prize: Prize, idx: number): string {
           </div>
         </div>
         <p v-if="dateError" class="cpub-form-error" role="alert">{{ dateError }}</p>
+      </section>
+
+      <!-- Visibility & Access -->
+      <section class="cpub-form-section">
+        <h2 class="cpub-form-section-title">Visibility &amp; Access</h2>
+        <div class="cpub-form-field">
+          <label for="visibility" class="cpub-form-label">Who can see this contest</label>
+          <select id="visibility" v-model="visibility" class="cpub-form-input">
+            <option value="public">Public — listed and visible to everyone</option>
+            <option value="unlisted">Unlisted — visible by direct link, hidden from listings</option>
+            <option value="private">Private — restricted (you can publish it later)</option>
+          </select>
+        </div>
+        <div v-if="visibility === 'private'" class="cpub-form-field">
+          <span class="cpub-form-label">Also visible to roles</span>
+          <p class="cpub-form-hint">Owner, admins, judges, and reviewers (added after creation) can always see it. Optionally grant whole roles too.</p>
+          <div class="cpub-type-options" role="group" aria-label="Roles that can view">
+            <label v-for="r in ROLE_OPTIONS" :key="r" class="cpub-form-check">
+              <input type="checkbox" :checked="visibleToRoles.includes(r)" @change="toggleRole(r)" />
+              <span>{{ r }}</span>
+            </label>
+          </div>
+        </div>
+        <p v-if="visibility === 'private'" class="cpub-form-hint">Add named reviewers (stakeholders) from the contest's Edit page after creating it.</p>
       </section>
 
       <!-- Entry Rules -->

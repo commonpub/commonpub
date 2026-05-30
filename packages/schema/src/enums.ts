@@ -140,6 +140,12 @@ export const contestStatusEnum = pgEnum('contest_status', [
   'cancelled',
 ]);
 
+// --- Contest visibility / access ---
+// public  = listed + viewable by anyone
+// unlisted = viewable by direct link, hidden from listings
+// private = owner/admin/stakeholders/judges + roles in `visibleToRoles` only
+export const contestVisibilityEnum = pgEnum('contest_visibility', ['public', 'unlisted', 'private']);
+
 // --- Contest Judging ---
 export const judgeRoleEnum = pgEnum('judge_role', ['lead', 'judge', 'guest']);
 export const judgingVisibilityEnum = pgEnum('judging_visibility', ['public', 'judges-only', 'private']);

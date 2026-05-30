@@ -108,7 +108,13 @@ packages/server/src/
 - `judgeContestEntry(db, entryId, score, judgeId, feedback?)` — accepted, non-guest judges only; recomputes the average
 - `calculateContestRanks(db, contestId)` — `RANK()` over scored entries only (ties share a rank; unscored → null rank). Community votes do NOT affect ranking.
 - `shouldRevealScores(visibility, status, privileged)` — pure helper gating aggregate-score exposure by `judgingVisibility`
+- `canViewContest(db, contest, user)` — access gate (public/unlisted open; private → owner/admin/stakeholder/judge/role). Used by every read endpoint (404 on block).
+- `judgeContestEntry` — accepted non-guest judges only; can't judge own entry; row-locked merge
 - `withdrawContestEntry(db, entryId, userId)`
+
+**stakeholders.ts** (session 174) — view-only reviewers (`contest_stakeholders` table)
+
+- `listContestStakeholders` / `addContestStakeholder` / `removeContestStakeholder` / `isContestStakeholder`
 
 **judges.ts** — session 124 replaced the legacy `judges` JSONB array
 

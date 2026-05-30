@@ -63,6 +63,39 @@ detail (`includeJudgeScores`) is always privileged-only regardless of visibility
   Score writes are atomic (row-locked transaction), so concurrent judges scoring
   the same entry never clobber each other.
 
+## Visibility & access
+
+`visibility` is **orthogonal to `status`** (lifecycle) — it controls *who can see*
+the contest, and you can change it at any time (e.g. keep a contest `private`
+while drafting, then flip to `public` to publish):
+
+| `visibility` | Listed? | Who can view |
+| --- | --- | --- |
+| `public` (default) | yes | everyone |
+| `unlisted` | no | anyone with the direct link |
+| `private` | no | owner, admins, **stakeholders**, panel judges, and any role in `visibleToRoles` |
+
+- **`visibleToRoles`** (e.g. `['staff']`) grants whole roles view access to a
+  `private` contest.
+- **Stakeholders** (`contest_stakeholders` table, managed on the Edit page) are
+  named view-only reviewers — they can see a private/unpublished contest to
+  review it, **without** admin-panel access or being judges (they never appear in
+  the judge list and can't score).
+- Access is enforced server-side by `canViewContest(db, contest, user)` on every
+  read endpoint (detail/entries/votes/judges/submit); a blocked viewer gets a
+  **404** (not 403) so a private contest's existence isn't leaked. The public v1
+  API (`isPublicContest`) only ever exposes `public` contests.
+- The public `/contests` listing shows only `public` contests; signed-in users
+  also see their own drafts there, and admins see everything.
+- **Delete vs hide:** `DELETE /api/contests/:slug` removes a contest entirely;
+  setting `visibility` to `unlisted`/`private` hides it without deleting.
+
+## Participants
+
+The contest detail page has a **Participants** tab listing the unique entrants
+(distinct from the **Entries** tab, which lists submissions) with their entry
+counts, linking to each profile.
+
 ## Entry eligibility
 
 Two optional per-contest controls (default = unrestricted, set in create/edit):

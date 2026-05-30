@@ -2,7 +2,7 @@ import { pgTable, uuid, varchar, text, timestamp, integer, boolean, jsonb, uniqu
 import { relations } from 'drizzle-orm';
 import { users } from './auth.js';
 import { contentItems } from './content.js';
-import { contestStatusEnum, judgeRoleEnum, judgingVisibilityEnum } from './enums.js';
+import { contestStatusEnum, judgeRoleEnum, judgingVisibilityEnum, contestVisibilityEnum } from './enums.js';
 
 /** @v2 — Contest system. Tables defined but not yet referenced in application code. */
 export const contests = pgTable('contests', {
@@ -54,6 +54,10 @@ export const contests = pgTable('contests', {
   eligibleContentTypes: jsonb('eligible_content_types').$type<string[]>(),
   /** Max distinct entries one user may submit. Null = unlimited. */
   maxEntriesPerUser: integer('max_entries_per_user'),
+  /** Who can see this contest. Orthogonal to `status` (lifecycle). */
+  visibility: contestVisibilityEnum('visibility').default('public').notNull(),
+  /** When visibility = 'private', user roles that may view (e.g. ['staff']). */
+  visibleToRoles: jsonb('visible_to_roles').$type<string[]>(),
   createdById: uuid('created_by_id')
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
@@ -116,6 +120,24 @@ export const contestJudges = pgTable('contest_judges', {
   index('idx_contest_judges_user_id').on(t.userId),
 ]);
 
+// --- Contest Stakeholders ---
+// View-only reviewers: can see a contest (even private/draft) without admin-panel
+// access or being a judge. Distinct from judges (no scoring, not in judge list).
+export const contestStakeholders = pgTable('contest_stakeholders', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  contestId: uuid('contest_id')
+    .notNull()
+    .references(() => contests.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  invitedAt: timestamp('invited_at', { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  unique('uq_contest_stakeholders_contest_user').on(t.contestId, t.userId),
+  index('idx_contest_stakeholders_contest_id').on(t.contestId),
+  index('idx_contest_stakeholders_user_id').on(t.userId),
+]);
+
 // --- Relations ---
 
 export const contestsRelations = relations(contests, ({ one, many }) => ({
@@ -138,6 +160,11 @@ export const contestJudgesRelations = relations(contestJudges, ({ one }) => ({
   user: one(users, { fields: [contestJudges.userId], references: [users.id] }),
 }));
 
+export const contestStakeholdersRelations = relations(contestStakeholders, ({ one }) => ({
+  contest: one(contests, { fields: [contestStakeholders.contestId], references: [contests.id] }),
+  user: one(users, { fields: [contestStakeholders.userId], references: [users.id] }),
+}));
+
 // --- Inferred Types ---
 export type ContestRow = typeof contests.$inferSelect;
 export type NewContestRow = typeof contests.$inferInsert;
@@ -145,3 +172,5 @@ export type ContestEntryRow = typeof contestEntries.$inferSelect;
 export type NewContestEntryRow = typeof contestEntries.$inferInsert;
 export type ContestJudgeRow = typeof contestJudges.$inferSelect;
 export type NewContestJudgeRow = typeof contestJudges.$inferInsert;
+export type ContestStakeholderRow = typeof contestStakeholders.$inferSelect;
+export type NewContestStakeholderRow = typeof contestStakeholders.$inferInsert;

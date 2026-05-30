@@ -1,4 +1,4 @@
-import { listContestEntries, getContestBySlug, isContestJudge, shouldRevealScores } from '@commonpub/server';
+import { listContestEntries, getContestBySlug, isContestJudge, shouldRevealScores, canViewContest } from '@commonpub/server';
 import type { ContestEntryItem } from '@commonpub/server';
 import { z } from 'zod';
 
@@ -21,6 +21,10 @@ export default defineEventHandler(async (event): Promise<{ items: ContestEntryIt
   // Aggregate score visibility additionally honours the contest's
   // judgingVisibility setting (public / judges-only / private).
   const user = getOptionalUser(event);
+  // Don't leak a private contest's entries to viewers who can't see the contest.
+  if (!(await canViewContest(db, contest, user))) {
+    throw createError({ statusCode: 404, statusMessage: 'Contest not found' });
+  }
   let privileged = false;
   if (user) {
     privileged =
