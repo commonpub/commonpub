@@ -92,6 +92,8 @@ async function acceptInvite(): Promise<void> {
 
 // Entry submission
 const showSubmitDialog = ref(false);
+const submitDialogRef = ref<HTMLElement | null>(null);
+useFocusTrap(submitDialogRef, () => showSubmitDialog.value, () => { showSubmitDialog.value = false; });
 const submitContentId = ref('');
 const submitting = ref(false);
 const { data: userContent } = useFetch('/api/content', {
@@ -156,7 +158,7 @@ async function withdrawEntry(entryId: string): Promise<void> {
 
     <!-- SUBMIT ENTRY DIALOG -->
     <div v-if="showSubmitDialog" class="cpub-submit-overlay" @click.self="showSubmitDialog = false">
-      <div class="cpub-submit-dialog" role="dialog" aria-label="Submit entry">
+      <div ref="submitDialogRef" class="cpub-submit-dialog" role="dialog" aria-modal="true" aria-label="Submit entry">
         <div class="cpub-submit-header">
           <h2>Submit Entry</h2>
           <button class="cpub-submit-close" aria-label="Close" @click="showSubmitDialog = false"><i class="fa-solid fa-times"></i></button>
@@ -296,8 +298,9 @@ async function withdrawEntry(entryId: string): Promise<void> {
 .cpub-invite-text i { color: var(--accent); }
 
 /* TABS */
-.cpub-tabbar { display: flex; gap: 2px; flex-wrap: wrap; border-bottom: var(--border-width-default) solid var(--border); margin-bottom: 20px; }
-.cpub-tab { display: inline-flex; align-items: center; gap: 6px; padding: 9px 14px; background: none; border: none; border-bottom: 2px solid transparent; margin-bottom: -1px; font-family: var(--font-mono); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--text-faint); cursor: pointer; }
+.cpub-tabbar { display: flex; gap: 2px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; border-bottom: var(--border-width-default) solid var(--border); margin-bottom: 20px; }
+.cpub-tabbar::-webkit-scrollbar { display: none; }
+.cpub-tab { display: inline-flex; align-items: center; gap: 6px; padding: 9px 14px; min-height: 40px; flex-shrink: 0; white-space: nowrap; background: none; border: none; border-bottom: 2px solid transparent; margin-bottom: -1px; font-family: var(--font-mono); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--text-faint); cursor: pointer; }
 .cpub-tab:hover { color: var(--text-dim); }
 .cpub-tab-active { color: var(--accent); border-bottom-color: var(--accent); }
 .cpub-tab i { font-size: 11px; }

@@ -176,9 +176,9 @@ function confirmWithdraw(entryId: string): void {
 .cpub-entry-score { font-size: 10px; color: var(--text-faint); font-family: var(--font-mono); display: flex; align-items: center; gap: 3px; }
 
 .cpub-entry-vote-btn {
-  display: inline-flex; align-items: center; gap: 4px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 4px;
   font-size: 11px; font-family: var(--font-mono); font-weight: 600;
-  padding: 3px 8px; border: var(--border-width-default) solid var(--border2);
+  padding: 4px 10px; min-height: 28px; border: var(--border-width-default) solid var(--border2);
   background: var(--surface); color: var(--text-dim); cursor: pointer;
   transition: all 0.15s;
 }
@@ -187,7 +187,7 @@ function confirmWithdraw(entryId: string): void {
 .cpub-entry-vote-btn:disabled { opacity: 0.4; cursor: default; }
 .cpub-entry-vote-btn i { font-size: 10px; }
 
-.cpub-withdraw-btn { display: flex; align-items: center; gap: 4px; font-size: 10px; font-family: var(--font-mono); padding: 3px 8px; border-radius: var(--radius); border: var(--border-width-default) solid var(--red-border); background: var(--surface); color: var(--red); cursor: pointer; margin-left: auto; }
+.cpub-withdraw-btn { display: flex; align-items: center; justify-content: center; gap: 4px; font-size: 10px; font-family: var(--font-mono); padding: 4px 10px; min-height: 28px; border-radius: var(--radius); border: var(--border-width-default) solid var(--red-border); background: var(--surface); color: var(--red); cursor: pointer; margin-left: auto; }
 .cpub-withdraw-btn:hover { background: var(--red-bg); }
 
 .cpub-empty-state { text-align: center; padding: 32px 0; }

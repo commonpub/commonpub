@@ -14,7 +14,10 @@ npm consumers. **No AI attribution in commits. pnpm (never npm) for publishing.*
 
 ## Latest published + live (sessions 171–173)
 
-- `@commonpub/schema@0.21.0`, `@commonpub/server@2.62.0`, `@commonpub/layer@0.28.0`.
+- `@commonpub/schema@0.21.0`, `@commonpub/server@2.62.0`, `@commonpub/layer@0.28.1`.
+  (0.28.1 = layer-only UI/a11y audit fixes: scrollable tab strip + leaderboard on
+  mobile, 28px touch targets on vote/withdraw, focus-trap on the submit modal.
+  Theme-token audit: 100% `var(--*)`, no hardcoded colors/fonts.)
 - Migrations through **0007** (0006 = contest `judging_criteria`; 0007 = contest
   `eligible_content_types` + `max_entries_per_user`). server 2.61.1 (winner
   notifications) + 0.21.0/2.62.0/0.28.0 (per-criterion judging) were
@@ -40,7 +43,7 @@ upcoming→active→judging→completed (+cancelled); `RANK()` ranking on comple
 
 ```bash
 for u in https://commonpub.io https://deveco.io https://heatsynclabs.io; do echo "  $u home=$(curl -s -o /dev/null -w '%{http_code}' $u/) contests=$(curl -s $u/api/features | grep -o '\"contests\":[a-z]*') api=$(curl -s -o /dev/null -w '%{http_code}' $u/api/contests)"; done
-npm view @commonpub/layer version   # 0.28.0
+npm view @commonpub/layer version   # 0.28.1
 ```
 
 ## ⚠️ heatsync deploy — read before ANY schema bump

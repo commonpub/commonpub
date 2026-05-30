@@ -121,6 +121,7 @@ function medalColor(rank: number): string {
       <!-- LEADERBOARD -->
       <div v-if="leaderboard.length > 0" class="cpub-leaderboard">
         <h2 class="cpub-leaderboard-title">Full Leaderboard</h2>
+        <div class="cpub-leaderboard-scroll">
         <table class="cpub-leaderboard-table">
           <thead>
             <tr>
@@ -150,6 +151,7 @@ function medalColor(rank: number): string {
             </tr>
           </tbody>
         </table>
+        </div>
       </div>
 
       <div v-else class="cpub-results-empty">
@@ -190,7 +192,9 @@ function medalColor(rank: number): string {
 /* LEADERBOARD */
 .cpub-leaderboard { margin-bottom: 32px; }
 .cpub-leaderboard-title { font-size: 16px; font-weight: 700; margin-bottom: 14px; }
-.cpub-leaderboard-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+/* Horizontal scroll on narrow screens instead of overflowing the page. */
+.cpub-leaderboard-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.cpub-leaderboard-table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 420px; }
 .cpub-leaderboard-table th { text-align: left; font-size: 10px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .06em; color: var(--text-faint); padding: 8px 12px; border-bottom: var(--border-width-default) solid var(--border); }
 .cpub-leaderboard-table td { padding: 10px 12px; border-bottom: var(--border-width-default) solid var(--border); }
 .cpub-lb-top3 { background: var(--surface2); }
