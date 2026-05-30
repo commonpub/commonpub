@@ -7,7 +7,7 @@ export default defineEventHandler(async (event): Promise<{ success: boolean }> =
   const db = useDB();
   const input = await parseBody(event, judgeEntrySchema);
 
-  const result = await judgeContestEntry(db, input.entryId, input.score, user.id, input.feedback);
+  const result = await judgeContestEntry(db, input.entryId, input.score, user.id, input.feedback, input.criteriaScores);
   if (!result.judged) {
     throw createError({ statusCode: 403, statusMessage: result.error ?? 'Judging failed' });
   }

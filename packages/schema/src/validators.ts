@@ -404,11 +404,28 @@ export const updateContestSchema = z
   });
 export type UpdateContestInput = z.infer<typeof updateContestSchema>;
 
-export const judgeEntrySchema = z.object({
-  entryId: z.string().uuid(),
-  score: z.number().int().min(1).max(100),
-  feedback: z.string().max(2000).optional(),
-});
+export const criterionScoreSchema = z
+  .object({
+    label: z.string().max(120),
+    score: z.number().int().min(0),
+    max: z.number().int().min(1).max(100),
+  })
+  .refine((c) => c.score <= c.max, { message: 'Criterion score cannot exceed its max', path: ['score'] });
+export type CriterionScore = z.infer<typeof criterionScoreSchema>;
+
+export const judgeEntrySchema = z
+  .object({
+    entryId: z.string().uuid(),
+    // Either an overall 0–100 score, or a per-criterion breakdown (the overall is
+    // then derived server-side as a normalized weighted sum).
+    score: z.number().int().min(1).max(100).optional(),
+    criteriaScores: z.array(criterionScoreSchema).min(1).max(20).optional(),
+    feedback: z.string().max(2000).optional(),
+  })
+  .refine((d) => d.score !== undefined || (d.criteriaScores && d.criteriaScores.length > 0), {
+    message: 'Provide an overall score or per-criterion scores',
+    path: ['score'],
+  });
 export type JudgeEntryInput = z.infer<typeof judgeEntrySchema>;
 
 export const contestTransitionSchema = z.object({

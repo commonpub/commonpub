@@ -83,8 +83,11 @@ export const contestEntries = pgTable('contest_entries', {
   judgeScores: jsonb('judge_scores').$type<
     Array<{
       judgeId: string;
+      /** Overall 0–100 score (normalized weighted sum when criteriaScores set). */
       score: number;
       feedback?: string;
+      /** Per-criterion breakdown when the contest defines a judging rubric. */
+      criteriaScores?: Array<{ label: string; score: number; max: number }>;
     }>
   >(),
   submittedAt: timestamp('submitted_at', { withTimezone: true }).defaultNow().notNull(),

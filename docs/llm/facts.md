@@ -147,9 +147,14 @@ Invariants (don't regress):
   goes through `shouldRevealScores(visibility, status, privileged)` honouring
   `judgingVisibility` (`public` always / `judges-only` after completion /
   `private` never to the public). Pure helper — exhaustively unit-tested.
-- `judgingCriteria` (jsonb, migration 0006) is a display/guidance rubric; judges
-  still submit one 1–100 score. Prizes support optional `place` **and** optional
-  `category` (Hackster-style themed awards).
+- `judgingCriteria` (jsonb, migration 0006): when set, judges score **each
+  criterion** (0..weight) and the overall is the normalized weighted sum;
+  per-criterion breakdown stored in `judgeScores[].criteriaScores`. No criteria →
+  single holistic 1–100. `judgeEntrySchema` takes `score` OR `criteriaScores`.
+  Prizes support optional `place` **and** optional `category`.
+- **`judgeContestEntry` is concurrency-safe** — the judgeScores read-modify-write
+  runs in a transaction with `SELECT … FOR UPDATE` on the entry row, so two
+  judges scoring the same entry can't lose each other's writes.
 - **Entry customization (migration 0007):** `eligibleContentTypes` (jsonb[]) gates
   which content types may be entered; `maxEntriesPerUser` (int, null=unlimited)
   caps entries per person. Both enforced in `submitContestEntry`.

@@ -22,6 +22,8 @@ export type {
   ContestPrize,
   ContestJudgingCriterion,
   ContestJudgingVisibility,
+  CriterionScore,
+  JudgeScoreEntry,
 } from './contest.js';
 
 export {

@@ -878,4 +878,76 @@ describe('contest integration', () => {
     expect(runnerNotifs.some((n) => n.title.includes('You won'))).toBe(false);
     expect(runnerNotifs.some((n) => n.title === 'Results Posted')).toBe(true);
   });
+
+  // --- Per-criterion scoring + concurrency (session 173) ---
+
+  async function rubricContestWithEntry(title: string) {
+    const judge = await createTestUser(db, { username: `rub-j-${Date.now()}-${Math.random().toString(36).slice(2, 5)}` });
+    const contest = await createContest(db, {
+      ...makeContestInput({ title }),
+      judges: [judge.id],
+      judgingCriteria: [
+        { label: 'Documentation', weight: 20 },
+        { label: 'Creativity', weight: 30 },
+      ],
+    });
+    await acceptJudgeInvite(db, contest.id, judge.id);
+    await transitionContestStatus(db, contest.id, organizerId, 'active');
+    const content = await createContent(db, participantId, { type: 'project', title: `${title} entry` });
+    await publishContent(db, content.id, participantId);
+    const entry = await submitContestEntry(db, contest.id, content.id, participantId);
+    await transitionContestStatus(db, contest.id, organizerId, 'judging');
+    return { contest, judge, entry: entry! };
+  }
+
+  it('scores by criteria and computes the normalized weighted overall', async () => {
+    const { contest, judge, entry } = await rubricContestWithEntry('Rubric Scoring');
+    // 18/20 + 24/30 = 42/50 → 84
+    const res = await judgeContestEntry(db, entry.id, undefined, judge.id, undefined, [
+      { label: 'Documentation', score: 18, max: 20 },
+      { label: 'Creativity', score: 24, max: 30 },
+    ]);
+    expect(res.judged).toBe(true);
+
+    const { items } = await listContestEntries(db, contest.id, { includeJudgeScores: true });
+    const e = items.find((i) => i.id === entry.id)!;
+    expect(e.score).toBe(84);
+    expect(e.judgeScores![0]!.criteriaScores).toHaveLength(2);
+    expect(e.judgeScores![0]!.criteriaScores![0]).toMatchObject({ label: 'Documentation', score: 18, max: 20 });
+  });
+
+  it('rejects a criterion score above its max', async () => {
+    const { judge, entry } = await rubricContestWithEntry('Rubric OOB');
+    const res = await judgeContestEntry(db, entry.id, undefined, judge.id, undefined, [
+      { label: 'Documentation', score: 25, max: 20 }, // 25 > 20
+      { label: 'Creativity', score: 10, max: 30 },
+    ]);
+    expect(res.judged).toBe(false);
+    expect(res.error).toMatch(/out of range/i);
+  });
+
+  it('two judges scoring the same entry concurrently both persist (no lost update)', async () => {
+    const j1 = await createTestUser(db, { username: `cc-j1-${Date.now()}` });
+    const j2 = await createTestUser(db, { username: `cc-j2-${Date.now()}` });
+    const contest = await createContest(db, { ...makeContestInput({ title: 'Concurrent Judging' }), judges: [j1.id, j2.id] });
+    await acceptJudgeInvite(db, contest.id, j1.id);
+    await acceptJudgeInvite(db, contest.id, j2.id);
+    await transitionContestStatus(db, contest.id, organizerId, 'active');
+    const content = await createContent(db, participantId, { type: 'project', title: 'Contended Entry' });
+    await publishContent(db, content.id, participantId);
+    const entry = await submitContestEntry(db, contest.id, content.id, participantId);
+    await transitionContestStatus(db, contest.id, organizerId, 'judging');
+
+    // Fire both scores "at once"; the row-locked transaction must keep both.
+    await Promise.all([
+      judgeContestEntry(db, entry!.id, 80, j1.id),
+      judgeContestEntry(db, entry!.id, 90, j2.id),
+    ]);
+
+    const { items } = await listContestEntries(db, contest.id, { includeJudgeScores: true });
+    const e = items.find((i) => i.id === entry!.id)!;
+    expect(e.judgeScores).toHaveLength(2); // neither write was lost
+    expect(new Set(e.judgeScores!.map((s) => s.judgeId))).toEqual(new Set([j1.id, j2.id]));
+    expect(e.score).toBe(85); // average of 80 and 90
+  });
 });

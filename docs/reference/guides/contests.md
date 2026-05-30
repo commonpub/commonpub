@@ -55,9 +55,13 @@ detail (`includeJudgeScores`) is always privileged-only regardless of visibility
   optional `category` (themed: "Best in Show", "Robotics"). Place-based prizes
   map onto the results podium; category prizes display as themed awards.
 - **Judging criteria** is an optional rubric (`label`, optional `weight` points,
-  optional `description`) shown to entrants on the contest page and to judges as
-  scoring guidance. It is display/guidance only — judges still submit a single
-  1–100 score per entry.
+  optional `description`) shown to entrants on the contest page. When a contest
+  defines criteria, judges score **each criterion** (0..weight, or 0..100 if no
+  weight) on the judge page and the overall 0–100 is the normalized weighted sum
+  (`sum(score)/sum(max)*100`); the per-criterion breakdown is stored in
+  `judgeScores`. With no criteria, judges submit a single holistic 1–100 score.
+  Score writes are atomic (row-locked transaction), so concurrent judges scoring
+  the same entry never clobber each other.
 
 ## Entry eligibility
 

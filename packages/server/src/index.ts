@@ -556,6 +556,8 @@ export type {
   ContestPrize,
   ContestJudgingCriterion,
   ContestJudgingVisibility,
+  CriterionScore,
+  JudgeScoreEntry,
 } from './contest/index.js';
 export {
   listContestJudges,

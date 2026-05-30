@@ -6,14 +6,23 @@ const slug = route.params.slug as string;
 const { user } = useAuth();
 const toast = useToast();
 
-import type { Serialized, ContestDetail, ContestEntryItem, ContestJudgeItem } from '@commonpub/server';
+import type { Serialized, ContestDetail, ContestEntryItem, ContestJudgeItem, JudgeScoreEntry } from '@commonpub/server';
 
 const { data: contest } = useLazyFetch<Serialized<ContestDetail>>(`/api/contests/${slug}`);
 const { data: judgesData, refresh: refreshJudges } = useLazyFetch<ContestJudgeItem[]>(`/api/contests/${slug}/judges`);
-const { data: entriesData, refresh: refreshEntries } = useLazyFetch<{ items: (Serialized<ContestEntryItem> & { judgeScores?: Array<{ judgeId: string; score: number; feedback?: string }> })[]; total: number }>(
+const { data: entriesData, refresh: refreshEntries } = useLazyFetch<{ items: (Serialized<ContestEntryItem> & { judgeScores?: JudgeScoreEntry[] })[]; total: number }>(
   `/api/contests/${slug}/entries`,
   { query: { includeJudgeScores: true } },
 );
+
+// Judging rubric: when defined, judges score each criterion (0..max) and the
+// overall is the normalized weighted sum (computed server-side).
+const criteria = computed(() => contest.value?.judgingCriteria ?? []);
+const hasCriteria = computed(() => criteria.value.length > 0);
+function critMax(i: number): number {
+  const w = criteria.value[i]?.weight;
+  return typeof w === 'number' && w > 0 ? w : 100;
+}
 
 useSeoMeta({ title: () => `Judge: ${contest.value?.title || 'Contest'} — ${useSiteName()}` });
 
@@ -54,6 +63,7 @@ const entryList = computed(() => {
       rank: entry.rank ?? null,
       myScore: myScore?.score ?? null,
       myFeedback: myScore?.feedback ?? '',
+      myCriteriaScores: myScore?.criteriaScores ?? null,
     };
   });
 });
@@ -63,6 +73,7 @@ const totalCount = computed(() => entryList.value.length);
 const progressPct = computed(() => totalCount.value > 0 ? Math.round((scoredCount.value / totalCount.value) * 100) : 0);
 
 const scoring = ref<Record<string, number>>({});
+const critScoring = ref<Record<string, number[]>>({}); // per entry → [criterionScore...]
 const feedback = ref<Record<string, string>>({});
 const submitting = ref<string | null>(null);
 const error = ref('');
@@ -77,18 +88,50 @@ watch(entryList, (list) => {
     if (entry.myFeedback && feedback.value[entry.id] === undefined) {
       feedback.value[entry.id] = entry.myFeedback;
     }
+    if (hasCriteria.value && critScoring.value[entry.id] === undefined) {
+      // seed from a prior per-criterion submission, aligned by index
+      critScoring.value[entry.id] = criteria.value.map((c, i) =>
+        entry.myCriteriaScores?.[i]?.score ?? 0,
+      );
+    }
   }
 }, { immediate: true });
+
+// Live preview of the normalized overall when scoring by criteria.
+function critTotal(entryId: string): number {
+  const vals = critScoring.value[entryId] ?? [];
+  const totalMax = criteria.value.reduce((s, _c, i) => s + critMax(i), 0);
+  if (totalMax <= 0) return 0;
+  const sum = criteria.value.reduce((s, _c, i) => s + Math.min(Math.max(vals[i] ?? 0, 0), critMax(i)), 0);
+  return Math.round((sum / totalMax) * 100);
+}
 
 async function submitScore(entryId: string): Promise<void> {
   if (!inJudgingPhase.value) {
     error.value = 'Scoring is only open during the judging phase.';
     return;
   }
-  const score = scoring.value[entryId];
-  if (score === undefined || score < 1 || score > 100) {
-    error.value = 'Score must be between 1 and 100.';
-    return;
+
+  let body: Record<string, unknown>;
+  if (hasCriteria.value) {
+    const vals = critScoring.value[entryId] ?? [];
+    const criteriaScores = criteria.value.map((c, i) => ({
+      label: c.label,
+      score: Math.round(vals[i] ?? 0),
+      max: critMax(i),
+    }));
+    if (criteriaScores.some((c) => c.score < 0 || c.score > c.max)) {
+      error.value = 'Each criterion score must be between 0 and its maximum.';
+      return;
+    }
+    body = { entryId, criteriaScores, feedback: feedback.value[entryId] || undefined };
+  } else {
+    const score = scoring.value[entryId];
+    if (score === undefined || score < 1 || score > 100) {
+      error.value = 'Score must be between 1 and 100.';
+      return;
+    }
+    body = { entryId, score, feedback: feedback.value[entryId] || undefined };
   }
 
   error.value = '';
@@ -96,14 +139,7 @@ async function submitScore(entryId: string): Promise<void> {
   submitting.value = entryId;
 
   try {
-    await $fetch(`/api/contests/${slug}/judge`, {
-      method: 'POST',
-      body: {
-        entryId,
-        score,
-        feedback: feedback.value[entryId] || undefined,
-      },
-    });
+    await $fetch(`/api/contests/${slug}/judge`, { method: 'POST', body });
     success.value = 'Score submitted for entry.';
     await refreshEntries().catch(() => {
       success.value = 'Score saved — refresh to see the updated totals.';
@@ -202,14 +238,35 @@ async function submitScore(entryId: string): Promise<void> {
               <span class="cpub-judge-score-value">{{ entry.myScore }}</span>
             </div>
             <div class="cpub-judge-score-controls">
+              <!-- Per-criterion scoring (when the contest defines a rubric) -->
+              <div v-if="hasCriteria && critScoring[entry.id]" class="cpub-judge-criteria-inputs">
+                <div v-for="(crit, i) in criteria" :key="i" class="cpub-judge-crit-row">
+                  <label class="cpub-judge-crit-label">{{ crit.label }}</label>
+                  <div class="cpub-judge-crit-input-wrap">
+                    <input
+                      v-model.number="critScoring[entry.id][i]"
+                      type="number"
+                      class="cpub-judge-crit-input"
+                      min="0"
+                      :max="critMax(i)"
+                      :aria-label="`${crit.label} score, max ${critMax(i)}`"
+                    />
+                    <span class="cpub-judge-crit-max">/ {{ critMax(i) }}</span>
+                  </div>
+                </div>
+                <div class="cpub-judge-crit-total">Overall <strong>{{ critTotal(entry.id) }}</strong> / 100</div>
+              </div>
+
               <div class="cpub-judge-score-input-wrap">
                 <input
+                  v-if="!hasCriteria"
                   v-model.number="scoring[entry.id]"
                   type="number"
                   class="cpub-judge-score-input"
                   min="1"
                   max="100"
                   placeholder="1-100"
+                  aria-label="Overall score, 1 to 100"
                 />
                 <button
                   class="cpub-judge-score-btn"
@@ -279,6 +336,15 @@ async function submitScore(entryId: string): Promise<void> {
 .cpub-judge-score-label { display: block; font-family: var(--font-mono); font-size: 9px; color: var(--text-faint); text-transform: uppercase; }
 .cpub-judge-score-value { font-size: 20px; font-weight: 700; color: var(--accent); font-family: var(--font-mono); }
 .cpub-judge-score-controls { display: flex; flex-direction: column; gap: 6px; }
+.cpub-judge-criteria-inputs { display: flex; flex-direction: column; gap: 6px; padding: 8px; border: var(--border-width-default) dashed var(--border); background: var(--surface2); margin-bottom: 2px; }
+.cpub-judge-crit-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.cpub-judge-crit-label { font-size: 11px; color: var(--text-dim); flex: 1; min-width: 0; }
+.cpub-judge-crit-input-wrap { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.cpub-judge-crit-input { width: 52px; padding: 4px 6px; border: var(--border-width-default) solid var(--border); background: var(--surface); color: var(--text); font-size: 12px; font-family: var(--font-mono); text-align: center; outline: none; }
+.cpub-judge-crit-input:focus { border-color: var(--accent); }
+.cpub-judge-crit-max { font-size: 10px; color: var(--text-faint); font-family: var(--font-mono); }
+.cpub-judge-crit-total { font-size: 11px; font-family: var(--font-mono); color: var(--text-dim); text-align: right; padding-top: 4px; border-top: var(--border-width-default) solid var(--border); }
+.cpub-judge-crit-total strong { color: var(--accent); font-size: 13px; }
 .cpub-judge-score-input-wrap { display: flex; gap: 0; }
 .cpub-judge-score-input {
   width: 70px; padding: 6px 8px; border: var(--border-width-default) solid var(--border); background: var(--surface);

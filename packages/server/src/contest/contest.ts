@@ -18,6 +18,17 @@ export interface ContestJudgingCriterion {
   weight?: number;
   description?: string;
 }
+export interface CriterionScore {
+  label: string;
+  score: number;
+  max: number;
+}
+export interface JudgeScoreEntry {
+  judgeId: string;
+  score: number;
+  feedback?: string;
+  criteriaScores?: CriterionScore[];
+}
 
 export interface ContestListItem {
   id: string;
@@ -86,7 +97,7 @@ export interface ContestEntryItem {
   authorName: string;
   authorUsername: string;
   authorAvatarUrl: string | null;
-  judgeScores?: Array<{ judgeId: string; score: number; feedback?: string }>;
+  judgeScores?: JudgeScoreEntry[];
 }
 
 export async function listContests(
@@ -354,7 +365,7 @@ export async function listContestEntries(
       authorAvatarUrl: row.author.avatarUrl,
     };
     if (opts.includeJudgeScores) {
-      item.judgeScores = (row.entry.judgeScores ?? []) as Array<{ judgeId: string; score: number; feedback?: string }>;
+      item.judgeScores = (row.entry.judgeScores ?? []) as JudgeScoreEntry[];
     }
     return item;
   });
@@ -465,14 +476,14 @@ export async function submitContestEntry(
 export async function judgeContestEntry(
   db: DB,
   entryId: string,
-  score: number,
+  score: number | undefined,
   judgeId: string,
   feedback?: string,
+  criteriaScores?: CriterionScore[],
 ): Promise<{ judged: boolean; error?: string }> {
-  // Get the entry and its contest
+  // Get the entry and its contest (read-only validation, no lock needed).
   const existing = await db
     .select({
-      entry: contestEntries,
       contestStatus: contests.status,
       contestId: contests.id,
     })
@@ -507,23 +518,49 @@ export async function judgeContestEntry(
     return { judged: false, error: 'Guest judges cannot submit scores' };
   }
 
-  const entry = row.entry;
-  const scores = (entry.judgeScores ?? []) as Array<{ judgeId: string; score: number; feedback?: string }>;
-  const existingIdx = scores.findIndex((s) => s.judgeId === judgeId);
-  if (existingIdx >= 0) {
-    scores[existingIdx] = { judgeId, score, feedback };
+  // Derive the overall 0–100 score. When per-criterion scores are supplied, the
+  // overall is the normalized weighted sum (sum(score)/sum(max)*100), which
+  // supports any weight scheme; otherwise use the supplied overall score.
+  let overall: number;
+  if (criteriaScores && criteriaScores.length > 0) {
+    const totalMax = criteriaScores.reduce((s, c) => s + c.max, 0);
+    if (totalMax <= 0) return { judged: false, error: 'Invalid judging criteria' };
+    if (criteriaScores.some((c) => c.score < 0 || c.score > c.max)) {
+      return { judged: false, error: 'A criterion score is out of range' };
+    }
+    overall = Math.round((criteriaScores.reduce((s, c) => s + c.score, 0) / totalMax) * 100);
+  } else if (typeof score === 'number') {
+    overall = score;
   } else {
-    scores.push({ judgeId, score, feedback });
+    return { judged: false, error: 'No score provided' };
   }
 
-  const avgScore = Math.round(scores.reduce((sum, s) => sum + s.score, 0) / scores.length);
+  // Atomic read-modify-write: lock the entry row so two judges scoring the same
+  // entry concurrently can't clobber each other's judgeScores (lost update).
+  return db.transaction(async (tx) => {
+    const [locked] = await tx
+      .select({ judgeScores: contestEntries.judgeScores })
+      .from(contestEntries)
+      .where(eq(contestEntries.id, entryId))
+      .for('update');
 
-  await db
-    .update(contestEntries)
-    .set({ judgeScores: scores, score: avgScore })
-    .where(eq(contestEntries.id, entryId));
+    const scores = (locked?.judgeScores ?? []) as JudgeScoreEntry[];
+    const record: JudgeScoreEntry = { judgeId, score: overall, feedback };
+    if (criteriaScores && criteriaScores.length > 0) record.criteriaScores = criteriaScores;
 
-  return { judged: true };
+    const existingIdx = scores.findIndex((s) => s.judgeId === judgeId);
+    if (existingIdx >= 0) scores[existingIdx] = record;
+    else scores.push(record);
+
+    const avgScore = Math.round(scores.reduce((sum, s) => sum + s.score, 0) / scores.length);
+
+    await tx
+      .update(contestEntries)
+      .set({ judgeScores: scores, score: avgScore })
+      .where(eq(contestEntries.id, entryId));
+
+    return { judged: true };
+  });
 }
 
 // --- Contest Management ---

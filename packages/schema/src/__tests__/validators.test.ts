@@ -873,6 +873,26 @@ describe('judgeEntrySchema — boundary tests', () => {
       judgeEntrySchema.parse({ entryId: uuid, score: 50, feedback: 'x'.repeat(2001) }),
     ).toThrow();
   });
+
+  // Per-criterion scoring (session 173)
+  it('accepts per-criterion scores without an overall score', () => {
+    const parsed = judgeEntrySchema.parse({
+      entryId: uuid,
+      criteriaScores: [{ label: 'Docs', score: 18, max: 20 }, { label: 'Creativity', score: 24, max: 30 }],
+    });
+    expect(parsed.criteriaScores).toHaveLength(2);
+    expect(parsed.score).toBeUndefined();
+  });
+
+  it('rejects a submission with neither score nor criteriaScores', () => {
+    expect(() => judgeEntrySchema.parse({ entryId: uuid })).toThrow();
+  });
+
+  it('rejects a criterion score above its max', () => {
+    expect(() =>
+      judgeEntrySchema.parse({ entryId: uuid, criteriaScores: [{ label: 'Docs', score: 25, max: 20 }] }),
+    ).toThrow();
+  });
 });
 
 describe('createContestSchema — boundary tests', () => {
