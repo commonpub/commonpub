@@ -43,10 +43,10 @@ pub fn generate_hex_token(byte_len: usize) -> String {
 // rule means thin-apps MUST bump `@commonpub/server` alongside
 // `@commonpub/layer` whenever server crosses minor, otherwise pnpm
 // hoists 2.54.x and the layer's `getClientIp` import resolves to undefined.
-const COMMONPUB_CONFIG_VERSION: &str = "^0.13.0";
-const COMMONPUB_LAYER_VERSION: &str = "^0.21.22";
-const COMMONPUB_SCHEMA_VERSION: &str = "^0.16.0";
-const COMMONPUB_SERVER_VERSION: &str = "^2.55.0";
+const COMMONPUB_CONFIG_VERSION: &str = "^0.15.0";
+const COMMONPUB_LAYER_VERSION: &str = "^0.25.0";
+const COMMONPUB_SCHEMA_VERSION: &str = "^0.17.0";
+const COMMONPUB_SERVER_VERSION: &str = "^2.58.0";
 
 // pnpm pin for the generated Dockerfile. `pnpm@latest` is a time-bomb:
 // pnpm ≥10.11 fails `install --frozen-lockfile` on packages with

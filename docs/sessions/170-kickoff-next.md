@@ -1,98 +1,87 @@
-# Kickoff — session 170
+# Resume prompt — CommonPub (after session 169)
 
-Paste everything between the `---` rules as the FIRST message of a fresh session.
-**Prerequisite: session 169 shipped** — see `docs/sessions/169-deploy-dnd-hotfix.md`.
-
-**The big change since 168:** sessions 163–168 are now LIVE on commonpub.io
-(they'd been undeployed since session 162). Deploying them exposed — and 169
-fixed — a homepage-crashing P0, and hardened the deploy pipeline so it can't
-recur silently. The remaining feature work (Part A/B/C) genuinely needs a
-**browser** or a **thin app**; if this session has neither, the honest answer is
-"there's no safe code work to ship blind — pick up Part C in a browser session."
+Paste everything between the `---` rules as the FIRST message when you come back
+to CommonPub. Session 169 left the project in a **clean, published, all-deployed
+state** — there is no broken or half-finished work waiting; pick up any item
+below when you're ready.
 
 ---
 
-Fresh Claude Code session on the CommonPub monorepo. commonpub.io workspace-`main`
-ONLY; **heatsync + deveco UNTOUCHED** on dormant npm `0.24.0`; **no npm publish**;
-**no AI attribution** in commits.
+Fresh Claude Code session on the CommonPub monorepo
+(`/Users/obsidian/Projects/ossuary-projects/commonpub`). commonpub.io builds
+from workspace `main`; deveco.io + heatsynclabs.io are thin npm consumers.
+**No AI attribution in commits. pnpm (never npm) for publishing.**
 
-## Verify session 169 shipped
+## What landed in session 169 (all SHIPPED + verified)
+
+1. **Deployed sessions 163–168 to commonpub.io** — the whole Phase 3a/3c layout
+   editor + LayoutRow/Section extraction + sidebar collapse + PageFrame
+   consolidation went live (prod had been on session-162 code).
+2. **Fixed a live homepage P0** (`9bf961a`): the layout-engine canary 500'd with
+   "DnD provider not found" — `LayoutSection`/`LayoutRow` called dnd-kit
+   `makeDraggable`/`makeDroppable` (which `inject()` a provider) on the
+   provider-less public path. Now guarded behind `editable`; regression guards
+   in the tests.
+3. **Hardened the deploy smoke** (`2a13cf0`): `scripts/smoke.mjs` runs
+   in-container, checks `/` (not just `/api/health`), hard-fails on non-2xx.
+4. **Cruft audit + fixes**: tokenized 2 modal backdrops (`var(--color-surface-overlay)`);
+   reported a dead export (`findZoneOfRow`) + a sub-12px font-token gap (unfixed,
+   P3).
+5. **Doc sweep**: layout engine added to `docs/llm/facts.md` + `gotchas.md` +
+   `codebase-analysis/*`; both READMEs + plan docs corrected (verified counts:
+   **90 pages / 132 components / 33 composables / ~300 routes**).
+6. **Published `@commonpub/layer@0.25.0`** to npm (only the layer changed since
+   0.24.0). Bumped `tools/create-commonpub/src/template.rs` pins to current.
+7. **Updated deveco.io** to `@commonpub/layer@^0.25.0` (deployed + verified).
+
+## Verify the state
 
 ```bash
 for u in https://commonpub.io https://deveco.io https://heatsynclabs.io; do echo "  $u home=$(curl -s -o /dev/null -w '%{http_code}' $u/) health=$(curl -s -o /dev/null -w '%{http_code}' $u/api/health)"; done
-git log --oneline -6                                                 # expect 2a13cf0 ci(deploy)… on top
-grep -n "props.editable" layers/base/components/LayoutSection.vue | head   # dnd guard (makeDraggable behind editable)
-grep -n "props.editable" layers/base/components/LayoutRow.vue | head       # dnd guard (makeDroppable behind editable)
-ls scripts/smoke.mjs                                                 # in-container post-deploy smoke
-SMOKE_BASE=https://commonpub.io node scripts/smoke.mjs               # should print ✅ / -> 200 and exit 0
-pnpm --filter @commonpub/layer test 2>&1 | grep Tests | tail -1      # expect 670 passed
-pnpm typecheck 2>&1 | tail -3                                        # 26/26
+npm view @commonpub/layer version            # expect 0.25.0
+gh run list --workflow=deploy.yml -L 1        # last commonpub deploy GREEN
+pnpm --filter @commonpub/layer test 2>&1 | grep Tests | tail -1   # 670 passed
+SMOKE_BASE=https://commonpub.io node scripts/smoke.mjs            # ✅ / -> 200
 ```
-Also confirm the last deploy run is GREEN: `gh run list --workflow=deploy.yml -L 1`.
-If commonpub.io `/` is ever non-200, that's the session's P0.
 
-## State after 169
+## Feature / layout-engine status (for context)
 
-- **Sessions 163–168 are LIVE** on commonpub.io (Phase 3a/3c editor, LayoutRow/
-  Section extraction, sidebar collapse, PageFrame consolidation). Verified safe
-  via real-browser smoke at 1280/900/390px.
-- **P0 fixed (`9bf961a`)**: the homepage layout-engine canary 500'd with "DnD
-  provider not found" — `LayoutSection`/`LayoutRow` called dnd-kit
-  `makeDraggable`/`makeDroppable` (which `inject()` a provider) on the
-  provider-less public path. Now guarded behind `editable`. Tests had
-  `vi.mock`-ed the whole dnd module, so they never saw it. Regression guards
-  added (`not.toHaveBeenCalled()` on the public path).
-- **Deploy pipeline hardened (`2a13cf0`)**: `scripts/smoke.mjs` runs in-container
-  and FAILS the deploy on a non-2xx `/` (not just `/api/health`). See 169 doc.
-- **Delta audited — clean**: the dnd P0 was the only "provider not found"-class
-  landmine on public paths; no SSR-unsafe setup-time access in public components.
-- **Known pre-existing issue (NOT 169's doing)**: homepage **hydration mismatch**
-  (`Date.now()` contest countdowns + auth-dependent default tab in `index.vue`).
-  Page works; candidate cleanup — needs a browser to verify.
+- **`layoutEngine` flag**: default OFF; **ON live on commonpub.io** via runtime
+  override (homepage canary via `<LayoutSlot>`). deveco + heatsync keep it OFF
+  (legacy renderer) — so they never exercise the editor/dnd path. 18 top-level
+  flags + 5 nested `identity.*`. 6 migrations (latest `0005` = layout tables).
+- **Layout editor**: Phase 3a (shell) + 3b (drag-drop) + 3c (resize) + 3d (a11y)
+  + 3e (auto-form, session-1) LIVE. Pending: 3e remainder + 3f. See
+  `docs/plans/phase-3-editor.md` (status banner at top; checkboxes lag).
 
-## Pick the path by capability (same gating as 168, still true)
+## Resumable work (pick any — none are blocking)
 
-- **Part C — Phase 3e editor polish (browser-free-ISH, the default pickup).**
-  Prep + gotchas are in `169-deploy-dnd-hotfix.md` (§Part C prep). Honest
-  caveats found in 169:
-  - **R3-10** (resize handle `<button>` → `role="separator"` splitter + arrow
-    resize): logic is unit/axe-testable, and it CAN'T crash (semantic/keyboard
-    only) — but the AT/focus feel genuinely wants a browser. Also needs neighbour
-    context wired to the handle for arrow-resize (LayoutSection only knows its own
-    section today; the pointer path gets neighbour via `onResizeStart` from
-    LayoutRow — mirror that for keyboard).
-  - **R3-12** (snap-line gap math): NOT a pure-function-only fix — needs runtime
-    `rowWidth` (resize state `containerWidth`) + px `gap`
-    (`getComputedStyle(rowRef).columnGap`), or a `display:grid` overlay refactor.
-    Alignment wants a browser. Lowest stakes (transient admin overlay).
-  - **3e.4** (mobile colSpan slider): heaviest — touches the per-breakpoint
-    `responsive` field, not base `colSpan`. Needs design.
-- **Part A** — homepage `index.vue` → `<PageFrame>` (the last frame duplicate).
-  Now LOWER risk: the canary is proven live, so it's a pure code-dedup. Still
-  browser-gated (migrate all three `index.vue` branches together — they share
-  `.cpub-main-layout`; see 168 doc for the spacing entanglement). And update the
-  `apps/reference/e2e/responsive.spec.ts` assertions on `.cpub-main-layout`/
-  `.cpub-sidebar`/`.cpub-feed-col` if you remove those classes.
-- **Part B** — component-shadowing literal-keyed resolver. Thin-app-gated.
+- **heatsync update (1 small task)**: `heatsynclabs.io` was NOT bumped (its repo
+  `virgilvox/heatsync-org` is a separate owner, not cloned locally). To update:
+  clone it, set `@commonpub/layer` to `^0.25.0` in package.json, `pnpm install`
+  (regen lockfile — watch [[feedback-pnpm-install-drops-files]]), push, then
+  `curl https://heatsynclabs.io/` to confirm 200. It's running 0.24.0 happily;
+  no urgency (layoutEngine off → no new surface).
+- **Part A** — migrate the homepage `index.vue` to `<PageFrame>` (the last frame
+  duplicate). **Browser-gated** — migrate all three render branches together
+  (shared `.cpub-main-layout`), update `apps/reference/e2e/responsive.spec.ts`,
+  real-browser smoke at ≥1025/768–1024/≤640. Lower risk now (canary proven).
+- **Part B** — component-shadowing literal-keyed resolver (thin-app-gated). Name
+  table in `docs/sessions/168-kickoff-next.md`.
+- **Part C** — Phase 3e remainder (mobile colSpan slider → `responsive` field,
+  not base; rich-field pickers; config-edit undo) + 3f inspector polish. R3-12
+  snap-line math needs runtime gap measurement (NOT a pure function — see 169
+  doc). All want a browser for the interactive bits.
+- **Verify `tools/create-commonpub`**: `cargo build` + `cargo test` after the
+  template.rs pin bump (constants were 3 publishes stale; now current).
+- **Cleanup nits** (from the 169 audit): delete dead `findZoneOfRow`
+  (`useLayoutHistory.ts:187`); decide on a `--text-2xs` token for the ~9 sub-12px
+  editor labels.
 
-## If you CAN drive a browser this session
-Stand up the app (needs Postgres+Redis — `docker compose up -d` then the dev
-server) OR use Playwright (installed: `node_modules/.pnpm/playwright@1.59.1`;
-import via `createRequire` + the full store path, it's CJS) against a local build.
-Then **Part A** finishes the consolidation, or **Part C** ships verified.
-
-## If you CANNOT drive a browser
-Don't ship editor/homepage UI blind — 169's whole lesson. Safe options:
-- A real-library integration test: render `LayoutSection`/`LayoutRow`
-  `editable=false` WITHOUT mocking `@vue-dnd-kit/core`, assert no throw (belt +
-  suspenders beyond the `not.toHaveBeenCalled` guards — tests the real inject).
-- Hydration-safe `index.vue` date/auth rendering behind tests (but verifying the
-  fix removed the mismatch needs a browser).
-- Otherwise: say so and stop. The pipeline + P0 work is complete and valuable.
-
-## Self-audit + close
-R1–R4 + fresh-eyes; a real-browser smoke is mandatory for Part A / any homepage
-or editor-UI change. Verify load-bearing claims against source. Update
-`docs/sessions/170-*.md` + write the next handoff.
+## Conventions reminder
+- Publish ONLY via `pnpm publish:layer` / `pnpm publish:all` (npm publish ships
+  `workspace:*` literals → breaks consumers). Verify npm propagation before
+  bumping a dependant. `^0.x` caret does NOT cross minors — bump dependant pins
+  by hand. Always `curl /` after a deploy (health 200 ≠ site works).
 
 ---
