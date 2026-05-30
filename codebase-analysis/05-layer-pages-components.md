@@ -8,8 +8,10 @@ Instances extend it via `extends: ['@commonpub/layer']` in their nuxt.config.
 As of session 125 (2026-04-16). **Spot-counts re-verified session 150
 (2026-05-19): ~85 pages (auth login flow + federated link UI added in
 sessions 137–140 are ≤5 new), ~110 components, ~20 composables, ~284
-API routes** (see 04 for breakdown). The directory layout below is
-shape-stable; specific file lists are not.
+API routes** (see 04 for breakdown). **Re-verified session 169
+(2026-05-30) after the layout engine + editor shipped (sessions 154–169):
+90 pages, 132 components, 33 composables, 301 API routes.** The directory
+layout below is shape-stable; specific file lists are not.
 
 ## Directory layout (depth 3)
 
@@ -18,14 +20,15 @@ layers/base/
 ├── app.vue                    root with NuxtLayout / NuxtPage / skip-link
 ├── error.vue                  404 / error page — re-applies data-theme for SSR
 ├── nuxt.config.ts             modules, CSS bundle, runtime config, features
-├── components/                117 Vue components (grouped below)
-├── composables/               22 useX helpers
+├── components/                132 Vue components (grouped below; +LayoutSlot/Row/Section + PageFrame + admin/layouts editor)
+├── composables/               33 useX helpers
 ├── layouts/                   default, admin (collapsible sidebar, session 161), auth, editor
 ├── middleware/                auth.ts + feature-gate.global.ts
-├── pages/                     75 routes (Nuxt file-based)
+├── pages/                     90 routes (Nuxt file-based)
 ├── plugins/                   theme.ts + auth.ts (client)
+├── sections/                  builtin/ section registry (17 registered) + registry.ts (Stage E: points component: at existing Block*/Homepage*)
 ├── server/
-│   ├── api/                   257 Nitro routes (REST)
+│   ├── api/                   301 Nitro routes (REST)
 │   ├── routes/                ActivityPub federation routes
 │   ├── middleware/            auth, theme, features, security, content-ap, content-redirect, blog-redirect
 │   ├── plugins/               auto-admin, federation-delivery, federation-hub-sync, migrate-article-to-blog, notification-email, search-index
@@ -35,7 +38,7 @@ layers/base/
 └── utils/                     themeConfig.ts
 ```
 
-## Pages (75)
+## Pages (90)
 
 Grouped by section.
 
@@ -101,7 +104,7 @@ URL restructure landed in session 108: canonical content lives at `/u/{username}
 
 ### Admin (flag: `admin`)
 
-`/admin`, `/admin/users`, `/admin/content`, `/admin/categories`, `/admin/reports`, `/admin/audit`, `/admin/theme`, **`/admin/theme/edit/:id` (session 154)**, `/admin/homepage`, **`/admin/layouts` + `/admin/layouts/:id` (session 160, flag: `layoutEngine`)**, **`/admin/navigation` (session 124)**, `/admin/features`, `/admin/federation`, `/admin/settings`, `/admin/api-keys`.
+`/admin`, `/admin/users`, `/admin/content`, `/admin/categories`, `/admin/reports`, `/admin/audit`, `/admin/theme`, **`/admin/theme/edit/:id` (session 154)**, `/admin/homepage`, **`/admin/layouts` (list) + `/admin/layouts/:id` (the drag-drop layout editor — Phase 3a shell / 3b dnd / 3c resize, sessions 160–169, flag: `layoutEngine`)**, **`/admin/navigation` (session 124)**, `/admin/features`, `/admin/federation`, `/admin/settings`, `/admin/api-keys`.
 
 **Theme admin (session 154)** — `/admin/theme` lists every theme across three sources (built-in / code-registered / DB-stored custom), with capture-from-`:root` detection for thin layer apps that ship their own CSS. `/admin/theme/edit/:id` is the split-pane editor; the special id `__new` reads a seed from sessionStorage (used by create / duplicate / capture / import flows). See [`docs/reference/guides/theme-editor.md`](../docs/reference/guides/theme-editor.md) for the full architecture.
 
@@ -109,9 +112,9 @@ URL restructure landed in session 108: canonical content lives at `/u/{username}
 
 ### Misc
 
-`/authorize_interaction`, `/cert/:code`, `/mirror/:id`.
+`/authorize_interaction`, `/cert/:code`, `/mirror/:id`, **`/[...customPath]` (session 159+, custom-page catch-all — renders a layout-engine `custom-page`-scoped layout via `<LayoutSlot>` when one matches the route; gated by `layoutEngine`)**.
 
-## Components (117) — grouped
+## Components (132) — grouped
 
 ### Block renderers (`components/blocks/`, ~20)
 
@@ -141,19 +144,25 @@ HubDiscussions, HubFeed, HubHero, HubLayout (tabs), HubMembers, HubProducts, Hub
 
 ContentGridSection, ContestsSection, CustomHtmlSection, EditorialSection, HeroSection, HomepageSectionRenderer (dispatcher), HubsSection, StatsSection.
 
-### Layout engine (session 157, Phase 1 + session 158, Phase 1c)
+### Layout engine renderers (session 157 Phase 1 → session 168 PageFrame)
 
-**LayoutSlot** — `<LayoutSlot route="/" zone="main" />` renders one zone of a route's active layout. 12-column CSS Grid per row with `--cpub-section-cols-{sm|md|lg}` custom properties driving responsive `grid-column` spans via media queries (mobile defaults to span 12 = stack). Visibility filters at render time: `enabled`, `role`, `feature`, `hideAt`. `previewOverride` prop lets the editor's preview pane render an in-progress draft without a save round-trip (single source of truth for editor + production rendering). Resolves the section's `type` slug against the layer section registry (session 157 scaffolding + session 158's 6-section catalog). Gated by `features.layoutEngine`.
+**LayoutSlot / LayoutRow / LayoutSection** (`components/LayoutSlot.vue`, `LayoutRow.vue`, `LayoutSection.vue`) — `<LayoutSlot route="/" zone="main" />` renders one zone of a route's active layout, delegating each row to `LayoutRow` (12-column CSS Grid; `--cpub-section-cols-{sm|md|lg}` custom properties drive responsive `grid-column` spans via media queries, mobile defaults to span 12 = stack) and each cell to `LayoutSection`. Visibility filters at render time: `enabled`, `role`, `feature`, `hideAt`. `previewOverride` prop lets the editor's preview pane render an in-progress draft without a save round-trip (single source of truth for editor + production rendering). Gated by `features.layoutEngine`. (`LayoutRow`/`LayoutSection` were extracted from `LayoutSlot` in session 163 — see the CSS-scope extraction note in MEMORY.)
 
-**Section renderers** (`layers/base/components/sections/Section*.vue`) — session 158 added 5 to the proof-of-life divider from session 157, for a total of 6 in the starter catalog:
-- `SectionDivider.vue` (layout cat, 12 col, not resizable)
-- `SectionHero.vue` (layout cat, 6-12 col, default/compact/centered variants, up to 2 CTAs, NOT contest-aware — that's Phase 6b)
-- `SectionHeading.vue` (content cat, 3-12 col, h1-h4 + eyebrow + subline)
-- `SectionParagraph.vue` (content cat, 3-12 col, default 6, plain prose w/ blank-line split)
-- `SectionImage.vue` (content cat, 3-12 col, lazy <img> + optional <a href> wrap + figcaption + fit/aspect)
-- `SectionContentFeed.vue` (data cat, 6-12 col, server-backed grid of ContentCard via `/api/content`, 1-4 cols responsive). First DATA section — uses NON-await useFetch (await would require Suspense on every parent).
+**PageFrame** (`components/PageFrame.vue`, session 168) — the canonical page frame wrapper. Full-width variant is full-bleed (matches the live homepage; ADR 028). Shared by production pages AND the editor's canvas previews so the editor is WYSIWYG (session 168 Stage 2).
 
-**Homepage adoption** (session 158): `layers/base/pages/index.vue` now has a 3-way v-if/v-else-if/v-else. `v-if="layoutEngineEnabled"` renders 3 LayoutSlot zones; v-else-if renders the existing configurable section renderer (when `hasCustomSections`); v-else renders the legacy hardcoded homepage. Flag default OFF → behavior on existing instances unchanged.
+**Section registry — Stage E unification** (session 159, `layers/base/sections/`): the layout engine is an *arranger for EXISTING components*, not a parallel renderer. `registry.ts` registers 17 built-in `SectionDefinition`s (`builtin/*.ts` — divider, hero, heading, paragraph, image, content-feed, editorial, stats, hubs, contests, learning, custom-html, cta, markdown, gallery, video, embed). Each definition's `component:` points at an EXISTING `Block*`/`Homepage*`/`*Section` component and uses a `propMap` to adapt the layout-section shape to that component's props. (Stage E deleted the 16 duplicate `Section*.vue` files that session 158 had created — see `feedback-reuse-existing-components` in MEMORY.) Only `SectionCta.vue` + `SectionLearning.vue` remain under `components/sections/` as genuinely new renderers.
+
+**Editor** (`components/admin/layouts/AdminLayouts*.vue`, sessions 160–169) — the drag-drop layout editor surface rendered by `pages/admin/layouts/[id].vue`:
+- `AdminLayoutsCanvas.vue` — the preview/edit canvas (renders via `<PageFrame>` for WYSIWYG, session 168)
+- `AdminLayoutsToolbar.vue` — save / publish / undo-redo / viewport controls
+- `AdminLayoutsPalette.vue` + `AdminLayoutsPaletteTile.vue` — draggable section palette (drag via `@vue-dnd-kit/core`, Phase 3b)
+- `AdminLayoutsInspector.vue` + `InspectorPage` / `InspectorRow` / `InspectorSection` — context-dispatched property panels
+- `AdminLayoutsAutoForm.vue` — form-from-Zod for a section's `configSchema`
+- `AdminLayoutsConflictModal.vue` — 3-option save-conflict resolution
+- `AdminLayoutsHelpOverlay.vue` — keyboard-shortcut help
+- `AdminLayoutsAnnouncer.vue` — ARIA live-region for drag/resize a11y
+
+**Homepage adoption + canary** (session 158 → 159): `layers/base/pages/index.vue` has a 3-way v-if/v-else-if/v-else. `v-if="layoutEngineEnabled"` renders LayoutSlot zones; v-else-if renders the existing configurable section renderer (when `hasCustomSections`); v-else renders the legacy hardcoded homepage. **commonpub.io's homepage renders LIVE via the layout-engine canary using `<LayoutSlot>`** (session 159). Flag default OFF → behavior on existing instances unchanged.
 
 **Per-section config validation** (session 161): `layers/base/server/utils/validateSectionConfigs.ts` enforces every section's Zod `configSchema` on POST/PUT to `/api/admin/layouts/*`. Schemas live in `@commonpub/schema/sectionConfigs` (server-safe, no Vue imports) and are looked up via `SECTION_CONFIG_SCHEMAS`. Rejection → 400 with structured `data.sectionErrors` payload (zone + rowIndex + sectionIndex + Zod issues per offending section) + audit log `cpub.audit.layout.config-rejected`. Closes the "admin bypasses URL guards / size caps / sandbox flags" surface (session 160 R2 P1 deferred → wired in session 161 after the schema-package refactor removed the .vue transitive that broke the R2 attempt).
 
@@ -173,7 +182,7 @@ AnnouncementBand, AppToast, AuthorCard, AuthorRow, CategoryBadge, CommentSection
 
 DocsPageTree.
 
-## Composables (22)
+## Composables (33)
 
 | Name | Purpose |
 |---|---|
@@ -201,6 +210,14 @@ DocsPageTree.
 | useEngagement | like/bookmark state |
 | useAdminSidebar | (session 161) admin chrome left-nav state machine. Two surfaces: desktop collapse (200px ↔ 56px icons-only, persisted to `cookie[cpub-admin-sidebar-collapsed]` — switched from localStorage in audit-polish round to eliminate SSR/CSR hydration flash) + mobile drawer (independent). Editor routes `/admin/layouts/[id]` + `/admin/theme/edit/[id]` auto-collapse to give canvas room; user can override per visit (session-only, resets on route change). 16 tests in `__tests__/useAdminSidebar.test.ts`. |
 | useEditorChrome | (session 161) palette + inspector visibility state for the layout editor. Two cookie-persisted booleans (`cpub-editor-palette-hidden`, `cpub-editor-inspector-hidden`). Page grid (`pages/admin/layouts/[id].vue`) reflows `grid-template-columns` based on visibility class; `v-show` on the panels themselves preserves component state across toggles. User-reported canvas squish fix. 9 tests in `__tests__/useEditorChrome.test.ts`. |
+| useLayoutEditor | (session 160, Phase 3a) the editor's core state machine — loads a layout, tracks the working draft + dirty/selection state, single-flight save (`AbortController`), publish, discard. Backs `pages/admin/layouts/[id].vue`. |
+| useLayoutHistory | (session 160) undo/redo ring buffer over the editor's working draft (bounded). |
+| useLayoutAutoSave | autosave loop for the editor draft (debounced; pairs with the single-flight save guard). |
+| useLayoutDrag | (session 160, Phase 3b) drag-to-place sections from the palette + reorder within the canvas, built on `@vue-dnd-kit/core` (keyboard a11y included). |
+| useLayoutResize | (session 166, Phase 3c) pointer/keyboard column-span resize handles on a section. Resize-handle tests needed a `PointerEvent` polyfill in jsdom (see `feedback-jsdom-pointerevent-missing`). |
+| useLayoutHotkeys | (session 160) keyboard shortcuts for the editor (undo/redo, save, delete, nudge). |
+| useLayoutAnnouncer | (session 160) ARIA live-region announcer for drag/resize/selection — backs `AdminLayoutsAnnouncer.vue`. |
+| autoFormSchema | helper that drives `AdminLayoutsAutoForm.vue` — turns a section's Zod `configSchema` into form field descriptors. |
 
 ## Middleware
 

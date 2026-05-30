@@ -23,15 +23,19 @@ codebase-analysis/       raw inventory (generated — trust over older docs)
 12 packages on npm as `@commonpub/*`:
 schema, server, config, protocol, auth, ui, editor, explainer, learning, docs, infra, test-utils.
 
-## Latest published versions (session 150, 2026-05-19)
+## Latest published versions (session 160, 2026-05-28)
 
-- schema 0.16.0, server 2.55.0, config 0.13.0, layer 0.21.15
-- ui 0.8.5, protocol 0.12.0, editor 0.7.10, explainer 0.7.15
+- schema 0.17.0, server 2.58.0, config 0.15.0, layer 0.24.0
+- ui 0.9.0, protocol 0.12.0, editor 0.7.11, explainer 0.7.15
 - learning 0.5.2, docs 0.6.3, auth 0.6.0, infra 0.8.0, test-utils 0.5.6
 
-All three prod instances on this version set: commonpub.io, deveco.io,
-heatsynclabs.io. Federation flag is `true` on commonpub.io + deveco.io,
-`false` on heatsynclabs.io. All identity sub-flags
+**The `@commonpub/layer` workspace on `main` is UNPUBLISHED ahead of
+0.24.0** (sessions 161–169: admin sidebar collapse, Phase 3c drag/resize
+editor, PageFrame consolidation, dnd-kit provider-guard hotfix).
+commonpub.io builds from workspace source (so it runs that unpublished
+code); deveco.io + heatsynclabs.io run npm `0.24.0` (dormant — layoutEngine
+off, legacy homepage renderer). Federation flag: verify per-instance via
+`curl /api/features` (the old "true on commonpub+deveco" note drifts). All identity sub-flags
 (`linkRemoteAccounts`, `signInWithRemote`, `actingAs`, `remoteInteract`,
 `remotePublish`) are `false` everywhere; `CPUB_FED_TOKEN_KEY` is unset.
 Run `curl /api/features` to verify before any "dormant" claim — memory
@@ -41,7 +45,7 @@ correction").
 ## Database
 
 - PostgreSQL 16 + Drizzle.
-- **79 tables, 41 enums.** Full list: `codebase-analysis/02-schema-inventory.md`.
+- **80+ tables, 41 enums.** Full list: `codebase-analysis/02-schema-inventory.md`. Layout-engine tables (`layouts`, `layout_rows`, `layout_sections`, `layout_versions`) added in migration 0005 — instance-local, never federate.
 - Domains: auth, content, social, messaging, hubs, products, learning, docs, videos, contests, events, voting, federation, admin, files.
 - Soft delete on: users, contentItems, hubs, federatedContent, federatedHubPosts.
 - Denormalized counters pervasive (voteScore, entryCount, attendeeCount, memberCount, likeCount, etc.).
@@ -70,14 +74,22 @@ correction").
 - **145–148** Three audit-fix passes + federation-hardening Stage 1+2 (SSRF cluster + protocol/server SSRF consolidation)
 - **149** DO Spaces CDN + safeFetch P0 hotfix + Stage 3 Items 6+7 (raw-body digest + strict sig coverage policy)
 - **150** Stage 3 Items 4+8+9 wrap: `safeFetchResponse`/`safeFetchSigned` (federation outbound through pinned dispatcher), Better Auth signed-cookie helper (federated SSO callbacks), `getClientIp` (rightmost XFF, multi-proxy hardening). Plan fully cleared.
+- **154** Admin theme editor (DB-stored custom themes + capture-from-`:root`)
+- **155–159** Layout engine foundation → homepage **canary** live on commonpub.io rendering via `<LayoutSlot>` + **Stage E** renderer unification (sections point at EXISTING Block*/Homepage* components via `propMap`, not parallel renderers)
+- **160** Layout **editor** Phase 3a (shell, read-only canvas, inspector, auto-save) — 4 audit rounds
+- **161–162** Admin sidebar collapse + editor-chrome
+- **163–166** Phase 3b drag-drop (`@vue-dnd-kit/core`) + Phase 3c resize (snap-to-12, neighbour absorption)
+- **167** Phase 3e auto-form-from-Zod (section config inspector)
+- **168** `<PageFrame>` becomes the canonical page frame (custom-page + editor canvas adopt it); ADR 028 homepage-customization model
+- **169** **Deployed sessions 163–168 to commonpub.io.** Caught + fixed a live homepage P0 (dnd-kit `inject('VueDnDKitProvider')` threw on the provider-less public path → guarded behind `editable`); hardened the deploy smoke (in-container, checks `/` not just `/api/health`)
 
 ## Layer structure
 
 `layers/base/` — the distribution unit.
-- 85 pages (Nuxt file-based)
-- 106 components
-- 20 composables
-- 257 API routes in `server/api/`
+- 90 pages (Nuxt file-based)
+- 132 components
+- 33 composables
+- ~300 API routes in `server/api/`
 - AP routes in `server/routes/` (inbox, outbox, .well-known)
 - 6 server plugins, 7 request middlewares
 - 5 themes registered in `packages/ui/src/theme.ts` `BUILT_IN_THEMES` (base, dark, generics, agora, agora-dark)
@@ -85,7 +97,7 @@ correction").
 ## Server package structure
 
 `packages/server/src/` modules:
-admin, auth (identity), content, contest (+judges), docs, events, federation (10 files), homepage, hub (5 files), import, learning, messaging, navigation, notification, product, profile, search, social, video, voting.
+admin, auth (identity), content, contest (+judges), docs, events, federation (10 files), homepage, hub (5 files), import, **layout** (CRUD for `layouts`/`layout_rows`/`layout_sections`/`layout_versions`; session 157), learning, messaging, navigation, notification, product, profile, search, social, video, voting.
 
 Plus file-level utilities: email, hooks, image, oauthCodes, query, security, storage, theme, utils.
 
@@ -103,6 +115,35 @@ Default OFF: `events`, `contests`, `federation`, `federateHubs`,
 plugin's `assertIdentityConfig` refuses to boot otherwise.
 
 Details: `codebase-analysis/08-feature-flags-inventory.md`.
+
+## Layout engine (sessions 155–169)
+
+DB-driven page layouts behind `features.layoutEngine` (default **OFF**; **ON
+live on commonpub.io** via a runtime override — verify with `curl
+/api/features`). Instance-local — the `layouts`/`layout_rows`/
+`layout_sections`/`layout_versions` tables **never federate**.
+
+- **Render path**: `<LayoutSlot route zone>` (`layers/base/components/`) →
+  `useLayout(route)` fetches `/api/layouts/by-route` → `<LayoutRow>` →
+  `<LayoutSection>`. When the flag is OFF or no layout row exists for the
+  route, pages fall back to the legacy renderer (3-way `v-if` in
+  `pages/index.vue`). Live on commonpub.io: the homepage is a **canary**
+  rendering via `<LayoutSlot>`.
+- **`<PageFrame>`** (session 168) is the ONE canonical page frame (full-bleed
+  full-width zone + capped main/sidebar grid). Adopted by the custom-page
+  catch-all (`pages/[...customPath].vue`) + the editor canvas. Homepage
+  `index.vue` migration to it is the last consolidation step (Part A, pending).
+- **Section registry** (`layers/base/sections/`): 17 section types. Stage E
+  unification — each registry entry points `component:` at an **EXISTING**
+  `Block*`/`Homepage*` component and adapts props via `propMap`. Do NOT write
+  parallel `Section*.vue` renderers (16 such dupes were deleted in Stage E).
+- **Editor** at `/admin/layouts` + `/admin/layouts/[id]` (admin-only). Phase
+  3a shell + 3b drag-drop (`@vue-dnd-kit/core`) + 3c resize (snap-to-12,
+  neighbour absorption) + 3e auto-form-from-Zod config inspector — all live.
+  GOTCHA: the dnd composables throw without a `<DnDProvider>` ancestor, so
+  they're gated behind `editable` (see `docs/llm/gotchas.md`).
+- Plan/status: `docs/plans/layout-engine-rollout.md` + `phase-3-editor.md`
+  (checkboxes lag reality — 3b/3c are live though some boxes are unchecked).
 
 ## Thin-app pattern
 

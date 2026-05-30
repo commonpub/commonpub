@@ -72,7 +72,7 @@ other. CommonPub changes that:
 | **Federation** | Full ActivityPub: follows, content delivery, hub federation, content mirroring, signed backfill, OAuth2 SSO across trusted instances. |
 | **Products + BOM** | Hub-scoped product catalog. Projects auto-link via parts lists — your project shows up on the product's page across instances. |
 | **Theming** | 5 built-in themes (base, dark, generics, agora, agora-dark), CSS custom property system, runtime switching, SSR-safe with zero FOUC. Admin theme editor at `/admin/theme/edit/[id]` (session 154+156). |
-| **Layout engine** | Visual editor at `/admin/layouts` and `/admin/layouts/[id]`. 17 section types arranged across rows in a 12-column grid; supports route layouts, custom pages (`/about`, `/team`), and virtual zones. Auto-save with optimistic concurrency (If-Match → 409 conflict modal). Admin-only; gated on `features.layoutEngine`. Phase 3a editor shipped session 160 + 4 audit rounds. |
+| **Layout engine** | Visual editor at `/admin/layouts` and `/admin/layouts/[id]`. 17 section types arranged across rows in a 12-column grid; supports route layouts, custom pages (`/about`, `/team`), and virtual zones. Drag-drop reorder, edge-handle resize (snap-to-12), per-section auto-form config, undo/redo, keyboard a11y. Auto-save with optimistic concurrency (If-Match → 409 conflict modal). Public render via `<LayoutSlot>` through the shared `<PageFrame>`; sections reuse existing `Block*`/`Homepage*` components (no parallel renderers). Admin-only; gated on `features.layoutEngine`. Editor Phase 3a–3c shipped (sessions 160–168); live as the homepage canary on commonpub.io. |
 | **Admin** | User management, role hierarchy, content moderation, audit logs, instance settings, runtime feature-flag overrides, **configurable navigation**, **configurable homepage sections** (legacy editor, now non-destructively syncs with the layout engine), **layout engine** for page editing, federation controls. |
 
 **17 feature flags** (+ 5 nested `identity` sub-flags) let you enable only what you need. See
@@ -150,7 +150,7 @@ Details in [docs/guides/developers.md](docs/guides/developers.md#the-thin-app-pa
 ```
 commonpub/
 ├── packages/           12 framework-agnostic TypeScript packages (published to npm)
-├── layers/base/        Shared Nuxt layer (@commonpub/layer) — 86 pages, 106 components, 283 API routes
+├── layers/base/        Shared Nuxt layer (@commonpub/layer) — 90 pages, 132 components, ~300 API routes
 ├── apps/
 │   ├── reference/      Fully featured Nuxt 3 reference app (all features on)
 │   └── shell/          Minimal starter template
@@ -168,10 +168,10 @@ commonpub/
 └── codebase-analysis/  Exhaustive inventory — every table, route, component, flag, gotcha
 ```
 
-- **79 tables, 41 enums** in the schema across 15 domains
-- **283 API routes** in the layer
-- **86 pages, 106 components, 22 composables** in the layer
-- **17 feature flags** (+ 5 nested `identity` sub-flags) gating every non-core feature
+- **80+ tables, 41 enums** in the schema across 15 domains
+- **~300 API routes** in the layer
+- **90 pages, 132 components, 33 composables** in the layer
+- **18 feature flags** (+ 5 nested `identity` sub-flags) gating every non-core feature
 
 Full analysis: [`codebase-analysis/`](./codebase-analysis/).
 
@@ -191,7 +191,7 @@ See [`codebase-analysis/01-monorepo-topology.md`](./codebase-analysis/01-monorep
 
 ## Packages
 
-All 12 published to npm as `@commonpub/*`. Latest versions as of 2026-05-28 (session 160 close):
+All 12 published to npm as `@commonpub/*`. Latest published versions below (last publish: session 160). The `@commonpub/layer` workspace on `main` is unpublished ahead of `0.24.0` (sessions 161–169: Phase 3c editor, PageFrame, dnd-kit guard); commonpub.io builds from workspace source, deveco.io + heatsynclabs.io run npm `0.24.0`.
 
 | Package | Version | Purpose |
 |---|---|---|

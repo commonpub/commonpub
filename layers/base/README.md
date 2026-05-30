@@ -53,11 +53,11 @@ Create `server/utils/config.ts` to load the config on the server side. See `apps
 
 Content CRUD (projects/blogs/explainers), hub feeds (community/product/company), learning paths, docs sites, contests, events, messages, notifications, search, user profiles, federation, **admin panel** (users, content, reports, settings, theme editor at `/admin/theme/edit/[id]`, layout editor at `/admin/layouts/[id]`), and more.
 
-### Components (123)
+### Components (132)
 
 Content editor (`CpubEditor`), content cards, author rows, comment sections, engagement bars, federation UI, notification items, message threads, **21 block renderers** under `components/blocks/` (`BlockHeadingView`, `BlockCalloutView`, `BlockEmbedView`, `BlockMarkdownView`, `BlockGalleryView`, etc. — all `*View` suffixed), homepage section renderers (`HeroSection`, etc.), the **layout-editor admin chrome** (`AdminLayoutsToolbar`, `AdminLayoutsCanvas`, `AdminLayoutsPalette`, `AdminLayoutsInspector`, `AdminLayoutsConflictModal`), and the `<LayoutSlot>` renderer that arranges existing components per the layout engine.
 
-### Composables (27)
+### Composables (33)
 
 Highlights — see `layers/base/composables/*.ts` for the full set:
 
@@ -79,7 +79,7 @@ Highlights — see `layers/base/composables/*.ts` for the full set:
 
 The TipTap block editor itself lives in `@commonpub/editor` (composable `useBlockEditor` is imported from there, not declared in the layer).
 
-### Server (90+ Nitro API routes)
+### Server (~300 Nitro API routes)
 
 API routes for all CommonPub features, auth middleware (`requireAdmin`, `requireFeature`), federation endpoints (Fedify-mounted), per-feature audit logging (`cpub.audit.*`), layout-engine CRUD at `/api/admin/layouts/*` (gated on `features.admin` + `features.layoutEngine`), and Nitro plugins for identity startup + feature-flag override.
 

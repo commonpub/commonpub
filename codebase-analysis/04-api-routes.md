@@ -2,7 +2,8 @@
 
 Nitro server routes in `layers/base/server/api/` and federation routes in
 `layers/base/server/routes/`. **257 routes as of session 125; ~284 as
-of session 150.**
+of session 150; 301 as of session 169 (2026-05-30) — the layout engine
+added `/api/admin/layouts/*` (10) + `/api/layouts/by-route` (see below).**
 
 **Routes added since 125 (not yet enumerated below)**:
 - `/api/auth/mastodon/start` + `/api/auth/mastodon/callback` (session 139, Phase 2a Mastodon SSO; flag `identity.signInWithRemote`)
@@ -306,7 +307,7 @@ Federation admin (extensive):
 - GET /api/cert/:code — verify learning certificate
 - **GET /api/layouts/by-route?path=/some-path** (session 157, Phase 1 of the layout engine) — resolves the active layout for an SSR page. Gated by `features.layoutEngine` (default OFF) — returns `404 "Layout engine not enabled"` when the flag's off so the legacy `HomepageSectionRenderer` stays in charge during the migration window. Module-level 60s cache keyed by path. Returns slim shape `{ zones, pageMeta, state }`. **Session 158**: cache lifted into `server/utils/layoutCache.ts` so the admin write API can invalidate it cleanly. `by-route.get.ts` re-exports `invalidateLayoutsByRouteCache` for backwards compat.
 
-**Admin layout write API** (session 158, Phase 1c) — 9 routes under `/api/admin/layouts/*`, all gated on `requireFeature('admin') + requireFeature('layoutEngine') + requireAdmin(event)`. Every write handler calls `invalidateLayoutsByRouteCache()` before returning (statically enforced by `handlers-contract.test.ts`):
+**Admin layout write API** (session 158, Phase 1c; backs the `/admin/layouts/:id` editor, sessions 160–169) — 10 routes under `/api/admin/layouts/*`, all gated on `requireFeature('admin') + requireFeature('layoutEngine') + requireAdmin(event)`. Every write handler calls `invalidateLayoutsByRouteCache()` before returning (statically enforced by `handlers-contract.test.ts`):
 - `GET    /api/admin/layouts` — list (optional `?scope=route|virtual|custom-page`)
 - `POST   /api/admin/layouts` — create (409 if scope already exists)
 - `GET    /api/admin/layouts/[id]`
@@ -316,6 +317,7 @@ Federation admin (extensive):
 - `GET    /api/admin/layouts/[id]/versions` — version history
 - `POST   /api/admin/layouts/[id]/versions/[versionId]/revert` — restore from snapshot (snapshot itself never touched; immutable)
 - `POST   /api/admin/layouts/seed-homepage` — idempotent bootstrap for the homepage canary (creates + publishes a default hero + content-feed layout at `('route', '/')` if none exists)
+- `POST   /api/admin/layouts/migrate-homepage` — migrate the legacy configurable-homepage sections into a layout-engine layout (`force=true` updates in place via `saveLayout` rather than `deleteLayout`, preserving `layout_versions` — session 161 R4 P1 fix)
 
 ## Gotchas worth remembering
 

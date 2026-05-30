@@ -2,7 +2,7 @@
 
 > **Living document.** Update as each stage completes. Source of truth for "what's next" during autonomous execution sessions.
 
-**Last updated**: session 160 (Phase 3a editor shell shipped + 4 audit rounds; final head `946820c`, 264 layer tests). Next: Phase 3b drag-drop (2 sessions) or schema-package refactor (1 session, unblocks R2's deferred per-section validation) per `docs/sessions/161-handoff-prompt.md`.
+**Last updated**: session 169 (2026-05-30). Editor Phases **3a (shell) + 3b (drag-drop) + 3c (resize) SHIPPED and LIVE** on commonpub.io as the homepage canary; 3e auto-form session-1 shipped (167); `<PageFrame>` is now the canonical page frame (168); sessions 163–168 were deployed to commonpub.io in 169 (which caught + fixed a public-path dnd-provider P0 and hardened the deploy smoke). Remaining: 3d/3e-remainder/3f editor polish + Phases 4–10. **The "State as of session 159 close" table below is stale** — current handoff is `docs/sessions/170-kickoff-next.md`. (Prior: session 160, final head `946820c`, 264 layer tests; now 670 layer tests.)
 **Architectural source**: `docs/plans/layout-and-pages.md` (1342 lines — the design doc, frozen)
 
 ---

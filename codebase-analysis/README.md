@@ -1,7 +1,12 @@
 # CommonPub Codebase Analysis
 
-> **Freshness as of session 150 (2026-05-19).** Each file is dated
-> individually below. **Files brought current in session 150:**
+> **Freshness as of session 169 (2026-05-30).** Each file is dated
+> individually below. **Brought current in session 169** (layout-engine sweep):
+> `02` (layout tables), `03` (layout server module), `04` (layout routes, ~300 total),
+> `05` (layout components/composables + counts: 90 pages / 132 components / 33 composables),
+> `08` (`layoutEngine` flag — live on commonpub.io via runtime override),
+> `09` + `11` (dnd-kit provider-guard + in-container deploy-smoke gotchas).
+> **Earlier — files brought current in session 150:**
 >
 > - `01-monorepo-topology.md` — version table only (headline still says session 125; structural shape unchanged)
 > - `06-other-packages.md` — protocol + infra sections (other package sections still at session 125)

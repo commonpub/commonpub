@@ -1,7 +1,15 @@
 # 11 — Codebase Stats
 
-As of session 161 (2026-05-28 — admin sidebar collapse). Sessions 159 + 160 stats are folded into the session-by-session entries below.
+As of session 169 (2026-05-30 — layout engine Phase 3a/3c live on commonpub.io). Sessions 159 + 160 stats are folded into the session-by-session entries below.
 Numbers are approximate — exact counts vary with test exclusions.
+
+**Session 169 deltas** (layout editor live + PageFrame consolidation + dnd-kit hotfix — recap, see `docs/sessions/162–169-*.md` for per-session detail):
+- Layout editor LIVE on commonpub.io (workspace `main`): Phase 3a shell + 3b drag-drop (`@vue-dnd-kit/core`) + 3c column-resize all shipped; the homepage renders via the layout-engine canary using `<LayoutSlot>`. Editor at `/admin/layouts/:id`, gated by `features.layoutEngine` (default OFF; heatsync + deveco stay dormant).
+- **PageFrame consolidation (session 168)**: `components/PageFrame.vue` is now the canonical page frame; full-width = full-bleed (ADR 028). Editor canvas previews render through `<PageFrame>` so the editor is WYSIWYG.
+- **dnd-kit provider guard hotfix (session 169)**: `LayoutSection`/`LayoutRow` call `@vue-dnd-kit/core`'s `makeDraggable`/`makeDroppable` ONLY when `editable` — those inject `VueDnDKitProvider` and throw on the provider-less public render path (homepage canary + custom pages). Crashed commonpub.io's homepage (500) on first deploy; now guarded.
+- **Stage E unification (session 159)**: section registry's 17 `builtin/*.ts` definitions point `component:` at EXISTING `Block*`/`Homepage*`/`*Section` components via `propMap`; the 16 duplicate `Section*.vue` files from session 158 were deleted (only `SectionCta.vue` + `SectionLearning.vue` remain as genuinely-new renderers).
+- **Verified counts (`git ls-files` tracked source, test files excluded)**: 90 pages, 132 components, 33 composables, ~300 API routes (`/api/admin/layouts/*` = 10 + `/api/layouts/by-route`). See `04` + `05` for breakdowns.
+- New feedback memories across 162–169: `feedback-match-established-pattern`, `feedback-nested-aria-button-violation`, `feedback-css-scope-component-extraction`, `feedback-aria-selected-needs-role`, `feedback-jsdom-pointerevent-missing`, `feedback-css-cascade-unit-test-blind-spot`.
 
 **Session 161 deltas** (admin sidebar collapse + schema-package refactor + audit polish + migrate-homepage P1 fix):
 - Composables: 20 → **22** (`+useAdminSidebar.ts` ~95 LOC, uses `useCookie`; `+useEditorChrome.ts` ~60 LOC, palette + inspector hide-state for the layout editor — both cookie-persisted)
@@ -81,10 +89,10 @@ Numbers are approximate — exact counts vary with test exclusions.
 | Enums | 41 |
 | Zod validators | 60+ (layout engine added 10 in session 155) |
 | Server modules | 23+ (layout/ added session 157; layout/seed.ts added session 158) |
-| API routes | 286+ (+9 admin layout routes session 158 under `/api/admin/layouts/*` — all flag-gated; +1 `/api/layouts/by-route` session 157) |
-| Layer pages | 86+ (admin/theme/edit/[id] added session 154) |
-| Layer components | 124+ (8 AdminTheme* in 154; 1 LayoutSlot in 157; 5 Section* in 158) |
-| Composables | 22+ (useThemeAdmin in 154; useLayout in 157) |
+| API routes | 301 (session 169 spot-count; +10 admin layout routes under `/api/admin/layouts/*` + `/api/layouts/by-route` — all flag-gated) |
+| Layer pages | 90 (session 169 spot-count; admin/theme/edit/[id] in 154; admin/layouts editor + [...customPath] catch-all in 159–160) |
+| Layer components | 132 (session 169 spot-count; 8 AdminTheme* in 154; LayoutSlot/Row/Section + PageFrame; admin/layouts editor family 160–169) |
+| Composables | 33 (session 169 spot-count; useThemeAdmin in 154; useLayout/useLayoutEditor/History/Resize/Drag/Hotkeys/Announcer/AutoSave + useEditorChrome + useAdminSidebar + autoFormSchema) |
 | Feature flags | 18 top-level (added `layoutEngine` in session 157) + 5 nested `identity.*` sub-flags |
 | Themes | 5 built-in (base, dark, generics, agora, agora-dark) + N DB-stored custom + N code-registered (admin-managed via `/admin/theme`, session 154) |
 | Migrations | 6 (0000_session128_baseline → 0005_wonderful_blue_marvel — layout engine, session 155+157 — drizzle-kit generated to keep journal in sync) |

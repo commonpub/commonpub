@@ -223,7 +223,9 @@ Both are thin CRUD over `instanceSettings` JSONB keys:
 **layout.ts** — full CRUD for the new layout engine, which replaces
 `homepage.sections` once `features.layoutEngine` flips ON (Phase 4
 adoption). 8 exports across 4 tables (`layouts`, `layout_rows`,
-`layout_sections`, `layout_versions` — migration 0005):
+`layout_sections`, `layout_versions` — migration 0005). Consumed by the
+layer's `/api/admin/layouts/*` write routes + the public
+`/api/layouts/by-route` read route:
 
 - `listLayouts(db, opts?)` — optionally filter by scope_type
 - `getLayoutByScope(db, scope)` — primary read path; returns full nested

@@ -697,3 +697,47 @@ Five XFF callsites total in `layers/base/server/`:
 
 All migrated to `getClientIp(event)`. If you add a new IP-derived
 key, use the helper — don't re-parse XFF inline.
+
+## Sessions 155–169 — layout engine + deploy invariants
+
+### dnd-kit composables throw without a `<DnDProvider>` ancestor — gate behind `editable`
+
+`@vue-dnd-kit/core`'s `makeDraggable`/`makeDroppable` call
+`inject('VueDnDKitProvider')` at setup and THROW `"DnD provider not found"`
+when no provider is mounted above. `disabled: true` does NOT suppress the
+inject. The public render path (homepage layout-engine canary + custom pages
+render `<LayoutSlot editable=false>`) has NO provider, so `LayoutSection.vue`
+(makeDraggable, ~166) and `LayoutRow.vue` (makeDroppable, ~529) call them ONLY
+inside `if (props.editable)`, with inert `computed(() => undefined/false)`
+fallbacks. `editable` is static per instance → the conditional composable call
+is safe. This crashed commonpub.io's homepage (500) the moment the editor code
+first deployed (session 169) — and every unit test `vi.mock`s the whole dnd
+module, so the real inject path is NEVER exercised in tests. The guard is
+locked by `not.toHaveBeenCalled()` assertions in
+`LayoutSection.test.ts`/`LayoutRow.test.ts`. The editor
+(`pages/admin/layouts/[id].vue`) wraps everything in `<DnDProvider>`, so
+`editable=true` is always safe. See `docs/sessions/169-deploy-dnd-hotfix.md`.
+
+### Layout sections reuse existing components via `propMap` — no parallel renderers
+
+The 17-section registry (`layers/base/sections/`) sets `component:` to an
+existing `Block*`/`Homepage*` component and adapts props via `propMap`. Stage E
+deleted 16 duplicate `Section*.vue` files (~2200 wasted lines). Check
+`components/blocks/` + `components/homepage/` before writing a section renderer.
+
+### The app's port 3000 is container-internal — smoke MUST run in-container
+
+caddy fronts 80/443 on the droplet; the app container does NOT publish 3000 to
+the host. A droplet-host `curl http://localhost:3000/...` never reaches the app.
+The OLD post-deploy health check (`curl -sf http://localhost:3000/ || echo
+::warning`) was BOTH warn-only AND pointed at the unreachable host endpoint —
+so it silently "passed" forever. Session 169 replaced it with `scripts/smoke.mjs`
+run via `docker compose exec -T app node scripts/smoke.mjs` (in-container, where
+localhost:3000 IS the app), checking `/` (not just `/api/health`) and
+hard-failing on non-2xx. **Health 200 ≠ site works — always smoke `/`.**
+
+### `layoutEngine` is default OFF but ON live on commonpub.io
+
+Via a runtime override (env or DB `instance_settings.features.overrides`). The
+homepage there renders through `<LayoutSlot>` (the canary). deveco.io +
+heatsynclabs.io keep it OFF (legacy renderer). Verify with `curl /api/features`.

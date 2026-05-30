@@ -144,7 +144,7 @@ timers/setInterval with `defineNitroPlugin()`.
 ## Feature flag conventions
 
 - Default OFF for anything non-core.
-- Default ON only for: content, social, hubs, docs, video, learning, explainers, editorial.
+- Default ON only for: content, social, hubs, docs, video, learning, explainers, editorial, admin, contentImport.
 - Gate in all four places: server code, route middleware, component markup, nav items.
 - Document the flag in `docs/reference/guides/feature-flags.md` AND in `codebase-analysis/08-feature-flags-inventory.md`.
 

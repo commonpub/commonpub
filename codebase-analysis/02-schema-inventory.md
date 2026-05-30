@@ -1,16 +1,20 @@
 # 02 — Schema Inventory
 
 Source: `packages/schema/src/*.ts`. As of session 125 (2026-04-16).
-**Headline counts re-verified session 150 (2026-05-19): still 79
-tables, 41 enums.** The file list below is missing `publicApi.ts`
-(session 127 — api_keys + api_key_usage tables). Migration set has
-grown to 0000–0004 (0001 docs unstringify, 0002 session-130
-constraints, 0003 notifications dedup, 0004 federated OAuth tokens
-in session 137). Individual tables added since 125 — federated_accounts
-+ oauth_codes for cross-instance identity (session 137) — are reflected
-in pgTable() counts but NOT yet enumerated in the per-file list below.
+**Headline counts re-verified session 150 (2026-05-19): 79
+tables, 41 enums. Now ~80+ tables after the 4 layout-engine tables
+landed (sessions 155 + 157, migration 0005).** The file list below is
+missing `publicApi.ts` (session 127 — api_keys + api_key_usage tables).
+Migration set has grown to 0000–0005 (0001 docs unstringify, 0002
+session-130 constraints, 0003 notifications dedup, 0004 federated OAuth
+tokens in session 137, **0005 `0005_wonderful_blue_marvel` — layout
+engine tables, session 155/157**). 6 migrations total; latest is
+`0005_wonderful_blue_marvel`. Individual tables added since 125 —
+federated_accounts + oauth_codes for cross-instance identity (session
+137) — are reflected in pgTable() counts but NOT yet enumerated in the
+per-file list below.
 
-**79 tables, 41 enums, 50+ Zod validators.** Drizzle ORM on PostgreSQL 16. Counts verified against both production DBs on 2026-04-17.
+**~80+ tables, 41 enums, 50+ Zod validators.** Drizzle ORM on PostgreSQL 16. Core table count verified against both production DBs on 2026-04-17; +4 layout-engine tables (migration 0005) since.
 
 ## Files
 
@@ -243,7 +247,7 @@ Federated hubs:
 | layoutSections | Sections within a row | `unique(row_id, position)`; `CHECK col_span between 1 and 12`; `responsive` + `visibility` are JSONB; `schema_version` for per-type config migrations; cascades from layoutRows |
 | layoutVersions | Immutable publish snapshots | `unique(layout_id, version)`; full nested `LayoutRecord` in JSONB `snapshot`; revert copies snapshot back to current — version row itself untouched |
 
-Consumed by `packages/server/src/layout/layout.ts` (Phase 1 server CRUD, session 157). Read via `<LayoutSlot>` Vue component once `features.layoutEngine` flips ON.
+Consumed by `packages/server/src/layout/layout.ts` (Phase 1 server CRUD, session 157). Read via `<LayoutSlot>` Vue component once `features.layoutEngine` flips ON. **Instance-local — these 4 tables never federate** (ADR 027 / CLAUDE.md federation-scope table); they never serialize through `@commonpub/protocol`.
 
 ## Zod validators
 

@@ -1,6 +1,8 @@
 # Phase 3 — Layout Editor (Hybrid: 3 primitives + build the shell)
 
 > **Living document.** Updated as each phase ships. Source of truth for the layout editor work.
+>
+> **STATUS (session 169, 2026-05-30):** Phases **3a** (editor shell), **3b** (drag-drop via `@vue-dnd-kit/core`), and **3c** (resize: snap-to-12 + neighbour absorption) are **SHIPPED and LIVE** on commonpub.io (the homepage layout-engine canary). **3e** (auto-form-from-Zod config inspector) session-1 is shipped (167). Remaining: **3d** (full a11y narration/axe pass), **3e** remainder (mobile colSpan slider, rich-field pickers, config-edit undo), **3f** (inspector polish) — PARTIAL/PENDING. **The per-phase `[ ]` checkboxes below for 3b/3c LAG reality** — trust this banner + the code + sessions 160–169. Session 169 hardened 3b after a public-path dnd-provider P0 (`docs/sessions/169-deploy-dnd-hotfix.md`).
 
 **Decided 2026-05-27 (session 159 close)**: HYBRID approach. Adopt 3 mature MIT-licensed Vue 3 primitives instead of writing drag-drop/resize/grid math from scratch OR adopting a full-fledged editor (none of which fit our zone-keyed section-registry-with-Zod model — full audit in [the agent research output linked from `docs/plans/stage-e-unification.md`]).
 
