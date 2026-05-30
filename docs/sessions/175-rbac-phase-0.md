@@ -84,6 +84,37 @@ resolution core stays in `packages/server/src/rbac/resolver.ts`. Plan updated.
   confirms the auto-import wiring: requireAdmin→requirePermission, cpubPermissions
   context, useConfig().features.rbac, resolvePermissions in middleware).
 
+## Deep audit (post-commit) — 2 real bugs found + fixed
+
+Audited the committed Phase 0 adversarially; the pure-function tests were green
+but the GATE wiring had two defects (classic [[feedback-integration-test-full-output-path]]).
+
+**Bug 1 — INV-2 admin lockout (gate).** `requirePermission` computed
+`primaryRole = resolved?.primaryRole ?? user.role`. On a resolver DB-error the
+core default-denies to `{primaryRole:'', permissions:∅}`; `'' ?? user.role`
+returns `''` (nullish-coalescing doesn't fall back from empty string), so an
+admin would 403 for a TTL window. **Fix:** the admin floor reads the
+authoritative enriched `user.role` (`user.role || resolved?.primaryRole`) — same
+source the old requireAdmin trusted. Also threaded the enriched role into the
+resolver (`opts.primaryRole`) so the admin/flag-off hot paths do ZERO extra DB
+queries and stay consistent with the enrich query.
+
+**Bug 2 — INV-1 demotion lag (resolver).** The resolver cached an admin's set as
+`{'*'}` for 30s. A just-demoted admin's stale cache entry still carried `*`, so
+the gate's `*` branch granted full access for up to 30s — but pre-RBAC,
+requireAdmin read `users.role` fresh every request, so demotion was immediate.
+**Fix:** the resolver returns an EMPTY set for admins; admin access rides
+entirely on the gate-time floor over the fresh `users.role`. No `*` is ever
+cached, so demotion is immediate again (INV-1 preserved) and INV-2 is now purely
+code-level.
+
+**Tests added for the gap the algorithm tests missed:** `requirePermission.test.ts`
+(11 gate tests with stubbed Nitro globals — incl. the INV-2 "admin survives an
+empty/failed resolver" and INV-1 "stale admin cache doesn't grant a demoted
+member" regression guards) + 3 resolver `opts.primaryRole` fast-path tests.
+
+Re-verified: build 0 · typecheck 0 errors · layer 686 · server 1169.
+
 ## NOT done (deliberately) / next steps
 
 - **Release + deploy to all 3 instances is NOT yet done** — awaiting go-ahead (npm

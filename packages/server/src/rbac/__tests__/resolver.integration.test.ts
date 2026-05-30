@@ -16,7 +16,7 @@ describe('resolveUserPermissions (PGlite)', () => {
     await closeTestDB(db);
   });
 
-  it('admin → ALL via `*`, regardless of flag, without touching RBAC tables', async () => {
+  it('admin → access via the floor (empty cached set), regardless of flag, without touching RBAC tables', async () => {
     const admin = await createTestUser(db, { role: 'admin' });
 
     const off = await resolveUserPermissions(db, admin.id, { rbacEnabled: false });
@@ -24,7 +24,8 @@ describe('resolveUserPermissions (PGlite)', () => {
 
     for (const r of [off, on]) {
       expect(r.primaryRole).toBe('admin');
-      expect(r.permissions.has('*')).toBe(true);
+      // No synthetic `*` baked into the cached set — access rides on the floor.
+      expect(r.permissions.size).toBe(0);
       expect(hasPermissionPure(r.permissions, 'admin.access', r.primaryRole)).toBe(true);
       expect(hasPermissionPure(r.permissions, 'federation.manage', r.primaryRole)).toBe(true);
     }
@@ -95,5 +96,43 @@ describe('resolveUserPermissions (PGlite)', () => {
     expect(r.primaryRole).toBe('');
     expect(r.permissions.size).toBe(0);
     expect(hasPermissionPure(r.permissions, 'content.read', r.primaryRole)).toBe(false);
+  });
+
+  describe('opts.primaryRole supplied (enrich-query fast path)', () => {
+    it('admin via param → floor access without any users-table row needed', async () => {
+      // No user inserted: the param short-circuits the users query.
+      const r = await resolveUserPermissions(db, crypto.randomUUID(), {
+        rbacEnabled: true,
+        primaryRole: 'admin',
+      });
+      expect(r.permissions.size).toBe(0);
+      expect(hasPermissionPure(r.permissions, 'federation.manage', r.primaryRole)).toBe(true);
+    });
+
+    it('flag-off via param → empty set, primaryRole preserved (no users query)', async () => {
+      const r = await resolveUserPermissions(db, crypto.randomUUID(), {
+        rbacEnabled: false,
+        primaryRole: 'staff',
+      });
+      expect(r.primaryRole).toBe('staff');
+      expect(r.permissions.size).toBe(0);
+    });
+
+    it('flag-on non-admin via param → unions grants for that userId', async () => {
+      const user = await createTestUser(db, { role: 'member' });
+      const [role] = await db
+        .insert(roles)
+        .values({ key: 'editor-test', name: 'Editor', isSystem: false })
+        .returning();
+      await db.insert(rolePermissions).values({ roleId: role!.id, permissionKey: 'content.editorial' });
+      await db.insert(userRoles).values({ userId: user.id, roleId: role!.id });
+
+      const r = await resolveUserPermissions(db, user.id, {
+        rbacEnabled: true,
+        primaryRole: 'member',
+      });
+      expect(r.permissions.has('content.editorial')).toBe(true);
+      expect(hasPermissionPure(r.permissions, 'content.editorial', r.primaryRole)).toBe(true);
+    });
   });
 });

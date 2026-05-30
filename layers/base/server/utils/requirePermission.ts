@@ -43,9 +43,13 @@ export function requirePermission(
   const user = requireAuth(event);
   const resolved = event.context.cpubPermissions;
   const granted = resolved?.permissions ?? new Set<string>();
-  // Fall back to the enriched user.role if the resolver didn't run — this
-  // preserves the admin floor even if cpubPermissions is somehow absent (INV-2).
-  const primaryRole = resolved?.primaryRole ?? user.role;
+  // Admin floor (INV-2) reads the AUTHORITATIVE enriched `user.role` from
+  // requireAuth — never `resolved.primaryRole`. If the resolver default-denied
+  // on a DB error it returns an empty set with `primaryRole: ''`, and `?? `
+  // would NOT fall back from a defined empty string — locking out admins for a
+  // TTL window. `user.role` comes from the same enrich query the old
+  // requireAdmin trusted, so no DB state can lock out admin.
+  const primaryRole = user.role || resolved?.primaryRole;
 
   if (!hasPermissionPure(granted, needed, primaryRole)) {
     throw createError({
@@ -66,6 +70,7 @@ export function hasPermission(event: H3Event, needed: PermissionKey): boolean {
   if (!user) return false;
   const resolved = event.context.cpubPermissions;
   const granted = resolved?.permissions ?? new Set<string>();
-  const primaryRole = resolved?.primaryRole ?? user.role;
+  // Authoritative enriched role for the admin floor — see requirePermission.
+  const primaryRole = user.role || resolved?.primaryRole;
   return hasPermissionPure(granted, needed, primaryRole);
 }

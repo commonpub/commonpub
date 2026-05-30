@@ -66,7 +66,10 @@ declare module 'h3' {
 async function attachPermissions(event: import('h3').H3Event, auth: AuthLocals): Promise<void> {
   if (!auth?.user?.id) return;
   try {
-    event.context.cpubPermissions = await resolvePermissions(auth.user.id);
+    // Pass the enriched role so the resolver skips its own users query (admin +
+    // flag-off paths do zero extra DB work) and stays consistent with enrichUser.
+    const primaryRole = (auth.user as unknown as { role?: string }).role;
+    event.context.cpubPermissions = await resolvePermissions(auth.user.id, primaryRole);
   } catch {
     // Leave unset — guards default-deny; admin floor survives via user.role.
   }

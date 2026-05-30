@@ -61,14 +61,22 @@ function store(userId: string, value: ResolvedPermissions, now: number): void {
  * Resolve (and cache) a user's effective permissions. Reads the `features.rbac`
  * flag from the merged config; never throws (the core default-denies on error,
  * and the admin floor is enforced downstream via `primaryRole`).
+ *
+ * @param primaryRole the already-enriched `users.role` (the auth middleware has
+ *   it). Passing it lets the core skip its own users query — so the admin and
+ *   flag-off hot paths do ZERO extra DB work — and keeps resolution consistent
+ *   with the enrich query.
  */
-export async function resolvePermissions(userId: string): Promise<ResolvedPermissions> {
+export async function resolvePermissions(
+  userId: string,
+  primaryRole?: string,
+): Promise<ResolvedPermissions> {
   const now = Date.now();
   const cached = readFresh(userId, now);
   if (cached) return cached;
 
   const rbacEnabled = useConfig().features.rbac === true;
-  const resolved = await resolveUserPermissions(useDB(), userId, { rbacEnabled });
+  const resolved = await resolveUserPermissions(useDB(), userId, { rbacEnabled, primaryRole });
   store(userId, resolved, now);
   return resolved;
 }
