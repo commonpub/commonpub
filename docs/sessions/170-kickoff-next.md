@@ -30,15 +30,21 @@ from workspace `main`; deveco.io + heatsynclabs.io are thin npm consumers.
 5. **Doc sweep**: layout engine added to `docs/llm/facts.md` + `gotchas.md` +
    `codebase-analysis/*`; both READMEs + plan docs corrected (verified counts:
    **90 pages / 132 components / 33 composables / ~300 routes**).
-6. **Published `@commonpub/layer@0.25.0`** to npm (only the layer changed since
-   0.24.0). Bumped `tools/create-commonpub/src/template.rs` pins to current.
-7. **Updated deveco.io** to `@commonpub/layer@^0.25.0` (deployed + verified).
+6. **Published to npm**: `@commonpub/schema@0.18.0`, `@commonpub/ui@0.9.1`,
+   `@commonpub/server@2.59.0`, `@commonpub/layer@0.25.1` (schema/ui/server ALSO
+   had unpublished source — the first attempt published a broken layer 0.25.0
+   that imported `@commonpub/server/layout/path-normalize` absent from the
+   published server 2.58.0; **0.25.0 is deprecated on npm**). Bumped
+   `tools/create-commonpub/src/template.rs` pins (layer ^0.25.1, schema ^0.18.0,
+   server ^2.59.0, config ^0.15.0).
+7. **Updated deveco.io** to layer `^0.25.1` + schema `^0.18.0` + server `^2.59.0`
+   (deployed + verified 200).
 
 ## Verify the state
 
 ```bash
 for u in https://commonpub.io https://deveco.io https://heatsynclabs.io; do echo "  $u home=$(curl -s -o /dev/null -w '%{http_code}' $u/) health=$(curl -s -o /dev/null -w '%{http_code}' $u/api/health)"; done
-npm view @commonpub/layer version            # expect 0.25.0
+npm view @commonpub/layer version            # expect 0.25.1 (0.25.0 deprecated)
 gh run list --workflow=deploy.yml -L 1        # last commonpub deploy GREEN
 pnpm --filter @commonpub/layer test 2>&1 | grep Tests | tail -1   # 670 passed
 SMOKE_BASE=https://commonpub.io node scripts/smoke.mjs            # ✅ / -> 200
@@ -58,10 +64,12 @@ SMOKE_BASE=https://commonpub.io node scripts/smoke.mjs            # ✅ / -> 200
 
 - **heatsync update (1 small task)**: `heatsynclabs.io` was NOT bumped (its repo
   `virgilvox/heatsync-org` is a separate owner, not cloned locally). To update:
-  clone it, set `@commonpub/layer` to `^0.25.0` in package.json, `pnpm install`
-  (regen lockfile — watch [[feedback-pnpm-install-drops-files]]), push, then
-  `curl https://heatsynclabs.io/` to confirm 200. It's running 0.24.0 happily;
-  no urgency (layoutEngine off → no new surface).
+  clone it, set `@commonpub/layer` `^0.25.1` + `@commonpub/schema` `^0.18.0` +
+  `@commonpub/server` `^2.59.0` in package.json (mirror what deveco did — caret
+  on `^0.17.0` does NOT cross to 0.18.0), `pnpm install` (regen lockfile — watch
+  [[feedback-pnpm-install-drops-files]]), push, then `curl https://heatsynclabs.io/`
+  to confirm 200. It's running 0.24.0 happily; no urgency (layoutEngine off →
+  no new surface).
 - **Part A** — migrate the homepage `index.vue` to `<PageFrame>` (the last frame
   duplicate). **Browser-gated** — migrate all three render branches together
   (shared `.cpub-main-layout`), update `apps/reference/e2e/responsive.spec.ts`,
