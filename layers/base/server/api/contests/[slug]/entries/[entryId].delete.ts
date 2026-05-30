@@ -8,7 +8,7 @@ export default defineEventHandler(async (event): Promise<{ withdrawn: boolean }>
 
   const result = await withdrawContestEntry(db, entryId, user.id);
   if (!result.withdrawn) {
-    throw createError({ statusCode: 400, message: result.error ?? 'Cannot withdraw entry' });
+    throw createError({ statusCode: 400, statusMessage: result.error ?? 'Cannot withdraw entry' });
   }
   return { withdrawn: true };
 });

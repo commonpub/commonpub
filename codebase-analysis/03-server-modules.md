@@ -101,12 +101,13 @@ packages/server/src/
 **contest.ts**
 
 - `listContests(db, filters)`
-- `getContestBySlug(db, slug)` — returns rules, prizes, judges, voting status, `communityVotingEnabled`, `judgingVisibility`
-- `createContest(db, userId, input)` — checks `canCreateContest(userRole, config.instance.contestCreation)`
-- `transitionContestStatus(db, id, newStatus, userId)` — enforces workflow
-- `submitContestEntry(db, contestId, contentId, userId)`
-- `judgeContestEntry(db, entryId, judgeId, score, feedback?)` — judge-role only
-- `calculateContestRanks(db, contestId)` — averages judge scores + community votes
+- `getContestBySlug(db, slug)` — returns rules, prizes, `judgingCriteria`, `judgingVisibility`, `communityVotingEnabled`, `eligibleContentTypes`, `maxEntriesPerUser` (NOT `judges` — that jsonb is dead; use `/judges`)
+- `createContest(db, input, options?)` — checks `canCreateContest(userRole, policy)`; seeds the `contestJudges` table from `input.judges`
+- `transitionContestStatus(db, id, userId, newStatus)` — enforces FSM; runs `calculateContestRanks` on completion
+- `submitContestEntry(db, contestId, contentId, userId)` — enforces published + ownership + `eligibleContentTypes` + `maxEntriesPerUser`
+- `judgeContestEntry(db, entryId, score, judgeId, feedback?)` — accepted, non-guest judges only; recomputes the average
+- `calculateContestRanks(db, contestId)` — `RANK()` over scored entries only (ties share a rank; unscored → null rank). Community votes do NOT affect ranking.
+- `shouldRevealScores(visibility, status, privileged)` — pure helper gating aggregate-score exposure by `judgingVisibility`
 - `withdrawContestEntry(db, entryId, userId)`
 
 **judges.ts** — session 124 replaced the legacy `judges` JSONB array

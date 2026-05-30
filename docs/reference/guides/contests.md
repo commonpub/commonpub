@@ -59,11 +59,26 @@ detail (`includeJudgeScores`) is always privileged-only regardless of visibility
   scoring guidance. It is display/guidance only — judges still submit a single
   1–100 score per entry.
 
+## Entry eligibility
+
+Two optional per-contest controls (default = unrestricted, set in create/edit):
+
+- **`eligibleContentTypes`** — restrict entries to specific content types (e.g.
+  `['project']`). Empty/unset = any published content the entrant owns. The
+  submit picker filters to eligible types; the server enforces it as a backstop.
+- **`maxEntriesPerUser`** — cap the number of distinct entries one person may
+  submit. Null = unlimited. Enforced in `submitContestEntry`.
+
+(The unique constraint `(contestId, userId, contentId)` already prevents
+submitting the *same* content twice, independent of the cap.)
+
 ## Community voting
 
 When `communityVotingEnabled`, signed-in members can upvote entries (one vote
-per user per entry) while the contest is `active` or `judging`. Votes are
-advisory — they do not feed ranking.
+per user per entry) while the contest is `active` or `judging`. **A user cannot
+vote for their own entry.** Votes are advisory — they do not feed the ranking —
+but on the results page the most-voted entry is highlighted as the **Community
+Choice** and a per-entry vote tally is shown in the leaderboard.
 
 ## Key files
 

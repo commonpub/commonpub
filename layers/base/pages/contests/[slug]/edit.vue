@@ -22,6 +22,15 @@ const judgingEndDate = ref('');
 const communityVotingEnabled = ref(false);
 const judgingVisibility = ref<'public' | 'judges-only' | 'private'>('judges-only');
 
+const { enabledTypeMeta } = useContentTypes();
+const eligibleContentTypes = ref<string[]>([]);
+const maxEntriesPerUser = ref<number | null>(null);
+function toggleType(type: string): void {
+  const i = eligibleContentTypes.value.indexOf(type);
+  if (i >= 0) eligibleContentTypes.value.splice(i, 1);
+  else eligibleContentTypes.value.push(type);
+}
+
 interface Prize { place: number | null; category: string; title: string; description: string; value: string }
 const prizes = ref<Prize[]>([]);
 
@@ -40,6 +49,8 @@ watch(contest, (c) => {
   judgingEndDate.value = c.judgingEndDate ? new Date(c.judgingEndDate).toISOString().slice(0, 16) : '';
   communityVotingEnabled.value = !!c.communityVotingEnabled;
   judgingVisibility.value = (c.judgingVisibility as typeof judgingVisibility.value) ?? 'judges-only';
+  eligibleContentTypes.value = [...(c.eligibleContentTypes ?? [])];
+  maxEntriesPerUser.value = c.maxEntriesPerUser ?? null;
   prizes.value = (c.prizes ?? []).map((p: { place?: number; category?: string; title: string; description?: string; value?: string }) => ({
     place: p.place ?? null,
     category: p.category ?? '',
@@ -117,6 +128,8 @@ async function handleSave(): Promise<void> {
         judgingEndDate: judgingEndDate.value ? new Date(judgingEndDate.value).toISOString() : undefined,
         communityVotingEnabled: communityVotingEnabled.value,
         judgingVisibility: judgingVisibility.value,
+        eligibleContentTypes: eligibleContentTypes.value,
+        maxEntriesPerUser: maxEntriesPerUser.value && maxEntriesPerUser.value > 0 ? maxEntriesPerUser.value : undefined,
         prizes: prizeData,
         judgingCriteria: criteriaData,
       },
@@ -195,6 +208,24 @@ async function transitionStatus(newStatus: string): Promise<void> {
           <input v-model="judgingEndDate" type="datetime-local" class="cpub-form-input" />
         </div>
         <p v-if="dateError" class="cpub-form-error" role="alert">{{ dateError }}</p>
+      </section>
+
+      <section class="cpub-form-section">
+        <h2 class="cpub-form-section-title">Entries</h2>
+        <div class="cpub-form-field">
+          <span class="cpub-form-label">Eligible content types</span>
+          <p class="cpub-form-hint">Leave all unchecked to accept any published content the entrant owns.</p>
+          <div class="cpub-type-options" role="group" aria-label="Eligible content types">
+            <label v-for="t in enabledTypeMeta" :key="t.type" class="cpub-form-check">
+              <input type="checkbox" :checked="eligibleContentTypes.includes(t.type)" @change="toggleType(t.type)" />
+              <span>{{ t.label }}</span>
+            </label>
+          </div>
+        </div>
+        <div class="cpub-form-field">
+          <label class="cpub-form-label">Max entries per person</label>
+          <input v-model.number="maxEntriesPerUser" type="number" min="1" class="cpub-form-input" placeholder="Unlimited" style="max-width: 160px;" />
+        </div>
       </section>
 
       <section class="cpub-form-section">
@@ -335,6 +366,7 @@ async function transitionStatus(newStatus: string): Promise<void> {
 .cpub-form-error { font-size: 12px; color: var(--red); margin-top: 8px; }
 .cpub-form-check { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-dim); cursor: pointer; }
 .cpub-form-check input { width: 14px; height: 14px; }
+.cpub-type-options { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 6px; }
 .cpub-subhead { display: flex; align-items: center; justify-content: space-between; margin: 18px 0 10px; }
 .cpub-form-subtitle { font-size: 12px; font-weight: 700; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .06em; color: var(--text-dim); display: flex; align-items: center; gap: 8px; }
 .cpub-form-hint-inline { font-size: 10px; color: var(--accent); }

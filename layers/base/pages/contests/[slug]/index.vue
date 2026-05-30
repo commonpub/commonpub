@@ -100,6 +100,14 @@ const { data: userContent } = useFetch('/api/content', {
 });
 const enteredContentIds = computed(() => new Set(entries.value.map((e) => e.contentId)));
 
+// Restrict the submit picker to the contest's eligible content types (if set).
+const eligibleTypes = computed<string[]>(() => (c.value?.eligibleContentTypes as string[] | undefined) ?? []);
+const submittableContent = computed(() => {
+  const items = (userContent.value?.items ?? []) as Array<{ id: string; title: string; type: string }>;
+  if (eligibleTypes.value.length === 0) return items;
+  return items.filter((i) => eligibleTypes.value.includes(i.type));
+});
+
 function copyLink(): void {
   if (typeof window !== 'undefined' && window.navigator?.clipboard) {
     window.navigator.clipboard.writeText(window.location.href);
@@ -154,11 +162,14 @@ async function withdrawEntry(entryId: string): Promise<void> {
           <button class="cpub-submit-close" aria-label="Close" @click="showSubmitDialog = false"><i class="fa-solid fa-times"></i></button>
         </div>
         <div class="cpub-submit-body">
-          <p class="cpub-submit-hint">Select one of your published projects to submit as an entry.</p>
+          <p class="cpub-submit-hint">
+            Select one of your published projects to submit as an entry.
+            <template v-if="eligibleTypes.length"> This contest accepts: {{ eligibleTypes.join(', ') }}.</template>
+          </p>
           <select v-model="submitContentId" class="cpub-submit-select" aria-label="Select a project to submit">
             <option value="">Select a project...</option>
             <option
-              v-for="item in (userContent?.items ?? [])"
+              v-for="item in submittableContent"
               :key="item.id"
               :value="item.id"
               :disabled="enteredContentIds.has(item.id)"
@@ -166,6 +177,9 @@ async function withdrawEntry(entryId: string): Promise<void> {
               {{ item.title }} ({{ item.type }}){{ enteredContentIds.has(item.id) ? ' — already entered' : '' }}
             </option>
           </select>
+          <p v-if="submittableContent.length === 0" class="cpub-submit-hint" style="margin-top: 10px; margin-bottom: 0;">
+            No eligible published content found.
+          </p>
         </div>
         <div class="cpub-submit-footer">
           <button class="cpub-btn cpub-btn-sm" @click="showSubmitDialog = false">Cancel</button>

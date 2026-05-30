@@ -40,7 +40,20 @@ export const contests = pgTable('contests', {
     }>
   >(),
   judgingVisibility: judgingVisibilityEnum('judging_visibility').default('judges-only').notNull(),
+  /**
+   * @deprecated Vestigial. Judges are stored in the `contest_judges` table (the
+   * single source of truth); `createContest` seeds that table from create input.
+   * This column is no longer read or written — retained only to avoid a
+   * destructive DROP migration. Do not use.
+   */
   judges: jsonb('judges').$type<string[]>(),
+  /**
+   * Content types eligible for entry (subset of the instance content types).
+   * Null/empty = any published content the entrant owns. e.g. ['project'].
+   */
+  eligibleContentTypes: jsonb('eligible_content_types').$type<string[]>(),
+  /** Max distinct entries one user may submit. Null = unlimited. */
+  maxEntriesPerUser: integer('max_entries_per_user'),
   createdById: uuid('created_by_id')
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),

@@ -673,4 +673,164 @@ describe('contest integration', () => {
     expect(r.voted).toBe(false);
     expect(r.error).toMatch(/not enabled/i);
   });
+
+  it('community voting: rejects voting for your own entry', async () => {
+    const contest = await createContest(db, {
+      ...makeContestInput({ title: 'Self Vote Contest' }),
+      communityVotingEnabled: true,
+    });
+    await transitionContestStatus(db, contest.id, organizerId, 'active');
+    const content = await createContent(db, participantId, { type: 'project', title: 'My Own Entry' });
+    await publishContent(db, content.id, participantId);
+    const entry = await submitContestEntry(db, contest.id, content.id, participantId);
+
+    const r = await voteOnContestEntry(db, entry!.id, participantId); // author votes for self
+    expect(r.voted).toBe(false);
+    expect(r.error).toMatch(/your own/i);
+  });
+
+  // --- Entry eligibility + per-user cap (session 172 flexibility) ---
+
+  it('rejects entries whose content type is not eligible', async () => {
+    const contest = await createContest(db, {
+      ...makeContestInput({ title: 'Projects Only Contest' }),
+      eligibleContentTypes: ['project'],
+    });
+    expect(contest.eligibleContentTypes).toEqual(['project']);
+    await transitionContestStatus(db, contest.id, organizerId, 'active');
+
+    const blog = await createContent(db, participantId, { type: 'blog', title: 'A Blog Post' });
+    await publishContent(db, blog.id, participantId);
+    const rejected = await submitContestEntry(db, contest.id, blog.id, participantId);
+    expect(rejected).toBeNull();
+
+    const project = await createContent(db, participantId, { type: 'project', title: 'A Project' });
+    await publishContent(db, project.id, participantId);
+    const accepted = await submitContestEntry(db, contest.id, project.id, participantId);
+    expect(accepted).not.toBeNull();
+  });
+
+  it('enforces maxEntriesPerUser', async () => {
+    const contest = await createContest(db, {
+      ...makeContestInput({ title: 'One Entry Each Contest' }),
+      maxEntriesPerUser: 1,
+    });
+    expect(contest.maxEntriesPerUser).toBe(1);
+    await transitionContestStatus(db, contest.id, organizerId, 'active');
+
+    const c1 = await createContent(db, participantId, { type: 'project', title: 'First Entry' });
+    await publishContent(db, c1.id, participantId);
+    const e1 = await submitContestEntry(db, contest.id, c1.id, participantId);
+    expect(e1).not.toBeNull();
+
+    const c2 = await createContent(db, participantId, { type: 'project', title: 'Second Entry' });
+    await publishContent(db, c2.id, participantId);
+    const e2 = await submitContestEntry(db, contest.id, c2.id, participantId);
+    expect(e2).toBeNull(); // cap reached
+
+    // A different user is unaffected by the first user's cap.
+    const other = await createTestUser(db, { username: `cap-other-${Date.now()}` });
+    const c3 = await createContent(db, other.id, { type: 'project', title: 'Other Entry' });
+    await publishContent(db, c3.id, other.id);
+    const e3 = await submitContestEntry(db, contest.id, c3.id, other.id);
+    expect(e3).not.toBeNull();
+  });
+
+  it('updateContest persists eligibility + cap and ignores judges', async () => {
+    const contest = await createContest(db, makeContestInput({ title: 'Update Flex Contest' }));
+    const updated = await updateContest(db, contest.slug, organizerId, {
+      eligibleContentTypes: ['project', 'explainer'],
+      maxEntriesPerUser: 3,
+      judges: [judgeUserId], // must be ignored — judges come from the table
+    });
+    expect(updated!.eligibleContentTypes).toEqual(['project', 'explainer']);
+    expect(updated!.maxEntriesPerUser).toBe(3);
+    // judges field is no longer part of ContestDetail; the table is untouched by update.
+    const panel = await listContestJudges(db, contest.id);
+    expect(panel).toHaveLength(0);
+  });
+
+  // --- Full happy-path lifecycle (the "can a full contest occur" proof) ---
+
+  it('runs a complete contest end to end: create → judges → submit → judge → complete → results', async () => {
+    const j1 = await createTestUser(db, { username: `e2e-j1-${Date.now()}` });
+    const j2 = await createTestUser(db, { username: `e2e-j2-${Date.now()}` });
+    const alice = await createTestUser(db, { username: `e2e-alice-${Date.now()}` });
+    const bob = await createTestUser(db, { username: `e2e-bob-${Date.now()}` });
+    const fan = await createTestUser(db, { username: `e2e-fan-${Date.now()}` });
+
+    // 1. Create with the full customization surface + seed judges.
+    const contest = await createContest(db, {
+      ...makeContestInput({ title: 'E2E Maker Challenge' }),
+      judges: [j1.id, j2.id],
+      communityVotingEnabled: true,
+      judgingVisibility: 'judges-only',
+      eligibleContentTypes: ['project'],
+      maxEntriesPerUser: 2,
+      prizes: [
+        { place: 1, title: 'Grand Prize', value: '$500' },
+        { category: 'Best Newcomer', title: 'Newcomer Award', value: '$100' },
+      ],
+      judgingCriteria: [
+        { label: 'Documentation', weight: 40 },
+        { label: 'Creativity', weight: 60 },
+      ],
+    });
+    expect(contest.status).toBe('upcoming');
+
+    // Judges seeded into the table; accept the invites.
+    const panel = await listContestJudges(db, contest.id);
+    expect(panel.map((p) => p.userId).sort()).toEqual([j1.id, j2.id].sort());
+    await acceptJudgeInvite(db, contest.id, j1.id);
+    await acceptJudgeInvite(db, contest.id, j2.id);
+
+    // 2. Activate → submissions open.
+    expect((await transitionContestStatus(db, contest.id, organizerId, 'active')).transitioned).toBe(true);
+
+    // 3. Two makers submit projects.
+    const aProj = await createContent(db, alice.id, { type: 'project', title: "Alice's Robot" });
+    await publishContent(db, aProj.id, alice.id);
+    const aEntry = await submitContestEntry(db, contest.id, aProj.id, alice.id);
+    expect(aEntry).not.toBeNull();
+
+    const bProj = await createContent(db, bob.id, { type: 'project', title: "Bob's Sensor" });
+    await publishContent(db, bProj.id, bob.id);
+    const bEntry = await submitContestEntry(db, contest.id, bProj.id, bob.id);
+    expect(bEntry).not.toBeNull();
+
+    // Community vote: fan upvotes Alice.
+    expect((await voteOnContestEntry(db, aEntry!.id, fan.id)).voted).toBe(true);
+
+    // Aggregate scores are hidden from the public during judging (judges-only).
+    const publicDuringJudging = await listContestEntries(db, contest.id, {
+      revealScores: shouldRevealScores('judges-only', 'judging', false),
+    });
+    expect(publicDuringJudging.items.every((i) => i.score === null)).toBe(true);
+
+    // 4. Judging → both judges score both entries.
+    expect((await transitionContestStatus(db, contest.id, organizerId, 'judging')).transitioned).toBe(true);
+    await judgeContestEntry(db, aEntry!.id, 90, j1.id, 'Excellent docs');
+    await judgeContestEntry(db, aEntry!.id, 80, j2.id);
+    await judgeContestEntry(db, bEntry!.id, 70, j1.id);
+    await judgeContestEntry(db, bEntry!.id, 60, j2.id);
+
+    // 5. Complete → ranks computed.
+    expect((await transitionContestStatus(db, contest.id, organizerId, 'completed')).transitioned).toBe(true);
+
+    // 6. Results: Alice (avg 85) rank 1, Bob (avg 65) rank 2; scores now public.
+    const results = await listContestEntries(db, contest.id, {
+      revealScores: shouldRevealScores('judges-only', 'completed', false),
+    });
+    const a = results.items.find((i) => i.id === aEntry!.id)!;
+    const b = results.items.find((i) => i.id === bEntry!.id)!;
+    expect(a.score).toBe(85);
+    expect(b.score).toBe(65);
+    expect(a.rank).toBe(1);
+    expect(b.rank).toBe(2);
+
+    // Community vote tally survived.
+    const votes = await getContestEntryVotes(db, contest.id, null);
+    expect(votes.find((v) => v.entryId === aEntry!.id)!.count).toBe(1);
+    expect(votes.find((v) => v.entryId === bEntry!.id)!.count).toBe(0);
+  });
 });

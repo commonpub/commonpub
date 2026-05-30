@@ -95,7 +95,7 @@ Numbers are approximate — exact counts vary with test exclusions.
 | Composables | 33 (session 169 spot-count; useThemeAdmin in 154; useLayout/useLayoutEditor/History/Resize/Drag/Hotkeys/Announcer/AutoSave + useEditorChrome + useAdminSidebar + autoFormSchema) |
 | Feature flags | 18 top-level (added `layoutEngine` in session 157) + 5 nested `identity.*` sub-flags |
 | Themes | 5 built-in (base, dark, generics, agora, agora-dark) + N DB-stored custom + N code-registered (admin-managed via `/admin/theme`, session 154) |
-| Migrations | 6 (0000_session128_baseline → 0005_wonderful_blue_marvel — layout engine, session 155+157 — drizzle-kit generated to keep journal in sync) |
+| Migrations | 8 (0000_session128_baseline → 0007_contest_entry_eligibility; 0006 = contest judging_criteria, 0007 = contest eligible_content_types + max_entries_per_user, sessions 171/172 — drizzle-kit generated to keep journal in sync) |
 | ADRs | 24+ |
 | Production instances | 3 (commonpub.io, deveco.io, heatsynclabs.io — all auto-deploy from main) |
 | Session log files | 80+ (session numbers run 071–157; bundled where related work landed together) |

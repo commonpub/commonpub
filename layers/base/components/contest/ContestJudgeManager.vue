@@ -113,7 +113,7 @@ const roleLabels: Record<string, string> = {
             placeholder="Search by name or username..."
             @input="handleSearch"
           />
-          <select v-model="newJudgeRole" class="cpub-judges-input cpub-judges-select">
+          <select v-model="newJudgeRole" class="cpub-judges-input cpub-judges-select" aria-label="Judge role">
             <option value="lead">Lead</option>
             <option value="judge">Judge</option>
             <option value="guest">Guest</option>

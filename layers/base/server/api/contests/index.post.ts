@@ -1,4 +1,4 @@
-import { createContest } from '@commonpub/server';
+import { createContest, getContestBySlug } from '@commonpub/server';
 import type { ContestDetail, CreateContestInput } from '@commonpub/server';
 import { createContestSchema } from '@commonpub/schema';
 
@@ -9,7 +9,7 @@ function slugify(text: string): string {
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '')
-    .slice(0, 128);
+    .slice(0, 120);
 }
 
 export default defineEventHandler(async (event): Promise<ContestDetail> => {
@@ -19,7 +19,13 @@ export default defineEventHandler(async (event): Promise<ContestDetail> => {
   const config = useConfig();
   const input = await parseBody(event, createContestSchema);
 
-  const slug = slugify(input.title) || `contest-${Date.now()}`;
+  const base = slugify(input.title) || `contest-${Date.now()}`;
+  // Ensure slug uniqueness so a duplicate title returns a clean contest instead
+  // of a 500 from the unique-constraint violation.
+  let slug = base;
+  for (let n = 2; n <= 50 && (await getContestBySlug(db, slug)); n++) {
+    slug = `${base}-${n}`;
+  }
 
   return createContest(db, { ...input, slug, createdBy: user.id } as CreateContestInput, {
     userRole: user.role,

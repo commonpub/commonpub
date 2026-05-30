@@ -12,8 +12,9 @@ export default defineEventHandler(async (event): Promise<ContestEntryVoteInfo[]>
   const user = getOptionalUser(event);
 
   const contest = await getContestBySlug(db, slug);
-  if (!contest || contest.status === 'upcoming') throw createError({ statusCode: 404, statusMessage: 'Contest not found' });
-  if (!contest.communityVotingEnabled) return [];
+  if (!contest) throw createError({ statusCode: 404, statusMessage: 'Contest not found' });
+  // Voting disabled, or contest not yet open (no entries) → empty array, not an error.
+  if (!contest.communityVotingEnabled || contest.status === 'upcoming') return [];
 
   return getContestEntryVotes(db, contest.id, user?.id ?? null);
 });

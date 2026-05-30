@@ -50,6 +50,13 @@
       "when": 1780140423862,
       "tag": "0006_contest_voting_visibility_criteria",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1780166076958,
+      "tag": "0007_contest_entry_eligibility",
+      "breakpoints": true
     }
   ]
 }

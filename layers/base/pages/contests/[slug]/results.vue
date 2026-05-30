@@ -1,14 +1,35 @@
 <script setup lang="ts">
-import type { Serialized, ContestDetail, ContestEntryItem } from '@commonpub/server';
+import type { Serialized, ContestDetail, ContestEntryItem, ContestEntryVoteInfo } from '@commonpub/server';
 
 const route = useRoute();
 const slug = route.params.slug as string;
 
 const { data: contest } = useLazyFetch<Serialized<ContestDetail>>(`/api/contests/${slug}`);
 const { data: entriesData } = useLazyFetch<{ items: Serialized<ContestEntryItem>[]; total: number }>(`/api/contests/${slug}/entries`);
+const { data: votesData } = useLazyFetch<ContestEntryVoteInfo[]>(`/api/contests/${slug}/votes`);
 
 useSeoMeta({
   title: () => `Results: ${contest.value?.title || 'Contest'} — ${useSiteName()}`,
+});
+
+// Community-vote tallies (only when the contest enabled community voting).
+const votingEnabled = computed(() => !!contest.value?.communityVotingEnabled);
+const voteCounts = computed<Map<string, number>>(() => {
+  const m = new Map<string, number>();
+  for (const v of votesData.value ?? []) m.set(v.entryId, v.count);
+  return m;
+});
+function voteCount(entryId: string): number {
+  return voteCounts.value.get(entryId) ?? 0;
+}
+const communityChoice = computed(() => {
+  if (!votingEnabled.value) return null;
+  let best: { id: string; count: number } | null = null;
+  for (const [id, count] of voteCounts.value) {
+    if (count > 0 && (!best || count > best.count)) best = { id, count };
+  }
+  if (!best) return null;
+  return rankedEntries.value.find((e) => e.id === best!.id) ?? null;
 });
 
 const rankedEntries = computed(() => {
@@ -62,6 +83,13 @@ function medalColor(rank: number): string {
     </div>
 
     <template v-else-if="contest">
+      <!-- COMMUNITY CHOICE -->
+      <div v-if="communityChoice" class="cpub-community-choice">
+        <div class="cpub-cc-label"><i class="fa-solid fa-heart"></i> Community Choice</div>
+        <NuxtLink :to="`/u/${communityChoice.authorUsername}/${communityChoice.contentType}/${communityChoice.contentSlug}`" class="cpub-cc-title">{{ communityChoice.contentTitle }}</NuxtLink>
+        <span class="cpub-cc-meta">by {{ communityChoice.authorName }} · {{ voteCount(communityChoice.id) }} votes</span>
+      </div>
+
       <!-- PODIUM -->
       <div v-if="podium.length > 0" class="cpub-podium">
         <div
@@ -100,6 +128,7 @@ function medalColor(rank: number): string {
               <th>Entry</th>
               <th>Author</th>
               <th>Score</th>
+              <th v-if="votingEnabled">Votes</th>
             </tr>
           </thead>
           <tbody>
@@ -117,6 +146,7 @@ function medalColor(rank: number): string {
                 <NuxtLink :to="`/u/${entry.authorUsername}`" class="cpub-lb-author-link">{{ entry.authorName }}</NuxtLink>
               </td>
               <td class="cpub-lb-score">{{ entry.score ?? '—' }}</td>
+              <td v-if="votingEnabled" class="cpub-lb-votes"><i class="fa-solid fa-heart"></i> {{ voteCount(entry.id) }}</td>
             </tr>
           </tbody>
         </table>
@@ -166,6 +196,14 @@ function medalColor(rank: number): string {
 .cpub-lb-top3 { background: var(--surface2); }
 .cpub-lb-rank { font-family: var(--font-mono); font-weight: 700; display: flex; align-items: center; gap: 6px; }
 .cpub-lb-score { font-family: var(--font-mono); font-weight: 600; color: var(--accent); }
+.cpub-lb-votes { font-family: var(--font-mono); color: var(--red); }
+.cpub-lb-votes i { font-size: 10px; }
+
+.cpub-community-choice { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 12px 16px; margin-bottom: 24px; background: var(--red-bg); border: var(--border-width-default) solid var(--red-border); }
+.cpub-cc-label { font-family: var(--font-mono); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--red); display: flex; align-items: center; gap: 5px; }
+.cpub-cc-title { font-size: 14px; font-weight: 600; color: var(--text); text-decoration: none; }
+.cpub-cc-title:hover { color: var(--accent); }
+.cpub-cc-meta { font-size: 11px; color: var(--text-dim); font-family: var(--font-mono); }
 .cpub-lb-entry-link { color: var(--text); text-decoration: none; font-weight: 500; }
 .cpub-lb-entry-link:hover { color: var(--accent); }
 .cpub-lb-author-link { color: var(--text-dim); text-decoration: none; }

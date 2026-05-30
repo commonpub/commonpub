@@ -136,11 +136,12 @@ Lifecycle FSM: `upcoming → active → judging → completed` (+ `cancelled` fr
 non-terminal state); `calculateContestRanks` runs on completion (`RANK()`, scored
 entries only). Instance-local — contests never federate.
 
-Session-171 invariants (don't regress):
+Invariants (don't regress):
 - **Judges live in the `contest_judges` table — the single source of truth.** The
-  legacy `contests.judges` jsonb column is vestigial; `createContest` seeds the
-  table from it but auth + display + the "Judge Entries" link all read the table.
-  Scoring requires an *accepted*, non-`guest` judge record.
+  legacy `contests.judges` jsonb column is fully deprecated: no longer read OR
+  written (`createContest` seeds the table from `input.judges`; update never
+  touches judges — manage via `/judges` endpoints). Scoring requires an
+  *accepted*, non-`guest` judge record.
 - **Score privacy:** per-judge scores + written feedback (`includeJudgeScores`)
   are privileged-only (owner / admin / panel judge). Aggregate `score` exposure
   goes through `shouldRevealScores(visibility, status, privileged)` honouring
@@ -149,6 +150,12 @@ Session-171 invariants (don't regress):
 - `judgingCriteria` (jsonb, migration 0006) is a display/guidance rubric; judges
   still submit one 1–100 score. Prizes support optional `place` **and** optional
   `category` (Hackster-style themed awards).
+- **Entry customization (migration 0007):** `eligibleContentTypes` (jsonb[]) gates
+  which content types may be entered; `maxEntriesPerUser` (int, null=unlimited)
+  caps entries per person. Both enforced in `submitContestEntry`.
+- **Community voting:** one vote/user/entry while active|judging; **no self-vote**;
+  advisory only (not ranked). Results page shows a Community-Choice highlight +
+  per-entry vote tally.
 
 - **Render path**: `<LayoutSlot route zone>` (`layers/base/components/`) →
   `useLayout(route)` fetches `/api/layouts/by-route` → `<LayoutRow>` →

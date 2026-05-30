@@ -105,7 +105,9 @@ async function submitScore(entryId: string): Promise<void> {
       },
     });
     success.value = 'Score submitted for entry.';
-    await refreshEntries();
+    await refreshEntries().catch(() => {
+      success.value = 'Score saved — refresh to see the updated totals.';
+    });
   } catch (err: unknown) {
     error.value = (err as { data?: { message?: string } })?.data?.message || 'Failed to submit score.';
   } finally {

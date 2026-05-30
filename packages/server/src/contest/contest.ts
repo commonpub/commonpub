@@ -38,8 +38,9 @@ export interface ContestDetail extends ContestListItem {
   judgingCriteria: ContestJudgingCriterion[] | null;
   judgingVisibility: ContestJudgingVisibility;
   judgingEndDate: Date | null;
-  judges: string[] | null;
   communityVotingEnabled: boolean;
+  eligibleContentTypes: string[] | null;
+  maxEntriesPerUser: number | null;
   createdById: string;
 }
 
@@ -57,9 +58,12 @@ export interface CreateContestInput {
   bannerUrl?: string;
   prizes?: ContestPrize[];
   judgingCriteria?: ContestJudgingCriterion[];
+  /** Seed-only: populates the contest_judges table at creation. */
   judges?: string[];
   communityVotingEnabled?: boolean;
   judgingVisibility?: ContestJudgingVisibility;
+  eligibleContentTypes?: string[];
+  maxEntriesPerUser?: number;
   startDate: string;
   endDate: string;
   judgingEndDate?: string;
@@ -146,8 +150,9 @@ function toContestDetail(row: ContestRow): ContestDetail {
     judgingCriteria: row.judgingCriteria ?? null,
     judgingVisibility: row.judgingVisibility,
     judgingEndDate: row.judgingEndDate,
-    judges: row.judges ?? null,
     communityVotingEnabled: row.communityVotingEnabled,
+    eligibleContentTypes: row.eligibleContentTypes ?? null,
+    maxEntriesPerUser: row.maxEntriesPerUser ?? null,
     createdById: row.createdById,
   };
 }
@@ -203,9 +208,10 @@ export async function createContest(
       bannerUrl: input.bannerUrl ?? null,
       prizes: input.prizes ?? null,
       judgingCriteria: input.judgingCriteria ?? null,
-      judges: input.judges ?? null,
       communityVotingEnabled: input.communityVotingEnabled ?? false,
       judgingVisibility: input.judgingVisibility ?? 'judges-only',
+      eligibleContentTypes: input.eligibleContentTypes ?? null,
+      maxEntriesPerUser: input.maxEntriesPerUser ?? null,
       startDate: new Date(input.startDate),
       endDate: new Date(input.endDate),
       judgingEndDate: input.judgingEndDate ? new Date(input.judgingEndDate) : null,
@@ -214,8 +220,8 @@ export async function createContest(
     .returning();
 
   // Single source of truth: seed the contest_judges table from any judge IDs
-  // provided at creation. The legacy `judges` jsonb column is retained for
-  // backward compatibility but authorization + display read the table.
+  // provided at creation. The legacy `judges` jsonb column is no longer written
+  // or read — authorization + display use the table exclusively.
   if (input.judges && input.judges.length > 0) {
     await db
       .insert(contestJudges)
@@ -248,9 +254,12 @@ export async function updateContest(
   if (data.bannerUrl !== undefined) updates.bannerUrl = data.bannerUrl;
   if (data.prizes !== undefined) updates.prizes = data.prizes;
   if (data.judgingCriteria !== undefined) updates.judgingCriteria = data.judgingCriteria;
-  if (data.judges !== undefined) updates.judges = data.judges;
+  // `judges` is intentionally not handled here — the contest_judges table is the
+  // source of truth, managed via the dedicated /judges endpoints.
   if (data.communityVotingEnabled !== undefined) updates.communityVotingEnabled = data.communityVotingEnabled;
   if (data.judgingVisibility !== undefined) updates.judgingVisibility = data.judgingVisibility;
+  if (data.eligibleContentTypes !== undefined) updates.eligibleContentTypes = data.eligibleContentTypes;
+  if (data.maxEntriesPerUser !== undefined) updates.maxEntriesPerUser = data.maxEntriesPerUser;
   if (data.startDate !== undefined) updates.startDate = new Date(data.startDate);
   if (data.endDate !== undefined) updates.endDate = new Date(data.endDate);
   if (data.judgingEndDate !== undefined) updates.judgingEndDate = data.judgingEndDate ? new Date(data.judgingEndDate) : null;
@@ -361,17 +370,23 @@ export async function submitContestEntry(
 ): Promise<ContestEntryItem | null> {
   // Validate contest exists and is active
   const contest = await db
-    .select({ id: contests.id, status: contests.status })
+    .select({
+      id: contests.id,
+      status: contests.status,
+      eligibleContentTypes: contests.eligibleContentTypes,
+      maxEntriesPerUser: contests.maxEntriesPerUser,
+    })
     .from(contests)
     .where(eq(contests.id, contestId))
     .limit(1);
 
   if (contest.length === 0) return null;
-  if (contest[0]!.status !== 'active') return null;
+  const c = contest[0]!;
+  if (c.status !== 'active') return null;
 
   // Validate content exists, is published, and user owns it
   const content = await db
-    .select({ id: contentItems.id, authorId: contentItems.authorId, status: contentItems.status })
+    .select({ id: contentItems.id, authorId: contentItems.authorId, status: contentItems.status, type: contentItems.type })
     .from(contentItems)
     .where(eq(contentItems.id, contentId))
     .limit(1);
@@ -379,6 +394,20 @@ export async function submitContestEntry(
   if (content.length === 0) return null;
   if (content[0]!.status !== 'published') return null;
   if (content[0]!.authorId !== userId) return null;
+
+  // Per-contest entry eligibility: content type must be allowed (if restricted).
+  const eligible = c.eligibleContentTypes ?? null;
+  if (eligible && eligible.length > 0 && !eligible.includes(content[0]!.type)) return null;
+
+  // Per-user entry cap (if set).
+  if (c.maxEntriesPerUser != null) {
+    const existingCount = await countRows(
+      db,
+      contestEntries,
+      and(eq(contestEntries.contestId, contestId), eq(contestEntries.userId, userId)),
+    );
+    if (existingCount >= c.maxEntriesPerUser) return null;
+  }
 
   const [row] = await db
     .insert(contestEntries)

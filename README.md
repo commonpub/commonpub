@@ -63,7 +63,7 @@ other. CommonPub changes that:
 |---|---|
 | **Block editor** | 20 block types including code, galleries, parts lists, build steps, quizzes. TipTap-based with BlockTuple serialization. |
 | **Hubs** | Three hub types (community, product, company). Moderated feeds, roles, invites, resources, shared products. Federate as AP Group actors (FEP-1b12). |
-| **Contests** | Full lifecycle (upcoming → active → judging → completed), judge permissions (lead/judge/guest) with invite+accept workflow, point-based judging-criteria rubric, place **and** category prizes, judging-visibility controls (public/judges-only/private), community voting on entries. Tabbed detail view + phase timeline. |
+| **Contests** | Full lifecycle (upcoming → active → judging → completed), judge permissions (lead/judge/guest) with invite+accept workflow, point-based judging-criteria rubric, place **and** category prizes, judging-visibility controls (public/judges-only/private), per-contest entry eligibility (content types + max entries per person), community voting with a Community-Choice highlight. Tabbed detail view + phase timeline. |
 | **Events** | In-person, online, or hybrid. RSVP with **auto-waitlist** when at capacity; automatic promotion when someone cancels. Event filters, pagination, hub-scoped events. |
 | **Voting & polls** | Up/down votes on hub posts with transaction-safe score adjustment. Poll-type posts with single-choice voting. Community voting on contest entries. |
 | **Learning paths** | Modules → lessons (article/video/quiz/project/explainer). Enrollment and progress tracking. **Auto-certificates** at 100% with a public verification code. |

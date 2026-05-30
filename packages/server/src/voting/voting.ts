@@ -177,12 +177,14 @@ export async function voteOnContestEntry(
     .select({
       id: contestEntries.id,
       contestId: contestEntries.contestId,
+      userId: contestEntries.userId,
     })
     .from(contestEntries)
     .where(eq(contestEntries.id, entryId))
     .limit(1);
 
   if (!entry) return { voted: false, error: 'Entry not found' };
+  if (entry.userId === userId) return { voted: false, error: 'You cannot vote for your own entry' };
 
   const [contest] = await db
     .select({ communityVotingEnabled: contests.communityVotingEnabled, status: contests.status })

@@ -22,6 +22,7 @@ import {
   createProductSchema,
   judgeEntrySchema,
   createContestSchema,
+  updateContestSchema,
   sendMessageSchema,
   createDocsSiteSchema,
   createDocsPageSchema,
@@ -973,6 +974,34 @@ describe('createContestSchema — boundary tests', () => {
     });
     expect(parsed.prizes![0]!.place).toBeUndefined();
     expect(parsed.prizes![0]!.category).toBe('Best in Show');
+  });
+
+  // Entry eligibility + per-user cap (session 172).
+  it('accepts eligibleContentTypes and maxEntriesPerUser', () => {
+    const parsed = createContestSchema.parse({
+      ...validContest,
+      eligibleContentTypes: ['project', 'explainer'],
+      maxEntriesPerUser: 3,
+    });
+    expect(parsed.eligibleContentTypes).toEqual(['project', 'explainer']);
+    expect(parsed.maxEntriesPerUser).toBe(3);
+  });
+
+  it('rejects a non-positive maxEntriesPerUser', () => {
+    expect(() => createContestSchema.parse({ ...validContest, maxEntriesPerUser: 0 })).toThrow();
+    expect(() => createContestSchema.parse({ ...validContest, maxEntriesPerUser: -1 })).toThrow();
+  });
+});
+
+describe('updateContestSchema', () => {
+  it('strips the judges field (judges are managed via the contest_judges table)', () => {
+    const parsed = updateContestSchema.parse({
+      title: 'Updated',
+      judges: ['11111111-1111-1111-1111-111111111111'],
+      eligibleContentTypes: ['project'],
+    }) as Record<string, unknown>;
+    expect(parsed.judges).toBeUndefined();
+    expect(parsed.eligibleContentTypes).toEqual(['project']);
   });
 });
 

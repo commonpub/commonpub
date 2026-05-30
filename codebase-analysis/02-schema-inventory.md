@@ -5,11 +5,13 @@ Source: `packages/schema/src/*.ts`. As of session 125 (2026-04-16).
 tables, 41 enums. Now ~80+ tables after the 4 layout-engine tables
 landed (sessions 155 + 157, migration 0005).** The file list below is
 missing `publicApi.ts` (session 127 — api_keys + api_key_usage tables).
-Migration set has grown to 0000–0005 (0001 docs unstringify, 0002
+Migration set has grown to 0000–0007 (0001 docs unstringify, 0002
 session-130 constraints, 0003 notifications dedup, 0004 federated OAuth
 tokens in session 137, **0005 `0005_wonderful_blue_marvel` — layout
-engine tables, session 155/157**). 6 migrations total; latest is
-`0005_wonderful_blue_marvel`. Individual tables added since 125 —
+engine tables, session 155/157**, **0006 contest `judging_criteria`,
+0007 contest `eligible_content_types` + `max_entries_per_user` —
+sessions 171/172**). 8 migrations total; latest is
+`0007_contest_entry_eligibility`. Individual tables added since 125 —
 federated_accounts + oauth_codes for cross-instance identity (session
 137) — are reflected in pgTable() counts but NOT yet enumerated in the
 per-file list below.
@@ -178,13 +180,13 @@ packages/schema/src/
 | videos | Video catalog | platform enum; denormalized counters |
 | videoCategories | Taxonomy | — |
 
-### Contests (3) — session 124 changed this
+### Contests (3) — sessions 124 / 171–172
 
 | Table | Purpose | Notable |
 |---|---|---|
-| contests | Contests | status enum (5 states); JSONB prizes + legacy judges array; new `judgingVisibility` + `communityVotingEnabled` |
-| contestEntries | Submissions | unique(contestId, userId, contentId); JSONB judgeScores |
-| contestJudges | Judge roster (replaces legacy JSONB) | unique(contestId, userId); role enum; invitedAt/acceptedAt |
+| contests | Contests | status enum (5 states); JSONB `prizes` (place AND/OR category) + `judgingCriteria` rubric (migration 0006); `judgingVisibility` + `communityVotingEnabled`; `eligibleContentTypes` + `maxEntriesPerUser` (migration 0007). **`judges` jsonb is deprecated/dead — judges live in `contestJudges`.** |
+| contestEntries | Submissions | unique(contestId, userId, contentId); JSONB judgeScores; `score` (avg, gated by `shouldRevealScores`) + `rank` (RANK(), scored entries only) |
+| contestJudges | Judge roster (THE source of truth; `contests.judges` jsonb is dead) | unique(contestId, userId); role enum (lead/judge/guest); invitedAt/acceptedAt — scoring needs accepted + non-guest |
 
 ### Events (2) — session 124 added
 
