@@ -109,6 +109,7 @@ export default defineNuxtConfig({
         publicApi: false,
         contentImport: true,
         layoutEngine: false,
+        rbac: false,
       },
       contentTypes: 'project,blog,explainer',
       contestCreation: 'admin',

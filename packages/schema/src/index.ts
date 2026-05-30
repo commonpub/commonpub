@@ -4,6 +4,10 @@ export * from './enums.js';
 // Auth & Users
 export * from './auth.js';
 
+// Global RBAC (roles/permissions — session 175, migration 0009)
+export * from './rbac.js';
+export * from './permissions.js';
+
 // Content
 export * from './content.js';
 

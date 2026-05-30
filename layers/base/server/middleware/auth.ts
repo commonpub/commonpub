@@ -56,6 +56,23 @@ declare module 'h3' {
 }
 
 /**
+ * Attach the user's resolved permissions to the request context (RBAC Phase 0).
+ * One cached Map hit on the hot path (30s TTL), like feature-flags-prime. Reads
+ * the userId from the already-enriched auth user. Fail-closed: on any error the
+ * context stays unset and the guards default-deny — but the admin floor still
+ * holds because `requirePermission` falls back to the enriched `user.role`
+ * (INV-2). No-op for anon requests. `resolvePermissions` is a Nitro auto-import.
+ */
+async function attachPermissions(event: import('h3').H3Event, auth: AuthLocals): Promise<void> {
+  if (!auth?.user?.id) return;
+  try {
+    event.context.cpubPermissions = await resolvePermissions(auth.user.id);
+  } catch {
+    // Leave unset — guards default-deny; admin floor survives via user.role.
+  }
+}
+
+/**
  * Enrich the session user with custom DB columns (role, username, status)
  * that Better Auth doesn't include by default.
  */
@@ -89,6 +106,7 @@ export default defineEventHandler(async (event) => {
       const webHeaders = new Headers(headers as Record<string, string>);
       event.context.auth = await middleware.resolveSession(webHeaders);
       await enrichUser(event.context.auth);
+      await attachPermissions(event, event.context.auth);
     } catch {
       event.context.auth = { user: null, session: null };
     }
@@ -143,6 +161,7 @@ export default defineEventHandler(async (event) => {
     const webHeaders = new Headers(headers as Record<string, string>);
     event.context.auth = await middleware.resolveSession(webHeaders);
     await enrichUser(event.context.auth);
+    await attachPermissions(event, event.context.auth);
   } catch (err: unknown) {
     // DB error during session resolution — don't silently eat it for API routes
     if (pathname.startsWith('/api/')) {

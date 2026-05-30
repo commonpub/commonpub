@@ -64,6 +64,13 @@
       "when": 1780175387426,
       "tag": "0008_contest_visibility_stakeholders",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1780182006631,
+      "tag": "0009_rbac_roles_permissions",
+      "breakpoints": true
     }
   ]
 }

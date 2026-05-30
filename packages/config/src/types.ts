@@ -51,6 +51,16 @@ export interface FeatureFlags {
    */
   layoutEngine: boolean;
   /**
+   * Global RBAC (session 175). When ON, the per-user permission resolver
+   * unions grants from operator-defined roles (`user_roles` →
+   * `role_permissions`) and `staff` gains its seeded moderator set. Default
+   * OFF — with it off, the resolver returns the legacy mapping (admin→all,
+   * else→none) ⇒ byte-identical to pre-RBAC. The flag lives ONLY in the
+   * resolver, never in the guards (gating guards behind a feature flag would
+   * 404 admin endpoints). See docs/plans/rbac.md.
+   */
+  rbac: boolean;
+  /**
    * Cross-instance delegated authorization. Phased rollout per
    * docs/sessions/136-cross-instance-identity-plan.md. All sub-flags
    * default off; flipping each requires the corresponding phase work

@@ -16,6 +16,10 @@ export type {
 } from './types.js';
 export { ROLE_HIERARCHY, getRoleLevel } from './types.js';
 
+// Global RBAC — pure permission check (session 175). Decision core behind
+// requirePermission / hasPermission / useCan. See docs/plans/rbac.md.
+export { hasPermissionPure } from './permissions.js';
+
 // Cross-instance identity types — Phase 1a foundation. The runtime
 // resolver + action router live in @commonpub/server. See
 // docs/sessions/136-cross-instance-identity-plan.md.

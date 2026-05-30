@@ -45,6 +45,10 @@ export const featureFlagsSchema = z.object({
   // Phase 1 layout engine. Default OFF until consumer pages are wired
   // (Phase 4) and migration 0005 is run on every consumer DB.
   layoutEngine: z.boolean().default(false),
+  // Global RBAC (session 175). Default OFF ⇒ resolver returns the legacy
+  // admin-only mapping (byte-identical to pre-RBAC). Lives in the resolver
+  // only, never gates the guards. See docs/plans/rbac.md.
+  rbac: z.boolean().default(false),
   // Cross-instance delegated authorization. Nested object so the
   // namespace stays separate; all sub-flags default off.
   identity: identityFeaturesSchema.default(() => identityFeaturesSchema.parse({})),

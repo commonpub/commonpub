@@ -22,12 +22,19 @@ export function requireAuth(event: H3Event): AuthUser {
   return auth.user as AuthUser;
 }
 
+/**
+ * Admin gate — the linchpin reimplemented (session 175, RBAC Phase 0) as
+ * `requirePermission(event, 'admin.access')`, routing all ~73 call sites through
+ * the permission machinery without changing any of them. `admin.access` is
+ * seeded ONLY to the admin role, and the resolver's admin-floor + flag-off
+ * legacy mapping make this bit-identical to the old `user.role === 'admin'`
+ * check (INV-1). The legacy 403 message is preserved verbatim.
+ *
+ * `requirePermission` is a Nitro auto-import (sibling util) — referenced without
+ * a static import so there's no import cycle with requirePermission.ts.
+ */
 export function requireAdmin(event: H3Event): AuthUser {
-  const user = requireAuth(event);
-  if (user.role !== 'admin') {
-    throw createError({ statusCode: 403, statusMessage: 'Admin access required' });
-  }
-  return user;
+  return requirePermission(event, 'admin.access', 'Admin access required');
 }
 
 export function getOptionalUser(event: H3Event): AuthUser | null {

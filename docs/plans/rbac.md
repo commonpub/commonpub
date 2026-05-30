@@ -64,7 +64,7 @@ lock out admins.*
 ## Resolution, helpers, enrichment
 
 - **Pure core** — `packages/auth/src/permissions.ts`: `hasPermissionPure(granted: Set|string[], needed, primaryRole?) → boolean`. Admin floor (`primaryRole==='admin'` ⇒ true) → exact match → wildcard segment match. Generalizes `hasScope`.
-- **Resolver** — `apps/reference/server/utils/permissions.ts` (Nitro util, like `config.ts`): `resolvePermissions(userId) → { primaryRole, roleKeys[], permissions:Set, fetchedAt }` with **30s TTL** (auth-critical → favor freshness) + `invalidatePermissions(userId)` / `invalidateAllPermissions()`. Resolution order: **(1)** `primaryRole==='admin'` → ALL (never touches tables); **(2)** `features.rbac===false` → legacy mapping (admin→all, else→none) ⇒ identical to today; **(3)** union of `user_roles → role_permissions`, **default-deny on any error/empty**.
+- **Resolver** — `layers/base/server/utils/permissions.ts` (Nitro util, like `config.ts`; in the layer so it ships to all consumers — see Phase 0 correction): `resolvePermissions(userId) → { primaryRole, roleKeys[], permissions:Set, fetchedAt }` with **30s TTL** (auth-critical → favor freshness) + `invalidatePermissions(userId)` / `invalidateAllPermissions()`. Resolution order: **(1)** `primaryRole==='admin'` → ALL (never touches tables); **(2)** `features.rbac===false` → legacy mapping (admin→all, else→none) ⇒ identical to today; **(3)** union of `user_roles → role_permissions`, **default-deny on any error/empty**.
 - **Enrichment** — extend `layers/base/server/middleware/auth.ts`: after `enrichUser`, set `event.context.cpubPermissions = await resolvePermissions(user.id)` (one cached Map hit on the hot path, like `feature-flags-prime`). Fail-closed for non-admins; admin bypass survives a `role_permissions` outage because it reads `users.role` from the same enrich query.
 - **Server gate** — `layers/base/server/utils/requirePermission.ts` (mirrors `requireScope.ts`): `requirePermission(event, key) → AuthUser` (401 if anon, 403 if missing) + `hasPermission(event, key) → boolean` (for owner-OR-permission cases). **Do NOT wrap these in `requireFeature('rbac')`** — `requireFeature` 404s when off, which would 404 admin endpoints; the flag lives ONLY inside the resolver.
 - **Client** — `layers/base/composables/useCan.ts`: `useCan(key) → ComputedRef<boolean>`. `/api/me` (`layers/base/server/api/me.get.ts`) extended to return `permissions[]` + `roleKeys[]`; `useAuth.refreshSession()` populates a `useState('auth-permissions')`. Client checks are UX-only (hide buttons); the server is the enforcement boundary. `isAdmin` stays (alias of `useCan('admin.access')` later).
@@ -84,7 +84,8 @@ lock out admins.*
 
 Add `rbac: z.boolean().default(false)` to `packages/config/src/schema.ts` featureFlags + declare in `layers/base/nuxt.config.ts` `runtimeConfig.public.features` (the declared-key gotcha).
 
-- **Phase 0 — primitives, inert.** Migration 0009 (4 additive tables) + catalog + resolver + helpers + `requireAdmin` reimpl + `features.rbac` flag. ZERO behavior change (resolver step 1/2). Ship to all 3 instances. Confirm the **dual `role` column** question first (`packages/schema/src/auth.ts:27` enum vs `:98` varchar — which `enrichUser` reads + `auto-admin` writes; they must be the same).
+- **Phase 0 — primitives, inert.** Migration 0009 (3 additive tables) + catalog + resolver + helpers + `requireAdmin` reimpl + `features.rbac` flag. ZERO behavior change (resolver step 1/2). Ship to all 3 instances. (Dual-`role`-column question resolved — see risk #1; `users.role` enum is canonical.)
+  - **Resolver location correction (session 175):** the cached Nitro resolver lives in **`layers/base/server/utils/permissions.ts`** (the published `@commonpub/layer`), NOT `apps/reference/server/utils/`. Rationale: the consumers — `middleware/auth.ts`, `requireAdmin`/`requireScope` — are all in the layer, and the layer middleware already calls `useDB()`+`useConfig()` from layer code on every consumer. `config.ts` only lives in the app because it imports the app-root `~/commonpub.config`; the resolver needs neither. Placing it in the app would crash deveco/heatsync (their published-layer middleware would call a util their thin app repos don't define). The **pure resolution core** stays in `packages/server/src/rbac/resolver.ts` (PGlite-testable); the layer util is just the cache+invalidate wrapper around it.
 - **Phase 1 — mechanical guard migration, still ZERO change (flag off).** Per-domain PRs: 73 `requireAdmin` → `requirePermission(event, '<key>')`; 15 ad-hoc → an `ownerOrPermission(event,{ownerId,key})` helper (feed `hasPermission(set,key)` into the existing service `isAdmin` boolean — signature-stable). Hub-role checks (`hub/moderation.ts`, `members.ts`) explicitly skipped. INV-6 sweep test runs from here on.
 - **Phase 2 — seed + enable behind flag.** Migration 0010 (seed roles/permissions + backfill `user_roles`). Generalize INV-4. Flip `features.rbac=true` on **commonpub.io only**; soak. Now staff gains its moderator set and custom-role grants resolve (admins still bypass).
 - **Phase 3 — admin UI.** `pages/admin/roles/` + `GET/POST/PUT/DELETE /api/admin/roles` + `PUT /api/admin/users/[id]/roles`, all `requirePermission('roles.manage')` + audited + `invalidatePermissions`. Roll commonpub → deveco → heatsync.
@@ -93,7 +94,7 @@ Add `rbac: z.boolean().default(false)` to `packages/config/src/schema.ts` featur
 **Kill-switch:** `features.rbac=false` + `invalidateAllPermissions()` instantly reverts to legacy admin-only — no redeploy. Break-glass: `admin-promote.yml` raw SQL.
 
 ## Critical files
-- New: `packages/schema/src/rbac.ts`, `packages/schema/src/permissions.ts`, `packages/server/src/rbac/{seed,resolver,hasPermission,ownerOrPermission}.ts`, `packages/auth/src/permissions.ts`, `apps/reference/server/utils/permissions.ts`, `layers/base/server/utils/requirePermission.ts`, `layers/base/composables/useCan.ts`, `layers/base/server/api/admin/roles/**`, `pages/admin/roles/**`.
+- New: `packages/schema/src/rbac.ts`, `packages/schema/src/permissions.ts`, `packages/server/src/rbac/{seed,resolver,hasPermission,ownerOrPermission}.ts`, `packages/auth/src/permissions.ts`, `layers/base/server/utils/permissions.ts` (cache wrapper — was `apps/reference/...`, corrected session 175), `layers/base/server/utils/requirePermission.ts`, `layers/base/composables/useCan.ts`, `layers/base/server/api/admin/roles/**`, `pages/admin/roles/**`.
 - Edited: `layers/base/server/utils/auth.ts` (`requireAdmin` reimpl), `layers/base/server/middleware/auth.ts` (attach `cpubPermissions`), `packages/server/src/admin/admin.ts` (`updateUserRole` → sync `user_roles` + invalidate + last-admin floor), `packages/config/src/schema.ts` + `layers/base/nuxt.config.ts` (flag), `layers/base/server/api/me.get.ts`, the 73+15 guard sites (Phase 1).
 
 ## Verification
@@ -106,7 +107,18 @@ Add `rbac: z.boolean().default(false)` to `packages/config/src/schema.ts` featur
 - **Release/deploy:** bump schema (→0.23.0) / server (→2.64.0) / auth (→0.7.0, if guards touched) / layer (→0.30.0); update `create-commonpub` pins + the version-pin assertion test + deveco/heatsync pins; commit drizzle-generated SQL (PR-reviewed); deploy commonpub (workspace) + deveco (npm) via push; heatsync manual DDL then push. Roll flag commonpub → deveco → heatsync.
 
 ## Top residual risks (watch list)
-1. **Dual `users.role` columns** — confirm canonical one in Phase 0 (INV-2/INV-5 depend on it).
+1. **~~Dual `users.role` columns~~ — RESOLVED (session 175, Phase 0).** There is
+   no dual column. The two `role:` lines in `packages/schema/src/auth.ts` are on
+   **different tables**: `:27` is `users.role` (`userRoleEnum`, the canonical
+   global role) and `:98` is `members.role` (a `varchar(32)` on the
+   `organizations`↔`members` org-membership join table — an unrelated
+   resource-scoped concept, not a second column on `users`). All three consumers
+   converge on the single `users.role` enum: `enrichUser`
+   (`middleware/auth.ts:68`) reads it, `auto-admin.ts:84` writes it
+   (`db.update(users).set({ role:'admin' })`), and `admin-promote.yml:33` writes
+   it (`UPDATE users SET role='admin'`). INV-2/INV-5 are therefore safe as
+   written, and the backfill `JOIN r ON r.key = u.role::text` casts this enum
+   correctly. No `ALTER` on `users`; no hazard.
 2. **`requireFeature` 404 trap** — never gate guards behind the flag; flag lives in the resolver only.
 3. **Staff behavior change is intentional but flag-gated** — the matrix test must assert staff's exact new endpoint set on flag-on, and unchanged on flag-off.
 4. **Non-`/api/admin` privileged endpoints** (contests/events/videos/docs/products) aren't covered by the admin sweep — they need their own contract tests.

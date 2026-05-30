@@ -35,6 +35,12 @@ export interface FeatureFlags {
    */
   layoutEngine: boolean;
   /**
+   * Global RBAC (session 175). Client-advisory only — drives `useCan`'s
+   * button-hiding; the server resolver is the enforcement boundary. Default
+   * OFF. See docs/plans/rbac.md.
+   */
+  rbac: boolean;
+  /**
    * Cross-instance delegated authorization. All sub-flags default false.
    * Mirrors `@commonpub/config`'s `IdentityFeatures`. Phase 1b+ — see
    * docs/sessions/136-cross-instance-identity-plan.md.
@@ -55,6 +61,7 @@ export const DEFAULT_FLAGS: FeatureFlags = {
   editorial: true, federation: false, admin: false, emailNotifications: false,
   publicApi: false, contentImport: true,
   layoutEngine: false,
+  rbac: false,
   identity: {
     linkRemoteAccounts: false,
     signInWithRemote: false,
@@ -157,6 +164,7 @@ export function useFeatures() {
     publicApi: computed(() => flags.value.publicApi),
     contentImport: computed(() => flags.value.contentImport),
     layoutEngine: computed(() => flags.value.layoutEngine),
+    rbac: computed(() => flags.value.rbac),
     identity: computed(() => flags.value.identity),
   };
 }

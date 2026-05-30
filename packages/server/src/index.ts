@@ -747,6 +747,9 @@ export type { EmailAdapter, EmailMessage } from './email.js';
 // Public API (admin-scoped Bearer keys for external consumers)
 export * from './publicApi/index.js';
 
+// Global RBAC — role/permission resolution core (session 175)
+export * from './rbac/index.js';
+
 // Cross-instance identity — Phase 1a foundation. ActionRoute + run()
 // are the gateway for delegated authorization; FediClient is the
 // opaque facade for calling remote Fediverse instances. Phase 1b
