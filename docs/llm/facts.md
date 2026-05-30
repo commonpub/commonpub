@@ -156,6 +156,10 @@ Invariants (don't regress):
 - **Community voting:** one vote/user/entry while active|judging; **no self-vote**;
   advisory only (not ranked). Results page shows a Community-Choice highlight +
   per-entry vote tally.
+- **Winner alerts (server 2.61.1):** on completion, entrants whose rank earns a
+  place-prize (or top-3 when no place-prizes defined) get a "🏆 You won!"
+  notification naming placement + prize; others get "Results Posted". Fired in
+  `transitionContestStatus` after `calculateContestRanks`.
 
 - **Render path**: `<LayoutSlot route zone>` (`layers/base/components/`) →
   `useLayout(route)` fetches `/api/layouts/by-route` → `<LayoutRow>` →

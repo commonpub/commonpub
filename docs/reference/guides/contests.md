@@ -80,6 +80,19 @@ vote for their own entry.** Votes are advisory — they do not feed the ranking 
 but on the results page the most-voted entry is highlighted as the **Community
 Choice** and a per-entry vote tally is shown in the leaderboard.
 
+## Notifications
+
+Status transitions notify participants (in-app, + email when
+`emailNotifications` is on):
+
+- **active / judging / cancelled** — all entrants get a status note; judges get a
+  judging/cancelled note.
+- **completed** — entrants whose rank earns a place-prize (or place in the top 3
+  when no place-prizes are defined) get a **"🏆 You won!"** alert naming their
+  placement and prize; every other entrant gets the standard "Results Posted"
+  note. Judges are notified separately. Fired after `calculateContestRanks`.
+- Judge **invite** → the invitee; judge **accept** → the contest owner.
+
 ## Key files
 
 - Schema: `packages/schema/src/contest.ts`, validators in `validators.ts`.

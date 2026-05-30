@@ -12,13 +12,15 @@ workspace `main`; deveco.io (`ossuary-projects/deveco-io`) + heatsynclabs.io
 (`heatsynclabs/heatsynclabs-io`, local `~/Projects/heatsync/heatsynclabs-io`) are
 npm consumers. **No AI attribution in commits. pnpm (never npm) for publishing.**
 
-## Latest published + live (sessions 171–172)
+## Latest published + live (sessions 171–173)
 
-- `@commonpub/schema@0.20.0`, `@commonpub/server@2.61.0`, `@commonpub/layer@0.27.0`.
+- `@commonpub/schema@0.20.0`, `@commonpub/server@2.61.1`, `@commonpub/layer@0.27.1`.
 - Migrations through **0007** (0006 = contest `judging_criteria`; 0007 = contest
-  `eligible_content_types` + `max_entries_per_user`).
+  `eligible_content_types` + `max_entries_per_user`). server 2.61.1 was a
+  no-migration patch (winner notifications).
 - **All three instances live + verified**: `/`, `/contests`, `/api/contests` 200;
-  `contests: true`; judge-score leak closed; self-vote blocked.
+  `contests: true`; judge-score leak closed; self-vote blocked; **winners get a
+  "🏆 You won!" notification on completion** (naming placement + prize).
 
 ## Contest feature state (complete)
 
@@ -33,7 +35,7 @@ upcoming→active→judging→completed (+cancelled); `RANK()` ranking on comple
 
 ```bash
 for u in https://commonpub.io https://deveco.io https://heatsynclabs.io; do echo "  $u home=$(curl -s -o /dev/null -w '%{http_code}' $u/) contests=$(curl -s $u/api/features | grep -o '\"contests\":[a-z]*') api=$(curl -s -o /dev/null -w '%{http_code}' $u/api/contests)"; done
-npm view @commonpub/layer version   # 0.27.0
+npm view @commonpub/layer version   # 0.27.1
 ```
 
 ## ⚠️ heatsync deploy — read before ANY schema bump
