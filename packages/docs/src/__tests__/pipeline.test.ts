@@ -1,13 +1,23 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
 import { renderMarkdown } from '../render/pipeline';
 
 describe('renderMarkdown', () => {
+  // The FIRST renderMarkdown call cold-loads @shikijs/rehype (the WASM regex
+  // engine + grammars), which shiki then caches globally for the rest of the
+  // suite. That cold-load is ~3.5s locally but on a loaded CI runner can exceed
+  // a single test's 60s timeout and flake (seen as "Test timed out in 60000ms"
+  // on the basic-markdown case). Pay it once here with ample headroom so every
+  // real test runs against the warm, cached highlighter.
+  beforeAll(async () => {
+    await renderMarkdown('```ts\nconst x = 1;\n```');
+  }, 120000);
+
   it('should render basic markdown to HTML', async () => {
     const result = await renderMarkdown('# Hello\n\nA paragraph.');
     expect(result.html).toContain('<h1');
     expect(result.html).toContain('Hello');
     expect(result.html).toContain('<p>A paragraph.</p>');
-  }, 60000);
+  });
 
   it('should extract frontmatter', async () => {
     const md = `---

@@ -60,7 +60,22 @@ applied the 0009 RBAC tables. Future migrations auto-apply. deveco uses a MANAGE
   (file on disk) + shipped in the npm layer tarball (pnpm packs on-disk files → npm
   consumers had it), but was absent from commonpub.io (repo-built) + CI's checkout →
   CI's `admin-route-keys` completeness test went red. Narrowed to `**/reports/mutation/`
-  + committed the route. Feedback memory: unanchored-gitignore-swallows-source.
+  + committed the route. Feedback memory: unanchored-gitignore-swallows-source. Swept the
+  rest of `.gitignore` for the same class — only `node_modules/`/`dist/` match real dirs
+  (both legit); no other source-swallowing patterns.
+- **deveco homepage contest dup + completed-contest-shown (user-reported, fixed in deveco-io):**
+  deveco's *custom* `pages/index.vue` (not the base homepage) fetched `/api/contests` with
+  no `status` filter and `v-for`'d the sidebar over ALL items, so (1) a `completed` contest
+  ("Edge AI Challenge 2026", 0d left) showed under "Active Contests" and (2) the active hero
+  contest was repeated in the sidebar. The base 0.38.0 dedup (`heroContestId` useState) never
+  reached deveco. Fix: fetch `status:active` + `sidebarContests` computed (active-only, minus
+  the hero contest). Audited the other two sites: commonpub.io uses the correct base dedup;
+  heatsync's shadowed `HeroSection` intentionally drops the contest-hero (nothing to dup).
+  Caught a `noImplicitAny` vue-tsc error on the filter param (deveco CI is strict) — fixed.
+- **docs CI flake (fixed):** `packages/docs` `pipeline.test.ts` `renderMarkdown` cold-loads
+  `@shikijs/rehype` (WASM + grammars) on the first call (~3.5s local, >60s on a loaded CI
+  runner → "Test timed out in 60000ms" flake). Added a `beforeAll` warmup (120s headroom)
+  so every test runs against the globally-cached highlighter. Test-only; no docs republish.
 
 ## Open / next
 - **L5+L7 (deveco migration)**: deveco ships a fully custom `layouts/default.vue` (flat
