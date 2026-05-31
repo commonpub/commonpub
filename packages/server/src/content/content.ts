@@ -297,6 +297,15 @@ export async function listContent(
   const where = conditions.length > 0 ? and(...conditions) : undefined;
   const { limit, offset } = normalizePagination(filters);
 
+  // When we'll merge in federated content, the merged stream must be paginated
+  // as a whole: fetch the first (offset+limit) of EACH source, merge+sort, then
+  // slice [offset, offset+limit). Fetching only the local page + federated-from-0
+  // (the old bug) re-showed the same early federated items on every "load more".
+  const willFederate = !!options?.includeFederated
+    && !filters.authorId && !filters.featured && !filters.editorial && !filters.categoryId;
+  const localLimit = willFederate ? offset + limit : limit;
+  const localOffset = willFederate ? 0 : offset;
+
   const orderBy = filters.sort === 'popular'
     ? [desc(contentItems.viewCount)]
     : filters.sort === 'featured'
@@ -322,8 +331,8 @@ export async function listContent(
       .leftJoin(contentCategories, eq(contentItems.categoryId, contentCategories.id))
       .where(where)
       .orderBy(...orderBy)
-      .limit(limit)
-      .offset(offset),
+      .limit(localLimit)
+      .offset(localOffset),
     countRows(db, contentItems, where),
   ]);
 
@@ -334,24 +343,25 @@ export async function listContent(
 
   // If seamless federation is off or filtering by author, return local-only results.
   // Federated content has no local authorId, so it must never appear in author-filtered views.
-  if (!options?.includeFederated || filters.authorId || filters.featured || filters.editorial || filters.categoryId) {
+  if (!willFederate) {
     return { items: localItems, total };
   }
 
-  // Query federated content (from mirrored instances)
-  // Fetch enough to fill the requested page after merging with local results
+  // Query federated content (from mirrored instances) — the first (offset+limit),
+  // matching the local window so the merge is a consistent slice of the stream.
   const fedItems = await queryFederatedAsListItems(db, filters, offset + limit, options?.allowedContentTypes);
 
-  // Merge all items and sort by publishedAt descending
+  // Merge both windows and sort by publishedAt descending, then take THIS page's
+  // slice [offset, offset+limit). Slicing from `offset` (not 0) is what makes
+  // "load more" advance instead of re-showing the same merged head.
   const merged = [...localItems, ...fedItems].sort((a, b) => {
     const aDate = a.publishedAt ? new Date(a.publishedAt).getTime() : 0;
     const bDate = b.publishedAt ? new Date(b.publishedAt).getTime() : 0;
     return bDate - aDate;
   });
 
-  // Return the first `limit` items (both sources were already filtered/sorted by DB)
-  // Note: this is approximate pagination — exact counts require a separate count query
-  return { items: merged.slice(0, limit), total: total + fedItems.length };
+  // Approximate total (exact merged count needs a federated count query).
+  return { items: merged.slice(offset, offset + limit), total: total + fedItems.length };
 }
 
 export async function getContentBySlug(
