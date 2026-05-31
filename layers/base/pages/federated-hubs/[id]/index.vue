@@ -556,8 +556,8 @@ async function handlePostVote(postId: string): Promise<void> {
 .cpub-hub-projects-tab { padding: 0; }
 .cpub-shared-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(var(--cpub-card-min, 260px), 1fr));
+  gap: var(--cpub-card-gap, 20px);
 }
 .cpub-shared-card {
   background: var(--surface); border: var(--border-width-default) solid var(--border);

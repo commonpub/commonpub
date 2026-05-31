@@ -711,8 +711,8 @@ const { data: relatedCommunities } = await useFetch('/api/hubs', {
 /* ── RESULTS GRID ── */
 .cpub-results-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(var(--cpub-card-min, 260px), 1fr));
+  gap: var(--cpub-card-gap, 20px);
   margin-bottom: 32px;
 }
 

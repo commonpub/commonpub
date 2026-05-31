@@ -720,8 +720,8 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
 
 .cpub-editorial-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(var(--cpub-card-min, 260px), 1fr));
+  gap: var(--cpub-card-gap, 20px);
 }
 
 .cpub-editorial-single {
@@ -906,8 +906,8 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
 /* ─── CONTENT GRID ─── */
 .cpub-content-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 18px;
+  grid-template-columns: repeat(auto-fill, minmax(var(--cpub-card-min, 260px), 1fr));
+  gap: var(--cpub-card-gap, 20px);
   margin-bottom: 24px;
 }
 

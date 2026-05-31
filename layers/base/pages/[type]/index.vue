@@ -111,8 +111,8 @@ const { data, pending } = await useFetch<PaginatedResponse<Serialized<ContentLis
 
 .cpub-listing-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: var(--space-4);
+  grid-template-columns: repeat(auto-fill, minmax(var(--cpub-card-min, 260px), 1fr));
+  gap: var(--cpub-card-gap, 20px);
 }
 
 .cpub-listing-empty {

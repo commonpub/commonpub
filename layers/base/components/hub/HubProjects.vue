@@ -105,8 +105,8 @@ async function shareProjectToHub(contentId: string): Promise<void> {
 <style scoped>
 .cpub-gallery-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(var(--cpub-card-min, 260px), 1fr));
+  gap: var(--cpub-card-gap, 20px);
 }
 
 /* Modal */

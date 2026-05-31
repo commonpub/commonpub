@@ -222,6 +222,15 @@
   --content-max-width: 60rem; /* 960px */
   --content-wide-max-width: 75rem;
 
+  /* === CONTENT-CARD GRID ===
+     Every grid that lays out <ContentCard> draws its column min-width + gap
+     from these tokens so cards are a single, consistent size everywhere they
+     appear (home feed, listing pages, search, explore, profiles, hubs…).
+     Default values match deveco.io's responsive card grid. Instances retune
+     by overriding these tokens in their theme CSS — no per-view edits. */
+  --cpub-card-min: 260px;  /* min column width before wrapping (auto-fill) */
+  --cpub-card-gap: 20px;   /* gutter between cards */
+
   /* === FOCUS === */
   --focus-ring: var(--shadow-accent);
 }

@@ -461,8 +461,8 @@ const sortOptions = [
    2-col hub/people grid ≈ 470px each) that didn't adapt to the container. */
 .cpub-explore-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(var(--cpub-card-min, 260px), 1fr));
+  gap: var(--cpub-card-gap, 20px);
 }
 
 /* Hub cards (horizontal layout — slightly wider min) */

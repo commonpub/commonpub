@@ -113,7 +113,7 @@ useSeoMeta({
 .product-link-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border: var(--border-width-default) solid var(--border); background: var(--surface); color: var(--text); text-decoration: none; font-size: 13px; font-weight: 500; box-shadow: var(--shadow-md); }
 .product-link-btn:hover { box-shadow: var(--shadow-sm); transform: translate(1px, 1px); }
 
-.product-projects-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+.product-projects-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--cpub-card-min, 260px), 1fr)); gap: var(--cpub-card-gap, 20px); }
 .product-projects-empty { color: var(--text-faint); font-size: 13px; padding: 24px 0; }
 
 .product-sidebar { display: flex; flex-direction: column; gap: 16px; }

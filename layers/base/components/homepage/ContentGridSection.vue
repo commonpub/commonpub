@@ -124,25 +124,17 @@ const columns = computed(() => props.config.columns ?? 2);
 .cpub-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
 
 /*
- * Session 164 polish: cap the grid's max width so cards don't stretch
- * into a "giant cards in mobile layout" pattern at desktop widths.
- *
- * Was: `grid-template-columns: repeat(2, 1fr)` with NO width cap → at
- * 1440px window, 2 columns of ~700px each. Cards stretched far past
- * their natural design width and read as "single column of bigs".
- *
- * Now: same column behavior but bounded by --content-max-width (default
- * 1280px) — matches the tabs-inner cap above (same theme token). At
- * 1280px and below, behaves identically to before. Above, the grid
- * stays at 1280 centered and cards stay at their design proportions.
- *
- * `var(--grid-cols)` config still drives column count. Mobile drops to
- * 1-column at <=768px (unchanged).
+ * Responsive card grid: auto-fill columns at a fixed min-width so cards stay
+ * a single, consistent size everywhere (the `--cpub-card-min`/`--cpub-card-gap`
+ * tokens — see packages/ui/theme/base.css). The old `repeat(var(--grid-cols),
+ * 1fr)` stretched 2 columns to ~470px each ("giant cards"); auto-fill keeps
+ * cards at their design width and simply fits as many as the row allows.
+ * Bounded by --content-max-width and centered.
  */
 .cpub-content-grid {
   display: grid;
-  grid-template-columns: repeat(var(--grid-cols, 2), 1fr);
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(var(--cpub-card-min, 260px), 1fr));
+  gap: var(--cpub-card-gap, 20px);
   max-width: var(--content-max-width, 1280px);
   margin-inline: auto;
 }
@@ -151,5 +143,5 @@ const columns = computed(() => props.config.columns ?? 2);
 .cpub-btn-load-more { font-family: var(--font-mono); font-size: 11px; padding: 8px 20px; border: var(--border-width-default) solid var(--border); background: var(--surface); color: var(--text-dim); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
 .cpub-btn-load-more:hover { border-color: var(--accent); color: var(--accent); }
 
-@media (max-width: 768px) { .cpub-content-grid { grid-template-columns: 1fr; } }
+@media (max-width: 640px) { .cpub-content-grid { grid-template-columns: 1fr; } }
 </style>

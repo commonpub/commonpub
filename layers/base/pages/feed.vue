@@ -111,7 +111,7 @@ const filters = computed(() => [
 .feed-filter.active { border-color: var(--accent); background: var(--accent-bg); color: var(--accent); }
 .feed-filter i { font-size: 10px; }
 
-.feed-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+.feed-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--cpub-card-min, 260px), 1fr)); gap: var(--cpub-card-gap, 20px); }
 
 .feed-loading { text-align: center; padding: 48px 0; color: var(--text-faint); font-size: 13px; }
 
