@@ -27,8 +27,4 @@ defineProps<{
 .cpub-sec-head h2 { font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
 
 .cpub-rules-card { background: var(--surface); border: var(--border-width-default) solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 20px; box-shadow: var(--shadow-md); }
-.cpub-rules-list { padding-left: 20px; margin: 0; }
-.cpub-rule-item { font-size: 12px; color: var(--text-dim); line-height: 1.7; margin-bottom: 6px; }
-.cpub-rule-item:last-child { margin-bottom: 0; }
-.cpub-rules-text { font-size: 12px; color: var(--text-dim); line-height: 1.7; white-space: pre-line; }
 </style>

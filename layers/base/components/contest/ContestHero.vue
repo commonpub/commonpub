@@ -61,18 +61,7 @@ const isEnded = computed(() => c.value?.status === 'completed' || c.value?.statu
 const tagline = computed<string>(() => {
   const sub = (c.value?.subheading ?? '').trim();
   if (sub) return sub;
-  const d = (c.value?.description ?? '').trim();
-  if (!d) return 'No description available.';
-  return d
-    .replace(/```[\s\S]*?```/g, ' ')
-    .replace(/`([^`]*)`/g, '$1')
-    .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
-    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
-    .replace(/^#{1,6}\s+/gm, '')
-    .replace(/^\s*[-*+>]\s+/gm, '')
-    .replace(/(\*\*|__|~~|\*|_)/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
+  return markdownToExcerpt(c.value?.description) || 'No description available.';
 });
 </script>
 

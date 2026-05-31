@@ -46,8 +46,13 @@ applied the 0009 RBAC tables. Future migrations auto-apply. deveco uses a MANAGE
 ## Audit notes (this session)
 - No hardcoded colors in any added `.vue`/CSS (`var(--*)` rule held).
 - Gallery uses `role=radiogroup/radio`; dedupe + hero-logo are additive/config-driven.
-- Mild duplication: markdown-strip excerpt logic exists in `ContestHero` + `contests/index.vue`
-  `cardBlurb` — candidate to extract to a composable later (not bloat-critical).
+- Mild duplication: markdown-strip excerpt logic was copy-pasted in `ContestHero`
+  (`tagline`) + `contests/index.vue` (`cardBlurb`). **Resolved (layer 0.39.0):**
+  extracted to `layers/base/utils/markdownExcerpt.ts` (`markdownToExcerpt`, auto-imported,
+  9 unit tests); both callers now delegate. Also removed orphaned `.cpub-rules-list` /
+  `.cpub-rule-item` / `.cpub-rules-text` CSS from `ContestRules.vue` (dead after rules
+  went always-Markdown). Added a `listContent` includeFederated no-duplicate-page
+  regression test to `content.integration.test.ts`.
 - New gotchas recorded in `docs/llm/gotchas.md` (federated-feed pagination; NuxtLink-via-:is).
 
 ## Open / next

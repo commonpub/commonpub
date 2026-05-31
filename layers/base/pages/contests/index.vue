@@ -9,18 +9,7 @@ const { isAuthenticated, isAdmin, user } = useAuth();
 // cards never dump a raw `## ...` wall.
 function cardBlurb(c: { subheading?: string | null; description?: string | null }): string {
   if (c.subheading?.trim()) return c.subheading.trim();
-  const d = (c.description ?? '').trim();
-  if (!d) return '';
-  return d
-    .replace(/```[\s\S]*?```/g, ' ')
-    .replace(/`([^`]*)`/g, '$1')
-    .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
-    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
-    .replace(/^#{1,6}\s+/gm, '')
-    .replace(/^\s*[-*+>]\s+/gm, '')
-    .replace(/(\*\*|__|~~|\*|_)/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
+  return markdownToExcerpt(c.description);
 }
 
 const config = useRuntimeConfig();

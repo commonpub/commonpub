@@ -227,4 +227,38 @@ describe('content integration', () => {
       expect(page2.items[0]!.id).not.toBe(page1.items[0]!.id);
     }
   });
+
+  // Regression (session 177 load-more dup bug): when includeFederated is on, the
+  // merged stream must be sliced [offset, offset+limit) — the old code fetched
+  // [0, offset+limit) then sliced (0, limit), so every "load more" re-showed page 1.
+  // This manifests from the LOCAL slice math alone (no federated rows needed):
+  // localOffset=0 + slice(0,limit) returns the head on every page.
+  it('paginates without duplicates when includeFederated is on', async () => {
+    for (let i = 0; i < 4; i++) {
+      const c = await createContent(db, userId, {
+        type: 'blog',
+        title: `Fed Page Item ${i}`,
+        description: `item ${i}`,
+      });
+      await publishContent(db, c.id, userId);
+    }
+
+    const page1 = await listContent(
+      db,
+      { type: 'blog', status: 'published', limit: 2, offset: 0 },
+      { includeFederated: true },
+    );
+    const page2 = await listContent(
+      db,
+      { type: 'blog', status: 'published', limit: 2, offset: 2 },
+      { includeFederated: true },
+    );
+
+    expect(page1.items.length).toBe(2);
+    expect(page2.items.length).toBeGreaterThanOrEqual(1);
+
+    const page1Ids = new Set(page1.items.map((i) => i.id));
+    const overlap = page2.items.filter((i) => page1Ids.has(i.id));
+    expect(overlap).toEqual([]);
+  });
 });
