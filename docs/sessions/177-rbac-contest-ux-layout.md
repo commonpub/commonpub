@@ -54,6 +54,13 @@ applied the 0009 RBAC tables. Future migrations auto-apply. deveco uses a MANAGE
   went always-Markdown). Added a `listContent` includeFederated no-duplicate-page
   regression test to `content.integration.test.ts`.
 - New gotchas recorded in `docs/llm/gotchas.md` (federated-feed pagination; NuxtLink-via-:is).
+- **Gitignore swallowed a real route (fixed):** the Stryker `reports/` ignore (unanchored)
+  also matched `layers/base/server/api/admin/reports/`, so the RBAC-gated resolve-report
+  endpoint (`resolve.post.ts`, key `reports.review`) was never committed. Passed locally
+  (file on disk) + shipped in the npm layer tarball (pnpm packs on-disk files → npm
+  consumers had it), but was absent from commonpub.io (repo-built) + CI's checkout →
+  CI's `admin-route-keys` completeness test went red. Narrowed to `**/reports/mutation/`
+  + committed the route. Feedback memory: unanchored-gitignore-swallows-source.
 
 ## Open / next
 - **L5+L7 (deveco migration)**: deveco ships a fully custom `layouts/default.vue` (flat
