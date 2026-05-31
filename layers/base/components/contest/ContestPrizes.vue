@@ -2,6 +2,8 @@
 interface Prize { place?: number; category?: string; title?: string; description?: string; value?: string }
 defineProps<{
   prizes: Prize[];
+  /** Optional Markdown intro shown above the prize cards (section-level, not per-prize). */
+  description?: string | null;
 }>();
 
 function prizeLabel(prize: Prize): string {
@@ -35,7 +37,8 @@ function prizeIcon(prize: Prize): string {
     <div class="cpub-sec-head">
       <h2><i class="fa fa-trophy" style="color: var(--yellow);"></i> Prizes</h2>
     </div>
-    <div class="cpub-prize-grid">
+    <CpubMarkdown v-if="description" :source="description" class="cpub-prizes-intro" />
+    <div v-if="prizes.length" class="cpub-prize-grid">
       <div
         v-for="(prize, i) in prizes"
         :key="i"
@@ -58,6 +61,7 @@ function prizeIcon(prize: Prize): string {
 .cpub-sec-head { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
 .cpub-sec-head h2 { font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
 
+.cpub-prizes-intro { margin-bottom: 16px; }
 .cpub-prize-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-bottom: 20px; }
 .cpub-prize-card { border-radius: var(--radius); padding: 20px; text-align: center; background: var(--surface); border: var(--border-width-default) solid var(--border); box-shadow: var(--shadow-md); }
 .cpub-prize-gold { box-shadow: var(--shadow-accent); }

@@ -47,6 +47,7 @@ interface Prize {
   value: string;
 }
 
+const prizesDescription = ref('');
 const prizes = ref<Prize[]>([
   { place: 1, category: '', title: '1st Place', description: '', value: '' },
   { place: 2, category: '', title: '2nd Place', description: '', value: '' },
@@ -104,6 +105,7 @@ async function handleCreate(): Promise<void> {
         visibleToRoles: visibility.value === 'private' && visibleToRoles.value.length ? visibleToRoles.value : undefined,
         eligibleContentTypes: eligibleContentTypes.value.length ? eligibleContentTypes.value : undefined,
         maxEntriesPerUser: maxEntriesPerUser.value && maxEntriesPerUser.value > 0 ? maxEntriesPerUser.value : undefined,
+        prizesDescription: prizesDescription.value || undefined,
         prizes: prizes.value
           .filter(p => p.title.trim() || p.description.trim() || p.category.trim() || (typeof p.place === 'number' && p.place > 0))
           .map(p => ({
@@ -286,6 +288,11 @@ function prizeLabel(prize: Prize): string {
         </div>
 
         <p class="cpub-form-hint">Every field is optional. Use <strong>place</strong> for ranked prizes (1st/2nd/3rd), a <strong>category</strong> for themed awards (e.g. "Best in Show"), or just a <strong>description</strong>. Cash value is optional.</p>
+        <div class="cpub-form-field">
+          <label for="prizes-desc" class="cpub-form-label">Prizes overview (optional)</label>
+          <textarea id="prizes-desc" v-model="prizesDescription" class="cpub-form-textarea" rows="3" placeholder="Intro shown above the prize cards. Supports Markdown." />
+          <p class="cpub-form-hint">Markdown intro displayed on the Prizes tab, above the individual prizes.</p>
+        </div>
         <div v-for="(prize, idx) in prizes" :key="idx" class="cpub-prize-card">
           <div class="cpub-prize-header">
             <span class="cpub-prize-place">

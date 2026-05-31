@@ -78,6 +78,13 @@
       "when": 1780191028310,
       "tag": "0010_powerful_doctor_faustus",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1780194194032,
+      "tag": "0011_green_lorna_dane",
+      "breakpoints": true
     }
   ]
 }

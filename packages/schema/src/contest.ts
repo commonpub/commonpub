@@ -14,6 +14,8 @@ export const contests = pgTable('contests', {
   /** Long-form body, rendered as Markdown (may contain inline HTML). */
   description: text('description'),
   rules: text('rules'),
+  /** Markdown intro shown on the Prizes tab, above the individual prize cards. */
+  prizesDescription: text('prizes_description'),
   bannerUrl: text('banner_url'),
   status: contestStatusEnum('status').default('upcoming').notNull(),
   startDate: timestamp('start_date', { withTimezone: true }).notNull(),

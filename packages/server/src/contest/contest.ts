@@ -38,6 +38,7 @@ export interface ContestListItem {
   id: string;
   title: string;
   slug: string;
+  subheading: string | null;
   description: string | null;
   bannerUrl: string | null;
   status: ContestStatus;
@@ -50,6 +51,7 @@ export interface ContestListItem {
 export interface ContestDetail extends ContestListItem {
   subheading: string | null;
   rules: string | null;
+  prizesDescription: string | null;
   prizes: ContestPrize[] | null;
   judgingCriteria: ContestJudgingCriterion[] | null;
   judgingVisibility: ContestJudgingVisibility;
@@ -74,6 +76,7 @@ export interface CreateContestInput {
   subheading?: string;
   description?: string;
   rules?: string;
+  prizesDescription?: string;
   bannerUrl?: string;
   prizes?: ContestPrize[];
   judgingCriteria?: ContestJudgingCriterion[];
@@ -153,6 +156,7 @@ export async function listContests(
     id: row.id,
     title: row.title,
     slug: row.slug,
+    subheading: row.subheading,
     description: row.description,
     bannerUrl: row.bannerUrl,
     status: row.status,
@@ -181,6 +185,7 @@ function toContestDetail(row: ContestRow): ContestDetail {
     createdAt: row.createdAt,
     subheading: row.subheading,
     rules: row.rules,
+    prizesDescription: row.prizesDescription,
     prizes: row.prizes ?? null,
     judgingCriteria: row.judgingCriteria ?? null,
     judgingVisibility: row.judgingVisibility,
@@ -263,6 +268,7 @@ export async function createContest(
       subheading: input.subheading ?? null,
       description: input.description ?? null,
       rules: input.rules ?? null,
+      prizesDescription: input.prizesDescription ?? null,
       bannerUrl: input.bannerUrl ?? null,
       prizes: input.prizes ?? null,
       judgingCriteria: input.judgingCriteria ?? null,
@@ -319,6 +325,7 @@ export async function updateContest(
   if (data.subheading !== undefined) updates.subheading = data.subheading;
   if (data.description !== undefined) updates.description = data.description;
   if (data.rules !== undefined) updates.rules = data.rules;
+  if (data.prizesDescription !== undefined) updates.prizesDescription = data.prizesDescription;
   if (data.bannerUrl !== undefined) updates.bannerUrl = data.bannerUrl;
   if (data.prizes !== undefined) updates.prizes = data.prizes;
   if (data.judgingCriteria !== undefined) updates.judgingCriteria = data.judgingCriteria;

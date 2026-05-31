@@ -84,6 +84,10 @@ const tagline = computed<string>(() => {
     </div>
 
     <div class="cpub-hero-inner">
+      <!-- Banner image: a clean band at the top of the hero. Title/tagline sit
+           BELOW it (never overlaid) so text stays legible regardless of image. -->
+      <img v-if="c?.bannerUrl" :src="c.bannerUrl" :alt="`${c?.title || 'Contest'} banner`" class="cpub-hero-banner" />
+
       <div v-if="c?.status === 'cancelled'" class="cpub-cancelled-banner">
         <i class="fa-solid fa-ban"></i> This contest has been cancelled.
       </div>
@@ -175,6 +179,7 @@ const tagline = computed<string>(() => {
 .cpub-hero-dots { position: absolute; inset: 0; background-image: radial-gradient(var(--accent-border) 1.5px, transparent 1.5px); background-size: 28px 28px; opacity: .3; }
 .cpub-hero-lines { position: absolute; inset: 0; background-image: linear-gradient(var(--accent-bg) 1px, transparent 1px), linear-gradient(90deg, var(--accent-bg) 1px, transparent 1px); background-size: 56px 56px; }
 .cpub-hero-inner { max-width: 1100px; margin: 0 auto; padding: 0 32px; position: relative; z-index: 1; }
+.cpub-hero-banner { display: block; width: 100%; max-height: 260px; object-fit: cover; margin-bottom: 28px; border: var(--border-width-default) solid var(--hero-border); border-radius: var(--radius); }
 .cpub-hero-eyebrow { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
 .cpub-contest-badge { font-size: 9px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; font-family: var(--font-mono); color: var(--accent); background: var(--accent-bg); border: var(--border-width-default) solid var(--accent); padding: 3px 10px; border-radius: var(--radius); display: inline-flex; align-items: center; gap: 5px; }
 .cpub-contest-badge i { font-size: 8px; }

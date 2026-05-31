@@ -41,6 +41,7 @@ function toggleRole(r: string): void {
   else visibleToRoles.value.push(r);
 }
 
+const prizesDescription = ref('');
 interface Prize { place: number | null; category: string; title: string; description: string; value: string }
 const prizes = ref<Prize[]>([]);
 
@@ -64,6 +65,7 @@ watch(contest, (c) => {
   maxEntriesPerUser.value = c.maxEntriesPerUser ?? null;
   visibility.value = (c.visibility as typeof visibility.value) ?? 'public';
   visibleToRoles.value = [...(c.visibleToRoles ?? [])];
+  prizesDescription.value = c.prizesDescription ?? '';
   prizes.value = (c.prizes ?? []).map((p: { place?: number; category?: string; title?: string; description?: string; value?: string }) => ({
     place: p.place ?? null,
     category: p.category ?? '',
@@ -151,6 +153,7 @@ async function handleSave(): Promise<void> {
         maxEntriesPerUser: maxEntriesPerUser.value && maxEntriesPerUser.value > 0 ? maxEntriesPerUser.value : undefined,
         visibility: visibility.value,
         visibleToRoles: visibility.value === 'private' ? visibleToRoles.value : [],
+        prizesDescription: prizesDescription.value || undefined,
         prizes: prizeData,
         judgingCriteria: criteriaData,
       },
@@ -272,6 +275,11 @@ async function transitionStatus(newStatus: string): Promise<void> {
       <section class="cpub-form-section">
         <h2 class="cpub-form-section-title">Prizes</h2>
         <p class="cpub-form-hint">Every field is optional. Use <strong>place</strong> for ranked prizes, a <strong>category</strong> for themed awards, or just a <strong>description</strong> — whatever fits. Cash value is optional.</p>
+        <div class="cpub-form-field">
+          <label class="cpub-form-label">Prizes overview (optional)</label>
+          <textarea v-model="prizesDescription" class="cpub-form-textarea" rows="3" placeholder="Intro shown above the prize cards. Supports Markdown." />
+          <p class="cpub-form-hint">Markdown intro displayed on the Prizes tab, above the individual prizes.</p>
+        </div>
         <div v-for="(prize, i) in prizes" :key="i" class="cpub-prize-row">
           <div class="cpub-prize-header">
             <span class="cpub-prize-label">{{ prizeLabel(prize) }}</span>

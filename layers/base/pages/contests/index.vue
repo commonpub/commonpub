@@ -4,6 +4,25 @@ useSeoMeta({ title: `Contests — ${useSiteName()}` });
 const { data: contests } = await useFetch('/api/contests');
 const { isAuthenticated, isAdmin, user } = useAuth();
 
+// Card blurb: prefer the short subheading; otherwise a plain-text, markdown-
+// stripped excerpt of the (possibly long Markdown) description — so listing
+// cards never dump a raw `## ...` wall.
+function cardBlurb(c: { subheading?: string | null; description?: string | null }): string {
+  if (c.subheading?.trim()) return c.subheading.trim();
+  const d = (c.description ?? '').trim();
+  if (!d) return '';
+  return d
+    .replace(/```[\s\S]*?```/g, ' ')
+    .replace(/`([^`]*)`/g, '$1')
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+    .replace(/^#{1,6}\s+/gm, '')
+    .replace(/^\s*[-*+>]\s+/gm, '')
+    .replace(/(\*\*|__|~~|\*|_)/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 const config = useRuntimeConfig();
 const contestCreation = config.public.contestCreation as string || 'admin';
 const canCreateContest = computed(() => {
@@ -36,8 +55,8 @@ const canCreateContest = computed(() => {
               {{ contest.title }}
             </NuxtLink>
           </h3>
-          <p v-if="contest.description" style="font-size: 12px; color: var(--text-dim); margin-bottom: 12px">
-            {{ contest.description }}
+          <p v-if="cardBlurb(contest)" class="cpub-contest-card-blurb" style="font-size: 12px; color: var(--text-dim); margin-bottom: 12px">
+            {{ cardBlurb(contest) }}
           </p>
           <div v-if="contest.endDate" style="margin-top: 8px">
             <CountdownTimer :target-date="contest.endDate" />
@@ -62,6 +81,15 @@ const canCreateContest = computed(() => {
 .cpub-card { border: var(--border-width-default) solid var(--border); background: var(--surface); overflow: hidden; transition: box-shadow 0.15s, transform 0.15s; box-shadow: var(--shadow-md); }
 .cpub-card:hover { box-shadow: var(--shadow-lg); transform: translate(-1px, -1px); }
 .cpub-card-body { padding: 16px; }
+
+.cpub-contest-card-blurb {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.5;
+}
 
 @media (max-width: 768px) {
   .cpub-contests-page { padding: 16px; }
