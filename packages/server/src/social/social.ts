@@ -6,6 +6,7 @@ import {
   follows,
   contentItems,
   hubPosts,
+  hubs,
   users,
   federatedContent,
   remoteActors,
@@ -59,8 +60,8 @@ export async function toggleLike(
       let link: string | undefined;
 
       if (targetType === 'post') {
-        const [t] = await db.select({ authorId: hubPosts.authorId }).from(hubPosts).where(eq(hubPosts.id, targetId)).limit(1);
-        if (t) authorId = t.authorId;
+        const [t] = await db.select({ authorId: hubPosts.authorId, hubSlug: hubs.slug }).from(hubPosts).innerJoin(hubs, eq(hubPosts.hubId, hubs.id)).where(eq(hubPosts.id, targetId)).limit(1);
+        if (t) { authorId = t.authorId; link = `/hubs/${t.hubSlug}/posts/${targetId}`; }
       } else if (targetType !== 'comment') {
         // Content types: project, article, blog, explainer
         const [t] = await db.select({ authorId: contentItems.authorId, title: contentItems.title, slug: contentItems.slug, type: contentItems.type, authorUsername: users.username }).from(contentItems).innerJoin(users, eq(contentItems.authorId, users.id)).where(eq(contentItems.id, targetId)).limit(1);
@@ -294,8 +295,8 @@ export async function createComment(
   try {
 
     if (input.targetType === 'post') {
-      const [t] = await db.select({ authorId: hubPosts.authorId }).from(hubPosts).where(eq(hubPosts.id, input.targetId)).limit(1);
-      if (t) targetAuthorId = t.authorId;
+      const [t] = await db.select({ authorId: hubPosts.authorId, hubSlug: hubs.slug }).from(hubPosts).innerJoin(hubs, eq(hubPosts.hubId, hubs.id)).where(eq(hubPosts.id, input.targetId)).limit(1);
+      if (t) { targetAuthorId = t.authorId; link = `/hubs/${t.hubSlug}/posts/${input.targetId}`; }
     } else {
       // Content types: project, article, blog, explainer, lesson
       const [t] = await db.select({ authorId: contentItems.authorId, title: contentItems.title, slug: contentItems.slug, type: contentItems.type, authorUsername: users.username }).from(contentItems).innerJoin(users, eq(contentItems.authorId, users.id)).where(eq(contentItems.id, input.targetId)).limit(1);
