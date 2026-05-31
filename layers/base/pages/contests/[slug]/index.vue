@@ -126,10 +126,19 @@ const enteredContentIds = computed(() => new Set(entries.value.map((e) => e.cont
 // Restrict the submit picker to the contest's eligible content types (if set).
 const eligibleTypes = computed<string[]>(() => (c.value?.eligibleContentTypes as string[] | undefined) ?? []);
 const submittableContent = computed(() => {
-  const items = (userContent.value?.items ?? []) as Array<{ id: string; title: string; type: string }>;
+  const items = (userContent.value?.items ?? []) as Array<{ id: string; title: string; type: string; coverImageUrl?: string | null }>;
   if (eligibleTypes.value.length === 0) return items;
   return items.filter((i) => eligibleTypes.value.includes(i.type));
 });
+
+// "Create a new project for this contest" — lands in the editor with the contest
+// association in the URL; on publish it auto-enters (server pending-entry hook).
+const newProjectType = computed(() => (eligibleTypes.value[0] ?? 'project'));
+const createForContestLink = computed(() =>
+  user.value?.username
+    ? `/u/${user.value.username}/${newProjectType.value}/new/edit?contest=${slug}`
+    : `/auth/login?redirect=/contests/${slug}`,
+);
 
 function copyLink(): void {
   if (typeof window !== 'undefined' && window.navigator?.clipboard) {
@@ -186,22 +195,38 @@ async function withdrawEntry(entryId: string): Promise<void> {
         </div>
         <div class="cpub-submit-body">
           <p class="cpub-submit-hint">
-            Select one of your published projects to submit as an entry.
+            Pick one of your published projects to enter — or start a new one.
             <template v-if="eligibleTypes.length"> This contest accepts: {{ eligibleTypes.join(', ') }}.</template>
           </p>
-          <select v-model="submitContentId" class="cpub-submit-select" aria-label="Select a project to submit">
-            <option value="">Select a project...</option>
-            <option
+          <div class="cpub-submit-gallery" role="radiogroup" aria-label="Select a project to submit">
+            <NuxtLink :to="createForContestLink" class="cpub-submit-new" @click="showSubmitDialog = false">
+              <div class="cpub-submit-new-icon"><i class="fa-solid fa-plus"></i></div>
+              <span>Create a new {{ newProjectType }}</span>
+              <small>Enters automatically when you publish it</small>
+            </NuxtLink>
+            <button
               v-for="item in submittableContent"
               :key="item.id"
-              :value="item.id"
+              type="button"
+              role="radio"
+              :aria-checked="submitContentId === item.id"
+              class="cpub-submit-tile"
+              :class="{ selected: submitContentId === item.id, entered: enteredContentIds.has(item.id) }"
               :disabled="enteredContentIds.has(item.id)"
+              @click="submitContentId = item.id"
             >
-              {{ item.title }} ({{ item.type }}){{ enteredContentIds.has(item.id) ? ' — already entered' : '' }}
-            </option>
-          </select>
+              <span class="cpub-submit-tile-thumb">
+                <img v-if="item.coverImageUrl" :src="item.coverImageUrl" :alt="item.title" />
+                <i v-else class="fa-solid fa-cube"></i>
+                <span v-if="enteredContentIds.has(item.id)" class="cpub-submit-tile-badge">Entered</span>
+                <span v-else-if="submitContentId === item.id" class="cpub-submit-tile-check"><i class="fa-solid fa-check"></i></span>
+              </span>
+              <span class="cpub-submit-tile-title">{{ item.title }}</span>
+              <span class="cpub-submit-tile-type">{{ item.type }}</span>
+            </button>
+          </div>
           <p v-if="submittableContent.length === 0" class="cpub-submit-hint" style="margin-top: 10px; margin-bottom: 0;">
-            No eligible published content found.
+            No eligible published content yet — use “Create a new {{ newProjectType }}” above to start one.
           </p>
         </div>
         <div class="cpub-submit-footer">
@@ -334,14 +359,29 @@ async function withdrawEntry(entryId: string): Promise<void> {
 <style scoped>
 /* SUBMIT DIALOG */
 .cpub-submit-overlay { position: fixed; inset: 0; z-index: 200; background: var(--color-surface-overlay-light); display: flex; align-items: center; justify-content: center; }
-.cpub-submit-dialog { background: var(--surface); border: var(--border-width-default) solid var(--border); box-shadow: var(--shadow-xl); width: 420px; max-width: 90vw; }
+.cpub-submit-dialog { background: var(--surface); border: var(--border-width-default) solid var(--border); box-shadow: var(--shadow-xl); width: 560px; max-width: 92vw; }
 .cpub-submit-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: var(--border-width-default) solid var(--border); }
 .cpub-submit-header h2 { font-size: 14px; font-weight: 700; }
 .cpub-submit-close { background: none; border: none; color: var(--text-faint); cursor: pointer; font-size: 14px; }
 .cpub-submit-body { padding: 16px; }
 .cpub-submit-hint { font-size: 12px; color: var(--text-dim); margin-bottom: 12px; }
-.cpub-submit-select { width: 100%; padding: 8px 10px; border: var(--border-width-default) solid var(--border); background: var(--surface); color: var(--text); font-size: 13px; }
-.cpub-submit-select:focus { border-color: var(--accent); outline: none; }
+/* Gallery picker (replaces the old <select>): scrollable grid of content tiles. */
+.cpub-submit-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; max-height: 50vh; overflow-y: auto; padding: 2px; }
+.cpub-submit-new { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; text-align: center; min-height: 150px; border: var(--border-width-default) dashed var(--accent-border); background: var(--accent-bg); color: var(--accent); text-decoration: none; padding: 10px; }
+.cpub-submit-new:hover { border-color: var(--accent); }
+.cpub-submit-new-icon { font-size: 20px; }
+.cpub-submit-new span { font-size: 12px; font-weight: 600; }
+.cpub-submit-new small { font-size: 10px; color: var(--text-dim); line-height: 1.3; }
+.cpub-submit-tile { display: flex; flex-direction: column; text-align: left; padding: 0; border: var(--border-width-default) solid var(--border); background: var(--surface); cursor: pointer; overflow: hidden; }
+.cpub-submit-tile:hover:not(:disabled) { border-color: var(--accent); }
+.cpub-submit-tile.selected { border-color: var(--accent); box-shadow: var(--shadow-accent); }
+.cpub-submit-tile.entered { opacity: 0.5; cursor: not-allowed; }
+.cpub-submit-tile-thumb { position: relative; aspect-ratio: 4 / 3; background: var(--surface2); display: flex; align-items: center; justify-content: center; color: var(--text-faint); overflow: hidden; }
+.cpub-submit-tile-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.cpub-submit-tile-badge { position: absolute; top: 4px; right: 4px; font-size: 9px; font-family: var(--font-mono); text-transform: uppercase; background: var(--surface); border: var(--border-width-default) solid var(--border); padding: 1px 5px; color: var(--text-dim); }
+.cpub-submit-tile-check { position: absolute; top: 4px; right: 4px; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; background: var(--accent); color: var(--color-text-inverse); font-size: 10px; }
+.cpub-submit-tile-title { font-size: 12px; font-weight: 600; padding: 6px 8px 2px; line-height: 1.3; }
+.cpub-submit-tile-type { font-size: 9px; font-family: var(--font-mono); text-transform: uppercase; color: var(--text-faint); padding: 0 8px 8px; }
 .cpub-submit-footer { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 16px; border-top: var(--border-width-default) solid var(--border); }
 
 /* LAYOUT */

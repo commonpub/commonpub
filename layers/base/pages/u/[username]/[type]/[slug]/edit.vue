@@ -35,6 +35,11 @@ useSeoMeta({
 
 const title = ref('');
 const hubFromQuery = (route.query.hub as string) || '';
+// Captured at setup because handleStarterSubmit's history.replaceState drops the
+// query. If set (?contest=slug from a contest's "create new project" button),
+// the project auto-enters that contest on publish.
+const contestFromQuery = (route.query.contest as string) || '';
+const submitToast = useToast();
 const metadata = ref<Record<string, unknown>>({
   description: '',
   slug: '',
@@ -278,6 +283,15 @@ async function handleStarterSubmit(): Promise<void> {
 // --- Publish with validation ---
 async function handlePublish(): Promise<void> {
   await doPublish(validate);
+  // Auto-enter into the contest this project was created for (if any). The
+  // submit endpoint re-validates published status, so a premature call (publish
+  // blocked by validation) just fails harmlessly and is swallowed.
+  if (contestFromQuery && contentId.value && !isNew.value) {
+    try {
+      await $fetch(`/api/contests/${contestFromQuery}/entries`, { method: 'POST', body: { contentId: contentId.value } });
+      submitToast.success('Entered into the contest!');
+    } catch { /* non-blocking — user can submit manually from the contest page */ }
+  }
 }
 
 // --- Preview mode ---

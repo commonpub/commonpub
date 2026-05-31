@@ -62,6 +62,14 @@ const heroCtas = computed<HeroCta[]>(() => {
   ];
 });
 
+// Optional hero logo/image (config-driven, per-site). When set, renders in a
+// side column next to the hero copy — e.g. deveco's hexagon logo — without
+// affecting sites that don't configure one. Additive: no logo unless set.
+const heroLogo = computed(() => {
+  const cfg = props.config as { logoImageUrl?: string; logoAlt?: string };
+  return cfg.logoImageUrl?.trim() ? { src: cfg.logoImageUrl.trim(), alt: cfg.logoAlt?.trim() || '' } : null;
+});
+
 // Shared via useState so the dismiss sticks across component remounts.
 // HomepageSectionRenderer's v-if wrappers can remount HeroSection when the
 // `sections` useFetch revalidates on hydration or when feature flags flip
@@ -124,6 +132,9 @@ function dismissHero(): void {
           </div>
         </template>
       </div>
+      <div v-if="heroLogo" class="cpub-hero-visual">
+        <img :src="heroLogo.src" :alt="heroLogo.alt" class="cpub-hero-logo-img" />
+      </div>
     </div>
   </section>
 </template>
@@ -145,7 +156,12 @@ function dismissHero(): void {
 .cpub-hero-title span { color: var(--accent); }
 .cpub-hero-excerpt { font-size: 13px; color: var(--text-dim); line-height: 1.65; margin-bottom: 20px; max-width: 560px; }
 .cpub-hero-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.cpub-hero-visual { flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+.cpub-hero-logo-img { max-height: 240px; max-width: 320px; width: 100%; object-fit: contain; }
 
+@media (max-width: 900px) {
+  .cpub-hero-visual { display: none; }
+}
 @media (max-width: 640px) {
   .cpub-hero-inner { flex-direction: column; align-items: flex-start; gap: 20px; padding: 24px 16px; }
   .cpub-hero-title { font-size: 19px; }
