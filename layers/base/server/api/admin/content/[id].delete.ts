@@ -2,7 +2,7 @@ import { removeContent, removeFederatedContent } from '@commonpub/server';
 
 export default defineEventHandler(async (event): Promise<void> => {
   requireFeature('admin');
-  const admin = requireAdmin(event);
+  const admin = requirePermission(event, 'content.moderate');
   const db = useDB();
   const { id } = parseParams(event, { id: 'uuid' });
 

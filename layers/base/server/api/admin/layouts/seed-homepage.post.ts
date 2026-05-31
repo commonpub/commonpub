@@ -24,7 +24,7 @@ import { invalidateLayoutsByRouteCache } from '../../../utils/layoutCache';
 export default defineEventHandler(async (event) => {
   requireFeature('admin');
   requireFeature('layoutEngine');
-  const admin = requireAdmin(event);
+  const admin = requirePermission(event, 'layout.manage');
   const db = useDB();
 
   const result = await seedHomepageLayout(db, { adminId: admin.id });

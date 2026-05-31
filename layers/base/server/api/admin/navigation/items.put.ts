@@ -26,7 +26,7 @@ const updateNavSchema = z.object({
  * Save navigation item configuration.
  */
 export default defineEventHandler(async (event) => {
-  const user = requireAdmin(event);
+  const user = requirePermission(event, 'navigation.manage');
   const db = useDB();
   const body = await parseBody(event, updateNavSchema);
 

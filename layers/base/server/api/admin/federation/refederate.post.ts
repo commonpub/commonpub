@@ -18,7 +18,7 @@ export default defineEventHandler(async (event) => {
   if (cliSecret && cliSecret === runtimeConfig.authSecret) {
     // Authorized via shared secret
   } else {
-    requireAdmin(event);
+    requirePermission(event, 'federation.manage');
   }
 
   const config = useConfig();

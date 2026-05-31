@@ -5,7 +5,7 @@ import { getNavItems } from '@commonpub/server';
  * Returns navigation items for admin editing.
  */
 export default defineEventHandler(async (event) => {
-  requireAdmin(event);
+  requirePermission(event, 'navigation.manage');
   const db = useDB();
   return getNavItems(db);
 });

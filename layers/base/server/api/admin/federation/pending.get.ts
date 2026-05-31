@@ -8,7 +8,7 @@ import { activities } from '@commonpub/schema';
  */
 export default defineEventHandler(async (event) => {
   requireFeature('admin');
-  requireAdmin(event);
+  requirePermission(event, 'federation.manage');
   const db = useDB();
 
   const pending = await db

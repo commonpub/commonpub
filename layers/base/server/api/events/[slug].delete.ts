@@ -14,7 +14,7 @@ export default defineEventHandler(async (event) => {
   const existing = await getEventBySlug(db, slug);
   if (!existing) throw createError({ statusCode: 404, statusMessage: 'Event not found' });
 
-  const isAdmin = user.role === 'admin';
+  const isAdmin = hasPermission(event, 'event.manage');
   const deleted = await deleteEvent(db, existing.id, user.id, isAdmin);
   if (!deleted) throw createError({ statusCode: 403, statusMessage: 'Unauthorized' });
 

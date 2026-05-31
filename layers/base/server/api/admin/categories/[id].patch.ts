@@ -6,7 +6,7 @@ import { updateContentCategorySchema } from '@commonpub/schema';
  * Update a content category (admin only).
  */
 export default defineEventHandler(async (event) => {
-  requireAdmin(event);
+  requirePermission(event, 'categories.manage');
   const db = useDB();
   const { id } = parseParams(event, { id: 'uuid' });
   const body = await parseBody(event, updateContentCategorySchema);

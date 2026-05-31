@@ -74,3 +74,29 @@ export function hasPermission(event: H3Event, needed: PermissionKey): boolean {
   const primaryRole = user.role || resolved?.primaryRole;
   return hasPermissionPure(granted, needed, primaryRole);
 }
+
+/**
+ * Owner-OR-permission gate — the Phase 1 replacement for the ad-hoc
+ * `resource.ownerId === user.id || user.role === 'admin'` idiom on resource
+ * routes (contest judges/stakeholders, etc). Returns true if the caller owns the
+ * resource OR holds `needed`. Non-throwing (returns false for anon / neither).
+ *
+ * Flag-off this is byte-identical to the old idiom: `hasPermission` floors on the
+ * admin role, so `owner || hasPermission(…)` ≡ `owner || role==='admin'`. Flag-on,
+ * a custom/staff role granted `needed` also passes — the intended broadening.
+ *
+ * The plan filed this under `packages/server/src/rbac/`, but — like the resolver
+ * (session-175 location correction) — it operates on an H3 `event` + the
+ * middleware-attached context, so it lives in the layer beside its siblings
+ * `requirePermission`/`hasPermission`. The pure core is `hasPermissionPure`.
+ */
+export function ownerOrPermission(
+  event: H3Event,
+  ownerId: string | null | undefined,
+  needed: PermissionKey,
+): boolean {
+  const user = getOptionalUser(event);
+  if (!user) return false;
+  if (ownerId && user.id === ownerId) return true;
+  return hasPermission(event, needed);
+}

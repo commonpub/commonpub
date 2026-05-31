@@ -7,7 +7,7 @@ const removeSchema = z.object({
 
 export default defineEventHandler(async (event) => {
   requireFeature('admin');
-  requireAdmin(event);
+  requirePermission(event, 'federation.manage');
   const db = useDB();
   const { domain } = await parseBody(event, removeSchema);
 

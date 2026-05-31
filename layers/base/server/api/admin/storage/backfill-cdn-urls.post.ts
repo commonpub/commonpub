@@ -34,7 +34,7 @@ function spacesHosts(): { origin: string; cdn: string } | null {
 
 export default defineEventHandler(async (event) => {
   requireAuth(event);
-  requireAdmin(event);
+  requirePermission(event, 'storage.manage');
 
   const hosts = spacesHosts();
   if (!hosts) {

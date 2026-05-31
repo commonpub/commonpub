@@ -7,7 +7,7 @@ import { z } from 'zod';
  * Bulk update editorial status on multiple content items (admin only).
  */
 export default defineEventHandler(async (event) => {
-  requireAdmin(event);
+  requirePermission(event, 'content.editorial');
 
   const body = await parseBody(event, z.object({
     ids: z.array(z.string().uuid()).min(1).max(100),

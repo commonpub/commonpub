@@ -46,7 +46,7 @@ beforeAll(() => {
 
 // Imported AFTER globals are arranged in beforeAll-safe position (module body
 // references no globals at load time — only inside the functions).
-const { requirePermission, hasPermission } = await import('../requirePermission');
+const { requirePermission, hasPermission, ownerOrPermission } = await import('../requirePermission');
 
 function makeEvent(
   user: FakeUser | null,
@@ -156,5 +156,43 @@ describe('hasPermission (non-throwing)', () => {
     const e = makeEvent(member, resolved('member', ['content.editorial']));
     expect(hasPermission(e, 'content.editorial')).toBe(true);
     expect(hasPermission(e, 'users.manage')).toBe(false);
+  });
+});
+
+describe('ownerOrPermission (owner-OR-permission gate)', () => {
+  const owner: FakeUser = { id: 'owner1', username: 'owner', role: 'member' };
+
+  it('anonymous → false', () => {
+    expect(ownerOrPermission(makeEvent(null), 'owner1', 'contest.manage')).toBe(false);
+  });
+
+  it('the resource owner passes WITHOUT holding the permission', () => {
+    // owner1 owns the resource; resolved set is empty + role member.
+    const e = makeEvent(owner, resolved('member', []));
+    expect(ownerOrPermission(e, 'owner1', 'contest.manage')).toBe(true);
+  });
+
+  it('a non-owner WITHOUT the permission → false', () => {
+    const e = makeEvent(member, resolved('member', []));
+    expect(ownerOrPermission(e, 'owner1', 'contest.manage')).toBe(false);
+  });
+
+  it('a non-owner WITH the permission → true (the flag-on broadening)', () => {
+    const e = makeEvent(member, resolved('member', ['contest.manage']));
+    expect(ownerOrPermission(e, 'owner1', 'contest.manage')).toBe(true);
+  });
+
+  it('INV-1/INV-2 flag-off parity: a non-owner admin passes via the floor (empty set)', () => {
+    // Pre-RBAC `owner || role==='admin'` ≡ `ownerOrPermission` flag-off.
+    const e = makeEvent(admin, resolved('', []));
+    expect(ownerOrPermission(e, 'owner1', 'contest.manage')).toBe(true);
+  });
+
+  it('a null/undefined ownerId only ever passes via the permission', () => {
+    const denied = makeEvent(member, resolved('member', []));
+    expect(ownerOrPermission(denied, null, 'contest.manage')).toBe(false);
+    expect(ownerOrPermission(denied, undefined, 'contest.manage')).toBe(false);
+    const granted = makeEvent(member, resolved('member', ['contest.manage']));
+    expect(ownerOrPermission(granted, null, 'contest.manage')).toBe(true);
   });
 });

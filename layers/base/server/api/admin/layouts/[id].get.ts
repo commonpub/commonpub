@@ -11,7 +11,7 @@ import { getLayoutById } from '@commonpub/server';
 export default defineEventHandler(async (event) => {
   requireFeature('admin');
   requireFeature('layoutEngine');
-  requireAdmin(event);
+  requirePermission(event, 'layout.manage');
 
   const id = getRouterParam(event, 'id');
   if (!id) {

@@ -6,7 +6,7 @@ import type { FeatureFlags } from '@commonpub/config';
  * Returns current feature flags with metadata about defaults vs overrides.
  */
 export default defineEventHandler(async (event) => {
-  requireAdmin(event);
+  requirePermission(event, 'settings.manage');
 
   const db = useDB();
   const config = useConfig();

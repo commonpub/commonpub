@@ -1,7 +1,7 @@
 import { revokeApiKey, createAuditEntry } from '@commonpub/server';
 
 export default defineEventHandler(async (event) => {
-  const user = requireAdmin(event);
+  const user = requirePermission(event, 'apikeys.manage');
   const id = getRouterParam(event, 'id');
   if (!id) throw createError({ statusCode: 400, statusMessage: 'Missing id' });
   const db = useDB();

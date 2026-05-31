@@ -2,7 +2,7 @@ import { getStoredTrustedInstances } from '@commonpub/server';
 
 export default defineEventHandler(async (event) => {
   requireFeature('admin');
-  requireAdmin(event);
+  requirePermission(event, 'federation.manage');
   const db = useDB();
   const config = useConfig();
 

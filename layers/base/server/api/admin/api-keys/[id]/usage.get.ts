@@ -6,7 +6,7 @@ const querySchema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  requireAdmin(event);
+  requirePermission(event, 'apikeys.manage');
   const id = getRouterParam(event, 'id');
   if (!id) throw createError({ statusCode: 400, statusMessage: 'Missing id' });
   const parsed = querySchema.safeParse(getQuery(event));

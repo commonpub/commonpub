@@ -28,9 +28,13 @@ describe('GET /api/layouts/by-route — draft-leak P0 guard', () => {
     );
   });
 
-  it('checks user.role === "admin" to differentiate draft visibility', () => {
-    expect(src, 'must derive isAdmin from user.role === "admin"').toMatch(
-      /user\?\.role\s*===\s*['"]admin['"]/,
+  it('derives draft visibility from the layout.manage permission', () => {
+    // Phase-1 RBAC: the former `user?.role === 'admin'` is now
+    // `hasPermission(event, 'layout.manage')`. Flag-off this is identical
+    // (admins pass via the gate's admin floor); flag-on a layout.manage
+    // grant also sees drafts + the admin cache tier — the intended broadening.
+    expect(src, 'must derive isAdmin from hasPermission(event, "layout.manage")').toMatch(
+      /hasPermission\(\s*event\s*,\s*['"]layout\.manage['"]\s*\)/,
     );
   });
 

@@ -5,7 +5,7 @@ import { deleteContentCategory } from '@commonpub/server';
  * Delete a content category (admin only). System categories cannot be deleted.
  */
 export default defineEventHandler(async (event) => {
-  requireAdmin(event);
+  requirePermission(event, 'categories.manage');
   const db = useDB();
   const { id } = parseParams(event, { id: 'uuid' });
 

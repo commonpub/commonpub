@@ -1,7 +1,7 @@
 import { deleteVideoCategory } from '@commonpub/server';
 
 export default defineEventHandler(async (event): Promise<{ success: boolean }> => {
-  requireAdmin(event);
+  requirePermission(event, 'categories.manage');
 
   const { id } = parseParams(event, { id: 'uuid' });
 

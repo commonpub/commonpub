@@ -3,7 +3,7 @@ import { adminSettingSchema } from '@commonpub/schema';
 
 export default defineEventHandler(async (event): Promise<void> => {
   requireFeature('admin');
-  const admin = requireAdmin(event);
+  const admin = requirePermission(event, 'settings.manage');
   const db = useDB();
   const input = await parseBody(event, adminSettingSchema);
 

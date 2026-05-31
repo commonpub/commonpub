@@ -3,7 +3,7 @@ import type { VideoCategoryItem } from '@commonpub/server';
 import { createVideoCategorySchema } from '@commonpub/schema';
 
 export default defineEventHandler(async (event): Promise<VideoCategoryItem> => {
-  requireAdmin(event);
+  requirePermission(event, 'categories.manage');
   const { id } = parseParams(event, { id: 'uuid' });
   const input = await parseBody(event, createVideoCategorySchema.partial());
 

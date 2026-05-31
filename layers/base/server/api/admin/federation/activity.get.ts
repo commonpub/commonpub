@@ -5,7 +5,7 @@ const VALID_STATUSES = ['pending', 'delivered', 'failed', 'processed'] as const;
 
 export default defineEventHandler(async (event) => {
   requireFeature('admin');
-  requireAdmin(event);
+  requirePermission(event, 'federation.manage');
   const db = useDB();
 
   const query = getQuery(event);

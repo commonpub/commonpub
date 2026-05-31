@@ -6,7 +6,7 @@ import { createContentCategorySchema } from '@commonpub/schema';
  * Create a new content category (admin only).
  */
 export default defineEventHandler(async (event) => {
-  requireAdmin(event);
+  requirePermission(event, 'categories.manage');
   const db = useDB();
   const body = await parseBody(event, createContentCategorySchema);
   return createContentCategory(db, body);

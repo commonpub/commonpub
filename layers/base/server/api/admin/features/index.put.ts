@@ -15,7 +15,7 @@ const updateFeaturesSchema = z.object({
  * To remove an override, omit the key from overrides.
  */
 export default defineEventHandler(async (event) => {
-  const user = requireAdmin(event);
+  const user = requirePermission(event, 'settings.manage');
 
   const body = await parseBody(event, updateFeaturesSchema);
   const db = useDB();

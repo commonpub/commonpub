@@ -17,7 +17,7 @@ import { listCustomThemes } from '@commonpub/server';
 
 export default defineEventHandler(async (event) => {
   requireFeature('admin');
-  requireAdmin(event);
+  requirePermission(event, 'theme.manage');
   const db = useDB();
   const config = useConfig();
 

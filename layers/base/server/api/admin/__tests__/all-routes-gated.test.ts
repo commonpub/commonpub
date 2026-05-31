@@ -60,7 +60,10 @@ describe('INV-7 — referenced permission keys exist in the catalog', () => {
       for (const entry of readdirSync(dir)) {
         const full = join(dir, entry);
         if (statSync(full).isDirectory()) {
-          if (entry === 'node_modules' || entry === '.output' || entry === '.nuxt') continue;
+          // Skip test dirs: contract tests legitimately contain
+          // `requirePermission(event, '<key>')` / `'${key}'` pattern-strings
+          // that are NOT real key references (this is a HANDLER-source sweep).
+          if (entry === '__tests__' || entry === 'node_modules' || entry === '.output' || entry === '.nuxt') continue;
           out.push(...fileWalk(full));
         } else if (entry.endsWith('.ts')) out.push(full);
       }

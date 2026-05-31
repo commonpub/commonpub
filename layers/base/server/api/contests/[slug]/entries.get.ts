@@ -29,7 +29,7 @@ export default defineEventHandler(async (event): Promise<{ items: ContestEntryIt
   if (user) {
     privileged =
       user.id === contest.createdById ||
-      user.role === 'admin' ||
+      hasPermission(event, 'contest.manage') ||
       (await isContestJudge(db, contest.id, user.id));
   }
 

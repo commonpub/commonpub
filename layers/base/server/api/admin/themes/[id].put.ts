@@ -9,7 +9,7 @@ import { getCustomTheme, saveCustomTheme } from '@commonpub/server';
 
 export default defineEventHandler(async (event) => {
   requireFeature('admin');
-  const admin = requireAdmin(event);
+  const admin = requirePermission(event, 'theme.manage');
   const db = useDB();
 
   const { id } = parseParams(event, { id: 'string' });

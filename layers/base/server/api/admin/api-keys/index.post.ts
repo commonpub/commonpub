@@ -14,7 +14,7 @@ import { createApiKeySchema } from '@commonpub/schema';
  * land in the metadata column.
  */
 export default defineEventHandler(async (event) => {
-  const user = requireAdmin(event);
+  const user = requirePermission(event, 'apikeys.manage');
   const body = await readBody(event);
   const parsed = createApiKeySchema.safeParse(body);
   if (!parsed.success) {

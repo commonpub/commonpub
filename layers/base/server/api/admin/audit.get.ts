@@ -9,7 +9,7 @@ const auditQuerySchema = z.object({
 
 export default defineEventHandler(async (event): Promise<PaginatedResponse<AuditLogItem>> => {
   requireFeature('admin');
-  requireAdmin(event);
+  requirePermission(event, 'audit.read');
   const db = useDB();
   const filters = parseQueryParams(event, auditQuerySchema);
 

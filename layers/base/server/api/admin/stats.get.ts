@@ -3,7 +3,7 @@ import type { PlatformStats } from '@commonpub/server';
 
 export default defineEventHandler(async (event): Promise<PlatformStats> => {
   requireFeature('admin');
-  requireAdmin(event);
+  requirePermission(event, 'audit.read');
   const db = useDB();
   return getPlatformStats(db);
 });

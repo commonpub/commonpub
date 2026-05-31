@@ -21,7 +21,7 @@ export default defineEventHandler(async (event) => {
   const contest = await getContestBySlug(db, slug);
   if (!contest) throw createError({ statusCode: 404, statusMessage: 'Contest not found' });
 
-  if (contest.createdById !== user.id && user.role !== 'admin') {
+  if (!ownerOrPermission(event, contest.createdById, 'contest.manage')) {
     throw createError({ statusCode: 403, statusMessage: 'Only contest owner or admin can manage judges' });
   }
 

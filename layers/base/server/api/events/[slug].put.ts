@@ -29,7 +29,7 @@ export default defineEventHandler(async (event) => {
   if (!slug) throw createError({ statusCode: 400, statusMessage: 'Missing slug' });
 
   const body = await parseBody(event, updateEventSchema);
-  const isAdmin = user.role === 'admin';
+  const isAdmin = hasPermission(event, 'event.manage');
 
   const result = await updateEvent(db, slug, user.id, body, isAdmin);
   if (!result) throw createError({ statusCode: 404, statusMessage: 'Event not found or unauthorized' });

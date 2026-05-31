@@ -11,7 +11,7 @@ function extractDomain(url: string): string {
  * Admin only.
  */
 export default defineEventHandler(async (event) => {
-  requireAdmin(event);
+  requirePermission(event, 'federation.manage');
 
   const config = useConfig();
   if (!config.features.federation) {

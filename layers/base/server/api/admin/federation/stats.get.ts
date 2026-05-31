@@ -3,7 +3,7 @@ import { activities, followRelationships } from '@commonpub/schema';
 
 export default defineEventHandler(async (event) => {
   requireFeature('admin');
-  requireAdmin(event);
+  requirePermission(event, 'federation.manage');
   const db = useDB();
 
   const [inbound, outbound, pending, failed, followers, following] = await Promise.all([

@@ -5,7 +5,7 @@ import { listContentCategories } from '@commonpub/server';
  * List all content categories (admin).
  */
 export default defineEventHandler(async (event) => {
-  requireAdmin(event);
+  requirePermission(event, 'categories.manage');
   const db = useDB();
   return listContentCategories(db);
 });

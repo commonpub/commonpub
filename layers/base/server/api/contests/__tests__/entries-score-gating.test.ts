@@ -23,9 +23,14 @@ describe('GET /api/contests/:slug/entries — judge-score leak guard', () => {
     expect(src, 'must call getOptionalUser(event)').toMatch(/getOptionalUser\(\s*event\s*\)/);
   });
 
-  it('derives privilege from owner / admin / panel judge', () => {
+  it('derives privilege from owner / contest.manage permission / panel judge', () => {
     expect(src, 'must check contest owner').toMatch(/createdById/);
-    expect(src, 'must check admin role').toMatch(/role\s*===\s*['"]admin['"]/);
+    // Phase-1 RBAC: the former `user.role === 'admin'` privilege check is now
+    // `hasPermission(event, 'contest.manage')` (admins still pass via the
+    // gate's admin floor flag-off; a contest.manage grant also passes flag-on).
+    expect(src, 'must check contest.manage permission').toMatch(
+      /hasPermission\(\s*event\s*,\s*['"]contest\.manage['"]\s*\)/,
+    );
     expect(src, 'must check judge membership').toMatch(/isContestJudge\(/);
   });
 

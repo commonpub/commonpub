@@ -12,7 +12,7 @@ const retrySchema = z.object({
  * Optionally filter by activity ID.
  */
 export default defineEventHandler(async (event) => {
-  requireAdmin(event);
+  requirePermission(event, 'federation.manage');
 
   const config = useConfig();
   if (!config.features.federation) {

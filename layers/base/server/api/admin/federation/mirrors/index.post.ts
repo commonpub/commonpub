@@ -11,7 +11,7 @@ const createMirrorSchema = z.object({
 
 export default defineEventHandler(async (event) => {
   requireFeature('federation');
-  requireAdmin(event);
+  requirePermission(event, 'federation.manage');
   const db = useDB();
   const input = await parseBody(event, createMirrorSchema);
 

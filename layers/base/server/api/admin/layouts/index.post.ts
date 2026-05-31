@@ -19,7 +19,7 @@ import { validateSectionConfigs } from '../../../utils/validateSectionConfigs';
 export default defineEventHandler(async (event) => {
   requireFeature('admin');
   requireFeature('layoutEngine');
-  const admin = requireAdmin(event);
+  const admin = requirePermission(event, 'layout.manage');
   const db = useDB();
 
   const body = await parseBody(event, layoutCreateSchema);

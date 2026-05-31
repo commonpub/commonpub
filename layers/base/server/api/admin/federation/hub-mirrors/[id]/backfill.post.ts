@@ -3,7 +3,7 @@ import { backfillHubFromOutbox, fetchRemoteHubFollowers, repairFederatedHubPostA
 export default defineEventHandler(async (event) => {
   requireFeature('federation');
   requireFeature('federateHubs');
-  requireAdmin(event);
+  requirePermission(event, 'federation.manage');
 
   const db = useDB();
   const config = useConfig();

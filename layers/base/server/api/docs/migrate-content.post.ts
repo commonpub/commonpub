@@ -16,7 +16,7 @@ import { docsPages } from '@commonpub/schema';
 import { eq } from 'drizzle-orm';
 
 export default defineEventHandler(async (event) => {
-  requireAdmin(event);
+  requirePermission(event, 'content.editorial');
   const db = useDB();
 
   // Fetch all pages

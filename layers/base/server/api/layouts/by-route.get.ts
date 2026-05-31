@@ -71,7 +71,7 @@ export default defineEventHandler(async (event): Promise<PublicLayoutSlice | nul
   // requester's access tier so a layout served to a higher tier can't
   // leak via cache to a lower tier on the same path.
   const user = getOptionalUser(event);
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = hasPermission(event, 'layout.manage');
   const tier: 'admin' | 'members' | 'anon' = isAdmin ? 'admin' : user ? 'members' : 'anon';
   const cacheKey = `${tier}:${path}`;
 

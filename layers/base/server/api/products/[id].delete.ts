@@ -2,7 +2,7 @@ import { deleteProduct } from '@commonpub/server';
 
 export default defineEventHandler(async (event): Promise<{ deleted: boolean }> => {
   const db = useDB();
-  requireAdmin(event);
+  requirePermission(event, 'content.moderate');
   const { id } = parseParams(event, { id: 'uuid' });
 
   const deleted = await deleteProduct(db, id);

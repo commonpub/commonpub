@@ -21,7 +21,7 @@ import { TOKEN_SPECS } from '@commonpub/ui';
 
 export default defineEventHandler((event) => {
   requireFeature('admin');
-  requireAdmin(event);
+  requirePermission(event, 'theme.manage');
 
   const defaults: Record<string, string> = {};
   for (const spec of TOKEN_SPECS) {

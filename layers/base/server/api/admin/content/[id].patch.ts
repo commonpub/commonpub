@@ -7,7 +7,7 @@ import { z } from 'zod';
  * Update admin-managed content fields (featured, editorial, category).
  */
 export default defineEventHandler(async (event) => {
-  requireAdmin(event);
+  requirePermission(event, 'content.editorial');
 
   const { id: contentId } = parseParams(event, { id: 'uuid' });
   const body = await parseBody(event, z.object({

@@ -12,7 +12,7 @@ const BUILT_IN_IDS = new Set(BUILT_IN_THEMES.map((t) => t.id));
 
 export default defineEventHandler(async (event) => {
   requireFeature('admin');
-  const admin = requireAdmin(event);
+  const admin = requirePermission(event, 'theme.manage');
   const db = useDB();
 
   const input = await parseBody(event, customThemeSchema);

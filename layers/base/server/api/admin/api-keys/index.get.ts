@@ -1,7 +1,7 @@
 import { listApiKeys } from '@commonpub/server';
 
 export default defineEventHandler(async (event) => {
-  requireAdmin(event);
+  requirePermission(event, 'apikeys.manage');
   const query = getQuery(event);
   const includeRevoked = query.includeRevoked === 'true' || query.includeRevoked === '1';
   const db = useDB();

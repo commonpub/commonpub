@@ -12,7 +12,7 @@ import { getLayoutById, listLayoutVersions } from '@commonpub/server';
 export default defineEventHandler(async (event) => {
   requireFeature('admin');
   requireFeature('layoutEngine');
-  requireAdmin(event);
+  requirePermission(event, 'layout.manage');
   const db = useDB();
 
   const id = getRouterParam(event, 'id');

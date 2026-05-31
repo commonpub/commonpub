@@ -13,7 +13,7 @@ import {
 
 export default defineEventHandler(async (event): Promise<{ ok: true; resetDefault: boolean }> => {
   requireFeature('admin');
-  const admin = requireAdmin(event);
+  const admin = requirePermission(event, 'theme.manage');
   const db = useDB();
 
   const { id } = parseParams(event, { id: 'string' });

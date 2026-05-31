@@ -5,7 +5,10 @@
  * silently:
  *   1. Every handler under /api/admin/layouts/* gates on BOTH
  *      `requireFeature('admin')` and `requireFeature('layoutEngine')`,
- *      and calls `requireAdmin(event)`. A missing flag check would let
+ *      and gates on `requirePermission(event, 'layout.manage')` (the
+ *      Phase-1 RBAC migration of the former `requireAdmin(event)` — the
+ *      specific key is asserted so a future edit can't silently regrant
+ *      the surface to a different capability). A missing flag check would let
  *      the endpoints exist even when the engine is off (bypasses the
  *      "no feature without a flag" CLAUDE.md rule). A missing auth
  *      check would expose layout writes to unauthenticated requests.
@@ -50,7 +53,7 @@ describe('admin layout handlers — security contract', () => {
   });
 
   it.each(handlerFiles.map((f) => [f.replace(handlersRoot + '/', '')]))(
-    '%s gates on requireFeature(admin) + requireFeature(layoutEngine) + requireAdmin',
+    '%s gates on requireFeature(admin) + requireFeature(layoutEngine) + requirePermission(layout.manage)',
     (relPath) => {
       const src = readFileSync(join(handlersRoot, relPath), 'utf8');
       expect(src, `${relPath}: missing requireFeature('admin')`).toMatch(
@@ -59,7 +62,9 @@ describe('admin layout handlers — security contract', () => {
       expect(src, `${relPath}: missing requireFeature('layoutEngine')`).toMatch(
         /requireFeature\(\s*['"]layoutEngine['"]\s*\)/,
       );
-      expect(src, `${relPath}: missing requireAdmin(event)`).toMatch(/requireAdmin\s*\(/);
+      expect(src, `${relPath}: missing requirePermission(event, 'layout.manage')`).toMatch(
+        /requirePermission\(\s*event\s*,\s*['"]layout\.manage['"]\s*\)/,
+      );
     },
   );
 });

@@ -5,7 +5,7 @@ import { getHomepageSections } from '@commonpub/server';
  * Returns homepage sections for admin editing.
  */
 export default defineEventHandler(async (event) => {
-  requireAdmin(event);
+  requirePermission(event, 'layout.manage');
   const db = useDB();
   return getHomepageSections(db);
 });

@@ -34,7 +34,7 @@ const updateSectionsSchema = z.object({
  * Save homepage section configuration.
  */
 export default defineEventHandler(async (event) => {
-  const user = requireAdmin(event);
+  const user = requirePermission(event, 'layout.manage');
   const db = useDB();
   const body = await parseBody(event, updateSectionsSchema);
 

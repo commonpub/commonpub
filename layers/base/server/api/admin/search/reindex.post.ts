@@ -10,7 +10,7 @@ import type { MeiliClient } from '@commonpub/server';
  */
 export default defineEventHandler(async (event) => {
   const user = requireAuth(event);
-  requireAdmin(event);
+  requirePermission(event, 'search.manage');
 
   const meiliUrl = process.env.MEILI_URL;
   const meiliKey = process.env.MEILI_MASTER_KEY;
