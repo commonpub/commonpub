@@ -1,4 +1,4 @@
-import { eq, and, or, desc, sql, isNotNull } from 'drizzle-orm';
+import { eq, and, or, desc, sql, isNotNull, inArray } from 'drizzle-orm';
 import { contests, contestEntries, contestJudges, contestStakeholders, users, contentItems } from '@commonpub/schema';
 import type { DB } from '../types.js';
 import { normalizePagination, countRows } from '../query.js';
@@ -128,13 +128,31 @@ export async function listContests(
     );
   }
 
-  // Visibility: listings only ever surface `public` contests. `unlisted` is
-  // link-only (never listed); `private` is hidden. An admin sees everything; a
-  // signed-in user additionally sees their own contests (so they can manage
-  // drafts). Stakeholders/role-gated viewers reach private contests by link.
+  // Visibility: admins see everything. Everyone else sees `public` contests,
+  // plus — when signed in — the ones they have a relationship to so they're not
+  // hidden in the listing: their own, ones they review (stakeholder), ones they
+  // judge, and private ones whose `visibleToRoles` includes their role. (`unlisted`
+  // stays link-only; mirrors canViewContest so the listing matches per-contest access.)
   if (viewer?.role !== 'admin') {
     const visConds = [eq(contests.visibility, 'public')];
-    if (viewer?.userId) visConds.push(eq(contests.createdById, viewer.userId));
+    if (viewer?.userId) {
+      visConds.push(eq(contests.createdById, viewer.userId));
+      visConds.push(
+        inArray(
+          contests.id,
+          db.select({ id: contestStakeholders.contestId }).from(contestStakeholders).where(eq(contestStakeholders.userId, viewer.userId)),
+        ),
+      );
+      visConds.push(
+        inArray(
+          contests.id,
+          db.select({ id: contestJudges.contestId }).from(contestJudges).where(eq(contestJudges.userId, viewer.userId)),
+        ),
+      );
+    }
+    if (viewer?.role) {
+      visConds.push(sql`${contests.visibleToRoles} @> ${JSON.stringify([viewer.role])}::jsonb`);
+    }
     conditions.push(visConds.length > 1 ? or(...visConds)! : visConds[0]!);
   }
 
