@@ -12,7 +12,8 @@ export type ContestVisibility = 'public' | 'unlisted' | 'private';
 export interface ContestPrize {
   place?: number;
   category?: string;
-  title: string;
+  /** Optional — a prize can be description-only (no forced placement title). */
+  title?: string;
   description?: string;
   value?: string;
 }
@@ -368,11 +369,27 @@ export async function listContestEntries(
      * Defaults to true (server-internal callers see everything).
      */
     revealScores?: boolean;
+    /**
+     * Result ordering. `recent` (default) = newest submission first (the entries
+     * grid). `rank` = final standings (rank asc, then score desc) — used by the
+     * results leaderboard so the top finalists surface regardless of submit time.
+     */
+    orderBy?: 'recent' | 'rank';
   } = {},
 ): Promise<{ items: ContestEntryItem[]; total: number }> {
   const revealScores = opts.revealScores ?? true;
   const { limit, offset } = normalizePagination(opts);
   const where = eq(contestEntries.contestId, contestId);
+  // `rank`: ranked entries first (1,2,3…), unranked last; ties broken by score
+  // then recency. `recent`: submission order (default).
+  const order =
+    opts.orderBy === 'rank'
+      ? [
+          sql`${contestEntries.rank} asc nulls last`,
+          sql`${contestEntries.score} desc nulls last`,
+          desc(contestEntries.submittedAt),
+        ]
+      : [desc(contestEntries.submittedAt)];
 
   const [rows, total] = await Promise.all([
     db
@@ -394,7 +411,7 @@ export async function listContestEntries(
       .innerJoin(contentItems, eq(contestEntries.contentId, contentItems.id))
       .innerJoin(users, eq(contestEntries.userId, users.id))
       .where(where)
-      .orderBy(desc(contestEntries.submittedAt))
+      .orderBy(...order)
       .limit(limit)
       .offset(offset),
     countRows(db, contestEntries, where),
@@ -628,6 +645,12 @@ export async function deleteContest(
   db: DB,
   contestId: string,
   userId: string,
+  /**
+   * When true, skip the owner check — the caller has already established a
+   * managing permission (RBAC `contest.manage`) at the route boundary. Mirrors
+   * `deleteEvent`'s `isAdmin` flag. Defaults false ⇒ legacy owner-only.
+   */
+  canManage = false,
 ): Promise<boolean> {
   const contest = await db
     .select({ createdById: contests.createdById })
@@ -636,7 +659,7 @@ export async function deleteContest(
     .limit(1);
 
   if (contest.length === 0) return false;
-  if (contest[0]!.createdById !== userId) return false;
+  if (!canManage && contest[0]!.createdById !== userId) return false;
 
   await db.delete(contests).where(eq(contests.id, contestId));
   return true;
@@ -715,7 +738,7 @@ export async function transitionContestStatus(
         // place-prizes are defined, places in the top 3) gets a congratulatory
         // alert naming their placement + prize; everyone else gets the standard
         // "results posted" note.
-        const placePrize = new Map<number, { title: string; value?: string }>();
+        const placePrize = new Map<number, { title?: string; value?: string }>();
         for (const p of contestInfo.prizes ?? []) {
           if (typeof p.place === 'number') placePrize.set(p.place, { title: p.title, value: p.value });
         }
@@ -725,7 +748,7 @@ export async function transitionContestStatus(
           const prize = rank != null ? placePrize.get(rank) : undefined;
           const isWinner = rank != null && (prize !== undefined || (!hasPlacePrizes && rank <= 3));
           if (isWinner) {
-            const won = prize ? ` and won ${prize.title}${prize.value ? ` (${prize.value})` : ''}` : '';
+            const won = prize?.title ? ` and won ${prize.title}${prize.value ? ` (${prize.value})` : ''}` : '';
             createNotification(db, {
               userId: entrant.userId,
               type: 'contest',

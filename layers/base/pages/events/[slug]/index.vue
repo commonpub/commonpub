@@ -126,7 +126,7 @@ const typeIcon = computed(() => {
         </div>
 
         <div v-if="event.description" class="cpub-event-description">
-          {{ event.description }}
+          <CpubMarkdown :source="event.description" />
         </div>
 
         <div class="cpub-event-organizer">

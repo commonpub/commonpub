@@ -22,7 +22,8 @@ export const contests = pgTable('contests', {
       place?: number;
       /** Optional category label (e.g. "Best in Show", "Robotics"). */
       category?: string;
-      title: string;
+      /** Optional — a prize can be description-only (no forced placement). */
+      title?: string;
       description?: string;
       value?: string;
     }>

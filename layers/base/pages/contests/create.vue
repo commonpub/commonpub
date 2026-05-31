@@ -103,13 +103,13 @@ async function handleCreate(): Promise<void> {
         eligibleContentTypes: eligibleContentTypes.value.length ? eligibleContentTypes.value : undefined,
         maxEntriesPerUser: maxEntriesPerUser.value && maxEntriesPerUser.value > 0 ? maxEntriesPerUser.value : undefined,
         prizes: prizes.value
-          .filter(p => p.title.trim())
+          .filter(p => p.title.trim() || p.description.trim() || p.category.trim() || (typeof p.place === 'number' && p.place > 0))
           .map(p => ({
             place: typeof p.place === 'number' && Number.isFinite(p.place) && p.place > 0 ? p.place : undefined,
             category: p.category.trim() || undefined,
-            title: p.title,
-            description: p.description || undefined,
-            value: p.value || undefined,
+            title: p.title.trim() || undefined,
+            description: p.description.trim() || undefined,
+            value: p.value.trim() || undefined,
           })),
         judgingCriteria: criteria.value
           .filter(c => c.label.trim())
@@ -129,10 +129,13 @@ async function handleCreate(): Promise<void> {
   }
 }
 
-function prizeLabel(prize: Prize, idx: number): string {
+function prizeLabel(prize: Prize): string {
   if (prize.category.trim()) return prize.category;
-  const labels = ['1st', '2nd', '3rd', '4th', '5th', '6th'];
-  return `${labels[idx] || `${idx + 1}th`} Place`;
+  if (prize.place && prize.place > 0) {
+    const labels = ['1st', '2nd', '3rd', '4th', '5th', '6th'];
+    return `${labels[prize.place - 1] || `${prize.place}th`} Place`;
+  }
+  return 'Prize';
 }
 </script>
 
@@ -151,15 +154,16 @@ function prizeLabel(prize: Prize, idx: number): string {
         </div>
         <div class="cpub-form-field">
           <label for="contest-desc" class="cpub-form-label">Description</label>
-          <textarea id="contest-desc" v-model="description" class="cpub-form-textarea" rows="3" placeholder="Describe your contest..." />
+          <textarea id="contest-desc" v-model="description" class="cpub-form-textarea" rows="4" placeholder="Describe your contest. Supports Markdown — # headings, - lists, **bold**, [links](url)…" />
+          <p class="cpub-form-hint">Supports Markdown (headings, lists, bold, links) and inline HTML. Shown formatted on the contest page.</p>
         </div>
         <div class="cpub-form-field">
           <label for="contest-rules" class="cpub-form-label">Rules</label>
-          <textarea id="contest-rules" v-model="rules" class="cpub-form-textarea" rows="4" placeholder="Contest rules and requirements (one per line)..." />
+          <textarea id="contest-rules" v-model="rules" class="cpub-form-textarea" rows="6" placeholder="Contest rules and requirements. Supports Markdown — one rule per line, or full Markdown." />
+          <p class="cpub-form-hint">Supports Markdown. Plain one-rule-per-line text is rendered as a numbered list.</p>
         </div>
         <div class="cpub-form-field">
-          <label for="contest-banner" class="cpub-form-label">Banner Image URL</label>
-          <input id="contest-banner" v-model="bannerUrl" type="url" class="cpub-form-input" placeholder="https://..." />
+          <ImageUpload v-model="bannerUrl" purpose="banner" label="Banner Image" hint="Wide image shown across the top of the contest page (~4:1)." />
         </div>
       </section>
 
@@ -274,11 +278,11 @@ function prizeLabel(prize: Prize, idx: number): string {
           </button>
         </div>
 
-        <p class="cpub-form-hint">Use <strong>place</strong> for ranked prizes (1st/2nd/3rd) or a <strong>category</strong> for themed awards (e.g. "Best in Show").</p>
+        <p class="cpub-form-hint">Every field is optional. Use <strong>place</strong> for ranked prizes (1st/2nd/3rd), a <strong>category</strong> for themed awards (e.g. "Best in Show"), or just a <strong>description</strong>. Cash value is optional.</p>
         <div v-for="(prize, idx) in prizes" :key="idx" class="cpub-prize-card">
           <div class="cpub-prize-header">
             <span class="cpub-prize-place">
-              <i class="fa-solid fa-trophy"></i> {{ prizeLabel(prize, idx) }}
+              <i class="fa-solid fa-trophy"></i> {{ prizeLabel(prize) }}
             </span>
             <button v-if="prizes.length > 1" type="button" class="cpub-delete-btn" aria-label="Remove prize" @click="removePrize(idx)">
               <i class="fa-solid fa-xmark"></i>

@@ -259,7 +259,8 @@ async function withdrawEntry(entryId: string): Promise<void> {
             <div class="cpub-about-section">
               <div class="cpub-sec-head"><h2><i class="fa fa-circle-info" style="color: var(--accent);"></i> About This Contest</h2></div>
               <div class="cpub-about-card">
-                <p>{{ c?.description || 'No description available for this contest.' }}</p>
+                <CpubMarkdown v-if="c?.description" :source="c.description" />
+                <p v-else>No description available for this contest.</p>
               </div>
             </div>
             <ContestJudgingCriteria v-if="c?.judgingCriteria?.length" :criteria="c.judgingCriteria" />

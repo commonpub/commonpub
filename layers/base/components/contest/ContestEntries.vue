@@ -149,10 +149,13 @@ function confirmWithdraw(entryId: string): void {
 .cpub-sec-head h2 { font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
 .cpub-sec-sub { font-size: 11px; color: var(--text-faint); margin-left: auto; font-family: var(--font-mono); }
 
-.cpub-entry-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
-.cpub-entry-card { background: var(--surface); border: var(--border-width-default) solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow-md); }
+/* Match the content-card grid: responsive auto-fill columns + a 4:3 cover
+   (was a rigid 2-col grid with a squat fixed 110px strip that over-cropped
+   the cover photo). */
+.cpub-entry-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; margin-bottom: 12px; }
+.cpub-entry-card { background: var(--surface); border: var(--border-width-default) solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow-md); display: flex; flex-direction: column; }
 .cpub-entry-card:hover { box-shadow: var(--shadow-accent); }
-.cpub-entry-thumb { height: 110px; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+.cpub-entry-thumb { aspect-ratio: 4 / 3; width: 100%; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; }
 .cpub-entry-bg-light { background: var(--surface2); }
 .cpub-entry-bg-dark { background: var(--surface3); }
 .cpub-entry-grid-pat { position: absolute; inset: 0; background-image: linear-gradient(var(--border2) 1px, transparent 1px), linear-gradient(90deg, var(--border2) 1px, transparent 1px); background-size: 20px 20px; opacity: .3; }

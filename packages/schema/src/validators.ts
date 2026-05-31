@@ -333,13 +333,23 @@ export type ProductCategory = z.infer<typeof productCategorySchema>;
 
 // --- Contest validators ---
 
-export const contestPrizeSchema = z.object({
-  place: z.number().int().positive().optional(),
-  category: z.string().max(120).optional(),
-  title: z.string().max(255),
-  description: z.string().max(1000).optional(),
-  value: z.string().max(128).optional(),
-});
+export const contestPrizeSchema = z
+  .object({
+    place: z.number().int().positive().optional(),
+    category: z.string().max(120).optional(),
+    // Optional: a prize can be description-only (no forced 1st/2nd/3rd title).
+    title: z.string().max(255).optional(),
+    description: z.string().max(1000).optional(),
+    value: z.string().max(128).optional(),
+  })
+  // Reject a completely empty prize — it must carry at least one meaningful
+  // field so flexible (description-only / category-only / place-only) prizes
+  // are allowed while blank rows are not.
+  .refine(
+    (p) =>
+      !!(p.title?.trim() || p.description?.trim() || p.category?.trim() || (typeof p.place === 'number' && p.place > 0)),
+    { message: 'A prize needs a title, description, category, or place.' },
+  );
 export type ContestPrize = z.infer<typeof contestPrizeSchema>;
 
 export const contestJudgingCriterionSchema = z.object({

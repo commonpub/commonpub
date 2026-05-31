@@ -53,6 +53,24 @@ const countdownLabel = computed(() => {
 });
 
 const isEnded = computed(() => c.value?.status === 'completed' || c.value?.status === 'cancelled');
+
+// The description may be long-form Markdown. The hero shows a clean, plain-text
+// excerpt (CSS-clamped) — the full formatted Markdown renders in the About tab —
+// so a big description no longer dumps a raw `## ...` wall into the hero.
+const tagline = computed<string>(() => {
+  const d = (c.value?.description ?? '').trim();
+  if (!d) return 'No description available.';
+  return d
+    .replace(/```[\s\S]*?```/g, ' ')
+    .replace(/`([^`]*)`/g, '$1')
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+    .replace(/^#{1,6}\s+/gm, '')
+    .replace(/^\s*[-*+>]\s+/gm, '')
+    .replace(/(\*\*|__|~~|\*|_)/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+});
 </script>
 
 <template>
@@ -72,7 +90,7 @@ const isEnded = computed(() => c.value?.status === 'completed' || c.value?.statu
       </div>
 
       <div class="cpub-hero-title">{{ c?.title || 'Contest' }}</div>
-      <div class="cpub-hero-tagline">{{ c?.description || 'No description available.' }}</div>
+      <div class="cpub-hero-tagline">{{ tagline }}</div>
 
       <div class="cpub-hero-meta">
         <span v-if="c?.startDate || c?.endDate" class="cpub-hero-meta-item">
@@ -158,7 +176,7 @@ const isEnded = computed(() => c.value?.status === 'completed' || c.value?.statu
 .cpub-contest-badge { font-size: 9px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; font-family: var(--font-mono); color: var(--accent); background: var(--accent-bg); border: var(--border-width-default) solid var(--accent); padding: 3px 10px; border-radius: var(--radius); display: inline-flex; align-items: center; gap: 5px; }
 .cpub-contest-badge i { font-size: 8px; }
 .cpub-hero-title { font-size: 36px; font-weight: 800; letter-spacing: -.03em; line-height: 1.1; margin-bottom: 10px; color: var(--hero-text); }
-.cpub-hero-tagline { font-size: 14px; color: var(--hero-text-dim); line-height: 1.55; max-width: 580px; margin-bottom: 28px; }
+.cpub-hero-tagline { font-size: 14px; color: var(--hero-text-dim); line-height: 1.55; max-width: 580px; margin-bottom: 28px; display: -webkit-box; -webkit-line-clamp: 4; line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
 .cpub-hero-meta { display: flex; align-items: center; gap: 20px; font-size: 11px; color: var(--hero-text-dim); font-family: var(--font-mono); margin-bottom: 28px; }
 .cpub-hero-meta-item { display: flex; align-items: center; gap: 5px; }
 .cpub-hero-meta-sep { color: var(--hero-border); }

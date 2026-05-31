@@ -294,6 +294,12 @@ function formatCount(n: number | undefined): string {
   min-width: 0;
 }
 
+/* Two render modes share .cpub-cc-av: <img class="cpub-cc-av cpub-cc-av--img">
+ * (author photo) and <span class="cpub-cc-av"> (initials fallback). `display:flex`
+ * MUST NOT apply to the <img> — a replaced element with display:flex silently
+ * drops `object-fit:cover` in Chromium, squishing portrait avatars into the box
+ * (the recurring deveco.io blog-card bug). Centering is scoped to the span; the
+ * img keeps object-fit only. See ArticleView.vue for the same fix. */
 .cpub-cc-av {
   width: 18px;
   height: 18px;
@@ -303,14 +309,18 @@ function formatCount(n: number | undefined): string {
   font-size: 8px;
   font-weight: 700;
   font-family: var(--font-mono);
-  display: flex;
-  align-items: center;
-  justify-content: center;
   flex-shrink: 0;
   border-radius: 50%;
 }
 
-.cpub-cc-av--img {
+span.cpub-cc-av {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cpub-cc-av--img,
+img.cpub-cc-av {
   object-fit: cover;
 }
 

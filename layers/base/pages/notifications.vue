@@ -27,6 +27,14 @@ async function deleteNotification(id: string): Promise<void> {
   await $fetch(`/api/notifications/${id}`, { method: 'DELETE' });
   refresh();
 }
+
+// Fired when a row is clicked/navigated — mark it read so the unread highlight
+// + nav badge clear. Fire-and-forget: navigation proceeds regardless.
+function onNotificationRead(id: string): void {
+  $fetch('/api/notifications/read', { method: 'POST', body: { notificationId: id } })
+    .then(() => refresh())
+    .catch(() => {});
+}
 </script>
 
 <template>
@@ -59,6 +67,7 @@ async function deleteNotification(id: string): Promise<void> {
         v-for="n in filteredNotifications"
         :key="n.id"
         :notification="n"
+        @read="onNotificationRead"
       />
       <div v-if="!filteredNotifications.length" class="cpub-empty-state">
         <div class="cpub-empty-state-icon"><i class="fa-solid fa-bell-slash"></i></div>

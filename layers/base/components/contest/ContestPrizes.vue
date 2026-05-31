@@ -1,5 +1,5 @@
 <script setup lang="ts">
-interface Prize { place?: number; category?: string; title: string; description?: string; value?: string }
+interface Prize { place?: number; category?: string; title?: string; description?: string; value?: string }
 defineProps<{
   prizes: Prize[];
 }>();
@@ -45,7 +45,7 @@ function prizeIcon(prize: Prize): string {
         <div class="cpub-prize-rank" :class="`cpub-prize-rank-${prizeColor(prize)}`">{{ prizeLabel(prize) }}</div>
         <div class="cpub-prize-icon" :class="`cpub-prize-icon-${prizeColor(prize)}`"><i class="fa-solid" :class="prizeIcon(prize)"></i></div>
         <div v-if="prize.value" class="cpub-prize-amount" :class="`cpub-prize-amount-${prizeColor(prize)}`">{{ prize.value }}</div>
-        <div class="cpub-prize-title">{{ prize.title }}</div>
+        <div v-if="prize.title" class="cpub-prize-title">{{ prize.title }}</div>
         <div v-if="prize.description" class="cpub-prize-desc">{{ prize.description }}</div>
       </div>
     </div>

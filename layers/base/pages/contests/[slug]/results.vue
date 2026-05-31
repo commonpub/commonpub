@@ -5,7 +5,14 @@ const route = useRoute();
 const slug = route.params.slug as string;
 
 const { data: contest } = useLazyFetch<Serialized<ContestDetail>>(`/api/contests/${slug}`);
-const { data: entriesData } = useLazyFetch<{ items: Serialized<ContestEntryItem>[]; total: number }>(`/api/contests/${slug}/entries`);
+// Full standings: rank-ordered (not submit-ordered) + a high cap so every
+// finalist surfaces, not just the 20 most-recent entries.
+const { data: entriesData } = useLazyFetch<{ items: Serialized<ContestEntryItem>[]; total: number }>(
+  `/api/contests/${slug}/entries`,
+  { query: { order: 'rank', limit: 100 } },
+);
+const totalEntries = computed(() => entriesData.value?.total ?? 0);
+const shownEntries = computed(() => rankedEntries.value.length);
 const { data: votesData } = useLazyFetch<ContestEntryVoteInfo[]>(`/api/contests/${slug}/votes`);
 
 useSeoMeta({
@@ -43,8 +50,8 @@ const leaderboard = computed(() => rankedEntries.value);
 
 const prizes = computed(() => contest.value?.prizes ?? []);
 
-function prizeForRank(rank: number): { title: string; value?: string } | null {
-  const prize = prizes.value.find((p: { place?: number; title: string; value?: string }) => p.place === rank);
+function prizeForRank(rank: number): { title?: string; value?: string } | null {
+  const prize = prizes.value.find((p: { place?: number; title?: string; value?: string }) => p.place === rank);
   return prize ?? null;
 }
 
@@ -120,7 +127,13 @@ function medalColor(rank: number): string {
 
       <!-- LEADERBOARD -->
       <div v-if="leaderboard.length > 0" class="cpub-leaderboard">
-        <h2 class="cpub-leaderboard-title">Full Leaderboard</h2>
+        <div class="cpub-leaderboard-head">
+          <h2 class="cpub-leaderboard-title">Full Standings</h2>
+          <span class="cpub-leaderboard-count">
+            {{ totalEntries }} {{ totalEntries === 1 ? 'entry' : 'entries' }}
+            <template v-if="shownEntries < totalEntries"> · showing top {{ shownEntries }}</template>
+          </span>
+        </div>
         <div class="cpub-leaderboard-scroll">
         <table class="cpub-leaderboard-table">
           <thead>
@@ -191,7 +204,9 @@ function medalColor(rank: number): string {
 
 /* LEADERBOARD */
 .cpub-leaderboard { margin-bottom: 32px; }
-.cpub-leaderboard-title { font-size: 16px; font-weight: 700; margin-bottom: 14px; }
+.cpub-leaderboard-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+.cpub-leaderboard-title { font-size: 16px; font-weight: 700; }
+.cpub-leaderboard-count { font-size: 11px; font-family: var(--font-mono); color: var(--text-faint); }
 /* Horizontal scroll on narrow screens instead of overflowing the page. */
 .cpub-leaderboard-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .cpub-leaderboard-table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 420px; }

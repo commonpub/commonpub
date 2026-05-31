@@ -6,6 +6,7 @@ const entriesQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).optional(),
   offset: z.coerce.number().int().min(0).optional(),
   includeJudgeScores: z.coerce.boolean().optional(),
+  order: z.enum(['recent', 'rank']).optional(),
 });
 
 export default defineEventHandler(async (event): Promise<{ items: ContestEntryItem[]; total: number }> => {
@@ -36,6 +37,7 @@ export default defineEventHandler(async (event): Promise<{ items: ContestEntryIt
   return listContestEntries(db, contest.id, {
     limit: query.limit,
     offset: query.offset,
+    orderBy: query.order,
     includeJudgeScores: privileged && query.includeJudgeScores,
     revealScores: shouldRevealScores(contest.judgingVisibility, contest.status, privileged),
   });

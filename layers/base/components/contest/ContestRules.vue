@@ -1,10 +1,20 @@
 <script setup lang="ts">
+/**
+ * Rules are authored as Markdown. If the content looks like Markdown (headings,
+ * lists, emphasis, links, code), render it richly via CpubMarkdown; otherwise
+ * treat each non-empty line as a numbered rule (the original behaviour, kept for
+ * plain line-per-rule contests).
+ */
 const props = defineProps<{
   rules: string;
 }>();
 
 const ruleLines = computed(() =>
   props.rules.split('\n').filter((line) => line.trim().length > 0),
+);
+
+const looksLikeMarkdown = computed(() =>
+  /(^|\n)\s{0,3}(#{1,6}\s|[-*+]\s|\d+\.\s|>)|\*\*|\[[^\]]+\]\([^)]+\)|`/.test(props.rules),
 );
 </script>
 
@@ -14,7 +24,8 @@ const ruleLines = computed(() =>
       <h2><i class="fa fa-file-lines" style="color: var(--purple);"></i> Rules</h2>
     </div>
     <div class="cpub-rules-card">
-      <ol v-if="ruleLines.length > 1" class="cpub-rules-list">
+      <CpubMarkdown v-if="looksLikeMarkdown" :source="rules" />
+      <ol v-else-if="ruleLines.length > 1" class="cpub-rules-list">
         <li v-for="(line, i) in ruleLines" :key="i" class="cpub-rule-item">{{ line }}</li>
       </ol>
       <div v-else class="cpub-rules-text">{{ rules }}</div>

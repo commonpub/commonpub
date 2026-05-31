@@ -1,5 +1,5 @@
 <script setup lang="ts">
-defineProps<{
+const props = defineProps<{
   notification: {
     id: string;
     type: string;
@@ -12,6 +12,18 @@ defineProps<{
     createdAt: string;
   };
 }>();
+
+const emit = defineEmits<{ read: [id: string] }>();
+
+// The whole row is the click target when there's somewhere to go (previously
+// only the tiny right-hand arrow navigated). When there's a destination the
+// root renders as a NuxtLink so keyboard / middle-click / open-in-new-tab all
+// work; otherwise it stays a plain div.
+const destination = computed(() => props.notification.link || props.notification.targetUrl || null);
+
+function onActivate(): void {
+  if (!props.notification.read) emit('read', props.notification.id);
+}
 
 const iconMap: Record<string, string> = {
   like: 'fa-solid fa-heart',
@@ -28,7 +40,14 @@ const iconMap: Record<string, string> = {
 </script>
 
 <template>
-  <div class="cpub-notif" :class="{ 'cpub-notif-unread': !notification.read }">
+  <component
+    :is="destination ? 'NuxtLink' : 'div'"
+    :to="destination || undefined"
+    class="cpub-notif"
+    :class="{ 'cpub-notif-unread': !notification.read, 'cpub-notif-link-row': destination }"
+    :aria-label="destination ? `${notification.actorName ? notification.actorName + ' ' : ''}${notification.message}` : undefined"
+    @click="onActivate"
+  >
     <div class="cpub-notif-avatar-wrap">
       <img v-if="notification.actorAvatarUrl" :src="notification.actorAvatarUrl" :alt="notification.actorName ?? ''" class="cpub-notif-avatar" />
       <div v-else class="cpub-notif-avatar cpub-notif-avatar-fallback">
@@ -47,10 +66,8 @@ const iconMap: Record<string, string> = {
         {{ new Date(notification.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) }}
       </time>
     </div>
-    <NuxtLink v-if="notification.link || notification.targetUrl" :to="notification.link || notification.targetUrl || '#'" class="cpub-notif-link" :aria-label="`View ${notification.type} notification`">
-      <i class="fa-solid fa-arrow-right"></i>
-    </NuxtLink>
-  </div>
+    <i v-if="destination" class="fa-solid fa-chevron-right cpub-notif-chevron" aria-hidden="true"></i>
+  </component>
 </template>
 
 <style scoped>
@@ -61,11 +78,27 @@ const iconMap: Record<string, string> = {
   padding: 12px;
   border: var(--border-width-default) solid transparent;
   border-bottom: var(--border-width-default) solid var(--border2);
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Whole-row link affordance: the entire item is the click target. */
+.cpub-notif-link-row {
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.cpub-notif-link-row:hover {
+  background: var(--surface2);
 }
 
 .cpub-notif.cpub-notif-unread {
   background: var(--accent-bg);
   border-color: var(--accent-border);
+}
+
+.cpub-notif-link-row.cpub-notif-unread:hover {
+  background: var(--accent-bg-hover, var(--accent-bg));
 }
 
 .cpub-notif-avatar-wrap {
@@ -126,18 +159,16 @@ const iconMap: Record<string, string> = {
   font-family: var(--font-mono);
 }
 
-.cpub-notif-link {
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+/* Decorative chevron — signals the whole row navigates (the row itself is the
+   link now; this is aria-hidden, not a separate tab stop). */
+.cpub-notif-chevron {
+  align-self: center;
+  flex-shrink: 0;
   color: var(--text-faint);
-  text-decoration: none;
   font-size: 10px;
 }
 
-.cpub-notif-link:hover {
+.cpub-notif-link-row:hover .cpub-notif-chevron {
   color: var(--accent);
 }
 </style>

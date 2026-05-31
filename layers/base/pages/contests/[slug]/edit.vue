@@ -62,10 +62,10 @@ watch(contest, (c) => {
   maxEntriesPerUser.value = c.maxEntriesPerUser ?? null;
   visibility.value = (c.visibility as typeof visibility.value) ?? 'public';
   visibleToRoles.value = [...(c.visibleToRoles ?? [])];
-  prizes.value = (c.prizes ?? []).map((p: { place?: number; category?: string; title: string; description?: string; value?: string }) => ({
+  prizes.value = (c.prizes ?? []).map((p: { place?: number; category?: string; title?: string; description?: string; value?: string }) => ({
     place: p.place ?? null,
     category: p.category ?? '',
-    title: p.title,
+    title: p.title ?? '',
     description: p.description ?? '',
     value: p.value ?? '',
   }));
@@ -82,10 +82,15 @@ function addPrize(): void {
 function removePrize(index: number): void {
   prizes.value.splice(index, 1);
 }
-function prizeLabel(prize: Prize, idx: number): string {
+function prizeLabel(prize: Prize): string {
   if (prize.category.trim()) return prize.category;
-  const labels = ['1st', '2nd', '3rd', '4th', '5th', '6th'];
-  return prize.place ? `${labels[prize.place - 1] || `${prize.place}th`} Place` : `${labels[idx] || `${idx + 1}th`} Place`;
+  if (prize.place && prize.place > 0) {
+    const labels = ['1st', '2nd', '3rd', '4th', '5th', '6th'];
+    return `${labels[prize.place - 1] || `${prize.place}th`} Place`;
+  }
+  // No place + no category: a flexible/description-only prize — don't invent
+  // a placement (the old code labelled these "Nth Place" by row index).
+  return 'Prize';
 }
 
 function addCriterion(): void {
@@ -111,13 +116,13 @@ async function handleSave(): Promise<void> {
   saving.value = true;
   try {
     const prizeData = prizes.value
-      .filter((p) => p.title.trim())
+      .filter((p) => p.title.trim() || p.description.trim() || p.category.trim() || (typeof p.place === 'number' && p.place > 0))
       .map((p) => ({
         place: typeof p.place === 'number' && Number.isFinite(p.place) && p.place > 0 ? p.place : undefined,
         category: p.category.trim() || undefined,
-        title: p.title,
-        description: p.description || undefined,
-        value: p.value || undefined,
+        title: p.title.trim() || undefined,
+        description: p.description.trim() || undefined,
+        value: p.value.trim() || undefined,
       }));
     const criteriaData = criteria.value
       .filter((c) => c.label.trim())
@@ -153,6 +158,20 @@ async function handleSave(): Promise<void> {
     toast.error(extractError(err));
   } finally {
     saving.value = false;
+  }
+}
+
+const deleting = ref(false);
+async function handleDelete(): Promise<void> {
+  if (!confirm('Permanently delete this contest? All entries, judges, and reviewers are removed. This cannot be undone.')) return;
+  deleting.value = true;
+  try {
+    await $fetch(`/api/contests/${slug}`, { method: 'DELETE' });
+    toast.success('Contest deleted');
+    await navigateTo('/contests');
+  } catch (err: unknown) {
+    toast.error(extractError(err));
+    deleting.value = false;
   }
 }
 
@@ -192,15 +211,16 @@ async function transitionStatus(newStatus: string): Promise<void> {
         </div>
         <div class="cpub-form-field">
           <label class="cpub-form-label">Description</label>
-          <textarea v-model="description" class="cpub-form-textarea" rows="3" />
+          <textarea v-model="description" class="cpub-form-textarea" rows="4" />
+          <p class="cpub-form-hint">Supports Markdown (headings, lists, bold, links) and inline HTML. Shown formatted on the contest page.</p>
         </div>
         <div class="cpub-form-field">
           <label class="cpub-form-label">Rules</label>
-          <textarea v-model="rules" class="cpub-form-textarea" rows="4" placeholder="One rule per line" />
+          <textarea v-model="rules" class="cpub-form-textarea" rows="6" placeholder="One rule per line, or full Markdown" />
+          <p class="cpub-form-hint">Supports Markdown. Plain one-rule-per-line text is rendered as a numbered list.</p>
         </div>
         <div class="cpub-form-field">
-          <label class="cpub-form-label">Banner Image URL</label>
-          <input v-model="bannerUrl" type="url" class="cpub-form-input" placeholder="https://..." />
+          <ImageUpload v-model="bannerUrl" purpose="banner" label="Banner Image" hint="Wide image shown across the top of the contest page (~4:1)." />
         </div>
       </section>
 
@@ -243,9 +263,10 @@ async function transitionStatus(newStatus: string): Promise<void> {
 
       <section class="cpub-form-section">
         <h2 class="cpub-form-section-title">Prizes</h2>
+        <p class="cpub-form-hint">Every field is optional. Use <strong>place</strong> for ranked prizes, a <strong>category</strong> for themed awards, or just a <strong>description</strong> — whatever fits. Cash value is optional.</p>
         <div v-for="(prize, i) in prizes" :key="i" class="cpub-prize-row">
           <div class="cpub-prize-header">
-            <span class="cpub-prize-label">{{ prizeLabel(prize, i) }}</span>
+            <span class="cpub-prize-label">{{ prizeLabel(prize) }}</span>
             <button type="button" class="cpub-prize-remove" aria-label="Remove prize" @click="removePrize(i)"><i class="fa-solid fa-times"></i></button>
           </div>
           <div class="cpub-form-row">
@@ -336,6 +357,7 @@ async function transitionStatus(newStatus: string): Promise<void> {
         <div class="cpub-subhead">
           <h3 class="cpub-form-subtitle">Reviewers</h3>
         </div>
+        <p class="cpub-form-hint">Reviewers can view this contest (even while it's private or in draft) without being a judge or an admin — view access scoped to this contest only. They can't edit or score entries.</p>
         <ContestStakeholderManager :contest-slug="slug" />
       </section>
 
@@ -348,6 +370,14 @@ async function transitionStatus(newStatus: string): Promise<void> {
 
       <section class="cpub-form-section">
         <h2 class="cpub-form-section-title">Status Transitions</h2>
+        <p class="cpub-form-hint">
+          A contest moves through a lifecycle:
+          <strong>Upcoming</strong> → <strong>Active</strong> (accepting entries) →
+          <strong>Judging</strong> (entries closed, judges scoring) →
+          <strong>Completed</strong> (results &amp; rankings published). You can cancel at any
+          point before it completes. Current status:
+          <span class="cpub-status-badge" :class="`cpub-status-${contest.status}`">{{ contest.status }}</span>
+        </p>
         <div class="cpub-status-actions">
           <button v-if="contest.status === 'upcoming'" type="button" class="cpub-btn cpub-transition-btn cpub-transition-activate" @click="transitionStatus('active')">
             <i class="fa-solid fa-play"></i> Start Contest
@@ -356,7 +386,7 @@ async function transitionStatus(newStatus: string): Promise<void> {
             <i class="fa-solid fa-gavel"></i> Begin Judging
           </button>
           <button v-if="contest.status === 'judging'" type="button" class="cpub-btn cpub-transition-btn cpub-transition-complete" @click="transitionStatus('completed')">
-            <i class="fa-solid fa-flag-checkered"></i> Complete
+            <i class="fa-solid fa-flag-checkered"></i> Complete &amp; Publish Results
           </button>
           <button
             v-if="contest.status !== 'completed' && contest.status !== 'cancelled'"
@@ -366,12 +396,29 @@ async function transitionStatus(newStatus: string): Promise<void> {
           >
             <i class="fa-solid fa-ban"></i> Cancel Contest
           </button>
+          <p v-if="contest.status === 'completed' || contest.status === 'cancelled'" class="cpub-status-terminal">
+            <i class="fa-solid fa-circle-check"></i>
+            This contest is {{ contest.status }} — no further status changes are available.
+          </p>
         </div>
       </section>
 
       <button type="submit" class="cpub-btn cpub-btn-primary" :disabled="saving || !title.trim() || !!dateError">
         <i class="fa-solid fa-floppy-disk"></i> {{ saving ? 'Saving...' : 'Save Changes' }}
       </button>
+
+      <section class="cpub-form-section cpub-danger-zone">
+        <h2 class="cpub-form-section-title cpub-danger-title">Danger Zone</h2>
+        <div class="cpub-danger-row">
+          <div>
+            <p class="cpub-danger-label">Delete this contest</p>
+            <p class="cpub-form-hint">Permanently removes the contest and all of its entries, judges, and reviewers. This cannot be undone.</p>
+          </div>
+          <button type="button" class="cpub-btn cpub-btn-danger cpub-danger-btn" :disabled="deleting" @click="handleDelete">
+            <i class="fa-solid fa-trash"></i> {{ deleting ? 'Deleting...' : 'Delete Contest' }}
+          </button>
+        </div>
+      </section>
     </form>
   </div>
   <div v-else class="cpub-not-found"><p>Contest not found</p></div>
@@ -425,6 +472,16 @@ async function transitionStatus(newStatus: string): Promise<void> {
 .cpub-transition-judging { color: var(--yellow); border-color: var(--yellow-border); }
 .cpub-transition-complete { color: var(--accent); border-color: var(--accent-border); }
 .cpub-transition-cancel { color: var(--red); border-color: var(--red-border); }
+
+.cpub-status-terminal { font-size: 12px; color: var(--text-dim); display: flex; align-items: center; gap: 8px; margin: 0; }
+.cpub-status-terminal i { color: var(--green); }
+
+.cpub-danger-zone { border-color: var(--red-border); }
+.cpub-danger-title { color: var(--red); }
+.cpub-danger-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.cpub-danger-label { font-size: 13px; font-weight: 600; margin: 0 0 2px; }
+.cpub-danger-btn { color: var(--red); border-color: var(--red-border); flex-shrink: 0; }
+.cpub-danger-btn:hover:not(:disabled) { background: var(--red-bg); }
 
 .cpub-not-found { text-align: center; padding: 64px; color: var(--text-dim); display: flex; flex-direction: column; align-items: center; gap: 12px; }
 
