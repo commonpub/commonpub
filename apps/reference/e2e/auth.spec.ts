@@ -37,7 +37,10 @@ test.describe('Login form', () => {
   test('submit button text changes when loading', async ({ page }) => {
     await page.goto('/auth/login');
 
-    const submitBtn = page.locator('button[type="submit"]');
+    // Scope to the primary login form — the page also has federated/Mastodon
+    // sign-in forms (each its own <form> + submit button), so a bare
+    // button[type=submit] selector is ambiguous (strict-mode violation).
+    const submitBtn = page.locator('form[aria-label="Login form"] button[type="submit"]');
     await expect(submitBtn).toContainText('Log in');
   });
 
@@ -118,7 +121,9 @@ test.describe('Register form', () => {
 test.describe('Auth page accessibility', () => {
   test('login form has aria-label', async ({ page }) => {
     await page.goto('/auth/login');
-    await expect(page.locator('form')).toHaveAttribute('aria-label', 'Login form');
+    // The page has multiple forms (login + federated + Mastodon sign-in);
+    // assert the primary login form is present and labelled.
+    await expect(page.locator('form.login-form')).toHaveAttribute('aria-label', 'Login form');
   });
 
   test('register form has aria-label', async ({ page }) => {
