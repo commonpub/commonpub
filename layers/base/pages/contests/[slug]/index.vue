@@ -4,6 +4,7 @@ import type { Serialized, ContestEntryItem, ContestJudgeItem } from '@commonpub/
 const route = useRoute();
 const slug = route.params.slug as string;
 const toast = useToast();
+const { extract: extractError } = useApiError();
 const { isAuthenticated, isAdmin, user } = useAuth();
 
 const { data: contest } = useLazyFetch(`/api/contests/${slug}`);
@@ -146,8 +147,8 @@ async function submitEntry(): Promise<void> {
     submitContentId.value = '';
     toast.success('Entry submitted!');
     refreshNuxtData();
-  } catch {
-    toast.error('Failed to submit entry');
+  } catch (err: unknown) {
+    toast.error(extractError(err));
   } finally {
     submitting.value = false;
   }
@@ -278,6 +279,18 @@ async function withdrawEntry(entryId: string): Promise<void> {
 
           <!-- ENTRIES -->
           <div v-show="activeTab === 'entries'" id="cpub-panel-entries" role="tabpanel" aria-labelledby="cpub-tab-entries" tabindex="0">
+            <div v-if="c?.status === 'active'" class="cpub-entries-cta">
+              <div class="cpub-entries-cta-text">
+                <p class="cpub-entries-cta-title"><i class="fa-solid fa-trophy"></i> Enter this contest</p>
+                <p class="cpub-entries-cta-sub">Submit one of your published projects — or start a new one.</p>
+              </div>
+              <button v-if="isAuthenticated" class="cpub-btn cpub-btn-primary cpub-btn-lg" @click="showSubmitDialog = true">
+                <i class="fa-solid fa-upload"></i> Submit Entry
+              </button>
+              <NuxtLink v-else :to="`/auth/login?redirect=/contests/${slug}`" class="cpub-btn cpub-btn-primary cpub-btn-lg">
+                <i class="fa-solid fa-right-to-bracket"></i> Log in to enter
+              </NuxtLink>
+            </div>
             <ContestEntries
               :entries="entries"
               :contest-status="c?.status"
@@ -333,6 +346,11 @@ async function withdrawEntry(entryId: string): Promise<void> {
 
 /* LAYOUT */
 .cpub-contest-main { max-width: 1100px; margin: 0 auto; padding: 32px; }
+
+.cpub-entries-cta { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 16px 20px; margin-bottom: 18px; background: var(--accent-bg); border: var(--border-width-default) solid var(--accent-border); }
+.cpub-entries-cta-title { font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px; margin: 0; }
+.cpub-entries-cta-title i { color: var(--accent); }
+.cpub-entries-cta-sub { font-size: 12px; color: var(--text-dim); margin: 2px 0 0; }
 .cpub-contest-layout { display: grid; grid-template-columns: 1fr 300px; gap: 28px; align-items: start; }
 .cpub-contest-body { min-width: 0; }
 

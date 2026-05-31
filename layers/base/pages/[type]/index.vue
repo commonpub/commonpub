@@ -56,8 +56,13 @@ const { data, pending } = await useFetch<PaginatedResponse<Serialized<ContentLis
 </template>
 
 <style scoped>
+/* Centered, padded content container (was left-aligned with no padding — content
+   hugged the left edge + cards stretched on wide screens). ~1200px reads like
+   deveco's gold-standard listing width. */
 .cpub-listing {
-  max-width: var(--content-max-width);
+  max-width: 1200px;
+  margin-inline: auto;
+  padding: 0 var(--space-6, 24px);
 }
 
 .cpub-listing-header {
