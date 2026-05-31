@@ -21,6 +21,11 @@ const emit = defineEmits<{ read: [id: string] }>();
 // work; otherwise it stays a plain div.
 const destination = computed(() => props.notification.link || props.notification.targetUrl || null);
 
+// Resolve NuxtLink to the actual component. Passing the string 'NuxtLink' to
+// <component :is> can fail to resolve during SSR (renders a bogus <nuxtlink>
+// element → hydration mismatch + a dead link); the resolved component is stable.
+const NuxtLinkComponent = resolveComponent('NuxtLink');
+
 function onActivate(): void {
   if (!props.notification.read) emit('read', props.notification.id);
 }
@@ -41,7 +46,7 @@ const iconMap: Record<string, string> = {
 
 <template>
   <component
-    :is="destination ? 'NuxtLink' : 'div'"
+    :is="destination ? NuxtLinkComponent : 'div'"
     :to="destination || undefined"
     class="cpub-notif"
     :class="{ 'cpub-notif-unread': !notification.read, 'cpub-notif-link-row': destination }"
