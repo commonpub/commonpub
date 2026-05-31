@@ -8,6 +8,7 @@ const { extract: extractError } = useApiError();
 const saving = ref(false);
 
 const title = ref('');
+const subheading = ref('');
 const description = ref('');
 const rules = ref('');
 const bannerUrl = ref('');
@@ -90,6 +91,7 @@ async function handleCreate(): Promise<void> {
       method: 'POST',
       body: {
         title: title.value,
+        subheading: subheading.value || undefined,
         description: description.value || undefined,
         rules: rules.value || undefined,
         bannerUrl: bannerUrl.value || undefined,
@@ -151,6 +153,11 @@ function prizeLabel(prize: Prize): string {
         <div class="cpub-form-field">
           <label for="contest-title" class="cpub-form-label">Title</label>
           <input id="contest-title" v-model="title" type="text" class="cpub-form-input" required placeholder="Maker Challenge 2026" />
+        </div>
+        <div class="cpub-form-field">
+          <label for="contest-subheading" class="cpub-form-label">Subheading</label>
+          <input id="contest-subheading" v-model="subheading" type="text" maxlength="300" class="cpub-form-input" placeholder="One-line tagline shown in the contest header" />
+          <p class="cpub-form-hint">Short plain-text tagline shown under the title in the hero. The Description below is the full body.</p>
         </div>
         <div class="cpub-form-field">
           <label for="contest-desc" class="cpub-form-label">Description</label>

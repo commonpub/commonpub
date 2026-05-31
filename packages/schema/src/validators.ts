@@ -362,6 +362,7 @@ export type ContestJudgingCriterion = z.infer<typeof contestJudgingCriterionSche
 export const createContestSchema = z
   .object({
     title: z.string().min(1).max(255),
+    subheading: z.string().max(300).optional(),
     description: z.string().max(10000).optional(),
     rules: z.string().max(10000).optional(),
     bannerUrl: optionalUrl(),
@@ -397,6 +398,7 @@ export type CreateContestInput = z.infer<typeof createContestSchema>;
 export const updateContestSchema = z
   .object({
     title: z.string().min(1).max(255).optional(),
+    subheading: z.string().max(300).optional(),
     description: z.string().max(10000).optional(),
     rules: z.string().max(10000).optional(),
     bannerUrl: optionalUrl(),

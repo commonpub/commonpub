@@ -48,6 +48,7 @@ export interface ContestListItem {
 }
 
 export interface ContestDetail extends ContestListItem {
+  subheading: string | null;
   rules: string | null;
   prizes: ContestPrize[] | null;
   judgingCriteria: ContestJudgingCriterion[] | null;
@@ -70,6 +71,7 @@ export interface ContestFilters {
 export interface CreateContestInput {
   title: string;
   slug: string;
+  subheading?: string;
   description?: string;
   rules?: string;
   bannerUrl?: string;
@@ -177,6 +179,7 @@ function toContestDetail(row: ContestRow): ContestDetail {
     endDate: row.endDate,
     entryCount: row.entryCount,
     createdAt: row.createdAt,
+    subheading: row.subheading,
     rules: row.rules,
     prizes: row.prizes ?? null,
     judgingCriteria: row.judgingCriteria ?? null,
@@ -257,6 +260,7 @@ export async function createContest(
     .values({
       title: input.title,
       slug: input.slug,
+      subheading: input.subheading ?? null,
       description: input.description ?? null,
       rules: input.rules ?? null,
       bannerUrl: input.bannerUrl ?? null,
@@ -312,6 +316,7 @@ export async function updateContest(
 
   const updates: Record<string, unknown> = { updatedAt: new Date() };
   if (data.title !== undefined) updates.title = data.title;
+  if (data.subheading !== undefined) updates.subheading = data.subheading;
   if (data.description !== undefined) updates.description = data.description;
   if (data.rules !== undefined) updates.rules = data.rules;
   if (data.bannerUrl !== undefined) updates.bannerUrl = data.bannerUrl;

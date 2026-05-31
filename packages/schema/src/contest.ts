@@ -9,6 +9,9 @@ export const contests = pgTable('contests', {
   id: uuid('id').defaultRandom().primaryKey(),
   title: varchar('title', { length: 255 }).notNull(),
   slug: varchar('slug', { length: 255 }).notNull().unique(),
+  /** Short one-line tagline shown in the contest hero (plain text). */
+  subheading: varchar('subheading', { length: 300 }),
+  /** Long-form body, rendered as Markdown (may contain inline HTML). */
   description: text('description'),
   rules: text('rules'),
   bannerUrl: text('banner_url'),

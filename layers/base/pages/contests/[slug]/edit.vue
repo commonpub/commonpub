@@ -13,6 +13,7 @@ useSeoMeta({ title: () => `Edit: ${contest.value?.title ?? 'Contest'} — ${useS
 
 const saving = ref(false);
 const title = ref('');
+const subheading = ref('');
 const description = ref('');
 const rules = ref('');
 const bannerUrl = ref('');
@@ -50,6 +51,7 @@ const criteria = ref<Criterion[]>([]);
 watch(contest, (c) => {
   if (!c) return;
   title.value = c.title ?? '';
+  subheading.value = c.subheading ?? '';
   description.value = c.description ?? '';
   rules.value = c.rules ?? '';
   bannerUrl.value = c.bannerUrl ?? '';
@@ -136,6 +138,7 @@ async function handleSave(): Promise<void> {
       method: 'PUT',
       body: {
         title: title.value,
+        subheading: subheading.value || undefined,
         description: description.value || undefined,
         rules: rules.value || undefined,
         bannerUrl: bannerUrl.value || undefined,
@@ -208,6 +211,11 @@ async function transitionStatus(newStatus: string): Promise<void> {
         <div class="cpub-form-field">
           <label class="cpub-form-label">Title</label>
           <input v-model="title" type="text" class="cpub-form-input" />
+        </div>
+        <div class="cpub-form-field">
+          <label class="cpub-form-label">Subheading</label>
+          <input v-model="subheading" type="text" maxlength="300" class="cpub-form-input" placeholder="One-line tagline shown in the contest header" />
+          <p class="cpub-form-hint">Short plain-text tagline shown under the title in the hero. The Description below is the full body.</p>
         </div>
         <div class="cpub-form-field">
           <label class="cpub-form-label">Description</label>

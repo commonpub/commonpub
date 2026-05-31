@@ -54,10 +54,13 @@ const countdownLabel = computed(() => {
 
 const isEnded = computed(() => c.value?.status === 'completed' || c.value?.status === 'cancelled');
 
-// The description may be long-form Markdown. The hero shows a clean, plain-text
-// excerpt (CSS-clamped) — the full formatted Markdown renders in the About tab —
-// so a big description no longer dumps a raw `## ...` wall into the hero.
+// The hero shows the short `subheading` (a dedicated tagline field). For older
+// contests without one, fall back to a clean, plain-text, CSS-clamped excerpt of
+// the (possibly long Markdown) description — so the hero never dumps a raw
+// `## ...` wall. The full formatted description renders in the About tab.
 const tagline = computed<string>(() => {
+  const sub = (c.value?.subheading ?? '').trim();
+  if (sub) return sub;
   const d = (c.value?.description ?? '').trim();
   if (!d) return 'No description available.';
   return d
