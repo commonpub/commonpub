@@ -201,7 +201,7 @@ async function queryFederatedAsListItems(
     .from(federatedContent)
     .leftJoin(remoteActors, eq(federatedContent.remoteActorId, remoteActors.id))
     .where(where)
-    .orderBy(desc(federatedContent.publishedAt), desc(federatedContent.receivedAt))
+    .orderBy(desc(federatedContent.publishedAt), desc(federatedContent.receivedAt), desc(federatedContent.id))
     .limit(maxItems);
 
   return rows.map((row): ContentListItem => ({
@@ -364,7 +364,11 @@ export async function listContent(
   const merged = [...localItems, ...fedItems].sort((a, b) => {
     const aDate = a.publishedAt ? new Date(a.publishedAt).getTime() : 0;
     const bDate = b.publishedAt ? new Date(b.publishedAt).getTime() : 0;
-    return bDate - aDate;
+    if (bDate !== aDate) return bDate - aDate;
+    // Stable tiebreaker on id so the merged order is total — otherwise items
+    // sharing a publishedAt across the two sources can reorder between the
+    // page-N and page-N+1 slices and re-appear ("load more" dup).
+    return a.id < b.id ? 1 : a.id > b.id ? -1 : 0;
   });
 
   // Approximate total (exact merged count needs a federated count query).
