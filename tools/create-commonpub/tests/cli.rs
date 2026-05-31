@@ -246,7 +246,7 @@ fn package_json_pins_current_commonpub_versions() {
     // Exact pins (not loose `^0.21` prefixes): this test is the forcing
     // function for the RELEASE CHECKLIST — it must fail when template.rs
     // pins go stale after a publish, so update both together.
-    assert!(pkg.contains("\"@commonpub/layer\": \"^0.35.0\""), "layer pin must be ^0.35.0");
+    assert!(pkg.contains("\"@commonpub/layer\": \"^0.36.0\""), "layer pin must be ^0.36.0");
     assert!(pkg.contains("\"@commonpub/server\": \"^2.66.0\""), "server pin must be ^2.66.0");
     assert!(pkg.contains("\"@commonpub/schema\": \"^0.24.0\""), "schema pin must be ^0.24.0");
     assert!(pkg.contains("\"@commonpub/config\": \"^0.16.0\""), "config pin must be ^0.16.0");

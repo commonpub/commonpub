@@ -117,9 +117,13 @@ const submitDialogRef = ref<HTMLElement | null>(null);
 useFocusTrap(submitDialogRef, () => showSubmitDialog.value, () => { showSubmitDialog.value = false; });
 const submitContentId = ref('');
 const submitting = ref(false);
+// MY own published content only — was fetching everyone's public content (the
+// picker listed other people's projects, which submitContestEntry then rejects
+// since you can only enter your own). authorId === me ⇒ the endpoint scopes to mine.
 const { data: userContent } = useFetch('/api/content', {
-  query: { status: 'published', limit: 50 },
-  immediate: isAuthenticated.value,
+  query: computed(() => ({ status: 'published', authorId: user.value?.id, limit: 50 })),
+  immediate: !!user.value?.id,
+  watch: [() => user.value?.id],
 });
 const enteredContentIds = computed(() => new Set(entries.value.map((e) => e.contentId)));
 
