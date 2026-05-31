@@ -306,13 +306,20 @@ export async function listContent(
   const localLimit = willFederate ? offset + limit : limit;
   const localOffset = willFederate ? 0 : offset;
 
+  // Every sort ends with a UNIQUE tiebreaker (`id`) so the ordering is a total
+  // order. Without it, ties on the lead column (e.g. `viewCount = 0` for most
+  // content under `sort: 'popular'`, or a bulk-imported `publishedAt`) leave
+  // Postgres free to return tied rows in any order — which differs between the
+  // page-1 and page-2 queries, so LIMIT/OFFSET pages OVERLAP and "load more"
+  // re-shows rows (the homepage dup bug). createdAt is a near-unique secondary;
+  // id is the absolute tiebreaker.
   const orderBy = filters.sort === 'popular'
-    ? [desc(contentItems.viewCount)]
+    ? [desc(contentItems.viewCount), desc(contentItems.createdAt), desc(contentItems.id)]
     : filters.sort === 'featured'
-      ? [desc(contentItems.isFeatured), desc(contentItems.createdAt)]
+      ? [desc(contentItems.isFeatured), desc(contentItems.createdAt), desc(contentItems.id)]
       : filters.sort === 'editorial'
-        ? [desc(contentItems.isEditorial), desc(contentItems.publishedAt)]
-        : [desc(contentItems.publishedAt), desc(contentItems.createdAt)];
+        ? [desc(contentItems.isEditorial), desc(contentItems.publishedAt), desc(contentItems.id)]
+        : [desc(contentItems.publishedAt), desc(contentItems.createdAt), desc(contentItems.id)];
 
   const [rows, total] = await Promise.all([
     db

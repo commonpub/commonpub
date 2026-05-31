@@ -261,4 +261,37 @@ describe('content integration', () => {
     const overlap = page2.items.filter((i) => page1Ids.has(i.id));
     expect(overlap).toEqual([]);
   });
+
+  // Regression (homepage "For You" load-more dup): sort:'popular' orders by
+  // viewCount, which is 0 (tied) for most content. Without a unique tiebreaker
+  // the tied rows come back in an unstable order, so LIMIT/OFFSET pages overlap.
+  // Seed several published items all at viewCount 0 and assert pages are disjoint.
+  it('paginates sort:popular without duplicates when viewCounts tie', async () => {
+    for (let i = 0; i < 6; i++) {
+      const c = await createContent(db, userId, {
+        type: 'blog',
+        title: `Popular Tie Item ${i}`,
+        description: `tie ${i}`,
+      });
+      await publishContent(db, c.id, userId);
+      // leave viewCount at its default (0) so every row ties on the sort key
+    }
+
+    const seen = new Set<string>();
+    let dupes = 0;
+    for (let offset = 0; offset < 6; offset += 2) {
+      const page = await listContent(db, {
+        type: 'blog',
+        status: 'published',
+        sort: 'popular',
+        limit: 2,
+        offset,
+      });
+      for (const item of page.items) {
+        if (seen.has(item.id)) dupes++;
+        seen.add(item.id);
+      }
+    }
+    expect(dupes).toBe(0);
+  });
 });
