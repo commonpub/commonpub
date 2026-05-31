@@ -39,8 +39,10 @@ uploads/
 # Rust
 target/
 
-# Stryker
-reports/
+# Stryker — narrowed to the mutation-report subdir (at any depth) so the bare
+# `reports/` pattern stops swallowing real source dirs (e.g. the admin `reports/`
+# API route). The leading `**/` keeps matching per-package `*/reports/mutation/`.
+**/reports/mutation/
 .stryker-tmp/
 
 # Local test site
