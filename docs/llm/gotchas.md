@@ -25,10 +25,12 @@ This file is the short version.
 - **New imports into API routes can 404 in prod.** Nitro externalizes node_modules; if an import wasn't reachable before, Nitro may not bundle it. Add to `nitro.externals.inline` if needed.
 - **`useLazyFetch` inside Suspense** instead of `useFetch` to avoid render races (session 124 fix).
 - **`error.vue` must re-apply data-theme** via `useHead` — error pages render outside the layout tree on SSR.
+- **`<component :is="'NuxtLink'">` (string name) can fail to resolve during SSR** → renders a literal `<nuxtlink>` element → "Hydration completed but contains mismatches" + a dead link. Use `const C = resolveComponent('NuxtLink')` and bind the component object, not the string. Caught session 177 in NotificationItem (whole-row click target).
 
 ## Federation
 
 - **Don't enable `federation: true` without a peer to federate with.** The delivery worker polls forever.
+- **`listContent`'s federated-merge path must paginate BOTH sources from 0.** It fetches local `[offset, offset+limit)` but federated `[0, offset+limit)`, merges by date, and slices. Slice `[offset, offset+limit)` — NOT `[0, limit)` — and fetch local from offset 0 too (window = `offset+limit`), or every "load more" re-shows the same federated head as duplicates. Local-only path (no seamless federation / author-filtered) keeps simple offset paging. Caught session 177.
 - **`cpub:type`, `cpub:metadata`, `cpub:blocks`, `cpub:postType` are wire format.** `cpubType`/`cpubBlocks`/`cpubMetadata` are the local DB column names; the AP JSON fields use the colon-namespaced form. Changing the wire names breaks interop between CommonPub instances on different versions. Version the mapper if you must change.
 - **AP Actor SSO = Model B only** (OAuth2 + WebFinger). Shared auth DB (Model C) is operator opt-in and strongly discouraged.
 - **Signed backfill required for protected outboxes** (session 119). If backfill returns 401, verify your instance keypair is registered.

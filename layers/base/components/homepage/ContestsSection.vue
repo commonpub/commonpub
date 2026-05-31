@@ -10,12 +10,19 @@ const { data: contests } = await useFetch('/api/contests', {
   query: computed(() => ({ limit: limit.value, status: 'active' })),
   lazy: true,
 });
+
+// Dedupe against the hero: if the hero is already showing an active contest as a
+// full callout, don't repeat it here. Other active contests still list.
+const heroContestId = useState<string | null>('cpub:hero-contest-id', () => null);
+const visibleContests = computed(() =>
+  (contests.value?.items ?? []).filter((c: { id: string }) => c.id !== heroContestId.value),
+);
 </script>
 
 <template>
-  <div v-if="contests?.items?.length" class="cpub-sb-card">
+  <div v-if="visibleContests.length" class="cpub-sb-card">
     <div class="cpub-sb-head">Active Contests <NuxtLink to="/contests">View all</NuxtLink></div>
-    <div v-for="c in contests.items" :key="c.id" class="cpub-contest-item">
+    <div v-for="c in visibleContests" :key="c.id" class="cpub-contest-item">
       <NuxtLink :to="`/contests/${c.slug}`" class="cpub-contest-name">{{ c.title }}</NuxtLink>
       <div class="cpub-contest-row">
         <span class="cpub-contest-entries">{{ c.entryCount ?? 0 }} entries</span>

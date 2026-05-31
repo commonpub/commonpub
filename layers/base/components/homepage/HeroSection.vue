@@ -85,6 +85,15 @@ const heroDismissed = useState('cpub:hero-dismissed', () => false);
 function dismissHero(): void {
   heroDismissed.value = true;
 }
+
+// Publish the contest the hero is currently showing so the sidebar "Active
+// Contests" widget can DEDUPE it (no point showing the same contest twice — the
+// hero is already a full callout). Null when the hero isn't showing one.
+const heroContestId = useState<string | null>('cpub:hero-contest-id', () => null);
+watchEffect(() => {
+  const shown = contestsEnabled.value && !!activeContest.value && !heroDismissed.value;
+  heroContestId.value = shown ? ((activeContest.value as { id?: string }).id ?? null) : null;
+});
 </script>
 
 <template>
