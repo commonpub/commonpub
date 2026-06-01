@@ -28,15 +28,23 @@ DONE (committed `0353f6c`, `37ccaf0`, `7f491b7`, audit `04a78fb`; full server su
    `uuid-ordering-invariant.test.ts`; don't break it (e.g. don't switch id to a non-uuid
    key, or change `compareFeedOrder`, without re-proving it).
 
-### Step 4 (DO THIS — the client cutover, ships)
-4. Endpoint `layers/base/server/api/content/index.get.ts`: accept `?cursor=` + `limit`,
-   call `listContentKeyset`, return `{ items, nextCursor }`. Keep `page`/`offset` →
-   `listContent` working (dual-read) so old clients don't break.
-5. Clients: `loadMore` in `ContentGridSection.vue`, base `pages/index.vue`, deveco
-   `index.vue` (+ feed.vue/search if infinite-scroll there) → store + send `nextCursor`.
-   ~8 funcs across the 3 repos. Mechanical but coordinate the release.
-6. Release **server 2.71.0 / layer 0.43.0** (folds in the byte-align fix below) + bump
-   deveco/heatsync pins. Verify OVERLAP=0 on the LIVE API (session-178 method).
+### Step 4 — server endpoint DONE (commit `e0c0be3`); client cutover + release REMAIN
+4. ✅ Endpoint: chose a SEPARATE endpoint (user decision) — `GET /api/content/feed`
+   → `{ items, nextCursor }` (keyset). The offset `GET /api/content` is unchanged
+   → `{ items, total }`. Both share `resolveContentQuery()` (new
+   `layers/base/server/utils/contentQuery.ts`) so the auth/status/visibility/federation
+   gate can't drift — `contentQuery.test.ts` locks the draft-leak gate (mutation-verified).
+   `contentFiltersSchema` gained optional `cursor` (string ≤512). `listContentKeyset`
+   re-exported from `@commonpub/server` root (strict nuxt typecheck caught the missing
+   re-export — loose vitest didn't; ALWAYS run `pnpm --filter @commonpub/reference typecheck`).
+5. ⬜ Clients: `loadMore` in `ContentGridSection.vue`, base `pages/index.vue`, deveco
+   `index.vue` (+ feed.vue/search if infinite-scroll) → call `/api/content/feed`, store +
+   send `nextCursor` instead of bumping offset. ~8 funcs across the 3 repos. The infinite-
+   scroll feed views switch to the new endpoint; numbered/admin listings keep `/api/content`.
+6. ⬜ Release **server 2.71.0 / layer 0.43.0 / schema 0.25.0** (schema gained `cursor` →
+   minor bump; folds in the byte-align fix below) + bump deveco/heatsync pins. Verify
+   OVERLAP=0 on the LIVE API (session-178 method). Remember the npm-propagation +
+   caret-semver-0.x gotchas.
 
 ## DEFERRED RELEASE (fold into the Step 4 / 2.71.0 release)
 - The commonpub-WORKSPACE byte-align fix (commit 2d99c74) ships with 2.71.0 / layer 0.43.0

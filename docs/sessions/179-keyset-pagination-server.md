@@ -89,7 +89,28 @@ Adversarial audit of the Step 1-3 core before any cutover:
 - The deferred byte-align release (2.71.0/0.43.0) is STILL pending — fold it into the
   Step 4 release.
 
-## Next (Step 4 — the client cutover, ships)
+### Step 4 server endpoint (commit `e0c0be3`)
+Chose a **separate endpoint** (user decision over a `paginate=` flag or cursor-presence):
+- `GET /api/content/feed` → `{ items, nextCursor }` (keyset, `listContentKeyset`).
+- `GET /api/content` unchanged → `{ items, total }` (offset, for numbered/admin + total).
+- New `layers/base/server/utils/contentQuery.ts` `resolveContentQuery()` centralises the
+  auth/status/visibility/federation gate; BOTH endpoints call it so they can't drift on
+  the draft-leak guard. `contentFiltersSchema` gained optional `cursor` (string ≤512).
+- **`listContentKeyset` had to be re-exported from the `@commonpub/server` ROOT index**
+  (it was only on the content barrel; the layer imports from the package root). Caught by
+  `pnpm --filter @commonpub/reference typecheck` (vue-tsc, strict) — loose vitest/esbuild
+  would NOT have. Also caught a `string[] | undefined` vs `string[]` option-type mismatch.
+  Lesson reinforced: run the strict nuxt typecheck before claiming endpoint code compiles.
+- `contentQuery.test.ts` (8 tests, layer pkg `@commonpub/layer`, run via
+  `pnpm --filter @commonpub/layer exec vitest run`): non-owner gate coerces
+  draft/scheduled/deleted → published + public, archived allowed, owner sees own drafts,
+  logged-out-with-authorId is NOT owner, federation config passes through; static contract
+  asserts both endpoints route through the shared gate. Mutation-verified (bypassing the
+  gate fails 3 tests).
+- Verified: strict nuxt typecheck 0 errors; layer suite **855 pass**, server **1193 pass**.
+- **Schema gained a field → next publish is schema 0.25.0** (with server 2.71.0 / layer 0.43.0).
+
+## Next (Step 4 remainder — client cutover, ships)
 1. Endpoint `layers/base/server/api/content/index.get.ts`: accept `?cursor=` + `limit`,
    return `{ items, nextCursor }` (keep `page`/`offset` working — dual-read).
 2. Clients: `loadMore` in `ContentGridSection.vue`, base `pages/index.vue`, deveco
