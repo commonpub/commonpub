@@ -201,7 +201,12 @@ async function queryFederatedAsListItems(
     .from(federatedContent)
     .leftJoin(remoteActors, eq(federatedContent.remoteActorId, remoteActors.id))
     .where(where)
-    .orderBy(desc(federatedContent.publishedAt), desc(federatedContent.receivedAt), desc(federatedContent.id))
+    // MUST match the in-app merge comparator EXACTLY (publishedAt DESC NULLS LAST,
+    // id DESC) so merge(localTop-K, fedTop-K)[0:K] == globalTop-K and offset pages
+    // stay disjoint. `desc()` alone is NULLS FIRST in Postgres, but the merge maps
+    // null publishedAt → 0 (sorts last) — hence the explicit NULLS LAST; and no
+    // receivedAt secondary, since the merge breaks publishedAt ties on id only.
+    .orderBy(sql`${federatedContent.publishedAt} DESC NULLS LAST`, desc(federatedContent.id))
     .limit(maxItems);
 
   return rows.map((row): ContentListItem => ({
@@ -314,13 +319,16 @@ export async function listContent(
   // re-shows rows (the homepage dup bug). createdAt is a near-unique secondary;
   // id is the absolute tiebreaker.
   const recencyOrder = [desc(contentItems.publishedAt), desc(contentItems.createdAt), desc(contentItems.id)];
-  // When merging with federated content the feed is CHRONOLOGICAL: the merge
-  // sorts by publishedAt, and federated content has no viewCount/isFeatured to
-  // rank by — so the local slice must order by the SAME key (recency), or a
-  // popular-sorted local slice feeding a publishedAt-sorted merge yields
-  // inconsistent page windows → load-more dups. Local-only keeps the requested sort.
+  // When merging with federated content the feed is CHRONOLOGICAL, and the local
+  // slice must order by EXACTLY the merge key — (publishedAt DESC, id DESC), no
+  // createdAt secondary — because the merge breaks publishedAt ties on id only.
+  // Any extra/different secondary here re-ranks publishedAt-ties differently from
+  // the merge, so a local item the merge would place in globalTop-K can fall out
+  // of localTop-K → the merge window is wrong → load-more dups (federated content
+  // has no viewCount/isFeatured to rank by anyway). Local-only keeps the requested sort.
+  const mergeLocalOrder = [desc(contentItems.publishedAt), desc(contentItems.id)];
   const orderBy = willFederate
-    ? recencyOrder
+    ? mergeLocalOrder
     : filters.sort === 'popular'
       ? [desc(contentItems.viewCount), desc(contentItems.createdAt), desc(contentItems.id)]
       : filters.sort === 'featured'
