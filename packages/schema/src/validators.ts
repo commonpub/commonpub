@@ -660,6 +660,10 @@ export const contentFiltersSchema = z.object({
   sort: z.enum(['recent', 'popular', 'featured', 'editorial']).optional(),
   limit: z.coerce.number().int().positive().max(100).optional(),
   offset: z.coerce.number().int().min(0).optional(),
+  // Keyset (cursor) pagination — opaque token from a prior response's `nextCursor`.
+  // Its PRESENCE in the query (even empty, for the first page) opts a feed request into
+  // keyset mode at the endpoint; absent → legacy offset pagination. See listContentKeyset.
+  cursor: z.string().max(512).optional(),
 });
 export type ContentFilters = z.infer<typeof contentFiltersSchema>;
 

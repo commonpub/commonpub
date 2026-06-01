@@ -97,6 +97,7 @@ export type { PaginationOpts } from './query.js';
 // Content
 export {
   listContent,
+  listContentKeyset,
   getContentBySlug,
   createContent,
   updateContent,
