@@ -63,3 +63,37 @@ The deveco-parity backlog (B–D: drop custom layout/homepage, config-driven ban
 components, registered theme) was NEVER done in prior sessions — it sat in handoff backlogs
 while card-sizing + keyset shipped. This session did the user's actual asks (nav-respects-
 config + tokenize-for-customizability), NOT the full parity cutover (user declined it).
+
+## Deep audit → 2 real bugs found + fixed (server 2.72.0 / layer 0.43.3)
+A "step back and audit every surface" pass (two adversarial agents + live probing) found
+two REAL bugs in the keyset pagination — the first time the repeated audits surfaced
+something live-exploitable. Both fixed, mutation-tested, shipped, and verified live on all 3.
+
+1. **Crafted-cursor DoS (SECURITY) — was LIVE.** `decodeCursor` validated the cursor's
+   SHAPE but not its DOMAIN: a string `v` that isn't a date, a numeric `v`, or a non-uuid
+   `id` flowed into the SQL bind and threw (`new Date('garbage').toISOString()` RangeError,
+   or a uuid/timestamp cast error). No global error handler → unhandled **500** per crafted
+   `?cursor=`. Confirmed live: 3 payloads each 500'd commonpub.io; all return 200 after.
+   Fix: `decodeCursor` enforces its output contract (string `v` must parse to a finite
+   Date) + new `asDateUuidCursor()` narrows to the feed's column types (date-or-null `v` +
+   uuid `id`); `listContentKeyset` wraps decode in it → invalid cursor falls back to page 1.
+   Memory: `feedback_decode_untrusted_validate_domain_not_shape`.
+
+2. **Federated leak past local-only filters (CORRECTNESS, pre-existing in BOTH paths).**
+   The `willFederate` gate excluded `authorId/featured/editorial/categoryId` but NOT
+   `followedBy/difficulty/tag/non-published-status` — so a "following" feed with seamless
+   federation merged in remote posts from accounts the user never followed. Extracted a
+   shared `canMergeFederated(filters)` used by both `listContent` and `listContentKeyset`.
+
+3. `limit=0` now floors to 1 (was a 20-row fallthrough; internal-caller only).
+
+Everything else the agents traced was proven SAFE (SQL injection — fully parameterized;
+draft/private leak; content-type leak; cursor forging/IDOR; hidden/deleted federated;
+every off-by-one in the merge). Two minor non-bugs left as-is (unused popular index —
+cheap/forward-looking; federated `article`-alias asymmetry — near-zero impact). Full
+server suite **1198 pass**, 0 regressions. DoS fix verified live on all 3 (crafted cursor
+→ 200, was 500).
+
+## FINAL published state (session 180)
+schema 0.25.0 · **server 2.72.0** · config 0.16.0 · **layer 0.43.3** · ui 0.9.2 · auth 0.7.0.
+13 migrations (0012 latest). All 3 instances live + healthy + DoS-immune.

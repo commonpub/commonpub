@@ -1,5 +1,9 @@
 # Kickoff — next session (dive straight in)
 
+> ⛔ **SUPERSEDED by `docs/sessions/181-kickoff-next.md`.** This doc's PRIMARY (keyset
+> pagination) shipped in sessions 178–179; deveco nav/chrome shipped in 180. Kept for
+> history only — start from `181-kickoff-next.md`.
+
 Read this, then start. Prior context: `docs/sessions/178-contest-cardsizing-pagination.md`.
 State: all 3 instances (commonpub.io / deveco.io / heatsynclabs.io) live + healthy; homepage
 load-more dup FIXED + verified (OVERLAP=0 everywhere). Published: server 2.70.0, layer 0.42.0,
