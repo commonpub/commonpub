@@ -166,3 +166,134 @@ describe('listContentKeyset — local + federated keyset-merge', () => {
     }
   });
 });
+
+// The single most important keyset-merge scenario, and the exact shape of the
+// byte-align bug: LOCAL and FEDERATED rows sharing the SAME publishedAt. The merge
+// then orders them purely by the id tiebreaker ACROSS sources — which only works if
+// Postgres `id DESC` (both tables) and the JS comparator's `a.id < b.id` agree. If
+// they ever diverged, a JS-computed cursor would mis-partition the SQL `keysetWhere`
+// → a row dropped or repeated at the page boundary. (uuidorder.test.ts proves the
+// PG-vs-JS ordering invariant; this proves the END-TO-END walk relies on it correctly.)
+describe('listContentKeyset — cross-source id tiebreaker (shared publishedAt)', () => {
+  let db: DB;
+  let userId: string;
+
+  beforeAll(async () => {
+    db = await createTestDB();
+    const user = await createTestUser(db, { username: 'kst', email: 'kst@test.dev' });
+    userId = user.id;
+
+    // THREE shared timestamps, each carrying BOTH local and federated rows, so every
+    // tie must be broken across the source boundary by id. Plus a shared-null cohort.
+    const tsA = new Date('2026-05-01T00:00:00.000Z');
+    const tsB = new Date('2026-04-01T00:00:00.000Z');
+    const tsC = new Date('2026-03-01T00:00:00.000Z');
+    const local: Array<typeof contentItems.$inferInsert> = [];
+    const fed: Array<typeof federatedContent.$inferInsert> = [];
+    let n = 0;
+    for (const ts of [tsA, tsB, tsC]) {
+      for (let k = 0; k < 4; k++) {
+        local.push({ authorId: userId, type: 'blog', title: `L${n}`, slug: `l-${n}`, status: 'published', publishedAt: ts });
+        fed.push({ objectUri: `https://r.test/o/${n}`, actorUri: 'https://r.test/u/a', originDomain: 'r.test', apType: 'Article', cpubType: 'blog', title: `F${n}`, publishedAt: ts });
+        n++;
+      }
+    }
+    // shared null-publishedAt cohort across both sources (NULLS LAST tail, id tiebreak)
+    for (let k = 0; k < 3; k++) {
+      local.push({ authorId: userId, type: 'blog', title: `LN${k}`, slug: `ln-${k}`, status: 'published', publishedAt: null });
+      fed.push({ objectUri: `https://r.test/n/${k}`, actorUri: 'https://r.test/u/a', originDomain: 'r.test', apType: 'Article', cpubType: 'blog', title: `FN${k}`, publishedAt: null });
+    }
+    await db.insert(contentItems).values(local);
+    await db.insert(federatedContent).values(fed);
+  });
+
+  afterAll(async () => {
+    await closeTestDB(db);
+  });
+
+  it('walks all 30 items once across page sizes, ties broken consistently by id', async () => {
+    // 12 local + 12 federated (timestamped) + 3 local-null + 3 fed-null = 30.
+    const seenPerPage1 = await walkAll(db, { type: 'blog', status: 'published' }, { includeFederated: true }, 1);
+    expect(new Set(seenPerPage1).size, 'pageSize=1 no dups').toBe(30);
+    expect(seenPerPage1.length, 'pageSize=1 no gaps').toBe(30);
+
+    // The order produced by a single huge page is the ground-truth merged order; every
+    // smaller page size must reproduce it EXACTLY (cursor boundaries can land anywhere
+    // inside a shared-timestamp cohort, including the cross-source seam).
+    const groundTruth = (
+      await listContentKeyset(db, { type: 'blog', status: 'published', limit: 100 }, { includeFederated: true })
+    ).items.map((i) => i.id);
+    expect(groundTruth.length).toBe(30);
+
+    for (const size of [1, 2, 3, 5, 7, 30]) {
+      const walked = await walkAll(db, { type: 'blog', status: 'published' }, { includeFederated: true }, size);
+      expect(walked, `pageSize=${size} matches ground-truth order`).toEqual(groundTruth);
+    }
+  });
+
+  it('a cursor landing INSIDE a shared-timestamp cohort neither drops nor repeats its members', async () => {
+    // page size 3 against a 4-member cohort guarantees a mid-cohort boundary.
+    const seen = new Set<string>();
+    let cursor: string | null = null;
+    for (let g = 0; g < 100; g++) {
+      const res = await listContentKeyset(db, { type: 'blog', status: 'published', cursor, limit: 3 }, { includeFederated: true });
+      for (const it of res.items) {
+        expect(seen.has(it.id), `dup ${it.id}`).toBe(false);
+        seen.add(it.id);
+      }
+      if (!res.nextCursor || res.items.length === 0) break;
+      cursor = res.nextCursor;
+    }
+    expect(seen.size).toBe(30);
+  });
+});
+
+describe('listContentKeyset — robustness / edge inputs', () => {
+  let db: DB;
+  let userId: string;
+
+  beforeAll(async () => {
+    db = await createTestDB();
+    const user = await createTestUser(db, { username: 'ksr', email: 'ksr@test.dev' });
+    userId = user.id;
+    const rows: Array<typeof contentItems.$inferInsert> = [];
+    for (let i = 0; i < 5; i++) {
+      rows.push({ authorId: userId, type: 'blog', title: `R${i}`, slug: `r-${i}`, status: 'published', publishedAt: new Date(2026, 5, 1 + i) });
+    }
+    await db.insert(contentItems).values(rows);
+  });
+
+  afterAll(async () => {
+    await closeTestDB(db);
+  });
+
+  it('a malformed cursor falls back to the first page (never throws)', async () => {
+    const first = await listContentKeyset(db, { type: 'blog', status: 'published', limit: 3 });
+    for (const bad of ['', 'not-base64!!', 'YWJj', Buffer.from('{"v":1}', 'utf8').toString('base64url')]) {
+      const res = await listContentKeyset(db, { type: 'blog', status: 'published', cursor: bad, limit: 3 });
+      expect(res.items.map((i) => i.id), `cursor=${JSON.stringify(bad)}`).toEqual(first.items.map((i) => i.id));
+    }
+  });
+
+  it('an empty result set returns no items and a null cursor', async () => {
+    const res = await listContentKeyset(db, { type: 'blog', status: 'published', authorId: '00000000-0000-0000-0000-000000000000', limit: 5 });
+    expect(res.items).toEqual([]);
+    expect(res.nextCursor).toBeNull();
+  });
+
+  it('limit is clamped: 0/negative/oversize never error and return a sane page', async () => {
+    for (const limit of [0, -5, 1000]) {
+      const res = await listContentKeyset(db, { type: 'blog', status: 'published', limit });
+      expect(res.items.length, `limit=${limit} returns items`).toBeGreaterThan(0);
+      expect(res.items.length, `limit=${limit} bounded`).toBeLessThanOrEqual(100);
+    }
+  });
+
+  it('re-feeding nextCursor as cursor advances strictly (no self-overlap)', async () => {
+    const p1 = await listContentKeyset(db, { type: 'blog', status: 'published', limit: 2 });
+    expect(p1.nextCursor).toBeTruthy();
+    const p2 = await listContentKeyset(db, { type: 'blog', status: 'published', cursor: p1.nextCursor, limit: 2 });
+    const p1ids = new Set(p1.items.map((i) => i.id));
+    expect(p2.items.filter((i) => p1ids.has(i.id))).toEqual([]);
+  });
+});

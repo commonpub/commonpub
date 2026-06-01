@@ -454,7 +454,10 @@ export async function listContentKeyset(
 ): Promise<{ items: ContentListItem[]; nextCursor: string | null }> {
   const conditions = buildContentConditions(db, filters);
   const where = conditions.length > 0 ? and(...conditions) : undefined;
-  const limit = Math.min(filters.limit ?? 20, 100);
+  // Clamp to [1, 100]. A 0/negative limit would make `.limit(limit + 1)` <= 0; Postgres
+  // rejects a negative LIMIT (→ 500), and limit 0 is a nonsense feed page. Mirrors the
+  // offset path's normalizePagination floor (Math.max(...)), which this must not lose.
+  const limit = Math.min(Math.max(Math.trunc(filters.limit ?? 20) || 20, 1), 100);
   const cursor = decodeCursor(filters.cursor);
 
   // Same gate as the offset path: author/featured/editorial/category views are
