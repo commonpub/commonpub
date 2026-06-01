@@ -48,10 +48,9 @@ const contentQuery = computed(() => ({
   limit: 12,
 }));
 
-const { data: feed, pending: feedPending } = await useFetch<PaginatedResponse<Serialized<ContentListItem>>>('/api/content', {
-  query: contentQuery,
-  watch: [contentQuery],
-});
+// Keyset for recency tabs (latest/following/per-type), offset for the popular "For You"
+// tab — chosen transparently by useContentFeed. Replaces the hand-rolled offset loadMore.
+const { items: feedItems, pending: feedPending, loadMore, canLoadMore, loadingMore } = useContentFeed(contentQuery);
 
 // Editorial picks — staff-curated content for the homepage (only when editorial feature is enabled)
 const { data: editorialPicks } = editorialEnabled.value
@@ -105,39 +104,6 @@ const activeContest = computed<ContestListItem | null>(() => {
 
 const isAuthenticated = computed(() => !!user.value);
 const toast = useToast();
-
-// Load more state
-const feedOffset = ref(0);
-const loadingMore = ref(false);
-const allLoaded = ref(false);
-
-async function loadMore(): Promise<void> {
-  loadingMore.value = true;
-  try {
-    const nextOffset = (feed.value?.items?.length ?? 0);
-    const more = await $fetch<{ items: Array<Record<string, unknown>> }>('/api/content', {
-      query: {
-        ...contentQuery.value,
-        offset: nextOffset,
-      },
-    });
-    if (more.items?.length) {
-      if (feed.value?.items) {
-        feed.value.items.push(...(more.items as typeof feed.value.items));
-      }
-    }
-    if (!more.items?.length || more.items.length < 12) {
-      allLoaded.value = true;
-    }
-  } catch {
-    toast.error('Failed to load more');
-  } finally {
-    loadingMore.value = false;
-  }
-}
-
-// Reset load more when tab changes
-watch(activeTab, () => { allLoaded.value = false; });
 
 async function handleHubJoin(hubSlug: string): Promise<void> {
   if (!isAuthenticated.value) {
@@ -374,8 +340,8 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
         <div v-if="feedPending" class="cpub-loading-state">
           <i class="fa-solid fa-circle-notch fa-spin"></i> Loading content...
         </div>
-        <div v-else-if="feed?.items?.length" class="cpub-content-grid">
-          <ContentCard v-for="item in feed.items" :key="item.id" :item="item" />
+        <div v-else-if="feedItems.length" class="cpub-content-grid">
+          <ContentCard v-for="item in feedItems" :key="item.id" :item="item" />
         </div>
         <div v-else class="cpub-empty-state">
           <div class="cpub-empty-state-icon"><i :class="activeTab === 'following' ? 'fa-solid fa-user-group' : 'fa-solid fa-inbox'"></i></div>
@@ -395,7 +361,7 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
           </template>
         </div>
 
-        <div v-if="!allLoaded && feed?.items?.length" class="cpub-load-more-row">
+        <div v-if="canLoadMore" class="cpub-load-more-row">
           <button class="cpub-btn-load-more" :disabled="loadingMore" @click="loadMore">
             <i :class="loadingMore ? 'fa-solid fa-circle-notch fa-spin' : 'fa-solid fa-rotate'"></i>
             {{ loadingMore ? 'Loading...' : 'Load more' }}

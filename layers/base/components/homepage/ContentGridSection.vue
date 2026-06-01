@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import type { Serialized, ContentListItem, PaginatedResponse } from '@commonpub/server';
 import type { HomepageSectionConfig } from '@commonpub/server';
 
 const props = defineProps<{
@@ -9,7 +8,6 @@ const props = defineProps<{
 
 const { user: authUser } = useAuth();
 const { enabledTypeMeta } = useContentTypes();
-const toast = useToast();
 
 const activeTab = ref(authUser.value ? 'foryou' : 'latest');
 const tabs = computed(() => [
@@ -32,35 +30,9 @@ const contentQuery = computed(() => ({
   limit: limit.value,
 }));
 
-const { data: feed, pending: feedPending } = await useFetch<PaginatedResponse<Serialized<ContentListItem>>>('/api/content', {
-  query: contentQuery,
-  watch: [contentQuery],
-});
-
-const loadingMore = ref(false);
-const allLoaded = ref(false);
-
-watch(activeTab, () => { allLoaded.value = false; });
-
-async function loadMore(): Promise<void> {
-  loadingMore.value = true;
-  try {
-    const nextOffset = (feed.value?.items?.length ?? 0);
-    const more = await $fetch<PaginatedResponse<Serialized<ContentListItem>>>('/api/content', {
-      query: { ...contentQuery.value, offset: nextOffset },
-    });
-    if (more.items?.length && feed.value?.items) {
-      feed.value.items.push(...more.items);
-    }
-    if (!more.items?.length || more.items.length < limit.value) {
-      allLoaded.value = true;
-    }
-  } catch {
-    toast.error('Failed to load more');
-  } finally {
-    loadingMore.value = false;
-  }
-}
+// Keyset for recency tabs, offset for popular — handled transparently. Replaces the
+// hand-rolled load-more (was a 3rd copy of the offset-window logic behind the dup saga).
+const { items: feedItems, pending: feedPending, loadMore, canLoadMore, loadingMore } = useContentFeed(contentQuery);
 
 const isAuthenticated = computed(() => !!authUser.value);
 const columns = computed(() => props.config.columns ?? 2);
@@ -87,8 +59,8 @@ const columns = computed(() => props.config.columns ?? 2);
     <div v-if="feedPending" class="cpub-loading-state">
       <i class="fa-solid fa-circle-notch fa-spin"></i> Loading content...
     </div>
-    <div v-else-if="feed?.items?.length" class="cpub-content-grid" :style="{ '--grid-cols': columns }">
-      <ContentCard v-for="item in feed.items" :key="item.id" :item="item" />
+    <div v-else-if="feedItems.length" class="cpub-content-grid" :style="{ '--grid-cols': columns }">
+      <ContentCard v-for="item in feedItems" :key="item.id" :item="item" />
     </div>
     <div v-else class="cpub-empty-state">
       <div class="cpub-empty-state-icon"><i :class="activeTab === 'following' ? 'fa-solid fa-user-group' : 'fa-solid fa-inbox'"></i></div>
@@ -107,7 +79,7 @@ const columns = computed(() => props.config.columns ?? 2);
       </template>
     </div>
 
-    <div v-if="!allLoaded && feed?.items?.length" class="cpub-load-more-row">
+    <div v-if="canLoadMore" class="cpub-load-more-row">
       <button class="cpub-btn-load-more" :disabled="loadingMore" @click="loadMore">
         <i :class="loadingMore ? 'fa-solid fa-circle-notch fa-spin' : 'fa-solid fa-rotate'"></i>
         {{ loadingMore ? 'Loading...' : 'Load more' }}

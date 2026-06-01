@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import type { Serialized, ContentListItem, PaginatedResponse } from '@commonpub/server';
-
 useSeoMeta({
   title: `Feed — ${useSiteName()}`,
   description: 'Recent published content from the community.',
@@ -9,8 +7,6 @@ useSeoMeta({
 const { isAuthenticated } = useAuth();
 const { enabledTypeMeta } = useContentTypes();
 const activeFilter = ref('all');
-const loadingMore = ref(false);
-const allLoaded = ref(false);
 
 const contentQuery = computed(() => ({
   status: 'published',
@@ -19,36 +15,9 @@ const contentQuery = computed(() => ({
   limit: 12,
 }));
 
-const { data, status } = await useFetch<PaginatedResponse<Serialized<ContentListItem>>>('/api/content', {
-  query: contentQuery,
-  watch: [contentQuery],
-});
-
-const items = computed(() => data.value?.items ?? []);
-const total = computed(() => data.value?.total ?? 0);
-
-async function loadMore(): Promise<void> {
-  if (!data.value?.items) return;
-  loadingMore.value = true;
-  try {
-    const nextOffset = data.value.items.length;
-    const more = await $fetch<{ items: Array<Record<string, unknown>> }>('/api/content', {
-      query: { ...contentQuery.value, offset: nextOffset },
-    });
-    if (more?.items?.length) {
-      data.value.items.push(...(more.items as typeof data.value.items));
-    }
-    if (!more?.items?.length || more.items.length < 12) {
-      allLoaded.value = true;
-    }
-  } catch {
-    allLoaded.value = true;
-  } finally {
-    loadingMore.value = false;
-  }
-}
-
-watch(activeFilter, () => { allLoaded.value = false; });
+// Pure recency feed → keyset pagination (scalable, dup-free). useContentFeed handles
+// cursor threading + reset-on-filter-change.
+const { items, pending, loadMore, canLoadMore, loadingMore } = useContentFeed(contentQuery);
 
 const filters = computed(() => [
   { value: 'all', label: 'All', icon: 'fa-solid fa-layer-group' },
@@ -83,7 +52,7 @@ const filters = computed(() => [
       <ContentCard v-for="item in items" :key="item.id" :item="item" />
     </div>
 
-    <div v-else-if="status === 'pending'" class="feed-loading">Loading...</div>
+    <div v-else-if="pending" class="feed-loading">Loading...</div>
 
     <div v-else class="feed-empty">
       <div class="feed-empty-icon"><i class="fa-solid fa-rss"></i></div>
@@ -92,7 +61,7 @@ const filters = computed(() => [
     </div>
 
     <!-- Load More -->
-    <div v-if="!allLoaded && items.length >= 12" class="feed-more">
+    <div v-if="canLoadMore" class="feed-more">
       <button class="cpub-btn" @click="loadMore" :disabled="loadingMore">
         {{ loadingMore ? 'Loading...' : 'Load More' }}
       </button>
