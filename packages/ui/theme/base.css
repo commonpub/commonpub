@@ -231,6 +231,46 @@
   --cpub-card-min: 260px;  /* min column width before wrapping (auto-fill) */
   --cpub-card-gap: 20px;   /* gutter between cards */
 
+  /* === CHROME (topbar / nav / footer / banner) ===
+     The global layout chrome is fully token-driven so an instance theme can change
+     its SHAPE — not just colors — without forking the layout (the deveco use case).
+     Every default below EXACTLY reproduces the current base look, so existing
+     instances + built-in themes are unaffected unless they opt in by overriding a
+     token. A theme that wants e.g. deveco's elevated rounded bar sets these in its
+     own [data-theme="…"] / :root block. See layers/base/layouts/default.vue. */
+
+  /* Top bar */
+  --cpub-topbar-height: 48px;              /* MUST match the content top-offset + mobile-menu top */
+  --cpub-topbar-bg: var(--surface);
+  --cpub-topbar-border: var(--border-width-default) solid var(--border); /* shorthand: full bottom border */
+  --cpub-topbar-radius: 0;                 /* deveco: 12px rounded bottom */
+  --cpub-topbar-shadow: none;              /* deveco: 0 2px 8px rgba(0,0,0,.08) */
+  --cpub-topbar-position: fixed;           /* deveco: sticky */
+  --cpub-topbar-padding-x: 20px;
+  --cpub-topbar-blur: none;                /* deveco: blur(8px) backdrop */
+  /* Top offset reserved for the fixed bar. A theme that makes the bar `sticky`
+     (which reserves its own space) should set this to 0. Default = the bar height. */
+  --cpub-content-top-offset: var(--cpub-topbar-height, 48px);
+
+  /* Nav links (rendered by NavRenderer → .cpub-nav-link) */
+  --cpub-nav-link-size: 12px;              /* deveco: 14px */
+  --cpub-nav-link-weight: 400;             /* deveco: 500 */
+  --cpub-nav-link-padding: 5px 12px;       /* deveco: 8px 14px */
+  --cpub-nav-link-radius: var(--radius);   /* deveco: 6px (pill) */
+  --cpub-nav-link-color: var(--text-dim);
+  --cpub-nav-link-active-color: var(--text);          /* deveco: var(--deveco-dark-green) */
+  --cpub-nav-link-active-bg: var(--surface2);          /* deveco: var(--accent-bg) */
+  --cpub-nav-link-active-weight: 400;                  /* deveco: 600 */
+  --cpub-nav-link-active-border: var(--border);        /* color of the active link border */
+
+  /* Footer */
+  --cpub-footer-bg: var(--surface);        /* deveco: var(--deveco-dark-green) */
+  --cpub-footer-text: var(--text-dim);     /* body/link text; deveco: rgba(255,255,255,.7) */
+  --cpub-footer-muted: var(--text-faint);  /* col titles / bottom bar; deveco: rgba(255,255,255,.4) */
+  --cpub-footer-border: var(--border);     /* deveco: rgba(255,255,255,.1) */
+  --cpub-footer-link-hover: var(--text);   /* link hover color; deveco: var(--accent) */
+  --cpub-footer-heading: var(--text);      /* brand logo text; deveco uses its dark-bg logo */
+
   /* === FOCUS === */
   --focus-ring: var(--shadow-accent);
 }

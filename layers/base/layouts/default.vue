@@ -266,20 +266,50 @@ const userUsername = computed(() => user.value?.username ?? '');
 
 .cpub-layout { min-height: 100vh; display: flex; flex-direction: column; }
 
-/* ═══ TOPBAR ═══ */
+/* ═══ TOPBAR ═══
+   Structure is token-driven (--cpub-topbar-*) so a theme can change the bar's SHAPE
+   — height, radius, shadow, position, padding — not just its colors, without forking
+   this layout. Every default reproduces the current flat 48px bar exactly.
+   (Centering the bar's CONTENT at a max width while keeping a full-bleed background
+   needs an inner wrapper element, which the base markup doesn't have — that one
+   aspect stays a structural choice, not a token.) */
 .cpub-topbar {
-  position: fixed; top: 0; left: 0; right: 0; height: 48px;
-  background: var(--surface); border-bottom: var(--border-width-default) solid var(--border);
-  display: flex; align-items: center; padding: 0 20px; gap: 0; z-index: 100;
+  position: var(--cpub-topbar-position, fixed); top: 0; left: 0; right: 0;
+  height: var(--cpub-topbar-height, 48px);
+  background: var(--cpub-topbar-bg, var(--surface));
+  border-bottom: var(--cpub-topbar-border, var(--border-width-default) solid var(--border));
+  border-bottom-left-radius: var(--cpub-topbar-radius, 0);
+  border-bottom-right-radius: var(--cpub-topbar-radius, 0);
+  box-shadow: var(--cpub-topbar-shadow, none);
+  backdrop-filter: var(--cpub-topbar-blur, none);
+  display: flex; align-items: center;
+  padding: 0 var(--cpub-topbar-padding-x, 20px); gap: 0; z-index: 100;
 }
 .cpub-topbar-logo { display: flex; align-items: center; flex-shrink: 0; text-decoration: none; color: var(--text); }
 
 /* Nav styles use :deep() to reach into NavRenderer/NavDropdown/NavLink child components */
 :deep(.cpub-topbar-nav) { display: flex; align-items: center; gap: 2px; margin-left: 24px; }
-:deep(.cpub-nav-link) { font-size: 12px; color: var(--text-dim); padding: 5px 12px; border: var(--border-width-default) solid transparent; background: none; text-decoration: none; transition: color 0.15s, background 0.15s; display: flex; align-items: center; gap: 6px; }
+/* Nav-link shape + active state are token-driven (--cpub-nav-link-*) so a theme can
+   make pill-shaped/larger/accent-colored nav links (deveco) without forking. Defaults
+   = the current 12px square neutral link. */
+:deep(.cpub-nav-link) {
+  font-size: var(--cpub-nav-link-size, 12px);
+  font-weight: var(--cpub-nav-link-weight, 400);
+  color: var(--cpub-nav-link-color, var(--text-dim));
+  padding: var(--cpub-nav-link-padding, 5px 12px);
+  border: var(--border-width-default) solid transparent;
+  border-radius: var(--cpub-nav-link-radius, var(--radius));
+  background: none; text-decoration: none;
+  transition: color 0.15s, background 0.15s; display: flex; align-items: center; gap: 6px;
+}
 :deep(.cpub-nav-link i) { font-size: 10px; }
 :deep(.cpub-nav-link:hover) { color: var(--text); background: var(--surface2); }
-:deep(.cpub-nav-link.router-link-active) { color: var(--text); background: var(--surface2); border-color: var(--border); }
+:deep(.cpub-nav-link.router-link-active) {
+  color: var(--cpub-nav-link-active-color, var(--text));
+  background: var(--cpub-nav-link-active-bg, var(--surface2));
+  border-color: var(--cpub-nav-link-active-border, var(--border));
+  font-weight: var(--cpub-nav-link-active-weight, 400);
+}
 :deep(.cpub-nav-link--disabled) { opacity: 0.35; cursor: not-allowed; pointer-events: none; }
 
 /* Nav dropdowns */
@@ -343,7 +373,7 @@ const userUsername = computed(() => user.value?.username ?? '');
 .cpub-dropdown-item--mobile { display: none; }
 
 .cpub-mobile-toggle { display: none; width: 32px; height: 32px; background: none; border: var(--border-width-default) solid transparent; color: var(--text-dim); font-size: 16px; cursor: pointer; align-items: center; justify-content: center; }
-.cpub-mobile-menu { display: none; position: fixed; inset: 0; top: 48px; z-index: 99; background: var(--color-surface-overlay-light); }
+.cpub-mobile-menu { display: none; position: fixed; inset: 0; top: var(--cpub-topbar-height, 48px); z-index: 99; background: var(--color-surface-overlay-light); }
 :deep(.cpub-mobile-nav) { background: var(--surface); border-bottom: var(--border-width-default) solid var(--border); padding: 8px 0; display: flex; flex-direction: column; box-shadow: var(--shadow-md); }
 :deep(.cpub-mobile-link) { display: flex; align-items: center; gap: 10px; padding: 10px 20px; font-size: 13px; color: var(--text-dim); text-decoration: none; transition: background 0.1s; }
 :deep(.cpub-mobile-link:hover) { background: var(--surface2); color: var(--text); }
@@ -351,22 +381,27 @@ const userUsername = computed(() => user.value?.username ?? '');
 .cpub-mobile-divider { height: 2px; background: var(--border2); margin: 4px 16px; }
 .cpub-mobile-nav-extra { border-top: var(--border-width-default) solid var(--border2); }
 
-#main-content { margin-top: 48px; flex: 1; }
+/* Offsets the fixed top bar — MUST track --cpub-topbar-height (only when the bar is
+   actually fixed; a sticky bar reserves its own space, so a theme that switches to
+   sticky should zero this via --cpub-content-top-offset). */
+#main-content { margin-top: var(--cpub-content-top-offset, var(--cpub-topbar-height, 48px)); flex: 1; }
 
 /* ═══ FOOTER ═══ */
-.cpub-footer { background: var(--surface); border-top: var(--border-width-default) solid var(--border); margin-top: auto; }
+/* Footer bg + text are token-driven (--cpub-footer-*) so a theme can ship a dark/branded
+   footer (deveco green) without forking. Defaults = the current neutral surface footer. */
+.cpub-footer { background: var(--cpub-footer-bg, var(--surface)); border-top: var(--border-width-default) solid var(--cpub-footer-border, var(--border)); margin-top: auto; }
 .cpub-footer-inner { max-width: 1200px; margin: 0 auto; padding: 40px 32px 32px; display: grid; grid-template-columns: 1.5fr repeat(3, 1fr); gap: 32px; }
 .cpub-footer-brand { display: flex; flex-direction: column; gap: 8px; }
-.cpub-footer-logo { font-family: var(--font-mono); font-size: 14px; font-weight: 700; color: var(--text); }
-.cpub-footer-tagline { font-size: 12px; color: var(--text-dim); }
+.cpub-footer-logo { font-family: var(--font-mono); font-size: 14px; font-weight: 700; color: var(--cpub-footer-heading, var(--text)); }
+.cpub-footer-tagline { font-size: 12px; color: var(--cpub-footer-text, var(--text-dim)); }
 .cpub-footer-social { display: flex; gap: 8px; margin-top: 8px; }
-.cpub-footer-social-link { width: 28px; height: 28px; background: var(--surface2); border: var(--border-width-default) solid var(--border); display: flex; align-items: center; justify-content: center; color: var(--text-dim); font-size: 12px; text-decoration: none; transition: all 0.12s; }
+.cpub-footer-social-link { width: 28px; height: 28px; background: var(--surface2); border: var(--border-width-default) solid var(--border); display: flex; align-items: center; justify-content: center; color: var(--cpub-footer-text, var(--text-dim)); font-size: 12px; text-decoration: none; transition: all 0.12s; }
 .cpub-footer-social-link:hover { background: var(--accent); color: var(--color-text-inverse); border-color: var(--accent); }
 .cpub-footer-col { display: flex; flex-direction: column; gap: 6px; }
-.cpub-footer-col-title { font-family: var(--font-mono); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-faint); margin-bottom: 4px; }
-.cpub-footer-link { font-size: 12px; color: var(--text-dim); text-decoration: none; transition: color 0.12s; }
-.cpub-footer-link:hover { color: var(--text); }
-.cpub-footer-bottom { max-width: 1200px; margin: 0 auto; padding: 16px 32px; border-top: var(--border-width-default) solid var(--border); font-size: 10px; font-family: var(--font-mono); color: var(--text-faint); }
+.cpub-footer-col-title { font-family: var(--font-mono); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: var(--cpub-footer-muted, var(--text-faint)); margin-bottom: 4px; }
+.cpub-footer-link { font-size: 12px; color: var(--cpub-footer-text, var(--text-dim)); text-decoration: none; transition: color 0.12s; }
+.cpub-footer-link:hover { color: var(--cpub-footer-link-hover, var(--text)); }
+.cpub-footer-bottom { max-width: 1200px; margin: 0 auto; padding: 16px 32px; border-top: var(--border-width-default) solid var(--cpub-footer-border, var(--border)); font-size: 10px; font-family: var(--font-mono); color: var(--cpub-footer-muted, var(--text-faint)); }
 
 @media (max-width: 768px) {
   :deep(.cpub-topbar-nav) { display: none; }
