@@ -25,7 +25,7 @@ schema, server, config, protocol, auth, ui, editor, explainer, learning, docs, i
 
 ## Latest published versions (session 180, 2026-06-01)
 
-- schema 0.25.0, server 2.71.0, config 0.16.0, layer 0.43.2
+- schema 0.25.0, server 2.72.0, config 0.16.0, layer 0.43.3
 - ui 0.9.2, protocol 0.12.0, editor 0.7.11, explainer 0.7.15
 - learning 0.5.2, docs 0.6.3, auth 0.7.0, infra 0.8.0, test-utils 0.5.6
 - (Always `npm view @commonpub/<pkg> version` before trusting this — it drifts.)
