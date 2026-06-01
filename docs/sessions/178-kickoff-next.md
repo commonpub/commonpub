@@ -28,7 +28,12 @@ DONE (committed `0353f6c`, `37ccaf0`, `7f491b7`, audit `04a78fb`; full server su
    `uuid-ordering-invariant.test.ts`; don't break it (e.g. don't switch id to a non-uuid
    key, or change `compareFeedOrder`, without re-proving it).
 
-### Step 4 — server endpoint DONE (commit `e0c0be3`); client cutover + release REMAIN
+### Step 4 — ✅ COMPLETE + LIVE on all 3 (schema 0.25.0 / server 2.71.0 / layer 0.43.1)
+Whole pagination-scalability plan (Steps 1–4) SHIPPED 2026-06-01. OVERLAP=0 verified live
+on commonpub.io / deveco.io / heatsynclabs.io. See `179-keyset-pagination-server.md` §Step 4.
+Only Step D (unified `feed_items` timeline table) remains — long-term/optional.
+
+<details><summary>What was done (for history)</summary>
 4. ✅ Endpoint: chose a SEPARATE endpoint (user decision) — `GET /api/content/feed`
    → `{ items, nextCursor }` (keyset). The offset `GET /api/content` is unchanged
    → `{ items, total }`. Both share `resolveContentQuery()` (new
@@ -41,10 +46,11 @@ DONE (committed `0353f6c`, `37ccaf0`, `7f491b7`, audit `04a78fb`; full server su
    `index.vue` (+ feed.vue/search if infinite-scroll) → call `/api/content/feed`, store +
    send `nextCursor` instead of bumping offset. ~8 funcs across the 3 repos. The infinite-
    scroll feed views switch to the new endpoint; numbered/admin listings keep `/api/content`.
-6. ⬜ Release **server 2.71.0 / layer 0.43.0 / schema 0.25.0** (schema gained `cursor` →
-   minor bump; folds in the byte-align fix below) + bump deveco/heatsync pins. Verify
-   OVERLAP=0 on the LIVE API (session-178 method). Remember the npm-propagation +
-   caret-semver-0.x gotchas.
+6. ✅ Released **schema 0.25.0 / server 2.71.0 / layer 0.43.0→0.43.1** + bumped all 3 pins.
+   (0.43.1 = a TS2589 fix in useContentFeed only deveco's stricter typecheck caught — always
+   repro a layer type change against the actual consumer's packed tarball before publishing.)
+   OVERLAP=0 verified live on all 3.
+</details>
 
 ## DEFERRED RELEASE (fold into the Step 4 / 2.71.0 release)
 - The commonpub-WORKSPACE byte-align fix (commit 2d99c74) ships with 2.71.0 / layer 0.43.0

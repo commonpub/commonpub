@@ -120,3 +120,60 @@ Chose a **separate endpoint** (user decision over a `paginate=` flag or cursor-p
    deveco/heatsync pins. Verify OVERLAP=0 on the live API (the session-178 method).
 
 Backlog unchanged from 178: deveco-parity B–D, RBAC 2–4, E2E CI drift.
+
+---
+
+## Step 4 SHIPPED — client cutover + release + deploy (all 3 live, OVERLAP=0)
+
+2026-06-01. The keyset pagination feature is fully LIVE and verified on all three
+instances. This completes the pagination-scalability plan's Steps 1–4.
+
+### Published
+- **schema 0.25.0** (cursor field), **server 2.71.0** (keyset + byte-align fix +
+  migration 0012), **layer 0.43.0 → 0.43.1** (feed endpoint + useContentFeed + TS2589 fix).
+- Publish order schema → server → layer, each polled for npm propagation before the
+  next. Layer via `pnpm run publish:layer` (verified no `workspace:*` leak in the tarball).
+
+### Client cutover (base + deveco)
+- New `layers/base/composables/useContentFeed.ts` — one loader, strategy by sort:
+  recency → `GET /api/content/feed` (keyset, nextCursor); popular/featured → offset
+  `GET /api/content`. Replaced 4 hand-rolled loadMore copies (base index.vue,
+  ContentGridSection.vue, feed.vue; deveco index.vue). Net big reduction.
+- heatsync uses the BASE homepage → inherited the cutover automatically (pin bump only).
+- `useContentFeed.test.ts` (5 tests, mutation-verified): keyset cursor threading,
+  unset-sort→keyset, null-cursor exhaustion, offset short-page stop, reset-on-query-change.
+
+### The TS2589 episode (caught by strict typecheck, not vitest)
+- layer 0.43.0's `useContentFeed` tripped `TS2589 "excessively deep"` under deveco's
+  stricter `nuxt typecheck` (deveco CI red; base reference app tolerated it). Root cause:
+  parameterising `useFetch<…>` with a UNION endpoint (two typed routes) + the recursive
+  `Serialized<ContentListItem>` makes Nuxt instantiate typed-route data for both branches.
+- Fix (layer 0.43.1): drop the `useFetch<>` generic, read `data` via a typed `page`
+  computed cast to a shallow `FeedResponse` (`items: Record<string,unknown>[]`), and
+  `@ts-ignore` the one union-endpoint `useFetch` line — exactly how deveco @ts-ignores
+  the same on its own calls. **Reproduced deveco's typecheck green against the packed
+  tarball BEFORE republishing** (packed → npm install into deveco → nuxt typecheck).
+- Lesson: the layer ships SOURCE composables; a consumer with a stricter tsconfig can
+  red-CI on layer code that the reference app accepts. Repro against the actual consumer
+  (packed tarball) before publishing a layer type change. [[feedback_vue_tsc_strict_vs_vitest]]
+
+### Deploy + live verification (the session-178 OVERLAP method)
+All three deployed via their `db-migrate.mjs` path (migration 0012 = two partial feed
+indexes; non-destructive). Health checks warn-not-fail → curl-verified each:
+- **commonpub.io**: OVERLAP=0 (23 items / 5 pages, federated merge).
+- **deveco.io**: OVERLAP=0 (24 items / 5 pages, federated merge). Deploy health-check
+  cold-start false-alarm — verified live anyway.
+- **heatsynclabs.io**: OVERLAP=0 (8 items / 2 pages, local-only path). db-migrate path
+  (no longer db:push) applied 0012 cleanly.
+
+### Gotchas hit + handled
+- deveco CI is `pnpm install --frozen-lockfile` → stale `pnpm-lock.yaml` red-CI'd; regen
+  with `pnpm install --lockfile-only`. (Docker build uses `npm install`, unaffected.)
+- Local `npm install` in deveco hit an arborist dedupe crash on a dirty node_modules;
+  `rm -rf node_modules` + fresh install fixed it (a clean Docker container never sees this).
+- `^0.43.0` already admits 0.43.1 (patch), but bumped pins to `^0.43.1` for clarity.
+
+### Final published/live state
+schema 0.25.0 / server 2.71.0 / layer 0.43.1 live on all 3. Migrations now **13** (0012).
+The deferred byte-align fix is now shipped everywhere. Pagination-scalability plan
+Steps 1–4 COMPLETE; Step D (unified timeline table) remains long-term/optional.
