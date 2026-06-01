@@ -50,8 +50,40 @@ matches" memory):
   canonical order, no dups/gaps, through tie-block + null tail + the interleaved
   local+federated merge (20 items, every page disjoint, strictly descending).
 
+### Audit + hardening (commit `04a78fb`)
+Adversarial audit of the Step 1-3 core before any cutover:
+- **Mutation-tested the suite** to prove it has teeth: flipping the JS tiebreaker
+  direction in `compareFeedOrder` AND dropping the `isNull(sortCol)` branch in
+  `keysetWhere` each produce dup/gap failures the new tests catch. The suite would
+  have caught the byte-align bug class.
+- **Fixed a real defensive bug**: `listContentKeyset` limit had no lower-bound floor
+  (`Math.min(limit ?? 20, 100)`), so `limit<=0` → `.limit(limit+1)<=0` → Postgres
+  rejects a negative LIMIT → 500. Now clamped to `[1,100]` (mirrors the offset path's
+  `normalizePagination`). The endpoint's zod also guards this, but the fn is callable
+  internally — defense in depth.
+- **New `uuid-ordering-invariant.test.ts`**: empirically proves Postgres `uuid DESC`
+  == JS string-desc over 500 random uuids. This is the load-bearing assumption under
+  the cross-source merge (a JS-built cursor is fed back into a SQL `WHERE id < :id`);
+  if it ever broke, cursors would mis-partition the SQL at a shared-timestamp tie.
+- **Closed the biggest test gap**: the old federated test seeded local/federated 1 day
+  apart, so the cross-source id tiebreaker (the exact byte-align-bug shape) was NEVER
+  exercised. Added a cohort with local AND federated rows sharing the same publishedAt
+  (+ a shared null cohort), walked at page sizes 1/2/3/5/7/30 against ground-truth.
+- Robustness: malformed cursor → first page (never throws), empty set → null cursor,
+  limit clamp, re-feed nextCursor advances without overlap.
+- **Precision note (no code change needed)**: the driver returns ms-precision JS Date,
+  but `published_at` is microsecond `timestamptz`. A sub-ms value would let a
+  ms-truncated cursor skip rows. Verified ALL `publishedAt` write paths go through JS
+  `Date` (ms) — `publishContent` does `new Date()`, federation does `new Date(iso)`,
+  no DB-side `now()` default. So the round-trip is exact today. If a raw-SQL/migration
+  ever writes sub-ms `published_at`, revisit (tolerance in keysetWhere or truncate on
+  write). Left as a documented invariant.
+
 ## State
-- Full server suite: **79 files, 1185 tests pass** (1175 + 10 new), 0 regressions.
+- Full server suite: **80 files, 1193 tests pass** (1175 + 18 new across 4 keyset test
+  files), 0 regressions. New test files strict-`tsc` clean (note: `src/__tests__` is
+  excluded from the server `typecheck` script — 43 PRE-EXISTING type errors in other
+  test files are why; verified mine add zero).
 - Migrations now **13** (0012 latest). server/layer npm still 2.70.0/0.42.0 — NOTHING
   published; all changes are server-internal + additive.
 - The deferred byte-align release (2.71.0/0.43.0) is STILL pending — fold it into the

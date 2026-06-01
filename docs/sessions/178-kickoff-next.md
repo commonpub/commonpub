@@ -12,7 +12,8 @@ config 0.16.0, schema 0.24.0, auth 0.7.0. Migrations at 0011 (count 12).
 DONE + green as of session 179** — see `docs/sessions/179-keyset-pagination-server.md`.
 Only the client cutover (Step 4, below) remains, and it SHIPS.
 
-DONE (committed `0353f6c`, `37ccaf0`, `7f491b7`; full server suite 1185 pass, 0 regressions):
+DONE (committed `0353f6c`, `37ccaf0`, `7f491b7`, audit `04a78fb`; full server suite
+**1193 pass**, 0 regressions; suite mutation-tested so it has real teeth):
 1. ✅ `query.ts`: `encodeCursor`/`decodeCursor`/`keysetWhere` (opaque base64url, NULLS-LAST).
 2. ✅ Composite partial indexes, **migration 0012** (count now 13). EXPLAIN-verified the
    planner uses them. NOTE: index spells `id DESC NULLS FIRST` / `view_count DESC NULLS
@@ -21,7 +22,11 @@ DONE (committed `0353f6c`, `37ccaf0`, `7f491b7`; full server suite 1185 pass, 0 
    partial indexes, so the index test creates the DDL itself.
 3. ✅ `listContentKeyset(db, {...filters, cursor}, options) → { items, nextCursor }` —
    keyset-merge, `limit+1` hasMore probe, no COUNT, additive (offset `listContent`
-   untouched). popular/featured/editorial stay on the offset path.
+   untouched). popular/featured/editorial stay on the offset path. Limit clamped to
+   `[1,100]` (a 0/negative limit would make `.limit(limit+1)<=0` → Postgres 500).
+   The cross-source merge relies on Postgres `uuid DESC` == JS string-desc — PROVEN in
+   `uuid-ordering-invariant.test.ts`; don't break it (e.g. don't switch id to a non-uuid
+   key, or change `compareFeedOrder`, without re-proving it).
 
 ### Step 4 (DO THIS — the client cutover, ships)
 4. Endpoint `layers/base/server/api/content/index.get.ts`: accept `?cursor=` + `limit`,
