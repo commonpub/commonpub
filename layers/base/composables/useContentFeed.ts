@@ -1,4 +1,4 @@
-import type { Serialized, ContentListItem, PaginatedResponse } from '@commonpub/server';
+import type { Serialized, ContentListItem } from '@commonpub/server';
 
 /**
  * Unified content-feed loader with transparent keyset/offset pagination.
@@ -24,9 +24,15 @@ import type { Serialized, ContentListItem, PaginatedResponse } from '@commonpub/
  */
 
 type FeedQuery = Record<string, unknown> & { sort?: string; limit?: number };
-type Item = Serialized<ContentListItem>;
+/** Public item type callers consume (for ContentCard). */
+export type FeedItem = Serialized<ContentListItem>;
 
-interface KeysetResponse { items: Item[]; nextCursor: string | null }
+// Wire response shape for BOTH endpoints (keyset → nextCursor, offset → total). The
+// items are typed `Record<string, unknown>[]`, NOT `Serialized<ContentListItem>[]`, on
+// purpose: feeding the deeply-recursive Serialized<…> mapped type through useFetch's own
+// generic wrapper tripped TS2589 "excessively deep" under the consumer apps' stricter
+// typecheck (deveco). We cast to FeedItem[] once, at the `items` boundary callers read.
+interface FeedResponse { items: Array<Record<string, unknown>>; nextCursor?: string | null; total?: number }
 
 export function useContentFeed(query: Ref<FeedQuery> | ComputedRef<FeedQuery>) {
   const toast = useToast();
@@ -46,17 +52,28 @@ export function useContentFeed(query: Ref<FeedQuery> | ComputedRef<FeedQuery>) {
 
   // Initial page — SSR-friendly via useFetch. Both endpoints accept the same query;
   // the keyset one returns { items, nextCursor }, the offset one { items, total }.
+  //
+  // No explicit useFetch<…> generic: parameterising it makes TS instantiate useFetch's
+  // own deep transform/pick generic machinery, which trips TS2589 "excessively deep"
+  // under the consumer apps' stricter typecheck (deveco already @ts-ignores the same on
+  // its own useFetch calls). We let it infer and read `data` through a typed `page`
+  // computed cast to the shallow FeedResponse instead.
   const endpoint = computed(() => (isKeyset.value ? '/api/content/feed' : '/api/content'));
-  const { data, pending } = useFetch<KeysetResponse | PaginatedResponse<Item>>(endpoint, {
-    query,
-    watch: [query],
-  });
+  // @ts-ignore TS2589: a computed endpoint that is a UNION of two typed routes makes
+  // Nuxt's useFetch resolve typed route data for both, blowing the instantiation depth
+  // under the consumer apps' stricter typecheck (deveco @ts-ignores the same on its own
+  // useFetch calls). Runtime is unaffected; `data` is read through the typed `page` below.
+  const { data, pending } = useFetch(endpoint, { query, watch: [query] });
+  const page = computed<FeedResponse | null>(() => (data.value as FeedResponse | null) ?? null);
 
   // Local accumulator: the first page from useFetch, plus any load-more pages. Kept
   // separate from `data` so we never mutate the useFetch payload (which it re-creates
   // on refetch) — and so a tab switch cleanly replaces the list.
-  const extra = ref<Item[]>([]);
-  const items = computed<Item[]>(() => [...(data.value?.items ?? []), ...extra.value]);
+  const extra = ref<Array<Record<string, unknown>>>([]);
+  // Single cast from the shallow wire type to the public FeedItem[] callers consume.
+  const items = computed<FeedItem[]>(
+    () => [...(page.value?.items ?? []), ...extra.value] as FeedItem[],
+  );
 
   // Reset pagination whenever the underlying query (tab/filter) changes.
   watch(
@@ -71,10 +88,10 @@ export function useContentFeed(query: Ref<FeedQuery> | ComputedRef<FeedQuery>) {
 
   // Seed the keyset cursor from the first page once it arrives.
   watch(
-    data,
-    (d) => {
+    page,
+    (p) => {
       if (isKeyset.value) {
-        cursor.value = (d as KeysetResponse | null)?.nextCursor ?? null;
+        cursor.value = p?.nextCursor ?? null;
         if (cursor.value === null) exhausted.value = true;
       }
     },
@@ -95,15 +112,15 @@ export function useContentFeed(query: Ref<FeedQuery> | ComputedRef<FeedQuery>) {
     try {
       if (isKeyset.value) {
         if (!cursor.value) { exhausted.value = true; return; }
-        const res = await $fetch<KeysetResponse>('/api/content/feed', {
+        const res = await $fetch<FeedResponse>('/api/content/feed', {
           query: { ...query.value, cursor: cursor.value },
         });
         if (res.items?.length) extra.value.push(...res.items);
-        cursor.value = res.nextCursor;
+        cursor.value = res.nextCursor ?? null;
         if (!res.nextCursor) exhausted.value = true;
       } else {
         const offset = items.value.length;
-        const res = await $fetch<PaginatedResponse<Item>>('/api/content', {
+        const res = await $fetch<FeedResponse>('/api/content', {
           query: { ...query.value, offset },
         });
         if (res.items?.length) extra.value.push(...res.items);
