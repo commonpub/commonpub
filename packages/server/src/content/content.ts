@@ -13,7 +13,7 @@ import type {
 } from '../types.js';
 import type { CreateContentInput, UpdateContentInput } from '@commonpub/schema';
 import { generateSlug } from '../utils.js';
-import { ensureUniqueSlugFor, USER_REF_SELECT, USER_REF_WITH_HEADLINE_SELECT, normalizePagination, countRows, escapeLike, buildContentPath } from '../query.js';
+import { ensureUniqueSlugFor, USER_REF_SELECT, USER_REF_WITH_HEADLINE_SELECT, normalizePagination, countRows, escapeLike, buildContentPath, decodeCursor, encodeCursor, keysetWhere, type KeysetCursor } from '../query.js';
 import { federateContent, federateUpdate, federateDelete } from '../federation/federation.js';
 import { createNotification } from '../notification/notification.js';
 
@@ -157,11 +157,19 @@ async function queryFederatedAsListItems(
   filters: ContentFilters,
   maxItems = 100,
   allowedContentTypes?: string[],
+  /** Keyset cursor: return only federated rows strictly after it in (publishedAt DESC NULLS LAST, id DESC). */
+  cursor?: KeysetCursor | null,
 ): Promise<ContentListItem[]> {
   const conditions = [
     isNull(federatedContent.deletedAt),
     eq(federatedContent.isHidden, false),
   ];
+
+  // Keyset: same total order as the merge, so each source returns its slice of the
+  // global stream past the cursor. publishedAt is the lead key; id the tiebreaker.
+  if (cursor) {
+    conditions.push(keysetWhere(federatedContent.publishedAt, federatedContent.id, cursor));
+  }
 
   // Filter by instance's enabled content types — prevent unsupported types from leaking into feeds
   if (allowedContentTypes && allowedContentTypes.length > 0) {
@@ -237,12 +245,14 @@ async function queryFederatedAsListItems(
   }));
 }
 
-export async function listContent(
-  db: DB,
-  filters: ContentFilters = {},
-  options?: { includeFederated?: boolean; allowedContentTypes?: string[] },
-): Promise<{ items: ContentListItem[]; total: number }> {
-  const conditions = [isNull(contentItems.deletedAt)];
+/**
+ * Build the local `content_items` WHERE conditions for a ContentFilters set.
+ * Shared by the offset path ({@link listContent}) and the keyset path
+ * ({@link listContentKeyset}) so both filter identically — the only difference
+ * between the two is pagination (offset vs cursor), never the predicate.
+ */
+function buildContentConditions(db: DB, filters: ContentFilters): SQL[] {
+  const conditions: SQL[] = [isNull(contentItems.deletedAt)];
 
   if (filters.status) {
     conditions.push(eq(contentItems.status, filters.status));
@@ -298,6 +308,16 @@ export async function listContent(
       )`,
     );
   }
+
+  return conditions;
+}
+
+export async function listContent(
+  db: DB,
+  filters: ContentFilters = {},
+  options?: { includeFederated?: boolean; allowedContentTypes?: string[] },
+): Promise<{ items: ContentListItem[]; total: number }> {
+  const conditions = buildContentConditions(db, filters);
 
   const where = conditions.length > 0 ? and(...conditions) : undefined;
   const { limit, offset } = normalizePagination(filters);
@@ -389,6 +409,103 @@ export async function listContent(
 
   // Approximate total (exact merged count needs a federated count query).
   return { items: merged.slice(offset, offset + limit), total: total + fedItems.length };
+}
+
+/**
+ * The single total order shared by the keyset feed: publishedAt DESC NULLS LAST,
+ * then id DESC. The local SQL, the federated SQL, and this JS comparator MUST agree
+ * byte-for-byte — a mismatch is the load-more-dup class of bug (see the offset path's
+ * comments + the byte-align fix). null publishedAt sorts last (mapped to -Infinity);
+ * id breaks the tie. Returns <0 if a sorts before b (a is "newer").
+ */
+function compareFeedOrder(a: ContentListItem, b: ContentListItem): number {
+  const aDate = a.publishedAt ? new Date(a.publishedAt).getTime() : -Infinity;
+  const bDate = b.publishedAt ? new Date(b.publishedAt).getTime() : -Infinity;
+  if (aDate !== bDate) return bDate - aDate; // newer (larger) first
+  return a.id < b.id ? 1 : a.id > b.id ? -1 : 0; // larger id first
+}
+
+/** Build the opaque cursor that points AT a given feed item (its publishedAt + id). */
+function feedCursorFor(item: ContentListItem): string {
+  return encodeCursor(item.publishedAt, item.id);
+}
+
+/**
+ * Keyset (cursor) pagination for the chronological feed — O(limit) per page at any
+ * depth, no COUNT, no offset. The elegant target of docs/plans/pagination-scalability.md.
+ *
+ * Order is fixed to recency (publishedAt DESC NULLS LAST, id DESC): a keyset cursor
+ * requires a stable total order, and a merged local+federated feed is inherently
+ * chronological (federated content has no viewCount). Non-recency sorts (popular/
+ * featured/editorial) stay on the offset path ({@link listContent}) — they are
+ * shallow, instance-local listing views, not infinite-scroll feeds.
+ *
+ * Federated case = keyset-merge: fetch limit+1 from EACH source past the cursor in
+ * the shared order, merge the two sorted streams, take limit. The (limit+1)th merged
+ * row proves hasMore without a COUNT. This structurally removes the offset-window
+ * fragility and the O(M²) re-scan of the offset merge.
+ *
+ * @returns items + nextCursor (null when the feed is exhausted).
+ */
+export async function listContentKeyset(
+  db: DB,
+  filters: Omit<ContentFilters, 'offset' | 'sort'> & { cursor?: string | null } = {},
+  options?: { includeFederated?: boolean; allowedContentTypes?: string[] },
+): Promise<{ items: ContentListItem[]; nextCursor: string | null }> {
+  const conditions = buildContentConditions(db, filters);
+  const where = conditions.length > 0 ? and(...conditions) : undefined;
+  const limit = Math.min(filters.limit ?? 20, 100);
+  const cursor = decodeCursor(filters.cursor);
+
+  // Same gate as the offset path: author/featured/editorial/category views are
+  // local-only (federated rows have no local authorId/flags), so no merge needed.
+  const willFederate = !!options?.includeFederated
+    && !filters.authorId && !filters.featured && !filters.editorial && !filters.categoryId;
+
+  // Local slice: limit+1 rows past the cursor in the shared order. The +1 row is the
+  // hasMore probe and (in the federated case) headroom for the merge.
+  const localWhere = cursor
+    ? and(where, keysetWhere(contentItems.publishedAt, contentItems.id, cursor))
+    : where;
+  const localRows = await db
+    .select({
+      content: contentItems,
+      author: USER_REF_SELECT,
+      category: {
+        name: contentCategories.name,
+        slug: contentCategories.slug,
+        color: contentCategories.color,
+        icon: contentCategories.icon,
+      },
+    })
+    .from(contentItems)
+    .innerJoin(users, eq(contentItems.authorId, users.id))
+    .leftJoin(contentCategories, eq(contentItems.categoryId, contentCategories.id))
+    .where(localWhere)
+    .orderBy(sql`${contentItems.publishedAt} DESC NULLS LAST`, desc(contentItems.id))
+    .limit(limit + 1);
+
+  const localItems: ContentListItem[] = localRows.map((row) => ({
+    ...mapToListItem(row.content, row.author, row.category),
+    source: 'local' as const,
+  }));
+
+  let pool: ContentListItem[];
+  if (willFederate) {
+    // Federated slice: limit+1 past the SAME cursor in the SAME order.
+    const fedItems = await queryFederatedAsListItems(db, filters, limit + 1, options?.allowedContentTypes, cursor);
+    // Merge the two already-sorted streams and keep the head. Both sources are bounded
+    // at limit+1, so the merged pool is at most 2*(limit+1) — O(limit), no O(M²).
+    pool = [...localItems, ...fedItems].sort(compareFeedOrder);
+  } else {
+    pool = localItems;
+  }
+
+  // hasMore iff a (limit+1)th item exists in the head of the ordered pool.
+  const hasMore = pool.length > limit;
+  const items = pool.slice(0, limit);
+  const nextCursor = hasMore && items.length > 0 ? feedCursorFor(items[items.length - 1]!) : null;
+  return { items, nextCursor };
 }
 
 export async function getContentBySlug(

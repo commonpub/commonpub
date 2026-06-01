@@ -1,5 +1,6 @@
 export {
   listContent,
+  listContentKeyset,
   getContentBySlug,
   createContent,
   updateContent,
