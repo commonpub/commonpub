@@ -267,11 +267,22 @@ describe('listContentKeyset — robustness / edge inputs', () => {
     await closeTestDB(db);
   });
 
-  it('a malformed cursor falls back to the first page (never throws)', async () => {
+  it('a malformed or hostile cursor falls back to the first page (never 500s)', async () => {
     const first = await listContentKeyset(db, { type: 'blog', status: 'published', limit: 3 });
-    for (const bad of ['', 'not-base64!!', 'YWJj', Buffer.from('{"v":1}', 'utf8').toString('base64url')]) {
-      const res = await listContentKeyset(db, { type: 'blog', status: 'published', cursor: bad, limit: 3 });
-      expect(res.items.map((i) => i.id), `cursor=${JSON.stringify(bad)}`).toEqual(first.items.map((i) => i.id));
+    const enc = (o: unknown) => Buffer.from(JSON.stringify(o), 'utf8').toString('base64url');
+    const bad = [
+      '', 'not-base64!!', 'YWJj', enc({ v: 1 }),
+      // The exact payloads that 500'd production before the decodeCursor/asDateUuidCursor
+      // hardening: bad date string, non-uuid id, numeric out-of-range v, numeric id.
+      enc({ v: 'garbage', id: '00000000-0000-0000-0000-000000000000' }),
+      enc({ v: '2026-01-01T00:00:00.000Z', id: 'not-a-uuid' }),
+      enc({ v: 1e21, id: '00000000-0000-0000-0000-000000000000' }),
+      enc({ v: null, id: 7 }),
+    ];
+    for (const c of bad) {
+      // Must not throw, and must return the first page (cursor ignored).
+      const res = await listContentKeyset(db, { type: 'blog', status: 'published', cursor: c, limit: 3 });
+      expect(res.items.map((i) => i.id), `cursor=${c}`).toEqual(first.items.map((i) => i.id));
     }
   });
 
@@ -281,12 +292,16 @@ describe('listContentKeyset — robustness / edge inputs', () => {
     expect(res.nextCursor).toBeNull();
   });
 
-  it('limit is clamped: 0/negative/oversize never error and return a sane page', async () => {
-    for (const limit of [0, -5, 1000]) {
+  it('limit is clamped to [1,100]: 0/negative/oversize never error', async () => {
+    // limit 0 and -5 floor to 1 (the documented floor — not the old `|| 20` fallthrough).
+    for (const limit of [0, -5]) {
       const res = await listContentKeyset(db, { type: 'blog', status: 'published', limit });
-      expect(res.items.length, `limit=${limit} returns items`).toBeGreaterThan(0);
-      expect(res.items.length, `limit=${limit} bounded`).toBeLessThanOrEqual(100);
+      expect(res.items.length, `limit=${limit} floors to 1`).toBe(1);
     }
+    // oversize caps at 100 (we only have a handful seeded, so just assert <=100 + non-empty)
+    const big = await listContentKeyset(db, { type: 'blog', status: 'published', limit: 1000 });
+    expect(big.items.length).toBeGreaterThan(0);
+    expect(big.items.length).toBeLessThanOrEqual(100);
   });
 
   it('re-feeding nextCursor as cursor advances strictly (no self-overlap)', async () => {
@@ -295,5 +310,59 @@ describe('listContentKeyset — robustness / edge inputs', () => {
     const p2 = await listContentKeyset(db, { type: 'blog', status: 'published', cursor: p1.nextCursor, limit: 2 });
     const p1ids = new Set(p1.items.map((i) => i.id));
     expect(p2.items.filter((i) => p1ids.has(i.id))).toEqual([]);
+  });
+});
+
+// Regression: a feed filtered by a predicate the FEDERATED query can't honour
+// (followedBy / difficulty / tag / non-published status) must NOT merge in federated
+// content — else the federated stream leaks past the filter (e.g. a "following" feed
+// showing remote posts from accounts the user never followed).
+describe('listContentKeyset — federation suppressed for local-only filters', () => {
+  let db: DB;
+  let userId: string;
+
+  beforeAll(async () => {
+    db = await createTestDB();
+    const user = await createTestUser(db, { username: 'ksleak', email: 'ksleak@test.dev' });
+    userId = user.id;
+    // One local published blog + one federated blog (same time window).
+    await db.insert(contentItems).values({
+      authorId: userId, type: 'blog', title: 'Local', slug: 'leak-local',
+      status: 'published', publishedAt: new Date('2026-04-01T00:00:00.000Z'),
+    });
+    await db.insert(federatedContent).values({
+      objectUri: 'https://r.test/leak/1', actorUri: 'https://r.test/u/stranger', originDomain: 'r.test',
+      apType: 'Article', cpubType: 'blog', title: 'StrangerFed',
+      publishedAt: new Date('2026-04-02T00:00:00.000Z'),
+    });
+  });
+
+  afterAll(async () => {
+    await closeTestDB(db);
+  });
+
+  it('includeFederated WITHOUT a local-only filter DOES merge federated (control)', async () => {
+    const res = await listContentKeyset(db, { type: 'blog', status: 'published', limit: 50 }, { includeFederated: true });
+    expect(res.items.some((i) => i.source === 'federated')).toBe(true);
+  });
+
+  it('a followedBy feed does NOT merge federated content (no leak)', async () => {
+    const res = await listContentKeyset(
+      db,
+      { type: 'blog', status: 'published', followedBy: userId, limit: 50 },
+      { includeFederated: true },
+    );
+    expect(res.items.every((i) => i.source !== 'federated'), 'no federated rows in a following feed').toBe(true);
+  });
+
+  it('a difficulty/tag/archived feed does NOT merge federated content', async () => {
+    for (const f of [
+      { difficulty: 'beginner' as const },
+      { tag: 'anything' },
+      { status: 'archived' as const },
+    ]) {
+      const res = await listContentKeyset(db, { type: 'blog', limit: 50, ...f }, { includeFederated: true });
+      expect(res.items.some((i) => i.source === 'federated'), `filter=${JSON.stringify(f)} must not merge federated`).toBe(false);
+    }
   });
 });

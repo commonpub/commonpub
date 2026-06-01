@@ -3,7 +3,12 @@ import { and, desc, eq, isNull, sql } from 'drizzle-orm';
 import { contentItems } from '@commonpub/schema';
 import type { DB } from '../types.js';
 import { createTestDB, createTestUser, closeTestDB } from './helpers/testdb.js';
-import { encodeCursor, decodeCursor, keysetWhere, type KeysetCursor } from '../query.js';
+import { encodeCursor, decodeCursor, asDateUuidCursor, keysetWhere, type KeysetCursor } from '../query.js';
+
+/** base64url-encode an arbitrary cursor payload (to forge malformed cursors). */
+function forge(payload: unknown): string {
+  return Buffer.from(JSON.stringify(payload), 'utf8').toString('base64url');
+}
 
 describe('keyset cursor encode/decode (pure)', () => {
   it('round-trips a Date sort value (carried as ISO string)', () => {
@@ -24,7 +29,7 @@ describe('keyset cursor encode/decode (pure)', () => {
     expect(c).not.toMatch(/[+/=]/);
   });
 
-  it('returns null for every malformed cursor (caller falls back to first page)', () => {
+  it('returns null for every structurally-malformed cursor (caller falls back to first page)', () => {
     expect(decodeCursor(undefined)).toBeNull();
     expect(decodeCursor(null)).toBeNull();
     expect(decodeCursor('')).toBeNull();
@@ -32,9 +37,38 @@ describe('keyset cursor encode/decode (pure)', () => {
     // valid base64url but not JSON
     expect(decodeCursor(Buffer.from('hello', 'utf8').toString('base64url'))).toBeNull();
     // valid JSON, wrong shape (no id)
-    expect(decodeCursor(Buffer.from(JSON.stringify({ v: 1 }), 'utf8').toString('base64url'))).toBeNull();
+    expect(decodeCursor(forge({ v: 1 }))).toBeNull();
     // valid JSON, wrong shape (no v)
-    expect(decodeCursor(Buffer.from(JSON.stringify({ id: 'x' }), 'utf8').toString('base64url'))).toBeNull();
+    expect(decodeCursor(forge({ id: 'x' }))).toBeNull();
+  });
+
+  it('rejects SEMANTICALLY-invalid cursors that would otherwise reach SQL and 500', () => {
+    // String v that isn't a parseable date (encodeCursor only emits ISO strings) →
+    // would hit `new Date("garbage").toISOString()` RangeError in keysetWhere.
+    expect(decodeCursor(forge({ v: 'garbage', id: '00000000-0000-0000-0000-000000000000' }))).toBeNull();
+    expect(decodeCursor(forge({ v: 'not-a-date', id: 'abc' }))).toBeNull();
+    // Non-finite numeric v (NaN serialises to null, but ±Infinity → null too via JSON;
+    // guard anyway against a number that's out of Date range when used as a date sort).
+    expect(decodeCursor(forge({ v: 'Infinity', id: 'x' }))).toBeNull();
+    // empty-string id
+    expect(decodeCursor(forge({ v: null, id: '' }))).toBeNull();
+    // A VALID date string + numeric id still decodes (shape OK) — domain check is the caller's:
+    expect(decodeCursor(forge({ v: '2026-01-01T00:00:00.000Z', id: 7 }))).toEqual({ v: '2026-01-01T00:00:00.000Z', id: 7 });
+  });
+
+  it('asDateUuidCursor narrows to date-or-null v + uuid id (the content feed shape)', () => {
+    const uuid = '12345678-1234-1234-1234-123456789abc';
+    // valid: null v + uuid
+    expect(asDateUuidCursor({ v: null, id: uuid })).toEqual({ v: null, id: uuid });
+    // valid: date-string v + uuid
+    expect(asDateUuidCursor({ v: '2026-01-01T00:00:00.000Z', id: uuid })).toEqual({ v: '2026-01-01T00:00:00.000Z', id: uuid });
+    // reject: numeric v (would bind a number against a timestamp column → 500)
+    expect(asDateUuidCursor({ v: 42, id: uuid })).toBeNull();
+    // reject: non-uuid id (would bind against a uuid column → 500)
+    expect(asDateUuidCursor({ v: null, id: 'not-a-uuid' })).toBeNull();
+    expect(asDateUuidCursor({ v: null, id: 7 })).toBeNull();
+    // null cursor passes through
+    expect(asDateUuidCursor(null)).toBeNull();
   });
 });
 

@@ -13,7 +13,7 @@ import type {
 } from '../types.js';
 import type { CreateContentInput, UpdateContentInput } from '@commonpub/schema';
 import { generateSlug } from '../utils.js';
-import { ensureUniqueSlugFor, USER_REF_SELECT, USER_REF_WITH_HEADLINE_SELECT, normalizePagination, countRows, escapeLike, buildContentPath, decodeCursor, encodeCursor, keysetWhere, type KeysetCursor } from '../query.js';
+import { ensureUniqueSlugFor, USER_REF_SELECT, USER_REF_WITH_HEADLINE_SELECT, normalizePagination, countRows, escapeLike, buildContentPath, decodeCursor, asDateUuidCursor, encodeCursor, keysetWhere, type KeysetCursor } from '../query.js';
 import { federateContent, federateUpdate, federateDelete } from '../federation/federation.js';
 import { createNotification } from '../notification/notification.js';
 
@@ -246,6 +246,36 @@ async function queryFederatedAsListItems(
 }
 
 /**
+ * Whether federated content may be merged into a feed for these filters.
+ *
+ * Federated rows live in `federated_content` and `queryFederatedAsListItems` only
+ * honours a SUBSET of the filters (type, search, isHidden, deletedAt, allowedContentTypes,
+ * cursor). Any filter it CANNOT apply must suppress the merge entirely — otherwise the
+ * federated stream leaks past that filter. Concretely:
+ *  - `authorId` / `followedBy` — federated rows have no local author/follow relationship,
+ *    so an author or "following" feed would merge in unrelated remote content.
+ *  - `featured` / `editorial` / `categoryId` / `difficulty` / `tag` — local-only columns
+ *    the federated query ignores.
+ * `type` and `search` ARE applied by the federated query, so they don't suppress.
+ * `status`/`visibility` aren't gated here: federated content is always published+public,
+ * and the caller restricts non-owner status to published (resolveContentQuery) — but a
+ * privileged `status:'archived'` local view shouldn't pull federated published rows, so
+ * we suppress on any non-'published' status too.
+ *
+ * Used by BOTH listContent (offset) and listContentKeyset so the two can't drift.
+ */
+function canMergeFederated(filters: ContentFilters): boolean {
+  return !filters.authorId
+    && !filters.followedBy
+    && !filters.featured
+    && !filters.editorial
+    && !filters.categoryId
+    && !filters.difficulty
+    && !filters.tag
+    && (!filters.status || filters.status === 'published');
+}
+
+/**
  * Build the local `content_items` WHERE conditions for a ContentFilters set.
  * Shared by the offset path ({@link listContent}) and the keyset path
  * ({@link listContentKeyset}) so both filter identically — the only difference
@@ -326,8 +356,7 @@ export async function listContent(
   // as a whole: fetch the first (offset+limit) of EACH source, merge+sort, then
   // slice [offset, offset+limit). Fetching only the local page + federated-from-0
   // (the old bug) re-showed the same early federated items on every "load more".
-  const willFederate = !!options?.includeFederated
-    && !filters.authorId && !filters.featured && !filters.editorial && !filters.categoryId;
+  const willFederate = !!options?.includeFederated && canMergeFederated(filters);
   const localLimit = willFederate ? offset + limit : limit;
   const localOffset = willFederate ? 0 : offset;
 
@@ -455,15 +484,21 @@ export async function listContentKeyset(
   const conditions = buildContentConditions(db, filters);
   const where = conditions.length > 0 ? and(...conditions) : undefined;
   // Clamp to [1, 100]. A 0/negative limit would make `.limit(limit + 1)` <= 0; Postgres
-  // rejects a negative LIMIT (→ 500), and limit 0 is a nonsense feed page. Mirrors the
-  // offset path's normalizePagination floor (Math.max(...)), which this must not lose.
-  const limit = Math.min(Math.max(Math.trunc(filters.limit ?? 20) || 20, 1), 100);
-  const cursor = decodeCursor(filters.cursor);
+  // rejects a negative LIMIT (→ 500), and limit 0 is a nonsense feed page. `?? 20` only
+  // covers undefined; an explicit 0/NaN/<1 is floored to 1 by Math.max (Number.isFinite
+  // guards NaN, which Math.max would otherwise propagate).
+  const rawLimit = Math.trunc(filters.limit ?? 20);
+  const limit = Math.min(Math.max(Number.isFinite(rawLimit) ? rawLimit : 20, 1), 100);
+  // Decode + DOMAIN-validate the cursor: the feed is date-keyed with a uuid id, so reject
+  // any cursor whose v isn't a date/null or whose id isn't a uuid. Without this a crafted
+  // `?cursor=` (bad date, numeric v, non-uuid id) reaches the SQL bind and throws → 500
+  // (an unauthenticated DoS). Invalid → null → first page (decodeCursor's contract).
+  const cursor = asDateUuidCursor(decodeCursor(filters.cursor));
 
-  // Same gate as the offset path: author/featured/editorial/category views are
-  // local-only (federated rows have no local authorId/flags), so no merge needed.
-  const willFederate = !!options?.includeFederated
-    && !filters.authorId && !filters.featured && !filters.editorial && !filters.categoryId;
+  // Same gate as the offset path (shared helper so the two can't drift): suppress the
+  // federated merge for any filter the federated query can't honour (author/following/
+  // featured/editorial/category/difficulty/tag/non-published status).
+  const willFederate = !!options?.includeFederated && canMergeFederated(filters);
 
   // Local slice: limit+1 rows past the cursor in the shared order. The +1 row is the
   // hasMore probe and (in the federated case) headroom for the merge.

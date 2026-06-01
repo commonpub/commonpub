@@ -184,19 +184,65 @@ export function encodeCursor(value: Date | string | number | null, id: string | 
   return Buffer.from(JSON.stringify({ v, id }), 'utf8').toString('base64url');
 }
 
-/** Decode a keyset cursor. Returns null on ANY malformed input (caller falls back to page 1). */
+/**
+ * Decode a keyset cursor. Returns null on ANY malformed input — including
+ * semantically-invalid (not just structurally-invalid) values — so a hostile or
+ * stale cursor safely falls back to page 1 rather than reaching SQL.
+ *
+ * Validation enforces {@link encodeCursor}'s output contract:
+ *  - a STRING `v` is only ever an ISO date (that's all encodeCursor emits as a string),
+ *    so a string that doesn't parse to a finite Date is rejected. (Without this, a
+ *    crafted `{"v":"garbage"}` reaches `new Date(...).toISOString()` in keysetWhere and
+ *    throws a RangeError → unhandled 500 — a trivial unauthenticated DoS.)
+ *  - a NUMBER `v` must be finite (no NaN/±Infinity).
+ *  - `id` must be a non-empty string or a finite number.
+ * The CALLER additionally validates the cursor matches its column types (e.g. the
+ * content feed requires a date-or-null `v` and a uuid `id` — see listContentKeyset).
+ */
 export function decodeCursor(cursor: string | null | undefined): KeysetCursor | null {
   if (!cursor) return null;
   try {
     const parsed: unknown = JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8'));
     if (typeof parsed !== 'object' || parsed === null) return null;
     const { v, id } = parsed as Record<string, unknown>;
-    if (typeof id !== 'string' && typeof id !== 'number') return null;
-    if (v !== null && typeof v !== 'string' && typeof v !== 'number') return null;
-    return { v, id };
+    if (typeof id === 'string') {
+      if (id.length === 0) return null;
+    } else if (typeof id !== 'number' || !Number.isFinite(id)) {
+      return null;
+    }
+    if (v === null) {
+      return { v, id };
+    }
+    if (typeof v === 'string') {
+      // String v is an ISO date (encodeCursor's only string output) — must be parseable.
+      if (!Number.isFinite(new Date(v).getTime())) return null;
+      return { v, id };
+    }
+    if (typeof v === 'number' && Number.isFinite(v)) {
+      return { v, id };
+    }
+    return null;
   } catch {
     return null;
   }
+}
+
+/** RFC-4122 uuid (any version), case-insensitive. */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Narrow a decoded cursor to a DATE-keyed, UUID-id feed (the content feed's shape:
+ * `publishedAt` timestamp + `id` uuid). Returns the cursor only if `v` is null or an
+ * ISO-date string AND `id` is a uuid — otherwise null (page-1 fallback). A numeric `v`
+ * (bound against a timestamp column) or a non-uuid `id` (bound against a uuid column)
+ * would otherwise error at the SQL layer → 500. Use this at the boundary of any
+ * date+uuid keyset query that decodes an untrusted cursor.
+ */
+export function asDateUuidCursor(cursor: KeysetCursor | null): KeysetCursor | null {
+  if (!cursor) return null;
+  if (cursor.v !== null && typeof cursor.v !== 'string') return null;
+  if (typeof cursor.id !== 'string' || !UUID_RE.test(cursor.id)) return null;
+  return cursor;
 }
 
 /**
