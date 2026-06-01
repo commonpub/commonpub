@@ -8,37 +8,35 @@ config 0.16.0, schema 0.24.0, auth 0.7.0. Migrations at 0011 (count 12).
 ---
 
 ## PRIMARY — keyset (cursor) pagination for feeds  [task #29]
-**Design is locked:** `docs/plans/pagination-scalability.md` (read it first). Goal: replace
-the OFFSET + in-app-federated-merge + per-request `COUNT(*)` feed pagination with the proper
-scalable pattern. No cruft: keyset for INFINITE-SCROLL feeds; offset stays for numbered/admin
-tables (fit-for-purpose).
+**Design is locked:** `docs/plans/pagination-scalability.md`. **Server core (Steps 1–3) is
+DONE + green as of session 179** — see `docs/sessions/179-keyset-pagination-server.md`.
+Only the client cutover (Step 4, below) remains, and it SHIPS.
 
-Build order (server core is fully testable in isolation with the PGlite integration DB — do
-that + prove it green BEFORE any client/deploy cutover):
-1. Shared helper in `packages/server/src/query.ts`: `encodeCursor`/`decodeCursor` (opaque
-   base64url of `{v, id}`) + `keysetWhere(sortCol, idCol, cursor)` → `(sortCol,id) < (v,id)`
-   with `NULLS LAST` semantics. Reusable like `normalizePagination`.
-2. **Composite indexes** (schema migration 0012, partial `WHERE status='published'`):
-   `(published_at DESC, id DESC)` and `(view_count DESC, id DESC)`. `popular` currently
-   FULL-SCANS (no view_count index). Verify with `EXPLAIN ANALYZE` on seeded data (memory:
-   indexes only used if the WHERE/ORDER BY matches).
-3. `listContent` → keyset. Federated case = **keyset-merge**: fetch `limit+1` from each source
-   `WHERE (publishedAt,id) < cursor`, merge the two sorted streams, take `limit`, emit
-   nextCursor = last item's `(publishedAt,id)`. This structurally removes the offset-window
-   fragility (the whole 5-release saga) + the O(M²). `hasMore` via the `n+1`th row — drop the
-   per-request COUNT (feed clients already use `items.length < limit`, never `.total`).
-4. Endpoint `layers/base/server/api/content/index.get.ts`: accept `?cursor=` + `limit`, return
-   `{ items, nextCursor }`. Keep `total` ONLY where a non-feed UI needs it (search/listing
-   first page) — feeds don't.
-5. Clients: `loadMore` in `ContentGridSection.vue`, base `pages/index.vue`, deveco `index.vue`
-   (+ feed.vue/search if doing infinite-scroll there) → store + send `nextCursor`. ~8 funcs
-   across the 3 repos. Mechanical but coordinate the release.
-The shipped `id` tiebreaker IS the cursor's total-order prerequisite — nothing's wasted.
+DONE (committed `0353f6c`, `37ccaf0`, `7f491b7`; full server suite 1185 pass, 0 regressions):
+1. ✅ `query.ts`: `encodeCursor`/`decodeCursor`/`keysetWhere` (opaque base64url, NULLS-LAST).
+2. ✅ Composite partial indexes, **migration 0012** (count now 13). EXPLAIN-verified the
+   planner uses them. NOTE: index spells `id DESC NULLS FIRST` / `view_count DESC NULLS
+   FIRST` — NULLS placement is matched syntactically (`ORDER BY id DESC` = NULLS FIRST),
+   so `NULLS LAST` there makes Postgres silently ignore the index. Also `pushSchema` skips
+   partial indexes, so the index test creates the DDL itself.
+3. ✅ `listContentKeyset(db, {...filters, cursor}, options) → { items, nextCursor }` —
+   keyset-merge, `limit+1` hasMore probe, no COUNT, additive (offset `listContent`
+   untouched). popular/featured/editorial stay on the offset path.
 
-## DEFERRED RELEASE (do early — fold into the keyset release or first)
-- Publish the commonpub-WORKSPACE alignment fix (commit 2d99c74) as **server 2.71.0 / layer
-  0.43.0** + bump deveco/heatsync pins, so they get the byte-aligned federated-merge ordering
-  before they accrue federated content. (Not urgent — no federated data there today.)
+### Step 4 (DO THIS — the client cutover, ships)
+4. Endpoint `layers/base/server/api/content/index.get.ts`: accept `?cursor=` + `limit`,
+   call `listContentKeyset`, return `{ items, nextCursor }`. Keep `page`/`offset` →
+   `listContent` working (dual-read) so old clients don't break.
+5. Clients: `loadMore` in `ContentGridSection.vue`, base `pages/index.vue`, deveco
+   `index.vue` (+ feed.vue/search if infinite-scroll there) → store + send `nextCursor`.
+   ~8 funcs across the 3 repos. Mechanical but coordinate the release.
+6. Release **server 2.71.0 / layer 0.43.0** (folds in the byte-align fix below) + bump
+   deveco/heatsync pins. Verify OVERLAP=0 on the LIVE API (session-178 method).
+
+## DEFERRED RELEASE (fold into the Step 4 / 2.71.0 release)
+- The commonpub-WORKSPACE byte-align fix (commit 2d99c74) ships with 2.71.0 / layer 0.43.0
+  so deveco + heatsync get the byte-aligned federated-merge ordering. (Not urgent — no
+  federated data there today — but no reason to hold it once 2.71.0 cuts.)
 
 ---
 
