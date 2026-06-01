@@ -10,7 +10,7 @@ import {
   unique,
   index,
 } from 'drizzle-orm/pg-core';
-import { relations } from 'drizzle-orm';
+import { relations, sql } from 'drizzle-orm';
 import { users } from './auth.js';
 import { contentStatusEnum, contentTypeEnum, difficultyEnum, contentVisibilityEnum } from './enums.js';
 
@@ -103,6 +103,21 @@ export const contentItems = pgTable('content_items', {
   index('idx_content_items_published_at').on(t.publishedAt),
   index('idx_content_items_is_editorial').on(t.isEditorial),
   index('idx_content_items_category_id').on(t.categoryId),
+  // Composite feed indexes — back the keyset/ORDER BY directly so a feed page is an
+  // index range scan, not a full scan + top-N sort. Ordering MUST match the feed's
+  // ORDER BY exactly (publishedAt DESC NULLS LAST, id DESC) or Postgres won't use it.
+  // Partial on the always-true feed predicate (published + not soft-deleted) keeps
+  // the indexes small and only over rows the feed can return.
+  // id is NOT NULL so its null-placement is semantically irrelevant, but the planner
+  // matches NULLS placement SYNTACTICALLY: `ORDER BY id DESC` is `id DESC NULLS FIRST`
+  // (Postgres' DESC default), so the index must spell `id DESC NULLS FIRST` too or it's
+  // deemed inapplicable and the query falls back to a Sort. viewCount is also NOT NULL.
+  index('idx_content_items_feed_recency')
+    .on(t.publishedAt.desc().nullsLast(), t.id.desc().nullsFirst())
+    .where(sql`${t.status} = 'published' AND ${t.deletedAt} IS NULL`),
+  index('idx_content_items_feed_popular')
+    .on(t.viewCount.desc().nullsFirst(), t.id.desc().nullsFirst())
+    .where(sql`${t.status} = 'published' AND ${t.deletedAt} IS NULL`),
 ]);
 
 export const contentVersions = pgTable('content_versions', {

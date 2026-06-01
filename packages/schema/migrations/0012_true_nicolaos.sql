@@ -1,0 +1,2 @@
+CREATE INDEX "idx_content_items_feed_recency" ON "content_items" USING btree ("published_at" DESC NULLS LAST,"id" DESC NULLS FIRST) WHERE "content_items"."status" = 'published' AND "content_items"."deleted_at" IS NULL;--> statement-breakpoint
+CREATE INDEX "idx_content_items_feed_popular" ON "content_items" USING btree ("view_count" DESC NULLS FIRST,"id" DESC NULLS FIRST) WHERE "content_items"."status" = 'published' AND "content_items"."deleted_at" IS NULL;
