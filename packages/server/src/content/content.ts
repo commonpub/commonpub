@@ -313,13 +313,21 @@ export async function listContent(
   // page-1 and page-2 queries, so LIMIT/OFFSET pages OVERLAP and "load more"
   // re-shows rows (the homepage dup bug). createdAt is a near-unique secondary;
   // id is the absolute tiebreaker.
-  const orderBy = filters.sort === 'popular'
-    ? [desc(contentItems.viewCount), desc(contentItems.createdAt), desc(contentItems.id)]
-    : filters.sort === 'featured'
-      ? [desc(contentItems.isFeatured), desc(contentItems.createdAt), desc(contentItems.id)]
-      : filters.sort === 'editorial'
-        ? [desc(contentItems.isEditorial), desc(contentItems.publishedAt), desc(contentItems.id)]
-        : [desc(contentItems.publishedAt), desc(contentItems.createdAt), desc(contentItems.id)];
+  const recencyOrder = [desc(contentItems.publishedAt), desc(contentItems.createdAt), desc(contentItems.id)];
+  // When merging with federated content the feed is CHRONOLOGICAL: the merge
+  // sorts by publishedAt, and federated content has no viewCount/isFeatured to
+  // rank by — so the local slice must order by the SAME key (recency), or a
+  // popular-sorted local slice feeding a publishedAt-sorted merge yields
+  // inconsistent page windows → load-more dups. Local-only keeps the requested sort.
+  const orderBy = willFederate
+    ? recencyOrder
+    : filters.sort === 'popular'
+      ? [desc(contentItems.viewCount), desc(contentItems.createdAt), desc(contentItems.id)]
+      : filters.sort === 'featured'
+        ? [desc(contentItems.isFeatured), desc(contentItems.createdAt), desc(contentItems.id)]
+        : filters.sort === 'editorial'
+          ? [desc(contentItems.isEditorial), desc(contentItems.publishedAt), desc(contentItems.id)]
+          : recencyOrder;
 
   const [rows, total] = await Promise.all([
     db

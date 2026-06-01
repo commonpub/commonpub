@@ -262,6 +262,43 @@ describe('content integration', () => {
     expect(overlap).toEqual([]);
   });
 
+  // Regression (deveco load-more dup): with includeFederated on, the merge sorts
+  // by publishedAt. If sort:'popular' lets the LOCAL slice order by viewCount, the
+  // viewCount-ordered local set feeds a publishedAt-ordered merge → mismatched
+  // keys → inconsistent page windows → dups. The merged feed must be chronological.
+  it('paginates sort:popular + includeFederated without duplicates (forced recency)', async () => {
+    const made: string[] = [];
+    for (let i = 0; i < 6; i++) {
+      const c = await createContent(db, userId, {
+        type: 'blog',
+        title: `Fed Popular ${i}`,
+        description: `fp ${i}`,
+      });
+      await publishContent(db, c.id, userId);
+      made.push(c.id);
+    }
+    // Bump viewCounts so viewCount-order diverges from publishedAt-order — this is
+    // what exposes the key mismatch when the local slice isn't forced to recency.
+    for (let i = 0; i < made.length; i++) {
+      for (let v = 0; v < i; v++) await incrementViewCount(db, made[i]!);
+    }
+
+    const seen = new Set<string>();
+    let dupes = 0;
+    for (let offset = 0; offset < 6; offset += 2) {
+      const page = await listContent(
+        db,
+        { type: 'blog', status: 'published', sort: 'popular', limit: 2, offset },
+        { includeFederated: true },
+      );
+      for (const item of page.items) {
+        if (seen.has(item.id)) dupes++;
+        seen.add(item.id);
+      }
+    }
+    expect(dupes).toBe(0);
+  });
+
   // Regression (homepage "For You" load-more dup): sort:'popular' orders by
   // viewCount, which is 0 (tied) for most content. Without a unique tiebreaker
   // the tied rows come back in an unstable order, so LIMIT/OFFSET pages overlap.
