@@ -1,5 +1,13 @@
 # CommonPub Codebase Analysis
 
+> ⚠️ **Version/count tables below drift every session — for LIVE ground truth (current
+> published versions, migration count, the feed-pagination + chrome-token systems) read
+> `docs/llm/facts.md` and `docs/llm/gotchas.md` FIRST, and `npm view @commonpub/<pkg>
+> version` for exact versions.** As of 2026-06-01 (session 180): schema 0.25.0, server
+> 2.71.0, layer 0.43.2, ui 0.9.2, config 0.16.0, auth 0.7.0; **13 migrations (0000–0012)**;
+> keyset feed pagination + chrome tokenization shipped (sessions 178–180). The structural
+> file contents below are still broadly accurate; the headline numbers are not.
+
 > **Freshness as of session 169 (2026-05-30).** Each file is dated
 > individually below. **Brought current in session 169** (layout-engine sweep):
 > `02` (layout tables), `03` (layout server module), `04` (layout routes, ~300 total),
@@ -65,10 +73,10 @@ Not to be confused with the stale `/Users/obsidian/Projects/commonpub/` director
 | Composables | 20+ |
 | Feature flags | 17 top-level + 5 nested `identity.*` sub-flags |
 | Themes | 5 (base, dark, generics, agora, agora-dark) |
-| Migrations | 5 (0000_session128_baseline → 0004_federated_oauth_tokens) |
+| Migrations | 13 (0000_session128_baseline → 0012 composite feed indexes) |
 | Production instances | 3 (commonpub.io, deveco.io, heatsynclabs.io — all auto-deploy from main) |
 | Tests | ~3,200 (session 150: protocol 419, infra 305, server 967, layer 85, scaffolder cargo 27, others) |
-| Latest versions | schema 0.16.0, server 2.55.0, config 0.13.0, layer 0.21.15, protocol 0.12.0, infra 0.8.0, ui 0.8.5, editor 0.7.10, explainer 0.7.15, learning 0.5.2, docs 0.6.3, auth 0.6.0, test-utils 0.5.6 |
+| Latest versions | schema 0.25.0, server 2.71.0, config 0.16.0, layer 0.43.2, ui 0.9.2, auth 0.7.0, protocol 0.12.0, infra 0.8.0, editor 0.7.11, explainer 0.7.15, learning 0.5.2, docs 0.6.3, test-utils 0.5.6 (verify with `npm view`) |
 
 ## Files
 

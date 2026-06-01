@@ -1,5 +1,15 @@
 # Plan — Card-sizing fix + deveco visual parity via config-driven chrome
 
+> **STATUS (2026-06-01):** **Part A (card sizing) SHIPPED** (layer 0.40.0, tokenized
+> `--cpub-card-min`/`--cpub-card-gap`, all instances). **Parts B–D (drop deveco's custom
+> layout/homepage, config-driven banner/footer components, registered theme) NOT done —
+> the user opted to KEEP deveco's custom page.** Instead (session 180): deveco's custom
+> nav was made config-driven (respects `/admin/navigation` via `<NavRenderer>`), and the
+> BASE layout chrome (topbar/nav/footer) was TOKENIZED (`--cpub-topbar-*`/`--cpub-nav-link-*`/
+> `--cpub-footer-*` in `packages/ui/theme/base.css`, ui 0.9.2 / layer 0.43.2) so any theme
+> can restyle chrome without forking. The full parity cutover path (if ever wanted) is in
+> `docs/plans/deveco-registered-theme-parity.md`. See `docs/sessions/180-*`.
+
 **Goal (two intertwined asks):**
 1. **Fix base content-card sizing** — base cards render "massive"; align to deveco.io's
    sizing, sourced from **theme tokens**, applied **everywhere cards are listed**, shipped

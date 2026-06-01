@@ -1,5 +1,12 @@
 # Pagination scalability audit + elegant target
 
+> **STATUS (2026-06-01, sessions 178–179): SHIPPED through step C/4.** Keyset cursor
+> helpers (`query.ts`), composite indexes (migration 0012), `listContentKeyset` +
+> `GET /api/content/feed`, and the `useContentFeed` client cutover are all LIVE on all 3
+> instances (schema 0.25.0 / server 2.71.0 / layer 0.43.2; OVERLAP=0 verified live).
+> Only **step D** (unified `feed_items` timeline table) remains — long-term/optional,
+> only if federated volume grows large. See `docs/sessions/179-keyset-pagination-server.md`.
+
 **Question (from the user):** is the feed pagination "the most efficient and elegant way…
 we don't want to be a bottleneck at thousands of users"?
 

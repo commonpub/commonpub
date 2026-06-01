@@ -23,29 +23,29 @@ codebase-analysis/       raw inventory (generated — trust over older docs)
 12 packages on npm as `@commonpub/*`:
 schema, server, config, protocol, auth, ui, editor, explainer, learning, docs, infra, test-utils.
 
-## Latest published versions (session 160, 2026-05-28)
+## Latest published versions (session 180, 2026-06-01)
 
-- schema 0.17.0, server 2.58.0, config 0.15.0, layer 0.24.0
-- ui 0.9.0, protocol 0.12.0, editor 0.7.11, explainer 0.7.15
-- learning 0.5.2, docs 0.6.3, auth 0.6.0, infra 0.8.0, test-utils 0.5.6
+- schema 0.25.0, server 2.71.0, config 0.16.0, layer 0.43.2
+- ui 0.9.2, protocol 0.12.0, editor 0.7.11, explainer 0.7.15
+- learning 0.5.2, docs 0.6.3, auth 0.7.0, infra 0.8.0, test-utils 0.5.6
+- (Always `npm view @commonpub/<pkg> version` before trusting this — it drifts.)
 
-**The `@commonpub/layer` workspace on `main` is UNPUBLISHED ahead of
-0.24.0** (sessions 161–169: admin sidebar collapse, Phase 3c drag/resize
-editor, PageFrame consolidation, dnd-kit provider-guard hotfix).
-commonpub.io builds from workspace source (so it runs that unpublished
-code); deveco.io + heatsynclabs.io run npm `0.24.0` (dormant — layoutEngine
-off, legacy homepage renderer). Federation flag: verify per-instance via
-`curl /api/features` (the old "true on commonpub+deveco" note drifts). All identity sub-flags
+All three instances (commonpub.io / deveco.io / heatsynclabs.io) run the latest
+published layer (0.43.2) and are LIVE + healthy. commonpub.io builds from the
+workspace `main`; deveco.io + heatsynclabs.io pin the npm layer. (The old
+"layer UNPUBLISHED ahead / deveco+heatsync dormant on 0.24.0" note is OBSOLETE.)
+deveco keeps a CUSTOM `layouts/default.vue` + `pages/index.vue` (its nav is now
+config-driven via NavRenderer — session 180); heatsync uses the BASE layout.
+Federation flag: verify per-instance via `curl /api/features`. All identity sub-flags
 (`linkRemoteAccounts`, `signInWithRemote`, `actingAs`, `remoteInteract`,
 `remotePublish`) are `false` everywhere; `CPUB_FED_TOKEN_KEY` is unset.
 Run `curl /api/features` to verify before any "dormant" claim — memory
-of past flag state drifts (see session 149's "live-active state
-correction").
+of past flag state drifts (see session 149's "live-active state correction").
 
 ## Database
 
 - PostgreSQL 16 + Drizzle.
-- **80+ tables, 41 enums.** Full list: `codebase-analysis/02-schema-inventory.md`. Layout-engine tables (`layouts`, `layout_rows`, `layout_sections`, `layout_versions`) added in migration 0005 — instance-local, never federate.
+- **80+ tables, 41 enums. 13 migrations (0000–0012).** Full list: `codebase-analysis/02-schema-inventory.md`. Layout-engine tables (`layouts`, `layout_rows`, `layout_sections`, `layout_versions`) added in migration 0005 — instance-local, never federate. Migration 0012 (session 179) adds two PARTIAL composite indexes `idx_content_items_feed_recency` `(published_at DESC NULLS LAST, id DESC)` + `idx_content_items_feed_popular` `(view_count DESC, id DESC)` over `WHERE status='published' AND deleted_at IS NULL` — they back the keyset feed. NULLS placement is matched syntactically by the planner, so the index spells `id DESC NULLS FIRST`; `pushSchema` (PGlite test harness) SKIPS partial indexes (test creates DDL itself).
 - Domains: auth, content, social, messaging, hubs, products, learning, docs, videos, contests, events, voting, federation, admin, files.
 - Soft delete on: users, contentItems, hubs, federatedContent, federatedHubPosts.
 - Denormalized counters pervasive (voteScore, entryCount, attendeeCount, memberCount, likeCount, etc.).
@@ -100,6 +100,29 @@ correction").
 admin, auth (identity), content, contest (+judges), docs, events, federation (10 files), homepage, hub (5 files), import, **layout** (CRUD for `layouts`/`layout_rows`/`layout_sections`/`layout_versions`; session 157), learning, messaging, navigation, notification, product, profile, search, social, video, voting.
 
 Plus file-level utilities: email, hooks, image, oauthCodes, query, security, storage, theme, utils.
+
+## Feed pagination (sessions 178–179, keyset)
+
+Two pagination paths coexist:
+- **Offset** — `listContent(db, filters, opts)` → `{ items, total }`. `GET /api/content`.
+  Used by numbered/admin listings, search, and the `popular`/`featured`/`editorial` sorts
+  (mutable sort keys can't be keyset-paginated). Per-request `COUNT(*)`.
+- **Keyset (cursor)** — `listContentKeyset(db, {...filters, cursor}, opts)` →
+  `{ items, nextCursor }`. `GET /api/content/feed`. The scalable infinite-scroll path:
+  recency order (`published_at DESC NULLS LAST, id DESC`), O(limit)/page, no COUNT
+  (`limit+1` row proves hasMore), backed by migration 0012's partial indexes.
+  Federated case = keyset-MERGE: fetch `limit+1` from each source past the cursor in one
+  shared total order (`compareFeedOrder`), merge, take `limit`.
+
+Cursor helpers in `packages/server/src/query.ts`: `encodeCursor`/`decodeCursor` (opaque
+base64url of `{v,id}`; `decodeCursor` returns null on bad input → falls back to page 1) +
+`keysetWhere(sortCol, idCol, cursor)` (NULLS-LAST predicate). **Load-bearing invariant:**
+the local SQL, the federated SQL, and the JS comparator must agree byte-for-byte, and
+Postgres `uuid DESC` == JS string-desc (cursor is fed back into SQL `id < :id`). Both are
+mutation-tested. Client: `useContentFeed` composable (layer) picks keyset-for-recency /
+offset-for-popular transparently; `resolveContentQuery` (layer server util) is the shared
+auth/status/visibility gate both endpoints route through. See
+`docs/plans/pagination-scalability.md` (SHIPPED through step 4).
 
 ## Feature flags
 

@@ -1,5 +1,14 @@
 # 11 — Codebase Stats
 
+> ⚠️ **STALE below session 169 — the version/migration/test tables here are NOT current.**
+> For live ground truth read `docs/llm/facts.md`. As of 2026-06-01 (session 180):
+> **schema 0.25.0, server 2.71.0, layer 0.43.2, ui 0.9.2, config 0.16.0, auth 0.7.0;
+> 13 migrations (0000–0012, 0012 = composite feed indexes); server suite ~1193 pass,
+> layer ~860, ui ~258, schema ~492.** Sessions 171–180 added: contest overhaul + RBAC
+> phase 0/1 (migrations 0009–0011), keyset feed pagination (`query.ts` cursor helpers,
+> `listContentKeyset`, `GET /api/content/feed`, `useContentFeed`, migration 0012), and
+> base-layout chrome tokenization (`--cpub-topbar-*`/`--cpub-nav-link-*`/`--cpub-footer-*`).
+
 As of session 169 (2026-05-30 — layout engine Phase 3a/3c live on commonpub.io). Sessions 159 + 160 stats are folded into the session-by-session entries below.
 Numbers are approximate — exact counts vary with test exclusions.
 
