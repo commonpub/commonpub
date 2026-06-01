@@ -8,7 +8,7 @@
  * - buildContentPath / buildContentUrl: canonical content URL construction
  */
 
-import { eq, and, ne, sql } from 'drizzle-orm';
+import { eq, and, ne, or, lt, isNull, sql } from 'drizzle-orm';
 import type { PgTable, PgColumn } from 'drizzle-orm/pg-core';
 import type { SQL } from 'drizzle-orm';
 import { users } from '@commonpub/schema';
@@ -157,6 +157,70 @@ export async function countRows(
     .from(table)
     .where(where);
   return result[0]?.count ?? 0;
+}
+
+// ---- Keyset (cursor) pagination ----
+
+/**
+ * Decoded keyset cursor: the lead sort value + the unique `id` tiebreaker.
+ * Date columns are carried as an ISO string; numeric columns as a number; the
+ * NULLS-LAST tail as `null`.
+ */
+export interface KeysetCursor {
+  v: string | number | null;
+  id: string | number;
+}
+
+/**
+ * Encode an opaque keyset cursor as base64url of `{ v, id }`.
+ *
+ * Opaque, not signed: the values already appear in the feed the client is reading,
+ * so there's nothing to hide — we only need the client to round-trip them back.
+ * `Date` values are serialised to ISO strings so {@link keysetWhere} can rebuild a
+ * `Date` for the comparison (avoids text↔timestamp cast ambiguity at the driver).
+ */
+export function encodeCursor(value: Date | string | number | null, id: string | number): string {
+  const v = value instanceof Date ? value.toISOString() : value;
+  return Buffer.from(JSON.stringify({ v, id }), 'utf8').toString('base64url');
+}
+
+/** Decode a keyset cursor. Returns null on ANY malformed input (caller falls back to page 1). */
+export function decodeCursor(cursor: string | null | undefined): KeysetCursor | null {
+  if (!cursor) return null;
+  try {
+    const parsed: unknown = JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8'));
+    if (typeof parsed !== 'object' || parsed === null) return null;
+    const { v, id } = parsed as Record<string, unknown>;
+    if (typeof id !== 'string' && typeof id !== 'number') return null;
+    if (v !== null && typeof v !== 'string' && typeof v !== 'number') return null;
+    return { v, id };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * WHERE condition selecting rows strictly AFTER `cursor` in the total order
+ * `ORDER BY sortCol DESC NULLS LAST, idCol DESC`.
+ *
+ * NULLS-LAST semantics (must match the query's ORDER BY exactly — a mismatch is the
+ * load-more-dup class of bug):
+ *  - cursor.v non-null → `sortCol < v  OR  (sortCol = v AND id < cursorId)  OR  sortCol IS NULL`
+ *  - cursor.v null     → already in the null tail → `sortCol IS NULL AND id < cursorId`
+ *
+ * Assumes string cursor values are dates (the feed sorts are publishedAt + viewCount);
+ * revisit if a text-keyed sort is ever paginated this way.
+ */
+export function keysetWhere(sortCol: PgColumn, idCol: PgColumn, cursor: KeysetCursor): SQL {
+  if (cursor.v === null) {
+    return and(isNull(sortCol), lt(idCol, cursor.id)) as SQL;
+  }
+  const val = typeof cursor.v === 'string' ? new Date(cursor.v) : cursor.v;
+  return or(
+    lt(sortCol, val),
+    and(eq(sortCol, val), lt(idCol, cursor.id)),
+    isNull(sortCol),
+  ) as SQL;
 }
 
 // ---- LIKE Escape ----
