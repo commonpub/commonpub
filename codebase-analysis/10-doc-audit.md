@@ -1,155 +1,126 @@
 # 10 — Existing Docs Audit
 
-Assessment of `docs/*.md`, `docs/adr/`, `docs/reference/`, and package READMEs
-as of session 125. Source: full read-through of every file vs current code.
+Assessment of the `docs/` tree, ADRs, and the LLM context docs.
+Regenerated session 181 (2026-06-01) against the actual tree — the prior
+version audited a `docs/reference/server/` + `docs/reference/packages/`
+layout that has since been reorganized away, so it was rebuilt from a fresh
+`find docs -name '*.md'` rather than patched.
 
-> **Status as of session 126:** the archival recommendations in this audit
-> have been applied. Files flagged STALE / archive-candidate now live under
-> `docs/archive/`. Tables below describe the state *at the time of audit*
-> for historical context; links to those files resolve under `docs/archive/`
-> now. Paths to CURRENTLY canonical docs are the fresh ones in the table.
+## How `docs/` is organized now
+
+```
+docs/
+├── *.md                 7 canonical top-level docs
+├── llm/                 LLM context pack (facts, gotchas, conventions, recipes)
+├── guides/              human guides (users, developers)
+├── reference/           index + guides/ (5 feature guides)
+├── plans/               11 active planning docs
+├── adr/                 26 ADRs (NNN-kebab.md, through 028)
+├── sessions/            149 session logs (through session 181)
+└── archive/             frozen historical docs (+ architecture/ mockups/ plans/ reference/ research/ subdirs)
+```
 
 ## Summary
 
-- `docs/sessions/` — **authoritative** for recent changes; trusted
-- `docs/reference/packages/*.md` — mostly fresh
-- `docs/reference/guides/*.md` — mixed; several pre-date session 108
-- `docs/*.md` (top level) — mostly fresh, a few stale (federation-* variants)
-- `docs/adr/` — old ones lack status/date fields; several superseded silently
-- `CHANGELOG.md` — **critically stale** (ends at v0.2.0, 2026-03-23)
-- Package/layer READMEs — all fresh
+- `docs/sessions/` — **authoritative** for recent change history (newest NNN first). Trust over everything else when they conflict.
+- `docs/llm/{facts,gotchas}.md` — the condensed current-state pack; kept current (facts.md refreshed session 180/181). Load before touching code.
+- `docs/*.md` (top level) — the 7 canonical docs; broadly fresh.
+- `docs/reference/guides/` — 5 feature guides; the newer ones (contests, layout-engine, theme-editor) are current.
+- `docs/plans/` — active planning docs; checkbox state often lags shipped reality (noted per-plan below).
+- `docs/adr/` — 26 ADRs through 028; older ones still lack status/date fields and a few are silently superseded.
+- `docs/archive/` — historical material; do not treat as current.
+- `CHANGELOG.md` — grouped by session, runs through ~session 161; behind the per-package npm versions but no longer "stuck at v0.2.0".
 
-## Quick status table
-
-### Top-level (`docs/*.md`)
+## Top-level (`docs/*.md`)
 
 | File | Status | Notes |
 |---|---|---|
-| quickstart.md | ✔ fresh | Evergreen |
-| architecture.md | ✔ fresh | Updated for URL restructure |
-| deployment.md | ✔ fresh | — |
-| contributing.md | ✔ fresh | Mirrors coding-standards.md |
-| coding-standards.md | ✔ fresh | CI-enforced |
-| federation.md | ✔ fresh | Comprehensive guide including activity delivery + hub federation (verified 2026-04-16) |
-| federation-plan.md | ✔ fresh | Phase table accurate |
-| plan-v2.md | ⚠ historical | March-15 snapshot; rename to historical or add banner |
-| plan-v3-engineering.md | ❓ unclear | Empty / unused? Verify |
-| building-with-commonpub.md | ✔ fresh | — |
-| llm-contributor-guide.md | ⚠ stale | Pre-session-100; refresh with new features + gotchas |
-| federation-interop-audit.md | ⚠ stale | No mention of recent sessions |
-| federation-notes.md | ⚠ stale | Research notes; move to archive |
-| federation-testing-plan.md | ⚠ stale | Pre-implementation; move to archive |
-| migration-switch.md | ⚠ archive-candidate | v1→v2 migration, historical |
-| a11y-audit.md | ⚠ partially stale | Session 122 audit revealed additional issues not in this file |
-| audit-119.md | ⚠ outdated | Findings file from audit sweep; many fixed since |
-| federation-map.md | ⚠ status unclear | Check if still current |
+| README.md | ✔ fresh | docs index |
+| quickstart.md | ✔ fresh | evergreen getting-started |
+| building-with-commonpub.md | ✔ fresh | thin-app / layer-extension guide |
+| coding-standards.md | ✔ fresh | CI-enforced conventions |
+| deployment.md | ✔ fresh | Docker + Caddy + DO |
+| federation.md | ✔ fresh | activity delivery + hub federation |
+| public-api.md | ✔ fresh | public read API v1 (scopes, bearer tokens) |
 
-### ADRs (`docs/adr/*.md`)
+(All the formerly-top-level docs the previous audit listed — `architecture.md`, `contributing.md`, `federation-plan.md`, `plan-v2.md`, `plan-v3-engineering.md`, `llm-contributor-guide.md`, `federation-*` research, `a11y-audit.md`, `audit-119.md`, `migration-switch.md` — have been moved under `docs/archive/`. They are historical; don't cite them as current.)
 
-24 ADRs total. Ones with explicit dates (2026-03-11+):
-- 023 Polish & Launch ✔
-- 024 CommonPub rename ✔ (historical marker)
-- 025 Nuxt framework switch ✔
-- 026 UI Design Direction ✔ **supersedes ADR 006**
+## LLM context pack (`docs/llm/`)
 
-Older ADRs (002–022): **no date, no status field.** Most describe decisions
-still in effect. Flagging the following as superseded or outdated:
-
-- **006 CSS Tokens** — superseded by 026, not marked
-- **005 TipTap** — superseded by 012 TipTap Architecture, not marked
-- **019 Federation Architecture** — sessions 074–125 implemented 7 additional
-  phases; `federation-plan.md` is newer source of truth
-- **018 Community Architecture** — hub types/moderation updated (hub types
-  now: community/product/company; v1 hub federation added in session 083+)
-
-### Reference — packages (`docs/reference/packages/*.md`)
-
-All 11 fresh. Accurately describe current public APIs. Cited counts match code
-(22 UI components, 20 block types, etc.).
-
-### Reference — server (`docs/reference/server/*.md`)
-
-| Module doc | Status |
-|---|---|
-| overview.md | ✔ fresh |
-| content.md | ⚠ stale (no URL restructure, no blog merge) |
-| social.md | ⚠ stale (no voting, no polls, no threaded comments) |
-| community.md | ⚠ stale, should be `hubs.md` |
-| federation-server.md | ✔ fresh |
-| learning-server.md | ⚠ stale |
-| docs-server.md | ⚠ stale |
-| admin.md | ⚠ stale (no admin nav config from session 124; also missing /admin/layouts editor + sidebar collapse from sessions 160–161) |
-| security.md | ✔ fresh (session 119 hardening) |
-| rate-limit.md | ✔ fresh |
-| oauth-codes.md | ✔ fresh |
-| audit.md | ✔ fresh |
-| — contests.md | ❌ **missing** |
-| — events.md | ❌ **missing** |
-| — voting.md | ❌ **missing** |
-| — video.md | ❌ **missing** |
-| — messaging.md | ❌ **missing** |
-| — navigation.md | ❌ **missing** (stored under homepage pattern) |
-
-### Reference — guides (`docs/reference/guides/*.md`)
-
-| Guide | Status |
-|---|---|
-| federation.md | ⚠ stale (v1 limitations out of date) |
-| routing.md | ⚠ likely stale (url restructure session 108) |
-| feature-flags.md | ⚠ stale (missing contests/events/voting flags) |
-| admin-and-permissions.md | ⚠ stale (no admin nav, judge perms, layout editor, theme editor, or sidebar collapse from sessions 154+160+161) |
-| theming.md | ✔ fresh |
-| url-structure.md | ✔ fresh |
-| v1-limitations.md | ⚠ stale |
-| hooks.md | ⚠ likely stale |
-
-### Session logs (`docs/sessions/`)
-
-All fresh. These are the **source of truth** for recent changes. When guides
-contradict session logs, trust the session log.
-
-## Top 10 highest-impact gaps
-
-1. **Contests system doc** — 3 sessions of work (117, 122, 124), no reference
-2. **Events system doc** — session 124–125 built this, no reference
-3. **Voting + polls doc** — session 124, no reference
-4. **Video system doc** — session 118, no reference
-5. **Admin navigation guide** — session 124 phase 3, no reference
-6. **Updated feature-flags.md** — missing 3+ flags added recently
-7. **Contest judge permissions** — judgeRoleEnum + judgingVisibility workflow
-8. **Comment threading** — session 113, no dedicated doc
-9. **Article/blog merge** — session 116, no migration doc for consumers
-10. **Federation v2 roadmap** — plan-v2 is "done", need v3 plan
-
-## Contradictions to fix
-
-| Doc | Claim | Reality |
+| File | Status | Notes |
 |---|---|---|
-| architecture.md (older sections) | Separate blog and article types | `contentTypeEnum` still has both, but blog is canonical (session 116 merge) |
-| v1-limitations.md | Several "deferred" items | Now implemented (check item-by-item) |
-| CHANGELOG.md | Ends at v0.2.0 (2026-03-23) | Current code is session 125 (2026-04-16); 25+ sessions of work unlogged |
+| facts.md | ✔ current | Condensed architecture facts; refreshed session 180/181. Has minor count drift vs source (verify counts against `codebase-analysis/` + `grep`). |
+| gotchas.md | ✔ current | Hard-won production gotchas; mirrors `09-gotchas-and-invariants.md`. |
+| conventions.md | ✔ fresh | Coding conventions for LLM contributors. |
+| task-recipes.md | ✔ fresh | Common task playbooks. |
+| README.md | ✔ fresh | Pack index. |
 
-Note: an earlier pass claimed federation.md said "No activity delivery" / "No federated hubs" — that was wrong. Verified 2026-04-16 that federation.md covers both.
+## Human guides (`docs/guides/`)
 
-## Recommended actions
+| File | Status |
+|---|---|
+| users.md | ✔ fresh |
+| developers.md | ✔ fresh |
+| README.md | ✔ fresh |
 
-### Immediate
+## Reference guides (`docs/reference/guides/`)
 
-1. **Update `CHANGELOG.md`** — aggregate sessions 108–125 into semver-style entries
-2. **Fix `federation.md` contradictions** — the two false claims above
-3. **Add stubs for 5 missing server module docs** (contests, events, voting, video, messaging)
-4. **Update `feature-flags.md`** — add contests, events, seamlessFederation
-5. **Mark superseded ADRs** — append a banner linking to the newer doc
+| Guide | Status | Notes |
+|---|---|---|
+| contests.md | ✔ fresh | contest system + judging (sessions 117/171–174) |
+| layout-engine.md | ✔ fresh | layout engine + `<LayoutSlot>` (sessions 155–169) |
+| theme-editor.md | ✔ fresh | admin theme editor (session 154) |
+| theming.md | ✔ fresh | token system + overrides |
+| url-structure.md | ✔ fresh | `/u/{username}/{type}/{slug}` canonical URLs (session 108) |
 
-### Short term
+`docs/reference/index.md` is the reference landing page. The old per-module `reference/server/*.md` and `reference/packages/*.md` directories no longer exist — module/package reference now lives in `codebase-analysis/03` + `06`.
 
-1. Refresh 5 stale server module docs (content, social, community, learning, docs-server, admin)
-2. Refresh 4 stale guides (federation, routing, feature-flags, admin-and-permissions)
-3. Write `docs/guides/users/` and `docs/guides/developers/` (NEW — this audit)
-4. Archive `federation-notes.md`, `federation-testing-plan.md`, `migration-switch.md` into `docs/archive/`
+## ADRs (`docs/adr/`)
 
-### Long term
+**26 ADRs, through `028-homepage-customization-model.md`.** Recent dated ones:
+- 023 Polish & Launch
+- 024 CommonPub rename
+- 025 Nuxt framework switch
+- 026 UI Design Direction (**supersedes ADR 006**)
+- 027 Layout-engine architecture (sessions 155–169)
+- 028 Homepage-customization model (session 168, `<PageFrame>`)
 
-1. Add "status" + "date" fields to every ADR
-2. Establish a "docs updated in same session as code" policy (it's in CLAUDE.md standing rules but not consistently applied)
-3. Automate a doc-staleness check in CI (e.g. last-modified vs mentioned feature's touch date)
+Older ADRs (002–022) mostly lack `status`/`date` fields. Still-unmarked supersessions:
+- **006 CSS Tokens** — superseded by 026
+- **005 TipTap** — superseded by 012 TipTap Architecture
+- **019 Federation Architecture** — many phases implemented since; the archived federation-plan + `federation.md` are newer truth
+
+## Plans (`docs/plans/`)
+
+11 active planning docs. Checkbox state frequently lags shipped reality — cross-check against session logs:
+
+| Plan | State |
+|---|---|
+| pagination-scalability.md | SHIPPED through step 4 (keyset feed, migration 0012) |
+| layout-and-pages.md / layout-engine-rollout.md / phase-3-editor.md / stage-e-unification.md | Layout engine + editor largely SHIPPED (sessions 155–169); some boxes unchecked |
+| rbac.md | Phase 0/1 SHIPPED (sessions 175–177), flag default OFF |
+| federation-hardening.md | Stage 1–3 SHIPPED (sessions 145–150) |
+| redis-integration.md | SHIPPED (session 130, opt-in `NUXT_REDIS_URL`) |
+| deveco-parity-and-card-sizing.md / deveco-registered-theme-parity.md | In progress (deveco parity initiative) |
+| instance-self-update.md | Planning |
+
+## Session logs (`docs/sessions/`)
+
+**149 files, numbered through session 181** (some are `NNN-kickoff-next.md` handoffs). All fresh; the **source of truth** for recent changes. When a guide or plan contradicts a session log, trust the session log.
+
+## CHANGELOG
+
+`CHANGELOG.md` is grouped by session/working-period (not strict semver) and runs through ~session 161. Per-package npm versions move independently and are ahead of it. Not "stuck at v0.2.0" anymore, but still behind session 181 — for exact recent history read `docs/sessions/` and `git log`.
+
+## Highest-impact remaining gaps
+
+1. **RBAC guide** — phase 0/1 shipped (sessions 175–177) but no `docs/reference/guides/rbac.md`.
+2. **Public-API scope reference** — `public-api.md` exists; ensure the 12 read scopes + key issuance flow are enumerated.
+3. **Keyset-pagination note** — the cursor contract + crafted-cursor DoS lesson live in `codebase-analysis/09` + MEMORY but not in a human guide.
+4. **ADR hygiene** — add `status`/`date` to pre-023 ADRs; mark the known supersessions (005→012, 006→026).
+5. **CHANGELOG** — extend from ~160 to current.
+
+## Notes
+
+- Content-level freshness of the surviving guides was spot-checked structurally (existence/scope), not line-by-line. Treat "fresh" as "covers the current feature", not "every sentence verified".
+- The `codebase-analysis/` folder (this directory) is the structural source of truth for tables/routes/modules/components; the `docs/` guides are the human-facing derivatives.

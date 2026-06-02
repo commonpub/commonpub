@@ -2,12 +2,13 @@
 
 What IS the best pattern for a site like CommonPub, given how it's set up?
 
-**As of session 125 (2026-04-16); the recommendations remain
-applicable but several "future-state" Redis suggestions have since
-been implemented (session 130) — see `12-scaling-and-infrastructure.md`
-for current state. The "Add managed Redis" recommendation under
-"Scaling path" is now optional-via-`NUXT_REDIS_URL` rather than
-unimplemented.**
+**Advisory/recommendations doc; factual claims re-verified session 181
+(2026-06-01).** Several "future-state" suggestions have since shipped:
+Redis is wired (opt-in via `NUXT_REDIS_URL`, session 130), the
+`eventAttendees` unique constraint + `federatedContent.mirrorId` FK exist
+(migration 0002), and keyset feed pagination landed (sessions 178–179). The
+opinions below remain applicable; see `12-scaling-and-infrastructure.md`
+for current-state infrastructure.
 
 This is the opinionated companion to
 [`12-scaling-and-infrastructure.md`](./12-scaling-and-infrastructure.md).
@@ -260,23 +261,29 @@ Things CommonPub gets right that you should keep:
   ...)` runs after `await publishContent()` returns. Subscribers don't
   see uncommitted state, don't roll back writes either. Keep this
   boundary.
-- **Soft delete via `deletedAt`** on users, content, hubs, federatedContent.
-  Preserves foreign-key integrity; audit-friendly.
+- **Soft delete via `deletedAt`** on users, contentItems, hubs, federatedContent,
+  federatedHubPosts (exactly 5 tables). Preserves foreign-key integrity; audit-friendly.
 - **Polymorphic targets for likes/comments/bookmarks/reports** via
   `(targetType, targetId)`. Keeps the social module small.
 
 Where you can improve:
 
-- **Add `unique(eventId, userId)` to `eventAttendees`.** Server dedup
-  is the only thing preventing duplicate RSVPs in a race.
-- **Add the `federatedContent.mirrorId` FK.** Currently app-enforced.
+- (Both prior suggestions here are now DONE: `eventAttendees` has
+  `unique(eventId, userId)` and `federatedContent.mirrorId` has a real FK
+  (`ON DELETE SET NULL`) — both landed in migration 0002.)
+- The OFFSET path (`listContent`) still runs `COUNT(*)` per request; the
+  keyset feed (`listContentKeyset` → `/api/content/feed`, migration 0012
+  partial indexes) relieves the infinite-scroll read path. Migrate more
+  numbered lists to keyset where the sort key is immutable.
 
 ## Realtime pattern
 
 CommonPub's SSE is the right choice:
 
-- One endpoint (`/api/realtime/stream`) streams notification + message
-  counts. Don't fragment per-feature.
+- The primary stream `/api/realtime/stream` carries notification + message
+  counts. A second, per-conversation stream `/api/messages/:conversationId/stream`
+  also exists (message threads) — so SSE is not strictly single-endpoint.
+  Keep new per-feature streams to genuine need.
 - Falls back cleanly if client disconnects.
 - No WebSocket complexity.
 

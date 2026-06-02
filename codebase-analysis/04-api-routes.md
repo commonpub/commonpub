@@ -1,23 +1,44 @@
 # 04 — API Route Inventory
 
-Nitro server routes in `layers/base/server/api/` and federation routes in
-`layers/base/server/routes/`. **257 routes as of session 125; ~284 as
-of session 150; 301 as of session 169 (2026-05-30) — the layout engine
-added `/api/admin/layouts/*` (10) + `/api/layouts/by-route` (see below).**
+Nitro server routes in `layers/base/server/api/` and ActivityPub/site
+routes in `layers/base/server/routes/`. Re-verified session 181
+(2026-06-01): **311 `.ts` files under `server/api/` (305 route handlers +
+6 colocated test files) + 22 files under `server/routes/`.** These are
+*files*, not method/path pairs — some paths have multiple method files
+(`index.get.ts` + `index.post.ts`), and several `routes/` files dispatch
+multiple AP methods internally.
 
-**Routes added since 125 (not yet enumerated below)**:
-- `/api/auth/mastodon/start` + `/api/auth/mastodon/callback` (session 139, Phase 2a Mastodon SSO; flag `identity.signInWithRemote`)
-- `/api/auth/federated/link.post` + (existing `callback.get`) — Phase 1b/2b
+Major groups added since the original (session-125) inventory and now
+folded into the tables below:
+- `/api/content/feed` — keyset/cursor feed (session 179; see Content)
+- `/api/auth/mastodon/start` + `/api/auth/mastodon/callback` (session 139, Mastodon SSO; flag `identity.signInWithRemote`)
+- `/api/auth/federated/link.post` + `callback.get` — Phase 1b/2b
+- `/api/admin/api-keys/*` — public-API key issuance (4 routes; see Admin)
 - `/api/admin/storage/backfill-cdn-urls` (session 149)
 - `/api/content/import` (session 148, gated `contentImport`)
-- `/api/public/v1/**` (session 127, ~13+ routes; gated `publicApi`)
-- `/api/realtime/stream` + `/api/messages/:id/stream` (session 130)
+- `/api/public/v1/**` — **20 route files** (session 127; gated `publicApi`)
+- `/api/realtime/stream` + `/api/messages/:conversationId/stream` (session 130)
+- `/api/contests/:slug/stakeholders/*` — view-only reviewers (3 routes; sessions 171–174)
+- `/api/users/:username/follow` (POST/DELETE — local follow)
 - `/api/features` runtime resolver
-- `/api/identity/*` routes (Phase 1b runtime; flag-gated)
 
-The auth tables below reflect session-125 state for `/api/auth/*` —
-new federated/mastodon entries are documented inline in the source
-files (`layers/base/server/api/auth/{federated,mastodon}/`).
+There is **no `/api/identity/*` route group** — identity runtime is a
+Nitro startup plugin (`plugins/identity-startup.ts`), not REST routes.
+RBAC (session 175) is enforced via middleware/role checks on existing
+routes (e.g. `admin/users/:id/role.put`) plus the `admin/api-keys/*`
+scoped-key surface — there is no `/api/rbac/*` group either.
+
+Route-group file counts (session 181 spot-count, `server/api/`, test files excluded):
+
+| Group | Files | Group | Files | Group | Files |
+|---|---|---|---|---|---|
+| admin | 65 | learn | 18 | videos | 7 |
+| hubs | 38 | content | 17 | messages | 6 |
+| federation | 23 | docs | 16 | federated-hubs | 6 |
+| contests | 20 | auth | 12 | products | 5 |
+| public (v1) | 20 | users | 9 | notifications | 4 |
+| events | 8 | social | 8 | files | 4 |
+| search/profile | 3 each | (single-file: features, health, me, stats, openapi, image-proxy, cert, categories, homepage, navigation, layouts, realtime, user) | | |
 
 Auth column:
 - **pub** — public, no auth required
@@ -37,8 +58,8 @@ Auth column:
 | GET | /api/auth/export-data | auth | GDPR export |
 | GET | /api/auth/federated/callback | pub | OAuth callback |
 | POST | /api/auth/federated/login | pub | Start AP SSO |
-| POST | /api/auth/federated/link | auth | Link federated account |
-| GET | /api/auth/oauth2/authorize | pub | OAuth2 authorize |
+| POST | /api/auth/federated/link | pub* | Link federated account — *NOT session-gated; authenticates via body `identity`+`password` + a single-use server-side `linkToken` (like sign-in), then links + sets the session cookie. Gated by `requireFeature('federation')`. |
+| GET | /api/auth/oauth2/authorize | auth | OAuth2 authorize (requireAuth — returns consent params for the logged-in user) |
 | POST | /api/auth/oauth2/authorize | auth | Grant |
 | POST | /api/auth/oauth2/register | pub | Dynamic client register |
 | POST | /api/auth/oauth2/token | pub | Token exchange |
@@ -47,7 +68,7 @@ Auth column:
 
 | Method | Path | Auth | Purpose |
 |---|---|---|---|
-| GET | /api/me | auth | Current session |
+| GET | /api/me | pub* | Current session — *reads `event.context.auth`, returns `{user:null,session:null}` (not 401) when anon; used by the client to detect session state |
 | GET | /api/profile | auth | Me, full profile |
 | PUT | /api/profile | auth | Update profile |
 | PUT | /api/profile/theme | auth | Save theme pref |
@@ -57,6 +78,8 @@ Auth column:
 | GET | /api/users/:username/feed.xml | pub | User RSS |
 | GET | /api/users/:username/followers | pub | — |
 | GET | /api/users/:username/following | pub | — |
+| POST | /api/users/:username/follow | auth | Follow user |
+| DELETE | /api/users/:username/follow | auth | Unfollow |
 | GET | /api/users/:username/learning | pub | Enrollments (public) |
 | GET | /api/user/hubs | auth | My hubs |
 
@@ -64,7 +87,8 @@ Auth column:
 
 | Method | Path | Auth | Purpose |
 |---|---|---|---|
-| GET | /api/content | pub | List (filters, pagination) |
+| GET | /api/content | pub | List — OFFSET pagination `{items,total}` (filters, popular/featured/editorial sorts) |
+| GET | /api/content/feed | pub | Keyset/cursor feed `{items,nextCursor}` — recency order, no COUNT (session 179) |
 | POST | /api/content | auth | Create draft |
 | GET | /api/content/:id | pub | Detail |
 | PUT | /api/content/:id | owner | Update |
@@ -73,7 +97,7 @@ Auth column:
 | GET | /api/content/:id/products | pub | BOM |
 | POST | /api/content/:id/products | owner | Link product |
 | DELETE | /api/content/:id/products/:productId | owner | Unlink |
-| POST | /api/content/:id/products-sync | owner | Sync from partsList blocks |
+| POST | /api/content/:id/products-sync | owner | Replace the content's product links — takes an explicit `items` array in the body (delete-all-then-insert via `syncContentProducts`); does NOT itself read partsList blocks (that derivation, if any, is client-side) |
 | POST | /api/content/:id/publish | owner | draft → published |
 | POST | /api/content/:id/build | auth | Toggle "I built this" |
 | POST | /api/content/:id/fork | auth | Fork |
@@ -85,11 +109,11 @@ Auth column:
 
 | Method | Path | Auth | Purpose |
 |---|---|---|---|
-| GET | /api/events | pub | List (upcoming/featured/past/mine, status whitelist) |
+| GET | /api/events | pub | List — filter flags `upcoming`, `featured`, `myEvents` (+ `hubId`, status whitelist). NOTE: there is no `past` filter, and the "my events" flag is `myEvents=true`, not `mine`. |
 | POST | /api/events | auth | Create |
 | GET | /api/events/:slug | pub | Detail |
-| PUT | /api/events/:slug | owner | Update |
-| DELETE | /api/events/:slug | owner | Delete |
+| PUT | /api/events/:slug | owner/admin | Update (creator or admin — `isAdmin` override) |
+| DELETE | /api/events/:slug | owner/admin | Delete (creator or admin) |
 | GET | /api/events/:slug/attendees | pub | RSVP list |
 | POST | /api/events/:slug/rsvp | auth | RSVP (auto-waitlist) |
 | DELETE | /api/events/:slug/rsvp | auth | Cancel (promote from waitlist) |
@@ -102,7 +126,7 @@ Auth column:
 | POST | /api/contests | auth* | Create (gated by `contestCreation` policy) |
 | GET | /api/contests/:slug | pub | Detail |
 | PUT | /api/contests/:slug | owner | Update |
-| DELETE | /api/contests/:slug | admin | Delete |
+| DELETE | /api/contests/:slug | owner/admin | Delete (`ownerOrPermission(…'contest.manage')` — owner OR admin; flag-on, a `contest.manage` role) |
 | POST | /api/contests/:slug/transition | owner | Change state |
 | GET | /api/contests/:slug/entries | pub | List entries |
 | POST | /api/contests/:slug/entries | auth | Submit entry |
@@ -111,10 +135,13 @@ Auth column:
 | DELETE | /api/contests/:slug/entries/:entryId/vote | auth | Retract |
 | GET | /api/contests/:slug/votes | pub | Batch vote leaderboard |
 | GET | /api/contests/:slug/judges | pub (if judgingVisibility=public) | List |
-| POST | /api/contests/:slug/judges | owner | Add judge |
+| POST | /api/contests/:slug/judges | owner/admin | Add judge (`ownerOrPermission(…'contest.manage')`) |
 | POST | /api/contests/:slug/judges/accept | auth | Accept invite |
-| DELETE | /api/contests/:slug/judges/:userId | owner | Remove |
+| DELETE | /api/contests/:slug/judges/:userId | owner/admin | Remove (`ownerOrPermission`) |
 | POST | /api/contests/:slug/judge | judge | Submit scores |
+| GET | /api/contests/:slug/stakeholders | owner/admin | List view-only reviewers (session 174) |
+| POST | /api/contests/:slug/stakeholders | owner/admin | Add stakeholder (`ownerOrPermission`) |
+| DELETE | /api/contests/:slug/stakeholders/:userId | owner/admin | Remove stakeholder (`ownerOrPermission`) |
 
 *Gate: `contestCreation: 'open' | 'staff' | 'admin'` from `commonpub.config.ts`.
 
@@ -166,7 +193,7 @@ Auth column:
 | PUT/DELETE | /api/learn/:slug | owner | — |
 | POST | /api/learn/:slug/enroll / unenroll | auth | — |
 | POST | /api/learn/:slug/publish | owner | — |
-| GET/POST | /api/learn/:slug/lessons | pub / owner | — |
+| POST | /api/learn/:slug/lessons | owner | Add lesson (POST only — there is NO `lessons.get`; lessons come via the path-detail endpoint) |
 | PUT/DELETE | /api/learn/:slug/lessons/:lessonId | owner | — |
 | GET | /api/learn/:slug/:lessonSlug | pub | Lesson |
 | POST | /api/learn/:slug/:lessonSlug/complete | auth | Mark done |
@@ -216,7 +243,13 @@ Auth column:
 
 ## Federation (flag: `federation: true`)
 
-Inbound/outbox: `/.well-known/webfinger`, `/.well-known/nodeinfo`, `/users/:username`, `/users/:username/inbox`, `/users/:username/outbox`, `/users/:username/followers`, `/users/:username/following`, `/actor` (instance Service actor), plus Group actor routes for hubs.
+**ActivityPub + site routes** live in `layers/base/server/routes/` (22 files, NOT under `/api/`):
+- Discovery: `/.well-known/webfinger`, `/.well-known/nodeinfo`, `/nodeinfo/2.1`
+- Instance Service actor: `/actor`, `/actor/followers`, `/actor/following`, `/actor/outbox`, and the shared instance `/inbox`
+- User actors: `/users/:username` + `/users/:username/{inbox,outbox,followers,following}`
+- Hub Group actors: `/hubs/:slug/{inbox,outbox,followers,products,resources}`
+- Content as AP object: `/content/:slug` (Article)
+- Site: `/feed.xml` (site RSS), `/sitemap.xml`, `/robots.txt`
 
 User-facing federation API:
 
@@ -234,13 +267,13 @@ User-facing federation API:
 | POST | /api/federation/like / boost | auth | — |
 | POST | /api/federation/reply | auth | — |
 | POST | /api/federation/dm | auth | — |
-| POST | /api/federation/remote-follow | pub | Mastodon-style |
-| POST | /api/federation/resolve-uri | pub | — |
+| POST | /api/federation/remote-follow | auth | Mastodon-style (requireAuth) |
+| POST | /api/federation/resolve-uri | auth | requireAuth |
 | POST | /api/federation/search | pub | — |
-| GET | /api/federation/hub-follow-status | auth | — |
+| GET | /api/federation/hub-follow-status | pub | Optional-auth: returns `{joined:false,status:null}` for anon (no 401); gated by `federateHubs` |
 | POST | /api/federation/hub-follow | auth | Follow federated group |
 | POST | /api/federation/hub-post / hub-post-reply / hub-post-like | auth | — |
-| GET | /api/federation/hub-post-likes | pub | — |
+| GET | /api/federation/hub-post-likes | auth | requireAuth |
 | GET | /api/federated-hubs/:id | pub | Federated hub detail |
 | GET | /api/federated-hubs/:id/feed.xml | pub | RSS feed |
 | GET | /api/federated-hubs/:id/posts | pub | — |
@@ -258,7 +291,11 @@ content/*` while federated-hub entity lookups live at `/api/federated-hubs/*`.
 
 User mgmt: GET `/api/admin/users`, PUT `/api/admin/users/:id/role`, PUT `/api/admin/users/:id/status`, DELETE `/api/admin/users/:id`.
 
-Content mod: GET `/api/admin/content`, PATCH `/api/admin/content/:id`, DELETE `/api/admin/content/:id`, POST `/api/admin/content/bulk-editorial`.
+Public-API keys (RBAC-era): GET/POST `/api/admin/api-keys`, DELETE `/api/admin/api-keys/:id`, GET `/api/admin/api-keys/:id/usage` — issue/revoke scoped bearer tokens for the public read API (gated `publicApi`).
+
+Storage: POST `/api/admin/storage/backfill-cdn-urls` (session 149 — backfill DO Spaces CDN URLs).
+
+Content mod: PATCH `/api/admin/content/:id`, DELETE `/api/admin/content/:id`, POST `/api/admin/content/bulk-editorial`. (There is NO `GET /api/admin/content` — admin content listing reuses the public `/api/content` with admin-visible filters.)
 
 Categories: CRUD at `/api/admin/categories`.
 
@@ -288,8 +325,8 @@ Navigation (session 124): GET/PUT `/api/admin/navigation/items`.
 
 Federation admin (extensive):
 - Stats, clients (register OAuth), activity log, pending, retry, refederate, repair-types
-- Mirrors: full CRUD + backfill
-- Hub mirrors: full CRUD + backfill
+- Mirrors: full CRUD (`index.get/post`, `[id].get/put/delete`) + backfill
+- Hub mirrors: `index.get/post` + `[id]/backfill` ONLY (no PUT/DELETE/`[id].get`)
 - Trusted instances: list/add/remove
 
 ## Public/utility
@@ -305,9 +342,10 @@ Federation admin (extensive):
 - GET /api/openapi — generated OpenAPI 3 spec
 - GET /api/image-proxy — image CORS proxy
 - GET /api/cert/:code — verify learning certificate
-- **GET /api/layouts/by-route?path=/some-path** (session 157, Phase 1 of the layout engine) — resolves the active layout for an SSR page. Gated by `features.layoutEngine` (default OFF) — returns `404 "Layout engine not enabled"` when the flag's off so the legacy `HomepageSectionRenderer` stays in charge during the migration window. Module-level 60s cache keyed by path. Returns slim shape `{ zones, pageMeta, state }`. **Session 158**: cache lifted into `server/utils/layoutCache.ts` so the admin write API can invalidate it cleanly. `by-route.get.ts` re-exports `invalidateLayoutsByRouteCache` for backwards compat.
+- **Public read API** `/api/public/v1/**` (20 files; gated `publicApi`): content (list+detail), contests, docs, events, hubs, learn, users, videos (each list+detail), plus `instance`, `search`, `tags`, `openapi.json`. Admin-issued bearer tokens, 12 read scopes.
+- **GET /api/layouts/by-route?path=/some-path** (session 157, Phase 1 of the layout engine) — resolves the active layout for an SSR page. Gated by `features.layoutEngine` (default OFF) — returns `404 "Layout engine not enabled"` when the flag's off so the legacy `HomepageSectionRenderer` stays in charge during the migration window. Module-level 60s cache keyed by `${tier}:${path}` (tier = admin/members/anon — trifurcated to prevent draft leakage). Returns slim shape `{ zones, pageMeta, state }`. **Session 158**: cache lifted into `server/utils/layoutCache.ts` so the admin write API can invalidate it cleanly. `by-route.get.ts` re-exports `invalidateLayoutsByRouteCache` for backwards compat.
 
-**Admin layout write API** (session 158, Phase 1c; backs the `/admin/layouts/:id` editor, sessions 160–169) — 10 routes under `/api/admin/layouts/*`, all gated on `requireFeature('admin') + requireFeature('layoutEngine') + requireAdmin(event)`. Every write handler calls `invalidateLayoutsByRouteCache()` before returning (statically enforced by `handlers-contract.test.ts`):
+**Admin layout write API** (session 158, Phase 1c; backs the `/admin/layouts/:id` editor, sessions 160–169) — 10 routes under `/api/admin/layouts/*`, all gated on `requireFeature('admin') + requireFeature('layoutEngine') + requirePermission(event, 'layout.manage')` (RBAC — NOT a bare `requireAdmin`; the whole admin surface is `requirePermission`-gated: api-keys→`apikeys.manage`, themes→`theme.manage`, features/settings→`settings.manage`, etc.). Every write handler calls `invalidateLayoutsByRouteCache()` before returning (statically enforced by `handlers-contract.test.ts`):
 - `GET    /api/admin/layouts` — list (optional `?scope=route|virtual|custom-page`)
 - `POST   /api/admin/layouts` — create (409 if scope already exists)
 - `GET    /api/admin/layouts/[id]`
@@ -321,10 +359,10 @@ Federation admin (extensive):
 
 ## Gotchas worth remembering
 
-- `GET /api/events` accepts `status` query but is whitelisted — only `published`, `active`, `upcoming`, `past`, `featured`, `mine` are honored (security fix in session 125).
+- `GET /api/events` whitelists the `status` query to `PUBLIC_STATUSES = {published, active, completed}` (security fix; an attacker can't list `draft`/`cancelled`). Separately, `upcoming`, `featured`, and `myEvents` are **boolean filter flags** (e.g. `?upcoming=true`), NOT status values. (There is **no** `past` filter, and the my-events flag is `myEvents`, not `mine` — an earlier version of this doc claimed both, incorrectly.)
 - `GET /api/contests/:slug/judges` visibility depends on `contest.judgingVisibility`.
-- `GET /api/contests/:slug/votes` returns a batch map `entryId → count` (built for the list view, not individual fetches).
+- `GET /api/contests/:slug/votes` returns an **array** of `{ entryId, count, voted }` (`ContestEntryVoteInfo[]` — per-entry tally + the current user's own vote flag), NOT a map and not just counts.
 - `POST /api/content/:id/publish` always triggers federation if enabled; no separate "federate" endpoint.
 - `POST /api/files/upload` requires multipart; `upload-from-url` does SSRF checks in server/import/ssrf.ts before fetching.
-- All `:username` routes are case-insensitive (usernames normalized).
+- `:username` lookups are **exact-match** (`eq(users.username, username)`); usernames are normalized to lowercase only on WRITE (Better Auth's `username()` plugin). A mixed-case URL like `/api/users/JohnDoe` 404s — the routes are NOT case-insensitive at read time.
 - `GET /api/me` returns null (not 401) if unauthenticated — used by the client to detect session state.

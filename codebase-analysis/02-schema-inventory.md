@@ -1,30 +1,35 @@
 # 02 — Schema Inventory
 
-Source: `packages/schema/src/*.ts`. As of session 125 (2026-04-16).
-**Headline counts re-verified session 150 (2026-05-19): 79
-tables, 41 enums. Now ~80+ tables after the 4 layout-engine tables
-landed (sessions 155 + 157, migration 0005).** The file list below is
-missing `publicApi.ts` (session 127 — api_keys + api_key_usage tables).
-Migration set has grown to 0000–0008 (0001 docs unstringify, 0002
-session-130 constraints, 0003 notifications dedup, 0004 federated OAuth
-tokens in session 137, **0005 `0005_wonderful_blue_marvel` — layout
-engine tables, session 155/157**, **0006 contest `judging_criteria`,
-0007 contest `eligible_content_types` + `max_entries_per_user`,
-0008 contest `visibility`/`visible_to_roles` + `contest_stakeholders` table —
-sessions 171/172/174**). 9 migrations total; latest is
-`0008_contest_visibility_stakeholders`. Individual tables added since 125 —
-federated_accounts + oauth_codes for cross-instance identity (session
-137) — are reflected in pgTable() counts but NOT yet enumerated in the
-per-file list below.
+Source: `packages/schema/src/*.ts`. Re-verified session 181 (2026-06-01).
 
-**~80+ tables, 41 enums, 50+ Zod validators.** Drizzle ORM on PostgreSQL 16. Core table count verified against both production DBs on 2026-04-17; +4 layout-engine tables (migration 0005) since.
+**87 tables (`grep -c pgTable`), 42 enums (`grep -c pgEnum`), 102 `*Schema`
+exports in `validators.ts`.** Drizzle ORM on PostgreSQL 16.
+
+**13 migrations, 0000–0012** (latest `0012_true_nicolaos` = composite feed
+indexes). Full list:
+
+| # | File | What it added |
+|---|---|---|
+| 0000 | `session128_baseline` | Baseline snapshot (session 128 migrate switch) |
+| 0001 | `docs_content_unstringify` | **data-only** UPDATE (no DDL) — unwraps double-stringified `docs_pages.content` rows (a jsonb STRING holding JSON text) back to proper BlockTuple jsonb. The column-TYPE change is a separate manual `ALTER … TYPE jsonb` (see CLAUDE.md), not this migration. |
+| 0002 | `session130_constraints` | FK/constraint hardening (incl. `federated_content.mirror_id` FK, `event_attendees` unique) |
+| 0003 | `notifications_dedup` | notification dedup — a plain (full) `CREATE UNIQUE INDEX` on `(user_id,type,actor_id,link)` (NOT partial; the only `WHERE` in the file is on the DELETE backfill) |
+| 0004 | `federated_oauth_tokens` | OAuth token columns ON `federated_accounts` (`access_token_ciphertext`/`_iv`, `scopes`, `software_kind`, `revoked_at`, `last_verified_at`) — cross-instance identity, session 137. (The `federated_accounts` table itself is in baseline 0000.) |
+| 0005 | `wonderful_blue_marvel` | Layout-engine tables `layouts`/`layout_rows`/`layout_sections`/`layout_versions` (sessions 155/157) |
+| 0006 | `contest_voting_visibility_criteria` | contest `judging_criteria` column (jsonb rubric) only — despite the drizzle filename, `community_voting_enabled` + `judging_visibility` were already in baseline 0000 |
+| 0007 | `contest_entry_eligibility` | contest `eligible_content_types` + `max_entries_per_user` |
+| 0008 | `contest_visibility_stakeholders` | contest `visibility`/`visible_to_roles` + `contest_stakeholders` table |
+| 0009 | `rbac_roles_permissions` | RBAC `roles`/`role_permissions`/`user_roles` (session 175) |
+| 0010 | `powerful_doctor_faustus` | contest `subheading` column (`varchar(300)`) |
+| 0011 | `green_lorna_dane` | contest `prizes_description` column (`text`) |
+| 0012 | `true_nicolaos` | Two PARTIAL composite feed indexes `idx_content_items_feed_recency` + `idx_content_items_feed_popular` (keyset pagination, session 179) |
 
 ## Files
 
 ```
 packages/schema/src/
-├── enums.ts         all pgEnums
-├── auth.ts          users, sessions, accounts, organizations, members, federatedAccounts, verifications
+├── enums.ts         all pgEnums (42)
+├── auth.ts          users, sessions, accounts, organizations, members, federatedAccounts, oauthClients, oauthCodes, verifications (9)
 ├── content.ts       contentItems, contentCategories, contentVersions, contentForks, contentBuilds, tags, contentTags
 ├── social.ts        likes, follows, comments, bookmarks, notifications, reports, conversations, messages, messageReads
 ├── hub.ts           hubs, hubMembers, hubPosts, hubPostReplies, hubPostLikes, hubBans, hubInvites, hubShares, hubActorKeypairs, hubFollowers, hubResources
@@ -35,17 +40,20 @@ packages/schema/src/
 ├── contest.ts       contests, contestEntries, contestJudges, contestStakeholders
 ├── events.ts        events, eventAttendees
 ├── voting.ts        hubPostVotes, pollOptions, pollVotes, contestEntryVotes
-├── federation.ts    remoteActors, activities, followRelationships, actorKeypairs, federatedContent, federatedContentBuilds, instanceMirrors, instanceHealth, federatedHubs, federatedHubPosts, federatedHubMembers, federatedHubPostReplies, federatedHubResources, federatedHubProducts, userFederatedHubFollows
+├── federation.ts    remoteActors, activities, followRelationships, actorKeypairs, federatedContent, federatedContentBuilds, instanceMirrors, instanceHealth, federatedHubs, federatedHubPosts, federatedHubMembers, federatedHubPostLikes, federatedHubPostReplies, federatedHubResources, federatedHubProducts, userFederatedHubFollows (16)
 ├── files.ts         files
 ├── admin.ts         instanceSettings, auditLogs
 ├── layout.ts        layouts, layoutRows, layoutSections, layoutVersions (session 155)
-├── validators.ts    Zod schemas (50+)
+├── rbac.ts          roles, rolePermissions, userRoles (session 175, migration 0009)
+├── publicApi.ts     apiKeys, apiKeyUsage (session 127)
+├── permissions.ts   permission catalog (no tables; permission-string constants for RBAC)
+├── validators.ts    Zod schemas (102 `*Schema` exports)
 ├── sectionConfigs.ts per-section Zod schemas + SECTION_CONFIG_SCHEMAS lookup map (17 sections, session 161)
 ├── index.ts         barrel
 └── openapi.ts       OpenAPI generator
 ```
 
-## Enums (47)
+## Enums (42)
 
 | Enum | Values |
 |---|---|
@@ -94,7 +102,7 @@ packages/schema/src/
 
 ## Tables by domain
 
-### Auth (7)
+### Auth (9)
 
 | Table | Purpose | Notable |
 |---|---|---|
@@ -104,8 +112,9 @@ packages/schema/src/
 | organizations | Team/org | name + unique slug |
 | members | Org membership | — |
 | federatedAccounts | External AP identities linked to local user | actorUri unique |
+| oauthClients | Registered OAuth/AP clients | no Zod validator (system-managed) |
+| oauthCodes | Short-lived OAuth authorization codes | no Zod validator (system-managed) |
 | verifications | Email/phone codes | — |
-| (oauthClients, oauthCodes exist but no Zod validators) | | |
 
 ### Content (7)
 
@@ -196,7 +205,7 @@ packages/schema/src/
 | Table | Purpose | Notable |
 |---|---|---|
 | events | Events | status/type enums; slug unique; hubId nullable; capacity + attendeeCount denormalized |
-| eventAttendees | Registrations | status enum (registered/waitlisted/cancelled/attended); no unique constraint — possible dup risk |
+| eventAttendees | Registrations | status enum (registered/waitlisted/cancelled/attended); `unique(eventId, userId)` (migration 0002) — `rsvpEvent` relies on it with `ON CONFLICT DO NOTHING` |
 
 ### Voting (4) — session 124 added
 
@@ -207,7 +216,7 @@ packages/schema/src/
 | pollVotes | Per-user poll vote | unique(postId, userId) — one vote per poll, not per option |
 | contestEntryVotes | Community votes on entries | unique(entryId, userId) |
 
-### Federation (8 in federation.ts) + (7 more for federated hubs)
+### Federation (16 in federation.ts: 8 core AP + 8 federated-hub)
 
 Core AP:
 
@@ -254,21 +263,36 @@ Federated hubs:
 
 Consumed by `packages/server/src/layout/layout.ts` (Phase 1 server CRUD, session 157). Read via `<LayoutSlot>` Vue component once `features.layoutEngine` flips ON. **Instance-local — these 4 tables never federate** (ADR 027 / CLAUDE.md federation-scope table); they never serialize through `@commonpub/protocol`.
 
+### RBAC (3 — session 175, migration 0009)
+
+| Table | Purpose | Notable |
+|---|---|---|
+| roles | Named role definitions | behind `features.rbac` (default OFF); the legacy `users.role` enum is still the floor |
+| rolePermissions | Role → permission-string grants | permission catalog in `permissions.ts` |
+| userRoles | User → role assignments | resolved by `packages/server/src/rbac/resolver.ts` with a 30s-TTL cache (admin `*` grant deliberately NOT cached — fresh `users.role` floor) |
+
+### Public API (2 — session 127)
+
+| Table | Purpose | Notable |
+|---|---|---|
+| apiKeys | Admin-issued bearer tokens for the public read API | scopes (12 read scopes); behind `features.publicApi` (default OFF) |
+| apiKeyUsage | Per-key request usage log | rate-limit + audit |
+
 ## Zod validators
 
-Live in `packages/schema/src/validators.ts`. All user-facing writes go through these.
+Live in `packages/schema/src/validators.ts` (102 `*Schema` exports). All user-facing writes go through these. Per-section config schemas live separately in `sectionConfigs.ts`.
 
-Coverage by domain: auth (7 validators), content (8), social (3 for comments/likes/reports), hubs (16), products (5), contests (5), videos (3), learning (7), messaging (2), docs (5), admin (4), federation (7), filters (3).
+Coverage by domain (approximate): auth (~7), content (~8), social (~3 for comments/likes/reports), hubs (~16), products (~5), contests (~5), videos (~3), learning (~7), messaging (~2), docs (~5), admin (~4), federation (~7), theme (~8), layout (~10), publicApi (~2), plus 6 `*FiltersSchema` list-filter validators (`content`/`hub`/`learningPath`/`video`/`contest`/`hubPost`).
 
 **Tables without validators** (intentional — system-generated or internal):
-sessions, accounts, organizations, members, verifications, contentVersions, contentForks, contentBuilds, tags, contentTags, follows, bookmarks, notifications, hubMembers, hubPostLikes, hubFollowers, hubActorKeypairs, events (missing — should have one), eventAttendees (missing — should have one), enrollments, lessonProgress, certificates, pollVotes, hubPostVotes, contestEntryVotes, auditLogs, files, instanceMirrors, remoteActors, federatedContent, federatedHub* (all), instanceHealth.
+sessions, accounts, organizations, members, verifications, oauthClients, oauthCodes, contentVersions, contentForks, contentBuilds, tags, contentTags, follows, bookmarks, notifications, hubMembers, hubPostLikes, hubFollowers, hubActorKeypairs, events (missing — should have one), eventAttendees (missing — should have one), enrollments, lessonProgress, certificates, pollVotes, hubPostVotes, contestEntryVotes, contestStakeholders, auditLogs, files, instanceMirrors, remoteActors, federatedContent, federatedHub* (all), instanceHealth, roles, rolePermissions, userRoles, apiKeyUsage, layout* (CRUD-validated via layout schemas, not row validators).
 
 **Gaps worth closing:** `events`, `eventAttendees` — currently unvalidated despite user-facing API.
 
 ## Invariants / patterns
 
 - **Soft delete**: users, contentItems, hubs, federatedContent, federatedHubPosts use `deletedAt`. Everything else is hard delete (often via CASCADE).
-- **Denormalized counters**: many tables carry counters that are updated in transaction with the source write (likeCount, voteScore, entryCount, attendeeCount, memberCount, etc.). Backfill script exists in scripts/ for reconciliation.
+- **Denormalized counters**: many tables carry counters updated alongside the source write (likeCount, voteScore, entryCount, attendeeCount, memberCount, etc.) — mostly in a transaction (see 03 Transactions; `leaveHub` is a known non-transactional exception). There is **no standalone counter-reconciliation script** in `scripts/` (the only `backfill*` code is federation outbox backfill + the DO Spaces CDN-URL backfill admin route — both unrelated to counters).
 - **Polymorphic targets**: likes, comments, bookmarks, reports use (targetType, targetId). Target types are enumerated.
 - **Self-hierarchy**: hubs.parentHubId, comments.parentId, hubPostReplies.parentId, federatedHubPostReplies.parentId, docsPages.parentId.
 - **Federation cleanliness**: `hubPosts.authorId` is nullable so that federated posts (where the author isn't local) can coexist with local posts without a synthetic user.
@@ -276,9 +300,10 @@ sessions, accounts, organizations, members, verifications, contentVersions, cont
 
 ## Foreign-key caveats
 
-- `federatedContent.mirrorId` — NO DB-level FK. Enforced in app code only. Known debt.
-- Most other FKs use `ON DELETE CASCADE` where the relationship is ownership (user → session, content → version, hub → post, etc.).
-- Parent self-refs (hubs.parentHubId, comments.parentId) are `ON DELETE SET NULL` to avoid catastrophic tree drop.
+- **125 `.references()` FKs total: 107 `ON DELETE CASCADE`, 18 `ON DELETE SET NULL`, 0 RESTRICT.**
+- CASCADE is used where the relationship is ownership (user → session, content → version, hub → post, etc.).
+- SET NULL is used for **nullable cross-table references** so the child row survives when the referenced entity is deleted: `contentItems.categoryId`, `events.hubId`, `files.contentId`/`files.hubId`, `federatedContent.mirrorId` (added in migration 0002 — the old "no FK, app-enforced" note is obsolete), `federated*.remoteActorId`, `learningLessons.contentItemId`, and "who-did-X" user refs (`updatedBy`/`grantedBy`/`revokedBy`/`reviewedById`/`actorId`/`publishedBy`).
+- **Self-ref parent columns have NO DB-level FK at all** — `hubs.parentHubId`, `comments.parentId`, `hubPostReplies.parentId`, `docsPages.parentId`, `federatedHubPostReplies.parentId` are plain `uuid()` columns with only app-level Drizzle `relations()` (no `.references()`, no `onDelete`). Deleting a parent neither cascades nor nulls its children at the DB level; tree integrity is app-managed. (The earlier "parent self-refs are ON DELETE SET NULL" note was incorrect.)
 
 ## Schema deploy workflow (session 128+)
 

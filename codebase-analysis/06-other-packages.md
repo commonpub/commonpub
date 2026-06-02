@@ -6,11 +6,11 @@ Packages other than `schema`, `server`, and the layer (covered elsewhere).
 
 `packages/config/src/`
 
-- `types.ts` — `FeatureFlags` (15 flags), `AuthConfig`, `InstanceConfig`, `FederationConfig`, `DocsConfig`, `CookieDefinition`, `CommonPubConfig`
+- `types.ts` — `FeatureFlags` (**19 boolean flags + `identity` object** with 5 sub-flags), `IdentityFeatures`, `AuthConfig`, `InstanceConfig`, `FederationConfig`, `DocsConfig`, `CookieDefinition`, `RegisteredTheme`, `CommonPubConfig`
 - `schema.ts` — Zod with defaults
 - `config.ts` — `defineCommonPubConfig()` factory; validates, fills defaults
 
-**Defaults:** `content`, `social`, `hubs`, `docs`, `video`, `learning`, `explainers`, `editorial` default to ON. Everything else (including `federation`, `admin`, `contests`, `events`) defaults to OFF — must be explicitly enabled.
+**Defaults ON:** `content`, `social`, `hubs`, `docs`, `video`, `learning`, `explainers`, `editorial`, `contentImport`. **Defaults OFF:** `contests`, `events`, `federation`, `seamlessFederation`, `federateHubs`, `admin`, `emailNotifications`, `publicApi`, `layoutEngine`, `rbac`, and all 5 `identity.*` sub-flags — must be explicitly enabled. (Note: `admin` is OFF in the schema default but turned ON per-instance in production configs.)
 
 Feature flags are **runtime** (environment via `nuxt.config` `runtimeConfig.public.features.*`), not compile-time. They gate server endpoints, page renders, and nav items.
 
@@ -25,17 +25,19 @@ Feature flags are **runtime** (environment via `nuxt.config` `runtimeConfig.publ
   - `discoverOAuthEndpoint()` — WebFinger lookup for remote `oauth_endpoint` link
   - `isTrustedInstance()` — checks `config.auth.trustedInstances`
 - `hooks.ts` — after-auth hooks (profile sync, role defaults)
-- `types.ts` — `UserRole` + hierarchy helpers
+- `permissions.ts` — `hasPermissionPure` (RBAC permission check, session 175)
+- `identity.ts` — cross-instance identity helpers: `SCOPE_VALUES`, `SOFTWARE_KIND_VALUES`, `isScope`, `isSoftwareKind`, `makeHandle`, `parseHandle`, `hasAllScopes`, `coerceScopes`, `isUsableLinkedIdentity`
+- `types.ts` — `UserRole` + `ROLE_HIERARCHY`/`getRoleLevel` helpers
 
 ## @commonpub/protocol
 
 `packages/protocol/src/`
 
 - `types.ts` — AP actor + activity interfaces
-- `activityTypes.ts` — CommonPub → AP type mapping (`Article` + `cpub:type` extension for project/blog/explainer)
+- `activityTypes.ts` — AP **interface/type definitions only** (`APArticle`, `APNote`, `APTombstone`, `APGroup`, `APCreate`/`APUpdate`/`APDelete`, `APObject`, …) — no mapping logic. The CommonPub→AP `cpub:type` mapping (`item.type === 'article' ? 'blog' : item.type`) lives in `contentMapper.ts`, not here.
 - `contentMapper.ts` (13KB) — bidirectional BlockTuple[] ↔ AP object
 - `federation.ts` — `createFederation({ config, version, lookupUser, getStats })` factory returning WebFinger + NodeInfo handlers; gated on `config.features.federation`
-- `actorResolver.ts` — resolve + cache remote actors; refresh policy. Per-hop `isPrivateUrl` string check; callers should inject a `FetchFn` from `createSafeActorFetchFn()` for DNS-rebind protection.
+- `actorResolver.ts` — resolve + cache remote actors; refresh policy. Per-hop `isPrivateUrl` string check; callers inject a `FetchFn` for DNS-rebind protection — the concrete `createSafeActorFetchFn()` lives in `@commonpub/server` (`federation/safeFetchFn.ts`), not in protocol.
 - `activities.ts` — Create/Announce/Delete/Update builders
 - `inbox.ts` — inbound dispatch
 - `outbox.ts` — outbound coordinator
@@ -61,35 +63,37 @@ Feature flags are **runtime** (environment via `nuxt.config` `runtimeConfig.publ
 
 `packages/ui/src/`
 
-22 headless Vue 3 components: Input, Textarea, Select, Checkbox, Radio, Button, Dialog, Dropdown, Tabs, Popover, Card, Badge, Loading, etc. All accept `class` prop, WCAG 2.1 AA.
+22 headless Vue 3 components: Alert, Avatar, Badge, Button, Card, Dialog, IconButton, Input, Menu, MenuItem, Popover, ProgressBar, Select, Separator, Stack, Tabs, TagInput, Textarea, Toggle, Toolbar, Tooltip, VisuallyHidden. All accept `class` prop, WCAG 2.1 AA. Also exports `BUILT_IN_THEMES` (5) + theme/token helpers.
 
 **Independent npm publication** but NOT bundled into the layer. The layer has its own components under `layers/base/components/`. `@commonpub/ui` is for external consumers who want just the design system without the full CommonPub stack.
 
 ## @commonpub/editor
 
-`packages/editor/src/` + `vue/`
+`packages/editor/src/` (pure TS engine) + top-level `packages/editor/vue/` (Vue editor surface, exported via the `./vue` subpath — `@commonpub/editor/vue`; a sibling of `src/`, like explainer)
 
-20 block types:
+20 registered block types (`blocks/registry.ts`):
 
 text, heading, code, image, quote, callout, gallery, video, embed, markdown, divider, sectionHeader, partsList, buildStep, toolList, downloads, quiz, interactiveSlider, checkpoint, mathNotation.
 
-Core:
+Core (`src/`):
 
 - `blocks/types.ts` — `BlockTuple`, `TypedBlockTuple`, `BlockDefinition`
 - `blocks/registry.ts` — `registerBlock()`, `lookupBlock()`, `validateBlock()`
 - `blocks/schemas.ts` — Zod per block type
-- `extensions/` — TipTap Node per block (20 files)
+- `extensions/` — TipTap Node per block (**18 files** — `divider` + `sectionHeader` are registered block types but have no standalone extension file)
+- `editorKit.ts` — `createCommonPubEditor({ content, onUpdate })` (the engine entry point)
 - `serialization.ts` — `validateBlockTuples()`, `buildEditorSchema()`, ProseMirror ↔ BlockTuple
 - `markdown/` — md import/export
-- `vue/` — CpubEditor.vue
+
+Vue surface (`vue/`, opt-in via `@commonpub/editor/vue`): `EditorShell`, `BlockCanvas`, `BlockWrapper`, `BlockPicker`, `BlockInsertZone`, `EditorBlocks`, `EditorSection`, `EditorVisibility`, `EditorTagInput` + `components/blocks/*` (20 per-block Vue components) + `useBlockEditor` composable + `provide.ts`/`types.ts`/`utils.ts`. (No file named `CpubEditor.vue` lives here — that name is the **layer's** thin wrapper, `layers/base/components/CpubEditor.vue`.)
 
 `BlockTuple = [type: string, content: Record<string, unknown>]`.
 
-Exports: `createCommonPubEditor({ content, onUpdate })`.
+Exports: `createCommonPubEditor({ content, onUpdate })` (from `editorKit.ts`); Vue components from `@commonpub/editor/vue`.
 
 ## @commonpub/explainer
 
-`packages/explainer/src/` (pure TS) + `vue/` (optional)
+`packages/explainer/src/` (pure TS) + top-level `packages/explainer/vue/` (optional Vue renderers — a separate publish path, NOT under `src/`)
 
 - `types.ts` — ExplainerSection (text/interactive/quiz/checkpoint), QuizQuestion, InteractiveControl
 - `sections/derive.ts` — derive presentation sections from BlockTuple[]
@@ -97,7 +101,10 @@ Exports: `createCommonPubEditor({ content, onUpdate })`.
 - `quiz/engine.ts` — deterministic shuffle (mulberry32 seed), scoring, gate enforcement
 - `render/` — framework-agnostic renderers
 - `export/` — self-contained HTML export (~6KB of vanilla JS + inlined CSS for 4 themes)
-- `vue/theme/` — 4 theme CSS presets: dark-industrial, punk-zine, paper-teal, clean-light
+
+Two more **shipped** top-level dirs (both in the package's `files` array, siblings of `src/`):
+- `vue/` — Vue renderers; `vue/theme/` has 4 theme CSS presets: dark-industrial, punk-zine, paper-teal, clean-light
+- `modules/` — the **interactive module runtime** (CLAUDE.md "Interactive module runtime"): `registry.ts` makes **10 `modules.set()` registrations** — `hero`, `conclusion`, `text-only`, `slider`, `quiz`, `toggle`, `reveal-cards`, `compare`, `clickable-cards`, `custom-html` (one dir each = 10 dirs). Each has `meta.ts`; only 7 also have `config.ts` and only 5 have a `Viewer.vue` (`conclusion`/`hero`/`text-only` are meta-only). NOTE: `layout` is a `meta.category` value (e.g. hero/conclusion are category `layout`), **not** a registered module type.
 
 Engine is framework-agnostic. Vue components are optional.
 
@@ -107,9 +114,10 @@ Engine is framework-agnostic. Vue components are optional.
 
 - `types.ts` — LearningPath, LearningModule, Lesson, Enrollment, LessonProgress, Certificate
 - `validators.ts` — Zod
-- `curriculum.ts` — `computePathCompletion`, `getNextLesson`, `isEligibleForCertificate`
-- `progress.ts` — progress calculation
-- `certificate.ts` — verification code `CPUB-{timestamp_base36}-{random_hex8}` (prefix configurable via `generateVerificationCode(prefix)`)
+- `curriculum.ts` — `flattenLessons`, `countLessons`, `calculateEstimatedDuration`, `formatDuration`, `buildCurriculumTree`, `reorderItems`
+- `progress.ts` — `calculatePathProgress`, `isPathComplete`, `getNextLesson`, `getLessonStatus`, `getCompletionPercentageByModule`
+- `quiz.ts` — `gradeQuiz`, `redactQuizAnswers`
+- `certificate.ts` — verification code `CPUB-{timestamp_base36_uppercased}-{random_hex8}` (prefix configurable via `generateVerificationCode(prefix='CPUB')`)
 
 Paths use `status: 'archived'` (soft delete) to preserve enrollment/certificate data.
 
@@ -150,35 +158,36 @@ Peer deps: AWS SDK + Sharp (optional).
 
 `packages/test-utils/src/`
 
-- `factories.ts` — builders for users, content, hubs, etc.
-- `mockConfig.ts` — pre-built `CommonPubConfig` for tests
+- `factories.ts` — `createTestUser`, `createTestSession`, `createTestFederatedAccount`, `createTestOAuthClient`, `resetFactoryCounter` (no content/hub factories)
+- `mockConfig.ts` — `createTestConfig(overrides?)` factory (a function, not a pre-built constant)
 
 ## apps/reference/
 
-Thin Nuxt 3 shell. All features ON, `trustedInstances: ['deveco.io']`. Uses `@commonpub/layer` as workspace dep. Contains:
+Thin Nuxt 3 shell. `trustedInstances: ['deveco.io']`. Uses `@commonpub/layer` as workspace dep. Its `commonpub.config.ts` enables **13 flags** — `content`, `social`, `hubs`, `docs`, `video`, `contests`, `learning`, `explainers`, `editorial`, `federation`, `federateHubs`, `seamlessFederation`, `admin` — and leaves the rest unset, so they take schema defaults: `events`/`publicApi`/`layoutEngine`/`rbac`/`emailNotifications`/`identity.*` **OFF**, `contentImport` **ON**. (Not literally "all features on".) Contains:
 
-- `commonpub.config.ts` — instance config with all features ON
+- `commonpub.config.ts` — instance config (the 13-flag set above)
 - `nuxt.config.ts` — minimal (extends layer)
 - `components/` — branding overrides (SiteLogo)
-- `server/utils/config.ts` — Nitro-dedup workaround: re-exports the config (required, see gotchas)
+- `server/utils/config.ts` — Nitro-side config RESOLVER (not a bare re-export): merges DB overrides > `FEATURE_*` env > build-time `commonpub.config.ts`, cached 60s (required, see gotchas)
 - `public/` — static assets, favicons
 - `e2e/` — Playwright
 - `scripts/seed.ts` — dev seed
 
 ## apps/shell/
 
-Starter template for new CommonPub instances. The config currently mirrors the reference app (all content + community features on) — it's not a minimal-features starter, just the smaller/plainer shell that create-commonpub derives from. Differences from apps/reference: no drizzle.config, no e2e/, no seed scripts, no vitest.config, tighter nuxt.config (devtools only — reference also adds app.head, nitro publicAssets, vite server.fs.allow).
+Starter template for new CommonPub instances. The config nearly mirrors the reference app — **12 flags** on (the same set minus `editorial`) — so it's not a minimal-features starter, just the smaller/plainer shell that create-commonpub derives from. Differences from apps/reference: no e2e/, no seed scripts, no vitest.config, tighter nuxt.config (devtools only — reference also adds app.head, nitro publicAssets, vite server.fs.allow). (Both have a drizzle config — shell `drizzle.config.ts`, reference `drizzle.config.js`.)
 
 ## tools/create-commonpub/ (Rust CLI)
 
 - `main.rs` — clap parser
+- `lib.rs` — library entry (shared between bin + tests)
 - `prompts.rs` — dialoguer prompts
 - `scaffold.rs` — directory creation
 - `template.rs` — file templates
 
 `cargo install create-commonpub` → `create-commonpub new <name>`.
 
-Flags: `--defaults`, `--features`, `--content-types`, `--auth`, `--contest-creation`, `--theme`, `--domain`, `--description`, `--no-docker`.
+Flags: `--defaults`, `--features`, `--content-types`, `--auth`, `--contest-creation`, `--theme`, `--domain`, `--description`, `--admin-user`, `--no-docker`.
 
 ## tools/worker/
 
@@ -198,9 +207,11 @@ Not a standalone worker — the layer's `federation-delivery.ts` server plugin i
 - `app-spec.yaml` — DigitalOcean App Platform
 - `Caddyfile` — reverse proxy, auto-TLS
 - `nginx.conf` — alternative reverse proxy
-- `droplet-setup.sh`, `do-one-click.sh` (21.5KB), `do-status.sh`, `do-destroy.sh`
+- `droplet-setup.sh`, `do-one-click.sh`, `do-status.sh`, `do-destroy.sh`
 - `federation-seed.ts` — multi-instance seed
-- `migrations/` — SQL migration files
+- `package.json` + `vitest.config.ts` + `__tests__/` — deploy/ has its own test suite (Caddyfile/compose assertions)
+
+(Note: there is **no** `deploy/migrations/` directory — committed SQL migrations live in `packages/schema/migrations/` and are applied at deploy time by `scripts/db-migrate.mjs` against `/app/schema/migrations` [`DRIZZLE_MIGRATIONS_FOLDER`].)
 
 Root `docker-compose.yml` uses REMAPPED ports (5433, 6380, 7701) to avoid conflict with local tools.
 
@@ -216,4 +227,6 @@ Separate Nuxt instance with FULL UI implementation (not using the layer). Uses n
 
 - `db-migrate.mjs` — **primary schema-deploy wrapper (session 128+)**. Calls `drizzle-orm/node-postgres/migrator.migrate()` directly against `/app/schema/migrations/`. Used by CI on every deploy. No TTY prompts, fails hard on migration errors.
 - `db-push.mjs` — legacy wrapper for `drizzle-kit push`. Retained for local dev iteration; no longer called by CI.
+- `migrate-homepage-layout.mjs` — homepage-sections → layout-engine migration runner (layout engine)
+- `smoke.mjs` — post-deploy in-container smoke check (hits `/` not just `/api/health`, session 169)
 - `migrate-blog-to-article.sql` — historical one-shot migration (article/blog merge, session 116)

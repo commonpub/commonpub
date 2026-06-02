@@ -75,7 +75,7 @@ other. CommonPub changes that:
 | **Layout engine** | Visual editor at `/admin/layouts` and `/admin/layouts/[id]`. 17 section types arranged across rows in a 12-column grid; supports route layouts, custom pages (`/about`, `/team`), and virtual zones. Drag-drop reorder, edge-handle resize (snap-to-12), per-section auto-form config, undo/redo, keyboard a11y. Auto-save with optimistic concurrency (If-Match → 409 conflict modal). Public render via `<LayoutSlot>` through the shared `<PageFrame>`; sections reuse existing `Block*`/`Homepage*` components (no parallel renderers). Admin-only; gated on `features.layoutEngine`. Editor Phase 3a–3c shipped (sessions 160–168); live as the homepage canary on commonpub.io. |
 | **Admin** | User management, role hierarchy, content moderation, audit logs, instance settings, runtime feature-flag overrides, **configurable navigation**, **configurable homepage sections** (legacy editor, now non-destructively syncs with the layout engine), **layout engine** for page editing, federation controls. |
 
-**17 feature flags** (+ 5 nested `identity` sub-flags) let you enable only what you need. See
+**19 feature flags** (+ 5 nested `identity` sub-flags) let you enable only what you need. See
 [`codebase-analysis/08-feature-flags-inventory.md`](./codebase-analysis/08-feature-flags-inventory.md)
 for the full list with defaults.
 
@@ -150,7 +150,7 @@ Details in [docs/guides/developers.md](docs/guides/developers.md#the-thin-app-pa
 ```
 commonpub/
 ├── packages/           12 framework-agnostic TypeScript packages (published to npm)
-├── layers/base/        Shared Nuxt layer (@commonpub/layer) — 90 pages, 132 components, ~300 API routes
+├── layers/base/        Shared Nuxt layer (@commonpub/layer) — 90 pages, 135 components, 311 API routes
 ├── apps/
 │   ├── reference/      Fully featured Nuxt 3 reference app (all features on)
 │   └── shell/          Minimal starter template
@@ -161,17 +161,17 @@ commonpub/
 ├── docs/               Guides, ADRs, reference, session logs
 │   ├── guides/         Human docs (users.md, developers.md)
 │   ├── llm/            AI-coding-agent context (facts, conventions, gotchas, task-recipes)
-│   ├── reference/      Per-package + per-module reference
+│   ├── reference/      Feature guides (contests, layout-engine, theme-editor, theming, url-structure) + index
 │   ├── adr/            Architecture decision records
 │   ├── sessions/       Chronological session logs (source of truth)
 │   └── archive/        Historical docs
 └── codebase-analysis/  Exhaustive inventory — every table, route, component, flag, gotcha
 ```
 
-- **80+ tables, 41 enums** in the schema across 15 domains
-- **~300 API routes** in the layer
-- **90 pages, 132 components, 33 composables** in the layer
-- **18 feature flags** (+ 5 nested `identity` sub-flags) gating every non-core feature
+- **87 tables, 42 enums** in the schema
+- **311 API routes** (+ 22 ActivityPub/site routes) in the layer
+- **90 pages, 135 components, 34 composables** in the layer
+- **19 feature flags** (+ 5 nested `identity` sub-flags) gating every non-core feature
 
 Full analysis: [`codebase-analysis/`](./codebase-analysis/).
 
@@ -191,19 +191,19 @@ See [`codebase-analysis/01-monorepo-topology.md`](./codebase-analysis/01-monorep
 
 ## Packages
 
-All 12 published to npm as `@commonpub/*`. Latest published versions below (last publish: session 160). The `@commonpub/layer` workspace on `main` is unpublished ahead of `0.24.0` (sessions 161–169: Phase 3c editor, PageFrame, dnd-kit guard); commonpub.io builds from workspace source, deveco.io + heatsynclabs.io run npm `0.24.0`.
+All 12 published to npm as `@commonpub/*`. Latest published versions below (current as of session 181, 2026-06-01 — verify with `npm view @commonpub/<pkg> version`). commonpub.io builds from workspace source; deveco.io + heatsynclabs.io run the published npm layer.
 
 | Package | Version | Purpose |
 |---|---|---|
-| [`@commonpub/schema`](packages/schema/README.md) | 0.17.0 | 80+ Drizzle tables (incl. `layouts`/`layout_rows`/`layout_sections`/`layout_versions`), 41 enums, 50+ Zod validators |
-| [`@commonpub/config`](packages/config/README.md) | 0.15.0 | `defineCommonPubConfig()` factory, 17 feature flags (+5 identity sub-flags) |
-| [`@commonpub/server`](packages/server/README.md) | 2.58.0 | Framework-agnostic business logic (20+ modules incl. `src/layout/*` CRUD, transactions, lifecycle hooks) |
+| [`@commonpub/schema`](packages/schema/README.md) | 0.25.0 | 87 Drizzle tables (incl. `layouts`/`layout_rows`/`layout_sections`/`layout_versions`, RBAC `roles`/`role_permissions`/`user_roles`), 42 enums, 102 Zod validators |
+| [`@commonpub/config`](packages/config/README.md) | 0.16.0 | `defineCommonPubConfig()` factory, 19 feature flags (+5 identity sub-flags) |
+| [`@commonpub/server`](packages/server/README.md) | 2.72.0 | Framework-agnostic business logic (25 modules incl. `src/layout/*` CRUD, RBAC, keyset feed pagination, transactions, lifecycle hooks) |
 | [`@commonpub/protocol`](packages/protocol/README.md) | 0.12.0 | ActivityPub types, HTTP signatures, WebFinger, NodeInfo, OAuth2, SSRF-safe fetch |
-| [`@commonpub/auth`](packages/auth/README.md) | 0.6.0 | Better Auth wrapper, guards, AP Actor SSO (Model B) |
-| [`@commonpub/ui`](packages/ui/README.md) | 0.9.0 | 22 headless Vue 3 components + SectionRegistry/SectionDefinition (Phase 3a layout engine), 5 themes, CSS token system |
-| [`@commonpub/editor`](packages/editor/README.md) | 0.7.11 | TipTap extensions, 20 block types, BlockTuple serialization |
+| [`@commonpub/auth`](packages/auth/README.md) | 0.7.0 | Better Auth wrapper, guards, AP Actor SSO (Model B), RBAC `hasPermissionPure` |
+| [`@commonpub/ui`](packages/ui/README.md) | 0.9.2 | 22 headless Vue 3 components + SectionRegistry/SectionDefinition, 5 themes, CSS token system |
+| [`@commonpub/editor`](packages/editor/README.md) | 0.7.11 | TipTap extensions, 20 block types, BlockTuple serialization, `vue/` editor surface |
 | [`@commonpub/docs`](packages/docs/README.md) | 0.6.3 | Markdown pipeline, versioning, navigation, search adapters |
-| [`@commonpub/explainer`](packages/explainer/README.md) | 0.7.15 | Interactive sections, quiz engine, progress tracking, HTML export |
+| [`@commonpub/explainer`](packages/explainer/README.md) | 0.7.15 | Interactive sections + `modules/` runtime, quiz engine, progress tracking, HTML export |
 | [`@commonpub/learning`](packages/learning/README.md) | 0.5.2 | Learning path engine, progress calculation, certificates |
 | [`@commonpub/infra`](packages/infra/README.md) | 0.8.0 | S3/local storage (DO Spaces CDN), image processing, email adapters, security |
 | [`@commonpub/test-utils`](packages/test-utils/README.md) | 0.5.6 | Test factories and mock configuration |
@@ -212,7 +212,7 @@ Plus the layer itself:
 
 | Package | Version | Purpose |
 |---|---|---|
-| `@commonpub/layer` | 0.24.0 | Shared Nuxt layer — pages, components, API routes, middleware, theme. Phase 3a layout editor (`/admin/layouts`) shipped session 160 + 4 audit rounds. |
+| `@commonpub/layer` | 0.43.3 | Shared Nuxt layer — pages, components, API routes, middleware, theme. Layout editor (Phase 3a–3c), keyset feed, chrome tokenization, config-driven nav. |
 
 ---
 
@@ -329,7 +329,7 @@ Operational:
 
 Reference:
 
-- [docs/adr/](docs/adr/) — 24+ architecture decision records
+- [docs/adr/](docs/adr/) — 26 architecture decision records
 - [docs/sessions/](docs/sessions/) — chronological session logs (source of truth for recent changes)
 - [docs/archive/](docs/archive/) — historical docs preserved for context
 - [CHANGELOG.md](CHANGELOG.md) — release history

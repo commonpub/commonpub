@@ -1,7 +1,15 @@
 # 07 — State & Flow Diagrams
 
 Mermaid diagrams for core domains. Render in any Mermaid-compatible viewer
-(GitHub, GitLab, VS Code preview).
+(GitHub, GitLab, VS Code preview). Diagram bodies re-verified against code
+session 181 (2026-06-01).
+
+> Not yet diagrammed (shipped after the original diagrams): **keyset feed
+> pagination** (`listContentKeyset` → `GET /api/content/feed`, sessions 178–179),
+> **RBAC permission resolution** (`resolveUserPermissions` + `requirePermission`,
+> session 175), and the **layout-engine render path** (`<LayoutSlot>` →
+> `useLayout` → `<LayoutRow>`/`<LayoutSection>`, sessions 155–169). See the
+> homepage-rendering note below and `03`/`05` for those.
 
 ## Authentication
 
@@ -15,16 +23,14 @@ flowchart TD
     E --> G[Request proceeds with auth]
 
     H[/auth/register] --> I[createUser]
-    I --> J[hook: user:registered]
-    J --> K[auto-admin plugin: first user → admin]
-    J --> L[welcome email]
+    AA[server boot] --> K[auto-admin startup plugin: promote first/named user → admin]
 
-    M[/auth/federated/login] -->|instance B| N[WebFinger lookup]
+    M[/api/auth/federated/login] -->|instance B| N[WebFinger lookup]
     N --> O[discoverOAuthEndpoint]
     O --> P[redirect to B's /oauth2/authorize]
     P --> Q[user authenticates at B]
-    Q --> R[callback /auth/federated/callback]
-    R --> S[token exchange /oauth2/token]
+    Q --> R[callback /api/auth/federated/callback]
+    R --> S[token exchange /api/auth/oauth2/token]
     S --> T[link federatedAccount to local user]
 ```
 
@@ -35,10 +41,10 @@ stateDiagram-v2
     [*] --> draft : createContent
     draft --> published : publishContent
     published --> archived : update status
-    draft --> deleted : deleteContent (soft)
-    published --> deleted : deleteContent (soft)
+    draft --> archived_soft : deleteContent (soft)
+    published --> archived_soft : deleteContent (soft)
     archived --> [*]
-    deleted --> [*]
+    archived_soft --> [*]
 
     note right of published
       emits content:published
@@ -46,10 +52,12 @@ stateDiagram-v2
       triggers search index
     end note
 
-    note right of deleted
+    note right of archived_soft
       emits content:deleted
       federates Delete activity
-      soft delete (deletedAt set)
+      contentStatusEnum = draft|published|archived ONLY —
+      "soft delete" sets status='archived' AND deletedAt=now()
+      (there is no 'deleted' status value)
     end note
 ```
 
@@ -107,8 +115,6 @@ flowchart TD
     E -->|no| F[status=waitlisted]
     D --> G[increment attendeeCount]
     F --> H[no increment]
-    G --> I[Notify organizer]
-    H --> I
 
     J[DELETE /api/events/:slug/rsvp] --> K{Transaction}
     K --> L[Load current RSVP]
@@ -117,9 +123,10 @@ flowchart TD
     N --> O[find oldest waitlisted]
     O -->|exists| P[promote to registered]
     P --> Q[increment attendeeCount]
-    Q --> R[Notify promoted user]
     M -->|no| S[delete waitlisted row]
 ```
+
+> **Note:** `rsvpEvent`/`cancelRsvp` (events.ts) fire **no notifications and no hooks** — the routes just return status. (`cancelRsvp` returns `promoted: userId` but the route discards it to a bare boolean; nobody is notified.)
 
 ## Hub post voting
 
@@ -180,7 +187,7 @@ flowchart TD
     C -->|open| D[insert hubMember status=active]
     C -->|approval OR invite| F{invite token valid + matches hubId?}
     F -->|no| X2[error: invite required / invalid]
-    F -->|yes| G[decrement token uses]
+    F -->|yes| G[increment invite useCount toward maxUses]
     G --> D
     D --> H[increment hub.memberCount]
     H --> I[emit hub:member:joined]
@@ -279,19 +286,24 @@ flowchart TD
 
 ## Learning progress
 
+> **Note:** `enrollments` has **no status enum** — these are *derived*
+> states, not stored values. The row tracks `progress` (0–100),
+> `startedAt`, and a nullable `completedAt`. "in_progress"/"certified" are
+> presentation labels; "unenroll" deletes the enrollment row.
+
 ```mermaid
 stateDiagram-v2
-    [*] --> enrolled : POST /api/learn/:slug/enroll
-    enrolled --> in_progress : markLessonComplete (first)
-    in_progress --> in_progress : markLessonComplete (next)
-    in_progress --> completed : 100% of lessons done
-    completed --> certified : auto-issue certificate
+    [*] --> enrolled : POST /api/learn/:slug/enroll (progress=0)
+    enrolled --> in_progress : markLessonComplete (progress > 0)
+    in_progress --> in_progress : markLessonComplete (progress recomputed)
+    in_progress --> completed : progress=100 (completedAt set)
+    completed --> certified : auto-issue certificate row
     certified --> [*]
-    enrolled --> unenrolled : POST /api/learn/:slug/unenroll
+    enrolled --> unenrolled : POST /api/learn/:slug/unenroll (row deleted)
     unenrolled --> [*]
 
     note right of certified
-      verification code: CPUB-{timestamp_base36}-{random_hex8}
+      verification code: CPUB-{timestamp_base36_UPPERCASED}-{random_hex8}
       public route /cert/:code
       no feature flag required
     end note
@@ -299,19 +311,28 @@ stateDiagram-v2
 
 ## Homepage rendering
 
+`pages/index.vue` is a 3-way `v-if`: (1) when `features.layoutEngine` is ON
+**and** a layout exists at scope `('route','/')`, render via `<LayoutSlot>`
+(the live commonpub.io canary); (2) else if configurable sections exist,
+the legacy `HomepageSectionRenderer` below; (3) else the hardcoded homepage.
+Section `type` strings are **kebab-case** and component names are
+`Homepage`-prefixed (Nuxt pathPrefix registration of `components/homepage/*`).
+
 ```mermaid
 flowchart TD
     A[GET /] --> B[server middleware resolves theme + features]
-    B --> C[fetch instanceSettings.homepage.sections]
-    C --> D[HomepageSectionRenderer dispatches]
+    B --> Z{layoutEngine ON AND layout at route '/'?}
+    Z -->|yes| Y[LayoutSlot → LayoutRow → LayoutSection]
+    Z -->|no| C[fetch instanceSettings.homepage.sections]
+    C --> D[HomepageSectionRenderer dispatches on section.enabled/zone/feature]
     D --> E{section.type}
-    E -->|hero| F[HeroSection]
-    E -->|contentGrid| G[ContentGridSection]
-    E -->|editorial| H[EditorialSection]
-    E -->|contests| I[ContestsSection]
-    E -->|hubs| J[HubsSection]
-    E -->|stats| K[StatsSection]
-    E -->|customHtml| L[CustomHtmlSection]
+    E -->|hero| F[HomepageHeroSection]
+    E -->|content-grid| G[HomepageContentGridSection]
+    E -->|editorial| H[HomepageEditorialSection]
+    E -->|contests| I[HomepageContestsSection]
+    E -->|hubs| J[HomepageHubsSection]
+    E -->|stats| K[HomepageStatsSection]
+    E -->|custom-html| L[HomepageCustomHtmlSection]
     F --> M[render]
     G --> M
     H --> M

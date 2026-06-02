@@ -1,22 +1,29 @@
 # 12 — Scaling & Infrastructure
 
 How CommonPub is deployed today, what breaks first under load, and
-pragmatic scaling paths — especially on DigitalOcean.
+pragmatic scaling paths — especially on DigitalOcean. Current-state facts
+re-verified session 181 (2026-06-01); the multi-instance scaling path is
+forward-looking. Note `deploy/app-spec.yaml` sets `DATABASE_URL`/`REDIS_URL`
+(un-prefixed) while the app reads `NUXT_DATABASE_URL`/`NUXT_REDIS_URL` — the
+App-Platform path needs the `NUXT_` prefix to actually wire those (the
+Droplet `docker-compose.prod.yml` path uses the correct names).
 
 ## Current state (single-instance)
 
 | Concern | Implementation |
 |---|---|
 | HTTP server | Single Nitro (`node-server` preset) |
-| Database | PostgreSQL 16 (self-hosted on Droplet for commonpub.io, DO Managed for deveco.io) |
+| Database | PostgreSQL 16 (self-hosted on Droplet for commonpub.io; DO Managed for deveco.io; heatsynclabs.io also on DO) |
+| Production instances | **3** — commonpub.io (monorepo-source layer), deveco.io + heatsynclabs.io (thin npm-layer consumers); all DO + Docker + Caddy, auto-deploy from main |
 | Search | Meilisearch v1.12 single node (optional; falls back to Postgres FTS via `@commonpub/docs`) |
 | Session store | Better Auth tables in Postgres |
 | Rate limit store | In-process `Map` via `MemoryRateLimitStore` by default; `NUXT_REDIS_URL` flips it to `RedisRateLimitStore` (session 130) |
-| SSE streams | `/api/realtime/stream` + `/api/messages/:id/stream` — event-driven via `RealtimePubSub` (in-process EventEmitter by default; Redis pub/sub when `NUXT_REDIS_URL` is set) + 30 s polling safety net (session 130) |
-| Federation delivery | `activities` table + setInterval poll every 30s, advisory-lock on `lockedAt`, exponential backoff (1m, 5m, 30m, 2h, 12h, 48h), dead-letter after 6 retries |
+| SSE streams | `/api/realtime/stream` + `/api/messages/:conversationId/stream` — event-driven via `RealtimePubSub` (in-process EventEmitter by default; Redis pub/sub when `NUXT_REDIS_URL` is set) + 30 s polling safety net (session 130) |
+| Read pagination | OFFSET + per-request `COUNT(*)` (`listContent`, `GET /api/content`) for numbered/admin/mutable-sort lists; **keyset/cursor** (`listContentKeyset`, `GET /api/content/feed`) for the infinite-scroll feed — O(limit)/page, no COUNT, backed by migration 0012 partial composite indexes (sessions 178–179) |
+| Cache layer | In-process **RBAC permission cache** (30 s TTL, bounded LRU, `layers/base/server/utils/permissions.ts`) — per-process, so multi-pod has ≤30 s cross-pod staleness on demote/revoke (documented, accepted v1). Otherwise relies on DB indexes + denormalized counters + the 60 s layout-by-route cache |
+| Federation delivery | `activities` table + setInterval poll every 30s, **claim-based optimistic locking** (UPDATE sets `lockedAt` with a 5-min `LOCK_EXPIRY_MS` fallback — NOT a Postgres advisory lock; the only `pg_advisory_xact_lock` is in messaging conversation-creation), exponential backoff (1m, 5m, 30m, 2h, 12h, 48h), dead-letter after 6 retries |
 | Static assets | Served by Nitro (no CDN) |
 | Image variants | On-demand via `@commonpub/infra` Sharp wrapper |
-| Cache layer | None (relies on DB indexes + denormalized counters) |
 | Log aggregation | stdout → Docker → journald on Droplet |
 
 Redis IS provisioned in `docker-compose.yml` (and `docker-compose.prod.yml`). Session 130 wired it into the rate-limit and SSE paths; it is **opt-in via `NUXT_REDIS_URL`** — unset leaves the code on the original single-process path. See "Redis — wired in session 130" below for the flip procedure.
@@ -31,6 +38,7 @@ Redis IS provisioned in `docker-compose.yml` (and `docker-compose.prod.yml`). Se
 3. **Federation delivery polling overhead.** At ~30s interval with advisory locking, workable for hundreds of deliveries/hour. Becomes noisy (and Postgres contention grows) in the thousands.
 4. **Publish-burst latency.** Publishing to a hub with N remote followers queues N activity rows. Delivery latency can be up to 30s on first attempt.
 5. **Static asset throughput.** Nitro serves everything. At ~100 RPS of images the event loop gets squeezed.
+6. **OFFSET read path under deep paging.** `listContent` runs `COUNT(*)` every request and OFFSET scans grow with page depth. The keyset feed (`/api/content/feed`, migration 0012 partial indexes) already relieves infinite-scroll; numbered/admin lists and the mutable-sort feeds (popular/featured/editorial) still pay it.
 
 ## Fedify — do we migrate?
 

@@ -4,31 +4,35 @@
 DB handle, performs writes in transactions where correctness requires, and emits
 lifecycle hooks. Pure TypeScript. No Nuxt dependency.
 
-Source: `packages/server/src/`. As of session 125 (2026-04-16).
+Source: `packages/server/src/`. Re-verified session 181 (2026-06-01).
+**25 module directories + 11 top-level `.ts` files** (10 utilities — email, hooks, image, oauthCodes, query, security, storage, theme, types, utils — plus `index.ts` the package barrel).
 
-**Modules added since 125 (not yet enumerated in detail below)**:
+Modules beyond the original (session-125) mapping, now folded into the directory map below:
 - `identity/` — cross-instance identity (Phase 1a foundation + Phase 1b runtime, sessions 136–140). Files: `fediClient.ts`, `health.ts`, `index.ts`, `mastodonFactory.ts`, `router.ts`. Behind `features.identity.*` flags.
-- `publicApi/` — read-only public API (session 127). Bearer-token auth (`api_keys`), 13 read scopes, OpenAPI 3.1.
-- `realtime/` — SSE pub/sub abstraction (session 130). `publishSseEvent` / `subscribeSseEvents` against `@commonpub/infra`'s `RealtimePubSub`.
+- `publicApi/` — read-only public API (session 127). Bearer-token auth (`api_keys`), **12 read scopes**, OpenAPI 3.1. Files: `adminOps.ts`, `auth.ts`, `keys.ts`, `rateLimit.ts`, `scopes.ts`, `serializers.ts`, `usage.ts`, `index.ts`.
+- `realtime/` — SSE pub/sub abstraction (session 130). Exports `publishSseEvent`, `subscribeSseEvents`, `realtimeChannel`, `resetRealtimeForTests` against `@commonpub/infra`'s `RealtimePubSub`.
+- `rbac/` — RBAC phase 0/1 (sessions 175–177). `resolveUserPermissions` (`rbac/resolver.ts`) with a 30s-TTL cache; admin `*` grant deliberately NOT cached (fresh `users.role` floor). Behind `features.rbac` (default OFF).
 - `federation/mastodonLogin.ts` — Mastodon SSO server-side (session 139).
 - `federation/safeFetchFn.ts` — `createSafeActorFetchFn` for SSRF-safe `resolveActor` (session 150).
 
-`@commonpub/server` exports `safeFetch`, `safeFetchBinary`,
+`@commonpub/server` re-exports `safeFetch`, `safeFetchBinary`,
 `safeFetchResponse`, `safeFetchSigned`, `isPrivateUrl`,
-`SafeFetchOptions`, `SafeFetchResponseResult`, `getClientIp`,
-`GetClientIpOptions` (re-exported from `@commonpub/protocol` and
-`@commonpub/infra` for backward compat — see 06-other-packages).
+`SafeFetchOptions`, `SafeFetchResponseResult` (from `@commonpub/protocol`
+via `import/ssrf.ts`) plus `getClientIp`, `GetClientIpOptions` (from the
+local `security.ts`) — see 06-other-packages.
 
 ## Directory map
 
 ```
 packages/server/src/
 ├── admin/           admin.ts            platform stats, users, reports, instance settings, audit entries
-├── auth/            identity.ts         email/username resolution, session helpers
-├── content/         content.ts          CRUD, versions, forks, publish, build-marks
+├── auth/            identity.ts         email/username resolution, session helpers; index.ts re-exports resolveIdentityToEmail
+├── identity/        fediClient.ts, health.ts, mastodonFactory.ts, router.ts  cross-instance identity (Phase 1a/1b, behind features.identity.*)
+├── content/         content.ts          CRUD, versions, forks, publish, build-marks, keyset feed
 │                    categories.ts       category CRUD
 ├── contest/         contest.ts          contest CRUD, entries, judging, rank calc, state transitions
 │                    judges.ts           invite/accept workflow for contestJudges
+│                    stakeholders.ts     view-only reviewers (contest_stakeholders, session 174)
 ├── docs/            docs.ts             sites + versions + pages (BlockTuple[] content)
 ├── events/          events.ts           events + RSVP with auto-waitlist logic
 ├── federation/      federation.ts       core AP actors + content federation
@@ -45,6 +49,10 @@ packages/server/src/
 │                    timeline.ts         federated content timeline query
 ├── homepage/        homepage.ts         homepage-section config (stored in instanceSettings)
 ├── layout/          layout.ts           layout engine CRUD: zones→rows→sections + versions (session 157)
+│                    seed.ts             seedHomepageLayout
+│                    migrate-homepage.ts migrateHomepageSectionsToLayout
+│                    path-normalize.ts   pathNormalize + RESERVED_PREFIXES/RESERVED_EXACT
+│                    custom-page-validate.ts validateCustomPageScope + FILE_ROUTE_PREFIXES
 ├── hub/             hub.ts              hub CRUD
 │                    members.ts          join/leave/kick/role, remote member merge
 │                    moderation.ts       bans, invites
@@ -52,14 +60,20 @@ packages/server/src/
 │                    resources.ts        hub resources CRUD
 ├── import/          importer.ts         content import from URL with SSRF protection
 │                    generic.ts          generic scraper
-│                    ssrf.ts             RFC private-IP block (IPv4+IPv6)
-├── learning/        learning.ts         paths, modules, lessons, enrollment, certificates
+│                    images.ts           resolveContentImages (lazy-loaded image resolution)
+│                    ssrf.ts             RFC private-IP block (IPv4+IPv6); re-exports protocol safeFetch*
+│                    types.ts            import types
+│                    platforms/hackster.ts platform-specific extractor
+├── learning/        learning.ts         paths, modules, lessons, enrollment, progress, certificates (the pure helpers `calculatePathProgress`/`gradeQuiz`/`generateVerificationCode` are imported FROM `@commonpub/learning`, not defined here; only `index.ts` + `learning.ts` exist in this module)
 ├── messaging/       messaging.ts        conversations, messages, read receipts
 ├── navigation/      navigation.ts       nav items config (stored in instanceSettings)
 ├── notification/    notification.ts     notifications + email prefs + digest
 ├── product/         product.ts          hub-scoped products, content-product linking
 ├── profile/         profile.ts          user profile view + update
 │                    export.ts           GDPR data export
+├── publicApi/       auth.ts, keys.ts, scopes.ts, serializers.ts, rateLimit.ts, usage.ts, adminOps.ts  public read API (12 scopes; behind features.publicApi)
+├── rbac/            resolver.ts         resolveUserPermissions (30s-TTL cache; behind features.rbac)
+├── realtime/        index.ts            publishSseEvent / subscribeSseEvents / realtimeChannel / resetRealtimeForTests
 ├── search/          contentSearch.ts    Meilisearch + Postgres FTS fallback
 ├── social/          social.ts           likes, follows, comments, bookmarks, reports
 │                    mentions.ts         parse + resolve @mentions
@@ -69,8 +83,8 @@ packages/server/src/
 ├── hooks.ts                             lifecycle event bus (on/emit/clear)
 ├── image.ts                             processImage, variant selection
 ├── oauthCodes.ts                        auth-code storage with TTL
-├── query.ts                             pagination, slug uniqueness, escapeLike, USER_REF_SELECT
-├── security.ts                          CSP builder, rate limit store, nonce
+├── query.ts                             pagination, slug uniqueness, escapeLike, USER_REF_SELECT, cursor helpers (encode/decode/asDateUuidCursor/keysetWhere), countRows, path builders
+├── security.ts                          CSP builder, rate limit store, nonce, getClientIp
 ├── storage.ts                           Local + S3 adapters
 ├── theme.ts                             user theme resolution + custom-theme CRUD (session 154)
 ├── types.ts                             cross-module types (UserRef, ContentDetail, etc.)
@@ -83,18 +97,21 @@ packages/server/src/
 
 **content.ts** — contentItems + related tables
 
-- `listContent(db, filters)` — paginated, filter by type/status/author
+- `listContent(db, filters, opts)` — OFFSET-paginated `{ items, total }` (per-request `COUNT(*)`); filter by type/status/author. Backs `GET /api/content` (numbered/admin lists, search, popular/featured/editorial sorts).
+- `listContentKeyset(db, {...filters, cursor}, opts)` — keyset/cursor pagination `{ items, nextCursor }` (recency order `published_at DESC NULLS LAST, id DESC`, O(limit)/page, no COUNT). Backs `GET /api/content/feed` (infinite scroll); federated case = keyset-merge across sources. Sessions 178–179; backed by migration 0012 partial indexes.
 - `getContentBySlug(db, username, type, slug)`
+- `incrementViewCount(db, contentId)`
 - `createContent(db, input)` — sanitizes HTML blocks
-- `updateContent(db, id, userId, input)` — author-only; federates Update
-- `publishContent(db, id, userId)` — draft → published; emits `content:published` hook; federates Create
-- `deleteContent(db, id, userId)` — soft delete; federates Delete
+- `updateContent(db, id, userId, input)` — author-only status/field write (NO hook/federation here — those are in the `onContent*` wrappers below)
+- `publishContent(db, id, userId)` — `createContentVersion` snapshot, then delegates to `updateContent(..., { status: 'published' })`. It does NOT itself emit a hook or federate.
+- `deleteContent(db, id, userId)` — soft-delete UPDATE only (no hook/federation here)
+- `onContentPublished` / `onContentUpdated` / `onContentDeleted` — the side-effect wrappers the API routes call AFTER the CRUD fn: these emit `content:published`/`content:updated`/`content:deleted` and call `federateContent`/`federateUpdate`/`federateDelete`. (This is where the hooks + AP activities actually fire.)
 - `forkContent(db, id, userId)` — local fork (counter + forks row)
 - `forkFederatedContent(db, federatedContentId, userId)`
-- `toggleBuildMark(db, contentId, userId)` — "I built this"
-- `toggleFederatedBuildMark(db, federatedContentId, userId)`
+- `toggleBuildMark(db, contentId, userId)` — "I built this"; `isBuildMarked(db, contentId, userId)`
+- `toggleFederatedBuildMark(db, federatedContentId, userId)`; `isFederatedBuildMarked(...)`
 - `listContentVersions`, `createContentVersion`
-- Hooks emitted: `content:published`, `content:updated`, `content:deleted`
+- Hooks emitted (from the `onContent*` wrappers, not the CRUD fns): `content:published`, `content:updated`, `content:deleted`
 
 ### contest/
 
@@ -102,7 +119,7 @@ packages/server/src/
 
 - `listContests(db, filters)`
 - `getContestBySlug(db, slug)` — returns rules, prizes, `judgingCriteria`, `judgingVisibility`, `communityVotingEnabled`, `eligibleContentTypes`, `maxEntriesPerUser` (NOT `judges` — that jsonb is dead; use `/judges`)
-- `createContest(db, input, options?)` — checks `canCreateContest(userRole, policy)`; seeds the `contestJudges` table from `input.judges`
+- `createContest(db, input, options?)` — checks `canCreateContest(userRole, policy)` **only when `options.userRole` is supplied** (no options → the permission check is skipped); seeds the `contestJudges` table from `input.judges`
 - `transitionContestStatus(db, id, userId, newStatus)` — enforces FSM; runs `calculateContestRanks` on completion
 - `submitContestEntry(db, contestId, contentId, userId)` — enforces published + ownership + `eligibleContentTypes` + `maxEntriesPerUser`
 - `judgeContestEntry(db, entryId, score, judgeId, feedback?)` — accepted, non-guest judges only; recomputes the average
@@ -167,9 +184,9 @@ Contest entry community votes:
 
 ### hub/
 
-**hub.ts** — CRUD. Creator gets `hubRole: owner`. Supports 3 types (community/product/company).
+**hub.ts** — CRUD. Creator gets `hubRole: owner`. The schema supports 3 hub types (community/product/company), but `createHub` does NOT accept a `hubType` param — new hubs always default to `community` (the schema default).
 
-**members.ts** — `joinHub` respects `joinPolicy` (open/approval/invite); `changeRole` enforces weight hierarchy (owner > admin > moderator > member). `listRemoteMembers` merges `hubFollowers` for federated views.
+**members.ts** — `joinHub` respects `joinPolicy` (open/approval/invite); `changeRole` enforces weight hierarchy (owner > admin > moderator > member). `listRemoteMembers` is a standalone query returning the hub's remote `hubFollowers` (it does NOT merge them into the local member list — any merge is at the call site).
 
 **posts.ts** — post CRUD + threaded replies + likes + shareContent; emits `hub:post:created`. `hub:content:shared` is declared but not yet emitted.
 
@@ -185,7 +202,7 @@ Contest entry community votes:
 
 **docs.ts** — versioned docs sites. New pages store `content` as BlockTuple[]; legacy markdown supported on read (converted on edit). Search delegates to Meilisearch (via `@commonpub/docs` adapter) with Postgres FTS fallback.
 
-### federation/ (10 files)
+### federation/ (15 files: 14 domain + index)
 
 - **federation.ts** — keypair lifecycle, remote-actor resolve+cache, Create/Update/Delete/Like/Follow activity builders
 - **delivery.ts** — worker polls `activities` where `status='pending'`, delivers via HTTP Signature, updates status, increments attempts, writes errors. Respects instance circuit-breaker state.
@@ -199,6 +216,8 @@ Contest entry community votes:
 - **oauth.ts** — OAuth2 auth server endpoints for AP Actor SSO (Model B)
 - **outboxQueries.ts** — helpers for building Collection/OrderedCollection pagination
 - **timeline.ts** — timeline query merging local contentItems + federatedContent with filters
+- **mastodonLogin.ts** — Mastodon SSO server-side (session 139)
+- **safeFetchFn.ts** — `createSafeActorFetchFn` for SSRF-safe `resolveActor` (session 150)
 
 ### social/
 
@@ -208,7 +227,7 @@ Contest entry community votes:
 
 ### messaging/
 
-**messaging.ts** — instance-local DMs. `findOrCreateConversation(db, participants)` deduplicates 1-to-1. `conversations.participants` is JSONB string array with GIN index.
+**messaging.ts** — instance-local DMs. `findOrCreateConversation(db, participants)` reuses an existing conversation matching the **exact participant set** (sorted `@>` + `jsonb_array_length` equality) — works for any set, not only 1-to-1. `conversations.participants` is JSONB string array with GIN index.
 
 ### notification/
 
@@ -226,6 +245,13 @@ Both are thin CRUD over `instanceSettings` JSONB keys:
 - `homepage.sections` — array of section configs (hero, grid, editorial, stats, custom html, etc.)
 
 ### layout/ (session 157 — Phase 1 of the layout engine)
+
+The `layout/` module is **5 files**; `layout.ts` carries the 8 CRUD
+exports below, with `seed.ts` (`seedHomepageLayout`),
+`migrate-homepage.ts` (`migrateHomepageSectionsToLayout`),
+`path-normalize.ts` (`pathNormalize` + `RESERVED_PREFIXES`/`RESERVED_EXACT`),
+and `custom-page-validate.ts` (`validateCustomPageScope` + `FILE_ROUTE_PREFIXES`)
+alongside.
 
 **layout.ts** — full CRUD for the new layout engine, which replaces
 `homepage.sections` once `features.layoutEngine` flips ON (Phase 4
@@ -258,16 +284,15 @@ create a circular FK with cascade-delete chicken-and-egg. Read-side
 tolerates stale id by treating as "no published version".
 
 **Tests**: `packages/server/src/__tests__/layout-server.integration.test.ts`
-— 21 PGlite integration tests covering CRUD round-trip, position
+— 24 PGlite integration tests covering CRUD round-trip, position
 normalization, cascade DELETE, all 3 scope variants, version
-immutability, revert. Server total: 1003 → 1024 after this module
-landed.
+immutability, revert.
 
 ### import/
 
 **importer.ts** — URL → content with block extraction. Uses Readability-style parsing.
 
-**ssrf.ts** — hard block on: RFC1918 (10/8, 172.16/12, 192.168/16), loopback (127/8, ::1), CGN (100.64/10), link-local (169.254/16, fe80::/10), IPv6 unique-local (fc00::/7 via fc/fd prefix match), benchmarking (198.18/15), reserved (192.0.0/24, 0/8), TEST-NET 1/2/3 (192.0.2/24, 198.51.100/24, 203.0.113/24), blocked hostnames (localhost, metadata.google.internal, metadata.internal). Handles IPv6 bracketed form by stripping `[...]` before matching. 6to4 (2002::/16) is NOT explicitly blocked — low-risk but a gap. Hardened in v0.2.0 audit.
+**ssrf.ts** — `packages/server/src/import/ssrf.ts` is now a **re-export shim** ("Do not add logic here — edit `packages/protocol/src/ssrf.ts`"). The actual blocklist (in `@commonpub/protocol`) hard-blocks: RFC1918 (10/8, 172.16/12, 192.168/16), loopback (127/8, ::1), CGN (100.64/10), link-local (169.254/16, fe80::/10), IPv6 unique-local (fc00::/7), **6to4 (2002::/16) AND NAT64 (64:ff9b::/96) — both ARE blocked** (the old "6to4 is a gap" note is obsolete), benchmarking (198.18/15), reserved, TEST-NET 1/2/3, blocked hostnames (localhost, metadata.google.internal, metadata.internal), and numeric-encoding bypasses (hex/octal). (Note: `security.ts`/`image.ts`/`email.ts`/`storage.ts` listed below are likewise re-export shims from `@commonpub/infra`.)
 
 ### infra utilities (file-level, not domain modules)
 
@@ -287,22 +312,34 @@ landed.
 
 **hooks.ts** — consumer extension bus. `onHook('content:published', handler)` registers; `emitHook('content:published', { contentId })` fires all handlers sequentially. Used by the layer's server plugins for email, search indexing, federation delivery.
 
-**query.ts** — DRY helpers. `ensureUniqueSlugFor`, `normalizePagination`, `escapeLike`, `buildPartialUpdates`, `USER_REF_SELECT` (standard Drizzle select shape for user references).
+**query.ts** — DRY helpers. `ensureUniqueSlugFor`, `normalizePagination`, `escapeLike`, `buildPartialUpdates`, `countRows`, `USER_REF_SELECT` (+ `_WITH_BIO_`/`_WITH_HEADLINE_` variants), the content path builders (`buildContentPath`/`buildContentUrl`/`buildContentEditPath`/`buildContentNewPath`), and the **keyset cursor helpers** (sessions 178–179): `encodeCursor`/`decodeCursor` (opaque base64url of `{v,id}`; `decodeCursor` returns null on bad input → page-1 fallback), `asDateUuidCursor` (domain-narrows to date-or-null `v` + uuid `id` — the crafted-cursor DoS fix, session 180), and `keysetWhere(sortCol, idCol, cursor)` (NULLS-LAST predicate).
 
-**utils.ts** — `generateSlug(text)` (lowercase + NFD strip + hyphen + timestamp on collision), `hasPermission(role, permission)`, `canManageRole(actorRole, targetRole)`.
+### rbac/ + identity/ + publicApi/ + realtime/
+
+- **rbac/resolver.ts** — `resolveUserPermissions(db, userId, { rbacEnabled, primaryRole? })`: a PURE, uncached core that resolves role→permission grants (PGlite-testable). The admin `*` grant is deliberately NOT baked into the returned set; admin access rides a gate-time floor over the fresh `users.role` so demotion is immediate (INV-1, session 175). **The 30s-TTL bounded cache lives in the LAYER wrapper `layers/base/server/utils/permissions.ts` (`PERMISSIONS_CACHE_TTL_MS = 30_000`), NOT in this resolver.** Behind `features.rbac` (default OFF). See also `@commonpub/auth`'s `hasPermissionPure`.
+- **identity/** — cross-instance identity runtime (`fediClient.ts`, `mastodonFactory.ts`, `router.ts`, `health.ts`). Behind `features.identity.*`. Token I/O requires `CPUB_FED_TOKEN_KEY`.
+- **publicApi/** — bearer-token public read API: `auth.ts` (token verify), `keys.ts` (issue/revoke), `scopes.ts` (**12** read scopes), `serializers.ts`, `rateLimit.ts`, `usage.ts`, `adminOps.ts`. Behind `features.publicApi` (default OFF).
+- **realtime/** — `publishSseEvent` / `subscribeSseEvents` / `realtimeChannel` / `resetRealtimeForTests` over `@commonpub/infra`'s `RealtimePubSub` (memory or Redis via `NUXT_REDIS_URL`).
+
+**utils.ts** — `generateSlug(text)` (lowercase + `replace(/[^\w\s-]/g,'')` + hyphenate; appends a timestamp only on a `RESERVED_SLUGS` match — NOT on general collision, and there is NO `.normalize('NFD')`; general slug-collision handling lives in `ensureUniqueSlugFor`, query.ts), `hasPermission(role, permission)`, `canManageRole(actorRole, targetRole)`.
 
 ## Transactions
 
-Places that must be transactional (correctness, not perf):
+Places that must be transactional (correctness, not perf). **Verified `db.transaction(...)`-wrapped:**
 
 - `voteOnPost` — atomic vote insert/delete + score update
 - `voteOnPoll` — atomic vote + option count update
 - `rsvpEvent` — atomic capacity check + status assignment
 - `cancelRsvp` — atomic cancel + waitlist promotion
-- `submitContestEntry` — atomic entry insert + contest entryCount update
-- `joinHub` / `leaveHub` — atomic member row + memberCount update
-- `createPost` / `deletePost` — member row + post + denormalized hub.postCount
-- `publishContent` — status change + federation activity enqueue
+- `joinHub` — atomic member row + memberCount update
+- `createPost` — member row + post + denormalized hub.postCount
+- `judgeContestEntry` — `SELECT … FOR UPDATE` on the entry row + judgeScores read-modify-write (the ONLY `db.transaction` in `contest.ts`)
+
+Caveats (NOT wrapped, despite the same atomicity need):
+
+- **`submitContestEntry`** — does `insert(contestEntries)` then `update(contests).entryCount` as **two separate statements, NOT in a transaction** (a prior audit pass mislabeled this transactional via an unreliable heuristic; verified non-wrapped at `contest.ts`).
+- **`leaveHub`** — `delete(hubMembers)` then `update(hubs).set(memberCount-1)` as **two separate statements, NOT in a transaction** (latent atomicity gap; both single-row).
+- **`publishContent`** — a thin wrapper: `createContentVersion` then delegates to `updateContent(..., { status: 'published' })`; the status write happens there, not in a transaction opened by `publishContent` itself.
 
 ## Permission hierarchy
 
@@ -341,9 +378,9 @@ events are declared in the type registry but nothing calls them yet.
 
 | Event | Status | Source |
 |---|---|---|
-| content:published | **emitted** | `content/content.ts` (`publishContent`) |
-| content:updated | **emitted** | `content/content.ts` (`updateContent`) |
-| content:deleted | **emitted** | `content/content.ts` (`deleteContent`) |
+| content:published | **emitted** | `content/content.ts` (`onContentPublished`, not `publishContent`) |
+| content:updated | **emitted** | `content/content.ts` (`onContentUpdated`, not `updateContent`) |
+| content:deleted | **emitted** | `content/content.ts` (`onContentDeleted`, not `deleteContent`) |
 | comment:created | **emitted** | `social/social.ts` (`createComment`) |
 | hub:post:created | **emitted** | `hub/posts.ts` (`createPost`) |
 | hub:member:joined | **emitted** | `hub/members.ts` (`joinHub`) |
@@ -363,6 +400,6 @@ Consumer apps can register additional handlers via `onHook()` in their own serve
 ## What's missing / known issues
 
 - Some tables lack Zod validators (see schema inventory). `events` + `eventAttendees` are the notable gaps.
-- `federatedContent.mirrorId` has no FK — enforced in app code only.
-- 3 skipped tests (PGlite limitations per memory).
+- `federatedContent.mirrorId` now HAS a DB-level FK (`ON DELETE SET NULL`, migration 0002 `session130_constraints`) — the old "app-enforced only" note is obsolete.
+- A few PGlite-skipped integration tests (partial-index limitations per memory).
 - No dedicated module for `files/` CRUD beyond storage adapter — handled inline in the layer's upload API route.

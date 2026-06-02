@@ -71,11 +71,12 @@ Reproduced cleanly in `node:22-alpine` containers across pnpm `10.10.0` AND `10.
 2. If that doesn't fix it: switch the consumer's Dockerfile from `pnpm install --frozen-lockfile` to `npm install` (heatsync's approach — known-good).
 3. Long-term: file a pnpm bug with the reproducer; consider standardising consumer-site Dockerfiles on `npm install`.
 
-**Pre-bump sanity check** — before pushing a deveco-style consumer-site pin bump, build the image and verify the schema 0.17.0 dist has ≥ 80 files:
+**Pre-bump sanity check** — before pushing a deveco-style consumer-site pin bump, build the image and confirm the installed `@commonpub/schema` dist is COMPLETE. Don't hardcode a magic number — the count grows with the schema (it was ~80 at 0.17.0 / 18 src files; schema is now 0.25.0 / **23 src files**, so expect proportionally more). Compare against a fresh `npm pack` / non-frozen install of the SAME version, and verify `dist/index.js` actually `export *`s every domain module:
 ```sh
 docker build -t verify .
 docker run --rm --entrypoint sh verify -c 'ls /app/.output/server/node_modules/@commonpub/schema/dist | wc -l'
-# Expect: 80. If less than 80, the install is bad — DO NOT push the pin bump.
+# Compare to: npm pack @commonpub/schema@<ver> && tar tzf *.tgz | grep dist/ | wc -l
+# If the installed count is LOWER than the packed count, the install dropped files — DO NOT push the pin bump.
 ```
 
 Memory: `feedback_pnpm_install_drops_files.md`.
@@ -174,7 +175,8 @@ Before running a multi-instance web tier, swap in a Redis-backed store. See
 via `RealtimePubSub` (`packages/infra/src/realtime/`). Memory backend
 (in-process EventEmitter) by default; Redis backend (`RedisRealtimePubSub`
 with a dedicated subscriber client + auto-replay on reconnect) when
-`NUXT_REDIS_URL` is set. 30 s DB-poll retained as a safety net.
+`NUXT_REDIS_URL` is set **AND `ioredis` is installed** (else it falls back
+to memory). 30 s DB-poll retained as a safety net.
 
 **Pre-session-130 (incorrect, but for historical context)**: the stream
 only polled the DB — multi-instance deploys had a fanout gap (instance
@@ -184,7 +186,7 @@ the 30 s poll). Session 130 fixed this.
 ### Federation delivery is setInterval-based
 
 The delivery worker polls `activities` every `deliveryIntervalMs` (default
-30s). Multi-instance workers are coordinated by `lockedAt` advisory locks,
+30s). Multi-instance workers are coordinated by **claim-based optimistic locking** on the `lockedAt` timestamp column (UPDATE-to-claim with a 5-min `LOCK_EXPIRY_MS` fallback — NOT a Postgres advisory lock),
 so parallel workers are safe — but each one still runs its own SELECT. At
 very high scale, prefer Postgres LISTEN/NOTIFY or BullMQ over blind polling.
 
@@ -378,9 +380,10 @@ Every new feature lives behind a flag in `commonpub.config.ts`. No exceptions.
 
 ### `federatedContent.mirrorId` FK — added in migration 0002
 
-As of schema 0.14.4, `mirror_id` has an FK to `instance_mirrors(id)` with
-`ON DELETE SET NULL`. The migration nulls any orphan references first,
-then enforces. Before 0.14.4 the reference was app-level only.
+Migration `0002_session130_constraints` added an FK from `mirror_id` to
+`instance_mirrors(id)` with `ON DELETE SET NULL`. The migration nulls any
+orphan references first, then enforces. Before that the reference was
+app-level only.
 
 ### Article type is legacy — use blog or project
 
@@ -389,10 +392,10 @@ normalizes to `blog`. New code should use `blog`, `project`, or `explainer`.
 
 ### Events attendees — UNIQUE(eventId, userId) — added in migration 0002
 
-`event_attendees` gained a UNIQUE on `(event_id, user_id)` in schema
-0.14.4. `rsvpEvent` uses `ON CONFLICT DO NOTHING` so a racing duplicate
-falls through to the "already registered" response path, not a 500.
-Pre-0.14.4 duplicates were possible on fast double-clicks.
+`event_attendees` gained a UNIQUE on `(event_id, user_id)` in migration
+`0002_session130_constraints`. `rsvpEvent` uses `ON CONFLICT DO NOTHING`
+so a racing duplicate falls through to the "already registered" response
+path, not a 500. Before that, duplicates were possible on fast double-clicks.
 
 ## Security
 
@@ -518,9 +521,10 @@ in any CommonPub-related repo.
 ### PGlite can't do X (3 skipped tests)
 
 Three integration tests are skipped because PGlite (the in-process Postgres)
-doesn't support the features they exercise (advisory locks and certain extension
-types). Running against a real Postgres makes them pass. Don't "fix" them by
-rewriting against the in-process engine.
+doesn't support specific SQL they exercise: 2 in `hub.integration.test.ts`
+(`ON CONFLICT … DO NOTHING … RETURNING`) and 1 in `messaging.integration.test.ts`
+(`JSONB @> with jsonb_array_length`). Running against a real Postgres makes them
+pass. Don't "fix" them by rewriting against the in-process engine.
 
 ### Stryker mutation runs are slow
 
@@ -587,7 +591,7 @@ with `accept: 'application/json'`.
 
 `packages/protocol/src/sign.ts:41`. NOT content-type. The strict
 inbound coverage policy `verifyHttpSignature` (session 149's Item 7)
-requires those four headers in the signed set; if our outbound signs
+requires `(request-target)`, `host`, `date` unconditionally + `digest` whenever the body is non-empty (so all four for POST/PUT/PATCH deliveries, which always have a body); if our outbound signs
 a different set, our own inbound verifier (and every other compliant
 strict checker) rejects. Tests at
 `packages/protocol/src/__tests__/security/verifyHttpSignature.test.ts`
@@ -619,7 +623,9 @@ exactly one trusted proxy. Proxy contract documented in
 
 `layers/base/server/utils/betterAuthCookie.ts` is the only correct
 way to mint a Better Auth session cookie from a custom route (the
-federated SSO callbacks). Three exports:
+federated SSO callbacks). Six exports (`getBetterAuthSessionCookieName`,
+`getBetterAuthSessionDataCookieName`, `signBetterAuthCookieValue`, plus
+the three load-bearing ones):
 
 - `setBetterAuthSessionCookie(event, token, expiresAt)`
 - `clearBetterAuthSessionCookies(event)` — clears BOTH the session
@@ -741,3 +747,45 @@ hard-failing on non-2xx. **Health 200 ≠ site works — always smoke `/`.**
 Via a runtime override (env or DB `instance_settings.features.overrides`). The
 homepage there renders through `<LayoutSlot>` (the canary). deveco.io +
 heatsynclabs.io keep it OFF (legacy renderer). Verify with `curl /api/features`.
+
+## Sessions 170–181 — pagination, cursor security, RBAC
+
+### Crafted-cursor DoS — validate DOMAIN, not just SHAPE (server 2.72.0, LIVE-exploited)
+
+`decodeCursor` originally shape-checked the base64url `{v,id}` payload but did
+NOT domain-check it. A `v` that isn't a date, a numeric `v`, or a non-uuid `id`
+flowed straight to the SQL bind in `keysetWhere` and threw an unhandled 500 —
+an unauthenticated attacker could reliably 500 `GET /api/content/feed` with a
+forged `?cursor=` (3 crafted cursors each 500'd commonpub.io live, session 180).
+Fix: `decodeCursor` now enforces its output contract (string `v` must parse to a
+finite Date) and the caller narrows via `asDateUuidCursor()` (`query.ts:241`) to
+date-or-null `v` + uuid `id` so an invalid cursor falls back to page 1. **A
+type-valid but domain-invalid decoded value reaching a SQL bind is a DoS.**
+Verify the failure mode against the real sink; confirm no global handler masks it.
+
+### Keyset pagination — three orderings must agree byte-for-byte (sessions 178–179)
+
+`listContentKeyset` rests on three orderings being identical: the local SQL, the
+federated SQL, and the JS merge comparator (`compareFeedOrder`), all
+`published_at DESC NULLS LAST, id DESC`. Postgres `uuid DESC` must equal JS
+string-desc because the cursor `id` is fed back into SQL `id < :id`. Migration
+0012's two PARTIAL indexes spell `id DESC NULLS FIRST` to match the planner's
+NULLS placement syntactically. Mutation-test any change; the killer test is a
+local + federated row sharing a `published_at`. **`pushSchema` (PGlite test
+harness) SKIPS partial indexes** — the keyset tests create that DDL themselves.
+
+### Federated-leak fix (server 2.72.0)
+
+Shipped in the same commit as the cursor-DoS hardening (session 180). Federated
+content could leak into feeds it shouldn't; the fix tightened the
+status/visibility gate that both the offset and keyset paths route through
+(`resolveContentQuery`, layer server util).
+
+### RBAC permission cache — don't bake the admin grant into the cached set (session 175, INV-1)
+
+`resolveUserPermissions` caches role→permission grants for 30 s. The admin `*`
+grant is deliberately NOT written into the cached set; admin access rides a
+gate-time floor over the *fresh* `users.role`. If you cache the `*`, a demoted
+admin keeps full access for the whole TTL — an authorization-lag break. Floor on
+the fresh role; use `||` (not `??`) when `''` must fall back; test the full
+context→gate path, not just the resolver.

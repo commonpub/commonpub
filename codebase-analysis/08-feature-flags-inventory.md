@@ -5,7 +5,7 @@ Flags live in `packages/config/src/types.ts` → `FeatureFlags`. Set in
 site), layer pages (`feature-gate.global.ts` middleware), layer components
 (via `useFeatures()` composable), nav items (per-item `requiredFeature`).
 
-17 top-level flags + 5 nested `identity.*` sub-flags.
+**19 boolean top-level flags + `identity` object (5 nested sub-flags).** Re-verified session 181 (2026-06-01) against `packages/config/src/types.ts`.
 
 | Flag | Default | What it gates | Runtime override? |
 |---|---|---|---|
@@ -25,7 +25,8 @@ site), layer pages (`feature-gate.global.ts` middleware), layer components
 | `federateHubs` | **OFF default** (live `true` on commonpub.io + deveco.io) | Hub Group actor + FEP-1b12 hub federation | admin |
 | `seamlessFederation` | **OFF default** (live `true` on commonpub.io + deveco.io) | Merge federated content into local browse/search/feed | admin |
 | `emailNotifications` | **OFF** | Outbound email for likes/comments/follows/mentions/digest | admin |
-| `publicApi` | **OFF** | `/api/public/v1/**` read API (admin-managed bearer tokens, 13 read scopes) | admin |
+| `publicApi` | **OFF** | `/api/public/v1/**` read API (admin-managed bearer tokens, 12 resource read scopes + `read:*` wildcard) | admin |
+| `rbac` | **OFF** (added session 175, migration 0009) | Role-based access control: `roles`/`role_permissions`/`user_roles` tables + `resolveUserPermissions` resolver + `requirePermission` gate. When OFF, the legacy `users.role` enum is the sole authority. | admin |
 | `layoutEngine` | **OFF default** (added session 157; shipped in config 0.15.0 + layer 0.23.x — session 158. **Live `true` on commonpub.io via a runtime override** as of session 159 canary — build-config default stays OFF; verify with `curl /api/features`) | Phase 1 layout engine. When ON, `<LayoutSlot>` renders from `layouts`/`layout_rows`/`layout_sections` DB tables (migration 0005) instead of the legacy `homepage.sections` JSON. `/api/layouts/by-route` 404s when off so the legacy `HomepageSectionRenderer` stays in charge. **As of layer 0.23.3: auto-fallback** — when the flag is ON but no layout exists at scope `('route', '/')`, `pages/index.vue` falls through to the legacy renderer instead of rendering blank `<LayoutSlot>` zones (fixes "operator flips flag → blank homepage" trap). To actually use the engine, operator must FIRST `POST /api/admin/layouts/seed-homepage` (admin auth) to populate a default layout, THEN flip the flag. | admin (Phase 4 adoption) |
 | `identity.linkRemoteAccounts` | **OFF** (added config 0.12.0) | UI for linking a remote AP account; requires `CPUB_FED_TOKEN_KEY` | admin |
 | `identity.signInWithRemote` | **OFF** | Mastodon-login flow; requires `CPUB_FED_TOKEN_KEY` | admin |
@@ -91,7 +92,7 @@ features: {
 
 ## Reference app config (`apps/reference/commonpub.config.ts`)
 
-All features ON except `emailNotifications`. Good starting point for dev.
+Enables **13 flags** — `content`, `social`, `hubs`, `docs`, `video`, `contests`, `learning`, `explainers`, `editorial`, `federation`, `federateHubs`, `seamlessFederation`, `admin`. Leaves `events`, `emailNotifications`, `publicApi`, `layoutEngine`, `rbac`, and `identity.*` unset (→ defaults OFF); `contentImport` defaults ON. (Not literally "all on" — note `events` is OFF in the static config and relies on a runtime override if needed.)
 
 ## Adding a new flag
 

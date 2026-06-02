@@ -78,7 +78,7 @@ The original implementation plan is archived at `docs/archive/plan-v2.md` (v2) a
 | Package      | npm Name               | Purpose                                  |
 | ------------ | ---------------------- | ---------------------------------------- |
 | `schema`     | `@commonpub/schema`    | Drizzle tables + Zod validators          |
-| `protocol`   | `@commonpub/protocol`  | Fedify wrapper + AP types                |
+| `protocol`   | `@commonpub/protocol`  | Pure-TS ActivityPub + AP types (no Fedify) |
 | `auth`       | `@commonpub/auth`      | Better Auth wrapper + AP SSO             |
 | `ui`         | `@commonpub/ui`        | Vue 3 components + theme CSS             |
 | `config`     | `@commonpub/config`    | `defineCommonPubConfig()` factory        |
@@ -100,7 +100,7 @@ The original implementation plan is archived at `docs/archive/plan-v2.md` (v2) a
 
 - Framework: Nuxt 3 (reference app) + Vue 3 (UI components)
 - Auth: Better Auth
-- Federation: Fedify
+- Federation: pure-TS ActivityPub in `@commonpub/protocol` (WebFinger, NodeInfo, HTTP Signatures via `jose`) — NOT Fedify (see ADR + docs/llm/facts.md)
 - Database: PostgreSQL 16 + Drizzle ORM
 - Editor: TipTap (content), CodeMirror 6 (docs)
 - Search: Meilisearch (primary), Postgres FTS (fallback)

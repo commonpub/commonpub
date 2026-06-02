@@ -3,15 +3,11 @@
 `layers/base/` — published as `@commonpub/layer`. The distribution unit.
 Instances extend it via `extends: ['@commonpub/layer']` in their nuxt.config.
 
-**85 pages, 106 components, 22 composables, 6 server plugins, 7 request middlewares, 257 API routes.**
-
-As of session 125 (2026-04-16). **Spot-counts re-verified session 150
-(2026-05-19): ~85 pages (auth login flow + federated link UI added in
-sessions 137–140 are ≤5 new), ~110 components, ~20 composables, ~284
-API routes** (see 04 for breakdown). **Re-verified session 169
-(2026-05-30) after the layout engine + editor shipped (sessions 154–169):
-90 pages, 132 components, 33 composables, 301 API routes.** The directory
-layout below is shape-stable; specific file lists are not.
+Re-verified session 181 (2026-06-01): **90 pages, 135 components,
+34 composables (non-test; +12 `__tests__/` files), 8 server plugins,
+3 route middleware, 11 server (Nitro) middleware, 311 `server/api/` route
+files + 22 ActivityPub/site routes.** The directory layout below is
+shape-stable; counts are current.
 
 ## Directory layout (depth 3)
 
@@ -20,22 +16,22 @@ layers/base/
 ├── app.vue                    root with NuxtLayout / NuxtPage / skip-link
 ├── error.vue                  404 / error page — re-applies data-theme for SSR
 ├── nuxt.config.ts             modules, CSS bundle, runtime config, features
-├── components/                132 Vue components (grouped below; +LayoutSlot/Row/Section + PageFrame + admin/layouts editor)
-├── composables/               33 useX helpers
+├── components/                135 Vue components (grouped below; +LayoutSlot/Row/Section + PageFrame + admin/layouts editor + admin/theme)
+├── composables/               34 useX helpers (non-test) + __tests__/
 ├── layouts/                   default, admin (collapsible sidebar, session 161), auth, editor
-├── middleware/                auth.ts + feature-gate.global.ts
+├── middleware/                3 route guards: auth.ts, feature-gate.global.ts, admin-layouts.ts
 ├── pages/                     90 routes (Nuxt file-based)
 ├── plugins/                   theme.ts + auth.ts (client)
 ├── sections/                  builtin/ section registry (17 registered) + registry.ts (Stage E: points component: at existing Block*/Homepage*)
 ├── server/
-│   ├── api/                   301 Nitro routes (REST)
-│   ├── routes/                ActivityPub federation routes
-│   ├── middleware/            auth, theme, features, security, content-ap, content-redirect, blog-redirect
-│   ├── plugins/               auto-admin, federation-delivery, federation-hub-sync, migrate-article-to-blog, notification-email, search-index
-│   └── utils/                 config, db, session, hooks wiring
+│   ├── api/                   311 Nitro route files (REST)
+│   ├── routes/                22 ActivityPub + site routes (inbox/outbox/.well-known/nodeinfo/feed.xml/sitemap/robots)
+│   ├── middleware/            11: auth, theme, features, security, content-ap, content-redirect, blog-redirect, hub-ap, hub-post-ap, mastodon-alias-redirect, public-api-auth
+│   ├── plugins/               8: auto-admin, federation-delivery, federation-hub-sync, migrate-article-to-blog, notification-email, search-index, feature-flags-prime, identity-startup
+│   └── utils/                 config, db, session, hooks wiring, layoutCache, validateSectionConfigs, requirePermission, resolveContentQuery
 ├── theme/                     CSS tokens + component/prose/forms/layouts/editor-panels CSS
-├── types/                     hub.ts + meilisearch.d.ts
-└── utils/                     themeConfig.ts
+├── types/                     hub.ts + meilisearch.d.ts + theme.ts
+└── utils/                     themeConfig.ts + themeIds/themeDiscovery/themeIO
 ```
 
 ## Pages (90)
@@ -108,35 +104,35 @@ URL restructure landed in session 108: canonical content lives at `/u/{username}
 
 **Theme admin (session 154)** — `/admin/theme` lists every theme across three sources (built-in / code-registered / DB-stored custom), with capture-from-`:root` detection for thin layer apps that ship their own CSS. `/admin/theme/edit/:id` is the split-pane editor; the special id `__new` reads a seed from sessionStorage (used by create / duplicate / capture / import flows). See [`docs/reference/guides/theme-editor.md`](../docs/reference/guides/theme-editor.md) for the full architecture.
 
-**Admin chrome (session 161)** — `layouts/admin.vue` left sidebar is collapsible on desktop via a topbar chevron button (200px ↔ 56px icons-only). State + persistence in `composables/useAdminSidebar.ts`. Editor routes (`/admin/layouts/:id` + `/admin/theme/edit/:id`) auto-collapse for canvas room; user preference is persisted to `localStorage[cpub-admin-sidebar-collapsed]` on all other admin routes; in-editor toggle is a session-only override (resets on route change). Mobile drawer behavior unchanged. `cursor:grab`-style "UI lies" check: every toggle has a wired handler before the button renders.
+**Admin chrome (session 161)** — `layouts/admin.vue` left sidebar is collapsible on desktop via a topbar chevron button (200px ↔ 56px icons-only). State + persistence in `composables/useAdminSidebar.ts`. Editor routes (`/admin/layouts/:id` + `/admin/theme/edit/:id`) auto-collapse for canvas room; user preference is persisted to `cookie[cpub-admin-sidebar-collapsed]` (switched from localStorage in an audit-polish round to kill the SSR/CSR hydration flash) on all other admin routes; in-editor toggle is a session-only override (resets on route change). Mobile drawer behavior unchanged. `cursor:grab`-style "UI lies" check: every toggle has a wired handler before the button renders.
 
 ### Misc
 
-`/authorize_interaction`, `/cert/:code`, `/mirror/:id`, **`/[...customPath]` (session 159+, custom-page catch-all — renders a layout-engine `custom-page`-scoped layout via `<LayoutSlot>` when one matches the route; gated by `layoutEngine`)**.
+`/create` (content-type starter chooser), `/authorize_interaction`, `/cert/:code`, `/mirror/:id`, **`/[...customPath]` (session 159+, custom-page catch-all — renders a layout-engine `custom-page`-scoped layout via `<LayoutSlot>` when one matches the route; gated by `layoutEngine`)**.
 
-## Components (132) — grouped
+## Components (135) — grouped
 
-### Block renderers (`components/blocks/`, ~20)
+### Block renderers (`components/blocks/`, 21)
 
 BlockBuildStepView, BlockCalloutView, BlockCheckpointView, BlockCodeView, BlockContentRenderer (dispatcher), BlockDividerView, BlockDownloadsView, BlockEmbedView, BlockGalleryView, BlockHeadingView, BlockImageView, BlockMarkdownView, BlockMathView, BlockPartsListView, BlockQuizView, BlockQuoteView, BlockSectionHeaderView, BlockSliderView, BlockTextView, BlockToolListView, BlockVideoView.
 
-### Content editors (`components/editors/`, 4)
+### Content editors (`components/editors/`, 6)
 
-ArticleEditor, BlogEditor, ExplainerEditor, ProjectEditor.
+ArticleEditor, BlogEditor, ExplainerEditor, ProjectEditor, DocsPageTree, MarkdownImportDialog.
 
 ### Content views (`components/views/`, 3)
 
 ArticleView, ExplainerView, ProjectView.
 
-### Contest (7)
+### Contest (9)
 
-ContestEntries, ContestHero, **ContestJudgeManager** (session 124), ContestJudges, ContestPrizes, ContestRules, ContestSidebar.
+ContestEntries, ContestHero, **ContestJudgeManager** (session 124), ContestJudges, **ContestJudgingCriteria**, ContestPrizes, ContestRules, ContestSidebar, **ContestStakeholderManager** (session 174).
 
 ### Events (session 124)
 
 EventCard, EventCalendar.
 
-### Hubs (8)
+### Hubs (10)
 
 HubDiscussions, HubFeed, HubHero, HubLayout (tabs), HubMembers, HubProducts, HubProjects, HubResources, HubSidebar, HubSidebarCard.
 
@@ -146,7 +142,7 @@ ContentGridSection, ContestsSection, CustomHtmlSection, EditorialSection, HeroSe
 
 ### Layout engine renderers (session 157 Phase 1 → session 168 PageFrame)
 
-**LayoutSlot / LayoutRow / LayoutSection** (`components/LayoutSlot.vue`, `LayoutRow.vue`, `LayoutSection.vue`) — `<LayoutSlot route="/" zone="main" />` renders one zone of a route's active layout, delegating each row to `LayoutRow` (12-column CSS Grid; `--cpub-section-cols-{sm|md|lg}` custom properties drive responsive `grid-column` spans via media queries, mobile defaults to span 12 = stack) and each cell to `LayoutSection`. Visibility filters at render time: `enabled`, `role`, `feature`, `hideAt`. `previewOverride` prop lets the editor's preview pane render an in-progress draft without a save round-trip (single source of truth for editor + production rendering). Gated by `features.layoutEngine`. (`LayoutRow`/`LayoutSection` were extracted from `LayoutSlot` in session 163 — see the CSS-scope extraction note in MEMORY.)
+**LayoutSlot / LayoutRow / LayoutSection** (`components/LayoutSlot.vue`, `LayoutRow.vue`, `LayoutSection.vue`) — `<LayoutSlot route="/" zone="main" />` renders one zone of a route's active layout, delegating each row to `LayoutRow` (12-column CSS Grid) and each cell to `LayoutSection` (the cell itself sets the `--cpub-section-cols-{sm|md|lg}` custom properties that drive its responsive `grid-column` span via media queries; mobile defaults to span 12 = stack). Visibility at render time filters on `enabled`, `role`, and `feature` (`LayoutRow.sectionVisible` — a non-visible section isn't rendered). `hideAt` is **CSS-side**, not render-time: the section IS rendered into the DOM and hidden via `data-hide-{sm/md/lg}` attrs + a media-query `display:none`. `previewOverride` prop lets the editor's preview pane render an in-progress draft without a save round-trip (single source of truth for editor + production rendering). Gated by `features.layoutEngine`. (`LayoutRow`/`LayoutSection` were extracted from `LayoutSlot` in session 163 — see the CSS-scope extraction note in MEMORY.)
 
 **PageFrame** (`components/PageFrame.vue`, session 168) — the canonical page frame wrapper. Full-width variant is full-bleed (matches the live homepage; ADR 028). Shared by production pages AND the editor's canvas previews so the editor is WYSIWYG (session 168 Stage 2).
 
@@ -156,15 +152,19 @@ ContentGridSection, ContestsSection, CustomHtmlSection, EditorialSection, HeroSe
 - `AdminLayoutsCanvas.vue` — the preview/edit canvas (renders via `<PageFrame>` for WYSIWYG, session 168)
 - `AdminLayoutsToolbar.vue` — save / publish / undo-redo / viewport controls
 - `AdminLayoutsPalette.vue` + `AdminLayoutsPaletteTile.vue` — draggable section palette (drag via `@vue-dnd-kit/core`, Phase 3b)
-- `AdminLayoutsInspector.vue` + `InspectorPage` / `InspectorRow` / `InspectorSection` — context-dispatched property panels
+- `AdminLayoutsInspector.vue` + `AdminLayoutsInspectorPage` / `AdminLayoutsInspectorRow` / `AdminLayoutsInspectorSection` — context-dispatched property panels
 - `AdminLayoutsAutoForm.vue` — form-from-Zod for a section's `configSchema`
 - `AdminLayoutsConflictModal.vue` — 3-option save-conflict resolution
 - `AdminLayoutsHelpOverlay.vue` — keyboard-shortcut help
 - `AdminLayoutsAnnouncer.vue` — ARIA live-region for drag/resize a11y
 
-**Homepage adoption + canary** (session 158 → 159): `layers/base/pages/index.vue` has a 3-way v-if/v-else-if/v-else. `v-if="layoutEngineEnabled"` renders LayoutSlot zones; v-else-if renders the existing configurable section renderer (when `hasCustomSections`); v-else renders the legacy hardcoded homepage. **commonpub.io's homepage renders LIVE via the layout-engine canary using `<LayoutSlot>`** (session 159). Flag default OFF → behavior on existing instances unchanged.
+**Homepage adoption + canary** (session 158 → 159): `layers/base/pages/index.vue` has a 3-way v-if/v-else-if/v-else. `v-if="layoutEngineActive"` renders LayoutSlot zones; v-else-if renders the existing configurable section renderer (when `hasCustomSections`); v-else renders the legacy hardcoded homepage. **commonpub.io's homepage renders LIVE via the layout-engine canary using `<LayoutSlot>`** (session 159). Flag default OFF → behavior on existing instances unchanged.
 
-**Per-section config validation** (session 161): `layers/base/server/utils/validateSectionConfigs.ts` enforces every section's Zod `configSchema` on POST/PUT to `/api/admin/layouts/*`. Schemas live in `@commonpub/schema/sectionConfigs` (server-safe, no Vue imports) and are looked up via `SECTION_CONFIG_SCHEMAS`. Rejection → 400 with structured `data.sectionErrors` payload (zone + rowIndex + sectionIndex + Zod issues per offending section) + audit log `cpub.audit.layout.config-rejected`. Closes the "admin bypasses URL guards / size caps / sandbox flags" surface (session 160 R2 P1 deferred → wired in session 161 after the schema-package refactor removed the .vue transitive that broke the R2 attempt).
+**Per-section config validation** (session 161): `layers/base/server/utils/validateSectionConfigs.ts` enforces every section's Zod `configSchema` on POST/PUT to `/api/admin/layouts/*`. Schemas live in `@commonpub/schema/sectionConfigs` (server-safe, no Vue imports) and are looked up via `SECTION_CONFIG_SCHEMAS`. Rejection → 400 with structured `data.sectionErrors` payload (zone + rowIndex + sectionIndex + Zod issues per offending section) + audit log `cpub.audit.layout.config-rejected` (the log is emitted by the calling routes `admin/layouts/index.post.ts` + `[id].put.ts`, not inside `validateSectionConfigs.ts`). Closes the "admin bypasses URL guards / size caps / sandbox flags" surface (session 160 R2 P1 deferred → wired in session 161 after the schema-package refactor removed the .vue transitive that broke the R2 attempt).
+
+### Admin theme editor (`components/admin/theme/`, 8 — session 154)
+
+AdminThemeFamilyCard, AdminThemeOverridesPanel, AdminThemePreviewPane, AdminThemeSceneAdmin, AdminThemeSceneGallery, AdminThemeSceneProse, AdminThemeTokenGroup, AdminThemeTokenInput.
 
 ### Navigation (session 124)
 
@@ -176,18 +176,18 @@ ContentGridSection, ContestsSection, CustomHtmlSection, EditorialSection, HeroSe
 
 ### Utilities / widgets
 
-AnnouncementBand, AppToast, AuthorCard, AuthorRow, CategoryBadge, CommentSection, ContentAttachments, ContentCard, ContentPicker, ContentStarterForm, ContentTypeBadge, CookieConsent, CountdownTimer, CpubEditor, DiscussionItem, EditorialBadge, EngagementBar, FederatedContentCard, FeedItem, FilterChip, HeatmapGrid, ImageUpload (events cover image integration in session 125), ImportUrlModal, MarkdownImportDialog, MemberCard, MentionText, MessageThread, NotificationItem, ProgressTracker, PublishErrorsModal, RemoteActorCard, RemoteFollowDialog, RemoteUserSearch, SearchFilters, SearchSidebar, SectionHeader, ShareToHubModal, SiteLogo (OVERRIDE POINT), SkillBar, SortSelect, StatBar, TOCNav, TimelineItem, VideoCard.
+AnnouncementBand, AppToast, AuthorCard, AuthorRow, CategoryBadge, CommentSection, ContentAttachments, ContentCard, ContentPicker, ContentStarterForm, ContentTypeBadge, CookieConsent, CountdownTimer, CpubEditor, CpubMarkdown, DiscussionItem, EditorialBadge, EngagementBar, FederatedContentCard, FeedItem, FilterChip, HeatmapGrid, ImageUpload (events cover image integration in session 125), ImportUrlModal, MemberCard, MentionText, MessageThread, NotificationItem, ProgressTracker, PublishErrorsModal, RemoteActorCard, RemoteFollowDialog, RemoteUserSearch, SearchFilters, SearchSidebar, SectionHeader, ShareToHubModal, SiteLogo (OVERRIDE POINT), SkillBar, SortSelect, StatBar, TOCNav, TimelineItem, VideoCard.
 
-### Docs
+(`DocsPageTree` + `MarkdownImportDialog` live under `components/editors/`, listed above — not under a separate Docs group.)
 
-DocsPageTree.
-
-## Composables (33)
+## Composables (34, non-test)
 
 | Name | Purpose |
 |---|---|
 | useAuth | session state (user, isAuthenticated, isAdmin), sign-in/out |
 | useFeatures | reactive feature flags, hydrated from /api/features |
+| useContentFeed | (session 179) keyset/offset feed driver — picks keyset-for-recency / offset-for-popular transparently; backs the infinite-scroll feed via `GET /api/content/feed` |
+| useFocusTrap | focus-trap a11y helper for modals/dialogs |
 | useTheme | data-theme / isDark / setDarkMode |
 | useThemeAdmin | (session 154) admin theme picker state — unified families view across built-in/registered/custom, refresh via `/api/admin/themes`. Discovery + import/export live in `utils/themeDiscovery.ts` + `utils/themeIO.ts`; id helpers in `utils/themeIds.ts`; types in `types/theme.ts` |
 | useLayout | (session 157, Phase 1 layout engine) resolves a route's active layout via `useFetch('/api/layouts/by-route')`. SSR-safe with hydration. Accepts `string \| Ref<string> \| (() => string)` — pass a getter/Ref for reactive callers (a parent-driven `<LayoutSlot>` whose `route` prop changes); a plain string for the typical static case. 404-as-null so consumers fall through to legacy renderers when `features.layoutEngine` is off. |
@@ -201,7 +201,7 @@ DocsPageTree.
 | useApiError | HTTP error parsing |
 | useMessages | DMs + unread count + SSE |
 | useNotifications | notification inbox + SSE |
-| useRealtimeCounts | per-target live counters |
+| useRealtimeCounts | two GLOBAL unread counters — notification count + message count — over a single SSE stream (`/api/realtime/stream`); replaced the separate useNotifications/useMessages EventSource connections. Not per-target. |
 | useSiteName | from runtime config |
 | useJsonLd | schema.org structured data |
 | useFederation | AP resolve + search |
@@ -221,12 +221,13 @@ DocsPageTree.
 
 ## Middleware
 
-### Client-side route guards (2)
+### Client-side route guards (3)
 
 - **auth.ts** — `definePageMeta({ middleware: 'auth' })` redirects to `/auth/login?redirect=...`
 - **feature-gate.global.ts** — global middleware that throws 404 if route's feature is disabled. Path mapping: `/learn → learning`, `/docs → docs`, `/videos → video`, `/admin → admin`, `/contests → contests`, `/events → events`, `/explainer → explainers`.
+- **admin-layouts.ts** — route guard for the layout-editor pages (`/admin/layouts/*`).
 
-### Server-side request middleware (7)
+### Server-side request middleware (11)
 
 - `auth.ts` — enrich `event.context` with Better Auth session/user
 - `theme.ts` — resolve instance theme + user dark-mode pref → `event.context.resolvedTheme`
@@ -234,16 +235,22 @@ DocsPageTree.
 - `security.ts` — CSP, HSTS, X-Frame-Options, etc.
 - `content-ap.ts` — Accept: application/activity+json content negotiation
 - `content-redirect.ts` — legacy content URL redirects
-- `blog-redirect.ts` — article↔blog legacy redirects
+- `blog-redirect.ts` — one-way article→blog legacy redirects (301)
+- `hub-ap.ts` — AP content negotiation for hub Group actors
+- `hub-post-ap.ts` — AP content negotiation for hub posts
+- `mastodon-alias-redirect.ts` — Mastodon-style alias redirects
+- `public-api-auth.ts` — bearer-token auth for `/api/public/v1/**`
 
-### Server plugins (6)
+### Server plugins (8)
 
-- `auto-admin.ts` — promote first registered user to admin
+- `auto-admin.ts` — promote first registered user to admin (startup plugin)
 - `federation-delivery.ts` — start outbound delivery worker
 - `federation-hub-sync.ts` — periodic hub mirror sync
 - `migrate-article-to-blog.ts` — one-time content type normalization
 - `notification-email.ts` — register email sender callback with `@commonpub/server/notification`
 - `search-index.ts` — subscribe to content hooks → index in Meilisearch
+- `feature-flags-prime.ts` — prime the feature-flag cache at boot
+- `identity-startup.ts` — cross-instance identity runtime init; `assertIdentityConfig` refuses to boot if an `identity.*` token flag is on without `CPUB_FED_TOKEN_KEY`
 
 ## Theme & CSS
 
@@ -287,16 +294,16 @@ Key overridable tokens:
 4. `useTheme().setDarkMode(bool)` mutates cookie + re-applies `data-theme` for built-in families; for custom themes with a `pairId`, the server picks the variant on next request.
 5. Cascade order: built-in `theme/*.css` → code-registered theme CSS (loaded by thin app) → inline `<style id="cpub-theme-inline">`. No `@layer` wrapper on the inline style so it beats `@layer commonpub` rules without `!important`.
 
-`error.vue` re-applies the same useHead call because error pages render outside the layout tree on SSR.
+`error.vue` re-applies **only** `useHead({ htmlAttrs: { 'data-theme': themeId } })` (and only when `themeId !== 'base'`) because error pages render outside the layout tree on SSR. NOTE: it does NOT re-apply the `style:[{id:'cpub-theme-inline', innerHTML: themeInlineCss}]` block — so on an error page with a DB-stored custom theme, the inline token CSS is not re-injected.
 
 ## Nuxt config highlights
 
 - `compatibilityDate: '2024-11-01'`
 - `nitro.preset: 'node-server'`
-- Route rule: `/docs/**` prerendered if docs feature on
+- `routeRules: {}` (empty) + `nitro.prerender.crawlLinks: false`. The old `/docs/** → prerender: true` rule was **removed in session 126** (prerendering at build time saved API-error HTML as `/docs/index.html` and crawlLinks propagated it). Use `swr: 60` at runtime, not build-time prerender, if caching `/docs/**` again.
 - Runtime config:
   - **private**: databaseUrl, authSecret, smtp/resend creds, S3 keys, uploadDir
-  - **public**: siteUrl, domain, siteName, features (all 15 flags), contentTypes, contestCreation, instanceCookies
+  - **public**: siteUrl, domain, siteName, features (the **19 boolean flags only** — `identity.*` is NOT declared in `runtimeConfig.public.features`, so it can't be env-toggled here; it lives only in `@commonpub/config`'s `FeatureFlags` type), contentTypes, contestCreation, instanceCookies
 - CSS array loads the whole `theme/` bundle + explainer presets
 
 ## Recent additions (sessions 124–125) confirmed present
