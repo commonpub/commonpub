@@ -61,3 +61,45 @@ worked (deveco is in heatsync's `/actor/followers`), which is why one recent pos
 - Then **Phase 1** (safe gap fixes) → Phase 2 (admin UX: depth picker + "who mirrors you") →
   Phase 3 (push = mirror-request) → Phase 4 (registry). See the living plan.
 - Schema unchanged this phase (no migration).
+
+---
+
+## Phase 1 — safe non-destructive gap fixes (same session)
+
+Verified each gap wasn't intentional before fixing (self-ref FKs: the schema comments claimed
+"constraint added via migration" but none existed — an oversight, safe to add).
+
+- **Transactions:** `leaveHub` (members.ts) + `submitContestEntry` (contest.ts) now wrap their
+  delete/insert + counter update in `db.transaction` (mirrors `joinHub`). A duplicate entry
+  (onConflictDoNothing) no longer increments.
+- **`scripts/reconcile-counters.mjs`** — idempotent recompute of 10 denormalized counters
+  (hub member/post, contest entry, event attendee, poll, comment/content likes, fork/build)
+  from source tables; `--check` reports drift (exit 1), default fixes. Only UPDATEs rows that
+  already disagree. (Fixed: content_forks uses `source_id`, not `parent_id`.)
+- **`listContent`** computes `COUNT(*)` only on page 1 (`offset===0`), else `total=-1`
+  (pagination-scalability phase B); federated branch preserves the `-1` sentinel.
+- **`error.vue`** now injects the `cpub-theme-inline` token CSS (not just `data-theme`), so a
+  DB-stored custom theme renders correctly on error pages.
+- **5 dead hooks now emitted:** `content:liked`/`content:unliked` (toggleLike, content-item
+  targets only), `hub:content:shared` (shareContent), `federation:hub:post:received`
+  (hubMirroring), `user:registered` (bridged via a new `createAuth` `onUserCreated` callback →
+  Better Auth `databaseHooks.user.create.after`, since the auth pkg can't import the server bus).
+  New guide `docs/reference/guides/hooks.md`.
+- **Self-ref FKs** (migration `0013_black_lorna_dane`): added `ON DELETE SET NULL` FKs on
+  `comments.parent_id`, `hub_post_replies.parent_id`, `docs_pages.parent_id`, `hubs.parent_hub_id`
+  (+ schema `.references()`); migration nulls any pre-existing dangling pointers first (0002
+  pattern). `federatedHubPostReplies.parentId` left app-managed.
+
+### Decisions
+- `user:registered` bridged via callback rather than emitted from `@commonpub/auth` (dependency
+  direction: auth must not import server). Best-effort: handler errors don't break registration.
+- Self-ref onDelete = SET NULL (child survives, promoted to top-level) not CASCADE (would delete
+  reply/page subtrees) — matches the codebase's "child survives" SET NULL pattern.
+
+### Tests
+- hooks-integration +3 (content:liked/unliked + negative for post-likes; hub:content:shared);
+  new `self-ref-fk.integration.test.ts` (2 — SET NULL on parent delete + valid nesting accepted).
+- Transaction/content/keyset/social/contest/hub suites green; schema+auth+server+protocol+reference typecheck clean.
+
+### Next
+- Migration count 13 → **14**. Still on the branch (release batched). Phase 2 next (admin UX).

@@ -52,6 +52,16 @@ export async function toggleLike(
     return { liked: true };
   });
 
+  // Consumer-extension hook for likes on content items (project/article/blog/explainer).
+  // Posts/comments/videos aren't content_items, so they don't fire this content hook.
+  if (targetType !== 'post' && targetType !== 'comment' && targetType !== 'video') {
+    await emitHook(result.liked ? 'content:liked' : 'content:unliked', {
+      db,
+      contentId: targetId,
+      userId,
+    });
+  }
+
   // Notify target author on new like (non-critical)
   if (result.liked) {
     try {

@@ -1,7 +1,7 @@
 // Nitro middleware for authentication using @commonpub/auth
 import { createAuthMiddleware, type AuthLocals } from '@commonpub/auth';
 import { createAuth } from '@commonpub/auth';
-import { emailTemplates } from '@commonpub/server';
+import { emailTemplates, emitHook } from '@commonpub/server';
 
 let authMiddleware: ReturnType<typeof createAuthMiddleware> | null = null;
 
@@ -42,6 +42,14 @@ function getAuthMiddleware(): ReturnType<typeof createAuthMiddleware> {
         const template = emailTemplates.verification(siteName, url);
         await emailAdapter.send({ ...template, to: email });
       },
+    },
+    onUserCreated: async (user) => {
+      await emitHook('user:registered', {
+        db,
+        userId: user.id,
+        username: user.username ?? '',
+        email: user.email,
+      });
     },
   });
 

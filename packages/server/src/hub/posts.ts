@@ -755,11 +755,15 @@ export async function shareContent(
     sharedById: userId,
   });
 
-  return createPost(db, userId, {
+  const post = await createPost(db, userId, {
     hubId,
     type: 'share',
     content: sharePayload,
   });
+
+  await emitHook('hub:content:shared', { db, hubId, contentId, userId });
+
+  return post;
 }
 
 export async function unshareContent(

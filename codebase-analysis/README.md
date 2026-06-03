@@ -51,7 +51,7 @@ Not to be confused with the stale `/Users/obsidian/Projects/commonpub/` director
 | Route middleware | 3; server (Nitro) middleware 11; server plugins 8 |
 | Feature flags | 19 boolean top-level + `identity` object (5 sub-flags) |
 | Themes | 5 built-in (base, dark, generics, agora, agora-dark) + DB-stored + code-registered |
-| Migrations | 13 (0000_session128_baseline → 0012_true_nicolaos = composite feed indexes) |
+| Migrations | 14 (0000_session128_baseline → 0013_black_lorna_dane = self-ref FKs, session 183; 0013 is on the `feat/federation-discovery-and-hardening` branch, not yet published/deployed) |
 | Production instances | 3 (commonpub.io, deveco.io, heatsynclabs.io — all auto-deploy from main) |
 | Tests | 265 git-tracked `*.test.ts` files (server 80, layer 42, ui 27, protocol 27, editor 24, infra 11, docs 11, explainer 9, apps/reference 9, schema 7, auth 7, learning 5, deploy 3, config 1, test-utils 1, tools/worker 1) |
 | Latest versions | schema 0.25.0, server 2.72.0, config 0.16.0, layer 0.43.3, ui 0.9.2, auth 0.7.0, protocol 0.12.0, infra 0.8.0, editor 0.7.11, explainer 0.7.15, learning 0.5.2, docs 0.6.3, test-utils 0.5.6 (verify with `npm view`) |

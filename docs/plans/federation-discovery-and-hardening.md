@@ -43,14 +43,17 @@ admin UX, consent-based push, and a discovery registry).
 - [ ] Docs + codebase-analysis + session log (in progress).
 - [ ] Publish (schema unchanged → server + protocol + layer) + deploy + live curl verify on the 3 instances.
 
-### Phase 1 — Safe non-destructive gap fixes  ⬜
-- [ ] `leaveHub` + `submitContestEntry` in `db.transaction`.
-- [ ] `scripts/reconcile-counters.mjs` (idempotent, `--check`).
-- [ ] `listContent` total only when `offset===0`.
-- [ ] `error.vue` injects `cpub-theme-inline` CSS.
-- [ ] Emit 5 dead hooks + consumer-extension hooks guide.
-- [ ] Self-ref FK migration (orphan-null → `ADD CONSTRAINT … ON DELETE SET NULL`) + schema `.references()`.
-- [ ] Docs + codebase-analysis + session log.
+### Phase 1 — Safe non-destructive gap fixes  ✅ (code+tests done; not yet published/deployed)
+- [x] `leaveHub` + `submitContestEntry` wrapped in `db.transaction`.
+- [x] `scripts/reconcile-counters.mjs` (idempotent, `--check`; 10 counters).
+- [x] `listContent` total only when `offset===0` (else `-1`); federated branch preserves the sentinel.
+- [x] `error.vue` injects `cpub-theme-inline` token CSS (mirrors the theme plugin).
+- [x] Emit 5 dead hooks (content:liked/unliked, hub:content:shared, federation:hub:post:received,
+      user:registered via createAuth `databaseHooks` → layer) + `docs/reference/guides/hooks.md`.
+- [x] Self-ref FK migration `0013_black_lorna_dane` (orphan-null → `ADD CONSTRAINT … ON DELETE SET NULL`)
+      on comments/hubPostReplies/docsPages.parentId + hubs.parentHubId; schema `.references()` added.
+- [x] Tests: hooks-integration (+3 cases), self-ref-fk (2); transaction/content/social suites green; all touched packages + reference typecheck clean.
+- [x] codebase-analysis 02/03/06 + events-validation correction; this plan; session log 183.
 
 ### Phase 2 — Federation admin UX full overhaul  ⬜
 - [ ] Create form: direction + content-type/tag filters + history depth picker + one-directional help.

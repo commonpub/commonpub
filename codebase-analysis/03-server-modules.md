@@ -333,12 +333,12 @@ Places that must be transactional (correctness, not perf). **Verified `db.transa
 - `cancelRsvp` — atomic cancel + waitlist promotion
 - `joinHub` — atomic member row + memberCount update
 - `createPost` — member row + post + denormalized hub.postCount
-- `judgeContestEntry` — `SELECT … FOR UPDATE` on the entry row + judgeScores read-modify-write (the ONLY `db.transaction` in `contest.ts`)
+- `judgeContestEntry` — `SELECT … FOR UPDATE` on the entry row + judgeScores read-modify-write
+- **`submitContestEntry`** — insert(contestEntries) + entryCount increment wrapped in `db.transaction` (session 183); a duplicate (onConflictDoNothing → no row) never increments.
+- **`leaveHub`** — delete(hubMembers) + memberCount decrement wrapped in `db.transaction` (session 183; mirrors `joinHub`).
 
-Caveats (NOT wrapped, despite the same atomicity need):
+Caveats (NOT wrapped):
 
-- **`submitContestEntry`** — does `insert(contestEntries)` then `update(contests).entryCount` as **two separate statements, NOT in a transaction** (a prior audit pass mislabeled this transactional via an unreliable heuristic; verified non-wrapped at `contest.ts`).
-- **`leaveHub`** — `delete(hubMembers)` then `update(hubs).set(memberCount-1)` as **two separate statements, NOT in a transaction** (latent atomicity gap; both single-row).
 - **`publishContent`** — a thin wrapper: `createContentVersion` then delegates to `updateContent(..., { status: 'published' })`; the status write happens there, not in a transaction opened by `publishContent` itself.
 
 ## Permission hierarchy
@@ -386,10 +386,10 @@ events are declared in the type registry but nothing calls them yet.
 | hub:member:joined | **emitted** | `hub/members.ts` (`joinHub`) |
 | hub:member:left | **emitted** | `hub/members.ts` (`leaveHub`) |
 | federation:content:received | **emitted** | `federation/inboxHandlers.ts` |
-| content:liked / content:unliked | declared, not emitted | (add to `social/social.ts` `toggleLike` when needed) |
-| hub:content:shared | declared, not emitted | (add to `hub/posts.ts` `shareContent`) |
-| user:registered | declared, not emitted | (register in Better Auth after-register hook) |
-| federation:hub:post:received | declared, not emitted | (add to `federation/hubMirroring.ts`) |
+| content:liked / content:unliked | **emitted** (session 183) | `social/social.ts` (`toggleLike`; content-item targets only — not post/comment/video) |
+| hub:content:shared | **emitted** (session 183) | `hub/posts.ts` (`shareContent`) |
+| user:registered | **emitted** (session 183) | bridged via `createAuth` `databaseHooks.user.create.after` → layer `middleware/auth.ts` `onUserCreated` (auth pkg can't import the server bus) |
+| federation:hub:post:received | **emitted** (session 183) | `federation/hubMirroring.ts` (on genuinely-new federated hub post) |
 
 **Current subscriptions** (layer server plugins):
 - `plugins/search-index.ts` — subscribes to `content:published`, `content:updated`, `content:deleted` (indexes Meilisearch/FTS).

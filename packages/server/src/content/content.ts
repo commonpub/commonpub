@@ -405,7 +405,11 @@ export async function listContent(
       .orderBy(...orderBy)
       .limit(localLimit)
       .offset(localOffset),
-    countRows(db, contentItems, where),
+    // COUNT(*) only on the first page (pagination-scalability.md phase B): feed clients
+    // detect "has more" via items.length < limit and never read `total`; numbered/admin
+    // listings read it only on page 1. Deep load-more pages skip the full count. `-1` =
+    // "not computed".
+    localOffset === 0 ? countRows(db, contentItems, where) : Promise.resolve(-1),
   ]);
 
   const localItems: ContentListItem[] = rows.map((row) => ({
@@ -437,7 +441,8 @@ export async function listContent(
   });
 
   // Approximate total (exact merged count needs a federated count query).
-  return { items: merged.slice(offset, offset + limit), total: total + fedItems.length };
+  // Preserve the `-1` "not computed" sentinel rather than turning it into a bogus count.
+  return { items: merged.slice(offset, offset + limit), total: total === -1 ? -1 : total + fedItems.length };
 }
 
 /**

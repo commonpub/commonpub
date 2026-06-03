@@ -10,7 +10,14 @@ export interface AuthEmailSender {
   sendResetPasswordEmail?: (email: string, url: string, token: string) => Promise<void>;
 }
 
-export function createAuth({ config, db, secret, baseURL, trustedOrigins, emailSender }: CreateAuthOptions & { emailSender?: AuthEmailSender }) {
+/**
+ * Fired after Better Auth creates a new user row. The auth package can't depend on the
+ * server's hook bus (dependency direction), so the consumer (layer) passes this callback to
+ * bridge into `emitHook('user:registered', …)`.
+ */
+export type OnUserCreated = (user: { id: string; email: string; username?: string | null; displayName?: string | null }) => Promise<void> | void;
+
+export function createAuth({ config, db, secret, baseURL, trustedOrigins, emailSender, onUserCreated }: CreateAuthOptions & { emailSender?: AuthEmailSender; onUserCreated?: OnUserCreated }) {
   const plugins = [username()];
 
   const socialProviders: Record<string, { clientId: string; clientSecret: string }> = {};
@@ -76,6 +83,25 @@ export function createAuth({ config, db, secret, baseURL, trustedOrigins, emailS
     },
     socialProviders,
     plugins,
+    databaseHooks: onUserCreated
+      ? {
+          user: {
+            create: {
+              after: async (user: { id: string; email: string; username?: string | null; name?: string | null }) => {
+                // Non-critical: a hook-handler failure must not break registration.
+                try {
+                  await onUserCreated({
+                    id: user.id,
+                    email: user.email,
+                    username: user.username ?? null,
+                    displayName: user.name ?? null,
+                  });
+                } catch { /* swallow — registration already succeeded */ }
+              },
+            },
+          },
+        }
+      : undefined,
   });
 }
 

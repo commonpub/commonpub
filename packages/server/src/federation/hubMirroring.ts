@@ -24,6 +24,7 @@ import type {
 } from '../types.js';
 import { normalizePagination, escapeLike, USER_REF_SELECT } from '../query.js';
 import { safeFetch } from '../import/ssrf.js';
+import { emitHook } from '../hooks.js';
 
 // --- Federated Hub CRUD ---
 
@@ -576,6 +577,14 @@ export async function ingestFederatedHubPost(
     if (actor?.id) {
       await upsertFederatedHubMember(db, federatedHubId, actor.id, 'post');
     }
+
+    await emitHook('federation:hub:post:received', {
+      db,
+      federatedHubPostId: inserted[0]!.id,
+      federatedHubId,
+      actorUri: post.actorUri,
+      postType: post.postType ?? 'text',
+    });
 
     return { id: inserted[0]!.id, created: true };
   }

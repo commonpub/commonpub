@@ -11,6 +11,7 @@ import {
   jsonb,
   index,
 } from 'drizzle-orm/pg-core';
+import type { AnyPgColumn } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { users } from './auth.js';
 import {
@@ -66,8 +67,9 @@ export const comments = pgTable('comments', {
     .references(() => users.id, { onDelete: 'cascade' }),
   targetType: commentTargetTypeEnum('target_type').notNull(),
   targetId: uuid('target_id').notNull(),
-  // Self-referencing FK handled via relations; DB-level constraint added via migration
-  parentId: uuid('parent_id'),
+  // Self-referencing FK (ON DELETE SET NULL): deleting a parent comment promotes its
+  // replies to top-level rather than cascading — preserves the reply content.
+  parentId: uuid('parent_id').references((): AnyPgColumn => comments.id, { onDelete: 'set null' }),
   content: text('content').notNull(),
   likeCount: integer('like_count').default(0).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),

@@ -10,6 +10,7 @@ import {
   primaryKey,
   index,
 } from 'drizzle-orm/pg-core';
+import type { AnyPgColumn } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { users } from './auth.js';
 import { contentItems } from './content.js';
@@ -39,7 +40,9 @@ export const hubs = pgTable('hubs', {
   hubType: hubTypeEnum('hub_type').default('community').notNull(),
   privacy: hubPrivacyEnum('privacy').default('public').notNull(),
   joinPolicy: hubJoinPolicyEnum('join_policy').default('open').notNull(),
-  parentHubId: uuid('parent_hub_id'),
+  // Self-referencing FK (ON DELETE SET NULL): deleting a parent hub orphans (un-nests)
+  // children rather than cascading.
+  parentHubId: uuid('parent_hub_id').references((): AnyPgColumn => hubs.id, { onDelete: 'set null' }),
   website: varchar('website', { length: 512 }),
   categories: jsonb('categories').$type<string[]>(),
   createdById: uuid('created_by_id')
@@ -108,8 +111,9 @@ export const hubPostReplies = pgTable('hub_post_replies', {
   /** Nullable for federated replies where the author has no local user record */
   authorId: uuid('author_id')
     .references(() => users.id, { onDelete: 'cascade' }),
-  // Self-referencing FK handled via relations; DB-level constraint added via migration
-  parentId: uuid('parent_id'),
+  // Self-referencing FK (ON DELETE SET NULL): deleting a parent reply promotes its
+  // children to top-level replies rather than cascading.
+  parentId: uuid('parent_id').references((): AnyPgColumn => hubPostReplies.id, { onDelete: 'set null' }),
   content: text('content').notNull(),
   likeCount: integer('like_count').default(0).notNull(),
   /** Remote actor URI for federated replies (null for local replies) */

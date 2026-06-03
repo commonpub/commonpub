@@ -1,4 +1,5 @@
 import { pgTable, uuid, varchar, text, timestamp, integer, boolean, jsonb, unique, index } from 'drizzle-orm/pg-core';
+import type { AnyPgColumn } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { users } from './auth.js';
 import { docsPageStatusEnum } from './enums.js';
@@ -47,8 +48,9 @@ export const docsPages = pgTable('docs_pages', {
   content: jsonb('content').notNull(),
   status: docsPageStatusEnum('status').default('draft').notNull(),
   sortOrder: integer('sort_order').default(0).notNull(),
-  // Self-referencing FK handled via relations; DB-level constraint added via migration
-  parentId: uuid('parent_id'),
+  // Self-referencing FK (ON DELETE SET NULL): deleting a parent page promotes its
+  // children to top-level rather than cascading.
+  parentId: uuid('parent_id').references((): AnyPgColumn => docsPages.id, { onDelete: 'set null' }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 }, (t) => [
