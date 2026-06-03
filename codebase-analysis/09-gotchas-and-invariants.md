@@ -408,6 +408,14 @@ path, not a 500. Before that, duplicates were possible on fast double-clicks.
 
 The projected Create uses a DETERMINISTIC id (`<object id>#create`) + the real `published` date (protocol `contentToCreateActivity`), shared with live delivery so backfill and delivery emit the same de-dupable activity, and so bounded backfill can paginate by date. Mirroring/backfill/refederate are all bounded by operator choice (forward-only default; `since`/`maxItems`/`limit`) — never auto-pull or re-blast an entire instance.
 
+### "Push" mirror = consent-based request, NOT a mirror row (Phase 3, session 185)
+
+`createMirror` is **pull-only and throws on `direction:'push'`** — push is a *request* to be mirrored, not a subscription you operate. Use `requestMirror()`, which writes a `mirror_requests` row (NOT `instance_mirrors`) and sends an AP `Offer(Follow)` carrying a `cpub:mirrorRequest:true` marker. Invariants:
+
+1. **One unified `mirror_requests` table, both directions.** `direction` = `incoming` (someone asked us) | `outgoing` (we asked them); `unique(direction, remote_domain)` so a re-request upserts. `instance_mirrors` stays pull-only — don't reintroduce push rows there (it overloads `mirrorStatusEnum` and collides with `unique(remote_domain)`).
+2. **Only ONE new inbound dispatch branch.** `processInboxActivity` routes `Offer` → `onMirrorRequest` *only* when the cpub marker + inner `Follow` are present (else `Unsupported` → non-CommonPub instances ignore it). Approve replies `Accept(Offer)`, reject replies `Reject(Offer)`; `onAccept`/`onReject` are *extended* (not new callbacks) to flip the requester's outgoing request, correlated by the stored `offerActivityUri`. `Offer` routes like `Follow` in `delivery.ts` (to the target actor's inbox).
+3. **Approve reuses the loop-guarded pull path.** `approveMirrorRequest` calls `createMirror(pull)` (idempotent — reuses an existing mirror for that domain) + optional bounded backfill; it does NOT auto-pull history unless a depth is chosen. Content then flows over the normal Create → `matchMirrorForContent` path. No reverse-Follow loop: the requester never follows the approver's content.
+
 ### Public API serializers are ALLOW-lists, never deny-lists
 
 `/api/public/v1/*` responses go through `to*` helpers in

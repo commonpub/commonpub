@@ -1,7 +1,7 @@
 import { pgTable, uuid, varchar, text, timestamp, integer, jsonb, index, unique, boolean } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { users } from './auth.js';
-import { activityDirectionEnum, activityStatusEnum, followRelationshipStatusEnum, mirrorStatusEnum, mirrorDirectionEnum, hubFollowStatusEnum } from './enums.js';
+import { activityDirectionEnum, activityStatusEnum, followRelationshipStatusEnum, mirrorStatusEnum, mirrorDirectionEnum, mirrorRequestDirectionEnum, mirrorRequestStatusEnum, hubFollowStatusEnum } from './enums.js';
 
 /** Cache of resolved remote ActivityPub actors */
 export const remoteActors = pgTable('remote_actors', {
@@ -178,7 +178,49 @@ export const instanceMirrors = pgTable('instance_mirrors', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
+/**
+ * Consent-based mirror requests (Phase 3). One unified table for both directions:
+ *  - 'incoming' = a remote instance asked US to mirror them (shown in "Requests to mirror you");
+ *    on approval we create a `pull` instanceMirror of the requester (resultingMirrorId).
+ *  - 'outgoing' = WE asked a remote instance to mirror us (createMirror direction:'push').
+ * `instanceMirrors` stays pull-only — push no longer writes there.
+ * Correlated to the AP `Offer(Follow)` wire activity by `offerActivityUri`.
+ */
+export const mirrorRequests = pgTable(
+  'mirror_requests',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    direction: mirrorRequestDirectionEnum('direction').notNull(),
+    /** Domain of the OTHER instance (requester for incoming, target for outgoing) */
+    remoteDomain: varchar('remote_domain', { length: 255 }).notNull(),
+    /** AP actor URI of the other instance's Service actor */
+    remoteActorUri: text('remote_actor_uri').notNull(),
+    status: mirrorRequestStatusEnum('status').default('pending').notNull(),
+    /** The `Offer` activity id — correlates the later Accept/Reject back to this request */
+    offerActivityUri: text('offer_activity_uri'),
+    /** For an approved incoming request: the pull mirror we created of the requester */
+    resultingMirrorId: uuid('resulting_mirror_id').references(() => instanceMirrors.id, {
+      onDelete: 'set null',
+    }),
+    lastError: text('last_error'),
+    decidedAt: timestamp('decided_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    // One live request row per (direction, domain) — a re-request upserts rather than duplicates.
+    unique('mirror_requests_direction_domain').on(t.direction, t.remoteDomain),
+  ],
+);
+
 // --- Relations ---
+
+export const mirrorRequestsRelations = relations(mirrorRequests, ({ one }) => ({
+  resultingMirror: one(instanceMirrors, {
+    fields: [mirrorRequests.resultingMirrorId],
+    references: [instanceMirrors.id],
+  }),
+}));
 
 export const actorKeypairsRelations = relations(actorKeypairs, ({ one }) => ({
   user: one(users, { fields: [actorKeypairs.userId], references: [users.id] }),

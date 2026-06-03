@@ -71,12 +71,26 @@ admin UX, consent-based push, and a discovery registry).
 - [~] DEFERRED to a follow-up: live streaming backfill progress (needs polling) + filter dry-run
       preview (needs a remote-outbox probe). Not blocking; noted in session 183.
 
-### Phase 3 — Push = consent-based mirror-request  ⬜
-- [ ] `createMirror` push branch → signed cpub-namespaced mirror-request to target inbox.
-- [ ] `inboxHandlers` handles inbound request; "Requests to mirror you" admin inbox.
-- [ ] Approve → create pull mirror of requester (B's own depth/filters) + accept their Follow; reject → rejected.
-- [ ] `api/admin/federation/mirror-requests/*` + admin tab; two-instance e2e.
-- [ ] Docs + codebase-analysis + session log.
+### Phase 3 — Push = consent-based mirror-request  ✅ (code+tests done; not yet published/deployed)
+- [x] Push branch → `requestMirror()` sends a signed `Offer(Follow)` + `cpub:mirrorRequest` marker
+      to the target inbox (protocol `buildMirrorRequestActivity`; `createMirror` push now throws —
+      push is no longer a mirror row). `Offer` routes like `Follow` in delivery.
+- [x] `inboxHandlers.onMirrorRequest` stores an 'incoming' request (loop-guard own domain, gate
+      target = our instance actor, admin notification); protocol `Offer` dispatch (cpub-marked only,
+      else unsupported → non-CommonPub ignores). "Requests to mirror you" admin panel.
+- [x] Approve → `approveMirrorRequest` creates a pull mirror of the requester (approver's own
+      depth/filters), optional bounded backfill, `Accept(Offer)`; idempotent if a mirror already
+      exists. Reject → `rejectMirrorRequest` sends `Reject(Offer)`. `onAccept`/`onReject` extended
+      to flip the requester's OUTGOING request by offer-uri correlation.
+- [x] **Storage:** one unified `mirror_requests` table (incoming|outgoing), migration **0014**;
+      `instanceMirrors` stays pull-only. Zod `approveMirrorRequestSchema`.
+- [x] `api/admin/federation/mirror-requests/{index.get, [id]/approve.post, [id]/reject.post}` +
+      RBAC route-keys map; create-form direction selector + "Requests sent/received" panels +
+      `MirrorRequestApproveModal.vue` (depth+filters, axe).
+- [x] Tests: protocol Offer dispatch (3) + builder (1); server unit + **two-instance e2e**
+      (request→approve→bounded pull→content, +no-loop assertion) (11); modal component+axe (9).
+      Full `pnpm typecheck` 26/26; server 1227 + layer 887 green.
+- [ ] Docs + codebase-analysis + session log (in progress).
 
 ### Phase 4 — Registry / instance directory  ⬜
 - [ ] `features.actAsRegistry` (default OFF) + `instance.registryUrl` (default `https://commonpub.io`).

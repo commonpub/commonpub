@@ -41,7 +41,7 @@ packages/schema/src/
 ├── contest.ts       contests, contestEntries, contestJudges, contestStakeholders
 ├── events.ts        events, eventAttendees
 ├── voting.ts        hubPostVotes, pollOptions, pollVotes, contestEntryVotes
-├── federation.ts    remoteActors, activities, followRelationships, actorKeypairs, federatedContent, federatedContentBuilds, instanceMirrors, instanceHealth, federatedHubs, federatedHubPosts, federatedHubMembers, federatedHubPostLikes, federatedHubPostReplies, federatedHubResources, federatedHubProducts, userFederatedHubFollows (16)
+├── federation.ts    remoteActors, activities, followRelationships, actorKeypairs, federatedContent, federatedContentBuilds, instanceMirrors, instanceHealth, federatedHubs, federatedHubPosts, federatedHubMembers, federatedHubPostLikes, federatedHubPostReplies, federatedHubResources, federatedHubProducts, userFederatedHubFollows, mirrorRequests (17)
 ├── files.ts         files
 ├── admin.ts         instanceSettings, auditLogs
 ├── layout.ts        layouts, layoutRows, layoutSections, layoutVersions (session 155)
@@ -229,7 +229,8 @@ Core AP:
 | actorKeypairs | Per-user RSA | unique userId |
 | federatedContent | Remote content mirrored locally | cpubType + cpubBlocks preserve CommonPub fidelity; soft delete; objectUri unique |
 | federatedContentBuilds | "I built this" on remote | unique(userId, federatedContentId) |
-| instanceMirrors | Mirror configs | direction (pull/push); status; backfillCursor; filterContentTypes JSONB |
+| instanceMirrors | Mirror configs (PULL only since Phase 3) | direction stays pull; status; backfillCursor; filterContentTypes JSONB |
+| mirrorRequests | Consent-based mirror requests (Phase 3) | unique(direction, remoteDomain); direction incoming\|outgoing; status pending\|approved\|rejected; offerActivityUri correlates Accept/Reject; resultingMirrorId FK→instanceMirrors (set null) |
 | instanceHealth | Circuit breaker per remote domain | circuitOpenUntil, consecutiveFailures |
 
 Federated hubs:

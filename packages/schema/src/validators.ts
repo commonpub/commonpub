@@ -643,6 +643,24 @@ export const createFollowRelationshipSchema = z.object({
 });
 export type CreateFollowRelationshipInput = z.infer<typeof createFollowRelationshipSchema>;
 
+export const mirrorRequestDirectionSchema = z.enum(['incoming', 'outgoing']);
+export type MirrorRequestDirection = z.infer<typeof mirrorRequestDirectionSchema>;
+
+export const mirrorRequestStatusSchema = z.enum(['pending', 'approved', 'rejected']);
+export type MirrorRequestStatus = z.infer<typeof mirrorRequestStatusSchema>;
+
+/**
+ * Body for approving an incoming mirror request — the approver's bounded depth + filters for the
+ * pull mirror they create of the requester. All optional; absent depth = forward-only.
+ */
+export const approveMirrorRequestSchema = z.object({
+  sinceDays: z.coerce.number().int().positive().max(3650).optional(),
+  maxItems: z.coerce.number().int().positive().max(5000).optional(),
+  filterContentTypes: z.array(z.string().max(64)).max(20).nullable().optional(),
+  filterTags: z.array(z.string().max(64)).max(50).nullable().optional(),
+});
+export type ApproveMirrorRequestInput = z.infer<typeof approveMirrorRequestSchema>;
+
 // --- Filter schemas ---
 
 export const contentFiltersSchema = z.object({

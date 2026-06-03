@@ -190,6 +190,17 @@ export const mirrorStatusEnum = pgEnum('mirror_status', [
   'failed',
 ]);
 export const mirrorDirectionEnum = pgEnum('mirror_direction', ['pull', 'push']);
+/** Direction of a consent-based mirror request: 'incoming' = someone asks to mirror us,
+ *  'outgoing' = we asked them to mirror us. */
+export const mirrorRequestDirectionEnum = pgEnum('mirror_request_direction', [
+  'incoming',
+  'outgoing',
+]);
+export const mirrorRequestStatusEnum = pgEnum('mirror_request_status', [
+  'pending',
+  'approved',
+  'rejected',
+]);
 
 // --- Docs ---
 export const docsPageStatusEnum = pgEnum('docs_page_status', ['draft', 'published', 'archived']);

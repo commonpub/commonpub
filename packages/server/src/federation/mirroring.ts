@@ -6,11 +6,17 @@
 import { eq, and, sql, desc } from 'drizzle-orm';
 import {
   instanceMirrors,
+  mirrorRequests,
   federatedContent,
   activities,
   followRelationships,
 } from '@commonpub/schema';
-import { buildFollowActivity } from '@commonpub/protocol';
+import {
+  buildFollowActivity,
+  buildMirrorRequestActivity,
+  buildAcceptActivity,
+  buildRejectActivity,
+} from '@commonpub/protocol';
 import type { DB } from '../types.js';
 
 export interface MirrorConfig {
@@ -29,8 +35,8 @@ export interface MirrorConfig {
 }
 
 /**
- * Create a new instance mirror subscription.
- * The instance actor will follow the remote instance actor to receive content.
+ * Create a new PULL instance mirror subscription — the instance actor follows the remote instance
+ * actor to receive its public content. (Push is a consent-based request — see `requestMirror`.)
  */
 export async function createMirror(
   db: DB,
@@ -40,50 +46,271 @@ export async function createMirror(
   localDomain: string,
   filters?: { contentTypes?: string[]; tags?: string[] },
 ): Promise<MirrorConfig> {
+  if (direction === 'push') {
+    // Push is no longer a mirror row — it's a consent-based request to the remote instance.
+    throw new Error('createMirror only handles pull mirrors; use requestMirror() for push (consent-based) requests');
+  }
+
   const [row] = await db
     .insert(instanceMirrors)
     .values({
       remoteDomain,
       remoteActorUri,
-      direction,
+      direction: 'pull',
       status: 'active', // Start as active immediately
       filterContentTypes: filters?.contentTypes ?? null,
       filterTags: filters?.tags ?? null,
     })
     .returning();
 
-  // For pull mirrors: Follow the remote instance actor so they deliver content to us
-  if (direction === 'pull') {
-    // CRITICAL: resolve and cache the remote actor FIRST so the delivery worker
-    // can find their inbox when delivering the Follow activity
-    const { resolveRemoteActor } = await import('./federation.js');
-    const resolved = await resolveRemoteActor(db, remoteActorUri).catch(() => null);
-    if (!resolved) {
-      console.warn(`[mirroring] Could not resolve remote actor ${remoteActorUri} — mirror created but Follow delivery may fail`);
-    }
-
-    const localActorUri = `https://${localDomain}/actor`;
-    const followActivity = buildFollowActivity(localDomain, localActorUri, remoteActorUri);
-
-    // Store the follow relationship so the remote can find us
-    await db.insert(followRelationships).values({
-      followerActorUri: localActorUri,
-      followingActorUri: remoteActorUri,
-      status: 'pending',
-    }).onConflictDoNothing();
-
-    // Queue the Follow for delivery
-    await db.insert(activities).values({
-      type: 'Follow',
-      actorUri: localActorUri,
-      objectUri: remoteActorUri,
-      payload: followActivity,
-      direction: 'outbound',
-      status: 'pending',
-    });
+  // Pull mirror: Follow the remote instance actor so they deliver content to us.
+  // CRITICAL: resolve and cache the remote actor FIRST so the delivery worker
+  // can find their inbox when delivering the Follow activity.
+  const { resolveRemoteActor } = await import('./federation.js');
+  const resolved = await resolveRemoteActor(db, remoteActorUri).catch(() => null);
+  if (!resolved) {
+    console.warn(`[mirroring] Could not resolve remote actor ${remoteActorUri} — mirror created but Follow delivery may fail`);
   }
 
+  const localActorUri = `https://${localDomain}/actor`;
+  const followActivity = buildFollowActivity(localDomain, localActorUri, remoteActorUri);
+
+  // Store the follow relationship so the remote can find us
+  await db.insert(followRelationships).values({
+    followerActorUri: localActorUri,
+    followingActorUri: remoteActorUri,
+    status: 'pending',
+  }).onConflictDoNothing();
+
+  // Queue the Follow for delivery
+  await db.insert(activities).values({
+    type: 'Follow',
+    actorUri: localActorUri,
+    objectUri: remoteActorUri,
+    payload: followActivity,
+    direction: 'outbound',
+    status: 'pending',
+  });
+
   return mirrorRowToConfig(row!);
+}
+
+// --- Consent-based mirror requests (Phase 3) ---
+
+export interface MirrorRequestConfig {
+  id: string;
+  direction: 'incoming' | 'outgoing';
+  remoteDomain: string;
+  remoteActorUri: string;
+  status: 'pending' | 'approved' | 'rejected';
+  offerActivityUri: string | null;
+  resultingMirrorId: string | null;
+  lastError: string | null;
+  decidedAt: string | null;
+  createdAt: string;
+}
+
+function mirrorRequestRowToConfig(row: typeof mirrorRequests.$inferSelect): MirrorRequestConfig {
+  return {
+    id: row.id,
+    direction: row.direction as 'incoming' | 'outgoing',
+    remoteDomain: row.remoteDomain,
+    remoteActorUri: row.remoteActorUri,
+    status: row.status as 'pending' | 'approved' | 'rejected',
+    offerActivityUri: row.offerActivityUri,
+    resultingMirrorId: row.resultingMirrorId,
+    lastError: row.lastError,
+    decidedAt: row.decidedAt?.toISOString() ?? null,
+    createdAt: row.createdAt.toISOString(),
+  };
+}
+
+/**
+ * Send a consent-based mirror request (createMirror direction:'push') — ask a remote CommonPub
+ * instance to pull-mirror US. Stores an 'outgoing' request row and queues a signed `Offer(Follow)`
+ * to the target's inbox. Re-requesting the same domain resets the row to pending (idempotent).
+ */
+export async function requestMirror(
+  db: DB,
+  remoteDomain: string,
+  remoteActorUri: string,
+  localDomain: string,
+): Promise<MirrorRequestConfig> {
+  // Resolve + cache the remote actor first so the delivery worker can find its inbox.
+  const { resolveRemoteActor } = await import('./federation.js');
+  const resolved = await resolveRemoteActor(db, remoteActorUri).catch(() => null);
+  if (!resolved) {
+    console.warn(`[mirroring] Could not resolve ${remoteActorUri} — request created but Offer delivery may fail`);
+  }
+
+  const localActorUri = `https://${localDomain}/actor`;
+  const offer = buildMirrorRequestActivity(localDomain, localActorUri, remoteActorUri);
+
+  const [row] = await db
+    .insert(mirrorRequests)
+    .values({
+      direction: 'outgoing',
+      remoteDomain,
+      remoteActorUri,
+      status: 'pending',
+      offerActivityUri: offer.id,
+    })
+    .onConflictDoUpdate({
+      target: [mirrorRequests.direction, mirrorRequests.remoteDomain],
+      set: {
+        remoteActorUri,
+        status: 'pending',
+        offerActivityUri: offer.id,
+        lastError: null,
+        decidedAt: null,
+        updatedAt: new Date(),
+      },
+    })
+    .returning();
+
+  // Queue the Offer for delivery to the target instance's inbox.
+  await db.insert(activities).values({
+    type: 'Offer',
+    actorUri: localActorUri,
+    objectUri: remoteActorUri,
+    payload: offer,
+    direction: 'outbound',
+    status: 'pending',
+  });
+
+  return mirrorRequestRowToConfig(row!);
+}
+
+/** List mirror requests, optionally filtered by direction. */
+export async function listMirrorRequests(
+  db: DB,
+  direction?: 'incoming' | 'outgoing',
+): Promise<MirrorRequestConfig[]> {
+  const rows = await db
+    .select()
+    .from(mirrorRequests)
+    .where(direction ? eq(mirrorRequests.direction, direction) : undefined)
+    .orderBy(desc(mirrorRequests.createdAt));
+  return rows.map(mirrorRequestRowToConfig);
+}
+
+/** Get a single mirror request by id. */
+export async function getMirrorRequest(db: DB, requestId: string): Promise<MirrorRequestConfig | null> {
+  const [row] = await db
+    .select()
+    .from(mirrorRequests)
+    .where(eq(mirrorRequests.id, requestId))
+    .limit(1);
+  return row ? mirrorRequestRowToConfig(row) : null;
+}
+
+/**
+ * Approve an INCOMING mirror request: create a pull mirror of the requester (using the approver's
+ * own depth + filters), optionally backfill bounded history, queue an `Accept(Offer)` back to the
+ * requester, and mark the request approved. Idempotent if a pull mirror already exists for the
+ * requester's domain (reuses it — respects the unique(remote_domain) constraint).
+ */
+export async function approveMirrorRequest(
+  db: DB,
+  requestId: string,
+  localDomain: string,
+  opts?: {
+    sinceDays?: number;
+    maxItems?: number;
+    filterContentTypes?: string[] | null;
+    filterTags?: string[] | null;
+  },
+): Promise<MirrorRequestConfig> {
+  const [req] = await db.select().from(mirrorRequests).where(eq(mirrorRequests.id, requestId)).limit(1);
+  if (!req) throw new Error('Mirror request not found');
+  if (req.direction !== 'incoming') throw new Error('Can only approve incoming mirror requests');
+
+  // Create (or reuse) a pull mirror of the requester with the approver's chosen filters.
+  let [existing] = await db
+    .select()
+    .from(instanceMirrors)
+    .where(eq(instanceMirrors.remoteDomain, req.remoteDomain))
+    .limit(1);
+
+  let mirrorId: string;
+  if (existing) {
+    mirrorId = existing.id;
+  } else {
+    const mirror = await createMirror(db, req.remoteDomain, req.remoteActorUri, 'pull', localDomain, {
+      contentTypes: opts?.filterContentTypes ?? undefined,
+      tags: opts?.filterTags ?? undefined,
+    });
+    mirrorId = mirror.id;
+  }
+
+  // Optional bounded history import (forward-only if no depth chosen).
+  if (opts && (opts.sinceDays || opts.maxItems)) {
+    try {
+      const { backfillFromOutbox } = await import('./backfill.js');
+      const since = opts.sinceDays
+        ? new Date(Date.now() - opts.sinceDays * 24 * 60 * 60 * 1000)
+        : undefined;
+      await backfillFromOutbox(db, req.remoteActorUri, localDomain, {
+        maxItems: opts.maxItems,
+        since,
+      });
+    } catch (err) {
+      console.error('[mirroring] approve backfill failed:', err instanceof Error ? err.message : err);
+    }
+  }
+
+  // Tell the requester we approved — Accept(Offer). objectUri = requester actor so delivery routes there.
+  const localActorUri = `https://${localDomain}/actor`;
+  const accept = buildAcceptActivity(localDomain, localActorUri, req.offerActivityUri ?? req.remoteActorUri);
+  await db.insert(activities).values({
+    type: 'Accept',
+    actorUri: localActorUri,
+    objectUri: req.remoteActorUri,
+    payload: accept,
+    direction: 'outbound',
+    status: 'pending',
+  });
+
+  const [updated] = await db
+    .update(mirrorRequests)
+    .set({ status: 'approved', resultingMirrorId: mirrorId, decidedAt: new Date(), updatedAt: new Date() })
+    .where(eq(mirrorRequests.id, requestId))
+    .returning();
+
+  return mirrorRequestRowToConfig(updated!);
+}
+
+/**
+ * Reject an INCOMING mirror request: queue a `Reject(Offer)` back to the requester and mark it
+ * rejected. No mirror is created.
+ */
+export async function rejectMirrorRequest(
+  db: DB,
+  requestId: string,
+  localDomain: string,
+): Promise<MirrorRequestConfig> {
+  const [req] = await db.select().from(mirrorRequests).where(eq(mirrorRequests.id, requestId)).limit(1);
+  if (!req) throw new Error('Mirror request not found');
+  if (req.direction !== 'incoming') throw new Error('Can only reject incoming mirror requests');
+
+  const localActorUri = `https://${localDomain}/actor`;
+  const reject = buildRejectActivity(localDomain, localActorUri, req.offerActivityUri ?? req.remoteActorUri);
+  await db.insert(activities).values({
+    type: 'Reject',
+    actorUri: localActorUri,
+    objectUri: req.remoteActorUri,
+    payload: reject,
+    direction: 'outbound',
+    status: 'pending',
+  });
+
+  const [updated] = await db
+    .update(mirrorRequests)
+    .set({ status: 'rejected', decidedAt: new Date(), updatedAt: new Date() })
+    .where(eq(mirrorRequests.id, requestId))
+    .returning();
+
+  return mirrorRequestRowToConfig(updated!);
 }
 
 /** A remote instance that follows our instance Service actor — i.e. is mirroring us. */

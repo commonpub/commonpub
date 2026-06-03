@@ -32,7 +32,7 @@ export type {
 } from './oauth.js';
 
 // Activity Types
-export { AP_CONTEXT, AP_PUBLIC } from './activityTypes.js';
+export { AP_CONTEXT, AP_PUBLIC, CPUB_MIRROR_REQUEST } from './activityTypes.js';
 export type {
   APArticle,
   APNote,
@@ -48,6 +48,7 @@ export type {
   APUndo,
   APLike,
   APAnnounce,
+  APOffer,
   APActivity,
   APAttachment,
   APTag,
@@ -66,6 +67,7 @@ export {
   buildUndoActivity,
   buildLikeActivity,
   buildAnnounceActivity,
+  buildMirrorRequestActivity,
 } from './activities.js';
 
 // Content Mapper

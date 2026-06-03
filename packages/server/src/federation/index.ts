@@ -49,8 +49,14 @@ export {
   getMirror,
   matchMirrorForContent,
   listInstanceFollowers,
+  requestMirror,
+  listMirrorRequests,
+  getMirrorRequest,
+  approveMirrorRequest,
+  rejectMirrorRequest,
   type MirrorConfig,
   type InstanceFollower,
+  type MirrorRequestConfig,
 } from './mirroring.js';
 export {
   getHubActorUri,

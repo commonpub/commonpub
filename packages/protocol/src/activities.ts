@@ -1,6 +1,7 @@
 import {
   AP_CONTEXT,
   AP_PUBLIC,
+  CPUB_MIRROR_REQUEST,
   type APCreate,
   type APUpdate,
   type APDelete,
@@ -10,6 +11,7 @@ import {
   type APUndo,
   type APLike,
   type APAnnounce,
+  type APOffer,
   type APArticle,
   type APNote,
   type APTombstone,
@@ -127,6 +129,32 @@ export function buildUndoActivity(
     id: activityId(domain),
     actor: actorUri,
     object: originalActivity,
+  };
+}
+
+/**
+ * Build a consent-based mirror request (Phase 3) — `Offer(Follow)` + cpub marker.
+ * `requesterActorUri` (us) asks `targetActorUri` (them) to follow us so they mirror our content.
+ * Sent to the target instance's inbox; they approve/reject via their admin.
+ */
+export function buildMirrorRequestActivity(
+  domain: string,
+  requesterActorUri: string,
+  targetActorUri: string,
+): APOffer {
+  return {
+    '@context': AP_CONTEXT,
+    type: 'Offer',
+    id: activityId(domain),
+    actor: requesterActorUri,
+    object: {
+      '@context': AP_CONTEXT,
+      type: 'Follow',
+      id: activityId(domain),
+      actor: targetActorUri,
+      object: requesterActorUri,
+    },
+    [CPUB_MIRROR_REQUEST]: true,
   };
 }
 

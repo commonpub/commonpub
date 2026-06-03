@@ -7,6 +7,7 @@ import { emitHook } from '../hooks.js';
 import {
   activities,
   followRelationships,
+  mirrorRequests,
   contentItems,
   federatedContent,
   federatedHubPosts,
@@ -258,6 +259,23 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
         await acceptHubFollow(db, actorUri);
       } catch { /* non-critical — may not be a hub follow */ }
 
+      // Mirror request (Phase 3): the remote accepted OUR Offer → flip our outgoing request to
+      // approved. Correlate by the Offer activity id (objectId), falling back to remote domain.
+      try {
+        if (objectId) {
+          await db
+            .update(mirrorRequests)
+            .set({ status: 'approved', decidedAt: new Date(), updatedAt: new Date() })
+            .where(
+              and(
+                eq(mirrorRequests.direction, 'outgoing'),
+                eq(mirrorRequests.status, 'pending'),
+                eq(mirrorRequests.offerActivityUri, objectId),
+              ),
+            );
+        }
+      } catch { /* non-critical */ }
+
       await db.insert(activities).values({
         type: 'Accept',
         actorUri,
@@ -291,6 +309,23 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
           .set({ status: 'rejected', updatedAt: new Date() })
           .where(eq(followRelationships.id, pending[0]!.id));
       }
+
+      // Mirror request (Phase 3): the remote rejected OUR Offer → flip our outgoing request to
+      // rejected. Correlate by the Offer activity id (objectId).
+      try {
+        if (objectId) {
+          await db
+            .update(mirrorRequests)
+            .set({ status: 'rejected', decidedAt: new Date(), updatedAt: new Date() })
+            .where(
+              and(
+                eq(mirrorRequests.direction, 'outgoing'),
+                eq(mirrorRequests.status, 'pending'),
+                eq(mirrorRequests.offerActivityUri, objectId),
+              ),
+            );
+        }
+      } catch { /* non-critical */ }
 
       await db.insert(activities).values({
         type: 'Reject',
@@ -1343,6 +1378,78 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
         direction: 'inbound',
         status: 'processed',
       });
+    },
+
+    /**
+     * Inbound consent-based mirror request (Phase 3): a remote CommonPub instance asks US to
+     * pull-mirror it. Store it as a pending 'incoming' request for the admin to approve/reject.
+     */
+    async onMirrorRequest(
+      requesterActorUri: string,
+      targetActorUri: string,
+      offerActivityId: string,
+    ): Promise<void> {
+      // Loop guard: ignore a request that claims to originate from our own domain.
+      let requesterDomain: string;
+      try {
+        requesterDomain = new URL(requesterActorUri).hostname;
+      } catch {
+        return;
+      }
+      if (requesterDomain === domain) return;
+
+      // Instance-level only: the request must target our instance Service actor.
+      const instanceActorUri = `https://${domain}/actor`;
+      if (targetActorUri !== instanceActorUri) return;
+
+      // Cache the requester's actor (inbox/public key) so we can deliver Accept/Reject back.
+      await resolveRemoteActor(db, requesterActorUri).catch(() => null);
+
+      // Upsert the pending request (a re-request resets it to pending).
+      await db
+        .insert(mirrorRequests)
+        .values({
+          direction: 'incoming',
+          remoteDomain: requesterDomain,
+          remoteActorUri: requesterActorUri,
+          status: 'pending',
+          offerActivityUri: offerActivityId,
+        })
+        .onConflictDoUpdate({
+          target: [mirrorRequests.direction, mirrorRequests.remoteDomain],
+          set: {
+            remoteActorUri: requesterActorUri,
+            status: 'pending',
+            offerActivityUri: offerActivityId,
+            resultingMirrorId: null,
+            lastError: null,
+            decidedAt: null,
+            updatedAt: new Date(),
+          },
+        });
+
+      // Log the inbound activity.
+      await db.insert(activities).values({
+        type: 'Offer',
+        actorUri: requesterActorUri,
+        objectUri: targetActorUri,
+        payload: { type: 'Offer', actor: requesterActorUri, object: targetActorUri, id: offerActivityId, 'cpub:mirrorRequest': true },
+        direction: 'inbound',
+        status: 'processed',
+      });
+
+      // Best-effort: notify admins so the request surfaces beyond the badge.
+      try {
+        const admins = await db.select({ id: users.id }).from(users).where(eq(users.role, 'admin'));
+        const name = await resolveRemoteActorName(db, requesterActorUri);
+        for (const admin of admins) {
+          await notifyRemoteInteraction(
+            db, admin.id, 'follow', requesterActorUri,
+            'Mirror request', `${name} (${requesterDomain}) asked to mirror your instance`,
+            '/admin/federation',
+          );
+        }
+      } catch { /* non-critical */ }
     },
   };
 
