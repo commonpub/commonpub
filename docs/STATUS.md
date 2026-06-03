@@ -72,11 +72,15 @@ the **P3 mirror-request approve flow** (needs an admin login on two instances).
   integration flake was a real fixed-window boundary race (count-sensitive checks could straddle a
   wall-clock window edge) — fixed with a `waitForWindowHeadroom` guard. The `@commonpub/docs` flake
   (deterministic locally, transient under turbo's all-packages-parallel CI run) now has CI-only
-  `retry:2`. `check` went green first-try after. **`e2e` is still non-gating + red** on 2 homepage
-  tests (`apps/reference/e2e/navigation.spec.ts:8` tab-switching, `:38` hero-dismiss) — consistent
-  hard failures (Playwright already retries 2×), so stale/timing, NOT transient; needs a dedicated
-  local-Playwright repro to fix (selectors exist; likely empty-test-DB render or hydration). The real
-  prod gate remains commonpub.io's `scripts/smoke.mjs`.
+  `retry:2`. `check` went green first-try after. **`e2e` root-caused (draft PR #7, NOT merged):** the
+  Playwright webServer ran `nuxt dev`, so the FIRST homepage test paid nuxt-dev's cold Vite compile
+  (>15s) and timed out (`workers:1` in CI → first test always pays it). PR #7 serves the production
+  build (`nuxt preview`) in CI instead — this **fixed** the 2 homepage tests, but prod mode then
+  surfaced **7 console-error failures on auth/`/create`/admin-theme pages** (e2e-prod-env config gaps
+  — login works on the live sites, so not real bugs). To finish: download the run's Playwright trace
+  artifact (or local prod repro) to pin the auth-page console error + add the missing e2e prod config,
+  then merge PR #7. main's e2e is unchanged meanwhile (still the 2 known non-gating homepage flakes).
+  Real prod gate remains commonpub.io's `scripts/smoke.mjs`.
 - **GitHub Actions Node-20 deprecation** (warning on every run): auto-switches those actions to
   Node 24 on 2026-06-16 — non-breaking, self-resolving; bump action majors when convenient.
 - **`@commonpub/test-utils` 0.5.6**: source has a `mockConfig` flag addition that the published 0.5.6
@@ -152,15 +156,17 @@ a minute (`curl deveco.io/api/content?limit=5`, today's timestamp).
 | @commonpub/auth | 0.8.0 | | @commonpub/docs | 0.6.3 |
 | @commonpub/server | 2.73.0 | | @commonpub/learning | 0.5.2 |
 | @commonpub/ui | 0.9.2 | | @commonpub/test-utils | 0.5.6 |
-| @commonpub/layer | **0.47.0** | | create-commonpub (crates.io) | **0.5.5** |
+| @commonpub/layer | **0.48.0** | | create-commonpub (crates.io) | **0.5.6** |
 
 Migrations applied this cycle: **0013** (self-ref FKs) · **0014** (`mirror_requests`) · **0015**
 (`registry_instances`).
 
-Recent UI follow-ups (2026-06-03, layer 0.46.0): contest hero banner 260→195px; deveco.io mobile-nav
+Recent UI follow-ups (2026-06-03): contest hero banner 260→195px (layer 0.46.0); deveco.io mobile-nav
 hamburger fixed (its forked `layouts/default.vue` used bare `<MobileNavRenderer>` → unresolved;
-now `<NavMobileNavRenderer>`). CLI now auto-publishes: push a `create-commonpub-v*` tag →
-`cli-release.yml` (the `CARGO_REGISTRY_TOKEN` secret is set; validated publishing 0.5.4).
+now `<NavMobileNavRenderer>`); **contest list cards now show the bannerUrl cover image** (16:9
+cover-cropped thumb + grid/trophy fallback + status-badge overlay + whole-card link, layer 0.48.0).
+CLI now auto-publishes: push a `create-commonpub-v*` tag → `cli-release.yml` (the
+`CARGO_REGISTRY_TOKEN` secret is set; validated publishing 0.5.4 / 0.5.5 / 0.5.6).
 Avatar oval fix (layer 0.47.0): deveco blog byline/author/card avatars rendered as tall ovals even
 on wide viewports — the `<img>` fell back to its intrinsic aspect ratio on one axis (NOT flex
 compression). Fixed by hard-locking `.cpub-av`/`.cpub-cc-av` to a square via `min/max` on **both**

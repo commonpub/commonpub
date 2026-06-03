@@ -28,7 +28,7 @@ default registry (PR #2, `33d77f2`):
   `create-commonpub-v*` tag; **`CARGO_REGISTRY_TOKEN` secret is SET** (validated publishing 0.5.4 + 0.5.5).
   Local copy gitignored at `.secrets/cargo-registry-token`.
 
-### Continued — UI fixes shipped to all 3 (session 188, layer 0.46→0.47)
+### Continued — UI fixes shipped to all 3 (session 188, layer 0.46→0.48; CLI → 0.5.6)
 - **Contest banner −¼** (260→195px), layer 0.46.0. Verified live (deveco contest page CSS).
 - **deveco mobile-nav hamburger** fixed — its FORKED `layouts/default.vue` used bare
   `<MobileNavRenderer>` (Nuxt pathPrefix → `<NavMobileNavRenderer>`), so it rendered an empty
@@ -39,6 +39,15 @@ default registry (PR #2, `33d77f2`):
   `.cpub-av`/`.cpub-cc-av` to a square via `min/max` on BOTH axes (`--cpub-av-size` var). CSS verified
   live on deveco; **awaiting the operator's visual confirm**. Root cause (which global rule drops the
   dimension to `auto`) NOT found — the clamp fixes the symptom robustly; worth a root-cause pass.
+- **Contest-card banner image**, layer 0.48.0. `/contests` cards now lead with the contest `bannerUrl`
+  (16:9 cover-cropped thumb via image-proxy + grid/trophy fallback + status-badge overlay, whole-card
+  link). Verified live on deveco (2 cards render `cpub-contest-cover`). **Awaiting visual confirm.**
+- **CI check-job flakes fixed (merged):** infra Redis fixed-window boundary race → `waitForWindowHeadroom`
+  guard; `@commonpub/docs` transient CI flake → `retry:2`. `check` now green first-try (no more reruns).
+- **CLI** now at **0.5.6** on crates.io (auto-published via the `create-commonpub-v*` tag workflow,
+  validated three times: 0.5.4/0.5.5/0.5.6).
+- **Cruft:** removed ~874MB+ of gitignored `.stryker-tmp` (root + packages/infra + packages/schema).
+- **codebase-analysis refreshed** (02 counts/migrations, 08 announce default, 11 + facts.md versions).
 
 ### Post-session audit (verified 2026-06-03)
 - **Zero drift**: all 13 @commonpub/* source==published; layer 0.47.0; CLI Cargo 0.5.5==crates.io.
@@ -49,13 +58,18 @@ default registry (PR #2, `33d77f2`):
 ### Open items (next session)
 - **P3** mirror-request Offer→Accept round-trip — the only federation feature never verified
   end-to-end (needs admin login on 2 instances: Request → approve w/ depth → pull mirror + backfill).
-- **CI flake stabilization** — `check` is red on every PR from an intermittent `@commonpub/infra`
-  Redis integration test (`two stores sharing one Redis`) + `@commonpub/docs` test; `e2e` always red
-  on 2 homepage flakes (`navigation.spec.ts:8`/`:38`). Had to rerun `check` ~4× this session. Quarantine
-  or fix so CI is a real gate (`smoke.mjs` is the only trustworthy prod gate today).
-- **GitHub Actions Node 20 deprecation** — forced to Node 24 on **2026-06-16**; bump action versions.
+- **Finish e2e green (draft PR #7)** — `check`/`rust` are stable now. The e2e prod-build switch
+  (PR #7, NOT merged) fixed the 2 homepage flakes but surfaced **7 console-error failures on
+  auth/`/create`/admin-theme pages** in prod mode (e2e-prod-env config gaps; live login works fine).
+  To finish: pull the run's Playwright **trace artifact** (or local prod repro) to pin the auth-page
+  console error, add the missing e2e prod config (likely a `NUXT_PUBLIC_*` auth value), then merge PR #7.
+- **GitHub Actions Node 20 deprecation** — auto-switches those actions to Node 24 on **2026-06-16**
+  (non-breaking, self-resolving); bump action majors when convenient.
 - **Avatar root cause** — found+fixed the symptom (square-lock); the global rule that drops the
   `<img>` dimension to `auto` is still unidentified.
+- **Visual confirms pending:** avatar circle + contest-card banner on deveco (hard-refresh).
+- Federation backlog: P3 round-trip (above), registry public directory page / stats poller / gossip,
+  streaming backfill progress, `approveMirrorRequest` transaction.
 - ~~`CARGO_REGISTRY_TOKEN` secret~~ DONE. Browser-smoke `/admin/federation`; `reconcile-counters --check`.
 
 ### Corrected stale claims this release found
