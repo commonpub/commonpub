@@ -2,17 +2,30 @@
 
 Read this, then start. Master plan: `docs/plans/federation-discovery-and-hardening.md` (living,
 all phase checkboxes done). Prior logs: `183` (Phase 0+1), `184` (Phase 2), `185`
-(Phase 3 — mirror requests), `186` (Phase 4 — registry). **Always `curl /api/features` +
-`npm view @commonpub/<pkg> version` before trusting any state claim.**
+(Phase 3 — mirror requests), `186` (Phase 4 — registry), `187` (deep audit + fixes).
+**Always `curl /api/features` + `npm view @commonpub/<pkg> version` before trusting any state claim.**
 
 ## STATE (2026-06-02)
 
-- Branch **`feat/federation-discovery-and-hardening`**, **9 commits**, **nothing published/deployed**.
-- **Phases 0–4 ALL done** (code + tests + docs). The only remaining work is the **batched release
-  (task #7)**. Verified green: `pnpm typecheck` **26/26**; config **24**, protocol **424**,
-  server **1244**, layer **901**; reference `vue-tsc` clean.
+- Branch **`feat/federation-discovery-and-hardening`**, **11 commits**, **nothing published/deployed**.
+- **Phases 0–4 ALL done + 3 audit rounds** (code + tests + docs). The only remaining work is the
+  **batched release (task #7)**. Verified green: `pnpm typecheck` **26/26**; config **25**,
+  protocol **424**, server **1246**, layer **907**; reference `vue-tsc` clean.
 - Commits since `main`: `610a76b` P0 · `195b26e` P1 · `7efdc91` P0/1 audit · `608a842` P2 ·
-  `402af17` P2 audit · `180320a` P3 · `75ebd5d` P3 audit · `5b35fe4` P3 handoff · `464d533` P4.
+  `402af17` P2 audit · `180320a` P3 · `75ebd5d` P3 audit · `5b35fe4` P3 handoff · `464d533` P4 ·
+  `bd1146d` deep-audit fixes · `6d5c1cf` audit-of-audit fixes.
+
+## ⚠️ ONE BEHAVIOR CHANGE TO THE LIVE INBOX (session 187 — read before re-enabling federation)
+
+The deep audit added **`assertActorMatchesSigner`** to all 3 inbox routes: an inbound activity's
+top-level `actor` must be on the **same host as the HTTP-signature signer** (closes actor-spoofing
+— a validly-signed request from X could previously claim `actor: victim`). CommonPub always signs
+with `keyId == actor`, so CommonPub↔CommonPub is unaffected, and Mastodon/GoToSocial **direct**
+delivery is unaffected (signer == author). The ONE thing this rejects: **Mastodon inbox-*forwarded*
+activities** (server B forwards A's activity, HTTP-signed by B, `actor: A`) — we don't depend on
+forwarding, and it's the correct security tradeoff, but if a live interop test shows dropped
+reply-thread activities from Mastodon, this is why. The integration/interop tests call
+`processInboxActivity` directly so they don't exercise this — only a real Mastodon peer will.
 
 ## THE RELEASE (task #7)
 
@@ -48,17 +61,27 @@ Single-instance smoke can't exercise the Offer→Accept or ping→directory roun
   another → a signed ping lands, the directory lists it with **NodeInfo-pulled** stats, admin
   hide/block works, and Mirror/Request actions create the right P3 artifacts. Browser-smoke the
   Registry tab. (Registry routes 404 until `actAsRegistry` is flipped.)
+- **Actor↔signer binding (session 187):** a cross-instance `Accept`/`Create`/etc. must carry an
+  `actor` whose host matches the signer, or it 401s (see the behavior-change box above).
 - **Latent coupling to confirm per instance:** `onMirrorRequest` gates `target ==
-  https://{extractDomain(siteUrl)}/actor` and the heartbeat builds the local actor from
-  `config.instance.domain` — these must resolve to the same host. Confirm `siteUrl` host ==
-  `instance.domain` on all 3 or requests/pings silently drop.
+  https://{extractDomain(siteUrl)}/actor` while the heartbeat + mirroring build the local actor from
+  `config.instance.domain`. Confirm `siteUrl` host == `instance.domain` on all 3 or requests/pings
+  silently drop. (The heartbeat was switched to `instance.domain` in 187; `onMirrorRequest` still
+  uses the `siteUrl`-derived domain — they agree only if siteUrl host == instance.domain.)
 
-## Known gaps / deferred (non-blocking — see 185/186 logs)
-- No HTTP/signature layer in tests (forged-Accept closed in code + inbox verification, not e2e'd).
-- `approveMirrorRequest` not transactional (network resolution inside; recoverable via idempotent
-  re-approve). Admin-notify queries `users.role=='admin'` (custom RBAC may notify nobody).
+## Known gaps / deferred (non-blocking — see 185/186/187 logs)
+- No HTTP/signature layer in tests — the wire path (signing + verifyInboxRequest + the new
+  actor↔signer binding) is only exercised by a real 2-instance run, not unit tests.
+- `approveMirrorRequest` not transactional → a duplicate `Accept(Offer)` is possible on
+  partial-failure retry (harmless: receiver's `onAccept` matches `status='pending'`). The
+  reuse-existing-mirror + unique-race + duplicate-Follow paths were FIXED in 187; the
+  blocked-race `setWhere` guard is correct but race-only (untested).
+- `onMirrorRequest` admin-notify queries `users.role=='admin'` — custom RBAC roles with
+  `federation.manage` get no notification (the admin badge still surfaces it).
 - Registry: no public directory page, no registry→registry gossip, no independent stats poller
   (refresh on ping), no auto-mirror, no NodeInfo "is-CommonPub" pre-check before an Offer.
+- Mastodon inbox-forwarded activities are now rejected (see behavior-change box) — re-deliver
+  directly or dereference; we don't depend on forwarding.
 - Streaming backfill progress + filter dry-run preview (P2 carry-over).
 
 ## Respect these memories
