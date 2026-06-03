@@ -129,7 +129,6 @@ async function remove(): Promise<void> {
             <span v-else class="cpub-mm-faint">all tags</span>
           </dd>
         </div>
-        <div v-if="mirror.backfillCursor"><dt>Backfill</dt><dd class="cpub-mm-faint">paused mid-crawl — re-run to resume</dd></div>
       </dl>
 
       <div v-if="mirror.lastError" class="cpub-mm-error">

@@ -56,3 +56,16 @@ it unclear ("what does mirror mean, pull vs push, is there another step?"). Now:
   batched release (task #7): publish schema→server→ui→layer, deploy, live-verify — including a
   **browser smoke of `/admin/federation`** (this UI wasn't browser-verified, only vue-tsc +
   component tests). Branch has 4 commits (Phase 0, 1, audit, Phase 2).
+
+## Phase 2 audit (same session)
+
+- **Full-workspace `pnpm typecheck`: 26/26 clean** — branch is type-clean end-to-end.
+- Removed **dead UI** in `MirrorDetailModal`: the `v-if="mirror.backfillCursor"` block never
+  rendered (`MirrorConfig` doesn't expose `backfillCursor`) and its "re-run to resume" copy was
+  inaccurate anyway (manual backfill is a fresh crawl by Phase-0 design, not a cursor-resume).
+- Hardened `createMirror`: a failed *optional* history import no longer masquerades as
+  create-failure — the mirror was already created, so it now shows a distinct "added, but import
+  failed — retry via Backfill" toast and still refreshes/clears. (5th commit.)
+- Known minor (left as-is): the page's `createMirror`/`toggleType` wiring isn't unit-tested
+  (page-level top-level `useFetch` needs `@nuxt/test-utils`); covered by `vue-tsc` + the release
+  browser smoke. Modal + backend are unit-tested.

@@ -101,13 +101,18 @@ async function createMirror(): Promise<void> {
         filterTags: tags.length ? tags : null,
       },
     });
-    // Optional bounded history import — forward-only unless a depth is chosen.
+    // Optional bounded history import — forward-only unless a depth is chosen. The mirror is
+    // already created at this point, so a backfill failure must NOT masquerade as create-failure.
     const depth = DEPTH_OPTIONS[newMirrorDepth.value]!.body;
     if (depth && created?.id) {
       // string-typed URL avoids the typed-routes $fetch recursion (TS2321) on dynamic paths.
       const backfillUrl: string = `/api/admin/federation/mirrors/${created.id}/backfill`;
-      const r = await $fetch<{ processed: number }>(backfillUrl, { method: 'POST', body: depth });
-      toast.success(`Mirror added — imported ${r?.processed ?? 0} item(s)`);
+      try {
+        const r = await $fetch<{ processed: number }>(backfillUrl, { method: 'POST', body: depth });
+        toast.success(`Mirror added — imported ${r?.processed ?? 0} item(s)`);
+      } catch {
+        toast.error('Mirror added, but history import failed — use Backfill in its details to retry.');
+      }
     } else {
       toast.success('Mirror added — new posts will arrive as they publish');
     }
