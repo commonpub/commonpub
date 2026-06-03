@@ -290,10 +290,12 @@ describe('federation hooks integration', () => {
       expect(payload.type).toBe('Create');
       expect(payload.actor).toBe(`https://${DOMAIN}/users/${username}`);
       expect(typeof payload.id).toBe('string');
-      expect((payload.id as string).startsWith(`https://${DOMAIN}/activities/`)).toBe(true);
+      // Create id is DETERMINISTIC (`<object id>#create`), shared with the outbox projection
+      // so live delivery + backfill emit the same de-dupable activity (not a random uuid).
+      const object = payload.object as Record<string, unknown>;
+      expect(payload.id).toBe(`${object.id as string}#create`);
 
       // Object-level fields
-      const object = payload.object as Record<string, unknown>;
       expect(object.type).toBe('Article');
       expect(object.name).toBe('Payload Structure Test');
       expect(object.attributedTo).toBe(`https://${DOMAIN}/users/${username}`);

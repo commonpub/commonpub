@@ -81,3 +81,48 @@ secondary sources** (drizzle filenames, `facts.md`, memory) instead of reading p
   recomputed numbers above.
 - Future doc passes: recompute counts with `grep`/`find`/`git ls-files` and derive "added in
   migration/session/version N" attributions from the actual SQL / git log, never from filenames.
+
+---
+
+## Part 2 — implementation-verification audit (same day)
+
+Follow-up: a strategic "what is CommonPub missing / doing wrong" critique was drafted from the
+analysis docs, then **re-checked against primary source + live `curl /api/features`** (not the
+docs). Scorecard:
+
+### Confirmed in source (real latent issues)
+- **Hooks bus mostly dead.** `hooks.ts` declares 13 events; only 8 ever `emitHook`'d. Never
+  emitted: `content:liked`, `content:unliked`, `user:registered`, `federation:hub:post:received`,
+  `hub:content:shared`. Only `search-index.ts` calls `onHook` outside tests → thin
+  consumer-extension story.
+- **Counter integrity, no safety net.** No reconcile/recount script anywhere. `leaveHub`
+  (members.ts:129-136) + `submitContestEntry` (contest.ts:49,57) update counters in two
+  NON-transactional statements (only `judgeContestEntry`/`voteOnPost`/`voteOnPoll`/`rsvpEvent`/
+  `cancelRsvp`/`joinHub`/`createPost` are tx-wrapped).
+- **`listContent` (content.ts:389-409)** = `countRows` COUNT(*) every request + in-app O(M²)
+  federated merge. Keyset only relieved infinite-scroll.
+- **Self-ref trees** (hubs.parentHubId, comments.parentId, hubPostReplies.parentId,
+  docsPages.parentId) have NO DB FK — plain `uuid()`, app-managed only.
+- **100 of 135 layer components** have no `@media` (docs said ~70 — undercount).
+- **`error.vue:16`** re-applies only `data-theme`, NOT `cpub-theme-inline` → custom-themed
+  error pages render wrong.
+- **`approval` join policy == `invite`** (members.ts:47); `hubMemberStatusEnum('pending')` never
+  written.
+- **Redis opt-in** via `NUXT_REDIS_URL` (realtime/index.ts:44, security.ts:40); memory default.
+
+### Live flag state (`curl /api/features`, 2026-06-01)
+- **federation ON on ALL THREE.** federateHubs + seamlessFederation ON on commonpub + deveco,
+  OFF on heatsync. **layoutEngine ON only on commonpub.io** (canary). events ON on all three.
+  **rbac + publicApi OFF on every instance** — both subsystems shipped but DARK in prod.
+
+### Corrected / overstated (do NOT repeat)
+- **Events are NOT unvalidated.** `POST /api/events` validates with a thorough inline
+  `createEventSchema` (`index.post.ts:5,31`). The real point: `validators.ts` lacks a
+  *centralized* event validator (decentralized inline), NOT a security gap. Docs 02/03 wording
+  ("gap worth closing / unvalidated despite user-facing API") overstates it — a future doc pass
+  should reword.
+- Federation is live on **3** instances, not 2; heatsynclabs.io is a real hackerspace
+  (third-party community), though one operator runs all 3 deploys from one `main`.
+
+Memory: `project-session-182-impl-audit`. Still docs/analysis-only — no code changed, nothing
+published.

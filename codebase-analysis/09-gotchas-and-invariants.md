@@ -399,6 +399,15 @@ path, not a 500. Before that, duplicates were possible on fast double-clicks.
 
 ## Security
 
+### The actor outbox is a PROJECTION over published+public content — not the activities queue (session 183)
+
+`/actor/outbox` (instance) and `/users/:u/outbox` are built from `content_items WHERE status='published' AND visibility='public'` (`outboxQueries.ts`), NOT from the `activities` delivery queue. Two invariants:
+
+1. **Must gate `visibility='public'`.** The outbox is publicly crawlable, so members-only/private content must never appear. `federateContent`/`federateUpdate` apply the same gate (they previously gated only `status`, a latent outbound leak). If you add a new outbox/content-federation path, replicate `status='published' AND visibility='public'`.
+2. **Don't "fix" the old empty-outbox bug by marking activities delivered early.** The delivery worker polls `status='pending'`; inserting Creates as `delivered` would starve it. The outbox draws from content, the queue stays the delivery ledger. (The pre-183 bug: outbox was `status='delivered'`-filtered, so anything published before a mirror followed was invisible forever → backfill got nothing. heatsync showed 2 of 8 posts.)
+
+The projected Create uses a DETERMINISTIC id (`<object id>#create`) + the real `published` date (protocol `contentToCreateActivity`), shared with live delivery so backfill and delivery emit the same de-dupable activity, and so bounded backfill can paginate by date. Mirroring/backfill/refederate are all bounded by operator choice (forward-only default; `since`/`maxItems`/`limit`) — never auto-pull or re-blast an entire instance.
+
 ### Public API serializers are ALLOW-lists, never deny-lists
 
 `/api/public/v1/*` responses go through `to*` helpers in

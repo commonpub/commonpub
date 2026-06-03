@@ -204,17 +204,17 @@ Contest entry community votes:
 
 ### federation/ (15 files: 14 domain + index)
 
-- **federation.ts** — keypair lifecycle, remote-actor resolve+cache, Create/Update/Delete/Like/Follow activity builders
+- **federation.ts** — keypair lifecycle, remote-actor resolve+cache, Create/Update/Delete/Like/Follow activity builders. `federateContent`/`federateUpdate` gate BOTH `status='published'` AND `visibility='public'` (session 183 — members/private content never leaves the instance); `federateContent` uses protocol's `contentToCreateActivity` (deterministic Create id, shared with the outbox projection) + skips an already-pending Create for the same object (idempotent refederate).
 - **delivery.ts** — worker polls `activities` where `status='pending'`, delivers via HTTP Signature, updates status, increments attempts, writes errors. Respects instance circuit-breaker state.
 - **circuitBreaker.ts** — tracks `instanceHealth.consecutiveFailures`, opens the circuit on threshold, schedules resume via `circuitOpenUntil`
 - **inboxHandlers.ts** — inbound routing: dispatches Follow/Accept/Undo/Create/Update/Delete/Announce/Like/Reject to correct handler
 - **hubFederation.ts** — Group actor lifecycle, hub post federation, follower management
 - **hubMirroring.ts** — ingests federated hub posts/members/resources/products; de-dupes by objectUri
 - **mirroring.ts** — mirror config CRUD: `createMirror`, `activateMirror`, `pauseMirror`, `resumeMirror`, `cancelMirror`, `listMirrors`, `getMirror`, `matchMirrorForContent`, `recordMirrorError`
-- **backfill.ts** — `backfillFromOutbox(db, remoteActorUri, domain, opts?)` walks a remote outbox with pagination + resume cursor + signed requests for protected outboxes (session 119 hardening). Paired `backfillHubFromOutbox(db, federatedHubId, domain)` in `hubMirroring.ts` for hub-post variants.
+- **backfill.ts** — `backfillFromOutbox(db, remoteActorUri, domain, opts?)` walks a remote outbox with pagination + resume cursor + signed requests for protected outboxes (session 119 hardening). `BackfillOptions` now has `since?: Date` (session 183) — stops crawling once it pages past the cutoff (newest-first outbox), so an operator can pick "how far back" instead of pulling an entire instance. `maxItems` (default 500) is the count ceiling; exported `activityPublishedMs` reads top-level/`object` published. Paired `backfillHubFromOutbox(db, federatedHubId, domain)` in `hubMirroring.ts` for hub-post variants.
 - **messaging.ts** — federated DMs via AP Create+Note with direct audience
 - **oauth.ts** — OAuth2 auth server endpoints for AP Actor SSO (Model B)
-- **outboxQueries.ts** — helpers for building Collection/OrderedCollection pagination
+- **outboxQueries.ts** — Collection/OrderedCollection pagination. **The instance + per-user content outboxes are a PROJECTION over `content_items` (status='published' AND visibility='public'), NOT a scan of the `activities` delivery queue** (session 183 fix). Previously queue-derived (`status='delivered'`), so any post published before a mirror followed was invisible → backfill got nothing (heatsync showed 2 of 8 posts live). Now reflects the real catalogue. Builds each Create via protocol's `contentToCreateActivity` (deterministic id `<object id>#create` + real `published`). SECURITY: gates `visibility='public'` so the public outbox never leaks members/private content. Hub outbox stays Announce/queue-derived. Ordering `published_at DESC NULLS LAST, id DESC` reuses migration 0012's `idx_content_items_feed_recency`.
 - **timeline.ts** — timeline query merging local contentItems + federatedContent with filters
 - **mastodonLogin.ts** — Mastodon SSO server-side (session 139)
 - **safeFetchFn.ts** — `createSafeActorFetchFn` for SSRF-safe `resolveActor` (session 150)

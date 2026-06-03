@@ -59,10 +59,33 @@ export interface BackfillResult {
 }
 
 export interface BackfillOptions {
-  /** Maximum items to process (default 500) */
+  /** Maximum items to process (default 500). Hard ceiling on how many historical items to pull. */
   maxItems?: number;
+  /**
+   * Only import items published on/after this date. The outbox is newest-first, so once we
+   * page past the cutoff we stop crawling entirely. Lets an operator pick "how far back"
+   * (e.g. last 30 days) instead of pulling an instance's entire history.
+   */
+  since?: Date;
   /** Mirror ID — if provided, saves cursor for resume and checks quota */
   mirrorId?: string;
+}
+
+/** Best-effort publish timestamp (ms) of an AP activity, top-level `published` or `object.published`. */
+export function activityPublishedMs(a: Record<string, unknown>): number | null {
+  if (typeof a.published === 'string') {
+    const t = Date.parse(a.published);
+    if (!Number.isNaN(t)) return t;
+  }
+  const obj = a.object;
+  if (obj && typeof obj === 'object') {
+    const p = (obj as Record<string, unknown>).published;
+    if (typeof p === 'string') {
+      const t = Date.parse(p);
+      if (!Number.isNaN(t)) return t;
+    }
+  }
+  return null;
 }
 
 /**
@@ -81,8 +104,11 @@ export async function backfillFromOutbox(
     : maxItemsOrOpts ?? {};
   const maxItems = opts.maxItems ?? 500;
   const mirrorId = opts.mirrorId;
+  const sinceMs = opts.since ? opts.since.getTime() : null;
 
   const result: BackfillResult = { processed: 0, errors: 0, pages: 0, complete: false };
+  // Set once we page past the `since` cutoff — stops the whole crawl (outbox is newest-first).
+  let reachedSince = false;
 
   // Check for saved cursor (resume from where we left off)
   let startUrl: string | null = null;
@@ -153,6 +179,15 @@ export async function backfillFromOutbox(
         // Announce is needed for hub post backfill from Group actors
         if (activity.type !== 'Create' && activity.type !== 'Update' && activity.type !== 'Announce') continue;
 
+        // Bounded "how far back" — stop once we page past the cutoff (newest-first outbox).
+        if (sinceMs !== null) {
+          const ts = activityPublishedMs(activity);
+          if (ts !== null && ts < sinceMs) {
+            reachedSince = true;
+            break;
+          }
+        }
+
         try {
           await processInboxActivity(activity, handlers);
           result.processed++;
@@ -161,6 +196,8 @@ export async function backfillFromOutbox(
           // Continue processing remaining items on this page
         }
       }
+
+      if (reachedSince) break;
 
       // Save cursor after each page (for resume on crash/restart)
       if (mirrorId && next) {
@@ -184,8 +221,8 @@ export async function backfillFromOutbox(
     }
   }
 
-  // Mark complete if we exhausted the outbox or hit maxItems
-  result.complete = !nextPage || result.processed >= maxItems;
+  // Mark complete if we exhausted the outbox, hit maxItems, or paged past the `since` cutoff
+  result.complete = !nextPage || result.processed >= maxItems || reachedSince;
 
   // Clear cursor if backfill is complete
   if (mirrorId && result.complete) {

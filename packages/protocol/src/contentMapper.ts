@@ -1,4 +1,4 @@
-import { AP_CONTEXT, AP_PUBLIC, type APArticle, type APNote, type APTag } from './activityTypes.js';
+import { AP_CONTEXT, AP_PUBLIC, type APArticle, type APNote, type APTag, type APCreate } from './activityTypes.js';
 
 /**
  * Render content to HTML for federation.
@@ -286,6 +286,39 @@ export function contentToArticle(
   }
 
   return article;
+}
+
+/**
+ * Build a Create activity wrapping a content item's AP Article, suitable for an
+ * actor's OUTBOX projection.
+ *
+ * Unlike `buildCreateActivity` (which stamps a RANDOM activity id + `published: now`),
+ * this is DETERMINISTIC: the activity id is `<object id>#create` and `published` is the
+ * content's real publish time. Both properties are load-bearing for the outbox:
+ *  - the outbox is rebuilt on every crawl, so the activity id must be stable (otherwise
+ *    every render emits a new id, breaking consumer de-dup / caching), and
+ *  - bounded backfill paginates by `published`, so it must reflect the real date, not "now".
+ *
+ * De-dup on the consumer side keys on `object.id` (the content's canonical AP URI), so
+ * sharing this builder between live delivery and the outbox never produces duplicates.
+ */
+export function contentToCreateActivity(
+  item: ContentItemInput,
+  author: AuthorInput,
+  domain: string,
+): APCreate {
+  const actorUri = `https://${domain}/users/${author.username}`;
+  const article = contentToArticle(item, author, domain);
+  return {
+    '@context': AP_CONTEXT,
+    type: 'Create',
+    id: `${article.id}#create`,
+    actor: actorUri,
+    object: article,
+    to: article.to,
+    cc: article.cc,
+    published: article.published ?? item.publishedAt?.toISOString(),
+  };
 }
 
 /** Escape HTML for safe embedding in AP objects */
