@@ -435,8 +435,18 @@ useJsonLd({
  * Fix: scope display:flex centering to the div variant only.
  */
 .cpub-av {
-  width: 28px;
-  height: 28px;
+  --cpub-av-size: 28px;
+  width: var(--cpub-av-size);
+  height: var(--cpub-av-size);
+  /* Hard-lock to a square. Without min/max clamps, a global img reset or a
+     dropped dimension lets the <img> fall back to its intrinsic aspect ratio,
+     so a portrait photo renders as a tall oval (the deveco blog-avatar bug —
+     visible even on wide viewports, so it's not flex compression). min/max on
+     BOTH axes clamp the used size regardless of what sets width/height. */
+  min-width: var(--cpub-av-size);
+  max-width: var(--cpub-av-size);
+  min-height: var(--cpub-av-size);
+  max-height: var(--cpub-av-size);
   border-radius: 50%;
   background: var(--surface3);
   border: var(--border-width-default) solid var(--border);
@@ -459,8 +469,8 @@ img.cpub-av {
   object-fit: cover;
 }
 
-.cpub-av-lg { width: 44px; height: 44px; font-size: 14px; }
-.cpub-av-xl { width: 64px; height: 64px; font-size: 18px; }
+.cpub-av-lg { --cpub-av-size: 44px; font-size: 14px; }
+.cpub-av-xl { --cpub-av-size: 64px; font-size: 18px; }
 
 /* ── AUTHOR ROW ── */
 .cpub-author-row {
