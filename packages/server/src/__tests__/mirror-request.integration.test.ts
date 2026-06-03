@@ -349,6 +349,21 @@ describe('mirror request guards & correlation', () => {
     await closeTestDB(dbB);
   });
 
+  it('approve treats filters as authoritative on reuse — approving with none clears to all-types', async () => {
+    const dbB = await createTestDB();
+    const handlersB = createInboxHandlers({ db: dbB, domain: DOMAIN_B });
+    await seedRemoteActor(dbB, A_ACTOR, DOMAIN_A);
+    // Existing mirror restricted to 'blog'.
+    await createMirror(dbB, DOMAIN_A, A_ACTOR, 'pull', DOMAIN_B, { contentTypes: ['blog'] });
+    await handlersB.onMirrorRequest!(A_ACTOR, B_ACTOR, 'https://a.test/activities/offer-clear');
+    const [req] = await listMirrorRequests(dbB, 'incoming');
+    // Approve with NO filters → consistent with fresh-create: filters cleared to all-types.
+    await approveMirrorRequest(dbB, req!.id, DOMAIN_B, {});
+    const [row] = await dbB.select().from(instanceMirrors).where(eq(instanceMirrors.remoteDomain, DOMAIN_A));
+    expect(row!.filterContentTypes).toBeNull();
+    await closeTestDB(dbB);
+  });
+
   it('an Accept flips ONLY the matching outgoing request, not other pending ones', async () => {
     const dbA = await createTestDB();
     const handlersA = createInboxHandlers({ db: dbA, domain: DOMAIN_A });

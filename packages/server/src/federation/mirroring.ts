@@ -238,6 +238,8 @@ export async function approveMirrorRequest(
   if (existing) {
     // Reuse the row, but make it actually usable: re-activate if it was paused/failed and apply
     // the approver's chosen filters (matchMirrorForContent only accepts 'active' pull mirrors).
+    // The approve's filters are authoritative — same semantics as the fresh-create path below
+    // (absent/null = all types/tags), so re-approving with no filters means "mirror everything".
     mirrorId = existing.id;
     await db
       .update(instanceMirrors)
@@ -245,12 +247,13 @@ export async function approveMirrorRequest(
         status: 'active',
         direction: 'pull',
         pausedAt: null,
-        filterContentTypes: opts?.filterContentTypes ?? existing.filterContentTypes,
-        filterTags: opts?.filterTags ?? existing.filterTags,
+        filterContentTypes: opts?.filterContentTypes ?? null,
+        filterTags: opts?.filterTags ?? null,
         updatedAt: new Date(),
       })
       .where(eq(instanceMirrors.id, existing.id));
-    // If we never had an accepted Follow with this remote, (re)queue one so content can flow.
+    // (Re)queue a Follow only if there's no live subscription — a 'pending' follow already has a
+    // Follow in flight (the activities table has no dedup), so don't append a duplicate.
     const [rel] = await db
       .select({ status: followRelationships.status })
       .from(followRelationships)
@@ -261,7 +264,7 @@ export async function approveMirrorRequest(
         ),
       )
       .limit(1);
-    if (!rel || rel.status !== 'accepted') {
+    if (!rel || rel.status === 'rejected') {
       await queueInstanceFollow(db, req.remoteActorUri, localDomain);
     }
   } else {
@@ -272,8 +275,12 @@ export async function approveMirrorRequest(
       });
       mirrorId = mirror.id;
     } catch (err) {
-      // Lost a race on the unique(remote_domain) constraint (concurrent approval / "Mirror"
-      // click landed between our SELECT and INSERT) — re-fetch the row that won.
+      // ONLY swallow a unique(remote_domain) race (concurrent approval / a directory "Mirror" click
+      // landing between our SELECT and createMirror's INSERT). Any other failure is real — rethrow
+      // rather than returning a Follow-less mirror as if approval succeeded.
+      const code = (err as { code?: string }).code;
+      const isUniqueViolation = code === '23505' || /duplicate key|unique constraint/i.test(String((err as Error)?.message));
+      if (!isUniqueViolation) throw err;
       const [raced] = await db
         .select({ id: instanceMirrors.id })
         .from(instanceMirrors)
