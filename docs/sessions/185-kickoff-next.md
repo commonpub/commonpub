@@ -7,13 +7,13 @@ all phase checkboxes done). Prior logs: `183` (Phase 0+1), `184` (Phase 2), `185
 
 ## STATE (2026-06-02)
 
-- Branch **`feat/federation-discovery-and-hardening`**, **11 commits**, **nothing published/deployed**.
+- Branch **`feat/federation-discovery-and-hardening`**, **12 commits**, **nothing published/deployed**.
 - **Phases 0–4 ALL done + 3 audit rounds** (code + tests + docs). The only remaining work is the
   **batched release (task #7)**. Verified green: `pnpm typecheck` **26/26**; config **25**,
   protocol **424**, server **1246**, layer **907**; reference `vue-tsc` clean.
 - Commits since `main`: `610a76b` P0 · `195b26e` P1 · `7efdc91` P0/1 audit · `608a842` P2 ·
   `402af17` P2 audit · `180320a` P3 · `75ebd5d` P3 audit · `5b35fe4` P3 handoff · `464d533` P4 ·
-  `bd1146d` deep-audit fixes · `6d5c1cf` audit-of-audit fixes.
+  `bd1146d` deep-audit fixes · `6d5c1cf` audit-of-audit fixes · `08ea17c`+ handoff docs.
 
 ## ⚠️ ONE BEHAVIOR CHANGE TO THE LIVE INBOX (session 187 — read before re-enabling federation)
 
