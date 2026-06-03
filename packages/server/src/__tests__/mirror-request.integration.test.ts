@@ -152,6 +152,7 @@ describe('mirror request two-instance E2E (request → approve → bounded pull 
 
   it('B approves: pull mirror of A created, Accept(Offer) queued, request approved', async () => {
     const [req] = await listMirrorRequests(dbB, 'incoming');
+    const offerUri = req!.offerActivityUri;
     const approved = await approveMirrorRequest(dbB, req!.id, DOMAIN_B, { filterContentTypes: ['project', 'blog'] });
     expect(approved.status).toBe('approved');
     expect(approved.resultingMirrorId).toBeTruthy();
@@ -162,9 +163,13 @@ describe('mirror request two-instance E2E (request → approve → bounded pull 
     expect(mirror!.direction).toBe('pull');
     expect(mirror!.filterContentTypes).toEqual(['project', 'blog']);
 
-    // B queued a Follow (the real subscription) and an Accept(Offer).
-    expect(await getLatestOutbound(dbB, 'Follow')).toBeDefined();
-    expect(await getLatestOutbound(dbB, 'Accept')).toBeDefined();
+    // B queued a Follow (the real subscription, to A's actor) and an Accept whose object is the
+    // exact Offer id (so A can correlate it back) addressed to A's actor.
+    const follow = await getLatestOutbound(dbB, 'Follow');
+    expect(follow!.objectUri).toBe(A_ACTOR);
+    const accept = await getLatestOutbound(dbB, 'Accept');
+    expect(accept!.objectUri).toBe(A_ACTOR);
+    expect((accept!.payload as Record<string, unknown>).object).toBe(offerUri);
   });
 
   it('A receives B’s Follow + Accept(Offer): B enters A’s followers, request flips approved', async () => {
@@ -260,6 +265,83 @@ describe('mirror request rejection', () => {
     );
     const [outgoing] = await listMirrorRequests(dbA, 'outgoing');
     expect(outgoing!.status).toBe('rejected');
+    await closeTestDB(dbA);
+  });
+});
+
+describe('mirror request guards & correlation', () => {
+  const C_DOMAIN = 'c.test';
+  const C_ACTOR = `https://${C_DOMAIN}/actor`;
+
+  it('ignores an Offer targeting a USER actor (instance-level only)', async () => {
+    const db = await createTestDB();
+    const handlers = createInboxHandlers({ db, domain: DOMAIN_B });
+    await seedRemoteActor(db, A_ACTOR, DOMAIN_A);
+    // Target is a user actor, not https://b.test/actor → must be ignored.
+    await handlers.onMirrorRequest!(A_ACTOR, `https://${DOMAIN_B}/users/alice`, 'https://a.test/activities/offer-u');
+    expect(await listMirrorRequests(db, 'incoming')).toHaveLength(0);
+    // Sanity: a correctly-targeted request from the same requester IS stored.
+    await handlers.onMirrorRequest!(A_ACTOR, B_ACTOR, 'https://a.test/activities/offer-ok');
+    expect(await listMirrorRequests(db, 'incoming')).toHaveLength(1);
+    await closeTestDB(db);
+  });
+
+  it('the Offer dispatch rejects an Offer with no id (no correlation key)', async () => {
+    const handlers = createInboxHandlers({ db: await createTestDB(), domain: DOMAIN_B });
+    const result = await processInboxActivity(
+      {
+        type: 'Offer',
+        actor: A_ACTOR,
+        'cpub:mirrorRequest': true,
+        object: { type: 'Follow', actor: B_ACTOR, object: A_ACTOR },
+      },
+      handlers,
+    );
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('id');
+  });
+
+  it('a forged Accept (right offer id, WRONG sender) does NOT flip the request', async () => {
+    const dbA = await createTestDB();
+    const handlersA = createInboxHandlers({ db: dbA, domain: DOMAIN_A });
+    await seedRemoteActor(dbA, B_ACTOR, DOMAIN_B);
+    await seedRemoteActor(dbA, C_ACTOR, C_DOMAIN);
+    const req = await requestMirror(dbA, DOMAIN_B, B_ACTOR, DOMAIN_A);
+
+    // Some other instance (C) sends an Accept carrying B's offer id — must be ignored.
+    await processInboxActivity(
+      { '@context': 'https://www.w3.org/ns/activitystreams', type: 'Accept', actor: C_ACTOR, object: req.offerActivityUri },
+      handlersA,
+    );
+    expect((await listMirrorRequests(dbA, 'outgoing'))[0]!.status).toBe('pending');
+
+    // The real target (B) accepting the same offer DOES flip it.
+    await processInboxActivity(
+      { '@context': 'https://www.w3.org/ns/activitystreams', type: 'Accept', actor: B_ACTOR, object: req.offerActivityUri },
+      handlersA,
+    );
+    expect((await listMirrorRequests(dbA, 'outgoing'))[0]!.status).toBe('approved');
+    await closeTestDB(dbA);
+  });
+
+  it('an Accept flips ONLY the matching outgoing request, not other pending ones', async () => {
+    const dbA = await createTestDB();
+    const handlersA = createInboxHandlers({ db: dbA, domain: DOMAIN_A });
+    await seedRemoteActor(dbA, B_ACTOR, DOMAIN_B);
+    await seedRemoteActor(dbA, C_ACTOR, C_DOMAIN);
+    const reqB = await requestMirror(dbA, DOMAIN_B, B_ACTOR, DOMAIN_A);
+    await requestMirror(dbA, C_DOMAIN, C_ACTOR, DOMAIN_A);
+
+    // B accepts B's offer → only B's request flips; C's stays pending.
+    await processInboxActivity(
+      { '@context': 'https://www.w3.org/ns/activitystreams', type: 'Accept', actor: B_ACTOR, object: reqB.offerActivityUri },
+      handlersA,
+    );
+    const all = await listMirrorRequests(dbA, 'outgoing');
+    const b = all.find((r) => r.remoteDomain === DOMAIN_B);
+    const c = all.find((r) => r.remoteDomain === C_DOMAIN);
+    expect(b!.status).toBe('approved');
+    expect(c!.status).toBe('pending');
     await closeTestDB(dbA);
   });
 });

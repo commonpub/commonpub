@@ -260,7 +260,8 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
       } catch { /* non-critical — may not be a hub follow */ }
 
       // Mirror request (Phase 3): the remote accepted OUR Offer → flip our outgoing request to
-      // approved. Correlate by the Offer activity id (objectId), falling back to remote domain.
+      // approved. Correlate by BOTH the Offer activity id (objectId) AND the sender (actorUri must
+      // be the instance we addressed) so a misrouted/forged Accept can't flip an unrelated request.
       try {
         if (objectId) {
           await db
@@ -271,6 +272,7 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
                 eq(mirrorRequests.direction, 'outgoing'),
                 eq(mirrorRequests.status, 'pending'),
                 eq(mirrorRequests.offerActivityUri, objectId),
+                eq(mirrorRequests.remoteActorUri, actorUri),
               ),
             );
         }
@@ -311,7 +313,7 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
       }
 
       // Mirror request (Phase 3): the remote rejected OUR Offer → flip our outgoing request to
-      // rejected. Correlate by the Offer activity id (objectId).
+      // rejected. Correlate by BOTH the Offer activity id AND the sender (see onAccept).
       try {
         if (objectId) {
           await db
@@ -322,6 +324,7 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
                 eq(mirrorRequests.direction, 'outgoing'),
                 eq(mirrorRequests.status, 'pending'),
                 eq(mirrorRequests.offerActivityUri, objectId),
+                eq(mirrorRequests.remoteActorUri, actorUri),
               ),
             );
         }

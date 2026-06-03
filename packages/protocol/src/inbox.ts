@@ -116,10 +116,13 @@ export async function processInboxActivity(
       if (!callbacks.onMirrorRequest) {
         return { success: false, error: 'Mirror requests not supported' };
       }
+      // An id is required — it's the correlation key for the later Accept/Reject.
+      const offerId = activity.id as string;
+      if (!offerId) return { success: false, error: 'Offer missing id' };
       // Inner Follow: actor = the instance asked to mirror (us), object = the requester.
       const targetActorUri = (obj as Record<string, unknown>).actor as string;
       if (!targetActorUri) return { success: false, error: 'Offer Follow missing actor' };
-      await callbacks.onMirrorRequest(actor, targetActorUri, activity.id as string);
+      await callbacks.onMirrorRequest(actor, targetActorUri, offerId);
       return { success: true };
     }
     default:

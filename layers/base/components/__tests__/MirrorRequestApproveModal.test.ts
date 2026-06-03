@@ -120,6 +120,18 @@ describe('MirrorRequestApproveModal — actions', () => {
     );
   });
 
+  it('maps the "last 200 items" depth option to maxItems (not sinceDays)', async () => {
+    const { container, getByText } = mount();
+    const select = container.querySelector('#cpub-mr-depth') as HTMLSelectElement;
+    await fireEvent.update(select, '4'); // index 4 = "Last 200 items"
+    await fireEvent.click(getByText('Approve & mirror'));
+    await nextTick();
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/approve'),
+      expect.objectContaining({ method: 'POST', body: { maxItems: 200 } }),
+    );
+  });
+
   it('reject posts to the reject endpoint and emits close', async () => {
     const { getByText, emitted } = mount();
     await fireEvent.click(getByText('Reject'));

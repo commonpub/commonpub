@@ -240,6 +240,23 @@ describe('processInboxActivity', () => {
     expect(cbs.onMirrorRequest).not.toHaveBeenCalled();
   });
 
+  it('should reject a mirror-request Offer with no id (correlation key required)', async () => {
+    const cbs = createMockCallbacks();
+    cbs.onMirrorRequest = vi.fn();
+    const result = await processInboxActivity(
+      {
+        type: 'Offer',
+        actor: 'https://remote.com/actor',
+        'cpub:mirrorRequest': true,
+        object: { type: 'Follow', actor: 'https://local.com/actor', object: 'https://remote.com/actor' },
+      },
+      cbs,
+    );
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('id');
+    expect(cbs.onMirrorRequest).not.toHaveBeenCalled();
+  });
+
   it('should reject a mirror-request Offer when no handler is wired', async () => {
     const cbs = createMockCallbacks(); // no onMirrorRequest
     const result = await processInboxActivity(
