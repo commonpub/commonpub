@@ -68,11 +68,17 @@ the **P3 mirror-request approve flow** (needs an admin login on two instances).
   asymmetry; the mirror works (heatsync delivers off *its* followers list). Cosmetic.
 - **deveco NodeInfo `localPosts: 81` vs feed/outbox `23`** — NodeInfo counts all statuses; that 81 is
   what the registry displays. Confirm it's the intended public number.
-- **CI on `main` is chronically red** on 2 homepage e2e flakes (`apps/reference/e2e/navigation.spec.ts`
-  lines 8 & 38) + an intermittent `@commonpub/infra` Redis integration test + occasional
-  `@commonpub/docs` test flake. **`check` + `rust` are the gating jobs; `e2e` is non-gating.** The
-  real production gate is commonpub.io's `scripts/smoke.mjs`. These flakes should eventually be
-  stabilized or quarantined so "green" means something.
+- **CI gating jobs (`check` + `rust`) stabilized (session 188):** the `@commonpub/infra` Redis
+  integration flake was a real fixed-window boundary race (count-sensitive checks could straddle a
+  wall-clock window edge) — fixed with a `waitForWindowHeadroom` guard. The `@commonpub/docs` flake
+  (deterministic locally, transient under turbo's all-packages-parallel CI run) now has CI-only
+  `retry:2`. `check` went green first-try after. **`e2e` is still non-gating + red** on 2 homepage
+  tests (`apps/reference/e2e/navigation.spec.ts:8` tab-switching, `:38` hero-dismiss) — consistent
+  hard failures (Playwright already retries 2×), so stale/timing, NOT transient; needs a dedicated
+  local-Playwright repro to fix (selectors exist; likely empty-test-DB render or hydration). The real
+  prod gate remains commonpub.io's `scripts/smoke.mjs`.
+- **GitHub Actions Node-20 deprecation** (warning on every run): auto-switches those actions to
+  Node 24 on 2026-06-16 — non-breaking, self-resolving; bump action majors when convenient.
 - **`@commonpub/test-utils` 0.5.6**: source has a `mockConfig` flag addition that the published 0.5.6
   predates. Immaterial (devDep-only, no runtime consumer); can't republish the same version.
 - **GitHub Actions Node 20 deprecation** — `actions/checkout@v4` etc. forced to Node 24 on 2026-06-16.
