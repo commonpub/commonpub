@@ -146,7 +146,7 @@ a minute (`curl deveco.io/api/content?limit=5`, today's timestamp).
 | @commonpub/auth | 0.8.0 | | @commonpub/docs | 0.6.3 |
 | @commonpub/server | 2.73.0 | | @commonpub/learning | 0.5.2 |
 | @commonpub/ui | 0.9.2 | | @commonpub/test-utils | 0.5.6 |
-| @commonpub/layer | **0.46.0** | | create-commonpub (crates.io) | **0.5.4** |
+| @commonpub/layer | **0.47.0** | | create-commonpub (crates.io) | **0.5.5** |
 
 Migrations applied this cycle: **0013** (self-ref FKs) · **0014** (`mirror_requests`) · **0015**
 (`registry_instances`).
@@ -155,10 +155,11 @@ Recent UI follow-ups (2026-06-03, layer 0.46.0): contest hero banner 260→195px
 hamburger fixed (its forked `layouts/default.vue` used bare `<MobileNavRenderer>` → unresolved;
 now `<NavMobileNavRenderer>`). CLI now auto-publishes: push a `create-commonpub-v*` tag →
 `cli-release.yml` (the `CARGO_REGISTRY_TOKEN` secret is set; validated publishing 0.5.4).
-**Avatar note:** deveco blog avatars — the `.cpub-av`/`.cpub-cc-av` CSS is correct + deployed
-(square, `border-radius:50%`, `object-fit:cover`); raster photos render round. Any remaining squish
-is the SVG *logo* avatars (`<img>`-of-SVG `object-fit` quirk) or browser cache — needs a
-per-source confirmation before a targeted fix (e.g. background-image for SVG avatars).
+Avatar oval fix (layer 0.47.0): deveco blog byline/author/card avatars rendered as tall ovals even
+on wide viewports — the `<img>` fell back to its intrinsic aspect ratio on one axis (NOT flex
+compression). Fixed by hard-locking `.cpub-av`/`.cpub-cc-av` to a square via `min/max` on **both**
+width and height (driven by a `--cpub-av-size` var), which clamps the used size no matter what
+sets/drops a dimension. Verified live on deveco.
 
 ### Live flags per instance
 | Instance | federation | seamless | actAsRegistry | announceToRegistry | role |
