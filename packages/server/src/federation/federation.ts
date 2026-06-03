@@ -18,6 +18,7 @@ import {
   resolveActor,
   resolveActorViaWebFinger,
   contentToArticle,
+  contentToCreateActivity,
   contentToNote,
   buildCreateActivity,
   buildUpdateActivity,
@@ -571,6 +572,9 @@ export async function federateContent(db: DB, contentId: string, domain: string)
 
   // Only federate published content — guard against callers passing draft/archived content
   if (rows[0].content.status !== 'published') return;
+  // Only federate PUBLIC content — members-only / private content must never leave the
+  // instance (the public outbox + delivery share this gate; see outboxQueries.ts).
+  if (rows[0].content.visibility !== 'public') return;
 
   const { content, author } = rows[0];
 
@@ -583,8 +587,10 @@ export async function federateContent(db: DB, contentId: string, domain: string)
   const tagNames = tagRows.map((t) => t.name);
 
   const actorUri = `https://${domain}/users/${author.username}`;
-  const article = contentToArticle({ ...content, tags: tagNames }, author, domain);
-  const activity = buildCreateActivity(domain, actorUri, article);
+  // Deterministic Create (stable id + real published date) — same builder the outbox
+  // projection uses, so live delivery and backfill produce an identical, de-dupable object.
+  const activity = contentToCreateActivity({ ...content, tags: tagNames }, author, domain);
+  const objectUri = (activity.object as { id: string }).id;
 
   // Skip if an outbound Create for this object is already pending (awaiting delivery).
   // If it was already delivered/failed, allow re-creation so refederate works after delivery fixes.
@@ -594,7 +600,7 @@ export async function federateContent(db: DB, contentId: string, domain: string)
     .where(
       and(
         eq(activities.type, 'Create'),
-        eq(activities.objectUri, article.id),
+        eq(activities.objectUri, objectUri),
         eq(activities.direction, 'outbound'),
         eq(activities.status, 'pending'),
       ),
@@ -605,7 +611,7 @@ export async function federateContent(db: DB, contentId: string, domain: string)
     await db.insert(activities).values({
       type: 'Create',
       actorUri,
-      objectUri: article.id,
+      objectUri,
       payload: activity,
       direction: 'outbound',
       status: 'pending',
@@ -628,6 +634,8 @@ export async function federateUpdate(db: DB, contentId: string, domain: string):
 
   // Only federate published content — drafts and archived content should not be sent
   if (rows[0].content.status !== 'published') return;
+  // Only federate PUBLIC content — members-only / private content must never leave the instance
+  if (rows[0].content.visibility !== 'public') return;
 
   const { content, author } = rows[0];
 

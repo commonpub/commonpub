@@ -204,17 +204,18 @@ Contest entry community votes:
 
 ### federation/ (15 files: 14 domain + index)
 
-- **federation.ts** — keypair lifecycle, remote-actor resolve+cache, Create/Update/Delete/Like/Follow activity builders
+- **federation.ts** — keypair lifecycle, remote-actor resolve+cache, Create/Update/Delete/Like/Follow activity builders. `federateContent`/`federateUpdate` gate BOTH `status='published'` AND `visibility='public'` (session 183 — members/private content never leaves the instance); `federateContent` uses protocol's `contentToCreateActivity` (deterministic Create id, shared with the outbox projection) + skips an already-pending Create for the same object (idempotent refederate).
 - **delivery.ts** — worker polls `activities` where `status='pending'`, delivers via HTTP Signature, updates status, increments attempts, writes errors. Respects instance circuit-breaker state.
 - **circuitBreaker.ts** — tracks `instanceHealth.consecutiveFailures`, opens the circuit on threshold, schedules resume via `circuitOpenUntil`
 - **inboxHandlers.ts** — inbound routing: dispatches Follow/Accept/Undo/Create/Update/Delete/Announce/Like/Reject to correct handler
 - **hubFederation.ts** — Group actor lifecycle, hub post federation, follower management
 - **hubMirroring.ts** — ingests federated hub posts/members/resources/products; de-dupes by objectUri
-- **mirroring.ts** — mirror config CRUD: `createMirror`, `activateMirror`, `pauseMirror`, `resumeMirror`, `cancelMirror`, `listMirrors`, `getMirror`, `matchMirrorForContent`, `recordMirrorError`
-- **backfill.ts** — `backfillFromOutbox(db, remoteActorUri, domain, opts?)` walks a remote outbox with pagination + resume cursor + signed requests for protected outboxes (session 119 hardening). Paired `backfillHubFromOutbox(db, federatedHubId, domain)` in `hubMirroring.ts` for hub-post variants.
+- **mirroring.ts** — mirror config CRUD: `createMirror` (**PULL-ONLY since Phase 3 — throws on `'push'`**), `activateMirror`, `pauseMirror`, `resumeMirror`, `cancelMirror`, `listMirrors`, `getMirror`, `matchMirrorForContent`, `recordMirrorError`, **`listInstanceFollowers(db, domain)`** (session 184 — accepted followers of our instance Service actor = "who is mirroring you", with derived domains). **Phase 3 consent-based mirror requests (session 185):** `requestMirror(db, remoteDomain, remoteActorUri, localDomain)` (push: stores an outgoing `mirrorRequests` row + queues a signed `Offer(Follow)`), `listMirrorRequests(db, direction?)`, `getMirrorRequest`, `approveMirrorRequest(db, id, localDomain, {sinceDays?, maxItems?, filterContentTypes?, filterTags?})` (creates/reuses a pull mirror of the requester + optional bounded backfill + `Accept(Offer)`), `rejectMirrorRequest(db, id, localDomain)` (`Reject(Offer)`). Inbound: `inboxHandlers.onMirrorRequest` stores an incoming request (loop-guards own domain, gates target=instance actor); `onAccept`/`onReject` extended to flip the requester's outgoing request by `offerActivityUri`. Protocol: `buildMirrorRequestActivity` + `CPUB_MIRROR_REQUEST` marker; `Offer` dispatch in `processInboxActivity`; `Offer` routes like `Follow` in `delivery.ts`.
+- **registry.ts** — instance directory (Phase 4, session 186): `fetchInstanceNodeInfo(domain, fetcher?)` (SSRF-guarded NodeInfo pull; same-host 2.1 href required), `recordRegistryPing(db, domain, actorUri, opts?)` (blocked→no-op; upsert by domain preserving an admin `hidden` status; stats from NodeInfo), `listRegistryInstances(db, {search?, limit, offset, includeNonActive?})` (active-only public / all admin; `lastPingAt DESC, domain ASC` for stable paging), `getRegistryInstance`, `setRegistryInstanceStatus(db, id, status)`, `sendRegistryPing(db, registryUrl, localDomain, send?)` (signed POST to `{registryUrl}/api/registry/ping`; injectable sender for tests). Identity proven by the ping HTTP signature (`verifyInboxRequest`) — a domain can only register itself.
+- **backfill.ts** — `backfillFromOutbox(db, remoteActorUri, domain, opts?)` walks a remote outbox with pagination + resume cursor + signed requests for protected outboxes (session 119 hardening). `BackfillOptions` now has `since?: Date` (session 183) — stops crawling once it pages past the cutoff (newest-first outbox), so an operator can pick "how far back" instead of pulling an entire instance. `maxItems` (default 500) is the count ceiling; exported `activityPublishedMs` reads top-level/`object` published. Paired `backfillHubFromOutbox(db, federatedHubId, domain)` in `hubMirroring.ts` for hub-post variants.
 - **messaging.ts** — federated DMs via AP Create+Note with direct audience
 - **oauth.ts** — OAuth2 auth server endpoints for AP Actor SSO (Model B)
-- **outboxQueries.ts** — helpers for building Collection/OrderedCollection pagination
+- **outboxQueries.ts** — Collection/OrderedCollection pagination. **The instance + per-user content outboxes are a PROJECTION over `content_items` (status='published' AND visibility='public'), NOT a scan of the `activities` delivery queue** (session 183 fix). Previously queue-derived (`status='delivered'`), so any post published before a mirror followed was invisible → backfill got nothing (heatsync showed 2 of 8 posts live). Now reflects the real catalogue. Builds each Create via protocol's `contentToCreateActivity` (deterministic id `<object id>#create` + real `published`). SECURITY: gates `status='published' AND visibility='public' AND deletedAt IS NULL` so the public outbox never leaks members/private/soft-deleted content (matches `listContent`/`getContentBySlug`). Hub outbox stays Announce/queue-derived. Ordering `published_at DESC NULLS LAST, id DESC` reuses migration 0012's `idx_content_items_feed_recency`.
 - **timeline.ts** — timeline query merging local contentItems + federatedContent with filters
 - **mastodonLogin.ts** — Mastodon SSO server-side (session 139)
 - **safeFetchFn.ts** — `createSafeActorFetchFn` for SSRF-safe `resolveActor` (session 150)
@@ -333,12 +334,12 @@ Places that must be transactional (correctness, not perf). **Verified `db.transa
 - `cancelRsvp` — atomic cancel + waitlist promotion
 - `joinHub` — atomic member row + memberCount update
 - `createPost` — member row + post + denormalized hub.postCount
-- `judgeContestEntry` — `SELECT … FOR UPDATE` on the entry row + judgeScores read-modify-write (the ONLY `db.transaction` in `contest.ts`)
+- `judgeContestEntry` — `SELECT … FOR UPDATE` on the entry row + judgeScores read-modify-write
+- **`submitContestEntry`** — insert(contestEntries) + entryCount increment wrapped in `db.transaction` (session 183); a duplicate (onConflictDoNothing → no row) never increments.
+- **`leaveHub`** — delete(hubMembers) + memberCount decrement wrapped in `db.transaction` (session 183; mirrors `joinHub`).
 
-Caveats (NOT wrapped, despite the same atomicity need):
+Caveats (NOT wrapped):
 
-- **`submitContestEntry`** — does `insert(contestEntries)` then `update(contests).entryCount` as **two separate statements, NOT in a transaction** (a prior audit pass mislabeled this transactional via an unreliable heuristic; verified non-wrapped at `contest.ts`).
-- **`leaveHub`** — `delete(hubMembers)` then `update(hubs).set(memberCount-1)` as **two separate statements, NOT in a transaction** (latent atomicity gap; both single-row).
 - **`publishContent`** — a thin wrapper: `createContentVersion` then delegates to `updateContent(..., { status: 'published' })`; the status write happens there, not in a transaction opened by `publishContent` itself.
 
 ## Permission hierarchy
@@ -386,10 +387,10 @@ events are declared in the type registry but nothing calls them yet.
 | hub:member:joined | **emitted** | `hub/members.ts` (`joinHub`) |
 | hub:member:left | **emitted** | `hub/members.ts` (`leaveHub`) |
 | federation:content:received | **emitted** | `federation/inboxHandlers.ts` |
-| content:liked / content:unliked | declared, not emitted | (add to `social/social.ts` `toggleLike` when needed) |
-| hub:content:shared | declared, not emitted | (add to `hub/posts.ts` `shareContent`) |
-| user:registered | declared, not emitted | (register in Better Auth after-register hook) |
-| federation:hub:post:received | declared, not emitted | (add to `federation/hubMirroring.ts`) |
+| content:liked / content:unliked | **emitted** (session 183) | `social/social.ts` (`toggleLike`; content-item targets only — not post/comment/video) |
+| hub:content:shared | **emitted** (session 183) | `hub/posts.ts` (`shareContent`) |
+| user:registered | **emitted** (session 183) | bridged via `createAuth` `databaseHooks.user.create.after` → layer `middleware/auth.ts` `onUserCreated` (auth pkg can't import the server bus) |
+| federation:hub:post:received | **emitted** (session 183) | `federation/hubMirroring.ts` (on genuinely-new federated hub post) |
 
 **Current subscriptions** (layer server plugins):
 - `plugins/search-index.ts` — subscribes to `content:published`, `content:updated`, `content:deleted` (indexes Meilisearch/FTS).

@@ -48,8 +48,26 @@ export {
   listMirrors,
   getMirror,
   matchMirrorForContent,
+  listInstanceFollowers,
+  requestMirror,
+  listMirrorRequests,
+  getMirrorRequest,
+  approveMirrorRequest,
+  rejectMirrorRequest,
   type MirrorConfig,
+  type InstanceFollower,
+  type MirrorRequestConfig,
 } from './mirroring.js';
+export {
+  fetchInstanceNodeInfo,
+  recordRegistryPing,
+  listRegistryInstances,
+  getRegistryInstance,
+  setRegistryInstanceStatus,
+  sendRegistryPing,
+  type RegistryInstanceView,
+  type PulledNodeInfo,
+} from './registry.js';
 export {
   getHubActorUri,
   getOrCreateHubKeypair,

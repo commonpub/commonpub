@@ -14,6 +14,15 @@ export interface InboxCallbacks {
   onDelete: (actorUri: string, objectId: string) => Promise<void>;
   onLike: (actorUri: string, objectUri: string) => Promise<void>;
   onAnnounce: (actorUri: string, objectUri: string) => Promise<void>;
+  /**
+   * Inbound consent-based mirror request (Phase 3). Optional: instances that don't implement it
+   * reject the Offer as unsupported. `requesterActorUri` asked us (`targetActorUri`) to mirror them.
+   */
+  onMirrorRequest?: (
+    requesterActorUri: string,
+    targetActorUri: string,
+    offerActivityId: string,
+  ) => Promise<void>;
 }
 
 /** Route an inbound activity to the appropriate handler */
@@ -89,6 +98,31 @@ export async function processInboxActivity(
       const object = activity.object as string;
       if (!object) return { success: false, error: 'Announce missing object' };
       await callbacks.onAnnounce(actor, object);
+      return { success: true };
+    }
+    case 'Offer': {
+      // CommonPub consent-based mirror request: Offer{ object: Follow{ actor: target, object: requester } }
+      // marked with cpub:mirrorRequest. Anything else (plain AP Offer) is unsupported here.
+      const isMirrorRequest = activity['cpub:mirrorRequest'] === true;
+      const obj = activity.object;
+      if (
+        !isMirrorRequest ||
+        !obj ||
+        typeof obj !== 'object' ||
+        (obj as Record<string, unknown>).type !== 'Follow'
+      ) {
+        return { success: false, error: `Unsupported activity type: ${type}` };
+      }
+      if (!callbacks.onMirrorRequest) {
+        return { success: false, error: 'Mirror requests not supported' };
+      }
+      // An id is required — it's the correlation key for the later Accept/Reject.
+      const offerId = activity.id as string;
+      if (!offerId) return { success: false, error: 'Offer missing id' };
+      // Inner Follow: actor = the instance asked to mirror (us), object = the requester.
+      const targetActorUri = (obj as Record<string, unknown>).actor as string;
+      if (!targetActorUri) return { success: false, error: 'Offer Follow missing actor' };
+      await callbacks.onMirrorRequest(actor, targetActorUri, offerId);
       return { success: true };
     }
     default:

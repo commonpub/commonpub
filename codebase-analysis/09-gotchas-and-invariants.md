@@ -399,6 +399,44 @@ path, not a 500. Before that, duplicates were possible on fast double-clicks.
 
 ## Security
 
+### The actor outbox is a PROJECTION over published+public content — not the activities queue (session 183)
+
+`/actor/outbox` (instance) and `/users/:u/outbox` are built from `content_items WHERE status='published' AND visibility='public'` (`outboxQueries.ts`), NOT from the `activities` delivery queue. Two invariants:
+
+1. **Must gate `visibility='public'`.** The outbox is publicly crawlable, so members-only/private content must never appear. `federateContent`/`federateUpdate` apply the same gate (they previously gated only `status`, a latent outbound leak). If you add a new outbox/content-federation path, replicate `status='published' AND visibility='public'`.
+2. **Don't "fix" the old empty-outbox bug by marking activities delivered early.** The delivery worker polls `status='pending'`; inserting Creates as `delivered` would starve it. The outbox draws from content, the queue stays the delivery ledger. (The pre-183 bug: outbox was `status='delivered'`-filtered, so anything published before a mirror followed was invisible forever → backfill got nothing. heatsync showed 2 of 8 posts.)
+
+The projected Create uses a DETERMINISTIC id (`<object id>#create`) + the real `published` date (protocol `contentToCreateActivity`), shared with live delivery so backfill and delivery emit the same de-dupable activity, and so bounded backfill can paginate by date. Mirroring/backfill/refederate are all bounded by operator choice (forward-only default; `since`/`maxItems`/`limit`) — never auto-pull or re-blast an entire instance.
+
+### Inbox: the activity `actor` MUST be bound to the HTTP-signature signer (session 187 audit)
+
+`verifyInboxRequest` proves the SIGNER (keyId actor, with keyId-host == actor.id-host), but
+`processInboxActivity` trusts the JSON `body.actor` — which is NOT the same thing. Without binding,
+a validly-signed request from instance X can carry `actor: https://victim/actor` and be processed
+as the victim: spoofed mirror requests/Accepts (Phase 3), federated content attributed to others,
+like/boost tampering. The fix is `assertActorMatchesSigner(actorUri, body, label)` in `utils/inbox.ts`,
+called in ALL THREE inbox routes (shared `routes/inbox.ts`, `routes/users/[u]/inbox.ts`,
+`routes/hubs/[slug]/inbox.ts`) right after `verifyInboxRequest` — it 401s when `body.actor`'s host ≠
+the signer's host. CommonPub/Mastodon sign with the actor's own key (no relays/LD-sig forwarding),
+so host equality is the correct binding. **Any new inbox route MUST call it** — the handlers trust
+`body.actor`, so the route is the only place the signer↔actor binding is enforced.
+
+### Registry pings: signature proves identity, stats are PULLED not trusted (Phase 4, session 186)
+
+`POST /api/registry/ping` is gated `actAsRegistry` and verified by `verifyInboxRequest` — the keyId domain must match the resolved actor, so a domain can **only register itself** (no impersonation). The registry derives the domain from the *verified* actor, NOT the request body. Stats (user/post counts, features, software) are **pulled from the pinger's public NodeInfo** (`fetchInstanceNodeInfo`) — never read from the ping body — and that pull is SSRF-guarded AND requires the 2.1 `href` to be on the same host (a registered instance can't point the registry's fetch at an arbitrary URL). Abuse: global IP rate-limit (middleware) handles pre-verification floods; a per-source-domain limit handles verified spam; admin `blocked` status is a no-op short-circuit that persists across re-pings. `recordRegistryPing`'s upsert does NOT reset `status`, so an admin `hidden` choice survives every re-ping (only a brand-new row starts `active` = the auto-list decision). `announceToRegistry` is a SEPARATE flag from `actAsRegistry` — turning on federation never phones home; the heartbeat worker also skips when the registry domain == our own.
+
+### Well-known response headers are number-typed in h3 (consumer-strict typecheck)
+
+`setResponseHeader(event, 'Retry-After', n)` — h3 types well-known headers like `Retry-After` as `number`, so passing `String(n)` red-CIs the reference app's `nuxt typecheck` (TS2345 string→number) even though custom `X-RateLimit-*` headers accept strings. The layer's own vitest doesn't catch it; the reference app does. Same class as `feedback_layer_source_consumer_typecheck` — always run the full `pnpm typecheck` (incl. reference) before declaring a layer route done.
+
+### "Push" mirror = consent-based request, NOT a mirror row (Phase 3, session 185)
+
+`createMirror` is **pull-only and throws on `direction:'push'`** — push is a *request* to be mirrored, not a subscription you operate. Use `requestMirror()`, which writes a `mirror_requests` row (NOT `instance_mirrors`) and sends an AP `Offer(Follow)` carrying a `cpub:mirrorRequest:true` marker. Invariants:
+
+1. **One unified `mirror_requests` table, both directions.** `direction` = `incoming` (someone asked us) | `outgoing` (we asked them); `unique(direction, remote_domain)` so a re-request upserts. `instance_mirrors` stays pull-only — don't reintroduce push rows there (it overloads `mirrorStatusEnum` and collides with `unique(remote_domain)`).
+2. **Only ONE new inbound dispatch branch.** `processInboxActivity` routes `Offer` → `onMirrorRequest` *only* when the cpub marker + inner `Follow` are present (else `Unsupported` → non-CommonPub instances ignore it). Approve replies `Accept(Offer)`, reject replies `Reject(Offer)`; `onAccept`/`onReject` are *extended* (not new callbacks) to flip the requester's outgoing request, correlated by the stored `offerActivityUri`. `Offer` routes like `Follow` in `delivery.ts` (to the target actor's inbox).
+3. **Approve reuses the loop-guarded pull path.** `approveMirrorRequest` calls `createMirror(pull)` (idempotent — reuses an existing mirror for that domain) + optional bounded backfill; it does NOT auto-pull history unless a depth is chosen. Content then flows over the normal Create → `matchMirrorForContent` path. No reverse-Follow loop: the requester never follows the approver's content.
+
 ### Public API serializers are ALLOW-lists, never deny-lists
 
 `/api/public/v1/*` responses go through `to*` helpers in

@@ -1,6 +1,6 @@
 import { processInboxActivity } from '@commonpub/protocol';
 import { createInboxHandlers } from '@commonpub/server';
-import { verifyInboxRequest } from '../../../utils/inbox';
+import { verifyInboxRequest, assertActorMatchesSigner } from '../../../utils/inbox';
 
 /**
  * Hub-specific inbox endpoint (FEP-1b12).
@@ -18,7 +18,8 @@ export default defineEventHandler(async (event) => {
   }
 
   // Verify signature, domain, date freshness, body size
-  const { body } = await verifyInboxRequest(event, 'hub-inbox');
+  const { actorUri, body } = await verifyInboxRequest(event, 'hub-inbox');
+  assertActorMatchesSigner(actorUri, body, 'hub-inbox');
 
   const db = useDB();
   const domain = config.instance.domain;

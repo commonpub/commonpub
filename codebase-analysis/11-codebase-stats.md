@@ -105,7 +105,7 @@ Numbers are approximate — exact counts vary with test exclusions.
 | Composables | 34 (non-test) + 12 `__tests__/` files |
 | Feature flags | 19 boolean top-level (+ `layoutEngine`, `rbac`) + 5 nested `identity.*` sub-flags |
 | Themes | 5 built-in (base, dark, generics, agora, agora-dark) + N DB-stored custom + N code-registered (admin-managed via `/admin/theme`, session 154) |
-| Migrations | 13 (0000_session128_baseline → 0012_true_nicolaos; 0009 = RBAC, 0006–0008 = contest criteria/eligibility/visibility, 0012 = composite feed indexes) |
+| Migrations | 14 (0000_session128_baseline → 0013_black_lorna_dane; 0009 = RBAC, 0006–0008 = contest criteria/eligibility/visibility, 0012 = composite feed indexes, 0013 = self-ref FKs [session 183, branch-only/unpublished]) |
 | ADRs | 26 (through 028) |
 | Production instances | 3 (commonpub.io, deveco.io, heatsynclabs.io — all auto-deploy from main) |
 | Session log files | 149 (numbered through 181; some are kickoff/handoff variants) |

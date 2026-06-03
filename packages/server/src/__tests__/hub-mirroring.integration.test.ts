@@ -25,6 +25,8 @@ import {
   autoDiscoverHub,
 } from '../federation/hubMirroring.js';
 import { listHubs, createHub } from '../hub/hub.js';
+import { onHook, clearHooks } from '../hooks.js';
+import type { HookPayloads } from '../hooks.js';
 
 const REMOTE_DOMAIN = 'remote.example.com';
 const REMOTE_HUB_ACTOR = `https://${REMOTE_DOMAIN}/hubs/cool-project`;
@@ -192,6 +194,9 @@ describe('hub mirroring integration', () => {
     });
 
     it('creates a new post and increments count', async () => {
+      const received: Array<HookPayloads['federation:hub:post:received']> = [];
+      onHook('federation:hub:post:received', async (p) => { received.push(p); });
+
       const result = await ingestFederatedHubPost(db, federatedHubId, {
         objectUri: `${REMOTE_HUB_ACTOR}/posts/001`,
         actorUri: REMOTE_POST_AUTHOR,
@@ -201,6 +206,13 @@ describe('hub mirroring integration', () => {
       });
 
       expect(result.created).toBe(true);
+
+      // federation:hub:post:received fires on a genuinely-new ingest (session 183)
+      expect(received).toHaveLength(1);
+      expect(received[0]!.federatedHubPostId).toBe(result.id);
+      expect(received[0]!.federatedHubId).toBe(federatedHubId);
+      expect(received[0]!.postType).toBe('discussion');
+      clearHooks();
 
       // Verify post in DB
       const [post] = await db.select().from(federatedHubPosts).where(eq(federatedHubPosts.id, result.id));

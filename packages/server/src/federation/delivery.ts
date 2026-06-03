@@ -244,8 +244,9 @@ async function resolveTargetInboxes(
         .limit(1);
       if (actor[0]?.inbox) inboxes.push(actor[0].inbox);
     }
-  } else if (type === 'Follow') {
-    // Send to the target actor's inbox — resolve if not cached
+  } else if (type === 'Follow' || type === 'Offer') {
+    // Send to the target actor's inbox — resolve if not cached.
+    // Offer = a consent-based mirror request (Phase 3): objectUri is the target instance actor.
     const targetActorUri = activity.objectUri;
     if (targetActorUri) {
       const actor = await db

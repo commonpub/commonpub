@@ -197,6 +197,82 @@ describe('processInboxActivity', () => {
     );
   });
 
+  it('should process a cpub mirror-request Offer', async () => {
+    const cbs = createMockCallbacks();
+    cbs.onMirrorRequest = vi.fn();
+    const result = await processInboxActivity(
+      {
+        type: 'Offer',
+        id: 'https://remote.com/activities/offer-1',
+        actor: 'https://remote.com/actor',
+        'cpub:mirrorRequest': true,
+        object: {
+          type: 'Follow',
+          id: 'https://remote.com/activities/follow-1',
+          actor: 'https://local.com/actor',
+          object: 'https://remote.com/actor',
+        },
+      },
+      cbs,
+    );
+    expect(result.success).toBe(true);
+    expect(cbs.onMirrorRequest).toHaveBeenCalledWith(
+      'https://remote.com/actor', // requester
+      'https://local.com/actor', // target (us)
+      'https://remote.com/activities/offer-1',
+    );
+  });
+
+  it('should reject an Offer without the cpub marker as unsupported', async () => {
+    const cbs = createMockCallbacks();
+    cbs.onMirrorRequest = vi.fn();
+    const result = await processInboxActivity(
+      {
+        type: 'Offer',
+        id: 'https://remote.com/activities/offer-2',
+        actor: 'https://remote.com/actor',
+        object: { type: 'Follow', actor: 'https://local.com/actor', object: 'https://remote.com/actor' },
+      },
+      cbs,
+    );
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('Unsupported');
+    expect(cbs.onMirrorRequest).not.toHaveBeenCalled();
+  });
+
+  it('should reject a mirror-request Offer with no id (correlation key required)', async () => {
+    const cbs = createMockCallbacks();
+    cbs.onMirrorRequest = vi.fn();
+    const result = await processInboxActivity(
+      {
+        type: 'Offer',
+        actor: 'https://remote.com/actor',
+        'cpub:mirrorRequest': true,
+        object: { type: 'Follow', actor: 'https://local.com/actor', object: 'https://remote.com/actor' },
+      },
+      cbs,
+    );
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('id');
+    expect(cbs.onMirrorRequest).not.toHaveBeenCalled();
+  });
+
+  it('should reject a mirror-request Offer when no handler is wired', async () => {
+    const cbs = createMockCallbacks(); // no onMirrorRequest
+    const result = await processInboxActivity(
+      {
+        type: 'Offer',
+        id: 'https://remote.com/activities/offer-3',
+        actor: 'https://remote.com/actor',
+        'cpub:mirrorRequest': true,
+        object: { type: 'Follow', actor: 'https://local.com/actor', object: 'https://remote.com/actor' },
+      },
+      cbs,
+    );
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('not supported');
+  });
+
   it('should return error for unsupported activity type', async () => {
     const cbs = createMockCallbacks();
     const result = await processInboxActivity(

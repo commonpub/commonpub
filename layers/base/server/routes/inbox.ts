@@ -1,6 +1,6 @@
 import { processInboxActivity } from '@commonpub/protocol';
 import { createInboxHandlers } from '@commonpub/server';
-import { verifyInboxRequest, extractDomain } from '../utils/inbox';
+import { verifyInboxRequest, assertActorMatchesSigner, extractDomain } from '../utils/inbox';
 
 export default defineEventHandler(async (event) => {
   const config = useConfig();
@@ -13,7 +13,9 @@ export default defineEventHandler(async (event) => {
   }
 
   // Verify signature, domain, date freshness, body size
-  const { body } = await verifyInboxRequest(event, 'shared-inbox');
+  const { actorUri, body } = await verifyInboxRequest(event, 'shared-inbox');
+  // Bind the activity's actor to the verified signer (anti-spoofing).
+  assertActorMatchesSigner(actorUri, body, 'shared-inbox');
 
   const db = useDB();
   const runtimeConfig = useRuntimeConfig();

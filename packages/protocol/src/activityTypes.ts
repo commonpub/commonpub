@@ -157,6 +157,27 @@ export interface APAnnounce {
   cc?: string[];
 }
 
+/**
+ * Property key marking an `Offer` as a CommonPub consent-based mirror request (Phase 3).
+ * A plain JSON-LD extension key (same convention as `cpub:type` etc.) — non-CommonPub instances
+ * ignore the unknown Offer, so the request is CommonPub↔CommonPub only.
+ */
+export const CPUB_MIRROR_REQUEST = 'cpub:mirrorRequest';
+
+/**
+ * Consent-based mirror request: instance A (`actor`) offers that instance B (the inner Follow's
+ * `actor`) follow A (the inner Follow's `object`) — i.e. "please mirror me". The standard AS2
+ * idiom for "request to be followed", marked with `cpub:mirrorRequest` so it's unambiguously ours.
+ */
+export interface APOffer {
+  '@context': string | string[];
+  type: 'Offer';
+  id: string;
+  actor: string;
+  object: APFollow;
+  [CPUB_MIRROR_REQUEST]?: boolean;
+}
+
 export type APActivity =
   | APCreate
   | APUpdate
@@ -166,7 +187,8 @@ export type APActivity =
   | APReject
   | APUndo
   | APLike
-  | APAnnounce;
+  | APAnnounce
+  | APOffer;
 
 // --- AP Collections ---
 

@@ -52,6 +52,11 @@ export const featureFlagsSchema = z.object({
   // Cross-instance delegated authorization. Nested object so the
   // namespace stays separate; all sub-flags default off.
   identity: identityFeaturesSchema.default(() => identityFeaturesSchema.parse({})),
+  // Phase 4 registry. actAsRegistry = accept pings + serve the directory;
+  // announceToRegistry = send heartbeats to federation.registryUrl. Both
+  // default OFF — no registry, no phone-home, until the operator opts in.
+  actAsRegistry: z.boolean().default(false),
+  announceToRegistry: z.boolean().default(false),
 });
 
 export const authConfigSchema = z.object({
@@ -99,6 +104,10 @@ export const federationConfigSchema = z.object({
   backfillOnMirrorAccept: z.boolean().default(false),
   mirrorMaxItems: z.number().int().positive().optional(),
   hubSyncIntervalMs: z.number().int().positive().default(3_600_000),
+  // Phase 4 registry: where this instance announces itself (when
+  // features.announceToRegistry is on) + how often. Default registry is commonpub.io.
+  registryUrl: z.string().url().default('https://commonpub.io'),
+  registryPingIntervalMs: z.number().int().positive().default(21_600_000), // 6h
 });
 
 export const docsConfigSchema = z.object({
@@ -141,7 +150,9 @@ export const configSchema = z.object({
   instance: instanceConfigSchema,
   features: featureFlagsSchema.default(() => featureFlagsSchema.parse({})),
   auth: authConfigSchema.default(() => authConfigSchema.parse({})),
-  federation: federationConfigSchema.optional(),
+  // Defaulted (not optional) so federation knobs — incl. registryUrl / registryPingIntervalMs —
+  // always resolve to their defaults rather than leaving `config.federation` undefined.
+  federation: federationConfigSchema.default(() => federationConfigSchema.parse({})),
   docs: docsConfigSchema.default(() => docsConfigSchema.parse({})),
   cookies: z.array(cookieDefinitionSchema).optional(),
   themes: z.array(registeredThemeSchema).optional(),

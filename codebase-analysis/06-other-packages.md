@@ -35,7 +35,7 @@ Feature flags are **runtime** (environment via `nuxt.config` `runtimeConfig.publ
 
 - `types.ts` — AP actor + activity interfaces
 - `activityTypes.ts` — AP **interface/type definitions only** (`APArticle`, `APNote`, `APTombstone`, `APGroup`, `APCreate`/`APUpdate`/`APDelete`, `APObject`, …) — no mapping logic. The CommonPub→AP `cpub:type` mapping (`item.type === 'article' ? 'blog' : item.type`) lives in `contentMapper.ts`, not here.
-- `contentMapper.ts` (13KB) — bidirectional BlockTuple[] ↔ AP object
+- `contentMapper.ts` (13KB) — bidirectional BlockTuple[] ↔ AP object. `contentToArticle` + **`contentToCreateActivity`** (session 183 — wraps an Article in a Create with a DETERMINISTIC id `<object id>#create` + the content's real `published`, unlike `buildCreateActivity`'s random id + `now`; used by both the outbox projection and live delivery so they stay de-dupable).
 - `federation.ts` — `createFederation({ config, version, lookupUser, getStats })` factory returning WebFinger + NodeInfo handlers; gated on `config.features.federation`
 - `actorResolver.ts` — resolve + cache remote actors; refresh policy. Per-hop `isPrivateUrl` string check; callers inject a `FetchFn` for DNS-rebind protection — the concrete `createSafeActorFetchFn()` lives in `@commonpub/server` (`federation/safeFetchFn.ts`), not in protocol.
 - `activities.ts` — Create/Announce/Delete/Update builders

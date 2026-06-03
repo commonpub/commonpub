@@ -520,18 +520,27 @@ export async function submitContestEntry(
     if (existingCount >= c.maxEntriesPerUser) return null;
   }
 
-  const [row] = await db
-    .insert(contestEntries)
-    .values({ contestId, contentId, userId })
-    .onConflictDoNothing()
-    .returning();
+  // Atomic: insert the entry and bump the denormalized entryCount together, so a
+  // duplicate (onConflictDoNothing → no row) never increments and a mid-operation
+  // failure can't leave entryCount overcounting.
+  const row = await db.transaction(async (tx) => {
+    const [inserted] = await tx
+      .insert(contestEntries)
+      .values({ contestId, contentId, userId })
+      .onConflictDoNothing()
+      .returning();
+
+    if (!inserted) return null;
+
+    await tx
+      .update(contests)
+      .set({ entryCount: sql`${contests.entryCount} + 1` })
+      .where(eq(contests.id, contestId));
+
+    return inserted;
+  });
 
   if (!row) return null;
-
-  await db
-    .update(contests)
-    .set({ entryCount: sql`${contests.entryCount} + 1` })
-    .where(eq(contests.id, contestId));
 
   // Fetch enriched content + author info
   const enriched = await db

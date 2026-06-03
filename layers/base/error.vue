@@ -9,11 +9,26 @@ const props = defineProps<{
 
 useSeoMeta({ title: `${props.error.statusCode} — CommonPub` });
 
-// Error pages render outside app.vue's NuxtLayout tree during SSR,
-// so the theme plugin's useHead may not propagate. Re-apply here.
+// Error pages render outside app.vue's NuxtLayout tree during SSR, so the theme
+// plugin's useHead doesn't propagate here. Re-apply BOTH the data-theme attribute
+// AND the custom-theme inline token CSS — otherwise a DB-stored custom theme renders
+// with base tokens on error pages (the plugin sets these useState keys during SSR).
 const themeId = useState<string>('cpub-theme', () => 'base');
+const themeInlineCss = useState<string>('cpub-theme-inline-css', () => '');
+const themeHead: Parameters<typeof useHead>[0] = {};
 if (themeId.value && themeId.value !== 'base') {
-  useHead({ htmlAttrs: { 'data-theme': themeId.value } });
+  themeHead.htmlAttrs = { 'data-theme': themeId.value };
+}
+if (themeInlineCss.value) {
+  themeHead.style = [{
+    key: 'cpub-theme-inline',
+    id: 'cpub-theme-inline',
+    innerHTML: themeInlineCss.value,
+    tagPosition: 'head',
+  }];
+}
+if (Object.keys(themeHead).length > 0) {
+  useHead(themeHead);
 }
 
 const isNotFound = computed(() => props.error.statusCode === 404);

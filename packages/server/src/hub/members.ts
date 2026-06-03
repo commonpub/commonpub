@@ -126,14 +126,18 @@ export async function leaveHub(
     return { left: false, error: 'Owner cannot leave the hub' };
   }
 
-  await db
-    .delete(hubMembers)
-    .where(and(eq(hubMembers.hubId, hubId), eq(hubMembers.userId, userId)));
+  // Atomic: drop the membership row and decrement the denormalized counter together,
+  // so a failure between the two can't leave memberCount overcounting (mirrors joinHub).
+  await db.transaction(async (tx) => {
+    await tx
+      .delete(hubMembers)
+      .where(and(eq(hubMembers.hubId, hubId), eq(hubMembers.userId, userId)));
 
-  await db
-    .update(hubs)
-    .set({ memberCount: sql`GREATEST(${hubs.memberCount} - 1, 0)` })
-    .where(eq(hubs.id, hubId));
+    await tx
+      .update(hubs)
+      .set({ memberCount: sql`GREATEST(${hubs.memberCount} - 1, 0)` })
+      .where(eq(hubs.id, hubId));
+  });
 
   await emitHook('hub:member:left', { db, hubId, userId });
 

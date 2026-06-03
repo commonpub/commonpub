@@ -291,6 +291,12 @@ content/*` while federated-hub entity lookups live at `/api/federated-hubs/*`.
 
 User mgmt: GET `/api/admin/users`, PUT `/api/admin/users/:id/role`, PUT `/api/admin/users/:id/status`, DELETE `/api/admin/users/:id`.
 
+Federation followers (session 184): GET `/api/admin/federation/followers` → `listInstanceFollowers` — remote instances that follow our instance Service actor ("who is mirroring you"). Backfill route (`mirrors/[id]/backfill.post.ts`) + `refederate.post.ts` now accept bounded depth params (`sinceDays`/`maxItems`; refederate `{sinceDays,limit,all}`) — session 183.
+
+Mirror requests (session 185, Phase 3 — all `federation.manage`): GET `/api/admin/federation/mirror-requests` → `{incoming, outgoing}`; POST `mirror-requests/[id]/approve` (body `{sinceDays?, maxItems?, filterContentTypes?, filterTags?}` via `approveMirrorRequestSchema`) → `approveMirrorRequest`; POST `mirror-requests/[id]/reject` → `rejectMirrorRequest`. The mirror create route (`mirrors/index.post.ts`) branches `direction:'push'` → `requestMirror` (consent-based, no filters — the approver chooses theirs).
+
+Registry (session 186, Phase 4): PUBLIC + gated `requireFeature('actAsRegistry')` — POST `/api/registry/ping` (signed heartbeat: `verifyInboxRequest` + per-domain rate-limit → `recordRegistryPing`); GET `/api/registry/instances` (active-only, allow-list serializer drops id/status). ADMIN (`federation.manage` + `actAsRegistry`): GET `/api/admin/registry/instances` (all + status), POST `/api/admin/registry/instances/[id]/status` (`{status}` active\|hidden\|blocked). Client side: `registry-heartbeat.ts` Nitro plugin pings `federation.registryUrl` when `announceToRegistry`.
+
 Public-API keys (RBAC-era): GET/POST `/api/admin/api-keys`, DELETE `/api/admin/api-keys/:id`, GET `/api/admin/api-keys/:id/usage` — issue/revoke scoped bearer tokens for the public read API (gated `publicApi`).
 
 Storage: POST `/api/admin/storage/backfill-cdn-urls` (session 149 — backfill DO Spaces CDN URLs).

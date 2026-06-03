@@ -5,8 +5,8 @@ Source: `packages/schema/src/*.ts`. Re-verified session 181 (2026-06-01).
 **87 tables (`grep -c pgTable`), 42 enums (`grep -c pgEnum`), 102 `*Schema`
 exports in `validators.ts`.** Drizzle ORM on PostgreSQL 16.
 
-**13 migrations, 0000–0012** (latest `0012_true_nicolaos` = composite feed
-indexes). Full list:
+**14 migrations, 0000–0013** (latest `0013_black_lorna_dane` = self-referential
+FK constraints, session 183). Full list:
 
 | # | File | What it added |
 |---|---|---|
@@ -23,6 +23,7 @@ indexes). Full list:
 | 0010 | `powerful_doctor_faustus` | contest `subheading` column (`varchar(300)`) |
 | 0011 | `green_lorna_dane` | contest `prizes_description` column (`text`) |
 | 0012 | `true_nicolaos` | Two PARTIAL composite feed indexes `idx_content_items_feed_recency` + `idx_content_items_feed_popular` (keyset pagination, session 179) |
+| 0013 | `black_lorna_dane` | Self-referential FK constraints (ON DELETE SET NULL) on `comments.parent_id`, `hub_post_replies.parent_id`, `docs_pages.parent_id`, `hubs.parent_hub_id` (session 183). Nulls any pre-existing dangling pointers first, then adds the constraints — same "null orphans then enforce" pattern as 0002. |
 
 ## Files
 
@@ -40,7 +41,7 @@ packages/schema/src/
 ├── contest.ts       contests, contestEntries, contestJudges, contestStakeholders
 ├── events.ts        events, eventAttendees
 ├── voting.ts        hubPostVotes, pollOptions, pollVotes, contestEntryVotes
-├── federation.ts    remoteActors, activities, followRelationships, actorKeypairs, federatedContent, federatedContentBuilds, instanceMirrors, instanceHealth, federatedHubs, federatedHubPosts, federatedHubMembers, federatedHubPostLikes, federatedHubPostReplies, federatedHubResources, federatedHubProducts, userFederatedHubFollows (16)
+├── federation.ts    remoteActors, activities, followRelationships, actorKeypairs, federatedContent, federatedContentBuilds, instanceMirrors, instanceHealth, federatedHubs, federatedHubPosts, federatedHubMembers, federatedHubPostLikes, federatedHubPostReplies, federatedHubResources, federatedHubProducts, userFederatedHubFollows, mirrorRequests, registryInstances (18)
 ├── files.ts         files
 ├── admin.ts         instanceSettings, auditLogs
 ├── layout.ts        layouts, layoutRows, layoutSections, layoutVersions (session 155)
@@ -228,7 +229,9 @@ Core AP:
 | actorKeypairs | Per-user RSA | unique userId |
 | federatedContent | Remote content mirrored locally | cpubType + cpubBlocks preserve CommonPub fidelity; soft delete; objectUri unique |
 | federatedContentBuilds | "I built this" on remote | unique(userId, federatedContentId) |
-| instanceMirrors | Mirror configs | direction (pull/push); status; backfillCursor; filterContentTypes JSONB |
+| instanceMirrors | Mirror configs (PULL only since Phase 3) | direction stays pull; status; backfillCursor; filterContentTypes JSONB |
+| mirrorRequests | Consent-based mirror requests (Phase 3) | unique(direction, remoteDomain); direction incoming\|outgoing; status pending\|approved\|rejected; offerActivityUri correlates Accept/Reject; resultingMirrorId FK→instanceMirrors (set null) |
+| registryInstances | Registry directory entries (Phase 4) | domain unique; status active\|hidden\|blocked; stats (user/activeMonth/localPost counts) + features jsonb + software pulled from NodeInfo on each ping; lastPingAt (online derived); idx on status + lastPingAt |
 | instanceHealth | Circuit breaker per remote domain | circuitOpenUntil, consecutiveFailures |
 
 Federated hubs:
@@ -285,9 +288,9 @@ Live in `packages/schema/src/validators.ts` (102 `*Schema` exports). All user-fa
 Coverage by domain (approximate): auth (~7), content (~8), social (~3 for comments/likes/reports), hubs (~16), products (~5), contests (~5), videos (~3), learning (~7), messaging (~2), docs (~5), admin (~4), federation (~7), theme (~8), layout (~10), publicApi (~2), plus 6 `*FiltersSchema` list-filter validators (`content`/`hub`/`learningPath`/`video`/`contest`/`hubPost`).
 
 **Tables without validators** (intentional — system-generated or internal):
-sessions, accounts, organizations, members, verifications, oauthClients, oauthCodes, contentVersions, contentForks, contentBuilds, tags, contentTags, follows, bookmarks, notifications, hubMembers, hubPostLikes, hubFollowers, hubActorKeypairs, events (missing — should have one), eventAttendees (missing — should have one), enrollments, lessonProgress, certificates, pollVotes, hubPostVotes, contestEntryVotes, contestStakeholders, auditLogs, files, instanceMirrors, remoteActors, federatedContent, federatedHub* (all), instanceHealth, roles, rolePermissions, userRoles, apiKeyUsage, layout* (CRUD-validated via layout schemas, not row validators).
+sessions, accounts, organizations, members, verifications, oauthClients, oauthCodes, contentVersions, contentForks, contentBuilds, tags, contentTags, follows, bookmarks, notifications, hubMembers, hubPostLikes, hubFollowers, hubActorKeypairs, events, eventAttendees, enrollments, lessonProgress, certificates, pollVotes, hubPostVotes, contestEntryVotes, contestStakeholders, auditLogs, files, instanceMirrors, remoteActors, federatedContent, federatedHub* (all), instanceHealth, roles, rolePermissions, userRoles, apiKeyUsage, layout* (CRUD-validated via layout schemas, not row validators).
 
-**Gaps worth closing:** `events`, `eventAttendees` — currently unvalidated despite user-facing API.
+**Note (corrected session 182/183):** `events` is NOT an unvalidated user-facing endpoint — `POST /api/events` validates with a thorough inline `createEventSchema` (`layers/base/server/api/events/index.post.ts`: length bounds, `.datetime()`, `.url()`, end>start refine). RSVP takes only path `eventId` + session `userId` (no body). The only real gap is centralization: there is no *shared* event validator in `validators.ts` (validation is decentralized inline) — a consistency nit, not a security hole.
 
 ## Invariants / patterns
 
@@ -300,10 +303,10 @@ sessions, accounts, organizations, members, verifications, oauthClients, oauthCo
 
 ## Foreign-key caveats
 
-- **125 `.references()` FKs total: 107 `ON DELETE CASCADE`, 18 `ON DELETE SET NULL`, 0 RESTRICT.**
+- **129 `.references()` FKs total: 107 `ON DELETE CASCADE`, 22 `ON DELETE SET NULL`, 0 RESTRICT** (the 4 self-ref FKs added in migration 0013 are SET NULL).
 - CASCADE is used where the relationship is ownership (user → session, content → version, hub → post, etc.).
 - SET NULL is used for **nullable cross-table references** so the child row survives when the referenced entity is deleted: `contentItems.categoryId`, `events.hubId`, `files.contentId`/`files.hubId`, `federatedContent.mirrorId` (added in migration 0002 — the old "no FK, app-enforced" note is obsolete), `federated*.remoteActorId`, `learningLessons.contentItemId`, and "who-did-X" user refs (`updatedBy`/`grantedBy`/`revokedBy`/`reviewedById`/`actorId`/`publishedBy`).
-- **Self-ref parent columns have NO DB-level FK at all** — `hubs.parentHubId`, `comments.parentId`, `hubPostReplies.parentId`, `docsPages.parentId`, `federatedHubPostReplies.parentId` are plain `uuid()` columns with only app-level Drizzle `relations()` (no `.references()`, no `onDelete`). Deleting a parent neither cascades nor nulls its children at the DB level; tree integrity is app-managed. (The earlier "parent self-refs are ON DELETE SET NULL" note was incorrect.)
+- **Self-ref parent columns: 4 now have a real FK (ON DELETE SET NULL), as of migration 0013 (session 183)** — `hubs.parentHubId`, `comments.parentId`, `hubPostReplies.parentId`, `docsPages.parentId` `.references()` their own table with `onDelete: 'set null'` (deleting a parent promotes children to top-level, never cascades/orphans). Their schema comments previously claimed "constraint added via migration" but none existed; 0013 closed that gap. **`federatedHubPostReplies.parentId` still has NO DB FK** (federated-replies tree integrity stays app-managed).
 
 ## Schema deploy workflow (session 128+)
 

@@ -9,8 +9,9 @@ import {
   buildUndoActivity,
   buildLikeActivity,
   buildAnnounceActivity,
+  buildMirrorRequestActivity,
 } from '../activities';
-import { AP_CONTEXT, AP_PUBLIC, type APArticle, type APNote } from '../activityTypes';
+import { AP_CONTEXT, AP_PUBLIC, CPUB_MIRROR_REQUEST, type APArticle, type APNote } from '../activityTypes';
 
 const domain = 'test.example.com';
 const actorUri = 'https://test.example.com/users/alice';
@@ -178,5 +179,22 @@ describe('buildAnnounceActivity', () => {
     expect(activity.object).toBe(objectUri);
     expect(activity.to).toEqual([AP_PUBLIC]);
     expect(activity.cc).toEqual([followersUri]);
+  });
+});
+
+describe('buildMirrorRequestActivity', () => {
+  it('should build an Offer(Follow) with the cpub mirror-request marker', () => {
+    const requester = 'https://us.example.com/actor';
+    const target = 'https://them.example.com/actor';
+    const activity = buildMirrorRequestActivity('us.example.com', requester, target);
+
+    expect(activity.type).toBe('Offer');
+    expect(activity.actor).toBe(requester);
+    expect(activity[CPUB_MIRROR_REQUEST]).toBe(true);
+    // Inner Follow: target follows requester ("please mirror me").
+    expect(activity.object.type).toBe('Follow');
+    expect(activity.object.actor).toBe(target);
+    expect(activity.object.object).toBe(requester);
+    expect(activity.id).toContain('https://us.example.com/activities/');
   });
 });

@@ -11,10 +11,10 @@ import { createTestDB, createTestUser, closeTestDB } from './helpers/testdb.js';
 import { onHook, clearHooks } from '../hooks.js';
 import type { HookPayloads } from '../hooks.js';
 import { createContent, onContentPublished } from '../content/content.js';
-import { createComment } from '../social/social.js';
+import { createComment, toggleLike } from '../social/social.js';
 import { createHub } from '../hub/hub.js';
 import { joinHub, leaveHub } from '../hub/members.js';
-import { createPost } from '../hub/posts.js';
+import { createPost, shareContent } from '../hub/posts.js';
 
 const testConfig: CommonPubConfig = {
   instance: { name: 'Test', domain: 'test.example.com', description: '', contentTypes: ['project', 'article', 'blog'], contestCreation: 'open', maxUploadSize: 10_000_000 },
@@ -170,6 +170,58 @@ describe('hook wiring integration', () => {
       expect(calls[0]!.authorId).toBe(user2Id);
       expect(calls[0]!.targetType).toBe('article');
       expect(calls[0]!.targetId).toBe(content.id);
+    });
+  });
+
+  // --- content:liked / content:unliked (session 183, Phase 1) ---
+
+  describe('content:liked / content:unliked hooks', () => {
+    it('fires content:liked on like and content:unliked on toggle-off', async () => {
+      const liked: Array<HookPayloads['content:liked']> = [];
+      const unliked: Array<HookPayloads['content:unliked']> = [];
+      onHook('content:liked', async (p) => { liked.push(p); });
+      onHook('content:unliked', async (p) => { unliked.push(p); });
+
+      const content = await createContent(db, userId, {
+        type: 'project', title: 'Likeable', slug: 'likeable', status: 'published',
+      });
+
+      await toggleLike(db, user2Id, 'project', content.id);
+      await toggleLike(db, user2Id, 'project', content.id); // toggle off
+
+      expect(liked).toHaveLength(1);
+      expect(liked[0]!.contentId).toBe(content.id);
+      expect(liked[0]!.userId).toBe(user2Id);
+      expect(unliked).toHaveLength(1);
+      expect(unliked[0]!.contentId).toBe(content.id);
+    });
+
+    it('does NOT fire content hooks for post/comment likes', async () => {
+      const liked: Array<HookPayloads['content:liked']> = [];
+      onHook('content:liked', async (p) => { liked.push(p); });
+      await toggleLike(db, user2Id, 'comment', '00000000-0000-0000-0000-000000000001');
+      expect(liked).toHaveLength(0);
+    });
+  });
+
+  // --- hub:content:shared (session 183, Phase 1) ---
+
+  describe('hub:content:shared hook', () => {
+    it('fires when content is shared to a hub', async () => {
+      const calls: Array<HookPayloads['hub:content:shared']> = [];
+      onHook('hub:content:shared', async (p) => { calls.push(p); });
+
+      const hub = await createHub(db, userId, { name: 'Share Hub', slug: 'share-hub' });
+      const content = await createContent(db, userId, {
+        type: 'project', title: 'Shareable', slug: 'shareable', status: 'published',
+      });
+
+      await shareContent(db, userId, hub.id, content.id);
+
+      expect(calls).toHaveLength(1);
+      expect(calls[0]!.hubId).toBe(hub.id);
+      expect(calls[0]!.contentId).toBe(content.id);
+      expect(calls[0]!.userId).toBe(userId);
     });
   });
 

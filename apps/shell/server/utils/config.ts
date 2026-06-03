@@ -31,6 +31,8 @@ const ENV_FLAG_MAP: Record<string, string> = {
   seamlessFederation: 'FEATURE_SEAMLESS_FEDERATION',
   admin: 'FEATURE_ADMIN',
   emailNotifications: 'FEATURE_EMAIL_NOTIFICATIONS',
+  actAsRegistry: 'FEATURE_ACT_AS_REGISTRY',
+  announceToRegistry: 'FEATURE_ANNOUNCE_TO_REGISTRY',
 };
 
 let baseConfig: CommonPubConfig | null = null;

@@ -1,15 +1,27 @@
 import { contentItems, hubs, hubPosts } from '@commonpub/schema';
 import { federateContent, federateHubPost, federateHubActor } from '@commonpub/server';
-import { eq, isNull } from 'drizzle-orm';
+import { eq, and, gte, desc, isNull } from 'drizzle-orm';
 import { z } from 'zod';
 import { extractDomain } from '../../../utils/inbox';
 
+/** Default re-federation window when neither `all` nor `since` is given — avoids a delivery storm. */
+const DEFAULT_SINCE_DAYS = 30;
+/** Hard cap on a bounded (non-`all`) re-federation run. */
+const DEFAULT_LIMIT = 1000;
+
 /**
  * POST /api/admin/federation/refederate
- * Queue all published content AND hub posts for federation delivery.
+ * Re-queue published content (Create) + hub posts (Announce) for delivery to current followers.
  * Useful after establishing new mirrors or enabling federation.
  *
- * Body: { contentId?: string, hubsOnly?: boolean } — if omitted, re-federates ALL
+ * BOUNDED BY DEFAULT to avoid blasting every follower with thousands of activities:
+ *  - `contentId` — re-federate a single item.
+ *  - `all: true` — re-federate everything (explicit opt-in; no date/limit bound).
+ *  - `sinceDays` — only items published within the last N days.
+ *  - `limit` — cap the number of items.
+ * With none of these, defaults to the last 30 days, capped at 1000 items, newest-first.
+ * `federateContent` is idempotent (skips an already-pending Create for the same object), so
+ * repeated runs don't duplicate the queue.
  */
 export default defineEventHandler(async (event) => {
   // Allow CLI trigger via AUTH_SECRET header (for server-side automation)
@@ -29,9 +41,13 @@ export default defineEventHandler(async (event) => {
   const body = await parseBody(event, z.object({
     contentId: z.string().uuid().optional(),
     hubsOnly: z.boolean().optional(),
+    all: z.boolean().optional(),
+    sinceDays: z.number().int().positive().max(3650).optional(),
+    limit: z.number().int().positive().max(10000).optional(),
   }));
   const contentId = body.contentId;
   const hubsOnly = body.hubsOnly === true;
+  const all = body.all === true;
 
   const db = useDB();
   const domain = extractDomain((runtimeConfig.public?.siteUrl as string) || `https://${config.instance.domain}`);
@@ -45,12 +61,25 @@ export default defineEventHandler(async (event) => {
   let hubsQueued = 0;
   let hubPostsQueued = 0;
 
-  // Re-federate published content (unless hubsOnly)
+  // Re-federate published content (unless hubsOnly), bounded unless `all` is set.
   if (!hubsOnly) {
-    const published = await db
+    const since = all
+      ? null
+      : new Date(Date.now() - (body.sinceDays ?? DEFAULT_SINCE_DAYS) * 24 * 60 * 60 * 1000);
+    const limit = all ? undefined : (body.limit ?? DEFAULT_LIMIT);
+
+    let q = db
       .select({ id: contentItems.id })
       .from(contentItems)
-      .where(eq(contentItems.status, 'published'));
+      .where(
+        since
+          ? and(eq(contentItems.status, 'published'), gte(contentItems.publishedAt, since))
+          : eq(contentItems.status, 'published'),
+      )
+      .orderBy(desc(contentItems.publishedAt))
+      .$dynamic();
+    if (limit != null) q = q.limit(limit);
+    const published = await q;
 
     for (const item of published) {
       try {

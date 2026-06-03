@@ -190,6 +190,24 @@ export const mirrorStatusEnum = pgEnum('mirror_status', [
   'failed',
 ]);
 export const mirrorDirectionEnum = pgEnum('mirror_direction', ['pull', 'push']);
+/** Direction of a consent-based mirror request: 'incoming' = someone asks to mirror us,
+ *  'outgoing' = we asked them to mirror us. */
+export const mirrorRequestDirectionEnum = pgEnum('mirror_request_direction', [
+  'incoming',
+  'outgoing',
+]);
+export const mirrorRequestStatusEnum = pgEnum('mirror_request_status', [
+  'pending',
+  'approved',
+  'rejected',
+]);
+/** Registry directory entry status (Phase 4): active = visible, hidden = admin-hidden but still
+ *  tracked, blocked = admin-blocked (future pings ignored). */
+export const registryInstanceStatusEnum = pgEnum('registry_instance_status', [
+  'active',
+  'hidden',
+  'blocked',
+]);
 
 // --- Docs ---
 export const docsPageStatusEnum = pgEnum('docs_page_status', ['draft', 'published', 'archived']);

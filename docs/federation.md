@@ -619,6 +619,36 @@ Instance admins can set up mirrors to sync content from other instances.
 └──────────────────────────────────────────────────────────────┘
 ```
 
+### Pull mirrors are one-directional (and that's the point)
+
+A **pull mirror** is one-directional by default: your instance follows the remote
+instance's actor and ingests *their* public content. The remote instance receives nothing
+from you and has to do nothing — it does **not** mirror you back unless its own operator
+separately sets up a pull mirror of you. So "mirror posts from B, but B doesn't mirror me"
+is simply a pull mirror of B; no reciprocal step is required. (To *ask* another instance to
+mirror you, see the mirror-request / "push" flow — a request the other operator approves.)
+
+To see who is mirroring **you**, look at your instance actor's followers
+(`/actor/followers`) — each follower is an instance pulling your content.
+
+### What the outbox contains, and bounded history
+
+The instance actor's `/actor/outbox` is a **projection of your published, public content**
+(`status='published' AND visibility='public'`), not a log of past delivery attempts.
+Members-only and private content never appear there. This is what a mirror's backfill
+crawls, so the full public catalogue is retrievable — but **import is forward-only by
+default**: creating a mirror only ingests new content from that point on.
+
+To pull history, run **Backfill** with an explicit, bounded depth so you never accidentally
+ingest an entire large instance:
+
+- **How far back** — `sinceDays` (e.g. last 30 days); crawling stops once it pages past the cutoff.
+- **Max items** — a hard cap per run (bounded by the instance's `mirrorMaxItems` ceiling).
+
+Likewise, **Re-federate** (re-deliver your own content to current followers) is bounded by
+default (last 30 days, capped) and only re-delivers everything when you explicitly choose
+"all" — this avoids blasting every follower with thousands of activities at once.
+
 ### Mirror Data Flow
 
 ```
