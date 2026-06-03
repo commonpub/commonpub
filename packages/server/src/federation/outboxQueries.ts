@@ -23,7 +23,7 @@
  * Hub outboxes remain queue-derived (Announce activities) — hub federation is a separate
  * Group-actor path and is out of scope here.
  */
-import { eq, and, sql, desc, inArray } from 'drizzle-orm';
+import { eq, and, sql, desc, inArray, isNull } from 'drizzle-orm';
 import { activities, contentItems, contentTags, tags, users } from '@commonpub/schema';
 import { contentToCreateActivity, type ContentItemInput } from '@commonpub/protocol';
 import type { DB } from '../types.js';
@@ -36,11 +36,12 @@ function usernameFromActorUri(actorUri: string): string | null {
   return m?.[1] ?? null;
 }
 
-/** Count published+public content rows matching an optional author filter. */
+/** Count published+public, non-deleted content rows matching an optional author filter. */
 async function countContentOutbox(db: DB, authorId?: string): Promise<number> {
   const where = and(
     eq(contentItems.status, 'published'),
     eq(contentItems.visibility, 'public'),
+    isNull(contentItems.deletedAt),
     ...(authorId ? [eq(contentItems.authorId, authorId)] : []),
   );
   const [result] = await db
@@ -65,6 +66,7 @@ async function getContentOutboxPage(
   const where = and(
     eq(contentItems.status, 'published'),
     eq(contentItems.visibility, 'public'),
+    isNull(contentItems.deletedAt),
     ...(authorId ? [eq(contentItems.authorId, authorId)] : []),
   );
 

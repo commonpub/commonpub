@@ -59,6 +59,8 @@ admin UX, consent-based push, and a discovery registry).
 - [ ] Create form: direction + content-type/tag filters + history depth picker + one-directional help.
 - [ ] Mirror list: direction/filters/lastSync/errorCount; `MirrorDetailModal.vue` (resume, re-backfill w/ depth).
 - [ ] Backfill + refederate: depth picker, progress, result toast, filter dry-run preview.
+      **Required:** "Re-federate All" button must send `{ all: true }` (or depth) — Phase 0 made
+      `refederate` default to last-30-days/cap, so the button under-does its label until rewired.
 - [ ] "Instances mirroring you" panel (from `/actor/followers`).
 - [ ] Status legend + what-happens-next explainer; expose direction/filters in GET mirrors API.
 - [ ] Component + axe tests; docs + codebase-analysis + session log.

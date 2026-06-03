@@ -103,3 +103,45 @@ Verified each gap wasn't intentional before fixing (self-ref FKs: the schema com
 
 ### Next
 - Migration count 13 → **14**. Still on the branch (release batched). Phase 2 next (admin UX).
+
+---
+
+## Phase 0+1 deep audit + testing review (same session)
+
+Adversarial self-audit of the Phase 0/1 changes + a review of test adequacy. Findings:
+
+**Real fix made**
+- **Outbox now also filters `isNull(deletedAt)`** (`outboxQueries.ts`). Not a live leak today
+  (both `deleteContent` and admin `removeContent` set `status='archived'`, which the
+  `status='published'` gate already excludes), but the offset-path `listContent` and
+  `getContentBySlug` defensively filter `deletedAt` — the public, crawlable outbox should match,
+  guarding any future moderation path that nulls `deletedAt` without touching status.
+
+**Verified NOT a problem**
+- **`emitHook` isolates handler errors** (try/catch per handler, logs + continues) — so the 5 new
+  emits can't break `toggleLike`/`shareContent`/registration post-commit.
+- **`listContent` `total=-1` on offset>0 is safe for all current consumers**: `tags/[slug].vue`
+  reads `total` only from its page-0 `useFetch` (loadMore is a separate `$fetch` that never
+  reassigns `total`); `admin/content.vue` destructures only `{ items }`; `search.vue` uses
+  `/api/search` (different endpoint). Contract is now locked by a test. (Fragile if a future
+  consumer fetches offset>0 as its initial load AND reads total — documented in code.)
+
+**Testing review — gaps found and closed**
+- I had claimed "closed the outbound leak" (federateContent visibility gate) with NO direct test.
+  Added `federate-visibility-gate.integration.test.ts`. Writing it surfaced a **test bug**:
+  `createContent` hard-codes `status='draft'` (ignores `input.status`), so my "published" fixtures
+  were drafts and the public case queued nothing — the members/private cases were false-positives
+  (expected 0 trivially). Rewrote to publish explicitly + assert the DELTA in outbound Creates
+  (public +1, members/private +0). This is the real verification.
+- Added `listcontent-count.test.ts` (total real on page 1, `-1` on offset>0) and a
+  `federation:hub:post:received` hook assertion in `hub-mirroring.integration.test.ts`.
+- Full server suite: **1214 passed / 3 skipped / 0 failed** (84 files).
+
+**Still untested (acceptable; documented)**: `user:registered` (needs a Better Auth integration
+harness), `reconcile-counters.mjs` (no DB in unit tests — column names grep-verified, SQL not
+runtime-checked), `error.vue` inline-CSS re-apply (SSR error-page). Verify at release.
+
+**Cross-phase note for Phase 2**: `refederate` now defaults to last-30-days / 1000-cap; the admin
+"Re-federate All" button must be updated to send `{ all: true }` (or a depth choice) so its label
+matches behavior. Also `backfill.post.ts` uses `.catch(() => ({}))` on body parse — swallows
+validation errors into defaults (admin-only, low risk); tighten when reworking the UI.
