@@ -21,11 +21,18 @@ default registry (PR #2, `33d77f2`):
   users/8 posts/online). Signed-ping→verify→NodeInfo-pull→directory round-trip confirmed.
   CLI scaffolder pins bumped to current (new instances announce out of the box).
 
+### CLI published + everything reconciled (session 188)
+- **create-commonpub 0.5.3 published to crates.io** (`cargo install create-commonpub`) with current
+  pins — crates.io had been stuck at 0.4.0 (the lapse that caused pin drift). Added
+  `cli-release.yml` (tag `create-commonpub-v*` → `cargo publish`; needs `CARGO_REGISTRY_TOKEN` secret).
+- **All 13 @commonpub/* packages: source==published, no drift.** main clean. deveco/heatsync on
+  current pins + deployed. Everything is current as of 2026-06-03.
+
 ### What still needs the OPERATOR (interactive — admin auth)
-- **P3** mirror-request Offer→Accept round-trip (admin login on 2 instances, click approve/reject).
+- **P3** mirror-request Offer→Accept round-trip (admin login on 2 instances, click approve/reject) —
+  the only manual item left.
+- Add `CARGO_REGISTRY_TOKEN` repo secret to enable tag-triggered CLI releases.
 - Browser-smoke `/admin/federation` (Mirrors + Registry tabs); `reconcile-counters --check` on droplets.
-- **Redistribute the create-commonpub binary** if it's published anywhere (source pins current; shipped
-  binary, if any, still embeds old pins — distribution mechanism TBD).
 
 ### Corrected stale claims this release found
 - **Federation is ALREADY ON in prod** (was "off") — the 187 actor↔signer inbox binding is LIVE.

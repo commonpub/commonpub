@@ -126,10 +126,27 @@ Per operator decision (flip the library default, enroll existing instances):
   lastPingAt today)** — full signed-ping → NodeInfo-pull → directory round-trip confirmed end-to-end.
 - commonpub.io does NOT self-list (announce self-skip working).
 
-## Next steps
-- ~~Bump the CLI scaffolder pins~~ — DONE (folded into the registry change above).
-- **Rebuild/redistribute the create-commonpub binary** if it's published anywhere — source pins are
-  current but the shipped binary (if any) still embeds the old pins. (Distribution mechanism TBD.)
+## CLI published proper + full currency reconciliation (same session)
+- **Channel determined = crates.io** (`Cargo.toml` has full publish metadata; README says `cargo
+  install create-commonpub`; no npm wrapper exists). crates.io was stuck at **0.4.0** — the local
+  0.5.x bumps were never published, which is exactly why the scaffold pins drifted unnoticed.
+- **Published `create-commonpub` 0.5.3 to crates.io** (`cargo publish --locked`, verified
+  max_version 0.5.3). Ships the refreshed pins (config ^0.18.0 / layer ^0.45.0 / schema ^0.26.0 /
+  server ^2.73.0) so `cargo install create-commonpub` scaffolds a current instance that announces
+  to commonpub.io by default.
+- **Added `.github/workflows/cli-release.yml`** — `cargo publish` on a `create-commonpub-v*` tag
+  (gated on `cargo test`) so the CLI can't silently lapse again. **Needs a `CARGO_REGISTRY_TOKEN`
+  repo secret** to use the automated path (the 0.5.3 publish was done locally via the existing
+  `~/.cargo/credentials.toml`).
+- **npm currency reconciled:** all 13 @commonpub/* packages have source==published (no drift).
+  main clean, dependants (deveco/heatsync) on current pins + deployed. Everything is current.
+
+## Next steps (open)
+- **P3** mirror-request Offer→Accept round-trip — needs admin login on two instances (only manual
+  item left).
+- Add the `CARGO_REGISTRY_TOKEN` secret so future CLI releases go via the tag workflow.
+- Optional future DX: an `npm create commonpub` wrapper (prebuilt-binary download) so JS devs don't
+  need a Rust toolchain — larger effort (cross-compile matrix + release workflow), not done.
 - Operator: run the P3/P4 interactive verifications when convenient (admin auth + 2 instances).
 - Definitive live-delivery proof: publish 1 public post on heatsync → it should appear on deveco
   within a minute (`deveco.io/api/content?limit=5`, today stamp).
