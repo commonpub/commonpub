@@ -1,0 +1,35 @@
+name: Release CLI (crates.io)
+
+# Publishes the `create-commonpub` scaffolder to crates.io. Triggered by pushing
+# a tag like `create-commonpub-v0.5.3` (match the tag's version to Cargo.toml's
+# `version`), or manually via the Actions tab. Requires a repository secret
+# `CARGO_REGISTRY_TOKEN` (a crates.io API token with publish rights to the
+# `create-commonpub` crate). This exists so the CLI never silently lapses again:
+# its template.rs version pins MUST be bumped (see the RELEASE CHECKLIST comment
+# in src/template.rs) and a tag pushed after every @commonpub/* npm release.
+
+on:
+  push:
+    tags:
+      - 'create-commonpub-v*'
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tools/create-commonpub
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      # Gate the publish on the same tests CI runs — never ship a CLI whose
+      # scaffold-pin assertions are red.
+      - name: Test
+        run: cargo test
+
+      # `--locked` uses the committed Cargo.lock; fails if it would change.
+      - name: Publish to crates.io
+        run: cargo publish --locked --token "${{ secrets.CARGO_REGISTRY_TOKEN }}"
