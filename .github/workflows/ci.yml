@@ -152,7 +152,12 @@ jobs:
       - name: Run E2E Tests
         run: pnpm exec playwright test --project=chromium
         env:
+          # Production build (nuxt preview) refuses to boot with the default dev
+          # auth secret — `runtimeConfig.authSecret` comes from NUXT_AUTH_SECRET
+          # (the NUXT_ prefix maps to runtimeConfig), so AUTH_SECRET alone leaves
+          # it at the dev default and db.ts throws. Set both.
           AUTH_SECRET: test-secret-for-ci-min-32-chars-long
+          NUXT_AUTH_SECRET: test-secret-for-ci-min-32-chars-long
 
       # Upload the Playwright HTML report + test-results/ (traces, screenshots)
       # so the artifact can be downloaded and replayed locally via
