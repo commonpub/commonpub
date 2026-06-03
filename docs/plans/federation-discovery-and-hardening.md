@@ -2,6 +2,12 @@
 
 > **Living plan.** Update the checkboxes as each phase ships; cross-check against session logs
 > (session logs win on conflict, per `codebase-analysis/10-doc-audit.md`). Approved 2026-06-02.
+>
+> **SHIPPED 2026-06-03 (session 188):** Phases 0–4 released — schema 0.26.0, config 0.17.0,
+> protocol 0.13.0, auth 0.8.0, server 2.73.0, layer 0.44.0 (ui unchanged) published; all 3 instances
+> deployed (migrations 0013/0014/0015 applied). **P0 outbox projection verified LIVE** (heatsync
+> `/actor/outbox` totalItems 2→8, deveco 23, `#create` ids). Remaining: P3/P4 interactive
+> round-trips (admin auth + 2 instances) and the registry-activation decision — see session 188.
 
 ## Why
 
@@ -40,8 +46,9 @@ admin UX, consent-based push, and a discovery registry).
       Backfill admin route accepts `{sinceDays,maxItems}` (fresh crawl, no stale cursor).
 - [x] Bound + idempotent `refederate` (`{sinceDays,limit,all,contentId}`, defaults last 30d / 1000 cap, not all-by-default).
 - [x] Tests: outbox projection (9, incl. security + deterministic id) + backfill `since` (5); 122 federation-area tests green; protocol+server+reference typecheck clean.
-- [ ] Docs + codebase-analysis + session log (in progress).
-- [ ] Publish (schema unchanged → server + protocol + layer) + deploy + live curl verify on the 3 instances.
+- [x] Docs + codebase-analysis + session log.
+- [x] Published (schema 0.26.0 / config 0.17.0 / protocol 0.13.0 / auth 0.8.0 / server 2.73.0 /
+      layer 0.44.0) + deployed all 3 + live curl verified (session 188). P0 outbox projection LIVE.
 
 ### Phase 1 — Safe non-destructive gap fixes  ✅ (code+tests done; not yet published/deployed)
 - [x] `leaveHub` + `submitContestEntry` wrapped in `db.transaction`.

@@ -1,14 +1,36 @@
-# Kickoff — next session (federation discovery & hardening: RELEASE)
+# Kickoff — next session (federation discovery & hardening: RELEASE — ✅ DONE)
 
-Read this, then start. Master plan: `docs/plans/federation-discovery-and-hardening.md` (living,
-all phase checkboxes done). Prior logs: `183` (Phase 0+1), `184` (Phase 2), `185`
-(Phase 3 — mirror requests), `186` (Phase 4 — registry), `187` (deep audit + fixes).
+Read this, then start. Master plan: `docs/plans/federation-discovery-and-hardening.md`. Prior logs:
+`183` (Phase 0+1), `184` (Phase 2), `185` (Phase 3), `186` (Phase 4), `187` (deep audit),
+**`188` (RELEASE — this completed it)**.
 **Always `curl /api/features` + `npm view @commonpub/<pkg> version` before trusting any state claim.**
 
-## STATE (2026-06-02)
+## ✅ RELEASE COMPLETE (2026-06-03, session 188)
+
+Phases 0–4 squash-merged to `main` (PR #1, `a86d4d7`) and shipped:
+- **Published:** schema **0.26.0**, config **0.17.0**, protocol **0.13.0**, auth **0.8.0**,
+  server **2.73.0**, layer **0.44.0**. ui unchanged 0.9.2. test-utils intentionally not published.
+- **Deployed all 3** (commonpub.io / deveco.io / heatsynclabs.io); migrations 0013/0014/0015 applied.
+- **P0 verified LIVE:** heatsync `/actor/outbox` totalItems **2→8**, deveco **23**, `#create` ids.
+  Latent coupling SAFE (actor host == domain all 3). New registry flags live (default off).
+
+### What still needs the OPERATOR (interactive / product decision — see session 188 "Still requires")
+- **P3** mirror-request Offer→Accept round-trip (admin auth on 2 instances).
+- **P4** registry: flip `actAsRegistry` (routes 404 until then) + `announceToRegistry` — a
+  phone-home activation decision, deliberately not done in the release.
+- Browser-smoke `/admin/federation` (Mirrors + Registry tabs); `reconcile-counters --check` on droplets.
+
+### Corrected stale claims this release found
+- **Federation is ALREADY ON in prod** (was "off") — the 187 actor↔signer inbox binding is LIVE.
+- **All 3 deploy via `db-migrate.mjs`** — heatsync no longer `db:push --force` (since session 177).
+- **Both siblings use `npm install`** — pnpm-drops-files workaround already in their Dockerfiles.
+
+---
+
+## ARCHIVED — pre-release state (2026-06-02, before session 188)
 
 - Branch **`feat/federation-discovery-and-hardening`**, **12 commits**, **nothing published/deployed**.
-- **Phases 0–4 ALL done + 3 audit rounds** (code + tests + docs). The only remaining work is the
+- **Phases 0–4 ALL done + 3 audit rounds** (code + tests + docs). The only remaining work was the
   **batched release (task #7)**. Verified green: `pnpm typecheck` **26/26**; config **25**,
   protocol **424**, server **1246**, layer **907**; reference `vue-tsc` clean.
 - Commits since `main`: `610a76b` P0 · `195b26e` P1 · `7efdc91` P0/1 audit · `608a842` P2 ·
