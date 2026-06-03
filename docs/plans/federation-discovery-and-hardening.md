@@ -93,12 +93,25 @@ admin UX, consent-based push, and a discovery registry).
 - [x] Docs + codebase-analysis (02/03/04/09 + llm gotchas) + session log 185. Audit fixes:
       correlation tightened (offer-id AND sender) + 5 coincidental-pass tests hardened.
 
-### Phase 4 — Registry / instance directory  ⬜
-- [ ] `features.actAsRegistry` (default OFF) + `instance.registryUrl` (default `https://commonpub.io`).
-- [ ] Signed, rate-limited `POST /api/registry/ping` heartbeat + plugin.
-- [ ] `registry_instances` table (lastSeenAt, software, stats, derived active/inactive) + abuse controls.
-- [ ] Directory browse/search UI: per-entry "Mirror this instance" (pull + depth) + "Request they mirror me".
-- [ ] Docs + codebase-analysis + session log.
+### Phase 4 — Registry / instance directory  ✅ (code+tests done; not yet published/deployed)
+- [x] `features.actAsRegistry` + `features.announceToRegistry` (both default OFF; separate announce
+      flag = no phone-home until opted in) + `federation.registryUrl` (default `https://commonpub.io`)
+      + `federation.registryPingIntervalMs` (6h). nuxt runtimeConfig features declares both flags.
+- [x] Signed, rate-limited `POST /api/registry/ping` (reuses `verifyInboxRequest`; per-domain
+      rate-limit; gated `actAsRegistry`) + `registry-heartbeat.ts` Nitro plugin (`announceToRegistry`).
+- [x] `registry_instances` table + `registry_instance_status` enum (active/hidden/blocked), migration
+      **0015**. **Decision: auto-list verified pings, admin hide/block** (no approval queue). Stats are
+      **pulled from the pinger's public NodeInfo** (`fetchInstanceNodeInfo`, SSRF-guarded, same-host
+      href) — not self-reported. Online/offline derived from `lastPingAt`.
+- [x] Admin directory UI: `RegistryDirectory.vue` (search + per-entry Mirror/Request-mirror reusing
+      Phase 3 + Hide/Unhide/Block) in a new federation "Registry" tab (shown when `actAsRegistry`).
+      Public read API `GET /api/registry/instances` (allow-list serializer) + admin list/status routes.
+- [x] Tests: config defaults (2); server `registry.integration` (13 — NodeInfo pull incl anti-SSRF
+      href, ping record/re-ping/blocked-no-op/hidden-preserved, list public-vs-admin/search/paginate,
+      signed-ping builder); `RegistryDirectory` component+axe (9); route-keys map. Full `pnpm
+      typecheck` 26/26 (reference caught the h3 `Retry-After`-is-number gap); config 24, protocol 424,
+      server 1244, layer 901 green.
+- [x] Docs + codebase-analysis + session log 186.
 
 ## Cross-cutting — docs, tracking, codebase-analysis (every phase)
 

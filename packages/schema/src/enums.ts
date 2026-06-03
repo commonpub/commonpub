@@ -201,6 +201,13 @@ export const mirrorRequestStatusEnum = pgEnum('mirror_request_status', [
   'approved',
   'rejected',
 ]);
+/** Registry directory entry status (Phase 4): active = visible, hidden = admin-hidden but still
+ *  tracked, blocked = admin-blocked (future pings ignored). */
+export const registryInstanceStatusEnum = pgEnum('registry_instance_status', [
+  'active',
+  'hidden',
+  'blocked',
+]);
 
 // --- Docs ---
 export const docsPageStatusEnum = pgEnum('docs_page_status', ['draft', 'published', 'archived']);

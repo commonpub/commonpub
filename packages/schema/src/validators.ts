@@ -661,6 +661,22 @@ export const approveMirrorRequestSchema = z.object({
 });
 export type ApproveMirrorRequestInput = z.infer<typeof approveMirrorRequestSchema>;
 
+// --- Registry / instance directory (Phase 4) ---
+
+export const registryInstanceStatusSchema = z.enum(['active', 'hidden', 'blocked']);
+export type RegistryInstanceStatus = z.infer<typeof registryInstanceStatusSchema>;
+
+export const registryInstanceQuerySchema = z.object({
+  search: z.string().max(255).optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  offset: z.coerce.number().int().min(0).default(0),
+});
+export type RegistryInstanceQuery = z.infer<typeof registryInstanceQuerySchema>;
+
+export const setRegistryInstanceStatusSchema = z.object({
+  status: registryInstanceStatusSchema,
+});
+
 // --- Filter schemas ---
 
 export const contentFiltersSchema = z.object({

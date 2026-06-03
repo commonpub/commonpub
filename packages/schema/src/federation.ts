@@ -1,7 +1,7 @@
 import { pgTable, uuid, varchar, text, timestamp, integer, jsonb, index, unique, boolean } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { users } from './auth.js';
-import { activityDirectionEnum, activityStatusEnum, followRelationshipStatusEnum, mirrorStatusEnum, mirrorDirectionEnum, mirrorRequestDirectionEnum, mirrorRequestStatusEnum, hubFollowStatusEnum } from './enums.js';
+import { activityDirectionEnum, activityStatusEnum, followRelationshipStatusEnum, mirrorStatusEnum, mirrorDirectionEnum, mirrorRequestDirectionEnum, mirrorRequestStatusEnum, registryInstanceStatusEnum, hubFollowStatusEnum } from './enums.js';
 
 /** Cache of resolved remote ActivityPub actors */
 export const remoteActors = pgTable('remote_actors', {
@@ -210,6 +210,44 @@ export const mirrorRequests = pgTable(
   (t) => [
     // One live request row per (direction, domain) — a re-request upserts rather than duplicates.
     unique('mirror_requests_direction_domain').on(t.direction, t.remoteDomain),
+  ],
+);
+
+/**
+ * Registry / instance directory (Phase 4). When this instance acts as a registry
+ * (`features.actAsRegistry`), other CommonPub instances send a signed heartbeat to
+ * `POST /api/registry/ping`; we verify the signature, pull their public NodeInfo for
+ * authoritative stats, and upsert a row here. `status` is admin-controlled:
+ * active (visible) / hidden (tracked, not shown) / blocked (future pings ignored).
+ * Online/offline is DERIVED from `lastPingAt` (not stored).
+ */
+export const registryInstances = pgTable(
+  'registry_instances',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    /** Authoritative domain of the registered instance (from the verified ping signature) */
+    domain: varchar('domain', { length: 255 }).notNull().unique(),
+    /** AP Service actor URI of the instance */
+    actorUri: text('actor_uri').notNull(),
+    /** Display name + description (from pulled NodeInfo / instance metadata) */
+    name: varchar('name', { length: 256 }),
+    description: text('description'),
+    /** Stats snapshot from the last NodeInfo pull */
+    userCount: integer('user_count').default(0).notNull(),
+    activeMonthCount: integer('active_month_count').default(0).notNull(),
+    localPostCount: integer('local_post_count').default(0).notNull(),
+    /** Enabled-features snapshot (jsonb) + software name/version */
+    features: jsonb('features').$type<Record<string, boolean> | null>(),
+    softwareName: varchar('software_name', { length: 64 }),
+    softwareVersion: varchar('software_version', { length: 32 }),
+    status: registryInstanceStatusEnum('status').default('active').notNull(),
+    lastPingAt: timestamp('last_ping_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    index('idx_registry_instances_status').on(t.status),
+    index('idx_registry_instances_last_ping').on(t.lastPingAt),
   ],
 );
 

@@ -408,6 +408,14 @@ path, not a 500. Before that, duplicates were possible on fast double-clicks.
 
 The projected Create uses a DETERMINISTIC id (`<object id>#create`) + the real `published` date (protocol `contentToCreateActivity`), shared with live delivery so backfill and delivery emit the same de-dupable activity, and so bounded backfill can paginate by date. Mirroring/backfill/refederate are all bounded by operator choice (forward-only default; `since`/`maxItems`/`limit`) — never auto-pull or re-blast an entire instance.
 
+### Registry pings: signature proves identity, stats are PULLED not trusted (Phase 4, session 186)
+
+`POST /api/registry/ping` is gated `actAsRegistry` and verified by `verifyInboxRequest` — the keyId domain must match the resolved actor, so a domain can **only register itself** (no impersonation). The registry derives the domain from the *verified* actor, NOT the request body. Stats (user/post counts, features, software) are **pulled from the pinger's public NodeInfo** (`fetchInstanceNodeInfo`) — never read from the ping body — and that pull is SSRF-guarded AND requires the 2.1 `href` to be on the same host (a registered instance can't point the registry's fetch at an arbitrary URL). Abuse: global IP rate-limit (middleware) handles pre-verification floods; a per-source-domain limit handles verified spam; admin `blocked` status is a no-op short-circuit that persists across re-pings. `recordRegistryPing`'s upsert does NOT reset `status`, so an admin `hidden` choice survives every re-ping (only a brand-new row starts `active` = the auto-list decision). `announceToRegistry` is a SEPARATE flag from `actAsRegistry` — turning on federation never phones home; the heartbeat worker also skips when the registry domain == our own.
+
+### Well-known response headers are number-typed in h3 (consumer-strict typecheck)
+
+`setResponseHeader(event, 'Retry-After', n)` — h3 types well-known headers like `Retry-After` as `number`, so passing `String(n)` red-CIs the reference app's `nuxt typecheck` (TS2345 string→number) even though custom `X-RateLimit-*` headers accept strings. The layer's own vitest doesn't catch it; the reference app does. Same class as `feedback_layer_source_consumer_typecheck` — always run the full `pnpm typecheck` (incl. reference) before declaring a layer route done.
+
 ### "Push" mirror = consent-based request, NOT a mirror row (Phase 3, session 185)
 
 `createMirror` is **pull-only and throws on `direction:'push'`** — push is a *request* to be mirrored, not a subscription you operate. Use `requestMirror()`, which writes a `mirror_requests` row (NOT `instance_mirrors`) and sends an AP `Offer(Follow)` carrying a `cpub:mirrorRequest:true` marker. Invariants:

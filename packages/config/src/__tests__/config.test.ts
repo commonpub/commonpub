@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { defineCommonPubConfig } from '../config';
+import { federationConfigSchema } from '../schema';
 
 const validInstance = {
   domain: 'test.commonpub.dev',
@@ -30,6 +31,15 @@ describe('defineCommonPubConfig', () => {
     expect(config.features.explainers).toBe(true);
     expect(config.features.federation).toBe(false);
     expect(config.features.admin).toBe(false);
+    // Phase 4 registry flags default OFF — no registry, no phone-home.
+    expect(config.features.actAsRegistry).toBe(false);
+    expect(config.features.announceToRegistry).toBe(false);
+  });
+
+  it('defaults registry federation knobs (url + ping interval)', () => {
+    const federation = federationConfigSchema.parse({});
+    expect(federation.registryUrl).toBe('https://commonpub.io');
+    expect(federation.registryPingIntervalMs).toBe(21_600_000);
   });
 
   it('should allow disabling content feature flag', () => {

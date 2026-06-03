@@ -59,6 +59,16 @@ export {
   type MirrorRequestConfig,
 } from './mirroring.js';
 export {
+  fetchInstanceNodeInfo,
+  recordRegistryPing,
+  listRegistryInstances,
+  getRegistryInstance,
+  setRegistryInstanceStatus,
+  sendRegistryPing,
+  type RegistryInstanceView,
+  type PulledNodeInfo,
+} from './registry.js';
+export {
   getHubActorUri,
   getOrCreateHubKeypair,
   buildHubGroupActor,

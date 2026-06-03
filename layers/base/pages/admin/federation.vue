@@ -2,7 +2,11 @@
 definePageMeta({ layout: 'admin', middleware: 'auth' });
 useSeoMeta({ title: `Federation — Admin — ${useSiteName()}` });
 
-const activeTab = ref<'activity' | 'mirrors' | 'clients' | 'trusted' | 'tools'>('activity');
+const activeTab = ref<'activity' | 'mirrors' | 'registry' | 'clients' | 'trusted' | 'tools'>('activity');
+
+const featureFlags = useFeatures();
+const actAsRegistry = computed(() => featureFlags.features.value.actAsRegistry);
+const announceToRegistry = computed(() => featureFlags.features.value.announceToRegistry);
 
 const { data: statsData, pending } = await useFetch('/api/admin/federation/stats', {
   default: () => ({ inbound: 0, outbound: 0, pending: 0, failed: 0, followers: 0, following: 0 }),
@@ -88,6 +92,23 @@ async function rejectRequest(id: string): Promise<void> {
   } catch {
     toast.error('Failed to reject request');
   }
+}
+
+// Registry directory (Phase 4) — only fetched when this instance acts as a registry.
+type RegistryRow = { id: string; domain: string; actorUri: string; name: string | null; description: string | null; userCount: number; activeMonthCount: number; localPostCount: number; softwareName: string | null; softwareVersion: string | null; status: string; lastPingAt: string | null; online: boolean };
+const registrySearch = ref('');
+const { data: registryData, refresh: refreshRegistry } = await useFetch<{ instances: RegistryRow[]; total: number }>(
+  '/api/admin/registry/instances',
+  {
+    query: computed(() => ({ search: registrySearch.value || undefined, limit: 50 })),
+    default: () => ({ instances: [], total: 0 }),
+    immediate: actAsRegistry.value,
+  },
+);
+
+function onRegistrySearch(value: string): void {
+  registrySearch.value = value;
+  void refreshRegistry();
 }
 
 // Mirror creation
@@ -320,6 +341,7 @@ async function refederate(): Promise<void> {
     <div class="cpub-fed-tabs">
       <button :class="{ active: activeTab === 'activity' }" @click="activeTab = 'activity'">Activity</button>
       <button :class="{ active: activeTab === 'mirrors' }" @click="activeTab = 'mirrors'">Mirrors</button>
+      <button v-if="actAsRegistry" :class="{ active: activeTab === 'registry' }" @click="activeTab = 'registry'">Registry</button>
       <button :class="{ active: activeTab === 'clients' }" @click="activeTab = 'clients'">OAuth Clients</button>
       <button :class="{ active: activeTab === 'trusted' }" @click="activeTab = 'trusted'">Trusted Instances</button>
       <button :class="{ active: activeTab === 'tools' }" @click="activeTab = 'tools'">Tools</button>
@@ -489,6 +511,16 @@ async function refederate(): Promise<void> {
           <time class="cpub-fed-time">{{ new Date(r.createdAt).toLocaleDateString() }}</time>
         </div>
       </div>
+    </div>
+
+    <!-- Registry Tab -->
+    <div v-if="activeTab === 'registry' && actAsRegistry">
+      <RegistryDirectory
+        :instances="registryData?.instances ?? []"
+        :announcing-to="announceToRegistry ? 'your configured registry' : null"
+        @changed="refreshMirrors"
+        @search="onRegistrySearch"
+      />
     </div>
 
     <!-- OAuth Clients Tab -->

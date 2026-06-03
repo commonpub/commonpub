@@ -67,6 +67,18 @@ export interface FeatureFlags {
    * to be deployed (the runtime guards on each surface).
    */
   identity: IdentityFeatures;
+  /**
+   * Act as an instance registry/directory (Phase 4). When ON, this instance
+   * accepts signed `POST /api/registry/ping` heartbeats from other CommonPub
+   * instances and serves the browse/search directory. Default OFF.
+   */
+  actAsRegistry: boolean;
+  /**
+   * Announce this instance to a registry (Phase 4). When ON, a heartbeat is
+   * periodically sent to `federation.registryUrl`. Default OFF — no instance
+   * phones home until the operator opts in.
+   */
+  announceToRegistry: boolean;
 }
 
 export interface IdentityFeatures {
@@ -142,6 +154,10 @@ export interface FederationConfig {
   mirrorMaxItems?: number;
   /** Hub sync worker poll interval in ms (default: 3600000 = 1 hour) */
   hubSyncIntervalMs?: number;
+  /** Registry this instance announces to when `features.announceToRegistry` is on (default: https://commonpub.io) */
+  registryUrl?: string;
+  /** Registry heartbeat interval in ms (default: 21600000 = 6 hours) */
+  registryPingIntervalMs?: number;
 }
 
 /** A cookie registered by the instance for the consent banner and cookie policy page */

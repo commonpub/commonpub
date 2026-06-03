@@ -41,7 +41,7 @@ packages/schema/src/
 ├── contest.ts       contests, contestEntries, contestJudges, contestStakeholders
 ├── events.ts        events, eventAttendees
 ├── voting.ts        hubPostVotes, pollOptions, pollVotes, contestEntryVotes
-├── federation.ts    remoteActors, activities, followRelationships, actorKeypairs, federatedContent, federatedContentBuilds, instanceMirrors, instanceHealth, federatedHubs, federatedHubPosts, federatedHubMembers, federatedHubPostLikes, federatedHubPostReplies, federatedHubResources, federatedHubProducts, userFederatedHubFollows, mirrorRequests (17)
+├── federation.ts    remoteActors, activities, followRelationships, actorKeypairs, federatedContent, federatedContentBuilds, instanceMirrors, instanceHealth, federatedHubs, federatedHubPosts, federatedHubMembers, federatedHubPostLikes, federatedHubPostReplies, federatedHubResources, federatedHubProducts, userFederatedHubFollows, mirrorRequests, registryInstances (18)
 ├── files.ts         files
 ├── admin.ts         instanceSettings, auditLogs
 ├── layout.ts        layouts, layoutRows, layoutSections, layoutVersions (session 155)
@@ -231,6 +231,7 @@ Core AP:
 | federatedContentBuilds | "I built this" on remote | unique(userId, federatedContentId) |
 | instanceMirrors | Mirror configs (PULL only since Phase 3) | direction stays pull; status; backfillCursor; filterContentTypes JSONB |
 | mirrorRequests | Consent-based mirror requests (Phase 3) | unique(direction, remoteDomain); direction incoming\|outgoing; status pending\|approved\|rejected; offerActivityUri correlates Accept/Reject; resultingMirrorId FK→instanceMirrors (set null) |
+| registryInstances | Registry directory entries (Phase 4) | domain unique; status active\|hidden\|blocked; stats (user/activeMonth/localPost counts) + features jsonb + software pulled from NodeInfo on each ping; lastPingAt (online derived); idx on status + lastPingAt |
 | instanceHealth | Circuit breaker per remote domain | circuitOpenUntil, consecutiveFailures |
 
 Federated hubs:

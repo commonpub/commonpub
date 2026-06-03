@@ -40,6 +40,10 @@ export interface FeatureFlags {
    * OFF. See docs/plans/rbac.md.
    */
   rbac: boolean;
+  /** Act as an instance registry/directory (Phase 4). Default OFF. */
+  actAsRegistry: boolean;
+  /** Announce this instance to a registry (Phase 4). Default OFF. */
+  announceToRegistry: boolean;
   /**
    * Cross-instance delegated authorization. All sub-flags default false.
    * Mirrors `@commonpub/config`'s `IdentityFeatures`. Phase 1b+ — see
@@ -62,6 +66,8 @@ export const DEFAULT_FLAGS: FeatureFlags = {
   publicApi: false, contentImport: true,
   layoutEngine: false,
   rbac: false,
+  actAsRegistry: false,
+  announceToRegistry: false,
   identity: {
     linkRemoteAccounts: false,
     signInWithRemote: false,
