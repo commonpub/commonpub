@@ -84,8 +84,31 @@ These are exactly the items the handoff flagged as needing TWO CommonPub instanc
   direct delivery). Only a real Mastodon peer exercises it — watch for dropped reply-thread
   activities if/when interop is tested.
 
+## Post-release audit (same session)
+Verified beyond the headline checklist:
+- **Layer 0.44.0 live** (not stale): `/api/admin/federation/mirror-requests` + `/followers` = 401
+  (exist+gated, not 404/500) on commonpub.io + heatsync. Registry routes 404 = `actAsRegistry`-gated.
+- **NodeInfo works on all 3** (registry stat source). `software.version` hardcoded `0.0.1` (not a
+  deploy-verification signal).
+- **Federation topology mapped + binding proven safe**: commonpub↔deveco mutual-follow (seamless);
+  deveco→heatsync mirror (deveco in heatsync followers, heatsync content in deveco feed). Delivery
+  signs `keyId=${activity.actorUri}#main-key` (`delivery.ts:145`) ⇒ signer-host==actor-host by
+  construction ⇒ actor↔signer binding can't reject CommonPub peers. All federated content predates
+  the deploy (no posts since) → live delivery unexercised but provably intact.
+
+### Findings
+- ⚠️ **CLI scaffolder pins stale** (`tools/create-commonpub/src/template.rs` +
+  `tests/cli.rs:249-252`): `^0.16.0/^0.38.0/^0.24.0/^2.67.0` should be `^0.17.0/^0.44.0/^0.26.0/
+  ^2.73.0` (~6 releases behind; file's own RELEASE CHECKLIST ignored). Affects only newly-scaffolded
+  apps, not the 3 live instances. See `feedback_cli_scaffolder`.
+- Pre-existing (not this release): deveco `/actor/following` omits heatsync (cosmetic — mirror works
+  off heatsync's followers); deveco NodeInfo `localPosts:81` vs feed `23` (counts all statuses).
+
 ## Next steps
-- Operator: run the P3/P4 interactive verifications above when convenient.
+- **Recommended now: bump the CLI scaffolder pins** (4 constants + 4 test assertions) + rebuild CLI.
+- Operator: run the P3/P4 interactive verifications when convenient (admin auth + 2 instances).
+- Definitive live-delivery proof: publish 1 public post on heatsync → it should appear on deveco
+  within a minute (`deveco.io/api/content?limit=5`, today stamp).
 - If/when ready to stand up discovery: decide which instance is the registry (`actAsRegistry`),
   then opt others into `announceToRegistry`.
 - Deferred (non-blocking, from 185/186/187): streaming backfill progress, filter dry-run preview,

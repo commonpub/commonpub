@@ -25,6 +25,37 @@ Phases 0–4 squash-merged to `main` (PR #1, `a86d4d7`) and shipped:
 - **All 3 deploy via `db-migrate.mjs`** — heatsync no longer `db:push --force` (since session 177).
 - **Both siblings use `npm install`** — pnpm-drops-files workaround already in their Dockerfiles.
 
+### Post-release audit (session 188) — what was checked + what's confirmed
+- **Layer 0.44.0 IS live** (not a stale npm layer): `/api/admin/federation/mirror-requests` +
+  `/followers` return **401** (exist, auth-gated) on commonpub.io + heatsync — not 404/500.
+- **Registry routes 404 = gated** (`actAsRegistry` off), confirmed same-release as the live 401 routes.
+- **NodeInfo works on all 3** (registry's stat source). `software.version` is hardcoded `"0.0.1"` —
+  NOT a version-drift signal; don't use it to verify deploys. (Use `/api/features` + outbox totalItems
+  + the 401 route surfaces instead.)
+- **Federation topology (live):** commonpub.io ↔ deveco.io mutual-follow (seamless pair, both
+  `seamlessFederation:true`); deveco → heatsync (deveco in heatsync's `/actor/followers`; heatsync
+  content present in deveco's feed). The actor↔signer binding is provably safe for all 3 — delivery
+  signs with `keyId = ${activity.actorUri}#main-key` (`delivery.ts:145`), so signer-host == actor-host
+  by construction; only cross-host *forwarded* activities 401. No Mastodon peers currently exist.
+- **All federated content predates the deploy** (newest 2026-05-30) — nobody has posted since. Live
+  delivery is unexercised post-deploy but provably intact. **Definitive test: publish 1 public post on
+  heatsync → curl `deveco.io/api/content?limit=5` within a minute; it should appear w/ a today stamp.**
+
+### ⚠️ Release-hygiene MISS found in audit (not production-affecting)
+- **CLI scaffolder pins are stale** — `tools/create-commonpub/src/template.rs` constants
+  (`COMMONPUB_{CONFIG,LAYER,SCHEMA,SERVER}_VERSION` = `^0.16.0 / ^0.38.0 / ^0.24.0 / ^2.67.0`) and the
+  matching assertions in `tests/cli.rs:249-252` are ~6 releases behind. Should be **^0.17.0 / ^0.44.0
+  / ^0.26.0 / ^2.73.0**. The file's own "RELEASE CHECKLIST" comment ("Last synced: session 152") has
+  been ignored across releases. Fix = bump 4 constants + 4 test assertions + rebuild CLI (the `rust`
+  CI job tests them). Only affects freshly-scaffolded apps, NOT the 3 live instances. See
+  `feedback_cli_scaffolder`.
+
+### Minor pre-existing items noted (not caused by this release)
+- deveco's `/actor/following` lists only commonpub, NOT heatsync — yet heatsync has deveco as a
+  follower (the mirror works off heatsync's followers list). Cosmetic projection asymmetry.
+- deveco NodeInfo `localPosts: 81` vs feed/outbox `23` — NodeInfo counts all statuses/visibilities;
+  if deveco is ever listed in a registry, that 81 is what shows. Confirm it's the intended public stat.
+
 ---
 
 ## ARCHIVED — pre-release state (2026-06-02, before session 188)
