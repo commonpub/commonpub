@@ -50,6 +50,7 @@ const ROUTE_KEYS: Record<string, string> = {
   'settings.put.ts': 'settings.manage',
   // federation
   'federation/activity.get.ts': 'federation.manage',
+  'federation/followers.get.ts': 'federation.manage',
   'federation/clients.get.ts': 'federation.manage',
   'federation/clients.post.ts': 'federation.manage',
   'federation/hub-mirrors/[id]/backfill.post.ts': 'federation.manage',

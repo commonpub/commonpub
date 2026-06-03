@@ -210,7 +210,7 @@ Contest entry community votes:
 - **inboxHandlers.ts** — inbound routing: dispatches Follow/Accept/Undo/Create/Update/Delete/Announce/Like/Reject to correct handler
 - **hubFederation.ts** — Group actor lifecycle, hub post federation, follower management
 - **hubMirroring.ts** — ingests federated hub posts/members/resources/products; de-dupes by objectUri
-- **mirroring.ts** — mirror config CRUD: `createMirror`, `activateMirror`, `pauseMirror`, `resumeMirror`, `cancelMirror`, `listMirrors`, `getMirror`, `matchMirrorForContent`, `recordMirrorError`
+- **mirroring.ts** — mirror config CRUD: `createMirror`, `activateMirror`, `pauseMirror`, `resumeMirror`, `cancelMirror`, `listMirrors`, `getMirror`, `matchMirrorForContent`, `recordMirrorError`, **`listInstanceFollowers(db, domain)`** (session 184 — accepted followers of our instance Service actor = "who is mirroring you", with derived domains)
 - **backfill.ts** — `backfillFromOutbox(db, remoteActorUri, domain, opts?)` walks a remote outbox with pagination + resume cursor + signed requests for protected outboxes (session 119 hardening). `BackfillOptions` now has `since?: Date` (session 183) — stops crawling once it pages past the cutoff (newest-first outbox), so an operator can pick "how far back" instead of pulling an entire instance. `maxItems` (default 500) is the count ceiling; exported `activityPublishedMs` reads top-level/`object` published. Paired `backfillHubFromOutbox(db, federatedHubId, domain)` in `hubMirroring.ts` for hub-post variants.
 - **messaging.ts** — federated DMs via AP Create+Note with direct audience
 - **oauth.ts** — OAuth2 auth server endpoints for AP Actor SSO (Model B)

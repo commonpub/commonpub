@@ -57,29 +57,78 @@ async function removeTrusted(domain: string): Promise<void> {
   }
 }
 
+const toast = useToast();
+
+// Instances mirroring US (followers of our instance actor).
+const { data: followersData } = await useFetch<Array<{ actorUri: string; domain: string; followedAt: string | null }>>(
+  '/api/admin/federation/followers',
+  { default: () => [] },
+);
+
 // Mirror creation
+const FEDERATABLE_TYPES = ['project', 'blog', 'explainer'] as const;
+// Bounded "how far back" choices for the optional history import on create.
+const DEPTH_OPTIONS = [
+  { label: 'None — forward only (default)', body: null as Record<string, number> | null },
+  { label: 'Last 7 days', body: { sinceDays: 7 } },
+  { label: 'Last 30 days', body: { sinceDays: 30 } },
+  { label: 'Last 90 days', body: { sinceDays: 90 } },
+  { label: 'Last 200 items', body: { maxItems: 200 } },
+  { label: 'Everything (up to limit)', body: {} },
+];
+
 const newMirrorDomain = ref('');
 const newMirrorActorUri = ref('');
+const newMirrorTypes = ref<string[]>([]);
+const newMirrorTags = ref('');
+const newMirrorDepth = ref(0);
+const showAdvanced = ref(false);
 const mirrorCreating = ref(false);
 
 async function createMirror(): Promise<void> {
-  if (!newMirrorDomain.value) return;
+  const domain = newMirrorDomain.value.trim().toLowerCase();
+  if (!domain) return;
   mirrorCreating.value = true;
   try {
-    await $fetch('/api/admin/federation/mirrors', {
+    const tags = newMirrorTags.value.split(',').map((t) => t.trim().replace(/^#/, '')).filter(Boolean);
+    const created = await $fetch<{ id: string }>('/api/admin/federation/mirrors', {
       method: 'POST',
       body: {
-        remoteDomain: newMirrorDomain.value,
-        remoteActorUri: newMirrorActorUri.value || `https://${newMirrorDomain.value}/actor`,
+        remoteDomain: domain,
+        remoteActorUri: newMirrorActorUri.value.trim() || `https://${domain}/actor`,
         direction: 'pull',
+        filterContentTypes: newMirrorTypes.value.length ? newMirrorTypes.value : null,
+        filterTags: tags.length ? tags : null,
       },
     });
+    // Optional bounded history import — forward-only unless a depth is chosen.
+    const depth = DEPTH_OPTIONS[newMirrorDepth.value]!.body;
+    if (depth && created?.id) {
+      // string-typed URL avoids the typed-routes $fetch recursion (TS2321) on dynamic paths.
+      const backfillUrl: string = `/api/admin/federation/mirrors/${created.id}/backfill`;
+      const r = await $fetch<{ processed: number }>(backfillUrl, { method: 'POST', body: depth });
+      toast.success(`Mirror added — imported ${r?.processed ?? 0} item(s)`);
+    } else {
+      toast.success('Mirror added — new posts will arrive as they publish');
+    }
     newMirrorDomain.value = '';
     newMirrorActorUri.value = '';
+    newMirrorTypes.value = [];
+    newMirrorTags.value = '';
+    newMirrorDepth.value = 0;
+    showAdvanced.value = false;
     await refreshMirrors();
+  } catch {
+    toast.error('Failed to add mirror');
   } finally {
     mirrorCreating.value = false;
   }
+}
+
+function toggleType(t: string): void {
+  const i = newMirrorTypes.value.indexOf(t);
+  if (i === -1) newMirrorTypes.value.push(t);
+  else newMirrorTypes.value.splice(i, 1);
 }
 
 async function toggleMirror(id: string, currentStatus: string): Promise<void> {
@@ -90,32 +139,18 @@ async function toggleMirror(id: string, currentStatus: string): Promise<void> {
     });
     await refreshMirrors();
   } catch {
-    alert('Failed to update mirror');
+    toast.error('Failed to update mirror');
   }
 }
 
-async function deleteMirror(id: string): Promise<void> {
-  try {
-    await $fetch(`/api/admin/federation/mirrors/${id}`, { method: 'DELETE' });
-    await refreshMirrors();
-  } catch {
-    alert('Failed to delete mirror');
-  }
-}
+// Mirror detail modal — per-mirror info + bounded re-backfill + delete.
+type MirrorRow = { id: string; status: string; direction: string; remoteDomain: string; remoteActorUri: string; filterContentTypes: string[] | null; filterTags: string[] | null; contentCount: number; errorCount: number; lastError: string | null; lastSyncAt: string | null; backfillCursor?: string | null };
+const selectedMirror = ref<MirrorRow | null>(null);
 
-// Backfill
-const backfilling = ref<string | null>(null);
-const backfillResult = ref<{ processed: number; errors: number; pages: number } | null>(null);
-
-async function backfillMirror(id: string): Promise<void> {
-  backfilling.value = id;
-  backfillResult.value = null;
-  try {
-    const result = await $fetch<{ processed: number; errors: number; pages: number }>(`/api/admin/federation/mirrors/${id}/backfill`, { method: 'POST' });
-    backfillResult.value = result;
-    await refreshMirrors();
-  } finally {
-    backfilling.value = null;
+async function onMirrorChanged(): Promise<void> {
+  await refreshMirrors();
+  if (selectedMirror.value) {
+    selectedMirror.value = (mirrorsData.value ?? []).find((m) => m.id === selectedMirror.value!.id) ?? null;
   }
 }
 
@@ -171,15 +206,19 @@ async function repairTypes(): Promise<void> {
   }
 }
 
-// Tools: re-federate
+// Tools: re-federate (bounded by default to avoid blasting every follower with thousands).
 const refederating = ref(false);
+const refederateScope = ref<'7' | '30' | 'all'>('30');
 const refederateResult = ref<{ queued: number; content?: number; hubs?: number; hubsFound?: number; hubPosts?: number } | null>(null);
 
 async function refederate(): Promise<void> {
   refederating.value = true;
   refederateResult.value = null;
   try {
-    refederateResult.value = await ($fetch as Function)('/api/admin/federation/refederate', { method: 'POST' });
+    const body = refederateScope.value === 'all'
+      ? { all: true }
+      : { sinceDays: Number(refederateScope.value) };
+    refederateResult.value = await ($fetch as Function)('/api/admin/federation/refederate', { method: 'POST', body });
   } finally {
     refederating.value = false;
   }
@@ -284,37 +323,76 @@ async function refederate(): Promise<void> {
 
     <!-- Mirrors Tab -->
     <div v-if="activeTab === 'mirrors'">
-      <div class="cpub-fed-form">
-        <input v-model="newMirrorDomain" placeholder="remote-instance.com" class="cpub-fed-input" />
-        <button :disabled="mirrorCreating || !newMirrorDomain" class="cpub-fed-btn" @click="createMirror">
-          {{ mirrorCreating ? 'Creating...' : 'Add Mirror' }}
+      <p class="cpub-fed-explain">
+        A <strong>mirror</strong> pulls another instance's public content into your federated feed.
+        It's <strong>one-directional</strong> — you receive their posts; they receive nothing from
+        you and need do nothing. New posts arrive automatically once added; use <strong>Import
+        history</strong> to also pull older posts (bounded, so you don't ingest an entire large
+        instance at once).
+      </p>
+
+      <!-- Create form -->
+      <div class="cpub-fed-create">
+        <div class="cpub-fed-form" style="margin-bottom: 8px;">
+          <input v-model="newMirrorDomain" placeholder="remote-instance.com" class="cpub-fed-input" @keydown.enter.prevent="createMirror" />
+          <select v-model.number="newMirrorDepth" class="cpub-fed-input" style="flex:0 0 auto;width:auto;" aria-label="Import history depth">
+            <option v-for="(opt, i) in DEPTH_OPTIONS" :key="i" :value="i">{{ opt.label }}</option>
+          </select>
+          <button :disabled="mirrorCreating || !newMirrorDomain.trim()" class="cpub-fed-btn" @click="createMirror">
+            {{ mirrorCreating ? 'Adding…' : 'Add Mirror' }}
+          </button>
+        </div>
+        <button type="button" class="cpub-fed-disclosure" :aria-expanded="showAdvanced" @click="showAdvanced = !showAdvanced">
+          <i class="fa-solid" :class="showAdvanced ? 'fa-chevron-down' : 'fa-chevron-right'"></i> Filters &amp; advanced
         </button>
+        <div v-if="showAdvanced" class="cpub-fed-advanced">
+          <span class="cpub-fed-adv-label">Content types <span class="cpub-fed-adv-faint">(none = all)</span></span>
+          <div class="cpub-fed-checks">
+            <label v-for="t in FEDERATABLE_TYPES" :key="t" class="cpub-fed-check">
+              <input type="checkbox" :checked="newMirrorTypes.includes(t)" @change="toggleType(t)" /> {{ t }}
+            </label>
+          </div>
+          <label class="cpub-fed-adv-label" for="cpub-fed-tags">Tags <span class="cpub-fed-adv-faint">(comma-separated, none = all)</span></label>
+          <input id="cpub-fed-tags" v-model="newMirrorTags" placeholder="arduino, 3dprinting" class="cpub-fed-input" style="width:100%;" />
+          <label class="cpub-fed-adv-label" for="cpub-fed-actor">Actor URI <span class="cpub-fed-adv-faint">(defaults to https://domain/actor)</span></label>
+          <input id="cpub-fed-actor" v-model="newMirrorActorUri" placeholder="https://remote-instance.com/actor" class="cpub-fed-input" style="width:100%;" />
+        </div>
       </div>
 
+      <!-- Status legend -->
+      <div class="cpub-fed-legend">
+        <span><span class="cpub-fed-status active">active</span> receiving</span>
+        <span><span class="cpub-fed-status paused">paused</span> stopped, kept</span>
+        <span><span class="cpub-fed-status pending">pending</span> follow not yet accepted</span>
+        <span><span class="cpub-fed-status failed">failed</span> last sync errored</span>
+      </div>
+
+      <!-- Mirror list -->
       <div class="cpub-fed-activity-list">
         <div v-if="!mirrorsData?.length" class="cpub-fed-empty">No mirrors configured.</div>
         <div v-for="m in mirrorsData" :key="m.id" class="cpub-fed-activity-row">
           <span class="cpub-fed-status" :class="m.status">{{ m.status }}</span>
-          <span class="cpub-fed-type">{{ m.remoteDomain }}</span>
-          <span class="cpub-fed-actor">{{ m.contentCount }} items</span>
-          <span v-if="m.lastError" class="cpub-fed-error" :title="m.lastError">err</span>
-          <button class="cpub-fed-btn-sm" @click="toggleMirror(m.id, m.status)">
-            {{ m.status === 'active' ? 'Pause' : 'Resume' }}
-          </button>
-          <button
-            class="cpub-fed-btn-sm"
-            :disabled="backfilling === m.id"
-            @click="backfillMirror(m.id)"
-          >
-            {{ backfilling === m.id ? 'Backfilling...' : 'Backfill' }}
-          </button>
-          <button class="cpub-fed-btn-sm cpub-fed-btn-danger" @click="deleteMirror(m.id)">Delete</button>
+          <span class="cpub-fed-dir-arrow" :title="m.direction === 'push' ? 'push request' : 'pull (you receive their content)'">{{ m.direction === 'push' ? '↑' : '↓' }}</span>
+          <button class="cpub-fed-mirror-name" @click="selectedMirror = m">{{ m.remoteDomain }}</button>
+          <span class="cpub-fed-actor">{{ m.contentCount }} items<template v-if="m.filterContentTypes?.length"> · {{ m.filterContentTypes.join(', ') }}</template><template v-if="m.filterTags?.length"> · #{{ m.filterTags.join(' #') }}</template></span>
+          <span v-if="m.errorCount > 0" class="cpub-fed-error" :title="m.lastError || ''">{{ m.errorCount }} err</span>
+          <time v-if="m.lastSyncAt" class="cpub-fed-time">{{ new Date(m.lastSyncAt).toLocaleDateString() }}</time>
+          <button class="cpub-fed-btn-sm" @click="toggleMirror(m.id, m.status)">{{ m.status === 'active' ? 'Pause' : 'Resume' }}</button>
+          <button class="cpub-fed-btn-sm" @click="selectedMirror = m">Details</button>
         </div>
       </div>
 
-      <!-- Backfill result -->
-      <div v-if="backfillResult" class="cpub-fed-result">
-        Backfill complete: {{ backfillResult.processed }} items, {{ backfillResult.errors }} errors, {{ backfillResult.pages }} pages.
+      <!-- Instances mirroring you -->
+      <h3 class="cpub-fed-subhead">Instances mirroring you</h3>
+      <p class="cpub-fed-info-text" style="margin-bottom: 8px;">Remote instances following your instance actor — they pull your public content. (One-directional: you don't pull them unless you add a mirror above.)</p>
+      <div class="cpub-fed-activity-list">
+        <div v-if="!followersData?.length" class="cpub-fed-empty">No instances are mirroring you yet.</div>
+        <div v-for="f in followersData" :key="f.actorUri" class="cpub-fed-activity-row">
+          <span class="cpub-fed-dir-arrow" title="they pull from you">↗</span>
+          <span class="cpub-fed-type">{{ f.domain }}</span>
+          <span class="cpub-fed-actor">{{ f.actorUri }}</span>
+          <time v-if="f.followedAt" class="cpub-fed-time">{{ new Date(f.followedAt).toLocaleDateString() }}</time>
+        </div>
       </div>
     </div>
 
@@ -397,13 +475,20 @@ async function refederate(): Promise<void> {
           </div>
         </div>
 
-        <!-- Re-federate All Content + Hub Posts -->
+        <!-- Re-federate Content + Hub Posts -->
         <div class="cpub-fed-tool-card">
-          <h3 class="cpub-fed-tool-title"><i class="fa-solid fa-rotate"></i> Re-federate All</h3>
-          <p class="cpub-fed-tool-desc">Queue all published content (Create) and hub posts (Announce) for re-delivery. Safe to run multiple times.</p>
-          <button class="cpub-fed-btn" :disabled="refederating" @click="refederate">
-            {{ refederating ? 'Queuing...' : 'Re-federate All' }}
-          </button>
+          <h3 class="cpub-fed-tool-title"><i class="fa-solid fa-rotate"></i> Re-federate</h3>
+          <p class="cpub-fed-tool-desc">Re-queue your published content (Create) and hub posts (Announce) for delivery to your current followers. Idempotent. <strong>Bounded by default</strong> so you don't blast every follower with thousands of activities — choose how far back.</p>
+          <div class="cpub-fed-form">
+            <select v-model="refederateScope" class="cpub-fed-input" style="flex:0 0 auto;width:auto;" aria-label="Re-federate scope">
+              <option value="7">Last 7 days</option>
+              <option value="30">Last 30 days</option>
+              <option value="all">Everything</option>
+            </select>
+            <button class="cpub-fed-btn" :disabled="refederating" @click="refederate">
+              {{ refederating ? 'Queuing…' : 'Re-federate' }}
+            </button>
+          </div>
           <div v-if="refederateResult" class="cpub-fed-tool-result">
             Queued {{ refederateResult.queued }} items for delivery.
             <span v-if="refederateResult.content !== undefined" style="display: block; font-size: 12px; color: var(--text-faint); margin-top: 4px">
@@ -414,6 +499,13 @@ async function refederate(): Promise<void> {
       </div>
     </div>
     </template>
+
+    <MirrorDetailModal
+      v-if="selectedMirror"
+      :mirror="selectedMirror"
+      @close="selectedMirror = null"
+      @changed="onMirrorChanged"
+    />
   </div>
 </template>
 
@@ -500,6 +592,36 @@ async function refederate(): Promise<void> {
 .cpub-fed-error { font-size: 10px; color: var(--red); font-family: var(--font-mono); cursor: help; }
 .cpub-fed-info-text { font-size: 0.75rem; color: var(--text-dim); margin-top: 12px; }
 .cpub-fed-info-text code { font-family: var(--font-mono); background: var(--surface2); padding: 1px 4px; }
+
+/* Mirrors tab — explainer, create form, legend, list extras */
+.cpub-fed-explain { font-size: 0.8125rem; color: var(--text-dim); line-height: 1.6; margin-bottom: 16px; }
+.cpub-fed-create { margin-bottom: 16px; }
+.cpub-fed-disclosure {
+  background: none; border: none; cursor: pointer; padding: 2px 0;
+  font-family: var(--font-mono); font-size: 11px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--text-dim); display: flex; align-items: center; gap: 6px;
+}
+.cpub-fed-disclosure:hover { color: var(--accent); }
+.cpub-fed-advanced {
+  margin-top: 10px; padding: 12px; border: var(--border-width-default) solid var(--border);
+  background: var(--surface2); display: flex; flex-direction: column; gap: 6px;
+}
+.cpub-fed-adv-label { font-family: var(--font-mono); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-dim); margin-top: 6px; }
+.cpub-fed-adv-faint { color: var(--text-faint); font-weight: 400; text-transform: none; letter-spacing: 0; }
+.cpub-fed-checks { display: flex; gap: 12px; flex-wrap: wrap; }
+.cpub-fed-check { display: flex; align-items: center; gap: 5px; font-size: 0.8125rem; font-family: var(--font-mono); cursor: pointer; }
+.cpub-fed-legend { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; font-size: 0.75rem; color: var(--text-dim); align-items: center; }
+.cpub-fed-legend > span { display: flex; align-items: center; gap: 6px; }
+.cpub-fed-dir-arrow { font-weight: 700; color: var(--accent); font-family: var(--font-mono); min-width: 12px; text-align: center; }
+.cpub-fed-mirror-name {
+  background: none; border: none; cursor: pointer; padding: 0; text-align: left;
+  font-weight: 600; color: var(--text); min-width: 60px; font-family: var(--font-mono); font-size: 0.75rem;
+}
+.cpub-fed-mirror-name:hover { color: var(--accent); text-decoration: underline; }
+.cpub-fed-subhead {
+  font-family: var(--font-mono); font-size: 0.8125rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.04em; margin: 24px 0 4px;
+}
 
 .cpub-fed-result {
   margin-top: 8px; padding: 10px 14px; font-size: 0.8125rem; font-family: var(--font-mono);

@@ -291,6 +291,8 @@ content/*` while federated-hub entity lookups live at `/api/federated-hubs/*`.
 
 User mgmt: GET `/api/admin/users`, PUT `/api/admin/users/:id/role`, PUT `/api/admin/users/:id/status`, DELETE `/api/admin/users/:id`.
 
+Federation followers (session 184): GET `/api/admin/federation/followers` → `listInstanceFollowers` — remote instances that follow our instance Service actor ("who is mirroring you"). Backfill route (`mirrors/[id]/backfill.post.ts`) + `refederate.post.ts` now accept bounded depth params (`sinceDays`/`maxItems`; refederate `{sinceDays,limit,all}`) — session 183.
+
 Public-API keys (RBAC-era): GET/POST `/api/admin/api-keys`, DELETE `/api/admin/api-keys/:id`, GET `/api/admin/api-keys/:id/usage` — issue/revoke scoped bearer tokens for the public read API (gated `publicApi`).
 
 Storage: POST `/api/admin/storage/backfill-cdn-urls` (session 149 — backfill DO Spaces CDN URLs).

@@ -166,6 +166,10 @@ ContentGridSection, ContestsSection, CustomHtmlSection, EditorialSection, HeroSe
 
 AdminThemeFamilyCard, AdminThemeOverridesPanel, AdminThemePreviewPane, AdminThemeSceneAdmin, AdminThemeSceneGallery, AdminThemeSceneProse, AdminThemeTokenGroup, AdminThemeTokenInput.
 
+### Federation admin (session 184)
+
+**MirrorDetailModal** (`components/MirrorDetailModal.vue`) — per-mirror detail dialog opened from the federation admin Mirrors tab: full facts + filter chips, last error, bounded re-backfill (depth picker), two-step delete. `role=dialog` + `useFocusTrap`. `pages/admin/federation.vue` Mirrors tab was overhauled (session 184): create-form with one-directional explainer + content-type/tag filters + history depth picker, mirror list with direction/filters/lastSync/errorCount, status legend, "Instances mirroring you" panel (`GET /api/admin/federation/followers`), bounded re-federate scope selector. Note: dynamic `$fetch` URLs use a `string`-typed const to avoid the typed-routes TS2321 recursion.
+
 ### Navigation (session 124)
 
 **NavRenderer**, **NavDropdown**, **MobileNavRenderer**, **NavLink**.

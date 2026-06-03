@@ -3,7 +3,7 @@
  * Uses standard AP semantics: instance B's Service actor follows instance A's Service actor.
  * Content arrives via normal inbox Create activities, filtered by mirror config.
  */
-import { eq, and, sql } from 'drizzle-orm';
+import { eq, and, sql, desc } from 'drizzle-orm';
 import {
   instanceMirrors,
   federatedContent,
@@ -84,6 +84,46 @@ export async function createMirror(
   }
 
   return mirrorRowToConfig(row!);
+}
+
+/** A remote instance that follows our instance Service actor — i.e. is mirroring us. */
+export interface InstanceFollower {
+  actorUri: string;
+  domain: string;
+  followedAt: string | null;
+}
+
+/**
+ * List the instances mirroring US — remote actors that follow our instance Service actor
+ * (`https://{domain}/actor`) with an accepted follow. Each such follower is an instance
+ * pulling our public content. This is the read side of "who is mirroring me".
+ *
+ * Note: this is INSTANCE-level only (followers of `/actor`), not per-user followers — a
+ * remote user following a local user is not mirroring the instance.
+ */
+export async function listInstanceFollowers(db: DB, domain: string): Promise<InstanceFollower[]> {
+  const instanceActorUri = `https://${domain}/actor`;
+  const rows = await db
+    .select({
+      followerActorUri: followRelationships.followerActorUri,
+      createdAt: followRelationships.createdAt,
+    })
+    .from(followRelationships)
+    .where(and(
+      eq(followRelationships.followingActorUri, instanceActorUri),
+      eq(followRelationships.status, 'accepted'),
+    ))
+    .orderBy(desc(followRelationships.createdAt));
+
+  return rows.map((r) => {
+    let host = r.followerActorUri;
+    try { host = new URL(r.followerActorUri).hostname; } catch { /* keep raw uri */ }
+    return {
+      actorUri: r.followerActorUri,
+      domain: host,
+      followedAt: r.createdAt ? r.createdAt.toISOString() : null,
+    };
+  });
 }
 
 /**

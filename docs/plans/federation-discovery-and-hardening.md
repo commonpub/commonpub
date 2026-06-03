@@ -55,15 +55,21 @@ admin UX, consent-based push, and a discovery registry).
 - [x] Tests: hooks-integration (+3 cases), self-ref-fk (2); transaction/content/social suites green; all touched packages + reference typecheck clean.
 - [x] codebase-analysis 02/03/06 + events-validation correction; this plan; session log 183.
 
-### Phase 2 — Federation admin UX full overhaul  ⬜
-- [ ] Create form: direction + content-type/tag filters + history depth picker + one-directional help.
-- [ ] Mirror list: direction/filters/lastSync/errorCount; `MirrorDetailModal.vue` (resume, re-backfill w/ depth).
-- [ ] Backfill + refederate: depth picker, progress, result toast, filter dry-run preview.
-      **Required:** "Re-federate All" button must send `{ all: true }` (or depth) — Phase 0 made
-      `refederate` default to last-30-days/cap, so the button under-does its label until rewired.
-- [ ] "Instances mirroring you" panel (from `/actor/followers`).
-- [ ] Status legend + what-happens-next explainer; expose direction/filters in GET mirrors API.
-- [ ] Component + axe tests; docs + codebase-analysis + session log.
+### Phase 2 — Federation admin UX full overhaul  ✅ (code+tests done; not yet published/deployed)
+- [x] Create form: pull + content-type/tag filters + history depth picker (None/7d/30d/90d/200/All)
+      + one-directional explainer + what-happens-next toast. (Direction selector is pull-only for
+      now; the push/request option arrives in Phase 3 — not shipping a non-functional control.)
+- [x] Mirror list: direction arrow, filter chips, lastSync, errorCount; clickable name → new
+      `MirrorDetailModal.vue` (full facts, last error, bounded re-backfill w/ depth, two-step delete).
+- [x] Refederate: bounded scope selector (7d/30d/Everything) sending `{sinceDays}` or `{all:true}`
+      — closes the cross-phase requirement. (Live backfill/refederate progress = in-flight state +
+      result toast; streaming progress + filter dry-run preview DEFERRED — see note.)
+- [x] "Instances mirroring you" panel + new `GET /api/admin/federation/followers` (`listInstanceFollowers`).
+- [x] Status legend + explainer. (GET mirrors API already returned direction/filters — no change needed.)
+- [x] Tests: `MirrorDetailModal` component+axe (10), `listInstanceFollowers` server (2),
+      RBAC route-keys map updated. reference `vue-tsc` clean; layer 872 + server 1216 green.
+- [~] DEFERRED to a follow-up: live streaming backfill progress (needs polling) + filter dry-run
+      preview (needs a remote-outbox probe). Not blocking; noted in session 183.
 
 ### Phase 3 — Push = consent-based mirror-request  ⬜
 - [ ] `createMirror` push branch → signed cpub-namespaced mirror-request to target inbox.
