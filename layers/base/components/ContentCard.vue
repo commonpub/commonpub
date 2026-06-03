@@ -303,6 +303,12 @@ function formatCount(n: number | undefined): string {
 .cpub-cc-av {
   width: 18px;
   height: 18px;
+  /* Hard-lock square so a portrait/non-square photo can't render as an oval
+     (intrinsic-ratio fallback if a dimension is dropped). See ArticleView.vue. */
+  min-width: 18px;
+  max-width: 18px;
+  min-height: 18px;
+  max-height: 18px;
   background: var(--accent-bg);
   border: var(--border-width-default) solid var(--accent-border);
   color: var(--accent);

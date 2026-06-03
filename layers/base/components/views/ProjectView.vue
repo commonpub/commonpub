@@ -767,8 +767,16 @@ async function handleBuild(): Promise<void> {
  * to the div-variant only — stops img-variant from squishing portrait
  * avatars (object-fit:cover gets dropped on flex-set replaced elements). */
 .cpub-av {
-  width: 28px;
-  height: 28px;
+  --cpub-av-size: 28px;
+  width: var(--cpub-av-size);
+  height: var(--cpub-av-size);
+  /* Hard-lock to a square (min/max on both axes) so a portrait photo can't
+     render as an oval if a global reset or dropped dimension lets the <img>
+     take its intrinsic aspect ratio. See ArticleView.vue. */
+  min-width: var(--cpub-av-size);
+  max-width: var(--cpub-av-size);
+  min-height: var(--cpub-av-size);
+  max-height: var(--cpub-av-size);
   border-radius: 50%;
   background: var(--surface3);
   border: var(--border-width-default) solid var(--border);
@@ -789,7 +797,7 @@ img.cpub-av {
   object-fit: cover;
 }
 
-.cpub-av-lg { width: 36px; height: 36px; font-size: 12px; }
+.cpub-av-lg { --cpub-av-size: 36px; font-size: 12px; }
 
 .cpub-author-name {
   font-size: 13px;
