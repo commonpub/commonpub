@@ -61,12 +61,16 @@ describe('fetchInstanceNodeInfo', () => {
   });
 
   it('refuses a 2.1 href on a different host (anti-SSRF redirection)', async () => {
+    // The evil href IS resolvable in the stub — so if the same-host guard were removed, the code
+    // would fetch it and return its stats (non-null). The guard must short-circuit BEFORE that.
     const fetcher = stubFetcher({
       'https://maker.example/.well-known/nodeinfo': {
         links: [{ rel: 'http://nodeinfo.diaspora.software/ns/schema/2.1', href: 'https://evil.example/nodeinfo/2.1' }],
       },
+      'https://evil.example/nodeinfo/2.1': NODEINFO_DOC,
     });
     expect(await fetchInstanceNodeInfo('maker.example', fetcher)).toBeNull();
+    expect(fetcher).not.toHaveBeenCalledWith('https://evil.example/nodeinfo/2.1');
   });
 
   it('returns null when the fetch throws (e.g. SSRF-blocked or offline)', async () => {

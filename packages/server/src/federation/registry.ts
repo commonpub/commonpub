@@ -9,7 +9,7 @@
  * Client side: when `features.announceToRegistry` is on, `sendRegistryPing` periodically posts a
  * signed heartbeat to the configured `federation.registryUrl`.
  */
-import { eq, and, or, ilike, desc, asc, sql } from 'drizzle-orm';
+import { eq, ne, and, or, ilike, desc, asc, sql } from 'drizzle-orm';
 import { registryInstances } from '@commonpub/schema';
 import { safeFetch, signRequest, safeFetchSigned } from '@commonpub/protocol';
 import type { DB } from '../types.js';
@@ -139,6 +139,9 @@ export async function recordRegistryPing(
     })
     .onConflictDoUpdate({
       target: registryInstances.domain,
+      // Guard against a select-then-upsert race: if an admin blocked the row after our initial
+      // check, this conflict-update is skipped (no stat refresh / lastPingAt bump for a blocked row).
+      setWhere: ne(registryInstances.status, 'blocked'),
       set: {
         actorUri,
         lastPingAt: now,

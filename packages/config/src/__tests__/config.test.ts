@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { defineCommonPubConfig } from '../config';
-import { federationConfigSchema } from '../schema';
 
 const validInstance = {
   domain: 'test.commonpub.dev',
@@ -36,10 +35,21 @@ describe('defineCommonPubConfig', () => {
     expect(config.features.announceToRegistry).toBe(false);
   });
 
-  it('defaults registry federation knobs (url + ping interval)', () => {
-    const federation = federationConfigSchema.parse({});
-    expect(federation.registryUrl).toBe('https://commonpub.io');
-    expect(federation.registryPingIntervalMs).toBe(21_600_000);
+  it('defaults registry federation knobs (url + ping interval) via the factory', () => {
+    // `federation` is defaulted, so the knobs resolve even when the consumer omits it.
+    const { config } = defineCommonPubConfig({ instance: validInstance });
+    expect(config.federation?.registryUrl).toBe('https://commonpub.io');
+    expect(config.federation?.registryPingIntervalMs).toBe(21_600_000);
+  });
+
+  it('lets a consumer override the registry URL through the factory', () => {
+    const { config } = defineCommonPubConfig({
+      instance: validInstance,
+      federation: { registryUrl: 'https://hub.example' },
+    });
+    expect(config.federation?.registryUrl).toBe('https://hub.example');
+    // other federation defaults still fill in
+    expect(config.federation?.registryPingIntervalMs).toBe(21_600_000);
   });
 
   it('should allow disabling content feature flag', () => {

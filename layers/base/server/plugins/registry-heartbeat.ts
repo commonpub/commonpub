@@ -17,11 +17,17 @@ export default defineNitroPlugin((nitro) => {
       if (!config.features.announceToRegistry) {
         return; // opt-in — silent when off
       }
+      // The registry verifies our ping by resolving `https://{instance.domain}/actor`, which is
+      // only served when federation is on. Without it every ping 401s — warn + skip.
+      if (!config.features.federation) {
+        console.warn('[registry] announceToRegistry is on but federation is off — pings would be unverifiable (our /actor is not served). Skipping.');
+        return;
+      }
       const registryUrl = config.federation?.registryUrl ?? 'https://commonpub.io';
 
-      const runtimeConfig = useRuntimeConfig();
-      const siteUrl = (runtimeConfig.public?.siteUrl as string) || `https://${config.instance.domain}`;
-      const domain = siteUrl.replace(/^https?:\/\//, '').replace(/[:/].*$/, '');
+      // Use instance.domain — the heartbeat is signed with `https://{instance.domain}/actor#main-key`
+      // and MUST match the served actor's id host (verifyInboxRequest enforces keyId==actor.id host).
+      const domain = config.instance.domain;
 
       // Don't announce a registry to itself.
       const registryDomain = registryUrl.replace(/^https?:\/\//, '').replace(/[:/].*$/, '');

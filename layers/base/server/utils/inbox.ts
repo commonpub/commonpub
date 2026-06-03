@@ -32,6 +32,44 @@ interface VerifiedInbox {
 }
 
 /**
+ * Bind an inbound activity to its HTTP-signature signer: the activity's top-level `actor` MUST be
+ * on the same host as the cryptographically-verified signer (from `verifyInboxRequest`). Without
+ * this, a validly-signed request from instance X could carry `actor: https://victim/actor` and be
+ * processed as if it came from the victim — spoofed mirror requests/Accepts (Phase 3), federated
+ * content attributed to others, like/boost tampering, etc. CommonPub and Mastodon sign with the
+ * actor's own key (we don't support relays/LD-signature forwarding), so host equality is the
+ * correct binding. Throws 401 on mismatch; no-ops when `actor` is absent (processInboxActivity
+ * rejects a missing actor itself).
+ */
+export function assertActorMatchesSigner(
+  signerActorUri: string,
+  body: Record<string, unknown>,
+  label: string,
+): void {
+  const raw = body.actor;
+  const actorUri =
+    typeof raw === 'string'
+      ? raw
+      : raw && typeof raw === 'object'
+        ? ((raw as Record<string, unknown>).id as string | undefined)
+        : undefined;
+  if (!actorUri) return;
+
+  let signerHost: string;
+  let actorHost: string;
+  try {
+    signerHost = new URL(signerActorUri).hostname;
+    actorHost = new URL(actorUri).hostname;
+  } catch {
+    throw createError({ statusCode: 400, statusMessage: 'Invalid activity actor' });
+  }
+  if (signerHost !== actorHost) {
+    console.warn(`[${label}] actor/signer host mismatch: actor=${actorHost}, signer=${signerHost}`);
+    throw createError({ statusCode: 401, statusMessage: 'Activity actor does not match request signer' });
+  }
+}
+
+/**
  * Verify an inbound AP activity request.
  * Checks: body size, signature presence, actor resolution, domain match,
  * Date freshness, and HTTP Signature cryptographic verification.

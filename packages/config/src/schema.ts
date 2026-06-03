@@ -150,7 +150,9 @@ export const configSchema = z.object({
   instance: instanceConfigSchema,
   features: featureFlagsSchema.default(() => featureFlagsSchema.parse({})),
   auth: authConfigSchema.default(() => authConfigSchema.parse({})),
-  federation: federationConfigSchema.optional(),
+  // Defaulted (not optional) so federation knobs — incl. registryUrl / registryPingIntervalMs —
+  // always resolve to their defaults rather than leaving `config.federation` undefined.
+  federation: federationConfigSchema.default(() => federationConfigSchema.parse({})),
   docs: docsConfigSchema.default(() => docsConfigSchema.parse({})),
   cookies: z.array(cookieDefinitionSchema).optional(),
   themes: z.array(registeredThemeSchema).optional(),

@@ -408,6 +408,19 @@ path, not a 500. Before that, duplicates were possible on fast double-clicks.
 
 The projected Create uses a DETERMINISTIC id (`<object id>#create`) + the real `published` date (protocol `contentToCreateActivity`), shared with live delivery so backfill and delivery emit the same de-dupable activity, and so bounded backfill can paginate by date. Mirroring/backfill/refederate are all bounded by operator choice (forward-only default; `since`/`maxItems`/`limit`) — never auto-pull or re-blast an entire instance.
 
+### Inbox: the activity `actor` MUST be bound to the HTTP-signature signer (session 187 audit)
+
+`verifyInboxRequest` proves the SIGNER (keyId actor, with keyId-host == actor.id-host), but
+`processInboxActivity` trusts the JSON `body.actor` — which is NOT the same thing. Without binding,
+a validly-signed request from instance X can carry `actor: https://victim/actor` and be processed
+as the victim: spoofed mirror requests/Accepts (Phase 3), federated content attributed to others,
+like/boost tampering. The fix is `assertActorMatchesSigner(actorUri, body, label)` in `utils/inbox.ts`,
+called in ALL THREE inbox routes (shared `routes/inbox.ts`, `routes/users/[u]/inbox.ts`,
+`routes/hubs/[slug]/inbox.ts`) right after `verifyInboxRequest` — it 401s when `body.actor`'s host ≠
+the signer's host. CommonPub/Mastodon sign with the actor's own key (no relays/LD-sig forwarding),
+so host equality is the correct binding. **Any new inbox route MUST call it** — the handlers trust
+`body.actor`, so the route is the only place the signer↔actor binding is enforced.
+
 ### Registry pings: signature proves identity, stats are PULLED not trusted (Phase 4, session 186)
 
 `POST /api/registry/ping` is gated `actAsRegistry` and verified by `verifyInboxRequest` — the keyId domain must match the resolved actor, so a domain can **only register itself** (no impersonation). The registry derives the domain from the *verified* actor, NOT the request body. Stats (user/post counts, features, software) are **pulled from the pinger's public NodeInfo** (`fetchInstanceNodeInfo`) — never read from the ping body — and that pull is SSRF-guarded AND requires the 2.1 `href` to be on the same host (a registered instance can't point the registry's fetch at an arbitrary URL). Abuse: global IP rate-limit (middleware) handles pre-verification floods; a per-source-domain limit handles verified spam; admin `blocked` status is a no-op short-circuit that persists across re-pings. `recordRegistryPing`'s upsert does NOT reset `status`, so an admin `hidden` choice survives every re-ping (only a brand-new row starts `active` = the auto-list decision). `announceToRegistry` is a SEPARATE flag from `actAsRegistry` — turning on federation never phones home; the heartbeat worker also skips when the registry domain == our own.

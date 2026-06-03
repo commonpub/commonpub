@@ -29,6 +29,7 @@ export function defineCommonPubConfig(input: {
   };
   features?: Partial<CommonPubConfig['features']>;
   auth?: Partial<CommonPubConfig['auth']>;
+  federation?: Partial<CommonPubConfig['federation']>;
 }): ConfigResult {
   const config = configSchema.parse(input) as CommonPubConfig;
   const warnings: ConfigWarning[] = [];

@@ -35,6 +35,34 @@ export interface MirrorConfig {
 }
 
 /**
+ * Resolve+cache the remote instance actor, then store a pending follow relationship and queue a
+ * signed Follow from our instance actor to it — so the remote delivers its content to us. Shared by
+ * `createMirror` and `approveMirrorRequest`'s reuse-an-existing-mirror path. `onConflictDoNothing`
+ * keeps it idempotent if a relationship row already exists.
+ */
+async function queueInstanceFollow(db: DB, remoteActorUri: string, localDomain: string): Promise<void> {
+  // CRITICAL: resolve and cache the remote actor FIRST so the delivery worker can find their inbox.
+  const { resolveRemoteActor } = await import('./federation.js');
+  const resolved = await resolveRemoteActor(db, remoteActorUri).catch(() => null);
+  if (!resolved) {
+    console.warn(`[mirroring] Could not resolve remote actor ${remoteActorUri} — Follow delivery may fail`);
+  }
+  const localActorUri = `https://${localDomain}/actor`;
+  await db
+    .insert(followRelationships)
+    .values({ followerActorUri: localActorUri, followingActorUri: remoteActorUri, status: 'pending' })
+    .onConflictDoNothing();
+  await db.insert(activities).values({
+    type: 'Follow',
+    actorUri: localActorUri,
+    objectUri: remoteActorUri,
+    payload: buildFollowActivity(localDomain, localActorUri, remoteActorUri),
+    direction: 'outbound',
+    status: 'pending',
+  });
+}
+
+/**
  * Create a new PULL instance mirror subscription — the instance actor follows the remote instance
  * actor to receive its public content. (Push is a consent-based request — see `requestMirror`.)
  */
@@ -64,33 +92,7 @@ export async function createMirror(
     .returning();
 
   // Pull mirror: Follow the remote instance actor so they deliver content to us.
-  // CRITICAL: resolve and cache the remote actor FIRST so the delivery worker
-  // can find their inbox when delivering the Follow activity.
-  const { resolveRemoteActor } = await import('./federation.js');
-  const resolved = await resolveRemoteActor(db, remoteActorUri).catch(() => null);
-  if (!resolved) {
-    console.warn(`[mirroring] Could not resolve remote actor ${remoteActorUri} — mirror created but Follow delivery may fail`);
-  }
-
-  const localActorUri = `https://${localDomain}/actor`;
-  const followActivity = buildFollowActivity(localDomain, localActorUri, remoteActorUri);
-
-  // Store the follow relationship so the remote can find us
-  await db.insert(followRelationships).values({
-    followerActorUri: localActorUri,
-    followingActorUri: remoteActorUri,
-    status: 'pending',
-  }).onConflictDoNothing();
-
-  // Queue the Follow for delivery
-  await db.insert(activities).values({
-    type: 'Follow',
-    actorUri: localActorUri,
-    objectUri: remoteActorUri,
-    payload: followActivity,
-    direction: 'outbound',
-    status: 'pending',
-  });
+  await queueInstanceFollow(db, remoteActorUri, localDomain);
 
   return mirrorRowToConfig(row!);
 }
@@ -226,7 +228,7 @@ export async function approveMirrorRequest(
   if (req.direction !== 'incoming') throw new Error('Can only approve incoming mirror requests');
 
   // Create (or reuse) a pull mirror of the requester with the approver's chosen filters.
-  let [existing] = await db
+  const [existing] = await db
     .select()
     .from(instanceMirrors)
     .where(eq(instanceMirrors.remoteDomain, req.remoteDomain))
@@ -234,13 +236,52 @@ export async function approveMirrorRequest(
 
   let mirrorId: string;
   if (existing) {
+    // Reuse the row, but make it actually usable: re-activate if it was paused/failed and apply
+    // the approver's chosen filters (matchMirrorForContent only accepts 'active' pull mirrors).
     mirrorId = existing.id;
+    await db
+      .update(instanceMirrors)
+      .set({
+        status: 'active',
+        direction: 'pull',
+        pausedAt: null,
+        filterContentTypes: opts?.filterContentTypes ?? existing.filterContentTypes,
+        filterTags: opts?.filterTags ?? existing.filterTags,
+        updatedAt: new Date(),
+      })
+      .where(eq(instanceMirrors.id, existing.id));
+    // If we never had an accepted Follow with this remote, (re)queue one so content can flow.
+    const [rel] = await db
+      .select({ status: followRelationships.status })
+      .from(followRelationships)
+      .where(
+        and(
+          eq(followRelationships.followerActorUri, `https://${localDomain}/actor`),
+          eq(followRelationships.followingActorUri, req.remoteActorUri),
+        ),
+      )
+      .limit(1);
+    if (!rel || rel.status !== 'accepted') {
+      await queueInstanceFollow(db, req.remoteActorUri, localDomain);
+    }
   } else {
-    const mirror = await createMirror(db, req.remoteDomain, req.remoteActorUri, 'pull', localDomain, {
-      contentTypes: opts?.filterContentTypes ?? undefined,
-      tags: opts?.filterTags ?? undefined,
-    });
-    mirrorId = mirror.id;
+    try {
+      const mirror = await createMirror(db, req.remoteDomain, req.remoteActorUri, 'pull', localDomain, {
+        contentTypes: opts?.filterContentTypes ?? undefined,
+        tags: opts?.filterTags ?? undefined,
+      });
+      mirrorId = mirror.id;
+    } catch (err) {
+      // Lost a race on the unique(remote_domain) constraint (concurrent approval / "Mirror"
+      // click landed between our SELECT and INSERT) — re-fetch the row that won.
+      const [raced] = await db
+        .select({ id: instanceMirrors.id })
+        .from(instanceMirrors)
+        .where(eq(instanceMirrors.remoteDomain, req.remoteDomain))
+        .limit(1);
+      if (!raced) throw err;
+      mirrorId = raced.id;
+    }
   }
 
   // Optional bounded history import (forward-only if no depth chosen).

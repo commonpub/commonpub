@@ -27,6 +27,7 @@ import {
   approveMirrorRequest,
   rejectMirrorRequest,
   createMirror,
+  pauseMirror,
 } from '../federation/mirroring.js';
 import { federateContent } from '../federation/federation.js';
 import { createContent, publishContent } from '../content/content.js';
@@ -322,6 +323,30 @@ describe('mirror request guards & correlation', () => {
     );
     expect((await listMirrorRequests(dbA, 'outgoing'))[0]!.status).toBe('approved');
     await closeTestDB(dbA);
+  });
+
+  it('approving a request for a domain with a PAUSED mirror re-activates it + applies filters + re-follows', async () => {
+    const dbB = await createTestDB();
+    const handlersB = createInboxHandlers({ db: dbB, domain: DOMAIN_B });
+    await seedRemoteActor(dbB, A_ACTOR, DOMAIN_A);
+
+    // B already has a pull mirror of A, but it's PAUSED (and the follow never got accepted).
+    const mirror = await createMirror(dbB, DOMAIN_A, A_ACTOR, 'pull', DOMAIN_B, { contentTypes: ['blog'] });
+    await pauseMirror(dbB, mirror.id);
+
+    // A requests; B approves with different filters.
+    await handlersB.onMirrorRequest!(A_ACTOR, B_ACTOR, 'https://a.test/activities/offer-reuse');
+    const [req] = await listMirrorRequests(dbB, 'incoming');
+    const approved = await approveMirrorRequest(dbB, req!.id, DOMAIN_B, { filterContentTypes: ['project', 'explainer'] });
+
+    expect(approved.resultingMirrorId).toBe(mirror.id); // reused, not duplicated
+    const [row] = await dbB.select().from(instanceMirrors).where(eq(instanceMirrors.remoteDomain, DOMAIN_A));
+    expect(row!.status).toBe('active'); // re-activated (matchMirrorForContent requires active)
+    expect(row!.filterContentTypes).toEqual(['project', 'explainer']); // approver's filters applied
+    // Exactly one mirror row for the domain (no duplicate).
+    const all = await dbB.select().from(instanceMirrors).where(eq(instanceMirrors.remoteDomain, DOMAIN_A));
+    expect(all).toHaveLength(1);
+    await closeTestDB(dbB);
   });
 
   it('an Accept flips ONLY the matching outgoing request, not other pending ones', async () => {
