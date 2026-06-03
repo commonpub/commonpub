@@ -89,8 +89,9 @@ admin UX, consent-based push, and a discovery registry).
       `MirrorRequestApproveModal.vue` (depth+filters, axe).
 - [x] Tests: protocol Offer dispatch (3) + builder (1); server unit + **two-instance e2e**
       (request→approve→bounded pull→content, +no-loop assertion) (11); modal component+axe (9).
-      Full `pnpm typecheck` 26/26; server 1227 + layer 887 green.
-- [ ] Docs + codebase-analysis + session log (in progress).
+      Full `pnpm typecheck` 26/26; server 1231 + layer 888 + protocol 424 green (post-audit).
+- [x] Docs + codebase-analysis (02/03/04/09 + llm gotchas) + session log 185. Audit fixes:
+      correlation tightened (offer-id AND sender) + 5 coincidental-pass tests hardened.
 
 ### Phase 4 — Registry / instance directory  ⬜
 - [ ] `features.actAsRegistry` (default OFF) + `instance.registryUrl` (default `https://commonpub.io`).
