@@ -10,8 +10,9 @@ Read this, then start. Master plan: `docs/plans/federation-discovery-and-hardeni
 Phases 0–4 squash-merged to `main` (PR #1, `a86d4d7`) and shipped, THEN commonpub.io made the
 default registry (PR #2, `33d77f2`):
 - **Published:** schema **0.26.0**, protocol **0.13.0**, auth **0.8.0**, server **2.73.0**,
-  config **0.18.0**, layer **0.45.0**. ui unchanged 0.9.2. test-utils intentionally not published.
-  (config 0.17.0→0.18.0 + layer 0.44.0→0.45.0 came in the registry-default follow-up.)
+  config **0.18.0**, layer **0.47.0** (0.45 registry → 0.46 banner → 0.47 avatar fix). ui unchanged
+  0.9.2. test-utils intentionally not published. **CLI create-commonpub 0.5.5** on crates.io.
+  Canonical operator doc/runbook is now **`docs/STATUS.md`**.
 - **Deployed all 3** (commonpub.io / deveco.io / heatsynclabs.io); migrations 0013/0014/0015 applied.
 - **P0 verified LIVE:** heatsync `/actor/outbox` totalItems **2→8**, deveco **23**, `#create` ids.
   Latent coupling SAFE (actor host == domain all 3).
@@ -21,18 +22,41 @@ default registry (PR #2, `33d77f2`):
   users/8 posts/online). Signed-ping→verify→NodeInfo-pull→directory round-trip confirmed.
   CLI scaffolder pins bumped to current (new instances announce out of the box).
 
-### CLI published + everything reconciled (session 188)
-- **create-commonpub 0.5.3 published to crates.io** (`cargo install create-commonpub`) with current
-  pins — crates.io had been stuck at 0.4.0 (the lapse that caused pin drift). Added
-  `cli-release.yml` (tag `create-commonpub-v*` → `cargo publish`; needs `CARGO_REGISTRY_TOKEN` secret).
-- **All 13 @commonpub/* packages: source==published, no drift.** main clean. deveco/heatsync on
-  current pins + deployed. Everything is current as of 2026-06-03.
+### CLI publishing automated (session 188)
+- **create-commonpub on crates.io** (`cargo install create-commonpub`), now at **0.5.5** — crates.io
+  had been stuck at 0.4.0 (the lapse that caused pin drift). `cli-release.yml` publishes on a
+  `create-commonpub-v*` tag; **`CARGO_REGISTRY_TOKEN` secret is SET** (validated publishing 0.5.4 + 0.5.5).
+  Local copy gitignored at `.secrets/cargo-registry-token`.
 
-### What still needs the OPERATOR (interactive — admin auth)
-- **P3** mirror-request Offer→Accept round-trip (admin login on 2 instances, click approve/reject) —
-  the only manual item left.
-- Add `CARGO_REGISTRY_TOKEN` repo secret to enable tag-triggered CLI releases.
-- Browser-smoke `/admin/federation` (Mirrors + Registry tabs); `reconcile-counters --check` on droplets.
+### Continued — UI fixes shipped to all 3 (session 188, layer 0.46→0.47)
+- **Contest banner −¼** (260→195px), layer 0.46.0. Verified live (deveco contest page CSS).
+- **deveco mobile-nav hamburger** fixed — its FORKED `layouts/default.vue` used bare
+  `<MobileNavRenderer>` (Nuxt pathPrefix → `<NavMobileNavRenderer>`), so it rendered an empty
+  `<mobilenavrenderer>` + broke hydration. Fixed to `<NavMobileNavRenderer>` (deveco-repo-only;
+  heatsync/commonpub use the layer's correct layout). Verified live.
+- **Avatar oval → round**, layer 0.47.0. Byline/author/card avatars rendered as tall ovals (img fell
+  back to intrinsic aspect on one axis — NOT flex compression, seen on wide viewports). Hard-locked
+  `.cpub-av`/`.cpub-cc-av` to a square via `min/max` on BOTH axes (`--cpub-av-size` var). CSS verified
+  live on deveco; **awaiting the operator's visual confirm**. Root cause (which global rule drops the
+  dimension to `auto`) NOT found — the clamp fixes the symptom robustly; worth a root-cause pass.
+
+### Post-session audit (verified 2026-06-03)
+- **Zero drift**: all 13 @commonpub/* source==published; layer 0.47.0; CLI Cargo 0.5.5==crates.io.
+  main clean, 0 unpushed, only `main` branch. deveco+heatsync pinned `^0.47.0`, deployed, health 200.
+- **No regressions** across the 4 layer releases: federation flags as designed; registry directory
+  still lists deveco+heatsync (both online); outbox P0 intact (heatsync 8, deveco 23).
+
+### Open items (next session)
+- **P3** mirror-request Offer→Accept round-trip — the only federation feature never verified
+  end-to-end (needs admin login on 2 instances: Request → approve w/ depth → pull mirror + backfill).
+- **CI flake stabilization** — `check` is red on every PR from an intermittent `@commonpub/infra`
+  Redis integration test (`two stores sharing one Redis`) + `@commonpub/docs` test; `e2e` always red
+  on 2 homepage flakes (`navigation.spec.ts:8`/`:38`). Had to rerun `check` ~4× this session. Quarantine
+  or fix so CI is a real gate (`smoke.mjs` is the only trustworthy prod gate today).
+- **GitHub Actions Node 20 deprecation** — forced to Node 24 on **2026-06-16**; bump action versions.
+- **Avatar root cause** — found+fixed the symptom (square-lock); the global rule that drops the
+  `<img>` dimension to `auto` is still unidentified.
+- ~~`CARGO_REGISTRY_TOKEN` secret~~ DONE. Browser-smoke `/admin/federation`; `reconcile-counters --check`.
 
 ### Corrected stale claims this release found
 - **Federation is ALREADY ON in prod** (was "off") — the 187 actor↔signer inbox binding is LIVE.
