@@ -111,7 +111,7 @@ export default defineNuxtConfig({
         layoutEngine: false,
         rbac: false,
         actAsRegistry: false,
-        announceToRegistry: false,
+        announceToRegistry: true,
       },
       contentTypes: 'project,blog,explainer',
       contestCreation: 'admin',

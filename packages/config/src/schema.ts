@@ -52,11 +52,14 @@ export const featureFlagsSchema = z.object({
   // Cross-instance delegated authorization. Nested object so the
   // namespace stays separate; all sub-flags default off.
   identity: identityFeaturesSchema.default(() => identityFeaturesSchema.parse({})),
-  // Phase 4 registry. actAsRegistry = accept pings + serve the directory;
-  // announceToRegistry = send heartbeats to federation.registryUrl. Both
-  // default OFF — no registry, no phone-home, until the operator opts in.
+  // Phase 4 registry. actAsRegistry = accept pings + serve the directory
+  // (default OFF — only commonpub.io and operators who opt in act as a
+  // registry). announceToRegistry = send heartbeats to federation.registryUrl
+  // (default ON — instances are discoverable by default; the heartbeat self-
+  // skips when registryUrl == own domain, and requires federation:true to run.
+  // Set false to opt out of discovery).
   actAsRegistry: z.boolean().default(false),
-  announceToRegistry: z.boolean().default(false),
+  announceToRegistry: z.boolean().default(true),
 });
 
 export const authConfigSchema = z.object({

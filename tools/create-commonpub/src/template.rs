@@ -35,18 +35,18 @@ pub fn generate_hex_token(byte_len: usize) -> String {
 // in lockstep with deveco.io's package.json pins (the proven
 // production thin-app reference).
 //
-// Last synced: 2026-05-21 (session 152, universal-radius leak fix +
-// ProjectView code-snippet sweep) —
-// layer 0.21.22, server 2.55.0, schema 0.16.0, config 0.13.0. Server
-// crosses minor (2.54.3 → 2.55.0) to add `getClientIp` +
-// `safeFetchResponse`/`safeFetchSigned` re-exports — the lockstep-pin
-// rule means thin-apps MUST bump `@commonpub/server` alongside
-// `@commonpub/layer` whenever server crosses minor, otherwise pnpm
-// hoists 2.54.x and the layer's `getClientIp` import resolves to undefined.
-const COMMONPUB_CONFIG_VERSION: &str = "^0.16.0";
-const COMMONPUB_LAYER_VERSION: &str = "^0.38.0";
-const COMMONPUB_SCHEMA_VERSION: &str = "^0.24.0";
-const COMMONPUB_SERVER_VERSION: &str = "^2.67.0";
+// Last synced: 2026-06-03 (session 188, federation discovery & hardening +
+// commonpub.io-as-default-registry) — layer 0.45.0, server 2.73.0, schema
+// 0.26.0, config 0.18.0. config 0.18.0 flips `announceToRegistry` to default
+// ON, so a freshly-scaffolded instance announces to commonpub.io out of the
+// box (heartbeat self-skips if it is its own registry; requires federation).
+// The lockstep-pin rule still holds: bump `@commonpub/server` alongside
+// `@commonpub/layer` whenever server crosses minor, else pnpm hoists an older
+// server and the layer's server-subpath imports resolve to undefined.
+const COMMONPUB_CONFIG_VERSION: &str = "^0.18.0";
+const COMMONPUB_LAYER_VERSION: &str = "^0.45.0";
+const COMMONPUB_SCHEMA_VERSION: &str = "^0.26.0";
+const COMMONPUB_SERVER_VERSION: &str = "^2.73.0";
 
 // pnpm pin for the generated Dockerfile. `pnpm@latest` is a time-bomb:
 // pnpm ≥10.11 fails `install --frozen-lockfile` on packages with

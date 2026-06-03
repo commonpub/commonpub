@@ -75,8 +75,10 @@ export interface FeatureFlags {
   actAsRegistry: boolean;
   /**
    * Announce this instance to a registry (Phase 4). When ON, a heartbeat is
-   * periodically sent to `federation.registryUrl`. Default OFF — no instance
-   * phones home until the operator opts in.
+   * periodically sent to `federation.registryUrl` (default https://commonpub.io)
+   * so the instance is discoverable. Default ON — set false to opt out. The
+   * heartbeat self-skips when the registry is this instance's own domain and
+   * only runs when `federation` is enabled.
    */
   announceToRegistry: boolean;
 }

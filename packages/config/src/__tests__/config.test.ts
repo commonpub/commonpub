@@ -30,9 +30,11 @@ describe('defineCommonPubConfig', () => {
     expect(config.features.explainers).toBe(true);
     expect(config.features.federation).toBe(false);
     expect(config.features.admin).toBe(false);
-    // Phase 4 registry flags default OFF — no registry, no phone-home.
+    // Phase 4: actAsRegistry defaults OFF (don't act as a registry), but
+    // announceToRegistry defaults ON (instances are discoverable by default;
+    // self-skips when registryUrl == own domain).
     expect(config.features.actAsRegistry).toBe(false);
-    expect(config.features.announceToRegistry).toBe(false);
+    expect(config.features.announceToRegistry).toBe(true);
   });
 
   it('defaults registry federation knobs (url + ping interval) via the factory', () => {
