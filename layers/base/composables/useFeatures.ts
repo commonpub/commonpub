@@ -42,7 +42,7 @@ export interface FeatureFlags {
   rbac: boolean;
   /** Act as an instance registry/directory (Phase 4). Default OFF. */
   actAsRegistry: boolean;
-  /** Announce this instance to a registry (Phase 4). Default OFF. */
+  /** Announce this instance to a registry (Phase 4). Default ON (discoverable). */
   announceToRegistry: boolean;
   /**
    * Cross-instance delegated authorization. All sub-flags default false.
@@ -67,7 +67,7 @@ export const DEFAULT_FLAGS: FeatureFlags = {
   layoutEngine: false,
   rbac: false,
   actAsRegistry: false,
-  announceToRegistry: false,
+  announceToRegistry: true,
   identity: {
     linkRemoteAccounts: false,
     signInWithRemote: false,
