@@ -36,7 +36,7 @@ pub fn generate_hex_token(byte_len: usize) -> String {
 // production thin-app reference).
 //
 // Last synced: 2026-06-03 (session 188, federation discovery & hardening +
-// commonpub.io-as-default-registry; layer 0.47.0 = avatar square-lock) — layer 0.47.0, server 2.73.0, schema
+// commonpub.io-as-default-registry; layer 0.48.0 = contest-card banner) — layer 0.48.0, server 2.73.0, schema
 // 0.26.0, config 0.18.0. config 0.18.0 flips `announceToRegistry` to default
 // ON, so a freshly-scaffolded instance announces to commonpub.io out of the
 // box (heartbeat self-skips if it is its own registry; requires federation).
@@ -44,7 +44,7 @@ pub fn generate_hex_token(byte_len: usize) -> String {
 // `@commonpub/layer` whenever server crosses minor, else pnpm hoists an older
 // server and the layer's server-subpath imports resolve to undefined.
 const COMMONPUB_CONFIG_VERSION: &str = "^0.18.0";
-const COMMONPUB_LAYER_VERSION: &str = "^0.47.0";
+const COMMONPUB_LAYER_VERSION: &str = "^0.48.0";
 const COMMONPUB_SCHEMA_VERSION: &str = "^0.26.0";
 const COMMONPUB_SERVER_VERSION: &str = "^2.73.0";
 
