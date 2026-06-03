@@ -4,6 +4,12 @@
 > `docs/llm/facts.md` and `docs/llm/gotchas.md` FIRST, and `npm view @commonpub/<pkg>
 > version` for exact versions.**
 
+> **Incremental refresh: session 188 (2026-06-03)** — `02` (counts → 89 tables / 45 enums / 108
+> schemas + migrations 0014/0015), `08` (`announceToRegistry` default flipped ON; commonpub.io
+> `actAsRegistry` live), and `11` (version headline) updated for the federation-discovery + registry
+> + CLI-publish + UI/CI work. `03`/`04`/`06`/`09` were already updated for federation in sessions
+> 183–187. Operator-facing current state lives in `docs/STATUS.md`.
+>
 > **Full audit pass: session 181 (2026-06-01).** Every file in this folder was
 > re-verified against the actual code in this session — counts, table/enum lists,
 > module/route/component inventories, gotchas, and the doc audit are current as of

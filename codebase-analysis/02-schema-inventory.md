@@ -1,12 +1,14 @@
 # 02 — Schema Inventory
 
-Source: `packages/schema/src/*.ts`. Re-verified session 181 (2026-06-01).
+Source: `packages/schema/src/*.ts`. Re-verified session 188 (2026-06-03).
 
-**87 tables (`grep -c pgTable`), 42 enums (`grep -c pgEnum`), 102 `*Schema`
-exports in `validators.ts`.** Drizzle ORM on PostgreSQL 16.
+**89 tables (`grep -c pgTable`), 45 enums (`grep -c pgEnum`), 108 `*Schema`
+exports in `validators.ts`.** Drizzle ORM on PostgreSQL 16. (+2 tables / +3 enums
+/ +6 schemas since session 181: `mirror_requests` (0014) + `registry_instances`
++ `registry_instance_status` (0015) federation discovery work, sessions 185/186.)
 
-**14 migrations, 0000–0013** (latest `0013_black_lorna_dane` = self-referential
-FK constraints, session 183). Full list:
+**16 migrations, 0000–0015** (latest `0015_cloudy_zodiak` = registry directory
+table, session 186). Full list:
 
 | # | File | What it added |
 |---|---|---|
@@ -24,6 +26,8 @@ FK constraints, session 183). Full list:
 | 0011 | `green_lorna_dane` | contest `prizes_description` column (`text`) |
 | 0012 | `true_nicolaos` | Two PARTIAL composite feed indexes `idx_content_items_feed_recency` + `idx_content_items_feed_popular` (keyset pagination, session 179) |
 | 0013 | `black_lorna_dane` | Self-referential FK constraints (ON DELETE SET NULL) on `comments.parent_id`, `hub_post_replies.parent_id`, `docs_pages.parent_id`, `hubs.parent_hub_id` (session 183). Nulls any pre-existing dangling pointers first, then adds the constraints — same "null orphans then enforce" pattern as 0002. |
+| 0014 | `great_meltdown` | `mirror_requests` table (consent-based push: incoming\|outgoing mirror requests, offer-uri correlation, depth/filters) — Phase 3 federation, session 185. |
+| 0015 | `cloudy_zodiak` | `registry_instances` table + `registry_instance_status` enum (active\|hidden\|blocked) — Phase 4 instance directory, session 186. Stats pulled from each pinger's NodeInfo. |
 
 ## Files
 

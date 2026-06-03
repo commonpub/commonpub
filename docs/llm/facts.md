@@ -23,12 +23,13 @@ codebase-analysis/       raw inventory (generated — trust over older docs)
 12 packages on npm as `@commonpub/*`:
 schema, server, config, protocol, auth, ui, editor, explainer, learning, docs, infra, test-utils.
 
-## Latest published versions (session 180, 2026-06-01)
+## Latest published versions (session 188, 2026-06-03)
 
-- schema 0.25.0, server 2.72.0, config 0.16.0, layer 0.43.3
-- ui 0.9.2, protocol 0.12.0, editor 0.7.11, explainer 0.7.15
-- learning 0.5.2, docs 0.6.3, auth 0.7.0, infra 0.8.0, test-utils 0.5.6
-- (Always `npm view @commonpub/<pkg> version` before trusting this — it drifts.)
+- schema 0.26.0, server 2.73.0, config 0.18.0, layer 0.47.0
+- ui 0.9.2, protocol 0.13.0, editor 0.7.11, explainer 0.7.15
+- learning 0.5.2, docs 0.6.3, auth 0.8.0, infra 0.8.0, test-utils 0.5.6
+- create-commonpub 0.5.5 (crates.io — `cargo install create-commonpub`)
+- (Always `npm view @commonpub/<pkg> version` / `cargo search` before trusting this — it drifts.)
 
 All three instances (commonpub.io / deveco.io / heatsynclabs.io) run the latest
 published layer (0.43.2) and are LIVE + healthy. commonpub.io builds from the
@@ -45,7 +46,7 @@ of past flag state drifts (see session 149's "live-active state correction").
 ## Database
 
 - PostgreSQL 16 + Drizzle.
-- **80+ tables, 41 enums. 13 migrations (0000–0012).** Full list: `codebase-analysis/02-schema-inventory.md`. Layout-engine tables (`layouts`, `layout_rows`, `layout_sections`, `layout_versions`) added in migration 0005 — instance-local, never federate. Migration 0012 (session 179) adds two PARTIAL composite indexes `idx_content_items_feed_recency` `(published_at DESC NULLS LAST, id DESC)` + `idx_content_items_feed_popular` `(view_count DESC, id DESC)` over `WHERE status='published' AND deleted_at IS NULL` — they back the keyset feed. NULLS placement is matched syntactically by the planner, so the index spells `id DESC NULLS FIRST`; `pushSchema` (PGlite test harness) SKIPS partial indexes (test creates DDL itself).
+- **89 tables, 45 enums. 16 migrations (0000–0015).** Full list: `codebase-analysis/02-schema-inventory.md`. 0014 = `mirror_requests` (consent-based push, session 185), 0015 = `registry_instances` + `registry_instance_status` enum (instance directory, session 186). Layout-engine tables (`layouts`, `layout_rows`, `layout_sections`, `layout_versions`) added in migration 0005 — instance-local, never federate. Migration 0012 (session 179) adds two PARTIAL composite indexes `idx_content_items_feed_recency` `(published_at DESC NULLS LAST, id DESC)` + `idx_content_items_feed_popular` `(view_count DESC, id DESC)` over `WHERE status='published' AND deleted_at IS NULL` — they back the keyset feed. NULLS placement is matched syntactically by the planner, so the index spells `id DESC NULLS FIRST`; `pushSchema` (PGlite test harness) SKIPS partial indexes (test creates DDL itself).
 - Domains: auth, content, social, messaging, hubs, products, learning, docs, videos, contests, events, voting, federation, admin, files.
 - Soft delete on: users, contentItems, hubs, federatedContent, federatedHubPosts.
 - Denormalized counters pervasive (voteScore, entryCount, attendeeCount, memberCount, likeCount, etc.).

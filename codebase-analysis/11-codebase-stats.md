@@ -1,15 +1,20 @@
 # 11 — Codebase Stats
 
-> **Headline / Database / versions tables below re-verified session 181 (2026-06-01).**
+> **Headline / Database / versions tables below re-verified session 188 (2026-06-03).**
 > The session-by-session delta entries that follow are kept as historical record
 > (accurate at the time of each session); for live ground truth always prefer the
-> Headline table + `docs/llm/facts.md` + `npm view`.
-> Current: **schema 0.25.0, server 2.72.0, layer 0.43.3, ui 0.9.2, config 0.16.0,
-> auth 0.7.0; 13 migrations (0000–0012, 0012 = composite feed indexes).** Sessions
-> 171–181 added contest overhaul + RBAC phase 0/1 (migrations 0009–0011), keyset feed
-> pagination (`query.ts` cursor helpers, `listContentKeyset`, `GET /api/content/feed`,
-> `useContentFeed`, migration 0012), crafted-cursor DoS hardening + federated-leak fix
-> (server 2.72.0), and base-layout chrome tokenization.
+> Headline table + `docs/llm/facts.md` + `npm view` + `docs/STATUS.md`.
+> Current (published): **schema 0.26.0, config 0.18.0, protocol 0.13.0, auth 0.8.0,
+> server 2.73.0, ui 0.9.2, layer 0.47.0; create-commonpub 0.5.5 (crates.io); 16
+> migrations (0000–0015, 0015 = registry_instances).** Session 188 (federation
+> discovery & hardening + follow-ups): actor/outbox projection over published+public
+> content (P0), consent-based mirror requests (`mirror_requests`, 0014), instance
+> registry (`registry_instances`, 0015) with **commonpub.io as the default registry**
+> (`actAsRegistry` on there) + `announceToRegistry` default flipped ON, CLI published
+> to crates.io with a tag-release workflow, contest banner −¼, deveco mobile-nav fix,
+> avatar square-lock, and CI check-job flake fixes (Redis window-boundary guard + docs
+> CI retry). Migrations 0009–0011 = RBAC/contest (session 175/177); 0012 = keyset feed
+> indexes (179); 0013 = self-ref FKs (183).
 
 Numbers are approximate — exact counts vary with test exclusions.
 
