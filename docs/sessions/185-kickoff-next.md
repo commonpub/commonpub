@@ -7,18 +7,25 @@ Read this, then start. Master plan: `docs/plans/federation-discovery-and-hardeni
 
 ## ✅ RELEASE COMPLETE (2026-06-03, session 188)
 
-Phases 0–4 squash-merged to `main` (PR #1, `a86d4d7`) and shipped:
-- **Published:** schema **0.26.0**, config **0.17.0**, protocol **0.13.0**, auth **0.8.0**,
-  server **2.73.0**, layer **0.44.0**. ui unchanged 0.9.2. test-utils intentionally not published.
+Phases 0–4 squash-merged to `main` (PR #1, `a86d4d7`) and shipped, THEN commonpub.io made the
+default registry (PR #2, `33d77f2`):
+- **Published:** schema **0.26.0**, protocol **0.13.0**, auth **0.8.0**, server **2.73.0**,
+  config **0.18.0**, layer **0.45.0**. ui unchanged 0.9.2. test-utils intentionally not published.
+  (config 0.17.0→0.18.0 + layer 0.44.0→0.45.0 came in the registry-default follow-up.)
 - **Deployed all 3** (commonpub.io / deveco.io / heatsynclabs.io); migrations 0013/0014/0015 applied.
 - **P0 verified LIVE:** heatsync `/actor/outbox` totalItems **2→8**, deveco **23**, `#create` ids.
-  Latent coupling SAFE (actor host == domain all 3). New registry flags live (default off).
+  Latent coupling SAFE (actor host == domain all 3).
+- **Registry SHIPPED + P4 VERIFIED LIVE:** `announceToRegistry` now defaults TRUE (config 0.18.0);
+  commonpub.io has `actAsRegistry:true`. deveco+heatsync announce on boot → commonpub.io
+  `/api/registry/instances` lists both with NodeInfo-pulled stats (deveco 40 users, heatsync 5
+  users/8 posts/online). Signed-ping→verify→NodeInfo-pull→directory round-trip confirmed.
+  CLI scaffolder pins bumped to current (new instances announce out of the box).
 
-### What still needs the OPERATOR (interactive / product decision — see session 188 "Still requires")
-- **P3** mirror-request Offer→Accept round-trip (admin auth on 2 instances).
-- **P4** registry: flip `actAsRegistry` (routes 404 until then) + `announceToRegistry` — a
-  phone-home activation decision, deliberately not done in the release.
+### What still needs the OPERATOR (interactive — admin auth)
+- **P3** mirror-request Offer→Accept round-trip (admin login on 2 instances, click approve/reject).
 - Browser-smoke `/admin/federation` (Mirrors + Registry tabs); `reconcile-counters --check` on droplets.
+- **Redistribute the create-commonpub binary** if it's published anywhere (source pins current; shipped
+  binary, if any, still embeds old pins — distribution mechanism TBD).
 
 ### Corrected stale claims this release found
 - **Federation is ALREADY ON in prod** (was "off") — the 187 actor↔signer inbox binding is LIVE.

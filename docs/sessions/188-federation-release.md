@@ -104,8 +104,32 @@ Verified beyond the headline checklist:
 - Pre-existing (not this release): deveco `/actor/following` omits heatsync (cosmetic — mirror works
   off heatsync's followers); deveco NodeInfo `localPosts:81` vs feed `23` (counts all statuses).
 
+## Follow-up SHIPPED same session — commonpub.io as the default registry
+Per operator decision (flip the library default, enroll existing instances):
+- **@commonpub/config 0.18.0**: `announceToRegistry` default flipped **false→true** (instances are
+  discoverable by default; heartbeat self-skips when `registryUrl`==own domain + requires
+  `federation:true`). `actAsRegistry` stays default false. `registryUrl` already defaulted to
+  commonpub.io. Updated `config.test.ts` + types/schema doc comments.
+- **@commonpub/layer 0.45.0**: aligned `nuxt.config` runtimeConfig + `useFeatures` fallback to true.
+- **commonpub.io** (`apps/reference/commonpub.config.ts`): `actAsRegistry: true`.
+- **CLI scaffolder**: pins bumped to config ^0.18.0 / layer ^0.45.0 / schema ^0.26.0 / server
+  ^2.73.0 (closes the ~6-release staleness; new instances announce out of the box). `cargo test` 29 ✓.
+- **deveco + heatsync**: bumped config ^0.18.0 / layer ^0.45.0 → redeployed → inherit the new
+  default → announce.
+
+### P4 registry round-trip VERIFIED LIVE (PR #2 → `33d77f2`)
+- commonpub.io `/api/registry/instances` **200** (was 404), `POST /api/registry/ping` **401**
+  (exists, rejects unsigned), `actAsRegistry:true`.
+- After deveco+heatsync redeployed, both report `announceToRegistry:true`; their boot heartbeats
+  pinged commonpub.io, which verified the signatures + pulled NodeInfo. The directory now lists
+  **deveco.io (40 users) + heatsynclabs.io (5 users, localPostCount 8, online:true,
+  lastPingAt today)** — full signed-ping → NodeInfo-pull → directory round-trip confirmed end-to-end.
+- commonpub.io does NOT self-list (announce self-skip working).
+
 ## Next steps
-- **Recommended now: bump the CLI scaffolder pins** (4 constants + 4 test assertions) + rebuild CLI.
+- ~~Bump the CLI scaffolder pins~~ — DONE (folded into the registry change above).
+- **Rebuild/redistribute the create-commonpub binary** if it's published anywhere — source pins are
+  current but the shipped binary (if any) still embeds the old pins. (Distribution mechanism TBD.)
 - Operator: run the P3/P4 interactive verifications when convenient (admin auth + 2 instances).
 - Definitive live-delivery proof: publish 1 public post on heatsync → it should appear on deveco
   within a minute (`deveco.io/api/content?limit=5`, today stamp).
