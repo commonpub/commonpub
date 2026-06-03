@@ -22,6 +22,21 @@ const TEST_PREFIX = 'cpub:test:redis-integration';
 
 const describeIfRedis = REDIS_URL ? describe : describe.skip;
 
+/**
+ * Fixed-window rate-limit buckets are keyed by `floor(now / windowMs)`. A
+ * count-sensitive sequence of checks MUST run inside one bucket — a check that
+ * crosses a wall-clock window boundary hits a fresh counter and flakes
+ * (intermittent "4th request allowed" / "2nd request not blocked"). If the
+ * current window has less than `minHeadroomMs` left, sleep into the next one so
+ * the following checks all share a bucket.
+ */
+async function waitForWindowHeadroom(windowMs: number, minHeadroomMs: number): Promise<void> {
+  const headroom = windowMs - (Date.now() % windowMs);
+  if (headroom < minHeadroomMs) {
+    await new Promise((r) => setTimeout(r, headroom + 20));
+  }
+}
+
 describeIfRedis('RedisRateLimitStore (integration)', () => {
   let client: RedisClient;
 
@@ -59,6 +74,10 @@ describeIfRedis('RedisRateLimitStore (integration)', () => {
     const store2 = new RedisRateLimitStore(client, { keyPrefix: `${TEST_PREFIX}:shared` });
     const tier = { limit: 3, windowMs: 5_000 };
 
+    // Keep all four checks in one window (else the 4th can land in a fresh
+    // bucket and be allowed — the boundary flake).
+    await waitForWindowHeadroom(tier.windowMs, 1_000);
+
     // Three allowed, split across stores.
     const r1 = await store1.check('user-1', tier);
     const r2 = await store2.check('user-1', tier);
@@ -83,6 +102,9 @@ describeIfRedis('RedisRateLimitStore (integration)', () => {
   it('window rolls over (short-window check)', async () => {
     const store = new RedisRateLimitStore(client, { keyPrefix: `${TEST_PREFIX}:window` });
     const tier = { limit: 1, windowMs: 1_000 };
+    // The first two checks must share a bucket so the 2nd is blocked; the
+    // deliberate rollover is the 1.2s wait below. Guard the tight 1s window.
+    await waitForWindowHeadroom(tier.windowMs, 400);
     await store.check('k', tier);
     const blocked = await store.check('k', tier);
     expect(blocked.allowed).toBe(false);
