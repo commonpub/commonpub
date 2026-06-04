@@ -117,21 +117,27 @@ describe('contest integration', () => {
     await addContestJudge(db, contest.id, judgeUserId, 'judge');
     await acceptJudgeInvite(db, contest.id, judgeUserId);
 
-    // Submit three entries while active, then judge them: A=90, B=70, C=40.
+    // Submit three entries, then judge them. Scores are DELIBERATELY out of
+    // insertion order — the lowest scorer (lowScore) is submitted FIRST — so a
+    // buggy insertion-order cut (slice(0,2)) would advance the wrong entries and
+    // fail this test, proving the cut is genuinely by score.
     await transitionContestStatus(db, contest.id, organizerId, 'active');
-    const entries: { id: string; score: number }[] = [];
-    for (const [title, score] of [['A', 90], ['B', 70], ['C', 40]] as const) {
+    const entries: { id: string; title: string; score: number }[] = [];
+    for (const [title, score] of [['low', 40], ['high', 90], ['mid', 70]] as const) {
       const u = await createTestUser(db, { username: `adv-${title}-${Date.now()}-${Math.random().toString(36).slice(2, 5)}` });
       const content = await createContent(db, u.id, { type: 'project', title });
       await publishContent(db, content.id, u.id);
       const e = await submitContestEntry(db, contest.id, content.id, u.id);
-      entries.push({ id: e!.id, score });
+      entries.push({ id: e!.id, title, score });
     }
     await transitionContestStatus(db, contest.id, organizerId, 'judging');
     for (const e of entries) await judgeContestEntry(db, e.id, e.score, judgeUserId);
-    const [a, b, cId] = entries.map((e) => e.id);
+    const idOf = (t: string) => entries.find((e) => e.title === t)!.id;
+    const low = idOf('low'); // 40, submitted 1st
+    const high = idOf('high'); // 90, submitted 2nd
+    const mid = idOf('mid'); // 70, submitted 3rd
 
-    // Cut the field to the top 2.
+    // Cut to the top 2 by SCORE → high (90) + mid (70) advance, low (40) is out.
     const res = await advanceContestStage(db, contest.id, organizerId, { reviewStageId: reviewId, mode: 'topN', topN: 2 });
     expect(res.advanced).toBe(true);
     expect(res.advancedCount).toBe(2);
@@ -140,30 +146,31 @@ describe('contest integration', () => {
     // currentStageId moved to the next stage.
     expect((await getContestBySlug(db, contest.slug))?.currentStageId).toBe(nextId);
 
-    // C (lowest) eliminated; A & B advanced.
+    // The lowest scorer (submitted FIRST) is the one eliminated — not an
+    // insertion-order pick.
     const byId = Object.fromEntries((await listContestEntries(db, contest.id, { limit: 50 })).items.map((e) => [e.id, e]));
-    expect(byId[cId]!.eliminated).toBe(true);
-    expect(byId[a]!.eliminated).toBe(false);
-    expect(byId[b]!.eliminated).toBe(false);
-    expect(isEliminated({ stageState: byId[cId]!.stageState })).toBe(true);
+    expect(byId[low]!.eliminated).toBe(true);
+    expect(byId[high]!.eliminated).toBe(false);
+    expect(byId[mid]!.eliminated).toBe(false);
+    expect(isEliminated({ stageState: byId[low]!.stageState })).toBe(true);
 
-    // Ranks exclude the eliminated entry.
+    // Ranks: survivors ranked by score (high=1, mid=2); the eliminated entry has no rank.
     await calculateContestRanks(db, contest.id);
     const ranks = Object.fromEntries((await listContestEntries(db, contest.id, { limit: 50 })).items.map((e) => [e.id, e.rank]));
-    expect(ranks[a]).toBe(1);
-    expect(ranks[b]).toBe(2);
-    expect(ranks[cId]).toBeNull();
+    expect(ranks[high]).toBe(1);
+    expect(ranks[mid]).toBe(2);
+    expect(ranks[low]).toBeNull();
 
     // Idempotent: re-running the same cut doesn't duplicate stageState rows.
     await advanceContestStage(db, contest.id, organizerId, { reviewStageId: reviewId, mode: 'topN', topN: 2 });
-    const cEntry = (await listContestEntries(db, contest.id, { limit: 50 })).items.find((e) => e.id === cId)!;
-    expect(cEntry.stageState.filter((s) => s.stageId === reviewId)).toHaveLength(1);
+    const lowEntry = (await listContestEntries(db, contest.id, { limit: 50 })).items.find((e) => e.id === low)!;
+    expect(lowEntry.stageState.filter((s) => s.stageId === reviewId)).toHaveLength(1);
 
-    // Cohort gate (G2): an eliminated entry can no longer be scored; survivors can.
-    const rejected = await judgeContestEntry(db, cId, 50, judgeUserId);
+    // Cohort gate (G2): the eliminated entry can no longer be scored; survivors can.
+    const rejected = await judgeContestEntry(db, low, 50, judgeUserId);
     expect(rejected.judged).toBe(false);
     expect(rejected.error).toMatch(/not advanced/i);
-    const ok = await judgeContestEntry(db, a, 95, judgeUserId);
+    const ok = await judgeContestEntry(db, high, 95, judgeUserId);
     expect(ok.judged).toBe(true);
   });
 
@@ -205,12 +212,14 @@ describe('contest integration', () => {
     }
     const [a, b, c] = entries.map((e) => e.id);
 
-    // ── Round 1: judge all 3 proposals; A=90, B=70, C=40 ──
+    // ── Round 1: judge all 3 proposals. Scores out of insertion order — B
+    // (submitted 2nd) is the LOWEST, so the cut can't be an insertion-order pick.
+    // A=90, B=40, C=70 → top 2 by score = A + C; B is eliminated.
     await transitionContestStatus(db, contest.id, organizerId, 'judging');
     await updateContest(db, contest.slug, organizerId, { currentStageId: 'r1' });
     await judgeContestEntry(db, a, 90, judgeUserId);
-    await judgeContestEntry(db, b, 70, judgeUserId);
-    await judgeContestEntry(db, c, 40, judgeUserId);
+    await judgeContestEntry(db, b, 40, judgeUserId);
+    await judgeContestEntry(db, c, 70, judgeUserId);
 
     // Cut to the top 2 (the stage's advanceCount).
     const adv = await advanceContestStage(db, contest.id, organizerId, { reviewStageId: 'r1', mode: 'topN', topN: 2 });
@@ -218,35 +227,37 @@ describe('contest integration', () => {
     expect(adv.eliminatedCount).toBe(1);
     expect((await getContestBySlug(db, contest.slug))!.currentStageId).toBe('sprint'); // moved to next stage
 
-    // Round-1 result snapshotted per entry.
+    // B (lowest, submitted 2nd) eliminated; A + C survive. Round-1 score snapshotted.
     const afterCut = (await listContestEntries(db, contest.id, { limit: 50 })).items;
     const byId = Object.fromEntries(afterCut.map((e) => [e.id, e]));
-    expect(byId[c]!.eliminated).toBe(true);
+    expect(byId[b]!.eliminated).toBe(true);
+    expect(byId[a]!.eliminated).toBe(false);
+    expect(byId[c]!.eliminated).toBe(false);
     expect(byId[a]!.stageState.find((s) => s.stageId === 'r1')!.score).toBe(90);
 
-    // ── Round 2: only survivors are judgeable ──
+    // ── Round 2: only survivors (A, C) are judgeable ──
     await updateContest(db, contest.slug, organizerId, { currentStageId: 'r2' });
-    const rejectC = await judgeContestEntry(db, c, 99, judgeUserId); // eliminated → blocked
-    expect(rejectC.judged).toBe(false);
-    expect(rejectC.error).toMatch(/not advanced/i);
-    // Re-score the 2 finalists on the prototype; B now beats A.
+    const rejectB = await judgeContestEntry(db, b, 99, judgeUserId); // eliminated → blocked
+    expect(rejectB.judged).toBe(false);
+    expect(rejectB.error).toMatch(/not advanced/i);
+    // Re-score the 2 finalists on the prototype; C now beats A.
     expect((await judgeContestEntry(db, a, 85, judgeUserId)).judged).toBe(true);
-    expect((await judgeContestEntry(db, b, 95, judgeUserId)).judged).toBe(true);
+    expect((await judgeContestEntry(db, c, 95, judgeUserId)).judged).toBe(true);
 
-    // Per-round isolation: round-1 score preserved alongside round-2 (tagged by stage),
-    // and the live `score` reflects ONLY round 2.
+    // Per-round isolation: A's round-1 score (90) is preserved tagged 'r1' alongside
+    // its round-2 score (85) tagged 'r2', and the live `score` reflects ONLY round 2.
     const aEntry = (await listContestEntries(db, contest.id, { limit: 50, includeJudgeScores: true })).items.find((e) => e.id === a)!;
     const aMine = (aEntry.judgeScores ?? []).filter((s) => s.judgeId === judgeUserId);
     expect(aMine.find((s) => s.roundId === 'r1')?.score).toBe(90);
     expect(aMine.find((s) => s.roundId === 'r2')?.score).toBe(85);
-    expect(aEntry.score).toBe(85); // live aggregate = current (round-2) only
+    expect(aEntry.score).toBe(85); // live aggregate = current (round-2) only, NOT blended with round 1
 
-    // ── Finale: complete → ranks computed over the surviving cohort only ──
+    // ── Finale: complete → ranks over the surviving cohort only (by round-2 score) ──
     await transitionContestStatus(db, contest.id, organizerId, 'completed');
     const final = Object.fromEntries((await listContestEntries(db, contest.id, { limit: 50 })).items.map((e) => [e.id, e]));
-    expect(final[b]!.rank).toBe(1); // 95
+    expect(final[c]!.rank).toBe(1); // 95
     expect(final[a]!.rank).toBe(2); // 85
-    expect(final[c]!.rank).toBeNull(); // eliminated — never ranked
+    expect(final[b]!.rank).toBeNull(); // eliminated — never ranked
   });
 
   it('advanceContestStage: rejects non-owner + non-review stage', async () => {

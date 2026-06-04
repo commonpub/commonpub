@@ -156,7 +156,7 @@ a minute (`curl deveco.io/api/content?limit=5`, today's timestamp).
 | @commonpub/auth | 0.8.0 | | @commonpub/docs | 0.6.3 |
 | @commonpub/server | **2.80.0** | | @commonpub/learning | 0.5.2 |
 | @commonpub/ui | 0.9.2 | | @commonpub/test-utils | 0.5.6 |
-| @commonpub/layer | **0.59.0** | | create-commonpub (crates.io) | **0.5.7** |
+| @commonpub/layer | **0.60.0** | | create-commonpub (crates.io) | **0.5.7** |
 
 Migrations applied this cycle: **0016** (`contests.cover_image_url`) · **0017** (`contest_status`
 +draft/+paused; `contests.show_prizes`) · **0018** (`contests.stages` jsonb + `contests.current_stage_id`
@@ -265,6 +265,16 @@ page's Advancement section now offers, per review stage, a **Top N** vs **Pick m
 Manual mode lists the eligible (non-eliminated) cohort with checkboxes + each entry's score, and
 "Advance N selected" → `POST /advance` with `mode: 'manual'`. (The API already supported manual; this
 exposes it.) Contest stages epic: nothing left on the original plan.
+
+Contest editor **dirty-state save + adversarial test review** (2026-06-04, layer **0.60.0**): the
+edit form now tracks dirty state — editing any field (e.g. checking an eligible content type) flips
+the save bar to "Unsaved changes" and enables Save ("Saved" when clean). Fixes the report that
+checking a box "didn't light up the save button" (the button had no dirty feedback; empty
+eligible-types correctly = "any type allowed"). Dirty uses a `nextTick`-armed hydration guard so it
+can't get stuck off. **Adversarial test review:** found the advancement + e2e tests had scores in
+insertion order (so an insertion-order cull bug would pass) — rewrote them so the lowest scorer is
+submitted first/mid, and **mutation-tested** (replacing the score-sort with insertion order makes
+both tests fail), proving they verify score-based selection, not coincidence.
 
 Recent UI follow-ups (2026-06-03): contest hero banner 260→195px (layer 0.46.0); deveco.io mobile-nav
 hamburger fixed (its forked `layouts/default.vue` used bare `<MobileNavRenderer>` → unresolved;

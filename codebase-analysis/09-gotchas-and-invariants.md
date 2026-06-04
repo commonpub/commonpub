@@ -904,3 +904,16 @@ rounds remain in `judgeScores` tagged by round, as history. `judgeContestEntry` 
 via `currentStage`; the judge page mirrors this (its `currentRoundId` uses `normalizeStages` exactly
 like the server) to pre-fill only the current round's score. If you add another scoring surface,
 tag + aggregate by `roundId` the same way.
+
+**Advancement-cull tests must defeat the insertion-order coincidence (session 189):** a Top-N cut
+test where the entries are scored in submission order can't tell a score-based cut from a buggy
+`slice(0, N)` (insertion-order) cut — both pass. The contest advancement + e2e tests deliberately
+submit the lowest scorer FIRST (and a mid one), so an insertion-order bug fails them; verified by
+hand-mutating the sort. Same family as [[feedback_pagination_needs_unique_tiebreaker]] /
+[[feedback_keyset_merge_invariants]] — order-dependent logic needs order-disagreeing fixtures.
+
+**Edit-form dirty tracking (session 189):** `pages/contests/[slug]/edit.vue` tracks `formDirty` via a
+deep `watch` over the field refs, suppressed during load by a `hydratingForm` flag re-armed in
+`nextTick` (so it can't get stuck on after hydration). Save is gated on `formDirty` so a change
+visibly enables it. The flag can't get stuck OFF (nextTick always fires), so Save can't be
+permanently disabled. Reset `formDirty` on successful save.

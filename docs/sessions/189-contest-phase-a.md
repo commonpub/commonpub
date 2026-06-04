@@ -188,6 +188,19 @@ The API already supported manual; this exposes it. With this, **nothing remains 
 contest stages plan** — Phase A + B1 + B2 + all follow-ups (cohort judging, per-round criteria,
 per-round score isolation, advanceCount, manual-pick) are shipped.
 
+## Adversarial test review + edit-form dirty fix (same session, layer 0.60.0)
+
+- **Adversarial test review** (user-requested): scrutinised the contest tests for tautology /
+  coincidental passes. Found the advancement + e2e tests scored entries in submission order, so an
+  insertion-order `slice(0,N)` cull bug would pass identically. Rewrote them to submit the lowest
+  scorer first/mid; **mutation-verified** by replacing the score-sort with insertion order → both
+  tests fail as expected, then reverted. Per-round isolation, cohort gate, rank-exclusion, and the
+  draft/transition tests were already adversarially sound (they distinguish the real behaviour).
+- **Edit-form dirty fix** (user report: "checking eligible content type didn't light up Save"): the
+  save button had no dirty feedback. Added `formDirty` (deep watch over the field refs, hydration-
+  guarded with `nextTick`); Save now enables + shows "Unsaved changes" on any edit, "Saved" when
+  clean. Empty eligible-types correctly means "any type allowed" (not a bug). layer 0.60.0.
+
 ## Decisions
 
 - Kept the `status` enum as the coarse lifecycle; fine-grained "which round" will live in

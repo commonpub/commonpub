@@ -65,9 +65,17 @@ const currentStageIdRef = ref<string | null>(null);
 const advancing = ref<string | null>(null);
 const advanceN = ref<Record<string, number>>({});
 
+// Dirty tracking: any edit after the contest loads flips this so the save bar
+// shows "unsaved changes" — feedback that a change (e.g. checking an eligible
+// type) registered. `hydratingForm` suppresses the watcher while the loader
+// populates the fields from the fetched contest.
+const formDirty = ref(false);
+let hydratingForm = false;
+
 // Load current data
 watch(contest, (c) => {
   if (!c) return;
+  hydratingForm = true;
   title.value = c.title ?? '';
   slugInput.value = c.slug ?? '';
   subheading.value = c.subheading ?? '';
@@ -104,7 +112,19 @@ watch(contest, (c) => {
     weight: cr.weight ?? null,
     description: cr.description ?? '',
   }));
+  // Let the field watchers settle from this hydration, then re-arm dirty tracking.
+  void nextTick(() => { hydratingForm = false; });
 }, { immediate: true });
+
+// Mark the form dirty on any post-hydration edit (gives the save bar its
+// "unsaved changes" cue). Worst case (timing) is a harmless early "dirty".
+watch(
+  [title, slugInput, subheading, description, rules, bannerUrl, coverImageUrl, startDate, endDate, judgingEndDate,
+    communityVotingEnabled, judgingVisibility, eligibleContentTypes, maxEntriesPerUser, visibility, visibleToRoles,
+    showPrizes, stages, currentStageIdRef, prizesDescription, prizes, criteria],
+  () => { if (!hydratingForm) formDirty.value = true; },
+  { deep: true },
+);
 
 function addPrize(): void {
   prizes.value.push({ place: null, category: '', title: '', description: '', value: '' });
@@ -190,6 +210,7 @@ async function handleSave(): Promise<void> {
       },
     });
     toast.success('Contest updated');
+    formDirty.value = false;
     // Slug changed → the old URL no longer resolves. Navigate to the renamed
     // contest's page — a different route component, so it loads fresh. (Navigating
     // to the new /edit URL would reuse THIS component with its stale fetch key.)
@@ -594,11 +615,12 @@ async function transitionStatus(newStatus: string): Promise<void> {
       <div class="cpub-edit-actionbar">
         <span class="cpub-edit-actionbar-status">
           Status <span class="cpub-status-badge" :class="`cpub-status-${contest.status}`">{{ contest.status }}</span>
+          <span v-if="formDirty" class="cpub-edit-dirty"><i class="fa-solid fa-circle"></i> Unsaved changes</span>
         </span>
         <div class="cpub-edit-actionbar-btns">
           <NuxtLink :to="`/contests/${slug}`" class="cpub-btn cpub-edit-cancel">Cancel</NuxtLink>
-          <button type="submit" class="cpub-btn cpub-btn-primary" :disabled="saving || !title.trim() || !!dateError">
-            <i class="fa-solid fa-floppy-disk"></i> {{ saving ? 'Saving…' : 'Save Changes' }}
+          <button type="submit" class="cpub-btn cpub-btn-primary" :disabled="saving || !title.trim() || !!dateError || !formDirty">
+            <i class="fa-solid fa-floppy-disk"></i> {{ saving ? 'Saving…' : formDirty ? 'Save Changes' : 'Saved' }}
           </button>
         </div>
       </div>
@@ -703,7 +725,9 @@ async function transitionStatus(newStatus: string): Promise<void> {
 .cpub-advance-pick-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cpub-advance-pick-score { font-family: var(--font-mono); font-size: 11px; color: var(--accent); flex-shrink: 0; }
 .cpub-advance-manual .cpub-btn { align-self: flex-start; margin-top: 6px; }
-.cpub-edit-actionbar-status { font-size: 11px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .06em; color: var(--text-faint); display: flex; align-items: center; gap: 8px; }
+.cpub-edit-actionbar-status { font-size: 11px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .06em; color: var(--text-faint); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.cpub-edit-dirty { color: var(--accent); display: inline-flex; align-items: center; gap: 5px; }
+.cpub-edit-dirty i { font-size: 6px; }
 .cpub-edit-actionbar-btns { display: flex; align-items: center; gap: 8px; }
 
 /* Collapse the meta rail under the main column on narrower viewports. */
