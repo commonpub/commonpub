@@ -10,11 +10,19 @@
 
 ## TL;DR — where things stand
 
-Federation discovery & hardening (Phases 0–4) is **shipped and live on all 3 instances**, and
-**commonpub.io is now the default discovery registry** — every instance announces to it by default.
-All npm packages are published with zero source-vs-published drift; the `create-commonpub` CLI is
-published to crates.io. `main` is clean. The only federation feature not yet exercised end-to-end is
-the **P3 mirror-request approve flow** (needs an admin login on two instances).
+The **contest stages engine** is the major recent work (session 189) and is **feature-complete and
+shipped to all 3 instances** — schema 0.33.0 / server 2.80.0 / layer 0.60.0, migrations 0017–0019.
+It covers: a dynamic multi-stage timeline (submission / review / sprint / results / event), draft +
+paused lifecycle with bidirectional transitions, cohorts + Top-N **or** manual advancement
+(`advanceCount` per round), per-stage judging rubrics, cohort-gated + per-round-isolated judging,
+editable slug, prizes off-switch, and a two-column editor with dirty-state Save. A full end-to-end
+multi-round integration test is mutation-verified. **Nothing remains on the contest plan.** Em dashes
+were swept from all rendered layer copy.
+
+Earlier: **federation discovery & hardening (Phases 0–4)** is live on all 3, and commonpub.io is the
+default discovery registry. All npm packages published (zero source-vs-published drift);
+`create-commonpub` is on crates.io. `main` is clean. The main flow still un-exercised end-to-end is
+the **P3 mirror-request approve round-trip** (needs an admin login on two instances).
 
 ---
 
@@ -85,7 +93,6 @@ the **P3 mirror-request approve flow** (needs an admin login on two instances).
   Node 24 on 2026-06-16 — non-breaking, self-resolving; bump action majors when convenient.
 - **`@commonpub/test-utils` 0.5.6**: source has a `mockConfig` flag addition that the published 0.5.6
   predates. Immaterial (devDep-only, no runtime consumer); can't republish the same version.
-- **GitHub Actions Node 20 deprecation** — `actions/checkout@v4` etc. forced to Node 24 on 2026-06-16.
 
 ### Future / nice-to-have
 - **`npm create commonpub` wrapper** — a thin npm package that downloads a prebuilt binary, so JS
