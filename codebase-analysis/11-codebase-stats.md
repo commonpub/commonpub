@@ -4,9 +4,9 @@
 > The session-by-session delta entries that follow are kept as historical record
 > (accurate at the time of each session); for live ground truth always prefer the
 > Headline table + `docs/llm/facts.md` + `npm view` + `docs/STATUS.md`.
-> Current (published): **schema 0.26.0, config 0.18.0, protocol 0.13.0, auth 0.8.0,
-> server 2.73.0, ui 0.9.2, layer 0.47.0; create-commonpub 0.5.5 (crates.io); 16
-> migrations (0000–0015, 0015 = registry_instances).** Session 188 (federation
+> Current (published): **schema 0.27.0, config 0.18.0, protocol 0.13.0, auth 0.8.0,
+> server 2.74.0, ui 0.9.2, layer 0.49.0; create-commonpub 0.5.7 (crates.io); 17
+> migrations (0000–0016, 0016 = contests.cover_image_url).** Session 188 (federation
 > discovery & hardening + follow-ups): actor/outbox projection over published+public
 > content (P0), consent-based mirror requests (`mirror_requests`, 0014), instance
 > registry (`registry_instances`, 0015) with **commonpub.io as the default registry**

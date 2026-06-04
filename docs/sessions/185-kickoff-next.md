@@ -28,7 +28,12 @@ default registry (PR #2, `33d77f2`):
   `create-commonpub-v*` tag; **`CARGO_REGISTRY_TOKEN` secret is SET** (validated publishing 0.5.4 + 0.5.5).
   Local copy gitignored at `.secrets/cargo-registry-token`.
 
-### Continued — UI fixes shipped to all 3 (session 188, layer 0.46→0.48; CLI → 0.5.6)
+### Continued — UI fixes shipped to all 3 (session 188, layer 0.46→0.49; schema→0.27; server→2.74; CLI→0.5.7)
+- **Contest overhaul** (schema 0.27.0 / server 2.74.0 / layer 0.49.0, migration 0016): optional
+  `contests.coverImageUrl` (cards prefer it cover-cropped → contained banner → trophy; create/edit
+  forms gained a cover upload); ContestHero redesigned (full-width banner band like content pages +
+  2-col body with countdown beside the title/details + status pill); **prizes entirely optional**
+  (form stopped pre-filling 3 prize rows). Migration applied on all 3; verified live on deveco.
 - **Contest banner −¼** (260→195px), layer 0.46.0. Verified live (deveco contest page CSS).
 - **deveco mobile-nav hamburger** fixed — its FORKED `layouts/default.vue` used bare
   `<MobileNavRenderer>` (Nuxt pathPrefix → `<NavMobileNavRenderer>`), so it rendered an empty

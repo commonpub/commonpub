@@ -7,7 +7,8 @@ exports in `validators.ts`.** Drizzle ORM on PostgreSQL 16. (+2 tables / +3 enum
 / +6 schemas since session 181: `mirror_requests` (0014) + `registry_instances`
 + `registry_instance_status` (0015) federation discovery work, sessions 185/186.)
 
-**16 migrations, 0000–0015** (latest `0015_cloudy_zodiak` = registry directory
+**17 migrations, 0000–0016** (latest `0016_smooth_firestar` = `contests.cover_image_url`,
+session 188; 0015 `cloudy_zodiak` = registry directory
 table, session 186). Full list:
 
 | # | File | What it added |
@@ -28,6 +29,7 @@ table, session 186). Full list:
 | 0013 | `black_lorna_dane` | Self-referential FK constraints (ON DELETE SET NULL) on `comments.parent_id`, `hub_post_replies.parent_id`, `docs_pages.parent_id`, `hubs.parent_hub_id` (session 183). Nulls any pre-existing dangling pointers first, then adds the constraints — same "null orphans then enforce" pattern as 0002. |
 | 0014 | `great_meltdown` | `mirror_requests` table (consent-based push: incoming\|outgoing mirror requests, offer-uri correlation, depth/filters) — Phase 3 federation, session 185. |
 | 0015 | `cloudy_zodiak` | `registry_instances` table + `registry_instance_status` enum (active\|hidden\|blocked) — Phase 4 instance directory, session 186. Stats pulled from each pinger's NodeInfo. |
+| 0016 | `smooth_firestar` | `contests.cover_image_url` (nullable text) — optional card/thumbnail cover, distinct from the wide `banner_url` hero. Listing cards fall back to a contained banner then a trophy. Session 188. |
 
 ## Files
 
