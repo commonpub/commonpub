@@ -20,11 +20,6 @@ const props = defineProps<{
 
 const KINDS: ContestStage['kind'][] = ['submission', 'review', 'interim', 'results', 'event', 'custom'];
 
-function newId(): string {
-  const c = (globalThis as { crypto?: { randomUUID?: () => string } }).crypto;
-  return c?.randomUUID?.() ?? `s-${Date.now()}-${Math.round(Math.random() * 1e6)}`;
-}
-
 // datetime-local <-> ISO (mirrors the rest of the contest forms' convention).
 function toLocal(iso?: string): string {
   if (!iso) return '';
@@ -50,39 +45,28 @@ function onDate(i: number, field: 'startsAt' | 'endsAt', e: Event): void {
   setField(i, { [field]: v } as Partial<ContestStage>);
 }
 
+// Array operations live as pure functions in utils/contestStages.ts (unit-tested).
 function addStage(): void {
-  commit([...stages.value, { id: newId(), name: '', kind: 'custom' }]);
+  commit(withStageAdded(stages.value));
 }
 
 function duplicateStage(i: number): void {
-  const src = stages.value[i];
-  if (!src) return;
-  const copy: ContestStage = { ...src, id: newId(), name: `${src.name} (copy)`, core: false };
-  commit([...stages.value.slice(0, i + 1), copy, ...stages.value.slice(i + 1)]);
+  commit(withStageDuplicated(stages.value, i));
 }
 
 function removeStage(i: number): void {
   const removed = stages.value[i];
-  commit(stages.value.filter((_, idx) => idx !== i));
+  commit(withStageRemoved(stages.value, i));
   if (removed && currentId.value === removed.id) currentId.value = null;
 }
 
 function move(i: number, dir: -1 | 1): void {
-  const j = i + dir;
-  if (j < 0 || j >= stages.value.length) return;
-  const next = [...stages.value];
-  [next[i], next[j]] = [next[j]!, next[i]!];
-  commit(next);
+  commit(withStageMoved(stages.value, i, dir));
 }
 
 // Seed the editor with the standard three stages so the owner has a starting point.
 function customize(): void {
-  const iso = (d?: string | null) => (d ? new Date(d).toISOString() : undefined);
-  commit([
-    { id: newId(), name: 'Submissions', kind: 'submission', startsAt: iso(props.startDate), endsAt: iso(props.endDate) },
-    { id: newId(), name: 'Judging', kind: 'review', endsAt: iso(props.judgingEndDate) ?? iso(props.endDate) },
-    { id: newId(), name: 'Results', kind: 'results' },
-  ]);
+  commit(seedStandardStages(props));
 }
 
 function resetToStandard(): void {
@@ -108,6 +92,13 @@ const missingSubmission = computed(() => stages.value.length > 0 && !stages.valu
     </div>
 
     <template v-else>
+      <div class="cpub-stage-tophead">
+        <span class="cpub-stage-count">{{ stages.length }} stage{{ stages.length === 1 ? '' : 's' }}</span>
+        <div class="cpub-stage-toolbar">
+          <button type="button" class="cpub-btn cpub-btn-sm" @click="addStage"><i class="fa-solid fa-plus"></i> Add stage</button>
+          <button type="button" class="cpub-btn cpub-btn-sm cpub-stage-reset" @click="resetToStandard"><i class="fa-solid fa-rotate-left"></i> Reset to standard</button>
+        </div>
+      </div>
       <p v-if="missingSubmission" class="cpub-form-error" role="alert" style="margin: 0 0 10px;">
         Add at least one <strong>Submissions</strong> stage, or reset to the standard flow.
       </p>
@@ -193,14 +184,25 @@ const missingSubmission = computed(() => stages.value.length > 0 && !stages.valu
 
       <div class="cpub-stage-toolbar">
         <button type="button" class="cpub-btn cpub-btn-sm" @click="addStage"><i class="fa-solid fa-plus"></i> Add stage</button>
-        <button type="button" class="cpub-btn cpub-btn-sm cpub-stage-reset" @click="resetToStandard"><i class="fa-solid fa-rotate-left"></i> Reset to standard flow</button>
       </div>
     </template>
   </div>
 </template>
 
 <style scoped>
+/* Self-contained form-control styles (tokenised) — Vue scoped CSS doesn't cross
+   component boundaries, so this extracted editor styles its own inputs rather than
+   relying on the parent page. Mirrors the contest pages' controls. */
+.cpub-form-field { display: flex; flex-direction: column; gap: var(--space-1); margin-bottom: var(--space-3); }
+.cpub-form-field:last-child { margin-bottom: 0; }
+.cpub-form-input, .cpub-form-textarea { width: 100%; padding: var(--space-2) var(--space-3); border: var(--border-width-default) solid var(--border); background: var(--surface); color: var(--text); font-size: var(--text-sm); font-family: var(--font-sans); }
+.cpub-form-input:focus, .cpub-form-textarea:focus { border-color: var(--accent); outline: none; box-shadow: var(--shadow-accent); }
+.cpub-form-textarea { resize: vertical; }
+.cpub-form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--space-3); }
+
 .cpub-stages-standard { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+.cpub-stage-tophead { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+.cpub-stage-count { font-size: 11px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .06em; color: var(--text-faint); }
 .cpub-stage-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
 .cpub-stage-row { border: var(--border-width-default) solid var(--border); background: var(--surface2); padding: 12px; }
 .cpub-stage-row-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }

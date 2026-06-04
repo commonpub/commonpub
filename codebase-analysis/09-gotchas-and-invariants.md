@@ -849,6 +849,22 @@ you change the server map, change that util — a client-only or server-only edi
 silently desyncs (the UI offers a button the API rejects, or hides a valid one).
 Rank-calc on `completed` is idempotent so go-back→re-complete is safe.
 
+## Extracted form components must own their control styles (session 189)
+
+The `cpub-form-*` control family (`.cpub-form-input`, `.cpub-form-textarea`, `.cpub-form-field`,
+`.cpub-form-row`) is defined **per page** in `<style scoped>` on the contest create/edit pages —
+NOT globally (`theme/forms.css` only globalises `.cpub-form-label`/`-hint`/`-error` + the separate
+`.cpub-input`/`-textarea`/`-select` family; an attempt to add `cpub-form-*` to forms.css was
+reverted — leave it that way). Because **Vue scoped styles don't cross component boundaries**, the
+extracted `ContestStagesEditor` rendered as raw browser inputs (cramped monospace datetime boxes,
+`cpub-form-row` lost its grid so fields stacked) when it relied on the parent page's scoped styles.
+This is [[feedback_css_scope_component_extraction]] in the wild. **Rule:** an extracted component
+that uses `cpub-form-*` (or any page-scoped class) must carry its OWN scoped copy of those styles —
+`ContestStagesEditor` now does, tokenised (`var(--space-*)`, `var(--text-sm)`, `var(--font-sans)`,
+`var(--surface)`, `var(--accent)`, `var(--shadow-accent)`) per CLAUDE.md rule #3. Yes, that means the
+control styles are duplicated across the two pages + the component; that's the accepted trade-off
+here (globalising them was rejected). `.cpub-form-label` IS global, so it isn't duplicated.
+
 ## Contest stages: `status` is behaviour, `stages` is display (Phase B1, session 189)
 
 `contests.stages` (jsonb) + `currentStageId` are an ordered DISPLAY timeline; the

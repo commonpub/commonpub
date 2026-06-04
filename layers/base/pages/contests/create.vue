@@ -403,13 +403,12 @@ function prizeLabel(prize: Prize): string {
 .cpub-form-section-title { font-size: 14px; font-weight: 700; margin-bottom: 16px; }
 .cpub-form-section-header .cpub-form-section-title { margin-bottom: 0; }
 
-.cpub-form-field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+.cpub-form-field { display: flex; flex-direction: column; gap: var(--space-1); margin-bottom: var(--space-3); }
 .cpub-form-field:last-child { margin-bottom: 0; }
-.cpub-form-label { font-size: 10px; font-weight: 600; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-faint); }
-.cpub-form-input, .cpub-form-textarea { padding: 8px 10px; border: var(--border-width-default) solid var(--border); background: var(--surface); color: var(--text); font-size: 13px; font-family: inherit; }
-.cpub-form-input:focus, .cpub-form-textarea:focus { border-color: var(--accent); outline: none; }
+.cpub-form-input, .cpub-form-textarea { width: 100%; padding: var(--space-2) var(--space-3); border: var(--border-width-default) solid var(--border); background: var(--surface); color: var(--text); font-size: var(--text-sm); font-family: var(--font-sans); }
+.cpub-form-input:focus, .cpub-form-textarea:focus { border-color: var(--accent); outline: none; box-shadow: var(--shadow-accent); }
 .cpub-form-textarea { resize: vertical; }
-.cpub-form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+.cpub-form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--space-3); }
 
 .cpub-prize-card { border: var(--border-width-default) solid var(--border); padding: 14px; margin-bottom: 10px; background: var(--surface2); }
 .cpub-prize-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }

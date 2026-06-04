@@ -49,6 +49,50 @@ export function currentStageId(c: StageSource): string | null {
   }
 }
 
+// ─── Pure stage-array operations (used by ContestStagesEditor; unit-tested) ───
+
+export function newStageId(): string {
+  const c = (globalThis as { crypto?: { randomUUID?: () => string } }).crypto;
+  return c?.randomUUID?.() ?? `s-${Date.now()}-${Math.round(Math.random() * 1e6)}`;
+}
+
+export function blankStage(): ContestStage {
+  return { id: newStageId(), name: '', kind: 'custom' };
+}
+
+/** The three standard stages seeded when an operator chooses to customise. */
+export function seedStandardStages(c: { startDate?: string | null; endDate?: string | null; judgingEndDate?: string | null }): ContestStage[] {
+  const i = (d?: string | null): string | undefined => (d ? new Date(d).toISOString() : undefined);
+  return [
+    { id: newStageId(), name: 'Submissions', kind: 'submission', startsAt: i(c.startDate), endsAt: i(c.endDate) },
+    { id: newStageId(), name: 'Judging', kind: 'review', endsAt: i(c.judgingEndDate) ?? i(c.endDate) },
+    { id: newStageId(), name: 'Results', kind: 'results' },
+  ];
+}
+
+export function withStageAdded(stages: ContestStage[]): ContestStage[] {
+  return [...stages, blankStage()];
+}
+
+export function withStageDuplicated(stages: ContestStage[], i: number): ContestStage[] {
+  const src = stages[i];
+  if (!src) return stages;
+  const copy: ContestStage = { ...src, id: newStageId(), name: `${src.name} (copy)`, core: false };
+  return [...stages.slice(0, i + 1), copy, ...stages.slice(i + 1)];
+}
+
+export function withStageRemoved(stages: ContestStage[], i: number): ContestStage[] {
+  return stages.filter((_, idx) => idx !== i);
+}
+
+export function withStageMoved(stages: ContestStage[], i: number, dir: -1 | 1): ContestStage[] {
+  const j = i + dir;
+  if (j < 0 || j >= stages.length) return stages;
+  const next = [...stages];
+  [next[i], next[j]] = [next[j]!, next[i]!];
+  return next;
+}
+
 /** FontAwesome icon (no `fa-solid` prefix) for each stage kind. */
 export const STAGE_KIND_ICON: Record<ContestStage['kind'], string> = {
   submission: 'fa-pen-to-square',

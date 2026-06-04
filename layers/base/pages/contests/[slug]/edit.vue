@@ -268,6 +268,8 @@ async function transitionStatus(newStatus: string): Promise<void> {
     </p>
 
     <form class="cpub-edit-form" @submit.prevent="handleSave">
+      <div class="cpub-edit-layout">
+      <div class="cpub-edit-main">
       <section class="cpub-form-section">
         <h2 class="cpub-form-section-title">Details</h2>
         <div class="cpub-form-field">
@@ -345,24 +347,6 @@ async function transitionStatus(newStatus: string): Promise<void> {
               <i class="fa-solid fa-arrow-up-right-dots"></i> {{ advancing === rs.id ? 'Advancing…' : 'Advance' }}
             </button>
           </div>
-        </div>
-      </section>
-
-      <section class="cpub-form-section">
-        <h2 class="cpub-form-section-title">Entries</h2>
-        <div class="cpub-form-field">
-          <span class="cpub-form-label">Eligible content types</span>
-          <p class="cpub-form-hint">Leave all unchecked to accept any published content the entrant owns.</p>
-          <div class="cpub-type-options" role="group" aria-label="Eligible content types">
-            <label v-for="t in enabledTypeMeta" :key="t.type" class="cpub-form-check">
-              <input type="checkbox" :checked="eligibleContentTypes.includes(t.type)" @change="toggleType(t.type)" />
-              <span>{{ t.label }}</span>
-            </label>
-          </div>
-        </div>
-        <div class="cpub-form-field">
-          <label class="cpub-form-label">Max entries per person</label>
-          <input v-model.number="maxEntriesPerUser" type="number" min="1" class="cpub-form-input" placeholder="Unlimited" style="max-width: 160px;" />
         </div>
       </section>
 
@@ -482,6 +466,26 @@ async function transitionStatus(newStatus: string): Promise<void> {
         <p class="cpub-form-hint">Invited judges receive a notification and must accept before they can score.</p>
         <ContestJudgeManager :contest-slug="slug" :is-owner="true" />
       </section>
+      </div><!-- /cpub-edit-main -->
+
+      <aside class="cpub-edit-side">
+      <section class="cpub-form-section">
+        <h2 class="cpub-form-section-title">Entries</h2>
+        <div class="cpub-form-field">
+          <span class="cpub-form-label">Eligible content types</span>
+          <p class="cpub-form-hint">Leave all unchecked to accept any published content the entrant owns.</p>
+          <div class="cpub-type-options" role="group" aria-label="Eligible content types">
+            <label v-for="t in enabledTypeMeta" :key="t.type" class="cpub-form-check">
+              <input type="checkbox" :checked="eligibleContentTypes.includes(t.type)" @change="toggleType(t.type)" />
+              <span>{{ t.label }}</span>
+            </label>
+          </div>
+        </div>
+        <div class="cpub-form-field">
+          <label class="cpub-form-label">Max entries per person</label>
+          <input v-model.number="maxEntriesPerUser" type="number" min="1" class="cpub-form-input" placeholder="Unlimited" />
+        </div>
+      </section>
 
       <section class="cpub-form-section">
         <h2 class="cpub-form-section-title">Stage &amp; Status</h2>
@@ -526,6 +530,8 @@ async function transitionStatus(newStatus: string): Promise<void> {
           </button>
         </div>
       </section>
+      </aside><!-- /cpub-edit-side -->
+      </div><!-- /cpub-edit-layout -->
 
       <!-- Sticky save bar — always reachable without scrolling to the bottom. -->
       <div class="cpub-edit-actionbar">
@@ -545,7 +551,7 @@ async function transitionStatus(newStatus: string): Promise<void> {
 </template>
 
 <style scoped>
-.cpub-contest-edit { max-width: 700px; margin: 0 auto; padding: 32px; }
+.cpub-contest-edit { max-width: 1080px; margin: 0 auto; padding: 32px; }
 .cpub-back-link { font-size: 11px; font-family: var(--font-mono); color: var(--text-faint); text-decoration: none; display: inline-flex; align-items: center; gap: 6px; margin-bottom: 16px; }
 .cpub-back-link:hover { color: var(--accent); }
 .cpub-edit-title { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
@@ -561,15 +567,19 @@ async function transitionStatus(newStatus: string): Promise<void> {
 .cpub-status-cancelled { color: var(--red); border-color: var(--red-border); background: var(--red-bg); }
 
 .cpub-edit-form { display: flex; flex-direction: column; gap: 16px; }
+/* Two-column editor: wide content column + a sticky meta rail (Stage & Status,
+   Entry rules, Danger Zone) so lifecycle controls stay reachable while editing. */
+.cpub-edit-layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 16px; align-items: start; }
+.cpub-edit-main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.cpub-edit-side { display: flex; flex-direction: column; gap: 16px; position: sticky; top: 76px; }
 .cpub-form-section { border: var(--border-width-default) solid var(--border); background: var(--surface); padding: 20px; box-shadow: var(--shadow-md); }
 .cpub-form-section-title { font-size: 14px; font-weight: 700; margin-bottom: 14px; }
-.cpub-form-field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+.cpub-form-field { display: flex; flex-direction: column; gap: var(--space-1); margin-bottom: var(--space-3); }
 .cpub-form-field:last-child { margin-bottom: 0; }
-.cpub-form-label { font-size: 10px; font-weight: 600; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-faint); }
-.cpub-form-input, .cpub-form-textarea { padding: 8px 10px; border: var(--border-width-default) solid var(--border); background: var(--surface); color: var(--text); font-size: 13px; font-family: inherit; }
-.cpub-form-input:focus, .cpub-form-textarea:focus { border-color: var(--accent); outline: none; }
+.cpub-form-input, .cpub-form-textarea { width: 100%; padding: var(--space-2) var(--space-3); border: var(--border-width-default) solid var(--border); background: var(--surface); color: var(--text); font-size: var(--text-sm); font-family: var(--font-sans); }
+.cpub-form-input:focus, .cpub-form-textarea:focus { border-color: var(--accent); outline: none; box-shadow: var(--shadow-accent); }
 .cpub-form-textarea { resize: vertical; }
-.cpub-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.cpub-form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--space-3); }
 
 .cpub-form-error { font-size: 12px; color: var(--red); margin-top: 8px; }
 .cpub-form-check { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-dim); cursor: pointer; }
@@ -632,6 +642,11 @@ async function transitionStatus(newStatus: string): Promise<void> {
 .cpub-edit-actionbar-status { font-size: 11px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .06em; color: var(--text-faint); display: flex; align-items: center; gap: 8px; }
 .cpub-edit-actionbar-btns { display: flex; align-items: center; gap: 8px; }
 
+/* Collapse the meta rail under the main column on narrower viewports. */
+@media (max-width: 900px) {
+  .cpub-edit-layout { grid-template-columns: 1fr; }
+  .cpub-edit-side { position: static; }
+}
 @media (max-width: 768px) {
   .cpub-contest-edit { padding: 16px; }
   .cpub-form-row { grid-template-columns: 1fr; }

@@ -132,6 +132,8 @@ Contest stage logic lives in two auto-imported layer utils (session 189): `utils
 
 **Phase B2 (session 189):** ContestEntries shows per-entry cohort badges (Advanced / Not advanced, dimming eliminated cards). The contest edit page gains an **Advancement** section (one row per review stage: "Advance top N" → `POST /api/contests/[slug]/advance`).
 
+**Editor UX pass (session 189):** the contest **edit** page is a two-column layout — a wide `cpub-edit-main` content column + a sticky `cpub-edit-side` meta rail (Stage & Status, Entry rules, Danger Zone) so lifecycle controls stay reachable; the save bar spans full-width and sticks to the viewport bottom. `ContestStagesEditor` got a top toolbar (Add stage / Reset) for discoverability and carries its OWN tokenised `cpub-form-*` control styles (scoped CSS doesn't cross component boundaries — see [[09-gotchas-and-invariants]]). Stage array-ops (add/duplicate/move/remove/seed) are pure functions in `utils/contestStages.ts`, unit-tested in `utils/__tests__/contestStages.test.ts`.
+
 ### Events (session 124)
 
 EventCard, EventCalendar.
