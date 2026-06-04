@@ -41,6 +41,7 @@ export interface ContestListItem {
   subheading: string | null;
   description: string | null;
   bannerUrl: string | null;
+  coverImageUrl: string | null;
   status: ContestStatus;
   startDate: Date;
   endDate: Date;
@@ -78,6 +79,7 @@ export interface CreateContestInput {
   rules?: string;
   prizesDescription?: string;
   bannerUrl?: string;
+  coverImageUrl?: string;
   prizes?: ContestPrize[];
   judgingCriteria?: ContestJudgingCriterion[];
   /** Seed-only: populates the contest_judges table at creation. */
@@ -177,6 +179,7 @@ export async function listContests(
     subheading: row.subheading,
     description: row.description,
     bannerUrl: row.bannerUrl,
+    coverImageUrl: row.coverImageUrl,
     status: row.status,
     startDate: row.startDate,
     endDate: row.endDate,
@@ -196,6 +199,7 @@ function toContestDetail(row: ContestRow): ContestDetail {
     slug: row.slug,
     description: row.description,
     bannerUrl: row.bannerUrl,
+    coverImageUrl: row.coverImageUrl,
     status: row.status,
     startDate: row.startDate,
     endDate: row.endDate,
@@ -288,6 +292,7 @@ export async function createContest(
       rules: input.rules ?? null,
       prizesDescription: input.prizesDescription ?? null,
       bannerUrl: input.bannerUrl ?? null,
+      coverImageUrl: input.coverImageUrl ?? null,
       prizes: input.prizes ?? null,
       judgingCriteria: input.judgingCriteria ?? null,
       communityVotingEnabled: input.communityVotingEnabled ?? false,
@@ -345,6 +350,7 @@ export async function updateContest(
   if (data.rules !== undefined) updates.rules = data.rules;
   if (data.prizesDescription !== undefined) updates.prizesDescription = data.prizesDescription;
   if (data.bannerUrl !== undefined) updates.bannerUrl = data.bannerUrl;
+  if (data.coverImageUrl !== undefined) updates.coverImageUrl = data.coverImageUrl;
   if (data.prizes !== undefined) updates.prizes = data.prizes;
   if (data.judgingCriteria !== undefined) updates.judgingCriteria = data.judgingCriteria;
   // `judges` is intentionally not handled here — the contest_judges table is the

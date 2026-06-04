@@ -16,7 +16,11 @@ export const contests = pgTable('contests', {
   rules: text('rules'),
   /** Markdown intro shown on the Prizes tab, above the individual prize cards. */
   prizesDescription: text('prizes_description'),
+  /** Wide hero banner shown across the top of the contest page (~4:1). */
   bannerUrl: text('banner_url'),
+  /** Card/thumbnail cover image (~4:3 / 16:9). Optional — listing cards fall
+   *  back to a contained `bannerUrl` then a trophy when this is unset. */
+  coverImageUrl: text('cover_image_url'),
   status: contestStatusEnum('status').default('upcoming').notNull(),
   startDate: timestamp('start_date', { withTimezone: true }).notNull(),
   endDate: timestamp('end_date', { withTimezone: true }).notNull(),

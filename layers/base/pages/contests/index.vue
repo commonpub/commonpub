@@ -51,13 +51,15 @@ const canCreateContest = computed(() => {
         :to="`/contests/${contest.slug}`"
         class="cpub-card cpub-contest-card"
       >
-        <!-- Banner thumbnail (contest.bannerUrl) with trophy fallback + status badge overlay -->
+        <!-- Card image: coverImageUrl (cover-cropped) → bannerUrl (contained, so a
+             wide hero/logo isn't crop-mangled) → trophy fallback. Status badge overlaid. -->
         <div class="cpub-contest-thumb">
           <img
-            v-if="coverFor(contest.bannerUrl)"
-            :src="coverFor(contest.bannerUrl)!"
+            v-if="coverFor(contest.coverImageUrl ?? contest.bannerUrl)"
+            :src="coverFor(contest.coverImageUrl ?? contest.bannerUrl)!"
             :alt="contest.title"
             class="cpub-contest-cover"
+            :class="{ 'cpub-contest-cover--contain': !contest.coverImageUrl && !!contest.bannerUrl }"
             loading="lazy"
           />
           <template v-else>
@@ -116,6 +118,8 @@ const canCreateContest = computed(() => {
   overflow: hidden;
 }
 .cpub-contest-cover { width: 100%; height: 100%; object-fit: cover; display: block; }
+/* Banner-as-fallback: contain (+ breathing room) so a wide hero/logo shows whole, not crop-mangled. */
+.cpub-contest-cover--contain { object-fit: contain; padding: 12px; background: var(--surface2); }
 .cpub-contest-thumb-grid {
   position: absolute;
   inset: 0;
