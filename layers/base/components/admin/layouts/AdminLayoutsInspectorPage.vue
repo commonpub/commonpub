@@ -170,7 +170,7 @@ const id = (suffix: string): string => `cpub-inspector-page-${suffix}`;
         <option value="sidebar-right">sidebar-right</option>
       </select>
       <p id="frame-soon-hint" class="cpub-inspector-page-hint">
-        Page chrome shape — reserved for Phase 4. Currently has no effect; the renderer
+        Page chrome shape, reserved for Phase 4. Currently has no effect; the renderer
         always exposes the same three zones (full-width, main, sidebar).
       </p>
     </div>

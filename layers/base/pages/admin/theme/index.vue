@@ -30,7 +30,7 @@ import { onMounted, ref, computed, watch } from 'vue';
 //   detectAppliedOverrides ← utils/themeDiscovery.ts
 
 definePageMeta({ layout: 'admin', middleware: 'auth' });
-useSeoMeta({ title: `Theme — Admin — ${useSiteName()}` });
+useSeoMeta({ title: `Theme, Admin, ${useSiteName()}` });
 
 const themesApi = useThemeAdmin();
 const router = useRouter();
@@ -121,7 +121,7 @@ async function duplicateTheme(themeId: string): Promise<void> {
     const detected = detectAppliedOverrides();
     seed = {
       id: nextAvailableId(themeId.replace(/^cpub-custom-/, '') + '-fork'),
-      name: `Custom — based on ${themeId}`,
+      name: `Custom, based on ${themeId}`,
       description: '',
       family: `custom-${themeId.replace(/^cpub-custom-/, '')}`,
       isDark: detected.isDark,
@@ -144,7 +144,7 @@ async function removeTheme(themeId: string): Promise<void> {
       method: 'DELETE',
     });
     await Promise.all([themesApi.refresh(), refreshSettings()]);
-    notify(res.resetDefault ? 'Theme deleted — default reset to Classic' : 'Theme deleted', 'success');
+    notify(res.resetDefault ? 'Theme deleted, default reset to Classic' : 'Theme deleted', 'success');
   } catch (err) {
     notify(err instanceof Error ? err.message : 'Failed to delete', 'error');
   } finally {
@@ -177,7 +177,7 @@ function captureCurrent(): void {
   const seed = {
     id: nextAvailableId(`captured-${new Date().toISOString().slice(0, 10)}`),
     name: 'Captured current site theme',
-    description: `Auto-captured from the live :root on ${new Date().toLocaleDateString()} — ${detected.count} tokens.`,
+    description: `Auto-captured from the live :root on ${new Date().toLocaleDateString()}, ${detected.count} tokens.`,
     family: 'captured',
     isDark: detected.isDark,
     parentTheme: detected.isDark ? 'dark' : 'base',
@@ -362,7 +362,7 @@ async function saveOverrides(overrides: Record<string, string>): Promise<void> {
         <h2 class="admin-theme-discovery-title">Your site has a custom theme</h2>
         <p class="admin-theme-discovery-desc">
           We detected <strong>{{ discovery.count }}</strong> CSS token{{ discovery.count === 1 ? '' : 's' }}
-          on <code>:root</code> that differ from the built-in defaults — probably from
+          on <code>:root</code> that differ from the built-in defaults, probably from
           a CSS file your layer app loads. Capture it into an editable custom theme so
           you can tweak it from this admin panel.
         </p>

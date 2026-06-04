@@ -101,7 +101,7 @@ async function remove(): Promise<void> {
 
       <p class="cpub-mm-sub">
         <span class="cpub-mm-dir">{{ isPull ? '↓ Pull (you receive their content)' : '↑ Push request' }}</span>
-        — one-directional: this instance receives content from {{ mirror.remoteDomain }}; they receive nothing from you.
+       , one-directional: this instance receives content from {{ mirror.remoteDomain }}; they receive nothing from you.
       </p>
 
       <!-- Facts -->
@@ -146,9 +146,9 @@ async function remove(): Promise<void> {
             {{ busy === 'backfill' ? 'Importing…' : 'Backfill' }}
           </button>
         </div>
-        <p class="cpub-mm-hint">Crawls {{ mirror.remoteDomain }}'s outbox newest-first and stops at the chosen depth — bounded so you don't pull an entire large instance at once.</p>
+        <p class="cpub-mm-hint">Crawls {{ mirror.remoteDomain }}'s outbox newest-first and stops at the chosen depth, bounded so you don't pull an entire large instance at once.</p>
         <div v-if="backfillResult" class="cpub-fed-result">
-          Imported {{ backfillResult.processed }} item(s), {{ backfillResult.errors }} error(s), {{ backfillResult.pages }} page(s){{ backfillResult.complete ? ' — complete.' : ' — more available (run again).' }}
+          Imported {{ backfillResult.processed }} item(s), {{ backfillResult.errors }} error(s), {{ backfillResult.pages }} page(s){{ backfillResult.complete ? ', complete.' : ', more available (run again).' }}
         </div>
       </div>
 

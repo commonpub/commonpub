@@ -2,7 +2,7 @@
 import type { HomepageSection } from '@commonpub/server';
 
 definePageMeta({ layout: 'admin', middleware: 'auth' });
-useSeoMeta({ title: `Homepage — Admin — ${useSiteName()}` });
+useSeoMeta({ title: `Homepage, Admin, ${useSiteName()}` });
 
 const toast = useToast();
 const { data, refresh } = await useFetch<HomepageSection[]>('/api/admin/homepage/sections');
@@ -115,12 +115,12 @@ const { layoutEngine } = useFeatures();
     <!-- R4 audit (session 160): deprecation banner when layoutEngine is on.
          The new visual editor at /admin/layouts is the canonical surface;
          this legacy page still saves its JSON but the live homepage now
-         renders via the layouts table. Auto-sync is non-destructive — it
+         renders via the layouts table. Auto-sync is non-destructive, it
          only creates the layout if one doesn't yet exist. -->
     <div v-if="layoutEngine" class="cpub-admin-homepage-deprecation" role="status">
       <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
       <div>
-        <p><strong>This is the legacy homepage editor.</strong> The Layout Engine is active on this instance — use the new visual editor for live changes.</p>
+        <p><strong>This is the legacy homepage editor.</strong> The Layout Engine is active on this instance, use the new visual editor for live changes.</p>
         <NuxtLink to="/admin/layouts" class="cpub-admin-homepage-deprecation-link">
           Open Layouts editor <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
         </NuxtLink>
@@ -312,7 +312,7 @@ const { layoutEngine } = useFeatures();
 }
 
 /* R4 audit (session 160): deprecation banner for the legacy editor
-   when layoutEngine is on. Direct, friendly, non-blocking — links to
+   when layoutEngine is on. Direct, friendly, non-blocking, links to
    the new editor without removing access to this page (which still
    saves the JSON for backward compat). */
 .cpub-admin-homepage-deprecation {

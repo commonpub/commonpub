@@ -1,6 +1,6 @@
 <script setup lang="ts">
 definePageMeta({ middleware: 'auth' });
-useSeoMeta({ title: `Create Event — ${useSiteName()}` });
+useSeoMeta({ title: `Create Event, ${useSiteName()}` });
 
 const toast = useToast();
 const router = useRouter();

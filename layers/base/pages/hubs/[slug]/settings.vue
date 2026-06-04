@@ -10,7 +10,7 @@ import type { Serialized, HubDetail } from '@commonpub/server';
 const { data: hub } = useLazyFetch<Serialized<HubDetail>>(() => `/api/hubs/${slug.value}`);
 
 useSeoMeta({
-  title: () => `Settings — ${hub.value?.name ?? 'Hub'} — ${useSiteName()}`,
+  title: () => `Settings, ${hub.value?.name ?? 'Hub'}, ${useSiteName()}`,
 });
 
 const form = reactive({
@@ -134,8 +134,8 @@ async function handleSave(): Promise<void> {
         <div class="cpub-field">
           <label for="hub-join" class="cpub-field-label">Join Policy</label>
           <select id="hub-join" v-model="form.joinPolicy" class="cpub-field-input">
-            <option value="open">Open — anyone can join</option>
-            <option value="approval">Approval — requests must be approved</option>
+            <option value="open">Open, anyone can join</option>
+            <option value="approval">Approval, requests must be approved</option>
             <option value="invite">Invite Only</option>
           </select>
         </div>
@@ -143,8 +143,8 @@ async function handleSave(): Promise<void> {
         <div class="cpub-field">
           <label for="hub-privacy" class="cpub-field-label">Privacy</label>
           <select id="hub-privacy" v-model="form.privacy" class="cpub-field-input">
-            <option value="public">Public — visible to everyone</option>
-            <option value="private">Private — members only</option>
+            <option value="public">Public, visible to everyone</option>
+            <option value="private">Private, members only</option>
           </select>
         </div>
       </div>

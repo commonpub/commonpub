@@ -19,7 +19,7 @@ useFocusTrap(contentRef, () => visible.value, () => emit('close'));
 
 // Same bounded depth choices as the create form — what history to pull when we approve.
 const DEPTH_OPTIONS: Array<{ label: string; body: Record<string, number> | null }> = [
-  { label: 'None — forward only (default)', body: null },
+  { label: 'None, forward only (default)', body: null },
   { label: 'Last 7 days', body: { sinceDays: 7 } },
   { label: 'Last 30 days', body: { sinceDays: 30 } },
   { label: 'Last 90 days', body: { sinceDays: 90 } },
@@ -50,7 +50,7 @@ async function approve(): Promise<void> {
   const url: string = `/api/admin/federation/mirror-requests/${props.request.id}/approve`;
   try {
     await $fetch(url, { method: 'POST', body });
-    toast.success(`Approved — now mirroring ${props.request.remoteDomain}`);
+    toast.success(`Approved, now mirroring ${props.request.remoteDomain}`);
     emit('changed');
     emit('close');
   } catch {
@@ -86,7 +86,7 @@ async function reject(): Promise<void> {
 
       <p class="cpub-mr-sub">
         <strong>{{ request.remoteDomain }}</strong> asked you to mirror your instance. Approving creates a
-        <strong>pull mirror</strong> of them — you'll receive their public content, with the depth and
+        <strong>pull mirror</strong> of them, you'll receive their public content, with the depth and
         filters you choose below. (One-directional: they still receive nothing from you.)
       </p>
 

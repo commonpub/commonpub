@@ -24,9 +24,9 @@
           <code class="scene-inline-code">var(--text-base)</code>. The quick brown fox
           jumps over the lazy dog.
         </p>
-        <p class="scene-muted">Secondary text — note the contrast against background.</p>
-        <p class="scene-faint">Tertiary text — used for placeholders and faint metadata.</p>
-        <p class="scene-mono-label">Mono label — uppercase letter-spaced</p>
+        <p class="scene-muted">Secondary text, note the contrast against background.</p>
+        <p class="scene-faint">Tertiary text, used for placeholders and faint metadata.</p>
+        <p class="scene-mono-label">Mono label, uppercase letter-spaced</p>
       </div>
     </section>
 

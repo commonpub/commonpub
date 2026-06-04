@@ -141,16 +141,16 @@ const zone = computed<LayoutZoneClient | null>(
       - no layout exists for this route
       - no zone of that slug in the layout
       - zone has zero rows
-    All four are valid "absence" cases — fall back to legacy rendering
+    All four are valid "absence" cases, fall back to legacy rendering
     via the page's v-if structure.
   -->
   <!--
     Phase 3b/A extraction: row + section rendering moved to <LayoutRow>
     so each row instance can own its own `makeDroppable` template ref
     (dnd-kit composables run per-component setup; one row instance per
-    component is the natural fit). The HTML SHAPE is preserved — same
+    component is the natural fit). The HTML SHAPE is preserved, same
     .cpub-layout-row + .cpub-layout-section classes, same data-* attrs
-    — so existing tests + selectors keep working unchanged.
+   , so existing tests + selectors keep working unchanged.
   -->
   <template v-if="zone && zone.rows.length > 0">
     <LayoutRow

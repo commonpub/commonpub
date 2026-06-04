@@ -44,7 +44,7 @@ export default defineEventHandler(async (event) => {
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>${escapeXml(hub.name)} — CommonPub</title>
+    <title>${escapeXml(hub.name)}, CommonPub</title>
     <link>${escapeXml(siteUrl)}/hubs/${escapeXml(slug)}</link>
     <description>${escapeXml(hub.description ?? `Content from ${hub.name}`)}</description>
     <language>en</language>

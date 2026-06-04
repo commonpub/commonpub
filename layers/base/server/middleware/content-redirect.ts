@@ -43,7 +43,7 @@ export default defineEventHandler(async (event) => {
     .where(and(eq(contentItems.slug, slug), isNull(contentItems.deletedAt)))
     .limit(1);
 
-  if (!row) return; // Content not found — let the page handler show 404
+  if (!row) return; // Content not found, let the page handler show 404
 
   const newPath = isEdit
     ? `/u/${row.username}/${row.type}/${row.slug}/edit`

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'admin', middleware: 'auth' });
-useSeoMeta({ title: `Admin Dashboard — ${useSiteName()}` });
+useSeoMeta({ title: `Admin Dashboard, ${useSiteName()}` });
 
 const { data: stats, pending } = await useFetch('/api/admin/stats');
 

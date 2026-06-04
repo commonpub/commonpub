@@ -23,7 +23,7 @@ const { data: members } = useLazyFetch<FederatedMember[]>(`/api/federated-hubs/$
 });
 
 useSeoMeta({
-  title: () => hub.value ? `${hub.value.name} — ${useSiteName()}` : 'Federated Hub',
+  title: () => hub.value ? `${hub.value.name}, ${useSiteName()}` : 'Federated Hub',
   description: () => hub.value?.description || '',
 });
 
@@ -168,7 +168,7 @@ async function handlePost(): Promise<void> {
     toast.success('Post sent to hub via federation');
     await Promise.all([refreshHub(), refreshPosts()]);
   } catch {
-    toast.error('Failed to post — the remote hub may not accept posts from this instance');
+    toast.error('Failed to post, the remote hub may not accept posts from this instance');
   } finally {
     posting.value = false;
   }
@@ -234,7 +234,7 @@ async function handleJoinHub(): Promise<void> {
         method: 'POST',
         body: { federatedHubId: hub.value.id },
       });
-      toast.success(result.status === 'joined' ? 'Now following this hub' : 'Follow request sent — it may take a moment to be accepted');
+      toast.success(result.status === 'joined' ? 'Now following this hub' : 'Follow request sent, it may take a moment to be accepted');
       await Promise.all([refreshHub(), refreshFollowState()]);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to follow hub';

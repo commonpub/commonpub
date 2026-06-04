@@ -86,7 +86,7 @@ const isEmpty = computed(() => !pending.value && items.value.length === 0);
             Using <img> rather than background-image: (a) Vue auto-escapes
             attribute bindings so a path.coverImageUrl containing `");
             evil(` can't escape the url(...) context (modern browsers
-            ignore JS in CSS URLs but still — defence in depth), and (b)
+            ignore JS in CSS URLs but still, defence in depth), and (b)
             the cover IS semantically information when present, so giving
             it an `alt` of the path title is better a11y than `role=
             presentation`. Empty alt would also be fine here; the title

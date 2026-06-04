@@ -132,7 +132,7 @@ const WEIGHTS = ['100', '200', '300', '400', '500', '600', '700', '800', '900'];
         @change="(e) => commitLengthParts(lengthParts.num, (e.target as HTMLSelectElement).value as never)"
       >
         <option v-for="u in NUMBER_UNITS" :key="u" :value="u">{{ u }}</option>
-        <option value="">—</option>
+        <option value="">-</option>
       </select>
       <input
         class="token-input token-input-raw"

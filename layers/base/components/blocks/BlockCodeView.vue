@@ -159,7 +159,7 @@ pre.hljs .hljs-title.class_ { color: var(--hljs-variable); }
   /* Reset the universal `*,::before,::after{border-radius:var(--radius)}`
      rule from base.css. Themes that override --radius to non-zero (e.g.
      deveco --radius:6px) leave the inner header + body with their own
-     rounded corners — the rounded edges curve AWAY from each other inside
+     rounded corners, the rounded edges curve AWAY from each other inside
      the outer rounded container, leaving wedges of empty page-bg between
      them. Sharp inner edges tile flush inside the outer overflow:hidden
      rounded box. (deveco.io report, 2026-05-21) */
@@ -212,7 +212,7 @@ pre.hljs .hljs-title.class_ { color: var(--hljs-variable); }
   /* Reset the global `.cpub-prose pre` rule from prose.css that adds
      border + 16px top/bottom margin to every <pre> inside prose. Inside
      a BlockCodeView the container already owns the border + the header
-     sits directly above the body — the global rule's margin and extra
+     sits directly above the body, the global rule's margin and extra
      border created a visible "floating bar with gap then code block"
      effect (heatsynclabs.io report, 2026-05-21). */
   border: 0 !important;

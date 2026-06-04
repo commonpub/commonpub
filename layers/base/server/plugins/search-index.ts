@@ -13,7 +13,7 @@ export default defineNitroPlugin(async () => {
   const meiliKey = process.env.MEILI_MASTER_KEY;
 
   if (!meiliUrl) {
-    console.log('[search-index] Meilisearch not configured — search uses Postgres FTS fallback');
+    console.log('[search-index] Meilisearch not configured, search uses Postgres FTS fallback');
     return;
   }
 

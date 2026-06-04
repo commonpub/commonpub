@@ -1,7 +1,7 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'admin', middleware: 'auth' });
 
-useSeoMeta({ title: `Settings — Admin — ${useSiteName()}` });
+useSeoMeta({ title: `Settings, Admin, ${useSiteName()}` });
 
 const { data: settings, pending, refresh } = await useFetch<Record<string, string>>('/api/admin/settings');
 
@@ -98,7 +98,7 @@ async function backfillCdn(dryRun: boolean): Promise<void> {
             <button class="cpub-btn cpub-btn-sm" @click="cancelEdit">Cancel</button>
           </template>
           <template v-else>
-            <span class="settings-value">{{ (settings as Record<string, string>)[item.key] ?? '—' }}</span>
+            <span class="settings-value">{{ (settings as Record<string, string>)[item.key] ?? '-' }}</span>
             <button class="cpub-btn cpub-btn-sm" @click="startEdit(item.key, (settings as Record<string, string>)[item.key] ?? '')">Edit</button>
           </template>
         </div>

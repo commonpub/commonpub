@@ -165,6 +165,20 @@ review rounds with different criteria). Audit found 4 gaps; closed 3, documented
 - Audit: moved `advanceN`/`advancing` refs above the contest loader in edit.vue (the loader pre-fills
   `advanceN` — declaring it after risked an SSR temporal-dead-zone crash; cf. provider-inject guard).
 
+## Per-round score isolation + em-dash sweep + UX (same session, schema 0.33.0 / server 2.80.0 / layer 0.58.0)
+
+- **Per-round score isolation (closes the last judging gap):** `JudgeScoreEntry.roundId` tags each
+  score with its review round; a judge has one score per round (matched on judge + round); the
+  entry's live `score` aggregates ONLY the current round, so a 2nd judging round doesn't overwrite or
+  blend with the 1st (earlier rounds stay in `judgeScores` as history). `judgeContestEntry` resolves
+  the round via `currentStage`; the judge page's `currentRoundId` mirrors it (normalizeStages-aware,
+  classic → `core-review`). E2E test extended: A keeps r1=90 + r2=85, live score=85.
+- **Em-dash sweep:** all rendered layer copy (335 occurrences) had em dashes → comma/hyphen; a
+  comment-skip perl pass left code comments + deliberately-escaped curly apostrophes untouched.
+  config's were all comments (none changed); ui/docs had none. New memory: no em dashes in copy.
+- **UX:** added an orienting note to the editor's Stages section tying Stages (timeline) ↔ Status
+  (what's open) ↔ Advancement (the cut) ↔ Current (highlight) — the three controls were confusable.
+
 ## Decisions
 
 - Kept the `status` enum as the coarse lifecycle; fine-grained "which round" will live in

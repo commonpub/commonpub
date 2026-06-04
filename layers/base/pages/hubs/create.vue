@@ -2,7 +2,7 @@
 definePageMeta({ middleware: 'auth' });
 
 useSeoMeta({
-  title: `Create Hub — ${useSiteName()}`,
+  title: `Create Hub, ${useSiteName()}`,
   description: 'Create a new maker hub.',
 });
 
@@ -73,17 +73,17 @@ async function handleCreate(): Promise<void> {
         <div class="cpub-field">
           <label for="hub-type" class="cpub-field-label">Hub Type</label>
           <select id="hub-type" v-model="hubType" class="cpub-field-input">
-            <option value="community">Community — maker group / topic space</option>
-            <option value="product">Product — product or platform page</option>
-            <option value="company">Company — organization page</option>
+            <option value="community">Community, maker group / topic space</option>
+            <option value="product">Product, product or platform page</option>
+            <option value="company">Company, organization page</option>
           </select>
         </div>
 
         <div class="cpub-field">
           <label for="hub-join" class="cpub-field-label">Join Policy</label>
           <select id="hub-join" v-model="joinPolicy" class="cpub-field-input">
-            <option value="open">Open — anyone can join</option>
-            <option value="approval">Approval — requests must be approved</option>
+            <option value="open">Open, anyone can join</option>
+            <option value="approval">Approval, requests must be approved</option>
             <option value="invite">Invite Only</option>
           </select>
         </div>

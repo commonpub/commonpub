@@ -11,7 +11,7 @@ const { user, isAdmin } = useAuth();
 
 const { data: contest, refresh } = useLazyFetch(`/api/contests/${slug}`);
 const isOwner = computed(() => isAdmin.value || !!(user.value?.id && contest.value?.createdById === user.value.id));
-useSeoMeta({ title: () => `Edit: ${contest.value?.title ?? 'Contest'} — ${useSiteName()}` });
+useSeoMeta({ title: () => `Edit: ${contest.value?.title ?? 'Contest'}, ${useSiteName()}` });
 
 const saving = ref(false);
 const title = ref('');
@@ -284,7 +284,7 @@ async function transitionStatus(newStatus: string): Promise<void> {
         <div class="cpub-form-field">
           <label class="cpub-form-label">URL Slug</label>
           <input v-model="slugInput" type="text" class="cpub-form-input" @blur="slugInput = slugify(slugInput)" />
-          <p class="cpub-form-hint">The contest URL: <code>/contests/{{ slugify(slugInput) || 'your-contest' }}</code>. Changing it breaks old links — they won't redirect.</p>
+          <p class="cpub-form-hint">The contest URL: <code>/contests/{{ slugify(slugInput) || 'your-contest' }}</code>. Changing it breaks old links, they won't redirect.</p>
         </div>
         <div class="cpub-form-field">
           <label class="cpub-form-label">Subheading</label>
@@ -330,7 +330,8 @@ async function transitionStatus(newStatus: string): Promise<void> {
 
       <section class="cpub-form-section">
         <h2 class="cpub-form-section-title">Stages</h2>
-        <p class="cpub-form-hint">Optional. The standard flow (Submissions → Judging → Results) is derived from the schedule above. Add custom stages for multi-round contests — proposal rounds, a Top-N selection, a build sprint, multiple judging rounds, or a showcase event.</p>
+        <p class="cpub-form-hint">Optional. The standard flow (Submissions → Judging → Results) is derived from the schedule above. Add custom stages for multi-round contests, proposal rounds, a Top-N selection, a build sprint, multiple judging rounds, or a showcase event.</p>
+        <p class="cpub-form-hint">How the pieces fit: <strong>Stages</strong> are the public timeline entrants see. The <strong>Status</strong> control (right) is what's actually open right now (accepting entries / judging / completed). <strong>Advancement</strong> (below) runs each review round's Top-N cut. Mark a stage <strong>Current</strong> to point judges + the countdown at it.</p>
         <ContestStagesEditor
           v-model="stages"
           v-model:current-stage-id="currentStageIdRef"
@@ -361,8 +362,8 @@ async function transitionStatus(newStatus: string): Promise<void> {
           <input v-model="showPrizes" type="checkbox" />
           <span>Show the Prizes tab on the contest page</span>
         </label>
-        <p v-if="!showPrizes" class="cpub-form-hint">The Prizes tab is hidden — any prizes below are saved but not shown to visitors.</p>
-        <p class="cpub-form-hint">Every field is optional. Use <strong>place</strong> for ranked prizes, a <strong>category</strong> for themed awards, or just a <strong>description</strong> — whatever fits. Cash value is optional.</p>
+        <p v-if="!showPrizes" class="cpub-form-hint">The Prizes tab is hidden, any prizes below are saved but not shown to visitors.</p>
+        <p class="cpub-form-hint">Every field is optional. Use <strong>place</strong> for ranked prizes, a <strong>category</strong> for themed awards, or just a <strong>description</strong>, whatever fits. Cash value is optional.</p>
         <div class="cpub-form-field">
           <label class="cpub-form-label">Prizes overview (optional)</label>
           <textarea v-model="prizesDescription" class="cpub-form-textarea" rows="3" placeholder="Intro shown above the prize cards. Supports Markdown." />
@@ -406,9 +407,9 @@ async function transitionStatus(newStatus: string): Promise<void> {
         <div class="cpub-form-field">
           <label class="cpub-form-label">Score Visibility</label>
           <select v-model="judgingVisibility" class="cpub-form-input">
-            <option value="judges-only">Judges only — scores hidden until results</option>
-            <option value="public">Public — show scores during judging</option>
-            <option value="private">Private — scores stay with organizers</option>
+            <option value="judges-only">Judges only, scores hidden until results</option>
+            <option value="public">Public, show scores during judging</option>
+            <option value="private">Private, scores stay with organizers</option>
           </select>
         </div>
         <label class="cpub-form-check">
@@ -444,9 +445,9 @@ async function transitionStatus(newStatus: string): Promise<void> {
         <div class="cpub-form-field">
           <label class="cpub-form-label">Who can see this contest</label>
           <select v-model="visibility" class="cpub-form-input">
-            <option value="public">Public — listed and visible to everyone</option>
-            <option value="unlisted">Unlisted — visible by direct link, hidden from listings</option>
-            <option value="private">Private — restricted</option>
+            <option value="public">Public, listed and visible to everyone</option>
+            <option value="unlisted">Unlisted, visible by direct link, hidden from listings</option>
+            <option value="private">Private, restricted</option>
           </select>
         </div>
         <div v-if="visibility === 'private'" class="cpub-form-field">
@@ -461,7 +462,7 @@ async function transitionStatus(newStatus: string): Promise<void> {
         <div class="cpub-subhead">
           <h3 class="cpub-form-subtitle">Reviewers</h3>
         </div>
-        <p class="cpub-form-hint">Reviewers can view this contest (even while it's private or in draft) without being a judge or an admin — view access scoped to this contest only. They can't edit or score entries.</p>
+        <p class="cpub-form-hint">Reviewers can view this contest (even while it's private or in draft) without being a judge or an admin, view access scoped to this contest only. They can't edit or score entries.</p>
         <ContestStakeholderManager :contest-slug="slug" />
       </section>
 

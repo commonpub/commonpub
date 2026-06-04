@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { ContentType } from '@commonpub/server';
 
-useSeoMeta({ title: `Create — ${useSiteName()}` });
+useSeoMeta({ title: `Create, ${useSiteName()}` });
 definePageMeta({ middleware: 'auth' });
 
 const { isTypeEnabled } = useContentTypes();
@@ -27,7 +27,7 @@ const allTypes = [
     bg: 'var(--pink-bg)',
     border: 'var(--pink-border)',
     name: 'Blog',
-    desc: 'Write long-form content — articles, tutorials, deep dives, opinion pieces, or personal updates with rich formatting.',
+    desc: 'Write long-form content, articles, tutorials, deep dives, opinion pieces, or personal updates with rich formatting.',
   },
   {
     type: 'explainer',

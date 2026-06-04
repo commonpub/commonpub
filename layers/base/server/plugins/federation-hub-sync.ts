@@ -23,7 +23,7 @@ export default defineNitroPlugin((nitro) => {
     try {
       const config = useConfig();
       if (!config.features.federateHubs) {
-        console.log('[hub-sync] Hub federation disabled — sync worker not started');
+        console.log('[hub-sync] Hub federation disabled, sync worker not started');
         return;
       }
 

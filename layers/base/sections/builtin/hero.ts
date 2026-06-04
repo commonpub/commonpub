@@ -15,7 +15,7 @@ import HeroSection from '../../components/homepage/HeroSection.vue';
 export const heroSection: SectionDefinition<HeroConfig> = {
   type: 'hero',
   name: 'Hero',
-  description: 'Top-of-page banner (uses HeroSection — contest-aware)',
+  description: 'Top-of-page banner (uses HeroSection, contest-aware)',
   icon: 'fa-bullhorn',
   category: 'layout',
   status: 'stable',

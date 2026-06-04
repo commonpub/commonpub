@@ -1,5 +1,5 @@
 <script setup lang="ts">
-useSeoMeta({ title: `Learn — ${useSiteName()}` });
+useSeoMeta({ title: `Learn, ${useSiteName()}` });
 
 const { isAuthenticated, user } = useAuth();
 
@@ -55,7 +55,7 @@ const activeDifficultyFilter = ref('');
       <div class="cpub-learn-hero-inner">
         <div class="cpub-hero-eyebrow"><i class="fa-solid fa-graduation-cap"></i> &nbsp;Learning Hub</div>
         <h1 class="cpub-hero-title">Learn</h1>
-        <p class="cpub-hero-sub">Structured courses, interactive explainers, and hands-on tutorials — from beginner to production-ready.</p>
+        <p class="cpub-hero-sub">Structured courses, interactive explainers, and hands-on tutorials, from beginner to production-ready.</p>
         <div class="cpub-hero-cats">
           <div
             v-for="c in heroCategories"

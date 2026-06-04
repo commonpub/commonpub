@@ -209,7 +209,7 @@ useJsonLd({
           </NuxtLink>
           <div v-else class="cpub-series-nav-btn cpub-prev cpub-disabled">
             <div class="cpub-series-nav-dir"><i class="fa-solid fa-chevron-left"></i> Previous</div>
-            <div class="cpub-series-nav-ep">—</div>
+            <div class="cpub-series-nav-ep">-</div>
           </div>
           <NuxtLink v-if="content.seriesNext" :to="content.seriesNext.url || '#'" class="cpub-series-nav-btn cpub-next">
             <div class="cpub-series-nav-dir">Next <i class="fa-solid fa-chevron-right"></i></div>
@@ -440,7 +440,7 @@ useJsonLd({
   height: var(--cpub-av-size);
   /* Hard-lock to a square. Without min/max clamps, a global img reset or a
      dropped dimension lets the <img> fall back to its intrinsic aspect ratio,
-     so a portrait photo renders as a tall oval (the deveco blog-avatar bug —
+     so a portrait photo renders as a tall oval (the deveco blog-avatar bug -
      visible even on wide viewports, so it's not flex compression). min/max on
      BOTH axes clamp the used size regardless of what sets width/height. */
   min-width: var(--cpub-av-size);

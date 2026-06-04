@@ -1,6 +1,6 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'admin', middleware: 'auth' });
-useSeoMeta({ title: `Content Management — Admin — ${useSiteName()}` });
+useSeoMeta({ title: `Content Management, Admin, ${useSiteName()}` });
 
 const toast = useToast();
 
@@ -153,7 +153,7 @@ async function setCategory(id: string, categoryId: string | null): Promise<void>
       <button class="cpub-btn cpub-btn-sm" @click="bulkAction('uneditorial')"><i class="fa-regular fa-pen-to-square"></i> Unpick</button>
       <select class="cpub-bulk-cat-select" @change="(e) => bulkSetCategory((e.target as HTMLSelectElement).value || null)" aria-label="Set category">
         <option value="">Set Category...</option>
-        <option :value="''" v-if="false">—</option>
+        <option :value="''" v-if="false">-</option>
         <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
         <option value="">Remove Category</option>
       </select>

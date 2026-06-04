@@ -2,7 +2,7 @@
 definePageMeta({ middleware: 'auth' });
 
 useSeoMeta({
-  title: `Dashboard — ${useSiteName()}`,
+  title: `Dashboard, ${useSiteName()}`,
   description: 'Your personal CommonPub dashboard.',
 });
 

@@ -3,7 +3,7 @@ import type { ContestStage } from '@commonpub/schema';
 
 definePageMeta({ middleware: 'auth' });
 
-useSeoMeta({ title: `Create Contest — ${useSiteName()}` });
+useSeoMeta({ title: `Create Contest, ${useSiteName()}` });
 
 const toast = useToast();
 const { extract: extractError } = useApiError();
@@ -187,12 +187,12 @@ function prizeLabel(prize: Prize): string {
         </div>
         <div class="cpub-form-field">
           <label for="contest-desc" class="cpub-form-label">Description</label>
-          <textarea id="contest-desc" v-model="description" class="cpub-form-textarea" rows="4" placeholder="Describe your contest. Supports Markdown — # headings, - lists, **bold**, [links](url)…" />
+          <textarea id="contest-desc" v-model="description" class="cpub-form-textarea" rows="4" placeholder="Describe your contest. Supports Markdown, # headings, - lists, **bold**, [links](url)…" />
           <p class="cpub-form-hint">Supports Markdown (headings, lists, bold, links) and inline HTML. Shown formatted on the contest page.</p>
         </div>
         <div class="cpub-form-field">
           <label for="contest-rules" class="cpub-form-label">Rules</label>
-          <textarea id="contest-rules" v-model="rules" class="cpub-form-textarea" rows="6" placeholder="Contest rules and requirements. Supports Markdown — one rule per line, or full Markdown." />
+          <textarea id="contest-rules" v-model="rules" class="cpub-form-textarea" rows="6" placeholder="Contest rules and requirements. Supports Markdown, one rule per line, or full Markdown." />
           <p class="cpub-form-hint">Supports Markdown. Plain one-rule-per-line text is rendered as a numbered list.</p>
         </div>
         <div class="cpub-form-field">
@@ -225,8 +225,8 @@ function prizeLabel(prize: Prize): string {
 
       <!-- Stages -->
       <section class="cpub-form-section">
-        <h2 class="cpub-form-section-title">Stages <span style="color: var(--text-faint); font-weight: 400; font-size: 0.75em; font-family: var(--font-mono);">— optional</span></h2>
-        <p class="cpub-form-hint">The standard flow (Submissions → Judging → Results) is derived from the schedule above. Add custom stages for multi-round contests — proposal rounds, a Top-N selection, a build sprint, multiple judging rounds, or a showcase event.</p>
+        <h2 class="cpub-form-section-title">Stages <span style="color: var(--text-faint); font-weight: 400; font-size: 0.75em; font-family: var(--font-mono);">- optional</span></h2>
+        <p class="cpub-form-hint">The standard flow (Submissions → Judging → Results) is derived from the schedule above. Add custom stages for multi-round contests, proposal rounds, a Top-N selection, a build sprint, multiple judging rounds, or a showcase event.</p>
         <ContestStagesEditor
           v-model="stages"
           v-model:current-stage-id="currentStageIdRef"
@@ -242,9 +242,9 @@ function prizeLabel(prize: Prize): string {
         <div class="cpub-form-field">
           <label for="visibility" class="cpub-form-label">Who can see this contest</label>
           <select id="visibility" v-model="visibility" class="cpub-form-input">
-            <option value="public">Public — listed and visible to everyone</option>
-            <option value="unlisted">Unlisted — visible by direct link, hidden from listings</option>
-            <option value="private">Private — restricted (you can publish it later)</option>
+            <option value="public">Public, listed and visible to everyone</option>
+            <option value="unlisted">Unlisted, visible by direct link, hidden from listings</option>
+            <option value="private">Private, restricted (you can publish it later)</option>
           </select>
         </div>
         <div v-if="visibility === 'private'" class="cpub-form-field">
@@ -285,9 +285,9 @@ function prizeLabel(prize: Prize): string {
         <div class="cpub-form-field">
           <label for="judging-visibility" class="cpub-form-label">Score Visibility</label>
           <select id="judging-visibility" v-model="judgingVisibility" class="cpub-form-input">
-            <option value="judges-only">Judges only — scores hidden until results</option>
-            <option value="public">Public — show scores during judging</option>
-            <option value="private">Private — scores stay with organizers</option>
+            <option value="judges-only">Judges only, scores hidden until results</option>
+            <option value="public">Public, show scores during judging</option>
+            <option value="private">Private, scores stay with organizers</option>
           </select>
         </div>
         <label class="cpub-form-check">
@@ -299,7 +299,7 @@ function prizeLabel(prize: Prize): string {
           <h3 class="cpub-form-subtitle">Judging Criteria <span v-if="criteriaTotal" class="cpub-form-hint-inline">{{ criteriaTotal }} pts</span></h3>
           <button type="button" class="cpub-btn cpub-btn-sm" @click="addCriterion"><i class="fa-solid fa-plus"></i> Add Criterion</button>
         </div>
-        <p v-if="!criteria.length" class="cpub-form-hint">Optional rubric shown to entrants and judges (e.g. Documentation — 20 pts).</p>
+        <p v-if="!criteria.length" class="cpub-form-hint">Optional rubric shown to entrants and judges (e.g. Documentation, 20 pts).</p>
         <div v-for="(crit, ci) in criteria" :key="ci" class="cpub-criterion-row">
           <div class="cpub-form-row">
             <div class="cpub-form-field" style="flex: 3">
@@ -321,7 +321,7 @@ function prizeLabel(prize: Prize): string {
       <!-- Prizes -->
       <section class="cpub-form-section">
         <div class="cpub-form-section-header">
-          <h2 class="cpub-form-section-title">Prizes <span style="color: var(--text-faint); font-weight: 400; font-size: 0.75em; font-family: var(--font-mono);">— optional</span></h2>
+          <h2 class="cpub-form-section-title">Prizes <span style="color: var(--text-faint); font-weight: 400; font-size: 0.75em; font-family: var(--font-mono);">- optional</span></h2>
           <button type="button" class="cpub-btn cpub-btn-sm" @click="addPrize">
             <i class="fa-solid fa-plus"></i> Add Prize
           </button>
@@ -331,9 +331,9 @@ function prizeLabel(prize: Prize): string {
           <input v-model="showPrizes" type="checkbox" />
           <span>Show the Prizes tab on the contest page</span>
         </label>
-        <p v-if="!showPrizes" class="cpub-form-hint">The Prizes tab is hidden — any prizes below are saved but not shown to visitors.</p>
+        <p v-if="!showPrizes" class="cpub-form-hint">The Prizes tab is hidden, any prizes below are saved but not shown to visitors.</p>
 
-        <p class="cpub-form-hint">Contests don't need prizes — leave this empty to skip them entirely. If you do add prizes, every field is optional: use <strong>place</strong> for ranked prizes (1st/2nd/3rd), a <strong>category</strong> for themed awards (e.g. "Best in Show"), or just a <strong>description</strong>. Cash value is optional.</p>
+        <p class="cpub-form-hint">Contests don't need prizes, leave this empty to skip them entirely. If you do add prizes, every field is optional: use <strong>place</strong> for ranked prizes (1st/2nd/3rd), a <strong>category</strong> for themed awards (e.g. "Best in Show"), or just a <strong>description</strong>. Cash value is optional.</p>
         <div class="cpub-form-field">
           <label for="prizes-desc" class="cpub-form-label">Prizes overview (optional)</label>
           <textarea id="prizes-desc" v-model="prizesDescription" class="cpub-form-textarea" rows="3" placeholder="Intro shown above the prize cards. Supports Markdown." />

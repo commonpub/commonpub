@@ -253,7 +253,7 @@ export function useLayoutHotkeys(opts: UseLayoutHotkeysOptions): UseLayoutHotkey
     const draft = opts.getDraft();
     if (!draft) return;
     const loc = findSectionLocation(draft, sel.id);
-    if (!loc) return; // stale selection — section vanished mid-keydown
+    if (!loc) return; // stale selection, section vanished mid-keydown
 
     // --- Keyboard resize (Phase 3c) ---
     // Run BEFORE Backspace/Cmd+D so Shift+ArrowRight doesn't fall through.

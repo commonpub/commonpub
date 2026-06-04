@@ -337,7 +337,7 @@ const canvasMaxWidth = computed(() => {
         <label class="cpub-ae-assets-drop" :class="{ 'cpub-ae-assets-uploading': uploading }">
           <i :class="uploading ? 'fa-solid fa-spinner fa-spin' : 'fa-solid fa-cloud-arrow-up'"></i>
           <div class="cpub-ae-assets-drop-label">{{ uploading ? 'Uploading...' : 'Drop files here' }}</div>
-          <div class="cpub-ae-assets-drop-sub">JPG, PNG, GIF, SVG, PDF — max {{ MAX_CONTENT_UPLOAD_MB }} MB</div>
+          <div class="cpub-ae-assets-drop-sub">JPG, PNG, GIF, SVG, PDF, max {{ MAX_CONTENT_UPLOAD_MB }} MB</div>
           <input type="file" class="cpub-sr-only" :disabled="uploading" @change="onAssetUpload">
         </label>
         <div v-if="uploadError" class="cpub-ae-assets-error">

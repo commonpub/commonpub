@@ -7,7 +7,7 @@ const props = defineProps<{
   };
 }>();
 
-useSeoMeta({ title: `${props.error.statusCode} — CommonPub` });
+useSeoMeta({ title: `${props.error.statusCode}, CommonPub` });
 
 // Error pages render outside app.vue's NuxtLayout tree during SSR, so the theme
 // plugin's useHead doesn't propagate here. Re-apply BOTH the data-theme attribute

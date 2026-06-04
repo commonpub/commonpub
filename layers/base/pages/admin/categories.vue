@@ -1,6 +1,6 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'admin', middleware: 'auth' });
-useSeoMeta({ title: `Categories — Admin — ${useSiteName()}` });
+useSeoMeta({ title: `Categories, Admin, ${useSiteName()}` });
 
 const toast = useToast();
 

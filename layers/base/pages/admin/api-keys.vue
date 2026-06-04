@@ -4,7 +4,7 @@ import { PUBLIC_API_SCOPES } from '@commonpub/schema';
 
 definePageMeta({ layout: 'admin', middleware: 'auth' });
 
-useSeoMeta({ title: `API Keys — Admin — ${useSiteName()}` });
+useSeoMeta({ title: `API Keys, Admin, ${useSiteName()}` });
 
 interface KeyListResponse {
   items: AdminApiKeyView[];
@@ -116,7 +116,7 @@ function dismissCreated(): void {
 }
 
 function fmtDate(iso: string | null): string {
-  if (!iso) return '—';
+  if (!iso) return '-';
   return new Date(iso).toLocaleString();
 }
 
@@ -167,14 +167,14 @@ function fmtErrorRate(rate: number): string {
     <!-- One-time token reveal -->
     <div v-if="createdKey" class="cpub-key-reveal" role="alert">
       <div class="cpub-key-reveal-head">
-        <strong>Key created — copy it now.</strong>
+        <strong>Key created, copy it now.</strong>
         <button class="cpub-btn-link" aria-label="Close" @click="dismissCreated">
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
       <p class="cpub-key-reveal-warn">
         This is the only time the full token will be displayed. Store it somewhere safe before
-        leaving this page — the server only keeps a hash.
+        leaving this page, the server only keeps a hash.
       </p>
       <div class="cpub-key-reveal-value">
         <code>{{ createdKey.token }}</code>
@@ -328,7 +328,7 @@ function fmtErrorRate(rate: number): string {
                     <tr v-for="e in (usageCache[k.id] as ApiKeyUsageStats).topEndpoints" :key="e.endpoint">
                       <td><code>{{ e.endpoint }}</code></td>
                       <td>{{ e.count }}</td>
-                      <td>{{ e.p95LatencyMs ?? '—' }}</td>
+                      <td>{{ e.p95LatencyMs ?? '-' }}</td>
                     </tr>
                   </tbody>
                 </table>

@@ -12,7 +12,7 @@ import {
 } from '@commonpub/server';
 import { THEME_TO_FAMILY, FAMILY_VARIANTS, IS_DARK, VALID_THEME_IDS } from '../../utils/themeConfig';
 
-const CACHE_TTL = 60_000; // 1 minute — admin changes propagate fast
+const CACHE_TTL = 60_000; // 1 minute, admin changes propagate fast
 
 interface CachedThemeState {
   /** The admin's chosen default theme (built-in id, custom data-attr, or registered id) */

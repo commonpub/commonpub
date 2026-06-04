@@ -21,7 +21,7 @@ if (!isOwner.value && !isAdmin.value) {
   throw createError({ statusCode: 403, statusMessage: 'Unauthorized' });
 }
 
-useSeoMeta({ title: `Edit ${event.value.title} — Events — ${useSiteName()}` });
+useSeoMeta({ title: `Edit ${event.value.title}, Events, ${useSiteName()}` });
 
 const saving = ref(false);
 const form = reactive({

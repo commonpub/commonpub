@@ -16,7 +16,7 @@ const shownEntries = computed(() => rankedEntries.value.length);
 const { data: votesData } = useLazyFetch<ContestEntryVoteInfo[]>(`/api/contests/${slug}/votes`);
 
 useSeoMeta({
-  title: () => `Results: ${contest.value?.title || 'Contest'} — ${useSiteName()}`,
+  title: () => `Results: ${contest.value?.title || 'Contest'}, ${useSiteName()}`,
 });
 
 // Community-vote tallies (only when the contest enabled community voting).
@@ -78,7 +78,7 @@ function medalColor(rank: number): string {
       </NuxtLink>
       <h1 class="cpub-results-title">
         <i class="fa-solid fa-ranking-star" style="color: var(--yellow);"></i>
-        {{ contest?.title || 'Contest' }} — Results
+        {{ contest?.title || 'Contest' }}, Results
       </h1>
     </header>
 
@@ -115,7 +115,7 @@ function medalColor(rank: number): string {
           </div>
           <NuxtLink :to="`/u/${entry.authorUsername}/${entry.contentType}/${entry.contentSlug}`" class="cpub-podium-title">{{ entry.contentTitle }}</NuxtLink>
           <NuxtLink :to="`/u/${entry.authorUsername}`" class="cpub-podium-author">{{ entry.authorName }}</NuxtLink>
-          <div class="cpub-podium-score">Score: {{ entry.score ?? '—' }}</div>
+          <div class="cpub-podium-score">Score: {{ entry.score ?? '-' }}</div>
           <template v-if="entry.rank && prizeForRank(entry.rank)">
             <div class="cpub-podium-prize">
               <i class="fa-solid fa-gift"></i> {{ prizeForRank(entry.rank)?.title }}
@@ -151,7 +151,7 @@ function medalColor(rank: number): string {
                 <span v-if="entry.rank && entry.rank <= 3" :style="{ color: medalColor(entry.rank) }">
                   <i class="fa-solid" :class="medalIcon(entry.rank)"></i>
                 </span>
-                {{ entry.rank ?? '—' }}
+                {{ entry.rank ?? '-' }}
               </td>
               <td>
                 <NuxtLink :to="`/u/${entry.authorUsername}/${entry.contentType}/${entry.contentSlug}`" class="cpub-lb-entry-link">{{ entry.contentTitle }}</NuxtLink>
@@ -159,7 +159,7 @@ function medalColor(rank: number): string {
               <td>
                 <NuxtLink :to="`/u/${entry.authorUsername}`" class="cpub-lb-author-link">{{ entry.authorName }}</NuxtLink>
               </td>
-              <td class="cpub-lb-score">{{ entry.score ?? '—' }}</td>
+              <td class="cpub-lb-score">{{ entry.score ?? '-' }}</td>
               <td v-if="votingEnabled" class="cpub-lb-votes"><i class="fa-solid fa-heart"></i> {{ voteCount(entry.id) }}</td>
             </tr>
           </tbody>

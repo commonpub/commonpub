@@ -16,7 +16,7 @@ if (!isTypeEnabled(contentType.value as ContentType)) {
 }
 
 useSeoMeta({
-  title: () => `${contentType.value} — ${siteName}`,
+  title: () => `${contentType.value}, ${siteName}`,
   description: () => `Browse ${contentType.value} on ${siteName}.`,
 });
 

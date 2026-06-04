@@ -53,7 +53,7 @@ async function vote(optionId: string): Promise<void> {
       :class="{ voted: data.userVote === option.id, clickable: !hasVoted && isAuthenticated }"
       :disabled="hasVoted || !isAuthenticated"
       :aria-pressed="data.userVote === option.id"
-      :aria-label="`${option.label}${hasVoted ? ` — ${percentage(option.voteCount)}%` : ''}`"
+      :aria-label="`${option.label}${hasVoted ? `, ${percentage(option.voteCount)}%` : ''}`"
       @click="vote(option.id)"
     >
       <div class="cpub-poll-bar" :style="{ width: hasVoted || !isAuthenticated ? `${percentage(option.voteCount)}%` : '0%' }" />

@@ -477,7 +477,7 @@ function onHandlePointerDown(e: PointerEvent): void {
         <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
       </button>
       <!--
-        Phase 3b/B — "Move to zone…" disclosure. Renders only when the
+        Phase 3b/B, "Move to zone…" disclosure. Renders only when the
         parent provided a non-empty availableZones list (current zone
         excluded, zones with zero rows excluded). aria-haspopup='menu'
         + aria-expanded so screen readers announce the disclosure state;
@@ -525,8 +525,8 @@ function onHandlePointerDown(e: PointerEvent): void {
     </div>
 
     <!--
-      Phase 3c — right-edge resize handle.
-      Renders only when the parent (LayoutRow) passes onResizeStart —
+      Phase 3c, right-edge resize handle.
+      Renders only when the parent (LayoutRow) passes onResizeStart -
       that's the parent's signal that the section's registry def is
       `resizable: true` AND the row is wider than the mobile breakpoint
       (CSS further hides at < 768px defensively).
@@ -563,7 +563,7 @@ function onHandlePointerDown(e: PointerEvent): void {
     </button>
 
     <!--
-      Phase 3c — live span pill. Shown while the section is selected OR
+      Phase 3c, live span pill. Shown while the section is selected OR
       involved in an in-flight resize. Three-state visual:
         - selected only: subtle outline-style badge "8/12"
         - resizing (this section): accent-filled, follows live span
@@ -583,7 +583,7 @@ function onHandlePointerDown(e: PointerEvent): void {
     </div>
 
     <!--
-      Phase 3c — constraint snap label. Shown ONLY while THIS section is
+      Phase 3c, constraint snap label. Shown ONLY while THIS section is
       being resized AND a bound was hit. Provides the three independent
       signals plan §7.5 + WCAG 1.4.1 require: outline color change (the
       handle's --active state), lock icon ("🔒"), text ("min 3/12").
@@ -876,7 +876,7 @@ function onHandlePointerDown(e: PointerEvent): void {
 .cpub-layout-section-resize-handle {
   position: absolute;
   /* Centered on the section's right border. -2px so the 4px-wide handle
-     sits half-in/half-out — reads as "the border itself is the grip". */
+     sits half-in/half-out, reads as "the border itself is the grip". */
   top: 50%;
   right: -2px;
   transform: translateY(-50%);
@@ -912,7 +912,7 @@ function onHandlePointerDown(e: PointerEvent): void {
   pointer-events: none;
 }
 /* Reveal on the section's hover, selection, or focus-within (keyboard
-   user tabbed to a child) — the union covers all input modes. */
+   user tabbed to a child), the union covers all input modes. */
 .cpub-layout-section--editable:hover > .cpub-layout-section-resize-handle,
 .cpub-layout-section--selected > .cpub-layout-section-resize-handle,
 .cpub-layout-section--editable:focus-within > .cpub-layout-section-resize-handle,
@@ -947,7 +947,7 @@ function onHandlePointerDown(e: PointerEvent): void {
   .cpub-layout-section-resize-handle { transition: none; }
 }
 /* < 768px: hide the handle per plan §7.5. Colspan changes happen via
-   the inspector slider on mobile (deferred to Phase 3e — keyboard
+   the inspector slider on mobile (deferred to Phase 3e, keyboard
    path via Shift+Arrow still works in the meantime). */
 @media (max-width: 768px) {
   .cpub-layout-section-resize-handle { display: none; }

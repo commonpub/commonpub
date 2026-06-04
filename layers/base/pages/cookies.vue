@@ -2,7 +2,7 @@
 const runtimeConfig = useRuntimeConfig();
 const siteName = computed(() => (runtimeConfig.public.siteName as string) || 'CommonPub');
 
-useSeoMeta({ title: `Cookie Policy — ${siteName.value}` });
+useSeoMeta({ title: `Cookie Policy, ${siteName.value}` });
 
 const { cookies, consentLevel, acceptAll, acceptEssential, resetConsent, hasConsented } = useCookieConsent();
 

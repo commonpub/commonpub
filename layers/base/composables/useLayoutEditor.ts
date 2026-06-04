@@ -385,7 +385,7 @@ export function useLayoutEditor(id: string): LayoutEditorState {
     // the beacon path can't carry this payload. Beforeunload still
     // catches the user's intent to leave; the auto-save's pre-hide
     // visibility-flush handles smaller payloads (no keepalive cap).
-    const BEACON_BODY_MAX_BYTES = 60 * 1024; // 60KB — 4KB headroom under the 64KB browser cap
+    const BEACON_BODY_MAX_BYTES = 60 * 1024; // 60KB, 4KB headroom under the 64KB browser cap
     if (body.length > BEACON_BODY_MAX_BYTES) {
       return false;
     }

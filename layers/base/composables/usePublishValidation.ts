@@ -49,7 +49,7 @@ export function usePublishValidation(opts: PublishValidationOptions): PublishVal
       }
     }
     if (required.includes('content') && opts.getBlockTuples().length === 0) {
-      errs.push('Content is empty — add at least one block');
+      errs.push('Content is empty, add at least one block');
     }
 
     errors.value = errs;

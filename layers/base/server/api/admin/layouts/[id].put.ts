@@ -103,7 +103,7 @@ export default defineEventHandler(async (event) => {
   ) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Cannot change layout scope via PUT — POST a new layout instead',
+      statusMessage: 'Cannot change layout scope via PUT, POST a new layout instead',
     });
   }
 

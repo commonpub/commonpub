@@ -9,7 +9,7 @@ const { isAuthenticated, user } = useAuth();
 const { data: event, refresh } = await useFetch<EventDetail>(`/api/events/${slug}`);
 const { data: attendees } = await useFetch<{ items: AttendeeItem[]; total: number }>(`/api/events/${slug}/attendees`);
 
-useSeoMeta({ title: event.value ? `${event.value.title} — Events — ${useSiteName()}` : `Event — ${useSiteName()}` });
+useSeoMeta({ title: event.value ? `${event.value.title}, Events, ${useSiteName()}` : `Event, ${useSiteName()}` });
 
 const rsvpLoading = ref(false);
 
@@ -107,7 +107,7 @@ const typeIcon = computed(() => {
             <i class="fa-solid fa-calendar"></i>
             <div>
               <div>{{ formatDate(event.startDate) }}</div>
-              <div class="cpub-event-info-sub">{{ formatTime(event.startDate) }} — {{ formatTime(event.endDate) }}</div>
+              <div class="cpub-event-info-sub">{{ formatTime(event.startDate) }}, {{ formatTime(event.endDate) }}</div>
             </div>
           </div>
           <div v-if="event.location" class="cpub-event-info-item">

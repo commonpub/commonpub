@@ -233,6 +233,14 @@ describe('contest integration', () => {
     expect((await judgeContestEntry(db, a, 85, judgeUserId)).judged).toBe(true);
     expect((await judgeContestEntry(db, b, 95, judgeUserId)).judged).toBe(true);
 
+    // Per-round isolation: round-1 score preserved alongside round-2 (tagged by stage),
+    // and the live `score` reflects ONLY round 2.
+    const aEntry = (await listContestEntries(db, contest.id, { limit: 50, includeJudgeScores: true })).items.find((e) => e.id === a)!;
+    const aMine = (aEntry.judgeScores ?? []).filter((s) => s.judgeId === judgeUserId);
+    expect(aMine.find((s) => s.roundId === 'r1')?.score).toBe(90);
+    expect(aMine.find((s) => s.roundId === 'r2')?.score).toBe(85);
+    expect(aEntry.score).toBe(85); // live aggregate = current (round-2) only
+
     // ── Finale: complete → ranks computed over the surviving cohort only ──
     await transitionContestStatus(db, contest.id, organizerId, 'completed');
     const final = Object.fromEntries((await listContestEntries(db, contest.id, { limit: 50 })).items.map((e) => [e.id, e]));

@@ -10,7 +10,7 @@ const attribution = computed(() => (props.content.attribution as string) || '');
 <template>
   <blockquote class="cpub-block-quote">
     <div class="cpub-quote-text" v-html="html" />
-    <footer v-if="attribution" class="cpub-quote-attr">— {{ attribution }}</footer>
+    <footer v-if="attribution" class="cpub-quote-attr">- {{ attribution }}</footer>
   </blockquote>
 </template>
 

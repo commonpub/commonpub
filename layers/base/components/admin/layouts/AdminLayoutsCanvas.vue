@@ -182,7 +182,7 @@ function findFirstRowInZone(zoneSlug: string): LayoutRowType | null {
       </div>
       <!--
         Consolidation Stage 2: the canvas previews the layout through the
-        shared <PageFrame> — the SAME frame production uses (full-width
+        shared <PageFrame>, the SAME frame production uses (full-width
         above; main + sidebar side-by-side; one max-width/sidebar-width).
         Previously zones were stacked as equal-width labeled boxes, which
         did NOT match what visitors see (broken WYSIWYG). Each zone keeps
@@ -217,7 +217,7 @@ function findFirstRowInZone(zoneSlug: string): LayoutRowType | null {
               <!--
                 Session 164 polish (v1 blocker): "+ Add row". Without
                 this, a fresh layout (or a layout with an empty zone)
-                has no drop target — admin is stuck. Click → editor
+                has no drop target, admin is stuck. Click → editor
                 page mutates draft.zones[i].rows + records to history
                 + narrates. Plan §7.2.
                 Renders only when the parent provided onAddRow (so the

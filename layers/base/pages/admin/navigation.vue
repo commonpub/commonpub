@@ -2,7 +2,7 @@
 import type { NavItem } from '@commonpub/server';
 
 definePageMeta({ layout: 'admin', middleware: 'auth' });
-useSeoMeta({ title: `Navigation — Admin — ${useSiteName()}` });
+useSeoMeta({ title: `Navigation, Admin, ${useSiteName()}` });
 
 const toast = useToast();
 const { data, refresh } = await useFetch<NavItem[]>('/api/admin/navigation/items');

@@ -150,13 +150,13 @@ a minute (`curl deveco.io/api/content?limit=5`, today's timestamp).
 ### Published versions (verified 2026-06-04)
 | Package | Version | | Package | Version |
 |---|---|---|---|---|
-| @commonpub/schema | **0.32.0** | | @commonpub/infra | 0.8.0 |
+| @commonpub/schema | **0.33.0** | | @commonpub/infra | 0.8.0 |
 | @commonpub/config | **0.18.0** | | @commonpub/editor | 0.7.11 |
 | @commonpub/protocol | 0.13.0 | | @commonpub/explainer | 0.7.15 |
 | @commonpub/auth | 0.8.0 | | @commonpub/docs | 0.6.3 |
-| @commonpub/server | **2.79.0** | | @commonpub/learning | 0.5.2 |
+| @commonpub/server | **2.80.0** | | @commonpub/learning | 0.5.2 |
 | @commonpub/ui | 0.9.2 | | @commonpub/test-utils | 0.5.6 |
-| @commonpub/layer | **0.57.0** | | create-commonpub (crates.io) | **0.5.7** |
+| @commonpub/layer | **0.58.0** | | create-commonpub (crates.io) | **0.5.7** |
 
 Migrations applied this cycle: **0016** (`contests.cover_image_url`) · **0017** (`contest_status`
 +draft/+paused; `contests.show_prizes`) · **0018** (`contests.stages` jsonb + `contests.current_stage_id`
@@ -246,6 +246,19 @@ full **end-to-end integration test** exercising the whole multi-round flow (stag
 criteria + advanceCount → submit → round-1 judging → Top-N cull → round-1 snapshot → cohort gate
 blocks eliminated in round 2 → re-score → complete → final ranks exclude the eliminated). Server
 suite 1259, layer 917 green.
+
+Contest **per-round score isolation + em-dash copy sweep** (2026-06-04, schema 0.33.0 / server 2.80.0
+/ layer 0.58.0, all 3, no migration): **per-round score isolation** closes the last judging gap —
+each judge score is tagged with its review-round id (`JudgeScoreEntry.roundId`); a judge has one
+score per round; the entry's live `score` aggregates **only the current round**, so a second judging
+round no longer overwrites/blends with the first (earlier rounds stay in `judgeScores` tagged by
+round, as history). The judge page pre-fills only the current round's score. Verified by the
+end-to-end test (A keeps round-1 = 90 + round-2 = 85; live score = 85). **Em-dash sweep:** all
+rendered site copy in the layer had em dashes replaced (335 occurrences; comments left untouched;
+curly apostrophes deliberately kept inside single-quoted strings). **UX:** the contest editor's
+Stages section now has an orienting note tying Stages (timeline) ↔ Status (what's open) ↔
+Advancement (the cut) ↔ Current (highlight). The contest stages epic is now feature-complete with no
+known judging gaps.
 
 Recent UI follow-ups (2026-06-03): contest hero banner 260→195px (layer 0.46.0); deveco.io mobile-nav
 hamburger fixed (its forked `layouts/default.vue` used bare `<MobileNavRenderer>` → unresolved;

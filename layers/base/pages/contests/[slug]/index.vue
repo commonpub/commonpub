@@ -12,8 +12,8 @@ const { data: apiEntriesData, refresh: refreshEntries } = useLazyFetch<{ items: 
 const { data: judgesData, refresh: refreshJudges } = useLazyFetch<ContestJudgeItem[]>(`/api/contests/${slug}/judges`);
 
 useSeoMeta({
-  title: () => `${contest.value?.title || 'Contest'} — ${useSiteName()}`,
-  ogTitle: () => `${contest.value?.title || 'Contest'} — ${useSiteName()}`,
+  title: () => `${contest.value?.title || 'Contest'}, ${useSiteName()}`,
+  ogTitle: () => `${contest.value?.title || 'Contest'}, ${useSiteName()}`,
   ogImage: () => contest.value?.bannerUrl || '/og-default.png',
 });
 
@@ -43,8 +43,8 @@ const participants = computed<Participant[]>(() => {
 // Visibility banner shown to those who can see a non-public contest.
 const visibilityNote = computed(() => {
   if (!c.value || c.value.visibility === 'public') return null;
-  if (c.value.visibility === 'unlisted') return { icon: 'fa-link', text: 'Unlisted — visible by direct link only, hidden from listings.' };
-  return { icon: 'fa-lock', text: 'Private — visible only to you, reviewers, judges, and allowed roles.' };
+  if (c.value.visibility === 'unlisted') return { icon: 'fa-link', text: 'Unlisted, visible by direct link only, hidden from listings.' };
+  return { icon: 'fa-lock', text: 'Private, visible only to you, reviewers, judges, and allowed roles.' };
 });
 
 // Tabs ----------------------------------------------------------------------
@@ -199,7 +199,7 @@ async function withdrawEntry(entryId: string): Promise<void> {
         </div>
         <div class="cpub-submit-body">
           <p class="cpub-submit-hint">
-            Pick one of your published projects to enter — or start a new one.
+            Pick one of your published projects to enter, or start a new one.
             <template v-if="eligibleTypes.length"> This contest accepts: {{ eligibleTypes.join(', ') }}.</template>
           </p>
           <div class="cpub-submit-gallery" role="radiogroup" aria-label="Select a project to submit">
@@ -230,7 +230,7 @@ async function withdrawEntry(entryId: string): Promise<void> {
             </button>
           </div>
           <p v-if="submittableContent.length === 0" class="cpub-submit-hint" style="margin-top: 10px; margin-bottom: 0;">
-            No eligible published content yet — use “Create a new {{ newProjectType }}” above to start one.
+            No eligible published content yet, use “Create a new {{ newProjectType }}” above to start one.
           </p>
         </div>
         <div class="cpub-submit-footer">
@@ -311,7 +311,7 @@ async function withdrawEntry(entryId: string): Promise<void> {
             <div v-if="c?.status === 'active'" class="cpub-entries-cta">
               <div class="cpub-entries-cta-text">
                 <p class="cpub-entries-cta-title"><i class="fa-solid fa-trophy"></i> Enter this contest</p>
-                <p class="cpub-entries-cta-sub">Submit one of your published projects — or start a new one.</p>
+                <p class="cpub-entries-cta-sub">Submit one of your published projects, or start a new one.</p>
               </div>
               <button v-if="isAuthenticated" class="cpub-btn cpub-btn-primary cpub-btn-lg" @click="showSubmitDialog = true">
                 <i class="fa-solid fa-upload"></i> Submit Entry

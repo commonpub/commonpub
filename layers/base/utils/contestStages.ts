@@ -118,8 +118,8 @@ export const STAGE_KIND_LABEL: Record<ContestStage['kind'], string> = {
 export const STAGE_KIND_HELP: Record<ContestStage['kind'], string> = {
   submission: 'Entrants submit (or, in a later round, refine) entries. The hero countdown targets this stage’s end date.',
   review: 'Judges score entries on a rubric. End a review stage with an Advancement cut (Top-N) to pick who continues. Add per-round criteria below for multi-round contests.',
-  interim: 'A working period — e.g. a build sprint. The surviving cohort refines their existing entries; no new entrants.',
+  interim: 'A working period, e.g. a build sprint. The surviving cohort refines their existing entries; no new entrants.',
   results: 'Final standings are published (ranks calculated from the latest judging round).',
-  event: 'A real-world milestone or showcase (date + location). Informational — no entry/judging behaviour.',
-  custom: 'An arbitrary dated milestone. No behaviour — just appears on the timeline.',
+  event: 'A real-world milestone or showcase (date + location). Informational, no entry/judging behaviour.',
+  custom: 'An arbitrary dated milestone. No behaviour, just appears on the timeline.',
 };

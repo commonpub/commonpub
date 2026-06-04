@@ -494,7 +494,7 @@ async function handleBuild(): Promise<void> {
                     <tr v-for="(part, idx) in partsFromBlocks" :key="idx">
                       <td class="cpub-part-name">{{ part.name }}</td>
                       <td class="cpub-part-qty">{{ part.quantity }}</td>
-                      <td class="cpub-part-notes">{{ part.notes || '—' }}</td>
+                      <td class="cpub-part-notes">{{ part.notes || '-' }}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -587,7 +587,7 @@ async function handleBuild(): Promise<void> {
             </div>
             <div class="cpub-bom-summary-row">
               <span class="cpub-bom-label">Total Cost</span>
-              <span class="cpub-bom-val cpub-bom-green">{{ content.estimatedCost || '—' }}</span>
+              <span class="cpub-bom-val cpub-bom-green">{{ content.estimatedCost || '-' }}</span>
             </div>
             <!-- Linked products from catalog -->
             <template v-if="bomProducts?.length">
@@ -983,7 +983,7 @@ img.cpub-av {
      .cpub-has-sidebar                 → content + sidebar
      .cpub-has-toc.cpub-has-sidebar    → TOC + content + sidebar
    The sidebar 260px column is reserved ONLY when there's sidebar
-   content to put in it (BOM/parts OR community hub) — otherwise the
+   content to put in it (BOM/parts OR community hub), otherwise the
    content column gets the freed width. */
 .cpub-project-grid {
   display: grid;

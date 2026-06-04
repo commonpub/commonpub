@@ -1,7 +1,7 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'admin', middleware: 'auth' });
 
-useSeoMeta({ title: `Audit Log — Admin — ${useSiteName()}` });
+useSeoMeta({ title: `Audit Log, Admin, ${useSiteName()}` });
 
 const { data: logsData, pending } = await useFetch('/api/admin/audit');
 
@@ -41,7 +41,7 @@ const logs = computed<AuditEntry[]>(() => {
         <tr v-for="log in logs" :key="log.id">
           <td class="audit-action">{{ log.action }}</td>
           <td class="audit-id">{{ log.actorId }}</td>
-          <td class="audit-id">{{ log.targetId || '—' }}</td>
+          <td class="audit-id">{{ log.targetId || '-' }}</td>
           <td>{{ new Date(log.createdAt).toLocaleString() }}</td>
         </tr>
       </tbody>

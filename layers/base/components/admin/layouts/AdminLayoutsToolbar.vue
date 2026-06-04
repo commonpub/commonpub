@@ -163,7 +163,7 @@ const VIEWPORTS: Array<{ value: 'mobile' | 'tablet' | 'desktop'; icon: string; l
     </NuxtLink>
 
     <div class="cpub-admin-layouts-toolbar-title">
-      <span class="cpub-admin-layouts-toolbar-name">{{ layoutName || '—' }}</span>
+      <span class="cpub-admin-layouts-toolbar-name">{{ layoutName || '-' }}</span>
       <span
         class="cpub-admin-layouts-toolbar-state"
         :data-state="effectiveState"
@@ -173,7 +173,7 @@ const VIEWPORTS: Array<{ value: 'mobile' | 'tablet' | 'desktop'; icon: string; l
     <!--
       Session 164 polish: palette/inspector toggles MOVED to edge tabs on the
       panels themselves (see pages/admin/layouts/[id].vue body). The toolbar
-      previously hosted these buttons, but the placement was non-obvious —
+      previously hosted these buttons, but the placement was non-obvious -
       collapsing made it unclear where to re-open. The edge tabs at the
       panel/canvas boundary follow the Notion/Linear convention: when
       expanded they sit at the panel's outer edge; when collapsed they sit
@@ -200,7 +200,7 @@ const VIEWPORTS: Array<{ value: 'mobile' | 'tablet' | 'desktop'; icon: string; l
     </div>
 
     <!--
-      Phase 3b/B — undo / redo. Plan §7.12 toolbar mockup shows '⤺ ⤻'
+      Phase 3b/B, undo / redo. Plan §7.12 toolbar mockup shows '⤺ ⤻'
       between viewport and save indicator. Tooltip carries the next
       command's specific label ("Undo: move hero") so the discoverable
       affordance answers "what will Cmd+Z do?" without taking action.
@@ -250,7 +250,7 @@ const VIEWPORTS: Array<{ value: 'mobile' | 'tablet' | 'desktop'; icon: string; l
       <!-- R4 audit P2 fix: Discard button wires useLayoutEditor.discard().
            Enabled only when dirty; emits 'discard' for the parent page to
            confirm + invoke. Previously discard() was implemented but
-           unwired — admin's only revert path was page refresh. -->
+           unwired, admin's only revert path was page refresh. -->
       <button
         type="button"
         class="cpub-admin-layouts-toolbar-btn"
@@ -338,7 +338,7 @@ const VIEWPORTS: Array<{ value: 'mobile' | 'tablet' | 'desktop'; icon: string; l
 }
 /* "modified" pill: yellow border + tint background, but theme-safe
    text color (var(--text)) for WCAG contrast. The raw --yellow token
-   (#f59e0b) is 2.07:1 on white — fails both AA text (4.5:1) and
+   (#f59e0b) is 2.07:1 on white, fails both AA text (4.5:1) and
    non-text UI (3:1). Pairing border+tint with --text gives the visual
    signal (warning) without the contrast failure. Per session 160
    audit catch. */

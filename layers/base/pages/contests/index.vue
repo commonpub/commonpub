@@ -1,5 +1,5 @@
 <script setup lang="ts">
-useSeoMeta({ title: `Contests — ${useSiteName()}` });
+useSeoMeta({ title: `Contests, ${useSiteName()}` });
 
 const { data: contests } = await useFetch('/api/contests');
 const { isAuthenticated, isAdmin, user } = useAuth();
@@ -23,7 +23,7 @@ function coverFor(url: string | null | undefined): string | null {
     if (siteDomain && !url.includes(siteDomain)) {
       return `/api/image-proxy?url=${encodeURIComponent(url)}&w=600`;
     }
-  } catch { /* invalid URL — use as-is */ }
+  } catch { /* invalid URL, use as-is */ }
   return url;
 }
 

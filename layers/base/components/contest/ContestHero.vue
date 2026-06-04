@@ -113,7 +113,7 @@ const dateRange = computed<string>(() => {
     new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', ...(withYear ? { year: 'numeric' } : {}) });
   const start = c.value?.startDate ? fmt(c.value.startDate) : '';
   const end = c.value?.endDate ? fmt(c.value.endDate, true) : '';
-  if (start && end) return `${start} — ${end}`;
+  if (start && end) return `${start}, ${end}`;
   return start || end;
 });
 </script>
@@ -207,7 +207,7 @@ const dateRange = computed<string>(() => {
             </div>
             <div v-else-if="isDraft" class="cpub-countdown-ended">
               <i class="fa-solid fa-pen-ruler"></i>
-              <span>Draft — not launched</span>
+              <span>Draft, not launched</span>
             </div>
             <div v-else-if="dateNote" class="cpub-countdown-ended">
               <i class="fa-regular fa-calendar"></i>

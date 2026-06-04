@@ -2,7 +2,7 @@
 import type { PaginatedResponse } from '@commonpub/server';
 
 useSeoMeta({
-  title: `Search — ${useSiteName()}`,
+  title: `Search, ${useSiteName()}`,
   description: 'Search for projects, articles, people, and communities.',
 });
 

@@ -336,7 +336,7 @@ onBeforeUnmount(() => {
         <label v-if="pairCandidates.length" class="theme-editor-field">
           <span class="theme-editor-field-label">Pair with</span>
           <select v-model="draft.pairId" class="theme-editor-input" @change="onMetaChange">
-            <option :value="undefined">— none —</option>
+            <option :value="undefined">- none -</option>
             <option v-for="p in pairCandidates" :key="p.id" :value="p.id">{{ p.name }}</option>
           </select>
         </label>
@@ -367,7 +367,7 @@ onBeforeUnmount(() => {
     <textarea
       v-model="draft.description"
       class="theme-editor-description"
-      placeholder="Description — shown on the theme list (optional)"
+      placeholder="Description, shown on the theme list (optional)"
       rows="2"
       @input="onMetaChange"
     />

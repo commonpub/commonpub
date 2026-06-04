@@ -40,7 +40,7 @@ const spacingY = computed(() => {
 .cpub-block-divider {
   border: none;
   border-top: var(--border-width-default) solid var(--border);
-  margin: 36px 0;  /* default — preserved for existing block callers */
+  margin: 36px 0;  /* default, preserved for existing block callers */
 }
 
 /* variants */

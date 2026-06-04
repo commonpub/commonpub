@@ -21,7 +21,7 @@ export function useEmailAdapter(): EmailAdapter {
     const from = runtimeConfig.smtpFrom as string;
 
     if (!host || !user || !pass || !from) {
-      console.warn('[email] SMTP configured but missing credentials — falling back to console');
+      console.warn('[email] SMTP configured but missing credentials, falling back to console');
       cachedAdapter = new ConsoleEmailAdapter();
       return cachedAdapter;
     }
@@ -35,7 +35,7 @@ export function useEmailAdapter(): EmailAdapter {
     const from = runtimeConfig.resendFrom as string;
 
     if (!apiKey || !from) {
-      console.warn('[email] Resend configured but missing API key or from address — falling back to console');
+      console.warn('[email] Resend configured but missing API key or from address, falling back to console');
       cachedAdapter = new ConsoleEmailAdapter();
       return cachedAdapter;
     }
@@ -45,7 +45,7 @@ export function useEmailAdapter(): EmailAdapter {
   }
 
   if (process.env.NODE_ENV === 'production') {
-    console.warn('[email] ⚠ Using console email adapter in production — emails will be logged, not sent. Set NUXT_EMAIL_ADAPTER to "smtp" or "resend".');
+    console.warn('[email] ⚠ Using console email adapter in production, emails will be logged, not sent. Set NUXT_EMAIL_ADAPTER to "smtp" or "resend".');
   }
   cachedAdapter = new ConsoleEmailAdapter();
   return cachedAdapter;

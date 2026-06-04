@@ -3,8 +3,8 @@ const route = useRoute();
 const username = route.params.username as string;
 
 useSeoMeta({
-  title: `${username} — ${useSiteName()}`,
-  ogTitle: `${username} — ${useSiteName()}`,
+  title: `${username}, ${useSiteName()}`,
+  ogTitle: `${username}, ${useSiteName()}`,
   ogImage: '/og-default.png',
   ogType: 'profile',
   twitterCard: 'summary',
@@ -402,7 +402,7 @@ async function handleReport(): Promise<void> {
                     <span v-if="exp.company" class="cpub-exp-company">{{ exp.company }}</span>
                   </div>
                   <div v-if="exp.startDate" class="cpub-exp-dates">
-                    {{ exp.startDate }}{{ exp.endDate ? ` — ${exp.endDate}` : ' — Present' }}
+                    {{ exp.startDate }}{{ exp.endDate ? `, ${exp.endDate}` : ', Present' }}
                   </div>
                   <p v-if="exp.description" class="cpub-exp-desc">{{ exp.description }}</p>
                 </div>

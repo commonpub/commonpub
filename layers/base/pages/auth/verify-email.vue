@@ -2,7 +2,7 @@
 definePageMeta({ layout: 'auth' });
 
 useSeoMeta({
-  title: `Verify Email — ${useSiteName()}`,
+  title: `Verify Email, ${useSiteName()}`,
   description: 'Verify your CommonPub email address.',
 });
 

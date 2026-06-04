@@ -27,7 +27,7 @@ export default defineEventHandler(async (event): Promise<ContestEntryItem> => {
     const detail = contest.status === 'upcoming'
       ? 'Entries open once the contest is active.'
       : contest.status === 'judging'
-        ? 'Submissions are closed — the contest is being judged.'
+        ? 'Submissions are closed, the contest is being judged.'
         : `The contest is ${contest.status}.`;
     throw createError({ statusCode: 400, statusMessage: `This contest isn't accepting entries right now. ${detail}` });
   }
@@ -38,7 +38,7 @@ export default defineEventHandler(async (event): Promise<ContestEntryItem> => {
     .limit(1);
   if (!content) throw createError({ statusCode: 400, statusMessage: 'That content no longer exists.' });
   if (content.authorId !== user.id) throw createError({ statusCode: 403, statusMessage: 'You can only submit your own content.' });
-  if (content.status !== 'published') throw createError({ statusCode: 400, statusMessage: 'That project isn’t published yet — publish it first, then submit.' });
+  if (content.status !== 'published') throw createError({ statusCode: 400, statusMessage: 'That project isn’t published yet, publish it first, then submit.' });
   const eligible = contest.eligibleContentTypes ?? null;
   if (eligible && eligible.length > 0 && !eligible.includes(content.type)) {
     throw createError({ statusCode: 400, statusMessage: `This contest only accepts: ${eligible.join(', ')}.` });
@@ -48,7 +48,7 @@ export default defineEventHandler(async (event): Promise<ContestEntryItem> => {
   // cap + dedupes; a null here means already-entered or over the entry limit.
   const entry = await submitContestEntry(db, contest.id, input.contentId, user.id);
   if (!entry) {
-    throw createError({ statusCode: 400, statusMessage: 'Couldn’t submit — you may have already entered this project, or reached the contest’s entry limit.' });
+    throw createError({ statusCode: 400, statusMessage: 'Couldn’t submit, you may have already entered this project, or reached the contest’s entry limit.' });
   }
   return entry;
 });

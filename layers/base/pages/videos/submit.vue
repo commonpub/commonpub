@@ -1,6 +1,6 @@
 <script setup lang="ts">
 definePageMeta({ middleware: 'auth' });
-useSeoMeta({ title: `Submit Video — ${useSiteName()}` });
+useSeoMeta({ title: `Submit Video, ${useSiteName()}` });
 
 const toast = useToast();
 const { extract: extractError } = useApiError();
@@ -78,7 +78,7 @@ async function handleSubmit(): Promise<void> {
         <div class="form-field">
           <label for="video-cat" class="form-label">Category</label>
           <select id="video-cat" v-model="categoryId" class="form-select">
-            <option value="">— None —</option>
+            <option value="">- None -</option>
             <option v-for="cat in (categories ?? [])" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
           </select>
         </div>

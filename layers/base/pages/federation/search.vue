@@ -2,7 +2,7 @@
 definePageMeta({});
 
 useHead({
-  title: 'Find Remote Users — Federation',
+  title: 'Find Remote Users, Federation',
 });
 </script>
 

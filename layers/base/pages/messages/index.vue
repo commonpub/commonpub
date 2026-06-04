@@ -1,5 +1,5 @@
 <script setup lang="ts">
-useSeoMeta({ title: `Messages — ${useSiteName()}` });
+useSeoMeta({ title: `Messages, ${useSiteName()}` });
 definePageMeta({ middleware: 'auth' });
 
 interface ParticipantRef {

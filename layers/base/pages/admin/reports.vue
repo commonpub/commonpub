@@ -1,6 +1,6 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'admin', middleware: 'auth' });
-useSeoMeta({ title: `Reports — Admin — ${useSiteName()}` });
+useSeoMeta({ title: `Reports, Admin, ${useSiteName()}` });
 
 const toast = useToast();
 const statusFilter = ref<string>('pending');

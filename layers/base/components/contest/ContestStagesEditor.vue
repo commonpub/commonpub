@@ -189,7 +189,7 @@ const missingSubmission = computed(() => stages.value.length > 0 && !stages.valu
               :value="stage.description ?? ''"
               type="text"
               class="cpub-form-input"
-              placeholder="What happens — or what to submit/refine — this stage"
+              placeholder="What happens, or what to submit/refine, this stage"
               @input="setField(i, { description: ($event.target as HTMLInputElement).value || undefined })"
             />
           </div>
@@ -198,13 +198,13 @@ const missingSubmission = computed(() => stages.value.length > 0 && !stages.valu
           <div v-if="stage.kind === 'review'" class="cpub-stage-criteria">
             <div class="cpub-form-field" style="margin-bottom: 10px;">
               <label class="cpub-form-label">Advance the top N to the next stage</label>
-              <input :value="stage.advanceCount ?? ''" type="number" min="1" class="cpub-form-input cpub-stage-advn" placeholder="e.g. 50 — leave blank to decide at advance time" @input="advanceCountInput(i, $event)" />
+              <input :value="stage.advanceCount ?? ''" type="number" min="1" class="cpub-form-input cpub-stage-advn" placeholder="e.g. 50, leave blank to decide at advance time" @input="advanceCountInput(i, $event)" />
             </div>
             <div class="cpub-stage-criteria-head">
-              <span class="cpub-form-label" style="margin: 0;">Judging criteria — this round</span>
+              <span class="cpub-form-label" style="margin: 0;">Judging criteria, this round</span>
               <button type="button" class="cpub-btn cpub-btn-sm" @click="addCriterion(i)"><i class="fa-solid fa-plus"></i> Add</button>
             </div>
-            <p class="cpub-form-hint" style="margin: 4px 0;">Optional — leave empty to use the contest’s default criteria. Set per-round criteria for multi-round contests (e.g. judge proposals on Feasibility, prototypes on Deployment readiness).</p>
+            <p class="cpub-form-hint" style="margin: 4px 0;">Optional, leave empty to use the contest’s default criteria. Set per-round criteria for multi-round contests (e.g. judge proposals on Feasibility, prototypes on Deployment readiness).</p>
             <div v-for="(crit, ci) in (stage.criteria ?? [])" :key="ci" class="cpub-stage-crit-row">
               <input :value="crit.label" type="text" class="cpub-form-input" placeholder="Criterion (e.g. Community impact)" @input="setCriterion(i, ci, { label: ($event.target as HTMLInputElement).value })" />
               <input :value="crit.weight ?? ''" type="number" min="0" max="100" class="cpub-form-input cpub-stage-crit-pts" placeholder="pts" @input="critWeightInput(i, ci, $event)" />

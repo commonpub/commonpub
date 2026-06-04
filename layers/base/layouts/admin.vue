@@ -54,7 +54,7 @@ const { desktopCollapsed, mobileOpen, toggleDesktop, toggleMobile, closeMobile }
           <!--
             Nav link pattern: icon + visible label. When collapsed, label text
             stays in the DOM (clip-path) so screen readers still announce
-            "Dashboard, link" — the icon alone has no accessible name.
+            "Dashboard, link", the icon alone has no accessible name.
             `title` attr only set when collapsed → visual tooltip on hover.
           -->
           <NuxtLink to="/admin" class="admin-nav-link" :title="desktopCollapsed ? 'Dashboard' : undefined" @click="closeMobile">
@@ -83,7 +83,7 @@ const { desktopCollapsed, mobileOpen, toggleDesktop, toggleMobile, closeMobile }
           </NuxtLink>
           <!-- Layouts editor — gated on layoutEngine feature flag (CLAUDE.md rule #2).
                Stays invisible until the operator flips the flag, then appears between
-               the legacy /admin/homepage editor and Navigation. Phase 3a — session 160 audit. -->
+               the legacy /admin/homepage editor and Navigation. Phase 3a, session 160 audit. -->
           <NuxtLink v-if="layoutEngine" to="/admin/layouts" class="admin-nav-link" :title="desktopCollapsed ? 'Layouts' : undefined" @click="closeMobile">
             <i class="fa-solid fa-table-cells-large"></i><span class="admin-nav-label">Layouts</span>
           </NuxtLink>

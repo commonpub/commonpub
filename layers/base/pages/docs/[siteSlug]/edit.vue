@@ -48,7 +48,7 @@ watch(selectedVersion, () => {
   refreshPages();
 });
 
-useSeoMeta({ title: () => `Edit ${site.value?.name ?? 'Docs'} — ${useSiteName()}` });
+useSeoMeta({ title: () => `Edit ${site.value?.name ?? 'Docs'}, ${useSiteName()}` });
 
 interface DocsPage {
   id: string;

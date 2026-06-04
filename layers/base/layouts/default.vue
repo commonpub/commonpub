@@ -268,10 +268,10 @@ const userUsername = computed(() => user.value?.username ?? '');
 
 /* ═══ TOPBAR ═══
    Structure is token-driven (--cpub-topbar-*) so a theme can change the bar's SHAPE
-   — height, radius, shadow, position, padding — not just its colors, without forking
+  , height, radius, shadow, position, padding, not just its colors, without forking
    this layout. Every default reproduces the current flat 48px bar exactly.
    (Centering the bar's CONTENT at a max width while keeping a full-bleed background
-   needs an inner wrapper element, which the base markup doesn't have — that one
+   needs an inner wrapper element, which the base markup doesn't have, that one
    aspect stays a structural choice, not a token.) */
 .cpub-topbar {
   position: var(--cpub-topbar-position, fixed); top: 0; left: 0; right: 0;

@@ -65,7 +65,7 @@ const groups: HotkeyGroup[] = [
     title: 'History',
     rows: [
       { chord: ['⌘', 'Z'], description: 'Undo the last change. Stack holds the most recent 50 operations.' },
-      { chord: ['⌘', 'Shift', 'Z'], description: 'Redo. Cancelled by any new action — Notion/Linear convention.' },
+      { chord: ['⌘', 'Shift', 'Z'], description: 'Redo. Cancelled by any new action, Notion/Linear convention.' },
     ],
   },
   // (Move group deliberately omitted — session 165 deep audit R1-A.

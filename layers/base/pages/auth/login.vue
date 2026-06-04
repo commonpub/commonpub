@@ -2,7 +2,7 @@
 definePageMeta({ layout: 'auth' });
 
 useSeoMeta({
-  title: `Log in — ${useSiteName()}`,
+  title: `Log in, ${useSiteName()}`,
   description: 'Log in to your CommonPub account.',
 });
 
@@ -241,7 +241,7 @@ function handleMastodonLogin(): void {
     </div>
 
     <!--
-      Mastodon-API login section (Phase 2b) — gated by features.identity.signInWithRemote.
+      Mastodon-API login section (Phase 2b), gated by features.identity.signInWithRemote.
       Works with any Mastodon-API-compatible host: Mastodon, Pleroma, Akkoma, GoToSocial,
       Firefish, and other CommonPub instances. On submit, parses the input to extract a
       host and navigates to /api/auth/mastodon/start, which registers our OAuth client at
@@ -257,7 +257,7 @@ function handleMastodonLogin(): void {
 
         <label for="mastodon-handle" class="field-label">
           Sign in with Mastodon
-          <span class="field-label-note">— or Pleroma, GoToSocial, Akkoma, Firefish</span>
+          <span class="field-label-note">- or Pleroma, GoToSocial, Akkoma, Firefish</span>
         </label>
         <div class="cpub-federated-input-group">
           <input

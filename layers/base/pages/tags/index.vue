@@ -1,5 +1,5 @@
 <script setup lang="ts">
-useSeoMeta({ title: `Tags — ${useSiteName()}`, description: 'Browse content by tags.' });
+useSeoMeta({ title: `Tags, ${useSiteName()}`, description: 'Browse content by tags.' });
 
 const { data: trending, pending } = await useFetch<any>('/api/search/trending');
 

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 useSeoMeta({
-  title: `Documentation — ${useSiteName()}`,
+  title: `Documentation, ${useSiteName()}`,
   description: 'Browse documentation sites.',
 });
 

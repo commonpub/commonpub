@@ -47,7 +47,7 @@ const totalPrice = computed(() => {
             <span v-else>{{ part.name || 'Unknown' }}</span>
           </td>
           <td class="cpub-col-qty">{{ (part.qty ?? part.quantity) ?? 1 }}</td>
-          <td class="cpub-part-notes">{{ part.notes || '—' }}</td>
+          <td class="cpub-part-notes">{{ part.notes || '-' }}</td>
         </tr>
       </tbody>
     </table>

@@ -15,7 +15,7 @@ export default defineNitroPlugin((nitro) => {
     try {
       const config = useConfig();
       if (!config.features.federation) {
-        console.log('[federation] Federation disabled — delivery worker not started');
+        console.log('[federation] Federation disabled, delivery worker not started');
         return;
       }
 

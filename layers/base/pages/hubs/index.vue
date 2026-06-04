@@ -1,6 +1,6 @@
 <script setup lang="ts">
 useSeoMeta({
-  title: `Hubs — ${useSiteName()}`,
+  title: `Hubs, ${useSiteName()}`,
   description: 'Browse and join maker communities.',
 });
 

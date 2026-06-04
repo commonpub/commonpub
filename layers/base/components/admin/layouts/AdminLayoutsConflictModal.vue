@@ -134,7 +134,7 @@ onBeforeUnmount(() => {
         <div id="cpub-admin-layouts-conflict-body" class="cpub-admin-layouts-conflict-body">
           <p>{{ message ?? 'Another admin saved this layout while you were editing.' }}</p>
           <p class="cpub-admin-layouts-conflict-body-hint">
-            Reload their version (recommended) — or keep your edits visible so you can copy what
+            Reload their version (recommended), or keep your edits visible so you can copy what
             you need before deciding. Overwriting their changes is destructive and final.
           </p>
         </div>

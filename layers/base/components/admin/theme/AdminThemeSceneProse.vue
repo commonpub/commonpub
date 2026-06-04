@@ -13,7 +13,7 @@
       <h1 class="scene-prose-title">Building a federated maker community without a platform</h1>
       <p class="scene-prose-deck">
         How CommonPub instances stay sovereign while still talking to Mastodon, Lemmy,
-        and each other — and what we learned shipping the first three live sites.
+        and each other, and what we learned shipping the first three live sites.
       </p>
       <div class="scene-prose-byline">
         <span class="scene-prose-avatar">M</span>
@@ -27,7 +27,7 @@
       Most maker communities live on someone else's platform. The platform owns the
       identity, the content, the moderation, and the moment the platform changes
       direction, the community goes with it. That's the failure mode CommonPub is
-      built around — every instance is a complete site, federation is opt-in, and
+      built around, every instance is a complete site, federation is opt-in, and
       moving your community is a database export, not a migration ticket.
     </p>
 
@@ -41,7 +41,7 @@
     </p>
 
     <blockquote class="scene-prose-quote">
-      The schema is the work — everything else follows from it.
+      The schema is the work, everything else follows from it.
     </blockquote>
 
     <h3 class="scene-prose-h3">What the layer ships</h3>

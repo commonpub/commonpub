@@ -1,6 +1,6 @@
 <script setup lang="ts">
 useSeoMeta({
-  title: `Terms of Service — ${useSiteName()}`,
+  title: `Terms of Service, ${useSiteName()}`,
   description: 'Terms and conditions for using this platform.',
 });
 

@@ -34,8 +34,8 @@ async function mirror(row: RegistryRow, direction: 'pull' | 'push'): Promise<voi
       body: { remoteDomain: row.domain, remoteActorUri: row.actorUri, direction },
     });
     toast.success(direction === 'pull'
-      ? `Mirroring ${row.domain} — their posts will arrive`
-      : `Requested ${row.domain} to mirror you — awaiting their approval`);
+      ? `Mirroring ${row.domain}, their posts will arrive`
+      : `Requested ${row.domain} to mirror you, awaiting their approval`);
     emit('changed');
   } catch {
     toast.error(direction === 'pull' ? 'Failed to add mirror' : 'Failed to send request');

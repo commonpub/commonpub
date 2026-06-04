@@ -18,7 +18,7 @@ definePageMeta({
   layout: 'admin',
   middleware: ['auth', 'admin-layouts'],
 });
-useSeoMeta({ title: `Layouts — Admin — ${useSiteName()}` });
+useSeoMeta({ title: `Layouts, Admin, ${useSiteName()}` });
 
 const toast = useToast();
 const { data: layouts, refresh, pending } = await useFetch<LayoutRecord[]>(
@@ -59,7 +59,7 @@ async function migrateHomepage(): Promise<void> {
       toast.success('Homepage migrated to layout engine');
       await refresh();
     } else if (result.reason === 'layout-already-exists') {
-      toast.show('A homepage layout already exists — opening it');
+      toast.show('A homepage layout already exists, opening it');
       await refresh();
     } else {
       toast.show(result.reason ?? 'Migration finished');
@@ -141,7 +141,7 @@ const sortedLayouts = computed<LayoutRecord[]>(() => {
 
     <template v-else-if="sortedLayouts.length === 0">
       <!--
-        Empty state — single icon + headline + one-line description +
+        Empty state, single icon + headline + one-line description +
         single primary action, per Carbon + Mobbin SaaS empty-state
         synthesis. Skipping illustration on purpose: the sharp-corner +
         mono UI label aesthetic reads as intentional with just text.
@@ -154,7 +154,7 @@ const sortedLayouts = computed<LayoutRecord[]>(() => {
         <i class="fa-regular fa-folder-open cpub-admin-layouts-empty-icon" aria-hidden="true"></i>
         <h2 class="cpub-admin-layouts-empty-text">No layouts yet</h2>
         <p class="cpub-admin-layouts-empty-hint">
-          Layouts arrange sections — hero, feed, blocks — into reusable page templates.
+          Layouts arrange sections, hero, feed, blocks, into reusable page templates.
           Start by migrating your existing homepage from the legacy editor.
         </p>
         <button

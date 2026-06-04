@@ -1,6 +1,6 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'admin', middleware: 'auth' });
-useSeoMeta({ title: `Feature Flags — Admin — ${useSiteName()}` });
+useSeoMeta({ title: `Feature Flags, Admin, ${useSiteName()}` });
 
 const toast = useToast();
 

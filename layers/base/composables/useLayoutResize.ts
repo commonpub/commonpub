@@ -186,7 +186,7 @@ export function clampResize(params: {
   if (neighbourStart === null) {
     return {
       newColSpan,
-      newNeighbourColSpan: 0, // sentinel — caller knows there's no neighbour
+      newNeighbourColSpan: 0, // sentinel, caller knows there's no neighbour
       constraintHit,
       constraintBound,
     };

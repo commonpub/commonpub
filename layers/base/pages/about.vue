@@ -1,6 +1,6 @@
 <script setup lang="ts">
 useSeoMeta({
-  title: `About — ${useSiteName()}`,
+  title: `About, ${useSiteName()}`,
   description: 'CommonPub is an open-source, federated platform for maker communities.',
 });
 
@@ -23,12 +23,12 @@ const { hubs: hubsEnabled, learning: learningEnabled, contests: contestsEnabled,
         <div class="cpub-about-card">
           <div class="cpub-about-card-icon"><i class="fa-solid fa-microchip"></i></div>
           <h3>For Makers</h3>
-          <p>Document your builds with rich block editors. Parts lists, wiring diagrams, build steps, and code blocks — everything you need to share how you built it.</p>
+          <p>Document your builds with rich block editors. Parts lists, wiring diagrams, build steps, and code blocks, everything you need to share how you built it.</p>
         </div>
         <div v-if="hubsEnabled" class="cpub-about-card">
           <div class="cpub-about-card-icon"><i class="fa-solid fa-users"></i></div>
           <h3>Community Hubs</h3>
-          <p>Create spaces for your community, product, or company. Discussions, content galleries, learning paths, and contests — all in one place.</p>
+          <p>Create spaces for your community, product, or company. Discussions, content galleries, learning paths, and contests, all in one place.</p>
         </div>
         <div v-if="federationEnabled" class="cpub-about-card">
           <div class="cpub-about-card-icon"><i class="fa-solid fa-globe"></i></div>

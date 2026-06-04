@@ -16,8 +16,8 @@ import type { CustomThemeRecord, ThemesPayload, ThemeFamilyView } from '../types
 // ---- Family display metadata for built-in themes ------------------------
 
 const BUILT_IN_FAMILY_META: Record<string, { name: string; description: string }> = {
-  classic: { name: 'Classic', description: 'Sharp corners, offset shadows, blue accent — the original CommonPub look' },
-  agora: { name: 'Agora', description: 'Warm parchment tones, green accent, serif display font — institutional warmth' },
+  classic: { name: 'Classic', description: 'Sharp corners, offset shadows, blue accent, the original CommonPub look' },
+  agora: { name: 'Agora', description: 'Warm parchment tones, green accent, serif display font, institutional warmth' },
   generics: { name: 'Generics', description: 'Minimal dark aesthetic with soft glow shadows' },
 };
 

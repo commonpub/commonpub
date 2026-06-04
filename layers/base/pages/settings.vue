@@ -1,6 +1,6 @@
 <script setup lang="ts">
 definePageMeta({ middleware: 'auth' });
-useSeoMeta({ title: `Settings — ${useSiteName()}` });
+useSeoMeta({ title: `Settings, ${useSiteName()}` });
 </script>
 
 <template>

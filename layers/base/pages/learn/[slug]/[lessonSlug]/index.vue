@@ -28,7 +28,7 @@ const lesson = computed(() => lessonData.value?.lesson);
 const lessonModule = computed(() => lessonData.value?.module);
 
 useSeoMeta({
-  title: () => lesson.value ? `${lesson.value.title} — ${useSiteName()}` : `Lesson — ${useSiteName()}`,
+  title: () => lesson.value ? `${lesson.value.title}, ${useSiteName()}` : `Lesson, ${useSiteName()}`,
 });
 
 const { isAuthenticated, user } = useAuth();
@@ -165,9 +165,9 @@ async function submitQuiz(): Promise<void> {
       quizGrade.value = res.quiz;
       if (res.quiz.passed) {
         completed.value = true;
-        toast.success(`Passed — ${res.quiz.score}%`);
+        toast.success(`Passed, ${res.quiz.score}%`);
       } else {
-        toast.error(`Scored ${res.quiz.score}% — below passing. Try again.`);
+        toast.error(`Scored ${res.quiz.score}%, below passing. Try again.`);
       }
     }
   } catch (err: unknown) {
@@ -339,7 +339,7 @@ const isOwner = computed(() => user.value?.id === path.value?.author?.id);
           <div v-if="quizGrade" class="quiz-score" :class="{ passed: quizGrade.passed, failed: !quizGrade.passed }">
             <div class="quiz-score-value">{{ quizGrade.correct }} / {{ quizGrade.total }}</div>
             <div class="quiz-score-label">
-              {{ quizGrade.score }}% — {{ quizGrade.passed ? 'Passed' : 'Did not pass' }}
+              {{ quizGrade.score }}%, {{ quizGrade.passed ? 'Passed' : 'Did not pass' }}
             </div>
             <button v-if="!quizGrade.passed" class="quiz-retry-btn" @click="retryQuiz">
               <i class="fa-solid fa-rotate-right"></i> Try Again

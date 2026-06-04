@@ -1,6 +1,6 @@
 <script setup lang="ts">
 useSeoMeta({
-  title: `Feed — ${useSiteName()}`,
+  title: `Feed, ${useSiteName()}`,
   description: 'Recent published content from the community.',
 });
 

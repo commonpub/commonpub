@@ -86,7 +86,7 @@ export default defineEventHandler(async (event) => {
     try {
       const result = await migrateHomepageSectionsToLayout(db, {
         adminId: user.id,
-        force: false, // changed from true — see comment above
+        force: false, // changed from true, see comment above
       });
       if (result.migrated) {
         invalidateLayoutsByRouteCache();

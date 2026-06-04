@@ -78,7 +78,7 @@ const participantLabel = computed(() => {
   return others.length > 0 ? others.join(', ') : 'Conversation';
 });
 
-useSeoMeta({ title: () => `Message — ${participantLabel.value}` });
+useSeoMeta({ title: () => `Message, ${participantLabel.value}` });
 
 async function handleSend(text: string): Promise<void> {
   try {

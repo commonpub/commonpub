@@ -13,7 +13,7 @@ import BlockMarkdownView from '../../components/blocks/BlockMarkdownView.vue';
 export const markdownSection: SectionDefinition<MarkdownConfig> = {
   type: 'markdown',
   name: 'Markdown',
-  description: 'Markdown body — safer than custom-html (uses BlockMarkdownView)',
+  description: 'Markdown body, safer than custom-html (uses BlockMarkdownView)',
   icon: 'fa-markdown',
   category: 'content',
   status: 'stable',

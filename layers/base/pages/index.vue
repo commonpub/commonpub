@@ -2,7 +2,7 @@
 import type { Serialized, ContentListItem, PaginatedResponse, HomepageSection } from '@commonpub/server';
 
 useSeoMeta({
-  title: `${useSiteName()} — Open Maker Platform`,
+  title: `${useSiteName()}, Open Maker Platform`,
   description: 'Build, document, and share your projects with a community of makers.',
 });
 
@@ -126,7 +126,7 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
          Renders DB-driven layout via <LayoutSlot> zones ONLY when BOTH
          (a) features.layoutEngine is ON AND (b) a layout actually exists
          at scope ('route', '/'). Falls through to the configurable or
-         legacy renderer otherwise — including when the flag's ON but
+         legacy renderer otherwise, including when the flag's ON but
          no layout has been seeded yet (the "blank page" trap reported
          in session 158 follow-up).
 

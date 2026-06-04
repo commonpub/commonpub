@@ -895,6 +895,12 @@ rubric on `ContestStage`); the judge page resolves the CURRENT review stage's cr
 to contest-level `judgingCriteria`. `judgeContestEntry` is **cohort-gated** (rejects `eliminated`)
 and the judge page lists only survivors — so a later round scores only the finalists. **Community
 voting is advisory** — it never drives ranks or the Top-N cut; only judge `score` does (don't wire
-votes into `calculateContestRanks` or `advanceContestStage`). KNOWN GAP: judge scores are single-slot
-(`score`/`judgeScores`), not keyed by round — a second judging round overwrites the live score (the
-round aggregate is snapshotted in `stage_state`). Proper fix = tag `judgeScores` by `stageId`; deferred.
+votes into `calculateContestRanks` or `advanceContestStage`). **Per-round score isolation (session 189,
+gap closed):** each `JudgeScoreEntry` carries a `roundId` (the current review stage's id; classic
+contests resolve to the synthesized `core-review`, so they stay one bucket). A judge has one score
+per round (matched on judge + round), and the entry's live `score` aggregates ONLY the current
+round's scores — so a later judging round neither overwrites nor blends with an earlier one; earlier
+rounds remain in `judgeScores` tagged by round, as history. `judgeContestEntry` resolves the round
+via `currentStage`; the judge page mirrors this (its `currentRoundId` uses `normalizeStages` exactly
+like the server) to pre-fill only the current round's score. If you add another scoring surface,
+tag + aggregate by `roundId` the same way.

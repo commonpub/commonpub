@@ -595,7 +595,7 @@ const isOver = computed<boolean>(() => isDragOver.value !== undefined);
       :on-resize-start="resizeHandlerForSection(section)"
     />
     <!--
-      Session 164 polish — remove row × button.
+      Session 164 polish, remove row × button.
       Keyed child so <TransitionGroup> tracks it (TG requires keyed
       children). The button is position:absolute on the row corner
       so it doesn't take a grid column; FLIP doesn't move it because
@@ -603,7 +603,7 @@ const isOver = computed<boolean>(() => isDragOver.value !== undefined);
       when an onRemoveRow handler is wired (public path stays clean).
     -->
     <!--
-      Phase 3e — row select handle. Top-left corner so it doesn't collide
+      Phase 3e, row select handle. Top-left corner so it doesn't collide
       with the top-right remove button. Toggles row selection → the
       inspector swaps to the row-config form. Keyed for TransitionGroup;
       hidden on the public path (no onSelect handler).
@@ -614,7 +614,7 @@ const isOver = computed<boolean>(() => isDragOver.value !== undefined);
       type="button"
       class="cpub-layout-row-select"
       :class="{ 'cpub-layout-row-select--active': rowIsSelected }"
-      :aria-label="rowIsSelected ? `Row in ${zone} selected — activate to deselect` : `Select this row in ${zone}`"
+      :aria-label="rowIsSelected ? `Row in ${zone} selected, activate to deselect` : `Select this row in ${zone}`"
       :aria-pressed="rowIsSelected"
       :title="rowIsSelected ? 'Deselect row' : 'Select row'"
       @click.stop="handleRowSelectClick"
@@ -637,7 +637,7 @@ const isOver = computed<boolean>(() => isDragOver.value !== undefined);
       <i class="fa-solid fa-xmark" aria-hidden="true"></i>
     </button>
     <!--
-      Phase 3c — 12-col guideline overlay. Shown ONLY while a resize is
+      Phase 3c, 12-col guideline overlay. Shown ONLY while a resize is
       in flight AND it's resizing a section in THIS row. 12 vertical
       lines absolutely positioned across the row's inside; the line at
       `snapLineCol` (the resized section's right edge) bolds to opacity
@@ -704,7 +704,7 @@ const isOver = computed<boolean>(() => isDragOver.value !== undefined);
    empty rows but over-padded compact rows). :empty matches when the
    row has zero child elements, which happens when sections.length===0
    OR all sections are filtered out by sectionVisible. Both cases mean
-   "no drop target without help" — exactly when we need to enlarge it. */
+   "no drop target without help", exactly when we need to enlarge it. */
 .cpub-layout-row--editable:empty {
   min-height: 64px;
 }
@@ -774,7 +774,7 @@ const isOver = computed<boolean>(() => isDragOver.value !== undefined);
 
 /* Phase 3e — row select handle. Mirrors the remove button's reveal-on-
    hover/focus/selected behavior; positioned top-LEFT (remove is top-right)
-   so both fit on a row corner without overlap. Accent (not red) — it's a
+   so both fit on a row corner without overlap. Accent (not red), it's a
    selection affordance, not destructive. */
 .cpub-layout-row-select {
   position: absolute;
@@ -850,7 +850,7 @@ const isOver = computed<boolean>(() => isDragOver.value !== undefined);
 }
 /* When an item is leaving, its DOM stays for the duration of the
    leave transition. Take it out of the document flow so other items
-   can FLIP into its space WITHOUT waiting for the leave to finish —
+   can FLIP into its space WITHOUT waiting for the leave to finish -
    gives a visually-coherent reorder when a section is also being
    removed. */
 .cpub-flip-leave-active {
@@ -901,7 +901,7 @@ const isOver = computed<boolean>(() => isDragOver.value !== undefined);
 /* R1-7 audit fix: the overlay is a keyed child of the row's
    <TransitionGroup>, so it INHERITS the cpub-flip-enter/leave classes
    while mounting. Their opacity:0 + scale(0.96) prelude conflicts with
-   the overlay's own fade-in animation — for ~150ms the overlay would
+   the overlay's own fade-in animation, for ~150ms the overlay would
    pop to scale 0.96, then snap back. Override to neutralise the flip
    prelude on the overlay specifically; sections + the remove button
    keep their flip animations. */

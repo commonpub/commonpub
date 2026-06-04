@@ -220,7 +220,7 @@ function groupValue(field: AutoFormField): Record<string, unknown> {
         >
           <!-- Optional fields (no default) get a leading unset option so an
                undefined value reads as "default", not the first real choice. -->
-          <option v-if="f.optional" value="">— Default —</option>
+          <option v-if="f.optional" value="">- Default -</option>
           <option v-for="opt in f.options" :key="String(opt.value)" :value="opt.value">
             {{ opt.label }}
           </option>

@@ -30,7 +30,7 @@ if (user.value?.username && user.value.username !== username.value) {
 }
 
 useSeoMeta({
-  title: () => isNew.value ? `New ${contentType.value} — ${useSiteName()}` : `Edit — ${useSiteName()}`,
+  title: () => isNew.value ? `New ${contentType.value}, ${useSiteName()}` : `Edit, ${useSiteName()}`,
 });
 
 const title = ref('');
@@ -62,7 +62,7 @@ const projectTemplate: [string, Record<string, unknown>][] = [
   ['heading', { text: 'Prerequisites', level: 2 }],
   ['paragraph', { html: '<ul><li><p>Required tools, accounts, or hardware</p></li><li><p>Link each tool/service on first mention</p></li></ul>' }],
   ['partsList', { parts: [] }],
-  ['buildStep', { stepNumber: 1, title: 'Set Up', time: '', children: [['paragraph', { html: '<p>Brief context sentence — why this step matters. Use code blocks for commands, inline code for filenames and values.</p>' }]] }],
+  ['buildStep', { stepNumber: 1, title: 'Set Up', time: '', children: [['paragraph', { html: '<p>Brief context sentence, why this step matters. Use code blocks for commands, inline code for filenames and values.</p>' }]] }],
   ['buildStep', { stepNumber: 2, title: 'Build', time: '', children: [['paragraph', { html: '<p>Continue the pattern. Each build step = one phase of the build. Link to external repos for full code instead of pasting walls of code.</p>' }]] }],
   ['buildStep', { stepNumber: 3, title: 'Verify', time: '', children: [['paragraph', { html: '<p>Add as many steps as needed. Each step should be a clear, actionable phase.</p>' }]] }],
   ['heading', { text: 'Testing & Verification', level: 2 }],
@@ -290,7 +290,7 @@ async function handlePublish(): Promise<void> {
     try {
       await $fetch(`/api/contests/${contestFromQuery}/entries`, { method: 'POST', body: { contentId: contentId.value } });
       submitToast.success('Entered into the contest!');
-    } catch { /* non-blocking — user can submit manually from the contest page */ }
+    } catch { /* non-blocking, user can submit manually from the contest page */ }
   }
 }
 

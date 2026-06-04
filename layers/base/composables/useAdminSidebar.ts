@@ -38,8 +38,8 @@
 const COOKIE_KEY = 'cpub-admin-sidebar-collapsed';
 
 const EDITOR_ROUTE_PATTERNS: RegExp[] = [
-  /^\/admin\/layouts\/[^/]+$/, // /admin/layouts/[id] — Phase 3a layout editor
-  /^\/admin\/theme\/edit\/[^/]+$/, // /admin/theme/edit/[id] — session 154+156 theme editor
+  /^\/admin\/layouts\/[^/]+$/, // /admin/layouts/[id], Phase 3a layout editor
+  /^\/admin\/theme\/edit\/[^/]+$/, // /admin/theme/edit/[id], session 154+156 theme editor
 ];
 
 export interface AdminSidebarApi {
@@ -68,7 +68,7 @@ export function useAdminSidebar(): AdminSidebarApi {
   // emit Set-Cookie for unchanged default values).
   const userPref = useCookie<boolean>(COOKIE_KEY, {
     default: () => false,
-    maxAge: 60 * 60 * 24 * 365, // 1 year — sidebar pref is "forever"
+    maxAge: 60 * 60 * 24 * 365, // 1 year, sidebar pref is "forever"
     path: '/',
     sameSite: 'lax',
   });

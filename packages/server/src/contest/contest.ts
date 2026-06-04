@@ -32,6 +32,12 @@ export interface JudgeScoreEntry {
   score: number;
   feedback?: string;
   criteriaScores?: CriterionScore[];
+  /**
+   * The review stage this score was given in (Phase B2.5 per-round isolation). A
+   * judge has one score per round; the entry's live `score` aggregates only the
+   * CURRENT round. Absent on pre-B2.5 scores (treated as a single bucket).
+   */
+  roundId?: string;
 }
 
 export interface ContestListItem {
@@ -721,6 +727,11 @@ export async function judgeContestEntry(
       contestId: contests.id,
       entrantId: contestEntries.userId,
       stageState: contestEntries.stageState,
+      stages: contests.stages,
+      currentStageId: contests.currentStageId,
+      startDate: contests.startDate,
+      endDate: contests.endDate,
+      judgingEndDate: contests.judgingEndDate,
     })
     .from(contestEntries)
     .innerJoin(contests, eq(contestEntries.contestId, contests.id))
@@ -741,6 +752,20 @@ export async function judgeContestEntry(
   if (isEliminated({ stageState: row.stageState })) {
     return { judged: false, error: 'This entry was not advanced and can no longer be scored' };
   }
+
+  // Per-round isolation: which review round is this score for? The entry's live
+  // `score` will aggregate only THIS round's judge scores (a classic contest with
+  // no explicit stages resolves to the synthesized `core-review`, so it stays one
+  // bucket — unchanged single-round behaviour).
+  const roundStage = currentStage({
+    status: row.contestStatus,
+    startDate: row.startDate,
+    endDate: row.endDate,
+    judgingEndDate: row.judgingEndDate,
+    stages: row.stages,
+    currentStageId: row.currentStageId,
+  });
+  const roundId = roundStage && roundStage.kind === 'review' ? roundStage.id : null;
 
   // Conflict of interest: a judge cannot score their own entry.
   if (row.entrantId === judgeId) {
@@ -793,12 +818,20 @@ export async function judgeContestEntry(
     const scores = (locked?.judgeScores ?? []) as JudgeScoreEntry[];
     const record: JudgeScoreEntry = { judgeId, score: overall, feedback };
     if (criteriaScores && criteriaScores.length > 0) record.criteriaScores = criteriaScores;
+    if (roundId) record.roundId = roundId;
 
-    const existingIdx = scores.findIndex((s) => s.judgeId === judgeId);
+    // A judge has one score per round — match on judge AND round.
+    const existingIdx = scores.findIndex((s) => s.judgeId === judgeId && (s.roundId ?? null) === (roundId ?? null));
     if (existingIdx >= 0) scores[existingIdx] = record;
     else scores.push(record);
 
-    const avgScore = Math.round(scores.reduce((sum, s) => sum + s.score, 0) / scores.length);
+    // The live aggregate reflects ONLY the current round's scores, so a later
+    // judging round doesn't blend with an earlier one. Earlier rounds stay in
+    // `judgeScores` (tagged with their roundId) as history.
+    const roundScores = roundId ? scores.filter((s) => (s.roundId ?? null) === roundId) : scores;
+    const avgScore = roundScores.length
+      ? Math.round(roundScores.reduce((sum, s) => sum + s.score, 0) / roundScores.length)
+      : 0;
 
     await tx
       .update(contestEntries)

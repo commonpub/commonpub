@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { EventListItem } from '@commonpub/server';
 
-useSeoMeta({ title: `Events — ${useSiteName()}` });
+useSeoMeta({ title: `Events, ${useSiteName()}` });
 
 const { isAuthenticated } = useAuth();
 const route = useRoute();

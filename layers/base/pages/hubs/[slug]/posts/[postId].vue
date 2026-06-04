@@ -137,7 +137,7 @@ function formatDate(d: string | Date): string {
 }
 
 useSeoMeta({
-  title: () => post.value ? `${post.value.content?.slice(0, 60)} — ${hub.value?.name ?? 'Hub'}` : 'Post',
+  title: () => post.value ? `${post.value.content?.slice(0, 60)}, ${hub.value?.name ?? 'Hub'}` : 'Post',
 });
 </script>
 

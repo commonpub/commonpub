@@ -27,7 +27,7 @@ watch(() => content.value?.type, (type) => {
 }, { immediate: true });
 
 useSeoMeta({
-  title: () => content.value?.title ? `${content.value.title} — ${useSiteName()}` : useSiteName(),
+  title: () => content.value?.title ? `${content.value.title}, ${useSiteName()}` : useSiteName(),
   description: () => content.value?.seoDescription || content.value?.description || '',
   ogImage: () => content.value?.coverImageUrl || '/og-default.png',
   ogTitle: () => content.value?.title || useSiteName(),

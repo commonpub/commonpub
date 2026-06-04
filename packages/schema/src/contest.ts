@@ -157,6 +157,8 @@ export const contestEntries = pgTable('contest_entries', {
       feedback?: string;
       /** Per-criterion breakdown when the contest defines a judging rubric. */
       criteriaScores?: Array<{ label: string; score: number; max: number }>;
+      /** Review stage this score was given in (per-round isolation, Phase B2.5). */
+      roundId?: string;
     }>
   >(),
   /**

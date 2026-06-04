@@ -97,7 +97,7 @@ function stripHtml(html: string): string {
 }
 
 useSeoMeta({
-  title: () => post.value ? `${stripHtml(post.value.content || '').slice(0, 60)} — ${hub.value?.name ?? 'Hub'}` : 'Post',
+  title: () => post.value ? `${stripHtml(post.value.content || '').slice(0, 60)}, ${hub.value?.name ?? 'Hub'}` : 'Post',
   description: () => stripHtml(post.value?.content ?? '').slice(0, 160),
 });
 

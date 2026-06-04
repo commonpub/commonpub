@@ -234,7 +234,7 @@ if (initial.value) {
 history.clear();
 
 useSeoMeta({
-  title: () => `Edit: ${editor.draft.value?.name ?? 'Layout'} — Admin — ${useSiteName()}`,
+  title: () => `Edit: ${editor.draft.value?.name ?? 'Layout'}, Admin, ${useSiteName()}`,
 });
 
 // Viewport preview state — purely UI; doesn't mutate the layout.
@@ -493,7 +493,7 @@ async function onPublish(): Promise<void> {
         case 'publish':
           toast.error(
             'Your changes are saved as a draft, but publish failed. ' +
-            'Try Publish again — the saved draft is durable.',
+            'Try Publish again, the saved draft is durable.',
           );
           return;
         case 'refresh':
@@ -501,7 +501,7 @@ async function onPublish(): Promise<void> {
           // is stale. The next save / publish picks up correctly; a
           // reload syncs immediately.
           toast.show(
-            'Published — but the editor view is stale. Reload to sync.',
+            'Published, but the editor view is stale. Reload to sync.',
           );
           return;
       }
@@ -519,7 +519,7 @@ async function onConflictRefresh(): Promise<void> {
     // Clear the throttle so auto-save resumes; if cascade really
     // persists, the rolling-window will trip again on its own.
     editor.clearConflictHistory();
-    toast.success('Refreshed — server state loaded');
+    toast.success('Refreshed, server state loaded');
   } catch (err) {
     const e = err as { statusMessage?: string };
     toast.error(e.statusMessage ?? 'Refresh failed');
@@ -571,7 +571,7 @@ async function onConflictForceSave(): Promise<void> {
 
       <!--
         Session 162 P2.5: conflict-thrash banner. Shows when 3+ saves
-        have 409'd within the last 60s — auto-save is now paused so the
+        have 409'd within the last 60s, auto-save is now paused so the
         page stops banging the server while the admin reconciles. The
         existing AdminLayoutsConflictModal handles the per-conflict UX;
         this banner is the layer above, addressing the cascade pattern.
@@ -595,7 +595,7 @@ async function onConflictForceSave(): Promise<void> {
           <strong>Auto-save paused</strong>
           <span>
             Three of your recent saves collided with another admin's
-            edits. Reload their version (recommended) — your edits will
+            edits. Reload their version (recommended), your edits will
             be lost. Overwriting their changes is destructive and final.
           </span>
         </div>
@@ -606,7 +606,7 @@ async function onConflictForceSave(): Promise<void> {
           option, danger red = destructive action LAST in tab order so
           keyboard users don't land on it.
           Banner-specific: "Resume auto-save" replaces the modal's
-          "Keep editing here" — same neutral level, different semantic
+          "Keep editing here", same neutral level, different semantic
           (banner's middle option turns auto-save back on without
           reconciliation; modal's middle option closes the modal).
         -->
@@ -642,9 +642,9 @@ async function onConflictForceSave(): Promise<void> {
       <!--
         Round-3 audit fix: phone (≤640px) sees a single banner instead
         of the editor. Drag-drop on a 375px viewport is user-hostile
-        regardless of how well-designed — matches docs/plans/layout-and-pages.md §7.7.
+        regardless of how well-designed, matches docs/plans/layout-and-pages.md §7.7.
         Note: the @media rule uses `max-width: 640px` (inclusive), so
-        a viewport at exactly 640px sees the banner — comment matches.
+        a viewport at exactly 640px sees the banner, comment matches.
       -->
       <div class="cpub-admin-layouts-editor-phone-only">
         <i class="fa-solid fa-display cpub-admin-layouts-editor-phone-icon" aria-hidden="true"></i>
@@ -668,7 +668,7 @@ async function onConflictForceSave(): Promise<void> {
         falls back to the page-meta form per §7.9 dispatch pattern).
       -->
       <!--
-        Phase 3b/A: SR narration channel — a singleton aria-live region
+        Phase 3b/A: SR narration channel, a singleton aria-live region
         that <LayoutSection> + <LayoutRow> mirror drag/drop + Move
         Up/Down events into. dnd-kit ships no announcer OOTB; this
         closes the WCAG 2.1.1 gap. Mounted ONCE outside the
@@ -693,7 +693,7 @@ async function onConflictForceSave(): Promise<void> {
                (Pre-audit ordering put palette first → admin had to scroll
                past 17 tiles to reach the canvas.)
                v-show on palette + inspector (not v-if) preserves component
-               state — scroll position, focused field — across hide/show. -->
+               state, scroll position, focused field, across hide/show. -->
           <AdminLayoutsCanvas
             :layout="editor.draft.value"
             :viewport="viewport"
@@ -726,7 +726,7 @@ async function onConflictForceSave(): Promise<void> {
             are always visible in editable mode.
 
             Hidden on mobile/tablet (< 1024px) where the body falls
-            back to a single column DOM-order stack — the toggles
+            back to a single column DOM-order stack, the toggles
             would float over content with no panel to collapse.
           -->
           <button
@@ -799,7 +799,7 @@ async function onConflictForceSave(): Promise<void> {
    --warning token didn't exist in the theme system → fell back to
    surface2 which read as a neutral box, not alert. Now uses the
    established --yellow-bg / --yellow-border tokens (defined on every
-   theme — base.css line 70-71 + all variants) that other "attention"
+   theme, base.css line 70-71 + all variants) that other "attention"
    surfaces in the layer use. Sits between toolbar + body so it's
    visible regardless of canvas scroll. */
 .cpub-admin-layouts-editor-thrash {
@@ -944,7 +944,7 @@ async function onConflictForceSave(): Promise<void> {
 
 @media (max-width: 1024px) {
   /* On tablet, fall back to DOM-order single column (canvas first,
-     palette next, inspector last) — admin sees the editing surface
+     palette next, inspector last), admin sees the editing surface
      immediately without scrolling past the palette. v1 doesn't ship
      bottom-sheet behavior (Phase 6a). */
   .cpub-admin-layouts-editor-body {
@@ -992,7 +992,7 @@ async function onConflictForceSave(): Promise<void> {
   z-index: 5;
   transition: left 200ms ease-out, right 200ms ease-out, background var(--transition-default), color var(--transition-default);
   /* Compact icon size matches the slim handle silhouette. The 28px
-     touch surface is what WCAG cares about — the chevron centers inside. */
+     touch surface is what WCAG cares about, the chevron centers inside. */
   font-size: 10px;
 }
 .cpub-admin-layouts-editor-edge-tab:hover {
@@ -1009,7 +1009,7 @@ async function onConflictForceSave(): Promise<void> {
 .cpub-admin-layouts-editor-edge-tab--left {
   /* Sit at the right edge of the palette (which is 280px wide). The
      -14px offset centers the 28px-wide tab ON the boundary so half is
-     in the palette + half in the canvas — reads as "the boundary
+     in the palette + half in the canvas, reads as "the boundary
      itself is the toggle". (Was -9px when the tab was 18px wide.) */
   left: calc(280px - 14px);
 }
@@ -1042,14 +1042,14 @@ async function onConflictForceSave(): Promise<void> {
   .cpub-admin-layouts-editor-edge-tab { display: none; }
   /* Session 164 audit R3-3: force panels visible regardless of the
      cookie-persisted desktop-collapse state. At tablet/phone the body
-     falls back to a DOM-order single-column stack — the desktop
+     falls back to a DOM-order single-column stack, the desktop
      'collapsed' state has no useful meaning when there's no grid column
      to remove, but `chrome.paletteHidden` / `chrome.inspectorHidden`
      still drive v-show on the panel components, leaving an admin who
      collapsed on desktop with NO way to re-show on tablet (the edge
      tabs are hidden by the rule above; the toolbar toggles were
      removed in the 164 polish). Override v-show's inline display:none
-     with `flex !important` (panels natively use display:flex column —
+     with `flex !important` (panels natively use display:flex column -
      'block' would break their internal layout). Scoped :deep() because
      the .cpub-admin-layouts-{palette,inspector} root classes live in
      child components. */

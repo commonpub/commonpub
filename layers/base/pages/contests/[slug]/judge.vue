@@ -25,6 +25,18 @@ const currentReviewStage = computed(() => {
   return st && st.kind === 'review' ? st : null;
 });
 
+// The current review round's id — mirrors the server's per-round tagging exactly
+// (normalizeStages-aware, so classic contests resolve to the synthesized core-review).
+// Used to pre-fill ONLY this round's score, so a judge entering round 2 doesn't see
+// their round-1 score.
+const currentRoundId = computed<string | null>(() => {
+  const c = contest.value;
+  if (!c) return null;
+  const cid = currentStageId(c);
+  const st = normalizeStages(c).find((s) => s.id === cid);
+  return st && st.kind === 'review' ? st.id : null;
+});
+
 // Judging rubric: per-round criteria if the current review stage defines them,
 // else the contest-level rubric. Judges score each criterion (0..max); the overall
 // is the normalized weighted sum (computed server-side).
@@ -38,7 +50,7 @@ function critMax(i: number): number {
   return typeof w === 'number' && w > 0 ? w : 100;
 }
 
-useSeoMeta({ title: () => `Judge: ${contest.value?.title || 'Contest'} — ${useSiteName()}` });
+useSeoMeta({ title: () => `Judge: ${contest.value?.title || 'Contest'}, ${useSiteName()}` });
 
 // Judge authorization derives from the contest_judges table.
 const myJudge = computed(() => (judgesData.value ?? []).find((j) => j.userId === user.value?.id) ?? null);
@@ -66,7 +78,7 @@ const entryList = computed(() => {
   // surviving cohort (eliminated entries drop out of later rounds).
   const items = (entriesData.value?.items ?? []).filter((e) => !e.eliminated);
   return items.map((entry) => {
-    const myScore = entry.judgeScores?.find((s) => s.judgeId === user.value?.id);
+    const myScore = entry.judgeScores?.find((s) => s.judgeId === user.value?.id && (s.roundId ?? null) === currentRoundId.value);
     return {
       id: entry.id,
       contentId: entry.contentId,
@@ -158,7 +170,7 @@ async function submitScore(entryId: string): Promise<void> {
     await $fetch(`/api/contests/${slug}/judge`, { method: 'POST', body });
     success.value = 'Score submitted for entry.';
     await refreshEntries().catch(() => {
-      success.value = 'Score saved — refresh to see the updated totals.';
+      success.value = 'Score saved, refresh to see the updated totals.';
     });
   } catch (err: unknown) {
     error.value = (err as { data?: { message?: string } })?.data?.message || 'Failed to submit score.';

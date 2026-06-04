@@ -1,6 +1,6 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'admin', middleware: 'auth' });
-useSeoMeta({ title: `Federation — Admin — ${useSiteName()}` });
+useSeoMeta({ title: `Federation, Admin, ${useSiteName()}` });
 
 const activeTab = ref<'activity' | 'mirrors' | 'registry' | 'clients' | 'trusted' | 'tools'>('activity');
 
@@ -115,7 +115,7 @@ function onRegistrySearch(value: string): void {
 const FEDERATABLE_TYPES = ['project', 'blog', 'explainer'] as const;
 // Bounded "how far back" choices for the optional history import on create.
 const DEPTH_OPTIONS = [
-  { label: 'None — forward only (default)', body: null as Record<string, number> | null },
+  { label: 'None, forward only (default)', body: null as Record<string, number> | null },
   { label: 'Last 7 days', body: { sinceDays: 7 } },
   { label: 'Last 30 days', body: { sinceDays: 30 } },
   { label: 'Last 90 days', body: { sinceDays: 90 } },
@@ -157,7 +157,7 @@ async function createMirror(): Promise<void> {
           direction: 'push',
         },
       });
-      toast.success(`Request sent to ${domain} — they must approve before they mirror you`);
+      toast.success(`Request sent to ${domain}, they must approve before they mirror you`);
       resetMirrorForm();
       newMirrorDirection.value = 'pull';
       await refreshRequests();
@@ -183,12 +183,12 @@ async function createMirror(): Promise<void> {
       const backfillUrl: string = `/api/admin/federation/mirrors/${created.id}/backfill`;
       try {
         const r = await $fetch<{ processed: number }>(backfillUrl, { method: 'POST', body: depth });
-        toast.success(`Mirror added — imported ${r?.processed ?? 0} item(s)`);
+        toast.success(`Mirror added, imported ${r?.processed ?? 0} item(s)`);
       } catch {
-        toast.error('Mirror added, but history import failed — use Backfill in its details to retry.');
+        toast.error('Mirror added, but history import failed, use Backfill in its details to retry.');
       }
     } else {
-      toast.success('Mirror added — new posts will arrive as they publish');
+      toast.success('Mirror added, new posts will arrive as they publish');
     }
     resetMirrorForm();
     await refreshMirrors();
@@ -400,7 +400,7 @@ async function refederate(): Promise<void> {
     <div v-if="activeTab === 'mirrors'">
       <p class="cpub-fed-explain">
         A <strong>mirror</strong> pulls another instance's public content into your federated feed.
-        It's <strong>one-directional</strong> — you receive their posts; they receive nothing from
+        It's <strong>one-directional</strong>, you receive their posts; they receive nothing from
         you and need do nothing. New posts arrive automatically once added; use <strong>Import
         history</strong> to also pull older posts (bounded, so you don't ingest an entire large
         instance at once).
@@ -467,7 +467,7 @@ async function refederate(): Promise<void> {
 
       <!-- Instances mirroring you -->
       <h3 class="cpub-fed-subhead">Instances mirroring you</h3>
-      <p class="cpub-fed-info-text" style="margin-bottom: 8px;">Remote instances following your instance actor — they pull your public content. (One-directional: you don't pull them unless you add a mirror above.)</p>
+      <p class="cpub-fed-info-text" style="margin-bottom: 8px;">Remote instances following your instance actor, they pull your public content. (One-directional: you don't pull them unless you add a mirror above.)</p>
       <div class="cpub-fed-activity-list">
         <div v-if="!followersData?.length" class="cpub-fed-empty">No instances are mirroring you yet.</div>
         <div v-for="f in followersData" :key="f.actorUri" class="cpub-fed-activity-row">
@@ -605,7 +605,7 @@ async function refederate(): Promise<void> {
         <!-- Re-federate Content + Hub Posts -->
         <div class="cpub-fed-tool-card">
           <h3 class="cpub-fed-tool-title"><i class="fa-solid fa-rotate"></i> Re-federate</h3>
-          <p class="cpub-fed-tool-desc">Re-queue your published content (Create) and hub posts (Announce) for delivery to your current followers. Idempotent. <strong>Bounded by default</strong> so you don't blast every follower with thousands of activities — choose how far back.</p>
+          <p class="cpub-fed-tool-desc">Re-queue your published content (Create) and hub posts (Announce) for delivery to your current followers. Idempotent. <strong>Bounded by default</strong> so you don't blast every follower with thousands of activities, choose how far back.</p>
           <div class="cpub-fed-form">
             <select v-model="refederateScope" class="cpub-fed-input" style="flex:0 0 auto;width:auto;" aria-label="Re-federate scope">
               <option value="7">Last 7 days</option>
