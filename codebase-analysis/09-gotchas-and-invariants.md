@@ -827,3 +827,24 @@ gate-time floor over the *fresh* `users.role`. If you cache the `*`, a demoted
 admin keeps full access for the whole TTL — an authorization-lag break. Floor on
 the fresh role; use `||` (not `??`) when `''` must fall back; test the full
 context→gate path, not just the resolver.
+
+## Contest `draft` status is an access gate, orthogonal to visibility (session 189)
+
+`contests.status` and `contests.visibility` are independent axes. `visibility`
+(public/unlisted/private) controls *who can see a launched contest*; `status`
+controls *lifecycle*. The `draft` status means "not launched" and MUST be
+owner/admin/stakeholder/judge-only **regardless of visibility** — a `public`
+draft is still hidden. This is enforced in two places that must agree:
+`canViewContest` (per-contest read gate, before the visibility check) and
+`listContests` (a `status != 'draft' OR createdById = viewer` condition for
+non-admins). Originally `canViewContest` only gated `private`, so a public draft
+was world-readable and listed. When adding any new "unpublished" status, gate it
+in BOTH functions, not just one. Tests: "drafts are owner-only regardless of
+visibility" + "listContests hides drafts from non-owners".
+
+Contest stage transitions are **bidirectional** (`VALID_TRANSITIONS` in
+`server/src/contest/contest.ts`); the client mirrors the same map in ContestHero
++ contest edit.vue. If you change the map, change both — a client-only or
+server-only edit silently desyncs (the UI offers a button the API rejects, or
+hides a valid one). Rank-calc on `completed` is idempotent so go-back→re-complete
+is safe.

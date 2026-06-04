@@ -120,12 +120,12 @@ packages/server/src/
 - `listContests(db, filters)`
 - `getContestBySlug(db, slug)` — returns rules, prizes, `judgingCriteria`, `judgingVisibility`, `communityVotingEnabled`, `eligibleContentTypes`, `maxEntriesPerUser` (NOT `judges` — that jsonb is dead; use `/judges`)
 - `createContest(db, input, options?)` — checks `canCreateContest(userRole, policy)` **only when `options.userRole` is supplied** (no options → the permission check is skipped); seeds the `contestJudges` table from `input.judges`
-- `transitionContestStatus(db, id, userId, newStatus)` — enforces FSM; runs `calculateContestRanks` on completion
+- `transitionContestStatus(db, id, userId, newStatus)` — owner-gated; enforces the `VALID_TRANSITIONS` map (now **bidirectional** as of session 189: draft↔upcoming↔active↔paused↔judging→completed, plus completed→judging and cancelled→draft/upcoming for reopen). Runs `calculateContestRanks` on entering `completed` (idempotent, so re-completing after a go-back is safe). Notifies entrants/judges per `newStatus` (draft/upcoming silently skip — no message). The client mirrors this map in ContestHero + edit.vue to render only valid transitions.
 - `submitContestEntry(db, contestId, contentId, userId)` — enforces published + ownership + `eligibleContentTypes` + `maxEntriesPerUser`
 - `judgeContestEntry(db, entryId, score, judgeId, feedback?)` — accepted, non-guest judges only; recomputes the average
 - `calculateContestRanks(db, contestId)` — `RANK()` over scored entries only (ties share a rank; unscored → null rank). Community votes do NOT affect ranking.
 - `shouldRevealScores(visibility, status, privileged)` — pure helper gating aggregate-score exposure by `judgingVisibility`
-- `canViewContest(db, contest, user)` — access gate (public/unlisted open; private → owner/admin/stakeholder/judge/role). Used by every read endpoint (404 on block).
+- `canViewContest(db, contest, user)` — access gate. **`draft` status is owner/admin/stakeholder/judge-only regardless of visibility** (session 189 fix — a public draft was world-readable); otherwise public/unlisted open, private → owner/admin/stakeholder/judge/role. `listContests` applies the same draft rule (drafts hidden from non-owners). Used by every read endpoint (404 on block).
 - `judgeContestEntry` — accepted non-guest judges only; can't judge own entry; row-locked merge
 - `withdrawContestEntry(db, entryId, userId)`
 

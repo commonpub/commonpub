@@ -1,6 +1,6 @@
 # CommonPub — Status & Operator Runbook
 
-> **Living doc — your "come back later" reference.** Snapshot taken 2026-06-03 (session 188).
+> **Living doc — your "come back later" reference.** Snapshot taken 2026-06-04 (session 189).
 > Verify any version/flag claim before trusting it: `npm view @commonpub/<pkg> version`,
 > `curl https://<instance>/api/features`, `cargo search create-commonpub`.
 > Companion docs: the plan `docs/plans/federation-discovery-and-hardening.md`, the work log
@@ -147,19 +147,19 @@ a minute (`curl deveco.io/api/content?limit=5`, today's timestamp).
 
 ## 📌 Reference
 
-### Published versions (verified 2026-06-03)
+### Published versions (verified 2026-06-04)
 | Package | Version | | Package | Version |
 |---|---|---|---|---|
-| @commonpub/schema | **0.27.0** | | @commonpub/infra | 0.8.0 |
+| @commonpub/schema | **0.28.0** | | @commonpub/infra | 0.8.0 |
 | @commonpub/config | **0.18.0** | | @commonpub/editor | 0.7.11 |
 | @commonpub/protocol | 0.13.0 | | @commonpub/explainer | 0.7.15 |
 | @commonpub/auth | 0.8.0 | | @commonpub/docs | 0.6.3 |
-| @commonpub/server | **2.74.0** | | @commonpub/learning | 0.5.2 |
+| @commonpub/server | **2.75.0** | | @commonpub/learning | 0.5.2 |
 | @commonpub/ui | 0.9.2 | | @commonpub/test-utils | 0.5.6 |
-| @commonpub/layer | **0.49.0** | | create-commonpub (crates.io) | **0.5.7** |
+| @commonpub/layer | **0.50.0** | | create-commonpub (crates.io) | **0.5.7** |
 
-Migrations applied this cycle: **0013** (self-ref FKs) · **0014** (`mirror_requests`) · **0015**
-(`registry_instances`) · **0016** (`contests.cover_image_url`).
+Migrations applied this cycle: **0014** (`mirror_requests`) · **0015** (`registry_instances`) ·
+**0016** (`contests.cover_image_url`) · **0017** (`contest_status` +draft/+paused; `contests.show_prizes`).
 
 Contest overhaul (2026-06-04, schema 0.27.0 / server 2.74.0 / layer 0.49.0, all 3 instances):
 optional `contests.coverImageUrl` (cards prefer it cover-cropped → contained banner → trophy);
@@ -167,6 +167,21 @@ ContestHero redesigned (full-width banner band like content pages + 2-col body w
 beside the title/details + status pill); contest create/edit forms gained a cover-image upload;
 **prizes are now entirely optional** (the form stopped pre-filling 3 prize rows that survived the
 submit filter). Verified live on deveco (`/contests` cards + the redesigned detail hero).
+
+Contest **Phase A** stage lifecycle + editor polish (2026-06-04, schema 0.28.0 / server 2.75.0 /
+layer 0.50.0, migration 0017, all 3 instances): two new statuses **`draft`** + **`paused`**;
+**bidirectional** transitions (go-back / pause-resume / reopen) via a shared `VALID_TRANSITIONS` map
+(server + client mirror in ContestHero & edit.vue); **`showPrizes`** off-switch for the Prizes tab;
+**editable slug** (auto-from-title on create, manual override, 409 on collision); compact
+contest-card countdown (was dominating the card). **Security fix:** `draft` contests are now
+owner/admin/stakeholder/judge-only *regardless of visibility* (`canViewContest` + `listContests`) —
+a public draft was previously world-readable + listed. Verified live: deveco
+`the-resilient-communities-challenge` returns `showPrizes:true` (migration 0017 confirmed). The
+**expanded Phase B plan** (arbitrary multi-round contests — proposal rounds, Top-N selection gates,
+sprint/interim stages, multiple judging rounds, event/showcase stages, with the standard 3-step flow
+as the synthesized default) is in `docs/plans/contest-stages-and-editor-polish.md`, split into B1
+(dynamic stages display + manual progression), B2 (cohorts/advancement + per-round scoring), B3
+(submission templates + teams).
 
 Recent UI follow-ups (2026-06-03): contest hero banner 260→195px (layer 0.46.0); deveco.io mobile-nav
 hamburger fixed (its forked `layouts/default.vue` used bare `<MobileNavRenderer>` → unresolved;
