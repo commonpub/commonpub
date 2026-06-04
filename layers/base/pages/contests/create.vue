@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { ContestStage } from '@commonpub/schema';
+
 definePageMeta({ middleware: 'auth' });
 
 useSeoMeta({ title: `Create Contest — ${useSiteName()}` });
@@ -57,6 +59,10 @@ interface Prize {
 
 const showPrizes = ref(true);
 const prizesDescription = ref('');
+
+// Phase B1 — explicit stage timeline (empty ⇒ standard synthesized flow).
+const stages = ref<ContestStage[]>([]);
+const currentStageIdRef = ref<string | null>(null);
 // Prizes are entirely optional — start empty so a contest has NO prizes unless
 // the operator explicitly adds them (the old 3 pre-filled rows forced prizes
 // onto every contest, since their non-empty titles survived the submit filter).
@@ -116,6 +122,8 @@ async function handleCreate(): Promise<void> {
         eligibleContentTypes: eligibleContentTypes.value.length ? eligibleContentTypes.value : undefined,
         maxEntriesPerUser: maxEntriesPerUser.value && maxEntriesPerUser.value > 0 ? maxEntriesPerUser.value : undefined,
         showPrizes: showPrizes.value,
+        stages: stages.value.length ? stages.value : undefined,
+        currentStageId: currentStageIdRef.value ?? undefined,
         prizesDescription: prizesDescription.value || undefined,
         prizes: prizes.value
           .filter(p => p.title.trim() || p.description.trim() || p.category.trim() || (typeof p.place === 'number' && p.place > 0))
@@ -213,6 +221,19 @@ function prizeLabel(prize: Prize): string {
           </div>
         </div>
         <p v-if="dateError" class="cpub-form-error" role="alert">{{ dateError }}</p>
+      </section>
+
+      <!-- Stages -->
+      <section class="cpub-form-section">
+        <h2 class="cpub-form-section-title">Stages <span style="color: var(--text-faint); font-weight: 400; font-size: 0.75em; font-family: var(--font-mono);">— optional</span></h2>
+        <p class="cpub-form-hint">The standard flow (Submissions → Judging → Results) is derived from the schedule above. Add custom stages for multi-round contests — proposal rounds, a Top-N selection, a build sprint, multiple judging rounds, or a showcase event.</p>
+        <ContestStagesEditor
+          v-model="stages"
+          v-model:current-stage-id="currentStageIdRef"
+          :start-date="startDate"
+          :end-date="endDate"
+          :judging-end-date="judgingEndDate"
+        />
       </section>
 
       <!-- Visibility & Access -->

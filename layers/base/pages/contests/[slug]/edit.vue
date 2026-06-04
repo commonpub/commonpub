@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { ContestStage } from '@commonpub/schema';
+
 definePageMeta({ middleware: 'auth' });
 
 const route = useRoute();
@@ -55,6 +57,10 @@ const prizes = ref<Prize[]>([]);
 interface Criterion { label: string; weight: number | null; description: string }
 const criteria = ref<Criterion[]>([]);
 
+// Phase B1 — explicit stage timeline (empty ⇒ standard synthesized flow).
+const stages = ref<ContestStage[]>([]);
+const currentStageIdRef = ref<string | null>(null);
+
 // Load current data
 watch(contest, (c) => {
   if (!c) return;
@@ -75,6 +81,8 @@ watch(contest, (c) => {
   visibility.value = (c.visibility as typeof visibility.value) ?? 'public';
   visibleToRoles.value = [...(c.visibleToRoles ?? [])];
   showPrizes.value = c.showPrizes !== false;
+  stages.value = Array.isArray(c.stages) ? [...c.stages] : [];
+  currentStageIdRef.value = c.currentStageId ?? null;
   prizesDescription.value = c.prizesDescription ?? '';
   prizes.value = (c.prizes ?? []).map((p: { place?: number; category?: string; title?: string; description?: string; value?: string }) => ({
     place: p.place ?? null,
@@ -166,6 +174,8 @@ async function handleSave(): Promise<void> {
         visibility: visibility.value,
         visibleToRoles: visibility.value === 'private' ? visibleToRoles.value : [],
         showPrizes: showPrizes.value,
+        stages: stages.value,
+        currentStageId: currentStageIdRef.value ?? undefined,
         prizesDescription: prizesDescription.value || undefined,
         prizes: prizeData,
         judgingCriteria: criteriaData,
@@ -201,30 +211,10 @@ async function handleDelete(): Promise<void> {
   }
 }
 
-// Client mirror of the server VALID_TRANSITIONS map — bidirectional (go back a
-// stage, pause/resume, reopen). Kept in sync with server/src/contest/contest.ts.
-const VALID_TRANSITIONS: Record<string, string[]> = {
-  draft: ['upcoming', 'active', 'cancelled'],
-  upcoming: ['draft', 'active', 'cancelled'],
-  active: ['upcoming', 'paused', 'judging', 'cancelled'],
-  paused: ['active', 'upcoming', 'judging', 'cancelled'],
-  judging: ['active', 'paused', 'completed', 'cancelled'],
-  completed: ['judging'],
-  cancelled: ['draft', 'upcoming'],
-};
-const STATUS_ACTION: Record<string, { label: string; icon: string; tone?: 'go' | 'warn' | 'danger' }> = {
-  draft: { label: 'Move to Draft', icon: 'fa-pen-ruler' },
-  upcoming: { label: 'Set Upcoming', icon: 'fa-clock' },
-  active: { label: 'Activate', icon: 'fa-play', tone: 'go' },
-  paused: { label: 'Pause', icon: 'fa-pause', tone: 'warn' },
-  judging: { label: 'Begin Judging', icon: 'fa-gavel' },
-  completed: { label: 'Complete & Publish', icon: 'fa-flag-checkered', tone: 'go' },
-  cancelled: { label: 'Cancel', icon: 'fa-ban', tone: 'danger' },
-};
-const availableTransitions = computed<string[]>(() => VALID_TRANSITIONS[contest.value?.status ?? 'upcoming'] ?? []);
-function statusAction(s: string): { label: string; icon: string; tone?: string } {
-  return STATUS_ACTION[s] ?? { label: s, icon: 'fa-circle' };
-}
+// Bidirectional lifecycle controls — the valid-transition map + button metadata
+// live in utils/contestTransitions.ts (shared with ContestHero).
+const availableTransitions = computed<string[]>(() => contestTransitionsFrom(contest.value?.status));
+const statusAction = contestStatusAction;
 
 async function transitionStatus(newStatus: string): Promise<void> {
   // Only the consequential transitions confirm; reversible nudges (pause/resume,
@@ -305,6 +295,18 @@ async function transitionStatus(newStatus: string): Promise<void> {
           <input v-model="judgingEndDate" type="datetime-local" class="cpub-form-input" />
         </div>
         <p v-if="dateError" class="cpub-form-error" role="alert">{{ dateError }}</p>
+      </section>
+
+      <section class="cpub-form-section">
+        <h2 class="cpub-form-section-title">Stages</h2>
+        <p class="cpub-form-hint">Optional. The standard flow (Submissions → Judging → Results) is derived from the schedule above. Add custom stages for multi-round contests — proposal rounds, a Top-N selection, a build sprint, multiple judging rounds, or a showcase event.</p>
+        <ContestStagesEditor
+          v-model="stages"
+          v-model:current-stage-id="currentStageIdRef"
+          :start-date="startDate"
+          :end-date="endDate"
+          :judging-end-date="judgingEndDate"
+        />
       </section>
 
       <section class="cpub-form-section">

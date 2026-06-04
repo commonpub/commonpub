@@ -7,9 +7,10 @@ exports in `validators.ts`.** Drizzle ORM on PostgreSQL 16. (+2 tables / +3 enum
 / +6 schemas since session 181: `mirror_requests` (0014) + `registry_instances`
 + `registry_instance_status` (0015) federation discovery work, sessions 185/186.)
 
-**18 migrations, 0000–0017** (latest `0017_exotic_lyja` = `contest_status` enum
-`+draft,+paused` and `contests.show_prizes`, session 189; 0016 `smooth_firestar` =
-`contests.cover_image_url`, session 188). Full list:
+**19 migrations, 0000–0018** (latest `0018_clean_the_hunter` = `contests.stages` jsonb
++ `contests.current_stage_id` — Phase B1 dynamic stage timeline, session 189;
+`0017_exotic_lyja` = `contest_status` enum `+draft,+paused` and `contests.show_prizes`,
+session 189; 0016 `smooth_firestar` = `contests.cover_image_url`, session 188). Full list:
 
 | # | File | What it added |
 |---|---|---|
@@ -31,6 +32,7 @@ exports in `validators.ts`.** Drizzle ORM on PostgreSQL 16. (+2 tables / +3 enum
 | 0015 | `cloudy_zodiak` | `registry_instances` table + `registry_instance_status` enum (active\|hidden\|blocked) — Phase 4 instance directory, session 186. Stats pulled from each pinger's NodeInfo. |
 | 0016 | `smooth_firestar` | `contests.cover_image_url` (nullable text) — optional card/thumbnail cover, distinct from the wide `banner_url` hero. Listing cards fall back to a contained banner then a trophy. Session 188. |
 | 0017 | `exotic_lyja` | `contest_status` enum `ADD VALUE 'draft' BEFORE 'upcoming'` + `'paused' BEFORE 'judging'`; `contests.show_prizes` boolean default true. Contest Phase A — stage lifecycle (draft/paused + bidirectional transitions) + Prizes-tab off-switch. Session 189. |
+| 0018 | `clean_the_hunter` | `contests.stages` jsonb (default `'[]'`, NOT NULL) + `contests.current_stage_id` text. Contest Phase B1 — explicit ordered stage timeline (`[]` ⇒ server synthesizes the classic Submissions → Judging → Results). Additive. Session 189. |
 
 ## Files
 

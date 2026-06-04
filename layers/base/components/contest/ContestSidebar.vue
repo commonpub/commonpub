@@ -20,24 +20,21 @@ function fmt(d: string | null | undefined): string | null {
   return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-// Ordinal position of each status along the lifecycle, used to mark steps
-// done / current / upcoming.
-// `draft` precedes everything (nothing has started); `paused` sits at the active
-// position (a deactivated-but-not-cancelled running contest).
-const STATUS_ORDER: Record<string, number> = { draft: -1, upcoming: 0, active: 1, paused: 1, judging: 2, completed: 3 };
-
+// Phase B1 — the timeline renders the contest's stages (its explicit `stages`, or
+// the synthesized classic Submissions → Judging → Results when none are defined).
+// done/current/upcoming derive from the position of the current stage.
 const timeline = computed<TimelineStep[]>(() => {
   const c = props.contest;
   if (!c || c.status === 'cancelled') return [];
-  const pos = STATUS_ORDER[c.status] ?? 0;
-  const stepState = (idx: number): StepState => (idx < pos ? 'done' : idx === pos ? 'current' : 'upcoming');
-  const steps: TimelineStep[] = [
-    { label: 'Opens', date: fmt(c.startDate), state: stepState(0), icon: 'fa-flag' },
-    { label: 'Submissions close', date: fmt(c.endDate), state: stepState(1), icon: 'fa-pen-to-square' },
-    { label: 'Judging', date: fmt(c.judgingEndDate) ?? fmt(c.endDate), state: stepState(2), icon: 'fa-gavel' },
-    { label: 'Results', date: null, state: stepState(3), icon: 'fa-ranking-star' },
-  ];
-  return steps;
+  const stages = normalizeStages(c);
+  const curId = currentStageId(c);
+  const curIdx = curId ? stages.findIndex((s) => s.id === curId) : -1;
+  return stages.map((s, i): TimelineStep => ({
+    label: s.name,
+    date: fmt(s.endsAt ?? s.startsAt ?? null),
+    state: curIdx < 0 ? 'upcoming' : i < curIdx ? 'done' : i === curIdx ? 'current' : 'upcoming',
+    icon: STAGE_KIND_ICON[s.kind] ?? 'fa-circle-dot',
+  }));
 });
 
 function statusClass(status: string): string {

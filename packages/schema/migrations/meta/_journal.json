@@ -127,6 +127,13 @@
       "when": 1780537721244,
       "tag": "0017_exotic_lyja",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1780542670160,
+      "tag": "0018_clean_the_hunter",
+      "breakpoints": true
     }
   ]
 }

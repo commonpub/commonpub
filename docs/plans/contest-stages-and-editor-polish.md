@@ -220,13 +220,18 @@ dnd lib.
 
 ### Phasing (de-risked)
 
-- **B1 — dynamic stages (display + manual progression).** `stages` + `currentStageId` +
-  `normalizeStages` + `contestRuntime`; rewire hero/sidebar/cards/CTA/detail to read the runtime;
-  the stages editor with reorder/dup/rename/kind/dates/presets; `submission`, `review`, `interim`,
-  `results`, `event`, `custom` kinds *as display + behaviour gates*. **No cull yet** — the cohort is
-  everyone; a `review.advance` is recorded but not enforced. This alone makes all five
-  Resilient-America stages real, named, dated, ordered, and correctly displayed everywhere. One
-  additive migration (`stages`, `currentStageId`).
+- **B1 — dynamic stages (display + manual progression). ✅ DONE (session 189, schema 0.29.0 /
+  server 2.76.0 / layer 0.52.0, migration 0018).** `stages` jsonb + `currentStageId` +
+  `synthesizeStages`/`normalizeStages`/`currentStage` (pure, server + a layer mirror in
+  `utils/contestStages.ts`); `ContestStagesEditor.vue` (add/duplicate/reorder/rename/kind/dates +
+  mark-current + reset-to-standard) wired into create + edit; ContestSidebar renders the dynamic
+  timeline; ContestHero shows the current-stage chip. Kinds: `submission`/`review`/`interim`/
+  `results`/`event`/`custom`. **Decision (de-risk):** `status` stays the behavioural source of truth
+  for gating — stages are a display/planning overlay, so the ~67 status refs were NOT rewired.
+  `currentStageId` is owner-set (the "Current" radio) and tolerated/guarded when stale. No cull yet
+  (cohort = everyone). This makes all five Resilient-America stages real, named, dated, ordered, and
+  displayed. One additive migration. Transition-map duplication (hero/edit) was also collapsed into
+  `utils/contestTransitions.ts`.
 - **B2 — cohorts & advancement.** `contest_entries.stageState`; enforce `review.advance`
   (`topN` by score, or manual pick); cohort-scope submission/judging/results to non-eliminated
   entries; per-round scores (snapshot on advance); "you advanced / didn't advance" entrant UX +

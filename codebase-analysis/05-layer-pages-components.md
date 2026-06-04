@@ -124,9 +124,11 @@ ArticleEditor, BlogEditor, ExplainerEditor, ProjectEditor, DocsPageTree, Markdow
 
 ArticleView, ExplainerView, ProjectView.
 
-### Contest (9)
+### Contest (10)
 
-ContestEntries, ContestHero, **ContestJudgeManager** (session 124), ContestJudges, **ContestJudgingCriteria**, ContestPrizes, ContestRules, ContestSidebar, **ContestStakeholderManager** (session 174).
+ContestEntries, ContestHero, **ContestJudgeManager** (session 124), ContestJudges, **ContestJudgingCriteria**, ContestPrizes, ContestRules, ContestSidebar, **ContestStakeholderManager** (session 174), **ContestStagesEditor** (session 189 — Phase B1 stages editor: add/duplicate/reorder/rename/kind/dates + mark-current + reset-to-standard; used by create.vue + edit.vue).
+
+Contest stage logic lives in two auto-imported layer utils (session 189): `utils/contestStages.ts` (synthesizeStages/normalizeStages/currentStageId + STAGE_KIND_ICON/LABEL — client mirror of the server's pure helpers) and `utils/contestTransitions.ts` (CONTEST_VALID_TRANSITIONS + status-action labels — single client source of truth shared by ContestHero + edit.vue, mirrors the server map). ContestSidebar renders the dynamic stage timeline; ContestHero shows the current stage name as a chip when explicit stages exist.
 
 ### Events (session 124)
 

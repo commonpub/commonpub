@@ -74,6 +74,28 @@ describe('contest integration', () => {
     expect(contest.slug).toBe('tinyml-challenge-2026');
     // Default status is 'upcoming' (not draft)
     expect(contest.status).toBe('upcoming');
+    // New contests default to the empty (synthesized) stage timeline.
+    expect(contest.stages).toEqual([]);
+    expect(contest.currentStageId).toBeNull();
+  });
+
+  it('persists stages + currentStageId and drops a stale pointer', async () => {
+    const stages = [
+      { id: 's1', name: 'Proposals', kind: 'submission' as const },
+      { id: 's2', name: 'Top 50', kind: 'review' as const },
+    ];
+    const c = await createContest(db, { ...makeContestInput({ title: 'Staged' }), stages, currentStageId: 's2' });
+    expect(c.stages.map((s) => s.id)).toEqual(['s1', 's2']);
+    expect(c.currentStageId).toBe('s2');
+
+    // A currentStageId that doesn't reference an existing stage is dropped on create.
+    const c2 = await createContest(db, { ...makeContestInput({ title: 'Staged2' }), stages, currentStageId: 'nope' });
+    expect(c2.currentStageId).toBeNull();
+
+    // Reset-to-standard (stages = []) clears the now-stale currentStageId.
+    const updated = await updateContest(db, c.slug, organizerId, { stages: [] });
+    expect(updated?.stages).toEqual([]);
+    expect(updated?.currentStageId).toBeNull();
   });
 
   it('lists contests', async () => {

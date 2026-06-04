@@ -843,8 +843,24 @@ in BOTH functions, not just one. Tests: "drafts are owner-only regardless of
 visibility" + "listContests hides drafts from non-owners".
 
 Contest stage transitions are **bidirectional** (`VALID_TRANSITIONS` in
-`server/src/contest/contest.ts`); the client mirrors the same map in ContestHero
-+ contest edit.vue. If you change the map, change both — a client-only or
-server-only edit silently desyncs (the UI offers a button the API rejects, or
-hides a valid one). Rank-calc on `completed` is idempotent so go-back→re-complete
-is safe.
+`server/src/contest/contest.ts`); the client mirror now lives in ONE place,
+`layers/base/utils/contestTransitions.ts` (shared by ContestHero + edit.vue). If
+you change the server map, change that util — a client-only or server-only edit
+silently desyncs (the UI offers a button the API rejects, or hides a valid one).
+Rank-calc on `completed` is idempotent so go-back→re-complete is safe.
+
+## Contest stages: `status` is behaviour, `stages` is display (Phase B1, session 189)
+
+`contests.stages` (jsonb) + `currentStageId` are an ordered DISPLAY timeline; the
+coarse `status` enum stays the **behavioural source of truth** for gating
+(submissions open ⟺ active, judging ⟺ judging, …). `stages = []` ⇒ the server
+synthesizes the classic Submissions → Judging → Results from status + dates
+(`normalizeStages`), so default contests render identically — the standard flow is
+the zero-config default. Three pure helpers (`synthesizeStages`/`normalizeStages`/
+`currentStage`) are mirrored in `layers/base/utils/contestStages.ts` (don't import
+the server package into the browser bundle — it pulls DB drivers; mirror + keep in
+sync, same contract as the transitions util). A `currentStageId` that no longer
+references an existing stage is **tolerated** (display falls back to status
+derivation) AND **dropped** server-side on create/update (consistency guard), so a
+reset-to-standard never leaves a dangling pointer. Per-entry cohort/advancement +
+per-round scoring (the Top-N cull) are Phase B2 — additive jsonb fields, no migration.

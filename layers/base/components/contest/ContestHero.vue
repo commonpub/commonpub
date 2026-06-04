@@ -84,31 +84,10 @@ const dateNote = computed<string | null>(() => {
   return c.value?.endDate ? `Closed ${fmtDate(c.value.endDate)}` : null;
 });
 
-// Client-side mirror of the server VALID_TRANSITIONS map (server/src/contest/contest.ts).
-// Keeps the inline admin controls in sync with what the API will actually accept —
-// bidirectional: go back a stage, pause/resume, reopen, etc.
-const VALID_TRANSITIONS: Record<string, string[]> = {
-  draft: ['upcoming', 'active', 'cancelled'],
-  upcoming: ['draft', 'active', 'cancelled'],
-  active: ['upcoming', 'paused', 'judging', 'cancelled'],
-  paused: ['active', 'upcoming', 'judging', 'cancelled'],
-  judging: ['active', 'paused', 'completed', 'cancelled'],
-  completed: ['judging'],
-  cancelled: ['draft', 'upcoming'],
-};
-const STATUS_ACTION: Record<string, { label: string; icon: string }> = {
-  draft: { label: 'Move to Draft', icon: 'fa-pen-ruler' },
-  upcoming: { label: 'Set Upcoming', icon: 'fa-clock' },
-  active: { label: 'Activate', icon: 'fa-play' },
-  paused: { label: 'Pause', icon: 'fa-pause' },
-  judging: { label: 'Start Judging', icon: 'fa-gavel' },
-  completed: { label: 'Complete', icon: 'fa-check' },
-  cancelled: { label: 'Cancel', icon: 'fa-ban' },
-};
-const availableTransitions = computed<string[]>(() => VALID_TRANSITIONS[c.value?.status ?? 'upcoming'] ?? []);
-function statusAction(s: string): { label: string; icon: string } {
-  return STATUS_ACTION[s] ?? { label: s, icon: 'fa-circle' };
-}
+// Bidirectional lifecycle controls — the valid-transition map + button metadata
+// live in utils/contestTransitions.ts (shared with the contest edit page).
+const availableTransitions = computed<string[]>(() => contestTransitionsFrom(c.value?.status));
+const statusAction = contestStatusAction;
 
 // The hero shows the short `subheading` (a dedicated tagline field). For older
 // contests without one, fall back to a clean, plain-text, CSS-clamped excerpt of
@@ -118,6 +97,15 @@ const tagline = computed<string>(() => {
   const sub = (c.value?.subheading ?? '').trim();
   if (sub) return sub;
   return markdownToExcerpt(c.value?.description) || '';
+});
+
+// Phase B1 — when a contest defines explicit stages, surface the current stage's
+// name beside the status pill (default-flow contests show nothing extra).
+const currentStageName = computed<string | null>(() => {
+  const cv = c.value;
+  if (!cv || !cv.stages || cv.stages.length === 0) return null;
+  const cid = currentStageId(cv);
+  return cv.stages.find((s) => s.id === cid)?.name ?? null;
 });
 
 const dateRange = computed<string>(() => {
@@ -157,6 +145,7 @@ const dateRange = computed<string>(() => {
             <div class="cpub-hero-eyebrow">
               <span class="cpub-contest-badge"><i class="fa fa-trophy"></i> Contest</span>
               <span class="cpub-status-pill" :data-status="c?.status || 'upcoming'">{{ c?.status || 'upcoming' }}</span>
+              <span v-if="currentStageName" class="cpub-stage-chip"><i class="fa-solid fa-diagram-project"></i> {{ currentStageName }}</span>
             </div>
 
             <h1 class="cpub-hero-title">{{ c?.title || 'Contest' }}</h1>
@@ -290,6 +279,8 @@ const dateRange = computed<string>(() => {
 .cpub-status-pill[data-status="paused"] { color: var(--yellow); border-color: var(--yellow); background: color-mix(in srgb, var(--yellow) 12%, transparent); }
 .cpub-status-pill[data-status="draft"] { color: var(--hero-text-dim); border-color: var(--hero-border); border-style: dashed; }
 .cpub-status-pill[data-status="completed"], .cpub-status-pill[data-status="cancelled"] { color: var(--red); border-color: var(--red-border); }
+.cpub-stage-chip { font-size: 9px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; font-family: var(--font-mono); padding: 3px 10px; border-radius: var(--radius); border: var(--border-width-default) solid var(--accent); color: var(--accent); background: var(--accent-bg); display: inline-flex; align-items: center; gap: 5px; }
+.cpub-stage-chip i { font-size: 8px; }
 
 .cpub-hero-title { font-size: 34px; font-weight: 800; letter-spacing: -.03em; line-height: 1.1; margin: 0 0 10px; color: var(--hero-text); }
 .cpub-hero-tagline { font-size: 14px; color: var(--hero-text-dim); line-height: 1.55; max-width: 600px; margin: 0 0 20px; display: -webkit-box; -webkit-line-clamp: 4; line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }

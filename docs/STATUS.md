@@ -150,16 +150,17 @@ a minute (`curl deveco.io/api/content?limit=5`, today's timestamp).
 ### Published versions (verified 2026-06-04)
 | Package | Version | | Package | Version |
 |---|---|---|---|---|
-| @commonpub/schema | **0.28.0** | | @commonpub/infra | 0.8.0 |
+| @commonpub/schema | **0.29.0** | | @commonpub/infra | 0.8.0 |
 | @commonpub/config | **0.18.0** | | @commonpub/editor | 0.7.11 |
 | @commonpub/protocol | 0.13.0 | | @commonpub/explainer | 0.7.15 |
 | @commonpub/auth | 0.8.0 | | @commonpub/docs | 0.6.3 |
-| @commonpub/server | **2.75.0** | | @commonpub/learning | 0.5.2 |
+| @commonpub/server | **2.76.0** | | @commonpub/learning | 0.5.2 |
 | @commonpub/ui | 0.9.2 | | @commonpub/test-utils | 0.5.6 |
-| @commonpub/layer | **0.51.0** | | create-commonpub (crates.io) | **0.5.7** |
+| @commonpub/layer | **0.52.0** | | create-commonpub (crates.io) | **0.5.7** |
 
-Migrations applied this cycle: **0014** (`mirror_requests`) · **0015** (`registry_instances`) ·
-**0016** (`contests.cover_image_url`) · **0017** (`contest_status` +draft/+paused; `contests.show_prizes`).
+Migrations applied this cycle: **0015** (`registry_instances`) · **0016** (`contests.cover_image_url`) ·
+**0017** (`contest_status` +draft/+paused; `contests.show_prizes`) · **0018** (`contests.stages` jsonb +
+`contests.current_stage_id` — Phase B1).
 
 Contest overhaul (2026-06-04, schema 0.27.0 / server 2.74.0 / layer 0.49.0, all 3 instances):
 optional `contests.coverImageUrl` (cards prefer it cover-cropped → contained banner → trophy);
@@ -188,6 +189,20 @@ Contest editor follow-up (layer **0.51.0**, all 3): the ContestHero countdown is
 judging deadline, `active` to submission close; once a target passes it shows a static date instead
 of a frozen 00:00:00. The contest **create + edit forms gained a sticky bottom action bar**
 (Save/Create always reachable + live status) instead of a buried button at the end of a long scroll.
+
+Contest **Phase B1 — dynamic stages engine** (2026-06-04, schema 0.29.0 / server 2.76.0 / layer
+0.52.0, migration 0018, all 3): contests can now define an arbitrary, ordered **stage timeline**
+(`contests.stages` jsonb + `current_stage_id`) — proposal rounds, a Top-N selection, a build sprint,
+multiple judging rounds, a showcase event — each with a name, kind, and dates. `stages = []` ⇒ the
+server synthesizes the classic Submissions → Judging → Results, so existing contests are unchanged
+(the standard flow is the zero-config default). **Design:** `status` stays the behavioural source of
+truth for gating; stages are a display/planning overlay (so the ~67 status refs weren't rewired).
+New: `ContestStagesEditor.vue` (add/dup/reorder/rename/kind/dates + mark-current + reset) in
+create/edit; ContestSidebar renders the dynamic timeline; ContestHero shows the current-stage chip.
+Pure helpers `synthesizeStages`/`normalizeStages`/`currentStage` (server + a layer mirror in
+`utils/contestStages.ts`); transition map de-duped into `utils/contestTransitions.ts`. **Phase B2**
+(per-entry cohorts + Top-N advancement + per-round scoring) remains the next chunk — additive jsonb
+fields, no migration. Plan: `docs/plans/contest-stages-and-editor-polish.md`.
 
 Recent UI follow-ups (2026-06-03): contest hero banner 260→195px (layer 0.46.0); deveco.io mobile-nav
 hamburger fixed (its forked `layouts/default.vue` used bare `<MobileNavRenderer>` → unresolved;

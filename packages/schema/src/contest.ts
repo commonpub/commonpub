@@ -4,6 +4,38 @@ import { users } from './auth.js';
 import { contentItems } from './content.js';
 import { contestStatusEnum, judgeRoleEnum, judgingVisibilityEnum, contestVisibilityEnum } from './enums.js';
 
+/**
+ * A single ordered stage of a contest's timeline (Phase B1). Stored as a jsonb
+ * array on `contests.stages`. Empty array ⇒ the server synthesizes the classic
+ * Submissions → Judging → Results stages from `status` + the date columns, so
+ * legacy/standard contests render identically (the standard flow is the default).
+ *
+ * `status` (the coarse enum) remains the behavioural source of truth for gating;
+ * `kind` drives DISPLAY and is mapped to a status when the owner advances stages
+ * (submission/interim→active, review→judging, results/event→completed). This lets
+ * a contest have multiple submission/judging ROUNDS that all gate identically but
+ * display as distinct named stages. Per-entry cohort/advancement + per-round
+ * scoring (the Top-N cull) are Phase B2 — additive fields on this shape, no migration.
+ */
+export interface ContestStage {
+  /** Stable id — survives reorder/duplicate/rename. */
+  id: string;
+  /** Arbitrary display name ("Proposals Open", "Top 50 Selection", "Finale — D.C."). */
+  name: string;
+  kind: 'submission' | 'review' | 'interim' | 'results' | 'event' | 'custom';
+  /** ISO start; optional. */
+  startsAt?: string;
+  /** ISO deadline; optional — the countdown target while this stage is current. */
+  endsAt?: string;
+  /** A required default-flow stage — can't be deleted in the editor (≥1 submission). */
+  core?: boolean;
+  /** Markdown: what happens / what to submit or refine this stage. */
+  description?: string;
+  /** Event/showcase stages — venue + link. */
+  location?: string;
+  url?: string;
+}
+
 /** @v2 — Contest system. Tables defined but not yet referenced in application code. */
 export const contests = pgTable('contests', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -25,6 +57,12 @@ export const contests = pgTable('contests', {
    *  back to a contained `bannerUrl` then a trophy when this is unset. */
   coverImageUrl: text('cover_image_url'),
   status: contestStatusEnum('status').default('upcoming').notNull(),
+  /** Ordered stage timeline (Phase B1). `[]` ⇒ server synthesizes the classic
+   *  Submissions → Judging → Results stages from `status` + the dates below. */
+  stages: jsonb('stages').$type<ContestStage[]>().default([]).notNull(),
+  /** Id of the stage that is currently "now". Null ⇒ not running (draft/paused),
+   *  or fall back to the status-derived synthesized stage. */
+  currentStageId: text('current_stage_id'),
   startDate: timestamp('start_date', { withTimezone: true }).notNull(),
   endDate: timestamp('end_date', { withTimezone: true }).notNull(),
   judgingEndDate: timestamp('judging_end_date', { withTimezone: true }),

@@ -76,6 +76,31 @@ to visibility; gate it in BOTH functions; keep client/server transition maps in 
 - Layer-only change → published 0.51.0, deployed all 3 (commonpub builds layer from source; deveco +
   heatsync pin bumped). All 3 health 200.
 
+## Phase B1 — dynamic stages engine (same session, schema 0.29.0 / server 2.76.0 / layer 0.52.0)
+
+Built the dynamic stage timeline (migration 0018: `contests.stages` jsonb + `current_stage_id`):
+
+- **Schema/validators:** `ContestStage` type + `contestStageSchema`; `stages`/`currentStageId` in
+  create/update.
+- **Server (pure, tested):** `synthesizeStages` (classic trio from status+dates, stable ids) /
+  `normalizeStages` (explicit-or-synthesized — standard flow is the default) / `currentStage`
+  (resolve `currentStageId` else derive from status). Persist on create/update + a **stale-pointer
+  guard** that drops a `currentStageId` not present in the stages array. New `contest-stages.test.ts`
+  + an integration test for persistence/guard.
+- **Layer:** `ContestStagesEditor.vue` (add/duplicate/reorder/rename/kind/dates + mark-current radio
+  + reset-to-standard) wired into create + edit; ContestSidebar renders the dynamic timeline;
+  ContestHero shows the current-stage chip. Helpers mirrored in `utils/contestStages.ts` (don't
+  bundle the server into the browser).
+- **Separation of concerns / audit:** the form pages grew only +22/+21 lines (the editor + helpers
+  are extracted). The duplicated `VALID_TRANSITIONS` + status-action labels in ContestHero and
+  edit.vue were collapsed into a single `utils/contestTransitions.ts`.
+- **Key decision:** `status` remains the behavioural source of truth for gating; stages are a
+  display/planning overlay → the ~67 hardcoded status refs were NOT rewired (that, plus per-entry
+  cohorts + Top-N advancement + per-round scoring, is Phase B2).
+
+Audit: no cruft/debug leftovers; create/update routes pass `stages`/`currentStageId` through
+(spread, not cherry-picked); server suite 1256 + layer 907 green; reference typecheck clean.
+
 ## Decisions
 
 - Kept the `status` enum as the coarse lifecycle; fine-grained "which round" will live in

@@ -359,6 +359,21 @@ export const contestJudgingCriterionSchema = z.object({
 });
 export type ContestJudgingCriterion = z.infer<typeof contestJudgingCriterionSchema>;
 
+// Phase B1 — a single ordered stage of a contest's timeline (stored as a jsonb
+// array on `contests.stages`). See ContestStage in @commonpub/schema contest.ts.
+export const contestStageSchema = z.object({
+  id: z.string().min(1).max(64),
+  name: z.string().min(1).max(120),
+  kind: z.enum(['submission', 'review', 'interim', 'results', 'event', 'custom']),
+  startsAt: z.string().datetime().optional(),
+  endsAt: z.string().datetime().optional(),
+  core: z.boolean().optional(),
+  description: z.string().max(2000).optional(),
+  location: z.string().max(255).optional(),
+  url: optionalUrl(),
+});
+export type ContestStageInput = z.infer<typeof contestStageSchema>;
+
 export const createContestSchema = z
   .object({
     title: z.string().min(1).max(255),
@@ -376,6 +391,10 @@ export const createContestSchema = z
     judgingEndDate: z.string().datetime().optional(),
     prizes: z.array(contestPrizeSchema).max(50).optional(),
     judgingCriteria: z.array(contestJudgingCriterionSchema).max(20).optional(),
+    // Phase B1 — explicit stage timeline. Omitted/empty ⇒ server synthesizes the
+    // classic Submissions → Judging → Results flow.
+    stages: z.array(contestStageSchema).max(20).optional(),
+    currentStageId: z.string().max(64).optional(),
     // Seed-only: populates the contest_judges table. Judges are managed via the
     // dedicated /judges endpoints after creation.
     judges: z.array(z.string().uuid()).max(50).optional(),
@@ -416,6 +435,8 @@ export const updateContestSchema = z
     judgingEndDate: z.string().datetime().optional(),
     prizes: z.array(contestPrizeSchema).max(50).optional(),
     judgingCriteria: z.array(contestJudgingCriterionSchema).max(20).optional(),
+    stages: z.array(contestStageSchema).max(20).optional(),
+    currentStageId: z.string().max(64).optional(),
     communityVotingEnabled: z.boolean().optional(),
     judgingVisibility: z.enum(['public', 'judges-only', 'private']).optional(),
     eligibleContentTypes: z.array(z.string().max(40)).max(20).optional(),

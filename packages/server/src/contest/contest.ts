@@ -5,7 +5,7 @@ import { normalizePagination, countRows } from '../query.js';
 import { isContestStakeholder } from './stakeholders.js';
 import { isContestJudge } from './judges.js';
 
-import type { ContestStatus } from '@commonpub/schema';
+import type { ContestStatus, ContestStage } from '@commonpub/schema';
 
 export type ContestJudgingVisibility = 'public' | 'judges-only' | 'private';
 export type ContestVisibility = 'public' | 'unlisted' | 'private';
@@ -64,6 +64,9 @@ export interface ContestDetail extends ContestListItem {
   visibility: ContestVisibility;
   visibleToRoles: string[] | null;
   createdById: string;
+  /** Phase B1 — explicit stage timeline (`[]` ⇒ classic synthesized flow). */
+  stages: ContestStage[];
+  currentStageId: string | null;
 }
 
 export interface ContestFilters {
@@ -84,6 +87,8 @@ export interface CreateContestInput {
   coverImageUrl?: string;
   prizes?: ContestPrize[];
   judgingCriteria?: ContestJudgingCriterion[];
+  stages?: ContestStage[];
+  currentStageId?: string;
   /** Seed-only: populates the contest_judges table at creation. */
   judges?: string[];
   communityVotingEnabled?: boolean;
@@ -98,6 +103,67 @@ export interface CreateContestInput {
   endDate: string;
   judgingEndDate?: string;
   createdBy: string;
+}
+
+// --- Phase B1: stage timeline helpers (pure — operate on a contest-like object) ---
+
+type StageSource = {
+  status: string;
+  startDate: Date | string;
+  endDate: Date | string;
+  judgingEndDate: Date | string | null;
+  stages?: ContestStage[] | null;
+  currentStageId?: string | null;
+};
+
+const toIso = (d: Date | string | null | undefined): string | undefined =>
+  d ? new Date(d).toISOString() : undefined;
+
+/**
+ * The classic Submissions → Judging → Results timeline, synthesized from the
+ * status + date columns for contests that haven't defined explicit stages.
+ * Stable ids let `currentStageId` reference them even for legacy contests.
+ */
+export function synthesizeStages(c: StageSource): ContestStage[] {
+  return [
+    { id: 'core-submission', name: 'Submissions', kind: 'submission', core: true, startsAt: toIso(c.startDate), endsAt: toIso(c.endDate) },
+    { id: 'core-review', name: 'Judging', kind: 'review', core: true, endsAt: toIso(c.judgingEndDate) ?? toIso(c.endDate) },
+    { id: 'core-results', name: 'Results', kind: 'results', core: true },
+  ];
+}
+
+/**
+ * The contest's stage timeline: its explicit `stages` if any are defined,
+ * otherwise the synthesized classic flow. The standard flow is the zero-config
+ * default — a contest with no `stages` renders identically to pre-B1.
+ */
+export function normalizeStages(c: StageSource): ContestStage[] {
+  return c.stages && c.stages.length > 0 ? c.stages : synthesizeStages(c);
+}
+
+/**
+ * The stage that is currently "now": the one `currentStageId` points at (if it
+ * resolves), else derived from the coarse `status`. Null while draft/cancelled
+ * (nothing is running). `status` remains the behavioural source of truth for
+ * gating; this is for DISPLAY (hero pill, sidebar highlight, countdown label).
+ */
+export function currentStage(c: StageSource): ContestStage | null {
+  const stages = normalizeStages(c);
+  if (c.currentStageId) {
+    const found = stages.find((s) => s.id === c.currentStageId);
+    if (found) return found;
+  }
+  switch (c.status) {
+    case 'draft':
+    case 'cancelled':
+      return null;
+    case 'completed':
+      return stages.find((s) => s.kind === 'results') ?? stages[stages.length - 1] ?? null;
+    case 'judging':
+      return stages.find((s) => s.kind === 'review') ?? null;
+    default: // upcoming | active | paused
+      return stages.find((s) => s.kind === 'submission') ?? stages[0] ?? null;
+  }
 }
 
 export interface ContestEntryItem {
@@ -219,6 +285,8 @@ function toContestDetail(row: ContestRow): ContestDetail {
     rules: row.rules,
     prizesDescription: row.prizesDescription,
     showPrizes: row.showPrizes,
+    stages: row.stages ?? [],
+    currentStageId: row.currentStageId ?? null,
     prizes: row.prizes ?? null,
     judgingCriteria: row.judgingCriteria ?? null,
     judgingVisibility: row.judgingVisibility,
@@ -312,6 +380,9 @@ export async function createContest(
       rules: input.rules ?? null,
       prizesDescription: input.prizesDescription ?? null,
       showPrizes: input.showPrizes ?? true,
+      stages: input.stages ?? [],
+      // Only keep currentStageId if it references a stage that actually exists.
+      currentStageId: input.currentStageId && (input.stages ?? []).some((s) => s.id === input.currentStageId) ? input.currentStageId : null,
       bannerUrl: input.bannerUrl ?? null,
       coverImageUrl: input.coverImageUrl ?? null,
       prizes: input.prizes ?? null,
@@ -373,6 +444,14 @@ export async function updateContest(
   if (data.bannerUrl !== undefined) updates.bannerUrl = data.bannerUrl;
   if (data.coverImageUrl !== undefined) updates.coverImageUrl = data.coverImageUrl;
   if (data.showPrizes !== undefined) updates.showPrizes = data.showPrizes;
+  if (data.stages !== undefined) updates.stages = data.stages;
+  if (data.currentStageId !== undefined) updates.currentStageId = data.currentStageId;
+  // Keep currentStageId consistent with the stages array: when stages change,
+  // drop a pointer that no longer resolves (e.g. reset-to-standard sends stages=[]).
+  if (data.stages !== undefined) {
+    const desired = data.currentStageId !== undefined ? data.currentStageId : existing[0]!.currentStageId;
+    if (!desired || !data.stages.some((s) => s.id === desired)) updates.currentStageId = null;
+  }
   if (data.prizes !== undefined) updates.prizes = data.prizes;
   if (data.judgingCriteria !== undefined) updates.judgingCriteria = data.judgingCriteria;
   // `judges` is intentionally not handled here — the contest_judges table is the
