@@ -111,6 +111,29 @@ The cull (migration 0019: `contest_entries.stage_state` jsonb):
 
 Audit (post-B2): server suite 1258 + layer 907 green; reference typecheck clean; the new server exports were threaded through both barrels (`contest/index.ts` + `index.ts`); no cruft.
 
+## Contest editor UX pass (same session, layer 0.55.0)
+
+User feedback: the editor was "one long column," the stages editor inputs were unstyled
+("what the fuck is going on"), and adding stages was unclear. Audit root cause: the extracted
+`ContestStagesEditor` used `cpub-form-*` classes that only existed in the parent pages' `<style
+scoped>` — Vue scoped CSS doesn't cross component boundaries, so the component's inputs fell back to
+raw browser defaults (cramped monospace datetime; `cpub-form-row` lost its grid → stacked dates →
+tall rows → "Add stage" buried). Exactly [[feedback_css_scope_component_extraction]].
+
+Fixes:
+- **Component self-contained:** `ContestStagesEditor` now carries its own tokenised `cpub-form-*`
+  control styles. (A first attempt to globalise them into `theme/forms.css` was reverted mid-flight
+  — leaving 0.54.0 broken/deprecated — so the self-contained approach is the shipped one; 0.55.0.)
+- **Two-column edit layout:** wide `cpub-edit-main` + sticky `cpub-edit-side` rail (Stage & Status,
+  Entry rules, Danger Zone); full-width sticky save bar; container widened to 1080px.
+- **Stages discoverability:** top toolbar with Add stage / Reset.
+- **Architecture + tests:** stage array-ops (add/duplicate/move/remove/seed) extracted to pure
+  `utils/contestStages.ts`; 10 unit tests in `utils/__tests__/contestStages.test.ts` (917 layer green).
+- All form CSS tokenised (var(--space-*)/--text-sm/--font-sans/--accent/--shadow-accent).
+
+Process note: caught myself sitting in long blocking `gh run` poll loops to watch deploys (user
+interrupted one) → new memory [[feedback_no_long_deploy_poll_loops]]: one-shot check, don't loop.
+
 ## Decisions
 
 - Kept the `status` enum as the coarse lifecycle; fine-grained "which round" will live in

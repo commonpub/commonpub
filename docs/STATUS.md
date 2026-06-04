@@ -156,7 +156,7 @@ a minute (`curl deveco.io/api/content?limit=5`, today's timestamp).
 | @commonpub/auth | 0.8.0 | | @commonpub/docs | 0.6.3 |
 | @commonpub/server | **2.77.0** | | @commonpub/learning | 0.5.2 |
 | @commonpub/ui | 0.9.2 | | @commonpub/test-utils | 0.5.6 |
-| @commonpub/layer | **0.53.0** | | create-commonpub (crates.io) | **0.5.7** |
+| @commonpub/layer | **0.55.0** | | create-commonpub (crates.io) | **0.5.7** |
 
 Migrations applied this cycle: **0016** (`contests.cover_image_url`) · **0017** (`contest_status`
 +draft/+paused; `contests.show_prizes`) · **0018** (`contests.stages` jsonb + `contests.current_stage_id`
@@ -216,6 +216,16 @@ sprint → final-judging flow. **Deferred (documented in the plan):** cohort-sco
 (eliminated entries are excluded from ranks but can still technically be re-scored), a manual-pick
 UI (the API supports it), and true per-round score isolation. This is the last planned phase of the
 contest stages epic.
+
+Contest **editor UX pass** (2026-06-04, layer **0.55.0**, all 3): fixed the extracted
+`ContestStagesEditor` rendering raw/unstyled inputs — Vue scoped CSS doesn't cross component
+boundaries, so the component now carries its own tokenised `cpub-form-*` control styles (the date
+fields were cramped monospace boxes with stacked, not 2-column, layout). The contest **edit** page is
+now a **two-column layout** (wide content column + a sticky meta rail holding Stage & Status, Entry
+rules, Danger Zone; full-width sticky save bar). Stages editor gained a prominent top **Add stage /
+Reset** toolbar. Stage array-ops extracted to pure `utils/contestStages.ts` functions with 10 unit
+tests. NOTE: layer **0.54.0 is a broken interim** (a forms.css globalisation edit was reverted
+mid-flight, leaving inputs unstyled) — deprecated on npm; use 0.55.0+.
 
 Recent UI follow-ups (2026-06-03): contest hero banner 260→195px (layer 0.46.0); deveco.io mobile-nav
 hamburger fixed (its forked `layouts/default.vue` used bare `<MobileNavRenderer>` → unresolved;
