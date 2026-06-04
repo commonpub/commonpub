@@ -65,6 +65,17 @@ to visibility; gate it in BOTH functions; keep client/server transition maps in 
 - All 3 deployed + curl-verified: commonpub.io 200 (hard-fail pipeline ⇒ migration 0017 applied);
   deveco 200 + `the-resilient-communities-challenge` returns `showPrizes:true`; heatsync 200.
 
+## Follow-up (same session, layer 0.51.0)
+
+- **Stage-aware hero countdown:** `upcoming` now counts down to the **open** date ("Opens in"),
+  `judging` to the judging deadline, `active` to submission close. A passed target falls back to a
+  static date note instead of a frozen 00:00:00 clock.
+- **Sticky editor save bar:** contest create + edit forms got a `position: sticky; bottom: 0` action
+  bar (Save/Create + Cancel + live status) so the primary action is always reachable — the prior
+  editor was one long scroll with the Save button buried at the bottom.
+- Layer-only change → published 0.51.0, deployed all 3 (commonpub builds layer from source; deveco +
+  heatsync pin bumped). All 3 health 200.
+
 ## Decisions
 
 - Kept the `status` enum as the coarse lifecycle; fine-grained "which round" will live in

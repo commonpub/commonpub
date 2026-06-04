@@ -156,7 +156,7 @@ a minute (`curl deveco.io/api/content?limit=5`, today's timestamp).
 | @commonpub/auth | 0.8.0 | | @commonpub/docs | 0.6.3 |
 | @commonpub/server | **2.75.0** | | @commonpub/learning | 0.5.2 |
 | @commonpub/ui | 0.9.2 | | @commonpub/test-utils | 0.5.6 |
-| @commonpub/layer | **0.50.0** | | create-commonpub (crates.io) | **0.5.7** |
+| @commonpub/layer | **0.51.0** | | create-commonpub (crates.io) | **0.5.7** |
 
 Migrations applied this cycle: **0014** (`mirror_requests`) · **0015** (`registry_instances`) ·
 **0016** (`contests.cover_image_url`) · **0017** (`contest_status` +draft/+paused; `contests.show_prizes`).
@@ -182,6 +182,12 @@ sprint/interim stages, multiple judging rounds, event/showcase stages, with the 
 as the synthesized default) is in `docs/plans/contest-stages-and-editor-polish.md`, split into B1
 (dynamic stages display + manual progression), B2 (cohorts/advancement + per-round scoring), B3
 (submission templates + teams).
+
+Contest editor follow-up (layer **0.51.0**, all 3): the ContestHero countdown is now **stage-aware**
+— an `upcoming` contest counts down to its **open** date (label "Opens in"), `judging` to the
+judging deadline, `active` to submission close; once a target passes it shows a static date instead
+of a frozen 00:00:00. The contest **create + edit forms gained a sticky bottom action bar**
+(Save/Create always reachable + live status) instead of a buried button at the end of a long scroll.
 
 Recent UI follow-ups (2026-06-03): contest hero banner 260→195px (layer 0.46.0); deveco.io mobile-nav
 hamburger fixed (its forked `layouts/default.vue` used bare `<MobileNavRenderer>` → unresolved;
