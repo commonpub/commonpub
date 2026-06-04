@@ -216,6 +216,30 @@ async function handleDelete(): Promise<void> {
 const availableTransitions = computed<string[]>(() => contestTransitionsFrom(contest.value?.status));
 const statusAction = contestStatusAction;
 
+// Phase B2 — advancement cuts. Operates on the PERSISTED stages (contest.value),
+// not the editable `stages` ref, since it acts on real entries.
+const advancing = ref<string | null>(null);
+const advanceN = ref<Record<string, number>>({});
+const reviewStages = computed(() => (contest.value?.stages ?? []).filter((s) => s.kind === 'review'));
+async function advanceStage(stageId: string): Promise<void> {
+  const topN = advanceN.value[stageId];
+  if (!topN || topN < 1) { toast.error('Enter how many entries advance.'); return; }
+  if (!confirm(`Advance the top ${topN} entries from this stage? Entries below the cut are marked "not advanced" and drop out of later judging + final results. You can re-run this.`)) return;
+  advancing.value = stageId;
+  try {
+    const r = await $fetch<{ advancedCount: number; eliminatedCount: number }>(`/api/contests/${slug}/advance`, {
+      method: 'POST',
+      body: { reviewStageId: stageId, mode: 'topN', topN },
+    });
+    toast.success(`${r.advancedCount} advanced, ${r.eliminatedCount} not advanced.`);
+    await refresh();
+  } catch (err: unknown) {
+    toast.error(extractError(err));
+  } finally {
+    advancing.value = null;
+  }
+}
+
 async function transitionStatus(newStatus: string): Promise<void> {
   // Only the consequential transitions confirm; reversible nudges (pause/resume,
   // go-back) just apply.
@@ -307,6 +331,21 @@ async function transitionStatus(newStatus: string): Promise<void> {
           :end-date="endDate"
           :judging-end-date="judgingEndDate"
         />
+      </section>
+
+      <section v-if="reviewStages.length" class="cpub-form-section">
+        <h2 class="cpub-form-section-title">Advancement</h2>
+        <p class="cpub-form-hint">Multi-round contests: after judging a review stage, advance the top entries to the next stage. Entries below the cut are marked "not advanced" and excluded from later judging + final results. Re-running re-computes the cut. (Save any stage changes above first.)</p>
+        <div v-for="rs in reviewStages" :key="rs.id" class="cpub-advance-row">
+          <span class="cpub-advance-name"><i class="fa-solid fa-gavel"></i> {{ rs.name }}</span>
+          <div class="cpub-advance-ctl">
+            <label class="cpub-form-label" :for="`adv-${rs.id}`">Advance top</label>
+            <input :id="`adv-${rs.id}`" v-model.number="advanceN[rs.id]" type="number" min="1" class="cpub-form-input cpub-advance-n" placeholder="50" />
+            <button type="button" class="cpub-btn cpub-btn-sm" :disabled="advancing === rs.id" @click="advanceStage(rs.id)">
+              <i class="fa-solid fa-arrow-up-right-dots"></i> {{ advancing === rs.id ? 'Advancing…' : 'Advance' }}
+            </button>
+          </div>
+        </div>
       </section>
 
       <section class="cpub-form-section">
@@ -583,6 +622,13 @@ async function transitionStatus(newStatus: string): Promise<void> {
   border-top: 2px solid var(--border);
   box-shadow: var(--shadow-lg);
 }
+.cpub-advance-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 10px 0; border-top: var(--border-width-default) solid var(--border); }
+.cpub-advance-row:first-of-type { border-top: 0; }
+.cpub-advance-name { font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; }
+.cpub-advance-name i { color: var(--accent); font-size: 11px; }
+.cpub-advance-ctl { display: inline-flex; align-items: center; gap: 8px; }
+.cpub-advance-ctl .cpub-form-label { margin: 0; }
+.cpub-advance-n { width: 80px; }
 .cpub-edit-actionbar-status { font-size: 11px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .06em; color: var(--text-faint); display: flex; align-items: center; gap: 8px; }
 .cpub-edit-actionbar-btns { display: flex; align-items: center; gap: 8px; }
 

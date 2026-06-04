@@ -16,6 +16,8 @@ import {
   calculateContestRanks,
   shouldRevealScores,
   canViewContest,
+  advanceContestStage,
+  isEliminated,
 } from '../contest/contest.js';
 import {
   addContestStakeholder,
@@ -96,6 +98,74 @@ describe('contest integration', () => {
     const updated = await updateContest(db, c.slug, organizerId, { stages: [] });
     expect(updated?.stages).toEqual([]);
     expect(updated?.currentStageId).toBeNull();
+  });
+
+  it('advanceContestStage: topN cull snapshots, moves currentStageId, scopes ranks (Phase B2)', async () => {
+    const reviewId = 'rev-1';
+    const nextId = 'final-1';
+    const stages = [
+      { id: 'sub-1', name: 'Round 1 Submissions', kind: 'submission' as const },
+      { id: reviewId, name: 'Top 2 Selection', kind: 'review' as const },
+      { id: nextId, name: 'Final Judging', kind: 'review' as const },
+    ];
+    const contest = await createContest(db, {
+      ...makeContestInput({ title: `Advance ${Date.now()}` }),
+      stages,
+      currentStageId: reviewId,
+      judges: [judgeUserId],
+    });
+    await addContestJudge(db, contest.id, judgeUserId, 'judge');
+    await acceptJudgeInvite(db, contest.id, judgeUserId);
+
+    // Submit three entries while active, then judge them: A=90, B=70, C=40.
+    await transitionContestStatus(db, contest.id, organizerId, 'active');
+    const entries: { id: string; score: number }[] = [];
+    for (const [title, score] of [['A', 90], ['B', 70], ['C', 40]] as const) {
+      const u = await createTestUser(db, { username: `adv-${title}-${Date.now()}-${Math.random().toString(36).slice(2, 5)}` });
+      const content = await createContent(db, u.id, { type: 'project', title });
+      await publishContent(db, content.id, u.id);
+      const e = await submitContestEntry(db, contest.id, content.id, u.id);
+      entries.push({ id: e!.id, score });
+    }
+    await transitionContestStatus(db, contest.id, organizerId, 'judging');
+    for (const e of entries) await judgeContestEntry(db, e.id, e.score, judgeUserId);
+    const [a, b, cId] = entries.map((e) => e.id);
+
+    // Cut the field to the top 2.
+    const res = await advanceContestStage(db, contest.id, organizerId, { reviewStageId: reviewId, mode: 'topN', topN: 2 });
+    expect(res.advanced).toBe(true);
+    expect(res.advancedCount).toBe(2);
+    expect(res.eliminatedCount).toBe(1);
+
+    // currentStageId moved to the next stage.
+    expect((await getContestBySlug(db, contest.slug))?.currentStageId).toBe(nextId);
+
+    // C (lowest) eliminated; A & B advanced.
+    const byId = Object.fromEntries((await listContestEntries(db, contest.id, { limit: 50 })).items.map((e) => [e.id, e]));
+    expect(byId[cId]!.eliminated).toBe(true);
+    expect(byId[a]!.eliminated).toBe(false);
+    expect(byId[b]!.eliminated).toBe(false);
+    expect(isEliminated({ stageState: byId[cId]!.stageState })).toBe(true);
+
+    // Ranks exclude the eliminated entry.
+    await calculateContestRanks(db, contest.id);
+    const ranks = Object.fromEntries((await listContestEntries(db, contest.id, { limit: 50 })).items.map((e) => [e.id, e.rank]));
+    expect(ranks[a]).toBe(1);
+    expect(ranks[b]).toBe(2);
+    expect(ranks[cId]).toBeNull();
+
+    // Idempotent: re-running the same cut doesn't duplicate stageState rows.
+    await advanceContestStage(db, contest.id, organizerId, { reviewStageId: reviewId, mode: 'topN', topN: 2 });
+    const cEntry = (await listContestEntries(db, contest.id, { limit: 50 })).items.find((e) => e.id === cId)!;
+    expect(cEntry.stageState.filter((s) => s.stageId === reviewId)).toHaveLength(1);
+  });
+
+  it('advanceContestStage: rejects non-owner + non-review stage', async () => {
+    const stages = [{ id: 'sub', name: 'Subs', kind: 'submission' as const }, { id: 'rev', name: 'Judge', kind: 'review' as const }];
+    const contest = await createContest(db, { ...makeContestInput({ title: `Adv guard ${Date.now()}` }), stages });
+    const outsider = await createTestUser(db, { username: `adv-out-${Date.now()}` });
+    expect((await advanceContestStage(db, contest.id, outsider.id, { reviewStageId: 'rev', mode: 'topN', topN: 1 })).error).toMatch(/owner/i);
+    expect((await advanceContestStage(db, contest.id, organizerId, { reviewStageId: 'sub', mode: 'topN', topN: 1 })).error).toMatch(/review/i);
   });
 
   it('lists contests', async () => {

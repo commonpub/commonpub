@@ -374,6 +374,18 @@ export const contestStageSchema = z.object({
 });
 export type ContestStageInput = z.infer<typeof contestStageSchema>;
 
+// Phase B2 — apply an advancement cut at a review stage (the Top-N cull).
+export const contestAdvanceSchema = z
+  .object({
+    reviewStageId: z.string().min(1).max(64),
+    mode: z.enum(['topN', 'manual']),
+    topN: z.number().int().min(1).max(10000).optional(),
+    advancedEntryIds: z.array(z.string().uuid()).max(10000).optional(),
+  })
+  .refine((d) => (d.mode === 'topN' ? typeof d.topN === 'number' : Array.isArray(d.advancedEntryIds)), {
+    message: 'topN mode needs `topN`; manual mode needs `advancedEntryIds`.',
+  });
+
 export const createContestSchema = z
   .object({
     title: z.string().min(1).max(255),

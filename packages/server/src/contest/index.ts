@@ -13,6 +13,11 @@ export {
   withdrawContestEntry,
   shouldRevealScores,
   canViewContest,
+  synthesizeStages,
+  normalizeStages,
+  currentStage,
+  isEliminated,
+  advanceContestStage,
 } from './contest.js';
 export type {
   ContestListItem,
@@ -20,6 +25,7 @@ export type {
   ContestFilters,
   CreateContestInput,
   ContestEntryItem,
+  AdvanceStageInput,
   ContestPrize,
   ContestJudgingCriterion,
   ContestJudgingVisibility,

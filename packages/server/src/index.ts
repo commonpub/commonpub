@@ -564,6 +564,8 @@ export {
   withdrawContestEntry,
   shouldRevealScores,
   canViewContest,
+  advanceContestStage,
+  isEliminated,
 } from './contest/index.js';
 export type {
   ContestListItem,

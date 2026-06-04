@@ -101,6 +101,16 @@ Built the dynamic stage timeline (migration 0018: `contests.stages` jsonb + `cur
 Audit: no cruft/debug leftovers; create/update routes pass `stages`/`currentStageId` through
 (spread, not cherry-picked); server suite 1256 + layer 907 green; reference typecheck clean.
 
+## Phase B2 — cohorts & Top-N advancement (same session, schema 0.30.0 / server 2.77.0 / layer 0.53.0)
+
+The cull (migration 0019: `contest_entries.stage_state` jsonb):
+
+- **Server (tested):** `advanceContestStage(db, contestId, userId, {reviewStageId, mode:'topN'|'manual', topN?, advancedEntryIds?})` — owner-gated, review-stage only; splits the surviving cohort into advancers + eliminated, snapshots round score/rank into `stage_state`, moves `currentStageId` to the next stage, notifies entrants. **Idempotent per stage** (replaces that stage's rows). `isEliminated` helper. `calculateContestRanks` excludes eliminated (jsonb `NOT @>` filter); `listContestEntries` surfaces `stageState` + derived `eliminated`. Tests: topN cull + snapshot + currentStageId move + rank-scoping + idempotency + owner/review guards.
+- **API/UI:** `contestAdvanceSchema` + `POST /api/contests/[slug]/advance`; a per-review-stage "Advance top N" control in the edit page's new Advancement section; Advanced / Not-advanced badges (+ dimmed cards) in ContestEntries.
+- **Decision:** `status` still gates submissions/judging; B2 adds the cohort cull + rank-scoping but does NOT yet cohort-scope judging itself (eliminated entries are excluded from ranks/results but could still be re-scored). Per-round score isolation + a manual-pick UI are deferred (documented in the plan). This is the last planned phase of the epic.
+
+Audit (post-B2): server suite 1258 + layer 907 green; reference typecheck clean; the new server exports were threaded through both barrels (`contest/index.ts` + `index.ts`); no cruft.
+
 ## Decisions
 
 - Kept the `status` enum as the coarse lifecycle; fine-grained "which round" will live in

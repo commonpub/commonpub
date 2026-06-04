@@ -145,6 +145,20 @@ export const contestEntries = pgTable('contest_entries', {
       criteriaScores?: Array<{ label: string; score: number; max: number }>;
     }>
   >(),
+  /**
+   * Phase B2 — per-stage cohort outcome. An entry is "active" (still in the
+   * running cohort) unless a row here marks it `eliminated`. `advanceContestStage`
+   * writes these at a `review` stage's advancement cut, snapshotting the round's
+   * score/rank so multi-round history survives. Empty `[]` ⇒ active.
+   */
+  stageState: jsonb('stage_state').$type<
+    Array<{
+      stageId: string;
+      status: 'advanced' | 'eliminated';
+      score?: number | null;
+      rank?: number | null;
+    }>
+  >().default([]).notNull(),
   submittedAt: timestamp('submitted_at', { withTimezone: true }).defaultNow().notNull(),
 }, (t) => [
   unique('contest_entries_user_content').on(t.contestId, t.userId, t.contentId),

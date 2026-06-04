@@ -134,6 +134,13 @@
       "when": 1780542670160,
       "tag": "0018_clean_the_hunter",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1780545511872,
+      "tag": "0019_regular_tinkerer",
+      "breakpoints": true
     }
   ]
 }

@@ -862,5 +862,14 @@ the server package into the browser bundle — it pulls DB drivers; mirror + kee
 sync, same contract as the transitions util). A `currentStageId` that no longer
 references an existing stage is **tolerated** (display falls back to status
 derivation) AND **dropped** server-side on create/update (consistency guard), so a
-reset-to-standard never leaves a dangling pointer. Per-entry cohort/advancement +
-per-round scoring (the Top-N cull) are Phase B2 — additive jsonb fields, no migration.
+reset-to-standard never leaves a dangling pointer.
+
+**Phase B2 cohorts (session 189):** `contest_entries.stage_state` (jsonb) records
+per-entry advancement; an entry is **eliminated** if any row has status
+`eliminated`. `advanceContestStage` is the only writer — it's **idempotent per
+review stage** (replaces that stage's rows, never appends duplicates), so a
+re-run re-computes the cut cleanly. The key invariant: **`calculateContestRanks`
+MUST exclude eliminated entries** (it filters `NOT (stage_state @> '[{"status":"eliminated"}]'::jsonb)`
+and nulls their rank) — otherwise a culled entry could out-rank a finalist. If you
+add another ranking/results path, apply the same cohort filter. The Top-N tiebreak
+is deterministic (score → rank → id) so re-running yields a stable cut.

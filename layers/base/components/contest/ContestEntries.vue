@@ -91,6 +91,7 @@ function confirmWithdraw(entryId: string): void {
         v-for="(entry, i) in entries"
         :key="entry.id"
         class="cpub-entry-card"
+        :class="{ 'cpub-entry-out': entry.eliminated }"
       >
         <div class="cpub-entry-thumb" :class="i % 2 === 0 ? 'cpub-entry-bg-light' : 'cpub-entry-bg-dark'">
           <img v-if="entry.contentCoverImageUrl" :src="entry.contentCoverImageUrl" :alt="entry.contentTitle" class="cpub-entry-cover-img" />
@@ -99,6 +100,8 @@ function confirmWithdraw(entryId: string): void {
             <div class="cpub-entry-icon"><i class="fa-solid fa-microchip"></i></div>
           </template>
           <span v-if="entry.rank" class="cpub-entry-rank" :class="`cpub-rank-${entry.rank <= 3 ? entry.rank : 'other'}`">#{{ entry.rank }}</span>
+          <span v-if="entry.eliminated" class="cpub-entry-cohort cpub-cohort-out"><i class="fa-solid fa-circle-minus"></i> Not advanced</span>
+          <span v-else-if="entry.stageState && entry.stageState.some((s) => s.status === 'advanced')" class="cpub-entry-cohort cpub-cohort-in"><i class="fa-solid fa-circle-check"></i> Advanced</span>
         </div>
         <div class="cpub-entry-body">
           <NuxtLink :to="`/u/${entry.authorUsername}/${entry.contentType}/${entry.contentSlug}`" class="cpub-entry-title">{{ entry.contentTitle || `Entry #${i + 1}` }}</NuxtLink>
@@ -165,6 +168,12 @@ function confirmWithdraw(entryId: string): void {
 .cpub-rank-2 { background: var(--surface2); color: var(--text-faint); border: var(--border-width-default) solid var(--text-faint); }
 .cpub-rank-3 { background: var(--surface2); color: var(--bronze); border: var(--border-width-default) solid var(--bronze); }
 .cpub-rank-other { background: var(--surface2); color: var(--text-dim); border: var(--border-width-default) solid var(--border); }
+.cpub-entry-cohort { position: absolute; top: 8px; right: 8px; z-index: 2; font-size: 9px; font-family: var(--font-mono); font-weight: 700; text-transform: uppercase; letter-spacing: .05em; padding: 2px 7px; border-radius: var(--radius); display: inline-flex; align-items: center; gap: 4px; }
+.cpub-cohort-in { background: var(--green-bg); color: var(--green); border: var(--border-width-default) solid var(--green-border); }
+.cpub-cohort-out { background: var(--surface2); color: var(--text-faint); border: var(--border-width-default) solid var(--border2); }
+.cpub-entry-cohort i { font-size: 8px; }
+.cpub-entry-out { opacity: .6; }
+.cpub-entry-out:hover { opacity: 1; }
 .cpub-entry-body { padding: 10px 12px; }
 .cpub-entry-title { font-size: 12px; font-weight: 600; margin-bottom: 3px; line-height: 1.3; color: var(--text); text-decoration: none; }
 .cpub-entry-title:hover { color: var(--accent); }

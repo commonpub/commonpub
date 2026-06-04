@@ -130,6 +130,8 @@ ContestEntries, ContestHero, **ContestJudgeManager** (session 124), ContestJudge
 
 Contest stage logic lives in two auto-imported layer utils (session 189): `utils/contestStages.ts` (synthesizeStages/normalizeStages/currentStageId + STAGE_KIND_ICON/LABEL — client mirror of the server's pure helpers) and `utils/contestTransitions.ts` (CONTEST_VALID_TRANSITIONS + status-action labels — single client source of truth shared by ContestHero + edit.vue, mirrors the server map). ContestSidebar renders the dynamic stage timeline; ContestHero shows the current stage name as a chip when explicit stages exist.
 
+**Phase B2 (session 189):** ContestEntries shows per-entry cohort badges (Advanced / Not advanced, dimming eliminated cards). The contest edit page gains an **Advancement** section (one row per review stage: "Advance top N" → `POST /api/contests/[slug]/advance`).
+
 ### Events (session 124)
 
 EventCard, EventCalendar.

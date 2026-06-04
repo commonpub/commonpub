@@ -173,6 +173,9 @@ export interface ContestEntryItem {
   userId: string;
   score: number | null;
   rank: number | null;
+  /** Phase B2 — per-stage cohort outcome; `eliminated` is the derived convenience. */
+  stageState: Array<{ stageId: string; status: 'advanced' | 'eliminated'; score?: number | null; rank?: number | null }>;
+  eliminated: boolean;
   submittedAt: Date;
   // Enriched fields from joins
   contentTitle: string;
@@ -572,6 +575,8 @@ export async function listContestEntries(
       userId: row.entry.userId,
       score: revealScores ? row.entry.score : null,
       rank: row.entry.rank,
+      stageState: row.entry.stageState ?? [],
+      eliminated: isEliminated(row.entry),
       submittedAt: row.entry.submittedAt,
       contentTitle: row.content.title,
       contentSlug: row.content.slug,
@@ -688,6 +693,8 @@ export async function submitContestEntry(
     userId: row.userId,
     score: row.score,
     rank: row.rank,
+    stageState: [], // a freshly submitted entry is in the active cohort
+    eliminated: false,
     submittedAt: row.submittedAt,
     contentTitle: info?.content.title ?? 'Untitled',
     contentSlug: info?.content.slug ?? '',
@@ -1001,6 +1008,8 @@ export async function calculateContestRanks(
   // Assign ranks by score with RANK() so tied scores share a rank (1, 1, 3…).
   // Only scored entries are ranked; entries that were never judged keep a null
   // rank rather than being handed an arbitrary trailing position.
+  // Eliminated entries (culled at a prior review stage, Phase B2) are excluded
+  // from ranking — only the surviving cohort competes for the final placements.
   await db.execute(sql`
     UPDATE ${contestEntries}
     SET rank = ranked.rn
@@ -1008,13 +1017,137 @@ export async function calculateContestRanks(
       SELECT id, RANK() OVER (ORDER BY score DESC) AS rn
       FROM ${contestEntries}
       WHERE contest_id = ${contestId} AND score IS NOT NULL
+        AND NOT (stage_state @> '[{"status":"eliminated"}]'::jsonb)
     ) AS ranked
     WHERE ${contestEntries}.id = ranked.id
   `);
-  // Clear ranks for any entries that have no score (e.g. unjudged).
+  // Clear ranks for entries with no score (unjudged) or that were eliminated.
   await db.execute(sql`
     UPDATE ${contestEntries}
     SET rank = NULL
-    WHERE contest_id = ${contestId} AND score IS NULL
+    WHERE contest_id = ${contestId}
+      AND (score IS NULL OR stage_state @> '[{"status":"eliminated"}]'::jsonb)
   `);
+}
+
+/** True when an entry was culled at some review stage (Phase B2 cohort gate). */
+export function isEliminated(entry: { stageState?: Array<{ status: string }> | null }): boolean {
+  return !!entry.stageState?.some((s) => s.status === 'eliminated');
+}
+
+export interface AdvanceStageInput {
+  /** The `review` stage whose advancement cut we're applying. */
+  reviewStageId: string;
+  mode: 'topN' | 'manual';
+  /** topN mode: how many of the eligible cohort advance (ties broken deterministically). */
+  topN?: number;
+  /** manual mode: explicit entry ids that advance; the rest of the cohort is eliminated. */
+  advancedEntryIds?: string[];
+}
+
+/**
+ * Phase B2 — apply an advancement cut at a review stage: the surviving cohort
+ * (entries not already eliminated) is split into advancers + eliminated, the
+ * round's score/rank is snapshotted into each entry's `stageState`, and the
+ * contest's `currentStageId` moves to the next stage. Idempotent per stage —
+ * re-running replaces that stage's `stageState` rows rather than duplicating them.
+ * Owner-gated. `topN` ties broken by score → rank → id for determinism.
+ */
+export async function advanceContestStage(
+  db: DB,
+  contestId: string,
+  userId: string,
+  input: AdvanceStageInput,
+): Promise<{ advanced: boolean; advancedCount: number; eliminatedCount: number; error?: string }> {
+  const fail = (error: string) => ({ advanced: false, advancedCount: 0, eliminatedCount: 0, error });
+
+  const [contest] = await db
+    .select({
+      createdById: contests.createdById,
+      status: contests.status,
+      stages: contests.stages,
+      currentStageId: contests.currentStageId,
+      startDate: contests.startDate,
+      endDate: contests.endDate,
+      judgingEndDate: contests.judgingEndDate,
+    })
+    .from(contests)
+    .where(eq(contests.id, contestId))
+    .limit(1);
+
+  if (!contest) return fail('Contest not found');
+  if (contest.createdById !== userId) return fail('Not the contest owner');
+
+  const stages = normalizeStages(contest);
+  const idx = stages.findIndex((s) => s.id === input.reviewStageId);
+  if (idx < 0) return fail('Unknown stage');
+  if (stages[idx]!.kind !== 'review') return fail('Advancement applies to review stages only');
+
+  const rows = await db
+    .select({ id: contestEntries.id, userId: contestEntries.userId, score: contestEntries.score, rank: contestEntries.rank, stageState: contestEntries.stageState })
+    .from(contestEntries)
+    .where(eq(contestEntries.contestId, contestId));
+
+  // Only the running cohort (not already eliminated) is subject to the cut.
+  const eligible = rows.filter((r) => !isEliminated(r));
+
+  let advancedIds: Set<string>;
+  if (input.mode === 'manual') {
+    const picked = new Set(input.advancedEntryIds ?? []);
+    advancedIds = new Set(eligible.filter((e) => picked.has(e.id)).map((e) => e.id));
+  } else {
+    const n = Math.max(0, input.topN ?? 0);
+    const sorted = [...eligible].sort(
+      (a, b) =>
+        (b.score ?? -Infinity) - (a.score ?? -Infinity) ||
+        (a.rank ?? Infinity) - (b.rank ?? Infinity) ||
+        a.id.localeCompare(b.id),
+    );
+    advancedIds = new Set(sorted.slice(0, n).map((e) => e.id));
+  }
+
+  let advancedCount = 0;
+  let eliminatedCount = 0;
+  for (const e of eligible) {
+    const isAdv = advancedIds.has(e.id);
+    const prior = (e.stageState ?? []).filter((s) => s.stageId !== input.reviewStageId);
+    const next = [...prior, { stageId: input.reviewStageId, status: isAdv ? ('advanced' as const) : ('eliminated' as const), score: e.score ?? null, rank: e.rank ?? null }];
+    await db.update(contestEntries).set({ stageState: next }).where(eq(contestEntries.id, e.id));
+    if (isAdv) advancedCount++;
+    else eliminatedCount++;
+  }
+
+  const nextStage = stages[idx + 1];
+  if (nextStage) {
+    await db.update(contests).set({ currentStageId: nextStage.id, updatedAt: new Date() }).where(eq(contests.id, contestId));
+  }
+
+  // Notify entrants of the outcome (non-critical, de-duped by user).
+  try {
+    const { createNotification } = await import('../notification/notification.js');
+    const [info] = await db.select({ title: contests.title, slug: contests.slug }).from(contests).where(eq(contests.id, contestId)).limit(1);
+    if (info) {
+      const nextName = nextStage?.name ?? 'the next stage';
+      const seen = new Set<string>();
+      for (const e of eligible) {
+        if (seen.has(e.userId)) continue;
+        seen.add(e.userId);
+        const adv = advancedIds.has(e.id);
+        createNotification(db, {
+          userId: e.userId,
+          type: 'contest',
+          title: adv ? '✅ You advanced!' : 'Contest update',
+          message: adv
+            ? `Your entry advanced to ${nextName} in "${info.title}".`
+            : `Your entry wasn't selected to continue in "${info.title}".`,
+          link: `/contests/${info.slug}`,
+          actorId: userId,
+        }).catch(() => {});
+      }
+    }
+  } catch {
+    /* non-critical */
+  }
+
+  return { advanced: true, advancedCount, eliminatedCount };
 }

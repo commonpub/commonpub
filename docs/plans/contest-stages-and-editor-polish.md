@@ -232,11 +232,17 @@ dnd lib.
   (cohort = everyone). This makes all five Resilient-America stages real, named, dated, ordered, and
   displayed. One additive migration. Transition-map duplication (hero/edit) was also collapsed into
   `utils/contestTransitions.ts`.
-- **B2 — cohorts & advancement.** `contest_entries.stageState`; enforce `review.advance`
-  (`topN` by score, or manual pick); cohort-scope submission/judging/results to non-eliminated
-  entries; per-round scores (snapshot on advance); "you advanced / didn't advance" entrant UX +
-  notifications. The genuinely hard part (per-entry state, multi-round scoring). One additive
-  migration (`stageState`).
+- **B2 — cohorts & advancement. ✅ DONE (session 189, schema 0.30.0 / server 2.77.0 / layer 0.53.0,
+  migration 0019).** `contest_entries.stage_state` jsonb; `advanceContestStage` applies a review
+  stage's cut (`topN` by score with deterministic tiebreak, or `manual` pick), snapshots round
+  score/rank, moves `currentStageId`, and notifies entrants (advanced / not advanced). Idempotent
+  per stage. `calculateContestRanks` + `listContestEntries` are cohort-scoped (eliminated excluded
+  from ranks; `eliminated` surfaced). `POST /api/contests/[slug]/advance` + a per-review-stage
+  "Advance top N" control on the edit page; ContestEntries shows Advanced / Not-advanced badges.
+  **Deferred:** per-round scores are snapshotted into `stage_state` but the next round still reuses
+  the live `score`/`rank` columns (re-scoring overwrites — acceptable); manual-pick has no dedicated
+  UI yet (API supports it); submission/judging gating isn't yet cohort-scoped (eliminated entries
+  could still be re-scored — they're just excluded from ranks/results).
 - **B3 — submission requirement templates + teams (defer).** Proposal-vs-prototype field templates
   & per-stage requirement checklists; and — separately — team/workgroup formation ("the joint
   workgroup forms"), which is really a generic *teams* concern, not contest-specific. Keep out of

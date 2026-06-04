@@ -150,17 +150,17 @@ a minute (`curl deveco.io/api/content?limit=5`, today's timestamp).
 ### Published versions (verified 2026-06-04)
 | Package | Version | | Package | Version |
 |---|---|---|---|---|
-| @commonpub/schema | **0.29.0** | | @commonpub/infra | 0.8.0 |
+| @commonpub/schema | **0.30.0** | | @commonpub/infra | 0.8.0 |
 | @commonpub/config | **0.18.0** | | @commonpub/editor | 0.7.11 |
 | @commonpub/protocol | 0.13.0 | | @commonpub/explainer | 0.7.15 |
 | @commonpub/auth | 0.8.0 | | @commonpub/docs | 0.6.3 |
-| @commonpub/server | **2.76.0** | | @commonpub/learning | 0.5.2 |
+| @commonpub/server | **2.77.0** | | @commonpub/learning | 0.5.2 |
 | @commonpub/ui | 0.9.2 | | @commonpub/test-utils | 0.5.6 |
-| @commonpub/layer | **0.52.0** | | create-commonpub (crates.io) | **0.5.7** |
+| @commonpub/layer | **0.53.0** | | create-commonpub (crates.io) | **0.5.7** |
 
-Migrations applied this cycle: **0015** (`registry_instances`) · **0016** (`contests.cover_image_url`) ·
-**0017** (`contest_status` +draft/+paused; `contests.show_prizes`) · **0018** (`contests.stages` jsonb +
-`contests.current_stage_id` — Phase B1).
+Migrations applied this cycle: **0016** (`contests.cover_image_url`) · **0017** (`contest_status`
++draft/+paused; `contests.show_prizes`) · **0018** (`contests.stages` jsonb + `contests.current_stage_id`
+— Phase B1) · **0019** (`contest_entries.stage_state` jsonb — Phase B2 cohorts).
 
 Contest overhaul (2026-06-04, schema 0.27.0 / server 2.74.0 / layer 0.49.0, all 3 instances):
 optional `contests.coverImageUrl` (cards prefer it cover-cropped → contained banner → trophy);
@@ -203,6 +203,19 @@ Pure helpers `synthesizeStages`/`normalizeStages`/`currentStage` (server + a lay
 `utils/contestStages.ts`); transition map de-duped into `utils/contestTransitions.ts`. **Phase B2**
 (per-entry cohorts + Top-N advancement + per-round scoring) remains the next chunk — additive jsonb
 fields, no migration. Plan: `docs/plans/contest-stages-and-editor-polish.md`.
+
+Contest **Phase B2 — cohorts & Top-N advancement** (2026-06-04, schema 0.30.0 / server 2.77.0 /
+layer 0.53.0, migration 0019, all 3): `contest_entries.stage_state` jsonb tracks per-entry cohort
+outcome. `advanceContestStage` applies a review stage's **cut** — top-N by score (deterministic
+tiebreak) or a manual pick — snapshots the round's score/rank, moves `currentStageId` to the next
+stage, and notifies entrants (advanced / not advanced). Idempotent per stage. `calculateContestRanks`
++ `listContestEntries` are cohort-scoped (eliminated entries excluded from final ranks). New:
+`POST /api/contests/[slug]/advance`; a per-review-stage "Advance top N" control on the contest edit
+page; Advanced / Not-advanced badges on entry cards. This delivers the "Resilient America" Top-50 →
+sprint → final-judging flow. **Deferred (documented in the plan):** cohort-scoped *judging gating*
+(eliminated entries are excluded from ranks but can still technically be re-scored), a manual-pick
+UI (the API supports it), and true per-round score isolation. This is the last planned phase of the
+contest stages epic.
 
 Recent UI follow-ups (2026-06-03): contest hero banner 260→195px (layer 0.46.0); deveco.io mobile-nav
 hamburger fixed (its forked `layouts/default.vue` used bare `<MobileNavRenderer>` → unresolved;
