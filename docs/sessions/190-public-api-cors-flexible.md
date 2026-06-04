@@ -95,6 +95,18 @@ Added an aggregate, privacy-respecting analytics surface to the public API.
 - **Latent data bug (fixed during impl): `PUBLIC_EVENT_STATUSES`** wrongly included `upcoming`/`past`, which aren't values of the events status enum; typecheck on `inArray` surfaced it. Narrowed to `published`/`active`/`completed` (matches the events route's own public filter).
 - **Verified, no change:** deleted users' content is archived (`status='archived'`) so excluded from all metrics; suspended users are excluded from contributors via `status='active'`; top-content author exposure matches the existing `/content` surface; all sums are bound params (no injection); `read:*` covers the new scopes; the federation flag defaults closed even under consumer-config drift.
 
+## Release (Phases 1+2) — LIVE on all 3 (2026-06-04)
+
+schema 0.34.0 / config 0.19.0 / server 2.81.0 / layer 0.61.0. No migration. Published npm (schema→config→server→layer), pushed commonpub.io (local layer), bumped + pushed deveco + heatsync pins. Verified live: `publicApiMetricsFederation` appears in `/api/features` on all 3 (the flag only exists in the new config+layer, so this confirms the deploy). Published tarballs verified complete in deveco node_modules (new server exports, schema scope, six metrics routes — no drift).
+
+## Phase 3 — daily rollups + time-series (same session)
+
+- **Schema:** `metrics_daily` (`packages/schema/src/metrics.ts`, migration `0020_spooky_gideon`). One row per (day, metric, dimension); `dimension` is NOT NULL default `''` (NOT nullable) so the unique index stays idempotent — NULLs are distinct in a Postgres unique index, which would silently allow duplicate global rows.
+- **Server (`metricsRollup.ts`):** `runDailyRollup(db, day)` (idempotent upsert of cumulative snapshots + the day's flow + engagement sums via `::float8`), `backfillMetricsDaily(db)` (deterministic survivorship history from `created_at`/`published_at` via window-sum; engagement sums NOT backfilled — no per-day history), `getMetricsTimeseries(db, opts)` (day/week/month JS bucketing: flow=sum, cumulative=last; day-over-day delta; `since`).
+- **Plugin (`metrics-rollup.ts`):** opt-in on `features.publicApi`, backfills if the table is empty, then refreshes today's snapshot every 6h; clean teardown. Modeled on `registry-heartbeat`.
+- **Route:** `GET /metrics/timeseries` (scope `read:analytics`, metric/interval/from/to, 90-day default, 2-year span clamp). OpenAPI + docs updated.
+- **Tests:** `metricsRollup.integration.test.ts` (10) seeds controlled dates and verifies backfill flow+cumulative, idempotency, the no-engagement-backfill rule, the snapshot, and day/week/month bucketing. Server suite 1324 passed. Reference typecheck clean. Lint 0 errors.
+
 ## Open questions / next steps
 
 - **Release Phase 1:** bump `@commonpub/schema` (validator) + `@commonpub/server` (matcher) +

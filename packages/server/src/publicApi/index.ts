@@ -36,6 +36,18 @@ export type {
   MetricsFederationReach,
 } from './metrics.js';
 export {
+  TIMESERIES_METRICS,
+  runDailyRollup,
+  backfillMetricsDaily,
+  getMetricsTimeseries,
+} from './metricsRollup.js';
+export type {
+  MetricKind,
+  TimeseriesInterval,
+  TimeseriesPoint,
+  MetricsTimeseries,
+} from './metricsRollup.js';
+export {
   toPublicUser,
   isPublicUser,
   toPublicContentSummary,

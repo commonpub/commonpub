@@ -379,6 +379,9 @@ export default defineEventHandler((event) => {
       '/metrics/engagement': {
         get: { summary: 'Aggregate engagement ratios and funnels', security: [{ bearer: ['read:analytics'] }], responses: { '200': { description: 'OK', content: { 'application/json': { schema: { type: 'object' } } } } } },
       },
+      '/metrics/timeseries': {
+        get: { summary: 'Daily time-series from rollups', security: [{ bearer: ['read:analytics'] }], parameters: [{ name: 'metric', in: 'query', required: true, schema: { type: 'string', enum: ['users.total', 'users.new', 'content.total', 'content.new', 'content.views', 'content.likes', 'content.comments'] } }, { name: 'interval', in: 'query', schema: { type: 'string', enum: ['day', 'week', 'month'] } }, { name: 'from', in: 'query', schema: { type: 'string', format: 'date' } }, { name: 'to', in: 'query', schema: { type: 'string', format: 'date' } }], responses: { '200': { description: 'OK', content: { 'application/json': { schema: { type: 'object' } } } } } },
+      },
       '/metrics/federation': {
         get: { summary: 'Federation reach (opt-in; read:federation)', security: [{ bearer: ['read:federation'] }], parameters: [{ name: 'limit', in: 'query', schema: { type: 'integer' } }], responses: { '200': { description: 'OK', content: { 'application/json': { schema: { type: 'object' } } } }, '404': { description: 'Federation reach metrics not enabled', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } } } },
       },

@@ -63,7 +63,7 @@ Scopes are read-only in v1. A key must hold the listed scope for each endpoint. 
 | `read:docs` | `/docs`, `/docs/:slug` (feature-gated) |
 | `read:tags` | `/tags` |
 | `read:search` | `/search` |
-| `read:analytics` | `/metrics/overview`, `/metrics/content/top`, `/metrics/tags/trending`, `/metrics/contributors/top`, `/metrics/engagement` |
+| `read:analytics` | `/metrics/overview`, `/metrics/content/top`, `/metrics/tags/trending`, `/metrics/contributors/top`, `/metrics/engagement`, `/metrics/timeseries` |
 | `read:federation` | `/metrics/federation` (also needs `features.publicApiMetricsFederation`) |
 | `read:*` | every `read:...` scope |
 
@@ -273,6 +273,27 @@ Scope: `read:analytics`. Public-profile, active users ranked by published, publi
 ### `GET /api/public/v1/metrics/engagement`
 
 Scope: `read:analytics`. Aggregate engagement ratios and funnels: content likes/comments-per-view and average views per item; learning enroll to complete; event capacity to attendance; contest entries. Feature-gated sections (`learning`, `events`, `contests`) are present only when that feature is enabled.
+
+### `GET /api/public/v1/metrics/timeseries`
+
+Scope: `read:analytics`. Daily time-series from the `metrics_daily` rollups (written by the `metrics-rollup` worker). Query: `metric` (required: `users.total`, `users.new`, `content.total`, `content.new`, `content.views`, `content.likes`, `content.comments`), `interval` (`day` | `week` | `month`, default `day`), `from`/`to` (`YYYY-MM-DD`, default last 90 days, span clamped to 2 years).
+
+```json
+{
+  "metric": "users.total",
+  "kind": "cumulative",
+  "interval": "month",
+  "from": "2026-01-01",
+  "to": "2026-06-30",
+  "since": "2026-01-01",
+  "points": [
+    { "date": "2026-01-01", "value": 2, "delta": 0 },
+    { "date": "2026-02-01", "value": 5, "delta": 3 }
+  ]
+}
+```
+
+`kind: "flow"` series (e.g. `users.new`) sum within a bucket; `kind: "cumulative"` series take the bucket's end value. `delta` is the change versus the previous bucket. Count-based series (`users.*`, `content.total`/`new`) are backfilled from timestamps as a survivorship curve; engagement series (`content.views`/`likes`/`comments`) begin at the first rollup (see `since`).
 
 ### `GET /api/public/v1/metrics/federation`
 

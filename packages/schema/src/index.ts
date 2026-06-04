@@ -56,6 +56,9 @@ export * from './sectionConfigs.js';
 // Public API (admin-managed access keys)
 export * from './publicApi.js';
 
+// Analytics rollups (daily time-series)
+export * from './metrics.js';
+
 // Validators
 export * from './validators.js';
 

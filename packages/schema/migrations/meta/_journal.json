@@ -141,6 +141,13 @@
       "when": 1780545511872,
       "tag": "0019_regular_tinkerer",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1780561172430,
+      "tag": "0020_spooky_gideon",
+      "breakpoints": true
     }
   ]
 }
