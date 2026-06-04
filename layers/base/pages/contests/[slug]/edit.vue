@@ -473,10 +473,6 @@ async function transitionStatus(newStatus: string): Promise<void> {
         </div>
       </section>
 
-      <button type="submit" class="cpub-btn cpub-btn-primary" :disabled="saving || !title.trim() || !!dateError">
-        <i class="fa-solid fa-floppy-disk"></i> {{ saving ? 'Saving...' : 'Save Changes' }}
-      </button>
-
       <section class="cpub-form-section cpub-danger-zone">
         <h2 class="cpub-form-section-title cpub-danger-title">Danger Zone</h2>
         <div class="cpub-danger-row">
@@ -489,6 +485,19 @@ async function transitionStatus(newStatus: string): Promise<void> {
           </button>
         </div>
       </section>
+
+      <!-- Sticky save bar — always reachable without scrolling to the bottom. -->
+      <div class="cpub-edit-actionbar">
+        <span class="cpub-edit-actionbar-status">
+          Status <span class="cpub-status-badge" :class="`cpub-status-${contest.status}`">{{ contest.status }}</span>
+        </span>
+        <div class="cpub-edit-actionbar-btns">
+          <NuxtLink :to="`/contests/${slug}`" class="cpub-btn cpub-edit-cancel">Cancel</NuxtLink>
+          <button type="submit" class="cpub-btn cpub-btn-primary" :disabled="saving || !title.trim() || !!dateError">
+            <i class="fa-solid fa-floppy-disk"></i> {{ saving ? 'Saving…' : 'Save Changes' }}
+          </button>
+        </div>
+      </div>
     </form>
   </div>
   <div v-else class="cpub-not-found"><p>Contest not found</p></div>
@@ -557,8 +566,27 @@ async function transitionStatus(newStatus: string): Promise<void> {
 
 .cpub-not-found { text-align: center; padding: 64px; color: var(--text-dim); display: flex; flex-direction: column; align-items: center; gap: 12px; }
 
+/* Sticky save bar — pinned to the viewport bottom while editing the long form. */
+.cpub-edit-actionbar {
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 4px -32px -32px;
+  padding: 14px 32px;
+  background: var(--surface);
+  border-top: 2px solid var(--border);
+  box-shadow: var(--shadow-lg);
+}
+.cpub-edit-actionbar-status { font-size: 11px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .06em; color: var(--text-faint); display: flex; align-items: center; gap: 8px; }
+.cpub-edit-actionbar-btns { display: flex; align-items: center; gap: 8px; }
+
 @media (max-width: 768px) {
   .cpub-contest-edit { padding: 16px; }
   .cpub-form-row { grid-template-columns: 1fr; }
+  .cpub-edit-actionbar { margin: 4px -16px -16px; padding: 12px 16px; }
 }
 </style>

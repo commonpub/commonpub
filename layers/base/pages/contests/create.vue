@@ -354,9 +354,15 @@ function prizeLabel(prize: Prize): string {
         </div>
       </section>
 
-      <button type="submit" class="cpub-btn cpub-btn-primary cpub-btn-lg" :disabled="saving || !title.trim() || !startDate || !endDate || !!dateError">
-        <i class="fa-solid fa-trophy"></i> {{ saving ? 'Creating...' : 'Create Contest' }}
-      </button>
+      <div class="cpub-edit-actionbar">
+        <span class="cpub-edit-actionbar-hint">Required: title, start &amp; end dates.</span>
+        <div class="cpub-edit-actionbar-btns">
+          <NuxtLink to="/contests" class="cpub-btn">Cancel</NuxtLink>
+          <button type="submit" class="cpub-btn cpub-btn-primary" :disabled="saving || !title.trim() || !startDate || !endDate || !!dateError">
+            <i class="fa-solid fa-trophy"></i> {{ saving ? 'Creating…' : 'Create Contest' }}
+          </button>
+        </div>
+      </div>
     </form>
   </div>
 </template>
@@ -401,10 +407,29 @@ function prizeLabel(prize: Prize): string {
 .cpub-delete-btn { background: none; border: none; color: var(--text-faint); cursor: pointer; font-size: 14px; }
 .cpub-delete-btn:hover { color: var(--red); }
 
+/* Sticky create bar — Create button always reachable on the long form. */
+.cpub-edit-actionbar {
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 4px -32px -32px;
+  padding: 14px 32px;
+  background: var(--surface);
+  border-top: 2px solid var(--border);
+  box-shadow: var(--shadow-lg);
+}
+.cpub-edit-actionbar-hint { font-size: 11px; color: var(--text-faint); }
+.cpub-edit-actionbar-btns { display: flex; align-items: center; gap: 8px; }
+
 @media (max-width: 768px) {
   .cpub-contest-create { padding: 16px; }
   .cpub-page-title { font-size: 20px; }
   .cpub-form-section { padding: 14px; }
   .cpub-form-row { grid-template-columns: 1fr; }
+  .cpub-edit-actionbar { margin: 4px -16px -16px; padding: 12px 16px; }
 }
 </style>

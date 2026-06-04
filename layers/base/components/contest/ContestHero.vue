@@ -18,18 +18,28 @@ const c = computed(() => props.contest);
 
 // Countdown timer
 const countdown = ref({ days: '00', hours: '00', mins: '00', secs: '00' });
+const targetPassed = ref(false);
 let countdownInterval: ReturnType<typeof setInterval> | null = null;
 
 function pad(n: number): string { return String(n).padStart(2, '0'); }
 
+// The countdown target depends on the lifecycle stage: an UPCOMING contest counts
+// down to when it OPENS (startDate); while JUDGING, to the judging deadline;
+// otherwise (active) to the submission close (endDate).
+const countdownTargetStr = computed<string | null>(() => {
+  const s = c.value?.status;
+  if (s === 'judging') return c.value?.judgingEndDate ?? c.value?.endDate ?? null;
+  if (s === 'upcoming') return c.value?.startDate ?? null;
+  return c.value?.endDate ?? null;
+});
+
 function updateCountdown(): void {
-  // During judging, count down to the judging deadline (if set); otherwise the
-  // submission end date.
-  const isJudging = c.value?.status === 'judging';
-  const targetStr = isJudging ? (c.value?.judgingEndDate ?? c.value?.endDate) : c.value?.endDate;
+  const targetStr = countdownTargetStr.value;
   const target = targetStr ? new Date(targetStr) : new Date();
   const now = new Date();
-  let diff = Math.max(0, Math.floor((target.getTime() - now.getTime()) / 1000));
+  const rawDiff = Math.floor((target.getTime() - now.getTime()) / 1000);
+  targetPassed.value = rawDiff <= 0;
+  let diff = Math.max(0, rawDiff);
   const days = Math.floor(diff / 86400); diff %= 86400;
   const hours = Math.floor(diff / 3600); diff %= 3600;
   const mins = Math.floor(diff / 60);
@@ -47,16 +57,32 @@ onUnmounted(() => {
 });
 
 const countdownLabel = computed(() => {
-  if (c.value?.status === 'completed' || c.value?.status === 'cancelled') return 'Contest ended';
-  if (c.value?.status === 'judging') return 'Judging ends in';
+  const s = c.value?.status;
+  if (s === 'completed' || s === 'cancelled') return 'Contest ended';
+  if (s === 'judging') return 'Judging ends in';
+  if (s === 'upcoming') return 'Opens in';
   return 'Submissions close in';
 });
 
 const isEnded = computed(() => c.value?.status === 'completed' || c.value?.status === 'cancelled');
 const isPaused = computed(() => c.value?.status === 'paused');
 const isDraft = computed(() => c.value?.status === 'draft');
-// Live countdown only makes sense while the clock is actually running.
-const showCountdown = computed(() => !isEnded.value && !isPaused.value && !isDraft.value);
+// Live countdown only while the clock is actually running AND its target is still
+// in the future. Once the target passes (an upcoming contest whose open date has
+// arrived, or an active one past its close), fall back to a static date note.
+const showCountdown = computed(() => !isEnded.value && !isPaused.value && !isDraft.value && !!countdownTargetStr.value && !targetPassed.value);
+
+function fmtDate(s: string | null | undefined): string {
+  if (!s) return '';
+  return new Date(s).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+// Static date shown when the relevant target is in the past but the contest hasn't
+// been advanced yet (e.g. an upcoming contest whose open date arrived).
+const dateNote = computed<string | null>(() => {
+  if (isEnded.value || isPaused.value || isDraft.value || !targetPassed.value) return null;
+  if (c.value?.status === 'upcoming') return c.value?.startDate ? `Opens ${fmtDate(c.value.startDate)}` : null;
+  return c.value?.endDate ? `Closed ${fmtDate(c.value.endDate)}` : null;
+});
 
 // Client-side mirror of the server VALID_TRANSITIONS map (server/src/contest/contest.ts).
 // Keeps the inline admin controls in sync with what the API will actually accept —
@@ -193,6 +219,10 @@ const dateRange = computed<string>(() => {
             <div v-else-if="isDraft" class="cpub-countdown-ended">
               <i class="fa-solid fa-pen-ruler"></i>
               <span>Draft — not launched</span>
+            </div>
+            <div v-else-if="dateNote" class="cpub-countdown-ended">
+              <i class="fa-regular fa-calendar"></i>
+              <span>{{ dateNote }}</span>
             </div>
             <div v-else class="cpub-countdown-ended">
               <i class="fa-solid fa-flag-checkered"></i>
