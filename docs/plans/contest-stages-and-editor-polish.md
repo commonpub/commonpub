@@ -239,10 +239,11 @@ dnd lib.
   per stage. `calculateContestRanks` + `listContestEntries` are cohort-scoped (eliminated excluded
   from ranks; `eliminated` surfaced). `POST /api/contests/[slug]/advance` + a per-review-stage
   "Advance top N" control on the edit page; ContestEntries shows Advanced / Not-advanced badges.
-  **Deferred:** per-round scores are snapshotted into `stage_state` but the next round still reuses
-  the live `score`/`rank` columns (re-scoring overwrites — acceptable); manual-pick has no dedicated
-  UI yet (API supports it); submission/judging gating isn't yet cohort-scoped (eliminated entries
-  could still be re-scored — they're just excluded from ranks/results).
+  **All follow-ups now done (session 189):** judging is cohort-scoped (`judgeContestEntry` rejects
+  eliminated; judge page lists only survivors); per-round score isolation shipped
+  (`JudgeScoreEntry.roundId` — live `score` aggregates only the current round, earlier rounds kept as
+  history); the manual-pick advancement UI shipped (Top N vs Pick-manually toggle per review stage).
+  Nothing left on the original Phase B plan.
 - **B3 — submission requirement templates + teams (defer).** Proposal-vs-prototype field templates
   & per-stage requirement checklists; and — separately — team/workgroup formation ("the joint
   workgroup forms"), which is really a generic *teams* concern, not contest-specific. Keep out of

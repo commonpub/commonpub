@@ -179,6 +179,15 @@ review rounds with different criteria). Audit found 4 gaps; closed 3, documented
 - **UX:** added an orienting note to the editor's Stages section tying Stages (timeline) ↔ Status
   (what's open) ↔ Advancement (the cut) ↔ Current (highlight) — the three controls were confusable.
 
+## Manual-pick advancement UI (same session, layer 0.59.0, layer-only)
+
+The edit page's Advancement section now has a per-review-stage **Top N / Pick manually** toggle.
+Manual mode fetches the entries, lists the eligible (non-eliminated) cohort as checkboxes with each
+entry's score, and "Advance N selected" → `POST /advance` with `mode: 'manual'` + `advancedEntryIds`.
+The API already supported manual; this exposes it. With this, **nothing remains on the original
+contest stages plan** — Phase A + B1 + B2 + all follow-ups (cohort judging, per-round criteria,
+per-round score isolation, advanceCount, manual-pick) are shipped.
+
 ## Decisions
 
 - Kept the `status` enum as the coarse lifecycle; fine-grained "which round" will live in

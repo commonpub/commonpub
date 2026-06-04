@@ -156,7 +156,7 @@ a minute (`curl deveco.io/api/content?limit=5`, today's timestamp).
 | @commonpub/auth | 0.8.0 | | @commonpub/docs | 0.6.3 |
 | @commonpub/server | **2.80.0** | | @commonpub/learning | 0.5.2 |
 | @commonpub/ui | 0.9.2 | | @commonpub/test-utils | 0.5.6 |
-| @commonpub/layer | **0.58.0** | | create-commonpub (crates.io) | **0.5.7** |
+| @commonpub/layer | **0.59.0** | | create-commonpub (crates.io) | **0.5.7** |
 
 Migrations applied this cycle: **0016** (`contests.cover_image_url`) · **0017** (`contest_status`
 +draft/+paused; `contests.show_prizes`) · **0018** (`contests.stages` jsonb + `contests.current_stage_id`
@@ -259,6 +259,12 @@ curly apostrophes deliberately kept inside single-quoted strings). **UX:** the c
 Stages section now has an orienting note tying Stages (timeline) ↔ Status (what's open) ↔
 Advancement (the cut) ↔ Current (highlight). The contest stages epic is now feature-complete with no
 known judging gaps.
+
+Contest **manual-pick advancement UI** (2026-06-04, layer **0.59.0**, all 3, layer-only): the edit
+page's Advancement section now offers, per review stage, a **Top N** vs **Pick manually** toggle.
+Manual mode lists the eligible (non-eliminated) cohort with checkboxes + each entry's score, and
+"Advance N selected" → `POST /advance` with `mode: 'manual'`. (The API already supported manual; this
+exposes it.) Contest stages epic: nothing left on the original plan.
 
 Recent UI follow-ups (2026-06-03): contest hero banner 260→195px (layer 0.46.0); deveco.io mobile-nav
 hamburger fixed (its forked `layouts/default.vue` used bare `<MobileNavRenderer>` → unresolved;
