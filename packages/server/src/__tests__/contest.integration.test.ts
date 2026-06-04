@@ -384,15 +384,19 @@ describe('contest integration', () => {
     expect(r3.transitioned).toBe(true);
   });
 
-  it('rejects transitions from cancelled state', async () => {
-    const contest = await createContest(db, makeContestInput({ title: 'Cancelled No Escape' }));
+  it('reopens a cancelled contest to draft/upcoming but not mid-lifecycle', async () => {
+    const contest = await createContest(db, makeContestInput({ title: 'Cancelled Reopen' }));
     await transitionContestStatus(db, contest.id, organizerId, 'cancelled');
 
+    // Can't jump straight back into the running/terminal lifecycle.
     const r1 = await transitionContestStatus(db, contest.id, organizerId, 'active');
     expect(r1.transitioned).toBe(false);
+    const rC = await transitionContestStatus(db, contest.id, organizerId, 'completed');
+    expect(rC.transitioned).toBe(false);
 
+    // But it can be reopened to upcoming, then relaunched normally.
     const r2 = await transitionContestStatus(db, contest.id, organizerId, 'upcoming');
-    expect(r2.transitioned).toBe(false);
+    expect(r2.transitioned).toBe(true);
   });
 
   it('averages scores from multiple judges', async () => {
@@ -994,6 +998,35 @@ describe('contest integration', () => {
     expect(await canViewContest(db, priv, { id: staff.id, role: 'staff' })).toBe(true); // role gate
     expect(await canViewContest(db, priv, { id: organizerId, role: 'member' })).toBe(true); // owner
     expect(await canViewContest(db, priv, { id: outsider.id, role: 'admin' })).toBe(true); // admin
+  });
+
+  it('canViewContest: drafts are owner-only regardless of visibility', async () => {
+    const outsider = await createTestUser(db, { username: `draft-outsider-${Date.now()}` });
+    // A contest with PUBLIC visibility but DRAFT status must still be hidden from
+    // everyone but the owner/admin — status gates orthogonally to visibility.
+    const c = await createContest(db, makeContestInput({ title: 'Draft Public' }));
+    const draft = { ...c, status: 'draft' };
+
+    expect(await canViewContest(db, draft, null)).toBe(false); // anon
+    expect(await canViewContest(db, draft, { id: outsider.id, role: 'member' })).toBe(false);
+    expect(await canViewContest(db, draft, { id: organizerId, role: 'member' })).toBe(true); // owner
+    expect(await canViewContest(db, draft, { id: outsider.id, role: 'admin' })).toBe(true); // admin
+  });
+
+  it('listContests hides drafts from non-owners', async () => {
+    const owner = await createTestUser(db, { username: `draft-owner-${Date.now()}` });
+    const other = await createTestUser(db, { username: `draft-other-${Date.now()}` });
+    const c = await createContest(db, { ...makeContestInput({ title: `Hidden Draft ${Date.now()}` }), createdBy: owner.id });
+    await transitionContestStatus(db, c.id, owner.id, 'draft');
+
+    const anon = await listContests(db, { limit: 200 }, null);
+    expect(anon.items.find((i) => i.id === c.id)).toBeUndefined();
+
+    const stranger = await listContests(db, { limit: 200 }, { userId: other.id, role: 'member' });
+    expect(stranger.items.find((i) => i.id === c.id)).toBeUndefined();
+
+    const mine = await listContests(db, { limit: 200 }, { userId: owner.id, role: 'member' });
+    expect(mine.items.find((i) => i.id === c.id)).toBeDefined();
   });
 
   it('stakeholders get review access to a private contest', async () => {

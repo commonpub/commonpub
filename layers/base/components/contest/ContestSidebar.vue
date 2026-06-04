@@ -22,7 +22,9 @@ function fmt(d: string | null | undefined): string | null {
 
 // Ordinal position of each status along the lifecycle, used to mark steps
 // done / current / upcoming.
-const STATUS_ORDER: Record<string, number> = { upcoming: 0, active: 1, judging: 2, completed: 3 };
+// `draft` precedes everything (nothing has started); `paused` sits at the active
+// position (a deactivated-but-not-cancelled running contest).
+const STATUS_ORDER: Record<string, number> = { draft: -1, upcoming: 0, active: 1, paused: 1, judging: 2, completed: 3 };
 
 const timeline = computed<TimelineStep[]>(() => {
   const c = props.contest;
@@ -40,8 +42,10 @@ const timeline = computed<TimelineStep[]>(() => {
 
 function statusClass(status: string): string {
   const map: Record<string, string> = {
+    draft: 'cpub-status-draft',
     upcoming: 'cpub-status-upcoming',
     active: 'cpub-status-active',
+    paused: 'cpub-status-paused',
     judging: 'cpub-status-judging',
     completed: 'cpub-status-completed',
     cancelled: 'cpub-status-cancelled',
@@ -110,8 +114,10 @@ function statusClass(status: string): string {
 .cpub-sb-body { font-size: 12px; color: var(--text-dim); display: flex; flex-direction: column; gap: 8px; }
 .cpub-sb-row { display: flex; align-items: center; gap: 6px; }
 .cpub-sb-status { font-size: 10px; font-family: var(--font-mono); text-transform: uppercase; padding: 2px 8px; border: var(--border-width-default) solid; }
+.cpub-status-draft { color: var(--text-faint); border-color: var(--border2); background: var(--surface2); border-style: dashed; }
 .cpub-status-upcoming { color: var(--yellow); border-color: var(--yellow-border); background: var(--yellow-bg); }
 .cpub-status-active { color: var(--green); border-color: var(--green-border); background: var(--green-bg); }
+.cpub-status-paused { color: var(--yellow); border-color: var(--yellow-border); background: var(--yellow-bg); }
 .cpub-status-judging { color: var(--accent); border-color: var(--accent-border); background: var(--accent-bg); }
 .cpub-status-completed { color: var(--text-faint); border-color: var(--border2); background: var(--surface2); }
 .cpub-status-cancelled { color: var(--red); border-color: var(--red-border); background: var(--red-bg); }

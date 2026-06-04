@@ -133,8 +133,10 @@ export const lessonTypeEnum = pgEnum('lesson_type', [
 
 // --- Contest ---
 export const contestStatusEnum = pgEnum('contest_status', [
+  'draft',
   'upcoming',
   'active',
+  'paused',
   'judging',
   'completed',
   'cancelled',

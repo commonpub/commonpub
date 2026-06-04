@@ -8,6 +8,13 @@ const { extract: extractError } = useApiError();
 const saving = ref(false);
 
 const title = ref('');
+// Slug auto-derives from the title until the operator edits it manually.
+const slug = ref('');
+const slugTouched = ref(false);
+function slugify(s: string): string {
+  return s.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-+)|(-+$)/g, '').slice(0, 255);
+}
+watch(title, (t) => { if (!slugTouched.value) slug.value = slugify(t); });
 const subheading = ref('');
 const description = ref('');
 const rules = ref('');
@@ -48,6 +55,7 @@ interface Prize {
   value: string;
 }
 
+const showPrizes = ref(true);
 const prizesDescription = ref('');
 // Prizes are entirely optional — start empty so a contest has NO prizes unless
 // the operator explicitly adds them (the old 3 pre-filled rows forced prizes
@@ -92,6 +100,7 @@ async function handleCreate(): Promise<void> {
       method: 'POST',
       body: {
         title: title.value,
+        slug: slugify(slug.value) || undefined,
         subheading: subheading.value || undefined,
         description: description.value || undefined,
         rules: rules.value || undefined,
@@ -106,6 +115,7 @@ async function handleCreate(): Promise<void> {
         visibleToRoles: visibility.value === 'private' && visibleToRoles.value.length ? visibleToRoles.value : undefined,
         eligibleContentTypes: eligibleContentTypes.value.length ? eligibleContentTypes.value : undefined,
         maxEntriesPerUser: maxEntriesPerUser.value && maxEntriesPerUser.value > 0 ? maxEntriesPerUser.value : undefined,
+        showPrizes: showPrizes.value,
         prizesDescription: prizesDescription.value || undefined,
         prizes: prizes.value
           .filter(p => p.title.trim() || p.description.trim() || p.category.trim() || (typeof p.place === 'number' && p.place > 0))
@@ -156,6 +166,11 @@ function prizeLabel(prize: Prize): string {
         <div class="cpub-form-field">
           <label for="contest-title" class="cpub-form-label">Title</label>
           <input id="contest-title" v-model="title" type="text" class="cpub-form-input" required placeholder="Maker Challenge 2026" />
+        </div>
+        <div class="cpub-form-field">
+          <label for="contest-slug" class="cpub-form-label">URL Slug</label>
+          <input id="contest-slug" v-model="slug" type="text" class="cpub-form-input" placeholder="auto-generated from title" @input="slugTouched = true" @blur="slug = slugify(slug)" />
+          <p class="cpub-form-hint">Auto-fills from the title. Edit to set a custom URL: <code>/contests/{{ slugify(slug) || 'your-contest' }}</code></p>
         </div>
         <div class="cpub-form-field">
           <label for="contest-subheading" class="cpub-form-label">Subheading</label>
@@ -291,6 +306,12 @@ function prizeLabel(prize: Prize): string {
           </button>
         </div>
 
+        <label class="cpub-form-check">
+          <input v-model="showPrizes" type="checkbox" />
+          <span>Show the Prizes tab on the contest page</span>
+        </label>
+        <p v-if="!showPrizes" class="cpub-form-hint">The Prizes tab is hidden — any prizes below are saved but not shown to visitors.</p>
+
         <p class="cpub-form-hint">Contests don't need prizes — leave this empty to skip them entirely. If you do add prizes, every field is optional: use <strong>place</strong> for ranked prizes (1st/2nd/3rd), a <strong>category</strong> for themed awards (e.g. "Best in Show"), or just a <strong>description</strong>. Cash value is optional.</p>
         <div class="cpub-form-field">
           <label for="prizes-desc" class="cpub-form-label">Prizes overview (optional)</label>
@@ -302,7 +323,7 @@ function prizeLabel(prize: Prize): string {
             <span class="cpub-prize-place">
               <i class="fa-solid fa-trophy"></i> {{ prizeLabel(prize) }}
             </span>
-            <button v-if="prizes.length > 1" type="button" class="cpub-delete-btn" aria-label="Remove prize" @click="removePrize(idx)">
+            <button type="button" class="cpub-delete-btn" aria-label="Remove prize" @click="removePrize(idx)">
               <i class="fa-solid fa-xmark"></i>
             </button>
           </div>

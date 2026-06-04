@@ -53,6 +53,36 @@ const countdownLabel = computed(() => {
 });
 
 const isEnded = computed(() => c.value?.status === 'completed' || c.value?.status === 'cancelled');
+const isPaused = computed(() => c.value?.status === 'paused');
+const isDraft = computed(() => c.value?.status === 'draft');
+// Live countdown only makes sense while the clock is actually running.
+const showCountdown = computed(() => !isEnded.value && !isPaused.value && !isDraft.value);
+
+// Client-side mirror of the server VALID_TRANSITIONS map (server/src/contest/contest.ts).
+// Keeps the inline admin controls in sync with what the API will actually accept —
+// bidirectional: go back a stage, pause/resume, reopen, etc.
+const VALID_TRANSITIONS: Record<string, string[]> = {
+  draft: ['upcoming', 'active', 'cancelled'],
+  upcoming: ['draft', 'active', 'cancelled'],
+  active: ['upcoming', 'paused', 'judging', 'cancelled'],
+  paused: ['active', 'upcoming', 'judging', 'cancelled'],
+  judging: ['active', 'paused', 'completed', 'cancelled'],
+  completed: ['judging'],
+  cancelled: ['draft', 'upcoming'],
+};
+const STATUS_ACTION: Record<string, { label: string; icon: string }> = {
+  draft: { label: 'Move to Draft', icon: 'fa-pen-ruler' },
+  upcoming: { label: 'Set Upcoming', icon: 'fa-clock' },
+  active: { label: 'Activate', icon: 'fa-play' },
+  paused: { label: 'Pause', icon: 'fa-pause' },
+  judging: { label: 'Start Judging', icon: 'fa-gavel' },
+  completed: { label: 'Complete', icon: 'fa-check' },
+  cancelled: { label: 'Cancel', icon: 'fa-ban' },
+};
+const availableTransitions = computed<string[]>(() => VALID_TRANSITIONS[c.value?.status ?? 'upcoming'] ?? []);
+function statusAction(s: string): { label: string; icon: string } {
+  return STATUS_ACTION[s] ?? { label: s, icon: 'fa-circle' };
+}
 
 // The hero shows the short `subheading` (a dedicated tagline field). For older
 // contests without one, fall back to a clean, plain-text, CSS-clamped excerpt of
@@ -116,19 +146,23 @@ const dateRange = computed<string>(() => {
               <button class="cpub-btn cpub-btn-lg cpub-btn-dark" @click="emit('copy-link')"><i class="fa fa-link"></i> Share</button>
             </div>
 
-            <!-- Admin controls -->
+            <!-- Admin controls — bidirectional, derived from the valid-transition map. -->
             <div v-if="isAdmin && c" class="cpub-admin-controls">
-              <span class="cpub-admin-controls-label"><i class="fa-solid fa-shield-halved"></i> Admin</span>
-              <button v-if="c.status === 'upcoming'" class="cpub-btn cpub-btn-sm" :disabled="transitioning" @click="emit('transition', 'active')"><i class="fa-solid fa-play"></i> Activate</button>
-              <button v-if="c.status === 'active'" class="cpub-btn cpub-btn-sm" :disabled="transitioning" @click="emit('transition', 'judging')"><i class="fa-solid fa-gavel"></i> Start Judging</button>
-              <button v-if="c.status === 'judging'" class="cpub-btn cpub-btn-sm" :disabled="transitioning" @click="emit('transition', 'completed')"><i class="fa-solid fa-check"></i> Complete</button>
-              <button v-if="c.status !== 'completed' && c.status !== 'cancelled'" class="cpub-btn cpub-btn-sm cpub-btn-cancel" :disabled="transitioning" @click="emit('transition', 'cancelled')"><i class="fa-solid fa-ban"></i> Cancel</button>
+              <span class="cpub-admin-controls-label"><i class="fa-solid fa-shield-halved"></i> Stage</span>
+              <button
+                v-for="t in availableTransitions"
+                :key="t"
+                class="cpub-btn cpub-btn-sm"
+                :class="{ 'cpub-btn-cancel': t === 'cancelled' }"
+                :disabled="transitioning"
+                @click="emit('transition', t)"
+              ><i class="fa-solid" :class="statusAction(t).icon"></i> {{ statusAction(t).label }}</button>
             </div>
           </div>
 
           <!-- RIGHT: countdown -->
           <aside class="cpub-hero-side">
-            <div v-if="!isEnded" class="cpub-countdown-section">
+            <div v-if="showCountdown" class="cpub-countdown-section">
               <div class="cpub-countdown-label"><i class="fa fa-clock"></i> {{ countdownLabel }}</div>
               <div class="cpub-countdown-row">
                 <div class="cpub-countdown-block">
@@ -151,6 +185,14 @@ const dateRange = computed<string>(() => {
                   <div class="cpub-countdown-unit">Seconds</div>
                 </div>
               </div>
+            </div>
+            <div v-else-if="isPaused" class="cpub-countdown-ended">
+              <i class="fa-solid fa-circle-pause"></i>
+              <span>Submissions paused</span>
+            </div>
+            <div v-else-if="isDraft" class="cpub-countdown-ended">
+              <i class="fa-solid fa-pen-ruler"></i>
+              <span>Draft — not launched</span>
             </div>
             <div v-else class="cpub-countdown-ended">
               <i class="fa-solid fa-flag-checkered"></i>
@@ -215,6 +257,8 @@ const dateRange = computed<string>(() => {
 .cpub-status-pill[data-status="active"] { color: var(--green); border-color: var(--green); background: color-mix(in srgb, var(--green) 14%, transparent); }
 .cpub-status-pill[data-status="judging"] { color: var(--accent); border-color: var(--accent); background: var(--accent-bg); }
 .cpub-status-pill[data-status="upcoming"] { color: var(--yellow); border-color: var(--yellow); }
+.cpub-status-pill[data-status="paused"] { color: var(--yellow); border-color: var(--yellow); background: color-mix(in srgb, var(--yellow) 12%, transparent); }
+.cpub-status-pill[data-status="draft"] { color: var(--hero-text-dim); border-color: var(--hero-border); border-style: dashed; }
 .cpub-status-pill[data-status="completed"], .cpub-status-pill[data-status="cancelled"] { color: var(--red); border-color: var(--red-border); }
 
 .cpub-hero-title { font-size: 34px; font-weight: 800; letter-spacing: -.03em; line-height: 1.1; margin: 0 0 10px; color: var(--hero-text); }

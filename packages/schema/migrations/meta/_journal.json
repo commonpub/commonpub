@@ -120,6 +120,13 @@
       "when": 1780531409954,
       "tag": "0016_smooth_firestar",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1780537721244,
+      "tag": "0017_exotic_lyja",
+      "breakpoints": true
     }
   ]
 }

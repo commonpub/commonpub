@@ -1,4 +1,4 @@
-import { eq, and, or, desc, sql, isNotNull, inArray } from 'drizzle-orm';
+import { eq, ne, and, or, desc, sql, isNotNull, inArray } from 'drizzle-orm';
 import { contests, contestEntries, contestJudges, contestStakeholders, users, contentItems } from '@commonpub/schema';
 import type { DB } from '../types.js';
 import { normalizePagination, countRows } from '../query.js';
@@ -53,6 +53,7 @@ export interface ContestDetail extends ContestListItem {
   subheading: string | null;
   rules: string | null;
   prizesDescription: string | null;
+  showPrizes: boolean;
   prizes: ContestPrize[] | null;
   judgingCriteria: ContestJudgingCriterion[] | null;
   judgingVisibility: ContestJudgingVisibility;
@@ -78,6 +79,7 @@ export interface CreateContestInput {
   description?: string;
   rules?: string;
   prizesDescription?: string;
+  showPrizes?: boolean;
   bannerUrl?: string;
   coverImageUrl?: string;
   prizes?: ContestPrize[];
@@ -156,6 +158,14 @@ export async function listContests(
       visConds.push(sql`${contests.visibleToRoles} @> ${JSON.stringify([viewer.role])}::jsonb`);
     }
     conditions.push(visConds.length > 1 ? or(...visConds)! : visConds[0]!);
+
+    // Drafts never appear in listings except to their own owner (admins, handled
+    // above, see everything). Orthogonal to visibility — a public draft is still hidden.
+    conditions.push(
+      viewer?.userId
+        ? or(ne(contests.status, 'draft'), eq(contests.createdById, viewer.userId))!
+        : ne(contests.status, 'draft'),
+    );
   }
 
   const where = conditions.length > 0 ? and(...conditions) : undefined;
@@ -208,6 +218,7 @@ function toContestDetail(row: ContestRow): ContestDetail {
     subheading: row.subheading,
     rules: row.rules,
     prizesDescription: row.prizesDescription,
+    showPrizes: row.showPrizes,
     prizes: row.prizes ?? null,
     judgingCriteria: row.judgingCriteria ?? null,
     judgingVisibility: row.judgingVisibility,
@@ -229,9 +240,18 @@ function toContestDetail(row: ContestRow): ContestDetail {
  */
 export async function canViewContest(
   db: DB,
-  contest: { id: string; visibility: ContestVisibility; visibleToRoles: string[] | null; createdById: string },
+  contest: { id: string; status?: string; visibility: ContestVisibility; visibleToRoles: string[] | null; createdById: string },
   user: { id: string; role: string } | null,
 ): Promise<boolean> {
+  // Drafts are owner-only regardless of the visibility setting — an unlaunched
+  // contest must never be world-readable, even when its visibility is `public`.
+  if (contest.status === 'draft') {
+    if (!user) return false;
+    if (user.id === contest.createdById || user.role === 'admin') return true;
+    if (await isContestStakeholder(db, contest.id, user.id)) return true;
+    if (await isContestJudge(db, contest.id, user.id)) return true;
+    return false;
+  }
   if (contest.visibility !== 'private') return true;
   if (!user) return false;
   if (user.id === contest.createdById || user.role === 'admin') return true;
@@ -291,6 +311,7 @@ export async function createContest(
       description: input.description ?? null,
       rules: input.rules ?? null,
       prizesDescription: input.prizesDescription ?? null,
+      showPrizes: input.showPrizes ?? true,
       bannerUrl: input.bannerUrl ?? null,
       coverImageUrl: input.coverImageUrl ?? null,
       prizes: input.prizes ?? null,
@@ -351,6 +372,7 @@ export async function updateContest(
   if (data.prizesDescription !== undefined) updates.prizesDescription = data.prizesDescription;
   if (data.bannerUrl !== undefined) updates.bannerUrl = data.bannerUrl;
   if (data.coverImageUrl !== undefined) updates.coverImageUrl = data.coverImageUrl;
+  if (data.showPrizes !== undefined) updates.showPrizes = data.showPrizes;
   if (data.prizes !== undefined) updates.prizes = data.prizes;
   if (data.judgingCriteria !== undefined) updates.judgingCriteria = data.judgingCriteria;
   // `judges` is intentionally not handled here — the contest_judges table is the
@@ -365,9 +387,19 @@ export async function updateContest(
   if (data.endDate !== undefined) updates.endDate = new Date(data.endDate);
   if (data.judgingEndDate !== undefined) updates.judgingEndDate = data.judgingEndDate ? new Date(data.judgingEndDate) : null;
 
+  // Editable slug: when changed, ensure it isn't taken by another contest. The
+  // old URL stops resolving (no redirect) — the caller navigates to the new slug.
+  let finalSlug = slug;
+  if (data.slug !== undefined && data.slug && data.slug !== existing[0]!.slug) {
+    const taken = await db.select({ id: contests.id }).from(contests).where(eq(contests.slug, data.slug)).limit(1);
+    if (taken.length && taken[0]!.id !== existing[0]!.id) throw new Error('SLUG_TAKEN');
+    updates.slug = data.slug;
+    finalSlug = data.slug;
+  }
+
   await db.update(contests).set(updates).where(eq(contests.slug, slug));
 
-  return getContestBySlug(db, slug);
+  return getContestBySlug(db, finalSlug);
 }
 
 /**
@@ -710,12 +742,17 @@ export async function deleteContest(
   return true;
 }
 
+// Bidirectional lifecycle: stages can move forward OR back (go-back), a running
+// contest can be deactivated to `paused` without cancelling (and resumed), and
+// terminal states can be reopened. `draft` = created but not launched.
 const VALID_TRANSITIONS: Record<string, string[]> = {
-  upcoming: ['active', 'cancelled'],
-  active: ['judging', 'cancelled'],
-  judging: ['completed', 'cancelled'],
-  completed: [],
-  cancelled: [],
+  draft: ['upcoming', 'active', 'cancelled'],
+  upcoming: ['draft', 'active', 'cancelled'],
+  active: ['upcoming', 'paused', 'judging', 'cancelled'],
+  paused: ['active', 'upcoming', 'judging', 'cancelled'],
+  judging: ['active', 'paused', 'completed', 'cancelled'],
+  completed: ['judging'],
+  cancelled: ['draft', 'upcoming'],
 };
 
 /** Format an integer rank as an ordinal: 1 → "1st", 2 → "2nd", 11 → "11th". */
@@ -771,6 +808,7 @@ export async function transitionContestStatus(
 
       const messages: Record<string, { title: string; message: string }> = {
         active: { title: 'Contest Open', message: `"${contestInfo.title}" is now accepting submissions!` },
+        paused: { title: 'Contest Paused', message: `"${contestInfo.title}" has been temporarily paused.` },
         judging: { title: 'Judging Started', message: `"${contestInfo.title}" is now being judged.` },
         completed: { title: 'Results Posted', message: `Results for "${contestInfo.title}" are now available!` },
         cancelled: { title: 'Contest Cancelled', message: `"${contestInfo.title}" has been cancelled.` },

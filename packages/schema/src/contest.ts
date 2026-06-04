@@ -16,6 +16,9 @@ export const contests = pgTable('contests', {
   rules: text('rules'),
   /** Markdown intro shown on the Prizes tab, above the individual prize cards. */
   prizesDescription: text('prizes_description'),
+  /** Master switch for the Prizes tab. When false the tab is hidden even if
+   *  prize data exists (and prizes are optional regardless). */
+  showPrizes: boolean('show_prizes').default(true).notNull(),
   /** Wide hero banner shown across the top of the contest page (~4:1). */
   bannerUrl: text('banner_url'),
   /** Card/thumbnail cover image (~4:3 / 16:9). Optional — listing cards fall

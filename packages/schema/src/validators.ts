@@ -368,6 +368,9 @@ export const createContestSchema = z
     prizesDescription: z.string().max(10000).optional(),
     bannerUrl: optionalUrl(),
     coverImageUrl: optionalUrl(),
+    showPrizes: z.boolean().optional(),
+    // Optional on create — server slugifies the title when omitted.
+    slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Lowercase letters, numbers and hyphens only').max(255).optional(),
     startDate: z.string().datetime(),
     endDate: z.string().datetime(),
     judgingEndDate: z.string().datetime().optional(),
@@ -406,6 +409,8 @@ export const updateContestSchema = z
     prizesDescription: z.string().max(10000).optional(),
     bannerUrl: optionalUrl(),
     coverImageUrl: optionalUrl(),
+    showPrizes: z.boolean().optional(),
+    slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Lowercase letters, numbers and hyphens only').max(255).optional(),
     startDate: z.string().datetime().optional(),
     endDate: z.string().datetime().optional(),
     judgingEndDate: z.string().datetime().optional(),
@@ -451,11 +456,11 @@ export const judgeEntrySchema = z
 export type JudgeEntryInput = z.infer<typeof judgeEntrySchema>;
 
 export const contestTransitionSchema = z.object({
-  status: z.enum(['upcoming', 'active', 'judging', 'completed', 'cancelled']),
+  status: z.enum(['draft', 'upcoming', 'active', 'paused', 'judging', 'completed', 'cancelled']),
 });
 export type ContestTransitionInput = z.infer<typeof contestTransitionSchema>;
 
-export const contestStatusSchema = z.enum(['upcoming', 'active', 'judging', 'completed', 'cancelled']);
+export const contestStatusSchema = z.enum(['draft', 'upcoming', 'active', 'paused', 'judging', 'completed', 'cancelled']);
 export type ContestStatus = z.infer<typeof contestStatusSchema>;
 
 // --- Video validators ---

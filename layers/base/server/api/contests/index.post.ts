@@ -19,7 +19,8 @@ export default defineEventHandler(async (event): Promise<ContestDetail> => {
   const config = useConfig();
   const input = await parseBody(event, createContestSchema);
 
-  const base = slugify(input.title) || `contest-${Date.now()}`;
+  // Manual slug override (slugified defensively) falls back to the title.
+  const base = slugify(input.slug || input.title) || `contest-${Date.now()}`;
   // Ensure slug uniqueness so a duplicate title returns a clean contest instead
   // of a 500 from the unique-constraint violation.
   let slug = base;

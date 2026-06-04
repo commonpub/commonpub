@@ -13,6 +13,11 @@ useSeoMeta({ title: () => `Edit: ${contest.value?.title ?? 'Contest'} — ${useS
 
 const saving = ref(false);
 const title = ref('');
+// Editable slug — initialised from the loaded contest, manual override allowed.
+const slugInput = ref('');
+function slugify(s: string): string {
+  return s.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-+)|(-+$)/g, '').slice(0, 255);
+}
 const subheading = ref('');
 const description = ref('');
 const rules = ref('');
@@ -42,6 +47,7 @@ function toggleRole(r: string): void {
   else visibleToRoles.value.push(r);
 }
 
+const showPrizes = ref(true);
 const prizesDescription = ref('');
 interface Prize { place: number | null; category: string; title: string; description: string; value: string }
 const prizes = ref<Prize[]>([]);
@@ -53,6 +59,7 @@ const criteria = ref<Criterion[]>([]);
 watch(contest, (c) => {
   if (!c) return;
   title.value = c.title ?? '';
+  slugInput.value = c.slug ?? '';
   subheading.value = c.subheading ?? '';
   description.value = c.description ?? '';
   rules.value = c.rules ?? '';
@@ -67,6 +74,7 @@ watch(contest, (c) => {
   maxEntriesPerUser.value = c.maxEntriesPerUser ?? null;
   visibility.value = (c.visibility as typeof visibility.value) ?? 'public';
   visibleToRoles.value = [...(c.visibleToRoles ?? [])];
+  showPrizes.value = c.showPrizes !== false;
   prizesDescription.value = c.prizesDescription ?? '';
   prizes.value = (c.prizes ?? []).map((p: { place?: number; category?: string; title?: string; description?: string; value?: string }) => ({
     place: p.place ?? null,
@@ -138,10 +146,11 @@ async function handleSave(): Promise<void> {
         description: c.description.trim() || undefined,
       }));
 
-    await $fetch(`/api/contests/${slug}`, {
+    const updated = await $fetch<{ slug: string }>(`/api/contests/${slug}`, {
       method: 'PUT',
       body: {
         title: title.value,
+        slug: slugify(slugInput.value) || undefined,
         subheading: subheading.value || undefined,
         description: description.value || undefined,
         rules: rules.value || undefined,
@@ -156,12 +165,20 @@ async function handleSave(): Promise<void> {
         maxEntriesPerUser: maxEntriesPerUser.value && maxEntriesPerUser.value > 0 ? maxEntriesPerUser.value : undefined,
         visibility: visibility.value,
         visibleToRoles: visibility.value === 'private' ? visibleToRoles.value : [],
+        showPrizes: showPrizes.value,
         prizesDescription: prizesDescription.value || undefined,
         prizes: prizeData,
         judgingCriteria: criteriaData,
       },
     });
     toast.success('Contest updated');
+    // Slug changed → the old URL no longer resolves. Navigate to the renamed
+    // contest's page — a different route component, so it loads fresh. (Navigating
+    // to the new /edit URL would reuse THIS component with its stale fetch key.)
+    if (updated?.slug && updated.slug !== slug) {
+      await navigateTo(`/contests/${updated.slug}`);
+      return;
+    }
     await refresh();
   } catch (err: unknown) {
     toast.error(extractError(err));
@@ -184,11 +201,36 @@ async function handleDelete(): Promise<void> {
   }
 }
 
+// Client mirror of the server VALID_TRANSITIONS map — bidirectional (go back a
+// stage, pause/resume, reopen). Kept in sync with server/src/contest/contest.ts.
+const VALID_TRANSITIONS: Record<string, string[]> = {
+  draft: ['upcoming', 'active', 'cancelled'],
+  upcoming: ['draft', 'active', 'cancelled'],
+  active: ['upcoming', 'paused', 'judging', 'cancelled'],
+  paused: ['active', 'upcoming', 'judging', 'cancelled'],
+  judging: ['active', 'paused', 'completed', 'cancelled'],
+  completed: ['judging'],
+  cancelled: ['draft', 'upcoming'],
+};
+const STATUS_ACTION: Record<string, { label: string; icon: string; tone?: 'go' | 'warn' | 'danger' }> = {
+  draft: { label: 'Move to Draft', icon: 'fa-pen-ruler' },
+  upcoming: { label: 'Set Upcoming', icon: 'fa-clock' },
+  active: { label: 'Activate', icon: 'fa-play', tone: 'go' },
+  paused: { label: 'Pause', icon: 'fa-pause', tone: 'warn' },
+  judging: { label: 'Begin Judging', icon: 'fa-gavel' },
+  completed: { label: 'Complete & Publish', icon: 'fa-flag-checkered', tone: 'go' },
+  cancelled: { label: 'Cancel', icon: 'fa-ban', tone: 'danger' },
+};
+const availableTransitions = computed<string[]>(() => VALID_TRANSITIONS[contest.value?.status ?? 'upcoming'] ?? []);
+function statusAction(s: string): { label: string; icon: string; tone?: string } {
+  return STATUS_ACTION[s] ?? { label: s, icon: 'fa-circle' };
+}
+
 async function transitionStatus(newStatus: string): Promise<void> {
-  const msg = newStatus === 'cancelled'
-    ? 'Cancel this contest? This cannot be undone.'
-    : `Change contest status to "${newStatus}"?`;
-  if (!confirm(msg)) return;
+  // Only the consequential transitions confirm; reversible nudges (pause/resume,
+  // go-back) just apply.
+  if (newStatus === 'cancelled' && !confirm('Cancel this contest? This cannot be undone.')) return;
+  if (newStatus === 'completed' && !confirm('Complete this contest and publish results? Final rankings will be calculated.')) return;
   try {
     await $fetch(`/api/contests/${slug}/transition`, { method: 'POST', body: { status: newStatus } });
     toast.success(`Status changed to ${newStatus}`);
@@ -217,6 +259,11 @@ async function transitionStatus(newStatus: string): Promise<void> {
         <div class="cpub-form-field">
           <label class="cpub-form-label">Title</label>
           <input v-model="title" type="text" class="cpub-form-input" />
+        </div>
+        <div class="cpub-form-field">
+          <label class="cpub-form-label">URL Slug</label>
+          <input v-model="slugInput" type="text" class="cpub-form-input" @blur="slugInput = slugify(slugInput)" />
+          <p class="cpub-form-hint">The contest URL: <code>/contests/{{ slugify(slugInput) || 'your-contest' }}</code>. Changing it breaks old links — they won't redirect.</p>
         </div>
         <div class="cpub-form-field">
           <label class="cpub-form-label">Subheading</label>
@@ -280,6 +327,11 @@ async function transitionStatus(newStatus: string): Promise<void> {
 
       <section class="cpub-form-section">
         <h2 class="cpub-form-section-title">Prizes</h2>
+        <label class="cpub-form-check" style="margin-bottom: 10px;">
+          <input v-model="showPrizes" type="checkbox" />
+          <span>Show the Prizes tab on the contest page</span>
+        </label>
+        <p v-if="!showPrizes" class="cpub-form-hint">The Prizes tab is hidden — any prizes below are saved but not shown to visitors.</p>
         <p class="cpub-form-hint">Every field is optional. Use <strong>place</strong> for ranked prizes, a <strong>category</strong> for themed awards, or just a <strong>description</strong> — whatever fits. Cash value is optional.</p>
         <div class="cpub-form-field">
           <label class="cpub-form-label">Prizes overview (optional)</label>
@@ -391,36 +443,32 @@ async function transitionStatus(newStatus: string): Promise<void> {
       </section>
 
       <section class="cpub-form-section">
-        <h2 class="cpub-form-section-title">Status Transitions</h2>
+        <h2 class="cpub-form-section-title">Stage &amp; Status</h2>
         <p class="cpub-form-hint">
-          A contest moves through a lifecycle:
-          <strong>Upcoming</strong> → <strong>Active</strong> (accepting entries) →
-          <strong>Judging</strong> (entries closed, judges scoring) →
-          <strong>Completed</strong> (results &amp; rankings published). You can cancel at any
-          point before it completes. Current status:
+          A contest runs through <strong>Draft</strong> → <strong>Upcoming</strong> →
+          <strong>Active</strong> (accepting entries) → <strong>Judging</strong> →
+          <strong>Completed</strong>. You can move <em>backwards</em>, <strong>Pause</strong> to
+          temporarily stop submissions without cancelling, resume later, or cancel. Current status:
           <span class="cpub-status-badge" :class="`cpub-status-${contest.status}`">{{ contest.status }}</span>
         </p>
         <div class="cpub-status-actions">
-          <button v-if="contest.status === 'upcoming'" type="button" class="cpub-btn cpub-transition-btn cpub-transition-activate" @click="transitionStatus('active')">
-            <i class="fa-solid fa-play"></i> Start Contest
-          </button>
-          <button v-if="contest.status === 'active'" type="button" class="cpub-btn cpub-transition-btn cpub-transition-judging" @click="transitionStatus('judging')">
-            <i class="fa-solid fa-gavel"></i> Begin Judging
-          </button>
-          <button v-if="contest.status === 'judging'" type="button" class="cpub-btn cpub-transition-btn cpub-transition-complete" @click="transitionStatus('completed')">
-            <i class="fa-solid fa-flag-checkered"></i> Complete &amp; Publish Results
-          </button>
           <button
-            v-if="contest.status !== 'completed' && contest.status !== 'cancelled'"
+            v-for="t in availableTransitions"
+            :key="t"
             type="button"
-            class="cpub-btn cpub-transition-btn cpub-transition-cancel"
-            @click="transitionStatus('cancelled')"
+            class="cpub-btn cpub-transition-btn"
+            :class="{
+              'cpub-transition-activate': statusAction(t).tone === 'go',
+              'cpub-transition-judging': statusAction(t).tone === 'warn',
+              'cpub-transition-cancel': statusAction(t).tone === 'danger',
+            }"
+            @click="transitionStatus(t)"
           >
-            <i class="fa-solid fa-ban"></i> Cancel Contest
+            <i class="fa-solid" :class="statusAction(t).icon"></i> {{ statusAction(t).label }}
           </button>
-          <p v-if="contest.status === 'completed' || contest.status === 'cancelled'" class="cpub-status-terminal">
+          <p v-if="!availableTransitions.length" class="cpub-status-terminal">
             <i class="fa-solid fa-circle-check"></i>
-            This contest is {{ contest.status }} — no further status changes are available.
+            No status changes available from <strong>{{ contest.status }}</strong>.
           </p>
         </div>
       </section>
@@ -454,8 +502,10 @@ async function transitionStatus(newStatus: string): Promise<void> {
 .cpub-edit-subtitle { font-size: 13px; color: var(--text-dim); margin-bottom: 24px; display: flex; align-items: center; gap: 8px; }
 
 .cpub-status-badge { font-size: 10px; font-family: var(--font-mono); text-transform: uppercase; padding: 2px 8px; border: var(--border-width-default) solid; }
+.cpub-status-draft { color: var(--text-faint); border-color: var(--border2); background: var(--surface2); border-style: dashed; }
 .cpub-status-upcoming { color: var(--yellow); border-color: var(--yellow-border); background: var(--yellow-bg); }
 .cpub-status-active { color: var(--green); border-color: var(--green-border); background: var(--green-bg); }
+.cpub-status-paused { color: var(--yellow); border-color: var(--yellow-border); background: var(--yellow-bg); }
 .cpub-status-judging { color: var(--accent); border-color: var(--accent-border); background: var(--accent-bg); }
 .cpub-status-completed { color: var(--text-faint); border-color: var(--border2); background: var(--surface2); }
 .cpub-status-cancelled { color: var(--red); border-color: var(--red-border); background: var(--red-bg); }

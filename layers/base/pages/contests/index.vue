@@ -68,7 +68,7 @@ const canCreateContest = computed(() => {
           </template>
           <span class="cpub-badge cpub-contest-thumb-badge" :class="{
             'cpub-badge-green': contest.status === 'active',
-            'cpub-badge-yellow': contest.status === 'upcoming',
+            'cpub-badge-yellow': contest.status === 'upcoming' || contest.status === 'paused',
             'cpub-badge-accent': contest.status === 'judging',
             'cpub-badge-red': contest.status === 'completed' || contest.status === 'cancelled',
           }">{{ contest.status }}</span>
@@ -78,8 +78,8 @@ const canCreateContest = computed(() => {
           <p v-if="cardBlurb(contest)" class="cpub-contest-card-blurb">
             {{ cardBlurb(contest) }}
           </p>
-          <div v-if="contest.endDate" style="margin-top: 8px">
-            <CountdownTimer :target-date="contest.endDate" />
+          <div v-if="contest.endDate && (contest.status === 'active' || contest.status === 'upcoming')" class="cpub-contest-card-countdown">
+            <CountdownTimer :target-date="contest.endDate" compact />
           </div>
           <div class="cpub-contest-card-meta">
             <span><i class="fa-solid fa-users"></i> {{ contest.entryCount }} entries</span>
@@ -135,6 +135,7 @@ const canCreateContest = computed(() => {
 
 .cpub-contest-card-title { font-size: 15px; font-weight: 600; margin: 0 0 6px; color: var(--text); }
 .cpub-contest-card-meta { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 11px; color: var(--text-faint); font-family: var(--font-mono); }
+.cpub-contest-card-countdown { margin-top: 10px; }
 
 .cpub-contest-card-blurb {
   font-size: 12px;
