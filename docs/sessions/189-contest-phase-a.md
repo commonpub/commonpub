@@ -134,6 +134,25 @@ Fixes:
 Process note: caught myself sitting in long blocking `gh run` poll loops to watch deploys (user
 interrupted one) → new memory [[feedback_no_long_deploy_poll_loops]]: one-shot check, don't loop.
 
+## Multi-round judging (same session, schema 0.31.0 / server 2.78.0 / layer 0.56.0)
+
+Prompted by "how would multi-round judging/voting work" + the real Resilient America brief (two
+review rounds with different criteria). Audit found 4 gaps; closed 3, documented 1:
+- **G1 per-review-stage rubric:** `ContestStage.criteria` (additive jsonb, no migration); judge page
+  uses the current review stage's criteria, falls back to contest-level. Stages editor gained a
+  per-review-stage criteria sub-editor.
+- **G2 cohort-gated judging:** `judgeContestEntry` rejects eliminated entries; judge page lists only
+  the surviving cohort. Tested.
+- **G4 round awareness:** judge page shows the current review stage name + cohort count.
+- **Stage-kind clarity:** `STAGE_KIND_HELP` map; the editor explains what each kind does.
+- **Voting** clarified as advisory (never drives ranks/cuts; judge scores do).
+- **G3 per-round score isolation = KNOWN GAP (deferred):** scores are single-slot; a 2nd round
+  overwrites the live score (round aggregate snapshotted in `stage_state`). Proper fix = tag
+  `judgeScores` by `stageId`. (Tried a reset-on-advance half-measure, reverted — doesn't handle the
+  interim-between-rounds case + broke the test.)
+- Full **Resilient America build walkthrough** written into the plan (5 stages + cull + per-round
+  rubrics). Everything except G3 is supported today.
+
 ## Decisions
 
 - Kept the `status` enum as the coarse lifecycle; fine-grained "which round" will live in

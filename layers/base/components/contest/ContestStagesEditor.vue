@@ -45,6 +45,25 @@ function onDate(i: number, field: 'startsAt' | 'endsAt', e: Event): void {
   setField(i, { [field]: v } as Partial<ContestStage>);
 }
 
+// Per-round rubric (review stages). Immutable updates via setField.
+type StageCriterion = { label: string; weight?: number; description?: string };
+function addCriterion(i: number): void {
+  const cur = (stages.value[i]?.criteria ?? []) as StageCriterion[];
+  setField(i, { criteria: [...cur, { label: '' }] });
+}
+function setCriterion(i: number, ci: number, patch: Partial<StageCriterion>): void {
+  const cur = (stages.value[i]?.criteria ?? []).map((c, idx) => (idx === ci ? { ...c, ...patch } : c));
+  setField(i, { criteria: cur });
+}
+function removeCriterion(i: number, ci: number): void {
+  const cur = (stages.value[i]?.criteria ?? []).filter((_, idx) => idx !== ci);
+  setField(i, { criteria: cur.length ? cur : undefined });
+}
+function critWeightInput(i: number, ci: number, e: Event): void {
+  const v = (e.target as HTMLInputElement).value;
+  setCriterion(i, ci, { weight: v === '' ? undefined : Math.max(0, Math.min(100, Math.round(Number(v)))) });
+}
+
 // Array operations live as pure functions in utils/contestStages.ts (unit-tested).
 function addStage(): void {
   commit(withStageAdded(stages.value));
@@ -147,6 +166,8 @@ const missingSubmission = computed(() => stages.value.length > 0 && !stages.valu
             </div>
           </div>
 
+          <p class="cpub-stage-kind-help"><i class="fa-solid fa-circle-info"></i> {{ STAGE_KIND_HELP[stage.kind] }}</p>
+
           <div class="cpub-form-row">
             <div class="cpub-form-field">
               <label class="cpub-form-label">Starts</label>
@@ -167,6 +188,20 @@ const missingSubmission = computed(() => stages.value.length > 0 && !stages.valu
               placeholder="What happens — or what to submit/refine — this stage"
               @input="setField(i, { description: ($event.target as HTMLInputElement).value || undefined })"
             />
+          </div>
+
+          <!-- Per-round judging rubric (review stages) -->
+          <div v-if="stage.kind === 'review'" class="cpub-stage-criteria">
+            <div class="cpub-stage-criteria-head">
+              <span class="cpub-form-label" style="margin: 0;">Judging criteria — this round</span>
+              <button type="button" class="cpub-btn cpub-btn-sm" @click="addCriterion(i)"><i class="fa-solid fa-plus"></i> Add</button>
+            </div>
+            <p class="cpub-form-hint" style="margin: 4px 0;">Optional — leave empty to use the contest’s default criteria. Set per-round criteria for multi-round contests (e.g. judge proposals on Feasibility, prototypes on Deployment readiness).</p>
+            <div v-for="(crit, ci) in (stage.criteria ?? [])" :key="ci" class="cpub-stage-crit-row">
+              <input :value="crit.label" type="text" class="cpub-form-input" placeholder="Criterion (e.g. Community impact)" @input="setCriterion(i, ci, { label: ($event.target as HTMLInputElement).value })" />
+              <input :value="crit.weight ?? ''" type="number" min="0" max="100" class="cpub-form-input cpub-stage-crit-pts" placeholder="pts" @input="critWeightInput(i, ci, $event)" />
+              <button type="button" class="cpub-stage-iconbtn cpub-stage-del" aria-label="Remove criterion" @click="removeCriterion(i, ci)"><i class="fa-solid fa-xmark"></i></button>
+            </div>
           </div>
 
           <div v-if="stage.kind === 'event'" class="cpub-form-row">
@@ -216,4 +251,11 @@ const missingSubmission = computed(() => stages.value.length > 0 && !stages.valu
 .cpub-stage-del:hover { border-color: var(--red-border); color: var(--red); }
 .cpub-stage-toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
 .cpub-stage-reset { color: var(--text-faint); }
+.cpub-stage-kind-help { font-size: 11px; color: var(--text-faint); line-height: 1.5; margin: 0 0 4px; display: flex; gap: 6px; }
+.cpub-stage-kind-help i { color: var(--accent); margin-top: 2px; flex-shrink: 0; }
+.cpub-stage-criteria { border: var(--border-width-default) dashed var(--border2); padding: 10px; margin-top: 4px; background: var(--surface); }
+.cpub-stage-criteria-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.cpub-stage-crit-row { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
+.cpub-stage-crit-row .cpub-form-input { margin: 0; }
+.cpub-stage-crit-pts { max-width: 70px; flex-shrink: 0; }
 </style>

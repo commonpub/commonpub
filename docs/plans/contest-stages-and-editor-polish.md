@@ -248,6 +248,44 @@ dnd lib.
   workgroup forms"), which is really a generic *teams* concern, not contest-specific. Keep out of
   B1/B2; model later.
 
+## How multi-round judging + voting actually work (session 189)
+
+- **Judging is per-review-stage.** Each `review` stage can carry its own `criteria` rubric
+  (`ContestStage.criteria`, jsonb — no migration). The judge page uses the **current review stage's**
+  criteria, falling back to the contest-level `judgingCriteria` when a stage defines none. So Round 1
+  can score on *Feasibility* and Round 2 on *Deployment readiness*.
+- **Judging is cohort-scoped.** `judgeContestEntry` rejects entries that were eliminated at a prior
+  review cut; the judge page only lists the surviving cohort. So Round 2 judges exactly the finalists.
+- **Voting never decides outcomes.** Community voting (`communityVotingEnabled`) is a single,
+  advisory tally per entry — an "audience favourite" signal. It does NOT affect ranks or advancement;
+  only judge **scores** drive `calculateContestRanks` and the Top-N cull. For an expert-panel contest
+  (like Resilient America) leave voting off.
+- **Per-round score isolation is the one remaining gap.** Entries carry a single live `score`; the
+  round's aggregate is snapshotted into `contest_entries.stage_state` on advance, but a later round
+  reuses the live `score` (re-scoring overwrites). For two judging rounds separated by a sprint, the
+  finalists still show their Round-1 score until re-judged. Proper fix = store judge scores keyed by
+  `stageId` (judgeScores tagged per round, `score` computed per current round). Deferred — documented
+  as the next judging task.
+
+## Worked example — building the Resilient America Challenge
+
+Five stages (Stages editor), with the cull + per-round rubrics:
+
+1. **"Proposals open"** — `submission`, `endsAt` = proposal deadline (June). Description: "Publish your
+   blueprint — no prototype yet." Status → `active`.
+2. **"Top 50 Selection"** — `review`, criteria = *Community impact / Technical merit / Feasibility*.
+   Judges (the joint workgroup) score every proposal; the organiser runs **Advance top 50** → the 50
+   advance, the rest are marked "not advanced". Status → `judging` for this round.
+3. **"Hardware Sprint"** — `interim` (≈8 weeks, July–Aug). The 50 refine their entries (add prototype
+   repo + writeup + demo); no new entrants. Description spells out the required final submission.
+4. **"Final Judging"** — `review`, criteria = *Community impact/usefulness / Technical quality /
+   Deployment readiness*. Judges score ONLY the 50 (cohort-scoped). Status → `judging`.
+5. **"Finale — Washington, D.C."** — `event`, `location` = "Washington, D.C.", date = Sept 18; then
+   **Complete** the contest → `calculateContestRanks` over the final-round scores → grand prize.
+
+Prizes tab optional; visibility `public`; voting off (expert panel). Everything except per-round
+score isolation (gap above) is supported today.
+
 ### Sanity check against the example
 
 | Organiser's stage | Engine expression | Phase |

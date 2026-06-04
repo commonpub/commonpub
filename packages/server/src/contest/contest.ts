@@ -720,6 +720,7 @@ export async function judgeContestEntry(
       contestStatus: contests.status,
       contestId: contests.id,
       entrantId: contestEntries.userId,
+      stageState: contestEntries.stageState,
     })
     .from(contestEntries)
     .innerJoin(contests, eq(contestEntries.contestId, contests.id))
@@ -733,6 +734,12 @@ export async function judgeContestEntry(
   // Check contest is in judging phase
   if (row.contestStatus !== 'judging') {
     return { judged: false, error: 'Contest is not in judging phase' };
+  }
+
+  // Cohort gate (Phase B2.5): once a review stage has culled the field, entries
+  // that didn't advance are out of later rounds and can't be scored.
+  if (isEliminated({ stageState: row.stageState })) {
+    return { judged: false, error: 'This entry was not advanced and can no longer be scored' };
   }
 
   // Conflict of interest: a judge cannot score their own entry.

@@ -15,9 +15,23 @@ const { data: entriesData, refresh: refreshEntries } = useLazyFetch<{ items: (Se
   { query: { includeJudgeScores: true } },
 );
 
-// Judging rubric: when defined, judges score each criterion (0..max) and the
-// overall is the normalized weighted sum (computed server-side).
-const criteria = computed(() => contest.value?.judgingCriteria ?? []);
+// The current review stage (multi-round contests). Drives the round label + the
+// per-round rubric; falls back to the contest-level rubric when the stage has none.
+const currentReviewStage = computed(() => {
+  const c = contest.value;
+  if (!c || !c.stages?.length) return null;
+  const cid = currentStageId(c);
+  const st = c.stages.find((s) => s.id === cid);
+  return st && st.kind === 'review' ? st : null;
+});
+
+// Judging rubric: per-round criteria if the current review stage defines them,
+// else the contest-level rubric. Judges score each criterion (0..max); the overall
+// is the normalized weighted sum (computed server-side).
+const criteria = computed(() => {
+  const stageCrit = currentReviewStage.value?.criteria;
+  return (stageCrit && stageCrit.length ? stageCrit : contest.value?.judgingCriteria) ?? [];
+});
 const hasCriteria = computed(() => criteria.value.length > 0);
 function critMax(i: number): number {
   const w = criteria.value[i]?.weight;
@@ -48,7 +62,9 @@ async function acceptInvite(): Promise<void> {
 }
 
 const entryList = computed(() => {
-  const items = entriesData.value?.items ?? [];
+  // Cohort scope: once a review stage has culled the field, judges only score the
+  // surviving cohort (eliminated entries drop out of later rounds).
+  const items = (entriesData.value?.items ?? []).filter((e) => !e.eliminated);
   return items.map((entry) => {
     const myScore = entry.judgeScores?.find((s) => s.judgeId === user.value?.id);
     return {
@@ -161,8 +177,12 @@ async function submitScore(entryId: string): Promise<void> {
       <h1 class="cpub-judge-title">
         <i class="fa-solid fa-gavel cpub-judge-icon"></i>
         Judge: {{ contest?.title || 'Contest' }}
+        <span v-if="currentReviewStage" class="cpub-judge-round">{{ currentReviewStage.name }}</span>
       </h1>
-      <p class="cpub-judge-desc">Score each entry from 1 to 100. Add optional feedback. Scores are saved immediately.</p>
+      <p class="cpub-judge-desc">
+        Score each entry from 1 to 100. Add optional feedback. Scores are saved immediately.
+        <template v-if="currentReviewStage"> You're judging the <strong>{{ entryList.length }}</strong> {{ entryList.length === 1 ? 'entry' : 'entries' }} still in this round.</template>
+      </p>
     </header>
 
     <!-- Loading -->
@@ -200,9 +220,9 @@ async function submitScore(entryId: string): Promise<void> {
         Scoring opens when the contest enters the judging phase (currently <strong>{{ contest.status }}</strong>).
       </div>
 
-      <!-- Rubric guidance -->
-      <div v-if="contest.judgingCriteria?.length" class="cpub-judge-rubric">
-        <ContestJudgingCriteria :criteria="contest.judgingCriteria" compact />
+      <!-- Rubric guidance (per-round criteria when the current review stage defines them) -->
+      <div v-if="criteria.length" class="cpub-judge-rubric">
+        <ContestJudgingCriteria :criteria="criteria" compact />
       </div>
 
       <!-- Progress bar -->
@@ -298,6 +318,7 @@ async function submitScore(entryId: string): Promise<void> {
 .cpub-judge-back:hover { color: var(--accent); }
 .cpub-judge-title { font-size: 20px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
 .cpub-judge-icon { color: var(--accent); font-size: 18px; }
+.cpub-judge-round { font-size: 10px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .08em; color: var(--accent); border: var(--border-width-default) solid var(--accent-border); background: var(--accent-bg); padding: 3px 9px; border-radius: var(--radius); }
 .cpub-judge-desc { font-size: 13px; color: var(--text-dim); margin-top: 6px; }
 
 .cpub-judge-unauthorized { text-align: center; padding: 48px 0; color: var(--text-faint); font-size: 13px; display: flex; flex-direction: column; align-items: center; gap: 12px; }

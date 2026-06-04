@@ -150,13 +150,13 @@ a minute (`curl deveco.io/api/content?limit=5`, today's timestamp).
 ### Published versions (verified 2026-06-04)
 | Package | Version | | Package | Version |
 |---|---|---|---|---|
-| @commonpub/schema | **0.30.0** | | @commonpub/infra | 0.8.0 |
+| @commonpub/schema | **0.31.0** | | @commonpub/infra | 0.8.0 |
 | @commonpub/config | **0.18.0** | | @commonpub/editor | 0.7.11 |
 | @commonpub/protocol | 0.13.0 | | @commonpub/explainer | 0.7.15 |
 | @commonpub/auth | 0.8.0 | | @commonpub/docs | 0.6.3 |
-| @commonpub/server | **2.77.0** | | @commonpub/learning | 0.5.2 |
+| @commonpub/server | **2.78.0** | | @commonpub/learning | 0.5.2 |
 | @commonpub/ui | 0.9.2 | | @commonpub/test-utils | 0.5.6 |
-| @commonpub/layer | **0.55.0** | | create-commonpub (crates.io) | **0.5.7** |
+| @commonpub/layer | **0.56.0** | | create-commonpub (crates.io) | **0.5.7** |
 
 Migrations applied this cycle: **0016** (`contests.cover_image_url`) · **0017** (`contest_status`
 +draft/+paused; `contests.show_prizes`) · **0018** (`contests.stages` jsonb + `contests.current_stage_id`
@@ -226,6 +226,18 @@ rules, Danger Zone; full-width sticky save bar). Stages editor gained a prominen
 Reset** toolbar. Stage array-ops extracted to pure `utils/contestStages.ts` functions with 10 unit
 tests. NOTE: layer **0.54.0 is a broken interim** (a forms.css globalisation edit was reverted
 mid-flight, leaving inputs unstyled) — deprecated on npm; use 0.55.0+.
+
+Contest **multi-round judging** (2026-06-04, schema 0.31.0 / server 2.78.0 / layer 0.56.0, all 3, no
+migration — `criteria` is additive jsonb on the existing `stages`): **per-review-stage rubric** (each
+`review` stage can carry its own `criteria`; the judge page uses the current round's, falling back to
+the contest rubric) → Round 1 scores on *Feasibility*, Round 2 on *Deployment readiness*.
+**Cohort-gated judging** (`judgeContestEntry` rejects eliminated entries; the judge page lists only
+the surviving cohort + shows the current round name + count). **Stage-kind clarity**: the stages
+editor explains what each kind does, and review stages get a per-round criteria sub-editor.
+**Voting is advisory** — never affects ranks/cuts; only judge scores do. The full Resilient-America
+build walkthrough is in the plan. KNOWN GAP (deferred): judge scores are single-slot, not keyed by
+round — a 2nd judging round overwrites the live score (round aggregate is snapshotted in
+`stage_state`); proper fix = tag `judgeScores` by `stageId`.
 
 Recent UI follow-ups (2026-06-03): contest hero banner 260→195px (layer 0.46.0); deveco.io mobile-nav
 hamburger fixed (its forked `layouts/default.vue` used bare `<MobileNavRenderer>` → unresolved;

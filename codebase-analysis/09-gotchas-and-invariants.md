@@ -889,3 +889,12 @@ MUST exclude eliminated entries** (it filters `NOT (stage_state @> '[{"status":"
 and nulls their rank) — otherwise a culled entry could out-rank a finalist. If you
 add another ranking/results path, apply the same cohort filter. The Top-N tiebreak
 is deterministic (score → rank → id) so re-running yields a stable cut.
+
+**Multi-round judging (session 189):** each `review` stage may carry its own `criteria` (per-round
+rubric on `ContestStage`); the judge page resolves the CURRENT review stage's criteria, falling back
+to contest-level `judgingCriteria`. `judgeContestEntry` is **cohort-gated** (rejects `eliminated`)
+and the judge page lists only survivors — so a later round scores only the finalists. **Community
+voting is advisory** — it never drives ranks or the Top-N cut; only judge `score` does (don't wire
+votes into `calculateContestRanks` or `advanceContestStage`). KNOWN GAP: judge scores are single-slot
+(`score`/`judgeScores`), not keyed by round — a second judging round overwrites the live score (the
+round aggregate is snapshotted in `stage_state`). Proper fix = tag `judgeScores` by `stageId`; deferred.

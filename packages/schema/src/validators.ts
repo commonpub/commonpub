@@ -371,6 +371,8 @@ export const contestStageSchema = z.object({
   description: z.string().max(2000).optional(),
   location: z.string().max(255).optional(),
   url: optionalUrl(),
+  // Per-round rubric (review stages). Reuses the contest-level criterion shape.
+  criteria: z.array(contestJudgingCriterionSchema).max(20).optional(),
 });
 export type ContestStageInput = z.infer<typeof contestStageSchema>;
 

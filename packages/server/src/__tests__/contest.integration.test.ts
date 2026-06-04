@@ -158,6 +158,13 @@ describe('contest integration', () => {
     await advanceContestStage(db, contest.id, organizerId, { reviewStageId: reviewId, mode: 'topN', topN: 2 });
     const cEntry = (await listContestEntries(db, contest.id, { limit: 50 })).items.find((e) => e.id === cId)!;
     expect(cEntry.stageState.filter((s) => s.stageId === reviewId)).toHaveLength(1);
+
+    // Cohort gate (G2): an eliminated entry can no longer be scored; survivors can.
+    const rejected = await judgeContestEntry(db, cId, 50, judgeUserId);
+    expect(rejected.judged).toBe(false);
+    expect(rejected.error).toMatch(/not advanced/i);
+    const ok = await judgeContestEntry(db, a, 95, judgeUserId);
+    expect(ok.judged).toBe(true);
   });
 
   it('advanceContestStage: rejects non-owner + non-review stage', async () => {

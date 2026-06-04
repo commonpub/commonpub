@@ -34,6 +34,13 @@ export interface ContestStage {
   /** Event/showcase stages — venue + link. */
   location?: string;
   url?: string;
+  /**
+   * Per-round judging rubric (Phase B2.5). Only meaningful for `review` stages —
+   * lets each judging round score on its own criteria (e.g. a proposal round on
+   * "Feasibility" vs a final round on "Deployment readiness"). When omitted, the
+   * judge UI falls back to the contest-level `judgingCriteria`.
+   */
+  criteria?: Array<{ label: string; weight?: number; description?: string }>;
 }
 
 /** @v2 — Contest system. Tables defined but not yet referenced in application code. */
