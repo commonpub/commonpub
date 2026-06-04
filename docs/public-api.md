@@ -8,12 +8,14 @@ A scoped, admin-provisioned REST API for reading CommonPub data from outside the
 3. [Scopes](#scopes)
 4. [Rate limiting](#rate-limiting)
 5. [Endpoints](#endpoints)
-6. [Errors](#errors)
-7. [What is NEVER returned](#what-is-never-returned)
-8. [CORS](#cors)
-9. [Versioning and deprecation](#versioning-and-deprecation)
-10. [Creating a key (admin)](#creating-a-key-admin)
-11. [Revoking a key (admin)](#revoking-a-key-admin)
+6. [Metrics](#metrics)
+7. [Metrics privacy contract](#metrics-privacy-contract)
+8. [Errors](#errors)
+9. [What is NEVER returned](#what-is-never-returned)
+10. [CORS](#cors)
+11. [Versioning and deprecation](#versioning-and-deprecation)
+12. [Creating a key (admin)](#creating-a-key-admin)
+13. [Revoking a key (admin)](#revoking-a-key-admin)
 
 ## Status and scope
 
@@ -61,7 +63,8 @@ Scopes are read-only in v1. A key must hold the listed scope for each endpoint. 
 | `read:docs` | `/docs`, `/docs/:slug` (feature-gated) |
 | `read:tags` | `/tags` |
 | `read:search` | `/search` |
-| `read:federation` | (reserved for phase 3) |
+| `read:analytics` | `/metrics/overview`, `/metrics/content/top`, `/metrics/tags/trending`, `/metrics/contributors/top`, `/metrics/engagement` |
+| `read:federation` | `/metrics/federation` (also needs `features.publicApiMetricsFederation`) |
 | `read:*` | every `read:...` scope |
 
 A wrong-scope request returns `403 Missing scope: <scope>`.
@@ -215,6 +218,79 @@ Scope: `read:instance`. Instance metadata — name, counts, enabled features, so
 }
 ```
 
+## Metrics
+
+Aggregate, privacy-respecting analytics for DevRel and community reporting. All metrics endpoints are read-only and return aggregates only (never per-user activity). See the [Metrics privacy contract](#metrics-privacy-contract).
+
+### `GET /api/public/v1/metrics/overview`
+
+Scope: `read:analytics`. Instance scorecard: lifetime totals (users, contributors, content by type, hubs, tags, cumulative engagement) plus 7-day and 30-day growth deltas derived from timestamps.
+
+```json
+{
+  "domain": "commonpub.io",
+  "generatedAt": "2026-06-04T00:00:00.000Z",
+  "totals": {
+    "users": 3, "contributors": 2,
+    "content": { "total": 17, "byType": { "project": 9, "blog": 6, "explainer": 2 } },
+    "hubs": 12, "tags": 40,
+    "engagement": { "views": 1820, "likes": 96, "comments": 14 }
+  },
+  "recent": {
+    "newUsers": { "last7d": 1, "last30d": 3 },
+    "newContent": { "last7d": 2, "last30d": 8 },
+    "activeContributors": { "last7d": 1, "last30d": 2 }
+  },
+  "notes": ["..."]
+}
+```
+
+Per-day engagement time-series (not just cumulative totals) arrives with the Phase 3 daily rollups.
+
+### `GET /api/public/v1/metrics/content/top`
+
+Scope: `read:analytics`. Leaderboard of published, public content. Query: `metric` (`views` | `likes` | `comments`, default `views`), `type` (`project` | `blog` | `explainer`), `limit` (1..100, default 20). Items are `PublicContentSummary` objects with author attribution and canonical URLs.
+
+### `GET /api/public/v1/metrics/tags/trending`
+
+Scope: `read:analytics`. Tags ranked by lifetime `usageCount` (unused tags excluded). Query: `limit`.
+
+### `GET /api/public/v1/metrics/contributors/top`
+
+Scope: `read:analytics`. Public-profile, active users ranked by published, public content, with engagement received. Private, suspended, and deleted profiles are excluded.
+
+```json
+{
+  "items": [
+    { "user": { "id": "...", "username": "alice", "displayName": "Alice", "avatarUrl": null },
+      "publishedContent": 9, "totalViews": 1200, "totalLikes": 64,
+      "canonicalUrl": "https://commonpub.io/u/alice" }
+  ],
+  "limit": 20
+}
+```
+
+### `GET /api/public/v1/metrics/engagement`
+
+Scope: `read:analytics`. Aggregate engagement ratios and funnels: content likes/comments-per-view and average views per item; learning enroll to complete; event capacity to attendance; contest entries. Feature-gated sections (`learning`, `events`, `contests`) are present only when that feature is enabled.
+
+### `GET /api/public/v1/metrics/federation`
+
+Scope: `read:federation`. Federation reach: known instances, active mirrors, accepted followers, and inbound content by origin domain (domain-level only). Query: `limit`.
+
+Opt-in: requires both `features.federation` and `features.publicApiMetricsFederation` (default OFF). When either is off the endpoint returns `404`, keeping the surface invisible. This exposes network-topology data about third-party instances, so enabling it is a deliberate operator decision on top of granting the `read:federation` scope.
+
+## Metrics privacy contract
+
+These rules are enforced in the serializers and queries, not just documented:
+
+- **Aggregates and intentional public leaderboards only.** No endpoint returns per-individual-user activity (no "who viewed or liked what").
+- **No new PII, no tracking.** Every metric derives from columns that already exist (denormalized counters, timestamps). No IP, user-agent, email, referrer, or cookie is read, stored, or returned.
+- **Public entities only.** Aggregations count only `status='published'`, `visibility='public'`, non-deleted content, and only active, public-profile, non-deleted users, filtered at the SQL level.
+- **Contributor attribution is already-public information.** Leaderboards rank only public-profile users by their already-public published content.
+- **Federation reach is opt-in and domain-level.** Never per-user; gated by a config flag that defaults OFF.
+- **k-anonymity is ready for Phase 3.** Phase 2 exposes only non-pivotable instance aggregates and the intentional contributor leaderboard, so no suppression applies yet; the `METRICS_MIN_BUCKET` threshold guards the user-pivotable breakdowns added with Phase 3 rollups.
+
 ## Errors
 
 All errors are JSON bodies:
@@ -247,11 +323,32 @@ If you notice a response leaking any of the above, treat it as a security bug an
 
 ## CORS
 
-By default, no `Access-Control-Allow-Origin` headers are sent on actual (non-preflight) responses — the API is designed for server-to-server use, and browsers will block cross-origin calls.
+By default, no `Access-Control-Allow-Origin` headers are sent on actual (non-preflight) responses. The API is designed for server-to-server use, and browsers will block cross-origin calls until a key opts in.
 
-Per-key CORS allow-lists can be configured at creation time (`allowedOrigins: ["https://app.example.com"]`). When a real request's `Origin` matches, the server reflects it in `Access-Control-Allow-Origin` and advertises `Vary: Origin`. Leave this blank unless you explicitly need browser access.
+Each key has a CORS allow-list (`allowedOrigins`) of **origin patterns**. The only wildcard metacharacter is `*`:
 
-Preflight (`OPTIONS`) requests bypass authentication (they have to — the browser doesn't include the `Authorization` header on preflight), and echo any `Origin` so the browser can decide whether to proceed to the real request. The real request then goes through the per-key allow-list check.
+| Pattern | Matches |
+|---|---|
+| `*` | Any origin (wildcard-all). Responds with `Access-Control-Allow-Origin: *`. |
+| `localhost` | `http://localhost` and `https://localhost` on any port (shorthand). |
+| `https://app.example.com` | That exact origin. |
+| `http://localhost:*` | Any port on `http://localhost`. |
+| `https://*.example.com` | Any subdomain of `example.com` over https. |
+| `*://localhost:*` | Any scheme and any port on localhost. |
+
+When a real request's `Origin` matches a non-wildcard pattern, the server reflects it in `Access-Control-Allow-Origin` and advertises `Vary: Origin`. When the list contains `*`, it responds with the literal `*` (no `Vary`). Only `http`/`https` (or `*`) schemes are accepted; `javascript:`, `data:`, and the like are rejected at key-creation time.
+
+### Why `*` is safe here
+
+This API authenticates with `Authorization: Bearer <token>`, **not cookies**. There are no ambient credentials, and the server never sends `Access-Control-Allow-Credentials`. So `Access-Control-Allow-Origin: *` cannot leak anything: a cross-origin page still cannot obtain a key it does not already possess. CORS here only *enables* legitimate browser clients; the Bearer token is what protects the data. Set `["*"]` when you want a fully open, read-only browser API, or `["localhost"]` for local development.
+
+### Origin validation
+
+The server only reflects an `Origin` that is a syntactically valid web origin (`scheme://host[:port]`, no path, query, whitespace, or control characters). Requests whose `Origin` header is malformed or carries control characters receive no CORS headers, which closes off response-header injection. IPv6-literal hosts (`http://[::1]`) and the `null` origin are not supported.
+
+### Preflight
+
+Preflight (`OPTIONS`) requests bypass authentication (they have to, because the browser does not include the `Authorization` header on preflight) and echo any `Origin` so the browser can proceed to the real request. The real request then goes through the per-key allow-list check above, which is the actual gate.
 
 ## Versioning and deprecation
 

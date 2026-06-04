@@ -33,6 +33,7 @@ const ENV_FLAG_MAP: Record<string, string> = {
   emailNotifications: 'FEATURE_EMAIL_NOTIFICATIONS',
   actAsRegistry: 'FEATURE_ACT_AS_REGISTRY',
   announceToRegistry: 'FEATURE_ANNOUNCE_TO_REGISTRY',
+  publicApiMetricsFederation: 'FEATURE_PUBLIC_API_METRICS_FEDERATION',
 };
 
 let baseConfig: CommonPubConfig | null = null;

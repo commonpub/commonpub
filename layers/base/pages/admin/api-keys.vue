@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { AdminApiKeyView, ApiKeyUsageStats } from '@commonpub/server';
-import { PUBLIC_API_SCOPES } from '@commonpub/schema';
+import { PUBLIC_API_SCOPES, originPatternSchema } from '@commonpub/schema';
 
 definePageMeta({ layout: 'admin', middleware: 'auth' });
 
@@ -30,6 +30,12 @@ const form = reactive({
   rateLimitPerMinute: 60,
   allowedOrigins: '',
 });
+// CORS preset: 'none' (server-to-server, default), 'any' (*), 'localhost', or
+// 'custom' (free-text origin patterns). Keeps the common cases one click away
+// while still allowing wildcard/subdomain/port patterns via Custom.
+type CorsPreset = 'none' | 'any' | 'localhost' | 'custom';
+const corsPreset = ref<CorsPreset>('none');
+
 const creating = ref(false);
 const createError = ref('');
 const createdKey = ref<CreateResponse | null>(null);
@@ -50,7 +56,29 @@ function resetForm(): void {
   form.expiresAt = '';
   form.rateLimitPerMinute = 60;
   form.allowedOrigins = '';
+  corsPreset.value = 'none';
   createError.value = '';
+}
+
+/**
+ * Resolve the CORS preset into the origin list the API expects. Returns null
+ * (and sets createError) when a custom pattern is invalid, so the caller can
+ * abort before submitting. Mirrors the server-side `originPatternSchema`.
+ */
+function resolveOrigins(): string[] | null {
+  if (corsPreset.value === 'none') return [];
+  if (corsPreset.value === 'any') return ['*'];
+  if (corsPreset.value === 'localhost') return ['localhost'];
+  const list = form.allowedOrigins
+    .split(/[\s,]+/)
+    .map((o) => o.trim())
+    .filter(Boolean);
+  const bad = list.find((o) => !originPatternSchema.safeParse(o).success);
+  if (bad) {
+    createError.value = `Invalid CORS origin: ${bad}`;
+    return null;
+  }
+  return list;
 }
 
 async function submitCreate(): Promise<void> {
@@ -63,12 +91,11 @@ async function submitCreate(): Promise<void> {
     createError.value = 'Select at least one scope';
     return;
   }
+  const origins = resolveOrigins();
+  if (origins === null) return; // invalid custom pattern; error already set
+
   creating.value = true;
   try {
-    const origins = form.allowedOrigins
-      .split(/[\s,]+/)
-      .map((o) => o.trim())
-      .filter(Boolean);
     const body = {
       name: form.name.trim(),
       description: form.description.trim() || null,
@@ -227,9 +254,38 @@ function fmtErrorRate(rate: number): string {
         </div>
       </div>
       <div class="cpub-form-row">
-        <label for="key-origins">Allowed CORS origins (comma or whitespace separated, optional)</label>
-        <input id="key-origins" v-model="form.allowedOrigins" class="cpub-input" placeholder="https://app.example.com" />
-        <small>Leave blank for server-to-server only (default, recommended).</small>
+        <label id="key-cors-label">CORS access</label>
+        <div class="cpub-scope-grid" role="radiogroup" aria-labelledby="key-cors-label">
+          <label class="cpub-scope-chip">
+            <input type="radio" name="cors-preset" value="none" v-model="corsPreset" />
+            <span>Server-to-server only</span>
+          </label>
+          <label class="cpub-scope-chip">
+            <input type="radio" name="cors-preset" value="any" v-model="corsPreset" />
+            <span>Allow any origin (*)</span>
+          </label>
+          <label class="cpub-scope-chip">
+            <input type="radio" name="cors-preset" value="localhost" v-model="corsPreset" />
+            <span>Localhost (dev)</span>
+          </label>
+          <label class="cpub-scope-chip">
+            <input type="radio" name="cors-preset" value="custom" v-model="corsPreset" />
+            <span>Custom origins</span>
+          </label>
+        </div>
+        <div v-if="corsPreset === 'custom'" class="cpub-cors-custom">
+          <label for="key-origins">Allowed origins (comma or whitespace separated)</label>
+          <input
+            id="key-origins"
+            v-model="form.allowedOrigins"
+            class="cpub-input"
+            placeholder="https://app.example.com, https://*.example.com, http://localhost:*"
+          />
+        </div>
+        <small v-if="corsPreset === 'none'">Default. Browser cross-origin calls are blocked. Use this key from a server.</small>
+        <small v-else-if="corsPreset === 'any'">Any website can call this key from a browser. The Bearer token still controls access.</small>
+        <small v-else-if="corsPreset === 'localhost'">Allows http and https on localhost at any port, for local development.</small>
+        <small v-else>Patterns: *, localhost, https://app.example.com, https://*.example.com, http://localhost:*</small>
       </div>
       <p v-if="createError" class="cpub-form-error" role="alert">{{ createError }}</p>
       <div class="cpub-form-actions">
@@ -393,6 +449,8 @@ function fmtErrorRate(rate: number): string {
   font-size: 12px; cursor: pointer;
 }
 .cpub-scope-chip code { font-family: var(--font-mono); font-size: 11px; color: var(--text); }
+.cpub-scope-chip span { font-size: 12px; color: var(--text); }
+.cpub-cors-custom { margin-top: 8px; }
 
 .cpub-btn {
   padding: 6px 14px; font-size: 12px; font-weight: 500;

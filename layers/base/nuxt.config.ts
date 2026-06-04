@@ -112,6 +112,7 @@ export default defineNuxtConfig({
         rbac: false,
         actAsRegistry: false,
         announceToRegistry: true,
+        publicApiMetricsFederation: false,
       },
       contentTypes: 'project,blog,explainer',
       contestCreation: 'admin',

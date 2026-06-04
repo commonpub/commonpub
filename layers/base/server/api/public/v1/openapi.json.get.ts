@@ -364,6 +364,24 @@ export default defineEventHandler((event) => {
       '/search': {
         get: { summary: 'Search content', security: [{ bearer: ['read:search'] }], parameters: [{ name: 'q', in: 'query', required: true, schema: { type: 'string' } }, { name: 'type', in: 'query', schema: { type: 'string' } }], responses: { '200': { description: 'OK', content: { 'application/json': { schema: paginated('#/components/schemas/PublicContentSummary') } } } } },
       },
+      '/metrics/overview': {
+        get: { summary: 'Instance analytics scorecard (totals + 7d/30d deltas)', security: [{ bearer: ['read:analytics'] }], responses: { '200': { description: 'OK', content: { 'application/json': { schema: { type: 'object' } } } }, '403': { description: 'Missing scope', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } } } },
+      },
+      '/metrics/content/top': {
+        get: { summary: 'Top content by engagement metric', security: [{ bearer: ['read:analytics'] }], parameters: [{ name: 'metric', in: 'query', schema: { type: 'string', enum: ['views', 'likes', 'comments'] } }, { name: 'type', in: 'query', schema: { type: 'string', enum: ['project', 'blog', 'explainer'] } }, { name: 'limit', in: 'query', schema: { type: 'integer' } }], responses: { '200': { description: 'OK', content: { 'application/json': { schema: { type: 'object', properties: { items: { type: 'array', items: { $ref: '#/components/schemas/PublicContentSummary' } } } } } } } } },
+      },
+      '/metrics/tags/trending': {
+        get: { summary: 'Tags ranked by usage', security: [{ bearer: ['read:analytics'] }], parameters: [{ name: 'limit', in: 'query', schema: { type: 'integer' } }], responses: { '200': { description: 'OK', content: { 'application/json': { schema: { type: 'object', properties: { items: { type: 'array', items: { $ref: '#/components/schemas/PublicTag' } } } } } } } } },
+      },
+      '/metrics/contributors/top': {
+        get: { summary: 'Top public-profile contributors', security: [{ bearer: ['read:analytics'] }], parameters: [{ name: 'limit', in: 'query', schema: { type: 'integer' } }], responses: { '200': { description: 'OK', content: { 'application/json': { schema: { type: 'object' } } } } } },
+      },
+      '/metrics/engagement': {
+        get: { summary: 'Aggregate engagement ratios and funnels', security: [{ bearer: ['read:analytics'] }], responses: { '200': { description: 'OK', content: { 'application/json': { schema: { type: 'object' } } } } } },
+      },
+      '/metrics/federation': {
+        get: { summary: 'Federation reach (opt-in; read:federation)', security: [{ bearer: ['read:federation'] }], parameters: [{ name: 'limit', in: 'query', schema: { type: 'integer' } }], responses: { '200': { description: 'OK', content: { 'application/json': { schema: { type: 'object' } } } }, '404': { description: 'Federation reach metrics not enabled', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } } } },
+      },
       '/openapi.json': {
         get: { summary: 'This OpenAPI spec', responses: { '200': { description: 'OK' } } },
       },

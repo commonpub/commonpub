@@ -44,6 +44,8 @@ export interface FeatureFlags {
   actAsRegistry: boolean;
   /** Announce this instance to a registry (Phase 4). Default ON (discoverable). */
   announceToRegistry: boolean;
+  /** Expose federation reach metrics on the public API. Default OFF (server-gated). */
+  publicApiMetricsFederation: boolean;
   /**
    * Cross-instance delegated authorization. All sub-flags default false.
    * Mirrors `@commonpub/config`'s `IdentityFeatures`. Phase 1b+ — see
@@ -68,6 +70,7 @@ export const DEFAULT_FLAGS: FeatureFlags = {
   rbac: false,
   actAsRegistry: false,
   announceToRegistry: true,
+  publicApiMetricsFederation: false,
   identity: {
     linkRemoteAccounts: false,
     signInWithRemote: false,

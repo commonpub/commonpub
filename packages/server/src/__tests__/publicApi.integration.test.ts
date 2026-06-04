@@ -9,6 +9,7 @@ import {
   listApiKeys,
   revokeApiKey,
   logApiKeyUsage,
+  matchOrigin,
   touchLastUsed,
 } from '../publicApi/index.js';
 
@@ -214,6 +215,50 @@ describe('publicApi integration', () => {
       // Token starts with 'cpub_live_ak_'; the hash should contain none of it.
       expect(row!.keyHash).not.toContain(token.slice(13, 20));
       expect(row!.keyHash).not.toContain('cpub');
+    });
+  });
+
+  describe('CORS allowedOrigins round-trip', () => {
+    // The matcher is unit-tested in cors.test.ts; this proves the wildcard
+    // patterns survive create → DB → authenticate so the middleware's
+    // matchOrigin(key.allowedOrigins, origin) operates on the real row.
+    it('persists wildcard / localhost / subdomain patterns and drives the matcher', async () => {
+      const patterns = ['*', 'localhost', 'https://*.example.com'];
+      const { token, key } = await createApiKey(db, adminId, {
+        name: 'cors-key',
+        scopes: ['read:content'],
+        allowedOrigins: patterns,
+      });
+      expect(key.allowedOrigins).toEqual(patterns);
+
+      const result = await authenticateApiKey(db, token);
+      if (!result.ok) throw new Error(`expected ok, got ${result.reason}`);
+      expect(result.key.allowedOrigins).toEqual(patterns);
+
+      // `*` in the list opens everything (literal *, no Vary).
+      const wild = matchOrigin(result.key.allowedOrigins, 'https://anything.io');
+      expect(wild).toEqual({ allowed: true, headerValue: '*', wildcard: true });
+    });
+
+    it('a key with no allowedOrigins yields a deny decision (server-to-server)', async () => {
+      const { token } = await createApiKey(db, adminId, { name: 'no-cors', scopes: ['read:content'] });
+      const result = await authenticateApiKey(db, token);
+      if (!result.ok) throw new Error(`expected ok, got ${result.reason}`);
+      expect(result.key.allowedOrigins).toBeNull();
+      expect(matchOrigin(result.key.allowedOrigins, 'https://app.example.com').allowed).toBe(false);
+    });
+
+    it('a non-wildcard list reflects only matching origins from the persisted row', async () => {
+      const { token } = await createApiKey(db, adminId, {
+        name: 'cors-exact',
+        scopes: ['read:content'],
+        allowedOrigins: ['https://app.example.com', 'http://localhost:*'],
+      });
+      const result = await authenticateApiKey(db, token);
+      if (!result.ok) throw new Error(`expected ok, got ${result.reason}`);
+      const ok = matchOrigin(result.key.allowedOrigins, 'http://localhost:5173');
+      expect(ok).toEqual({ allowed: true, headerValue: 'http://localhost:5173', wildcard: false });
+      expect(matchOrigin(result.key.allowedOrigins, 'https://evil.com').allowed).toBe(false);
     });
   });
 });

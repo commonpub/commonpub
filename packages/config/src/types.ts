@@ -81,6 +81,13 @@ export interface FeatureFlags {
    * only runs when `federation` is enabled.
    */
   announceToRegistry: boolean;
+  /**
+   * Expose federation reach metrics on the public API
+   * (`GET /api/public/v1/metrics/federation`). Default OFF — aggregates
+   * peer-instance/domain data, so it is an explicit operator opt-in on top of
+   * the `read:federation` scope. No effect unless `publicApi` + `federation` are on.
+   */
+  publicApiMetricsFederation: boolean;
 }
 
 export interface IdentityFeatures {

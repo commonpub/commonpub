@@ -35,6 +35,8 @@ describe('defineCommonPubConfig', () => {
     // self-skips when registryUrl == own domain).
     expect(config.features.actAsRegistry).toBe(false);
     expect(config.features.announceToRegistry).toBe(true);
+    // Federation reach metrics are opt-in (third-party/network-topology data).
+    expect(config.features.publicApiMetricsFederation).toBe(false);
   });
 
   it('defaults registry federation knobs (url + ping interval) via the factory', () => {

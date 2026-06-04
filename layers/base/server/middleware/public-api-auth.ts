@@ -1,7 +1,9 @@
 import {
   apiKeyRateLimit,
   authenticateApiKey,
+  isWellFormedOrigin,
   logApiKeyUsage,
+  matchOrigin,
   touchLastUsed,
   type ApiKey,
 } from '@commonpub/server';
@@ -45,10 +47,12 @@ export default defineEventHandler(async (event) => {
     setResponseHeader(event, 'Access-Control-Allow-Headers', 'Authorization, Content-Type');
     setResponseHeader(event, 'Access-Control-Max-Age', 600);
     const origin = getRequestHeader(event, 'origin');
-    if (origin) {
-      // Echo origin only on preflight — real requests get the per-key
-      // allow-list check below. Browsers that don't trust this echo because
-      // credentials aren't involved will simply fall back to the no-CORS path.
+    // Echo origin only on preflight — real requests get the per-key allow-list
+    // check below. Preflight is UNAUTHENTICATED, so the raw header is only
+    // reflected after `isWellFormedOrigin` rejects CRLF / control characters
+    // (reflecting an unvalidated header is a response-splitting sink). Browsers
+    // that don't trust this echo (no credentials) fall back to the no-CORS path.
+    if (origin && isWellFormedOrigin(origin)) {
       setResponseHeader(event, 'Access-Control-Allow-Origin', origin);
       appendResponseHeader(event, 'Vary', 'Origin');
     }
@@ -85,16 +89,18 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 429, statusMessage: 'Rate limit exceeded' });
   }
 
-  // Per-key CORS allow-list. `null` means server-to-server only (no CORS
-  // headers, so browser cross-origin calls are blocked by the browser).
-  if (key.allowedOrigins && key.allowedOrigins.length > 0) {
-    const origin = getRequestHeader(event, 'origin');
-    if (origin && key.allowedOrigins.includes(origin)) {
-      setResponseHeader(event, 'Access-Control-Allow-Origin', origin);
-      setResponseHeader(event, 'Access-Control-Allow-Methods', 'GET, OPTIONS');
-      setResponseHeader(event, 'Access-Control-Allow-Headers', 'Authorization, Content-Type');
-      appendResponseHeader(event, 'Vary', 'Origin');
-    }
+  // Per-key CORS allow-list, wildcard-aware (see `matchOrigin`). An empty/null
+  // list means server-to-server only (no CORS headers, so the browser blocks
+  // cross-origin calls). Patterns support `*` (any origin), `localhost`, and
+  // scheme/subdomain/port wildcards. `*` is safe here because auth is a Bearer
+  // token, not a cookie, and we never send Access-Control-Allow-Credentials.
+  const cors = matchOrigin(key.allowedOrigins, getRequestHeader(event, 'origin'));
+  if (cors.allowed && cors.headerValue) {
+    setResponseHeader(event, 'Access-Control-Allow-Origin', cors.headerValue);
+    setResponseHeader(event, 'Access-Control-Allow-Methods', 'GET, OPTIONS');
+    setResponseHeader(event, 'Access-Control-Allow-Headers', 'Authorization, Content-Type');
+    // Reflected origins vary by request; the literal `*` does not.
+    if (!cors.wildcard) appendResponseHeader(event, 'Vary', 'Origin');
   }
 
   event.context.apiKey = key;

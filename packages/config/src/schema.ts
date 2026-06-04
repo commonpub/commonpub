@@ -60,6 +60,12 @@ export const featureFlagsSchema = z.object({
   // Set false to opt out of discovery).
   actAsRegistry: z.boolean().default(false),
   announceToRegistry: z.boolean().default(true),
+  // Public-API federation reach metrics (`GET /api/public/v1/metrics/federation`).
+  // Default OFF: this aggregates peer-instance/domain data (network topology about
+  // THIRD parties), so exposing it is a deliberate operator opt-in beyond merely
+  // granting the `read:federation` scope to a key. Has no effect unless
+  // `publicApi` + `federation` are also on.
+  publicApiMetricsFederation: z.boolean().default(false),
 });
 
 export const authConfigSchema = z.object({

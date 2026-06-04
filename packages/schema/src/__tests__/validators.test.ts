@@ -27,6 +27,8 @@ import {
   createDocsSiteSchema,
   createDocsPageSchema,
   updateDocsPageSchema,
+  originPatternSchema,
+  createApiKeySchema,
   createDocsVersionSchema,
   adminUpdateRoleSchema,
   adminUpdateStatusSchema,
@@ -1495,5 +1497,79 @@ describe('updateDocsPageSchema', () => {
   it('allows empty object for no-op update', () => {
     const result = updateDocsPageSchema.safeParse({});
     expect(result.success).toBe(true);
+  });
+});
+
+describe('originPatternSchema (public-API CORS)', () => {
+  const accepts = [
+    '*',
+    'localhost',
+    'http://localhost:3000',
+    'http://localhost:*',
+    'https://app.example.com',
+    'https://*.example.com',
+    '*://localhost:*',
+    'http://127.0.0.1:5173',
+  ];
+  for (const v of accepts) {
+    it(`accepts ${JSON.stringify(v)}`, () => {
+      expect(originPatternSchema.safeParse(v).success).toBe(true);
+    });
+  }
+
+  const rejects = [
+    '',
+    '   ',
+    'javascript:alert(1)',
+    'data:text/html,x',
+    'file:///etc/passwd',
+    'ftp://example.com',
+    'notaurl',
+    'http://',
+    '*foo',
+    'foo*',
+    'https://example.com/path', // origins have no path
+    'a'.repeat(300),
+  ];
+  for (const v of rejects) {
+    it(`rejects ${JSON.stringify(v.length > 30 ? v.slice(0, 30) + '…' : v)}`, () => {
+      expect(originPatternSchema.safeParse(v).success).toBe(false);
+    });
+  }
+
+  it('trims surrounding whitespace before validating', () => {
+    const r = originPatternSchema.safeParse('  https://app.example.com  ');
+    expect(r.success).toBe(true);
+    if (r.success) expect(r.data).toBe('https://app.example.com');
+  });
+});
+
+describe('createApiKeySchema.allowedOrigins', () => {
+  const base = { name: 'k', scopes: ['read:content'] };
+
+  it('accepts a wildcard / localhost / exact mix (the bug this fixes)', () => {
+    const r = createApiKeySchema.safeParse({
+      ...base,
+      allowedOrigins: ['*', 'localhost', 'https://app.example.com', 'http://localhost:*'],
+    });
+    expect(r.success).toBe(true);
+  });
+
+  it('rejects a non-http(s) scheme smuggled into the list', () => {
+    const r = createApiKeySchema.safeParse({
+      ...base,
+      allowedOrigins: ['https://ok.com', 'javascript:alert(1)'],
+    });
+    expect(r.success).toBe(false);
+  });
+
+  it('still allows null / omitted (server-to-server, the default)', () => {
+    expect(createApiKeySchema.safeParse({ ...base, allowedOrigins: null }).success).toBe(true);
+    expect(createApiKeySchema.safeParse({ ...base }).success).toBe(true);
+  });
+
+  it('caps the list at 50 origins', () => {
+    const many = Array.from({ length: 51 }, (_, i) => `https://h${i}.example.com`);
+    expect(createApiKeySchema.safeParse({ ...base, allowedOrigins: many }).success).toBe(false);
   });
 });

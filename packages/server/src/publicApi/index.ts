@@ -4,6 +4,8 @@ export type { GeneratedKey } from './keys.js';
 export type { ApiKey } from '@commonpub/schema';
 export { apiKeyRateLimit, ApiKeyRateLimit } from './rateLimit.js';
 export type { RateLimitResult } from './rateLimit.js';
+export { matchOrigin, expandOriginPatterns, isWellFormedOrigin } from './cors.js';
+export type { CorsDecision } from './cors.js';
 export { authenticateApiKey } from './auth.js';
 export type { AuthResult, AuthSuccess, AuthRejected, AuthFailure } from './auth.js';
 export {
@@ -17,6 +19,22 @@ export {
 export type { CreateApiKeyResult } from './adminOps.js';
 export { getApiKeyUsageStats } from './usage.js';
 export type { ApiKeyUsageStats } from './usage.js';
+export {
+  METRICS_MIN_BUCKET,
+  getMetricsOverview,
+  getTopContent,
+  getTrendingTags,
+  getTopContributors,
+  getEngagementMetrics,
+  getFederationReach,
+} from './metrics.js';
+export type {
+  MetricsOverview,
+  ContentMetric,
+  MetricsTopContributor,
+  MetricsEngagement,
+  MetricsFederationReach,
+} from './metrics.js';
 export {
   toPublicUser,
   isPublicUser,
