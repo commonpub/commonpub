@@ -273,9 +273,10 @@ Five stages (Stages editor), with the cull + per-round rubrics:
 
 1. **"Proposals open"** — `submission`, `endsAt` = proposal deadline (June). Description: "Publish your
    blueprint — no prototype yet." Status → `active`.
-2. **"Top 50 Selection"** — `review`, criteria = *Community impact / Technical merit / Feasibility*.
-   Judges (the joint workgroup) score every proposal; the organiser runs **Advance top 50** → the 50
-   advance, the rest are marked "not advanced". Status → `judging` for this round.
+2. **"Top 50 Selection"** — `review`, `advanceCount` = 50, criteria = *Community impact / Technical
+   merit / Feasibility*. Judges (the joint workgroup) score every proposal; the organiser runs
+   **Advance top 50** (pre-filled from `advanceCount`) → the 50 advance, the rest are marked "not
+   advanced". Status → `judging` for this round.
 3. **"Hardware Sprint"** — `interim` (≈8 weeks, July–Aug). The 50 refine their entries (add prototype
    repo + writeup + demo); no new entrants. Description spells out the required final submission.
 4. **"Final Judging"** — `review`, criteria = *Community impact/usefulness / Technical quality /

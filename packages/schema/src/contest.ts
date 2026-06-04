@@ -41,6 +41,13 @@ export interface ContestStage {
    * judge UI falls back to the contest-level `judgingCriteria`.
    */
   criteria?: Array<{ label: string; weight?: number; description?: string }>;
+  /**
+   * For `review` stages: how many entries advance out of this round (the Top-N
+   * "winners" of the round). Defines the cut as part of the contest plan — the
+   * Advancement control pre-fills it and the timeline can show "Top N advance".
+   * Optional; null/undefined = decided ad-hoc at advance time.
+   */
+  advanceCount?: number;
 }
 
 /** @v2 — Contest system. Tables defined but not yet referenced in application code. */

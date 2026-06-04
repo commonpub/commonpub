@@ -373,6 +373,8 @@ export const contestStageSchema = z.object({
   url: optionalUrl(),
   // Per-round rubric (review stages). Reuses the contest-level criterion shape.
   criteria: z.array(contestJudgingCriterionSchema).max(20).optional(),
+  // Review stages: how many advance out of this round (the Top-N cut).
+  advanceCount: z.number().int().min(1).max(100000).optional(),
 });
 export type ContestStageInput = z.infer<typeof contestStageSchema>;
 

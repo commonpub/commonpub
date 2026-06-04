@@ -150,13 +150,13 @@ a minute (`curl deveco.io/api/content?limit=5`, today's timestamp).
 ### Published versions (verified 2026-06-04)
 | Package | Version | | Package | Version |
 |---|---|---|---|---|
-| @commonpub/schema | **0.31.0** | | @commonpub/infra | 0.8.0 |
+| @commonpub/schema | **0.32.0** | | @commonpub/infra | 0.8.0 |
 | @commonpub/config | **0.18.0** | | @commonpub/editor | 0.7.11 |
 | @commonpub/protocol | 0.13.0 | | @commonpub/explainer | 0.7.15 |
 | @commonpub/auth | 0.8.0 | | @commonpub/docs | 0.6.3 |
-| @commonpub/server | **2.78.0** | | @commonpub/learning | 0.5.2 |
+| @commonpub/server | **2.79.0** | | @commonpub/learning | 0.5.2 |
 | @commonpub/ui | 0.9.2 | | @commonpub/test-utils | 0.5.6 |
-| @commonpub/layer | **0.56.0** | | create-commonpub (crates.io) | **0.5.7** |
+| @commonpub/layer | **0.57.0** | | create-commonpub (crates.io) | **0.5.7** |
 
 Migrations applied this cycle: **0016** (`contests.cover_image_url`) · **0017** (`contest_status`
 +draft/+paused; `contests.show_prizes`) · **0018** (`contests.stages` jsonb + `contests.current_stage_id`
@@ -238,6 +238,14 @@ editor explains what each kind does, and review stages get a per-round criteria 
 build walkthrough is in the plan. KNOWN GAP (deferred): judge scores are single-slot, not keyed by
 round — a 2nd judging round overwrites the live score (round aggregate is snapshotted in
 `stage_state`); proper fix = tag `judgeScores` by `stageId`.
+
+Contest **per-round advance count + end-to-end test** (2026-06-04, schema 0.32.0 / server 2.79.0 /
+layer 0.57.0, all 3, no migration): review stages now carry an **`advanceCount`** (the Top-N
+"winners" of that round) — set in the stages editor; the Advancement control pre-fills it. Added a
+full **end-to-end integration test** exercising the whole multi-round flow (stages w/ per-round
+criteria + advanceCount → submit → round-1 judging → Top-N cull → round-1 snapshot → cohort gate
+blocks eliminated in round 2 → re-score → complete → final ranks exclude the eliminated). Server
+suite 1259, layer 917 green.
 
 Recent UI follow-ups (2026-06-03): contest hero banner 260→195px (layer 0.46.0); deveco.io mobile-nav
 hamburger fixed (its forked `layouts/default.vue` used bare `<MobileNavRenderer>` → unresolved;

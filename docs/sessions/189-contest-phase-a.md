@@ -153,6 +153,18 @@ review rounds with different criteria). Audit found 4 gaps; closed 3, documented
 - Full **Resilient America build walkthrough** written into the plan (5 stages + cull + per-round
   rubrics). Everything except G3 is supported today.
 
+## Per-round advance count + end-to-end test (same session, schema 0.32.0 / server 2.79.0 / layer 0.57.0)
+
+- **`ContestStage.advanceCount`** (additive jsonb) — define the Top-N "winners" of a review round as
+  part of the contest plan; the stages editor sets it, the edit-page Advancement control pre-fills it.
+  Was previously only an ad-hoc number at advance time.
+- **End-to-end integration test** (the user asked to "run the flow end to end"): a full multi-round
+  run — stages w/ per-round criteria + advanceCount → submit 3 → round-1 judging → Top-2 cull →
+  round-1 snapshot → cohort gate blocks the eliminated entry in round 2 → re-score → complete →
+  final ranks (B=1, A=2, eliminated=null). Validates the whole pipeline together.
+- Audit: moved `advanceN`/`advancing` refs above the contest loader in edit.vue (the loader pre-fills
+  `advanceN` — declaring it after risked an SSR temporal-dead-zone crash; cf. provider-inject guard).
+
 ## Decisions
 
 - Kept the `status` enum as the coarse lifecycle; fine-grained "which round" will live in

@@ -167,6 +167,80 @@ describe('contest integration', () => {
     expect(ok.judged).toBe(true);
   });
 
+  it('end-to-end: multi-round contest (proposals → Top-N cull → sprint → final judging → ranks)', async () => {
+    // Resilient-America shape: 2 review rounds with different criteria + a cull.
+    const stages = [
+      { id: 'sub', name: 'Proposals Open', kind: 'submission' as const },
+      { id: 'r1', name: 'Top 2 Selection', kind: 'review' as const, advanceCount: 2,
+        criteria: [{ label: 'Community impact' }, { label: 'Feasibility' }] },
+      { id: 'sprint', name: 'Hardware Sprint', kind: 'interim' as const },
+      { id: 'r2', name: 'Final Judging', kind: 'review' as const,
+        criteria: [{ label: 'Deployment readiness' }] },
+      { id: 'finale', name: 'Finale — D.C.', kind: 'event' as const, location: 'Washington, D.C.' },
+    ];
+    const contest = await createContest(db, {
+      ...makeContestInput({ title: `E2E ${Date.now()}` }),
+      stages,
+      currentStageId: 'sub',
+      judges: [judgeUserId],
+    });
+    await addContestJudge(db, contest.id, judgeUserId, 'judge');
+    await acceptJudgeInvite(db, contest.id, judgeUserId);
+
+    // Stage config persisted (per-round criteria + advanceCount).
+    const loaded = await getContestBySlug(db, contest.slug);
+    expect(loaded!.stages.find((s) => s.id === 'r1')!.advanceCount).toBe(2);
+    expect(loaded!.stages.find((s) => s.id === 'r1')!.criteria).toHaveLength(2);
+    expect(loaded!.currentStageId).toBe('sub');
+
+    // Submit 3 proposals while active.
+    await transitionContestStatus(db, contest.id, organizerId, 'active');
+    const entries: { id: string; user: string }[] = [];
+    for (const title of ['A', 'B', 'C']) {
+      const u = await createTestUser(db, { username: `e2e-${title}-${Date.now()}-${Math.random().toString(36).slice(2, 5)}` });
+      const content = await createContent(db, u.id, { type: 'project', title });
+      await publishContent(db, content.id, u.id);
+      const e = await submitContestEntry(db, contest.id, content.id, u.id);
+      entries.push({ id: e!.id, user: u.id });
+    }
+    const [a, b, c] = entries.map((e) => e.id);
+
+    // ── Round 1: judge all 3 proposals; A=90, B=70, C=40 ──
+    await transitionContestStatus(db, contest.id, organizerId, 'judging');
+    await updateContest(db, contest.slug, organizerId, { currentStageId: 'r1' });
+    await judgeContestEntry(db, a, 90, judgeUserId);
+    await judgeContestEntry(db, b, 70, judgeUserId);
+    await judgeContestEntry(db, c, 40, judgeUserId);
+
+    // Cut to the top 2 (the stage's advanceCount).
+    const adv = await advanceContestStage(db, contest.id, organizerId, { reviewStageId: 'r1', mode: 'topN', topN: 2 });
+    expect(adv.advancedCount).toBe(2);
+    expect(adv.eliminatedCount).toBe(1);
+    expect((await getContestBySlug(db, contest.slug))!.currentStageId).toBe('sprint'); // moved to next stage
+
+    // Round-1 result snapshotted per entry.
+    const afterCut = (await listContestEntries(db, contest.id, { limit: 50 })).items;
+    const byId = Object.fromEntries(afterCut.map((e) => [e.id, e]));
+    expect(byId[c]!.eliminated).toBe(true);
+    expect(byId[a]!.stageState.find((s) => s.stageId === 'r1')!.score).toBe(90);
+
+    // ── Round 2: only survivors are judgeable ──
+    await updateContest(db, contest.slug, organizerId, { currentStageId: 'r2' });
+    const rejectC = await judgeContestEntry(db, c, 99, judgeUserId); // eliminated → blocked
+    expect(rejectC.judged).toBe(false);
+    expect(rejectC.error).toMatch(/not advanced/i);
+    // Re-score the 2 finalists on the prototype; B now beats A.
+    expect((await judgeContestEntry(db, a, 85, judgeUserId)).judged).toBe(true);
+    expect((await judgeContestEntry(db, b, 95, judgeUserId)).judged).toBe(true);
+
+    // ── Finale: complete → ranks computed over the surviving cohort only ──
+    await transitionContestStatus(db, contest.id, organizerId, 'completed');
+    const final = Object.fromEntries((await listContestEntries(db, contest.id, { limit: 50 })).items.map((e) => [e.id, e]));
+    expect(final[b]!.rank).toBe(1); // 95
+    expect(final[a]!.rank).toBe(2); // 85
+    expect(final[c]!.rank).toBeNull(); // eliminated — never ranked
+  });
+
   it('advanceContestStage: rejects non-owner + non-review stage', async () => {
     const stages = [{ id: 'sub', name: 'Subs', kind: 'submission' as const }, { id: 'rev', name: 'Judge', kind: 'review' as const }];
     const contest = await createContest(db, { ...makeContestInput({ title: `Adv guard ${Date.now()}` }), stages });

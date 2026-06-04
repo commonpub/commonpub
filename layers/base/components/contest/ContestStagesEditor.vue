@@ -63,6 +63,10 @@ function critWeightInput(i: number, ci: number, e: Event): void {
   const v = (e.target as HTMLInputElement).value;
   setCriterion(i, ci, { weight: v === '' ? undefined : Math.max(0, Math.min(100, Math.round(Number(v)))) });
 }
+function advanceCountInput(i: number, e: Event): void {
+  const v = (e.target as HTMLInputElement).value;
+  setField(i, { advanceCount: v === '' ? undefined : Math.max(1, Math.round(Number(v))) });
+}
 
 // Array operations live as pure functions in utils/contestStages.ts (unit-tested).
 function addStage(): void {
@@ -190,8 +194,12 @@ const missingSubmission = computed(() => stages.value.length > 0 && !stages.valu
             />
           </div>
 
-          <!-- Per-round judging rubric (review stages) -->
+          <!-- Per-round config (review stages): how many advance + the rubric -->
           <div v-if="stage.kind === 'review'" class="cpub-stage-criteria">
+            <div class="cpub-form-field" style="margin-bottom: 10px;">
+              <label class="cpub-form-label">Advance the top N to the next stage</label>
+              <input :value="stage.advanceCount ?? ''" type="number" min="1" class="cpub-form-input cpub-stage-advn" placeholder="e.g. 50 — leave blank to decide at advance time" @input="advanceCountInput(i, $event)" />
+            </div>
             <div class="cpub-stage-criteria-head">
               <span class="cpub-form-label" style="margin: 0;">Judging criteria — this round</span>
               <button type="button" class="cpub-btn cpub-btn-sm" @click="addCriterion(i)"><i class="fa-solid fa-plus"></i> Add</button>
@@ -258,4 +266,5 @@ const missingSubmission = computed(() => stages.value.length > 0 && !stages.valu
 .cpub-stage-crit-row { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
 .cpub-stage-crit-row .cpub-form-input { margin: 0; }
 .cpub-stage-crit-pts { max-width: 70px; flex-shrink: 0; }
+.cpub-stage-advn { max-width: 320px; }
 </style>

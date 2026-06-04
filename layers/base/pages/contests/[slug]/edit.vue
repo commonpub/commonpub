@@ -60,6 +60,9 @@ const criteria = ref<Criterion[]>([]);
 // Phase B1 — explicit stage timeline (empty ⇒ standard synthesized flow).
 const stages = ref<ContestStage[]>([]);
 const currentStageIdRef = ref<string | null>(null);
+// Declared before the contest loader (below) since the loader pre-fills advanceN.
+const advancing = ref<string | null>(null);
+const advanceN = ref<Record<string, number>>({});
 
 // Load current data
 watch(contest, (c) => {
@@ -83,6 +86,10 @@ watch(contest, (c) => {
   showPrizes.value = c.showPrizes !== false;
   stages.value = Array.isArray(c.stages) ? [...c.stages] : [];
   currentStageIdRef.value = c.currentStageId ?? null;
+  // Pre-fill the Advancement control from each review stage's defined cut.
+  for (const s of stages.value) {
+    if (s.kind === 'review' && typeof s.advanceCount === 'number') advanceN.value[s.id] = s.advanceCount;
+  }
   prizesDescription.value = c.prizesDescription ?? '';
   prizes.value = (c.prizes ?? []).map((p: { place?: number; category?: string; title?: string; description?: string; value?: string }) => ({
     place: p.place ?? null,
@@ -218,8 +225,6 @@ const statusAction = contestStatusAction;
 
 // Phase B2 — advancement cuts. Operates on the PERSISTED stages (contest.value),
 // not the editable `stages` ref, since it acts on real entries.
-const advancing = ref<string | null>(null);
-const advanceN = ref<Record<string, number>>({});
 const reviewStages = computed(() => (contest.value?.stages ?? []).filter((s) => s.kind === 'review'));
 async function advanceStage(stageId: string): Promise<void> {
   const topN = advanceN.value[stageId];
