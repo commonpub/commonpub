@@ -61,91 +61,102 @@ const isEnded = computed(() => c.value?.status === 'completed' || c.value?.statu
 const tagline = computed<string>(() => {
   const sub = (c.value?.subheading ?? '').trim();
   if (sub) return sub;
-  return markdownToExcerpt(c.value?.description) || 'No description available.';
+  return markdownToExcerpt(c.value?.description) || '';
+});
+
+const dateRange = computed<string>(() => {
+  const fmt = (d: string, withYear = false) =>
+    new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', ...(withYear ? { year: 'numeric' } : {}) });
+  const start = c.value?.startDate ? fmt(c.value.startDate) : '';
+  const end = c.value?.endDate ? fmt(c.value.endDate, true) : '';
+  if (start && end) return `${start} — ${end}`;
+  return start || end;
 });
 </script>
 
 <template>
   <div class="cpub-hero">
-    <div class="cpub-hero-pattern">
-      <div class="cpub-hero-dots"></div>
-      <div class="cpub-hero-lines"></div>
+    <!-- Banner band — full-width image at the top, the same way other content
+         pages render their hero banner (clean band, never overlaid by text). -->
+    <div v-if="c?.bannerUrl" class="cpub-hero-banner">
+      <img :src="c.bannerUrl" :alt="`${c?.title || 'Contest'} banner`" />
     </div>
 
-    <div class="cpub-hero-inner">
-      <!-- Banner image: a clean band at the top of the hero. Title/tagline sit
-           BELOW it (never overlaid) so text stays legible regardless of image. -->
-      <img v-if="c?.bannerUrl" :src="c.bannerUrl" :alt="`${c?.title || 'Contest'} banner`" class="cpub-hero-banner" />
-
-      <div v-if="c?.status === 'cancelled'" class="cpub-cancelled-banner">
-        <i class="fa-solid fa-ban"></i> This contest has been cancelled.
+    <!-- Hero body — the contest's dark, patterned section. Two columns:
+         title + details on the left, the countdown on the right. -->
+    <div class="cpub-hero-body">
+      <div class="cpub-hero-pattern" aria-hidden="true">
+        <div class="cpub-hero-dots"></div>
+        <div class="cpub-hero-lines"></div>
       </div>
 
-      <div class="cpub-hero-eyebrow">
-        <span class="cpub-contest-badge"><i class="fa fa-trophy"></i> Contest</span>
-      </div>
-
-      <div class="cpub-hero-title">{{ c?.title || 'Contest' }}</div>
-      <div class="cpub-hero-tagline">{{ tagline }}</div>
-
-      <div class="cpub-hero-meta">
-        <span v-if="c?.startDate || c?.endDate" class="cpub-hero-meta-item">
-          <i class="fa fa-calendar"></i>
-          {{ c?.startDate ? new Date(c.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '' }}{{ c?.startDate && c?.endDate ? ' — ' : '' }}{{ c?.endDate ? new Date(c.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '' }}
-        </span>
-        <span v-if="c?.startDate || c?.endDate" class="cpub-hero-meta-sep">|</span>
-        <span class="cpub-hero-meta-item"><i class="fa fa-folder-open"></i> {{ c?.entryCount ?? 0 }} entries</span>
-      </div>
-
-      <!-- COUNTDOWN -->
-      <div v-if="!isEnded" class="cpub-countdown-section">
-        <div class="cpub-countdown-label"><i class="fa fa-clock"></i> {{ countdownLabel }}</div>
-        <div class="cpub-countdown-row">
-          <div class="cpub-countdown-block">
-            <div class="cpub-countdown-val">{{ countdown.days }}</div>
-            <div class="cpub-countdown-unit">Days</div>
-          </div>
-          <div class="cpub-countdown-sep">:</div>
-          <div class="cpub-countdown-block">
-            <div class="cpub-countdown-val">{{ countdown.hours }}</div>
-            <div class="cpub-countdown-unit">Hours</div>
-          </div>
-          <div class="cpub-countdown-sep">:</div>
-          <div class="cpub-countdown-block">
-            <div class="cpub-countdown-val">{{ countdown.mins }}</div>
-            <div class="cpub-countdown-unit">Minutes</div>
-          </div>
-          <div class="cpub-countdown-sep">:</div>
-          <div class="cpub-countdown-block">
-            <div class="cpub-countdown-val">{{ countdown.secs }}</div>
-            <div class="cpub-countdown-unit">Seconds</div>
-          </div>
+      <div class="cpub-hero-inner">
+        <div v-if="c?.status === 'cancelled'" class="cpub-cancelled-banner">
+          <i class="fa-solid fa-ban"></i> This contest has been cancelled.
         </div>
-      </div>
 
-      <div class="cpub-hero-cta">
-        <button v-if="isAuthenticated && c?.status === 'active'" class="cpub-btn cpub-btn-primary cpub-btn-lg" @click="emit('submit-entry')"><i class="fa fa-upload"></i> Submit Entry</button>
-        <button class="cpub-btn cpub-btn-lg cpub-btn-dark" @click="emit('copy-link')"><i class="fa fa-link"></i> Share</button>
-      </div>
+        <div class="cpub-hero-grid">
+          <!-- LEFT: title + details + actions -->
+          <div class="cpub-hero-main">
+            <div class="cpub-hero-eyebrow">
+              <span class="cpub-contest-badge"><i class="fa fa-trophy"></i> Contest</span>
+              <span class="cpub-status-pill" :data-status="c?.status || 'upcoming'">{{ c?.status || 'upcoming' }}</span>
+            </div>
 
-      <!-- Admin controls -->
-      <div v-if="isAdmin && c" class="cpub-admin-controls">
-        <span class="cpub-admin-controls-label"><i class="fa-solid fa-shield-halved"></i> Admin</span>
-        <button v-if="c.status === 'upcoming'" class="cpub-btn cpub-btn-sm" :disabled="transitioning" @click="emit('transition', 'active')"><i class="fa-solid fa-play"></i> Activate</button>
-        <button v-if="c.status === 'active'" class="cpub-btn cpub-btn-sm" :disabled="transitioning" @click="emit('transition', 'judging')"><i class="fa-solid fa-gavel"></i> Start Judging</button>
-        <button v-if="c.status === 'judging'" class="cpub-btn cpub-btn-sm" :disabled="transitioning" @click="emit('transition', 'completed')"><i class="fa-solid fa-check"></i> Complete</button>
-        <button v-if="c.status !== 'completed' && c.status !== 'cancelled'" class="cpub-btn cpub-btn-sm cpub-btn-cancel" :disabled="transitioning" @click="emit('transition', 'cancelled')"><i class="fa-solid fa-ban"></i> Cancel</button>
-        <span class="cpub-admin-status">Status: <strong>{{ c.status }}</strong></span>
-      </div>
+            <h1 class="cpub-hero-title">{{ c?.title || 'Contest' }}</h1>
+            <p v-if="tagline" class="cpub-hero-tagline">{{ tagline }}</p>
 
-      <div class="cpub-hero-stats">
-        <div class="cpub-hero-stat">
-          <div class="cpub-hero-stat-val">{{ c?.entryCount ?? 0 }}</div>
-          <div class="cpub-hero-stat-label">Entries</div>
-        </div>
-        <div class="cpub-hero-stat">
-          <div class="cpub-hero-stat-val">{{ c?.status ?? 'upcoming' }}</div>
-          <div class="cpub-hero-stat-label">Status</div>
+            <div class="cpub-hero-meta">
+              <span v-if="dateRange" class="cpub-hero-meta-item"><i class="fa fa-calendar"></i> {{ dateRange }}</span>
+              <span class="cpub-hero-meta-item"><i class="fa fa-folder-open"></i> {{ c?.entryCount ?? 0 }} {{ (c?.entryCount ?? 0) === 1 ? 'entry' : 'entries' }}</span>
+            </div>
+
+            <div class="cpub-hero-cta">
+              <button v-if="isAuthenticated && c?.status === 'active'" class="cpub-btn cpub-btn-primary cpub-btn-lg" @click="emit('submit-entry')"><i class="fa fa-upload"></i> Submit Entry</button>
+              <button class="cpub-btn cpub-btn-lg cpub-btn-dark" @click="emit('copy-link')"><i class="fa fa-link"></i> Share</button>
+            </div>
+
+            <!-- Admin controls -->
+            <div v-if="isAdmin && c" class="cpub-admin-controls">
+              <span class="cpub-admin-controls-label"><i class="fa-solid fa-shield-halved"></i> Admin</span>
+              <button v-if="c.status === 'upcoming'" class="cpub-btn cpub-btn-sm" :disabled="transitioning" @click="emit('transition', 'active')"><i class="fa-solid fa-play"></i> Activate</button>
+              <button v-if="c.status === 'active'" class="cpub-btn cpub-btn-sm" :disabled="transitioning" @click="emit('transition', 'judging')"><i class="fa-solid fa-gavel"></i> Start Judging</button>
+              <button v-if="c.status === 'judging'" class="cpub-btn cpub-btn-sm" :disabled="transitioning" @click="emit('transition', 'completed')"><i class="fa-solid fa-check"></i> Complete</button>
+              <button v-if="c.status !== 'completed' && c.status !== 'cancelled'" class="cpub-btn cpub-btn-sm cpub-btn-cancel" :disabled="transitioning" @click="emit('transition', 'cancelled')"><i class="fa-solid fa-ban"></i> Cancel</button>
+            </div>
+          </div>
+
+          <!-- RIGHT: countdown -->
+          <aside class="cpub-hero-side">
+            <div v-if="!isEnded" class="cpub-countdown-section">
+              <div class="cpub-countdown-label"><i class="fa fa-clock"></i> {{ countdownLabel }}</div>
+              <div class="cpub-countdown-row">
+                <div class="cpub-countdown-block">
+                  <div class="cpub-countdown-val">{{ countdown.days }}</div>
+                  <div class="cpub-countdown-unit">Days</div>
+                </div>
+                <div class="cpub-countdown-sep">:</div>
+                <div class="cpub-countdown-block">
+                  <div class="cpub-countdown-val">{{ countdown.hours }}</div>
+                  <div class="cpub-countdown-unit">Hours</div>
+                </div>
+                <div class="cpub-countdown-sep">:</div>
+                <div class="cpub-countdown-block">
+                  <div class="cpub-countdown-val">{{ countdown.mins }}</div>
+                  <div class="cpub-countdown-unit">Minutes</div>
+                </div>
+                <div class="cpub-countdown-sep">:</div>
+                <div class="cpub-countdown-block">
+                  <div class="cpub-countdown-val">{{ countdown.secs }}</div>
+                  <div class="cpub-countdown-unit">Seconds</div>
+                </div>
+              </div>
+            </div>
+            <div v-else class="cpub-countdown-ended">
+              <i class="fa-solid fa-flag-checkered"></i>
+              <span>{{ countdownLabel }}</span>
+            </div>
+          </aside>
         </div>
       </div>
     </div>
@@ -157,37 +168,59 @@ const tagline = computed<string>(() => {
   --hero-bg: var(--text);
   --hero-text: var(--color-text-inverse);
   --hero-text-dim: var(--text-faint);
-  /* Alpha of the hero foreground so the structure lines/surfaces track
-     the inverted hero in both themes (white-on-dark in light mode,
-     dark-on-light in dark mode) instead of vanishing white-on-white. */
+  /* Alpha of the hero foreground so the structure lines/surfaces track the
+     inverted hero in both themes (white-on-dark in light mode, dark-on-light
+     in dark mode) instead of vanishing white-on-white. */
   --hero-border: color-mix(in srgb, var(--hero-text) 18%, transparent);
   --hero-surface: color-mix(in srgb, var(--hero-text) 7%, transparent);
-  position: relative; overflow: hidden; background: var(--hero-bg); padding: 56px 0 48px;
+}
+
+/* ── BANNER BAND ── full-width, clean, like other content pages' hero banner. */
+.cpub-hero-banner {
+  width: 100%;
+  background: var(--surface2);
+  border-bottom: var(--border-width-default) solid var(--border);
+  overflow: hidden;
+}
+.cpub-hero-banner img {
+  display: block;
+  width: 100%;
+  max-height: 300px;
+  object-fit: cover;
+  margin: 0 auto;
+}
+
+/* ── HERO BODY ── the contest's dark, patterned section. */
+.cpub-hero-body {
+  position: relative;
+  overflow: hidden;
+  background: var(--hero-bg);
+  padding: 44px 0;
 }
 .cpub-hero-pattern { position: absolute; inset: 0; }
 .cpub-hero-dots { position: absolute; inset: 0; background-image: radial-gradient(var(--accent-border) 1.5px, transparent 1.5px); background-size: 28px 28px; opacity: .3; }
 .cpub-hero-lines { position: absolute; inset: 0; background-image: linear-gradient(var(--accent-bg) 1px, transparent 1px), linear-gradient(90deg, var(--accent-bg) 1px, transparent 1px); background-size: 56px 56px; }
 .cpub-hero-inner { max-width: 1100px; margin: 0 auto; padding: 0 32px; position: relative; z-index: 1; }
-.cpub-hero-banner { display: block; width: 100%; max-height: 195px; object-fit: cover; margin-bottom: 28px; border: var(--border-width-default) solid var(--hero-border); border-radius: var(--radius); }
-.cpub-hero-eyebrow { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+
+.cpub-cancelled-banner { background: var(--red-bg); border: var(--border-width-default) solid var(--red-border); color: var(--red); padding: 10px 14px; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 8px; margin-bottom: 20px; }
+
+/* 2-column: details (flex) + countdown (auto width). */
+.cpub-hero-grid { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 48px; align-items: start; }
+.cpub-hero-main { min-width: 0; }
+
+.cpub-hero-eyebrow { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
 .cpub-contest-badge { font-size: 9px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; font-family: var(--font-mono); color: var(--accent); background: var(--accent-bg); border: var(--border-width-default) solid var(--accent); padding: 3px 10px; border-radius: var(--radius); display: inline-flex; align-items: center; gap: 5px; }
 .cpub-contest-badge i { font-size: 8px; }
-.cpub-hero-title { font-size: 36px; font-weight: 800; letter-spacing: -.03em; line-height: 1.1; margin-bottom: 10px; color: var(--hero-text); }
-.cpub-hero-tagline { font-size: 14px; color: var(--hero-text-dim); line-height: 1.55; max-width: 580px; margin-bottom: 28px; display: -webkit-box; -webkit-line-clamp: 4; line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
-.cpub-hero-meta { display: flex; align-items: center; gap: 20px; font-size: 11px; color: var(--hero-text-dim); font-family: var(--font-mono); margin-bottom: 28px; }
-.cpub-hero-meta-item { display: flex; align-items: center; gap: 5px; }
-.cpub-hero-meta-sep { color: var(--hero-border); }
+.cpub-status-pill { font-size: 9px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; font-family: var(--font-mono); padding: 3px 10px; border-radius: var(--radius); border: var(--border-width-default) solid var(--hero-border); color: var(--hero-text-dim); }
+.cpub-status-pill[data-status="active"] { color: var(--green); border-color: var(--green); background: color-mix(in srgb, var(--green) 14%, transparent); }
+.cpub-status-pill[data-status="judging"] { color: var(--accent); border-color: var(--accent); background: var(--accent-bg); }
+.cpub-status-pill[data-status="upcoming"] { color: var(--yellow); border-color: var(--yellow); }
+.cpub-status-pill[data-status="completed"], .cpub-status-pill[data-status="cancelled"] { color: var(--red); border-color: var(--red-border); }
 
-.cpub-countdown-section { margin-bottom: 28px; }
-.cpub-countdown-label { font-size: 10px; font-family: var(--font-mono); color: var(--hero-text-dim); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 10px; display: flex; align-items: center; gap: 4px; }
-.cpub-countdown-label i { color: var(--accent); }
-.cpub-countdown-row { display: flex; align-items: center; gap: 8px; }
-.cpub-countdown-block { display: flex; flex-direction: column; align-items: center; background: var(--hero-surface); border: var(--border-width-default) solid var(--hero-border); border-radius: var(--radius); padding: 10px 16px; min-width: 60px; box-shadow: 4px 4px 0 var(--hero-surface); }
-.cpub-countdown-val { font-size: 26px; font-weight: 700; font-family: var(--font-mono); color: var(--hero-text); line-height: 1; margin-bottom: 4px; }
-.cpub-countdown-unit { font-size: 9px; text-transform: uppercase; letter-spacing: .1em; color: var(--hero-text-dim); font-family: var(--font-mono); }
-.cpub-countdown-sep { font-size: 20px; font-weight: 700; color: var(--hero-border); margin-top: -8px; font-family: var(--font-mono); }
-
-.cpub-cancelled-banner { background: var(--red-bg); border: var(--border-width-default) solid var(--red-border); color: var(--red); padding: 10px 14px; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+.cpub-hero-title { font-size: 34px; font-weight: 800; letter-spacing: -.03em; line-height: 1.1; margin: 0 0 10px; color: var(--hero-text); }
+.cpub-hero-tagline { font-size: 14px; color: var(--hero-text-dim); line-height: 1.55; max-width: 600px; margin: 0 0 20px; display: -webkit-box; -webkit-line-clamp: 4; line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+.cpub-hero-meta { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; font-size: 11px; color: var(--hero-text-dim); font-family: var(--font-mono); margin-bottom: 24px; }
+.cpub-hero-meta-item { display: flex; align-items: center; gap: 6px; }
 
 .cpub-hero-cta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .cpub-btn-lg { padding: 10px 22px; font-size: 13px; }
@@ -196,31 +229,40 @@ const tagline = computed<string>(() => {
 .cpub-btn-cancel { color: var(--red); border-color: var(--red-border); }
 .cpub-btn-cancel:hover { background: var(--red-bg); }
 
-.cpub-hero-stats { display: flex; gap: 24px; margin-top: 28px; padding-top: 24px; border-top: var(--border-width-default) solid var(--hero-border); }
-.cpub-hero-stat { display: flex; flex-direction: column; }
-.cpub-hero-stat-val { font-size: 20px; font-weight: 700; font-family: var(--font-mono); color: var(--hero-text); }
-.cpub-hero-stat-label { font-size: 10px; color: var(--hero-text-dim); text-transform: uppercase; letter-spacing: .1em; font-family: var(--font-mono); }
-
-.cpub-admin-controls { display: flex; align-items: center; gap: 8px; margin-top: 16px; padding: 10px 14px; background: var(--accent-bg); border: var(--border-width-default) solid var(--accent-border); }
+.cpub-admin-controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 18px; padding: 10px 14px; background: var(--accent-bg); border: var(--border-width-default) solid var(--accent-border); }
 .cpub-admin-controls-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent); margin-right: 4px; font-family: var(--font-mono); }
-.cpub-admin-status { font-size: 11px; color: var(--text-dim); margin-left: auto; font-family: var(--font-mono); }
-.cpub-admin-status strong { color: var(--accent); text-transform: capitalize; }
 
+/* ── COUNTDOWN (right column) ── */
+.cpub-hero-side { display: flex; flex-direction: column; }
+.cpub-countdown-section { background: var(--hero-surface); border: var(--border-width-default) solid var(--hero-border); border-radius: var(--radius); padding: 16px 18px; }
+.cpub-countdown-label { font-size: 10px; font-family: var(--font-mono); color: var(--hero-text-dim); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 12px; display: flex; align-items: center; gap: 5px; white-space: nowrap; }
+.cpub-countdown-label i { color: var(--accent); }
+.cpub-countdown-row { display: flex; align-items: flex-start; gap: 8px; }
+.cpub-countdown-block { display: flex; flex-direction: column; align-items: center; background: var(--hero-bg); border: var(--border-width-default) solid var(--hero-border); border-radius: var(--radius); padding: 10px 14px; min-width: 56px; }
+.cpub-countdown-val { font-size: 24px; font-weight: 700; font-family: var(--font-mono); color: var(--hero-text); line-height: 1; margin-bottom: 4px; }
+.cpub-countdown-unit { font-size: 8px; text-transform: uppercase; letter-spacing: .1em; color: var(--hero-text-dim); font-family: var(--font-mono); }
+.cpub-countdown-sep { font-size: 20px; font-weight: 700; color: var(--hero-border); font-family: var(--font-mono); padding-top: 10px; }
+.cpub-countdown-ended { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .08em; color: var(--hero-text-dim); background: var(--hero-surface); border: var(--border-width-default) solid var(--hero-border); border-radius: var(--radius); padding: 14px 18px; }
+.cpub-countdown-ended i { color: var(--accent); }
+
+/* ── RESPONSIVE ── stack the countdown below the details. */
+@media (max-width: 900px) {
+  .cpub-hero-grid { grid-template-columns: 1fr; gap: 28px; }
+  .cpub-hero-side { align-items: flex-start; }
+}
 @media (max-width: 768px) {
-  .cpub-hero { padding: 32px 0 28px; }
+  .cpub-hero-body { padding: 32px 0; }
   .cpub-hero-inner { padding: 0 16px; }
+  .cpub-hero-banner img { max-height: 200px; }
   .cpub-hero-title { font-size: 24px; }
-  .cpub-hero-tagline { font-size: 13px; }
-  .cpub-hero-meta { flex-wrap: wrap; gap: 10px; }
-  .cpub-countdown-block { padding: 8px 12px; min-width: 48px; }
-  .cpub-countdown-val { font-size: 20px; }
+  .cpub-hero-meta { gap: 10px; }
 }
 @media (max-width: 480px) {
   .cpub-hero-title { font-size: 20px; }
   .cpub-hero-tagline { font-size: 12px; margin-bottom: 16px; }
-  .cpub-hero-stats { flex-wrap: wrap; gap: 16px; }
-  .cpub-hero-stat-val { font-size: 16px; }
   .cpub-hero-cta { flex-direction: column; align-items: stretch; }
   .cpub-countdown-row { flex-wrap: wrap; justify-content: center; }
+  .cpub-countdown-block { min-width: 48px; padding: 8px 12px; }
+  .cpub-countdown-val { font-size: 20px; }
 }
 </style>

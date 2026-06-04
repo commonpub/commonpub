@@ -17,6 +17,7 @@ const subheading = ref('');
 const description = ref('');
 const rules = ref('');
 const bannerUrl = ref('');
+const coverImageUrl = ref('');
 const startDate = ref('');
 const endDate = ref('');
 const judgingEndDate = ref('');
@@ -56,6 +57,7 @@ watch(contest, (c) => {
   description.value = c.description ?? '';
   rules.value = c.rules ?? '';
   bannerUrl.value = c.bannerUrl ?? '';
+  coverImageUrl.value = c.coverImageUrl ?? '';
   startDate.value = c.startDate ? new Date(c.startDate).toISOString().slice(0, 16) : '';
   endDate.value = c.endDate ? new Date(c.endDate).toISOString().slice(0, 16) : '';
   judgingEndDate.value = c.judgingEndDate ? new Date(c.judgingEndDate).toISOString().slice(0, 16) : '';
@@ -144,6 +146,7 @@ async function handleSave(): Promise<void> {
         description: description.value || undefined,
         rules: rules.value || undefined,
         bannerUrl: bannerUrl.value || undefined,
+        coverImageUrl: coverImageUrl.value || undefined,
         startDate: startDate.value ? new Date(startDate.value).toISOString() : undefined,
         endDate: endDate.value ? new Date(endDate.value).toISOString() : undefined,
         judgingEndDate: judgingEndDate.value ? new Date(judgingEndDate.value).toISOString() : undefined,
@@ -231,7 +234,10 @@ async function transitionStatus(newStatus: string): Promise<void> {
           <p class="cpub-form-hint">Supports Markdown. Plain one-rule-per-line text is rendered as a numbered list.</p>
         </div>
         <div class="cpub-form-field">
-          <ImageUpload v-model="bannerUrl" purpose="banner" label="Banner Image" hint="Wide image shown across the top of the contest page (~4:1)." />
+          <ImageUpload v-model="bannerUrl" purpose="banner" label="Banner Image" hint="Wide hero image across the top of the contest page (~4:1)." />
+        </div>
+        <div class="cpub-form-field">
+          <ImageUpload v-model="coverImageUrl" purpose="cover" label="Cover Image (optional)" hint="Card/thumbnail image shown in listings (~4:3). Falls back to the banner if unset." />
         </div>
       </section>
 

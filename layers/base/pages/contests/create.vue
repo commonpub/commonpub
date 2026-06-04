@@ -12,6 +12,7 @@ const subheading = ref('');
 const description = ref('');
 const rules = ref('');
 const bannerUrl = ref('');
+const coverImageUrl = ref('');
 const startDate = ref('');
 const endDate = ref('');
 const judgingEndDate = ref('');
@@ -48,11 +49,10 @@ interface Prize {
 }
 
 const prizesDescription = ref('');
-const prizes = ref<Prize[]>([
-  { place: 1, category: '', title: '1st Place', description: '', value: '' },
-  { place: 2, category: '', title: '2nd Place', description: '', value: '' },
-  { place: 3, category: '', title: '3rd Place', description: '', value: '' },
-]);
+// Prizes are entirely optional — start empty so a contest has NO prizes unless
+// the operator explicitly adds them (the old 3 pre-filled rows forced prizes
+// onto every contest, since their non-empty titles survived the submit filter).
+const prizes = ref<Prize[]>([]);
 
 function addPrize(): void {
   prizes.value.push({ place: null, category: '', title: '', description: '', value: '' });
@@ -96,6 +96,7 @@ async function handleCreate(): Promise<void> {
         description: description.value || undefined,
         rules: rules.value || undefined,
         bannerUrl: bannerUrl.value || undefined,
+        coverImageUrl: coverImageUrl.value || undefined,
         startDate: new Date(startDate.value).toISOString(),
         endDate: new Date(endDate.value).toISOString(),
         judgingEndDate: judgingEndDate.value ? new Date(judgingEndDate.value).toISOString() : undefined,
@@ -172,7 +173,10 @@ function prizeLabel(prize: Prize): string {
           <p class="cpub-form-hint">Supports Markdown. Plain one-rule-per-line text is rendered as a numbered list.</p>
         </div>
         <div class="cpub-form-field">
-          <ImageUpload v-model="bannerUrl" purpose="banner" label="Banner Image" hint="Wide image shown across the top of the contest page (~4:1)." />
+          <ImageUpload v-model="bannerUrl" purpose="banner" label="Banner Image" hint="Wide hero image across the top of the contest page (~4:1)." />
+        </div>
+        <div class="cpub-form-field">
+          <ImageUpload v-model="coverImageUrl" purpose="cover" label="Cover Image (optional)" hint="Card/thumbnail image shown in listings (~4:3). Falls back to the banner if unset." />
         </div>
       </section>
 
@@ -281,13 +285,13 @@ function prizeLabel(prize: Prize): string {
       <!-- Prizes -->
       <section class="cpub-form-section">
         <div class="cpub-form-section-header">
-          <h2 class="cpub-form-section-title">Prizes</h2>
+          <h2 class="cpub-form-section-title">Prizes <span style="color: var(--text-faint); font-weight: 400; font-size: 0.75em; font-family: var(--font-mono);">— optional</span></h2>
           <button type="button" class="cpub-btn cpub-btn-sm" @click="addPrize">
             <i class="fa-solid fa-plus"></i> Add Prize
           </button>
         </div>
 
-        <p class="cpub-form-hint">Every field is optional. Use <strong>place</strong> for ranked prizes (1st/2nd/3rd), a <strong>category</strong> for themed awards (e.g. "Best in Show"), or just a <strong>description</strong>. Cash value is optional.</p>
+        <p class="cpub-form-hint">Contests don't need prizes — leave this empty to skip them entirely. If you do add prizes, every field is optional: use <strong>place</strong> for ranked prizes (1st/2nd/3rd), a <strong>category</strong> for themed awards (e.g. "Best in Show"), or just a <strong>description</strong>. Cash value is optional.</p>
         <div class="cpub-form-field">
           <label for="prizes-desc" class="cpub-form-label">Prizes overview (optional)</label>
           <textarea id="prizes-desc" v-model="prizesDescription" class="cpub-form-textarea" rows="3" placeholder="Intro shown above the prize cards. Supports Markdown." />
