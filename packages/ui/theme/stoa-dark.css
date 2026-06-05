@@ -1,0 +1,153 @@
+@layer commonpub {
+/* ===========================================
+   CommonPub Stoa Theme — Dark
+   "The same walk, by lamplight."
+
+   Deep warm-black paper, brighter moss accent,
+   the same Fraunces / Newsreader / Work Sans
+   type and soft rounded geometry as Stoa Light.
+   Component overrides are shared from stoa.css
+   (both data-theme values are targeted there).
+   =========================================== */
+
+[data-theme="stoa-dark"] {
+  /* === SURFACES (warm near-black) === */
+  --bg: #15130d;
+  --surface: #1f1c14;
+  --surface2: #28241a;
+  --surface3: #332d20;
+
+  --color-surface: var(--surface);
+  --color-surface-alt: var(--surface2);
+  --color-surface-raised: var(--surface);
+  --color-surface-overlay: rgba(0, 0, 0, 0.6);
+  --color-surface-overlay-light: rgba(0, 0, 0, 0.45);
+  --color-surface-scrim: rgba(21, 19, 13, 0.8);
+  --color-surface-hover: var(--surface2);
+  --color-bg-subtle: var(--bg);
+
+  /* === TEXT (warm paper ink) === */
+  --text: #f1ebda;
+  --text-dim: #bcb4a2;
+  --text-faint: #8d8675;
+
+  --color-text: var(--text);
+  --color-text-secondary: var(--text-dim);
+  --color-text-muted: var(--text-faint);
+  --color-text-inverse: #15130d;
+
+  /* === BORDERS (warm hairlines) === */
+  --border: rgba(241, 235, 218, 0.24);
+  --border2: rgba(241, 235, 218, 0.13);
+
+  --color-border: var(--border2);
+  --color-border-strong: var(--border);
+  --color-border-focus: var(--accent);
+
+  /* === ACCENT (brighter moss for dark) === */
+  --accent: #5aa784;
+  --accent-bg: rgba(90, 167, 132, 0.14);
+  --accent-bg-strong: rgba(90, 167, 132, 0.24);
+  --accent-bg-heavy: rgba(90, 167, 132, 0.42);
+  --accent-bg-solid: rgba(90, 167, 132, 0.6);
+  --accent-border: rgba(90, 167, 132, 0.34);
+  --accent-focus-ring: 0 0 0 3px rgba(90, 167, 132, 0.2);
+
+  --color-primary: var(--accent);
+  --color-primary-hover: #79c4a0;
+  --color-primary-text: #0f140f;
+  --color-on-primary: #0f140f;
+  --color-accent: var(--accent);
+  --color-accent-hover: #79c4a0;
+  --color-accent-text: #0f140f;
+  --color-on-accent: #0f140f;
+  --color-accent-bg: var(--accent-bg);
+  --color-accent-border: var(--accent-border);
+
+  /* === SEMANTIC COLORS (dark warm) === */
+  --green: #5aa784;
+  --green-bg: rgba(90, 167, 132, 0.14);
+  --green-border: rgba(90, 167, 132, 0.32);
+
+  --yellow: #d6a259;
+  --yellow-bg: rgba(214, 162, 89, 0.13);
+  --yellow-border: rgba(214, 162, 89, 0.3);
+
+  --red: #d07c69;
+  --red-bg: rgba(208, 124, 105, 0.13);
+  --red-border: rgba(208, 124, 105, 0.3);
+
+  --purple: #a98cbe;
+  --purple-bg: rgba(169, 140, 190, 0.13);
+  --purple-border: rgba(169, 140, 190, 0.3);
+
+  --teal: #5fb3a6;
+  --teal-bg: rgba(95, 179, 166, 0.13);
+  --teal-border: rgba(95, 179, 166, 0.3);
+
+  --pink: #cd8aa0;
+  --pink-bg: rgba(205, 138, 160, 0.13);
+  --pink-border: rgba(205, 138, 160, 0.3);
+
+  --color-success: var(--green);
+  --color-warning: var(--yellow);
+  --color-error: var(--red);
+  --color-info: #82a2c0;
+  --color-success-bg: var(--green-bg);
+  --color-warning-bg: var(--yellow-bg);
+  --color-error-bg: var(--red-bg);
+  --color-info-bg: rgba(130, 162, 192, 0.13);
+
+  /* === OVERLAYS === */
+  --color-badge-overlay: rgba(241, 235, 218, 0.85);
+
+  /* === INTERACTIVE === */
+  --color-link: #79c4a0;
+  --color-link-hover: #9bd6bb;
+
+  /* === TYPOGRAPHY (same as light) === */
+  --font-sans: 'Work Sans', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+  --font-read: 'Newsreader', Georgia, 'Times New Roman', serif;
+
+  --font-heading: var(--font-display);
+  --font-body: var(--font-sans);
+
+  --text-label: 0.6875rem;
+
+  --leading-tight: 1.16;
+  --leading-snug: 1.36;
+  --leading-normal: 1.62;
+  --leading-relaxed: 1.78;
+
+  --tracking-tight: -0.015em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.04em;
+  --tracking-wider: 0.08em;
+  --tracking-widest: 0.14em;
+
+  /* === SHAPE (same rounded geometry) === */
+  --radius: 12px;
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-2xl: 28px;
+
+  /* === SHADOWS (deeper for dark) === */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.45), 0 10px 24px rgba(0, 0, 0, 0.32);
+  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.52), 0 4px 12px rgba(0, 0, 0, 0.36);
+  --shadow-xl: 0 26px 60px rgba(0, 0, 0, 0.6), 0 8px 18px rgba(0, 0, 0, 0.4);
+  --shadow-accent: 0 6px 20px rgba(90, 167, 132, 0.4);
+
+  /* === TRANSITIONS === */
+  --transition-fast: 140ms cubic-bezier(0.22, 1, 0.36, 1);
+  --transition-default: 200ms cubic-bezier(0.22, 1, 0.36, 1);
+  --transition-slow: 320ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* === FOCUS === */
+  --focus-ring: 0 0 0 3px rgba(90, 167, 132, 0.28);
+}
+} /* end @layer commonpub — token overrides only */

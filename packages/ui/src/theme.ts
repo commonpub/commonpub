@@ -53,6 +53,20 @@ export const BUILT_IN_THEMES: ThemeDefinition[] = [
     isDark: true,
     family: 'agora',
   },
+  {
+    id: 'stoa',
+    name: 'Stoa Light',
+    description: 'Warm paper, moss accent, serif display + reading fonts, soft rounded geometry',
+    isDark: false,
+    family: 'stoa',
+  },
+  {
+    id: 'stoa-dark',
+    name: 'Stoa Dark',
+    description: 'Warm near-black with brighter moss accent, the same bookish serif geometry',
+    isDark: true,
+    family: 'stoa',
+  },
 ];
 
 const BUILT_IN_THEME_IDS = new Set(BUILT_IN_THEMES.map((t) => t.id));

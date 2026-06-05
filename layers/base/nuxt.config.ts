@@ -37,7 +37,7 @@ export default defineNuxtConfig({
         },
         {
           rel: 'stylesheet',
-          href: 'https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Work+Sans:ital,wght@0,300..800;1,300..800&display=swap',
+          href: 'https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Newsreader:ital,opsz,wght@0,6..72,300..700;1,6..72,300..700&family=Work+Sans:ital,wght@0,300..800;1,300..800&display=swap',
         },
       ],
     },
@@ -48,6 +48,8 @@ export default defineNuxtConfig({
     uiTheme('generics.css'),
     uiTheme('agora.css'),
     uiTheme('agora-dark.css'),
+    uiTheme('stoa.css'),
+    uiTheme('stoa-dark.css'),
     uiTheme('components.css'),
     uiTheme('prose.css'),
     uiTheme('layouts.css'),

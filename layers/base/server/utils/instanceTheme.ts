@@ -29,8 +29,12 @@ let cacheTime = 0;
 async function loadThemeState(): Promise<CachedThemeState> {
   const db = useDB();
 
-  // 1. Default theme ID
-  let defaultTheme = 'base';
+  // 1. Default theme ID.
+  // Fallback is 'stoa' — the default CommonPub theme for fresh installs and any
+  // instance that has NOT explicitly set `theme.default` in the DB. Instances
+  // with an explicit setting (e.g. commonpub.io=agora-dark, branded instances)
+  // are unaffected; this only changes what an unconfigured instance shows.
+  let defaultTheme = 'stoa';
   try {
     const [row] = await db
       .select({ value: instanceSettings.value })

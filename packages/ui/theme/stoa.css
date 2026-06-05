@@ -1,0 +1,361 @@
+@layer commonpub {
+/* ===========================================
+   CommonPub Stoa Theme — Light
+   "A covered walk for thinking in public."
+
+   Warm paper grounds, moss-green accent,
+   Fraunces display + Newsreader reading serif,
+   Work Sans UI. Soft rounded corners, gentle
+   blurred lifts (not the brutalist offset
+   shadow), hairline warm borders. A calm,
+   bookish, daylight aesthetic.
+   =========================================== */
+
+[data-theme="stoa"] {
+  /* === SURFACES (warm paper) === */
+  --bg: #f7f3ea;
+  --surface: #fffdf6;
+  --surface2: #eee8d9;
+  --surface3: #e4ddcb;
+
+  --color-surface: var(--surface);
+  --color-surface-alt: var(--surface2);
+  --color-surface-raised: var(--surface);
+  --color-surface-overlay: rgba(42, 38, 32, 0.5);
+  --color-surface-overlay-light: rgba(42, 38, 32, 0.4);
+  --color-surface-scrim: rgba(247, 243, 234, 0.78);
+  --color-surface-hover: var(--surface2);
+  --color-bg-subtle: var(--bg);
+
+  /* === TEXT (ink gradations) === */
+  --text: #2a2620;
+  --text-dim: #5a5247;
+  --text-faint: #8a8273;
+
+  --color-text: var(--text);
+  --color-text-secondary: var(--text-dim);
+  --color-text-muted: var(--text-faint);
+  --color-text-inverse: #fdfbf3;
+
+  /* === BORDERS (warm hairlines) === */
+  --border: rgba(42, 38, 32, 0.22);
+  --border2: rgba(42, 38, 32, 0.12);
+
+  --color-border: var(--border2);
+  --color-border-strong: var(--border);
+  --color-border-focus: var(--accent);
+
+  /* === ACCENT (moss green) === */
+  --accent: #3c8262;
+  --accent-bg: rgba(60, 130, 98, 0.12);
+  --accent-bg-strong: rgba(60, 130, 98, 0.2);
+  --accent-bg-heavy: rgba(60, 130, 98, 0.4);
+  --accent-bg-solid: rgba(60, 130, 98, 0.6);
+  --accent-border: rgba(60, 130, 98, 0.32);
+  --accent-focus-ring: 0 0 0 3px rgba(60, 130, 98, 0.18);
+
+  --color-primary: var(--accent);
+  --color-primary-hover: #2b6147;
+  --color-primary-text: #fdfbf3;
+  --color-on-primary: #fdfbf3;
+  --color-accent: var(--accent);
+  --color-accent-hover: #2b6147;
+  --color-accent-text: #fdfbf3;
+  --color-on-accent: #fdfbf3;
+  --color-accent-bg: var(--accent-bg);
+  --color-accent-border: var(--accent-border);
+
+  /* === SEMANTIC COLORS (warm) === */
+  --green: #3c8262;
+  --green-bg: rgba(60, 130, 98, 0.12);
+  --green-border: rgba(60, 130, 98, 0.3);
+
+  --yellow: #bd863a;
+  --yellow-bg: rgba(189, 134, 58, 0.1);
+  --yellow-border: rgba(189, 134, 58, 0.28);
+
+  --red: #b25a47;
+  --red-bg: rgba(178, 90, 71, 0.1);
+  --red-border: rgba(178, 90, 71, 0.28);
+
+  --purple: #7b6190;
+  --purple-bg: rgba(123, 97, 144, 0.1);
+  --purple-border: rgba(123, 97, 144, 0.28);
+
+  --teal: #3f8a80;
+  --teal-bg: rgba(63, 138, 128, 0.1);
+  --teal-border: rgba(63, 138, 128, 0.28);
+
+  --pink: #b0697f;
+  --pink-bg: rgba(176, 105, 127, 0.1);
+  --pink-border: rgba(176, 105, 127, 0.28);
+
+  /* Rank colors (warm-toned for contests) */
+  --gold: #c1923a;
+  --silver: #9a948a;
+  --bronze: #a8704a;
+
+  --color-success: var(--green);
+  --color-warning: var(--yellow);
+  --color-error: var(--red);
+  --color-info: #5d7e9c;
+  --color-success-bg: var(--green-bg);
+  --color-warning-bg: var(--yellow-bg);
+  --color-error-bg: var(--red-bg);
+  --color-info-bg: rgba(93, 126, 156, 0.1);
+
+  /* === OVERLAYS === */
+  --color-badge-overlay: rgba(42, 38, 32, 0.72);
+
+  /* === INTERACTIVE === */
+  --color-link: #2b6147;
+  --color-link-hover: #1f4a35;
+
+  /* === TYPOGRAPHY === */
+  --font-sans: 'Work Sans', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+  --font-read: 'Newsreader', Georgia, 'Times New Roman', serif;
+
+  --font-heading: var(--font-display);
+  --font-body: var(--font-sans);
+
+  --text-label: 0.6875rem; /* 11px monospace UI labels */
+
+  --leading-tight: 1.16;
+  --leading-snug: 1.36;
+  --leading-normal: 1.62;
+  --leading-relaxed: 1.78;
+
+  --tracking-tight: -0.015em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.04em;
+  --tracking-wider: 0.08em;
+  --tracking-widest: 0.14em;
+
+  /* === SHAPE (soft, rounded — Stoa's signature departure) === */
+  --radius: 12px;
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-2xl: 28px;
+
+  /* === SHADOWS (soft blurred lifts, not offset) === */
+  --shadow-sm: 0 1px 2px rgba(38, 32, 24, 0.06), 0 1px 1px rgba(38, 32, 24, 0.04);
+  --shadow-md: 0 2px 6px rgba(38, 32, 24, 0.06), 0 8px 20px rgba(38, 32, 24, 0.06);
+  --shadow-lg: 0 12px 34px rgba(38, 32, 24, 0.11), 0 3px 10px rgba(38, 32, 24, 0.06);
+  --shadow-xl: 0 22px 50px rgba(38, 32, 24, 0.14), 0 6px 16px rgba(38, 32, 24, 0.08);
+  --shadow-accent: 0 6px 18px rgba(60, 130, 98, 0.28);
+
+  /* === TRANSITIONS (gentle, springy) === */
+  --transition-fast: 140ms cubic-bezier(0.22, 1, 0.36, 1);
+  --transition-default: 200ms cubic-bezier(0.22, 1, 0.36, 1);
+  --transition-slow: 320ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* === FOCUS (moss glow) === */
+  --focus-ring: 0 0 0 3px rgba(60, 130, 98, 0.22);
+}
+} /* end @layer commonpub — token overrides only */
+
+
+/* ═══════════════════════════════════════════
+   COMPONENT OVERRIDES (outside @layer so they
+   beat Vue scoped styles). Shared by the light
+   AND dark variants — both data-theme values
+   are targeted so stoa-dark inherits them.
+   ═══════════════════════════════════════════ */
+
+/* Display serif for headings */
+[data-theme="stoa"] h1,
+[data-theme="stoa"] h2,
+[data-theme="stoa"] h3,
+[data-theme="stoa-dark"] h1,
+[data-theme="stoa-dark"] h2,
+[data-theme="stoa-dark"] h3,
+[data-theme="stoa"] .cpub-section-title-lg,
+[data-theme="stoa"] .cpub-section-title-sm,
+[data-theme="stoa-dark"] .cpub-section-title-lg,
+[data-theme="stoa-dark"] .cpub-section-title-sm,
+[data-theme="stoa"] .admin-page-title,
+[data-theme="stoa-dark"] .admin-page-title {
+  font-family: var(--font-display);
+}
+
+/* Wordmark + brand use the display serif */
+[data-theme="stoa"] .cpub-logo-name,
+[data-theme="stoa-dark"] .cpub-logo-name,
+[data-theme="stoa"] .admin-brand,
+[data-theme="stoa-dark"] .admin-brand {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+[data-theme="stoa"] .cpub-logo-bracket,
+[data-theme="stoa-dark"] .cpub-logo-bracket {
+  color: var(--accent);
+}
+
+/* Focus: moss glow instead of a hard outline */
+[data-theme="stoa"] :focus-visible,
+[data-theme="stoa-dark"] :focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* Buttons: gentle lift on hover */
+[data-theme="stoa"] .cpub-btn,
+[data-theme="stoa-dark"] .cpub-btn {
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
+}
+
+[data-theme="stoa"] .cpub-btn:hover,
+[data-theme="stoa-dark"] .cpub-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+[data-theme="stoa"] .cpub-btn:active,
+[data-theme="stoa-dark"] .cpub-btn:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+[data-theme="stoa"] .cpub-btn-primary,
+[data-theme="stoa-dark"] .cpub-btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--color-on-accent);
+}
+
+[data-theme="stoa"] .cpub-btn-primary:hover,
+[data-theme="stoa-dark"] .cpub-btn-primary:hover {
+  background: var(--color-primary-hover);
+  box-shadow: var(--shadow-accent);
+  transform: translateY(-1px);
+}
+
+[data-theme="stoa"] .cpub-btn-ghost,
+[data-theme="stoa-dark"] .cpub-btn-ghost {
+  color: var(--accent);
+  border-color: transparent;
+}
+
+[data-theme="stoa"] .cpub-btn-ghost:hover,
+[data-theme="stoa-dark"] .cpub-btn-ghost:hover {
+  background: var(--accent-bg);
+}
+
+/* Cards: soft lift on hover */
+[data-theme="stoa"] .cpub-content-card,
+[data-theme="stoa-dark"] .cpub-content-card,
+[data-theme="stoa"] .cpub-sb-card,
+[data-theme="stoa-dark"] .cpub-sb-card,
+[data-theme="stoa"] .cpub-stat-card,
+[data-theme="stoa-dark"] .cpub-stat-card {
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast);
+}
+
+[data-theme="stoa"] .cpub-content-card:hover,
+[data-theme="stoa-dark"] .cpub-content-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* Card titles use the display serif */
+[data-theme="stoa"] .cpub-content-card h3,
+[data-theme="stoa-dark"] .cpub-content-card h3,
+[data-theme="stoa"] .cpub-card-title,
+[data-theme="stoa-dark"] .cpub-card-title {
+  font-family: var(--font-display);
+  font-weight: 600;
+}
+
+/* Inputs: glow focus */
+[data-theme="stoa"] .cpub-input:focus,
+[data-theme="stoa-dark"] .cpub-input:focus,
+[data-theme="stoa"] .cpub-textarea:focus,
+[data-theme="stoa-dark"] .cpub-textarea:focus,
+[data-theme="stoa"] .cpub-select:focus,
+[data-theme="stoa-dark"] .cpub-select:focus {
+  border-color: var(--accent);
+  box-shadow: var(--focus-ring);
+  outline: none;
+}
+
+/* Links: moss with a soft underline */
+[data-theme="stoa"] a:not(.cpub-btn):not(.cpub-topbar-link):not(.cpub-footer-link):not(.admin-nav-link),
+[data-theme="stoa-dark"] a:not(.cpub-btn):not(.cpub-topbar-link):not(.cpub-footer-link):not(.admin-nav-link) {
+  text-decoration-color: var(--accent-border);
+  text-underline-offset: 2px;
+}
+
+[data-theme="stoa"] .cpub-topbar-link.router-link-active,
+[data-theme="stoa-dark"] .cpub-topbar-link.router-link-active {
+  color: var(--accent);
+}
+
+/* Prose: Newsreader reading serif, moss blockquote */
+[data-theme="stoa"] .cpub-prose,
+[data-theme="stoa-dark"] .cpub-prose {
+  font-family: var(--font-read);
+  font-size: 1.0625rem;
+  line-height: var(--leading-relaxed);
+}
+
+[data-theme="stoa"] .cpub-prose h1,
+[data-theme="stoa"] .cpub-prose h2,
+[data-theme="stoa"] .cpub-prose h3,
+[data-theme="stoa"] .cpub-prose h4,
+[data-theme="stoa-dark"] .cpub-prose h1,
+[data-theme="stoa-dark"] .cpub-prose h2,
+[data-theme="stoa-dark"] .cpub-prose h3,
+[data-theme="stoa-dark"] .cpub-prose h4 {
+  font-family: var(--font-display);
+}
+
+[data-theme="stoa"] .cpub-prose blockquote,
+[data-theme="stoa-dark"] .cpub-prose blockquote {
+  border-left-color: var(--accent);
+  background: var(--accent-bg);
+}
+
+[data-theme="stoa"] .cpub-prose a,
+[data-theme="stoa-dark"] .cpub-prose a {
+  color: var(--accent);
+  text-decoration-color: var(--accent-border);
+}
+
+/* Admin: active nav uses moss */
+[data-theme="stoa"] .admin-nav-link.router-link-exact-active,
+[data-theme="stoa-dark"] .admin-nav-link.router-link-exact-active {
+  color: var(--accent);
+  background: var(--accent-bg);
+}
+
+[data-theme="stoa"] .cpub-footer-col-title,
+[data-theme="stoa-dark"] .cpub-footer-col-title {
+  letter-spacing: var(--tracking-widest);
+}
+
+
+/* ═══════════════════════════════════════════
+   LOGO SWITCH
+   Stoa shares Agora's Town Square mark (hide
+   the Classic logo, show the Agora wordmark +
+   hero aside).
+   ═══════════════════════════════════════════ */
+
+[data-theme="stoa"] .cpub-logo-classic,
+[data-theme="stoa-dark"] .cpub-logo-classic { display: none !important; }
+
+[data-theme="stoa"] .cpub-logo-agora,
+[data-theme="stoa-dark"] .cpub-logo-agora { display: flex !important; }
+
+[data-theme="stoa"] .cpub-hero-logo-aside,
+[data-theme="stoa-dark"] .cpub-hero-logo-aside {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+}

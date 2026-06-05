@@ -17,6 +17,8 @@ export const THEME_TO_FAMILY: Record<string, string> = {
   generics: 'generics',
   agora: 'agora',
   'agora-dark': 'agora',
+  stoa: 'stoa',
+  'stoa-dark': 'stoa',
 };
 
 /** Light/dark variants for each family */
@@ -24,6 +26,7 @@ export const FAMILY_VARIANTS: Record<string, { light: string; dark: string }> = 
   classic: { light: 'base', dark: 'dark' },
   agora: { light: 'agora', dark: 'agora-dark' },
   generics: { light: 'generics', dark: 'generics' },
+  stoa: { light: 'stoa', dark: 'stoa-dark' },
 };
 
 /** Whether a theme ID is a dark theme */
@@ -33,6 +36,8 @@ export const IS_DARK: Record<string, boolean> = {
   generics: true,
   agora: false,
   'agora-dark': true,
+  stoa: false,
+  'stoa-dark': true,
 };
 
 /** All valid theme IDs */
