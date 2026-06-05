@@ -4,7 +4,7 @@
 > Verify any version/flag claim before trusting it: `npm view @commonpub/<pkg> version`,
 > `curl https://<instance>/api/features`, `cargo search create-commonpub`.
 > Companion docs: the plan `docs/plans/federation-discovery-and-hardening.md`, the work log
-> `docs/sessions/188-federation-release.md`, the rolling handoff `docs/sessions/185-kickoff-next.md`.
+> `docs/sessions/190-public-api-cors-flexible.md`, the rolling handoff `docs/sessions/190-kickoff-next.md`.
 
 ---
 
