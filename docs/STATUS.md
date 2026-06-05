@@ -178,8 +178,15 @@ a minute (`curl deveco.io/api/content?limit=5`, today's timestamp).
 | @commonpub/protocol | 0.13.0 | | @commonpub/explainer | 0.7.15 |
 | @commonpub/auth | 0.8.0 | | @commonpub/docs | 0.6.3 |
 | @commonpub/server | **2.82.0** | | @commonpub/learning | 0.5.2 |
-| @commonpub/ui | 0.9.2 | | @commonpub/test-utils | 0.5.6 |
-| @commonpub/layer | **0.62.0** | | create-commonpub (crates.io) | **0.5.7** |
+| @commonpub/ui | **0.10.0** | | @commonpub/test-utils | 0.5.6 |
+| @commonpub/layer | **0.63.0** | | create-commonpub (crates.io) | **0.5.7** |
+
+**Stoa theme (session 190, ui 0.10.0 / layer 0.63.0):** new built-in theme family (light + dark) —
+warm paper, moss accent, Fraunces/Newsreader/Work Sans, soft rounded geometry; shares Agora's Town
+Square logo. The instance default-theme **fallback changed `base` → `stoa`**, so fresh installs and
+any instance without an explicit `theme.default` now default to Stoa Light. commonpub.io keeps its
+explicit `agora-dark` (set Stoa in admin → Appearance to switch). deveco/heatsync were **not bumped**
+(left on layer 0.62) so their themes are untouched; bump their pins to make Stoa available there.
 
 Migrations applied this cycle: **0016**–**0019** (contest stages, see below) · **0020**
 (`metrics_daily` — public-API analytics rollups, session 190; additive CREATE TABLE + indexes,
