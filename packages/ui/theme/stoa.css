@@ -341,6 +341,40 @@
 
 
 /* ═══════════════════════════════════════════
+   UNIVERSAL-RADIUS GUARD
+   base.css applies `* { border-radius: var(--radius) }`. With Stoa's rounded
+   --radius that rounds things that must stay sharp — most visibly it clipped
+   the Town Square logo SVG into a blob. Keep SVG marks / icons / illustrations
+   square (avatars use <img> + --radius-full, so they're unaffected). Also pin
+   media inside cards to the card's own corners so the rounded, overflow-hidden
+   card clips them cleanly instead of leaving wedge gaps.
+   ═══════════════════════════════════════════ */
+
+[data-theme="stoa"] svg,
+[data-theme="stoa-dark"] svg { border-radius: 0; }
+
+[data-theme="stoa"] .cpub-content-card img,
+[data-theme="stoa-dark"] .cpub-content-card img,
+[data-theme="stoa"] .cpub-card-cover,
+[data-theme="stoa-dark"] .cpub-card-cover { border-radius: 0; }
+
+
+/* ═══════════════════════════════════════════
+   EDGE DEFINITION
+   Slightly firmer card/panel borders so cards read as objects on the warm
+   grounds rather than floating tints.
+   ═══════════════════════════════════════════ */
+
+[data-theme="stoa"] .cpub-content-card,
+[data-theme="stoa"] .cpub-sb-card,
+[data-theme="stoa"] .cpub-stat-card { border-color: rgba(42, 38, 32, 0.18); }
+
+[data-theme="stoa-dark"] .cpub-content-card,
+[data-theme="stoa-dark"] .cpub-sb-card,
+[data-theme="stoa-dark"] .cpub-stat-card { border-color: rgba(241, 235, 218, 0.16); }
+
+
+/* ═══════════════════════════════════════════
    LOGO SWITCH
    Stoa shares Agora's Town Square mark (hide
    the Classic logo, show the Agora wordmark +
