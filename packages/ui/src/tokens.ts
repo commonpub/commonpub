@@ -62,6 +62,12 @@ export const TOKEN_SPECS: TokenSpec[] = [
   { key: 'surface', group: 'surfaces', kind: 'color', default: '#ffffff', description: 'Card / panel background' },
   { key: 'surface2', group: 'surfaces', kind: 'color', default: '#f4f4f2', description: 'Subtle alt surface (input bg, hover)' },
   { key: 'surface3', group: 'surfaces', kind: 'color', default: '#eaeae7', description: 'Deeper alt surface' },
+  // Overlay / scrim literals (modal backdrops, sticky-bar scrim, badge overlay).
+  // Promoted from aliases so a forked/captured theme keeps them.
+  { key: 'color-surface-overlay', group: 'surfaces', kind: 'color', default: 'rgba(0, 0, 0, 0.5)', description: 'Modal backdrop' },
+  { key: 'color-surface-overlay-light', group: 'surfaces', kind: 'color', default: 'rgba(0, 0, 0, 0.4)', description: 'Lighter backdrop' },
+  { key: 'color-surface-scrim', group: 'surfaces', kind: 'color', default: 'rgba(250, 250, 249, 0.75)', description: 'Sticky-bar scrim' },
+  { key: 'color-badge-overlay', group: 'surfaces', kind: 'color', default: 'rgba(0, 0, 0, 0.75)', description: 'Badge overlay' },
 
   // Text
   { key: 'text', group: 'text', kind: 'color', default: '#1a1a1a', description: 'Primary body text' },
@@ -81,6 +87,17 @@ export const TOKEN_SPECS: TokenSpec[] = [
   { key: 'color-on-accent', group: 'accent', kind: 'color', default: '#ffffff', description: 'Text on accent fills' },
   { key: 'color-link', group: 'accent', kind: 'color', default: '#5b9cf6' },
   { key: 'color-link-hover', group: 'accent', kind: 'color', default: '#4a8be5' },
+  // Accent tints + states — literal values a theme must override (var() aliases
+  // self-heal via base, these don't). Promoted from aliases so fork/capture
+  // reproduce them instead of falling back to the base blue.
+  { key: 'color-accent-hover', group: 'accent', kind: 'color', default: '#4a8be5', description: 'Accent fill hover' },
+  { key: 'accent-bg-strong', group: 'accent', kind: 'color', default: 'rgba(91, 156, 246, 0.2)', description: 'Stronger accent tint' },
+  { key: 'accent-bg-heavy', group: 'accent', kind: 'color', default: 'rgba(91, 156, 246, 0.4)', description: 'Heavy accent tint' },
+  { key: 'accent-bg-solid', group: 'accent', kind: 'color', default: 'rgba(91, 156, 246, 0.6)', description: 'Near-solid accent tint' },
+  { key: 'accent-focus-ring', group: 'accent', kind: 'shadow', default: '0 0 0 3px rgba(91, 156, 246, 0.12)', description: 'Accent focus glow' },
+  { key: 'color-on-primary', group: 'accent', kind: 'color', default: '#ffffff', description: 'Text on primary fills' },
+  { key: 'color-primary-text', group: 'accent', kind: 'color', default: '#ffffff', description: 'Text on primary buttons' },
+  { key: 'color-accent-text', group: 'accent', kind: 'color', default: '#ffffff', description: 'Text on accent fills' },
 
   // Semantic colors
   { key: 'green', group: 'semantic', kind: 'color', default: '#22c55e' },
@@ -89,6 +106,25 @@ export const TOKEN_SPECS: TokenSpec[] = [
   { key: 'purple', group: 'semantic', kind: 'color', default: '#8b5cf6' },
   { key: 'teal', group: 'semantic', kind: 'color', default: '#14b8a6' },
   { key: 'pink', group: 'semantic', kind: 'color', default: '#ec4899' },
+  // Semantic tints — literal bg/border fills per status color. Promoted from
+  // aliases so a forked/captured theme keeps its warm tints instead of
+  // reverting to the base bright ones.
+  { key: 'green-bg', group: 'semantic', kind: 'color', default: 'rgba(34, 197, 94, 0.08)' },
+  { key: 'green-border', group: 'semantic', kind: 'color', default: 'rgba(34, 197, 94, 0.25)' },
+  { key: 'yellow-bg', group: 'semantic', kind: 'color', default: 'rgba(245, 158, 11, 0.08)' },
+  { key: 'yellow-border', group: 'semantic', kind: 'color', default: 'rgba(245, 158, 11, 0.25)' },
+  { key: 'red-bg', group: 'semantic', kind: 'color', default: 'rgba(239, 68, 68, 0.08)' },
+  { key: 'red-border', group: 'semantic', kind: 'color', default: 'rgba(239, 68, 68, 0.25)' },
+  { key: 'purple-bg', group: 'semantic', kind: 'color', default: 'rgba(139, 92, 246, 0.08)' },
+  { key: 'purple-border', group: 'semantic', kind: 'color', default: 'rgba(139, 92, 246, 0.25)' },
+  { key: 'teal-bg', group: 'semantic', kind: 'color', default: 'rgba(20, 184, 166, 0.08)' },
+  { key: 'teal-border', group: 'semantic', kind: 'color', default: 'rgba(20, 184, 166, 0.25)' },
+  { key: 'pink-bg', group: 'semantic', kind: 'color', default: 'rgba(236, 72, 153, 0.08)' },
+  { key: 'pink-border', group: 'semantic', kind: 'color', default: 'rgba(236, 72, 153, 0.25)' },
+  // Rank/medal colors (contests) — literal, theme-overridable.
+  { key: 'gold', group: 'semantic', kind: 'color', default: '#fbbf24' },
+  { key: 'silver', group: 'semantic', kind: 'color', default: '#94a3b8' },
+  { key: 'bronze', group: 'semantic', kind: 'color', default: '#a0724a' },
 
   // Code (rich code block + syntax highlight)
   { key: 'code-bg', group: 'code', kind: 'color', default: '#0d1117' },
@@ -160,6 +196,7 @@ export const TOKEN_SPECS: TokenSpec[] = [
   { key: 'border-width-thick', group: 'shape', kind: 'length', default: '3px' },
 
   // Shadows (offset, no blur)
+  { key: 'focus-ring', group: 'shadow', kind: 'shadow', default: 'var(--shadow-accent)', description: 'Focus-visible ring/glow' },
   { key: 'shadow-sm', group: 'shadow', kind: 'shadow', default: '2px 2px 0 var(--border)' },
   { key: 'shadow-md', group: 'shadow', kind: 'shadow', default: '4px 4px 0 var(--border)' },
   { key: 'shadow-lg', group: 'shadow', kind: 'shadow', default: '6px 6px 0 var(--border)' },
@@ -196,32 +233,29 @@ export const TOKEN_SPECS: TokenSpec[] = [
  * so existing saved overrides keep working.
  */
 export const ALIAS_TOKEN_NAMES: readonly string[] = [
-  // Surface aliases
+  // Surface aliases (var()-based, self-heal). The literal overlays/scrim are
+  // now canonical in TOKEN_SPECS.
   'color-surface', 'color-surface-alt', 'color-surface-raised',
-  'color-surface-overlay', 'color-surface-overlay-light', 'color-surface-scrim',
   'color-surface-hover', 'color-bg-subtle',
   // Text aliases
   'color-text', 'color-text-secondary', 'color-text-muted',
   // Border aliases
   'color-border', 'color-border-strong', 'color-border-focus',
-  // Accent aliases
-  'color-primary', 'color-on-primary', 'color-accent', 'color-accent-hover',
-  'color-accent-text', 'color-accent-bg', 'color-accent-border',
-  // Semantic aliases
+  // Accent aliases (var()-based — self-heal from the canonical accent/derived
+  // tokens, so they need no capture). The literal accent tints
+  // (accent-bg-strong/heavy/solid, accent-focus-ring, color-accent-hover) are
+  // now canonical in TOKEN_SPECS so fork/capture pick them up.
+  'color-primary', 'color-accent',
+  'color-accent-bg', 'color-accent-border',
+  // Semantic aliases (var()-based, self-heal). The literal *-bg / *-border
+  // tints are now canonical in TOKEN_SPECS.
   'color-success', 'color-warning', 'color-error', 'color-info',
   'color-success-bg', 'color-warning-bg', 'color-error-bg', 'color-info-bg',
-  // Semantic bg/border
-  'green-bg', 'green-border', 'yellow-bg', 'yellow-border',
-  'red-bg', 'red-border', 'purple-bg', 'purple-border',
-  'teal-bg', 'teal-border', 'pink-bg', 'pink-border',
   // Code highlight extras
   'code-green', 'hljs-comment', 'hljs-keyword', 'hljs-literal',
   'hljs-string', 'hljs-deletion', 'hljs-meta', 'hljs-name', 'hljs-variable',
   // Misc
   // (color-link / color-link-hover are canonical in TOKEN_SPECS, not aliases)
-  'color-badge-overlay',
-  'gold', 'silver', 'bronze',
-  'accent-bg-strong', 'accent-bg-heavy', 'accent-bg-solid', 'accent-focus-ring',
   'radius-none',
 ];
 

@@ -9,17 +9,19 @@ import {
 } from '../theme';
 
 describe('BUILT_IN_THEMES', () => {
-  it('should contain 5 themes', () => {
-    expect(BUILT_IN_THEMES).toHaveLength(5);
+  it('should contain 7 themes', () => {
+    expect(BUILT_IN_THEMES).toHaveLength(7);
   });
 
-  it('should include base, dark, generics, agora, agora-dark', () => {
+  it('should include base, dark, generics, agora, agora-dark, stoa, stoa-dark', () => {
     const ids = BUILT_IN_THEMES.map((t) => t.id);
     expect(ids).toContain('base');
     expect(ids).toContain('dark');
     expect(ids).toContain('generics');
     expect(ids).toContain('agora');
     expect(ids).toContain('agora-dark');
+    expect(ids).toContain('stoa');
+    expect(ids).toContain('stoa-dark');
   });
 
   it('should mark dark themes correctly', () => {
@@ -29,6 +31,8 @@ describe('BUILT_IN_THEMES', () => {
     expect(generics?.isDark).toBe(true);
     const agoraDark = BUILT_IN_THEMES.find((t) => t.id === 'agora-dark');
     expect(agoraDark?.isDark).toBe(true);
+    const stoaDark = BUILT_IN_THEMES.find((t) => t.id === 'stoa-dark');
+    expect(stoaDark?.isDark).toBe(true);
   });
 
   it('should mark light themes correctly', () => {
@@ -36,6 +40,8 @@ describe('BUILT_IN_THEMES', () => {
     expect(base?.isDark).toBe(false);
     const agora = BUILT_IN_THEMES.find((t) => t.id === 'agora');
     expect(agora?.isDark).toBe(false);
+    const stoa = BUILT_IN_THEMES.find((t) => t.id === 'stoa');
+    expect(stoa?.isDark).toBe(false);
   });
 
   it('should assign correct families', () => {

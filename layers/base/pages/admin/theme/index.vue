@@ -155,14 +155,45 @@ async function removeTheme(themeId: string): Promise<void> {
 // --- Create / Capture / Import ---
 
 function createBlank(): void {
+  // "New custom theme" forks the CURRENTLY ACTIVE theme so you start from the
+  // look on screen, not a blank Classic slate. (It previously seeded an empty,
+  // base-parented theme — which is why saving reverted everything to Classic.)
+  const active = instanceDefault.value;
+  const customId = parseCustomThemeId(active);
+
+  // Active theme is itself a custom theme → copy its stored tokens directly
+  // (computed-style capture can't reconstruct a custom theme's full set).
+  if (customId && themesApi.data.value) {
+    const src = themesApi.data.value.custom.find((t) => t.id === customId);
+    if (src) {
+      const seed = {
+        id: nextAvailableId(`${src.id}-copy`),
+        name: `${src.name} (copy)`,
+        description: src.description ?? '',
+        family: 'custom',
+        isDark: src.isDark,
+        parentTheme: src.parentTheme,
+        tokens: { ...src.tokens },
+      };
+      sessionStorage.setItem('cpub-theme-editor-seed', JSON.stringify(seed));
+      router.push('/admin/theme/edit/__new');
+      return;
+    }
+  }
+
+  // Built-in / registered active theme → capture its applied tokens so the new
+  // theme reproduces the current look (a custom theme renders as base + tokens,
+  // so a complete capture is what keeps it from falling back to Classic).
+  const detected = detectAppliedOverrides();
+  const isBuiltInParent = themesApi.data.value?.builtIn.some((t) => t.id === active) ?? false;
   const seed = {
     id: nextAvailableId('my-theme'),
     name: 'My theme',
-    description: '',
+    description: detected.count ? `Forked from the active theme (${detected.count} tokens).` : '',
     family: 'custom',
-    isDark: false,
-    parentTheme: 'base',
-    tokens: {},
+    isDark: detected.isDark,
+    parentTheme: isBuiltInParent ? active : 'base',
+    tokens: detected.tokens,
   };
   sessionStorage.setItem('cpub-theme-editor-seed', JSON.stringify(seed));
   router.push('/admin/theme/edit/__new');
