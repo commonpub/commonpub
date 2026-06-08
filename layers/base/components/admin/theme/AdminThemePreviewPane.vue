@@ -20,7 +20,13 @@ const props = defineProps<{
   /** The base theme whose CSS file provides inherited defaults (via data-theme). */
   parentTheme: string;
   isDark: boolean;
+  /** Optional controlled preview mode. When provided, the Light/Dark toggle
+   *  emits `update:mode` and the parent owns the state (so it can swap the
+   *  previewed variant's tokens). Uncontrolled (internal) when omitted. */
+  mode?: 'light' | 'dark';
 }>();
+
+const emit = defineEmits<{ 'update:mode': ['light' | 'dark'] }>();
 
 interface SceneOption {
   id: 'gallery' | 'prose' | 'admin' | 'sheet';
@@ -37,7 +43,14 @@ const PREVIEW_SCENES: SceneOption[] = [
 ];
 
 const activeScene = ref<SceneOption['id']>('gallery');
-const previewMode = ref<'light' | 'dark'>(props.isDark ? 'dark' : 'light');
+const internalMode = ref<'light' | 'dark'>(props.isDark ? 'dark' : 'light');
+const previewMode = computed<'light' | 'dark'>({
+  get: () => props.mode ?? internalMode.value,
+  set: (v) => {
+    internalMode.value = v;
+    emit('update:mode', v);
+  },
+});
 
 /**
  * Map every parent-theme id to its family's light + dark variant. Mirrors

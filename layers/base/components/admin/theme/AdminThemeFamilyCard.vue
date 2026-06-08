@@ -9,9 +9,10 @@
  * Stays presentational — all wiring (select / edit / duplicate / delete /
  * export) is emitted up so the page owns the state machine.
  */
+import { computed } from 'vue';
 import type { ThemeFamilyView } from '../../../types/theme';
 
-defineProps<{
+const props = defineProps<{
   family: ThemeFamilyView;
   active: boolean;
   saving: boolean;
@@ -24,6 +25,18 @@ const emit = defineEmits<{
   exportTheme: [themeId: string];
   remove: [themeId: string];
 }>();
+
+/**
+ * The "primary" record of the family for edit/duplicate/export/delete. For a
+ * Studio light/dark PAIR the primary is the variant WITHOUT a `-light`/`-dark`
+ * suffix (the original slug); its sibling is the suffixed one. Targeting the
+ * primary fixes a bug where dark-primary pairs edited/deleted the wrong
+ * (auto-generated) record. Falls back to whichever variant exists.
+ */
+const primaryId = computed<string>(() => {
+  const ids = [props.family.light?.id, props.family.dark?.id].filter((x): x is string => Boolean(x));
+  return ids.find((id) => !/-(?:light|dark)$/.test(id)) ?? ids[0]!;
+});
 
 function variantBoxStyle(v: { bg: string; surface: string; accent: string; text: string; border: string }) {
   return {
@@ -102,7 +115,7 @@ function badge(family: ThemeFamilyView): { label: string; tone: 'builtin' | 'reg
           v-if="family.source === 'custom'"
           type="button"
           class="cpub-btn cpub-btn-sm"
-          @click="emit('edit', family.light?.id ?? family.dark!.id)"
+          @click="emit('edit', primaryId)"
         >
           <i class="fa-solid fa-pen-to-square" aria-hidden="true" /> Edit
         </button>
@@ -110,7 +123,7 @@ function badge(family: ThemeFamilyView): { label: string; tone: 'builtin' | 'reg
           type="button"
           class="cpub-btn cpub-btn-sm"
           :title="family.source === 'custom' ? 'Duplicate this theme' : 'Fork to a new editable custom theme'"
-          @click="emit('duplicate', family.light?.id ?? family.dark!.id)"
+          @click="emit('duplicate', primaryId)"
         >
           <i class="fa-solid fa-copy" aria-hidden="true" /> {{ family.source === 'custom' ? 'Duplicate' : 'Fork' }}
         </button>
@@ -118,7 +131,7 @@ function badge(family: ThemeFamilyView): { label: string; tone: 'builtin' | 'reg
           v-if="family.source === 'custom'"
           type="button"
           class="cpub-btn cpub-btn-sm"
-          @click="emit('exportTheme', family.light?.id ?? family.dark!.id)"
+          @click="emit('exportTheme', primaryId)"
         >
           <i class="fa-solid fa-file-export" aria-hidden="true" /> Export
         </button>
@@ -126,7 +139,7 @@ function badge(family: ThemeFamilyView): { label: string; tone: 'builtin' | 'reg
           v-if="family.source === 'custom'"
           type="button"
           class="cpub-btn cpub-btn-sm theme-family-action-danger"
-          @click="emit('remove', family.light?.id ?? family.dark!.id)"
+          @click="emit('remove', primaryId)"
         >
           <i class="fa-solid fa-trash" aria-hidden="true" /> Delete
         </button>

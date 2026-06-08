@@ -143,6 +143,27 @@ the editor hint explains the pair + that the site toggle switches it. Released *
 0.5.11** (layer-only; theme-studio/ui/schema unchanged). Known follow-up: the in-editor preview
 pane still shows the primary variant's tokens in both preview modes (cosmetic; the live site is correct).
 
+## Audit pass + editor light/dark fixes (layer 0.68.1)
+
+Adversarial audit (self + independent agent) of the now-LIVE theme system. Verified main green
+(28/28 typecheck, all npm versions match). Two real bugs found + fixed (layer-only, patch):
+- **Editor light/dark "did nothing"** (user report): the preview pane showed `draft.tokens` (the
+  primary variant) in BOTH toggle positions. Fixed by making the pane's mode **controlled** by the
+  editor (`mode` prop + `update:mode`); the editor computes `previewTokens` per mode — the primary
+  mode shows the live `draft.tokens` (hand-edits included), the other mode shows the recipe-derived
+  sibling. So the toggle now shows the REAL light + dark variants.
+- **B1 (audit blocker):** the family card's Edit/Duplicate/Export/Delete used
+  `family.light?.id ?? family.dark!.id` — for a **dark-primary** pair (dice with a dark default)
+  that targeted the auto-generated light sibling, so you edited/deleted the WRONG record and Delete
+  orphaned the primary. Fixed: the card now targets the **primary** (the suffix-less id), and
+  `removeTheme` deletes the whole pair (theme + its `pairId` sibling). +2 regression tests
+  (FamilyCard) +1 (PreviewPane controlled mode). Layer 935 tests green.
+- Audit notes (deferred, pre-existing): S1 — `resolveThemeContext` doesn't read a logged-in user's
+  stored `users.theme` (only the light/dark cookie); S2 — anon + no functional-cookie consent reverts
+  the toggle on reload (in-session switch works). M1 — `parentTheme` doesn't drive the live custom
+  render (comment corrected). KNOWN: per-variant advanced token edits only persist on the primary
+  (the sibling tracks the recipe).
+
 ## Open questions / next steps
 - **Not released** — needs version bumps + publish (schema/config/server/ui/layer +
   new theme-studio) and consumer-pin bumps. Add theme-studio to the publish chain
