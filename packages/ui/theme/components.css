@@ -36,6 +36,15 @@
 
 .cpub-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 
+.cpub-btn-secondary {
+  background: var(--secondary);
+  color: var(--color-on-secondary);
+  border-color: var(--secondary);
+  box-shadow: 4px 4px 0 var(--border);
+}
+.cpub-btn-secondary:hover { background: var(--secondary-hover); box-shadow: 2px 2px 0 var(--border); }
+.cpub-btn-secondary:disabled { opacity: 0.5; cursor: not-allowed; }
+
 .cpub-btn-sm { padding: 4px 10px; font-size: 11px; min-height: 44px; }
 .cpub-btn-lg { padding: 12px 24px; font-size: 14px; font-weight: 600; }
 

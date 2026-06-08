@@ -4,7 +4,15 @@ Read this, then start. Canonical runbook: `docs/STATUS.md`. This session's work 
 `docs/sessions/192-theme-studio.md`. **Always `curl /api/features` + `npm view @commonpub/<pkg> version`
 before trusting any state claim.**
 
-## ✅ BUILT this session (2026-06-08, session 192) — all on `main`, working tree (not committed/released)
+## ✅ Theme Studio v2 SHIPPED + LIVE (later same session)
+Real `--secondary` accent + `.cpub-btn-secondary`; harmony "color family" drives category accents
+(`purple/teal/pink`); film-grain texture (opt-in `--grain` overlay in app.vue); rationalized "New
+theme" chooser + **unique family per theme** (multiple customs no longer collapse); extras (in-wizard
+WCAG chip, name+save&apply finish, AI-brief/token export, image-color extract); `density` now affects
+spacing+leading. Released **schema 0.37 / ui 0.12 / theme-studio 0.3 / layer 0.67**, crates CLI 0.5.x.
+Live on commonpub.io. Remaining: deveco/heatsync pin bumps (operator, branding caveat) + a browser smoke.
+
+## ✅ BUILT this session (2026-06-08, session 192) — Theme Studio v1 (released earlier)
 
 **Theme Studio** — a guided "easy mode" theme generator beside the granular token editor.
 

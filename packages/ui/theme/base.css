@@ -61,6 +61,16 @@
   --color-accent-bg: var(--accent-bg);
   --color-accent-border: var(--accent-border);
 
+  /* === SECONDARY ACCENT (violet) === */
+  --secondary: #8b5cf6;
+  --secondary-hover: #7c3aed;
+  --secondary-bg: rgba(139, 92, 246, 0.08);
+  --secondary-border: rgba(139, 92, 246, 0.25);
+  --color-on-secondary: #ffffff;
+
+  /* Film-grain overlay opacity (0 = off; app.vue mounts the overlay) */
+  --grain: 0;
+
   /* === SEMANTIC COLORS === */
   --green: #22c55e;
   --green-bg: rgba(34, 197, 94, 0.08);

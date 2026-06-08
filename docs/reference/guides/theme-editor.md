@@ -367,6 +367,24 @@ Mono) are still statically preloaded in `nuxt.config.ts` for the built-in Stoa t
 **Feature flag.** Gated on `features.themeStudio` (default ON). When off, the wizard +
 entry points are hidden and the granular editor is byte-identical to before.
 
+**Color family + secondary (v2).** The wizard exposes a **harmony scheme** ("color family") +
+a **hand-pick secondary** picker + a "suggested family" strip. These are *functional*: the scheme
+drives the decorative **category accents** (`--purple`/`--teal`/`--pink`, used in cards/tags/badges)
+as the accent's harmonic companions, and the secondary picker drives a real **`--secondary`** accent
+(+ `-bg`/`-border`/`color-on-secondary` and a `.cpub-btn-secondary` variant — new canonical tokens).
+Secondary defaults to the scheme's lead companion. `--green/--yellow/--red` stay fixed (semantic).
+
+**Texture (v2).** A `--grain` token + an opt-in film-grain overlay (`app.vue`, default opacity 0)
++ a Grain slider; the recipe carries `texture` (0–0.12).
+
+**Extras (v2).** A live WCAG chip in the wizard footer; a Finish step (name + "Save & apply as
+default"); an **Export ▾** menu (`.cpub-theme.json` / AI brief `.md` / tokens `.json`, via
+`@commonpub/theme-studio`'s `buildBrief`/`buildTokensJson`); and image/logo accent extraction.
+
+**Create flow (v2).** One **"New theme"** dropdown (Guided / Surprise / Blank / Capture / Import).
+Every create path now gives the theme a **unique family (= its slug)**, so multiple custom themes
+each get their own picker card instead of collapsing — you can make as many as you like.
+
 **Source**: `packages/theme-studio/` (brain), `layers/base/components/admin/theme/studio/`
 (wizard) + `AdminThemeSceneSheet.vue` (preview scene).
 

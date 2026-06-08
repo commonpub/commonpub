@@ -68,6 +68,8 @@ export const TOKEN_SPECS: TokenSpec[] = [
   { key: 'color-surface-overlay-light', group: 'surfaces', kind: 'color', default: 'rgba(0, 0, 0, 0.4)', description: 'Lighter backdrop' },
   { key: 'color-surface-scrim', group: 'surfaces', kind: 'color', default: 'rgba(250, 250, 249, 0.75)', description: 'Sticky-bar scrim' },
   { key: 'color-badge-overlay', group: 'surfaces', kind: 'color', default: 'rgba(0, 0, 0, 0.75)', description: 'Badge overlay' },
+  // Film-grain overlay opacity (0 = off). A global noise layer in app.vue reads this.
+  { key: 'grain', group: 'surfaces', kind: 'number', default: '0', description: 'Film-grain overlay opacity (0 = off, ~0.03 subtle)' },
 
   // Text
   { key: 'text', group: 'text', kind: 'color', default: '#1a1a1a', description: 'Primary body text' },
@@ -98,6 +100,13 @@ export const TOKEN_SPECS: TokenSpec[] = [
   { key: 'color-on-primary', group: 'accent', kind: 'color', default: '#ffffff', description: 'Text on primary fills' },
   { key: 'color-primary-text', group: 'accent', kind: 'color', default: '#ffffff', description: 'Text on primary buttons' },
   { key: 'color-accent-text', group: 'accent', kind: 'color', default: '#ffffff', description: 'Text on accent fills' },
+  // Secondary accent — a second brand color for secondary CTAs (.cpub-btn-secondary)
+  // + accents. Defaults to a violet so existing themes get a sensible second hue.
+  { key: 'secondary', group: 'accent', kind: 'color', default: '#8b5cf6', description: 'Secondary brand accent' },
+  { key: 'secondary-hover', group: 'accent', kind: 'color', default: '#7c3aed', description: 'Secondary accent hover' },
+  { key: 'secondary-bg', group: 'accent', kind: 'color', default: 'rgba(139, 92, 246, 0.08)', description: 'Secondary tinted surface' },
+  { key: 'secondary-border', group: 'accent', kind: 'color', default: 'rgba(139, 92, 246, 0.25)' },
+  { key: 'color-on-secondary', group: 'accent', kind: 'color', default: '#ffffff', description: 'Text on secondary fills' },
 
   // Semantic colors
   { key: 'green', group: 'semantic', kind: 'color', default: '#22c55e' },

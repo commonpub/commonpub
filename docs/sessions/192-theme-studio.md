@@ -101,6 +101,29 @@ generate **both modes by default** and be contrast-smart per mode:
 - theme-studio 54 tests, ui/layer/reference all green, typecheck clean. Released as
   **theme-studio 0.2.0 / layer 0.66.0** (schema/config/server/ui unchanged).
 
+## Studio v2 — color family + secondary, texture, create-flow, extras (same session)
+
+A close re-read of gauge.html + an independent triple-check drove a big follow-up:
+- **Real secondary accent + color family.** New canonical tokens `secondary`/`-hover`/`-bg`/`-border`
+  + `color-on-secondary` (ui `tokens.ts` + `base.css`) and a `.cpub-btn-secondary` variant
+  (`components.css`). `buildPalette` derives a per-mode-readable secondary ramp; **the harmony
+  scheme now drives the category accents** (`purple`/`teal`/`pink`, used in cards/tags/badges) as the
+  accent's companions — so "color family" is visible. Restored the wizard's harmony-scheme control +
+  hand-pick-secondary picker + a "suggested family" strip (they were inert before; now real).
+- **Texture/grain.** New `grain` token + an opt-in (default 0) film-grain overlay in `app.vue`;
+  `texture` field on the recipe + `themeRecipeSchema`; a Grain slider in the Feel step.
+- **Create-flow rationalized.** `createBlank`/`captureCurrent` now use a **unique family (= the slug)**
+  — fixes the collapse where multiple blank/captured themes merged into one picker card. The 7 entry
+  points are consolidated into one **"New theme"** dropdown (Guided / Surprise / Blank / Capture /
+  Import). Studio create flow already used unique families + pairs.
+- **Extras:** live WCAG chip in the wizard footer (text + links); a **Finish step** (name + "Save &
+  apply as default"); **Export ▾** menu (.cpub-theme.json / AI brief .md / tokens .json) via new
+  pure exporters in `@commonpub/theme-studio` (`export.ts`); **image/logo color extract** (canvas
+  quantize → accent) in the color step.
+- **Density** (from the prior pass) now multiplies the space scale + sets body leading.
+- Released as **schema 0.37 / ui 0.12 / theme-studio 0.3 / layer 0.67** (config/server unchanged, no
+  migration). theme-studio 60 tests, ui 265, schema 443, layer 932, typecheck 28/28, full build green.
+
 ## Open questions / next steps
 - **Not released** — needs version bumps + publish (schema/config/server/ui/layer +
   new theme-studio) and consumer-pin bumps. Add theme-studio to the publish chain

@@ -20,6 +20,9 @@ import {
   randomizeRecipe,
   randomName,
   buildPalette,
+  harmonyColors,
+  contrast,
+  wcag,
   COLOR_VIBES,
   TYPE_VIBES,
   SHAPE_PRESETS,
@@ -30,7 +33,7 @@ import {
   type HarmonyScheme,
 } from '@commonpub/theme-studio';
 
-const props = defineProps<{ recipe?: ThemeRecipe }>();
+const props = defineProps<{ recipe?: ThemeRecipe; name?: string }>();
 
 const emit = defineEmits<{
   generate: [{
@@ -40,8 +43,9 @@ const emit = defineEmits<{
     parentTheme: 'base' | 'dark';
     isDark: boolean;
   }];
-  finish: [];
+  finish: [{ apply: boolean }];
   roll: [{ name: string }];
+  rename: [string];
 }>();
 
 const recipe = ref<ThemeRecipe>(props.recipe ? { ...props.recipe } : defaultRecipe());
@@ -50,7 +54,8 @@ const STEPS = [
   { kicker: 'Color', q: 'Pick a vibe, or your colors.' },
   { kicker: 'Type', q: 'Pick a type vibe, or fonts.' },
   { kicker: 'Shape', q: 'Rounded or sharp?' },
-  { kicker: 'Feel', q: 'Spacing, density, motion.' },
+  { kicker: 'Feel', q: 'Spacing, density, texture, motion.' },
+  { kicker: 'Finish', q: 'Name it and save.' },
 ] as const;
 const step = ref(0);
 
@@ -58,6 +63,17 @@ const colorTab = ref<'vibe' | 'custom'>(props.recipe ? 'custom' : 'vibe');
 const typeTab = ref<'vibe' | 'custom'>(props.recipe ? 'custom' : 'vibe');
 const colorVibe = ref(0);
 const typeVibe = ref(0);
+const useSecondary = ref(Boolean(props.recipe?.secondary));
+const applyDefault = ref(false);
+
+const SCHEMES: { val: HarmonyScheme; label: string }[] = [
+  { val: 'analogous', label: 'Analogous' },
+  { val: 'complementary', label: 'Complement' },
+  { val: 'triadic', label: 'Triadic' },
+  { val: 'split', label: 'Split' },
+  { val: 'tetradic', label: 'Tetradic' },
+  { val: 'monochrome', label: 'Mono' },
+];
 
 // --- Emit on every change ---------------------------------------------
 
@@ -73,22 +89,32 @@ function emitGenerate(): void {
 }
 watch(recipe, emitGenerate, { deep: true });
 
-// --- Vibe swatch previews ---------------------------------------------
+// --- Live WCAG audit (reassurance + catch extreme hand-picks) ----------
 
-// The emitted CommonPub token set derives entirely from accent (hue+sat) +
-// mode + the scale/shape/feel knobs — neutrals/text are accent-tinted. The
-// harmony scheme only seeds the preview swatch family below; it does NOT
-// change the generated theme (CommonPub has no secondary-accent token), so
-// the wizard doesn't expose a scheme/secondary control. `scheme` stays on the
-// recipe (from the vibe presets) for forward-compat.
+const auditTokens = computed(() => recipeToTokens(recipe.value).tokens);
+function band(fg: string, bg: string): { ratio: string; band: string; ok: boolean } {
+  const r = contrast(fg, bg);
+  const b = wcag(r);
+  return { ratio: r.toFixed(1), band: b, ok: b !== 'FAIL' };
+}
+const auditText = computed(() => band(auditTokens.value['text']!, auditTokens.value['bg']!));
+const auditLink = computed(() => band(auditTokens.value['color-link']!, auditTokens.value['bg']!));
+
+// --- Vibe swatch + harmony-family previews ----------------------------
+
 function miniPal(accent: string, scheme: HarmonyScheme, mode: 'light' | 'dark'): string[] {
   const p = buildPalette({ accent, scheme, mode }).sem;
-  return [p.accent, p.surface2, p.surface, p.bg];
+  return [p.accent, p.secondary, p.surface2, p.bg];
 }
 function palStrip(accent: string, scheme: HarmonyScheme, mode: 'light' | 'dark'): string[] {
   const p = buildPalette({ accent, scheme, mode }).sem;
-  return [p.bg, p.surface, p.surface2, p.accent, p.text];
+  return [p.bg, p.surface, p.accent, p.secondary, p.text];
 }
+/** The accent + its harmony companions — the "suggested family" strip. */
+const familyStrip = computed<string[]>(() => [
+  recipe.value.accent,
+  ...harmonyColors(recipe.value.accent, recipe.value.scheme),
+]);
 
 // --- Color actions -----------------------------------------------------
 
@@ -96,9 +122,51 @@ function applyPalette(accent: string, scheme: HarmonyScheme, mode: 'light' | 'da
   recipe.value.accent = accent;
   recipe.value.scheme = scheme;
   recipe.value.mode = mode;
+  recipe.value.secondary = undefined;
+  useSecondary.value = false;
 }
 function onAccentHex(v: string): void {
   if (/^#?[0-9a-fA-F]{6}$/.test(v)) recipe.value.accent = v[0] === '#' ? v : `#${v}`;
+}
+function onSecondaryHex(v: string): void {
+  if (/^#?[0-9a-fA-F]{6}$/.test(v)) recipe.value.secondary = v[0] === '#' ? v : `#${v}`;
+}
+function toggleSecondary(): void {
+  useSecondary.value = !useSecondary.value;
+  recipe.value.secondary = useSecondary.value ? recipe.value.secondary ?? '#8b5cf6' : undefined;
+}
+
+/** Pull a dominant, vivid-ish accent out of an uploaded image (client-only). */
+function onImagePick(e: Event): void {
+  const file = (e.target as HTMLInputElement).files?.[0];
+  if (!file || typeof document === 'undefined') return;
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = (): void => {
+    const cv = document.createElement('canvas');
+    const w = (cv.width = 48);
+    const h = (cv.height = 48);
+    const ctx = cv.getContext('2d');
+    URL.revokeObjectURL(url);
+    if (!ctx) return;
+    ctx.drawImage(img, 0, 0, w, h);
+    const d = ctx.getImageData(0, 0, w, h).data;
+    let best: [number, number, number] | null = null;
+    let bestScore = -1;
+    for (let i = 0; i < d.length; i += 4) {
+      const r = d[i]!, g = d[i + 1]!, b = d[i + 2]!, a = d[i + 3]!;
+      if (a < 200) continue;
+      const mx = Math.max(r, g, b), mn = Math.min(r, g, b);
+      const l = (mx + mn) / 2 / 255;
+      const sat = mx === mn ? 0 : (mx - mn) / 255;
+      const score = sat * (1 - Math.abs(l - 0.5) * 1.1); // saturated + mid-light wins
+      if (score > bestScore) { bestScore = score; best = [r, g, b]; }
+    }
+    if (best) {
+      recipe.value.accent = '#' + best.map((c) => c.toString(16).padStart(2, '0')).join('');
+    }
+  };
+  img.src = url;
 }
 
 // --- Type actions ------------------------------------------------------
@@ -114,6 +182,7 @@ function roll(): void {
   recipe.value = randomizeRecipe(seed);
   colorTab.value = 'vibe';
   typeTab.value = 'vibe';
+  useSecondary.value = Boolean(recipe.value.secondary);
   emit('roll', { name: randomName(seed) });
 }
 
@@ -121,11 +190,13 @@ function roll(): void {
 
 const isLast = computed(() => step.value === STEPS.length - 1);
 function next(): void {
-  if (isLast.value) emit('finish');
-  else step.value++;
+  if (!isLast.value) step.value++;
 }
 function back(): void {
   if (step.value > 0) step.value--;
+}
+function finishWith(apply: boolean): void {
+  emit('finish', { apply });
 }
 </script>
 
@@ -209,17 +280,38 @@ function back(): void {
             </span>
           </label>
           <label class="cpub-studio-field">
-            <span class="cpub-studio-lbl">Accent</span>
+            <span class="cpub-studio-lbl">Accent <span class="cpub-studio-hint">from image…</span></span>
             <span class="cpub-studio-colorrow">
               <input type="color" :value="recipe.accent" class="cpub-studio-colorpick" @input="recipe.accent = ($event.target as HTMLInputElement).value" />
               <input type="text" :value="recipe.accent" maxlength="7" class="cpub-studio-input cpub-studio-mono" @input="onAccentHex(($event.target as HTMLInputElement).value)" />
+              <label class="cpub-studio-imgbtn" title="Extract an accent from an image or logo">
+                <i class="fa-solid fa-image" aria-hidden="true" />
+                <input type="file" accept="image/*" hidden @change="onImagePick" />
+              </label>
             </span>
           </label>
-          <p class="cpub-studio-note">
-            Surfaces, text, borders, and states are derived from your accent and mode. Switch
-            Light / Dark in the preview to see both. Fine-tune any individual color later in
-            the advanced editor.
-          </p>
+          <label class="cpub-studio-field">
+            <span class="cpub-studio-lbl">Color family <span class="cpub-studio-hint">harmony</span></span>
+            <span class="cpub-studio-seg cpub-studio-seg-wrap">
+              <button v-for="sc in SCHEMES" :key="sc.val" type="button" :class="{ on: recipe.scheme === sc.val }" @click="recipe.scheme = sc.val">{{ sc.label }}</button>
+            </span>
+          </label>
+          <div class="cpub-studio-field">
+            <span class="cpub-studio-lbl">Suggested family</span>
+            <span class="cpub-studio-family">
+              <span v-for="(c, i) in familyStrip" :key="i" :style="{ background: c }" :title="c" />
+            </span>
+          </div>
+          <div class="cpub-studio-toggle-line">
+            <span class="cpub-studio-lbl">Hand-pick secondary</span>
+            <button type="button" class="cpub-studio-switch" :class="{ on: useSecondary }" :aria-pressed="useSecondary" @click="toggleSecondary" />
+          </div>
+          <label v-if="useSecondary" class="cpub-studio-field">
+            <span class="cpub-studio-colorrow">
+              <input type="color" :value="recipe.secondary" class="cpub-studio-colorpick" @input="recipe.secondary = ($event.target as HTMLInputElement).value" />
+              <input type="text" :value="recipe.secondary" maxlength="7" class="cpub-studio-input cpub-studio-mono" @input="onSecondaryHex(($event.target as HTMLInputElement).value)" />
+            </span>
+          </label>
         </template>
       </div>
 
@@ -310,7 +402,7 @@ function back(): void {
       </div>
 
       <!-- STEP 4: FEEL -->
-      <div v-else>
+      <div v-else-if="step === 3">
         <label class="cpub-studio-field">
           <span class="cpub-studio-lbl">Spacing base</span>
           <span class="cpub-studio-seg">
@@ -325,16 +417,40 @@ function back(): void {
           </span>
         </label>
         <label class="cpub-studio-field">
+          <span class="cpub-studio-lbl">Grain <span class="cpub-studio-val">{{ Math.round(recipe.texture * 100) }}%</span></span>
+          <input type="range" min="0" max="12" :value="Math.round(recipe.texture * 100)" class="cpub-studio-range" @input="recipe.texture = Number(($event.target as HTMLInputElement).value) / 100" />
+        </label>
+        <label class="cpub-studio-field">
           <span class="cpub-studio-lbl">Motion</span>
           <span class="cpub-studio-seg">
             <button v-for="m in (['sharp','snappy','smooth'] as const)" :key="m" type="button" :class="{ on: recipe.motion === m }" @click="recipe.motion = m">{{ m }}</button>
           </span>
         </label>
+      </div>
+
+      <!-- STEP 5: FINISH -->
+      <div v-else>
+        <label class="cpub-studio-field">
+          <span class="cpub-studio-lbl">Theme name</span>
+          <input
+            type="text"
+            :value="props.name"
+            class="cpub-studio-input"
+            placeholder="My theme"
+            @input="emit('rename', ($event.target as HTMLInputElement).value)"
+          />
+        </label>
+        <div class="cpub-studio-toggle-line">
+          <span class="cpub-studio-lbl">Save &amp; apply as the site default</span>
+          <button type="button" class="cpub-studio-switch" :class="{ on: applyDefault }" :aria-pressed="applyDefault" @click="applyDefault = !applyDefault" />
+        </div>
         <p class="cpub-studio-note">
-          Studio saves a matching light + dark pair, each tuned for its mode. Finish to drop
-          into the advanced editor with every token populated; re-open Studio any time, or
-          fine-tune individual tokens by hand.
+          Studio saves a matching light + dark pair, each tuned for its mode. After saving you can
+          re-open Studio any time, or fine-tune individual tokens in the advanced editor.
         </p>
+        <button type="button" class="cpub-btn cpub-btn-primary cpub-studio-save" @click="finishWith(applyDefault)">
+          <i class="fa-solid fa-floppy-disk" aria-hidden="true" /> {{ applyDefault ? 'Save & apply theme' : 'Save theme' }}
+        </button>
       </div>
     </div>
 
@@ -342,9 +458,12 @@ function back(): void {
       <button type="button" class="cpub-btn cpub-btn-sm" :disabled="step === 0" @click="back">
         <i class="fa-solid fa-arrow-left" aria-hidden="true" /> Back
       </button>
-      <button type="button" class="cpub-btn cpub-btn-sm cpub-btn-primary" @click="next">
-        <template v-if="isLast"><i class="fa-solid fa-check" aria-hidden="true" /> Generate &amp; edit</template>
-        <template v-else>Next <i class="fa-solid fa-arrow-right" aria-hidden="true" /></template>
+      <span class="cpub-studio-audit" :title="`text ${auditText.ratio}:1, links ${auditLink.ratio}:1`">
+        <span class="cpub-studio-chip" :class="auditText.ok ? 'ok' : 'bad'">text {{ auditText.band }}</span>
+        <span class="cpub-studio-chip" :class="auditLink.ok ? 'ok' : 'bad'">links {{ auditLink.band }}</span>
+      </span>
+      <button v-if="!isLast" type="button" class="cpub-btn cpub-btn-sm cpub-btn-primary" @click="next">
+        Next <i class="fa-solid fa-arrow-right" aria-hidden="true" />
       </button>
     </footer>
   </div>
@@ -422,7 +541,28 @@ function back(): void {
 .cpub-studio-range:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 .cpub-studio-note { font-size: var(--text-sm); color: var(--text-dim); line-height: var(--leading-snug); margin: var(--space-4) 0 0; }
+.cpub-studio-hint { float: right; color: var(--text-faint); text-transform: none; letter-spacing: 0; }
 
-.cpub-studio-foot { display: flex; gap: var(--space-2); padding: var(--space-3) var(--space-4); border-top: var(--border-width-default) solid var(--border); }
-.cpub-studio-foot .cpub-btn:last-child { margin-left: auto; }
+.cpub-studio-imgbtn { display: inline-grid; place-items: center; width: 36px; height: 36px; flex-shrink: 0; border: var(--border-width-thin) solid var(--border2); background: var(--surface2); color: var(--text-dim); cursor: pointer; }
+.cpub-studio-imgbtn:hover { border-color: var(--accent); color: var(--accent); }
+
+.cpub-studio-family { display: flex; height: 26px; border: var(--border-width-thin) solid var(--border2); overflow: hidden; }
+.cpub-studio-family span { flex: 1; }
+
+/* hand-pick secondary toggle */
+.cpub-studio-toggle-line { display: flex; align-items: center; justify-content: space-between; margin-top: var(--space-3); }
+.cpub-studio-toggle-line .cpub-studio-lbl { margin-bottom: 0; }
+.cpub-studio-switch { position: relative; width: 38px; height: 20px; background: var(--surface3); border: var(--border-width-thin) solid var(--border2); cursor: pointer; flex-shrink: 0; }
+.cpub-studio-switch::after { content: ''; position: absolute; top: 1px; left: 1px; width: 14px; height: 14px; background: var(--text-faint); transition: transform var(--transition-fast); }
+.cpub-studio-switch.on { background: var(--accent-bg); border-color: var(--accent); }
+.cpub-studio-switch.on::after { transform: translateX(18px); background: var(--accent); }
+
+.cpub-studio-save { width: 100%; justify-content: center; margin-top: var(--space-4); }
+
+.cpub-studio-foot { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-3) var(--space-4); border-top: var(--border-width-default) solid var(--border); }
+.cpub-studio-audit { display: flex; gap: 4px; margin-left: auto; }
+.cpub-studio-chip { font-family: var(--font-mono); font-size: 9px; font-weight: var(--font-weight-bold); letter-spacing: var(--tracking-wide); text-transform: uppercase; padding: 2px 6px; border: var(--border-width-thin) solid; }
+.cpub-studio-chip.ok { color: var(--green); border-color: var(--green); }
+.cpub-studio-chip.bad { color: var(--red); border-color: var(--red); }
+.cpub-studio-foot .cpub-btn-primary { margin-left: var(--space-2); }
 </style>

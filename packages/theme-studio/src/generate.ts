@@ -31,7 +31,7 @@
  *   shadowStyle                  → shadow-sm/md/lg/xl + shadow-accent + focus
  *   motion                       → transition-fast/default/slow
  */
-import { hexToHsl, hslToHex, rgba, adjL, ensureReadable } from './color.js';
+import { hexToHsl, hslToHex, rgba, adjL, rotate, ensureReadable } from './color.js';
 import { buildPalette, type SemanticPalette } from './palette.js';
 import { fontStack, googleHref } from './fonts.js';
 import {
@@ -39,6 +39,8 @@ import {
   radiusScale,
   buildShadows,
   motionTokens,
+  densityFactor,
+  densityLeading,
   type TypeStep,
 } from './scales.js';
 import type { ThemeRecipe } from './recipe.js';
@@ -146,7 +148,29 @@ export function recipeToTokens(recipe: ThemeRecipe): GeneratedTheme {
   t['color-primary-text'] = s.onAccent;
   t['color-accent-text'] = s.onAccent;
 
-  // ---- Semantic (success/warning/error only; rest inherits) ----
+  // ---- Secondary accent ----
+  t['secondary'] = s.secondary;
+  t['secondary-hover'] = s.secondaryHover;
+  t['secondary-bg'] = rgba(s.secondary, dark ? 0.12 : 0.08);
+  t['secondary-border'] = rgba(s.secondary, 0.25);
+  t['color-on-secondary'] = s.onSecondary;
+
+  // ---- Category accents (decorative slots purple/teal/pink) from the harmony
+  // scheme — this is what makes "color family" visible (tags, cards, badges).
+  // green/yellow/red stay fixed below (semantic success/warning/error).
+  const catHues = [recipe.accent, pal.harmony[0], pal.harmony[1], pal.harmony[2]].filter(
+    (h): h is string => Boolean(h),
+  );
+  while (catHues.length < 3) catHues.push(rotate(recipe.accent, 60 * catHues.length));
+  const cats = catHues.slice(0, 3).map((c) => ensureReadable(c, s.bg, 3, dark));
+  (['purple', 'teal', 'pink'] as const).forEach((name, i) => {
+    const hex = cats[i]!;
+    t[name] = hex;
+    t[`${name}-bg`] = rgba(hex, 0.08);
+    t[`${name}-border`] = rgba(hex, 0.25);
+  });
+
+  // ---- Semantic (success/warning/error — fixed meaning, hue not from scheme) ----
   const sem: Array<[string, string]> = [
     ['green', s.success],
     ['yellow', s.warning],
@@ -165,15 +189,17 @@ export function recipeToTokens(recipe: ThemeRecipe): GeneratedTheme {
   t['font-sans'] = fontStack(recipe.fonts.body);
   t['font-mono'] = fontStack(recipe.fonts.code);
 
-  // ---- Typography: sizes ----
+  // ---- Typography: sizes + density-driven body leading ----
   const ts = typeScale(recipe.baseSize, recipe.ratio);
   for (const step of Object.keys(ts) as TypeStep[]) {
     t[TYPE_SLOT[step]] = rem(ts[step]);
   }
+  t['leading-normal'] = String(densityLeading(recipe.density));
 
-  // ---- Spacing ----
+  // ---- Spacing (scaled by density so compact/spacious actually feel it) ----
+  const df = densityFactor(recipe.density);
   for (const slot of SPACE_SLOTS) {
-    t[`space-${slot}`] = rem(slot * recipe.spaceBase);
+    t[`space-${slot}`] = rem(slot * recipe.spaceBase * df);
   }
 
   // ---- Shape ----
@@ -207,6 +233,11 @@ export function recipeToTokens(recipe: ThemeRecipe): GeneratedTheme {
   t['transition-fast'] = `${Math.round(ms * 0.6)}ms ${mt.ease}`;
   t['transition-default'] = `${ms}ms ${mt.ease}`;
   t['transition-slow'] = `${ms * 2}ms ${mt.ease}`;
+
+  // ---- Texture (film-grain overlay opacity; 0 = off) ----
+  if (recipe.texture && recipe.texture > 0) {
+    t['grain'] = String(Math.round(recipe.texture * 1000) / 1000);
+  }
 
   // ---- Fonts to load ----
   const fonts = [recipe.fonts.display, recipe.fonts.body, recipe.fonts.ui, recipe.fonts.code].filter(

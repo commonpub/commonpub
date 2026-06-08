@@ -77,12 +77,23 @@ describe('AdminThemeStudio — generate contract', () => {
     expect(payload?.fonts).toContain('Playfair Display');
   });
 
-  it('reaching the last step and finishing emits `finish`', async () => {
+  it('walking to Finish and saving emits `finish` with the apply flag', async () => {
     const { getByText, emitted } = render(AdminThemeStudio);
-    // Walk Next through Color → Type → Shape → Feel.
-    for (let i = 0; i < 3; i++) await fireEvent.click(getByText('Next'));
-    await fireEvent.click(getByText(/Generate & edit/));
-    expect((emitted() as Record<string, unknown[]>)['finish']?.length).toBeGreaterThan(0);
+    // Walk Next through Color → Type → Shape → Feel → Finish (5 steps).
+    for (let i = 0; i < 4; i++) await fireEvent.click(getByText('Next'));
+    await fireEvent.click(getByText('Save theme'));
+    const calls = (emitted() as Record<string, unknown[]>)['finish'];
+    expect(calls?.length).toBeGreaterThan(0);
+    expect((calls![0] as [{ apply: boolean }])[0].apply).toBe(false);
+  });
+
+  it('the harmony scheme + secondary controls are present (custom color tab)', async () => {
+    const { getByText, container } = render(AdminThemeStudio);
+    await fireEvent.click(getByText('My colors'));
+    expect(getByText('Color family')).toBeTruthy();
+    expect(getByText('Hand-pick secondary')).toBeTruthy();
+    // The "suggested family" strip renders the accent + harmony companions.
+    expect(container.querySelector('.cpub-studio-family')).toBeTruthy();
   });
 
   it('seeds its controls from a provided recipe (opens on My colors tab)', () => {
@@ -99,6 +110,7 @@ describe('AdminThemeStudio — generate contract', () => {
       borderWidth: 2,
       shadowStyle: 'soft' as const,
       motion: 'snappy' as const,
+      texture: 0,
     };
     const { container } = render(AdminThemeStudio, { props: { recipe } });
     // Custom tab is active when a recipe is provided → accent hex input present.

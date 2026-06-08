@@ -17,7 +17,7 @@
  */
 import { computed, onMounted, onBeforeUnmount, ref } from 'vue';
 import { TOKEN_GROUP_LABELS, TOKEN_GROUP_ORDER, tokensByGroup } from '@commonpub/ui';
-import { googleHref, recipeToTokens, type ThemeRecipe } from '@commonpub/theme-studio';
+import { googleHref, recipeToTokens, buildBrief, buildTokensJson, type ThemeRecipe } from '@commonpub/theme-studio';
 
 definePageMeta({ layout: 'admin', middleware: 'auth' });
 
@@ -174,9 +174,17 @@ function onStudioGenerate(payload: {
   dirty.value = true;
 }
 
-/** "Generate & edit" — leave Studio for the granular token editor. */
-function onStudioFinish(): void {
+/** Wizard "Save" — persist (+ sibling pair) and optionally apply as default,
+ *  then drop into the advanced editor. */
+function onStudioFinish(payload: { apply: boolean }): void {
   studioMode.value = false;
+  void save({ apply: payload.apply });
+}
+
+/** Name typed in the wizard's finish step. */
+function onStudioRename(name: string): void {
+  draft.value.name = name;
+  dirty.value = true;
 }
 
 /** Dice roll suggests a name; adopt it only if the user hasn't named it. */
@@ -330,6 +338,34 @@ async function applyAndSave(): Promise<void> {
   await save({ apply: true });
 }
 
+/** Download a text artifact (brief / tokens) built from the current draft. */
+function downloadText(filename: string, content: string, mime: string): void {
+  if (typeof document === 'undefined') return;
+  const blob = new Blob([content], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+function exportBrief(): void {
+  downloadText(
+    `${draft.value.id}-brief.md`,
+    buildBrief({ name: draft.value.name, description: draft.value.description }, draft.value.tokens),
+    'text/markdown',
+  );
+}
+function exportTokens(): void {
+  downloadText(
+    `${draft.value.id}.tokens.json`,
+    buildTokensJson({ name: draft.value.name }, draft.value.tokens),
+    'application/json',
+  );
+}
+
 function exportTheme(): void {
   // Snapshot the in-progress draft (unsaved tokens included) so the
   // admin can export-while-editing without committing first.
@@ -479,9 +515,16 @@ onBeforeUnmount(() => {
         <span v-if="modifiedTotal > 0" class="theme-editor-modified">
           {{ modifiedTotal }} token{{ modifiedTotal === 1 ? '' : 's' }} customized
         </span>
-        <button class="cpub-btn cpub-btn-sm" @click="exportTheme" title="Download .cpub-theme.json">
-          <i class="fa-solid fa-file-export" aria-hidden="true" /> Export
-        </button>
+        <details class="theme-editor-export">
+          <summary class="cpub-btn cpub-btn-sm">
+            <i class="fa-solid fa-file-export" aria-hidden="true" /> Export
+          </summary>
+          <div class="theme-editor-export-menu">
+            <button type="button" @click="exportTheme"><i class="fa-solid fa-file-code" aria-hidden="true" /> Theme (.cpub-theme.json)</button>
+            <button type="button" @click="exportBrief"><i class="fa-solid fa-robot" aria-hidden="true" /> AI brief (.md)</button>
+            <button type="button" @click="exportTokens"><i class="fa-solid fa-file-lines" aria-hidden="true" /> Tokens (.json)</button>
+          </div>
+        </details>
         <button class="cpub-btn cpub-btn-sm" :disabled="saving || !dirty" @click="() => save()">
           <i :class="['fa-solid', saving ? 'fa-circle-notch fa-spin' : 'fa-floppy-disk']" aria-hidden="true" />
           {{ saving ? 'Saving…' : 'Save' }}
@@ -514,8 +557,10 @@ onBeforeUnmount(() => {
         v-if="studioMode"
         class="theme-editor-studio"
         :recipe="draft.recipe"
+        :name="draft.name"
         @generate="onStudioGenerate"
         @finish="onStudioFinish"
+        @rename="onStudioRename"
         @roll="onStudioRoll"
       />
       <section v-else class="theme-editor-tokens" aria-label="Token editor">
@@ -668,6 +713,35 @@ onBeforeUnmount(() => {
   text-transform: uppercase;
   color: var(--accent);
 }
+
+.theme-editor-export { position: relative; }
+.theme-editor-export > summary { list-style: none; cursor: pointer; }
+.theme-editor-export > summary::-webkit-details-marker { display: none; }
+.theme-editor-export-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: var(--z-dropdown);
+  display: flex;
+  flex-direction: column;
+  min-width: 220px;
+  background: var(--surface);
+  border: var(--border-width-default) solid var(--border);
+  box-shadow: var(--shadow-md);
+}
+.theme-editor-export-menu button {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: none;
+  border: 0;
+  text-align: left;
+  font-size: var(--text-sm);
+  color: var(--text);
+  cursor: pointer;
+}
+.theme-editor-export-menu button:hover { background: var(--surface2); }
 
 .theme-editor-error {
   margin: 0;

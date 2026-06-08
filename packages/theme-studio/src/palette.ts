@@ -26,7 +26,10 @@ export interface SemanticPalette {
   onAccent: string;
   /** Accent darkened/lightened to read as AA text (links, accent-colored text) on `bg`. */
   accentText: string;
+  /** Secondary brand accent (visible on `bg`). */
   secondary: string;
+  secondaryHover: string;
+  onSecondary: string;
   success: string;
   warning: string;
   error: string;
@@ -124,7 +127,12 @@ export function buildPalette(opts: BuildPaletteOptions): Palette {
   const error = hslToHex(6, clamp(sat, 58, 78), dark ? 60 : 52);
   const info = hslToHex(206, clamp(sat - 6, 42, 64), dark ? 60 : 50);
   const harmony = harmonyColors(accent, scheme);
-  const sec = secondary || harmony[0]!;
+  // Secondary accent: the hand-picked color, else the scheme's lead companion.
+  // Floored to stay visible on this mode's bg (same treatment as the accent).
+  const es = ensureReadable(secondary || harmony[0]!, bg, 2.4, dark);
+  const secondaryHover = dark ? adjL(es, 8) : adjL(es, -9);
+  const onSecondary = readableOn(es);
+  const sec = es;
 
   const rawHexes = [bg, surface, surface2, text, textSoft, textMuted, ea, sec];
   const names = nameSwatches(rawHexes);
@@ -168,6 +176,8 @@ export function buildPalette(opts: BuildPaletteOptions): Palette {
       onAccent,
       accentText,
       secondary: sec,
+      secondaryHover,
+      onSecondary,
       success,
       warning,
       error,
