@@ -39,7 +39,7 @@ struct SharedOpts {
     #[arg(long, value_delimiter = ',')]
     features: Option<Vec<String>>,
 
-    /// Content types to enable (comma-separated: project,article,blog,explainer)
+    /// Content types to enable (comma-separated: project,blog,explainer; `article` is a deprecated alias for blog)
     #[arg(long = "content-types", value_delimiter = ',')]
     content_types: Option<Vec<String>>,
 
@@ -51,7 +51,7 @@ struct SharedOpts {
     #[arg(long = "contest-creation")]
     contest_creation: Option<String>,
 
-    /// Theme: base, dark, generics, agora, or agora-dark
+    /// Theme: stoa (default), stoa-dark, base, dark, generics, agora, or agora-dark
     #[arg(long)]
     theme: Option<String>,
 
@@ -195,7 +195,7 @@ fn print_next_steps(name: Option<&str>, config: &prompts::InstanceConfig) {
         println!("  docker compose up -d    # Postgres, Redis, Meilisearch");
     }
     println!("  pnpm install");
-    println!("  pnpm db:push             # Push schema to database");
+    println!("  pnpm db:migrate          # Apply committed schema migrations");
     println!("  pnpm dev                 # Start Nuxt dev server");
     println!();
     match &config.admin_user {

@@ -35,18 +35,18 @@ pub fn generate_hex_token(byte_len: usize) -> String {
 // in lockstep with deveco.io's package.json pins (the proven
 // production thin-app reference).
 //
-// Last synced: 2026-06-03 (session 188, federation discovery & hardening +
-// commonpub.io-as-default-registry; layer 0.49.0 = contest overhaul) — layer 0.49.0, server 2.74.0, schema
-// 0.26.0, config 0.18.0. config 0.18.0 flips `announceToRegistry` to default
-// ON, so a freshly-scaffolded instance announces to commonpub.io out of the
-// box (heartbeat self-skips if it is its own registry; requires federation).
-// The lockstep-pin rule still holds: bump `@commonpub/server` alongside
-// `@commonpub/layer` whenever server crosses minor, else pnpm hoists an older
-// server and the layer's server-subpath imports resolve to undefined.
-const COMMONPUB_CONFIG_VERSION: &str = "^0.18.0";
-const COMMONPUB_LAYER_VERSION: &str = "^0.49.0";
-const COMMONPUB_SCHEMA_VERSION: &str = "^0.27.0";
-const COMMONPUB_SERVER_VERSION: &str = "^2.74.0";
+// Last synced: 2026-06-07 (session 191, public-API metrics + flexible CORS +
+// Stoa default theme [session 190] + contest stages [session 189]) — layer 0.64.1,
+// server 2.82.0, schema 0.35.0, config 0.19.0. Stoa is the new default theme; a
+// freshly-scaffolded instance announces to commonpub.io out of the box
+// (announceToRegistry defaults ON; heartbeat self-skips if it is its own registry;
+// requires federation). The lockstep-pin rule still holds: bump `@commonpub/server`
+// alongside `@commonpub/layer` whenever server crosses minor, else pnpm hoists an
+// older server and the layer's server-subpath imports resolve to undefined.
+const COMMONPUB_CONFIG_VERSION: &str = "^0.19.0";
+const COMMONPUB_LAYER_VERSION: &str = "^0.64.0";
+const COMMONPUB_SCHEMA_VERSION: &str = "^0.35.0";
+const COMMONPUB_SERVER_VERSION: &str = "^2.82.0";
 
 // pnpm pin for the generated Dockerfile. `pnpm@latest` is a time-bomb:
 // pnpm ≥10.11 fails `install --frozen-lockfile` on packages with
@@ -440,8 +440,8 @@ pub fn render_env(config: &InstanceConfig) -> String {
 # Database
 NUXT_DATABASE_URL={database_url}
 
-# Redis
-REDIS_URL={redis_url}
+# Redis (optional — the app reads NUXT_REDIS_URL; unset = in-process rate-limit + SSE)
+NUXT_REDIS_URL={redis_url}
 
 # Auth — Better Auth signing key. Auto-generated at scaffold time
 # via OsRng (equivalent to `openssl rand -hex 32`). If you ever need
@@ -533,7 +533,8 @@ pub fn render_env_example(config: &InstanceConfig) -> String {
 #   openssl rand -hex 32
 
 NUXT_DATABASE_URL=postgresql://commonpub:commonpub_dev@localhost:5432/commonpub
-REDIS_URL=redis://localhost:6379
+# Redis (optional — the app reads NUXT_REDIS_URL; unset = in-process rate-limit + SSE)
+NUXT_REDIS_URL=redis://localhost:6379
 # Better Auth signing key — 32 bytes hex. Run: openssl rand -hex 32
 NUXT_AUTH_SECRET=REPLACE_WITH_openssl_rand_hex_32
 # Cross-instance identity token encryption — 32 bytes hex (ChaCha20-Poly1305).

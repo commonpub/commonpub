@@ -45,7 +45,7 @@ impl InstanceConfig {
             description: format!("A CommonPub community: {}", sanitize_value(name)),
             database_url: "postgresql://commonpub:commonpub_dev@localhost:5432/commonpub".to_string(),
             redis_url: "redis://localhost:6379".to_string(),
-            theme: "base".to_string(),
+            theme: "stoa".to_string(),
             feature_content: true,
             feature_social: true,
             feature_hubs: true,
@@ -57,7 +57,7 @@ impl InstanceConfig {
             feature_federation: false,
             feature_admin: false,
             contest_creation: "admin".to_string(),
-            content_types: vec!["project".to_string(), "article".to_string(), "blog".to_string(), "explainer".to_string()],
+            content_types: vec!["project".to_string(), "blog".to_string(), "explainer".to_string()],
             auth_email_password: true,
             auth_magic_link: false,
             auth_passkeys: false,
@@ -107,7 +107,7 @@ pub fn prompt_config(name: &str) -> Result<InstanceConfig, Box<dyn std::error::E
 
     // ── Theme ──────────────────────────────────────────────
 
-    let themes = ["base", "dark", "generics", "agora", "agora-dark"];
+    let themes = ["stoa", "stoa-dark", "base", "dark", "generics", "agora", "agora-dark"];
     let theme_idx = FuzzySelect::with_theme(&theme)
         .with_prompt("Theme")
         .items(&themes)
@@ -182,7 +182,6 @@ pub fn prompt_config(name: &str) -> Result<InstanceConfig, Box<dyn std::error::E
 
         let ct_items = [
             ("Projects", true),
-            ("Articles", true),
             ("Blogs", true),
             ("Explainers", true),
         ];
@@ -195,7 +194,7 @@ pub fn prompt_config(name: &str) -> Result<InstanceConfig, Box<dyn std::error::E
             .defaults(&ct_defaults)
             .interact()?;
 
-        let type_names = ["project", "article", "blog", "explainer"];
+        let type_names = ["project", "blog", "explainer"];
         ct_selected.iter().map(|&i| type_names[i].to_string()).collect()
     } else {
         vec![]
