@@ -208,11 +208,15 @@ function createBlank(): void {
  */
 function startFromRecipe(recipe: ThemeRecipe, opts: { id: string; name: string }): void {
   const gen = recipeToTokens(recipe);
+  const id = nextAvailableId(opts.id);
   const seed = {
-    id: nextAvailableId(opts.id),
+    id,
     name: opts.name,
     description: '',
-    family: 'custom',
+    // Unique family per theme (= the slug) so the picker keeps each Studio
+    // theme separate AND can group its light/dark pair together. (A shared
+    // 'custom' family would collapse every Studio theme into one card.)
+    family: id,
     isDark: recipe.mode === 'dark',
     parentTheme: gen.parentTheme,
     tokens: gen.tokens,

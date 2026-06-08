@@ -329,6 +329,21 @@ the tokens it derives; everything else inherits from a **mode-matched `parentThe
 (`dark` for dark recipes, `base` for light). A unit test asserts every emitted key passes
 `validateTokenOverrides` and that all curated vibe presets clear WCAG AA on text/bg.
 
+**Smart per-mode color (`ensureReadable`).** The brand accent is floored to stay visible
+against each mode's bg (UI-component contrast), and an `accentText` variant is derived for
+`color-link`/`color-link-hover` so links clear AA (4.5:1) as text on the page — both keep the
+chosen hue, only shifting lightness. So a pale accent stays a pale accent on the dark variant
+but darkens to a usable shade on the light variant; the generator "knows what would look bad
+on what." Tests assert accent-visible + link-AA hold for arbitrary accents in both modes.
+
+**Light + dark pair by default.** `recipeToThemePair(recipe)` renders the same recipe for
+both modes. The wizard saves every Studio theme as a **linked light+dark pair** — two custom
+records in one family (unique per theme, = the slug), cross-referenced via `pairId`, each
+recipe-derived for its mode. The editor's `save()` upserts the opposite-mode sibling from the
+recipe (`siblingIdFor` → `<base>-dark`/`<base>-light`); the family card then shows both and the
+light/dark toggle flips between them. Per-token tweaks apply to whichever variant you're
+editing; the sibling tracks the recipe.
+
 **The UX (generate-then-edit, one-way).**
 - The theme list (`/admin/theme`) offers **Build with Studio**, **Surprise me** (dice →
   `randomizeRecipe`), and **Blank** (the original path). The first two seed a draft +
@@ -376,7 +391,8 @@ entry points are hidden and the granular editor is byte-identical to before.
   shipped by the thin app. The font-family token accepts any CSS value regardless.
 - **Theme sharing / marketplace**. Exported JSON files are the portable format (they carry
   the `recipe` + `fonts` too); there's no public registry.
-- **Pair generation**. Studio builds one theme (one mode) at a time; auto-generating the
-  matching light/dark sibling from the same recipe is a natural follow-up (out of scope).
+- **Per-variant divergence**. Studio's light+dark pair is recipe-derived; hand-editing one
+  variant's tokens in the advanced editor applies to that variant only, and the matching
+  variant is re-derived from the recipe on save (it tracks the recipe, not your manual tweaks).
 
 > A live WCAG contrast readout now exists in the **Spec sheet** preview scene (text on bg).

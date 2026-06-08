@@ -17,7 +17,7 @@
  */
 import { computed, onMounted, onBeforeUnmount, ref } from 'vue';
 import { TOKEN_GROUP_LABELS, TOKEN_GROUP_ORDER, tokensByGroup } from '@commonpub/ui';
-import { googleHref, type ThemeRecipe } from '@commonpub/theme-studio';
+import { googleHref, recipeToTokens, type ThemeRecipe } from '@commonpub/theme-studio';
 
 definePageMeta({ layout: 'admin', middleware: 'auth' });
 
@@ -204,16 +204,61 @@ const pairCandidates = computed(() =>
 
 // --- Save / cancel / export -----------------------------------------
 
+/** The opposite-mode sibling's id for a paired Studio theme. */
+function siblingIdFor(id: string, isDark: boolean): string {
+  const base = id.replace(/-(light|dark)$/, '');
+  return isDark ? `${base}-light` : `${base}-dark`;
+}
+
+/**
+ * Create/update the matching opposite-mode sibling of a Studio theme from the
+ * SAME recipe, so every Studio theme is a coherent light+dark pair (linked via
+ * pairId, sharing one family). The sibling is recipe-derived — it tracks the
+ * recipe, while per-token tweaks live on whichever variant you're editing.
+ */
+async function upsertSibling(recipe: ThemeRecipe, siblingId: string): Promise<void> {
+  const siblingDark = !draft.value.isDark;
+  const siblingRecipe: ThemeRecipe = { ...recipe, mode: siblingDark ? 'dark' : 'light' };
+  const gen = recipeToTokens(siblingRecipe);
+  const body = {
+    id: siblingId,
+    name: draft.value.name,
+    description: draft.value.description,
+    family: draft.value.family,
+    isDark: siblingDark,
+    pairId: draft.value.id,
+    parentTheme: gen.parentTheme,
+    tokens: gen.tokens,
+    recipe: siblingRecipe,
+    fonts: gen.fonts,
+  };
+  const put = $fetch as (url: string, opts: Record<string, unknown>) => Promise<unknown>;
+  if (themesApi.findCustom(siblingId)) {
+    await put(`/api/admin/themes/${siblingId}`, { method: 'PUT', body });
+  } else {
+    await $fetch('/api/admin/themes', { method: 'POST', body });
+  }
+}
+
 /**
  * Save the draft. If `apply` is true, ALSO set this theme as the
  * instance default in the same await chain — must happen BEFORE the
  * create-mode router.replace, otherwise the navigation could unmount
  * the component mid-PUT and lose the apply.
+ *
+ * Studio (recipe-driven) themes are saved as a light+dark PAIR: the primary
+ * (this draft) plus its recipe-derived opposite-mode sibling, cross-linked
+ * via pairId in one family.
  */
 async function save({ apply = false }: { apply?: boolean } = {}): Promise<void> {
   saving.value = true;
   error.value = null;
   try {
+    // Pair bookkeeping: a Studio theme links to its opposite-mode sibling.
+    const recipe = draft.value.recipe;
+    const siblingId = recipe ? siblingIdFor(draft.value.id, draft.value.isDark) : null;
+    if (siblingId) draft.value.pairId = siblingId;
+
     const payload = {
       id: draft.value.id,
       name: draft.value.name,
@@ -243,6 +288,16 @@ async function save({ apply = false }: { apply?: boolean } = {}): Promise<void> 
         { method: 'PUT', body: payload },
       );
       savedId = draft.value.id;
+    }
+
+    // Create/update the matching opposite-mode sibling (recipe-driven pair).
+    // Soft-fail: the primary is already saved; a sibling hiccup shouldn't lose it.
+    if (recipe && siblingId) {
+      try {
+        await upsertSibling(recipe, siblingId);
+      } catch {
+        notify('Saved, but the matching light/dark variant could not sync', 'error');
+      }
     }
 
     // Apply BEFORE refresh/navigation so the navigate doesn't unmount us

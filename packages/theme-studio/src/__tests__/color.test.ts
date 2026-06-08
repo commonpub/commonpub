@@ -8,6 +8,7 @@ import {
   wcag,
   readableOn,
   rotate,
+  ensureReadable,
 } from '../color.js';
 
 describe('color conversions', () => {
@@ -57,5 +58,28 @@ describe('contrast + WCAG', () => {
   it('readableOn picks white on dark, near-black on light', () => {
     expect(readableOn('#111111')).toBe('#ffffff');
     expect(readableOn('#fafaf9')).toBe('#0a0a0a');
+  });
+});
+
+describe('ensureReadable', () => {
+  it('leaves an already-readable color unchanged', () => {
+    expect(ensureReadable('#1a1a1a', '#ffffff', 4.5, false)).toBe('#1a1a1a');
+  });
+
+  it('darkens a pale accent on a light bg until it clears the ratio', () => {
+    const out = ensureReadable('#a7f3d0', '#ffffff', 4.5, false); // pale mint on white
+    expect(contrast(out, '#ffffff')).toBeGreaterThanOrEqual(4.5);
+    expect(hexToHsl(out).l).toBeLessThan(hexToHsl('#a7f3d0').l); // got darker
+  });
+
+  it('lightens a dark accent on a dark bg until it clears the ratio', () => {
+    const out = ensureReadable('#1e1b4b', '#0c0c0f', 4.5, true); // deep indigo on near-black
+    expect(contrast(out, '#0c0c0f')).toBeGreaterThanOrEqual(4.5);
+    expect(hexToHsl(out).l).toBeGreaterThan(hexToHsl('#1e1b4b').l); // got lighter
+  });
+
+  it('preserves hue while adjusting lightness', () => {
+    const out = ensureReadable('#34d9a0', '#ffffff', 4.5, false);
+    expect(Math.abs(hexToHsl(out).h - hexToHsl('#34d9a0').h)).toBeLessThan(6);
   });
 });

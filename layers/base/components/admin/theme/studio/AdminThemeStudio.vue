@@ -331,8 +331,9 @@ function back(): void {
           </span>
         </label>
         <p class="cpub-studio-note">
-          Finish to drop into the advanced editor with every token populated. You can re-open
-          Studio any time, or fine-tune individual tokens by hand.
+          Studio saves a matching light + dark pair, each tuned for its mode. Finish to drop
+          into the advanced editor with every token populated; re-open Studio any time, or
+          fine-tune individual tokens by hand.
         </p>
       </div>
     </div>

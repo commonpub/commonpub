@@ -82,6 +82,25 @@ no hand-authored-theme clobber, fontHref gated to the active theme, CSP OK). Fix
   recipe/fonts round-trip (1, CI). Totals now: theme-studio **48**, ui **265**, layer **931**,
   all green; reference typecheck clean.
 
+## Follow-up (same session) — light+dark pairs + smart per-mode color
+
+After the initial release (theme-studio 0.1.0 / layer 0.65.0, live), a second pass made Studio
+generate **both modes by default** and be contrast-smart per mode:
+- **`ensureReadable(color, bg, ratio, dark)`** (color.ts): nudges lightness (preserving hue/sat)
+  until a target contrast is met. `buildPalette` now floors the accent to stay visible on the
+  mode's bg and derives an `accentText` (AA on bg); `generate.ts` uses `accentText` for
+  `color-link`/`color-link-hover`. So a pale accent stays vivid on the dark variant but darkens
+  to readable on the light variant — links are never unreadable. Tests assert accent-visible +
+  link-AA for arbitrary accents in both modes.
+- **`recipeToThemePair(recipe)`** renders both modes from one recipe. The editor's `save()`
+  upserts the opposite-mode **sibling** (recipe-derived, `siblingIdFor` → `<base>-dark`/`-light`),
+  cross-linked via `pairId` in a **unique family (= the slug)** — fixing the prior `family:'custom'`
+  collapse where multiple Studio themes merged into one picker card. Soft-fails if the sibling slot
+  collides (primary still saves).
+- Wizard copy notes "saves a matching light + dark pair, each tuned for its mode."
+- theme-studio 54 tests, ui/layer/reference all green, typecheck clean. Released as
+  **theme-studio 0.2.0 / layer 0.66.0** (schema/config/server/ui unchanged).
+
 ## Open questions / next steps
 - **Not released** — needs version bumps + publish (schema/config/server/ui/layer +
   new theme-studio) and consumer-pin bumps. Add theme-studio to the publish chain
