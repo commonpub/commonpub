@@ -35,7 +35,7 @@ pub fn generate_hex_token(byte_len: usize) -> String {
 // in lockstep with deveco.io's package.json pins (the proven
 // production thin-app reference).
 //
-// Last synced: 2026-06-08 (session 192, Theme Studio v2) — layer 0.67.0,
+// Last synced: 2026-06-08 (session 192, Theme Studio v2 + light/dark pair fix) — layer 0.68.0,
 // server 2.83.0, schema 0.37.0, config 0.20.0. (theme-studio installs transitively via the
 // layer; no thin-app pin needed.) Stoa default theme [session 190]; contest stages [189]. A
 // freshly-scaffolded instance announces to commonpub.io out of the box
@@ -44,7 +44,7 @@ pub fn generate_hex_token(byte_len: usize) -> String {
 // alongside `@commonpub/layer` whenever server crosses minor, else pnpm hoists an
 // older server and the layer's server-subpath imports resolve to undefined.
 const COMMONPUB_CONFIG_VERSION: &str = "^0.20.0";
-const COMMONPUB_LAYER_VERSION: &str = "^0.67.0";
+const COMMONPUB_LAYER_VERSION: &str = "^0.68.0";
 const COMMONPUB_SCHEMA_VERSION: &str = "^0.37.0";
 const COMMONPUB_SERVER_VERSION: &str = "^2.83.0";
 

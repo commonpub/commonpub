@@ -465,7 +465,10 @@ onBeforeUnmount(() => {
           </select>
         </label>
 
-        <label class="theme-editor-field theme-editor-field-toggle">
+        <!-- Mode pill only for hand-authored themes. Studio themes are a managed
+             light+dark pair — there's no single "mode" to pick, and the site's
+             Light/Dark toggle switches the pair for visitors. -->
+        <label v-if="!draft.recipe" class="theme-editor-field theme-editor-field-toggle">
           <span class="theme-editor-field-label">Mode</span>
           <div class="theme-editor-mode-pill" role="group">
             <button
@@ -483,7 +486,7 @@ onBeforeUnmount(() => {
           </div>
         </label>
 
-        <label v-if="pairCandidates.length" class="theme-editor-field">
+        <label v-if="!draft.recipe && pairCandidates.length" class="theme-editor-field">
           <span class="theme-editor-field-label">Pair with</span>
           <select v-model="draft.pairId" class="theme-editor-input" @change="onMetaChange">
             <option :value="undefined">- none -</option>
@@ -566,7 +569,9 @@ onBeforeUnmount(() => {
       <section v-else class="theme-editor-tokens" aria-label="Token editor">
         <p v-if="draft.recipe" class="theme-editor-studio-hint">
           <i class="fa-solid fa-circle-info" aria-hidden="true" />
-          This theme was built with Studio. Re-opening Studio and changing it overwrites manual token tweaks here.
+          This theme is a light + dark pair (one card in the picker). Visitors switch between them
+          with the site's Light/Dark toggle. Re-opening Studio and changing it overwrites manual
+          token tweaks here.
         </p>
         <AdminThemeTokenGroup
           v-for="group in TOKEN_GROUP_ORDER"

@@ -11,6 +11,9 @@ export default defineNuxtPlugin(() => {
   const isDark = useState<boolean>('cpub-dark-mode', () => false);
   const themeInlineCss = useState<string>('cpub-theme-inline-css', () => '');
   const themeFontHref = useState<string>('cpub-theme-font-href', () => '');
+  // Light/dark attrs of a custom pair — lets the user toggle flip data-theme
+  // instantly client-side (both variants' tokens are injected below).
+  const themePair = useState<{ lightAttr: string; darkAttr: string } | null>('cpub-theme-pair', () => null);
 
   if (import.meta.server) {
     const event = useRequestEvent();
@@ -20,6 +23,7 @@ export default defineNuxtPlugin(() => {
       isDark.value = event.context.isDarkMode ?? false;
       themeInlineCss.value = event.context.themeInlineCss ?? '';
       themeFontHref.value = event.context.themeFontHref ?? '';
+      themePair.value = event.context.themePair ?? null;
     }
   }
 
