@@ -59,6 +59,43 @@ describe('custom theme CRUD', () => {
     expect(fetched!.name).toBe('devEco');
   });
 
+  it('round-trips a theme-studio recipe + fonts (session 192)', async () => {
+    const recipe = {
+      mode: 'dark',
+      accent: '#34d9a0',
+      scheme: 'analogous',
+      fonts: { display: 'Fraunces', body: 'Inter', ui: 'Space Mono', code: 'JetBrains Mono' },
+      baseSize: 16,
+      ratio: 1.25,
+      spaceBase: 4,
+      density: 'balanced',
+      shapeRadius: 6,
+      borderWidth: 2,
+      shadowStyle: 'soft',
+      motion: 'snappy',
+    };
+    await saveCustomTheme(
+      db,
+      {
+        id: 'studio-made',
+        name: 'Studio Made',
+        description: '',
+        family: 'custom',
+        isDark: true,
+        parentTheme: 'dark',
+        tokens: { accent: '#34d9a0' },
+        recipe,
+        fonts: ['Fraunces', 'Inter', 'Space Mono', 'JetBrains Mono'],
+      },
+      adminId,
+    );
+    const fetched = await getCustomTheme(db, 'studio-made');
+    expect(fetched!.recipe).toEqual(recipe);
+    expect(fetched!.fonts).toEqual(['Fraunces', 'Inter', 'Space Mono', 'JetBrains Mono']);
+    // Clean up so the later "lists multiple themes" assertion is unaffected.
+    await deleteCustomTheme(db, 'studio-made', adminId);
+  });
+
   it('updates an existing theme without changing createdAt', async () => {
     const initial = await getCustomTheme(db, 'deveco');
     expect(initial).not.toBeNull();

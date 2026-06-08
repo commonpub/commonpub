@@ -81,6 +81,7 @@ The original implementation plan is archived at `docs/archive/plan-v2.md` (v2) a
 | `protocol`   | `@commonpub/protocol`  | Pure-TS ActivityPub + AP types (no Fedify) |
 | `auth`       | `@commonpub/auth`      | Better Auth wrapper + AP SSO             |
 | `ui`         | `@commonpub/ui`        | Vue 3 components + theme CSS             |
+| `theme-studio` | `@commonpub/theme-studio` | Pure-TS theme generator (recipe → tokens) — Theme Studio brain |
 | `config`     | `@commonpub/config`    | `defineCommonPubConfig()` factory        |
 | `server`     | `@commonpub/server`    | Framework-agnostic business logic        |
 | `docs`       | `@commonpub/docs`      | Pluggable docs site module               |

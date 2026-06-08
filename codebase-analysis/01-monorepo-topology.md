@@ -13,7 +13,7 @@ commonpub/
 │   └── shell/             @commonpub/shell     — plain starter template (same feature flags, smaller file set)
 ├── layers/
 │   └── base/              @commonpub/layer     — shared Nuxt layer (the distribution unit)
-├── packages/              12 framework-agnostic TS packages (all published to npm)
+├── packages/              13 framework-agnostic TS packages (12 published to npm; theme-studio new/unpublished)
 │   ├── auth/              @commonpub/auth
 │   ├── config/            @commonpub/config
 │   ├── docs/              @commonpub/docs
@@ -25,6 +25,7 @@ commonpub/
 │   ├── schema/            @commonpub/schema
 │   ├── server/            @commonpub/server
 │   ├── test-utils/        @commonpub/test-utils
+│   ├── theme-studio/      @commonpub/theme-studio  — pure-TS theme generator (session 192; not yet published)
 │   └── ui/                @commonpub/ui
 ├── tools/
 │   ├── create-commonpub/  Rust CLI scaffolder (published to crates.io)
@@ -49,7 +50,7 @@ Note: `tools/create-commonpub` is NOT in the pnpm workspace — it's Rust.
 |---|---|---|
 | @commonpub/schema | 0.35.0 | 90 tables, 45 enums, 21 migrations (0000–0020); `metrics_daily` (0020), contest stages/cohorts (`stages`/`current_stage_id`/`stage_state`/`show_prizes`/`cover_image_url`, 0016–0019), mirror requests (0014) + registry instances (0015), RBAC tables (0009), composite feed indexes (0012) |
 | @commonpub/server | 2.82.0 | Public-API metrics (`publicApi/metrics.ts`, `metricsRollup.ts`) + flexible CORS (`cors.ts`); contest stage engine (`advanceContestStage`, per-round judging); federation registry + mirror requests; keyset feed pagination; federation outbound through SSRF-safe path |
-| @commonpub/config | 0.19.0 | 22 boolean top-level flags + nested `identity.*` (5 sub-flags); `publicApiMetricsFederation` (0.19.0), `actAsRegistry`/`announceToRegistry`, `layoutEngine`, `rbac` added |
+| @commonpub/config | 0.19.0 (unreleased: +`themeStudio`) | 23 boolean top-level flags + nested `identity.*` (5 sub-flags); `themeStudio` (session 192), `publicApiMetricsFederation` (0.19.0), `actAsRegistry`/`announceToRegistry`, `layoutEngine`, `rbac` added |
 | @commonpub/layer | 0.64.1 | Public-API metrics routes + `metrics-rollup` plugin + CORS middleware; Stoa default theme + theme-editor fork fix; contest stages editor; keyset feed |
 | @commonpub/ui | 0.11.1 | Independent; NOT bundled into layer; Stoa theme family; `BUILT_IN_THEMES` (7) + TOKEN_SPECS token split |
 | @commonpub/protocol | 0.13.0 | Pure-TS ActivityPub; `safeFetchResponse`+`safeFetchSigned`; strict `verifyHttpSignature` coverage + raw-body digest; registry/discovery types |
@@ -60,6 +61,7 @@ Note: `tools/create-commonpub` is NOT in the pnpm workspace — it's Rust.
 | @commonpub/auth | 0.8.0 | Better Auth wrapper + AP SSO + cross-instance identity types + `hasPermissionPure` (RBAC) |
 | @commonpub/infra | 0.8.0 | Storage / image / email / security; `getClientIp`; DO Spaces CDN derivation; Redis + realtime pub/sub |
 | @commonpub/test-utils | 0.5.6 | Auth/session/federated-account/OAuth-client factories + `createTestConfig` |
+| @commonpub/theme-studio | **0.1.0 (not yet published)** | Pure-TS theme generator (session 192). `recipeToTokens()` projection + color/palette/scales/fonts/presets. No runtime deps. Consumed by the layer's Theme Studio wizard. |
 
 ## Dependency graph (core → leaf)
 
@@ -83,13 +85,14 @@ Note: `tools/create-commonpub` is NOT in the pnpm workspace — it's Rust.
 explainer → editor → config + schema
 learning  → explainer + editor → ...
 docs      → config + schema
-ui        (standalone, no dep on other @commonpub packages)
+ui          (standalone, no dep on other @commonpub packages)
+theme-studio (standalone, no runtime deps; layer → theme-studio)
 test-utils → config + schema
 ```
 
 **Rules:**
 - `config` + `schema` are foundational. Nothing else depends on apps.
-- `ui` is fully decoupled — no cross-package deps.
+- `ui` and `theme-studio` are fully decoupled — no cross-package runtime deps. The layer depends on both.
 - Apps depend on the layer. Layer depends on everything below.
 - The layer bundles its CSS; consumers DO NOT import UI CSS manually.
 - `@commonpub/ui` is published but treat it as a component library separate from the layer. The layer already has its own components under `layers/base/components/`.

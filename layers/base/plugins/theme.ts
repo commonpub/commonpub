@@ -10,6 +10,7 @@ export default defineNuxtPlugin(() => {
   const instanceTheme = useState<string>('cpub-instance-theme', () => 'base');
   const isDark = useState<boolean>('cpub-dark-mode', () => false);
   const themeInlineCss = useState<string>('cpub-theme-inline-css', () => '');
+  const themeFontHref = useState<string>('cpub-theme-font-href', () => '');
 
   if (import.meta.server) {
     const event = useRequestEvent();
@@ -18,6 +19,7 @@ export default defineNuxtPlugin(() => {
       instanceTheme.value = event.context.instanceTheme ?? 'base';
       isDark.value = event.context.isDarkMode ?? false;
       themeInlineCss.value = event.context.themeInlineCss ?? '';
+      themeFontHref.value = event.context.themeFontHref ?? '';
     }
   }
 
@@ -42,6 +44,16 @@ export default defineNuxtPlugin(() => {
       tagPosition: 'head',
       // hid id helps the editor's preview replace it without dupes
       id: 'cpub-theme-inline',
+    }];
+  }
+  if (themeFontHref.value) {
+    // Load the active custom theme's Google Fonts (theme-studio). CSP in
+    // server/middleware/security.ts already allows fonts.googleapis.com.
+    head.link = [{
+      key: 'cpub-theme-fonts',
+      rel: 'stylesheet',
+      href: themeFontHref.value,
+      id: 'cpub-theme-fonts',
     }];
   }
   if (Object.keys(head).length > 0) {

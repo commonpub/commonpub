@@ -23,6 +23,10 @@ export interface CustomThemeRecord {
   pairId?: string;
   parentTheme: string;
   tokens: Record<string, string>;
+  /** Generator recipe (theme-studio). Opaque to the server; stored as-is. */
+  recipe?: Record<string, unknown>;
+  /** Google-Font families to load when this theme is active. */
+  fonts?: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -184,6 +188,8 @@ export async function saveCustomTheme(
     pairId: theme.pairId,
     parentTheme: theme.parentTheme,
     tokens: theme.tokens,
+    recipe: theme.recipe,
+    fonts: theme.fonts,
     createdAt: existing?.createdAt ?? theme.createdAt ?? now,
     updatedAt: now,
   };

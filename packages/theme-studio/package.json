@@ -1,0 +1,54 @@
+{
+  "name": "@commonpub/theme-studio",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Framework-agnostic theme generator: derive a complete, WCAG-checked CommonPub design system from a small recipe (accent, vibe, scale, shape).",
+  "license": "AGPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/commonpub/commonpub",
+    "directory": "packages/theme-studio"
+  },
+  "keywords": [
+    "commonpub",
+    "design-system",
+    "design-tokens",
+    "theme",
+    "color",
+    "typescript"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist/",
+    "!dist/__tests__/",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "pnpm run build",
+    "dev": "tsc --watch",
+    "test": "vitest run",
+    "lint": "eslint src/",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  }
+}

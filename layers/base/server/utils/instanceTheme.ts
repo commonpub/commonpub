@@ -10,6 +10,7 @@ import {
   parseCustomThemeId,
   type CustomThemeRecord,
 } from '@commonpub/server';
+import { googleHref } from '@commonpub/theme-studio';
 import { THEME_TO_FAMILY, FAMILY_VARIANTS, IS_DARK, VALID_THEME_IDS } from '../../utils/themeConfig';
 
 const CACHE_TTL = 60_000; // 1 minute, admin changes propagate fast
@@ -105,6 +106,8 @@ export async function resolveThemeContext(
   isDark: boolean;
   /** Token map to inject as inline :root style (custom theme tokens + overrides). Empty when not needed. */
   injectedTokens: Record<string, string>;
+  /** Google Fonts stylesheet URL for the active custom theme's fonts. Empty when none. */
+  fontHref: string;
 }> {
   const state = await getState();
 
@@ -150,17 +153,23 @@ export async function resolveThemeContext(
   // CSS files are already loaded). Custom themes always inject. Token
   // overrides apply on top of whatever theme is active.
   const injectedTokens: Record<string, string> = {};
-  if (state.customByAttr.has(resolved)) {
-    Object.assign(injectedTokens, state.customByAttr.get(resolved)!.tokens);
+  const activeCustom = state.customByAttr.get(resolved);
+  if (activeCustom) {
+    Object.assign(injectedTokens, activeCustom.tokens);
   }
   // Instance overrides always last so they win
   Object.assign(injectedTokens, state.tokenOverrides);
+
+  // Google Fonts for the active custom theme (theme-studio sets `fonts`).
+  const fontHref =
+    activeCustom?.fonts && activeCustom.fonts.length > 0 ? googleHref(activeCustom.fonts) : '';
 
   return {
     resolvedTheme: resolved,
     instanceTheme: admin,
     isDark,
     injectedTokens,
+    fontHref,
   };
 }
 

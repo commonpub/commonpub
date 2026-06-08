@@ -26,6 +26,7 @@ export function createTestConfig(overrides?: Partial<CommonPubConfig>): CommonPu
       seamlessFederation: false,
       federateHubs: false,
       admin: false,
+      themeStudio: true,
       emailNotifications: false,
       publicApi: false,
       contentImport: true,

@@ -7,6 +7,7 @@
  * Node-only server modules into the browser bundle.
  */
 import type { ThemeDefinition } from '@commonpub/ui';
+import type { ThemeRecipe } from '@commonpub/theme-studio';
 
 export interface CustomThemeRecord {
   id: string;
@@ -17,6 +18,10 @@ export interface CustomThemeRecord {
   pairId?: string;
   parentTheme: string;
   tokens: Record<string, string>;
+  /** Generator recipe (theme-studio), present when the theme was made/edited in Studio. */
+  recipe?: ThemeRecipe;
+  /** Google-Font families to load when this theme is active. */
+  fonts?: string[];
   createdAt: string;
   updatedAt: string;
 }

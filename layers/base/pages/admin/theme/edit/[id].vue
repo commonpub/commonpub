@@ -17,6 +17,7 @@
  */
 import { computed, onMounted, onBeforeUnmount, ref } from 'vue';
 import { TOKEN_GROUP_LABELS, TOKEN_GROUP_ORDER, tokensByGroup } from '@commonpub/ui';
+import { googleHref, type ThemeRecipe } from '@commonpub/theme-studio';
 
 definePageMeta({ layout: 'admin', middleware: 'auth' });
 
@@ -42,6 +43,8 @@ interface DraftTheme {
   pairId?: string;
   parentTheme: string;
   tokens: Record<string, string>;
+  recipe?: ThemeRecipe;
+  fonts?: string[];
   createdAt?: string;
 }
 
@@ -53,6 +56,20 @@ const draft = ref<DraftTheme>({
   isDark: false,
   parentTheme: 'base',
   tokens: {},
+});
+
+const { themeStudio } = useFeatures();
+/** Which left-pane editor is showing: the Studio wizard or the token grid. */
+const studioMode = ref(false);
+
+// Load the draft's chosen Google Fonts while editing so the preview + sheet
+// render them live (mirrors the SSR <link> the active theme gets in prod).
+useHead({
+  link: computed(() => {
+    const fonts = draft.value.fonts ?? [];
+    const href = fonts.length ? googleHref(fonts) : '';
+    return href ? [{ key: 'cpub-studio-preview-fonts', rel: 'stylesheet', href }] : [];
+  }),
 });
 
 // --- Load -------------------------------------------------------------
@@ -72,7 +89,11 @@ onMounted(async () => {
           pairId: seed.pairId,
           parentTheme: seed.parentTheme ?? 'base',
           tokens: seed.tokens ?? {},
+          recipe: seed.recipe,
+          fonts: seed.fonts,
         };
+        // The create chooser flags Guided/Dice seeds to open Studio first.
+        if (seed.openStudio && themeStudio.value) studioMode.value = true;
       } catch {
         // Bad seed — start blank
         draft.value.id = 'my-theme';
@@ -96,6 +117,8 @@ onMounted(async () => {
         pairId: theme.pairId,
         parentTheme: theme.parentTheme,
         tokens: { ...theme.tokens },
+        recipe: theme.recipe,
+        fonts: theme.fonts,
         createdAt: theme.createdAt,
       };
     } catch (err) {
@@ -133,6 +156,38 @@ function resetToken(key: string): void {
 
 const modifiedTotal = computed(() => Object.keys(draft.value.tokens).length);
 
+// --- Studio (guided generator) ---------------------------------------
+
+/** Studio regenerated the whole token set — replace the draft's tokens. */
+function onStudioGenerate(payload: {
+  recipe: ThemeRecipe;
+  tokens: Record<string, string>;
+  fonts: string[];
+  parentTheme: 'base' | 'dark';
+  isDark: boolean;
+}): void {
+  draft.value.tokens = { ...payload.tokens };
+  draft.value.recipe = payload.recipe;
+  draft.value.fonts = payload.fonts;
+  draft.value.parentTheme = payload.parentTheme;
+  draft.value.isDark = payload.isDark;
+  dirty.value = true;
+}
+
+/** "Generate & edit" — leave Studio for the granular token editor. */
+function onStudioFinish(): void {
+  studioMode.value = false;
+}
+
+/** Dice roll suggests a name; adopt it only if the user hasn't named it. */
+function onStudioRoll(payload: { name: string }): void {
+  const cur = draft.value.name.trim();
+  if (!cur || cur === 'My theme') {
+    draft.value.name = payload.name.charAt(0) + payload.name.slice(1).toLowerCase();
+    dirty.value = true;
+  }
+}
+
 // --- Metadata edits ---------------------------------------------------
 
 function onMetaChange(): void { dirty.value = true; }
@@ -168,6 +223,8 @@ async function save({ apply = false }: { apply?: boolean } = {}): Promise<void> 
       pairId: draft.value.pairId,
       parentTheme: draft.value.parentTheme,
       tokens: draft.value.tokens,
+      recipe: draft.value.recipe,
+      fonts: draft.value.fonts,
     };
 
     let savedId: string;
@@ -230,6 +287,8 @@ function exportTheme(): void {
     pairId: draft.value.pairId,
     parentTheme: draft.value.parentTheme,
     tokens: draft.value.tokens,
+    recipe: draft.value.recipe,
+    fonts: draft.value.fonts,
     createdAt: draft.value.createdAt ?? new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   });
@@ -343,6 +402,25 @@ onBeforeUnmount(() => {
       </div>
 
       <div class="theme-editor-actions">
+        <div
+          v-if="themeStudio && (draft.recipe || studioMode)"
+          class="theme-editor-mode-pill"
+          role="group"
+          aria-label="Editor mode"
+        >
+          <button
+            type="button"
+            class="theme-editor-mode-btn"
+            :class="{ active: studioMode }"
+            @click="studioMode = true"
+          ><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true" /> Studio</button>
+          <button
+            type="button"
+            class="theme-editor-mode-btn"
+            :class="{ active: !studioMode }"
+            @click="studioMode = false"
+          ><i class="fa-solid fa-sliders" aria-hidden="true" /> Advanced</button>
+        </div>
         <span v-if="modifiedTotal > 0" class="theme-editor-modified">
           {{ modifiedTotal }} token{{ modifiedTotal === 1 ? '' : 's' }} customized
         </span>
@@ -377,7 +455,19 @@ onBeforeUnmount(() => {
     </p>
 
     <div v-else class="theme-editor-body">
-      <section class="theme-editor-tokens" aria-label="Token editor">
+      <AdminThemeStudio
+        v-if="studioMode"
+        class="theme-editor-studio"
+        :recipe="draft.recipe"
+        @generate="onStudioGenerate"
+        @finish="onStudioFinish"
+        @roll="onStudioRoll"
+      />
+      <section v-else class="theme-editor-tokens" aria-label="Token editor">
+        <p v-if="draft.recipe" class="theme-editor-studio-hint">
+          <i class="fa-solid fa-circle-info" aria-hidden="true" />
+          This theme was built with Studio. Re-opening Studio and changing it overwrites manual token tweaks here.
+        </p>
         <AdminThemeTokenGroup
           v-for="group in TOKEN_GROUP_ORDER"
           :key="group"
@@ -563,6 +653,25 @@ onBeforeUnmount(() => {
   overflow: auto;
   min-height: 0;
 }
+
+.theme-editor-studio {
+  border-right: var(--border-width-default) solid var(--border);
+  min-height: 0;
+}
+
+.theme-editor-studio-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  background: var(--accent-bg);
+  border-bottom: var(--border-width-thin) solid var(--accent-border);
+  color: var(--text-dim);
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+}
+.theme-editor-studio-hint i { color: var(--accent); margin-top: 2px; }
 
 .theme-editor-preview {
   min-height: 0;

@@ -24,7 +24,7 @@ Numbers are approximate — exact counts vary with test exclusions.
 - **PageFrame consolidation (session 168)**: `components/PageFrame.vue` is now the canonical page frame; full-width = full-bleed (ADR 028). Editor canvas previews render through `<PageFrame>` so the editor is WYSIWYG.
 - **dnd-kit provider guard hotfix (session 169)**: `LayoutSection`/`LayoutRow` call `@vue-dnd-kit/core`'s `makeDraggable`/`makeDroppable` ONLY when `editable` — those inject `VueDnDKitProvider` and throw on the provider-less public render path (homepage canary + custom pages). Crashed commonpub.io's homepage (500) on first deploy; now guarded.
 - **Stage E unification (session 159)**: section registry's 17 `builtin/*.ts` definitions point `component:` at EXISTING `Block*`/`Homepage*`/`*Section` components via `propMap`; the 16 duplicate `Section*.vue` files from session 158 were deleted (only `SectionCta.vue` + `SectionLearning.vue` remain as genuinely-new renderers).
-- **Verified counts AS OF SESSION 169 (historical snapshot — current is 139 components / 34 composables / 327 routes; see Headline above)**: 90 pages, 132 components, 33 composables, ~300 API routes. See `04` + `05` for current breakdowns.
+- **Verified counts AS OF SESSION 169 (historical snapshot — current is 141 components / 34 composables / 327 routes; see Headline above)**: 90 pages, 132 components, 33 composables, ~300 API routes. See `04` + `05` for current breakdowns.
 - New feedback memories across 162–169: `feedback-match-established-pattern`, `feedback-nested-aria-button-violation`, `feedback-css-scope-component-extraction`, `feedback-aria-selected-needs-role`, `feedback-jsdom-pointerevent-missing`, `feedback-css-cascade-unit-test-blind-spot`.
 
 **Session 161 deltas** (admin sidebar collapse + schema-package refactor + audit polish + migrate-homepage P1 fix):
@@ -97,7 +97,7 @@ Numbers are approximate — exact counts vary with test exclusions.
 
 | | |
 |---|---|
-| Published packages | 12 |
+| TS packages | 13 (12 published to npm + `theme-studio`, session 192, not yet published) |
 | Shared Nuxt layer | 1 |
 | Apps | 2 |
 | Tools | 2 |
@@ -107,15 +107,15 @@ Numbers are approximate — exact counts vary with test exclusions.
 | Server modules | 25 module dirs + 11 top-level utility files |
 | API routes | 327 files under `server/api/` (321 handlers + 6 colocated tests) + 22 ActivityPub/site files under `server/routes/` |
 | Layer pages | 90 |
-| Layer components | 139 |
+| Layer components | 141 (session 192: +`AdminThemeStudio`, +`AdminThemeSceneSheet`) |
 | Composables | 34 (non-test) + 12 `__tests__/` files |
-| Feature flags | 22 boolean top-level (+ `publicApi`, `publicApiMetricsFederation`, `actAsRegistry`, `announceToRegistry`, `layoutEngine`, `rbac`) + 5 nested `identity.*` sub-flags |
+| Feature flags | 23 boolean top-level (+ `themeStudio` session 192, `publicApi`, `publicApiMetricsFederation`, `actAsRegistry`, `announceToRegistry`, `layoutEngine`, `rbac`) + 5 nested `identity.*` sub-flags |
 | Themes | 7 built-in (base, dark, generics, agora, agora-dark, stoa, stoa-dark — stoa is the default) + N DB-stored custom + N code-registered (admin-managed via `/admin/theme`, session 154) |
 | Migrations | 21 (0000_session128_baseline → 0020_spooky_gideon; 0020 = `metrics_daily`, 0017–0019 = contest stages, 0014/0015 = mirror requests/registry, 0012 = composite feed indexes, 0013 = self-ref FKs, 0009 = RBAC, 0006–0008 = contest criteria/eligibility/visibility) |
 | ADRs | 26 (through 028) |
 | Production instances | 3 (commonpub.io, deveco.io, heatsynclabs.io — all auto-deploy from main) |
 | Session log files | 161 (numbered through 190; some are kickoff/handoff variants) |
-| Tests | **281** git-tracked `*.test.ts` files (server 91, layer 47, ui 27, protocol 27, editor 24, infra 11, docs 11, explainer 9, apps/reference 9, schema 7, auth 7, learning 5, deploy 3, config 1, test-utils 1, tools/worker 1). [An earlier "275" double-counted `.stryker-tmp/` sandbox copies via `find`; use `git ls-files`.] |
+| Tests | **290** git-tracked `*.test.ts` files (server 91, layer 50, ui 27, protocol 27, editor 24, infra 11, docs 11, explainer 9, apps/reference 9, theme-studio 6, schema 7, auth 7, learning 5, deploy 3, config 1, test-utils 1, tools/worker 1). [An earlier "275" double-counted `.stryker-tmp/` sandbox copies via `find`; use `git ls-files`.] |
 | Pre-push git hook | `pnpm typecheck` via simple-git-hooks (installed session 157; closes vue-tsc-vs-vitest regression pattern that hit 3 times in 2 sessions) |
 
 ## Per-package sizes (rough)
@@ -195,7 +195,7 @@ From package versions and file counts:
 
 ## Test coverage
 
-- **281 git-tracked `*.test.ts` files** (server 91, layer 47, ui 27, protocol 27, editor 24, infra 11, docs 11, explainer 9, apps/reference 9, schema 7, auth 7, learning 5, deploy 3, config 1, test-utils 1, tools/worker 1)
+- **290 git-tracked `*.test.ts` files** (server 91, layer 50, ui 27, protocol 27, editor 24, infra 11, docs 11, explainer 9, apps/reference 9, theme-studio 6, schema 7, auth 7, learning 5, deploy 3, config 1, test-utils 1, tools/worker 1)
 - A few PGlite-skipped integration tests (partial-index limitations)
 - Stryker mutation testing configured per-package (`pnpm stryker:<pkg>`)
 - (Exact assertion counts vary with test exclusions; run `pnpm test` for the live total.)

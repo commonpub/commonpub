@@ -23,6 +23,8 @@ export interface FeatureFlags {
   editorial: boolean;
   federation: boolean;
   admin: boolean;
+  /** Guided theme generator (theme-studio) in the admin theme builder. Default ON. */
+  themeStudio: boolean;
   emailNotifications: boolean;
   publicApi: boolean;
   contentImport: boolean;
@@ -64,7 +66,7 @@ let hydrated = false;
 export const DEFAULT_FLAGS: FeatureFlags = {
   content: true, social: true, hubs: true, docs: true, video: true,
   contests: false, events: false, learning: true, explainers: true,
-  editorial: true, federation: false, admin: false, emailNotifications: false,
+  editorial: true, federation: false, admin: false, themeStudio: true, emailNotifications: false,
   publicApi: false, contentImport: true,
   layoutEngine: false,
   rbac: false,
@@ -169,6 +171,7 @@ export function useFeatures() {
     editorial: computed(() => flags.value.editorial),
     federation: computed(() => flags.value.federation),
     admin: computed(() => flags.value.admin),
+    themeStudio: computed(() => flags.value.themeStudio),
     emailNotifications: computed(() => flags.value.emailNotifications),
     publicApi: computed(() => flags.value.publicApi),
     contentImport: computed(() => flags.value.contentImport),

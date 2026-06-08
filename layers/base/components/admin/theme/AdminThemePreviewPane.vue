@@ -23,7 +23,7 @@ const props = defineProps<{
 }>();
 
 interface SceneOption {
-  id: 'gallery' | 'prose' | 'admin';
+  id: 'gallery' | 'prose' | 'admin' | 'sheet';
   label: string;
   description: string;
   icon: string;
@@ -33,6 +33,7 @@ const PREVIEW_SCENES: SceneOption[] = [
   { id: 'gallery', label: 'Components', description: 'Buttons, cards, forms, badges, prose, code', icon: 'fa-th-large' },
   { id: 'prose', label: 'Article', description: 'Headings, paragraphs, quote, code block, list', icon: 'fa-file-lines' },
   { id: 'admin', label: 'Admin shell', description: 'Topbar, sidebar, table, stat cards', icon: 'fa-gauge' },
+  { id: 'sheet', label: 'Spec sheet', description: 'Token swatches, contrast, type ladder, spacing', icon: 'fa-swatchbook' },
 ];
 
 const activeScene = ref<SceneOption['id']>('gallery');
@@ -140,6 +141,7 @@ const previewStyle = computed(() => {
       <AdminThemeSceneGallery v-if="activeScene === 'gallery'" />
       <AdminThemeSceneProse v-else-if="activeScene === 'prose'" />
       <AdminThemeSceneAdmin v-else-if="activeScene === 'admin'" />
+      <AdminThemeSceneSheet v-else-if="activeScene === 'sheet'" :tokens="tokens" :mode-key="previewMode" />
     </div>
   </div>
 </template>

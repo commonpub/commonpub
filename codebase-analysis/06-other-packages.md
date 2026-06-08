@@ -6,7 +6,7 @@ Packages other than `schema`, `server`, and the layer (covered elsewhere).
 
 `packages/config/src/`
 
-- `types.ts` — `FeatureFlags` (**22 boolean flags + `identity` object** with 5 sub-flags), `IdentityFeatures`, `AuthConfig`, `InstanceConfig`, `FederationConfig`, `DocsConfig`, `CookieDefinition`, `RegisteredTheme`, `CommonPubConfig`
+- `types.ts` — `FeatureFlags` (**23 boolean flags + `identity` object** with 5 sub-flags; `themeStudio` added session 192), `IdentityFeatures`, `AuthConfig`, `InstanceConfig`, `FederationConfig`, `DocsConfig`, `CookieDefinition`, `RegisteredTheme`, `CommonPubConfig`
 - `schema.ts` — Zod with defaults
 - `config.ts` — `defineCommonPubConfig()` factory; validates, fills defaults
 
@@ -66,6 +66,14 @@ Feature flags are **runtime** (environment via `nuxt.config` `runtimeConfig.publ
 22 headless Vue 3 components: Alert, Avatar, Badge, Button, Card, Dialog, IconButton, Input, Menu, MenuItem, Popover, ProgressBar, Select, Separator, Stack, Tabs, TagInput, Textarea, Toggle, Toolbar, Tooltip, VisuallyHidden. All accept `class` prop, WCAG 2.1 AA. Also exports `BUILT_IN_THEMES` (**7**: base, dark, generics, agora, agora-dark, **stoa, stoa-dark** — session 190) + `TOKEN_SPECS` + theme/token helpers. Ships `theme/*.css` (12 files incl. `stoa.css`/`stoa-dark.css`).
 
 **Independent npm publication** but NOT bundled into the layer. The layer has its own components under `layers/base/components/`. `@commonpub/ui` is for external consumers who want just the design system without the full CommonPub stack.
+
+## @commonpub/theme-studio
+
+`packages/theme-studio/src/` — added session 192. **Pure TypeScript, zero Vue/DOM/Nuxt** — the brain behind the admin "Theme Studio" guided theme generator.
+
+- `color.ts` (hex/hsl/rgb, contrast, WCAG, `readableOn`), `harmony.ts` (6 schemes), `naming.ts` (evocative swatch names), `palette.ts` (`buildPalette` → semantic ramp), `scales.ts` (type/space/radius/shadow/density/motion), `fonts.ts` (~100-family catalog + `googleHref`, URL-encoded), `presets.ts` (color/type vibes, shape/shadow/ratio), `recipe.ts` (`ThemeRecipe` + deterministic `randomizeRecipe(seed)`), **`generate.ts` — `recipeToTokens()`** (the projection onto canonical `@commonpub/ui` token keys → `{ tokens, fonts, parentTheme, fontHref }`).
+- Emits only derived tokens; the rest inherit from a mode-matched `parentTheme`. Guarantees text/bg + on-accent AA for any accent. 48 unit tests.
+- **No runtime deps.** Consumed by the layer (wizard `components/admin/theme/studio/AdminThemeStudio.vue`, `AdminThemeSceneSheet.vue`, create flow, editor, SSR font `<link>` via `instanceTheme.ts`). The validation test reads `@commonpub/ui`'s pure `tokens.ts` source directly (no Vue) to assert every emitted key is canonical. **NOT yet published to npm.**
 
 ## @commonpub/editor
 

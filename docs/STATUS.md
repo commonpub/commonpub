@@ -1,16 +1,28 @@
 # CommonPub — Status & Operator Runbook
 
-> **Living doc — your "come back later" reference.** Snapshot taken 2026-06-04 (session 189).
+> **Living doc — your "come back later" reference.** Snapshot updated 2026-06-08 (session 192).
 > Verify any version/flag claim before trusting it: `npm view @commonpub/<pkg> version`,
 > `curl https://<instance>/api/features`, `cargo search create-commonpub`.
-> Companion docs: the plan `docs/plans/federation-discovery-and-hardening.md`, the work log
-> `docs/sessions/190-public-api-cors-flexible.md`, the rolling handoff `docs/sessions/190-kickoff-next.md`.
+> Companion docs: the latest work log `docs/sessions/192-theme-studio.md`, the rolling handoff
+> `docs/sessions/192-kickoff-next.md`, the theme guide `docs/reference/guides/theme-editor.md`.
 
 ---
 
 ## TL;DR — where things stand
 
-The **public API expansion** is the latest work (session 190): flexible CORS + a DevRel/analytics
+**Theme Studio** is the newest work (session 192, on `main`, **NOT yet released**): a guided
+"easy mode" theme generator wired into the admin theme builder beside the granular token editor.
+New package **`@commonpub/theme-studio`** (pure-TS, zero Vue) derives a full WCAG-checked theme from
+a small `ThemeRecipe` via `recipeToTokens()`; the layer adds a `AdminThemeStudio` wizard + dice +
+a "Spec sheet" preview scene, a Studio/Advanced toggle, and Google-Font `<link>` injection for
+custom themes. `recipe`/`fonts` persist on the theme record (JSON in `instance_settings.theme.custom`
+— **no migration**). New flag `features.themeStudio` (default ON). Touched: schema (`recipe`/`fonts`
+on `customThemeSchema`), config (flag), server (`CustomThemeRecord`), ui (`tokensToCss` hardened to
+strip `;{}`), layer. All suites green; **release pending** (see runbook — publish theme-studio before
+the layer, bump consumer pins + CLI). Plan/log: `docs/sessions/192-theme-studio.md`,
+`docs/reference/guides/theme-editor.md` (Studio section).
+
+Earlier: the **public API expansion** (session 190): flexible CORS + a DevRel/analytics
 metrics surface, in three released phases. **Phase 1 (CORS)** — per-key `allowedOrigins` now accept
 wildcard patterns (`*`, `localhost`, `http://localhost:*`, `https://*.example.com`, scheme wildcards)
 via a new `originPatternSchema` + a pure `matchOrigin()` matcher; `isWellFormedOrigin` gates origin
@@ -123,9 +135,12 @@ the **P3 mirror-request approve round-trip** (needs an admin login on two instan
 ### Release an npm package (the chain)
 1. **Bump** the `version` in each changed `packages/<pkg>/package.json` (+ `layers/base/package.json`).
    `ui` etc. unchanged → don't bump. Verify what changed: `git diff --stat main...HEAD -- packages/`.
-2. **Verify green:** `pnpm typecheck` (expect 26/26) + the suites (`pnpm --filter @commonpub/<pkg> test`).
+2. **Verify green:** `pnpm typecheck` (expect 27/27 — `theme-studio` added session 192) + the suites (`pnpm --filter @commonpub/<pkg> test`).
 3. **Publish in dependency order**, polling `npm view @commonpub/<pkg> version` between each:
-   `schema → config → protocol → auth → server → ui → layer`.
+   `schema → config → protocol → auth → server → ui → theme-studio → layer`.
+   (**theme-studio** is new/unpublished as of session 192; it has no runtime deps, but the layer
+   depends on it, so publish it before the layer. First publish needs `npm publish` access for the
+   new package name.)
    - Packages: `pnpm --filter @commonpub/<pkg> publish --no-git-checks --access public`.
    - **Layer ONLY via `pnpm run publish:layer`** (never `npm publish` from a layer — it leaves
      `workspace:*` literals in the tarball).
@@ -179,7 +194,8 @@ a minute (`curl deveco.io/api/content?limit=5`, today's timestamp).
 | @commonpub/auth | 0.8.0 | | @commonpub/docs | 0.6.3 |
 | @commonpub/server | **2.82.0** | | @commonpub/learning | 0.5.2 |
 | @commonpub/ui | **0.11.1** | | @commonpub/test-utils | 0.5.6 |
-| @commonpub/layer | **0.64.1** | | create-commonpub (crates.io) | **0.5.8** |
+| @commonpub/layer | **0.64.1** | | @commonpub/theme-studio | **0.1.0 (unpublished)** |
+| create-commonpub (crates.io) | **0.5.8** | | | |
 
 **Stoa theme (session 190, ui 0.10.0 / layer 0.63.0):** new built-in theme family (light + dark) —
 warm paper, moss accent, Fraunces/Newsreader/Work Sans, soft rounded geometry; shares Agora's Town

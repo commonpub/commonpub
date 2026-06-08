@@ -14,6 +14,8 @@ declare module 'h3' {
     isDarkMode: boolean;
     /** Inline CSS string to inject (custom theme tokens + instance overrides). Empty if none. */
     themeInlineCss: string;
+    /** Google Fonts stylesheet URL for the active custom theme's fonts. Empty if none. */
+    themeFontHref: string;
   }
 }
 
@@ -45,4 +47,7 @@ export default defineEventHandler(async (event) => {
   event.context.themeInlineCss = Object.keys(ctx.injectedTokens).length > 0
     ? tokensToCss(':root', ctx.injectedTokens)
     : '';
+
+  // Google Fonts for the active custom theme (CSP already allows googleapis).
+  event.context.themeFontHref = ctx.fontHref;
 });

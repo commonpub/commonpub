@@ -5,7 +5,7 @@ Flags live in `packages/config/src/types.ts` → `FeatureFlags`. Set in
 site), layer pages (`feature-gate.global.ts` middleware), layer components
 (via `useFeatures()` composable), nav items (per-item `requiredFeature`).
 
-**22 boolean top-level flags + `identity` object (5 nested sub-flags).** Re-verified session 191 (2026-06-07) against `packages/config/src/types.ts`. (Live per-instance flag state drifts — always `curl /api/features` before any "on/off in prod" claim; see [[feedback_verify_flag_state]].)
+**23 boolean top-level flags + `identity` object (5 nested sub-flags).** Re-verified session 192 (2026-06-08) against `packages/config/src/types.ts`. (Live per-instance flag state drifts — always `curl /api/features` before any "on/off in prod" claim; see [[feedback_verify_flag_state]].)
 
 | Flag | Default | What it gates | Runtime override? |
 |---|---|---|---|
@@ -18,6 +18,7 @@ site), layer pages (`feature-gate.global.ts` middleware), layer components
 | `explainers` | ON | Explainer content type + interactive rendering | admin |
 | `editorial` | ON | Staff picks, editorial badges, homepage editorial section, categories admin | admin |
 | `admin` | ON (since config 0.13.0 prod default) | `/admin/**`, admin API, admin nav | admin |
+| `themeStudio` | ON (added config session 192) | Guided theme generator (`@commonpub/theme-studio`) in `/admin/theme` create flow + editor "Studio" toggle. OFF hides the wizard; the granular token editor is unchanged. Client-gated only (theme CRUD stays `admin`+`theme.manage`). | admin |
 | `contentImport` | ON (added config 0.13.0) | `/api/content/import` (URL → content) | admin |
 | `contests` | **OFF** | `/contests/**`, contest API, judges, voting | admin |
 | `events` | **OFF** | `/events/**`, events API, RSVP | admin |

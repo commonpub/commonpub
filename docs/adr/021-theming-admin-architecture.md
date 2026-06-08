@@ -93,3 +93,21 @@ The `reports` table (social.ts) already has `status`, `reviewedById`, `reviewedA
 - Audit log provides accountability for all admin actions
 - Instance settings are extensible without migrations
 - Reports workflow reuses existing schema (zero new tables for moderation)
+
+## Addendum — Theme Studio (session 192)
+
+A guided "easy mode" generator now sits beside the granular token editor. The
+`@commonpub/theme-studio` package (pure-TS, no Vue) derives a complete, WCAG-checked token
+override map from a small `ThemeRecipe` via `recipeToTokens()`; the admin wizard
+(`AdminThemeStudio`) writes the generated tokens into the **same draft** the per-token editor
+edits (one-way generate-then-edit, recipe persisted for re-entry). Decisions:
+
+- **Recipe + fonts persist on the existing custom-theme record** (`customThemeSchema.recipe`/`fonts`,
+  stored in the `instance_settings.theme.custom` JSON) — consistent with "instance settings are
+  extensible without migrations".
+- **Google Fonts load via a `<link>`** injected by the theme plugin only when the active custom
+  theme declares `fonts` (CSP already allowed `fonts.googleapis.com`); `googleHref` URL-encodes
+  families.
+- **`tokensToCss` now strips `; { }`** from token *values* (defense-in-depth — a crafted/imported
+  value could otherwise close the `:root` rule).
+- Gated on `features.themeStudio` (default ON); off = the granular editor is unchanged.

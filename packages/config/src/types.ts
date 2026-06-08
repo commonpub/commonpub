@@ -27,6 +27,8 @@ export interface FeatureFlags {
   editorial: boolean;
   /** Enable admin panel (user management, reports, instance settings) */
   admin: boolean;
+  /** Enable the guided theme generator (theme-studio) in the admin theme builder (default: true) */
+  themeStudio: boolean;
   /** Enable email notifications (instant + digest emails for likes, comments, follows, mentions) */
   emailNotifications: boolean;
   /**

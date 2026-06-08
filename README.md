@@ -150,7 +150,7 @@ Details in [docs/guides/developers.md](docs/guides/developers.md#the-thin-app-pa
 ```
 commonpub/
 ├── packages/           12 framework-agnostic TypeScript packages (published to npm)
-├── layers/base/        Shared Nuxt layer (@commonpub/layer) — 90 pages, 139 components, 327 API routes
+├── layers/base/        Shared Nuxt layer (@commonpub/layer) — 90 pages, 141 components, 327 API routes
 ├── apps/
 │   ├── reference/      Fully featured Nuxt 3 reference app (all features on)
 │   └── shell/          Minimal starter template
@@ -191,16 +191,17 @@ See [`codebase-analysis/01-monorepo-topology.md`](./codebase-analysis/01-monorep
 
 ## Packages
 
-All 12 published to npm as `@commonpub/*`. Latest published versions below (current as of session 181, 2026-06-01 — verify with `npm view @commonpub/<pkg> version`). commonpub.io builds from workspace source; deveco.io + heatsynclabs.io run the published npm layer.
+12 published to npm as `@commonpub/*`, plus `@commonpub/theme-studio` (session 192, built but **not yet published**) = 13 total. Latest published versions below (verify with `npm view @commonpub/<pkg> version`). commonpub.io builds from workspace source; deveco.io + heatsynclabs.io run the published npm layer.
 
 | Package | Version | Purpose |
 |---|---|---|
 | [`@commonpub/schema`](packages/schema/README.md) | 0.35.0 | 90 Drizzle tables (incl. `layouts`/`layout_rows`/`layout_sections`/`layout_versions`, RBAC `roles`/`role_permissions`/`user_roles`, `metrics_daily`), 45 enums, 111 Zod validators |
-| [`@commonpub/config`](packages/config/README.md) | 0.19.0 | `defineCommonPubConfig()` factory, 22 feature flags (+5 identity sub-flags) |
+| [`@commonpub/config`](packages/config/README.md) | 0.19.0 | `defineCommonPubConfig()` factory, 23 feature flags (+5 identity sub-flags) |
 | [`@commonpub/server`](packages/server/README.md) | 2.82.0 | Framework-agnostic business logic (25 modules incl. `src/publicApi/*` read-API+metrics+CORS, `src/layout/*` CRUD, RBAC, contest stages, keyset feed pagination, transactions, lifecycle hooks) |
 | [`@commonpub/protocol`](packages/protocol/README.md) | 0.13.0 | ActivityPub types, HTTP signatures, WebFinger, NodeInfo, OAuth2, SSRF-safe fetch |
 | [`@commonpub/auth`](packages/auth/README.md) | 0.8.0 | Better Auth wrapper, guards, AP Actor SSO (Model B), RBAC `hasPermissionPure` |
 | [`@commonpub/ui`](packages/ui/README.md) | 0.11.1 | 22 headless Vue 3 components + SectionRegistry/SectionDefinition, 7 themes (incl. Stoa), CSS token system |
+| [`@commonpub/theme-studio`](packages/theme-studio/README.md) | 0.1.0 _(unpublished)_ | Pure-TS theme generator: `recipeToTokens()` projection, color/palette/scales/fonts/vibe presets. Brain behind the admin Theme Studio wizard |
 | [`@commonpub/editor`](packages/editor/README.md) | 0.7.11 | TipTap extensions, 20 block types, BlockTuple serialization, `vue/` editor surface |
 | [`@commonpub/docs`](packages/docs/README.md) | 0.6.3 | Markdown pipeline, versioning, navigation, search adapters |
 | [`@commonpub/explainer`](packages/explainer/README.md) | 0.7.15 | Interactive sections + `modules/` runtime, quiz engine, progress tracking, HTML export |

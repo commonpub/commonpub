@@ -21,6 +21,7 @@
  * surface.
  */
 import { onMounted, ref, computed, watch } from 'vue';
+import { recipeToTokens, randomizeRecipe, defaultRecipe, randomName, type ThemeRecipe } from '@commonpub/theme-studio';
 // Auto-imported by Nuxt:
 //   useThemeAdmin          ← composables/useThemeAdmin.ts
 //   parseCustomThemeId     ← utils/themeIds.ts
@@ -34,6 +35,7 @@ useSeoMeta({ title: `Theme, Admin, ${useSiteName()}` });
 
 const themesApi = useThemeAdmin();
 const router = useRouter();
+const { themeStudio } = useFeatures();
 
 const { data: settings, refresh: refreshSettings } = await useFetch<Record<string, unknown>>('/api/admin/settings');
 
@@ -197,6 +199,40 @@ function createBlank(): void {
   };
   sessionStorage.setItem('cpub-theme-editor-seed', JSON.stringify(seed));
   router.push('/admin/theme/edit/__new');
+}
+
+/**
+ * Seed a new theme from a theme-studio recipe and open the editor straight
+ * into the Studio wizard (the `openStudio` flag). Used by both the guided
+ * start (a neutral default recipe) and the dice roll (a random one).
+ */
+function startFromRecipe(recipe: ThemeRecipe, opts: { id: string; name: string }): void {
+  const gen = recipeToTokens(recipe);
+  const seed = {
+    id: nextAvailableId(opts.id),
+    name: opts.name,
+    description: '',
+    family: 'custom',
+    isDark: recipe.mode === 'dark',
+    parentTheme: gen.parentTheme,
+    tokens: gen.tokens,
+    recipe,
+    fonts: gen.fonts,
+    openStudio: true,
+  };
+  sessionStorage.setItem('cpub-theme-editor-seed', JSON.stringify(seed));
+  router.push('/admin/theme/edit/__new');
+}
+
+function startGuided(): void {
+  startFromRecipe(defaultRecipe(), { id: 'my-theme', name: 'My theme' });
+}
+
+function startDice(): void {
+  const seed = Date.now() >>> 0;
+  const name = randomName(seed);
+  const pretty = name.charAt(0) + name.slice(1).toLowerCase();
+  startFromRecipe(randomizeRecipe(seed), { id: pretty, name: pretty });
 }
 
 function captureCurrent(): void {
@@ -367,7 +403,18 @@ async function saveOverrides(overrides: Record<string, string>): Promise<void> {
           hidden
           @change="onImportFile"
         />
-        <button class="cpub-btn cpub-btn-primary" :disabled="saving" @click="createBlank">
+        <template v-if="themeStudio">
+          <button class="cpub-btn" :disabled="saving" title="Roll a random theme" @click="startDice">
+            <i class="fa-solid fa-dice" aria-hidden="true" /> Surprise me
+          </button>
+          <button class="cpub-btn" :disabled="saving" @click="createBlank">
+            <i class="fa-solid fa-plus" aria-hidden="true" /> Blank
+          </button>
+          <button class="cpub-btn cpub-btn-primary" :disabled="saving" @click="startGuided">
+            <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true" /> Build with Studio
+          </button>
+        </template>
+        <button v-else class="cpub-btn cpub-btn-primary" :disabled="saving" @click="createBlank">
           <i class="fa-solid fa-plus" aria-hidden="true" /> New custom theme
         </button>
       </div>

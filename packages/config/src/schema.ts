@@ -35,6 +35,9 @@ export const featureFlagsSchema = z.object({
   federateHubs: z.boolean().default(false),
   editorial: z.boolean().default(true),
   admin: z.boolean().default(false),
+  // Guided theme generator (@commonpub/theme-studio) in the admin theme
+  // builder. Default ON — the granular token editor is unaffected when off.
+  themeStudio: z.boolean().default(true),
   emailNotifications: z.boolean().default(false),
   publicApi: z.boolean().default(false),
   // URL content import (importFromUrl). Default on; operators can

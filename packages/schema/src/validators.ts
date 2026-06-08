@@ -872,6 +872,34 @@ export const themeTokenValueSchema = z.string().min(1).max(512);
 export const themeTokenMapSchema = z.record(themeTokenKeySchema, themeTokenValueSchema);
 export type ThemeTokenMap = z.infer<typeof themeTokenMapSchema>;
 
+/**
+ * The generator "recipe" — the small set of inputs the @commonpub/theme-studio
+ * wizard edits. Persisted alongside a theme so the wizard can be reopened
+ * with its controls restored. Mirrors `ThemeRecipe` in @commonpub/theme-studio;
+ * kept here as a bounded zod shape (the package re-validates on read).
+ */
+export const themeRecipeSchema = z.object({
+  mode: z.enum(['light', 'dark']),
+  accent: z.string().min(1).max(32),
+  secondary: z.string().min(1).max(32).optional(),
+  scheme: z.enum(['analogous', 'complementary', 'triadic', 'split', 'tetradic', 'monochrome']),
+  fonts: z.object({
+    display: z.string().min(1).max(80),
+    body: z.string().min(1).max(80),
+    ui: z.string().min(1).max(80),
+    code: z.string().min(1).max(80),
+  }),
+  baseSize: z.number().min(8).max(32),
+  ratio: z.number().min(1).max(3),
+  spaceBase: z.union([z.literal(4), z.literal(8)]),
+  density: z.enum(['compact', 'balanced', 'spacious']),
+  shapeRadius: z.number().min(0).max(64),
+  borderWidth: z.number().min(0).max(8),
+  shadowStyle: z.enum(['none', 'hard', 'soft', 'glow', 'layered']),
+  motion: z.enum(['sharp', 'snappy', 'smooth']),
+});
+export type ThemeRecipeInput = z.infer<typeof themeRecipeSchema>;
+
 export const customThemeSchema = z.object({
   id: customThemeIdSchema,
   name: z.string().min(1).max(120),
@@ -883,6 +911,10 @@ export const customThemeSchema = z.object({
   /** Theme this one inherits from (built-in CSS or another custom). */
   parentTheme: z.string().min(1).max(64).default('base'),
   tokens: themeTokenMapSchema.default({}),
+  /** Generator recipe (theme-studio). Absent for hand-authored themes. */
+  recipe: themeRecipeSchema.optional(),
+  /** Google-Font families to load when this theme is active. */
+  fonts: z.array(z.string().min(1).max(80)).max(8).optional(),
   createdAt: z.string().datetime().optional(),
   updatedAt: z.string().datetime().optional(),
 });
