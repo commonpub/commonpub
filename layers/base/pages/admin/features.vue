@@ -31,6 +31,7 @@ const flagMeta: Record<string, { label: string; description: string; icon: strin
   seamlessFederation: { label: 'Seamless Federation', description: 'Mix federated content into feeds', icon: 'fa-solid fa-arrows-spin' },
   federateHubs: { label: 'Federate Hubs', description: 'Hub federation via AP Groups', icon: 'fa-solid fa-diagram-project' },
   admin: { label: 'Admin Panel', description: 'Admin dashboard and management', icon: 'fa-solid fa-shield-halved' },
+  themeStudio: { label: 'Theme Studio', description: 'Guided theme generator in the theme builder', icon: 'fa-solid fa-wand-magic-sparkles' },
   emailNotifications: { label: 'Email Notifications', description: 'Email digests and instant notifications', icon: 'fa-solid fa-envelope' },
 };
 

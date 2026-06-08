@@ -37,6 +37,8 @@ export default defineEventHandler(async (event) => {
       pairId: input.pairId,
       parentTheme: input.parentTheme,
       tokens: input.tokens ?? {},
+      recipe: input.recipe,
+      fonts: input.fonts,
     },
     admin.id,
   );

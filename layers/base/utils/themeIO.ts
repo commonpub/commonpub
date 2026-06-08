@@ -56,6 +56,11 @@ export function parseExportFile(text: string): CustomThemeRecord {
     pairId: typeof t.pairId === 'string' ? t.pairId : undefined,
     parentTheme: typeof t.parentTheme === 'string' ? t.parentTheme : 'base',
     tokens: (typeof t.tokens === 'object' && t.tokens !== null ? t.tokens : {}) as Record<string, string>,
+    recipe:
+      typeof t.recipe === 'object' && t.recipe !== null
+        ? (t.recipe as CustomThemeRecord['recipe'])
+        : undefined,
+    fonts: Array.isArray(t.fonts) ? (t.fonts.filter((f) => typeof f === 'string') as string[]) : undefined,
     createdAt: typeof t.createdAt === 'string' ? t.createdAt : new Date().toISOString(),
     updatedAt: typeof t.updatedAt === 'string' ? t.updatedAt : new Date().toISOString(),
   };

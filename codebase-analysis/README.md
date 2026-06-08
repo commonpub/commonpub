@@ -41,7 +41,7 @@ Not to be confused with the stale `/Users/obsidian/Projects/commonpub/` director
 
 | | |
 |---|---|
-| Packages on npm | 12 (@commonpub/*) |
+| Packages on npm | 12 (@commonpub/*) + `theme-studio` built but unpublished (session 192) = 13 total |
 | Shared Nuxt layer | 1 (@commonpub/layer) |
 | Apps | 2 (reference, shell) |
 | Tools | 2 (create-commonpub Rust CLI, worker) |
@@ -51,14 +51,14 @@ Not to be confused with the stale `/Users/obsidian/Projects/commonpub/` director
 | Server modules | 25 module dirs + 11 top-level utility files |
 | API routes in layer | 327 files under `server/api/` (321 handlers + 6 colocated tests) + 22 ActivityPub/site files under `server/routes/` |
 | Layer pages | 90 |
-| Layer components | 139 |
+| Layer components | 141 (session 192: +AdminThemeStudio, +AdminThemeSceneSheet) |
 | Composables | 34 (non-test; +12 `__tests__/` files) |
 | Route middleware | 3; server (Nitro) middleware 11; server plugins 10 |
-| Feature flags | 22 boolean top-level + `identity` object (5 sub-flags) |
+| Feature flags | 23 boolean top-level (+`themeStudio` session 192) + `identity` object (5 sub-flags) |
 | Themes | 7 built-in (base, dark, generics, agora, agora-dark, stoa, stoa-dark — stoa is the default) + DB-stored + code-registered |
 | Migrations | 21 (0000_session128_baseline → 0020_spooky_gideon = `metrics_daily`, session 190; all published/deployed) |
 | Production instances | 3 (commonpub.io, deveco.io, heatsynclabs.io — all auto-deploy from main) |
-| Tests | 281 git-tracked `*.test.ts` files (server 91, layer 47, ui 27, protocol 27, editor 24, infra 11, docs 11, explainer 9, apps/reference 9, schema 7, auth 7, learning 5, deploy 3, config 1, test-utils 1, tools/worker 1) |
+| Tests | 290 git-tracked `*.test.ts` files (server 91, layer 50, ui 27, protocol 27, editor 24, infra 11, docs 11, explainer 9, apps/reference 9, theme-studio 6, schema 7, auth 7, learning 5, deploy 3, config 1, test-utils 1, tools/worker 1) |
 | Latest versions | schema 0.35.0, server 2.82.0, config 0.19.0, layer 0.64.1, ui 0.11.1, auth 0.8.0, protocol 0.13.0, infra 0.8.0, editor 0.7.11, explainer 0.7.15, learning 0.5.2, docs 0.6.3, test-utils 0.5.6 (verify with `npm view`) |
 
 ## Files
@@ -68,7 +68,7 @@ Not to be confused with the stale `/Users/obsidian/Projects/commonpub/` director
 3. [`03-server-modules.md`](./03-server-modules.md) — `@commonpub/server` modules, public functions, tables touched
 4. [`04-api-routes.md`](./04-api-routes.md) — REST endpoints (327 `server/api/` files) + 22 ActivityPub/site routes
 5. [`05-layer-pages-components.md`](./05-layer-pages-components.md) — Pages, components, composables, middleware
-6. [`06-other-packages.md`](./06-other-packages.md) — config, auth, protocol, ui, editor, explainer, learning, docs, infra, test-utils
+6. [`06-other-packages.md`](./06-other-packages.md) — config, auth, protocol, ui, theme-studio, editor, explainer, learning, docs, infra, test-utils
 7. [`07-state-diagrams.md`](./07-state-diagrams.md) — Mermaid diagrams for contests, events, hubs, federation, auth
 8. [`08-feature-flags-inventory.md`](./08-feature-flags-inventory.md) — All 22 boolean flags + `identity.*` sub-flags, defaults, what each gates
 9. [`09-gotchas-and-invariants.md`](./09-gotchas-and-invariants.md) — Migrate-based schema deploys, Nitro externalization, pnpm dist sync, useState key collisions, etc.

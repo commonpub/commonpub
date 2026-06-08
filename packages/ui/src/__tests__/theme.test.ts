@@ -6,6 +6,7 @@ import {
   validateTokenOverrides,
   applyThemeToElement,
   getThemeFromElement,
+  tokensToCss,
 } from '../theme';
 
 describe('BUILT_IN_THEMES', () => {
@@ -219,5 +220,53 @@ describe('getThemeFromElement', () => {
     const result = getThemeFromElement(el);
     expect(result.themeId).toBe('generics');
     expect(result.overrides['accent']).toBe('#custom');
+  });
+});
+
+describe('tokensToCss', () => {
+  it('serializes a token map into a :root rule body', () => {
+    const css = tokensToCss(':root', { accent: '#5b9cf6', bg: '#fafaf9' });
+    expect(css).toBe(':root {\n  --accent: #5b9cf6;\n  --bg: #fafaf9;\n}');
+  });
+
+  it('returns empty string for an empty / all-invalid map', () => {
+    expect(tokensToCss(':root', {})).toBe('');
+  });
+
+  it('strips disallowed characters from keys and drops empty keys', () => {
+    const css = tokensToCss(':root', { 'accent;evil': '#fff', '': '#000' });
+    expect(css).toContain('--accentevil: #fff;');
+    expect(css).not.toContain('--:');
+  });
+
+  it('preserves legitimate multi-part values (font stacks, shadows, rgba)', () => {
+    const css = tokensToCss(':root', {
+      'font-body': "'Inter', system-ui, sans-serif",
+      'shadow-md': '0 6px 18px rgba(20,20,30,.16), 0 2px 6px rgba(0,0,0,.1)',
+    });
+    expect(css).toContain("--font-body: 'Inter', system-ui, sans-serif;");
+    expect(css).toContain('--shadow-md: 0 6px 18px rgba(20,20,30,.16), 0 2px 6px rgba(0,0,0,.1);');
+  });
+
+  it('neutralizes a value that tries to break out of the rule (; { })', () => {
+    // The attack: close :root then inject a global rule.
+    const css = tokensToCss(':root', { accent: 'red; } body{display:none} :root{x:1' });
+    // No raw statement/block delimiters survive in the value → no rule break-out.
+    const body = css.slice(css.indexOf('--accent:'));
+    expect(body).not.toMatch(/[;{}].*[;{}]/); // only the single trailing `;` we add
+    expect(css).not.toContain('display:none}');
+    expect(css).not.toContain('body{');
+  });
+
+  it('escapes </ so a value cannot close the <style> block', () => {
+    const css = tokensToCss(':root', { accent: 'red</style><script>' });
+    expect(css).not.toContain('</style>');
+    expect(css).toContain('<\\/style>');
+  });
+
+  it('strips CR/LF from values', () => {
+    const css = tokensToCss(':root', { accent: 'red\n  --bg: blue' });
+    expect(css).not.toContain('\n  --bg: blue\n');
+    expect(css).toContain('--accent: red   --bg: blue;');
   });
 });

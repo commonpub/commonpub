@@ -3,7 +3,7 @@
 `layers/base/` — published as `@commonpub/layer`. The distribution unit.
 Instances extend it via `extends: ['@commonpub/layer']` in their nuxt.config.
 
-Re-verified session 191 (2026-06-07): **90 pages, 139 components,
+Re-verified session 192 (2026-06-08): **90 pages, 141 components,
 34 composables (non-test; +12 `__tests__/` files), 10 server plugins,
 3 route middleware, 11 server (Nitro) middleware, 327 `server/api/` route
 files + 22 ActivityPub/site routes.** The directory layout below is
@@ -16,7 +16,7 @@ layers/base/
 ├── app.vue                    root with NuxtLayout / NuxtPage / skip-link
 ├── error.vue                  404 / error page — re-applies data-theme for SSR
 ├── nuxt.config.ts             modules, CSS bundle, runtime config, features
-├── components/                139 Vue components (grouped below; +LayoutSlot/Row/Section + PageFrame + admin/layouts editor + admin/theme + ContestStagesEditor)
+├── components/                141 Vue components (grouped below; +LayoutSlot/Row/Section + PageFrame + admin/layouts editor + admin/theme incl. studio/AdminThemeStudio + AdminThemeSceneSheet + ContestStagesEditor)
 ├── composables/               34 useX helpers (non-test) + __tests__/
 ├── layouts/                   default, admin (collapsible sidebar, session 161), auth, editor
 ├── middleware/                3 route guards: auth.ts, feature-gate.global.ts, admin-layouts.ts

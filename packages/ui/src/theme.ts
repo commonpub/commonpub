@@ -133,8 +133,11 @@ export function getThemeFromElement(el: HTMLElement): {
  * we still want a malformed token to fail closed rather than break the
  * page or escape the <style> block):
  *   - keys are stripped to `[a-zA-Z0-9_-]`; empty keys are dropped
- *   - values strip CR/LF (prevents premature rule termination) and
- *     escape `</` (prevents closing the <style> block)
+ *   - values strip CR/LF (prevents premature rule termination), strip the
+ *     CSS statement/block delimiters `; { }` (prevents a crafted value from
+ *     closing the `:root` rule and injecting arbitrary rules — e.g. an
+ *     imported `.cpub-theme.json`), and escape `</` (prevents closing the
+ *     <style> block). No legitimate single-property value contains `; { }`.
  *   - the function returns the rule body only; the caller wraps it in
  *     `<style>...</style>` (which Vue/Nuxt's useHead does for us)
  *
@@ -147,7 +150,7 @@ export function tokensToCss(selector: string, tokens: Record<string, string>): s
     if (typeof value !== 'string') continue;
     const safeKey = key.replace(/[^a-zA-Z0-9_-]/g, '');
     if (!safeKey) continue;
-    const safeVal = value.replace(/[\r\n]/g, ' ').replace(/<\//g, '<\\/');
+    const safeVal = value.replace(/[\r\n;{}]/g, ' ').replace(/<\//g, '<\\/');
     lines.push(`  --${safeKey}: ${safeVal};`);
   }
   if (lines.length === 0) return '';

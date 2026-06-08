@@ -306,6 +306,57 @@ When a user later toggles light/dark via the topbar:
 
 ---
 
+## Studio — the guided generator (easy mode)
+
+`@commonpub/theme-studio` is a framework-agnostic package (pure TS, zero Vue) that
+**derives a complete, harmonized, WCAG-checked token set from a small recipe** — the
+inverse of the granular token editor. It is wired into the admin theme builder as an
+"easy mode" alongside the existing per-token editor; the two share one draft.
+
+**The recipe.** `ThemeRecipe` is the small serializable set of inputs: mode, accent, four
+font roles, base size + scale ratio, spacing base, density, corner radius, border width,
+shadow style, motion (plus `scheme`/`secondary` fields carried by the vibe presets). It is
+persisted on the theme record (`customThemeSchema.recipe`, stored in the
+`instance_settings.theme.custom` JSON — **no migration**) so the wizard reopens with its
+controls restored. Note: the whole palette (surfaces/text/borders/states) derives from
+**accent hue/saturation + mode**, so the wizard exposes only those for color; `scheme` and
+`secondary` don't change any rendered token (CommonPub has no secondary-accent token) and
+aren't surfaced as controls.
+
+**The projection.** `recipeToTokens(recipe)` maps a recipe onto the canonical
+`TOKEN_SPECS` keys and returns `{ tokens, fonts, parentTheme, fontHref }`. It emits only
+the tokens it derives; everything else inherits from a **mode-matched `parentTheme`**
+(`dark` for dark recipes, `base` for light). A unit test asserts every emitted key passes
+`validateTokenOverrides` and that all curated vibe presets clear WCAG AA on text/bg.
+
+**The UX (generate-then-edit, one-way).**
+- The theme list (`/admin/theme`) offers **Build with Studio**, **Surprise me** (dice →
+  `randomizeRecipe`), and **Blank** (the original path). The first two seed a draft +
+  recipe and open the editor with `openStudio: true`.
+- In the editor, a **Studio | Advanced** toggle swaps the left pane between
+  `AdminThemeStudio` (the wizard) and the token-group grid — both editing the **same
+  draft**. Touching a Studio control calls `recipeToTokens` and replaces `draft.tokens`
+  wholesale; a banner warns that re-running Studio overwrites manual token tweaks.
+- A fourth preview scene, **Spec sheet** (`AdminThemeSceneSheet`), visualizes the raw
+  tokens (named swatches with live hex + a WCAG contrast readout, a type ladder, spacing
+  bars, radius/shadow tiles) — complementing the component-in-context Gallery scene.
+
+**Fonts (Google Fonts loading).** Studio's type vibes draw from a ~100-family catalog.
+The chosen families are persisted on `customThemeSchema.fonts`; when a custom theme is the
+active instance theme, `resolveThemeContext` builds a `fontHref` (`googleHref(fonts)`) and
+the theme plugin injects a `<link rel="stylesheet">` (CSP already allows
+`fonts.googleapis.com`). The editor loads the same `<link>` client-side so the live preview
+renders the chosen fonts. A handful of families (Fraunces/Newsreader/Work Sans/JetBrains
+Mono) are still statically preloaded in `nuxt.config.ts` for the built-in Stoa theme.
+
+**Feature flag.** Gated on `features.themeStudio` (default ON). When off, the wizard +
+entry points are hidden and the granular editor is byte-identical to before.
+
+**Source**: `packages/theme-studio/` (brain), `layers/base/components/admin/theme/studio/`
+(wizard) + `AdminThemeSceneSheet.vue` (preview scene).
+
+---
+
 ## Standing rules touched by this system
 
 - **#3 "No hardcoded color or font"** — every preview scene + editor component uses `var(--*)` only.
@@ -320,6 +371,12 @@ When a user later toggles light/dark via the topbar:
 
 - **Per-page layout editing**. The scene picker hints at it — `'page-layout'` and `'layout-builder'` are future scenes. The theme system stops at design tokens today.
 - **Component-level overrides** (e.g. "this theme also uses a different button shape"). Achievable today by shipping a CSS file alongside a code-registered theme; not authorable in the editor.
-- **Font upload / Google Fonts integration**. The font-family input accepts any CSS value, but the editor doesn't help you load custom fonts. The standard pattern: load fonts in the thin app's `nuxt.config.ts` `app.head.link` (see deveco's Poppins import) and reference them in the token.
-- **Theme sharing / marketplace**. Exported JSON files are the portable format; there's no public registry.
-- **Validation of contrast ratios**. The preview surfaces an alert pattern that could host a WCAG checker — wire it up when the contrast-checker primitive lands.
+- **Font upload (self-hosted)**. Studio loads Google Fonts for a theme automatically (see
+  the Studio section above); arbitrary self-hosted `@font-face` files still need a CSS file
+  shipped by the thin app. The font-family token accepts any CSS value regardless.
+- **Theme sharing / marketplace**. Exported JSON files are the portable format (they carry
+  the `recipe` + `fonts` too); there's no public registry.
+- **Pair generation**. Studio builds one theme (one mode) at a time; auto-generating the
+  matching light/dark sibling from the same recipe is a natural follow-up (out of scope).
+
+> A live WCAG contrast readout now exists in the **Spec sheet** preview scene (text on bg).

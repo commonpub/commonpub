@@ -107,6 +107,7 @@ export default defineNuxtConfig({
         federateHubs: false,
         seamlessFederation: false,
         admin: false,
+        themeStudio: true,
         emailNotifications: false,
         publicApi: false,
         contentImport: true,
