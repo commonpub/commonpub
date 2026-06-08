@@ -179,7 +179,7 @@ a minute (`curl deveco.io/api/content?limit=5`, today's timestamp).
 | @commonpub/auth | 0.8.0 | | @commonpub/docs | 0.6.3 |
 | @commonpub/server | **2.82.0** | | @commonpub/learning | 0.5.2 |
 | @commonpub/ui | **0.11.1** | | @commonpub/test-utils | 0.5.6 |
-| @commonpub/layer | **0.64.1** | | create-commonpub (crates.io) | **0.5.7** |
+| @commonpub/layer | **0.64.1** | | create-commonpub (crates.io) | **0.5.8** |
 
 **Stoa theme (session 190, ui 0.10.0 / layer 0.63.0):** new built-in theme family (light + dark) —
 warm paper, moss accent, Fraunces/Newsreader/Work Sans, soft rounded geometry; shares Agora's Town
@@ -191,7 +191,9 @@ explicit `agora-dark` (set Stoa in admin → Appearance to switch). deveco/heats
 Migrations applied this cycle: **0016**–**0019** (contest stages, see below) · **0020**
 (`metrics_daily` — public-API analytics rollups, session 190; additive CREATE TABLE + indexes,
 `dimension` NOT NULL `''`). The CLI `template.rs` pins go stale on every config/layer/schema/server
-publish — bump after this release (schema ^0.35 / config ^0.19 / server ^2.82 / layer ^0.64).
+publish — **DONE (session 191): create-commonpub 0.5.8 published to crates.io** pinning schema ^0.35 /
+config ^0.19 / server ^2.82 / layer ^0.64, default theme → Stoa, `db:migrate` recommended,
+`NUXT_REDIS_URL` fixed, `article` dropped. Re-bump these constants after the next package publish.
 
 Contest overhaul (2026-06-04, schema 0.27.0 / server 2.74.0 / layer 0.49.0, all 3 instances):
 optional `contests.coverImageUrl` (cards prefer it cover-cropped → contained banner → trophy);
