@@ -12,22 +12,24 @@ services:
       initial_delay_seconds: 10
       period_seconds: 30
     envs:
-      - key: DATABASE_URL
+      # NUXT_ prefix is REQUIRED: the Nuxt app reads runtimeConfig keys
+      # (config.databaseUrl ← NUXT_DATABASE_URL; realtime/rate-limit read
+      # process.env.NUXT_REDIS_URL). Bare DATABASE_URL/REDIS_URL never reach
+      # the running app. db-migrate.mjs reads NUXT_DATABASE_URL too, so one var covers both.
+      - key: NUXT_DATABASE_URL
         scope: RUN_TIME
         value: ${db.DATABASE_URL}
-      - key: REDIS_URL
+      - key: NUXT_REDIS_URL
         scope: RUN_TIME
         value: ${redis.DATABASE_URL}
-      - key: AUTH_SECRET
+      - key: NUXT_AUTH_SECRET
         scope: RUN_TIME
         type: SECRET
-      - key: ORIGIN
+      - key: NUXT_PUBLIC_DOMAIN
         scope: RUN_TIME
-      - key: INSTANCE_DOMAIN
+      - key: NUXT_PUBLIC_SITE_NAME
         scope: RUN_TIME
-      - key: INSTANCE_NAME
-        scope: RUN_TIME
-      - key: INSTANCE_DESCRIPTION
+      - key: NUXT_PUBLIC_SITE_DESCRIPTION
         scope: RUN_TIME
       - key: NUXT_PUBLIC_SITE_URL
         scope: RUN_TIME

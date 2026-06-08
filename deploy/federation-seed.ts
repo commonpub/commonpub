@@ -54,9 +54,9 @@ async function seed(instanceConfig: typeof INSTANCE_A, peerConfig: typeof INSTAN
     .insert(schema.contentItems)
     .values({
       authorId: userId,
-      type: 'article',
-      title: `${displayName}'s First Article`,
-      slug: `${username}-first-article`,
+      type: 'blog',
+      title: `${displayName}'s First Post`,
+      slug: `${username}-first-post`,
       description: `An article by ${displayName} for federation testing`,
       content: `<p>Hello from ${instanceConfig.domain}!</p>`,
       status: 'published',

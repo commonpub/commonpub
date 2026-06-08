@@ -229,17 +229,21 @@ runcmd:
   # ---- Write .env ----
   - |
     cat > /opt/commonpub/.env << 'ENVEOF'
-    ORIGIN=https://${INSTANCE_DOMAIN}
     PORT=3000
     POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-    DATABASE_URL=postgresql://commonpub:${POSTGRES_PASSWORD}@postgres:5432/commonpub
-    REDIS_URL=redis://redis:6379
-    AUTH_SECRET=${AUTH_SECRET}
+    # App reads NUXT_-prefixed runtimeConfig keys (databaseUrl/authSecret/emailAdapter)
+    # + NUXT_PUBLIC_* + process.env.NUXT_REDIS_URL. Un-prefixed runtimeConfig names do NOT
+    # reach the running Nuxt app. MEILI_*, FEATURE_*, and UPLOAD_DIR are read from
+    # process.env directly (bare).
+    NUXT_DATABASE_URL=postgresql://commonpub:${POSTGRES_PASSWORD}@postgres:5432/commonpub
+    NUXT_REDIS_URL=redis://redis:6379
+    NUXT_AUTH_SECRET=${AUTH_SECRET}
+    NUXT_PUBLIC_SITE_URL=https://${INSTANCE_DOMAIN}
+    NUXT_PUBLIC_DOMAIN=${INSTANCE_DOMAIN}
+    NUXT_PUBLIC_SITE_NAME=$(esc_yaml "$INSTANCE_NAME")
+    NUXT_PUBLIC_SITE_DESCRIPTION=$(esc_yaml "$INSTANCE_DESC")
     MEILI_URL=http://meilisearch:7700
     MEILI_MASTER_KEY=${MEILI_MASTER_KEY}
-    INSTANCE_DOMAIN=${INSTANCE_DOMAIN}
-    INSTANCE_NAME=$(esc_yaml "$INSTANCE_NAME")
-    INSTANCE_DESCRIPTION=$(esc_yaml "$INSTANCE_DESC")
     FEATURE_CONTENT=${FEAT_CONTENT}
     FEATURE_SOCIAL=${FEAT_SOCIAL}
     FEATURE_HUBS=${FEAT_HUBS}
@@ -250,8 +254,8 @@ runcmd:
     FEATURE_VIDEO=${FEAT_VIDEO}
     FEATURE_FEDERATION=${FEAT_FEDERATION}
     FEATURE_ADMIN=${FEAT_ADMIN}
-    CONTENT_TYPES=${CONTENT_TYPES}
-    EMAIL_ADAPTER=console
+    NUXT_PUBLIC_CONTENT_TYPES=${CONTENT_TYPES}
+    NUXT_EMAIL_ADAPTER=console
     UPLOAD_DIR=./uploads
     ENVEOF
 
@@ -468,8 +472,10 @@ runcmd:
       sleep 5
     done
 
-  # ---- Push database schema ----
-  - docker compose exec -T app npx drizzle-kit push --force
+  # ---- Apply database schema (committed migrations, NOT drizzle-kit push —
+  #      push skips partial indexes like the keyset feed indexes; same command the
+  #      CI deploy workflow uses) ----
+  - docker compose exec -T app node scripts/db-migrate.mjs
 
   # ---- Create first admin user ----
   - |
