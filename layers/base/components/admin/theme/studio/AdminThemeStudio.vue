@@ -273,7 +273,7 @@ function finishWith(apply: boolean): void {
 
         <template v-else>
           <label class="cpub-studio-field">
-            <span class="cpub-studio-lbl">Mode</span>
+            <span class="cpub-studio-lbl">Default mode <span class="cpub-studio-hint">both are saved</span></span>
             <span class="cpub-studio-seg">
               <button type="button" :class="{ on: recipe.mode === 'light' }" @click="recipe.mode = 'light'">Light</button>
               <button type="button" :class="{ on: recipe.mode === 'dark' }" @click="recipe.mode = 'dark'">Dark</button>

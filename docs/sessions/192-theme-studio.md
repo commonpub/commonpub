@@ -124,6 +124,25 @@ A close re-read of gauge.html + an independent triple-check drove a big follow-u
 - Released as **schema 0.37 / ui 0.12 / theme-studio 0.3 / layer 0.67** (config/server unchanged, no
   migration). theme-studio 60 tests, ui 265, schema 443, layer 932, typecheck 28/28, full build green.
 
+## Light/dark switch fix (layer 0.68.0)
+
+**Bug:** on a custom-theme site, the Light/Dark toggle didn't switch — `useTheme.setDarkMode`
+flipped `data-theme` client-side only for built-in families; custom themes "persisted the
+preference for the next request", and the SSR injected only the ACTIVE variant's tokens at `:root`,
+so there was nothing to flip to (and with no functional-cookie consent, nothing happened at all).
+
+**Fix:** `resolveThemeContext` now returns BOTH pair variants as **scoped** token blocks
+(`:root[data-theme="cpub-custom-<id>"]`, instance overrides merged into each) + a `pair`
+{lightAttr,darkAttr}; the middleware injects both and the plugin exposes the pair; both variants'
+fonts load. `useTheme.setDarkMode` flips `data-theme` between the pair attrs **instantly**
+client-side (like built-ins) — no round-trip, no consent needed for the in-session switch.
+
+**UX de-dup:** the editor toolbar Mode pill + "Pair with" select are hidden for Studio (recipe)
+themes (the pair manages modes); the Studio mode toggle is relabeled "Default mode (both saved)";
+the editor hint explains the pair + that the site toggle switches it. Released **layer 0.68.0 / CLI
+0.5.11** (layer-only; theme-studio/ui/schema unchanged). Known follow-up: the in-editor preview
+pane still shows the primary variant's tokens in both preview modes (cosmetic; the live site is correct).
+
 ## Open questions / next steps
 - **Not released** — needs version bumps + publish (schema/config/server/ui/layer +
   new theme-studio) and consumer-pin bumps. Add theme-studio to the publish chain

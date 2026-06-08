@@ -16,6 +16,8 @@ declare module 'h3' {
     themeInlineCss: string;
     /** Google Fonts stylesheet URL for the active custom theme's fonts. Empty if none. */
     themeFontHref: string;
+    /** Light/dark data-theme attrs of a custom pair (for the client toggle). */
+    themePair: { lightAttr: string; darkAttr: string } | null;
   }
 }
 
@@ -40,14 +42,25 @@ export default defineEventHandler(async (event) => {
   event.context.resolvedTheme = ctx.resolvedTheme;
   event.context.isDarkMode = ctx.isDark;
 
-  // Build the inline style block. We scope tokens to `:root` so they
-  // override the loaded theme CSS but lose to inline element styles.
-  // Token overrides are added last (already merged into injectedTokens
-  // in resolveThemeContext) so they win.
-  event.context.themeInlineCss = Object.keys(ctx.injectedTokens).length > 0
-    ? tokensToCss(':root', ctx.injectedTokens)
-    : '';
+  // Build the inline style block.
+  //  - Custom theme(s): one block per variant, scoped to its `[data-theme]`
+  //    attr, with instance overrides merged in (so overrides win + apply in
+  //    every mode). A light/dark PAIR injects BOTH, so the client toggle can
+  //    flip `data-theme` and switch instantly — no server round-trip.
+  //  - Built-in / registered: only instance overrides at `:root` (their CSS
+  //    files already handle light/dark).
+  if (ctx.themeVariants.length > 0) {
+    event.context.themeInlineCss = ctx.themeVariants
+      .map((v) => tokensToCss(`:root[data-theme="${v.attr}"]`, { ...v.tokens, ...ctx.overrides }))
+      .filter(Boolean)
+      .join('\n');
+  } else {
+    event.context.themeInlineCss = Object.keys(ctx.overrides).length > 0
+      ? tokensToCss(':root', ctx.overrides)
+      : '';
+  }
 
   // Google Fonts for the active custom theme (CSP already allows googleapis).
   event.context.themeFontHref = ctx.fontHref;
+  event.context.themePair = ctx.pair;
 });

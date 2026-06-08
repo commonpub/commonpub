@@ -29,6 +29,7 @@ export function useTheme(): {
   const themeId = useState<string>('cpub-theme', () => 'base');
   const instanceDefault = useState<string>('cpub-instance-theme', () => 'base');
   const isDark = useState<boolean>('cpub-dark-mode', () => false);
+  const themePair = useState<{ lightAttr: string; darkAttr: string } | null>('cpub-theme-pair', () => null);
   const schemeCookie = useCookie('cpub-color-scheme', {
     maxAge: 31536000,
     path: '/',
@@ -44,9 +45,21 @@ export function useTheme(): {
       schemeCookie.value = dark ? 'dark' : 'light';
     }
 
+    // Custom light/dark PAIR: both variants' tokens are injected (scoped to
+    // their data-theme attr), so flip the attribute client-side for an instant
+    // switch — exactly like built-in families. (This is the fix for "the site
+    // light/dark toggle didn't switch a custom theme".)
+    if (themePair.value) {
+      const newTheme = dark ? themePair.value.darkAttr : themePair.value.lightAttr;
+      themeId.value = newTheme;
+      if (import.meta.client) {
+        document.documentElement.setAttribute('data-theme', newTheme);
+        $fetch('/api/profile/theme', { method: 'PUT', body: { themeId: newTheme } }).catch(() => {});
+      }
+      return;
+    }
+
     // Built-in family flip is purely client-side for snappy UX.
-    // Custom/registered themes need a server round-trip on next nav
-    // (the server reads the new cookie and picks the right pair).
     if (THEME_TO_FAMILY[instanceDefault.value]) {
       const family = THEME_TO_FAMILY[instanceDefault.value]!;
       const variants = FAMILY_VARIANTS[family] ?? FAMILY_VARIANTS.classic!;
@@ -61,7 +74,8 @@ export function useTheme(): {
         }).catch(() => {});
       }
     } else if (import.meta.client) {
-      // Custom theme: just persist preference; server will pick the variant on next request
+      // Single custom / registered theme with no pair: persist preference only;
+      // the server picks any declared variant on the next request.
       $fetch('/api/profile/theme', {
         method: 'PUT',
         body: { themeId: instanceDefault.value },

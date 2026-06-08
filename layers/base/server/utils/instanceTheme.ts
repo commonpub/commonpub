@@ -104,9 +104,18 @@ export async function resolveThemeContext(
   instanceTheme: string;
   /** Whether the resolved theme is dark */
   isDark: boolean;
-  /** Token map to inject as inline :root style (custom theme tokens + overrides). Empty when not needed. */
-  injectedTokens: Record<string, string>;
-  /** Google Fonts stylesheet URL for the active custom theme's fonts. Empty when none. */
+  /**
+   * Custom-theme token blocks to inject, one per variant, each scoped to its
+   * own `[data-theme]` selector. For a light/dark PAIR this is BOTH variants,
+   * so the client can flip `data-theme` and switch instantly (no round-trip).
+   * Empty for built-in / registered themes (their CSS files handle modes).
+   */
+  themeVariants: Array<{ attr: string; tokens: Record<string, string> }>;
+  /** Instance-wide token overrides (apply in every mode). */
+  overrides: Record<string, string>;
+  /** Light/dark attrs of a custom pair, so the client toggle can flip instantly. */
+  pair: { lightAttr: string; darkAttr: string } | null;
+  /** Google Fonts stylesheet URL for the active custom theme(s) fonts. Empty when none. */
   fontHref: string;
 }> {
   const state = await getState();
@@ -114,61 +123,52 @@ export async function resolveThemeContext(
   // Validate the admin's choice — fall back to base if missing/unknown
   const admin = isKnownThemeId(state.defaultTheme, state, registeredIds) ? state.defaultTheme : 'base';
 
-  // Light/dark resolution. We only flip variants for built-in family pairs;
-  // custom themes use their declared pair if present, otherwise stay put.
+  const activeCustom = state.customByAttr.get(admin);
   let resolved = admin;
-  if (userScheme !== null) {
-    // Built-in family flip
-    if (VALID_THEME_IDS.has(admin)) {
+  let isDark = false;
+  let themeVariants: Array<{ attr: string; tokens: Record<string, string> }> = [];
+  let pair: { lightAttr: string; darkAttr: string } | null = null;
+  let fontHref = '';
+
+  if (activeCustom) {
+    // Gather the pair members (the default + its sibling, if both exist).
+    const members: Array<{ attr: string; rec: CustomThemeRecord }> = [{ attr: admin, rec: activeCustom }];
+    if (activeCustom.pairId) {
+      const sibAttr = `cpub-custom-${activeCustom.pairId}`;
+      const sib = state.customByAttr.get(sibAttr);
+      if (sib) members.push({ attr: sibAttr, rec: sib });
+    }
+    themeVariants = members.map((m) => ({ attr: m.attr, tokens: m.rec.tokens }));
+    const lightM = members.find((m) => !m.rec.isDark);
+    const darkM = members.find((m) => m.rec.isDark);
+    if (members.length === 2 && lightM && darkM) {
+      pair = { lightAttr: lightM.attr, darkAttr: darkM.attr };
+    }
+    // <html data-theme> = the variant matching the user's scheme (else the default).
+    if (userScheme === 'dark' && darkM) resolved = darkM.attr;
+    else if (userScheme === 'light' && lightM) resolved = lightM.attr;
+    else resolved = admin;
+    isDark = state.customByAttr.get(resolved)?.isDark ?? activeCustom.isDark;
+    // Load every variant's fonts so a client-side flip already has them.
+    const allFonts = [...new Set(members.flatMap((m) => m.rec.fonts ?? []))];
+    fontHref = allFonts.length ? googleHref(allFonts) : '';
+  } else {
+    // Built-in / registered: flip via the family's CSS variants on round-trip.
+    if (userScheme !== null && VALID_THEME_IDS.has(admin)) {
       const family = THEME_TO_FAMILY[admin] ?? 'classic';
       const variants = FAMILY_VARIANTS[family] ?? FAMILY_VARIANTS.classic!;
       resolved = userScheme === 'dark' ? variants.dark : variants.light;
-    } else {
-      // Custom theme — use pairId if defined
-      const custom = state.customByAttr.get(admin);
-      if (custom?.pairId) {
-        const pairAttr = `cpub-custom-${custom.pairId}`;
-        const pair = state.customByAttr.get(pairAttr);
-        if (pair && pair.isDark === (userScheme === 'dark')) {
-          resolved = pairAttr;
-        } else if (custom.isDark === (userScheme === 'dark')) {
-          resolved = admin;
-        }
-      }
-      // For registered themes (no pair info available server-side), we leave it alone
-      // — the layer-app author can declare a pair via the future RegisteredTheme.pairId
     }
-  }
-
-  // isDark detection
-  let isDark = false;
-  if (VALID_THEME_IDS.has(resolved)) {
     isDark = IS_DARK[resolved] ?? false;
-  } else {
-    const custom = state.customByAttr.get(resolved);
-    if (custom) isDark = custom.isDark;
   }
-
-  // Tokens to inject inline. Built-in themes don't need injection (their
-  // CSS files are already loaded). Custom themes always inject. Token
-  // overrides apply on top of whatever theme is active.
-  const injectedTokens: Record<string, string> = {};
-  const activeCustom = state.customByAttr.get(resolved);
-  if (activeCustom) {
-    Object.assign(injectedTokens, activeCustom.tokens);
-  }
-  // Instance overrides always last so they win
-  Object.assign(injectedTokens, state.tokenOverrides);
-
-  // Google Fonts for the active custom theme (theme-studio sets `fonts`).
-  const fontHref =
-    activeCustom?.fonts && activeCustom.fonts.length > 0 ? googleHref(activeCustom.fonts) : '';
 
   return {
     resolvedTheme: resolved,
     instanceTheme: admin,
     isDark,
-    injectedTokens,
+    themeVariants,
+    overrides: { ...state.tokenOverrides },
+    pair,
     fontHref,
   };
 }
