@@ -10,7 +10,15 @@
 
 ## TL;DR — where things stand
 
-**Theme Studio** is the newest work (session 192, on `main`, **NOT yet released**): a guided
+**Theme Studio v2** is the newest work (session 192, **LIVE** on commonpub.io): on top of the guided
+generator + light/dark pairs, it adds a real **`--secondary`** accent + `.cpub-btn-secondary`, a
+**harmony "color family"** that drives the category accents (`--purple/--teal/--pink`), **film-grain
+texture** (opt-in `--grain` overlay), a **rationalized "New theme" chooser** (unique family per theme
+— multiple custom themes no longer collapse), and extras (in-wizard WCAG chip, name+save&apply finish,
+AI-brief/token export, image-color extract). Released schema 0.37 / ui 0.12 / theme-studio 0.3 /
+layer 0.67 (config/server unchanged, no migration). `density` also now affects spacing+leading.
+
+Earlier this session — **Theme Studio v1** (on `main`, released): a guided
 "easy mode" theme generator wired into the admin theme builder beside the granular token editor.
 New package **`@commonpub/theme-studio`** (pure-TS, zero Vue) derives a full WCAG-checked theme from
 a small `ThemeRecipe` via `recipeToTokens()`; the layer adds a `AdminThemeStudio` wizard + dice +
@@ -188,14 +196,14 @@ a minute (`curl deveco.io/api/content?limit=5`, today's timestamp).
 ### Published versions (verified 2026-06-04)
 | Package | Version | | Package | Version |
 |---|---|---|---|---|
-| @commonpub/schema | **0.35.0** | | @commonpub/infra | 0.8.0 |
-| @commonpub/config | **0.19.0** | | @commonpub/editor | 0.7.11 |
+| @commonpub/schema | **0.37.0** | | @commonpub/infra | 0.8.0 |
+| @commonpub/config | **0.20.0** | | @commonpub/editor | 0.7.11 |
 | @commonpub/protocol | 0.13.0 | | @commonpub/explainer | 0.7.15 |
 | @commonpub/auth | 0.8.0 | | @commonpub/docs | 0.6.3 |
-| @commonpub/server | **2.82.0** | | @commonpub/learning | 0.5.2 |
-| @commonpub/ui | **0.11.1** | | @commonpub/test-utils | 0.5.6 |
-| @commonpub/layer | **0.64.1** | | @commonpub/theme-studio | **0.1.0 (unpublished)** |
-| create-commonpub (crates.io) | **0.5.8** | | | |
+| @commonpub/server | **2.83.0** | | @commonpub/learning | 0.5.2 |
+| @commonpub/ui | **0.12.0** | | @commonpub/test-utils | 0.5.6 |
+| @commonpub/layer | **0.67.0** | | @commonpub/theme-studio | **0.3.0** |
+| create-commonpub (crates.io) | **0.5.9** | | | |
 
 **Stoa theme (session 190, ui 0.10.0 / layer 0.63.0):** new built-in theme family (light + dark) —
 warm paper, moss accent, Fraunces/Newsreader/Work Sans, soft rounded geometry; shares Agora's Town

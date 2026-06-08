@@ -42,6 +42,8 @@ export interface ThemeRecipe {
   borderWidth: number;
   shadowStyle: ShadowStyle;
   motion: Motion;
+  /** Film-grain overlay opacity (0 = off, ~0.03 subtle, max ~0.12). */
+  texture: number;
 }
 
 /** A neutral, on-brand starting recipe (CommonPub blue, sharp, dark). */
@@ -59,6 +61,7 @@ export function defaultRecipe(): ThemeRecipe {
     borderWidth: 2,
     shadowStyle: 'soft',
     motion: 'snappy',
+    texture: 0,
   };
 }
 
@@ -106,6 +109,8 @@ export function randomizeRecipe(seed: number): ThemeRecipe {
     borderWidth: pick(rng, [1, 2, 2, 3] as const),
     shadowStyle: pick(rng, SHADOW_PRESETS).k,
     motion: pick(rng, ['sharp', 'snappy', 'smooth'] as const),
+    // Mostly no grain; occasionally a subtle amount for variety.
+    texture: rng() < 0.35 ? Math.round(rng() * 50) / 1000 : 0,
   };
 }
 

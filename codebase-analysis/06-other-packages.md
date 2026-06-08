@@ -72,7 +72,7 @@ Feature flags are **runtime** (environment via `nuxt.config` `runtimeConfig.publ
 `packages/theme-studio/src/` — added session 192. **Pure TypeScript, zero Vue/DOM/Nuxt** — the brain behind the admin "Theme Studio" guided theme generator.
 
 - `color.ts` (hex/hsl/rgb, contrast, WCAG, `readableOn`), `harmony.ts` (6 schemes), `naming.ts` (evocative swatch names), `palette.ts` (`buildPalette` → semantic ramp), `scales.ts` (type/space/radius/shadow/density/motion), `fonts.ts` (~100-family catalog + `googleHref`, URL-encoded), `presets.ts` (color/type vibes, shape/shadow/ratio), `recipe.ts` (`ThemeRecipe` + deterministic `randomizeRecipe(seed)`), **`generate.ts` — `recipeToTokens()`** (the projection onto canonical `@commonpub/ui` token keys → `{ tokens, fonts, parentTheme, fontHref }`).
-- Emits only derived tokens; the rest inherit from a mode-matched `parentTheme`. Guarantees text/bg + on-accent AA for any accent. 48 unit tests.
+- Emits only derived tokens; the rest inherit from a mode-matched `parentTheme`. Guarantees text/bg + on-accent AA for any accent. v2 adds a real `--secondary` accent ramp, scheme-driven category accents (`purple/teal/pink`), `grain` (texture), `recipeToThemePair`, and `export.ts` (`buildBrief`/`buildTokensJson`). 60 unit tests.
 - **No runtime deps.** Consumed by the layer (wizard `components/admin/theme/studio/AdminThemeStudio.vue`, `AdminThemeSceneSheet.vue`, create flow, editor, SSR font `<link>` via `instanceTheme.ts`). The validation test reads `@commonpub/ui`'s pure `tokens.ts` source directly (no Vue) to assert every emitted key is canonical. **NOT yet published to npm.**
 
 ## @commonpub/editor

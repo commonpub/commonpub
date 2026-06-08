@@ -21,6 +21,7 @@ const recipe = {
   borderWidth: 2,
   shadowStyle: 'soft' as const,
   motion: 'snappy' as const,
+  texture: 0,
 };
 
 function makeTheme(overrides: Partial<CustomThemeRecord> = {}): CustomThemeRecord {

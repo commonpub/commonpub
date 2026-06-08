@@ -156,18 +156,23 @@ export function buildShadows(
 
 export type Density = 'compact' | 'balanced' | 'spacious';
 
-export interface DensityPad {
-  y: number;
-  x: number;
-  card: number;
-  gap: number;
+/**
+ * Multiplier applied to the whole spacing scale for a density setting.
+ * CommonPub components pad + gap from the `space-*` scale, so scaling the
+ * scale is what actually makes the UI feel compact or roomy (gauge emitted
+ * separate `--pad-*` tokens, which CommonPub has no slots for).
+ */
+export function densityFactor(density: Density): number {
+  if (density === 'compact') return 0.85;
+  if (density === 'spacious') return 1.2;
+  return 1;
 }
 
-/** Button/card padding + gap for a density setting (px). */
-export function densityPad(density: Density): DensityPad {
-  if (density === 'compact') return { y: 8, x: 14, card: 16, gap: 16 };
-  if (density === 'spacious') return { y: 14, x: 24, card: 32, gap: 28 };
-  return { y: 11, x: 18, card: 24, gap: 22 };
+/** Body line-height for a density setting (compact reads tighter). */
+export function densityLeading(density: Density): number {
+  if (density === 'compact') return 1.55;
+  if (density === 'spacious') return 1.85;
+  return 1.7;
 }
 
 // ---- Motion ------------------------------------------------------------

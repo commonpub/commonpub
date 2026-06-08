@@ -86,6 +86,36 @@ describe('recipeToTokens', () => {
     }
   });
 
+  it('emits a secondary accent (readable on bg) + on-secondary text', () => {
+    for (const mode of ['light', 'dark'] as const) {
+      const { tokens } = recipeToTokens({ ...defaultRecipe(), mode, secondary: '#8b5cf6' });
+      expect(tokens['secondary']).toBeTruthy();
+      expect(tokens['color-on-secondary']).toBeTruthy();
+      expect(contrast(tokens['secondary']!, tokens['bg']!), `secondary vis ${mode}`).toBeGreaterThanOrEqual(2.3);
+      // Button legibility: on-secondary readable on the secondary fill.
+      expect(contrast(tokens['color-on-secondary']!, tokens['secondary']!)).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  it('the harmony scheme drives the category accents (purple/teal/pink)', () => {
+    const accent = '#2f6fed';
+    const analogous = recipeToTokens(recipeFromPal(accent, 'light', 'analogous')).tokens;
+    const triadic = recipeToTokens(recipeFromPal(accent, 'light', 'triadic')).tokens;
+    // Category slots are emitted and differ by scheme (not the fixed defaults).
+    expect(analogous['purple']).toBeTruthy();
+    expect(analogous['teal']).toBeTruthy();
+    expect(analogous['pink']).toBeTruthy();
+    expect(triadic['teal']).not.toBe(analogous['teal']);
+    // Still canonical, still readable as category chips.
+    expect(validateTokenOverrides(triadic).invalid).toEqual([]);
+    expect(contrast(triadic['purple']!, triadic['bg']!)).toBeGreaterThanOrEqual(2.9);
+  });
+
+  it('emits grain only when texture > 0', () => {
+    expect(recipeToTokens({ ...defaultRecipe(), texture: 0 }).tokens['grain']).toBeUndefined();
+    expect(recipeToTokens({ ...defaultRecipe(), texture: 0.04 }).tokens['grain']).toBe('0.04');
+  });
+
   it('recipeToThemePair generates a coherent light + dark pair from one recipe', () => {
     const r = randomizeRecipe(7);
     const { light, dark } = recipeToThemePair(r);
@@ -135,6 +165,20 @@ describe('recipeToTokens', () => {
     expect(g.tokens['text-base']).toBe('1rem');
     // lg = 16 * 1.25 = 20px = 1.25rem
     expect(g.tokens['text-lg']).toBe('1.25rem');
+  });
+
+  it('density actually scales the spacing + body leading (not an inert control)', () => {
+    const px = (rem: string): number => parseFloat(rem) * 16;
+    const compact = recipeToTokens({ ...defaultRecipe(), density: 'compact' });
+    const balanced = recipeToTokens({ ...defaultRecipe(), density: 'balanced' });
+    const spacious = recipeToTokens({ ...defaultRecipe(), density: 'spacious' });
+    // Spacing grows compact < balanced < spacious for the same base.
+    expect(px(compact.tokens['space-8']!)).toBeLessThan(px(balanced.tokens['space-8']!));
+    expect(px(balanced.tokens['space-8']!)).toBeLessThan(px(spacious.tokens['space-8']!));
+    // Body line-height tracks density too.
+    expect(Number(compact.tokens['leading-normal'])).toBeLessThan(Number(spacious.tokens['leading-normal']));
+    // Still emits only canonical keys.
+    expect(validateTokenOverrides(spacious.tokens).invalid).toEqual([]);
   });
 
   it('honors spacing base (airy grid doubles the ramp)', () => {

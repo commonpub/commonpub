@@ -37,6 +37,13 @@ const themesApi = useThemeAdmin();
 const router = useRouter();
 const { themeStudio } = useFeatures();
 
+/** The "New theme" dropdown (<details>); closed after a choice is picked. */
+const newMenu = ref<HTMLDetailsElement | null>(null);
+function pick(action: () => void): void {
+  newMenu.value?.removeAttribute('open');
+  action();
+}
+
 const { data: settings, refresh: refreshSettings } = await useFetch<Record<string, unknown>>('/api/admin/settings');
 
 const saving = ref(false);
@@ -168,11 +175,14 @@ function createBlank(): void {
   if (customId && themesApi.data.value) {
     const src = themesApi.data.value.custom.find((t) => t.id === customId);
     if (src) {
+      const copyId = nextAvailableId(`${src.id}-copy`);
       const seed = {
-        id: nextAvailableId(`${src.id}-copy`),
+        id: copyId,
         name: `${src.name} (copy)`,
         description: src.description ?? '',
-        family: 'custom',
+        // Unique family (= the slug) so each new theme is its OWN picker card
+        // instead of collapsing into a shared "custom" family.
+        family: copyId,
         isDark: src.isDark,
         parentTheme: src.parentTheme,
         tokens: { ...src.tokens },
@@ -188,11 +198,12 @@ function createBlank(): void {
   // so a complete capture is what keeps it from falling back to Classic).
   const detected = detectAppliedOverrides();
   const isBuiltInParent = themesApi.data.value?.builtIn.some((t) => t.id === active) ?? false;
+  const blankId = nextAvailableId('my-theme');
   const seed = {
-    id: nextAvailableId('my-theme'),
+    id: blankId,
     name: 'My theme',
     description: detected.count ? `Forked from the active theme (${detected.count} tokens).` : '',
-    family: 'custom',
+    family: blankId,
     isDark: detected.isDark,
     parentTheme: isBuiltInParent ? active : 'base',
     tokens: detected.tokens,
@@ -245,11 +256,12 @@ function captureCurrent(): void {
     notify('No custom tokens detected at :root', 'error');
     return;
   }
+  const capturedId = nextAvailableId(`captured-${new Date().toISOString().slice(0, 10)}`);
   const seed = {
-    id: nextAvailableId(`captured-${new Date().toISOString().slice(0, 10)}`),
+    id: capturedId,
     name: 'Captured current site theme',
     description: `Auto-captured from the live :root on ${new Date().toLocaleDateString()}, ${detected.count} tokens.`,
-    family: 'captured',
+    family: capturedId,
     isDark: detected.isDark,
     parentTheme: detected.isDark ? 'dark' : 'base',
     tokens: detected.tokens,
@@ -397,9 +409,6 @@ async function saveOverrides(overrides: Record<string, string>): Promise<void> {
         </p>
       </div>
       <div class="admin-theme-actions">
-        <button class="cpub-btn" :disabled="saving" @click="openImportDialog">
-          <i class="fa-solid fa-file-import" aria-hidden="true" /> Import…
-        </button>
         <input
           ref="importFileInput"
           type="file"
@@ -407,20 +416,36 @@ async function saveOverrides(overrides: Record<string, string>): Promise<void> {
           hidden
           @change="onImportFile"
         />
-        <template v-if="themeStudio">
-          <button class="cpub-btn" :disabled="saving" title="Roll a random theme" @click="startDice">
-            <i class="fa-solid fa-dice" aria-hidden="true" /> Surprise me
-          </button>
-          <button class="cpub-btn" :disabled="saving" @click="createBlank">
-            <i class="fa-solid fa-plus" aria-hidden="true" /> Blank
-          </button>
-          <button class="cpub-btn cpub-btn-primary" :disabled="saving" @click="startGuided">
-            <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true" /> Build with Studio
-          </button>
-        </template>
-        <button v-else class="cpub-btn cpub-btn-primary" :disabled="saving" @click="createBlank">
-          <i class="fa-solid fa-plus" aria-hidden="true" /> New custom theme
-        </button>
+        <!-- One clear entry point. Each option creates a SEPARATE theme (its own
+             family/card) — you can make as many as you like. -->
+        <details ref="newMenu" class="admin-theme-new">
+          <summary class="cpub-btn cpub-btn-primary">
+            <i class="fa-solid fa-plus" aria-hidden="true" /> New theme
+            <i class="fa-solid fa-chevron-down admin-theme-new-caret" aria-hidden="true" />
+          </summary>
+          <div class="admin-theme-new-menu" role="menu">
+            <button v-if="themeStudio" type="button" role="menuitem" @click="pick(startGuided)">
+              <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true" />
+              <span><b>Build with Studio</b><small>Guided: pick a vibe + colors, get a light/dark pair</small></span>
+            </button>
+            <button v-if="themeStudio" type="button" role="menuitem" @click="pick(startDice)">
+              <i class="fa-solid fa-dice" aria-hidden="true" />
+              <span><b>Surprise me</b><small>Roll a random coherent theme to start from</small></span>
+            </button>
+            <button type="button" role="menuitem" @click="pick(createBlank)">
+              <i class="fa-solid fa-plus" aria-hidden="true" />
+              <span><b>Blank</b><small>Fork the current look, edit tokens by hand</small></span>
+            </button>
+            <button v-if="discovery.count > 0" type="button" role="menuitem" @click="pick(captureCurrent)">
+              <i class="fa-solid fa-camera" aria-hidden="true" />
+              <span><b>Capture current</b><small>Save your layer app's CSS theme as editable</small></span>
+            </button>
+            <button type="button" role="menuitem" @click="pick(openImportDialog)">
+              <i class="fa-solid fa-file-import" aria-hidden="true" />
+              <span><b>Import</b><small>Load a .cpub-theme.json file</small></span>
+            </button>
+          </div>
+        </details>
       </div>
     </header>
 
@@ -495,6 +520,41 @@ async function saveOverrides(overrides: Record<string, string>): Promise<void> {
 .admin-page-title { font-size: var(--text-xl); font-weight: var(--font-weight-bold); margin: 0 0 var(--space-2); }
 .admin-page-desc { font-size: var(--text-sm); color: var(--text-dim); margin: 0; max-width: 560px; line-height: var(--leading-snug); }
 .admin-theme-actions { display: flex; gap: var(--space-2); margin-left: auto; }
+
+.admin-theme-new { position: relative; }
+.admin-theme-new > summary { list-style: none; cursor: pointer; }
+.admin-theme-new > summary::-webkit-details-marker { display: none; }
+.admin-theme-new-caret { font-size: 9px; margin-left: 2px; }
+.admin-theme-new-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: var(--z-dropdown);
+  display: flex;
+  flex-direction: column;
+  width: 300px;
+  max-width: 80vw;
+  background: var(--surface);
+  border: var(--border-width-default) solid var(--border);
+  box-shadow: var(--shadow-md);
+}
+.admin-theme-new-menu button {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background: none;
+  border: 0;
+  border-bottom: var(--border-width-thin) solid var(--border2);
+  text-align: left;
+  color: var(--text);
+  cursor: pointer;
+}
+.admin-theme-new-menu button:last-child { border-bottom: 0; }
+.admin-theme-new-menu button:hover { background: var(--surface2); }
+.admin-theme-new-menu button > i { color: var(--accent); margin-top: 3px; width: 16px; text-align: center; }
+.admin-theme-new-menu button b { display: block; font-size: var(--text-sm); }
+.admin-theme-new-menu button small { display: block; font-size: var(--text-label); color: var(--text-dim); line-height: var(--leading-snug); margin-top: 2px; }
 
 .admin-theme-toast {
   position: fixed;

@@ -897,6 +897,7 @@ export const themeRecipeSchema = z.object({
   borderWidth: z.number().min(0).max(8),
   shadowStyle: z.enum(['none', 'hard', 'soft', 'glow', 'layered']),
   motion: z.enum(['sharp', 'snappy', 'smooth']),
+  texture: z.number().min(0).max(0.2).optional().default(0),
 });
 export type ThemeRecipeInput = z.infer<typeof themeRecipeSchema>;
 

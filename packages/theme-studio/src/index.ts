@@ -17,3 +17,4 @@ export * from './fonts.js';
 export * from './presets.js';
 export * from './recipe.js';
 export * from './generate.js';
+export * from './export.js';
