@@ -2,7 +2,13 @@
 
 ## Status
 
-Accepted
+**Superseded.** This decision was reversed during implementation: CommonPub federation is a
+**hand-rolled, pure-TypeScript** ActivityPub implementation in `@commonpub/protocol` with **zero
+Fedify dependency** (HTTP Signatures via `jose`, no `@fedify/*` packages, no external AP queue —
+delivery is the pure-TS `federation-delivery` polling worker). The SvelteKit assumption here was
+also superseded by the move to Nuxt (ADR-025). The current, authoritative federation architecture
+is described in `docs/federation.md`, `CLAUDE.md` (Tech Stack), and `docs/llm/facts.md`. The text
+below is retained only as the original (now-historical) decision record.
 
 ## Context
 

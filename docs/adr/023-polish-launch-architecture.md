@@ -2,7 +2,12 @@
 
 ## Status
 
-Accepted
+Accepted — **except the SvelteKit-specific mechanics, which were superseded.** The framework switched
+to Nuxt (ADR-025), so the proposed **`apps/landing/` SvelteKit static app** and **"CSP/rate-limiting in
+SvelteKit hooks"** were never built that way: there is no `apps/landing/` (the workspace has only
+`reference` + `shell`, zero `@sveltejs/*`), and CSP/rate-limiting live in the Nuxt/Nitro server layer
+(`@commonpub/infra` `security.ts` + layer middleware). The GOALS of this ADR shipped — Meilisearch docs
+search and security hardening — just on the Nuxt stack, not SvelteKit.
 
 ## Context
 

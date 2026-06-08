@@ -25,7 +25,7 @@ pnpm install
 # Local infra (Postgres + Redis at non-default ports per docker-compose.yml)
 docker compose up -d
 
-# Run migrations (root-level script — applies committed .sql files via drizzle-kit)
+# Run migrations (root-level script — applies committed .sql files via drizzle-orm's migrate(), NOT drizzle-kit push)
 node scripts/db-migrate.mjs
 
 # Seed dev data
@@ -74,7 +74,7 @@ The reference app deploys to commonpub.io via `.github/workflows/deploy.yml` (ru
 
 For a new instance:
 
-1. `pnpm create commonpub@latest my-instance` (uses Rust scaffolder; pulls a known-good template)
+1. `cargo install create-commonpub` then `create-commonpub new my-instance` (Rust scaffolder on crates.io; pulls a known-good template)
 2. Replace `commonpub.config.ts` with your instance's settings
 3. Optional: shadow components by creating files in `components/` that match the path of a `@commonpub/layer` component (e.g., `components/HeroSection.vue` shadows the layer's `HeroSection`)
 4. Optional: extend feature flags by adding to `nuxt.config.ts`'s `runtimeConfig.public.features` AND to your config

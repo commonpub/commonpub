@@ -4,12 +4,12 @@
 DB handle, performs writes in transactions where correctness requires, and emits
 lifecycle hooks. Pure TypeScript. No Nuxt dependency.
 
-Source: `packages/server/src/`. Re-verified session 181 (2026-06-01).
+Source: `packages/server/src/`. Re-verified session 191 (2026-06-07).
 **25 module directories + 11 top-level `.ts` files** (10 utilities — email, hooks, image, oauthCodes, query, security, storage, theme, types, utils — plus `index.ts` the package barrel).
 
 Modules beyond the original (session-125) mapping, now folded into the directory map below:
 - `identity/` — cross-instance identity (Phase 1a foundation + Phase 1b runtime, sessions 136–140). Files: `fediClient.ts`, `health.ts`, `index.ts`, `mastodonFactory.ts`, `router.ts`. Behind `features.identity.*` flags.
-- `publicApi/` — read-only public API (session 127). Bearer-token auth (`api_keys`), **12 read scopes**, OpenAPI 3.1. Files: `adminOps.ts`, `auth.ts`, `keys.ts`, `rateLimit.ts`, `scopes.ts`, `serializers.ts`, `usage.ts`, `index.ts`.
+- `publicApi/` — read-only public API (session 127; metrics + CORS session 190). Bearer-token auth (`api_keys`), **13 read scopes + `read:*` wildcard**, OpenAPI 3.1. Files: `adminOps.ts`, `auth.ts`, `cors.ts` (`matchOrigin`/`isWellFormedOrigin`/`expandOriginPatterns`), `keys.ts`, `metrics.ts` (`getMetricsOverview`/`getTopContent`/`getTrendingTags`/`getTopContributors`/`getEngagementMetrics`/`getFederationReach`), `metricsRollup.ts` (`runDailyRollup`/`backfillMetricsDaily`/`getMetricsTimeseries`), `rateLimit.ts`, `scopes.ts`, `serializers.ts`, `usage.ts`, `index.ts`.
 - `realtime/` — SSE pub/sub abstraction (session 130). Exports `publishSseEvent`, `subscribeSseEvents`, `realtimeChannel`, `resetRealtimeForTests` against `@commonpub/infra`'s `RealtimePubSub`.
 - `rbac/` — RBAC phase 0/1 (sessions 175–177). `resolveUserPermissions` (`rbac/resolver.ts`) with a 30s-TTL cache; admin `*` grant deliberately NOT cached (fresh `users.role` floor). Behind `features.rbac` (default OFF).
 - `federation/mastodonLogin.ts` — Mastodon SSO server-side (session 139).
@@ -71,7 +71,7 @@ packages/server/src/
 ├── product/         product.ts          hub-scoped products, content-product linking
 ├── profile/         profile.ts          user profile view + update
 │                    export.ts           GDPR data export
-├── publicApi/       auth.ts, keys.ts, scopes.ts, serializers.ts, rateLimit.ts, usage.ts, adminOps.ts  public read API (12 scopes; behind features.publicApi)
+├── publicApi/       auth.ts, keys.ts, scopes.ts, serializers.ts, rateLimit.ts, usage.ts, adminOps.ts, cors.ts, metrics.ts, metricsRollup.ts  public read API (13 read scopes + read:*; metrics; CORS; behind features.publicApi)
 ├── rbac/            resolver.ts         resolveUserPermissions (30s-TTL cache; behind features.rbac)
 ├── realtime/        index.ts            publishSseEvent / subscribeSseEvents / realtimeChannel / resetRealtimeForTests
 ├── search/          contentSearch.ts    Meilisearch + Postgres FTS fallback
@@ -190,7 +190,7 @@ Contest entry community votes:
 
 **members.ts** — `joinHub` respects `joinPolicy` (open/approval/invite); `changeRole` enforces weight hierarchy (owner > admin > moderator > member). `listRemoteMembers` is a standalone query returning the hub's remote `hubFollowers` (it does NOT merge them into the local member list — any merge is at the call site).
 
-**posts.ts** — post CRUD + threaded replies + likes + shareContent; emits `hub:post:created`. `hub:content:shared` is declared but not yet emitted.
+**posts.ts** — post CRUD + threaded replies + likes + shareContent; emits `hub:post:created` (createPost) and `hub:content:shared` (shareContent, `posts.ts:764`).
 
 **moderation.ts** — bans (mods = temporary only, admins = permanent), invite tokens with maxUses + expiry.
 
@@ -204,7 +204,7 @@ Contest entry community votes:
 
 **docs.ts** — versioned docs sites. New pages store `content` as BlockTuple[]; legacy markdown supported on read (converted on edit). Search delegates to Meilisearch (via `@commonpub/docs` adapter) with Postgres FTS fallback.
 
-### federation/ (15 files: 14 domain + index)
+### federation/ (16 files: 15 domain + index)
 
 - **federation.ts** — keypair lifecycle, remote-actor resolve+cache, Create/Update/Delete/Like/Follow activity builders. `federateContent`/`federateUpdate` gate BOTH `status='published'` AND `visibility='public'` (session 183 — members/private content never leaves the instance); `federateContent` uses protocol's `contentToCreateActivity` (deterministic Create id, shared with the outbox projection) + skips an already-pending Create for the same object (idempotent refederate).
 - **delivery.ts** — worker polls `activities` where `status='pending'`, delivers via HTTP Signature, updates status, increments attempts, writes errors. Respects instance circuit-breaker state.
@@ -224,7 +224,7 @@ Contest entry community votes:
 
 ### social/
 
-**social.ts** — polymorphic likes, follows, comments (threaded), bookmarks, reports. Federates likes/unlike and comments (Note + inReplyTo) for federated content. Hooks emitted: `comment:created`. `content:liked` / `content:unliked` are declared in the hooks registry but not currently emitted.
+**social.ts** — polymorphic likes, follows, comments (threaded), bookmarks, reports. Federates likes/unlike and comments (Note + inReplyTo) for federated content. Hooks emitted: `comment:created` (createComment); `content:liked` / `content:unliked` (toggleLike, via a ternary at `social.ts:58` — content-item targets only, not post/comment/video).
 
 **mentions.ts** — regex extraction + bulk resolution to users.
 
@@ -321,7 +321,7 @@ immutability, revert.
 
 - **rbac/resolver.ts** — `resolveUserPermissions(db, userId, { rbacEnabled, primaryRole? })`: a PURE, uncached core that resolves role→permission grants (PGlite-testable). The admin `*` grant is deliberately NOT baked into the returned set; admin access rides a gate-time floor over the fresh `users.role` so demotion is immediate (INV-1, session 175). **The 30s-TTL bounded cache lives in the LAYER wrapper `layers/base/server/utils/permissions.ts` (`PERMISSIONS_CACHE_TTL_MS = 30_000`), NOT in this resolver.** Behind `features.rbac` (default OFF). See also `@commonpub/auth`'s `hasPermissionPure`.
 - **identity/** — cross-instance identity runtime (`fediClient.ts`, `mastodonFactory.ts`, `router.ts`, `health.ts`). Behind `features.identity.*`. Token I/O requires `CPUB_FED_TOKEN_KEY`.
-- **publicApi/** — bearer-token public read API: `auth.ts` (token verify), `keys.ts` (issue/revoke), `scopes.ts` (**12** read scopes), `serializers.ts`, `rateLimit.ts`, `usage.ts`, `adminOps.ts`. Behind `features.publicApi` (default OFF).
+- **publicApi/** — bearer-token public read API: `auth.ts` (token verify), `keys.ts` (issue/revoke), `scopes.ts` (**13** read scopes + `read:*`), `serializers.ts` (allow-list field projection), `rateLimit.ts`, `usage.ts`, `adminOps.ts`, `cors.ts` (per-key origin-pattern matcher; reflects only well-formed origins; `*` safe because Bearer-auth, no cookies, never `Access-Control-Allow-Credentials`), `metrics.ts` (aggregate privacy-respecting metrics), `metricsRollup.ts` (daily `metrics_daily` rollups + time-series). Metrics/CORS added session 190. Behind `features.publicApi` (default OFF); cross-instance federation metrics additionally behind `features.publicApiMetricsFederation`.
 - **realtime/** — `publishSseEvent` / `subscribeSseEvents` / `realtimeChannel` / `resetRealtimeForTests` over `@commonpub/infra`'s `RealtimePubSub` (memory or Redis via `NUXT_REDIS_URL`).
 
 **utils.ts** — `generateSlug(text)` (lowercase + `replace(/[^\w\s-]/g,'')` + hyphenate; appends a timestamp only on a `RESERVED_SLUGS` match — NOT on general collision, and there is NO `.normalize('NFD')`; general slug-collision handling lives in `ensureUniqueSlugFor`, query.ts), `hasPermission(role, permission)`, `canManageRole(actorRole, targetRole)`.
@@ -402,7 +402,7 @@ Consumer apps can register additional handlers via `onHook()` in their own serve
 
 ## What's missing / known issues
 
-- Some tables lack Zod validators (see schema inventory). `events` + `eventAttendees` are the notable gaps.
+- Some tables lack a *centralized* Zod validator in `validators.ts` (see schema inventory) — `events` + `eventAttendees` are the notable cases. NOTE: this is a decentralization point, not a security gap — `POST /api/events` validates with a thorough **inline** `createEventSchema` (`events/index.post.ts`); the writes are not unvalidated.
 - `federatedContent.mirrorId` now HAS a DB-level FK (`ON DELETE SET NULL`, migration 0002 `session130_constraints`) — the old "app-enforced only" note is obsolete.
 - A few PGlite-skipped integration tests (partial-index limitations per memory).
 - No dedicated module for `files/` CRUD beyond storage adapter — handled inline in the layer's upload API route.

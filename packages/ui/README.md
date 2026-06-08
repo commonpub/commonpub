@@ -6,7 +6,7 @@ Headless Vue 3 component library with CSS custom property theming.
 
 Accessible, headless UI components built with Vue 3 Composition API (`<script setup lang="ts">`). Components define structure and behavior only. All visual styling is controlled via CSS custom properties (`var(--*)`). Zero hardcoded colors or fonts.
 
-Includes 4 built-in theme CSS files and a theming API for runtime theme switching with inline token overrides.
+Includes 7 built-in themes (12 theme CSS files) and a theming API for runtime theme switching with inline token overrides.
 
 ## Installation
 
@@ -79,21 +79,29 @@ All components accept a `class` prop for external styling:
 
 ### Built-in Themes
 
-| Theme    | ID         | Description                                    |
-| -------- | ---------- | ---------------------------------------------- |
-| Light    | `base`     | Sharp corners, offset shadows, blue accent     |
-| Dark     | `dark`     | Dark surfaces with the same offset aesthetic   |
-| Generics | `generics` | Dark minimal theme with soft glow              |
+7 built-in themes (`BUILT_IN_THEMES`):
 
+| Theme        | ID           | Description                                                                     |
+| ------------ | ------------ | ------------------------------------------------------------------------------- |
+| Classic Light| `base`       | Sharp corners, offset shadows, blue accent — the CommonPub signature            |
+| Classic Dark | `dark`       | Dark surfaces with the same offset shadow aesthetic                             |
+| Generics     | `generics`   | Dark minimal theme with blue accent and soft glow                              |
+| Agora Light  | `agora`      | Warm parchment backgrounds, green accent, serif display font                   |
+| Agora Dark   | `agora-dark` | Grove-tinted darks with green accent, serif display font                       |
+| Stoa Light   | `stoa`       | Warm paper, moss accent, serif display + reading fonts, soft rounded geometry   |
+| Stoa Dark    | `stoa-dark`  | Warm near-black with brighter moss accent, the same bookish serif geometry      |
+
+**Stoa is the current CommonPub default** (the server-side fallback resolves to `stoa`/`stoa-dark`).
 Consumer apps (e.g., deveco.io) add their own theme CSS overrides on top of these.
 
 ### Importing Theme CSS
 
 ```ts
-// Import the base and dark themes
+// Import the themes you want (the layer bundles all of them automatically)
 import '@commonpub/ui/theme/base.css';
 import '@commonpub/ui/theme/dark.css';
-import '@commonpub/ui/theme/generics.css';
+import '@commonpub/ui/theme/stoa.css';
+import '@commonpub/ui/theme/stoa-dark.css';
 ```
 
 ### Runtime Theme Switching

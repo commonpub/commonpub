@@ -2,7 +2,7 @@
 
 How CommonPub is deployed today, what breaks first under load, and
 pragmatic scaling paths — especially on DigitalOcean. Current-state facts
-re-verified session 181 (2026-06-01); the multi-instance scaling path is
+re-verified session 191 (2026-06-07); the multi-instance scaling path is
 forward-looking. Note `deploy/app-spec.yaml` sets `DATABASE_URL`/`REDIS_URL`
 (un-prefixed) while the app reads `NUXT_DATABASE_URL`/`NUXT_REDIS_URL` — the
 App-Platform path needs the `NUXT_` prefix to actually wire those (the

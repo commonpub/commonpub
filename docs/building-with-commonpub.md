@@ -231,7 +231,7 @@ INSTANCE_NAME=My Community
 # S3_SECRET_KEY=
 
 # Optional — Redis (falls back to in-memory)
-# REDIS_URL=redis://localhost:6379
+# NUXT_REDIS_URL=redis://localhost:6379
 
 # Optional — Meilisearch (falls back to Postgres FTS)
 # MEILI_URL=http://localhost:7700
@@ -270,10 +270,11 @@ CommonPub uses [Drizzle ORM](https://orm.drizzle.team/) for schema management. W
 
 ### Pinning versions
 
-For production stability, pin exact versions:
+For production stability, pin exact versions (check `npm view @commonpub/<pkg> version` for the
+current numbers — e.g. schema 0.35.x, server 2.82.x, layer 0.64.x):
 
 ```bash
-pnpm add @commonpub/schema@0.1.0 @commonpub/server@0.1.0
+pnpm add @commonpub/schema@0.35.0 @commonpub/server@2.82.0
 ```
 
 ---

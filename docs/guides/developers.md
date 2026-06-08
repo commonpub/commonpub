@@ -28,7 +28,7 @@ Nuxt 3 or Drizzle, skim their docs; this guide won't re-teach those.
 
 ## What you're working with
 
-- **pnpm workspace** with 12 packages + 1 shared Nuxt layer (@commonpub/layer, 85 pages, 106 components, 257 API routes) + 2 apps + 2 tools.
+- **pnpm workspace** with 12 packages + 1 shared Nuxt layer (@commonpub/layer, 90 pages, 139 components, 327 API routes) + 2 apps + 2 tools.
 - **Turborepo** for task orchestration.
 - **Nuxt 3** for the distribution unit (the layer) and both apps.
 - **Drizzle ORM** over **PostgreSQL 16**.
@@ -202,15 +202,19 @@ Key tokens:
 | `--accent` | `#5b9cf6` | green |
 | `--font-sans`, `--font-display` | Work Sans / Fraunces | brand fonts |
 
-### Five built-in themes
+### Seven built-in themes
 
 Registered in `packages/ui/src/theme.ts` as `BUILT_IN_THEMES`:
 
+- **stoa** — "Stoa Light": warm paper, moss accent, Fraunces/Newsreader/Work Sans, soft rounded geometry — **the current default**
+- **stoa-dark** — "Stoa Dark": warm near-black with brighter moss accent
 - **base** — "Classic Light": sharp corners, offset shadows, blue accent
 - **dark** — "Classic Dark": dark variant of base
 - **generics** — "Generics": dark minimal with blue accent and soft glow
 - **agora** — "Agora Light": warm parchment, green accent, serif display font
 - **agora-dark** — "Agora Dark": grove-tinted darks with green accent
+
+The instance default-theme fallback is `stoa` (`layers/base/server/utils/instanceTheme.ts`); an instance with an explicit `theme.default` in the DB overrides it.
 
 Switched via the `data-theme` attribute on `<html>`. The server middleware in
 `layers/base/server/middleware/theme.ts` resolves the theme per-request
@@ -248,7 +252,7 @@ outside the normal layout tree. If you rewrite `error.vue`, don't remove that.
 
 ## Feature flags
 
-15 flags in `packages/config/src/types.ts` → `FeatureFlags`. See
+22 boolean flags (+ a nested `identity` object with 5 sub-flags) in `packages/config/src/types.ts` → `FeatureFlags`. See
 [`codebase-analysis/08-feature-flags-inventory.md`](../../codebase-analysis/08-feature-flags-inventory.md)
 for every flag's default and consumer.
 

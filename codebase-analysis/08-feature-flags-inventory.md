@@ -5,7 +5,7 @@ Flags live in `packages/config/src/types.ts` → `FeatureFlags`. Set in
 site), layer pages (`feature-gate.global.ts` middleware), layer components
 (via `useFeatures()` composable), nav items (per-item `requiredFeature`).
 
-**19 boolean top-level flags + `identity` object (5 nested sub-flags).** Re-verified session 181 (2026-06-01) against `packages/config/src/types.ts`.
+**22 boolean top-level flags + `identity` object (5 nested sub-flags).** Re-verified session 191 (2026-06-07) against `packages/config/src/types.ts`. (Live per-instance flag state drifts — always `curl /api/features` before any "on/off in prod" claim; see [[feedback_verify_flag_state]].)
 
 | Flag | Default | What it gates | Runtime override? |
 |---|---|---|---|
@@ -25,7 +25,8 @@ site), layer pages (`feature-gate.global.ts` middleware), layer components
 | `federateHubs` | **OFF default** (live `true` on commonpub.io + deveco.io) | Hub Group actor + FEP-1b12 hub federation | admin |
 | `seamlessFederation` | **OFF default** (live `true` on commonpub.io + deveco.io) | Merge federated content into local browse/search/feed | admin |
 | `emailNotifications` | **OFF** | Outbound email for likes/comments/follows/mentions/digest | admin |
-| `publicApi` | **OFF** | `/api/public/v1/**` read API (admin-managed bearer tokens, 12 resource read scopes + `read:*` wildcard) | admin |
+| `publicApi` | **OFF** | `/api/public/v1/**` read API (admin-managed bearer tokens, 13 resource read scopes + `read:*` wildcard); also gates the `metrics-rollup` worker | admin |
+| `publicApiMetricsFederation` | **OFF** (added config 0.19.0, session 190) | The single `GET /api/public/v1/metrics/federation` endpoint (cross-instance reach numbers). Layered on top of `publicApi` + `federation` + the `read:federation` scope, so federation reach is opt-in even when the public API and analytics scope are live. | admin |
 | `rbac` | **OFF** (added session 175, migration 0009) | Role-based access control: `roles`/`role_permissions`/`user_roles` tables + `resolveUserPermissions` resolver + `requirePermission` gate. When OFF, the legacy `users.role` enum is the sole authority. | admin |
 | `actAsRegistry` | **OFF default** (Phase 4, session 186; **live `true` on commonpub.io** via `apps/reference/commonpub.config.ts` as of session 188 — it's the default registry) | This instance acts as a registry: accepts signed `POST /api/registry/ping` heartbeats + serves `GET /api/registry/instances` + the admin Registry tab. Gates all `/api/registry/*` + `/api/admin/registry/*` routes. | admin |
 | `announceToRegistry` | **ON default** (flipped from OFF in config 0.18.0, session 188) | Send periodic signed heartbeats to `federation.registryUrl` (default `https://commonpub.io`) so this instance is discoverable. The heartbeat self-skips when `registryUrl` resolves to the instance's own domain (commonpub.io won't ping itself) and requires `federation` on. SEPARATE from `actAsRegistry`. Drives the `registry-heartbeat.ts` Nitro worker. Set false to opt out of discovery. | admin |

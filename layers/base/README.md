@@ -79,9 +79,9 @@ Highlights — see `layers/base/composables/*.ts` for the full set:
 
 The TipTap block editor itself lives in `@commonpub/editor` (composable `useBlockEditor` is imported from there, not declared in the layer).
 
-### Server (~300 Nitro API routes)
+### Server (327 Nitro API routes + 22 ActivityPub/site routes)
 
-API routes for all CommonPub features, auth middleware (`requireAdmin`, `requireFeature`), federation endpoints (Fedify-mounted), per-feature audit logging (`cpub.audit.*`), layout-engine CRUD at `/api/admin/layouts/*` (gated on `features.admin` + `features.layoutEngine`), and Nitro plugins for identity startup + feature-flag override.
+API routes for all CommonPub features, auth middleware (`requireAdmin`, `requireFeature`), pure-TS ActivityPub federation endpoints (inbox/outbox/.well-known via `@commonpub/protocol`, no Fedify), per-feature audit logging (`cpub.audit.*`), layout-engine CRUD at `/api/admin/layouts/*` (gated on `features.admin` + `features.layoutEngine`), and Nitro plugins for identity startup + feature-flag override.
 
 ### Layout engine + section registry
 

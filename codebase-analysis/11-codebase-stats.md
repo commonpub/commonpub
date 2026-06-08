@@ -1,20 +1,21 @@
 # 11 — Codebase Stats
 
-> **Headline / Database / versions tables below re-verified session 188 (2026-06-03).**
+> **Headline / Database / versions tables below re-verified session 191 (2026-06-07).**
 > The session-by-session delta entries that follow are kept as historical record
 > (accurate at the time of each session); for live ground truth always prefer the
 > Headline table + `docs/llm/facts.md` + `npm view` + `docs/STATUS.md`.
-> Current (published): **schema 0.27.0, config 0.18.0, protocol 0.13.0, auth 0.8.0,
-> server 2.74.0, ui 0.9.2, layer 0.49.0; create-commonpub 0.5.7 (crates.io); 17
-> migrations (0000–0016, 0016 = contests.cover_image_url).** Session 188 (federation
-> discovery & hardening + follow-ups): actor/outbox projection over published+public
-> content (P0), consent-based mirror requests (`mirror_requests`, 0014), instance
-> registry (`registry_instances`, 0015) with **commonpub.io as the default registry**
-> (`actAsRegistry` on there) + `announceToRegistry` default flipped ON, CLI published
-> to crates.io with a tag-release workflow, contest banner −¼, deveco mobile-nav fix,
-> avatar square-lock, and CI check-job flake fixes (Redis window-boundary guard + docs
-> CI retry). Migrations 0009–0011 = RBAC/contest (session 175/177); 0012 = keyset feed
-> indexes (179); 0013 = self-ref FKs (183).
+> Current (published): **schema 0.35.0, config 0.19.0, protocol 0.13.0, auth 0.8.0,
+> server 2.82.0, ui 0.11.1, layer 0.64.1; create-commonpub 0.5.7 (crates.io); 21
+> migrations (0000–0020, 0020 = `metrics_daily`).** Session 190 (public-API expansion +
+> Stoa theme): flexible per-key CORS (`cors.ts`, `originPatternSchema`/`matchOrigin`),
+> privacy-respecting analytics metrics (`read:analytics` scope, `/api/public/v1/metrics/*`,
+> `metrics.ts`), time-series rollups (`metrics_daily` 0020 + `metrics-rollup` plugin +
+> `publicApiMetricsFederation` flag), Stoa as the new default theme + theme-editor fork
+> fix. Session 189 (contest phase A): stage lifecycle (`contest_status` += draft/paused,
+> 0017), dynamic stages (`stages`/`current_stage_id`, 0018), cohorts/Top-N cull
+> (`contest_entries.stage_state`, 0019), per-round judging. Migrations 0014/0015 =
+> mirror requests / registry (session 184–186); 0016 = contests.cover_image_url; 0013 =
+> self-ref FKs (183); 0012 = keyset feed indexes (179); 0009–0011 = RBAC/contest (175/177).
 
 Numbers are approximate — exact counts vary with test exclusions.
 
@@ -23,7 +24,7 @@ Numbers are approximate — exact counts vary with test exclusions.
 - **PageFrame consolidation (session 168)**: `components/PageFrame.vue` is now the canonical page frame; full-width = full-bleed (ADR 028). Editor canvas previews render through `<PageFrame>` so the editor is WYSIWYG.
 - **dnd-kit provider guard hotfix (session 169)**: `LayoutSection`/`LayoutRow` call `@vue-dnd-kit/core`'s `makeDraggable`/`makeDroppable` ONLY when `editable` — those inject `VueDnDKitProvider` and throw on the provider-less public render path (homepage canary + custom pages). Crashed commonpub.io's homepage (500) on first deploy; now guarded.
 - **Stage E unification (session 159)**: section registry's 17 `builtin/*.ts` definitions point `component:` at EXISTING `Block*`/`Homepage*`/`*Section` components via `propMap`; the 16 duplicate `Section*.vue` files from session 158 were deleted (only `SectionCta.vue` + `SectionLearning.vue` remain as genuinely-new renderers).
-- **Verified counts AS OF SESSION 169 (historical snapshot — current is 135 components / 34 composables / 311 routes; see Headline above)**: 90 pages, 132 components, 33 composables, ~300 API routes. See `04` + `05` for current breakdowns.
+- **Verified counts AS OF SESSION 169 (historical snapshot — current is 139 components / 34 composables / 327 routes; see Headline above)**: 90 pages, 132 components, 33 composables, ~300 API routes. See `04` + `05` for current breakdowns.
 - New feedback memories across 162–169: `feedback-match-established-pattern`, `feedback-nested-aria-button-violation`, `feedback-css-scope-component-extraction`, `feedback-aria-selected-needs-role`, `feedback-jsdom-pointerevent-missing`, `feedback-css-cascade-unit-test-blind-spot`.
 
 **Session 161 deltas** (admin sidebar collapse + schema-package refactor + audit polish + migrate-homepage P1 fix):
@@ -100,21 +101,21 @@ Numbers are approximate — exact counts vary with test exclusions.
 | Shared Nuxt layer | 1 |
 | Apps | 2 |
 | Tools | 2 |
-| Tables | 87 (`grep -c pgTable`; rbac roles/role_permissions/user_roles added in 0009; layout* in 0005; contest_stakeholders in 0008; federated_accounts + oauth_codes are in baseline 0000, with OAuth token columns added in 0004) |
-| Enums | 42 (`grep -c pgEnum`) |
-| Zod validators | 102 `*Schema` exports in `validators.ts` |
+| Tables | 90 (`grep -c pgTable`; `metrics_daily` in 0020; `mirror_requests` 0014; `registry_instances` 0015; rbac roles/role_permissions/user_roles in 0009; layout* in 0005; federated_accounts + oauth_codes are in baseline 0000, with OAuth token columns added in 0004) |
+| Enums | 45 (`grep -c pgEnum`) |
+| Zod validators | 111 `*Schema` exports in `validators.ts` |
 | Server modules | 25 module dirs + 11 top-level utility files |
-| API routes | 311 files under `server/api/` (305 handlers + 6 colocated tests) + 22 ActivityPub/site files under `server/routes/` |
+| API routes | 327 files under `server/api/` (321 handlers + 6 colocated tests) + 22 ActivityPub/site files under `server/routes/` |
 | Layer pages | 90 |
-| Layer components | 135 |
+| Layer components | 139 |
 | Composables | 34 (non-test) + 12 `__tests__/` files |
-| Feature flags | 19 boolean top-level (+ `layoutEngine`, `rbac`) + 5 nested `identity.*` sub-flags |
-| Themes | 5 built-in (base, dark, generics, agora, agora-dark) + N DB-stored custom + N code-registered (admin-managed via `/admin/theme`, session 154) |
-| Migrations | 14 (0000_session128_baseline → 0013_black_lorna_dane; 0009 = RBAC, 0006–0008 = contest criteria/eligibility/visibility, 0012 = composite feed indexes, 0013 = self-ref FKs [session 183, branch-only/unpublished]) |
+| Feature flags | 22 boolean top-level (+ `publicApi`, `publicApiMetricsFederation`, `actAsRegistry`, `announceToRegistry`, `layoutEngine`, `rbac`) + 5 nested `identity.*` sub-flags |
+| Themes | 7 built-in (base, dark, generics, agora, agora-dark, stoa, stoa-dark — stoa is the default) + N DB-stored custom + N code-registered (admin-managed via `/admin/theme`, session 154) |
+| Migrations | 21 (0000_session128_baseline → 0020_spooky_gideon; 0020 = `metrics_daily`, 0017–0019 = contest stages, 0014/0015 = mirror requests/registry, 0012 = composite feed indexes, 0013 = self-ref FKs, 0009 = RBAC, 0006–0008 = contest criteria/eligibility/visibility) |
 | ADRs | 26 (through 028) |
 | Production instances | 3 (commonpub.io, deveco.io, heatsynclabs.io — all auto-deploy from main) |
-| Session log files | 149 (numbered through 181; some are kickoff/handoff variants) |
-| Tests | **265** git-tracked `*.test.ts` files (server 80, layer 42, ui 27, protocol 27, editor 24, infra 11, docs 11, explainer 9, apps/reference 9, schema 7, auth 7, learning 5, deploy 3, config 1, test-utils 1, tools/worker 1). [An earlier "275" double-counted `.stryker-tmp/` sandbox copies via `find`; use `git ls-files`.] |
+| Session log files | 161 (numbered through 190; some are kickoff/handoff variants) |
+| Tests | **281** git-tracked `*.test.ts` files (server 91, layer 47, ui 27, protocol 27, editor 24, infra 11, docs 11, explainer 9, apps/reference 9, schema 7, auth 7, learning 5, deploy 3, config 1, test-utils 1, tools/worker 1). [An earlier "275" double-counted `.stryker-tmp/` sandbox copies via `find`; use `git ls-files`.] |
 | Pre-push git hook | `pnpm typecheck` via simple-git-hooks (installed session 157; closes vue-tsc-vs-vitest regression pattern that hit 3 times in 2 sessions) |
 
 ## Per-package sizes (rough)
@@ -123,25 +124,25 @@ From package versions and file counts:
 
 | Package | Version | Notes |
 |---|---|---|
-| schema | **0.25.0** | 23 src files incl. `rbac.ts`, `publicApi.ts`, `permissions.ts`, `layout.ts`, `sectionConfigs.ts`; 87 tables / 42 enums |
-| server | **2.72.0** | 25 module dirs + 11 top-level files; keyset cursor helpers (`query.ts`), RBAC resolver, crafted-cursor DoS fix |
-| config | **0.16.0** | 4 TS (types, schema, config, index); 19 boolean flags + `identity` object + `RegisteredTheme` |
-| layer | **0.43.3** | the distribution unit; keyset feed (`useContentFeed`), chrome tokens, NavRenderer |
-| ui | **0.9.2** | 22 Vue components + theme CSS + `tokens.ts` + `sections.ts` (SectionRegistry, types-only) + `BUILT_IN_THEMES` |
-| protocol | 0.12.0 | pure-TS AP; ssrf.ts `safeFetchResponse`/`safeFetchSigned` |
+| schema | **0.35.0** | 24 src files incl. `rbac.ts`, `publicApi.ts`, `permissions.ts`, `layout.ts`, `sectionConfigs.ts`, `metrics.ts`, `openapi.ts`; 90 tables / 45 enums |
+| server | **2.82.0** | 25 module dirs + 11 top-level files; `publicApi/` (metrics, cors, rollup), contest stage engine, keyset cursor helpers (`query.ts`), RBAC resolver |
+| config | **0.19.0** | 4 TS (types, schema, config, index); 22 boolean flags + `identity` object + `RegisteredTheme` |
+| layer | **0.64.1** | the distribution unit; public-API metrics routes + rollup plugin + CORS middleware; Stoa default theme; keyset feed (`useContentFeed`), chrome tokens, NavRenderer |
+| ui | **0.11.1** | 22 Vue components + theme CSS (incl. Stoa) + `tokens.ts` (TOKEN_SPECS) + `sections.ts` (SectionRegistry, types-only) + `BUILT_IN_THEMES` (7) |
+| protocol | 0.13.0 | pure-TS AP; ssrf.ts `safeFetchResponse`/`safeFetchSigned`; registry/discovery types |
 | editor | 0.7.11 | 20 block types (18 extension files); `editorKit.ts` engine entry + top-level `vue/` surface (`@commonpub/editor/vue`: EditorShell + 20 block components + `useBlockEditor`) |
 | explainer | 0.7.15 | src/ (pure TS) + top-level `vue/` (renderers + 4 theme CSS presets) + `modules/` (interactive module runtime, 10 module types) |
 | learning | 0.5.2 | curriculum + progress + quiz + certificate |
 | docs | 0.6.3 | remark/rehype pipeline + search adapter |
-| auth | 0.7.0 | Better Auth wrapper + `sso.ts` + `permissions.ts` (RBAC) + `identity.ts` |
+| auth | 0.8.0 | Better Auth wrapper + `sso.ts` + `permissions.ts` (RBAC) + `identity.ts` |
 | infra | 0.8.0 | storage/image/email/security/clientIp/tokenCrypto + `redis/` + `realtime/` |
 | test-utils | 0.5.6 | auth/session/federated/oauth factories + `createTestConfig` |
 
 ## Database
 
-- **87 tables** across ~17 domains
-- **42 enums**
-- **125 FK references** (`.references(...)`): 107 `ON DELETE CASCADE`, 18 `SET NULL`
+- **90 tables** across ~17 domains
+- **45 enums**
+- **130 FK references** (`.references(...)`): 107 `ON DELETE CASCADE`, 23 `SET NULL`, 0 `RESTRICT` (all explicit)
 - Counters denormalized on ~15 tables
 - 5 soft-delete tables (users, contentItems, hubs, federatedContent, federatedHubPosts)
 - All unique constraints and indexes documented in `02-schema-inventory.md`
@@ -186,15 +187,15 @@ From package versions and file counts:
 
 ## Docs coverage
 
-- 7 canonical top-level docs + `docs/llm/` pack (facts/gotchas/conventions/recipes)
-- 5 reference guides (`docs/reference/guides/`) + 11 plans (`docs/plans/`)
+- 8 top-level docs (`README`, `STATUS`, `building-with-commonpub`, `coding-standards`, `deployment`, `federation`, `public-api`, `quickstart`) + `docs/llm/` pack (facts/gotchas/conventions/recipes)
+- 6 reference guides (`docs/reference/guides/`: contests, hooks, layout-engine, theme-editor, theming, url-structure) + 14 plans (`docs/plans/`)
 - 26 ADRs (through 028)
-- 149 session log files (numbered through 181 — some are kickoff/handoff variants)
+- 161 session log files (numbered through 190 — some are kickoff/handoff variants)
 - See `10-doc-audit.md` for the full freshness map (the old per-module `reference/server/` + `reference/packages/` dirs were removed)
 
 ## Test coverage
 
-- **265 git-tracked `*.test.ts` files** (server 80, layer 42, ui 27, protocol 27, editor 24, infra 11, docs 11, explainer 9, apps/reference 9, schema 7, auth 7, learning 5, deploy 3, config 1, test-utils 1, tools/worker 1)
+- **281 git-tracked `*.test.ts` files** (server 91, layer 47, ui 27, protocol 27, editor 24, infra 11, docs 11, explainer 9, apps/reference 9, schema 7, auth 7, learning 5, deploy 3, config 1, test-utils 1, tools/worker 1)
 - A few PGlite-skipped integration tests (partial-index limitations)
 - Stryker mutation testing configured per-package (`pnpm stryker:<pkg>`)
 - (Exact assertion counts vary with test exclusions; run `pnpm test` for the live total.)

@@ -1,8 +1,8 @@
 # 04 — API Route Inventory
 
 Nitro server routes in `layers/base/server/api/` and ActivityPub/site
-routes in `layers/base/server/routes/`. Re-verified session 181
-(2026-06-01): **311 `.ts` files under `server/api/` (305 route handlers +
+routes in `layers/base/server/routes/`. Re-verified session 191
+(2026-06-07): **327 `.ts` files under `server/api/` (321 route handlers +
 6 colocated test files) + 22 files under `server/routes/`.** These are
 *files*, not method/path pairs — some paths have multiple method files
 (`index.get.ts` + `index.post.ts`), and several `routes/` files dispatch
@@ -16,7 +16,7 @@ folded into the tables below:
 - `/api/admin/api-keys/*` — public-API key issuance (4 routes; see Admin)
 - `/api/admin/storage/backfill-cdn-urls` (session 149)
 - `/api/content/import` (session 148, gated `contentImport`)
-- `/api/public/v1/**` — **20 route files** (session 127; gated `publicApi`)
+- `/api/public/v1/**` — **27 route files** (session 127; gated `publicApi`), including the **7-endpoint `/api/public/v1/metrics/*` group** (session 190; `read:analytics`, plus `read:federation` + `publicApiMetricsFederation` for the federation reach endpoint)
 - `/api/realtime/stream` + `/api/messages/:conversationId/stream` (session 130)
 - `/api/contests/:slug/stakeholders/*` — view-only reviewers (3 routes; sessions 171–174)
 - `/api/users/:username/follow` (POST/DELETE — local follow)
@@ -28,17 +28,17 @@ RBAC (session 175) is enforced via middleware/role checks on existing
 routes (e.g. `admin/users/:id/role.put`) plus the `admin/api-keys/*`
 scoped-key surface — there is no `/api/rbac/*` group either.
 
-Route-group file counts (session 181 spot-count, `server/api/`, test files excluded):
+Route-group file counts (session 191 spot-count, `server/api/`, test files excluded):
 
 | Group | Files | Group | Files | Group | Files |
 |---|---|---|---|---|---|
-| admin | 65 | learn | 18 | videos | 7 |
+| admin | 71 | learn | 18 | videos | 7 |
 | hubs | 38 | content | 17 | messages | 6 |
 | federation | 23 | docs | 16 | federated-hubs | 6 |
-| contests | 20 | auth | 12 | products | 5 |
-| public (v1) | 20 | users | 9 | notifications | 4 |
+| contests | 21 | auth | 12 | products | 5 |
+| public (v1) | 27 | users | 9 | notifications | 4 |
 | events | 8 | social | 8 | files | 4 |
-| search/profile | 3 each | (single-file: features, health, me, stats, openapi, image-proxy, cert, categories, homepage, navigation, layouts, realtime, user) | | |
+| search | 3 | profile | 1 | registry (2: public `ping`/`instances`) + single-file: features, health, me, stats, openapi, image-proxy, cert, categories, homepage, navigation, layouts, realtime, user |
 
 Auth column:
 - **pub** — public, no auth required
@@ -127,7 +127,8 @@ Auth column:
 | GET | /api/contests/:slug | pub | Detail |
 | PUT | /api/contests/:slug | owner | Update |
 | DELETE | /api/contests/:slug | owner/admin | Delete (`ownerOrPermission(…'contest.manage')` — owner OR admin; flag-on, a `contest.manage` role) |
-| POST | /api/contests/:slug/transition | owner | Change state |
+| POST | /api/contests/:slug/transition | owner | Change state (bidirectional draft/paused lifecycle, session 189) |
+| POST | /api/contests/:slug/advance | owner | Advance the current review stage's cohort (Top-N cull / manual pick; `contestAdvanceSchema`; session 189) |
 | GET | /api/contests/:slug/entries | pub | List entries |
 | POST | /api/contests/:slug/entries | auth | Submit entry |
 | DELETE | /api/contests/:slug/entries/:entryId | owner | Withdraw |
@@ -348,7 +349,7 @@ Federation admin (extensive):
 - GET /api/openapi — generated OpenAPI 3 spec
 - GET /api/image-proxy — image CORS proxy
 - GET /api/cert/:code — verify learning certificate
-- **Public read API** `/api/public/v1/**` (20 files; gated `publicApi`): content (list+detail), contests, docs, events, hubs, learn, users, videos (each list+detail), plus `instance`, `search`, `tags`, `openapi.json`. Admin-issued bearer tokens, 12 read scopes.
+- **Public read API** `/api/public/v1/**` (27 files; gated `publicApi`): content (list+detail), contests, docs, events, hubs, learn, users, videos (each list+detail), plus `instance`, `search`, `tags`, `openapi.json`. Admin-issued bearer tokens, 13 read scopes + `read:*`. Per-key `allowedOrigins` CORS patterns; `*`/wildcard origins safe (Bearer-auth, no cookies, never `Access-Control-Allow-Credentials`). **Metrics group** (`/api/public/v1/metrics/*`, 7 endpoints, session 190): `overview`, `content/top`, `tags/trending`, `contributors/top`, `engagement`, `timeseries` (all `read:analytics`), and `federation` (`read:federation` + `requireFeature('federation')` + `requireFeature('publicApiMetricsFederation')`). Privacy contract: counts only published+public+non-deleted content and active public-profile users; counter SUMs cast `::float8`.
 - **GET /api/layouts/by-route?path=/some-path** (session 157, Phase 1 of the layout engine) — resolves the active layout for an SSR page. Gated by `features.layoutEngine` (default OFF) — returns `404 "Layout engine not enabled"` when the flag's off so the legacy `HomepageSectionRenderer` stays in charge during the migration window. Module-level 60s cache keyed by `${tier}:${path}` (tier = admin/members/anon — trifurcated to prevent draft leakage). Returns slim shape `{ zones, pageMeta, state }`. **Session 158**: cache lifted into `server/utils/layoutCache.ts` so the admin write API can invalidate it cleanly. `by-route.get.ts` re-exports `invalidateLayoutsByRouteCache` for backwards compat.
 
 **Admin layout write API** (session 158, Phase 1c; backs the `/admin/layouts/:id` editor, sessions 160–169) — 10 routes under `/api/admin/layouts/*`, all gated on `requireFeature('admin') + requireFeature('layoutEngine') + requirePermission(event, 'layout.manage')` (RBAC — NOT a bare `requireAdmin`; the whole admin surface is `requirePermission`-gated: api-keys→`apikeys.manage`, themes→`theme.manage`, features/settings→`settings.manage`, etc.). Every write handler calls `invalidateLayoutsByRouteCache()` before returning (statically enforced by `handlers-contract.test.ts`):

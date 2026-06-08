@@ -5,7 +5,8 @@ It exists as a lightweight smoke/harness target (the smallest possible app
 that boots the full layer) — it is **not** a copy-out starter.
 
 > To create a real standalone CommonPub instance, use the scaffolder:
-> `npx create-commonpub` (or `tools/create-commonpub`). That generates a
+> `cargo install create-commonpub` then `create-commonpub new` (Rust CLI on
+> crates.io — NOT an npm package). That generates a
 > thin app that extends the **published** `@commonpub/layer` npm package,
 > with a pinned Dockerfile, migration runner, and one-click deploy — none
 > of which this directory provides.

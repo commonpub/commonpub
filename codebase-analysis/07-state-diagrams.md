@@ -2,7 +2,7 @@
 
 Mermaid diagrams for core domains. Render in any Mermaid-compatible viewer
 (GitHub, GitLab, VS Code preview). Diagram bodies re-verified against code
-session 181 (2026-06-01).
+session 191 (2026-06-07).
 
 > Not yet diagrammed (shipped after the original diagrams): **keyset feed
 > pagination** (`listContentKeyset` → `GET /api/content/feed`, sessions 178–179),
@@ -63,26 +63,47 @@ stateDiagram-v2
 
 ## Contest lifecycle
 
+`contestStatusEnum` has **7 states** (draft + paused added 0017, session 189) and
+transitions are **bidirectional** — the server's `VALID_TRANSITIONS` map
+(`contest/contest.ts`) is the gating truth. The full edge set (a contest can move
+forward or back, e.g. `judging → paused` to re-open submissions):
+
 ```mermaid
 stateDiagram-v2
-    [*] --> upcoming : createContest
-    upcoming --> active : transitionContestStatus
-    active --> judging : transitionContestStatus (entries closed)
-    judging --> completed : transitionContestStatus (ranks calc)
+    [*] --> draft : createContest (status='draft')
+    [*] --> upcoming : createContest (published)
+    draft --> upcoming
+    draft --> active
+    draft --> cancelled
+    upcoming --> draft
+    upcoming --> active
     upcoming --> cancelled
+    active --> upcoming
+    active --> paused
+    active --> judging : entries closed
     active --> cancelled
+    paused --> active
+    paused --> upcoming
+    paused --> judging
+    paused --> cancelled
+    judging --> active
+    judging --> paused
+    judging --> completed : ranks calculated
     judging --> cancelled
-
-    state active {
-        [*] --> accepting_entries
-        accepting_entries --> community_voting : if communityVotingEnabled
-    }
-
-    state judging {
-        [*] --> awaiting_scores
-        awaiting_scores --> all_scored : judges submit
-    }
+    completed --> judging
+    cancelled --> draft
+    cancelled --> upcoming
 ```
+
+> **Status vs stages.** `status` is the behavioural/gating truth. The `stages` jsonb
+> + `currentStageId` (0018) are a **display overlay** = an explicit ordered timeline
+> (Submissions → review cohorts → Results); an empty `stages` array makes the server
+> synthesize the classic timeline. **Cohort advancement** (`advanceContestStage`,
+> `POST /api/contests/:slug/advance`) writes each entry's `stage_state` (0019) to
+> `advanced`/`eliminated` (Top-N cull or manual pick). `calculateContestRanks`
+> **excludes eliminated entries** (INVARIANT). Judge scores are per-round
+> (`JudgeScoreEntry.roundId`); **community voting is advisory** and never drives
+> ranks or cuts — only judge score does.
 
 ## Contest judges (session 124)
 
@@ -263,13 +284,17 @@ sequenceDiagram
     LocalHub->>LocalHub: insert hubPostReply (authorId=null, remoteActorUri set)
 ```
 
-## Instance mirroring (session 079)
+## Instance mirroring (session 079; consent-based push since Phase 3, session 185)
+
+`instanceMirrors` is **PULL-only** now (`createMirror` throws on `direction:'push'`).
+"Push" became a **consent request**: `requestMirror` asks a remote to **pull-mirror US**
+(i.e. distribute our content) — it sends an `Offer(Follow)` and stores an `outgoing` row;
+the remote mirrors us only after its admin approves.
 
 ```mermaid
 flowchart TD
-    A[admin creates instanceMirror remoteDomain=B.com] --> B{direction}
-    B -->|pull| C[backfill worker]
-    C --> D[fetch /actor of B]
+    A[admin: pull-mirror B.com] --> C[createMirror direction=pull]
+    C --> D[backfill worker: fetch /actor of B]
     D --> E[fetch outbox first page]
     E --> F[iterate pages using backfillCursor]
     F --> G[insert federatedContent per item]
@@ -278,11 +303,36 @@ flowchart TD
     H -->|yes| I[respect filterContentTypes / filterTags]
     I --> J[emit federation:content:received]
     F -->|done| K[status=active]
-
-    B -->|push| L[send Follow to B]
-    L --> M[B accepts → status=active]
-    M --> N[B now delivers all matching content]
 ```
+
+### Consent-based mirror request (Phase 3, session 185)
+
+```mermaid
+sequenceDiagram
+    participant AdminA as Admin @ A (requester — wants to be mirrored)
+    participant A as Instance A
+    participant B as Instance B (asked to mirror A)
+    participant AdminB as Admin @ B
+
+    AdminA->>A: requestMirror(B.com) — "please pull-mirror us"
+    A->>A: insert mirror_requests (direction=outgoing, status=pending)
+    A->>B: deliver Offer(Follow) activity (offerActivityUri)
+    B->>B: insert mirror_requests (direction=incoming, status=pending)
+    Note right of AdminB: shows in admin Federation → mirror-requests
+    alt approve
+        AdminB->>B: approveMirrorRequest
+        B->>B: create/reuse a pull mirror of A (instanceMirrors, direction=pull) → resultingMirrorId
+        B->>A: Accept activity → A marks outgoing request approved
+        Note right of B: B now PULLs A's matching content
+    else reject
+        AdminB->>B: rejectMirrorRequest
+        B->>A: Reject activity → A marks outgoing request rejected
+    end
+```
+
+> The `mirror_requests` unique key is `(direction, remote_domain)` — one live request per
+> direction per peer. `assertActorMatchesSigner` binds the Accept/Reject signer to the
+> claimed actor (see `09`), so a third party can't forge an approval.
 
 ## Learning progress
 

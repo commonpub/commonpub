@@ -187,7 +187,7 @@ node .output/server/index.mjs
 Scaffolded sites use the same env vars as the reference app. Key additions:
 
 - **Feature flags**: `FEATURE_CONTENT=true`, `FEATURE_HUBS=false`, etc. — toggle features without rebuilding
-- **Content types**: `NUXT_PUBLIC_CONTENT_TYPES=project,article,blog` — comma-separated enabled types
+- **Content types**: `NUXT_PUBLIC_CONTENT_TYPES=project,blog,explainer` — comma-separated enabled types (`article` is a deprecated alias that normalizes to `blog` — use `blog`)
 - **Contest creation**: `NUXT_PUBLIC_CONTEST_CREATION=staff` — who can create contests (open/staff/admin)
 
 ### Storage
@@ -247,14 +247,32 @@ docker run -d -p 3000:3000 \
 
 ### Feature Flags
 
+The reference app's config resolver (`apps/reference/server/utils/config.ts`) maps these 19 `FEATURE_*`
+env vars onto `FeatureFlags` (set `=true`/`=false`). Defaults are the `@commonpub/config` schema
+defaults. Three boolean flags (`publicApi`, `layoutEngine`, `rbac`) and the `identity.*` sub-flags have
+**no env key** — set them in `commonpub.config.ts` or via the admin runtime override.
+
 | Variable              | Description                   | Default |
 | --------------------- | ----------------------------- | ------- |
-| `FEATURE_HUBS`        | Enable hub features (community/product/company) | `true`  |
-| `FEATURE_DOCS`        | Enable docs module            | `true`  |
-| `FEATURE_LEARNING`    | Enable learning paths         | `true`  |
-| `FEATURE_EXPLAINERS`  | Enable interactive explainers | `true`  |
-| `FEATURE_ADMIN`       | Enable admin panel            | `false` |
-| `FEATURE_FEDERATION`  | Enable ActivityPub federation | `false` |
+| `FEATURE_CONTENT`     | Content CRUD + editor         | `true`  |
+| `FEATURE_SOCIAL`      | Likes, follows, comments, bookmarks, reports | `true`  |
+| `FEATURE_HUBS`        | Hub features (community/product/company) | `true`  |
+| `FEATURE_DOCS`        | Docs module                   | `true`  |
+| `FEATURE_VIDEO`       | Videos                        | `true`  |
+| `FEATURE_LEARNING`    | Learning paths                | `true`  |
+| `FEATURE_EXPLAINERS`  | Interactive explainers        | `true`  |
+| `FEATURE_EDITORIAL`   | Staff picks / editorial / categories admin | `true`  |
+| `FEATURE_CONTENT_IMPORT` | URL → content import       | `true`  |
+| `FEATURE_CONTESTS`    | Contests + judging            | `false` |
+| `FEATURE_EVENTS`      | Events + RSVP                 | `false` |
+| `FEATURE_ADMIN`       | Admin panel + admin API       | `false` |
+| `FEATURE_EMAIL_NOTIFICATIONS` | Outbound email notifications | `false` |
+| `FEATURE_FEDERATION`  | ActivityPub federation        | `false` |
+| `FEATURE_FEDERATE_HUBS` | Hub Group-actor federation (needs `FEATURE_FEDERATION`) | `false` |
+| `FEATURE_SEAMLESS_FEDERATION` | Merge federated content into local browse/feed | `false` |
+| `FEATURE_ACT_AS_REGISTRY` | This instance acts as a discovery registry | `false` |
+| `FEATURE_ANNOUNCE_TO_REGISTRY` | Announce this instance to a registry (needs `FEATURE_FEDERATION`) | `true`  |
+| `FEATURE_PUBLIC_API_METRICS_FEDERATION` | Expose cross-instance metrics on the public API | `false` |
 
 ### Optional Services
 

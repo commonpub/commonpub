@@ -178,8 +178,8 @@ a minute (`curl deveco.io/api/content?limit=5`, today's timestamp).
 | @commonpub/protocol | 0.13.0 | | @commonpub/explainer | 0.7.15 |
 | @commonpub/auth | 0.8.0 | | @commonpub/docs | 0.6.3 |
 | @commonpub/server | **2.82.0** | | @commonpub/learning | 0.5.2 |
-| @commonpub/ui | **0.11.0** | | @commonpub/test-utils | 0.5.6 |
-| @commonpub/layer | **0.64.0** | | create-commonpub (crates.io) | **0.5.7** |
+| @commonpub/ui | **0.11.1** | | @commonpub/test-utils | 0.5.6 |
+| @commonpub/layer | **0.64.1** | | create-commonpub (crates.io) | **0.5.7** |
 
 **Stoa theme (session 190, ui 0.10.0 / layer 0.63.0):** new built-in theme family (light + dark) —
 warm paper, moss accent, Fraunces/Newsreader/Work Sans, soft rounded geometry; shares Agora's Town
@@ -191,7 +191,7 @@ explicit `agora-dark` (set Stoa in admin → Appearance to switch). deveco/heats
 Migrations applied this cycle: **0016**–**0019** (contest stages, see below) · **0020**
 (`metrics_daily` — public-API analytics rollups, session 190; additive CREATE TABLE + indexes,
 `dimension` NOT NULL `''`). The CLI `template.rs` pins go stale on every config/layer/schema/server
-publish — bump after this release (schema 0.35 / config 0.19 / server 2.82 / layer 0.62).
+publish — bump after this release (schema ^0.35 / config ^0.19 / server ^2.82 / layer ^0.64).
 
 Contest overhaul (2026-06-04, schema 0.27.0 / server 2.74.0 / layer 0.49.0, all 3 instances):
 optional `contests.coverImageUrl` (cards prefer it cover-cropped → contained banner → trophy);

@@ -14,6 +14,7 @@ Themes are organized into families. The admin picks a family for the instance; u
 
 | Family | Light ID | Dark ID | Accent | Display Font | Body Font |
 |--------|----------|---------|--------|-------------|-----------|
+| **Stoa** (default) | `stoa` | `stoa-dark` | Moss `#3c8262` | Fraunces (serif; Newsreader for prose) | Work Sans |
 | **Classic** | `base` | `dark` | Blue `#5b9cf6` | system-ui | system-ui |
 | **Agora** | `agora` | `agora-dark` | Green `#3d8b5e` | Fraunces (serif) | Work Sans |
 | **Generics** | `generics` | `generics` | Blue `#5b9cf6` | system-ui | system-ui |
@@ -25,6 +26,8 @@ Theme CSS files in `packages/ui/theme/`:
 - `generics.css` — Generics dark (`[data-theme="generics"]`)
 - `agora.css` — Agora light (`[data-theme="agora"]`)
 - `agora-dark.css` — Agora dark (`[data-theme="agora-dark"]`)
+- `stoa.css` — Stoa light, the default (`[data-theme="stoa"]`)
+- `stoa-dark.css` — Stoa dark (`[data-theme="stoa-dark"]`)
 - `components.css`, `prose.css`, `layouts.css`, `forms.css`, `editor-panels.css` — Shared styles
 
 ---
@@ -159,7 +162,7 @@ All tokens are CSS custom properties prefixed with `--`. Use them as `var(--toke
 
 ### `BUILT_IN_THEMES: ThemeDefinition[]`
 
-Array of all 5 built-in theme definitions.
+Array of all 7 built-in theme definitions.
 
 ```typescript
 interface ThemeDefinition {
@@ -167,7 +170,7 @@ interface ThemeDefinition {
   name: string;
   description: string;
   isDark: boolean;
-  family: string;  // 'classic' | 'agora' | 'generics'
+  family: string;  // 'classic' | 'agora' | 'generics' | 'stoa'
 }
 ```
 

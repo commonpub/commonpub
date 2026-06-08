@@ -1,7 +1,7 @@
 # 01 — Monorepo Topology
 
-Structural shape and published-version table re-verified session 181
-(2026-06-01). Module boundaries and the dependency graph below are
+Structural shape and published-version table re-verified session 191
+(2026-06-07). Module boundaries and the dependency graph below are
 unchanged since the original mapping (session 125).
 
 ## Repo shape
@@ -33,7 +33,7 @@ commonpub/
 ├── design-system-v2/      ARCHIVE. Figma HTML exports. Not used at runtime.
 ├── docs/                  Human docs, ADRs, session logs, reference material
 ├── test-site/             Separate Nuxt instance for integration testing (npm-locked, legacy)
-├── scripts/               db-migrate.mjs (CI schema applier), db-push.mjs (legacy dev), migrate-homepage-layout.mjs, smoke.mjs (deploy smoke), migrate-blog-to-article.sql
+├── scripts/               db-migrate.mjs (CI schema applier), db-push.mjs (legacy dev), migrate-homepage-layout.mjs, reconcile-counters.mjs (counter recount/repair), smoke.mjs (deploy smoke), migrate-blog-to-article.sql
 ├── Dockerfile             Multi-stage, node:22-alpine, non-root, healthcheck
 ├── docker-compose.yml     Local dev (Postgres, Redis, Meilisearch on non-default ports)
 ├── turbo.json             build/dev/test/lint/typecheck pipelines
@@ -43,21 +43,21 @@ commonpub/
 
 Note: `tools/create-commonpub` is NOT in the pnpm workspace — it's Rust.
 
-## Published package versions (2026-06-01, session 181)
+## Published package versions (2026-06-07, session 191)
 
 | Package | Version | Notes |
 |---|---|---|
-| @commonpub/schema | 0.25.0 | 87 tables, 42 enums, 13 migrations (0000–0012); RBAC tables (`roles`/`role_permissions`/`user_roles`, 0009), contest visibility/eligibility (0006–0008), composite feed indexes (0012) |
-| @commonpub/server | 2.72.0 | Crafted-cursor DoS hardening + federated-leak fix (2.72.0); keyset feed pagination `listContentKeyset` (2.70.0+); RBAC resolver; federation outbound through SSRF-safe path |
-| @commonpub/config | 0.16.0 | 19 boolean top-level flags + nested `identity.*` (5 sub-flags); `layoutEngine` + `rbac` flags added |
-| @commonpub/layer | 0.43.3 | Keyset feed (`useContentFeed`, `GET /api/content/feed`); chrome tokenization; config-driven nav (NavRenderer) |
-| @commonpub/ui | 0.9.2 | Independent; NOT bundled into layer; `BUILT_IN_THEMES` (5) + token split |
-| @commonpub/protocol | 0.12.0 | Pure-TS ActivityPub; `safeFetchResponse`+`safeFetchSigned`; strict `verifyHttpSignature` coverage + raw-body digest |
+| @commonpub/schema | 0.35.0 | 90 tables, 45 enums, 21 migrations (0000–0020); `metrics_daily` (0020), contest stages/cohorts (`stages`/`current_stage_id`/`stage_state`/`show_prizes`/`cover_image_url`, 0016–0019), mirror requests (0014) + registry instances (0015), RBAC tables (0009), composite feed indexes (0012) |
+| @commonpub/server | 2.82.0 | Public-API metrics (`publicApi/metrics.ts`, `metricsRollup.ts`) + flexible CORS (`cors.ts`); contest stage engine (`advanceContestStage`, per-round judging); federation registry + mirror requests; keyset feed pagination; federation outbound through SSRF-safe path |
+| @commonpub/config | 0.19.0 | 22 boolean top-level flags + nested `identity.*` (5 sub-flags); `publicApiMetricsFederation` (0.19.0), `actAsRegistry`/`announceToRegistry`, `layoutEngine`, `rbac` added |
+| @commonpub/layer | 0.64.1 | Public-API metrics routes + `metrics-rollup` plugin + CORS middleware; Stoa default theme + theme-editor fork fix; contest stages editor; keyset feed |
+| @commonpub/ui | 0.11.1 | Independent; NOT bundled into layer; Stoa theme family; `BUILT_IN_THEMES` (7) + TOKEN_SPECS token split |
+| @commonpub/protocol | 0.13.0 | Pure-TS ActivityPub; `safeFetchResponse`+`safeFetchSigned`; strict `verifyHttpSignature` coverage + raw-body digest; registry/discovery types |
 | @commonpub/editor | 0.7.11 | 20 block types (18 TipTap extension files) |
 | @commonpub/explainer | 0.7.15 | Pure TS engine + Vue (top-level `vue/` dir); cover-image upload UI |
 | @commonpub/learning | 0.5.2 | Curriculum + progress + quiz + certificate engines |
 | @commonpub/docs | 0.6.3 | Search adapters (Meilisearch + Postgres FTS fallback) |
-| @commonpub/auth | 0.7.0 | Better Auth wrapper + AP SSO + cross-instance identity types + `hasPermissionPure` (RBAC) |
+| @commonpub/auth | 0.8.0 | Better Auth wrapper + AP SSO + cross-instance identity types + `hasPermissionPure` (RBAC) |
 | @commonpub/infra | 0.8.0 | Storage / image / email / security; `getClientIp`; DO Spaces CDN derivation; Redis + realtime pub/sub |
 | @commonpub/test-utils | 0.5.6 | Auth/session/federated-account/OAuth-client factories + `createTestConfig` |
 

@@ -6,11 +6,11 @@ Packages other than `schema`, `server`, and the layer (covered elsewhere).
 
 `packages/config/src/`
 
-- `types.ts` — `FeatureFlags` (**19 boolean flags + `identity` object** with 5 sub-flags), `IdentityFeatures`, `AuthConfig`, `InstanceConfig`, `FederationConfig`, `DocsConfig`, `CookieDefinition`, `RegisteredTheme`, `CommonPubConfig`
+- `types.ts` — `FeatureFlags` (**22 boolean flags + `identity` object** with 5 sub-flags), `IdentityFeatures`, `AuthConfig`, `InstanceConfig`, `FederationConfig`, `DocsConfig`, `CookieDefinition`, `RegisteredTheme`, `CommonPubConfig`
 - `schema.ts` — Zod with defaults
 - `config.ts` — `defineCommonPubConfig()` factory; validates, fills defaults
 
-**Defaults ON:** `content`, `social`, `hubs`, `docs`, `video`, `learning`, `explainers`, `editorial`, `contentImport`. **Defaults OFF:** `contests`, `events`, `federation`, `seamlessFederation`, `federateHubs`, `admin`, `emailNotifications`, `publicApi`, `layoutEngine`, `rbac`, and all 5 `identity.*` sub-flags — must be explicitly enabled. (Note: `admin` is OFF in the schema default but turned ON per-instance in production configs.)
+**Defaults ON:** `content`, `social`, `hubs`, `docs`, `video`, `learning`, `explainers`, `editorial`, `contentImport`, `announceToRegistry`. **Defaults OFF:** `contests`, `events`, `federation`, `seamlessFederation`, `federateHubs`, `admin`, `emailNotifications`, `publicApi`, `publicApiMetricsFederation`, `actAsRegistry`, `layoutEngine`, `rbac`, and all 5 `identity.*` sub-flags — must be explicitly enabled. (Note: `admin` is OFF in the schema default but turned ON per-instance in production configs; `announceToRegistry` defaults ON since config 0.18.0 but only fires when `federation` is also on.)
 
 Feature flags are **runtime** (environment via `nuxt.config` `runtimeConfig.public.features.*`), not compile-time. They gate server endpoints, page renders, and nav items.
 
@@ -63,7 +63,7 @@ Feature flags are **runtime** (environment via `nuxt.config` `runtimeConfig.publ
 
 `packages/ui/src/`
 
-22 headless Vue 3 components: Alert, Avatar, Badge, Button, Card, Dialog, IconButton, Input, Menu, MenuItem, Popover, ProgressBar, Select, Separator, Stack, Tabs, TagInput, Textarea, Toggle, Toolbar, Tooltip, VisuallyHidden. All accept `class` prop, WCAG 2.1 AA. Also exports `BUILT_IN_THEMES` (5) + theme/token helpers.
+22 headless Vue 3 components: Alert, Avatar, Badge, Button, Card, Dialog, IconButton, Input, Menu, MenuItem, Popover, ProgressBar, Select, Separator, Stack, Tabs, TagInput, Textarea, Toggle, Toolbar, Tooltip, VisuallyHidden. All accept `class` prop, WCAG 2.1 AA. Also exports `BUILT_IN_THEMES` (**7**: base, dark, generics, agora, agora-dark, **stoa, stoa-dark** — session 190) + `TOKEN_SPECS` + theme/token helpers. Ships `theme/*.css` (12 files incl. `stoa.css`/`stoa-dark.css`).
 
 **Independent npm publication** but NOT bundled into the layer. The layer has its own components under `layers/base/components/`. `@commonpub/ui` is for external consumers who want just the design system without the full CommonPub stack.
 

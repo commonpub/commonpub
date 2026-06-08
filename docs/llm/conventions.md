@@ -103,30 +103,27 @@ Modules under `packages/server/src/<domain>/`:
 
 ## Hook events
 
-Use the bus in `packages/server/src/hooks.ts`. 13 events are declared; 8 are
-emitted today. The rest are declared for future use — wire them up at the
-call site before subscribing.
+Use the bus in `packages/server/src/hooks.ts`. **All 13 declared events are
+emitted today** (the remaining 5 were wired up in session 183).
 
 **Emitted (active):**
 
 | Event | Fires at |
 |---|---|
-| `content:published` | `content/content.ts` publishContent |
-| `content:updated` | `content/content.ts` updateContent |
-| `content:deleted` | `content/content.ts` deleteContent |
+| `content:published` | `content/content.ts` (`onContentPublished`) |
+| `content:updated` | `content/content.ts` (`onContentUpdated`) |
+| `content:deleted` | `content/content.ts` (`onContentDeleted`) |
+| `content:liked` / `content:unliked` | `social/social.ts` toggleLike (ternary; content-item targets only) |
 | `comment:created` | `social/social.ts` createComment |
 | `hub:post:created` | `hub/posts.ts` createPost |
 | `hub:member:joined` | `hub/members.ts` joinHub |
 | `hub:member:left` | `hub/members.ts` leaveHub |
+| `hub:content:shared` | `hub/posts.ts` shareContent |
+| `user:registered` | bridged: auth `databaseHooks.user.create.after` → layer `middleware/auth.ts` `onUserCreated` (auth pkg can't import the server bus) |
 | `federation:content:received` | `federation/inboxHandlers.ts` |
+| `federation:hub:post:received` | `federation/hubMirroring.ts` (genuinely-new federated hub post) |
 
-**Declared but not yet emitted** — add the `emitHook(...)` call at the
-matching site when you need them:
-
-- `content:liked`, `content:unliked` (toggleLike)
-- `hub:content:shared` (shareContent)
-- `user:registered` (Better Auth after-register)
-- `federation:hub:post:received` (hubMirroring)
+Only `search-index.ts` subscribes today (`content:published`/`updated`/`deleted` → Meilisearch/FTS); other plugins use direct timers/callbacks. Consumer apps register more handlers via `onHook()`.
 
 Register handlers in layer server plugins (`layers/base/server/plugins/*`). Only
 `search-index.ts` currently uses `onHook()` — other plugins use Nitro

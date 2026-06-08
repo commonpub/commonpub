@@ -23,17 +23,19 @@ codebase-analysis/       raw inventory (generated — trust over older docs)
 12 packages on npm as `@commonpub/*`:
 schema, server, config, protocol, auth, ui, editor, explainer, learning, docs, infra, test-utils.
 
-## Latest published versions (session 188, 2026-06-03)
+## Latest published versions (session 190, 2026-06-07)
 
-- schema 0.27.0, server 2.74.0, config 0.18.0, layer 0.49.0
-- ui 0.9.2, protocol 0.13.0, editor 0.7.11, explainer 0.7.15
+- schema 0.35.0, server 2.82.0, config 0.19.0, layer 0.64.1
+- ui 0.11.1, protocol 0.13.0, editor 0.7.11, explainer 0.7.15
 - learning 0.5.2, docs 0.6.3, auth 0.8.0, infra 0.8.0, test-utils 0.5.6
 - create-commonpub 0.5.7 (crates.io — `cargo install create-commonpub`)
 - (Always `npm view @commonpub/<pkg> version` / `cargo search` before trusting this — it drifts.)
 
-All three instances (commonpub.io / deveco.io / heatsynclabs.io) run the latest
-published layer (0.43.2) and are LIVE + healthy. commonpub.io builds from the
-workspace `main`; deveco.io + heatsynclabs.io pin the npm layer. (The old
+All three instances (commonpub.io / deveco.io / heatsynclabs.io) are LIVE + healthy.
+commonpub.io builds from the workspace `main` (layer 0.64.1 — has everything incl. Stoa +
+public-API metrics); deveco.io + heatsynclabs.io pin the npm layer at `^0.62.0` (public-API
+work only — deliberately NOT bumped for Stoa/theme-fix per operator instruction; see the
+session-190 version-skew note). (The old
 "layer UNPUBLISHED ahead / deveco+heatsync dormant on 0.24.0" note is OBSOLETE.)
 deveco keeps a CUSTOM `layouts/default.vue` + `pages/index.vue` (its nav is now
 config-driven via NavRenderer — session 180); heatsync uses the BASE layout.
@@ -46,13 +48,13 @@ of past flag state drifts (see session 149's "live-active state correction").
 ## Database
 
 - PostgreSQL 16 + Drizzle.
-- **89 tables, 45 enums. 17 migrations (0000–0016).** Full list: `codebase-analysis/02-schema-inventory.md`. 0014 = `mirror_requests` (consent-based push, session 185), 0015 = `registry_instances` + `registry_instance_status` enum (instance directory, session 186), 0016 = `contests.cover_image_url` (optional contest card cover, session 188). Layout-engine tables (`layouts`, `layout_rows`, `layout_sections`, `layout_versions`) added in migration 0005 — instance-local, never federate. Migration 0012 (session 179) adds two PARTIAL composite indexes `idx_content_items_feed_recency` `(published_at DESC NULLS LAST, id DESC)` + `idx_content_items_feed_popular` `(view_count DESC, id DESC)` over `WHERE status='published' AND deleted_at IS NULL` — they back the keyset feed. NULLS placement is matched syntactically by the planner, so the index spells `id DESC NULLS FIRST`; `pushSchema` (PGlite test harness) SKIPS partial indexes (test creates DDL itself).
+- **90 tables, 45 enums. 21 migrations (0000–0020).** Full list: `codebase-analysis/02-schema-inventory.md`. 0014 = `mirror_requests` (consent-based push, session 185), 0015 = `registry_instances` + `registry_instance_status` enum (instance directory, session 186), 0016 = `contests.cover_image_url` (session 188), 0017 = `contest_status` +draft/+paused & `contests.show_prizes` (session 189), 0018 = `contests.stages`/`current_stage_id` (session 189), 0019 = `contest_entries.stage_state` (session 189), 0020 = `metrics_daily` (public-API time-series rollups, session 190). Layout-engine tables (`layouts`, `layout_rows`, `layout_sections`, `layout_versions`) added in migration 0005 — instance-local, never federate. Migration 0012 (session 179) adds two PARTIAL composite indexes `idx_content_items_feed_recency` `(published_at DESC NULLS LAST, id DESC)` + `idx_content_items_feed_popular` `(view_count DESC, id DESC)` over `WHERE status='published' AND deleted_at IS NULL` — they back the keyset feed. NULLS placement is matched syntactically by the planner, so the index spells `id DESC NULLS FIRST`; `pushSchema` (PGlite test harness) SKIPS partial indexes (test creates DDL itself).
 - Domains: auth, content, social, messaging, hubs, products, learning, docs, videos, contests, events, voting, federation, admin, files.
 - Soft delete on: users, contentItems, hubs, federatedContent, federatedHubPosts.
 - Denormalized counters pervasive (voteScore, entryCount, attendeeCount, memberCount, likeCount, etc.).
 - `contentTypeEnum`: project, article, blog, explainer. **`article` is legacy — use `blog`** (session 116).
 
-## Recent major additions (sessions 108–150)
+## Recent major additions (sessions 108–190)
 
 - **108** URL restructure → `/u/{username}/{type}/{slug}` canonical
 - **116** Article↔Blog merge
@@ -83,24 +85,30 @@ of past flag state drifts (see session 149's "live-active state correction").
 - **167** Phase 3e auto-form-from-Zod (section config inspector)
 - **168** `<PageFrame>` becomes the canonical page frame (custom-page + editor canvas adopt it); ADR 028 homepage-customization model
 - **169** **Deployed sessions 163–168 to commonpub.io.** Caught + fixed a live homepage P0 (dnd-kit `inject('VueDnDKitProvider')` threw on the provider-less public path → guarded behind `editable`); hardened the deploy smoke (in-container, checks `/` not just `/api/health`)
+- **175–177** **RBAC phase 0/1** (`roles`/`role_permissions`/`user_roles`, migration 0009; `resolveUserPermissions` + `requirePermission`; flag `rbac` default OFF) + contest UX overhaul
+- **178–179** **Keyset feed pagination** (`listContentKeyset` → `GET /api/content/feed`; partial composite indexes, migration 0012)
+- **180–181** Crafted-cursor DoS hardening + federated-leak fix + base-layout chrome tokenization
+- **183–188** **Federation discovery + hardening** LIVE on all 3: actor/outbox projection, consent-based mirror requests (`mirror_requests`, 0014), instance registry (`registry_instances`, 0015) with commonpub.io as the default registry, self-ref FKs (0013), CLI published to crates.io. **Federation ON in prod.**
+- **189** **Contest phase A** — stage lifecycle (`contest_status` +draft/+paused, 0017), dynamic stages (`stages`/`current_stage_id`, 0018), cohorts/Top-N cull (`stage_state`, 0019), per-round judging (`JudgeScoreEntry.roundId`); voting stays advisory
+- **190** **Public-API expansion** — flexible per-key CORS (`originPatternSchema`/`matchOrigin`), privacy-respecting metrics (`read:analytics`, `/api/public/v1/metrics/*`), time-series rollups (`metrics_daily`, 0020 + `metrics-rollup` plugin + `publicApiMetricsFederation` flag). **Stoa** is the new default theme (light+dark) + theme-editor fork fix.
 
 ## Layer structure
 
 `layers/base/` — the distribution unit.
 - 90 pages (Nuxt file-based)
-- 132 components
-- 33 composables
-- ~300 API routes in `server/api/`
-- AP routes in `server/routes/` (inbox, outbox, .well-known)
-- 6 server plugins, 7 request middlewares
-- 5 themes registered in `packages/ui/src/theme.ts` `BUILT_IN_THEMES` (base, dark, generics, agora, agora-dark)
+- 139 components
+- 34 composables
+- 327 API route files in `server/api/` (321 handlers + 6 colocated tests)
+- 22 AP/site routes in `server/routes/` (inbox, outbox, .well-known)
+- 10 server plugins, 11 server (Nitro) middleware, 3 route middleware
+- 7 themes registered in `packages/ui/src/theme.ts` `BUILT_IN_THEMES` (base, dark, generics, agora, agora-dark, **stoa, stoa-dark** — Stoa is the default)
 
 ## Server package structure
 
-`packages/server/src/` modules:
-admin, auth (identity), content, contest (+judges), docs, events, federation (10 files), homepage, hub (5 files), import, **layout** (CRUD for `layouts`/`layout_rows`/`layout_sections`/`layout_versions`; session 157), learning, messaging, navigation, notification, product, profile, search, social, video, voting.
+`packages/server/src/` — **25 module dirs**:
+admin, auth, content, contest (+judges, +stages), docs, events, federation (16 files), homepage, hub (6 files), **identity** (cross-instance), import, **layout** (CRUD for `layouts`/`layout_rows`/`layout_sections`/`layout_versions`; session 157), learning, messaging, navigation, notification, product, profile, **publicApi** (read API + metrics + CORS), **rbac**, **realtime** (SSE), search, social, video, voting.
 
-Plus file-level utilities: email, hooks, image, oauthCodes, query, security, storage, theme, utils.
+Plus 11 file-level utilities: email, hooks, image, index, oauthCodes, query, security, storage, theme, types, utils.
 
 ## Feed pagination (sessions 178–179, keyset)
 

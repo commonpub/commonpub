@@ -1,17 +1,19 @@
 # 02 — Schema Inventory
 
-Source: `packages/schema/src/*.ts`. Re-verified session 188 (2026-06-03).
+Source: `packages/schema/src/*.ts`. Re-verified session 191 (2026-06-07).
 
-**89 tables (`grep -c pgTable`), 45 enums (`grep -c pgEnum`), 108 `*Schema`
-exports in `validators.ts`.** Drizzle ORM on PostgreSQL 16. (+2 tables / +3 enums
-/ +6 schemas since session 181: `mirror_requests` (0014) + `registry_instances`
-+ `registry_instance_status` (0015) federation discovery work, sessions 185/186.)
+**90 tables (`grep -c pgTable`), 45 enums (`grep -c pgEnum`), 111 `*Schema`
+exports in `validators.ts`.** Drizzle ORM on PostgreSQL 16. (+3 tables / +3 enums
+since session 181: `mirror_requests` (0014) + `registry_instances` +
+`registry_instance_status` (0015) federation discovery work, sessions 185/186;
+`metrics_daily` (0020) public-API time-series rollups, session 190.)
 
-**20 migrations, 0000–0019** (latest `0019_regular_tinkerer` = `contest_entries.stage_state`
-jsonb — Phase B2 per-entry cohort outcome, session 189; `0018_clean_the_hunter` =
-`contests.stages` jsonb + `contests.current_stage_id` — Phase B1, session 189;
-`0017_exotic_lyja` = `contest_status` enum `+draft,+paused` and `contests.show_prizes`,
-session 189). Full list:
+**21 migrations, 0000–0020** (latest `0020_spooky_gideon` = `metrics_daily` table —
+public-API Phase 3 analytics time-series, session 190; `0019_regular_tinkerer` =
+`contest_entries.stage_state` jsonb — Phase B2 per-entry cohort outcome, session 189;
+`0018_clean_the_hunter` = `contests.stages` jsonb + `contests.current_stage_id` —
+Phase B1, session 189; `0017_exotic_lyja` = `contest_status` enum `+draft,+paused` and
+`contests.show_prizes`, session 189). Full list:
 
 | # | File | What it added |
 |---|---|---|
@@ -35,12 +37,13 @@ session 189). Full list:
 | 0017 | `exotic_lyja` | `contest_status` enum `ADD VALUE 'draft' BEFORE 'upcoming'` + `'paused' BEFORE 'judging'`; `contests.show_prizes` boolean default true. Contest Phase A — stage lifecycle (draft/paused + bidirectional transitions) + Prizes-tab off-switch. Session 189. |
 | 0018 | `clean_the_hunter` | `contests.stages` jsonb (default `'[]'`, NOT NULL) + `contests.current_stage_id` text. Contest Phase B1 — explicit ordered stage timeline (`[]` ⇒ server synthesizes the classic Submissions → Judging → Results). Additive. Session 189. |
 | 0019 | `regular_tinkerer` | `contest_entries.stage_state` jsonb (default `'[]'`, NOT NULL). Contest Phase B2 — per-entry cohort outcome (`advanced`/`eliminated` + snapshot score/rank per review stage); empty ⇒ active cohort. Additive. Session 189. |
+| 0020 | `spooky_gideon` | `metrics_daily` table (`day` date, `metric` varchar, `dimension` varchar default `''`, `value` bigint) + `UNIQUE(day,metric,dimension)` (`uq_metrics_daily_day_metric_dim`) + index `idx_metrics_daily_metric_day` on `(metric,day)`. Public-API Phase 3 time-series rollups (`metrics-rollup` plugin backfills then refreshes every 6h). Additive. Session 190. |
 
 ## Files
 
 ```
 packages/schema/src/
-├── enums.ts         all pgEnums (42)
+├── enums.ts         all pgEnums (45)
 ├── auth.ts          users, sessions, accounts, organizations, members, federatedAccounts, oauthClients, oauthCodes, verifications (9)
 ├── content.ts       contentItems, contentCategories, contentVersions, contentForks, contentBuilds, tags, contentTags
 ├── social.ts        likes, follows, comments, bookmarks, notifications, reports, conversations, messages, messageReads
@@ -58,14 +61,15 @@ packages/schema/src/
 ├── layout.ts        layouts, layoutRows, layoutSections, layoutVersions (session 155)
 ├── rbac.ts          roles, rolePermissions, userRoles (session 175, migration 0009)
 ├── publicApi.ts     apiKeys, apiKeyUsage (session 127)
+├── metrics.ts       metricsDaily (session 190, migration 0020)
 ├── permissions.ts   permission catalog (no tables; permission-string constants for RBAC)
-├── validators.ts    Zod schemas (102 `*Schema` exports)
+├── validators.ts    Zod schemas (111 `*Schema` exports)
 ├── sectionConfigs.ts per-section Zod schemas + SECTION_CONFIG_SCHEMAS lookup map (17 sections, session 161)
 ├── index.ts         barrel
 └── openapi.ts       OpenAPI generator
 ```
 
-## Enums (42)
+## Enums (45)
 
 | Enum | Values |
 |---|---|
@@ -108,6 +112,9 @@ packages/schema/src/
 | followRelationshipStatusEnum | pending, accepted, rejected |
 | mirrorStatusEnum | pending, active, paused, failed |
 | mirrorDirectionEnum | pull, push |
+| mirrorRequestDirectionEnum | **incoming, outgoing** (0014, session 185) |
+| mirrorRequestStatusEnum | **pending, approved, rejected** (0014, session 185) |
+| registryInstanceStatusEnum | **active, hidden, blocked** (0015, session 186) |
 | hubFollowStatusEnum | pending, joined |
 | docsPageStatusEnum | draft, published, archived |
 | tagCategoryEnum | platform, language, framework, topic, general |
@@ -203,12 +210,12 @@ packages/schema/src/
 | videos | Video catalog | platform enum; denormalized counters |
 | videoCategories | Taxonomy | — |
 
-### Contests (4) — sessions 124 / 171–174
+### Contests (4) — sessions 124 / 171–174 / 188–189
 
 | Table | Purpose | Notable |
 |---|---|---|
-| contests | Contests | status enum (5 states, lifecycle); JSONB `prizes` (place AND/OR category) + `judgingCriteria` rubric (0006); `judgingVisibility` + `communityVotingEnabled`; `eligibleContentTypes` + `maxEntriesPerUser` (0007); **`visibility` (public/unlisted/private) + `visibleToRoles` role-gate (0008)**. **`judges` jsonb is deprecated/dead — judges live in `contestJudges`.** |
-| contestEntries | Submissions | unique(contestId, userId, contentId); JSONB judgeScores (incl. per-criterion `criteriaScores`); `score` (avg, gated by `shouldRevealScores`) + `rank` (RANK(), scored entries only) |
+| contests | Contests | status enum (**7 states** since 0017: draft, upcoming, active, paused, judging, completed, cancelled — bidirectional transitions); JSONB `prizes` (place AND/OR category) + `judgingCriteria` rubric (0006); `judgingVisibility` + `communityVotingEnabled`; `eligibleContentTypes` + `maxEntriesPerUser` (0007); **`visibility` (public/unlisted/private) + `visibleToRoles` role-gate (0008)**; `coverImageUrl` (0016); `showPrizes` boolean default true (0017); **`stages` jsonb + `currentStageId` (0018)** = explicit ordered stage timeline (`[]` ⇒ server synthesizes Submissions → Judging → Results). **`judges` jsonb is deprecated/dead — judges live in `contestJudges`.** |
+| contestEntries | Submissions | unique(contestId, userId, contentId); JSONB judgeScores (incl. per-criterion `criteriaScores` + per-round `roundId`); `score` (avg, gated by `shouldRevealScores`) + `rank` (RANK(), scored + non-eliminated entries only); **`stageState` jsonb (0019)** = per-entry cohort outcome (`advanced`/`eliminated` + snapshot score/rank per review stage); empty ⇒ active cohort |
 | contestJudges | Judge roster (THE source of truth; `contests.judges` jsonb is dead) | unique(contestId, userId); role enum (lead/judge/guest); invitedAt/acceptedAt — scoring needs accepted + non-guest; can't judge own entry |
 | contestStakeholders | View-only reviewers (0008) | unique(contestId, userId); grants `canViewContest` access to private/unpublished contests without judge/admin rights |
 
@@ -228,7 +235,7 @@ packages/schema/src/
 | pollVotes | Per-user poll vote | unique(postId, userId) — one vote per poll, not per option |
 | contestEntryVotes | Community votes on entries | unique(entryId, userId) |
 
-### Federation (16 in federation.ts: 8 core AP + 8 federated-hub)
+### Federation (18 in federation.ts: 10 core AP + 8 federated-hub)
 
 Core AP:
 
@@ -289,12 +296,18 @@ Consumed by `packages/server/src/layout/layout.ts` (Phase 1 server CRUD, session
 
 | Table | Purpose | Notable |
 |---|---|---|
-| apiKeys | Admin-issued bearer tokens for the public read API | scopes (12 read scopes); behind `features.publicApi` (default OFF) |
+| apiKeys | Admin-issued bearer tokens for the public read API | 13 read scopes + `read:*` wildcard (incl. `read:analytics`/`read:federation`, session 190); per-key `allowedOrigins` CORS patterns (`originPatternSchema`, session 190); behind `features.publicApi` (default OFF) |
 | apiKeyUsage | Per-key request usage log | rate-limit + audit |
+
+### Metrics (1 — session 190, migration 0020)
+
+| Table | Purpose | Notable |
+|---|---|---|
+| metricsDaily | Daily analytics rollups for `/api/public/v1/metrics/timeseries` | `(day, metric, dimension)` unique; `value` bigint; populated by the `metrics-rollup` plugin (backfill-from-timestamps then 6h refresh); opt-in on `features.publicApi` |
 
 ## Zod validators
 
-Live in `packages/schema/src/validators.ts` (102 `*Schema` exports). All user-facing writes go through these. Per-section config schemas live separately in `sectionConfigs.ts`.
+Live in `packages/schema/src/validators.ts` (111 `*Schema` exports). All user-facing writes go through these. Per-section config schemas live separately in `sectionConfigs.ts`.
 
 Coverage by domain (approximate): auth (~7), content (~8), social (~3 for comments/likes/reports), hubs (~16), products (~5), contests (~5), videos (~3), learning (~7), messaging (~2), docs (~5), admin (~4), federation (~7), theme (~8), layout (~10), publicApi (~2), plus 6 `*FiltersSchema` list-filter validators (`content`/`hub`/`learningPath`/`video`/`contest`/`hubPost`).
 
@@ -306,7 +319,7 @@ sessions, accounts, organizations, members, verifications, oauthClients, oauthCo
 ## Invariants / patterns
 
 - **Soft delete**: users, contentItems, hubs, federatedContent, federatedHubPosts use `deletedAt`. Everything else is hard delete (often via CASCADE).
-- **Denormalized counters**: many tables carry counters updated alongside the source write (likeCount, voteScore, entryCount, attendeeCount, memberCount, etc.) — mostly in a transaction (see 03 Transactions; `leaveHub` is a known non-transactional exception). There is **no standalone counter-reconciliation script** in `scripts/` (the only `backfill*` code is federation outbox backfill + the DO Spaces CDN-URL backfill admin route — both unrelated to counters).
+- **Denormalized counters**: many tables carry counters updated alongside the source write (likeCount, voteScore, entryCount, attendeeCount, memberCount, etc.), now all in a transaction (see 03 Transactions — `leaveHub` and `submitContestEntry`, the two former non-transactional exceptions, have since been wrapped). Drift from crashes / manual edits is repaired by **`scripts/reconcile-counters.mjs`** (`--check` reports + exits 1; no-arg fixes; idempotent; safe on prod).
 - **Polymorphic targets**: likes, comments, bookmarks, reports use (targetType, targetId). Target types are enumerated.
 - **Self-hierarchy**: hubs.parentHubId, comments.parentId, hubPostReplies.parentId, federatedHubPostReplies.parentId, docsPages.parentId.
 - **Federation cleanliness**: `hubPosts.authorId` is nullable so that federated posts (where the author isn't local) can coexist with local posts without a synthetic user.
@@ -314,9 +327,9 @@ sessions, accounts, organizations, members, verifications, oauthClients, oauthCo
 
 ## Foreign-key caveats
 
-- **129 `.references()` FKs total: 107 `ON DELETE CASCADE`, 22 `ON DELETE SET NULL`, 0 RESTRICT** (the 4 self-ref FKs added in migration 0013 are SET NULL).
+- **130 `.references()` FKs total: 107 `ON DELETE CASCADE`, 23 `ON DELETE SET NULL`, 0 RESTRICT** (every FK sets an explicit `onDelete`; the 4 self-ref FKs added in migration 0013 are SET NULL).
 - CASCADE is used where the relationship is ownership (user → session, content → version, hub → post, etc.).
-- SET NULL is used for **nullable cross-table references** so the child row survives when the referenced entity is deleted: `contentItems.categoryId`, `events.hubId`, `files.contentId`/`files.hubId`, `federatedContent.mirrorId` (added in migration 0002 — the old "no FK, app-enforced" note is obsolete), `federated*.remoteActorId`, `learningLessons.contentItemId`, and "who-did-X" user refs (`updatedBy`/`grantedBy`/`revokedBy`/`reviewedById`/`actorId`/`publishedBy`).
+- SET NULL is used for **nullable cross-table references** so the child row survives when the referenced entity is deleted: `contentItems.categoryId`, `events.hubId`, `files.contentId`/`files.hubId`, `federatedContent.mirrorId` (added in migration 0002 — the old "no FK, app-enforced" note is obsolete), `federated*.remoteActorId`, `learningLessons.contentItemId`, `mirrorRequests.resultingMirrorId` (→ `instanceMirrors`, migration 0014), and "who-did-X" user refs (`updatedBy`/`grantedBy`/`revokedBy`/`reviewedById`/`actorId`/`publishedBy`).
 - **Self-ref parent columns: 4 now have a real FK (ON DELETE SET NULL), as of migration 0013 (session 183)** — `hubs.parentHubId`, `comments.parentId`, `hubPostReplies.parentId`, `docsPages.parentId` `.references()` their own table with `onDelete: 'set null'` (deleting a parent promotes children to top-level, never cascades/orphans). Their schema comments previously claimed "constraint added via migration" but none existed; 0013 closed that gap. **`federatedHubPostReplies.parentId` still has NO DB FK** (federated-replies tree integrity stays app-managed).
 
 ## Schema deploy workflow (session 128+)

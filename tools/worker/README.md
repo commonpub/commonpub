@@ -4,7 +4,7 @@ ActivityPub queue worker monitoring and utilities.
 
 ## Overview
 
-Fedify handles actual activity delivery via its built-in message queue backed by Redis. This package adds monitoring utilities, retry management, and admin dashboard support for tracking delivery status.
+Activity delivery is handled by the pure-TS `federation-delivery` Nitro plugin in the layer, which polls the `activities` table and delivers via `@commonpub/protocol`'s SSRF-safe signed fetch (no Fedify, no external queue; circuit-breaker per remote domain). This package adds monitoring utilities, retry management, and admin dashboard support for tracking delivery status.
 
 ## Exports
 

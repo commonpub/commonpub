@@ -2,8 +2,8 @@
 
 What IS the best pattern for a site like CommonPub, given how it's set up?
 
-**Advisory/recommendations doc; factual claims re-verified session 181
-(2026-06-01).** Several "future-state" suggestions have since shipped:
+**Advisory/recommendations doc; factual claims re-verified session 191
+(2026-06-07).** Several "future-state" suggestions have since shipped:
 Redis is wired (opt-in via `NUXT_REDIS_URL`, session 130), the
 `eventAttendees` unique constraint + `federatedContent.mirrorId` FK exist
 (migration 0002), and keyset feed pagination landed (sessions 178–179). The

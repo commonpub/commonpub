@@ -1024,4 +1024,4 @@ All incoming HTML content is sanitized before storage:
 - **[Archived federation map](archive/federation-map.md)** — 2026-04-03 deep federation reference (superseded by codebase-analysis)
 - **[W3C ActivityPub Spec](https://www.w3.org/TR/activitypub/)** — the protocol standard
 - **[FEP-1b12](https://codeberg.org/fediverse/fep/src/branch/main/fep/1b12/fep-1b12.md)** — Group federation standard
-- **[Fedify](https://fedify.dev)** — the AP framework CommonPub uses
+- **[HTTP Signatures](https://datatracker.ietf.org/doc/html/draft-cavage-http-signatures)** — signed inter-instance requests (CommonPub signs/verifies with `jose`; the AP layer is pure TypeScript in `@commonpub/protocol`, NOT Fedify)

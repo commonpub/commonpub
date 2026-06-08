@@ -71,7 +71,7 @@ Reproduced cleanly in `node:22-alpine` containers across pnpm `10.10.0` AND `10.
 2. If that doesn't fix it: switch the consumer's Dockerfile from `pnpm install --frozen-lockfile` to `npm install` (heatsync's approach — known-good).
 3. Long-term: file a pnpm bug with the reproducer; consider standardising consumer-site Dockerfiles on `npm install`.
 
-**Pre-bump sanity check** — before pushing a deveco-style consumer-site pin bump, build the image and confirm the installed `@commonpub/schema` dist is COMPLETE. Don't hardcode a magic number — the count grows with the schema (it was ~80 at 0.17.0 / 18 src files; schema is now 0.25.0 / **23 src files**, so expect proportionally more). Compare against a fresh `npm pack` / non-frozen install of the SAME version, and verify `dist/index.js` actually `export *`s every domain module:
+**Pre-bump sanity check** — before pushing a deveco-style consumer-site pin bump, build the image and confirm the installed `@commonpub/schema` dist is COMPLETE. Don't hardcode a magic number — the count grows with the schema (it was ~80 at 0.17.0 / 18 src files; schema is now 0.35.0 / **24 src files**, so expect proportionally more). Compare against a fresh `npm pack` / non-frozen install of the SAME version, and verify `dist/index.js` actually `export *`s every domain module:
 ```sh
 docker build -t verify .
 docker run --rm --entrypoint sh verify -c 'ls /app/.output/server/node_modules/@commonpub/schema/dist | wc -l'
@@ -415,7 +415,7 @@ The projected Create uses a DETERMINISTIC id (`<object id>#create`) + the real `
 a validly-signed request from instance X can carry `actor: https://victim/actor` and be processed
 as the victim: spoofed mirror requests/Accepts (Phase 3), federated content attributed to others,
 like/boost tampering. The fix is `assertActorMatchesSigner(actorUri, body, label)` in `utils/inbox.ts`,
-called in ALL THREE inbox routes (shared `routes/inbox.ts`, `routes/users/[u]/inbox.ts`,
+called in ALL THREE inbox routes (shared `routes/inbox.ts`, `routes/users/[username]/inbox.ts`,
 `routes/hubs/[slug]/inbox.ts`) right after `verifyInboxRequest` — it 401s when `body.actor`'s host ≠
 the signer's host. CommonPub/Mastodon sign with the actor's own key (no relays/LD-sig forwarding),
 so host equality is the correct binding. **Any new inbox route MUST call it** — the handlers trust
@@ -917,3 +917,50 @@ deep `watch` over the field refs, suppressed during load by a `hydratingForm` fl
 `nextTick` (so it can't get stuck on after hydration). Save is gated on `formDirty` so a change
 visibly enables it. The flag can't get stuck OFF (nextTick always fires), so Save can't be
 permanently disabled. Reset `formDirty` on successful save.
+
+## Public-API metrics: the privacy contract is SQL-enforced, not after-the-fact (session 190)
+
+`/api/public/v1/metrics/*` (`publicApi/metrics.ts`) is the only public surface that aggregates across
+ALL users' content, so its WHERE clauses ARE the privacy boundary. `publicContentWhere()` =
+`status='published' AND visibility='public' AND deletedAt IS NULL` (`metrics.ts:52-56`); user counts
+filter `status='active' AND deletedAt IS NULL` (and public-profile only); events use
+`PUBLIC_EVENT_STATUSES = published/active/completed` (`metrics.ts:62-63` — draft/cancelled are never
+exposed). No new PII is added — only counts. **Invariant: any new metric MUST go through
+`publicContentWhere()` (or an equivalent published+public+non-deleted filter).** Separately, every
+counter SUM casts `::float8` (`metrics.ts:106-108`): a cumulative `sum(view_count)` overflows int4 and
+500s the endpoint otherwise (caught + regression-tested, session 190). Cross-instance federation
+numbers are double-gated behind `features.publicApiMetricsFederation` (default OFF) + `read:federation`.
+
+## Public-API CORS: `*` is safe ONLY because there are no ambient credentials (session 190)
+
+`publicApi/cors.ts` reflects/wildcards request Origins for the public API. This is safe — and ONLY
+safe — because the API authenticates with `Authorization: Bearer`, never cookies, and **never** sends
+`Access-Control-Allow-Credentials: true` (`cors.ts:1-10`): a cross-origin page still can't obtain a
+key it doesn't already have. Before reflecting an Origin, `isWellFormedOrigin` (a strict regex) gates
+it against CRLF/header-injection — on BOTH the authenticated request AND the **unauthenticated
+preflight echo** (the OPTIONS path has no Bearer yet, so it's the easier injection target). **If you
+ever add cookie/session auth to the public API, the `*` wildcard becomes unsafe and must be removed.**
+
+## Stoa is the default-theme fallback — `base` → `stoa` (session 190)
+
+`server/utils/instanceTheme.ts:37` initializes `defaultTheme = 'stoa'` (was `base`). A fresh install,
+or any instance with no `instance_settings.theme.default` DB row, resolves to Stoa Light (or
+`stoa-dark` by OS preference). **Instances with an explicit DB `theme.default` are unaffected** —
+`:44` overwrites the fallback from the row. A secondary `'base'` fallback at `:112` guards an
+unknown/removed admin theme id. Consequence: bumping deveco/heatsync's layer pin to a Stoa-carrying
+version would flip their branding UNLESS they have an explicit `theme.default` set — confirm before
+bumping (see [[feedback_caret_semver_0x_minor_bump]] and the session-190 kickoff version-skew note).
+
+## Denormalized counters: drift has a repair path — `scripts/reconcile-counters.mjs`
+
+Counters (`hubs.member_count`, `contests.entry_count`, `events.attendee_count`, `hub_posts.vote_score`,
+content `like_count`/`comment_count`, etc.) are maintained inline alongside writes. The known writers
+are now all transaction-wrapped — including `leaveHub` (`members.ts`, "mirrors joinHub") and
+`submitContestEntry` (`contest.ts`, "Atomic"), which the session-182 audit had flagged as the two
+non-transactional offenders; both have since been wrapped. A crash mid-write, a manual DB edit, or
+pre-transaction-era drift can still desync a counter, so the safety net is
+**`scripts/reconcile-counters.mjs`** (added after that same audit, which flagged the absence of any
+recount path): it recomputes each counter from its source rows. `--check` reports drift and exits 1
+(CI/cron-friendly), no args fixes in place. It is **idempotent** and safe on production (only UPDATEs
+rows whose stored counter already disagrees). Needs `NUXT_DATABASE_URL`/`DATABASE_URL`. If you add a
+new denormalized counter, add it to this script's recompute list too.

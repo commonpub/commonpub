@@ -10,17 +10,25 @@ Gated by `features.contests`. Who may create contests is controlled by
 
 ## Lifecycle
 
+`contestStatusEnum` has **7 states** (draft + paused added session 189) and transitions are
+**bidirectional** — the server's `VALID_TRANSITIONS` map is the gating truth (you can move a contest
+back, e.g. `judging → paused` to re-open submissions). The classic forward path:
+
 ```
-upcoming ──activate──▶ active ──begin judging──▶ judging ──complete──▶ completed
-   │                     │                          │
-   └──── cancel ─────────┴──────── cancel ──────────┘  (→ cancelled, terminal)
+draft ──▶ upcoming ──activate──▶ active ──begin judging──▶ judging ──complete──▶ completed
 ```
 
+- **draft** — not yet public (gated out of public reads). A new contest can be created here.
 - **upcoming** — created, not yet open. Edit freely.
-- **active** — entrants submit / withdraw published content. Community voting (if enabled) is open.
+- **active** — entrants submit / withdraw published content. Community voting (if enabled, **advisory**) is open.
+- **paused** — temporarily halted (from `active` or `judging`); reversible.
 - **judging** — submissions locked; accepted judges score each entry 1–100. `judgingEndDate` drives the countdown.
-- **completed** — `calculateContestRanks()` assigns ranks (`RANK()` over scored entries; ties share a rank, unscored stay unranked). Results + leaderboard published.
-- **cancelled** — terminal; reachable from any non-terminal state.
+- **completed** — `calculateContestRanks()` assigns ranks (`RANK()` over scored, **non-eliminated** entries; ties share a rank, unscored stay unranked). Results + leaderboard published.
+- **cancelled** — reachable from any non-terminal state. **Not strictly terminal** — `VALID_TRANSITIONS` allows `cancelled → draft` / `cancelled → upcoming` to revive.
+
+Multi-stage contests (cohorts / Top-N cull / per-round judging) layer an explicit `stages` timeline
+on top of `status`; `status` stays the gating truth. See `codebase-analysis/02` + `07` for the stage
+model and `calculateContestRanks` cohort-exclusion invariant.
 
 Only the contest owner (or an admin) can transition status, edit, or manage judges.
 

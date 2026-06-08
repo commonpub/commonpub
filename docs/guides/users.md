@@ -157,13 +157,17 @@ bans. Admins can do everything, including permanent bans and role changes.
 
 ## Contests
 
-Contests run in 5 phases:
+Contests move through up to 7 statuses (organisers can move them forward or back):
 
-1. **Upcoming** — announced, not yet accepting entries.
-2. **Active** — accepting entries. Community voting can be on or off.
-3. **Judging** — entries closed, judges scoring.
-4. **Completed** — ranks calculated; winners announced.
-5. **Cancelled** — contest was cancelled.
+1. **Draft** — being set up, not yet public.
+2. **Upcoming** — announced, not yet accepting entries.
+3. **Active** — accepting entries. Community voting can be on or off.
+4. **Paused** — temporarily halted; can resume.
+5. **Judging** — entries closed, judges scoring.
+6. **Completed** — ranks calculated; winners announced.
+7. **Cancelled** — contest was cancelled (can be revived to draft/upcoming).
+
+Larger contests can also run in multiple **stages** (e.g. semifinals then finals), advancing a cohort of entries between rounds.
 
 ### Entering
 
@@ -275,7 +279,7 @@ can include:
 - Checkpoints — forced stops to confirm understanding.
 
 Progress is saved automatically. Completed explainers can be exported as
-self-contained HTML (works offline, carries all 4 themes inline).
+self-contained HTML (works offline, carries its theme styles inline).
 
 ## Videos
 

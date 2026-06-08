@@ -1,5 +1,14 @@
 # Global RBAC for CommonPub — Implementation Plan
 
+> **Status (session 191): Phase 0 + Phase 1 SHIPPED + LIVE on all 3 instances** (sessions
+> 175–177). Migration 0009 (`roles`/`role_permissions`/`user_roles`) applied; `resolveUserPermissions`
+> + `requirePermission` (73 sites migrated) are in prod; the `rbac` feature flag ships **default OFF**
+> (legacy `users.role` enum is the live authority until an operator flips it). The per-phase
+> "NOT yet published / branch-only" notes below are historical planning context from session 175 —
+> the work was published shortly after. Phases 2–4 (seed + flip on per instance + admin roles UI)
+> remain future work. Released at schema 0.24.0 / server 2.66.0 / auth 0.7.0 / layer 0.33.0 (not the
+> 0.23.0/2.64.0/0.30.0 targets guessed below).
+
 ## Context
 
 CommonPub authorization today is a fixed 5-value enum (`member/pro/verified/staff/admin`)

@@ -33,7 +33,7 @@ admin UX, consent-based push, and a discovery registry).
 
 ## Phases
 
-### Phase 0 — Federation correctness + bounded opt-in history  ✅ (code+tests done; not yet published/deployed)
+### Phase 0 — Federation correctness + bounded opt-in history  ✅ (SHIPPED + LIVE on all 3, session 188)
 - [x] Project `/actor/outbox` + per-user outbox over published `contentItems` via the shared
       `contentToCreateActivity` (protocol); deterministic activity id `<object id>#create`.
 - [x] **Security:** projection gates `status='published'` AND `visibility='public'`; content-type
@@ -50,7 +50,7 @@ admin UX, consent-based push, and a discovery registry).
 - [x] Published (schema 0.26.0 / config 0.17.0 / protocol 0.13.0 / auth 0.8.0 / server 2.73.0 /
       layer 0.44.0) + deployed all 3 + live curl verified (session 188). P0 outbox projection LIVE.
 
-### Phase 1 — Safe non-destructive gap fixes  ✅ (code+tests done; not yet published/deployed)
+### Phase 1 — Safe non-destructive gap fixes  ✅ (SHIPPED + LIVE on all 3, session 188)
 - [x] `leaveHub` + `submitContestEntry` wrapped in `db.transaction`.
 - [x] `scripts/reconcile-counters.mjs` (idempotent, `--check`; 10 counters).
 - [x] `listContent` total only when `offset===0` (else `-1`); federated branch preserves the sentinel.
@@ -62,7 +62,7 @@ admin UX, consent-based push, and a discovery registry).
 - [x] Tests: hooks-integration (+3 cases), self-ref-fk (2); transaction/content/social suites green; all touched packages + reference typecheck clean.
 - [x] codebase-analysis 02/03/06 + events-validation correction; this plan; session log 183.
 
-### Phase 2 — Federation admin UX full overhaul  ✅ (code+tests done; not yet published/deployed)
+### Phase 2 — Federation admin UX full overhaul  ✅ (SHIPPED + LIVE on all 3, session 188)
 - [x] Create form: pull + content-type/tag filters + history depth picker (None/7d/30d/90d/200/All)
       + one-directional explainer + what-happens-next toast. (Direction selector is pull-only for
       now; the push/request option arrives in Phase 3 — not shipping a non-functional control.)
@@ -78,7 +78,7 @@ admin UX, consent-based push, and a discovery registry).
 - [~] DEFERRED to a follow-up: live streaming backfill progress (needs polling) + filter dry-run
       preview (needs a remote-outbox probe). Not blocking; noted in session 183.
 
-### Phase 3 — Push = consent-based mirror-request  ✅ (code+tests done; not yet published/deployed)
+### Phase 3 — Push = consent-based mirror-request  ✅ (SHIPPED + LIVE on all 3, session 188)
 - [x] Push branch → `requestMirror()` sends a signed `Offer(Follow)` + `cpub:mirrorRequest` marker
       to the target inbox (protocol `buildMirrorRequestActivity`; `createMirror` push now throws —
       push is no longer a mirror row). `Offer` routes like `Follow` in delivery.
@@ -100,7 +100,7 @@ admin UX, consent-based push, and a discovery registry).
 - [x] Docs + codebase-analysis (02/03/04/09 + llm gotchas) + session log 185. Audit fixes:
       correlation tightened (offer-id AND sender) + 5 coincidental-pass tests hardened.
 
-### Phase 4 — Registry / instance directory  ✅ (code+tests done; not yet published/deployed)
+### Phase 4 — Registry / instance directory  ✅ (SHIPPED + LIVE on all 3, session 188)
 - [x] `features.actAsRegistry` + `features.announceToRegistry` (both default OFF; separate announce
       flag = no phone-home until opted in) + `federation.registryUrl` (default `https://commonpub.io`)
       + `federation.registryPingIntervalMs` (6h). nuxt runtimeConfig features declares both flags.

@@ -63,7 +63,7 @@ other. CommonPub changes that:
 |---|---|
 | **Block editor** | 20 block types including code, galleries, parts lists, build steps, quizzes. TipTap-based with BlockTuple serialization. |
 | **Hubs** | Three hub types (community, product, company). Moderated feeds, roles, invites, resources, shared products. Federate as AP Group actors (FEP-1b12). |
-| **Contests** | Full lifecycle (upcoming → active → judging → completed), judge permissions (lead/judge/guest) with invite+accept workflow, point-based judging-criteria rubric, place **and** category prizes, judging-visibility controls (public/judges-only/private), per-contest entry eligibility (content types + max entries per person), community voting with a Community-Choice highlight. Tabbed detail view + phase timeline. |
+| **Contests** | Full lifecycle (draft → upcoming → active → paused → judging → completed, bidirectional transitions), multi-stage timelines with cohorts/Top-N cull + per-round judging, judge permissions (lead/judge/guest) with invite+accept workflow, point-based judging-criteria rubric, place **and** category prizes, judging-visibility controls (public/judges-only/private), per-contest entry eligibility (content types + max entries per person), community voting (advisory) with a Community-Choice highlight. Tabbed detail view + stage timeline. |
 | **Events** | In-person, online, or hybrid. RSVP with **auto-waitlist** when at capacity; automatic promotion when someone cancels. Event filters, pagination, hub-scoped events. |
 | **Voting & polls** | Up/down votes on hub posts with transaction-safe score adjustment. Poll-type posts with single-choice voting. Community voting on contest entries. |
 | **Learning paths** | Modules → lessons (article/video/quiz/project/explainer). Enrollment and progress tracking. **Auto-certificates** at 100% with a public verification code. |
@@ -71,11 +71,11 @@ other. CommonPub changes that:
 | **Interactive explainers** | Scroll-driven sections with quizzes, progress tracking, gating, self-contained HTML export. |
 | **Federation** | Full ActivityPub: follows, content delivery, hub federation, content mirroring, signed backfill, OAuth2 SSO across trusted instances. |
 | **Products + BOM** | Hub-scoped product catalog. Projects auto-link via parts lists — your project shows up on the product's page across instances. |
-| **Theming** | 5 built-in themes (base, dark, generics, agora, agora-dark), CSS custom property system, runtime switching, SSR-safe with zero FOUC. Admin theme editor at `/admin/theme/edit/[id]` (session 154+156). |
+| **Theming** | 7 built-in themes (base, dark, generics, agora, agora-dark, **stoa**, **stoa-dark** — Stoa is the default), CSS custom property system, runtime switching, SSR-safe with zero FOUC. Admin theme editor at `/admin/theme/edit/[id]` (session 154+156). |
 | **Layout engine** | Visual editor at `/admin/layouts` and `/admin/layouts/[id]`. 17 section types arranged across rows in a 12-column grid; supports route layouts, custom pages (`/about`, `/team`), and virtual zones. Drag-drop reorder, edge-handle resize (snap-to-12), per-section auto-form config, undo/redo, keyboard a11y. Auto-save with optimistic concurrency (If-Match → 409 conflict modal). Public render via `<LayoutSlot>` through the shared `<PageFrame>`; sections reuse existing `Block*`/`Homepage*` components (no parallel renderers). Admin-only; gated on `features.layoutEngine`. Editor Phase 3a–3c shipped (sessions 160–168); live as the homepage canary on commonpub.io. |
 | **Admin** | User management, role hierarchy, content moderation, audit logs, instance settings, runtime feature-flag overrides, **configurable navigation**, **configurable homepage sections** (legacy editor, now non-destructively syncs with the layout engine), **layout engine** for page editing, federation controls. |
 
-**19 feature flags** (+ 5 nested `identity` sub-flags) let you enable only what you need. See
+**22 feature flags** (+ 5 nested `identity` sub-flags) let you enable only what you need. See
 [`codebase-analysis/08-feature-flags-inventory.md`](./codebase-analysis/08-feature-flags-inventory.md)
 for the full list with defaults.
 
@@ -150,7 +150,7 @@ Details in [docs/guides/developers.md](docs/guides/developers.md#the-thin-app-pa
 ```
 commonpub/
 ├── packages/           12 framework-agnostic TypeScript packages (published to npm)
-├── layers/base/        Shared Nuxt layer (@commonpub/layer) — 90 pages, 135 components, 311 API routes
+├── layers/base/        Shared Nuxt layer (@commonpub/layer) — 90 pages, 139 components, 327 API routes
 ├── apps/
 │   ├── reference/      Fully featured Nuxt 3 reference app (all features on)
 │   └── shell/          Minimal starter template
@@ -168,10 +168,10 @@ commonpub/
 └── codebase-analysis/  Exhaustive inventory — every table, route, component, flag, gotcha
 ```
 
-- **87 tables, 42 enums** in the schema
-- **311 API routes** (+ 22 ActivityPub/site routes) in the layer
-- **90 pages, 135 components, 34 composables** in the layer
-- **19 feature flags** (+ 5 nested `identity` sub-flags) gating every non-core feature
+- **90 tables, 45 enums** in the schema
+- **327 API routes** (+ 22 ActivityPub/site routes) in the layer
+- **90 pages, 139 components, 34 composables** in the layer
+- **22 feature flags** (+ 5 nested `identity` sub-flags) gating every non-core feature
 
 Full analysis: [`codebase-analysis/`](./codebase-analysis/).
 
@@ -195,12 +195,12 @@ All 12 published to npm as `@commonpub/*`. Latest published versions below (curr
 
 | Package | Version | Purpose |
 |---|---|---|
-| [`@commonpub/schema`](packages/schema/README.md) | 0.25.0 | 87 Drizzle tables (incl. `layouts`/`layout_rows`/`layout_sections`/`layout_versions`, RBAC `roles`/`role_permissions`/`user_roles`), 42 enums, 102 Zod validators |
-| [`@commonpub/config`](packages/config/README.md) | 0.16.0 | `defineCommonPubConfig()` factory, 19 feature flags (+5 identity sub-flags) |
-| [`@commonpub/server`](packages/server/README.md) | 2.72.0 | Framework-agnostic business logic (25 modules incl. `src/layout/*` CRUD, RBAC, keyset feed pagination, transactions, lifecycle hooks) |
-| [`@commonpub/protocol`](packages/protocol/README.md) | 0.12.0 | ActivityPub types, HTTP signatures, WebFinger, NodeInfo, OAuth2, SSRF-safe fetch |
-| [`@commonpub/auth`](packages/auth/README.md) | 0.7.0 | Better Auth wrapper, guards, AP Actor SSO (Model B), RBAC `hasPermissionPure` |
-| [`@commonpub/ui`](packages/ui/README.md) | 0.9.2 | 22 headless Vue 3 components + SectionRegistry/SectionDefinition, 5 themes, CSS token system |
+| [`@commonpub/schema`](packages/schema/README.md) | 0.35.0 | 90 Drizzle tables (incl. `layouts`/`layout_rows`/`layout_sections`/`layout_versions`, RBAC `roles`/`role_permissions`/`user_roles`, `metrics_daily`), 45 enums, 111 Zod validators |
+| [`@commonpub/config`](packages/config/README.md) | 0.19.0 | `defineCommonPubConfig()` factory, 22 feature flags (+5 identity sub-flags) |
+| [`@commonpub/server`](packages/server/README.md) | 2.82.0 | Framework-agnostic business logic (25 modules incl. `src/publicApi/*` read-API+metrics+CORS, `src/layout/*` CRUD, RBAC, contest stages, keyset feed pagination, transactions, lifecycle hooks) |
+| [`@commonpub/protocol`](packages/protocol/README.md) | 0.13.0 | ActivityPub types, HTTP signatures, WebFinger, NodeInfo, OAuth2, SSRF-safe fetch |
+| [`@commonpub/auth`](packages/auth/README.md) | 0.8.0 | Better Auth wrapper, guards, AP Actor SSO (Model B), RBAC `hasPermissionPure` |
+| [`@commonpub/ui`](packages/ui/README.md) | 0.11.1 | 22 headless Vue 3 components + SectionRegistry/SectionDefinition, 7 themes (incl. Stoa), CSS token system |
 | [`@commonpub/editor`](packages/editor/README.md) | 0.7.11 | TipTap extensions, 20 block types, BlockTuple serialization, `vue/` editor surface |
 | [`@commonpub/docs`](packages/docs/README.md) | 0.6.3 | Markdown pipeline, versioning, navigation, search adapters |
 | [`@commonpub/explainer`](packages/explainer/README.md) | 0.7.15 | Interactive sections + `modules/` runtime, quiz engine, progress tracking, HTML export |
@@ -212,7 +212,7 @@ Plus the layer itself:
 
 | Package | Version | Purpose |
 |---|---|---|
-| `@commonpub/layer` | 0.43.3 | Shared Nuxt layer — pages, components, API routes, middleware, theme. Layout editor (Phase 3a–3c), keyset feed, chrome tokenization, config-driven nav. |
+| `@commonpub/layer` | 0.64.1 | Shared Nuxt layer — pages, components, API routes, middleware, theme. Public-API metrics + CORS, Stoa default theme, contest stages editor, layout editor (Phase 3a–3c), keyset feed, config-driven nav. |
 
 ---
 

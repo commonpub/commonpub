@@ -3,9 +3,9 @@
 `layers/base/` — published as `@commonpub/layer`. The distribution unit.
 Instances extend it via `extends: ['@commonpub/layer']` in their nuxt.config.
 
-Re-verified session 181 (2026-06-01): **90 pages, 135 components,
-34 composables (non-test; +12 `__tests__/` files), 8 server plugins,
-3 route middleware, 11 server (Nitro) middleware, 311 `server/api/` route
+Re-verified session 191 (2026-06-07): **90 pages, 139 components,
+34 composables (non-test; +12 `__tests__/` files), 10 server plugins,
+3 route middleware, 11 server (Nitro) middleware, 327 `server/api/` route
 files + 22 ActivityPub/site routes.** The directory layout below is
 shape-stable; counts are current.
 
@@ -16,7 +16,7 @@ layers/base/
 ├── app.vue                    root with NuxtLayout / NuxtPage / skip-link
 ├── error.vue                  404 / error page — re-applies data-theme for SSR
 ├── nuxt.config.ts             modules, CSS bundle, runtime config, features
-├── components/                135 Vue components (grouped below; +LayoutSlot/Row/Section + PageFrame + admin/layouts editor + admin/theme)
+├── components/                139 Vue components (grouped below; +LayoutSlot/Row/Section + PageFrame + admin/layouts editor + admin/theme + ContestStagesEditor)
 ├── composables/               34 useX helpers (non-test) + __tests__/
 ├── layouts/                   default, admin (collapsible sidebar, session 161), auth, editor
 ├── middleware/                3 route guards: auth.ts, feature-gate.global.ts, admin-layouts.ts
@@ -24,10 +24,10 @@ layers/base/
 ├── plugins/                   theme.ts + auth.ts (client)
 ├── sections/                  builtin/ section registry (17 registered) + registry.ts (Stage E: points component: at existing Block*/Homepage*)
 ├── server/
-│   ├── api/                   311 Nitro route files (REST)
+│   ├── api/                   327 Nitro route files (REST; +public/v1/metrics/*)
 │   ├── routes/                22 ActivityPub + site routes (inbox/outbox/.well-known/nodeinfo/feed.xml/sitemap/robots)
 │   ├── middleware/            11: auth, theme, features, security, content-ap, content-redirect, blog-redirect, hub-ap, hub-post-ap, mastodon-alias-redirect, public-api-auth
-│   ├── plugins/               8: auto-admin, federation-delivery, federation-hub-sync, migrate-article-to-blog, notification-email, search-index, feature-flags-prime, identity-startup
+│   ├── plugins/               10: auto-admin, federation-delivery, federation-hub-sync, migrate-article-to-blog, notification-email, search-index, feature-flags-prime, identity-startup, metrics-rollup, registry-heartbeat
 │   └── utils/                 config, db, session, hooks wiring, layoutCache, validateSectionConfigs, requirePermission, resolveContentQuery
 ├── theme/                     CSS tokens + component/prose/forms/layouts/editor-panels CSS
 ├── types/                     hub.ts + meilisearch.d.ts + theme.ts
@@ -110,7 +110,7 @@ URL restructure landed in session 108: canonical content lives at `/u/{username}
 
 `/create` (content-type starter chooser), `/authorize_interaction`, `/cert/:code`, `/mirror/:id`, **`/[...customPath]` (session 159+, custom-page catch-all — renders a layout-engine `custom-page`-scoped layout via `<LayoutSlot>` when one matches the route; gated by `layoutEngine`)**.
 
-## Components (135) — grouped
+## Components (139) — grouped
 
 ### Block renderers (`components/blocks/`, 21)
 
@@ -251,7 +251,7 @@ AnnouncementBand, AppToast, AuthorCard, AuthorRow, CategoryBadge, CommentSection
 - `mastodon-alias-redirect.ts` — Mastodon-style alias redirects
 - `public-api-auth.ts` — bearer-token auth for `/api/public/v1/**`
 
-### Server plugins (8)
+### Server plugins (10)
 
 - `auto-admin.ts` — promote first registered user to admin (startup plugin)
 - `federation-delivery.ts` — start outbound delivery worker
@@ -261,6 +261,8 @@ AnnouncementBand, AppToast, AuthorCard, AuthorRow, CategoryBadge, CommentSection
 - `search-index.ts` — subscribe to content hooks → index in Meilisearch
 - `feature-flags-prime.ts` — prime the feature-flag cache at boot
 - `identity-startup.ts` — cross-instance identity runtime init; `assertIdentityConfig` refuses to boot if an `identity.*` token flag is on without `CPUB_FED_TOKEN_KEY`
+- `metrics-rollup.ts` — (session 190) daily `metrics_daily` rollup worker; backfills from entity timestamps if empty, then refreshes every 6h; opt-in on `features.publicApi`
+- `registry-heartbeat.ts` — (session 186/188) sends periodic signed heartbeats to `federation.registryUrl`; self-skips if the URL is the instance's own domain; gated by `features.announceToRegistry` + `features.federation`
 
 ## Theme & CSS
 
@@ -273,6 +275,8 @@ theme/
 ├── generics.css         alt theme family
 ├── agora.css            editorial theme
 ├── agora-dark.css       agora dark variant
+├── stoa.css             Stoa Light — the new default theme (session 190; warm paper, moss accent, Fraunces/Newsreader/Work Sans, 12px radius)
+├── stoa-dark.css        Stoa Dark variant
 ├── components.css       .cpub-* component styles
 ├── prose.css            rich text / BlockTuple output
 ├── layouts.css          layout utilities
@@ -282,7 +286,7 @@ theme/
 
 Plus presets from `@commonpub/explainer/vue/theme/`: dark-industrial, punk-zine, paper-teal, clean-light.
 
-Fonts pulled from Google Fonts (Fraunces serif, Work Sans sans) + Font Awesome 6.5.1 CDN.
+Fonts pulled from Google Fonts (Fraunces serif/display, Newsreader reading serif, Work Sans sans) + Font Awesome 6.5.1 CDN.
 
 ### Consumer override
 
@@ -298,7 +302,7 @@ Key overridable tokens:
 
 ## SSR theme plumbing
 
-1. Server middleware `theme.ts` calls `resolveThemeContext(userScheme, registeredIds)` from `server/utils/instanceTheme.ts`, which reads instance theme + user dark-mode cookie + custom-theme tokens + instance overrides (cached 60s).
+1. Server middleware `theme.ts` calls `resolveThemeContext(userScheme, registeredIds)` from `server/utils/instanceTheme.ts`, which reads instance theme + user dark-mode cookie + custom-theme tokens + instance overrides (cached 60s). **Default fallback is `stoa`** (session 190 — was `base`): a fresh install or any instance with no DB `theme.default` row resolves to Stoa Light (or `stoa-dark` by OS preference). Instances with an explicit DB `theme.default` are unaffected; a secondary `base` fallback guards unknown/missing admin choices.
 2. Middleware writes four context values for the client plugin: `instanceTheme`, `resolvedTheme`, `isDarkMode`, **`themeInlineCss`** (session 154 — a serialized `:root { --token: value; … }` rule body for any active DB-stored custom theme + ad-hoc overrides).
 3. Client plugin `plugins/theme.ts` reads context and calls `useHead({ htmlAttrs: { 'data-theme': themeId }, style: [{ id: 'cpub-theme-inline', innerHTML: themeInlineCss }] })` — both shipped in SSR HTML. Zero FOUC.
 4. `useTheme().setDarkMode(bool)` mutates cookie + re-applies `data-theme` for built-in families; for custom themes with a `pairId`, the server picks the variant on next request.
@@ -313,7 +317,7 @@ Key overridable tokens:
 - `routeRules: {}` (empty) + `nitro.prerender.crawlLinks: false`. The old `/docs/** → prerender: true` rule was **removed in session 126** (prerendering at build time saved API-error HTML as `/docs/index.html` and crawlLinks propagated it). Use `swr: 60` at runtime, not build-time prerender, if caching `/docs/**` again.
 - Runtime config:
   - **private**: databaseUrl, authSecret, smtp/resend creds, S3 keys, uploadDir
-  - **public**: siteUrl, domain, siteName, features (the **19 boolean flags only** — `identity.*` is NOT declared in `runtimeConfig.public.features`, so it can't be env-toggled here; it lives only in `@commonpub/config`'s `FeatureFlags` type), contentTypes, contestCreation, instanceCookies
+  - **public**: siteUrl, domain, siteName, features (the **22 boolean flags only** — `identity.*` is NOT declared in `runtimeConfig.public.features`, so it can't be env-toggled here; it lives only in `@commonpub/config`'s `FeatureFlags` type), contentTypes, contestCreation, instanceCookies
 - CSS array loads the whole `theme/` bundle + explainer presets
 
 ## Recent additions (sessions 124–125) confirmed present

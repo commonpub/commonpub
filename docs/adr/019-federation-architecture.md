@@ -2,7 +2,11 @@
 
 ## Status
 
-Accepted
+Accepted — **except "Decision 1: Fedify Integration Strategy", which was superseded.** Federation
+was ultimately built by KEEPING the hand-rolled `createFederation()` / pure-TS ActivityPub in
+`@commonpub/protocol` (zero Fedify dependency), not by replacing it with Fedify. The rest of this
+ADR (schema tables, actor resolution, delivery, OAuth2 SSO) reflects what shipped. See ADR-004
+(Superseded) and `docs/federation.md` for the current architecture.
 
 ## Context
 

@@ -4,7 +4,7 @@ ActivityPub federation protocol implementation for CommonPub.
 
 ## Overview
 
-Implements the ActivityPub protocol layer: WebFinger discovery, NodeInfo, activity building and processing, content mapping, actor resolution, keypair management, and inbox/outbox handling. Wraps the [Fedify](https://fedify.dev/) framework with CommonPub-specific types.
+Implements the ActivityPub protocol layer: WebFinger discovery, NodeInfo, activity building and processing, content mapping, actor resolution, keypair management, and inbox/outbox handling. **Pure TypeScript** — a hand-rolled ActivityPub implementation with **zero Fedify dependency** (HTTP Signatures via `jose`).
 
 ## Installation
 
