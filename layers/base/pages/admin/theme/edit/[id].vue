@@ -156,6 +156,25 @@ function resetToken(key: string): void {
 
 const modifiedTotal = computed(() => Object.keys(draft.value.tokens).length);
 
+// --- Preview light/dark ------------------------------------------------
+// The preview pane's Light/Dark toggle is controlled here so a Studio theme
+// shows its ACTUAL light + dark variants (regenerated from the recipe per
+// mode) — not the primary variant's tokens in both positions. (Fixes "the
+// editor light/dark buttons don't do anything".)
+const previewMode = ref<'light' | 'dark'>('light');
+const previewTokens = computed<Record<string, string>>(() => {
+  if (!draft.value.recipe) return draft.value.tokens;
+  // The variant being edited (primary) shows the LIVE draft tokens (so hand
+  // tweaks appear); the other variant shows the recipe-derived sibling (what
+  // will be saved for it).
+  const primaryMode = draft.value.isDark ? 'dark' : 'light';
+  if (previewMode.value === primaryMode) return draft.value.tokens;
+  return recipeToTokens({ ...draft.value.recipe, mode: previewMode.value }).tokens;
+});
+const previewParent = computed<string>(() =>
+  draft.value.recipe ? (previewMode.value === 'dark' ? 'dark' : 'base') : draft.value.parentTheme,
+);
+
 // --- Studio (guided generator) ---------------------------------------
 
 /** Studio regenerated the whole token set — replace the draft's tokens. */
@@ -590,9 +609,11 @@ onBeforeUnmount(() => {
 
       <AdminThemePreviewPane
         class="theme-editor-preview"
-        :tokens="draft.tokens"
-        :parent-theme="draft.parentTheme"
-        :is-dark="draft.isDark"
+        :tokens="previewTokens"
+        :parent-theme="previewParent"
+        :is-dark="previewMode === 'dark'"
+        :mode="previewMode"
+        @update:mode="previewMode = $event"
       />
     </div>
 

@@ -146,14 +146,25 @@ async function duplicateTheme(themeId: string): Promise<void> {
 async function removeTheme(themeId: string): Promise<void> {
   const customId = parseCustomThemeId(themeId);
   if (!customId) return;
-  if (!confirm(`Delete custom theme "${customId}"? This cannot be undone.`)) return;
+  // Delete the whole pair: the theme + its linked light/dark sibling, so a
+  // Studio pair (one card) goes away cleanly instead of orphaning one record.
+  const src = themesApi.data.value?.custom.find((t) => t.id === customId);
+  const ids = [customId];
+  if (src?.pairId && src.pairId !== customId) ids.push(src.pairId);
+  const label = ids.length > 1 ? `theme "${customId}" and its light/dark pair` : `custom theme "${customId}"`;
+  if (!confirm(`Delete ${label}? This cannot be undone.`)) return;
   saving.value = true;
   try {
-    const res = await $fetch<{ ok: true; resetDefault: boolean }>(`/api/admin/themes/${customId}`, {
-      method: 'DELETE',
-    });
+    let resetDefault = false;
+    for (const id of ids) {
+      const res = await ($fetch as (u: string, o: Record<string, unknown>) => Promise<{ resetDefault?: boolean }>)(
+        `/api/admin/themes/${id}`,
+        { method: 'DELETE' },
+      );
+      if (res?.resetDefault) resetDefault = true;
+    }
     await Promise.all([themesApi.refresh(), refreshSettings()]);
-    notify(res.resetDefault ? 'Theme deleted, default reset to Classic' : 'Theme deleted', 'success');
+    notify(resetDefault ? 'Theme deleted, default reset to Classic' : 'Theme deleted', 'success');
   } catch (err) {
     notify(err instanceof Error ? err.message : 'Failed to delete', 'error');
   } finally {

@@ -199,3 +199,14 @@ describe('AdminThemePreviewPane — scene picker', () => {
     expect(queryByTestId('scene-gallery')).toBeNull();
   });
 });
+
+describe('AdminThemePreviewPane — controlled mode (editor drives the toggle)', () => {
+  it('emits update:mode so the parent can swap the previewed variant', async () => {
+    const { container, emitted } = render(AdminThemePreviewPane, {
+      props: { tokens: {}, parentTheme: 'base', isDark: false, mode: 'light' },
+      global: { stubs },
+    });
+    await fireEvent.click(modeButton(container, 'Dark'));
+    expect((emitted()['update:mode'] as string[][])[0][0]).toBe('dark');
+  });
+});

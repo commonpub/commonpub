@@ -5,12 +5,18 @@
  * a custom theme stores in `tokens` and the SSR middleware injects as
  * `:root[data-theme="cpub-custom-<id>"] { ... }`.
  *
- * DESIGN: we only emit the tokens the recipe actually derives. Everything
- * else (the secondary semantic palette purple/teal/pink, medal colors,
- * code-block colors, font weights, line-heights, tracking, layout sizes,
- * z-index) is intentionally NOT emitted — it inherits from `parentTheme`'s
- * CSS. `parentTheme` is chosen to match the recipe's mode (`dark` for dark
- * recipes, `base` for light) so those inherited values are mode-correct.
+ * DESIGN: we only emit the tokens the recipe derives (surfaces, text, borders,
+ * the accent + secondary ladders, scheme-driven category accents purple/teal/
+ * pink, success/warning/error, fonts, sizes, spacing, radius, shadows, motion,
+ * grain). The rest (medal colors gold/silver/bronze, code-block colors, font
+ * weights, most line-heights, tracking, layout sizes, z-index) is NOT emitted.
+ * NOTE: a custom theme renders as base.css `:root` + these inline overrides at
+ * `:root[data-theme="cpub-custom-<id>"]` — the parent theme's `[data-theme]`
+ * CSS does NOT apply (the attr is the custom id, not `dark`/`agora`/etc.). So
+ * non-emitted tokens inherit base.css's LIGHT values in BOTH modes. That's fine
+ * because they're mode-agnostic (code blocks are dark-on-light either way;
+ * medals are fixed). `parentTheme` is stored for the editor preview + as a
+ * hint; it does not drive the live custom-theme render.
  *
  * MAPPING (gauge semantic ramp → CommonPub token):
  *   bg/surface/surface2          → bg / surface / surface2 (+ surface3 derived)
