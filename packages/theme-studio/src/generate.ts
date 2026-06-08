@@ -31,7 +31,7 @@
  *   shadowStyle                  → shadow-sm/md/lg/xl + shadow-accent + focus
  *   motion                       → transition-fast/default/slow
  */
-import { hexToHsl, hslToHex, rgba, adjL } from './color.js';
+import { hexToHsl, hslToHex, rgba, adjL, ensureReadable } from './color.js';
 import { buildPalette, type SemanticPalette } from './palette.js';
 import { fontStack, googleHref } from './fonts.js';
 import {
@@ -130,8 +130,11 @@ export function recipeToTokens(recipe: ThemeRecipe): GeneratedTheme {
   t['accent'] = s.accent;
   t['color-primary-hover'] = s.accentHover;
   t['color-accent-hover'] = s.accentHover;
-  t['color-link'] = s.accent;
-  t['color-link-hover'] = s.accentHover;
+  // Links use the AA-readable accent (s.accentText), not the raw/fill accent —
+  // a pale accent is fine as a button fill (with on-accent text) but unreadable
+  // as link text on the page bg.
+  t['color-link'] = s.accentText;
+  t['color-link-hover'] = ensureReadable(adjL(s.accentText, dark ? 10 : -10), s.bg, 4.5, dark);
   t['accent-bg'] = rgba(s.accent, dark ? 0.12 : 0.08);
   t['accent-border'] = rgba(s.accent, 0.25);
   t['accent-bg-strong'] = rgba(s.accent, 0.2);
@@ -215,5 +218,19 @@ export function recipeToTokens(recipe: ThemeRecipe): GeneratedTheme {
     fonts,
     parentTheme: dark ? 'dark' : 'base',
     fontHref: googleHref(fonts),
+  };
+}
+
+/**
+ * Generate BOTH the light and dark variant of a recipe — the same accent,
+ * fonts, shape, and feel rendered for each mode (neutrals + accent adjusted
+ * per mode so each reads well). This is how Studio produces a matching
+ * light/dark pair by default; the caller persists them as two linked custom
+ * themes (cross-referenced via `pairId`) in one family.
+ */
+export function recipeToThemePair(recipe: ThemeRecipe): { light: GeneratedTheme; dark: GeneratedTheme } {
+  return {
+    light: recipeToTokens({ ...recipe, mode: 'light' }),
+    dark: recipeToTokens({ ...recipe, mode: 'dark' }),
   };
 }

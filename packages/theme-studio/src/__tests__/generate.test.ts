@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { recipeToTokens } from '../generate.js';
+import { recipeToTokens, recipeToThemePair } from '../generate.js';
+import { hexToHsl } from '../color.js';
 import { defaultRecipe, randomizeRecipe, type ThemeRecipe } from '../recipe.js';
 import { COLOR_VIBES } from '../presets.js';
 import { contrast } from '../color.js';
@@ -66,6 +67,41 @@ describe('recipeToTokens', () => {
         expect(contrast(tokens['color-on-accent']!, tokens['accent']!), `on-accent ${a}`).toBeGreaterThanOrEqual(4.5);
       }
     }
+  });
+
+  it('keeps the accent visible AND links AA-readable on the bg for any accent (per mode)', () => {
+    // Includes pale/extreme accents that read badly on the wrong mode.
+    const accents = ['#34d9a0', '#facc15', '#5b9cf6', '#a7f3d0', '#1e1b4b', '#ffffff', '#000000', '#ec4899'];
+    for (const a of accents) {
+      for (const mode of ['light', 'dark'] as const) {
+        const { tokens } = recipeToTokens(recipeFromPal(a, mode, 'analogous'));
+        // Accent stays distinguishable from the page (UI-component threshold ~2.4).
+        expect(contrast(tokens['accent']!, tokens['bg']!), `accent vis ${a}/${mode}`).toBeGreaterThanOrEqual(2.3);
+        // Links clear AA as text on the bg.
+        expect(contrast(tokens['color-link']!, tokens['bg']!), `link AA ${a}/${mode}`).toBeGreaterThanOrEqual(4.5);
+        expect(contrast(tokens['color-link-hover']!, tokens['bg']!), `link-hover AA ${a}/${mode}`).toBeGreaterThanOrEqual(4.5);
+        // The readable accent preserves the chosen hue (it only shifts lightness).
+        expect(Math.abs(hexToHsl(tokens['accent']!).h - hexToHsl(a).h), `hue kept ${a}`).toBeLessThan(8);
+      }
+    }
+  });
+
+  it('recipeToThemePair generates a coherent light + dark pair from one recipe', () => {
+    const r = randomizeRecipe(7);
+    const { light, dark } = recipeToThemePair(r);
+    expect(light.parentTheme).toBe('base');
+    expect(dark.parentTheme).toBe('dark');
+    // Same type + fonts across the pair (only color/neutrals differ by mode).
+    expect(light.fonts).toEqual(dark.fonts);
+    expect(light.tokens['font-display']).toBe(dark.tokens['font-display']);
+    expect(light.tokens['text-lg']).toBe(dark.tokens['text-lg']);
+    // Different surfaces per mode; both keep links readable.
+    expect(light.tokens['bg']).not.toBe(dark.tokens['bg']);
+    expect(contrast(light.tokens['color-link']!, light.tokens['bg']!)).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(dark.tokens['color-link']!, dark.tokens['bg']!)).toBeGreaterThanOrEqual(4.5);
+    // Every emitted key canonical in both.
+    expect(validateTokenOverrides(light.tokens).invalid).toEqual([]);
+    expect(validateTokenOverrides(dark.tokens).invalid).toEqual([]);
   });
 
   it('emits a strictly-increasing type ramp (no inversion between md and the rest)', () => {

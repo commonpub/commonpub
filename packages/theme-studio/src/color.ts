@@ -167,3 +167,28 @@ export function wcag(r: number): WcagBand {
 export function readableOn(bg: string): string {
   return contrast(bg, '#ffffff') >= contrast(bg, '#0a0a0a') ? '#ffffff' : '#0a0a0a';
 }
+
+/**
+ * Nudge `color`'s lightness (preserving hue + saturation) until it reaches at
+ * least `ratio` contrast against `bg`. In dark mode we lighten; in light mode
+ * we darken — the direction that increases separation from the page. If the
+ * target can't be met before clamping at black/white, returns the closest
+ * candidate. This is what keeps a generated theme "smart" — e.g. a pale mint
+ * accent stays mint but darkens enough to read as a link on a white page,
+ * while the same recipe's dark variant keeps the bright mint.
+ */
+export function ensureReadable(color: string, bg: string, ratio: number, dark: boolean): string {
+  if (contrast(color, bg) >= ratio) return color;
+  const c = hexToHsl(color);
+  const step = dark ? 3 : -3;
+  let l = c.l;
+  let best = color;
+  for (let i = 0; i < 40; i++) {
+    l = clamp(l + step, 0, 100);
+    const cand = hslToHex(c.h, c.s, l);
+    if (contrast(cand, bg) >= ratio) return cand;
+    best = cand;
+    if (l <= 0 || l >= 100) break;
+  }
+  return best;
+}
