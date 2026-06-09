@@ -83,6 +83,17 @@ describe('buildShadows', () => {
     const sh = buildShadows('glow', 2, 'dark', sem);
     expect(sh.md.toLowerCase()).toContain('rgba');
   });
+
+  it('neumorphic → dual shadow with a negative-offset highlight (Phase 3)', () => {
+    const sh = buildShadows('neumorphic', 2, 'light', buildPalette({ accent: '#5b9cf6', scheme: 'analogous', mode: 'light' }).sem);
+    // dual relief: a positive-offset dark shadow + a negative-offset highlight
+    expect(sh.md).toMatch(/(?:^|\s)\d+px \d+px/); // bottom-right shadow
+    expect(sh.md).toMatch(/-\d+px -\d+px/); // top-left highlight
+    // distance grows sm < md < lg < xl (parseInt stops at the first `px`)
+    const firstOffset = (s: string): number => parseInt(s, 10);
+    expect(firstOffset(sh.sm)).toBeLessThan(firstOffset(sh.md));
+    expect(firstOffset(sh.lg)).toBeLessThan(firstOffset(sh.xl));
+  });
 });
 
 describe('motionTokens', () => {

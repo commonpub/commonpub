@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { recipeToTokens, recipeToThemePair } from '../generate.js';
 import { hexToHsl } from '../color.js';
 import { defaultRecipe, randomizeRecipe, type ThemeRecipe } from '../recipe.js';
-import { COLOR_VIBES } from '../presets.js';
+import { COLOR_VIBES, DESIGN_ARCHETYPES } from '../presets.js';
 import { contrast } from '../color.js';
 // Import the canonical token contract straight from @commonpub/ui's pure
 // source (tokens.ts imports nothing — no Vue is loaded). This keeps the
@@ -186,5 +186,33 @@ describe('recipeToTokens', () => {
     const airy = recipeToTokens({ ...defaultRecipe(), spaceBase: 8 });
     expect(tight.tokens['space-4']).toBe('1rem'); // 4*4=16px
     expect(airy.tokens['space-4']).toBe('2rem'); // 4*8=32px
+  });
+
+  it('neutralHue drives the bg token hue (Phase 2)', () => {
+    const { tokens } = recipeToTokens({ ...defaultRecipe(), neutralHue: 120, neutralSat: 14 });
+    expect(Math.abs(hexToHsl(tokens['bg']!).h - 120)).toBeLessThan(8);
+  });
+});
+
+describe('design archetypes (Phase 3)', () => {
+  it('produce materially different token sets (radius + shadow vary)', () => {
+    const sets = DESIGN_ARCHETYPES.map((a) => recipeToTokens({ ...defaultRecipe(), ...a.patch }).tokens);
+    expect(new Set(sets.map((t) => t['radius'])).size).toBeGreaterThan(1);
+    expect(new Set(sets.map((t) => t['shadow-md'])).size).toBeGreaterThan(1);
+    expect(new Set(sets.map((t) => t['border-width-default'])).size).toBeGreaterThan(1);
+  });
+
+  it('every archetype still emits only canonical tokens and clears text/bg AA', () => {
+    for (const a of DESIGN_ARCHETYPES) {
+      const { tokens } = recipeToTokens({ ...defaultRecipe(), ...a.patch });
+      expect(validateTokenOverrides(tokens).invalid).toEqual([]);
+      expect(contrast(tokens['text']!, tokens['bg']!)).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  it('the neumorphic archetype emits a dual relief shadow', () => {
+    const neo = DESIGN_ARCHETYPES.find((a) => a.k === 'neumorphic')!;
+    const { tokens } = recipeToTokens({ ...defaultRecipe(), ...neo.patch });
+    expect(tokens['shadow-md']!).toMatch(/-\d+px -\d+px/); // negative-offset highlight = dual relief
   });
 });

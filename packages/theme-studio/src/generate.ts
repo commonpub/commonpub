@@ -111,6 +111,8 @@ export function recipeToTokens(recipe: ThemeRecipe): GeneratedTheme {
     secondary: recipe.secondary ?? null,
     scheme: recipe.scheme,
     mode: recipe.mode,
+    neutralHue: recipe.neutralHue,
+    neutralSat: recipe.neutralSat,
   });
   const s: SemanticPalette = pal.sem;
   const ah = hexToHsl(recipe.accent);

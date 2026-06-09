@@ -385,6 +385,21 @@ default"); an **Export ▾** menu (`.cpub-theme.json` / AI brief `.md` / tokens 
 Every create path now gives the theme a **unique family (= its slug)**, so multiple custom themes
 each get their own picker card instead of collapsing — you can make as many as you like.
 
+**Design archetypes (v3).** A **Style** card grid at the top of the Color step picks a whole design
+ETHOS — **Brutalist** (sharp, heavy borders, hard offset shadows, mono), **Editorial** (serif,
+hairline rules, no shadow, roomy), **Soft** (rounded, gentle shadows, friendly sans), **Terminal**
+(mono, glow, grain, tight), **Neumorphic** (soft extruded relief). An archetype patches shape +
+shadow + border + type + density + texture together (it's structure-only — it keeps your chosen
+color), so themes look genuinely different, not just "same theme, different accent". You can fine-tune
+everything after.
+
+**Independent neutrals (v3).** A **Neutral** control (Auto / Pure / Warm / Cool) in the custom Color
+tab decouples the surfaces/text from the accent hue — e.g. warm-cream surfaces under a cool-blue
+accent, or pure neutral gray. "Auto" keeps the original accent-tinted surfaces.
+
+**Radius model (v3).** Corner radius is applied per-surface; line breaks, dividers, icons, images, and
+table cells stay sharp on rounded themes (fixed the "rounded line breaks" weirdness).
+
 **Source**: `packages/theme-studio/` (brain), `layers/base/components/admin/theme/studio/`
 (wizard) + `AdminThemeSceneSheet.vue` (preview scene).
 

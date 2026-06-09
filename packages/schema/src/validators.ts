@@ -895,9 +895,13 @@ export const themeRecipeSchema = z.object({
   density: z.enum(['compact', 'balanced', 'spacious']),
   shapeRadius: z.number().min(0).max(64),
   borderWidth: z.number().min(0).max(8),
-  shadowStyle: z.enum(['none', 'hard', 'soft', 'glow', 'layered']),
+  shadowStyle: z.enum(['none', 'hard', 'soft', 'glow', 'layered', 'neumorphic']),
   motion: z.enum(['sharp', 'snappy', 'smooth']),
   texture: z.number().min(0).max(0.2).optional().default(0),
+  neutralHue: z.number().min(0).max(360).optional(),
+  neutralSat: z.number().min(0).max(100).optional(),
+  /** The design-ethos preset the recipe started from (UI convenience). */
+  archetype: z.string().max(64).optional(),
 });
 export type ThemeRecipeInput = z.infer<typeof themeRecipeSchema>;
 

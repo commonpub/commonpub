@@ -87,6 +87,27 @@ describe('AdminThemeStudio — generate contract', () => {
     expect((calls![0] as [{ apply: boolean }])[0].apply).toBe(false);
   });
 
+  it('clicking a Style archetype applies its structural preset (Phase 3)', async () => {
+    const { getByText, emitted } = render(AdminThemeStudio);
+    // The archetype grid is at the top of the Color step. Brutalist = sharp + mono.
+    await fireEvent.click(getByText('Brutalist'));
+    const payload = lastEmit<GeneratePayload>(emitted() as Record<string, unknown[]>, 'generate');
+    expect(payload).toBeTruthy();
+    expect(payload!.tokens['radius']).toMatch(/^0/); // sharp corners
+    expect(payload!.tokens['font-display']).toContain('Space Mono');
+    expect((payload!.recipe as { archetype?: string }).archetype).toBe('brutalist');
+    // Still a fully canonical token map.
+    expect(validateTokenOverrides(payload!.tokens).invalid).toEqual([]);
+  });
+
+  it('the Neutral control decouples surfaces from the accent (Phase 2)', async () => {
+    const { getByText, emitted } = render(AdminThemeStudio);
+    await fireEvent.click(getByText('My colors'));
+    await fireEvent.click(getByText('Pure'));
+    const payload = lastEmit<GeneratePayload>(emitted() as Record<string, unknown[]>, 'generate');
+    expect((payload!.recipe as { neutralSat?: number }).neutralSat).toBe(0);
+  });
+
   it('the harmony scheme + secondary controls are present (custom color tab)', async () => {
     const { getByText, container } = render(AdminThemeStudio);
     await fireEvent.click(getByText('My colors'));

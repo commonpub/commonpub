@@ -44,6 +44,16 @@ export interface ThemeRecipe {
   motion: Motion;
   /** Film-grain overlay opacity (0 = off, ~0.03 subtle, max ~0.12). */
   texture: number;
+  /**
+   * Neutral surface hue (0-360). When absent, surfaces/text tint with the
+   * accent hue (coherent). Set it to decouple the neutrals — e.g. warm-cream
+   * surfaces under a cool accent.
+   */
+  neutralHue?: number;
+  /** Neutral surface saturation (0-100). When absent, derived from the accent. 0 = pure gray. */
+  neutralSat?: number;
+  /** The design-ethos archetype the recipe started from (presets.ts key). UI convenience. */
+  archetype?: string;
 }
 
 /** A neutral, on-brand starting recipe (CommonPub blue, sharp, dark). */
@@ -96,6 +106,8 @@ export function randomizeRecipe(seed: number): ThemeRecipe {
   const typeVibe = pick(rng, TYPE_VIBES);
   const set = pick(rng, typeVibe.sets);
   const shape = pick(rng, SHAPE_PRESETS);
+  // Occasionally decouple the neutral from the accent for variety.
+  const decoupleNeutral = rng() < 0.3;
   return {
     mode: pal.mode,
     accent: pal.a,
@@ -111,6 +123,8 @@ export function randomizeRecipe(seed: number): ThemeRecipe {
     motion: pick(rng, ['sharp', 'snappy', 'smooth'] as const),
     // Mostly no grain; occasionally a subtle amount for variety.
     texture: rng() < 0.35 ? Math.round(rng() * 50) / 1000 : 0,
+    neutralHue: decoupleNeutral ? Math.floor(rng() * 360) : undefined,
+    neutralSat: decoupleNeutral ? pick(rng, [0, 6, 8, 12] as const) : undefined,
   };
 }
 

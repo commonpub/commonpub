@@ -29,6 +29,8 @@ import {
   SHADOW_PRESETS,
   RATIOS,
   FONTS,
+  DESIGN_ARCHETYPES,
+  type DesignArchetype,
   defaultRecipe,
   type HarmonyScheme,
 } from '@commonpub/theme-studio';
@@ -74,6 +76,44 @@ const SCHEMES: { val: HarmonyScheme; label: string }[] = [
   { val: 'tetradic', label: 'Tetradic' },
   { val: 'monochrome', label: 'Mono' },
 ];
+
+// --- Design-ethos archetype (Phase 3) ----------------------------------
+// Applies a whole structural preset (shape/shadow/border/type/density/texture)
+// while preserving the user's chosen color + mode, then tags the recipe.
+function applyArchetype(a: DesignArchetype): void {
+  recipe.value = { ...recipe.value, ...a.patch, archetype: a.k };
+}
+
+// --- Neutral temperature (Phase 2) -------------------------------------
+// Decouples surfaces/text from the accent hue. "Auto" = accent-tinted.
+type NeutralMode = 'auto' | 'pure' | 'warm' | 'cool';
+const NEUTRALS: { k: NeutralMode; label: string }[] = [
+  { k: 'auto', label: 'Auto' },
+  { k: 'pure', label: 'Pure' },
+  { k: 'warm', label: 'Warm' },
+  { k: 'cool', label: 'Cool' },
+];
+const neutralMode = computed<NeutralMode>(() => {
+  if (recipe.value.neutralHue === undefined && recipe.value.neutralSat === undefined) return 'auto';
+  if ((recipe.value.neutralSat ?? 0) === 0) return 'pure';
+  const h = recipe.value.neutralHue ?? 0;
+  return h < 120 || h >= 300 ? 'warm' : 'cool';
+});
+function setNeutral(m: NeutralMode): void {
+  if (m === 'auto') {
+    recipe.value.neutralHue = undefined;
+    recipe.value.neutralSat = undefined;
+  } else if (m === 'pure') {
+    recipe.value.neutralHue = 0;
+    recipe.value.neutralSat = 0;
+  } else if (m === 'warm') {
+    recipe.value.neutralHue = 30;
+    recipe.value.neutralSat = 8;
+  } else {
+    recipe.value.neutralHue = 220;
+    recipe.value.neutralSat = 8;
+  }
+}
 
 // --- Emit on every change ---------------------------------------------
 
@@ -232,6 +272,24 @@ function finishWith(apply: boolean): void {
     <div class="cpub-studio-body">
       <!-- STEP 1: COLOR -->
       <div v-if="step === 0">
+        <div class="cpub-studio-arch">
+          <span class="cpub-studio-sublbl">Style <span class="cpub-studio-hint">sets shape, shadow, type &amp; feel</span></span>
+          <div class="cpub-studio-archgrid">
+            <button
+              v-for="a in DESIGN_ARCHETYPES"
+              :key="a.k"
+              type="button"
+              class="cpub-studio-archcard"
+              :class="{ on: recipe.archetype === a.k }"
+              :title="a.sub"
+              @click="applyArchetype(a)"
+            >
+              <span class="cpub-studio-archname">{{ a.label }}</span>
+              <span class="cpub-studio-archsub">{{ a.sub }}</span>
+            </button>
+          </div>
+        </div>
+
         <div class="cpub-studio-tabs">
           <button type="button" :class="{ on: colorTab === 'vibe' }" @click="colorTab = 'vibe'">By vibe</button>
           <button type="button" :class="{ on: colorTab === 'custom' }" @click="colorTab = 'custom'">My colors</button>
@@ -294,6 +352,12 @@ function finishWith(apply: boolean): void {
             <span class="cpub-studio-lbl">Color family <span class="cpub-studio-hint">harmony</span></span>
             <span class="cpub-studio-seg cpub-studio-seg-wrap">
               <button v-for="sc in SCHEMES" :key="sc.val" type="button" :class="{ on: recipe.scheme === sc.val }" @click="recipe.scheme = sc.val">{{ sc.label }}</button>
+            </span>
+          </label>
+          <label class="cpub-studio-field">
+            <span class="cpub-studio-lbl">Neutral <span class="cpub-studio-hint">surface tint</span></span>
+            <span class="cpub-studio-seg">
+              <button v-for="n in NEUTRALS" :key="n.k" type="button" :class="{ on: neutralMode === n.k }" @click="setNeutral(n.k)">{{ n.label }}</button>
             </span>
           </label>
           <div class="cpub-studio-field">
@@ -501,6 +565,14 @@ function finishWith(apply: boolean): void {
 .cpub-studio-vcard-sub { font-size: var(--text-label); color: var(--text-faint); }
 .cpub-studio-dots { display: flex; gap: 3px; }
 .cpub-studio-dots span { flex: 1; height: 14px; }
+
+.cpub-studio-arch { margin-bottom: var(--space-3); }
+.cpub-studio-archgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 6px; }
+.cpub-studio-archcard { display: flex; flex-direction: column; gap: 2px; background: var(--surface2); border: var(--border-width-thin) solid var(--border2); padding: var(--space-2); cursor: pointer; text-align: left; }
+.cpub-studio-archcard:hover { border-color: var(--text-faint); }
+.cpub-studio-archcard.on { border-color: var(--accent); background: var(--accent-bg); }
+.cpub-studio-archname { font-family: var(--font-mono); font-size: var(--text-label); font-weight: var(--font-weight-bold); letter-spacing: var(--tracking-wide); text-transform: uppercase; color: var(--text); }
+.cpub-studio-archsub { font-size: var(--text-label); color: var(--text-faint); line-height: var(--leading-tight); }
 
 .cpub-studio-sublbl { font-family: var(--font-mono); font-size: var(--text-label); letter-spacing: var(--tracking-wide); text-transform: uppercase; color: var(--text-faint); margin: var(--space-4) 0 var(--space-2); }
 .cpub-studio-pallist, .cpub-studio-setlist { display: flex; flex-direction: column; gap: 6px; }

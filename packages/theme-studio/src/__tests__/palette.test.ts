@@ -34,3 +34,25 @@ describe('buildPalette', () => {
     expect(new Set(names).size).toBe(names.length);
   });
 });
+
+describe('buildPalette — independent neutrals (Phase 2)', () => {
+  it('neutralHue pins the surface hue regardless of accent', () => {
+    const opts = { scheme: 'analogous', mode: 'dark', neutralHue: 30, neutralSat: 12 } as const;
+    const blue = buildPalette({ accent: '#2f6fed', ...opts });
+    const pink = buildPalette({ accent: '#ff3d8b', ...opts });
+    // Same neutralHue → same bg hue even though the accents are far apart.
+    expect(Math.abs(hexToHsl(blue.sem.bg).h - hexToHsl(pink.sem.bg).h)).toBeLessThan(3);
+  });
+
+  it('neutralSat 0 produces a pure-gray surface (no hue tint)', () => {
+    const p = buildPalette({ accent: '#5b9cf6', scheme: 'analogous', mode: 'light', neutralHue: 0, neutralSat: 0 });
+    expect(hexToHsl(p.sem.surface).s).toBeLessThan(2);
+  });
+
+  it('overriding the neutral hue moves the surfaces off the accent', () => {
+    const accent = '#5b9cf6'; // hue ~215
+    const tied = buildPalette({ accent, scheme: 'analogous', mode: 'dark', neutralSat: 12 });
+    const decoupled = buildPalette({ accent, scheme: 'analogous', mode: 'dark', neutralHue: 120, neutralSat: 12 });
+    expect(Math.abs(hexToHsl(tied.sem.bg).h - hexToHsl(decoupled.sem.bg).h)).toBeGreaterThan(40);
+  });
+});

@@ -3,6 +3,23 @@
 Hard-won knowledge. These are non-obvious from reading the code — they bit
 someone in production. If you break one, something silent will go wrong later.
 
+## Theme / CSS
+
+### Corner radius is applied per-surface, with a structural reset (session 193)
+
+`packages/ui/theme/base.css` sets `* { border-radius: var(--radius) }` so every
+surface inherits the theme's radius, BUT a following rule resets structural,
+media, and pseudo elements to 0 (`hr, svg, img, picture, video, canvas, iframe,
+table internals, ::before/::after/::marker/::placeholder, .cpub-divider`). This
+exists because the old `*, *::before, *::after { border-radius }` rounded line
+breaks/dividers/icons/table cells on non-zero-radius themes (Stoa = 12px) — the
+"rounded line breaks" bug. If you add an element that must stay sharp on a
+rounded theme, add it to that reset list; a new element that should round is
+covered by `*` automatically. Class-level radius (avatars' `--radius-full`)
+outranks the reset. KNOWN-LATENT: inner `<div>` sections inside `overflow:hidden`
+rounded containers still get wedge-gaps — the full per-component radius migration
+is a follow-up. Guard: `packages/ui/src/__tests__/radius-model.test.ts`.
+
 ## Build & publish
 
 ### `pnpm publish`, never `npm publish`
