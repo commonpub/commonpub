@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildPalette } from '../palette.js';
+import { buildPalette, suggestPalettes } from '../palette.js';
 import { contrast, hexToHsl } from '../color.js';
 
 describe('buildPalette', () => {
@@ -54,5 +54,20 @@ describe('buildPalette — independent neutrals (Phase 2)', () => {
     const tied = buildPalette({ accent, scheme: 'analogous', mode: 'dark', neutralSat: 12 });
     const decoupled = buildPalette({ accent, scheme: 'analogous', mode: 'dark', neutralHue: 120, neutralSat: 12 });
     expect(Math.abs(hexToHsl(tied.sem.bg).h - hexToHsl(decoupled.sem.bg).h)).toBeGreaterThan(40);
+  });
+});
+
+describe('suggestPalettes (Phase 4)', () => {
+  it('returns several applicable, distinct options each with a 5-swatch preview', () => {
+    const opts = suggestPalettes('#5b9cf6', 'dark');
+    expect(opts.length).toBeGreaterThanOrEqual(4);
+    for (const o of opts) expect(o.preview).toHaveLength(5);
+    // Warm vs Cool produce visibly different backgrounds.
+    const warm = opts.find((o) => o.k === 'warm')!;
+    const cool = opts.find((o) => o.k === 'cool')!;
+    expect(warm.preview[0]).not.toBe(cool.preview[0]);
+    // Vivid carries a secondary; Mono is pure-neutral.
+    expect(opts.find((o) => o.k === 'vivid')!.secondary).toBeTruthy();
+    expect(opts.find((o) => o.k === 'mono')!.neutralSat).toBe(0);
   });
 });

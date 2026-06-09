@@ -1,6 +1,6 @@
 {
   "name": "@commonpub/theme-studio",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "type": "module",
   "description": "Framework-agnostic theme generator: derive a complete, WCAG-checked CommonPub design system from a small recipe (accent, vibe, scale, shape).",
   "license": "AGPL-3.0-or-later",

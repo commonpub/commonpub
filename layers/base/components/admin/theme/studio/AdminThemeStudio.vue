@@ -20,7 +20,10 @@ import {
   randomizeRecipe,
   randomName,
   buildPalette,
-  harmonyColors,
+  suggestPalettes,
+  type PaletteSuggestion,
+  hexToHsl,
+  hslToHex,
   contrast,
   wcag,
   COLOR_VIBES,
@@ -150,11 +153,35 @@ function palStrip(accent: string, scheme: HarmonyScheme, mode: 'light' | 'dark')
   const p = buildPalette({ accent, scheme, mode }).sem;
   return [p.bg, p.surface, p.accent, p.secondary, p.text];
 }
-/** The accent + its harmony companions — the "suggested family" strip. */
-const familyStrip = computed<string[]>(() => [
-  recipe.value.accent,
-  ...harmonyColors(recipe.value.accent, recipe.value.scheme),
-]);
+// --- Palette options + HSL accent control (Phase 4) -------------------
+// From the chosen accent, offer several ready-to-apply harmonized palettes
+// (choice over abstract knobs) + an HSL slider control (less janky than the
+// bare native swatch).
+const palettes = computed<PaletteSuggestion[]>(() => suggestPalettes(recipe.value.accent, recipe.value.mode));
+const activePalette = computed<string>(() => {
+  const r = recipe.value;
+  return (
+    palettes.value.find(
+      (p) =>
+        p.scheme === r.scheme &&
+        p.neutralHue === r.neutralHue &&
+        p.neutralSat === r.neutralSat &&
+        (p.secondary ?? undefined) === (r.secondary ?? undefined),
+    )?.k ?? ''
+  );
+});
+function applyPaletteSuggestion(p: PaletteSuggestion): void {
+  recipe.value.scheme = p.scheme;
+  recipe.value.neutralHue = p.neutralHue;
+  recipe.value.neutralSat = p.neutralSat;
+  recipe.value.secondary = p.secondary;
+  useSecondary.value = Boolean(p.secondary);
+}
+const accentHsl = computed(() => hexToHsl(recipe.value.accent));
+function setAccentHsl(part: 'h' | 's' | 'l', v: number): void {
+  const c = accentHsl.value;
+  recipe.value.accent = hslToHex(part === 'h' ? v : c.h, part === 's' ? v : c.s, part === 'l' ? v : c.l);
+}
 
 // --- Color actions -----------------------------------------------------
 
@@ -347,7 +374,31 @@ function finishWith(apply: boolean): void {
                 <input type="file" accept="image/*" hidden @change="onImagePick" />
               </label>
             </span>
+            <span class="cpub-studio-hslrow">
+              <span class="cpub-studio-hsl"><span>H</span><input type="range" min="0" max="360" :value="Math.round(accentHsl.h)" aria-label="Hue" @input="setAccentHsl('h', +($event.target as HTMLInputElement).value)" /></span>
+              <span class="cpub-studio-hsl"><span>S</span><input type="range" min="0" max="100" :value="Math.round(accentHsl.s)" aria-label="Saturation" @input="setAccentHsl('s', +($event.target as HTMLInputElement).value)" /></span>
+              <span class="cpub-studio-hsl"><span>L</span><input type="range" min="0" max="100" :value="Math.round(accentHsl.l)" aria-label="Lightness" @input="setAccentHsl('l', +($event.target as HTMLInputElement).value)" /></span>
+            </span>
           </label>
+          <div class="cpub-studio-field">
+            <span class="cpub-studio-lbl">Palette options <span class="cpub-studio-hint">from your accent</span></span>
+            <div class="cpub-studio-palopts">
+              <button
+                v-for="p in palettes"
+                :key="p.k"
+                type="button"
+                class="cpub-studio-palopt"
+                :class="{ on: activePalette === p.k }"
+                :title="p.label"
+                @click="applyPaletteSuggestion(p)"
+              >
+                <span class="cpub-studio-palopt-strip">
+                  <span v-for="(c, ci) in p.preview" :key="ci" :style="{ background: c }" />
+                </span>
+                <span class="cpub-studio-palopt-name">{{ p.label }}</span>
+              </button>
+            </div>
+          </div>
           <label class="cpub-studio-field">
             <span class="cpub-studio-lbl">Color family <span class="cpub-studio-hint">harmony</span></span>
             <span class="cpub-studio-seg cpub-studio-seg-wrap">
@@ -360,12 +411,6 @@ function finishWith(apply: boolean): void {
               <button v-for="n in NEUTRALS" :key="n.k" type="button" :class="{ on: neutralMode === n.k }" @click="setNeutral(n.k)">{{ n.label }}</button>
             </span>
           </label>
-          <div class="cpub-studio-field">
-            <span class="cpub-studio-lbl">Suggested family</span>
-            <span class="cpub-studio-family">
-              <span v-for="(c, i) in familyStrip" :key="i" :style="{ background: c }" :title="c" />
-            </span>
-          </div>
           <div class="cpub-studio-toggle-line">
             <span class="cpub-studio-lbl">Hand-pick secondary</span>
             <button type="button" class="cpub-studio-switch" :class="{ on: useSecondary }" :aria-pressed="useSecondary" @click="toggleSecondary" />
@@ -601,6 +646,19 @@ function finishWith(apply: boolean): void {
 
 .cpub-studio-colorrow { display: flex; gap: var(--space-2); align-items: center; }
 .cpub-studio-colorpick { width: 40px; height: 36px; padding: 0; border: var(--border-width-thin) solid var(--border2); background: none; cursor: pointer; flex-shrink: 0; }
+
+.cpub-studio-hslrow { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-2); margin-top: 6px; }
+.cpub-studio-hsl { display: flex; align-items: center; gap: 4px; }
+.cpub-studio-hsl > span { font-family: var(--font-mono); font-size: var(--text-label); color: var(--text-faint); width: 10px; }
+.cpub-studio-hsl input[type="range"] { flex: 1; min-width: 0; accent-color: var(--accent); }
+
+.cpub-studio-palopts { display: grid; grid-template-columns: repeat(auto-fit, minmax(72px, 1fr)); gap: 6px; }
+.cpub-studio-palopt { display: flex; flex-direction: column; gap: 4px; background: var(--surface2); border: var(--border-width-thin) solid var(--border2); padding: 5px; cursor: pointer; }
+.cpub-studio-palopt:hover { border-color: var(--text-faint); }
+.cpub-studio-palopt.on { border-color: var(--accent); background: var(--accent-bg); }
+.cpub-studio-palopt-strip { display: flex; height: 22px; overflow: hidden; }
+.cpub-studio-palopt-strip > span { flex: 1; }
+.cpub-studio-palopt-name { font-family: var(--font-mono); font-size: var(--text-label); color: var(--text-dim); text-align: center; }
 
 .cpub-studio-seg { display: grid; gap: 4px; grid-auto-flow: column; grid-auto-columns: 1fr; }
 .cpub-studio-seg-wrap { grid-auto-flow: row; grid-template-columns: repeat(auto-fit, minmax(64px, 1fr)); }

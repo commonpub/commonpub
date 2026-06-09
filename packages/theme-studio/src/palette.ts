@@ -208,3 +208,48 @@ export function buildPalette(opts: BuildPaletteOptions): Palette {
     },
   };
 }
+
+/** One ready-to-apply palette variation suggested from a single accent. */
+export interface PaletteSuggestion {
+  k: string;
+  label: string;
+  scheme: HarmonyScheme;
+  /** Hand-picked secondary to apply (undefined = scheme-derived). */
+  secondary?: string;
+  neutralHue?: number;
+  neutralSat?: number;
+  /** Preview swatches: [bg, surface, accent, secondary, text]. */
+  preview: string[];
+}
+
+/**
+ * From a single accent, derive several harmonized palette OPTIONS that vary the
+ * neutral temperature + secondary strategy — so the wizard can offer "pick one"
+ * choice instead of abstract scheme/neutral knobs. Each option is fully
+ * applicable (its fields map straight onto the recipe).
+ */
+export function suggestPalettes(accent: string, mode: ThemeMode): PaletteSuggestion[] {
+  const specs: Array<{ k: string; label: string; scheme: HarmonyScheme; neutralHue?: number; neutralSat?: number; vivid?: boolean }> = [
+    { k: 'classic', label: 'Classic', scheme: 'analogous' },
+    { k: 'warm', label: 'Warm', scheme: 'analogous', neutralHue: 30, neutralSat: 8 },
+    { k: 'cool', label: 'Cool', scheme: 'analogous', neutralHue: 220, neutralSat: 8 },
+    { k: 'mono', label: 'Mono', scheme: 'monochrome', neutralHue: 0, neutralSat: 0 },
+    { k: 'vivid', label: 'Vivid', scheme: 'complementary', vivid: true },
+  ];
+  return specs.map((s) => {
+    const base = buildPalette({ accent, scheme: s.scheme, mode, neutralHue: s.neutralHue, neutralSat: s.neutralSat });
+    const secondary = s.vivid ? base.harmony[0] : undefined;
+    const pal = secondary
+      ? buildPalette({ accent, secondary, scheme: s.scheme, mode, neutralHue: s.neutralHue, neutralSat: s.neutralSat })
+      : base;
+    return {
+      k: s.k,
+      label: s.label,
+      scheme: s.scheme,
+      secondary,
+      neutralHue: s.neutralHue,
+      neutralSat: s.neutralSat,
+      preview: [pal.sem.bg, pal.sem.surface, pal.sem.accent, pal.sem.secondary, pal.sem.text],
+    };
+  });
+}
