@@ -300,7 +300,33 @@ body {
 *::before,
 *::after {
   box-sizing: border-box;
+}
+
+/* Surface radius. Real UI surfaces (buttons, cards, inputs, tags, panels)
+ * inherit the theme's --radius. Structural, media, and decorative elements are
+ * reset to 0 below so a rounded theme (e.g. Stoa, --radius:12px) does NOT put
+ * radii on line breaks, dividers, rules, icons, images, table cells, or
+ * pseudo-element decorations — the "line breaks carry rounded corners" bug.
+ * (Elements that genuinely want rounding set it explicitly, e.g. avatars use
+ * --radius-full; an explicit class-level border-radius outranks these resets.) */
+* {
   border-radius: var(--radius);
+}
+
+hr,
+svg,
+img,
+picture,
+video,
+canvas,
+iframe,
+table, thead, tbody, tfoot, tr, td, th, caption, col, colgroup,
+::before,
+::after,
+::marker,
+::placeholder,
+.cpub-divider {
+  border-radius: 0;
 }
 
 /* === ACCESSIBILITY === */
