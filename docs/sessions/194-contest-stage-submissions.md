@@ -97,6 +97,32 @@ smuggling through `fields`, payload bounds, em-dash-free copy, `var(--*)`-only s
 survival through the edit/create save paths, classic-contest byte-identical judge page, and that
 ContestEntries' new detail links always have the slug in their one usage site.
 
+## Instance rollout round (same session)
+
+Rolled deveco.io + heatsynclabs.io from their ^0.62-era pins straight to schema ^0.39 / config
+^0.21 / server ^2.84.1 / layer ^0.71.**2** (also picks up the entire Theme Studio arc 0.63–0.70).
+Both deploys succeeded; curl-verified health + `contestStageSubmissions: true` + heatsync's live
+contest entries endpoint (proves migration 0021 applied — a missing column would 500 the SELECT).
+
+Two landmines found on the way:
+
+1. **Layer 0.71.1 shipped a test file** — npm's ignore globs treat the `[slug]`/`[entryId]` route
+   dirs as glob character classes, so the `__tests__` pack exclusions silently failed for the one
+   test under `pages/contests/[slug]/entries/__tests__/` and it red-flagged deveco's
+   `nuxt typecheck` (vitest isn't a consumer dep). Caught by running the consumer typecheck BEFORE
+   pushing the pins (the layer-ships-source rule). Fixed by moving the test to
+   `components/contest/__tests__/` (bracket-free) and publishing **layer 0.71.2**; pack dry-run
+   verified clean. Rule: never put `__tests__` under a bracketed pages path in the layer.
+2. **deveco's `pnpm-lock.yaml` was stale since the 0.60-era pins** — its CI (pnpm frozen install)
+   had been red for two dep-bumps; the deploy survives because the Dockerfile uses `npm install`.
+   Regenerated from scratch and clean-room verified (frozen install + 0 type errors + schema dist
+   complete — the session-158 dropped-files failure mode absent). heatsync's stray `pnpm-lock.yaml`
+   is inert (nothing in its workflows uses pnpm).
+
+Also: an npm-then-pnpm hybrid `node_modules` produces ~21 bogus duplicate-`HTMLElement` type errors
+(template ref types resolve two DOM lib identities) — clean-room reinstall before trusting consumer
+typecheck output.
+
 ## Next steps
 
 - Live end-to-end on commonpub.io after deploy (create a 2-template contest, run the cull, fill the
