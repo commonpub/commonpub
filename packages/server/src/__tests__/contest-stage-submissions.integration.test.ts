@@ -233,6 +233,35 @@ describe('contest per-stage submissions', () => {
       expect(theirs.stageSubmissions).toBeUndefined();
     });
 
+    it('revealScores:false also nulls the per-round snapshot scores in stageState (leak guard)', async () => {
+      const contest = await createContest(db, stagedContestInput('snapleak'));
+      await addContestJudge(db, contest.id, judgeUserId, 'judge');
+      await acceptJudgeInvite(db, contest.id, judgeUserId);
+      await transitionContestStatus(db, contest.id, organizerId, 'active');
+      const a = await makeEntry(contest.id, 'snapleak-a');
+      const b = await makeEntry(contest.id, 'snapleak-b');
+      await transitionContestStatus(db, contest.id, organizerId, 'judging');
+      await judgeContestEntry(db, a.entryId, 80, judgeUserId);
+      await judgeContestEntry(db, b.entryId, 60, judgeUserId);
+      // The advancement cut snapshots each entry's round score into stageState.
+      await advanceContestStage(db, contest.id, organizerId, { reviewStageId: 'rev1', mode: 'topN', topN: 1 });
+
+      // Public view of a judges-only contest mid-flow: NO score anywhere —
+      // not the live aggregate, and not the per-round snapshot.
+      const masked = await listContestEntries(db, contest.id, { revealScores: false });
+      for (const item of masked.items) {
+        expect(item.score).toBeNull();
+        for (const s of item.stageState) expect(s.score ?? null).toBeNull();
+      }
+      // The cohort outcome itself stays public.
+      expect(masked.items.some((i) => i.eliminated)).toBe(true);
+
+      // Privileged view keeps the snapshots.
+      const revealed = await listContestEntries(db, contest.id, { revealScores: true });
+      const winner = revealed.items.find((i) => i.id === a.entryId)!;
+      expect(winner.stageState[0]!.score).toBe(80);
+    });
+
     it('getContestEntry returns the enriched entry with artifacts + judge scores', async () => {
       const contest = await createContest(db, stagedContestInput('detail'));
       await transitionContestStatus(db, contest.id, organizerId, 'active');
