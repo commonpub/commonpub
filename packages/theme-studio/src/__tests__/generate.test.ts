@@ -221,4 +221,14 @@ describe('design archetypes (Phase 3)', () => {
     const { tokens } = recipeToTokens({ ...defaultRecipe(), ...neo.patch });
     expect(tokens['shadow-md']!).toMatch(/-\d+px -\d+px/); // negative-offset highlight = dual relief
   });
+
+  it('the component shadow (--shadow-block) follows the recipe shadow style', () => {
+    // So a custom theme's buttons/cards reflect its archetype (built-in themes
+    // leave --shadow-block at the offset-block default and are unchanged).
+    const neo = DESIGN_ARCHETYPES.find((a) => a.k === 'neumorphic')!;
+    const { tokens } = recipeToTokens({ ...defaultRecipe(), ...neo.patch });
+    expect(tokens['shadow-block']).toBe(tokens['shadow-md']);
+    expect(tokens['shadow-block']!).toMatch(/-\d+px -\d+px/);
+    expect(tokens['shadow-block-sm']).toBe(tokens['shadow-sm']);
+  });
 });

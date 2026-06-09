@@ -70,6 +70,18 @@ Addresses "custom colors doesn't give multiple options / ui is janky":
   family-strip test). Also bumped the lagging CLI pins (layer ^0.70 / schema ^0.38) so fresh scaffolds
   include all of Phases 1-4 + the audit fixes (they were pinned at ^0.68/^0.37).
 
+## Archetype shadows on custom themes (ui 0.12.2 / theme-studio 0.5.1 / layer 0.70.1)
+
+Closed the audit's #2 (archetype `shadowStyle` was inert on buttons/cards) **safely** — without
+changing built-in themes. New canonical tokens `--shadow-block` / `--shadow-block-sm` (base default
+= the offset-block `4px 4px 0 var(--border)`). Built-in themes override `--shadow-*` but NOT these,
+so their look is byte-identical; Theme Studio's `recipeToTokens` emits `--shadow-block` =
+`buildShadows(style).md` (and `-sm`), and `.cpub-btn-primary/-secondary`, `.cpub-sb-card`,
+`.cpub-page-btn.active` now read them. So a custom neumorphic/soft theme's buttons + cards reflect
+its archetype, while base/agora/Stoa are untouched. Existing stored custom themes (no `--shadow-block`)
+fall back to the block default — no retroactive change. +1 test (block follows style). ui 268 /
+theme-studio 71 / typecheck green. All patch bumps (additive tokens) → auto-flow to consumers.
+
 ## Deferred (next increments)
 - **Phase 4 — color-UX redesign:** palette-option cards (one accent → several harmonized options),
   a real HSL picker (replace the native swatch), an A11y contrast matrix.

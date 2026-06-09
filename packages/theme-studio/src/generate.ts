@@ -231,6 +231,11 @@ export function recipeToTokens(recipe: ThemeRecipe): GeneratedTheme {
   t['shadow-md'] = sh.md;
   t['shadow-lg'] = sh.lg;
   t['shadow-xl'] = sh.xl;
+  // Component surface shadow (buttons/cards) follows the chosen style, so a
+  // custom theme's controls reflect its archetype. Built-in themes don't set
+  // these, so their offset-block look is untouched.
+  t['shadow-block'] = sh.md;
+  t['shadow-block-sm'] = sh.sm;
   if (recipe.shadowStyle === 'hard') {
     const n = recipe.borderWidth;
     t['shadow-accent'] = `${n}px ${n}px 0 ${s.accent}`;

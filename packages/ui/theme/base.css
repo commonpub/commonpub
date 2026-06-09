@@ -209,6 +209,12 @@
   --shadow-lg: 6px 6px 0 var(--border);
   --shadow-xl: 8px 8px 0 var(--border);
   --shadow-accent: 4px 4px 0 var(--accent);
+  /* Component surface shadow. Built-in themes deliberately do NOT override these
+   * (only --shadow-* above), so buttons/cards keep the offset-block signature.
+   * Theme Studio emits them per the recipe's shadowStyle so a custom theme's
+   * buttons/cards reflect its archetype (neumorphic relief, soft blur, etc.). */
+  --shadow-block: 4px 4px 0 var(--border);
+  --shadow-block-sm: 2px 2px 0 var(--border);
 
   /* === TRANSITIONS === */
   --transition-fast: 0.1s ease;
