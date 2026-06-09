@@ -40,8 +40,10 @@ export type TokenGroup =
   | 'spacing'
   | 'shape'
   | 'shadow'
+  | 'treatment'
   | 'motion'
   | 'layout'
+  | 'chrome'
   | 'z-index';
 
 export type TokenKind =
@@ -218,6 +220,13 @@ export const TOKEN_SPECS: TokenSpec[] = [
   { key: 'shadow-block', group: 'shadow', kind: 'shadow', default: '4px 4px 0 var(--border)', description: 'Resting shadow for buttons/cards' },
   { key: 'shadow-block-sm', group: 'shadow', kind: 'shadow', default: '2px 2px 0 var(--border)', description: 'Pressed/hover shadow for buttons/cards' },
 
+  // Treatments — surface effects. Defaults are TRUE no-ops (`none`, never
+  // `blur(0)`: any non-none backdrop-filter creates a stacking context and
+  // becomes the containing block for fixed descendants), so built-in themes
+  // and existing custom themes render byte-identical unless a theme opts in.
+  { key: 'surface-backdrop', group: 'treatment', kind: 'string', default: 'none', description: 'backdrop-filter for cards/panels, e.g. blur(12px) saturate(1.35) for glass' },
+  { key: 'bg-image', group: 'treatment', kind: 'string', default: 'none', description: 'Page background gradient (CSS gradients only; url() is rejected on save)' },
+
   // Motion
   { key: 'transition-fast', group: 'motion', kind: 'transition', default: '0.1s ease' },
   { key: 'transition-default', group: 'motion', kind: 'transition', default: '0.15s ease' },
@@ -227,8 +236,40 @@ export const TOKEN_SPECS: TokenSpec[] = [
   { key: 'nav-height', group: 'layout', kind: 'length', default: '3rem' },
   { key: 'subnav-height', group: 'layout', kind: 'length', default: '2.75rem' },
   { key: 'sidebar-width', group: 'layout', kind: 'length', default: '12.5rem' },
+  { key: 'sidebar-width-collapsed', group: 'layout', kind: 'length', default: '3.5rem', description: 'Admin sidebar width when collapsed to icons' },
   { key: 'content-max-width', group: 'layout', kind: 'length', default: '60rem' },
   { key: 'content-wide-max-width', group: 'layout', kind: 'length', default: '75rem' },
+  { key: 'cpub-card-min', group: 'layout', kind: 'length', default: '260px', description: 'Content-card grid min column width' },
+  { key: 'cpub-card-gap', group: 'layout', kind: 'length', default: '20px', description: 'Content-card grid gutter' },
+
+  // Site chrome — top bar, nav links, footer. These existed in base.css (the
+  // deveco shape-customization family) but were not registered, so custom
+  // themes could not touch them. Defaults are copied VERBATIM from base.css;
+  // registering them is a zero-render-change addition.
+  { key: 'cpub-topbar-height', group: 'chrome', kind: 'length', default: '48px', description: 'Top bar height (must match the content top offset)' },
+  { key: 'cpub-topbar-bg', group: 'chrome', kind: 'color', default: 'var(--surface)', description: 'Top bar background (rgba for glass)' },
+  { key: 'cpub-topbar-border', group: 'chrome', kind: 'string', default: 'var(--border-width-default) solid var(--border)', description: 'Top bar bottom border (full shorthand)' },
+  { key: 'cpub-topbar-radius', group: 'chrome', kind: 'length', default: '0', description: 'Top bar corner radius (rounded bottom bar)' },
+  { key: 'cpub-topbar-shadow', group: 'chrome', kind: 'shadow', default: 'none', description: 'Top bar drop shadow' },
+  { key: 'cpub-topbar-position', group: 'chrome', kind: 'string', default: 'fixed', description: 'fixed or sticky; sticky reserves its own space, so also set cpub-content-top-offset to 0' },
+  { key: 'cpub-topbar-padding-x', group: 'chrome', kind: 'length', default: '20px', description: 'Top bar horizontal padding' },
+  { key: 'cpub-topbar-blur', group: 'chrome', kind: 'string', default: 'none', description: 'Top bar backdrop-filter, e.g. blur(8px)' },
+  { key: 'cpub-content-top-offset', group: 'chrome', kind: 'string', default: 'var(--cpub-topbar-height, 48px)', description: 'Space reserved for the fixed bar; 0 when the bar is sticky' },
+  { key: 'cpub-nav-link-size', group: 'chrome', kind: 'length', default: '12px', description: 'Nav link font size' },
+  { key: 'cpub-nav-link-weight', group: 'chrome', kind: 'font-weight', default: '400', description: 'Nav link font weight' },
+  { key: 'cpub-nav-link-padding', group: 'chrome', kind: 'string', default: '5px 12px', description: 'Nav link padding (vertical horizontal)' },
+  { key: 'cpub-nav-link-radius', group: 'chrome', kind: 'length', default: 'var(--radius)', description: 'Nav link corner radius (pill links)' },
+  { key: 'cpub-nav-link-color', group: 'chrome', kind: 'color', default: 'var(--text-dim)', description: 'Nav link color' },
+  { key: 'cpub-nav-link-active-color', group: 'chrome', kind: 'color', default: 'var(--text)', description: 'Active nav link color' },
+  { key: 'cpub-nav-link-active-bg', group: 'chrome', kind: 'color', default: 'var(--surface2)', description: 'Active nav link background' },
+  { key: 'cpub-nav-link-active-weight', group: 'chrome', kind: 'font-weight', default: '400', description: 'Active nav link font weight' },
+  { key: 'cpub-nav-link-active-border', group: 'chrome', kind: 'color', default: 'var(--border)', description: 'Active nav link border color' },
+  { key: 'cpub-footer-bg', group: 'chrome', kind: 'color', default: 'var(--surface)', description: 'Footer background' },
+  { key: 'cpub-footer-text', group: 'chrome', kind: 'color', default: 'var(--text-dim)', description: 'Footer body/link text' },
+  { key: 'cpub-footer-muted', group: 'chrome', kind: 'color', default: 'var(--text-faint)', description: 'Footer column titles / bottom bar' },
+  { key: 'cpub-footer-border', group: 'chrome', kind: 'color', default: 'var(--border)', description: 'Footer top border color' },
+  { key: 'cpub-footer-link-hover', group: 'chrome', kind: 'color', default: 'var(--text)', description: 'Footer link hover color' },
+  { key: 'cpub-footer-heading', group: 'chrome', kind: 'color', default: 'var(--text)', description: 'Footer brand/logo text color' },
 
   // Z-index
   { key: 'z-dropdown', group: 'z-index', kind: 'number', default: '100' },
@@ -293,14 +334,17 @@ export const TOKEN_GROUP_LABELS: Record<TokenGroup, { label: string; icon: strin
   spacing: { label: 'Spacing', icon: 'fa-ruler-combined', description: 'Margin and padding scale' },
   shape: { label: 'Shape', icon: 'fa-shapes', description: 'Border radius + border widths' },
   shadow: { label: 'Shadows', icon: 'fa-clone', description: 'Offset shadow scale' },
+  treatment: { label: 'Treatments', icon: 'fa-droplet', description: 'Glass backdrop + page background gradient' },
   motion: { label: 'Motion', icon: 'fa-wand-magic-sparkles', description: 'Transition durations + easings' },
-  layout: { label: 'Layout', icon: 'fa-table-cells-large', description: 'Nav height, sidebar width, max widths' },
+  layout: { label: 'Layout', icon: 'fa-table-cells-large', description: 'Nav height, sidebar width, card grid, max widths' },
+  chrome: { label: 'Site chrome', icon: 'fa-window-maximize', description: 'Top bar, nav links, and footer shape + colors' },
   'z-index': { label: 'Z-Index', icon: 'fa-layer-group', description: 'Stacking-context scale' },
 };
 
 export const TOKEN_GROUP_ORDER: TokenGroup[] = [
   'surfaces', 'text', 'borders', 'accent', 'semantic', 'code',
-  'typography', 'spacing', 'shape', 'shadow', 'motion', 'layout', 'z-index',
+  'typography', 'spacing', 'shape', 'shadow', 'treatment', 'motion',
+  'layout', 'chrome', 'z-index',
 ];
 
 // ---- Helpers ----------------------------------------------------------

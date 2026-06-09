@@ -90,6 +90,10 @@
   padding: 16px;
   margin-bottom: 12px;
   box-shadow: var(--shadow-block);
+  /* Glass treatment hook — `none` by default (a true no-op; non-none values
+     create a stacking context, so only opted-in themes pay that cost). */
+  -webkit-backdrop-filter: var(--surface-backdrop, none);
+  backdrop-filter: var(--surface-backdrop, none);
 }
 
 .cpub-sb-title {

@@ -8,6 +8,8 @@
  * helpers — those don't need duplicating here.
  */
 import { describe, it, expect } from 'vitest';
+import { readFileSync, existsSync } from 'node:fs';
+import { resolve, dirname } from 'node:path';
 import {
   TOKEN_SPECS,
   TOKEN_GROUP_LABELS,
@@ -17,6 +19,19 @@ import {
   tokensByGroup,
 } from '../tokens';
 import { isBuiltInThemeId, tokensToCss, previewFromTokens } from '../theme';
+
+// Same cwd-walk as radius-model.test.ts (vitest stubs `?raw` CSS imports).
+function readBaseCss(): string {
+  let dir = process.cwd();
+  for (let i = 0; i < 6; i++) {
+    for (const rel of ['theme/base.css', 'packages/ui/theme/base.css']) {
+      const p = resolve(dir, rel);
+      if (existsSync(p)) return readFileSync(p, 'utf8');
+    }
+    dir = dirname(dir);
+  }
+  throw new Error(`base.css not found from ${process.cwd()}`);
+}
 
 describe('TOKEN_SPECS', () => {
   it('lists at least one spec per group in TOKEN_GROUP_ORDER', () => {
@@ -47,6 +62,54 @@ describe('TOKEN_SPECS', () => {
 
   it('returns undefined for unknown keys', () => {
     expect(getTokenSpec('totally-made-up')).toBeUndefined();
+  });
+});
+
+describe('chrome + treatment + new layout tokens (advanced-tokens plan)', () => {
+  const baseCss = readBaseCss();
+
+  /** First `--<key>: <value>;` declaration in base.css (the :root default). */
+  function cssDefault(key: string): string | undefined {
+    const m = baseCss.match(new RegExp(`--${key}:\\s*([^;]+);`));
+    return m?.[1]?.trim();
+  }
+
+  const NEW_KEYS = [
+    // treatment
+    'surface-backdrop', 'bg-image',
+    // layout additions
+    'sidebar-width-collapsed', 'cpub-card-min', 'cpub-card-gap',
+    // chrome family
+    'cpub-topbar-height', 'cpub-topbar-bg', 'cpub-topbar-border',
+    'cpub-topbar-radius', 'cpub-topbar-shadow', 'cpub-topbar-position',
+    'cpub-topbar-padding-x', 'cpub-topbar-blur', 'cpub-content-top-offset',
+    'cpub-nav-link-size', 'cpub-nav-link-weight', 'cpub-nav-link-padding',
+    'cpub-nav-link-radius', 'cpub-nav-link-color', 'cpub-nav-link-active-color',
+    'cpub-nav-link-active-bg', 'cpub-nav-link-active-weight', 'cpub-nav-link-active-border',
+    'cpub-footer-bg', 'cpub-footer-text', 'cpub-footer-muted',
+    'cpub-footer-border', 'cpub-footer-link-hover', 'cpub-footer-heading',
+  ];
+
+  it('every new token is registered AND its default matches base.css verbatim', () => {
+    for (const key of NEW_KEYS) {
+      const spec = getTokenSpec(key);
+      expect(spec, `"${key}" should be in TOKEN_SPECS`).toBeDefined();
+      const css = cssDefault(key);
+      expect(css, `"--${key}" should be declared in base.css`).toBeDefined();
+      expect(spec!.default, `default for "${key}" must match base.css`).toBe(css);
+    }
+  });
+
+  it('treatment defaults are true no-ops (none, not blur(0))', () => {
+    // backdrop-filter: blur(0) creates a stacking context + containing block
+    // for fixed descendants; only `none` is a real no-op.
+    expect(getTokenSpec('surface-backdrop')!.default).toBe('none');
+    expect(getTokenSpec('bg-image')!.default).toBe('none');
+    expect(getTokenSpec('cpub-topbar-blur')!.default).toBe('none');
+  });
+
+  it('base.css applies the treatment hooks where the tokens promise', () => {
+    expect(baseCss).toContain('background-image: var(--bg-image, none)');
   });
 });
 
