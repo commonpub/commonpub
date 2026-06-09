@@ -8,13 +8,20 @@
  *
  * Page uses Nuxt auto-imports (useRoute, useLazyFetch, useSeoMeta, useSiteName,
  * plus the auto-imported contestStages utils) — stub them on globalThis.
+ *
+ * Lives under components/contest/__tests__ (NOT next to the page): npm's
+ * ignore globs treat the `[slug]`/`[entryId]` route dirs as character
+ * classes, so a test under a bracketed pages path silently survives the
+ * package.json files-array __tests__ exclusion and ships in the layer
+ * tarball, where it red-flags every consumer typecheck (vitest isn't a
+ * consumer dep).
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render } from '@testing-library/vue';
 import { defineComponent, h, ref } from 'vue';
 import axe from 'axe-core';
-import EntryDetailPage from '../[entryId].vue';
-import { normalizeStages, currentStageId } from '../../../../../utils/contestStages';
+import EntryDetailPage from '../../../pages/contests/[slug]/entries/[entryId].vue';
+import { normalizeStages, currentStageId } from '../../../utils/contestStages';
 
 const NuxtLink = defineComponent({
   name: 'NuxtLink',
