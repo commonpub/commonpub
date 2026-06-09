@@ -18,12 +18,20 @@ the round being judged, and browsable on a new entry-detail page
 `features.contestStageSubmissions` (default ON, inert until a stage defines a template). Server:
 `submitStageArtifact` (owner + active + current-stage + cohort gates, template-validated, upsert
 while the stage is open), `getContestEntry`, artifact plumbing in `listContestEntries`. Released
-schema 0.39.0 / config 0.21.0 / server 2.84.**1** / layer 0.71.**1**, **migration 0021** (additive
+schema 0.39.0 / config 0.21.0 / server 2.84.**1** / layer 0.71.**2**, **migration 0021** (additive
 `contest_entries.stage_submissions`). The .1 patches are the same-session audit round: stageState
 per-round snapshot scores now honour `revealScores` (pre-existing leak since 189 — judges-only
 contests mid-judging exposed round scores through the snapshots) + the judge page's artifact box is
-flag-gated. Plan: `docs/plans/contest-per-stage-submissions.md`; guide
-section in `docs/reference/guides/contests.md`. deveco/heatsync pin bumps operator-gated as usual.
+flag-gated. Layer 0.71.**2** fixes a pack leak: npm's ignore globs treat `[slug]`/`[entryId]` route
+dirs as character classes, so a test under a bracketed pages path shipped in the 0.71.1 tarball and
+red-flagged consumer typechecks — never put `__tests__` under `pages/[param]/` in the layer.
+**All 3 instances rolled** same day: deveco + heatsync bumped from the ^0.62-era pins straight to
+schema ^0.39 / config ^0.21 / server ^2.84.1 / layer ^0.71.2 (picks up the whole Theme Studio arc
+too), migration 0021 applied via deploy, curl-verified (health + `contestStageSubmissions` flag +
+entries endpoint on heatsync's live contest). deveco's stale `pnpm-lock.yaml` (CI-only; Dockerfile
+uses npm) regenerated — its CI had been red since the 0.60-era pins.
+Plan: `docs/plans/contest-per-stage-submissions.md`; guide section in
+`docs/reference/guides/contests.md`.
 
 **Theme Studio overhaul** is the newest work (session 193, **LIVE**): (1) fixed the universal
 `border-radius` rule that rounded line breaks/dividers/icons on rounded themes (Stoa) — surfaces keep
