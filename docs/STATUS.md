@@ -210,8 +210,8 @@ a minute (`curl deveco.io/api/content?limit=5`, today's timestamp).
 | @commonpub/protocol | 0.13.0 | | @commonpub/explainer | 0.7.15 |
 | @commonpub/auth | 0.8.0 | | @commonpub/docs | 0.6.3 |
 | @commonpub/server | **2.83.0** | | @commonpub/learning | 0.5.2 |
-| @commonpub/ui | **0.12.1** | | @commonpub/test-utils | 0.5.6 |
-| @commonpub/layer | **0.70.0** | | @commonpub/theme-studio | **0.5.0** |
+| @commonpub/ui | **0.12.2** | | @commonpub/test-utils | 0.5.6 |
+| @commonpub/layer | **0.70.1** | | @commonpub/theme-studio | **0.5.1** |
 | create-commonpub (crates.io) | **0.5.12** | | | |
 
 **Stoa theme (session 190, ui 0.10.0 / layer 0.63.0):** new built-in theme family (light + dark) —

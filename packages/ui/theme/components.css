@@ -27,11 +27,11 @@
 .cpub-btn-primary {
   background: var(--accent);
   color: var(--color-text-inverse);
-  box-shadow: 4px 4px 0 var(--border);
+  box-shadow: var(--shadow-block);
 }
 
 .cpub-btn-primary:hover {
-  box-shadow: 2px 2px 0 var(--border);
+  box-shadow: var(--shadow-block-sm);
 }
 
 .cpub-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -40,9 +40,9 @@
   background: var(--secondary);
   color: var(--color-on-secondary);
   border-color: var(--secondary);
-  box-shadow: 4px 4px 0 var(--border);
+  box-shadow: var(--shadow-block);
 }
-.cpub-btn-secondary:hover { background: var(--secondary-hover); box-shadow: 2px 2px 0 var(--border); }
+.cpub-btn-secondary:hover { background: var(--secondary-hover); box-shadow: var(--shadow-block-sm); }
 .cpub-btn-secondary:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .cpub-btn-sm { padding: 4px 10px; font-size: 11px; min-height: 44px; }
@@ -89,7 +89,7 @@
   border: var(--border-width-default) solid var(--border);
   padding: 16px;
   margin-bottom: 12px;
-  box-shadow: 4px 4px 0 var(--border);
+  box-shadow: var(--shadow-block);
 }
 
 .cpub-sb-title {
@@ -164,7 +164,7 @@
   border-color: var(--accent);
   background: var(--accent-bg);
   color: var(--accent);
-  box-shadow: 2px 2px 0 var(--border);
+  box-shadow: var(--shadow-block-sm);
 }
 
 .cpub-page-ellipsis {

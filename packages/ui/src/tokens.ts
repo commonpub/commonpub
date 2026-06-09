@@ -211,6 +211,12 @@ export const TOKEN_SPECS: TokenSpec[] = [
   { key: 'shadow-lg', group: 'shadow', kind: 'shadow', default: '6px 6px 0 var(--border)' },
   { key: 'shadow-xl', group: 'shadow', kind: 'shadow', default: '8px 8px 0 var(--border)' },
   { key: 'shadow-accent', group: 'shadow', kind: 'shadow', default: '4px 4px 0 var(--accent)' },
+  // Component surface shadow (buttons/cards). Built-in themes leave it at the
+  // offset-block default (they override --shadow-* but NOT these), so their look
+  // is unchanged; Theme Studio emits these from the recipe's shadowStyle so a
+  // custom theme's buttons/cards reflect its archetype (neumorphic relief, etc.).
+  { key: 'shadow-block', group: 'shadow', kind: 'shadow', default: '4px 4px 0 var(--border)', description: 'Resting shadow for buttons/cards' },
+  { key: 'shadow-block-sm', group: 'shadow', kind: 'shadow', default: '2px 2px 0 var(--border)', description: 'Pressed/hover shadow for buttons/cards' },
 
   // Motion
   { key: 'transition-fast', group: 'motion', kind: 'transition', default: '0.1s ease' },
