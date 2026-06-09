@@ -5,7 +5,7 @@
  */
 import type { HarmonyScheme } from './harmony.js';
 import type { ThemeMode } from './palette.js';
-import type { ShadowStyle } from './scales.js';
+import type { ShadowStyle, Density, Motion } from './scales.js';
 
 /** A single palette option inside a color vibe. */
 export interface ColorPaletteOption {
@@ -98,6 +98,99 @@ export const SHADOW_PRESETS: ShadowPreset[] = [
   { k: 'soft', label: 'Soft', sub: 'blur' },
   { k: 'glow', label: 'Glow', sub: 'accent' },
   { k: 'layered', label: 'Layered', sub: 'depth' },
+  { k: 'neumorphic', label: 'Neumorphic', sub: 'relief' },
+];
+
+// ---- Design-ethos archetypes ------------------------------------------
+
+/**
+ * A design ETHOS — a coherent multi-dimension preset that changes shape,
+ * shadow, border, type, density, and texture together to express a STYLE
+ * (not just a color). Picking one patches those recipe fields in one move;
+ * the user keeps their chosen color + can fine-tune everything after. This
+ * is what makes generated themes look genuinely different rather than
+ * "same theme, different accent". Archetypes are structure-only — they don't
+ * set the accent or mode, so any palette can wear any ethos.
+ */
+export interface ArchetypePatch {
+  scheme?: HarmonyScheme;
+  fonts?: { display: string; body: string; ui: string; code: string };
+  ratio?: number;
+  spaceBase?: 4 | 8;
+  density?: Density;
+  shapeRadius?: number;
+  borderWidth?: number;
+  shadowStyle?: ShadowStyle;
+  motion?: Motion;
+  texture?: number;
+  neutralSat?: number;
+  neutralHue?: number;
+}
+
+export interface DesignArchetype {
+  k: string;
+  label: string;
+  /** One-line description of the ethos. */
+  sub: string;
+  patch: ArchetypePatch;
+}
+
+export const DESIGN_ARCHETYPES: DesignArchetype[] = [
+  {
+    k: 'brutalist',
+    label: 'Brutalist',
+    sub: 'Sharp, heavy borders, hard offset shadows, mono type',
+    patch: {
+      scheme: 'monochrome',
+      fonts: { display: 'Space Mono', body: 'Space Mono', ui: 'Space Mono', code: 'Space Mono' },
+      ratio: 1.25, spaceBase: 4, density: 'balanced',
+      shapeRadius: 0, borderWidth: 3, shadowStyle: 'hard', motion: 'sharp', texture: 0, neutralSat: 0,
+    },
+  },
+  {
+    k: 'editorial',
+    label: 'Editorial',
+    sub: 'Serif display, hairline rules, no shadow, generous whitespace',
+    patch: {
+      scheme: 'monochrome',
+      fonts: { display: 'Fraunces', body: 'Inter', ui: 'IBM Plex Mono', code: 'JetBrains Mono' },
+      ratio: 1.333, spaceBase: 8, density: 'spacious',
+      shapeRadius: 0, borderWidth: 1, shadowStyle: 'none', motion: 'smooth', texture: 0, neutralSat: 4,
+    },
+  },
+  {
+    k: 'soft',
+    label: 'Soft',
+    sub: 'Rounded, gentle blur shadows, friendly sans, roomy',
+    patch: {
+      scheme: 'analogous',
+      fonts: { display: 'Poppins', body: 'Work Sans', ui: 'DM Mono', code: 'JetBrains Mono' },
+      ratio: 1.25, spaceBase: 8, density: 'spacious',
+      shapeRadius: 14, borderWidth: 1, shadowStyle: 'soft', motion: 'smooth', texture: 0,
+    },
+  },
+  {
+    k: 'terminal',
+    label: 'Terminal',
+    sub: 'Mono everything, glow, grain, tight + sharp',
+    patch: {
+      scheme: 'split',
+      fonts: { display: 'Space Mono', body: 'JetBrains Mono', ui: 'Space Mono', code: 'JetBrains Mono' },
+      ratio: 1.2, spaceBase: 4, density: 'compact',
+      shapeRadius: 0, borderWidth: 1, shadowStyle: 'glow', motion: 'sharp', texture: 0.03,
+    },
+  },
+  {
+    k: 'neumorphic',
+    label: 'Neumorphic',
+    sub: 'Soft extruded relief, low contrast, rounded',
+    patch: {
+      scheme: 'monochrome',
+      fonts: { display: 'Manrope', body: 'Inter', ui: 'IBM Plex Mono', code: 'JetBrains Mono' },
+      ratio: 1.25, spaceBase: 8, density: 'spacious',
+      shapeRadius: 16, borderWidth: 0, shadowStyle: 'neumorphic', motion: 'smooth', texture: 0, neutralSat: 6,
+    },
+  },
 ];
 
 export interface RatioPreset {

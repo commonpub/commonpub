@@ -1,8 +1,10 @@
 /**
  * Palette builder — derive a complete, mode-aware semantic color ramp from
  * a single accent (plus an optional hand-picked secondary and a harmony
- * scheme). Neutrals and text are tinted by the accent hue so the whole
- * surface system feels coherent. Ported from GAUGE.
+ * scheme). Neutrals and text are tinted by the accent hue by default so the
+ * whole surface system feels coherent — or by an INDEPENDENT neutral hue/sat
+ * (`neutralHue`/`neutralSat`) for variety (warm-cream surfaces under a cool
+ * accent, pure-gray, etc.). Ported from GAUGE.
  */
 import { hexToHsl, hslToHex, rgba, adjL, clamp, readableOn, ensureReadable } from './color.js';
 import { harmonyColors, type HarmonyScheme } from './harmony.js';
@@ -66,6 +68,15 @@ export interface BuildPaletteOptions {
   secondary?: string | null;
   scheme: HarmonyScheme;
   mode: ThemeMode;
+  /**
+   * Neutral (surface/text) hue, 0-360. When omitted the neutrals are tinted by
+   * the accent hue (the original "coherent" behavior). Setting it decouples the
+   * surfaces from the accent — e.g. a warm-cream neutral under a cool accent, or
+   * a pure-gray neutral (pair with `neutralSat: 0`).
+   */
+  neutralHue?: number;
+  /** Neutral saturation, 0-100. When omitted, derived from the accent. 0 = pure gray. */
+  neutralSat?: number;
 }
 
 export function buildPalette(opts: BuildPaletteOptions): Palette {
@@ -74,6 +85,9 @@ export function buildPalette(opts: BuildPaletteOptions): Palette {
   const tH = ah.h;
   const dark = mode === 'dark';
   const nS = dark ? Math.min(14, ah.s * 0.22 + 5) : Math.min(11, ah.s * 0.18 + 4);
+  // Neutral hue/sat: independent of the accent when the recipe provides them.
+  const nH = opts.neutralHue ?? tH;
+  const nSat = opts.neutralSat ?? nS;
 
   let bg: string;
   let surface: string;
@@ -86,25 +100,25 @@ export function buildPalette(opts: BuildPaletteOptions): Palette {
   let lineStrong: string;
 
   if (dark) {
-    bg = hslToHex(tH, nS, 6.5);
-    surface = hslToHex(tH, nS, 10.5);
-    surface2 = hslToHex(tH, nS, 14.5);
-    text = hslToHex(tH, Math.min(10, nS), 93);
-    textSoft = hslToHex(tH, Math.min(9, nS), 68);
-    textMuted = hslToHex(tH, Math.min(8, nS), 46);
-    textGhost = hslToHex(tH, Math.min(8, nS), 31);
+    bg = hslToHex(nH, nSat, 6.5);
+    surface = hslToHex(nH, nSat, 10.5);
+    surface2 = hslToHex(nH, nSat, 14.5);
+    text = hslToHex(nH, Math.min(10, nSat), 93);
+    textSoft = hslToHex(nH, Math.min(9, nSat), 68);
+    textMuted = hslToHex(nH, Math.min(8, nSat), 46);
+    textGhost = hslToHex(nH, Math.min(8, nSat), 31);
     line = rgba('#ffffff', 0.09);
     lineStrong = rgba('#ffffff', 0.18);
   } else {
-    bg = hslToHex(tH, Math.max(6, nS - 2), 97);
-    surface = hslToHex(tH, Math.max(4, nS - 3), 99.5);
-    surface2 = hslToHex(tH, nS, 93.5);
-    text = hslToHex(tH, Math.min(16, nS + 6), 12);
-    textSoft = hslToHex(tH, Math.min(12, nS + 2), 34);
-    textMuted = hslToHex(tH, Math.min(9, nS), 52);
-    textGhost = hslToHex(tH, Math.min(7, nS), 68);
-    line = rgba(hslToHex(tH, 30, 25), 0.13);
-    lineStrong = rgba(hslToHex(tH, 30, 22), 0.26);
+    bg = hslToHex(nH, Math.max(6, nSat - 2), 97);
+    surface = hslToHex(nH, Math.max(4, nSat - 3), 99.5);
+    surface2 = hslToHex(nH, nSat, 93.5);
+    text = hslToHex(nH, Math.min(16, nSat + 6), 12);
+    textSoft = hslToHex(nH, Math.min(12, nSat + 2), 34);
+    textMuted = hslToHex(nH, Math.min(9, nSat), 52);
+    textGhost = hslToHex(nH, Math.min(7, nSat), 68);
+    line = rgba(hslToHex(nH, 30, 25), 0.13);
+    lineStrong = rgba(hslToHex(nH, 30, 22), 0.26);
   }
 
   // Effective accent: floor the brand accent so it stays visible as a fill /

@@ -1,16 +1,25 @@
 # CommonPub — Status & Operator Runbook
 
-> **Living doc — your "come back later" reference.** Snapshot updated 2026-06-08 (session 192).
+> **Living doc — your "come back later" reference.** Snapshot updated 2026-06-08 (session 193).
 > Verify any version/flag claim before trusting it: `npm view @commonpub/<pkg> version`,
 > `curl https://<instance>/api/features`, `cargo search create-commonpub`.
-> Companion docs: the latest work log `docs/sessions/192-theme-studio.md`, the rolling handoff
+> Companion docs: the latest work log `docs/sessions/193-theme-variety.md`, the rolling handoff
 > `docs/sessions/192-kickoff-next.md`, the theme guide `docs/reference/guides/theme-editor.md`.
 
 ---
 
 ## TL;DR — where things stand
 
-**Theme Studio v2** is the newest work (session 192, **LIVE** on commonpub.io): on top of the guided
+**Theme Studio overhaul** is the newest work (session 193, **LIVE**): (1) fixed the universal
+`border-radius` rule that rounded line breaks/dividers/icons on rounded themes (Stoa) — surfaces keep
+their radius, structural/media/pseudo elements reset to 0 (ui 0.12.1 / layer 0.68.2); (2) **independent
+neutrals** — `buildPalette` `neutralHue`/`neutralSat` decouple surfaces from the accent (warm/cool/pure
+via a wizard control); (3) **design-ethos archetypes** (Brutalist/Editorial/Soft/Terminal/Neumorphic) —
+coherent presets that change shape+shadow+border+type+density together, plus a `neumorphic` shadow.
+schema 0.38 / theme-studio 0.4 / layer 0.69 (additive, no migration). DEFERRED: color-UX redesign
+(palette-option cards + HSL picker), full per-component radius migration, glass/treatment tokens.
+
+**Theme Studio v2** (session 192, **LIVE**): on top of the guided
 generator + light/dark pairs, it adds a real **`--secondary`** accent + `.cpub-btn-secondary`, a
 **harmony "color family"** that drives the category accents (`--purple/--teal/--pink`), **film-grain
 texture** (opt-in `--grain` overlay), a **rationalized "New theme" chooser** (unique family per theme
@@ -201,8 +210,8 @@ a minute (`curl deveco.io/api/content?limit=5`, today's timestamp).
 | @commonpub/protocol | 0.13.0 | | @commonpub/explainer | 0.7.15 |
 | @commonpub/auth | 0.8.0 | | @commonpub/docs | 0.6.3 |
 | @commonpub/server | **2.83.0** | | @commonpub/learning | 0.5.2 |
-| @commonpub/ui | **0.12.0** | | @commonpub/test-utils | 0.5.6 |
-| @commonpub/layer | **0.68.1** | | @commonpub/theme-studio | **0.3.0** |
+| @commonpub/ui | **0.12.1** | | @commonpub/test-utils | 0.5.6 |
+| @commonpub/layer | **0.69.0** | | @commonpub/theme-studio | **0.4.0** |
 | create-commonpub (crates.io) | **0.5.11** | | | |
 
 **Stoa theme (session 190, ui 0.10.0 / layer 0.63.0):** new built-in theme family (light + dark) —

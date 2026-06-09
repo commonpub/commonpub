@@ -94,7 +94,7 @@ export function radiusScale(b: number): RadiusScale {
 
 // ---- Shadows -----------------------------------------------------------
 
-export type ShadowStyle = 'none' | 'hard' | 'soft' | 'glow' | 'layered';
+export type ShadowStyle = 'none' | 'hard' | 'soft' | 'glow' | 'layered' | 'neumorphic';
 
 export interface ShadowScale {
   sm: string;
@@ -147,6 +147,18 @@ export function buildShadows(
       md: `0 2px 6px ${shCol}, 0 8px 24px ${shCol}`,
       lg: `0 4px 10px ${shCol}, 0 18px 50px ${shCol}`,
       xl: `0 8px 18px ${shCol}, 0 28px 70px ${shCol}`,
+    };
+  }
+  if (style === 'neumorphic') {
+    // Soft extruded relief: a dark shadow bottom-right + a light highlight
+    // top-left, both derived from the page so surfaces appear pressed out of it.
+    const dk = mode === 'dark' ? 'rgba(0,0,0,.55)' : 'rgba(20,22,30,.16)';
+    const lt = mode === 'dark' ? 'rgba(255,255,255,.045)' : 'rgba(255,255,255,.85)';
+    return {
+      sm: `2px 2px 5px ${dk}, -2px -2px 5px ${lt}`,
+      md: `5px 5px 12px ${dk}, -5px -5px 12px ${lt}`,
+      lg: `8px 8px 20px ${dk}, -8px -8px 20px ${lt}`,
+      xl: `12px 12px 30px ${dk}, -12px -12px 30px ${lt}`,
     };
   }
   return { sm: 'none', md: 'none', lg: 'none', xl: 'none' };
