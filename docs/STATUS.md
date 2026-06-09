@@ -18,8 +18,11 @@ the round being judged, and browsable on a new entry-detail page
 `features.contestStageSubmissions` (default ON, inert until a stage defines a template). Server:
 `submitStageArtifact` (owner + active + current-stage + cohort gates, template-validated, upsert
 while the stage is open), `getContestEntry`, artifact plumbing in `listContestEntries`. Released
-schema 0.39.0 / config 0.21.0 / server 2.84.0 / layer 0.71.0, **migration 0021** (additive
-`contest_entries.stage_submissions`). Plan: `docs/plans/contest-per-stage-submissions.md`; guide
+schema 0.39.0 / config 0.21.0 / server 2.84.**1** / layer 0.71.**1**, **migration 0021** (additive
+`contest_entries.stage_submissions`). The .1 patches are the same-session audit round: stageState
+per-round snapshot scores now honour `revealScores` (pre-existing leak since 189 — judges-only
+contests mid-judging exposed round scores through the snapshots) + the judge page's artifact box is
+flag-gated. Plan: `docs/plans/contest-per-stage-submissions.md`; guide
 section in `docs/reference/guides/contests.md`. deveco/heatsync pin bumps operator-gated as usual.
 
 **Theme Studio overhaul** is the newest work (session 193, **LIVE**): (1) fixed the universal
