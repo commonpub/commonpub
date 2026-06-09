@@ -36,6 +36,26 @@ component `backdrop-filter`/treatment-token support).
 Tests: theme-studio 68 (+8), schema 443, ui 268 (+3), layer 937 (+5: archetype/neutral wiring +
 radius). Typecheck 28/28, full build green.
 
+## Audit + fixes (theme-studio 0.4.1 / layer 0.69.1)
+
+Self-audit + an independent reviewer pass on the live Phase 1-3 code. Phase 1 radius verified
+clean (no surface regression; `img` reset can't beat class-level radius; pseudo-rounding removal is
+intentional and block components carry their own resets). Fixes shipped:
+- **#1 archetype/neutral desync:** Editorial/Neumorphic patches set `neutralSat` without `neutralHue`,
+  so the wizard's Neutral control showed "Warm" while `buildPalette` rendered accent-tinted. Fix:
+  archetypes are now structure-only (dropped `neutralSat`).
+- **#3 borders ignored decoupled neutrals:** `borderColors` used the ACCENT hue/sat, so a warm-cream
+  theme had cool borders. Fix: `buildPalette` now returns the effective `neutralHue`/`neutralSat` and
+  `recipeToTokens` derives `border`/`border2` from them. (`sem.line`/`lineStrong` were dead code — left
+  as-is.) +1 test (border follows neutral).
+- **#4 garish extremes:** clamped neutral saturation (`Math.min(22, …)`) so a crafted `neutralSat:100`
+  can't make a fully-saturated page (UI never exceeds 8; AA was already safe).
+- **#2 DEFERRED (deliberate):** archetype `shadowStyle` is partly inert because base buttons/cards
+  hardcode `4px 4px 0 var(--border)` instead of `var(--shadow-*)`. Routing them through `var(--shadow-*)`
+  WOULD change agora-dark (commonpub.io) + Stoa button/card shadows (their `--shadow-md` differs —
+  Stoa's is blurred), so it's a design change to surface separately, not a silent fix. Archetypes still
+  differ clearly via radius/border/font/density/texture. theme-studio 69 / layer 937 green.
+
 ## Deferred (next increments)
 - **Phase 4 — color-UX redesign:** palette-option cards (one accent → several harmonized options),
   a real HSL picker (replace the native swatch), an A11y contrast matrix.
