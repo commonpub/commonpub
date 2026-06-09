@@ -192,6 +192,12 @@ describe('recipeToTokens', () => {
     const { tokens } = recipeToTokens({ ...defaultRecipe(), neutralHue: 120, neutralSat: 14 });
     expect(Math.abs(hexToHsl(tokens['bg']!).h - 120)).toBeLessThan(8);
   });
+
+  it('borders follow the neutral hue, not the accent, when decoupled (audit #3)', () => {
+    // Cool accent (~220) + warm neutral (30): the border should read warm, not cool.
+    const { tokens } = recipeToTokens({ ...defaultRecipe(), accent: '#2f6fed', mode: 'light', neutralHue: 30, neutralSat: 10 });
+    expect(Math.abs(hexToHsl(tokens['border']!).h - 30)).toBeLessThan(20);
+  });
 });
 
 describe('design archetypes (Phase 3)', () => {

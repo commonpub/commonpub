@@ -144,7 +144,7 @@ export const DESIGN_ARCHETYPES: DesignArchetype[] = [
       scheme: 'monochrome',
       fonts: { display: 'Space Mono', body: 'Space Mono', ui: 'Space Mono', code: 'Space Mono' },
       ratio: 1.25, spaceBase: 4, density: 'balanced',
-      shapeRadius: 0, borderWidth: 3, shadowStyle: 'hard', motion: 'sharp', texture: 0, neutralSat: 0,
+      shapeRadius: 0, borderWidth: 3, shadowStyle: 'hard', motion: 'sharp', texture: 0,
     },
   },
   {
@@ -155,7 +155,7 @@ export const DESIGN_ARCHETYPES: DesignArchetype[] = [
       scheme: 'monochrome',
       fonts: { display: 'Fraunces', body: 'Inter', ui: 'IBM Plex Mono', code: 'JetBrains Mono' },
       ratio: 1.333, spaceBase: 8, density: 'spacious',
-      shapeRadius: 0, borderWidth: 1, shadowStyle: 'none', motion: 'smooth', texture: 0, neutralSat: 4,
+      shapeRadius: 0, borderWidth: 1, shadowStyle: 'none', motion: 'smooth', texture: 0,
     },
   },
   {
@@ -188,7 +188,7 @@ export const DESIGN_ARCHETYPES: DesignArchetype[] = [
       scheme: 'monochrome',
       fonts: { display: 'Manrope', body: 'Inter', ui: 'IBM Plex Mono', code: 'JetBrains Mono' },
       ratio: 1.25, spaceBase: 8, density: 'spacious',
-      shapeRadius: 16, borderWidth: 0, shadowStyle: 'neumorphic', motion: 'smooth', texture: 0, neutralSat: 6,
+      shapeRadius: 16, borderWidth: 0, shadowStyle: 'neumorphic', motion: 'smooth', texture: 0,
     },
   },
 ];

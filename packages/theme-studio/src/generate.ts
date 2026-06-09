@@ -132,7 +132,10 @@ export function recipeToTokens(recipe: ThemeRecipe): GeneratedTheme {
   t['color-text-inverse'] = s.onAccent;
 
   // ---- Borders ----
-  const bc = borderColors(ah.h, ah.s, dark);
+  // Borders are part of the NEUTRAL system (lines on neutral surfaces), so they
+  // follow the effective neutral hue/sat — not the accent. This keeps borders
+  // consistent with decoupled neutrals (warm surfaces → warm borders).
+  const bc = borderColors(pal.neutralHue, pal.neutralSat, dark);
   t['border'] = bc.strong;
   t['border2'] = bc.soft;
 

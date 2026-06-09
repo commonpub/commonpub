@@ -44,6 +44,9 @@ export interface SemanticPalette {
 export interface Palette {
   mode: ThemeMode;
   scheme: HarmonyScheme;
+  /** Effective neutral hue/sat actually used for surfaces (for border derivation). */
+  neutralHue: number;
+  neutralSat: number;
   /** Evocative names for the 8 raw "designer" swatches (sheet preview). */
   names: {
     bg: string;
@@ -86,8 +89,9 @@ export function buildPalette(opts: BuildPaletteOptions): Palette {
   const dark = mode === 'dark';
   const nS = dark ? Math.min(14, ah.s * 0.22 + 5) : Math.min(11, ah.s * 0.18 + 4);
   // Neutral hue/sat: independent of the accent when the recipe provides them.
+  // Saturation is clamped so a crafted/extreme value can't make a garish page.
   const nH = opts.neutralHue ?? tH;
-  const nSat = opts.neutralSat ?? nS;
+  const nSat = Math.min(22, opts.neutralSat ?? nS);
 
   let bg: string;
   let surface: string;
@@ -155,6 +159,8 @@ export function buildPalette(opts: BuildPaletteOptions): Palette {
   return {
     mode,
     scheme,
+    neutralHue: nH,
+    neutralSat: nSat,
     names: {
       bg: nm(0),
       surface: nm(1),
