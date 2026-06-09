@@ -40,8 +40,11 @@ const currentRoundId = computed<string | null>(() => {
 // The artifact judges review THIS round: the nearest `submission` stage (with a
 // template) preceding the current review stage — round 1 reviews the proposal,
 // round 2 the prototype. Null for classic contests (no templates), which keeps
-// the page byte-identical to pre-artifact behaviour.
+// the page byte-identical to pre-artifact behaviour. Flag-gated so disabling
+// contestStageSubmissions hides the (server-stripped) artifact boxes entirely.
+const { features } = useFeatures();
 const artifactStage = computed(() => {
+  if (features.value.contestStageSubmissions === false) return null;
   const c = contest.value;
   if (!c || !currentRoundId.value) return null;
   const stages = normalizeStages(c);

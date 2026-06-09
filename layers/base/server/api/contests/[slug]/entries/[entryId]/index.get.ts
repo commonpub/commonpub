@@ -38,6 +38,9 @@ export default defineEventHandler(async (event): Promise<ContestEntryItem> => {
 
   if (!shouldRevealScores(contest.judgingVisibility, contest.status, privileged)) {
     entry.score = null;
+    // Per-round snapshot scores honour revealScores too (the cohort outcome
+    // itself stays public, mirroring the entries listing).
+    entry.stageState = entry.stageState.map((s) => ({ ...s, score: null }));
   }
   if (!privileged) {
     delete entry.judgeScores;

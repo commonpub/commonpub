@@ -592,7 +592,14 @@ export async function listContestEntries(
       userId: row.entry.userId,
       score: revealScores ? row.entry.score : null,
       rank: row.entry.rank,
-      stageState: row.entry.stageState ?? [],
+      // The cohort outcome (advanced/eliminated) is public, but the per-round
+      // snapshot SCORE honours revealScores like the live aggregate — otherwise
+      // a judges-only/private contest leaks round scores through the snapshots.
+      // Rank stays (mirrors the always-exposed top-level rank, so winners can
+      // be announced).
+      stageState: revealScores
+        ? row.entry.stageState ?? []
+        : (row.entry.stageState ?? []).map((s) => ({ ...s, score: null })),
       eliminated: isEliminated(row.entry),
       submittedAt: row.entry.submittedAt,
       contentTitle: row.content.title,
