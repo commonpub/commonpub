@@ -145,6 +145,43 @@ describe('AdminThemeStudio — generate contract', () => {
     expect(payload!.tokens['accent']).toMatch(/^#[0-9a-f]{6}$/i);
   });
 
+  it('the Glass archetype emits treatment tokens; switching archetype clears them', async () => {
+    const { getByText, emitted } = render(AdminThemeStudio);
+    await fireEvent.click(getByText('Glass'));
+    let payload = lastEmit<GeneratePayload>(emitted() as Record<string, unknown[]>, 'generate');
+    expect(payload!.tokens['surface-backdrop']).toMatch(/^blur\(/);
+    expect(payload!.tokens['bg-image']).toMatch(/^linear-gradient\(/);
+    expect(payload!.tokens['cpub-topbar-blur']).toMatch(/^blur\(/);
+    expect(validateTokenOverrides(payload!.tokens).invalid).toEqual([]);
+    // Ethos switch must REPLACE treatment, not merge it — Brutalist is opaque.
+    await fireEvent.click(getByText('Brutalist'));
+    payload = lastEmit<GeneratePayload>(emitted() as Record<string, unknown[]>, 'generate');
+    expect(payload!.tokens['surface-backdrop']).toBeUndefined();
+    expect(payload!.tokens['bg-image']).toBeUndefined();
+    expect((payload!.recipe as { treatment?: unknown }).treatment).toBeUndefined();
+  });
+
+  it('the Feel-step Glass slider + gradient toggle drive the treatment', async () => {
+    const { getByText, getByLabelText, emitted } = render(AdminThemeStudio);
+    for (let i = 0; i < 3; i++) await fireEvent.click(getByText('Next')); // → Feel
+    const slider = getByLabelText('Glass strength') as HTMLInputElement;
+    slider.value = '12';
+    await fireEvent.input(slider);
+    let payload = lastEmit<GeneratePayload>(emitted() as Record<string, unknown[]>, 'generate');
+    expect((payload!.recipe as { treatment?: { glass?: number } }).treatment?.glass).toBeCloseTo(0.12);
+    expect(payload!.tokens['surface']).toMatch(/^rgba\(/);
+    await fireEvent.click(getByLabelText('Toggle background gradient'));
+    payload = lastEmit<GeneratePayload>(emitted() as Record<string, unknown[]>, 'generate');
+    expect(payload!.tokens['bg-image']).toMatch(/^linear-gradient\(/);
+    // Sliding back to 0 with the gradient off again stores NO treatment.
+    await fireEvent.click(getByLabelText('Toggle background gradient'));
+    slider.value = '0';
+    await fireEvent.input(slider);
+    payload = lastEmit<GeneratePayload>(emitted() as Record<string, unknown[]>, 'generate');
+    expect((payload!.recipe as { treatment?: unknown }).treatment).toBeUndefined();
+    expect(payload!.tokens['surface-backdrop']).toBeUndefined();
+  });
+
   it('seeds its controls from a provided recipe (opens on My colors tab)', () => {
     const recipe = {
       mode: 'light' as const,

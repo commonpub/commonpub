@@ -164,6 +164,10 @@ function formatCount(n: number | undefined): string {
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  /* Edge-spanning section inside the card's overflow:hidden — the container
+     clips the outer corners; rounding HERE creates wedge gaps on rounded
+     themes (universal radius leak). */
+  border-radius: 0;
 }
 
 .cpub-cc-cover {

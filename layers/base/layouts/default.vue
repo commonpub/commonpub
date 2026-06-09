@@ -281,6 +281,7 @@ const userUsername = computed(() => user.value?.username ?? '');
   border-bottom-left-radius: var(--cpub-topbar-radius, 0);
   border-bottom-right-radius: var(--cpub-topbar-radius, 0);
   box-shadow: var(--cpub-topbar-shadow, none);
+  -webkit-backdrop-filter: var(--cpub-topbar-blur, none);
   backdrop-filter: var(--cpub-topbar-blur, none);
   display: flex; align-items: center;
   padding: 0 var(--cpub-topbar-padding-x, 20px); gap: 0; z-index: 100;

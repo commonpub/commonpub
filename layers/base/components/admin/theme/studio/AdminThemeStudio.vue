@@ -83,8 +83,30 @@ const SCHEMES: { val: HarmonyScheme; label: string }[] = [
 // --- Design-ethos archetype (Phase 3) ----------------------------------
 // Applies a whole structural preset (shape/shadow/border/type/density/texture)
 // while preserving the user's chosen color + mode, then tags the recipe.
+// `treatment` is REPLACED, not merged: switching Glass → Brutalist must clear
+// the translucency, otherwise the ethos switch is incoherent.
 function applyArchetype(a: DesignArchetype): void {
-  recipe.value = { ...recipe.value, ...a.patch, archetype: a.k };
+  const { treatment, ...rest } = a.patch;
+  recipe.value = { ...recipe.value, ...rest, treatment, archetype: a.k };
+}
+
+// --- Surface treatment (glass + page gradient) --------------------------
+// Normalized so "all off" stores `undefined` (keeps legacy recipes and the
+// no-treatment projection byte-identical).
+const glassPct = computed(() => Math.round((recipe.value.treatment?.glass ?? 0) * 100));
+function setTreatment(patch: { glass?: number; bgGradient?: boolean }): void {
+  const next = {
+    glass: recipe.value.treatment?.glass ?? 0,
+    bgGradient: recipe.value.treatment?.bgGradient ?? false,
+    ...patch,
+  };
+  recipe.value.treatment =
+    next.glass > 0 || next.bgGradient
+      ? {
+          ...(next.glass > 0 ? { glass: next.glass } : {}),
+          ...(next.bgGradient ? { bgGradient: true } : {}),
+        }
+      : undefined;
 }
 
 // --- Neutral temperature (Phase 2) -------------------------------------
@@ -529,6 +551,14 @@ function finishWith(apply: boolean): void {
           <span class="cpub-studio-lbl">Grain <span class="cpub-studio-val">{{ Math.round(recipe.texture * 100) }}%</span></span>
           <input type="range" min="0" max="12" :value="Math.round(recipe.texture * 100)" class="cpub-studio-range" @input="recipe.texture = Number(($event.target as HTMLInputElement).value) / 100" />
         </label>
+        <label class="cpub-studio-field">
+          <span class="cpub-studio-lbl">Glass <span class="cpub-studio-val">{{ glassPct }}%</span></span>
+          <input type="range" min="0" max="30" :value="glassPct" class="cpub-studio-range" aria-label="Glass strength" @input="setTreatment({ glass: Number(($event.target as HTMLInputElement).value) / 100 })" />
+        </label>
+        <div class="cpub-studio-toggle-line">
+          <span class="cpub-studio-lbl">Background gradient <span class="cpub-studio-hint">tints toward accent</span></span>
+          <button type="button" class="cpub-studio-switch" :class="{ on: recipe.treatment?.bgGradient }" :aria-pressed="Boolean(recipe.treatment?.bgGradient)" aria-label="Toggle background gradient" @click="setTreatment({ bgGradient: !recipe.treatment?.bgGradient })" />
+        </div>
         <label class="cpub-studio-field">
           <span class="cpub-studio-lbl">Motion</span>
           <span class="cpub-studio-seg">

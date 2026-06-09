@@ -55,6 +55,9 @@ function formatDuration(seconds: number | null | undefined): string {
   background: var(--surface2);
   border-bottom: var(--border-width-default) solid var(--border);
   overflow: hidden;
+  /* Edge-spanning section inside the card's overflow:hidden — rounding here
+     creates wedge gaps on rounded themes; the container clips the corners. */
+  border-radius: 0;
 }
 
 .cpub-video-thumb img {

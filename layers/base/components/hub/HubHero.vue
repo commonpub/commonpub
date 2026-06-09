@@ -67,6 +67,9 @@ const isCompanyHub = computed(() => hubType.value === 'company');
   position: relative;
   overflow: hidden;
   border-bottom: var(--border-width-default) solid var(--border);
+  /* Edge-spanning band inside the hero's overflow:hidden — rounding here
+     creates wedge gaps on rounded themes; the container clips the corners. */
+  border-radius: 0;
 }
 
 .cpub-hub-banner-pattern {
