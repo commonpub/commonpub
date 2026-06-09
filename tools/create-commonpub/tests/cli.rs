@@ -246,10 +246,10 @@ fn package_json_pins_current_commonpub_versions() {
     // Exact pins (not loose `^0.21` prefixes): this test is the forcing
     // function for the RELEASE CHECKLIST — it must fail when template.rs
     // pins go stale after a publish, so update both together.
-    assert!(pkg.contains("\"@commonpub/layer\": \"^0.70.0\""), "layer pin must be ^0.70.0");
-    assert!(pkg.contains("\"@commonpub/server\": \"^2.83.0\""), "server pin must be ^2.83.0");
-    assert!(pkg.contains("\"@commonpub/schema\": \"^0.38.0\""), "schema pin must be ^0.38.0");
-    assert!(pkg.contains("\"@commonpub/config\": \"^0.20.0\""), "config pin must be ^0.20.0");
+    assert!(pkg.contains("\"@commonpub/layer\": \"^0.71.0\""), "layer pin must be ^0.71.0");
+    assert!(pkg.contains("\"@commonpub/server\": \"^2.84.0\""), "server pin must be ^2.84.0");
+    assert!(pkg.contains("\"@commonpub/schema\": \"^0.39.0\""), "schema pin must be ^0.39.0");
+    assert!(pkg.contains("\"@commonpub/config\": \"^0.21.0\""), "config pin must be ^0.21.0");
 
     assert!(pkg.contains("\"pg\""));
     assert!(pkg.contains("\"db:migrate\""));
