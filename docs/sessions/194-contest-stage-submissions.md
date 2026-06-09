@@ -75,6 +75,28 @@ layer 53 files / 959 passed, schema 449, config 25, `pnpm typecheck` 28/28, full
 - Teams + per-entry judge assignment + timeline-clarity work — out of scope per the plan.
 - deveco/heatsync pin bumps remain operator-gated (not part of this release).
 
+## Post-ship audit round (same session)
+
+A fresh-eyes adversarial audit of the shipped surface found two issues, fixed as
+**server 2.84.1 / layer 0.71.1** (PR #23):
+
+1. **stageState snapshot score leak** (pre-existing since session 189, replicated in the new entry
+   GET): `listContestEntries` returned `stageState` unconditionally — including each round's
+   snapshot `score` written by `advanceContestStage` — so a judges-only contest mid-judging (or a
+   `private` one permanently) leaked round scores to the public even though `revealScores` nulled
+   the live aggregate. Snapshot `score` now honours `revealScores` in the listing and the entry
+   detail route; the cohort outcome and `rank` stay public (mirrors the top-level exposure).
+   Locked by a new integration test (advance → public view shows no score anywhere; privileged
+   keeps snapshots).
+2. **Judge page artifact box ignored the flag** (cosmetic): with `contestStageSubmissions` off the
+   server strips artifacts but the template metadata in `stages` jsonb would render empty
+   "Nothing submitted" boxes. `artifactStage` is now flag-gated.
+
+Audit also re-verified (clean): IDOR (entry↔contest slug binding on both new routes), proto-key
+smuggling through `fields`, payload bounds, em-dash-free copy, `var(--*)`-only styles, template
+survival through the edit/create save paths, classic-contest byte-identical judge page, and that
+ContestEntries' new detail links always have the slug in their one usage site.
+
 ## Next steps
 
 - Live end-to-end on commonpub.io after deploy (create a 2-template contest, run the cull, fill the
