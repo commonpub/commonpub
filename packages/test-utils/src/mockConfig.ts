@@ -18,6 +18,7 @@ export function createTestConfig(overrides?: Partial<CommonPubConfig>): CommonPu
       docs: true,
       video: true,
       contests: false,
+      contestStageSubmissions: true,
       events: false,
       learning: true,
       explainers: true,

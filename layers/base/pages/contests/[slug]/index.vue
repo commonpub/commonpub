@@ -127,6 +127,27 @@ const { data: userContent } = useFetch('/api/content', {
 });
 const enteredContentIds = computed(() => new Set(entries.value.map((e) => e.contentId)));
 
+// Per-stage submission artifact (proposal/prototype). When the CURRENT stage
+// is a submission stage carrying a template, entrants with a live entry get
+// the fill-in form on the Entries tab. Flag-gated (rule #2).
+const { features } = useFeatures();
+const currentSubmissionStage = computed(() => {
+  if (!c.value || features.value.contestStageSubmissions === false) return null;
+  if (c.value.status !== 'active') return null;
+  const source = {
+    status: c.value.status,
+    startDate: c.value.startDate,
+    endDate: c.value.endDate,
+    judgingEndDate: c.value.judgingEndDate ?? null,
+    stages: c.value.stages,
+    currentStageId: c.value.currentStageId,
+  };
+  const cid = currentStageId(source);
+  const stage = normalizeStages(source).find((s) => s.id === cid);
+  return stage && stage.kind === 'submission' && stage.submissionTemplate?.length ? stage : null;
+});
+const myEntries = computed(() => entries.value.filter((e) => e.userId === user.value?.id));
+
 // Restrict the submit picker to the contest's eligible content types (if set).
 const eligibleTypes = computed<string[]>(() => (c.value?.eligibleContentTypes as string[] | undefined) ?? []);
 const submittableContent = computed(() => {
@@ -308,6 +329,13 @@ async function withdrawEntry(entryId: string): Promise<void> {
 
           <!-- ENTRIES -->
           <div v-show="activeTab === 'entries'" id="cpub-panel-entries" role="tabpanel" aria-labelledby="cpub-tab-entries" tabindex="0">
+            <ContestStageSubmission
+              v-if="currentSubmissionStage && myEntries.length"
+              :contest-slug="slug"
+              :stage="currentSubmissionStage"
+              :entries="myEntries"
+              @saved="refreshEntries"
+            />
             <div v-if="c?.status === 'active'" class="cpub-entries-cta">
               <div class="cpub-entries-cta-text">
                 <p class="cpub-entries-cta-title"><i class="fa-solid fa-trophy"></i> Enter this contest</p>

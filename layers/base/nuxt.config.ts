@@ -99,6 +99,7 @@ export default defineNuxtConfig({
         docs: true,
         video: true,
         contests: false,
+        contestStageSubmissions: true,
         events: false,
         learning: true,
         explainers: true,

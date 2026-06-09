@@ -34,11 +34,19 @@ export default defineEventHandler(async (event): Promise<{ items: ContestEntryIt
       (await isContestJudge(db, contest.id, user.id));
   }
 
+  // Per-stage artifacts ride along for privileged viewers (judge/owner views)
+  // and for the entrant's OWN entries (pre-filling their submit form). Gated
+  // by the contestStageSubmissions flag (rule #2).
+  const config = useConfig();
+  const artifactsOn = (config.features as unknown as Record<string, boolean>).contestStageSubmissions !== false;
+
   return listContestEntries(db, contest.id, {
     limit: query.limit,
     offset: query.offset,
     orderBy: query.order,
     includeJudgeScores: privileged && query.includeJudgeScores,
+    includeStageSubmissions: privileged && artifactsOn,
+    stageSubmissionsViewerId: artifactsOn ? user?.id : undefined,
     revealScores: shouldRevealScores(contest.judgingVisibility, contest.status, privileged),
   });
 });

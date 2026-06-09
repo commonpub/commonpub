@@ -6,9 +6,11 @@ Source: `packages/schema/src/*.ts`. Re-verified session 191 (2026-06-07).
 exports in `validators.ts`.** Drizzle ORM on PostgreSQL 16. (+3 tables / +3 enums
 since session 181: `mirror_requests` (0014) + `registry_instances` +
 `registry_instance_status` (0015) federation discovery work, sessions 185/186;
-`metrics_daily` (0020) public-API time-series rollups, session 190.)
+`metrics_daily` (0020) public-API time-series rollups, session 190;
+`contest_entries.stage_submissions` (0021) per-stage artifacts, session 194.)
 
-**21 migrations, 0000–0020** (latest `0020_spooky_gideon` = `metrics_daily` table —
+**22 migrations, 0000–0021** (latest `0021_thick_speed` = `contest_entries.stage_submissions`
+jsonb — per-stage submission artifacts, session 194; `0020_spooky_gideon` = `metrics_daily` table —
 public-API Phase 3 analytics time-series, session 190; `0019_regular_tinkerer` =
 `contest_entries.stage_state` jsonb — Phase B2 per-entry cohort outcome, session 189;
 `0018_clean_the_hunter` = `contests.stages` jsonb + `contests.current_stage_id` —
@@ -38,6 +40,7 @@ Phase B1, session 189; `0017_exotic_lyja` = `contest_status` enum `+draft,+pause
 | 0018 | `clean_the_hunter` | `contests.stages` jsonb (default `'[]'`, NOT NULL) + `contests.current_stage_id` text. Contest Phase B1 — explicit ordered stage timeline (`[]` ⇒ server synthesizes the classic Submissions → Judging → Results). Additive. Session 189. |
 | 0019 | `regular_tinkerer` | `contest_entries.stage_state` jsonb (default `'[]'`, NOT NULL). Contest Phase B2 — per-entry cohort outcome (`advanced`/`eliminated` + snapshot score/rank per review stage); empty ⇒ active cohort. Additive. Session 189. |
 | 0020 | `spooky_gideon` | `metrics_daily` table (`day` date, `metric` varchar, `dimension` varchar default `''`, `value` bigint) + `UNIQUE(day,metric,dimension)` (`uq_metrics_daily_day_metric_dim`) + index `idx_metrics_daily_metric_day` on `(metric,day)`. Public-API Phase 3 time-series rollups (`metrics-rollup` plugin backfills then refreshes every 6h). Additive. Session 190. |
+| 0021 | `thick_speed` | `contest_entries.stage_submissions` jsonb (default `'[]'`, NOT NULL). Per-stage submission artifacts (`{stageId, fields, submittedAt}[]` — the filled `submissionTemplate` values for each `submission` stage, upserted while the stage is open). Additive. Session 194. |
 
 ## Files
 
@@ -215,7 +218,7 @@ packages/schema/src/
 | Table | Purpose | Notable |
 |---|---|---|
 | contests | Contests | status enum (**7 states** since 0017: draft, upcoming, active, paused, judging, completed, cancelled — bidirectional transitions); JSONB `prizes` (place AND/OR category) + `judgingCriteria` rubric (0006); `judgingVisibility` + `communityVotingEnabled`; `eligibleContentTypes` + `maxEntriesPerUser` (0007); **`visibility` (public/unlisted/private) + `visibleToRoles` role-gate (0008)**; `coverImageUrl` (0016); `showPrizes` boolean default true (0017); **`stages` jsonb + `currentStageId` (0018)** = explicit ordered stage timeline (`[]` ⇒ server synthesizes Submissions → Judging → Results). **`judges` jsonb is deprecated/dead — judges live in `contestJudges`.** |
-| contestEntries | Submissions | unique(contestId, userId, contentId); JSONB judgeScores (incl. per-criterion `criteriaScores` + per-round `roundId`); `score` (avg, gated by `shouldRevealScores`) + `rank` (RANK(), scored + non-eliminated entries only); **`stageState` jsonb (0019)** = per-entry cohort outcome (`advanced`/`eliminated` + snapshot score/rank per review stage); empty ⇒ active cohort |
+| contestEntries | Submissions | unique(contestId, userId, contentId); JSONB judgeScores (incl. per-criterion `criteriaScores` + per-round `roundId`); `score` (avg, gated by `shouldRevealScores`) + `rank` (RANK(), scored + non-eliminated entries only); **`stageState` jsonb (0019)** = per-entry cohort outcome (`advanced`/`eliminated` + snapshot score/rank per review stage); empty ⇒ active cohort; **`stageSubmissions` jsonb (0021)** = per-stage artifacts (`{stageId, fields, submittedAt}[]` filled from the stage's `submissionTemplate`; privilege-gated in reads) |
 | contestJudges | Judge roster (THE source of truth; `contests.judges` jsonb is dead) | unique(contestId, userId); role enum (lead/judge/guest); invitedAt/acceptedAt — scoring needs accepted + non-guest; can't judge own entry |
 | contestStakeholders | View-only reviewers (0008) | unique(contestId, userId); grants `canViewContest` access to private/unpublished contests without judge/admin rights |
 

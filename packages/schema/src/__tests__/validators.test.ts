@@ -37,6 +37,9 @@ import {
   commentTargetTypeSchema,
   contestStatusSchema,
   videoPlatformSchema,
+  contestStageSchema,
+  submissionTemplateFieldSchema,
+  stageSubmissionSchema,
 } from '../validators';
 
 describe('usernameSchema', () => {
@@ -1042,6 +1045,44 @@ describe('updateContestSchema', () => {
     }) as Record<string, unknown>;
     expect(parsed.judges).toBeUndefined();
     expect(parsed.eligibleContentTypes).toEqual(['project']);
+  });
+});
+
+describe('submissionTemplateFieldSchema + stage submissionTemplate', () => {
+  const field = { key: 'repo_url', label: 'Repository URL', type: 'url', required: true };
+
+  it('accepts a valid template field', () => {
+    expect(submissionTemplateFieldSchema.safeParse(field).success).toBe(true);
+  });
+
+  it('rejects bad keys (uppercase, hyphens, blank, >40 chars)', () => {
+    for (const key of ['RepoUrl', 'repo-url', '', 'a'.repeat(41)]) {
+      expect(submissionTemplateFieldSchema.safeParse({ ...field, key }).success, key).toBe(false);
+    }
+  });
+
+  it('rejects unknown field types', () => {
+    expect(submissionTemplateFieldSchema.safeParse({ ...field, type: 'file' }).success).toBe(false);
+  });
+
+  it('a submission stage carries a template; duplicate keys are rejected', () => {
+    const stage = { id: 's1', name: 'Proposals', kind: 'submission', submissionTemplate: [field] };
+    expect(contestStageSchema.safeParse(stage).success).toBe(true);
+
+    const dup = { ...stage, submissionTemplate: [field, { ...field, label: 'Again' }] };
+    expect(contestStageSchema.safeParse(dup).success).toBe(false);
+  });
+});
+
+describe('stageSubmissionSchema', () => {
+  it('accepts a bounded fields record and rejects oversized values', () => {
+    expect(stageSubmissionSchema.safeParse({ stageId: 'prop', fields: { summary: 'A plan' } }).success).toBe(true);
+    expect(stageSubmissionSchema.safeParse({ stageId: 'prop', fields: { summary: 'x'.repeat(4001) } }).success).toBe(false);
+  });
+
+  it('rejects a payload-bomb field count (>50 keys)', () => {
+    const fields = Object.fromEntries(Array.from({ length: 51 }, (_, i) => [`f${i}`, 'v']));
+    expect(stageSubmissionSchema.safeParse({ stageId: 'prop', fields }).success).toBe(false);
   });
 });
 

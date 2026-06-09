@@ -18,6 +18,9 @@ export {
   currentStage,
   isEliminated,
   advanceContestStage,
+  getContestEntry,
+  submitStageArtifact,
+  validateStageArtifactFields,
 } from './contest.js';
 export type {
   ContestListItem,

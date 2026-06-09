@@ -27,6 +27,10 @@ export const featureFlagsSchema = z.object({
   docs: z.boolean().default(true),
   video: z.boolean().default(true),
   contests: z.boolean().default(false),
+  // Per-stage submission artifacts (proposal → prototype). Default ON, but
+  // inert until an organizer defines a stage `submissionTemplate`; no effect
+  // unless `contests` is also on.
+  contestStageSubmissions: z.boolean().default(true),
   events: z.boolean().default(false),
   learning: z.boolean().default(true),
   explainers: z.boolean().default(true),

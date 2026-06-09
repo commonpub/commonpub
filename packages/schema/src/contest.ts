@@ -48,6 +48,40 @@ export interface ContestStage {
    * Optional; null/undefined = decided ad-hoc at advance time.
    */
   advanceCount?: number;
+  /**
+   * Per-stage submission template (per-stage artifacts). Only meaningful for
+   * `submission` stages — defines the fields an entrant fills for THIS stage
+   * (e.g. a proposal round asks for summary/focus/approach; a prototype round
+   * asks for repo URL/demo video). The filled values are snapshotted onto the
+   * entry's `stageSubmissions`. Absent/empty ⇒ the stage collects no artifact
+   * (classic content-only entry), so this is fully additive.
+   */
+  submissionTemplate?: ContestSubmissionTemplateField[];
+}
+
+/** One field of a `submission` stage's artifact template. */
+export interface ContestSubmissionTemplateField {
+  /** Stable machine key (`^[a-z0-9_]+$`) — the key in `stageSubmissions.fields`. */
+  key: string;
+  /** Human label shown on the entrant form + artifact views. */
+  label: string;
+  type: 'text' | 'textarea' | 'url';
+  required: boolean;
+  /** Optional hint shown under the input. */
+  help?: string;
+}
+
+/**
+ * A per-stage artifact on an entry: the filled template values for one
+ * `submission` stage, snapshotted at submit time. Replaced (not appended) on
+ * re-submit while the stage is open.
+ */
+export interface ContestStageSubmission {
+  stageId: string;
+  /** Template-field key → entrant-supplied value. */
+  fields: Record<string, string>;
+  /** ISO timestamp of the (latest) submit. */
+  submittedAt: string;
 }
 
 /** @v2 — Contest system. Tables defined but not yet referenced in application code. */
@@ -175,6 +209,13 @@ export const contestEntries = pgTable('contest_entries', {
       rank?: number | null;
     }>
   >().default([]).notNull(),
+  /**
+   * Per-stage artifacts (per-stage submissions). One row per `submission` stage
+   * the entrant has filled — the proposal fields, then the prototype fields —
+   * each snapshotted with its template values. `[]` ⇒ no artifacts (classic
+   * content-only entry). Upserted by stage while that stage is open.
+   */
+  stageSubmissions: jsonb('stage_submissions').$type<ContestStageSubmission[]>().default([]).notNull(),
   submittedAt: timestamp('submitted_at', { withTimezone: true }).defaultNow().notNull(),
 }, (t) => [
   unique('contest_entries_user_content').on(t.contestId, t.userId, t.contentId),

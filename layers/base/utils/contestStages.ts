@@ -1,4 +1,4 @@
-import type { ContestStage } from '@commonpub/schema';
+import type { ContestStage, ContestSubmissionTemplateField } from '@commonpub/schema';
 
 // Client mirror of the pure stage helpers in @commonpub/server `contest.ts`
 // (synthesizeStages / normalizeStages / currentStage). Deliberately duplicated —
@@ -92,6 +92,74 @@ export function withStageMoved(stages: ContestStage[], i: number, dir: -1 | 1): 
   [next[i], next[j]] = [next[j]!, next[i]!];
   return next;
 }
+
+// ─── Submission-template field operations (per-stage artifacts) ───
+
+/** Derive a stable machine key (`^[a-z0-9_]+$`, max 40) from a human label. */
+export function fieldKeyFromLabel(label: string): string {
+  const key = label
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .slice(0, 40);
+  return key || 'field';
+}
+
+export function blankTemplateField(): ContestSubmissionTemplateField {
+  return { key: '', label: '', type: 'text', required: false };
+}
+
+function withTemplate(stages: ContestStage[], i: number, template: ContestSubmissionTemplateField[]): ContestStage[] {
+  return stages.map((s, idx) => (idx === i ? { ...s, submissionTemplate: template.length ? template : undefined } : s));
+}
+
+export function withTemplateFieldAdded(stages: ContestStage[], i: number): ContestStage[] {
+  const cur = stages[i]?.submissionTemplate ?? [];
+  return withTemplate(stages, i, [...cur, blankTemplateField()]);
+}
+
+export function withTemplateFieldSet(
+  stages: ContestStage[],
+  i: number,
+  fi: number,
+  patch: Partial<ContestSubmissionTemplateField>,
+): ContestStage[] {
+  const cur = (stages[i]?.submissionTemplate ?? []).map((f, idx) => (idx === fi ? { ...f, ...patch } : f));
+  return withTemplate(stages, i, cur);
+}
+
+/**
+ * Set a field's label, keeping the machine key in sync while it still "tracks"
+ * the label (empty, or equal to the auto-key of the previous label). A key the
+ * organizer edited by hand is left alone — once entrants have submitted, keys
+ * are what artifact values hang off, so they must stay stable.
+ */
+export function withTemplateFieldLabelChanged(
+  stages: ContestStage[],
+  i: number,
+  fi: number,
+  label: string,
+): ContestStage[] {
+  const field = stages[i]?.submissionTemplate?.[fi];
+  if (!field) return stages;
+  const tracksLabel = !field.key || field.key === fieldKeyFromLabel(field.label);
+  const patch: Partial<ContestSubmissionTemplateField> = tracksLabel
+    ? { label, key: fieldKeyFromLabel(label) }
+    : { label };
+  return withTemplateFieldSet(stages, i, fi, patch);
+}
+
+export function withTemplateFieldRemoved(stages: ContestStage[], i: number, fi: number): ContestStage[] {
+  const cur = (stages[i]?.submissionTemplate ?? []).filter((_, idx) => idx !== fi);
+  return withTemplate(stages, i, cur);
+}
+
+/** Human label for each template field type (for the editor dropdown). */
+export const TEMPLATE_FIELD_TYPE_LABEL: Record<ContestSubmissionTemplateField['type'], string> = {
+  text: 'Short text',
+  textarea: 'Long text',
+  url: 'Link (URL)',
+};
 
 /** FontAwesome icon (no `fa-solid` prefix) for each stage kind. */
 export const STAGE_KIND_ICON: Record<ContestStage['kind'], string> = {

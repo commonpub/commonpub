@@ -78,6 +78,14 @@ function confirmWithdraw(entryId: string): void {
     emit('withdraw', entryId);
   }
 }
+
+// Cards link to the entry detail page (content summary + per-stage artifacts)
+// when we know the contest slug; otherwise straight to the content item.
+function entryLink(entry: Serialized<ContestEntryItem>): string {
+  return props.contestSlug
+    ? `/contests/${props.contestSlug}/entries/${entry.id}`
+    : `/u/${entry.authorUsername}/${entry.contentType}/${entry.contentSlug}`;
+}
 </script>
 
 <template>
@@ -104,7 +112,7 @@ function confirmWithdraw(entryId: string): void {
           <span v-else-if="entry.stageState && entry.stageState.some((s) => s.status === 'advanced')" class="cpub-entry-cohort cpub-cohort-in"><i class="fa-solid fa-circle-check"></i> Advanced</span>
         </div>
         <div class="cpub-entry-body">
-          <NuxtLink :to="`/u/${entry.authorUsername}/${entry.contentType}/${entry.contentSlug}`" class="cpub-entry-title">{{ entry.contentTitle || `Entry #${i + 1}` }}</NuxtLink>
+          <NuxtLink :to="entryLink(entry)" class="cpub-entry-title">{{ entry.contentTitle || `Entry #${i + 1}` }}</NuxtLink>
           <div class="cpub-entry-author">
             <div class="cpub-entry-av">
               <img v-if="entry.authorAvatarUrl" :src="entry.authorAvatarUrl" :alt="entry.authorName || entry.authorUsername" class="cpub-entry-av-img" />

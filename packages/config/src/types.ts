@@ -11,6 +11,14 @@ export interface FeatureFlags {
   video: boolean;
   /** Enable contest system */
   contests: boolean;
+  /**
+   * Per-stage submission artifacts for multi-round contests (proposal →
+   * prototype). Gates the stage template editor + the entrant submit/artifact
+   * surfaces. Default ON — inert until an organizer adds a `submissionTemplate`
+   * to a `submission` stage, so flipping it on changes nothing by itself.
+   * No effect unless `contests` is also on.
+   */
+  contestStageSubmissions: boolean;
   /** Enable events system (listing, RSVP, calendar) */
   events: boolean;
   /** Enable learning paths (enrollment, progress, certificates) */

@@ -117,6 +117,42 @@ Two optional per-contest controls (default = unrestricted, set in create/edit):
 (The unique constraint `(contestId, userId, contentId)` already prevents
 submitting the *same* content twice, independent of the cap.)
 
+## Per-stage submissions (multi-stage artifacts)
+
+For multi-phase contests (proposal → prototype), each `submission`-kind stage can
+carry a **submission template** — the fields entrants must fill for *that* stage's
+artifact. Gated by `features.contestStageSubmissions` (default ON, inert until a
+template is defined; no effect unless `contests` is on too).
+
+- **Define it**: in the stages editor, a `submission` stage gets a "Submission
+  form, this stage" panel — add fields with a label, a type (`text` / `textarea` /
+  `url`), a required toggle, and an optional hint. Field keys derive from the
+  label and stay stable once hand-edited (artifact values hang off them).
+- **Fill it**: an entrant with a live entry sees the form on the contest page's
+  Entries tab while the contest is `active` and that stage is **current**.
+  Re-submitting while the stage is open replaces the artifact (snapshotted with
+  `submittedAt`). The cohort gate applies: an entry culled at a review stage
+  cannot submit later-stage artifacts.
+- **Validation**: required fields must be non-blank; `url` fields accept
+  `http(s)://` only (`javascript:` and friends are rejected); unknown keys are
+  rejected; values cap at 4000 chars. Server-enforced in
+  `validateStageArtifactFields` (pure, exhaustively tested).
+- **Judge it**: the judge page shows each entry's artifact for the round being
+  judged — the nearest `submission` stage preceding the current review stage —
+  beside the per-round rubric, plus an "All submissions" link.
+- **View it**: `/contests/:slug/entries/:entryId` is the entry-detail page — the
+  content summary plus every stage's artifact in a timeline. Artifacts are
+  visible to judges/owner/admin and the entrant; the public sees the content
+  card only. Entry cards link here.
+- **Storage**: templates live on `contests.stages[].submissionTemplate` (jsonb,
+  no migration); artifacts on `contest_entries.stage_submissions`
+  (migration 0021, additive `[]` default).
+
+A typical Resilient-America-style flow: a *Proposals* stage with a summary/focus
+template → a *Screening* review round (Top-N cull) → a *Prototype* stage whose
+template asks for repo + demo URLs (only advanced entrants can fill it) → a
+*Final Judging* round scoring the prototype artifact.
+
 ## Community voting
 
 When `communityVotingEnabled`, signed-in members can upvote entries (one vote

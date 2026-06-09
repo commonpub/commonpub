@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ContestStage } from '@commonpub/schema';
+import type { ContestStage, ContestSubmissionTemplateField } from '@commonpub/schema';
 
 // Phase B1 — define an arbitrary, ordered stage timeline for a contest. Empty ⇒
 // the contest uses the synthesized standard flow (Submissions → Judging → Results),
@@ -66,6 +66,26 @@ function critWeightInput(i: number, ci: number, e: Event): void {
 function advanceCountInput(i: number, e: Event): void {
   const v = (e.target as HTMLInputElement).value;
   setField(i, { advanceCount: v === '' ? undefined : Math.max(1, Math.round(Number(v))) });
+}
+
+// Per-stage submission template (submission stages): what entrants fill for
+// THIS stage's artifact (proposal vs prototype). Array ops live as pure
+// functions in utils/contestStages.ts (unit-tested). Flag-gated (rule #2).
+const { features } = useFeatures();
+const templatesEnabled = computed(() => features.value.contestStageSubmissions !== false);
+const FIELD_TYPES: ContestSubmissionTemplateField['type'][] = ['text', 'textarea', 'url'];
+
+function addTemplateField(i: number): void {
+  commit(withTemplateFieldAdded(stages.value, i));
+}
+function setTemplateField(i: number, fi: number, patch: Partial<ContestSubmissionTemplateField>): void {
+  commit(withTemplateFieldSet(stages.value, i, fi, patch));
+}
+function templateFieldLabelInput(i: number, fi: number, e: Event): void {
+  commit(withTemplateFieldLabelChanged(stages.value, i, fi, (e.target as HTMLInputElement).value));
+}
+function removeTemplateField(i: number, fi: number): void {
+  commit(withTemplateFieldRemoved(stages.value, i, fi));
 }
 
 // Array operations live as pure functions in utils/contestStages.ts (unit-tested).
@@ -212,6 +232,54 @@ const missingSubmission = computed(() => stages.value.length > 0 && !stages.valu
             </div>
           </div>
 
+          <!-- Per-stage submission template (submission stages): the artifact
+               fields entrants fill for THIS stage (proposal vs prototype). -->
+          <div v-if="stage.kind === 'submission' && templatesEnabled" class="cpub-stage-criteria">
+            <div class="cpub-stage-criteria-head">
+              <span class="cpub-form-label" style="margin: 0;">Submission form, this stage</span>
+              <button type="button" class="cpub-btn cpub-btn-sm" @click="addTemplateField(i)"><i class="fa-solid fa-plus"></i> Add field</button>
+            </div>
+            <p class="cpub-form-hint" style="margin: 4px 0;">Optional. Add fields entrants must fill for this stage (e.g. a proposal summary, or a repository link for a prototype round). Leave empty if entering a project is enough.</p>
+            <div v-for="(tf, fi) in (stage.submissionTemplate ?? [])" :key="fi" class="cpub-stage-tfield">
+              <div class="cpub-stage-tfield-main">
+                <input
+                  :value="tf.label"
+                  type="text"
+                  class="cpub-form-input"
+                  placeholder="Field label (e.g. Repository URL)"
+                  :aria-label="`Field ${fi + 1} label`"
+                  @input="templateFieldLabelInput(i, fi, $event)"
+                />
+                <select
+                  :value="tf.type"
+                  class="cpub-form-input cpub-stage-tfield-type"
+                  :aria-label="`Field ${fi + 1} type`"
+                  @change="setTemplateField(i, fi, { type: ($event.target as HTMLSelectElement).value as ContestSubmissionTemplateField['type'] })"
+                >
+                  <option v-for="t in FIELD_TYPES" :key="t" :value="t">{{ TEMPLATE_FIELD_TYPE_LABEL[t] }}</option>
+                </select>
+                <label class="cpub-stage-tfield-req">
+                  <input
+                    type="checkbox"
+                    :checked="tf.required"
+                    :aria-label="`Field ${fi + 1} required`"
+                    @change="setTemplateField(i, fi, { required: ($event.target as HTMLInputElement).checked })"
+                  />
+                  <span>Required</span>
+                </label>
+                <button type="button" class="cpub-stage-iconbtn cpub-stage-del" aria-label="Remove field" @click="removeTemplateField(i, fi)"><i class="fa-solid fa-xmark"></i></button>
+              </div>
+              <input
+                :value="tf.help ?? ''"
+                type="text"
+                class="cpub-form-input cpub-stage-tfield-help"
+                placeholder="Hint shown under the input (optional)"
+                :aria-label="`Field ${fi + 1} hint`"
+                @input="setTemplateField(i, fi, { help: ($event.target as HTMLInputElement).value || undefined })"
+              />
+            </div>
+          </div>
+
           <div v-if="stage.kind === 'event'" class="cpub-form-row">
             <div class="cpub-form-field">
               <label class="cpub-form-label">Location</label>
@@ -267,4 +335,12 @@ const missingSubmission = computed(() => stages.value.length > 0 && !stages.valu
 .cpub-stage-crit-row .cpub-form-input { margin: 0; }
 .cpub-stage-crit-pts { max-width: 70px; flex-shrink: 0; }
 .cpub-stage-advn { max-width: 320px; }
+.cpub-stage-tfield { margin-top: 8px; padding-top: 8px; border-top: var(--border-width-default) dashed var(--border2); }
+.cpub-stage-tfield:first-of-type { border-top: 0; padding-top: 0; }
+.cpub-stage-tfield-main { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.cpub-stage-tfield-main .cpub-form-input { flex: 2; min-width: 140px; margin: 0; }
+.cpub-stage-tfield-type { flex: 1 !important; min-width: 110px !important; max-width: 150px; }
+.cpub-stage-tfield-req { display: inline-flex; align-items: center; gap: 5px; font-size: 10px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .06em; color: var(--text-faint); cursor: pointer; flex-shrink: 0; }
+.cpub-stage-tfield-req input { width: 13px; height: 13px; }
+.cpub-stage-tfield-help { margin-top: 6px !important; font-size: var(--text-xs) !important; }
 </style>
