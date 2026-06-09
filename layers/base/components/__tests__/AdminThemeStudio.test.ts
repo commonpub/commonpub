@@ -109,12 +109,40 @@ describe('AdminThemeStudio — generate contract', () => {
   });
 
   it('the harmony scheme + secondary controls are present (custom color tab)', async () => {
-    const { getByText, container } = render(AdminThemeStudio);
+    const { getByText } = render(AdminThemeStudio);
     await fireEvent.click(getByText('My colors'));
     expect(getByText('Color family')).toBeTruthy();
     expect(getByText('Hand-pick secondary')).toBeTruthy();
-    // The "suggested family" strip renders the accent + harmony companions.
-    expect(container.querySelector('.cpub-studio-family')).toBeTruthy();
+  });
+
+  it('offers applicable palette-option cards from the accent (Phase 4)', async () => {
+    const { getByText, container, emitted } = render(AdminThemeStudio);
+    await fireEvent.click(getByText('My colors'));
+    const cards = Array.from(container.querySelectorAll('.cpub-studio-palopt'));
+    expect(cards.length).toBeGreaterThanOrEqual(4);
+    // ("Mono" also names a scheme button, so click the card by its own name.)
+    const cardByName = (label: string): Element => {
+      const c = cards.find((el) => el.querySelector('.cpub-studio-palopt-name')?.textContent === label);
+      if (!c) throw new Error(`palette card "${label}" not found`);
+      return c;
+    };
+    await fireEvent.click(cardByName('Vivid'));
+    let payload = lastEmit<GeneratePayload>(emitted() as Record<string, unknown[]>, 'generate');
+    expect((payload!.recipe as { secondary?: string }).secondary).toBeTruthy();
+    await fireEvent.click(cardByName('Mono'));
+    payload = lastEmit<GeneratePayload>(emitted() as Record<string, unknown[]>, 'generate');
+    expect((payload!.recipe as { neutralSat?: number }).neutralSat).toBe(0);
+  });
+
+  it('HSL sliders adjust the accent (Phase 4)', async () => {
+    const { getByText, container, emitted } = render(AdminThemeStudio);
+    await fireEvent.click(getByText('My colors'));
+    const hue = container.querySelector('.cpub-studio-hsl input[type="range"]') as HTMLInputElement;
+    expect(hue).toBeTruthy();
+    hue.value = '10';
+    await fireEvent.input(hue);
+    const payload = lastEmit<GeneratePayload>(emitted() as Record<string, unknown[]>, 'generate');
+    expect(payload!.tokens['accent']).toMatch(/^#[0-9a-f]{6}$/i);
   });
 
   it('seeds its controls from a provided recipe (opens on My colors tab)', () => {

@@ -211,8 +211,8 @@ a minute (`curl deveco.io/api/content?limit=5`, today's timestamp).
 | @commonpub/auth | 0.8.0 | | @commonpub/docs | 0.6.3 |
 | @commonpub/server | **2.83.0** | | @commonpub/learning | 0.5.2 |
 | @commonpub/ui | **0.12.1** | | @commonpub/test-utils | 0.5.6 |
-| @commonpub/layer | **0.69.0** | | @commonpub/theme-studio | **0.4.0** |
-| create-commonpub (crates.io) | **0.5.11** | | | |
+| @commonpub/layer | **0.70.0** | | @commonpub/theme-studio | **0.5.0** |
+| create-commonpub (crates.io) | **0.5.12** | | | |
 
 **Stoa theme (session 190, ui 0.10.0 / layer 0.63.0):** new built-in theme family (light + dark) —
 warm paper, moss accent, Fraunces/Newsreader/Work Sans, soft rounded geometry; shares Agora's Town

@@ -56,6 +56,20 @@ intentional and block components carry their own resets). Fixes shipped:
   Stoa's is blurred), so it's a design change to surface separately, not a silent fix. Archetypes still
   differ clearly via radius/border/font/density/texture. theme-studio 69 / layer 937 green.
 
+## Phase 4 — color-UX (theme-studio 0.5.0 / layer 0.70.0)
+
+Addresses "custom colors doesn't give multiple options / ui is janky":
+- **Palette-option cards:** new `suggestPalettes(accent, mode)` in theme-studio derives 5 ready-to-apply
+  harmonized options (Classic / Warm / Cool / Mono / Vivid — varying neutral temperature + secondary)
+  each with a 5-swatch preview; the wizard shows them as a card row (`applyPaletteSuggestion` sets
+  scheme+neutral+secondary in one click; `activePalette` highlights the match). Replaced the old
+  "Suggested family" strip.
+- **HSL sliders:** the accent control gains H/S/L range sliders (`setAccentHsl` via hexToHsl/hslToHex)
+  beside the swatch + hex + image-extract — a real picker instead of the bare native swatch.
+- Tests: theme-studio 70 (+ suggestPalettes), layer 939 (+ palette-card + HSL wiring; updated the
+  family-strip test). Also bumped the lagging CLI pins (layer ^0.70 / schema ^0.38) so fresh scaffolds
+  include all of Phases 1-4 + the audit fixes (they were pinned at ^0.68/^0.37).
+
 ## Deferred (next increments)
 - **Phase 4 — color-UX redesign:** palette-option cards (one accent → several harmonized options),
   a real HSL picker (replace the native swatch), an A11y contrast matrix.
