@@ -1,6 +1,10 @@
 # Plan: Contest per-stage submission artifacts (proposal → prototype)
 
-> Status: in progress (session 193, 2026-06-09). Scope + design confirmed with
+> Status: **implemented + released** (session 194, 2026-06-09) — schema 0.39.0 / config 0.21.0 /
+> server 2.84.0 / layer 0.71.0, migration 0021, CLI 0.5.13. Both phases shipped in one pass; see
+> `docs/sessions/194-contest-stage-submissions.md`. Remaining: the live end-to-end walkthrough on
+> commonpub.io (needs admin/entrant/judge sessions — see Verification below).
+> Plan authored session 193. Scope + design confirmed with
 > the maintainer: **project-based entry + per-stage template fields**, **per-stage submissions only**
 > (teams / per-entry judge assignment / timeline-clarity are out of scope).
 >
