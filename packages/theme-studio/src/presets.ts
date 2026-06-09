@@ -112,6 +112,14 @@ export const SHADOW_PRESETS: ShadowPreset[] = [
  * "same theme, different accent". Archetypes are structure-only — they don't
  * set the accent or mode, so any palette can wear any ethos.
  */
+/** Surface treatment (see ThemeRecipe.treatment in recipe.ts). */
+export interface ThemeTreatment {
+  /** Glass strength 0-0.3: surface translucency + backdrop blur. */
+  glass?: number;
+  /** Emit a subtle page gradient derived from bg + accent. */
+  bgGradient?: boolean;
+}
+
 export interface ArchetypePatch {
   scheme?: HarmonyScheme;
   fonts?: { display: string; body: string; ui: string; code: string };
@@ -125,6 +133,9 @@ export interface ArchetypePatch {
   texture?: number;
   neutralSat?: number;
   neutralHue?: number;
+  /** Surface treatment. Applying an archetype REPLACES the recipe's
+   *  treatment (absent here clears glass), so ethos switches stay coherent. */
+  treatment?: ThemeTreatment;
 }
 
 export interface DesignArchetype {
@@ -189,6 +200,20 @@ export const DESIGN_ARCHETYPES: DesignArchetype[] = [
       fonts: { display: 'Manrope', body: 'Inter', ui: 'IBM Plex Mono', code: 'JetBrains Mono' },
       ratio: 1.25, spaceBase: 8, density: 'spacious',
       shapeRadius: 16, borderWidth: 0, shadowStyle: 'neumorphic', motion: 'smooth', texture: 0,
+    },
+  },
+  {
+    k: 'glass',
+    label: 'Glass',
+    sub: 'Frosted translucent panels over a soft gradient',
+    patch: {
+      scheme: 'analogous',
+      fonts: { display: 'Sora', body: 'Inter', ui: 'IBM Plex Mono', code: 'JetBrains Mono' },
+      ratio: 1.25, spaceBase: 8, density: 'balanced',
+      shapeRadius: 14, borderWidth: 1, shadowStyle: 'soft', motion: 'smooth', texture: 0,
+      // Glass needs the gradient: backdrop blur over a flat page bg is
+      // visually inert, the pair is what reads as glass.
+      treatment: { glass: 0.12, bgGradient: true },
     },
   },
 ];

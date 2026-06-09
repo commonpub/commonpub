@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { recipeToTokens, recipeToThemePair } from '../generate.js';
-import { hexToHsl } from '../color.js';
+import { hexToHsl, rgbToHex, blendOver, mixHex } from '../color.js';
 import { defaultRecipe, randomizeRecipe, type ThemeRecipe } from '../recipe.js';
 import { COLOR_VIBES, DESIGN_ARCHETYPES } from '../presets.js';
 import { contrast } from '../color.js';
@@ -230,5 +230,96 @@ describe('design archetypes (Phase 3)', () => {
     expect(tokens['shadow-block']).toBe(tokens['shadow-md']);
     expect(tokens['shadow-block']!).toMatch(/-\d+px -\d+px/);
     expect(tokens['shadow-block-sm']).toBe(tokens['shadow-sm']);
+  });
+});
+
+describe('treatment: glass + page gradient (advanced-tokens plan)', () => {
+  /** Parse `rgba(r, g, b, a)` into { hex, alpha }. */
+  function parseRgba(v: string): { hex: string; alpha: number } {
+    const m = v.match(/^rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)$/);
+    if (!m) throw new Error(`not an rgba(): ${v}`);
+    return { hex: rgbToHex(+m[1]!, +m[2]!, +m[3]!), alpha: +m[4]! };
+  }
+
+  // Mirror of the schema's bg-image allowlist (validators.ts
+  // SAFE_BG_IMAGE_RE) — re-declared so a generator change that would fail
+  // the API save goes red HERE, not on the live save path.
+  const SAFE_BG_IMAGE_RE = /^(none|(repeating-)?(linear|radial|conic)-gradient\([^"'\\]+\))$/i;
+
+  it('a recipe WITHOUT treatment emits none of the treatment/chrome keys (legacy lock)', () => {
+    // I2 invariant: pre-treatment recipes must keep producing the exact same
+    // token set. Cheapest complete check: none of the new keys appear.
+    const recipes = [defaultRecipe(), ...Array.from({ length: 30 }, (_, i) => randomizeRecipe(i))];
+    for (const r of recipes) {
+      const { tokens } = recipeToTokens(r);
+      expect(tokens['surface-backdrop']).toBeUndefined();
+      expect(tokens['bg-image']).toBeUndefined();
+      expect(Object.keys(tokens).filter((k) => k.startsWith('cpub-'))).toEqual([]);
+      expect(tokens['surface']).toMatch(/^#/); // solid, not rgba
+    }
+  });
+
+  it('glass 0 / empty treatment is the same as no treatment', () => {
+    const off = recipeToTokens({ ...defaultRecipe(), treatment: { glass: 0 } });
+    const none = recipeToTokens(defaultRecipe());
+    expect(off.tokens).toEqual(none.tokens);
+  });
+
+  it('glass emits translucent surface + backdrop + frosted top bar, all canonical', () => {
+    const { tokens } = recipeToTokens({ ...defaultRecipe(), treatment: { glass: 0.12 } });
+    const surf = parseRgba(tokens['surface']!);
+    expect(surf.alpha).toBeCloseTo(0.88, 2);
+    expect(tokens['surface-backdrop']).toMatch(/^blur\(\d+px\) saturate\([\d.]+\)$/);
+    expect(parseRgba(tokens['cpub-topbar-bg']!).alpha).toBeGreaterThan(surf.alpha);
+    expect(tokens['cpub-topbar-blur']).toMatch(/^blur\(\d+px\)$/);
+    expect(validateTokenOverrides(tokens).invalid).toEqual([]);
+  });
+
+  it('text stays AA against the FLATTENED glass surface for every curated palette, max strength', () => {
+    for (const vibe of COLOR_VIBES) {
+      for (const p of vibe.pals) {
+        const { tokens } = recipeToTokens({
+          ...recipeFromPal(p.a, p.mode, p.s),
+          treatment: { glass: 0.3, bgGradient: true },
+        });
+        const surf = parseRgba(tokens['surface']!);
+        const flat = blendOver(surf.hex, surf.alpha, tokens['bg']!);
+        expect(contrast(tokens['text']!, flat), `${vibe.name}/${p.n} text on glass`).toBeGreaterThanOrEqual(4.5);
+        expect(contrast(tokens['text-dim']!, flat), `${vibe.name}/${p.n} dim on glass`).toBeGreaterThanOrEqual(4.5);
+      }
+    }
+  });
+
+  it('bgGradient emits a url-free gradient that passes the schema allowlist, AA at the far stop', () => {
+    const { tokens } = recipeToTokens({ ...defaultRecipe(), treatment: { bgGradient: true } });
+    const grad = tokens['bg-image']!;
+    expect(grad).toMatch(SAFE_BG_IMAGE_RE);
+    expect(grad.toLowerCase()).not.toContain('url');
+    // Far stop = bg tinted 7% toward the accent; body text must stay AA on it.
+    const far = mixHex(tokens['bg']!, tokens['accent']!, 0.07);
+    expect(grad).toContain(far);
+    expect(contrast(tokens['text']!, far)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it('the Glass archetype carries treatment and survives the projection', () => {
+    const glass = DESIGN_ARCHETYPES.find((a) => a.k === 'glass')!;
+    expect(glass.patch.treatment?.glass).toBeGreaterThan(0);
+    expect(glass.patch.treatment?.bgGradient).toBe(true);
+    const { tokens } = recipeToTokens({ ...defaultRecipe(), ...glass.patch });
+    expect(tokens['surface-backdrop']).toBeTruthy();
+    expect(tokens['bg-image']).toBeTruthy();
+    expect(validateTokenOverrides(tokens).invalid).toEqual([]);
+  });
+
+  it('treatment round-trips through recipeToThemePair (per-mode values)', () => {
+    const r: ThemeRecipe = { ...defaultRecipe(), treatment: { glass: 0.12, bgGradient: true } };
+    const { light, dark } = recipeToThemePair(r);
+    for (const g of [light, dark]) {
+      expect(g.tokens['surface-backdrop']).toBeTruthy();
+      expect(g.tokens['bg-image']).toBeTruthy();
+    }
+    // Each mode frosts its own surfaces (different rgba bases).
+    expect(light.tokens['surface']).not.toBe(dark.tokens['surface']);
+    expect(light.tokens['bg-image']).not.toBe(dark.tokens['bg-image']);
   });
 });
