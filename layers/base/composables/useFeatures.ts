@@ -17,6 +17,9 @@ export interface FeatureFlags {
   docs: boolean;
   video: boolean;
   contests: boolean;
+  /** Per-stage submission artifacts for multi-round contests. Default ON;
+   *  inert until a stage defines a submissionTemplate. */
+  contestStageSubmissions: boolean;
   events: boolean;
   learning: boolean;
   explainers: boolean;
@@ -65,7 +68,7 @@ let hydrated = false;
 // `flags.value.X` access would crash at runtime.
 export const DEFAULT_FLAGS: FeatureFlags = {
   content: true, social: true, hubs: true, docs: true, video: true,
-  contests: false, events: false, learning: true, explainers: true,
+  contests: false, contestStageSubmissions: true, events: false, learning: true, explainers: true,
   editorial: true, federation: false, admin: false, themeStudio: true, emailNotifications: false,
   publicApi: false, contentImport: true,
   layoutEngine: false,
@@ -165,6 +168,7 @@ export function useFeatures() {
     docs: computed(() => flags.value.docs),
     video: computed(() => flags.value.video),
     contests: computed(() => flags.value.contests),
+    contestStageSubmissions: computed(() => flags.value.contestStageSubmissions),
     events: computed(() => flags.value.events),
     learning: computed(() => flags.value.learning),
     explainers: computed(() => flags.value.explainers),

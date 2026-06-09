@@ -1,14 +1,26 @@
 # CommonPub — Status & Operator Runbook
 
-> **Living doc — your "come back later" reference.** Snapshot updated 2026-06-08 (session 193).
+> **Living doc — your "come back later" reference.** Snapshot updated 2026-06-09 (session 194).
 > Verify any version/flag claim before trusting it: `npm view @commonpub/<pkg> version`,
 > `curl https://<instance>/api/features`, `cargo search create-commonpub`.
-> Companion docs: the latest work log `docs/sessions/193-theme-variety.md`, the rolling handoff
-> `docs/sessions/192-kickoff-next.md`, the theme guide `docs/reference/guides/theme-editor.md`.
+> Companion docs: the latest work log `docs/sessions/194-contest-stage-submissions.md`, the rolling
+> handoff `docs/sessions/192-kickoff-next.md`, the contest guide `docs/reference/guides/contests.md`.
 
 ---
 
 ## TL;DR — where things stand
+
+**Contest per-stage submissions** is the newest work (session 194): multi-phase contests can now
+collect a different artifact per `submission` stage — a *proposal* template (summary/focus), then a
+*prototype* template (repo/demo URLs) — filled by entrants on the contest page, shown to judges for
+the round being judged, and browsable on a new entry-detail page
+(`/contests/:slug/entries/:entryId`, artifact timeline; entry cards link there). New flag
+`features.contestStageSubmissions` (default ON, inert until a stage defines a template). Server:
+`submitStageArtifact` (owner + active + current-stage + cohort gates, template-validated, upsert
+while the stage is open), `getContestEntry`, artifact plumbing in `listContestEntries`. Released
+schema 0.39.0 / config 0.21.0 / server 2.84.0 / layer 0.71.0, **migration 0021** (additive
+`contest_entries.stage_submissions`). Plan: `docs/plans/contest-per-stage-submissions.md`; guide
+section in `docs/reference/guides/contests.md`. deveco/heatsync pin bumps operator-gated as usual.
 
 **Theme Studio overhaul** is the newest work (session 193, **LIVE**): (1) fixed the universal
 `border-radius` rule that rounded line breaks/dividers/icons on rounded themes (Stoa) — surfaces keep

@@ -10,6 +10,12 @@ import {
   withStageDuplicated,
   withStageRemoved,
   withStageMoved,
+  fieldKeyFromLabel,
+  blankTemplateField,
+  withTemplateFieldAdded,
+  withTemplateFieldSet,
+  withTemplateFieldLabelChanged,
+  withTemplateFieldRemoved,
   type StageSource,
 } from '../contestStages';
 import type { ContestStage } from '@commonpub/schema';
@@ -110,5 +116,54 @@ describe('pure stage-array operations', () => {
     expect(withStageMoved(start, 1, -1).map((s) => s.id)).toEqual(['b', 'a', 'c']);
     expect(withStageMoved(start, 2, 1).map((s) => s.id)).toEqual(['a', 'b', 'c']); // down at last = no-op
     expect(withStageMoved(start, 0, -1).map((s) => s.id)).toEqual(['a', 'b', 'c']); // up at first = no-op
+  });
+});
+
+describe('submission-template field operations', () => {
+  const stage = (template?: ReturnType<typeof blankTemplateField>[]): ContestStage => ({
+    id: 's1', name: 'Proposals', kind: 'submission', submissionTemplate: template,
+  });
+
+  it('fieldKeyFromLabel slugs to ^[a-z0-9_]+$ with a fallback', () => {
+    expect(fieldKeyFromLabel('Repository URL')).toBe('repository_url');
+    expect(fieldKeyFromLabel('  Demo — video!  ')).toBe('demo_video');
+    expect(fieldKeyFromLabel('???')).toBe('field');
+    expect(fieldKeyFromLabel('x'.repeat(60))).toHaveLength(40);
+  });
+
+  it('withTemplateFieldAdded appends a blank field immutably', () => {
+    const start = [stage()];
+    const next = withTemplateFieldAdded(start, 0);
+    expect(next[0]!.submissionTemplate).toHaveLength(1);
+    expect(start[0]!.submissionTemplate).toBeUndefined(); // original untouched
+  });
+
+  it('withTemplateFieldSet patches one field', () => {
+    const start = [stage([{ key: 'summary', label: 'Summary', type: 'text', required: false }])];
+    const next = withTemplateFieldSet(start, 0, 0, { required: true, type: 'textarea' });
+    expect(next[0]!.submissionTemplate![0]).toEqual({ key: 'summary', label: 'Summary', type: 'textarea', required: true });
+  });
+
+  it('label changes re-derive the key only while it tracks the label', () => {
+    const start = [stage([{ key: 'summary', label: 'Summary', type: 'text', required: false }])];
+    // Key tracks the label → re-derived.
+    const auto = withTemplateFieldLabelChanged(start, 0, 0, 'Project summary');
+    expect(auto[0]!.submissionTemplate![0]!.key).toBe('project_summary');
+    // Hand-edited key → stable across label edits (artifact values hang off it).
+    const pinned = withTemplateFieldSet(start, 0, 0, { key: 'custom_key' });
+    const after = withTemplateFieldLabelChanged(pinned, 0, 0, 'Renamed');
+    expect(after[0]!.submissionTemplate![0]!.key).toBe('custom_key');
+    expect(after[0]!.submissionTemplate![0]!.label).toBe('Renamed');
+  });
+
+  it('withTemplateFieldRemoved drops the field; removing the last clears the template', () => {
+    const start = [stage([
+      { key: 'a', label: 'A', type: 'text', required: false },
+      { key: 'b', label: 'B', type: 'url', required: true },
+    ])];
+    const one = withTemplateFieldRemoved(start, 0, 0);
+    expect(one[0]!.submissionTemplate!.map((f) => f.key)).toEqual(['b']);
+    const none = withTemplateFieldRemoved(one, 0, 0);
+    expect(none[0]!.submissionTemplate).toBeUndefined();
   });
 });

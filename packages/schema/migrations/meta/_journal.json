@@ -148,6 +148,13 @@
       "when": 1780561172430,
       "tag": "0020_spooky_gideon",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1781034947042,
+      "tag": "0021_thick_speed",
+      "breakpoints": true
     }
   ]
 }

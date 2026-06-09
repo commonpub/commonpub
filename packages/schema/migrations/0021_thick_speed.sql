@@ -1,0 +1,1 @@
+ALTER TABLE "contest_entries" ADD COLUMN "stage_submissions" jsonb DEFAULT '[]'::jsonb NOT NULL;

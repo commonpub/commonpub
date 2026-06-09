@@ -5,7 +5,7 @@ import { normalizePagination, countRows } from '../query.js';
 import { isContestStakeholder } from './stakeholders.js';
 import { isContestJudge } from './judges.js';
 
-import type { ContestStatus, ContestStage } from '@commonpub/schema';
+import type { ContestStatus, ContestStage, ContestStageSubmission, ContestSubmissionTemplateField } from '@commonpub/schema';
 
 export type ContestJudgingVisibility = 'public' | 'judges-only' | 'private';
 export type ContestVisibility = 'public' | 'unlisted' | 'private';
@@ -182,6 +182,12 @@ export interface ContestEntryItem {
   /** Phase B2 — per-stage cohort outcome; `eliminated` is the derived convenience. */
   stageState: Array<{ stageId: string; status: 'advanced' | 'eliminated'; score?: number | null; rank?: number | null }>;
   eliminated: boolean;
+  /**
+   * Per-stage artifacts (proposal/prototype field values). Present only when
+   * the caller asked for them (privileged viewers, or the entrant's own rows
+   * via `stageSubmissionsViewerId`) — never on the public listing.
+   */
+  stageSubmissions?: ContestStageSubmission[];
   submittedAt: Date;
   // Enriched fields from joins
   contentTitle: string;
@@ -531,6 +537,11 @@ export async function listContestEntries(
      * results leaderboard so the top finalists surface regardless of submit time.
      */
     orderBy?: 'recent' | 'rank';
+    /** Include per-stage artifacts on EVERY entry. Privileged viewers only. */
+    includeStageSubmissions?: boolean;
+    /** Additionally include per-stage artifacts on this user's OWN entries
+     *  (the entrant always sees what they submitted). */
+    stageSubmissionsViewerId?: string;
   } = {},
 ): Promise<{ items: ContestEntryItem[]; total: number }> {
   const revealScores = opts.revealScores ?? true;
@@ -595,10 +606,64 @@ export async function listContestEntries(
     if (opts.includeJudgeScores) {
       item.judgeScores = (row.entry.judgeScores ?? []) as JudgeScoreEntry[];
     }
+    if (opts.includeStageSubmissions || (opts.stageSubmissionsViewerId && row.entry.userId === opts.stageSubmissionsViewerId)) {
+      item.stageSubmissions = row.entry.stageSubmissions ?? [];
+    }
     return item;
   });
 
   return { items, total };
+}
+
+/**
+ * One enriched entry by id — content + author info, per-stage artifacts, and
+ * per-judge scores. Server-internal: the route layer gates who may see the
+ * artifacts/scores (judges/owner/admin + the entrant themselves).
+ */
+export async function getContestEntry(db: DB, entryId: string): Promise<ContestEntryItem | null> {
+  const rows = await db
+    .select({
+      entry: contestEntries,
+      content: {
+        title: contentItems.title,
+        slug: contentItems.slug,
+        type: contentItems.type,
+        coverImageUrl: contentItems.coverImageUrl,
+      },
+      author: {
+        displayName: users.displayName,
+        username: users.username,
+        avatarUrl: users.avatarUrl,
+      },
+    })
+    .from(contestEntries)
+    .innerJoin(contentItems, eq(contestEntries.contentId, contentItems.id))
+    .innerJoin(users, eq(contestEntries.userId, users.id))
+    .where(eq(contestEntries.id, entryId))
+    .limit(1);
+
+  const row = rows[0];
+  if (!row) return null;
+  return {
+    id: row.entry.id,
+    contestId: row.entry.contestId,
+    contentId: row.entry.contentId,
+    userId: row.entry.userId,
+    score: row.entry.score,
+    rank: row.entry.rank,
+    stageState: row.entry.stageState ?? [],
+    eliminated: isEliminated(row.entry),
+    stageSubmissions: row.entry.stageSubmissions ?? [],
+    submittedAt: row.entry.submittedAt,
+    contentTitle: row.content.title,
+    contentSlug: row.content.slug,
+    contentType: row.content.type,
+    contentCoverImageUrl: row.content.coverImageUrl,
+    authorName: row.author.displayName ?? row.author.username,
+    authorUsername: row.author.username,
+    authorAvatarUrl: row.author.avatarUrl,
+    judgeScores: (row.entry.judgeScores ?? []) as JudgeScoreEntry[],
+  };
 }
 
 export async function submitContestEntry(
@@ -1073,6 +1138,141 @@ export async function calculateContestRanks(
 /** True when an entry was culled at some review stage (Phase B2 cohort gate). */
 export function isEliminated(entry: { stageState?: Array<{ status: string }> | null }): boolean {
   return !!entry.stageState?.some((s) => s.status === 'eliminated');
+}
+
+// --- Per-stage submission artifacts (proposal → prototype) ---
+
+/**
+ * Validate an entrant's artifact fields against the stage's template. Pure +
+ * exhaustively testable. Domain checks, not just shape: unknown keys rejected
+ * (no smuggling values outside the template), required fields must be
+ * non-blank, and `url` fields must be real http(s) URLs — `javascript:` and
+ * friends are known-bad payloads, not "strings that look url-ish".
+ */
+export function validateStageArtifactFields(
+  template: ContestSubmissionTemplateField[],
+  fields: Record<string, string>,
+): { ok: true; fields: Record<string, string> } | { ok: false; error: string } {
+  const byKey = new Map(template.map((f) => [f.key, f]));
+  for (const key of Object.keys(fields)) {
+    if (!byKey.has(key)) return { ok: false, error: `Unknown field: ${key}` };
+    if (typeof fields[key] !== 'string') return { ok: false, error: `Invalid value for ${key}` };
+    if (fields[key]!.length > 4000) return { ok: false, error: `${byKey.get(key)!.label} is too long (max 4000 characters)` };
+  }
+  const clean: Record<string, string> = {};
+  for (const field of template) {
+    const raw = fields[field.key] ?? '';
+    const value = raw.trim();
+    if (!value) {
+      if (field.required) return { ok: false, error: `${field.label} is required` };
+      continue; // optional + blank ⇒ omit from the snapshot
+    }
+    if (field.type === 'url') {
+      // Scheme allow-list FIRST (https?:// only), then structural URL parse.
+      if (!/^https?:\/\//i.test(value)) return { ok: false, error: `${field.label} must be an http(s) URL` };
+      try {
+        const u = new URL(value);
+        if (!u.hostname) return { ok: false, error: `${field.label} must be a valid URL` };
+      } catch {
+        return { ok: false, error: `${field.label} must be a valid URL` };
+      }
+    }
+    clean[field.key] = value;
+  }
+  return { ok: true, fields: clean };
+}
+
+/**
+ * Submit (or update) an entrant's per-stage artifact: the filled template
+ * values for one `submission` stage, snapshotted onto the entry's
+ * `stageSubmissions`. Owner-only. The stage must be the contest's CURRENT
+ * stage while the contest is `active` (status stays the gating truth — the
+ * organizer maps a later submission round back to `active` when advancing).
+ * Re-submitting while the stage is open replaces that stage's artifact.
+ * Cohort gate: an entry culled at a prior review stage can no longer submit.
+ */
+export async function submitStageArtifact(
+  db: DB,
+  entryId: string,
+  stageId: string,
+  fields: Record<string, string>,
+  userId: string,
+): Promise<{ submitted: boolean; stageSubmissions?: ContestStageSubmission[]; error?: string }> {
+  const fail = (error: string) => ({ submitted: false, error });
+
+  const existing = await db
+    .select({
+      entrantId: contestEntries.userId,
+      stageState: contestEntries.stageState,
+      contestStatus: contests.status,
+      stages: contests.stages,
+      currentStageId: contests.currentStageId,
+      startDate: contests.startDate,
+      endDate: contests.endDate,
+      judgingEndDate: contests.judgingEndDate,
+    })
+    .from(contestEntries)
+    .innerJoin(contests, eq(contestEntries.contestId, contests.id))
+    .where(eq(contestEntries.id, entryId))
+    .limit(1);
+
+  if (existing.length === 0) return fail('Entry not found');
+  const row = existing[0]!;
+  if (row.entrantId !== userId) return fail('Not the entry owner');
+
+  if (row.contestStatus !== 'active') {
+    return fail('Stage submissions are only open while the contest is active');
+  }
+
+  const source: StageSource = {
+    status: row.contestStatus,
+    startDate: row.startDate,
+    endDate: row.endDate,
+    judgingEndDate: row.judgingEndDate,
+    stages: row.stages,
+    currentStageId: row.currentStageId,
+  };
+  const stages = normalizeStages(source);
+  const stage = stages.find((s) => s.id === stageId);
+  if (!stage) return fail('Unknown stage');
+  if (stage.kind !== 'submission') return fail('This stage does not accept submissions');
+  const template = stage.submissionTemplate ?? [];
+  if (template.length === 0) return fail('This stage has no submission template');
+
+  const current = currentStage(source);
+  if (current?.id !== stageId) return fail('This stage is not currently open');
+
+  // Cohort gate: once a review cut culled the field, eliminated entries are
+  // out of every later round (mirrors judgeContestEntry's gate).
+  if (isEliminated({ stageState: row.stageState })) {
+    return fail('This entry was not advanced and can no longer submit');
+  }
+
+  const validated = validateStageArtifactFields(template, fields);
+  if (!validated.ok) return fail(validated.error);
+
+  // Atomic read-modify-write: lock the entry row so two concurrent saves of
+  // the same artifact can't clobber each other (same pattern as judgeScores).
+  return db.transaction(async (tx) => {
+    const [locked] = await tx
+      .select({ stageSubmissions: contestEntries.stageSubmissions })
+      .from(contestEntries)
+      .where(eq(contestEntries.id, entryId))
+      .for('update');
+
+    const submissions = (locked?.stageSubmissions ?? []) as ContestStageSubmission[];
+    const record: ContestStageSubmission = { stageId, fields: validated.fields, submittedAt: new Date().toISOString() };
+    const idx = submissions.findIndex((s) => s.stageId === stageId);
+    if (idx >= 0) submissions[idx] = record;
+    else submissions.push(record);
+
+    await tx
+      .update(contestEntries)
+      .set({ stageSubmissions: submissions })
+      .where(eq(contestEntries.id, entryId));
+
+    return { submitted: true, stageSubmissions: submissions };
+  });
 }
 
 export interface AdvanceStageInput {

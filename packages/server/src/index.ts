@@ -566,6 +566,9 @@ export {
   canViewContest,
   advanceContestStage,
   isEliminated,
+  getContestEntry,
+  submitStageArtifact,
+  validateStageArtifactFields,
 } from './contest/index.js';
 export type {
   ContestListItem,

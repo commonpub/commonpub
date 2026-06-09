@@ -37,6 +37,22 @@ const currentRoundId = computed<string | null>(() => {
   return st && st.kind === 'review' ? st.id : null;
 });
 
+// The artifact judges review THIS round: the nearest `submission` stage (with a
+// template) preceding the current review stage — round 1 reviews the proposal,
+// round 2 the prototype. Null for classic contests (no templates), which keeps
+// the page byte-identical to pre-artifact behaviour.
+const artifactStage = computed(() => {
+  const c = contest.value;
+  if (!c || !currentRoundId.value) return null;
+  const stages = normalizeStages(c);
+  const idx = stages.findIndex((s) => s.id === currentRoundId.value);
+  for (let i = idx - 1; i >= 0; i--) {
+    const s = stages[i]!;
+    if (s.kind === 'submission' && s.submissionTemplate?.length) return s;
+  }
+  return null;
+});
+
 // Judging rubric: per-round criteria if the current review stage defines them,
 // else the contest-level rubric. Judges score each criterion (0..max); the overall
 // is the normalized weighted sum (computed server-side).
@@ -79,6 +95,16 @@ const entryList = computed(() => {
   const items = (entriesData.value?.items ?? []).filter((e) => !e.eliminated);
   return items.map((entry) => {
     const myScore = entry.judgeScores?.find((s) => s.judgeId === user.value?.id && (s.roundId ?? null) === currentRoundId.value);
+    // This round's artifact, labelled via the stage template (missing optional
+    // fields simply don't appear).
+    const sub = artifactStage.value
+      ? entry.stageSubmissions?.find((s) => s.stageId === artifactStage.value!.id) ?? null
+      : null;
+    const artifactRows = sub
+      ? (artifactStage.value!.submissionTemplate ?? [])
+          .filter((f) => sub.fields[f.key])
+          .map((f) => ({ key: f.key, label: f.label, type: f.type, value: sub.fields[f.key]! }))
+      : [];
     return {
       id: entry.id,
       contentId: entry.contentId,
@@ -92,6 +118,8 @@ const entryList = computed(() => {
       myScore: myScore?.score ?? null,
       myFeedback: myScore?.feedback ?? '',
       myCriteriaScores: myScore?.criteriaScores ?? null,
+      artifactRows,
+      hasArtifact: !!sub,
     };
   });
 });
@@ -263,6 +291,24 @@ async function submitScore(entryId: string): Promise<void> {
             <NuxtLink :to="`/u/${entry.authorUsername}/${entry.contentType}/${entry.contentSlug}`" class="cpub-judge-entry-link" target="_blank">
               <i class="fa-solid fa-arrow-up-right-from-square"></i> View entry
             </NuxtLink>
+            <NuxtLink :to="`/contests/${slug}/entries/${entry.id}`" class="cpub-judge-entry-link" target="_blank" style="margin-left: 10px;">
+              <i class="fa-solid fa-file-lines"></i> All submissions
+            </NuxtLink>
+
+            <!-- This round's artifact (the proposal / prototype fields) -->
+            <div v-if="artifactStage" class="cpub-judge-artifact">
+              <div class="cpub-judge-artifact-head">{{ artifactStage.name }} submission</div>
+              <dl v-if="entry.hasArtifact && entry.artifactRows.length" class="cpub-judge-artifact-fields">
+                <template v-for="row in entry.artifactRows" :key="row.key">
+                  <dt>{{ row.label }}</dt>
+                  <dd>
+                    <a v-if="row.type === 'url'" :href="row.value" target="_blank" rel="noopener noreferrer nofollow">{{ row.value }}</a>
+                    <span v-else>{{ row.value }}</span>
+                  </dd>
+                </template>
+              </dl>
+              <p v-else class="cpub-judge-artifact-none">Nothing submitted for this stage.</p>
+            </div>
           </div>
           <div class="cpub-judge-entry-scoring">
             <div v-if="entry.myScore !== null" class="cpub-judge-current-score">
@@ -363,6 +409,14 @@ async function submitScore(entryId: string): Promise<void> {
 .cpub-judge-entry-author { font-size: 11px; color: var(--text-faint); margin-top: 2px; }
 .cpub-judge-entry-link { font-size: 10px; color: var(--accent); text-decoration: none; display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; }
 .cpub-judge-entry-link:hover { text-decoration: underline; }
+
+.cpub-judge-artifact { margin-top: 10px; border: var(--border-width-default) dashed var(--border2); background: var(--surface2); }
+.cpub-judge-artifact-head { font-size: 9px; font-family: var(--font-mono); font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--accent); padding: 6px 10px; border-bottom: var(--border-width-default) dashed var(--border2); }
+.cpub-judge-artifact-fields { margin: 0; padding: 8px 10px; display: grid; grid-template-columns: minmax(90px, 130px) 1fr; gap: 4px 10px; }
+.cpub-judge-artifact-fields dt { font-size: 10px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .05em; color: var(--text-faint); }
+.cpub-judge-artifact-fields dd { margin: 0; font-size: 12px; color: var(--text); line-height: 1.5; white-space: pre-line; overflow-wrap: anywhere; }
+.cpub-judge-artifact-fields dd a { color: var(--accent); }
+.cpub-judge-artifact-none { font-size: 11px; color: var(--text-faint); margin: 0; padding: 8px 10px; }
 
 .cpub-judge-entry-scoring { display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; min-width: 220px; }
 .cpub-judge-current-score { text-align: center; }

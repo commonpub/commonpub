@@ -359,6 +359,17 @@ export const contestJudgingCriterionSchema = z.object({
 });
 export type ContestJudgingCriterion = z.infer<typeof contestJudgingCriterionSchema>;
 
+// One field of a `submission` stage's artifact template (per-stage submissions).
+// `key` is the stable machine key in `stageSubmissions.fields`.
+export const submissionTemplateFieldSchema = z.object({
+  key: z.string().min(1).max(40).regex(/^[a-z0-9_]+$/, 'Lowercase letters, numbers and underscores only'),
+  label: z.string().min(1).max(120),
+  type: z.enum(['text', 'textarea', 'url']),
+  required: z.boolean(),
+  help: z.string().max(300).optional(),
+});
+export type SubmissionTemplateFieldInput = z.infer<typeof submissionTemplateFieldSchema>;
+
 // Phase B1 — a single ordered stage of a contest's timeline (stored as a jsonb
 // array on `contests.stages`). See ContestStage in @commonpub/schema contest.ts.
 export const contestStageSchema = z.object({
@@ -375,8 +386,28 @@ export const contestStageSchema = z.object({
   criteria: z.array(contestJudgingCriterionSchema).max(20).optional(),
   // Review stages: how many advance out of this round (the Top-N cut).
   advanceCount: z.number().int().min(1).max(100000).optional(),
+  // Submission stages: the per-stage artifact template — fields the entrant
+  // fills for THIS stage (proposal vs prototype). Keys must be unique.
+  submissionTemplate: z
+    .array(submissionTemplateFieldSchema)
+    .max(50)
+    .refine((fields) => new Set(fields.map((f) => f.key)).size === fields.length, {
+      message: 'Template field keys must be unique',
+    })
+    .optional(),
 });
 export type ContestStageInput = z.infer<typeof contestStageSchema>;
+
+// Entrant payload for submitting a per-stage artifact. The per-template checks
+// (required fields present, url fields are https?://, no unknown keys) happen
+// server-side against the stage's `submissionTemplate` — this bounds the shape.
+export const stageSubmissionSchema = z
+  .object({
+    stageId: z.string().min(1).max(64),
+    fields: z.record(z.string().max(64), z.string().max(4000)),
+  })
+  .refine((d) => Object.keys(d.fields).length <= 50, { message: 'Too many fields' });
+export type StageSubmissionInput = z.infer<typeof stageSubmissionSchema>;
 
 // Phase B2 — apply an advancement cut at a review stage (the Top-N cull).
 export const contestAdvanceSchema = z

@@ -26,6 +26,9 @@ describe('defineCommonPubConfig', () => {
     expect(config.features.docs).toBe(true);
     expect(config.features.video).toBe(true);
     expect(config.features.contests).toBe(false);
+    // Per-stage submission artifacts: default ON but inert until a stage
+    // defines a submissionTemplate (and contests itself must be on).
+    expect(config.features.contestStageSubmissions).toBe(true);
     expect(config.features.learning).toBe(true);
     expect(config.features.explainers).toBe(true);
     expect(config.features.federation).toBe(false);
