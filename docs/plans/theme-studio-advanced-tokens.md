@@ -1,9 +1,9 @@
 # Theme Studio — Advanced Tokens (treatments, chrome, glass)
 
-> **STATUS (2026-06-09, session 195): IMPLEMENTED** — Phases A–D done on `main`
-> (schema 0.40.0 / ui 0.13.0 / theme-studio 0.6.0 / layer 0.72.0, not yet published).
-> Bonus: capture-flood fix (`resolveVarRefs` in themeDiscovery). Phase E remains deferred.
-> Log: `docs/sessions/195-theme-advanced-tokens.md`.
+> **STATUS (2026-06-09, session 195): SHIPPED** — Phases A–D merged (PR #27), published
+> (schema 0.40.0 / ui 0.13.0 / theme-studio 0.6.0 / layer 0.72.0, CLI 0.5.14) and rolled to
+> commonpub.io + deveco + heatsync (curl-verified). Bonus: capture-flood fix (`resolveVarRefs`).
+> Phase E remains deferred. Log: `docs/sessions/195-theme-advanced-tokens.md`.
 
 Refines the deferred backlog from sessions 192–193 (`docs/sessions/193-theme-variety.md`
 "Deferred"): **better tokens for more advanced customization** — glass/frosted treatment

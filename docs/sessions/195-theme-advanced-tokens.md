@@ -70,14 +70,23 @@ risk/benefit since 193).
 Full workspace build green; `pnpm test` 33/33 tasks (server 1339, layer 961 incl. 14 Studio +
 6 discovery, theme-studio 78, ui 27 token/radius, schema +7); `pnpm typecheck` 28/28.
 
-## Versions bumped (NOT yet published)
+## SHIPPED (same session, 2026-06-09)
 
-schema 0.40.0 / ui 0.13.0 / theme-studio 0.6.0 / layer 0.72.0. Publish chain when releasing:
-**schema → ui → theme-studio → layer** (ui before theme-studio — its canonical-keys test
-imports the ui registry; layer only via `pnpm publish:layer`). Afterwards: CLI `template.rs`
-pins (layer ^0.72 / schema ^0.40 + test + Cargo.toml), deveco/heatsync pin bumps (caret-0.x:
-edit package.json by hand), npm-pack dry-run grep (bracketed paths), deveco tarball typecheck
-(layer type surface changed: ThemeRecipe.treatment).
+PR #27 squash-merged (`decfe0f`); commonpub.io deployed from source (health 200, treatment +
+chrome tokens verified in the served CSS). Published in order: **schema 0.40.0 → ui 0.13.0 →
+theme-studio 0.6.0 → layer 0.72.0** (`pnpm publish:layer`; pack dry-run grep clean — zero test
+files, theme CSS bundled; registry pins verified exact). CLI **create-commonpub 0.5.14** published
+to crates.io (pins layer ^0.72.0 / schema ^0.40.0 / server ^2.84.1). deveco + heatsync pins
+hand-edited (caret-0.x), lockfiles refreshed (schema dist complete — layout.js present), pushed +
+deployed, health curl-verified.
+
+**Audit finding during ship (not a blocker):** deveco's local `nuxt typecheck` fails with 21
+lib-dom/vue-tsc structural-type errors (`Element` vs expanded `HTMLElement` shape, TS 5.9
+`autocorrect`) in editor/explainer/old-layer files. Counterfactual at the untouched 0.71.2
+lockfile shows the IDENTICAL 21 errors — pre-existing ecosystem skew, not a 0.72 regression.
+The earlier "tarball typecheck passed" run was unreliable (npm-install-over-pnpm hybrid layout
+hid those packages from vue-tsc); future tarball checks should `pnpm install` the tarball or
+diff error sets against a baseline run instead of trusting exit 0.
 
 ## Open questions / next steps
 

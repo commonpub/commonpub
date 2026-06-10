@@ -1,16 +1,33 @@
 # CommonPub — Status & Operator Runbook
 
-> **Living doc — your "come back later" reference.** Snapshot updated 2026-06-09 (session 194).
+> **Living doc — your "come back later" reference.** Snapshot updated 2026-06-09 (session 195).
 > Verify any version/flag claim before trusting it: `npm view @commonpub/<pkg> version`,
 > `curl https://<instance>/api/features`, `cargo search create-commonpub`.
-> Companion docs: the latest work log `docs/sessions/194-contest-stage-submissions.md`, the rolling
+> Companion docs: the latest work log `docs/sessions/195-theme-advanced-tokens.md`, the rolling
 > handoff `docs/sessions/192-kickoff-next.md`, the contest guide `docs/reference/guides/contests.md`.
 
 ---
 
 ## TL;DR — where things stand
 
-**Contest per-stage submissions** is the newest work (session 194): multi-phase contests can now
+**Theme advanced tokens** is the newest work (session 195, **SHIPPED + ROLLED to all 3**):
+(1) the 24 `--cpub-topbar/nav-link/footer-*` chrome tokens (in base.css since session 180) are now
+REGISTERED in `TOKEN_SPECS` — custom themes/Studio can finally style the nav bar + footer (new
+"Site chrome" editor group), plus `cpub-card-min/gap` + `sidebar-width-collapsed`; (2) treatment
+tokens `--surface-backdrop`/`--bg-image` (true no-op defaults — `none`, never `blur(0)`) with a
+schema **gradient-only guard** on `bg-image` (url()/escape smuggles rejected, known-bad tested);
+(3) **Glass**: `recipe.treatment {glass, bgGradient}` → translucent surfaces + backdrop blur +
+frosted top bar + accent-tinted page gradient, AA enforced against the FLATTENED composite; new
+Glass archetype; wizard Feel-step controls; (4) capture-flood fix (`resolveVarRefs` — var()-defaulted
+specs phantom-diffed on stock sites); (5) wedge-gap resets (ContentCard/VideoCard thumbs, HubHero
+banner). Released **schema 0.40.0 / ui 0.13.0 / theme-studio 0.6.0 / layer 0.72.0** (additive, no
+migration), CLI **0.5.14** (pins ^0.72/^0.40/^2.84.1). deveco + heatsync bumped + deployed,
+curl-verified. NOTE: deveco's local `nuxt typecheck` shows 21 PRE-EXISTING lib-dom/vue-tsc skew
+errors (identical at 0.71.2 — verified by counterfactual; not a 0.72 regression). Phase E deferred:
+glass on scoped modals/dropdowns, `border-style` token, full radius migration.
+Plan: `docs/plans/theme-studio-advanced-tokens.md`; log `docs/sessions/195-theme-advanced-tokens.md`.
+
+**Contest per-stage submissions** (session 194): multi-phase contests can now
 collect a different artifact per `submission` stage — a *proposal* template (summary/focus), then a
 *prototype* template (repo/demo URLs) — filled by entrants on the contest page, shown to judges for
 the round being judged, and browsable on a new entry-detail page
