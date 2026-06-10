@@ -1031,3 +1031,16 @@ client-side threw during app init and EVERY dev/e2e page became the Nuxt 500 scr
 "flaky" e2e). Prod was immune only because `sideEffects: false` tree-shakes the never-imported
 module. Guard with `process.argv?.[1]`; more generally, no top-level Node-API access in
 packages a client may import.
+
+## Priority-nav measurement must be exogenous — the spacer is deliberately inert (session 196)
+
+NavRenderer's "More" overflow measures `containerEl.clientWidth`. That only works because the
+topbar spacer is `flex: 0 0 0` and the nav is the ONLY flex-grow item in the row: its
+allocation is `row − everything else`, independent of its own content. When the spacer also
+had `flex: 1`, the nav's allocation was `content + slack/2` — a function of its OWN content —
+so collapsing links shrank the container, which re-justified the collapse (a ratchet with a
+stable under-collapsed equilibrium: links hidden beside a huge empty gap). If you re-introduce
+a growing sibling in the bar's middle region (base layout OR a fork like deveco's), the
+ratchet comes back. Web fonts are the other blind spot: they widen the items without resizing
+the container, so NavRenderer re-measures on `document.fonts.ready` — keep that if you touch
+the lifecycle.
