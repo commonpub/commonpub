@@ -172,4 +172,5 @@ export const configSchema = z.object({
   docs: docsConfigSchema.default(() => docsConfigSchema.parse({})),
   cookies: z.array(cookieDefinitionSchema).optional(),
   themes: z.array(registeredThemeSchema).optional(),
+  defaultTheme: z.string().max(64).optional(),
 });

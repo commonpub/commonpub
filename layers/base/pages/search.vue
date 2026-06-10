@@ -222,18 +222,22 @@ const { data: relatedCommunities } = await useFetch('/api/hubs', {
             </span>
           </div>
 
-          <!-- FILTER STRIP -->
+          <!-- FILTER STRIP — pills scroll in their own region; the sort/filter
+               cluster is pinned outside it so it can never be clipped mid-word
+               (the strip used to scroll as one unit, cutting the sort select). -->
           <div class="cpub-filter-strip">
-            <button
-              v-for="pill in typePills"
-              :key="pill.value"
-              class="cpub-type-pill"
-              :class="{ active: activeType === pill.value }"
-              @click="activeType = pill.value"
-            >
-              <i v-if="pill.icon" :class="pill.icon" style="font-size: 10px"></i>
-              {{ pill.label }}
-            </button>
+            <div class="cpub-type-pills">
+              <button
+                v-for="pill in typePills"
+                :key="pill.value"
+                class="cpub-type-pill"
+                :class="{ active: activeType === pill.value }"
+                @click="activeType = pill.value"
+              >
+                <i v-if="pill.icon" :class="pill.icon" style="font-size: 10px"></i>
+                {{ pill.label }}
+              </button>
+            </div>
 
             <div class="cpub-filter-right">
               <SortSelect
@@ -565,11 +569,18 @@ const { data: relatedCommunities } = await useFetch('/api/hubs', {
   border-top: var(--border-width-default) solid var(--border);
   margin-top: 14px;
   padding-top: 0;
+}
+
+/* Pills scroll; the sort/filter cluster never moves or clips. */
+.cpub-type-pills {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
   overflow-x: auto;
   scrollbar-width: none;
 }
-
-.cpub-filter-strip::-webkit-scrollbar { display: none; }
+.cpub-type-pills::-webkit-scrollbar { display: none; }
 
 .cpub-type-pill {
   font-size: 12px;

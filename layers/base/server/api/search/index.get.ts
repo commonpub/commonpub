@@ -1,5 +1,5 @@
-import { searchContent, listHubs, escapeLike } from '@commonpub/server';
-import type { ContentSearchOptions, MeiliClient } from '@commonpub/server';
+import { searchContent, listContent, listHubs, escapeLike } from '@commonpub/server';
+import type { ContentSearchOptions, ContentFilters, MeiliClient } from '@commonpub/server';
 import { users, follows, hubs } from '@commonpub/schema';
 import { sql, desc, ilike, or, and, isNull, eq, inArray } from 'drizzle-orm';
 import { z } from 'zod';
@@ -111,6 +111,43 @@ export default defineEventHandler(async (event): Promise<{ items: unknown[]; tot
       meiliClient = new MeiliSearch({ host: meiliUrl, apiKey: meiliKey }) as unknown as MeiliClient;
     }
   } catch { /* Meilisearch not available */ }
+
+  // Mirror-aware path: on a federation-enabled instance the homepage feed is a
+  // MERGED local+federated stream (listContent, session 179). Search must see
+  // the same universe — on a mirror-heavy instance (commonpub.io) the local
+  // content table is nearly empty, so the old local-only search returned 0 for
+  // items the instance's own homepage shows. Delegate to listContent (same
+  // merge, same pagination invariants, items already in ContentCard's shape)
+  // whenever the request uses only filters listContent supports. Search-only
+  // filters (author, date range, multiple tags) and a configured Meilisearch
+  // keep the dedicated local path: federated rows aren't indexed and don't
+  // carry those fields. `resolveContentQuery` pins status=published +
+  // visibility=public so this path can never widen what search exposes.
+  const tagList = params.tags?.split(',').map((t) => t.trim()).filter(Boolean) ?? [];
+  const usesSearchOnlyFilters = !!(params.author || params.dateFrom || params.dateTo || tagList.length > 1);
+  const CONTENT_TYPES = new Set(['project', 'article', 'blog', 'explainer']);
+  if (!meiliClient && config.features.seamlessFederation && !usesSearchOnlyFilters) {
+    const raw: ContentFilters = {
+      search: q,
+      type: params.type && CONTENT_TYPES.has(params.type) ? (params.type as ContentFilters['type']) : undefined,
+      // difficulty + tag suppress the federated merge inside listContent
+      // (canMergeFederated) — federated rows lack those columns, so those
+      // queries are local-only by construction rather than leaking past the filter.
+      difficulty: params.difficulty as ContentFilters['difficulty'],
+      tag: tagList[0],
+      // Postgres has no relevance ranking (that's Meilisearch's job) — the old
+      // path also fell back to recency for 'relevance'.
+      sort: params.sort === 'popular' ? 'popular' : 'recent',
+      limit,
+      offset,
+    };
+    const { filters, options } = resolveContentQuery(event, raw);
+    const result = await listContent(db, filters, options);
+    return {
+      items: result.items.map((item) => ({ ...item, _resultType: 'content' })),
+      total: result.total,
+    };
+  }
 
   const opts: ContentSearchOptions = {
     query: q,

@@ -26,9 +26,13 @@ export default defineEventHandler(async (event) => {
   const path = getRequestURL(event).pathname;
   if (path.startsWith('/api') || path.startsWith('/_nuxt') || path.startsWith('/__nuxt')) return;
 
-  // Collect IDs of code-registered themes so we accept them as valid
-  const config = useConfig() as unknown as { themes?: Array<{ id: string }> };
-  const registeredIds = new Set((config.themes ?? []).map((t) => t.id));
+  // Code-registered themes: full metadata (family/isDark/pairId), so the
+  // resolver can flip light/dark WITHIN a registered family; plus the thin
+  // app's config-pinned default theme.
+  const config = useConfig() as unknown as {
+    themes?: Array<{ id: string; family?: string; isDark?: boolean; pairId?: string }>;
+    defaultTheme?: string;
+  };
 
   // Read user's light/dark preference from cookie
   const schemeCookie = getCookie(event, 'cpub-color-scheme');
@@ -36,7 +40,7 @@ export default defineEventHandler(async (event) => {
     ? schemeCookie
     : null;
 
-  const ctx = await resolveThemeContext(userScheme, registeredIds);
+  const ctx = await resolveThemeContext(userScheme, config.themes ?? [], config.defaultTheme);
 
   event.context.instanceTheme = ctx.instanceTheme;
   event.context.resolvedTheme = ctx.resolvedTheme;
