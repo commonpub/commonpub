@@ -284,8 +284,12 @@ describe('treatment: glass + page gradient (advanced-tokens plan)', () => {
         });
         const surf = parseRgba(tokens['surface']!);
         const flat = blendOver(surf.hex, surf.alpha, tokens['bg']!);
-        expect(contrast(tokens['text']!, flat), `${vibe.name}/${p.n} text on glass`).toBeGreaterThanOrEqual(4.5);
-        expect(contrast(tokens['text-dim']!, flat), `${vibe.name}/${p.n} dim on glass`).toBeGreaterThanOrEqual(4.5);
+        // Worst case: a glass MODAL panel over the 50% black scrim.
+        const scrimFlat = blendOver(surf.hex, surf.alpha, blendOver('#000000', 0.5, tokens['bg']!));
+        for (const [label, ground] of [['bg', flat], ['scrim', scrimFlat]] as const) {
+          expect(contrast(tokens['text']!, ground), `${vibe.name}/${p.n} text on glass/${label}`).toBeGreaterThanOrEqual(4.5);
+          expect(contrast(tokens['text-dim']!, ground), `${vibe.name}/${p.n} dim on glass/${label}`).toBeGreaterThanOrEqual(4.5);
+        }
       }
     }
   });

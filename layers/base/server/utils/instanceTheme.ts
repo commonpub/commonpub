@@ -3,7 +3,7 @@
 // Users only toggle light/dark within that family.
 
 import { eq } from 'drizzle-orm';
-import { instanceSettings } from '@commonpub/schema';
+import { instanceSettings, isSafeBgImageValue } from '@commonpub/schema';
 import {
   getCustomTokenOverrides,
   listCustomThemes,
@@ -14,6 +14,21 @@ import { googleHref } from '@commonpub/theme-studio';
 import { THEME_TO_FAMILY, FAMILY_VARIANTS, IS_DARK, VALID_THEME_IDS } from '../../utils/themeConfig';
 
 const CACHE_TTL = 60_000; // 1 minute, admin changes propagate fast
+
+/**
+ * Sink-side guard for the one token whose VALUE can fetch when rendered:
+ * `--bg-image` feeds `background-image`, so a `url(...)` is a beacon/exfil
+ * channel. The themes POST/PUT already reject unsafe values, but the token
+ * map has other write paths (the generic admin settings route writes
+ * `instance_settings` keys wholesale), so the render sink enforces the same
+ * allowlist: a non-gradient bg-image is dropped, never injected.
+ */
+export function sanitizeRenderTokens(tokens: Record<string, string>): Record<string, string> {
+  const v = tokens['bg-image'];
+  if (v === undefined || isSafeBgImageValue(v)) return tokens;
+  const { 'bg-image': _dropped, ...rest } = tokens;
+  return rest;
+}
 
 interface CachedThemeState {
   /** The admin's chosen default theme (built-in id, custom data-attr, or registered id) */
@@ -138,7 +153,7 @@ export async function resolveThemeContext(
       const sib = state.customByAttr.get(sibAttr);
       if (sib) members.push({ attr: sibAttr, rec: sib });
     }
-    themeVariants = members.map((m) => ({ attr: m.attr, tokens: m.rec.tokens }));
+    themeVariants = members.map((m) => ({ attr: m.attr, tokens: sanitizeRenderTokens(m.rec.tokens) }));
     const lightM = members.find((m) => !m.rec.isDark);
     const darkM = members.find((m) => m.rec.isDark);
     if (members.length === 2 && lightM && darkM) {
@@ -167,7 +182,7 @@ export async function resolveThemeContext(
     instanceTheme: admin,
     isDark,
     themeVariants,
-    overrides: { ...state.tokenOverrides },
+    overrides: sanitizeRenderTokens({ ...state.tokenOverrides }),
     pair,
     fontHref,
   };

@@ -112,6 +112,36 @@ preview tokens per previewMode). STILL deferred, deliberately: `border-style` to
 needs touching every border declaration) and the full per-component radius migration
 (105-component blast radius unchanged).
 
+## Assumption audit (post-ship adversarial pass; fixes on PR #28)
+
+Triggered by the npm-debris false conclusion: a sweep of every confident claim this session made.
+
+**Real gaps found + fixed:**
+- **bg-image guard had a bypass**: the generic admin settings route (`adminSettingSchema` =
+  `{key, value: unknown}`) writes `instance_settings` keys wholesale, skipping
+  `customThemeSchema` entirely. Fixed at the SINK: `sanitizeRenderTokens()` in
+  `instanceTheme.ts` (theme-studio 0.6.1 / layer 0.72.1) drops any non-gradient `bg-image`
+  before SSR injection — closes every write path at the one read path (+3 tests).
+- **Glass AA only floored against the page bg**, not a modal panel over the 50% black scrim.
+  Generator now floors text/text-dim against BOTH composites. Honesty note: a numeric sweep
+  showed the worst curated palette was 4.53:1 (already AA) — my hand-estimate (~3.9) was
+  itself a wrong assumption, so this is margin hardening (binds only for pathological
+  hand-picked colors), byte-identical output for all curated palettes; the property test
+  now guards it.
+
+**Claims re-verified clean:** capture/fork flows (both `detectAppliedOverrides` callers seed
+forks; no perpetual banner; the resolveVarRefs fix reduces phantom capture counts), no
+unscoped `body` rules in theme CSS (gradient can't be clobbered), spec-sheet WCAG readout
+guards `startsWith('#')` (rgba surfaces hide it rather than NaN), e2e failure sets between
+main and the 195 PR re-diffed with full hashed test names — byte-identical (6 names), the
+coarse truncated-prefix comparison happened to be right.
+
+**Known-accepted (documented, not fixed):** chrome color tokens (`--cpub-topbar-bg` etc.)
+feed `background:` shorthand, which CAN carry url() — pre-existing exposure (admin-trusted,
+predates registration; a blanket sink filter could silently alter stored themes, so it
+stays). `resolveVarRefs` fallback parsing doesn't handle parens-in-fallback (no current
+spec default has one).
+
 ## Open questions / next steps
 
 - Browser smoke after deploy: build a Glass theme via Studio → check topbar + sidebar cards over
