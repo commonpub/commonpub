@@ -960,14 +960,24 @@ describe('createContestSchema — boundary tests', () => {
     ).toThrow();
   });
 
-  it('accepts contentFormat markdown or html, rejects others', () => {
-    expect(createContestSchema.parse({ ...validContest, contentFormat: 'markdown' }).contentFormat).toBe('markdown');
-    expect(createContestSchema.parse({ ...validContest, contentFormat: 'html' }).contentFormat).toBe('html');
-    expect(() => createContestSchema.parse({ ...validContest, contentFormat: 'raw' })).toThrow();
+  it('accepts per-field formats (markdown|html) independently, rejects others', () => {
+    const parsed = createContestSchema.parse({
+      ...validContest,
+      descriptionFormat: 'html',
+      rulesFormat: 'markdown',
+      prizesDescriptionFormat: 'html',
+    });
+    expect(parsed.descriptionFormat).toBe('html');
+    expect(parsed.rulesFormat).toBe('markdown');
+    expect(parsed.prizesDescriptionFormat).toBe('html');
+    expect(() => createContestSchema.parse({ ...validContest, descriptionFormat: 'raw' })).toThrow();
   });
 
-  it('contentFormat is optional (defaults handled server-side)', () => {
-    expect(createContestSchema.parse({ ...validContest }).contentFormat).toBeUndefined();
+  it('per-field formats are optional (defaults handled server-side)', () => {
+    const parsed = createContestSchema.parse({ ...validContest });
+    expect(parsed.descriptionFormat).toBeUndefined();
+    expect(parsed.rulesFormat).toBeUndefined();
+    expect(parsed.prizesDescriptionFormat).toBeUndefined();
   });
 
   // Cross-field date refinement (session 171).

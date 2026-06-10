@@ -20,7 +20,9 @@ watch(title, (t) => { if (!slugTouched.value) slug.value = slugify(t); });
 const subheading = ref('');
 const description = ref('');
 const rules = ref('');
-const contentFormat = ref<'markdown' | 'html'>('markdown');
+const descriptionFormat = ref<'markdown' | 'html'>('markdown');
+const rulesFormat = ref<'markdown' | 'html'>('markdown');
+const prizesDescriptionFormat = ref<'markdown' | 'html'>('markdown');
 const bannerUrl = ref('');
 const coverImageUrl = ref('');
 const startDate = ref('');
@@ -111,7 +113,9 @@ async function handleCreate(): Promise<void> {
         subheading: subheading.value || undefined,
         description: description.value || undefined,
         rules: rules.value || undefined,
-        contentFormat: contentFormat.value,
+        descriptionFormat: descriptionFormat.value,
+        rulesFormat: rulesFormat.value,
+        prizesDescriptionFormat: prizesDescriptionFormat.value,
         bannerUrl: bannerUrl.value || undefined,
         coverImageUrl: coverImageUrl.value || undefined,
         startDate: new Date(startDate.value).toISOString(),
@@ -188,25 +192,20 @@ function prizeLabel(prize: Prize): string {
           <p class="cpub-form-hint">Short plain-text tagline shown under the title in the hero. The Description below is the full body.</p>
         </div>
         <div class="cpub-form-field">
-          <label class="cpub-form-label">Content format</label>
-          <div class="cpub-type-options" role="radiogroup" aria-label="Content format">
-            <label class="cpub-form-check"><input v-model="contentFormat" type="radio" value="markdown" /> <span>Markdown</span></label>
-            <label class="cpub-form-check"><input v-model="contentFormat" type="radio" value="html" /> <span>Full HTML</span></label>
+          <div class="cpub-field-head">
+            <label for="contest-desc" class="cpub-form-label">Description</label>
+            <FormatToggle v-model="descriptionFormat" />
           </div>
-          <p class="cpub-form-hint">
-            Applies to Description, Rules, and the Prizes overview. <strong>Markdown</strong> supports headings, lists, links, and safe inline HTML.
-            <strong>Full HTML</strong> renders your raw HTML, CSS, and SVG as-is (scripts and event handlers are removed for safety).
-          </p>
-        </div>
-        <div class="cpub-form-field">
-          <label for="contest-desc" class="cpub-form-label">Description</label>
           <textarea id="contest-desc" v-model="description" class="cpub-form-textarea" rows="4" maxlength="50000" placeholder="Describe your contest. Supports Markdown, # headings, - lists, **bold**, [links](url)…" />
-          <p class="cpub-form-hint">{{ contentFormat === 'html' ? 'Rendered as full HTML/CSS/SVG.' : 'Supports Markdown (headings, lists, bold, links) and inline HTML.' }} Shown formatted on the contest page.</p>
+          <p class="cpub-form-hint">{{ descriptionFormat === 'html' ? 'Rendered as your raw HTML, CSS, and SVG (scripts removed for safety).' : 'Supports Markdown (headings, lists, bold, links) and inline HTML.' }} Shown formatted on the contest page.</p>
         </div>
         <div class="cpub-form-field">
-          <label for="contest-rules" class="cpub-form-label">Rules</label>
+          <div class="cpub-field-head">
+            <label for="contest-rules" class="cpub-form-label">Rules</label>
+            <FormatToggle v-model="rulesFormat" />
+          </div>
           <textarea id="contest-rules" v-model="rules" class="cpub-form-textarea" rows="6" maxlength="50000" placeholder="Contest rules and requirements. Supports Markdown, one rule per line, or full Markdown." />
-          <p class="cpub-form-hint">Supports Markdown. Plain one-rule-per-line text is rendered as a numbered list.</p>
+          <p class="cpub-form-hint">{{ rulesFormat === 'html' ? 'Rendered as your raw HTML, CSS, and SVG (scripts removed for safety).' : 'Supports Markdown. Plain one-rule-per-line text renders as a list.' }}</p>
         </div>
         <div class="cpub-form-field">
           <ImageUpload v-model="bannerUrl" purpose="banner" label="Banner Image" hint="Wide hero image across the top of the contest page (~4:1)." />
@@ -348,9 +347,12 @@ function prizeLabel(prize: Prize): string {
 
         <p class="cpub-form-hint">Contests don't need prizes, leave this empty to skip them entirely. If you do add prizes, every field is optional: use <strong>place</strong> for ranked prizes (1st/2nd/3rd), a <strong>category</strong> for themed awards (e.g. "Best in Show"), or just a <strong>description</strong>. Cash value is optional.</p>
         <div class="cpub-form-field">
-          <label for="prizes-desc" class="cpub-form-label">Prizes overview (optional)</label>
-          <textarea id="prizes-desc" v-model="prizesDescription" class="cpub-form-textarea" rows="3" maxlength="50000" placeholder="Intro shown above the prize cards. Supports Markdown." />
-          <p class="cpub-form-hint">Markdown intro displayed on the Prizes tab, above the individual prizes.</p>
+          <div class="cpub-field-head">
+            <label for="prizes-desc" class="cpub-form-label">Prizes overview (optional)</label>
+            <FormatToggle v-model="prizesDescriptionFormat" />
+          </div>
+          <textarea id="prizes-desc" v-model="prizesDescription" class="cpub-form-textarea" rows="3" maxlength="50000" placeholder="Intro shown above the prize cards." />
+          <p class="cpub-form-hint">{{ prizesDescriptionFormat === 'html' ? 'Rendered as your raw HTML, CSS, and SVG (scripts removed for safety).' : 'Markdown intro' }} displayed on the Prizes tab, above the individual prizes.</p>
         </div>
         <div v-for="(prize, idx) in prizes" :key="idx" class="cpub-prize-card">
           <div class="cpub-prize-header">
@@ -417,6 +419,7 @@ function prizeLabel(prize: Prize): string {
 .cpub-form-section-header .cpub-form-section-title { margin-bottom: 0; }
 
 .cpub-form-field { display: flex; flex-direction: column; gap: var(--space-1); margin-bottom: var(--space-3); }
+.cpub-field-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .cpub-form-field:last-child { margin-bottom: 0; }
 .cpub-form-input, .cpub-form-textarea { width: 100%; padding: var(--space-2) var(--space-3); border: var(--border-width-default) solid var(--border); background: var(--surface); color: var(--text); font-size: var(--text-sm); font-family: var(--font-sans); }
 .cpub-form-input:focus, .cpub-form-textarea:focus { border-color: var(--accent); outline: none; box-shadow: var(--shadow-accent); }

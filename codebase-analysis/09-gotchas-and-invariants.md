@@ -1078,12 +1078,14 @@ Consequence for caps: long-form contest fields (`description`/`rules`/`prizesDes
 50k value sits safely inside both the 1MB ingest envelope and the 100k render backstop. Client
 textareas carry `maxlength="50000"` so over-cap input is stopped before a round-trip.
 
-## Contest long-text has two render paths, gated by `contentFormat` (session 197)
+## Contest long-text has two render paths, gated PER-FIELD (session 197)
 
-`contests.contentFormat` (`'markdown'` default | `'html'`) selects how description/rules/
-prizesDescription render — a single per-contest toggle covering all three. `CpubMarkdown`
+Each long-form contest field has its OWN render mode: `descriptionFormat`, `rulesFormat`,
+`prizesDescriptionFormat` (all `'markdown'` default | `'html'`, independent). `CpubMarkdown`
 branches on its `format` prop: `markdown` runs `markdownToBlockTuples`; `html` renders ONE
-`v-html` through `sanitizeRichHtml`. Two non-obvious invariants:
+`v-html` through `sanitizeRichHtml`. (The original single `content_format` column is kept as an
+inert/deprecated column — splitting it into three would be a rename-ambiguous migration that
+drizzle-kit can't resolve headlessly; migration 0023 just ADDs the three.) Two invariants:
 
 - **Markdown mode can't render a styled HTML document.** CommonMark turns blank-line-separated,
   4-space-indented HTML into *indented code blocks*, and the strict `sanitizeBlockHtml` allowlist
