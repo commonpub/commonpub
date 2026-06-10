@@ -23,20 +23,19 @@ codebase-analysis/       raw inventory (generated — trust over older docs)
 12 packages on npm as `@commonpub/*`:
 schema, server, config, protocol, auth, ui, editor, explainer, learning, docs, infra, test-utils.
 
-## Latest published versions (session 190, 2026-06-07)
+## Latest published versions (session 196, 2026-06-10)
 
-- schema 0.35.0, server 2.82.0, config 0.19.0, layer 0.64.1
-- ui 0.11.1, protocol 0.13.0, editor 0.7.11, explainer 0.7.15
+- schema 0.40.1, server 2.84.1, config 0.22.1, layer 0.73.0
+- ui 0.13.1, theme-studio 0.6.1, protocol 0.13.0, editor 0.7.11, explainer 0.7.15
 - learning 0.5.2, docs 0.6.3, auth 0.8.0, infra 0.8.0, test-utils 0.5.6
-- create-commonpub 0.5.7 (crates.io — `cargo install create-commonpub`)
+- create-commonpub 0.5.15 (crates.io — `cargo install create-commonpub`)
 - (Always `npm view @commonpub/<pkg> version` / `cargo search` before trusting this — it drifts.)
 
 All three instances (commonpub.io / deveco.io / heatsynclabs.io) are LIVE + healthy.
-commonpub.io builds from the workspace `main` (layer 0.64.1 — has everything incl. Stoa +
-public-API metrics); deveco.io + heatsynclabs.io pin the npm layer at `^0.62.0` (public-API
-work only — deliberately NOT bumped for Stoa/theme-fix per operator instruction; see the
-session-190 version-skew note). (The old
-"layer UNPUBLISHED ahead / deveco+heatsync dormant on 0.24.0" note is OBSOLETE.)
+commonpub.io builds from the workspace `main`; deveco.io + heatsynclabs.io pin the npm layer
+at `^0.73.0` (rolled in lockstep since session 194). deveco registers its brand theme pair
+(`deveco`/`deveco-dark`) + `config.defaultTheme: 'deveco'` — no longer riding the stoa
+fallback (session 196).
 deveco keeps a CUSTOM `layouts/default.vue` + `pages/index.vue` (its nav is now
 config-driven via NavRenderer — session 180); heatsync uses the BASE layout.
 Federation flag: verify per-instance via `curl /api/features`. All identity sub-flags
@@ -101,7 +100,7 @@ of past flag state drifts (see session 149's "live-active state correction").
 - 327 API route files in `server/api/` (321 handlers + 6 colocated tests)
 - 22 AP/site routes in `server/routes/` (inbox, outbox, .well-known)
 - 10 server plugins, 11 server (Nitro) middleware, 3 route middleware
-- 7 themes registered in `packages/ui/src/theme.ts` `BUILT_IN_THEMES` (base, dark, generics, agora, agora-dark, **stoa, stoa-dark** — Stoa is the default)
+- 7 themes registered in `packages/ui/src/theme.ts` `BUILT_IN_THEMES` (base, dark, generics, agora, agora-dark, **stoa, stoa-dark**). Default resolution: DB `theme.default` → `config.defaultTheme` (thin-app brand pin, session 196) → stoa. Registered themes light/dark-flip within their own family (pairId → family+isDark → `<id>`/`<id>-dark` name convention).
 
 ## Server package structure
 
