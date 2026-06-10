@@ -142,6 +142,32 @@ predates registration; a blanket sink filter could silently alter stored themes,
 stays). `resolveVarRefs` fallback parsing doesn't handle parens-in-fallback (no current
 spec default has one).
 
+## E2E suite green + Glass browser smoke (continuation round, PR #29)
+
+**The months-red e2e suite had ONE root cause:** `packages/schema/src/openapi.ts`'s CLI entry
+guard read `process.argv[1]` at module top level. Vite's browser dev shim defines `process`
+WITHOUT `argv`, so the moment `@commonpub/schema` loaded client-side, app init threw
+(`Cannot read properties of undefined (reading '1')`) and Nuxt swapped EVERY page for the 500
+error screen — homepage tabs, hero banner, search, mobile nav, and console-error smoke all
+failed downstream of it. Production was immune (`sideEffects: false` tree-shakes the
+never-imported module out of bundles), which is why live sites worked while CI bled and local
+`pnpm dev` was quietly broken. Fix: `process.argv?.[1]` (schema 0.40.1, publish pending).
+Spec repairs riding along: the dark-cookie theme assertion derives the expected variant from
+the configured default family (stoa since session 190) instead of hardcoding classic→dark;
+login submit-button locators scoped to the login form (federated/Mastodon forms added more
+type=submit buttons). Plus the docs-package vitest flake (worker birpc `onTaskUpdate` timeout
+under CPU-bound load, hit CI twice today, retries don't cover run-level errors) → forks pool.
+**Local result: full chromium suite 123 passed / 0 failed** (was 9 failing).
+
+**Glass browser smoke DONE (local stack + Playwright):** bootstrap admin → created a Glass
+light/dark pair via the real `/api/admin/themes` (route guards exercised: 401 anon, 403
+non-admin, 200 admin), set as default → both modes screenshot-verified: accent-tinted page
+gradient renders, glass surfaces + rounded geometry coherent, text readable in both modes,
+Light/Dark pair flip works via cookie. Gotchas found while smoking: theme IDs are plain slugs
+(`theme.default` stores the `cpub-custom-<slug>` ATTR — prefixing the id double-prefixes the
+attr and silently falls back to base), and ADMIN_BOOTSTRAP_FIRST_USER only helps on a virgin
+DB (e2e-created users claim "first").
+
 ## Open questions / next steps
 
 - Browser smoke after deploy: build a Glass theme via Studio → check topbar + sidebar cards over

@@ -474,7 +474,11 @@ export function generateOpenAPISpec(): Record<string, unknown> {
 }
 
 // CLI entry point — run with: npx tsx packages/schema/src/openapi.ts
-if (typeof process !== 'undefined' && process.argv[1]?.endsWith('openapi.ts')) {
+// NOTE the optional chain on `argv` itself: Vite's browser dev shim defines
+// `process` WITHOUT `argv`, so `process.argv[1]` throws at module top level
+// the moment @commonpub/schema loads client-side — which nuked app init on
+// every page of the dev/e2e server (Nuxt swapped in the 500 error page).
+if (typeof process !== 'undefined' && process.argv?.[1]?.endsWith('openapi.ts')) {
   const spec = generateOpenAPISpec();
   console.log(JSON.stringify(spec, null, 2));
 }

@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { THEME_TO_FAMILY, FAMILY_VARIANTS } from '../../../layers/base/utils/themeConfig';
 
 /**
  * Theme system E2E — locks the full output path for the session-154 theme
@@ -60,10 +61,19 @@ test.describe('Theme SSR — html attributes + inline style', () => {
     expect(html).not.toContain('id="cpub-theme-inline"');
   });
 
-  test('dark mode cookie produces data-theme="dark" in SSR HTML', async ({ page, context }) => {
+  test('dark mode cookie produces the default family\'s DARK variant in SSR HTML', async ({ page, context }) => {
     // The server middleware (server/middleware/theme.ts) reads `cpub-color-scheme`
-    // and resolves to the family's dark variant. For the default `base` family
-    // ('classic'), dark → 'dark'. Wire-format test: cookie sets, html attribute appears.
+    // and resolves to the family's dark variant. Family-aware (session 195):
+    // the default theme is an instance setting (currently stoa, session 190),
+    // so derive the expected variant from the no-cookie page instead of
+    // hardcoding `classic` → "dark" (which broke when the default moved).
+    const bare = await page.goto('/', { waitUntil: 'domcontentloaded' });
+    expect(bare?.status()).toBe(200);
+    const bareTag = (await page.content()).match(/<html[^>]*>/)?.[0] ?? '';
+    const defaultTheme = bareTag.match(/data-theme="([a-z0-9-]+)"/)?.[1] ?? 'base';
+    const family = THEME_TO_FAMILY[defaultTheme] ?? 'classic';
+    const expectedDark = FAMILY_VARIANTS[family]?.dark ?? 'dark';
+
     await context.addCookies([
       { name: 'cpub-color-scheme', value: 'dark', url: 'http://localhost:3000' },
     ]);
@@ -71,7 +81,7 @@ test.describe('Theme SSR — html attributes + inline style', () => {
     expect(response?.status()).toBe(200);
     const html = await page.content();
     const htmlTag = html.match(/<html[^>]*>/)?.[0] ?? '';
-    expect(htmlTag).toContain('data-theme="dark"');
+    expect(htmlTag).toContain(`data-theme="${expectedDark}"`);
   });
 
   test('invalid cpub-color-scheme cookie value is ignored (falls back to default)', async ({ page, context }) => {
