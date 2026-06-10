@@ -70,3 +70,19 @@ More-menu collapse curve, inline search nav, More panel contents, zero overflow 
 config 0.22.0 (defaultTheme — MINOR, caret pins need hand-edits) → layer 0.73.0. CLI pins to
 follow (config ^0.22 / layer ^0.73). Consumers: hand-edit config+layer pins (caret-0.x);
 deveco also ships its theme registration + nav flex rule.
+
+## Post-ship hotfix — layer 0.73.1
+
+Live verification caught the search fix INERT on commonpub.io: `/api/search?q=esp32` still 0
+while `/api/content?search=esp32` found the mirrors. Root cause: the 0.73.0 branch gated on
+`!meiliClient`, and commonpub.io's compose stack sets `MEILI_URL` (near-empty index) — the
+plan's "no instance sets MEILI_URL in prod" was an unverified assumption (same lesson as
+[[feedback_verify_flag_state]]: env-dependent claims need a live check). 0.73.1: when
+`seamlessFederation` is on, the merged path OUTRANKS Meilisearch for the no-search-only-filter
+case — meili only ever indexes local content, so it can never represent the feed's universe on
+a mirror-heavy instance. All 3 rolled same hour.
+
+Everything else verified live on the first pass: deveco `data-theme="deveco"` (dark cookie →
+`deveco-dark`, bg #0a1a1c), 1024px doc overflow gone, More menu + real search input + Log in
+on-screen at 900px on commonpub and heatsync, heatsync's stoa untouched, before/after deveco
+screenshots visually identical through the identity switch.
