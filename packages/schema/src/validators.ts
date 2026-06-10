@@ -900,7 +900,33 @@ export const themeTokenKeySchema = z
 /** Token value — any CSS value, length-capped to keep the JSON sane. */
 export const themeTokenValueSchema = z.string().min(1).max(512);
 
-export const themeTokenMapSchema = z.record(themeTokenKeySchema, themeTokenValueSchema);
+/**
+ * `--bg-image` is the one token whose value can FETCH (background-image
+ * loads url() — a beacon/exfil channel the CSS sanitizer doesn't block, and
+ * CSP is belt-not-suspenders). Allow only `none` or CSS gradients: no
+ * quotes, no backslashes (kills CSS escapes like `\75rl(`), no `url`
+ * substring anywhere (no legitimate gradient contains it — this also kills
+ * protocol-relative `url(//host)` smuggles), and it must start with a
+ * gradient function. Everything else about the value stays free-form.
+ */
+const SAFE_BG_IMAGE_RE = /^(none|(repeating-)?(linear|radial|conic)-gradient\([^"'\\]+\))$/i;
+export function isSafeBgImageValue(value: string): boolean {
+  const v = value.trim();
+  return SAFE_BG_IMAGE_RE.test(v) && !/url/i.test(v);
+}
+
+export const themeTokenMapSchema = z
+  .record(themeTokenKeySchema, themeTokenValueSchema)
+  .superRefine((map, ctx) => {
+    const v = map['bg-image'];
+    if (v !== undefined && !isSafeBgImageValue(v)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['bg-image'],
+        message: 'bg-image must be "none" or a CSS gradient (url() and escapes are not allowed)',
+      });
+    }
+  });
 export type ThemeTokenMap = z.infer<typeof themeTokenMapSchema>;
 
 /**
@@ -933,6 +959,15 @@ export const themeRecipeSchema = z.object({
   neutralSat: z.number().min(0).max(100).optional(),
   /** The design-ethos preset the recipe started from (UI convenience). */
   archetype: z.string().max(64).optional(),
+  /** Surface treatment. Absent = solid surfaces (the legacy projection). */
+  treatment: z
+    .object({
+      /** Glass strength 0-0.3: surface translucency + backdrop blur. */
+      glass: z.number().min(0).max(0.3).optional(),
+      /** Emit a subtle page gradient derived from bg + accent. */
+      bgGradient: z.boolean().optional(),
+    })
+    .optional(),
 });
 export type ThemeRecipeInput = z.infer<typeof themeRecipeSchema>;
 

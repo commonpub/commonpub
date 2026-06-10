@@ -9,6 +9,7 @@ import type { HarmonyScheme } from './harmony.js';
 import type { ThemeMode } from './palette.js';
 import type { Density, Motion, ShadowStyle } from './scales.js';
 import { COLOR_VIBES, TYPE_VIBES, SHAPE_PRESETS, SHADOW_PRESETS, RATIOS, NAME_POOL } from './presets.js';
+import type { ThemeTreatment } from './presets.js';
 
 /** The four typographic roles a recipe assigns. */
 export interface RecipeFonts {
@@ -54,6 +55,14 @@ export interface ThemeRecipe {
   neutralSat?: number;
   /** The design-ethos archetype the recipe started from (presets.ts key). UI convenience. */
   archetype?: string;
+  /**
+   * Surface treatment. Absent (or glass 0 + no gradient) = solid surfaces,
+   * byte-identical to the legacy projection. `glass` (0-0.3) makes cards/
+   * panels translucent with a backdrop blur (and frosts the top bar);
+   * `bgGradient` paints a subtle page gradient tinted toward the accent so
+   * the glass has something to refract.
+   */
+  treatment?: ThemeTreatment;
 }
 
 /** A neutral, on-brand starting recipe (CommonPub blue, sharp, dark). */

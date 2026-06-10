@@ -16,6 +16,25 @@ export interface DiscoveredTheme {
 }
 
 /**
+ * Substitute `var(--x)` / `var(--x, fallback)` references in a default
+ * value using a property getter (computed style). getComputedStyle returns
+ * custom properties with their var() references ALREADY substituted, so a
+ * spec default like `var(--surface)` must be resolved the same way before
+ * diffing — otherwise every var()-defaulted token (font-heading, the chrome
+ * family) reads as "overridden" on a stock site.
+ */
+export function resolveVarRefs(get: (name: string) => string, value: string): string {
+  let out = value;
+  for (let i = 0; i < 4 && out.includes('var('); i++) {
+    out = out.replace(/var\((--[a-zA-Z0-9_-]+)(?:,\s*([^()]*))?\)/g, (_, name: string, fb?: string) => {
+      const v = get(name).trim();
+      return v || fb || '';
+    });
+  }
+  return out;
+}
+
+/**
  * Read `getComputedStyle(:root)` for every canonical token and return
  * the subset that differs from `TOKEN_SPECS[i].default`.
  */
@@ -23,11 +42,12 @@ export function detectAppliedOverrides(): DiscoveredTheme {
   if (typeof window === 'undefined') return { count: 0, tokens: {}, isDark: false };
   const root = document.documentElement;
   const cs = getComputedStyle(root);
+  const get = (name: string): string => cs.getPropertyValue(name);
   const overrides: Record<string, string> = {};
   for (const spec of TOKEN_SPECS) {
     const actual = cs.getPropertyValue(`--${spec.key}`).trim();
     if (!actual) continue;
-    if (normalize(actual) !== normalize(spec.default)) {
+    if (normalize(actual) !== normalize(resolveVarRefs(get, spec.default))) {
       overrides[spec.key] = actual;
     }
   }

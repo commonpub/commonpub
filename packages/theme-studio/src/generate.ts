@@ -37,7 +37,7 @@
  *   shadowStyle                  → shadow-sm/md/lg/xl + shadow-accent + focus
  *   motion                       → transition-fast/default/slow
  */
-import { hexToHsl, hslToHex, rgba, adjL, rotate, ensureReadable } from './color.js';
+import { hexToHsl, hslToHex, rgba, adjL, rotate, ensureReadable, mixHex, blendOver } from './color.js';
 import { buildPalette, type SemanticPalette } from './palette.js';
 import { fontStack, googleHref } from './fonts.js';
 import {
@@ -253,6 +253,34 @@ export function recipeToTokens(recipe: ThemeRecipe): GeneratedTheme {
   // ---- Texture (film-grain overlay opacity; 0 = off) ----
   if (recipe.texture && recipe.texture > 0) {
     t['grain'] = String(Math.round(recipe.texture * 1000) / 1000);
+  }
+
+  // ---- Treatment (glass surfaces + page gradient) ----
+  // Emits NOTHING when treatment is absent/off — recipes saved before this
+  // field existed keep producing the exact same token set (the no-treatment
+  // regression test locks this).
+  const glass = Math.min(0.3, Math.max(0, recipe.treatment?.glass ?? 0));
+  if (glass > 0) {
+    // Cards/panels go translucent; the backdrop blur frosts whatever sits
+    // behind them. Text AA is enforced against the FLATTENED worst case
+    // (translucent surface composited over the raw page bg).
+    const alpha = Math.round((1 - glass) * 100) / 100;
+    t['surface'] = rgba(s.surface, alpha);
+    const flat = blendOver(s.surface, alpha, s.bg);
+    t['text'] = ensureReadable(s.text, flat, 4.5, dark);
+    t['text-dim'] = ensureReadable(s.textSoft, flat, 4.5, dark);
+    const blur = Math.round(6 + glass * 40);
+    t['surface-backdrop'] = `blur(${blur}px) saturate(1.35)`;
+    // Frost the top bar too — slightly more opaque so nav text stays calm.
+    t['cpub-topbar-bg'] = rgba(s.surface, Math.min(0.92, alpha + 0.08));
+    t['cpub-topbar-blur'] = `blur(${blur}px)`;
+  }
+  if (recipe.treatment?.bgGradient) {
+    // Subtle: the far stop tints the bg ~7% toward the accent — enough for
+    // glass to refract, small enough that text on the far stop stays AA
+    // (asserted in tests). Gradients only; url() never (schema rejects it).
+    const far = mixHex(s.bg, s.accent, 0.07);
+    t['bg-image'] = `linear-gradient(165deg, ${s.bg} 0%, ${far} 100%)`;
   }
 
   // ---- Fonts to load ----

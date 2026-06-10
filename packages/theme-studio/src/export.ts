@@ -47,6 +47,8 @@ export function buildBrief(meta: ExportMeta, tokens: Record<string, string>): st
   L.push(`- Radius: \`${v('radius')}\` (md \`${v('radius-md')}\`, lg \`${v('radius-lg')}\`). Border width: \`${v('border-width-default')}\`.`);
   L.push(`- Shadow (md): \`${v('shadow-md')}\`. Transition: \`${v('transition-default')}\`.`);
   if (tokens['grain']) L.push(`- Film grain overlay opacity: \`${v('grain')}\`.`);
+  if (tokens['surface-backdrop']) L.push(`- Glass surfaces: \`${v('surface')}\` with backdrop-filter \`${v('surface-backdrop')}\`.`);
+  if (tokens['bg-image']) L.push(`- Page background: \`${v('bg-image')}\`.`);
   L.push('');
   L.push('Generated with CommonPub Theme Studio.');
   L.push('');

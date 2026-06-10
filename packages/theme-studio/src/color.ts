@@ -138,6 +138,23 @@ export function rgba(hex: string, a: number): string {
   return 'rgba(' + Math.round(r) + ', ' + Math.round(g) + ', ' + Math.round(b) + ', ' + a + ')';
 }
 
+/** Linear RGB mix of two hex colors: t=0 → a, t=1 → b. */
+export function mixHex(a: string, b: string, t: number): string {
+  const ca = hexToRgb(a);
+  const cb = hexToRgb(b);
+  const k = clamp(t, 0, 1);
+  return rgbToHex(ca.r + (cb.r - ca.r) * k, ca.g + (cb.g - ca.g) * k, ca.b + (cb.b - ca.b) * k);
+}
+
+/**
+ * Flatten a translucent layer over an opaque backdrop: the hex you would see
+ * if `top` were painted at `alpha` over `bottom`. Used to run WCAG checks
+ * against what a glass surface ACTUALLY composites to.
+ */
+export function blendOver(top: string, alpha: number, bottom: string): string {
+  return mixHex(bottom, top, clamp(alpha, 0, 1));
+}
+
 /** Relative luminance per WCAG 2.x. */
 export function relLum(hex: string): number {
   const { r, g, b } = hexToRgb(hex);

@@ -216,6 +216,15 @@
   --shadow-block: 4px 4px 0 var(--border);
   --shadow-block-sm: 2px 2px 0 var(--border);
 
+  /* === TREATMENTS ===
+     Surface effects. Defaults are TRUE no-ops: `none`, never `blur(0)` — any
+     non-none backdrop-filter creates a stacking context and becomes the
+     containing block for fixed/absolute descendants, which would move
+     dropdowns/modals on every existing theme. Built-in themes don't set
+     these; Theme Studio emits them for glass recipes. */
+  --surface-backdrop: none;  /* backdrop-filter for cards/panels (glass) */
+  --bg-image: none;          /* page background gradient (gradients only) */
+
   /* === TRANSITIONS === */
   --transition-fast: 0.1s ease;
   --transition-default: 0.15s ease;
@@ -298,6 +307,7 @@ body {
   line-height: var(--leading-normal);
   color: var(--text);
   background-color: var(--bg);
+  background-image: var(--bg-image, none);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
