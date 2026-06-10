@@ -22,10 +22,14 @@ Glass archetype; wizard Feel-step controls; (4) capture-flood fix (`resolveVarRe
 specs phantom-diffed on stock sites); (5) wedge-gap resets (ContentCard/VideoCard thumbs, HubHero
 banner). Released **schema 0.40.0 / ui 0.13.0 / theme-studio 0.6.0 / layer 0.72.0** (additive, no
 migration), CLI **0.5.14** (pins ^0.72/^0.40/^2.84.1). deveco + heatsync bumped + deployed,
-curl-verified. Both consumers `nuxt typecheck` EXIT 0 on layer 0.72.0 (the transient "21 errors"
-were npm-tarball-test debris in node_modules — see the 195 log post-mortem; plus one real
-heatsync HeroSection-override prop fix). Phase E deferred:
-glass on scoped modals/dropdowns, `border-style` token, full radius migration.
+curl-verified. Both consumers `nuxt typecheck` EXIT 0 (the transient "21 errors" were
+npm-tarball-test debris in node_modules — see the 195 log post-mortem; plus one real heatsync
+HeroSection-override prop fix). **Patch round (ui 0.13.1 / theme-studio 0.6.1 / layer 0.72.1,
+rolled to all 3):** Phase E glass sweep (backdrop hook on `.cpub-card`, ContentCard, 6 modal
+panels, nav/user/mobile dropdowns) + audit fixes — sink-side `bg-image` guard in
+`instanceTheme.sanitizeRenderTokens` (the generic settings route bypassed the schema guard) and
+a glass AA floor vs the modal scrim (margin hardening; all curated palettes already passed).
+STILL deferred: `border-style` token, full radius migration.
 Plan: `docs/plans/theme-studio-advanced-tokens.md`; log `docs/sessions/195-theme-advanced-tokens.md`.
 
 **Contest per-stage submissions** (session 194): multi-phase contests can now
