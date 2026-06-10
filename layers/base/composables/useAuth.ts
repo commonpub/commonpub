@@ -80,11 +80,16 @@ export function useAuth() {
     if (import.meta.server) return;
     try {
       const data = await authGet('/api/me');
+      // A *successful* response is authoritative: it reflects the real session
+      // (a logged-out user gets `{ user: null }`), so mirror it exactly.
       user.value = data?.user ?? null;
       session.value = data?.session ?? null;
     } catch {
-      user.value = null;
-      session.value = null;
+      // A *thrown* error means we couldn't reach /api/me (network blip, 5xx, a
+      // slow/overloaded server timing out). That is NOT evidence the session is
+      // gone — clearing auth here spuriously logs the user out on any transient
+      // hiccup. Keep the SSR-hydrated state; the next successful refresh
+      // reconciles it.
     }
   }
 

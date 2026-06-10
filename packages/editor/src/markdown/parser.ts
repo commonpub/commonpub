@@ -18,6 +18,35 @@ export interface MarkdownParseOptions {
   wikilinkHandler?: (page: string, displayText?: string) => string;
 }
 
+/**
+ * Hard ceiling on a single markdown input. This parser is synchronous and runs
+ * on the server's main thread (SSR) for every page view of content that renders
+ * markdown — a contest description, a doc page, etc. Past this size the cost of
+ * parsing blocks the event loop, so anything larger degrades to a single
+ * plain-text block instead of being parsed. This is a *backstop*: well above the
+ * 50k schema caps on user-authored fields, it only catches out-of-band content
+ * (federated, imported, or legacy rows) that bypasses those caps.
+ */
+const MAX_MARKDOWN_LENGTH = 100_000;
+
+/** Minimal HTML escape for the oversized-input plain-text fallback. */
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// remark-rehype (mdast → hast) and rehype-stringify (hast → HTML) are stateless
+// across calls, so build each processor ONCE and reuse it. The previous code
+// instantiated two fresh `unified()` processors *per block node*, making a
+// document with N blocks pay N× the processor-construction cost — the dominant
+// term for large inputs. Frozen processors are safe to share.
+const mdastToHast = unified().use(remarkRehype, { allowDangerousHtml: true }).freeze();
+const hastToHtml = unified().use(rehypeStringify, { allowDangerousHtml: true }).freeze();
+
+/** Convert an mdast tree to an HTML string via the shared processors. */
+function treeToHtml(tree: Root): string {
+  return hastToHtml.stringify(mdastToHast.runSync(tree));
+}
+
 const CALLOUT_REGEX = /^\[!(NOTE|TIP|WARNING|DANGER|INFO|CAUTION|EXAMPLE|ABSTRACT|TODO|BUG|QUOTE|IMPORTANT)\]\s*/i;
 
 const CALLOUT_VARIANT_MAP: Record<string, 'info' | 'tip' | 'warning' | 'danger'> = {
@@ -40,6 +69,12 @@ const CALLOUT_VARIANT_MAP: Record<string, 'info' | 'tip' | 'warning' | 'danger'>
  */
 export function markdownToBlockTuples(md: string, options?: MarkdownParseOptions): BlockTuple[] {
   if (!md || !md.trim()) return [];
+
+  // Oversized input: skip the (synchronous, event-loop-blocking) parse and emit
+  // a single plain-text block so the content still shows without stalling SSR.
+  if (md.length > MAX_MARKDOWN_LENGTH) {
+    return [['text', { html: `<p>${escapeHtml(md)}</p>` }]];
+  }
 
   // Preprocess wikilinks before parsing
   const processed = preprocessWikilinks(md, options?.wikilinkHandler);
@@ -185,30 +220,14 @@ function extractPlainText(node: { children?: Content[] }): string {
 function inlineToHtml(node: Paragraph): string {
   // Build a minimal tree with just this paragraph
   const tree: Root = { type: 'root', children: [node] };
-  const result = unified()
-    .use(remarkRehype, { allowDangerousHtml: true })
-    .use(rehypeStringify, { allowDangerousHtml: true })
-    .stringify(
-      unified()
-        .use(remarkRehype, { allowDangerousHtml: true })
-        .runSync(tree),
-    );
-
+  const result = treeToHtml(tree);
   // Strip wrapping <p> tags since we add them ourselves
   return result.replace(/^<p>/, '').replace(/<\/p>\s*$/, '').trim();
 }
 
 /** Convert mdast children to an HTML string */
 function childrenToHtml(children: Content[]): string {
-  const tree: Root = { type: 'root', children: children as Root['children'] };
-  return unified()
-    .use(remarkRehype, { allowDangerousHtml: true })
-    .use(rehypeStringify, { allowDangerousHtml: true })
-    .stringify(
-      unified()
-        .use(remarkRehype, { allowDangerousHtml: true })
-        .runSync(tree),
-    );
+  return treeToHtml({ type: 'root', children: children as Root['children'] });
 }
 
 /** Convert a single mdast node to HTML */
