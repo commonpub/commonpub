@@ -112,3 +112,19 @@ User reports after the rollout, all three diagnosed live:
    for the first time, exposing it). Recategorized ESSENTIAL (a user-requested preference:
    pressing the toggle is the consent; no identifier, no tracking) — always persisted now;
    privacy-page copy updated. Layer 0.73.2, rolled to all 3.
+
+## The real nav bug — a self-referential measurement ratchet (layer 0.73.3)
+
+The user's logged-in screenshot (links collapsed BESIDE a huge empty gap) exposed the deeper
+flaw the cap-chasing had been masking: the nav (`flex: 1 1 auto`, basis = its own content)
+split free space 50/50 with the topbar spacer (`flex: 1`), so `measure()` read an allocation
+that DEPENDED ON THE NAV'S OWN CONTENT. Collapsing links shrank the nav, which re-justified
+the collapse — a ratchet with a stable under-collapsed equilibrium. Wide logged-out probes
+never tripped it (slack/2 stayed generous), which is why the earlier verifications passed.
+Fix: the spacer is inert (`flex: 0 0 0`) in BOTH the base layout and deveco's fork — the nav
+takes all slack, so its allocation is `row − everything else`, content-independent and stable
+in both directions. Plus a `document.fonts.ready` re-measure (web fonts widen items without
+resizing the container, invisible to the ResizeObserver). Verified with a bidirectional
+ratchet test on live: narrow → collapse, re-widen → MUST re-expand, with a simulated
+logged-in actions cluster (+230px). LESSON: never measure a flex item whose allocation is a
+function of its own content; make the allocation exogenous first.
