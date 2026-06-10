@@ -51,6 +51,34 @@ tests, update codebase analysis.
   was about; 50k (~16 pages) is "large" while staying inside the 1MB ingest envelope and 100k
   render backstop. Can raise further on request, with the tradeoff noted.
 
+## Follow-up (same session): Markdown ⇄ Full-HTML toggle for contest long-text
+
+User pasted an elaborate inline-styled HTML document into a description; it saved
+(50k cap) but rendered wrong: indented HTML became **code blocks** (CommonMark
+indented-code rule) and the safe sanitizer stripped `div/section/svg/style`. They
+asked for a per-contest toggle between Markdown and Full HTML, covering
+description + rules + prizes overview.
+
+- **schema**: `contestContentFormatEnum('contest_content_format', ['markdown','html'])`
+  + `contests.contentFormat` column (default `'markdown'`, NOT NULL), **migration 0022**
+  (additive: CREATE TYPE + ADD COLUMN). `contentFormat` added to create/update validators.
+- **server**: `ContestDetail.contentFormat` + `CreateContestInput.contentFormat`; threaded
+  through `toContestDetail`/`createContest`/`updateContest`.
+- **layer — `sanitizeRichHtml`** (new, in `useSanitize.ts`): permissive **default-deny**
+  allowlist for HTML mode — renders layout tags + inline CSS + SVG (original-case names
+  preserved) but drops `<script>/<style>/<iframe>/<object>/<embed>` (with bodies), `on*`
+  handlers, `javascript:` URLs, and scrubs `url()/expression()/@import/behavior` from
+  `style`. Script execution is NEVER allowed even in HTML mode (renders to all viewers).
+- **CpubMarkdown** gained a `format` prop: `html` → one sanitized `v-html` (also cheaper
+  than the Markdown parse); threaded through `index.vue`, `ContestRules`, `ContestPrizes`.
+- **Forms**: a Markdown/Full-HTML radio in create + edit (covers all three fields).
+- **Perf**: contest detail page switched `useLazyFetch` → blocking `useFetch` so the body is
+  SSR-rendered (no empty-description flash while the client fetched + parsed).
+- Tests: `useSanitize.test.ts` (11 — allows design HTML, blocks all script/exfil vectors) +
+  schema enum tests. Verified the user's actual HTML survives end-to-end.
+
+Versions: schema 0.42.0, server 2.85.0, layer 0.75.0, migration 0022.
+
 ## Open / next
 
 - **Release not done.** Changes span published packages: `@commonpub/schema` + `@commonpub/editor`

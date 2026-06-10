@@ -960,6 +960,16 @@ describe('createContestSchema — boundary tests', () => {
     ).toThrow();
   });
 
+  it('accepts contentFormat markdown or html, rejects others', () => {
+    expect(createContestSchema.parse({ ...validContest, contentFormat: 'markdown' }).contentFormat).toBe('markdown');
+    expect(createContestSchema.parse({ ...validContest, contentFormat: 'html' }).contentFormat).toBe('html');
+    expect(() => createContestSchema.parse({ ...validContest, contentFormat: 'raw' })).toThrow();
+  });
+
+  it('contentFormat is optional (defaults handled server-side)', () => {
+    expect(createContestSchema.parse({ ...validContest }).contentFormat).toBeUndefined();
+  });
+
   // Cross-field date refinement (session 171).
   it('rejects an end date on or before the start date', () => {
     expect(() =>

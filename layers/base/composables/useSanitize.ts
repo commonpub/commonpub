@@ -115,7 +115,127 @@ export function sanitizeBlockHtml(html: string): string {
   return result;
 }
 
+// ---------------------------------------------------------------------------
+// Rich HTML mode (the opt-in "Full HTML" content format, e.g. contest pages).
+//
+// A deliberately PERMISSIVE but still DEFAULT-DENY allowlist: it renders an
+// author's presentational HTML verbatim — layout tags, inline CSS, SVG icons —
+// while never permitting script execution. Anything not on the allowlist is
+// dropped, so `<script>`, `<iframe>`, `<object>`, `<style>`, `on*` handlers and
+// `javascript:` URLs cannot get through. Authoring is gated to trusted
+// (staff/admin) contest creators and is opt-in per contest. Tag/attr NAME case
+// is preserved on output so case-sensitive SVG names (viewBox, linearGradient)
+// survive. The `style` attribute is allowed but its value is scrubbed of the
+// exfil/script vectors (url(), expression(), javascript:, @import, behavior).
+// ---------------------------------------------------------------------------
+
+const RICH_ALLOWED_ELEMENTS = new Set([
+  'div', 'section', 'article', 'aside', 'header', 'footer', 'main', 'nav', 'figure', 'figcaption', 'address',
+  'p', 'span', 'br', 'hr', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+  'blockquote', 'pre', 'code', 'kbd', 'samp', 'var', 'cite', 'q', 'wbr', 'small', 'mark', 'abbr', 'time', 'sub', 'sup',
+  'em', 'strong', 'b', 'i', 'u', 's', 'del', 'ins',
+  'ul', 'ol', 'li', 'dl', 'dt', 'dd',
+  'a', 'img', 'picture', 'source',
+  'table', 'caption', 'colgroup', 'col', 'thead', 'tbody', 'tfoot', 'tr', 'th', 'td',
+  'details', 'summary', 'button',
+  // SVG (lowercased for the allowlist check; original case preserved on output)
+  'svg', 'g', 'path', 'circle', 'ellipse', 'line', 'polyline', 'polygon', 'rect', 'defs',
+  'lineargradient', 'radialgradient', 'stop', 'text', 'tspan', 'use', 'symbol', 'clippath', 'mask', 'pattern', 'marker',
+]);
+
+// Attributes allowed on any rich element (lowercased). `aria-*`/`data-*` are
+// allowed by prefix; per-tag extras and `style` are handled separately.
+const RICH_GLOBAL_ATTRS = new Set([
+  'class', 'id', 'title', 'role', 'lang', 'dir', 'slot', 'tabindex', 'hidden', 'datetime', 'open',
+  // SVG presentation
+  'viewbox', 'xmlns', 'version', 'preserveaspectratio', 'transform', 'opacity',
+  'fill', 'fill-opacity', 'fill-rule', 'stroke', 'stroke-width', 'stroke-linecap', 'stroke-linejoin',
+  'stroke-dasharray', 'stroke-dashoffset', 'stroke-opacity', 'stroke-miterlimit', 'clip-rule', 'clip-path', 'mask',
+  'cx', 'cy', 'r', 'rx', 'ry', 'x', 'y', 'x1', 'y1', 'x2', 'y2', 'dx', 'dy', 'd', 'points', 'width', 'height',
+  'offset', 'stop-color', 'stop-opacity', 'gradientunits', 'gradienttransform', 'spreadmethod', 'patternunits',
+  'text-anchor', 'dominant-baseline', 'font-size', 'font-family', 'font-weight', 'letter-spacing',
+  'marker-start', 'marker-mid', 'marker-end',
+]);
+
+const RICH_PER_TAG_ATTRS: Record<string, Set<string>> = {
+  a: new Set(['href', 'rel', 'target', 'name']),
+  img: new Set(['src', 'alt', 'loading', 'decoding']),
+  source: new Set(['type', 'media', 'sizes']),
+  td: new Set(['colspan', 'rowspan', 'headers']),
+  th: new Set(['colspan', 'rowspan', 'headers', 'scope']),
+  ol: new Set(['start', 'type', 'reversed']),
+  col: new Set(['span']),
+  colgroup: new Set(['span']),
+  button: new Set(['type']),
+  use: new Set(['href']),
+};
+
+const RICH_URL_ATTRS = new Set(['href', 'src', 'xlink:href']);
+// CSS constructs that can fetch, exfiltrate, or execute — stripped per-declaration.
+const STYLE_DECL_BLOCKLIST = /expression\s*\(|javascript:|vbscript:|behavior\s*:|-moz-binding|@import|url\s*\(/i;
+
+function sanitizeStyleAttr(value: string): string {
+  return value
+    .split(';')
+    .filter((decl) => decl.trim() && !STYLE_DECL_BLOCKLIST.test(decl))
+    .join(';');
+}
+
+/** Sanitize author HTML for "full HTML" rendering — permissive but script-free. */
+export function sanitizeRichHtml(html: string): string {
+  if (!html || typeof html !== 'string') return '';
+
+  let result = html.replace(/<!--[\s\S]*?-->/g, '');
+
+  // Remove raw-text / active elements WITH their contents, so script/style/embed
+  // bodies don't leak through as visible text or execute. The tag pass below
+  // also drops these by allowlist, but only the open/close tags — this strips
+  // the inner payload (e.g. `<script>code</script>` → '' rather than `code`).
+  result = result.replace(/<(script|style|noscript|template|iframe|object|embed)\b[^>]*>[\s\S]*?<\/\1>/gi, '');
+
+  result = result.replace(/<\/?([a-zA-Z][a-zA-Z0-9:-]*)\b([^>]*)?\/?>/g, (match, rawTag: string, attrs?: string) => {
+    const tag = rawTag.toLowerCase();
+    if (!RICH_ALLOWED_ELEMENTS.has(tag)) return '';
+    if (match.startsWith('</')) return `</${rawTag}>`;
+
+    const safeAttrs: string[] = [];
+    if (attrs) {
+      const attrRegex = /([a-zA-Z_:][\w:.-]*)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|(\S+)))?/g;
+      let attrMatch: RegExpExecArray | null;
+      while ((attrMatch = attrRegex.exec(attrs)) !== null) {
+        const rawName = attrMatch[1]!;
+        const name = rawName.toLowerCase();
+        const value = attrMatch[2] ?? attrMatch[3] ?? attrMatch[4] ?? '';
+
+        if (name.startsWith('on')) continue; // event handlers never allowed
+        const allowed =
+          name === 'style' ||
+          RICH_GLOBAL_ATTRS.has(name) ||
+          name.startsWith('aria-') ||
+          name.startsWith('data-') ||
+          (RICH_PER_TAG_ATTRS[tag]?.has(name) ?? false);
+        if (!allowed) continue;
+
+        if (RICH_URL_ATTRS.has(name) && !isSafeUrl(value)) continue;
+
+        if (name === 'style') {
+          const cleaned = sanitizeStyleAttr(value);
+          if (cleaned) safeAttrs.push(`style="${escapeAttrValue(cleaned)}"`);
+          continue;
+        }
+        safeAttrs.push(`${rawName}="${escapeAttrValue(value)}"`);
+      }
+    }
+
+    const attrsStr = safeAttrs.length > 0 ? ' ' + safeAttrs.join(' ') : '';
+    const selfClose = match.endsWith('/>') ? ' /' : '';
+    return `<${rawTag}${attrsStr}${selfClose}>`;
+  });
+
+  return result;
+}
+
 /** Composable wrapper for template use */
-export function useSanitize(): { sanitize: (html: string) => string } {
-  return { sanitize: sanitizeBlockHtml };
+export function useSanitize(): { sanitize: (html: string) => string; sanitizeRich: (html: string) => string } {
+  return { sanitize: sanitizeBlockHtml, sanitizeRich: sanitizeRichHtml };
 }
