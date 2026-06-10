@@ -1044,3 +1044,56 @@ a growing sibling in the bar's middle region (base layout OR a fork like deveco'
 ratchet comes back. Web fonts are the other blind spot: they widen the items without resizing
 the container, so NavRenderer re-measures on `document.fonts.ready` — keep that if you touch
 the lifecycle.
+
+## Large free-text fields: the bound is load-bearing, at BOTH ingest and render (session 197)
+
+A user pasted a large HTML blob into a contest description; validation rejected it (the old 10k
+cap), but the request still slowed/destabilized the server. Root cause is two synchronous,
+event-loop-blocking steps that run *before or independent of* the Zod cap:
+
+1. **Ingest.** Every JSON write route funnels through `parseBody` (`server/utils/validate.ts`),
+   which `readBody`s (buffers) then `JSON.parse`s the whole body — both synchronous and memory-
+   spiking — *before* `safeParse` ever checks `.max()`. A multi-MB body (or a burst of retries)
+   stalls the loop / pressures memory regardless of the field cap. **Invariant:** `parseBody`
+   enforces a `Content-Length` ceiling (`MAX_JSON_BODY_BYTES`, **10MB**) and throws **413 before
+   `readBody`**. This is the single chokepoint for all JSON writes. The ceiling is deliberately
+   GENEROUS, not tight: `content` is `z.unknown()` (unbounded) for articles/projects/docs, so a
+   low cap would reject legitimately-large saves — don't drop it to 1MB. It only has to kill the
+   *catastrophic* body; per-field Zod `.max()` is the semantic bound. Multipart uploads use
+   `readMultipartFormData` (NOT `parseBody`) and are bounded separately by `validateUpload`.
+
+2. **Render.** Contest description/rules render through `CpubMarkdown` → `markdownToBlockTuples`
+   (`packages/editor/src/markdown/parser.ts`) inside a Vue `computed`, i.e. **synchronously on
+   the SSR main thread for every page view**. The parser is `unified`/remark and was building a
+   fresh `unified()` processor *per block node* — O(N) processor construction, the dominant cost
+   on large inputs. **Invariants now:** the remark-rehype + rehype-stringify processors are built
+   ONCE at module scope and reused (`mdastToHast`/`hastToHtml`, frozen); and inputs over
+   `MAX_MARKDOWN_LENGTH` (100k, a backstop *above* the 50k schema cap for federated/imported/
+   legacy rows) skip the parse entirely and emit one escaped plain-text block. If you add a new
+   per-node HTML conversion, route it through the shared `treeToHtml`, don't `unified()` inline.
+
+Consequence for caps: long-form contest fields (`description`/`rules`/`prizesDescription`) raised
+10k → `CONTEST_RICH_TEXT_MAX` (50k) to allow genuinely large briefs — but **keep them bounded**.
+"Remove the cap entirely" is the exact unbounded-input DoS the above guards exist to prevent; the
+50k value sits safely inside both the 1MB ingest envelope and the 100k render backstop. Client
+textareas carry `maxlength="50000"` so over-cap input is stopped before a round-trip.
+
+## A transient `/api/me` failure must NOT log the user out (session 197)
+
+`useAuth().refreshSession()` runs in the default layout's `onMounted` on every full page load.
+It previously `catch`-cleared `user`/`session` to null on **any** thrown error. But a *thrown*
+`/api/me` (network blip, 5xx, a slow/overloaded server timing out) is not evidence the session is
+gone — only a *successful* response saying `{ user: null }` is. The old behavior turned a
+momentary server hiccup into a full client-side logout; combined with the draft-access gate above
+(a logged-out owner's `draft` contest 404s), it looked like data loss. **Invariant:** a successful
+`/api/me` is authoritative (mirror it exactly); a thrown error leaves the SSR-hydrated auth state
+intact and waits for the next refresh. Don't reintroduce a blanket `catch { user.value = null }`.
+
+## `useLazyFetch` renders the "not found" branch during client-nav loading (session 197)
+
+`contests/[slug]/edit.vue` (and any lazy-fetched detail page) starts with `data === null`. On a
+full page load SSR populates it, so typing the URL works. But on a **client-side** nav (clicking
+"Edit Contest"), the lazy fetch is still pending while `data` is null — a template whose final
+`v-else` is "Contest not found" will flash/stick on that branch, reading as a broken link. Gate on
+the fetch `status`: treat `idle`/`pending` as a *loading* state distinct from a genuinely-null
+"not found". This is why a page can "work when you type the URL but not when you click the button".

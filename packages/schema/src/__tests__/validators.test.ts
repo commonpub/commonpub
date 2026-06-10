@@ -927,27 +927,36 @@ describe('createContestSchema — boundary tests', () => {
     ).toThrow();
   });
 
-  it('accepts description of exactly 10000 chars', () => {
+  // Long-form fields allow genuinely large content (50k, ~16 pages) but stay
+  // bounded — an unbounded field is a DoS vector at ingest + render (the cap was
+  // raised from 10k after a large-blob incident; the bound itself is load-bearing).
+  it('accepts a 10000-char description (well within the cap)', () => {
     expect(
       createContestSchema.parse({ ...validContest, description: 'x'.repeat(10000) }).description,
     ).toHaveLength(10000);
   });
 
-  it('rejects description of 10001 chars', () => {
+  it('accepts description of exactly 50000 chars (CONTEST_RICH_TEXT_MAX)', () => {
+    expect(
+      createContestSchema.parse({ ...validContest, description: 'x'.repeat(50000) }).description,
+    ).toHaveLength(50000);
+  });
+
+  it('rejects description of 50001 chars (bound still enforced)', () => {
     expect(() =>
-      createContestSchema.parse({ ...validContest, description: 'x'.repeat(10001) }),
+      createContestSchema.parse({ ...validContest, description: 'x'.repeat(50001) }),
     ).toThrow();
   });
 
-  it('accepts rules of exactly 10000 chars', () => {
+  it('accepts rules of exactly 50000 chars', () => {
     expect(
-      createContestSchema.parse({ ...validContest, rules: 'x'.repeat(10000) }).rules,
-    ).toHaveLength(10000);
+      createContestSchema.parse({ ...validContest, rules: 'x'.repeat(50000) }).rules,
+    ).toHaveLength(50000);
   });
 
-  it('rejects rules of 10001 chars', () => {
+  it('rejects rules of 50001 chars', () => {
     expect(() =>
-      createContestSchema.parse({ ...validContest, rules: 'x'.repeat(10001) }),
+      createContestSchema.parse({ ...validContest, rules: 'x'.repeat(50001) }),
     ).toThrow();
   });
 

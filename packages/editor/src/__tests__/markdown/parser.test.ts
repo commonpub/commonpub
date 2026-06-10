@@ -179,4 +179,43 @@ npm install
     const blocks = markdownToBlockTuples('<div class="custom">Content</div>');
     expect(blocks[0]![0]).toBe('text');
   });
+
+  describe('oversized input guard', () => {
+    it('parses normally just under the 100k ceiling', () => {
+      // A large-but-legal document still gets the real markdown treatment.
+      const md = '# Heading\n\n' + 'word '.repeat(15000); // ~75k chars
+      const blocks = markdownToBlockTuples(md);
+      expect(blocks[0]).toEqual(['heading', { text: 'Heading', level: 1 }]);
+      expect(blocks.length).toBeGreaterThan(1);
+    });
+
+    it('degrades oversized input to a single escaped plain-text block (no parse)', () => {
+      // Past the ceiling we skip the synchronous parse entirely so SSR can't
+      // be stalled by a pathological input — content is preserved as plain text.
+      const md = 'A'.repeat(100_001);
+      const blocks = markdownToBlockTuples(md);
+      expect(blocks).toHaveLength(1);
+      expect(blocks[0]![0]).toBe('text');
+      expect((blocks[0]![1] as { html: string }).html).toBe(`<p>${'A'.repeat(100_001)}</p>`);
+    });
+
+    it('HTML-escapes the oversized plain-text fallback', () => {
+      const md = '<script>alert(1)</script>'.padEnd(100_001, '.');
+      const blocks = markdownToBlockTuples(md);
+      const html = (blocks[0]![1] as { html: string }).html;
+      expect(html).not.toContain('<script>');
+      expect(html).toContain('&lt;script&gt;');
+    });
+
+    it('renders many block nodes without rebuilding the processor per node', () => {
+      // Regression guard for the per-node `unified()` instantiation: 2k blocks
+      // (kept under the 100k char ceiling) must each map to a block, proving the
+      // shared-processor path handles a high node count.
+      const md = Array.from({ length: 2000 }, (_, i) => `Paragraph ${i} with **bold**.`).join('\n\n');
+      expect(md.length).toBeLessThan(100_000);
+      const blocks = markdownToBlockTuples(md);
+      expect(blocks.length).toBe(2000);
+      expect(blocks[0]![0]).toBe('text');
+    });
+  });
 });

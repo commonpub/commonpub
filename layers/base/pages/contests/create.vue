@@ -187,12 +187,12 @@ function prizeLabel(prize: Prize): string {
         </div>
         <div class="cpub-form-field">
           <label for="contest-desc" class="cpub-form-label">Description</label>
-          <textarea id="contest-desc" v-model="description" class="cpub-form-textarea" rows="4" placeholder="Describe your contest. Supports Markdown, # headings, - lists, **bold**, [links](url)…" />
+          <textarea id="contest-desc" v-model="description" class="cpub-form-textarea" rows="4" maxlength="50000" placeholder="Describe your contest. Supports Markdown, # headings, - lists, **bold**, [links](url)…" />
           <p class="cpub-form-hint">Supports Markdown (headings, lists, bold, links) and inline HTML. Shown formatted on the contest page.</p>
         </div>
         <div class="cpub-form-field">
           <label for="contest-rules" class="cpub-form-label">Rules</label>
-          <textarea id="contest-rules" v-model="rules" class="cpub-form-textarea" rows="6" placeholder="Contest rules and requirements. Supports Markdown, one rule per line, or full Markdown." />
+          <textarea id="contest-rules" v-model="rules" class="cpub-form-textarea" rows="6" maxlength="50000" placeholder="Contest rules and requirements. Supports Markdown, one rule per line, or full Markdown." />
           <p class="cpub-form-hint">Supports Markdown. Plain one-rule-per-line text is rendered as a numbered list.</p>
         </div>
         <div class="cpub-form-field">
@@ -336,7 +336,7 @@ function prizeLabel(prize: Prize): string {
         <p class="cpub-form-hint">Contests don't need prizes, leave this empty to skip them entirely. If you do add prizes, every field is optional: use <strong>place</strong> for ranked prizes (1st/2nd/3rd), a <strong>category</strong> for themed awards (e.g. "Best in Show"), or just a <strong>description</strong>. Cash value is optional.</p>
         <div class="cpub-form-field">
           <label for="prizes-desc" class="cpub-form-label">Prizes overview (optional)</label>
-          <textarea id="prizes-desc" v-model="prizesDescription" class="cpub-form-textarea" rows="3" placeholder="Intro shown above the prize cards. Supports Markdown." />
+          <textarea id="prizes-desc" v-model="prizesDescription" class="cpub-form-textarea" rows="3" maxlength="50000" placeholder="Intro shown above the prize cards. Supports Markdown." />
           <p class="cpub-form-hint">Markdown intro displayed on the Prizes tab, above the individual prizes.</p>
         </div>
         <div v-for="(prize, idx) in prizes" :key="idx" class="cpub-prize-card">

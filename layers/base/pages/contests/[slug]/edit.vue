@@ -10,7 +10,12 @@ const toast = useToast();
 const { extract: extractError } = useApiError();
 const { user, isAdmin } = useAuth();
 
-const { data: contest, refresh } = useLazyFetch(`/api/contests/${slug}`);
+const { data: contest, refresh, status: contestStatus } = useLazyFetch(`/api/contests/${slug}`);
+// `useLazyFetch` doesn't block navigation, so on a client-side nav (clicking
+// "Edit Contest") `contest` is null until the fetch resolves. Without this we'd
+// render the "Contest not found" branch during that window — which reads as a
+// broken link. Treat idle/pending as "loading", not "not found".
+const contestLoading = computed(() => contestStatus.value === 'idle' || contestStatus.value === 'pending');
 const isOwner = computed(() => isAdmin.value || !!(user.value?.id && contest.value?.createdById === user.value.id));
 useSeoMeta({ title: () => `Edit: ${contest.value?.title ?? 'Contest'}, ${useSiteName()}` });
 
@@ -344,12 +349,12 @@ async function transitionStatus(newStatus: string): Promise<void> {
         </div>
         <div class="cpub-form-field">
           <label class="cpub-form-label">Description</label>
-          <textarea v-model="description" class="cpub-form-textarea" rows="4" />
+          <textarea v-model="description" class="cpub-form-textarea" rows="4" maxlength="50000" />
           <p class="cpub-form-hint">Supports Markdown (headings, lists, bold, links) and inline HTML. Shown formatted on the contest page.</p>
         </div>
         <div class="cpub-form-field">
           <label class="cpub-form-label">Rules</label>
-          <textarea v-model="rules" class="cpub-form-textarea" rows="6" placeholder="One rule per line, or full Markdown" />
+          <textarea v-model="rules" class="cpub-form-textarea" rows="6" maxlength="50000" placeholder="One rule per line, or full Markdown" />
           <p class="cpub-form-hint">Supports Markdown. Plain one-rule-per-line text is rendered as a numbered list.</p>
         </div>
         <div class="cpub-form-field">
@@ -438,7 +443,7 @@ async function transitionStatus(newStatus: string): Promise<void> {
         <p class="cpub-form-hint">Every field is optional. Use <strong>place</strong> for ranked prizes, a <strong>category</strong> for themed awards, or just a <strong>description</strong>, whatever fits. Cash value is optional.</p>
         <div class="cpub-form-field">
           <label class="cpub-form-label">Prizes overview (optional)</label>
-          <textarea v-model="prizesDescription" class="cpub-form-textarea" rows="3" placeholder="Intro shown above the prize cards. Supports Markdown." />
+          <textarea v-model="prizesDescription" class="cpub-form-textarea" rows="3" maxlength="50000" placeholder="Intro shown above the prize cards. Supports Markdown." />
           <p class="cpub-form-hint">Markdown intro displayed on the Prizes tab, above the individual prizes.</p>
         </div>
         <div v-for="(prize, i) in prizes" :key="i" class="cpub-prize-row">
@@ -626,6 +631,7 @@ async function transitionStatus(newStatus: string): Promise<void> {
       </div>
     </form>
   </div>
+  <div v-else-if="contestLoading" class="cpub-not-found"><p>Loading contest…</p></div>
   <div v-else class="cpub-not-found"><p>Contest not found</p></div>
 </template>
 

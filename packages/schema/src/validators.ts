@@ -421,13 +421,22 @@ export const contestAdvanceSchema = z
     message: 'topN mode needs `topN`; manual mode needs `advancedEntryIds`.',
   });
 
+// Contest long-form fields (description/rules/prizes overview) allow genuinely
+// large content — a full multi-section brief, not a one-liner. The cap stays
+// *bounded* on purpose: an unbounded field is a DoS vector (a multi-MB body is
+// buffered + JSON-parsed synchronously at ingest, and rendered through the
+// synchronous markdown pipeline on every page view). 50k chars is ~8k words /
+// ~16 pages — large by any contest measure — while the body-size guard in
+// `parseBody` and the render guard in the markdown parser keep the server safe.
+export const CONTEST_RICH_TEXT_MAX = 50_000;
+
 export const createContestSchema = z
   .object({
     title: z.string().min(1).max(255),
     subheading: z.string().max(300).optional(),
-    description: z.string().max(10000).optional(),
-    rules: z.string().max(10000).optional(),
-    prizesDescription: z.string().max(10000).optional(),
+    description: z.string().max(CONTEST_RICH_TEXT_MAX).optional(),
+    rules: z.string().max(CONTEST_RICH_TEXT_MAX).optional(),
+    prizesDescription: z.string().max(CONTEST_RICH_TEXT_MAX).optional(),
     bannerUrl: optionalUrl(),
     coverImageUrl: optionalUrl(),
     showPrizes: z.boolean().optional(),
@@ -470,9 +479,9 @@ export const updateContestSchema = z
   .object({
     title: z.string().min(1).max(255).optional(),
     subheading: z.string().max(300).optional(),
-    description: z.string().max(10000).optional(),
-    rules: z.string().max(10000).optional(),
-    prizesDescription: z.string().max(10000).optional(),
+    description: z.string().max(CONTEST_RICH_TEXT_MAX).optional(),
+    rules: z.string().max(CONTEST_RICH_TEXT_MAX).optional(),
+    prizesDescription: z.string().max(CONTEST_RICH_TEXT_MAX).optional(),
     bannerUrl: optionalUrl(),
     coverImageUrl: optionalUrl(),
     showPrizes: z.boolean().optional(),
