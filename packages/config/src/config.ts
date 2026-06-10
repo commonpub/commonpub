@@ -1,5 +1,5 @@
 import { configSchema } from './schema.js';
-import type { CommonPubConfig } from './types.js';
+import type { CommonPubConfig, RegisteredTheme } from './types.js';
 
 export interface ConfigWarning {
   field: string;
@@ -30,6 +30,12 @@ export function defineCommonPubConfig(input: {
   features?: Partial<CommonPubConfig['features']>;
   auth?: Partial<CommonPubConfig['auth']>;
   federation?: Partial<CommonPubConfig['federation']>;
+  /** Code-registered themes (the zod schema always accepted these; the input
+   *  type previously omitted them, so thin apps couldn't declare them
+   *  without a type error). */
+  themes?: RegisteredTheme[];
+  /** Brand default theme id — see CommonPubConfig.defaultTheme. */
+  defaultTheme?: string;
 }): ConfigResult {
   const config = configSchema.parse(input) as CommonPubConfig;
   const warnings: ConfigWarning[] = [];
