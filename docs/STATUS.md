@@ -30,6 +30,16 @@ panels, nav/user/mobile dropdowns) + audit fixes — sink-side `bg-image` guard 
 `instanceTheme.sanitizeRenderTokens` (the generic settings route bypassed the schema guard) and
 a glass AA floor vs the modal scrim (margin hardening; all curated palettes already passed).
 STILL deferred: `border-style` token, full radius migration.
+**Continuation round: e2e GREEN + glass smoke + dev un-broken (schema 0.40.1 / layer 0.72.2,
+PR #29).** The months-red e2e suite had ONE root cause: schema's openapi CLI guard read
+`process.argv[1]` at module top level — Vite's dev shim has `process` without `argv`, so every
+dev/e2e page client-crashed to the 500 screen (prod immune: `sideEffects:false` tree-shakes it).
+Fix `process.argv?.[1]` + family-aware dark-cookie theme assert + scoped login locators + docs
+vitest forks pool (worker birpc flake). **CI fully green incl. e2e for the first time in months;
+local `pnpm dev` works again.** Glass browser smoke done locally via Playwright (pair created
+through the real admin API, both modes screenshot-verified, gradient + glass + pair flip OK).
+MEMORY.md index trimmed 43.8→21.8KB (was over the load limit; long lines snapshotted into topic
+files first).
 Plan: `docs/plans/theme-studio-advanced-tokens.md`; log `docs/sessions/195-theme-advanced-tokens.md`.
 
 **Contest per-stage submissions** (session 194): multi-phase contests can now
