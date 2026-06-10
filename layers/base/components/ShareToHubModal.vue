@@ -100,6 +100,8 @@ async function handleShare(): Promise<void> {
   background: var(--surface);
   border: var(--border-width-default) solid var(--border);
   box-shadow: var(--shadow-lg);
+  -webkit-backdrop-filter: var(--surface-backdrop, none);
+  backdrop-filter: var(--surface-backdrop, none);
   padding: 24px;
   max-width: 420px;
   width: 90vw;

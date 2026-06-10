@@ -283,6 +283,9 @@
   border: var(--border-width-default) solid var(--border);
   overflow: hidden;
   transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  /* Glass treatment hook — `none` default is a true no-op. */
+  -webkit-backdrop-filter: var(--surface-backdrop, none);
+  backdrop-filter: var(--surface-backdrop, none);
 }
 
 .cpub-card:hover {

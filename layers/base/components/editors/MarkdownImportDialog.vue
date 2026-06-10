@@ -150,6 +150,8 @@ async function readFile(file: File): Promise<void> {
   box-shadow: var(--shadow-xl);
   display: flex; flex-direction: column;
   max-height: 80vh;
+  -webkit-backdrop-filter: var(--surface-backdrop, none);
+  backdrop-filter: var(--surface-backdrop, none);
 }
 
 .md-import-header {

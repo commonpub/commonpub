@@ -193,6 +193,8 @@ useFocusTrap(dialogRef, () => props.show, handleClose);
   display: flex;
   flex-direction: column;
   max-height: 80vh;
+  -webkit-backdrop-filter: var(--surface-backdrop, none);
+  backdrop-filter: var(--surface-backdrop, none);
 }
 
 .cpub-import-header {

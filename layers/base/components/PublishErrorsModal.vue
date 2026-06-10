@@ -52,6 +52,8 @@ useFocusTrap(dialogRef, () => props.show, () => emit('dismiss'));
   max-width: 420px;
   width: 100%;
   box-shadow: var(--shadow-md);
+  -webkit-backdrop-filter: var(--surface-backdrop, none);
+  backdrop-filter: var(--surface-backdrop, none);
 }
 
 .cpub-publish-errors-title {
