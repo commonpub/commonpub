@@ -8,8 +8,11 @@ import { THEME_TO_FAMILY, FAMILY_VARIANTS } from '../utils/themeConfig';
  * between light and dark mode within that theme's family. The server middleware
  * resolves the correct theme on every request — no theme-selection cookie needed.
  *
- * The dark mode preference cookie (`cpub-color-scheme`) is only persisted
- * when the user has accepted functional cookies via the consent banner.
+ * The dark mode preference cookie (`cpub-color-scheme`) is an ESSENTIAL
+ * preference cookie (set only by the user pressing the toggle, no
+ * identifier) — always persisted, no consent gate. It used to be gated on
+ * functional consent, which silently dropped the preference on refresh for
+ * anyone who chose "Essential only".
  *
  * Custom themes (`cpub-custom-*`) and code-registered themes pass through —
  * the user's cookie toggle is recorded but the server picks the actual variant
@@ -35,15 +38,12 @@ export function useTheme(): {
     path: '/',
     sameSite: 'lax',
   });
-  const { allowsFunctional } = useCookieConsent();
-
   function setDarkMode(dark: boolean): void {
     isDark.value = dark;
 
-    // Only persist to cookie if user consented to functional cookies
-    if (allowsFunctional.value) {
-      schemeCookie.value = dark ? 'dark' : 'light';
-    }
+    // Always persist — pressing the toggle IS the consent for this
+    // preference cookie (registered as essential in useCookieConsent).
+    schemeCookie.value = dark ? 'dark' : 'light';
 
     // Custom light/dark PAIR: both variants' tokens are injected (scoped to
     // their data-theme attr), so flip the attribute client-side for an instant

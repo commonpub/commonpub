@@ -19,8 +19,12 @@ const BUILTIN_COOKIES: CookieDefinition[] = [
   },
   {
     name: 'cpub-color-scheme',
-    category: 'functional',
-    description: 'Remembers your light/dark mode preference across visits.',
+    // Essential, not functional: it's a preference the user explicitly
+    // requests by pressing the Light/Dark toggle (consent-exempt class:
+    // stores no identifier, does no tracking). When it was consent-gated,
+    // anyone on "Essential only" lost their theme on every refresh.
+    category: 'essential',
+    description: 'Remembers your light/dark mode preference. Set only when you use the theme toggle.',
     duration: '1 year',
   },
 ];

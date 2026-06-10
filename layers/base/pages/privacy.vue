@@ -67,7 +67,7 @@ const { federation: federationEnabled } = useFeatures();
         <ul>
           <li><strong>Session cookie</strong> (<code>better-auth.session_token</code>): strictly necessary, authenticates your login session. HttpOnly, secure, 7-day expiry.</li>
           <li><strong>Consent cookie</strong> (<code>cpub-consent</code>): strictly necessary, stores your cookie consent choice.</li>
-          <li><strong>Color scheme</strong> (<code>cpub-color-scheme</code>): functional, remembers your light/dark mode preference. Set only with your consent.</li>
+          <li><strong>Color scheme</strong> (<code>cpub-color-scheme</code>): strictly necessary preference, remembers your light/dark mode choice. Set only when you use the theme toggle. No identifier, no tracking.</li>
         </ul>
         <p>We do not use any advertising or tracking cookies. Your instance operator may add analytics cookies, these require your explicit consent. For the full list of cookies and to manage your preferences, visit our <NuxtLink to="/cookies">Cookie Policy</NuxtLink>.</p>
       </section>
