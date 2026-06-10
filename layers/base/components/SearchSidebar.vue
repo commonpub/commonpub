@@ -18,8 +18,9 @@ const { hubs: hubsEnabled } = useFeatures();
 
 <template>
   <aside class="cpub-sidebar-col">
-    <!-- Trending Searches -->
-    <div class="cpub-sb-block">
+    <!-- Trending Searches — hidden entirely when there's no data (a header
+         over an empty list reads as broken on quiet/new instances). -->
+    <div v-if="trendingSearches?.length" class="cpub-sb-block">
       <div class="cpub-sb-heading">Trending Searches</div>
       <ul class="cpub-pop-search-list">
         <li

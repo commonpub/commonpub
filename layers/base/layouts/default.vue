@@ -26,6 +26,22 @@ const userMenuOpen = ref(false);
 const mobileMenuOpen = ref(false);
 const openDropdown = ref<string | null>(null);
 
+// Inline topbar search (replaces the old link-styled box that just navigated
+// to /search — users read it as a broken input). Submit goes to the search
+// page with the query; Cmd+K focuses it when visible.
+const searchQuery = ref('');
+const searchInputRef = ref<HTMLInputElement | null>(null);
+function handleSearchSubmit(): void {
+  const q = searchQuery.value.trim();
+  if (q) {
+    navigateTo(`/search?q=${encodeURIComponent(q)}`);
+    searchQuery.value = '';
+    searchInputRef.value?.blur();
+  } else {
+    navigateTo('/search');
+  }
+}
+
 // Fetch configurable nav items (falls back to defaults on server)
 // useAsyncData avoids Nuxt's typed route inference which triggers TS2589
 const { data: navItems } = await useAsyncData('nav-items', () =>
@@ -41,11 +57,17 @@ function closeDropdowns(): void {
   openDropdown.value = null;
 }
 
-// Cmd+K / Ctrl+K → search
+// Cmd+K / Ctrl+K → focus the inline search (or go to /search when it's
+// hidden, e.g. on mobile where the bar only shows the magnifier link).
 function handleGlobalKeydown(e: KeyboardEvent): void {
   if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
     e.preventDefault();
-    navigateTo('/search');
+    const input = searchInputRef.value;
+    if (input && input.offsetParent !== null) {
+      input.focus();
+    } else {
+      navigateTo('/search');
+    }
   }
 }
 
@@ -114,11 +136,18 @@ const userUsername = computed(() => user.value?.username ?? '');
              On mobile they live in the hamburger menu (search) and the
              avatar dropdown (messages/notifications) so the bar can't
              overflow and hide the hamburger toggle. -->
-        <NuxtLink to="/search" class="cpub-search-btn cpub-topbar-desktop-only" aria-label="Search">
-          <i class="fa-solid fa-magnifying-glass"></i>
-          <span class="cpub-search-text">Search...</span>
-          <span class="cpub-kbd">&lceil;K</span>
-        </NuxtLink>
+        <form class="cpub-search-btn cpub-topbar-desktop-only" role="search" @submit.prevent="handleSearchSubmit">
+          <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+          <input
+            ref="searchInputRef"
+            v-model="searchQuery"
+            type="text"
+            class="cpub-search-input"
+            placeholder="Search..."
+            aria-label="Search"
+          />
+          <span class="cpub-kbd">&#8984;K</span>
+        </form>
 
         <template v-if="isAuthenticated">
           <NuxtLink to="/messages" class="cpub-icon-btn cpub-topbar-desktop-only" title="Messages" aria-label="Messages">
@@ -289,7 +318,17 @@ const userUsername = computed(() => user.value?.username ?? '');
 .cpub-topbar-logo { display: flex; align-items: center; flex-shrink: 0; text-decoration: none; color: var(--text); }
 
 /* Nav styles use :deep() to reach into NavRenderer/NavDropdown/NavLink child components */
-:deep(.cpub-topbar-nav) { display: flex; align-items: center; gap: 2px; margin-left: 24px; }
+/* Containment: the nav takes the flexible middle (flex:1) and min-width:0 lets
+   it shrink below content width, so NavRenderer can measure its ACTUAL
+   allocated space and collapse links that don't fit into the "More" overflow
+   dropdown. Before this, a long link list (or a wide-link theme) pushed the
+   search box and Log in/avatar clean off the right edge between the 768px
+   hamburger cutover and ~1100px — on all three instances, with STOCK links. */
+:deep(.cpub-topbar-nav) {
+  display: flex; align-items: center; gap: 2px; margin-left: 24px;
+  flex: 1 1 auto; min-width: 0;
+}
+:deep(.cpub-topbar-nav .cpub-nav-link) { white-space: nowrap; flex-shrink: 0; }
 /* Nav-link shape + active state are token-driven (--cpub-nav-link-*) so a theme can
    make pill-shaped/larger/accent-colored nav links (deveco) without forking. Defaults
    = the current 12px square neutral link. */
@@ -349,9 +388,20 @@ const userUsername = computed(() => user.value?.username ?? '');
 .cpub-topbar-spacer { flex: 1; }
 .cpub-topbar-actions { display: flex; align-items: center; gap: 6px; }
 
-.cpub-search-btn { display: flex; align-items: center; gap: 8px; padding: 6px 12px; background: var(--surface2); border: var(--border-width-default) solid var(--border2); color: var(--text-dim); font-size: 12px; min-width: 180px; text-decoration: none; transition: border-color 0.15s; }
+.cpub-search-btn { display: flex; align-items: center; gap: 8px; padding: 6px 12px; background: var(--surface2); border: var(--border-width-default) solid var(--border2); color: var(--text-dim); font-size: 12px; min-width: 180px; text-decoration: none; transition: border-color 0.15s, box-shadow 0.15s; cursor: text; }
 .cpub-search-btn:hover { border-color: var(--accent-border); color: var(--text); }
+/* The form ring is the ONE focus indicator. */
+.cpub-search-btn:focus-within { border-color: var(--accent); box-shadow: var(--accent-focus-ring); }
 .cpub-search-btn i { font-size: 11px; }
+.cpub-search-input {
+  flex: 1; min-width: 0; border: none; background: none; padding: 0;
+  font-size: 12px; font-family: inherit; color: var(--text);
+}
+.cpub-search-input::placeholder { color: var(--text-dim); }
+/* Suppress BOTH outline and box-shadow on the input itself — themes (stoa)
+   put a box-shadow glow on every :focus-visible, which would draw a second
+   ring inside the form's ring (the deveco double-trace bug). */
+.cpub-search-input:focus-visible { outline: none; box-shadow: none; }
 .cpub-kbd { margin-left: auto; font-size: 10px; font-family: var(--font-mono); padding: 2px 6px; background: var(--surface3); border: var(--border-width-default) solid var(--border2); color: var(--text-faint); }
 
 .cpub-icon-btn { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; background: transparent; border: var(--border-width-default) solid transparent; color: var(--text-dim); font-size: 13px; position: relative; transition: all 0.15s; text-decoration: none; }
@@ -412,7 +462,7 @@ const userUsername = computed(() => user.value?.username ?? '');
      the row can't overflow and clip the hamburger + avatar. */
   .cpub-topbar-desktop-only { display: none !important; }
   .cpub-dropdown-item--mobile { display: flex; }
-  .cpub-search-text, .cpub-kbd, .cpub-new-text { display: none; }
+  .cpub-new-text { display: none; }
   .cpub-mobile-toggle { display: flex; }
   .cpub-mobile-menu { display: block; }
   .cpub-footer-inner { grid-template-columns: 1fr 1fr; gap: 24px; }

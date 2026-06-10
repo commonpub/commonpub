@@ -253,4 +253,13 @@ export interface CommonPubConfig {
    * The matching CSS file must be added separately to the Nuxt `css:` array.
    */
   themes?: RegisteredTheme[];
+  /**
+   * Default theme id used when the admin hasn't picked one in the DB
+   * (`instance_settings` key `theme.default`). Lets a thin app pin its brand
+   * theme in code instead of riding the layer's built-in fallback — without
+   * this, an instance with a registered brand theme but no DB setting renders
+   * (and light/dark-toggles) as the layer's default family. The DB setting,
+   * when present, always wins.
+   */
+  defaultTheme?: string;
 }

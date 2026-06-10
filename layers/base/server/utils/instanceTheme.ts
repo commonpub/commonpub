@@ -32,7 +32,8 @@ export function sanitizeRenderTokens(tokens: Record<string, string>): Record<str
 
 interface CachedThemeState {
   /** The admin's chosen default theme (built-in id, custom data-attr, or registered id) */
-  defaultTheme: string;
+  /** Admin-picked default theme id, or null when never set in the DB. */
+  defaultTheme: string | null;
   /** All DB-stored custom themes, keyed by their data-theme attribute (`cpub-custom-<slug>`) */
   customByAttr: Map<string, CustomThemeRecord>;
   /** Instance-wide token overrides applied on top of the active theme */
@@ -45,12 +46,14 @@ let cacheTime = 0;
 async function loadThemeState(): Promise<CachedThemeState> {
   const db = useDB();
 
-  // 1. Default theme ID.
-  // Fallback is 'stoa' — the default CommonPub theme for fresh installs and any
-  // instance that has NOT explicitly set `theme.default` in the DB. Instances
-  // with an explicit setting (e.g. commonpub.io=agora-dark, branded instances)
-  // are unaffected; this only changes what an unconfigured instance shows.
-  let defaultTheme = 'stoa';
+  // 1. Default theme ID from the DB. `null` when the admin never picked one —
+  // resolveThemeContext then falls back to the thin app's `config.defaultTheme`
+  // (a branded instance pins its identity in code) and finally to 'stoa' (the
+  // CommonPub default for fresh installs). Tracking absence here, instead of
+  // baking 'stoa' in, is what lets a config-pinned brand theme take effect —
+  // deveco rode the stoa fallback for months, which made its dark mode and
+  // theme identity wrong.
+  let defaultTheme: string | null = null;
   try {
     const [row] = await db
       .select({ value: instanceSettings.value })
@@ -91,6 +94,14 @@ async function getState(): Promise<CachedThemeState> {
   return cached;
 }
 
+/** The registry metadata the theme resolver needs (subset of RegisteredTheme). */
+export interface RegisteredThemeMeta {
+  id: string;
+  family?: string;
+  isDark?: boolean;
+  pairId?: string;
+}
+
 /** Validate a theme ID against built-in, custom, and registered themes. */
 function isKnownThemeId(id: string, state: CachedThemeState, registeredIds: Set<string>): boolean {
   if (VALID_THEME_IDS.has(id)) return true;
@@ -99,9 +110,54 @@ function isKnownThemeId(id: string, state: CachedThemeState, registeredIds: Set<
   return false;
 }
 
+/** A registered theme's dark-ness: explicit flag, else inferred from the
+ *  `-dark` id suffix — naming a theme `foo-dark` should just work. */
+function registeredIsDark(meta: RegisteredThemeMeta): boolean {
+  return meta.isDark ?? /(^|-)dark$/.test(meta.id);
+}
+
+/**
+ * Pick a registered theme's variant for the user's light/dark preference.
+ * Pure (exported for tests). Sibling resolution order:
+ *   1. explicit `pairId`
+ *   2. same `family`, opposite dark-ness
+ *   3. NAME CONVENTION: `<id>` ↔ `<id>-dark` — registering two themes named
+ *      like a pair auto-detects with no family/pairId declared at all.
+ * Falls back to the theme itself when no opposite-mode sibling exists.
+ */
+export function resolveRegisteredVariant(
+  themeId: string,
+  userScheme: 'light' | 'dark' | null,
+  registered: RegisteredThemeMeta[],
+): { resolved: string; isDark: boolean; pair: { lightAttr: string; darkAttr: string } | null } {
+  const meta = registered.find((t) => t.id === themeId);
+  if (!meta) return { resolved: themeId, isDark: false, pair: null };
+  const metaDark = registeredIsDark(meta);
+
+  const conventionId = metaDark ? meta.id.replace(/-dark$/, '') : `${meta.id}-dark`;
+  const sibling =
+    (meta.pairId ? registered.find((t) => t.id === meta.pairId) : undefined) ??
+    (meta.family
+      ? registered.find((t) => t.id !== meta.id && t.family === meta.family && registeredIsDark(t) !== metaDark)
+      : undefined) ??
+    (conventionId !== meta.id
+      ? registered.find((t) => t.id === conventionId && registeredIsDark(t) !== metaDark)
+      : undefined);
+
+  const light = metaDark ? sibling : meta;
+  const dark = metaDark ? meta : sibling;
+  const pair = light && dark ? { lightAttr: light.id, darkAttr: dark.id } : null;
+
+  let resolvedMeta = meta;
+  if (userScheme === 'dark' && dark) resolvedMeta = dark;
+  else if (userScheme === 'light' && light) resolvedMeta = light;
+
+  return { resolved: resolvedMeta.id, isDark: registeredIsDark(resolvedMeta), pair };
+}
+
 export async function getInstanceDefaultTheme(): Promise<string> {
   const state = await getState();
-  return state.defaultTheme;
+  return state.defaultTheme ?? 'stoa';
 }
 
 /**
@@ -111,7 +167,8 @@ export async function getInstanceDefaultTheme(): Promise<string> {
  */
 export async function resolveThemeContext(
   userScheme: 'light' | 'dark' | null,
-  registeredIds: Set<string>,
+  registered: RegisteredThemeMeta[],
+  configDefaultTheme?: string,
 ): Promise<{
   /** Final data-theme value for <html> */
   resolvedTheme: string;
@@ -134,9 +191,16 @@ export async function resolveThemeContext(
   fontHref: string;
 }> {
   const state = await getState();
+  const registeredIds = new Set(registered.map((t) => t.id));
 
-  // Validate the admin's choice — fall back to base if missing/unknown
-  const admin = isKnownThemeId(state.defaultTheme, state, registeredIds) ? state.defaultTheme : 'base';
+  // Default resolution chain: explicit DB setting → the thin app's
+  // config.defaultTheme (brand identity pinned in code) → 'stoa' (CommonPub
+  // default). Each candidate must be a KNOWN id; an unknown choice falls
+  // through rather than rendering an unstyled attr.
+  const candidates = [state.defaultTheme, configDefaultTheme, 'stoa'];
+  const admin = candidates.find(
+    (c): c is string => !!c && isKnownThemeId(c, state, registeredIds),
+  ) ?? 'base';
 
   const activeCustom = state.customByAttr.get(admin);
   let resolved = admin;
@@ -167,14 +231,23 @@ export async function resolveThemeContext(
     // Load every variant's fonts so a client-side flip already has them.
     const allFonts = [...new Set(members.flatMap((m) => m.rec.fonts ?? []))];
     fontHref = allFonts.length ? googleHref(allFonts) : '';
-  } else {
-    // Built-in / registered: flip via the family's CSS variants on round-trip.
-    if (userScheme !== null && VALID_THEME_IDS.has(admin)) {
+  } else if (VALID_THEME_IDS.has(admin)) {
+    // Built-in: flip via the family's CSS variants.
+    if (userScheme !== null) {
       const family = THEME_TO_FAMILY[admin] ?? 'classic';
       const variants = FAMILY_VARIANTS[family] ?? FAMILY_VARIANTS.classic!;
       resolved = userScheme === 'dark' ? variants.dark : variants.light;
     }
     isDark = IS_DARK[resolved] ?? false;
+  } else {
+    // Code-registered theme: flip within ITS registered family (pairId or
+    // family+isDark), and expose the pair so the client toggle can switch
+    // instantly — previously registered themes had NO light/dark support and
+    // the toggle silently did nothing (or fell back to the layer family).
+    const r = resolveRegisteredVariant(admin, userScheme, registered);
+    resolved = r.resolved;
+    isDark = r.isDark;
+    pair = r.pair;
   }
 
   return {
