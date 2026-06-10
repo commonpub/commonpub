@@ -65,6 +65,11 @@ onMounted(() => {
     resizeObserver = new ResizeObserver(() => measure());
     resizeObserver.observe(containerEl.value);
   }
+  // Web fonts widen the ITEMS without resizing the container, so the
+  // ResizeObserver alone misses the post-FOUT width change.
+  if (typeof document !== 'undefined' && document.fonts?.ready) {
+    document.fonts.ready.then(() => measure()).catch(() => {});
+  }
 });
 onUnmounted(() => resizeObserver?.disconnect());
 watch(shownItems, () => nextTick(measure));

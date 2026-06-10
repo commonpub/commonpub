@@ -385,7 +385,15 @@ const userUsername = computed(() => user.value?.username ?? '');
 :deep(.cpub-mobile-link--indent) { padding-left: 36px; }
 :deep(.cpub-mobile-link--disabled) { opacity: 0.35; cursor: not-allowed; pointer-events: none; }
 
-.cpub-topbar-spacer { flex: 1; }
+/* The spacer takes NO share of the free space — the nav does (flex:1). This
+   is load-bearing for the priority nav: its measurement reads the nav's
+   allocated width, and a flex-basis:auto item that SPLITS slack with a
+   spacer gets an allocation that depends on its own content — collapsing
+   links shrinks the nav, which re-justifies the collapse (a ratchet: links
+   hidden beside a huge empty gap). With the spacer inert, the nav's
+   allocation is `row minus everything else`, independent of what's
+   collapsed, so the measurement is stable in both directions. */
+.cpub-topbar-spacer { flex: 0 0 0; }
 .cpub-topbar-actions { display: flex; align-items: center; gap: 6px; }
 
 .cpub-search-btn { display: flex; align-items: center; gap: 8px; padding: 6px 12px; background: var(--surface2); border: var(--border-width-default) solid var(--border2); color: var(--text-dim); font-size: 12px; min-width: 180px; text-decoration: none; transition: border-color 0.15s, box-shadow 0.15s; cursor: text; }
