@@ -119,14 +119,19 @@ export default defineEventHandler(async (event): Promise<{ items: unknown[]; tot
   // items the instance's own homepage shows. Delegate to listContent (same
   // merge, same pagination invariants, items already in ContentCard's shape)
   // whenever the request uses only filters listContent supports. Search-only
-  // filters (author, date range, multiple tags) and a configured Meilisearch
-  // keep the dedicated local path: federated rows aren't indexed and don't
-  // carry those fields. `resolveContentQuery` pins status=published +
+  // filters (author, date range, multiple tags) keep the dedicated local
+  // path: federated rows aren't indexed and don't carry those fields.
+  // NOTE this branch deliberately OUTRANKS Meilisearch when federation is on:
+  // meili only ever indexes LOCAL content, so on a mirror-heavy instance a
+  // configured-but-mostly-empty index would shadow the merge and return 0
+  // (exactly what happened on commonpub.io, whose compose stack sets
+  // MEILI_URL — the first ship of this fix gated on `!meiliClient` and was
+  // inert there). `resolveContentQuery` pins status=published +
   // visibility=public so this path can never widen what search exposes.
   const tagList = params.tags?.split(',').map((t) => t.trim()).filter(Boolean) ?? [];
   const usesSearchOnlyFilters = !!(params.author || params.dateFrom || params.dateTo || tagList.length > 1);
   const CONTENT_TYPES = new Set(['project', 'article', 'blog', 'explainer']);
-  if (!meiliClient && config.features.seamlessFederation && !usesSearchOnlyFilters) {
+  if (config.features.seamlessFederation && !usesSearchOnlyFilters) {
     const raw: ContentFilters = {
       search: q,
       type: params.type && CONTENT_TYPES.has(params.type) ? (params.type as ContentFilters['type']) : undefined,
