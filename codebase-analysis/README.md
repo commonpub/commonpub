@@ -14,8 +14,8 @@
 > a newer session log, **trust the session log** and re-run the regeneration steps at the
 > bottom. Operator-facing current state lives in `docs/STATUS.md`.
 >
-> Latest published versions (2026-06-07): **schema 0.35.0, server 2.82.0, config 0.19.0,
-> layer 0.64.1, ui 0.11.1, protocol 0.13.0, auth 0.8.0, infra 0.8.0, editor 0.7.11,
+> Latest published versions (2026-06-10): **schema 0.40.1, server 2.84.1, config 0.22.1,
+> layer 0.73.0, ui 0.13.1, theme-studio 0.6.1, protocol 0.13.0, auth 0.8.0, infra 0.8.0, editor 0.7.11,
 > explainer 0.7.15, learning 0.5.2, docs 0.6.3, test-utils 0.5.6.** 21 migrations
 > (0000–0020). Public API metrics + flexible CORS + time-series rollups (session 190),
 > Stoa default theme (session 190), contest stages / cohorts / per-round judging
@@ -59,7 +59,7 @@ Not to be confused with the stale `/Users/obsidian/Projects/commonpub/` director
 | Migrations | 21 (0000_session128_baseline → 0020_spooky_gideon = `metrics_daily`, session 190; all published/deployed) |
 | Production instances | 3 (commonpub.io, deveco.io, heatsynclabs.io — all auto-deploy from main) |
 | Tests | 290 git-tracked `*.test.ts` files (server 91, layer 50, ui 27, protocol 27, editor 24, infra 11, docs 11, explainer 9, apps/reference 9, theme-studio 6, schema 7, auth 7, learning 5, deploy 3, config 1, test-utils 1, tools/worker 1) |
-| Latest versions | schema 0.35.0, server 2.82.0, config 0.19.0, layer 0.64.1, ui 0.11.1, auth 0.8.0, protocol 0.13.0, infra 0.8.0, editor 0.7.11, explainer 0.7.15, learning 0.5.2, docs 0.6.3, test-utils 0.5.6 (verify with `npm view`) |
+| Latest versions | schema 0.40.1, server 2.84.1, config 0.22.1, layer 0.73.0, ui 0.13.1, theme-studio 0.6.1, auth 0.8.0, protocol 0.13.0, infra 0.8.0, editor 0.7.11, explainer 0.7.15, learning 0.5.2, docs 0.6.3, test-utils 0.5.6 (verify with `npm view`) |
 
 ## Files
 

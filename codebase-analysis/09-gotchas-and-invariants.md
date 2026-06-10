@@ -958,15 +958,20 @@ it against CRLF/header-injection — on BOTH the authenticated request AND the *
 preflight echo** (the OPTIONS path has no Bearer yet, so it's the easier injection target). **If you
 ever add cookie/session auth to the public API, the `*` wildcard becomes unsafe and must be removed.**
 
-## Stoa is the default-theme fallback — `base` → `stoa` (session 190)
+## Default-theme resolution chain — DB → config.defaultTheme → stoa (sessions 190 + 196)
 
-`server/utils/instanceTheme.ts:37` initializes `defaultTheme = 'stoa'` (was `base`). A fresh install,
-or any instance with no `instance_settings.theme.default` DB row, resolves to Stoa Light (or
-`stoa-dark` by OS preference). **Instances with an explicit DB `theme.default` are unaffected** —
-`:44` overwrites the fallback from the row. A secondary `'base'` fallback at `:112` guards an
-unknown/removed admin theme id. Consequence: bumping deveco/heatsync's layer pin to a Stoa-carrying
-version would flip their branding UNLESS they have an explicit `theme.default` set — confirm before
-bumping (see [[feedback_caret_semver_0x_minor_bump]] and the session-190 kickoff version-skew note).
+Since session 196 (`layer 0.73`, `config 0.22`), `resolveThemeContext` resolves the default as a
+validated chain: DB `instance_settings.theme.default` → **`config.defaultTheme`** (a thin app's
+brand theme pinned in code) → `'stoa'`; each candidate must be a KNOWN id (built-in, DB custom, or
+code-registered), else it falls through, with `'base'` as the terminal guard. Consequence of the
+OLD behavior (no config rung): deveco rode the stoa fallback for months — its `data-theme` said
+stoa, its Light/Dark toggle resolved `stoa-dark`, and its brand dark palette (scoped
+`[data-theme="dark"]`) never matched, i.e. "dark mode doesn't enable". Registered themes also
+light/dark-flip within their OWN family now (`resolveRegisteredVariant`: explicit `pairId` →
+`family`+`isDark` → the **name convention `<id>` ↔ `<id>-dark`**, isDark inferred from the
+suffix), riding the same `themePair` client flip custom pairs use. Bumping a consumer's layer pin
+still flips branding if it has NEITHER a DB `theme.default` NOR a `config.defaultTheme` — but
+pinning in config is now the recommended, repo-reviewable fix.
 
 ## Denormalized counters: drift has a repair path — `scripts/reconcile-counters.mjs`
 
@@ -981,3 +986,48 @@ recount path): it recomputes each counter from its source rows. `--check` report
 (CI/cron-friendly), no args fixes in place. It is **idempotent** and safe on production (only UPDATEs
 rows whose stored counter already disagrees). Needs `NUXT_DATABASE_URL`/`DATABASE_URL`. If you add a
 new denormalized counter, add it to this script's recompute list too.
+
+## Search is mirror-aware ONLY on the listContent path (session 196)
+
+`/api/search`'s content branch delegates to `listContent` (the merged local+federated stream)
+when `seamlessFederation` is on AND no Meilisearch is configured AND the request uses only
+filters listContent supports. Author/date-range/multi-tag queries and any future Meilisearch
+deployment use the LOCAL-ONLY `searchContent` path — federated rows aren't indexed and lack
+those fields. If you index federated content into Meilisearch later, revisit the branch order.
+The regression this fixed: commonpub.io's feed is entirely `mirror-*` federated rows, so the
+old local-only search returned 0 for every query the homepage could answer.
+
+## backdrop-filter: `none` is the only no-op; popovers vs overflow (sessions 195–196)
+
+Two rendering invariants from the glass + priority-nav work:
+1. A treatment token default must be `none` — `blur(0)` still creates a stacking context and
+   becomes the containing block for fixed/absolute descendants (would move dropdowns/modals on
+   every theme).
+2. Never put `overflow-x: auto`/`hidden` on a container whose descendants open
+   absolutely-positioned panels (nav dropdowns) — the panel's containing block sits inside the
+   scroll container and gets clipped. The priority-nav "More" menu exists precisely because
+   scroll-the-nav was tried and reverted.
+
+## One focus indicator: inputs inside ring-bearing wrappers must suppress box-shadow too
+
+Stoa applies `box-shadow: var(--focus-ring)` to EVERY `:focus-visible` element. A search form
+whose wrapper draws a `:focus-within` ring must suppress BOTH `outline` AND `box-shadow` on the
+inner input, or themes double-ring it (the deveco "double tracing" bug; the base topbar search
+carries the same guard).
+
+## npm-installing a tarball into a pnpm repo contaminates it (session 195)
+
+npm's flat layout writes real `node_modules/@vue/*` dirs that pnpm never prunes → TWO
+`@vue/reactivity` module instances → the `RefUnwrapBailTypes` DOM bail misses the copy that
+provides `ref` → `ref<HTMLElement>().value` deep-unwraps into a structural flatten and nothing
+assigns to `Element`. Survives `git stash` + reinstall (invalidates counterfactuals). Verify
+tarballs with `pnpm add <tarball>`; fix with `rm -rf node_modules && pnpm install`.
+
+## Module-top-level `process.argv` crashes Vite dev clients (session 195)
+
+`packages/schema/src/openapi.ts`'s CLI guard read `process.argv[1]` at module top level —
+Vite's browser dev shim defines `process` WITHOUT `argv`, so importing `@commonpub/schema`
+client-side threw during app init and EVERY dev/e2e page became the Nuxt 500 screen (months of
+"flaky" e2e). Prod was immune only because `sideEffects: false` tree-shakes the never-imported
+module. Guard with `process.argv?.[1]`; more generally, no top-level Node-API access in
+packages a client may import.

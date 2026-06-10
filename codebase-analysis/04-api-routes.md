@@ -341,7 +341,12 @@ Federation admin (extensive):
 - GET /api/features — client-side feature flags
 - GET /api/navigation/items — nav config for NavRenderer
 - GET /api/categories
-- GET /api/search (local)
+- GET /api/search — session 196: the content branch is MIRROR-AWARE: with
+  `seamlessFederation` on (and no Meilisearch / no search-only filters like
+  author/date/multi-tag) it delegates to `listContent`'s merged
+  local+federated stream via `resolveContentQuery` (published+public pinned),
+  so a mirror-heavy instance's search matches its homepage. Before this,
+  commonpub.io returned 0 for every query.
 - GET /api/search/federated
 - GET /api/search/trending
 - GET /api/stats

@@ -1,12 +1,17 @@
 # 11 — Codebase Stats
 
-> **Headline / Database / versions tables below re-verified session 191 (2026-06-07).**
+> **Headline / Database / versions tables below re-verified session 191 (2026-06-07);
+> version line refreshed session 196 (2026-06-10).**
 > The session-by-session delta entries that follow are kept as historical record
 > (accurate at the time of each session); for live ground truth always prefer the
 > Headline table + `docs/llm/facts.md` + `npm view` + `docs/STATUS.md`.
-> Current (published): **schema 0.35.0, config 0.19.0, protocol 0.13.0, auth 0.8.0,
-> server 2.82.0, ui 0.11.1, layer 0.64.1; create-commonpub 0.5.7 (crates.io); 21
-> migrations (0000–0020, 0020 = `metrics_daily`).** Session 190 (public-API expansion +
+> Current (published): **schema 0.40.1, config 0.22.1, protocol 0.13.0, auth 0.8.0,
+> server 2.84.1, ui 0.13.1, theme-studio 0.6.1, layer 0.73.0; create-commonpub 0.5.15
+> (crates.io); 22 migrations (0000–0021, 0021 = `contest_entries.stage_submissions`).**
+> Sessions 192–196 (theme studio arc + advanced tokens + search/nav round): new
+> `@commonpub/theme-studio` package; chrome+treatment token registry; glass treatment;
+> federated-aware `/api/search`; priority "More" nav; registered-theme light/dark identity +
+> `config.defaultTheme`; e2e suite green (schema openapi `process.argv` fix). Session 190 (public-API expansion +
 > Stoa theme): flexible per-key CORS (`cors.ts`, `originPatternSchema`/`matchOrigin`),
 > privacy-respecting analytics metrics (`read:analytics` scope, `/api/public/v1/metrics/*`,
 > `metrics.ts`), time-series rollups (`metrics_daily` 0020 + `metrics-rollup` plugin +

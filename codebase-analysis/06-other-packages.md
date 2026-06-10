@@ -6,9 +6,9 @@ Packages other than `schema`, `server`, and the layer (covered elsewhere).
 
 `packages/config/src/`
 
-- `types.ts` — `FeatureFlags` (**23 boolean flags + `identity` object** with 5 sub-flags; `themeStudio` added session 192), `IdentityFeatures`, `AuthConfig`, `InstanceConfig`, `FederationConfig`, `DocsConfig`, `CookieDefinition`, `RegisteredTheme`, `CommonPubConfig`
+- `types.ts` — `FeatureFlags` (**23 boolean flags + `identity` object** with 5 sub-flags; `themeStudio` added session 192), `IdentityFeatures`, `AuthConfig`, `InstanceConfig`, `FederationConfig`, `DocsConfig`, `CookieDefinition`, `RegisteredTheme`, `CommonPubConfig`. **session 196 (0.22.x): `defaultTheme?: string`** — a thin app pins its brand theme in code; the layer's resolution chain is DB `theme.default` → `config.defaultTheme` → `'stoa'`.
 - `schema.ts` — Zod with defaults
-- `config.ts` — `defineCommonPubConfig()` factory; validates, fills defaults
+- `config.ts` — `defineCommonPubConfig()` factory; validates, fills defaults. 0.22.1: the factory's INPUT type accepts `themes` + `defaultTheme` (the zod schema always did; declaring registered themes used to TS2353).
 
 **Defaults ON:** `content`, `social`, `hubs`, `docs`, `video`, `learning`, `explainers`, `editorial`, `contentImport`, `announceToRegistry`. **Defaults OFF:** `contests`, `events`, `federation`, `seamlessFederation`, `federateHubs`, `admin`, `emailNotifications`, `publicApi`, `publicApiMetricsFederation`, `actAsRegistry`, `layoutEngine`, `rbac`, and all 5 `identity.*` sub-flags — must be explicitly enabled. (Note: `admin` is OFF in the schema default but turned ON per-instance in production configs; `announceToRegistry` defaults ON since config 0.18.0 but only fires when `federation` is also on.)
 
@@ -65,6 +65,18 @@ Feature flags are **runtime** (environment via `nuxt.config` `runtimeConfig.publ
 
 22 headless Vue 3 components: Alert, Avatar, Badge, Button, Card, Dialog, IconButton, Input, Menu, MenuItem, Popover, ProgressBar, Select, Separator, Stack, Tabs, TagInput, Textarea, Toggle, Toolbar, Tooltip, VisuallyHidden. All accept `class` prop, WCAG 2.1 AA. Also exports `BUILT_IN_THEMES` (**7**: base, dark, generics, agora, agora-dark, **stoa, stoa-dark** — session 190) + `TOKEN_SPECS` + theme/token helpers. Ships `theme/*.css` (12 files incl. `stoa.css`/`stoa-dark.css`).
 
+**Token registry (session 195):** `TOKEN_SPECS` gained two groups — `chrome` (the 24
+`--cpub-topbar/nav-link/footer-*` tokens that base.css had carried since session 180 but the
+registry never knew, so custom themes/Studio couldn't touch the nav bar or footer) and
+`treatment` (`--surface-backdrop`, `--bg-image` — TRUE no-op defaults: `none`, never `blur(0)`
+which creates a stacking context). `--surface-backdrop` is applied (with `-webkit-` prefix) on
+`.cpub-sb-card`, shared `.cpub-card` (layouts.css), and — in the layer — ContentCard, six modal
+panels, and the nav/user/mobile dropdowns. `--bg-image` feeds `body { background-image }` and
+is gradient-only-guarded at BOTH the API boundary (schema `isSafeBgImageValue`) and the SSR
+render sink (`sanitizeRenderTokens` in the layer's `instanceTheme.ts` — the generic admin
+settings route can write the token map wholesale, so the boundary guard alone is bypassable).
+Layout group also gained `sidebar-width-collapsed`, `cpub-card-min`, `cpub-card-gap`.
+
 **Independent npm publication** but NOT bundled into the layer. The layer has its own components under `layers/base/components/`. `@commonpub/ui` is for external consumers who want just the design system without the full CommonPub stack.
 
 ## @commonpub/theme-studio
@@ -73,7 +85,12 @@ Feature flags are **runtime** (environment via `nuxt.config` `runtimeConfig.publ
 
 - `color.ts` (hex/hsl/rgb, contrast, WCAG, `readableOn`), `harmony.ts` (6 schemes), `naming.ts` (evocative swatch names), `palette.ts` (`buildPalette` → semantic ramp), `scales.ts` (type/space/radius/shadow/density/motion), `fonts.ts` (~100-family catalog + `googleHref`, URL-encoded), `presets.ts` (color/type vibes, shape/shadow/ratio), `recipe.ts` (`ThemeRecipe` + deterministic `randomizeRecipe(seed)`), **`generate.ts` — `recipeToTokens()`** (the projection onto canonical `@commonpub/ui` token keys → `{ tokens, fonts, parentTheme, fontHref }`).
 - Emits only derived tokens; the rest inherit from a mode-matched `parentTheme`. Guarantees text/bg + on-accent AA for any accent. v2 adds a real `--secondary` accent ramp, scheme-driven category accents (`purple/teal/pink`), `grain` (texture), `recipeToThemePair`, and `export.ts` (`buildBrief`/`buildTokensJson`). **session 193 (0.4.0):** independent neutrals (`buildPalette` `neutralHue`/`neutralSat` decouple surfaces from the accent), `DESIGN_ARCHETYPES` (Brutalist/Editorial/Soft/Terminal/Neumorphic — structure-only ethos presets), a `neumorphic` dual-relief shadow style, and a `recipe.archetype` tag. 68 unit tests.
-- **No runtime deps.** Consumed by the layer (wizard `components/admin/theme/studio/AdminThemeStudio.vue`, `AdminThemeSceneSheet.vue`, create flow, editor, SSR font `<link>` via `instanceTheme.ts`). The validation test reads `@commonpub/ui`'s pure `tokens.ts` source directly (no Vue) to assert every emitted key is canonical. **NOT yet published to npm.**
+- **session 195 (0.6.x):** `recipe.treatment { glass 0–0.3, bgGradient }` — translucent surfaces +
+  `--surface-backdrop` blur + frosted top bar (chrome tokens) + an accent-tinted page gradient;
+  a Glass archetype; text AA floored against the FLATTENED composite (`blendOver`) for both the
+  page bg and a modal panel over the 50% black scrim. Legacy recipes (no treatment) project
+  byte-identically (regression-locked). `suggestPalettes` + HSL sliders landed in 0.5 (session 193 P4).
+- **No runtime deps.** Consumed by the layer (wizard `components/admin/theme/studio/AdminThemeStudio.vue`, `AdminThemeSceneSheet.vue`, create flow, editor, SSR font `<link>` via `instanceTheme.ts`). The validation test reads `@commonpub/ui`'s pure `tokens.ts` source directly (no Vue) to assert every emitted key is canonical. Published to npm since session 192 (0.1.0; 0.6.x as of session 195).
 
 ## @commonpub/editor
 

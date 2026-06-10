@@ -1,14 +1,33 @@
 # CommonPub — Status & Operator Runbook
 
-> **Living doc — your "come back later" reference.** Snapshot updated 2026-06-09 (session 195).
+> **Living doc — your "come back later" reference.** Snapshot updated 2026-06-10 (session 196).
 > Verify any version/flag claim before trusting it: `npm view @commonpub/<pkg> version`,
 > `curl https://<instance>/api/features`, `cargo search create-commonpub`.
-> Companion docs: the latest work log `docs/sessions/195-theme-advanced-tokens.md`, the rolling
+> Companion docs: the latest work log `docs/sessions/196-search-nav-theme-round.md`, the rolling
 > handoff `docs/sessions/192-kickoff-next.md`, the contest guide `docs/reference/guides/contests.md`.
 
 ---
 
 ## TL;DR — where things stand
+
+**Search + nav + theme-identity round** is the newest work (session 196, **SHIPPED + ROLLED to
+all 3**): (1) `/api/search`'s All tab is MIRROR-AWARE — delegates to `listContent`'s merged
+local+federated stream (commonpub.io returned 0 for every query its own homepage answers);
+(2) **priority nav** — links that don't fit collapse into a "More" dropdown
+(`utils/navOverflow.ts`, hidden measure row; scroll-the-nav was tried and REVERTED — it clips
+dropdown panels), killing the off-screen Log in at 769–1100px on all 3 and deveco's
+thin-right-margin page overflow; (3) the topbar search is a REAL input (submit → `/search?q=`,
+Cmd+K focuses, single focus ring); (4) search-page pills scroll in their own region (sort
+dropdown no longer clips), empty Trending hides; (5) **theme identity** — `config.defaultTheme`
+(config 0.22.x) + registered themes light/dark-flip within their OWN family
+(pairId → family+isDark → the `<id>`/`<id>-dark` NAME CONVENTION, isDark inferred), riding the
+existing themePair client flip; deveco registers `deveco`/`deveco-dark` and no longer rides the
+stoa fallback. Released **config 0.22.1 / layer 0.73.0 / CLI 0.5.15**; earlier same arc:
+deveco dark-mode + double-focus-ring fixes, e2e suite GREEN (schema 0.40.1 openapi
+`process.argv?.[1]` fix — months of red e2e were one optional chain), glass sweep + bg-image
+sink guard (ui 0.13.1 / theme-studio 0.6.1 / layer 0.72.x). Log:
+`docs/sessions/196-search-nav-theme-round.md`; plan `docs/plans/search-overhaul.md` (all 3
+phases done).
 
 **Theme advanced tokens** is the newest work (session 195, **SHIPPED + ROLLED to all 3**):
 (1) the 24 `--cpub-topbar/nav-link/footer-*` chrome tokens (in base.css since session 180) are now

@@ -176,9 +176,21 @@ AdminThemeFamilyCard, AdminThemeOverridesPanel, AdminThemePreviewPane, AdminThem
 
 **MirrorDetailModal** (`components/MirrorDetailModal.vue`) — per-mirror detail dialog opened from the federation admin Mirrors tab: full facts + filter chips, last error, bounded re-backfill (depth picker), two-step delete. `role=dialog` + `useFocusTrap`. `pages/admin/federation.vue` Mirrors tab was overhauled (session 184): create-form with one-directional explainer + content-type/tag filters + history depth picker, mirror list with direction/filters/lastSync/errorCount, status legend, "Instances mirroring you" panel (`GET /api/admin/federation/followers`), bounded re-federate scope selector. Note: dynamic `$fetch` URLs use a `string`-typed const to avoid the typed-routes TS2321 recursion. **Session 185 (Phase 3):** create-form gained a direction selector (pull / "request they mirror me") + "Requests to mirror you" / "Requests you've sent" panels + `MirrorRequestApproveModal.vue` (depth + filter picker on approve). **Session 186 (Phase 4):** a "Registry" tab (shown when `actAsRegistry`) renders `RegistryDirectory.vue` — presentational (props/events) directory list with search + per-entry Mirror / Request-mirror (reusing Phase-3 endpoints) + Hide/Unhide/Block, online dot + status badge, axe-tested.
 
-### Navigation (session 124)
+### Navigation (session 124; priority nav session 196)
 
 **NavRenderer**, **NavDropdown**, **MobileNavRenderer**, **NavLink**.
+
+NavRenderer is a **priority nav** (session 196): it measures its allocated width via a hidden
+duplicate row (every item at natural width, `visibility:hidden`), and collapses links that
+don't fit into a synthesized "More" NavDropdown (`utils/navOverflow.ts` —
+`computeVisibleCount` + `buildMoreItem`, pure + tested; overflowed dropdowns flatten into the
+More panel and NavDropdown re-checks child feature/auth gates). The host layout must give the
+nav `flex: 1 1 auto; min-width: 0` (base `layouts/default.vue` and deveco's fork both do).
+SSR renders all items; the client corrects after hydration. DO NOT "fix" overflow with
+`overflow-x: auto` on the nav — it clips the absolutely-positioned dropdown panels (tried,
+reverted). The topbar search is a REAL input since 196 (submit → `/search?q=`, Cmd+K focuses;
+the form's `:focus-within` ring is the single focus indicator — the input suppresses outline
+AND box-shadow, because stoa puts a glow on every `:focus-visible`).
 
 ### Voting / polls (session 124–125)
 
