@@ -95,11 +95,14 @@ User reports after the rollout, all three diagnosed live:
    auth ≈ 1300px) over-subscribes the row — so the nav's allocation was a CONSTANT ~520px and
    the priority nav did exactly what it was told. Same root cause as the old thin-margin
    overflow, opposite symptom (pre-196 the nav refused to shrink and overflowed; post-196 it
-   shrinks and collapses). Fix in deveco: inner 1280→1500 (first try 1360 was still ~80px short —
-   sized from MEASURED content the second time: non-nav ~695px + nav incl. More reserve ~745px
-   + 48px padding) + search min-width 220→200. All six links fit at ≥1500; More engages
-   progressively below. Base-layer instances need nothing: their topbar is capless full-bleed
-   (verified 8/8 visible, no More, zero overflow at 2000px on commonpub + heatsync).
+   shrinks and collapses). Final fix in deveco: the inner max-width is GONE — bar content is full-bleed
+   like the base layer. Caps were tried twice (1360, then a measured 1500) and each broke for
+   some state: bar content width varies with auth (logged-in actions ≈ +230px) and role (admins
+   get an extra nav link), so any fixed budget eventually over-subscribes and the priority nav
+   hides links beside unused margin (user screenshot: admin login collapsed Hubs+Admin at
+   2000px). Full-width bar over centered page content is the standard pattern. Search min-width
+   220→200 kept. Base-layer instances were already capless (verified 8/8, no More, zero
+   overflow at 2000px on commonpub + heatsync).
 2. **"Thin right margin"**: with document overflow verified ZERO at all widths, the remaining
    strip is the macOS always-show-scrollbars gutter rendering white against the full-bleed dark
    hero. deveco now sets `scrollbar-color` (light + dark variants) so the gutter blends.
