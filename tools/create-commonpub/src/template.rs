@@ -35,18 +35,18 @@ pub fn generate_hex_token(byte_len: usize) -> String {
 // in lockstep with deveco.io's package.json pins (the proven
 // production thin-app reference).
 //
-// Last synced: 2026-06-09 (session 195, theme advanced tokens: chrome token registry,
-// glass treatment + Glass archetype, bg-image gradient guard) — layer 0.72.0,
-// server 2.84.1, schema 0.40.0, config 0.21.0. (theme-studio installs transitively via the
+// Last synced: 2026-06-10 (session 196, federated-aware search, priority "More" nav,
+// registered-theme light/dark identity + config.defaultTheme) — layer 0.73.0,
+// server 2.84.1, schema 0.40.1, config 0.22.0. (theme-studio installs transitively via the
 // layer; no thin-app pin needed.) Stoa default theme [session 190]; contest stages [189]. A
 // freshly-scaffolded instance announces to commonpub.io out of the box
 // (announceToRegistry defaults ON; heartbeat self-skips if it is its own registry;
 // requires federation). The lockstep-pin rule still holds: bump `@commonpub/server`
 // alongside `@commonpub/layer` whenever server crosses minor, else pnpm hoists an
 // older server and the layer's server-subpath imports resolve to undefined.
-const COMMONPUB_CONFIG_VERSION: &str = "^0.21.0";
-const COMMONPUB_LAYER_VERSION: &str = "^0.72.0";
-const COMMONPUB_SCHEMA_VERSION: &str = "^0.40.0";
+const COMMONPUB_CONFIG_VERSION: &str = "^0.22.0";
+const COMMONPUB_LAYER_VERSION: &str = "^0.73.0";
+const COMMONPUB_SCHEMA_VERSION: &str = "^0.40.1";
 const COMMONPUB_SERVER_VERSION: &str = "^2.84.1";
 
 // pnpm pin for the generated Dockerfile. `pnpm@latest` is a time-bomb:
