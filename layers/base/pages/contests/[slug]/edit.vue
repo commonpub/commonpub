@@ -29,8 +29,10 @@ function slugify(s: string): string {
 const subheading = ref('');
 const description = ref('');
 const rules = ref('');
-// Render mode for description/rules/prizes overview: Markdown (default) or raw HTML.
-const contentFormat = ref<'markdown' | 'html'>('markdown');
+// Per-field render mode: Markdown (default) or raw HTML, independent per field.
+const descriptionFormat = ref<'markdown' | 'html'>('markdown');
+const rulesFormat = ref<'markdown' | 'html'>('markdown');
+const prizesDescriptionFormat = ref<'markdown' | 'html'>('markdown');
 const bannerUrl = ref('');
 const coverImageUrl = ref('');
 const startDate = ref('');
@@ -88,7 +90,9 @@ watch(contest, (c) => {
   subheading.value = c.subheading ?? '';
   description.value = c.description ?? '';
   rules.value = c.rules ?? '';
-  contentFormat.value = (c.contentFormat as 'markdown' | 'html') ?? 'markdown';
+  descriptionFormat.value = (c.descriptionFormat as 'markdown' | 'html') ?? 'markdown';
+  rulesFormat.value = (c.rulesFormat as 'markdown' | 'html') ?? 'markdown';
+  prizesDescriptionFormat.value = (c.prizesDescriptionFormat as 'markdown' | 'html') ?? 'markdown';
   bannerUrl.value = c.bannerUrl ?? '';
   coverImageUrl.value = c.coverImageUrl ?? '';
   startDate.value = c.startDate ? new Date(c.startDate).toISOString().slice(0, 16) : '';
@@ -127,7 +131,7 @@ watch(contest, (c) => {
 // Mark the form dirty on any post-hydration edit (gives the save bar its
 // "unsaved changes" cue). Worst case (timing) is a harmless early "dirty".
 watch(
-  [title, slugInput, subheading, description, rules, contentFormat, bannerUrl, coverImageUrl, startDate, endDate, judgingEndDate,
+  [title, slugInput, subheading, description, rules, descriptionFormat, rulesFormat, prizesDescriptionFormat, bannerUrl, coverImageUrl, startDate, endDate, judgingEndDate,
     communityVotingEnabled, judgingVisibility, eligibleContentTypes, maxEntriesPerUser, visibility, visibleToRoles,
     showPrizes, stages, currentStageIdRef, prizesDescription, prizes, criteria],
   () => { if (!hydratingForm) formDirty.value = true; },
@@ -198,7 +202,9 @@ async function handleSave(): Promise<void> {
         subheading: subheading.value || undefined,
         description: description.value || undefined,
         rules: rules.value || undefined,
-        contentFormat: contentFormat.value,
+        descriptionFormat: descriptionFormat.value,
+        rulesFormat: rulesFormat.value,
+        prizesDescriptionFormat: prizesDescriptionFormat.value,
         bannerUrl: bannerUrl.value || undefined,
         coverImageUrl: coverImageUrl.value || undefined,
         startDate: startDate.value ? new Date(startDate.value).toISOString() : undefined,
@@ -352,25 +358,20 @@ async function transitionStatus(newStatus: string): Promise<void> {
           <p class="cpub-form-hint">Short plain-text tagline shown under the title in the hero. The Description below is the full body.</p>
         </div>
         <div class="cpub-form-field">
-          <label class="cpub-form-label">Content format</label>
-          <div class="cpub-type-options" role="radiogroup" aria-label="Content format">
-            <label class="cpub-form-check"><input v-model="contentFormat" type="radio" value="markdown" /> <span>Markdown</span></label>
-            <label class="cpub-form-check"><input v-model="contentFormat" type="radio" value="html" /> <span>Full HTML</span></label>
+          <div class="cpub-field-head">
+            <label class="cpub-form-label">Description</label>
+            <FormatToggle v-model="descriptionFormat" />
           </div>
-          <p class="cpub-form-hint">
-            Applies to Description, Rules, and the Prizes overview. <strong>Markdown</strong> supports headings, lists, links, and safe inline HTML.
-            <strong>Full HTML</strong> renders your raw HTML, CSS, and SVG as-is (scripts and event handlers are removed for safety).
-          </p>
-        </div>
-        <div class="cpub-form-field">
-          <label class="cpub-form-label">Description</label>
           <textarea v-model="description" class="cpub-form-textarea" rows="4" maxlength="50000" />
-          <p class="cpub-form-hint">{{ contentFormat === 'html' ? 'Rendered as full HTML/CSS/SVG.' : 'Supports Markdown (headings, lists, bold, links) and inline HTML.' }} Shown formatted on the contest page.</p>
+          <p class="cpub-form-hint">{{ descriptionFormat === 'html' ? 'Rendered as your raw HTML, CSS, and SVG (scripts removed for safety).' : 'Supports Markdown (headings, lists, bold, links) and inline HTML.' }} Shown formatted on the contest page.</p>
         </div>
         <div class="cpub-form-field">
-          <label class="cpub-form-label">Rules</label>
+          <div class="cpub-field-head">
+            <label class="cpub-form-label">Rules</label>
+            <FormatToggle v-model="rulesFormat" />
+          </div>
           <textarea v-model="rules" class="cpub-form-textarea" rows="6" maxlength="50000" placeholder="One rule per line, or full Markdown" />
-          <p class="cpub-form-hint">Supports Markdown. Plain one-rule-per-line text is rendered as a numbered list.</p>
+          <p class="cpub-form-hint">{{ rulesFormat === 'html' ? 'Rendered as your raw HTML, CSS, and SVG (scripts removed for safety).' : 'Supports Markdown. Plain one-rule-per-line text renders as a list.' }}</p>
         </div>
         <div class="cpub-form-field">
           <ImageUpload v-model="bannerUrl" purpose="banner" label="Banner Image" hint="Wide hero image across the top of the contest page (~4:1)." />
@@ -457,9 +458,12 @@ async function transitionStatus(newStatus: string): Promise<void> {
         <p v-if="!showPrizes" class="cpub-form-hint">The Prizes tab is hidden, any prizes below are saved but not shown to visitors.</p>
         <p class="cpub-form-hint">Every field is optional. Use <strong>place</strong> for ranked prizes, a <strong>category</strong> for themed awards, or just a <strong>description</strong>, whatever fits. Cash value is optional.</p>
         <div class="cpub-form-field">
-          <label class="cpub-form-label">Prizes overview (optional)</label>
-          <textarea v-model="prizesDescription" class="cpub-form-textarea" rows="3" maxlength="50000" placeholder="Intro shown above the prize cards. Supports Markdown." />
-          <p class="cpub-form-hint">Markdown intro displayed on the Prizes tab, above the individual prizes.</p>
+          <div class="cpub-field-head">
+            <label class="cpub-form-label">Prizes overview (optional)</label>
+            <FormatToggle v-model="prizesDescriptionFormat" />
+          </div>
+          <textarea v-model="prizesDescription" class="cpub-form-textarea" rows="3" maxlength="50000" placeholder="Intro shown above the prize cards." />
+          <p class="cpub-form-hint">{{ prizesDescriptionFormat === 'html' ? 'Rendered as your raw HTML, CSS, and SVG (scripts removed for safety).' : 'Markdown intro' }} displayed on the Prizes tab, above the individual prizes.</p>
         </div>
         <div v-for="(prize, i) in prizes" :key="i" class="cpub-prize-row">
           <div class="cpub-prize-header">
@@ -675,6 +679,7 @@ async function transitionStatus(newStatus: string): Promise<void> {
 .cpub-form-section { border: var(--border-width-default) solid var(--border); background: var(--surface); padding: 20px; box-shadow: var(--shadow-md); }
 .cpub-form-section-title { font-size: 14px; font-weight: 700; margin-bottom: 14px; }
 .cpub-form-field { display: flex; flex-direction: column; gap: var(--space-1); margin-bottom: var(--space-3); }
+.cpub-field-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .cpub-form-field:last-child { margin-bottom: 0; }
 .cpub-form-input, .cpub-form-textarea { width: 100%; padding: var(--space-2) var(--space-3); border: var(--border-width-default) solid var(--border); background: var(--surface); color: var(--text); font-size: var(--text-sm); font-family: var(--font-sans); }
 .cpub-form-input:focus, .cpub-form-textarea:focus { border-color: var(--accent); outline: none; box-shadow: var(--shadow-accent); }

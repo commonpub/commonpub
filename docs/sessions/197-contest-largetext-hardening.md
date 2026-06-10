@@ -79,6 +79,16 @@ description + rules + prizes overview.
 
 Versions: schema 0.42.0, server 2.85.0, layer 0.75.0, migration 0022.
 
+### Follow-up 2: per-field format (not one toggle)
+
+User wanted the format chosen **independently** per field. Replaced the single `contentFormat`
+with `descriptionFormat` / `rulesFormat` / `prizesDescriptionFormat` (each enum, default
+`markdown`). Migration **0023** ADDs the three columns; the old `content_format` is left inert
+(deprecated) because dropping-while-adding is a rename-ambiguous diff drizzle-kit won't resolve
+headlessly. New `FormatToggle.vue` (compact Markdown/HTML segmented control) sits beside each
+field's label in create + edit. `index.vue` passes each field's own format to `CpubMarkdown`/
+`ContestRules`/`ContestPrizes`. Versions: schema 0.43.0, server 2.86.0, layer 0.76.0, migration 0023.
+
 ## Open / next
 
 - **Release not done.** Changes span published packages: `@commonpub/schema` + `@commonpub/editor`

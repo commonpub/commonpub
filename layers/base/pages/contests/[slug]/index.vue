@@ -312,7 +312,7 @@ async function withdrawEntry(entryId: string): Promise<void> {
             <div class="cpub-about-section">
               <div class="cpub-sec-head"><h2><i class="fa fa-circle-info" style="color: var(--accent);"></i> About This Contest</h2></div>
               <div class="cpub-about-card">
-                <CpubMarkdown v-if="c?.description" :source="c.description" :format="c?.contentFormat" />
+                <CpubMarkdown v-if="c?.description" :source="c.description" :format="c?.descriptionFormat" />
                 <p v-else>No description available for this contest.</p>
               </div>
             </div>
@@ -321,12 +321,12 @@ async function withdrawEntry(entryId: string): Promise<void> {
 
           <!-- RULES -->
           <div v-show="activeTab === 'rules'" id="cpub-panel-rules" role="tabpanel" aria-labelledby="cpub-tab-rules" tabindex="0">
-            <ContestRules v-if="c?.rules" :rules="c.rules" :format="c?.contentFormat" />
+            <ContestRules v-if="c?.rules" :rules="c.rules" :format="c?.rulesFormat" />
           </div>
 
           <!-- PRIZES -->
           <div v-show="activeTab === 'prizes'" id="cpub-panel-prizes" role="tabpanel" aria-labelledby="cpub-tab-prizes" tabindex="0">
-            <ContestPrizes v-if="c?.showPrizes !== false && (c?.prizes?.length || c?.prizesDescription)" :prizes="c?.prizes ?? []" :description="c?.prizesDescription" :format="c?.contentFormat" />
+            <ContestPrizes v-if="c?.showPrizes !== false && (c?.prizes?.length || c?.prizesDescription)" :prizes="c?.prizes ?? []" :description="c?.prizesDescription" :format="c?.prizesDescriptionFormat" />
           </div>
 
           <!-- ENTRIES -->

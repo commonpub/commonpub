@@ -437,8 +437,10 @@ export const createContestSchema = z
     description: z.string().max(CONTEST_RICH_TEXT_MAX).optional(),
     rules: z.string().max(CONTEST_RICH_TEXT_MAX).optional(),
     prizesDescription: z.string().max(CONTEST_RICH_TEXT_MAX).optional(),
-    // Render mode for the three long-form fields above.
-    contentFormat: z.enum(['markdown', 'html']).optional(),
+    // Per-field render mode for the three long-form fields above (independent).
+    descriptionFormat: z.enum(['markdown', 'html']).optional(),
+    rulesFormat: z.enum(['markdown', 'html']).optional(),
+    prizesDescriptionFormat: z.enum(['markdown', 'html']).optional(),
     bannerUrl: optionalUrl(),
     coverImageUrl: optionalUrl(),
     showPrizes: z.boolean().optional(),
@@ -484,7 +486,9 @@ export const updateContestSchema = z
     description: z.string().max(CONTEST_RICH_TEXT_MAX).optional(),
     rules: z.string().max(CONTEST_RICH_TEXT_MAX).optional(),
     prizesDescription: z.string().max(CONTEST_RICH_TEXT_MAX).optional(),
-    contentFormat: z.enum(['markdown', 'html']).optional(),
+    descriptionFormat: z.enum(['markdown', 'html']).optional(),
+    rulesFormat: z.enum(['markdown', 'html']).optional(),
+    prizesDescriptionFormat: z.enum(['markdown', 'html']).optional(),
     bannerUrl: optionalUrl(),
     coverImageUrl: optionalUrl(),
     showPrizes: z.boolean().optional(),

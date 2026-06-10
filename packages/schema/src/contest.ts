@@ -96,9 +96,17 @@ export const contests = pgTable('contests', {
   rules: text('rules'),
   /** Intro shown on the Prizes tab, above the individual prize cards. */
   prizesDescription: text('prizes_description'),
-  /** Render mode for description/rules/prizesDescription: `markdown` (default,
-   *  Markdown + safe inline-HTML) or `html` (author's raw presentational HTML). */
+  /**
+   * @deprecated Superseded by the per-field `*Format` columns below (session 197).
+   * Kept as an inert column to avoid a rename-ambiguous migration; safe to drop
+   * in a later interactive `db:generate`. No code reads it.
+   */
   contentFormat: contestContentFormatEnum('content_format').default('markdown').notNull(),
+  /** Per-field render mode: `markdown` (default, Markdown + safe inline-HTML) or
+   *  `html` (author's raw presentational HTML). Each long-form field is independent. */
+  descriptionFormat: contestContentFormatEnum('description_format').default('markdown').notNull(),
+  rulesFormat: contestContentFormatEnum('rules_format').default('markdown').notNull(),
+  prizesDescriptionFormat: contestContentFormatEnum('prizes_description_format').default('markdown').notNull(),
   /** Master switch for the Prizes tab. When false the tab is hidden even if
    *  prize data exists (and prizes are optional regardless). */
   showPrizes: boolean('show_prizes').default(true).notNull(),

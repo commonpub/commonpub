@@ -59,8 +59,10 @@ export interface ContestDetail extends ContestListItem {
   subheading: string | null;
   rules: string | null;
   prizesDescription: string | null;
-  /** Render mode for description/rules/prizesDescription: 'markdown' | 'html'. */
-  contentFormat: 'markdown' | 'html';
+  /** Per-field render mode ('markdown' | 'html'), independent for each field. */
+  descriptionFormat: 'markdown' | 'html';
+  rulesFormat: 'markdown' | 'html';
+  prizesDescriptionFormat: 'markdown' | 'html';
   showPrizes: boolean;
   prizes: ContestPrize[] | null;
   judgingCriteria: ContestJudgingCriterion[] | null;
@@ -90,7 +92,9 @@ export interface CreateContestInput {
   description?: string;
   rules?: string;
   prizesDescription?: string;
-  contentFormat?: 'markdown' | 'html';
+  descriptionFormat?: 'markdown' | 'html';
+  rulesFormat?: 'markdown' | 'html';
+  prizesDescriptionFormat?: 'markdown' | 'html';
   showPrizes?: boolean;
   bannerUrl?: string;
   coverImageUrl?: string;
@@ -302,7 +306,9 @@ function toContestDetail(row: ContestRow): ContestDetail {
     subheading: row.subheading,
     rules: row.rules,
     prizesDescription: row.prizesDescription,
-    contentFormat: row.contentFormat,
+    descriptionFormat: row.descriptionFormat,
+    rulesFormat: row.rulesFormat,
+    prizesDescriptionFormat: row.prizesDescriptionFormat,
     showPrizes: row.showPrizes,
     stages: row.stages ?? [],
     currentStageId: row.currentStageId ?? null,
@@ -398,7 +404,9 @@ export async function createContest(
       description: input.description ?? null,
       rules: input.rules ?? null,
       prizesDescription: input.prizesDescription ?? null,
-      contentFormat: input.contentFormat ?? 'markdown',
+      descriptionFormat: input.descriptionFormat ?? 'markdown',
+      rulesFormat: input.rulesFormat ?? 'markdown',
+      prizesDescriptionFormat: input.prizesDescriptionFormat ?? 'markdown',
       showPrizes: input.showPrizes ?? true,
       stages: input.stages ?? [],
       // Only keep currentStageId if it references a stage that actually exists.
@@ -461,7 +469,9 @@ export async function updateContest(
   if (data.description !== undefined) updates.description = data.description;
   if (data.rules !== undefined) updates.rules = data.rules;
   if (data.prizesDescription !== undefined) updates.prizesDescription = data.prizesDescription;
-  if (data.contentFormat !== undefined) updates.contentFormat = data.contentFormat;
+  if (data.descriptionFormat !== undefined) updates.descriptionFormat = data.descriptionFormat;
+  if (data.rulesFormat !== undefined) updates.rulesFormat = data.rulesFormat;
+  if (data.prizesDescriptionFormat !== undefined) updates.prizesDescriptionFormat = data.prizesDescriptionFormat;
   if (data.bannerUrl !== undefined) updates.bannerUrl = data.bannerUrl;
   if (data.coverImageUrl !== undefined) updates.coverImageUrl = data.coverImageUrl;
   if (data.showPrizes !== undefined) updates.showPrizes = data.showPrizes;
