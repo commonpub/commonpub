@@ -86,3 +86,23 @@ Everything else verified live on the first pass: deveco `data-theme="deveco"` (d
 `deveco-dark`, bg #0a1a1c), 1024px doc overflow gone, More menu + real search input + Log in
 on-screen at 900px on commonpub and heatsync, heatsync's stoa untouched, before/after deveco
 screenshots visually identical through the identity switch.
+
+## Follow-up round — over-collapse, right margin, theme persistence (layer 0.73.2)
+
+User reports after the rollout, all three diagnosed live:
+1. **Nav over-collapsed at every width on deveco** (3 links + More even at 2000px): its
+   `de-topbar-inner` is `max-width: 1280px` and the bar's content (logo + 6 links + search +
+   auth ≈ 1300px) over-subscribes the row — so the nav's allocation was a CONSTANT ~520px and
+   the priority nav did exactly what it was told. Same root cause as the old thin-margin
+   overflow, opposite symptom (pre-196 the nav refused to shrink and overflowed; post-196 it
+   shrinks and collapses). Fix in deveco: inner 1280→1360 + search min-width 220→200 — all six
+   links fit at ≥1360, More engages progressively below.
+2. **"Thin right margin"**: with document overflow verified ZERO at all widths, the remaining
+   strip is the macOS always-show-scrollbars gutter rendering white against the full-bleed dark
+   hero. deveco now sets `scrollbar-color` (light + dark variants) so the gutter blends.
+3. **Light/dark preference lost on refresh**: `cpub-color-scheme` was a `functional`-category
+   cookie — written only after "Accept all" consent. Anyone on Essential-only silently lost the
+   preference every refresh (pre-existing; the registered-pair flip made deveco's toggle work
+   for the first time, exposing it). Recategorized ESSENTIAL (a user-requested preference:
+   pressing the toggle is the consent; no identifier, no tracking) — always persisted now;
+   privacy-page copy updated. Layer 0.73.2, rolled to all 3.
