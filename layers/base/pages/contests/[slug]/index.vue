@@ -7,7 +7,9 @@ const toast = useToast();
 const { extract: extractError } = useApiError();
 const { isAuthenticated, isAdmin, user } = useAuth();
 
-const { data: contest } = useLazyFetch(`/api/contests/${slug}`);
+// Blocking fetch (not lazy) so the description/rules render server-side and are
+// present on first paint — no empty flash while the client fetches + renders.
+const { data: contest } = await useFetch(`/api/contests/${slug}`);
 const { data: apiEntriesData, refresh: refreshEntries } = useLazyFetch<{ items: Serialized<ContestEntryItem>[]; total: number }>(`/api/contests/${slug}/entries`);
 const { data: judgesData, refresh: refreshJudges } = useLazyFetch<ContestJudgeItem[]>(`/api/contests/${slug}/judges`);
 
@@ -310,7 +312,7 @@ async function withdrawEntry(entryId: string): Promise<void> {
             <div class="cpub-about-section">
               <div class="cpub-sec-head"><h2><i class="fa fa-circle-info" style="color: var(--accent);"></i> About This Contest</h2></div>
               <div class="cpub-about-card">
-                <CpubMarkdown v-if="c?.description" :source="c.description" />
+                <CpubMarkdown v-if="c?.description" :source="c.description" :format="c?.contentFormat" />
                 <p v-else>No description available for this contest.</p>
               </div>
             </div>
@@ -319,12 +321,12 @@ async function withdrawEntry(entryId: string): Promise<void> {
 
           <!-- RULES -->
           <div v-show="activeTab === 'rules'" id="cpub-panel-rules" role="tabpanel" aria-labelledby="cpub-tab-rules" tabindex="0">
-            <ContestRules v-if="c?.rules" :rules="c.rules" />
+            <ContestRules v-if="c?.rules" :rules="c.rules" :format="c?.contentFormat" />
           </div>
 
           <!-- PRIZES -->
           <div v-show="activeTab === 'prizes'" id="cpub-panel-prizes" role="tabpanel" aria-labelledby="cpub-tab-prizes" tabindex="0">
-            <ContestPrizes v-if="c?.showPrizes !== false && (c?.prizes?.length || c?.prizesDescription)" :prizes="c?.prizes ?? []" :description="c?.prizesDescription" />
+            <ContestPrizes v-if="c?.showPrizes !== false && (c?.prizes?.length || c?.prizesDescription)" :prizes="c?.prizes ?? []" :description="c?.prizesDescription" :format="c?.contentFormat" />
           </div>
 
           <!-- ENTRIES -->

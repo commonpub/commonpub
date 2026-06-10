@@ -20,6 +20,7 @@ watch(title, (t) => { if (!slugTouched.value) slug.value = slugify(t); });
 const subheading = ref('');
 const description = ref('');
 const rules = ref('');
+const contentFormat = ref<'markdown' | 'html'>('markdown');
 const bannerUrl = ref('');
 const coverImageUrl = ref('');
 const startDate = ref('');
@@ -110,6 +111,7 @@ async function handleCreate(): Promise<void> {
         subheading: subheading.value || undefined,
         description: description.value || undefined,
         rules: rules.value || undefined,
+        contentFormat: contentFormat.value,
         bannerUrl: bannerUrl.value || undefined,
         coverImageUrl: coverImageUrl.value || undefined,
         startDate: new Date(startDate.value).toISOString(),
@@ -186,9 +188,20 @@ function prizeLabel(prize: Prize): string {
           <p class="cpub-form-hint">Short plain-text tagline shown under the title in the hero. The Description below is the full body.</p>
         </div>
         <div class="cpub-form-field">
+          <label class="cpub-form-label">Content format</label>
+          <div class="cpub-type-options" role="radiogroup" aria-label="Content format">
+            <label class="cpub-form-check"><input v-model="contentFormat" type="radio" value="markdown" /> <span>Markdown</span></label>
+            <label class="cpub-form-check"><input v-model="contentFormat" type="radio" value="html" /> <span>Full HTML</span></label>
+          </div>
+          <p class="cpub-form-hint">
+            Applies to Description, Rules, and the Prizes overview. <strong>Markdown</strong> supports headings, lists, links, and safe inline HTML.
+            <strong>Full HTML</strong> renders your raw HTML, CSS, and SVG as-is (scripts and event handlers are removed for safety).
+          </p>
+        </div>
+        <div class="cpub-form-field">
           <label for="contest-desc" class="cpub-form-label">Description</label>
           <textarea id="contest-desc" v-model="description" class="cpub-form-textarea" rows="4" maxlength="50000" placeholder="Describe your contest. Supports Markdown, # headings, - lists, **bold**, [links](url)…" />
-          <p class="cpub-form-hint">Supports Markdown (headings, lists, bold, links) and inline HTML. Shown formatted on the contest page.</p>
+          <p class="cpub-form-hint">{{ contentFormat === 'html' ? 'Rendered as full HTML/CSS/SVG.' : 'Supports Markdown (headings, lists, bold, links) and inline HTML.' }} Shown formatted on the contest page.</p>
         </div>
         <div class="cpub-form-field">
           <label for="contest-rules" class="cpub-form-label">Rules</label>

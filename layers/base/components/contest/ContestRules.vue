@@ -8,6 +8,7 @@
  */
 defineProps<{
   rules: string;
+  format?: 'markdown' | 'html' | null;
 }>();
 </script>
 
@@ -17,7 +18,7 @@ defineProps<{
       <h2><i class="fa fa-file-lines" style="color: var(--purple);"></i> Rules</h2>
     </div>
     <div class="cpub-rules-card">
-      <CpubMarkdown :source="rules" />
+      <CpubMarkdown :source="rules" :format="format" />
     </div>
   </div>
 </template>

@@ -2,8 +2,9 @@
 interface Prize { place?: number; category?: string; title?: string; description?: string; value?: string }
 defineProps<{
   prizes: Prize[];
-  /** Optional Markdown intro shown above the prize cards (section-level, not per-prize). */
+  /** Optional intro shown above the prize cards (section-level, not per-prize). */
   description?: string | null;
+  format?: 'markdown' | 'html' | null;
 }>();
 
 function prizeLabel(prize: Prize): string {
@@ -37,7 +38,7 @@ function prizeIcon(prize: Prize): string {
     <div class="cpub-sec-head">
       <h2><i class="fa fa-trophy" style="color: var(--yellow);"></i> Prizes</h2>
     </div>
-    <CpubMarkdown v-if="description" :source="description" class="cpub-prizes-intro" />
+    <CpubMarkdown v-if="description" :source="description" :format="format" class="cpub-prizes-intro" />
     <div v-if="prizes.length" class="cpub-prize-grid">
       <div
         v-for="(prize, i) in prizes"

@@ -1,0 +1,2 @@
+CREATE TYPE "public"."contest_content_format" AS ENUM('markdown', 'html');--> statement-breakpoint
+ALTER TABLE "contests" ADD COLUMN "content_format" "contest_content_format" DEFAULT 'markdown' NOT NULL;

@@ -2,7 +2,7 @@ import { pgTable, uuid, varchar, text, timestamp, integer, boolean, jsonb, uniqu
 import { relations } from 'drizzle-orm';
 import { users } from './auth.js';
 import { contentItems } from './content.js';
-import { contestStatusEnum, judgeRoleEnum, judgingVisibilityEnum, contestVisibilityEnum } from './enums.js';
+import { contestStatusEnum, judgeRoleEnum, judgingVisibilityEnum, contestVisibilityEnum, contestContentFormatEnum } from './enums.js';
 
 /**
  * A single ordered stage of a contest's timeline (Phase B1). Stored as a jsonb
@@ -91,11 +91,14 @@ export const contests = pgTable('contests', {
   slug: varchar('slug', { length: 255 }).notNull().unique(),
   /** Short one-line tagline shown in the contest hero (plain text). */
   subheading: varchar('subheading', { length: 300 }),
-  /** Long-form body, rendered as Markdown (may contain inline HTML). */
+  /** Long-form body, rendered per `contentFormat` (Markdown or raw HTML). */
   description: text('description'),
   rules: text('rules'),
-  /** Markdown intro shown on the Prizes tab, above the individual prize cards. */
+  /** Intro shown on the Prizes tab, above the individual prize cards. */
   prizesDescription: text('prizes_description'),
+  /** Render mode for description/rules/prizesDescription: `markdown` (default,
+   *  Markdown + safe inline-HTML) or `html` (author's raw presentational HTML). */
+  contentFormat: contestContentFormatEnum('content_format').default('markdown').notNull(),
   /** Master switch for the Prizes tab. When false the tab is hidden even if
    *  prize data exists (and prizes are optional regardless). */
   showPrizes: boolean('show_prizes').default(true).notNull(),

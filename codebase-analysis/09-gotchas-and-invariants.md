@@ -1078,6 +1078,29 @@ Consequence for caps: long-form contest fields (`description`/`rules`/`prizesDes
 50k value sits safely inside both the 1MB ingest envelope and the 100k render backstop. Client
 textareas carry `maxlength="50000"` so over-cap input is stopped before a round-trip.
 
+## Contest long-text has two render paths, gated by `contentFormat` (session 197)
+
+`contests.contentFormat` (`'markdown'` default | `'html'`) selects how description/rules/
+prizesDescription render — a single per-contest toggle covering all three. `CpubMarkdown`
+branches on its `format` prop: `markdown` runs `markdownToBlockTuples`; `html` renders ONE
+`v-html` through `sanitizeRichHtml`. Two non-obvious invariants:
+
+- **Markdown mode can't render a styled HTML document.** CommonMark turns blank-line-separated,
+  4-space-indented HTML into *indented code blocks*, and the strict `sanitizeBlockHtml` allowlist
+  strips `div/section/svg` and ALL `style=`. That's why a pasted inline-styled doc showed as
+  code blocks + unstyled text. The fix is the `html` mode, not loosening markdown mode — keep
+  `sanitizeBlockHtml` strict (it's also the federated-content barrier).
+- **`sanitizeRichHtml` (html mode) is permissive but DEFAULT-DENY and never allows script.**
+  It renders layout/CSS/SVG verbatim (tag/attr name CASE preserved so `viewBox`/`linearGradient`
+  survive) but: drops `<script>/<style>/<iframe>/<object>/<embed>` with their bodies, strips
+  `on*` + `javascript:` URLs, and scrubs `url()/expression()/@import/behavior` from `style`.
+  If you add a tag/attr to the allowlist, it renders to EVERY contest viewer — never add
+  `<script>`, `<style>`, event handlers, or unsanitized URL/`style` sinks. Authoring is gated to
+  staff/admin, but the sanitizer is the real barrier since pages render to untrusted visitors.
+
+Detail page uses a blocking `useFetch` (not `useLazyFetch`) so the body is SSR-rendered — lazy
+caused an empty-description flash while the client fetched + parsed a large body.
+
 ## A transient `/api/me` failure must NOT log the user out (session 197)
 
 `useAuth().refreshSession()` runs in the default layout's `onMounted` on every full page load.

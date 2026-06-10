@@ -59,6 +59,8 @@ export interface ContestDetail extends ContestListItem {
   subheading: string | null;
   rules: string | null;
   prizesDescription: string | null;
+  /** Render mode for description/rules/prizesDescription: 'markdown' | 'html'. */
+  contentFormat: 'markdown' | 'html';
   showPrizes: boolean;
   prizes: ContestPrize[] | null;
   judgingCriteria: ContestJudgingCriterion[] | null;
@@ -88,6 +90,7 @@ export interface CreateContestInput {
   description?: string;
   rules?: string;
   prizesDescription?: string;
+  contentFormat?: 'markdown' | 'html';
   showPrizes?: boolean;
   bannerUrl?: string;
   coverImageUrl?: string;
@@ -299,6 +302,7 @@ function toContestDetail(row: ContestRow): ContestDetail {
     subheading: row.subheading,
     rules: row.rules,
     prizesDescription: row.prizesDescription,
+    contentFormat: row.contentFormat,
     showPrizes: row.showPrizes,
     stages: row.stages ?? [],
     currentStageId: row.currentStageId ?? null,
@@ -394,6 +398,7 @@ export async function createContest(
       description: input.description ?? null,
       rules: input.rules ?? null,
       prizesDescription: input.prizesDescription ?? null,
+      contentFormat: input.contentFormat ?? 'markdown',
       showPrizes: input.showPrizes ?? true,
       stages: input.stages ?? [],
       // Only keep currentStageId if it references a stage that actually exists.
@@ -456,6 +461,7 @@ export async function updateContest(
   if (data.description !== undefined) updates.description = data.description;
   if (data.rules !== undefined) updates.rules = data.rules;
   if (data.prizesDescription !== undefined) updates.prizesDescription = data.prizesDescription;
+  if (data.contentFormat !== undefined) updates.contentFormat = data.contentFormat;
   if (data.bannerUrl !== undefined) updates.bannerUrl = data.bannerUrl;
   if (data.coverImageUrl !== undefined) updates.coverImageUrl = data.coverImageUrl;
   if (data.showPrizes !== undefined) updates.showPrizes = data.showPrizes;

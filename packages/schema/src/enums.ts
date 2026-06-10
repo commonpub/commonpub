@@ -147,6 +147,11 @@ export const contestStatusEnum = pgEnum('contest_status', [
 // unlisted = viewable by direct link, hidden from listings
 // private = owner/admin/stakeholders/judges + roles in `visibleToRoles` only
 export const contestVisibilityEnum = pgEnum('contest_visibility', ['public', 'unlisted', 'private']);
+// How the contest's long-form fields (description/rules/prizes overview) are
+// rendered: `markdown` = Markdown + the safe inline-HTML allowlist (default);
+// `html` = the author's raw HTML rendered as-is (presentational tags/CSS/SVG),
+// with script execution still stripped. One toggle covers all three fields.
+export const contestContentFormatEnum = pgEnum('contest_content_format', ['markdown', 'html']);
 
 // --- Contest Judging ---
 export const judgeRoleEnum = pgEnum('judge_role', ['lead', 'judge', 'guest']);

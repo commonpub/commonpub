@@ -11,16 +11,27 @@
  */
 import { markdownToBlockTuples } from '@commonpub/editor';
 import type { BlockTuple } from '@commonpub/editor';
+import { sanitizeRichHtml } from '../composables/useSanitize';
 
 const props = defineProps<{
   /** Markdown source (may contain inline/block HTML — passed through). */
   source?: string | null;
+  /**
+   * Render mode. `markdown` (default) runs the Markdown pipeline; `html` renders
+   * the source as the author's raw HTML through the permissive (script-free)
+   * sanitizer. The HTML path is also cheaper, so large bodies render instantly
+   * (no synchronous Markdown parse) on both SSR and client.
+   */
+  format?: 'markdown' | 'html' | null;
 }>();
 
 const trimmed = computed(() => (props.source ?? '').trim());
+const isHtml = computed(() => props.format === 'html');
+
+const richHtml = computed(() => (isHtml.value && trimmed.value ? sanitizeRichHtml(trimmed.value) : ''));
 
 const blocks = computed<BlockTuple[]>(() => {
-  if (!trimmed.value) return [];
+  if (isHtml.value || !trimmed.value) return [];
   try {
     return markdownToBlockTuples(trimmed.value);
   } catch {
@@ -30,8 +41,11 @@ const blocks = computed<BlockTuple[]>(() => {
 </script>
 
 <template>
+  <!-- eslint-disable vue/no-v-html -- author HTML, sanitized via sanitizeRichHtml (script-free allowlist) -->
+  <div v-if="isHtml && richHtml" class="cpub-md cpub-md-html" v-html="richHtml" />
+  <!-- eslint-enable vue/no-v-html -->
   <BlocksBlockContentRenderer
-    v-if="blocks.length"
+    v-else-if="blocks.length"
     :blocks="(blocks as [string, Record<string, unknown>][])"
     class="cpub-prose cpub-md"
   />

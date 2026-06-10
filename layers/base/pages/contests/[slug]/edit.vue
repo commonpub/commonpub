@@ -29,6 +29,8 @@ function slugify(s: string): string {
 const subheading = ref('');
 const description = ref('');
 const rules = ref('');
+// Render mode for description/rules/prizes overview: Markdown (default) or raw HTML.
+const contentFormat = ref<'markdown' | 'html'>('markdown');
 const bannerUrl = ref('');
 const coverImageUrl = ref('');
 const startDate = ref('');
@@ -86,6 +88,7 @@ watch(contest, (c) => {
   subheading.value = c.subheading ?? '';
   description.value = c.description ?? '';
   rules.value = c.rules ?? '';
+  contentFormat.value = (c.contentFormat as 'markdown' | 'html') ?? 'markdown';
   bannerUrl.value = c.bannerUrl ?? '';
   coverImageUrl.value = c.coverImageUrl ?? '';
   startDate.value = c.startDate ? new Date(c.startDate).toISOString().slice(0, 16) : '';
@@ -124,7 +127,7 @@ watch(contest, (c) => {
 // Mark the form dirty on any post-hydration edit (gives the save bar its
 // "unsaved changes" cue). Worst case (timing) is a harmless early "dirty".
 watch(
-  [title, slugInput, subheading, description, rules, bannerUrl, coverImageUrl, startDate, endDate, judgingEndDate,
+  [title, slugInput, subheading, description, rules, contentFormat, bannerUrl, coverImageUrl, startDate, endDate, judgingEndDate,
     communityVotingEnabled, judgingVisibility, eligibleContentTypes, maxEntriesPerUser, visibility, visibleToRoles,
     showPrizes, stages, currentStageIdRef, prizesDescription, prizes, criteria],
   () => { if (!hydratingForm) formDirty.value = true; },
@@ -195,6 +198,7 @@ async function handleSave(): Promise<void> {
         subheading: subheading.value || undefined,
         description: description.value || undefined,
         rules: rules.value || undefined,
+        contentFormat: contentFormat.value,
         bannerUrl: bannerUrl.value || undefined,
         coverImageUrl: coverImageUrl.value || undefined,
         startDate: startDate.value ? new Date(startDate.value).toISOString() : undefined,
@@ -348,9 +352,20 @@ async function transitionStatus(newStatus: string): Promise<void> {
           <p class="cpub-form-hint">Short plain-text tagline shown under the title in the hero. The Description below is the full body.</p>
         </div>
         <div class="cpub-form-field">
+          <label class="cpub-form-label">Content format</label>
+          <div class="cpub-type-options" role="radiogroup" aria-label="Content format">
+            <label class="cpub-form-check"><input v-model="contentFormat" type="radio" value="markdown" /> <span>Markdown</span></label>
+            <label class="cpub-form-check"><input v-model="contentFormat" type="radio" value="html" /> <span>Full HTML</span></label>
+          </div>
+          <p class="cpub-form-hint">
+            Applies to Description, Rules, and the Prizes overview. <strong>Markdown</strong> supports headings, lists, links, and safe inline HTML.
+            <strong>Full HTML</strong> renders your raw HTML, CSS, and SVG as-is (scripts and event handlers are removed for safety).
+          </p>
+        </div>
+        <div class="cpub-form-field">
           <label class="cpub-form-label">Description</label>
           <textarea v-model="description" class="cpub-form-textarea" rows="4" maxlength="50000" />
-          <p class="cpub-form-hint">Supports Markdown (headings, lists, bold, links) and inline HTML. Shown formatted on the contest page.</p>
+          <p class="cpub-form-hint">{{ contentFormat === 'html' ? 'Rendered as full HTML/CSS/SVG.' : 'Supports Markdown (headings, lists, bold, links) and inline HTML.' }} Shown formatted on the contest page.</p>
         </div>
         <div class="cpub-form-field">
           <label class="cpub-form-label">Rules</label>
