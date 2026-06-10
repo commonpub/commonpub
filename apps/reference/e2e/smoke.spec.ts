@@ -37,7 +37,11 @@ test.describe('Public pages render', () => {
     await expect(page.locator('form[aria-label="Login form"]')).toBeVisible();
     await expect(page.locator('#identity')).toBeVisible();
     await expect(page.locator('#password')).toBeVisible();
-    await expect(page.locator('button[type="submit"]')).toBeVisible();
+    // Scoped: the page has additional submit buttons (federated/Mastodon
+    // sign-in forms, session 188) — the bare locator is ambiguous.
+    await expect(
+      page.locator('form[aria-label="Login form"] button[type="submit"]'),
+    ).toBeVisible();
   });
 
   test('register page renders form', async ({ page }) => {
