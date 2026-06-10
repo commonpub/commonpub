@@ -114,6 +114,8 @@ useFocusTrap(dialogRef, () => props.open, close);
   background: var(--surface);
   border: var(--border-width-default) solid var(--border);
   box-shadow: var(--shadow-xl);
+  -webkit-backdrop-filter: var(--surface-backdrop, none);
+  backdrop-filter: var(--surface-backdrop, none);
   width: 520px;
   max-width: 90vw;
   max-height: 70vh;

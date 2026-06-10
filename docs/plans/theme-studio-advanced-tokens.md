@@ -53,8 +53,9 @@ themes (base / dark / agora / Stoa) and every already-stored custom theme byte-i
   treatment application lives only in shared `packages/ui/theme/*.css` classes).
 - I4: Schema changes are optional-field additions to `themeRecipeSchema`
   (`packages/schema/src/validators.ts`) only. No DB migration.
-- I5: `packages/ui/theme/*.css` and `layers/base/theme/*.css` are mirrored copies — every
-  CSS edit lands in both, same commit (they diff clean today; keep it that way).
+- I5 (corrected during implementation): `layers/base/theme/` is NOT a hand-maintained mirror —
+  it is gitignored build output regenerated from `packages/ui/theme/` by
+  `scripts/bundle-theme.mjs` at publish time (`prepublishOnly`). Edit only `packages/ui/theme/`.
 - I6: The existing theme-studio test "every emitted key passes `validateTokenOverrides`"
   must keep passing — publish ui (registry) before theme-studio in the chain.
 

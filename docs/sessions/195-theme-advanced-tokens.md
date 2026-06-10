@@ -80,13 +80,67 @@ to crates.io (pins layer ^0.72.0 / schema ^0.40.0 / server ^2.84.1). deveco + he
 hand-edited (caret-0.x), lockfiles refreshed (schema dist complete — layout.js present), pushed +
 deployed, health curl-verified.
 
-**Audit finding during ship (not a blocker):** deveco's local `nuxt typecheck` fails with 21
-lib-dom/vue-tsc structural-type errors (`Element` vs expanded `HTMLElement` shape, TS 5.9
-`autocorrect`) in editor/explainer/old-layer files. Counterfactual at the untouched 0.71.2
-lockfile shows the IDENTICAL 21 errors — pre-existing ecosystem skew, not a 0.72 regression.
-The earlier "tarball typecheck passed" run was unreliable (npm-install-over-pnpm hybrid layout
-hid those packages from vue-tsc); future tarball checks should `pnpm install` the tarball or
-diff error sets against a baseline run instead of trusting exit 0.
+**Typecheck post-mortem (root-caused after ship; both consumers now exit 0):** deveco's 21
+"`Element` vs expanded `HTMLElement`" errors were NOT pre-existing skew — they were
+contamination from this session's own `npm install --no-save <tarball>` over deveco's pnpm
+layout. npm flattened real `node_modules/@vue/*` directories that pnpm never prunes, so the
+program got TWO `@vue/reactivity` module instances: `ref` resolved to the top-level npm copy
+while `@vue/runtime-dom`'s `RefUnwrapBailTypes` augmentation (the "don't deep-unwrap DOM
+nodes" bail) applied only to the `.pnpm` copy → `ref<HTMLElement>().value` deep-mapped into
+the structural flatten. The "counterfactual at 0.71.2" was invalid for the same reason (the
+debris survived `git stash` + `pnpm install --frozen-lockfile`). Fix: `rm -rf node_modules` +
+clean pnpm install → **0 errors on deveco with layer 0.72.0**. heatsync had equivalent
+npm debris (predating this session) + ONE genuine error: its `HeroSection.vue` override
+declared `config?: Record<string, unknown>` while the layer's renderer binds the
+`HomepageSectionConfig` INTERFACE (interfaces lack implicit index signatures), surfaced by
+vue floating 3.5.30 → 3.5.34 (stricter template checks) in today's lockfile refresh — fixed
+in heatsync (`605d36b`), typecheck exits 0. LESSON: never `npm install` a tarball into a pnpm
+consumer for verification — use `pnpm add <tarball>` on a throwaway state, and wipe
+node_modules afterward either way.
+
+## Phase E partial — glass sweep on overlays + cards (ui 0.13.1 / layer 0.72.1)
+
+Same-session follow-up: the `--surface-backdrop` hook (`-webkit-backdrop-filter` +
+`backdrop-filter: var(--surface-backdrop, none)`, no-op by default) extended from `.cpub-sb-card`
+to the 12 high-visibility surfaces: shared `.cpub-card` (layouts.css), `ContentCard .cpub-cc`,
+the six modal panels (PublishErrorsModal, ImportUrlModal, ContentPicker, ShareToHubModal,
+RemoteFollowDialog, MarkdownImportDialog) and the three nav overlays in default.vue
+(`.cpub-nav-panel` dropdowns, `.cpub-user-dropdown`, `.cpub-mobile-nav`). Glass themes now frost
+content cards, modals, and menus, not just sidebar cards. The "preview pane shows the primary
+variant in both modes" follow-up from 192 was found already fixed (edit/[id].vue regenerates
+preview tokens per previewMode). STILL deferred, deliberately: `border-style` token (coherence
+needs touching every border declaration) and the full per-component radius migration
+(105-component blast radius unchanged).
+
+## Assumption audit (post-ship adversarial pass; fixes on PR #28)
+
+Triggered by the npm-debris false conclusion: a sweep of every confident claim this session made.
+
+**Real gaps found + fixed:**
+- **bg-image guard had a bypass**: the generic admin settings route (`adminSettingSchema` =
+  `{key, value: unknown}`) writes `instance_settings` keys wholesale, skipping
+  `customThemeSchema` entirely. Fixed at the SINK: `sanitizeRenderTokens()` in
+  `instanceTheme.ts` (theme-studio 0.6.1 / layer 0.72.1) drops any non-gradient `bg-image`
+  before SSR injection — closes every write path at the one read path (+3 tests).
+- **Glass AA only floored against the page bg**, not a modal panel over the 50% black scrim.
+  Generator now floors text/text-dim against BOTH composites. Honesty note: a numeric sweep
+  showed the worst curated palette was 4.53:1 (already AA) — my hand-estimate (~3.9) was
+  itself a wrong assumption, so this is margin hardening (binds only for pathological
+  hand-picked colors), byte-identical output for all curated palettes; the property test
+  now guards it.
+
+**Claims re-verified clean:** capture/fork flows (both `detectAppliedOverrides` callers seed
+forks; no perpetual banner; the resolveVarRefs fix reduces phantom capture counts), no
+unscoped `body` rules in theme CSS (gradient can't be clobbered), spec-sheet WCAG readout
+guards `startsWith('#')` (rgba surfaces hide it rather than NaN), e2e failure sets between
+main and the 195 PR re-diffed with full hashed test names — byte-identical (6 names), the
+coarse truncated-prefix comparison happened to be right.
+
+**Known-accepted (documented, not fixed):** chrome color tokens (`--cpub-topbar-bg` etc.)
+feed `background:` shorthand, which CAN carry url() — pre-existing exposure (admin-trusted,
+predates registration; a blanket sink filter could silently alter stored themes, so it
+stays). `resolveVarRefs` fallback parsing doesn't handle parens-in-fallback (no current
+spec default has one).
 
 ## Open questions / next steps
 

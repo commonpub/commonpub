@@ -141,6 +141,8 @@ function formatCount(n: number | undefined): string {
   border: var(--border-width-default) solid var(--border);
   overflow: hidden;
   transition: transform 0.15s, box-shadow 0.15s;
+  -webkit-backdrop-filter: var(--surface-backdrop, none);
+  backdrop-filter: var(--surface-backdrop, none);
 }
 
 .cpub-cc:hover {

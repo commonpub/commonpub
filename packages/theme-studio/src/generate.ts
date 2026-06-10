@@ -266,9 +266,15 @@ export function recipeToTokens(recipe: ThemeRecipe): GeneratedTheme {
     // (translucent surface composited over the raw page bg).
     const alpha = Math.round((1 - glass) * 100) / 100;
     t['surface'] = rgba(s.surface, alpha);
+    // Two flattened worst cases: the page bg, and a MODAL panel sitting on
+    // the 50% black scrim (base.css --color-surface-overlay) — over the
+    // scrim a translucent light surface darkens, which is where secondary
+    // text dips below AA first. Floor against both (the chain is monotonic:
+    // ensureReadable only ever pushes lightness in the mode's direction).
     const flat = blendOver(s.surface, alpha, s.bg);
-    t['text'] = ensureReadable(s.text, flat, 4.5, dark);
-    t['text-dim'] = ensureReadable(s.textSoft, flat, 4.5, dark);
+    const scrimFlat = blendOver(s.surface, alpha, blendOver('#000000', 0.5, s.bg));
+    t['text'] = ensureReadable(ensureReadable(s.text, flat, 4.5, dark), scrimFlat, 4.5, dark);
+    t['text-dim'] = ensureReadable(ensureReadable(s.textSoft, flat, 4.5, dark), scrimFlat, 4.5, dark);
     const blur = Math.round(6 + glass * 40);
     t['surface-backdrop'] = `blur(${blur}px) saturate(1.35)`;
     // Frost the top bar too — slightly more opaque so nav text stays calm.

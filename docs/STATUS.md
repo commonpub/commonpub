@@ -22,8 +22,9 @@ Glass archetype; wizard Feel-step controls; (4) capture-flood fix (`resolveVarRe
 specs phantom-diffed on stock sites); (5) wedge-gap resets (ContentCard/VideoCard thumbs, HubHero
 banner). Released **schema 0.40.0 / ui 0.13.0 / theme-studio 0.6.0 / layer 0.72.0** (additive, no
 migration), CLI **0.5.14** (pins ^0.72/^0.40/^2.84.1). deveco + heatsync bumped + deployed,
-curl-verified. NOTE: deveco's local `nuxt typecheck` shows 21 PRE-EXISTING lib-dom/vue-tsc skew
-errors (identical at 0.71.2 — verified by counterfactual; not a 0.72 regression). Phase E deferred:
+curl-verified. Both consumers `nuxt typecheck` EXIT 0 on layer 0.72.0 (the transient "21 errors"
+were npm-tarball-test debris in node_modules — see the 195 log post-mortem; plus one real
+heatsync HeroSection-override prop fix). Phase E deferred:
 glass on scoped modals/dropdowns, `border-style` token, full radius migration.
 Plan: `docs/plans/theme-studio-advanced-tokens.md`; log `docs/sessions/195-theme-advanced-tokens.md`.
 

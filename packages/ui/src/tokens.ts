@@ -224,7 +224,7 @@ export const TOKEN_SPECS: TokenSpec[] = [
   // `blur(0)`: any non-none backdrop-filter creates a stacking context and
   // becomes the containing block for fixed descendants), so built-in themes
   // and existing custom themes render byte-identical unless a theme opts in.
-  { key: 'surface-backdrop', group: 'treatment', kind: 'string', default: 'none', description: 'backdrop-filter for cards/panels, e.g. blur(12px) saturate(1.35) for glass' },
+  { key: 'surface-backdrop', group: 'treatment', kind: 'string', default: 'none', description: 'backdrop-filter for cards, modals, and dropdowns, e.g. blur(12px) saturate(1.35) for glass' },
   { key: 'bg-image', group: 'treatment', kind: 'string', default: 'none', description: 'Page background gradient (CSS gradients only; url() is rejected on save)' },
 
   // Motion

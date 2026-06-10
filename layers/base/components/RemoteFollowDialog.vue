@@ -87,6 +87,8 @@ useFocusTrap(dialogRef, () => open.value, close);
   background: var(--bg); border: var(--border-width-default) solid var(--border);
   width: 100%; max-width: 420px; padding: 24px;
   box-shadow: var(--shadow-md);
+  -webkit-backdrop-filter: var(--surface-backdrop, none);
+  backdrop-filter: var(--surface-backdrop, none);
 }
 .cpub-rfd-header {
   display: flex; align-items: center; justify-content: space-between;
