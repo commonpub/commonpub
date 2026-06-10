@@ -4,7 +4,7 @@
 > Verify any version/flag claim before trusting it: `npm view @commonpub/<pkg> version`,
 > `curl https://<instance>/api/features`, `cargo search create-commonpub`.
 > Companion docs: the latest work log `docs/sessions/196-search-nav-theme-round.md`, the rolling
-> handoff `docs/sessions/192-kickoff-next.md`, the contest guide `docs/reference/guides/contests.md`.
+> handoff `docs/sessions/197-kickoff-next.md`, the contest guide `docs/reference/guides/contests.md`.
 
 ---
 
