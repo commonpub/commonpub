@@ -1,17 +1,28 @@
 # CommonPub — Status & Operator Runbook
 
-> **Living doc — your "come back later" reference.** Snapshot updated 2026-06-10 (session 196).
+> **Living doc — your "come back later" reference.** Snapshot updated 2026-06-11 (session 197).
 > Verify any version/flag claim before trusting it: `npm view @commonpub/<pkg> version`,
 > `curl https://<instance>/api/features`, `cargo search create-commonpub`.
-> Companion docs: the latest work log `docs/sessions/196-search-nav-theme-round.md`, the rolling
-> handoff `docs/sessions/197-kickoff-next.md`, the contest guide `docs/reference/guides/contests.md`.
+> Companion docs: the latest work log `docs/sessions/197-contest-largetext-hardening.md`, the rolling
+> handoff `docs/sessions/198-kickoff-next.md`, the contest guide `docs/reference/guides/contests.md`.
 
 ---
 
 ## TL;DR — where things stand
 
-**Search + nav + theme-identity round** is the newest work (session 196, **SHIPPED + ROLLED to
-all 3**): (1) `/api/search`'s All tab is MIRROR-AWARE — delegates to `listContent`'s merged
+**Contest large-text + HTML render** is the newest work (session 197, **SHIPPED + ROLLED to all 3**):
+a large pasted HTML blob exposed an ingest/render DoS + a logout cascade, now fixed (`parseBody`
+10MB body guard, shared markdown processors, 50k field caps, transient-`/api/me` no longer logs
+out). Contest long-text fields gained a **per-field Markdown/HTML toggle** (`descriptionFormat` /
+`rulesFormat` / `prizesDescriptionFormat`) — HTML mode renders raw layout/CSS/SVG through the new
+permissive-but-script-free `sanitizeRichHtml`. Released **schema 0.43.0 / server 2.86.0 /
+editor 0.7.12 / layer 0.76.0**, migrations **0022** + **0023** (additive). Full detail:
+`docs/sessions/197-contest-largetext-hardening.md` + `docs/sessions/198-kickoff-next.md`.
+
+---
+
+**Earlier: Search + nav + theme-identity round** (session 196, SHIPPED + ROLLED to all 3):
+(1) `/api/search`'s All tab is MIRROR-AWARE — delegates to `listContent`'s merged
 local+federated stream (commonpub.io returned 0 for every query its own homepage answers);
 (2) **priority nav** — links that don't fit collapse into a "More" dropdown
 (`utils/navOverflow.ts`, hidden measure row; scroll-the-nav was tried and REVERTED — it clips
@@ -276,17 +287,21 @@ a minute (`curl deveco.io/api/content?limit=5`, today's timestamp).
 
 ## 📌 Reference
 
-### Published versions (verified 2026-06-04)
+### Published versions (verified 2026-06-11)
 | Package | Version | | Package | Version |
 |---|---|---|---|---|
-| @commonpub/schema | **0.37.0** | | @commonpub/infra | 0.8.0 |
-| @commonpub/config | **0.20.0** | | @commonpub/editor | 0.7.11 |
+| @commonpub/schema | **0.43.0** | | @commonpub/infra | 0.8.0 |
+| @commonpub/config | 0.22.1 | | @commonpub/editor | **0.7.12** |
 | @commonpub/protocol | 0.13.0 | | @commonpub/explainer | 0.7.15 |
 | @commonpub/auth | 0.8.0 | | @commonpub/docs | 0.6.3 |
-| @commonpub/server | **2.83.0** | | @commonpub/learning | 0.5.2 |
-| @commonpub/ui | **0.12.2** | | @commonpub/test-utils | 0.5.6 |
-| @commonpub/layer | **0.70.1** | | @commonpub/theme-studio | **0.5.1** |
-| create-commonpub (crates.io) | **0.5.12** | | | |
+| @commonpub/server | **2.86.0** | | @commonpub/learning | 0.5.2 |
+| @commonpub/ui | 0.13.1 | | @commonpub/test-utils | 0.5.6 |
+| @commonpub/layer | **0.76.0** | | @commonpub/theme-studio | 0.6.1 |
+| create-commonpub (crates.io) | 0.5.15 _(stale — pins lag)_ | | | |
+
+Latest migrations: **0022** (`contest_content_format` enum + `content_format` col, session 197) ·
+**0023** (per-field `description_format` / `rules_format` / `prizes_description_format`, session 197;
+the now-deprecated `content_format` column is left inert — drop it in a later interactive generate).
 
 **Stoa theme (session 190, ui 0.10.0 / layer 0.63.0):** new built-in theme family (light + dark) —
 warm paper, moss accent, Fraunces/Newsreader/Work Sans, soft rounded geometry; shares Agora's Town
