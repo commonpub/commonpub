@@ -203,6 +203,8 @@ export interface ContentDetail extends ContentListItem {
   parts: unknown;
   sections: unknown;
   forkCount: number;
+  /** Target auto-publish time when status='scheduled'; null otherwise. */
+  scheduledAt: Date | null;
   updatedAt: Date;
   tags: Array<{ id: string; name: string; slug: string }>;
   author: ContentDetailAuthor;

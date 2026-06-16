@@ -215,6 +215,7 @@ export async function createPath(
     description?: string;
     difficulty?: 'beginner' | 'intermediate' | 'advanced';
     estimatedHours?: number;
+    coverImageUrl?: string;
   },
 ): Promise<LearningPathDetail> {
   const slug = await ensureUniqueSlugFor(db, learningPaths, learningPaths.slug, learningPaths.id, generateSlug(input.title), 'untitled');
@@ -228,6 +229,7 @@ export async function createPath(
       description: input.description ?? null,
       difficulty: input.difficulty ?? null,
       estimatedHours: input.estimatedHours?.toString() ?? null,
+      coverImageUrl: input.coverImageUrl ?? null,
       status: 'draft',
     })
     .returning();

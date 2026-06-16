@@ -1,4 +1,4 @@
-import { eq, and, desc, sql, inArray, isNull } from 'drizzle-orm';
+import { eq, and, desc, sql, inArray, isNull, lte } from 'drizzle-orm';
 import type { SQL } from 'drizzle-orm';
 import { contentItems, contentVersions, contentForks, contentBuilds, federatedContentBuilds, tags, contentTags, users, follows, federatedContent, remoteActors, contentCategories } from '@commonpub/schema';
 import type { CommonPubConfig } from '@commonpub/config';
@@ -662,6 +662,7 @@ export async function getContentBySlug(
     parts: item.parts,
     sections: item.sections,
     forkCount: item.forkCount,
+    scheduledAt: item.scheduledAt,
     updatedAt: item.updatedAt,
     tags: itemTags,
     author: enrichedAuthor,
@@ -679,9 +680,10 @@ export async function createContent(
   const normalizedType = input.type === 'article' ? 'blog' : input.type;
   const normalizedCategory = input.type === 'article' && !input.category ? 'article' : input.category;
 
+  // Honor an author-supplied custom slug (normalized); otherwise derive from title.
   const slug = await ensureUniqueSlugFor(
     db, contentItems, contentItems.slug, contentItems.id,
-    generateSlug(input.title), 'untitled', undefined,
+    generateSlug(input.slug || input.title), 'untitled', undefined,
     [{ col: contentItems.authorId, value: authorId }, { col: contentItems.type, value: normalizedType }],
   );
   const previewToken = crypto.randomUUID().replace(/-/g, '');
@@ -710,6 +712,7 @@ export async function createContent(
       sections: input.sections as typeof contentItems.$inferInsert.sections ?? null,
       categoryId: input.categoryId ?? null,
       status: 'draft',
+      scheduledAt: input.scheduledAt ?? null,
       previewToken,
     })
     .returning();
@@ -741,15 +744,19 @@ export async function updateContent(
     updatedAt: new Date(),
   };
 
-  if (input.title !== undefined) {
-    updates.title = input.title;
-    if (input.title !== current.title) {
-      updates.slug = await ensureUniqueSlugFor(
-        db, contentItems, contentItems.slug, contentItems.id,
-        generateSlug(input.title), 'untitled', contentId,
-        [{ col: contentItems.authorId, value: authorId }, { col: contentItems.type, value: current.type }],
-      );
-    }
+  if (input.title !== undefined) updates.title = input.title;
+
+  // Re-slug when the author supplies a custom slug, or (only otherwise) when the
+  // title changes. A custom slug always wins so editing it is never a silent no-op.
+  const slugSource = input.slug && input.slug.trim() !== ''
+    ? input.slug
+    : (input.title !== undefined && input.title !== current.title ? input.title : undefined);
+  if (slugSource !== undefined) {
+    updates.slug = await ensureUniqueSlugFor(
+      db, contentItems, contentItems.slug, contentItems.id,
+      generateSlug(slugSource), 'untitled', contentId,
+      [{ col: contentItems.authorId, value: authorId }, { col: contentItems.type, value: current.type }],
+    );
   }
   if (input.subtitle !== undefined) updates.subtitle = input.subtitle;
   if (input.description !== undefined) updates.description = input.description;
@@ -767,11 +774,29 @@ export async function updateContent(
   if (input.series !== undefined) updates.series = input.series;
   if (input.visibility !== undefined) updates.visibility = input.visibility;
   if (input.categoryId !== undefined) updates.categoryId = input.categoryId;
+  if (input.scheduledAt !== undefined) updates.scheduledAt = input.scheduledAt;
 
   if (input.status !== undefined) {
+    if (input.status === 'scheduled') {
+      // Hold the same invariants the dedicated schedule endpoint enforces, so the
+      // generic update path can't unpublish a live post or strand it as
+      // status='scheduled' with no time (which would hide it from feeds forever).
+      if (current.status !== 'draft' && current.status !== 'scheduled') {
+        throw new Error('Only draft content can be scheduled');
+      }
+      const effectiveScheduledAt = input.scheduledAt ?? (current.scheduledAt as Date | null);
+      if (!effectiveScheduledAt) {
+        throw new Error('Scheduling requires a scheduledAt time');
+      }
+    }
     updates.status = input.status;
     if (input.status === 'published' && !current.publishedAt) {
       updates.publishedAt = new Date();
+    }
+    // Leaving 'scheduled' or publishing clears any pending schedule timestamp
+    // unless the caller is explicitly (re)scheduling in this same update.
+    if (input.status !== 'scheduled' && input.scheduledAt === undefined) {
+      updates.scheduledAt = null;
     }
   }
 
@@ -802,6 +827,76 @@ export async function publishContent(
   // Create a version snapshot before publishing
   await createContentVersion(db, contentId, authorId);
   return updateContent(db, contentId, authorId, { status: 'published' });
+}
+
+/**
+ * Schedule a content item to auto-publish at a future time. Sets status to
+ * 'scheduled' and stores the target time; the scheduled-publishing worker
+ * (publishDueScheduled) flips it to 'published' once that time passes. Ownership
+ * is enforced by updateContent (returns null for non-owners).
+ */
+export async function scheduleContent(
+  db: DB,
+  contentId: string,
+  authorId: string,
+  scheduledAt: Date,
+): Promise<ContentDetail | null> {
+  if (Number.isNaN(scheduledAt.getTime())) {
+    throw new Error('Invalid scheduled time');
+  }
+  // Only unpublished content may be scheduled. Without this guard, "scheduling"
+  // a live post would set status back to 'scheduled' and silently unpublish it.
+  const [current] = await db
+    .select({ status: contentItems.status })
+    .from(contentItems)
+    .where(and(eq(contentItems.id, contentId), eq(contentItems.authorId, authorId)))
+    .limit(1);
+  if (!current) return null;
+  if (current.status !== 'draft' && current.status !== 'scheduled') return null;
+
+  return updateContent(db, contentId, authorId, { status: 'scheduled', scheduledAt });
+}
+
+/**
+ * Scheduled-publishing worker step. Atomically claims every content item whose
+ * scheduled time has passed via a single `UPDATE ... RETURNING` — Postgres row
+ * locks guarantee each row is flipped to 'published' exactly once, so this is
+ * safe to run concurrently across replicas. The normal publish side effects
+ * (version snapshot + federation/search/hooks) then run per claimed item.
+ *
+ * Returns the number of items published.
+ */
+export async function publishDueScheduled(
+  db: DB,
+  config: CommonPubConfig,
+  now: Date = new Date(),
+): Promise<number> {
+  const claimed = await db
+    .update(contentItems)
+    .set({
+      status: 'published',
+      publishedAt: sql`COALESCE(${contentItems.publishedAt}, ${now})`,
+      scheduledAt: null,
+      updatedAt: now,
+    })
+    .where(and(
+      eq(contentItems.status, 'scheduled'),
+      isNull(contentItems.deletedAt),
+      lte(contentItems.scheduledAt, now),
+    ))
+    .returning({ id: contentItems.id, authorId: contentItems.authorId });
+
+  for (const item of claimed) {
+    try {
+      await createContentVersion(db, item.id, item.authorId);
+      await onContentPublished(db, item.id, config);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(`[scheduled-publishing] post-publish side effects failed for ${item.id}:`, message);
+    }
+  }
+
+  return claimed.length;
 }
 
 // --- Content Versioning ---

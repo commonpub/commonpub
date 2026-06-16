@@ -1,14 +1,31 @@
 # CommonPub — Status & Operator Runbook
 
-> **Living doc — your "come back later" reference.** Snapshot updated 2026-06-11 (session 197).
+> **Living doc — your "come back later" reference.** Snapshot updated 2026-06-15 (session 199).
 > Verify any version/flag claim before trusting it: `npm view @commonpub/<pkg> version`,
 > `curl https://<instance>/api/features`, `cargo search create-commonpub`.
-> Companion docs: the latest work log `docs/sessions/197-contest-largetext-hardening.md`, the rolling
-> handoff `docs/sessions/198-kickoff-next.md`, the contest guide `docs/reference/guides/contests.md`.
+> Companion docs: the latest work log `docs/sessions/199-field-drop-audit-and-scheduled-publishing.md`,
+> the contest guide `docs/reference/guides/contests.md`.
 
 ---
 
 ## TL;DR — where things stand
+
+**Field-drop audit + scheduled publishing** is the newest work (session 199, on branch
+`fix/field-drop-audit-scheduled-publishing` — PR open, **NOT yet merged/published**):
+fixed a "silent field-drop" bug class where create/update functions or Zod validators dropped
+fields the UI sent — **hub** icon/banner/privacy/website (the reported commonpub.io bug), **video**
+`categoryId` (videos saved NULL category), content custom **slug** (editor field was a no-op),
+learning `coverImageUrl`, lesson `durationMinutes`. Also **implemented scheduled publishing**
+(`content_status` += `'scheduled'`, `scheduled_at` column, atomic-claim worker + 60s Nitro plugin +
+`POST /api/content/[id]/schedule` + editor Schedule button). Migration **0024** (additive).
+Versions bumped: **schema 0.44.0 / server 2.87.0 / layer 0.77.0**. Green: schema 466, server 1353,
+layer 1005, reference typecheck clean. Remaining: merge (→ commonpub.io deploy + migration), then
+`pnpm publish` schema/server/layer and roll deveco.io + heatsynclabs.io. Detail:
+`docs/sessions/199-field-drop-audit-and-scheduled-publishing.md`.
+
+---
+
+## TL;DR — earlier
 
 **Contest large-text + HTML render** is the newest work (session 197, **SHIPPED + ROLLED to all 3**):
 a large pasted HTML blob exposed an ingest/render DoS + a logout cascade, now fixed (`parseBody`

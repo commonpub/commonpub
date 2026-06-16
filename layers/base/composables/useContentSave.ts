@@ -30,6 +30,8 @@ export interface ContentSaveReturn {
   handleSave: () => Promise<void>;
   /** Validate, save, publish, and navigate */
   handlePublish: (validate?: () => string[]) => Promise<string[]>;
+  /** Validate, save, and schedule for future publish using metadata.scheduledAt */
+  handleSchedule: (validate?: () => string[]) => Promise<string[]>;
   /** Build a clean save body from current state */
   buildSaveBody: () => Record<string, unknown>;
   /** Schedule an autosave after the debounce delay */
@@ -80,6 +82,13 @@ export function useContentSave(opts: ContentSaveOptions): ContentSaveReturn {
     if (!body.slug) delete body.slug;
     for (const key of Object.keys(body)) {
       if (body[key] === '') body[key] = undefined;
+    }
+    // scheduledAt arrives from a datetime-local control as a bare local string;
+    // resolve it to an absolute UTC instant client-side so the server never
+    // reparses it in its own timezone (which would shift the stored time).
+    if (typeof body.scheduledAt === 'string' && body.scheduledAt) {
+      const d = new Date(body.scheduledAt);
+      body.scheduledAt = Number.isNaN(d.getTime()) ? undefined : d.toISOString();
     }
     return body;
   }
@@ -225,6 +234,55 @@ export function useContentSave(opts: ContentSaveOptions): ContentSaveReturn {
     }
   }
 
+  async function handleSchedule(validate?: () => string[]): Promise<string[]> {
+    if (saving.value || !opts.title.value) return ['Title is required'];
+    const raw = opts.metadata.value?.scheduledAt as string | undefined;
+    if (!raw) return ['Pick a date and time to schedule'];
+    const when = new Date(raw);
+    if (Number.isNaN(when.getTime()) || when.getTime() <= Date.now()) {
+      error.value = 'Scheduled time must be in the future.';
+      return ['Scheduled time must be in the future'];
+    }
+    if (validate) {
+      const errs = validate();
+      if (errs.length > 0) return errs;
+    }
+    cancelAutoSave();
+    saving.value = true;
+    error.value = '';
+
+    try {
+      const body = buildSaveBody();
+      let resultSlug = useRoute().params.slug as string;
+
+      if (opts.isNew.value || !opts.contentId.value) {
+        const result = await createDraft(body);
+        opts.contentId.value = result.id;
+        opts.isNew.value = false;
+        resultSlug = result.slug;
+        if (opts.onAfterSave) await opts.onAfterSave(result.id);
+      } else {
+        const updated = await $fetch<{ slug: string }>(`/api/content/${opts.contentId.value}`, { method: 'PUT', body });
+        if (updated?.slug) resultSlug = updated.slug;
+        if (opts.onAfterSave) await opts.onAfterSave(opts.contentId.value!);
+      }
+
+      // Send an absolute instant: `raw` is a local "YYYY-MM-DDTHH:mm" value, so
+      // resolve it to UTC client-side rather than letting the server reparse it
+      // in its own timezone.
+      await $fetch(`/api/content/${opts.contentId.value}/schedule`, { method: 'POST', body: { scheduledAt: when.toISOString() } });
+
+      opts.isDirty.value = false;
+      await navigateTo(viewPath(opts.contentType.value, resultSlug));
+      return [];
+    } catch (err: unknown) {
+      error.value = opts.extractError(err);
+      return [];
+    } finally {
+      saving.value = false;
+    }
+  }
+
   function scheduleAutoSave(): void {
     if (autoSaveTimer) clearTimeout(autoSaveTimer);
     autoSaveTimer = setTimeout(async () => {
@@ -256,6 +314,7 @@ export function useContentSave(opts: ContentSaveOptions): ContentSaveReturn {
     silentSave,
     handleSave,
     handlePublish,
+    handleSchedule,
     buildSaveBody,
     scheduleAutoSave,
     cancelAutoSave,

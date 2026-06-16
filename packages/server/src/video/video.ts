@@ -20,6 +20,9 @@ export interface VideoListItem {
   authorName: string | null;
   authorUsername: string;
   authorAvatarUrl: string | null;
+  categoryId: string | null;
+  categoryName: string | null;
+  categorySlug: string | null;
   createdAt: Date;
 }
 
@@ -63,9 +66,12 @@ export async function listVideos(
         authorName: users.displayName,
         authorUsername: users.username,
         authorAvatarUrl: users.avatarUrl,
+        categoryName: videoCategories.name,
+        categorySlug: videoCategories.slug,
       })
       .from(videos)
       .innerJoin(users, eq(videos.authorId, users.id))
+      .leftJoin(videoCategories, eq(videos.categoryId, videoCategories.id))
       .where(where)
       .orderBy(desc(videos.createdAt))
       .limit(limit)
@@ -88,6 +94,9 @@ export async function listVideos(
     authorName: row.authorName,
     authorUsername: row.authorUsername,
     authorAvatarUrl: row.authorAvatarUrl,
+    categoryId: row.video.categoryId,
+    categoryName: row.categoryName,
+    categorySlug: row.categorySlug,
     createdAt: row.video.createdAt,
   }));
 
@@ -104,9 +113,12 @@ export async function getVideoById(
       authorName: users.displayName,
       authorUsername: users.username,
       authorAvatarUrl: users.avatarUrl,
+      categoryName: videoCategories.name,
+      categorySlug: videoCategories.slug,
     })
     .from(videos)
     .innerJoin(users, eq(videos.authorId, users.id))
+    .leftJoin(videoCategories, eq(videos.categoryId, videoCategories.id))
     .where(eq(videos.id, id))
     .limit(1);
 
@@ -128,6 +140,9 @@ export async function getVideoById(
     authorName: row.authorName,
     authorUsername: row.authorUsername,
     authorAvatarUrl: row.authorAvatarUrl,
+    categoryId: row.video.categoryId,
+    categoryName: row.categoryName,
+    categorySlug: row.categorySlug,
     createdAt: row.video.createdAt,
     description: row.video.description,
   };

@@ -7,11 +7,16 @@ import {
   getContentBySlug,
   updateContent,
   publishContent,
+  scheduleContent,
+  publishDueScheduled,
   deleteContent,
   incrementViewCount,
   createContentVersion,
   listContentVersions,
 } from '../content/content.js';
+import type { CommonPubConfig } from '@commonpub/config';
+
+const TEST_CONFIG = { features: { federation: false }, instance: { domain: '' } } as unknown as CommonPubConfig;
 
 describe('content integration', () => {
   let db: DB;
@@ -330,5 +335,124 @@ describe('content integration', () => {
       }
     }
     expect(dupes).toBe(0);
+  });
+
+  // --- Custom slug (editor slug field was previously a silent no-op) ---
+
+  it('honors a custom slug on create (normalized)', async () => {
+    const created = await createContent(db, userId, {
+      type: 'blog',
+      title: 'Some Generic Title',
+      slug: 'My Custom URL!',
+    });
+    expect(created.slug).toBe('my-custom-url');
+  });
+
+  it('changes the slug on update when a custom slug is supplied, without touching the title', async () => {
+    const created = await createContent(db, userId, { type: 'blog', title: 'Stable Title' });
+    const originalSlug = created.slug;
+
+    const updated = await updateContent(db, created.id, userId, { slug: 'brand-new-slug' });
+    expect(updated!.slug).toBe('brand-new-slug');
+    expect(updated!.slug).not.toBe(originalSlug);
+    expect(updated!.title).toBe('Stable Title');
+
+    // The new slug is the one that resolves.
+    const found = await getContentBySlug(db, 'brand-new-slug', userId);
+    expect(found!.id).toBe(created.id);
+  });
+
+  it('leaves the slug unchanged when neither slug nor title change', async () => {
+    const created = await createContent(db, userId, { type: 'blog', title: 'Keep My Slug' });
+    const updated = await updateContent(db, created.id, userId, { description: 'desc only' });
+    expect(updated!.slug).toBe(created.slug);
+  });
+
+  // --- Scheduled publishing ---
+
+  it('persists scheduledAt and status via scheduleContent', async () => {
+    const created = await createContent(db, userId, { type: 'blog', title: 'Scheduled Post' });
+    const when = new Date(Date.now() + 60 * 60 * 1000); // 1h out
+
+    const scheduled = await scheduleContent(db, created.id, userId, when);
+    expect(scheduled!.status).toBe('scheduled');
+    expect(scheduled!.scheduledAt).toBeInstanceOf(Date);
+    expect(scheduled!.scheduledAt!.getTime()).toBe(when.getTime());
+    expect(scheduled!.publishedAt).toBeNull();
+  });
+
+  it('scheduleContent rejects a non-owner', async () => {
+    const other = await createTestUser(db, { username: 'sched-intruder' });
+    const created = await createContent(db, userId, { type: 'blog', title: 'Owned Post' });
+    const result = await scheduleContent(db, created.id, other.id, new Date(Date.now() + 1000));
+    expect(result).toBeNull();
+  });
+
+  it('refuses to schedule an already-published item (no silent unpublish)', async () => {
+    const item = await createContent(db, userId, { type: 'blog', title: 'Already Live' });
+    await publishContent(db, item.id, userId);
+
+    const result = await scheduleContent(db, item.id, userId, new Date(Date.now() + 60 * 60 * 1000));
+    expect(result).toBeNull();
+
+    // Still published, not reverted to scheduled.
+    const after = await getContentBySlug(db, item.slug, userId);
+    expect(after!.status).toBe('published');
+  });
+
+  it('updateContent rejects status=scheduled with no scheduledAt (no stuck state via generic PUT)', async () => {
+    const item = await createContent(db, userId, { type: 'blog', title: 'No Time Schedule' });
+    await expect(updateContent(db, item.id, userId, { status: 'scheduled' })).rejects.toThrow();
+    // Unchanged — still a visible draft, not a hidden status=scheduled/null row.
+    const after = await getContentBySlug(db, item.slug, userId);
+    expect(after!.status).toBe('draft');
+  });
+
+  it('updateContent rejects scheduling an already-published item (no silent unpublish via generic PUT)', async () => {
+    const item = await createContent(db, userId, { type: 'blog', title: 'Live Then Schedule' });
+    await publishContent(db, item.id, userId);
+    await expect(
+      updateContent(db, item.id, userId, { status: 'scheduled', scheduledAt: new Date(Date.now() + 3600_000) }),
+    ).rejects.toThrow();
+    const after = await getContentBySlug(db, item.slug, userId);
+    expect(after!.status).toBe('published');
+  });
+
+  it('publishDueScheduled publishes only items whose time has passed', async () => {
+    const due = await createContent(db, userId, { type: 'blog', title: 'Due Now' });
+    const future = await createContent(db, userId, { type: 'blog', title: 'Not Yet' });
+
+    await scheduleContent(db, due.id, userId, new Date(Date.now() - 60 * 1000)); // past
+    await scheduleContent(db, future.id, userId, new Date(Date.now() + 60 * 60 * 1000)); // future
+
+    const count = await publishDueScheduled(db, TEST_CONFIG);
+    expect(count).toBeGreaterThanOrEqual(1);
+
+    const publishedNow = await getContentBySlug(db, due.slug, userId);
+    expect(publishedNow!.status).toBe('published');
+    expect(publishedNow!.publishedAt).toBeInstanceOf(Date);
+    expect(publishedNow!.scheduledAt).toBeNull();
+
+    const stillScheduled = await getContentBySlug(db, future.slug, userId);
+    expect(stillScheduled!.status).toBe('scheduled');
+  });
+
+  it('publishDueScheduled is idempotent — a second run publishes nothing new', async () => {
+    const item = await createContent(db, userId, { type: 'blog', title: 'Idempotent Schedule' });
+    await scheduleContent(db, item.id, userId, new Date(Date.now() - 1000));
+
+    const first = await publishDueScheduled(db, TEST_CONFIG);
+    expect(first).toBeGreaterThanOrEqual(1);
+    const second = await publishDueScheduled(db, TEST_CONFIG);
+    expect(second).toBe(0);
+  });
+
+  it('publishing a scheduled item creates a version snapshot', async () => {
+    const item = await createContent(db, userId, { type: 'blog', title: 'Versioned Schedule' });
+    await scheduleContent(db, item.id, userId, new Date(Date.now() - 1000));
+    await publishDueScheduled(db, TEST_CONFIG);
+
+    const versions = await listContentVersions(db, item.id);
+    expect(versions.length).toBeGreaterThanOrEqual(1);
   });
 });

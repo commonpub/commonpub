@@ -44,6 +44,9 @@ export const contentItems = pgTable('content_items', {
   buildTime: varchar('build_time', { length: 64 }),
   estimatedCost: varchar('estimated_cost', { length: 64 }),
   status: contentStatusEnum('status').default('draft').notNull(),
+  // When status='scheduled', the time at which the scheduled-publishing worker
+  // flips this item to 'published'. Null for non-scheduled content.
+  scheduledAt: timestamp('scheduled_at', { withTimezone: true }),
   visibility: contentVisibilityEnum('visibility').default('public').notNull(),
   isFeatured: boolean('is_featured').default(false).notNull(),
   isEditorial: boolean('is_editorial').default(false).notNull(),

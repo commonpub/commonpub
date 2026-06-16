@@ -10,6 +10,8 @@ import type {
   HubDetail,
   HubFilters,
   HubRole,
+  HubType,
+  HubPrivacy,
   JoinPolicy,
   FederatedHubListItem,
 } from '../types.js';
@@ -199,7 +201,19 @@ export async function getHubBySlug(
 export async function createHub(
   db: DB,
   userId: string,
-  input: { name: string; description?: string; rules?: string; joinPolicy?: JoinPolicy },
+  input: {
+    name: string;
+    description?: string;
+    rules?: string;
+    hubType?: HubType;
+    joinPolicy?: JoinPolicy;
+    privacy?: HubPrivacy;
+    website?: string;
+    iconUrl?: string;
+    bannerUrl?: string;
+    categories?: string[];
+    parentHubId?: string;
+  },
 ): Promise<HubDetail> {
   const slug = await ensureUniqueSlugFor(db, hubs, hubs.slug, hubs.id, generateSlug(input.name), 'hub');
 
@@ -210,7 +224,14 @@ export async function createHub(
       slug,
       description: input.description ?? null,
       rules: input.rules ?? null,
+      hubType: input.hubType ?? 'community',
       joinPolicy: input.joinPolicy ?? 'open',
+      privacy: input.privacy ?? 'public',
+      website: input.website ?? null,
+      iconUrl: input.iconUrl ?? null,
+      bannerUrl: input.bannerUrl ?? null,
+      categories: input.categories ?? null,
+      parentHubId: input.parentHubId ?? null,
       createdById: userId,
       memberCount: 1,
     })
@@ -234,9 +255,13 @@ export async function updateHub(
     name?: string;
     description?: string;
     rules?: string;
+    hubType?: HubType;
     joinPolicy?: string;
+    privacy?: HubPrivacy;
+    website?: string;
     iconUrl?: string;
     bannerUrl?: string;
+    categories?: string[];
   },
 ): Promise<HubDetail | null> {
   // Permission check: must be admin+
@@ -258,9 +283,13 @@ export async function updateHub(
   }
   if (input.description !== undefined) updates.description = input.description;
   if (input.rules !== undefined) updates.rules = input.rules;
+  if (input.hubType !== undefined) updates.hubType = input.hubType;
   if (input.joinPolicy !== undefined) updates.joinPolicy = input.joinPolicy;
+  if (input.privacy !== undefined) updates.privacy = input.privacy;
+  if (input.website !== undefined) updates.website = input.website;
   if (input.iconUrl !== undefined) updates.iconUrl = input.iconUrl;
   if (input.bannerUrl !== undefined) updates.bannerUrl = input.bannerUrl;
+  if (input.categories !== undefined) updates.categories = input.categories;
 
   await db.update(hubs).set(updates).where(eq(hubs.id, hubId));
 

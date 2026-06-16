@@ -6,6 +6,8 @@ export {
   updateContent,
   deleteContent,
   publishContent,
+  scheduleContent,
+  publishDueScheduled,
   incrementViewCount,
   onContentPublished,
   onContentUpdated,

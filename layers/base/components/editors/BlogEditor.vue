@@ -142,7 +142,17 @@ const siteDomain = computed(() => {
 const seoDesc = computed(() => (props.metadata.seoDescription as string) || (props.metadata.description as string) || '');
 
 // --- Schedule ---
+// Open the schedule control automatically when editing an already-scheduled post
+// (metadata loads asynchronously, hence the immediate watch rather than a one-shot init).
 const scheduleEnabled = ref(false);
+watch(() => props.metadata.scheduledAt, (v) => {
+  if (v) scheduleEnabled.value = true;
+}, { immediate: true });
+// Turning the toggle off discards any pending schedule time so the Schedule
+// button (gated on metadata.scheduledAt) and saved drafts don't keep a stale value.
+watch(scheduleEnabled, (on) => {
+  if (!on && props.metadata.scheduledAt) updateMeta('scheduledAt', '');
+});
 
 // --- Mobile sidebar toggles ---
 const mobileLeftOpen = ref(false);
