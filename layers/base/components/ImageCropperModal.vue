@@ -57,6 +57,10 @@ const stencilProps = computed(() => ({
   aspectRatio: props.aspectRatio,
   movable: false,
   resizable: false,
+  // The frame is fixed; the user manipulates the image, not the stencil. Don't
+  // render resize handles/lines (they'd be dead, non-draggable decorations).
+  handlers: {},
+  lines: {},
 }));
 
 function stencilSize({ boundaries }: { boundaries: { width: number; height: number } }): { width: number; height: number } {
@@ -257,13 +261,16 @@ function apply(): void {
 .cpub-cropper :deep(.vue-advanced-cropper__foreground) {
   background: var(--color-surface-scrim, rgba(0, 0, 0, 0.55));
 }
-/* The default .vue-simple-line ships border-width:0 — make the accent crop frame visible. */
-.cpub-cropper :deep(.vue-simple-line) {
-  border-color: var(--accent);
-  border-width: 2px;
+/* Belt-and-suspenders with handlers:{}/lines:{}: never show the resize chrome. */
+.cpub-cropper :deep(.vue-line-wrapper),
+.cpub-cropper :deep(.vue-handler-wrapper) {
+  display: none;
 }
-.cpub-cropper :deep(.vue-simple-handler) {
-  background: var(--accent);
+/* One clean accent frame around the crop window (outline = no layout shift,
+   no per-side border doubling). */
+.cpub-cropper :deep(.vue-advanced-cropper__stencil-wrapper) {
+  outline: var(--border-width-default, 2px) solid var(--accent);
+  outline-offset: calc(-1 * var(--border-width-default, 2px));
 }
 
 .cpub-crop-controls {

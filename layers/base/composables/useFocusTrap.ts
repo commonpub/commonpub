@@ -86,5 +86,14 @@ export function useFocusTrap(
   onUnmounted(() => {
     document.body.style.overflow = '';
     document.removeEventListener('keydown', handleKeydown);
+    // Most consumers close by v-if-unmounting while still "open" (the isOpen
+    // getter never flips false), so the watch's else-branch never restores
+    // focus. Restore here too. `previousActive` is nulled by the else-branch
+    // when it does run, so this won't double-restore. Focusing a detached
+    // element is a harmless no-op.
+    if (previousActive) {
+      previousActive.focus();
+      previousActive = null;
+    }
   });
 }
