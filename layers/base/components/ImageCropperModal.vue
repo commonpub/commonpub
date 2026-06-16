@@ -256,10 +256,15 @@ function apply(): void {
   border: var(--border-width-default, 2px) dashed var(--accent);
 }
 
-/* Style vue-advanced-cropper internals to the design system. */
-.cpub-cropper :deep(.vue-advanced-cropper__background),
+/* Crop scrim: a theme-INDEPENDENT dark overlay so the crop bounds read clearly
+   on every theme. (`--color-surface-scrim` is near-white in light themes, which
+   washed the bounds out — a cropper surround must always darken.) The area
+   outside the crop frame is dimmed; the crop window stays bright. */
+.cpub-cropper :deep(.vue-advanced-cropper__background) {
+  background: #1a1a1a;
+}
 .cpub-cropper :deep(.vue-advanced-cropper__foreground) {
-  background: var(--color-surface-scrim, rgba(0, 0, 0, 0.55));
+  background: rgba(0, 0, 0, 0.6);
 }
 /* Belt-and-suspenders with handlers:{}/lines:{}: never show the resize chrome. */
 .cpub-cropper :deep(.vue-line-wrapper),

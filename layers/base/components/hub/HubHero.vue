@@ -62,7 +62,9 @@ const isCompanyHub = computed(() => hubType.value === 'company');
 .cpub-hub-hero { position: relative; overflow: hidden; }
 
 .cpub-hub-banner {
-  height: 180px;
+  /* Match the 4:1 upload crop so the banner shows exactly as framed (WYSIWYG). */
+  aspect-ratio: 4 / 1;
+  max-height: 320px;
   background: linear-gradient(135deg, var(--accent) 0%, var(--teal) 50%, var(--accent-border) 100%);
   position: relative;
   overflow: hidden;
@@ -177,7 +179,7 @@ const isCompanyHub = computed(() => hubType.value === 'company');
 }
 
 @media (max-width: 640px) {
-  .cpub-hub-banner { height: 120px; }
+  .cpub-hub-banner { max-height: 160px; }
   .cpub-hub-meta-inner { flex-direction: column; padding: 0 16px; }
   .cpub-hub-icon { margin-top: -24px; width: 56px; height: 56px; font-size: 22px; }
   .cpub-hub-name { font-size: 1.25rem; }
