@@ -58,8 +58,9 @@ async function onCropped(blob: Blob): Promise<void> {
   uploading.value = true;
   error.value = '';
   try {
+    const ext = blob.type === 'image/png' ? 'png' : 'jpg';
     const formData = new FormData();
-    formData.append('file', new File([blob], `${props.purpose}.jpg`, { type: 'image/jpeg' }));
+    formData.append('file', new File([blob], `${props.purpose}.${ext}`, { type: blob.type || 'image/jpeg' }));
     formData.append('purpose', props.purpose);
 
     const result = await $fetch<{ url: string }>('/api/files/upload', {

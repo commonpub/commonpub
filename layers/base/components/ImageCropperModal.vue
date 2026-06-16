@@ -14,7 +14,8 @@ const props = withDefaults(defineProps<{
   src: string;
   /** Crop aspect ratio (width / height), e.g. 1, 4, 16/9. */
   aspectRatio: number;
-  /** Show a circular mask hint over the (still square) crop — for avatars. */
+  /** Show a circular mask hint over the (still square) crop — for avatars.
+   *  Avatars also export as PNG to preserve transparency (e.g. logos). */
   round?: boolean;
   /** Max output width in px; height derives from the aspect ratio. */
   outputWidth?: number;
@@ -35,12 +36,22 @@ interface CropperHandle {
 }
 const cropperRef = ref<CropperHandle | null>(null);
 
+// Modal a11y: focus trap, scroll lock, Esc, focus restore (shared pattern).
+const dialogRef = ref<HTMLElement | null>(null);
+const visible = ref(false);
+onMounted(() => { visible.value = true; });
+useFocusTrap(dialogRef, () => visible.value, () => emit('cancel'));
+
 const ZOOM_MAX = 5;
 const zoom = ref(1);
 /** Crop width (in image px) at min zoom = "fit". image-restriction keeps the
  *  image covering the stencil, so this is the largest crop width ever seen. */
 let fitCropWidth = 0;
 const saving = ref(false);
+
+// Reset zoom bookkeeping when the source image changes (defensive — today the
+// parent remounts the modal per file, but don't rely on that).
+watch(() => props.src, () => { fitCropWidth = 0; zoom.value = 1; });
 
 const stencilProps = computed(() => ({
   aspectRatio: props.aspectRatio,
@@ -58,10 +69,12 @@ function stencilSize({ boundaries }: { boundaries: { width: number; height: numb
   return { width: Math.round(w * 0.92), height: Math.round(h * 0.92) };
 }
 
+const exportMime = computed(() => (props.round ? 'image/png' : 'image/jpeg'));
 const canvasOpts = computed(() => ({
   maxWidth: props.outputWidth,
   maxHeight: Math.round(props.outputWidth / props.aspectRatio),
-  fillColor: '#ffffff',
+  // Only flatten onto white for JPEG (no alpha). PNG keeps transparency.
+  ...(props.round ? {} : { fillColor: '#ffffff' }),
 }));
 
 function onChange(result: { coordinates?: { width: number } }): void {
@@ -94,20 +107,14 @@ function apply(): void {
   canvas.toBlob((blob) => {
     saving.value = false;
     if (blob) emit('crop', blob); else emit('cancel');
-  }, 'image/jpeg', 0.92);
+  }, exportMime.value, 0.92);
 }
-
-function onKeydown(e: KeyboardEvent): void {
-  if (e.key === 'Escape') emit('cancel');
-}
-onMounted(() => document.addEventListener('keydown', onKeydown));
-onBeforeUnmount(() => document.removeEventListener('keydown', onKeydown));
 </script>
 
 <template>
   <Teleport to="body">
     <div class="cpub-crop-overlay" @click.self="emit('cancel')">
-      <div class="cpub-crop-modal" role="dialog" aria-modal="true" :aria-label="title">
+      <div ref="dialogRef" class="cpub-crop-modal" role="dialog" aria-modal="true" :aria-label="title">
         <header class="cpub-crop-head">
           <span class="cpub-crop-title">{{ title }}</span>
           <button type="button" class="cpub-crop-x" aria-label="Cancel" @click="emit('cancel')">
@@ -127,7 +134,6 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKeydown));
             :move-image="{ touch: true, mouse: true }"
             :canvas="canvasOpts"
             :transitions="true"
-            :default-size="stencilSize"
             @change="onChange"
           />
           <div v-if="round" class="cpub-crop-round-mask" aria-hidden="true"></div>
@@ -214,6 +220,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKeydown));
   line-height: 1;
 }
 .cpub-crop-x:hover { color: var(--text); }
+.cpub-crop-x:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 .cpub-crop-stage {
   position: relative;
@@ -239,9 +246,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKeydown));
 }
 .cpub-crop-round-mask::after {
   content: '';
-  width: 92%;
   height: 92%;
-  max-width: 92%;
   aspect-ratio: 1;
   border-radius: 50%;
   border: var(--border-width-default, 2px) dashed var(--accent);
@@ -252,9 +257,10 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKeydown));
 .cpub-cropper :deep(.vue-advanced-cropper__foreground) {
   background: var(--color-surface-scrim, rgba(0, 0, 0, 0.55));
 }
-.cpub-cropper :deep(.vue-rectangle-stencil),
+/* The default .vue-simple-line ships border-width:0 — make the accent crop frame visible. */
 .cpub-cropper :deep(.vue-simple-line) {
   border-color: var(--accent);
+  border-width: 2px;
 }
 .cpub-cropper :deep(.vue-simple-handler) {
   background: var(--accent);
@@ -280,6 +286,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKeydown));
   cursor: pointer;
 }
 .cpub-crop-zbtn:hover { border-color: var(--accent); color: var(--accent); }
+.cpub-crop-zbtn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 .cpub-crop-slider {
   flex: 1;
@@ -288,10 +295,12 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKeydown));
   background: var(--border);
   cursor: pointer;
 }
+.cpub-crop-slider:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
 .cpub-crop-slider::-webkit-slider-thumb {
   appearance: none;
   width: 16px;
   height: 16px;
+  border-radius: 0;
   background: var(--accent);
   border: var(--border-width-default, 2px) solid var(--accent);
   cursor: pointer;
