@@ -256,7 +256,7 @@ const userUsername = computed(() => user.value?.username ?? '');
           <NuxtLink v-if="docs" to="/docs" class="cpub-footer-link">Docs</NuxtLink>
           <NuxtLink to="/privacy" class="cpub-footer-link">Privacy Policy</NuxtLink>
           <NuxtLink to="/cookies" class="cpub-footer-link">Cookie Policy</NuxtLink>
-          <NuxtLink to="/terms" class="cpub-footer-link">Terms of Service</NuxtLink>
+          <NuxtLink to="/terms" class="cpub-footer-link">Terms &amp; Code of Conduct</NuxtLink>
           <a href="/feed.xml" class="cpub-footer-link">RSS Feed</a>
         </nav>
       </div>
