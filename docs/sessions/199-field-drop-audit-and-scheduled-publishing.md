@@ -1,7 +1,9 @@
 # Session 199 — Hub image fix + repo-wide field-drop audit + scheduled publishing
 
-Date: 2026-06-15
-Branch: `main` (NOT committed / published / deployed at session end — code only)
+Date: 2026-06-15 / 2026-06-16
+Status: **SHIPPED to commonpub.io** (PR #35 merged + deployed, migration 0024 applied).
+npm publish + roll to deveco.io/heatsynclabs.io still PENDING. A follow-on uploads-infra
+fix (PRs #36/#37) landed the same session — see the addendum at the bottom.
 
 ## What was done
 
@@ -118,3 +120,43 @@ Safety: `'scheduled'` behaves like `draft` for access — `getContentBySlug` blo
    leak — scheduled is already gated like draft).
 4. Optional: surface video category label in the `/videos` UI now that the read
    path exposes it.
+
+## Addendum (2026-06-16) — image uploads were broken for a deeper reason (PRs #36/#37)
+
+After PR #35 shipped, the operator reported image upload still 500ing
+(`/api/files/upload`). The field-drop fix was correct but orthogonal: uploads were
+**fully broken by prod infrastructure**, diagnosed live in the prod container via the
+`server-cmd` workflow.
+
+Two root causes (neither app code):
+
+1. **Pruned optional-peer deps.** `sharp` (image processing), `@aws-sdk/client-s3`
+   (S3 uploads) and `ioredis` (Redis) are OPTIONAL peer deps of `@commonpub/infra`,
+   loaded at runtime via dynamic `import()`. Nitro externalises them, and the
+   Dockerfile runtime-stage `npm install` reconcile **pruned** the pnpm copies →
+   `Cannot find module 'sharp'` / `Cannot find package '@aws-sdk/client-s3'` → 500.
+   Fix (PR #36/#37): install all three explicitly, lockfile-pinned
+   (`sharp@0.34.5 @aws-sdk/client-s3@3.1030.0 ioredis@5.10.1`), in the Dockerfile
+   runtime `npm install` line. **Any future runtime-`import()`ed optional-peer dep
+   must be added there too.**
+
+2. **Object storage never configured** (`NO_S3_ENV`) → silent fallback to the
+   local-fs adapter, which in prod is unwritable (root-owned `/app/uploads` volume,
+   non-root container → EACCES) and unserved (nitro publicAssets are build-time).
+   Fix (PR #36): `deploy.yml`'s restart step writes DO Spaces `S3_*` into
+   `/opt/commonpub/.env` from masked GitHub secrets (idempotent; only rewrites
+   `S3_*` lines). Secrets set via `gh secret set`: `S3_BUCKET=commonpub`,
+   `S3_REGION=us-east-1`, `S3_ENDPOINT=https://sfo3.digitaloceanspaces.com`,
+   `S3_PUBLIC_URL=https://commonpub.sfo3.digitaloceanspaces.com`, plus access/secret.
+
+Verified live in the prod container: `sharp:fulfilled aws:fulfilled ioredis:fulfilled`,
+an actual S3 `PutObject` succeeded, and the object served publicly (HTTP 200).
+
+Note: the operator independently committed `d071a1c` (a local-storage EACCES fix + a
+`apps/reference/server/routes/uploads/[...path].get.ts` serving route + nuxt.config
+changes) directly to main while this was in flight. With Spaces configured
+(`S3_BUCKET` set), `createStorageFromEnv` returns the S3 adapter, so that
+local-storage path is **dormant/dead-code** — harmless, left in place as a fallback.
+
+⚠️ **Open:** the Spaces secret key was shared in plaintext during the session — rotate
+it in the DO console, then update the `S3_SECRET_KEY` GitHub secret (no code redeploy).

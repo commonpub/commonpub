@@ -192,8 +192,24 @@ Scaffolded sites use the same env vars as the reference app. Key additions:
 
 ### Storage
 
-- **Local (default)**: Files stored in `./uploads/`, served via Nitro static assets
-- **S3/Spaces/MinIO**: Set `S3_BUCKET`, `S3_ENDPOINT`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_PUBLIC_URL`
+- **Local (default)**: Files stored in `./uploads/`, served via Nitro static assets. **Not
+  recommended for the Docker single-droplet deploy**: the `/app/uploads` volume is root-owned while
+  the container runs as a non-root user (EACCES on write), and Nitro's `publicAssets` are baked at
+  build time so runtime-written files aren't served back. Use object storage in production.
+- **S3/Spaces/MinIO (recommended for prod)**: Set `S3_BUCKET`, `S3_REGION`, `S3_ENDPOINT`,
+  `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_PUBLIC_URL`. For **DigitalOcean Spaces** (e.g. region
+  `sfo3`): `S3_ENDPOINT=https://sfo3.digitaloceanspaces.com`, `S3_REGION=us-east-1` (Spaces accepts
+  it with path-style), `S3_PUBLIC_URL=https://<bucket>.sfo3.digitaloceanspaces.com`. Objects are
+  written with `public-read` ACL. The reference `deploy.yml` writes these into the droplet `.env`
+  from GitHub repo secrets on each deploy.
+
+> ⚠️ **Runtime native/optional deps (Docker image).** `sharp` (image processing),
+> `@aws-sdk/client-s3` (S3 uploads) and `ioredis` (Redis) are *optional peer deps* of
+> `@commonpub/infra`, loaded at runtime via dynamic `import()`. Nitro externalises them, and the
+> Dockerfile runtime stage's `npm install` reconcile **prunes** the pnpm-installed copies — so they
+> must be installed **explicitly** in that `npm install` line (lockfile-pinned) or the corresponding
+> feature 500s in prod with `Cannot find module`. If you add any new runtime-`import()`ed
+> optional-peer dependency, add it there too.
 
 ### Email
 
