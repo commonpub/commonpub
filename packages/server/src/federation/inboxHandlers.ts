@@ -922,16 +922,22 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
       // waiting for the lazy hourly refresh. Authorization: a Group actor may only
       // update its own metadata, so require the sender to BE the object.
       if (object.type === 'Group' && typeof objectUri === 'string' && objectUri === actorUri) {
+        // Accept only http(s) image URLs from untrusted inbound federation — a
+        // non-http URL (or one containing CSS metacharacters) must never reach
+        // the `background-image: url(...)` sink on the federated-hub page.
         const imageUrl = (v: unknown): string | null => {
-          if (typeof v === 'string') return v;
-          if (typeof v === 'object' && v !== null) {
-            const u = (v as Record<string, unknown>).url;
-            if (typeof u === 'string') return u;
+          let u: string | null = null;
+          if (typeof v === 'string') u = v;
+          else if (typeof v === 'object' && v !== null) {
+            const x = (v as Record<string, unknown>).url;
+            if (typeof x === 'string') u = x;
           }
-          return null;
+          return u && /^https?:\/\//i.test(u) ? u : null;
         };
         const hubUpdates: Record<string, unknown> = { updatedAt: new Date() };
-        if (typeof object.name === 'string') hubUpdates.name = object.name;
+        // Bound to the column width (varchar(256)) — raw attacker JSON otherwise
+        // throws "value too long" and loses the legit update.
+        if (typeof object.name === 'string') hubUpdates.name = object.name.slice(0, 256);
         if (typeof object.summary === 'string') hubUpdates.description = sanitizeHtml(object.summary);
         const icon = imageUrl(object.icon);
         if (icon !== null) hubUpdates.iconUrl = icon;

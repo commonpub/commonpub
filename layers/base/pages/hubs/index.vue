@@ -39,7 +39,7 @@ function hubLink(hub: Record<string, unknown>): string {
         :to="hubLink(hub as Record<string, unknown>)"
         class="cpub-hub-card"
       >
-        <div class="cpub-hub-card-banner" :style="hub.bannerUrl ? { backgroundImage: `url(${hub.bannerUrl})` } : {}">
+        <div class="cpub-hub-card-banner" :style="bannerBgStyle(hub.bannerUrl, {})">
           <div class="cpub-hub-card-icon">
             <img v-if="hub.iconUrl" :src="hub.iconUrl" :alt="hub.name" class="cpub-hub-card-avatar" />
             <i v-else :class="hub.hubType === 'company' ? 'fa-solid fa-building' : hub.hubType === 'product' ? 'fa-solid fa-microchip' : 'fa-solid fa-users'"></i>

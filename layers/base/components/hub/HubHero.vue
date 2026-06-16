@@ -16,7 +16,7 @@ const isCompanyHub = computed(() => hubType.value === 'company');
     <!-- Banner overlay slot (e.g., origin banner for federated hubs) -->
     <slot name="banner-overlay" />
 
-    <div class="cpub-hub-banner" :style="hub.bannerUrl ? { backgroundImage: `url(${hub.bannerUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}">
+    <div class="cpub-hub-banner" :style="bannerBgStyle(hub.bannerUrl)">
       <template v-if="!hub.bannerUrl">
         <div class="cpub-hub-banner-pattern"></div>
         <div class="cpub-hub-banner-dots"></div>
