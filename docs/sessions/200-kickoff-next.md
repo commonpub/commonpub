@@ -14,7 +14,17 @@ deployed; migration **0024** applied. Verified live: schedule endpoint returns 4
 and in the prod container `sharp:fulfilled aws:fulfilled ioredis:fulfilled` + a real S3 PutObject
 to DO Spaces succeeded and served publicly (HTTP 200).
 
-**Repo versions: schema 0.44.0 / server 2.87.0 / layer 0.77.0.** Migrations through **0024**.
+**Repo versions: schema 0.44.0 / server 2.88.0 / layer 0.78.0.** Migrations through **0024**.
+
+**Also shipped to commonpub.io after the field-drop work (PR #39): two federation fixes —**
+(a) inbound `Update(Group)` now ingests a remote hub's icon/banner/name into the mirror
+(`onUpdate` previously ignored Group updates, so hub avatar/banner never federated) + the manual
+hub-mirror add endpoint no longer drops `bannerUrl`; (b) **registry peer discovery** — pinging
+(announce-only) instances can now see the registry's directory via a new SSRF-guarded
+`GET /api/admin/registry/directory` + the admin Registry tab shows for `announceToRegistry`
+instances (read-only). **Both only become visible cross-instance after the publish + roll below** —
+the registry-discovery view is for announce-only instances (deveco/heatsync), and remote hubs only
+ingest `Update(Group)` once they run server 2.88.0.
 
 ## ⚠️ TOP PRIORITY — npm is NOT published; 2 of 3 instances are still buggy
 
@@ -23,7 +33,7 @@ heatsynclabs.io consume *published* packages, so they **still have the field-dro
 image/video category/content slug dropped) and **lack scheduled publishing**. To finish the roll:
 
 1. `pnpm publish` (use `pnpm publish:layer` for the layer — NEVER `npm publish`; see
-   [[feedback_pnpm_publish_layer]]): publish **schema 0.44.0**, **server 2.87.0**, **layer 0.77.0**.
+   [[feedback_pnpm_publish_layer]]): publish **schema 0.44.0**, **server 2.88.0**, **layer 0.78.0**.
    Order: schema → server → layer. Poll `npm view` between (propagation lag,
    [[feedback_npm_propagation_lag]]).
 2. Roll deveco.io + heatsynclabs.io: bump the `^0.44 / ^2.87 / ^0.77` pins, regenerate
