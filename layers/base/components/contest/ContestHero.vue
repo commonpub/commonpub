@@ -239,6 +239,10 @@ const dateRange = computed<string>(() => {
 /* ── BANNER BAND ── full-width, clean, like other content pages' hero banner. */
 .cpub-hero-banner {
   width: 100%;
+  /* Match the 4:1 upload crop so the banner shows exactly as framed (WYSIWYG)
+     instead of being re-cropped by a fixed height. */
+  aspect-ratio: 4 / 1;
+  max-height: 360px;
   background: var(--surface2);
   border-bottom: var(--border-width-default) solid var(--border);
   overflow: hidden;
@@ -246,9 +250,8 @@ const dateRange = computed<string>(() => {
 .cpub-hero-banner img {
   display: block;
   width: 100%;
-  max-height: 300px;
+  height: 100%;
   object-fit: cover;
-  margin: 0 auto;
 }
 
 /* ── HERO BODY ── the contest's dark, patterned section. */
@@ -318,7 +321,7 @@ const dateRange = computed<string>(() => {
 @media (max-width: 768px) {
   .cpub-hero-body { padding: 32px 0; }
   .cpub-hero-inner { padding: 0 16px; }
-  .cpub-hero-banner img { max-height: 200px; }
+  .cpub-hero-banner { max-height: 200px; }
   .cpub-hero-title { font-size: 24px; }
   .cpub-hero-meta { gap: 10px; }
 }
