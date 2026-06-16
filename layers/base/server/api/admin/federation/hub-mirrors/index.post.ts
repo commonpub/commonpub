@@ -33,6 +33,7 @@ export default defineEventHandler(async (event) => {
     name: actor.name ?? actor.preferredUsername ?? remoteSlug,
     description: actor.summary ?? undefined,
     iconUrl: actor.icon?.url ?? undefined,
+    bannerUrl: actor.image?.url ?? undefined,
     url: `https://${domain}/hubs/${remoteSlug}`,
   });
 
