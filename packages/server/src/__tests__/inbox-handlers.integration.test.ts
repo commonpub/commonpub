@@ -12,6 +12,7 @@ import {
   activities,
   followRelationships,
   federatedContent,
+  federatedHubs,
   contentItems,
   users,
 } from '@commonpub/schema';
@@ -183,6 +184,55 @@ describe('inbox handler edge cases', () => {
       const item = items.find(i => i.objectUri === objectUri);
       expect(item).toBeDefined();
       expect(item!.title).toBe('New via Update');
+    });
+
+    it('Update(Group) propagates icon/banner/name to the mirrored federated hub', async () => {
+      const hubActor = 'https://remote.example.com/hubs/makers';
+      await db.insert(federatedHubs).values({
+        actorUri: hubActor,
+        originDomain: 'remote.example.com',
+        remoteSlug: 'makers',
+        name: 'Makers',
+        iconUrl: null,
+        bannerUrl: null,
+      });
+
+      await handlers.onUpdate(hubActor, {
+        type: 'Group',
+        id: hubActor,
+        name: 'Makers United',
+        summary: 'A hub for makers',
+        icon: { type: 'Image', url: 'https://cdn.example.com/hub-icon.webp' },
+        image: { type: 'Image', url: 'https://cdn.example.com/hub-banner.webp' },
+      });
+
+      const [row] = await db.select().from(federatedHubs).where(eq(federatedHubs.actorUri, hubActor));
+      expect(row!.iconUrl).toBe('https://cdn.example.com/hub-icon.webp');
+      expect(row!.bannerUrl).toBe('https://cdn.example.com/hub-banner.webp');
+      expect(row!.name).toBe('Makers United');
+    });
+
+    it('Update(Group) from a different actor does not modify the hub (authorization)', async () => {
+      const hubActor = 'https://remote.example.com/hubs/guarded';
+      await db.insert(federatedHubs).values({
+        actorUri: hubActor,
+        originDomain: 'remote.example.com',
+        remoteSlug: 'guarded',
+        name: 'Guarded',
+        iconUrl: 'https://cdn.example.com/original.webp',
+      });
+
+      // REMOTE_BOB (not the hub) attempts to update it
+      await handlers.onUpdate(REMOTE_BOB, {
+        type: 'Group',
+        id: hubActor,
+        name: 'Hijacked',
+        icon: { type: 'Image', url: 'https://evil.example.com/x.webp' },
+      });
+
+      const [row] = await db.select().from(federatedHubs).where(eq(federatedHubs.actorUri, hubActor));
+      expect(row!.name).toBe('Guarded');
+      expect(row!.iconUrl).toBe('https://cdn.example.com/original.webp');
     });
   });
 

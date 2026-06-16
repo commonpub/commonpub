@@ -1,6 +1,8 @@
 <script setup lang="ts">
+// `id`/`status` are absent on the public remote-registry directory (read-only view);
+// present only on the local owner view (actAsRegistry).
 interface RegistryRow {
-  id: string;
+  id?: string;
   domain: string;
   actorUri: string;
   name: string | null;
@@ -10,24 +12,29 @@ interface RegistryRow {
   localPostCount: number;
   softwareName: string | null;
   softwareVersion: string | null;
-  status: string;
+  status?: string;
   lastPingAt: string | null;
   online: boolean;
 }
 
-defineProps<{ instances: RegistryRow[]; announcingTo?: string | null }>();
+defineProps<{ instances: RegistryRow[]; announcingTo?: string | null; readonlyMode?: boolean }>();
 const emit = defineEmits<{ changed: []; search: [value: string] }>();
 
 const toast = useToast();
 const searchTerm = ref('');
-const busyId = ref<string | null>(null);
+const busyKey = ref<string | null>(null);
+
+/** Stable per-row key — domain is unique in a registry; remote rows have no id. */
+function rowKey(r: RegistryRow): string {
+  return r.id ?? r.domain;
+}
 
 function onSearch(): void {
   emit('search', searchTerm.value.trim());
 }
 
 async function mirror(row: RegistryRow, direction: 'pull' | 'push'): Promise<void> {
-  busyId.value = row.id;
+  busyKey.value = rowKey(row);
   try {
     await $fetch('/api/admin/federation/mirrors', {
       method: 'POST',
@@ -40,12 +47,13 @@ async function mirror(row: RegistryRow, direction: 'pull' | 'push'): Promise<voi
   } catch {
     toast.error(direction === 'pull' ? 'Failed to add mirror' : 'Failed to send request');
   } finally {
-    busyId.value = null;
+    busyKey.value = null;
   }
 }
 
 async function setStatus(row: RegistryRow, status: 'active' | 'hidden' | 'blocked'): Promise<void> {
-  busyId.value = row.id;
+  if (!row.id) return;
+  busyKey.value = rowKey(row);
   const url: string = `/api/admin/registry/instances/${row.id}/status`;
   try {
     await $fetch(url, { method: 'POST', body: { status } });
@@ -54,7 +62,7 @@ async function setStatus(row: RegistryRow, status: 'active' | 'hidden' | 'blocke
   } catch {
     toast.error('Failed to update instance');
   } finally {
-    busyId.value = null;
+    busyKey.value = null;
   }
 }
 </script>
@@ -63,11 +71,10 @@ async function setStatus(row: RegistryRow, status: 'active' | 'hidden' | 'blocke
   <div>
     <p class="cpub-fed-explain">
       The <strong>registry</strong> lists CommonPub instances that announce themselves here. Mirror
-      one to pull its content, or request it to mirror you (CommonPub-to-CommonPub). Hide or block
-      an entry to curate the public directory.
+      one to pull its content, or request it to mirror you (CommonPub-to-CommonPub).<template v-if="!readonlyMode"> Hide or block an entry to curate the public directory.</template>
     </p>
     <p v-if="announcingTo" class="cpub-fed-info-text" style="margin-bottom: 12px;">
-      This instance is announcing itself to <strong>{{ announcingTo }}</strong>.
+      This instance is announcing itself to <strong>{{ announcingTo }}</strong>{{ readonlyMode ? ', showing every instance registered there' : '' }}.
     </p>
 
     <form class="cpub-fed-form" style="margin-bottom: 12px;" @submit.prevent="onSearch">
@@ -83,20 +90,22 @@ async function setStatus(row: RegistryRow, status: 'active' | 'hidden' | 'blocke
 
     <div class="cpub-fed-activity-list">
       <div v-if="!instances.length" class="cpub-fed-empty">No instances registered yet.</div>
-      <div v-for="i in instances" :key="i.id" class="cpub-fed-activity-row">
+      <div v-for="i in instances" :key="rowKey(i)" class="cpub-fed-activity-row">
         <span class="cpub-reg-dot" :class="{ online: i.online }" :title="i.online ? 'online' : 'offline'" aria-hidden="true"></span>
         <span class="cpub-fed-type">{{ i.name || i.domain }}</span>
         <span class="cpub-fed-actor">
           {{ i.domain }} · {{ i.userCount }} users · {{ i.localPostCount }} posts<template v-if="i.softwareName"> · {{ i.softwareName }} {{ i.softwareVersion }}</template>
         </span>
-        <span v-if="i.status !== 'active'" class="cpub-fed-status" :class="i.status === 'blocked' ? 'failed' : 'paused'">{{ i.status }}</span>
-        <button class="cpub-fed-btn-sm" :disabled="busyId === i.id" @click="mirror(i, 'pull')">Mirror</button>
-        <button class="cpub-fed-btn-sm" :disabled="busyId === i.id" @click="mirror(i, 'push')">Request mirror</button>
-        <button v-if="i.status === 'active'" class="cpub-fed-btn-sm" :disabled="busyId === i.id" @click="setStatus(i, 'hidden')">Hide</button>
-        <button v-else-if="i.status === 'hidden'" class="cpub-fed-btn-sm" :disabled="busyId === i.id" @click="setStatus(i, 'active')">Unhide</button>
-        <button class="cpub-fed-btn-sm cpub-fed-btn-danger" :disabled="busyId === i.id" @click="setStatus(i, i.status === 'blocked' ? 'active' : 'blocked')">
-          {{ i.status === 'blocked' ? 'Unblock' : 'Block' }}
-        </button>
+        <span v-if="i.status && i.status !== 'active'" class="cpub-fed-status" :class="i.status === 'blocked' ? 'failed' : 'paused'">{{ i.status }}</span>
+        <button class="cpub-fed-btn-sm" :disabled="busyKey === rowKey(i)" @click="mirror(i, 'pull')">Mirror</button>
+        <button class="cpub-fed-btn-sm" :disabled="busyKey === rowKey(i)" @click="mirror(i, 'push')">Request mirror</button>
+        <template v-if="!readonlyMode">
+          <button v-if="i.status === 'active'" class="cpub-fed-btn-sm" :disabled="busyKey === rowKey(i)" @click="setStatus(i, 'hidden')">Hide</button>
+          <button v-else-if="i.status === 'hidden'" class="cpub-fed-btn-sm" :disabled="busyKey === rowKey(i)" @click="setStatus(i, 'active')">Unhide</button>
+          <button class="cpub-fed-btn-sm cpub-fed-btn-danger" :disabled="busyKey === rowKey(i)" @click="setStatus(i, i.status === 'blocked' ? 'active' : 'blocked')">
+            {{ i.status === 'blocked' ? 'Unblock' : 'Block' }}
+          </button>
+        </template>
       </div>
     </div>
   </div>

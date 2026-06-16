@@ -66,6 +66,7 @@ const ROUTE_KEYS: Record<string, string> = {
   'federation/mirror-requests/[id]/approve.post.ts': 'federation.manage',
   'federation/mirror-requests/[id]/reject.post.ts': 'federation.manage',
   'registry/instances.get.ts': 'federation.manage',
+  'registry/directory.get.ts': 'federation.manage',
   'registry/instances/[id]/status.post.ts': 'federation.manage',
   'federation/pending.get.ts': 'federation.manage',
   'federation/refederate.post.ts': 'federation.manage',

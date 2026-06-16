@@ -94,9 +94,16 @@ async function rejectRequest(id: string): Promise<void> {
   }
 }
 
-// Registry directory (Phase 4) — only fetched when this instance acts as a registry.
-type RegistryRow = { id: string; domain: string; actorUri: string; name: string | null; description: string | null; userCount: number; activeMonthCount: number; localPostCount: number; softwareName: string | null; softwareVersion: string | null; status: string; lastPingAt: string | null; online: boolean };
+// Registry directory (Phase 4). When this instance ACTS AS a registry, show the
+// local directory (with owner hide/block controls). When it only ANNOUNCES to a
+// registry, pull that registry's public directory so the operator can still
+// discover every peer registered there (read-only). id/status are absent on the
+// remote (public) view.
+type RegistryRow = { id?: string; domain: string; actorUri: string; name: string | null; description: string | null; userCount: number; activeMonthCount: number; localPostCount: number; softwareName: string | null; softwareVersion: string | null; status?: string; lastPingAt: string | null; online: boolean };
 const registrySearch = ref('');
+const registryTabAvailable = computed(() => actAsRegistry.value || announceToRegistry.value);
+const showRemoteDirectory = computed(() => !actAsRegistry.value && announceToRegistry.value);
+
 const { data: registryData, refresh: refreshRegistry } = await useFetch<{ instances: RegistryRow[]; total: number }>(
   '/api/admin/registry/instances',
   {
@@ -106,9 +113,31 @@ const { data: registryData, refresh: refreshRegistry } = await useFetch<{ instan
   },
 );
 
+const { data: registryDirData, refresh: refreshRegistryDir } = await useFetch<{ instances: RegistryRow[]; total: number; registryUrl: string | null }>(
+  '/api/admin/registry/directory',
+  {
+    query: computed(() => ({ search: registrySearch.value || undefined })),
+    default: () => ({ instances: [], total: 0, registryUrl: null }),
+    immediate: showRemoteDirectory.value,
+  },
+);
+
+const registryInstances = computed<RegistryRow[]>(() =>
+  actAsRegistry.value ? (registryData.value?.instances ?? []) : (registryDirData.value?.instances ?? []),
+);
+const registryLabel = computed<string | null>(() => {
+  if (!announceToRegistry.value) return null;
+  const url = registryDirData.value?.registryUrl;
+  if (showRemoteDirectory.value && url) {
+    try { return new URL(url).hostname; } catch { return 'your configured registry'; }
+  }
+  return 'your configured registry';
+});
+
 function onRegistrySearch(value: string): void {
   registrySearch.value = value;
-  void refreshRegistry();
+  if (actAsRegistry.value) void refreshRegistry();
+  else void refreshRegistryDir();
 }
 
 // Mirror creation
@@ -341,7 +370,7 @@ async function refederate(): Promise<void> {
     <div class="cpub-fed-tabs">
       <button :class="{ active: activeTab === 'activity' }" @click="activeTab = 'activity'">Activity</button>
       <button :class="{ active: activeTab === 'mirrors' }" @click="activeTab = 'mirrors'">Mirrors</button>
-      <button v-if="actAsRegistry" :class="{ active: activeTab === 'registry' }" @click="activeTab = 'registry'">Registry</button>
+      <button v-if="registryTabAvailable" :class="{ active: activeTab === 'registry' }" @click="activeTab = 'registry'">Registry</button>
       <button :class="{ active: activeTab === 'clients' }" @click="activeTab = 'clients'">OAuth Clients</button>
       <button :class="{ active: activeTab === 'trusted' }" @click="activeTab = 'trusted'">Trusted Instances</button>
       <button :class="{ active: activeTab === 'tools' }" @click="activeTab = 'tools'">Tools</button>
@@ -514,10 +543,11 @@ async function refederate(): Promise<void> {
     </div>
 
     <!-- Registry Tab -->
-    <div v-if="activeTab === 'registry' && actAsRegistry">
+    <div v-if="activeTab === 'registry' && registryTabAvailable">
       <RegistryDirectory
-        :instances="registryData?.instances ?? []"
-        :announcing-to="announceToRegistry ? 'your configured registry' : null"
+        :instances="registryInstances"
+        :readonly-mode="showRemoteDirectory"
+        :announcing-to="registryLabel"
         @changed="refreshMirrors"
         @search="onRegistrySearch"
       />

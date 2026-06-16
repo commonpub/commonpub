@@ -10,6 +10,7 @@ import {
   mirrorRequests,
   contentItems,
   federatedContent,
+  federatedHubs,
   federatedHubPosts,
   remoteActors,
   users,
@@ -915,6 +916,40 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
      */
     async onUpdate(actorUri: string, object: Record<string, unknown>): Promise<void> {
       const objectUri = object.id as string | undefined;
+
+      // Remote hub (Group actor) metadata update — propagate icon/banner/name/
+      // description to the mirrored federatedHubs row immediately, instead of
+      // waiting for the lazy hourly refresh. Authorization: a Group actor may only
+      // update its own metadata, so require the sender to BE the object.
+      if (object.type === 'Group' && typeof objectUri === 'string' && objectUri === actorUri) {
+        const imageUrl = (v: unknown): string | null => {
+          if (typeof v === 'string') return v;
+          if (typeof v === 'object' && v !== null) {
+            const u = (v as Record<string, unknown>).url;
+            if (typeof u === 'string') return u;
+          }
+          return null;
+        };
+        const hubUpdates: Record<string, unknown> = { updatedAt: new Date() };
+        if (typeof object.name === 'string') hubUpdates.name = object.name;
+        if (typeof object.summary === 'string') hubUpdates.description = sanitizeHtml(object.summary);
+        const icon = imageUrl(object.icon);
+        if (icon !== null) hubUpdates.iconUrl = icon;
+        const banner = imageUrl(object.image);
+        if (banner !== null) hubUpdates.bannerUrl = banner;
+
+        await db.update(federatedHubs).set(hubUpdates).where(eq(federatedHubs.actorUri, objectUri));
+
+        await db.insert(activities).values({
+          type: 'Update',
+          actorUri,
+          objectUri,
+          payload: { type: 'Update', actor: actorUri, object },
+          direction: 'inbound',
+          status: 'processed',
+        });
+        return;
+      }
 
       // Update stored federated content if we have it.
       // Authorization: only the original author can update their content.
