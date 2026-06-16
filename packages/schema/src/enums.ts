@@ -6,7 +6,7 @@ export const userStatusEnum = pgEnum('user_status', ['active', 'suspended', 'del
 export const profileVisibilityEnum = pgEnum('profile_visibility', ['public', 'members', 'private']);
 
 // --- Content ---
-export const contentStatusEnum = pgEnum('content_status', ['draft', 'published', 'archived']);
+export const contentStatusEnum = pgEnum('content_status', ['draft', 'scheduled', 'published', 'archived']);
 export const contentTypeEnum = pgEnum('content_type', [
   'project',
   'article',

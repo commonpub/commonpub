@@ -11,6 +11,8 @@ import {
   createPostSchema,
   createLearningPathSchema,
   createLessonSchema,
+  createVideoSchema,
+  updateContentSchema,
   createReportSchema,
   displayNameSchema,
   bioSchema,
@@ -1189,28 +1191,28 @@ describe('createLessonSchema — boundary tests', () => {
     ).toThrow();
   });
 
-  it('accepts duration of exactly 1 (positive int)', () => {
-    expect(createLessonSchema.parse({ ...validLesson, duration: 1 }).duration).toBe(1);
+  it('accepts durationMinutes of exactly 1 (positive int)', () => {
+    expect(createLessonSchema.parse({ ...validLesson, durationMinutes: 1 }).durationMinutes).toBe(1);
   });
 
-  it('rejects duration of 0 (not positive)', () => {
-    expect(() => createLessonSchema.parse({ ...validLesson, duration: 0 })).toThrow();
+  it('rejects durationMinutes of 0 (not positive)', () => {
+    expect(() => createLessonSchema.parse({ ...validLesson, durationMinutes: 0 })).toThrow();
   });
 
-  it('rejects negative duration', () => {
-    expect(() => createLessonSchema.parse({ ...validLesson, duration: -1 })).toThrow();
+  it('rejects negative durationMinutes', () => {
+    expect(() => createLessonSchema.parse({ ...validLesson, durationMinutes: -1 })).toThrow();
   });
 
-  it('accepts duration of exactly 9999 (max)', () => {
-    expect(createLessonSchema.parse({ ...validLesson, duration: 9999 }).duration).toBe(9999);
+  it('accepts durationMinutes of exactly 9999 (max)', () => {
+    expect(createLessonSchema.parse({ ...validLesson, durationMinutes: 9999 }).durationMinutes).toBe(9999);
   });
 
-  it('rejects duration above 9999', () => {
-    expect(() => createLessonSchema.parse({ ...validLesson, duration: 10000 })).toThrow();
+  it('rejects durationMinutes above 9999', () => {
+    expect(() => createLessonSchema.parse({ ...validLesson, durationMinutes: 10000 })).toThrow();
   });
 
-  it('rejects non-integer duration', () => {
-    expect(() => createLessonSchema.parse({ ...validLesson, duration: 1.5 })).toThrow();
+  it('rejects non-integer durationMinutes', () => {
+    expect(() => createLessonSchema.parse({ ...validLesson, durationMinutes: 1.5 })).toThrow();
   });
 });
 
@@ -1641,5 +1643,52 @@ describe('createApiKeySchema.allowedOrigins', () => {
   it('caps the list at 50 origins', () => {
     const many = Array.from({ length: 51 }, (_, i) => `https://h${i}.example.com`);
     expect(createApiKeySchema.safeParse({ ...base, allowedOrigins: many }).success).toBe(false);
+  });
+});
+
+// Regression: validators must not STRIP fields the UI sends and the server can
+// store. A z.object() drops unknown keys silently, which is exactly how these
+// fields were getting lost between the form and the database.
+describe('validator field-drop regressions', () => {
+  it('createVideoSchema keeps categoryId (was silently stripped → videos saved with NULL category)', () => {
+    const id = '11111111-1111-4111-8111-111111111111';
+    const parsed = createVideoSchema.parse({
+      title: 'A video',
+      url: 'https://youtube.com/watch?v=abc',
+      categoryId: id,
+    });
+    expect(parsed.categoryId).toBe(id);
+  });
+
+  it('createVideoSchema rejects a non-uuid categoryId', () => {
+    expect(() =>
+      createVideoSchema.parse({ title: 'v', url: 'https://x.test/v', categoryId: 'not-a-uuid' }),
+    ).toThrow();
+  });
+
+  it('createContentSchema keeps a custom slug (editor slug field was a no-op)', () => {
+    const parsed = createContentSchema.parse({ type: 'blog', title: 'Hello', slug: 'my-custom-slug' });
+    expect(parsed.slug).toBe('my-custom-slug');
+  });
+
+  it('updateContentSchema keeps a custom slug', () => {
+    const parsed = updateContentSchema.parse({ slug: 'renamed-slug' });
+    expect(parsed.slug).toBe('renamed-slug');
+  });
+
+  it('createContentSchema coerces scheduledAt to a Date', () => {
+    const parsed = createContentSchema.parse({ type: 'blog', title: 'Hello', scheduledAt: '2099-01-02T03:04:00.000Z' });
+    expect(parsed.scheduledAt).toBeInstanceOf(Date);
+    expect(parsed.scheduledAt?.toISOString()).toBe('2099-01-02T03:04:00.000Z');
+  });
+
+  it('createContentSchema accepts a datetime-local string for scheduledAt', () => {
+    // <input type="datetime-local"> emits "YYYY-MM-DDTHH:mm" (no seconds/zone).
+    const parsed = createContentSchema.parse({ type: 'blog', title: 'Hello', scheduledAt: '2099-06-20T14:30' });
+    expect(parsed.scheduledAt).toBeInstanceOf(Date);
+  });
+
+  it('contentStatusSchema includes scheduled', () => {
+    expect(contentStatusSchema.parse('scheduled')).toBe('scheduled');
   });
 });

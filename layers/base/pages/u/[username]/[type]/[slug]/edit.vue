@@ -95,6 +95,7 @@ const {
   autoSaveStatus,
   silentSave,
   handlePublish: doPublish,
+  handleSchedule: doSchedule,
   buildSaveBody,
   cancelAutoSave,
   initAutoSave,
@@ -182,8 +183,18 @@ if (!isNew.value) {
       series: (d.series as string) || '',
       category: (d.category as string) || '',
       subtitle: (d.subtitle as string) || '',
+      scheduledAt: d.scheduledAt ? toLocalDatetimeInput(d.scheduledAt as string) : '',
     };
   }
+}
+
+// Convert a stored ISO timestamp to the local "YYYY-MM-DDTHH:mm" value that an
+// <input type="datetime-local"> expects, so an existing schedule shows correctly.
+function toLocalDatetimeInput(iso: string): string {
+  const dt = new Date(iso);
+  if (Number.isNaN(dt.getTime())) return '';
+  const pad = (n: number): string => String(n).padStart(2, '0');
+  return `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}T${pad(dt.getHours())}:${pad(dt.getMinutes())}`;
 }
 
 // --- Auto-generate slug from title ---
@@ -292,6 +303,13 @@ async function handlePublish(): Promise<void> {
       submitToast.success('Entered into the contest!');
     } catch { /* non-blocking, user can submit manually from the contest page */ }
   }
+}
+
+// --- Schedule (deferred publish) ---
+// metadata.scheduledAt is set by the editor's schedule control (e.g. BlogEditor).
+const canSchedule = computed(() => !!(metadata.value.scheduledAt as string | undefined));
+async function handleSchedule(): Promise<void> {
+  await doSchedule(validate);
 }
 
 // --- Preview mode ---
@@ -472,6 +490,9 @@ async function handleUrlImport(result: ImportedContent): Promise<void> {
         </button>
         <button class="cpub-topbar-btn" :disabled="saving || !title" @click="silentSave">
           {{ saving ? 'Saving...' : 'Save Draft' }}
+        </button>
+        <button v-if="canSchedule" class="cpub-topbar-btn" :disabled="saving || !title" @click="handleSchedule">
+          Schedule
         </button>
         <button class="cpub-topbar-btn cpub-topbar-btn-primary" :disabled="saving || !title" @click="handlePublish">
           Publish

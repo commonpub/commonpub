@@ -48,6 +48,20 @@ describe('video', () => {
       expect(video.authorUsername).toBe('videocreator');
     });
 
+    it('persists categoryId on create (was dropped before reaching createVideo)', async () => {
+      const cat = await createVideoCategory(db, { name: 'Tutorials Cat' });
+      const video = await createVideo(db, {
+        title: 'Categorized Video',
+        url: 'https://example.com/categorized',
+        authorId,
+        categoryId: cat.id,
+      });
+      expect(video.categoryId).toBe(cat.id);
+
+      const fetched = await getVideoById(db, video.id);
+      expect(fetched!.categoryId).toBe(cat.id);
+    });
+
     it('creates a video with minimal fields', async () => {
       const video = await createVideo(db, {
         title: 'Quick Demo',

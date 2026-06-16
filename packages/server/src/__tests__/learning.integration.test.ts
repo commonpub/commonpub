@@ -48,6 +48,14 @@ describe('learning integration', () => {
     expect(path.status).toBe('draft');
   });
 
+  it('persists coverImageUrl on create (was dropped — createPath omitted it)', async () => {
+    const path = await createPath(db, authorId, {
+      title: 'Path With Cover',
+      coverImageUrl: 'https://cdn.example.com/path-cover.webp',
+    });
+    expect(path.coverImageUrl).toBe('https://cdn.example.com/path-cover.webp');
+  });
+
   it('lists learning paths', async () => {
     const result = await listPaths(db);
 
@@ -96,10 +104,15 @@ describe('learning integration', () => {
       moduleId: mod.id,
       title: 'Lesson 1: Hello World',
       type: 'article',
+      durationMinutes: 15,
     });
 
     expect(lesson).toBeDefined();
     expect(lesson.title).toBe('Lesson 1: Hello World');
+    // durationMinutes (validator field) must reach the `duration` column —
+    // previously createLesson read input.durationMinutes while the schema
+    // emitted `duration`, so the value was always lost.
+    expect(lesson.duration).toBe(15);
   });
 
   it('updates a module', async () => {

@@ -88,7 +88,7 @@ export const slugSchema = z
 export const contentTypeSchema = z.enum(['project', 'article', 'blog', 'explainer']);
 export type ContentType = z.infer<typeof contentTypeSchema>;
 
-export const contentStatusSchema = z.enum(['draft', 'published', 'archived']);
+export const contentStatusSchema = z.enum(['draft', 'scheduled', 'published', 'archived']);
 export type ContentStatus = z.infer<typeof contentStatusSchema>;
 
 export const difficultySchema = z.enum(['beginner', 'intermediate', 'advanced']);
@@ -120,6 +120,11 @@ export const createContentSchema = z.object({
   sections: z.unknown().optional(),
   tags: z.array(z.string().max(64)).max(20).optional(),
   categoryId: z.string().uuid().optional(),
+  // Optional custom URL slug. Accepted loosely and normalized server-side
+  // (generateSlug) so free-text in the editor's slug field never 400s.
+  slug: z.string().max(255).optional(),
+  // When set with status='scheduled', the future publish time.
+  scheduledAt: z.coerce.date().optional(),
 });
 export type CreateContentInput = z.infer<typeof createContentSchema>;
 
@@ -557,6 +562,7 @@ export const createVideoSchema = z.object({
   platform: z.enum(['youtube', 'vimeo', 'other']).default('other'),
   thumbnailUrl: optionalUrl(),
   duration: z.string().max(16).optional(),
+  categoryId: z.string().uuid().optional(),
 });
 export type CreateVideoInput = z.infer<typeof createVideoSchema>;
 
@@ -602,7 +608,7 @@ export const createLessonSchema = z.object({
   type: lessonTypeSchema,
   content: z.unknown().optional(),
   contentItemId: z.string().uuid().optional(),
-  duration: z.number().int().positive().max(9999).optional(),
+  durationMinutes: z.number().int().positive().max(9999).optional(),
 });
 export type CreateLessonInput = z.infer<typeof createLessonSchema>;
 

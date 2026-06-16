@@ -32,6 +32,7 @@ describe('hub integration', () => {
     expect(hub).toBeDefined();
     expect(hub.name).toBe('Test Community');
     expect(hub.slug).toMatch(/^test-community/);
+    expect(hub.hubType).toBe('community');
   });
 
   it('creates a product hub', async () => {
@@ -43,6 +44,23 @@ describe('hub integration', () => {
 
     expect(hub).toBeDefined();
     expect(hub.slug).toMatch(/^arduino-nano/);
+    expect(hub.hubType).toBe('product');
+    expect(hub.website).toBe('https://arduino.cc');
+  });
+
+  it('persists icon, banner, privacy and categories on create', async () => {
+    const hub = await createHub(db, ownerId, {
+      name: 'Branded Hub',
+      iconUrl: 'https://cdn.example.com/icon.webp',
+      bannerUrl: 'https://cdn.example.com/banner.webp',
+      privacy: 'unlisted',
+      categories: ['robotics', '3d-printing'],
+    });
+
+    expect(hub.iconUrl).toBe('https://cdn.example.com/icon.webp');
+    expect(hub.bannerUrl).toBe('https://cdn.example.com/banner.webp');
+    expect(hub.privacy).toBe('unlisted');
+    expect(hub.categories).toEqual(['robotics', '3d-printing']);
   });
 
   it('gets hub by slug', async () => {
@@ -130,9 +148,19 @@ describe('hub integration', () => {
     const updated = await updateHub(db, hub.id, ownerId, {
       description: 'Updated description',
       joinPolicy: 'approval',
+      iconUrl: 'https://cdn.example.com/new-icon.webp',
+      bannerUrl: 'https://cdn.example.com/new-banner.webp',
+      privacy: 'private',
+      website: 'https://updated.example.com',
     });
 
     expect(updated).toBeDefined();
+    expect(updated!.description).toBe('Updated description');
+    expect(updated!.joinPolicy).toBe('approval');
+    expect(updated!.iconUrl).toBe('https://cdn.example.com/new-icon.webp');
+    expect(updated!.bannerUrl).toBe('https://cdn.example.com/new-banner.webp');
+    expect(updated!.privacy).toBe('private');
+    expect(updated!.website).toBe('https://updated.example.com');
   });
 
   it('owner is auto-added as member with owner role', async () => {
