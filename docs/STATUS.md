@@ -1,41 +1,41 @@
 # CommonPub — Status & Operator Runbook
 
-> **Living doc — your "come back later" reference.** Snapshot updated 2026-06-15 (session 199).
+> **Living doc — your "come back later" reference.** Snapshot updated 2026-06-16 (sessions 199–200).
 > Verify any version/flag claim before trusting it: `npm view @commonpub/<pkg> version`,
 > `curl https://<instance>/api/features`, `cargo search create-commonpub`.
-> Companion docs: the latest work log `docs/sessions/199-field-drop-audit-and-scheduled-publishing.md`,
-> the contest guide `docs/reference/guides/contests.md`.
+> Companion docs: the rolling handoff `docs/sessions/200-kickoff-next.md`, work log
+> `docs/sessions/199-field-drop-audit-and-scheduled-publishing.md`, contest guide
+> `docs/reference/guides/contests.md`.
 
 ---
 
 ## TL;DR — where things stand
 
-**Session 199 (field-drop audit + scheduled publishing) + uploads infra fix — SHIPPED to
-commonpub.io ONLY (PR #35/#36/#37 merged + deployed). npm publish + roll to deveco/heatsync still
-PENDING (see ⚠️ below).**
+**Sessions 199–200 — SHIPPED + ROLLED to all 3 (commonpub.io, deveco.io, heatsynclabs.io).**
+npm: **schema 0.44.0 / server 2.88.0 / layer 0.79.0** (config 0.22.1). Migrations through **0024**.
+All health 200, terms templating verified per-instance.
 
-1. **Field-drop sweep** (PR #35): fixed a "silent field-drop" bug class where create/update fns or
-   Zod validators dropped fields the UI sent — **hub** icon/banner/privacy/website (the original
-   report), **video** `categoryId`, content custom **slug**, learning `coverImageUrl`, lesson
-   `durationMinutes`. **Scheduled publishing** implemented (`content_status` += `'scheduled'`,
-   `scheduled_at` column, atomic-claim worker + 60s Nitro plugin + `POST /api/content/[id]/schedule`
-   + editor Schedule button). Migration **0024** (additive). Versions bumped **schema 0.44.0 /
-   server 2.87.0 / layer 0.77.0**. Green: schema 466 / server 1353 / layer 1005 / reference typecheck.
-2. **Image uploads were fully broken on commonpub.io** (PR #36/#37) — two prod-infra bugs, not app
-   code: (a) `sharp`, `@aws-sdk/client-s3`, `ioredis` are OPTIONAL peer deps of `@commonpub/infra`
-   that Nitro externalises and the Dockerfile runtime `npm install` pruned → runtime "Cannot find
-   module" → 500. Fixed by installing all three explicitly (lockfile-pinned) in the Dockerfile
-   runtime stage. (b) DO Spaces was never configured (`NO_S3_ENV`) → silent fallback to the
-   local-fs adapter (unwritable root-owned volume + unserved). Fixed: `deploy.yml` writes the
-   `S3_*` config into the droplet `.env` from masked GitHub secrets. Verified live: S3 PUT + public
-   GET 200. (Operator's own `d071a1c` local-storage fix is now dormant under Spaces — harmless.)
+1. **Field-drop sweep + scheduled publishing** (PR #35): fixed a "silent field-drop" bug class —
+   **hub** icon/banner/privacy/website (the original report), **video** `categoryId`, content custom
+   **slug**, learning `coverImageUrl`, lesson `durationMinutes`. Scheduled publishing added
+   (`content_status` += `'scheduled'`, `scheduled_at`, atomic-claim worker + 60s plugin +
+   `POST /api/content/[id]/schedule` + editor Schedule button). Migration **0024** (additive).
+2. **Image uploads** (PR #36/#37, commonpub.io): were fully broken — `sharp`/`@aws-sdk/client-s3`/
+   `ioredis` are optional-peer deps Nitro externalises and the Dockerfile runtime `npm install`
+   pruned (→ "Cannot find module" 500); and DO Spaces was never configured (silent local-fs
+   fallback, unwritable + unserved). Fixed: install those three in the Dockerfile runtime stage +
+   `deploy.yml` writes `S3_*` to the droplet `.env` from masked secrets. **NOTE: deveco/heatsync
+   have their OWN Dockerfiles** — apply the same if they enable uploads.
+3. **Federation** (PR #39): inbound `Update(Group)` ingests a remote hub's icon/banner/name (was
+   ignored → hub avatar/banner never federated); manual hub-mirror no longer drops `bannerUrl`;
+   **registry peer discovery** (`GET /api/admin/registry/directory` + Registry tab for
+   `announceToRegistry` instances, read-only) so pinging instances see all peers.
+4. **Terms + hardening** (PR #41): templated Community Terms + Code of Conduct (instance name/domain
+   substitution, canonical-CommonPub collapse). Audit hardening of PR #39: bound hub `name`, http(s)
+   icon/banner only, `bannerBgStyle()` quotes the federated-hub banner CSS sink.
 
-⚠️ **npm is STALE** (schema 0.43.0 / server 2.86.0 / layer 0.76.0). commonpub.io builds the
-workspace so it has the fixes; **deveco.io + heatsynclabs.io consume published packages and still
-carry the field-drop bugs + lack scheduled publishing.** Next: `pnpm publish` schema/server/layer,
-bump consumer pins + BOTH lockfiles, let their deploys run migration 0024.
-Detail: `docs/sessions/199-field-drop-audit-and-scheduled-publishing.md` +
-`docs/sessions/200-kickoff-next.md`.
+⚠️ **Open:** rotate the DO Spaces secret key (shared in plaintext); then `gh secret set
+S3_SECRET_KEY` (no redeploy). Detail: `docs/sessions/200-kickoff-next.md`.
 
 ---
 
