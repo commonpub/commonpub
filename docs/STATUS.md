@@ -12,10 +12,10 @@
 ## TL;DR — where things stand
 
 **Sessions 199–200 — SHIPPED + ROLLED to all 3 (commonpub.io, deveco.io, heatsynclabs.io).**
-npm: **schema 0.44.0 / server 2.88.0 / layer 0.80.0** (config 0.22.1). Migrations through **0024**.
+npm: **schema 0.44.0 / server 2.88.0 / layer 0.81.0** (config 0.22.1). Migrations through **0024**.
 All health 200, terms templating + image cropper verified per-instance.
 
-5. **Image cropper** (layer 0.80.0): reusable `ImageCropperModal` (vue-advanced-cropper) for
+5. **Image cropper** (layer 0.81.0): reusable `ImageCropperModal` (vue-advanced-cropper) for
    avatar (1:1 PNG) / banner (4:1) / cover (16:9 JPEG) uploads — fixed aspect frame, drag + zoom,
    WYSIWYG; wired into the shared `ImageUpload`. Render verified headlessly. `useFocusTrap` now
    restores focus on close (all modals). NOT yet wired into profile/content-editor uploads, and

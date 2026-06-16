@@ -9,10 +9,10 @@ addendum). **Always `curl https://<instance>/api/health` +
 ## ✅ Where things stand (2026-06-16) — ALL SHIPPED + ROLLED TO ALL 3
 
 Published to npm + deployed to commonpub.io, deveco.io, heatsynclabs.io (all health 200, migration
-**0024** applied everywhere). **npm: schema 0.44.0 / server 2.88.0 / layer 0.80.0** (config 0.22.1
+**0024** applied everywhere). **npm: schema 0.44.0 / server 2.88.0 / layer 0.81.0** (config 0.22.1
 unchanged). Everything from sessions 199–200 is now live on all three:
 
-- **Image cropper** (layer 0.80.0) — reusable `ImageCropperModal` (vue-advanced-cropper, design-system
+- **Image cropper** (layer 0.81.0) — reusable `ImageCropperModal` (vue-advanced-cropper, design-system
   styled): fixed aspect-ratio crop frame (avatar 1:1 PNG, banner 4:1, cover 16:9 JPEG), drag +
   zoom (slider/+-/scroll/pinch), WYSIWYG. Wired into the shared `ImageUpload` → hub/event/contest
   avatar+banner+cover. Render **verified headlessly** (Playwright). Also fixed a shared a11y bug:
