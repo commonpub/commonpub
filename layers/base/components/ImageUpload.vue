@@ -5,6 +5,8 @@ const props = defineProps<{
   label?: string;
   hint?: string;
   aspectClass?: string;
+  /** Override the crop aspect ratio (width/height). Defaults by purpose. */
+  aspectRatio?: number;
 }>();
 
 const emit = defineEmits<{
@@ -15,31 +17,49 @@ const uploading = ref(false);
 const error = ref('');
 const fileInput = ref<HTMLInputElement | null>(null);
 
+// The image is cropped to the target element's aspect ratio before upload, so it
+// displays WYSIWYG instead of being arbitrarily cover-cropped on the page.
+const cropConfig = computed(() => {
+  switch (props.purpose) {
+    case 'avatar': return { ratio: props.aspectRatio ?? 1, round: true, output: 512, title: 'Crop avatar' };
+    case 'banner': return { ratio: props.aspectRatio ?? 4, round: false, output: 1600, title: 'Crop banner' };
+    case 'cover': return { ratio: props.aspectRatio ?? 16 / 9, round: false, output: 1600, title: 'Crop cover image' };
+    default: return { ratio: props.aspectRatio ?? 1, round: false, output: 1200, title: 'Crop image' };
+  }
+});
+
+const cropSrc = ref('');
+
 function triggerPicker(): void {
   fileInput.value?.click();
 }
 
-async function handleFileChange(event: Event): Promise<void> {
+function handleFileChange(event: Event): void {
   const target = event.target as HTMLInputElement;
   const file = target.files?.[0];
   if (!file) return;
 
   if (!file.type.startsWith('image/')) {
     error.value = 'Please select an image file.';
-    return;
-  }
-
-  if (file.size > 10 * 1024 * 1024) {
+  } else if (file.size > 10 * 1024 * 1024) {
     error.value = 'Image must be under 10MB.';
-    return;
+  } else {
+    error.value = '';
+    const reader = new FileReader();
+    reader.onload = () => { cropSrc.value = reader.result as string; };
+    reader.onerror = () => { error.value = 'Could not read the image.'; };
+    reader.readAsDataURL(file);
   }
+  target.value = '';
+}
 
-  error.value = '';
+async function onCropped(blob: Blob): Promise<void> {
+  cropSrc.value = '';
   uploading.value = true;
-
+  error.value = '';
   try {
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('file', new File([blob], `${props.purpose}.jpg`, { type: 'image/jpeg' }));
     formData.append('purpose', props.purpose);
 
     const result = await $fetch<{ url: string }>('/api/files/upload', {
@@ -52,7 +72,6 @@ async function handleFileChange(event: Event): Promise<void> {
     error.value = (err as { data?: { statusMessage?: string } })?.data?.statusMessage || 'Upload failed.';
   } finally {
     uploading.value = false;
-    if (target) target.value = '';
   }
 }
 
@@ -94,6 +113,19 @@ function clearImage(): void {
 
     <span v-if="hint && !error" class="cpub-img-hint">{{ hint }}</span>
     <span v-if="error" class="cpub-img-error">{{ error }}</span>
+
+    <ClientOnly>
+      <ImageCropperModal
+        v-if="cropSrc"
+        :src="cropSrc"
+        :aspect-ratio="cropConfig.ratio"
+        :round="cropConfig.round"
+        :output-width="cropConfig.output"
+        :title="cropConfig.title"
+        @crop="onCropped"
+        @cancel="cropSrc = ''"
+      />
+    </ClientOnly>
   </div>
 </template>
 

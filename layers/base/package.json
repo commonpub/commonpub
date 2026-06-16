@@ -1,6 +1,6 @@
 {
   "name": "@commonpub/layer",
-  "version": "0.79.0",
+  "version": "0.80.0",
   "type": "module",
   "main": "./nuxt.config.ts",
   "files": [
@@ -66,6 +66,7 @@
     "sharp": "^0.34.5",
     "shiki": "^4.0.2",
     "vue": "^3.4.0",
+    "vue-advanced-cropper": "^2.8.9",
     "vue-router": "^4.3.0",
     "zod": "^4.3.6"
   },
