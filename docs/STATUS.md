@@ -10,18 +10,32 @@
 
 ## TL;DR — where things stand
 
-**Field-drop audit + scheduled publishing** is the newest work (session 199, on branch
-`fix/field-drop-audit-scheduled-publishing` — PR open, **NOT yet merged/published**):
-fixed a "silent field-drop" bug class where create/update functions or Zod validators dropped
-fields the UI sent — **hub** icon/banner/privacy/website (the reported commonpub.io bug), **video**
-`categoryId` (videos saved NULL category), content custom **slug** (editor field was a no-op),
-learning `coverImageUrl`, lesson `durationMinutes`. Also **implemented scheduled publishing**
-(`content_status` += `'scheduled'`, `scheduled_at` column, atomic-claim worker + 60s Nitro plugin +
-`POST /api/content/[id]/schedule` + editor Schedule button). Migration **0024** (additive).
-Versions bumped: **schema 0.44.0 / server 2.87.0 / layer 0.77.0**. Green: schema 466, server 1353,
-layer 1005, reference typecheck clean. Remaining: merge (→ commonpub.io deploy + migration), then
-`pnpm publish` schema/server/layer and roll deveco.io + heatsynclabs.io. Detail:
-`docs/sessions/199-field-drop-audit-and-scheduled-publishing.md`.
+**Session 199 (field-drop audit + scheduled publishing) + uploads infra fix — SHIPPED to
+commonpub.io ONLY (PR #35/#36/#37 merged + deployed). npm publish + roll to deveco/heatsync still
+PENDING (see ⚠️ below).**
+
+1. **Field-drop sweep** (PR #35): fixed a "silent field-drop" bug class where create/update fns or
+   Zod validators dropped fields the UI sent — **hub** icon/banner/privacy/website (the original
+   report), **video** `categoryId`, content custom **slug**, learning `coverImageUrl`, lesson
+   `durationMinutes`. **Scheduled publishing** implemented (`content_status` += `'scheduled'`,
+   `scheduled_at` column, atomic-claim worker + 60s Nitro plugin + `POST /api/content/[id]/schedule`
+   + editor Schedule button). Migration **0024** (additive). Versions bumped **schema 0.44.0 /
+   server 2.87.0 / layer 0.77.0**. Green: schema 466 / server 1353 / layer 1005 / reference typecheck.
+2. **Image uploads were fully broken on commonpub.io** (PR #36/#37) — two prod-infra bugs, not app
+   code: (a) `sharp`, `@aws-sdk/client-s3`, `ioredis` are OPTIONAL peer deps of `@commonpub/infra`
+   that Nitro externalises and the Dockerfile runtime `npm install` pruned → runtime "Cannot find
+   module" → 500. Fixed by installing all three explicitly (lockfile-pinned) in the Dockerfile
+   runtime stage. (b) DO Spaces was never configured (`NO_S3_ENV`) → silent fallback to the
+   local-fs adapter (unwritable root-owned volume + unserved). Fixed: `deploy.yml` writes the
+   `S3_*` config into the droplet `.env` from masked GitHub secrets. Verified live: S3 PUT + public
+   GET 200. (Operator's own `d071a1c` local-storage fix is now dormant under Spaces — harmless.)
+
+⚠️ **npm is STALE** (schema 0.43.0 / server 2.86.0 / layer 0.76.0). commonpub.io builds the
+workspace so it has the fixes; **deveco.io + heatsynclabs.io consume published packages and still
+carry the field-drop bugs + lack scheduled publishing.** Next: `pnpm publish` schema/server/layer,
+bump consumer pins + BOTH lockfiles, let their deploys run migration 0024.
+Detail: `docs/sessions/199-field-drop-audit-and-scheduled-publishing.md` +
+`docs/sessions/200-kickoff-next.md`.
 
 ---
 

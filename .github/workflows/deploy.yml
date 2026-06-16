@@ -3,6 +3,12 @@ name: Deploy Production
 on:
   push:
     branches: [main]
+    # Docs-only commits don't change the built image — skip the full rebuild+deploy.
+    # (A commit that also touches code/config still deploys; paths-ignore only skips
+    # when EVERY changed file matches.)
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
 
 jobs:
   deploy:
