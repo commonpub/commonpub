@@ -26,7 +26,15 @@ COPY --from=build /app/packages/schema/dist ./schema/dist
 COPY --from=build /app/packages/schema/migrations ./schema/migrations
 # Install drizzle-kit + deps for schema push (drizzle-kit needs drizzle-orm + pg driver, schema imports zod)
 # type:module required because schema dist files use ES module syntax
-RUN echo '{"private":true,"type":"module"}' > package.json && npm install --no-save drizzle-kit@0.31.10 drizzle-orm pg zod
+#
+# sharp is included here on purpose: it's a native module the Nitro server loads
+# at runtime via `import('sharp')` for image processing (/api/files/upload). It
+# is only an OPTIONAL peer dep of @commonpub/infra and pnpm 10 ignores its build
+# script, so the pnpm-installed copy does not survive this npm reconcile (the
+# prune reaps it). Installing it explicitly with npm fetches the correct
+# linux-musl prebuilt binary for the alpine runtime and keeps it from being
+# pruned — without it every image upload 500s with "Cannot find module 'sharp'".
+RUN echo '{"private":true,"type":"module"}' > package.json && npm install --no-save drizzle-kit@0.31.10 drizzle-orm pg zod sharp@0.34.5
 # After the npm install — npm prunes anything not in the freshly-created
 # package.json + the deps we just asked for ("removed 11 packages" in
 # the build log). That means the @commonpub/* symlinks copied from
