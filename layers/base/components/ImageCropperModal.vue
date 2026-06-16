@@ -267,8 +267,9 @@ function apply(): void {
   display: none;
 }
 /* One clean accent frame around the crop window (outline = no layout shift,
-   no per-side border doubling). */
-.cpub-cropper :deep(.vue-advanced-cropper__stencil-wrapper) {
+   no per-side border doubling). Verified via headless render: the crop window is
+   `.vue-rectangle-stencil`. */
+.cpub-cropper :deep(.vue-rectangle-stencil) {
   outline: var(--border-width-default, 2px) solid var(--accent);
   outline-offset: calc(-1 * var(--border-width-default, 2px));
 }
