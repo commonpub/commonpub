@@ -9,14 +9,10 @@ export default defineNuxtConfig({
     },
   },
   nitro: {
-    // Serve local uploads directory in dev (production uses S3/Spaces)
-    publicAssets: [
-      {
-        dir: '../uploads',
-        baseURL: '/uploads',
-        maxAge: 60 * 60 * 24, // 1 day cache
-      },
-    ],
+    // Local uploads (LocalStorageAdapter) are written at RUNTIME, which Nitro's
+    // build-time `publicAssets` can't serve — they're streamed by
+    // server/routes/uploads/[...path].get.ts instead. With S3/Spaces configured,
+    // files are served from the bucket/CDN and this route is simply unused.
   },
   vite: {
     server: {

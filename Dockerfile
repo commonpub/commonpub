@@ -44,9 +44,15 @@ COPY --from=build /app/packages/schema/dist ./node_modules/@commonpub/schema/dis
 COPY --from=build /app/packages/schema/migrations ./node_modules/@commonpub/schema/migrations
 COPY --from=build /app/packages/server/package.json ./node_modules/@commonpub/server/package.json
 COPY --from=build /app/packages/server/dist ./node_modules/@commonpub/server/dist
+# Pre-create the local uploads dir owned by the non-root runtime user. The
+# LocalStorageAdapter writes here when no S3 bucket is configured; an empty named
+# volume mounted at /app/uploads inherits this ownership so the non-root user can
+# write to it (otherwise: EACCES on mkdir → 500 on every upload).
+RUN mkdir -p /app/uploads && chown -R commonpub:commonpub /app/uploads
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV NITRO_PORT=3000
+ENV UPLOAD_DIR=/app/uploads
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3000/', (r) => { if(r.statusCode !== 200) throw new Error() })"

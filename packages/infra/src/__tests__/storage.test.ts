@@ -238,6 +238,37 @@ describe('createStorageFromEnv', () => {
     expect(adapter.getUrl('file.txt')).toContain('https://example.com');
   });
 
+  it('honors NUXT_UPLOAD_DIR for the local WRITE path (the production compose sets this)', async () => {
+    // Regression: the prod compose set NUXT_UPLOAD_DIR but the adapter only read
+    // UPLOAD_DIR, so it silently wrote to a CWD-relative ./uploads instead of the
+    // configured (volume-mounted) dir — the EACCES upload 500.
+    delete process.env.S3_BUCKET;
+    delete process.env.UPLOAD_DIR;
+    const dir = await mkdtemp(join(tmpdir(), 'cpub-nuxt-upload-'));
+    process.env.NUXT_UPLOAD_DIR = dir;
+    try {
+      const adapter = createStorageFromEnv();
+      await adapter.upload('content/probe.txt', Buffer.from('hello'), 'text/plain');
+      expect(await readFile(join(dir, 'content/probe.txt'), 'utf8')).toBe('hello');
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('prefers UPLOAD_DIR over NUXT_UPLOAD_DIR when both are set', async () => {
+    delete process.env.S3_BUCKET;
+    const dir = await mkdtemp(join(tmpdir(), 'cpub-upload-pref-'));
+    process.env.UPLOAD_DIR = dir;
+    process.env.NUXT_UPLOAD_DIR = '/should/not/be/used';
+    try {
+      const adapter = createStorageFromEnv();
+      await adapter.upload('x.txt', Buffer.from('hi'), 'text/plain');
+      expect(await readFile(join(dir, 'x.txt'), 'utf8')).toBe('hi');
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
   it('falls back to defaults when no env vars set', () => {
     delete process.env.S3_BUCKET;
     delete process.env.UPLOAD_DIR;

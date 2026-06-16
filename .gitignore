@@ -33,8 +33,10 @@ coverage/
 test-results/
 playwright-report/
 
-# Local uploads
-uploads/
+# Local uploads (runtime-written files) — anchored so it does NOT also ignore
+# the server/routes/uploads/ serving route.
+/uploads/
+apps/*/uploads/
 
 # Rust
 target/

@@ -262,7 +262,10 @@ export function createStorageFromEnv(): StorageAdapter {
     });
   }
 
-  const uploadDir = process.env.UPLOAD_DIR ?? './uploads';
+  // Accept both the generic UPLOAD_DIR and the Nuxt-style NUXT_UPLOAD_DIR (which
+  // the production compose sets) so the configured ABSOLUTE path takes effect —
+  // never silently fall back to a CWD-relative './uploads' when a dir is set.
+  const uploadDir = process.env.UPLOAD_DIR ?? process.env.NUXT_UPLOAD_DIR ?? './uploads';
   const siteUrl = process.env.SITE_URL ?? process.env.NUXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
 
   return new LocalStorageAdapter(uploadDir, siteUrl);
