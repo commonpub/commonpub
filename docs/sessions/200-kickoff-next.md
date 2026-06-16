@@ -9,8 +9,18 @@ addendum). **Always `curl https://<instance>/api/health` +
 ## ✅ Where things stand (2026-06-16) — ALL SHIPPED + ROLLED TO ALL 3
 
 Published to npm + deployed to commonpub.io, deveco.io, heatsynclabs.io (all health 200, migration
-**0024** applied everywhere). **npm: schema 0.44.0 / server 2.88.0 / layer 0.79.0** (config 0.22.1
+**0024** applied everywhere). **npm: schema 0.44.0 / server 2.88.0 / layer 0.80.0** (config 0.22.1
 unchanged). Everything from sessions 199–200 is now live on all three:
+
+- **Image cropper** (layer 0.80.0) — reusable `ImageCropperModal` (vue-advanced-cropper, design-system
+  styled): fixed aspect-ratio crop frame (avatar 1:1 PNG, banner 4:1, cover 16:9 JPEG), drag +
+  zoom (slider/+-/scroll/pinch), WYSIWYG. Wired into the shared `ImageUpload` → hub/event/contest
+  avatar+banner+cover. Render **verified headlessly** (Playwright). Also fixed a shared a11y bug:
+  `useFocusTrap` now restores focus on the v-if-unmount close path (improves **all** modals).
+  **Follow-ups NOT done:** the cropper is NOT yet wired into **profile** avatar/banner or the
+  **content editors'** cover/banner (those use their own upload handlers); and the on-page **banner
+  display containers** are fixed-height (viewport-dependent aspect) so a 4:1 crop still cover-crops
+  slightly on wide screens — align them to the crop aspect for true end-to-end WYSIWYG.
 
 - **Field-drop fixes** — hub icon/banner/privacy/website, video `categoryId`, content custom slug,
   learning `coverImageUrl`, lesson `durationMinutes` (PR #35).

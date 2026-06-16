@@ -12,8 +12,14 @@
 ## TL;DR — where things stand
 
 **Sessions 199–200 — SHIPPED + ROLLED to all 3 (commonpub.io, deveco.io, heatsynclabs.io).**
-npm: **schema 0.44.0 / server 2.88.0 / layer 0.79.0** (config 0.22.1). Migrations through **0024**.
-All health 200, terms templating verified per-instance.
+npm: **schema 0.44.0 / server 2.88.0 / layer 0.80.0** (config 0.22.1). Migrations through **0024**.
+All health 200, terms templating + image cropper verified per-instance.
+
+5. **Image cropper** (layer 0.80.0): reusable `ImageCropperModal` (vue-advanced-cropper) for
+   avatar (1:1 PNG) / banner (4:1) / cover (16:9 JPEG) uploads — fixed aspect frame, drag + zoom,
+   WYSIWYG; wired into the shared `ImageUpload`. Render verified headlessly. `useFocusTrap` now
+   restores focus on close (all modals). NOT yet wired into profile/content-editor uploads, and
+   banner display containers aren't aspect-aligned yet (follow-ups).
 
 1. **Field-drop sweep + scheduled publishing** (PR #35): fixed a "silent field-drop" bug class —
    **hub** icon/banner/privacy/website (the original report), **video** `categoryId`, content custom
