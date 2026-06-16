@@ -1,48 +1,46 @@
-# Kickoff — next session (after session 199: field-drop audit + scheduled publishing + uploads infra)
+# Kickoff — next session (after sessions 199–200: field-drop, scheduled publishing, uploads infra, federation fixes, terms, full roll)
 
 Read this, then start. Canonical runbook: `docs/STATUS.md`. Work log:
 `docs/sessions/199-field-drop-audit-and-scheduled-publishing.md` (incl. the uploads-infra
-addendum at the bottom). **Always `curl https://<instance>/api/health` +
+addendum). **Always `curl https://<instance>/api/health` +
 `npm view @commonpub/<pkg> version` before trusting any state claim.** Supersedes
 `198-kickoff-next.md`.
 
-## ✅ Where things stand (2026-06-16)
+## ✅ Where things stand (2026-06-16) — ALL SHIPPED + ROLLED TO ALL 3
 
-**commonpub.io ONLY** — session 199 + the uploads fix are LIVE there (it builds the workspace
-from source). PRs #35 (field-drop + scheduled publishing), #36 + #37 (uploads infra) merged +
-deployed; migration **0024** applied. Verified live: schedule endpoint returns 401 (deployed),
-and in the prod container `sharp:fulfilled aws:fulfilled ioredis:fulfilled` + a real S3 PutObject
-to DO Spaces succeeded and served publicly (HTTP 200).
+Published to npm + deployed to commonpub.io, deveco.io, heatsynclabs.io (all health 200, migration
+**0024** applied everywhere). **npm: schema 0.44.0 / server 2.88.0 / layer 0.79.0** (config 0.22.1
+unchanged). Everything from sessions 199–200 is now live on all three:
 
-**Repo versions: schema 0.44.0 / server 2.88.0 / layer 0.78.0.** Migrations through **0024**.
+- **Field-drop fixes** — hub icon/banner/privacy/website, video `categoryId`, content custom slug,
+  learning `coverImageUrl`, lesson `durationMinutes` (PR #35).
+- **Scheduled publishing** — `content_status` += `'scheduled'`, `scheduled_at`, atomic-claim worker
+  + 60s plugin + `POST /api/content/[id]/schedule` + editor Schedule button (PR #35).
+- **Uploads** — Dockerfile bundles sharp/@aws-sdk/client-s3/ioredis (pruned optional-peers);
+  DO Spaces wired via deploy secrets. NOTE: this Dockerfile fix is in the **commonpub** repo;
+  deveco/heatsync have their OWN Dockerfiles (both use non-frozen `npm install`) — if they enable
+  image uploads, verify sharp/aws-sdk are present and configure their own Spaces (PR #36/#37).
+- **Federation** — inbound `Update(Group)` ingests a remote hub's icon/banner/name (was ignored, so
+  hub avatar/banner never federated); manual hub-mirror no longer drops `bannerUrl`; **registry peer
+  discovery** via `GET /api/admin/registry/directory` + the Registry tab now shows for
+  `announceToRegistry` instances (read-only) so pinging instances can see all peers (PR #39).
+- **Terms** — templated Community Terms + Code of Conduct (`pages/terms.vue`): substitutes the
+  instance name/domain from config, collapses "CommonPub and X" → "CommonPub" on the canonical
+  instance. Verified live: commonpub "Welcome to CommonPub.", deveco "CommonPub and devEco.io",
+  heatsync "CommonPub and heatsynclabs.io" (PR #41).
+- **Hardening** (audit of PR #39) — `Update(Group)` bounds hub `name` + accepts only http(s)
+  icon/banner; `bannerBgStyle()` util quotes/validates the federated-hub banner CSS `url()` sink
+  (PR #41).
 
-**Also shipped to commonpub.io after the field-drop work (PR #39): two federation fixes —**
-(a) inbound `Update(Group)` now ingests a remote hub's icon/banner/name into the mirror
-(`onUpdate` previously ignored Group updates, so hub avatar/banner never federated) + the manual
-hub-mirror add endpoint no longer drops `bannerUrl`; (b) **registry peer discovery** — pinging
-(announce-only) instances can now see the registry's directory via a new SSRF-guarded
-`GET /api/admin/registry/directory` + the admin Registry tab shows for `announceToRegistry`
-instances (read-only). **Both only become visible cross-instance after the publish + roll below** —
-the registry-discovery view is for announce-only instances (deveco/heatsync), and remote hubs only
-ingest `Update(Group)` once they run server 2.88.0.
+Publish: `pnpm --filter @commonpub/<pkg> publish --no-git-checks --access public` for schema/server,
+`pnpm publish:layer` for the layer (NEVER `npm publish` — [[feedback_pnpm_publish_layer]]). Consumer
+roll: bump `^0.44 / ^2.88 / ^0.79` pins; deveco's `package-lock.json` is **gitignored** (only commit
+`pnpm-lock.yaml`), heatsync tracks **both** ([[feedback_consumer_dual_lockfile_frozen_install]]).
+Both consumer deploys are non-frozen `npm install`, so the pin bump is what matters; their deploy
+health check WARNS-not-fails ([[feedback_deploy_health_check_warn_not_fail]]) — curl /api/health to
+confirm.
 
-## ⚠️ TOP PRIORITY — npm is NOT published; 2 of 3 instances are still buggy
-
-`npm view` shows **schema 0.43.0 / server 2.86.0 / layer 0.76.0** (pre-session). deveco.io and
-heatsynclabs.io consume *published* packages, so they **still have the field-drop bugs** (hub
-image/video category/content slug dropped) and **lack scheduled publishing**. To finish the roll:
-
-1. `pnpm publish` (use `pnpm publish:layer` for the layer — NEVER `npm publish`; see
-   [[feedback_pnpm_publish_layer]]): publish **schema 0.44.0**, **server 2.88.0**, **layer 0.78.0**.
-   Order: schema → server → layer. Poll `npm view` between (propagation lag,
-   [[feedback_npm_propagation_lag]]).
-2. Roll deveco.io + heatsynclabs.io: bump the `^0.44 / ^2.87 / ^0.77` pins, regenerate
-   **BOTH** lockfiles each (`pnpm-lock.yaml` AND the npm/Docker lockfile —
-   [[feedback_consumer_dual_lockfile_frozen_install]]), push; their deploy runs migration 0024 via
-   `db-migrate.mjs`. Heads-up: those repos have their OWN Dockerfiles — check whether they hit the
-   same pruned-`sharp`/`@aws-sdk` runtime issue (see below) if they do image uploads.
-
-## ⚠️ Operator action — rotate the Spaces key
+## ⚠️ Still open — rotate the Spaces key
 
 The DO Spaces secret key was shared in plaintext during session 199. **Rotate it** in the DO
 console, then update the `S3_SECRET_KEY` GitHub secret (`gh secret set S3_SECRET_KEY`) — no code
