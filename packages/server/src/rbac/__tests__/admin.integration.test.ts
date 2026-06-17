@@ -4,7 +4,7 @@ import { eq } from 'drizzle-orm';
 import { hasPermissionPure } from '@commonpub/auth';
 import { createTestDB, closeTestDB, createTestUser } from '../../__tests__/helpers/testdb.js';
 import { resolveUserPermissions } from '../resolver.js';
-import { seedRbac } from '../seed.js';
+import { seedRbac, STAFF_PERMISSION_SET } from '../seed.js';
 import {
   listRolesWithPermissions,
   createRole,
@@ -89,6 +89,9 @@ describe('RBAC role administration (PGlite)', () => {
       const [staff] = await db.select({ id: roles.id }).from(roles).where(eq(roles.key, 'staff')).limit(1);
       await updateRole(db, staff!.id, { permissions: ['content.moderate'] }, actorId);
       expect(await permsOf(staff!.id)).toEqual(['content.moderate']);
+      // Restore the seed set so this mutation of the SHARED staff role can't leak
+      // into any later test's expectations (test-isolation hygiene).
+      await updateRole(db, staff!.id, { permissions: [...STAFF_PERMISSION_SET] }, actorId);
     });
 
     it('FORCE-RETAINS `*` on the admin role even if an edit omits it (lockout guard)', async () => {
@@ -163,6 +166,10 @@ describe('RBAC role administration (PGlite)', () => {
       const admin = list.find((r) => r.key === 'admin');
       expect(admin?.permissions).toContain('*');
       expect(admin?.isSystem).toBe(true);
+      // memberCount must be a real count, not hardcoded: the `actor` admin was
+      // backfilled into the admin role, so admin has >= 1 member. (Kills the
+      // "return memberCount: 0" mutation.)
+      expect(admin?.memberCount).toBeGreaterThanOrEqual(1);
       // Highest-priority system role (admin=50) sorts before member (10).
       const sysOrder = list.filter((r) => r.isSystem).map((r) => r.key);
       expect(sysOrder.indexOf('admin')).toBeLessThan(sysOrder.indexOf('member'));

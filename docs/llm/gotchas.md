@@ -43,6 +43,31 @@ This file is the short version.
 - **Always verify `/api/events` status whitelist** (session 125 security fix). Only `published`, `active`, `upcoming`, `past`, `featured`, `mine` are honored.
 - **Quiz lessons are graded server-side** (session 129). `GET /api/learn/:slug/:lessonSlug` runs `redactQuizAnswers` for non-authors: `correctOptionId` + `explanation` are stripped from each question. The viewer CANNOT grade locally — it must POST answers to `/complete` and render `quiz.results` from the response (added session 133). Canonical shape: `{type:'quiz', passingScore, questions:[{id, options:[{id,text}], correctOptionId, explanation?}]}`. If you see someone reinstate a client-side `correctIndex` or local score computation, they've silently broken grading for every learner.
 
+## RBAC / authorization
+
+- **Enabling `features.rbac` does nothing without the seed.** The resolver flag-on path unions
+  `user_roles → role_permissions`; if those tables are empty, every non-admin resolves to nothing
+  (identical to flag-off). Migration **0025** seeds the 5 system roles + permission sets + backfills
+  `user_roles` (session 201). `seedRbac()` (`packages/server/src/rbac/seed.ts`) mirrors it for fresh
+  installs/tests — it is **NOT** wired to app startup (only the migration runs it in prod, once), so
+  operator edits to a system role's permissions persist across redeploys.
+- **`staff` is inert until RBAC is on + seeded.** Its only legacy hook is `contestCreation: 'staff'`
+  (default `'admin'`); `roleGuard` has zero production call sites. After the seed + flag-on, `staff`
+  carries the moderator set (but NOT `admin.access`).
+- **Stripping `*` is not enough to contain the admin bypass.** `admin.*` is a valid segment wildcard
+  and `hasPermissionPure` expands it to `admin.access`. `sanitizeGrants` (`rbac/admin.ts`) strips the
+  whole `ADMIN_BYPASS_GRANTS` set (`*`, `admin.access`, `admin.*`) from every non-admin role, and
+  `/api/admin/users/[id]/role.put.ts` requires `admin.access` (not just `users.manage`) to promote a
+  user to the admin system role — otherwise a `roles.manage` holder could mint themselves admin.
+- **INV-1 is preserved by the resolver short-circuit, not by empty tables.** With the flag off the
+  resolver returns the legacy mapping (admin via the gate-time floor over fresh `users.role`, everyone
+  else empty) *before* it reads the now-seeded tables. Don't add a flag check to the guards
+  (`requireFeature('rbac')` would 404 admin endpoints) — the flag lives only in the resolver.
+- **Per-contest `editor` ≠ system access.** `contest_stakeholders.role` (`reviewer`|`editor`) grants
+  edit of ONE contest only. Edit/transition/advance check `canManage = owner || isContestEditor ||
+  contest.manage`; delete + judge/collaborator management stay owner/`contest.manage` so an editor
+  can't escalate. The column is instance-local (never serialized to ActivityPub).
+
 ## UI / theming
 
 - **No hardcoded colors or fonts.** Always `var(--*)`. Session 096 did a 698-replacement sweep to enforce this.

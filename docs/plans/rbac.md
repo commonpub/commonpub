@@ -1,13 +1,19 @@
 # Global RBAC for CommonPub — Implementation Plan
 
-> **Status (session 191): Phase 0 + Phase 1 SHIPPED + LIVE on all 3 instances** (sessions
-> 175–177). Migration 0009 (`roles`/`role_permissions`/`user_roles`) applied; `resolveUserPermissions`
-> + `requirePermission` (73 sites migrated) are in prod; the `rbac` feature flag ships **default OFF**
-> (legacy `users.role` enum is the live authority until an operator flips it). The per-phase
-> "NOT yet published / branch-only" notes below are historical planning context from session 175 —
-> the work was published shortly after. Phases 2–4 (seed + flip on per instance + admin roles UI)
-> remain future work. Released at schema 0.24.0 / server 2.66.0 / auth 0.7.0 / layer 0.33.0 (not the
-> 0.23.0/2.64.0/0.30.0 targets guessed below).
+> **Status (session 201): Phases 0–3 BUILT.** Phases 0+1 shipped + live (sessions 175–177; migration
+> 0009, `resolveUserPermissions` + `requirePermission`, 73 sites migrated, flag default OFF).
+> **Phase 2 (seed/backfill) + Phase 3 (admin roles UI) were discovered NEVER built** — so flipping
+> `features.rbac` was a no-op and `staff` == `member`. **Session 201 built them** on branch
+> `rbac-activation-and-contest-editors` (NOT yet published/deployed; flag stays default OFF):
+> migration **0025** seeds the 5 system roles + permission sets + `user_roles` backfill (`seedRbac()`
+> mirror); `updateUserRole` syncs `user_roles` + last-admin floor; `/api/admin/roles*` +
+> `/api/admin/users/[id]/roles` (`roles.manage`, audited, cache-invalidated) + `pages/admin/roles.vue`
+> + per-user assignment in `/admin/users`; `/api/me` permissions + `useCan()`. An adversarial audit
+> fixed a P0 (admin-bypass via the `admin.*` wildcard) + hardening. Also shipped: per-contest
+> **editor** role (`contest_stakeholders.role`). **Phase 2 flag-flip + Phase 4 (enable on deveco/
+> heatsync) remain the operator's call** after release. Full detail:
+> `docs/plans/rbac-activation-and-contest-editors.md` + `docs/sessions/201-*.md`. Released (0+1) at
+> schema 0.24.0 / server 2.66.0 / auth 0.7.0 / layer 0.33.0.
 
 ## Context
 

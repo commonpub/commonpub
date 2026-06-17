@@ -91,6 +91,34 @@ floor) recovers. Wrap in a tx + row-lock if it ever matters.
 Re-verified after fixes: server 1376 · layer 1021 · schema 466 · `nuxt typecheck` 0 errors · migration
 0025 re-applied clean to a fresh Postgres.
 
+## Robustness pass + missing UI + docs (commit 4)
+
+A second independent review (robustness/edge-cases/test-determinism, separate from the security audit)
+confirmed the federation-leak check is **clean** (`contest_stakeholders.role` is never serialized to
+ActivityPub — only `contest/` references it), `viewerCanManage` is anon-safe, and cache invalidation
+is correct. Fixes:
+
+- **P1 — `addContestStakeholder` double-submit 500.** Select-then-insert with no `ON CONFLICT` could
+  race the unique `(contestId,userId)` constraint on a double-click. Now `onConflictDoUpdate(set role)`
+  (idempotent, matches the `rsvpEvent` precedent).
+- **Missing UI (user request).** The `/api/admin/users/[id]/roles` endpoints existed but nothing used
+  them — added per-user **custom-role assignment** to `/admin/users` (expandable row, checkboxes for
+  non-system roles, only shown when custom roles exist). `roles.vue` (role CRUD) + sidebar link were
+  already present.
+- **Test hardening** (mutation-survival gaps the reviewer named): `userRoleEnum` ↔ `SYSTEM_ROLE_SEEDS`
+  lockstep guard; additive no-clobber test (operator-added grant survives re-seed); INV-1-with-seed
+  (staff still resolves empty with flag OFF after seeding); broadened the SQL drift test to all 5 role
+  keys + admin `*` (not just staff); a real `memberCount >= 1` assertion (kills the "hardcode 0"
+  mutation); restored the shared staff role after the "tune staff" test (isolation). Confirmed
+  `seedRbac` is **not** wired to startup (only migration 0025 seeds in prod, once → operator edits to
+  system roles persist).
+- **Docs updated:** `docs/reference/guides/contests.md` (reviewer/editor + edit-authz),
+  `docs/llm/facts.md` (201 timeline entry), `docs/llm/gotchas.md` (new RBAC section: the no-op-without-
+  seed trap, the `admin.*` bypass, INV-1 short-circuit, editor scoping), `docs/plans/rbac.md` (Phases
+  0–3 built), `docs/STATUS.md` (201 in-flight note).
+
+Final gates: **server 1379 · layer 1021 · schema 466 · nuxt typecheck 0 · migration 0025 clean.**
+
 ## Open / next
 - **Release pending review** (not done this session): bump schema/server/layer (config/auth
   unchanged), publish in order, layer via `pnpm run publish:layer`, update deveco/heatsync/CLI pins,

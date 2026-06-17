@@ -88,7 +88,13 @@ export async function addContestStakeholder(
     return { added: true, updated: true };
   }
 
-  await db.insert(contestStakeholders).values({ contestId, userId, role });
+  // Conflict-safe insert: a concurrent double-submit can pass the `existing`
+  // check above and race the unique (contestId,userId) constraint — upsert the
+  // role instead of 500ing on the violation.
+  await db
+    .insert(contestStakeholders)
+    .values({ contestId, userId, role })
+    .onConflictDoUpdate({ target: [contestStakeholders.contestId, contestStakeholders.userId], set: { role } });
   notifyStakeholder(db, userId, role, opts);
   return { added: true };
 }

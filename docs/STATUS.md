@@ -11,6 +11,18 @@
 
 ## TL;DR — where things stand
 
+**⏳ Session 201 — BUILT ON BRANCH `rbac-activation-and-contest-editors`, NOT published/deployed
+(flag default OFF).** Discovered that RBAC Phase 2/3 were never built (seed/admin-UI), so enabling
+`features.rbac` was a no-op and `staff` == `member`. Built: migration **0025** (seeds 5 system roles +
+permission sets + `user_roles` backfill; also adds `contest_stakeholders.role`), `updateUserRole`
+sync + last-admin floor, admin **roles UI** (`/admin/roles` + per-user assignment in `/admin/users`,
+`roles.manage`), `/api/me` permissions + `useCan()`, and a per-contest **editor** role (full edit of
+one contest, no system access). An adversarial audit fixed a **P0** (admin bypass via the `admin.*`
+wildcard) + hardening. Gates green (server 1379 / layer 1021 / schema 466 / typecheck 0 / migration
+0025 applied clean to a fresh Postgres). **Release pending review:** bump schema/server/layer, publish,
+update consumer pins, deploy; `features.rbac` stays OFF (operator flips per instance later — Phase
+2/4). Detail: `docs/plans/rbac-activation-and-contest-editors.md` + `docs/sessions/201-*.md`.
+
 **Sessions 199–200 — SHIPPED + ROLLED to all 3 (commonpub.io, deveco.io, heatsynclabs.io).**
 npm: **schema 0.44.0 / server 2.88.0 / layer 0.81.0** (config 0.22.1). Migrations through **0024**.
 All health 200, terms templating + image cropper verified per-instance.
