@@ -169,9 +169,34 @@ So commonpub.io runs the new code with RBAC **staged/inert** and the per-contest
 from workspace source — **no npm publish was needed** for commonpub.io. The Node-20-deprecation line in
 the run is the pre-existing GH-Actions warning (non-blocking).
 
-**Still to do:** (1) operator flips `rbac` ON on commonpub.io from `/admin/roles` when ready (audit
-`staff` membership first); (2) deveco/heatsync = bump schema/server/layer + npm publish + pin bumps +
-their own deploys (Phase 4).
+## Rolled to ALL 3 + npm publish + CLI (2026-06-17, same day)
+
+- **Published npm:** schema **0.45.0** / server **2.89.0** / layer **0.82.0** (config/auth/protocol/ui
+  unchanged). Layer's deps correctly rewritten to the new versions. Version bumps committed to `main`.
+- **deveco.io:** pins → ^0.45/^2.89/^0.82, both lockfiles regenerated (pnpm-lock tracked, package-lock
+  gitignored), `nuxi typecheck` ✅, CI (frozen-lockfile) ✅, deploy ✅ (`db:migrate` 0025 ✅), health 200.
+- **heatsynclabs.io:** pins → same, all 3 tracked lockfiles regenerated, `nuxi typecheck` ✅, deploy ✅
+  (`db:migrate` 0025 ✅), health 200.
+- **CLI create-commonpub 0.5.16:** `template.rs` pins + `tests/cli.rs` assertions → ^0.45/^2.89/^0.82/
+  config ^0.22.1, `cargo test` 29/29.
+- **Consumer-compat verified:** neither consumer overrides any file the 201 work touched (deveco:
+  default/auth layouts + logo + some pages; heatsync: SiteLogo + HeroSection) — all changes additive.
+
+### ⚠️ RBAC flag state after rollout (important)
+The seed (0025) makes `features.rbac` actually *do* something, so its live state now matters:
+- **commonpub.io = ON** — enabled via the new `/admin/roles` toggle (the only code path that sets the
+  override; admin-auth + a click).
+- **deveco.io = ON** — a **pre-existing** `rbac` override (set some earlier session, dormant because the
+  tables were empty) became **active** the moment 0025 seeded. So deveco's `staff` users are now
+  moderators. **Operator: confirm this is intended; if not, Disable on `/admin/roles`.**
+- **heatsynclabs.io = OFF** — inert (seeded but flag off = byte-identical authz).
+
+Kill-switch everywhere: Disable on `/admin/roles` or clear the `rbac` override in `/admin/features`
+(no redeploy). The ON state is fully audited/safe (admin floor, staff=moderator-no-admin.access,
+members=nothing, custom roles contained, atomic role mutations).
+
+**Phase 4 is therefore COMPLETE** (all 3 on the new code + seed). Only open item: the operator's
+decision on whether deveco/commonpub.io should stay ON.
 
 ## Open / next
 - **Release pending review** (not done this session): bump schema/server/layer (config/auth

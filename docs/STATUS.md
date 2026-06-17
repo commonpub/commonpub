@@ -11,20 +11,24 @@
 
 ## TL;DR — where things stand
 
-**Session 201 — LIVE on commonpub.io only (PR #51, merge `3edc768`, 2026-06-17). `features.rbac`
-stays default OFF.** Discovered that RBAC Phase 2/3 were never built (seed/admin-UI), so enabling
-`features.rbac` was a no-op and `staff` == `member`. Shipped: migration **0025** (seeds 5 system roles +
-permission sets + `user_roles` backfill; also adds `contest_stakeholders.role`), `updateUserRole`
-atomic sync + last-admin floor (`FOR UPDATE`), admin **roles UI** (`/admin/roles` with an Enable/Disable
-RBAC toggle + per-user assignment in `/admin/users`, `roles.manage`), `/api/me` permissions + `useCan()`,
-and a per-contest **editor** role (full edit of one contest, no system access). Three adversarial audit
-rounds fixed a **P0** (admin bypass via the `admin.*` wildcard) + atomicity/TOCTOU hardening.
-**commonpub.io deploy verified:** `db:migrate` ✅ (0025 applied), smoke ✅ (`/` + `/api/health` 200),
-`/api/features` → `rbac:false`. commonpub.io builds from workspace source, so **no npm publish yet**.
-**Remaining:** (1) operator flips `rbac` ON on commonpub.io via `/admin/roles` when ready (audit who
-holds `staff` first — they become moderators); (2) deveco.io / heatsynclabs.io rollout = bump
-schema/server/layer + publish npm + update pins + deploy (Phase 4). Detail:
-`docs/plans/rbac-activation-and-contest-editors.md` + `docs/sessions/201-*.md`.
+**Session 201 — SHIPPED + ROLLED to all 3 (PR #51, 2026-06-17).** npm: **schema 0.45.0 /
+server 2.89.0 / layer 0.82.0**. Migration **0025** applied on all 3 (`db:migrate` ✅ each). CLI
+**create-commonpub 0.5.16** (pins ^0.45/^2.89/^0.82). Discovered RBAC Phase 2/3 were never built
+(seed/admin-UI), so enabling `features.rbac` was a no-op and `staff` == `member`. Shipped: migration
+0025 (seeds 5 system roles + permission sets + `user_roles` backfill; also adds
+`contest_stakeholders.role`), `updateUserRole` atomic sync + last-admin floor (`FOR UPDATE`), admin
+**roles UI** (`/admin/roles` with an Enable/Disable RBAC toggle + per-user assignment in
+`/admin/users`, `roles.manage`), `/api/me` permissions + `useCan()`, and a per-contest **editor** role
+(full edit of one contest, no system access). Three adversarial audit rounds fixed a **P0** (admin
+bypass via the `admin.*` wildcard) + atomicity/TOCTOU hardening.
+
+⚠️ **`features.rbac` is now LIVE-effective wherever the override is ON** (the seed makes the flag do
+something): **commonpub.io = ON** (enabled via the new toggle), **deveco.io = ON** (a *pre-existing*
+override that was dormant until 0025 seeded — so deveco's `staff` users are now moderators; confirm
+intended or Disable on `/admin/roles`), **heatsynclabs.io = OFF** (inert). When ON: admin = full,
+staff = moderator set (no `admin.access`), member/pro/verified = nothing, custom roles resolve.
+Kill-switch: Disable on `/admin/roles` (or clear the `rbac` override in `/admin/features`) — no
+redeploy. Detail: `docs/plans/rbac-activation-and-contest-editors.md` + `docs/sessions/201-*.md`.
 
 **Sessions 199–200 — SHIPPED + ROLLED to all 3 (commonpub.io, deveco.io, heatsynclabs.io).**
 npm: **schema 0.44.0 / server 2.88.0 / layer 0.81.0** (config 0.22.1). Migrations through **0024**.
@@ -339,21 +343,23 @@ a minute (`curl deveco.io/api/content?limit=5`, today's timestamp).
 
 ## 📌 Reference
 
-### Published versions (verified 2026-06-11)
+### Published versions (verified 2026-06-17)
 | Package | Version | | Package | Version |
 |---|---|---|---|---|
-| @commonpub/schema | **0.43.0** | | @commonpub/infra | 0.8.0 |
-| @commonpub/config | 0.22.1 | | @commonpub/editor | **0.7.12** |
+| @commonpub/schema | **0.45.0** | | @commonpub/infra | 0.8.0 |
+| @commonpub/config | 0.22.1 | | @commonpub/editor | 0.7.12 |
 | @commonpub/protocol | 0.13.0 | | @commonpub/explainer | 0.7.15 |
 | @commonpub/auth | 0.8.0 | | @commonpub/docs | 0.6.3 |
-| @commonpub/server | **2.86.0** | | @commonpub/learning | 0.5.2 |
+| @commonpub/server | **2.89.0** | | @commonpub/learning | 0.5.2 |
 | @commonpub/ui | 0.13.1 | | @commonpub/test-utils | 0.5.6 |
-| @commonpub/layer | **0.76.0** | | @commonpub/theme-studio | 0.6.1 |
-| create-commonpub (crates.io) | 0.5.15 _(stale — pins lag)_ | | | |
+| @commonpub/layer | **0.82.0** | | @commonpub/theme-studio | 0.6.1 |
+| create-commonpub (crates.io) | **0.5.16** (pins ^0.45/^2.89/^0.82) | | | |
 
-Latest migrations: **0022** (`contest_content_format` enum + `content_format` col, session 197) ·
-**0023** (per-field `description_format` / `rules_format` / `prizes_description_format`, session 197;
-the now-deprecated `content_format` column is left inert — drop it in a later interactive generate).
+Latest migration: **0025** (session 201, applied on all 3) — additive: adds `contest_stakeholders.role`
+(`reviewer`|`editor`) AND seeds the 5 RBAC system roles + permission sets + backfills `user_roles`
+(`ON CONFLICT DO NOTHING`, idempotent). Prior: **0024** (session 199, scheduled-publishing fields) ·
+**0023** (per-field contest text formats, session 197; the now-deprecated `content_format` column from
+**0022** is left inert — drop it in a later interactive generate).
 
 **Stoa theme (session 190, ui 0.10.0 / layer 0.63.0):** new built-in theme family (light + dark) —
 warm paper, moss accent, Fraunces/Newsreader/Work Sans, soft rounded geometry; shares Agora's Town
@@ -496,11 +502,15 @@ width and height (driven by a `--cpub-av-size` var), which clamps the used size 
 sets/drops a dimension. Verified live on deveco.
 
 ### Live flags per instance
-| Instance | federation | seamless | actAsRegistry | announceToRegistry | role |
-|---|---|---|---|---|---|
-| commonpub.io | ✅ | ✅ | ✅ | ✅ (self-skips) | **the registry** |
-| deveco.io | ✅ | ✅ | ❌ | ✅ | mirrors heatsync; seamless w/ commonpub |
-| heatsynclabs.io | ✅ | ❌ | ❌ | ✅ | mirrored by deveco |
+| Instance | federation | seamless | actAsRegistry | announceToRegistry | **rbac** | role |
+|---|---|---|---|---|---|---|
+| commonpub.io | ✅ | ✅ | ✅ | ✅ (self-skips) | ✅ **ON** | **the registry** |
+| deveco.io | ✅ | ✅ | ❌ | ✅ | ✅ **ON** (pre-existing override) | mirrors heatsync; seamless w/ commonpub |
+| heatsynclabs.io | ✅ | ❌ | ❌ | ✅ | ❌ OFF | mirrored by deveco |
+
+> **rbac (session 201):** seeded on all 3 (migration 0025); effective only where the override is ON.
+> commonpub.io + deveco.io are ON (deveco via a pre-existing override that became active once seeded —
+> its `staff` users are now moderators). Toggle per instance on `/admin/roles`. `curl /api/features | jq .rbac`.
 
 Registry config defaults (`@commonpub/config`): `registryUrl = https://commonpub.io`,
 `registryPingIntervalMs = 21_600_000` (6h), `announceToRegistry` default **true**, `actAsRegistry`
