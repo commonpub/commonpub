@@ -1,17 +1,23 @@
 import { eq, and } from 'drizzle-orm';
 import { contestStakeholders, contests, users } from '@commonpub/schema';
+import type { StakeholderRole } from '@commonpub/schema';
 import type { DB } from '../types.js';
 import { createNotification } from '../notification/notification.js';
 
 /**
- * Stakeholders are view-only reviewers: they can see a contest (even private /
- * pre-publish) without admin-panel access or being a judge. Distinct from
- * judges — they never appear in the judge list and cannot score.
+ * Per-contest collaborators, distinguished by `role`:
+ *   - 'reviewer' — view-only: can see a contest (even private / pre-publish)
+ *     without admin-panel access or being a judge. Never appears in the judge
+ *     list and cannot score. (Original stakeholder semantics.)
+ *   - 'editor' — full edit rights to THIS contest only (no system-wide access).
+ *     Recognized by `isContestEditor`, which the edit/advance/transition routes
+ *     fold into their canManage decision.
  */
 export interface ContestStakeholderItem {
   id: string;
   contestId: string;
   userId: string;
+  role: StakeholderRole;
   invitedAt: Date;
   userName: string;
   userUsername: string;
@@ -35,6 +41,7 @@ export async function listContestStakeholders(
     id: sh.id,
     contestId: sh.contestId,
     userId: sh.userId,
+    role: (sh.role as StakeholderRole) ?? 'reviewer',
     invitedAt: sh.invitedAt,
     userName: user.displayName ?? user.username,
     userUsername: user.username,
@@ -42,12 +49,26 @@ export async function listContestStakeholders(
   }));
 }
 
+/**
+ * Grant (or update) a user's per-contest collaborator role. Upserts: if the
+ * user is already a stakeholder with a different role, their role is updated
+ * (so a reviewer can be promoted to editor) — `updated:true` is returned.
+ * Adding/promoting is gated to the contest owner / `contest.manage` at the route
+ * (an editor cannot mint more editors).
+ */
 export async function addContestStakeholder(
   db: DB,
   contestId: string,
   userId: string,
-  context?: { contestSlug: string; contestTitle: string; invitedBy: string },
-): Promise<{ added: boolean; error?: string }> {
+  opts?: {
+    role?: StakeholderRole;
+    contestSlug?: string;
+    contestTitle?: string;
+    invitedBy?: string;
+  },
+): Promise<{ added: boolean; updated?: boolean; error?: string }> {
+  const role: StakeholderRole = opts?.role ?? 'reviewer';
+
   const [contest] = await db.select({ id: contests.id }).from(contests).where(eq(contests.id, contestId)).limit(1);
   if (!contest) return { added: false, error: 'Contest not found' };
 
@@ -55,26 +76,39 @@ export async function addContestStakeholder(
   if (!user) return { added: false, error: 'User not found' };
 
   const [existing] = await db
-    .select({ id: contestStakeholders.id })
+    .select({ id: contestStakeholders.id, role: contestStakeholders.role })
     .from(contestStakeholders)
     .where(and(eq(contestStakeholders.contestId, contestId), eq(contestStakeholders.userId, userId)))
     .limit(1);
-  if (existing) return { added: false, error: 'User is already a stakeholder' };
 
-  await db.insert(contestStakeholders).values({ contestId, userId });
-
-  if (context) {
-    createNotification(db, {
-      userId,
-      type: 'contest',
-      title: 'Contest Access',
-      message: `You've been granted review access to "${context.contestTitle}"`,
-      link: `/contests/${context.contestSlug}`,
-      actorId: context.invitedBy,
-    }).catch(() => {});
+  if (existing) {
+    if (existing.role === role) return { added: false, error: 'User already has that role' };
+    await db.update(contestStakeholders).set({ role }).where(eq(contestStakeholders.id, existing.id));
+    notifyStakeholder(db, userId, role, opts);
+    return { added: true, updated: true };
   }
 
+  await db.insert(contestStakeholders).values({ contestId, userId, role });
+  notifyStakeholder(db, userId, role, opts);
   return { added: true };
+}
+
+function notifyStakeholder(
+  db: DB,
+  userId: string,
+  role: StakeholderRole,
+  opts?: { contestSlug?: string; contestTitle?: string; invitedBy?: string },
+): void {
+  if (!opts?.contestSlug || !opts.contestTitle || !opts.invitedBy) return;
+  const access = role === 'editor' ? 'edit access' : 'review access';
+  createNotification(db, {
+    userId,
+    type: 'contest',
+    title: 'Contest Access',
+    message: `You've been granted ${access} to "${opts.contestTitle}"`,
+    link: `/contests/${opts.contestSlug}`,
+    actorId: opts.invitedBy,
+  }).catch(() => {});
 }
 
 export async function removeContestStakeholder(
@@ -92,6 +126,10 @@ export async function removeContestStakeholder(
   return true;
 }
 
+/**
+ * True if the user is a stakeholder of ANY role (reviewer or editor) — i.e. may
+ * VIEW a private/draft contest. Role-agnostic on purpose.
+ */
 export async function isContestStakeholder(
   db: DB,
   contestId: string,
@@ -103,4 +141,22 @@ export async function isContestStakeholder(
     .where(and(eq(contestStakeholders.contestId, contestId), eq(contestStakeholders.userId, userId)))
     .limit(1);
   return !!row;
+}
+
+/**
+ * True if the user is an `editor` stakeholder of this contest — i.e. holds full
+ * edit rights to it (no system-wide access). Folded into the canManage decision
+ * on the edit/advance/transition routes alongside owner + `contest.manage`.
+ */
+export async function isContestEditor(
+  db: DB,
+  contestId: string,
+  userId: string,
+): Promise<boolean> {
+  const [row] = await db
+    .select({ role: contestStakeholders.role })
+    .from(contestStakeholders)
+    .where(and(eq(contestStakeholders.contestId, contestId), eq(contestStakeholders.userId, userId)))
+    .limit(1);
+  return row?.role === 'editor';
 }

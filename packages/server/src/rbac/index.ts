@@ -2,3 +2,14 @@
 // server gate live in layers/base/server/utils/. See docs/plans/rbac.md.
 export { resolveUserPermissions } from './resolver.js';
 export type { ResolvedPermissions } from './resolver.js';
+export { seedRbac, SYSTEM_ROLE_SEEDS, STAFF_PERMISSION_SET } from './seed.js';
+export type { SystemRoleSeed } from './seed.js';
+export {
+  listRolesWithPermissions,
+  createRole,
+  updateRole,
+  deleteRole,
+  setUserCustomRoles,
+  getUserRoleIds,
+} from './admin.js';
+export type { RoleWithPermissions, CreateRoleInput, UpdateRoleInput } from './admin.js';

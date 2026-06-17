@@ -17,6 +17,11 @@ const { data: contest, refresh, status: contestStatus } = useLazyFetch(`/api/con
 // broken link. Treat idle/pending as "loading", not "not found".
 const contestLoading = computed(() => contestStatus.value === 'idle' || contestStatus.value === 'pending');
 const isOwner = computed(() => isAdmin.value || !!(user.value?.id && contest.value?.createdById === user.value.id));
+// Can the viewer edit this contest? Owner, a per-contest `editor`, or a
+// `contest.manage` holder (server-computed `viewerCanManage`). Drives page access
+// + the editing surface. Owner-only surfaces (delete, managing collaborators)
+// stay gated on `isOwner`.
+const canManage = computed(() => isOwner.value || !!contest.value?.viewerCanManage);
 useSeoMeta({ title: () => `Edit: ${contest.value?.title ?? 'Contest'}, ${useSiteName()}` });
 
 const saving = ref(false);
@@ -327,7 +332,7 @@ async function transitionStatus(newStatus: string): Promise<void> {
 </script>
 
 <template>
-  <div v-if="contest && !isOwner" class="cpub-not-found">
+  <div v-if="contest && !canManage" class="cpub-not-found">
     <p>You don't have permission to edit this contest.</p>
     <NuxtLink :to="`/contests/${slug}`" class="cpub-btn cpub-btn-sm">Back to Contest</NuxtLink>
   </div>
@@ -555,11 +560,11 @@ async function transitionStatus(newStatus: string): Promise<void> {
             </label>
           </div>
         </div>
-        <div class="cpub-subhead">
-          <h3 class="cpub-form-subtitle">Reviewers</h3>
+        <div v-if="isOwner" class="cpub-subhead">
+          <h3 class="cpub-form-subtitle">Collaborators</h3>
         </div>
-        <p class="cpub-form-hint">Reviewers can view this contest (even while it's private or in draft) without being a judge or an admin, view access scoped to this contest only. They can't edit or score entries.</p>
-        <ContestStakeholderManager :contest-slug="slug" />
+        <p v-if="isOwner" class="cpub-form-hint">Grant per-contest access scoped to this contest only, with no system-wide access. Reviewers can view it (even while private or in draft) but can't edit or score. Editors can fully edit this contest.</p>
+        <ContestStakeholderManager v-if="isOwner" :contest-slug="slug" />
       </section>
 
       <!-- Judge panel (single source of truth: contest_judges table) -->
@@ -620,7 +625,7 @@ async function transitionStatus(newStatus: string): Promise<void> {
         </div>
       </section>
 
-      <section class="cpub-form-section cpub-danger-zone">
+      <section v-if="isOwner" class="cpub-form-section cpub-danger-zone">
         <h2 class="cpub-form-section-title cpub-danger-title">Danger Zone</h2>
         <div class="cpub-danger-row">
           <div>

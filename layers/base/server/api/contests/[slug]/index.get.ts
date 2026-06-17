@@ -1,4 +1,4 @@
-import { getContestBySlug, canViewContest } from '@commonpub/server';
+import { getContestBySlug, canViewContest, isContestEditor } from '@commonpub/server';
 import type { ContestDetail } from '@commonpub/server';
 
 export default defineEventHandler(async (event): Promise<ContestDetail> => {
@@ -13,5 +13,11 @@ export default defineEventHandler(async (event): Promise<ContestDetail> => {
   if (!(await canViewContest(db, contest, user))) {
     throw createError({ statusCode: 404, statusMessage: 'Contest not found' });
   }
+  // Per-request manage flag for the client (owner / editor / contest.manage).
+  // Server stays the enforcement boundary; this only drives UI affordances.
+  contest.viewerCanManage = user
+    ? ownerOrPermission(event, contest.createdById, 'contest.manage') ||
+      (await isContestEditor(db, contest.id, user.id))
+    : false;
   return contest;
 });

@@ -24,6 +24,7 @@ import {
   removeContestStakeholder,
   listContestStakeholders,
   isContestStakeholder,
+  isContestEditor,
 } from '../contest/stakeholders.js';
 import { createContent, publishContent } from '../content/content.js';
 import { addContestJudge, acceptJudgeInvite, listContestJudges, isContestJudge, updateJudgeRole } from '../contest/judges.js';
@@ -264,7 +265,7 @@ describe('contest integration', () => {
     const stages = [{ id: 'sub', name: 'Subs', kind: 'submission' as const }, { id: 'rev', name: 'Judge', kind: 'review' as const }];
     const contest = await createContest(db, { ...makeContestInput({ title: `Adv guard ${Date.now()}` }), stages });
     const outsider = await createTestUser(db, { username: `adv-out-${Date.now()}` });
-    expect((await advanceContestStage(db, contest.id, outsider.id, { reviewStageId: 'rev', mode: 'topN', topN: 1 })).error).toMatch(/owner/i);
+    expect((await advanceContestStage(db, contest.id, outsider.id, { reviewStageId: 'rev', mode: 'topN', topN: 1 })).error).toMatch(/authoriz/i);
     expect((await advanceContestStage(db, contest.id, organizerId, { reviewStageId: 'sub', mode: 'topN', topN: 1 })).error).toMatch(/review/i);
   });
 
@@ -821,11 +822,11 @@ describe('contest integration', () => {
     expect(result.judged).toBe(true);
   });
 
-  it('rejects status transition by a non-owner', async () => {
+  it('rejects status transition by a non-owner (non-editor, no manage perm)', async () => {
     const contest = await createContest(db, makeContestInput({ title: 'Owner-only Transition' }));
     const r = await transitionContestStatus(db, contest.id, participantId, 'active');
     expect(r.transitioned).toBe(false);
-    expect(r.error).toMatch(/owner/i);
+    expect(r.error).toMatch(/authoriz/i);
   });
 
   it('acceptJudgeInvite is idempotent and rejects when no invite exists', async () => {
@@ -1236,6 +1237,57 @@ describe('contest integration', () => {
 
     expect(await removeContestStakeholder(db, priv.id, reviewer.id)).toBe(true);
     expect(await canViewContest(db, priv, { id: reviewer.id, role: 'member' })).toBe(false);
+  });
+
+  it('editor stakeholders can edit/transition/advance a contest; reviewers cannot', async () => {
+    const owner = await createTestUser(db, { username: `ed-owner-${Date.now()}` });
+    const editor = await createTestUser(db, { username: `ed-editor-${Date.now()}` });
+    const reviewer = await createTestUser(db, { username: `ed-reviewer-${Date.now()}` });
+    const stranger = await createTestUser(db, { username: `ed-stranger-${Date.now()}` });
+    const contest = await createContest(db, {
+      ...makeContestInput({ title: `Editor Authz ${Date.now()}` }),
+      createdBy: owner.id,
+    });
+
+    // Grant editor + reviewer roles.
+    const ed = await addContestStakeholder(db, contest.id, editor.id, { role: 'editor' });
+    expect(ed.added).toBe(true);
+    await addContestStakeholder(db, contest.id, reviewer.id, { role: 'reviewer' });
+
+    expect(await isContestEditor(db, contest.id, editor.id)).toBe(true);
+    expect(await isContestEditor(db, contest.id, reviewer.id)).toBe(false);
+    // Both roles can VIEW.
+    expect(await isContestStakeholder(db, contest.id, reviewer.id)).toBe(true);
+
+    // Editor can edit (canManage=false — the function recognizes the editor row).
+    const edited = await updateContest(db, contest.slug, editor.id, { subheading: 'by editor' });
+    expect(edited?.subheading).toBe('by editor');
+    // Reviewer and stranger cannot edit.
+    expect(await updateContest(db, contest.slug, reviewer.id, { subheading: 'nope' })).toBeNull();
+    expect(await updateContest(db, contest.slug, stranger.id, { subheading: 'nope' })).toBeNull();
+    // A non-owner the route cleared via contest.manage (canManage=true) can edit.
+    const byPerm = await updateContest(db, contest.slug, stranger.id, { subheading: 'by perm' }, true);
+    expect(byPerm?.subheading).toBe('by perm');
+
+    // Editor can transition status.
+    const t = await transitionContestStatus(db, contest.id, editor.id, 'active');
+    expect(t.transitioned).toBe(true);
+    const tDenied = await transitionContestStatus(db, contest.id, reviewer.id, 'judging');
+    expect(tDenied.transitioned).toBe(false);
+    expect(/authoriz/i.test(tDenied.error ?? '')).toBe(true);
+
+    // Promote reviewer -> editor (upsert).
+    const promo = await addContestStakeholder(db, contest.id, reviewer.id, { role: 'editor' });
+    expect(promo.added).toBe(true);
+    expect(promo.updated).toBe(true);
+    expect(await isContestEditor(db, contest.id, reviewer.id)).toBe(true);
+    // Same-role add is a no-op error.
+    const dup = await addContestStakeholder(db, contest.id, reviewer.id, { role: 'editor' });
+    expect(dup.added).toBe(false);
+
+    // listContestStakeholders surfaces the role.
+    const list = await listContestStakeholders(db, contest.id);
+    expect(list.find((s) => s.userId === editor.id)?.role).toBe('editor');
   });
 
   it('seeds stakeholders + visibility from create input', async () => {

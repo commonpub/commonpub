@@ -2,7 +2,7 @@ import { eq, ne, and, or, desc, sql, isNotNull, inArray } from 'drizzle-orm';
 import { contests, contestEntries, contestJudges, contestStakeholders, users, contentItems } from '@commonpub/schema';
 import type { DB } from '../types.js';
 import { normalizePagination, countRows } from '../query.js';
-import { isContestStakeholder } from './stakeholders.js';
+import { isContestStakeholder, isContestEditor } from './stakeholders.js';
 import { isContestJudge } from './judges.js';
 
 import type { ContestStatus, ContestStage, ContestStageSubmission, ContestSubmissionTemplateField } from '@commonpub/schema';
@@ -77,6 +77,14 @@ export interface ContestDetail extends ContestListItem {
   /** Phase B1 — explicit stage timeline (`[]` ⇒ classic synthesized flow). */
   stages: ContestStage[];
   currentStageId: string | null;
+  /**
+   * Per-request view-model flag (NOT persisted): whether the CURRENT viewer may
+   * manage this contest — owner, a per-contest `editor` stakeholder, or a
+   * `contest.manage` holder. Set by the contest GET route; undefined elsewhere.
+   * Drives the client Edit/manage affordances (server remains the enforcement
+   * boundary).
+   */
+  viewerCanManage?: boolean;
 }
 
 export interface ContestFilters {
@@ -448,11 +456,17 @@ export async function createContest(
   return toContestDetail(row!);
 }
 
+/**
+ * Update a contest. Authorized for the owner, a per-contest `editor` stakeholder,
+ * or a caller the route already cleared via `contest.manage` (`canManage=true`).
+ * Returns null when the contest is missing OR the caller is not authorized.
+ */
 export async function updateContest(
   db: DB,
   slug: string,
   userId: string,
   data: Partial<CreateContestInput>,
+  canManage = false,
 ): Promise<ContestDetail | null> {
   const existing = await db
     .select()
@@ -461,7 +475,8 @@ export async function updateContest(
     .limit(1);
 
   if (existing.length === 0) return null;
-  if (existing[0]!.createdById !== userId) return null;
+  const isOwner = existing[0]!.createdById === userId;
+  if (!isOwner && !canManage && !(await isContestEditor(db, existing[0]!.id, userId))) return null;
 
   const updates: Record<string, unknown> = { updatedAt: new Date() };
   if (data.title !== undefined) updates.title = data.title;
@@ -981,6 +996,7 @@ export async function transitionContestStatus(
   contestId: string,
   userId: string,
   newStatus: ContestStatus,
+  canManage = false,
 ): Promise<{ transitioned: boolean; error?: string }> {
   const contest = await db
     .select({ createdById: contests.createdById, status: contests.status })
@@ -989,7 +1005,9 @@ export async function transitionContestStatus(
     .limit(1);
 
   if (contest.length === 0) return { transitioned: false, error: 'Contest not found' };
-  if (contest[0]!.createdById !== userId) return { transitioned: false, error: 'Not the contest owner' };
+  if (contest[0]!.createdById !== userId && !canManage && !(await isContestEditor(db, contestId, userId))) {
+    return { transitioned: false, error: 'Not authorized to manage this contest' };
+  }
 
   const currentStatus = contest[0]!.status;
   const allowed = VALID_TRANSITIONS[currentStatus] ?? [];
@@ -1321,6 +1339,7 @@ export async function advanceContestStage(
   contestId: string,
   userId: string,
   input: AdvanceStageInput,
+  canManage = false,
 ): Promise<{ advanced: boolean; advancedCount: number; eliminatedCount: number; error?: string }> {
   const fail = (error: string) => ({ advanced: false, advancedCount: 0, eliminatedCount: 0, error });
 
@@ -1339,7 +1358,9 @@ export async function advanceContestStage(
     .limit(1);
 
   if (!contest) return fail('Contest not found');
-  if (contest.createdById !== userId) return fail('Not the contest owner');
+  if (contest.createdById !== userId && !canManage && !(await isContestEditor(db, contestId, userId))) {
+    return fail('Not authorized to manage this contest');
+  }
 
   const stages = normalizeStages(contest);
   const idx = stages.findIndex((s) => s.id === input.reviewStageId);

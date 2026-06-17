@@ -176,6 +176,13 @@
       "when": 1781566090034,
       "tag": "0024_motionless_northstar",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1781721110754,
+      "tag": "0025_round_malice",
+      "breakpoints": true
     }
   ]
 }

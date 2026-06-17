@@ -23,6 +23,9 @@ const c = computed(() => contest.value);
 const entries = computed(() => apiEntriesData.value?.items ?? []);
 const judges = computed<ContestJudgeItem[]>(() => judgesData.value ?? []);
 const isOwner = computed(() => isAdmin.value || !!(user.value?.id && c.value?.createdById === user.value.id));
+// Can edit this contest (owner / per-contest editor / contest.manage holder).
+// Drives the Edit affordance; judge/collaborator management stays owner-only.
+const canManage = computed(() => isOwner.value || !!c.value?.viewerCanManage);
 
 // Judge state derives entirely from the contest_judges table (single source of
 // truth) — not the legacy `judges` jsonb column.
@@ -384,7 +387,7 @@ async function withdrawEntry(entryId: string): Promise<void> {
           </div>
         </div>
 
-        <ContestSidebar :contest="c" :is-owner="isOwner" :can-judge="canJudge" @copy-link="copyLink" />
+        <ContestSidebar :contest="c" :is-owner="isOwner" :can-manage="canManage" :can-judge="canJudge" @copy-link="copyLink" />
       </div>
     </div>
   </div>

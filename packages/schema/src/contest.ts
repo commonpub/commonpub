@@ -254,8 +254,14 @@ export const contestJudges = pgTable('contest_judges', {
 ]);
 
 // --- Contest Stakeholders ---
-// View-only reviewers: can see a contest (even private/draft) without admin-panel
-// access or being a judge. Distinct from judges (no scoring, not in judge list).
+// Per-contest collaborators. `role` distinguishes:
+//   'reviewer' (default) — view-only: can see a contest (even private/draft)
+//     without admin-panel access or being a judge. Distinct from judges (no
+//     scoring, not in judge list). This is the original stakeholder semantics.
+//   'editor' — full edit rights to THIS contest only, with NO system-wide
+//     access. Gated server-side via isContestEditor + the canManage decision on
+//     the edit/advance/transition routes. (Operator decision, session 201:
+//     stored as a role column here rather than a separate table.)
 export const contestStakeholders = pgTable('contest_stakeholders', {
   id: uuid('id').defaultRandom().primaryKey(),
   contestId: uuid('contest_id')
@@ -264,6 +270,7 @@ export const contestStakeholders = pgTable('contest_stakeholders', {
   userId: uuid('user_id')
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
+  role: varchar('role', { length: 32 }).default('reviewer').notNull(),
   invitedAt: timestamp('invited_at', { withTimezone: true }).defaultNow().notNull(),
 }, (t) => [
   unique('uq_contest_stakeholders_contest_user').on(t.contestId, t.userId),

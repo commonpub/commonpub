@@ -111,6 +111,14 @@ const ROUTE_KEYS: Record<string, string> = {
   'users/[id].delete.ts': 'users.delete',
   'users/[id]/role.put.ts': 'users.manage',
   'users/[id]/status.put.ts': 'users.manage',
+  'users/[id]/roles.get.ts': 'roles.manage',
+  'users/[id]/roles.put.ts': 'roles.manage',
+  // RBAC role administration (Phase 3)
+  'roles/index.get.ts': 'roles.manage',
+  'roles/index.post.ts': 'roles.manage',
+  'roles/[id]/index.put.ts': 'roles.manage',
+  'roles/[id]/index.delete.ts': 'roles.manage',
+  'permissions.get.ts': 'roles.manage',
 };
 
 function walk(dir: string): string[] {

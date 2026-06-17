@@ -15,7 +15,8 @@ import {
   setInstanceSetting,
   removeContent,
 } from '../admin/admin.js';
-import { contentItems } from '@commonpub/schema';
+import { contentItems, roles, userRoles } from '@commonpub/schema';
+import { seedRbac } from '../rbac/seed.js';
 
 describe('admin module', () => {
   let db: DB;
@@ -169,6 +170,35 @@ describe('admin module', () => {
       await expect(
         updateUserRole(db, '00000000-0000-0000-0000-000000000000', 'admin', adminId),
       ).rejects.toThrow('User not found');
+    });
+
+    it('syncs user_roles when the system roles are seeded', async () => {
+      // Realistic order: the user predates the seed/backfill.
+      const u = await createTestUser(db, { username: `sync-${Date.now()}`, role: 'member' });
+      await seedRbac(db);
+
+      const roleKeysFor = async (userId: string): Promise<string[]> => {
+        const rows = await db
+          .select({ key: roles.key })
+          .from(userRoles)
+          .innerJoin(roles, eq(userRoles.roleId, roles.id))
+          .where(eq(userRoles.userId, userId));
+        return rows.map((r) => r.key).sort();
+      };
+
+      // Backfilled at seed time as 'member'.
+      expect(await roleKeysFor(u.id)).toEqual(['member']);
+
+      await updateUserRole(db, u.id, 'staff', adminId);
+      // Old system membership swapped for the new one.
+      expect(await roleKeysFor(u.id)).toEqual(['staff']);
+    });
+
+    it('refuses to demote the last admin (INV-4)', async () => {
+      const solo = await createTestDB();
+      const onlyAdmin = await createTestUser(solo, { username: 'solo-admin', role: 'admin' });
+      await expect(updateUserRole(solo, onlyAdmin.id, 'member', onlyAdmin.id)).rejects.toThrow('LAST_ADMIN');
+      await closeTestDB(solo);
     });
   });
 
