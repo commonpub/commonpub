@@ -2,6 +2,11 @@ import { eq, and, inArray, sql } from 'drizzle-orm';
 import { roles, rolePermissions, userRoles, isPermissionGrant, filterKnownPermissions } from '@commonpub/schema';
 import type { DB } from '../types.js';
 import { createAuditEntry } from '../admin/admin.js';
+import { SYSTEM_ROLE_SEEDS } from './seed.js';
+
+/** System role keys are reserved — custom roles may not reuse them (a custom
+ *  role keyed 'admin' would otherwise slip the `*` wildcard past sanitizeGrants). */
+const RESERVED_ROLE_KEYS: ReadonlySet<string> = new Set(SYSTEM_ROLE_SEEDS.map((s) => s.key));
 
 /**
  * RBAC role administration (Phase 3). Operator-facing CRUD over the `roles`
@@ -52,14 +57,26 @@ export async function listRolesWithPermissions(db: DB): Promise<RoleWithPermissi
 }
 
 /**
- * Validate + filter a grant list. Only the `admin` system role may hold `*`
- * (the full-bypass wildcard) — any other role gets it stripped.
+ * Grants that confer the admin bypass. `hasPermissionPure` expands the
+ * `admin.*` segment wildcard to cover `admin.access`, so stripping only the
+ * literal `*` is NOT enough — `admin.*` (and `admin.access` itself) must also be
+ * denied on non-admin roles, or a custom role granted `admin.*` silently becomes
+ * admin-equivalent (and can then self-promote via users.manage). Only the `admin`
+ * system role may hold these.
+ */
+const ADMIN_BYPASS_GRANTS: ReadonlySet<string> = new Set(['*', 'admin.access', 'admin.*']);
+
+/**
+ * Validate + filter a grant list. Only the `admin` system role keeps the admin
+ * bypass; every other role gets those grants stripped. `createRole` rejects the
+ * reserved key `admin`, so the only role reaching the `roleKey === 'admin'`
+ * branch is the seeded system admin.
  */
 function sanitizeGrants(grants: readonly string[], roleKey: string | null): string[] {
   const known = filterKnownPermissions(grants.filter((g) => isPermissionGrant(g)));
   const deduped = [...new Set(known)];
   if (roleKey === 'admin') return deduped;
-  return deduped.filter((g) => g !== '*');
+  return deduped.filter((g) => !ADMIN_BYPASS_GRANTS.has(g));
 }
 
 export interface CreateRoleInput {
@@ -75,6 +92,9 @@ export async function createRole(
   actorId: string,
 ): Promise<{ id: string }> {
   const key = input.key.trim().toLowerCase();
+  // Reserved system keys can never be (re)created as custom roles — this also
+  // closes the `*`-via-key='admin' escalation in sanitizeGrants.
+  if (RESERVED_ROLE_KEYS.has(key)) throw new Error('ROLE_KEY_RESERVED');
   const [existing] = await db.select({ id: roles.id }).from(roles).where(eq(roles.key, key)).limit(1);
   if (existing) throw new Error('ROLE_KEY_TAKEN');
 

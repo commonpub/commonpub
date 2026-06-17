@@ -8,6 +8,12 @@ export default defineEventHandler(async (event): Promise<void> => {
   const { id } = parseParams(event, { id: 'uuid' });
   const input = await parseBody(event, adminUpdateRoleSchema);
 
+  // Minting an admin is admin-only: `users.manage` lets a custom role manage
+  // non-admin users, but must not be a backdoor to creating admins (which would
+  // turn `users.manage` into root). Promotion to the admin system role requires
+  // the admin floor itself.
+  if (input.role === 'admin') requirePermission(event, 'admin.access');
+
   try {
     await updateUserRole(db, id, input.role, admin.id);
   } catch (err) {

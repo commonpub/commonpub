@@ -1,4 +1,4 @@
-ALTER TABLE "contest_stakeholders" ADD COLUMN "role" varchar(32) DEFAULT 'reviewer' NOT NULL;--> statement-breakpoint
+ALTER TABLE "contest_stakeholders" ADD COLUMN IF NOT EXISTS "role" varchar(32) DEFAULT 'reviewer' NOT NULL;--> statement-breakpoint
 -- RBAC Phase 2 seed (session 201). The roles/role_permissions/user_roles tables
 -- (migration 0009) were created but never seeded, so enabling features.rbac was a
 -- no-op. Seed the five system roles + permission sets + backfill user_roles. All

@@ -1288,6 +1288,13 @@ describe('contest integration', () => {
     // listContestStakeholders surfaces the role.
     const list = await listContestStakeholders(db, contest.id);
     expect(list.find((s) => s.userId === editor.id)?.role).toBe('editor');
+
+    // Editor must NOT be able to DELETE the contest — delete is owner/contest.manage
+    // only (the route passes canManage=false for a plain editor). Regression guard
+    // against folding editor into delete.
+    expect(await deleteContest(db, contest.id, editor.id, false)).toBe(false);
+    // Owner still can.
+    expect(await deleteContest(db, contest.id, owner.id, false)).toBe(true);
   });
 
   it('seeds stakeholders + visibility from create input', async () => {

@@ -17,6 +17,9 @@ export default defineEventHandler(async (event): Promise<{ id: string }> => {
     if (err instanceof Error && err.message === 'ROLE_KEY_TAKEN') {
       throw createError({ statusCode: 409, statusMessage: 'A role with that key already exists' });
     }
+    if (err instanceof Error && err.message === 'ROLE_KEY_RESERVED') {
+      throw createError({ statusCode: 400, statusMessage: 'That key is reserved for a system role' });
+    }
     throw err;
   }
   invalidateAllPermissions();

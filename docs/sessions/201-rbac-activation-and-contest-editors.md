@@ -59,6 +59,38 @@ verified against a fresh local Postgres. New admin routes pass the INV-6 sweep +
   test asserts staff's set. Editing a system role's permissions is allowed (tune staff); `admin`'s
   `*` is force-retained.
 
+## Adversarial audit + fixes (same session, commit 2)
+
+An independent adversarial review found a **P0 privilege-escalation** plus hardening gaps; all fixed:
+
+- **P0 — admin bypass via `admin.*` wildcard.** `sanitizeGrants` stripped only the literal `*`, but
+  `admin.*` (a valid segment wildcard) expands to `admin.access` in `hasPermissionPure` — so a
+  `roles.manage` holder could create a custom role with `admin.*` and self-assign full admin. **Fix:**
+  `ADMIN_BYPASS_GRANTS = {'*','admin.access','admin.*'}` stripped from every non-admin role
+  (`rbac/admin.ts`). Regression test asserts a role granted `admin.*`/`admin.access` resolves NEITHER.
+- **P1 — `users.manage` → mint-admin path.** `role.put.ts` gated only on `users.manage`, so a custom
+  role with `users.manage` (but not admin) could promote anyone to the `admin` system role. **Fix:**
+  promoting to `admin` now additionally requires `admin.access`. Combined with the P0 fix, escalation
+  to admin from a custom role is fully contained.
+- **P1 — reserved-key aliasing.** `createRole` now rejects the 5 system keys (`ROLE_KEY_RESERVED`),
+  so no custom role can be keyed `admin` and inherit the `*` exception.
+- **P2 — migration re-run safety.** `ADD COLUMN` → `ADD COLUMN IF NOT EXISTS` (0025 is now multi-stmt).
+- **P2 — SQL/TS seed drift.** New test parses migration 0025's staff `CROSS JOIN` block and asserts it
+  equals `STAFF_PERMISSION_SET` (the two seed paths can no longer drift silently).
+- **P2 — test quality.** Added a full `rbac/admin.integration.test.ts` (createRole strips `*`/`admin.*`,
+  reserved + dup key, updateRole replace/tune-staff/force-retain-admin-`*`/strip-`*`, deleteRole
+  cascade + system-block, setUserCustomRoles add/remove/ignore-system, list counts/order) + INV-4
+  POSITIVE case (demotion succeeds with 2 admins) + custom-role-survives-system-swap + editor-cannot-
+  delete + expanded idempotency (roles/grants/user_roles all stable).
+
+**Known non-regression (documented, not fixed):** INV-4's last-admin count is non-transactional
+(check-then-act) — two concurrent demotions of the final two admins could race to zero. Matches the
+pre-existing `delete-user` guard; break-glass (`admin-promote.yml` raw SQL + the `users.role='admin'`
+floor) recovers. Wrap in a tx + row-lock if it ever matters.
+
+Re-verified after fixes: server 1376 · layer 1021 · schema 466 · `nuxt typecheck` 0 errors · migration
+0025 re-applied clean to a fresh Postgres.
+
 ## Open / next
 - **Release pending review** (not done this session): bump schema/server/layer (config/auth
   unchanged), publish in order, layer via `pnpm run publish:layer`, update deveco/heatsync/CLI pins,

@@ -200,6 +200,44 @@ describe('admin module', () => {
       await expect(updateUserRole(solo, onlyAdmin.id, 'member', onlyAdmin.id)).rejects.toThrow('LAST_ADMIN');
       await closeTestDB(solo);
     });
+
+    it('ALLOWS demoting an admin when another admin remains (INV-4 not over-firing)', async () => {
+      // Guards against a mutation where the floor always throws. Isolated DB so
+      // the shared `adminId` admin count is irrelevant.
+      const iso = await createTestDB();
+      await createTestUser(iso, { username: 'keep-admin', role: 'admin' });
+      const demotable = await createTestUser(iso, { username: 'demote-me', role: 'admin' });
+      await expect(updateUserRole(iso, demotable.id, 'member', demotable.id)).resolves.toBeUndefined();
+      const { items } = await listUsers(iso, { search: 'demote-me' });
+      expect(items[0]!.role).toBe('member');
+      await closeTestDB(iso);
+    });
+
+    it('preserves CUSTOM role assignments across a system-role swap', async () => {
+      // Create the user FIRST so the (idempotent) seed backfills its member row.
+      const u = await createTestUser(db, { username: `custom-keep-${Date.now()}`, role: 'member' });
+      await seedRbac(db);
+      // Backfilled as member; now also assign a custom role directly.
+      const [custom] = await db
+        .insert(roles)
+        .values({ key: `czar-${Date.now()}`, name: 'Czar', isSystem: false })
+        .returning();
+      await db.insert(userRoles).values({ userId: u.id, roleId: custom!.id });
+
+      const keysFor = async (): Promise<string[]> => {
+        const rows = await db
+          .select({ key: roles.key })
+          .from(userRoles)
+          .innerJoin(roles, eq(userRoles.roleId, roles.id))
+          .where(eq(userRoles.userId, u.id));
+        return rows.map((r) => r.key).sort();
+      };
+      expect(await keysFor()).toEqual([custom!.key, 'member'].sort());
+
+      // Swap member -> staff: the system membership swaps, the custom one stays.
+      await updateUserRole(db, u.id, 'staff', adminId);
+      expect(await keysFor()).toEqual([custom!.key, 'staff'].sort());
+    });
   });
 
   describe('updateUserStatus', () => {

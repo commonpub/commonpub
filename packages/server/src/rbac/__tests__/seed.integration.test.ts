@@ -1,4 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { roles, rolePermissions, userRoles } from '@commonpub/schema';
 import { eq } from 'drizzle-orm';
 import { hasPermissionPure } from '@commonpub/auth';
@@ -60,10 +62,27 @@ describe('seedRbac (PGlite)', () => {
     expect(memberResolved.permissions.size).toBe(0);
   });
 
-  it('is idempotent — a second run adds no duplicates', async () => {
-    const before = await db.select().from(rolePermissions);
+  it('is idempotent — a second run adds no duplicate roles, grants, or user_roles', async () => {
+    const beforePerms = await db.select().from(rolePermissions);
+    const beforeUserRoles = await db.select().from(userRoles);
+    const beforeRoles = await db.select().from(roles);
     await seedRbac(db);
-    const after = await db.select().from(rolePermissions);
-    expect(after.length).toBe(before.length);
+    expect((await db.select().from(rolePermissions)).length).toBe(beforePerms.length);
+    expect((await db.select().from(userRoles)).length).toBe(beforeUserRoles.length);
+    expect((await db.select().from(roles)).length).toBe(beforeRoles.length);
+  });
+
+  it('the migration 0025 staff seed SQL stays in sync with STAFF_PERMISSION_SET', () => {
+    // Drift guard: staff permissions are seeded twice — by seedRbac() (this file,
+    // fresh-install/test path) AND by hand-written SQL in migration 0025 (the
+    // deploy path). They MUST match or staff gets different powers on an existing
+    // instance vs a fresh one. Parse the SQL's staff CROSS JOIN values list.
+    const sqlPath = fileURLToPath(new URL('../../../../schema/migrations/0025_round_malice.sql', import.meta.url));
+    const sql = readFileSync(sqlPath, 'utf8');
+    // The staff grants are the only `CROSS JOIN (VALUES ...) AS p` block.
+    const block = sql.match(/CROSS JOIN \(VALUES([\s\S]*?)\) AS p/);
+    expect(block, 'staff CROSS JOIN block not found in migration 0025').toBeTruthy();
+    const keysInSql = [...block![1].matchAll(/'([a-z][a-z.]+)'/g)].map((m) => m[1]).sort();
+    expect(keysInSql).toEqual([...STAFF_PERMISSION_SET].sort());
   });
 });
