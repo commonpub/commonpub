@@ -6,7 +6,7 @@ addendum). **Always `curl https://<instance>/api/health` +
 `npm view @commonpub/<pkg> version` before trusting any state claim.** Supersedes
 `198-kickoff-next.md`.
 
-## ✅ Where things stand (2026-06-16) — ALL SHIPPED + ROLLED TO ALL 3
+## ✅ Where things stand (2026-06-17) — ALL SHIPPED + ROLLED TO ALL 3
 
 Published to npm + deployed to commonpub.io, deveco.io, heatsynclabs.io (all health 200, migration
 **0024** applied everywhere). **npm: schema 0.44.0 / server 2.88.0 / layer 0.81.0** (config 0.22.1
@@ -15,12 +15,19 @@ unchanged). Everything from sessions 199–200 is now live on all three:
 - **Image cropper** (layer 0.81.0) — reusable `ImageCropperModal` (vue-advanced-cropper, design-system
   styled): fixed aspect-ratio crop frame (avatar 1:1 PNG, banner 4:1, cover 16:9 JPEG), drag +
   zoom (slider/+-/scroll/pinch), WYSIWYG. Wired into the shared `ImageUpload` → hub/event/contest
-  avatar+banner+cover. Render **verified headlessly** (Playwright). Also fixed a shared a11y bug:
-  `useFocusTrap` now restores focus on the v-if-unmount close path (improves **all** modals).
-  **Follow-ups NOT done:** the cropper is NOT yet wired into **profile** avatar/banner or the
-  **content editors'** cover/banner (those use their own upload handlers); and the on-page **banner
-  display containers** are fixed-height (viewport-dependent aspect) so a 4:1 crop still cover-crops
-  slightly on wide screens — align them to the crop aspect for true end-to-end WYSIWYG.
+  avatar+banner+cover. Render + crop output + zoom **verified headlessly** (Playwright — build a
+  harness under `layers/base/.crop-harness/`, bundle with esbuild, screenshot via the installed
+  playwright; delete the dir before committing). Key fixes from real-use feedback: the crop scrim
+  must be a **theme-independent dark** overlay (`--color-surface-scrim` is near-WHITE in light themes
+  → invisible bounds); the **banner DISPLAY** containers (ContestHero, HubHero) are now
+  `aspect-ratio: 4/1` so a 4:1 crop shows exactly as framed (they were fixed-height + `object-fit:cover`,
+  which re-cropped the crop). Also fixed a shared a11y bug: `useFocusTrap` now restores focus on the
+  v-if-unmount close path (improves **all** modals).
+  **Follow-ups NOT done:** (1) the cropper is NOT yet wired into **profile** avatar/banner or the
+  **content editors'** cover/banner — those use their own (non-`ImageUpload`) upload handlers, and
+  profile's banner display is still fixed-height. (2) Banners are now **4:1 (taller** than the old
+  fixed heights); if a slimmer banner is wanted, change the crop aspect in `ImageUpload.vue`
+  (`cropConfig`) AND the display `aspect-ratio` (ContestHero/HubHero) **together** — they must match.
 
 - **Field-drop fixes** — hub icon/banner/privacy/website, video `categoryId`, content custom slug,
   learning `coverImageUrl`, lesson `durationMinutes` (PR #35).
@@ -44,7 +51,7 @@ unchanged). Everything from sessions 199–200 is now live on all three:
 
 Publish: `pnpm --filter @commonpub/<pkg> publish --no-git-checks --access public` for schema/server,
 `pnpm publish:layer` for the layer (NEVER `npm publish` — [[feedback_pnpm_publish_layer]]). Consumer
-roll: bump `^0.44 / ^2.88 / ^0.79` pins; deveco's `package-lock.json` is **gitignored** (only commit
+roll: bump `^0.44 / ^2.88 / ^0.81` pins (schema/server/layer); deveco's `package-lock.json` is **gitignored** (only commit
 `pnpm-lock.yaml`), heatsync tracks **both** ([[feedback_consumer_dual_lockfile_frozen_install]]).
 Both consumer deploys are non-frozen `npm install`, so the pin bump is what matters; their deploy
 health check WARNS-not-fails ([[feedback_deploy_health_check_warn_not_fail]]) — curl /api/health to
@@ -80,6 +87,6 @@ redeploy needed, the next deploy re-writes `.env`. (Spaces config now lives in G
 ## Verify-before-trust
 ```
 curl -s https://commonpub.io/api/health
-npm view @commonpub/server version          # 2.86.0 until published
+npm view @commonpub/layer version           # expect 0.81.0 (schema 0.44.0 / server 2.88.0)
 gh workflow run server-cmd.yml --ref <branch-with-capture> -f command="..."   # read prod (see 199 addendum / memory)
 ```
