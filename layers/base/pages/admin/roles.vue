@@ -6,10 +6,38 @@ useSeoMeta({ title: () => `Roles, ${useSiteName()}` });
 
 const toast = useToast();
 const { extract: extractError } = useApiError();
-const { rbac: rbacEnabled } = useFeatures();
+const { rbac: rbacEnabled, features } = useFeatures();
 
 const { data: roles, refresh } = await useFetch<RoleWithPermissions[]>('/api/admin/roles');
 const { data: catalog } = await useFetch<string[]>('/api/admin/permissions');
+
+// --- Master RBAC switch (configure-then-activate) ---
+// Roles can be staged while RBAC is off; flipping the flag activates them
+// instantly (and is a reversible kill-switch). Writes the DB feature override
+// via /api/admin/features (needs `settings.manage`).
+const togglingRbac = ref(false);
+
+async function setRbac(enabled: boolean): Promise<void> {
+  if (
+    enabled &&
+    !confirm(
+      'Enable RBAC now? Role permissions take effect immediately: any user with the staff role becomes a moderator and custom roles activate. Admins keep full access. You can disable it again at any time.',
+    )
+  ) {
+    return;
+  }
+  togglingRbac.value = true;
+  try {
+    await ($fetch as Function)('/api/admin/features', { method: 'PUT', body: { overrides: { rbac: enabled } } });
+    // Update the shared reactive flag state so the banner reflects it at once.
+    features.value = { ...features.value, rbac: enabled };
+    toast.success(enabled ? 'RBAC enabled, role permissions are now live' : 'RBAC disabled, back to admin-only');
+  } catch (err) {
+    toast.error(extractError(err));
+  } finally {
+    togglingRbac.value = false;
+  }
+}
 
 // Group the flat permission catalog by first segment for a tidy editor.
 const grouped = computed<Record<string, string[]>>(() => {
@@ -111,10 +139,25 @@ async function createRole(): Promise<void> {
       </button>
     </div>
 
-    <p v-if="!rbacEnabled" class="cpub-roles-warn">
-      RBAC is currently off, so these role permissions have no effect yet. Configure roles here, then
-      enable the <strong>rbac</strong> feature flag to activate them. Admins always have full access.
-    </p>
+    <!-- Master RBAC switch — off: stage roles then activate; on: live + kill-switch. -->
+    <div v-if="!rbacEnabled" class="cpub-rbac-banner cpub-rbac-banner--off">
+      <div class="cpub-rbac-banner-text">
+        <strong>RBAC is off.</strong> These role permissions have no effect yet, the instance runs
+        admin-only. Stage your roles and assignments here, then turn RBAC on to activate them all at once.
+      </div>
+      <button class="cpub-btn cpub-btn-sm" :disabled="togglingRbac" @click="setRbac(true)">
+        <i class="fa-solid fa-toggle-on"></i> {{ togglingRbac ? 'Enabling...' : 'Enable RBAC' }}
+      </button>
+    </div>
+    <div v-else class="cpub-rbac-banner cpub-rbac-banner--on">
+      <div class="cpub-rbac-banner-text">
+        <strong>RBAC is enabled.</strong> Role permissions are live, staff is a moderator and custom
+        roles are active. Admins always keep full access.
+      </div>
+      <button class="cpub-btn cpub-btn-sm cpub-btn-ghost" :disabled="togglingRbac" @click="setRbac(false)">
+        <i class="fa-solid fa-toggle-off"></i> {{ togglingRbac ? 'Disabling...' : 'Disable' }}
+      </button>
+    </div>
 
     <!-- Create form -->
     <section v-if="showCreate" class="cpub-role-card cpub-role-create">
@@ -206,7 +249,12 @@ async function createRole(): Promise<void> {
 <style scoped>
 .cpub-admin-title { font-size: var(--text-xl); font-weight: var(--font-weight-bold); }
 .cpub-roles-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-5); gap: var(--space-3); }
-.cpub-roles-warn { padding: var(--space-3) var(--space-4); border: var(--border-width-default) solid var(--border); background: var(--surface2); color: var(--text-dim); font-size: var(--text-sm); margin-bottom: var(--space-5); line-height: 1.6; }
+.cpub-rbac-banner { display: flex; align-items: center; gap: var(--space-4); padding: var(--space-3) var(--space-4); border: var(--border-width-default) solid var(--border); margin-bottom: var(--space-5); }
+.cpub-rbac-banner-text { font-size: var(--text-sm); color: var(--text-dim); line-height: 1.6; flex: 1; min-width: 0; }
+.cpub-rbac-banner-text strong { color: var(--text); }
+.cpub-rbac-banner--off { background: var(--surface2); }
+.cpub-rbac-banner--on { background: var(--green-bg, var(--surface2)); border-color: var(--green-border, var(--accent)); }
+.cpub-rbac-banner .cpub-btn { flex-shrink: 0; }
 .cpub-role-list { display: flex; flex-direction: column; gap: var(--space-3); }
 .cpub-role-card { padding: var(--space-4); background: var(--surface); border: var(--border-width-default) solid var(--border); box-shadow: var(--shadow-md); }
 .cpub-role-create { margin-bottom: var(--space-5); }
