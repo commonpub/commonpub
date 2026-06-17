@@ -55,5 +55,6 @@ export {
   addContestStakeholder,
   removeContestStakeholder,
   isContestStakeholder,
+  isContestEditor,
 } from './stakeholders.js';
 export type { ContestStakeholderItem } from './stakeholders.js';

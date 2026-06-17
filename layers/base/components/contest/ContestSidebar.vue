@@ -4,6 +4,8 @@ import type { Serialized, ContestDetail } from '@commonpub/server';
 const props = defineProps<{
   contest: Serialized<ContestDetail> | null;
   isOwner?: boolean;
+  /** Viewer can edit this contest (owner / editor / contest.manage). Shows Edit. */
+  canManage?: boolean;
   /** True when the viewer is an accepted, non-guest judge able to score. */
   canJudge?: boolean;
 }>();
@@ -89,7 +91,7 @@ function statusClass(status: string): string {
       </div>
     </div>
 
-    <NuxtLink v-if="isOwner" :to="`/contests/${contest?.slug}/edit`" class="cpub-btn cpub-sb-link">
+    <NuxtLink v-if="canManage || isOwner" :to="`/contests/${contest?.slug}/edit`" class="cpub-btn cpub-sb-link">
       <i class="fa-solid fa-pen-to-square"></i> Edit Contest
     </NuxtLink>
 

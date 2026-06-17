@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import type { DB } from '../types.js';
 import { createTestDB, createTestUser, closeTestDB } from './helpers/testdb.js';
 import {
@@ -15,7 +15,8 @@ import {
   setInstanceSetting,
   removeContent,
 } from '../admin/admin.js';
-import { contentItems } from '@commonpub/schema';
+import { contentItems, roles, userRoles } from '@commonpub/schema';
+import { seedRbac } from '../rbac/seed.js';
 
 describe('admin module', () => {
   let db: DB;
@@ -169,6 +170,97 @@ describe('admin module', () => {
       await expect(
         updateUserRole(db, '00000000-0000-0000-0000-000000000000', 'admin', adminId),
       ).rejects.toThrow('User not found');
+    });
+
+    it('syncs user_roles when the system roles are seeded', async () => {
+      // Realistic order: the user predates the seed/backfill.
+      const u = await createTestUser(db, { username: `sync-${Date.now()}`, role: 'member' });
+      await seedRbac(db);
+
+      const roleKeysFor = async (userId: string): Promise<string[]> => {
+        const rows = await db
+          .select({ key: roles.key })
+          .from(userRoles)
+          .innerJoin(roles, eq(userRoles.roleId, roles.id))
+          .where(eq(userRoles.userId, userId));
+        return rows.map((r) => r.key).sort();
+      };
+
+      // Backfilled at seed time as 'member'.
+      expect(await roleKeysFor(u.id)).toEqual(['member']);
+
+      await updateUserRole(db, u.id, 'staff', adminId);
+      // Old system membership swapped for the new one.
+      expect(await roleKeysFor(u.id)).toEqual(['staff']);
+    });
+
+    it('refuses to demote the last admin (INV-4)', async () => {
+      const solo = await createTestDB();
+      const onlyAdmin = await createTestUser(solo, { username: 'solo-admin', role: 'admin' });
+      await expect(updateUserRole(solo, onlyAdmin.id, 'member', onlyAdmin.id)).rejects.toThrow('LAST_ADMIN');
+      await closeTestDB(solo);
+    });
+
+    it('ALLOWS demoting an admin when another admin remains (INV-4 not over-firing)', async () => {
+      // Guards against a mutation where the floor always throws. Isolated DB so
+      // the shared `adminId` admin count is irrelevant.
+      const iso = await createTestDB();
+      await createTestUser(iso, { username: 'keep-admin', role: 'admin' });
+      const demotable = await createTestUser(iso, { username: 'demote-me', role: 'admin' });
+      await expect(updateUserRole(iso, demotable.id, 'member', demotable.id)).resolves.toBeUndefined();
+      const { items } = await listUsers(iso, { search: 'demote-me' });
+      expect(items[0]!.role).toBe('member');
+      await closeTestDB(iso);
+    });
+
+    it('leaves EXACTLY ONE system membership after a swap chain (no orphans)', async () => {
+      // Atomicity guard: each swap must remove the prior system membership. A
+      // non-atomic / buggy swap could leave a stale `admin`/`staff` row that the
+      // resolver would union (privilege retention). Walk member->staff->verified
+      // and assert a single system membership remains at the end.
+      const iso = await createTestDB();
+      const u = await createTestUser(iso, { username: 'chain', role: 'member' });
+      await seedRbac(iso);
+      const sysKeys = async (): Promise<string[]> => {
+        const rows = await iso
+          .select({ key: roles.key })
+          .from(userRoles)
+          .innerJoin(roles, eq(userRoles.roleId, roles.id))
+          .where(and(eq(userRoles.userId, u.id), eq(roles.isSystem, true)));
+        return rows.map((r) => r.key).sort();
+      };
+      expect(await sysKeys()).toEqual(['member']);
+      await updateUserRole(iso, u.id, 'staff', u.id);
+      expect(await sysKeys()).toEqual(['staff']);
+      await updateUserRole(iso, u.id, 'verified', u.id);
+      expect(await sysKeys()).toEqual(['verified']);
+      await closeTestDB(iso);
+    });
+
+    it('preserves CUSTOM role assignments across a system-role swap', async () => {
+      // Create the user FIRST so the (idempotent) seed backfills its member row.
+      const u = await createTestUser(db, { username: `custom-keep-${Date.now()}`, role: 'member' });
+      await seedRbac(db);
+      // Backfilled as member; now also assign a custom role directly.
+      const [custom] = await db
+        .insert(roles)
+        .values({ key: `czar-${Date.now()}`, name: 'Czar', isSystem: false })
+        .returning();
+      await db.insert(userRoles).values({ userId: u.id, roleId: custom!.id });
+
+      const keysFor = async (): Promise<string[]> => {
+        const rows = await db
+          .select({ key: roles.key })
+          .from(userRoles)
+          .innerJoin(roles, eq(userRoles.roleId, roles.id))
+          .where(eq(userRoles.userId, u.id));
+        return rows.map((r) => r.key).sort();
+      };
+      expect(await keysFor()).toEqual([custom!.key, 'member'].sort());
+
+      // Swap member -> staff: the system membership swaps, the custom one stays.
+      await updateUserRole(db, u.id, 'staff', adminId);
+      expect(await keysFor()).toEqual([custom!.key, 'staff'].sort());
     });
   });
 

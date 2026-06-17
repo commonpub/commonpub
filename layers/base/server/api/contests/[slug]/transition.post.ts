@@ -1,4 +1,4 @@
-import { getContestBySlug, transitionContestStatus } from '@commonpub/server';
+import { getContestBySlug, transitionContestStatus, isContestEditor } from '@commonpub/server';
 import type { ContestStatus } from '@commonpub/server';
 import { contestTransitionSchema } from '@commonpub/schema';
 
@@ -14,10 +14,15 @@ export default defineEventHandler(async (event): Promise<{ transitioned: boolean
     throw createError({ statusCode: 404, statusMessage: 'Contest not found' });
   }
 
-  const result = await transitionContestStatus(db, contest.id, user.id, input.status);
+  const canManage =
+    ownerOrPermission(event, contest.createdById, 'contest.manage') ||
+    (await isContestEditor(db, contest.id, user.id));
+
+  const result = await transitionContestStatus(db, contest.id, user.id, input.status, canManage);
 
   if (!result.transitioned) {
-    throw createError({ statusCode: 400, statusMessage: result.error || 'Transition failed' });
+    const denied = /authoriz|owner/i.test(result.error ?? '');
+    throw createError({ statusCode: denied ? 403 : 400, statusMessage: result.error || 'Transition failed' });
   }
 
   return { transitioned: true, newStatus: input.status };

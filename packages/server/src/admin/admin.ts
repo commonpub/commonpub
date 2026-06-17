@@ -16,6 +16,8 @@ import {
   instanceSettings,
   auditLogs,
   federatedContent,
+  roles,
+  userRoles,
 } from '@commonpub/schema';
 import type { DB } from '../types.js';
 import type { AdminUpdateRoleInput, AdminUpdateStatusInput } from '@commonpub/schema';
@@ -292,6 +294,15 @@ export async function listUsers(
   };
 }
 
+/**
+ * Change a user's primary (system) role. Beyond writing the denormalized
+ * `users.role`, this keeps `user_roles` in sync — swapping the previous
+ * system-role membership for the new one (custom roles are left untouched) — so
+ * RBAC permission resolution reflects the change. INV-4: refuses to demote the
+ * last `admin` (would leave the instance with zero admins). The caller must
+ * `invalidatePermissions(userId)` after this commits (the cache lives in the
+ * layer). Throws `Error('LAST_ADMIN')` for the floor and `Error('User not found')`.
+ */
 export async function updateUserRole(
   db: DB,
   userId: string,
@@ -302,13 +313,43 @@ export async function updateUserRole(
   const [user] = await db.select({ role: users.role }).from(users).where(eq(users.id, userId));
   if (!user) throw new Error('User not found');
 
-  await db
-    .update(users)
-    .set({
-      role: newRole,
-      updatedAt: new Date(),
-    })
-    .where(eq(users.id, userId));
+  // ATOMIC: the INV-4 last-admin check, the users.role update, and the user_roles
+  // sync all run in ONE transaction. Otherwise (a) a crash/window between the
+  // update and the sync leaves users.role and user_roles disagreeing — a demoted
+  // admin's stale `admin` membership would still union admin's `*` under flag-on;
+  // and (b) two concurrent demotions of the last two admins could both pass a
+  // pre-transaction count and race to zero admins. The `FOR UPDATE` lock on the
+  // admin rows serializes (b); the transaction makes (a) impossible.
+  await db.transaction(async (tx) => {
+    if (user.role === 'admin' && newRole !== 'admin') {
+      const admins = await tx
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.role, 'admin'))
+        .for('update')
+        .limit(2);
+      if (admins.length <= 1) throw new Error('LAST_ADMIN');
+    }
+
+    await tx
+      .update(users)
+      .set({ role: newRole, updatedAt: new Date() })
+      .where(eq(users.id, userId));
+
+    if (user.role !== newRole) {
+      const [oldRole] = await tx.select({ id: roles.id }).from(roles).where(eq(roles.key, user.role)).limit(1);
+      const [newRoleRow] = await tx.select({ id: roles.id }).from(roles).where(eq(roles.key, newRole)).limit(1);
+      if (oldRole && oldRole.id !== newRoleRow?.id) {
+        await tx.delete(userRoles).where(and(eq(userRoles.userId, userId), eq(userRoles.roleId, oldRole.id)));
+      }
+      if (newRoleRow) {
+        await tx
+          .insert(userRoles)
+          .values({ userId, roleId: newRoleRow.id, grantedBy: adminId })
+          .onConflictDoNothing();
+      }
+    }
+  });
 
   await createAuditEntry(db, {
     userId: adminId,

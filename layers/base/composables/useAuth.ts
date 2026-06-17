@@ -23,6 +23,9 @@ export interface ClientAuthSession {
 interface AuthResponse {
   user: ClientAuthUser | null;
   session: ClientAuthSession | null;
+  /** Effective RBAC permission grants (advisory — server enforces). */
+  permissions?: string[];
+  roleKeys?: string[];
 }
 
 // `$fetch<T>(url, options)` instantiates Nuxt's NitroFetchRequest generic
@@ -49,6 +52,10 @@ async function authGet(url: string): Promise<AuthResponse | null> {
 export function useAuth() {
   const user = useState<ClientAuthUser | null>('auth-user', () => null);
   const session = useState<ClientAuthSession | null>('auth-session', () => null);
+  // Effective RBAC permission grants for the current user (advisory, UX-only —
+  // the server is always the enforcement boundary). Populated by refreshSession.
+  const permissions = useState<string[]>('auth-permissions', () => []);
+  const roleKeys = useState<string[]>('auth-role-keys', () => []);
 
   const isAuthenticated = computed(() => !!user.value);
   const isAdmin = computed(() => user.value?.role === 'admin');
@@ -69,6 +76,8 @@ export function useAuth() {
     await authPost('/api/auth/sign-out', {});
     user.value = null;
     session.value = null;
+    permissions.value = [];
+    roleKeys.value = [];
     await navigateTo('/');
   }
 
@@ -84,6 +93,8 @@ export function useAuth() {
       // (a logged-out user gets `{ user: null }`), so mirror it exactly.
       user.value = data?.user ?? null;
       session.value = data?.session ?? null;
+      permissions.value = data?.permissions ?? [];
+      roleKeys.value = data?.roleKeys ?? [];
     } catch {
       // A *thrown* error means we couldn't reach /api/me (network blip, 5xx, a
       // slow/overloaded server timing out). That is NOT evidence the session is
@@ -96,6 +107,8 @@ export function useAuth() {
   return {
     user: readonly(user),
     session: readonly(session),
+    permissions: readonly(permissions),
+    roleKeys: readonly(roleKeys),
     isAuthenticated,
     isAdmin,
     signIn,

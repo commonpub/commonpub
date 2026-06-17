@@ -81,20 +81,37 @@ while drafting, then flip to `public` to publish):
 | --- | --- | --- |
 | `public` (default) | yes | everyone |
 | `unlisted` | no | anyone with the direct link |
-| `private` | no | owner, admins, **stakeholders**, panel judges, and any role in `visibleToRoles` |
+| `private` | no | owner, admins, **collaborators** (reviewers + editors), panel judges, and any role in `visibleToRoles` |
 
 - **`visibleToRoles`** (e.g. `['staff']`) grants whole roles view access to a
   `private` contest.
-- **Stakeholders** (`contest_stakeholders` table, managed on the Edit page) are
-  named view-only reviewers — they can see a private/unpublished contest to
-  review it, **without** admin-panel access or being judges (they never appear in
-  the judge list and can't score).
+- **Collaborators** (`contest_stakeholders` table, managed on the Edit page) are
+  per-contest grants scoped to that one contest only, with **no** system-wide
+  access. The `role` column distinguishes two kinds:
+  - **`reviewer`** (default) — view-only. Can see a private/unpublished contest to
+    review it, without being a judge or admin (never appears in the judge list,
+    can't score or edit).
+  - **`editor`** — full edit rights to *that* contest: edit fields, transition
+    status, and advance stages, exactly like the owner. An editor **cannot**
+    delete the contest, manage judges, or add/promote other collaborators (those
+    stay owner / `contest.manage`), so an editor can't escalate. Recognized by
+    `isContestEditor`.
 - Access is enforced server-side by `canViewContest(db, contest, user)` on every
   read endpoint (detail/entries/votes/judges/submit); a blocked viewer gets a
   **404** (not 403) so a private contest's existence isn't leaked. The public v1
   API (`isPublicContest`) only ever exposes `public` contests.
 - The public `/contests` listing shows only `public` contests; signed-in users
   also see their own drafts there, and admins see everything.
+- **Who can edit/manage:** edit (`PUT`), status transition, and stage advance are
+  authorized for the **owner**, a per-contest **editor**, or a holder of the
+  `contest.manage` RBAC permission (`canManage = ownerOrPermission(event,
+  contest.createdById, 'contest.manage') || isContestEditor(...)`). The three
+  server functions (`updateContest`/`transitionContestStatus`/
+  `advanceContestStage`) take a `canManage` boolean and also re-check the editor
+  server-side. Delete + judge/collaborator management stay owner / `contest.manage`
+  only. The contest detail payload exposes a per-request `viewerCanManage` flag so
+  the client shows the Edit affordance to editors (UI hint only; the server
+  enforces).
 - **Delete vs hide:** `DELETE /api/contests/:slug` removes a contest entirely;
   setting `visibility` to `unlisted`/`private` hides it without deleting.
 

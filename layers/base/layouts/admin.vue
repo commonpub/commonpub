@@ -63,6 +63,9 @@ const { desktopCollapsed, mobileOpen, toggleDesktop, toggleMobile, closeMobile }
           <NuxtLink to="/admin/users" class="admin-nav-link" :title="desktopCollapsed ? 'Users' : undefined" @click="closeMobile">
             <i class="fa-solid fa-users"></i><span class="admin-nav-label">Users</span>
           </NuxtLink>
+          <NuxtLink to="/admin/roles" class="admin-nav-link" :title="desktopCollapsed ? 'Roles' : undefined" @click="closeMobile">
+            <i class="fa-solid fa-user-shield"></i><span class="admin-nav-label">Roles</span>
+          </NuxtLink>
           <NuxtLink to="/admin/content" class="admin-nav-link" :title="desktopCollapsed ? 'Content' : undefined" @click="closeMobile">
             <i class="fa-solid fa-newspaper"></i><span class="admin-nav-label">Content</span>
           </NuxtLink>

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { permissionKeySchema } from './permissions.js';
 
 /** Optional URL field that also accepts empty strings (treated as undefined) */
 const optionalUrl = (maxLen?: number) => {
@@ -435,6 +436,15 @@ export const contestAdvanceSchema = z
 // `parseBody` and the render guard in the markdown parser keep the server safe.
 export const CONTEST_RICH_TEXT_MAX = 50_000;
 
+/**
+ * Per-contest stakeholder roles (the `contest_stakeholders.role` column).
+ * `reviewer` = view-only; `editor` = full edit rights to that single contest
+ * with no system-wide access. See packages/schema/src/contest.ts.
+ */
+export const STAKEHOLDER_ROLES = ['reviewer', 'editor'] as const;
+export const stakeholderRoleSchema = z.enum(STAKEHOLDER_ROLES);
+export type StakeholderRole = (typeof STAKEHOLDER_ROLES)[number];
+
 export const createContestSchema = z
   .object({
     title: z.string().min(1).max(255),
@@ -688,6 +698,34 @@ export const adminUpdateRoleSchema = z.object({
   role: z.enum(['member', 'pro', 'verified', 'staff', 'admin']),
 });
 export type AdminUpdateRoleInput = z.infer<typeof adminUpdateRoleSchema>;
+
+// --- RBAC role administration (Phase 3) ---
+// `permissionKeySchema` (catalog-gated) lives in permissions.ts.
+const roleKeySchema = z
+  .string()
+  .min(2)
+  .max(64)
+  .regex(/^[a-z][a-z0-9-]*$/, 'Lowercase letters, digits and hyphens; must start with a letter');
+
+export const createRoleSchema = z.object({
+  key: roleKeySchema,
+  name: z.string().min(1).max(128),
+  description: z.string().max(2000).nullish(),
+  permissions: z.array(permissionKeySchema).max(50).optional(),
+});
+export type CreateRoleSchemaInput = z.infer<typeof createRoleSchema>;
+
+export const updateRoleSchema = z.object({
+  name: z.string().min(1).max(128).optional(),
+  description: z.string().max(2000).nullish(),
+  permissions: z.array(permissionKeySchema).max(50).optional(),
+});
+export type UpdateRoleSchemaInput = z.infer<typeof updateRoleSchema>;
+
+export const setUserRolesSchema = z.object({
+  roleIds: z.array(z.string().uuid()).max(50),
+});
+export type SetUserRolesInput = z.infer<typeof setUserRolesSchema>;
 
 export const adminUpdateStatusSchema = z.object({
   status: z.enum(['active', 'suspended', 'deleted']),

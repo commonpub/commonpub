@@ -602,6 +602,7 @@ export {
   addContestStakeholder,
   removeContestStakeholder,
   isContestStakeholder,
+  isContestEditor,
 } from './contest/index.js';
 export type { ContestStakeholderItem } from './contest/index.js';
 
