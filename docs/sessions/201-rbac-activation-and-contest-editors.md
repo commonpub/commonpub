@@ -157,6 +157,22 @@ A step-back production audit (consistency, performance, cross-user state, per-pe
 
 Final gates: **server 1380 · layer 1021 · schema 466 · nuxt typecheck 0 · migration 0025 clean.**
 
+## Deployed to commonpub.io (2026-06-17, commit 6 + merge)
+
+PR **#51** squash-merged to `main` (merge `3edc768`) → Deploy Production run **success**:
+- `✅ db:migrate succeeded` — migration **0025** applied to commonpub.io's real DB (roles seeded,
+  `user_roles` backfilled, `contest_stakeholders.role` added).
+- `✅ / → 200`, `✅ /api/health → 200`, smoke passed.
+- Live verify: `/api/features` → **`rbac: false`** (flag OFF, authz unchanged), `contests: true`.
+
+So commonpub.io runs the new code with RBAC **staged/inert** and the per-contest editor live. Built
+from workspace source — **no npm publish was needed** for commonpub.io. The Node-20-deprecation line in
+the run is the pre-existing GH-Actions warning (non-blocking).
+
+**Still to do:** (1) operator flips `rbac` ON on commonpub.io from `/admin/roles` when ready (audit
+`staff` membership first); (2) deveco/heatsync = bump schema/server/layer + npm publish + pin bumps +
+their own deploys (Phase 4).
+
 ## Open / next
 - **Release pending review** (not done this session): bump schema/server/layer (config/auth
   unchanged), publish in order, layer via `pnpm run publish:layer`, update deveco/heatsync/CLI pins,
