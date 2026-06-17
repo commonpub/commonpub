@@ -192,23 +192,27 @@ export async function setUserCustomRoles(
     : [];
   const customIds = new Set(requested.map((r) => r.id));
 
-  // Current custom memberships.
-  const current = await db
-    .select({ roleId: userRoles.roleId })
-    .from(userRoles)
-    .innerJoin(roles, eq(userRoles.roleId, roles.id))
-    .where(and(eq(userRoles.userId, userId), eq(roles.isSystem, false)));
-  const currentIds = new Set(current.map((r) => r.roleId));
+  // ATOMIC read-modify-write: compute the diff and apply both the remove and add
+  // inside one transaction so a partial failure can't leave the user with a
+  // half-applied assignment set (and concurrent edits don't interleave).
+  await db.transaction(async (tx) => {
+    const current = await tx
+      .select({ roleId: userRoles.roleId })
+      .from(userRoles)
+      .innerJoin(roles, eq(userRoles.roleId, roles.id))
+      .where(and(eq(userRoles.userId, userId), eq(roles.isSystem, false)));
+    const currentIds = new Set(current.map((r) => r.roleId));
 
-  const toAdd = [...customIds].filter((id) => !currentIds.has(id));
-  const toRemove = [...currentIds].filter((id) => !customIds.has(id));
+    const toAdd = [...customIds].filter((id) => !currentIds.has(id));
+    const toRemove = [...currentIds].filter((id) => !customIds.has(id));
 
-  if (toRemove.length) {
-    await db.delete(userRoles).where(and(eq(userRoles.userId, userId), inArray(userRoles.roleId, toRemove)));
-  }
-  if (toAdd.length) {
-    await db.insert(userRoles).values(toAdd.map((roleId) => ({ userId, roleId, grantedBy }))).onConflictDoNothing();
-  }
+    if (toRemove.length) {
+      await tx.delete(userRoles).where(and(eq(userRoles.userId, userId), inArray(userRoles.roleId, toRemove)));
+    }
+    if (toAdd.length) {
+      await tx.insert(userRoles).values(toAdd.map((roleId) => ({ userId, roleId, grantedBy }))).onConflictDoNothing();
+    }
+  });
 
   await createAuditEntry(db, {
     userId: grantedBy,

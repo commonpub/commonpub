@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import type { DB } from '../types.js';
 import { createTestDB, createTestUser, closeTestDB } from './helpers/testdb.js';
 import {
@@ -210,6 +210,30 @@ describe('admin module', () => {
       await expect(updateUserRole(iso, demotable.id, 'member', demotable.id)).resolves.toBeUndefined();
       const { items } = await listUsers(iso, { search: 'demote-me' });
       expect(items[0]!.role).toBe('member');
+      await closeTestDB(iso);
+    });
+
+    it('leaves EXACTLY ONE system membership after a swap chain (no orphans)', async () => {
+      // Atomicity guard: each swap must remove the prior system membership. A
+      // non-atomic / buggy swap could leave a stale `admin`/`staff` row that the
+      // resolver would union (privilege retention). Walk member->staff->verified
+      // and assert a single system membership remains at the end.
+      const iso = await createTestDB();
+      const u = await createTestUser(iso, { username: 'chain', role: 'member' });
+      await seedRbac(iso);
+      const sysKeys = async (): Promise<string[]> => {
+        const rows = await iso
+          .select({ key: roles.key })
+          .from(userRoles)
+          .innerJoin(roles, eq(userRoles.roleId, roles.id))
+          .where(and(eq(userRoles.userId, u.id), eq(roles.isSystem, true)));
+        return rows.map((r) => r.key).sort();
+      };
+      expect(await sysKeys()).toEqual(['member']);
+      await updateUserRole(iso, u.id, 'staff', u.id);
+      expect(await sysKeys()).toEqual(['staff']);
+      await updateUserRole(iso, u.id, 'verified', u.id);
+      expect(await sysKeys()).toEqual(['verified']);
       await closeTestDB(iso);
     });
 

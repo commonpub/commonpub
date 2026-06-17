@@ -119,6 +119,44 @@ is correct. Fixes:
 
 Final gates: **server 1379 · layer 1021 · schema 466 · nuxt typecheck 0 · migration 0025 clean.**
 
+## Production-readiness pass (commit 5) — transactions, degradation, personas
+
+A step-back production audit (consistency, performance, cross-user state, per-persona/operator impact):
+
+**Fixed (atomicity — the auth-critical path):**
+- **`updateUserRole` is now one transaction** (INV-4 check + `users.role` update + `user_roles` swap).
+  Previously sequential auto-committed statements left a window — and on a crash a PERMANENT state —
+  where `users.role='member'` but the stale `admin` `user_roles` row still unioned admin's `*`
+  (privilege RETENTION under flag-on). INV-4 now runs **inside** the txn with `SELECT … FOR UPDATE` on
+  the admin rows, which **closes the concurrent-double-demotion TOCTOU** (was documented as a known gap).
+- **`setUserCustomRoles`** read-modify-write wrapped in a transaction (no half-applied assignment set).
+- **`viewerCanManage`** returned as a fresh `{ ...contest, viewerCanManage }` instead of mutating the
+  fetched row — defensive against a cross-user leak if `getContestBySlug` is ever cached.
+- New atomicity test: a `member→staff→verified` swap chain leaves EXACTLY ONE system membership.
+
+**Verified safe (no degradation / no interference):**
+- **Flag OFF (default) = zero new per-request DB work in the resolver** (admin + flag-off paths pass
+  `primaryRole` and skip the query); authz is byte-identical to pre-change.
+- **Flag ON**: one cached (30s, 5000-entry LRU) `user_roles→role_permissions` resolve per authed
+  request — fine at maker-community scale.
+- The auth middleware's `attachPermissions` is **try/caught** → a transient resolver DB error leaves
+  permissions unset and the admin floor survives; no 500.
+- Contest mutate fns' new `canManage` param has only route + test callers (verified). Migration 0025 is
+  additive + idempotent and applies clean (re-verified on a fresh Postgres); it requires the 0009 RBAC
+  tables, which are present on all 3 instances.
+- Federation unaffected (RBAC + `contest_stakeholders.role` are instance-local).
+
+**Operator / persona notes (no code change; for the release):**
+- **Flipping `features.rbac` activates latent `staff` moderators** — every existing `role='staff'` user
+  gains the moderator set on flip. Operators should audit who holds `staff` before enabling.
+- **Editors/reviewers have no "contests I can edit/review" list** — they reach a contest via the
+  in-app notification + link. A "my collaborations" view is a future nice-to-have.
+- **Per-request `isContestEditor` query** runs on authenticated contest detail views (one tiny indexed
+  lookup). Could be folded into `canViewContest` later; not a scale concern now.
+- Multi-pod cache invalidation is per-process (≤30s elsewhere) — documented, acceptable for v1.
+
+Final gates: **server 1380 · layer 1021 · schema 466 · nuxt typecheck 0 · migration 0025 clean.**
+
 ## Open / next
 - **Release pending review** (not done this session): bump schema/server/layer (config/auth
   unchanged), publish in order, layer via `pnpm run publish:layer`, update deveco/heatsync/CLI pins,
