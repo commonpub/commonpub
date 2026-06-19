@@ -74,10 +74,14 @@ The branch mixes internal refactors, user-facing UX/a11y fixes, AND server-packa
 ## Deferred backlog (NOT done — needs decisions / its own efforts)
 
 **From the deep audit (`207`):**
-- **P1 `likeRemoteContent` race** (`packages/server/src/federation/timeline.ts:225-281`) — non-transactional
-  check-then-act → double counter + duplicate federated Likes, unrecoverable (not in reconcile). Confirmed
-  still unfixed. Fix: tx + unique index + `onConflictDoNothing`; test via the real-Postgres harness.
-  `boostRemoteContent:286` has no dedup either. **Highest-value correctness fix.**
+- ~~**P1 `likeRemoteContent` race**~~ — **FIXED in session 209, commit `0fc4b1ef`.** Both
+  `likeRemoteContent` and `boostRemoteContent` now wrap in `db.transaction` + a `.for('update')` row lock
+  on the `federated_content` row before the dedup check (mirrors the `createContentVersion` idiom). Chose
+  the row lock over a unique index because the dedup key lives in the shared `activities` table and a
+  unique constraint there would break the hub-post relike path. `boostRemoteContent` is now deduped too
+  (one Announce per actor+object; it previously had none). No schema change, no migration. Proven by the
+  real-Postgres concurrency harness (25 concurrent same-user calls → counter == 1, one outbound activity);
+  goes RED on revert (20/20 single bursts raced at N=25). Server suite 1433 pass, layer 1109 green.
 - **P2 latent**: 10 hand-rolled `Math.min(limit ?? N, 100)` clamps repeat the NaN-500 footgun (not live —
   edges use `z.coerce`). Route them through `normalizePagination`.
 
