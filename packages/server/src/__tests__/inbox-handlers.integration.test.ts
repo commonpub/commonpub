@@ -344,6 +344,35 @@ describe('inbox handler edge cases', () => {
       expect(row!.likeCount).toBe(1);
       expect(row!.remoteLikeCount).toBe(1);
     });
+
+    // Audit session 204: a remote peer that Likes the UUID-form object URI must be able to
+    // Undo it (was a no-op — onUndo only matched the slug form, permanently inflating the
+    // counters), and a re-Like after Undo must be processed (the stale Like activity must
+    // be deleted, else onLike's idempotency guard silently drops it).
+    it('UUID-form Undo decrements, and re-Like after Undo is processed (Leads 1 + 2)', async () => {
+      const [content] = await db
+        .insert(contentItems)
+        .values({ authorId: localUserId, type: 'blog', title: 'UUID like', slug: 'uuid-like', status: 'published' })
+        .returning();
+      const uri = `https://${LOCAL_DOMAIN}/content/${content!.id}`; // UUID-form (last segment is the id)
+
+      await handlers.onLike(REMOTE_ALICE, uri);
+      let [row] = await db.select().from(contentItems).where(eq(contentItems.id, content!.id));
+      expect(row!.likeCount).toBe(1);
+      expect(row!.remoteLikeCount).toBe(1);
+
+      // Lead 1: Undo via the same UUID-form URI must actually decrement (was a no-op).
+      await handlers.onUndo(REMOTE_ALICE, 'Like', uri);
+      [row] = await db.select().from(contentItems).where(eq(contentItems.id, content!.id));
+      expect(row!.likeCount).toBe(0);
+      expect(row!.remoteLikeCount).toBe(0);
+
+      // Lead 2: re-Like must increment again (stale inbound Like activity was deleted on Undo).
+      await handlers.onLike(REMOTE_ALICE, uri);
+      [row] = await db.select().from(contentItems).where(eq(contentItems.id, content!.id));
+      expect(row!.likeCount).toBe(1);
+      expect(row!.remoteLikeCount).toBe(1);
+    });
   });
 
   // --- onFollow with auto-accept ---

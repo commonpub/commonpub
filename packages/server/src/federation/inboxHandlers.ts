@@ -376,6 +376,24 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
             }
           }
 
+          // UUID-form local content (mirrors onLike's by-id branch): an Undo whose
+          // object URI ends in the content UUID must decrement by id. Without this the
+          // slug-only lookup below never matches a uuid URI, permanently inflating
+          // like_count + remote_like_count (audit session 204).
+          if (!unliked) {
+            let isLocalUri = false;
+            try { isLocalUri = new URL(objectId).hostname === domain; } catch { /* invalid */ }
+            const lastSeg = segments[segments.length - 1];
+            const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+            if (isLocalUri && lastSeg && UUID_RE.test(lastSeg)) {
+              const upd = await db.update(contentItems).set({
+                likeCount: sql`GREATEST(${contentItems.likeCount} - 1, 0)`,
+                remoteLikeCount: sql`GREATEST(${contentItems.remoteLikeCount} - 1, 0)`,
+              }).where(eq(contentItems.id, lastSeg)).returning({ id: contentItems.id });
+              if (upd.length > 0) unliked = true;
+            }
+          }
+
           if (!unliked && segments.length >= 2) {
             // Author-scoped content lookup (handles both /u/{user}/{type}/{slug} and /content/{slug})
             const parsed = parseLocalContentUri(objectId);
@@ -428,6 +446,16 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
               .set({ localLikeCount: sql`GREATEST(${federatedContent.localLikeCount} - 1, 0)` })
               .where(eq(federatedContent.objectUri, objectId));
           }
+
+          // Delete the original inbound Like activity so a later re-Like is processed.
+          // onLike's idempotency guard keys on this row; leaving it made re-Like a
+          // silent no-op (audit session 204).
+          await db.delete(activities).where(and(
+            eq(activities.type, 'Like'),
+            eq(activities.actorUri, actorUri),
+            eq(activities.objectUri, objectId),
+            eq(activities.direction, 'inbound'),
+          ));
         } catch {
           // Invalid URL — skip decrement
         }
