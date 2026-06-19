@@ -6,6 +6,10 @@ definePageMeta({ layout: 'admin', middleware: 'auth' });
 
 useSeoMeta({ title: `API Keys, Admin, ${useSiteName()}` });
 
+// Keys only authenticate when the Public API feature is on (public-api-auth 404s
+// every /api/public/* route otherwise). Surface that so admins don't mint dead keys.
+const { publicApi } = useFeatures();
+
 interface KeyListResponse {
   items: AdminApiKeyView[];
   total: number;
@@ -185,11 +189,15 @@ function fmtErrorRate(rate: number): string {
           <input type="checkbox" v-model="includeRevoked" @change="refresh()" />
           Show revoked
         </label>
-        <button class="cpub-btn cpub-btn-primary" @click="showCreate = true">
+        <button v-if="publicApi" class="cpub-btn cpub-btn-primary" @click="showCreate = true">
           <i class="fa-solid fa-plus"></i> New key
         </button>
       </div>
     </header>
+
+    <p v-if="!publicApi" class="cpub-admin-sub" role="status">
+      The Public API feature is disabled, so keys created here will not authenticate. Turn it on in Features to use API keys.
+    </p>
 
     <!-- One-time token reveal -->
     <div v-if="createdKey" class="cpub-key-reveal" role="alert">

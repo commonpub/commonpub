@@ -1,6 +1,6 @@
 <script setup lang="ts">
 const { isAdmin } = useAuth();
-const { admin: adminEnabled, layoutEngine } = useFeatures();
+const { admin: adminEnabled, layoutEngine, publicApi } = useFeatures();
 const runtimeConfig = useRuntimeConfig();
 const siteName = computed(() => (runtimeConfig.public.siteName as string) || 'CommonPub');
 
@@ -99,7 +99,7 @@ const { desktopCollapsed, mobileOpen, toggleDesktop, toggleMobile, closeMobile }
           <NuxtLink to="/admin/federation" class="admin-nav-link" :title="desktopCollapsed ? 'Federation' : undefined" @click="closeMobile">
             <i class="fa-solid fa-globe"></i><span class="admin-nav-label">Federation</span>
           </NuxtLink>
-          <NuxtLink to="/admin/api-keys" class="admin-nav-link" :title="desktopCollapsed ? 'API Keys' : undefined" @click="closeMobile">
+          <NuxtLink v-if="publicApi" to="/admin/api-keys" class="admin-nav-link" :title="desktopCollapsed ? 'API Keys' : undefined" @click="closeMobile">
             <i class="fa-solid fa-key"></i><span class="admin-nav-label">API Keys</span>
           </NuxtLink>
           <NuxtLink to="/admin/settings" class="admin-nav-link" :title="desktopCollapsed ? 'Settings' : undefined" @click="closeMobile">
