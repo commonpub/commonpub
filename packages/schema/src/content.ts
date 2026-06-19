@@ -91,6 +91,10 @@ export const contentItems = pgTable('content_items', {
   // Counters (denormalized for read performance)
   viewCount: integer('view_count').default(0).notNull(),
   likeCount: integer('like_count').default(0).notNull(),
+  // Remote (federated) portion of likeCount. Inbound Like activities have no local `likes`
+  // row, so reconcile-counters.mjs computes likeCount = (local likes) + remoteLikeCount.
+  // Without this, reconciling would wipe every fediverse like (audit session 203).
+  remoteLikeCount: integer('remote_like_count').default(0).notNull(),
   commentCount: integer('comment_count').default(0).notNull(),
   forkCount: integer('fork_count').default(0).notNull(),
   buildCount: integer('build_count').default(0).notNull(),

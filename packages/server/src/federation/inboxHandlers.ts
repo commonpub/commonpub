@@ -357,8 +357,10 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
             const postId = segments[3]!;
             const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
             if (UUID_RE.test(postId)) {
-              await db.update(hubPosts).set({ likeCount: sql`GREATEST(${hubPosts.likeCount} - 1, 0)` })
-                .where(eq(hubPosts.id, postId));
+              await db.update(hubPosts).set({
+                likeCount: sql`GREATEST(${hubPosts.likeCount} - 1, 0)`,
+                remoteLikeCount: sql`GREATEST(${hubPosts.remoteLikeCount} - 1, 0)`,
+              }).where(eq(hubPosts.id, postId));
               unliked = true;
             }
           }
@@ -370,7 +372,10 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
             if (content) {
               await db
                 .update(contentItems)
-                .set({ likeCount: sql`GREATEST(${contentItems.likeCount} - 1, 0)` })
+                .set({
+                  likeCount: sql`GREATEST(${contentItems.likeCount} - 1, 0)`,
+                  remoteLikeCount: sql`GREATEST(${contentItems.remoteLikeCount} - 1, 0)`,
+                })
                 .where(eq(contentItems.id, content.id));
               unliked = true;
             }
@@ -395,8 +400,10 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
                 const noteSegments = new URL(announceActivity.objectUri).pathname.split('/').filter(Boolean);
                 if (noteSegments.length >= 4 && noteSegments[0] === 'hubs' && noteSegments[2] === 'posts') {
                   const announcePostId = noteSegments[3]!;
-                  await db.update(hubPosts).set({ likeCount: sql`GREATEST(${hubPosts.likeCount} - 1, 0)` })
-                    .where(eq(hubPosts.id, announcePostId));
+                  await db.update(hubPosts).set({
+                    likeCount: sql`GREATEST(${hubPosts.likeCount} - 1, 0)`,
+                    remoteLikeCount: sql`GREATEST(${hubPosts.remoteLikeCount} - 1, 0)`,
+                  }).where(eq(hubPosts.id, announcePostId));
                   unliked = true;
                 }
               } catch { /* invalid URL */ }
@@ -1134,8 +1141,10 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
                 .from(contentItems).innerJoin(users, eq(contentItems.authorId, users.id))
                 .where(eq(contentItems.id, idOrSlug)).limit(1);
               if (byId.length > 0) {
-                await db.update(contentItems).set({ likeCount: sql`${contentItems.likeCount} + 1` })
-                  .where(eq(contentItems.id, byId[0]!.id));
+                await db.update(contentItems).set({
+                  likeCount: sql`${contentItems.likeCount} + 1`,
+                  remoteLikeCount: sql`${contentItems.remoteLikeCount} + 1`,
+                }).where(eq(contentItems.id, byId[0]!.id));
                 matched = true;
 
                 // Notify content author
@@ -1152,8 +1161,10 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
               if (parsed) {
                 const content = await lookupContentByUri(db, parsed);
                 if (content) {
-                  await db.update(contentItems).set({ likeCount: sql`${contentItems.likeCount} + 1` })
-                    .where(eq(contentItems.id, content.id));
+                  await db.update(contentItems).set({
+                    likeCount: sql`${contentItems.likeCount} + 1`,
+                    remoteLikeCount: sql`${contentItems.remoteLikeCount} + 1`,
+                  }).where(eq(contentItems.id, content.id));
                   matched = true;
 
                   const remoteUser = await resolveRemoteActorName(db, actorUri);
@@ -1179,8 +1190,10 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
               const [post] = await db.select({ id: hubPosts.id, authorId: hubPosts.authorId }).from(hubPosts)
                 .where(eq(hubPosts.id, postId)).limit(1);
               if (post) {
-                await db.update(hubPosts).set({ likeCount: sql`${hubPosts.likeCount} + 1` })
-                  .where(eq(hubPosts.id, post.id));
+                await db.update(hubPosts).set({
+                  likeCount: sql`${hubPosts.likeCount} + 1`,
+                  remoteLikeCount: sql`${hubPosts.remoteLikeCount} + 1`,
+                }).where(eq(hubPosts.id, post.id));
                 matched = true;
 
                 // Notify hub post author (skip for federated posts with no local author)
@@ -1216,8 +1229,10 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
             const noteSegments = new URL(announceActivity.objectUri).pathname.split('/').filter(Boolean);
             if (noteSegments.length >= 4 && noteSegments[0] === 'hubs' && noteSegments[2] === 'posts') {
               const postId = noteSegments[3]!;
-              await db.update(hubPosts).set({ likeCount: sql`${hubPosts.likeCount} + 1` })
-                .where(eq(hubPosts.id, postId));
+              await db.update(hubPosts).set({
+                likeCount: sql`${hubPosts.likeCount} + 1`,
+                remoteLikeCount: sql`${hubPosts.remoteLikeCount} + 1`,
+              }).where(eq(hubPosts.id, postId));
               matched = true;
             }
           } catch { /* invalid URL */ }

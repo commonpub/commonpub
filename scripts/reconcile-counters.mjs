@@ -13,6 +13,13 @@
  *
  * Requires NUXT_DATABASE_URL or DATABASE_URL. Safe to run on production (only UPDATEs rows
  * whose stored counter already disagrees with the recomputed value).
+ *
+ * FEDERATED COUNTERS: inbound (federated) Likes have no local source row — they live in
+ * `remote_like_count` (migration 0026), so the like_count recomputes below add it. Counters
+ * that receive a remote increment with NO reconcilable source are deliberately NOT listed
+ * here, because recomputing them from local rows would zero out the federated portion:
+ *   content_items.comment_count / boost_count, hub_posts.reply_count, hubs.post_count.
+ * To make those reconcilable, give each a remote_*_count column like remote_like_count.
  */
 import pg from 'pg';
 
@@ -51,7 +58,8 @@ const tasks = [
     name: 'hub_posts.like_count',
     table: 'hub_posts',
     column: 'like_count',
-    recompute: `(SELECT count(*) FROM hub_post_likes l WHERE l.post_id = t.id)`,
+    // local likes + the federated portion (remote_like_count, migration 0026).
+    recompute: `((SELECT count(*) FROM hub_post_likes l WHERE l.post_id = t.id) + t.remote_like_count)`,
   },
   {
     name: 'hub_posts.vote_score',
@@ -76,7 +84,9 @@ const tasks = [
     table: 'content_items',
     column: 'like_count',
     // likes.target_type is the content type (project/article/blog/explainer); match on target_id.
-    recompute: `(SELECT count(*) FROM likes l WHERE l.target_id = t.id AND l.target_type IN ('project','article','blog','explainer'))`,
+    // PLUS the federated portion (remote_like_count, migration 0026) — inbound Likes have no
+    // `likes` row, so omitting it would delete every fediverse like (audit session 203).
+    recompute: `((SELECT count(*) FROM likes l WHERE l.target_id = t.id AND l.target_type IN ('project','article','blog','explainer')) + t.remote_like_count)`,
   },
   {
     name: 'content_items.fork_count',
@@ -90,6 +100,19 @@ const tasks = [
     table: 'content_items',
     column: 'build_count',
     recompute: `(SELECT count(*) FROM content_builds b WHERE b.content_id = t.id)`,
+  },
+  {
+    // Learning is instance-local (never federates), so enrollment counts have no remote source.
+    name: 'learning_paths.enrollment_count',
+    table: 'learning_paths',
+    column: 'enrollment_count',
+    recompute: `(SELECT count(*) FROM enrollments e WHERE e.path_id = t.id)`,
+  },
+  {
+    name: 'learning_paths.completion_count',
+    table: 'learning_paths',
+    column: 'completion_count',
+    recompute: `(SELECT count(*) FROM enrollments e WHERE e.path_id = t.id AND e.completed_at IS NOT NULL)`,
   },
 ];
 

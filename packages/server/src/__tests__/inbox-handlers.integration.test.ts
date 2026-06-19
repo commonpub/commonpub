@@ -310,6 +310,40 @@ describe('inbox handler edge cases', () => {
       // Like count should only be 1 (second Like is idempotent)
       expect(row!.localLikeCount).toBe(1);
     });
+
+    // Audit session 203: federated likes on LOCAL content have no `likes` row, so they
+    // are tracked in content_items.remote_like_count for reconcile-counters to preserve.
+    it('tracks remoteLikeCount on local content (and Undo decrements both counters)', async () => {
+      const [content] = await db
+        .insert(contentItems)
+        .values({ authorId: localUserId, type: 'blog', title: 'Local post', slug: 'local-remote-like', status: 'published' })
+        .returning();
+      // Canonical federation URI form (matched by both onLike and onUndo via parseLocalContentUri).
+      const objectUri = `https://${LOCAL_DOMAIN}/u/localuser/blog/local-remote-like`;
+
+      await handlers.onLike(REMOTE_ALICE, objectUri);
+      let [row] = await db.select().from(contentItems).where(eq(contentItems.id, content!.id));
+      expect(row!.likeCount).toBe(1);
+      expect(row!.remoteLikeCount).toBe(1);
+
+      // Same actor again → idempotent (no double-count on either counter).
+      await handlers.onLike(REMOTE_ALICE, objectUri);
+      [row] = await db.select().from(contentItems).where(eq(contentItems.id, content!.id));
+      expect(row!.likeCount).toBe(1);
+      expect(row!.remoteLikeCount).toBe(1);
+
+      // Different actor → both counters advance.
+      await handlers.onLike(REMOTE_BOB, objectUri);
+      [row] = await db.select().from(contentItems).where(eq(contentItems.id, content!.id));
+      expect(row!.likeCount).toBe(2);
+      expect(row!.remoteLikeCount).toBe(2);
+
+      // Undo(Like) decrements both, so like_count = local(0) + remote(1) stays correct.
+      await handlers.onUndo(REMOTE_BOB, 'Like', objectUri);
+      [row] = await db.select().from(contentItems).where(eq(contentItems.id, content!.id));
+      expect(row!.likeCount).toBe(1);
+      expect(row!.remoteLikeCount).toBe(1);
+    });
   });
 
   // --- onFollow with auto-accept ---
