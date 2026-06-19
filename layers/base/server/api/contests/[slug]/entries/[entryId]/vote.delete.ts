@@ -8,8 +8,7 @@ export default defineEventHandler(async (event) => {
   requireFeature('contests');
   const user = requireAuth(event);
   const db = useDB();
-  const entryId = getRouterParam(event, 'entryId');
-  if (!entryId) throw createError({ statusCode: 400, statusMessage: 'Missing entryId' });
+  const { entryId } = parseParams(event, { entryId: 'uuid' });
 
   const removed = await removeContestEntryVote(db, entryId, user.id);
   if (!removed) {

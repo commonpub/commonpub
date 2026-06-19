@@ -7,8 +7,7 @@ const querySchema = z.object({
 
 export default defineEventHandler(async (event) => {
   requirePermission(event, 'apikeys.manage');
-  const id = getRouterParam(event, 'id');
-  if (!id) throw createError({ statusCode: 400, statusMessage: 'Missing id' });
+  const { id } = parseParams(event, { id: 'uuid' });
   const parsed = querySchema.safeParse(getQuery(event));
   if (!parsed.success) {
     throw createError({ statusCode: 400, statusMessage: 'Invalid query parameters' });

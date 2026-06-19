@@ -17,6 +17,7 @@ import { parseBody } from '../validate';
 
 let contentLength: string | undefined;
 let body: unknown;
+let rawBody: string | Buffer | undefined;
 
 // A schema stub that accepts anything — keeps the test focused on the size guard
 // (which throws *before* `safeParse` is reached on the oversize path) and avoids
@@ -34,11 +35,13 @@ beforeAll(() => {
   g.getRequestHeader = (_event: H3Event, name: string): string | undefined =>
     name === 'content-length' ? contentLength : undefined;
   g.readBody = async (_event: H3Event): Promise<unknown> => body;
+  g.readRawBody = async (_event: H3Event): Promise<string | Buffer | undefined> => rawBody;
 });
 
 afterEach(() => {
   contentLength = undefined;
   body = undefined;
+  rawBody = undefined;
 });
 
 describe('parseBody — request body size guard', () => {
@@ -59,14 +62,39 @@ describe('parseBody — request body size guard', () => {
     await expect(parseBody(fakeEvent, passThrough)).resolves.toEqual({ ok: true });
   });
 
-  it('does not block when Content-Length is absent (chunked/unknown)', async () => {
+  it('does not block when Content-Length is absent (chunked/unknown) and body is small', async () => {
     contentLength = undefined;
+    rawBody = JSON.stringify({ ok: true });
     body = { ok: true };
     await expect(parseBody(fakeEvent, passThrough)).resolves.toEqual({ ok: true });
   });
 
   it('ignores a non-numeric Content-Length rather than rejecting', async () => {
     contentLength = 'not-a-number';
+    rawBody = JSON.stringify({ ok: true });
+    body = { ok: true };
+    await expect(parseBody(fakeEvent, passThrough)).resolves.toEqual({ ok: true });
+  });
+
+  // The bypass: a chunked request omits Content-Length, so the header fast-path
+  // passes; the cap must still be enforced on the ACTUAL buffered body size.
+  it('rejects an oversize body when Content-Length is absent (string raw body)', async () => {
+    contentLength = undefined;
+    rawBody = 'x'.repeat(10_000_001);
+    body = { ok: true };
+    await expect(parseBody(fakeEvent, passThrough)).rejects.toMatchObject({ statusCode: 413 });
+  });
+
+  it('rejects an oversize body when Content-Length lies (smaller than actual)', async () => {
+    contentLength = String(10); // attacker understates the size
+    rawBody = Buffer.alloc(10_000_001);
+    body = { ok: true };
+    await expect(parseBody(fakeEvent, passThrough)).rejects.toMatchObject({ statusCode: 413 });
+  });
+
+  it('accepts a Buffer raw body at the 10MB boundary', async () => {
+    contentLength = undefined;
+    rawBody = Buffer.alloc(10_000_000);
     body = { ok: true };
     await expect(parseBody(fakeEvent, passThrough)).resolves.toEqual({ ok: true });
   });

@@ -11,6 +11,7 @@ const toggleLikeSchema = z.object({
 const FEDERABLE_LIKE_TYPES = new Set(['project', 'article', 'blog', 'explainer']);
 
 export default defineEventHandler(async (event): Promise<{ liked: boolean }> => {
+  requireFeature('social');
   const user = requireAuth(event);
   const db = useDB();
   const config = useConfig();

@@ -13,10 +13,7 @@ export default defineEventHandler(async (event) => {
   requireFeature('layoutEngine');
   requirePermission(event, 'layout.manage');
 
-  const id = getRouterParam(event, 'id');
-  if (!id) {
-    throw createError({ statusCode: 400, statusMessage: 'Missing id param' });
-  }
+  const { id } = parseParams(event, { id: 'uuid' });
 
   const db = useDB();
   const layout = await getLayoutById(db, id);

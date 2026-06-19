@@ -7,6 +7,7 @@ const toggleBookmarkSchema = z.object({
 });
 
 export default defineEventHandler(async (event): Promise<{ bookmarked: boolean }> => {
+  requireFeature('social');
   const user = requireAuth(event);
   const db = useDB();
   const input = await parseBody(event, toggleBookmarkSchema);

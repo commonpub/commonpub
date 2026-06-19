@@ -6,6 +6,7 @@ import { createCommentSchema } from '@commonpub/schema';
 const FEDERABLE_COMMENT_TYPES = new Set(['project', 'article', 'blog', 'explainer']);
 
 export default defineEventHandler(async (event): Promise<CommentItem> => {
+  requireFeature('social');
   const user = requireAuth(event);
   const db = useDB();
   const config = useConfig();

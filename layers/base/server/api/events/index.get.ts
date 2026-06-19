@@ -23,9 +23,16 @@ export default defineEventHandler(async (event) => {
     userId = user.id;
   }
 
+  // hubId feeds a uuid SQL bind; reject a malformed value at the door (a
+  // non-uuid string reaching the bind throws an unhandled 500).
+  const hubId = (query.hubId as string) || undefined;
+  if (hubId && !isUuid(hubId)) {
+    throw createError({ statusCode: 400, statusMessage: 'Invalid hubId' });
+  }
+
   return listEvents(db, {
     status,
-    hubId: (query.hubId as string) || undefined,
+    hubId,
     upcoming: query.upcoming === 'true',
     featured: query.featured === 'true',
     userId,

@@ -3,8 +3,7 @@ import { deleteHubResource } from '@commonpub/server';
 export default defineEventHandler(async (event) => {
   const db = useDB();
   const user = requireAuth(event);
-  const id = getRouterParam(event, 'id');
-  if (!id) throw createError({ statusCode: 400, statusMessage: 'Missing resource ID' });
+  const { id } = parseParams(event, { id: 'uuid' });
 
   const result = await deleteHubResource(db, id, user.id);
   if (!result.success) {

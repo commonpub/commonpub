@@ -18,11 +18,7 @@ export default defineEventHandler(async (event) => {
   const admin = requirePermission(event, 'layout.manage');
   const db = useDB();
 
-  const id = getRouterParam(event, 'id');
-  const versionId = getRouterParam(event, 'versionId');
-  if (!id || !versionId) {
-    throw createError({ statusCode: 400, statusMessage: 'Missing id or versionId param' });
-  }
+  const { id, versionId } = parseParams(event, { id: 'uuid', versionId: 'uuid' });
 
   const existing = await getLayoutById(db, id);
   if (!existing) {

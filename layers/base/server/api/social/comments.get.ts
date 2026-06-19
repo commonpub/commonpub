@@ -11,6 +11,7 @@ const commentsQuerySchema = z.object({
 });
 
 export default defineEventHandler(async (event): Promise<CommentItem[]> => {
+  requireFeature('social');
   const db = useDB();
   const query = parseQueryParams(event, commentsQuerySchema);
 
