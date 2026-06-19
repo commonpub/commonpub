@@ -34,6 +34,10 @@ Object.assign(globalThis, {
 });
 
 import ProjectView from '../ProjectView.vue';
+// Real component (renders the .cpub-av markup the assertions check); the app
+// auto-imports it, but vitest needs it registered explicitly.
+import ContentAvatar from '../../ContentAvatar.vue';
+import type { ContentViewData } from '../../../composables/useEngagement';
 
 // --- Component stubs ---
 const NuxtLink = defineComponent({
@@ -51,7 +55,11 @@ const stubs = {
   CommentSection: true,
 };
 
-function makeContent(overrides: Record<string, unknown> = {}) {
+const components = { ContentAvatar };
+
+// Minimal smoke fixture; cast to the full type (the view only reads the byline
+// fields these tests assert on).
+function makeContent(overrides: Record<string, unknown> = {}): ContentViewData {
   return {
     id: 'proj-1',
     type: 'project',
@@ -73,7 +81,7 @@ function makeContent(overrides: Record<string, unknown> = {}) {
       avatarUrl: 'https://example.test/avatars/alice.png',
     },
     ...overrides,
-  };
+  } as unknown as ContentViewData;
 }
 
 beforeEach(() => {
@@ -82,7 +90,7 @@ beforeEach(() => {
 
 describe('ProjectView — smoke', () => {
   it('renders the title and author display name', () => {
-    const { container } = render(ProjectView, { props: { content: makeContent() }, global: { stubs } });
+    const { container } = render(ProjectView, { props: { content: makeContent() }, global: { stubs, components } });
     // Title appears in the breadcrumb + the <h1>; assert the page heading.
     expect(container.querySelector('h1.cpub-project-title')?.textContent).toBe('LED Cube Build');
     expect(screen.getByText('Alice Builder')).toBeInTheDocument();
@@ -91,7 +99,7 @@ describe('ProjectView — smoke', () => {
   it('renders an avatar <img> with the src when avatarUrl is present', () => {
     const { container } = render(ProjectView, {
       props: { content: makeContent() },
-      global: { stubs },
+      global: { stubs, components },
     });
     const img = container.querySelector('img.cpub-av, img[src="https://example.test/avatars/alice.png"]');
     expect(img).toBeTruthy();
@@ -105,7 +113,7 @@ describe('ProjectView — smoke', () => {
           author: { id: 'u-2', username: 'bob', displayName: 'Bob Maker', avatarUrl: null },
         }),
       },
-      global: { stubs },
+      global: { stubs, components },
     });
     // No avatar image
     expect(container.querySelector('img.cpub-av')).toBeFalsy();

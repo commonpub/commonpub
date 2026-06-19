@@ -34,6 +34,7 @@ Object.assign(globalThis, {
 });
 
 import ExplainerView from '../ExplainerView.vue';
+import type { ContentViewData } from '../../../composables/useEngagement';
 
 const NuxtLink = defineComponent({
   name: 'NuxtLink',
@@ -49,7 +50,9 @@ const stubs = {
   ScrollViewer: true,
 };
 
-function makeContent(overrides: Record<string, unknown> = {}) {
+// Minimal smoke fixture; cast to the full type (the view only reads the byline
+// fields these tests assert on).
+function makeContent(overrides: Record<string, unknown> = {}): ContentViewData {
   return {
     id: 'exp-1',
     type: 'explainer',
@@ -70,7 +73,7 @@ function makeContent(overrides: Record<string, unknown> = {}) {
       avatarUrl: 'https://example.test/avatars/alice.png',
     },
     ...overrides,
-  };
+  } as unknown as ContentViewData;
 }
 
 beforeEach(() => {
