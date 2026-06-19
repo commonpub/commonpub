@@ -220,3 +220,37 @@ GREEN). Mutation evidence captured per fix, e.g.:
 Net: every security/correctness fix with a deterministic, observable behavior now has a test that
 provably fails without the fix; the residual unprovable items are concurrency/network/CI-env and
 are explicitly listed rather than papered over with green-but-hollow tests.
+
+---
+
+## Round 5 — close the "unprovable" gaps elegantly (real-Postgres harness)
+
+The round-4 residual gaps shared one root cause: PGlite is a single serialized connection, so
+concurrency/claim races are no-ops there, and the suite never exercised migrations. The elegant
+fix is the right harness, not more mocks: **`packages/server/src/__tests__/helpers/realpgdb.ts`** —
+a multi-connection `pg.Pool` against a throwaway database, populated by **running the committed
+migrations** (so it also proves the 0000→0027 chain end-to-end). Gated by `realPgReachable()`:
+skips in PGlite-only envs, runs locally (docker :5433) and in any CI with a Postgres service.
+(`pg` added as a server devDep.)
+
+`concurrency.integration.test.ts` (5 tests) — **mutation-verified**:
+- `createContentVersion` FOR UPDATE lock: 10 concurrent creates → 10 distinct versions; with the
+  lock removed → duplicates (observed 3/10 distinct). *This is the proof PGlite could never give.*
+- gated counters (`enroll`/`toggleFederatedHubPostLike`): counter == actual rows under 10-way
+  concurrency (the `enroll` early-idempotent-return is itself a mitigation that narrows its race —
+  noted, not claimed as mutation-caught).
+- `digest_runs` atomic claim: 5 concurrent claims → exactly one winner (multi-replica safety).
+- migration chain: 0026/0027 artifacts (`processed_activities`, `digest_runs`, `remote_like_count`)
+  present after migrate().
+`safeActorFetch.test.ts` — `createSafeActorFetchFn` (the inbox's SSRF-safe fetch) rejects
+private/loopback/metadata targets.
+
+Also closed (small, safe): **shell** `db:push`→`db:migrate` footgun + `events`/`contentImport`
+added to its env-flag map. Full suite green 33/33 (server 1420, layer 1069).
+
+**STILL genuinely deferred (each its own PR; not bundled):** global SSRF-pinned dispatcher
+(high blast radius; megalodon/axios use their own client; per-call safe-fetch already covers the
+federation paths and `isValidHost` covers the Mastodon path); `pg_trgm` search GIN index (PGlite
+can't create it, and a schema-vs-migration drift would result — needs an ops/extension decision);
+`/api/content` → keyset feed; the 203 structural refactors (field-cascade DRY, homepage 3-path
+consolidation, content-view dedup, monolith splits); user-block model (a feature, not a fix).
