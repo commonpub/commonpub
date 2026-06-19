@@ -18,5 +18,6 @@ export default defineEventHandler(async (event): Promise<PaginatedResponse<Follo
     throw createError({ statusCode: 404, statusMessage: 'User not found' });
   }
 
-  return listFollowing(db, target.id, query);
+  // Pass the viewer so each row carries isFollowing for the VIEWER (not the owner).
+  return listFollowing(db, target.id, query, getOptionalUser(event)?.id);
 });

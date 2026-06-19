@@ -4,11 +4,19 @@ const username = route.params.username as string;
 
 useSeoMeta({ title: `Followers, @${username}, ${useSiteName()}` });
 
-const { data: followers } = useLazyFetch<Array<{ id: string; username: string; displayName: string | null; avatarUrl: string | null }>>(`/api/users/${username}/followers`);
+type FollowRow = { id: string; username: string; displayName: string | null; avatarUrl: string | null; isFollowing?: boolean };
+const { data: followers } = useLazyFetch<{ items: FollowRow[]; total: number }>(`/api/users/${username}/followers`);
 const { isAuthenticated, user } = useAuth();
 const toast = useToast();
 
 const followingState = ref<Record<string, boolean>>({});
+
+// Seed each row's button from the VIEWER's real relationship (server-provided).
+watch(followers, (d) => {
+  for (const f of d?.items ?? []) {
+    followingState.value[f.username] = !!f.isFollowing;
+  }
+}, { immediate: true });
 
 async function toggleFollow(targetUsername: string, isFollowing: boolean): Promise<void> {
   try {
@@ -32,8 +40,8 @@ async function toggleFollow(targetUsername: string, isFollowing: boolean): Promi
       <h1 class="follow-title">Followers</h1>
     </div>
 
-    <div v-if="followers?.length" class="follow-list">
-      <div v-for="f in (followers as Array<{ id: string; username: string; displayName: string | null; avatarUrl: string | null }>)" :key="f.id" class="follow-item">
+    <div v-if="followers?.items?.length" class="follow-list">
+      <div v-for="f in followers.items" :key="f.id" class="follow-item">
         <NuxtLink :to="`/u/${f.username}`" class="follow-user">
           <div class="follow-avatar">
             <img v-if="f.avatarUrl" :src="f.avatarUrl" :alt="f.displayName || f.username" class="follow-avatar-img" />
