@@ -135,3 +135,43 @@ non-static routes); IDOR on the main mutation surface (owner/role-scoped); sessi
 outbox visibility gating + deterministic ids + loop prevention; DM classification (no timeline
 leak); no missing-`where` on any UPDATE/DELETE; `listLayouts` N+1 fixed; the 203 transaction/
 counter/sanitizer/uuid-guard fixes verified correct (except the Undo asymmetry fixed above).
+
+---
+
+## Round 3 (same day) — backlog REMEDIATED + discovery audit of under-covered domains
+
+A third pass audited the domains rounds 1–2 covered least (messaging/events/videos/products/
+learning/explainer/docs/theme-studio/apps) and then **fixed the entire verified backlog above**
+plus the new discovery findings. Full suite green throughout (33/33 tasks, ~5000 tests; build
+16/16, typecheck 28/28). Migration **0027** added (additive: `processed_activities` +
+`digest_runs` tables, composite hot-read indexes; validated on real Postgres).
+
+**Discovery audit verdicts:** messaging, learning, theme-studio, and search/FTS = CLEAN
+(verified — DM participant checks, server-side quiz grading, theme CSS sink guards, allowlist
+tsquery). New P1s found + fixed (below).
+
+**FIXED this round (committed on `audit-203-fixes`):**
+- **Security/leaks (P0/P1):** product create-in-any-hub IDOR (membership now enforced in
+  `createProduct`); explainer export XSS (denylist → shared allowlist sanitizer + heading
+  clamp); docs draft/archived pages world-readable (public reads now `publishedOnly`, editor
+  keeps drafts); event draft/cancelled readable by slug + attendee-roster leak (gated to
+  creator/admin); inbox replay dedup (`processed_activities`); CSRF origin-check middleware
+  for cookie-auth `/api/*`; constant-time admin-secret compare; private-hub-metadata redaction
+  for non-members; hub vote/poll membership+ban enforcement.
+- **Data integrity:** `createContentVersion` `FOR UPDATE` (no dup versions); transactions for
+  `forkContent`/`enroll`/`unenroll`/`deletePost`/`advanceContestStage`/`transitionContestStatus`;
+  delivery follower N+1 → one batched `inArray`; `syncContentProducts` FK-safe filtering;
+  `createEvent`/`createVideoCategory` slug de-dup (was a 500); product delete owner-or-moderator.
+- **Perf:** hot-read composite indexes (migration 0027); page-1 COUNT gating; remaining ~9
+  pagination tiebreakers.
+- **Ops:** atomic cross-replica claims for the digest + hub-sync workers (`digest_runs` +
+  compare-and-claim).
+- **Frontend/a11y:** editor route-leave guards; surfaced upload errors; `role=radiogroup`/
+  `role=menu` fixes + dialog names; undefined `--accent-contrast`/`--accent-text` → `--color-on-accent`;
+  stable `v-for` keys; block-image prose leak; modal `<Teleport>`; cookies.vue hydration date.
+
+**STILL DEFERRED (need a product decision / larger effort, documented for follow-up):**
+global SSRF-pinned dispatcher (megalodon/axios bypass the per-call safe-fetch; flag-gated paths);
+search `pg_trgm` GIN index (extension/ops decision); `/api/content` main feed → keyset; the big
+structural refactors from 203 (field-cascade DRY, homepage 3-path consolidation, content-view
+dedup, monolith file splits); shell `db:push` footgun + shell env-flag map; user-block model.
