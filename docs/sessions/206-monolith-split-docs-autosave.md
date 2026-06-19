@@ -61,11 +61,42 @@ Trailing 5s debounce, status dot/label, Cmd+S, beforeunload + route-leave guards
 save-before-page-switch, load-guard suppression of false dirty. No new behavior except the
 defensive re-entrancy guard.
 
+## Part 3 — monolith split: ProjectView block parsers
+
+Target: `layers/base/components/views/ProjectView.vue` (1656 lines) carried five inline
+computeds that parse a project's BlockTuple content into the structures its tabs render
+(BOM parts, build steps, code snippets, download files, table-of-contents headings) — pure
+`blocks[] → structured[]` logic with zero coverage.
+
+**Extracted** verbatim into `layers/base/utils/projectBlocks.ts` as pure functions
+(`extractParts`, `extractBuildSteps`, `extractCodeBlocks`, `extractDownloadFiles`,
+`extractTocEntries`, plus a shared `headingSlug`) with exported interfaces. The component's
+computeds are now one-line wrappers; the five interface decls moved to the util.
+
+### Decisions
+- **Explicit import, not auto-import.** First wired via Nuxt's utils/ auto-import — that
+  works in the app build but the component's vitest test (`ProjectView.test.ts`) mounts the
+  SFC with no Nuxt transform, so `extractParts is not defined`. Switched to an explicit
+  `import { ... } from '../../utils/projectBlocks'` (matching NavRenderer.vue, which imports
+  its util for the same reason). Robust in both the build and vitest.
+- Behavior preserved byte-for-byte: qty/quantity precedence, legacy buildStep
+  instructions+image → children migration (image alt uses the running counter, not the
+  stepNumber override), code_block/codeBlock alias, heading HTML-strip + slug, all guards.
+
+### Tests (mutation-proven)
+`projectBlocks.test.ts` — 16 tests. Verified teeth: swapping qty/quantity precedence and
+dropping the `codeBlock` type alias each turned only their own test red.
+
+### Verification
+- `ProjectView.vue`: 1656 → 1522 lines (-134).
+- New util suite 16/16 + the pre-existing `ProjectView.test.ts` 3/3 green.
+- Full layer suite **1105/1105 green** (70 files); `nuxt typecheck` clean (EXIT 0).
+
 ## Open / next
-- **Not committed** — awaiting decision on branch + commit + PR.
-- **ProjectView.vue (1656 lines)** is the second monolith split from the backlog — not started.
-- Future consolidation opportunity (own PR): three autosave call-sites now exist
+- Both splits committed on branch `monolith-splits` (no PR per request; continuing all
+  remaining work on this branch).
+- Future consolidation opportunity (own effort): three autosave call-sites now exist
   (`useLayoutAutoSave`, `useContentSave` inline, `useEditorAutosave`); could unify behind one
-  engine with a debounce-mode option. Out of scope for this focused PR.
+  engine with a debounce-mode option.
 - Other backlog (unchanged, see `205-kickoff-next.md`): roll fixes to deveco/heatsync,
   homepage 3-path consolidation, user-block feature, pg_trgm, megalodon SSRF residual.

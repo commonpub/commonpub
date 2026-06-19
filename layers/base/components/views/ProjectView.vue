@@ -1,5 +1,12 @@
 <script setup lang="ts">
 import type { ContentViewData } from '../../composables/useEngagement';
+import {
+  extractParts,
+  extractBuildSteps,
+  extractCodeBlocks,
+  extractDownloadFiles,
+  extractTocEntries,
+} from '../../utils/projectBlocks';
 
 const { hubs: hubsEnabled } = useFeatures();
 const { user: authUser } = useAuth();
@@ -93,148 +100,14 @@ const formattedDate = computed(() => {
   return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 });
 
-// Extract parts list blocks from content for BOM tab
-interface PartItem {
-  name: string;
-  quantity: number;
-  productId?: string;
-  notes?: string;
-}
-
-const partsFromBlocks = computed<PartItem[]>(() => {
-  const blocks = props.content?.content;
-  if (!Array.isArray(blocks)) return [];
-  const items: PartItem[] = [];
-  for (const block of blocks) {
-    const [type, data] = block as [string, Record<string, unknown>];
-    if (type === 'partsList' && Array.isArray(data.parts)) {
-      for (const part of data.parts as Array<Record<string, unknown>>) {
-        items.push({
-          name: (part.name as string) || 'Unknown',
-          quantity: (part.qty as number) ?? (part.quantity as number) ?? 1,
-          productId: part.productId as string | undefined,
-          notes: (part.notes as string) || '',
-        });
-      }
-    }
-  }
-  return items;
-});
-
-// Extract build steps from content
-interface BuildStep {
-  number: number;
-  title: string;
-  children: Array<[string, Record<string, unknown>]>;
-  time?: string;
-}
-
-const buildStepsFromBlocks = computed<BuildStep[]>(() => {
-  const blocks = props.content?.content;
-  if (!Array.isArray(blocks)) return [];
-  const steps: BuildStep[] = [];
-  let stepNum = 0;
-  for (const block of blocks) {
-    const [type, data] = block as [string, Record<string, unknown>];
-    if (type === 'buildStep') {
-      stepNum++;
-      // Migrate old format (instructions + image) to children
-      let children: Array<[string, Record<string, unknown>]> = [];
-      if (data.children && Array.isArray(data.children) && data.children.length > 0) {
-        children = data.children as Array<[string, Record<string, unknown>]>;
-      } else {
-        const instructions = data.instructions as string | undefined;
-        if (instructions && instructions.trim()) {
-          const html = instructions.startsWith('<') ? instructions : `<p>${instructions}</p>`;
-          children.push(['paragraph', { html }]);
-        }
-        const image = data.image as string | undefined;
-        if (image && image.trim()) {
-          children.push(['image', { src: image, alt: `Step ${stepNum}`, caption: '' }]);
-        }
-      }
-      steps.push({
-        number: (data.stepNumber as number) || stepNum,
-        title: (data.title as string) || `Step ${stepNum}`,
-        children,
-        time: data.time as string | undefined,
-      });
-    }
-  }
-  return steps;
-});
-
-// Extract code blocks for code tab
-interface CodeSnippet {
-  language: string;
-  filename: string;
-  code: string;
-}
-
-const codeBlocks = computed<CodeSnippet[]>(() => {
-  const blocks = props.content?.content;
-  if (!Array.isArray(blocks)) return [];
-  const snippets: CodeSnippet[] = [];
-  for (const block of blocks) {
-    const [type, data] = block as [string, Record<string, unknown>];
-    if (type === 'code_block' || type === 'codeBlock') {
-      snippets.push({
-        language: (data.language as string) || '',
-        filename: (data.filename as string) || '',
-        code: (data.code as string) || '',
-      });
-    }
-  }
-  return snippets;
-});
-
-// Extract download blocks for files tab
-interface FileItem {
-  name: string;
-  url: string;
-  size?: string;
-}
-
-const downloadFiles = computed<FileItem[]>(() => {
-  const blocks = props.content?.content;
-  if (!Array.isArray(blocks)) return [];
-  const files: FileItem[] = [];
-  for (const block of blocks) {
-    const [type, data] = block as [string, Record<string, unknown>];
-    if (type === 'downloads' && Array.isArray(data.files)) {
-      for (const file of data.files as Array<Record<string, unknown>>) {
-        files.push({
-          name: (file.name as string) || 'Unknown',
-          url: (file.url as string) || '',
-          size: (file.size as string) || '',
-        });
-      }
-    }
-  }
-  return files;
-});
-
-// Extract headings from content for table of contents
-interface TocEntry { id: string; text: string; level: number }
-const tocEntries = computed<TocEntry[]>(() => {
-  const blocks = props.content?.content;
-  if (!Array.isArray(blocks)) return [];
-  const entries: TocEntry[] = [];
-  for (const block of blocks) {
-    const [type, data] = block as [string, Record<string, unknown>];
-    if (type === 'heading' && data.text) {
-      const text = String(data.text).replace(/<[^>]+>/g, '');
-      if (text.trim()) {
-        entries.push({
-          id: text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
-          text: text.trim(),
-          level: (data.level as number) ?? 2,
-        });
-      }
-    }
-  }
-  return entries;
-});
+// Structured views of the project's block content. The parsing lives in the
+// pure, unit-tested helpers in utils/projectBlocks.ts (auto-imported); the BOM,
+// build-steps, code, files, and TOC tabs all read from these computeds.
+const partsFromBlocks = computed(() => extractParts(props.content?.content));
+const buildStepsFromBlocks = computed(() => extractBuildSteps(props.content?.content));
+const codeBlocks = computed(() => extractCodeBlocks(props.content?.content));
+const downloadFiles = computed(() => extractDownloadFiles(props.content?.content));
+const tocEntries = computed(() => extractTocEntries(props.content?.content));
 
 const tocActiveId = ref('');
 
