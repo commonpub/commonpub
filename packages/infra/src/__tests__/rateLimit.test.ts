@@ -2,9 +2,11 @@ import { describe, it, expect, afterEach, vi } from 'vitest';
 import {
   MemoryRateLimitStore,
   createRateLimitStore,
+  RedisRateLimitStore,
   type RateLimitStore,
   type RateLimitTier,
 } from '../index.js';
+import type { Redis } from 'ioredis';
 
 /**
  * Unit tests for the rate-limit store abstraction. The Redis-backed
@@ -89,6 +91,60 @@ describe('createRateLimitStore (factory)', () => {
     // in both cases we should have fallen back cleanly.
     // (We don't assert exact errors.length because ioredis retry behavior
     // may or may not fire before the first check resolves.)
+  });
+});
+
+describe('RedisRateLimitStore fail-open observability', () => {
+  /**
+   * Fake ioredis whose pipeline `.exec()` rejects, forcing the catch-block
+   * fail-open path. No live Redis required.
+   */
+  function failingClient(): Redis {
+    return {
+      multi: () => ({
+        incr: () => {},
+        pexpire: () => {},
+        exec: () => Promise.reject(new Error('ECONNREFUSED')),
+      }),
+    } as unknown as Redis;
+  }
+
+  it('logs a structured error on fail-open and still returns allowed (no hook wired)', async () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      const store = new RedisRateLimitStore(failingClient());
+      const r = await store.check('1.2.3.4', TIER_3_60s);
+
+      // Behavior unchanged: fail OPEN, not closed.
+      expect(r.allowed).toBe(true);
+      expect(store.getFailOpenCount()).toBe(1);
+
+      // ...but now LOUD — exactly one structured line on stderr.
+      expect(spy).toHaveBeenCalledTimes(1);
+      const logged = JSON.parse(spy.mock.calls[0]![0] as string);
+      expect(logged.level).toBe('error');
+      expect(logged.component).toBe('ratelimit-redis');
+      expect(logged.message).toContain('Redis fail-open');
+      expect(logged.message).toContain('ECONNREFUSED');
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it('does NOT default-log when an onError hook is wired (hook owns logging)', async () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const hook = vi.fn();
+    try {
+      const store = new RedisRateLimitStore(failingClient(), { onError: hook });
+      const r = await store.check('1.2.3.4', TIER_3_60s);
+
+      expect(r.allowed).toBe(true);
+      expect(hook).toHaveBeenCalledTimes(1);
+      // Hook owns logging — no default console.error fallback.
+      expect(spy).not.toHaveBeenCalled();
+    } finally {
+      spy.mockRestore();
+    }
   });
 });
 

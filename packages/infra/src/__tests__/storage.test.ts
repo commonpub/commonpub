@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 import { mkdtemp, rm, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -293,6 +293,66 @@ describe('createStorageFromEnv', () => {
     delete process.env.S3_ACCESS_KEY;
     delete process.env.S3_SECRET_KEY;
     expect(() => createStorageFromEnv()).toThrow(/S3_BUCKET is set but/);
+  });
+});
+
+describe('S3StorageAdapter upload Content-Disposition (SVG XSS hardening)', () => {
+  const creds = { accessKeyId: 'k', secretAccessKey: 's' };
+
+  /**
+   * Mock @aws-sdk/client-s3 so PutObjectCommand records its input and the
+   * S3Client merely captures sent commands. Returns the captured PutObject
+   * inputs so each test can assert on the params the adapter built.
+   */
+  function mockS3() {
+    const putInputs: Array<Record<string, unknown>> = [];
+    vi.doMock('@aws-sdk/client-s3', () => {
+      class PutObjectCommand {
+        input: Record<string, unknown>;
+        constructor(input: Record<string, unknown>) {
+          this.input = input;
+        }
+      }
+      class S3Client {
+        async send(cmd: { input: Record<string, unknown> }): Promise<void> {
+          putInputs.push(cmd.input);
+        }
+      }
+      return { S3Client, PutObjectCommand, DeleteObjectCommand: class {} };
+    });
+    return putInputs;
+  }
+
+  afterEach(() => {
+    vi.resetModules();
+    vi.doUnmock('@aws-sdk/client-s3');
+  });
+
+  it('sets ContentDisposition: attachment for image/svg+xml uploads', async () => {
+    const putInputs = mockS3();
+    const { S3StorageAdapter: Adapter } = await import('../storage.js');
+    const adapter = new Adapter({ bucket: 'b', region: 'us-east-1', ...creds });
+
+    await adapter.upload('content/x.svg', Buffer.from('<svg/>'), 'image/svg+xml');
+
+    expect(putInputs).toHaveLength(1);
+    expect(putInputs[0]).toMatchObject({
+      ContentType: 'image/svg+xml',
+      ContentDisposition: 'attachment',
+      ACL: 'public-read',
+    });
+  });
+
+  it('does NOT set ContentDisposition for raster images (served inline)', async () => {
+    const putInputs = mockS3();
+    const { S3StorageAdapter: Adapter } = await import('../storage.js');
+    const adapter = new Adapter({ bucket: 'b', region: 'us-east-1', ...creds });
+
+    await adapter.upload('content/x.png', Buffer.from('binary'), 'image/png');
+
+    expect(putInputs).toHaveLength(1);
+    expect(putInputs[0]).toMatchObject({ ContentType: 'image/png' });
+    expect(putInputs[0]).not.toHaveProperty('ContentDisposition');
   });
 });
 

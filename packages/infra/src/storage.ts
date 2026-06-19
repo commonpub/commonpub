@@ -190,6 +190,10 @@ export class S3StorageAdapter implements StorageAdapter {
         Body: body,
         ContentType: mimeType,
         ACL: 'public-read',
+        // SVGs can carry inline <script>; served inline + same-origin they
+        // execute as stored XSS. Force the browser to DOWNLOAD them instead
+        // of rendering. Raster images stay inline (no disposition header).
+        ...(mimeType === 'image/svg+xml' ? { ContentDisposition: 'attachment' } : {}),
       }),
     );
 
