@@ -82,10 +82,23 @@ describe('AdminLayoutsPaletteTile — render', () => {
     expect(container.textContent).toContain('Heading');
     expect(container.textContent).toContain('Single h1–h6 heading');
     const tile = container.querySelector('.cpub-admin-layouts-palette-tile');
-    expect(tile?.getAttribute('aria-label')).toBe('Drag to insert Heading (heading) section');
+    expect(tile?.getAttribute('aria-label')).toBe('Insert Heading (heading) section. Drag onto a row, or press Enter.');
     expect(tile?.getAttribute('tabindex')).toBe('0');
     expect(tile?.getAttribute('data-section-type')).toBe('heading');
     expect(tile?.getAttribute('data-section-status')).toBe('stable');
+  });
+
+  it('emits insert(section) on Enter and Space (keyboard alternative to drag)', async () => {
+    const section = makeDef();
+    const { container, emitted } = render(AdminLayoutsPaletteTile, { props: { section } });
+    const tile = container.querySelector('.cpub-admin-layouts-palette-tile') as HTMLElement;
+    await tile.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+    await tile.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true }));
+    const insert = emitted().insert as unknown[][] | undefined;
+    expect(insert).toHaveLength(2);
+    // Assert on a primitive field — comparing the whole section object would
+    // make vitest traverse the reactive-proxied Zod schema and throw.
+    expect((insert?.[0]?.[0] as { type: string }).type).toBe('heading');
   });
 
   it('beta status shows the beta badge', () => {

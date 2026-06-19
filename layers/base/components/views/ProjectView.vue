@@ -43,6 +43,23 @@ const tabs = computed(() => {
   return result;
 });
 
+// Roving-tabindex keyboard nav for the tablist (WCAG 4.1.2 / APG tabs pattern):
+// Arrow keys move + activate the adjacent tab, Home/End jump to the ends.
+function onTabKeydown(e: KeyboardEvent, idx: number): void {
+  const count = tabs.value.length;
+  let next = -1;
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next = (idx + 1) % count;
+  else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') next = (idx - 1 + count) % count;
+  else if (e.key === 'Home') next = 0;
+  else if (e.key === 'End') next = count - 1;
+  else return;
+  e.preventDefault();
+  const tab = tabs.value[next];
+  if (!tab) return;
+  activeTab.value = tab.value;
+  nextTick(() => document.getElementById(`cpub-tab-${tab.value}`)?.focus());
+}
+
 const contentId = computed(() => props.content?.id);
 const contentType = computed(() => props.content?.type ?? 'project');
 const fedId = computed(() => props.federatedId);
@@ -304,13 +321,19 @@ async function handleBuild(): Promise<void> {
 
     <!-- STICKY TABS -->
     <div class="cpub-tabs-sticky">
-      <div class="cpub-tabs-inner">
+      <div class="cpub-tabs-inner" role="tablist" aria-label="Project sections">
         <button
-          v-for="tab in tabs"
+          v-for="(tab, idx) in tabs"
           :key="tab.value"
+          :id="`cpub-tab-${tab.value}`"
           class="cpub-tab"
           :class="{ active: activeTab === tab.value }"
+          role="tab"
+          :aria-selected="activeTab === tab.value"
+          :aria-controls="`cpub-panel-${tab.value}`"
+          :tabindex="activeTab === tab.value ? 0 : -1"
           @click="activeTab = tab.value"
+          @keydown="onTabKeydown($event, idx)"
         >
           {{ tab.label }}
           <span v-if="tab.count" class="cpub-tab-badge">{{ tab.count }}</span>
@@ -340,7 +363,13 @@ async function handleBuild(): Promise<void> {
         </nav>
 
         <!-- CENTER: CONTENT -->
-        <div class="cpub-content-col">
+        <div
+          class="cpub-content-col"
+          role="tabpanel"
+          :id="`cpub-panel-${activeTab}`"
+          :aria-labelledby="`cpub-tab-${activeTab}`"
+          tabindex="0"
+        >
           <!-- OVERVIEW TAB -->
           <template v-if="activeTab === 'overview'">
             <!-- Cover photo (in-body featured image) -->

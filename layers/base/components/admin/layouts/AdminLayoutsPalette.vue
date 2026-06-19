@@ -13,8 +13,11 @@
  */
 import { computed } from 'vue';
 import { useSectionRegistry } from '../../../sections/registry';
-import type { SectionCategory } from '@commonpub/ui';
+import type { SectionCategory, SectionDefinition } from '@commonpub/ui';
 import AdminLayoutsPaletteTile from './AdminLayoutsPaletteTile.vue';
+
+// Forward a tile's keyboard-insert request up to the editor page.
+const emit = defineEmits<{ insert: [SectionDefinition] }>();
 
 const CATEGORY_LABELS: Record<SectionCategory, string> = {
   layout: 'Layout',
@@ -65,6 +68,7 @@ const grouped = computed(() => {
           v-for="section in group.sections"
           :key="section.type"
           :section="section"
+          @insert="emit('insert', $event)"
         />
       </ul>
     </div>

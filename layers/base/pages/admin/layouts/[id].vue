@@ -22,6 +22,8 @@ import { useLayoutHotkeys } from '../../../composables/useLayoutHotkeys';
 import { DnDProvider } from '@vue-dnd-kit/core';
 import { useSectionRegistry } from '../../../sections/registry';
 import { useLayoutResize } from '../../../composables/useLayoutResize';
+import { createSectionFromSpec, paletteDragPayload } from '../../../composables/useLayoutDrag';
+import type { SectionDefinition } from '@commonpub/ui';
 
 definePageMeta({
   layout: 'admin',
@@ -161,6 +163,25 @@ function onAddRow(zoneSlug: string): void {
     row: newRow,
     label: `add row to ${zoneSlug}`,
   }));
+}
+
+/**
+ * Keyboard-insert from the palette — WCAG 2.1.1 alternative to drag. Mirrors the
+ * drop path (createSectionFromSpec + push); appends to the last row of the first
+ * populated zone, adding a row if the layout has none. Direct mutation fires the
+ * dirty watcher + autosave, exactly like a drop.
+ */
+function onPaletteInsert(section: SectionDefinition): void {
+  const draft = editor.draft.value;
+  if (!draft || draft.zones.length === 0) return;
+  const zone = draft.zones.find((z) => z.rows.length > 0) ?? draft.zones[0]!;
+  let row = zone.rows[zone.rows.length - 1];
+  if (!row) {
+    row = { id: crypto.randomUUID(), order: 0, config: null, sections: [] };
+    zone.rows.push(row);
+  }
+  row.sections.push(createSectionFromSpec(paletteDragPayload(section)));
+  useLayoutAnnouncer().announce(`Inserted ${section.name} section into ${zone.zone}`);
 }
 
 /**
@@ -702,7 +723,7 @@ async function onConflictForceSave(): Promise<void> {
             :on-add-row="onAddRow"
             :on-remove-row="onRemoveRow"
           />
-          <AdminLayoutsPalette v-show="!chrome.paletteHidden.value" />
+          <AdminLayoutsPalette v-show="!chrome.paletteHidden.value" @insert="onPaletteInsert" />
           <AdminLayoutsInspector
             v-show="!chrome.inspectorHidden.value"
             :draft="editor.draft.value"

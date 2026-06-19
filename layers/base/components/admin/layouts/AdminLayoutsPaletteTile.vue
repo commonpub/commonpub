@@ -28,6 +28,10 @@ const props = defineProps<{
   section: SectionDefinition;
 }>();
 
+// Keyboard alternative to drag (WCAG 2.1.1): Enter/Space inserts the section.
+// Mouse/touch users drag; keyboard users press to insert into the layout.
+const emit = defineEmits<{ insert: [SectionDefinition] }>();
+
 const tileRef = ref<HTMLElement | null>(null);
 
 // dnd-kit's payload factory takes [index, items]. A palette tile is
@@ -52,8 +56,10 @@ makeDraggable(
     class="cpub-admin-layouts-palette-tile"
     :data-section-type="section.type"
     :data-section-status="section.status ?? 'stable'"
-    :aria-label="`Drag to insert ${section.name} (${section.type}) section`"
+    :aria-label="`Insert ${section.name} (${section.type}) section. Drag onto a row, or press Enter.`"
     tabindex="0"
+    @keydown.enter.prevent="emit('insert', section)"
+    @keydown.space.prevent="emit('insert', section)"
   >
     <i :class="['cpub-admin-layouts-palette-tile-icon', section.icon]"></i>
     <div class="cpub-admin-layouts-palette-tile-body">

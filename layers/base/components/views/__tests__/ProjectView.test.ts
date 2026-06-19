@@ -118,6 +118,17 @@ describe('ProjectView — smoke', () => {
     expect(buildBtn?.classList.contains('cpub-engage-active')).toBe(true);
   });
 
+  it('exposes the section tabs as an ARIA tablist with a selected tab + labelled panel', () => {
+    const { container } = render(ProjectView, { props: { content: makeContent() }, global: { stubs, components } });
+    expect(container.querySelector('[role="tablist"]')).toBeTruthy();
+    const selected = container.querySelector('[role="tab"][aria-selected="true"]');
+    expect(selected).toBeTruthy();
+    // The selected tab controls the tabpanel, which points back to it.
+    const panel = container.querySelector('[role="tabpanel"]');
+    expect(panel).toBeTruthy();
+    expect(panel?.getAttribute('aria-labelledby')).toBe(selected?.id);
+  });
+
   it('renders initials fallback when avatarUrl is absent', () => {
     const { container } = render(ProjectView, {
       props: {
