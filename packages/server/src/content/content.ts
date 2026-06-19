@@ -1365,27 +1365,6 @@ export async function onContentUpdated(
   }
 }
 
-/**
- * Check if a content update represents an unpublish (published → draft/archived).
- * If so, call onContentDeleted to send a Delete activity.
- */
-export async function onContentStatusChange(
-  db: DB,
-  contentId: string,
-  previousStatus: string,
-  newStatus: string,
-  authorUsername: string,
-  config: CommonPubConfig,
-): Promise<void> {
-  if (!config.features.federation) return;
-  // Unpublish: was published, now isn't
-  if (previousStatus === 'published' && newStatus !== 'published') {
-    await federateDelete(db, contentId, config.instance.domain, authorUsername).catch(
-      (err: unknown) => { console.error('[federation] unpublish delete:', err); },
-    );
-  }
-}
-
 export async function onContentDeleted(
   db: DB,
   contentId: string,
