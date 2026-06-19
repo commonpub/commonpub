@@ -15,7 +15,11 @@ export default defineEventHandler(async (event) => {
 
   if (!version) throw createError({ statusCode: 404, statusMessage: 'No version found' });
 
-  const pages = await listDocsPages(db, version.id);
+  // Public viewers only see published pages; the site owner/admin sees drafts too.
+  const viewer = getOptionalUser(event);
+  const canSeeDrafts = !!viewer && (viewer.role === 'admin' || viewer.id === result.site.ownerId);
+
+  const pages = await listDocsPages(db, version.id, { publishedOnly: !canSeeDrafts });
   const page = pages.find((p) => p.slug === pageSlug);
   if (!page) throw createError({ statusCode: 404, statusMessage: 'Page not found' });
 

@@ -30,7 +30,12 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'No version found for docs site' });
   }
 
-  const pages = await listDocsPages(db, version.id);
+  // Public viewers only see published pages; the site owner/admin (e.g. the docs
+  // editor at /docs/[siteSlug]/edit, which hits this same route) sees drafts too.
+  const viewer = getOptionalUser(event);
+  const canSeeDrafts = !!viewer && (viewer.role === 'admin' || viewer.id === result.site.ownerId);
+
+  const pages = await listDocsPages(db, version.id, { publishedOnly: !canSeeDrafts });
 
   // Content is JSONB — arrays come back parsed, legacy strings stay as strings
   return pages.map((page) => {

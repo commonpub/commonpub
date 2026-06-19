@@ -20,7 +20,12 @@ export default defineEventHandler(async (event) => {
 
   if (!version) return [];
 
+  // Public viewers only see published pages in nav; the site owner/admin (the docs
+  // editor uses this route too) sees drafts too.
+  const viewer = getOptionalUser(event);
+  const canSeeDrafts = !!viewer && (viewer.role === 'admin' || viewer.id === result.site.ownerId);
+
   // Return pages directly as nav items
-  const pages = await listDocsPages(db, version.id);
+  const pages = await listDocsPages(db, version.id, { publishedOnly: !canSeeDrafts });
   return pages.map(p => ({ id: p.id, title: p.title, sidebarLabel: p.sidebarLabel, slug: p.slug, sortOrder: p.sortOrder, parentId: p.parentId }));
 });

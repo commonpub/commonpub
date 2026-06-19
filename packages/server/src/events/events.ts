@@ -1,7 +1,7 @@
 import { eq, and, desc, asc, gte, sql, or } from 'drizzle-orm';
 import { events, eventAttendees, users } from '@commonpub/schema';
 import type { DB } from '../types.js';
-import { normalizePagination, countRows } from '../query.js';
+import { normalizePagination, countRows, ensureUniqueSlugFor } from '../query.js';
 
 export type EventStatus = 'draft' | 'published' | 'active' | 'completed' | 'cancelled';
 export type EventType = 'in-person' | 'online' | 'hybrid';
@@ -178,11 +178,16 @@ export async function createEvent(
   db: DB,
   input: CreateEventInput,
 ): Promise<EventDetail> {
+  // events.slug is UNIQUE. The route derives the slug from the title, so two
+  // same-titled events would collide and surface as an unhandled 500. De-dup
+  // the slug here (appends a timestamp suffix on collision).
+  const slug = await ensureUniqueSlugFor(db, events, events.slug, events.id, input.slug, 'event');
+
   const [row] = await db
     .insert(events)
     .values({
       title: input.title,
-      slug: input.slug,
+      slug,
       description: input.description ?? null,
       coverImage: input.coverImage ?? null,
       status: 'published',
