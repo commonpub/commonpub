@@ -1,7 +1,8 @@
 import { eq, and, desc, sql } from 'drizzle-orm';
 import { videos, videoCategories, users } from '@commonpub/schema';
 import type { DB } from '../types.js';
-import { normalizePagination, countRows } from '../query.js';
+import { generateSlug } from '../utils.js';
+import { normalizePagination, countRows, ensureUniqueSlugFor } from '../query.js';
 
 import type { VideoPlatform } from '@commonpub/schema';
 
@@ -199,10 +200,14 @@ export async function createVideoCategory(
   db: DB,
   input: { name: string; description?: string; sortOrder?: number },
 ): Promise<VideoCategoryItem> {
-  const slug = input.name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '');
+  const slug = await ensureUniqueSlugFor(
+    db,
+    videoCategories,
+    videoCategories.slug,
+    videoCategories.id,
+    generateSlug(input.name),
+    'category',
+  );
 
   const [row] = await db
     .insert(videoCategories)
@@ -225,10 +230,15 @@ export async function updateVideoCategory(
   const updates: Record<string, unknown> = {};
   if (input.name !== undefined) {
     updates.name = input.name;
-    updates.slug = input.name
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-|-$/g, '');
+    updates.slug = await ensureUniqueSlugFor(
+      db,
+      videoCategories,
+      videoCategories.slug,
+      videoCategories.id,
+      generateSlug(input.name),
+      'category',
+      id, // exclude the current row from the uniqueness check
+    );
   }
   if (input.description !== undefined) updates.description = input.description;
   if (input.sortOrder !== undefined) updates.sortOrder = input.sortOrder;

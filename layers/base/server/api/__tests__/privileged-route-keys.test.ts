@@ -24,7 +24,6 @@ const read = (rel: string): string => readFileSync(resolve(apiRoot, rel), 'utf8'
 
 describe('Phase 1 — privileged non-admin routes that gate on a full permission key', () => {
   const FULL_GATES: Array<[string, string]> = [
-    ['products/[id].delete.ts', 'content.moderate'],
     ['docs/migrate-content.post.ts', 'content.editorial'],
     ['videos/categories.post.ts', 'categories.manage'],
     ['videos/categories/[id].delete.ts', 'categories.manage'],
@@ -37,6 +36,14 @@ describe('Phase 1 — privileged non-admin routes that gate on a full permission
     expect(src, `${rel}: must gate on requirePermission(event, '${key}')`).toMatch(re);
     // and must NOT have regressed to the legacy requireAdmin
     expect(src, `${rel}: must not still call requireAdmin`).not.toMatch(/requireAdmin\(/);
+  });
+
+  // products delete is owner-OR-moderator (session 204): the product's creator can delete
+  // it, OR anyone with content.moderate — not moderator-only as before.
+  it("products/[id].delete.ts gates on ownerOrPermission(event, …, 'content.moderate')", () => {
+    const src = read('products/[id].delete.ts');
+    expect(src).toMatch(/ownerOrPermission\(\s*event\s*,[^)]*['"]content\.moderate['"]\s*\)/);
+    expect(src).not.toMatch(/requireAdmin\(/);
   });
 });
 
