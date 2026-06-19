@@ -1,10 +1,11 @@
 # CommonPub — Status & Operator Runbook
 
-> **Living doc — your "come back later" reference.** Snapshot updated 2026-06-16 (sessions 199–200).
+> **Living doc — your "come back later" reference.** Snapshot updated 2026-06-18 (session 201).
 > Verify any version/flag claim before trusting it: `npm view @commonpub/<pkg> version`,
 > `curl https://<instance>/api/features`, `cargo search create-commonpub`.
-> Companion docs: the rolling handoff `docs/sessions/200-kickoff-next.md`, work log
-> `docs/sessions/199-field-drop-audit-and-scheduled-publishing.md`, contest guide
+> Companion docs: the rolling handoff `docs/sessions/202-kickoff-next.md`, work log
+> `docs/sessions/201-rbac-activation-and-contest-editors.md`, RBAC plan
+> `docs/plans/rbac-activation-and-contest-editors.md`, contest guide
 > `docs/reference/guides/contests.md`.
 
 ---
