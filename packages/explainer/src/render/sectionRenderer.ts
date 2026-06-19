@@ -25,13 +25,14 @@ const ALLOWED_ATTRS = new Set(['href', 'target', 'rel', 'class']);
  * Defense-in-depth: content is also sanitized on write, but the export
  * renderer must not trust its input blindly.
  */
-function sanitizeRichHtml(html: string): string {
-  // Strip script tags and their contents
-  let sanitized = html.replace(/<script[\s>][\s\S]*?<\/script>/gi, '');
+export function sanitizeRichHtml(html: string): string {
+  // Strip script/style/iframe/object/embed/svg tags AND their contents (the allowlist
+  // pass below removes the tags but leaves inner text/CSS/JS behind otherwise).
+  let sanitized = html.replace(/<(script|style|iframe|object|embed|svg|noscript|template)[\s>][\s\S]*?<\/\1>/gi, '');
   // Strip event handler attributes (on*)
   sanitized = sanitized.replace(/\s+on\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]*)/gi, '');
-  // Strip javascript: URLs
-  sanitized = sanitized.replace(/href\s*=\s*(?:"javascript:[^"]*"|'javascript:[^']*')/gi, '');
+  // Neutralize javascript:/vbscript: URLs in href/src — quoted OR unquoted (audit session 204)
+  sanitized = sanitized.replace(/(href|src)\s*=\s*(?:"\s*(?:javascript|vbscript):[^"]*"|'\s*(?:javascript|vbscript):[^']*'|(?:javascript|vbscript):[^\s>]*)/gi, '$1="#"');
   // Strip disallowed tags (keep content, remove the tag itself)
   sanitized = sanitized.replace(/<\/?([a-zA-Z][a-zA-Z0-9]*)\b[^>]*>/g, (match, tagName: string) => {
     const tag = tagName.toLowerCase();
@@ -54,7 +55,8 @@ export function renderBlockTuples(blocks: BlockTuple[]): string {
         case 'text':
           return `<div class="block-text">${sanitizeRichHtml(attrs.html as string)}</div>`;
         case 'heading': {
-          const level = (attrs.level as number) || 2;
+          // Clamp to [1,6] — an out-of-range level would break out of the tag (session 204).
+          const level = Math.min(Math.max(Math.trunc((attrs.level as number) || 2), 1), 6);
           const text = escapeHtml(attrs.text as string);
           return `<h${level} class="block-heading">${text}</h${level}>`;
         }
