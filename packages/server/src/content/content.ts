@@ -384,7 +384,9 @@ export async function listContent(
         ? [desc(contentItems.isFeatured), desc(contentItems.createdAt), desc(contentItems.id)]
         : filters.sort === 'editorial'
           ? [desc(contentItems.isEditorial), desc(contentItems.publishedAt), desc(contentItems.id)]
-          : recencyOrder;
+          : filters.sort === 'likes'
+            ? [desc(contentItems.likeCount), desc(contentItems.createdAt), desc(contentItems.id)]
+            : recencyOrder;
 
   const [rows, total] = await Promise.all([
     db

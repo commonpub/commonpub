@@ -162,6 +162,19 @@ describe('content search (Postgres FTS)', () => {
       const result = await searchWithPostgres(db, { query: 'ESP32', sort: 'popular' });
       expect(result.items.length).toBeGreaterThanOrEqual(1);
     });
+
+    it('sorts by likes (likeCount desc), independent of recency', async () => {
+      // Both 'LED Matrix Display' and 'Getting Started with ESP32' match 'ESP32'.
+      // Give the OLDER item (LED Matrix, published first) the higher like count so
+      // a correct likes-sort puts it first — distinguishing it from recency order,
+      // which would surface the newer ESP32 guide. Goes RED if 'likes' falls through
+      // to the publishedAt branch.
+      await db.update(contentItems).set({ likeCount: 99 }).where(eq(contentItems.title, 'LED Matrix Display'));
+      await db.update(contentItems).set({ likeCount: 1 }).where(eq(contentItems.title, 'Getting Started with ESP32'));
+      const result = await searchWithPostgres(db, { query: 'ESP32', sort: 'likes' });
+      expect(result.items.length).toBeGreaterThanOrEqual(2);
+      expect(result.items[0]!.title).toBe('LED Matrix Display');
+    });
   });
 
   // --- Pagination ---

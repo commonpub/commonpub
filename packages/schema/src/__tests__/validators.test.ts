@@ -42,6 +42,7 @@ import {
   contestStageSchema,
   submissionTemplateFieldSchema,
   stageSubmissionSchema,
+  contentFiltersSchema,
 } from '../validators';
 
 describe('usernameSchema', () => {
@@ -1690,5 +1691,12 @@ describe('validator field-drop regressions', () => {
 
   it('contentStatusSchema includes scheduled', () => {
     expect(contentStatusSchema.parse('scheduled')).toBe('scheduled');
+  });
+
+  it('contentFiltersSchema accepts the likes sort (powers the "Most Liked" search option)', () => {
+    // Was missing → the search route 400'd the moment a user picked "Most Liked".
+    expect(contentFiltersSchema.parse({ sort: 'likes' }).sort).toBe('likes');
+    expect(contentFiltersSchema.parse({ sort: 'popular' }).sort).toBe('popular');
+    expect(() => contentFiltersSchema.parse({ sort: 'bogus' })).toThrow();
   });
 });
