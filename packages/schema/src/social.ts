@@ -113,6 +113,8 @@ export const notifications = pgTable('notifications', {
 }, (t) => [
   index('idx_notifications_user_id').on(t.userId),
   index('idx_notifications_user_read').on(t.userId, t.read),
+  // Backs the list query ORDER BY createdAt DESC, id DESC scoped to a user (audit 204).
+  index('idx_notifications_user_created').on(t.userId, t.createdAt.desc(), t.id.desc()),
   // Dedup social notifications (like/comment/follow/mention) by
   // (user, type, actor, link). Postgres treats NULLs as distinct in UNIQUE
   // indexes, so system notifications without an actor or link (both NULL)
@@ -128,6 +130,15 @@ export const notifications = pgTable('notifications', {
   // this form survives the test path.
   uniqueIndex('uq_notif_user_type_actor_link').on(t.userId, t.type, t.actorId, t.link),
 ]);
+
+// One row per day, claimed atomically so the daily notification-email digest fires once
+// across N app replicas (the in-process lastDigestDate guard duplicated on scale-out).
+// The worker INSERTs today's date ON CONFLICT DO NOTHING and only sends if it won the row.
+// (audit session 204)
+export const digestRuns = pgTable('digest_runs', {
+  digestDate: varchar('digest_date', { length: 10 }).primaryKey(), // YYYY-MM-DD (UTC)
+  sentAt: timestamp('sent_at', { withTimezone: true }).defaultNow().notNull(),
+});
 
 export const reports = pgTable('reports', {
   id: uuid('id').defaultRandom().primaryKey(),

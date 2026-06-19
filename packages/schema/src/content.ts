@@ -125,6 +125,12 @@ export const contentItems = pgTable('content_items', {
   index('idx_content_items_feed_popular')
     .on(t.viewCount.desc().nullsFirst(), t.id.desc().nullsFirst())
     .where(sql`${t.status} = 'published' AND ${t.deletedAt} IS NULL`),
+  // Hot detail-page reads (audit session 204): author published-count + related-content
+  // queries filter on these composites; without them they index-scan one column then
+  // filter+sort the rest.
+  index('idx_content_items_author_status').on(t.authorId, t.status),
+  index('idx_content_items_type_status_published')
+    .on(t.type, t.status, t.publishedAt.desc().nullsLast()),
 ]);
 
 export const contentVersions = pgTable('content_versions', {
