@@ -3,9 +3,9 @@
 `layers/base/` — published as `@commonpub/layer`. The distribution unit.
 Instances extend it via `extends: ['@commonpub/layer']` in their nuxt.config.
 
-Re-verified session 192 (2026-06-08): **90 pages, 141 components,
-34 composables (non-test; +12 `__tests__/` files), 10 server plugins,
-3 route middleware, 11 server (Nitro) middleware, 327 `server/api/` route
+Inventory refreshed session 203 (2026-06-18): **92 pages, 144 components,
+35 composables (non-test; +13 `__tests__/` files), 11 server plugins,
+3 route middleware, 11 server (Nitro) middleware, 338 `server/api/` route
 files + 22 ActivityPub/site routes.** The directory layout below is
 shape-stable; counts are current.
 
@@ -16,15 +16,15 @@ layers/base/
 ├── app.vue                    root with NuxtLayout / NuxtPage / skip-link
 ├── error.vue                  404 / error page — re-applies data-theme for SSR
 ├── nuxt.config.ts             modules, CSS bundle, runtime config, features
-├── components/                141 Vue components (grouped below; +LayoutSlot/Row/Section + PageFrame + admin/layouts editor + admin/theme incl. studio/AdminThemeStudio + AdminThemeSceneSheet + ContestStagesEditor)
-├── composables/               34 useX helpers (non-test) + __tests__/
+├── components/                144 Vue components (grouped below; +LayoutSlot/Row/Section + PageFrame + admin/layouts editor + admin/theme incl. studio/AdminThemeStudio + AdminThemeSceneSheet + ContestStagesEditor)
+├── composables/               35 useX helpers (non-test) + __tests__/
 ├── layouts/                   default, admin (collapsible sidebar, session 161), auth, editor
 ├── middleware/                3 route guards: auth.ts, feature-gate.global.ts, admin-layouts.ts
-├── pages/                     90 routes (Nuxt file-based)
+├── pages/                     92 routes (Nuxt file-based)
 ├── plugins/                   theme.ts + auth.ts (client)
 ├── sections/                  builtin/ section registry (17 registered) + registry.ts (Stage E: points component: at existing Block*/Homepage*)
 ├── server/
-│   ├── api/                   327 Nitro route files (REST; +public/v1/metrics/*)
+│   ├── api/                   338 Nitro route files (REST; +public/v1/metrics/*, +admin/roles/*)
 │   ├── routes/                22 ActivityPub + site routes (inbox/outbox/.well-known/nodeinfo/feed.xml/sitemap/robots)
 │   ├── middleware/            11: auth, theme, features, security, content-ap, content-redirect, blog-redirect, hub-ap, hub-post-ap, mastodon-alias-redirect, public-api-auth
 │   ├── plugins/               10: auto-admin, federation-delivery, federation-hub-sync, migrate-article-to-blog, notification-email, search-index, feature-flags-prime, identity-startup, metrics-rollup, registry-heartbeat
@@ -34,7 +34,7 @@ layers/base/
 └── utils/                     themeConfig.ts + themeIds/themeDiscovery/themeIO
 ```
 
-## Pages (90)
+## Pages (92)
 
 Grouped by section.
 
@@ -68,7 +68,7 @@ URL restructure landed in session 108: canonical content lives at `/u/{username}
 
 ### Contests
 
-`/contests`, `/contests/create`, `/contests/:slug`, `/contests/:slug/edit`, `/contests/:slug/judge`, `/contests/:slug/results`.
+`/contests`, `/contests/create`, `/contests/:slug`, `/contests/:slug/edit`, `/contests/:slug/judge`, `/contests/:slug/results`, `/contests/:slug/entries/:entryId` (entry detail / artifact timeline).
 
 ### Events (session 124)
 
@@ -96,11 +96,11 @@ URL restructure landed in session 108: canonical content lives at `/u/{username}
 
 ### Settings
 
-`/settings` (redirect), `/settings/profile`, `/settings/account`, `/settings/appearance`, `/settings/notifications`.
+`/settings` (`settings/index.vue`, redirect), `/settings/profile`, `/settings/account`, `/settings/appearance`, `/settings/notifications`.
 
 ### Admin (flag: `admin`)
 
-`/admin`, `/admin/users`, `/admin/content`, `/admin/categories`, `/admin/reports`, `/admin/audit`, `/admin/theme`, **`/admin/theme/edit/:id` (session 154)**, `/admin/homepage`, **`/admin/layouts` (list) + `/admin/layouts/:id` (the drag-drop layout editor — Phase 3a shell / 3b dnd / 3c resize, sessions 160–169, flag: `layoutEngine`)**, **`/admin/navigation` (session 124)**, `/admin/features`, `/admin/federation`, `/admin/settings`, `/admin/api-keys`.
+`/admin`, `/admin/users`, **`/admin/roles` (RBAC roles UI — Enable/Disable RBAC toggle + per-user role assignment)**, `/admin/content`, `/admin/categories`, `/admin/reports`, `/admin/audit`, `/admin/theme`, **`/admin/theme/edit/:id` (session 154)**, `/admin/homepage`, **`/admin/layouts` (list) + `/admin/layouts/:id` (the drag-drop layout editor — Phase 3a shell / 3b dnd / 3c resize, sessions 160–169, flag: `layoutEngine`)**, **`/admin/navigation` (session 124)**, `/admin/features`, `/admin/federation`, `/admin/settings`, `/admin/api-keys`.
 
 **Theme admin (session 154)** — `/admin/theme` lists every theme across three sources (built-in / code-registered / DB-stored custom), with capture-from-`:root` detection for thin layer apps that ship their own CSS. `/admin/theme/edit/:id` is the split-pane editor; the special id `__new` reads a seed from sessionStorage (used by create / duplicate / capture / import flows). See [`docs/reference/guides/theme-editor.md`](../docs/reference/guides/theme-editor.md) for the full architecture.
 
@@ -110,7 +110,7 @@ URL restructure landed in session 108: canonical content lives at `/u/{username}
 
 `/create` (content-type starter chooser), `/authorize_interaction`, `/cert/:code`, `/mirror/:id`, **`/[...customPath]` (session 159+, custom-page catch-all — renders a layout-engine `custom-page`-scoped layout via `<LayoutSlot>` when one matches the route; gated by `layoutEngine`)**.
 
-## Components (139) — grouped
+## Components (144) — grouped
 
 ### Block renderers (`components/blocks/`, 21)
 
@@ -124,9 +124,9 @@ ArticleEditor, BlogEditor, ExplainerEditor, ProjectEditor, DocsPageTree, Markdow
 
 ArticleView, ExplainerView, ProjectView.
 
-### Contest (10)
+### Contest (11)
 
-ContestEntries, ContestHero, **ContestJudgeManager** (session 124), ContestJudges, **ContestJudgingCriteria**, ContestPrizes, ContestRules, ContestSidebar, **ContestStakeholderManager** (session 174), **ContestStagesEditor** (session 189 — Phase B1 stages editor: add/duplicate/reorder/rename/kind/dates + mark-current + reset-to-standard; used by create.vue + edit.vue).
+ContestEntries, ContestHero, **ContestJudgeManager** (session 124), ContestJudges, **ContestJudgingCriteria**, ContestPrizes, ContestRules, ContestSidebar, **ContestStageSubmission** (session 194 — per-stage submission/artifact UI), **ContestStakeholderManager** (session 174), **ContestStagesEditor** (session 189 — Phase B1 stages editor: add/duplicate/reorder/rename/kind/dates + mark-current + reset-to-standard; used by create.vue + edit.vue).
 
 Contest stage logic lives in two auto-imported layer utils (session 189): `utils/contestStages.ts` (synthesizeStages/normalizeStages/currentStageId + STAGE_KIND_ICON/LABEL — client mirror of the server's pure helpers) and `utils/contestTransitions.ts` (CONTEST_VALID_TRANSITIONS + status-action labels — single client source of truth shared by ContestHero + edit.vue, mirrors the server map). ContestSidebar renders the dynamic stage timeline; ContestHero shows the current stage name as a chip when explicit stages exist.
 
@@ -168,9 +168,9 @@ ContentGridSection, ContestsSection, CustomHtmlSection, EditorialSection, HeroSe
 
 **Per-section config validation** (session 161): `layers/base/server/utils/validateSectionConfigs.ts` enforces every section's Zod `configSchema` on POST/PUT to `/api/admin/layouts/*`. Schemas live in `@commonpub/schema/sectionConfigs` (server-safe, no Vue imports) and are looked up via `SECTION_CONFIG_SCHEMAS`. Rejection → 400 with structured `data.sectionErrors` payload (zone + rowIndex + sectionIndex + Zod issues per offending section) + audit log `cpub.audit.layout.config-rejected` (the log is emitted by the calling routes `admin/layouts/index.post.ts` + `[id].put.ts`, not inside `validateSectionConfigs.ts`). Closes the "admin bypasses URL guards / size caps / sandbox flags" surface (session 160 R2 P1 deferred → wired in session 161 after the schema-package refactor removed the .vue transitive that broke the R2 attempt).
 
-### Admin theme editor (`components/admin/theme/`, 8 — session 154)
+### Admin theme editor (`components/admin/theme/`, 11 — session 154)
 
-AdminThemeFamilyCard, AdminThemeOverridesPanel, AdminThemePreviewPane, AdminThemeSceneAdmin, AdminThemeSceneGallery, AdminThemeSceneProse, AdminThemeTokenGroup, AdminThemeTokenInput.
+AdminThemeFamilyCard, AdminThemeOverridesPanel, AdminThemePreviewPane, AdminThemeSceneAdmin, AdminThemeSceneGallery, AdminThemeSceneProse, **AdminThemeSceneSheet** (session 192), AdminThemeTokenGroup, AdminThemeTokenInput, and **`studio/AdminThemeStudio.vue`** (session 192 — Theme Studio "easy mode" recipe→tokens wizard, backed by `@commonpub/theme-studio`).
 
 ### Federation admin (session 184)
 
@@ -198,15 +198,16 @@ AND box-shadow, because stoa puts a glow on every `:focus-visible`).
 
 ### Utilities / widgets
 
-AnnouncementBand, AppToast, AuthorCard, AuthorRow, CategoryBadge, CommentSection, ContentAttachments, ContentCard, ContentPicker, ContentStarterForm, ContentTypeBadge, CookieConsent, CountdownTimer, CpubEditor, CpubMarkdown, DiscussionItem, EditorialBadge, EngagementBar, FederatedContentCard, FeedItem, FilterChip, HeatmapGrid, ImageUpload (events cover image integration in session 125), ImportUrlModal, MemberCard, MentionText, MessageThread, NotificationItem, ProgressTracker, PublishErrorsModal, RemoteActorCard, RemoteFollowDialog, RemoteUserSearch, SearchFilters, SearchSidebar, SectionHeader, ShareToHubModal, SiteLogo (OVERRIDE POINT), SkillBar, SortSelect, StatBar, TOCNav, TimelineItem, VideoCard.
+AnnouncementBand, AppToast, AuthorCard, AuthorRow, CategoryBadge, CommentSection, ContentAttachments, ContentCard, ContentPicker, ContentStarterForm, ContentTypeBadge, CookieConsent, CountdownTimer, CpubEditor, CpubMarkdown, DiscussionItem, EditorialBadge, EngagementBar, FederatedContentCard, FeedItem, FilterChip, FormatToggle, HeatmapGrid, ImageCropperModal, ImageUpload (events cover image integration in session 125), ImportUrlModal, MemberCard, MentionText, MessageThread, NotificationItem, ProgressTracker, PublishErrorsModal, RemoteActorCard, RemoteFollowDialog, RemoteUserSearch, SearchFilters, SearchSidebar, SectionHeader, ShareToHubModal, SiteLogo (OVERRIDE POINT), SkillBar, SortSelect, StatBar, TOCNav, TimelineItem, VideoCard.
 
 (`DocsPageTree` + `MarkdownImportDialog` live under `components/editors/`, listed above — not under a separate Docs group.)
 
-## Composables (34, non-test)
+## Composables (35, non-test)
 
 | Name | Purpose |
 |---|---|
 | useAuth | session state (user, isAuthenticated, isAdmin), sign-in/out |
+| useCan | client RBAC permission primitive — `can(permission)` check sourced from the resolved role set (backs the `/admin/roles` UI + gated affordances when `features.rbac` is on) |
 | useFeatures | reactive feature flags, hydrated from /api/features |
 | useContentFeed | (session 179) keyset/offset feed driver — picks keyset-for-recency / offset-for-popular transparently; backs the infinite-scroll feed via `GET /api/content/feed` |
 | useFocusTrap | focus-trap a11y helper for modals/dialogs |
@@ -215,7 +216,7 @@ AnnouncementBand, AppToast, AuthorCard, AuthorRow, CategoryBadge, CommentSection
 | useLayout | (session 157, Phase 1 layout engine) resolves a route's active layout via `useFetch('/api/layouts/by-route')`. SSR-safe with hydration. Accepts `string \| Ref<string> \| (() => string)` — pass a getter/Ref for reactive callers (a parent-driven `<LayoutSlot>` whose `route` prop changes); a plain string for the typical static case. 404-as-null so consumers fall through to legacy renderers when `features.layoutEngine` is off. |
 | useToast | notification system |
 | useCookieConsent | GDPR consent state |
-| useContentSave | autosave + publish workflow |
+| useContentSave | autosave + publish workflow; scheduled publishing (Schedule button in the content editor → future `publishedAt`) added sessions 199–200 |
 | useContentTypes | enabled content types |
 | useContentUrl | URL builders for content pages |
 | usePublishValidation | pre-publish validation |
@@ -329,7 +330,7 @@ Key overridable tokens:
 - `routeRules: {}` (empty) + `nitro.prerender.crawlLinks: false`. The old `/docs/** → prerender: true` rule was **removed in session 126** (prerendering at build time saved API-error HTML as `/docs/index.html` and crawlLinks propagated it). Use `swr: 60` at runtime, not build-time prerender, if caching `/docs/**` again.
 - Runtime config:
   - **private**: databaseUrl, authSecret, smtp/resend creds, S3 keys, uploadDir
-  - **public**: siteUrl, domain, siteName, features (the **22 boolean flags only** — `identity.*` is NOT declared in `runtimeConfig.public.features`, so it can't be env-toggled here; it lives only in `@commonpub/config`'s `FeatureFlags` type), contentTypes, contestCreation, instanceCookies
+  - **public**: siteUrl, domain, siteName, features (the **24 boolean flags only** — `identity.*`/`auth.*` are NOT declared in `runtimeConfig.public.features`, so they can't be env-toggled here; they live only in `@commonpub/config`'s `FeatureFlags` type), contentTypes, contestCreation, instanceCookies
 - CSS array loads the whole `theme/` bundle + explainer presets
 
 ## Recent additions (sessions 124–125) confirmed present

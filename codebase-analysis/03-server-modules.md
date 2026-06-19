@@ -4,14 +4,14 @@
 DB handle, performs writes in transactions where correctness requires, and emits
 lifecycle hooks. Pure TypeScript. No Nuxt dependency.
 
-Source: `packages/server/src/`. Re-verified session 191 (2026-06-07).
-**25 module directories + 11 top-level `.ts` files** (10 utilities — email, hooks, image, oauthCodes, query, security, storage, theme, types, utils — plus `index.ts` the package barrel).
+Source: `packages/server/src/`. Module inventory refreshed session 203 (2026-06-18).
+**26 module directories + 11 top-level `.ts` files** (10 utilities — email, hooks, image, oauthCodes, query, security, storage, theme, types, utils — plus `index.ts` the package barrel).
 
 Modules beyond the original (session-125) mapping, now folded into the directory map below:
 - `identity/` — cross-instance identity (Phase 1a foundation + Phase 1b runtime, sessions 136–140). Files: `fediClient.ts`, `health.ts`, `index.ts`, `mastodonFactory.ts`, `router.ts`. Behind `features.identity.*` flags.
 - `publicApi/` — read-only public API (session 127; metrics + CORS session 190). Bearer-token auth (`api_keys`), **13 read scopes + `read:*` wildcard**, OpenAPI 3.1. Files: `adminOps.ts`, `auth.ts`, `cors.ts` (`matchOrigin`/`isWellFormedOrigin`/`expandOriginPatterns`), `keys.ts`, `metrics.ts` (`getMetricsOverview`/`getTopContent`/`getTrendingTags`/`getTopContributors`/`getEngagementMetrics`/`getFederationReach`), `metricsRollup.ts` (`runDailyRollup`/`backfillMetricsDaily`/`getMetricsTimeseries`), `rateLimit.ts`, `scopes.ts`, `serializers.ts`, `usage.ts`, `index.ts`.
 - `realtime/` — SSE pub/sub abstraction (session 130). Exports `publishSseEvent`, `subscribeSseEvents`, `realtimeChannel`, `resetRealtimeForTests` against `@commonpub/infra`'s `RealtimePubSub`.
-- `rbac/` — RBAC phase 0/1 (sessions 175–177). `resolveUserPermissions` (`rbac/resolver.ts`) with a 30s-TTL cache; admin `*` grant deliberately NOT cached (fresh `users.role` floor). Behind `features.rbac` (default OFF).
+- `rbac/` — RBAC phase 0/1 + activation (sessions 175–177, 201). **4 files**: `resolver.ts` (`resolveUserPermissions`, admin `*` grant deliberately NOT cached — fresh `users.role` floor), `admin.ts` (role CRUD: `createRole`/`updateRole`/`deleteRole`/`setUserCustomRoles`), `seed.ts` (`seedRbac`/`SYSTEM_ROLE_SEEDS`/`STAFF_PERMISSION_SET`), `index.ts` (barrel). Behind `features.rbac` (default OFF).
 - `federation/mastodonLogin.ts` — Mastodon SSO server-side (session 139).
 - `federation/safeFetchFn.ts` — `createSafeActorFetchFn` for SSRF-safe `resolveActor` (session 150).
 
@@ -30,7 +30,7 @@ packages/server/src/
 ├── identity/        fediClient.ts, health.ts, mastodonFactory.ts, router.ts  cross-instance identity (Phase 1a/1b, behind features.identity.*)
 ├── content/         content.ts          CRUD, versions, forks, publish, build-marks, keyset feed
 │                    categories.ts       category CRUD
-├── contest/         contest.ts          contest CRUD, entries, judging, rank calc, state transitions
+├── contest/         contest.ts          contest CRUD, entries, judging, rank calc, state transitions; stage engine synthesizeStages/advanceContestStage/submitStageArtifact/validateStageArtifactFields/isEliminated (sessions 189/194)
 │                    judges.ts           invite/accept workflow for contestJudges
 │                    stakeholders.ts     view-only reviewers (contest_stakeholders, session 174)
 ├── docs/            docs.ts             sites + versions + pages (BlockTuple[] content)
@@ -72,7 +72,9 @@ packages/server/src/
 ├── profile/         profile.ts          user profile view + update
 │                    export.ts           GDPR data export
 ├── publicApi/       auth.ts, keys.ts, scopes.ts, serializers.ts, rateLimit.ts, usage.ts, adminOps.ts, cors.ts, metrics.ts, metricsRollup.ts  public read API (13 read scopes + read:*; metrics; CORS; behind features.publicApi)
-├── rbac/            resolver.ts         resolveUserPermissions (30s-TTL cache; behind features.rbac)
+├── rbac/            resolver.ts         resolveUserPermissions (cache in layer wrapper; behind features.rbac)
+│                    admin.ts            role CRUD: createRole/updateRole/deleteRole/setUserCustomRoles (session 201)
+│                    seed.ts             seedRbac / SYSTEM_ROLE_SEEDS / STAFF_PERMISSION_SET
 ├── realtime/        index.ts            publishSseEvent / subscribeSseEvents / realtimeChannel / resetRealtimeForTests
 ├── search/          contentSearch.ts    Meilisearch + Postgres FTS fallback
 ├── social/          social.ts           likes, follows, comments, bookmarks, reports
@@ -106,6 +108,7 @@ packages/server/src/
 - `publishContent(db, id, userId)` — `createContentVersion` snapshot, then delegates to `updateContent(..., { status: 'published' })`. It does NOT itself emit a hook or federate.
 - `deleteContent(db, id, userId)` — soft-delete UPDATE only (no hook/federation here)
 - `onContentPublished` / `onContentUpdated` / `onContentDeleted` — the side-effect wrappers the API routes call AFTER the CRUD fn: these emit `content:published`/`content:updated`/`content:deleted` and call `federateContent`/`federateUpdate`/`federateDelete`. (This is where the hooks + AP activities actually fire.)
+- `onContentStatusChange` (`content/content.ts:1372`) — exported but has **ZERO consumers** (dead code; only the package barrel re-exports it). No call sites in `src/`, the layer, or apps.
 - `forkContent(db, id, userId)` — local fork (counter + forks row)
 - `forkFederatedContent(db, federatedContentId, userId)`
 - `toggleBuildMark(db, contentId, userId)` — "I built this"; `isBuildMarked(db, contentId, userId)`
@@ -303,7 +306,7 @@ immutability, revert.
 - **storage.ts** — Local + S3 adapters, `createStorageFromEnv()` auto-detection
 - **image.ts** — Sharp-backed variants: thumb (150), small (300), medium (600), large (1200) — widths in px
 - **security.ts** — CSP directive builder, rate-limit store: 6 tiers via `DEFAULT_TIERS` (auth=5/min, upload=10/min, social=30/min, federation=60/min, api=60/min, general=120/min), route-to-tier mapping in `getTierForPath()`, nonce generation
-- **theme.ts** — theme resolution + custom-theme CRUD.
+- **theme.ts** — theme resolution + custom-theme CRUD. Now stores an optional generator `recipe` on the custom-theme record (opaque to the server, produced/consumed by the `@commonpub/theme-studio` recipe→tokens package added session 192).
   - `resolveTheme(db, userId?)` — user preference > instance default > `base` (silent fallback on unknown ids so a deleted custom theme doesn't break SSR).
   - `setUserTheme(db, userId, themeId)` — persists `users.theme` with a structural-only check (slug regex + custom-prefix). The actual cross-check against available themes happens at the API layer.
   - `getCustomTokenOverrides(db)` — reads the legacy `theme.token_overrides` JSON record (ad-hoc overrides applied on top of whichever theme is active).
@@ -319,7 +322,10 @@ immutability, revert.
 
 ### rbac/ + identity/ + publicApi/ + realtime/
 
-- **rbac/resolver.ts** — `resolveUserPermissions(db, userId, { rbacEnabled, primaryRole? })`: a PURE, uncached core that resolves role→permission grants (PGlite-testable). The admin `*` grant is deliberately NOT baked into the returned set; admin access rides a gate-time floor over the fresh `users.role` so demotion is immediate (INV-1, session 175). **The 30s-TTL bounded cache lives in the LAYER wrapper `layers/base/server/utils/permissions.ts` (`PERMISSIONS_CACHE_TTL_MS = 30_000`), NOT in this resolver.** Behind `features.rbac` (default OFF). See also `@commonpub/auth`'s `hasPermissionPure`.
+- **rbac/** — **4 files** (`resolver.ts`, `admin.ts`, `seed.ts`, `index.ts`); the session-201 RBAC-activation surface.
+  - `resolver.ts` — `resolveUserPermissions(db, userId, { rbacEnabled, primaryRole? })`: a PURE, uncached core that resolves role→permission grants (PGlite-testable). The admin `*` grant is deliberately NOT baked into the returned set; admin access rides a gate-time floor over the fresh `users.role` so demotion is immediate (INV-1, session 175). **The 30s-TTL bounded cache lives in the LAYER wrapper `layers/base/server/utils/permissions.ts` (`PERMISSIONS_CACHE_TTL_MS = 30_000`), NOT in this resolver.** Behind `features.rbac` (default OFF). See also `@commonpub/auth`'s `hasPermissionPure`.
+  - `admin.ts` — custom-role CRUD: `createRole`, `updateRole`, `deleteRole`, `setUserCustomRoles` (assigns custom roles to a user).
+  - `seed.ts` — `seedRbac(db)` idempotently upserts the built-in roles from `SYSTEM_ROLE_SEEDS`; `STAFF_PERMISSION_SET` is the shared permission list for the staff/editor seed roles.
 - **identity/** — cross-instance identity runtime (`fediClient.ts`, `mastodonFactory.ts`, `router.ts`, `health.ts`). Behind `features.identity.*`. Token I/O requires `CPUB_FED_TOKEN_KEY`.
 - **publicApi/** — bearer-token public read API: `auth.ts` (token verify), `keys.ts` (issue/revoke), `scopes.ts` (**13** read scopes + `read:*`), `serializers.ts` (allow-list field projection), `rateLimit.ts`, `usage.ts`, `adminOps.ts`, `cors.ts` (per-key origin-pattern matcher; reflects only well-formed origins; `*` safe because Bearer-auth, no cookies, never `Access-Control-Allow-Credentials`), `metrics.ts` (aggregate privacy-respecting metrics), `metricsRollup.ts` (daily `metrics_daily` rollups + time-series). Metrics/CORS added session 190. Behind `features.publicApi` (default OFF); cross-instance federation metrics additionally behind `features.publicApiMetricsFederation`.
 - **realtime/** — `publishSseEvent` / `subscribeSseEvents` / `realtimeChannel` / `resetRealtimeForTests` over `@commonpub/infra`'s `RealtimePubSub` (memory or Redis via `NUXT_REDIS_URL`).

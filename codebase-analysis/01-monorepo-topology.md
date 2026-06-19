@@ -1,8 +1,9 @@
 # 01 — Monorepo Topology
 
-Structural shape and published-version table re-verified session 191
-(2026-06-07). Module boundaries and the dependency graph below are
-unchanged since the original mapping (session 125).
+Structural shape verified session 191; version table refreshed session 203
+(2026-06-18). Module boundaries and the dependency graph below are
+unchanged since the original mapping (session 125) — confirmed clean (no cycles,
+no inverted deps) in the session-203 audit.
 
 ## Repo shape
 
@@ -25,7 +26,7 @@ commonpub/
 │   ├── schema/            @commonpub/schema
 │   ├── server/            @commonpub/server
 │   ├── test-utils/        @commonpub/test-utils
-│   ├── theme-studio/      @commonpub/theme-studio  — pure-TS theme generator (session 192; not yet published)
+│   ├── theme-studio/      @commonpub/theme-studio  — pure-TS theme generator (published since session 192)
 │   └── ui/                @commonpub/ui
 ├── tools/
 │   ├── create-commonpub/  Rust CLI scaffolder (published to crates.io)
@@ -44,24 +45,28 @@ commonpub/
 
 Note: `tools/create-commonpub` is NOT in the pnpm workspace — it's Rust.
 
-## Published package versions (2026-06-07, session 191)
+## Published package versions (version cells refreshed session 203, 2026-06-18)
+
+> ⚠️ Version numbers drift every release — **defer to `docs/STATUS.md` + `npm view` for LIVE**.
+> The Notes cells are a session-191 capability snapshot (still broadly accurate); versions
+> below are corrected to the session-203 published set.
 
 | Package | Version | Notes |
 |---|---|---|
-| @commonpub/schema | 0.35.0 | 90 tables, 45 enums, 21 migrations (0000–0020); `metrics_daily` (0020), contest stages/cohorts (`stages`/`current_stage_id`/`stage_state`/`show_prizes`/`cover_image_url`, 0016–0019), mirror requests (0014) + registry instances (0015), RBAC tables (0009), composite feed indexes (0012) |
-| @commonpub/server | 2.82.0 | Public-API metrics (`publicApi/metrics.ts`, `metricsRollup.ts`) + flexible CORS (`cors.ts`); contest stage engine (`advanceContestStage`, per-round judging); federation registry + mirror requests; keyset feed pagination; federation outbound through SSRF-safe path |
-| @commonpub/config | 0.19.0 (unreleased: +`themeStudio`) | 23 boolean top-level flags + nested `identity.*` (5 sub-flags); `themeStudio` (session 192), `publicApiMetricsFederation` (0.19.0), `actAsRegistry`/`announceToRegistry`, `layoutEngine`, `rbac` added |
-| @commonpub/layer | 0.64.1 | Public-API metrics routes + `metrics-rollup` plugin + CORS middleware; Stoa default theme + theme-editor fork fix; contest stages editor; keyset feed |
-| @commonpub/ui | 0.11.1 | Independent; NOT bundled into layer; Stoa theme family; `BUILT_IN_THEMES` (7) + TOKEN_SPECS token split |
+| @commonpub/schema | 0.45.0 | 90 tables, 46 enums, 26 migrations (0000–0025); RBAC role seed + `contest_stakeholders.role` (0025), scheduled publishing (`scheduled_at`, 0024), per-field contest text formats (0023), contest stage submissions (0021), `metrics_daily` (0020), contest stages/cohorts (0016–0019), mirror requests (0014) + registry instances (0015), RBAC tables (0009), composite feed indexes (0012) |
+| @commonpub/server | 2.89.0 | RBAC resolver + seed (`rbac/admin.ts`,`seed.ts`); contest stage engine + per-stage artifacts; scheduled-publish worker; public-API metrics + CORS; federation registry + mirror requests; keyset feed; SSRF-safe outbound |
+| @commonpub/config | 0.22.1 | 24 boolean top-level flags + nested `identity.*` (5) + `auth.*`; `contestStageSubmissions` (0.21), `themeStudio` (0.20), `publicApiMetricsFederation` (0.19), `actAsRegistry`/`announceToRegistry`, `layoutEngine`, `rbac` |
+| @commonpub/layer | 0.82.0 | RBAC `/admin/roles` UI + `useCan`; image cropper; scheduled-publish UI; Theme Studio wizard + advanced/glass tokens; search/nav/theme-identity; contest stage editors; keyset feed |
+| @commonpub/ui | 0.13.1 | Independent; NOT bundled into layer; Stoa theme family; `BUILT_IN_THEMES` (7) + TOKEN_SPECS chrome/treatment token split |
 | @commonpub/protocol | 0.13.0 | Pure-TS ActivityPub; `safeFetchResponse`+`safeFetchSigned`; strict `verifyHttpSignature` coverage + raw-body digest; registry/discovery types |
-| @commonpub/editor | 0.7.11 | 20 block types (18 TipTap extension files) |
+| @commonpub/editor | 0.7.12 | 20 block types (18 TipTap extension files) |
 | @commonpub/explainer | 0.7.15 | Pure TS engine + Vue (top-level `vue/` dir); cover-image upload UI |
 | @commonpub/learning | 0.5.2 | Curriculum + progress + quiz + certificate engines |
 | @commonpub/docs | 0.6.3 | Search adapters (Meilisearch + Postgres FTS fallback) |
 | @commonpub/auth | 0.8.0 | Better Auth wrapper + AP SSO + cross-instance identity types + `hasPermissionPure` (RBAC) |
 | @commonpub/infra | 0.8.0 | Storage / image / email / security; `getClientIp`; DO Spaces CDN derivation; Redis + realtime pub/sub |
 | @commonpub/test-utils | 0.5.6 | Auth/session/federated-account/OAuth-client factories + `createTestConfig` |
-| @commonpub/theme-studio | **0.1.0 (not yet published)** | Pure-TS theme generator (session 192). `recipeToTokens()` projection + color/palette/scales/fonts/presets. No runtime deps. Consumed by the layer's Theme Studio wizard. |
+| @commonpub/theme-studio | 0.6.1 | Pure-TS theme generator (published since session 192). `recipeToTokens()` projection + color/palette/scales/fonts/presets + glass/advanced tokens. No runtime deps. Consumed by the layer's Theme Studio wizard. |
 
 ## Dependency graph (core → leaf)
 

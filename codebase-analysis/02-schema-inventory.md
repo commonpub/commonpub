@@ -1,15 +1,17 @@
 # 02 — Schema Inventory
 
-Source: `packages/schema/src/*.ts`. Re-verified session 191 (2026-06-07).
+Source: `packages/schema/src/*.ts`. Re-verified session 191 (2026-06-07); counts/migrations refreshed session 203 (2026-06-18).
 
-**90 tables (`grep -c pgTable`), 45 enums (`grep -c pgEnum`), 111 `*Schema`
+**90 tables (`grep -c pgTable`), 46 enums (`grep -c pgEnum`), 118 `*Schema`
 exports in `validators.ts`.** Drizzle ORM on PostgreSQL 16. (+3 tables / +3 enums
 since session 181: `mirror_requests` (0014) + `registry_instances` +
 `registry_instance_status` (0015) federation discovery work, sessions 185/186;
 `metrics_daily` (0020) public-API time-series rollups, session 190;
 `contest_entries.stage_submissions` (0021) per-stage artifacts, session 194.)
 
-**22 migrations, 0000–0021** (latest `0021_thick_speed` = `contest_entries.stage_submissions`
+**26 migrations, 0000–0025; latest `0025_round_malice`** (= `contest_stakeholders.role`
+reviewer\|editor + seeds 5 RBAC system roles/permission sets/`user_roles` backfill, session 203;
+`0021_thick_speed` = `contest_entries.stage_submissions`
 jsonb — per-stage submission artifacts, session 194; `0020_spooky_gideon` = `metrics_daily` table —
 public-API Phase 3 analytics time-series, session 190; `0019_regular_tinkerer` =
 `contest_entries.stage_state` jsonb — Phase B2 per-entry cohort outcome, session 189;
@@ -41,12 +43,16 @@ Phase B1, session 189; `0017_exotic_lyja` = `contest_status` enum `+draft,+pause
 | 0019 | `regular_tinkerer` | `contest_entries.stage_state` jsonb (default `'[]'`, NOT NULL). Contest Phase B2 — per-entry cohort outcome (`advanced`/`eliminated` + snapshot score/rank per review stage); empty ⇒ active cohort. Additive. Session 189. |
 | 0020 | `spooky_gideon` | `metrics_daily` table (`day` date, `metric` varchar, `dimension` varchar default `''`, `value` bigint) + `UNIQUE(day,metric,dimension)` (`uq_metrics_daily_day_metric_dim`) + index `idx_metrics_daily_metric_day` on `(metric,day)`. Public-API Phase 3 time-series rollups (`metrics-rollup` plugin backfills then refreshes every 6h). Additive. Session 190. |
 | 0021 | `thick_speed` | `contest_entries.stage_submissions` jsonb (default `'[]'`, NOT NULL). Per-stage submission artifacts (`{stageId, fields, submittedAt}[]` — the filled `submissionTemplate` values for each `submission` stage, upserted while the stage is open). Additive. Session 194. |
+| 0022 | `wide_sumo` | contest `content_format` column + `contest_content_format` enum (markdown\|html). Session 197. **DEPRECATED/inert** — superseded by the per-field `*_format` columns in 0023; retained for backward compat. |
+| 0023 | `tense_dust` | Per-field contest format columns `description_format` / `rules_format` / `prizes_description_format` (each `contest_content_format`) — granular per-field markdown/html selection replacing the single `content_format`. Session 197. |
+| 0024 | `motionless_northstar` | `content_status` enum `ADD VALUE 'scheduled'` + `content_items.scheduled_at` timestamp — scheduled publishing. Session 199. |
+| 0025 | `round_malice` | `contest_stakeholders.role` column (`reviewer`\|`editor`) granting per-contest edit; seeds 5 RBAC system roles + permission sets + `user_roles` backfill. Session 203. |
 
 ## Files
 
 ```
 packages/schema/src/
-├── enums.ts         all pgEnums (45)
+├── enums.ts         all pgEnums (46)
 ├── auth.ts          users, sessions, accounts, organizations, members, federatedAccounts, oauthClients, oauthCodes, verifications (9)
 ├── content.ts       contentItems, contentCategories, contentVersions, contentForks, contentBuilds, tags, contentTags
 ├── social.ts        likes, follows, comments, bookmarks, notifications, reports, conversations, messages, messageReads
@@ -66,20 +72,20 @@ packages/schema/src/
 ├── publicApi.ts     apiKeys, apiKeyUsage (session 127)
 ├── metrics.ts       metricsDaily (session 190, migration 0020)
 ├── permissions.ts   permission catalog (no tables; permission-string constants for RBAC)
-├── validators.ts    Zod schemas (111 `*Schema` exports)
+├── validators.ts    Zod schemas (118 `*Schema` exports; now incl. theme-studio recipe/font validators `themeRecipeSchema` + `fonts`)
 ├── sectionConfigs.ts per-section Zod schemas + SECTION_CONFIG_SCHEMAS lookup map (17 sections, session 161)
 ├── index.ts         barrel
 └── openapi.ts       OpenAPI generator
 ```
 
-## Enums (45)
+## Enums (46)
 
 | Enum | Values |
 |---|---|
 | userRoleEnum | member, pro, verified, staff, admin |
 | userStatusEnum | active, suspended, deleted |
 | profileVisibilityEnum | public, members, private |
-| contentStatusEnum | draft, published, archived |
+| contentStatusEnum | draft, scheduled, published, archived (0024 added scheduled, enums.ts:9) |
 | contentTypeEnum | project, article, blog, explainer |
 | difficultyEnum | beginner, intermediate, advanced |
 | contentVisibilityEnum | public, members, private |
@@ -102,6 +108,7 @@ packages/schema/src/
 | lessonTypeEnum | article, video, quiz, project, explainer |
 | contestStatusEnum | draft, upcoming, active, paused, judging, completed, cancelled (0017 added draft/paused; transitions are bidirectional) |
 | contestVisibilityEnum | public, unlisted, private (session 174) |
+| contestContentFormatEnum | markdown, html (enums.ts:154, 0022/0023) |
 | judgeRoleEnum | **lead, judge, guest** (session 124) |
 | judgingVisibilityEnum | **public, judges-only, private** (session 124) |
 | voteDirectionEnum | **up, down** (session 124) |
@@ -142,7 +149,7 @@ packages/schema/src/
 
 | Table | Purpose | Notable |
 |---|---|---|
-| contentItems | project / article / blog / explainer | unique(authorId, type, slug); counters (viewCount, likeCount, forkCount, buildCount…); soft delete; JSONB content (BlockTuple[]), parts, sections |
+| contentItems | project / article / blog / explainer | unique(authorId, type, slug); counters (viewCount, likeCount, forkCount, buildCount…); soft delete; JSONB content (BlockTuple[]), parts, sections; `scheduledAt` timestamp (0024) — scheduled publishing with status `scheduled` |
 | contentCategories | Taxonomy | isSystem flag — can't be deleted |
 | contentVersions | Full snapshots | — |
 | contentForks | fork lineage (self-ref) | — |
@@ -217,10 +224,10 @@ packages/schema/src/
 
 | Table | Purpose | Notable |
 |---|---|---|
-| contests | Contests | status enum (**7 states** since 0017: draft, upcoming, active, paused, judging, completed, cancelled — bidirectional transitions); JSONB `prizes` (place AND/OR category) + `judgingCriteria` rubric (0006); `judgingVisibility` + `communityVotingEnabled`; `eligibleContentTypes` + `maxEntriesPerUser` (0007); **`visibility` (public/unlisted/private) + `visibleToRoles` role-gate (0008)**; `coverImageUrl` (0016); `showPrizes` boolean default true (0017); **`stages` jsonb + `currentStageId` (0018)** = explicit ordered stage timeline (`[]` ⇒ server synthesizes Submissions → Judging → Results). **`judges` jsonb is deprecated/dead — judges live in `contestJudges`.** |
+| contests | Contests | status enum (**7 states** since 0017: draft, upcoming, active, paused, judging, completed, cancelled — bidirectional transitions); JSONB `prizes` (place AND/OR category) + `judgingCriteria` rubric (0006); `judgingVisibility` + `communityVotingEnabled`; `eligibleContentTypes` + `maxEntriesPerUser` (0007); **`visibility` (public/unlisted/private) + `visibleToRoles` role-gate (0008)**; `coverImageUrl` (0016); `showPrizes` boolean default true (0017); **`stages` jsonb + `currentStageId` (0018)** = explicit ordered stage timeline (`[]` ⇒ server synthesizes Submissions → Judging → Results) — each ContestStage carries `criteria` / `advanceCount` / `submissionTemplate`; per-stage filled values land in `contestEntries.stageSubmissions`; per-field format columns **`descriptionFormat` / `rulesFormat` / `prizesDescriptionFormat`** (`contest_content_format`, 0023); **`contentFormat` (0022) is deprecated/inert** — superseded by the per-field columns. **`judges` jsonb is deprecated/dead — judges live in `contestJudges`.** |
 | contestEntries | Submissions | unique(contestId, userId, contentId); JSONB judgeScores (incl. per-criterion `criteriaScores` + per-round `roundId`); `score` (avg, gated by `shouldRevealScores`) + `rank` (RANK(), scored + non-eliminated entries only); **`stageState` jsonb (0019)** = per-entry cohort outcome (`advanced`/`eliminated` + snapshot score/rank per review stage); empty ⇒ active cohort; **`stageSubmissions` jsonb (0021)** = per-stage artifacts (`{stageId, fields, submittedAt}[]` filled from the stage's `submissionTemplate`; privilege-gated in reads) |
 | contestJudges | Judge roster (THE source of truth; `contests.judges` jsonb is dead) | unique(contestId, userId); role enum (lead/judge/guest); invitedAt/acceptedAt — scoring needs accepted + non-guest; can't judge own entry |
-| contestStakeholders | View-only reviewers (0008) | unique(contestId, userId); grants `canViewContest` access to private/unpublished contests without judge/admin rights |
+| contestStakeholders | Per-contest reviewers/editors (0008) | unique(contestId, userId); grants `canViewContest` access to private/unpublished contests without judge/admin rights; **`role` column (reviewer\|editor, contest.ts:273, migration 0025)** — `editor` grants per-contest edit |
 
 ### Events (2) — session 124 added
 
@@ -310,7 +317,7 @@ Consumed by `packages/server/src/layout/layout.ts` (Phase 1 server CRUD, session
 
 ## Zod validators
 
-Live in `packages/schema/src/validators.ts` (111 `*Schema` exports). All user-facing writes go through these. Per-section config schemas live separately in `sectionConfigs.ts`.
+Live in `packages/schema/src/validators.ts` (1254 LOC, 118 `*Schema` exports — now including theme-studio recipe/font validators `themeRecipeSchema` + `fonts`). All user-facing writes go through these. Per-section config schemas live separately in `sectionConfigs.ts`.
 
 Coverage by domain (approximate): auth (~7), content (~8), social (~3 for comments/likes/reports), hubs (~16), products (~5), contests (~5), videos (~3), learning (~7), messaging (~2), docs (~5), admin (~4), federation (~7), theme (~8), layout (~10), publicApi (~2), plus 6 `*FiltersSchema` list-filter validators (`content`/`hub`/`learningPath`/`video`/`contest`/`hubPost`).
 

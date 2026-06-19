@@ -3,6 +3,13 @@
 Assessment of the `docs/` tree, ADRs, and the LLM context docs.
 Regenerated session 191 (2026-06-07) against the actual tree (`find docs -name '*.md'`).
 
+> ⚠️ **Session 203 (2026-06-18) note:** this assessment is itself a session-191 snapshot.
+> Since then `docs/llm/facts.md` was refreshed (versions/migrations were stale: claimed
+> schema 0.40.1 / 21 migrations; now 0.45.0 / 26). `CHANGELOG.md` (81KB) is ~40 sessions
+> behind. Standing recommendation: have `facts.md` + `codebase-analysis/README` **defer**
+> their version/migration/flag tables to `docs/STATUS.md` rather than restate them — those
+> restated blocks are what drift and contradict. Full audit: `docs/sessions/203-full-codebase-audit.md`.
+
 ## How `docs/` is organized now
 
 ```
