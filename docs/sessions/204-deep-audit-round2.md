@@ -248,9 +248,22 @@ private/loopback/metadata targets.
 Also closed (small, safe): **shell** `db:push`→`db:migrate` footgun + `events`/`contentImport`
 added to its env-flag map. Full suite green 33/33 (server 1420, layer 1069).
 
-**STILL genuinely deferred (each its own PR; not bundled):** global SSRF-pinned dispatcher
-(high blast radius; megalodon/axios use their own client; per-call safe-fetch already covers the
-federation paths and `isValidHost` covers the Mastodon path); `pg_trgm` search GIN index (PGlite
-can't create it, and a schema-vs-migration drift would result — needs an ops/extension decision);
-`/api/content` → keyset feed; the 203 structural refactors (field-cascade DRY, homepage 3-path
-consolidation, content-view dedup, monolith splits); user-block model (a feature, not a fix).
+---
+
+## Round 6 — last raw-fetch SSRF closed; global-dispatcher rejected on audit
+
+Audited the "global SSRF dispatcher" idea and **rejected it**: a global private-IP-blocking
+undici dispatcher would break legit internal-URL services (e.g. Meilisearch at
+`http://meilisearch:7700`) AND wouldn't affect megalodon (axios, not undici) — so it's both
+risky and ineffective. The correct fix is per-call safe-fetch, now extended to the **last
+uncovered raw-fetch SSRF**: the federated-login route's WebFinger discovery + dynamic-client
+registration POST (a trusted domain could otherwise redirect the registration to an internal
+address) now use `createSafeActorFetchFn`. Also fixed a parallel-load flake in the 3 DB-backed
+layer route tests (30s setup timeout; verified stable over repeated full runs) and the shell
+footguns (round 5). Full suite green 33/33.
+
+**STILL genuinely deferred (each its own PR; not bundled):** `pg_trgm` search GIN index (PGlite
+can't create it → schema-vs-migration drift; needs an ops/extension decision); megalodon
+DNS-rebind residual (needs an axios-transport guard; flag-gated off in prod); `/api/content` →
+keyset feed; the 203 structural refactors (field-cascade DRY, homepage 3-path consolidation,
+content-view dedup, monolith splits); user-block model (a feature, not a fix).
