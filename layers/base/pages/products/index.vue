@@ -4,7 +4,7 @@ useSeoMeta({ title: `Products, ${useSiteName()}`, description: 'Browse products,
 const search = ref('');
 const category = ref('');
 
-const { data: productsData, pending } = useFetch('/api/products', {
+const { data: productsData, pending, error, refresh } = useFetch('/api/products', {
   query: computed(() => ({
     q: search.value || undefined,
     category: category.value || undefined,
@@ -57,6 +57,11 @@ const categories = [
 
     <!-- Grid -->
     <div v-if="pending" class="products-loading">Loading...</div>
+    <div v-else-if="error" class="cpub-fetch-error">
+      <div class="cpub-fetch-error-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+      <div class="cpub-fetch-error-msg">Failed to load products.</div>
+      <button class="cpub-btn cpub-btn-sm" @click="refresh()">Retry</button>
+    </div>
     <div v-else-if="products.length" class="products-grid">
       <NuxtLink
         v-for="product in products"

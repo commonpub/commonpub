@@ -4,7 +4,7 @@ useSeoMeta({
   description: 'Browse and join maker communities.',
 });
 
-const { data, pending } = await useFetch('/api/hubs');
+const { data, pending, error, refresh } = await useFetch('/api/hubs');
 const { isAuthenticated } = useAuth();
 
 const hubs = computed(() => data.value?.items ?? []);
@@ -32,6 +32,11 @@ function hubLink(hub: Record<string, unknown>): string {
     </div>
 
     <div v-if="pending" class="cpub-empty-state"><p><i class="fa-solid fa-circle-notch fa-spin"></i> Loading hubs...</p></div>
+    <div v-else-if="error" class="cpub-fetch-error">
+      <div class="cpub-fetch-error-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+      <div class="cpub-fetch-error-msg">Failed to load hubs.</div>
+      <button class="cpub-btn cpub-btn-sm" @click="refresh()">Retry</button>
+    </div>
     <div v-else-if="hubs.length" class="cpub-hubs-grid">
       <NuxtLink
         v-for="hub in hubs"
