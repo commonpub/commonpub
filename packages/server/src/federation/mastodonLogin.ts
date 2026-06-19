@@ -34,6 +34,7 @@
  * See docs/sessions/136-cross-instance-identity-plan.md.
  */
 import { eq } from 'drizzle-orm';
+import { isPrivateUrl } from '@commonpub/protocol';
 import generator, { detector } from 'megalodon';
 import { instanceSettings } from '@commonpub/schema';
 import type { SoftwareKind } from '@commonpub/auth';
@@ -102,6 +103,12 @@ export function isValidHost(host: string): boolean {
   if (normalized.length > 253) return false;
   if (!/^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$/i.test(normalized)) return false;
   if (!normalized.includes('.')) return false;
+  // SSRF guard: reject hosts that resolve (by literal) to private/loopback/link-local
+  // ranges — incl. the 169.254.169.254 cloud-metadata IP. megalodon uses its own axios
+  // (not the SSRF-pinned dispatcher), so an IP-literal host would otherwise drive
+  // server-side requests to internal targets. (audit session 204 — P0; the residual
+  // DNS-rebind-via-hostname case needs a global pinned dispatcher, tracked separately.)
+  if (isPrivateUrl(`https://${normalized}`)) return false;
   return true;
 }
 

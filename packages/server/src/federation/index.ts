@@ -1,3 +1,4 @@
+export { createSafeActorFetchFn } from './safeFetchFn.js';
 export {
   getOrCreateActorKeypair,
   getOrCreateInstanceKeypair,

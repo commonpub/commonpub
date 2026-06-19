@@ -545,6 +545,7 @@ export {
   joinFederatedHub,
   getFederatedHubFollowStatus,
   getLikedFederatedHubPostIds,
+  createSafeActorFetchFn,
 } from './federation/index.js';
 
 // OAuth Codes
