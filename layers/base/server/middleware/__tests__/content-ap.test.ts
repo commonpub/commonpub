@@ -83,7 +83,7 @@ beforeAll(async () => {
       content: [],
     },
   ] as never);
-});
+}, 30_000); // PGlite pushSchema is heavy; generous setup timeout under parallel load
 
 describe('content-ap middleware — only PUBLIC content is dereferenceable over AP', () => {
   it('serves an AP Article for a published PUBLIC item', async () => {

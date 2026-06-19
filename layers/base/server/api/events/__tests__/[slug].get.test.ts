@@ -76,7 +76,7 @@ beforeAll(async () => {
       createdById: creator.id,
     },
   ] as never);
-});
+}, 30_000); // PGlite pushSchema is heavy; generous setup timeout under parallel load
 
 describe('events/[slug].get — draft gating', () => {
   it('draft event + anonymous viewer → 404 (existence not leaked)', async () => {

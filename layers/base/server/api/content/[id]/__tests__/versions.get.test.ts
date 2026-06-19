@@ -98,7 +98,7 @@ beforeAll(async () => {
     title: 'Draft v1',
     createdById: owner.id,
   } as never);
-});
+}, 30_000); // PGlite pushSchema is heavy; generous setup timeout under parallel load
 
 describe('versions.get — author/moderator-only', () => {
   it('anonymous caller → 401', async () => {
