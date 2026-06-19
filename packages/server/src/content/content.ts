@@ -670,6 +670,38 @@ export async function getContentBySlug(
   };
 }
 
+/**
+ * Content fields that map straight from input to the row, IDENTICALLY on create and update.
+ * Declaring them once is the fix for the "silent field-drop" class (audit 199/200): a field
+ * wired into create but forgotten on update — or vice versa — can no longer drift, because
+ * both paths iterate this single list. Fields with special handling (title/slug/content/type/
+ * category/visibility/sections/status) are deliberately NOT here. The `satisfies` clause
+ * compile-checks every name is a real input key, so a typo or renamed field fails the build.
+ */
+const CONTENT_PASSTHROUGH_FIELDS = [
+  'subtitle', 'description', 'coverImageUrl', 'bannerUrl', 'difficulty',
+  'buildTime', 'estimatedCost', 'estimatedMinutes', 'licenseType', 'series',
+  'seoDescription', 'categoryId', 'scheduledAt',
+] as const satisfies readonly (keyof CreateContentInput & keyof UpdateContentInput)[];
+
+/** Build the create-time `.values` slice for the passthrough fields (`input.X ?? null`). */
+function contentPassthroughCreateValues(input: CreateContentInput): Partial<typeof contentItems.$inferInsert> {
+  const out: Record<string, unknown> = {};
+  for (const f of CONTENT_PASSTHROUGH_FIELDS) {
+    out[f] = (input as Record<string, unknown>)[f] ?? null;
+  }
+  return out as Partial<typeof contentItems.$inferInsert>;
+}
+
+/** Apply the passthrough fields onto an update partial (only when present in input). */
+function applyContentPassthroughUpdates(input: UpdateContentInput, updates: Record<string, unknown>): void {
+  for (const f of CONTENT_PASSTHROUGH_FIELDS) {
+    if ((input as Record<string, unknown>)[f] !== undefined) {
+      updates[f] = (input as Record<string, unknown>)[f];
+    }
+  }
+}
+
 export async function createContent(
   db: DB,
   authorId: string,
@@ -695,25 +727,15 @@ export async function createContent(
       type: normalizedType,
       title: input.title,
       slug,
-      subtitle: input.subtitle ?? null,
-      description: input.description ?? null,
+      // Special-cased fields (transform/default/immutable) stay explicit:
       content: (await sanitizeBlockContent(input.content)) ?? null,
-      coverImageUrl: input.coverImageUrl ?? null,
-      bannerUrl: input.bannerUrl ?? null,
       category: normalizedCategory ?? null,
-      difficulty: input.difficulty ?? null,
-      buildTime: input.buildTime ?? null,
-      estimatedCost: input.estimatedCost ?? null,
-      estimatedMinutes: input.estimatedMinutes ?? null,
-      licenseType: input.licenseType ?? null,
-      series: input.series ?? null,
       visibility: input.visibility ?? 'public',
-      seoDescription: input.seoDescription ?? null,
       sections: input.sections as typeof contentItems.$inferInsert.sections ?? null,
-      categoryId: input.categoryId ?? null,
       status: 'draft',
-      scheduledAt: input.scheduledAt ?? null,
       previewToken,
+      // Plain passthrough fields (single source of truth — see CONTENT_PASSTHROUGH_FIELDS):
+      ...contentPassthroughCreateValues(input),
     })
     .returning();
 
@@ -758,23 +780,13 @@ export async function updateContent(
       [{ col: contentItems.authorId, value: authorId }, { col: contentItems.type, value: current.type }],
     );
   }
-  if (input.subtitle !== undefined) updates.subtitle = input.subtitle;
-  if (input.description !== undefined) updates.description = input.description;
+  // Special-cased fields (transform/immutable/default) stay explicit:
   if (input.content !== undefined) updates.content = await sanitizeBlockContent(input.content);
-  if (input.coverImageUrl !== undefined) updates.coverImageUrl = input.coverImageUrl;
-  if (input.bannerUrl !== undefined) updates.bannerUrl = input.bannerUrl;
   if (input.category !== undefined) updates.category = input.category;
-  if (input.difficulty !== undefined) updates.difficulty = input.difficulty;
-  if (input.seoDescription !== undefined) updates.seoDescription = input.seoDescription;
   if (input.sections !== undefined) updates.sections = input.sections;
-  if (input.buildTime !== undefined) updates.buildTime = input.buildTime;
-  if (input.estimatedCost !== undefined) updates.estimatedCost = input.estimatedCost;
-  if (input.estimatedMinutes !== undefined) updates.estimatedMinutes = input.estimatedMinutes;
-  if (input.licenseType !== undefined) updates.licenseType = input.licenseType;
-  if (input.series !== undefined) updates.series = input.series;
   if (input.visibility !== undefined) updates.visibility = input.visibility;
-  if (input.categoryId !== undefined) updates.categoryId = input.categoryId;
-  if (input.scheduledAt !== undefined) updates.scheduledAt = input.scheduledAt;
+  // Plain passthrough fields (single source of truth — see CONTENT_PASSTHROUGH_FIELDS):
+  applyContentPassthroughUpdates(input, updates);
 
   if (input.status !== undefined) {
     if (input.status === 'scheduled') {
