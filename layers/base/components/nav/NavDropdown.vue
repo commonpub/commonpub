@@ -47,7 +47,6 @@ function handleKeydown(e: KeyboardEvent): void {
       class="cpub-nav-link cpub-nav-trigger"
       :class="{ 'cpub-nav-trigger--open': open }"
       :aria-label="`${item.label} menu`"
-      aria-haspopup="true"
       :aria-expanded="open"
       @click.stop="emit('toggle')"
       @keydown.enter.stop="emit('toggle')"
@@ -56,12 +55,11 @@ function handleKeydown(e: KeyboardEvent): void {
       <i v-if="item.icon" :class="item.icon"></i> {{ item.label }}
       <i class="fa-solid fa-chevron-down cpub-nav-caret" />
     </button>
-    <div v-if="open" class="cpub-nav-panel" role="menu">
+    <div v-if="open" class="cpub-nav-panel">
       <template v-for="child in visibleChildren" :key="child.id">
         <span
           v-if="child.disabled"
           class="cpub-nav-panel-item cpub-nav-panel-item--disabled"
-          role="menuitem"
           aria-disabled="true"
         >
           <i v-if="child.icon" :class="child.icon"></i> {{ child.label }}
@@ -72,7 +70,6 @@ function handleKeydown(e: KeyboardEvent): void {
           target="_blank"
           rel="noopener"
           class="cpub-nav-panel-item"
-          role="menuitem"
           @click="emit('close')"
         >
           <i v-if="child.icon" :class="child.icon"></i> {{ child.label }}
@@ -82,7 +79,6 @@ function handleKeydown(e: KeyboardEvent): void {
           v-else-if="child.route"
           :to="child.route"
           class="cpub-nav-panel-item"
-          role="menuitem"
           @click="emit('close')"
         >
           <i v-if="child.icon" :class="child.icon"></i> {{ child.label }}

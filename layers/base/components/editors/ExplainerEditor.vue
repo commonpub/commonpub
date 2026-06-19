@@ -15,6 +15,7 @@ function updateMeta(key: string, value: unknown): void {
 }
 
 const { uploadFile } = useFileUpload();
+const toast = useToast();
 
 const activeLeftTab = ref<'modules' | 'structure' | 'assets'>('modules');
 
@@ -128,7 +129,10 @@ function onAssetUpload(event: Event): void {
         type: file.type.startsWith('image/') ? 'image' : 'file',
       });
     })
-    .catch(() => { /* silent */ });
+    .catch((err: unknown) => {
+      const msg = (err as { data?: { statusMessage?: string } })?.data?.statusMessage;
+      toast.error(msg || 'Upload failed');
+    });
 }
 
 const openSections = ref<Record<string, boolean>>({

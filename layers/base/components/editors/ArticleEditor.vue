@@ -181,8 +181,8 @@ function onCoverUpload(event: Event): void {
   const file = input.files[0];
   if (!file) return;
   uploadFile(file, 'cover')
-    .then((res) => { updateMeta('coverImageUrl', res.url); })
-    .catch(() => { /* silent fallback */ });
+    .then((res) => { updateMeta('coverImageUrl', res.url); uploadError.value = ''; })
+    .catch((err) => { uploadError.value = err?.data?.statusMessage || 'Cover image upload failed'; });
 }
 
 function onCoverUrl(): void {
@@ -203,8 +203,8 @@ function onBannerUpload(event: Event): void {
   const file = input.files[0];
   if (!file) return;
   uploadFile(file, 'cover')
-    .then((res) => { updateMeta('bannerUrl', res.url); })
-    .catch(() => {});
+    .then((res) => { updateMeta('bannerUrl', res.url); uploadError.value = ''; })
+    .catch((err) => { uploadError.value = err?.data?.statusMessage || 'Banner image upload failed'; });
 }
 
 function removeBanner(): void {

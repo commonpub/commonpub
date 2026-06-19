@@ -219,7 +219,7 @@ async function deleteUser(userId: string, username: string): Promise<void> {
 .admin-roles-editor { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; padding: 4px 0; }
 .admin-roles-label { font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-dim); }
 .admin-roles-check { display: flex; align-items: center; gap: 6px; font-size: 12px; cursor: pointer; }
-.admin-roles-save { font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; padding: 3px 10px; border: var(--border-width-default) solid var(--accent); background: var(--accent); color: var(--accent-contrast, #fff); cursor: pointer; margin-left: auto; }
+.admin-roles-save { font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; padding: 3px 10px; border: var(--border-width-default) solid var(--accent); background: var(--accent); color: var(--color-on-accent); cursor: pointer; margin-left: auto; }
 .admin-roles-save:disabled { opacity: 0.6; cursor: default; }
 .admin-empty { color: var(--text-faint); text-align: center; padding: 32px 0; }
 </style>

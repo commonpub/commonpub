@@ -71,6 +71,15 @@ function handleGlobalKeydown(e: KeyboardEvent): void {
   }
 }
 
+const avatarBtnRef = ref<HTMLButtonElement | null>(null);
+
+// Disclosure menu: Esc closes and returns focus to the trigger.
+function closeUserMenu(): void {
+  if (!userMenuOpen.value) return;
+  userMenuOpen.value = false;
+  avatarBtnRef.value?.focus();
+}
+
 // Close menus on click outside
 function handleClickOutside(e: MouseEvent): void {
   const target = e.target as HTMLElement;
@@ -162,32 +171,32 @@ const userUsername = computed(() => user.value?.username ?? '');
             <i class="fa-solid fa-plus"></i> <span class="cpub-new-text">New</span>
           </NuxtLink>
           <div class="cpub-user-menu-wrapper">
-            <button class="cpub-avatar-btn" aria-label="User menu" :aria-expanded="userMenuOpen" @click.stop="userMenuOpen = !userMenuOpen">
+            <button ref="avatarBtnRef" class="cpub-avatar-btn" aria-label="User menu" :aria-expanded="userMenuOpen" @click.stop="userMenuOpen = !userMenuOpen" @keydown.esc="closeUserMenu">
               <span class="cpub-user-avatar">
                 <img v-if="userImage" :src="userImage" :alt="user?.name || user?.username" class="cpub-user-avatar-img" />
                 <span v-else>{{ userInitial }}</span>
               </span>
             </button>
-            <div v-if="userMenuOpen" class="cpub-user-dropdown" role="menu">
+            <div v-if="userMenuOpen" class="cpub-user-dropdown" @keydown.esc="closeUserMenu">
               <!-- Mobile-only: messages/notifications relocated here from
                    the top bar (hidden on desktop, which keeps the icons). -->
-              <NuxtLink to="/messages" class="cpub-dropdown-item cpub-dropdown-item--mobile" role="menuitem" @click="userMenuOpen = false">
+              <NuxtLink to="/messages" class="cpub-dropdown-item cpub-dropdown-item--mobile" @click="userMenuOpen = false">
                 <i class="fa-solid fa-envelope"></i> Messages
                 <span v-if="unreadMessages > 0" class="cpub-dropdown-count">{{ unreadMessages > 99 ? '99+' : unreadMessages }}</span>
               </NuxtLink>
-              <NuxtLink to="/notifications" class="cpub-dropdown-item cpub-dropdown-item--mobile" role="menuitem" @click="userMenuOpen = false">
+              <NuxtLink to="/notifications" class="cpub-dropdown-item cpub-dropdown-item--mobile" @click="userMenuOpen = false">
                 <i class="fa-solid fa-bell"></i> Notifications
                 <span v-if="unreadCount > 0" class="cpub-dropdown-count">{{ unreadCount > 99 ? '99+' : unreadCount }}</span>
               </NuxtLink>
               <div class="cpub-dropdown-divider cpub-dropdown-item--mobile" />
-              <NuxtLink :to="`/u/${userUsername}`" class="cpub-dropdown-item" role="menuitem" @click="userMenuOpen = false"><i class="fa-solid fa-user"></i> Profile</NuxtLink>
-              <NuxtLink to="/dashboard" class="cpub-dropdown-item" role="menuitem" @click="userMenuOpen = false"><i class="fa-solid fa-gauge"></i> Dashboard</NuxtLink>
-              <NuxtLink to="/settings" class="cpub-dropdown-item" role="menuitem" @click="userMenuOpen = false"><i class="fa-solid fa-gear"></i> Settings</NuxtLink>
-              <button class="cpub-dropdown-item" role="menuitem" @click="setDarkMode(!isDark)">
+              <NuxtLink :to="`/u/${userUsername}`" class="cpub-dropdown-item" @click="userMenuOpen = false"><i class="fa-solid fa-user"></i> Profile</NuxtLink>
+              <NuxtLink to="/dashboard" class="cpub-dropdown-item" @click="userMenuOpen = false"><i class="fa-solid fa-gauge"></i> Dashboard</NuxtLink>
+              <NuxtLink to="/settings" class="cpub-dropdown-item" @click="userMenuOpen = false"><i class="fa-solid fa-gear"></i> Settings</NuxtLink>
+              <button class="cpub-dropdown-item" @click="setDarkMode(!isDark)">
                 <i :class="isDark ? 'fa-solid fa-sun' : 'fa-solid fa-moon'"></i> {{ isDark ? 'Light mode' : 'Dark mode' }}
               </button>
               <div class="cpub-dropdown-divider" />
-              <button class="cpub-dropdown-item" role="menuitem" @click="handleSignOut"><i class="fa-solid fa-right-from-bracket"></i> Sign out</button>
+              <button class="cpub-dropdown-item" @click="handleSignOut"><i class="fa-solid fa-right-from-bracket"></i> Sign out</button>
             </div>
           </div>
         </template>

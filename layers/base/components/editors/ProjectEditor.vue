@@ -15,6 +15,7 @@ function updateMeta(key: string, value: unknown): void {
 }
 
 const { uploadFile } = useFileUpload();
+const toast = useToast();
 
 const blockTypes: BlockTypeGroup[] = [
   {
@@ -79,7 +80,10 @@ function onCoverUpload(event: Event): void {
   if (!file) return;
   uploadFile(file, 'cover')
     .then((res) => { updateMeta('coverImageUrl', res.url); })
-    .catch(() => { /* silent fallback */ });
+    .catch((err: unknown) => {
+      const msg = (err as { data?: { statusMessage?: string } })?.data?.statusMessage;
+      toast.error(msg || 'Cover image upload failed');
+    });
 }
 
 function onCoverUrl(): void {
@@ -101,7 +105,10 @@ function onBannerUpload(event: Event): void {
   if (!file) return;
   uploadFile(file, 'cover')
     .then((res) => { updateMeta('bannerUrl', res.url); })
-    .catch(() => {});
+    .catch((err: unknown) => {
+      const msg = (err as { data?: { statusMessage?: string } })?.data?.statusMessage;
+      toast.error(msg || 'Banner image upload failed');
+    });
 }
 
 function removeBanner(): void {

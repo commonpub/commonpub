@@ -279,6 +279,15 @@ onUnmounted(() => {
   if (autoSaveTimer.value) clearTimeout(autoSaveTimer.value);
 });
 
+// Warn before in-app navigation (beforeunload only covers full-page unload)
+onBeforeRouteLeave((_to, _from, next) => {
+  if (isDirty.value && !window.confirm('You have unsaved changes. Leave anyway?')) {
+    next(false);
+  } else {
+    next();
+  }
+});
+
 // ═══ PAGE TREE ACTIONS ═══
 const pendingReparent = ref(false);
 async function handleCreatePage(parentId: string | null, title: string): Promise<void> {

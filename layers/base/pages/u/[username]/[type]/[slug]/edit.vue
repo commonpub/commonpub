@@ -343,6 +343,15 @@ if (import.meta.client) {
   onUnmounted(() => { window.removeEventListener('beforeunload', onBeforeUnload); });
 }
 
+// --- Warn before in-app navigation (beforeunload only covers full-page unload) ---
+onBeforeRouteLeave((_to, _from, next) => {
+  if (isDirty.value && !window.confirm('You have unsaved changes. Leave anyway?')) {
+    next(false);
+  } else {
+    next();
+  }
+});
+
 // --- Markdown import ---
 const showImportDialog = ref(false);
 const { importing, importMarkdown } = useMarkdownImport(blockEditor);

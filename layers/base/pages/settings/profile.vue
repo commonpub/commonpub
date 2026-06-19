@@ -31,7 +31,14 @@ const form = ref({
   bannerUrl: '',
 });
 
+// Stable row ids so v-for keys survive splice-removal (keying by array index
+// rebinds v-model to the wrong row after deleting an entry).
+let rowIdCounter = 0;
+function nextRowId(): string { return `row-${rowIdCounter++}`; }
+
 const skills = ref<string[]>([]);
+// Parallel id list kept in lockstep with `skills` for stable v-for keys.
+const skillIds = ref<string[]>([]);
 const socialLinks = ref({
   github: '',
   twitter: '',
@@ -42,7 +49,7 @@ const socialLinks = ref({
   discord: '',
 });
 const pronouns = ref('');
-const experience = ref<Array<{ title: string; company: string; startDate: string; endDate: string; description: string }>>([]);
+const experience = ref<Array<{ _id: string; title: string; company: string; startDate: string; endDate: string; description: string }>>([]);
 
 const emailNotifications = ref<{
   digest: 'daily' | 'weekly' | 'none';
@@ -81,6 +88,7 @@ if (profile.value) {
 
   if (Array.isArray(p.skills)) {
     skills.value = (p.skills as unknown[]).filter((s): s is string => typeof s === 'string');
+    skillIds.value = skills.value.map(() => nextRowId());
   }
   pronouns.value = p.pronouns || '';
   if (p.socialLinks) {
@@ -96,6 +104,7 @@ if (profile.value) {
   const profileRecord = p as Record<string, unknown>;
   if (Array.isArray(profileRecord.experience)) {
     experience.value = (profileRecord.experience as Array<Record<string, unknown>>).map((e) => ({
+      _id: nextRowId(),
       title: String(e.title || ''),
       company: String(e.company || ''),
       startDate: String(e.startDate || ''),
@@ -124,14 +133,17 @@ onMounted(() => {
 
 function addSkill(): void {
   skills.value.push('');
+  skillIds.value.push(nextRowId());
 }
 
 function removeSkill(index: number): void {
   skills.value.splice(index, 1);
+  skillIds.value.splice(index, 1);
 }
 
 function addExperience(): void {
   experience.value.push({
+    _id: nextRowId(),
     title: '',
     company: '',
     startDate: '',
@@ -174,7 +186,9 @@ async function handleSave(): Promise<void> {
       body: {
         ...form.value,
         skills: skills.value.filter((s) => s.trim()),
-        experience: experience.value.filter((e) => e.title.trim()),
+        experience: experience.value
+          .filter((e) => e.title.trim())
+          .map(({ _id, ...rest }) => rest),
         pronouns: pronouns.value || undefined,
         socialLinks: socialLinks.value,
         ...(emailNotificationsEnabled.value ? { emailNotifications: emailNotifications.value } : {}),
@@ -356,7 +370,7 @@ async function handleSave(): Promise<void> {
 
         <div
           v-for="(_skill, index) in skills"
-          :key="index"
+          :key="skillIds[index]"
           class="cpub-skill-row"
         >
           <input
@@ -451,7 +465,7 @@ async function handleSave(): Promise<void> {
 
         <div
           v-for="(entry, index) in experience"
-          :key="index"
+          :key="entry._id"
           class="cpub-experience-card"
         >
           <div class="cpub-experience-header">

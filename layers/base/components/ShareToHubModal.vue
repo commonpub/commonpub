@@ -42,6 +42,7 @@ async function handleShare(): Promise<void> {
 </script>
 
 <template>
+  <Teleport to="body">
   <div class="cpub-modal-backdrop" @click.self="emit('close')">
     <div ref="contentRef" class="cpub-modal-content" role="dialog" aria-modal="true" aria-labelledby="cpub-share-hub-title">
       <div class="cpub-modal-header">
@@ -83,6 +84,7 @@ async function handleShare(): Promise<void> {
       </template>
     </div>
   </div>
+  </Teleport>
 </template>
 
 <style scoped>
@@ -90,7 +92,7 @@ async function handleShare(): Promise<void> {
   position: fixed;
   inset: 0;
   background: var(--color-surface-scrim, rgba(0,0,0,0.5));
-  z-index: 1000;
+  z-index: var(--z-modal-backdrop);
   display: flex;
   align-items: center;
   justify-content: center;

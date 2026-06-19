@@ -128,7 +128,7 @@ async function startConversation(): Promise<void> {
           <div class="cpub-new-msg-field">
             <label class="cpub-new-msg-label">Recipients</label>
             <div v-if="newRecipients.length" class="cpub-new-msg-chips">
-              <span v-for="(r, idx) in newRecipients" :key="idx" class="cpub-new-msg-chip">
+              <span v-for="(r, idx) in newRecipients" :key="r" class="cpub-new-msg-chip">
                 {{ r }}
                 <button class="cpub-new-msg-chip-remove" @click="removeRecipient(idx)" :aria-label="`Remove ${r}`">&times;</button>
               </span>

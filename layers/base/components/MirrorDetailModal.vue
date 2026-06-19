@@ -92,6 +92,7 @@ async function remove(): Promise<void> {
 </script>
 
 <template>
+  <Teleport to="body">
   <div class="cpub-modal-backdrop" @click.self="emit('close')">
     <div ref="contentRef" class="cpub-modal-content" role="dialog" aria-modal="true" aria-labelledby="cpub-mirror-modal-title">
       <div class="cpub-modal-header">
@@ -170,12 +171,13 @@ async function remove(): Promise<void> {
       </div>
     </div>
   </div>
+  </Teleport>
 </template>
 
 <style scoped>
 .cpub-modal-backdrop {
   position: fixed; inset: 0; background: var(--color-surface-scrim, rgba(0,0,0,0.5));
-  z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 16px;
+  z-index: var(--z-modal-backdrop); display: flex; align-items: center; justify-content: center; padding: 16px;
 }
 .cpub-modal-content {
   background: var(--surface); border: var(--border-width-default) solid var(--border);

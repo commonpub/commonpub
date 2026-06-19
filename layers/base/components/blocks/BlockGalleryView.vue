@@ -46,6 +46,11 @@ const images = computed<GalleryImage[]>(() => {
   object-fit: cover;
   display: block;
   border: var(--border-width-default) solid var(--border);
+  /* Defend against the global `.cpub-prose img` rule (prose.css) leaking its
+     box-shadow + margin into this scoped block when rendered inside prose
+     (the margin would otherwise disrupt the gallery grid). */
+  box-shadow: none;
+  margin: 0;
 }
 
 .cpub-gallery-caption {
