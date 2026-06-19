@@ -17,12 +17,16 @@ const ALLOWED_ELEMENTS = new Set([
   'table', 'thead', 'tbody', 'tr', 'th', 'td',
   'dl', 'dt', 'dd',
   'details', 'summary',
+  'figure', 'figcaption',
   'span',
 ]);
 
 /** Attributes allowed per element */
 const ALLOWED_ATTRIBUTES: Record<string, Set<string>> = {
-  a: new Set(['href', 'rel', 'title', 'class']),
+  // `target` restored (session 204) — switching the federation output sanitizer from a
+  // denylist to this allowlist had dropped it from TipTap links; `rel` is also allowed
+  // so target="_blank" rel="noopener" round-trips.
+  a: new Set(['href', 'rel', 'title', 'class', 'target']),
   img: new Set(['src', 'alt', 'title', 'width', 'height', 'class']),
   td: new Set(['colspan', 'rowspan']),
   th: new Set(['colspan', 'rowspan', 'scope']),
