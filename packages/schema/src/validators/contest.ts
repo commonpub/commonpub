@@ -1,0 +1,236 @@
+import { z } from 'zod';
+import { optionalUrl } from './_shared.js';
+
+// --- Contest validators ---
+
+export const contestPrizeSchema = z
+  .object({
+    place: z.number().int().positive().optional(),
+    category: z.string().max(120).optional(),
+    // Optional: a prize can be description-only (no forced 1st/2nd/3rd title).
+    title: z.string().max(255).optional(),
+    description: z.string().max(1000).optional(),
+    value: z.string().max(128).optional(),
+  })
+  // Reject a completely empty prize — it must carry at least one meaningful
+  // field so flexible (description-only / category-only / place-only) prizes
+  // are allowed while blank rows are not.
+  .refine(
+    (p) =>
+      !!(p.title?.trim() || p.description?.trim() || p.category?.trim() || (typeof p.place === 'number' && p.place > 0)),
+    { message: 'A prize needs a title, description, category, or place.' },
+  );
+export type ContestPrize = z.infer<typeof contestPrizeSchema>;
+
+export const contestJudgingCriterionSchema = z.object({
+  label: z.string().min(1).max(120),
+  weight: z.number().int().min(0).max(100).optional(),
+  description: z.string().max(500).optional(),
+});
+export type ContestJudgingCriterion = z.infer<typeof contestJudgingCriterionSchema>;
+
+// One field of a `submission` stage's artifact template (per-stage submissions).
+// `key` is the stable machine key in `stageSubmissions.fields`.
+export const submissionTemplateFieldSchema = z.object({
+  key: z.string().min(1).max(40).regex(/^[a-z0-9_]+$/, 'Lowercase letters, numbers and underscores only'),
+  label: z.string().min(1).max(120),
+  type: z.enum(['text', 'textarea', 'url']),
+  required: z.boolean(),
+  help: z.string().max(300).optional(),
+});
+export type SubmissionTemplateFieldInput = z.infer<typeof submissionTemplateFieldSchema>;
+
+// Phase B1 — a single ordered stage of a contest's timeline (stored as a jsonb
+// array on `contests.stages`). See ContestStage in @commonpub/schema contest.ts.
+export const contestStageSchema = z.object({
+  id: z.string().min(1).max(64),
+  name: z.string().min(1).max(120),
+  kind: z.enum(['submission', 'review', 'interim', 'results', 'event', 'custom']),
+  startsAt: z.string().datetime().optional(),
+  endsAt: z.string().datetime().optional(),
+  core: z.boolean().optional(),
+  description: z.string().max(2000).optional(),
+  location: z.string().max(255).optional(),
+  url: optionalUrl(),
+  // Per-round rubric (review stages). Reuses the contest-level criterion shape.
+  criteria: z.array(contestJudgingCriterionSchema).max(20).optional(),
+  // Review stages: how many advance out of this round (the Top-N cut).
+  advanceCount: z.number().int().min(1).max(100000).optional(),
+  // Submission stages: the per-stage artifact template — fields the entrant
+  // fills for THIS stage (proposal vs prototype). Keys must be unique.
+  submissionTemplate: z
+    .array(submissionTemplateFieldSchema)
+    .max(50)
+    .refine((fields) => new Set(fields.map((f) => f.key)).size === fields.length, {
+      message: 'Template field keys must be unique',
+    })
+    .optional(),
+});
+export type ContestStageInput = z.infer<typeof contestStageSchema>;
+
+// Entrant payload for submitting a per-stage artifact. The per-template checks
+// (required fields present, url fields are https?://, no unknown keys) happen
+// server-side against the stage's `submissionTemplate` — this bounds the shape.
+export const stageSubmissionSchema = z
+  .object({
+    stageId: z.string().min(1).max(64),
+    fields: z.record(z.string().max(64), z.string().max(4000)),
+  })
+  .refine((d) => Object.keys(d.fields).length <= 50, { message: 'Too many fields' });
+export type StageSubmissionInput = z.infer<typeof stageSubmissionSchema>;
+
+// Phase B2 — apply an advancement cut at a review stage (the Top-N cull).
+export const contestAdvanceSchema = z
+  .object({
+    reviewStageId: z.string().min(1).max(64),
+    mode: z.enum(['topN', 'manual']),
+    topN: z.number().int().min(1).max(10000).optional(),
+    advancedEntryIds: z.array(z.string().uuid()).max(10000).optional(),
+  })
+  .refine((d) => (d.mode === 'topN' ? typeof d.topN === 'number' : Array.isArray(d.advancedEntryIds)), {
+    message: 'topN mode needs `topN`; manual mode needs `advancedEntryIds`.',
+  });
+
+// Contest long-form fields (description/rules/prizes overview) allow genuinely
+// large content — a full multi-section brief, not a one-liner. The cap stays
+// *bounded* on purpose: an unbounded field is a DoS vector (a multi-MB body is
+// buffered + JSON-parsed synchronously at ingest, and rendered through the
+// synchronous markdown pipeline on every page view). 50k chars is ~8k words /
+// ~16 pages — large by any contest measure — while the body-size guard in
+// `parseBody` and the render guard in the markdown parser keep the server safe.
+export const CONTEST_RICH_TEXT_MAX = 50_000;
+
+/**
+ * Per-contest stakeholder roles (the `contest_stakeholders.role` column).
+ * `reviewer` = view-only; `editor` = full edit rights to that single contest
+ * with no system-wide access. See packages/schema/src/contest.ts.
+ */
+export const STAKEHOLDER_ROLES = ['reviewer', 'editor'] as const;
+export const stakeholderRoleSchema = z.enum(STAKEHOLDER_ROLES);
+export type StakeholderRole = (typeof STAKEHOLDER_ROLES)[number];
+
+export const createContestSchema = z
+  .object({
+    title: z.string().min(1).max(255),
+    subheading: z.string().max(300).optional(),
+    description: z.string().max(CONTEST_RICH_TEXT_MAX).optional(),
+    rules: z.string().max(CONTEST_RICH_TEXT_MAX).optional(),
+    prizesDescription: z.string().max(CONTEST_RICH_TEXT_MAX).optional(),
+    // Per-field render mode for the three long-form fields above (independent).
+    descriptionFormat: z.enum(['markdown', 'html']).optional(),
+    rulesFormat: z.enum(['markdown', 'html']).optional(),
+    prizesDescriptionFormat: z.enum(['markdown', 'html']).optional(),
+    bannerUrl: optionalUrl(),
+    coverImageUrl: optionalUrl(),
+    showPrizes: z.boolean().optional(),
+    // Optional on create — server slugifies the title when omitted.
+    slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Lowercase letters, numbers and hyphens only').max(255).optional(),
+    startDate: z.string().datetime(),
+    endDate: z.string().datetime(),
+    judgingEndDate: z.string().datetime().optional(),
+    prizes: z.array(contestPrizeSchema).max(50).optional(),
+    judgingCriteria: z.array(contestJudgingCriterionSchema).max(20).optional(),
+    // Phase B1 — explicit stage timeline. Omitted/empty ⇒ server synthesizes the
+    // classic Submissions → Judging → Results flow.
+    stages: z.array(contestStageSchema).max(20).optional(),
+    currentStageId: z.string().max(64).optional(),
+    // Seed-only: populates the contest_judges table. Judges are managed via the
+    // dedicated /judges endpoints after creation.
+    judges: z.array(z.string().uuid()).max(50).optional(),
+    // Seed-only: populates the contest_stakeholders table (view-only reviewers).
+    stakeholders: z.array(z.string().uuid()).max(100).optional(),
+    communityVotingEnabled: z.boolean().optional(),
+    judgingVisibility: z.enum(['public', 'judges-only', 'private']).optional(),
+    eligibleContentTypes: z.array(z.string().max(40)).max(20).optional(),
+    maxEntriesPerUser: z.number().int().positive().max(1000).optional(),
+    visibility: z.enum(['public', 'unlisted', 'private']).optional(),
+    visibleToRoles: z.array(z.enum(['member', 'pro', 'verified', 'staff', 'admin'])).max(5).optional(),
+  })
+  .refine((d) => new Date(d.endDate) > new Date(d.startDate), {
+    message: 'End date must be after the start date',
+    path: ['endDate'],
+  })
+  .refine((d) => !d.judgingEndDate || new Date(d.judgingEndDate) >= new Date(d.endDate), {
+    message: 'Judging end date must be on or after the end date',
+    path: ['judgingEndDate'],
+  });
+export type CreateContestInput = z.infer<typeof createContestSchema>;
+
+// `.partial()` is unavailable on a refined object, so derive the update schema
+// from the underlying shape and re-apply the cross-field date guards.
+export const updateContestSchema = z
+  .object({
+    title: z.string().min(1).max(255).optional(),
+    subheading: z.string().max(300).optional(),
+    description: z.string().max(CONTEST_RICH_TEXT_MAX).optional(),
+    rules: z.string().max(CONTEST_RICH_TEXT_MAX).optional(),
+    prizesDescription: z.string().max(CONTEST_RICH_TEXT_MAX).optional(),
+    descriptionFormat: z.enum(['markdown', 'html']).optional(),
+    rulesFormat: z.enum(['markdown', 'html']).optional(),
+    prizesDescriptionFormat: z.enum(['markdown', 'html']).optional(),
+    bannerUrl: optionalUrl(),
+    coverImageUrl: optionalUrl(),
+    showPrizes: z.boolean().optional(),
+    slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Lowercase letters, numbers and hyphens only').max(255).optional(),
+    startDate: z.string().datetime().optional(),
+    endDate: z.string().datetime().optional(),
+    judgingEndDate: z.string().datetime().optional(),
+    prizes: z.array(contestPrizeSchema).max(50).optional(),
+    judgingCriteria: z.array(contestJudgingCriterionSchema).max(20).optional(),
+    stages: z.array(contestStageSchema).max(20).optional(),
+    currentStageId: z.string().max(64).optional(),
+    communityVotingEnabled: z.boolean().optional(),
+    judgingVisibility: z.enum(['public', 'judges-only', 'private']).optional(),
+    eligibleContentTypes: z.array(z.string().max(40)).max(20).optional(),
+    maxEntriesPerUser: z.number().int().positive().max(1000).optional(),
+    visibility: z.enum(['public', 'unlisted', 'private']).optional(),
+    visibleToRoles: z.array(z.enum(['member', 'pro', 'verified', 'staff', 'admin'])).max(5).optional(),
+  })
+  // `judges` + `stakeholders` are intentionally NOT updatable here — they are
+  // managed via the dedicated /judges and /stakeholders endpoints.
+  .refine((d) => !d.startDate || !d.endDate || new Date(d.endDate) > new Date(d.startDate), {
+    message: 'End date must be after the start date',
+    path: ['endDate'],
+  });
+export type UpdateContestInput = z.infer<typeof updateContestSchema>;
+
+export const criterionScoreSchema = z
+  .object({
+    label: z.string().max(120),
+    score: z.number().int().min(0),
+    max: z.number().int().min(1).max(100),
+  })
+  .refine((c) => c.score <= c.max, { message: 'Criterion score cannot exceed its max', path: ['score'] });
+export type CriterionScore = z.infer<typeof criterionScoreSchema>;
+
+export const judgeEntrySchema = z
+  .object({
+    entryId: z.string().uuid(),
+    // Either an overall 0–100 score, or a per-criterion breakdown (the overall is
+    // then derived server-side as a normalized weighted sum).
+    score: z.number().int().min(1).max(100).optional(),
+    criteriaScores: z.array(criterionScoreSchema).min(1).max(20).optional(),
+    feedback: z.string().max(2000).optional(),
+  })
+  .refine((d) => d.score !== undefined || (d.criteriaScores && d.criteriaScores.length > 0), {
+    message: 'Provide an overall score or per-criterion scores',
+    path: ['score'],
+  });
+export type JudgeEntryInput = z.infer<typeof judgeEntrySchema>;
+
+export const contestTransitionSchema = z.object({
+  status: z.enum(['draft', 'upcoming', 'active', 'paused', 'judging', 'completed', 'cancelled']),
+});
+export type ContestTransitionInput = z.infer<typeof contestTransitionSchema>;
+
+export const contestStatusSchema = z.enum(['draft', 'upcoming', 'active', 'paused', 'judging', 'completed', 'cancelled']);
+export type ContestStatus = z.infer<typeof contestStatusSchema>;
+
+// --- Contest filters ---
+
+export const contestFiltersSchema = z.object({
+  status: contestStatusSchema.optional(),
+  limit: z.coerce.number().int().positive().max(100).optional(),
+  offset: z.coerce.number().int().min(0).optional(),
+});
+export type ContestFilters = z.infer<typeof contestFiltersSchema>;
