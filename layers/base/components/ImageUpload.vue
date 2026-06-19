@@ -13,6 +13,8 @@ const emit = defineEmits<{
   'update:modelValue': [url: string];
 }>();
 
+const { uploadFile } = useFileUpload();
+
 const uploading = ref(false);
 const error = ref('');
 const fileInput = ref<HTMLInputElement | null>(null);
@@ -59,14 +61,9 @@ async function onCropped(blob: Blob): Promise<void> {
   error.value = '';
   try {
     const ext = blob.type === 'image/png' ? 'png' : 'jpg';
-    const formData = new FormData();
-    formData.append('file', new File([blob], `${props.purpose}.${ext}`, { type: blob.type || 'image/jpeg' }));
-    formData.append('purpose', props.purpose);
+    const file = new File([blob], `${props.purpose}.${ext}`, { type: blob.type || 'image/jpeg' });
 
-    const result = await $fetch<{ url: string }>('/api/files/upload', {
-      method: 'POST',
-      body: formData,
-    });
+    const result = await uploadFile(file, props.purpose);
 
     emit('update:modelValue', result.url);
   } catch (err: unknown) {

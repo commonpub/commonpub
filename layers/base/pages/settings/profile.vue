@@ -5,6 +5,7 @@ useSeoMeta({ title: `Edit Profile, ${useSiteName()}` });
 const { user } = useAuth();
 const toast = useToast();
 const { extract: extractError } = useApiError();
+const { uploadFile } = useFileUpload();
 const saving = ref(false);
 const isDirty = ref(false);
 
@@ -146,11 +147,8 @@ function removeExperience(index: number): void {
 async function handleAvatarUpload(event: Event): Promise<void> {
   const file = (event.target as HTMLInputElement).files?.[0];
   if (!file) return;
-  const formData = new FormData();
-  formData.append('file', file);
-  formData.append('purpose', 'avatar');
   try {
-    const result = await $fetch<{ url: string }>('/api/files/upload', { method: 'POST', body: formData });
+    const result = await uploadFile(file, 'avatar');
     form.value.avatarUrl = result.url;
   } catch (err: unknown) {
     toast.error(extractError(err));
@@ -160,11 +158,8 @@ async function handleAvatarUpload(event: Event): Promise<void> {
 async function handleBannerUpload(event: Event): Promise<void> {
   const file = (event.target as HTMLInputElement).files?.[0];
   if (!file) return;
-  const formData = new FormData();
-  formData.append('file', file);
-  formData.append('purpose', 'banner');
   try {
-    const result = await $fetch<{ url: string }>('/api/files/upload', { method: 'POST', body: formData });
+    const result = await uploadFile(file, 'banner');
     form.value.bannerUrl = result.url;
   } catch (err: unknown) {
     toast.error(extractError(err));

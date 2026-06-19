@@ -121,11 +121,9 @@ const { errors: publishErrors, showErrors: showPublishErrors, validate, dismiss:
 });
 
 // --- Provide upload + search handlers to block components via inject ---
+const { uploadFile } = useFileUpload();
 provide(UPLOAD_HANDLER_KEY, async (file: File) => {
-  const formData = new FormData();
-  formData.append('file', file);
-  formData.append('purpose', 'content');
-  const res = await $fetch<{ url: string; width?: number | null; height?: number | null }>('/api/files/upload', { method: 'POST', body: formData });
+  const res = await uploadFile<{ url: string; width?: number | null; height?: number | null }>(file, 'content');
   return { url: res.url, width: res.width ?? null, height: res.height ?? null };
 });
 
@@ -306,7 +304,7 @@ async function handlePublish(): Promise<void> {
 }
 
 // --- Schedule (deferred publish) ---
-// metadata.scheduledAt is set by the editor's schedule control (e.g. BlogEditor).
+// metadata.scheduledAt is set by the editor's schedule control (e.g. ArticleEditor).
 const canSchedule = computed(() => !!(metadata.value.scheduledAt as string | undefined));
 async function handleSchedule(): Promise<void> {
   await doSchedule(validate);

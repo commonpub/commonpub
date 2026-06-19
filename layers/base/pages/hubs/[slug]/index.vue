@@ -228,14 +228,14 @@ function openImagePicker(): void {
   imageInput.value?.click();
 }
 
+const { uploadFile } = useFileUpload();
+
 async function handleImageUpload(event: Event): Promise<void> {
   const input = event.target as HTMLInputElement;
   const file = input.files?.[0];
   if (!file) return;
-  const formData = new FormData();
-  formData.append('file', file);
   try {
-    const result = await $fetch<{ url: string }>('/api/files/upload', { method: 'POST', body: formData });
+    const result = await uploadFile(file);
     newPostContent.value += (newPostContent.value ? ' ' : '') + result.url;
     toast.success('Image uploaded');
   } catch {
