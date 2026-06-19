@@ -270,3 +270,44 @@ Authoritative tier is `docs/STATUS.md` (current) + `docs/sessions/`. Required re
    hardening; rate-limit alarm; HTTP-sig glue tests; homepage 3-path consolidation;
    `docs/edit.vue` autosave; view-component duplication; monolith splits.
 8. **P3:** delete dead code/columns/scripts/dirs; doc-tier dedup.
+
+---
+
+## Remediation status — branch `audit-203-fixes` (not yet released/deployed)
+
+All correctness/security findings are fixed and verified (full monorepo: build 16/16,
+typecheck 28/28, all test suites green incl. server 1387, layer 1043). Commits:
+
+| Area | Fix | Commit |
+|---|---|---|
+| Counter data-loss | `remote_like_count` column (migration **0026**, backfilled) + inbox maintain + reconcile = local+remote; added learning enrollment/completion to reconcile | `fix(federation): track remote like counts…` |
+| Federation tx/race | `toggleFederatedHubPostLike` transactional + counter gated on row insert/delete | `fix(federation): transactional hub-post like toggle…` |
+| Untrusted AP dates | `parseApDate()` guards the inbox `new Date(object.published/note.published)` binds | (same commit) |
+| Unauth 500s | `normalizePagination` NaN-guard (+ test); `parseParams('uuid')` on id routes; `isUuid` on `events?hubId`; `parseBody` enforces 10MB on actual body | `fix(server): stable pagination…` + `fix(layer): gate social flag…` |
+| Pagination dups | `desc(id)` tiebreaker on ~16 offset queries | `fix(server): stable pagination…` |
+| Sanitizer lies | editor `sanitizeBlockHtml` now real allowlist; protocol output → allowlist (`sanitizeFederatedHtml`) + `STRIP_WITH_CONTENT` | `fix(sanitize): real allowlist HTML sanitizers…` |
+| social flag | `requireFeature('social')` on 11 routes | `fix(layer): gate social flag…` |
+| SVG / rate-limit | SVG uploads `Content-Disposition: attachment`; rate-limit fail-open now logs | `fix(infra): SVG uploads served as attachment…` |
+| HTTP-sig test gap | `inbox.test.ts` (host binding, skew) | `fix(layer): gate social flag…` |
+| Dead code / deps | removed dead `onContentStatusChange`, dead `BlogEditor.vue`, unused protocol/docs deps | `chore(server): remove dead…` + sanitize/layer commits |
+| Dup upload + flags | `useFileUpload()` (8 sites); identity sub-flags in runtimeConfig | `refactor(layer): useFileUpload…` |
+
+**Deliberately DEFERRED** (structural refactors — too risky to bundle with security fixes;
+each deserves a focused, separately-reviewed PR):
+
+- **Field-cascade DRY** (`createInsertSchema`-derived validators + collapse the six
+  `content.ts` field-maps) — touches the hottest CRUD path; needs staged testing.
+- **Homepage 3-path consolidation** (`index.vue`) — live on commonpub.io; visual-regression risk.
+- **Content-view duplication** (extract `ContentAvatar`, adopt `AuthorRow` in
+  ProjectView/ArticleView/ExplainerView) — visual-regression risk.
+- **Monolith file splits** (`inboxHandlers.ts`, `validators.ts`, `docs/[siteSlug]/edit.vue`
+  own autosave) — mechanical but large; `UUID_RE` dedup folded in here.
+- **Remaining drift-only counters** (comment/reply/post/boost) — same remote-source pattern
+  as likes; each needs its own `remote_*_count` column + decrement-path tracing.
+- **Inert column drops** (`contests.content_format`, `contests.judges`) — destructive; leave
+  per additive-only migration discipline until a deliberate cleanup migration.
+
+**Not done (release/deploy):** versions NOT bumped, nothing published/deployed. Merging to
+`main` auto-deploys commonpub.io (applies migration 0026 via `db-migrate.mjs`); deveco/heatsync
+need published package bumps. Migration 0026's backfill SQL has not run against a live DB yet
+(PGlite tests use `pushSchema`, not the migration file).
