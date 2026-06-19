@@ -136,3 +136,33 @@ that untested layer.
 
 Each fix needs a test that goes RED on revert (mutation bar). Full per-agent findings + line cites are
 in the session-208 agent transcripts.
+
+---
+
+## Fixes SHIPPED this session (branch `monolith-splits`, not yet deployed)
+
+Phase A + B from the plan above, committed + tested + `nuxt typecheck` clean (layer suite 1109 green):
+
+**Phase A (quick wins):**
+- #2 search `likes` sort — added end-to-end (schema/route/Meili/PG/listContent) + tests.
+- #3 API-keys gated behind `publicApi` (routes + sidebar link + page notice).
+- #4 build-state hydration — new `GET /api/content/[id]/build` (+ federated) + ProjectView onMounted + test.
+- #17 error-as-empty — `v-else-if="error"` + retry on `[type]`/products/hubs/events/contests/learn.
+- #18 follower/following — fixed the `.items` shape bug (lists were rendering empty!) + viewer-aware
+  `isFollowing` (server `viewerId` param + test) so the Follow button reflects the viewer.
+- Misc: cert loading state, ExplainerView CommentSection, AppToast assertive-for-errors, share() toast,
+  Nav Home exact-active, video Featured dedup, 4 silent-catch→toast.
+
+**Phase B:**
+- a11y: ProjectView tabs → full tablist/tab/tabpanel + roving arrows (test); SearchSidebar clickable
+  li/span/div → real buttons (+ removed dead Join button); layout palette tiles → Enter/Space keyboard
+  insert (test).
+- Form labels (WCAG 1.3.1/4.1.2): associated **all 7 flagged forms** — settings/account, settings/profile,
+  events/create, events/[slug]/edit, contests/create, contests/[slug]/edit, ContestStagesEditor. for/id
+  (index-aware in loops), aria-label where no visible label, group captions → `<span>`.
+
+**Still deferred (Phase C — feature builds / decisions, NOT done):** hub invite UI (P0), hub member-mgmt +
+ban UI, video sort+category admin, product edit/delete UI, learning completion read-back, profile per-tab
+pagination + drafts, federated-follow-from-profile, homepage legacy-branch consolidation, RBAC
+`useCan`-driven admin chrome, megalodon TOCTOU. Plus the audit's own NEW P1 (`likeRemoteContent` race,
+see `207-kickoff-next.md`). Finding 2 (latent NaN clamps) also open.
