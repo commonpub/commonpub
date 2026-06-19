@@ -906,49 +906,54 @@ export async function createContentVersion(
   contentId: string,
   userId: string,
 ): Promise<{ id: string; version: number }> {
-  const content = await db
-    .select()
-    .from(contentItems)
-    .where(eq(contentItems.id, contentId))
-    .limit(1);
+  return db.transaction(async (tx) => {
+    // Lock the parent row so concurrent version creates serialize per content,
+    // preventing duplicate version numbers (no unique constraint by design).
+    const content = await tx
+      .select()
+      .from(contentItems)
+      .where(eq(contentItems.id, contentId))
+      .for('update')
+      .limit(1);
 
-  if (content.length === 0) throw new Error('Content not found');
+    if (content.length === 0) throw new Error('Content not found');
 
-  const item = content[0]!;
+    const item = content[0]!;
 
-  // Get next version number
-  const [lastVersion] = await db
-    .select({ version: contentVersions.version })
-    .from(contentVersions)
-    .where(eq(contentVersions.contentId, contentId))
-    .orderBy(desc(contentVersions.version))
-    .limit(1);
+    // Get next version number
+    const [lastVersion] = await tx
+      .select({ version: contentVersions.version })
+      .from(contentVersions)
+      .where(eq(contentVersions.contentId, contentId))
+      .orderBy(desc(contentVersions.version))
+      .limit(1);
 
-  const nextVersion = (lastVersion?.version ?? 0) + 1;
+    const nextVersion = (lastVersion?.version ?? 0) + 1;
 
-  const [row] = await db
-    .insert(contentVersions)
-    .values({
-      contentId,
-      version: nextVersion,
-      title: item.title,
-      content: item.content,
-      metadata: {
-        subtitle: item.subtitle,
-        description: item.description,
-        category: item.category,
-        difficulty: item.difficulty,
-        buildTime: item.buildTime,
-        estimatedCost: item.estimatedCost,
-        coverImageUrl: item.coverImageUrl,
-        parts: item.parts,
-        sections: item.sections,
-      },
-      createdById: userId,
-    })
-    .returning({ id: contentVersions.id, version: contentVersions.version });
+    const [row] = await tx
+      .insert(contentVersions)
+      .values({
+        contentId,
+        version: nextVersion,
+        title: item.title,
+        content: item.content,
+        metadata: {
+          subtitle: item.subtitle,
+          description: item.description,
+          category: item.category,
+          difficulty: item.difficulty,
+          buildTime: item.buildTime,
+          estimatedCost: item.estimatedCost,
+          coverImageUrl: item.coverImageUrl,
+          parts: item.parts,
+          sections: item.sections,
+        },
+        createdById: userId,
+      })
+      .returning({ id: contentVersions.id, version: contentVersions.version });
 
-  return { id: row!.id, version: row!.version };
+    return { id: row!.id, version: row!.version };
+  });
 }
 
 export interface ContentVersionItem {
@@ -1131,47 +1136,54 @@ export async function forkContent(
   }
 
   const item = source[0]!;
-  const slug = await ensureUniqueSlugFor(
-    db, contentItems, contentItems.slug, contentItems.id,
-    `${item.slug}-fork-${Date.now()}`, 'fork', undefined,
-    [{ col: contentItems.authorId, value: userId }, { col: contentItems.type, value: item.type }],
-  );
   const previewToken = crypto.randomUUID().replace(/-/g, '');
 
-  const [forked] = await db
-    .insert(contentItems)
-    .values({
-      authorId: userId,
-      type: item.type,
-      title: `${item.title} (Fork)`,
-      slug,
-      subtitle: item.subtitle,
-      description: item.description,
-      content: item.content,
-      coverImageUrl: item.coverImageUrl,
-      category: item.category,
-      categoryId: item.categoryId,
-      difficulty: item.difficulty,
-      buildTime: item.buildTime,
-      estimatedCost: item.estimatedCost,
-      visibility: 'public',
-      seoDescription: item.seoDescription,
-      sections: item.sections,
-      parts: item.parts,
-      status: 'draft',
-      previewToken,
-    })
-    .returning();
+  // Wrap the three writes (insert fork item, link fork, bump source forkCount)
+  // in one transaction so a partial failure can't orphan a fork.
+  const forked = await db.transaction(async (tx) => {
+    const slug = await ensureUniqueSlugFor(
+      tx, contentItems, contentItems.slug, contentItems.id,
+      `${item.slug}-fork-${Date.now()}`, 'fork', undefined,
+      [{ col: contentItems.authorId, value: userId }, { col: contentItems.type, value: item.type }],
+    );
 
-  await db.insert(contentForks).values({
-    sourceId,
-    forkId: forked!.id,
+    const [inserted] = await tx
+      .insert(contentItems)
+      .values({
+        authorId: userId,
+        type: item.type,
+        title: `${item.title} (Fork)`,
+        slug,
+        subtitle: item.subtitle,
+        description: item.description,
+        content: item.content,
+        coverImageUrl: item.coverImageUrl,
+        category: item.category,
+        categoryId: item.categoryId,
+        difficulty: item.difficulty,
+        buildTime: item.buildTime,
+        estimatedCost: item.estimatedCost,
+        visibility: 'public',
+        seoDescription: item.seoDescription,
+        sections: item.sections,
+        parts: item.parts,
+        status: 'draft',
+        previewToken,
+      })
+      .returning();
+
+    await tx.insert(contentForks).values({
+      sourceId,
+      forkId: inserted!.id,
+    });
+
+    await tx
+      .update(contentItems)
+      .set({ forkCount: sql`${contentItems.forkCount} + 1` })
+      .where(eq(contentItems.id, sourceId));
+
+    return inserted!;
   });
-
-  await db
-    .update(contentItems)
-    .set({ forkCount: sql`${contentItems.forkCount} + 1` })
-    .where(eq(contentItems.id, sourceId));
 
   // Notify original author about fork (non-critical)
   try {
@@ -1190,7 +1202,7 @@ export async function forkContent(
     }
   } catch { /* non-critical */ }
 
-  return (await getContentBySlug(db, forked!.slug, userId, undefined, userId))!;
+  return (await getContentBySlug(db, forked.slug, userId, undefined, userId))!;
 }
 
 // --- Federated Content: Fork & Build ---

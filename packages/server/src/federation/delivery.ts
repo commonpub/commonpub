@@ -2,7 +2,7 @@
  * Activity delivery — sends pending outbound AP activities to remote inboxes.
  * Signs requests with HTTP Signatures and updates delivery status.
  */
-import { eq, and, sql, lte, isNull, or } from 'drizzle-orm';
+import { eq, and, sql, lte, isNull, or, inArray } from 'drizzle-orm';
 import { activities, remoteActors, followRelationships, actorKeypairs, users, hubs, hubActorKeypairs, hubFollowers } from '@commonpub/schema';
 import { signRequest, safeFetchSigned } from '@commonpub/protocol';
 import { createStructuredLogger } from '@commonpub/infra';
@@ -225,6 +225,39 @@ async function deliverActivity(
   }
 }
 
+/**
+ * Resolve a list of follower actor URIs to their delivery inboxes in a single
+ * batched query (avoids an N+1 per-follower SELECT). Returns the preferred
+ * target inbox per follower (sharedInbox when present, else inbox). The caller's
+ * final `new Set(...)` collapses shared inboxes so each distinct inbox is hit once.
+ */
+async function resolveFollowerInboxes(db: DB, followerUris: string[]): Promise<string[]> {
+  const uris = [...new Set(followerUris)];
+  if (uris.length === 0) return [];
+
+  const actors = await db
+    .select({
+      actorUri: remoteActors.actorUri,
+      inbox: remoteActors.inbox,
+      sharedInbox: remoteActors.sharedInbox,
+    })
+    .from(remoteActors)
+    .where(inArray(remoteActors.actorUri, uris));
+
+  const byUri = new Map<string, { inbox: string | null; sharedInbox: string | null }>();
+  for (const a of actors) {
+    byUri.set(a.actorUri, { inbox: a.inbox, sharedInbox: a.sharedInbox });
+  }
+
+  const targets: string[] = [];
+  for (const uri of uris) {
+    const actor = byUri.get(uri);
+    const targetInbox = actor?.sharedInbox ?? actor?.inbox;
+    if (targetInbox) targets.push(targetInbox);
+  }
+  return targets;
+}
+
 async function resolveTargetInboxes(
   db: DB,
   activity: typeof activities.$inferSelect,
@@ -303,15 +336,9 @@ async function resolveTargetInboxes(
               eq(followRelationships.status, 'accepted'),
             ),
           );
-        for (const f of followers) {
-          const followerActor = await db
-            .select({ inbox: remoteActors.inbox, sharedInbox: remoteActors.sharedInbox })
-            .from(remoteActors)
-            .where(eq(remoteActors.actorUri, f.followerActorUri))
-            .limit(1);
-          const targetInbox = followerActor[0]?.sharedInbox ?? followerActor[0]?.inbox;
-          if (targetInbox) inboxes.push(targetInbox);
-        }
+        inboxes.push(
+          ...(await resolveFollowerInboxes(db, followers.map((f) => f.followerActorUri))),
+        );
       }
     }
   } else if (type === 'Create' || type === 'Update' || type === 'Delete' || type === 'Like' || type === 'Announce') {
@@ -368,15 +395,9 @@ async function resolveTargetInboxes(
             .select({ followerActorUri: hubFollowers.followerActorUri })
             .from(hubFollowers)
             .where(and(eq(hubFollowers.hubId, hub.id), eq(hubFollowers.status, 'accepted')));
-          for (const f of hubFols) {
-            const actor = await db
-              .select({ inbox: remoteActors.inbox, sharedInbox: remoteActors.sharedInbox })
-              .from(remoteActors)
-              .where(eq(remoteActors.actorUri, f.followerActorUri))
-              .limit(1);
-            const targetInbox = actor[0]?.sharedInbox ?? actor[0]?.inbox;
-            if (targetInbox) inboxes.push(targetInbox);
-          }
+          inboxes.push(
+            ...(await resolveFollowerInboxes(db, hubFols.map((f) => f.followerActorUri))),
+          );
         }
       }
 
@@ -392,15 +413,9 @@ async function resolveTargetInboxes(
             eq(followRelationships.status, 'accepted'),
           ),
         );
-      for (const f of instanceFollowers) {
-        const actor = await db
-          .select({ inbox: remoteActors.inbox, sharedInbox: remoteActors.sharedInbox })
-          .from(remoteActors)
-          .where(eq(remoteActors.actorUri, f.followerActorUri))
-          .limit(1);
-        const targetInbox = actor[0]?.sharedInbox ?? actor[0]?.inbox;
-        if (targetInbox) inboxes.push(targetInbox);
-      }
+      inboxes.push(
+        ...(await resolveFollowerInboxes(db, instanceFollowers.map((f) => f.followerActorUri))),
+      );
     } else {
       // User actor — resolve from followRelationships table
       const followers = await db
@@ -413,15 +428,9 @@ async function resolveTargetInboxes(
           ),
         );
 
-      for (const f of followers) {
-        const actor = await db
-          .select({ inbox: remoteActors.inbox, sharedInbox: remoteActors.sharedInbox })
-          .from(remoteActors)
-          .where(eq(remoteActors.actorUri, f.followerActorUri))
-          .limit(1);
-        const targetInbox = actor[0]?.sharedInbox ?? actor[0]?.inbox;
-        if (targetInbox) inboxes.push(targetInbox);
-      }
+      inboxes.push(
+        ...(await resolveFollowerInboxes(db, followers.map((f) => f.followerActorUri))),
+      );
 
       // Also deliver to instance actor followers (for mirroring)
       // Instance actor URI: https://{domain}/actor
@@ -437,15 +446,9 @@ async function resolveTargetInboxes(
             ),
           );
 
-        for (const f of instanceFollowers) {
-          const actor = await db
-            .select({ inbox: remoteActors.inbox, sharedInbox: remoteActors.sharedInbox })
-            .from(remoteActors)
-            .where(eq(remoteActors.actorUri, f.followerActorUri))
-            .limit(1);
-          const targetInbox = actor[0]?.sharedInbox ?? actor[0]?.inbox;
-          if (targetInbox) inboxes.push(targetInbox);
-        }
+        inboxes.push(
+          ...(await resolveFollowerInboxes(db, instanceFollowers.map((f) => f.followerActorUri))),
+        );
       }
     }
   }
