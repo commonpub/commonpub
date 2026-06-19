@@ -79,12 +79,16 @@ export async function listFederatedTimeline(
 
   const where = conditions.length === 1 ? conditions[0]! : and(...conditions);
 
-  // Count total
-  const [countRow] = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(federatedContent)
-    .where(where);
-  const total = countRow?.count ?? 0;
+  // Count total — only on the first page. Timeline clients detect "has more" via
+  // items.length; deep load-more pages skip the full COUNT(*). `-1` = "not computed".
+  let total = -1;
+  if (offset === 0) {
+    const [countRow] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(federatedContent)
+      .where(where);
+    total = countRow?.count ?? 0;
+  }
 
   // Fetch items with actor join
   const rows = await db

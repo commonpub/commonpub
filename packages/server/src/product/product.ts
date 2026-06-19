@@ -239,7 +239,8 @@ export async function listHubProducts(
       .orderBy(desc(products.createdAt), desc(products.id))
       .limit(limit)
       .offset(offset),
-    countRows(db, products, where),
+    // COUNT(*) only on the first page; deep load-more pages skip it (`-1` = "not computed").
+    offset === 0 ? countRows(db, products, where) : Promise.resolve(-1),
   ]);
 
   const items: ProductListItem[] = rows.map((p) => ({
@@ -288,7 +289,8 @@ export async function searchProducts(
       .orderBy(desc(products.createdAt), desc(products.id))
       .limit(limit)
       .offset(offset),
-    countRows(db, products, where),
+    // COUNT(*) only on the first page; deep load-more pages skip it (`-1` = "not computed").
+    offset === 0 ? countRows(db, products, where) : Promise.resolve(-1),
   ]);
 
   const items: ProductListItem[] = rows.map((p) => ({
@@ -496,14 +498,18 @@ export async function listProductContent(
       .innerJoin(contentItems, eq(contentProducts.contentId, contentItems.id))
       .innerJoin(users, eq(contentItems.authorId, users.id))
       .where(where)
-      .orderBy(desc(contentItems.publishedAt))
+      // desc(id) tiebreaker: publishedAt is non-unique, so without it offset pages overlap.
+      .orderBy(desc(contentItems.publishedAt), desc(contentItems.id))
       .limit(limit)
       .offset(offset),
-    db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(contentProducts)
-      .innerJoin(contentItems, eq(contentProducts.contentId, contentItems.id))
-      .where(where),
+    // COUNT(*) only on the first page; deep load-more pages skip it (`-1` = "not computed").
+    offset === 0
+      ? db
+          .select({ count: sql<number>`count(*)::int` })
+          .from(contentProducts)
+          .innerJoin(contentItems, eq(contentProducts.contentId, contentItems.id))
+          .where(where)
+      : Promise.resolve([{ count: -1 }]),
   ]);
 
   return {
@@ -573,11 +579,14 @@ export async function listHubGallery(
         .orderBy(contentItems.id, desc(contentItems.publishedAt))
         .limit(limit)
         .offset(offset),
-      db
-        .select({ count: sql<number>`count(DISTINCT ${contentItems.id})::int` })
-        .from(contentProducts)
-        .innerJoin(contentItems, eq(contentProducts.contentId, contentItems.id))
-        .where(where),
+      // COUNT only on the first page; deep load-more pages skip it (`-1` = "not computed").
+      offset === 0
+        ? db
+            .select({ count: sql<number>`count(DISTINCT ${contentItems.id})::int` })
+            .from(contentProducts)
+            .innerJoin(contentItems, eq(contentProducts.contentId, contentItems.id))
+            .where(where)
+        : Promise.resolve([{ count: -1 }]),
     ]);
 
     return {
@@ -633,11 +642,14 @@ export async function listHubGallery(
         .orderBy(contentItems.id, desc(contentItems.publishedAt))
         .limit(limit)
         .offset(offset),
-      db
-        .select({ count: sql<number>`count(DISTINCT ${contentItems.id})::int` })
-        .from(contentProducts)
-        .innerJoin(contentItems, eq(contentProducts.contentId, contentItems.id))
-        .where(where),
+      // COUNT only on the first page; deep load-more pages skip it (`-1` = "not computed").
+      offset === 0
+        ? db
+            .select({ count: sql<number>`count(DISTINCT ${contentItems.id})::int` })
+            .from(contentProducts)
+            .innerJoin(contentItems, eq(contentProducts.contentId, contentItems.id))
+            .where(where)
+        : Promise.resolve([{ count: -1 }]),
     ]);
 
     return {
@@ -671,14 +683,18 @@ export async function listHubGallery(
       .innerJoin(contentItems, eq(hubShares.contentId, contentItems.id))
       .innerJoin(users, eq(contentItems.authorId, users.id))
       .where(where)
-      .orderBy(desc(hubShares.createdAt))
+      // desc(id) tiebreaker: createdAt is non-unique, so without it offset pages overlap.
+      .orderBy(desc(hubShares.createdAt), desc(hubShares.id))
       .limit(limit)
       .offset(offset),
-    db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(hubShares)
-      .innerJoin(contentItems, eq(hubShares.contentId, contentItems.id))
-      .where(where),
+    // COUNT(*) only on the first page; deep load-more pages skip it (`-1` = "not computed").
+    offset === 0
+      ? db
+          .select({ count: sql<number>`count(*)::int` })
+          .from(hubShares)
+          .innerJoin(contentItems, eq(hubShares.contentId, contentItems.id))
+          .where(where)
+      : Promise.resolve([{ count: -1 }]),
   ]);
 
   return {

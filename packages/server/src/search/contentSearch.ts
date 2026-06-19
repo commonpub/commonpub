@@ -202,13 +202,15 @@ export async function searchWithPostgres(
 
   const where = and(...conditions);
 
-  // Sort — Postgres fallback doesn't have relevance ranking (that's what Meilisearch is for)
+  // Sort — Postgres fallback doesn't have relevance ranking (that's what Meilisearch is for).
+  // Append desc(id) as a unique tiebreaker so offset pages don't overlap when the
+  // primary sort column (viewCount / publishedAt) is non-unique.
   let orderBy;
   if (opts.sort === 'popular') {
-    orderBy = desc(contentItems.viewCount);
+    orderBy = [desc(contentItems.viewCount), desc(contentItems.id)];
   } else {
     // 'relevance' and 'recent' both use publishedAt for Postgres path
-    orderBy = desc(contentItems.publishedAt);
+    orderBy = [desc(contentItems.publishedAt), desc(contentItems.id)];
   }
 
   const [rows, countResult] = await Promise.all([
@@ -233,13 +235,17 @@ export async function searchWithPostgres(
       .from(contentItems)
       .innerJoin(users, eq(contentItems.authorId, users.id))
       .where(where)
-      .orderBy(orderBy)
+      .orderBy(...orderBy)
       .limit(limit)
       .offset(offset),
-    db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(contentItems)
-      .where(where),
+    // COUNT(*) only on the first page: clients detect "has more" via items.length and
+    // numbered listings read total only on page 1. `-1` = "not computed".
+    offset === 0
+      ? db
+          .select({ count: sql<number>`count(*)::int` })
+          .from(contentItems)
+          .where(where)
+      : Promise.resolve([{ count: -1 }]),
   ]);
 
   const items: ContentSearchResult[] = rows.map((r) => ({

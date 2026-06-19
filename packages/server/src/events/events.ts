@@ -132,7 +132,8 @@ export async function listEvents(
 
   const [rows, total] = await Promise.all([
     db.select().from(events).where(where).orderBy(asc(events.startDate), desc(events.id)).limit(limit).offset(offset),
-    countRows(db, events, where),
+    // COUNT(*) only on the first page; deep load-more pages skip it (`-1` = "not computed").
+    offset === 0 ? countRows(db, events, where) : Promise.resolve(-1),
   ]);
 
   return {
@@ -282,10 +283,11 @@ export async function listEventAttendees(
       .from(eventAttendees)
       .innerJoin(users, eq(eventAttendees.userId, users.id))
       .where(where)
-      .orderBy(desc(eventAttendees.registeredAt))
+      .orderBy(desc(eventAttendees.registeredAt), desc(eventAttendees.id))
       .limit(limit)
       .offset(offset),
-    countRows(db, eventAttendees, where),
+    // COUNT(*) only on the first page; deep load-more pages skip it (`-1` = "not computed").
+    offset === 0 ? countRows(db, eventAttendees, where) : Promise.resolve(-1),
   ]);
 
   return {

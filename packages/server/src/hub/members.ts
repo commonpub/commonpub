@@ -188,7 +188,7 @@ export async function listMembers(
       .from(hubMembers)
       .innerJoin(users, eq(hubMembers.userId, users.id))
       .where(where)
-      .orderBy(desc(hubMembers.joinedAt))
+      .orderBy(desc(hubMembers.joinedAt), desc(hubMembers.userId))
       .limit(limit)
       .offset(offset),
     countRows(db, hubMembers, where),

@@ -76,7 +76,8 @@ export async function listVideos(
       .orderBy(desc(videos.createdAt), desc(videos.id))
       .limit(limit)
       .offset(offset),
-    countRows(db, videos, where),
+    // COUNT(*) only on the first page; deep load-more pages skip it (`-1` = "not computed").
+    offset === 0 ? countRows(db, videos, where) : Promise.resolve(-1),
   ]);
 
   const items: VideoListItem[] = rows.map((row) => ({

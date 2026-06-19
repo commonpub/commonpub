@@ -40,7 +40,7 @@ export async function listDocsSites(
       .from(docsSites)
       .innerJoin(users, eq(docsSites.ownerId, users.id))
       .where(where)
-      .orderBy(desc(docsSites.createdAt))
+      .orderBy(desc(docsSites.createdAt), desc(docsSites.id))
       .limit(limit)
       .offset(offset),
     countRows(db, docsSites, where),

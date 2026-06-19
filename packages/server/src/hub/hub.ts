@@ -174,6 +174,38 @@ export async function getHubBySlug(
     isBanned = banResult !== null;
   }
 
+  // Private-hub metadata is members-only. Non-members (currentUserRole === null) get a
+  // minimal stub: name + privacy preserved, but the sensitive metadata
+  // (description/rules/website/icon/banner/categories) nulled out. The "membership
+  // required" signal is the combination privacy === 'private' && currentUserRole === null
+  // with redacted metadata — callers/UI key off that (no new HubDetail field is added,
+  // to keep the shared type stable). Posts and members are already gated separately.
+  // The member/admin path below returns the full detail.
+  if (row.hub.privacy === 'private' && currentUserRole === null) {
+    return {
+      id: row.hub.id,
+      name: row.hub.name,
+      slug: row.hub.slug,
+      description: null,
+      iconUrl: null,
+      bannerUrl: null,
+      joinPolicy: row.hub.joinPolicy,
+      isOfficial: row.hub.isOfficial,
+      memberCount: row.hub.memberCount,
+      postCount: row.hub.postCount,
+      createdAt: row.hub.createdAt,
+      createdBy: row.createdBy,
+      rules: null,
+      updatedAt: row.hub.updatedAt,
+      currentUserRole: null,
+      isBanned,
+      hubType: row.hub.hubType,
+      privacy: row.hub.privacy,
+      website: null,
+      categories: null,
+    };
+  }
+
   return {
     id: row.hub.id,
     name: row.hub.name,
